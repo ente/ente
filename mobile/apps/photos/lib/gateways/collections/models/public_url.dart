@@ -43,13 +43,10 @@ class PublicURL {
 
   bool get hasExpiry => validTill != 0;
 
-  // isExpired indicates whether the link has expired or not
   bool get isExpired =>
       hasExpiry && validTill < DateTime.now().microsecondsSinceEpoch;
 
-  static fromMap(Map<String, dynamic>? map) {
-    if (map == null) return null;
-
+  static PublicURL fromMap(Map<String, dynamic> map) {
     return PublicURL(
       url: map['url'],
       deviceLimit: map['deviceLimit'],

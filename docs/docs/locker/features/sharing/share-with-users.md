@@ -5,8 +5,7 @@ description: Share document collections securely with family members using end-t
 
 # Share Collections with Users
 
-Share collections directly with other Ente users. They'll have access through
-their Locker app with full end-to-end encryption.
+Share collections directly with other Ente users. They'll have access through their Locker app with full end-to-end encryption.
 
 ## How it works
 
@@ -19,6 +18,12 @@ When you share a collection with another Ente user:
 
 ## Sharing a collection
 
+![Share collection sheet with Add email and Link options](https://docs-assets.ente.com/screenshots/locker-share-collection-sheet.png){width=320px}
+
+![Add email highlighted on Share collection sheet](https://docs-assets.ente.com/screenshots/locker-share-users-entry-callout.png){width=320px}
+
+![Collection shared with an Ente user (email frosted)](https://docs-assets.ente.com/screenshots/locker-share-users.png){width=320px}
+
 1. Open the collection you want to share
 2. Tap the share button
 3. Select **Share with Ente user**
@@ -29,19 +34,21 @@ All items in the collection will be shared.
 
 ## Sharing individual items
 
-To share an individual item with an Ente user, add it to a collection and share
-the collection. Alternatively, you can create a
-[public link](/locker/features/sharing/public-links) for the item.
+To share an individual item with an Ente user, add it to a collection and share the collection. Alternatively, you can create a [public link](/locker/features/sharing/public-links) for the item.
 
 ## Managing shared collections
 
 ### Viewing who has access
+
+![Share collection sheet listing Mom and another participant on Ente Locker Android](https://docs-assets.ente.com/screenshots/locker-share-participants-mom.png){width=320px}
 
 1. Open the shared collection
 2. Tap the share button
 3. View the list of people with access
 
 ### Removing access
+
+![Remove access menu row highlighted on Share collection sheet on Ente Locker Android](https://docs-assets.ente.com/screenshots/locker-remove-access-callout.png){width=320px}
 
 1. Open the shared collection
 2. Tap the share button

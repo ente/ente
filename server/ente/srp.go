@@ -36,13 +36,18 @@ type RecoveryUpdateSRPAndKeysRequest struct {
 	UpdateSrp  UpdateSRPAndKeysRequest `json:"updateSrpAndKeysRequest" binding:"required"`
 }
 
-// UpdateSRPAndKeysRequest is used to update the SRP attributes (e.g. when user updates his password) and also
-// update the keys attributes
 type UpdateSRPAndKeysRequest struct {
 	SetupID            uuid.UUID          `json:"setupID" binding:"required"`
 	SRPM1              string             `json:"srpM1" binding:"required"`
 	UpdateAttributes   *UpdateKeysRequest `json:"updatedKeyAttr"`
 	LogOutOtherDevices *bool              `json:"logOutOtherDevices"`
+}
+
+func (r UpdateSRPAndKeysRequest) Validate() error {
+	if r.UpdateAttributes == nil {
+		return NewBadRequestWithMessage("updatedKeyAttr is required")
+	}
+	return r.UpdateAttributes.Validate()
 }
 
 type UpdateSRPSetupResponse struct {
@@ -82,7 +87,6 @@ type VerifySRPSessionRequest struct {
 	SRPM1     string    `json:"srpM1"`
 }
 
-// SRPSessionEntity represents a row in the srp_sessions table
 type SRPSessionEntity struct {
 	ID           uuid.UUID
 	SRPUserID    uuid.UUID
@@ -92,6 +96,7 @@ type SRPSessionEntity struct {
 	IsVerified   bool
 	AttemptCount int32
 	IsFake       bool
+	IsExpired    bool
 }
 
 type SRPAuthEntity struct {

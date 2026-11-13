@@ -12,10 +12,7 @@ Future<T?> showEmailSheet<T>(
     context,
     title: email,
     headerSpacing: 20,
-    child: EmailSheet(
-      message: message,
-      buttons: buttons,
-    ),
+    child: EmailSheet(message: message, buttons: buttons),
   );
 }
 
@@ -23,11 +20,7 @@ class EmailSheet extends StatelessWidget {
   final String message;
   final List<Widget> buttons;
 
-  const EmailSheet({
-    super.key,
-    required this.message,
-    required this.buttons,
-  });
+  const EmailSheet({super.key, required this.message, required this.buttons});
 
   @override
   Widget build(BuildContext context) {

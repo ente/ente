@@ -1,4 +1,4 @@
-export interface FileLinkMeta {
+interface FileLinkMeta {
     encryptedFileKey?: string;
     encryptedFileKeyNonce?: string;
     kdfNonce?: string;
@@ -29,7 +29,8 @@ export interface FileLinkInfo {
             data?: string;
             header?: string;
         };
-        // Legacy field names
+        // Older responses used these flat fields instead of the nested
+        // metadata object above.
         encryptedMetadata?: string;
         metadataDecryptionHeader?: string;
         fileSize?: number;

@@ -1,9 +1,7 @@
-Generate random keys that can be used in the museum configuration file.
+# Generate museum keys
 
-## Details
+Generate random values for the cryptographic secrets required by a new museum instance:
 
-This tool can be used to generate new random values for various cryptographic
-secrets that should be overridden in `configuration/local.yaml` when running a
-new instance of museum.
-
-    go run tools/gen-random-keys/main.go
+```sh
+go run tools/gen-random-keys/main.go
+```

@@ -1,10 +1,14 @@
 ---
-title: This Page Has Moved
-description: This content has been reorganized
+title: Watch Folders
+description: Automatic desktop backup using watch folders in Ente Photos
 search: false
+head:
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
-# This Page Has Moved
+# Watch Folders
 
 The **Watch Folders** feature guide has moved to:
 

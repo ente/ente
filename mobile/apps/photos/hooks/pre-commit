@@ -1,9 +1,0 @@
-#!/bin/sh
-# This git hook fails if a user is trying to add a new file which is
-# not null safe.
-exec ./hooks/pre-commit-fdroid
-
-
-
-# If the script gets to this point, all files passed the check
-exit 0

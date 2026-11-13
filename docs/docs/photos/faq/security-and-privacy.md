@@ -5,20 +5,23 @@ description: Comprehensive information about security and privacy measures in En
 
 # Security and Privacy FAQ
 
-Welcome to Ente Photos' Security and Privacy FAQ. This document provides
-detailed information about our security practices, privacy measures, and how we
-protect your data. We are committed to maintaining the highest standards of data
-protection and transparency.
+Welcome to Ente Photos' Security and Privacy FAQ. This document provides detailed information about our security practices, privacy measures, and how we protect your data. We are committed to maintaining the highest standards of data protection and transparency.
 
 ## Data Encryption and Storage
 
 ### Can Ente see my photos and videos? {#can-ente-see-photos}
 
-No. Your files are encrypted on your device before being uploaded to our
-servers. The encryption keys are derived from your password using advanced key
-derivation functions. Since only you know your password, only you can decrypt
-your files. For technical details, please see our
-[architecture document](https://ente.io/architecture).
+No. Your files are encrypted on your device before being uploaded to our servers. The encryption keys are derived from your password using advanced key derivation functions. Since only you know your password, only you can decrypt your files. For technical details, please see our [architecture document](https://ente.com/architecture).
+
+### Why does my photo's info show "ICC Copyright Apple Inc."? {#icc-apple-copyright}
+
+That line is part of the photo's colour profile (ICC profile), which tells apps how to display colours. iPhones and other Apple devices embed this profile when they save a photo. The profile can include a "Copyright Apple Inc." notice, and any year in that notice is when the profile was made, not when your photo was taken.
+
+Ente does not add this notice. It was already in the original file's colour profile. Ente stores your original file as uploaded. **View all Exif data** shows every section in the file, including ones other viewers hide.
+
+Ente Photos is end-to-end encrypted. Ente cannot read your photo contents, and uploading to Ente does not send your photos to Apple.
+
+If something still looks wrong, email [support@ente.com](mailto:support@ente.com).
 
 ### Can Ente see the metadata of my photos and videos? {#can-ente-see-metadata}
 
@@ -32,10 +35,7 @@ We use the following encryption algorithms:
 - Authentication: Poly1305 message authentication code (MAC)
 - Key derivation: Argon2id with high memory and computation parameters
 
-These algorithms are implemented using
-[libsodium](https://libsodium.gitbook.io/doc/), a externally audited
-cryptographic library. Our [architecture document](https://ente.io/architecture)
-provides full technical specifications.
+These algorithms are implemented using [libsodium](https://libsodium.gitbook.io/doc/), a externally audited cryptographic library. Our [architecture document](https://ente.com/architecture) provides full technical specifications.
 
 ### Where is my data stored? {#data-storage-location}
 
@@ -45,40 +45,43 @@ Your encrypted data is stored redundantly across multiple providers in the EU:
 - Paris, France
 - Frankfurt, Germany
 
-We use a combination of object storage and distributed databases to ensure high
-availability and durability. Our
-[reliability document](https://ente.io/reliability) provides in-depth
-information about our storage infrastructure and data replication strategies.
+We use a combination of object storage and distributed databases to ensure high availability and durability. Our [reliability document](https://ente.com/reliability) provides in-depth information about our storage infrastructure and data replication strategies.
 
-In short, we store 3 copies of your data, across 3 different providers, in 3
-different countries. One of them is in an underground fall-out shelter in Paris.
+In short, we store 3 copies of your data, across 3 different providers, in 3 different countries. One of them is in an underground fall-out shelter in Paris.
 
 ### How does Ente's encryption compare to industry standards? {#encryption-comparison}
 
-Our encryption model goes beyond industry standards. While many services use
-server-side encryption, we implement end-to-end encryption. This means that even
-in the unlikely event of a server breach, your data remains protected.
+Our encryption model goes beyond industry standards. While many services use server-side encryption, we implement end-to-end encryption. This means that even in the unlikely event of a server breach, your data remains protected.
 
 ## Account Security
 
 ### What happens if I forget my password? {#account-recovery}
 
-If you are logged into Ente on any of your existing devices, you can use that
-device to reset your password and use your new password to log in.
+If you are signed in on a mobile device, you can change your password there and use the new password to sign in elsewhere. On web and desktop, **Change password** may ask for your current password. If that is your only signed-in session and you have forgotten both your password and recovery key, keep the session open and save the data you can access before contacting support about your options.
 
-If you are logged out of Ente on all your devices, you can reset your password
-using your recovery key that was provided to you during account creation.
+If you are logged out of Ente on all your devices, you can reset your password using your recovery key that was provided to you during account creation.
 
-If you are logged out of Ente on all your devices and you have lost both your
-password and recovery key, we cannot recover your account or data due to our
-end-to-end encrypted architecture.
+If you are logged out of Ente on all your devices and have lost both your password and recovery key, Ente support cannot recover your account or data due to end-to-end encryption. A previously accepted [Legacy trusted contact](/photos/features/account/legacy/) may be able to recover your account after the configured waiting period, unless recovery is blocked. You cannot set up this route after losing access.
 
-If you wish to delete your account in such scenarios, please reach out to
-support@ente.io and we will help you out.
+If you wish to delete your account in such scenarios, please reach out to support@ente.com and we will help you out.
+
+### I've lost my password and recovery key. Can I start over with the same email? {#start-fresh-same-email}
+
+Yes. If you are logged out of Ente on all your devices and have lost both your password and recovery key, we can delete your account so you can sign up again with the same email address.
+
+Before you ask for this:
+
+- If Ente is still signed in on a mobile device, including Ente Auth or Ente Locker, try to [change your password](#change-password) there. If only [photos.ente.com](https://photos.ente.com) or desktop is signed in, keep that session open. **Change password** may require your current password, so save the data you can access and contact support before starting over.
+- Deleting the account permanently deletes its Ente Photos, Ente Auth and Ente Locker data, since they all use the same account. Ente cannot recover this data, because it is end-to-end encrypted.
+- If you subscribed through the Apple App Store, cancel the subscription in that store. We can't cancel store subscriptions for you.
+
+To request deletion, email [support@ente.com](mailto:support@ente.com) from the email address of your Ente account.
+
+Once the account is deleted, sign up again with the same email address. Save the new [recovery key](#recovery-key-importance) somewhere safe.
 
 ### What is my recovery key and why is it critical? {#recovery-key-importance}
 
-Your **recovery key is a 24-word phrase** that is the ONLY way to recover your account if you:
+Your **recovery key is a 24-word phrase** used to recover your account if you:
 
 - Forget your password AND
 - Are logged out of all devices
@@ -87,19 +90,33 @@ Your **recovery key is a 24-word phrase** that is the ONLY way to recover your a
 
 ⚠️ **Ente support CANNOT provide or regenerate your recovery key**. Due to end-to-end encryption, we never have access to your recovery key or your encrypted data.
 
-⚠️ **Without your recovery key, losing your password means permanently losing access** to all your photos if you're logged out everywhere.
+⚠️ **Without your recovery key, losing your password means permanently losing access** to your photos if you're logged out everywhere and have no previously accepted [Legacy trusted contact](/photos/features/account/legacy/).
 
 ⚠️ **Your recovery key is different from verification codes**. Verification codes are temporary 6-digit numbers sent to your email. Your recovery key is a permanent 24-word phrase.
 
+The same Ente account uses the same recovery key in Photos, Auth, and Locker. Separate accounts have separate keys. Backup-code lists issued by other websites belong to those websites and cannot be used as your Ente recovery key. Learn [which recovery key or backup codes you need](/auth/faq/#recovery-key-or-backup-codes).
+
+Your recovery key cannot be changed. If it was exposed, see [what to do next](/auth/faq/#change-recovery-key).
+
+### Can I get a new recovery key? {#new-recovery-key}
+
+No. You cannot change or rotate the recovery key for an existing Ente account. Changing your password does not change the recovery key. If the key was exposed, see [Can I change my recovery key if it was exposed?](/auth/faq/#change-recovery-key).
+
 ### How do I find my recovery key? {#find-recovery-key}
+
+If you previously downloaded your recovery key, search your Downloads folder for `ente-recovery-key.txt` (or search for `recovery-key.txt`). If you saved it elsewhere, check that folder too. Keep the file private.
 
 **If you're still logged in to Ente on any device:**
 
-Open `Settings > Account > Recovery key`, enter your password to view your 24-word recovery key, and **save it immediately** in a secure location.
+Open `Settings > Account > Recovery key`, enter your password to view your 24-word recovery key, and save it in a secure location. Keep that device signed in while you resolve any access problems.
 
-**If you're logged out of all devices and don't have your recovery key:**
+On the web app or desktop app, open the sidebar and go to `Account > Recovery key`. If your phone will not open the Recovery key screen, sign in at [photos.ente.com](https://photos.ente.com) and get it there.
 
-Unfortunately, there is no way to recover your account. This is an inherent property of end-to-end encryption - for your privacy and security, only you have access to your data.
+**If you're logged out of all devices:**
+
+If you still know your password and can complete the required sign-in checks, sign in and save your recovery key. If you have lost access to a second factor, see [recovering access to 2FA](#two-factor-auth).
+
+If you have lost both your password and recovery key, Ente support cannot reconstruct your encryption keys or decrypt your data. See [account recovery](#account-recovery) for the available recovery options.
 
 ### How should I store my recovery key? {#store-recovery-key}
 
@@ -124,29 +141,44 @@ Unfortunately, there is no way to recover your account. This is an inherent prop
 
 If you've forgotten your password and are logged out everywhere:
 
-1. Open the login page (on any platform)
-2. Enter your email address
-3. Click "Forgot Password"
-4. Enter your 24-word recovery key
-    - Type each word separated by a single space
-    - All lowercase, no punctuation
-    - Example format: `word1 word2 word3 ... word24`
-5. Create a new password
-6. Log in with your new password
+1. Open the login page.
+2. Enter your email address.
+3. Choose **Forgot Password** and complete the sign-in checks shown by the app.
+4. Enter the 24 words of your recovery key in their original order.
+    - Separate words with a single space.
+    - Use lowercase letters without punctuation or manually inserted line breaks.
+    - The field may wrap text automatically; do not press Enter between words.
+5. Create a new password.
+6. Sign in with the new password.
 
 **Common issues:**
 
-- **"Invalid recovery key"**: Check for typos, extra spaces, or missing words
-- **Recovery key not working**: Make sure you're using the recovery key (24 words), not a verification code (6 digits)
-- **Still can't access account**: Contact [support@ente.io](mailto:support@ente.io) - we may be able to help verify account ownership for account deletion, but cannot recover your data
+- **Invalid recovery key:** Check for typos, missing or reordered words, extra spaces, and manually inserted line breaks. Use the key for this Ente account and server.
+- **Wrong kind of code:** Your Ente recovery key is a 24-word phrase. An email verification code or another website's backup codes cannot replace it.
+- **Error after submitting:** A generic error can also involve a connection problem. See [verification troubleshooting](/auth/faq/#sync-password-recovery-failures) before repeating the reset.
+- **Still unable to continue:** Contact [support@ente.com](mailto:support@ente.com) with the error text and app version. Never send the recovery words or your password. Support cannot reconstruct your recovery key or decrypt your data.
 
 ### Can I change my password? {#change-password}
 
-Yes, you can change your password at any time from our apps. Our architecture
-allows password changes without re-encrypting your entire library.
+Yes, you can change your password at any time from our apps. Our architecture allows password changes without re-encrypting your entire library.
 
-The privacy of your account is a function of the strength of your password,
-please choose a strong one.
+The privacy of your account is a function of the strength of your password, please choose a strong one.
+
+### Why did I get a "New login to your Ente account" email? {#new-login-email}
+
+We send this email when a new sign-in to your Ente account passes our checks, such as the email verification code. It shows when this happened. Some emails also show the app, device and IP address used. The email can arrive before the sign-in finishes in the app. For example, it's sent if the wrong password is entered after the verification code, or if you tapped **Forgot password?** and entered the email code but didn't finish resetting your password with your recovery key. On its own, the email doesn't mean anyone unlocked your account. A fresh sign-in still needs your password or recovery key to decrypt your photos, files and Auth codes.
+
+If it was you, there's nothing to do.
+
+If you don't recognise it:
+
+1. Change your password from `Settings > Account > Change password`.
+2. If the alert concerns Ente Photos, open `Settings > Security > Active sessions` on mobile, or `Settings > Account > Active sessions` on web and desktop, and terminate any Photos session you don't recognise. This list does not show Ente Auth or Locker sessions. If the email does not identify the app, or it concerns Auth or Locker, contact Ente support for help reviewing the sign-in.
+3. Turn on two-factor authentication from `Settings > Security > Two-factor` on mobile, or `Settings > Account` on web and desktop.
+
+Replying to this email reaches Ente support. If you need help signing in, include what you see on screen.
+
+Support can't sign out devices for you. Ente can't access your account, so only you can do this from a signed-in device.
 
 ### Do you support two-factor authentication (2FA)? {#two-factor-auth}
 
@@ -159,28 +191,47 @@ You can set up 2FA in the settings of our mobile or desktop apps.
 
 Warning: if you use the same account in Ente Auth, enabling 2FA in Ente Photos also enables it for Ente Auth, which can be a problem if you store your Ente account's 2FA code inside Ente Auth itself. See [Enteception](/auth/faq/enteception/).
 
+If you lose access to your authenticator or passkey, use your Ente recovery key through the recovery option shown during sign-in. If you also cannot find the recovery key but still know your password, contact [support@ente.com](mailto:support@ente.com) from your registered email address. After verifying account ownership, support may be able to help with the lost second factor. Email access alone is not sufficient, and assistance is not guaranteed.
+
+Tell support whether you are being asked for an authenticator code, a passkey, or both, since these can be separate sign-in checks. Never send your password, recovery key, authenticator setup key, or current codes. Support cannot decrypt your data or replace a forgotten password without an available recovery method.
+
+### Can I use app lock to protect Ente Photos? {#app-lock}
+
+Yes. You can protect the Ente Photos app with an additional lock screen.
+
+- Choose **Device lock**, **PIN lock**, or **Password lock**
+- Configure **Auto lock** to lock the app automatically after a chosen delay
+- Enable **Hide content** in the mobile app to hide app previews in the app switcher
+
+Open `Settings > Security > App lock` on mobile, or `Settings > Preferences > App lock` on desktop.
+
+Learn more in the [App lock guide](/photos/features/account/app-lock).
+
+### Can I let someone browse my photos without giving them access to my whole library? {#guest-view}
+
+Yes. Use guest view to hand your phone to someone else and let them browse a single photo, a set of selected photos, or an entire album, without reaching the rest of your library, settings, or actions like edit, share, or delete.
+
+Guest view can only be exited with device authentication (Face Recognition, Fingerprint, or your device passcode/password), so the person can't leave guest view on their own.
+
+Guest view is available on mobile only.
+
+Learn more in the [Guest view guide](/photos/features/utilities/guest-view).
+
 ### Can I contact support using PGP? {#support-pgp}
 
-Yes. You can send encrypted messages to [pgp@ente.io](mailto:pgp@ente.io). The
-public key is published on [openpgp.org](https://keys.openpgp.org/) and is also
-available at [ente.io/pgp/pgp.asc](https://ente.io/pgp/pgp.asc). The fingerprint
-is `D71B F781 998B 4AED 01A2  0AF6 02BD D83A 56EA 68E2`.
+Yes. You can send encrypted messages to [pgp@ente.com](mailto:pgp@ente.com). The public key is published on [openpgp.org](https://keys.openpgp.org/) and is also available at [ente.com/pgp/pgp.asc](https://ente.com/pgp/pgp.asc). The fingerprint is `D71B F781 998B 4AED 01A2  0AF6 02BD D83A 56EA 68E2`.
 
 ## Sharing and Collaboration
 
 ### How does sharing work? {#sharing-encryption}
 
-The information required to decrypt an album is encrypted with the recipient's
-public key such that only they can decrypt them.
+The information required to decrypt an album is encrypted with the recipient's public key such that only they can decrypt them.
 
-You can read more about this [here](https://ente.io/architecture#sharing).
+You can read more about this [here](https://ente.com/architecture#sharing).
 
-In case of sharable links, the key to decrypt the album is appended by the
-client as a [fragment to the URL](https://en.wikipedia.org/wiki/URI_fragment),
-and is never sent to our servers.
+In case of sharable links, the key to decrypt the album is appended by the client as a [fragment to the URL](https://en.wikipedia.org/wiki/URI_fragment), and is never sent to our servers.
 
-Please note that only users on the paid plan are allowed to share albums. The
-receiver just needs a free Ente account.
+Please note that only users on the paid plan are allowed to share albums. The receiver just needs a free Ente account.
 
 ## Security Audits
 
@@ -188,12 +239,9 @@ receiver just needs a free Ente account.
 
 Yes, Ente Photos has undergone multiple thorough security audits.
 
-Our first assessment was carried out by Cure53 in collaboration with Symbolic Software. Cure53 is a
-prominent German cybersecurity firm, while Symbolic Software specializes in
-applied cryptography. Please find the full report here:
-https://ente.io/blog/cryptography-audit/
+Our first assessment was carried out by Cure53 in collaboration with Symbolic Software. Cure53 is a prominent German cybersecurity firm, while Symbolic Software specializes in applied cryptography. Please find the full report here: https://ente.com/blog/cryptography-audit/
 
-A second more recent audit was completed on behalf of CERN. Details of that are available here: https://ente.io/blog/cern-audit/
+A second more recent audit was completed on behalf of CERN. Details of that are available here: https://ente.com/blog/cern-audit/
 
 ## Machine Learning and Privacy {#ml-privacy}
 
@@ -233,16 +281,30 @@ Ente's servers cannot see your location tags or where your photos were taken. Al
 
 ### How can I delete my account? {#delete-account}
 
-You can delete your account at any time by using the "Delete account" option in
-the settings. For security reasons, we request you to delete your account on
-your own instead of contacting support to ask them to delete your account.
+You can delete your account at any time by using the "Delete account" option in the settings. For security reasons, we request you to delete your account on your own instead of contacting support to ask them to delete your account. If you can't sign in on any device and have lost both your password and recovery key, see [starting over with the same email](/photos/faq/security-and-privacy#start-fresh-same-email).
 
-Note that both Ente Photos and Ente Auth data will be deleted when you delete
-your account (irrespective of which app you delete it from) since both photos
-and auth use the same underlying account.
+Note that Ente Photos, Ente Auth, and Ente Locker data will be deleted when you delete your account (irrespective of which app you delete it from) since Photos, Auth, and Locker use the same underlying account.
 
-To know details of how your data is deleted, including when you delete your
-account, please see https://ente.io/blog/how-ente-deletes-data/.
+To know details of how your data is deleted, including when you delete your account, please see https://ente.com/blog/how-ente-deletes-data/.
+
+### Will deleting my Ente Auth or Locker account also delete my Photos account? {#shared-account-deletion}
+
+Yes, if you use the same Ente account in those apps. **Delete account** deletes that account and its Photos, Auth, and Locker data, no matter which app you select it from.
+
+If you want to stop using just one app:
+
+1. Check which Ente account you are signed in to in each app.
+2. Sign out of or uninstall the app you no longer want to use. Do not select **Delete account**.
+
+Your account and data in the other apps stay available. If you created separate Ente accounts, deleting one does not delete the others.
+
+### I deleted my account by mistake. Can I get it back? {#recover-deleted-account}
+
+Yes, if you act within 7 days. When you delete your account, we send a confirmation email to your registered email address. Open it and click the **recover your account** link to restore your account and its data.
+
+After 7 days, your Ente Photos, Ente Auth and Ente Locker data is permanently deleted and can't be recovered.
+
+If you can't find the email, check your spam folder, or contact [support@ente.com](mailto:support@ente.com) from the same email address.
 
 ## Trust and Reliability
 
@@ -255,24 +317,18 @@ account, please see https://ente.io/blog/how-ente-deletes-data/.
 **Security and transparency**:
 
 - Your data is preserved with end-to-end encryption
-- Our open-source apps have been [externally audited](https://ente.io/blog/cryptography-audit/) by Cure53
+- Our open-source apps have been [externally audited](https://ente.com/blog/cryptography-audit/) by Cure53
 - We store 3 copies of your data across 3 different providers in 3 different EU countries
-- Our [reliability documentation](https://ente.io/reliability) transparently details our data replication and disaster recovery plans
+- Our [reliability documentation](https://ente.com/reliability) transparently details our data replication and disaster recovery plans
 
 **Long-term commitment**: We love what we do, have no reasons to be distracted by other ventures, and are committed to being as reliable as any service can be.
 
-If you'd like to support this project, please consider [subscribing](https://ente.io/download).
+If you'd like to support this project, please consider [subscribing](https://ente.com/download).
 
 ## Additional Support
 
-For any security or privacy questions not covered here, please contact our team
-at security@ente.io. We're committed to addressing your concerns and
-continuously improving our security measures.
+For any security or privacy questions not covered here, please contact our team at security@ente.com. We're committed to addressing your concerns and continuously improving our security measures.
 
 ## Security
 
-If you believe you have found a security vulnerability, please responsibly
-disclose it by emailing security@ente.io or [using this
-link](https://github.com/ente-io/ente/security/advisories/new) instead of
-opening a public issue. We will investigate all legitimate reports. To know
-more, please see our [security policy](https://github.com/ente-io/ente/blob/main/SECURITY.md).
+If you believe you have found a security vulnerability, please responsibly disclose it by emailing security@ente.com or [using this link](https://github.com/ente/ente/security/advisories/new) instead of opening a public issue. We will investigate all legitimate reports. To know more, please see our [security policy](https://github.com/ente/ente/blob/main/SECURITY.md).

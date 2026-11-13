@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ente-io/museum/ente"
-	emailUtil "github.com/ente-io/museum/pkg/utils/email"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	emailUtil "github.com/ente/museum/pkg/utils/email"
+	"github.com/ente/stacktrace"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -117,7 +117,7 @@ func (c *Controller) sendContactNotification(ctx context.Context, legacyUserID i
 
 	for _, data := range emailDatas {
 		content := data
-		err = emailUtil.SendTemplatedEmailV2([]string{content.emailTo}, "Ente", "team@ente.io",
+		err = emailUtil.SendTemplatedEmailV2([]string{content.emailTo}, "Ente", "team@ente.com",
 			content.title, BaseTemplate, content.templateName, content.templateData, content.inlineImages)
 		if err != nil {
 			log.WithError(err).WithFields(log.Fields{
@@ -234,7 +234,7 @@ func (c *Controller) sendRecoveryNotification(ctx context.Context, legacyUserID 
 
 	for _, data := range emailDatas {
 		content := data
-		err = emailUtil.SendTemplatedEmailV2([]string{content.emailTo}, "Ente", "team@ente.io",
+		err = emailUtil.SendTemplatedEmailV2([]string{content.emailTo}, "Ente", "team@ente.com",
 			content.title, BaseTemplate, content.templateName, content.templateData, content.inlineImages)
 		if err != nil {
 			log.WithError(err).WithFields(log.Fields{

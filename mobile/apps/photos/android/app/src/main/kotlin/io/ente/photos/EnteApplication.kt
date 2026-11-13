@@ -6,17 +6,28 @@ import android.app.NotificationManager
 import android.content.Context
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.content.edit
 import dev.fluttercommunity.workmanager.TaskDebugInfo
 import dev.fluttercommunity.workmanager.TaskResult
 import dev.fluttercommunity.workmanager.WorkmanagerDebug
 import dev.fluttercommunity.workmanager.pigeon.TaskStatus
+import io.ente.background.BackgroundManagerPlugin
 import org.json.JSONObject
 import kotlin.random.Random
 
 class EnteApplication : Application() {
   override fun onCreate() {
     super.onCreate()
-    WorkmanagerDebug.setCurrent(InternalUserWorkmanagerDebugHandler())
+    WorkmanagerDebug.setCurrent(EnteWorkmanagerDebugHandler())
+    ForegroundHeartbeat.install(this)
+    BackgroundManagerPlugin.install(this) {
+      val prefs = getSharedPreferences(FLUTTER_SHARED_PREFERENCES, Context.MODE_PRIVATE)
+      !prefs.getBoolean(INTERNAL_USER_DISABLED_KEY, false) &&
+        runCatching {
+            JSONObject(prefs.getString(REMOTE_FLAGS_KEY, "{}") ?: "{}").opt("internalUser") == true
+          }
+          .getOrDefault(false)
+    }
   }
 
   companion object {
@@ -29,13 +40,18 @@ class EnteApplication : Application() {
   }
 }
 
-private class InternalUserWorkmanagerDebugHandler : WorkmanagerDebug() {
+private class EnteWorkmanagerDebugHandler : WorkmanagerDebug() {
   override fun onTaskStatusUpdate(
     context: Context,
     taskInfo: TaskDebugInfo,
     status: TaskStatus,
     result: TaskResult?,
   ) {
+    if (status == TaskStatus.STARTED || status == TaskStatus.RETRYING) {
+      context
+        .getSharedPreferences(EnteApplication.FLUTTER_SHARED_PREFERENCES, Context.MODE_PRIVATE)
+        .edit { putLong("flutter.bg_task_start_${taskInfo.taskName}", taskInfo.startTime) }
+    }
     if (!shouldEnableWorkmanagerDebugNotifications(context)) {
       return
     }

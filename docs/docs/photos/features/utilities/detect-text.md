@@ -11,29 +11,38 @@ Detect Text lets you pull text out of your photos without leaving Ente Photos. R
 
 - **Platforms**: iOS and Android mobile apps
 - **Supported files**: Photos and Live Photos (videos are not supported)
-- **Viewer contexts**: Available in the standard photo viewer; the button is hidden for Trash items, guest views, and photos without detectable text
+- **Viewer contexts**: Available in the standard photo viewer for supported files. It is not available for Trash items or guest views.
 
-> **Note**: On Android, the first scan downloads the OCR models. Keep a network connection for that download. Later scans work offline.
+> [!NOTE]
+>
+> On Android, the first scan downloads the OCR models. Keep a network connection for that download. Later scans work offline.
 
 ## Use Detect Text
 
 **On mobile:**
 
-1. Open a photo in the viewer.
-2. Look for the **Detect Text** button near the share button. Ente only shows it when it finds text in the image.
-3. Tap **Detect Text**.
-4. Let the detection overlay finish scanning.
-5. Drag the selection handles or double tap to highlight exactly what you need.
-6. Tap **Copy** to copy the selection, or tap **Select all** to copy the full text.
-7. Tap the back arrow to return to the photo viewer.
+1. Open a photo or screenshot in the viewer.
+
+![Cafe menu photo open in the Ente Photos mobile viewer](https://docs-assets.ente.com/screenshots/phone-detect-text-viewer.png){width=320px}
+
+2. Touch and hold on the text in the photo.
+3. Ente detects the text on-device and shows a text-selection overlay.
+4. Drag the selection handles, or double tap a line, to highlight exactly what you need.
+5. Tap **Copy** to copy the selected text, or tap **Select all** to copy everything Ente detected.
+6. Tap outside the selection or return to the viewer when you are done.
+
+![Detect Text overlay on a cafe menu photo in the Ente Photos mobile viewer](https://docs-assets.ente.com/screenshots/phone-detect-text-selection.png){width=320px}
 
 After copying, the text stays on your clipboard so you can paste it into messages, notes, or other apps.
 
+Touch and hold on text in a photo to select it. On Live and Motion Photos, Ente may check for text regions when you open the photo. Detect Text doesn't scan your library in the background, and there is no setting to turn it off.
+
 ## Tips
 
-- Ente caches detection results, so revisiting the same photo makes the button appear immediately.
-- If the button never appears, verify that the photo contains readable text and that the original file has finished downloading.
-- When no text is found, the overlay shows **No text detected**. Close it to return to the photo.
+- The first long press may take a moment while Ente checks the image and prepares the text overlay.
+- Ente caches detection results, so revisiting the same photo often makes text selection feel faster.
+- If text selection does not appear, make sure the original file has finished downloading and that the image contains readable text.
+- Long-press text detection pairs well with [QR code detection in photos](/photos/features/utilities/qr-codes-in-photos) when screenshots or posters contain both text and QR codes.
 
 ## Limitations
 

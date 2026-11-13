@@ -1,50 +1,55 @@
 import 'dart:async';
-import 'dart:convert';
 
-import 'package:base32/base32.dart';
-import 'package:ente_auth/l10n/l10n.dart';
 import 'package:ente_auth/models/code.dart';
-import 'package:ente_auth/models/protos/googleauth.pb.dart';
 import 'package:ente_auth/services/authenticator_service.dart';
 import 'package:ente_auth/store/code_store.dart';
-import 'package:ente_auth/ui/components/buttons/button_widget.dart';
-import 'package:ente_auth/ui/components/dialog_widget.dart';
-import 'package:ente_auth/ui/components/models/button_type.dart';
 import 'package:ente_auth/ui/scanner_gauth_page.dart';
+import 'package:ente_auth/ui/settings/data/import/google_auth_migration_tracker.dart';
+import 'package:ente_auth/ui/settings/data/import/google_auth_qr_parser.dart';
+import 'package:ente_auth/ui/settings/data/import/import_instruction_sheet.dart';
 import 'package:ente_auth/ui/settings/data/import/import_success.dart';
+import 'package:ente_auth/utils/dialog_util.dart';
+import 'package:ente_auth/utils/gallery_import_util.dart';
+import 'package:ente_components/ente_components.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart';
-import 'package:flutter/foundation.dart';
+import 'package:ente_strings/ente_strings.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 
-const kGoogleAuthExportPrefix = 'otpauth-migration://offline?data=';
+export 'package:ente_auth/ui/settings/data/import/google_auth_qr_parser.dart';
 
-Future<void> showGoogleAuthInstruction(BuildContext context) async {
-  final l10n = context.l10n;
-  final result = await showDialogWidget(
+final _logger = Logger('GoogleAuthImport');
+
+Future<bool> showGoogleAuthInstruction(BuildContext context) async {
+  final l10n = context.strings;
+  final isMobile = PlatformDetector.isMobile();
+  final result = await showImportInstructionSheet(
     context: context,
-    title: l10n.importFromApp("Google Authenticator"),
+    title: "Google Authenticator",
     body: l10n.importGoogleAuthGuide,
-    buttons: [
-      if (PlatformDetector.isMobile())
-        ButtonWidget(
-          buttonType: ButtonType.primary,
-          labelText: l10n.scanAQrCode,
-          isInAlert: true,
-          buttonSize: ButtonSize.large,
-          buttonAction: ButtonAction.first,
+    cancelLabel: l10n.cancel,
+    semanticsIdentifier: 'auth_import_instruction_google_authenticator',
+    actions: [
+      if (isMobile)
+        ImportInstructionAction(
+          label: l10n.scanAQrCode,
+          result: ImportInstructionResult.primary,
         ),
-      ButtonWidget(
-        buttonType: ButtonType.secondary,
-        labelText: context.l10n.cancel,
-        buttonSize: ButtonSize.large,
-        isInAlert: true,
-        buttonAction: ButtonAction.second,
+      ImportInstructionAction(
+        label: l10n.selectFile,
+        result: ImportInstructionResult.secondary,
+        variant: isMobile
+            ? ButtonComponentVariant.secondary
+            : ButtonComponentVariant.primary,
       ),
     ],
   );
-  if (result?.action != null && result!.action != ButtonAction.cancel) {
-    if (result.action == ButtonAction.first) {
+  if (result == null) {
+    return false;
+  }
+  if (!context.mounted) return false;
+  switch (result) {
+    case ImportInstructionResult.primary:
       final List<Code>? codes = await Navigator.of(context).push(
         MaterialPageRoute(
           builder: (BuildContext context) {
@@ -52,85 +57,159 @@ Future<void> showGoogleAuthInstruction(BuildContext context) async {
           },
         ),
       );
-      if (codes == null || codes.isEmpty) {
-        return;
+      if (!context.mounted || codes == null || codes.isEmpty) {
+        return false;
       }
-      for (final code in codes) {
-        await CodeStore.instance.addCode(code, shouldSync: false);
-      }
-      unawaited(AuthenticatorService.instance.onlineSync());
-      // ignore: unawaited_futures
-      importSuccessDialog(context, codes.length);
-    }
+      return _completeGoogleAuthImport(context, codes);
+    case ImportInstructionResult.secondary:
+      return _importGoogleAuthFromImage(context);
   }
 }
 
-List<Code> parseGoogleAuth(String qrCodeData) {
-  try {
-    List<Code> codes = <Code>[];
-    final String payload = qrCodeData.substring(kGoogleAuthExportPrefix.length);
-    final Uint8List base64Decoded = base64Decode(Uri.decodeComponent(payload));
-    final MigrationPayload mPayload =
-        MigrationPayload.fromBuffer(base64Decoded);
-    for (var otpParameter in mPayload.otpParameters) {
-      // Build the OTP URL
-      String otpUrl;
-      String issuer = otpParameter.issuer;
-      String account = otpParameter.name;
-      var counter = otpParameter.counter;
-      // Create a list of bytes from the list of integers.
-      Uint8List bytes = Uint8List.fromList(otpParameter.secret);
+Future<bool> _importGoogleAuthFromImage(BuildContext context) async {
+  if (!context.mounted) return false;
+  final importResult = await pickCodeFromImage(
+    context,
+    logger: _logger,
+    pickFromFiles: true,
+  );
+  if (importResult == null || !context.mounted) return false;
+  final codes = await collectGoogleAuthImageBatches(
+    context,
+    importResult.googleAuthMigration,
+    logger: _logger,
+    pickFromFiles: true,
+  );
 
-      // Encode the bytes to base 32.
-      String base32String = base32.encode(bytes);
-      String secret = base32String;
-      // identify digit count
-      int digits = 6;
-      int timer = 30; // default timer, no field in Google Auth
-      Algorithm algorithm = Algorithm.sha1;
-      switch (otpParameter.algorithm) {
-        case MigrationPayload_Algorithm.ALGORITHM_MD5:
-          throw Exception('GoogleAuthImport: MD5 is not supported');
-        case MigrationPayload_Algorithm.ALGORITHM_SHA1:
-          algorithm = Algorithm.sha1;
-          break;
-        case MigrationPayload_Algorithm.ALGORITHM_SHA256:
-          algorithm = Algorithm.sha256;
-          break;
-        case MigrationPayload_Algorithm.ALGORITHM_SHA512:
-          algorithm = Algorithm.sha512;
-          break;
-        case MigrationPayload_Algorithm.ALGORITHM_UNSPECIFIED:
-          algorithm = Algorithm.sha1;
-          break;
-      }
-      switch (otpParameter.digits) {
-        case MigrationPayload_DigitCount.DIGIT_COUNT_EIGHT:
-          digits = 8;
-          break;
-        case MigrationPayload_DigitCount.DIGIT_COUNT_SIX:
-          digits = 6;
-          break;
-        case MigrationPayload_DigitCount.DIGIT_COUNT_UNSPECIFIED:
-          digits = 6;
-      }
+  if (!context.mounted || codes == null) return false;
+  return _completeGoogleAuthImport(context, codes);
+}
 
-      if (otpParameter.type == MigrationPayload_OtpType.OTP_TYPE_TOTP ||
-          otpParameter.type == MigrationPayload_OtpType.OTP_TYPE_UNSPECIFIED) {
-        otpUrl =
-            'otpauth://totp/$issuer:$account?secret=$secret&issuer=$issuer&algorithm=${algorithm.name}&digits=$digits&period=$timer';
-      } else if (otpParameter.type == MigrationPayload_OtpType.OTP_TYPE_HOTP) {
-        otpUrl =
-            'otpauth://hotp/$issuer:$account?secret=$secret&issuer=$issuer&algorithm=${algorithm.name}&digits=$digits&counter=$counter';
-      } else {
-        throw Exception('Invalid OTP type');
-      }
-      codes.add(Code.fromOTPAuthUrl(otpUrl));
+Future<List<Code>?> collectGoogleAuthImageBatches(
+  BuildContext context,
+  GoogleAuthMigration? migration, {
+  required Logger logger,
+  bool pickFromFiles = false,
+  GoogleAuthMigrationTracker? tracker,
+}) async {
+  final migrationTracker = tracker ?? GoogleAuthMigrationTracker();
+  while (true) {
+    final currentMigration = migration;
+    if (currentMigration == null || currentMigration.codes.isEmpty) {
+      if (!context.mounted) return null;
+      await showErrorDialog(
+        context,
+        context.strings.invalidQRCode,
+        context.strings.errorInvalidQRCodeBody,
+      );
+      return null;
     }
-    return codes;
-  } catch (e, s) {
-    Logger("GoogleAuthImport")
-        .severe("Error while parsing Google Auth QR code", e, s);
-    throw Exception('Failed to parse Google Auth QR code \n ${e.toString()}');
+
+    try {
+      final codes = migrationTracker.add(currentMigration);
+      if (codes != null) return codes;
+    } on FormatException catch (error) {
+      if (!context.mounted) return null;
+      await showErrorDialog(
+        context,
+        context.strings.invalidQRCode,
+        error.message,
+      );
+      return null;
+    }
+
+    if (!context.mounted) return null;
+    final result = await showImportInstructionSheet(
+      context: context,
+      title: 'Google Authenticator',
+      body:
+          '${context.strings.selectFile} '
+          '(${migrationTracker.receivedBatchCount}/${migrationTracker.batchSize})',
+      cancelLabel: context.strings.cancel,
+      semanticsIdentifier: 'auth_import_google_authenticator_next_file',
+      actions: [
+        ImportInstructionAction(
+          label: context.strings.selectFile,
+          result: ImportInstructionResult.primary,
+        ),
+      ],
+    );
+    if (result != ImportInstructionResult.primary || !context.mounted) {
+      return null;
+    }
+    final importResult = await pickCodeFromImage(
+      context,
+      logger: logger,
+      pickFromFiles: pickFromFiles,
+    );
+    if (importResult == null) return null;
+    migration = importResult.googleAuthMigration;
   }
+}
+
+Future<bool> _completeGoogleAuthImport(
+  BuildContext context,
+  List<Code> codes,
+) async {
+  int? importedCount;
+  final shouldImport = await confirmGoogleAuthImport(
+    context,
+    codes.length,
+    onImport: () async {
+      try {
+        importedCount = await importGoogleAuthCodes(codes);
+      } catch (error, stackTrace) {
+        _logger.severe(
+          'Failed to import Google Authenticator codes',
+          error,
+          stackTrace,
+        );
+        if (context.mounted) {
+          await showGenericErrorDialog(context: context, error: error);
+        }
+        rethrow;
+      }
+    },
+  );
+  final count = importedCount;
+  if (!shouldImport || count == null || !context.mounted) return false;
+  await importSuccessDialog(context, count);
+  return true;
+}
+
+Future<bool> confirmGoogleAuthImport(
+  BuildContext context,
+  int codeCount, {
+  FutureOr<void> Function()? onImport,
+}) async {
+  final l10n = context.strings;
+  final result = await showImportInstructionSheet(
+    context: context,
+    title: "Google Authenticator",
+    body: l10n.importGoogleAuthConfirmation(codeCount: codeCount),
+    cancelLabel: l10n.cancel,
+    semanticsIdentifier: 'auth_import_confirm_google_authenticator',
+    actions: [
+      ImportInstructionAction(
+        label: l10n.importLabel,
+        result: ImportInstructionResult.primary,
+        onTap: onImport,
+      ),
+    ],
+  );
+  return result == ImportInstructionResult.primary;
+}
+
+Future<int> importGoogleAuthCodes(List<Code> codes) async {
+  int importedCount = 0;
+  for (final code in codes) {
+    final result = await CodeStore.instance.addCode(code, shouldSync: false);
+    if (result != AddResult.duplicate) {
+      importedCount++;
+    }
+  }
+  if (importedCount > 0) {
+    unawaited(AuthenticatorService.instance.onlineSync());
+  }
+  return importedCount;
 }

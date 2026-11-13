@@ -1,10 +1,12 @@
 {
     "extends": "ente-build-config/tsconfig-next.json",
-    "compilerOptions": { "baseUrl": "./src" },
+    "compilerOptions": { "paths": { "@/*": ["./src/*"] } },
     "include": [
         "src",
+        "tests",
         "next-env.d.ts",
         "../../packages/base/global-electron.d.ts",
+        "../../packages/base/global-css.d.ts",
         "../../packages/base/components/utils/mui-theme.d.ts"
     ]
 }

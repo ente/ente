@@ -1,0 +1,47 @@
+group 'io.ente.background'
+version '1.0'
+
+buildscript {
+    ext.kotlin_version = '2.1.10'
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.10.1'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+
+android {
+    namespace 'io.ente.background'
+    compileSdk 36
+    defaultConfig {
+        minSdkVersion 26
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+    sourceSets {
+        main.java.srcDirs += 'src/main/kotlin'
+    }
+    testOptions {
+        unitTests.includeAndroidResources = true
+    }
+}
+
+dependencies {
+    implementation 'androidx.work:work-runtime:2.10.2'
+    implementation 'androidx.concurrent:concurrent-futures:1.2.0'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.robolectric:robolectric:4.16'
+    testImplementation 'org.mockito:mockito-core:5.18.0'
+    testImplementation 'androidx.work:work-testing:2.10.2'
+}

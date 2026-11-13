@@ -1,0 +1,23 @@
+{
+    "name": "ente-prelogin-wasm",
+    "version": "0.0.0",
+    "private": true,
+    "exports": {
+        ".": {
+            "types": "./index.ts",
+            "import": "./index.ts"
+        }
+    },
+    "module": "./index.ts",
+    "types": "./index.ts",
+    "scripts": {
+        "build": "wasm-pack build ../../../../rust/bindings/wasm/prelogin --target bundler --out-dir ../../../../web/packages/wasm/prelogin/pkg --no-pack",
+        "test": "vitest --run"
+    },
+    "devDependencies": {
+        "ente-build-config": "*",
+        "vite-plugin-wasm": "3.6.0",
+        "vitest": "5.0.5",
+        "wasm-pack": "0.15.0"
+    }
+}

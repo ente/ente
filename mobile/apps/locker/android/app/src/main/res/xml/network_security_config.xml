@@ -6,6 +6,7 @@
     </base-config>
     <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="true">ente.io</domain>
+        <domain includeSubdomains="true">ente.com</domain>
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>

@@ -6,15 +6,10 @@ import (
 	"time"
 )
 
-// GetEmailsFromHashesRequest represents a request to convert hashes
 type GetEmailsFromHashesRequest struct {
 	Hashes []string `json:"hashes"`
 }
 
-// Admin API request to disable 2FA for a user account.
-//
-// This is used when we get a user request to reset their 2FA when they might've
-// lost access to their 2FA codes. We verify their identity out of band.
 type DisableTwoFactorRequest struct {
 	UserID int64 `json:"userID" binding:"required"`
 }
@@ -62,19 +57,30 @@ type AdminOpsForUserRequest struct {
 	EmailMFA *bool `json:"emailMFA"`
 }
 
-// ReQueueItemRequest puts an item back into the queue for processing.
+type RepairDeletedCollectionShareRequest struct {
+	CollectionID int64 `json:"collectionID" binding:"required,gt=0"`
+	ToUserID     int64 `json:"toUserID" binding:"required,gt=0"`
+}
+
 type ReQueueItemRequest struct {
 	ID        int64  `json:"id" binding:"required"`
 	QueueName string `json:"queueName" binding:"required"`
 }
 
-// RecoverAccount is used to recover accounts which are in soft-delete state.
 type RecoverAccountRequest struct {
 	UserID  int64  `json:"userID" binding:"required"`
 	EmailID string `json:"emailID" binding:"required"`
 }
 
-// UpdateSubscriptionRequest is used to update a user's subscription
+type ScheduledDeletion struct {
+	UserID                  int64 `json:"userID"`
+	UserCreatedAt           int64 `json:"userCreatedAt"`
+	ScheduledAt             int64 `json:"scheduledAt"`
+	DeletionStartsAt        int64 `json:"deletionStartsAt"`
+	StorageConsumed         int64 `json:"storageConsumed"`
+	AuthenticatorEntryCount int64 `json:"authenticatorEntryCount"`
+}
+
 type UpdateSubscriptionRequest struct {
 	AdminID         int64                  `json:"-"`
 	UserID          int64                  `json:"userID" binding:"required"`
@@ -147,18 +153,4 @@ func (u SupportUpdateBonus) Validate() error {
 		}
 	}
 	return nil
-}
-
-// ClearOrphanObjectsRequest is the API request to trigger the process for
-// clearing orphan objects in DC.
-//
-// The optional prefix can be specified to limit the cleanup to objects that
-// begin with that prefix.
-//
-// ForceTaskLock can be used to force the cleanup to start even if there is an
-// existing task lock for the clear orphan objects task.
-type ClearOrphanObjectsRequest struct {
-	DC            string `json:"dc" binding:"required"`
-	Prefix        string `json:"prefix"`
-	ForceTaskLock bool   `json:"forceTaskLock"`
 }

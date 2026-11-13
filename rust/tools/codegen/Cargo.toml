@@ -1,0 +1,11 @@
+[package]
+name = "codegen"
+edition.workspace = true
+
+[dependencies]
+camino = "=1.2.6"
+flutter_rust_bridge_codegen.workspace = true
+uniffi_bindgen.workspace = true
+
+[lints]
+workspace = true

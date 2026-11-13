@@ -6,17 +6,18 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
-	"github.com/ente-io/museum/pkg/utils/network"
+	"github.com/ente/museum/pkg/utils/network"
 
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/stacktrace"
 	"github.com/gin-contrib/requestid"
 
-	timeUtil "github.com/ente-io/museum/pkg/utils/time"
+	timeUtil "github.com/ente/museum/pkg/utils/time"
 
-	"github.com/ente-io/museum/pkg/utils/handler"
+	"github.com/ente/museum/pkg/utils/handler"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -27,15 +28,67 @@ var latency = promauto.NewHistogramVec(prometheus.HistogramOpts{
 	Name:    "museum_latency",
 	Help:    "The amount of time the server is taking to respond to requests",
 	Buckets: []float64{10, 50, 100, 200, 500, 1000, 10000, 30000, 60000, 120000, 600000},
-}, []string{"code", "method", "host", "url"})
+}, []string{"code", "method", "url"})
 
-// shouldSkipBodyLog returns true if the body should not be logged.
-// This is useful for endpoints that receive large or sensitive payloads.
+func metricMethod(method string) string {
+	switch method {
+	case http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete,
+		http.MethodOptions, http.MethodConnect, http.MethodTrace:
+		return method
+	default:
+		return "OTHER"
+	}
+}
+
+var queryParamDenylist = map[string]struct{}{
+	"accesstoken":       {},
+	"accesstokenjwt":    {},
+	"casttoken":         {},
+	"ceremonysessionid": {},
+	"sessionid":         {},
+	"token":             {},
+}
+
+// Skip read-only requests and writes with large or sensitive bodies.
 func shouldSkipBodyLog(method string, path string) bool {
+	isReadOnly := method == http.MethodGet || method == http.MethodHead || method == http.MethodOptions
+	if !isReadOnly {
+		switch path {
+		case "/users/attributes",
+			"/users/change-email",
+			"/users/srp/setup",
+			"/users/srp/update",
+			"/users/srp/verify-session",
+			"/users/two-factor/enable",
+			"/users/two-factor/verify",
+			"/users/two-factor/remove",
+			"/users/two-factor/passkeys/begin",
+			"/users/two-factor/passkeys/finish",
+			"/users/two-factor/passkeys/configure-recovery",
+			"/users/verify-email",
+			"/admin/user/add-ott",
+			"/emergency-contacts/init-change-password",
+			"/emergency-contacts/change-password",
+			"/legacy-kits/recovery/open",
+			"/legacy-kits/recovery/session",
+			"/legacy-kits/recovery/info",
+			"/legacy-kits/recovery/init-change-password",
+			"/legacy-kits/recovery/change-password",
+			"/public-collection/verify-password", "/file-link/verify-password",
+			"/collections/share-url", "/files/share-url":
+			return true
+		}
+	}
 	if method == "PUT" && path == "/embeddings" {
 		return true
 	}
 	if path == "/user-entity/entity" && (method == "POST" || method == "PUT") {
+		return true
+	}
+	if path == "/contacts" && method == http.MethodPost {
+		return true
+	}
+	if strings.HasPrefix(path, "/contacts/") && method == http.MethodPut {
 		return true
 	}
 	if path == "/files/data" && method == "PUT" {
@@ -44,13 +97,28 @@ func shouldSkipBodyLog(method string, path string) bool {
 	if path == "/admin/user/terminate-session" {
 		return true
 	}
+	if method == http.MethodPost && (path == "/events" || path == "/events/user") {
+		return true
+	}
 	if method == http.MethodPost && (path == "/paste/create" || path == "/paste/guard" || path == "/paste/consume") {
+		return true
+	}
+	if method == http.MethodPost && (path == "/users/recover-account" || path == "/users/recover-account/validate") {
+		return true
+	}
+	if method == http.MethodPost && (path == "/cast/cast-data" || path == "/cast/cast-data/") {
+		return true
+	}
+	if !isReadOnly && (strings.HasPrefix(path, "/space") || strings.HasPrefix(path, "/account/space") ||
+		strings.HasPrefix(path, "/public-collection/comments") || strings.HasPrefix(path, "/public-collection/reactions")) {
+		return true
+	}
+	if !isReadOnly && (path == "/user-entity/key" || path == "/user-entity/key/ensure") {
 		return true
 	}
 	return false
 }
 
-// Logger logs the details regarding an incoming request
 func Logger(urlSanitizer func(_ *gin.Context) string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		startTime := time.Now()
@@ -58,9 +126,9 @@ func Logger(urlSanitizer func(_ *gin.Context) string) gin.HandlerFunc {
 		buf, err := io.ReadAll(c.Request.Body)
 		if err != nil {
 			handler.Error(c, err)
+			return
 		}
 		rdr1 := io.NopCloser(bytes.NewBuffer(buf))
-		// Creating a new Buffer, because rdr1 will be read
 		rdr2 := io.NopCloser(bytes.NewBuffer(buf))
 
 		userAgent := c.GetHeader("User-Agent")
@@ -68,16 +136,11 @@ func Logger(urlSanitizer func(_ *gin.Context) string) gin.HandlerFunc {
 		clientPkg := c.GetHeader("X-Client-Package")
 		clientIP := network.GetClientIP(c)
 		reqMethod := c.Request.Method
-		queryValues, _ := url.ParseQuery(c.Request.URL.RawQuery)
-		if queryValues.Has("token") {
-			queryValues.Set("token", "redacted-value")
-		}
-		queryParamsForLog := queryValues.Encode()
 		reqContextLogger := logrus.WithFields(logrus.Fields{
 			"client_ip":      clientIP,
 			"client_pkg":     clientPkg,
 			"client_version": clientVersion,
-			"query":          queryParamsForLog,
+			"query":          queryParamsForLog(c.Request.URL.RawQuery),
 			"req_id":         reqID,
 			"req_method":     reqMethod,
 			"req_uri":        c.Request.URL.Path,
@@ -96,14 +159,12 @@ func Logger(urlSanitizer func(_ *gin.Context) string) gin.HandlerFunc {
 		}
 		reqContextLogger.Info("incoming")
 		c.Request.Body = rdr2
-		// Processing request
 		c.Next()
 		statusCode := c.Writer.Status()
 		latencyTime := time.Since(startTime)
 		reqURI := urlSanitizer(c)
 		if reqMethod != http.MethodOptions {
-			latency.WithLabelValues(strconv.Itoa(statusCode), reqMethod,
-				c.Request.Host, reqURI).
+			latency.WithLabelValues(strconv.Itoa(statusCode), metricMethod(reqMethod), reqURI).
 				Observe(float64(latencyTime.Milliseconds()))
 		}
 		if statusCode >= 400 && !skipRequestLogUnlessError {
@@ -121,6 +182,16 @@ func Logger(urlSanitizer func(_ *gin.Context) string) gin.HandlerFunc {
 			"user_id":      auth.GetUserID(c.Request.Header),
 		}).Info("outgoing")
 	}
+}
+
+func queryParamsForLog(rawQuery string) string {
+	values, _ := url.ParseQuery(rawQuery)
+	for key := range values {
+		if _, denied := queryParamDenylist[strings.ToLower(key)]; denied {
+			values.Set(key, "redacted-value")
+		}
+	}
+	return values.Encode()
 }
 
 func readBody(reader io.Reader) (string, error) {

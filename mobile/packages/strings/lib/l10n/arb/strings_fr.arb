@@ -1,61 +1,724 @@
 {
-  "networkHostLookUpErr": "Impossible de se connecter à Ente, veuillez vérifier vos paramètres réseau et contacter le support si l'erreur persiste.",
-  "@networkHostLookUpErr": {
-    "description": "Error message shown when the app cannot connect to Ente due to network host lookup failure"
-  },
-  "networkConnectionRefusedErr": "Impossible de se connecter à Ente, veuillez réessayer après un certain temps. Si l'erreur persiste, veuillez contacter le support.",
-  "@networkConnectionRefusedErr": {
-    "description": "Error message shown when the app cannot connect to Ente due to connection refused"
-  },
-  "itLooksLikeSomethingWentWrongPleaseRetryAfterSome": "Il semble qu'une erreur s'est produite. Veuillez réessayer après un certain temps. Si l'erreur persiste, veuillez contacter notre équipe d'assistance.",
-  "@itLooksLikeSomethingWentWrongPleaseRetryAfterSome": {
-    "description": "Generic error message for temporary issues"
-  },
-  "error": "Erreur",
-  "@error": {
-    "description": "Generic error title"
-  },
-  "ok": "Ok",
-  "@ok": {
-    "description": "Generic OK button label"
-  },
-  "faq": "FAQ",
-  "@faq": {
-    "description": "FAQ link label"
-  },
-  "contactSupport": "Contacter le support",
-  "@contactSupport": {
-    "description": "Contact support button label"
-  },
-  "emailYourLogs": "Envoyez vos logs par e-mail",
-  "@emailYourLogs": {
-    "description": "Title for emailing logs dialog"
-  },
-  "pleaseSendTheLogsTo": "Envoyez les logs à {toEmail}",
-  "@pleaseSendTheLogsTo": {
-    "description": "Message asking user to send logs to email address",
+  "bringMemoriesTogether": "Rassemblez vos souvenirs",
+  "createMyAccount": "Créer mon compte",
+  "localGalleryPermissionDesc": "Autorisez l’accès à vos photos et leur organisation grâce à la reconnaissance faciale. Tout le traitement est effectué sur votre appareil.",
+  "logInLabel": "Se connecter",
+  "onboardingOrganizeDesc": "Organisez vos photos et vidéos. Tous vos souvenirs au même endroit.",
+  "about": "À propos",
+  "acceptTrustInvite": "Accepter l'invitation",
+  "account": "Compte",
+  "accountCredentials": "Confidentiel",
+  "accountCredentialsDescription": "Conservez les identifiants du compte.",
+  "accountIsAlreadyConfigured": "Le compte est déjà configuré.",
+  "accountOwnerPersonAppbarTitle": "{title} (Moi)",
+  "@accountOwnerPersonAppbarTitle": {
+    "description": "Title of appbar for account owner person",
     "placeholders": {
-      "toEmail": {
-        "type": "String",
-        "description": "Email address to send logs to"
+      "title": {
+        "type": "String"
       }
     }
   },
-  "copyEmailAddress": "Copier l’adresse e-mail",
-  "@copyEmailAddress": {
-    "description": "Button to copy email address to clipboard"
+  "accountRecovery": "Récupération de compte",
+  "accountSetupIncompleteCreateAccount": "La configuration du compte est incomplète. Créez un compte pour terminer l'installation.",
+  "@accountSetupIncompleteCreateAccount": {
+    "description": "Error shown when account exists but signup is incomplete"
   },
-  "exportLogs": "Exporter les journaux",
-  "@exportLogs": {
-    "description": "Button to export logs"
+  "activeLinksWillShowUpHere": "Les liens actifs apparaîtront ici",
+  "activeSessions": "Sessions actives",
+  "@activeSessions": {
+    "description": "Title for active sessions page"
   },
+  "add": "Ajouter",
+  "addAlbumWidgetPrompt": "Ajoutez un widget album à votre écran d'accueil pour le personnaliser ici.",
+  "addANameAndPhoto": "Ajouter un nom et une photo",
+  "addCode": "Ajouter un code",
+  "addedAMemoryTo": "a ajouté un souvenir à {albumName}",
+  "@addedAMemoryTo": {
+    "description": "Social notification action text shown after a person's name, for example 'John added a memory to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      }
+    }
+  },
+  "addedBy": "Ajouté par {emailOrName}",
+  "@addedBy": {
+    "placeholders": {
+      "emailOrName": {}
+    }
+  },
+  "addedFilesToPerson": "{count, plural, one{Ajout d' {count} élément à {personName}} other{{count} éléments ajoutés à {personName}}}",
+  "@addedFilesToPerson": {
+    "description": "Toast shown after manually tagging one or more files to a person.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      },
+      "personName": {
+        "type": "String",
+        "example": "Alex"
+      }
+    }
+  },
+  "addedNMemoriesTo": "a ajouté {count} souvenirs à {albumName}",
+  "@addedNMemoriesTo": {
+    "description": "Social notification action text shown after a person's name, for example 'John added 4 memories to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "addedSuccessfullyTo": "Ajouté avec succès à  {albumName}",
+  "@addedSuccessfullyTo": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
+  "addedToAlbums": "{count, plural, one{Ajouté avec succès à {count} album} other{Ajouté avec succès à {count} albums}}",
+  "@addedToAlbums": {
+    "description": "Message shown when items are added to albums",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "addedToQueue": "Ajouté à la file d'attente",
+  "addEmail": "Ajouter un e-mail",
+  "addFamilyMember": "Ajouter un membre de la famille",
+  "addFiles": "Ajouter des fichiers",
+  "addFromDevice": "Ajouter depuis l'appareil",
+  "addingPhotos": "Ajout des photos",
+  "addingToFavorites": "Ajout aux favoris...",
+  "addItem": "{count, plural,  one{Ajouter l'élément} other{Ajouter les éléments}}",
+  "@addItem": {
+    "description": "Page title while adding one or more items to album",
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "addLocation": "Ajouter la localisation",
+  "addLocationButton": "Ajouter",
+  "addMember": "Ajouter un membre",
+  "addMemoriesWidgetPrompt": "Ajoutez un widget souvenirs à votre écran d'accueil pour le personnaliser ici.",
+  "addMore": "Ajouter",
+  "addName": "Ajouter un nom",
+  "addNew": "Ajouter un nouveau",
+  "@addNew": {
+    "description": "Text to add a new item (location tag, album, caption etc)"
+  },
+  "addNewEmail": "Ajouter un nouvel e-mail",
+  "addOnPageSubtitle": "Détails des modules complémentaires",
+  "addOns": "Modules complémentaires",
+  "addOnValidTill": "Votre extension de {storageAmount} est valable jusqu'au {endDate}",
+  "@addOnValidTill": {
+    "placeholders": {
+      "endDate": {},
+      "storageAmount": {}
+    }
+  },
+  "addPage": "Ajouter une page",
+  "@addPage": {
+    "description": "Button to capture another page in the document scanner"
+  },
+  "addPeopleWidgetPrompt": "Ajoutez un widget de personnes à votre écran d'accueil pour le personnaliser ici.",
+  "addPerson": "Ajouter une personne",
+  "@addPerson": {
+    "description": "Title for the manual tagging flow where user selects a person to tag files with."
+  },
+  "addPhotos": "Ajouter des photos",
+  "addSelected": "Ajouter la sélection",
+  "addTag": "Ajouter une étiquette",
+  "addTo": "Ajouter à",
+  "addToAlbum": "Ajouter à l'album",
+  "addToCollection": "Ajouter a la collection",
+  "addToEnte": "Ajouter à Ente",
+  "addToHiddenAlbum": "Ajouter à un album masqué",
+  "addToPerson": "Ajouter à la personne",
+  "@addToPerson": {
+    "description": "Action label to add selected files to an existing person."
+  },
+  "addTrustedContact": "Ajouter un contact de confiance",
+  "addTrustedPerson": "Ajouter une personne de confiance",
+  "addUpTo5MembersFree": "Ajoutez jusqu'à 5 membres gratuitement",
+  "addYourPhotosNow": "Ajoutez vos photos maintenant",
+  "adjust": "Ajuster",
+  "adjustCrop": "Ajuster le recadrage",
+  "admin": "Administrateur",
+  "admiringThem": "Admirant {name}",
+  "@admiringThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "advanced": "Avancé",
+  "aerialViews": "Perspectives aériennes",
+  "after1Day": "Après 1 jour",
+  "after1Hour": "Après 1 heure",
+  "after1Month": "Après 1 mois",
+  "after1Week": "Après 1 semaine",
+  "after1Year": "Après 1 an",
+  "albumDescriptionHint": "Saisir une description pour cet album",
+  "albumEditsWillNotBeSaved": "Vos modifications à cet album ne seront pas sauvegardées.",
+  "albumLayout": "Disposition de l'album",
+  "albumName": "Nom de l'album",
+  "albums": "Albums",
+  "albumsCount": "{count, plural, one{{count} album} other{{count} albums}}",
+  "@albumsCount": {
+    "description": "Number of albums with pluralization",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "albumsOnDevicePermissionCta": "Autoriser l'accès",
+  "albumsOnEnteEmptyCta": "Sélectionner les albums à sauvegarder",
+  "albumsOnEnteEmptyTitle": "Sauvegardez vos souvenirs",
+  "albumsReceivedEmptyTitle": "Voir les souvenirs partagés avec vous",
+  "albumsSharedEmptyTitle": "Partagez vos souvenirs",
+  "albumsWidgetDesc": "Sélectionnez les albums que vous souhaitez voir sur votre écran d'accueil.",
+  "albumTitle": "Titre de l'album",
+  "albumUpdated": "Album mis à jour",
+  "algorithm": "Algorithme",
+  "align": "Aligner",
+  "all": "Tout",
+  "allClear": "✨ Tout est effacé",
+  "allFilesAlreadyMarkedAsImportant": "Tous les elements sont deja marques comme importants",
+  "allMemoriesPreserved": "Tous les souvenirs sont sauvegardés",
+  "allow": "Autoriser",
+  "allowAccessToYourPhotos": "Autoriser l'accès à vos photos",
+  "allowAddingPhotos": "Autoriser l'ajout de photos",
+  "@allowAddingPhotos": {
+    "description": "Switch button to enable uploading photos to a public link"
+  },
+  "allowAppToOpenSharedAlbumLinks": "Autoriser l'application à ouvrir les liens d'albums partagés",
+  "allowDownloads": "Autoriser les téléchargements",
+  "allowJoiningAlbum": "Autoriser l'adhésion à l'album",
+  "allowPermBody": "Veuillez autoriser dans les paramètres l'accès à vos photos pour qu'Ente puisse afficher et sauvegarder votre bibliothèque.",
+  "allowPermTitle": "Autoriser l'accès aux photos",
+  "allPersonGroupingWillReset": "Tous les groupements pour cette personne seront réinitialisés, et vous perdrez toutes les suggestions faites pour cette personne",
+  "allTabEmptyHint": "Rien ici pour l'instant. Appuyez sur + pour ajouter un code ou ouvrez la corbeille pour en récupérer un.",
+  "@allTabEmptyHint": {
+    "description": "Shown when the All tab has no active codes but Trash contains codes"
+  },
+  "allWillShiftRangeBasedOnFirst": "C'est la première dans le groupe. Les autres photos sélectionnées se déplaceront automatiquement en fonction de cette nouvelle date",
+  "almostDone": "C'est presque terminé...",
+  "alreadyAdded": "Déjà ajoutée",
+  "alreadyHaveAnAccount": "Déjà un compte ?",
+  "analysis": "Analyse",
+  "analyzingPhotosLocally": "Analyse de vos photos en local ...",
+  "and1Other": "et 1 autre",
+  "androidBiometricHint": "Vérifier l’identité",
+  "@androidBiometricHint": {
+    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
+  },
+  "androidCancelButton": "Annuler",
+  "@androidCancelButton": {
+    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
+  },
+  "androidSignInTitle": "Authentification requise",
+  "@androidSignInTitle": {
+    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
+  },
+  "andXOthers": "et {count} autres",
+  "@andXOthers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "aNewVersionOfEnteIsAvailable": "Une nouvelle version de Ente est disponible.",
+  "aNewVersionOfEnteLockerIsAvailable": "Une nouvelle version de Ente Locker est disponible.",
+  "anythingElse": "Autre chose ?",
+  "@anythingElse": {
+    "description": "Label for optional account deletion feedback"
+  },
+  "appearance": "Apparence",
+  "appIcon": "Icône de l'application",
+  "appleId": "Apple ID",
+  "applePhotosUnsupportedResource": "Ce fichier n'a pas pu être sauvegardé dans Apple Photos. Vous pouvez toujours le voir dans Ente.",
+  "@applePhotosUnsupportedResource": {
+    "description": "Shown when iOS Photos rejects a file while saving to gallery because the media resource is invalid or unsupported"
+  },
+  "appLock": "Verrouillage de l'application",
+  "@appLock": {
+    "description": "App lock setting title"
+  },
+  "appLockDescription": "Choisissez entre l'écran de verrouillage par défaut de votre appareil et un écran de verrouillage par code PIN ou mot de passe personnalisé.",
+  "@appLockDescription": {
+    "description": "Description of app lock feature"
+  },
+  "appLockNotEnabled": "Verrouillage d'application désactivé",
+  "appLockNotEnabledDescription": "Activez le verrouillage d'application dans Sécurité > Verrouillage d'application",
+  "appLockOfflineModeWarning": "Vous avez choisi de fonctionner sans sauvegardes. Si vous oubliez votre outil Applock, vous serez bloqué dans l'accès à vos données.",
+  "apply": "Appliquer",
+  "applyCodeTitle": "Utiliser le code",
+  "appstoreSubscription": "Abonnement à l'AppStore",
+  "appVersion": "Version {versionValue}",
+  "@appVersion": {
+    "placeholders": {
+      "versionValue": {}
+    }
+  },
+  "architecture": "Icônes design",
+  "archive": "Archiver",
+  "@archive": {
+    "description": "Action of 'Archiving' an element"
+  },
+  "archiveAlbum": "Archiver l'album",
+  "archiveCollectionName": "Archives",
+  "@archiveCollectionName": {
+    "description": "Name of the 'Archive' collection"
+  },
+  "archivedItemsWillShowUpHere": "Les éléments archivés apparaîtront ici",
+  "archiving": "Archivage en cours...",
+  "areThey": "S'agit-il de ",
+  "areYouSure": "Êtes-vous sûr ?",
+  "@areYouSure": {
+    "description": "Confirmation dialog title"
+  },
+  "areYouSureDeleteFiles": "Êtes-vous sûr de vouloir supprimer ces fichiers ?",
+  "areYouSureRemoveThisFaceFromPerson": "Êtes-vous sûr de vouloir retirer ce visage de cette personne ?",
+  "areYouSureRemoveThisPersonTag": "Voulez-vous vraiment supprimer le tag de cette personne ?",
+  "areYouSureThatYouWantToLeaveTheFamily": "Êtes-vous certains de vouloir quitter l'abonnement familial?",
+  "areYouSureYouWantToCancel": "Es-tu sûre de vouloir annuler?",
+  "areYouSureYouWantToChangeYourPlan": "Êtes-vous certains de vouloir changer d'abonnement ?",
+  "areYouSureYouWantToExit": "Êtes-vous sûr de vouloir quitter ?",
+  "areYouSureYouWantToIgnoreThesePersons": "Êtes-vous sûr de vouloir ignorer ces personnes ?",
+  "areYouSureYouWantToIgnoreThisPerson": "Êtes-vous sûr de vouloir ignorer cette personne ?",
+  "areYouSureYouWantToLogout": "Voulez-vous vraiment vous déconnecter ?",
+  "@areYouSureYouWantToLogout": {
+    "description": "Confirmation message before logout"
+  },
+  "areYouSureYouWantToRenew": "Êtes-vous sûr de vouloir renouveler ?",
+  "areYouSureYouWantToResetThisPerson": "Êtes-vous certain de vouloir réinitialiser cette personne ?",
+  "areYouSureYouWantToShowThesePeopleInPeopleSectionAgain": "Êtes-vous sûr de vouloir réafficher ces personnes dans la section Personnes ?",
+  "areYouSureYouWantToShowThisPersonInPeopleSectionAgain": "Êtes-vous sûr de vouloir réafficher cette personne dans la section Personnes ?",
+  "artisticPortraits": "Portraits joyeux",
+  "askAQuestion": "Poser une question",
+  "askCancelReason": "Votre abonnement a été annulé. Souhaitez-vous partager la raison ?",
+  "attachLogs": "Joindre les journaux",
+  "attachLogsHelper": "Nous aide à diagnostiquer le problème plus rapidement",
+  "authenticateGeneric": "Veuillez vous authentifier",
+  "authenticating": "Authentification...",
+  "authenticationFailedPleaseTryAgain": "L'authentification a échoué, veuillez réessayer",
+  "@authenticationFailedPleaseTryAgain": {
+    "description": "Error message when authentication fails"
+  },
+  "authenticationSuccessful": "Authentification réussie !",
+  "@authenticationSuccessful": {
+    "description": "Success message when authentication is successful"
+  },
+  "authenticatorCodesCount": "{count, plural, one{{formattedCount} code d'authentification} other{{formattedCount} codes d'authentification}}",
+  "@authenticatorCodesCount": {
+    "description": "Delete impact row for Auth data",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "formattedCount": {
+        "type": "String"
+      }
+    }
+  },
+  "authToChangeLockscreenSetting": "Veuillez vous authentifier pour modifier les paramètres de l'écran de verrouillage",
+  "authToChangeYourEmail": "Veuillez vous authentifier pour modifier votre adresse e-mail",
+  "authToChangeYourPassword": "Veuillez vous authentifier pour modifier votre mot de passe",
+  "authToConfigureTwofactorAuthentication": "Veuillez vous authentifier pour configurer l'authentification à deux facteurs",
+  "authToExportCodes": "Veuillez vous authentifier pour exporter vos codes",
+  "authToInitiateAccountDeletion": "Déverrouiller pour supprimer votre compte",
+  "authToInitiateSignIn": "Veuillez vous authentifier pour ouvrir une session de sauvegarde.",
+  "authToManageLegacy": "Veuillez vous authentifier pour gérer vos contacts de confiance",
+  "authToSetBackupPassword": "Authentification pour définir le mot de passe de sauvegarde",
+  "authToUpdateBackupPassword": "Authentification pour mettre à jour le mot de passe de sauvegarde",
+  "authToViewPasskey": "Veuillez vous authentifier pour afficher votre clé de récupération",
+  "authToViewPasskeyGeneric": "Veuillez vous authentifier pour afficher la clé d'accès",
+  "authToViewSecrets": "Veuillez vous authentifier pour voir vos souvenirs",
+  "@authToViewSecrets": {
+    "description": "Message prompting authentication to view secrets"
+  },
+  "authToViewTrashedFiles": "Veuillez vous authentifier pour voir vos fichiers mis à la corbeille",
+  "authToViewYourHiddenFiles": "Veuillez vous authentifier pour voir vos fichiers cachés",
+  "authToViewYourMemories": "Authentifiez-vous pour voir vos souvenirs",
+  "authToViewYourRecoveryKey": "Veuillez vous authentifier pour afficher votre clé de récupération",
+  "autoAddPeople": "Ajouter auto. visages",
+  "autoAddToAlbum": "Ajouter automatiquement à l'album",
+  "autoCastDialogBody": "Vous verrez ici les appareils Cast disponibles.",
+  "autoCastiOSPermission": "Assurez-vous que les autorisations de réseau local sont activées pour l'application Ente Photos, dans les paramètres.",
+  "autoLock": "Verrouillage automatique",
+  "@autoLock": {
+    "description": "Auto lock setting title"
+  },
+  "autoLogoutMessage": "En raison d'un problème technique, vous avez été déconnecté. Veuillez nous excuser pour le désagrément.",
+  "automaticallyAnalyzeAndSplitGrouping": "Nous analyserons automatiquement le regroupement pour déterminer s'il y a plusieurs personnes présentes et nous les séparerons à nouveau si tel est le cas. Cela peut prendre quelques secondes.",
+  "autoPair": "Appairage automatique",
+  "autoUploadFromThisDeviceFolder": "Sauvegarder automatiquement ce dossier",
+  "autumnColors": "Splendeur de l'Automne",
+  "babySmiles": "Sourires de bébé",
+  "backedUpAutomatically": "Sauvegardé automatiquement",
+  "backedUpFolders": "Dossiers sauvegardés",
+  "background": "Arrière-plan",
+  "backgroundWithThem": "Magnifiques vues avec {name}",
+  "@backgroundWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "backingUpLastSevenDaysPhotos": "Sauvegarde des photos des 7 derniers jours",
+  "backup": "Sauvegarde",
+  "backupAndSync": "Sauvegarde et synchronisation",
+  "backupAndSyncDesc": "Sauvegarde automatique, états de la synchronisation et chargements",
+  "backupCreated": "Sauvegarde créée !",
+  "backupFailed": "Échec de la sauvegarde",
+  "backupFile": "Sauvegarder le fichier",
+  "backupFolderLabel": "Dossier de sauvegarde :",
+  "backupLocationChoiceDescription": "Où voulez-vous enregistrer vos sauvegardes ?",
+  "backupOnlyNewPhotos": "Sauvegarder uniquement les nouvelles photos",
+  "backupOnlyNewPhotosAllFoldersSelected": "Tous les dossiers sont actuellement sélectionnés pour la sauvegarde.\n\nVous pouvez continuer pour l'instant, ou mettre à jour les dossiers sélectionnés.",
+  "backupOnlyNewPhotosNoFoldersSelectedContinue": "Aucun dossier n'est actuellement sélectionné pour la sauvegarde.\n\nVous pouvez continuer pour l'instant, ou mettre à jour les dossiers sélectionnés.",
+  "backupOnlyNewPhotosNoFoldersSelectedRequire": "Aucun dossier n'est actuellement sélectionné pour la sauvegarde.\n\nVeuillez sélectionner des dossiers pour continuer.",
+  "backupOnlyNewPhotosWarningBody": "Vous sauvegardez actuellement des photos depuis le {formattedDate}. Veuillez mettre à jour vos paramètres pour sauvegarder toutes les photos.",
+  "@backupOnlyNewPhotosWarningBody": {
+    "description": "Warning shown when backup-only-new is enabled and user changes folders.",
+    "placeholders": {
+      "formattedDate": {
+        "type": "String",
+        "example": "Jan 5, 2026"
+      }
+    }
+  },
+  "backupOverMobileData": "Sauvegarder avec les données mobiles",
+  "backupPasswordCleared": "Mot de passe de sauvegarde effacé",
+  "backupPasswordHint": "Votre sauvegarde sera chiffrée avec ce mot de passe.",
+  "backupSettings": "Paramètres de la sauvegarde",
+  "backupStatus": "État de la sauvegarde",
+  "backupStatusDescription": "Les éléments qui ont été sauvegardés apparaîtront ici",
+  "backupToEnte": "Sauvegarder sur Ente",
+  "backupVideos": "Sauvegarde des vidéos",
+  "beach": "Sable et mer",
+  "birthday": "Anniversaire",
+  "birthdayJoy": "Joyeux anniversaire",
+  "birthdays": "Anniversaires",
+  "bothIssuerAndAccountCanNotBeEmpty": "L'émetteur et le compte ne peuvent pas être vides",
+  "bringYourFamilyAlong": "Faites venir votre famille",
+  "browseHelpPages": "Parcourir les pages d'aide",
+  "brushColor": "Couleur du pinceau",
+  "cachedData": "Données mises en cache",
+  "calculating": "Calcul en cours...",
+  "camera": "Appareil photo",
+  "campingMoments": "Moments au pied d'un feu de camp",
   "cancel": "Annuler",
+  "back": "Retour",
   "@cancel": {
     "description": "Cancel button label"
   },
-  "reportABug": "Signaler un bug",
-  "@reportABug": {
-    "description": "Label for reporting a bug"
+  "cancelInvite": "Annuler l'invitation",
+  "@cancelInvite": {
+    "description": "Title for cancel invite confirmation dialog"
+  },
+  "cancelInviteDesc": "Si vous supprimez cette invitation, vous devrez en envoyer une nouvelle si vous changez d'avis.",
+  "@cancelInviteDesc": {
+    "description": "Description for cancel invite confirmation dialog"
+  },
+  "cancelOtherSubscription": "Veuillez d'abord annuler votre abonnement existant de {paymentProvider}",
+  "@cancelOtherSubscription": {
+    "description": "The text to display when the user has an existing subscription from a different payment provider",
+    "type": "text",
+    "placeholders": {
+      "paymentProvider": {
+        "example": "Apple",
+        "type": "String"
+      }
+    }
+  },
+  "cancelRecovery": "Annuler la récupération",
+  "cancelRecoveryDesc": "Êtes-vous sûr de vouloir annuler la récupération du compte de {email}?",
+  "@cancelRecoveryDesc": {
+    "description": "Description for cancel recovery confirmation dialog",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "cancelSubscription": "Annuler l'abonnement",
+  "candidLaughter": "Éclat de rire",
+  "cannotAddMoreFilesAfterBecomingViewer": "{name} ne pourra plus ajouter d'elements a la collection apres etre devenu lecteur.",
+  "@cannotAddMoreFilesAfterBecomingViewer": {
+    "description": "Warning message when changing a collaborator to viewer",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "John"
+      }
+    }
+  },
+  "cannotDeleteSharedFiles": "Les fichiers partagés ne peuvent pas être supprimés",
+  "cannotMoveToSharedAlbums": "Impossible de déplacer vers les albums partagés",
+  "cannotMoveToSharedAlbumsMessage": "Les éléments peuvent être ajoutés qu'aux albums partagés, et non déplacés. Voulez-vous ajouter à la place ?",
+  "canNotOpenBody": "Désolé, cet album ne peut pas être ouvert dans l'application.",
+  "canNotOpenTitle": "Impossible d'ouvrir cet album",
+  "cannotUpdateRecoveryTime": "Impossible de mettre à jour la période de récupération",
+  "cannotUpdateRecoveryTimeMessage": "L'horaire de restauration ne peut pas être modifié tant qu'il y a une session de récupération active. Veuillez rejeter ou attendre que la récupération soit terminée.",
+  "canOnlyCreateLinkForFilesOwnedByYou": "Ne peut créer de lien que pour les fichiers que vous possédez",
+  "canOnlyRemoveFilesOwnedByYou": "Vous ne pouvez supprimer que les fichiers que vous possédez",
+  "castAlbum": "Caster l'album",
+  "castIPMismatchBody": "Veuillez vous assurer que vous êtes sur le même réseau que la TV.",
+  "castIPMismatchTitle": "Échec de la diffusion de l'album",
+  "cat": "Chat",
+  "centerPoint": "Point central",
+  "changeEmail": "Modifier l'e-mail",
+  "@changeEmail": {
+    "description": "Change email button label"
+  },
+  "changeLocationOfSelectedItems": "Changer la localisation des éléments sélectionnés ?",
+  "changePassword": "Modifier le mot de passe",
+  "changePasswordTitle": "Modifier le mot de passe",
+  "@changePasswordTitle": {
+    "description": "Change password title"
+  },
+  "changePermissions": "Changer les permissions",
+  "changeYourReferralCode": "Modifier votre code",
+  "checkForUpdates": "Vérifier les mises à jour",
+  "checking": "Vérification...",
+  "checkingModels": "Vérification des modèles...",
+  "checkStatus": "Vérifier le statut",
+  "@checkStatus": {
+    "description": "Check status button label"
+  },
+  "chooseARecoveryTime": "Choisir une période de récupération",
+  "chooseBackupLocation": "Choisir l'emplacement de la sauvegarde",
+  "chooseFromAnExistingContact": "Choisir parmi un contact existant",
+  "chooseIcon": "Choisir un icône",
+  "chooseYourPlan": "Choisissez votre abonnement",
+  "city": "Dans la ville",
+  "citySunsets": "Coucher du soleil en ville",
+  "claimedByYou": "demandé par vous",
+  "cleanedUpSimilarImages": "Vous avez libéré {size} d'espace",
+  "@cleanedUpSimilarImages": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "cleanUncategorized": "Effacer les éléments non classés",
+  "cleanUncategorizedDescription": "Supprimer tous les fichiers non-catégorisés étant présents dans d'autres albums",
+  "cleanupComplete": "Nettoyage terminé",
+  "cleanupHiddenFiles": "Nettoyer les fichiers cachés",
+  "cleanupHiddenFilesDescription": "Certains fichiers dans les albums cachés existant toujours dans les albums non cachés les rendent visibles en dehors de la section cachée. Nettoyer-les, cela les supprimera des albums non cachés.",
+  "clearAllFilters": "Effacer tous les filtres",
+  "clearBackupFolder": "Effacer le dossier de sauvegarde",
+  "clearBackupPassword": "Effacer le mot de passe de sauvegarde",
+  "clearCaches": "Nettoyer le cache",
+  "clearingTrash": "Vidage de la corbeille...",
+  "clearSelection": "Effacer la sélection",
+  "clickToInstallOurBestVersionYet": "Cliquez pour installer notre meilleure version",
+  "close": "Fermer",
+  "closeBy": "Proches",
+  "@closeBy": {
+    "description": "Appears in the similar images page, to indicate that the images are close in terms of appearance"
+  },
+  "closeFamilyConfirmBody": "Tous les membres perdront l'accès au stockage partagé. Cela ne peut pas être annulé.",
+  "closeFamilyConfirmTitle": "Quitter l'abonnement famille ?",
+  "closeFamilyPlan": "Quitter l'abonnement famille",
+  "closest": "Le plus proche",
+  "cloudOnly": "Supprimer hors-ligne",
+  "clusteringProgress": "Progression du regroupement",
+  "coastalCliffs": "Falaises au bord de mer",
+  "codeAppliedPageTitle": "Code appliqué",
+  "codeChangeLimitReached": "Désolé, vous avez atteint la limite de changements de code.",
+  "codeCopiedToClipboard": "Code copié dans le presse-papiers",
+  "codeIssuerHint": "Émetteur",
+  "collabLinkSectionDescription": "Autoriser les personnes à ajouter des photos sans compte Ente",
+  "collaborator": "Collaborateur",
+  "collageLayout": "Disposition",
+  "collageSaved": "Collage sauvegardé dans la galerie",
+  "collectionCannotBeDeleted": "Cette collection ne peut pas etre supprimee",
+  "collectionCannotBeEdited": "Cette collection ne peut pas etre modifiee",
+  "collectionCannotBeShared": "Cette collection ne peut pas etre partagee",
+  "collectionDeletedSuccessfully": "Collection supprimee avec succes",
+  "collectionEmptyStateSubtitle": "Il n'y a aucun element dans cette collection",
+  "collectionRenamedSuccessfully": "Collection renommee avec succes",
+  "collections": "Bibliothèque",
+  "collectPhotos": "Récupérer les photos",
+  "color": "Couleur ",
+  "colorfulMarkets": "Marchés animés",
+  "commentedOnAPhoto": "a commenté sur une photo",
+  "@commentedOnAPhoto": {
+    "description": "Social notification action text shown after a person's name, for example 'John commented on a photo'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "commentedOnAVideo": "a commenté une vidéo",
+  "@commentedOnAVideo": {
+    "description": "Social notification action text shown after a person's name, for example 'John commented on a video'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "commentedOnYourPhoto": "a commenté votre photo",
+  "@commentedOnYourPhoto": {
+    "description": "Social notification action text shown after a person's name, for example 'John commented on your photo'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "commentedOnYourVideo": "a commenté votre vidéo",
+  "@commentedOnYourVideo": {
+    "description": "Social notification action text shown after a person's name, for example 'John commented on your video'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "commentHint": "Dites quelque chose de gentil !",
+  "@commentHint": {
+    "description": "Placeholder text for comment input field"
+  },
+  "comments": "Commentaires",
+  "commentsCount": "{count, plural, =0{Aucun commentaire} one{{count} commentaire} other{{count} commentaires}}",
+  "@commentsCount": {
+    "description": "Number of comments with pluralization",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "compactMode": "Mode compact",
+  "comparingImageDetails": "Comparaison des détails de l'image...",
+  "concertNights": "Nuits en concert",
+  "confirm": "Confirmer",
+  "@confirm": {
+    "description": "Confirm button label"
+  },
+  "confirm2FADisable": "Voulez-vous vraiment désactiver l'authentification à deux facteurs ?",
+  "confirmAddingTrustedContact": "Vous êtes sur le point d'ajouter {email} en tant que contact sûr. Il pourra récupérer votre compte si vous êtes absent pendant {numOfDays} jours.",
+  "@confirmAddingTrustedContact": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      },
+      "numOfDays": {
+        "type": "int",
+        "example": "30"
+      }
+    }
+  },
+  "confirmAddingTrustedContacts": "Vous êtes sur le point d'ajouter {count} en tant que contacts de confiance. Ils pourront récupérer votre compte si vous êtes absent pendant {numOfDays} jours.",
+  "@confirmAddingTrustedContacts": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "numOfDays": {
+        "type": "int",
+        "example": "30"
+      }
+    }
+  },
+  "confirmPassword": "Confirmer le mot de passe",
+  "@confirmPassword": {
+    "description": "Confirm password field label"
+  },
+  "confirmPlanChange": "Confirmer le changement d'abonnement",
+  "confirmRecoveryKey": "Confirmer la clé de récupération",
+  "confirmUpdatingkey": "Êtes-vous sûr de vouloir mettre à jour la clé secrète ?",
+  "confirmYourRecoveryKey": "Confirmer la clé de récupération",
+  "connectToDevice": "Connexion à l'appareil",
+  "contactDetails": "Coordonnees",
+  "contactDetailsHint": "Numero de telephone, e-mail ou autres coordonnees",
+  "contactName": "Nom du contact",
+  "contactNameHint": "Nom complet du contact d'urgence",
+  "contactNotes": "Message pour le contact",
+  "contactNotesHint": "Informations importantes a partager avec cette personne lorsqu'elle sera contactee",
+  "contactToManageSubscription": "Veuillez nous contacter à support@ente.com pour gérer votre abonnement {provider}.",
+  "@contactToManageSubscription": {
+    "placeholders": {
+      "provider": {}
+    }
+  },
+  "continueInMailApp": "Continuer dans l'application mail",
+  "continueLabel": "Continuer",
+  "@continueLabel": {
+    "description": "Continue button label"
+  },
+  "continueWithoutAccount": "Continuer sans compte",
+  "convertToAlbum": "Convertir en album",
+  "copied": "Copié",
+  "copiedNextToClipboard": "Code suivant copié dans le presse-papiers",
+  "copiedToClipboard": "Copié dans le presse-papiers",
+  "copyAllToClipboard": "Copier tout dans le presse-papier",
+  "copyEmbedHtml": "Copier le code HTML intégré",
+  "copyLink": "Copier le lien",
+  "copypasteThisCodentoYourAuthenticatorApp": "Copiez-collez ce code\ndans votre application d'authentification",
+  "couldNotBackUpTryLater": "Nous n'avons pas pu sauvegarder vos données.\nNous allons réessayer plus tard.",
+  "couldNotFreeUpSpace": "Impossible de libérer de l'espace",
+  "couldNotLoadAlbums": "Impossible de charger les albums",
+  "@couldNotLoadAlbums": {
+    "description": "Error when albums fail to load"
+  },
+  "couldNotLoadLikes": "Impossible de charger les j'aime",
+  "@couldNotLoadLikes": {
+    "description": "Error when likes fail to load"
+  },
+  "couldNotLoadSelectedPhoto": "Impossible de charger la photo sélectionnée",
+  "@couldNotLoadSelectedPhoto": {
+    "description": "Toast when the selected contact photo cannot be loaded"
+  },
+  "couldNotOpenFile": "Impossible d'ouvrir l'element : {error}",
+  "@couldNotOpenFile": {
+    "description": "Error message when item cannot be opened",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Permission denied"
+      }
+    }
+  },
+  "couldNotUpdateSubscription": "Impossible de mettre à jour l’abonnement",
+  "count": "Total",
+  "cozyCafes": "Coins de café confortables",
+  "crashAndErrorReporting": "Rapport de plantage et d'erreur",
+  "crashReporting": "Rapport d'erreur",
+  "create": "Créer",
+  "createAccount": "Créer un compte",
+  "@createAccount": {
+    "description": "Create account button label"
+  },
+  "createAccountTitle": "Créer un compte",
+  "createAlbum": "Créer un album",
+  "createAlbumActionHint": "Appuyez longuement pour sélectionner des photos et cliquez sur + pour créer un album",
+  "createAnEnteAccount": "Créer un compte Ente",
+  "createBackupNow": "Créer une sauvegarde maintenant",
+  "createCollaborativeLink": "Créer un lien collaboratif",
+  "createCollage": "Créez un collage",
+  "createCollection": "Creer une collection",
+  "createNewTag": "Créer un nouveau tag",
+  "createPublicLink": "Créer un lien public",
+  "createStream": "Créer le flux",
+  "creatingLink": "Création du lien...",
+  "creatingStream": "Création du flux",
+  "credentialName": "Compte",
+  "credentialNameHint": "Nom du service",
+  "credentialNotes": "Notes supplementaires",
+  "credentialNotesHint": "Methodes de recuperation, questions de securite, ...",
+  "criticalUpdateAvailable": "Mise à jour critique disponible",
+  "crop": "Rogner",
+  "curatedMemories": "Souvenirs conservés",
+  "currentBackupFolder": "Dossier actuel de la sauvegarde :",
+  "currentlyRunning": "en cours d'exécution",
+  "currentUsageNote": "Utilisation actuelle : {amount}. Définissez à 0 pour pas de limite.",
+  "@currentUsageNote": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "20 GB"
+      }
+    }
+  },
+  "custom": "Personnaliser",
+  "@custom": {
+    "description": "Label for setting custom value for link expiry"
   },
   "customEndpoint": "Connecté à {endpoint}",
   "@customEndpoint": {
@@ -67,593 +730,321 @@
       }
     }
   },
-  "save": "Sauvegarder",
-  "@save": {
-    "description": "Label for save button"
-  },
-  "send": "Envoyer",
-  "@send": {
-    "description": "Label for send button"
-  },
-  "saveOrSendDescription": "Voulez-vous enregistrer ceci sur votre stockage (dossier Téléchargements par défaut) ou l'envoyer à d'autres applications ?",
-  "@saveOrSendDescription": {
-    "description": "Description text asking user if they want to save to storage or share with other apps"
-  },
-  "saveOnlyDescription": "Voulez-vous enregistrer ceci sur votre stockage (dossier Téléchargements par défaut) ?",
-  "@saveOnlyDescription": {
-    "description": "Description text asking user if they want to save to storage (for platforms that don't support sharing)"
-  },
-  "enterNewEmailHint": "Saisissez votre nouvelle adresse email",
-  "@enterNewEmailHint": {
-    "description": "Hint text for entering new email address"
-  },
-  "email": "E-mail",
-  "@email": {
-    "description": "Email field label"
-  },
-  "verify": "Vérifier",
-  "@verify": {
-    "description": "Verify button label"
-  },
-  "invalidEmailTitle": "Adresse e-mail invalide",
-  "@invalidEmailTitle": {
-    "description": "Title for invalid email error dialog"
-  },
-  "invalidEmailMessage": "Veuillez saisir une adresse e-mail valide.",
-  "@invalidEmailMessage": {
-    "description": "Message for invalid email error dialog"
-  },
-  "pleaseWait": "Veuillez patienter...",
-  "@pleaseWait": {
-    "description": "Please wait message"
-  },
-  "verifyPassword": "Vérifier le mot de passe",
-  "@verifyPassword": {
-    "description": "Verify password button label"
-  },
-  "incorrectPasswordTitle": "Mot de passe incorrect",
-  "@incorrectPasswordTitle": {
-    "description": "Title for incorrect password error"
-  },
-  "pleaseTryAgain": "Veuillez réessayer",
-  "@pleaseTryAgain": {
-    "description": "Message asking user to try again"
-  },
-  "enterPassword": "Saisissez le mot de passe",
-  "@enterPassword": {
-    "description": "Enter password field label"
-  },
-  "enterYourPasswordHint": "Entrez votre mot de passe",
-  "@enterYourPasswordHint": {
-    "description": "Hint for password field"
-  },
-  "activeSessions": "Sessions actives",
-  "@activeSessions": {
-    "description": "Title for active sessions page"
-  },
-  "oops": "Oups",
-  "@oops": {
-    "description": "Oops error title"
-  },
-  "somethingWentWrongPleaseTryAgain": "Quelque chose s'est mal passé, veuillez recommencer",
-  "@somethingWentWrongPleaseTryAgain": {
-    "description": "Generic error message"
-  },
-  "thisWillLogYouOutOfThisDevice": "Cela vous déconnectera de cet appareil !",
-  "@thisWillLogYouOutOfThisDevice": {
-    "description": "Warning message for logging out of current device"
-  },
-  "thisWillLogYouOutOfTheFollowingDevice": "Cela vous déconnectera de l'appareil suivant :",
-  "@thisWillLogYouOutOfTheFollowingDevice": {
-    "description": "Warning message for logging out of another device"
-  },
-  "terminateSession": "Quitter la session ?",
-  "@terminateSession": {
-    "description": "Title for terminate session dialog"
-  },
-  "terminate": "Quitter",
-  "@terminate": {
-    "description": "Terminate button label"
-  },
-  "thisDevice": "Cet appareil",
-  "@thisDevice": {
-    "description": "Label for current device"
-  },
-  "createAccount": "Créer un compte",
-  "@createAccount": {
-    "description": "Create account button label"
-  },
-  "weakStrength": "Faible",
-  "@weakStrength": {
-    "description": "Weak password strength label"
-  },
-  "moderateStrength": "Modéré",
-  "@moderateStrength": {
-    "description": "Moderate password strength label"
-  },
-  "strongStrength": "Fort",
-  "@strongStrength": {
-    "description": "Strong password strength label"
-  },
-  "deleteAccount": "Supprimer le compte",
-  "@deleteAccount": {
-    "description": "Delete account button label"
-  },
-  "deleteAccountQuery": "Nous sommes désolés de vous voir partir. Rencontrez-vous un problème ?",
-  "@deleteAccountQuery": {
-    "description": "Message asking user why they want to delete account"
-  },
-  "yesSendFeedbackAction": "Oui, envoyer un commentaire",
-  "@yesSendFeedbackAction": {
-    "description": "Button to confirm sending feedback"
-  },
-  "noDeleteAccountAction": "Non, supprimer le compte",
-  "@noDeleteAccountAction": {
-    "description": "Button to proceed with account deletion"
-  },
-  "initiateAccountDeleteTitle": "Veuillez vous authentifier pour débuter la suppression du compte",
-  "@initiateAccountDeleteTitle": {
-    "description": "Title for authentication dialog before account deletion"
-  },
-  "confirmAccountDeleteTitle": "Confirmer la suppression du compte",
-  "@confirmAccountDeleteTitle": {
-    "description": "Title for account deletion confirmation dialog"
-  },
-  "confirmAccountDeleteMessage": "Ce compte est lié à d'autres applications ente, si vous en utilisez une.\n\nVos données téléchargées, dans toutes les applications ente, seront planifiées pour suppression, et votre compte sera définitivement supprimé.",
-  "@confirmAccountDeleteMessage": {
-    "description": "Message warning about account deletion consequences"
-  },
+  "customOrder": "Commande personnalisée",
+  "darkTheme": "Sombre",
+  "data": "Données",
+  "day": "Jour",
+  "dayToday": "Aujourd'hui",
+  "dayYesterday": "Hier",
+  "declineTrustInvite": "Refuser l’invitation",
+  "decrypting": "Déchiffrement en cours...",
+  "decryptingVideo": "Déchiffrement de la vidéo...",
+  "deduplicateCodes": "Codes dédupliqués",
+  "deduplicateFiles": "Déduplication de fichiers",
   "delete": "Supprimer",
   "@delete": {
     "description": "Delete button label"
   },
-  "createNewAccount": "Créer un nouveau compte",
-  "@createNewAccount": {
-    "description": "Create new account button label"
-  },
-  "password": "Mot de passe",
-  "@password": {
-    "description": "Password field label"
-  },
-  "confirmPassword": "Confirmer le mot de passe",
-  "@confirmPassword": {
-    "description": "Confirm password field label"
-  },
-  "passwordStrength": "Force du mot de passe : {passwordStrengthValue}",
-  "@passwordStrength": {
-    "description": "Text to indicate the password strength",
+  "deleteAlbum": "Supprimer l'album",
+  "deleteAlbumDialog": "Supprimer aussi les photos (et vidéos) présentes dans cet album de <bold>tous</bold> les autres albums dont elles font partie ?",
+  "deleteAlbumQuestion": "Supprimer cet album ?",
+  "deleteAlbumsDialogBody": "Ceci supprimera tous les albums vides. Ceci est utile lorsque vous voulez réduire l'encombrement dans votre liste d'albums.",
+  "deleteAll": "Tout supprimer",
+  "deleteCodeAuthMessage": "Authentification requise pour supprimer le code",
+  "deleteCodeMessage": "Êtes-vous sûr de vouloir supprimer ce code ? Cette action est irréversible.",
+  "deleteCodeTitle": "Supprimer le code ?",
+  "deleteCollectionDialogBody": "{collectionName} sera supprimee definitivement.",
+  "@deleteCollectionDialogBody": {
+    "description": "Confirmation message body for deleting a single collection",
     "placeholders": {
-      "passwordStrengthValue": {
-        "description": "The strength of the password as a string",
+      "collectionName": {
         "type": "String",
-        "example": "Weak or Moderate or Strong"
+        "example": "My Documents"
       }
     }
   },
-  "hearUsWhereTitle": "Comment avez-vous entendu parler de Ente? (facultatif)",
-  "@hearUsWhereTitle": {
-    "description": "Title asking how user heard about Ente"
+  "deleteCollectionFromEverywhere": "Supprimer egalement les elements partout",
+  "@deleteCollectionFromEverywhere": {
+    "description": "Checkbox label asking whether to delete collection items everywhere"
   },
-  "hearUsExplanation": "Nous ne suivons pas les installations d'applications. Il serait utile que vous nous disiez comment vous nous avez trouvés !",
-  "@hearUsExplanation": {
-    "description": "Explanation for asking how user heard about Ente"
+  "deleteComment": "Supprimer le commentaire",
+  "@deleteComment": {
+    "description": "Delete comment button label"
   },
-  "signUpTerms": "J'accepte les <u-terms>conditions d'utilisation</u-terms> et la <u-policy>politique de confidentialité</u-policy>",
-  "@signUpTerms": {
-    "description": "Terms agreement text for sign up"
-  },
-  "termsOfServicesTitle": "Conditions",
-  "@termsOfServicesTitle": {
-    "description": "Terms of service title"
-  },
-  "privacyPolicyTitle": "Politique de confidentialité",
-  "@privacyPolicyTitle": {
-    "description": "Privacy policy title"
-  },
-  "ackPasswordLostWarning": "Je comprends que si je perds mon mot de passe, je risque de perdre mes données puisque celles-ci sont <underline>chiffrées de bout en bout</underline>.",
-  "@ackPasswordLostWarning": {
-    "description": "Warning about password loss"
-  },
-  "encryption": "Chiffrement",
-  "@encryption": {
-    "description": "Encryption label"
-  },
-  "logInLabel": "Connexion",
-  "@logInLabel": {
-    "description": "Log in button label"
-  },
-  "welcomeBack": "Bon retour parmi nous !",
-  "@welcomeBack": {
-    "description": "Welcome back message"
-  },
-  "loginTerms": "En cliquant sur \"Connexion\", j'accepte les <u-terms>conditions d'utilisation</u-terms> et la <u-policy>politique de confidentialité</u-policy>",
-  "@loginTerms": {
-    "description": "Terms agreement text for login"
-  },
-  "noInternetConnection": "Aucune connexion internet",
-  "@noInternetConnection": {
-    "description": "No internet connection error message"
-  },
-  "pleaseCheckYourInternetConnectionAndTryAgain": "Veuillez vérifier votre connexion internet puis réessayer.",
-  "@pleaseCheckYourInternetConnectionAndTryAgain": {
-    "description": "Message asking user to check internet connection"
-  },
-  "verificationFailedPleaseTryAgain": "La vérification a échouée, veuillez réessayer",
-  "@verificationFailedPleaseTryAgain": {
-    "description": "Verification failed error message"
-  },
-  "recreatePasswordTitle": "Recréer le mot de passe",
-  "@recreatePasswordTitle": {
-    "description": "Title for recreate password dialog"
-  },
-  "recreatePasswordBody": "L'appareil actuel n'est pas assez puissant pour vérifier votre mot de passe, donc nous avons besoin de le régénérer une fois d'une manière qu'il fonctionne avec tous les périphériques.\n\nVeuillez vous connecter en utilisant votre clé de récupération et régénérer votre mot de passe (vous pouvez utiliser le même si vous le souhaitez).",
-  "@recreatePasswordBody": {
-    "description": "Body text for recreate password dialog"
-  },
-  "useRecoveryKey": "Utiliser la clé de récupération",
-  "@useRecoveryKey": {
-    "description": "Use recovery key button label"
-  },
-  "forgotPassword": "Mot de passe oublié",
-  "@forgotPassword": {
-    "description": "Forgot password link label"
-  },
-  "changeEmail": "Modifier l'e-mail",
-  "@changeEmail": {
-    "description": "Change email button label"
-  },
-  "verifyEmail": "Vérifier l'e-mail",
-  "@verifyEmail": {
-    "description": "Verify email title"
-  },
-  "weHaveSendEmailTo": "Nous avons envoyé un mail à <green>{email}</green>",
-  "@weHaveSendEmailTo": {
-    "description": "Text to indicate that we have sent a mail to the user",
+  "deleteCommentConfirmation": "Votre commentaire \"{comment}\" sera supprimé définitivement",
+  "@deleteCommentConfirmation": {
+    "description": "Confirmation message when deleting a comment",
     "placeholders": {
-      "email": {
-        "description": "The email address of the user",
-        "type": "String",
-        "example": "example@ente.io"
+      "comment": {
+        "type": "String"
       }
     }
   },
-  "toResetVerifyEmail": "Pour réinitialiser votre mot de passe, veuillez d'abord vérifier votre e-mail.",
-  "@toResetVerifyEmail": {
-    "description": "Message asking user to verify email before password reset"
+  "deletedComment": "(supprimé)",
+  "@deletedComment": {
+    "description": "Label for deleted comments"
   },
-  "checkInboxAndSpamFolder": "Veuillez consulter votre boîte de courriels (et les spam) pour compléter la vérification",
-  "@checkInboxAndSpamFolder": {
-    "description": "Message asking user to check inbox and spam folder"
+  "deletedFromEnte": "Supprimé de Ente",
+  "deletedItemsStayHereForThirtyDays": "Les éléments supprimés restent ici pendant 30 jours",
+  "deleteDuplicates": "Supprimer les doublons",
+  "deleteEmptyAlbums": "Supprimer les albums vides",
+  "deleteEmptyAlbumsWithQuestionMark": "Supprimer les albums vides ?",
+  "deleteFiles": "Supprimer les fichiers",
+  "deleteFromBoth": "Supprimer des deux",
+  "deleteFromDevice": "Supprimer de l'appareil",
+  "deleteFromDeviceQuestion": "Supprimer de l'appareil?",
+  "deleteFromEnte": "Supprimer de Ente",
+  "deleteHiddenFilesFromDevice": "Supprimer les fichiers cachés de l'appareil",
+  "deleteHiddenFilesFromDeviceDescription": "Supprimer les copies locales des fichiers cachés de votre appareil",
+  "deleteItemCount": "{count, plural, one{Supprimer {count} élément} other{Supprimer {count} éléments}}",
+  "@deleteItemCount": {
+    "placeholders": {
+      "count": {}
+    }
   },
-  "tapToEnterCode": "Appuyez pour entrer un code",
-  "@tapToEnterCode": {
-    "description": "Hint for entering verification code"
+  "deleteItemsQuestion": "{count, plural, one{Supprimer l'élément?} other{Supprimer {count} éléments?}}",
+  "@deleteItemsQuestion": {
+    "description": "Delete confirmation title for one or more selected items.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
-  "sendEmail": "Envoyer un e-mail",
-  "resendEmail": "Renvoyer le courriel",
-  "@resendEmail": {
-    "description": "Resend email button label"
+  "deleteLink": "Supprimer le lien",
+  "deleteLinkQuestion": "Supprimer le lien ?",
+  "deleteLocation": "Supprimer la localisation",
+  "deleteMemoryLinkMessage": "Les personnes avec qui vous avez partagé ce lien perdront l'accès une fois qu'il sera supprimé.",
+  "deleteMultipleAlbumDialog": "Supprimer aussi les photos (et les vidéos) présentes dans {count} album(s) depuis <bold>tous les autres</bold> albums dont ils font partie ?",
+  "@deleteMultipleAlbumDialog": {
+    "placeholders": {
+      "count": {}
+    }
   },
-  "passKeyPendingVerification": "La vérification est toujours en attente",
-  "@passKeyPendingVerification": {
-    "description": "Message when passkey verification is pending"
+  "deleteMultipleAlbumsQuestion": "Supprimer ces albums ?",
+  "deleteOnDeviceFiles": "Supprimer sur les fichiers de l'appareil",
+  "deletePhotos": "Supprimer les photos",
+  "deletePhotosWithSize": "Supprimer {count} photos ({size})",
+  "@deletePhotosWithSize": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
   },
-  "loginSessionExpired": "Session expirée",
-  "@loginSessionExpired": {
-    "description": "Login session expired title"
+  "deleteProgress": "Suppression de {currentlyDeleting} / {totalCount}",
+  "@deleteProgress": {
+    "placeholders": {
+      "currentlyDeleting": {},
+      "totalCount": {}
+    }
   },
-  "loginSessionExpiredDetails": "Votre session a expiré. Veuillez vous reconnecter.",
-  "@loginSessionExpiredDetails": {
-    "description": "Login session expired details"
+  "deleteSharedAlbum": "Supprimer l'album partagé ?",
+  "deleteSharedAlbumDialogBody": "L'album sera supprimé pour tout le monde\n\nVous perdrez l'accès aux photos partagées dans cet album qui sont détenues par d'autres personnes",
+  "deleteShareLinkConfirmation": "Les personnes disposant de ce lien ne pourront plus acceder a l'element.",
+  "deleteSuggestions": "Supprimer les suggestions",
+  "deleteSuggestionSent": "Suggestion de suppression envoyée",
+  "deleteTagMessage": "Êtes-vous sûr de vouloir supprimer ce tag ? Cette action est irréversible.",
+  "deleteTagTitle": "Supprimer le tag ?",
+  "deleteWithCount": "Supprimer ({count})",
+  "@deleteWithCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
-  "passkeyAuthTitle": "Vérification du code d'accès",
-  "@passkeyAuthTitle": {
-    "description": "Passkey authentication title"
+  "deletingDash": "Suppression - ",
+  "deletingFile": "Suppression de l'element...",
+  "deletingShareLink": "Suppression du lien...",
+  "desertDreams": "Rêves désertiques",
+  "designedForFamilies": "Conçu pour les familles",
+  "details": "Détails",
+  "detailsAboutTheIssue": "Détails du problème",
+  "developerSettings": "Paramètres du développeur",
+  "@developerSettings": {
+    "description": "Label for developer settings"
   },
-  "waitingForVerification": "En attente de vérification...",
-  "@waitingForVerification": {
-    "description": "Waiting for verification message"
-  },
-  "tryAgain": "Réessayer",
-  "@tryAgain": {
-    "description": "Try again button label"
-  },
-  "checkStatus": "Vérifier le statut",
-  "@checkStatus": {
-    "description": "Check status button label"
-  },
-  "loginWithTOTP": "Se connecter avec un code TOTP",
-  "@loginWithTOTP": {
-    "description": "Login with TOTP button label"
-  },
-  "recoverAccount": "Récupérer un compte",
-  "@recoverAccount": {
-    "description": "Recover account button label"
-  },
-  "setPasswordTitle": "Définir le mot de passe",
-  "@setPasswordTitle": {
-    "description": "Set password title"
-  },
-  "changePasswordTitle": "Modifier le mot de passe",
-  "@changePasswordTitle": {
-    "description": "Change password title"
-  },
-  "resetPasswordTitle": "Réinitialiser le mot de passe",
-  "@resetPasswordTitle": {
-    "description": "Reset password title"
-  },
-  "encryptionKeys": "Clés de chiffrement",
-  "@encryptionKeys": {
-    "description": "Encryption keys title"
-  },
-  "enterPasswordToEncrypt": "Entrez un mot de passe que nous pouvons utiliser pour chiffrer vos données",
-  "@enterPasswordToEncrypt": {
-    "description": "Prompt to enter password for encryption"
-  },
-  "enterNewPasswordToEncrypt": "Entrez un nouveau mot de passe que nous pouvons utiliser pour chiffrer vos données",
-  "@enterNewPasswordToEncrypt": {
-    "description": "Prompt to enter new password for encryption"
-  },
-  "passwordWarning": "Nous ne stockons pas ce mot de passe. Si vous l'oubliez, <underline>nous ne pourrons pas déchiffrer vos données</underline>",
-  "@passwordWarning": {
-    "description": "Warning about password storage"
-  },
-  "howItWorks": "Comment ça fonctionne",
-  "@howItWorks": {
-    "description": "How it works button label"
-  },
-  "generatingEncryptionKeys": "Génération des clés de chiffrement...",
-  "@generatingEncryptionKeys": {
-    "description": "Generating encryption keys message"
-  },
-  "passwordChangedSuccessfully": "Le mot de passe a été modifié avec succès",
-  "@passwordChangedSuccessfully": {
-    "description": "Password changed successfully message"
-  },
-  "signOutFromOtherDevices": "Déconnexion des autres appareils",
-  "@signOutFromOtherDevices": {
-    "description": "Sign out from other devices title"
-  },
-  "signOutOtherBody": "Si vous pensez que quelqu'un connaît peut-être votre mot de passe, vous pouvez forcer tous les autres appareils utilisant votre compte à se déconnecter.",
-  "@signOutOtherBody": {
-    "description": "Sign out other devices explanation"
-  },
-  "signOutOtherDevices": "Déconnecter les autres appareils",
-  "@signOutOtherDevices": {
-    "description": "Sign out other devices button label"
-  },
-  "doNotSignOut": "Ne pas se déconnecter",
-  "@doNotSignOut": {
-    "description": "Do not sign out button label"
-  },
-  "generatingEncryptionKeysTitle": "Génération des clés de chiffrement...",
-  "@generatingEncryptionKeysTitle": {
-    "description": "Generating encryption keys title"
-  },
-  "continueLabel": "Continuer",
-  "@continueLabel": {
-    "description": "Continue button label"
-  },
-  "insecureDevice": "Appareil non sécurisé",
-  "@insecureDevice": {
-    "description": "Insecure device warning title"
-  },
-  "sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": "Désolé, nous n'avons pas pu générer de clés sécurisées sur cet appareil.\n\nVeuillez vous inscrire depuis un autre appareil.",
-  "@sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": {
-    "description": "Error message for insecure device"
-  },
-  "recoveryKeyCopiedToClipboard": "Clé de récupération copiée dans le presse-papiers",
-  "@recoveryKeyCopiedToClipboard": {
-    "description": "Recovery key copied message"
-  },
-  "recoveryKey": "Clé de récupération",
-  "@recoveryKey": {
-    "description": "Recovery key label"
-  },
-  "recoveryKeyOnForgotPassword": "Si vous oubliez votre mot de passe, la seule façon de récupérer vos données sera grâce à cette clé.",
-  "@recoveryKeyOnForgotPassword": {
-    "description": "Recovery key importance explanation"
-  },
-  "recoveryKeySaveDescription": "Nous ne stockons pas cette clé, veuillez enregistrer cette clé de 24 mots dans un endroit sûr.",
-  "@recoveryKeySaveDescription": {
-    "description": "Recovery key save description"
-  },
-  "doThisLater": "Plus tard",
-  "@doThisLater": {
-    "description": "Do this later button label"
-  },
-  "saveKey": "Enregistrer la clé",
-  "@saveKey": {
-    "description": "Save key button label"
-  },
-  "recoveryKeySaved": "Clé de récupération enregistrée dans le dossier Téléchargements !",
-  "@recoveryKeySaved": {
-    "description": "Recovery key saved confirmation message"
-  },
-  "noRecoveryKeyTitle": "Pas de clé de récupération ?",
-  "@noRecoveryKeyTitle": {
-    "description": "No recovery key title"
-  },
-  "twoFactorAuthTitle": "Authentification à deux facteurs",
-  "@twoFactorAuthTitle": {
-    "description": "Two-factor authentication title"
-  },
-  "enterCodeHint": "Entrez le code à 6 chiffres de votre application d'authentification",
-  "@enterCodeHint": {
-    "description": "Hint for entering 2FA code"
-  },
-  "lostDeviceTitle": "Appareil perdu ?",
-  "@lostDeviceTitle": {
-    "description": "Lost device title"
-  },
-  "enterRecoveryKeyHint": "Saisissez votre clé de récupération",
-  "@enterRecoveryKeyHint": {
-    "description": "Hint for entering recovery key"
-  },
-  "recover": "Restaurer",
-  "@recover": {
-    "description": "Recover button label"
-  },
-  "loggingOut": "Deconnexion...",
-  "@loggingOut": {
-    "description": "Message shown while logging out"
-  },
-  "immediately": "Immédiatement",
-  "@immediately": {
-    "description": "Immediately option for auto lock timing"
-  },
-  "appLock": "Verrouillage d'application",
-  "@appLock": {
-    "description": "App lock setting title"
-  },
-  "autoLock": "Verrouillage automatique",
-  "@autoLock": {
-    "description": "Auto lock setting title"
-  },
-  "noSystemLockFound": "Aucun verrou système trouvé",
-  "@noSystemLockFound": {
-    "description": "Error when no system lock is found"
-  },
+  "developerSettingsWarning": "Êtes-vous sûr de vouloir modifier les paramètres du développeur ?",
+  "deviceInfo": "Infos sur l'appareil",
   "deviceLockEnablePreSteps": "Pour activer l'écran de verrouillage, veuillez configurer le code d'accès de l'appareil ou le verrouillage de l'écran dans les paramètres de votre système.",
   "@deviceLockEnablePreSteps": {
     "description": "Instructions for enabling device lock"
   },
-  "appLockDescription": "Choisissez entre l'écran de verrouillage par défaut de votre appareil et un écran de verrouillage par code PIN ou mot de passe personnalisé.",
-  "@appLockDescription": {
-    "description": "Description of app lock feature"
+  "deviceNotFound": "Appareil non trouvé",
+  "didYouKnow": "Le savais-tu ?",
+  "digits": "Chiffres",
+  "disableBackup": "Désactiver la sauvegarde",
+  "disableDownloadWarningBody": "Les observateurs peuvent toujours prendre des captures d'écran ou enregistrer une copie de vos photos en utilisant des outils externes",
+  "disableDownloadWarningTitle": "Veuillez remarquer",
+  "disableLinkMessage": "Cela supprimera le lien public pour accéder à \"{albumName}\".",
+  "@disableLinkMessage": {
+    "placeholders": {
+      "albumName": {}
+    }
   },
-  "deviceLock": "Verrouillage de l'appareil",
-  "@deviceLock": {
-    "description": "Device lock option title"
+  "disableTwofactor": "Désactiver l'authentification à deux facteurs",
+  "disablingTwofactorAuthentication": "Désactivation de l'authentification à deux facteurs...",
+  "discardChanges": "Abandonner",
+  "discardEditsQuestion": "Ignorer les modifications ?",
+  "discover": "Découverte",
+  "@discover": {
+    "description": "The text to display for the discover section under which we show receipts, screenshots, sunsets, greenery, etc."
   },
-  "pinLock": "Verrouillage par code PIN",
-  "@pinLock": {
-    "description": "PIN lock option title"
+  "discover_babies": "Bébés",
+  "discover_celebrations": "Fêtes",
+  "discover_food": "Alimentation",
+  "discover_greenery": "Plantes",
+  "discover_hills": "Montagnes",
+  "discover_identity": "Identité",
+  "discover_memes": "Mèmes",
+  "discover_pets": "Animaux de compagnie",
+  "discover_qr_codes": "QR Codes",
+  "discover_receipts": "Recettes",
+  "discover_screenshots": "Captures d'écran ",
+  "discover_sunset": "Coucher du soleil",
+  "discover_visiting_cards": "Carte de visite",
+  "discover_wallpapers": "Fonds d'écran",
+  "dismiss": "Rejeter",
+  "distanceInKMUnit": "km",
+  "@distanceInKMUnit": {
+    "description": "Unit for distance in km"
   },
-  "autoLockFeatureDescription": "Délai après lequel l'application se verrouille une fois qu'elle a été mise en arrière-plan",
-  "@autoLockFeatureDescription": {
-    "description": "Description of auto lock feature"
+  "doesGroupContainMultiplePeople": "Ce groupement contient-il plusieurs personnes ?",
+  "dog": "Chien",
+  "done": "Terminé",
+  "doNotSignOut": "Ne pas se déconnecter",
+  "@doNotSignOut": {
+    "description": "Do not sign out button label"
   },
-  "hideContent": "Masquer le contenu",
-  "@hideContent": {
-    "description": "Hide content setting title"
+  "dontHaveAnAccount": "Pas encore de compte ?",
+  "dontSave": "Ne pas enregistrer",
+  "doubleTapToViewHiddenCode": "Vous pouvez appuyer deux fois sur une entrée pour afficher le code",
+  "download": "Télécharger",
+  "downloadApplicationUpdate": "Télécharger la mise à jour",
+  "downloadFailed": "Échec du téléchargement",
+  "downloading": "Téléchargement en cours...",
+  "downloadingProgress": "Telechargement... {percentage}%",
+  "@downloadingProgress": {
+    "description": "Download progress message",
+    "placeholders": {
+      "percentage": {
+        "type": "int",
+        "example": "75"
+      }
+    }
   },
-  "hideContentDescriptionAndroid": "Masque le contenu de l'application sur le menu et désactive les captures d'écran",
-  "@hideContentDescriptionAndroid": {
-    "description": "Description of hide content feature on Android"
+  "downloadSkippedAlreadyAvailableOnDevice": "{fileName} est déjà disponible dans l'album {albumName} sur votre appareil",
+  "@downloadSkippedAlreadyAvailableOnDevice": {
+    "description": "Toast shown in single-file download flow when the file already exists locally",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      },
+      "fileName": {
+        "type": "String"
+      }
+    }
   },
-  "hideContentDescriptioniOS": "Masque le contenu de l'application sur le menu",
-  "@hideContentDescriptioniOS": {
-    "description": "Description of hide content feature on iOS"
+  "downloadSkippedInSelectionMultipleFiles": "Le téléchargement de {fileCount} fichiers a été ignoré car ils sont déjà sur votre appareil",
+  "@downloadSkippedInSelectionMultipleFiles": {
+    "description": "Toast shown after multi-selection download when multiple selected files are skipped because they already exist locally",
+    "placeholders": {
+      "fileCount": {
+        "type": "int"
+      }
+    }
   },
-  "tooManyIncorrectAttempts": "Trop de tentatives incorrectes",
-  "@tooManyIncorrectAttempts": {
-    "description": "Message shown when too many incorrect attempts are made"
+  "downloadSkippedInSelectionSingleFile": "Le téléchargement d' {fileName} a été ignoré car il est déjà disponible dans l'album {albumName} sur votre appareil",
+  "@downloadSkippedInSelectionSingleFile": {
+    "description": "Toast shown after multi-selection download when exactly one selected file is skipped because it already exists locally",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      },
+      "fileName": {
+        "type": "String"
+      }
+    }
   },
-  "tapToUnlock": "Appuyer pour déverrouiller",
-  "@tapToUnlock": {
-    "description": "Message prompting user to tap to unlock"
+  "downloadUpdate": "Télécharger",
+  "doYouWantToDiscardTheEditsYouHaveMade": "Voulez-vous annuler les modifications que vous avez faites ?",
+  "draw": "Dessiner",
+  "dropSupportEmail": "Veuillez envoyer un e-mail à {supportEmail} depuis votre adresse enregistrée",
+  "@dropSupportEmail": {
+    "placeholders": {
+      "supportEmail": {
+        "description": "The support email address",
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
   },
-  "areYouSureYouWantToLogout": "Êtes-vous sûr de vouloir vous déconnecter ?",
-  "@areYouSureYouWantToLogout": {
-    "description": "Confirmation message before logout"
+  "duplicateCodes": "Codes dupliqués",
+  "duplicateFileCountWithStorageSaved": "Vous avez nettoyé {count, plural, one{{count} fichier dupliqué} other{{count} fichiers dupliqués}}, en libérant ({storageSaved}!)",
+  "@duplicateFileCountWithStorageSaved": {
+    "description": "The text to display when the user has successfully cleaned up duplicate files",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "1",
+        "type": "int"
+      },
+      "storageSaved": {
+        "example": "1.2 GB",
+        "type": "String"
+      }
+    }
   },
-  "yesLogout": "Oui, se déconnecter",
-  "@yesLogout": {
-    "description": "Confirmation button for logout"
+  "duplicateItemsGroup": "{count} fichiers, {formattedSize} chacun",
+  "@duplicateItemsGroup": {
+    "description": "Display the number of duplicate files and their size",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "12",
+        "type": "int"
+      },
+      "formattedSize": {
+        "example": "2.3 MB",
+        "type": "String"
+      }
+    }
   },
-  "authToViewSecrets": "Veuillez vous authentifier pour voir vos souvenirs",
-  "@authToViewSecrets": {
-    "description": "Message prompting authentication to view secrets"
+  "earned": "gagné",
+  "earnMoreSpace": "Gagnez de l'espace !",
+  "edit": "Éditer",
+  "editAutoAddPeople": "Modifier visages auto",
+  "editCodeAuthMessage": "Authentification requise pour modifier le code",
+  "editContact": "Modifier le contact",
+  "editEmailAlreadyLinked": "Cet e-mail est déjà lié à {name}.",
+  "@editEmailAlreadyLinked": {
+    "placeholders": {
+      "name": {}
+    }
   },
-  "next": "Suivant",
-  "@next": {
-    "description": "Next button label"
+  "editItem": "Modifier l'element",
+  "editLocation": "Modifier le lieu",
+  "editOrder": "Modifier la commande",
+  "editPerson": "Modifier la personne",
+  "editSecret": "Modifier le secret",
+  "@editSecret": {
+    "description": "Title shown when editing an existing secret"
   },
-  "setNewPassword": "Définir un nouveau mot de passe",
-  "@setNewPassword": {
-    "description": "Set new password title"
+  "editsSaved": "Modification sauvegardée",
+  "editsToLocationWillOnlyBeSeenWithinEnte": "Les modifications da localisation ne seront visibles que dans Ente",
+  "editStorageLimit": "Modifier la limite de stockage",
+  "editTag": "Modifier le tag",
+  "editTime": "Modifier l'heure",
+  "eligible": "éligible",
+  "email": "E-mail",
+  "@email": {
+    "description": "Email field label"
   },
-  "enterPin": "Saisir le code PIN",
-  "@enterPin": {
-    "description": "Enter PIN prompt"
-  },
-  "setNewPin": "Définir un nouveau code PIN",
-  "@setNewPin": {
-    "description": "Set new PIN title"
-  },
-  "confirm": "Confirmer",
-  "@confirm": {
-    "description": "Confirm button label"
-  },
-  "reEnterPassword": "Ressaisir le mot de passe",
-  "@reEnterPassword": {
-    "description": "Re-enter password prompt"
-  },
-  "reEnterPin": "Ressaisir le code PIN",
-  "@reEnterPin": {
-    "description": "Re-enter PIN prompt"
-  },
-  "androidBiometricHint": "Vérifier l’identité",
-  "@androidBiometricHint": {
-    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricNotRecognized": "Non reconnu. Veuillez réessayer.",
-  "@androidBiometricNotRecognized": {
-    "description": "Message to let the user know that authentication was failed. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricSuccess": "Parfait",
-  "@androidBiometricSuccess": {
-    "description": "Message to let the user know that authentication was successful. It is used on Android side. Maximum 60 characters."
-  },
-  "androidCancelButton": "Annuler",
-  "@androidCancelButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
-  },
-  "androidSignInTitle": "Authentification requise",
-  "@androidSignInTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricRequiredTitle": "Empreinte digitale requise",
-  "@androidBiometricRequiredTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user has not set up biometric authentication on their device. It is used on Android side. Maximum 60 characters."
-  },
-  "androidDeviceCredentialsRequiredTitle": "Identifiants de l'appareil requis",
-  "@androidDeviceCredentialsRequiredTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user has not set up credentials authentication on their device. It is used on Android side. Maximum 60 characters."
-  },
-  "androidDeviceCredentialsSetupDescription": "Identifiants de l'appareil requis",
-  "@androidDeviceCredentialsSetupDescription": {
-    "description": "Message advising the user to go to the settings and configure device credentials on their device. It shows in a dialog on Android side."
-  },
-  "goToSettings": "Allez dans les paramètres",
-  "@goToSettings": {
-    "description": "Message showed on a button that the user can click to go to settings pages from the current dialog. It is used on both Android and iOS side. Maximum 30 characters."
-  },
-  "androidGoToSettingsDescription": "L'authentification biométrique n'est pas configurée sur votre appareil. Allez dans 'Paramètres > Sécurité' pour l'ajouter.",
-  "@androidGoToSettingsDescription": {
-    "description": "Message advising the user to go to the settings and configure biometric on their device. It shows in a dialog on Android side."
-  },
-  "iOSLockOut": "L'authentification biométrique est désactivée. Veuillez verrouiller et déverrouiller votre écran pour l'activer.",
-  "@iOSLockOut": {
-    "description": "Message advising the user to re-enable biometrics on their device. It shows in a dialog on iOS side."
-  },
-  "iOSOkButton": "Ok",
-  "@iOSOkButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on iOS side. Maximum 30 characters."
-  },
-  "emailAlreadyRegistered": "E-mail déjà enregistré.",
-  "@emailAlreadyRegistered": {
-    "description": "Error message when email is already registered"
-  },
-  "emailNotRegistered": "E-mail non enregistré.",
-  "@emailNotRegistered": {
-    "description": "Error message when email is not registered"
-  },
-  "thisEmailIsAlreadyInUse": "Cette adresse mail est déjà utilisé",
-  "@thisEmailIsAlreadyInUse": {
-    "description": "Error message when email is already in use"
-  },
+  "emailAddress": "Adresse e-mail",
   "emailChangedTo": "L'e-mail a été changé en {newEmail}",
   "@emailChangedTo": {
     "description": "Message when email has been changed",
@@ -665,60 +1056,2608 @@
       }
     }
   },
-  "authenticationFailedPleaseTryAgain": "L'authentification a échouée, veuillez réessayer",
-  "@authenticationFailedPleaseTryAgain": {
-    "description": "Error message when authentication fails"
+  "emailHint": "Entrez votre adresse e-mail",
+  "emailNeedsEnteAccountForFamily": "{email} n'a pas de compte Ente.\n\nEnvoyez-lui une invitation et ajoutez-les à votre famille une fois qu'ils auront créé un compte sur Ente.",
+  "@emailNeedsEnteAccountForFamily": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@example.com"
+      }
+    }
   },
-  "authenticationSuccessful": "Authentification réussie!",
-  "@authenticationSuccessful": {
-    "description": "Success message when authentication is successful"
+  "emailNoEnteAccountPhotos": "{email} N'a pas de compte Ente.\n\nEnvoyez une invitation pour partager des photos.",
+  "@emailNoEnteAccountPhotos": {
+    "placeholders": {
+      "email": {}
+    }
   },
-  "sessionExpired": "Session expirée",
-  "@sessionExpired": {
-    "description": "Error message when session has expired"
+  "emailNotRegistered": "E-mail non enregistré.",
+  "@emailNotRegistered": {
+    "description": "Error message when email is not registered"
+  },
+  "emailUsMessage": "Veuillez nous envoyer un e-mail à {email}",
+  "@emailUsMessage": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "emailVerificationEnableWarning": "Si vous stockez le 2FA dans votre e-mail avec nous, l'activation de la vérification d'e-mail pourrait entraîner un blocage. Si vous êtes exclu d'un service, il se peut que vous ne puissiez pas vous connecter à l'autre.",
+  "embracingThem": "Embrasse {name}",
+  "@embracingThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "emergencyContact": "Contact d'urgence",
+  "empty": "Vider",
+  "emptyTrash": "Vider la corbeille",
+  "emptyTrashConfirmation": "Es-tu sur de vouloir supprimer definitivement tous les elements de la corbeille ? Cette action est irreversible.",
+  "emptyTrashQuestion": "Vider la corbeille ?",
+  "enable": "Activer",
+  "enableAutomaticBackups": "Sauvegardes automatiques",
+  "enableBackupsIosInstruction": "Pour activer les sauvegardes sur iOS, choisissez un dossier dans Fichiers (par exemple \"Sur mon iPhone\").",
+  "enableComment": "Commentaires et réactions",
+  "enabled": "Activé",
+  "enableMaps": "Activer la carte",
+  "encrypted": "Chiffré",
+  "encryptingBackup": "Chiffrement de la sauvegarde...",
+  "encryptionKeys": "Clés de chiffrement",
+  "@encryptionKeys": {
+    "description": "Encryption keys title"
+  },
+  "endpointUpdatedMessage": "Point de terminaison mis à jour avec succès",
+  "@endpointUpdatedMessage": {
+    "description": "Success message when endpoint is updated"
+  },
+  "ente": "Ente",
+  "enterAlbumName": "Saisir un nom d'album",
+  "enterAnEmailAddress": "Saisissez une adresse e-mail",
+  "enterAValidEmailAddress": "Saisissez une adresse e-mail valide",
+  "enterCode": "Entrer le code",
+  "enterCodeDescription": "Entrez le code fourni par votre ami·e pour débloquer l'espace de stockage gratuit",
+  "enterCodeHint": "Entrez le code à 6 chiffres de votre application d'authentification",
+  "@enterCodeHint": {
+    "description": "Hint for entering 2FA code"
+  },
+  "enterCollectionName": "Saisis le nom de la collection",
+  "enterDateOfBirthHint": "Saisir la date de naissance",
+  "enterDetailsManually": "Saisir les détails manuellement",
+  "enterEmail": "Entrer un email",
+  "enterFileName": "Entrez le nom du fichier",
+  "enterName": "Saisir un nom",
+  "enterNameOrEmailToShareWith": "Saisis un nom ou un e-mail pour partager",
+  "enterNewEmailHint": "Saisissez votre nouvelle adresse email",
+  "@enterNewEmailHint": {
+    "description": "Hint text for entering new email address"
+  },
+  "enterNewTitle": "Saisis un nouveau titre",
+  "enterPassword": "Saisissez le mot de passe",
+  "@enterPassword": {
+    "description": "Enter password field label"
+  },
+  "enterPasswordToAegisVault": "Saisir le mot de passe du coffre aegis",
+  "enterPasswordToDecrypt2FASBackup": "Saisir le mot de passe pour déchiffrer la sauvegarde 2FAS",
+  "enterPasswordToDecryptAndOTP": "Entrez le mot de passe pour déchiffrer la sauvegarde andOTP",
+  "enterPasswordToEncrypt": "Entrez un mot de passe que nous pouvons utiliser pour chiffrer vos données",
+  "@enterPasswordToEncrypt": {
+    "description": "Prompt to enter password for encryption"
+  },
+  "enterRecoveryKeyHint": "Saisissez votre clé de récupération",
+  "@enterRecoveryKeyHint": {
+    "description": "Hint for entering recovery key"
+  },
+  "enterReferralCode": "Code de parrainage",
+  "enterThe6digitCodeFromnyourAuthenticatorApp": "Entrez le code à 6 chiffres de\nvotre application d'authentification",
+  "enterValidEmail": "Veuillez entrer une adresse email valide.",
+  "enterYourNewEmailAddress": "Entrez votre nouvelle adresse e-mail",
+  "enterYourPassword": "Entrez votre mot de passe",
+  "enterYourPasswordHint": "Entrez votre mot de passe",
+  "@enterYourPasswordHint": {
+    "description": "Hint for password field"
+  },
+  "enterYourRecoveryKey": "Entrez votre clé de récupération",
+  "error": "Erreur",
+  "@error": {
+    "description": "Generic error title"
+  },
+  "errorGenericBody": "Une erreur inattendue est survenue lors de l'importation.",
+  "errorGenericTitle": "Une erreur s'est produite",
+  "errorInvalidQRCodeBody": "Le code QR scanné n'est pas un compte 2FA valide.",
+  "errorNoQRCode": "Aucun code QR trouvé",
+  "errorOpeningFile": "Erreur lors de l'ouverture de l'element",
+  "exif": "EXIF",
+  "expiredLinkInfo": "Ce lien a expiré. Veuillez sélectionner un nouveau délai d'expiration ou désactiver l'expiration du lien.",
+  "export": "Exporter",
+  "exportCodes": "Exporter les codes",
+  "exportDialogDesc": "Les exportations chiffrées seront protégées par un mot de passe de votre choix.",
+  "exportWarningDesc": "Le fichier exporté contient des informations sensibles. Veuillez le stocker en toute sécurité.",
+  "exportYourData": "Exportez vos données",
+  "extraPhotosFound": "Photos supplémentaires trouvées",
+  "faceNotClusteredYet": "Ce visage n'a pas encore été regroupé, veuillez revenir plus tard",
+  "facesTimelineAppBarTitle": "Souvenirs",
+  "@facesTimelineAppBarTitle": {
+    "description": "Faces timeline page title shown in the app bar"
+  },
+  "facesTimelineBannerTitle": "Fil de souvenir",
+  "@facesTimelineBannerTitle": {
+    "description": "Title for the Memory Lane suggestion banner shown on a person's page"
+  },
+  "facesTimelineCaptionYearsAgo": "{count, plural, one{# an plus tôt} other{# ans plus tôt}}",
+  "@facesTimelineCaptionYearsAgo": {
+    "description": "Caption for frames when birthdate is unknown, expressing time difference",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "Years ago"
+      }
+    }
+  },
+  "facesTimelineCaptionYearsOld": "{name} avait {count, plural, one{{count} an} other{{count} ans}}",
+  "@facesTimelineCaptionYearsOld": {
+    "description": "Caption for frames when birthdate is known, describing the person's age",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "Number of years old"
+      },
+      "name": {
+        "type": "String",
+        "description": "Person's name"
+      }
+    }
+  },
+  "facesTimelinePlaybackPlay": "Lecture",
+  "@facesTimelinePlaybackPlay": {
+    "description": "Tooltip or semantics label for the play button"
+  },
+  "facesTimelineUnavailable": "L'historique des visages est en préparation...",
+  "@facesTimelineUnavailable": {
+    "description": "Fallback message when the Memory Lane cannot be displayed yet"
+  },
+  "faceThumbnailGenerationFailed": "Impossible de créer des miniatures de visage",
+  "failedToApplyCode": "Impossible d'appliquer le code",
+  "failedToCancel": "Échec de l'annulation",
+  "failedToDecrypt2FASExport": "Impossible de déchiffrer l'export 2FAS",
+  "failedToDecryptAegisVault": "Impossible de déchiffrer le coffre aegis",
+  "failedToDecryptAndOTPBackup": "Impossible de déchiffrer la sauvegarde andOTP",
+  "failedToDeleteComment": "Impossible de supprimer le commentaire",
+  "@failedToDeleteComment": {
+    "description": "Toast when comment deletion fails"
+  },
+  "failedToDownloadOrDecrypt": "Echec du telechargement de l'element",
+  "failedToDownloadVideo": "Échec du téléchargement de la vidéo",
+  "failedToFetchActiveSessions": "Impossible de récupérer les connexions actives",
+  "@failedToFetchActiveSessions": {
+    "description": "In session page, warn user (in toast) that active sessions could not be fetched."
+  },
+  "failedToFetchOriginalForEdit": "Impossible de récupérer l'original pour l'édition",
+  "failedToFetchReferralDetails": "Impossible de récupérer les détails du parrainage. Veuillez réessayer plus tard.",
+  "failedToInvite": "Impossible d'inviter {email}",
+  "@failedToInvite": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@example.com"
+      }
+    }
+  },
+  "failedToInviteCount": "Impossible d'inviter {count} membres",
+  "@failedToInviteCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "failedToLikeAlbums": "{count, plural, one{« J'aime » impossible sur {count} album} other{« J'aime » impossible sur {count} albums}}",
+  "@failedToLikeAlbums": {
+    "description": "Error when liking albums fails",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "failedToLikeComment": "Impossible d'aimer le commentaire",
+  "@failedToLikeComment": {
+    "description": "Toast when comment like fails"
+  },
+  "failedToLoadAlbums": "Impossible de charger les albums",
+  "failedToLoadCollections": "Echec du chargement des collections : {error}",
+  "@failedToLoadCollections": {
+    "description": "Error message when loading collections fails",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Network error"
+      }
+    }
+  },
+  "failedToRefreshStripeSubscription": "Impossible de rafraîchir l'abonnement",
+  "failedToRenew": "Échec du renouvellement",
+  "failedToUpdateFile": "Echec de la mise a jour de l'element : {error}",
+  "@failedToUpdateFile": {
+    "description": "Error message when item update fails",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Network error"
+      }
+    }
+  },
+  "failedToUpdateLike": "Échec de la mise à jour du j'aime",
+  "@failedToUpdateLike": {
+    "description": "Toast when like update fails"
+  },
+  "failedToVerifyPaymentStatus": "Échec de la vérification du statut du paiement",
+  "family": "Famille",
+  "familyMoments": "Moment en famille",
+  "faq": "FAQ",
+  "@faq": {
+    "description": "FAQ link label"
+  },
+  "faqs": "FAQ",
+  "fasterUploads": "Envois plus rapides",
+  "favorite": "Favori",
+  "feastingWithThem": "Fête avec {name}",
+  "@feastingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "featureBackupCodes": "Synchronisation et sauvegarde cryptés de bout-en-bout",
+  "featureOpenSource": "Open source et\naudité par des experts en sécurité",
+  "featurePassAutomatically": "Transmets-les automatiquement en cas d'urgence",
+  "featureSaveImportant": "Enregistre tes documents et identifiants importants",
+  "featureSearchEtc": "Recherche, Tags, Partage,\nCode suivant et bien plus encore",
+  "featureShareAnytime": "Partage-les a tout moment",
+  "feed": "Fil d'actualité",
+  "feedToEngageWithFamily": "Un fil pour échanger avec la famille",
+  "festivities": "Remerciements festifs",
+  "fieldCopiedToClipboard": "{fieldName} copie dans le presse-papiers",
+  "@fieldCopiedToClipboard": {
+    "description": "Message when a field is copied to clipboard",
+    "placeholders": {
+      "fieldName": {
+        "type": "String",
+        "example": "Password"
+      }
+    }
+  },
+  "fileAnalysisFailed": "Impossible d'analyser le fichier",
+  "fileDeletedSuccessfully": "Element supprime avec succes",
+  "fileInfoAddDescHint": "Ajouter une description...",
+  "fileMarkedAsImportant": "Element marque comme important",
+  "fileNotUploadedYet": "Le fichier n'a pas encore été envoyé",
+  "fileRemovedFromImportant": "Element supprime des importants",
+  "files": "Fichiers",
+  "@files": {
+    "description": "Section header for file-related search results"
+  },
+  "filesAddedByYouWillBeRemovedFromTheCollection": "Les elements ajoutes par toi seront supprimes de la collection",
+  "filesAlreadyLinkedToPerson": "{count, plural, one{{count} élément est déjà lié à {personName}} other{{count} éléments sont déjà liés à {personName}}}",
+  "@filesAlreadyLinkedToPerson": {
+    "description": "Toast shown when selected files are already manually tagged to the selected person.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      },
+      "personName": {
+        "type": "String",
+        "example": "Alex"
+      }
+    }
+  },
+  "fileSavedToGallery": "Fichier enregistré dans la galerie",
+  "filesDeleted": "Fichiers supprimés",
+  "filesSavedToGallery": "Fichiers enregistrés dans la galerie",
+  "fileTypes": "Types de fichiers",
+  "fileUpdatedSuccessfully": "Element mis a jour avec succes !",
+  "filter": "Filtres",
+  "filters": "Filtres",
+  "findingSimilarImages": "Recherche d'images similaires...",
+  "findSimilarImages": "Rechercher des images similaires",
+  "findThemQuickly": "Trouvez-les rapidement",
+  "@findThemQuickly": {
+    "description": "Subtitle to indicate that the user can find people quickly by name"
+  },
+  "fireworks": "Grand final de feux d'artifices",
+  "flip": "Retourner",
+  "flowers": "Beautés florissantes",
+  "focusOnSearchBar": "Cibler le champ de recherche au démarrage de l'application",
+  "font": "Police",
+  "food": "Plaisir culinaire",
+  "forestTrails": "Promenades en forêt",
+  "forgotPassword": "Mot de passe oublié",
+  "@forgotPassword": {
+    "description": "Forgot password link label"
+  },
+  "forgotRecoveryKey": "Clé de récupération égarée ?",
+  "free10GB": "10 Go gratuits sur <bold-green>Ente</bold-green> Photos",
+  "freeStorageOffer": "10% de réduction sur <bold-green>Ente</bold-green> Photos",
+  "freeStorageOfferDescription": "Utilisez le code coupon \"AUTH\" pour obtenir 10% de réduction la première année",
+  "freeTrial": "Essai gratuit",
+  "freeUpAmount": "Libérer {sizeInMBorGB}",
+  "@freeUpAmount": {
+    "placeholders": {
+      "sizeInMBorGB": {}
+    }
+  },
+  "freeUpDeviceSpace": "Libérer de l'espace sur l'appareil",
+  "freeUpDeviceSpaceConfirmDesc": "{count, plural, one{{count} fichier sauvegardé sera supprimé} other{{count} fichiers sauvegardés seront supprimés}} définitivement de cet appareil.",
+  "@freeUpDeviceSpaceConfirmDesc": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "freeUpSpace": "Libérer de l'espace",
+  "gallery": "Galerie",
+  "galleryMemoryLimitInfo": "Jusqu'à 1000 souvenirs affichés dans la galerie",
+  "general": "Général",
+  "generatingEncryptionKeys": "Génération des clés de chiffrement...",
+  "@generatingEncryptionKeys": {
+    "description": "Generating encryption keys message"
+  },
+  "generatingEncryptionKeysTitle": "Génération des clés de chiffrement...",
+  "@generatingEncryptionKeysTitle": {
+    "description": "Generating encryption keys title"
+  },
+  "getInTouch": "Contactez-nous",
+  "getStarted": "C'est parti",
+  "gettingReady": "Préparation",
+  "giveUsAStarOnGithub": "Donnez-nous une étoile sur GitHub",
+  "goldenHourPortraits": "Visages de l'heure dorée -coucher de soleil",
+  "googlePlayId": "Identifiant Google Play",
+  "grantFullAccessPrompt": "Veuillez autoriser l’accès à toutes les photos dans les paramètres",
+  "grantGalleryPermissionDesc": "Accorder la permission d'accéder et d'organiser des photos avec la reconnaissance faciale.Tout le traitement se produit sur votre appareil.",
+  "grantPermission": "Accorder la permission",
+  "grantPermissionDesc": "Veuillez autoriser Ente à accéder à votre bibliothèque afin que nous puissions l'organiser avec la reconnaissance faciale. Tout le traitement se produit sur votre appareil.",
+  "greenery": "La vie au vert",
+  "grid": "Grille",
+  "groupBy": "Grouper par",
+  "groupByDay": "Jour",
+  "groupByMonth": "Mois",
+  "groupByWeek": "Semaine",
+  "groupByYear": "Année",
+  "groupSelfies": "Nous tous",
+  "guestView": "Vue invité",
+  "guestViewEnablePreSteps": "Pour activer la vue invité, veuillez configurer le code d'accès de l'appareil ou le verrouillage de l'écran dans les paramètres de votre système.",
+  "happyBirthday": "Joyeux anniversaire ! 🥳",
+  "hearUsWhereOptionalTitle": "Comment avez-vous entendu parler de Ente? (facultatif)",
+  "@hearUsWhereOptionalTitle": {
+    "description": "Title asking how user heard about Ente"
+  },
+  "hearUsWhereTitle": "Comment avez-vous entendu parler de Ente ?",
+  "help": "Documentation",
+  "hidden": "Masqués",
+  "hiddenItemsWillShowUpHere": "Les éléments cachés apparaîtront ici",
+  "hide": "Masquer",
+  "hideContent": "Masquer le contenu",
+  "@hideContent": {
+    "description": "Hide content setting title"
+  },
+  "hideContentDescriptioniOS": "Masque le contenu de l'application sur le menu",
+  "@hideContentDescriptioniOS": {
+    "description": "Description of hide content feature on iOS"
+  },
+  "hideFromMemories": "Masquer des souvenirs",
+  "hideSharedItemsFromHomeGallery": "Masquer les éléments partagés avec vous dans la galerie",
+  "hiding": "Masquage en cours...",
+  "hikingWithThem": "Randonnée avec {name}",
+  "@hikingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "hintForDesktop": "Clic droit sur un code à modifier ou à supprimer.",
+  "hintForMobile": "Appuyez longuement sur un code pour modifier ou supprimer.",
+  "historicSites": "Échos de l'histoire",
+  "hoorayyyy": "Houraaa !",
+  "hostedAtOsmFrance": "Hébergé chez OSM France",
+  "howToViewShareeVerificationID": "Demandez-leur d'appuyer longuement sur leur adresse email dans l'écran des paramètres pour vérifier que les identifiants des deux appareils correspondent.",
+  "iCloudUnavailable": "iCloud indisponible",
+  "ignore": "Ignorer",
+  "ignored": "ignoré",
+  "ignorePerson": "Ignorer la personne",
+  "imageNotAnalyzed": "Image non analysée",
+  "immediately": "Immédiatement",
+  "@immediately": {
+    "description": "Immediately option for auto lock timing"
+  },
+  "import2FasGuide": "Utilisez l'option \"Paramètres->Sauvegarde -Export\" dans 2FAS.\n\nSi votre sauvegarde est chiffrée, vous devrez entrer le mot de passe pour déchiffrer la sauvegarde",
+  "importAccountPageTitle": "Saisir les détails du compte",
+  "importAegisGuide": "Utilisez l'option \"Exporter le coffre-fort\" dans les paramètres d'Aegis.\n\nSi votre coffre-fort est crypté, vous devrez saisir le mot de passe du coffre-fort pour déchiffrer le coffre-fort.",
+  "importAndOTPGuide": "Exportez votre sauvegarde depuis and OTP en utilisant les options de \"sauvegarde\" dans les paramètres.\nSi votre sauvegarde est chiffrée, vous devrez retaper votre mot de passe pour la déchiffrer.",
+  "importBitwardenGuide": "Utilisez l'option « Exporter le coffre » dans les outils Bitwarden et importez le fichier JSON non chiffré.",
+  "importCodeDelimiterInfo": "Les codes peuvent être séparés par une virgule ou un retour à la ligne",
+  "importCodes": "Importer les codes",
+  "importEnteEncGuide": "Sélectionnez le fichier chiffré JSON exporté depuis Ente",
+  "importEnterSetupKey": "Saisir une clé de configuration",
+  "importFailureDesc": "Impossible de lire le fichier sélectionné.",
+  "importFromGallery": "Importer depuis la galerie",
+  "importInstruction": "Veuillez sélectionner un fichier qui contient une liste de vos codes dans le format suivant",
+  "importLabel": "Importer",
+  "importLastpassGuide": "Utilisez l'option \"Transférer des comptes\" dans les paramètres de l'authentificateur Lastpass et appuyez sur \"Exporter des comptes vers un fichier\". Importez le JSON téléchargé.",
+  "importProtonAuthGuide": "Utilisez l'option \"Export\" dans les paramètres de Proton Authenticator afin d'exporter vos codes.\n\nSi votre export est protégé, vous aurez besoin de saisir le mot de passe afin de le décrypter.",
+  "importRaivoGuide": "Utilisez l'option \"Exporter les OTPs vers l'archive Zip\" dans les paramètres de Raivo.\n\nExtrayez le fichier zip et importez le fichier JSON.",
+  "importSelectAppExport": "Sélectionnez le fichier d'exportation {appName}",
+  "@importSelectAppExport": {
+    "placeholders": {
+      "appName": {}
+    }
+  },
+  "importSelectJsonFile": "Sélectionnez un fichier JSON",
+  "importSuccessDesc": "Vous avez importé {count} codes !",
+  "@importSuccessDesc": {
+    "placeholders": {
+      "count": {
+        "description": "The number of codes imported",
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "importSuccessTitle": "Youpi !",
+  "importTypeEnteEncrypted": "Export chiffré Ente",
+  "incorrectCode": "Code non valide",
+  "@incorrectCode": {
+    "description": "Error message when code is incorrect"
+  },
+  "incorrectDetails": "Détails incorrects",
+  "incorrectPasswordTitle": "Mot de passe incorrect",
+  "@incorrectPasswordTitle": {
+    "description": "Title for incorrect password error"
   },
   "incorrectRecoveryKey": "Clé de récupération non valide",
   "@incorrectRecoveryKey": {
     "description": "Error message when recovery key is incorrect"
   },
-  "theRecoveryKeyYouEnteredIsIncorrect": "La clé de récupération que vous avez entrée est incorrecte",
-  "@theRecoveryKeyYouEnteredIsIncorrect": {
-    "description": "Detailed error message when recovery key is incorrect"
+  "incorrectRecoveryKeyBody": "La clé de secours que vous avez entrée est incorrecte",
+  "incorrectRecoveryKeyTitle": "Clé de secours non valide",
+  "indexingPausedStatusDescription": "Le traitement est en pause. Il reprendra automatiquement lorsque l'appareil sera prêt. L'appareil est considéré comme prêt lorsque son niveau de batterie, sa santé de la batterie et son état thermique sont dans une gamme saine.",
+  "informationDescription": "Enregistrez et partagez des informations avec vos proches.",
+  "initialBackupCreated": "Sauvegarde initiale créée !",
+  "insecureDevice": "Appareil non sécurisé",
+  "@insecureDevice": {
+    "description": "Insecure device warning title"
   },
-  "twofactorAuthenticationSuccessfullyReset": "L'authentification à deux facteurs a été réinitialisée avec succès ",
-  "@twofactorAuthenticationSuccessfullyReset": {
-    "description": "Message when two-factor authentication is successfully reset"
+  "invalidEmailAddress": "Adresse e-mail invalide",
+  "invalidEmailMessage": "Veuillez saisir une adresse e-mail valide.",
+  "@invalidEmailMessage": {
+    "description": "Message for invalid email error dialog"
   },
-  "yourVerificationCodeHasExpired": "Votre code de vérification a expiré",
-  "@yourVerificationCodeHasExpired": {
-    "description": "Error message when verification code has expired"
+  "invalidEmailTitle": "Adresse e-mail invalide",
+  "@invalidEmailTitle": {
+    "description": "Title for invalid email error dialog"
   },
-  "incorrectCode": "Code non valide",
-  "@incorrectCode": {
-    "description": "Error message when code is incorrect"
+  "invalidEndpoint": "Point de terminaison non valide",
+  "@invalidEndpoint": {
+    "description": "Error message when endpoint is invalid"
   },
+  "invalidEndpointMessage": "Désolé, le point de terminaison que vous avez entré n'est pas valide. Veuillez en entrer un valide puis réessayez.",
+  "@invalidEndpointMessage": {
+    "description": "Detailed error message when endpoint is invalid"
+  },
+  "invalidProtonExportMessage": "Le fichier sélectionné n'est pas un export Proton Authenticator valide.",
+  "invalidProtonExportTitle": "Exportation Proton invalide",
+  "invalidRecoveryKey": "La clé de récupération que vous avez saisie n'est pas valide. Assurez-vous qu'elle contient 24 mots et vérifiez l'orthographe de chacun.\n\nSi vous avez entré un ancien code de récupération, assurez-vous qu'il fait 64 caractères de long et vérifiez chacun d'entre eux.",
+  "invalidReferralCode": "Code invalide",
+  "invite": "Inviter",
+  "inviteLimitReached": "Vous avez ajouté 5 invitations. Retirez-en une pour en ajouter une autre",
+  "inviteMembers": "Inviter des membres",
+  "inviteResent": "Invitation renvoyée",
+  "invitesSentCount": "{count, plural, one{Invitation envoyée} other{Invitations envoyées}}",
+  "@invitesSentCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "inviteToEnte": "Inviter à rejoindre Ente",
+  "ok": "OK",
+  "@ok": {
+    "description": "Generic OK button label"
+  },
+  "iosOnMyDeviceNotSupported": "\"Sur mon iPhone\" ne peut pas être utilisé directement. Veuillez sélectionner ou créer un dossier à l'intérieur.",
+  "itemCount": "{count, plural, one{{count} objet} other{{count} objets}}",
+  "@itemCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "items": "{count} elements",
+  "@items": {
+    "description": "Number of items in a collection",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "itemsShowTheNumberOfDaysRemainingBeforePermanentDeletion": "Les éléments montrent le nombre de jours restants avant la suppression définitive",
+  "itemsWillBeRemovedFromAlbum": "Les éléments sélectionnés seront supprimés de cet album",
+  "itLooksLikeSomethingWentWrongPleaseRetryAfterSome": "Il semble qu'une erreur s'est produite. Veuillez réessayer après un certain temps. Si l'erreur persiste, veuillez contacter notre équipe d'assistance.",
+  "@itLooksLikeSomethingWentWrongPleaseRetryAfterSome": {
+    "description": "Generic error message for temporary issues"
+  },
+  "iUnderStand": "J’ai compris",
+  "@iUnderStand": {
+    "description": "Text for the button to confirm the user understands the warning"
+  },
+  "join": "Rejoindre",
+  "joinAlbum": "Rejoindre l'album",
+  "joinAlbumConfirmationDialogBody": "Rejoindre un album rendra votre e-mail visible à ses participants.",
+  "joinAlbumSubtext": "pour afficher et ajouter vos photos",
+  "joinAlbumSubtextViewer": "pour ajouter ceci aux albums partagés",
+  "keepOffline": "Rester hors-ligne",
+  "keepPhotos": "Conserver les photos",
+  "kiloMeterUnit": "km",
+  "lakeside": "Calme du lac",
+  "language": "Langue",
+  "lastMonth": "Le mois dernier",
+  "lastUpdated": "Dernière mise à jour",
+  "lastWeek": "La semaine dernière",
+  "lastYearsTrip": "Voyage de l'an dernier",
+  "layout": "Disposition",
+  "layoutGrouped": "Groupé",
+  "layoutMasonry": "Maçonnerie",
+  "layoutTrip": "Excursion",
+  "leave": "Quitter",
+  "leaveAlbum": "Quitter l'album",
+  "leaveCollection": "Quitter la collection",
+  "leaveFamilyPlan": "Quitter l'abonnement famille",
+  "@leaveFamilyPlan": {
+    "description": "Button label for leaving family plan",
+    "type": "text"
+  },
+  "leaveSharedAlbum": "Quitter l'album partagé?",
+  "left": "Gauche",
+  "legacy": "Héritage",
+  "legacyAccounts": "Comptes hérités",
+  "legacyInvite": "{email} vous a invité à être un contact de confiance",
+  "@legacyInvite": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "family@example.com"
+      }
+    }
+  },
+  "legacyPageDesc": "L'héritage permet aux contacts de confiance d'accéder à votre compte en votre absence.",
+  "legacyPageDesc2": "Ces contacts peuvent initier la récupération du compte et, s'ils ne sont pas bloqués dans les 30 jours qui suivent, peuvent réinitialiser votre mot de passe et accéder à votre compte.",
+  "letsTryThatAgain": "Réessayons",
+  "lightTheme": "Clair",
+  "like": "J'aime",
+  "likeAll": "Aimer tout",
+  "@likeAll": {
+    "description": "Button to like in all shared albums"
+  },
+  "likedAComment": "a aimé un commentaire",
+  "@likedAComment": {
+    "description": "Social action text shown after a person's name, for example 'John liked a comment'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedAPhoto": "a aimé une photo",
+  "@likedAPhoto": {
+    "description": "Social action text shown after a person's name, for example 'John liked a photo'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedAReply": "a aimé une réponse",
+  "@likedAReply": {
+    "description": "Social action text shown after a person's name, for example 'John liked a reply'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedAVideo": "aimé une vidéo",
+  "@likedAVideo": {
+    "description": "Social action text shown after a person's name, for example 'John liked a video'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedYourComment": "a aimé votre commentaire",
+  "@likedYourComment": {
+    "description": "Social action text shown after a person's name, for example 'John liked your comment'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedYourPhoto": "a aimé votre photo",
+  "@likedYourPhoto": {
+    "description": "Social notification action text shown after a person's name, for example 'John liked your photo'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedYourReply": "a aimé votre réponse",
+  "@likedYourReply": {
+    "description": "Social action text shown after a person's name, for example 'John liked your reply'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedYourVideo": "a aimé votre vidéo",
+  "@likedYourVideo": {
+    "description": "Social notification action text shown after a person's name, for example 'John liked your video'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likesCount": "{count, plural, one{{count} « J'aime »} other{{count} « J'aime »}}",
+  "@likesCount": {
+    "description": "Number of likes with pluralization",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "limit": "Limite",
+  "linkCopiedToClipboard": "Lien copié dans le presse-papiers",
+  "linkDeletedSuccessfully": "Lien supprimé avec succès",
+  "linkDeviceLimit": "Limite d'appareil",
+  "linkEnabled": "Activé",
+  "linkExpired": "Expiré",
+  "linkExpiresOn": "Le lien expirera le {expiryTime}",
+  "@linkExpiresOn": {
+    "placeholders": {
+      "expiryTime": {}
+    }
+  },
+  "linkExpiry": "Expiration du lien",
+  "linkHasExpired": "Le lien a expiré",
+  "linkLabel": "Lien",
+  "linkNeverExpires": "Jamais",
+  "linkRequestLimitExceeded": "Cet album a été consulté sur trop d'appareils",
+  "links": "Liens",
+  "list": "Liste",
+  "livePhotos": "Photos en direct",
+  "loadingExifData": "Chargement des données EXIF...",
+  "loadingGallery": "Chargement de la galerie...",
+  "loadingModel": "Téléchargement des modèles...",
+  "loadingYourPhotos": "Chargement de vos photos...",
+  "loadMessage1": "Vous pouvez partager votre abonnement avec votre famille",
+  "loadMessage2": "Nous avons à ce jour déjà préservé {memoriesCountInMillions} millions de souvenirs",
+  "@loadMessage2": {
+    "placeholders": {
+      "memoriesCountInMillions": {
+        "type": "int"
+      }
+    }
+  },
+  "loadMessage3": "Nous conservons 3 copies de vos données, l'une dans un abri anti-atomique",
+  "loadMessage4": "Toutes nos applications sont open source",
+  "loadMessage5": "Notre code source et notre cryptographie ont été audités en externe",
+  "loadMessage6": "Vous pouvez partager des liens vers vos albums avec vos proches",
+  "loadMessage7": "Nos applications mobiles s'exécutent en arrière-plan pour chiffrer et sauvegarder automatiquement les nouvelles photos que vous prenez",
+  "loadMessage8": "{webUrl} dispose d'un outil de téléchargement facile à utiliser",
+  "@loadMessage8": {
+    "description": "Loading screen message about the web uploader.",
+    "placeholders": {
+      "webUrl": {
+        "type": "String",
+        "example": "photos.ente.com"
+      }
+    }
+  },
+  "loadMessage9": "Nous utilisons Xchacha20Poly1305 pour chiffrer vos données en toute sécurité",
+  "localBackupDailyManualCopy": "Crée une sauvegarde locale par jour lorsque vous ouvrez l'application. Utilisez \"Sauvegarder maintenant\" pour exécuter une sauvegarde manuelle. Les sauvegardes sont conservées jusqu'à 5 fichiers.",
+  "localBackupSidebarTitle": "Sauvegarde locale",
+  "localGallery": "Galerie locale",
+  "localIndexing": "Traitement local",
+  "localSyncErrorMessage": "Il semble que quelque chose s'est mal passé car la synchronisation des photos locales prend plus de temps que prévu. Veuillez contacter notre équipe d'assistance",
+  "location": "Lieu",
+  "locationName": "Nom du lieu",
+  "locationPickerTip": "Vous pouvez également ajouter un lieu centré à partir d'une photo depuis l'écran d'information de la photo",
+  "@locationPickerTip": {
+    "description": "Helper tip text shown in the location picker that refers to the photo info screen."
+  },
+  "locations": "Lieux",
+  "locationTagFeatureDescription": "Un tag de lieu regroupe toutes les photos ayant été prises dans un certain rayon d'une photo",
+  "locationUpdatedAndBackupCreated": "Lieu mis à jour et sauvegarde initiale créée !",
+  "lockButtonLabel": "Verrouiller",
+  "loggingOut": "Deconnexion...",
+  "@loggingOut": {
+    "description": "Message shown while logging out"
+  },
+  "loginSessionExpired": "Session expirée",
+  "@loginSessionExpired": {
+    "description": "Login session expired title"
+  },
+  "loginSessionExpiredDetails": "Votre session a expiré. Veuillez vous reconnecter.",
+  "@loginSessionExpiredDetails": {
+    "description": "Login session expired details"
+  },
+  "loginToEnte": "Se connecter à Ente",
+  "loginToExistingAccount": "Se connecter à un compte existant",
+  "loginWithAuthAccount": "Connectez-vous avec votre compte Auth",
+  "logout": "Déconnexion",
+  "logs": "Journaux",
+  "logsDialogBody": "Les journaux seront envoyés pour nous aider à déboguer votre problème. Les noms de fichiers seront inclus pour aider à identifier les problèmes.",
+  "@logsDialogBody": {
+    "description": "Body text for the logs dialog explaining what will be sent"
+  },
+  "logsDialogBodyLocker": "Cela enverra des journaux pour nous aider a resoudre ton probleme.",
+  "@logsDialogBodyLocker": {
+    "description": "Dialog body text for sending logs in Locker app (without file name warning)"
+  },
+  "logsNotCopiedDownloadNote": "Les journaux ne sont pas copiés. Exportez les journaux et joignez-les à votre email.",
+  "longPressAnEmailToVerifyEndToEndEncryption": "Appuyez longuement sur un email pour vérifier le chiffrement de bout en bout.",
+  "lookBackOnYourMemories": "Regarde tes souvenirs passés 🌄",
+  "lookingForVisualSimilarities": "Recherche de ressemblances visuelles...",
+  "loopVideoOff": "Activer la lecture en boucle",
+  "loopVideoOn": "Désactiver la lecture en boucle",
+  "lostDevice": "Appareil perdu ?",
+  "lostDeviceTitle": "Appareil perdu ?",
+  "@lostDeviceTitle": {
+    "description": "Lost device title"
+  },
+  "machineLearning": "Apprentissage automatique (IA locale)",
+  "machineLearningBannerSubtitle": "Pour la recherche magique et la reconnaissance faciale",
+  "magic": "Magique",
+  "@magic": {
+    "description": "Section header for magic search results"
+  },
+  "manageDeviceStorage": "Gérer le cache de l'appareil",
+  "manageFamily": "Gérer la famille",
+  "manageLink": "Gérer le lien",
+  "managePaymentMethod": "Gérer le mode de paiement",
+  "manageSubscription": "Gérer l'abonnement",
+  "manualSort": "Personnaliser",
+  "map": "Carte",
+  "@map": {
+    "description": "Label for the map view"
+  },
+  "maps": "Carte",
+  "mapsPrivacyNotice": "Les coordonnées approximatives seront envoyées à des tiers soucieux de la vie privée comme OpenStreetMap pour afficher la carte et le lieu.",
+  "markingAsImportant": "Marquage comme important...",
+  "me": "Moi",
+  "mediaManagementHintMessage": "Activer la gestion des médias pour Ente dans les paramètres, et les demandes cesseront.",
+  "@mediaManagementHintMessage": {
+    "description": "Message explaining that enabling Android media management permission avoids repeated delete confirmations."
+  },
+  "mediaManagementHintTitle": "Fatigué de confirmer chaque suppression?",
+  "@mediaManagementHintTitle": {
+    "description": "Title of a sheet prompting Android users to enable media management permission."
+  },
+  "members": "Membres",
+  "memberStorageUsed": "{amount} utilisé",
+  "@memberStorageUsed": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "20 GB"
+      }
+    }
+  },
+  "memories": "Souvenirs",
+  "memoriesWidgetDesc": "Sélectionnez le type de souvenirs que vous souhaitez voir sur votre écran d'accueil.",
+  "memoryCount": "{count, plural, =0{aucun souvenir} one{{formattedCount} souvenir} other{{formattedCount} souvenirs}}",
+  "@memoryCount": {
+    "description": "The text to display the number of memories",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "1",
+        "type": "int"
+      },
+      "formattedCount": {
+        "type": "String",
+        "example": "11.513, 11,511"
+      }
+    }
+  },
+  "memoryLink": "Lien du souvenir",
+  "memoryShareLinkDescription": "Ce lien expirera automatiquement dans 7 jours.",
+  "merge": "Fusionner",
+  "mergedPhotos": "Photos fusionnées",
+  "mergeWithExisting": "Fusionner avec existant",
+  "mergeWithPersonDescription": "Toutes les photos des deux groupes de visage seront fusionnées sous {name}.",
+  "@mergeWithPersonDescription": {
+    "description": "Description for confirming a merge with an existing person.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Jamie Long"
+      }
+    }
+  },
+  "mergeWithPersonTitle": "Fusionner avec {name} ?",
+  "@mergeWithPersonTitle": {
+    "description": "Title for confirming a merge with an existing person.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Jamie Long"
+      }
+    }
+  },
+  "minimizeAppOnCopy": "Réduire l'application après la copie",
+  "minimizeToTrayOnClose": "Réduire dans la barre d'état à la fermeture",
+  "mixedGrouping": "Plusieurs personnes?",
+  "mlConsent": "Activer l'apprentissage automatique",
+  "mlConsentConfirmation": "Je comprends et je souhaite activer l'apprentissage automatique",
+  "mlConsentDescription": "Si vous activez l'apprentissage automatique Ente extraira des informations comme la géométrie des visages, y compris dans les photos partagées avec vous. \nCela se fera localement sur votre appareil et avec un chiffrement bout-en-bout de toutes les données biométriques générées.",
+  "mlIndexingDescription": "Veuillez noter que l'apprentissage automatique entraînera une augmentation de la connexion Internet et de la batterie jusqu'à ce que tous les souvenirs soient indexés. \nVous pouvez utiliser l'application de bureau Ente pour accélérer cette étape, tous les résultats seront synchronisés.",
+  "mlProgressBannerDescription": "Vos photos sont traitées sur l'appareil pour détecter les visages, les objets et plus encore.",
+  "mlProgressBannerStatus": "{indexed} photos traitées sur un total de {total}",
+  "@mlProgressBannerStatus": {
+    "placeholders": {
+      "indexed": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "mlProgressBannerTitle": "Accrochez-vous !",
+  "modifyYourQueryOrTrySearchingFor": "Modifiez votre requête, ou essayez de rechercher",
+  "moments": "Souvenirs",
+  "month": "mois",
+  "monthly": "Mensuel",
+  "@monthly": {
+    "description": "The text to display for monthly plans",
+    "type": "text"
+  },
+  "moon": "Au clair de lune",
+  "more": "Plus",
+  "moreDetails": "Plus de détails",
+  "moreOptions": "Plus d'options",
+  "@moreOptions": {
+    "description": "Button label for showing additional delete options."
+  },
+  "mostFrequentlyUsed": "Utilisé fréquemment",
+  "mostRecent": "Les plus récents",
+  "mostRecentlyUsed": "Utilisé récemment",
+  "mostRelevant": "Les plus pertinents",
+  "mountains": "Au-dessus des collines",
+  "movedSuccessfullyTo": "Déplacé avec succès vers {albumName}",
+  "@movedSuccessfullyTo": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
+  "movedToTrash": "Déplacé dans la corbeille",
+  "moveItem": "{count, plural, one{Déplacer l'élément} other{Déplacer les éléments}}",
+  "@moveItem": {
+    "description": "Page title while moving one or more items to an album",
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "moveMultipleToTrashMessage": "Êtes-vous sûr de vouloir déplacer {count} éléments vers la corbeille ?",
+  "@moveMultipleToTrashMessage": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "moveSelectedPhotosToOneDate": "Déplacer les photos sélectionnées vers une date",
+  "moveToAlbum": "Déplacer vers l'album",
+  "moveToHiddenAlbum": "Déplacer vers un album masqué",
+  "movingFilesToAlbum": "Déplacement des fichiers vers l'album...",
+  "name": "Nom",
+  "networkConnectionRefusedErr": "Impossible de se connecter à Ente, veuillez réessayer après un certain temps. Si l'erreur persiste, veuillez contacter le support.",
+  "@networkConnectionRefusedErr": {
+    "description": "Error message shown when the app cannot connect to Ente due to connection refused"
+  },
+  "networkHostLookUpErr": "Impossible de se connecter à Ente, veuillez vérifier vos paramètres réseau et contacter le support si l'erreur persiste.",
+  "@networkHostLookUpErr": {
+    "description": "Error message shown when the app cannot connect to Ente due to network host lookup failure"
+  },
+  "never": "Jamais",
+  "newAlbum": "Nouvel album",
+  "newCollection": "Nouvelle collection",
+  "newest": "Le plus récent",
+  "newLocation": "Nouvelle localisation",
+  "newPhotosEmoji": " nouveau 📸",
+  "newRange": "Nouvelle plage",
+  "next": "Suivant",
+  "@next": {
+    "description": "Next button label"
+  },
+  "nextTotpTitle": "suivant",
+  "nightLights": "Soirées néon",
+  "no": "Non",
+  "noAlbumsOnThisDevice": "Aucun album sur cet appareil",
+  "noChangesWereMade": "Aucune modification effectuee",
+  "noCollections": "Aucune collection",
+  "noDefaultBackupFolder": "Impossible de créer le dossier de sauvegarde par défaut.",
+  "noDeleteSuggestion": "Aucune suggestion de suppression",
+  "noDeviceFound": "Aucun appareil trouvé",
+  "noDeviceLimit": "Aucune",
+  "@noDeviceLimit": {
+    "description": "Text to indicate that there is limit on number of devices"
+  },
+  "noDeviceThatCanBeDeleted": "Vous n'avez pas de fichiers sur cet appareil qui peuvent être supprimés",
+  "noEmailAppBody": "Copiez votre message et envoyez-le à {email} depuis n'importe quel service de messagerie.",
+  "@noEmailAppBody": {
+    "description": "No-mail-app fallback subtitle with the target email address",
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
+  },
+  "noEmailAppFound": "Aucune application de messagerie trouvée",
+  "noExifData": "Aucune donnée EXIF",
+  "noFacesFound": "Aucun visage détecté",
+  "noFilesFound": "Aucun element ici",
+  "noHiddenFilesOnDevice": "Supprimer les fichiers cachés de l'appareil",
+  "noImagesWithLocation": "Aucune image avec localisation",
+  "noInternetConnection": "Aucune connexion internet",
+  "@noInternetConnection": {
+    "description": "No internet connection error message"
+  },
+  "noItemsMatchSelectedFilters": "Aucun element ne correspond aux filtres selectionnes",
+  "noLikesYet": "Pas encore de j'aime",
+  "@noLikesYet": {
+    "description": "Empty state when no likes exist"
+  },
+  "noLimit": "Aucune limite",
+  "noLimitSet": "Aucune limite définie",
+  "noLocation": "Aucune localisation",
+  "@noLocation": {
+    "description": "Search result label for files owned by the user with missing location metadata"
+  },
+  "noLocationTag": "Aucun tag de localisation",
+  "@noLocationTag": {
+    "description": "Search result label for files that do not have a manual location tag"
+  },
+  "noMatchesFound": "Aucune correspondance trouvée !",
+  "noPaymentAppFound": "Aucune application de paiement n'a été trouvée",
+  "noPhotosFoundHere": "Aucune photo trouvée",
+  "noRecoveryKeyNoDecryption": "En raison de notre protocole de chiffrement de bout en bout, vos données ne peuvent pas être déchiffré sans votre mot de passe ou clé de récupération",
+  "@noRecoveryKeyNoDecryption": {
+    "description": "Explanation that data cannot be decrypted without password or recovery key"
+  },
+  "noRecoveryKeyTitle": "Pas de clé de récupération ?",
+  "@noRecoveryKeyTitle": {
+    "description": "No recovery key title"
+  },
+  "noResult": "Aucun résultat",
+  "noResultsFound": "Aucun résultat trouvé",
+  "noSimilarImagesFound": "Aucune image similaire trouvée",
+  "noSuggestionsForPerson": "Aucune suggestion pour {personName}",
+  "@noSuggestionsForPerson": {
+    "placeholders": {
+      "personName": {
+        "type": "String",
+        "example": "Alice"
+      }
+    }
+  },
+  "noSystemLockFound": "Aucun verrou système trouvé",
+  "@noSystemLockFound": {
+    "description": "Error when no system lock is found"
+  },
+  "notBackedUp": "Pas sauvegardé",
+  "noteContent": "Contenu",
+  "noteContentHint": "Note tes pensees ou instructions importantes",
+  "noteName": "Titre",
+  "noteNameHint": "Titre de la note",
+  "notesLengthLimit": "Les notes peuvent contenir au maximum {count} caractères",
+  "@notesLengthLimit": {
+    "description": "Text to indicate the maximum number of characters allowed for notes",
+    "placeholders": {
+      "count": {
+        "description": "The maximum number of characters allowed for notes",
+        "type": "int",
+        "example": "100"
+      }
+    }
+  },
+  "nothingToSeeHere": "Il n'y a encore rien à voir ici",
+  "nothingToTidyUpHere": "Rien à nettoyer ici",
+  "notPersonLabel": "Pas {name}?",
+  "@notPersonLabel": {
+    "description": "Label to indicate that the person in the photo is not the person whose name is mentioned",
+    "placeholders": {
+      "name": {
+        "content": "{name}",
+        "type": "String"
+      }
+    }
+  },
+  "notSupportedForHOTP": "Non pris en charge pour HOTP",
+  "notThisPerson": "Ce n'est pas cette personne ?",
+  "ocrGenericDetectError": "Impossible de détecter le texte dans l'image",
+  "ocrImageDecodeFailedError": "Impossible de lire le fichier image",
+  "ocrImageNotFoundError": "Fichier image introuvable",
+  "ocrModelsNetworkRequiredError": "Connexion réseau requise pour télécharger les modèles OCR lors de la première utilisation",
+  "ocrModelsPrepareFailed": "Impossible de préparer les modèles OCR",
+  "ocrNoTextDetected": "Aucun texte détecté",
+  "offlineEnableBackupTagLabel": "10 Go GRATUITS !",
+  "offlineFacesBannerSubtitle": "Inscrivez-vous pour taguer des gens et les retrouver facilement plus tard.",
+  "offlineFacesBannerTitle": "Vous voulez sauvegarder ces visages ?",
+  "offlineHomeSignupBannerAction": "Sauvegarder maintenant",
+  "offlineHomeSignupBannerDescription": "Sauvegardes chiffrées et stockées dans 3 endroits pour garder vos souvenirs en sécurité.",
+  "offlineHomeSignupBannerTitle": "Protégez vos souvenirs pour toujours",
+  "offlineModeWarning": "Vous avez choisi de procéder sans sauvegarde. Veuillez prendre des sauvegardes manuelles pour vous assurer que vos codes sont sûrs.",
+  "offlineNameFaceBannerSubtitle": "Inscrivez-vous pour les taguer et retrouvez facilement leurs photos plus tard.",
+  "offlineNameFaceBannerTitle": "Donner un nom à ce visage",
+  "offlineSettingsBannerDesc": "Le cryptage zéro connaissance signifie que vos souvenirs restent les vôtres.",
+  "offlineSettingsBannerTitle": "Nous ne pouvons pas voir vos photos. Jamais.",
+  "onDevice": "Appareil",
+  "@onDevice": {
+    "description": "The text displayed above folders/albums stored on device",
+    "type": "text"
+  },
+  "oneLineAboutTheIssue": "Bref résumé du problème",
+  "onEnte": "Sur <branding>Ente</branding>",
+  "@onEnte": {
+    "description": "The text displayed above albums backed up to Ente",
+    "type": "text"
+  },
+  "onlyFamilyAdminCanChangeCode": "Veuillez contacter {familyAdminEmail} pour modifier votre code.",
+  "@onlyFamilyAdminCanChangeCode": {
+    "placeholders": {
+      "familyAdminEmail": {}
+    }
+  },
+  "onlyThem": "Seulement eux",
+  "onlyUploadedFilesCanBeAddedToPerson": "Seuls les fichiers chargés peuvent être ajoutés à une personne",
+  "@onlyUploadedFilesCanBeAddedToPerson": {
+    "description": "Shown when user tries to manually tag files that are not uploaded yet."
+  },
+  "onTheRoad": "De nouveau sur la route",
+  "onThisDay": "Ce jour-ci",
+  "onThisDayMemories": "Souvenirs du jour",
+  "onThisDayNotificationExplanation": "Souvenirs de ce jour au fil des années",
+  "oops": "Oups",
+  "@oops": {
+    "description": "Oops error title"
+  },
+  "oopsCouldNotSaveEdits": "Oups, impossible d'enregistrer les modifications",
+  "oopsSomethingWentWrong": "Oups, une erreur est arrivée",
+  "openAlbumInBrowser": "Ouvrir l'album dans le navigateur",
+  "openAlbumInBrowserTitle": "Veuillez utiliser l'application web pour ajouter des photos à cet album",
+  "openFile": "Ouvrir le fichier",
+  "openLink": "Ouvrir le lien",
+  "openSettings": "Ouvrir les paramètres",
+  "openstreetmapContributors": "Contributeurs d'OpenStreetMap",
+  "optionalAsShortAsYouLike": "Optionnel, aussi court que vous le souhaitez...",
+  "orRemoveYourself": "Ou vosu retirer en tant que contact fiable de {email}",
+  "@orRemoveYourself": {
+    "description": "Text shown before remove contact button in ready state",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "otherDetectedFaces": "Autres visages détectés",
+  "others": "Autres",
+  "pair": "Associer",
+  "partyWithThem": "En soirée avec {name}",
+  "@partyWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "passKeyPendingVerification": "La vérification est toujours en attente",
+  "@passKeyPendingVerification": {
+    "description": "Message when passkey verification is pending"
+  },
+  "password": "Mot de passe",
+  "@password": {
+    "description": "Password field label"
+  },
+  "passwordEmptyError": "Le mot de passe ne peut pas être vide",
+  "passwordForDecryptingExport": "Mot de passe pour déchiffrer l'exportation",
+  "passwordHint": "Mot de passe",
+  "passwordLock": "Verrouillage par mot de passe",
+  "passwordsDontMatch": "Les mots de passe ne correspondent pas",
+  "passwordsMatch": "Les mots de passe correspondent",
+  "passwordToEncryptExport": "Mot de passe pour chiffrer l'export",
+  "passwordTooShort": "Le mot de passe doit comporter au moins 8 caractères.",
+  "pastYearsMemories": "Souvenirs de ces dernières années",
+  "pay": "Payer",
+  "paymentDetails": "Détails de paiement",
+  "paymentFailed": "Échec du paiement",
+  "paymentFailedMessage": "Malheureusement votre paiement a échoué. Veuillez contacter le support et nous vous aiderons !",
+  "paymentFailedTalkToProvider": "Veuillez contacter le support {providerName} si vous avez été facturé",
+  "@paymentFailedTalkToProvider": {
+    "description": "The text to display when the payment failed",
+    "type": "text",
+    "placeholders": {
+      "providerName": {
+        "example": "AppStore|PlayStore",
+        "type": "String"
+      }
+    }
+  },
+  "pending": "En attente",
+  "pendingSync": "Synchronisation en attente",
+  "pendingSyncs": "Attention",
+  "pendingSyncsWarningBody": "Certains de vos codes n'ont pas été sauvegardés.\n\nVeuillez vous assurer que vous avez une sauvegarde de ces codes avant de vous déconnecter.",
+  "people": "Personnes",
+  "peopleAutoAddDesc": "Ajouter automatiquement les photos des personnes sélectionnées à cet album",
+  "@peopleAutoAddDesc": {
+    "description": "The message the copy should convey is that photos or videos containing the selected people's faces will be automatically added to this album"
+  },
+  "peopleWidgetDesc": "Sélectionnez les personnes que vous souhaitez voir sur votre écran d'accueil.",
+  "period": "Période",
+  "permanentlyDelete": "Supprimer définitivement",
+  "permDeleteWarning": "Tous les éléments de la corbeille seront définitivement supprimés\n\nCette action ne peut pas être annulée",
+  "personalNoteDescription": "Notez vos pensées et instructions.",
+  "personIsAge": "{name} a {age}!",
+  "@personIsAge": {
+    "placeholders": {
+      "age": {},
+      "name": {}
+    }
+  },
+  "personTurningAge": "{name} aura bientôt {age}",
+  "@personTurningAge": {
+    "placeholders": {
+      "age": {},
+      "name": {}
+    }
+  },
+  "pets": "Compagnons à quatre pattes",
+  "photoGridSize": "Taille de la grille photo",
+  "photosAddedByYouWillBeRemovedFromTheAlbum": "Les photos ajoutées par vous seront retirées de l'album",
+  "photosCount": "{count, plural, =0{0 photo} one{{count} photo} other{{count} photos}}",
+  "@photosCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "photosKeepRelativeTimeDifference": "Les photos gardent une différence de temps relative",
+  "photosSharedByWillAppearHere": "Les photos partagées par {email} apparaîtront ici.",
+  "@photosSharedByWillAppearHere": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "a@test.test"
+      }
+    }
+  },
+  "physicalRecords": "Objet",
+  "physicalRecordsDescription": "Sauvegardez l'emplacement d'éléments réels.",
+  "pickCenterPoint": "Choisir le point central",
+  "picnicDays": "Souvenirs de pique-niques",
+  "pin": "Épingler",
+  "pinLock": "Verrouillage par code PIN",
+  "@pinLock": {
+    "description": "PIN lock option title"
+  },
+  "pinnedCodeMessage": "{code} épinglé",
+  "@pinnedCodeMessage": {
+    "placeholders": {
+      "code": {}
+    }
+  },
+  "pinnedCount": "{count, plural, one{Épinglé {count} élément} other{Épinglé {count} éléments}}",
+  "@pinnedCount": {
+    "description": "Text to show number of items pinned",
+    "placeholders": {
+      "count": {
+        "description": "Number of items pinned",
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "pinPerson": "Épingler une personne",
+  "pinText": "Épingler",
+  "plainHTML": "HTML Pur",
+  "plainText": "Texte brut",
+  "plansStartAt": "Les abonnements commencent à {price}/mois",
+  "@plansStartAt": {
+    "placeholders": {
+      "price": {
+        "type": "String",
+        "example": "$1.99"
+      }
+    }
+  },
+  "playfulKids": "Enfants amusants",
+  "playOriginal": "Lire l'original",
+  "playstoreSubscription": "Abonnement au PlayStore",
+  "playStream": "Lire le stream",
+  "pleaseCheckPasswordAndTryAgain": "Vérifier le mot de passe et réessayer.",
+  "pleaseContactSupportAndWeWillBeHappyToHelp": "Veuillez contacter support@ente.com et nous serons heureux de vous aider !",
+  "pleaseContactSupportIfTheProblemPersists": "Merci de contacter l'assistance si cette erreur persiste",
+  "pleaseEmailUsAt": "Merci de nous envoyer un email à {toEmail}",
+  "@pleaseEmailUsAt": {
+    "placeholders": {
+      "toEmail": {}
+    }
+  },
+  "pleaseEnterADescription": "Veuillez saisir une description",
+  "pleaseEnterASubject": "Veuillez entrer un sujet",
+  "pleaseGrantPermissions": "Veuillez accorder la permission",
+  "pleaseLoginAgain": "Veuillez vous reconnecter",
+  "pleaseNamePersonInPeopleSectionFirst": "Veuillez d'abord nommer une personne dans la section Personnes",
+  "@pleaseNamePersonInPeopleSectionFirst": {
+    "description": "Shown when manual tagging requires at least one named person."
+  },
+  "pleaseSelectQuickLinksToRemove": "Veuillez sélectionner les liens rapides à supprimer",
+  "pleaseSendTheLogsTo": "Envoyez les logs à {toEmail}",
+  "@pleaseSendTheLogsTo": {
+    "description": "Message asking user to send logs to email address",
+    "placeholders": {
+      "toEmail": {
+        "type": "String",
+        "description": "Email address to send logs to"
+      }
+    }
+  },
+  "pleaseTryAgain": "Veuillez réessayer",
+  "@pleaseTryAgain": {
+    "description": "Message asking user to try again"
+  },
+  "pleaseVerifyDetails": "Veuillez vérifier vos informations et réessayez",
+  "pleaseVerifyTheCodeYouHaveEntered": "Veuillez vérifier le code que vous avez entré",
+  "pleaseWait": "Veuillez patienter...",
+  "@pleaseWait": {
+    "description": "Please wait message"
+  },
+  "pleaseWaitDeletingAlbum": "Veuillez patienter, suppression de l'album",
+  "pleaseWaitForSometimeBeforeRetrying": "Veuillez attendre quelque temps avant de réessayer",
+  "pleaseWaitThisWillTakeAWhile": "Veuillez patienter, cela prendra un peu de temps.",
+  "poolDays": "Jours au bord de la piscine",
+  "posingWithThem": "Pose avec {name}",
+  "@posingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "preparingLogs": "Préparation des journaux...",
+  "preserveMore": "Conserver plus",
+  "pressAndHoldToPlayVideoDetailed": "Maintenez appuyé sur l'image pour lire la vidéo",
+  "preview": "Aperçu",
+  "previous": "Précédent",
+  "privacyPolicyTitle": "Politique de confidentialité",
+  "@privacyPolicyTitle": {
+    "description": "Privacy policy title"
+  },
+  "privateSpaceForEveryMember": "Espace privé pour chaque membre",
+  "proceed": "Procéder",
+  "processed": "Appris",
+  "processingImport": "Traitement de {folderName}...",
+  "@processingImport": {
+    "placeholders": {
+      "folderName": {}
+    }
+  },
+  "publicLinkEnabled": "Lien public activé",
+  "qr": "QR",
+  "questionmark": "?",
+  "queued": "En file d'attente",
+  "radius": "Rayon",
+  "rainyDays": "Sentiment de jour pluvieux",
+  "raiseTicket": "Créer un ticket",
+  "@raiseTicket": {
+    "description": "Button text for raising a support tickets in case of unhandled errors during backup",
+    "type": "text"
+  },
+  "rateUs": "Évaluez-nous",
+  "rawCodeData": "Données de code brut",
+  "readyToBackupSubtitle": "Vos photos seront synchronisées en arrière-plan. La première sauvegarde peut prendre un certain temps.",
+  "readyToBackupTitle": "Prêt pour la sauvegarde",
+  "reassignedToName": "Vous a réassigné à {name}",
+  "@reassignedToName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reassigningLoading": "Réassignation...",
+  "reassignMe": "Réassigner \"Moi\"",
+  "receivedAlbumsLabel": "Reçus",
+  "@receivedAlbumsLabel": {
+    "description": "Albums tab filter label for albums received from other people"
+  },
+  "receiveRemindersOnBirthdays": "Rappels quand c'est l'anniversaire de quelqu'un",
+  "recent": "Récent",
+  "recordLocation": "Lieu",
+  "recordLocationHint": "Ou est conserve cet objet ?",
+  "recordNameHint": "Nom de l'élément réel",
+  "recordNotesHint": "Informations supplementaires sur l'objet",
+  "recordSavedSuccessfully": "Enregistrement sauvegarde avec succes",
+  "recoverAccount": "Récupérer un compte",
+  "@recoverAccount": {
+    "description": "Recover account button label"
+  },
+  "recoverAccountAfter": "Vous pouvez récupérer le compte de {email}après {time}.",
+  "@recoverAccountAfter": {
+    "description": "Message when recovery is waiting",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "recoverAccountDesc": "Vous pouvez restaurer le compte de {email} pendant {days} jours après avoir démarré le processus de récupération.",
+  "@recoverAccountDesc": {
+    "description": "Description for recover account page when recovery not started",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "recoveryInitiated": "Récupération initiée",
+  "recoveryInitiatedDesc": "Vous pourrez accéder au compte d'ici {days} jours. Une notification sera envoyée à {email}.",
+  "@recoveryInitiatedDesc": {
+    "placeholders": {
+      "days": {
+        "type": "int",
+        "example": "30"
+      },
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      }
+    }
+  },
+  "recoveryKeyOnForgotPassword": "Si vous oubliez votre mot de passe, la seule façon de récupérer vos données sera grâce à cette clé.",
+  "@recoveryKeyOnForgotPassword": {
+    "description": "Recovery key importance explanation"
+  },
+  "recoveryKeySaved": "Clé de récupération enregistrée dans le dossier Téléchargements !",
+  "@recoveryKeySaved": {
+    "description": "Recovery key saved confirmation message"
+  },
+  "recoveryKeySaveDescription": "Nous ne stockons pas cette clé, veuillez enregistrer cette clé de 24 mots dans un endroit sûr.",
+  "@recoveryKeySaveDescription": {
+    "description": "Recovery key save description"
+  },
+  "recoveryKeySaveShortDescription": "Enregistrez cette clé dans un endroit sûr.",
+  "recoveryKeyVerified": "Clé de récupération vérifiée",
+  "recoveryReady": "Vous pouvez maintenant récupérer le compte de {email} en définissant un nouveau mot de passe.",
+  "@recoveryReady": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      }
+    }
+  },
+  "recoverySuccessful": "Restauration réussie !",
+  "recoveryWarning": "Un contact de confiance tente d'accéder à votre compte",
+  "recoveryWarningBody": "{email} tente de récupérer votre compte.",
+  "@recoveryWarningBody": {
+    "placeholders": {
+      "email": {}
+    }
+  },
+  "recreatePasswordTitle": "Recréer le mot de passe",
+  "@recreatePasswordTitle": {
+    "description": "Title for recreate password dialog"
+  },
+  "recreateStream": "Recréer le flux",
+  "redo": "Rétablir",
+  "reEnterPassword": "Ressaisir le mot de passe",
+  "@reEnterPassword": {
+    "description": "Re-enter password prompt"
+  },
+  "reEnterPin": "Ressaisir le code PIN",
+  "@reEnterPin": {
+    "description": "Re-enter PIN prompt"
+  },
+  "referralCodeHint": "Vous pouvez personnaliser ce code jusqu'à 3 fois",
+  "referrals": "Parrainages",
+  "referralsAreCurrentlyPaused": "Les recommandations sont actuellement en pause",
+  "referralStats": "Statistiques de parrainage",
+  "referralStorageForBoth": "{storageAmountInGB} GB pour eux + {storageAmountInGB} GB pour vous lorsqu'ils mettront à niveau leur compte.",
+  "@referralStorageForBoth": {
+    "placeholders": {
+      "storageAmountInGB": {}
+    }
+  },
+  "referralStorageInfo": "Parrainer un abonné payant permet de gagner de l'espace de stockage bonus.\n\nVous pouvez utiliser votre espace de stockage jusqu'à la limite de votre forfait. Passez à un forfait supérieur pour utiliser le reste de votre espace de stockage gagné.",
+  "rejectRecovery": "Rejeter la récupération",
+  "rejectSuggestions": "Rejeter les suggestions",
+  "related": "Liés",
+  "remindToEmptyDeviceTrash": "Également vide \"récemment supprimé\" de \"Paramètres\" -> \"Stockage\" pour réclamer l'espace libéré",
+  "remindToEmptyEnteTrash": "Vide aussi votre \"Corbeille\" pour réclamer l'espace libéré",
+  "remoteImages": "Images distantes",
+  "remoteThumbnails": "Miniatures distantes",
+  "remoteVideos": "Vidéos distantes",
+  "remove": "Supprimer",
+  "removeAccess": "Supprimer l'acces",
+  "removeCollectionParticipantBody": "{userEmail} sera supprime de cette collection partagee\n\nTous les elements ajoutes par cette personne seront egalement supprimes de la collection",
+  "@removeCollectionParticipantBody": {
+    "placeholders": {
+      "userEmail": {}
+    }
+  },
+  "removeContact": "Supprimer le contact",
+  "@removeContact": {
+    "description": "Button label to remove a trusted contact"
+  },
+  "removeContactDesc": "Si vous supprimez ce contact, vous devrez envoyer une nouvelle invitation, et le contact devra l'accepter à nouveau.",
+  "@removeContactDesc": {
+    "description": "Description for remove contact confirmation dialog"
+  },
+  "removeFromAlbum": "Retirer de l'album",
+  "removeFromAlbumTitle": "Retirer de l'album ?",
+  "removeFromFamily": "Enlever de la famille",
+  "removeFromFavorite": "Retirer des favoris",
+  "removeFromPersonQuestion": "Supprimer de la personne ?",
+  "removeLink": "Supprimer le lien",
+  "removeMemberConfirmBody": "{email} perdra l'accès au stockage partagé.",
+  "@removeMemberConfirmBody": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "member@example.com"
+      }
+    }
+  },
+  "removeMemberConfirmTitle": "Retirer le membre ?",
+  "removeParticipant": "Supprimer le participant",
+  "@removeParticipant": {
+    "description": "menuSectionTitle for removing a participant"
+  },
+  "removePersonLabel": "Supprimer le libellé d'une personne",
+  "removePersonTag": "Supprimer le tag d'une personne",
+  "removePublicLink": "Supprimer le lien public",
+  "removePublicLinks": "Supprimer les liens publics",
+  "removeShareItemsWarning": "Les photos sélectionnées ne seront accessibles par aucun spectateur de cet album, à l'exception des propriétaires de photos.",
+  "removeWithQuestionMark": "Supprimer ?",
+  "removeYourselfDesc": "Si vous vous retirez en tant que contact de confiance, vous perdrez l'accès au compte de {email}après leur période d'inactivité.",
+  "@removeYourselfDesc": {
+    "description": "Description for remove yourself as trusted contact confirmation dialog",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "removingFromFavorites": "Suppression des favoris…",
+  "removingFromImportant": "Suppression des importants...",
+  "rename": "Renommer",
+  "renameAlbum": "Renommer l'album",
+  "renameCollection": "Renommer la collection",
+  "renameFile": "Renommer le fichier",
+  "renewsOn": "Renouvellement le {endDate}",
+  "@renewsOn": {
+    "placeholders": {
+      "endDate": {}
+    }
+  },
+  "renewSubscription": "Renouveler l’abonnement",
+  "repliedToAComment": "a répondu à un commentaire",
+  "@repliedToAComment": {
+    "description": "Social notification action text shown after a person's name, for example 'John replied to a comment'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "repliedToYourComment": "a répondu à votre commentaire",
+  "@repliedToYourComment": {
+    "description": "Social notification action text shown after a person's name, for example 'John replied to your comment'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "reply": "Répondre",
+  "@reply": {
+    "description": "Reply action button label"
+  },
+  "replyingTo": "Répond à {name}",
+  "@replyingTo": {
+    "description": "Label when replying to someone's comment",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "replyingToYou": "Vous répond",
+  "@replyingToYou": {
+    "description": "Label when replying to own comment"
+  },
+  "reportAnIssue": "Signaler un problème",
+  "requestAFeature": "Suggérer une fonctionnalité",
+  "resendCode": "Renvoyer le code",
+  "resendInvite": "Renvoyer une invitation",
+  "reset": "Réinitialiser",
+  "resetIgnoredFiles": "Réinitialiser les fichiers ignorés",
+  "resetIgnoredFilesDescription": "Réinitialiser ces fichiers ignorés pour permettre à Ente d'essayer de les transférer à nouveau.",
+  "resetPasswordTitle": "Réinitialiser le mot de passe",
+  "@resetPasswordTitle": {
+    "description": "Reset password title"
+  },
+  "resetToDefault": "Réinitialiser aux valeurs par défaut",
+  "@resetToDefault": {
+    "description": "Button text to reset cover photo to default"
+  },
+  "restore": "Restaurer",
+  "@restore": {
+    "description": "Display text for an action which triggers a restore of item from trash",
+    "type": "text"
+  },
+  "restoreToAlbum": "Restaurer vers l'album",
+  "restoringFiles": "Restauration des fichiers...",
+  "restoringItems": "Restauration...",
+  "resumableUploads": "Reprise automatique des transferts",
+  "retry": "Réessayer",
+  "review": "Suggestions",
+  "reviewSuggestions": "Examiner les suggestions",
+  "revoke": "Révoquer",
+  "revokeInvite": "Révoquer l'invitation",
+  "@revokeInvite": {
+    "description": "Button label to revoke a pending trusted contact invite"
+  },
+  "revokeInviteConfirmBody": "L'invitation pour {email} sera annulée.",
+  "@revokeInviteConfirmBody": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "member@example.com"
+      }
+    }
+  },
+  "revokeInviteConfirmTitle": "Révoquer l'invitation ?",
+  "right": "Droite",
+  "ritualAddedToAlbum": "Ajouté à l'album",
+  "ritualAddedToAlbumWithName": "Ajouté à {albumName}",
+  "@ritualAddedToAlbumWithName": {
+    "placeholders": {
+      "albumName": {
+        "type": "String",
+        "description": "The target album name"
+      }
+    }
+  },
+  "ritualAddToAlbumFailure": "Échec lors de l'ajout des photos à l'album : {error}",
+  "@ritualAddToAlbumFailure": {
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "description": "Error message for album add failure"
+      }
+    }
+  },
+  "ritualAddTooltip": "Ajouter une routine",
+  "ritualAlbumMissing": "Routine d'album manquante. Modifiez-la pour définir un album.",
+  "ritualAlbumNotSet": "Album non configuré",
+  "ritualAlbumSelectionPlaceholder": "Sélectionner un album",
+  "ritualBackToList": "Retour aux routines",
+  "ritualCameraNotFound": "Aucune caméra trouvée sur cet appareil.",
+  "ritualCaptureAtLeastOne": "Prenez au moins une photo d'abord.",
+  "ritualCaptureError": "Impossible de prendre la photo. Veuillez réessayer.",
+  "ritualChooseAlbumLabel": "Choisir un album",
+  "ritualChooseDaysLabel": "Choisir les jours pour la routine",
+  "ritualCreateAction": "Créer la routine",
+  "ritualCreateNewTitle": "Créer une nouvelle routine",
+  "ritualCreateYourOwn": "Créez votre propre routine",
+  "ritualCustomKeyboardLabel": "Personnalisé (clavier)",
+  "ritualDefaultCameraTitle": "Prendre une photo",
+  "ritualEdit": "Modifier la routine",
+  "ritualEditorLabel": "Éditeur de routine",
+  "ritualEmojiKeyboardHint": "Appuyez pour ouvrir le clavier emoji",
+  "ritualEmojiUseAction": "Utiliser",
+  "ritualEnterDescription": "Veuillez saisir une description",
+  "ritualEnterPrompt": "Saisissez votre routine",
+  "ritualGetDailyReminders": "Recevez des rappels quotidiens",
+  "ritualNoAlbumsYet": "Pas encore d'albums",
+  "ritualNoMatchingAlbums": "Aucuns albums correspondants",
+  "ritualNoPhotosYet": "Aucune photo pour l'instant",
+  "ritualNotificationMessage": "Prendre une photo maintenant",
+  "ritualNotificationsOffHint": "Les notifications sont désactivées. Appuyez sur un jour pour les activer.",
+  "ritualOpenCameraTooltip": "Ouvrir la routine caméra",
+  "ritualPhotoLimit": "Vous pouvez ajouter jusqu'à {maxPhotos, plural, one{# photo.} other{# photos.}}",
+  "@ritualPhotoLimit": {
+    "placeholders": {
+      "maxPhotos": {
+        "type": "int",
+        "description": "Maximum number of photos allowed"
+      }
+    }
+  },
+  "ritualPickEmojiTitle": "Choisir un émoji",
+  "ritualSearchEmpty": "Construisez un rituel pour garder votre habitude de photographie.",
+  "ritualSelectAlbumTitle": "Sélectionner un album",
+  "ritualSendReminderLabel": "Envoyer un rappel",
+  "ritualSetAlbumToLaunchCamera": "Définissez un album pour que cette routine lance la caméra.",
+  "ritualShareUnavailable": "Impossible de partager pour le moment. Veuillez réessayer.",
+  "ritualsTitle": "Routines",
+  "ritualUntitled": "Routine sans titre",
+  "ritualUpdate": "Mettre à jour la routine",
+  "riverCruises": "Vue sur le fleuve",
+  "roadtripWithThem": "En route avec {name}",
+  "@roadtripWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "rotate": "Pivoter",
+  "sameperson": "Même personne ?",
+  "save": "Sauvegarder",
+  "@save": {
+    "description": "Label for save button"
+  },
+  "saveAsAnotherPerson": "Enregistrer comme une autre personne",
+  "saveChangesBeforeLeavingQuestion": "Enregistrer les modifications avant de quitter ?",
+  "saveCode": "Enregistrer le code",
+  "saveCollage": "Enregistrer le collage",
+  "saveContact": "Enregistrer le contact",
+  "saveCopy": "Enregistrer une copie",
+  "saveKey": "Enregistrer la clé",
+  "@saveKey": {
+    "description": "Save key button label"
+  },
+  "saveOnlyDescription": "Voulez-vous enregistrer ceci sur votre stockage (dossier Téléchargements par défaut) ?",
+  "@saveOnlyDescription": {
+    "description": "Description text asking user if they want to save to storage (for platforms that don't support sharing)"
+  },
+  "saveOrSendDescription": "Voulez-vous enregistrer ceci sur votre stockage (dossier Téléchargements par défaut) ou l'envoyer à d'autres applications ?",
+  "@saveOrSendDescription": {
+    "description": "Description text asking user if they want to save to storage or share with other apps"
+  },
+  "savePerson": "Enregistrer la personne",
+  "saveToLocker": "Enregistrer dans Locker",
+  "saveYourRecoveryKeyIfYouHaventAlready": "Enregistrez votre clé de récupération si vous ne l'avez pas déjà fait",
+  "saving": "Enregistrement...",
+  "savingEdits": "Enregistrement des modifications...",
+  "savingOffline": "Sauvegarde hors-ligne...",
+  "scan": "Analyser",
+  "scanACode": "Scanner un code",
+  "scanAQrCode": "Scanner un QR code",
+  "scanCode": "Scanner le code",
+  "scanThisBarcodeWithnyourAuthenticatorApp": "Scannez ce code-barres avec\nvotre application d'authentification",
+  "scheduleShare": "Planifier le partage",
+  "search": "Rechercher",
+  "searchAlbums": "Rechercher des albums",
+  "searchAndDiscovery": "Recherche et Découverte",
+  "searchAndDiscoveryDesc": "Visages, emplacements, descriptions, et plus encore",
+  "searchByAlbumNameHint": "Nom de l'album",
+  "searchDiscoverEmptySection": "Les images seront affichées ici une fois le traitement terminé",
+  "searchEmptyDescription": "Essaie de rechercher autre chose.",
+  "searchEmptyTitle": "Aucun resultat trouve",
+  "searchEverywhereSubtitle": "Rechercher dans toutes les collections et tous les fichiers.",
+  "searchEverywhereTitle": "Rechercher \"{query}\" partout",
+  "@searchEverywhereTitle": {
+    "description": "CTA title prompting the user to search globally",
+    "placeholders": {
+      "query": {
+        "type": "String",
+        "example": "passport"
+      }
+    }
+  },
+  "searchFileTypesAndNamesEmptySection": "Types et noms de fichiers",
+  "searchHint": "Rechercher...",
+  "searchHint1": "Recherche rapide, sur l'appareil",
+  "searchHint2": "Dates des photos, descriptions",
+  "searchHint3": "Albums, noms de fichiers et types",
+  "searchHint4": "Lieu",
+  "searchHint5": "Bientôt: Visages & recherche magique ✨",
+  "searchLocationEmptySection": "Grouper les photos qui sont prises dans un certain angle d'une photo",
+  "searchPeopleEmptySection": "Invitez quelqu'un·e et vous verrez ici toutes les photos partagées",
+  "searchPersonsEmptySection": "Les personnes seront affichées ici une fois le traitement terminé",
+  "searchResultCameraMake": "Marque de l'appareil",
+  "@searchResultCameraMake": {
+    "description": "Search result subtitle label for camera make matches"
+  },
+  "searchResultCameraModel": "Modèle de l'appareil",
+  "@searchResultCameraModel": {
+    "description": "Search result subtitle label for camera model matches"
+  },
+  "searchResultCount": "{count, plural, one{{count} résultat trouvé} other{{count} résultats trouvés}}",
+  "@searchResultCount": {
+    "description": "Text to tell user how many results were found for their search query",
+    "placeholders": {
+      "count": {
+        "example": "1|2|3",
+        "type": "int"
+      }
+    }
+  },
+  "searchResultFileExtension": "Extension du fichier",
+  "@searchResultFileExtension": {
+    "description": "Search result subtitle label for file extension matches"
+  },
+  "searchResultFileName": "Nom du fichier",
+  "@searchResultFileName": {
+    "description": "Search result subtitle label for file name matches"
+  },
+  "searchResultPerson": "Personne",
+  "@searchResultPerson": {
+    "description": "Search result subtitle label for person results"
+  },
+  "searchResultUploadedBy": "Déposé par",
+  "@searchResultUploadedBy": {
+    "description": "Search result subtitle label for uploader results"
+  },
+  "searchSectionsLengthMismatch": "Incompatibilité de longueur des sections : {snapshotLength} != {searchLength}",
+  "@searchSectionsLengthMismatch": {
+    "description": "Appears in search tab page",
+    "placeholders": {
+      "searchLength": {
+        "type": "int",
+        "example": "2"
+      },
+      "snapshotLength": {
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "searchSettings": "Paramètres de recherche",
+  "secret": "Confidentiel",
+  "secretCanNotBeEmpty": "La clé secrète ne peut pas être vide",
+  "security": "Sécurité",
+  "seeAllCollections": "Voir toutes les collections",
+  "seePublicAlbumLinksInApp": "Ouvrir les liens des albums publics dans l'application",
+  "selectAlbumsToBackUpToEnte": "Sélectionnez les albums à sauvegarder sur Ente",
+  "selectAlbumToLikePhoto": "Sélectionnez l'album pour aimer la photo",
+  "@selectAlbumToLikePhoto": {
+    "description": "Instruction for liking photo"
+  },
+  "selectAlbumToLikeVideo": "Sélectionnez l'album pour aimer la photo",
+  "@selectAlbumToLikeVideo": {
+    "description": "Instruction for liking video"
+  },
+  "selectAll": "Tout sélectionner",
+  "selectAllShort": "Tout",
+  "@selectAllShort": {
+    "description": "Text that appears in bottom right when you start to select multiple photos. When clicked, it selects all photos."
+  },
+  "selectALocation": "Sélectionnez un lieu",
+  "selectALocationFirst": "Sélectionnez d'abord un lieu",
+  "selectBackupFolder": "Sélectionner un dossier de sauvegarde",
+  "selectCoverPhoto": "Sélectionnez la photo de couverture",
+  "selectDate": "Sélectionner la date",
+  "selected": "Sélectionné",
+  "selectedAlbums": "{count} sélectionné(s)",
+  "@selectedAlbums": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "selectedCount": "{count, plural, one{{count} sélectionné} other{{count} sélectionnés}}",
+  "@selectedCount": {
+    "description": "Number of items selected",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "selectedFilesAreNotOnEnte": "Les fichiers sélectionnés ne sont pas sur Ente",
+  "selectedFilesBackedUpToEnte": "Ces éléments seront supprimés de tous les albums. Vous pouvez les récupérer depuis la corbeille.",
+  "@selectedFilesBackedUpToEnte": {
+    "description": "Delete confirmation message for selected items that are backed up to Ente."
+  },
+  "selectedFilesSavedOnDeviceOnly": "Éléments non sauvegardés. Supprimer définitivement de l'appareil ?",
+  "@selectedFilesSavedOnDeviceOnly": {
+    "description": "Delete confirmation message for selected items that exist only on the device."
+  },
+  "selectedItemsWillBePermanentlyDeletedAndCannotBeRecovered": "Les éléments sélectionnés seront définitivement supprimés et ne pourront pas être récupérés.",
+  "selectedItemsWillBeRemovedFromThisPerson": "Les éléments sélectionnés seront retirés de cette personne, mais pas supprimés de votre bibliothèque.",
+  "selectedPhotos": "{count} sélectionné(s)",
+  "@selectedPhotos": {
+    "description": "Display the number of selected photos",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "5",
+        "type": "int"
+      }
+    }
+  },
+  "selectedPhotosWithYours": "{count} sélectionné(s) ({yourCount} à vous)",
+  "@selectedPhotosWithYours": {
+    "description": "Display the number of selected photos, including the number of selected photos owned by the user",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "12",
+        "type": "int"
+      },
+      "yourCount": {
+        "example": "2",
+        "type": "int"
+      }
+    }
+  },
+  "selectExportFormat": "Choisir le format d'exportation",
+  "selectFile": "Sélectionner le fichier",
+  "selectFolder": "Sélectionner un dossier",
+  "selectFolders": "Sélectionnez les dossiers",
+  "selectFolderToContinue": "Sélectionner un dossier pour continuer",
+  "selectItemsToAdd": "Sélectionner les éléments à ajouter",
+  "selectMailApp": "Sélectionnez l'application mail",
+  "selectMorePhotos": "Sélectionner plus de photos",
+  "selectOneDateAndTime": "Sélectionner une date et une heure",
+  "selectOneDateAndTimeForAll": "Sélectionnez une date et une heure pour tous",
+  "selectStartOfRange": "Sélectionner le début de la plage",
+  "selectTime": "Sélectionner l'heure",
+  "selectYourFace": "Sélectionnez votre visage",
+  "selfiesWithThem": "Selfies avec {name}",
+  "@selfiesWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "send": "Envoyer",
+  "@send": {
+    "description": "Label for send button"
+  },
+  "sendCountInvites": "{count, plural, =0{Envoyer des invitations} one{Envoyer {count} invitation} other{Envoyer {count} invitations}}",
+  "@sendCountInvites": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "sendInvite": "Envoyer Invitations",
+  "sendLink": "Envoyer le lien",
+  "sendLogsDescription": "Cela enverra des logs pour nous aider à déboguer votre problème. Bien que nous prenions des précautions pour nous assurer que les informations sensibles ne sont pas enregistrées, nous vous encourageons à consulter ces journaux avant de les partager.",
+  "sendQrCode": "Envoyer le QR code",
+  "serverEndpoint": "Point de terminaison serveur",
+  "@serverEndpoint": {
+    "description": "Label for server endpoint setting"
+  },
+  "sessionExpired": "Session expirée",
+  "@sessionExpired": {
+    "description": "Error message when session has expired"
+  },
+  "sessionIdMismatch": "Incompatibilité de l'ID de session",
+  "@sessionIdMismatch": {
+    "description": "In passkey page, deeplink is ignored because of session ID mismatch."
+  },
+  "setAContactPhoto": "Définir une photo de contact",
+  "setAPassword": "Définir un mot de passe",
+  "setAs": "Définir comme",
+  "setAsMyDefaultChoice": "Définir comme choix par défaut",
+  "@setAsMyDefaultChoice": {
+    "description": "Checkbox label for saving the selected delete action as the default choice."
+  },
+  "setBackupFolder": "Définir le dossier de sauvegarde",
+  "setBackupPassword": "Définir le mot de passe de sauvegarde",
+  "setCover": "Définir la couverture",
+  "@setCover": {
+    "description": "Text to set cover photo for an album"
+  },
+  "setLabel": "Définir",
+  "@setLabel": {
+    "description": "Label of confirm button to add a new custom radius to the radius selector of a location tag"
+  },
+  "setNewPassword": "Définir un nouveau mot de passe",
+  "@setNewPassword": {
+    "description": "Set new password title"
+  },
+  "setNewPin": "Définir un nouveau code PIN",
+  "@setNewPin": {
+    "description": "Set new PIN title"
+  },
+  "setPasswordTitle": "Définir le mot de passe",
+  "@setPasswordTitle": {
+    "description": "Set password title"
+  },
+  "setRadius": "Définir le rayon",
+  "settings": "Paramètres",
+  "setupComplete": "Configuration terminée",
+  "setupFirstAccount": "Configurez votre premier compte",
+  "share": "Partager",
+  "shareALink": "Partager le lien",
+  "shareAnAlbum": "Partager un album",
+  "shareCodes": "Partager les codes",
+  "shareCodesDuration": "Sélectionnez la durée pour laquelle vous souhaitez partager les codes.",
+  "shared": "Partagé",
+  "sharedAlbumsLabel": "Partagés",
+  "@sharedAlbumsLabel": {
+    "description": "Albums tab label for albums shared by you"
+  },
+  "sharedAlbumWithYou": "a partagé {albumName} avec vous",
+  "@sharedAlbumWithYou": {
+    "description": "Social notification action text shown after a person's name, for example 'John shared Recents with you'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      }
+    }
+  },
+  "sharedPhotoNotifications": "Nouvelles photos et albums partagés",
+  "sharedPhotoNotificationsExplanation": "Nouvelles photos et albums partagés avec vous ou dans lesquels vous apparaissez",
+  "sharedWith": "Partage avec",
+  "shareKey": "Clé de partage",
+  "shareLink": "Partager le lien",
+  "shareMyVerificationID": "Voici mon ID de vérification : {verificationID} pour ente.com.",
+  "@shareMyVerificationID": {
+    "placeholders": {
+      "verificationID": {}
+    }
+  },
+  "shareStorageWith5Members": "Partager votre espace de stockage avec 5 membres",
+  "shareTextConfirmOthersVerificationID": "Hé ! Pouvez-vous confirmer qu'il s'agit de votre ID de vérification ente.com : {verificationID}",
+  "@shareTextConfirmOthersVerificationID": {
+    "placeholders": {
+      "verificationID": {}
+    }
+  },
+  "shareTextRecommendUsingEnteForFamily": "Téléchargez Ente pour que je puisse vous ajouter à mon abonnement familial\n\nhttps://ente.com",
+  "shareTextRecommendUsingEnteForPhotos": "Téléchargez Ente pour pouvoir facilement partager des photos et vidéos en qualité originale\n\nhttps://ente.com",
+  "shareThisLink": "Ce lien permet a toute personne qui le recoit d'acceder a ton element. Tu peux supprimer l'acces a tout moment en supprimant le lien.",
+  "shareWithNonenteUsers": "Partager avec des utilisateurs non-Ente",
+  "shareYourSubscription": "Partagez votre abonnement avec vos proches",
+  "sharing": "Partage...",
+  "sharingAndCollaboration": "Partage et collaboration",
+  "sharingAndCollaborationDesc": "Albums, liens et abonnements familiaux",
+  "shiftDatesAndTime": "Dates et heure de décalage",
+  "shouldHideCode": "Cacher les codes",
+  "shouldRemoveFilesSmartAlbumsDesc": "Les fichiers liés à la personne qui ont été précédemment sélectionnés dans les albums intelligents doivent-ils être supprimés ?",
+  "showIgnored": "Afficher les ignorés",
+  "showInMemories": "Afficher dans les souvenirs",
+  "showLargeIcons": "Afficher les grandes icônes",
+  "showLessFaces": "Afficher moins de visages",
+  "showMemories": "Afficher les souvenirs",
+  "showMoreFaces": "Afficher plus de visages",
+  "showPerson": "Montrer la personne",
+  "showQRAuthMessage": "Authentification requise pour afficher le code QR",
+  "showTextOnWidget": "Afficher le texte sur le widget",
+  "sigInBackupReminder": "Ente sauvegardera automatiquement les codes après la connexion.\n\nNous recommandons toujours d'exporter les codes comme une sauvegarde supplémentaire.",
+  "signInToBackup": "Connectez-vous pour sauvegarder vos codes",
+  "signOutOtherDevices": "Déconnecter les autres appareils",
+  "@signOutOtherDevices": {
+    "description": "Sign out other devices button label"
+  },
+  "signUp": "S'inscrire",
+  "signUpTerms": "J'accepte les <u-terms>conditions d'utilisation</u-terms> et la <u-policy>politique de confidentialité</u-policy>",
+  "@signUpTerms": {
+    "description": "Terms agreement text for sign up"
+  },
+  "similar": "Similaires",
+  "similarImages": "Images similaires",
+  "similarImagesCount": "{count} images similaires",
+  "@similarImagesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "singIn": "Se connecter",
+  "singleFileDeleteFromDevice": "Élément non sauvegardé. Supprimer définitivement de l'appareil ?",
+  "@singleFileDeleteFromDevice": {
+    "description": "Delete confirmation message for a single item that exists only on the device."
+  },
+  "singleFileInBothLocalAndRemote": "Cet élément est disponible sur votre appareil et Ente.",
+  "@singleFileInBothLocalAndRemote": {
+    "description": "Delete confirmation message for a single item that exists both on the device and in Ente."
+  },
+  "singleFileInRemoteOnly": "Cet élément sera supprimé de tous les albums. Vous pouvez le récupérer depuis la corbeille.",
+  "@singleFileInRemoteOnly": {
+    "description": "Delete confirmation message for a single item that exists only in Ente."
+  },
+  "skip": "Ignorer",
+  "skippedFiles": "Fichiers ignorés",
+  "smartMemories": "Souvenirs intelligents",
+  "smartSuggestions": "Suggestions intelligentes",
+  "snowAdventures": "Aventures d'hiver",
+  "socialNotifications": "J'aime et commentaires",
+  "socialNotificationsExplanation": "Mentions \"J'aime\" sur vos photos et commentaires d'albums dont vous faites partie",
+  "someoneSharingAlbumsWithYouShouldSeeTheSameId": "Quelqu'un qui partage des albums avec vous devrait voir le même ID sur son appareil.",
+  "someSelectedFilesBackedUpToEnte": "Ces éléments sont disponibles sur l'appareil et Ente.",
+  "@someSelectedFilesBackedUpToEnte": {
+    "description": "Delete confirmation message for selected items that exist both on the device and in Ente."
+  },
+  "somethingWentWrong": "Un problème est survenu",
+  "somethingWentWrongMessage": "Quelque chose s'est mal passé, veuillez recommencer",
+  "somethingWentWrongParsingCode": "Impossible d'analyser les codes {x}.",
+  "@somethingWentWrongParsingCode": {
+    "placeholders": {
+      "x": {}
+    }
+  },
+  "somethingWentWrongPleaseTryAgain": "Quelque chose s'est mal passé, veuillez recommencer",
+  "@somethingWentWrongPleaseTryAgain": {
+    "description": "Generic error message"
+  },
+  "sorry": "Désolé",
+  "sorryBackupFailedDesc": "Désolé, nous n'avons pas pu sauvegarder ce fichier maintenant, nous allons réessayer plus tard.",
+  "sorryCouldNotAddToFavorites": "Désolé, impossible d'ajouter aux favoris !",
+  "sorryCouldNotRemoveFromFavorites": "Désolé, impossible de supprimer des favoris !",
   "sorryTheCodeYouveEnteredIsIncorrect": "Le code que vous avez saisi est incorrect",
   "@sorryTheCodeYouveEnteredIsIncorrect": {
     "description": "Detailed error message when code is incorrect"
   },
-  "developerSettings": "Paramètres du développeur",
-  "@developerSettings": {
-    "description": "Label for developerSettings"
+  "sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": "Désolé, nous n'avons pas pu générer de clés sécurisées sur cet appareil.\n\nVeuillez vous inscrire depuis un autre appareil.",
+  "@sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": {
+    "description": "Error message for insecure device"
   },
-  "serverEndpoint": "Point de terminaison serveur",
-  "@serverEndpoint": {
-    "description": "Label for serverEndpoint"
+  "sorryWeHadToPauseYourBackups": "Désolé, nous avons dû mettre en pause vos sauvegardes",
+  "sort": "Trier",
+  "sortAlbumsBy": "Trier par",
+  "sortAToZ": "A-Z",
+  "sortNewestFirst": "Plus récent en premier",
+  "sortOldestFirst": "Plus ancien en premier",
+  "sortZToA": "Z-A",
+  "sportsAction": "Partie active",
+  "sportsWithThem": "Sports avec {name}",
+  "@sportsWithThem": {
+    "placeholders": {
+      "name": {}
+    }
   },
-  "invalidEndpoint": "Point de terminaison non valide",
-  "@invalidEndpoint": {
-    "description": "Label for invalidEndpoint"
+  "spotlightOnThem": "Spotlight sur {name}",
+  "@spotlightOnThem": {
+    "placeholders": {
+      "name": {}
+    }
   },
-  "invalidEndpointMessage": "Désolé, le point de terminaison que vous avez entré n'est pas valide. Veuillez en entrer un valide puis réessayez.",
-  "@invalidEndpointMessage": {
-    "description": "Label for invalidEndpointMessage"
+  "spotlightOnYourself": "Éclairage sur vous-même",
+  "stargazing": "Sous les étoiles",
+  "startBackup": "Démarrer la sauvegarde",
+  "startRecovery": "Démarrer la récupération",
+  "startRecoveryDesc": "Êtes-vous sûr de vouloir annuler la récupération du compte de {email}?",
+  "@startRecoveryDesc": {
+    "description": "Description for start recovery confirmation dialog",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
   },
-  "endpointUpdatedMessage": "Point de terminaison mis à jour avec succès",
-  "@endpointUpdatedMessage": {
-    "description": "Label for endpointUpdatedMessage"
-  }
+  "startSnappingYourPhotosWillShowUpHere": "Commencez à prendre des photos, vos photos apparaîtront ici",
+  "startWithAddingPhotosOrFamiliarFaces": "Commencez par ajouter\ndes photos ou des visages familiers",
+  "status": "État",
+  "sticker": "Autocollant",
+  "stopCastingBody": "Voulez-vous arrêter la diffusion ?",
+  "stopCastingTitle": "Arrêter la diffusion",
+  "storage": "Stockage",
+  "storageAndPlans": "Stockage et abonnements",
+  "storageAndPlansDesc": "Abonnements, facturation et stockage utilisé",
+  "storageBreakupFamily": "Famille",
+  "storageBreakupYou": "Vous",
+  "@storageBreakupYou": {
+    "description": "Label to indicate how much storage you are using when you are part of a family plan"
+  },
+  "storageClaimed": "{storageAmountInGB} GB récupérés !",
+  "@storageClaimed": {
+    "placeholders": {
+      "storageAmountInGB": {}
+    }
+  },
+  "storageLimit": "Limite de stockage",
+  "storageLimitExceeded": "Limite de stockage atteinte",
+  "storageLimitExplanation": "Définissez le stockage maximum que ce membre peut utiliser. Il ne sera pas en mesure de télécharger une fois la limite atteinte.",
+  "storageUsedOfTotal": "{used} utilisé sur {total}",
+  "@storageUsedOfTotal": {
+    "placeholders": {
+      "total": {
+        "type": "String",
+        "example": "200 GB"
+      },
+      "used": {
+        "type": "String",
+        "example": "67 GB"
+      }
+    }
+  },
+  "streamDetails": "Détails du stream",
+  "streetArt": "Histoires d'art de la rue",
+  "streetFood": "Bouchés de la bouffe",
+  "strongPassword": "Mot de passe fort",
+  "subject": "Sujet",
+  "submit": "Envoyer",
+  "subscribe": "S'abonner",
+  "subscribeToChangeLinkSetting": "Vous avez besoin d'un abonnement payant pour modifier le paramètre de ce lien.",
+  "subscribeToEnableSharing": "Vous avez besoin d'un abonnement payant actif pour activer le partage.",
+  "subscription": "Abonnement",
+  "subscriptionRequiredForSharing": "Tu as besoin d'un abonnement payant pour partager des liens",
+  "subWillBeCancelledOn": "Votre abonnement sera annulé le {endDate}",
+  "@subWillBeCancelledOn": {
+    "placeholders": {
+      "endDate": {}
+    }
+  },
+  "success": "Succès",
+  "successfullyArchived": "Archivé avec succès",
+  "successfullyHid": "Masquage réussi",
+  "successfullyUnarchived": "Désarchivé avec succès",
+  "successfullyUnhid": "Masquage réussi",
+  "suggestDeletion": "Suggérer la suppression",
+  "suggestDeletionDescription": "Les photos sélectionnées seront retirées de cet album. Les propriétaires de photos recevront également une suggestion de révision et de supprimer les photos.",
+  "sunrise": "À l'horizon",
+  "supportEnte": "Soutenir <bold-green>Ente</bold-green>",
+  "syncing": "En cours de synchronisation...",
+  "syncProgress": "{completed}/{total} souvenirs sauvegardés",
+  "@syncProgress": {
+    "description": "Text to tell user how many memories have been preserved",
+    "placeholders": {
+      "completed": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "syncStopped": "Synchronisation arrêtée ?",
+  "systemTheme": "Système",
+  "tapToCopy": "taper pour copier",
+  "tapToUnlock": "Appuyer pour déverrouiller",
+  "@tapToUnlock": {
+    "description": "Message prompting user to tap to unlock"
+  },
+  "tapToUpload": "Appuyer pour envoyer",
+  "@tapToUpload": {
+    "description": "Shown in upload icon widet, inside a tooltip."
+  },
+  "tapToUploadIsIgnoredDue": "Appuyer pour envoyer, l'envoi est actuellement ignoré en raison de {ignoreReason}",
+  "@tapToUploadIsIgnoredDue": {
+    "description": "Shown in upload icon widet, inside a tooltip.",
+    "placeholders": {
+      "ignoreReason": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
+  },
+  "tellUsWhatYouThink": "Dites-nous ce que vous pensez",
+  "tempErrorContactSupportIfPersists": "Il semble qu'une erreur s'est produite. Veuillez réessayer après un certain temps. Si l'erreur persiste, veuillez contacter notre équipe d'assistance.",
+  "thankYou": "Merci",
+  "thankYouForSubscribing": "Merci de vous être abonné !",
+  "theLinkYouAreTryingToAccessHasExpired": "Le lien que vous essayez d'accéder a expiré.",
+  "theme": "Thème",
+  "thePersonGroupsWillNotBeDisplayed": "Les groupes de personnes ne seront plus affichés dans la section personnes. Les photos resteront intactes.",
+  "thePersonWillNotBeDisplayed": "Les groupes de personnes ne seront plus affichés dans la section personnes. Les photos resteront intactes.",
+  "theRecoveryKeyYouEnteredIsIncorrect": "La clé de récupération que vous avez entrée est incorrecte",
+  "@theRecoveryKeyYouEnteredIsIncorrect": {
+    "description": "Detailed error message when recovery key is incorrect"
+  },
+  "theseItemsWillBeDeletedFromYourDevice": "Ces éléments seront supprimés de votre appareil.",
+  "thisCanBeUsedToRecoverYourAccountIfYou": "Cela peut être utilisé pour récupérer votre compte si vous perdez votre deuxième facteur",
+  "thisDevice": "Cet appareil",
+  "@thisDevice": {
+    "description": "Label for current device"
+  },
+  "thisEmailIsAlreadyInUse": "Cette adresse mail est déjà utilisée",
+  "@thisEmailIsAlreadyInUse": {
+    "description": "Error message when email is already in use"
+  },
+  "thisImageHasNoExifData": "Cette image n'a pas de données exif",
+  "thisIsMeExclamation": "C'est moi !",
+  "thisIsPersonVerificationId": "Ceci est l'ID de vérification de {email}",
+  "@thisIsPersonVerificationId": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@ente.com"
+      }
+    }
+  },
+  "thisIsYourVerificationId": "Ceci est votre ID de vérification",
+  "thisMonth": "Ce mois",
+  "thisWeek": "Cette semaine",
+  "thisWeekThroughTheYears": "Cette semaine au fil des années",
+  "thisWeekXYearsAgo": "{count, plural, one{Cette semaine, il y a {count} an} other{Cette semaine, il y a {count} ans}}",
+  "@thisWeekXYearsAgo": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "thisWillLogYouOutOfTheFollowingDevice": "Cela vous déconnectera de l'appareil suivant :",
+  "@thisWillLogYouOutOfTheFollowingDevice": {
+    "description": "Warning message for logging out of another device"
+  },
+  "thisWillLogYouOutOfThisDevice": "Cela vous déconnectera de cet appareil !",
+  "@thisWillLogYouOutOfThisDevice": {
+    "description": "Warning message for logging out of current device"
+  },
+  "thisWillMakeTheDateAndTimeOfAllSelected": "Cela rendra la date et l'heure identique à toutes les photos sélectionnées.",
+  "thisYear": "Cette année",
+  "throughTheYears": "{dateFormat} au fil des années",
+  "@throughTheYears": {
+    "placeholders": {
+      "dateFormat": {}
+    }
+  },
+  "throwbackWithThem": "Souvenirs avec {name}",
+  "@throwbackWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "title": "Titre",
+  "todaysLogs": "Journaux du jour",
+  "tooManyIncorrectAttempts": "Trop de tentatives incorrectes",
+  "@tooManyIncorrectAttempts": {
+    "description": "Message shown when too many incorrect attempts are made"
+  },
+  "totalSize": "Taille totale",
+  "trash": "Corbeille",
+  "trashClearedSuccessfully": "Corbeille videe avec succes",
+  "trashCode": "Supprimer le code?",
+  "trashCodeMessage": "Êtes-vous sûr de vouloir supprimer le code pour {account}?",
+  "@trashCodeMessage": {
+    "placeholders": {
+      "account": {}
+    }
+  },
+  "trashDaysLeft": "{count, plural, =0{Bientôt} one{{count} jour} other{{count} jours}}",
+  "@trashDaysLeft": {
+    "description": "Text to indicate number of days remaining before permanent deletion",
+    "placeholders": {
+      "count": {
+        "example": "1|2|3",
+        "type": "int"
+      }
+    }
+  },
+  "trashIsEmpty": "La corbeille est vide",
+  "trim": "Recadrer",
+  "tripInYear": "Voyage en {year}",
+  "@tripInYear": {
+    "placeholders": {
+      "year": {}
+    }
+  },
+  "tripToLocation": "Voyage vers {location}",
+  "@tripToLocation": {
+    "placeholders": {
+      "location": {}
+    }
+  },
+  "tropicalParadise": "Évasions tropicales",
+  "troubleshooting": "Dépannage",
+  "troubleshootingDesc": "Problèmes courants et leurs solutions",
+  "trustedContactAccepted": "Vous avez invité {email} à être un contact de confiance. Il doit encore accepter votre invitation.",
+  "@trustedContactAccepted": {
+    "description": "Description shown when a trusted contact has accepted the invite",
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@example.com"
+      }
+    }
+  },
+  "trustedContactInvitePending": "Vous avez invité {email} à être un contact de confiance. Il doit encore accepter votre invitation.",
+  "@trustedContactInvitePending": {
+    "description": "Description shown when a trusted contact invite is pending",
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@example.com"
+      }
+    }
+  },
+  "trustedContacts": "Contacts de confiance",
+  "tryAgain": "Réessayer",
+  "@tryAgain": {
+    "description": "Try again button label"
+  },
+  "twofactor": "Authentification à deux facteurs (A2F)",
+  "twofactorAuthenticationHasBeenDisabled": "L'authentification à deux facteurs a été désactivée",
+  "twofactorAuthenticationSuccessfullyReset": "L'authentification à deux facteurs a été réinitialisée avec succès ",
+  "@twofactorAuthenticationSuccessfullyReset": {
+    "description": "Message when two-factor authentication is successfully reset"
+  },
+  "twoFactorAuthTitle": "Authentification à deux facteurs",
+  "@twoFactorAuthTitle": {
+    "description": "Two-factor authentication title"
+  },
+  "twofactorSetup": "Configuration de l'authentification à deux facteurs",
+  "twoFAVerification": "Vérification 2FA",
+  "typeOfGallerGallerytypeIsNotSupportedForRename": "Les galeries de type '{galleryType}' ne peuvent être renommées",
+  "@typeOfGallerGallerytypeIsNotSupportedForRename": {
+    "placeholders": {
+      "galleryType": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
+  },
+  "unarchive": "Désarchiver",
+  "@unarchive": {
+    "description": "Action of 'Unarchiving' an element"
+  },
+  "unarchiveAlbum": "Désarchiver l'album",
+  "unarchiving": "Désarchivage en cours...",
+  "uncategorized": "Aucune catégorie",
+  "uncategorizedItemsWillShowUpHere": "Les éléments non catégorisés apparaîtront ici",
+  "undo": "Annuler",
+  "unhide": "Dévoiler",
+  "unhideToAlbum": "Afficher dans l'album",
+  "unhiding": "Démasquage en cours...",
+  "unhidingFilesToAlbum": "Démasquage des fichiers vers l'album",
+  "unimportant": "Non important",
+  "unlock": "Déverrouiller",
+  "@unlock": {
+    "description": "Short action label used as the system authentication reason when unlocking the app"
+  },
+  "unnamedCollection": "Collection sans nom",
+  "unnamedPeopleDoingSomethingTogether": "Faites-le ensemble",
+  "unnamedPeopleSpotlight": "Un visage familier",
+  "unnamedPeopleThrowbackTogether": "Souvenirs ensemble",
+  "unnamedPeopleYouAndThem": "Vous deux",
+  "unpin": "Désépingler",
+  "unpinnedCodeMessage": "{code} désépinglé",
+  "@unpinnedCodeMessage": {
+    "placeholders": {
+      "code": {}
+    }
+  },
+  "unpinnedCount": "{count, plural, one{Désépinglé {count} élément} other{Désépinglé {count} éléments}}",
+  "@unpinnedCount": {
+    "description": "Text to show number of items unpinned",
+    "placeholders": {
+      "count": {
+        "description": "Number of items unpinned",
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "unpinPerson": "Désépingler une personne",
+  "unpinText": "Désépingler",
+  "unsavedNoteChangesDescription": "Tu as des modifications non enregistrees dans cette note. Si tu reviens en arriere maintenant, elles seront perdues.",
+  "unsavedNoteChangesTitle": "Abandonner les modifications ?",
+  "unselectAll": "Désélectionner tout",
+  "untitled": "Sans titre",
+  "updateAvailable": "Une mise à jour est disponible",
+  "updateBackupPassword": "Modifier le mot de passe de sauvegarde",
+  "updated": "Mis à jour",
+  "updateSettings": "Paramètres de mise à jour",
+  "updateTime": "Date de mise à jour",
+  "@updateTime": {
+    "description": "Button label to update the recovery time for a trusted contact"
+  },
+  "updatingFolderSelection": "Mise à jour de la sélection du dossier...",
+  "upgrade": "Améliorer",
+  "uploadedFilesProgress": "{completed}/{total} éléments chargés...",
+  "@uploadedFilesProgress": {
+    "description": "Progress message showing uploaded items",
+    "placeholders": {
+      "completed": {
+        "type": "int",
+        "example": "3"
+      },
+      "total": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "uploadError": "Erreur de telechargement",
+  "uploadFileCountLimitErrorBody": "Tu as atteint ta limite de fichiers. Passe a un forfait payant pour plus de stockage.",
+  "@uploadFileCountLimitErrorBody": {
+    "description": "Body shown when uploads fail because the locker already has the maximum file count"
+  },
+  "uploadFileCountLimitErrorTitle": "Limite de fichiers atteinte",
+  "@uploadFileCountLimitErrorTitle": {
+    "description": "Title shown when uploads fail because the locker already has the maximum file count"
+  },
+  "uploadFileCountLimitErrorToast": "Action echouee. Tu as atteint ta limite de fichiers.",
+  "@uploadFileCountLimitErrorToast": {
+    "description": "Toast shown when info items fail to save due to hitting the file count limit"
+  },
+  "uploadFiles": "Charger des éléments",
+  "uploadFileTooLargeErrorBody": "Ce fichier depasse la taille maximale de telechargement prise en charge de 10 Go.",
+  "@uploadFileTooLargeErrorBody": {
+    "description": "Body shown when uploads fail because the file exceeds the supported size"
+  },
+  "uploadFileTooLargeErrorTitle": "Fichier trop volumineux",
+  "@uploadFileTooLargeErrorTitle": {
+    "description": "Title shown when uploads fail because the file exceeds the supported size"
+  },
+  "uploadingFilesToAlbum": "Envoi des fichiers vers l'album...",
+  "uploadingMultipleMemories": "Sauvegarde de {count} souvenirs...",
+  "@uploadingMultipleMemories": {
+    "description": "Text to tell user how many memories are being preserved",
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "uploadingSingleMemory": "Sauvegarde d'un souvenir...",
+  "uploadIsIgnoredDueToIgnorereason": "L'envoi est ignoré en raison de {ignoreReason}",
+  "@uploadIsIgnoredDueToIgnorereason": {
+    "placeholders": {
+      "ignoreReason": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
+  },
+  "uploadStorageLimitErrorBody": "Vous avez épuisé votre espace de stockage. Libérez de l'espace pour continuer d'en charger.",
+  "@uploadStorageLimitErrorBody": {
+    "description": "Body shown when uploads fail due to running out of storage"
+  },
+  "uploadStorageLimitErrorTitle": "Limite de stockage atteinte",
+  "@uploadStorageLimitErrorTitle": {
+    "description": "Title shown when uploads fail due to running out of storage"
+  },
+  "usable": "utilisable",
+  "useAsCover": "Utiliser comme couverture",
+  "usedSpace": "Stockage utilisé",
+  "usedYourCode": "a utilisé votre code",
+  "useOffline": "Utiliser sans sauvegardes",
+  "username": "Nom d'utilisateur",
+  "usernameHint": "Identifiant ou e-mail",
+  "useSelectedPhoto": "Utiliser la photo sélectionnée",
+  "usingStorage": "Utilisation de {amount}",
+  "@usingStorage": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "20 GB"
+      }
+    }
+  },
+  "validTill": "Valable jusqu'au {endDate}",
+  "@validTill": {
+    "placeholders": {
+      "endDate": {}
+    }
+  },
+  "verificationFailedPleaseTryAgain": "La vérification a échoué, veuillez réessayer",
+  "@verificationFailedPleaseTryAgain": {
+    "description": "Verification failed error message"
+  },
+  "verify": "Vérifier",
+  "@verify": {
+    "description": "Verify button label"
+  },
+  "verifyEmail": "Vérifier l'e-mail",
+  "@verifyEmail": {
+    "description": "Verify email title"
+  },
+  "verifyIDLabel": "Vérifier",
+  "verifying": "Validation en cours...",
+  "verifyingRecoveryKey": "Vérification de la clé de récupération...",
+  "verifyPassword": "Vérifier le mot de passe",
+  "@verifyPassword": {
+    "description": "Verify password button label"
+  },
+  "videoAlreadyInQueue": "Fichier vidéo déjà présent dans la file d'attente",
+  "videoExportFailed": "Échec de la création de la vidéo. Veuillez réessayer.",
+  "videoExportSuccess": "Vidéo créée avec succès à {path}",
+  "@videoExportSuccess": {
+    "description": "Toast shown when a video export completes, mentioning the filesystem path.",
+    "placeholders": {
+      "path": {
+        "description": "File path where the exported video was written",
+        "type": "String",
+        "example": "/tmp/ente_export.mp4"
+      }
+    }
+  },
+  "videoInfo": "Informations vidéo",
+  "videoPreviewAlreadyExists": "L'aperçu vidéo existe déjà",
+  "videos": "Vidéos",
+  "videoStreaming": "Vidéos diffusables",
+  "videoStreamingDescriptionLine1": "Lire instantanément des vidéos sur n'importe quel appareil.",
+  "videoStreamingDescriptionLine2": "Activer pour traiter les flux vidéo sur cet appareil.",
+  "videoStreamingNote": "Seules les vidéos des 60 derniers jours et de moins d'une minute sont traitées sur cet appareil. Pour les vidéos plus anciennes/plus longues, activez le streaming dans l'application pour ordinateur.",
+  "viewAddOnButton": "Afficher les modules complémentaires",
+  "viewAllExifData": "Visualiser toutes les données EXIF",
+  "viewAllHelpTopics": "Voir toutes les rubriques d'aide",
+  "viewer": "Observateur",
+  "viewLargeFiles": "Fichiers volumineux",
+  "viewLogs": "Afficher les journaux",
+  "@viewLogs": {
+    "description": "Button to view logs"
+  },
+  "viewLogsAction": "Afficher les journaux",
+  "viewPersonToUnlink": "Voir {name} pour délier",
+  "@viewPersonToUnlink": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "viewPlans": "Voir les abonnements",
+  "viewRawCodes": "Afficher les codes bruts",
+  "vintageVibes": "Vibes « vintage »",
+  "visitWebToManage": "Vous pouvez gérer votre abonnement sur {webUrl}",
+  "@visitWebToManage": {
+    "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",
+    "placeholders": {
+      "webUrl": {
+        "type": "String",
+        "example": "photos.ente.com"
+      }
+    }
+  },
+  "waitingForVerification": "En attente de vérification...",
+  "@waitingForVerification": {
+    "description": "Waiting for verification message"
+  },
+  "waitingForWifi": "En attente de connexion Wi-Fi...",
+  "warning": "Attention",
+  "waterfalls": "Chasse aux chutes d'eau",
+  "weakStrength": "Faible",
+  "@weakStrength": {
+    "description": "Weak password strength label"
+  },
+  "weAreOpenSource": "Nous sommes open source !",
+  "weddingMoments": "Éclat du jour du mariage",
+  "weDontSupportEditingPhotosAndAlbumsThatYouDont": "Nous ne prenons pas en charge l'édition des photos et des albums que vous ne possédez pas encore",
+  "weHaveSentCodeTo": "Nous avons envoyé un code à {email}",
+  "@weHaveSentCodeTo": {
+    "description": "Text to indicate that we have sent a verification code to the user's email",
+    "placeholders": {
+      "email": {
+        "description": "The email address of the user",
+        "type": "String",
+        "example": "example@ente.com"
+      }
+    }
+  },
+  "whatsNew": "Nouveautés",
+  "wildlife": "Dans la nature",
+  "wishThemAHappyBirthday": "Souhaitez à {name} un joyeux anniversaire ! 🎉",
+  "@wishThemAHappyBirthday": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "yearly": "Annuel",
+  "@yearly": {
+    "description": "The text to display for yearly plans",
+    "type": "text"
+  },
+  "yearsAgo": "{count, plural, one{il y a {count} an} other{il y a {count} ans}}",
+  "@yearsAgo": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "yearShort": "an",
+  "@yearShort": {
+    "description": "Appears in pricing page (/yr)"
+  },
+  "yes": "Oui",
+  "yesCancel": "Oui, annuler",
+  "yesConvertToViewer": "Oui, convertir en observateur",
+  "yesDelete": "Oui, supprimer",
+  "yesDiscardChanges": "Oui, ignorer les modifications",
+  "yesIgnore": "Oui, ignorer",
+  "yesLogout": "Oui, se déconnecter",
+  "@yesLogout": {
+    "description": "Confirmation button for logout"
+  },
+  "yesRemove": "Oui, supprimer",
+  "yesRenew": "Oui, renouveler",
+  "yesResetPerson": "Oui, réinitialiser la personne",
+  "yesShowPeople": "Oui, montrer les personnes",
+  "yesShowPerson": "Oui, montrer la personne",
+  "you": "Vous",
+  "youAndThem": "Vous et {name}",
+  "@youAndThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "youAreOnTheLatestVersion": "Vous êtes sur la dernière version",
+  "youCannotDowngradeToThisPlan": "Vous ne pouvez pas rétrograder vers cette abonnement",
+  "youCannotShareWithYourself": "Vous ne pouvez pas partager avec vous-même",
+  "youHaveNoFileSuggestedForDeletion": "Vous n'avez pas de fichiers qui ont été suggérés pour la suppression",
+  "youHaveSuccessfullyFreedUp": "Vous avez libéré {storageSaved} avec succès !",
+  "@youHaveSuccessfullyFreedUp": {
+    "description": "The text to display when the user has successfully freed up storage",
+    "type": "text",
+    "placeholders": {
+      "storageSaved": {
+        "example": "1.2 GB",
+        "type": "String"
+      }
+    }
+  },
+  "yourMap": "Votre carte",
+  "yourPhotosLookUnique": "Vos photos semblent uniques",
+  "yourPlanSupportsFamily": "Votre abonnement prend déjà en charge une famille",
+  "yourPlanWasSuccessfullyDowngraded": "Votre abonnement a été rétrogradé avec succès",
+  "yourPlanWasSuccessfullyUpgraded": "Votre abonnement a été mise à jour avec succès",
+  "yourPurchaseWasSuccessful": "Votre achat a été effectué avec succès",
+  "yourSubscriptionHasExpired": "Votre abonnement a expiré",
+  "yourSubscriptionWasUpdatedSuccessfully": "Votre abonnement a été mis à jour avec succès",
+  "yourTrashIsEmpty": "Votre corbeille est vide",
+  "yourVerificationCodeHasExpired": "Votre code de vérification a expiré",
+  "@yourVerificationCodeHasExpired": {
+    "description": "Error message when verification code has expired"
+  },
+  "youveNoDuplicateCodesThatCanBeCleared": "Vous n'avez aucun code en doublon pouvant être supprimé",
+  "youveNoDuplicateFilesThatCanBeCleared": "Vous n'avez aucun fichier dupliqué pouvant être nettoyé",
+  "youveNoFilesInThisAlbumThatCanBeDeleted": "Vous n'avez pas de fichiers dans cet album qui peuvent être supprimés",
+  "zoomOutToSeePhotos": "Zoom en arrière pour voir les photos",
+  "grantAccess": "Autoriser l'accès"
 }

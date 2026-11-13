@@ -1,7 +1,6 @@
+import "package:ente_components/ente_components.dart";
 import 'package:figma_squircle/figma_squircle.dart';
 import 'package:flutter/material.dart';
-import "package:photos/ente_theme_data.dart";
-import "package:photos/theme/ente_theme.dart";
 import 'package:pro_image_editor/pro_image_editor.dart';
 
 class GlacierFilterMatrix {
@@ -98,11 +97,16 @@ class GlacierFilterMatrix {
   ];
 }
 
+// colorOverlay changed its sign in 13.0; retain the existing filter colors.
+List<double> _previousColorOverlay(
+  double r,
+  double g,
+  double b,
+  double scale,
+) => ColorFilterAddons.colorOverlay(-r, -g, -b, scale);
+
 final filterList = [
-  const FilterModel(
-    name: "None",
-    filters: [],
-  ),
+  const FilterModel(name: "None", filters: []),
   FilterModel(
     name: 'Pop',
     filters: [
@@ -127,10 +131,7 @@ final filterList = [
   ),
   FilterModel(
     name: 'Carbon',
-    filters: [
-      ColorFilterAddons.contrast(0.2),
-      ColorFilterAddons.grayscale(),
-    ],
+    filters: [ColorFilterAddons.contrast(0.2), ColorFilterAddons.grayscale()],
   ),
   const FilterModel(
     name: 'Glacier',
@@ -144,15 +145,13 @@ final filterList = [
   FilterModel(
     name: 'Haze',
     filters: [
-      ColorFilterAddons.colorOverlay(228, 130, 225, 0.13),
+      _previousColorOverlay(228, 130, 225, 0.13),
       ColorFilterAddons.saturation(-0.2),
     ],
   ),
   FilterModel(
     name: 'Meadow',
-    filters: [
-      ColorFilterAddons.rgbScale(1.05, 1.1, 1),
-    ],
+    filters: [ColorFilterAddons.rgbScale(1.05, 1.1, 1)],
   ),
   FilterModel(
     name: 'Zest',
@@ -165,7 +164,7 @@ final filterList = [
   FilterModel(
     name: 'Retro',
     filters: [
-      ColorFilterAddons.colorOverlay(25, 240, 252, 0.05),
+      _previousColorOverlay(25, 240, 252, 0.05),
       ColorFilterAddons.sepia(0.3),
     ],
   ),
@@ -217,6 +216,7 @@ class _ImageEditorFilterBarState extends State<ImageEditorFilterBar> {
     VoidCallback onSelectFilter,
     Key filterKey,
   ) {
+    final colors = context.componentColors;
     return GestureDetector(
       onTap: () => onSelectFilter(),
       child: SizedBox(
@@ -235,9 +235,7 @@ class _ImageEditorFilterBarState extends State<ImageEditorFilterBar> {
                     cornerSmoothing: 0.6,
                   ),
                   side: BorderSide(
-                    color: isSelected
-                        ? Theme.of(context).colorScheme.imageEditorPrimaryColor
-                        : Colors.transparent,
+                    color: isSelected ? colors.primary : Colors.transparent,
                     width: 1.5,
                   ),
                 ),
@@ -261,8 +259,8 @@ class _ImageEditorFilterBarState extends State<ImageEditorFilterBar> {
             Text(
               filterName,
               style: isSelected
-                  ? getEnteTextTheme(context).smallBold
-                  : getEnteTextTheme(context).smallMuted,
+                  ? TextStyles.bodyBold.copyWith(color: colors.textBase)
+                  : TextStyles.body.copyWith(color: colors.textLight),
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

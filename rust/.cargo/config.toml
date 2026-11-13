@@ -1,3 +1,11 @@
+[alias]
+codegen = ["run", "-p", "codegen", "--"]
+
+[env]
+# Some targets, like armv7 Android, have no enabled target features, so Cargo
+# otherwise omits CARGO_CFG_TARGET_FEATURE. llama-cpp-sys-2 expects it to exist.
+CARGO_CFG_TARGET_FEATURE = ""
+
 [target.'cfg(target_arch = "aarch64")']
 rustflags = ["--cfg", "chacha20_force_neon"]
 

@@ -26,13 +26,13 @@ class DeviceAlbumSearchResult extends SearchResult {
 
   @override
   List<EnteFile> resultFiles() {
-    // For device album search result, we open the device folder page directly
+    // Device album results open the folder directly; do not call this method.
     throw UnimplementedError();
   }
 
   @override
   HierarchicalSearchFilter getHierarchicalSearchFilter() {
-    // Device albums don't support hierarchical search filter
+    // Device albums do not support hierarchical filtering.
     throw UnimplementedError();
   }
 }

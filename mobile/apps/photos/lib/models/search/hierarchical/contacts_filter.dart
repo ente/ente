@@ -1,27 +1,25 @@
-import "package:flutter/material.dart";
-import "package:photos/extensions/user_extension.dart";
+import "package:hugeicons/hugeicons.dart";
 import "package:photos/models/api/collection/user.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/search/hierarchical/hierarchical_search_filter.dart";
+import "package:photos/services/contacts/contact_identity_resolver.dart";
 
 class ContactsFilter extends HierarchicalSearchFilter {
   final User user;
   final int occurrence;
+  final String? filterName;
 
   ContactsFilter({
     required this.user,
     required this.occurrence,
+    this.filterName,
     super.filterTypeName = "contactsFilter",
     super.matchedUploadedIDs,
   });
 
   @override
   String name() {
-    final name = user.displayName;
-    if (name == null || name.isEmpty) {
-      return user.email;
-    }
-    return name;
+    return filterName ?? resolveDisplayName(user);
   }
 
   @override
@@ -43,7 +41,7 @@ class ContactsFilter extends HierarchicalSearchFilter {
   }
 
   @override
-  IconData? icon() {
-    return Icons.person_outlined;
+  SearchFilterIcon icon() {
+    return HugeIcons.strokeRoundedUser;
   }
 }

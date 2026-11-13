@@ -3,6 +3,9 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 
+String _normalizedPath(String path) =>
+    File(path).absolute.uri.normalizePath().toFilePath();
+
 class NativeVideoEditorException implements Exception {
   NativeVideoEditorException(
     this.message, {
@@ -24,197 +27,339 @@ class NativeVideoEditorException implements Exception {
 class VideoEditResult {
   final String outputPath;
   final bool isReEncoded;
-  final Duration? processingTime;
 
-  VideoEditResult({
-    required this.outputPath,
-    required this.isReEncoded,
-    this.processingTime,
-  });
+  const VideoEditResult({required this.outputPath, required this.isReEncoded});
 }
 
-class VideoTrimParams {
-  final String inputPath;
-  final String outputPath;
-  final Duration startTime;
-  final Duration endTime;
+enum VideoFramePolicy { precise, nearestSync }
 
-  VideoTrimParams({
-    required this.inputPath,
-    required this.outputPath,
-    required this.startTime,
-    required this.endTime,
-  });
-
-  Map<String, dynamic> toMap() => {
-        'inputPath': inputPath,
-        'outputPath': outputPath,
-        'startTimeMs': startTime.inMilliseconds,
-        'endTimeMs': endTime.inMilliseconds,
-      };
-}
-
-class VideoRotateParams {
-  final String inputPath;
-  final String outputPath;
-  final int degrees; // Must be 90, 180, or 270
-
-  VideoRotateParams({
-    required this.inputPath,
-    required this.outputPath,
-    required this.degrees,
-  }) : assert(degrees == 90 || degrees == 180 || degrees == 270);
-
-  Map<String, dynamic> toMap() => {
-        'inputPath': inputPath,
-        'outputPath': outputPath,
-        'degrees': degrees,
-      };
-}
-
-class VideoCropParams {
-  final String inputPath;
-  final String outputPath;
-  final int x;
-  final int y;
-  final int width;
-  final int height;
-  final bool forceReEncode;
-
-  VideoCropParams({
-    required this.inputPath,
-    required this.outputPath,
-    required this.x,
-    required this.y,
+class NativeVideoInfo {
+  const NativeVideoInfo({
+    required this.duration,
     required this.width,
     required this.height,
-    this.forceReEncode = false,
+    required this.displayWidth,
+    required this.displayHeight,
+    required this.rotationDegrees,
+    this.bitrate,
+    this.frameRate,
   });
 
+  factory NativeVideoInfo.fromMap(Map<dynamic, dynamic> map) {
+    int requiredInt(String key) {
+      final value = map[key];
+      if (value is! num) {
+        throw FormatException('Missing numeric video metadata: $key');
+      }
+      return value.toInt();
+    }
+
+    int? positiveInt(String key) {
+      final value = map[key];
+      if (value is! num || value <= 0) return null;
+      return value.toInt();
+    }
+
+    double? positiveDouble(String key) {
+      final value = map[key];
+      if (value is! num || value <= 0) return null;
+      return value.toDouble();
+    }
+
+    final rotation = requiredInt('rotation') % 360;
+    final normalizedRotation = rotation < 0 ? rotation + 360 : rotation;
+    final durationMs = requiredInt('duration');
+    final width = requiredInt('width');
+    final height = requiredInt('height');
+    final displayWidth = requiredInt('displayWidth');
+    final displayHeight = requiredInt('displayHeight');
+    if (durationMs < 0 ||
+        width <= 0 ||
+        height <= 0 ||
+        displayWidth <= 0 ||
+        displayHeight <= 0) {
+      throw const FormatException('Video metadata contains invalid dimensions');
+    }
+    if (!const {0, 90, 180, 270}.contains(normalizedRotation)) {
+      throw const FormatException('Video metadata has unsupported rotation');
+    }
+    return NativeVideoInfo(
+      duration: Duration(milliseconds: durationMs),
+      width: width,
+      height: height,
+      displayWidth: displayWidth,
+      displayHeight: displayHeight,
+      rotationDegrees: normalizedRotation,
+      bitrate: positiveInt('bitrate'),
+      frameRate: positiveDouble('frameRate'),
+    );
+  }
+
+  final Duration duration;
+  final int width;
+  final int height;
+  final int displayWidth;
+  final int displayHeight;
+
+  // Clockwise quarter-turn rotation required to display encoded pixels.
+  final int rotationDegrees;
+  final int? bitrate;
+  final double? frameRate;
+}
+
+class VideoFrameRequest {
+  const VideoFrameRequest({
+    required this.inputPath,
+    required this.outputPath,
+    required this.position,
+    required this.maxWidth,
+    required this.maxHeight,
+    this.quality = 80,
+    this.policy = VideoFramePolicy.nearestSync,
+  });
+
+  final String inputPath;
+  final String outputPath;
+  final Duration position;
+  final int maxWidth;
+  final int maxHeight;
+  final int quality;
+  final VideoFramePolicy policy;
+
   Map<String, dynamic> toMap() => {
-        'inputPath': inputPath,
-        'outputPath': outputPath,
-        'x': x,
-        'y': y,
-        'width': width,
-        'height': height,
-        'forceReEncode': forceReEncode,
-      };
+    'inputPath': inputPath,
+    'outputPath': outputPath,
+    'positionMs': position.inMilliseconds,
+    'maxWidth': maxWidth,
+    'maxHeight': maxHeight,
+    'quality': quality,
+    'policy': policy.name,
+  };
+}
+
+class VideoFrameResult {
+  const VideoFrameResult({
+    required this.outputPath,
+    required this.width,
+    required this.height,
+  });
+
+  factory VideoFrameResult.fromMap(
+    Map<dynamic, dynamic> map, {
+    required String expectedOutputPath,
+    required int maxWidth,
+    required int maxHeight,
+  }) {
+    final outputPath = map['outputPath'];
+    final width = map['width'];
+    final height = map['height'];
+    if (outputPath is! String || width is! num || height is! num) {
+      throw const FormatException('Frame result is missing required values');
+    }
+    final parsedWidth = width.toInt();
+    final parsedHeight = height.toInt();
+    if (_normalizedPath(outputPath) != _normalizedPath(expectedOutputPath)) {
+      throw const FormatException('Frame result has an unexpected output path');
+    }
+    if (parsedWidth <= 0 ||
+        parsedHeight <= 0 ||
+        parsedWidth > maxWidth ||
+        parsedHeight > maxHeight) {
+      throw const FormatException('Frame result has invalid dimensions');
+    }
+    return VideoFrameResult(
+      outputPath: outputPath,
+      width: parsedWidth,
+      height: parsedHeight,
+    );
+  }
+
+  final String outputPath;
+  final int width;
+  final int height;
+}
+
+class VideoFrameExtractionResult {
+  const VideoFrameExtractionResult({
+    required this.videoInfo,
+    required this.frames,
+  });
+
+  factory VideoFrameExtractionResult.fromMap(
+    Map<dynamic, dynamic> map, {
+    required List<String> expectedOutputPaths,
+    required int maxWidth,
+    required int maxHeight,
+  }) {
+    final frameMaps = map['frames'];
+    final videoInfo = map['videoInfo'];
+    if (frameMaps is! List<dynamic> ||
+        frameMaps.length != expectedOutputPaths.length ||
+        videoInfo is! Map<dynamic, dynamic>) {
+      throw const FormatException(
+        'Frame extraction returned an invalid result',
+      );
+    }
+    return VideoFrameExtractionResult(
+      videoInfo: NativeVideoInfo.fromMap(videoInfo),
+      frames: [
+        for (var index = 0; index < frameMaps.length; index++)
+          VideoFrameResult.fromMap(
+            frameMaps[index] as Map<dynamic, dynamic>,
+            expectedOutputPath: expectedOutputPaths[index],
+            maxWidth: maxWidth,
+            maxHeight: maxHeight,
+          ),
+      ],
+    );
+  }
+
+  final NativeVideoInfo videoInfo;
+  final List<VideoFrameResult> frames;
+}
+
+class VideoTimelineRequest {
+  const VideoTimelineRequest({
+    required this.requestId,
+    required this.inputPath,
+    required this.outputPaths,
+    required this.positions,
+    required this.maxWidth,
+    required this.maxHeight,
+    this.quality = 70,
+    this.policy = VideoFramePolicy.nearestSync,
+  });
+
+  final String requestId;
+  final String inputPath;
+  final List<String> outputPaths;
+  final List<Duration> positions;
+  final int maxWidth;
+  final int maxHeight;
+  final int quality;
+  final VideoFramePolicy policy;
+
+  Map<String, dynamic> toMap() => {
+    'requestId': requestId,
+    'inputPath': inputPath,
+    'outputPaths': outputPaths,
+    'positionsMs': positions
+        .map((position) => position.inMilliseconds)
+        .toList(),
+    'maxWidth': maxWidth,
+    'maxHeight': maxHeight,
+    'quality': quality,
+    'policy': policy.name,
+  };
+}
+
+enum SlideshowItemType { photo, video }
+
+class SlideshowMotion {
+  const SlideshowMotion({
+    required this.startScale,
+    required this.endScale,
+    required this.startOffset,
+    required this.endOffset,
+  });
+
+  final double startScale;
+  final double endScale;
+  final Offset startOffset;
+  final Offset endOffset;
+
+  Map<String, dynamic> toMap() => {
+    'startScale': startScale,
+    'endScale': endScale,
+    'startX': startOffset.dx,
+    'startY': startOffset.dy,
+    'endX': endOffset.dx,
+    'endY': endOffset.dy,
+  };
+}
+
+class SlideshowItem {
+  const SlideshowItem.photo({
+    required this.path,
+    required Duration this.duration,
+    required SlideshowMotion this.motion,
+  }) : type = SlideshowItemType.photo,
+       isMuted = false;
+
+  const SlideshowItem.video({required this.path, this.isMuted = false})
+    : type = SlideshowItemType.video,
+      duration = null,
+      motion = null;
+
+  final SlideshowItemType type;
+  final String path;
+  final Duration? duration;
+  final SlideshowMotion? motion;
+  final bool isMuted;
+
+  Map<String, dynamic> toMap() => {
+    'type': type.name,
+    'path': path,
+    'durationMs': ?duration?.inMilliseconds,
+    ...?motion?.toMap(),
+    'isMuted': isMuted,
+  };
+}
+
+class SlideshowMusic {
+  const SlideshowMusic({
+    required this.path,
+    required this.fadeIn,
+    required this.fadeOut,
+  });
+
+  final String path;
+  final Duration fadeIn;
+  final Duration fadeOut;
+
+  Map<String, dynamic> toMap() => {
+    'path': path,
+    'fadeInMs': fadeIn.inMilliseconds,
+    'fadeOutMs': fadeOut.inMilliseconds,
+  };
+}
+
+class SlideshowExportRequest {
+  const SlideshowExportRequest({
+    required this.outputPath,
+    required this.width,
+    required this.height,
+    required this.frameRate,
+    required this.crossfade,
+    required this.items,
+    this.music,
+  });
+
+  final String outputPath;
+  final int width;
+  final int height;
+  final int frameRate;
+  final Duration crossfade;
+  final List<SlideshowItem> items;
+  final SlideshowMusic? music;
+
+  Map<String, dynamic> toMap() => {
+    'outputPath': outputPath,
+    'width': width,
+    'height': height,
+    'frameRate': frameRate,
+    'crossfadeMs': crossfade.inMilliseconds,
+    'items': items.map((item) => item.toMap()).toList(),
+    'music': ?music?.toMap(),
+  };
 }
 
 class NativeVideoEditor {
   static const MethodChannel _channel = MethodChannel('native_video_editor');
-  static const EventChannel _progressChannel =
-      EventChannel('native_video_editor/progress');
+  static const EventChannel _progressChannel = EventChannel(
+    'native_video_editor/progress',
+  );
 
-  /// Trim video without re-encoding when possible
-  /// Returns the output file path
-  static Future<VideoEditResult> trimVideo(VideoTrimParams params) async {
-    _ensureInputPathExists(params.inputPath);
-    if (params.startTime >= params.endTime) {
-      throw ArgumentError('startTime must be earlier than endTime');
-    }
-
-    try {
-      final stopwatch = Stopwatch()..start();
-
-      final result = await _channel.invokeMethod<Map<dynamic, dynamic>>(
-        'trimVideo',
-        params.toMap(),
-      );
-
-      stopwatch.stop();
-
-      if (result == null) {
-        throw Exception('Failed to trim video: no result');
-      }
-
-      return VideoEditResult(
-        outputPath: result['outputPath'] as String,
-        isReEncoded: result['isReEncoded'] as bool? ?? false,
-        processingTime: stopwatch.elapsed,
-      );
-    } on PlatformException catch (e) {
-      throw NativeVideoEditorException(
-        'Failed to trim video: ${e.message}',
-        code: e.code,
-        details: e.details,
-        cause: e,
-      );
-    }
-  }
-
-  /// Rotate video using metadata when possible (Android) or transform (iOS)
-  /// Avoids re-encoding when possible
-  static Future<VideoEditResult> rotateVideo(VideoRotateParams params) async {
-    _ensureInputPathExists(params.inputPath);
-    _validateRotationDegrees(params.degrees);
-
-    try {
-      final stopwatch = Stopwatch()..start();
-
-      final result = await _channel.invokeMethod<Map<dynamic, dynamic>>(
-        'rotateVideo',
-        params.toMap(),
-      );
-
-      stopwatch.stop();
-
-      if (result == null) {
-        throw Exception('Failed to rotate video: no result');
-      }
-
-      return VideoEditResult(
-        outputPath: result['outputPath'] as String,
-        isReEncoded: result['isReEncoded'] as bool? ?? false,
-        processingTime: stopwatch.elapsed,
-      );
-    } on PlatformException catch (e) {
-      throw NativeVideoEditorException(
-        'Failed to rotate video: ${e.message}',
-        code: e.code,
-        details: e.details,
-        cause: e,
-      );
-    }
-  }
-
-  /// Crop video - may require re-encoding depending on the format
-  static Future<VideoEditResult> cropVideo(VideoCropParams params) async {
-    _ensureInputPathExists(params.inputPath);
-    _validateCropDimensions(params.width, params.height);
-
-    try {
-      final stopwatch = Stopwatch()..start();
-
-      final result = await _channel.invokeMethod<Map<dynamic, dynamic>>(
-        'cropVideo',
-        params.toMap(),
-      );
-
-      stopwatch.stop();
-
-      if (result == null) {
-        throw Exception('Failed to crop video: no result');
-      }
-
-      return VideoEditResult(
-        outputPath: result['outputPath'] as String,
-        isReEncoded: result['isReEncoded'] as bool? ?? true,
-        processingTime: stopwatch.elapsed,
-      );
-    } on PlatformException catch (e) {
-      throw NativeVideoEditorException(
-        'Failed to crop video: ${e.message}',
-        code: e.code,
-        details: e.details,
-        cause: e,
-      );
-    }
-  }
-
-  /// Combined operation: trim, rotate, and crop in a single pass
-  /// More efficient when multiple operations are needed
   static Future<VideoEditResult> processVideo({
     required String inputPath,
     required String outputPath,
@@ -222,123 +367,247 @@ class NativeVideoEditor {
     Duration? trimEnd,
     int? rotateDegrees,
     Rect? cropRect,
+    double speed = 1.0,
     void Function(double progress)? onProgress,
   }) async {
     _ensureInputPathExists(inputPath);
-    if (trimStart != null && trimEnd != null && trimStart >= trimEnd) {
-      throw ArgumentError('trimStart must be earlier than trimEnd');
+    _validateOutputPath(inputPath: inputPath, outputPath: outputPath);
+    _ensureOutputDirectoryExists(outputPath);
+    if ((trimStart == null) != (trimEnd == null)) {
+      throw ArgumentError('trimStart and trimEnd must be provided together');
+    }
+    if (trimStart != null && (trimStart.isNegative || trimStart >= trimEnd!)) {
+      throw ArgumentError(
+        'trimStart must be non-negative and earlier than trimEnd',
+      );
     }
     if (rotateDegrees != null && rotateDegrees != 0) {
       _validateRotationDegrees(rotateDegrees);
     }
-    if (cropRect != null && (cropRect.width <= 0 || cropRect.height <= 0)) {
-      throw ArgumentError('cropRect must have positive width and height');
+    if (!speed.isFinite || speed <= 0) {
+      throw ArgumentError.value(speed, 'speed');
+    }
+    if (cropRect != null &&
+        (!cropRect.left.isFinite ||
+            !cropRect.top.isFinite ||
+            !cropRect.width.isFinite ||
+            !cropRect.height.isFinite ||
+            cropRect.left < 0 ||
+            cropRect.top < 0 ||
+            cropRect.width < 1 ||
+            cropRect.height < 1 ||
+            cropRect.left != cropRect.left.truncateToDouble() ||
+            cropRect.top != cropRect.top.truncateToDouble() ||
+            cropRect.width != cropRect.width.truncateToDouble() ||
+            cropRect.height != cropRect.height.truncateToDouble())) {
+      throw ArgumentError('cropRect must contain positive whole pixels');
     }
 
+    final params = <String, dynamic>{
+      'inputPath': inputPath,
+      'outputPath': outputPath,
+      if (trimStart != null) ...{
+        'trimStartMs': trimStart.inMilliseconds,
+        'trimEndMs': trimEnd!.inMilliseconds,
+      },
+      'rotateDegrees': ?rotateDegrees,
+      'speed': speed,
+      if (cropRect != null) ...{
+        'cropX': cropRect.left.toInt(),
+        'cropY': cropRect.top.toInt(),
+        'cropWidth': cropRect.width.toInt(),
+        'cropHeight': cropRect.height.toInt(),
+      },
+    };
+    final progressSubscription = onProgress == null
+        ? null
+        : _progressChannel.receiveBroadcastStream().listen((dynamic event) {
+            if (event is num) onProgress(event.toDouble());
+          }, onError: (_) {});
     try {
-      final stopwatch = Stopwatch()..start();
-
-      final params = <String, dynamic>{
-        'inputPath': inputPath,
-        'outputPath': outputPath,
-      };
-
-      if (trimStart != null && trimEnd != null) {
-        params['trimStartMs'] = trimStart.inMilliseconds;
-        params['trimEndMs'] = trimEnd.inMilliseconds;
-      }
-
-      if (rotateDegrees != null) {
-        params['rotateDegrees'] = rotateDegrees;
-      }
-
-      if (cropRect != null) {
-        params['cropX'] = cropRect.left.toInt();
-        params['cropY'] = cropRect.top.toInt();
-        params['cropWidth'] = cropRect.width.toInt();
-        params['cropHeight'] = cropRect.height.toInt();
-      }
-
-      StreamSubscription? progressSubscription;
-      if (onProgress != null) {
-        progressSubscription = _progressChannel.receiveBroadcastStream().listen(
-          (dynamic event) {
-            if (event is double) {
-              onProgress(event);
-            } else if (event is int) {
-              onProgress(event.toDouble());
-            }
-          },
-          onError: (error) {},
-        );
-      }
-
-      try {
-        final result = await _channel.invokeMethod<Map<dynamic, dynamic>>(
-          'processVideo',
-          params,
-        );
-
-        stopwatch.stop();
-
-        if (result == null) {
-          throw Exception('Failed to process video: no result');
-        }
-
-        return VideoEditResult(
-          outputPath: result['outputPath'] as String,
-          isReEncoded: result['isReEncoded'] as bool? ?? false,
-          processingTime: stopwatch.elapsed,
-        );
-      } finally {
-        await progressSubscription?.cancel();
-      }
-    } on PlatformException catch (e) {
-      throw NativeVideoEditorException(
-        'Failed to process video: ${e.message}',
-        code: e.code,
-        details: e.details,
-        cause: e,
+      final result = await _invokeMap(
+        'processVideo',
+        params,
+        operation: 'process video',
       );
+      final resultOutputPath = result['outputPath'];
+      final isReEncoded = result['isReEncoded'];
+      if (resultOutputPath is! String ||
+          isReEncoded is! bool ||
+          _normalizedPath(resultOutputPath) != _normalizedPath(outputPath)) {
+        throw const FormatException(
+          'Video processing returned an invalid result',
+        );
+      }
+      return VideoEditResult(
+        outputPath: resultOutputPath,
+        isReEncoded: isReEncoded,
+      );
+    } finally {
+      await progressSubscription?.cancel();
     }
   }
 
-  /// Get video information without processing
-  static Future<Map<String, dynamic>> getVideoInfo(String videoPath) async {
+  static Future<String> exportSlideshow(
+    SlideshowExportRequest request, {
+    void Function(double progress)? onProgress,
+  }) async {
+    _validateSlideshowRequest(request);
+    final progressSubscription = onProgress == null
+        ? null
+        : _progressChannel.receiveBroadcastStream().listen((dynamic event) {
+            if (event is num) onProgress(event.toDouble());
+          }, onError: (_) {});
+    try {
+      final result = await _invokeMap(
+        'exportSlideshow',
+        request.toMap(),
+        operation: 'export slideshow',
+      );
+      final outputPath = result['outputPath'];
+      if (outputPath is! String ||
+          _normalizedPath(outputPath) != _normalizedPath(request.outputPath)) {
+        throw const FormatException(
+          'Slideshow export returned an invalid result',
+        );
+      }
+      return outputPath;
+    } finally {
+      await progressSubscription?.cancel();
+    }
+  }
+
+  static Future<VideoFrameExtractionResult> extractFrame(
+    VideoFrameRequest request,
+  ) async {
+    _validateFrameRequest(request);
+    final result = await _invokeMap(
+      'extractFrame',
+      request.toMap(),
+      operation: 'extract video frame',
+    );
+    return VideoFrameExtractionResult.fromMap(
+      result,
+      expectedOutputPaths: [request.outputPath],
+      maxWidth: request.maxWidth,
+      maxHeight: request.maxHeight,
+    );
+  }
+
+  static Future<VideoFrameExtractionResult> extractTimeline(
+    VideoTimelineRequest request,
+  ) async {
+    _ensureInputPathExists(request.inputPath);
+    if (request.requestId.isEmpty) {
+      throw ArgumentError.value(request.requestId, 'requestId', 'is empty');
+    }
+    if (request.positions.isEmpty) {
+      throw ArgumentError.value(request.positions, 'positions', 'is empty');
+    }
+    if (request.positions.length != request.outputPaths.length) {
+      throw ArgumentError('positions and outputPaths must have equal lengths');
+    }
+    _validateFrameOptions(
+      maxWidth: request.maxWidth,
+      maxHeight: request.maxHeight,
+      quality: request.quality,
+    );
+    final outputPaths = <String>{};
+    for (var index = 0; index < request.positions.length; index++) {
+      if (request.positions[index].isNegative) {
+        throw ArgumentError.value(
+          request.positions[index],
+          'positions[$index]',
+          'is negative',
+        );
+      }
+      _validateOutputPath(
+        inputPath: request.inputPath,
+        outputPath: request.outputPaths[index],
+      );
+      final absoluteOutputPath = _normalizedPath(request.outputPaths[index]);
+      if (!outputPaths.add(absoluteOutputPath)) {
+        throw ArgumentError.value(
+          request.outputPaths[index],
+          'outputPaths[$index]',
+          'is duplicated',
+        );
+      }
+      _ensureOutputDirectoryExists(request.outputPaths[index]);
+    }
+
+    final result = await _invokeMap(
+      'extractTimeline',
+      request.toMap(),
+      operation: 'extract video timeline',
+    );
+    return VideoFrameExtractionResult.fromMap(
+      result,
+      expectedOutputPaths: request.outputPaths,
+      maxWidth: request.maxWidth,
+      maxHeight: request.maxHeight,
+    );
+  }
+
+  static Future<void> cancelFrameExtraction(String requestId) async {
+    if (requestId.isEmpty) return;
+    await _invokeVoid('cancelFrameExtraction', {
+      'requestId': requestId,
+    }, operation: 'cancel frame extraction');
+  }
+
+  static Future<NativeVideoInfo> inspectVideo(String videoPath) async {
+    _ensureInputPathExists(videoPath);
+    final result = await _invokeMap('getVideoInfo', {
+      'videoPath': videoPath,
+    }, operation: 'inspect video');
+    return NativeVideoInfo.fromMap(result);
+  }
+
+  static Future<void> cancelProcessing() async {
+    await _invokeVoid('cancelProcessing', null, operation: 'cancel processing');
+  }
+
+  static Future<Map<dynamic, dynamic>> _invokeMap(
+    String method,
+    Map<String, dynamic> arguments, {
+    required String operation,
+  }) async {
     try {
       final result = await _channel.invokeMethod<Map<dynamic, dynamic>>(
-        'getVideoInfo',
-        {'videoPath': videoPath},
+        method,
+        arguments,
       );
-
       if (result == null) {
-        throw Exception('Failed to get video info: no result');
+        throw NativeVideoEditorException('Failed to $operation: no result');
       }
-
-      return Map<String, dynamic>.from(result);
-    } on PlatformException catch (e) {
-      throw NativeVideoEditorException(
-        'Failed to get video info: ${e.message}',
-        code: e.code,
-        details: e.details,
-        cause: e,
-      );
+      return result;
+    } on PlatformException catch (error) {
+      throw _platformException(operation, error);
     }
   }
 
-  /// Cancel any ongoing video processing
-  static Future<void> cancelProcessing() async {
+  static Future<void> _invokeVoid(
+    String method,
+    Map<String, dynamic>? arguments, {
+    required String operation,
+  }) async {
     try {
-      await _channel.invokeMethod('cancelProcessing');
-    } on PlatformException catch (e) {
-      throw NativeVideoEditorException(
-        'Failed to cancel processing: ${e.message}',
-        code: e.code,
-        details: e.details,
-        cause: e,
-      );
+      await _channel.invokeMethod<void>(method, arguments);
+    } on PlatformException catch (error) {
+      throw _platformException(operation, error);
     }
   }
+
+  static NativeVideoEditorException _platformException(
+    String operation,
+    PlatformException error,
+  ) => NativeVideoEditorException(
+    'Failed to $operation: ${error.message}',
+    code: error.code,
+    details: error.details,
+    cause: error,
+  );
 
   static void _ensureInputPathExists(String inputPath) {
     if (!File(inputPath).existsSync()) {
@@ -346,15 +615,109 @@ class NativeVideoEditor {
     }
   }
 
-  static void _validateRotationDegrees(int degrees) {
-    if (degrees != 90 && degrees != 180 && degrees != 270) {
-      throw ArgumentError('Rotation degrees must be 90, 180, or 270');
+  static void _validateFrameRequest(VideoFrameRequest request) {
+    _ensureInputPathExists(request.inputPath);
+    if (request.position.isNegative) {
+      throw ArgumentError.value(request.position, 'position', 'is negative');
+    }
+    _validateOutputPath(
+      inputPath: request.inputPath,
+      outputPath: request.outputPath,
+    );
+    _ensureOutputDirectoryExists(request.outputPath);
+    _validateFrameOptions(
+      maxWidth: request.maxWidth,
+      maxHeight: request.maxHeight,
+      quality: request.quality,
+    );
+  }
+
+  static void _validateFrameOptions({
+    required int maxWidth,
+    required int maxHeight,
+    required int quality,
+  }) {
+    if (maxWidth <= 0 || maxHeight <= 0) {
+      throw ArgumentError('maxWidth and maxHeight must both be positive');
+    }
+    if (quality < 1 || quality > 100) {
+      throw RangeError.range(quality, 1, 100, 'quality');
     }
   }
 
-  static void _validateCropDimensions(int width, int height) {
-    if (width <= 0 || height <= 0) {
-      throw ArgumentError('Crop dimensions must be greater than zero');
+  static void _ensureOutputDirectoryExists(String outputPath) {
+    final parent = File(outputPath).parent;
+    if (!parent.existsSync()) {
+      throw ArgumentError('Output directory does not exist: ${parent.path}');
+    }
+  }
+
+  static void _validateOutputPath({
+    required String inputPath,
+    required String outputPath,
+  }) {
+    if (_normalizedPath(inputPath) == _normalizedPath(outputPath)) {
+      throw ArgumentError('Output path must differ from the input path');
+    }
+  }
+
+  static void _validateSlideshowRequest(SlideshowExportRequest request) {
+    if (request.items.isEmpty) {
+      throw ArgumentError.value(request.items, 'items', 'is empty');
+    }
+    if (request.width <= 0 ||
+        request.height <= 0 ||
+        request.width.isOdd ||
+        request.height.isOdd) {
+      throw ArgumentError('width and height must be positive even numbers');
+    }
+    if (request.frameRate < 1 || request.frameRate > 60) {
+      throw RangeError.range(request.frameRate, 1, 60, 'frameRate');
+    }
+    if (request.crossfade.isNegative) {
+      throw ArgumentError.value(request.crossfade, 'crossfade', 'is negative');
+    }
+    _ensureOutputDirectoryExists(request.outputPath);
+    for (final item in request.items) {
+      _ensureInputPathExists(item.path);
+      _validateOutputPath(inputPath: item.path, outputPath: request.outputPath);
+      if (item.type == SlideshowItemType.photo) {
+        final duration = item.duration!;
+        final motion = item.motion!;
+        if (duration <= Duration.zero || request.crossfade > duration) {
+          throw ArgumentError('Photo durations must exceed the crossfade');
+        }
+        final values = [
+          motion.startScale,
+          motion.endScale,
+          motion.startOffset.dx,
+          motion.startOffset.dy,
+          motion.endOffset.dx,
+          motion.endOffset.dy,
+        ];
+        if (values.any((value) => !value.isFinite) ||
+            motion.startScale <= 0 ||
+            motion.endScale <= 0) {
+          throw ArgumentError('Photo motion must use finite positive scales');
+        }
+      }
+    }
+    final music = request.music;
+    if (music != null) {
+      _ensureInputPathExists(music.path);
+      _validateOutputPath(
+        inputPath: music.path,
+        outputPath: request.outputPath,
+      );
+      if (music.fadeIn.isNegative || music.fadeOut.isNegative) {
+        throw ArgumentError('Music fades must not be negative');
+      }
+    }
+  }
+
+  static void _validateRotationDegrees(int degrees) {
+    if (degrees != 90 && degrees != 180 && degrees != 270) {
+      throw ArgumentError('Rotation degrees must be 90, 180, or 270');
     }
   }
 }

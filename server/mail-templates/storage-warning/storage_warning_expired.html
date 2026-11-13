@@ -1,0 +1,40 @@
+{{define "content"}}
+<p>Hi,</p>
+
+<p>
+  We're reaching out because the Ente plan for your account associated with
+  <strong>{{.AccountEmail}}</strong> expired on {{.ExpiryDate}}.
+</p>
+
+<p>
+  As a result, you won't be able to back up new photos, videos, or other items
+  to Ente Photos and Ente Locker.
+</p>
+
+<p>
+  Unless the subscription is renewed, your data for Ente Photos &amp; Ente
+  Locker will be automatically deleted after {{.AutoDeleteDate}}.
+</p>
+
+{{if .IsFamilyPlan}}
+<p>
+  If you're on a Family plan, your family members' data and access will also be
+  affected.
+</p>
+{{end}}
+
+<p>
+  To keep your data and continue your subscription, please renew your
+  subscription.
+</p>
+
+<p>
+  If you don't intend to renew your subscription, please
+  <a href="https://ente.com/help/photos/features/backup-and-sync/export">export your data</a>.
+</p>
+
+<p>
+  If you're running into payment issues or need more time, reply to this email
+  and we'll help you figure out the best option.
+</p>
+{{end}}

@@ -7,7 +7,9 @@ description: Details about notifications in Ente Photos
 
 Ente can send notifications to keep you updated on shared content and remind you of meaningful memories at the right time.
 
-> **Note**: Notifications are currently only available on mobile apps (iOS and Android). Desktop and web versions do not support notifications.
+> [!NOTE]
+>
+> Notifications are currently only available on mobile apps (iOS and Android). Desktop and web versions do not support notifications.
 
 ## Notification types
 
@@ -42,6 +44,8 @@ Receive reminders about memories from this day in previous years.
 
 ### Birthday notifications
 
+![Birthdays notification category highlighted on Ente Photos mobile Notifications settings](https://docs-assets.ente.com/screenshots/phone-notifications-birthday-callout.png){width=320px}
+
 Receive reminders when it's someone's birthday.
 
 **Requirements:**
@@ -68,6 +72,8 @@ Receive reminders when it's someone's birthday.
 1. When first installing Ente, allow notifications when prompted
 2. Or go to device `Settings > Apps > Ente > Notifications` and enable
 
+![Notifications toggle highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-android-app-notifications-callout.png){width=320px}
+
 ### Customizing notification categories
 
 Open `Settings > Notifications` in the Ente app to:
@@ -75,6 +81,8 @@ Open `Settings > Notifications` in the Ente app to:
 - Enable or disable specific notification types
 - Turn off all notifications
 - Choose which reminders you want to receive
+
+![Mobile: home with Settings menu (three bars) highlighted, then Notifications, then the Notifications page](https://docs-assets.ente.com/screenshots/phone-settings-notifications-path-nc.png){width=560px}
 
 By default, all notification categories are enabled when you grant notification permission.
 

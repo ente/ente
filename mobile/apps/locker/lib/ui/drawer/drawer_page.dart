@@ -1,15 +1,13 @@
-import "package:ente_accounts/services/user_service.dart";
-import "package:ente_events/event_bus.dart";
+import "package:ente_components/ente_components.dart";
 import "package:ente_sharing/verify_identity_dialog.dart";
 import "package:ente_strings/ente_strings.dart";
-import "package:ente_ui/theme/colors.dart";
-import "package:ente_ui/theme/ente_theme.dart";
+import "package:ente_ui/pages/settings_search_page.dart";
 import "package:flutter/material.dart";
-import "package:locker/events/user_details_refresh_event.dart";
+import "package:hugeicons/hugeicons.dart";
 import "package:locker/services/configuration.dart";
 import "package:locker/ui/components/legacy_collections_trash_widget.dart";
 import "package:locker/ui/components/usage_card_widget.dart";
-import "package:locker/ui/drawer/drawer_title_bar_widget.dart";
+import "package:locker/ui/settings/search/settings_search_registry.dart";
 import "package:locker/ui/settings/settings_page.dart";
 
 class DrawerPage extends StatelessWidget {
@@ -24,66 +22,19 @@ class DrawerPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Bus.instance.fire(UserDetailsRefreshEvent());
-
-    final hasLoggedIn = Configuration.instance.hasConfiguredAccount();
-    if (hasLoggedIn) {
-      UserService.instance.getUserDetailsV2().ignore();
-    }
-    final enteColorScheme = getEnteColorScheme(context);
+    final colors = context.componentColors;
     return Scaffold(
-      backgroundColor: enteColorScheme.backgroundBase,
-      body: Container(
-        color: enteColorScheme.backgroundBase,
-        child: _getBody(context, enteColorScheme),
-      ),
+      backgroundColor: colors.backgroundBase,
+      body: Container(color: colors.backgroundBase, child: _getBody(context)),
     );
   }
 
-  Widget _getBody(BuildContext context, EnteColorScheme colorScheme) {
+  Widget _getBody(BuildContext context) {
     final hasLoggedIn = Configuration.instance.hasConfiguredAccount();
-    final enteTextTheme = getEnteTextTheme(context);
-    const sectionSpacing = SizedBox(height: 8);
     final List<Widget> contents = [];
 
     if (hasLoggedIn) {
-      contents.add(
-        GestureDetector(
-          onDoubleTap: () => showVerifyIdentitySheet(
-            context,
-            self: true,
-            config: Configuration.instance,
-            title: context.strings.verifyIDLabel,
-          ),
-          onLongPress: () => showVerifyIdentitySheet(
-            context,
-            self: true,
-            config: Configuration.instance,
-            title: context.strings.verifyIDLabel,
-          ),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: AnimatedBuilder(
-                // [AnimatedBuilder] accepts any [Listenable] subtype.
-                animation: emailNotifier,
-                builder: (BuildContext context, Widget? child) {
-                  return Text(
-                    emailNotifier.value!,
-                    style: enteTextTheme.body.copyWith(
-                      color: colorScheme.textMuted,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-        ),
-      );
       contents.addAll([
-        sectionSpacing,
         const UsageCardWidget(),
         const SizedBox(height: 24),
         const LegacyCollectionsTrashWidget(),
@@ -93,29 +44,78 @@ class DrawerPage extends StatelessWidget {
 
     contents.addAll([
       SettingsWidget(hasLoggedIn: hasLoggedIn),
-      const Padding(
-        padding: EdgeInsets.only(bottom: 60),
-      ),
+      const Padding(padding: EdgeInsets.only(bottom: 60)),
     ]);
 
-    return SafeArea(
-      bottom: false,
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            DrawerTitleBarWidget(
-              scaffoldKey: scaffoldKey,
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-              child: Column(
-                children: contents,
+    return AnimatedBuilder(
+      animation: emailNotifier,
+      builder: (context, _) {
+        final email = emailNotifier.value ?? "";
+        final title = hasLoggedIn && email.isNotEmpty
+            ? email
+            : context.strings.settings;
+
+        return AppBarComponent(
+          title: title,
+          actions: [_buildSearchAction(context)],
+          onBack: () => scaffoldKey.currentState?.closeDrawer(),
+          onTitleDoubleTap: hasLoggedIn
+              ? () => _showVerifyIDSheet(context)
+              : null,
+          onTitleLongPress: hasLoggedIn
+              ? () => _showVerifyIDSheet(context)
+              : null,
+          slivers: [
+            SliverSafeArea(
+              top: false,
+              sliver: SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                sliver: SliverList.list(children: contents),
               ),
             ),
           ],
-        ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSearchAction(BuildContext context) {
+    return IconButtonComponent(
+      tooltip: context.strings.search,
+      variant: IconButtonComponentVariant.primary,
+      shouldSurfaceExecutionStates: false,
+      onTap: () => _openSearch(context),
+      icon: const HugeIcon(
+        icon: HugeIcons.strokeRoundedSearch01,
+        size: IconSizes.small,
+        strokeWidth: 1.75,
       ),
+    );
+  }
+
+  void _openSearch(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) {
+          final items = SettingsSearchRegistry.getSearchableItems(context);
+          return SettingsSearchPage(
+            items: items,
+            suggestions: SettingsSearchRegistry.getSuggestions(context, items),
+            onNavigate: (context, routeBuilder) => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: routeBuilder)),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showVerifyIDSheet(BuildContext context) {
+    showVerifyIdentitySheet(
+      context,
+      self: true,
+      config: Configuration.instance,
+      title: context.strings.verifyIDLabel,
     );
   }
 }

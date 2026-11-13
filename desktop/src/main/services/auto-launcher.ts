@@ -2,10 +2,6 @@ import AutoLaunch from "auto-launch";
 import { app } from "electron/main";
 
 class AutoLauncher {
-    /**
-     * This property will be set and used on Linux and Windows. On macOS,
-     * there's a separate API
-     */
     private autoLaunch?: AutoLaunch;
 
     constructor() {

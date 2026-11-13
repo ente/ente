@@ -1,9 +1,9 @@
 import 'package:ente_accounts/ente_accounts.dart';
+import 'package:ente_components/ente_components.dart';
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import 'package:ente_strings/ente_strings.dart';
 import 'package:ente_ui/components/alert_bottom_sheet.dart';
 import 'package:ente_ui/components/base_bottom_sheet.dart';
-import 'package:ente_ui/components/buttons/gradient_button.dart';
 import 'package:ente_ui/theme/ente_theme.dart';
 import 'package:flutter/material.dart';
 
@@ -69,16 +69,10 @@ class _ChangeEmailDialogState extends State<ChangeEmailDialog> {
                 borderRadius: BorderRadius.circular(8),
               ),
               suffixIcon: _emailIsValid
-                  ? Icon(
-                      Icons.check,
-                      size: 20,
-                      color: colorScheme.primary700,
-                    )
+                  ? Icon(Icons.check, size: 20, color: colorScheme.primary700)
                   : null,
             ),
-            style: textTheme.body.copyWith(
-              color: colorScheme.textBase,
-            ),
+            style: textTheme.body.copyWith(color: colorScheme.textBase),
             autocorrect: false,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.done,
@@ -86,9 +80,10 @@ class _ChangeEmailDialogState extends State<ChangeEmailDialog> {
             onFieldSubmitted: (_) => _handleSubmit(),
           ),
           const SizedBox(height: 24),
-          GradientButton(
-            text: context.strings.verify,
+          ButtonComponent(
+            label: context.strings.verify,
             onTap: _emailIsValid ? _handleSubmit : null,
+            shouldSurfaceExecutionStates: false,
           ),
         ],
       ),
@@ -106,11 +101,7 @@ class _ChangeEmailDialogState extends State<ChangeEmailDialog> {
       return;
     }
 
-    await UserService.instance.sendOtt(
-      context,
-      _email,
-      isChangeEmail: true,
-    );
+    await UserService.instance.sendOtt(context, _email, isChangeEmail: true);
   }
 }
 

@@ -67,24 +67,16 @@ class AlertBottomSheet<T> extends StatelessWidget {
               if (showCloseButton)
                 const Row(
                   mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    CloseIconButton(),
-                  ],
+                  children: [CloseIconButton()],
                 ),
               SizedBox(height: showCloseButton ? 12 : 24),
               Center(child: Image.asset(assetPath)),
               const SizedBox(height: 20),
-              Text(
-                title,
-                style: textTheme.h3Bold,
-                textAlign: TextAlign.center,
-              ),
+              Text(title, style: textTheme.h3Bold, textAlign: TextAlign.center),
               const SizedBox(height: 12),
               Text(
                 message,
-                style: textTheme.body.copyWith(
-                  color: colorScheme.textMuted,
-                ),
+                style: textTheme.body.copyWith(color: colorScheme.textMuted),
                 textAlign: TextAlign.center,
               ),
               ..._buildButtonsSection(),
@@ -104,7 +96,7 @@ class AlertBottomSheet<T> extends StatelessWidget {
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: buttons!.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        separatorBuilder: (_, _) => const SizedBox(height: 12),
         itemBuilder: (_, index) => buttons![index],
       ),
     ];

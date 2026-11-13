@@ -1,20 +1,10 @@
-name: "Lint (web)"
+name: "Lint (Web)"
 
 on:
-    # Run on every pull request (open or push to it) that changes web/
-    pull_request:
-        paths:
-            - "web/**"
-            - "rust/core/**"
-            - ".github/workflows/web-lint.yml"
+    workflow_call:
 
 permissions:
     contents: read
-
-# Cancel in-progress lint runs when a new commit is pushed.
-concurrency:
-    group: ${{ github.workflow }}-${{ github.ref }}
-    cancel-in-progress: true
 
 jobs:
     lint:
@@ -23,30 +13,55 @@ jobs:
             run:
                 working-directory: web
         steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
+            - name: Checkout
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+            - name: Setup node
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
               with:
-                  persist-credentials: false
+                  node-version: 24
+                  cache: "npm"
+                  cache-dependency-path: "web/package-lock.json"
 
-            - name: Setup node and enable yarn caching
-              uses: actions/setup-node@v4
+            # Restore-only; primed on main by warm-caches.yml.
+            - name: Restore Rust cache
+              uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
               with:
-                  node-version: 22
-                  cache: "yarn"
-                  cache-dependency-path: "web/yarn.lock"
+                  workspaces: rust
+                  shared-key: rust-wasm
+                  cache-targets: false
+                  save-if: false
 
-            - run: yarn install --frozen-lockfile
+            - name: Restore Rust target
+              uses: $/.github/actions/restore-rust-target
+              with:
+                  shared-key: rust-wasm
 
-            - run: yarn build:wasm
+            - name: Restore Cast toolchain
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  key: cast-toolchain-${{ hashFiles('rust/bindings/wasm/cast/rust-toolchain.toml') }}
+                  path: ~/.rustup/toolchains/nightly-*
 
-            - run: yarn lint
+            - name: Restore web cache
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  key: web-${{ github.sha }}
+                  restore-keys: web-
+                  path: |
+                      web/apps/photos/.next/cache
+                      web/apps/*/*.tsbuildinfo
+                      web/packages/*/*.tsbuildinfo
+                      web/packages/wasm/*/*.tsbuildinfo
 
-            - run: yarn test:run
+            - run: npm ci
 
-            - name: Audit dependencies
-              run: |
-                  yarn audit --level critical || exit_code=$?
-                  if [[ $exit_code -ge 16 ]]; then
-                      echo "::error::Yarn audit found critical issues"
-                      exit 1
-                  fi
+            - run: npm audit --audit-level critical
+
+            - run: _ENTE_IS_DESKTOP=1 npm run build:photos
+
+            - run: npm run build:wasm
+
+            - run: node scripts/lint.mjs
+
+            - run: npm test

@@ -1,5 +1,4 @@
-source 'https://github.com/ente-io/ffmpeg-kit-custom-repo-ios.git'
-platform :ios, '14.0'
+platform :ios, '15.1'
 
 source 'https://cdn.cocoapods.org/'
 
@@ -33,6 +32,11 @@ target 'Runner' do
   use_frameworks!
   use_modular_headers!
 
+  # Ente's custom prebuilt ONNX Runtime static libraries (download + SHA-256
+  # verification handled by CocoaPods). Consumed by the ente_photos_frb
+  # build phase, which points the Rust `ort` crate at the platform slice.
+  pod 'EnteOnnxRuntime', :podspec => '../../../../apple/packages/EnteOnnxRuntime/EnteOnnxRuntime.podspec'
+
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 
   target 'ShareExtension' do
@@ -40,13 +44,31 @@ target 'Runner' do
   end
 end
 
+target 'NotificationServiceExtension' do
+  use_frameworks!
+  pod 'ente_notification_uniffi', :path => 'NotificationServiceExtension'
+end
+
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+    if target.name == 'rive_native'
+      source = installer.pods_project.main_group.new_file(File.join(__dir__, 'RiveSimulatorArchInfo.c'))
+      target.source_build_phase.add_file_reference(source)
+    end
     target.build_configurations.each do |config|
       config.build_settings.delete 'IPHONEOS_DEPLOYMENT_TARGET'
-      config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
+
+      if target.name == 'ente_photos_frb' && config.name == 'Debug'
+        config.build_settings['ONLY_ACTIVE_ARCH[sdk=iphonesimulator*]'] = 'YES'
+      end
+
+      if target.name == 'rive_native'
+        config.build_settings['OTHER_LDFLAGS[sdk=iphonesimulator*]'] =
+          '$(inherited) -Wl,-alias,_EnteRiveSimulatorArchInfo,_NXGetLocalArchInfo'
+      end
     end
 
   end
+
 end

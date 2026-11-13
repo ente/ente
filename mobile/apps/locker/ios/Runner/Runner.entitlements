@@ -2,6 +2,14 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>webcredentials:web.ente.io</string>
+		<string>webcredentials:photos.ente.com</string>
+		<string>webcredentials:auth.ente.io</string>
+		<string>webcredentials:auth.ente.com</string>
+		<string>webcredentials:locker.ente.com</string>
+	</array>
 	<key>com.apple.security.application-groups</key>
 	<array>
 		<string>group.io.ente.locker.share</string>

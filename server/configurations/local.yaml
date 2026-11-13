@@ -1,66 +1,33 @@
-# Configuring museum
-# ------------------
+# Museum loads configuration in this order:
 #
-# 1. If the environment variable `ENVIRONMENT` is specified, then it is used to
-#    load one of the files from the `configurations/` directory. If not present,
-#    then by default `local.yaml` (this file) will get loaded.
+# 1. configurations/$ENVIRONMENT.yaml, or this file when ENVIRONMENT is unset.
+# 2. credentials-file, when present.
+# 3. museum.yaml in the current working directory, when present.
+# 4. ENTE_* environment variables.
 #
-# 2. If the "credentials-file" config option is set then museum will look for
-#    that file. If found, that file will also be loaded, and entries specified
-#    therein will override the defaults specified here.
+# Later sources override earlier ones.
 #
-# 3. Then, museum will look for a file named `museum.yaml` (gitignored) in the
-#    current working directory. If found, this file will also be loaded and
-#    merged.
+# Environment variables replace nesting and hyphens with underscores:
 #
-# 4. Config can be overridden with via environment variables (details below).
+# db.user -> ENTE_DB_USER
+# s3.b2-eu-cen -> ENTE_S3_B2_EU_CEN
 #
-# Environment variables
-# ---------------------
-#
-# All configuration options can be overridden via environment variables. The
-# environment variable should have the prefix "ENTE_", and any nesting should be
-# replaced by underscores.
-#
-# For example, the nested string "db.user" in the config file can alternatively
-# be specified (or be overridden) by setting an environment variable named
-# ENTE_DB_USER.
-#
-# Hyphens "-" will also be be replaced with underscores, so a string like "s3.b2-eu-cen"
-# can be specified by the environment variable named "S3_B2_EU_CEN".
-#
-#
-# Empty strings
-# -------------
-#
-# The empty string indicates missing values (to match go convention).
-#
-# This also means that to override a value that is specified in local.yaml in a
-# subsequently loaded config file, you should specify the key as an empty string
-# (`key: ""`) instead of leaving it unset.
+# Empty strings represent missing values.
+# In a later file, use `key: ""` to clear an earlier value; omitting the key leaves the earlier value unchanged.
 #
 # ---
 
-# If this option is specified, then it is loaded and gets merged-in over the
-# defaults present in default.yaml. This provides a way to inject credentials
-# and other overrides.
-#
-# The default is to look for a file named credentials.yaml in the CWD.
+# Optional configuration loaded before museum.yaml.
+# Defaults to credentials.yaml in the current working directory.
 #credentials-file: credentials.yaml
 
-# Some credentials (e.g. the TLS cert) are cumbersome to provide inline in the
-# YAML configuration file, thus these are loaded at runtime from separate files.
-#
-# This is the directory where museum should look for them.
-#
-# Currently, the following files are loaded (if needed)
+# Directory containing credentials kept outside YAML:
 #
 # - credentials/{tls.cert,tls.key}
 # - credentials/pst-service-account.json
 # - credentials/fcm-service-account.json
 #
-# The default is to look for a these files in a directory named credentials
-# under the CWD.
+# Defaults to credentials in the current working directory.
 #credentials-dir: credentials
 
 # By default, museum logs to stdout when running locally. Specify this path to
@@ -68,6 +35,13 @@
 #
 # It must be specified if running in a non-local environment.
 log-file: ""
+
+# The minimum level of logs to emit: "panic", "fatal", "error", "warn", "info",
+# "debug" or "trace".
+#
+# Anything below the configured level is dropped, e.g. "warn" suppresses info
+# and debug logs. If not specified or invalid defaults to "info".
+#log-level: info
 
 # HTTP connection parameters
 http:
@@ -82,35 +56,65 @@ http:
 
 # Specify the base endpoints for various apps
 apps:
-    # Default is https://albums.ente.io
+    # Default is https://albums.ente.com
     #
     # If you're running a self hosted instance and wish to serve public links for photos,
     # set this to the URL where your albums web app is running.
     public-albums:
-    # Default is https://embed.ente.io
+    # Default is https://embed.ente.com
+    #
     # For self-hosted instances, set this to the URL where your embed app is running.
     embed-albums:
-    # Default is https://share.ente.io
+    photobook:
+    # Default is https://share.ente.com
     #
     # If you're running a self-hosted instance and wish to serve public links for locker,
-    # set this to the URL where your albums web app is running.
+    # set this to the URL where your share web app is running.
     public-locker:
-    # Default is https://paste.ente.io
+    # Default is https://paste.ente.com
     #
     # If you're running a self-hosted instance and wish to serve Ente Paste,
     # set this to the URL where your paste web app is running.
     public-paste:
-    # Default is https://cast.ente.io
+    # Default is https://cast.ente.com
     cast:
-    # Default is https://accounts.ente.io
-    # Set this to the URL where your accounts web app is running, primarily used for
-    # passkey based 2FA.
+    # Set this to the URL where your accounts web app is running. It is used
+    # for passkey based 2FA and other cross-app flows like accepting family
+    # invites.
+    #
+    # Default is https://accounts.ente.com
     accounts:
+    # Optional. Used only for Ente's accounts.ente.io -> accounts.ente.com
+    # passkey migration. Users with passkeys scoped to webauthn.legacy-rpid are
+    # sent here.
+    #
+    # Default is https://accounts.ente.io
+    accounts-legacy:
     # Default is https://family.ente.io
     family:
+    # Default is https://ente.space
+    #
+    # Set this to the URL where your space web app is running.
+    space:
+    # Default is https://memories.ente.com
+    #
+    # If you're running a self-hosted instance and wish to serve public memory shares,
+    # set this to the URL where your memories web app is running.
+    public-memories:
+    # Default is https://legacy.ente.com
+    #
+    # If you're running a self-hosted instance and wish to serve legacy kit recovery,
+    # set this to the URL where your legacy recovery web app is running.
+    legacy:
     custom-domain:
-        # Default is my.ente.io
+        # Default is my.ente.com
         cname:
+
+space:
+    assets:
+        # Bucket ID used for Space post, avatar, and cover uploads.
+        # If omitted, Space asset uploads return SPACE_ASSETS_UNAVAILABLE.
+        primaryBucket:
 
 # Database connection parameters
 db:
@@ -223,6 +227,10 @@ s3:
     #     img_preview:
     #         primaryBucket:
     #         replicaBuckets: []
+    # attachment-config:
+    #     profile_picture:
+    #         primaryBucket:
+    #         replicaBuckets: []
 
 # Key used for encrypting customer emails before storing them in DB
 #
@@ -251,10 +259,6 @@ jwt:
 #
 # Configure credentials here for sending mails from museum (e.g. OTP emails).
 #
-# The smtp credentials will be used if the host is specified. Otherwise it will
-# try to use the transmail credentials. Ideally, one of smtp or transmail should
-# be configured for a production instance.
-#
 # username and password are optional (e.g. if you're using a local relay server
 # and don't need authentication).
 smtp:
@@ -270,16 +274,6 @@ smtp:
     sender-name:
     # Optional encryption method. If tls or ssl is chosen, encryption is enabled.
     encryption:
-
-# Zoho Zeptomail config (optional)
-#
-# This is an alternative to the `smtp` configuration for sending emails. If this
-# is set (and SMTP credentials are not set), then museum will use the transmail
-# SDK for sending emails using Zoho Zeptomail.
-transmail:
-    # Transmail token
-    # Mail agent: dev
-    key:
 
 # Apple config (optional)
 # Use case: In-app purchases
@@ -311,6 +305,14 @@ webauthn:
     # See: https://github.com/go-webauthn/webauthn
     rporigins:
         - "http://localhost:3001"
+    # Optional. Used only when migrating existing passkeys from an older RP ID.
+    # Leave unset for normal deployments. Wrong RP/origin values can prevent
+    # users from using their passkeys.
+    #
+    # Credentials without an rp_id are treated as belonging to legacy-rpid.
+    # Users with such credentials keep using apps.accounts-legacy.
+    legacy-rpid:
+    legacy-rporigins: []
 
 # Discord config (optional)
 # Use case: Devops
@@ -322,15 +324,6 @@ discord:
         mona-lisa:
             token:
             channel:
-
-# Zoho Campaigns config (optional)
-# Use case: Sending emails
-zoho:
-    client-id:
-    client-secret:
-    refresh-token:
-    list-key:
-    topic-ids:
 
 # Listmonk Campaigns config (optional)
 # Use case: Sending emails
@@ -407,8 +400,3 @@ jobs:
         # Number of go routines to spawn for object cleanup
         # Optional, default value is indicated here.
         worker-count: 1
-    clear-orphan-objects:
-        # By default, this job is disabled.
-        enabled: false
-        # If provided, only objects that begin with this prefix are pruned.
-        prefix: ""

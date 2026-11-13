@@ -6,7 +6,7 @@ import "package:freezed_annotation/freezed_annotation.dart";
 class EntityData {
   final String id;
 
-  // encryptedData will be null for diff items when item is deleted
+  // Null for deleted diff entries.
   final String? encryptedData;
   final String? header;
   final bool isDeleted;

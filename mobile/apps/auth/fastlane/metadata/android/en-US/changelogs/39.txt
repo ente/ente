@@ -1,3 +1,0 @@
-- Added OTPAuth URL Scheme Support: Our Two-Factor Authenticator app now supports the otpauth:// URL scheme for easy setup and configuration of your one-time password (OTP) accounts.
-
-- Expanded Language Support: Thanks to the help from our community, in addition to English, French, and Spanish, our app now supports German, Spanish, Dutch, Brazilian Portuguese, Russian, and Simplified Chinese. To change your language preferences, go to Settings > Account > Language.

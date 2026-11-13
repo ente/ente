@@ -1,0 +1,79 @@
+{
+    "web/apps/albums/src/public-album/page/PublicAlbumPage.tsx": [
+        "react-hooks/exhaustive-deps"
+    ],
+    "web/apps/albums/src/public-album/upload/components/Upload.tsx": [
+        "react-hooks/exhaustive-deps"
+    ],
+    "web/apps/albums/src/public-album/upload/pipeline/thumbnail.ts": [
+        "@typescript-eslint/prefer-promise-reject-errors"
+    ],
+    "web/apps/albums/src/public-album/viewer/components/FileViewer.tsx": [
+        "react-hooks/exhaustive-deps"
+    ],
+    "web/apps/photos/src/components/collections/CollectionShare.tsx": [
+        "@typescript-eslint/no-unnecessary-condition"
+    ],
+    "web/apps/photos/src/components/collections/AlbumContentHeader.tsx": [
+        "react-hooks/exhaustive-deps"
+    ],
+    "web/apps/photos/src/components/PlanSelector.tsx": [
+        "react-hooks/exhaustive-deps"
+    ],
+    "web/apps/photos/src/components/sidebar/accounts/subscription.ts": [
+        "@typescript-eslint/no-floating-promises"
+    ],
+    "web/apps/photos/src/components/sidebar/Sidebar.tsx": [
+        "@typescript-eslint/no-floating-promises"
+    ],
+    "web/apps/photos/src/components/Upload.tsx": [
+        "react-hooks/exhaustive-deps"
+    ],
+    "web/apps/photos/src/components/sidebar/WatchFolder.tsx": [
+        "react-hooks/exhaustive-deps"
+    ],
+    "web/apps/photos/src/services/export.ts": [
+        "@typescript-eslint/no-non-null-asserted-optional-chain",
+        "@typescript-eslint/no-unnecessary-condition"
+    ],
+    "web/apps/photos/src/services/watch.ts": [
+        "@typescript-eslint/no-misused-promises"
+    ],
+    "web/apps/space/src/components/MessagesPage.tsx": [
+        "react-hooks/exhaustive-deps"
+    ],
+    "web/apps/space/src/hooks/use-pwa-install-prompt.ts": [
+        "@typescript-eslint/no-deprecated"
+    ],
+    "web/packages/base/kv.ts": ["@typescript-eslint/no-base-to-string"],
+    "web/packages/base/log.ts": [
+        "@typescript-eslint/no-base-to-string",
+        "@typescript-eslint/no-unsafe-argument",
+        "@typescript-eslint/no-unsafe-assignment"
+    ],
+    "web/packages/gallery/components/viewer/FileViewer.tsx": [
+        "react-hooks/exhaustive-deps"
+    ],
+    "web/packages/gallery/components/viewer/photoswipe-core.ts": [
+        "@typescript-eslint/no-unnecessary-condition"
+    ],
+    "web/packages/gallery/services/save-core.ts": [
+        "@typescript-eslint/no-unnecessary-condition"
+    ],
+    "web/packages/gallery/services/upload/thumbnail.ts": [
+        "@typescript-eslint/prefer-promise-reject-errors"
+    ],
+    "web/packages/gallery/utils/leaflet.ts": [
+        "@typescript-eslint/no-require-imports"
+    ],
+    "web/packages/new/photos/components/EditLocationDialog.tsx": [
+        "react-hooks/exhaustive-deps"
+    ],
+    "web/packages/new/photos/components/ImageEditorOverlay.tsx": [
+        "@typescript-eslint/no-unnecessary-condition",
+        "react-hooks/exhaustive-deps"
+    ],
+    "web/packages/new/photos/services/search/worker.ts": [
+        "@typescript-eslint/no-unnecessary-condition"
+    ]
+}

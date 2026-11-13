@@ -12,6 +12,12 @@ Future<T?> showBaseBottomSheet<T>(
   Color? backgroundColor,
   CrossAxisAlignment crossAxisAlignment = CrossAxisAlignment.start,
   EdgeInsets padding = const EdgeInsets.all(16),
+  BorderRadiusGeometry borderRadius = const BorderRadius.only(
+    topLeft: Radius.circular(24),
+    topRight: Radius.circular(24),
+  ),
+  BoxBorder? border,
+  TextStyle? titleTextStyle,
   bool isDismissible = true,
   bool enableDrag = true,
   bool isKeyboardAware = false,
@@ -30,6 +36,9 @@ Future<T?> showBaseBottomSheet<T>(
       backgroundColor: backgroundColor,
       crossAxisAlignment: crossAxisAlignment,
       padding: padding,
+      borderRadius: borderRadius,
+      border: border,
+      titleTextStyle: titleTextStyle,
       isKeyboardAware: isKeyboardAware,
       child: child,
     ),
@@ -43,6 +52,9 @@ class BaseBottomSheet extends StatelessWidget {
   final VoidCallback? onClose;
   final CrossAxisAlignment crossAxisAlignment;
   final EdgeInsets padding;
+  final BorderRadiusGeometry borderRadius;
+  final BoxBorder? border;
+  final TextStyle? titleTextStyle;
   final Color? backgroundColor;
   final double headerSpacing;
   final bool isKeyboardAware;
@@ -54,6 +66,12 @@ class BaseBottomSheet extends StatelessWidget {
     this.onClose,
     this.crossAxisAlignment = CrossAxisAlignment.start,
     this.padding = const EdgeInsets.all(16),
+    this.borderRadius = const BorderRadius.only(
+      topLeft: Radius.circular(24),
+      topRight: Radius.circular(24),
+    ),
+    this.border,
+    this.titleTextStyle,
     this.backgroundColor,
     this.headerSpacing = 0,
     this.isKeyboardAware = false,
@@ -64,16 +82,15 @@ class BaseBottomSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = getEnteColorScheme(context);
     final textTheme = getEnteTextTheme(context);
-    final bottomInset =
-        isKeyboardAware ? MediaQuery.of(context).viewInsets.bottom : 0.0;
+    final bottomInset = isKeyboardAware
+        ? MediaQuery.of(context).viewInsets.bottom
+        : 0.0;
 
     return Container(
       decoration: BoxDecoration(
         color: backgroundColor ?? colorScheme.backgroundElevated2,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(24),
-          topRight: Radius.circular(24),
-        ),
+        borderRadius: borderRadius,
+        border: border,
       ),
       child: Padding(
         padding: EdgeInsets.only(bottom: bottomInset),
@@ -88,7 +105,7 @@ class BaseBottomSheet extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(title, style: textTheme.largeBold),
+                    Text(title, style: titleTextStyle ?? textTheme.largeBold),
                     if (showCloseButton)
                       CloseIconButton(onTap: onClose)
                     else

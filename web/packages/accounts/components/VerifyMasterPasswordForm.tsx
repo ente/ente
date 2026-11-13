@@ -1,113 +1,58 @@
 import { Input, TextField } from "@mui/material";
-import {
-    srpVerificationUnauthorizedErrorMessage,
-    type SRPAttributes,
-} from "ente-accounts/services/srp";
+import { deriveKey } from "ente-accounts/services/crypto";
+import type { SRPAttributes } from "ente-accounts/services/srp";
 import type { KeyAttributes } from "ente-accounts/services/user";
 import { LoadingButton } from "ente-base/components/mui/LoadingButton";
 import { ShowHidePasswordInputAdornment } from "ente-base/components/mui/PasswordInputAdornment";
-import { decryptBox, deriveKey } from "ente-base/crypto";
+import { isNamedError } from "ente-base/error";
 import log from "ente-base/log";
+import type { SessionStorageCrypto } from "ente-base/session-storage";
 import { useFormik } from "formik";
 import { t } from "i18next";
-import { useCallback, useState } from "react";
+import { useCallback, useState, type ComponentType } from "react";
+
+export interface VerifyMasterPasswordPresentationProps {
+    userEmail: string;
+    password: string;
+    passwordError: string | undefined;
+    isSubmitting: boolean;
+    submitButtonTitle: string;
+    onPasswordChange: React.ChangeEventHandler<
+        HTMLInputElement | HTMLTextAreaElement
+    >;
+    onSubmit: React.SubmitEventHandler<HTMLFormElement>;
+}
 
 export interface VerifyMasterPasswordFormProps {
-    /**
-     * The email of the user whose password we're trying to verify.
-     */
+    decryptBox: SessionStorageCrypto["decryptBox"];
     userEmail: string;
-    /**
-     * The user's SRP attributes.
-     *
-     * The SRP attributes are used to derive the KEK from the user's password.
-     * If they are not present, the {@link keyAttributes} will be used instead.
-     *
-     * At least one of {@link srpAttributes} and {@link keyAttributes} must be
-     * present, otherwise the verification will fail.
-     */
     srpAttributes?: SRPAttributes;
-    /**
-     * The user's key attributes.
-     *
-     * If they are present, they are used to derive the KEK from the user's
-     * password when {@link srpAttributes} are not present. This is the case
-     * when the user has already logged in (or signed up) on this client before,
-     * and is now doing a reauthentication.
-     *
-     * If they are not present, then {@link getKeyAttributes} must be present
-     * and will be used to obtain the user's key attributes. This is the case
-     * when the user is logging into a new client.
-     */
     keyAttributes: KeyAttributes | undefined;
-    /**
-     * A callback invoked when the form wants to get {@link KeyAttributes}.
-     *
-     * It is only provided during the login flow, where we do not have
-     * {@link keyAttributes} already available for the user. In case the form is
-     * used for reauthenticating the user after they've already logged in, then
-     * this function will not be provided.
-     *
-     * @returns The user's key attributes obtained from remote, or
-     * "redirecting-second-factor" if the user has an additional second factor
-     * verification required and the app is redirecting there.
-     *
-     * @throws A Error with message
-     * {@link srpVerificationUnauthorizedErrorMessage} to signal that either
-     * that the password is incorrect, or no account with the provided email
-     * exists.
-     */
     getKeyAttributes?: (
         srpAttributes: SRPAttributes,
         kek: string,
     ) => Promise<KeyAttributes | "redirecting-second-factor" | undefined>;
-    /**
-     * The title of the submit button on the form.
-     */
     submitButtonTitle: string;
-    /**
-     * The callback invoked with the verified password, and all the other
-     * auxillary information that was ascertained when verifying it.
-     *
-     * @param key The user's master key obtained after decrypting it by using
-     * the KEK derived from their password.
-     *
-     * @param kek The key used for encrypting the user's master key.
-     *
-     * @param keyAttributes The user's key attributes (either those that we
-     * started with, or those that we fetched on the way using
-     * {@link getKeyAttributes}).
-     *
-     * @param password The plaintext password. This can be used during login to
-     * derive another encrypted key using interactive mem/ops limits for faster
-     * reauthentication after the initial login.
-     */
     onVerify: (
         key: string,
         kek: string,
         keyAttributes: KeyAttributes,
         password: string,
-    ) => void;
+    ) => void | Promise<void>;
+    presentation?: ComponentType<VerifyMasterPasswordPresentationProps>;
 }
 
-/**
- * A form with a text field that can be used to ask the user to verify their
- * password.
- *
- * We use it both during the initial authentication (the "/credentials" page,
- * shown when logging in, or reopening the web app in a new tab), and when the
- * user is trying to perform a sensitive action when already logged in and
- * having a session (the {@link AuthenticateUser} component).
- */
 export const VerifyMasterPasswordForm: React.FC<
     VerifyMasterPasswordFormProps
 > = ({
+    decryptBox,
     userEmail,
     keyAttributes,
     srpAttributes,
     getKeyAttributes,
     onVerify,
     submitButtonTitle,
+    presentation: Presentation,
 }) => {
     const [showPassword, setShowPassword] = useState(false);
 
@@ -130,7 +75,7 @@ export const VerifyMasterPasswordForm: React.FC<
             try {
                 await verifyPassword(password, setPasswordFieldError);
             } catch (e) {
-                log.error("Failed to to verify password", e);
+                log.error("Failed to verify password", e);
                 setPasswordFieldError(t("generic_error"));
             }
         },
@@ -140,52 +85,41 @@ export const VerifyMasterPasswordForm: React.FC<
         password: string,
         setFieldError: (message: string) => void,
     ) => {
+        const kdfAttributes = srpAttributes ?? keyAttributes;
+        if (!kdfAttributes)
+            throw new Error("Both SRP and key attributes are missing");
+
         let kek: string;
-        if (srpAttributes) {
-            try {
-                kek = await deriveKey(
-                    password,
-                    srpAttributes.kekSalt,
-                    srpAttributes.opsLimit,
-                    srpAttributes.memLimit,
-                );
-            } catch (e) {
-                log.error("Failed to derive kek", e);
-                setFieldError(t("weak_device_hint"));
-                return;
-            }
-        } else if (keyAttributes) {
-            try {
-                kek = await deriveKey(
-                    password,
-                    keyAttributes.kekSalt,
-                    keyAttributes.opsLimit,
-                    keyAttributes.memLimit,
-                );
-            } catch (e) {
-                log.error("Failed to derive kek", e);
-                setFieldError(t("weak_device_hint"));
-                return;
-            }
-        } else throw new Error("Both SRP and key attributes are missing");
+        try {
+            kek = await deriveKey(
+                password,
+                kdfAttributes.kekSalt,
+                kdfAttributes.opsLimit,
+                kdfAttributes.memLimit,
+            );
+        } catch (e) {
+            log.error("Failed to derive kek", e);
+            setFieldError(t("weak_device_hint"));
+            return;
+        }
 
         if (!keyAttributes && getKeyAttributes && srpAttributes) {
             try {
                 const result = await getKeyAttributes(srpAttributes, kek);
                 if (result == "redirecting-second-factor") {
-                    // Two factor enabled, user has been redirected to the
-                    // corresponding second factor verification page.
                     return;
                 } else {
                     keyAttributes = result;
                 }
             } catch (e) {
-                if (
-                    e instanceof Error &&
-                    e.message == srpVerificationUnauthorizedErrorMessage
-                ) {
+                if (isNamedError(e, "incorrect_password")) {
                     log.error("Incorrect password or no account", e);
                     setFieldError(t("incorrect_password_or_no_account"));
+                    return;
+                }
+                if (isNamedError(e, "session_expired")) {
+                    log.info("SRP session expired", e);
+                    setFieldError(t("session_expired_message"));
                     return;
                 }
                 throw e;
@@ -208,8 +142,22 @@ export const VerifyMasterPasswordForm: React.FC<
             return;
         }
 
-        onVerify(key, kek, keyAttributes, password);
+        await onVerify(key, kek, keyAttributes, password);
     };
+
+    if (Presentation) {
+        return (
+            <Presentation
+                userEmail={userEmail}
+                password={formik.values.password}
+                passwordError={formik.errors.password}
+                isSubmitting={formik.isSubmitting}
+                submitButtonTitle={submitButtonTitle}
+                onPasswordChange={formik.handleChange}
+                onSubmit={formik.handleSubmit}
+            />
+        );
+    }
 
     return (
         <form onSubmit={formik.handleSubmit}>

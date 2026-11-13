@@ -5,14 +5,19 @@ description: Organize your documents and information into collections for easy a
 
 # Collections
 
-Collections help you organize your items into groups. Create collections for
-different areas of your life to keep your information structured and easy to
-find.
+Collections help you organize your items into groups. Create collections for different areas of your life to keep your information structured and easy to find.
 
 ## Items can belong to multiple collections
 
-Unlike folders, items in Locker can belong to multiple collections at once. This
-lets you organize the same item in different ways:
+<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+
+![Populated Locker home including Mom's insurance](https://docs-assets.ente.com/screenshots/locker-home-populated.png){width=320px}
+
+![Mom's insurance row highlighted on Locker home](https://docs-assets.ente.com/screenshots/locker-home-moms-insurance-callout.png){width=320px}
+
+</div>
+
+Unlike folders, items in Locker can belong to multiple collections at once. This lets you organize the same item in different ways:
 
 - A passport scan could be in both "Travel Documents" and "Family Documents"
 - Insurance information could be in "Financial" and "Medical"
@@ -22,12 +27,28 @@ lets you organize the same item in different ways:
 
 ### When adding an item
 
+<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+
+![Create collection button highlighted on Ente Locker mobile](https://docs-assets.ente.com/screenshots/locker-collection-create-callout.png){width=320px}
+
+![New collection form with Family docs name on Ente Locker mobile](https://docs-assets.ente.com/screenshots/locker-collection-create.png){width=320px}
+
+</div>
+
 1. While creating or editing an item, tap the collection field
 2. Tap **Create new collection**
 3. Enter a name for the collection
 4. Tap **Create**
 
 ### From the home screen
+
+<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+
+![Collections entry in Locker drawer](https://docs-assets.ente.com/screenshots/locker-collections-nav-callout.png){width=320px}
+
+![Locker home with filter chips and Home Wi-Fi note](https://docs-assets.ente.com/screenshots/locker-home-with-note.png){width=320px}
+
+</div>
 
 1. Open the collections view
 2. Tap **Create collection**
@@ -39,10 +60,12 @@ lets you organize the same item in different ways:
 ### When creating an item
 
 1. While creating the item, tap the collection field
-2. Select one or more collections
+2. Leave all collections unselected to use **Uncategorized**. Or select one or more of your collections
 3. Complete creating the item
 
 ### Adding existing items to a collection
+
+![Family docs collection chip highlighted on Edit item sheet on Ente Locker Android](https://docs-assets.ente.com/screenshots/locker-add-existing-callout.png){width=320px}
 
 1. Long press on the item
 2. Tap the edit button
@@ -50,24 +73,47 @@ lets you organize the same item in different ways:
 4. Select additional collections
 5. Tap **Save**
 
+## Uncategorized collection
+
+**Uncategorized** is where Locker keeps items that are not in one of your collections. Locker creates it for you.
+
+Items are added to Uncategorized when:
+
+- You create or upload an item without selecting a collection
+- You remove an item from its last collection but keep the item
+
+When you edit an item, Uncategorized appears with your other collections. Select it to keep the item there. Deselect it to remove the item.
+
+An item can be in Uncategorized and another collection at the same time. Adding it to another collection does not remove it from Uncategorized.
+
 ## Managing collections
 
 ### Renaming a collection
 
+<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+
+![Edit menu row highlighted for renaming a collection on Ente Locker Android](https://docs-assets.ente.com/screenshots/locker-rename-collection-entry-callout.png){width=320px}
+
+![Save button highlighted on Rename collection sheet on Ente Locker Android](https://docs-assets.ente.com/screenshots/locker-rename-collection-save-callout.png){width=320px}
+
+</div>
+
 1. Open the collection
 2. Tap the menu icon
-3. Select **Rename**
+3. Select **Edit**
 4. Enter the new name
 5. Tap **Save**
 
 ### Deleting a collection
 
+![Delete menu row highlighted on a collection overflow menu on Ente Locker Android](https://docs-assets.ente.com/screenshots/locker-delete-collection-callout.png){width=320px}
+
 1. Open the collection
 2. Tap the menu icon
 3. Select **Delete collection**
 4. Choose whether to:
-   - **Keep items**: Items are removed from the collection but not deleted
-   - **Delete items**: Items are moved to Trash
+    - **Keep items**: Items are removed from the collection but not deleted
+    - **Delete items**: Items are moved to Trash
 
 ## Removing items from a collection
 
@@ -81,9 +127,7 @@ The item remains in any other collections it belongs to.
 
 ## Important collection
 
-Locker includes a special **Important** collection for marking your most
-critical items. Add items here for quick access to your most frequently needed
-information.
+Locker includes a special **Important** collection for marking your most critical items. Add items here for quick access to your most frequently needed information.
 
 To add an item to Important:
 
@@ -91,8 +135,7 @@ To add an item to Important:
 2. Tap the star or favorite icon
 3. The item is added to the Important collection
 
-The Important collection is automatically created when you first mark an item as
-important.
+The Important collection is automatically created when you first mark an item as important.
 
 ## Collection organization tips
 
@@ -107,11 +150,9 @@ Consider creating collections like:
 
 ## Sharing collections
 
-Share entire collections with other Ente users. This is useful for family
-members who need access to the same information.
+Share entire collections with other Ente users. This is useful for family members who need access to the same information.
 
-Learn more about
-[Sharing collections with users](/locker/features/sharing/share-with-users).
+Learn more about [Sharing collections with users](/locker/features/sharing/share-with-users).
 
 ## Related FAQs
 

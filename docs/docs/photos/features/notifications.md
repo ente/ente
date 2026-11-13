@@ -1,10 +1,14 @@
 ---
-title: This Page Has Moved
-description: This content has been reorganized
+title: Notifications
+description: Manage notifications for shared albums and updates in Ente Photos
 search: false
+head:
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
-# This Page Has Moved
+# Notifications
 
 The **Notifications** feature guide has moved to:
 

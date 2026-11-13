@@ -9,7 +9,7 @@ enum CropValue {
   ratio_3_4,
   ratio_4_3;
 
-  getFraction() {
+  Fraction? getFraction() {
     switch (this) {
       case CropValue.original:
         return null;

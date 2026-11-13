@@ -1,19 +1,27 @@
+import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:flutter_map/flutter_map.dart";
-import "package:photos/generated/l10n.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/map/tile/attribution/map_attribution.dart";
-import "package:photos/ui/map/tile/cache.dart";
 import "package:url_launcher/url_launcher.dart";
 import "package:url_launcher/url_launcher_string.dart";
+
+const _tileCacheSizeBytes = 200 * 1024 * 1024;
+
+NetworkTileProvider get _tileProvider => NetworkTileProvider(
+  headers: {'User-Agent': _userAgent},
+  cachingProvider: BuiltInMapCachingProvider.getOrCreateInstance(
+    maxCacheSize: _tileCacheSizeBytes,
+  ),
+);
 
 String get _userAgent {
   try {
     final version = ServiceLocator.instance.packageInfo.version;
-    return "Ente Photos/$version (+https://ente.io; contact: team@ente.io)";
+    return "Ente Photos/$version (+https://ente.com; contact: team@ente.com)";
   } catch (_) {
-    return "Ente Photos/unknown (+https://ente.io; contact: team@ente.io)";
+    return "Ente Photos/unknown (+https://ente.com; contact: team@ente.com)";
   }
 }
 
@@ -36,8 +44,7 @@ class OSMTileLayer extends StatelessWidget {
   Widget build(BuildContext context) {
     return TileLayer(
       urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-      userAgentPackageName: _userAgent,
-      tileProvider: CachedNetworkTileProvider(),
+      tileProvider: _tileProvider,
     );
   }
 }
@@ -51,8 +58,7 @@ class OSMFranceTileLayer extends StatelessWidget {
       urlTemplate: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
       fallbackUrl: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
       subdomains: const ['a', 'b', 'c'],
-      tileProvider: CachedNetworkTileProvider(),
-      userAgentPackageName: _userAgent,
+      tileProvider: _tileProvider,
       panBuffer: 1,
     );
   }
@@ -77,7 +83,7 @@ class OSMTileAttributes extends StatelessWidget {
       iconSize: options.iconSize,
       attributions: [
         TextSourceAttribution(
-          AppLocalizations.of(context).openstreetmapContributors,
+          context.strings.openstreetmapContributors,
           textStyle: textTheme,
           onTap: () => launchUrlString('https://openstreetmap.org/copyright'),
         ),
@@ -110,7 +116,7 @@ class OSMFranceTileAttributes extends StatelessWidget {
       iconSize: options.iconSize,
       attributions: [
         TextSourceAttribution(
-          AppLocalizations.of(context).openstreetmapContributors,
+          context.strings.openstreetmapContributors,
           textStyle: textTheme,
           onTap: () => launchUrlString('https://openstreetmap.org/copyright'),
         ),
@@ -120,7 +126,7 @@ class OSMFranceTileAttributes extends StatelessWidget {
           onTap: () => launchUrl(Uri.parse('https://www.hotosm.org/')),
         ),
         TextSourceAttribution(
-          AppLocalizations.of(context).hostedAtOsmFrance,
+          context.strings.hostedAtOsmFrance,
           textStyle: textTheme,
           onTap: () => launchUrl(Uri.parse('https://www.openstreetmap.fr/')),
         ),
@@ -139,8 +145,7 @@ class MapBoxTilesLayer extends StatelessWidget {
           "https://api.mapbox.com/styles/v1/{mb_user}/{mb_style_id}/tiles/{z}/{x}/{y}?access_token={mb_token}",
       fallbackUrl: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
       subdomains: const ['a', 'b', 'c'],
-      userAgentPackageName: _userAgent,
-      tileProvider: CachedNetworkTileProvider(),
+      tileProvider: _tileProvider,
       additionalOptions: const {
         "mb_token": String.fromEnvironment("mb_token"),
         "mb_style_id": String.fromEnvironment("mb_style_id"),

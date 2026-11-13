@@ -6,14 +6,6 @@ import { watchStore } from "../stores/watch";
 import { posixPath } from "../utils/electron";
 import { fsIsDir } from "./fs";
 
-/**
- * Create and return a new file system watcher.
- *
- * Internally this uses the watcher from the chokidar package.
- *
- * @param mainWindow The window handle is used to notify the renderer process of
- * pertinent file system events.
- */
 export const createWatcher = (mainWindow: BrowserWindow) => {
     const send = (eventName: string) => (path: string) =>
         mainWindow.webContents.send(eventName, ...eventData(path));
@@ -21,24 +13,11 @@ export const createWatcher = (mainWindow: BrowserWindow) => {
     const folderPaths = folderWatches().map((watch) => watch.folderPath);
 
     const watcher = chokidar.watch(folderPaths, {
-        // Don't emit "add" events for matching paths when instantiating the
-        // watch (we do a full disk scan on launch on our own, and also getting
-        // the same events from the watcher causes duplicates).
+        // Initial events duplicate the full scan performed at launch.
         ignoreInitial: true,
-        // Ask the watcher to wait for a the file size to stabilize before
-        // telling us about a new file. By default, it waits for 2 seconds.
         awaitWriteFinish: true,
-        // On macOS we start getting "EMFILE: too many open files" when watching
-        // large folders. This is a known regression in Chokidar v4:
+        // Chokidar v4 exhausts file descriptors on macOS without polling.
         // https://github.com/paulmillr/chokidar/issues/1385
-        //
-        // The recommended workaround for now is to enable usePolling. Since it
-        // comes at a performance cost, we only do it where needed (macOS).
-        //
-        // Polling with the default interval (100ms) causes high CPU usage for
-        // large folders (e.g. 10,000+ files). Increasing the interval to 5
-        // seconds significantly reduces CPU while still detecting new files
-        // within a reasonable time for a backup use case.
         ...(process.platform == "darwin"
             ? { usePolling: true, interval: 5000, binaryInterval: 5000 }
             : {}),
@@ -73,14 +52,11 @@ export const watchGet = async (watcher: FSWatcher): Promise<FolderWatch[]> => {
         const isAccessible = await fsIsDir(watch.folderPath);
         result.push({ ...watch, isAccessible });
 
-        // Update the file system watcher based on accessibility.
         if (isAccessible) {
-            // Add to watcher if not already being watched.
             if (!watched[watch.folderPath]) {
                 watcher.add(watch.folderPath);
             }
         } else {
-            // Stop watching inaccessible folders.
             watcher.unwatch(watch.folderPath);
         }
     }
@@ -121,8 +97,6 @@ export const watchAdd = async (
 
     watcher.add(folderPath);
 
-    // Return watches with isAccessible set. The newly added folder is
-    // accessible (we just verified it exists), and we check the others.
     return await Promise.all(
         watches.map(async (watch) => ({
             ...watch,
@@ -140,7 +114,6 @@ export const watchRemove = async (watcher: FSWatcher, folderPath: string) => {
         );
     setFolderWatches(filtered);
     watcher.unwatch(folderPath);
-    // Return watches with isAccessible set.
     return await Promise.all(
         filtered.map(async (watch) => ({
             ...watch,
@@ -177,15 +150,6 @@ export const watchUpdateIgnoredFiles = (
     );
 };
 
-/**
- * Stop watching all existing folder watches and remove any callbacks.
- *
- * This function is meant to be called when the user logs out. It stops
- * all existing folder watches and forgets about any "on*" callback
- * functions that have been registered.
- *
- * The persisted state itself gets cleared via {@link clearStores}.
- */
 export const watchReset = (watcher: FSWatcher) => {
     watcher.unwatch(folderWatches().map((watch) => watch.folderPath));
 };

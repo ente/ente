@@ -1,14 +1,14 @@
 import "dart:typed_data";
 
+import "package:ente_ui/components/loading_widget.dart";
 import 'package:flutter/widgets.dart';
 import "package:logging/logging.dart";
 import "package:photos/db/ml/db.dart";
 import "package:photos/db/offline_files_db.dart";
 import 'package:photos/models/file/file.dart';
-import "package:photos/models/ml/face/face.dart";
-import "package:photos/service_locator.dart" show isOfflineMode;
+import "package:photos/models/ml/face/face_with_embedding.dart";
+import "package:photos/service_locator.dart" show isLocalGalleryMode;
 import "package:photos/theme/ente_theme.dart";
-import "package:photos/ui/common/loading_widget.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 import "package:photos/utils/face/face_thumbnail_cache.dart";
 
@@ -17,22 +17,14 @@ final _logger = Logger("FaceWidget");
 class FileFaceWidget extends StatefulWidget {
   final EnteFile file;
 
-  // Data to find the right face, in order of preference
   final Uint8List? faceCrop;
-  final Face? face;
+  final FaceWithoutEmbedding? face;
   final String? clusterID;
 
   final bool useFullFile;
   final bool thumbnailFallback;
 
-  /// Physical pixel width for image decoding optimization.
-  ///
-  /// When provided and > 0, the image will be decoded at this width, with height
-  /// computed to preserve aspect ratio. This reduces memory usage for small displays.
-  ///
-  /// Typically calculated as: `(logicalWidth * MediaQuery.devicePixelRatioOf(context)).toInt()`
-  ///
-  /// If null or <= 0, the image is decoded at full resolution.
+  // Physical pixels; null or non-positive decodes at full resolution.
   final int? cachedPixelWidth;
 
   const FileFaceWidget(
@@ -79,9 +71,8 @@ class _FileFaceWidgetState extends State<FileFaceWidget> {
       future: faceCropFuture,
       builder: (context, snapshot) {
         if (snapshot.hasData) {
-          // Only cacheWidth (not cacheHeight) to preserve aspect ratio.
-          // Face crops are typically portrait, so constraining width ensures
-          // sufficient height for BoxFit.cover without upscaling.
+          // Decode by width only so portrait crops retain enough height for
+          // BoxFit.cover without upscaling.
           final shouldOptimize =
               widget.cachedPixelWidth != null && widget.cachedPixelWidth! > 0;
           final ImageProvider imageProvider = shouldOptimize
@@ -92,12 +83,7 @@ class _FileFaceWidgetState extends State<FileFaceWidget> {
               : MemoryImage(snapshot.data!);
           return Stack(
             fit: StackFit.expand,
-            children: [
-              Image(
-                image: imageProvider,
-                fit: BoxFit.cover,
-              ),
-            ],
+            children: [Image(image: imageProvider, fit: BoxFit.cover)],
           );
         } else {
           if (snapshot.hasError) {
@@ -109,9 +95,7 @@ class _FileFaceWidgetState extends State<FileFaceWidget> {
           }
           return widget.thumbnailFallback
               ? ThumbnailWidget(widget.file)
-              : EnteLoadingWidget(
-                  color: getEnteColorScheme(context).fillMuted,
-                );
+              : EnteLoadingWidget(color: getEnteColorScheme(context).fillMuted);
         }
       },
     );
@@ -122,17 +106,19 @@ class _FileFaceWidgetState extends State<FileFaceWidget> {
       return widget.faceCrop;
     }
     try {
-      final mlDataDB =
-          isOfflineMode ? MLDataDB.offlineInstance : MLDataDB.instance;
+      final mlDataDB = isLocalGalleryMode
+          ? MLDataDB.localGalleryInstance
+          : MLDataDB.instance;
       int? recentFileID;
-      if (isOfflineMode) {
+      if (isLocalGalleryMode) {
         final localId = widget.file.localID;
         if (localId == null || localId.isEmpty) {
           _logger.severe("Missing local ID for face crop generation");
           return null;
         }
-        recentFileID =
-            await OfflineFilesDB.instance.getOrCreateLocalIntId(localId);
+        recentFileID = await OfflineFilesDB.instance.getOrCreateLocalIntId(
+          localId,
+        );
       } else {
         recentFileID = widget.file.uploadedFileID;
       }
@@ -140,7 +126,8 @@ class _FileFaceWidgetState extends State<FileFaceWidget> {
         _logger.severe("Missing file ID for face crop generation");
         return null;
       }
-      final Face? faceToUse = widget.face ??
+      final FaceWithoutEmbedding? faceToUse =
+          widget.face ??
           await mlDataDB.getCoverFaceForPerson(
             recentFileID: recentFileID,
             clusterID: widget.clusterID,

@@ -1,49 +1,15 @@
-/**
- * The type of an {@link EnteFile}.
- *
- * This is an object containing symbolic constant. There is also an eraseable
- * TypeScript type type with the same name, {@link FileType}.
- */
-export const FileType = {
-    /**
-     * An image (e.g. JPEG).
-     */
-    image: 0,
-    /**
-     * A video (e.g. MP4).
-     */
-    video: 1,
-    /**
-     * A live photo, aka motion photo.
-     *
-     * This is a combination of an image and a (short) video capturing the
-     * before and after when the image was taken. We preserve it as a zip
-     * containing both the parts.
-     */
-    livePhoto: 2,
-} as const;
+export const FileType = { image: 0, video: 1, livePhoto: 2 } as const;
 
-/**
- * The type of an {@link EnteFile}.
- *
- * This is an eraseable TypeScript type. There is also a {@link FileType} object
- * with the same name that contains the corresponding symbolic constants.
- */
 export type FileType = (typeof FileType)[keyof typeof FileType];
 
 export interface FileTypeInfo {
     fileType: FileType;
-    /**
-     * A lowercased, standardized extension for files of the current type.
-     *
-     * For live photos, this is set to the extension of the image component of
-     * the live photo.
-     */
     extension: string;
     mimeType?: string;
 }
 
-// list of format that were missed by type-detection for some files.
+// These are formats that automatic file type detection misses for some files
+// found in the wild.
 export const KnownFileTypeInfos: FileTypeInfo[] = [
     { fileType: FileType.image, extension: "jpeg", mimeType: "image/jpeg" },
     { fileType: FileType.image, extension: "jpg", mimeType: "image/jpeg" },
@@ -68,6 +34,21 @@ export const KnownFileTypeInfos: FileTypeInfo[] = [
         fileType: FileType.image,
         extension: "crw",
         mimeType: "image/x-canon-crw",
+    },
+    {
+        fileType: FileType.image,
+        extension: "nrw",
+        mimeType: "image/x-nikon-nrw",
+    },
+    {
+        fileType: FileType.image,
+        extension: "pef",
+        mimeType: "image/x-pentax-pef",
+    },
+    {
+        fileType: FileType.image,
+        extension: "srw",
+        mimeType: "image/x-samsung-srw",
     },
     { fileType: FileType.video, extension: "mov", mimeType: "video/quicktime" },
 ];

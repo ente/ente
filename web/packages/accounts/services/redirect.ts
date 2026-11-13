@@ -1,25 +1,24 @@
 import { appName } from "ente-base/app";
 
-/**
- * The default page ("home route") for each of our apps.
- *
- * This is where we redirect to after successful authentication.
- */
+// The page to redirect to after successful authentication. The cast, embed and
+// share apps do not use this; their "/" entries are arbitrary values.
 export const appHomeRoute: string = {
     accounts: "/passkeys",
+    albums: "/",
     auth: "/auth",
-    cast: "/" /* The cast app doesn't use this, this is an arbitrary value. */,
-    embed: "/" /* The embed app doesn't use this either. */,
-    share: "/" /* The locker public app also doesn't use this. */,
+    cast: "/",
+    embed: "/",
+    share: "/",
     photos: "/gallery",
+    photobook: "/app",
     ensu: "/",
+    locker: "/locker",
+    legacy: "/",
+    space: "/app",
 }[appName];
 
 let _stashedRedirect: string | undefined;
 
-/**
- * An in-memory redirect saved during the login flow (mostly).
- */
 export const stashedRedirect = () => _stashedRedirect;
 
 export const stashRedirect = (r: string) => (_stashedRedirect = r);

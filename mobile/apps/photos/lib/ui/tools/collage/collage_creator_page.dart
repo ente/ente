@@ -1,11 +1,13 @@
 import "package:ente_pure_utils/ente_pure_utils.dart";
+import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:flutter_image_compress/flutter_image_compress.dart";
 import "package:logging/logging.dart";
 import "package:photo_manager/photo_manager.dart";
-import "package:photos/generated/l10n.dart";
 import 'package:photos/models/file/file.dart';
+import "package:photos/module/metadata/local_file.dart";
 import "package:photos/services/sync/sync_service.dart";
+import "package:photos/ui/common/photo_library_add_permission.dart";
 import "package:photos/ui/notification/toast.dart";
 import "package:photos/ui/tools/collage/collage_app_bar.dart";
 import "package:photos/ui/tools/collage/collage_test_grid.dart";
@@ -46,9 +48,11 @@ class _CollageCreatorPageState extends State<CollageCreatorPage> {
 
   Future<void> _saveCollage() async {
     if (_controller == null || _isSaving) return;
+    if (!await ensurePhotoLibraryAddPermission(context)) return;
 
     _clearSwapSelection?.call();
     await Future<void>.delayed(const Duration(milliseconds: 16));
+    if (!mounted) return;
 
     setState(() {
       _isSaving = true;
@@ -62,37 +66,35 @@ class _CollageCreatorPageState extends State<CollageCreatorPage> {
         quality: 80,
       );
       _logger.info('Size after compression = ${compressedBytes.length}');
-      final fileName = "ente_collage_" +
+      final fileName =
+          "ente_collage_" +
           DateTime.now().microsecondsSinceEpoch.toString() +
           ".jpeg";
       final newAsset = await (PhotoManager.editor
           .saveImage(
-        compressedBytes,
-        filename: fileName,
-        relativePath: "ente Collages",
-      )
+            compressedBytes,
+            filename: fileName,
+            relativePath: "ente Collages",
+          )
           .onError((err, st) async {
-        return await (PhotoManager.editor.saveImage(
-          compressedBytes,
-          filename: fileName,
-        ));
-      }));
-      final newFile = await EnteFile.fromAsset("ente Collages", newAsset);
+            return await (PhotoManager.editor.saveImage(
+              compressedBytes,
+              filename: fileName,
+            ));
+          }));
+      final newFile = fileFromAsset("ente Collages", newAsset);
       SyncService.instance.sync().ignore();
-      showShortToast(context, AppLocalizations.of(context).collageSaved);
+      if (!mounted) return;
+      showShortToast(context, context.strings.collageSaved);
       replacePage(
         context,
-        DetailPage(
-          DetailPageConfiguration([newFile], 0, "collage"),
-        ),
+        DetailPage(DetailPageConfiguration([newFile], 0, "collage")),
         result: true,
       );
     } catch (e, s) {
-      _logger.severe(e, s);
-      showShortToast(
-        context,
-        AppLocalizations.of(context).somethingWentWrong,
-      );
+      _logger.severe("Failed to create collage", e, s);
+      if (!mounted) return;
+      showShortToast(context, context.strings.somethingWentWrong);
     } finally {
       if (mounted) {
         setState(() {

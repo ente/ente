@@ -1,3 +1,5 @@
+apply from: "../../../gradle/ente-android.gradle"
+
 allprojects {
     repositories {
         google()

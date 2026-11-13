@@ -1,0 +1,12 @@
+[package]
+name = "ente-photos-wasm"
+edition.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ente-wasm-lib = { workspace = true, features = ["account-deletion", "cast", "collections", "contacts", "crypto", "location", "photos"] }
+
+[lints]
+workspace = true

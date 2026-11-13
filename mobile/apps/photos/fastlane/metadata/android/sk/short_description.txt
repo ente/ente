@@ -1,1 +1,0 @@
-ente je aplikácia na ukladanie fotografií s end-to-end šifrovaním

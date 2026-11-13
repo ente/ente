@@ -8,18 +8,9 @@ import { t } from "i18next";
 import React from "react";
 
 interface CodeBlockProps {
-    /**
-     * The code (an arbitrary string) to show.
-     *
-     * If not present, then an activity indicator will be shown.
-     */
     code: string | undefined;
 }
 
-/**
- * A component that shows a "code" (e.g. the user's recovery key, or a 2FA setup
- * code), alongwith a button to copy it.
- */
 export const CodeBlock: React.FC<CodeBlockProps> = ({ code }) => {
     if (!code) {
         return (
@@ -42,7 +33,6 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({ code }) => {
                     padding: "16px 44px 16px 16px",
                     wordBreak: "break-word",
                     color: "accent.contrastText",
-                    // Increase the line height from the body default.
                     lineHeight: 1.5,
                 }}
             >
@@ -56,9 +46,6 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({ code }) => {
 };
 
 interface CopyButtonProps {
-    /**
-     * The code to copy when the button is clicked.
-     */
     code: string;
 }
 

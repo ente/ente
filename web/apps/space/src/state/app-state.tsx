@@ -1,0 +1,141 @@
+import type { FriendProfile } from "data/friends";
+import React, { createContext, useContext } from "react";
+import type { SpaceLoginCredentials } from "screens/LoginScreen";
+import type {
+    SetupProfile,
+    SetupProfileDetails,
+} from "screens/SetupProfileScreen";
+import type { PendingSpacePasskeyVerification } from "services/passkey-verification";
+import type { SpacePost } from "services/space";
+import type { SpaceDraftPostImage } from "utils/post-image";
+import type { CreateProfileSource } from "utils/routes";
+
+export type OnboardingEntrySource = "direct" | "add-friend-link";
+export type SpaceProfileLoadStatus = "error" | "loading" | "ready";
+type SpacePostPublishPhase = "failed" | "posted" | "posting";
+export interface SpacePostPublication {
+    phase: SpacePostPublishPhase;
+    post: SpacePost;
+    previewUrl: string;
+    statusExpiresAtMs?: number;
+}
+export type PendingCreateProfile = SetupProfileDetails & {
+    source: CreateProfileSource;
+};
+
+export interface RefreshSpaceProfileOptions {
+    throwOnError?: boolean;
+}
+
+interface PendingSpaceFeedPost {
+    avatarUrl?: string | null;
+    caption?: string;
+    frameAspectRatio: number;
+    friendID: string;
+    height?: number;
+    id: string;
+    imageUrl: string;
+    name: string;
+    spaceId: string;
+    photoCount: number;
+    postId?: number;
+    processing?: string;
+    status: "pending";
+    timestampMs: number;
+    width?: number;
+}
+
+type FailedSpaceFeedPost = Omit<PendingSpaceFeedPost, "status"> & {
+    status: "failed";
+};
+
+interface PostedSpaceFeedPost {
+    id: string;
+    post: SpacePost;
+    status: "posted";
+}
+
+interface ReadySpaceFeedPost {
+    id: string;
+    post: SpacePost;
+    status: "ready";
+}
+
+export type LocalSpaceFeedPost =
+    | FailedSpaceFeedPost
+    | PendingSpaceFeedPost
+    | PostedSpaceFeedPost
+    | ReadySpaceFeedPost;
+
+export interface SpaceAppState {
+    cachedProfileAvatarUrl?: string;
+    friends: FriendProfile[];
+    localFeedPosts: LocalSpaceFeedPost[];
+    setLocalFeedPosts: React.Dispatch<
+        React.SetStateAction<LocalSpaceFeedPost[]>
+    >;
+    isLiveSignupVerification: boolean;
+    onboardingEntrySource: OnboardingEntrySource;
+    pendingLoginCredentials: SpaceLoginCredentials | null;
+    pendingPasskeyVerification: PendingSpacePasskeyVerification | null;
+    pendingPostPhotoFiles: File[] | null;
+    pendingProfileAvatarFile: File | null;
+    pendingProfileCoverFile: File | null;
+    pendingCreateProfile: PendingCreateProfile | null;
+    profile: SetupProfile | null;
+    profileLoadError?: string;
+    profileLoadStatus: SpaceProfileLoadStatus;
+    postPublication: SpacePostPublication | null;
+    signupEmail: string;
+    setPostPublication: React.Dispatch<
+        React.SetStateAction<SpacePostPublication | null>
+    >;
+    publishPost: (
+        images: SpaceDraftPostImage[],
+        caption: string,
+    ) => Promise<SpacePost>;
+    retryPost: (localPostId: string) => Promise<void>;
+    refreshProfile: (
+        options?: RefreshSpaceProfileOptions,
+    ) => Promise<SetupProfile | null>;
+    resetAfterLogout: () => void;
+    setFriends: React.Dispatch<React.SetStateAction<FriendProfile[]>>;
+    setIsLiveSignupVerification: React.Dispatch<React.SetStateAction<boolean>>;
+    setOnboardingEntrySource: React.Dispatch<
+        React.SetStateAction<OnboardingEntrySource>
+    >;
+    setPendingLoginCredentials: React.Dispatch<
+        React.SetStateAction<SpaceLoginCredentials | null>
+    >;
+    setPendingPasskeyVerification: React.Dispatch<
+        React.SetStateAction<PendingSpacePasskeyVerification | null>
+    >;
+    setPendingPostPhotoFiles: React.Dispatch<
+        React.SetStateAction<File[] | null>
+    >;
+    setPendingProfileAvatarFile: React.Dispatch<
+        React.SetStateAction<File | null>
+    >;
+    setPendingProfileCoverFile: React.Dispatch<
+        React.SetStateAction<File | null>
+    >;
+    setPendingCreateProfile: React.Dispatch<
+        React.SetStateAction<PendingCreateProfile | null>
+    >;
+    setProfile: React.Dispatch<React.SetStateAction<SetupProfile | null>>;
+    setSignupEmail: React.Dispatch<React.SetStateAction<string>>;
+}
+
+export const initialFriends = (): FriendProfile[] => [];
+
+export const SpaceAppStateContext = createContext<SpaceAppState | null>(null);
+
+export const useSpaceAppState = () => {
+    const context = useContext(SpaceAppStateContext);
+    if (!context) {
+        throw new Error(
+            "useSpaceAppState must be used within SpaceAppStateProvider",
+        );
+    }
+    return context;
+};

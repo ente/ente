@@ -5,7 +5,7 @@ class MapGalleryTileBadge extends StatelessWidget {
   final int size;
   const MapGalleryTileBadge({super.key, required this.size});
 
-  String formatNumber(int number) {
+  static String formatNumber(int number) {
     if (number <= 99) {
       return number.toString();
     } else if (number <= 999) {
@@ -26,13 +26,9 @@ class MapGalleryTileBadge extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(4),
         decoration: const BoxDecoration(
-          borderRadius: BorderRadius.all(
-            Radius.circular(2),
-          ),
+          borderRadius: BorderRadius.all(Radius.circular(2)),
           shape: BoxShape.rectangle,
-          // color: Color.fromRGBO(30, 215, 96, 1),
           color: Colors.green,
-          // color: Colors.redAccent,
         ),
         child: Text(
           formatNumber(size),

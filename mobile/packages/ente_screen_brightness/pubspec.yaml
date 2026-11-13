@@ -1,0 +1,20 @@
+name: ente_screen_brightness
+description: Application-level screen dimming for Ente Flutter apps
+
+resolution: workspace
+environment:
+  sdk: ">=3.10.0 <4.0.0"
+  flutter: ">=3.38.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_lints: 6.0.0
+
+flutter:
+  plugin:
+    platforms:
+      ios:
+        pluginClass: EnteScreenBrightnessPlugin

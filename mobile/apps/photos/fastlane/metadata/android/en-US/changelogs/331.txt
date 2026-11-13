@@ -1,5 +1,0 @@
-Major release with fresh new pixels! ✨
-
-- Redesigned app look with support for light and dark modes
-- Performance improvements to speed up bulk file deletes
-- New swipe gestures to quickly switch top level tabs and navigate between screens

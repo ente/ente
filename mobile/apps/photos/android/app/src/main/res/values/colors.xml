@@ -4,6 +4,6 @@
 	<color name="ic_launcher_background">#08C225</color>
 	<color name="ic_launcher_background_light">#ffffff</color>
 	<color name="ic_launcher_background_dark">#000000</color>
-    <color name="widget_placeholder_bg">#FFFFFF</color> <!-- Default (Light Mode) -->
+    <color name="widget_placeholder_bg">#FFFFFF</color>
     <color name="widget_text_color">#222222</color>
 </resources>

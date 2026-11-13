@@ -1,6 +1,9 @@
 package api
 
 import (
+	"encoding/json"
+	"fmt"
+
 	"github.com/google/uuid"
 )
 
@@ -18,10 +21,8 @@ type CreateSRPSessionResponse struct {
 	SRPB      string    `json:"srpB" binding:"required"`
 }
 
-// KeyAttributes stores the key related attributes for a user
 type KeyAttributes struct {
 	KEKSalt                  string `json:"kekSalt" binding:"required"`
-	KEKHash                  string `json:"kekHash"`
 	EncryptedKey             string `json:"encryptedKey" binding:"required"`
 	KeyDecryptionNonce       string `json:"keyDecryptionNonce" binding:"required"`
 	PublicKey                string `json:"publicKey" binding:"required"`
@@ -39,9 +40,21 @@ type AuthorizationResponse struct {
 	Token              string         `json:"token,omitempty"`
 	TwoFactorSessionID string         `json:"twoFactorSessionID"`
 	PassKeySessionID   string         `json:"passkeySessionID"`
-	// SrpM2 is sent only if the user is logging via SRP
-	// SrpM2 is the SRP M2 value aka the proof that the server has the verifier
+	// SrpM2 proves that the server has the SRP verifier.
 	SrpM2 *string `json:"srpM2,omitempty"`
+}
+
+func (a *AuthorizationResponse) UnmarshalJSON(data []byte) error {
+	type authorizationResponse AuthorizationResponse
+	var decoded authorizationResponse
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+	if decoded.PassKeySessionID != "" && decoded.AccountsUrl == "" {
+		return fmt.Errorf("accountsUrl is required when passkeySessionID is present")
+	}
+	*a = AuthorizationResponse(decoded)
+	return nil
 }
 
 func (a *AuthorizationResponse) IsMFARequired() bool {

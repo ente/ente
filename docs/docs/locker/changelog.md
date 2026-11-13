@@ -1,0 +1,73 @@
+---
+title: Ente Locker - Changelog
+description: Release notes of recent updates to Ente Locker
+---
+
+# Changelog - Ente Locker
+
+A short summary list of changes to Ente Locker.
+
+## v1.0.12 (mobile) - Nov 2026
+
+- Fixed deleted collections remaining selected.
+- Kept items in your own collections when removing them from Important.
+- Fixed an app launch failure on iOS 27.
+- Improved spacing between onboarding and recovery-key actions.
+- Removed the unused microphone permission on Android.
+- Limited restore selection to one collection.
+- Fixed duplicate files in search results.
+- Improved search responsiveness.
+- Moved the session token to secure storage.
+- Added a 30-day deletion notice to Trash. (@fosszil)
+- Updated the empty home screen to show save options regardless of Legacy kit setup.
+
+## v1.0.11 (mobile) - Oct 2026
+
+- Open images right in Locker. Pinch or double-tap to zoom.
+- A fresh look for adding files to Locker.
+- Added Korean language support.
+- Improved document scanner opening and closing on Android and iOS.
+- Preserved spaces in Notes, Things and Secrets when saving, editing, viewing and copying.
+- Fixed emoji being cut off in automatically generated Note titles.
+- Fixed app locks remaining enabled after logout.
+- Fixed Important collection selection and icons for JPEG files.
+- Improved collection file counts, menus and loading dialogs.
+
+## v1.0.10 (mobile) - Oct 2026
+
+- Improved document scanning. Retake individual pages before saving.
+- Rename documents before uploading. Thanks @fosszil!
+- Leave optional details blank in Notes, Things and Secrets.
+- Android: share multiple files into Locker. See when files are skipped.
+- Reopen What’s new from the version number in Settings or from About.
+- Find links to Ente Photos and Ente Auth in Settings.
+- Fixed scanner crashes on iPhone 17.
+
+## v1.0.9 (mobile) - Sep 2026
+
+- Scan paper documents with Locker.
+- Show last cached count of items stored when offline instead of a spinner. (@r4khul)
+- Upgrade to flutter 3.47.2
+
+## v1.0.8 (mobile) - Aug 2026
+
+- Bug fixes and improvements
+- Update the account deletion flow with clearer deletion impact details and confirmation.
+- Allow uploading to uncategorized collection
+- Added a Legacy setup prompt to Locker.
+- Updated Locker bottom sheets to use the new component styling.
+
+## v1.0.6 (mobile) - Jun 2026
+
+- Bug fixes and improvements
+
+## v1.0.5 (mobile) - May 2026
+
+- Legacy Kit for account recovery
+- Bug fixes and improvements
+
+## v1.0.3 (mobile) - May 2026
+
+- Share collections as a link
+- Keep items locally for offline use
+- Bug fixes and improvements

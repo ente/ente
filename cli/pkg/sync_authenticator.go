@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"github.com/ente-io/cli/internal/api/models"
-	"github.com/ente-io/cli/pkg/mapper"
-	"github.com/ente-io/cli/pkg/model"
+	"github.com/ente/cli/internal/api/models"
+	"github.com/ente/cli/pkg/mapper"
+	"github.com/ente/cli/pkg/model"
 	"log"
 	"os"
 	"time"
@@ -37,15 +37,13 @@ func (c *ClICtrl) writeAuthExport(ctx context.Context, account model.Account, da
 		return fmt.Errorf("export directory not set")
 	}
 	outputFile := fmt.Sprintf("%s/ente_auth.txt", exportDir)
-	// if outout file exists, create a backup with current datetime
 	if _, err := os.Stat(outputFile); err == nil {
 		backupFile := fmt.Sprintf("%s/ente_auth_%s.txt", exportDir, time.Now().Format("2006-01-02_15-04-05"))
 		if err := os.Rename(outputFile, backupFile); err != nil {
 			return fmt.Errorf("error creating backup file: %v", err)
 		}
 	}
-	// write the data to the output file, one line per entity
-	file, err := os.Create(outputFile)
+	file, err := os.OpenFile(outputFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return fmt.Errorf("error creating output file: %v", err)
 	}

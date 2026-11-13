@@ -1,0 +1,87 @@
+---
+title: Ensu
+description: >
+    Ensu is Ente's private, on-device AI chat app that runs locally with no cloud dependency for inference
+---
+
+# Ensu
+
+Ensu is Ente's local-first AI chat app. It runs a large language model (LLM) directly on your device, so your conversations stay completely private. There are no accounts required, no tracking, no usage limits, and no cost.
+
+Think of it as a ChatGPT-like experience, except nothing ever leaves your device. It works offline, and it is free and open source.
+
+For the full backstory on why we built Ensu and where it is headed, read the launch post: [Ensu - Ente's Local LLM app](https://ente.com/blog/ensu/).
+
+## What Ensu is for
+
+People use Ensu when they want an AI they can think alongside without sending their thoughts anywhere:
+
+- **Private reflection and journaling**, with a model that has nowhere to phone home.
+- **Offline use** on flights, in remote areas, or anywhere without connectivity.
+- **Discussing books and ideas.** Even the smaller default model knows classics like the Gita and the Bible quite well.
+- **Quick everyday questions** where the answer does not need a web search and you would rather not paste your context into someone else's logs.
+
+It is not a replacement for the largest cloud models. The model that runs on your phone is much smaller than the ones that power ChatGPT or Claude, so very long, highly technical, or multi-step reasoning tasks can be harder for it. The trade-off is privacy by design instead of by policy.
+
+## How it works in one paragraph
+
+When you first launch Ensu, it downloads a small language model and runs it locally from then on. Inference happens on your device (on the GPU where supported; on Windows it currently runs on the CPU), in the same app, with no calls to Ente or anyone else. Your conversations, voice input, and image attachments are processed on-device. Learn more in [How it works](/ensu/how-it-works).
+
+## Install
+
+Download Ensu from [ente.com/ensu](https://ente.com/ensu) or pick a platform below.
+
+| Platform                | Where to get it                                                                                                                             |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| iOS                     | [App Store](https://apps.apple.com/app/ensu-entes-local-llm/id6758197006)                                                                   |
+| Android                 | [Google Play](https://play.google.com/store/apps/details?id=io.ente.ensu) / [GitHub releases](https://github.com/ente/ente/releases?q=ensu) |
+| macOS / Windows / Linux | [GitHub releases](https://github.com/ente/ente/releases?q=ensu)                                                                             |
+| Web                     | [ensu.ente.com](https://ensu.ente.com) (experimental)                                                                                       |
+
+On Android, you can also [add Ensu to Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22io.ente.ensu%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fente%2Fente%22%2C%22author%22%3A%22ente%22%2C%22name%22%3A%22Ensu%22%2C%22preferredApkIndex%22%3A0%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Afalse%2C%5C%22fallbackToOlderReleases%5C%22%3Atrue%2C%5C%22filterReleaseTitlesByRegEx%5C%22%3A%5C%22%5Eensu%5C%22%2C%5C%22dontSortReleasesList%5C%22%3Atrue%2C%5C%22apkFilterRegEx%5C%22%3A%5C%22%5Eensu-.%2A%5C%5C%5C%5C.apk%24%5C%22%2C%5C%22autoApkFilterByArch%5C%22%3Atrue%7D%22%7D) to get updates directly from our GitHub releases.
+
+If you install the Android APK directly from GitHub releases, verify it against the published signing certificate. Learn more in [Verify the Ensu Android APK](/ensu/faq/android-apk-signature).
+
+The desktop apps auto-update on macOS, Linux, and Windows, so once installed you do not need to keep visiting the releases page.
+
+## Send your first message
+
+![Populated Ensu web chat after sending a first message, with user bubble, streamed assistant reply, and composer](https://docs-assets.ente.com/screenshots/ensu-web-first-message.png){width=720px}
+
+1. Open Ensu and download the chat model if prompted.
+2. On iOS, Android, and desktop, Ensu then offers to set up **Ensu Packs** and **Your Notes**. Choose **Set up** to add a knowledge pack or a local Markdown notes folder, or **Not now** to go straight to chat. You can set up either later from **Settings**.
+3. Type into the chat composer at the bottom of the screen and send. The model loads (a few seconds the first time, faster on later messages) and starts streaming a response.
+
+No sign-in is required, and setting up packs or notes is optional. Each app keeps a sidebar of your previous chat sessions on the left, grouped by recency. Start a new chat at any time from the sidebar.
+
+You can attach images and, on iOS and Android, dictate your message instead of typing. Learn more in [Features](/ensu/features/).
+
+## What to try
+
+If you are new to local LLMs, a few prompts that usually go well even on the smaller default model:
+
+- "Summarize this paragraph in one sentence." (paste a paragraph)
+- "I'm thinking about [something]. Help me work through it." (private reflection)
+- "Translate the following into [language]: …"
+- "Explain [a concept you half-remember] like I'm in a hurry."
+- A photo of a sign in another language, with "What does this say?"
+
+If the model gets confused on a long technical task or struggles with a multi-step math problem, that is the model's limit, not a bug. Local models are getting better quickly. Learn more about the gap in the [FAQ](/ensu/faq/#comparison-with-chatgpt).
+
+## Current status
+
+Ensu is currently an **Ente Labs** project. We are actively iterating on the product and its direction, and we have not committed to a fixed price or stability guarantee just yet. It is already useful for many things, and it is free for now, with no limits.
+
+For recent updates, see the [Changelog](/ensu/changelog).
+
+## Read next
+
+- [How it works](/ensu/how-it-works): on-device inference, what is stored where, and how Ensu stays private without a server.
+- [Features](/ensu/features/): an overview of what Ensu can do on each platform.
+- [FAQ](/ensu/faq/): common questions about privacy, models, sync, and troubleshooting.
+
+## Getting help
+
+- **Discord**: join the `#ensu` channel on [Discord](https://ente.com/discord).
+- **Email**: write to [team@ente.com](mailto:team@ente.com) with feedback or questions.
+- **GitHub**: report bugs or request features on [GitHub](https://github.com/ente/ente/issues).

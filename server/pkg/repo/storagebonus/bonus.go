@@ -4,11 +4,10 @@ import (
 	"context"
 	"github.com/lib/pq"
 
-	"github.com/ente-io/museum/ente/storagebonus"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente/storagebonus"
+	"github.com/ente/stacktrace"
 )
 
-// GetStorageBonuses returns the storage surplus for the given userID
 func (r *Repository) GetStorageBonuses(ctx context.Context, userID int64) ([]storagebonus.StorageBonus, error) {
 	var storageSurplus = make([]storagebonus.StorageBonus, 0)
 	rows, err := r.DB.QueryContext(ctx, "SELECT user_id,storage,type, created_at, updated_at, valid_till, is_revoked, revoke_reason FROM storage_bonus WHERE user_id = $1", userID)
@@ -45,8 +44,6 @@ func (r *Repository) GetActiveStorageBonuses(ctx context.Context, userID int64) 
 	return &storagebonus.ActiveStorageBonus{StorageBonuses: bonuses}, nil
 }
 
-// ActiveStorageSurplusOfType returns the total storage surplus for a given userID. Surplus is considered as active when
-// it is not revoked and not expired aka validTill is 0 or greater than now_utc_micro_seconds()
 func (r *Repository) ActiveStorageSurplusOfType(ctx context.Context, userID int64, bonusTypes []storagebonus.BonusType) (*int64, error) {
 	var total *int64
 	rows, err := r.DB.QueryContext(ctx, "SELECT coalesce(sum(storage),0) FROM storage_bonus "+
@@ -64,13 +61,10 @@ func (r *Repository) ActiveStorageSurplusOfType(ctx context.Context, userID int6
 	return total, nil
 }
 
-// GetPaidAddonSurplusStorage returns the total storage surplus for a given userID. Surplus is considered as active when
-// it is not revoked and not expired aka validTill is 0 or greater than now_utc_micro_seconds()
 func (r *Repository) GetPaidAddonSurplusStorage(ctx context.Context, userID int64) (*int64, error) {
 	return r.ActiveStorageSurplusOfType(ctx, userID, storagebonus.PaidAddOnTypes)
 }
 
-// GetAllUsersSurplusBonus returns two maps userID to referralBonus & addonBonus
 func (r *Repository) GetAllUsersSurplusBonus(ctx context.Context) (refBonus map[int64]int64, addonBonus map[int64]int64, err error) {
 	var userID, bonus int64
 	var bonusType storagebonus.BonusType

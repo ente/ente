@@ -1,61 +1,631 @@
 {
-  "networkHostLookUpErr": "Nepavyksta prisijungti prie „Ente“. Patikrinkite tinklo nustatymus ir susisiekite su palaikymo komanda, jei klaida tęsiasi.",
-  "@networkHostLookUpErr": {
-    "description": "Error message shown when the app cannot connect to Ente due to network host lookup failure"
+  "wallpaper": "Fonas",
+  "setWallpaper": "Nustatyti foną",
+  "wallpaperHome": "Pagrindiniam ekranui",
+  "wallpaperLock": "Užrakto ekranui",
+  "wallpaperBoth": "Pagrindinio ir užrakto ekranams",
+  "wallpaperSet": "Fonas nustatytas.",
+  "wallpaperFailed": "Nepavyko nustatyti fono.",
+  "wallpaperUnavailable": "Šiame įrenginyje fonų keitimai neleidžiami.",
+  "about": "Apie",
+  "acceptTrustInvite": "Priimti kvietimą",
+  "account": "Paskyra",
+  "accountCredentials": "Paslaptis",
+  "accountCredentialsDescription": "Išsaugokite paskyros kredencialus.",
+  "accountIsAlreadyConfigured": "Paskyra jau sukonfigūruota.",
+  "accountOwnerPersonAppbarTitle": "{title} (aš)",
+  "@accountOwnerPersonAppbarTitle": {
+    "description": "Title of appbar for account owner person",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
   },
-  "networkConnectionRefusedErr": "Nepavyksta prisijungti prie „Ente“. Bandykite dar kartą po kurio laiko. Jei klaida tęsiasi, susisiekite su palaikymo komanda.",
-  "@networkConnectionRefusedErr": {
-    "description": "Error message shown when the app cannot connect to Ente due to connection refused"
+  "accountRecovery": "Paskyros atkūrimas",
+  "accountSetupIncompleteCreateAccount": "Paskyros sąranka neužbaigta. Sukurkite paskyrą, kad užbaigtumėte sąranką.",
+  "@accountSetupIncompleteCreateAccount": {
+    "description": "Error shown when account exists but signup is incomplete"
   },
-  "itLooksLikeSomethingWentWrongPleaseRetryAfterSome": "Atrodo, kad kažkas nutiko ne taip. Bandykite dar kartą po kurio laiko. Jei klaida tęsiasi, susisiekite su mūsų palaikymo komanda.",
-  "@itLooksLikeSomethingWentWrongPleaseRetryAfterSome": {
-    "description": "Generic error message for temporary issues"
+  "actionNotSupportedForSharedFiles": "{count, plural, one {Veiksmas nepalaikomas {count} bendrintam failui} few {Veiksmas nepalaikomas {count} bendrintiems failams} many {Veiksmas nepalaikomas {count} bendrintam failui} other {Veiksmas nepalaikomas {count} bendrintiems failams}}",
+  "@actionNotSupportedForSharedFiles": {
+    "description": "Message when action is not supported for shared files",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
   },
-  "error": "Klaida",
-  "@error": {
-    "description": "Generic error title"
+  "actionNotSupportedOnFavouritesAlbum": "Veiksmas nepalaikomas Mėgstamų albume.",
+  "activeLinksWillShowUpHere": "Čia bus rodomos aktyvios nuorodos.",
+  "activeSessions": "Aktyvūs seansai",
+  "@activeSessions": {
+    "description": "Title for active sessions page"
   },
-  "ok": "Gerai",
-  "@ok": {
-    "description": "Generic OK button label"
+  "add": "Pridėti",
+  "addAlbumWidgetPrompt": "Pridėkite albumo valdiklį prie savo pradžios ekrano, kad tinkintumėte jį čia.",
+  "addANameAndPhoto": "Pridėkite vardą ir nuotrauką",
+  "addCode": "Pridėti kodą",
+  "addedAMemoryTo": "įtraukė prisiminimą į „{albumName}“",
+  "@addedAMemoryTo": {
+    "description": "Social notification action text shown after a person's name, for example 'John added a memory to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      }
+    }
   },
-  "faq": "DUK",
-  "@faq": {
-    "description": "FAQ link label"
+  "addedBy": "Įtraukė {emailOrName}",
+  "@addedBy": {
+    "placeholders": {
+      "emailOrName": {}
+    }
   },
+  "addedFilesToPerson": "{count, plural, one {Pridėtas {count} failas prie {personName}} few {Pridėti {count} failai prie {personName}} many {Pridėta {count} prie failo {personName}} other {Pridėta {count} failų prie {personName}}}",
+  "@addedFilesToPerson": {
+    "description": "Toast shown after manually tagging one or more files to a person.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      },
+      "personName": {
+        "type": "String",
+        "example": "Alex"
+      }
+    }
+  },
+  "addedNMemoriesTo": "įtraukė {count} prisiminimus (-ų) į „{albumName}“",
+  "@addedNMemoriesTo": {
+    "description": "Social notification action text shown after a person's name, for example 'John added 4 memories to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "addedSuccessfullyTo": "Sėkmingai įtraukta į „{albumName}“",
+  "@addedSuccessfullyTo": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
+  "addedToQueue": "Įtrauktas į eilę",
+  "addEmail": "Pridėti el. paštą",
+  "addFamilyMember": "Įtraukti šeimos narį",
+  "addFiles": "Pridėti failus",
+  "addFromDevice": "Pridėti iš įrenginio",
+  "addingPhotos": "Įtraukiamos nuotraukos",
+  "addingToFavorites": "Pridedama prie mėgstamų...",
+  "addItem": "{count, plural, one {Pridėti elementą} few {Pridėti elementus} many {Pridėti elemento} other {Pridėti elementų}}",
+  "@addItem": {
+    "description": "Page title while adding one or more items to album",
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "addLocation": "Pridėti vietą",
+  "addLocationButton": "Pridėti",
+  "addMember": "Įtraukti narį",
+  "addMemoriesWidgetPrompt": "Pridėkite prisiminimų valdiklį prie savo pagrindinio ekrano, kad tinkintumėte jį čia.",
+  "addMore": "Pridėti daugiau",
+  "addName": "Pridėti vardą",
+  "addNew": "Pridėti naują",
+  "@addNew": {
+    "description": "Text to add a new item (location tag, album, caption etc)"
+  },
+  "addNewEmail": "Įtraukti naują el. paštą",
+  "addOnPageSubtitle": "Išsami informacija apie priedus",
+  "addOns": "Priedai",
+  "addOnValidTill": "Jūsų {storageAmount} priedas galioja iki {endDate}",
+  "@addOnValidTill": {
+    "placeholders": {
+      "endDate": {},
+      "storageAmount": {}
+    }
+  },
+  "addPage": "Pridėti puslapį",
+  "@addPage": {
+    "description": "Button to capture another page in the document scanner"
+  },
+  "addPerson": "Pridėti asmenį",
+  "@addPerson": {
+    "description": "Title for the manual tagging flow where user selects a person to tag files with."
+  },
+  "addPhotos": "Įtraukti nuotraukų",
+  "addSelected": "Pridėti pasirinktus",
+  "addTag": "Pridėti žymę",
+  "addTo": "Įtraukti į",
+  "addToAlbum": "Įtraukti į albumą",
+  "addToCollection": "Įtraukti į kolekciją",
+  "addToEnte": "Pridėti į „Ente“",
+  "addToHiddenAlbum": "Įtraukti į paslėptą albumą",
+  "addToPerson": "Pridėti prie asmens",
+  "@addToPerson": {
+    "description": "Action label to add selected files to an existing person."
+  },
+  "addTrustedContact": "Pridėti patikimą kontaktą",
+  "addTrustedPerson": "Pridėkite patikimą asmenį",
+  "addUpTo5MembersFree": "Įtraukite iki 5 narių nemokamai",
+  "addYourPhotosNow": "Įtraukite savo nuotraukas dabar",
+  "adjust": "Priderinti",
+  "adjustCrop": "Koreguoti apkirpimą",
+  "admin": "Administratorius",
+  "admiringThem": "Žavisi {name}",
+  "@admiringThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "advanced": "Išplėstiniai",
+  "aerialViews": "Aeronetinės perspektyvos",
+  "after1Day": "Po 1 dienos",
+  "after1Hour": "Po 1 valandos",
+  "after1Month": "Po 1 mėnesio",
+  "after1Week": "Po 1 savaitės",
+  "after1Year": "Po 1 metų",
+  "albumDescriptionHint": "Įveskite šio albumo aprašą.",
+  "albumEditsWillNotBeSaved": "Jūsų šio albumo redagavimai nebus išsaugoti.",
+  "albumLayout": "Albumo išdėstymas",
+  "albumName": "Albumo pavadinimas",
+  "albums": "Albumai",
+  "albumsCount": "{count, plural, one{{count} albumas} few{{count} albumai} many{{count} albumo} other{{count} albumų}}",
+  "@albumsCount": {
+    "description": "Number of albums with pluralization",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "albumsOnDevicePermissionCta": "Leisti prieigą",
+  "albumsSharedEmptyTitle": "Bendrinkite savo prisiminimus",
+  "albumsWidgetDesc": "Pasirinkite albumus, kuriuos norite matyti savo pagrindiniame ekrane.",
+  "albumTitle": "Albumo pavadinimas",
+  "albumUpdated": "Atnaujintas albumas",
+  "algorithm": "Algoritmas",
+  "align": "Lygiuoti",
+  "allClear": "✨ Viskas išvalyta",
+  "allFilesAlreadyMarkedAsImportant": "Visi elementai jau pažymėti kaip svarbūs.",
+  "allMemoriesPreserved": "Išsaugoti visi prisiminimai",
+  "allow": "Leisti",
+  "allowAccessToYourPhotos": "Leisti prieigą prie jūsų nuotraukų",
+  "allowAddingPhotos": "Leisti pridėti nuotraukų",
+  "@allowAddingPhotos": {
+    "description": "Switch button to enable uploading photos to a public link"
+  },
+  "allowAppToOpenSharedAlbumLinks": "Leisti programai atverti bendrinamų albumų nuorodas",
+  "allowDownloads": "Leisti atsisiuntimus",
+  "allowJoiningAlbum": "Leisti jungtis prie albumo",
+  "allowJoiningDescription": "Žiūrėtojai su „Ente“ paskyra gali prisijungti prie jūsų albumo ir išlikti informuoti.",
+  "allowPermBody": "Iš nustatymų leiskite prieigą prie nuotraukų, kad „Ente“ galėtų rodyti ir kurti atsargines bibliotekos kopijas.",
+  "allowPermTitle": "Leisti prieigą prie nuotraukų",
+  "allPersonGroupingWillReset": "Visi šio asmens grupavimai bus iš naujo nustatyti, o jūs neteksite visų šiam asmeniui pateiktų pasiūlymų",
+  "allTabEmptyHint": "Čia dar nieko nėra. Palieskite +, kad pridėtumėte kodą, arba atverkite šiukšlinę, kad jį atkurtumėte.",
+  "@allTabEmptyHint": {
+    "description": "Shown when the All tab has no active codes but Trash contains codes"
+  },
+  "allWillShiftRangeBasedOnFirst": "Tai – pirmoji šioje grupėje. Kitos pasirinktos nuotraukos bus automatiškai perkeltos pagal šią naują datą.",
+  "almostDone": "Beveik baigta...",
+  "alreadyAdded": "Jau įtrauktas.",
+  "alreadyHaveAnAccount": "Jau turite paskyrą?",
+  "analysis": "Analizė",
+  "analyzingPhotosLocally": "Analizuojamos jūsų nuotraukos vietoje...",
+  "and1Other": "ir dar 1",
+  "androidBiometricHint": "Patvirtinkite tapatybę",
+  "@androidBiometricHint": {
+    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
+  },
+  "androidCancelButton": "Atšaukti",
+  "@androidCancelButton": {
+    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
+  },
+  "androidSignInTitle": "Tapatybės nustatymas privalomas",
+  "@androidSignInTitle": {
+    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
+  },
+  "andXOthers": "ir dar {count}",
+  "@andXOthers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "aNewVersionOfEnteIsAvailable": "Yra nauja „Ente“ versija.",
+  "appIcon": "Programos piktograma",
+  "appleId": "„Apple ID“",
+  "applePhotosUnsupportedResource": "Šis failas negalėjo būti išsaugotas į „Apple“ nuotraukas“. Vis dėlto jį galite peržiūrėti programoje „Ente“.",
+  "@applePhotosUnsupportedResource": {
+    "description": "Shown when iOS Photos rejects a file while saving to gallery because the media resource is invalid or unsupported"
+  },
+  "appLock": "Programos užraktas",
+  "@appLock": {
+    "description": "App lock setting title"
+  },
+  "appLockDescription": "Pasirinkite tarp numatytojo įrenginio užrakto ekrano ir pasirinktinio užrakto ekrano su PIN kodu arba slaptažodžiu.",
+  "@appLockDescription": {
+    "description": "Description of app lock feature"
+  },
+  "appLockNotEnabled": "Programos užraktas neįjungtas",
+  "appLockNotEnabledDescription": "Įjunkite programos užraktą iš Saugumas > Programos užraktas",
+  "appLockOfflineModeWarning": "Pasirinkote tęsti be atsarginių kopijų. Jei pamiršite programos užraktą, jums bus užrakinta prieiga prie duomenų.",
+  "apply": "Taikyti",
+  "applyCodeTitle": "Taikyti kodą",
+  "appstoreSubscription": "„App Store“ prenumerata",
+  "appVersion": "Versija {versionValue}",
+  "@appVersion": {
+    "placeholders": {
+      "versionValue": {}
+    }
+  },
+  "archive": "Archyvas",
+  "@archive": {
+    "description": "Action of 'Archiving' an element"
+  },
+  "archiveAlbum": "Archyvuoti albumą",
+  "archiveCollectionName": "Archyvas",
+  "@archiveCollectionName": {
+    "description": "Name of the 'Archive' collection"
+  },
+  "archiving": "Archyvuojama...",
+  "areThey": "Ar jie ",
+  "areYouSure": "Ar esate tikri?",
+  "@areYouSure": {
+    "description": "Confirmation dialog title"
+  },
+  "areYouSureDeleteFiles": "Ar tikrai norite ištrinti šiuos failus?",
+  "areYouSureRemoveThisFaceFromPerson": "Ar tikrai norite pašalinti šį veidą iš šio asmens?",
+  "areYouSureThatYouWantToLeaveTheFamily": "Ar tikrai norite palikti šeimos planą?",
+  "areYouSureYouWantToCancel": "Ar tikrai norite atšaukti?",
+  "areYouSureYouWantToChangeYourPlan": "Ar tikrai norite keisti planą?",
+  "areYouSureYouWantToExit": "Ar tikrai norite išeiti?",
+  "areYouSureYouWantToIgnoreThesePersons": "Ar tikrai norite ignoruoti šiuos asmenis?",
+  "areYouSureYouWantToIgnoreThisPerson": "Ar tikrai norite ignoruoti šį asmenį?",
+  "areYouSureYouWantToLogout": "Ar tikrai norite atsijungti?",
+  "@areYouSureYouWantToLogout": {
+    "description": "Confirmation message before logout"
+  },
+  "areYouSureYouWantToRenew": "Ar tikrai norite pratęsti?",
+  "areYouSureYouWantToResetThisPerson": "Ar tikrai norite iš naujo nustatyti šį asmenį?",
+  "askCancelReason": "Jūsų prenumerata buvo atšaukta. Ar norėtumėte pasidalyti priežastimi?",
+  "authenticateGeneric": "Nustatykite tapatybę.",
+  "authenticating": "Nustatoma tapatybė...",
+  "authenticationFailedPleaseTryAgain": "Tapatybės nustatymas nepavyko. Bandykite dar kartą.",
+  "@authenticationFailedPleaseTryAgain": {
+    "description": "Error message when authentication fails"
+  },
+  "authenticationSuccessful": "Tapatybės nustatymas sėkmingas.",
+  "@authenticationSuccessful": {
+    "description": "Success message when authentication is successful"
+  },
+  "authenticatorCodesCount": "{count, plural, one {{formattedCount} nustatymo kodas} few {{formattedCount} nustatymo kodai} many {{formattedCount} nustatymo kodo} other {{formattedCount} nustatymo kodų}}",
+  "@authenticatorCodesCount": {
+    "description": "Delete impact row for Auth data",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "formattedCount": {
+        "type": "String"
+      }
+    }
+  },
+  "authToChangeEmailVerificationSetting": "Nustatykite tapatybę, kad pakeistumėte el. pašto patvirtinimą.",
+  "authToChangeLockscreenSetting": "Nustatykite tapatybę, kad pakeistumėte užrakto ekrano nustatymą.",
+  "authToChangeYourEmail": "Nustatykite tapatybę, kad pakeistumėte savo el. paštą.",
+  "authToChangeYourPassword": "Nustatykite tapatybę, kad pakeistumėte slaptažodį.",
+  "authToConfigureTwofactorAuthentication": "Nustatykite tapatybę, kad sukonfigūruotumėte dvigubą tapatybės nustatymą.",
+  "authToExportCodes": "Nustatykite tapatybę, kad eksportuotumėte savo kodus.",
+  "authToInitiateAccountDeletion": "Atrakinkite, kad ištrintumėte savo paskyrą",
+  "authToInitiateSignIn": "Nustatykite tapatybę, kad pradėtumėte prisijungti norint kurti atsargines kopijas.",
+  "authToManageLegacy": "Nustatykite tapatybę, kad tvarkytumėte savo patikimus kontaktus.",
+  "authToSetBackupPassword": "Nustatykite tapatybę, kad nustatytumėte atsarginės kopijos slaptažodį.",
+  "authToUpdateBackupPassword": "Nustatykite tapatybę, kad naujintumėte atsarginės kopijos slaptažodį.",
+  "authToViewPasskey": "Nustatykite tapatybę, kad peržiūrėtumėte savo slaptaraktį.",
+  "authToViewPasskeyGeneric": "Nustatykite tapatybę, kad peržiūrėtumėte slaptaraktį.",
+  "authToViewSecrets": "Nustatykite tapatybę, kad peržiūrėtumėte savo paslaptis.",
+  "@authToViewSecrets": {
+    "description": "Message prompting authentication to view secrets"
+  },
+  "authToViewTrashedFiles": "Nustatykite tapatybę, kad peržiūrėtumėte savo ištuštintus failus.",
+  "authToViewYourActiveSessions": "Nustatykite tapatybę, kad peržiūrėtumėte savo aktyvius seansus.",
+  "authToViewYourHiddenFiles": "Nustatykite tapatybę, kad peržiūrėtumėte savo paslėptus failus.",
+  "authToViewYourMemories": "Nustatykite tapatybę, kad peržiūrėtumėte savo prisiminimus.",
+  "authToViewYourRecoveryKey": "Nustatykite tapatybę, kad peržiūrėtumėte savo atkūrimo raktą.",
+  "autoAddPeople": "Automatiškai įtraukti asmenis",
+  "autoAddToAlbum": "Automatiškai įtraukti į albumą",
+  "autoCastDialogBody": "Čia matysite pasiekiamus perdavimo įrenginius.",
+  "autoCastiOSPermission": "Įsitikinkite, kad programai „Ente“ nuotraukos yra įjungti vietinio tinklo leidimai, nustatymuose.",
+  "autoLockFeatureDescription": "Laikas, po kurio programa užrakinama perkėlus ją į foną",
+  "@autoLockFeatureDescription": {
+    "description": "Description of auto lock feature"
+  },
+  "automaticallyAnalyzeAndSplitGrouping": "Mes automatiškai išanalizuosime grupavimą, kad nustatytume, ar yra keli asmenys, ir vėl juos atskirsime. Tai gali užtrukti keletą sekundžių.",
+  "autoPair": "Automatiškai susieti",
+  "backedUpAutomatically": "Sukurtos atsarginės kopijos",
+  "backedUpFolders": "Sukurtos atsarginės aplankų kopijos",
+  "background": "Fonas",
+  "backgroundWithThem": "Gražūs vaizdai su {name}",
+  "@backgroundWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "backingUpLastSevenDaysPhotos": "Sukuriamos praėjusių 7 dienų nuotraukų atsarginės kopijos",
+  "backup": "Kurti atsarginę kopiją",
+  "backupCreated": "Atsarginė kopija sukurta.",
+  "backupFailed": "Atsarginė kopija nepavyko",
+  "backupFile": "Kurti atsarginę failo kopiją",
+  "backupFolderLabel": "Atsarginių kopijų aplankas:",
+  "backupLocationChoiceDescription": "Kur norite išsaugoti savo atsargines kopijas?",
+  "backupMode": "Atsarginių kopijų režimas",
+  "backupModeStart": "Pradėti atsarginės kopijos režimą",
+  "backupModeStayInEnte": "Likite programoje „Ente“. Perjungimas į programas sustabdo atsarginės kopijos kūrimą.",
+  "backupOverMobileData": "Kurti atsargines kopijas per mobiliuosius duomenis",
+  "backupPasswordCleared": "Atsarginė slaptažodžio kopija išvalyta.",
+  "backupPasswordHint": "Jūsų atsarginė kopija bus užšifruota šiuo slaptažodžiu.",
+  "backupSettings": "Atsarginės kopijos nustatymai",
+  "backupStatus": "Atsarginės kopijos būsena",
+  "backupStatusDescription": "Čia bus rodomi elementai, kurių atsarginės kopijos buvo sukurtos.",
+  "backupVideos": "Kurti atsargines vaizdo įrašų kopijas",
+  "beach": "Smėlis ir jūra",
+  "birthday": "Gimtadienis",
+  "birthdays": "Gimtadieniai",
+  "blog": "Tinklaraštis",
+  "bothIssuerAndAccountCanNotBeEmpty": "Tiek išdavėjas ir paskyra negali būti tušti.",
+  "brushColor": "Teptuko spalva",
+  "byAgreeing": "Tęsdami sutinkate su <terms>paslaugų sąlygomis</terms> ir <policy>privatumo politika</policy>.",
+  "cachedData": "Podėliuoti duomenis",
+  "calculating": "Skaičiuojama...",
+  "camera": "Fotoaparatas",
+  "cancel": "Atšaukti",
+  "back": "Atgal",
+  "@cancel": {
+    "description": "Cancel button label"
+  },
+  "cancelOtherSubscription": "Pirmiausia atsisakykite esamos prenumeratos iš {paymentProvider}",
+  "@cancelOtherSubscription": {
+    "description": "The text to display when the user has an existing subscription from a different payment provider",
+    "type": "text",
+    "placeholders": {
+      "paymentProvider": {
+        "example": "Apple",
+        "type": "String"
+      }
+    }
+  },
+  "cancelRecovery": "Atšaukti atkūrimą",
+  "cancelSubscription": "Atsisakyti prenumeratos",
+  "cannotDeleteSharedFiles": "Negalima ištrinti bendrinamų failų.",
+  "canNotOpenBody": "Atsiprašome, šio albumo negalima atverti programoje.",
+  "canNotOpenTitle": "Negalima atverti šio albumo",
+  "canOnlyCreateLinkForFilesOwnedByYou": "Galima sukurti nuorodą tik jums priklausantiems failams",
+  "canOnlyRemoveFilesOwnedByYou": "Galima pašalinti tik jums priklausančius failus",
+  "castAlbum": "Perduoti albumą",
+  "castInstruction": "Aplankykite {castUrl} įrenginyje, kurį norite susieti.",
+  "@castInstruction": {
+    "description": "Instructions shown when pairing a device to play an album on TV.",
+    "placeholders": {
+      "castUrl": {
+        "type": "String",
+        "example": "https://cast.ente.com"
+      }
+    }
+  },
+  "castIPMismatchBody": "Įsitikinkite, kad esate tame pačiame tinkle kaip ir televizorius.",
+  "castIPMismatchTitle": "Nepavyko perduoti albumo",
+  "castSessions": "Perdavimo sesanai",
+  "cat": "Katė",
+  "centerPoint": "Centro taškas",
+  "changeEmail": "Keisti el. paštą",
+  "@changeEmail": {
+    "description": "Change email button label"
+  },
+  "changeLocationOfSelectedItems": "Keisti pasirinktų elementų vietovę?",
+  "changePassword": "Keisti slaptažodį",
+  "changePasswordTitle": "Keisti slaptažodį",
+  "@changePasswordTitle": {
+    "description": "Change password title"
+  },
+  "checkForUpdates": "Tikrinti, ar yra atnaujinimų",
+  "checkInboxAndSpamFolder": "Patikrinkite savo gautieją (ir šlamštą), kad užbaigtumėte patvirtinimą",
+  "@checkInboxAndSpamFolder": {
+    "description": "Message asking user to check inbox and spam folder"
+  },
+  "checking": "Tikrinama...",
+  "checkingModels": "Tikrinami modeliai...",
+  "checkStatus": "Tikrinti būseną",
+  "@checkStatus": {
+    "description": "Check status button label"
+  },
+  "chooseBackupLocation": "Pasirinkite atsarginės kopijos vietą",
+  "chooseIcon": "Pasirinkite piktogramą",
+  "city": "Mieste",
+  "cleanedUpSimilarImages": "Atlaisvinote {size} vietos.",
+  "@cleanedUpSimilarImages": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "cleanUncategorized": "Valyti nekategorizuotus",
+  "cleanUncategorizedDescription": "Pašalinkite iš nekategorizuotus visus failus, esančius kituose albumuose",
+  "cleanupComplete": "Valymas baigtas",
+  "cleanupHiddenFiles": "Valyti paslėptus failus",
+  "cleanupHiddenFilesDescription": "Kai kurie failai paslėptuose albumuose vis dar egzistuoja nepaslėptuose albumuose, todėl jie matomi už paslėptos dalies ribų. Išvalant juos bus pašalinta iš nepaslėptų albumų.",
+  "clearBackupFolder": "Valyti atsarginę kopiją dabar",
+  "clearBackupPassword": "Valyti atsarginę slaptažodžio kopiją",
+  "clearCaches": "Valyti podėlius",
+  "clickToInstallOurBestVersionYet": "Spustelėkite, kad įdiegtumėte geriausią mūsų versiją iki šiol",
+  "close": "Uždaryti",
+  "closeBy": "Arti",
+  "@closeBy": {
+    "description": "Appears in the similar images page, to indicate that the images are close in terms of appearance"
+  },
+  "closeFamilyConfirmTitle": "Uždaryti šeimos planą?",
+  "closeFamilyPlan": "Uždaryti šeimos planą",
+  "closest": "Arčiausiai",
+  "clusteringProgress": "Sankaupos vykdymas",
+  "codeAppliedPageTitle": "Pritaikytas kodas",
+  "codeChangeLimitReached": "Atsiprašome, pasiekėte kodo pakeitimų ribą.",
+  "codeCopiedToClipboard": "Nukopijuotas kodas į iškarpinę",
+  "codeIssuerHint": "Išdavėjas",
+  "collabLinkSectionDescription": "Leiskite žmonėms pridėti nuotraukas be „Ente“ paskyros.",
+  "collaborator": "Bendradarbis",
+  "collageLayout": "Išdėstymas",
+  "collageSaved": "Koliažas išsaugotas į galeriją",
+  "collectPhotos": "Rinkti nuotraukas",
+  "color": "Spalva",
+  "commentedOnAPhoto": "pakomentavo ant nuotraukos",
+  "@commentedOnAPhoto": {
+    "description": "Social notification action text shown after a person's name, for example 'John commented on a photo'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "commentedOnAVideo": "pakomentavo ant vaizdo įrašo",
+  "@commentedOnAVideo": {
+    "description": "Social notification action text shown after a person's name, for example 'John commented on a video'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "commentedOnYourPhoto": "pakomentavo ant jūsų nuotraukos",
+  "@commentedOnYourPhoto": {
+    "description": "Social notification action text shown after a person's name, for example 'John commented on your photo'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "commentedOnYourVideo": "pakomentavo ant jūsų vaizdo įrašo",
+  "@commentedOnYourVideo": {
+    "description": "Social notification action text shown after a person's name, for example 'John commented on your video'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "commentHint": "Pasakykite kažką malonaus!",
+  "@commentHint": {
+    "description": "Placeholder text for comment input field"
+  },
+  "comments": "Komentarai",
+  "commentsCount": "{count, plural, =0{Komentarų nėra} one{{count} komentaras} few{{count} komentarai} many{{count} komentaro} other{{count} komentarų}}",
+  "@commentsCount": {
+    "description": "Number of comments with pluralization",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "compactMode": "Kompaktinis režimas",
+  "comparingImageDetails": "Lyginama vaizdo išsami informacija...",
+  "confirm": "Patvirtinti",
+  "@confirm": {
+    "description": "Confirm button label"
+  },
+  "confirm2FADisable": "Ar tikrai norite išjungti dvigubą tapatybės nustatymą?",
+  "confirmAddingTrustedContact": "Ketinate įtraukti {email} kaip patikimą kontaktą. Jie galės atkurti jūsų paskyrą, jei jūsų nebus {numOfDays} dienų.",
+  "@confirmAddingTrustedContact": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      },
+      "numOfDays": {
+        "type": "int",
+        "example": "30"
+      }
+    }
+  },
+  "confirmPassword": "Patvirtinkite slaptažodį",
+  "@confirmPassword": {
+    "description": "Confirm password field label"
+  },
+  "confirmPlanChange": "Patvirtinkite plano pakeitimą",
+  "confirmRecoveryKey": "Patvirtinkite atkūrimo raktą",
+  "confirmUpdatingkey": "Ar tikrai norite atnaujinti slaptąjį raktą?",
+  "confirmYourRecoveryKey": "Patvirtinkite savo atkūrimo raktą",
+  "connectToDevice": "Prijungti prie įrenginio",
+  "contacts": "Kontaktai",
   "contactSupport": "Susisiekti su palaikymo komanda",
   "@contactSupport": {
     "description": "Contact support button label"
   },
-  "emailYourLogs": "Atsiųskite žurnalus el. laišku",
-  "@emailYourLogs": {
-    "description": "Title for emailing logs dialog"
+  "contactUs": "Susisiekti su mumis",
+  "@contactUs": {
+    "description": "Button label for contacting Ente support"
   },
-  "pleaseSendTheLogsTo": "Siųskite žurnalus adresu\n{toEmail}",
-  "@pleaseSendTheLogsTo": {
-    "description": "Message asking user to send logs to email address",
+  "contactToManageSubscription": "Susisiekite su mumis adresu support@ente.com, kad sutvarkytumėte savo {provider} prenumeratą.",
+  "@contactToManageSubscription": {
     "placeholders": {
-      "toEmail": {
-        "type": "String",
-        "description": "Email address to send logs to"
-      }
+      "provider": {}
     }
   },
+  "continueInMailApp": "Tęsti pašto programoje",
+  "continueLabel": "Tęsti",
+  "@continueLabel": {
+    "description": "Continue button label"
+  },
+  "continueWithoutAccount": "Tęsti be paskyros",
+  "convertToAlbum": "Konvertuoti į albumą",
+  "copied": "Nukopijuota",
+  "copiedNextToClipboard": "Nukopijuotas sekantis kodas į iškarpinę",
+  "copiedToClipboard": "Nukopijuota į iškarpinę",
   "copyEmailAddress": "Kopijuoti el. pašto adresą",
   "@copyEmailAddress": {
     "description": "Button to copy email address to clipboard"
   },
-  "exportLogs": "Eksportuoti žurnalus",
-  "@exportLogs": {
-    "description": "Button to export logs"
+  "copyEmbedHtml": "Kopijuoti įterptą HTML",
+  "copyLink": "Kopijuoti nuorodą",
+  "copypasteThisCodentoYourAuthenticatorApp": "Nukopijuokite ir įklijuokite šį kodą\nį autentifikatoriaus programą",
+  "couldNotBackUpTryLater": "Nepavyko sukurti atsarginės duomenų kopijos.\nBandysime pakartotinai vėliau.",
+  "couldNotFreeUpSpace": "Nepavyko atlaisvinti vietos.",
+  "couldNotLoadAlbums": "Nepavyko įkelti albumus.",
+  "@couldNotLoadAlbums": {
+    "description": "Error when albums fail to load"
   },
-  "cancel": "Atšaukti",
-  "@cancel": {
-    "description": "Cancel button label"
+  "couldNotLoadLikes": "Nepavyko įkelti patiktukus.",
+  "@couldNotLoadLikes": {
+    "description": "Error when likes fail to load"
   },
-  "reportABug": "Pranešti apie riktą",
-  "@reportABug": {
-    "description": "Label for reporting a bug"
+  "couldNotLoadSelectedPhoto": "Nepavyko įkelti pasirinktos nuotraukos.",
+  "@couldNotLoadSelectedPhoto": {
+    "description": "Toast when the selected contact photo cannot be loaded"
+  },
+  "couldNotUpdateSubscription": "Nepavyko atnaujinti prenumeratos",
+  "count": "Skaičių",
+  "craftingMemoriesFirstHalf": "Gaminame",
+  "craftingMemoriesSecondHalf": "prisiminimus",
+  "crashAndErrorReporting": "Pranešti apie strigčius ir klaidas",
+  "crashReporting": "Pranešti apie strigčius",
+  "create": "Kurti",
+  "createAccount": "Kurti paskyrą",
+  "@createAccount": {
+    "description": "Create account button label"
+  },
+  "createAccountTitle": "Susikurkite paskyrą",
+  "createAlbum": "Kurti albumą",
+  "createAlbumActionHint": "Ilgai paspauskite, kad pasirinktumėte nuotraukas, ir spustelėkite +, kad sukurtumėte albumą",
+  "createAnEnteAccount": "Kurti „Ente“ paskyrą",
+  "createBackupNow": "Kurti atsarginę kopiją dabar",
+  "createCollaborativeLink": "Kurti bendradarbiavimo nuorodą",
+  "createCollage": "Kurti koliažą",
+  "createNewTag": "Kurti naują žymę",
+  "createPublicLink": "Kurti viešą nuorodą",
+  "creatingLink": "Kuriama nuoroda...",
+  "creatingStream": "Kuriamas srautas",
+  "criticalUpdateAvailable": "Yra kritinis naujinimas",
+  "crop": "Apkirpti",
+  "curatedMemories": "Kuruoti prisiminimai",
+  "currentBackupFolder": "Dabartinis atsarginių kopijų aplankas:",
+  "currentlyRunning": "šiuo metu vykdoma",
+  "currentUsageNote": "Dabartinis naudojimas: {amount}. Nustatykite į 0 dėl jokios ribos.",
+  "@currentUsageNote": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "20 GB"
+      }
+    }
+  },
+  "custom": "Pasirinktinis",
+  "@custom": {
+    "description": "Label for setting custom value for link expiry"
   },
   "customEndpoint": "Prijungta prie {endpoint}",
   "@customEndpoint": {
@@ -67,588 +637,231 @@
       }
     }
   },
-  "save": "Išsaugoti",
-  "@save": {
-    "description": "Label for save button"
-  },
-  "send": "Siųsti",
-  "@send": {
-    "description": "Label for send button"
-  },
-  "saveOrSendDescription": "Ar norite tai išsaugoti saugykloje (pagal numatytuosius nustatymus – atsisiuntimų aplanke), ar siųsti į kitas programas?",
-  "@saveOrSendDescription": {
-    "description": "Description text asking user if they want to save to storage or share with other apps"
-  },
-  "saveOnlyDescription": "Ar norite tai išsaugoti savo saugykloje (pagal numatytuosius nustatymus – atsisiuntimų aplanke)?",
-  "@saveOnlyDescription": {
-    "description": "Description text asking user if they want to save to storage (for platforms that don't support sharing)"
-  },
-  "email": "El. paštas",
-  "@email": {
-    "description": "Email field label"
-  },
-  "verify": "Patvirtinti",
-  "@verify": {
-    "description": "Verify button label"
-  },
-  "invalidEmailTitle": "Netinkamas el. pašto adresas",
-  "@invalidEmailTitle": {
-    "description": "Title for invalid email error dialog"
-  },
-  "invalidEmailMessage": "Įveskite tinkamą el. pašto adresą.",
-  "@invalidEmailMessage": {
-    "description": "Message for invalid email error dialog"
-  },
-  "pleaseWait": "Palaukite...",
-  "@pleaseWait": {
-    "description": "Please wait message"
-  },
-  "verifyPassword": "Patvirtinkite slaptažodį",
-  "@verifyPassword": {
-    "description": "Verify password button label"
-  },
-  "incorrectPasswordTitle": "Neteisingas slaptažodis.",
-  "@incorrectPasswordTitle": {
-    "description": "Title for incorrect password error"
-  },
-  "pleaseTryAgain": "Bandykite dar kartą.",
-  "@pleaseTryAgain": {
-    "description": "Message asking user to try again"
-  },
-  "enterPassword": "Įveskite slaptažodį",
-  "@enterPassword": {
-    "description": "Enter password field label"
-  },
-  "enterYourPasswordHint": "Įveskite savo slaptažodį",
-  "@enterYourPasswordHint": {
-    "description": "Hint for password field"
-  },
-  "activeSessions": "Aktyvūs seansai",
-  "@activeSessions": {
-    "description": "Title for active sessions page"
-  },
-  "oops": "Ups",
-  "@oops": {
-    "description": "Oops error title"
-  },
-  "somethingWentWrongPleaseTryAgain": "Kažkas nutiko ne taip. Bandykite dar kartą.",
-  "@somethingWentWrongPleaseTryAgain": {
-    "description": "Generic error message"
-  },
-  "thisWillLogYouOutOfThisDevice": "Tai jus atjungs nuo šio įrenginio.",
-  "@thisWillLogYouOutOfThisDevice": {
-    "description": "Warning message for logging out of current device"
-  },
-  "thisWillLogYouOutOfTheFollowingDevice": "Tai jus atjungs nuo toliau nurodyto įrenginio:",
-  "@thisWillLogYouOutOfTheFollowingDevice": {
-    "description": "Warning message for logging out of another device"
-  },
-  "terminateSession": "Baigti seansą?",
-  "@terminateSession": {
-    "description": "Title for terminate session dialog"
-  },
-  "terminate": "Baigti",
-  "@terminate": {
-    "description": "Terminate button label"
-  },
-  "thisDevice": "Šis įrenginys",
-  "@thisDevice": {
-    "description": "Label for current device"
-  },
-  "createAccount": "Kurti paskyrą",
-  "@createAccount": {
-    "description": "Create account button label"
-  },
-  "weakStrength": "Silpna",
-  "@weakStrength": {
-    "description": "Weak password strength label"
-  },
-  "moderateStrength": "Vidutinė",
-  "@moderateStrength": {
-    "description": "Moderate password strength label"
-  },
-  "strongStrength": "Stipri",
-  "@strongStrength": {
-    "description": "Strong password strength label"
+  "customOrder": "Pasirinktinė tvarka",
+  "darkTheme": "Tamsi",
+  "data": "Duomenys",
+  "day": "Diena",
+  "dayToday": "Šiandien",
+  "dayYesterday": "Vakar",
+  "declineTrustInvite": "Atmesti kvietimą",
+  "decrypting": "Iššifruojama...",
+  "decryptingVideo": "Iššifruojamas vaizdo įrašas...",
+  "deduplicateCodes": "Atdubliuoti kodus",
+  "deduplicateFiles": "Atdubliuoti failus",
+  "delete": "Ištrinti",
+  "@delete": {
+    "description": "Delete button label"
   },
   "deleteAccount": "Ištrinti paskyrą",
   "@deleteAccount": {
     "description": "Delete account button label"
   },
-  "deleteAccountQuery": "Apgailestausime, kad išeinate. Ar susiduriate su kažkokiomis problemomis?",
-  "@deleteAccountQuery": {
-    "description": "Message asking user why they want to delete account"
+  "deleteAlbum": "Ištrinti albumą",
+  "deleteAlbumDialog": "Taip pat ištrinti šiame albume esančias nuotraukas (ir vaizdo įrašus) iš <bold>visų</bold> kitų albumų, kuriuose jos yra dalis?",
+  "deleteAlbumQuestion": "Ištrinti šį albumą?",
+  "deleteAlbumsDialogBody": "Tai ištrins visus tuščius albumus. Tai naudinga, kai norite sumažinti netvarką savo albumų sąraše.",
+  "deleteAll": "Ištrinti viską",
+  "deleteCodeAuthMessage": "Nustatykite tapatybę, kad ištrintumėte kodą.",
+  "deleteCodeMessage": "Ar tikrai norite ištrinti šį kodą? Šis veiksmas negrįžtamas.",
+  "deleteCodeTitle": "Ištrinti kodą?",
+  "deleteComment": "Ištrinti komentarą",
+  "@deleteComment": {
+    "description": "Delete comment button label"
   },
-  "yesSendFeedbackAction": "Taip, siųsti atsiliepimą",
-  "@yesSendFeedbackAction": {
-    "description": "Button to confirm sending feedback"
+  "deletedComment": "(ištrintas)",
+  "@deletedComment": {
+    "description": "Label for deleted comments"
   },
-  "noDeleteAccountAction": "Ne, ištrinti paskyrą",
-  "@noDeleteAccountAction": {
-    "description": "Button to proceed with account deletion"
-  },
-  "initiateAccountDeleteTitle": "Nustatykite tapatybę, kad pradėtumėte paskyros ištrynimą",
-  "@initiateAccountDeleteTitle": {
-    "description": "Title for authentication dialog before account deletion"
-  },
-  "confirmAccountDeleteTitle": "Patvirtinkite paskyros ištrynimą",
-  "@confirmAccountDeleteTitle": {
-    "description": "Title for account deletion confirmation dialog"
-  },
-  "confirmAccountDeleteMessage": "Ši paskyra susieta su kitomis „Ente“ programomis, jei jas naudojate.\n\nJūsų įkelti duomenys per visas „Ente“ programas bus planuojama ištrinti, o jūsų paskyra bus ištrinta negrįžtamai.",
-  "@confirmAccountDeleteMessage": {
-    "description": "Message warning about account deletion consequences"
-  },
-  "delete": "Ištrinti",
-  "@delete": {
-    "description": "Delete button label"
-  },
-  "createNewAccount": "Kurti naują paskyrą",
-  "@createNewAccount": {
-    "description": "Create new account button label"
-  },
-  "password": "Slaptažodis",
-  "@password": {
-    "description": "Password field label"
-  },
-  "confirmPassword": "Patvirtinkite slaptažodį",
-  "@confirmPassword": {
-    "description": "Confirm password field label"
-  },
-  "passwordStrength": "Slaptažodžio stiprumas: {passwordStrengthValue}",
-  "@passwordStrength": {
-    "description": "Text to indicate the password strength",
+  "deletedFromEnte": "Ištrinti iš „Ente“",
+  "deleteDuplicates": "Ištrinti dublikatus",
+  "deleteEmptyAlbums": "Ištrinti tuščius albumus",
+  "deleteEmptyAlbumsWithQuestionMark": "Ištrinti tuščius albumus?",
+  "deleteFiles": "Ištrinti failus",
+  "deleteFromBoth": "Ištrinti iš abiejų",
+  "deleteFromDevice": "Ištrinti iš įrenginio",
+  "deleteFromDeviceQuestion": "Ištrinti iš įrenginio?",
+  "deleteFromEnte": "Ištrinti iš „Ente“",
+  "deleteHiddenFilesFromDevice": "Ištrinti paslėptus failus iš įrenginio",
+  "deleteHiddenFilesFromDeviceDescription": "Ištrinti paslėptų failų vietines kopijas iš savo įrenginio",
+  "deleteLink": "Ištrinti nuorodą",
+  "deleteLinkQuestion": "Ištrinti nuorodą?",
+  "deleteLocation": "Ištrinti vietovę",
+  "deleteMultipleAlbumDialog": "Taip pat ištrinti nuotraukas (ir vaizdo įrašus), esančias šiuose {count} albumuose, iš <bold>visų</bold> kitų albumų, kuriuose jos yra dalis?",
+  "@deleteMultipleAlbumDialog": {
     "placeholders": {
-      "passwordStrengthValue": {
-        "description": "The strength of the password as a string",
-        "type": "String",
-        "example": "Weak or Moderate or Strong"
+      "count": {}
+    }
+  },
+  "deleteMultipleAlbumsQuestion": "Ištrinti šiuos albumus?",
+  "deleteOnDeviceFiles": "Ištrinti failus įrenginyje",
+  "deletePhotos": "Ištrinti nuotraukas",
+  "deleteProgress": "Ištrinama {currentlyDeleting} / {totalCount}",
+  "@deleteProgress": {
+    "placeholders": {
+      "currentlyDeleting": {},
+      "totalCount": {}
+    }
+  },
+  "deleteSharedAlbum": "Ištrinti bendrinamą albumą?",
+  "deleteSharedAlbumDialogBody": "Albumas bus ištrintas visiems.\n\nPrarasite prieigą prie bendrinamų nuotraukų, esančių šiame albume ir priklausančių kitiems.",
+  "deleteSuggestionsDesc": "Peržiūrėti elementus siūlomus ištrinti",
+  "deleteSuggestionSent": "Ištrynimo pasiūlymas išsiųstas.",
+  "deleteTagMessage": "Ar tikrai norite ištrinti šią žymę? Šis veiksmas negrįžtamas.",
+  "deleteTagTitle": "Ištrinti žymę?",
+  "deleteUnparseableCodeMessage": "Tai negrįžtamai ištrins šį kodą iš „Auth“. Jis nebus perkeltas į šiukšlinę.",
+  "deleteUnparseableCodeTitle": "Ištrinti neanalizuojamą kodą?",
+  "deleteWithCount": "Ištrinti ({count})",
+  "@deleteWithCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
       }
     }
   },
-  "hearUsWhereTitle": "Kaip išgirdote apie „Ente“? (nebūtina)",
-  "@hearUsWhereTitle": {
-    "description": "Title asking how user heard about Ente"
-  },
-  "hearUsExplanation": "Mes nesekame programų diegimų. Mums padėtų, jei pasakytumėte, kur mus radote.",
-  "@hearUsExplanation": {
-    "description": "Explanation for asking how user heard about Ente"
-  },
-  "signUpTerms": "Sutinku su <u-terms>paslaugų sąlygomis</u-terms> ir <u-policy> privatumo politika</u-policy>",
-  "@signUpTerms": {
-    "description": "Terms agreement text for sign up"
-  },
-  "termsOfServicesTitle": "Sąlygos",
-  "@termsOfServicesTitle": {
-    "description": "Terms of service title"
-  },
-  "privacyPolicyTitle": "Privatumo politika",
-  "@privacyPolicyTitle": {
-    "description": "Privacy policy title"
-  },
-  "ackPasswordLostWarning": "Suprantu, kad jei prarasiu slaptažodį, galiu prarasti savo duomenis, kadangi duomenys yra <underline>visapusiškai užšifruota</underline>.",
-  "@ackPasswordLostWarning": {
-    "description": "Warning about password loss"
-  },
-  "encryption": "Šifravimas",
-  "@encryption": {
-    "description": "Encryption label"
-  },
-  "logInLabel": "Prisijungti",
-  "@logInLabel": {
-    "description": "Log in button label"
-  },
-  "welcomeBack": "Sveiki sugrįžę!",
-  "@welcomeBack": {
-    "description": "Welcome back message"
-  },
-  "loginTerms": "Spustelėjus Prisijungti sutinku su <u-terms>paslaugų sąlygomis</u-terms> ir <u-policy> privatumo politika</u-policy>",
-  "@loginTerms": {
-    "description": "Terms agreement text for login"
-  },
-  "noInternetConnection": "Nėra interneto ryšio",
-  "@noInternetConnection": {
-    "description": "No internet connection error message"
-  },
-  "pleaseCheckYourInternetConnectionAndTryAgain": "Patikrinkite savo interneto ryšį ir bandykite dar kartą.",
-  "@pleaseCheckYourInternetConnectionAndTryAgain": {
-    "description": "Message asking user to check internet connection"
-  },
-  "verificationFailedPleaseTryAgain": "Patvirtinimas nepavyko. Bandykite dar kartą.",
-  "@verificationFailedPleaseTryAgain": {
-    "description": "Verification failed error message"
-  },
-  "recreatePasswordTitle": "Iš naujo sukurti slaptažodį",
-  "@recreatePasswordTitle": {
-    "description": "Title for recreate password dialog"
-  },
-  "recreatePasswordBody": "Dabartinis įrenginys nėra pakankamai galingas, kad patvirtintų jūsų slaptažodį, bet mes galime iš naujo sugeneruoti taip, kad jis veiktų su visais įrenginiais.\n\nPrisijunkite naudodami atkūrimo raktą ir sugeneruokite iš naujo slaptažodį (jei norite, galite vėl naudoti tą patį).",
-  "@recreatePasswordBody": {
-    "description": "Body text for recreate password dialog"
-  },
-  "useRecoveryKey": "Naudoti atkūrimo raktą",
-  "@useRecoveryKey": {
-    "description": "Use recovery key button label"
-  },
-  "forgotPassword": "Pamiršau slaptažodį",
-  "@forgotPassword": {
-    "description": "Forgot password link label"
-  },
-  "changeEmail": "Keisti el. paštą",
-  "@changeEmail": {
-    "description": "Change email button label"
-  },
-  "verifyEmail": "Patvirtinti el. paštą",
-  "@verifyEmail": {
-    "description": "Verify email title"
-  },
-  "weHaveSendEmailTo": "Išsiuntėme laišką adresu <green>{email}</green>.",
-  "@weHaveSendEmailTo": {
-    "description": "Text to indicate that we have sent a mail to the user",
-    "placeholders": {
-      "email": {
-        "description": "The email address of the user",
-        "type": "String",
-        "example": "example@ente.io"
-      }
-    }
-  },
-  "toResetVerifyEmail": "Kad iš naujo nustatytumėte slaptažodį, pirmiausia patvirtinkite savo el. paštą.",
-  "@toResetVerifyEmail": {
-    "description": "Message asking user to verify email before password reset"
-  },
-  "checkInboxAndSpamFolder": "Patikrinkite savo gautieją (ir šlamštą), kad užbaigtumėte patvirtinimą.",
-  "@checkInboxAndSpamFolder": {
-    "description": "Message asking user to check inbox and spam folder"
-  },
-  "tapToEnterCode": "Palieskite, kad įvestumėte kodą",
-  "@tapToEnterCode": {
-    "description": "Hint for entering verification code"
-  },
-  "sendEmail": "Siųsti el. laišką",
-  "resendEmail": "Iš naujo siųsti el. laišką",
-  "@resendEmail": {
-    "description": "Resend email button label"
-  },
-  "passKeyPendingVerification": "Vis dar laukiama patvirtinimo",
-  "@passKeyPendingVerification": {
-    "description": "Message when passkey verification is pending"
-  },
-  "loginSessionExpired": "Seansas baigėsi",
-  "@loginSessionExpired": {
-    "description": "Login session expired title"
-  },
-  "loginSessionExpiredDetails": "Jūsų seansas baigėsi. Prisijunkite iš naujo.",
-  "@loginSessionExpiredDetails": {
-    "description": "Login session expired details"
-  },
-  "passkeyAuthTitle": "Slaptarakčio patvirtinimas",
-  "@passkeyAuthTitle": {
-    "description": "Passkey authentication title"
-  },
-  "waitingForVerification": "Laukiama patvirtinimo...",
-  "@waitingForVerification": {
-    "description": "Waiting for verification message"
-  },
-  "tryAgain": "Bandyti dar kartą",
-  "@tryAgain": {
-    "description": "Try again button label"
-  },
-  "checkStatus": "Tikrinti būseną",
-  "@checkStatus": {
-    "description": "Check status button label"
-  },
-  "loginWithTOTP": "Prisijungti su TOTP",
-  "@loginWithTOTP": {
-    "description": "Login with TOTP button label"
-  },
-  "recoverAccount": "Atkurti paskyrą",
-  "@recoverAccount": {
-    "description": "Recover account button label"
-  },
-  "setPasswordTitle": "Nustatyti slaptažodį",
-  "@setPasswordTitle": {
-    "description": "Set password title"
-  },
-  "changePasswordTitle": "Keisti slaptažodį",
-  "@changePasswordTitle": {
-    "description": "Change password title"
-  },
-  "resetPasswordTitle": "Nustatyti slaptažodį iš naujo",
-  "@resetPasswordTitle": {
-    "description": "Reset password title"
-  },
-  "encryptionKeys": "Šifravimo raktai",
-  "@encryptionKeys": {
-    "description": "Encryption keys title"
-  },
-  "enterPasswordToEncrypt": "Įveskite slaptažodį, kurį galime naudoti jūsų duomenims užšifruoti",
-  "@enterPasswordToEncrypt": {
-    "description": "Prompt to enter password for encryption"
-  },
-  "enterNewPasswordToEncrypt": "Įveskite naują slaptažodį, kurį galime naudoti jūsų duomenims užšifruoti",
-  "@enterNewPasswordToEncrypt": {
-    "description": "Prompt to enter new password for encryption"
-  },
-  "passwordWarning": "Šio slaptažodžio nesaugome, todėl jei jį pamiršite, <underline>negalėsime iššifruoti jūsų duomenų</underline>",
-  "@passwordWarning": {
-    "description": "Warning about password storage"
-  },
-  "howItWorks": "Kaip tai veikia",
-  "@howItWorks": {
-    "description": "How it works button label"
-  },
-  "generatingEncryptionKeys": "Generuojami šifravimo raktai...",
-  "@generatingEncryptionKeys": {
-    "description": "Generating encryption keys message"
-  },
-  "passwordChangedSuccessfully": "Slaptažodis sėkmingai pakeistas",
-  "@passwordChangedSuccessfully": {
-    "description": "Password changed successfully message"
-  },
-  "signOutFromOtherDevices": "Atsijungti iš kitų įrenginių",
-  "@signOutFromOtherDevices": {
-    "description": "Sign out from other devices title"
-  },
-  "signOutOtherBody": "Jei manote, kad kas nors gali žinoti jūsų slaptažodį, galite priverstinai atsijungti iš visų kitų įrenginių, naudojančių jūsų paskyrą.",
-  "@signOutOtherBody": {
-    "description": "Sign out other devices explanation"
-  },
-  "signOutOtherDevices": "Atsijungti kitus įrenginius",
-  "@signOutOtherDevices": {
-    "description": "Sign out other devices button label"
-  },
-  "doNotSignOut": "Neatsijungti",
-  "@doNotSignOut": {
-    "description": "Do not sign out button label"
-  },
-  "generatingEncryptionKeysTitle": "Generuojami šifravimo raktai...",
-  "@generatingEncryptionKeysTitle": {
-    "description": "Generating encryption keys title"
-  },
-  "continueLabel": "Tęsti",
-  "@continueLabel": {
-    "description": "Continue button label"
-  },
-  "insecureDevice": "Nesaugus įrenginys",
-  "@insecureDevice": {
-    "description": "Insecure device warning title"
-  },
-  "sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": "Atsiprašome, šiame įrenginyje nepavyko sugeneruoti saugių raktų.\n\nRegistruokitės iš kito įrenginio.",
-  "@sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": {
-    "description": "Error message for insecure device"
-  },
-  "recoveryKeyCopiedToClipboard": "Nukopijuotas atkūrimo raktas į iškarpinę",
-  "@recoveryKeyCopiedToClipboard": {
-    "description": "Recovery key copied message"
-  },
-  "recoveryKey": "Atkūrimo raktas",
-  "@recoveryKey": {
-    "description": "Recovery key label"
-  },
-  "recoveryKeyOnForgotPassword": "Jei pamiršote slaptažodį, vienintelis būdas atkurti duomenis – naudoti šį raktą.",
-  "@recoveryKeyOnForgotPassword": {
-    "description": "Recovery key importance explanation"
-  },
-  "recoveryKeySaveDescription": "Šio rakto nesaugome, todėl išsaugokite šį 24 žodžių raktą saugioje vietoje.",
-  "@recoveryKeySaveDescription": {
-    "description": "Recovery key save description"
-  },
-  "doThisLater": "Daryti tai vėliau",
-  "@doThisLater": {
-    "description": "Do this later button label"
-  },
-  "saveKey": "Išsaugoti raktą",
-  "@saveKey": {
-    "description": "Save key button label"
-  },
-  "recoveryKeySaved": "Atkūrimo raktas išsaugotas atsisiuntimų aplanke.",
-  "@recoveryKeySaved": {
-    "description": "Recovery key saved confirmation message"
-  },
-  "noRecoveryKeyTitle": "Neturite atkūrimo rakto?",
-  "@noRecoveryKeyTitle": {
-    "description": "No recovery key title"
-  },
-  "twoFactorAuthTitle": "Dvigubas tapatybės nustatymas",
-  "@twoFactorAuthTitle": {
-    "description": "Two-factor authentication title"
-  },
-  "enterCodeHint": "Įveskite 6 skaitmenų kodą\niš autentifikatoriaus programos",
-  "@enterCodeHint": {
-    "description": "Hint for entering 2FA code"
-  },
-  "lostDeviceTitle": "Prarastas įrenginys?",
-  "@lostDeviceTitle": {
-    "description": "Lost device title"
-  },
-  "enterRecoveryKeyHint": "Įveskite atkūrimo raktą",
-  "@enterRecoveryKeyHint": {
-    "description": "Hint for entering recovery key"
-  },
-  "recover": "Atkurti",
-  "@recover": {
-    "description": "Recover button label"
-  },
-  "loggingOut": "Atsijungiama...",
-  "@loggingOut": {
-    "description": "Message shown while logging out"
-  },
-  "immediately": "Iš karto",
-  "@immediately": {
-    "description": "Immediately option for auto lock timing"
-  },
-  "appLock": "Programos užraktas",
-  "@appLock": {
-    "description": "App lock setting title"
-  },
-  "autoLock": "Automatinis užraktas",
-  "@autoLock": {
-    "description": "Auto lock setting title"
-  },
-  "noSystemLockFound": "Nerastas sistemos užraktas",
-  "@noSystemLockFound": {
-    "description": "Error when no system lock is found"
+  "deletingDash": "Ištrinama - ",
+  "deselectAll": "Naikinti visų pasirinkimą",
+  "designedForFamilies": "Sukurta šeimoms",
+  "details": "Išsami informacija",
+  "developerSettings": "Kūrėjo nustatymai",
+  "@developerSettings": {
+    "description": "Label for developer settings"
+  },
+  "developerSettingsWarning": "Ar tikrai norite modifikuoti kūrėjo nustatymus?",
+  "deviceInfo": "Įrenginio informacija",
+  "deviceLock": "Įrenginio užraktas",
+  "@deviceLock": {
+    "description": "Device lock option title"
   },
   "deviceLockEnablePreSteps": "Kad įjungtumėte įrenginio užraktą, sistemos nustatymuose nustatykite įrenginio prieigos kodą arba ekrano užraktą.",
   "@deviceLockEnablePreSteps": {
     "description": "Instructions for enabling device lock"
   },
-  "appLockDescription": "Pasirinkite tarp numatytojo įrenginio užrakinimo ekrano ir pasirinktinio užrakinimo ekrano su PIN kodu arba slaptažodžiu.",
-  "@appLockDescription": {
-    "description": "Description of app lock feature"
+  "deviceNotFound": "Įrenginys nerastas.",
+  "didYouKnow": "Ar žinojote?",
+  "digits": "Skaitmenys",
+  "disableBackup": "Išjungti atsaginės kopijos kūrimą",
+  "disableDownloadWarningBody": "Žiūrėtojai vis tiek gali daryti ekrano kopijas arba išsaugoti nuotraukų kopijas naudojant išorinius įrankius",
+  "disableDownloadWarningTitle": "Atkreipkite dėmesį",
+  "disableLinkMessage": "Tai pašalins viešą nuorodą, skirtą pasiekti „{albumName}“.",
+  "@disableLinkMessage": {
+    "placeholders": {
+      "albumName": {}
+    }
   },
-  "deviceLock": "Įrenginio užraktas",
-  "@deviceLock": {
-    "description": "Device lock option title"
+  "disableTwofactor": "Išjungti dvigubą tapatybės nustatymą",
+  "disablingTwofactorAuthentication": "Išjungiamas dvigubas tapatybės nustatymas...",
+  "discardEditsQuestion": "Atmesti redagavimus?",
+  "discover": "Atraskite",
+  "@discover": {
+    "description": "The text to display for the discover section under which we show receipts, screenshots, sunsets, greenery, etc."
   },
-  "pinLock": "PIN užraktas",
-  "@pinLock": {
-    "description": "PIN lock option title"
+  "discover_babies": "Kūdikiai",
+  "discover_celebrations": "Šventės",
+  "discover_food": "Maistas",
+  "discover_greenery": "Žaluma",
+  "discover_hills": "Kalvos",
+  "discover_identity": "Tapatybė",
+  "discover_memes": "Mėmai",
+  "discover_notes": "Užrašai",
+  "discover_pets": "Gyvūnai",
+  "discover_qr_codes": "QR kodai",
+  "discover_receipts": "Kvitai",
+  "discover_screenshots": "Ekrano kopijos",
+  "discover_selfies": "Asmenukės",
+  "discover_sunset": "Saulėlydis",
+  "discover_visiting_cards": "Lankymo kortelės",
+  "discover_wallpapers": "Ekrano fonai",
+  "dismiss": "Atmesti",
+  "distanceInKMUnit": "km",
+  "@distanceInKMUnit": {
+    "description": "Unit for distance in km"
   },
-  "autoLockFeatureDescription": "Laikas, po kurio programa užrakinama perkėlus ją į foną.",
-  "@autoLockFeatureDescription": {
-    "description": "Description of auto lock feature"
+  "documentSearchHint": "Ieškokite savo dokumentų",
+  "doesGroupContainMultiplePeople": "Ar šiame grupavime yra keli asmenys?",
+  "dog": "Šuo",
+  "done": "Atlikta",
+  "doNotSignOut": "Neatsijungti",
+  "@doNotSignOut": {
+    "description": "Do not sign out button label"
   },
-  "hideContent": "Slėpti turinį",
-  "@hideContent": {
-    "description": "Hide content setting title"
+  "dontHaveAnAccount": "Neturite paskyros?",
+  "dontSave": "Neišsaugoti",
+  "doubleTapToViewHiddenCode": "Galite dukart paliesti elementą, kad peržiūrėtumėte kodą",
+  "download": "Atsisiųsti",
+  "downloadFailed": "Atsisiuntimas nepavyko.",
+  "downloading": "Atsisiunčiama...",
+  "downloadUpdate": "Atsisiųsti",
+  "doYouWantToDiscardTheEditsYouHaveMade": "Ar norite atmesti atliktus pakeitimus?",
+  "draw": "Piešti",
+  "dropSupportEmail": "Iš savo registruoto el. pašto adreso atsiųskite el. laišką adresu {supportEmail}",
+  "@dropSupportEmail": {
+    "placeholders": {
+      "supportEmail": {
+        "description": "The support email address",
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
   },
-  "hideContentDescriptionAndroid": "Paslepia programų turinį programų perjungiklyje ir išjungia ekrano kopijas.",
-  "@hideContentDescriptionAndroid": {
-    "description": "Description of hide content feature on Android"
+  "duplicateCodes": "Dubliuoti kodai",
+  "duplicateFileCountWithStorageSaved": "Išvalėte {count, plural, one{{count} dubliuojantį failą} other{{count} dubliuojančių failų}}, išsaugodami ({storageSaved})",
+  "@duplicateFileCountWithStorageSaved": {
+    "description": "The text to display when the user has successfully cleaned up duplicate files",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "1",
+        "type": "int"
+      },
+      "storageSaved": {
+        "example": "1.2 GB",
+        "type": "String"
+      }
+    }
   },
-  "hideContentDescriptioniOS": "Paslepia programos turinį programos perjungiklyje.",
-  "@hideContentDescriptioniOS": {
-    "description": "Description of hide content feature on iOS"
+  "duplicateItemsGroup": "{count} failai (-ų), kiekvienas {formattedSize}",
+  "@duplicateItemsGroup": {
+    "description": "Display the number of duplicate files and their size",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "12",
+        "type": "int"
+      },
+      "formattedSize": {
+        "example": "2.3 MB",
+        "type": "String"
+      }
+    }
   },
-  "tooManyIncorrectAttempts": "Per daug neteisingų bandymų.",
-  "@tooManyIncorrectAttempts": {
-    "description": "Message shown when too many incorrect attempts are made"
+  "earnFreeStorage": "Gaukite nemokamos saugyklos",
+  "edit": "Redaguoti",
+  "editAutoAddPeople": "Redaguoti automatiškai įtrauktus asmenis",
+  "editCodeAuthMessage": "Nustatykite tapatybę, kad redaguotumėte kodą.",
+  "editDetails": "Redaguoti išsamią informaciją",
+  "editEmailAlreadyLinked": "Šis el. paštas jau susietas su {name}.",
+  "@editEmailAlreadyLinked": {
+    "placeholders": {
+      "name": {}
+    }
   },
-  "tapToUnlock": "Palieskite, kad atrakintumėte",
-  "@tapToUnlock": {
-    "description": "Message prompting user to tap to unlock"
+  "editLocation": "Redaguoti vietovę",
+  "editOrder": "Redaguoti tvarką",
+  "editPerson": "Redaguoti asmenį",
+  "editsSaved": "Redagavimai išsaugoti",
+  "editsToLocationWillOnlyBeSeenWithinEnte": "Vietovės pakeitimai bus matomi tik per „Ente“",
+  "editStorageLimit": "Redaguoti saugyklos ribą",
+  "editTag": "Redaguoti žymę",
+  "editTime": "Redaguoti laiką",
+  "eligible": "tinkamas",
+  "email": "El. paštas",
+  "@email": {
+    "description": "Email field label"
   },
-  "areYouSureYouWantToLogout": "Ar tikrai norite atsijungti?",
-  "@areYouSureYouWantToLogout": {
-    "description": "Confirmation message before logout"
-  },
-  "yesLogout": "Taip, atsijungti",
-  "@yesLogout": {
-    "description": "Confirmation button for logout"
-  },
-  "authToViewSecrets": "Nustatykite tapatybę, kad peržiūrėtumėte savo paslaptis",
-  "@authToViewSecrets": {
-    "description": "Message prompting authentication to view secrets"
-  },
-  "next": "Toliau",
-  "@next": {
-    "description": "Next button label"
-  },
-  "setNewPassword": "Nustatykite naują slaptažodį",
-  "@setNewPassword": {
-    "description": "Set new password title"
-  },
-  "enterPin": "Įveskite PIN",
-  "@enterPin": {
-    "description": "Enter PIN prompt"
-  },
-  "setNewPin": "Nustatykite naują PIN",
-  "@setNewPin": {
-    "description": "Set new PIN title"
-  },
-  "confirm": "Patvirtinti",
-  "@confirm": {
-    "description": "Confirm button label"
-  },
-  "reEnterPassword": "Įveskite slaptažodį iš naujo",
-  "@reEnterPassword": {
-    "description": "Re-enter password prompt"
-  },
-  "reEnterPin": "Įveskite PIN iš naujo",
-  "@reEnterPin": {
-    "description": "Re-enter PIN prompt"
-  },
-  "androidBiometricHint": "Patvirtinkite tapatybę",
-  "@androidBiometricHint": {
-    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricNotRecognized": "Neatpažinta. Bandykite dar kartą.",
-  "@androidBiometricNotRecognized": {
-    "description": "Message to let the user know that authentication was failed. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricSuccess": "Sėkmė",
-  "@androidBiometricSuccess": {
-    "description": "Message to let the user know that authentication was successful. It is used on Android side. Maximum 60 characters."
-  },
-  "androidCancelButton": "Atšaukti",
-  "@androidCancelButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
-  },
-  "androidSignInTitle": "Privalomas tapatybės nustatymas",
-  "@androidSignInTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricRequiredTitle": "Privaloma biometrija",
-  "@androidBiometricRequiredTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user has not set up biometric authentication on their device. It is used on Android side. Maximum 60 characters."
-  },
-  "androidDeviceCredentialsRequiredTitle": "Privalomi įrenginio kredencialai",
-  "@androidDeviceCredentialsRequiredTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user has not set up credentials authentication on their device. It is used on Android side. Maximum 60 characters."
-  },
-  "androidDeviceCredentialsSetupDescription": "Privalomi įrenginio kredencialai",
-  "@androidDeviceCredentialsSetupDescription": {
-    "description": "Message advising the user to go to the settings and configure device credentials on their device. It shows in a dialog on Android side."
-  },
-  "goToSettings": "Eiti į nustatymus",
-  "@goToSettings": {
-    "description": "Message showed on a button that the user can click to go to settings pages from the current dialog. It is used on both Android and iOS side. Maximum 30 characters."
-  },
-  "androidGoToSettingsDescription": "Biometrinis tapatybės nustatymas jūsų įrenginyje nenustatytas. Eikite į Nustatymai > Saugumas ir pridėkite biometrinį tapatybės nustatymą.",
-  "@androidGoToSettingsDescription": {
-    "description": "Message advising the user to go to the settings and configure biometric on their device. It shows in a dialog on Android side."
-  },
-  "iOSLockOut": "Biometrinis tapatybės nustatymas išjungtas. Kad jį įjungtumėte, užrakinkite ir atrakinkite ekraną.",
-  "@iOSLockOut": {
-    "description": "Message advising the user to re-enable biometrics on their device. It shows in a dialog on iOS side."
-  },
-  "iOSOkButton": "Gerai",
-  "@iOSOkButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on iOS side. Maximum 30 characters."
-  },
+  "emailAddress": "El. pašto adresas",
   "emailAlreadyRegistered": "El. paštas jau užregistruotas.",
   "@emailAlreadyRegistered": {
     "description": "Error message when email is already registered"
-  },
-  "emailNotRegistered": "El. paštas neregistruotas.",
-  "@emailNotRegistered": {
-    "description": "Error message when email is not registered"
-  },
-  "thisEmailIsAlreadyInUse": "Šis el. paštas jau naudojamas.",
-  "@thisEmailIsAlreadyInUse": {
-    "description": "Error message when email is already in use"
   },
   "emailChangedTo": "El. paštas pakeistas į {newEmail}",
   "@emailChangedTo": {
@@ -661,60 +874,2404 @@
       }
     }
   },
-  "authenticationFailedPleaseTryAgain": "Tapatybės nustatymas nepavyko. Bandykite dar kartą.",
-  "@authenticationFailedPleaseTryAgain": {
-    "description": "Error message when authentication fails"
+  "emailHint": "Įveskite savo el. pašto adresą",
+  "emailNoEnteAccountPhotos": "{email} neturi „Ente“ paskyros.\n\nSiųskite jiems kvietimą bendrinti nuotraukas.",
+  "@emailNoEnteAccountPhotos": {
+    "placeholders": {
+      "email": {}
+    }
   },
-  "authenticationSuccessful": "Tapatybės nustatymas sėkmingas.",
-  "@authenticationSuccessful": {
-    "description": "Success message when authentication is successful"
+  "emailNotRegistered": "El. paštas neregistruotas.",
+  "@emailNotRegistered": {
+    "description": "Error message when email is not registered"
   },
-  "sessionExpired": "Seansas baigėsi",
-  "@sessionExpired": {
-    "description": "Error message when session has expired"
+  "emailUsMessage": "Siųskite el. laišką mums adresu {email}",
+  "@emailUsMessage": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "emailVerificationEnableWarning": "Kad išvengtumėte paskyros užrakinimo, prieš įjungdami el. pašto patvirtinimą būtinai išsaugokite savo el. pašto 2FA kopiją už „Ente Auth“ ribų.",
+  "emailVerificationToggle": "El. pašto patvirtinimas",
+  "emailYourLogs": "Atsiųskite žurnalus el. laišku",
+  "@emailYourLogs": {
+    "description": "Title for emailing logs dialog"
+  },
+  "embracingThem": "Apkabinat {name}",
+  "@embracingThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "empty": "Ištuštinti",
+  "emptyTrashQuestion": "Ištuštinti šiukšlinę?",
+  "enable": "Įjungti",
+  "enableAutomaticBackups": "Automatinis atsarginių kopijų kūrimas",
+  "enableBackupsIosInstruction": "Kad įjungtumėte atsargines kopijas sistemoje „iOS“, pasirinkite aplanką programoje „Failai“ (pavyzdžiui, „Mano įrenginyje „iPhone“).",
+  "enabled": "Įjungta",
+  "enableMaps": "Įjungti žemėlapius",
+  "encrypted": "Užšifruota",
+  "encryptingBackup": "Šifruojama atsarginė kopija...",
+  "encryptionKeys": "Šifravimo raktai",
+  "@encryptionKeys": {
+    "description": "Encryption keys title"
+  },
+  "endpointUpdatedMessage": "Galutinis taškas sėkmingai atnaujintas",
+  "@endpointUpdatedMessage": {
+    "description": "Success message when endpoint is updated"
+  },
+  "enteAuth": "„Ente Auth“",
+  "@enteAuth": {
+    "description": "Product name"
+  },
+  "enterAlbumName": "Įveskite albumo pavadinimą",
+  "enterAValidEmailAddress": "Įveskite tinkamą el. pašto adresą",
+  "enterCode": "Įvesti kodą",
+  "enterCodeDescription": "Įveskite draugo pateiktą kodą, kad gautumėte nemokamą saugyklą abiem.",
+  "enterCodeHint": "Įveskite 6 skaitmenų kodą\niš savo autentifikatoriaus programos.",
+  "@enterCodeHint": {
+    "description": "Hint for entering 2FA code"
+  },
+  "enterDetailsManually": "Įvesti duomenis rankiniu būdu",
+  "enterEmail": "Įveskite el. paštą",
+  "enterFileName": "Įveskite failo pavadinimą",
+  "enterName": "Įveskite vardą",
+  "enterNewEmailHint": "Įveskite savo naują el. pašto adresą",
+  "@enterNewEmailHint": {
+    "description": "Hint text for entering new email address"
+  },
+  "enterPassword": "Įveskite slaptažodį",
+  "@enterPassword": {
+    "description": "Enter password field label"
+  },
+  "enterPasswordToAegisVault": "Įveskite slaptažodį į „Aegis“ saugyklą.",
+  "enterPasswordToDecrypt2FASBackup": "Įveskite slaptažodį, kad iššifruotumėte „2FAS“ atsarginę kopiją",
+  "enterPasswordToDecryptAndOTP": "Įveskite slaptažodį, kad iššifruotumėte „andOTP“ atsarginę kopiją.",
+  "enterRecoveryKeyHint": "Įveskite atkūrimo raktą",
+  "@enterRecoveryKeyHint": {
+    "description": "Hint for entering recovery key"
+  },
+  "enterReferralCode": "Įveskite rekomendacijos kodą",
+  "enterThe6digitCodeFromnyourAuthenticatorApp": "Įveskite 6 skaitmenų kodą\niš savo autentifikatoriaus programos.",
+  "enterValidEmail": "Įveskite tinkamą el. pašto adresą.",
+  "enterYourNewEmailAddress": "Įveskite savo naują el. pašto adresą",
+  "enterYourPassword": "Įveskite savo slaptažodį",
+  "enterYourPasswordHint": "Įveskite savo slaptažodį",
+  "@enterYourPasswordHint": {
+    "description": "Hint for password field"
+  },
+  "enterYourRecoveryKey": "Įveskite atkūrimo raktą",
+  "error": "Klaida",
+  "@error": {
+    "description": "Generic error title"
+  },
+  "errorGenericBody": "Importuojant įvyko netikėta klaida.",
+  "errorGenericTitle": "Įvyko klaida",
+  "errorInvalidQRCodeBody": "Nuskenuotas QR kodas nėra tinkama 2FA paskyra.",
+  "errorNoQRCode": "QR kodas nerastas.",
+  "exif": "EXIF",
+  "expiredLinkInfo": "Ši nuoroda nebegalioja. Pasirinkite naują galiojimo laiką arba išjunkite nuorodos galiojimo laiką.",
+  "export": "Eksportuoti",
+  "exportCodes": "Eksportuoti kodus",
+  "exportDialogDesc": "Užšifruoti eksportai bus apsaugoti jūsų pasirinktu slaptažodžiu.",
+  "exportLogs": "Eksportuoti žurnalus",
+  "@exportLogs": {
+    "description": "Button to export logs"
+  },
+  "exportWarningDesc": "Eksportuotas failas turi slaptos informacijos. Saugokite tai saugiai.",
+  "exportYourData": "Eksportuoti duomenis",
+  "extraPhotosFound": "Rastos papildomos nuotraukos",
+  "faceNotClusteredYet": "Veidas dar nesugrupuotas. Grįžkite vėliau.",
+  "facesTimelineCaptionYearsAgo": "{count, plural, zero {dabar} one {prieš # metus} few {prieš # metus} many {prieš # metų} other {prieš # metų}}",
+  "@facesTimelineCaptionYearsAgo": {
+    "description": "Caption for frames when birthdate is unknown, expressing time difference",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "Years ago"
+      }
+    }
+  },
+  "faceThumbnailGenerationFailed": "Nepavyksta sugeneruoti veido miniatiūrų.",
+  "failedToApplyCode": "Nepavyko pritaikyti kodo.",
+  "failedToCancel": "Nepavyko atsisakyti",
+  "failedToDecrypt2FASExport": "Nepavyko iššifruoti „2FAS“ eksporto.",
+  "failedToDecryptAegisVault": "Nepavyko iššifruoti „Aegis“ saugyklos.",
+  "failedToDecryptAndOTPBackup": "Nepavyko iššifruoti „andOTP“ atsarginę kopiją.",
+  "failedToDeleteComment": "Nepavyko ištrinti komentaro.",
+  "@failedToDeleteComment": {
+    "description": "Toast when comment deletion fails"
+  },
+  "failedToDownloadVideo": "Nepavyko atsisiųsti vaizdo įrašo.",
+  "failedToFetchActiveSessions": "Nepavyko gauti aktyvių seansų.",
+  "@failedToFetchActiveSessions": {
+    "description": "In session page, warn user (in toast) that active sessions could not be fetched."
+  },
+  "failedToFetchOriginalForEdit": "Nepavyko gauti originalo redagavimui.",
+  "failedToFetchReferralDetails": "Nepavyksta gauti rekomendacijos išsamios informacijos. Bandykite dar kartą vėliau.",
+  "failedToLikeAlbums": "{count, plural, one{Nepavyko patikti {count} albumo} few{Nepavyko patikti {count} albumų} many{Nepavyko patikti {count} albumo} other{Nepavyko patikti {count} albumų}}",
+  "@failedToLikeAlbums": {
+    "description": "Error when liking albums fails",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "failedToLikeComment": "Nepavyko patikti komentaro.",
+  "@failedToLikeComment": {
+    "description": "Toast when comment like fails"
+  },
+  "failedToLoadAlbums": "Nepavyko įkelti albumų.",
+  "failedToRefreshStripeSubscription": "Nepavyko atnaujinti prenumeratos.",
+  "failedToRenew": "Nepavyko pratęsti.",
+  "failedToUpdateLike": "Nepavyko atnaujinti patiktuko.",
+  "@failedToUpdateLike": {
+    "description": "Toast when like update fails"
+  },
+  "failedToVerifyPaymentStatus": "Nepavyko patvirtinti mokėjimo būsenos",
+  "family": "Šeima",
+  "familyMoments": "Šeimos laikas",
+  "faq": "DUK",
+  "@faq": {
+    "description": "FAQ link label"
+  },
+  "faqs": "DUK",
+  "fasterUploads": "Spartesni įkėlimai",
+  "favorite": "Pamėgti",
+  "feastingWithThem": "Vaišiavimas su {name}",
+  "@feastingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "featureBackupCodes": "Visapusiškai šifruotas\natsarginės kopijos kūrimas ir sinchronizavimas",
+  "featureOpenSource": "Atviro kodo ir\naudituota saugumo ekspertų",
+  "featureSearchEtc": "Paieška, žymės, bendrinimas,\nsekantis kodas ir daug daugiau",
+  "feed": "Srautas",
+  "festivities": "Šventinė nuotaika",
+  "fileAnalysisFailed": "Nepavyksta išanalizuoti failo.",
+  "fileInfoAddDescHint": "Pridėti aprašymą...",
+  "fileNotUploadedYet": "Failas dar neįkeltas.",
+  "files": "Failai",
+  "@files": {
+    "description": "Section header for file-related search results"
+  },
+  "fileSavedToGallery": "Failas išsaugotas į galeriją",
+  "filesDeleted": "Failai ištrinti",
+  "filesSavedToGallery": "Failai išsaugoti į galeriją",
+  "fileTypes": "Failų tipai",
+  "filter": "Filtruoti",
+  "filters": "Filtrai",
+  "findingSimilarImages": "Randama panašių vaizdų...",
+  "findSimilarImages": "Rasti panašų vaizdų",
+  "findThemQuickly": "Raskite juos sparčiai",
+  "@findThemQuickly": {
+    "description": "Subtitle to indicate that the user can find people quickly by name"
+  },
+  "flip": "Apversti",
+  "focusOnSearchBar": "Fokusuoti paiešką paleidžiant programą",
+  "font": "Šriftas",
+  "food": "Kulinarinis malonumas",
+  "forgotPassword": "Pamiršau slaptažodį",
+  "@forgotPassword": {
+    "description": "Forgot password link label"
+  },
+  "forgotRecoveryKey": "Pamiršote atkūrimo raktą?",
+  "free10GB": "10 GB nemokamai programai „<bold-green>ente</bold-green>“ nuotraukos",
+  "freeStorageOffer": "10 % nuolaida programai „<bold-green>ente</bold-green>“ nuotraukos",
+  "freeStorageOfferDescription": "Naudokite kodą „AUTH“, kad gautumėte 10 % nuolaidą pirmiesiems metams. ",
+  "freeTrial": "Nemokamas bandomasis laikotarpis",
+  "freeUpAmount": "Atlaisvinti {sizeInMBorGB}",
+  "@freeUpAmount": {
+    "placeholders": {
+      "sizeInMBorGB": {}
+    }
+  },
+  "freeUpDeviceSpace": "Atlaisvinti įrenginio vietą",
+  "freeUpDeviceSpaceDesc": "Pašalinkite sukurtas elementų atsargines kopijas.",
+  "freeUpDeviceSpaceDescICloud": "Failų debesyje „iCloud“ bendrintų albumų negalima ištrinti.",
+  "@freeUpDeviceSpaceDescICloud": {
+    "description": "Here 'cleared' means 'deleted' from the device"
+  },
+  "freeUpSpace": "Atlaisvinti vietos",
+  "gallery": "Galerija",
+  "galleryMemoryLimitInfo": "Galerijoje rodoma iki 1000 prisiminimų",
+  "general": "Bendrieji",
+  "generatingEncryptionKeys": "Generuojami šifravimo raktai...",
+  "@generatingEncryptionKeys": {
+    "description": "Generating encryption keys message"
+  },
+  "generatingEncryptionKeysTitle": "Generuojami šifravimo raktai...",
+  "@generatingEncryptionKeysTitle": {
+    "description": "Generating encryption keys title"
+  },
+  "getStarted": "Pradėti",
+  "gettingReady": "Pasirengiama",
+  "giveUsAStarOnGithub": "Suteikite mums žvaigždutę platformoje „GitHub“",
+  "googlePlayId": "„Google Play“ ID",
+  "grantFullAccessPrompt": "Leiskite prieigą prie visų nuotraukų nustatymų programoje.",
+  "grantGalleryPermissionDesc": "Suteikite leidimą pasiekti ir tvarkyti nuotraukas su veido atpažinimu. Visas apdorojimas vyksta jūsų įrenginyje.",
+  "grantGalleryPermissionTitle": "Suraskime jūsų mėgstamiausius",
+  "grantPermission": "Suteikti leidimą",
+  "grantPermissionDesc": "Leiskite „Ente“ pasiekti jūsų biblioteką, kad galėtume ją sutvarkyti su veido atpažinimu. Visas apdorojimas vyksta jūsų įrenginyje.",
+  "greenery": "Žaliasis gyvenimas",
+  "groupBy": "Grupuoti pagal",
+  "groupByDay": "Dieną",
+  "groupByMonth": "Mėnesį",
+  "groupByWeek": "Savaitę",
+  "groupByYear": "Metus",
+  "guestView": "Svečio peržiūra",
+  "guestViewEnablePreSteps": "Kad įjungtumėte svečio peržiūrą, sistemos nustatymuose nustatykite įrenginio prieigos kodą arba ekrano užraktą.",
+  "happyBirthday": "Su gimtadieniu! 🥳",
+  "hearUsWhereOptionalTitle": "Kaip išgirdote apie „Ente“? (nebūtina)",
+  "@hearUsWhereOptionalTitle": {
+    "description": "Title asking how user heard about Ente"
+  },
+  "hearUsWhereTitle": "Kaip išgirdote apie „Ente“?",
+  "help": "Pagalba",
+  "helpAndSupport": "Pagalba ir palaikymas",
+  "hidden": "Paslėpti",
+  "hide": "Slėpti",
+  "hideContent": "Slėpti turinį",
+  "@hideContent": {
+    "description": "Hide content setting title"
+  },
+  "hideContentDescriptionAndroid": "Paslepia programų turinį programų perjungiklyje ir išjungia ekrano kopijas",
+  "@hideContentDescriptionAndroid": {
+    "description": "Description of hide content feature on Android"
+  },
+  "hideContentDescriptioniOS": "Paslepia programos turinį programos perjungiklyje.",
+  "@hideContentDescriptioniOS": {
+    "description": "Description of hide content feature on iOS"
+  },
+  "hideSharedItemsFromHomeGallery": "Slėpti bendrinamus elementus iš pagrindinės galerijos",
+  "hiding": "Slepiama...",
+  "hikingWithThem": "Žygiavimas su {name}",
+  "@hikingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "hintForDesktop": "Dešiniuoju pelės mygtuku spustelėkite kodą, kad jį redaguotumėte arba pašalintumėte.",
+  "hintForMobile": "Ilgai paspauskite kodą, kad jį redaguotumėte arba pašalintumėte.",
+  "hoorayyyy": "Puiiiiku!",
+  "hostedAtOsmFrance": "Talpinama OSM Prancūzijoje",
+  "howItWorks": "Kaip tai veikia",
+  "@howItWorks": {
+    "description": "How it works button label"
+  },
+  "howToViewShareeVerificationID": "Paprašykite jų ilgai paspausti savo el. pašto adresą nustatymų ekrane ir patvirtinti, kad abiejų įrenginių ID sutampa.",
+  "ignore": "Ignoruoti",
+  "ignored": "ignoruota",
+  "ignorePerson": "Ignoruoti asmenį",
+  "imageEditorBrightness": "Skaistumas",
+  "imageEditorContrast": "Kontrastas",
+  "imageEditorExposure": "Išlaikymas",
+  "imageEditorFade": "Blukimas",
+  "imageEditorHue": "Atspalvis",
+  "imageEditorSaturation": "Grynis",
+  "imageEditorTemperature": "Temperatūra",
+  "imageNotAnalyzed": "Vaizdas neanalizuotas.",
+  "immediately": "Iš karto",
+  "@immediately": {
+    "description": "Immediately option for auto lock timing"
+  },
+  "import2FasGuide": "Naudokite programoje „2FAS“ esančią parinktį „Settings“ (nustatymai) -> „2FAS Backup“ („2FAS“ atsarginė kopija)-> „Export to file“ (eksportuoti į failą).\n\nJei atsarginė kopija užšifruota, turėsite įvesti slaptažodį, kad iššifruotumėte atsarginę kopiją.",
+  "importAccountPageTitle": "Įvesti paskyros duomenis",
+  "importAegisGuide": "Naudokite „Aegis“ nustatymuose esančią parinktį Eksportuoti slėptuvę.\n\nJei jūsų saugykla užšifruota, turėsite įvesti saugyklos slaptažodį, kad iššifruotumėte saugyklą.",
+  "importAndOTPGuide": "Eksportuokite savo atsarginę kopiją iš „andOTP“ naudojant parinktį „Backup“ nustatymuose.\n\nJei atsarginė kopija užšifruota, turėsite įvesti atsarginės kopijos slaptažodį, kad ją iššifruotumėte.",
+  "importBitwardenGuide": "Naudokite „Bitwarden“ įrankiuose esančią parinktį Eksportuoti saugyklą ir importuokite nešifruotą JSON failą.",
+  "importCodeDelimiterInfo": "Kodus galima atskirti kableliu arba nauja eilute.",
+  "importCodes": "Importuoti kodus",
+  "importEnteEncGuide": "Pasirinkite užšifruotą JSON failą, eksportuotą iš „Ente“",
+  "importEnterSetupKey": "Įvesti sąrankos raktą",
+  "importFailureDesc": "Nepavyko išanalizuoti pasirinkto failo.",
+  "importFromGallery": "Importuoti iš galerijos",
+  "importGoogleAuthConfirmation": "{codeCount, plural, one{Importuoti {codeCount} kodą iš „Google“ autentifikavimas“?} few{Importuoti {codeCount} kodus iš „Google“ autentifikavimas“?} many{Importuoti {codeCount} kodo iš „Google“ autentifikavimas“?} other{Importuoti {codeCount} kodų iš „Google“ autentifikavimas“?}}",
+  "@importGoogleAuthConfirmation": {
+    "placeholders": {
+      "codeCount": {
+        "description": "The number of Google Authenticator codes to import",
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "importGoogleAuthGuide": "Eksportuokite savo paskyras iš „Google“ autentifikavimas“ į QR kodą naudodami parinktį Perkelti paskyras. Tada nuskenuokite QR kodą arba importuokite jį iš vaizdo.",
+  "importInstruction": "Pasirinkite failą, kuriame yra tokio formato jūsų kodų sąrašas",
+  "importLabel": "Importuoti",
+  "importLastpassGuide": "Naudokite „Lastpass Authenticator“ nustatymuose esančią parinktį „Transfer accounts“ (perkelti paskyras) ir paspauskite „Export accounts to file“ (eksportuoti paskyras į failą). Importuokite atsisiųstą JSON failą.",
+  "importOtpAuthGuide": "Eksportuokite šifruotą atsarginę kopiją iš „OTP Auth“, tada pasirinkite .otpauthdb arba .otpauthdp failą. Taip pat palaikomas vienos paskyros .otpauth eksportai.",
+  "importProtonAuthGuide": "Naudokite „Proton Authenticator“ nustatymuose esančią parinktį „Export“ (eksportuoti), kad eksportuotumėte savo kodus.\n\nJei eksportuotas failas apsaugotas slaptažodžiu, turėsite įvesti, kad jį iššifruotumėte.",
+  "importRaivoGuide": "Naudokite „Raivo“ nustatymuose esančią parinktį „Export OTPs to Zip archive“ (eksportuoti OTP į ZIP archyvą).\n\nIšskleiskite ZIP failą ir importuokite JSON failą.",
+  "importSelectAppExport": "Pasirinkti „{appName}“ eksporto failą",
+  "@importSelectAppExport": {
+    "placeholders": {
+      "appName": {}
+    }
+  },
+  "importSelectJsonFile": "Pasirinkti JSON failą",
+  "importSuccessDesc": "Importavote {count} kodus (-ų).",
+  "@importSuccessDesc": {
+    "placeholders": {
+      "count": {
+        "description": "The number of codes imported",
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "importSuccessTitle": "Valio!",
+  "importTypeEnteEncrypted": "„Ente“ užšifruotas eksportas",
+  "incorrectCode": "Neteisingas kodas",
+  "@incorrectCode": {
+    "description": "Error message when code is incorrect"
+  },
+  "incorrectDetails": "Neteisingi duomenys",
+  "incorrectPasswordTitle": "Neteisingas slaptažodis",
+  "@incorrectPasswordTitle": {
+    "description": "Title for incorrect password error"
   },
   "incorrectRecoveryKey": "Neteisingas atkūrimo raktas",
   "@incorrectRecoveryKey": {
     "description": "Error message when recovery key is incorrect"
   },
-  "theRecoveryKeyYouEnteredIsIncorrect": "Įvestas atkūrimo raktas yra neteisingas.",
-  "@theRecoveryKeyYouEnteredIsIncorrect": {
-    "description": "Detailed error message when recovery key is incorrect"
+  "incorrectRecoveryKeyBody": "Įvestas atkūrimo raktas yra neteisingas.",
+  "incorrectRecoveryKeyTitle": "Neteisingas atkūrimo raktas",
+  "indexingPausedStatusDescription": "Apdorojimas pristabdytas. Jis bus automatiškai tęsiamas, kai įrenginys bus parengtas. Įrenginys laikomas parengtu, kai jo akumuliatoriaus įkrovos lygis, akumuliatoriaus būklė ir temperatūra yra normalios ribose.",
+  "info": "Informacija",
+  "informationTypes": "Informacijos tipai",
+  "initialBackupCreated": "Pradinė atsarginė kopija sukurta.",
+  "insecureDevice": "Nesaugus įrenginys",
+  "@insecureDevice": {
+    "description": "Insecure device warning title"
   },
-  "twofactorAuthenticationSuccessfullyReset": "Dvigubas tapatybės nustatymas sėkmingai iš naujo nustatytas.",
-  "@twofactorAuthenticationSuccessfullyReset": {
-    "description": "Message when two-factor authentication is successfully reset"
+  "invalidEmailAddress": "Netinkamas el. pašto adresas",
+  "invalidEmailMessage": "Įveskite tinkamą el. pašto adresą.",
+  "@invalidEmailMessage": {
+    "description": "Message for invalid email error dialog"
   },
-  "yourVerificationCodeHasExpired": "Jūsų patvirtinimo kodas nebegaliojantis.",
-  "@yourVerificationCodeHasExpired": {
-    "description": "Error message when verification code has expired"
+  "invalidEmailTitle": "Netinkamas el. pašto adresas",
+  "@invalidEmailTitle": {
+    "description": "Title for invalid email error dialog"
   },
-  "incorrectCode": "Neteisingas kodas",
-  "@incorrectCode": {
-    "description": "Error message when code is incorrect"
+  "invalidEndpoint": "Netinkamas galutinis taškas",
+  "@invalidEndpoint": {
+    "description": "Error message when endpoint is invalid"
   },
+  "invalidEndpointMessage": "Atsiprašome, įvestas galutinis taškas netinkamas. Įveskite tinkamą galutinį tašką ir bandykite dar kartą.",
+  "@invalidEndpointMessage": {
+    "description": "Detailed error message when endpoint is invalid"
+  },
+  "invalidKey": "Netinkamas raktas.",
+  "invalidProtonExportMessage": "Pasirinktas failas nėra tinkamas „Proton Authenticator“ eksportas.",
+  "invalidProtonExportTitle": "Netinkamas „Proton“ eksportas",
+  "invalidQRCode": "Netinkamas QR kodas",
+  "invalidRecoveryKey": "Įvestas atkūrimo raktas yra netinkamas. Įsitikinkite, kad jame yra 24 žodžiai, ir patikrinkite kiekvieno iš jų rašybą.\n\nJei įvedėte senesnį atkūrimo kodą, įsitikinkite, kad jis yra 64 simbolių ilgio, ir patikrinkite kiekvieną iš jų.",
+  "invalidReferralCode": "Netinkamas kodas.",
+  "invite": "Kviesti",
+  "inviteMembers": "Kviesti narius",
+  "inviteToEnte": "Kviesti į „Ente“",
+  "ok": "Gerai",
+  "@ok": {
+    "description": "Generic OK button label"
+  },
+  "iosOnMyDeviceNotSupported": "„Mano įrenginyje „iPhone“ negali būti naudojamas tiesiogiai. Pasirinkite arba sukurkite aplanką jo viduje.",
+  "itemCount": "{count, plural, one{{count} elementas} other{{count} elementų}}",
+  "@itemCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "itemsShowTheNumberOfDaysRemainingBeforePermanentDeletion": "Elementai rodo likusių dienų skaičių iki visiško ištrynimo.",
+  "itemsWillBeDeletedFromAllCollections": "{count, plural, one {Šis elementas bus ištrintas iš visų kolekcijų. Jį galite atkurti iš šiukšlinės.} few {Šie elementai bus ištrinti iš visų kolekcijų. Juos galite atkurti iš šiukšlinės.} many {Šio elemento bus ištrinta iš visų kolekcijų. Jo galite atkurti iš šiukšlinės.} other{Šių elementų bus ištrinta iš visų kolekcijų. Jų galite atkurti iš šiukšlinės.}}",
+  "@itemsWillBeDeletedFromAllCollections": {
+    "description": "Confirmation message explaining that deleted items leave every collection and remain recoverable from Trash.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "itemsWillBeRemovedFromAlbum": "Pasirinkti elementai bus pašalinti iš šio albumo",
+  "iUnderStand": "Suprantu",
+  "@iUnderStand": {
+    "description": "Text for the button to confirm the user understands the warning"
+  },
+  "join": "Jungtis",
+  "joinAlbum": "Junkitės prie albumo",
+  "joinAlbumConfirmationDialogBody": "Prisijungus prie albumo, jūsų el. paštas bus matomas jo dalyviams.",
+  "joinAlbumSubtext": "kad peržiūrėtumėte ir pridėtumėte savo nuotraukas",
+  "joinAlbumSubtextViewer": "kad pridėtumėte tai prie bendrinamų albumų",
+  "keepPhotos": "Laikyti nuotraukas",
+  "kiloMeterUnit": "km",
+  "language": "Kalba",
+  "lastMonth": "Praėjusį mėnesį",
+  "lastUpdated": "Paskutinį kartą atnaujintą",
+  "lastWeek": "Praėjusią savaitę",
+  "lastYearsTrip": "Praėjusių metų kelionė",
+  "layout": "Išdėstymas",
+  "layoutGrouped": "Sugrupuoti",
+  "layoutTrip": "Kelionė",
+  "leave": "Palikti",
+  "leaveAlbum": "Palikti albumą",
+  "leaveCollection": "Išeiti iš kolekcijos",
+  "leaveCollectionSuccessfully": "Išėjote iš kolekcijos sėkmingai.",
+  "leaveFamily": "Palikti šeimą",
+  "leaveSharedAlbum": "Palikti bendrinamą albumą?",
+  "left": "Kairė",
+  "legacy": "Palikimas",
+  "legacyAccounts": "Palikimo paskyros",
+  "legacyInvite": "{email} pakvietė jus būti patikimu kontaktu",
+  "@legacyInvite": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "family@example.com"
+      }
+    }
+  },
+  "legacyPageDesc": "Palikimas leidžia patikimiems kontaktams pasiekti jūsų paskyrą jums nesant.",
+  "legacyPageDesc2": "Patikimi kontaktai gali pradėti paskyros atkūrimą, o jei per 30 dienų paskyra neužblokuojama, iš naujo nustatyti slaptažodį ir pasiekti paskyrą.",
+  "lightTheme": "Šviesi",
+  "like": "Patinka",
+  "likeAll": "Patikti visas",
+  "@likeAll": {
+    "description": "Button to like in all shared albums"
+  },
+  "likedAComment": "patiko komentaras",
+  "@likedAComment": {
+    "description": "Social action text shown after a person's name, for example 'John liked a comment'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedAPhoto": "patiko nuotrauka",
+  "@likedAPhoto": {
+    "description": "Social action text shown after a person's name, for example 'John liked a photo'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedAReply": "patiko atsakymas",
+  "@likedAReply": {
+    "description": "Social action text shown after a person's name, for example 'John liked a reply'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedAVideo": "patiko vaizdo įrašas",
+  "@likedAVideo": {
+    "description": "Social action text shown after a person's name, for example 'John liked a video'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedYourComment": "patiko jūsų komentaras",
+  "@likedYourComment": {
+    "description": "Social action text shown after a person's name, for example 'John liked your comment'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedYourPhoto": "patiko jūsų nuotrauka",
+  "@likedYourPhoto": {
+    "description": "Social notification action text shown after a person's name, for example 'John liked your photo'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedYourReply": "patiko jūsų atsakymas",
+  "@likedYourReply": {
+    "description": "Social action text shown after a person's name, for example 'John liked your reply'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedYourVideo": "patiko jūsų vaizdo įrašas",
+  "@likedYourVideo": {
+    "description": "Social notification action text shown after a person's name, for example 'John liked your video'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likesCount": "{count, plural, one{{count} patiktukas} few{{count} patiktukai} many{{count} patiktuko} other{{count} patiktukų}}",
+  "@likesCount": {
+    "description": "Number of likes with pluralization",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "librarySharingDisable": "Išjungti",
+  "librarySharingDisableDescription": "Albumai, kuriuos jau bendrinote, liks bendrinami su {recipient}, įskaitant visas naujas nuotraukas, kurias į juos įtrauksite. Nauji albumai nebus bendrinami automatiškai.\n\nKad nustotumėte bendrinti albumą, palieskite jį ir pasirinkite „{stopSharingLabel}“.",
+  "@librarySharingDisableDescription": {
+    "placeholders": {
+      "recipient": {
+        "type": "String",
+        "example": "Alex"
+      },
+      "stopSharingLabel": {
+        "type": "String",
+        "example": "Stop sharing"
+      }
+    }
+  },
+  "librarySharingDisableTitle": "Išjungti bibliotekos bendrinimą?",
+  "librarySharingRetryFailedAlbums": "Pakartoti nesėkmingus albumus",
+  "librarySharingRole": "Vaidmuo",
+  "librarySharingRoles": "Vaidmenys",
+  "librarySharingTitle": "Bibliotekos bendrinimas",
+  "librarySharingUpdateRoles": "Naujinti vaidmenis",
+  "limit": "Riba",
+  "linkCopiedToClipboard": "Nuoroda nukopijuota į iškarpinę",
+  "linkDeviceLimit": "Įrenginių riba",
+  "linkEnabled": "Įjungta",
+  "linkExpired": "Nebegalioja",
+  "linkExpiresOn": "Nuoroda nebegalios {expiryTime}",
+  "@linkExpiresOn": {
+    "placeholders": {
+      "expiryTime": {}
+    }
+  },
+  "linkExpiry": "Nuorodos galiojimo laikas",
+  "linkHasExpired": "Nuoroda nebegalioja",
+  "linkNeverExpires": "Niekada",
+  "links": "Nuorodos",
+  "livePhotos": "Gyvos nuotraukos",
+  "loadingExifData": "Įkeliami EXIF duomenys...",
+  "loadingGallery": "Įkeliama galerija...",
+  "loadingModel": "Atsisiunčiami modeliai...",
+  "loadingYourPhotos": "Įkeliamos nuotraukos...",
+  "loadMessage1": "Galite bendrinti savo prenumeratą su šeima.",
+  "loadMessage2": "Iki šiol išsaugojome daugiau kaip {memoriesCountInMillions} milijonų prisiminimų.",
+  "@loadMessage2": {
+    "placeholders": {
+      "memoriesCountInMillions": {
+        "type": "int"
+      }
+    }
+  },
+  "loadMessage3": "Laikome 3 jūsų duomenų kopijas, vieną iš jų – požeminėje priešgaisrinėje slėptuvėje.",
+  "loadMessage4": "Visos mūsų programos yra atvirojo kodo.",
+  "loadMessage5": "Mūsų šaltinio kodas ir kriptografija buvo išoriškai audituoti.",
+  "loadMessage6": "Galite bendrinti savo albumų nuorodas su artimaisiais.",
+  "loadMessage7": "Mūsų mobiliosios programos veikia fone, kad užšifruotų ir sukurtų atsarginę kopiją visų naujų nuotraukų, kurias spustelėjate.",
+  "loadMessage8": "{webUrl} turi sklandų įkėlėją",
+  "@loadMessage8": {
+    "description": "Loading screen message about the web uploader.",
+    "placeholders": {
+      "webUrl": {
+        "type": "String",
+        "example": "photos.ente.com"
+      }
+    }
+  },
+  "loadMessage9": "Naudojame „Xchacha20Poly1305“, kad saugiai užšifruotume jūsų duomenis.",
+  "localBackupDailyManualCopy": "Per dieną, kai atveriate programą, sukuriama viena vietinė atsarginė kopija. Naudokite Kurti atsarginę kopiją dabar, kad paleistumėte rankinį atsarginės kopijos kūrimą. Atsarginės kopijos saugomos iki 5 failų.",
+  "localBackupSidebarTitle": "Vietinė atsarginė kopija",
+  "localGallery": "Vietinė galerija",
+  "localSyncErrorMessage": "Atrodo, kad kažkas nutiko ne taip, nes vietinių nuotraukų sinchronizavimas trunka ilgiau nei tikėtasi. Susisiekite su mūsų palaikymo komanda.",
+  "location": "Vietovė",
+  "locationName": "Vietovės pavadinimas",
+  "locationPickerTip": "Taip pat galite pridėti vietą, centruotą ant nuotraukos, iš nuotraukos informacijos ekrano.",
+  "@locationPickerTip": {
+    "description": "Helper tip text shown in the location picker that refers to the photo info screen."
+  },
+  "locations": "Vietovės",
+  "locationTagFeatureDescription": "Vietos žymė grupuoja visas nuotraukas, kurios buvo padarytos tam tikru spinduliu nuo nuotraukos",
+  "locationUpdatedAndBackupCreated": "Vieta atnaujinta ir pradinė atsarginė kopija sukurta.",
+  "lockButtonLabel": "Užrakinti",
+  "loggingOut": "Atsijungiama...",
+  "@loggingOut": {
+    "description": "Message shown while logging out"
+  },
+  "logInLabel": "Prisijungti",
+  "@logInLabel": {
+    "description": "Log in button label"
+  },
+  "loginSessionExpired": "Seansas baigėsi",
+  "@loginSessionExpired": {
+    "description": "Login session expired title"
+  },
+  "loginSessionExpiredDetails": "Jūsų seansas baigėsi. Prisijunkite iš naujo.",
+  "@loginSessionExpiredDetails": {
+    "description": "Login session expired details"
+  },
+  "loginTerms": "Spustelėjus Prisijungti sutinku su <u-terms>paslaugų sąlygomis</u-terms> ir <u-policy> privatumo politika</u-policy>",
+  "@loginTerms": {
+    "description": "Terms agreement text for login"
+  },
+  "loginToEnte": "Prisijungti prie „Ente“",
+  "loginToExistingAccount": "Prisijungti prie esamos paskyros",
+  "loginWithAuthAccount": "Prisijungti su jūsų „Auth“ paskyra",
+  "loginWithTOTP": "Prisijungti su TOTP",
+  "@loginWithTOTP": {
+    "description": "Login with TOTP button label"
+  },
+  "logout": "Atsijungti",
+  "logsDialogBody": "Tai nusiųs žurnalus, kurie padės mums išspręsti jūsų problemą. Atkreipkite dėmesį, kad failų pavadinimai bus įtraukti, kad būtų lengviau atsekti problemas su konkrečiais failais.",
+  "@logsDialogBody": {
+    "description": "Body text for the logs dialog explaining what will be sent"
+  },
+  "longPressAnEmailToVerifyEndToEndEncryption": "Ilgai paspauskite el. paštą, kad patvirtintumėte visapusį šifravimą.",
+  "lookBackOnYourMemories": "Pažvelkite atgal į savo prisiminimus 🌄",
+  "lookingForVisualSimilarities": "Ieškoma vizualių panašumų...",
+  "loopVideoOff": "Įjungti kartojimą",
+  "loopVideoOn": "Išjungti kartojimą",
+  "lostDevice": "Prarastas įrenginys?",
+  "lostDeviceTitle": "Prarastas įrenginys?",
+  "@lostDeviceTitle": {
+    "description": "Lost device title"
+  },
+  "machineLearning": "Mašininis mokymasis",
+  "machineLearningBannerSubtitle": "Magiškai paieškai ir veidų atpažinimui",
+  "magic": "Magiška",
+  "@magic": {
+    "description": "Section header for magic search results"
+  },
+  "manageDeviceStorage": "Tvarkyti įrenginio podėlį",
+  "manageDeviceStorageDesc": "Peržiūrėkite ir išvalykite vietinę saugyklą",
+  "manageFamily": "Tvarkyti šeimą",
+  "manageLink": "Tvarkyti nuorodą",
+  "manageSubscription": "Tvarkyti prenumeratą",
+  "manualSort": "Pasirinktinis",
+  "map": "Žemėlapis",
+  "@map": {
+    "description": "Label for the map view"
+  },
+  "maps": "Žemėlapiai",
+  "mapsPrivacyNotice": "Apytikslės koordinatės bus nusiųstos privatumą gerbiančioms trečiosioms šalims, pvz., „OpenStreetMap“, kad būtų galima parodyti žemėlapį ir vietą.",
+  "me": "Aš",
+  "mediaManagementHintMessage": "Įjunkite medijos tvarkymą programai „Ente“ nustatymuose ir raginimai nustos.",
+  "@mediaManagementHintMessage": {
+    "description": "Message explaining that enabling Android media management permission avoids repeated delete confirmations."
+  },
+  "members": "Nariai",
+  "memberStorageUsed": "{amount} panaudota",
+  "@memberStorageUsed": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "20 GB"
+      }
+    }
+  },
+  "memories": "Prisiminimai",
+  "memoryCount": "{count, plural, =0{nėra prisiminimų} one{{formattedCount} prisiminimas} other{{formattedCount} prisiminimų}}",
+  "@memoryCount": {
+    "description": "The text to display the number of memories",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "1",
+        "type": "int"
+      },
+      "formattedCount": {
+        "type": "String",
+        "example": "11.513, 11,511"
+      }
+    }
+  },
+  "merchandise": "Atributika",
+  "merge": "Sujungti",
+  "mergedPhotos": "Sujungtos nuotraukos",
+  "mergeWithExisting": "Sujungti su esamais",
+  "menubarMode": "Meniu juostos režimas",
+  "minimizeAppOnCopy": "Sumažinti programą kopijuojant",
+  "minimizeToTrayOnClose": "Sumažinti į dėklą užvėrus",
+  "minutesCountShort": "{count} min.",
+  "@minutesCountShort": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "mixedGrouping": "Sumaišytas grupavimas?",
+  "mlConsent": "Įjungti mašininį mokymąsi",
+  "mlConsentConfirmation": "Suprantu ir noriu įjungti mašininį mokymąsi",
+  "mlConsentDescription": "Jei įjungsite mašininį mokymąsi, „Ente“ išsitrauks tokią informaciją kaip veido geometrija iš failų, įskaitant tuos, kuriais su jumis bendrinama.\n\nTai bus daroma jūsų įrenginyje, o visa sugeneruota biometrinė informacija bus visapusiškai užšifruota.",
+  "mlCouldNotProcessItems": "{count, plural, one {Nepavyko apdoroti {count} elemento} few {Nepavyko apdoroti {count} elementų} many {Nepavyko apdoroti {count} elemento} other {Nepavyko apdoroti {count} elementų}}",
+  "@mlCouldNotProcessItems": {
+    "description": "Title shown when machine learning could not process one or more items",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mlIndexingDescription": "Atkreipkite dėmesį, kad mašininis mokymasis padidins pralaidumą ir akumuliatoriaus naudojimą, kol bus apdoroti visi elementai. Apsvarstykite galimybę naudoti darbalaukio programą spartesniam apdorojimui – visi rezultatai bus sinchronizuojami automatiškai.",
+  "mlItemsCouldNotBeProcessed": "{count, plural, one {{count} elementas negalėjo būti apdorotas mašininiam mokymui. Susisiekite su mumis, kad galėtume padėti.} few {{count} elementai negalėjo būti apdoroti mašininiam mokymui. Susisiekite su mumis, kad galėtume padėti.} many {{count} elemento negalėjo būti apdorota mašininiam mokymui. Susisiekite su mumis, kad galėtume padėti.} other {{count} elementų negalėjo būti apdorota mašininiam mokymui. Susisiekite su mumis, kad galėtume padėti.}}",
+  "@mlItemsCouldNotBeProcessed": {
+    "description": "Description shown when machine learning could not process one or more items",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mlProcessingIssueReachOut": "Susisiekite su mumis, kad galėtume padėti.",
+  "@mlProcessingIssueReachOut": {
+    "description": "Support prompt shown when machine learning could not process one or more items"
+  },
+  "mlProgressBannerDescription": "Jūsų nuotraukos yra apdorojamos įrenginyje, kad aptiktų veidus, objektus ir kitus elementus.",
+  "mlProgressBannerStatus": "{indexed} iš {total} apdorotų nuotraukų",
+  "@mlProgressBannerStatus": {
+    "placeholders": {
+      "indexed": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "mlProgressBannerTitle": "Laukite ramiai!",
+  "moderateStrength": "Vidutinė",
+  "@moderateStrength": {
+    "description": "Moderate password strength label"
+  },
+  "modifyYourQueryOrTrySearchingFor": "Modifikuokite užklausą arba bandykite ieškoti",
+  "moments": "Akimirkos",
+  "month": "mėnesis",
+  "monthly": "Mėnesinis",
+  "@monthly": {
+    "description": "The text to display for monthly plans",
+    "type": "text"
+  },
+  "moon": "Mėnulio šviesoje",
+  "more": "Daugiau",
+  "moreDetails": "Daugiau išsamios informacijos",
+  "moreFrom": "Daugiau iš",
+  "@moreFrom": {
+    "description": "Heading shown above links to other Ente apps"
+  },
+  "mostFrequentlyUsed": "Dažniausiai naudojamas",
+  "mostRecent": "Pačią naujausią",
+  "mostRecentlyUsed": "Neseniai naudotas",
+  "mostRelevant": "Aktualiausią",
+  "mountains": "Per kalvas",
+  "movedSuccessfullyTo": "Sėkmingai perkelta į „{albumName}“",
+  "@movedSuccessfullyTo": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
+  "movedToTrash": "Perkelta į šiukšlinę",
+  "moveMultipleToTrashMessage": "Ar tikrai norite perkelti {count} elementą (-us, -ų) į šiukšlinę?",
+  "@moveMultipleToTrashMessage": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "moveSelectedPhotosToOneDate": "Perkelti pasirinktas nuotraukas į vieną datą",
+  "moveToAlbum": "Perkelti į albumą",
+  "moveToHiddenAlbum": "Perkelti į paslėptą albumą",
+  "movingFilesToAlbum": "Perkeliami failai į albumą...",
+  "name": "Pavadinimą",
+  "networkConnectionRefusedErr": "Nepavyksta prisijungti prie „Ente“. Bandykite dar kartą po kurio laiko. Jei klaida tęsiasi, susisiekite su palaikymo komanda.",
+  "@networkConnectionRefusedErr": {
+    "description": "Error message shown when the app cannot connect to Ente due to connection refused"
+  },
+  "networkHostLookUpErr": "Nepavyksta prisijungti prie „Ente“. Patikrinkite tinklo nustatymus ir susisiekite su palaikymo komanda, jei klaida tęsiasi.",
+  "@networkHostLookUpErr": {
+    "description": "Error message shown when the app cannot connect to Ente due to network host lookup failure"
+  },
+  "never": "Niekada",
+  "newAlbum": "Naujas albumas",
+  "newest": "Naujausią",
+  "newLocation": "Nauja vietovė",
+  "newPhotosEmoji": " naujas 📸",
+  "newRange": "Naujas intervalas",
+  "next": "Toliau",
+  "@next": {
+    "description": "Next button label"
+  },
+  "nextTotpTitle": "sekantis",
+  "no": "Ne",
+  "noDefaultBackupFolder": "Nepavyko sukurti numatytosios atsarginės kopijos aplanko.",
+  "noDeviceFound": "Įrenginys nerastas",
+  "noDeviceLimit": "Jokio",
+  "@noDeviceLimit": {
+    "description": "Text to indicate that there is limit on number of devices"
+  },
+  "noDeviceThatCanBeDeleted": "Neturite šiame įrenginyje failų, kuriuos galima ištrinti.",
+  "noDuplicates": "✨ Dublikatų nėra",
+  "noExifData": "Nėra EXIF duomenų",
+  "noFacesFound": "Nerasta veidų.",
+  "noHiddenFilesOnDevice": "Nėra paslėptų failų įrenginyje.",
+  "noImagesWithLocation": "Nėra vaizdų su vietove",
+  "noInternetConnection": "Nėra interneto ryšio",
+  "@noInternetConnection": {
+    "description": "No internet connection error message"
+  },
+  "noLikesYet": "Dar nėra patiktukų.",
+  "@noLikesYet": {
+    "description": "Empty state when no likes exist"
+  },
+  "noLimit": "Nėra ribos",
+  "noLimitSet": "Nėra nustatyta riba",
+  "noLocation": "Nėra vietos.",
+  "@noLocation": {
+    "description": "Search result label for files owned by the user with missing location metadata"
+  },
+  "noLocationTag": "Nėra vietos žymės.",
+  "@noLocationTag": {
+    "description": "Search result label for files that do not have a manual location tag"
+  },
+  "noPhotosFoundHere": "Nuotraukų čia nerasta",
+  "noRecoveryKeyNoDecryption": "Dėl mūsų visapusio šifravimo protokolo pobūdžio jūsų duomenų negalima iššifruoti be slaptažodžio arba atkūrimo rakto.",
+  "@noRecoveryKeyNoDecryption": {
+    "description": "Explanation that data cannot be decrypted without password or recovery key"
+  },
+  "noRecoveryKeyTitle": "Neturite atkūrimo rakto?",
+  "@noRecoveryKeyTitle": {
+    "description": "No recovery key title"
+  },
+  "noResult": "Nėra rezultatų",
+  "noResultsFound": "Rezultatų nerasta.",
+  "noSessionsFound": "Sesanų nerasta.",
+  "noSimilarImagesFound": "Panašių vaizdų nerasta",
+  "noSuggestionsForPerson": "Nėra pasiūlymų asmeniui {personName}.",
+  "@noSuggestionsForPerson": {
+    "placeholders": {
+      "personName": {
+        "type": "String",
+        "example": "Alice"
+      }
+    }
+  },
+  "noSystemLockFound": "Nerastas sistemos užraktas",
+  "@noSystemLockFound": {
+    "description": "Error when no system lock is found"
+  },
+  "notBackedUp": "Nesukurta atsarginė kopija",
+  "note": "Pastaba",
+  "notes": "Pastabos",
+  "notesLengthLimit": "Pastabos gali būti ne ilgesnės kaip {count} simbolių",
+  "@notesLengthLimit": {
+    "description": "Text to indicate the maximum number of characters allowed for notes",
+    "placeholders": {
+      "count": {
+        "description": "The maximum number of characters allowed for notes",
+        "type": "int",
+        "example": "100"
+      }
+    }
+  },
+  "nothingToSeeHere": "Čia nėra ko matyti.",
+  "nothingToTidyUpHere": "Čia nėra ko tvarkyti.",
+  "notifications": "Pranešimai",
+  "notifyMe": "Pranešti man",
+  "notPersonLabel": "Ne {name}?",
+  "@notPersonLabel": {
+    "description": "Label to indicate that the person in the photo is not the person whose name is mentioned",
+    "placeholders": {
+      "name": {
+        "content": "{name}",
+        "type": "String"
+      }
+    }
+  },
+  "notSupportedForHOTP": "Nepalaikomas algoritmai HOTP.",
+  "notThisPerson": "Ne šis asmuo?",
+  "ocrGenericDetectError": "Nepavyko aptikti teksto vaizde.",
+  "ocrImageDecodeFailedError": "Nepavyko perskaityti vaizdo failo.",
+  "ocrImageNotFoundError": "Vaizdo failas nerastas.",
+  "ocrModelsNetworkRequiredError": "Tinklo ryšys privalomas norint atsisiųsti OCR modelius pirmojo naudojimo metu.",
+  "ocrModelsPrepareFailed": "Nepavyko parengti OCR modelių.",
+  "ocrNoTextDetected": "Tekstas neaptiktas",
+  "offlineEnableBackupTagLabel": "10 GB NEMOKAMAI!",
+  "offlineFacesBannerSubtitle": "Užsiregistruokite, kad pažymėtumėte asmenis ir vėliau juos lengvai rastumėte.",
+  "offlineFacesBannerTitle": "Norite išsaugoti šiuos veidus?",
+  "offlineHomeSignupBannerAction": "Kurti atsarginę kopiją dabar",
+  "offlineHomeSignupBannerDescription": "Užšifruotos atsarginės kopijos tarp 3 vietų, kad jūsų prisiminimai būtų saugūs.",
+  "offlineHomeSignupBannerTitle": "Apsaugokite savo prisiminimus amžinai",
+  "offlineKeyUnavailableMessage": "„Ente Auth“ negali pasiekti raktą jūsų neprisijungimo kodams.",
+  "offlineModeWarning": "Pasirinkote tęsti be atsarginių kopijų. Kad įsitikintumėte, jog jūsų kodai yra saugūs, pasidarykite atsargines kopijas rankiniu būdu.",
+  "offlineNameFaceBannerSubtitle": "Užsiregistruokite, kad juos pažymėtumėte ir vėliau lengvai rastumėte jų nuotraukas.",
+  "offlineNameFaceBannerTitle": "Duokite šiam veidui vardą",
+  "offlineSettingsBannerDesc": "Nulinio žinojimo šifravimas reiškia jūsų prisiminimai lieka tik jūsų.",
+  "offlineSettingsBannerTitle": "Mes nematome jūsų nuotraukų. Niekad.",
+  "onboardingDesc": "Išsaugokite savo nuotraukas ir vaizdo įrašus. Visi prisiminimai – vienoje vietoje.",
+  "onboardingTitle": "Viskam, ko nenorite pamiršti",
+  "onDevice": "Įrenginys",
+  "@onDevice": {
+    "description": "The text displayed above folders/albums stored on device",
+    "type": "text"
+  },
+  "oneAccountAcrossEnteApps": "Turite vieną paskyrą tarp „Ente“ nuotraukų, „Ente Auth“ ir „Ente“ spintelės.",
+  "@oneAccountAcrossEnteApps": {
+    "description": "Explains that account deletion affects all Ente apps"
+  },
+  "onEnte": "Saugykloje <branding>ente</branding>",
+  "@onEnte": {
+    "description": "The text displayed above albums backed up to Ente",
+    "type": "text"
+  },
+  "onlyFamilyAdminCanChangeCode": "Susisiekite su {familyAdminEmail}, kad pakeistumėte savo kodą.",
+  "@onlyFamilyAdminCanChangeCode": {
+    "placeholders": {
+      "familyAdminEmail": {}
+    }
+  },
+  "onlyThem": "Tik jiems",
+  "onTheRoad": "Vėl kelyje",
+  "onThisDay": "Šią dieną",
+  "onThisDayMemories": "Šios dienos prisiminimai",
+  "oops": "Ups",
+  "@oops": {
+    "description": "Oops error title"
+  },
+  "oopsCouldNotSaveEdits": "Ups, nepavyko išsaugoti redagavimų.",
+  "oopsSomethingWentWrong": "Ups, kažkas nutiko ne taip",
+  "openAlbumInBrowser": "Atverti albumą naršyklėje",
+  "openAlbumInBrowserTitle": "Naudokite interneto programą, kad pridėtumėte nuotraukų į šį albumą.",
+  "openFile": "Atverti failą",
+  "openstreetmapContributors": "„OpenStreetMap“ bendradarbiai",
+  "optionalAsShortAsYouLike": "Nebūtina, trumpai, kaip jums patinka...",
+  "organizationDesc": "Kolekcijos, mėgstami, paieška ir būdai išlaikyti elementus tvarkingus.",
+  "otherDetectedFaces": "Kiti aptikti veidai",
+  "others": "Kiti",
+  "pair": "Susieti",
+  "pairUsingCode": "Susieti naudojant kodą",
+  "parsingError": "Analizavimo klaida.",
+  "partyWithThem": "Vakarėlis su {name}",
+  "@partyWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "passkey": "Slaptaraktis",
+  "passkeyAuthTitle": "Slaptarakčio patvirtinimas",
+  "@passkeyAuthTitle": {
+    "description": "Passkey authentication title"
+  },
+  "passKeyPendingVerification": "Vis dar laukiama patvirtinimo",
+  "@passKeyPendingVerification": {
+    "description": "Message when passkey verification is pending"
+  },
+  "password": "Slaptažodis",
+  "@password": {
+    "description": "Password field label"
+  },
+  "passwordChangedSuccessfully": "Slaptažodis sėkmingai pakeistas",
+  "@passwordChangedSuccessfully": {
+    "description": "Password changed successfully message"
+  },
+  "passwordEmptyError": "Slaptažodis negali būti tuščias.",
+  "passwordForDecryptingExport": "Slaptažodis eksportui iššifruoti",
+  "passwordLock": "Slaptažodžio užraktas",
+  "passwordsDontMatch": "Slaptažodžiai nesutampa.",
+  "passwordsMatch": "Slaptažodžiai sutampa",
+  "passwordStrength": "Slaptažodžio stiprumas: {passwordStrengthValue}",
+  "@passwordStrength": {
+    "description": "Text to indicate the password strength",
+    "placeholders": {
+      "passwordStrengthValue": {
+        "description": "The strength of the password as a string",
+        "type": "String",
+        "example": "Weak or Moderate or Strong"
+      }
+    }
+  },
+  "passwordToEncryptExport": "Slaptažodis eksportui užšifruoti",
+  "passwordTooShort": "Slaptažodis turi būti bent 8 simbolių ilgio.",
+  "passwordWarning": "Šio slaptažodžio nesaugome, todėl jei jį pamiršite, <underline>negalėsime iššifruoti jūsų duomenų</underline>",
+  "@passwordWarning": {
+    "description": "Warning about password storage"
+  },
+  "pastYearsMemories": "Praėjusių metų prisiminimai",
+  "pay": "Mokėti",
+  "paymentDetails": "Mokėjimo duomenys",
+  "paymentFailed": "Mokėjimas nepavyko",
+  "paymentFailedMessage": "Deja, jūsų mokėjimas nepavyko. Susisiekite su palaikymo komanda ir mes jums padėsime!",
+  "paymentFailedTalkToProvider": "Kreipkitės į {providerName} palaikymo komandą, jei jums buvo nuskaičiuota.",
+  "@paymentFailedTalkToProvider": {
+    "description": "The text to display when the payment failed",
+    "type": "text",
+    "placeholders": {
+      "providerName": {
+        "example": "AppStore|PlayStore",
+        "type": "String"
+      }
+    }
+  },
+  "pending": "Laukiama",
+  "pendingSync": "Laukiama sinchronizacija",
+  "pendingSyncs": "Įspėjimas",
+  "pendingSyncsWarningBody": "Kai kurių jūsų kodų atsarginės kopijos nebuvo sukurtos.\n\nPrieš atsijungdami įsitikinkite, kad turite atsarginę šių kodų kopiją.",
+  "people": "Asmenys",
+  "period": "Laikotarpis",
+  "permanentlyDelete": "Ištrinti negrįžtamai",
+  "permanentlyDeleteYourEnteAccount": "Negrįžtamai ištrinti savo „Ente“ paskyrą?",
+  "@permanentlyDeleteYourEnteAccount": {
+    "description": "Heading for final account deletion confirmation"
+  },
+  "permDeleteWarning": "Visi elementai šiukšlinėje bus negrįžtamai ištrinti.\n\nŠio veiksmo negalima anuliuoti.",
+  "personIsAge": "{name} yra {age} m.!",
+  "@personIsAge": {
+    "placeholders": {
+      "age": {},
+      "name": {}
+    }
+  },
+  "personTurningAge": "{name} netrukus sulauks {age} m.",
+  "@personTurningAge": {
+    "placeholders": {
+      "age": {},
+      "name": {}
+    }
+  },
+  "pets": "Furio draugai",
+  "photoGridSize": "Nuotraukų tinklelio dydis",
+  "photoLibraryAddPermissionRequired": "„Ente“ reikia leidimo, kad išsaugotų nuotraukas ir vaizdo įrašus į „Apple“ nuotraukas“. Galite leisti prieigą nustatymuose.",
+  "photoLibraryAddPermissionRestricted": "Šiame įrenginyje nuotraukų bibliotekos prieiga yra ribota.",
+  "photos": "Nuotraukos",
+  "photosAddedByYouWillBeRemovedFromTheAlbum": "Jūsų pridėtos nuotraukos bus pašalintos iš albumo",
+  "photosCount": "{count, plural, =0{0 nuotraukų} one{{count} nuotrauka} few{{count} nuotraukos} many{{count} nuotraukos} other{{count} nuotraukų}}",
+  "@photosCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "photosKeepRelativeTimeDifference": "Nuotraukos išlaiko santykinį laiko skirtumą",
+  "pickCenterPoint": "Pasirinkite centro tašką",
+  "pin": "Prisegti",
+  "pinLock": "PIN užraktas",
+  "@pinLock": {
+    "description": "PIN lock option title"
+  },
+  "pinnedCodeMessage": "{code} buvo prisegtas",
+  "@pinnedCodeMessage": {
+    "placeholders": {
+      "code": {}
+    }
+  },
+  "pinnedCount": "{count, plural, one{Prisegtas {count} elementas} few{Prisegti {count} elementai} many{Prisegta {count} elemento} other{Prisegta {count} elementų}}",
+  "@pinnedCount": {
+    "description": "Text to show number of items pinned",
+    "placeholders": {
+      "count": {
+        "description": "Number of items pinned",
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "pinPerson": "Prisegti asmenį",
+  "pinText": "Prisegti",
+  "plainHTML": "Grynasis HTML",
+  "plainText": "Grynasis tekstas",
+  "plansStartAt": "Planai prasideda nuo {price} / mėnesį",
+  "@plansStartAt": {
+    "placeholders": {
+      "price": {
+        "type": "String",
+        "example": "$1.99"
+      }
+    }
+  },
+  "playbackSpeed": "Peržiūros greitis",
+  "playOriginal": "Leisti originalą",
+  "playstoreSubscription": "„PlayStore“ prenumerata",
+  "playStream": "Leisti srautinį perdavimą",
+  "pleaseCheckPasswordAndTryAgain": "Patikrinkite savo slaptažodį ir bandykite dar kartą.",
+  "pleaseCheckYourInternetConnectionAndTryAgain": "Patikrinkite savo interneto ryšį ir bandykite dar kartą.",
+  "@pleaseCheckYourInternetConnectionAndTryAgain": {
+    "description": "Message asking user to check internet connection"
+  },
+  "pleaseContactSupportAndWeWillBeHappyToHelp": "Susisiekite adresu support@ente.com ir mes mielai padėsime!",
+  "pleaseContactSupportIfTheProblemPersists": "Jei problema išlieka, susisiekite su pagalbos komanda.",
+  "pleaseEmailUsAt": "Siųskite el. laišką mums adresu {toEmail}.",
+  "@pleaseEmailUsAt": {
+    "placeholders": {
+      "toEmail": {}
+    }
+  },
+  "pleaseGrantPermissions": "Suteikite leidimus.",
+  "pleaseLoginAgain": "Prisijunkite iš naujo.",
+  "pleaseSelectQuickLinksToRemove": "Pasirinkite sparčiąsias nuorodas, kad pašalintumėte",
+  "pleaseSendTheLogsTo": "Siųskite žurnalus adresu\n{toEmail}",
+  "@pleaseSendTheLogsTo": {
+    "description": "Message asking user to send logs to email address",
+    "placeholders": {
+      "toEmail": {
+        "type": "String",
+        "description": "Email address to send logs to"
+      }
+    }
+  },
+  "pleaseTryAgain": "Bandykite dar kartą.",
+  "@pleaseTryAgain": {
+    "description": "Message asking user to try again"
+  },
+  "pleaseVerifyDetails": "Patvirtinkite duomenis ir bandykite dar kartą.",
+  "pleaseVerifyTheCodeYouHaveEntered": "Patvirtinkite įvestą kodą.",
+  "pleaseWait": "Palaukite...",
+  "@pleaseWait": {
+    "description": "Please wait message"
+  },
+  "pleaseWaitDeletingAlbum": "Palaukite. Ištrinamas albumas",
+  "pleaseWaitForSometimeBeforeRetrying": "Palaukite kurį laiką prieš bandydami pakartotinai",
+  "pleaseWaitThisWillTakeAWhile": "Palaukite, tai šiek tiek užtruks.",
+  "posingWithThem": "Pozavimas su {name}",
+  "@posingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "preparingLogs": "Ruošiami žurnalai...",
+  "preserveMore": "Išsaugoti daugiau",
+  "pressAndHoldToPlayVideoDetailed": "Paspauskite ir palaikykite vaizdą, kad paleistumėte vaizdo įrašą",
+  "preview": "Peržiūrėti",
+  "previous": "Ankstesnis",
+  "privacy": "Privatumas",
+  "privacyPolicyTitle": "Privatumo politika",
+  "@privacyPolicyTitle": {
+    "description": "Privacy policy title"
+  },
+  "proceed": "Tęsti",
+  "processed": "Apdorota",
+  "processingImport": "Apdorojama {folderName}...",
+  "@processingImport": {
+    "placeholders": {
+      "folderName": {}
+    }
+  },
+  "publicLinkEnabled": "Įjungta viešoji nuoroda",
+  "qr": "QR",
+  "qrCode": "QR kodas",
+  "questionmark": "?",
+  "queued": "Įtraukta eilėje",
+  "radius": "Spindulys",
+  "raiseTicket": "Sukurti paraišką",
+  "@raiseTicket": {
+    "description": "Button text for raising a support tickets in case of unhandled errors during backup",
+    "type": "text"
+  },
+  "rateUs": "Vertinti mus",
+  "rateUsOnStore": "Vertinti mus parduotuvėje „{storeName}“",
+  "@rateUsOnStore": {
+    "placeholders": {
+      "storeName": {}
+    }
+  },
+  "rawCodeData": "Neapdoroti kodo duomenys",
+  "readyToBackupSubtitle": "Jūsų nuotraukos sinchronizuos fone. Pirmasis atsarginės kopijos kūrimas gali užtrukti šiek tiek laiko.",
+  "readyToBackupTitle": "Parengta kurti atsarginę kopiją",
+  "reassignedToName": "Perskirstė jus į {name}",
+  "@reassignedToName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reassigningLoading": "Perskirstoma...",
+  "reassignMe": "Perskirstyti „Aš“",
+  "receivedAlbumsLabel": "Gauti",
+  "@receivedAlbumsLabel": {
+    "description": "Albums tab filter label for albums received from other people"
+  },
+  "receiveRemindersOnBirthdays": "Priminimai, kai yra kažkieno gimtadienis.",
+  "recent": "Naujausią",
+  "reclaimSpace": "Atgauti {sizeInMBorGB}",
+  "@reclaimSpace": {
+    "description": "Heading that shows how much device storage can be reclaimed",
+    "placeholders": {
+      "sizeInMBorGB": {
+        "example": "2.28 GB",
+        "type": "String"
+      }
+    }
+  },
+  "recover": "Atkurti",
+  "@recover": {
+    "description": "Recover button label"
+  },
+  "recoverAccount": "Atkurti paskyrą",
+  "@recoverAccount": {
+    "description": "Recover account button label"
+  },
+  "recoveryInitiated": "Pradėtas atkūrimas",
+  "recoveryInitiatedDesc": "Paskyrą galėsite pasiekti po {days} dienų. Pranešimas bus išsiųstas į {email}.",
+  "@recoveryInitiatedDesc": {
+    "placeholders": {
+      "days": {
+        "type": "int",
+        "example": "30"
+      },
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      }
+    }
+  },
+  "recoveryKey": "Atkūrimo raktas",
+  "@recoveryKey": {
+    "description": "Recovery key label"
+  },
+  "recoveryKeyCopiedToClipboard": "Nukopijuotas atkūrimo raktas į iškarpinę",
+  "@recoveryKeyCopiedToClipboard": {
+    "description": "Recovery key copied message"
+  },
+  "recoveryKeyOnForgotPassword": "Jei pamiršote slaptažodį, vienintelis būdas atkurti duomenis – naudoti šį raktą.",
+  "@recoveryKeyOnForgotPassword": {
+    "description": "Recovery key importance explanation"
+  },
+  "recoveryKeySaved": "Atkūrimo raktas išsaugotas atsisiuntimų aplanke.",
+  "@recoveryKeySaved": {
+    "description": "Recovery key saved confirmation message"
+  },
+  "recoveryKeySaveDescription": "Šio rakto nesaugome, todėl išsaugokite šį 24 žodžių raktą saugioje vietoje.",
+  "@recoveryKeySaveDescription": {
+    "description": "Recovery key save description"
+  },
+  "recoveryKeySaveShortDescription": "Išsaugokite šį raktą saugioje vietoje.",
+  "recoveryKeySuccessBody": "Puiku! Jūsų atkūrimo raktas tinkamas. Dėkojame už patvirtinimą.\n\nNepamirškite sukurti saugią atkūrimo rakto atsarginę kopiją.",
+  "recoveryKeyVerified": "Patvirtintas atkūrimo raktas",
+  "recoveryKeyVerifyReason": "Atkūrimo raktas – vienintelis būdas atkurti nuotraukas, jei pamiršote slaptažodį. Atkūrimo raktą galite rasti Nustatymose > Paskyra.\n\nĮveskite savo atkūrimo raktą čia, kad patvirtintumėte, ar teisingai jį išsaugojote.",
+  "recoveryReady": "Dabar galite atkurti {email} paskyrą nustatydami naują slaptažodį.",
+  "@recoveryReady": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      }
+    }
+  },
+  "recoverySuccessful": "Atkūrimas sėkmingas.",
+  "recoveryWarning": "Patikimas kontaktas bando pasiekti jūsų paskyrą.",
+  "recoveryWarningBody": "{email} bando atkurti jūsų paskyrą.",
+  "@recoveryWarningBody": {
+    "placeholders": {
+      "email": {}
+    }
+  },
+  "recreatePasswordBody": "Dabartinis įrenginys nėra pakankamai galingas, kad patvirtintų jūsų slaptažodį, bet mes galime iš naujo sugeneruoti taip, kad jis veiktų su visais įrenginiais.\n\nPrisijunkite naudojant atkūrimo raktą ir sugeneruokite iš naujo slaptažodį (jei norite, galite vėl naudoti tą patį).",
+  "@recreatePasswordBody": {
+    "description": "Body text for recreate password dialog"
+  },
+  "recreatePasswordTitle": "Iš naujo sukurti slaptažodį",
+  "@recreatePasswordTitle": {
+    "description": "Title for recreate password dialog"
+  },
+  "redo": "Grąžinti",
+  "reEnterPassword": "Įveskite slaptažodį iš naujo",
+  "@reEnterPassword": {
+    "description": "Re-enter password prompt"
+  },
+  "reEnterPin": "Įveskite PIN iš naujo",
+  "@reEnterPin": {
+    "description": "Re-enter PIN prompt"
+  },
+  "referrals": "Rekomendacijos",
+  "referralsAreCurrentlyPaused": "Šiuo metu rekomendacijos yra pristabdytos",
+  "referralStep1": "1. Bendrinkite savo kodą su draugais",
+  "referralStep2": "2. Jie gauna {storageInGB} GB nemokamai užsiregistravę",
+  "@referralStep2": {
+    "placeholders": {
+      "storageInGB": {}
+    }
+  },
+  "referralStep3": "3. Gaunate {storageInGB} GB nemokamai, kai jie pakeičia planą į mokamą",
+  "@referralStep3": {
+    "placeholders": {
+      "storageInGB": {}
+    }
+  },
+  "rejectRecovery": "Atmesti atkūrimą",
+  "related": "Susiję",
+  "remindToEmptyDeviceTrash": "Taip pat ištuštinkite Neseniai ištrinti iš Nustatymų -> Saugykla, kad atlaisvintumėte vietos.",
+  "remindToEmptyEnteTrash": "Taip pat ištuštinkite šiukšlinę, kad gautumėte laisvos vietos.",
+  "remoteImages": "Nuotoliniai vaizdai",
+  "remoteThumbnails": "Nuotolinės miniatiūros",
+  "remoteVideos": "Nuotoliniai vaizdo įrašai",
+  "remove": "Šalinti",
+  "removeDuplicates": "Dublikatai",
+  "removeDuplicatesDesc": "Pašalinkite tikslus dublikatus.",
+  "removeFromAlbum": "Šalinti iš albumo",
+  "removeFromAlbumTitle": "Pašalinti iš albumo?",
+  "removeFromFamily": "Šalinti iš šeimos",
+  "removeFromFavorite": "Šalinti iš mėgstamų",
+  "removeFromPersonQuestion": "Pašalinti iš asmens?",
+  "removeLink": "Šalinti nuorodą",
+  "removeMemberConfirmBody": "{email} praras prieigą prie bendrintos saugyklos.",
+  "@removeMemberConfirmBody": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "member@example.com"
+      }
+    }
+  },
+  "removeMemberConfirmTitle": "Pašalinti narį?",
+  "removeParticipant": "Šalinti dalyvį",
+  "@removeParticipant": {
+    "description": "menuSectionTitle for removing a participant"
+  },
+  "removePersonLabel": "Šalinti asmens žymą",
+  "removePublicLink": "Šalinti viešą nuorodą",
+  "removePublicLinks": "Šalinti viešąsias nuorodas",
+  "removeWithQuestionMark": "Šalinti?",
+  "removingFromFavorites": "Pašalinama iš mėgstamų...",
+  "rename": "Pervadinti",
+  "renameAlbum": "Pervadinti albumą",
+  "renameCollection": "Pervardinti kolekciją",
+  "renameFile": "Pervadinti failą",
+  "renewsOn": "Prenumerata pratęsiama {endDate}",
+  "@renewsOn": {
+    "placeholders": {
+      "endDate": {}
+    }
+  },
+  "renewSubscription": "Pratęsti prenumeratą",
+  "repliedToAComment": "atsakė į komentarą",
+  "@repliedToAComment": {
+    "description": "Social notification action text shown after a person's name, for example 'John replied to a comment'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "repliedToYourComment": "atsakė į jūsų komentarą",
+  "@repliedToYourComment": {
+    "description": "Social notification action text shown after a person's name, for example 'John replied to your comment'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "reply": "Atsakyti",
+  "@reply": {
+    "description": "Reply action button label"
+  },
+  "replyingTo": "Atsakymas į {name}",
+  "@replyingTo": {
+    "description": "Label when replying to someone's comment",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "replyingToYou": "Atsakymas į jus",
+  "@replyingToYou": {
+    "description": "Label when replying to own comment"
+  },
+  "reportABug": "Pranešti apie riktą",
+  "@reportABug": {
+    "description": "Label for reporting a bug"
+  },
+  "resendCode": "Siųsti kodą iš naujo",
+  "resendInvite": "Siųsti kvietimą dar kartą",
+  "reset": "Atkurti",
+  "resetIgnoredFiles": "Atkurti ignoruojamus failus",
+  "resetPasswordTitle": "Nustatyti slaptažodį iš naujo",
+  "@resetPasswordTitle": {
+    "description": "Reset password title"
+  },
+  "resetToDefault": "Atkurti į numatytuosius",
+  "restartAppToApplyChanges": "Paleiskite programą iš naujo, kad pritaikytume šį pakeitimą.",
+  "@resetToDefault": {
+    "description": "Button text to reset cover photo to default"
+  },
+  "restore": "Atkurti",
+  "@restore": {
+    "description": "Display text for an action which triggers a restore of item from trash",
+    "type": "text"
+  },
+  "restoredItems": "{count, plural, one {Atkurtas {count} elementas} few {Atkurti {count} elementai} many {Atkurta {count} elemento} other {Atkurta {count} elementų}}",
+  "@restoredItems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "restoreToAlbum": "Atkurti į albumą",
+  "restoringFiles": "Atkuriami failai...",
+  "resumableUploads": "Tęstiniai įkėlimai",
+  "retry": "Kartoti",
+  "review": "Peržiūrėti",
+  "reviewSuggestions": "Peržiūrėti pasiūlymus",
+  "revokeInviteConfirmTitle": "Panaikinti kvietimą?",
+  "right": "Dešinė",
+  "ritualAddedToAlbum": "Įtraukta į albumą",
+  "ritualAddedToAlbumWithName": "Įtraukta į „{albumName}“",
+  "@ritualAddedToAlbumWithName": {
+    "placeholders": {
+      "albumName": {
+        "type": "String",
+        "description": "The target album name"
+      }
+    }
+  },
+  "ritualAlbumLabel": "Albumas",
+  "ritualAlbumSelectionPlaceholder": "Pasirinkti albumą",
+  "ritualDefaultCameraTitle": "Nufotografuokite",
+  "ritualEmojiUseAction": "Naudoti",
+  "ritualEnterDescription": "Įveskite aprašą.",
+  "ritualEnterPrompt": "Įveskite savo ritualą",
+  "ritualNotificationMessage": "Nufotogruokite dabar",
+  "ritualSearchEmpty": "Sukurkite ritualą, kad išlaikytumėte savo fotografavimo įprotį.",
+  "ritualSelectAlbumTitle": "Pasirinkti albumą",
+  "roadtripWithThem": "Kelionė su {name}",
+  "@roadtripWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "rotate": "Sukti",
+  "sameperson": "Tas pats asmuo?",
+  "save": "Išsaugoti",
+  "@save": {
+    "description": "Label for save button"
+  },
+  "saveAsAnotherPerson": "Išsaugoti kaip kitą asmenį",
+  "saveChanges": "Išsaugoti pakeitimus",
+  "saveChangesBeforeLeavingQuestion": "Išsaugoti pakeitimus prieš išeinant?",
+  "saveCollage": "Išsaugoti koliažą",
+  "saveCopy": "Išsaugoti kopiją",
+  "saveFileDescription": "Įkelkite svarbius failus.",
+  "saveFileTitle": "Failas",
+  "saveKey": "Išsaugoti raktą",
+  "@saveKey": {
+    "description": "Save key button label"
+  },
+  "saveOnlyDescription": "Ar norite tai išsaugoti savo saugykloje (pagal numatytuosius – atsisiuntimų aplanke)?",
+  "@saveOnlyDescription": {
+    "description": "Description text asking user if they want to save to storage (for platforms that don't support sharing)"
+  },
+  "saveOrSendDescription": "Ar norite tai išsaugoti saugykloje (pagal numatytuosius – atsisiuntimų aplanke), ar siųsti į kitas programas?",
+  "@saveOrSendDescription": {
+    "description": "Description text asking user if they want to save to storage or share with other apps"
+  },
+  "savePerson": "Išsaugoti asmenį",
+  "saveToEnte": "Išsaugoti į „Ente“",
+  "saveYourRecoveryKeyIfYouHaventAlready": "Išsaugokite atkūrimo raktą, jei dar to nepadarėte",
+  "saving": "Išsaugoma...",
+  "savingEdits": "Išsaugomi redagavimai...",
+  "scan": "Skenuoti",
+  "scanACode": "Skenuokite kodą",
+  "scanAQrCode": "Skenuoti QR kodą",
+  "scanCode": "Skenuoti kodą",
+  "scanDocumentDescription": "Skanuokite svarbius dokumentus.",
+  "scanDocumentTitle": "Dokumentas",
+  "scanFilenamePrefix": "Skenavimas",
+  "@scanFilenamePrefix": {
+    "description": "Prefix of the default filename for a scanned document PDF, e.g. 'Scan 13 Aug 2026, 14.30.pdf'"
+  },
+  "scannerTorchOff": "Išjungti žibintuvėlį",
+  "scannerTorchOn": "Įjungti žibintuvėlį",
+  "scannerCapture": "Užfiksuoti",
+  "scannerPreparing": "Rengiamas skeneris...",
+  "scanProcessing": "Apdorojamas jūsų skenavimas...",
+  "scanPageOfTotal": "{current} puslapis iš {total}",
+  "@scanPageOfTotal": {
+    "description": "Page position indicator in the document scanner review screen",
+    "placeholders": {
+      "current": {
+        "type": "int",
+        "example": "1"
+      },
+      "total": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "scanSaved": "Skenavimas išsaugotas",
+  "scanThisBarcodeWithnyourAuthenticatorApp": "Skenuokite šį QR kodą\nsu autentifikatoriaus programa",
+  "search": "Paieška",
+  "searchAlbums": "Ieškoti albumus",
+  "searchAlbumsEmptySection": "Albumai",
+  "searchAndDiscovery": "Paieška ir atradimas",
+  "searchByAlbumNameHint": "Albumo pavadinimas",
+  "searchDiscoverEmptySection": "Vaizdai bus rodomi čia, kai bus užbaigtas apdorojimas ir sinchronizavimas.",
+  "searchFileTypesAndNamesEmptySection": "Failų tipai ir pavadinimai",
+  "searchHint": "Ieškokite...",
+  "searchHint1": "Sparti paieška įrenginyje",
+  "searchHint2": "Nuotraukų datos ir aprašai",
+  "searchHint3": "Albumai, failų pavadinimai ir tipai",
+  "searchHint4": "Vieta",
+  "searchHint5": "Jau netrukus: veidų ir magiškos paieškos ✨",
+  "searchLocationEmptySection": "Grupės nuotraukos, kurios padarytos tam tikru spinduliu nuo nuotraukos",
+  "searchPeopleEmptySection": "Pakvieskite asmenis ir čia matysite visas jų bendrinamas nuotraukas.",
+  "searchPersonsEmptySection": "Asmenys bus rodomi čia, kai bus užbaigtas apdorojimas ir sinchronizavimas.",
+  "searchResultCameraMake": "Fotoaparato gamintojas",
+  "@searchResultCameraMake": {
+    "description": "Search result subtitle label for camera make matches"
+  },
+  "searchResultCameraModel": "Fotoaparato modelis",
+  "@searchResultCameraModel": {
+    "description": "Search result subtitle label for camera model matches"
+  },
+  "searchResultCount": "{count, plural, one{Rastas {count} rezultatas} other{Rasta {count} rezultatų}}",
+  "@searchResultCount": {
+    "description": "Text to tell user how many results were found for their search query",
+    "placeholders": {
+      "count": {
+        "example": "1|2|3",
+        "type": "int"
+      }
+    }
+  },
+  "searchResultDescription": "Aprašas",
+  "@searchResultDescription": {
+    "description": "Search result subtitle label for description matches"
+  },
+  "searchResultFileExtension": "Failo plėtinys",
+  "@searchResultFileExtension": {
+    "description": "Search result subtitle label for file extension matches"
+  },
+  "searchResultFileName": "Failo pavadinimas",
+  "@searchResultFileName": {
+    "description": "Search result subtitle label for file name matches"
+  },
+  "searchResultPerson": "Asmuo",
+  "@searchResultPerson": {
+    "description": "Search result subtitle label for person results"
+  },
+  "searchResultType": "Tipas",
+  "@searchResultType": {
+    "description": "Search result subtitle label for file type matches"
+  },
+  "searchResultUploadedBy": "Įkėlė",
+  "@searchResultUploadedBy": {
+    "description": "Search result subtitle label for uploader results"
+  },
+  "searchSectionsLengthMismatch": "Sekcijų ilgio neatitikimas: {snapshotLength} != {searchLength}",
+  "@searchSectionsLengthMismatch": {
+    "description": "Appears in search tab page",
+    "placeholders": {
+      "searchLength": {
+        "type": "int",
+        "example": "2"
+      },
+      "snapshotLength": {
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "searchSettings": "Paieškos nustatymai",
+  "secret": "Paslaptis",
+  "secretCanNotBeEmpty": "Paslaptis negali būti tuščia.",
+  "security": "Saugumas",
+  "seeAllCollections": "Visos kolekcijos",
+  "seePublicAlbumLinksInApp": "Žiūrėti viešų albumų nuorodas programoje",
+  "selectAll": "Pasirinkti viską",
+  "selectAllShort": "Viskas",
+  "@selectAllShort": {
+    "description": "Text that appears in bottom right when you start to select multiple photos. When clicked, it selects all photos."
+  },
+  "selectALocation": "Pasirinkite vietovę",
+  "selectALocationFirst": "Pirmiausia pasirinkite vietovę",
+  "selectBackupFolder": "Pasirinkti atsarginių kopijų aplanką",
+  "selectCoverPhoto": "Pasirinkite viršelio nuotrauką",
+  "selectDate": "Pasirinkti datą",
+  "selected": "pasirinkta",
+  "selectedAlbums": "{count} pasirinkta",
+  "@selectedAlbums": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "selectedCount": "{count, plural, one{{count} pasirinktas} few{{count} pasirinkti} many{{count} pasirinkta} other{{count} pasirinkta}}",
+  "@selectedCount": {
+    "description": "Number of items selected",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "selectedFilesAreNotOnEnte": "Pasirinkti failai nėra platformoje „Ente“",
+  "selectedItemsWillBePermanentlyDeletedAndCannotBeRecovered": "Pasirinkti elementai bus negrįžtamai ištrinti ir negali būti atkurti.",
+  "selectedItemsWillBeRemovedFromThisPerson": "Pasirinkti elementai bus pašalinti iš šio asmens, bet nebus ištrinti iš jūsų bibliotekos.",
+  "selectedPhotos": "{count} pasirinkta",
+  "@selectedPhotos": {
+    "description": "Display the number of selected photos",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "5",
+        "type": "int"
+      }
+    }
+  },
+  "selectedPhotosWithYours": "{count} pasirinkta ({yourCount} jūsų)",
+  "@selectedPhotosWithYours": {
+    "description": "Display the number of selected photos, including the number of selected photos owned by the user",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "12",
+        "type": "int"
+      },
+      "yourCount": {
+        "example": "2",
+        "type": "int"
+      }
+    }
+  },
+  "selectExportFormat": "Pasirinkite eksporto formatą",
+  "selectFile": "Pasirinkti failą",
+  "selectFolder": "Pasirinkti aplanką",
+  "selectFolderToContinue": "Pasirinkite aplanką, kad tęstumėte",
+  "selectItemsToAdd": "Pasirinkite elementus įtraukti",
+  "selectLanguage": "Pasirinkite kalbą",
+  "selectMailApp": "Pasirinkti pašto programą",
+  "selectMorePhotos": "Pasirinkti daugiau nuotraukų",
+  "selectOneDateAndTime": "Pasirinkti vieną datą ir laiką",
+  "selectOneDateAndTimeForAll": "Pasirinkti vieną datą ir laiką viskam",
+  "selectStartOfRange": "Pasirinkti intervalo pradžią",
+  "selectTime": "Pasirinkti laiką",
+  "selectYourFace": "Pasirinkite savo veidą",
+  "selfiesWithThem": "Asmenukės su {name}",
+  "@selfiesWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "send": "Siųsti",
+  "@send": {
+    "description": "Label for send button"
+  },
+  "sendInvite": "Siųsti kvietimą",
+  "sendLink": "Siųsti nuorodą",
+  "sendLogsDescription": "Tai nusiųs žurnalo įrašus, kurie padės mums išspręsti jūsų problemą. Nors imamės atsargumo priemonių, kad slaptos informacijos nebūtų įrašoma, raginame jus peržiūrėti šiuos žurnalus prieš bendrinant juos.",
+  "sendQrCode": "Siųsti QR kodą",
+  "sendToEmail": "Siųsti į {email}",
+  "@sendToEmail": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
+  },
+  "serverEndpoint": "Serverio galutinis taškas",
+  "@serverEndpoint": {
+    "description": "Label for server endpoint setting"
+  },
+  "sessionExpired": "Seansas baigėsi",
+  "@sessionExpired": {
+    "description": "Error message when session has expired"
+  },
+  "sessionIdMismatch": "Seanso ID nesutampa.",
+  "@sessionIdMismatch": {
+    "description": "In passkey page, deeplink is ignored because of session ID mismatch."
+  },
+  "setAPassword": "Nustatyti slaptažodį",
+  "setAs": "Nustatyti kaip",
+  "setAsMyDefaultChoice": "Nustatyti kaip mano numatytą pasirinkimą",
+  "@setAsMyDefaultChoice": {
+    "description": "Checkbox label for saving the selected delete action as the default choice."
+  },
+  "setBackupFolder": "Nustatyti atsarginių kopijų aplanką",
+  "setBackupPassword": "Nustatyti atsarginę slaptažodžio kopiją",
+  "setCover": "Nustatyti viršelį",
+  "@setCover": {
+    "description": "Text to set cover photo for an album"
+  },
+  "setLabel": "Nustatyti",
+  "@setLabel": {
+    "description": "Label of confirm button to add a new custom radius to the radius selector of a location tag"
+  },
+  "setNewPassword": "Nustatykite naują slaptažodį",
+  "@setNewPassword": {
+    "description": "Set new password title"
+  },
+  "setNewPin": "Nustatykite naują PIN",
+  "@setNewPin": {
+    "description": "Set new PIN title"
+  },
+  "setPasswordTitle": "Nustatyti slaptažodį",
+  "@setPasswordTitle": {
+    "description": "Set password title"
+  },
+  "setRadius": "Nustatyti spindulį",
+  "settings": "Nustatymai",
+  "setupComplete": "Sąranka baigta",
+  "setupFirstAccount": "Nustatykite savo pirmąją\npaskyrą",
+  "share": "Bendrinti",
+  "shareALink": "Bendrinkite nuorodą",
+  "shareCodeEarnStorage": "Padvigubinkite saugyklą platformoje „Ente“",
+  "shareCodes": "Bendrinti kodus",
+  "shareCodesDuration": "Pasirinkite trukmę, kuriai norite bendrinti kodus.",
+  "shareCollection": "Bendrinti kolekciją",
+  "shared": "Bendrinta",
+  "sharedAlbumsLabel": "Bendrinti",
+  "@sharedAlbumsLabel": {
+    "description": "Albums tab label for albums shared by you"
+  },
+  "sharedAlbumWithYou": "bendrino „{albumName}“ su jumis",
+  "@sharedAlbumWithYou": {
+    "description": "Social notification action text shown after a person's name, for example 'John shared Recents with you'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      }
+    }
+  },
+  "sharedPhotoNotifications": "Naujos bendrintos nuotraukos ir albumai",
+  "shareKey": "Bendrinti raktą",
+  "shareLink": "Bendrinti nuorodą",
+  "shareMyVerificationID": "Štai mano patvirtinimo ID: {verificationID}, skirta ente.com.",
+  "@shareMyVerificationID": {
+    "placeholders": {
+      "verificationID": {}
+    }
+  },
+  "shareTextConfirmOthersVerificationID": "Ei, ar galite patvirtinti, kad tai yra jūsų ente.com patvirtinimo ID: {verificationID}",
+  "@shareTextConfirmOthersVerificationID": {
+    "placeholders": {
+      "verificationID": {}
+    }
+  },
+  "shareTextRecommendUsingEnteForFamily": "Atsisiųsk „Ente“, kad galėčiau tave įtraukti į savo šeimos planą\n\nhttps://ente.com",
+  "shareTextRecommendUsingEnteForPhotos": "Atsisiųsk „Ente“, kad galėtume lengvai bendrinti originalios kokybės nuotraukas ir vaizdo įrašus.\n\nhttps://ente.com",
+  "shareTextReferralInvite": "Gaukite 20 GB nemokamai su „Ente“ nuotraukomis! Atsisiųskite programą adresu https://ente.com/invite ir naudokite kodą {referralCode}.",
+  "@shareTextReferralInvite": {
+    "placeholders": {
+      "referralCode": {}
+    }
+  },
+  "shareWithNonenteUsers": "Bendrinkite su ne „Ente“ naudotojais.",
+  "shareYourSubscription": "Bendrinkite savo prenumerata su artimaisiais",
+  "sharing": "Bendrinima...",
+  "shiftDatesAndTime": "Pastumti datas ir laiką",
+  "shouldHideCode": "Slėpti kodus",
+  "shouldRemoveFilesSmartAlbumsDesc": "Ar reikia pašalinti failus, susijusius su asmeniu, kuris anksčiau buvo atrinktas išmaniuosiuose albumuose?",
+  "showIgnored": "Rodyti ignoruotus",
+  "showLargeIcons": "Rodyti dideles piktogramas",
+  "showLessFaces": "Rodyti mažiau veidų",
+  "showMemories": "Rodyti prisiminimus",
+  "showMoreFaces": "Rodyti daugiau veidų",
+  "showPerson": "Rodyti asmenį",
+  "showQRAuthMessage": "Nustatykite tapatybę, kad būtų rodomas QR kodas.",
+  "showTextOnWidget": "Rodyti tekstą valdiklyje",
+  "sigInBackupReminder": "„Ente“ automatiškai sukurs atsarginę kodų kopiją po prisijungimo.\n\nVis dėlto rekomenduojame eksportuoti kodus kaip papildomą atsarginę kopiją.",
+  "signInToBackup": "Prisijunkite, kad sukurtumėte atsargines kodų kopijas",
+  "signOutFromOtherDevices": "Atsijungti iš kitų įrenginių",
+  "@signOutFromOtherDevices": {
+    "description": "Sign out from other devices title"
+  },
+  "signOutOtherBody": "Jei manote, kad kas nors gali žinoti jūsų slaptažodį, galite priverstinai atsijungti iš visų kitų įrenginių, naudojančių jūsų paskyrą.",
+  "@signOutOtherBody": {
+    "description": "Sign out other devices explanation"
+  },
+  "signOutOtherDevices": "Atsijungti kitus įrenginius",
+  "@signOutOtherDevices": {
+    "description": "Sign out other devices button label"
+  },
+  "signUp": "Registruotis",
+  "signUpTerms": "Sutinku su <u-terms>paslaugų sąlygomis</u-terms> ir <u-policy> privatumo politika</u-policy>",
+  "@signUpTerms": {
+    "description": "Terms agreement text for sign up"
+  },
+  "similar": "Panašūs",
+  "similarImages": "Panašūs vaizdai",
+  "singIn": "Prisijungti",
+  "skip": "Praleisti",
+  "skippedFiles": "Praleisti failai",
+  "smartMemories": "Išmanieji prisiminimai",
+  "smartSuggestions": "Išmanūs pasiūlymai",
+  "snowAdventures": "Žiemos nuotykiai",
+  "socialNotifications": "Patiktukai ir komentarai",
+  "someoneSharingAlbumsWithYouShouldSeeTheSameId": "Asmuo, kuris bendrina albumus su jumis, savo įrenginyje turėtų matyti tą patį ID.",
+  "somethingWentWrong": "Kažkas nutiko ne taip",
+  "somethingWentWrongMessage": "Kažkas nutiko ne taip. Bandykite dar kartą.",
+  "somethingWentWrongParsingCode": "Mums nepavyko išanalizuoti {x} kodų.",
+  "@somethingWentWrongParsingCode": {
+    "placeholders": {
+      "x": {}
+    }
+  },
+  "somethingWentWrongPleaseTryAgain": "Kažkas nutiko ne taip. Bandykite dar kartą.",
+  "@somethingWentWrongPleaseTryAgain": {
+    "description": "Generic error message"
+  },
+  "sorry": "Atsiprašome",
+  "sorryBackupFailedDesc": "Atsiprašome, šiuo metu negalėjome sukurti atsarginės šio failo kopijos. Bandysime pakartoti vėliau.",
+  "sorryCouldNotAddToFavorites": "Atsiprašome, nepavyko pridėti prie mėgstamų.",
+  "sorryCouldNotRemoveFromFavorites": "Atsiprašome, nepavyko pašalinti iš mėgstamų.",
   "sorryTheCodeYouveEnteredIsIncorrect": "Atsiprašome, įvestas kodas yra neteisingas.",
   "@sorryTheCodeYouveEnteredIsIncorrect": {
     "description": "Detailed error message when code is incorrect"
   },
-  "developerSettings": "Kūrėjo nustatymai",
-  "@developerSettings": {
-    "description": "Label for developerSettings"
+  "sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": "Atsiprašome, šiame įrenginyje nepavyko sugeneruoti saugių raktų.\n\nRegistruokitės iš kito įrenginio.",
+  "@sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": {
+    "description": "Error message for insecure device"
   },
-  "serverEndpoint": "Serverio galutinis taškas",
-  "@serverEndpoint": {
-    "description": "Label for serverEndpoint"
+  "sorryWeHadToPauseYourBackups": "Atsiprašome, turėjome pristabdyti jūsų atsarginių kopijų kūrimą.",
+  "sort": "Rikiuoti",
+  "sortAlbumsBy": "Rikiuoti pagal",
+  "sortAToZ": "A-Ž",
+  "sortNewestFirst": "Naujausią pirmiausiai",
+  "sortOldestFirst": "Seniausią pirmiausiai",
+  "sortZToA": "Ž-A",
+  "sportsWithThem": "Sportai su {name}",
+  "@sportsWithThem": {
+    "placeholders": {
+      "name": {}
+    }
   },
-  "invalidEndpoint": "Netinkamas galutinis taškas",
-  "@invalidEndpoint": {
-    "description": "Label for invalidEndpoint"
+  "spotlightOnThem": "Dėmesys {name}",
+  "@spotlightOnThem": {
+    "placeholders": {
+      "name": {}
+    }
   },
-  "invalidEndpointMessage": "Atsiprašome, įvestas galutinis taškas netinkamas. Įveskite tinkamą galutinį tašką ir bandykite dar kartą.",
-  "@invalidEndpointMessage": {
-    "description": "Label for invalidEndpointMessage"
+  "spotlightOnYourself": "Dėmesys į save",
+  "startBackup": "Pradėti kurti atsarginę kopiją",
+  "startRecovery": "Pradėti atkūrimą",
+  "startSnappingYourPhotosWillShowUpHere": "Pradėkite fotografuoti – jūsų nuotraukos bus rodomos čia.",
+  "status": "Būsena",
+  "sticker": "Lipdukas",
+  "stopCastingBody": "Ar norite sustabdyti perdavimą?",
+  "stopCastingTitle": "Stabdyti perdavimą",
+  "storage": "Saugykla",
+  "storageBreakupFamily": "Šeima",
+  "storageBreakupYou": "Jūs",
+  "@storageBreakupYou": {
+    "description": "Label to indicate how much storage you are using when you are part of a family plan"
   },
-  "endpointUpdatedMessage": "Galutinis taškas sėkmingai atnaujintas",
-  "@endpointUpdatedMessage": {
-    "description": "Label for endpointUpdatedMessage"
-  }
+  "storageLimit": "Saugyklos riba",
+  "storageLimitExceeded": "Viršyta saugyklos riba.",
+  "streamDetails": "Srautinio perdavimo išsami informacija",
+  "strongPassword": "Stiprus slaptažodis",
+  "strongStrength": "Stipri",
+  "@strongStrength": {
+    "description": "Strong password strength label"
+  },
+  "submit": "Pateikti",
+  "subscribe": "Prenumeruoti",
+  "subscribeToEnableSharing": "Kad įjungtumėte bendrinimą, reikia aktyvios mokamos prenumeratos.",
+  "subscription": "Prenumerata",
+  "subWillBeCancelledOn": "Jūsų prenumerata bus atsisakyta {endDate}",
+  "@subWillBeCancelledOn": {
+    "placeholders": {
+      "endDate": {}
+    }
+  },
+  "success": "Sėkmė",
+  "successfullyArchived": "Sėkmingai suarchyvuota",
+  "successfullyHid": "Sėkmingai paslėptas",
+  "successfullyUnarchived": "Sėkmingai išarchyvuota",
+  "successfullyUnhid": "Sėkmingai atslėptas",
+  "suggestDeletion": "Siūlyti ištrynimą",
+  "suggestFeatures": "Siūlyti funkcijas",
+  "suggestions": "Pasiūlymai",
+  "sunrise": "Akiratyje",
+  "support": "Pagalba",
+  "supportEnte": "Paremti „<bold-green>ente</bold-green>“",
+  "syncing": "Sinchronizuojama...",
+  "syncProgress": "{completed} / {total} išsaugomi prisiminimai",
+  "@syncProgress": {
+    "description": "Text to tell user how many memories have been preserved",
+    "placeholders": {
+      "completed": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "syncStopped": "Sinchronizavimas sustabdytas",
+  "systemTheme": "Sistemos",
+  "tag": "Žymė",
+  "tags": "Žymės",
+  "tapToCopy": "palieskite, kad nukopijuotumėte",
+  "tapToUnlock": "Palieskite, kad atrakintumėte",
+  "@tapToUnlock": {
+    "description": "Message prompting user to tap to unlock"
+  },
+  "tapToUpload": "Palieskite, kad įkeltumėte",
+  "@tapToUpload": {
+    "description": "Shown in upload icon widet, inside a tooltip."
+  },
+  "tapToUploadIsIgnoredDue": "Palieskite, kad įkeltumėte. Įkėlimas šiuo metu ignoruojamas dėl {ignoreReason}.",
+  "@tapToUploadIsIgnoredDue": {
+    "description": "Shown in upload icon widet, inside a tooltip.",
+    "placeholders": {
+      "ignoreReason": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
+  },
+  "tellUsWhatYouThink": "Pasakykite mums, ką manote",
+  "tempErrorContactSupportIfPersists": "Atrodo, kad kažkas nutiko ne taip. Bandykite dar kartą po kurio laiko. Jei klaida tęsiasi, susisiekite su mūsų palaikymo komanda.",
+  "terminate": "Baigti",
+  "@terminate": {
+    "description": "Terminate button label"
+  },
+  "terminateSession": "Baigti seansą?",
+  "@terminateSession": {
+    "description": "Title for terminate session dialog"
+  },
+  "termsOfServicesTitle": "Sąlygos",
+  "@termsOfServicesTitle": {
+    "description": "Terms of service title"
+  },
+  "thankYou": "Dėkojame",
+  "thankYouForSubscribing": "Dėkojame, kad užsiprenumeravote!",
+  "theLinkYouAreTryingToAccessHasExpired": "Nuoroda, kurią bandote pasiekti, nebegalioja.",
+  "theme": "Tema",
+  "thePersonGroupsWillNotBeDisplayed": "Asmenų grupės nebebus rodomos asmenų sekcijoje. Nuotraukos liks nepakitusios.",
+  "thePersonWillNotBeDisplayed": "Asmuo nebebus rodomas asmenų sekcijoje. Nuotraukos liks nepakitusios.",
+  "theRecoveryKeyYouEnteredIsIncorrect": "Įvestas atkūrimo raktas yra neteisingas.",
+  "@theRecoveryKeyYouEnteredIsIncorrect": {
+    "description": "Detailed error message when recovery key is incorrect"
+  },
+  "theseItemsWillBeDeletedFromYourDevice": "Šie elementai bus ištrinti iš jūsų įrenginio.",
+  "thisCanBeUsedToRecoverYourAccountIfYou": "Tai gali būti naudojama paskyrai atkurti, jei prarandate dvigubo tapatybės nustatymą",
+  "thisDevice": "Šis įrenginys",
+  "@thisDevice": {
+    "description": "Label for current device"
+  },
+  "thisEmailIsAlreadyInUse": "Šis el. paštas jau naudojamas.",
+  "@thisEmailIsAlreadyInUse": {
+    "description": "Error message when email is already in use"
+  },
+  "thisImageHasNoExifData": "Šis vaizdas neturi Exif duomenų",
+  "thisIsMeExclamation": "Tai aš!",
+  "thisIsPersonVerificationId": "Tai – {email} patvirtinimo ID",
+  "@thisIsPersonVerificationId": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@ente.com"
+      }
+    }
+  },
+  "thisIsYourVerificationId": "Tai – jūsų patvirtinimo ID",
+  "thisMonth": "Šį mėnesį",
+  "thisWeek": "Šią savaitę",
+  "thisWeekThroughTheYears": "Ši savaitė per metus",
+  "thisWeekXYearsAgo": "{count, plural, one{Šią savaitę, prieš {count} metus} few{Šią savaitę, prieš {count} metus} many{Šią savaitę, prieš {count} metų} other{Šią savaitę, prieš {count} metų}}",
+  "@thisWeekXYearsAgo": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "thisWillLogYouOutOfTheFollowingDevice": "Tai jus atjungs nuo toliau nurodyto įrenginio:",
+  "@thisWillLogYouOutOfTheFollowingDevice": {
+    "description": "Warning message for logging out of another device"
+  },
+  "thisWillLogYouOutOfThisDevice": "Tai jus atjungs nuo šio įrenginio.",
+  "@thisWillLogYouOutOfThisDevice": {
+    "description": "Warning message for logging out of current device"
+  },
+  "thisWillMakeTheDateAndTimeOfAllSelected": "Tai padarys visų pasirinktų nuotraukų datą ir laiką vienodus.",
+  "thisYear": "Šiais metais",
+  "throughTheYears": "{dateFormat} per metus",
+  "@throughTheYears": {
+    "placeholders": {
+      "dateFormat": {}
+    }
+  },
+  "throwbackWithThem": "Atsiminimai su {name}",
+  "@throwbackWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "todaysLogs": "Šiandienos žurnalai",
+  "toEnableAppLockPleaseSetupDevicePasscodeOrScreen": "Kad įjungtumėte programos užraktą, sistemos nustatymuose nustatykite įrenginio prieigos kodą arba ekrano užraktą.",
+  "tooManyIncorrectAttempts": "Per daug neteisingų bandymų.",
+  "@tooManyIncorrectAttempts": {
+    "description": "Message shown when too many incorrect attempts are made"
+  },
+  "toResetVerifyEmail": "Kad iš naujo nustatytumėte slaptažodį, pirmiausia patvirtinkite savo el. paštą.",
+  "@toResetVerifyEmail": {
+    "description": "Message asking user to verify email before password reset"
+  },
+  "totalSize": "Bendrą dydį",
+  "restoreOrPermanentlyDeleteItems": "Atkurti arba negrįžtamai ištrinti elementus",
+  "trashCode": "Ištuštinti kodą?",
+  "trashCodeMessage": "Ar tikrai norite ištuštinti {account} kodą?",
+  "@trashCodeMessage": {
+    "placeholders": {
+      "account": {}
+    }
+  },
+  "trashDaysLeft": "{count, plural, =0{Netrukus} one{{count} diena} few{{count} dienos} many{{count} dienos} other{{count} dienų}}",
+  "@trashDaysLeft": {
+    "description": "Text to indicate number of days remaining before permanent deletion",
+    "placeholders": {
+      "count": {
+        "example": "1|2|3",
+        "type": "int"
+      }
+    }
+  },
+  "trim": "Trumpinti",
+  "tripInYear": "Kelionė per {year}",
+  "@tripInYear": {
+    "placeholders": {
+      "year": {}
+    }
+  },
+  "tripToLocation": "Kelionė į {location}",
+  "@tripToLocation": {
+    "placeholders": {
+      "location": {}
+    }
+  },
+  "trustedContacts": "Patikimi kontaktai",
+  "tryAgain": "Bandyti dar kartą",
+  "@tryAgain": {
+    "description": "Try again button label"
+  },
+  "twofactor": "Dvigubas tapatybės nustatymas",
+  "twofactorAuthenticationHasBeenDisabled": "Dvigubas tapatybės nustatymas išjungtas.",
+  "twofactorAuthenticationSuccessfullyReset": "Dvigubas tapatybės nustatymas sėkmingai iš naujo nustatytas.",
+  "@twofactorAuthenticationSuccessfullyReset": {
+    "description": "Message when two-factor authentication is successfully reset"
+  },
+  "twoFactorAuthTitle": "Dvigubas tapatybės nustatymas",
+  "@twoFactorAuthTitle": {
+    "description": "Two-factor authentication title"
+  },
+  "twofactorSetup": "Dvigubo tapatybės nustatymo sąranka",
+  "twoFAVerification": "2FA patvirtinimas",
+  "type": "Tipas",
+  "typeOfGallerGallerytypeIsNotSupportedForRename": "Galerijos tipas {galleryType} nepalaikomas pervadinimui.",
+  "@typeOfGallerGallerytypeIsNotSupportedForRename": {
+    "placeholders": {
+      "galleryType": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
+  },
+  "unarchive": "Išarchyvuoti",
+  "@unarchive": {
+    "description": "Action of 'Unarchiving' an element"
+  },
+  "unarchiveAlbum": "Išarchyvuoti albumą",
+  "unarchiving": "Išarchyvuojama...",
+  "unavailableReferralCode": "Šis kodas jau yra panaudotas.",
+  "uncategorized": "Nekategorizuoti",
+  "undo": "Anuliuoti",
+  "unhide": "Rodyti",
+  "unhideToAlbum": "Rodyti į albumą",
+  "unhiding": "Rodoma...",
+  "unhidingFilesToAlbum": "Rodomi failai į albumą",
+  "unlock": "Atrakinti",
+  "@unlock": {
+    "description": "Short action label used as the system authentication reason when unlocking the app"
+  },
+  "unnamedCollection": "Be pavadinimo kolekcija",
+  "unnamedPeopleDoingSomethingTogether": "Daro kartu",
+  "unnamedPeopleSpotlight": "Pažįstamas veidas",
+  "unnamedPeopleThrowbackTogether": "Atsiminimai kartu",
+  "unnamedPeopleYouAndThem": "Jūs abu",
+  "unpin": "Atsegti",
+  "unpinnedCodeMessage": "{code} buvo atsegtas",
+  "@unpinnedCodeMessage": {
+    "placeholders": {
+      "code": {}
+    }
+  },
+  "unpinnedCount": "{count, plural, one{Atsegtas {count} elementas} few{Atsegti {count} elementai} many{Atsegta {count} elemento} other{Atsegta {count} elementų}}",
+  "@unpinnedCount": {
+    "description": "Text to show number of items unpinned",
+    "placeholders": {
+      "count": {
+        "description": "Number of items unpinned",
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "unpinPerson": "Atsegti asmenį",
+  "unpinText": "Atsegti",
+  "unselectAll": "Nesirinkti visų",
+  "updateAvailable": "Yra naujinimas",
+  "updateBackupPassword": "Atnaujinti atsarginę slaptažodžio kopiją",
+  "updateTime": "Atnaujinti laiką",
+  "@updateTime": {
+    "description": "Button label to update the recovery time for a trusted contact"
+  },
+  "updatingFolderSelection": "Atnaujinamas aplankų pasirinkimas...",
+  "upgrade": "Keisti planą",
+  "uploadFileTooLargeErrorBody": "Šis failas didesnis nei didžiausias palaikomas įkėlimo dydis – 10 GB.",
+  "@uploadFileTooLargeErrorBody": {
+    "description": "Body shown when uploads fail because the file exceeds the supported size"
+  },
+  "uploadFileTooLargeErrorTitle": "Failas per didelis",
+  "@uploadFileTooLargeErrorTitle": {
+    "description": "Title shown when uploads fail because the file exceeds the supported size"
+  },
+  "uploadingFilesToAlbum": "Įkeliami failai į albumą...",
+  "uploadingMultipleMemories": "Išsaugomi {count} prisiminimai...",
+  "@uploadingMultipleMemories": {
+    "description": "Text to tell user how many memories are being preserved",
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "uploadingSingleMemory": "Išsaugomas prisiminimas...",
+  "uploadIsIgnoredDueToIgnorereason": "Įkėlimas ignoruojamas dėl {ignoreReason}.",
+  "@uploadIsIgnoredDueToIgnorereason": {
+    "placeholders": {
+      "ignoreReason": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
+  },
+  "usageFamily": "Šeima",
+  "useAsCover": "Naudoti kaip viršelį",
+  "usedSpace": "Naudojama vieta",
+  "useMLToFindSimilarImages": "Pašalinkite elementus, kurie atrodo panašūs.",
+  "useOffline": "Naudoti be atsarginių kopijų",
+  "useRecoveryKey": "Naudoti atkūrimo raktą",
+  "@useRecoveryKey": {
+    "description": "Use recovery key button label"
+  },
+  "useSelectedPhoto": "Naudoti pasirinktą nuotrauką",
+  "usingStorage": "Naudojama {amount}",
+  "@usingStorage": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "20 GB"
+      }
+    }
+  },
+  "validTill": "Galioja iki {endDate}",
+  "@validTill": {
+    "placeholders": {
+      "endDate": {}
+    }
+  },
+  "verificationFailedPleaseTryAgain": "Patvirtinimas nepavyko. Bandykite dar kartą.",
+  "@verificationFailedPleaseTryAgain": {
+    "description": "Verification failed error message"
+  },
+  "verify": "Patvirtinti",
+  "@verify": {
+    "description": "Verify button label"
+  },
+  "verifyEmail": "Patvirtinti el. paštą",
+  "@verifyEmail": {
+    "description": "Verify email title"
+  },
+  "verifyIDLabel": "Patvirtinti",
+  "verifying": "Patvirtinama...",
+  "verifyingRecoveryKey": "Patvirtinima atkūrimo raktą...",
+  "verifyPassword": "Patvirtinkite slaptažodį",
+  "@verifyPassword": {
+    "description": "Verify password button label"
+  },
+  "videoInfo": "Vaizdo įrašo informacija",
+  "videos": "Vaizdo įrašai",
+  "videoStreaming": "Srautiniai vaizdo įrašai",
+  "videoStreamingNote": "Tik per pastaruosius 60 dienų ir trumpesni nei 1 minutės vaizdo įrašai apdorojami šiame įrenginyje. Dėl senesnių ir (arba) ilgesnių vaizdo įrašų įjunkite srautinį perdavimą kompiuterio programoje.",
+  "viewActiveSessions": "Peržiūrėti aktyvius seansus",
+  "viewAddOnButton": "Peržiūrėti priedus",
+  "viewAllExifData": "Peržiūrėti visus EXIF duomenis",
+  "viewAllHelpTopics": "Peržiūrėti visas pagalbos temas",
+  "viewer": "Žiūrėtojas",
+  "viewLargeFiles": "Dideli failai",
+  "viewLargeFilesDesc": "Nustatykite elementus, naudojančius daugiausiai vietos.",
+  "viewLogs": "Peržiūrėti žurnalus",
+  "@viewLogs": {
+    "description": "Button to view logs"
+  },
+  "viewLogsAction": "Peržiūrėti žurnalus",
+  "viewPersonToUnlink": "Peržiūrėkite {name}, kad atsietumėte",
+  "@viewPersonToUnlink": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "viewPlans": "Peržiūrėti planus",
+  "viewRawCodes": "Peržiūrėti neapdorotus kodus",
+  "viewRecoveryKey": "Peržiūrėti atkūrimo raktą",
+  "visitWebToManage": "Aplankykite {webUrl}, kad tvarkytumėte savo prenumeratą",
+  "@visitWebToManage": {
+    "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",
+    "placeholders": {
+      "webUrl": {
+        "type": "String",
+        "example": "photos.ente.com"
+      }
+    }
+  },
+  "waitingForVerification": "Laukiama patvirtinimo...",
+  "@waitingForVerification": {
+    "description": "Waiting for verification message"
+  },
+  "waitingForWifi": "Laukiama „WiFi“...",
+  "warning": "Įspėjimas",
+  "weakStrength": "Silpna",
+  "@weakStrength": {
+    "description": "Weak password strength label"
+  },
+  "weAreOpenSource": "Esame atviro kodo!",
+  "weDontSupportEditingPhotosAndAlbumsThatYouDont": "Nepalaikome nuotraukų ir albumų redagavimo, kurių dar neturite.",
+  "weHaveSentCodeTo": "Išsiuntėme kodą adresu {email}.",
+  "@weHaveSentCodeTo": {
+    "description": "Text to indicate that we have sent a verification code to the user's email",
+    "placeholders": {
+      "email": {
+        "description": "The email address of the user",
+        "type": "String",
+        "example": "example@ente.com"
+      }
+    }
+  },
+  "whatsNew": "Kas naujo",
+  "whyAreYouLeaving": "Kodėl paliekate?",
+  "@whyAreYouLeaving": {
+    "description": "Heading asking why the user is deleting their account"
+  },
+  "widgets": "Valdikliai",
+  "wishThemAHappyBirthday": "Palinkėkite {name} su gimtadieniu! 🎉",
+  "@wishThemAHappyBirthday": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "yearly": "Metinis",
+  "@yearly": {
+    "description": "The text to display for yearly plans",
+    "type": "text"
+  },
+  "yearsAgo": "{count, plural, one{prieš {count} metus} other{prieš {count} metų}}",
+  "@yearsAgo": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "yearShort": "m.",
+  "@yearShort": {
+    "description": "Appears in pricing page (/yr)"
+  },
+  "yes": "Taip",
+  "yesCancel": "Taip, atsisakyti",
+  "yesConvertToViewer": "Taip, keisti į žiūrėtoją",
+  "yesDelete": "Taip, ištrinti",
+  "yesDeleteCollections": "Taip, ištrinti {count, plural, one {kolekciją} few {kolekcijas} many {kolekcijos} other {kolekcijų}}",
+  "@yesDeleteCollections": {
+    "description": "Button label for confirming deletion of one or more collections",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "yesDiscardChanges": "Taip, atmesti pakeitimus",
+  "yesIgnore": "Taip, ignoruoti",
+  "yesLogout": "Taip, atsijungti",
+  "@yesLogout": {
+    "description": "Confirmation button for logout"
+  },
+  "yesRemove": "Taip, šalinti",
+  "yesRenew": "Taip, pratęsti",
+  "yesResetPerson": "Taip, nustatyti asmenį iš naujo",
+  "yesShowPeople": "Taip, rodyti asmenius",
+  "yesShowPerson": "Taip, rodyti asmenį",
+  "you": "Jūs",
+  "youAndThem": "Jūs ir {name}",
+  "@youAndThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "youAreOnTheLatestVersion": "Esate naujausioje versijoje",
+  "youCannotDowngradeToThisPlan": "Negalite pakeisti į šį planą",
+  "youCannotShareWithYourself": "Negalite bendrinti su savimi.",
+  "youHaveSuccessfullyFreedUp": "Sėkmingai atlaisvinote {storageSaved}!",
+  "@youHaveSuccessfullyFreedUp": {
+    "description": "The text to display when the user has successfully freed up storage",
+    "type": "text",
+    "placeholders": {
+      "storageSaved": {
+        "example": "1.2 GB",
+        "type": "String"
+      }
+    }
+  },
+  "yourMap": "Jūsų žemėlapis",
+  "yourPhotosLookUnique": "Jūsų nuotraukos atrodo ypatingos",
+  "yourPlanSupportsFamily": "Jūsų planas jau palaiko šeimą.",
+  "yourPlanWasSuccessfullyDowngraded": "Jūsų planas sėkmingai pakeistas į žemesnį",
+  "yourPlanWasSuccessfullyUpgraded": "Jūsų planas sėkmingai pakeistas",
+  "yourPurchaseWasSuccessful": "Jūsų pirkimas buvo sėkmingas",
+  "yourReferralCode": "Jūsų rekomendacijos kodas",
+  "yourSubscriptionHasExpired": "Jūsų prenumerata baigėsi.",
+  "yourSubscriptionWasUpdatedSuccessfully": "Jūsų prenumerata buvo sėkmingai atnaujinta",
+  "yourTrashIsEmpty": "Jūsų šiukšlinė tuščia.",
+  "yourVerificationCodeHasExpired": "Jūsų patvirtinimo kodas nebegaliojantis.",
+  "@yourVerificationCodeHasExpired": {
+    "description": "Error message when verification code has expired"
+  },
+  "youveNoDuplicateCodesThatCanBeCleared": "Neturite dubliuotų kodų, kuriuos būtų galima išvalyti.",
+  "youveNoDuplicateFilesThatCanBeCleared": "Neturite dubliuotų failų, kuriuos būtų galima išvalyti.",
+  "youveNoFilesInThisAlbumThatCanBeDeleted": "Neturite šiame albume failų, kuriuos būtų galima ištrinti.",
+  "zoomOutToSeePhotos": "Padidinkite mastelį, kad matytumėte nuotraukas",
+  "backupPausedFreeUpDeviceStorage": "Atsarginės kopijos kūrimas sustabdytas. Atlaisvinkite saugyklą šiame įrenginyje, kad tęstumėte.",
+  "legacyKitSheetGreeting": "Sveiki, {name}, prašau tai saugokite.",
+  "@legacyKitSheetGreeting": {
+    "description": "Greeting printed at the top of a Legacy kit recovery sheet, addressed to the person holding it",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Mom"
+      }
+    }
+  },
+  "legacyKitSheetIntro": "Jei kada nors manęs nebūtų arba prarasiu prieigą prie savo paskyros, šis lapas padės jums atkurti mano nuotraukas, dokumentus ir daugiau.",
+  "@legacyKitSheetIntro": {
+    "description": "Written in the voice of the account owner, addressed to the sheet holder"
+  },
+  "legacyKitSheetHowToRecover": "Kaip atkurti savo paskyrą",
+  "legacyKitSheetStepGetAnother": "Tai – {index} iš {total} lapų. Paprašykite {names} dėl jų – jums reikia dar vieno.",
+  "@legacyKitSheetStepGetAnother": {
+    "description": "First recovery step. {names} is a list of the other sheet holders, already joined and emphasised",
+    "placeholders": {
+      "index": {
+        "type": "int",
+        "example": "1"
+      },
+      "total": {
+        "type": "int",
+        "example": "3"
+      },
+      "names": {
+        "type": "String",
+        "example": "Alex or Lawyer"
+      }
+    }
+  },
+  "legacyKitSheetNameJoinerOr": " arba ",
+  "@legacyKitSheetNameJoinerOr": {
+    "description": "Joins the last two sheet holder names in legacyKitSheetStepGetAnother. Keep the surrounding spaces"
+  },
+  "legacyKitSheetNameJoinerList": ", ",
+  "@legacyKitSheetNameJoinerList": {
+    "description": "Joins all but the last two sheet holder names in legacyKitSheetStepGetAnother. Keep the trailing space"
+  },
+  "legacyKitSheetStepVisit": "Apsilankykite {url}",
+  "@legacyKitSheetStepVisit": {
+    "description": "Second recovery step",
+    "placeholders": {
+      "url": {
+        "type": "String",
+        "example": "legacy.ente.com"
+      }
+    }
+  },
+  "legacyKitSheetStepScan": "Skenuokite {count} lapus (-ų).",
+  "@legacyKitSheetStepScan": {
+    "description": "Third recovery step. {count} is how many sheets must be scanned together",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "legacyKitSheetNeedHelp": "Reikia pagalbos? Parašykite laišką adresu {email}.",
+  "@legacyKitSheetNeedHelp": {
+    "description": "Footer printed at the bottom of a Legacy kit recovery sheet",
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
+  },
+  "grantAccess": "Suteikti prieigą"
 }

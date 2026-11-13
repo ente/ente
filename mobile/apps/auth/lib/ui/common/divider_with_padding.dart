@@ -15,9 +15,7 @@ class DividerWithPadding extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.fromLTRB(left, top, right, bottom),
-      child: Divider(
-        thickness: thinckness,
-      ),
+      child: Divider(thickness: thinckness),
     );
   }
 }

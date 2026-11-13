@@ -1,6 +1,7 @@
+import "package:ente_components/theme/text_styles.dart";
+import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:flutter_svg/flutter_svg.dart";
-import "package:photos/l10n/l10n.dart";
 import "package:photos/models/rituals/ritual_models.dart";
 
 const String _duckyShareArtAsset = "assets/rituals/ritual_ducky_share.svg";
@@ -29,8 +30,9 @@ class RitualShareCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title =
-        ritual.title.isEmpty ? context.l10n.ritualUntitled : ritual.title;
+    final title = ritual.title.isEmpty
+        ? context.strings.ritualUntitled
+        : ritual.title;
     final streak = progress?.currentStreak ?? 0;
 
     return SizedBox(
@@ -42,27 +44,19 @@ class RitualShareCard extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
           child: Column(
             children: [
-              _RitualShareHeader(
-                icon: ritual.icon,
-                title: title,
-              ),
+              _RitualShareHeader(icon: ritual.icon, title: title),
               const SizedBox(height: 16),
               Expanded(
                 child: Align(
                   alignment: Alignment.topCenter,
                   child: AspectRatio(
                     aspectRatio: _duckyShareAspectRatio,
-                    child: _RitualDuckyShareArt(
-                      streak: streak,
-                    ),
+                    child: _RitualDuckyShareArt(streak: streak),
                   ),
                 ),
               ),
               const SizedBox(height: 18),
-              SvgPicture.asset(
-                _enteLogoAsset,
-                height: 20,
-              ),
+              SvgPicture.asset(_enteLogoAsset, height: 20),
             ],
           ),
         ),
@@ -72,10 +66,7 @@ class RitualShareCard extends StatelessWidget {
 }
 
 class _RitualShareHeader extends StatelessWidget {
-  const _RitualShareHeader({
-    required this.icon,
-    required this.title,
-  });
+  const _RitualShareHeader({required this.icon, required this.title});
 
   final String icon;
   final String title;
@@ -124,9 +115,7 @@ class _RitualShareHeader extends StatelessWidget {
 }
 
 class _RitualDuckyShareArt extends StatelessWidget {
-  const _RitualDuckyShareArt({
-    required this.streak,
-  });
+  const _RitualDuckyShareArt({required this.streak});
 
   final int streak;
 
@@ -135,9 +124,10 @@ class _RitualDuckyShareArt extends StatelessWidget {
     final streakText = streak.toString();
     final fontSize = _streakFontSize(streakText);
     final textStyle = TextStyle(
-      fontFamily: "Nunito",
+      fontFamily: TextStyles.outfitFontFamily,
+      package: TextStyles.fontPackage,
       fontSize: fontSize,
-      fontWeight: FontWeight.w900,
+      fontWeight: FontWeight.w700,
       color: Colors.white,
       decoration: TextDecoration.none,
       height: 1,
@@ -155,10 +145,7 @@ class _RitualDuckyShareArt extends StatelessWidget {
         return Stack(
           fit: StackFit.expand,
           children: [
-            SvgPicture.asset(
-              _duckyShareArtAsset,
-              fit: BoxFit.cover,
-            ),
+            SvgPicture.asset(_duckyShareArtAsset, fit: BoxFit.cover),
             Positioned(
               top: top,
               left: 0,

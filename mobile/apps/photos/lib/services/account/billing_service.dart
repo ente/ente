@@ -1,28 +1,25 @@
 import 'dart:io';
 
+import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:flutter/material.dart';
-// import 'package:flutter/foundation.dart';
-// import 'package:flutter_inapp_purchase/flutter_inapp_purchase.dart';
-import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:logging/logging.dart';
 import "package:photos/gateways/billing/billing_gateway.dart";
 import 'package:photos/gateways/billing/models/billing_plan.dart';
 import 'package:photos/gateways/billing/models/subscription.dart';
-import "package:photos/generated/l10n.dart";
 import 'package:photos/models/user_details.dart';
 import "package:photos/service_locator.dart";
-import 'package:photos/services/account/user_service.dart';
-import 'package:photos/ui/common/web_page.dart';
+import "package:photos/services/account/purchase_update_listener.dart";
+import 'package:photos/ui/family/family_plan_page.dart';
 import 'package:photos/utils/dialog_util.dart';
 
 const kWebPaymentRedirectUrl = String.fromEnvironment(
   "web-payment-redirect",
-  defaultValue: "https://payments.ente.io/frameRedirect",
+  defaultValue: "https://payments.ente.com/frameRedirect",
 );
 
 const kWebPaymentBaseEndpoint = String.fromEnvironment(
   "web-payment",
-  defaultValue: "https://payments.ente.io",
+  defaultValue: "https://payments.ente.com",
 );
 
 class BillingService {
@@ -44,23 +41,10 @@ class BillingService {
     //   await FlutterInappPurchase.instance.initConnection;
     //   FlutterInappPurchase.instance.clearTransactionIOS();
     // }
-    InAppPurchase.instance.purchaseStream.listen((purchases) {
-      if (_isOnSubscriptionPage) {
-        return;
-      }
-      for (final purchase in purchases) {
-        if (purchase.status == PurchaseStatus.purchased) {
-          verifySubscription(
-            purchase.productID,
-            purchase.verificationData.serverVerificationData,
-          ).then((response) {
-            InAppPurchase.instance.completePurchase(purchase);
-          });
-        } else if (Platform.isIOS && purchase.pendingCompletePurchase) {
-          InAppPurchase.instance.completePurchase(purchase);
-        }
-      }
-    });
+    listenForPurchaseUpdates(
+      isOnSubscriptionPage: () => _isOnSubscriptionPage,
+      verifySubscription: verifySubscription,
+    );
   }
 
   void clearCache() {
@@ -73,9 +57,9 @@ class BillingService {
   }
 
   Future<Subscription> verifySubscription(
-    final productID,
-    final verificationData, {
-    final paymentProvider,
+    final String productID,
+    final String verificationData, {
+    final String? paymentProvider,
   }) async {
     try {
       return await _gateway.verifySubscription(
@@ -85,7 +69,7 @@ class BillingService {
             paymentProvider ?? (Platform.isAndroid ? "playstore" : "appstore"),
       );
     } catch (e, s) {
-      _logger.severe(e, s);
+      _logger.severe("Failed to verify subscription", e, s);
       rethrow;
     }
   }
@@ -94,7 +78,7 @@ class BillingService {
     try {
       return await _gateway.getSubscription();
     } catch (e, s) {
-      _logger.severe(e, s);
+      _logger.severe("Failed to fetch subscription", e, s);
       rethrow;
     }
   }
@@ -103,7 +87,7 @@ class BillingService {
     try {
       return await _gateway.cancelStripeSubscription();
     } catch (e, s) {
-      _logger.severe(e, s);
+      _logger.severe("Failed to cancel Stripe subscription", e, s);
       rethrow;
     }
   }
@@ -112,7 +96,7 @@ class BillingService {
     try {
       return await _gateway.activateStripeSubscription();
     } catch (e, s) {
-      _logger.severe(e, s);
+      _logger.severe("Failed to activate Stripe subscription", e, s);
       rethrow;
     }
   }
@@ -125,7 +109,7 @@ class BillingService {
         redirectURL: kWebPaymentRedirectUrl,
       );
     } catch (e, s) {
-      _logger.severe(e, s);
+      _logger.severe("Failed to fetch Stripe customer portal URL", e, s);
       rethrow;
     }
   }
@@ -136,41 +120,21 @@ class BillingService {
 
   Future<void> launchFamilyPortal(
     BuildContext context,
-    UserDetails userDetails,
-  ) async {
-    if (userDetails.subscription.productID == freeProductID &&
-        !userDetails.hasPaidAddon()) {
-      await showErrorDialog(
-        context,
-        AppLocalizations.of(context).familyPlans,
-        AppLocalizations.of(context).familyPlanOverview,
-      );
-      return;
-    }
-    final dialog = createProgressDialog(
-      context,
-      AppLocalizations.of(context).pleaseWait,
-      isDismissible: true,
-    );
-    await dialog.show();
+    UserDetails userDetails, {
+    bool popOnFreeAdvertViewPlans = false,
+    bool refreshOnOpen = true,
+  }) async {
     try {
-      final bool familyExist = userDetails.isPartOfFamily();
-      final String url =
-          await UserService.instance.getFamilyPortalUrl(familyExist);
-
-      await dialog.hide();
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (BuildContext context) {
-            return WebPage(
-              AppLocalizations.of(context).familyPlanPortalTitle,
-              url,
-            );
-          },
+      await routeToPage(
+        context,
+        FamilyPlanPage(
+          initialUserDetails: userDetails,
+          popOnFreeAdvertViewPlans: popOnFreeAdvertViewPlans,
+          refreshOnOpen: refreshOnOpen,
         ),
       );
     } catch (e) {
-      await dialog.hide();
+      if (!context.mounted) return;
       await showGenericErrorDialog(context: context, error: e);
     }
   }

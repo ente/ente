@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ente-io/cli/internal/api"
-	eCrypto "github.com/ente-io/cli/internal/crypto"
-	"github.com/ente-io/cli/pkg/model"
-	"github.com/ente-io/cli/pkg/model/export"
-	"github.com/ente-io/cli/pkg/secrets"
-	"github.com/ente-io/cli/utils/encoding"
+	"github.com/ente/cli/internal/api"
+	eCrypto "github.com/ente/cli/internal/crypto"
+	"github.com/ente/cli/pkg/model"
+	"github.com/ente/cli/pkg/model/export"
+	"github.com/ente/cli/pkg/secrets"
+	"github.com/ente/cli/utils/encoding"
 	"log"
 )
 
@@ -117,8 +117,8 @@ func MapApiFileToPhotoFile(ctx context.Context, album model.RemoteAlbum, file ap
 			return nil, err
 		}
 	}
-	if file.PubicMagicMetadata != nil {
-		_, encodedJsonBytes, err := eCrypto.DecryptChaChaBase64(file.PubicMagicMetadata.Data, fileKey, file.PubicMagicMetadata.Header)
+	if file.PublicMagicMetadata != nil {
+		_, encodedJsonBytes, err := eCrypto.DecryptChaChaBase64(file.PublicMagicMetadata.Data, fileKey, file.PublicMagicMetadata.Header)
 		if err != nil {
 			return nil, fmt.Errorf("failed to decrypt public magic metadata for file %d: %w", file.ID, err)
 		}

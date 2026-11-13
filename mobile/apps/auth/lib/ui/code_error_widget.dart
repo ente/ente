@@ -1,18 +1,15 @@
 import 'package:ente_auth/ente_theme_data.dart';
-import 'package:ente_auth/l10n/l10n.dart';
 import 'package:ente_auth/models/code.dart';
 import 'package:ente_auth/theme/ente_theme.dart';
 import 'package:ente_auth/ui/common/gradient_button.dart';
 import 'package:ente_auth/ui/linear_progress_widget.dart';
 import 'package:ente_auth/ui/tools/debug/raw_codes_viewer.dart';
 import 'package:ente_auth/utils/email_util.dart';
+import 'package:ente_strings/ente_strings.dart';
 import 'package:flutter/material.dart';
 
 class CodeErrorWidget extends StatelessWidget {
-  const CodeErrorWidget({
-    super.key,
-    required this.errors,
-  });
+  const CodeErrorWidget({super.key, required this.errors});
 
   final List<Code> errors;
 
@@ -27,12 +24,7 @@ class CodeErrorWidget extends StatelessWidget {
         color: Theme.of(context).colorScheme.codeCardBackgroundColor,
         borderRadius: BorderRadius.circular(8),
       ),
-      margin: const EdgeInsets.only(
-        left: 16,
-        right: 16,
-        bottom: 8,
-        top: 8,
-      ),
+      margin: const EdgeInsets.only(left: 16, right: 16, bottom: 8, top: 8),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
         child: Column(
@@ -59,7 +51,7 @@ class CodeErrorWidget extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  context.l10n.error,
+                  context.strings.error,
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -72,7 +64,7 @@ class CodeErrorWidget extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8.0),
               child: Text(
-                context.l10n.somethingWentWrongParsingCode(errors.length),
+                context.strings.somethingWentWrongParsingCode(x: errors.length),
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
@@ -88,15 +80,13 @@ class CodeErrorWidget extends StatelessWidget {
                     width: 102,
                     height: 28,
                     child: GradientButton(
-                      text: context.l10n.viewRawCodes,
+                      text: context.strings.viewRawCodes,
                       fontSize: 10,
                       onTap: () async {
                         await showDialog(
                           context: context,
                           builder: (BuildContext context) {
-                            return RawCodesViewer(
-                              errors.map((e) => e.rawData).join('\n'),
-                            );
+                            return RawCodesViewer(errors);
                           },
                           barrierColor: Colors.black87,
                           barrierDismissible: false,
@@ -111,10 +101,10 @@ class CodeErrorWidget extends StatelessWidget {
                     width: 102,
                     height: 28,
                     child: GradientButton(
-                      text: context.l10n.contactSupport,
+                      text: context.strings.contactSupport,
                       fontSize: 10,
                       onTap: () async {
-                        await sendEmail(context, to: "support@ente.io");
+                        await sendEmail(context, to: "support@ente.com");
                       },
                       borderWidth: 0.6,
                       borderRadius: 6,

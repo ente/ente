@@ -1,3 +1,0 @@
-- Rewrote the entire gallery, scrolling is now like slicing through butter with a Swiss army knife
-- Fixed bugs that were affecting the reliability of background syncs
-- Improved the sign up flow

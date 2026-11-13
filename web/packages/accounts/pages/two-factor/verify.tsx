@@ -1,4 +1,5 @@
-import { Verify2FACodeForm } from "ente-accounts/components/Verify2FACodeForm";
+import { useAuthPageConfig } from "ente-accounts/components/auth/AuthPageProvider";
+import { TwoFactorForm } from "ente-accounts/components/auth/TwoFactorForm";
 import {
     savedPartialLocalUser,
     saveKeyAttributes,
@@ -8,25 +9,20 @@ import {
     resetSavedLocalUserTokens,
     verifyTwoFactor,
 } from "ente-accounts/services/user";
-import { LinkButton } from "ente-base/components/LinkButton";
 import { useBaseContext } from "ente-base/context";
-import { isHTTPErrorWithStatus } from "ente-base/http";
-import { t } from "i18next";
+import { isNamedError } from "ente-base/error";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useState } from "react";
-import {
-    AccountsPageContents,
-    AccountsPageFooter,
-    AccountsPageTitle,
-} from "../../components/layouts/centered-paper";
 import { unstashRedirect } from "../../services/redirect";
 
-/**
- * A page that allows the user to verify their TOTP based second factor.
- *
- * See: [Note: Login pages]
- */
+export interface TwoFactorVerifyPresentationProps {
+    onSubmit: (otp: string) => Promise<void>;
+    onRecover: () => void;
+    onChangeEmail: () => void;
+}
+
 const Page: React.FC = () => {
+    const { Shell } = useAuthPageConfig();
     const { logout } = useBaseContext();
 
     const [twoFactorSessionID, setTwoFactorSessionID] = useState("");
@@ -57,7 +53,7 @@ const Page: React.FC = () => {
                 saveKeyAttributes(keyAttributes);
                 await router.push(unstashRedirect() ?? "/credentials");
             } catch (e) {
-                if (isHTTPErrorWithStatus(e, 404)) {
+                if (isNamedError(e, "session_expired")) {
                     logout();
                 } else {
                     throw e;
@@ -67,20 +63,19 @@ const Page: React.FC = () => {
         [logout, router, twoFactorSessionID],
     );
 
+    const handleRecover = useCallback(
+        () => void router.push("/two-factor/recover"),
+        [router],
+    );
+
     return (
-        <AccountsPageContents>
-            <AccountsPageTitle>{t("two_factor")}</AccountsPageTitle>
-            <Verify2FACodeForm
+        <Shell>
+            <TwoFactorForm
                 onSubmit={handleSubmit}
-                submitButtonText={t("verify")}
+                onRecover={handleRecover}
+                onChangeEmail={logout}
             />
-            <AccountsPageFooter>
-                <LinkButton onClick={() => router.push("/two-factor/recover")}>
-                    {t("lost_2fa_device")}
-                </LinkButton>
-                <LinkButton onClick={logout}>{t("change_email")}</LinkButton>
-            </AccountsPageFooter>
-        </AccountsPageContents>
+        </Shell>
     );
 };
 

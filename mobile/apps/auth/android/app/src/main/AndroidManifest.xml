@@ -17,10 +17,8 @@
                   android:windowSoftInputMode="adjustResize">
 
             <intent-filter>
-                <action android:name="android.intent.action.VIEW"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-                <category android:name="android.intent.category.BROWSABLE"/>
-                <data android:scheme="ente-auth"/>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
             <intent-filter>
@@ -107,17 +105,13 @@
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data android:name="flutterEmbedding" android:value="2"/>
         <meta-data android:name="flutter_deeplinking_enabled" android:value="false" />
+        <meta-data android:name="asset_statements"
+            android:resource="@string/asset_statements" />
 
         <meta-data android:name="io.sentry.dsn"
                    android:value="https://ed4ddd6309b847ba8849935e26e9b648@sentry.ente.io/9"/>
     </application>
 
-    <queries>
-        <intent>
-            <action android:name="android.intent.action.SENDTO"/>
-            <data android:scheme="mailto"/>
-        </intent>
-    </queries>
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission
             android:name="android.permission.READ_EXTERNAL_STORAGE"

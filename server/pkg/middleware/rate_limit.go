@@ -3,74 +3,106 @@ package middleware
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/controller/discord"
-	util "github.com/ente-io/museum/pkg/utils"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/museum/pkg/utils/network"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/controller/discord"
+	util "github.com/ente/museum/pkg/utils"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/museum/pkg/utils/network"
 
+	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	log "github.com/sirupsen/logrus"
 	"github.com/ulule/limiter/v3"
 )
 
+type rateLimitScope string
+
+const (
+	rateLimitScopeIP             rateLimitScope = "ip"
+	rateLimitScopeCollection     rateLimitScope = "collection"
+	rateLimitScopeUser           rateLimitScope = "user"
+	rateLimitScopeAdmin          rateLimitScope = "admin"
+	rateLimitScopeRouteGlobal    rateLimitScope = "route_global"
+	rateLimitScopeProcessGlobal  rateLimitScope = "process_global"
+	processGlobalRateLimitURL                   = "all"
+	processThumbnailRateLimitURL                = "thumbnails"
+)
+
+var rateLimitRejections = promauto.NewCounterVec(prometheus.CounterOpts{
+	Name: "museum_rate_limit_rejections_total",
+	Help: "The number of requests rejected by Museum rate limiters",
+}, []string{"scope", "method", "url"})
+
 type RateLimitMiddleware struct {
-	count             int64 // Use int64 for atomic operations
-	limit             int64
-	reset             time.Duration
-	ticker            *time.Ticker
-	limit10ReqPerMin  *limiter.Limiter
-	limit150ReqPerMin *limiter.Limiter
-	limit300ReqPerMin *limiter.Limiter
-	limit200ReqPerMin *limiter.Limiter
-	limit200ReqPerSec *limiter.Limiter
-	discordCtrl       *discord.DiscordController
+	count              int64
+	thumbnailCount     int64
+	limit              int64
+	thumbnailLimit     int64
+	reset              time.Duration
+	ticker             *time.Ticker
+	limit10ReqPerMin   *limiter.Limiter
+	limit60ReqPerMin   *limiter.Limiter
+	limit120ReqPerHour *limiter.Limiter
+	limit200ReqPerMin  *limiter.Limiter
+	limit250ReqPerMin  *limiter.Limiter
+	limit300ReqPerMin  *limiter.Limiter
+	limit500ReqPerMin  *limiter.Limiter
+	limit700ReqPerSec  *limiter.Limiter
+	limit10ReqPerHour  *limiter.Limiter
+	limit60ReqPerHour  *limiter.Limiter
+	discordCtrl        *discord.DiscordController
 }
 
-func NewRateLimitMiddleware(discordCtrl *discord.DiscordController, limit int64, reset time.Duration) *RateLimitMiddleware {
+func NewRateLimitMiddleware(discordCtrl *discord.DiscordController, limit, thumbnailLimit int64, reset time.Duration) *RateLimitMiddleware {
 	rl := &RateLimitMiddleware{
-		limit10ReqPerMin:  util.NewRateLimiter("10-M"),
-		limit150ReqPerMin: util.NewRateLimiter("150-M"),
-		limit300ReqPerMin: util.NewRateLimiter("300-M"),
-		limit200ReqPerMin: util.NewRateLimiter("200-M"),
-		limit200ReqPerSec: util.NewRateLimiter("200-S"),
-		discordCtrl:       discordCtrl,
-		limit:             limit,
-		reset:             reset,
-		ticker:            time.NewTicker(reset),
+		limit10ReqPerMin:   util.NewRateLimiter("10-M"),
+		limit60ReqPerMin:   util.NewRateLimiter("60-M"),
+		limit120ReqPerHour: util.NewRateLimiter("120-H"),
+		limit200ReqPerMin:  util.NewRateLimiter("200-M"),
+		limit250ReqPerMin:  util.NewRateLimiter("250-M"),
+		limit300ReqPerMin:  util.NewRateLimiter("300-M"),
+		limit500ReqPerMin:  util.NewRateLimiter("500-M"),
+		limit700ReqPerSec:  util.NewRateLimiter("700-S"),
+		limit10ReqPerHour:  util.NewRateLimiter("10-H"),
+		limit60ReqPerHour:  util.NewRateLimiter("60-H"),
+		discordCtrl:        discordCtrl,
+		limit:              limit,
+		thumbnailLimit:     thumbnailLimit,
+		reset:              reset,
+		ticker:             time.NewTicker(reset),
 	}
 	go func() {
 		for range rl.ticker.C {
-			atomic.StoreInt64(&rl.count, 0) // Reset the count every reset interval
+			atomic.StoreInt64(&rl.count, 0)
+			atomic.StoreInt64(&rl.thumbnailCount, 0)
 		}
 	}()
 	return rl
 }
 
-// Increment increments the counter in a thread-safe manner.
-// Returns true if the increment was within the rate limit, false if the rate limit was exceeded.
-func (r *RateLimitMiddleware) Increment() bool {
-	// Atomically increment the count
-	newCount := atomic.AddInt64(&r.count, 1)
-	return newCount <= r.limit
-}
-
-// Stop the internal ticker, effectively stopping the rate limiter.
 func (r *RateLimitMiddleware) Stop() {
 	r.ticker.Stop()
 }
 
-// GlobalRateLimiter rate limits all requests to the server, regardless of the endpoint.
 func (r *RateLimitMiddleware) GlobalRateLimiter() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if !r.Increment() {
-			if r.count%100 == 0 {
-				go r.discordCtrl.NotifyPotentialAbuse(fmt.Sprintf("Global ratelimit (%d) breached %d", r.limit, r.count))
+		counter, limit := &r.count, r.limit
+		metricURL, name := processGlobalRateLimitURL, "Global"
+		if c.Request.Method == http.MethodGet && isThumbnailReadURLPath(c.FullPath()) {
+			counter, limit = &r.thumbnailCount, r.thumbnailLimit
+			metricURL, name = processThumbnailRateLimitURL, "Thumbnail"
+		}
+		count := atomic.AddInt64(counter, 1)
+		if count > limit {
+			recordRateLimitRejection(rateLimitScopeProcessGlobal, c.Request.Method, metricURL)
+			if count%100 == 0 {
+				go r.discordCtrl.NotifyPotentialAbuse(fmt.Sprintf("%s ratelimit (%d) breached %d", name, limit, count))
 			}
 			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{"error": "Rate limit breached, try later"})
 			return
@@ -79,42 +111,33 @@ func (r *RateLimitMiddleware) GlobalRateLimiter() gin.HandlerFunc {
 	}
 }
 
-// APIRateLimitMiddleware only rate limits sensitive public endpoints which have a higher risk
-// of abuse by any bad actor.
+func isThumbnailReadURLPath(reqPath string) bool {
+	switch reqPath {
+	case "/files/preview/:fileID", "/files/preview/v2/:fileID", "/files/thumbnail/v3/:fileID",
+		"/public-collection/files/preview/:fileID", "/public-collection/files/thumbnail/v3/:fileID",
+		"/public-memory/files/preview/:fileID", "/public-memory/files/thumbnail/v3/:fileID",
+		"/cast/files/preview/:fileID", "/cast/files/thumbnail/v3/:fileID",
+		"/file-link/thumbnail", "/file-link/thumbnail/v3":
+		return true
+	default:
+		return false
+	}
+}
+
 func (r *RateLimitMiddleware) APIRateLimitMiddleware(urlSanitizer func(_ *gin.Context) string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		requestPath := urlSanitizer(c)
 
-		globalRateLimiter := r.getGlobalLimiter(requestPath, c.Request.Method)
-		if globalRateLimiter != nil {
-			limitContext, err := globalRateLimiter.Get(c, requestPath)
-			if err != nil {
-				log.Error("Failed to check global rate limit", err)
-				c.Next() // assume that limit hasn't reached
-				return
-			}
-			if limitContext.Reached {
-				msg := fmt.Sprintf("Global rate limit breached %s", requestPath)
-				go r.discordCtrl.NotifyPotentialAbuse(msg)
-				log.Error(msg)
-				c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{"error": "Rate limit breached, try later"})
+		if globalRateLimiter := r.getGlobalLimiter(requestPath, c.Request.Method); globalRateLimiter != nil {
+			if r.isRateLimited(c, globalRateLimiter, globalRateLimitKey(requestPath), requestPath, rateLimitScopeRouteGlobal, fmt.Sprintf("🌍 Global rate limit: %s", requestPath)) {
 				return
 			}
 		}
 
 		rateLimiter := r.getLimiter(requestPath, c.Request.Method)
 		if rateLimiter != nil {
-			key := r.getRateLimitKey(c, requestPath)
-			limitContext, err := rateLimiter.Get(c, key)
-			if err != nil {
-				log.Error("Failed to check rate limit", err)
-				c.Next() // assume that limit hasn't reached
-				return
-			}
-			if limitContext.Reached {
-				go r.discordCtrl.NotifyPotentialAbuse(fmt.Sprintf("Rate limit breached %s", requestPath))
-				log.Error(fmt.Sprintf("Rate limit breached %s", key))
-				c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{"error": "Rate limit breached, try later"})
+			key, scope := r.getRateLimitKey(c, requestPath)
+			if r.isRateLimited(c, rateLimiter, key, requestPath, scope, fmt.Sprintf("🌐 IP rate limit: %s", requestPath)) {
 				return
 			}
 		}
@@ -122,30 +145,23 @@ func (r *RateLimitMiddleware) APIRateLimitMiddleware(urlSanitizer func(_ *gin.Co
 	}
 }
 
-// APIRateLimitForUserMiddleware only rate limits sensitive authenticated endpoints which have a higher risk
-// of abuse by any bad actor.
 func (r *RateLimitMiddleware) APIRateLimitForUserMiddleware(urlSanitizer func(_ *gin.Context) string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		requestPath := urlSanitizer(c)
+		if globalRateLimiter := r.getGlobalLimiter(requestPath, c.Request.Method); globalRateLimiter != nil {
+			if r.isRateLimited(c, globalRateLimiter, globalRateLimitKey(requestPath), requestPath, rateLimitScopeRouteGlobal, fmt.Sprintf("🌍 Global rate limit: %s", requestPath)) {
+				return
+			}
+		}
+
 		rateLimiter := r.getLimiter(requestPath, c.Request.Method)
 		if rateLimiter != nil {
 			userID := auth.GetUserID(c.Request.Header)
 			if userID == 0 {
-				// do not apply limit, just log
 				log.Error("userID must be present in request header for applying rate-limit")
 				return
 			}
-			limitContext, err := rateLimiter.Get(c, strconv.FormatInt(userID, 10))
-			if err != nil {
-				log.Error("Failed to check rate limit", err)
-				c.Next() // assume that limit hasn't reached
-				return
-			}
-			if limitContext.Reached {
-				msg := fmt.Sprintf("Rate limit breached %d for path: %s", userID, requestPath)
-				go r.discordCtrl.NotifyPotentialAbuse(msg)
-				log.Error(msg)
-				c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{"error": "Rate limit breached, try later"})
+			if r.isRateLimited(c, rateLimiter, fmt.Sprintf("%d-%s", userID, requestPath), requestPath, rateLimitScopeUser, fmt.Sprintf("👤 User rate limit: %s user=%d", requestPath, userID)) {
 				return
 			}
 		}
@@ -153,58 +169,174 @@ func (r *RateLimitMiddleware) APIRateLimitForUserMiddleware(urlSanitizer func(_ 
 	}
 }
 
-// getGlobalLimiter, based on reqPath & reqMethod, returns a limiter that should
-// be applied globally for requests matching the route. It returns nil if no
-// global route-specific limit should be applied.
+func (r *RateLimitMiddleware) isRateLimited(c *gin.Context, rateLimiter *limiter.Limiter, key string, requestPath string, scope rateLimitScope, message string) bool {
+	limitContext, err := rateLimiter.Get(c, key)
+	if err != nil {
+		log.Error("Failed to check rate limit", err)
+		return false
+	}
+	if !limitContext.Reached {
+		return false
+	}
+	recordRateLimitRejection(scope, c.Request.Method, requestPath)
+	if shouldNotifyPotentialAbuse(scope, requestPath) {
+		go r.discordCtrl.NotifyPotentialAbuse(message)
+	}
+	log.WithFields(log.Fields{
+		"rate_limit_scope": scope,
+		"req_id":           requestid.Get(c),
+		"req_method":       c.Request.Method,
+		"req_uri":          requestPath,
+	}).Error("Rate limit breached")
+	c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{"error": "Rate limit breached, try later"})
+	return true
+}
+
+func shouldNotifyPotentialAbuse(scope rateLimitScope, requestPath string) bool {
+	return scope != rateLimitScopeIP || requestPath != "/users/srp/attributes"
+}
+
+func recordRateLimitRejection(scope rateLimitScope, method string, requestPath string) {
+	rateLimitRejections.WithLabelValues(string(scope), method, requestPath).Inc()
+}
+
 func (r *RateLimitMiddleware) getGlobalLimiter(reqPath string, reqMethod string) *limiter.Limiter {
+	if isEventURLPath(reqPath) {
+		return r.limit120ReqPerHour
+	}
 	if reqPath == "/paste/create" || reqPath == "/paste/guard" || reqPath == "/paste/consume" {
 		return r.limit300ReqPerMin
 	}
 	return nil
 }
 
-func (r *RateLimitMiddleware) getRateLimitKey(c *gin.Context, reqPath string) string {
+func globalRateLimitKey(reqPath string) string {
+	if isEventURLPath(reqPath) {
+		return "/events"
+	}
+	return reqPath
+}
+
+func (r *RateLimitMiddleware) getRateLimitKey(c *gin.Context, reqPath string) (string, rateLimitScope) {
 	if !isPublicCollectionUploadURLPath(reqPath) {
-		return fmt.Sprintf("%s-%s", network.GetClientIP(c), reqPath)
+		return fmt.Sprintf("%s-%s", network.GetClientIP(c), reqPath), rateLimitScopeIP
 	}
 	value, ok := c.Get(auth.PublicAccessKey)
 	if !ok {
 		log.WithField("path", reqPath).Warn("public access context missing for collection scoped rate limit")
-		return fmt.Sprintf("%s-%s", network.GetClientIP(c), reqPath)
+		return fmt.Sprintf("%s-%s", network.GetClientIP(c), reqPath), rateLimitScopeIP
 	}
 	accessContext, ok := value.(ente.PublicAccessContext)
 	if !ok {
 		log.WithField("path", reqPath).Warn("invalid public access context for collection scoped rate limit")
-		return fmt.Sprintf("%s-%s", network.GetClientIP(c), reqPath)
+		return fmt.Sprintf("%s-%s", network.GetClientIP(c), reqPath), rateLimitScopeIP
 	}
-	return fmt.Sprintf("collection:%d-%s", accessContext.CollectionID, reqPath)
+	return fmt.Sprintf("collection:%d-%s", accessContext.CollectionID, reqPath), rateLimitScopeCollection
 }
 
 func isPublicCollectionUploadURLPath(reqPath string) bool {
-	return reqPath == "/public-collection/upload-urls" ||
-		reqPath == "/public-collection/upload-url" ||
-		reqPath == "/public-collection/multipart-upload-urls" ||
+	return reqPath == "/public-collection/upload-url" ||
 		reqPath == "/public-collection/multipart-upload-url"
 }
 
-// getLimiter, based on reqPath & reqMethod, return instance of limiter.Limiter which needs to
-// be applied for a request. It returns nil if the request is not rate limited
+func isAuthenticatedUploadURLPath(reqPath string) bool {
+	return reqPath == "/files/upload-urls" ||
+		reqPath == "/files/upload-url" ||
+		reqPath == "/files/multipart-upload-urls" ||
+		reqPath == "/files/multipart-upload-url"
+}
+
+func isEventURLPath(reqPath string) bool {
+	return reqPath == "/events" ||
+		reqPath == "/events/user"
+}
+
+func isSpaceViewerReadURLPath(reqPath string) bool {
+	return reqPath == "/spaces/:spaceID/profile" ||
+		reqPath == "/spaces/:spaceID/posts" ||
+		reqPath == "/spaces/:spaceID/posts/:postID" ||
+		reqPath == "/spaces/:spaceID/versions"
+}
+
 func (r *RateLimitMiddleware) getLimiter(reqPath string, reqMethod string) *limiter.Limiter {
-	if reqPath == "/users/public-key" ||
-		reqPath == "/custom-domain" {
+	if strings.HasPrefix(reqPath, "/files/preview/") ||
+		strings.HasPrefix(reqPath, "/files/thumbnail/") {
+		return r.limit700ReqPerSec
+	}
+	if reqPath == "/space/public/by-slug/:spaceSlug" ||
+		reqPath == "/space/public/slug-availability/:spaceSlug" ||
+		reqPath == "/space/public/by-slug/:spaceSlug/link/bootstrap" ||
+		reqPath == "/space/public/by-slug/:spaceSlug/link/profile" ||
+		reqPath == "/space/public/by-slug/:spaceSlug/link/posts" ||
+		reqPath == "/space/public/by-slug/:spaceSlug/link/versions" {
 		return r.limit200ReqPerMin
+	}
+	if reqPath == "/space/public/by-slug/:spaceSlug/link/assets/redirect" {
+		return r.limit500ReqPerMin
+	}
+	if reqPath == "/space/public/by-slug/:spaceSlug/link/push/subscription" &&
+		reqMethod == http.MethodPut {
+		return r.limit10ReqPerMin
+	}
+	if reqPath == "/spaces/:spaceID/uploads/presign" && reqMethod == http.MethodPost {
+		return r.limit60ReqPerMin
+	}
+	if reqPath == "/spaces/:spaceID/assets/redirect" && reqMethod == http.MethodGet {
+		return r.limit500ReqPerMin
+	}
+	if reqPath == "/spaces/:spaceID/conversations" && reqMethod == http.MethodGet {
+		return r.limit60ReqPerMin
+	}
+	if reqPath == "/spaces/:spaceID/feed" && reqMethod == http.MethodGet {
+		return r.limit60ReqPerMin
+	}
+	if reqMethod == http.MethodGet && isSpaceViewerReadURLPath(reqPath) {
+		return r.limit200ReqPerMin
+	}
+	if strings.HasPrefix(reqPath, "/spaces/") &&
+		(reqMethod == http.MethodPost || reqMethod == http.MethodPut || reqMethod == http.MethodPatch || reqMethod == http.MethodDelete) {
+		return r.limit200ReqPerMin
+	}
+	if (reqPath == "/account/space" && reqMethod == http.MethodPost) ||
+		(reqPath == "/account/space/sessions" && reqMethod == http.MethodPost) ||
+		(reqPath == "/account/space/sessions/bootstrap" && reqMethod == http.MethodPost) ||
+		(reqPath == "/account/space/sessions/current" && reqMethod == http.MethodDelete) {
+		return r.limit10ReqPerMin
+	}
+	if isAuthenticatedUploadURLPath(reqPath) {
+		return r.limit500ReqPerMin
+	}
+	if reqPath == "/files/data/preview-upload-url" ||
+		reqPath == "/files/data/multipart-preview-upload-url" {
+		return r.limit10ReqPerMin
+	}
+	if isPublicCollectionUploadURLPath(reqPath) {
+		return r.limit250ReqPerMin
+	}
+	if reqPath == "/collections/share/bulk" ||
+		reqPath == "/collections/share/batch" ||
+		reqPath == "/collections/unshare/bulk" {
+		return r.limit60ReqPerMin
+	}
+	if reqPath == "/users/public-key" || reqPath == "/users/public-keys" {
+		return r.limit60ReqPerMin
 	}
 	if reqPath == "/paste/guard" || reqPath == "/paste/consume" {
 		return r.limit200ReqPerMin
 	}
+	if reqPath == "/custom-domain" {
+		return r.limit500ReqPerMin
+	}
 	if reqPath == "/users/ott" ||
 		reqPath == "/users/verify-email" ||
-		reqPath == "/user/change-email" ||
+		reqPath == "/users/change-email" ||
 		reqPath == "/paste/create" ||
 		reqPath == "/discount/claim" ||
 		reqPath == "/public-collection/verify-password" ||
 		reqPath == "/file-link/verify-password" ||
 		reqPath == "/family/accept-invite" ||
+		reqPath == "/users/recover-account/validate" ||
+		(reqPath == "/users/recover-account" && reqMethod == http.MethodPost) ||
 		reqPath == "/users/srp/attributes" ||
 		(reqPath == "/cast/device-info" && reqMethod == "POST") ||
 		(reqPath == "/cast/device-info/" && reqMethod == "POST") ||
@@ -215,8 +347,6 @@ func (r *RateLimitMiddleware) getLimiter(reqPath string, reqMethod string) *limi
 		strings.HasPrefix(reqPath, "/users/srp/") ||
 		strings.HasPrefix(reqPath, "/users/two-factor/") {
 		return r.limit10ReqPerMin
-	} else if reqPath == "/files/preview" {
-		return r.limit200ReqPerSec
 	}
 	if reqPath == "/public-collection/anon-identity" {
 		return r.limit10ReqPerMin
@@ -225,9 +355,6 @@ func (r *RateLimitMiddleware) getLimiter(reqPath string, reqMethod string) *limi
 		strings.HasPrefix(reqPath, "/public-collection/reactions")) &&
 		(reqMethod == http.MethodPost || reqMethod == http.MethodPut || reqMethod == http.MethodDelete) {
 		return r.limit200ReqPerMin
-	}
-	if isPublicCollectionUploadURLPath(reqPath) {
-		return r.limit150ReqPerMin
 	}
 	return nil
 }

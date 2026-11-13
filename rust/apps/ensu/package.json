@@ -1,15 +1,22 @@
 {
-  "name": "ensu-tauri",
-  "version": "0.1.8",
-  "private": true,
-  "scripts": {
-    "dev": "node scripts/tauri-dev.mjs",
-    "build": "tauri build"
-  },
-  "dependencies": {
-    "@tauri-apps/api": "^2.0.0"
-  },
-  "devDependencies": {
-    "@tauri-apps/cli": "^2.0.0"
-  }
+    "name": "ensu-desktop",
+    "version": "0.1.23-beta",
+    "private": true,
+    "scripts": {
+        "build": "node scripts/tauri.mjs build",
+        "dev": "node scripts/tauri-dev.mjs",
+        "tauri": "node scripts/tauri.mjs"
+    },
+    "dependencies": {
+        "@tauri-apps/api": "2.12.1",
+        "@tauri-apps/plugin-dialog": "2.8.3",
+        "@tauri-apps/plugin-fs": "2.7.1",
+        "@tauri-apps/plugin-opener": "2.7.2",
+        "@tauri-apps/plugin-process": "2.4.0",
+        "@tauri-apps/plugin-updater": "2.14.0"
+    },
+    "devDependencies": {
+        "@tauri-apps/cli": "2.12.1"
+    },
+    "packageManager": "npm@11.12.1"
 }

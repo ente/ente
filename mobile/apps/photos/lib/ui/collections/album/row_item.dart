@@ -1,17 +1,22 @@
+import "dart:math";
+
+import "package:ente_components/ente_components.dart";
 import 'package:ente_pure_utils/ente_pure_utils.dart';
+import "package:ente_strings/ente_strings.dart";
 import "package:figma_squircle/figma_squircle.dart";
 import 'package:flutter/material.dart';
-import "package:intl/intl.dart";
+import 'package:hugeicons/hugeicons.dart';
 import "package:photos/core/configuration.dart";
+import "package:photos/models/api/collection/user.dart";
 import 'package:photos/models/collection/collection.dart';
 import 'package:photos/models/collection/collection_items.dart';
 import 'package:photos/models/file/file.dart';
 import "package:photos/models/selected_albums.dart";
 import "package:photos/services/collections_service.dart";
-import "package:photos/theme/colors.dart";
-import 'package:photos/theme/ente_theme.dart';
+import "package:photos/ui/components/collection_share_badge.dart";
 import "package:photos/ui/sharing/album_share_info_widget.dart";
-import "package:photos/ui/sharing/user_avator_widget.dart";
+import "package:photos/ui/sharing/more_count_badge.dart";
+import "package:photos/ui/sharing/user_avatar_widget.dart";
 import 'package:photos/ui/viewer/file/no_thumbnail_widget.dart';
 import 'package:photos/ui/viewer/file/thumbnail_widget.dart';
 import 'package:photos/ui/viewer/gallery/collection_page.dart';
@@ -25,9 +30,15 @@ class AlbumRowItemWidget extends StatelessWidget {
   final void Function(Collection)? onTapCallback;
   final void Function(Collection)? onLongPressCallback;
   final SelectedAlbums? selectedAlbums;
-  static const _borderWidth = 1.0;
-  static const _cornerRadius = 12.0;
+  final bool? isSelected;
+  final Widget? Function(BuildContext, Collection)? topLeftOverlayBuilder;
+  final double titleToSubtitleSpacing;
+  static const _cornerRadius = 20.0;
   static const _cornerSmoothing = 0.6;
+  static const _overlayPadding = 8.0;
+  static const _thumbnailToTextSpacing = 8.0;
+  static const _sharePillPadding = EdgeInsets.all(1);
+  static const _sharedAvatarStrokeWidth = 1.0;
 
   const AlbumRowItemWidget(
     this.c,
@@ -39,24 +50,36 @@ class AlbumRowItemWidget extends StatelessWidget {
     this.onTapCallback,
     this.onLongPressCallback,
     this.selectedAlbums,
+    this.isSelected,
+    this.topLeftOverlayBuilder,
+    this.titleToSubtitleSpacing = 2,
   });
 
   @override
   Widget build(BuildContext context) {
     final bool isOwner = c.isOwner(Configuration.instance.getUserID()!);
-    final String tagPrefix = (isOwner ? "collection" : "shared_collection") +
+    final String tagPrefix =
+        (isOwner ? "collection" : "shared_collection") +
         tag +
         "_" +
         c.id.toString();
-    final enteTextTheme = getEnteTextTheme(context);
+    final componentColors = context.componentColors;
+    final externalSelection = isSelected;
+    final bool shouldShowSharePill =
+        topLeftOverlayBuilder == null && isOwner && (c.hasSharees || c.hasLink);
+    final topLeftOverlay = topLeftOverlayBuilder?.call(context, c);
     final Widget? linkIcon = c.hasLink && isOwner
-        ? Icon(
-            Icons.link,
-            color: c.publicURLs.first.isExpired ? warning500 : strokeBaseDark,
+        ? HugeIcon(
+            icon: HugeIcons.strokeRoundedLink02,
+            color: c.publicURLs.first.isExpired
+                ? componentColors.warning
+                : componentColors.textBase,
+            size: 8,
+            strokeWidth: 2,
           )
         : null;
 
-    return GestureDetector(
+    final row = GestureDetector(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -69,23 +92,12 @@ class AlbumRowItemWidget extends StatelessWidget {
               children: [
                 ClipSmoothRect(
                   radius: SmoothBorderRadius(
-                    cornerRadius: _cornerRadius + _borderWidth,
-                    cornerSmoothing: _cornerSmoothing,
-                  ),
-                  child: Container(
-                    color: getEnteColorScheme(context).strokeFaint,
-                    width: sideOfThumbnail,
-                    height: sideOfThumbnail,
-                  ),
-                ),
-                ClipSmoothRect(
-                  radius: SmoothBorderRadius(
                     cornerRadius: _cornerRadius,
                     cornerSmoothing: _cornerSmoothing,
                   ),
                   child: SizedBox(
-                    height: sideOfThumbnail - _borderWidth * 2,
-                    width: sideOfThumbnail - _borderWidth * 2,
+                    height: sideOfThumbnail,
+                    width: sideOfThumbnail,
                     child: Stack(
                       children: [
                         FutureBuilder<EnteFile?>(
@@ -95,114 +107,147 @@ class AlbumRowItemWidget extends StatelessWidget {
                             if (snapshot.hasData) {
                               thumbnail = snapshot.data!;
                             } else {
-                              //Need to use cached thumbnail so that the hero
-                              //animation works as expected.
-                              thumbnail =
-                                  CollectionsService.instance.getCoverCache(c);
+                              // Reuse the cached thumbnail for a stable Hero.
+                              thumbnail = CollectionsService.instance
+                                  .getCoverCache(c);
                             }
                             if (thumbnail != null) {
-                              final bool isSelected =
-                                  selectedAlbums?.isAlbumSelected(c) ?? false;
-                              final String heroTag = tagPrefix + thumbnail.tag;
-                              // Show pin icon for owner's pinned albums OR sharee's pinned albums
-                              final bool showPin =
-                                  isOwner ? c.isPinned : c.hasShareePinned();
+                              final bool isAlbumSelected =
+                                  externalSelection ??
+                                  selectedAlbums?.isAlbumSelected(c) ??
+                                  false;
                               final thumbnailWidget = ThumbnailWidget(
                                 thumbnail,
-                                shouldShowArchiveStatus: isOwner
-                                    ? c.isArchived()
-                                    : c.hasShareeArchived(),
-                                showFavForAlbumOnly: true,
+                                shouldShowFavoriteIcon: false,
                                 shouldShowSyncStatus: false,
-                                shouldShowPinIcon: showPin,
-                                key: Key(heroTag),
+                                key: Key(tagPrefix + thumbnail.tag),
                               );
                               return Hero(
-                                tag: heroTag,
+                                tag: tagPrefix,
+                                createRectTween: (begin, end) =>
+                                    RectTween(begin: begin, end: end),
                                 transitionOnUserGestures: true,
-                                child: Stack(
-                                  fit: StackFit.expand,
-                                  children: [
-                                    thumbnailWidget,
-                                    if (isSelected)
-                                      Container(
-                                        decoration: BoxDecoration(
-                                          color: Colors.black.withValues(
-                                            alpha: 0.4,
+                                child: ClipSmoothRect(
+                                  radius: SmoothBorderRadius(
+                                    cornerRadius: _cornerRadius,
+                                    cornerSmoothing: _cornerSmoothing,
+                                  ),
+                                  child: Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      thumbnailWidget,
+                                      if (isAlbumSelected)
+                                        Container(
+                                          decoration: BoxDecoration(
+                                            color: componentColors.specialScrim
+                                                .withValues(alpha: 0.4),
                                           ),
                                         ),
-                                      ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               );
                             } else {
                               return Container(
-                                color: getEnteColorScheme(context).backdropBase,
+                                color: componentColors.fillDark,
                                 child: const NoThumbnailWidget(
-                                  borderRadius: 12,
+                                  borderRadius: _cornerRadius,
                                   addBorder: false,
                                 ),
                               );
                             }
                           },
                         ),
-                        if (isOwner && (c.hasSharees || c.hasLink))
-                          Hero(
-                            tag: tagPrefix + "_sharees",
-                            transitionOnUserGestures: true,
-                            child: Align(
-                              alignment: Alignment.topLeft,
-                              child: AlbumSharesIcons(
-                                padding: const EdgeInsets.only(left: 4, top: 4),
-                                sharees: c.getSharees(),
-                                type: AvatarType.md,
-                                trailingWidget: linkIcon,
-                              ),
-                            ),
-                          ),
-                        Positioned(
-                          top: 5,
-                          right: 5,
-                          child: Hero(
-                            tag: tagPrefix + "_album_selection",
-                            transitionOnUserGestures: true,
-                            child: ListenableBuilder(
-                              listenable:
-                                  selectedAlbums ?? ValueNotifier(false),
-                              builder: (context, _) {
-                                final bool isSelected =
-                                    selectedAlbums?.isAlbumSelected(c) ?? false;
-                                return AnimatedSwitcher(
-                                  duration: const Duration(milliseconds: 200),
-                                  switchInCurve: Curves.easeOut,
-                                  switchOutCurve: Curves.easeIn,
-                                  child: isSelected
-                                      ? const Icon(
-                                          Icons.check_circle_rounded,
-                                          color: Colors.white,
-                                          size: 22,
-                                        )
-                                      : null,
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                        if (!isOwner)
-                          Align(
-                            alignment: Alignment.topLeft,
+                        if (topLeftOverlay != null)
+                          Positioned(
+                            top: _overlayPadding,
+                            left: _overlayPadding,
+                            child: topLeftOverlay,
+                          )
+                        else if (shouldShowSharePill)
+                          Positioned(
+                            top: _overlayPadding,
+                            left: _overlayPadding,
                             child: Hero(
-                              tag: tagPrefix + "_owner_other",
+                              tag: tagPrefix + "_sharees",
                               transitionOnUserGestures: true,
-                              child: Padding(
-                                padding: const EdgeInsets.only(left: 4, top: 4),
-                                child: UserAvatarWidget(
-                                  c.owner,
-                                  thumbnailView: true,
+                              child: Container(
+                                padding: _sharePillPadding,
+                                decoration: BoxDecoration(
+                                  color: componentColors.fillLight,
+                                  borderRadius: BorderRadius.circular(40),
+                                ),
+                                child: SizedBox(
+                                  height: getAvatarSize(AvatarType.xs),
+                                  child: _AlbumRowSharePillContent(
+                                    sharees: c.sharees,
+                                    trailingWidget: linkIcon,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
+                        Positioned(
+                          top: _overlayPadding,
+                          right: _overlayPadding,
+                          child: externalSelection != null
+                              ? _selectionBadge(externalSelection)
+                              : selectedAlbums != null
+                              ? Hero(
+                                  tag: tagPrefix + "_album_selection",
+                                  transitionOnUserGestures: true,
+                                  child: ListenableBuilder(
+                                    listenable: selectedAlbums!,
+                                    builder: (context, _) {
+                                      final isAlbumSelected = selectedAlbums!
+                                          .isAlbumSelected(c);
+                                      return _selectionBadge(isAlbumSelected);
+                                    },
+                                  ),
+                                )
+                              : const SizedBox.shrink(),
+                        ),
+                        if (!isOwner)
+                          Positioned(
+                            right: _overlayPadding,
+                            bottom: _overlayPadding,
+                            child: Hero(
+                              tag: tagPrefix + "_owner_other",
+                              transitionOnUserGestures: true,
+                              child: SizedBox.square(
+                                dimension:
+                                    getAvatarSize(AvatarType.xs) +
+                                    _sharedAvatarStrokeWidth * 2,
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    UserAvatarWidget(
+                                      c.owner,
+                                      type: AvatarType.xs,
+                                    ),
+                                    Positioned.fill(
+                                      child: IgnorePointer(
+                                        child: DecoratedBox(
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                              color: componentColors.fillLight,
+                                              width: _sharedAvatarStrokeWidth,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        Positioned(
+                          left: _overlayPadding,
+                          bottom: _overlayPadding,
+                          child: _buildAlbumStatusChips(isOwner: isOwner),
+                        ),
                       ],
                     ),
                   ),
@@ -210,63 +255,76 @@ class AlbumRowItemWidget extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: _thumbnailToTextSpacing),
           Hero(
             tag: tagPrefix + "_title",
             transitionOnUserGestures: true,
             child: SizedBox(
               width: sideOfThumbnail,
-              child: FutureBuilder<int>(
-                future: showFileCount
-                    ? CollectionsService.instance.getFileCount(c)
-                    : Future.value(0),
-                builder: (context, snapshot) {
-                  int? cachedCount;
-                  if (showFileCount) {
-                    if (snapshot.hasData) {
-                      cachedCount = snapshot.data;
-                    } else {
-                      //Need to use cached count so that the hero
-                      //animation works as expected without flickering.
-                      cachedCount =
-                          CollectionsService.instance.getCachedFileCount(c);
-                    }
-                  }
-                  if (cachedCount != null && cachedCount > 0) {
-                    final String textCount = NumberFormat().format(cachedCount);
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          constraints: BoxConstraints(
-                            maxWidth: sideOfThumbnail,
-                          ),
-                          child: Text(
-                            c.displayName,
-                            style: enteTextTheme.small,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        RichText(
-                          text: TextSpan(
-                            style: enteTextTheme.miniMuted,
+              child: showFileCount
+                  ? FutureBuilder<int>(
+                      future: CollectionsService.instance.getFileCount(c),
+                      initialData: CollectionsService.instance
+                          .getCachedFileCount(c),
+                      builder: (context, snapshot) {
+                        int? cachedCount;
+                        if (snapshot.hasData) {
+                          cachedCount = snapshot.data;
+                        } else {
+                          // Reuse the cached count to prevent Hero flicker.
+                          cachedCount = CollectionsService.instance
+                              .getCachedFileCount(c);
+                        }
+                        if (cachedCount != null && cachedCount > 0) {
+                          final String textCount = context.strings.itemCount(
+                            count: cachedCount,
+                          );
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              TextSpan(text: textCount),
+                              Text(
+                                c.displayName,
+                                style: TextStyles.body.copyWith(
+                                  color: componentColors.textBase,
+                                ),
+                                maxLines: 1,
+                                softWrap: false,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              SizedBox(height: titleToSubtitleSpacing),
+                              Text(
+                                textCount,
+                                style: TextStyles.mini.copyWith(
+                                  color: componentColors.textLight,
+                                ),
+                                maxLines: 1,
+                                softWrap: false,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ],
-                          ),
-                        ),
-                      ],
-                    );
-                  } else {
-                    return Text(
+                          );
+                        } else {
+                          return Text(
+                            c.displayName,
+                            style: TextStyles.body.copyWith(
+                              color: componentColors.textBase,
+                            ),
+                            maxLines: 1,
+                            softWrap: false,
+                            overflow: TextOverflow.ellipsis,
+                          );
+                        }
+                      },
+                    )
+                  : Text(
                       c.displayName,
-                      style: enteTextTheme.small,
+                      style: TextStyles.body.copyWith(
+                        color: componentColors.textBase,
+                      ),
+                      maxLines: 1,
+                      softWrap: false,
                       overflow: TextOverflow.ellipsis,
-                    );
-                  }
-                },
-              ),
+                    ),
             ),
           ),
         ],
@@ -277,14 +335,17 @@ class AlbumRowItemWidget extends StatelessWidget {
           return;
         }
         final thumbnail = await CollectionsService.instance.getCover(c);
+        if (!context.mounted) return;
         // ignore: unawaited_futures
         routeToPage(
           context,
           CollectionPage(
             CollectionWithThumbnail(c, thumbnail),
             tagPrefix: tagPrefix,
+            coverHeroTag: tagPrefix,
             hasVerifiedLock: hasVerifiedLock,
           ),
+          useFadeTransition: true,
         );
       },
       onLongPress: () {
@@ -292,6 +353,116 @@ class AlbumRowItemWidget extends StatelessWidget {
           onLongPressCallback!(c);
         }
       },
+    );
+    return externalSelection == null
+        ? row
+        : Semantics(button: true, selected: externalSelection, child: row);
+  }
+
+  Widget _selectionBadge(bool isSelected) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 200),
+      switchInCurve: Curves.easeOut,
+      switchOutCurve: Curves.easeIn,
+      child: isSelected ? const CollectionSelectedBadge() : null,
+    );
+  }
+
+  Widget _buildAlbumStatusChips({required bool isOwner}) {
+    final bool isFavoriteAlbum = c.type == CollectionType.favorites;
+    final bool showPin = isOwner ? c.isPinned : c.hasShareePinned();
+    final bool showArchive = isOwner ? c.isArchived() : c.hasShareeArchived();
+
+    final chips = <Widget>[
+      if (isFavoriteAlbum) const CollectionFavoriteBadge(),
+      if (showPin) const PinnedBadge(),
+      if (showArchive) const CollectionArchivedBadge(),
+    ];
+
+    if (chips.isEmpty) return const SizedBox.shrink();
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (int i = 0; i < chips.length; i++) ...[
+          if (i > 0) const SizedBox(width: 2),
+          chips[i],
+        ],
+      ],
+    );
+  }
+}
+
+class _AlbumRowSharePillContent extends StatelessWidget {
+  static const _limitCountTo = 2;
+
+  final List<User> sharees;
+  final Widget? trailingWidget;
+
+  const _AlbumRowSharePillContent({required this.sharees, this.trailingWidget});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasMore = sharees.length > _limitCountTo;
+    final displayCount = min(
+      sharees.length,
+      hasMore ? _limitCountTo - 1 : _limitCountTo,
+    );
+    const type = AvatarType.xs;
+    final double avatarSize = getAvatarSize(type);
+    final double overlapPadding = getOverlapPadding(type);
+    final visibleAvatarCount = displayCount + (hasMore ? 1 : 0);
+    final trailingWidgetWidth = trailingWidget == null
+        ? 0.0
+        : visibleAvatarCount == 0
+        ? avatarSize
+        : 14.0;
+    final visibleAvatarsWidth = visibleAvatarCount == 0
+        ? 0.0
+        : avatarSize + (visibleAvatarCount - 1) * overlapPadding;
+    final contentWidth = visibleAvatarsWidth + trailingWidgetWidth;
+
+    final widgets = List<Widget>.generate(
+      displayCount,
+      (index) => Positioned(
+        left: overlapPadding * index,
+        child: UserAvatarWidget(sharees[index], type: type),
+      ),
+    );
+
+    if (hasMore) {
+      widgets.add(
+        Positioned(
+          left: overlapPadding * displayCount,
+          child: MoreCountWidget(
+            sharees.length - displayCount,
+            type: moreCountTypeFromAvatarType(type),
+            thumbnailView: true,
+            backgroundColor: getUserAvatarColor(context, sharees[displayCount]),
+          ),
+        ),
+      );
+    }
+
+    if (trailingWidget != null) {
+      widgets.add(
+        Positioned(
+          left: visibleAvatarsWidth,
+          top: (avatarSize - trailingWidgetWidth) / 2,
+          child: SizedBox.square(
+            dimension: trailingWidgetWidth,
+            child: Center(
+              child: SizedBox.square(dimension: 8, child: trailingWidget!),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SizedBox(
+      width: contentWidth,
+      height: avatarSize,
+      child: Stack(clipBehavior: Clip.none, children: widgets),
     );
   }
 }

@@ -1,42 +1,24 @@
-import { isDevBuild } from "ente-base/env";
-import log from "ente-base/log";
+import { buildEnvGitSHA, isDevBuild } from "ente-base/env";
+import log, { attachRustLogHook } from "ente-base/log";
 import { appName, appNames } from "./app";
+import { isNamedError } from "./error";
 
-/**
- * Log a standard startup banner.
- *
- * This helps us identify app starts and other environment details in the logs.
- *
- * @param userID The uid for the currently logged in user, if any.
- */
 export const logStartupBanner = (userID?: number) => {
-    // Log a warning if appName isn't what it claims to be. See the
-    // documentation of `appName` for why this is needed.
+    // appName is an unchecked build-time value.
     if (!appNames.includes(appName)) {
         log.warn(
             `App name "${appName}" is not one of the known app names: ${JSON.stringify(appNames)}`,
         );
     }
 
-    const sha = process.env.gitSHA;
+    const sha = buildEnvGitSHA;
     const buildID = isDevBuild ? "dev " : sha ? `git ${sha} ` : "";
     log.info(`Starting ente-${appName}-web ${buildID}uid ${userID ?? 0}`);
 };
 
-/**
- * Attach handlers to log any unhandled exceptions and promise rejections.
- *
- * @param attach If true, attach handlers, and if false, remove them. This
- * allows us to use this in a React hook that cleans up after itself.
- */
 export const logUnhandledErrorsAndRejections = (attach: boolean) => {
     const handleError = (event: ErrorEvent) => {
-        // [Note: Spurious media chrome resize observer errors]
-        //
-        // When attaching media chrome controls to the DOM, we get an (AFAICT)
-        // spurious error in the log. Ignore it. FWIW, the media control tests
-        // themselves do the same.
-        // https://github.com/muxinc/elements/blob/f602519f544509f15add8fcc8cbbf7379843dcd3/packages/mux-player/test/player.test.js#L6-L12C5
+        // Media Chrome triggers this benign ResizeObserver error.
         if (
             event.message ==
             "ResizeObserver loop completed with undelivered notifications."
@@ -63,19 +45,10 @@ export const logUnhandledErrorsAndRejections = (attach: boolean) => {
     }
 };
 
-/**
- * Attach handlers to log any unhandled exceptions and promise rejections in web
- * workers.
- *
- * This is a variant of {@link logUnhandledErrorsAndRejections} that works in
- * web workers. It should be called at the top level of the main worker script.
- *
- * Note: When I tested this, attaching the onerror handler to the worker outside
- * the worker (e.g. when creating it in comlink-worker.ts) worked, but attaching
- * the "unhandledrejection" event there did not work. Attaching them to `self`
- * (the {@link WorkerGlobal}) worked.
- */
+// Worker promise rejections are only observed when attached inside the worker.
 export const logUnhandledErrorsAndRejectionsInWorker = () => {
+    attachRustLogHook();
+
     const handleError = (event: ErrorEvent) => {
         log.error("Unhandled error", event.error);
     };
@@ -95,27 +68,19 @@ interface LogEntry {
 
 const lsKey = "logs";
 
-/**
- * Record {@link message} in a persistent log storage.
- *
- * These strings, alongwith associated timestamps, get added to a small ring
- * buffer, whose contents can be later be retrieved by using {@link savedLogs}.
- *
- * This ring buffer is persisted in the browser's local storage.
- */
 export const logToDisk = (message: string) => {
     const maxCount = 1000;
     const log: LogEntry = { logLine: message, timestamp: Date.now() };
     try {
-        const logs = logEntries();
+        let logs = logEntries();
         if (logs.length > maxCount) {
-            logs.slice(logs.length - maxCount);
+            logs = logs.slice(logs.length - maxCount / 4);
         }
         logs.push(log);
         localStorage.setItem(lsKey, JSON.stringify({ logs }));
     } catch (e) {
         console.error("Failed to persist log", e);
-        if (e instanceof Error && e.name == "QuotaExceededError") {
+        if (isNamedError(e, "QuotaExceededError")) {
             localStorage.removeItem(lsKey);
         }
     }
@@ -132,11 +97,6 @@ const logEntries = (): unknown[] => {
     return o.logs;
 };
 
-/**
- * Return a string containing all recently saved log messages.
- *
- * @see {@link persistLog}.
- */
 export const savedLogs = () => logEntries().map(formatEntry).join("\n");
 
 const formatEntry = (e: unknown) => {

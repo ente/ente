@@ -2,13 +2,16 @@
     "name": "cast",
     "version": "0.0.0",
     "private": true,
+    "browserslist": [
+        "Chrome 92"
+    ],
     "dependencies": {
-        "ente-accounts": "*",
         "ente-base": "*",
+        "ente-cast-wasm": "*",
         "ente-media": "*"
     },
     "devDependencies": {
-        "@types/chromecast-caf-receiver": "^6.0.25",
+        "@types/chromecast-caf-receiver": "6.0.26",
         "ente-build-config": "*"
     }
 }

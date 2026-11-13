@@ -1,46 +1,45 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 enum ProgressDialogType { normal, download }
 
-String _dialogMessage = "Loading...";
-double _progress = 0.0, _maxProgress = 100.0;
-
-Widget? _customBody;
-
-TextAlign _textAlign = TextAlign.left;
-Alignment _progressWidgetAlignment = Alignment.centerLeft;
-
-TextDirection _direction = TextDirection.ltr;
-
-bool _isShowing = false;
-BuildContext? _context, _dismissingContext;
-ProgressDialogType? _progressDialogType;
-bool _barrierDismissible = true, _showLogs = false;
-Color? _barrierColor;
-
-TextStyle _progressTextStyle = const TextStyle(
-      color: Colors.black,
-      fontSize: 12.0,
-      fontWeight: FontWeight.w400,
-    ),
-    _messageStyle = const TextStyle(
-      color: Colors.black,
-      fontSize: 18.0,
-      fontWeight: FontWeight.w600,
-    );
-
-double _dialogElevation = 8.0, _borderRadius = 8.0;
-Color _backgroundColor = Colors.white;
-Curve _insetAnimCurve = Curves.easeInOut;
-EdgeInsets _dialogPadding = const EdgeInsets.all(8.0);
-
-Widget _progressWidget = Image.asset(
-  'assets/double_ring_loading_io.gif',
-  package: 'progress_dialog',
-);
-
 class ProgressDialog {
-  _Body? _dialog;
+  final BuildContext _context;
+  final ProgressDialogType _progressDialogType;
+  final bool _barrierDismissible, _showLogs;
+  final Widget? _customBody;
+  final TextDirection _direction;
+  final Color? _barrierColor;
+  final _updates = ValueNotifier<int>(0);
+  DialogRoute<void>? _route;
+
+  String _dialogMessage = "Loading...";
+  double _progress = 0.0, _maxProgress = 100.0;
+
+  TextAlign _textAlign = TextAlign.left;
+  Alignment _progressWidgetAlignment = Alignment.centerLeft;
+
+  TextStyle _progressTextStyle = const TextStyle(
+        color: Colors.black,
+        fontSize: 12.0,
+        fontWeight: FontWeight.w400,
+      ),
+      _messageStyle = const TextStyle(
+        color: Colors.black,
+        fontSize: 18.0,
+        fontWeight: FontWeight.w600,
+      );
+
+  double _dialogElevation = 8.0, _borderRadius = 8.0;
+  Color _backgroundColor = Colors.white;
+  Curve _insetAnimCurve = Curves.easeInOut;
+  EdgeInsets _dialogPadding = const EdgeInsets.all(8.0);
+
+  Widget _progressWidget = Image.asset(
+    'assets/double_ring_loading_io.gif',
+    package: 'progress_dialog',
+  );
 
   ProgressDialog(
     BuildContext context, {
@@ -50,15 +49,13 @@ class ProgressDialog {
     TextDirection? textDirection,
     Widget? customBody,
     Color? barrierColor,
-  }) {
-    _context = context;
-    _progressDialogType = type ?? ProgressDialogType.normal;
-    _barrierDismissible = isDismissible ?? true;
-    _showLogs = showLogs ?? false;
-    _customBody = customBody;
-    _direction = textDirection ?? TextDirection.ltr;
-    _barrierColor = barrierColor ?? barrierColor;
-  }
+  }) : _context = context,
+       _progressDialogType = type ?? ProgressDialogType.normal,
+       _barrierDismissible = isDismissible ?? true,
+       _showLogs = showLogs ?? false,
+       _customBody = customBody,
+       _direction = textDirection ?? TextDirection.ltr,
+       _barrierColor = barrierColor;
 
   void style({
     Widget? child,
@@ -76,7 +73,7 @@ class ProgressDialog {
     EdgeInsets? padding,
     Alignment? progressWidgetAlignment,
   }) {
-    if (_isShowing) return;
+    if (isShowing()) return;
     if (_progressDialogType == ProgressDialogType.download) {
       _progress = progress ?? _progress;
     }
@@ -115,115 +112,81 @@ class ProgressDialog {
     _messageStyle = messageTextStyle ?? _messageStyle;
     _progressTextStyle = progressTextStyle ?? _progressTextStyle;
 
-    if (_isShowing) _dialog!.update();
+    _updates.value++;
   }
 
   bool isShowing() {
-    return _isShowing;
+    return _route?.isActive ?? false;
   }
 
   Future<bool> hide() async {
-    try {
-      if (_isShowing) {
-        _isShowing = false;
-        if (_dismissingContext != null) {
-          Navigator.of(_dismissingContext!).pop();
-        }
-        if (_showLogs) debugPrint('ProgressDialog dismissed');
-        return Future.value(true);
+    final route = _route;
+    if (route == null) return false;
+
+    final navigator = route.navigator;
+    final dismissed = navigator != null && route.isActive;
+    if (dismissed) {
+      if (route.isCurrent) {
+        navigator.pop();
       } else {
-        if (_showLogs) debugPrint('ProgressDialog already dismissed');
-        return Future.value(false);
+        navigator.removeRoute(route);
       }
-    } catch (err) {
-      debugPrint('Seems there is an issue hiding dialog');
-      debugPrint(err.toString());
-      return Future.value(false);
     }
+    // Callers can navigate safely once the dialog's overlay is gone.
+    await route.completed;
+    if (_showLogs && dismissed) debugPrint('ProgressDialog dismissed');
+    return dismissed;
   }
 
   Future<bool> show() async {
-    try {
-      if (!_isShowing) {
-        _dialog = _Body();
-        // ignore: unawaited_futures
-        showDialog<dynamic>(
-          context: _context!,
-          barrierDismissible: _barrierDismissible,
-          barrierColor: _barrierColor,
-          builder: (BuildContext context) {
-            _dismissingContext = context;
-            return PopScope(
-              canPop: _barrierDismissible,
-              child: Dialog(
-                backgroundColor: _backgroundColor,
-                insetAnimationCurve: _insetAnimCurve,
-                insetAnimationDuration: const Duration(milliseconds: 100),
-                elevation: _dialogElevation,
-                shape: RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.all(Radius.circular(_borderRadius)),
-                ),
-                child: _dialog,
-              ),
-            );
-          },
-        );
-        // Delaying the function for 200 milliseconds
-        // [Default transitionDuration of DialogRoute]
-        await Future.delayed(const Duration(milliseconds: 200));
-        if (_showLogs) debugPrint('ProgressDialog shown');
-        _isShowing = true;
-        return true;
-      } else {
-        if (_showLogs) debugPrint("ProgressDialog already shown/showing");
-        return false;
-      }
-    } catch (err) {
-      _isShowing = false;
-      debugPrint('Exception while showing the dialog');
-      debugPrint(err.toString());
-      return false;
-    }
-  }
-}
+    if (isShowing() || !_context.mounted) return false;
 
-// ignore: must_be_immutable
-class _Body extends StatefulWidget {
-  final _BodyState _dialog = _BodyState();
-
-  update() {
-    _dialog.update();
+    final navigator = Navigator.of(_context, rootNavigator: true);
+    final route = DialogRoute<void>(
+      context: _context,
+      themes: InheritedTheme.capture(from: _context, to: navigator.context),
+      barrierDismissible: _barrierDismissible,
+      barrierColor:
+          _barrierColor ??
+          DialogTheme.of(_context).barrierColor ??
+          Colors.black54,
+      traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
+      builder: (_) => ListenableBuilder(
+        listenable: _updates,
+        builder: (_, _) => PopScope(
+          canPop: _barrierDismissible,
+          child: Dialog(
+            backgroundColor: _backgroundColor,
+            insetAnimationCurve: _insetAnimCurve,
+            insetAnimationDuration: const Duration(milliseconds: 100),
+            elevation: _dialogElevation,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(_borderRadius)),
+            ),
+            child: _buildBody(),
+          ),
+        ),
+      ),
+    );
+    _route = route;
+    unawaited(navigator.push(route));
+    unawaited(
+      route.completed.then((_) {
+        if (identical(_route, route)) _route = null;
+      }),
+    );
+    final animation = route.animation;
+    do {
+      await WidgetsBinding.instance.endOfFrame;
+    } while (route.isActive && animation != null && animation.value == 0);
+    if (_showLogs) debugPrint('ProgressDialog shown');
+    return true;
   }
 
-  @override
-  State<StatefulWidget> createState() {
-    // ignore: no_logic_in_create_state
-    return _dialog;
-  }
-}
-
-class _BodyState extends State<_Body> {
-  update() {
-    setState(() {});
-  }
-
-  @override
-  void dispose() {
-    _isShowing = false;
-    if (_showLogs) debugPrint('ProgressDialog dismissed by back button');
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildBody() {
     final loader = Align(
       alignment: _progressWidgetAlignment,
-      child: SizedBox(
-        width: 60.0,
-        height: 60.0,
-        child: _progressWidget,
-      ),
+      child: SizedBox(width: 60.0, height: 60.0, child: _progressWidget),
     );
 
     final text = Expanded(
@@ -271,7 +234,6 @@ class _BodyState extends State<_Body> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              // row body
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[

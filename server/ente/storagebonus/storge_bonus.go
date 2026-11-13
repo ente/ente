@@ -3,29 +3,17 @@ package storagebonus
 type BonusType string
 
 const (
-	// Referral bonus is gained by inviting others
 	Referral BonusType = "REFERRAL"
-	// SignUp for applying code shared by others during sign up
-	// Note: In the future, for surplus types which should be only applied once, we can add unique constraints
-	SignUp BonusType = "SIGN_UP"
+	SignUp   BonusType = "SIGN_UP"
 
-	// AddOnSupport is the bonus for users added by the support team
-	AddOnSupport BonusType = "ADD_ON_SUPPORT"
-	// AddOnNonProfit is the bonus for users on the non-profit program
+	AddOnSupport   BonusType = "ADD_ON_SUPPORT"
 	AddOnNonProfit BonusType = "ADD_ON_NON_PROFIT"
-	// AddOnBf is the bonus for users who have opted for the Black Friday offers
-	AddOnBf2023 BonusType = "ADD_ON_BF_2023"
-	AddOnBf2024 BonusType = "ADD_ON_BF_2024"
-	// In the future, we can add various types of bonuses based on different events like Anniversary,
-	// or finishing tasks like ML indexing, enabling sharing etc etc
+	AddOnBf2023    BonusType = "ADD_ON_BF_2023"
+	AddOnBf2024    BonusType = "ADD_ON_BF_2024"
 )
 
-// PaidAddOnTypes : These add-ons can be purchased by the users and help in the expiry of an account
-// as long as the add-on is active.
 var PaidAddOnTypes = []BonusType{AddOnSupport, AddOnNonProfit, AddOnBf2023, AddOnBf2024}
 
-// ExtendsExpiry returns true if the bonus type extends the expiry of the account.
-// By default, all bonuses don't extend expiry.
 func (t BonusType) ExtendsExpiry() bool {
 	switch t {
 	case AddOnSupport, AddOnNonProfit, AddOnBf2023, AddOnBf2024:
@@ -73,22 +61,18 @@ func (t BonusType) RestrictToDoublingStorage() bool {
 type RevokeReason string
 
 const (
-	Fraud RevokeReason = "FRAUD"
-	// Expired is usually used to take away one time bonus.
-	Expired RevokeReason = "EXPIRED"
-	// Discontinued Used when storagebonus is taken away before other user deleted their account
-	// or stopped subscription or user decides to pause subscription after anniversary gift
+	Fraud        RevokeReason = "FRAUD"
+	Expired      RevokeReason = "EXPIRED"
 	Discontinued RevokeReason = "DISCONTINUED"
 )
 
 type StorageBonus struct {
-	UserID int64 `json:"-"`
-	// Amount of storage bonus added to the account
+	UserID    int64     `json:"-"`
 	Storage   int64     `json:"storage"`
 	Type      BonusType `json:"type"`
 	CreatedAt int64     `json:"createdAt"`
 	UpdatedAt int64     `json:"-"`
-	// ValidTill represents the validity of the storage bonus. If it is 0, it is valid forever.
+	// Zero means no expiry.
 	ValidTill    int64         `json:"validTill"`
 	RevokeReason *RevokeReason `json:"-"`
 	IsRevoked    bool          `json:"isRevoked"`
@@ -137,8 +121,6 @@ func (a *ActiveStorageBonus) GetAddonStorage() int64 {
 	return addonStorage
 }
 
-// GetUsableBonus Returns the add_on_bonus + referral_bonus for a given user. The referral bonus is restricted
-// to max of addonStorage + subStorage
 func (a *ActiveStorageBonus) GetUsableBonus(subStorage int64) int64 {
 	refBonus := a.GetReferralBonus()
 	totalSubAndAddOnStorage := a.GetAddonStorage() + subStorage

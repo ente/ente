@@ -1,7 +1,7 @@
 package passkey
 
 import (
-	"github.com/ente-io/museum/ente"
+	"github.com/ente/museum/ente"
 	"github.com/google/uuid"
 )
 
@@ -16,6 +16,7 @@ func (r *Repository) getWebAuthnSessionByID(sessionID uuid.UUID) (session *ente.
 			id,
 			challenge,
 			user_id,
+			COALESCE(rp_id, '') AS rp_id,
 			allowed_credential_ids,
 			expires_at,
 			user_verification_requirement,
@@ -25,6 +26,7 @@ func (r *Repository) getWebAuthnSessionByID(sessionID uuid.UUID) (session *ente.
 		&session.ID,
 		&session.Challenge,
 		&session.UserID,
+		&session.RPID,
 		&session.AllowedCredentialIDs,
 		&session.ExpiresAt,
 		&session.UserVerificationRequirement,

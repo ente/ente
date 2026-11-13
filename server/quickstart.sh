@@ -2,8 +2,8 @@
 #
 # Ente self-host quickstart helper script.
 #
-# Usage: sh -c "$(curl -fsSL https://raw.githubusercontent.com/ente-io/ente/main/server/quickstart.sh)"
-# Docs: https://github.com/ente-io/ente/blob/main/server/docs/quickstart.md
+# Usage: sh -c "$(curl -fsSL https://raw.githubusercontent.com/ente/ente/main/server/quickstart.sh)"
+# Docs: https://github.com/ente/ente/blob/main/server/docs/quickstart.md
 
 set -e
 
@@ -41,6 +41,8 @@ then
     exit 1
 fi
 
+umask 077
+
 printf "\n - \033[1mH E L L O\033[0m - \033[1;32mE N T E\033[0m -\n\n"
 
 gen_user_suffix () { head -c 6 /dev/urandom | base64 | tr -d '\n'; }
@@ -53,7 +55,6 @@ gen_key () { head -c 32 /dev/urandom | base64 | tr -d '\n'; }
 # crypto_generichash_BYTES_MAX = 64
 gen_hash () { head -c 64 /dev/urandom | base64 | tr -d '\n'; }
 
-# Like gen_key but sodium_base64_VARIANT_URLSAFE which converts + to -, / to _
 gen_jwt_secret () { head -c 32 /dev/urandom | base64 | tr -d '\n' | tr '+/' '-_'; }
 
 pg_pass=`gen_password`
@@ -63,14 +64,16 @@ museum_key=`gen_key`
 museum_hash=`gen_hash`
 museum_jwt_secret=`gen_jwt_secret`
 
-mkdir my-ente && cd my-ente
+mkdir my-ente
+chmod 700 my-ente
+cd my-ente
 printf " \033[1;32mE\033[0m   Created directory \033[1mmy-ente\033[0m\n"
 sleep 1
 
 cat <<EOF >compose.yaml
 services:
   museum:
-    image: ghcr.io/ente-io/server
+    image: ghcr.io/ente/server
     ports:
       - 8080:8080 # API
     depends_on:
@@ -94,8 +97,7 @@ services:
     command: "TCP-LISTEN:3200,fork,reuseaddr TCP:minio:3200"
 
   web:
-    image: ghcr.io/ente-io/web
-    # Uncomment what you need to tweak.
+    image: ghcr.io/ente/web
     ports:
       - 3000:3000 # Photos web app
       # - 3001:3001 # Accounts
@@ -104,11 +106,12 @@ services:
       # - 3004:3004 # Cast
       # - 3005:3005 # Share
       # - 3006:3006 # Embed
-    # Modify these values to your custom subdomains, if using any
+      # - 3008:3008 # Paste
+      # - 3009:3009 # Locker
+      # - 3010:3010 # Memories
+    # Set this to your custom museum URL, if any.
     environment:
       ENTE_API_ORIGIN: http://localhost:8080
-      ENTE_ALBUMS_ORIGIN: https://localhost:3002
-      ENTE_PHOTOS_ORIGIN: http://localhost:3000
 
   postgres:
     image: postgres:15
@@ -124,10 +127,10 @@ services:
       - postgres-data:/var/lib/postgresql/data
 
   minio:
-    image: minio/minio
+    image: pgsty/silo
     ports:
       - 3200:3200 # MinIO API
-      # Uncomment to enable MinIO Web UI      
+      # Uncomment to enable the MinIO web UI.
       # - 3201:3201
     environment:
       MINIO_ROOT_USER: $minio_user
@@ -138,8 +141,6 @@ services:
     post_start:
       - command: |
           sh -c '
-          #!/bin/sh
-
           while ! mc alias set h0 http://minio:3200 $minio_user $minio_pass 2>/dev/null
           do
             echo "Waiting for minio..."
@@ -170,13 +171,13 @@ db:
       password: $pg_pass
 
 s3:
-      # Top-level configuration for buckets, you can override by specifying these configuration in the desired bucket.
-      # Set this to false if using external object storage bucket or bucket with SSL
+      # These defaults apply to all buckets and can be overridden per bucket.
+      # Set this to false for external buckets or buckets using SSL.
       are_local_buckets: true
-      # Set this to false if using subdomain-style URL. This is set to true for ensuring compatibility with MinIO when SSL is enabled.
+      # Set this to false for subdomain-style URLs. Keep it true for MinIO with SSL.
       use_path_style_urls: true
       b2-eu-cen:
-         # Uncomment the below configuration to override the top-level configuration 
+         # Uncomment to override the defaults for this bucket.
          # are_local_buckets: true
          # use_path_style_urls: true
          key: $minio_user
@@ -202,21 +203,16 @@ s3:
          region: eu-central-2
          bucket: scw-eu-fr-v3
 
-# Specify the base endpoints for various web apps
+# Specify the base endpoints for various web apps you're running.
 apps:
-    # If you're running a self hosted instance and wish to serve public links,
-    # set this to the URL where your albums web app is running.
     public-albums: http://localhost:3002
-    cast: http://localhost:3004
-    # Public locker (share) app
-    public-locker: http://localhost:3005
-    # Public paste app
-    public-paste: http://localhost:3008
-    # Embed app for embedded album sharing
     embed-albums: http://localhost:3006
-    # Set this to the URL where your accounts web app is running, primarily used for
-    # passkey based 2FA.
+    photobook: http://localhost:3014
+    public-locker: http://localhost:3005
+    public-paste: http://localhost:3008
+    cast: http://localhost:3004
     accounts: http://localhost:3001
+    public-memories: http://localhost:3010
 
 key:
       encryption: $museum_key
@@ -226,21 +222,24 @@ jwt:
       secret: $museum_jwt_secret
 EOF
 
+chmod 644 museum.yaml
+
 printf " \033[1;32mT\033[0m   Created \033[1mmuseum.yaml\033[0m\n"
 sleep 1
 
 printf " \033[1;32mE\033[0m   Do you want to start Ente? (y/n) [n]: "
 read -r choice
 
-if [[ "$choice" =~ ^[Yy]$ ]]; then
+if test "$choice" = y || test "$choice" = Y
+then
     printf "\nStarting docker compose\n"
-    printf "\nAfter the cluster has started, open web app at \033[1mhttp://localhost:3000\033[0m\n"
-    printf "(Verification code will be in the logs here)\n\n"
+    printf "\nAfter the services start, open web app at \033[1mhttp://localhost:3000\033[0m\n"
+    printf "Account verification codes will appear in these logs.\n\n"
     docker compose up
 else
-    printf "\nTo start the cluster:\n"
+    printf "\nTo start the services:\n"
     printf " \033[1;32m$\033[0m   cd my-ente\n"
     printf " \033[1;32m$\033[0m   docker compose up\n"
-    printf "\nAfter the cluster has started, open web app at \033[1mhttp://localhost:3000\033[0m\n"
-    printf "(Verification code will be in the logs here)\n\n"
+    printf "\nAfter the services start, open web app at \033[1mhttp://localhost:3000\033[0m\n"
+    printf "Account verification codes will appear in the logs.\n\n"
 fi

@@ -1,5 +1,5 @@
+import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
-import "package:photos/generated/l10n.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/common/backup_flow_helper.dart";
 import "package:photos/ui/components/buttons/button_widget.dart";
@@ -19,22 +19,19 @@ class SearchTabEmptyState extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              AppLocalizations.of(context).searchHint1,
-              style: textStyle.h3Bold,
-            ),
+            Text(context.strings.searchHint1, style: textStyle.h3Bold),
             const SizedBox(height: 24),
-            EmptyStateItemWidget(AppLocalizations.of(context).searchHint2),
+            EmptyStateItemWidget(context.strings.searchHint2),
             const SizedBox(height: 12),
-            EmptyStateItemWidget(AppLocalizations.of(context).searchHint3),
+            EmptyStateItemWidget(context.strings.searchHint3),
             const SizedBox(height: 12),
-            EmptyStateItemWidget(AppLocalizations.of(context).searchHint4),
+            EmptyStateItemWidget(context.strings.searchHint4),
             const SizedBox(height: 12),
-            EmptyStateItemWidget(AppLocalizations.of(context).searchHint5),
+            EmptyStateItemWidget(context.strings.searchHint5),
             const SizedBox(height: 32),
             ButtonWidget(
               buttonType: ButtonType.trailingIconPrimary,
-              labelText: AppLocalizations.of(context).addYourPhotosNow,
+              labelText: context.strings.addYourPhotosNow,
               icon: Icons.arrow_forward_outlined,
               onTap: () async {
                 await handleFolderSelectionBackupFlow(context);

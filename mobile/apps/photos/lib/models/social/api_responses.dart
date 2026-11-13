@@ -1,7 +1,3 @@
-/// Raw comment data from the API (encrypted).
-///
-/// This represents the wire format from the server with cipher/nonce pairs.
-/// Decryption happens in the sync service before storing locally.
 class CommentApiResponse {
   final String id;
   final int collectionID;
@@ -49,10 +45,6 @@ class CommentApiResponse {
   }
 }
 
-/// Raw reaction data from the API (encrypted).
-///
-/// This represents the wire format from the server with cipher/nonce pairs.
-/// Decryption happens in the sync service before storing locally.
 class ReactionApiResponse {
   final String id;
   final int collectionID;
@@ -100,15 +92,11 @@ class ReactionApiResponse {
   }
 }
 
-/// Response from GET /comments/diff
 class CommentsDiffResponse {
   final List<CommentApiResponse> comments;
   final bool hasMore;
 
-  CommentsDiffResponse({
-    required this.comments,
-    required this.hasMore,
-  });
+  CommentsDiffResponse({required this.comments, required this.hasMore});
 
   factory CommentsDiffResponse.fromJson(Map<String, dynamic> json) {
     final commentsList = json['comments'] as List<dynamic>? ?? [];
@@ -121,15 +109,11 @@ class CommentsDiffResponse {
   }
 }
 
-/// Response from GET /reactions/diff
 class ReactionsDiffResponse {
   final List<ReactionApiResponse> reactions;
   final bool hasMore;
 
-  ReactionsDiffResponse({
-    required this.reactions,
-    required this.hasMore,
-  });
+  ReactionsDiffResponse({required this.reactions, required this.hasMore});
 
   factory ReactionsDiffResponse.fromJson(Map<String, dynamic> json) {
     final reactionsList = json['reactions'] as List<dynamic>? ?? [];
@@ -142,7 +126,6 @@ class ReactionsDiffResponse {
   }
 }
 
-/// Response from GET /social/diff (unified endpoint)
 class SocialDiffResponse {
   final List<CommentApiResponse> comments;
   final List<ReactionApiResponse> reactions;
@@ -172,7 +155,6 @@ class SocialDiffResponse {
   }
 }
 
-/// Per-collection latest update timestamps from GET /comments-reactions/updated-at
 class CollectionLatestUpdate {
   final int collectionID;
   final int? commentsUpdatedAt;
@@ -196,7 +178,6 @@ class CollectionLatestUpdate {
   }
 }
 
-/// Response from GET /comments-reactions/updated-at
 class LatestUpdatesResponse {
   final List<CollectionLatestUpdate> updates;
 
@@ -214,7 +195,6 @@ class LatestUpdatesResponse {
   }
 }
 
-/// Anonymous user profile from GET /social/anon-profiles (encrypted)
 class AnonProfileApiResponse {
   final String anonUserID;
   final int collectionID;
@@ -244,7 +224,6 @@ class AnonProfileApiResponse {
   }
 }
 
-/// Response from GET /social/anon-profiles
 class AnonProfilesResponse {
   final List<AnonProfileApiResponse> profiles;
 

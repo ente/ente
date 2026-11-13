@@ -3,10 +3,10 @@ package pkg
 import (
 	"context"
 	"fmt"
-	"github.com/ente-io/cli/internal"
-	"github.com/ente-io/cli/internal/api"
-	"github.com/ente-io/cli/pkg/model"
-	"github.com/ente-io/cli/utils"
+	"github.com/ente/cli/internal"
+	"github.com/ente/cli/internal/api"
+	"github.com/ente/cli/pkg/model"
+	"github.com/ente/cli/utils"
 	"log"
 	"strings"
 	"time"
@@ -140,7 +140,6 @@ func (c *ClICtrl) UpdateFreeStorage(ctx context.Context, params model.AdminActio
 		utils.ByteCountDecimalGIB(storageSize), utils.ByteCountDecimalGIB(userDetails.Subscription.Storage),
 		date.Format("2006-01-02"),
 		time.UnixMicro(userDetails.Subscription.ExpiryTime).Format("2006-01-02"))
-	// press y to confirm
 	confirmed, _ := internal.ConfirmAction("Are you sure you want to update the storage ('y' or 'n')?")
 	if !confirmed {
 		return nil
@@ -211,10 +210,8 @@ func (c *ClICtrl) buildAdminContext(ctx context.Context, adminEmail string) (con
 func _parseDateOrDateTime(input string) (time.Time, error) {
 	var layout string
 	if strings.Contains(input, " ") {
-		// If the input contains a space, assume it's a date-time format
 		layout = "2006-01-02 15:04:05"
 	} else {
-		// If there's no space, assume it's just a date
 		layout = "2006-01-02"
 	}
 	return time.Parse(layout, input)

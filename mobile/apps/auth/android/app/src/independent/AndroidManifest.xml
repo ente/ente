@@ -1,0 +1,16 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Adding the following block to prevent the app from having multiple
+    launcher entries. We can remove this along with the `LAUNCHER` category from
+    main/AndroidManifest.xml once
+    https://github.com/flutter/flutter/issues/38965 is fixed. -->
+    <application>
+        <activity android:name=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER" tools:node="remove"/>
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

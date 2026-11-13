@@ -2,12 +2,7 @@ import 'package:ente_auth/theme/colors.dart';
 import 'package:ente_auth/theme/ente_theme.dart';
 import 'package:flutter/material.dart';
 
-enum RoundedButtonType {
-  primary,
-  secondary,
-  primaryInverse,
-  secondaryInverse,
-}
+enum RoundedButtonType { primary, secondary, primaryInverse, secondaryInverse }
 
 class RoundedButton extends StatelessWidget {
   final String label;
@@ -32,14 +27,14 @@ class RoundedButton extends StatelessWidget {
     final (backgroundColor, textColor) = switch (type) {
       RoundedButtonType.primary => (accentColor, Colors.white),
       RoundedButtonType.secondary => (
-          isDarkTheme ? const Color(0x29A75CFF) : const Color(0x0AA75CFF),
-          colorScheme.textBase,
-        ),
+        isDarkTheme ? const Color(0x29A75CFF) : const Color(0x0AA75CFF),
+        colorScheme.textBase,
+      ),
       RoundedButtonType.primaryInverse => (Colors.white, accentColor),
       RoundedButtonType.secondaryInverse => (
-          Colors.white.withValues(alpha: 0.2),
-          Colors.white,
-        ),
+        Colors.white.withValues(alpha: 0.2),
+        Colors.white,
+      ),
     };
 
     return GestureDetector(
@@ -61,38 +56,6 @@ class RoundedButton extends StatelessWidget {
               color: textColor,
               fontWeight: FontWeight.w600,
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class TextLinkButton extends StatelessWidget {
-  final String label;
-  final VoidCallback? onTap;
-
-  const TextLinkButton({
-    super.key,
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = getEnteTextTheme(context);
-    final colorScheme = getEnteColorScheme(context);
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 18),
-        child: Text(
-          label,
-          style: textTheme.small.copyWith(
-            color: colorScheme.textBase,
-            fontWeight: FontWeight.w600,
-            decoration: TextDecoration.underline,
           ),
         ),
       ),

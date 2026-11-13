@@ -4,20 +4,23 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
+
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"github.com/ente-io/museum/ente"
-	fileData "github.com/ente-io/museum/ente/filedata"
-	"github.com/ente-io/museum/pkg/controller"
-	"github.com/ente-io/museum/pkg/controller/access"
-	"github.com/ente-io/museum/pkg/repo"
-	fileDataRepo "github.com/ente-io/museum/pkg/repo/filedata"
-	"github.com/ente-io/museum/pkg/utils/array"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/museum/pkg/utils/network"
-	"github.com/ente-io/museum/pkg/utils/s3config"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	fileData "github.com/ente/museum/ente/filedata"
+	"github.com/ente/museum/pkg/controller"
+	"github.com/ente/museum/pkg/controller/access"
+	"github.com/ente/museum/pkg/controller/discord"
+	"github.com/ente/museum/pkg/repo"
+	fileDataRepo "github.com/ente/museum/pkg/repo/filedata"
+	"github.com/ente/museum/pkg/utils/array"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/museum/pkg/utils/network"
+	"github.com/ente/museum/pkg/utils/s3config"
+	"github.com/ente/stacktrace"
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
@@ -27,7 +30,6 @@ import (
 	gTime "time"
 )
 
-// _fetchConfig is the configuration for the fetching objects from S3
 type _fetchConfig struct {
 	RetryCount     int
 	InitialTimeout gTime.Duration
@@ -50,10 +52,10 @@ type Controller struct {
 	S3Config                *s3config.S3Config
 	FileRepo                *repo.FileRepository
 	CollectionRepo          *repo.CollectionRepository
+	DiscordController       *discord.DiscordController
 	downloadManagerCache    map[string]*s3manager.Downloader
-	// for downloading objects from s3 for replication
-	workerURL   string
-	tempStorage string
+	workerURL               string
+	tempStorage             string
 }
 
 func New(repo *fileDataRepo.Repository,
@@ -62,6 +64,7 @@ func New(repo *fileDataRepo.Repository,
 	s3Config *s3config.S3Config,
 	fileRepo *repo.FileRepository,
 	collectionRepo *repo.CollectionRepository,
+	discordController *discord.DiscordController,
 ) *Controller {
 	embeddingDcs := []string{s3Config.GetHotBackblazeDC(), s3Config.GetHotWasabiDC(), s3Config.GetWasabiDerivedDC(), s3Config.GetDerivedStorageDataCenter(), "b5", "b6"}
 	cache := make(map[string]*s3manager.Downloader, len(embeddingDcs))
@@ -76,6 +79,7 @@ func New(repo *fileDataRepo.Repository,
 		S3Config:                s3Config,
 		FileRepo:                fileRepo,
 		CollectionRepo:          collectionRepo,
+		DiscordController:       discordController,
 		downloadManagerCache:    cache,
 	}
 }
@@ -110,8 +114,6 @@ func (c *Controller) InsertOrUpdateMetadata(ctx *gin.Context, req *fileData.PutF
 		DecryptionHeader: *req.DecryptionHeader,
 		Client:           network.GetClientInfo(ctx),
 	}
-	// Start a goroutine to handle the upload and insert operations
-	//go func() {
 	logger := log.WithField("objectKey", objectKey).WithField("fileID", req.FileID).WithField("type", req.Type)
 	size, uploadErr := c.uploadObject(obj, objectKey, bucketID)
 	if uploadErr != nil {
@@ -129,9 +131,8 @@ func (c *Controller) InsertOrUpdateMetadata(ctx *gin.Context, req *fileData.PutF
 	dbInsertErr := c.Repo.InsertOrUpdate(context.Background(), row)
 	if dbInsertErr != nil {
 		logger.WithError(dbInsertErr).Error("insert or update failed")
-		return uploadErr
+		return stacktrace.Propagate(dbInsertErr, "failed to insert or update file data row")
 	}
-	//}()
 	return nil
 }
 
@@ -195,14 +196,12 @@ func (c *Controller) GetFilesData(ctx *gin.Context, req fileData.GetFilesData) (
 		}
 	}
 	pendingIndexFileIds := array.FindMissingElementsInSecondList(req.FileIDs, dbFileIds)
-	// Fetch missing doRows in parallel
 	s3MetaFetchResults, err := c.getS3FileMetadataParallel(ctx, activeRows)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
 	fetchedEmbeddings := make([]fileData.Entity, 0)
 
-	// Populate missing data in doRows from fetched objects
 	for _, obj := range s3MetaFetchResults {
 		if obj.err != nil {
 			errFileIds = append(errFileIds, obj.dbEntry.FileID)
@@ -228,36 +227,35 @@ func (c *Controller) getS3FileMetadataParallel(ctx *gin.Context, dbRows []fileDa
 	var wg sync.WaitGroup
 	embeddingObjects := make([]bulkS3MetaFetchResult, len(dbRows))
 	for i := range dbRows {
+		index := i
 		dbRow := dbRows[i]
-		wg.Add(1)
-		globalFileFetchSemaphore <- struct{}{} // Acquire from global semaphore
-		go func(i int, row fileData.Row) {
-			defer wg.Done()
-			defer func() { <-globalFileFetchSemaphore }() // Release back to global semaphore
+		globalFileFetchSemaphore <- struct{}{}
+		wg.Go(func() {
+			defer func() { <-globalFileFetchSemaphore }()
 
 			ctxLogger := log.WithFields(log.Fields{
-				"objectKey":     row.S3FileMetadataObjectKey(),
+				"objectKey":     dbRow.S3FileMetadataObjectKey(),
 				"req_id":        requestid.Get(ctx),
-				"latest_bucket": row.LatestBucket,
-				"file_id":       row.FileID,
+				"latest_bucket": dbRow.LatestBucket,
+				"file_id":       dbRow.FileID,
 			})
 
-			s3FileMetadata, err := c.fetchS3FileMetadata(context.Background(), row, ctxLogger)
+			s3FileMetadata, err := c.fetchS3FileMetadata(context.Background(), dbRow, ctxLogger)
 			if err != nil {
 				ctxLogger.
-					Error("error fetching  object: "+row.S3FileMetadataObjectKey(), err)
-				embeddingObjects[i] = bulkS3MetaFetchResult{
+					Error("error fetching  object: "+dbRow.S3FileMetadataObjectKey(), err)
+				embeddingObjects[index] = bulkS3MetaFetchResult{
 					err:     err,
-					dbEntry: row,
+					dbEntry: dbRow,
 				}
 
 			} else {
-				embeddingObjects[i] = bulkS3MetaFetchResult{
+				embeddingObjects[index] = bulkS3MetaFetchResult{
 					s3MetaObject: *s3FileMetadata,
 					dbEntry:      dbRow,
 				}
 			}
-		}(i, dbRow)
+		})
 	}
 	wg.Wait()
 	return embeddingObjects, nil
@@ -269,7 +267,7 @@ func (c *Controller) fetchS3FileMetadata(ctx context.Context, row fileData.Row, 
 	// If the current primary bucket is different from the latest bucket where data was written,
 	// check and use the preferred bucket if the data is replicated there.
 	if !strings.EqualFold(preferredBucket, dc) {
-		if array.StringInList(preferredBucket, row.ReplicatedBuckets) {
+		if slices.Contains(row.ReplicatedBuckets, preferredBucket) {
 			dc = preferredBucket
 		}
 	}
@@ -279,10 +277,7 @@ func (c *Controller) fetchS3FileMetadata(ctx context.Context, row fileData.Row, 
 	timeout := opt.InitialTimeout
 	for i := 0; i < totalAttempts; i++ {
 		if i > 0 {
-			timeout = timeout * 2
-			if timeout > opt.MaxTimeout {
-				timeout = opt.MaxTimeout
-			}
+			timeout = min(timeout*2, opt.MaxTimeout)
 		}
 		fetchCtx, cancel := context.WithTimeout(ctx, timeout)
 		select {
@@ -291,18 +286,16 @@ func (c *Controller) fetchS3FileMetadata(ctx context.Context, row fileData.Row, 
 			return nil, stacktrace.Propagate(ctx.Err(), "")
 		default:
 			obj, err := c.downloadObject(fetchCtx, objectKey, dc)
-			cancel() // Ensure cancel is called to release resources
+			cancel()
 			if err == nil {
 				if i > 0 {
 					ctxLogger.WithField("dc", dc).Infof("Fetched object after %d attempts", i)
 				}
 				return &obj, nil
 			}
-			// Check if the error is due to context timeout or cancellation
 			if err == nil && fetchCtx.Err() != nil {
 				ctxLogger.WithField("dc", dc).Error("Fetch timed out or cancelled: ", fetchCtx.Err())
 			} else {
-				// check if the error is due to object not found
 				if s3Err, ok := err.(awserr.RequestFailure); ok {
 					if s3Err.Code() == s3.ErrCodeNoSuchKey {
 						return nil, stacktrace.Propagate(errors.New("object not found"), "")
@@ -357,7 +350,6 @@ func (c *Controller) _validateLastUpdatedAt(ctx *gin.Context, lastUpdatedAt *int
 	return nil
 }
 
-// _checkPreviewWritePerm is
 func (c *Controller) _checkPreviewWritePerm(ctx *gin.Context, fileID int64, actorID int64) error {
 	err := c.AccessCtrl.VerifyFileOwnership(ctx, &access.VerifyFileOwnershipParams{
 		ActorUserId: actorID,

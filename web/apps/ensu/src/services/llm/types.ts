@@ -1,4 +1,4 @@
-export type LlmRole = "system" | "user" | "assistant";
+type LlmRole = "system" | "user" | "assistant";
 
 export interface LlmMessage {
     role: LlmRole;
@@ -9,21 +9,18 @@ export interface ModelInfo {
     id: string;
     name: string;
     url: string;
+    sha256: string;
     mmprojUrl?: string;
-    description?: string;
+    mmprojSha256?: string;
     sizeHuman?: string;
     sizeBytes?: number;
     mmprojSizeBytes?: number;
     contextLength?: number;
-    maxTokens?: number;
 }
 
 export interface ModelSettings {
-    useCustomModel: boolean;
-    modelUrl?: string;
-    mmprojUrl?: string;
+    modelId?: string;
     contextLength?: number;
-    maxTokens?: number;
 }
 
 export interface DownloadProgress {
@@ -42,8 +39,7 @@ export interface GenerateSummary {
 
 export type GenerateEvent =
     | { type: "text"; job_id: number; text: string; token_id?: number | null }
-    | { type: "done"; summary: GenerateSummary }
-    | { type: "error"; job_id: number; message: string };
+    | { type: "done"; summary: GenerateSummary };
 
 export interface GenerateChatRequest {
     messages: LlmMessage[];
@@ -62,4 +58,5 @@ export interface GenerateChatRequest {
     seed?: number;
     stopSequences?: string[];
     grammar?: string;
+    preparationToken?: string;
 }

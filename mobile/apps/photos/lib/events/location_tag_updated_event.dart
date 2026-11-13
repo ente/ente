@@ -9,9 +9,4 @@ class LocationTagUpdatedEvent extends Event {
   LocationTagUpdatedEvent(this.type, {this.updatedLocTagEntities});
 }
 
-enum LocTagEventType {
-  add,
-  update,
-  delete,
-  dataSetLoaded,
-}
+enum LocTagEventType { add, update, delete, dataSetLoaded }

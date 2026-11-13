@@ -8,37 +8,38 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ente-io/museum/pkg/utils/time"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/pkg/utils/time"
+	"github.com/ente/stacktrace"
 )
 
-// QueueRepository defines methods to insert, delete items from queue
 type QueueRepository struct {
 	DB *sql.DB
 }
 
-// itemDeletionDelayInMinMap tracks the delay (in min) after which an item is ready to be processed.
-// -ve entry indicates that the item should be processed immediately, without any delay.
+// Negative delays make items immediately eligible.
 var itemDeletionDelayInMinMap = map[string]int64{
-	DropFileEncMedataQueue:    -1 * 24 * 60, // -ve value to ensure attributes are immediately removed
-	DeleteObjectQueue:         45 * 24 * 60, // 45 days in minutes
-	DeleteEmbeddingsQueue:     -1 * 24 * 60, // -ve value to ensure embeddings are immediately removed
-	TrashCollectionQueueV3:    -1 * 24 * 60, // -ve value to ensure collections are immediately marked as trashed
-    TrashEmptyQueue:           -1 * 24 * 60, // -ve value to ensure empty trash request are processed in next cron run
-    TrashEmptyLockerQueue:     -1 * 24 * 60, // -ve value to ensure empty trash request for locker are processed in next cron run
-	RemoveComplianceHoldQueue: -1 * 24 * 60, // -ve value to ensure compliance hold is removed in next cron run
+	DropFileEncMetadataQueue:  -1 * 24 * 60,
+	DeleteObjectQueue:         45 * 24 * 60,
+	DeleteEmbeddingsQueue:     -1 * 24 * 60,
+	OutdatedObjectsQueue:      -1 * 24 * 60,
+	DeleteOutdatedObjectQueue: 24 * 24 * 60, // old replaced objects may exist in compliance-protected replicas
+	TrashCollectionQueueV3:    -1 * 24 * 60,
+	TrashEmptyQueue:           -1 * 24 * 60,
+	TrashEmptyLockerQueue:     -1 * 24 * 60,
+	RemoveComplianceHoldQueue: -1 * 24 * 60,
 }
 
 const (
-	DropFileEncMedataQueue string = "dropFileEncMetata"
-	DeleteObjectQueue      string = "deleteObject"
-	DeleteEmbeddingsQueue  string = "deleteEmbedding"
-	OutdatedObjectsQueue   string = "outdatedObject"
+	DropFileEncMetadataQueue  string = "dropFileEncMetata"
+	DeleteObjectQueue         string = "deleteObject"
+	DeleteEmbeddingsQueue     string = "deleteEmbedding"
+	OutdatedObjectsQueue      string = "outdatedObject"
+	DeleteOutdatedObjectQueue string = "deleteOutdatedObject"
 	// Deprecated: Keeping it till we clean up items from the queue DB.
 	TrashCollectionQueue      string = "trashCollection"
 	TrashCollectionQueueV3    string = "trashCollectionV3"
-    TrashEmptyQueue           string = "trashEmpty"
-    TrashEmptyLockerQueue     string = "trashEmptyLocker"
+	TrashEmptyQueue           string = "trashEmpty"
+	TrashEmptyLockerQueue     string = "trashEmptyLocker"
 	RemoveComplianceHoldQueue string = "removeComplianceHold"
 	BatchSize                 int    = 30000
 )
@@ -48,7 +49,6 @@ type QueueItem struct {
 	Item string
 }
 
-// InsertItem adds entry in the queue with given queueName and item. If entry already exists, it's no-op
 func (repo *QueueRepository) InsertItem(ctx context.Context, queueName string, item string) error {
 	_, err := repo.DB.ExecContext(ctx, `INSERT INTO queue(queue_name, item) VALUES($1, $2)
 		ON CONFLICT (queue_name, item) DO NOTHING`, queueName, item)
@@ -89,7 +89,6 @@ func (repo *QueueRepository) RequeueItem(ctx context.Context, queueName string, 
 	return nil
 }
 
-// AddItems adds a list of item against a specified queue
 func (repo *QueueRepository) AddItems(ctx context.Context, tx *sql.Tx, queueName string, items []string) error {
 	if len(items) == 0 {
 		return nil
@@ -97,10 +96,7 @@ func (repo *QueueRepository) AddItems(ctx context.Context, tx *sql.Tx, queueName
 	lb := 0
 	size := len(items)
 	for lb < size {
-		ub := lb + BatchSize
-		if ub > size {
-			ub = size
-		}
+		ub := min(lb+BatchSize, size)
 		slicedList := items[lb:ub]
 		query := "INSERT INTO queue(queue_name, item) VALUES "
 		var inserts []string
@@ -126,7 +122,6 @@ func (repo *QueueRepository) DeleteItem(queueName string, item string) error {
 	return stacktrace.Propagate(err, "")
 }
 
-// GetItemsReadyForDeletion method, for a given queue name, returns a list of QueueItem  which are ready for deletion
 func (repo *QueueRepository) GetItemsReadyForDeletion(queueName string, count int) ([]QueueItem, error) {
 	delayInMin, ok := itemDeletionDelayInMinMap[queueName]
 	if !ok {

@@ -3,8 +3,8 @@ package api
 import (
 	"net/http"
 
-	"github.com/ente-io/museum/pkg/controller/discountcoupon"
-	"github.com/ente-io/museum/pkg/utils/handler"
+	"github.com/ente/museum/pkg/controller/discountcoupon"
+	"github.com/ente/museum/pkg/utils/handler"
 	"github.com/gin-gonic/gin"
 )
 
@@ -14,7 +14,7 @@ type DiscountCouponHandler struct {
 
 func (h *DiscountCouponHandler) ClaimCoupon(c *gin.Context) {
 	var req discountcoupon.ClaimCouponRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := handler.BindJSON(c, &req); err != nil {
 		handler.Error(c, err)
 		return
 	}
@@ -28,7 +28,7 @@ func (h *DiscountCouponHandler) ClaimCoupon(c *gin.Context) {
 
 func (h *DiscountCouponHandler) AddCoupons(c *gin.Context) {
 	var req discountcoupon.AddCouponsRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := handler.BindJSON(c, &req); err != nil {
 		handler.Error(c, err)
 		return
 	}

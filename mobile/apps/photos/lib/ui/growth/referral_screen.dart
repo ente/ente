@@ -1,69 +1,110 @@
+import "package:ente_components/ente_components.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
+import "package:ente_strings/ente_strings.dart";
+import "package:ente_ui/components/loading_widget.dart";
 import "package:flutter/material.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:photos/gateways/storage_bonus/models/storage_bonus.dart";
-import "package:photos/generated/l10n.dart";
 import "package:photos/models/user_details.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/account/user_service.dart";
-import "package:photos/theme/ente_theme.dart";
-import "package:photos/theme/text_style.dart";
-import "package:photos/ui/common/loading_widget.dart";
 import "package:photos/ui/common/web_page.dart";
-import "package:photos/ui/components/menu_item_widget/menu_item_widget_new.dart";
 import "package:photos/ui/growth/apply_code_sheet.dart";
 import "package:photos/ui/growth/referral_code_widget.dart";
 import "package:photos/ui/growth/storage_details_screen.dart";
+import "package:photos/utils/dialog_util.dart";
 import "package:photos/utils/share_util.dart";
 import "package:tuple/tuple.dart";
 
-class ReferralScreen extends StatefulWidget {
-  const ReferralScreen({super.key});
+Future<void> openReferralScreen(
+  BuildContext context, {
+  bool showLoadingDialog = false,
+}) async {
+  final dialog = showLoadingDialog
+      ? createProgressDialog(
+          context,
+          context.strings.pleaseWait,
+          isDismissible: true,
+        )
+      : null;
+  if (dialog != null) await dialog.show();
 
-  @override
-  State<ReferralScreen> createState() => _ReferralScreenState();
+  late final Tuple2<ReferralView, UserDetails> data;
+  try {
+    data = await _fetchReferralData();
+  } catch (error) {
+    if (dialog != null && !await dialog.hide()) return;
+    if (!context.mounted || ModalRoute.of(context)?.isCurrent != true) {
+      return;
+    }
+    await showGenericErrorDialog(context: context, error: error);
+    return;
+  }
+  if (dialog != null && !await dialog.hide()) return;
+  if (!context.mounted || ModalRoute.of(context)?.isCurrent != true) return;
+  await routeToPage(context, _ReferralScreen(initialData: data));
 }
 
-class _ReferralScreenState extends State<ReferralScreen> {
-  bool canApplyCode = true;
+Future<Tuple2<ReferralView, UserDetails>> _fetchReferralData() async {
+  UserDetails? cachedUserDetails = UserService.instance.getCachedUserDetails();
+  cachedUserDetails ??= await UserService.instance.getUserDetailsV2(
+    memoryCount: false,
+  );
+  final referralView = await storageBonusService.getReferralView();
+  return Tuple2(referralView, cachedUserDetails);
+}
+
+class _ReferralScreen extends StatefulWidget {
+  const _ReferralScreen({required this.initialData});
+
+  final Tuple2<ReferralView, UserDetails> initialData;
+
+  @override
+  State<_ReferralScreen> createState() => _ReferralScreenState();
+}
+
+class _ReferralScreenState extends State<_ReferralScreen> {
+  late Future<Tuple2<ReferralView, UserDetails>> _dataFuture;
+  Tuple2<ReferralView, UserDetails>? _initialData;
+
+  @override
+  void initState() {
+    super.initState();
+    _initialData = widget.initialData;
+    _dataFuture = Future.value(widget.initialData);
+  }
 
   void _safeUIUpdate() {
     if (mounted) {
-      setState(() => {});
+      setState(() {
+        _initialData = null;
+        _dataFuture = _fetchReferralData();
+      });
     }
-  }
-
-  Future<Tuple2<ReferralView, UserDetails>> _fetchData() async {
-    UserDetails? cachedUserDetails =
-        UserService.instance.getCachedUserDetails();
-    cachedUserDetails ??=
-        await UserService.instance.getUserDetailsV2(memoryCount: false);
-    final referralView = await storageBonusService.getReferralView();
-    return Tuple2(referralView, cachedUserDetails);
   }
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
-    final pageBackgroundColor =
-        isDarkMode ? const Color(0xFF161616) : const Color(0xFFFAFAFA);
-
-    return Scaffold(
-      backgroundColor: pageBackgroundColor,
-      body: SafeArea(
-        child: FutureBuilder<Tuple2<ReferralView, UserDetails>>(
-          future: _fetchData(),
-          builder: (context, snapshot) {
-            if (snapshot.hasData) {
-              return ReferralWidget(
+    final l10n = context.strings;
+    return FutureBuilder<Tuple2<ReferralView, UserDetails>>(
+      future: _dataFuture,
+      initialData: _initialData,
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          return SettingsPageScaffold(
+            title: l10n.earnFreeStorage,
+            subtitle: l10n.shareCodeEarnStorage,
+            children: [
+              ReferralWidget(
                 referralView: snapshot.data!.item1,
                 userDetails: snapshot.data!.item2,
                 notifyParent: _safeUIUpdate,
-              );
-            } else if (snapshot.hasError) {
-              return Padding(
+              ),
+            ],
+          );
+        } else if (snapshot.hasError) {
+          return Scaffold(
+            body: SafeArea(
+              child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -73,26 +114,31 @@ class _ReferralScreenState extends State<ReferralScreen> {
                       onTap: () => Navigator.of(context).pop(),
                       child: Icon(
                         Icons.arrow_back,
-                        color: colorScheme.strokeBase,
+                        color: context.componentColors.iconColor,
                         size: 24,
                       ),
                     ),
                     Expanded(
                       child: Center(
                         child: Text(
-                          AppLocalizations.of(context)
-                              .failedToFetchReferralDetails,
+                          l10n.failedToFetchReferralDetails,
+                          style: TextStyles.body.copyWith(
+                            color: context.componentColors.textLight,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
                       ),
                     ),
                   ],
                 ),
-              );
-            }
-            return const Center(child: EnteLoadingWidget());
-          },
-        ),
-      ),
+              ),
+            ),
+          );
+        }
+        return const Scaffold(
+          body: SafeArea(child: Center(child: EnteLoadingWidget())),
+        );
+      },
     );
   }
 }
@@ -100,7 +146,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
 class ReferralWidget extends StatelessWidget {
   final ReferralView referralView;
   final UserDetails userDetails;
-  final Function notifyParent;
+  final VoidCallback notifyParent;
 
   const ReferralWidget({
     required this.referralView,
@@ -111,204 +157,137 @@ class ReferralWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final colors = context.componentColors;
+    final l10n = context.strings;
     final bool isReferralEnabled = referralView.planInfo.isEnabled;
 
-    final cardColor =
-        isDarkMode ? const Color(0xFF212121) : const Color(0xFFFFFFFF);
-
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 24),
-            // Back arrow
-            GestureDetector(
-              onTap: () => Navigator.of(context).pop(),
-              child: Icon(
-                Icons.arrow_back,
-                color: colorScheme.strokeBase,
-                size: 24,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (isReferralEnabled) ...[
+          const SizedBox(height: Spacing.xxl),
+          ReferralCodeWidget(
+            code: referralView.code,
+            userDetails: userDetails,
+            onCodeChanged: (code) {
+              referralView.code = code;
+              notifyParent();
+            },
+          ),
+          const SizedBox(height: Spacing.md),
+          _buildInstructions(context),
+          const SizedBox(height: Spacing.md),
+          ButtonComponent(
+            label: l10n.share,
+            density: ButtonComponentDensity.compact,
+            shouldSurfaceExecutionStates: false,
+            onTap: () {
+              shareText(
+                l10n.shareTextReferralInvite(referralCode: referralView.code),
+              );
+            },
+          ),
+          const SizedBox(height: 40),
+        ] else ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 48),
+            child: Center(
+              child: Column(
+                children: [
+                  Icon(Icons.error_outline, color: colors.textLight),
+                  const SizedBox(height: Spacing.md),
+                  Text(
+                    l10n.referralsAreCurrentlyPaused,
+                    style: TextStyles.body.copyWith(color: colors.textLight),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 24),
-            // Header section with title and share button
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        AppLocalizations.of(context).earnFreeStorage,
-                        style: textTheme.largeBold,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        AppLocalizations.of(context).shareCodeEarnStorage,
-                        style: textTheme.miniMuted,
-                      ),
-                    ],
-                  ),
-                ),
-                if (isReferralEnabled)
-                  GestureDetector(
-                    onTap: () {
-                      shareText(
-                        AppLocalizations.of(context).shareTextReferralCode(
-                          referralCode: referralView.code,
-                          referralStorageInGB:
-                              referralView.planInfo.storageInGB,
-                        ),
-                      );
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: cardColor,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      padding: const EdgeInsets.all(8),
-                      child: HugeIcon(
-                        icon: HugeIcons.strokeRoundedShare08,
-                        color: colorScheme.strokeBase,
-                        size: 20,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 42),
-            // Referral code section
-            if (isReferralEnabled) ...[
-              Center(
-                child: ReferralCodeWidget(
-                  referralView.code,
-                  shouldShowEdit: true,
-                  userDetails: userDetails,
-                  notifyParent: notifyParent,
-                ),
-              ),
-              const SizedBox(height: 16),
-              // Instructions
-              _buildInstructions(context, textTheme),
-              const SizedBox(height: 16),
-            ] else ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 48),
-                child: Center(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.error_outline,
-                        color: colorScheme.strokeMuted,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        AppLocalizations.of(context)
-                            .referralsAreCurrentlyPaused,
-                        style: textTheme.small
-                            .copyWith(color: colorScheme.textFaint),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-            // Menu items
-            if (referralView.enableApplyCode) ...[
-              MenuItemWidgetNew(
-                title: AppLocalizations.of(context).applyCodeTitle,
-                trailingIcon: Icons.chevron_right_outlined,
-                trailingIconIsMuted: true,
-                onTap: () async {
-                  final result = await showApplyCodeSheet(
-                    context,
-                    referralView: referralView,
-                    userDetails: userDetails,
-                  );
-                  if (result == true) {
-                    notifyParent();
-                  }
-                },
-              ),
-              const SizedBox(height: 8),
-            ],
-            MenuItemWidgetNew(
-              title: AppLocalizations.of(context).faq,
-              trailingIcon: Icons.chevron_right_outlined,
-              trailingIconIsMuted: true,
-              onTap: () async {
-                await routeToPage(
-                  context,
-                  WebPage(
-                    AppLocalizations.of(context).faq,
-                    "https://ente.io/help/photos/features/account/referral-program/",
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 8),
-            MenuItemWidgetNew(
-              title: AppLocalizations.of(context).details,
-              trailingIcon: Icons.chevron_right_outlined,
-              trailingIconIsMuted: true,
-              onTap: () async {
-                await routeToPage(
-                  context,
-                  StorageDetailsScreen(referralView, userDetails),
-                );
-              },
-            ),
-            const SizedBox(height: 60),
-          ],
+          ),
+        ],
+        if (referralView.enableApplyCode) ...[
+          MenuComponent(
+            title: l10n.applyCodeTitle,
+            trailing: _chevron(colors),
+            onTap: () async {
+              final result = await showApplyCodeSheet(
+                context,
+                referralView: referralView,
+                userDetails: userDetails,
+              );
+              if (result == true) notifyParent();
+            },
+          ),
+          const SizedBox(height: Spacing.sm),
+        ],
+        MenuComponent(
+          title: l10n.details,
+          trailing: _chevron(colors),
+          onTap: () async {
+            await routeToPage(
+              context,
+              StorageDetailsScreen(referralView, userDetails),
+            );
+          },
         ),
-      ),
+        const SizedBox(height: Spacing.sm),
+        MenuComponent(
+          title: l10n.faqs,
+          trailing: _chevron(colors),
+          onTap: () async {
+            await routeToPage(
+              context,
+              WebPage(
+                l10n.faqs,
+                "https://ente.com/help/photos/features/account/referral-program/",
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: Spacing.xxl),
+      ],
     );
   }
 
-  Widget _buildInstructions(BuildContext context, EnteTextTheme textTheme) {
-    const greenColor = Color(0xFF08C225);
+  Widget _chevron(ColorTokens colors) => Icon(
+    Icons.chevron_right_outlined,
+    color: colors.textLight,
+    size: IconSizes.medium,
+  );
+
+  Widget _buildInstructions(BuildContext context) {
+    final colors = context.componentColors;
     final storageInGB = referralView.planInfo.storageInGB;
-    final mutedStyle = textTheme.miniMuted.copyWith(height: 2);
-    final step3Text = AppLocalizations.of(context).referralStep3(
-      storageInGB: storageInGB,
+    final mutedStyle = TextStyles.mini.copyWith(
+      color: colors.textLight,
+      height: 2,
+    );
+
+    final highlightTokens = [
+      "$storageInGB GB free",
+      "${storageInGB}GB free",
+      "$storageInGB GB",
+      "${storageInGB}GB",
+    ];
+
+    Widget step(String text) => Text.rich(
+      TextSpan(
+        style: mutedStyle,
+        children: _buildHighlightedSpans(
+          text,
+          mutedStyle,
+          colors.textBase,
+          highlightTokens,
+        ),
+      ),
     );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          AppLocalizations.of(context).referralStep1,
-          style: mutedStyle,
-        ),
-        Text(
-          AppLocalizations.of(context).referralStep2,
-          style: mutedStyle,
-        ),
-        RichText(
-          text: TextSpan(
-            style: mutedStyle,
-            children: _buildHighlightedSpans(
-              step3Text,
-              mutedStyle,
-              greenColor,
-              [
-                "${storageInGB}GB free",
-                "$storageInGB GB free",
-              ],
-              [
-                "${storageInGB}GB",
-                "$storageInGB GB",
-              ],
-            ),
-          ),
-        ),
+        Text(context.strings.referralStep1, style: mutedStyle),
+        step(context.strings.referralStep2(storageInGB: storageInGB)),
+        step(context.strings.referralStep3(storageInGB: storageInGB)),
       ],
     );
   }
@@ -317,19 +296,16 @@ class ReferralWidget extends StatelessWidget {
     String text,
     TextStyle baseStyle,
     Color highlightColor,
-    List<String> preferredTokens,
-    List<String> fallbackTokens,
+    List<String> tokens,
   ) {
-    final tokens = preferredTokens.any(text.contains)
-        ? preferredTokens
-        : fallbackTokens.any(text.contains)
-            ? fallbackTokens
-            : const <String>[];
-
-    if (tokens.isEmpty) {
+    if (!tokens.any(text.contains)) {
       return [TextSpan(text: text)];
     }
 
+    final highlightStyle = baseStyle.copyWith(
+      color: highlightColor,
+      fontWeight: FontWeight.w600,
+    );
     final spans = <TextSpan>[];
     var index = 0;
 
@@ -355,12 +331,7 @@ class ReferralWidget extends StatelessWidget {
         spans.add(TextSpan(text: text.substring(index, nextIndex)));
       }
 
-      spans.add(
-        TextSpan(
-          text: nextToken,
-          style: baseStyle.copyWith(color: highlightColor),
-        ),
-      );
+      spans.add(TextSpan(text: nextToken, style: highlightStyle));
 
       index = nextIndex + nextToken.length;
     }

@@ -1,0 +1,14 @@
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+}
+
+group 'io.ente.ente_screen_cover'
+
+android {
+    namespace 'io.ente.ente_screen_cover'
+
+    defaultConfig {
+        minSdkVersion 16
+    }
+}

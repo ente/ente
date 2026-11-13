@@ -2,8 +2,8 @@ package pkg
 
 import (
 	"fmt"
-	"github.com/ente-io/cli/internal/api"
-	"github.com/ente-io/cli/pkg/secrets"
+	"github.com/ente/cli/internal/api"
+	"github.com/ente/cli/pkg/secrets"
 	bolt "go.etcd.io/bbolt"
 	"os"
 	"path/filepath"
@@ -18,7 +18,6 @@ type ClICtrl struct {
 
 func (c *ClICtrl) Init() error {
 	tempPath := filepath.Join(GetCLITempPath(), "ente-download")
-	// create temp folder if not exists
 	if _, err := os.Stat(tempPath); os.IsNotExist(err) {
 		err = os.Mkdir(tempPath, 0755)
 		if err != nil {

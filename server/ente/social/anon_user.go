@@ -1,6 +1,5 @@
 package social
 
-// AnonUser captures encrypted profile metadata for anonymous public commenters.
 type AnonUser struct {
 	ID           string `json:"anonUserID"`
 	CollectionID int64  `json:"collectionID"`

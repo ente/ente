@@ -3,12 +3,6 @@ import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton"
 import { isSxArray } from "ente-base/components/utils/sx";
 import React from "react";
 
-/**
- * A button that shows a indeterminate progress indicator if the {@link loading}
- * prop is set.
- *
- * The button is also disabled when in the loading state.
- */
 export const LoadingButton: React.FC<ButtonProps & { loading?: boolean }> = ({
     loading,
     disabled,

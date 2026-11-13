@@ -33,7 +33,7 @@ class EnteFile {
   MagicMetadata get magicMetadata =>
       _mmd ?? MagicMetadata.fromEncodedJson(mMdEncodedJson ?? '{}');
 
-  set magicMetadata(val) => _mmd = val;
+  set magicMetadata(MagicMetadata? val) => _mmd = val;
 
   String? pubMmdEncodedJson;
   int pubMmdVersion = 1;
@@ -42,16 +42,16 @@ class EnteFile {
   PubMagicMetadata get pubMagicMetadata =>
       _pubMmd ?? PubMagicMetadata.fromEncodedJson(pubMmdEncodedJson ?? '{}');
 
-  set pubMagicMetadata(val) => _pubMmd = val;
+  set pubMagicMetadata(PubMagicMetadata? val) => _pubMmd = val;
 
   static const kCurrentMetadataVersion = 2;
 
   static final _logger = Logger('File');
 
-  static EnteFile fromFile(File file) {
+  static EnteFile fromFile(File file, {String? fileName}) {
     final enteFile = EnteFile();
     enteFile.localPath = file.path;
-    enteFile.title = file.path.split('/').last;
+    enteFile.title = fileName ?? file.path.split('/').last;
     enteFile.creationTime = file.statSync().changed.millisecondsSinceEpoch;
     enteFile.modificationTime = file.statSync().modified.millisecondsSinceEpoch;
     enteFile.fileType = FileType.other;
@@ -77,7 +77,7 @@ class EnteFile {
   }
 
   String get downloadUrl =>
-      FileUrl.getUrl(uploadedFileID!, FileUrlType.download);
+      FileUrl.getLegacyUrl(uploadedFileID!, FileUrlType.download);
 
   String? get caption {
     return pubMagicMetadata.caption;

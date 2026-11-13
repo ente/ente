@@ -1,359 +1,620 @@
-import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
-import CircularProgress from "@mui/material/CircularProgress";
-import Tab from "@mui/material/Tab";
-import Tabs from "@mui/material/Tabs";
-import TextField from "@mui/material/TextField";
-import * as React from "react";
-import { useEffect, useState } from "react";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
+import {
+    Box,
+    Button,
+    CircularProgress,
+    Dialog,
+    DialogContent,
+    DialogTitle,
+    IconButton,
+    InputAdornment,
+    Menu,
+    MenuItem,
+    Tab,
+    Tabs,
+    TextField,
+} from "@mui/material";
+import React, {
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
 import "./App.css";
-import FamilyTableComponent from "./components/FamilyComponentTable";
-import StorageBonusTableComponent from "./components/StorageBonusTableComponent";
-import TokensTableComponent from "./components/TokenTableComponent";
-import UserComponent from "./components/UserComponent";
+import { AdHocActions } from "./components/AdHocActions";
+import { FamilyTable } from "./components/FamilyTable";
+import { StorageBonusTableComponent } from "./components/StorageBonusTableComponent";
+import { TokensTableComponent } from "./components/TokenTableComponent";
+import { UserDetails, type UserDetailsData } from "./components/UserDetails";
 import duckieimage from "./components/duckie.png";
-import { apiOrigin } from "./services/support";
-import type { UserData, UserResponse } from "./types";
+import {
+    getScheduledDeletions,
+    getUser,
+    initializeFileCounts,
+    type ScheduledDeletion,
+    type UserResponse,
+} from "./services/admin-user";
+import { StaffSessionProvider } from "./services/session";
+import {
+    dateFromMicroseconds,
+    formatStorageSize,
+    SUCCESS_COLOR,
+} from "./utils";
 
-export let email = "";
-export let token = "";
-
-export const setEmail = (newEmail: string) => {
-    email = newEmail;
-};
-
-export const setToken = (newToken: string) => {
-    token = newToken;
-};
-
-export const getEmail = () => email;
-export const getToken = () => token;
-
-const isNumericUserId = (value: string): boolean => /^\d+$/.test(value);
-
-const buildUserSearchUrl = (input: string): string => {
-    const trimmedInput = input.trim();
-    if (isNumericUserId(trimmedInput)) {
-        return `${apiOrigin}/admin/user?id=${encodeURIComponent(trimmedInput)}`;
-    }
-    return `${apiOrigin}/admin/user?email=${encodeURIComponent(trimmedInput)}`;
-};
-
-const App: React.FC = () => {
-    const [localEmail, setLocalEmail] = useState<string>("");
-    const [localToken, setLocalToken] = useState<string>("");
-    const [loading, setLoading] = useState<boolean>(false);
-    const [error, setError] = useState<string>("");
-    const [fetchSuccess, setFetchSuccess] = useState<boolean>(false);
-    const [tabValue, setTabValue] = useState<number>(0);
-    const [userData, setUserData] = useState<UserData | null>(null);
+export const App: React.FC = () => {
+    const [urlEmail] = useState(() =>
+        new URLSearchParams(window.location.search).get("email"),
+    );
+    const [searchInput, setSearchInput] = useState(urlEmail ?? "");
+    const [authToken] = useState(() => localStorage.getItem("token") ?? "");
+    const [tokenInput, setTokenInput] = useState("");
+    const [showToken, setShowToken] = useState(false);
+    const [tokenDialogOpen, setTokenDialogOpen] = useState(false);
+    const [tokenMenuAnchor, setTokenMenuAnchor] = useState<HTMLElement | null>(
+        null,
+    );
+    const [selectedUserEmail, setSelectedUserEmail] = useState(urlEmail ?? "");
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+    const [fetchSuccess, setFetchSuccess] = useState(false);
+    const [tabValue, setTabValue] = useState(0);
+    const [userData, setUserData] = useState<UserDetailsData | null>(null);
+    const [scheduledDeletions, setScheduledDeletions] = useState<
+        ScheduledDeletion[]
+    >([]);
+    const [scheduledDeletionsLoading, setScheduledDeletionsLoading] =
+        useState(false);
+    const [scheduledDeletionsLoaded, setScheduledDeletionsLoaded] =
+        useState(false);
+    const [fileCountInitPending, setFileCountInitPending] = useState(false);
+    const searchRequestID = useRef(0);
+    const activeUserIDRef = useRef<number | undefined>(undefined);
 
     useEffect(() => {
-        const storedToken = localStorage.getItem("token");
-        if (storedToken) {
-            setToken(storedToken);
-            setLocalToken(storedToken);
-        }
-    }, []);
-
-    useEffect(() => {
-        if (localToken) {
-            setToken(localToken);
-            localStorage.setItem("token", localToken);
+        if (authToken) {
+            localStorage.setItem("token", authToken);
         } else {
             localStorage.removeItem("token");
         }
-    }, [localToken]);
+        removeTokenFromUrl();
+    }, [authToken]);
 
-    useEffect(() => {
-        if (localEmail) {
-            setEmail(localEmail);
-            localStorage.setItem("email", localEmail);
-        } else {
-            localStorage.removeItem("email");
-        }
-    }, [localEmail]);
+    const handleTokenSubmit = (event: React.SubmitEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        const token = tokenInput.trim();
+        if (!token) return;
+        localStorage.setItem("token", token);
+        removeTokenFromUrl();
+        window.location.reload();
+    };
 
-    useEffect(() => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlEmail = urlParams.get("email");
-        const urlToken = urlParams.get("token");
+    const handleLogout = () => {
+        localStorage.removeItem("token");
+        removeTokenFromUrl();
+        window.location.reload();
+    };
 
-        if (urlEmail && urlToken) {
-            setLocalEmail(urlEmail);
-            setLocalToken(urlToken);
-            console.log(localEmail);
-            console.log(localToken);
-            setEmail(urlEmail);
-            setToken(urlToken);
-            fetchData().catch((error: unknown) =>
-                console.error("Fetch data error:", error),
-            );
-        }
-        console.log(email);
-        console.log(token);
-    }, []);
-
-    const fetchData = async () => {
+    const fetchData = useCallback(async (input: string, authToken: string) => {
+        const requestID = ++searchRequestID.current;
         setLoading(true);
         setError("");
         setFetchSuccess(false);
-        const startTime = Date.now();
+        setUserData(null);
+        activeUserIDRef.current = undefined;
+        setScheduledDeletions([]);
+        setScheduledDeletionsLoading(false);
+        setScheduledDeletionsLoaded(false);
         try {
-            const userSearchInput = localEmail.trim() || email.trim();
-            const url = buildUserSearchUrl(userSearchInput);
-            const response = await fetch(url, {
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-AUTH-TOKEN": token,
-                },
-            });
-            if (!response.ok) {
-                throw new Error("Network response was not ok");
-            }
-            const userDataResponse: UserResponse =
-                (await response.json()) as UserResponse;
-            console.log("API Response:", userDataResponse);
-            setEmail(userDataResponse.user.email || userSearchInput);
-
-            const extractedUserData: UserData = {
-                user: {
-                    "User ID": userDataResponse.user.ID || "None",
-                    Email: userDataResponse.user.email || "None",
-                    "Creation time":
-                        new Date(
-                            userDataResponse.user.creationTime / 1000,
-                        ).toLocaleString() || "None",
-                },
-                storage: {
-                    Total: userDataResponse.subscription.storage
-                        ? userDataResponse.subscription.storage >= 1024 ** 3
-                            ? `${(userDataResponse.subscription.storage / 1024 ** 3).toFixed(2)} GB`
-                            : `${(userDataResponse.subscription.storage / 1024 ** 2).toFixed(2)} MB`
-                        : "None",
-                    Consumed:
-                        userDataResponse.details?.usage !== undefined
-                            ? userDataResponse.details.usage >= 1024 ** 3
-                                ? `${(userDataResponse.details.usage / 1024 ** 3).toFixed(2)} GB`
-                                : `${(userDataResponse.details.usage / 1024 ** 2).toFixed(2)} MB`
-                            : "None",
-                    Bonus:
-                        userDataResponse.details?.storageBonus !== undefined
-                            ? userDataResponse.details.storageBonus >= 1024 ** 3
-                                ? `${(userDataResponse.details.storageBonus / 1024 ** 3).toFixed(2)} GB`
-                                : `${(userDataResponse.details.storageBonus / 1024 ** 2).toFixed(2)} MB`
-                            : "None",
-                },
-                subscription: {
-                    "Product ID":
-                        userDataResponse.subscription.productID || "None",
-                    Provider:
-                        userDataResponse.subscription.paymentProvider || "None",
-                    "Expiry time":
-                        new Date(
-                            userDataResponse.subscription.expiryTime / 1000,
-                        ).toLocaleString() || "None",
-                },
-                security: {
-                    "Email MFA": userDataResponse.details?.profileData
-                        .isEmailMFAEnabled
-                        ? "Enabled"
-                        : "Disabled",
-                    "Two factor 2FA": userDataResponse.details?.profileData
-                        .isTwoFactorEnabled
-                        ? "Enabled"
-                        : "Disabled",
-                    Passkeys:
-                        (userDataResponse.details?.profileData.passkeyCount ??
-                            0) > 0
-                            ? "Enabled"
-                            : "Disabled",
-                    "Can Disable EmailMFA": userDataResponse.details
-                        ?.profileData.canDisableEmailMFA
-                        ? "Yes"
-                        : "No",
-                    AuthCodes: `${userDataResponse.authCodes ?? 0}`,
-                },
-            };
-
-            const elapsedTime = Date.now() - startTime;
-            const delay = Math.max(3000 - elapsedTime, 0);
-            setTimeout(() => {
-                setLoading(false);
-                setFetchSuccess(true);
-                setUserData(extractedUserData);
-            }, delay);
-        } catch (error) {
-            console.error("Error fetching data:", error);
-            const elapsedTime = Date.now() - startTime;
-            const delay = Math.max(3000 - elapsedTime, 0);
-            setTimeout(() => {
-                setLoading(false);
-                setError("Invalid token or email/user id");
-            }, delay);
-        }
-    };
-
-    const handleKeyPress = (event: React.KeyboardEvent<HTMLFormElement>) => {
-        if (event.key === "Enter") {
-            event.preventDefault();
-            fetchData().catch((error: unknown) =>
-                console.error("Fetch data error:", error),
+            const userSearchInput = input.trim();
+            const userResult = await getUser(
+                { token: authToken },
+                userSearchInput,
             );
+            if (requestID !== searchRequestID.current) return;
+            if (userResult) {
+                const userDetailsData = buildUserDetailsData(
+                    userResult,
+                    userSearchInput,
+                );
+                setSelectedUserEmail(userDetailsData.email);
+                setUserData(userDetailsData);
+                activeUserIDRef.current = userResult.user.ID;
+            } else {
+                if (!userSearchInput.includes("@")) {
+                    throw new Error("User not found");
+                }
+                const scheduled = await getScheduledDeletions(
+                    { token: authToken },
+                    userSearchInput,
+                );
+                if (requestID !== searchRequestID.current) return;
+                if (scheduled.length === 0) {
+                    throw new Error(noSearchableAccountMessage);
+                }
+                setSelectedUserEmail(userSearchInput);
+                setScheduledDeletions(scheduled);
+                setScheduledDeletionsLoaded(true);
+            }
+            setFetchSuccess(true);
+        } catch (error) {
+            if (requestID !== searchRequestID.current) return;
+            console.error("Error fetching data:", error);
+            setError(fetchErrorMessage(error));
+        } finally {
+            if (requestID === searchRequestID.current) setLoading(false);
         }
+    }, []);
+
+    const loadScheduledDeletions = useCallback(async () => {
+        if (scheduledDeletionsLoaded || scheduledDeletionsLoading) return;
+        const requestID = searchRequestID.current;
+        setScheduledDeletionsLoading(true);
+        try {
+            const scheduled = await getScheduledDeletions(
+                { token: authToken },
+                selectedUserEmail,
+            );
+            if (requestID !== searchRequestID.current) return;
+            setScheduledDeletions(scheduled);
+            setScheduledDeletionsLoaded(true);
+        } catch (error) {
+            if (requestID !== searchRequestID.current) return;
+            throw error;
+        } finally {
+            if (requestID === searchRequestID.current) {
+                setScheduledDeletionsLoading(false);
+            }
+        }
+    }, [
+        authToken,
+        scheduledDeletionsLoaded,
+        scheduledDeletionsLoading,
+        selectedUserEmail,
+    ]);
+
+    useEffect(() => {
+        if (urlEmail && authToken) {
+            queueMicrotask(() => {
+                fetchData(urlEmail, authToken).catch((error: unknown) =>
+                    console.error("Fetch data error:", error),
+                );
+            });
+        }
+    }, [authToken, fetchData, urlEmail]);
+
+    const handleSubmit = (event: React.SubmitEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        fetchData(searchInput, authToken).catch((error: unknown) =>
+            console.error("Fetch data error:", error),
+        );
     };
 
     const handleTabChange = (
         _event: React.SyntheticEvent,
-
         newValue: number,
     ) => {
         setTabValue(newValue);
     };
-    useEffect(() => {
-        const searchParam = new URLSearchParams(window.location.search);
-        const userToken = searchParam.get("token");
 
-        if (userToken) {
-            setLocalToken(userToken);
-            setToken(userToken);
+    const session = useMemo(
+        () => ({ email: selectedUserEmail, token: authToken }),
+        [authToken, selectedUserEmail],
+    );
+    const initializeDisplayedFileCounts = async (userID: number) => {
+        setFileCountInitPending(true);
+        try {
+            const result = await initializeFileCounts(
+                { token: authToken },
+                userID,
+            );
+            if (result.reason) alert(result.reason);
+            if (result.initialized && userID === activeUserIDRef.current) {
+                await fetchData(`${userID}`, authToken);
+            }
+        } catch (error) {
+            alert(
+                error instanceof Error
+                    ? error.message
+                    : "Failed to initialize file counts",
+            );
+        } finally {
+            setFileCountInitPending(false);
         }
-    }, []);
+    };
+
+    const tokenForm = (
+        <form className="token-form" onSubmit={handleTokenSubmit}>
+            <TextField
+                label="Token"
+                type={showToken ? "text" : "password"}
+                value={tokenInput}
+                onChange={(event) => setTokenInput(event.target.value)}
+                autoComplete="off"
+                autoFocus
+                required
+                fullWidth
+                slotProps={{
+                    input: {
+                        endAdornment: (
+                            <InputAdornment position="end">
+                                <IconButton
+                                    type="button"
+                                    aria-label={
+                                        showToken ? "Hide token" : "Show token"
+                                    }
+                                    onClick={() => setShowToken(!showToken)}
+                                    edge="end"
+                                >
+                                    {showToken ? (
+                                        <VisibilityOffIcon />
+                                    ) : (
+                                        <VisibilityIcon />
+                                    )}
+                                </IconButton>
+                            </InputAdornment>
+                        ),
+                    },
+                }}
+            />
+            <div className="token-form-actions">
+                {authToken && (
+                    <Button onClick={() => setTokenDialogOpen(false)}>
+                        Cancel
+                    </Button>
+                )}
+                <Button
+                    type="submit"
+                    variant="contained"
+                    className="token-submit-button"
+                >
+                    {authToken ? "Update token" : "Continue"}
+                </Button>
+            </div>
+        </form>
+    );
+
+    if (!authToken) {
+        return (
+            <main className="container token-entry">
+                <section className="token-entry-card">
+                    <img
+                        src={duckieimage}
+                        alt=""
+                        className="token-entry-image"
+                    />
+                    <h1>Ente Staff</h1>
+                    <p>Enter your token to continue.</p>
+                    {tokenForm}
+                    <p className="token-entry-hint">
+                        The token is saved in this browser. You can update or
+                        remove it later from the menu.
+                    </p>
+                </section>
+            </main>
+        );
+    }
 
     return (
-        <div className="container">
-            <div>
-                <form className="input-form" onKeyPress={handleKeyPress}>
+        <StaffSessionProvider session={session}>
+            <div className="container">
+                <form className="input-form" onSubmit={handleSubmit}>
                     <div className="horizontal-group">
                         <a
                             href="https://staff.ente.sh"
                             target="_blank"
-                            rel="noopener noreferrer"
+                            rel="noopener"
                             className="link-text"
                         >
-                            staff.ente.io
+                            Ente Staff
                         </a>
                         <div className="text-fields">
                             <TextField
                                 label="Email"
-                                value={localEmail}
+                                value={searchInput}
                                 onChange={(e) => {
-                                    setLocalEmail(e.target.value);
-                                    setEmail(e.target.value);
+                                    setSearchInput(e.target.value);
                                 }}
                                 size="medium"
-                                className="text-field-email"
-                                style={{ width: "parent" }}
                             />
                         </div>
                         <div className="fetch-button-container">
                             <Button
-                                variant="contained"
-                                onClick={() => {
-                                    fetchData().catch((error: unknown) =>
-                                        console.error(
-                                            "Fetch data error:",
-                                            error,
-                                        ),
-                                    );
-                                }}
                                 className="fetch-button"
-                                style={{
-                                    padding: "0 16px",
-                                }}
+                                type="submit"
+                                variant="contained"
+                                sx={{ px: 2 }}
                             >
                                 FETCH
                             </Button>
+                            <AdHocActions
+                                email={selectedUserEmail}
+                                activeUserID={userData?.userID}
+                                scheduledDeletions={scheduledDeletions}
+                                scheduledDeletionsLoading={
+                                    scheduledDeletionsLoading
+                                }
+                                scheduledDeletionsLoaded={
+                                    scheduledDeletionsLoaded
+                                }
+                                disabled={!fetchSuccess || loading}
+                                onOpen={loadScheduledDeletions}
+                                onRecovered={() =>
+                                    fetchData(selectedUserEmail, authToken)
+                                }
+                            />
+                            <IconButton
+                                aria-label="Staff session options"
+                                color="inherit"
+                                onClick={(event) =>
+                                    setTokenMenuAnchor(event.currentTarget)
+                                }
+                            >
+                                <MoreVertIcon />
+                            </IconButton>
+                            <Menu
+                                anchorEl={tokenMenuAnchor}
+                                open={Boolean(tokenMenuAnchor)}
+                                onClose={() => setTokenMenuAnchor(null)}
+                            >
+                                <MenuItem
+                                    onClick={() => {
+                                        setTokenMenuAnchor(null);
+                                        setTokenInput("");
+                                        setShowToken(false);
+                                        setTokenDialogOpen(true);
+                                    }}
+                                >
+                                    Update token
+                                </MenuItem>
+                                <MenuItem onClick={handleLogout}>
+                                    Log out
+                                </MenuItem>
+                            </Menu>
                         </div>
                     </div>
                 </form>
-            </div>
-            <div className="content-container">
-                {loading ? (
-                    <CircularProgress
-                        sx={{
-                            color: "black",
-                            top: "200px",
-                            position: "fixed",
-                        }}
-                    />
-                ) : error ? (
-                    <div className="error-message">{error}</div>
-                ) : fetchSuccess ? (
-                    <>
-                        <Box
+                <div className="content-container">
+                    {loading ? (
+                        <CircularProgress
                             sx={{
-                                width: "100%",
-                                maxWidth: "600px",
-                                bgcolor: "#FAFAFA",
-                                borderRadius: "7px",
-                                position: "relative",
-                                zIndex: 1000,
+                                color: "black",
+                                top: "200px",
+                                position: "fixed",
                             }}
-                        >
-                            <Tabs
-                                value={tabValue}
-                                onChange={handleTabChange}
-                                centered
-                                sx={{
-                                    "& .MuiTabs-indicator": {
-                                        backgroundColor: "#00B33C",
-                                        height: "5px",
-                                        borderRadius: "20px",
-                                    },
-                                    "& .MuiTab-root": {
-                                        textTransform: "none",
-                                    },
-                                }}
-                            >
-                                <Tab label="User" />
-                                <Tab label="Family" />
-                                <Tab label="Bonuses" />
-                                <Tab label="Devices" />
-                            </Tabs>
-                        </Box>
-                        <Box
-                            sx={{
-                                width: "100%",
-                                maxWidth: "900px",
-                                bgcolor: "#FAFAFA",
-                                borderRadius: "7px",
-                                padding: "20px",
-                                position: "relative",
-                                zIndex: 999,
-                                marginTop: "16px",
-                            }}
-                        >
-                            {tabValue === 0 && userData && (
-                                <UserComponent userData={userData} />
+                        />
+                    ) : error ? (
+                        <div className="error-message">{error}</div>
+                    ) : fetchSuccess ? (
+                        <>
+                            {userData && (
+                                <Box
+                                    sx={{
+                                        width: "100%",
+                                        maxWidth: "600px",
+                                        bgcolor: "#FAFAFA",
+                                        borderRadius: "7px",
+                                        position: "relative",
+                                        zIndex: 1000,
+                                    }}
+                                >
+                                    <Tabs
+                                        value={tabValue}
+                                        onChange={handleTabChange}
+                                        centered
+                                        sx={{
+                                            "& .MuiTabs-indicator": {
+                                                backgroundColor: SUCCESS_COLOR,
+                                                height: "5px",
+                                                borderRadius: "20px",
+                                            },
+                                            "& .MuiTab-root": {
+                                                textTransform: "none",
+                                            },
+                                        }}
+                                    >
+                                        <Tab label="User" />
+                                        <Tab label="Family" />
+                                        <Tab label="Bonuses" />
+                                        <Tab label="Devices" />
+                                    </Tabs>
+                                </Box>
                             )}
-                            {tabValue === 1 && userData && (
-                                <div>
-                                    <FamilyTableComponent />
-                                </div>
+                            {userData && (
+                                <Box
+                                    sx={{
+                                        width: "100%",
+                                        maxWidth: "900px",
+                                        bgcolor: "#FAFAFA",
+                                        borderRadius: "7px",
+                                        padding: "20px",
+                                        position: "relative",
+                                        zIndex: 999,
+                                        marginTop: "16px",
+                                    }}
+                                >
+                                    {tabValue === 0 && (
+                                        <UserDetails
+                                            userData={userData}
+                                            fileCountInitPending={
+                                                fileCountInitPending
+                                            }
+                                            onInitializeFileCounts={() =>
+                                                initializeDisplayedFileCounts(
+                                                    userData.userID,
+                                                )
+                                            }
+                                        />
+                                    )}
+                                    {tabValue === 1 && <FamilyTable />}
+                                    {tabValue === 2 && (
+                                        <StorageBonusTableComponent />
+                                    )}
+                                    {tabValue === 3 && <TokensTableComponent />}
+                                </Box>
                             )}
-                            {tabValue === 2 && userData && (
-                                <div>
-                                    <StorageBonusTableComponent />
-                                </div>
-                            )}
-                            {tabValue === 3 && userData && (
-                                <div>
-                                    <TokensTableComponent />
-                                </div>
-                            )}
-                        </Box>
-                    </>
-                ) : (
-                    <img
-                        src={duckieimage}
-                        alt="duckie"
-                        style={{ marginTop: "150px" }}
-                    />
-                )}
+                        </>
+                    ) : (
+                        <div className="empty-state">
+                            <img src={duckieimage} alt="" />
+                            <h2>Find an account</h2>
+                            <p>
+                                Enter an email address or user ID above to view
+                                account details.
+                            </p>
+                        </div>
+                    )}
+                </div>
+                <Dialog
+                    open={tokenDialogOpen}
+                    onClose={() => setTokenDialogOpen(false)}
+                    fullWidth
+                    maxWidth="xs"
+                >
+                    <DialogTitle>Update token</DialogTitle>
+                    <DialogContent>{tokenForm}</DialogContent>
+                </Dialog>
             </div>
-        </div>
+        </StaffSessionProvider>
     );
 };
 
-export default App;
+const removeTokenFromUrl = () => {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has("token")) return;
+    url.searchParams.delete("token");
+    window.history.replaceState(window.history.state, "", url);
+};
+
+const noSearchableAccountMessage =
+    "No active account or searchable scheduled deletion found. For older deletions, find the user ID in logs and use the existing recovery flow.";
+
+const fetchErrorMessage = (error: unknown) =>
+    error instanceof Error ? error.message : "Invalid token or email/user id";
+
+const buildUserDetailsData = (
+    userResponse: UserResponse,
+    userSearchInput: string,
+): UserDetailsData => {
+    const { subscription } = userResponse;
+    const emailMFAEnabled =
+        userResponse.details?.profileData?.isEmailMFAEnabled ?? false;
+    const twoFactorEnabled =
+        userResponse.details?.profileData?.isTwoFactorEnabled ?? false;
+    const passkeysEnabled =
+        (userResponse.details?.profileData?.passkeyCount ?? 0) > 0;
+    const canDisableEmailMFA =
+        userResponse.details?.profileData?.canDisableEmailMFA ?? false;
+    const { photosFileCount, lockerFileCount } = userResponse;
+    const fileCountsAvailable =
+        photosFileCount !== undefined && lockerFileCount !== undefined;
+    const storageConsumed =
+        userResponse.storageConsumedStatus === "unavailable"
+            ? undefined
+            : (userResponse.storageConsumed ?? userResponse.details?.usage);
+
+    return {
+        email: userResponse.user.email || userSearchInput,
+        userID: userResponse.user.ID,
+        showFileCountInitializer:
+            photosFileCount === -1 && lockerFileCount === -1,
+        user: [
+            {
+                kind: "text",
+                label: "User ID",
+                value: `${userResponse.user.ID}`,
+            },
+            {
+                kind: "email",
+                label: "Email",
+                value: userResponse.user.email || "None",
+            },
+            {
+                kind: "text",
+                label: "Creation time",
+                value:
+                    dateFromMicroseconds(
+                        userResponse.user.creationTime,
+                    ).toLocaleString() || "None",
+            },
+        ],
+        storage: [
+            {
+                kind: "text",
+                label: "Total",
+                value:
+                    !subscription || subscription.storage === 0
+                        ? "None"
+                        : formatStorageSize(subscription.storage),
+            },
+            {
+                kind: "text",
+                label: "Consumed",
+                value:
+                    storageConsumed === undefined
+                        ? "Unavailable"
+                        : formatStorageSize(storageConsumed),
+            },
+            {
+                kind: "text",
+                label: "Bonus",
+                value: formatStorageSize(userResponse.details?.storageBonus),
+            },
+        ],
+        subscription: [
+            {
+                kind: "text",
+                label: "Product ID",
+                value: subscription?.productID || "None",
+            },
+            {
+                kind: "text",
+                label: "Provider",
+                value: subscription?.paymentProvider || "None",
+            },
+            {
+                kind: "expiry",
+                label: "Expiry time",
+                value: subscription
+                    ? dateFromMicroseconds(
+                          subscription.expiryTime,
+                      ).toISOString()
+                    : "None",
+            },
+        ],
+        security: [
+            { kind: "emailMFA", label: "Email MFA", enabled: emailMFAEnabled },
+            {
+                kind: "twoFactor",
+                label: "Two factor 2FA",
+                enabled: twoFactorEnabled,
+            },
+            { kind: "passkeys", label: "Passkeys", enabled: passkeysEnabled },
+            { kind: "text", label: "Auth", value: `${userResponse.authCodes}` },
+            ...(fileCountsAvailable
+                ? [
+                      {
+                          kind: "text" as const,
+                          label: "Photos",
+                          value: fileCountLabel(photosFileCount),
+                      },
+                      {
+                          kind: "text" as const,
+                          label: "Locker",
+                          value: fileCountLabel(lockerFileCount),
+                      },
+                  ]
+                : []),
+        ],
+        securityState: {
+            emailMFAEnabled,
+            twoFactorEnabled,
+            canDisableEmailMFA,
+        },
+    };
+};
+
+const fileCountLabel = (count: number) =>
+    count === -1 ? "Uninitialized" : `${count}`;

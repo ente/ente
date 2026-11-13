@@ -4,13 +4,12 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/ente-io/museum/ente"
-	socialentity "github.com/ente-io/museum/ente/social"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	socialentity "github.com/ente/museum/ente/social"
+	"github.com/ente/stacktrace"
 	"github.com/lib/pq"
 )
 
-// CommentsRepository manages comment records.
 type CommentsRepository struct {
 	DB *sql.DB
 }
@@ -33,15 +32,16 @@ func (repo *CommentsRepository) Insert(ctx context.Context, comment socialentity
 	return stacktrace.Propagate(err, "")
 }
 
-func (repo *CommentsRepository) UpdateCipher(ctx context.Context, id string, cipher string, nonce string) error {
+func (repo *CommentsRepository) UpdateCipher(ctx context.Context, id string, collectionID int64, cipher string, nonce string) error {
 	result, err := repo.DB.ExecContext(ctx, `
         UPDATE comments
         SET cipher = $1,
             nonce = $2,
             updated_at = now_utc_micro_seconds()
         WHERE id = $3
+          AND collection_id = $4
           AND is_deleted = FALSE
-    `, cipher, nonce, id)
+    `, cipher, nonce, id, collectionID)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
@@ -78,7 +78,6 @@ func (repo *CommentsRepository) SoftDelete(ctx context.Context, id string) error
 	return nil
 }
 
-// SoftDeleteByCollectionAndUser removes all comments created by a user inside a collection.
 func (repo *CommentsRepository) SoftDeleteByCollectionAndUser(ctx context.Context, collectionID int64, userID int64) error {
 	_, err := repo.DB.ExecContext(ctx, `
         UPDATE comments
@@ -210,37 +209,6 @@ func (repo *CommentsRepository) GetDiff(ctx context.Context, collectionID int64,
 	return comments, hasMore, nil
 }
 
-func (repo *CommentsRepository) CountActiveByCollection(ctx context.Context, collectionIDs []int64) (map[int64]int64, error) {
-	counts := make(map[int64]int64)
-	if len(collectionIDs) == 0 {
-		return counts, nil
-	}
-	rows, err := repo.DB.QueryContext(ctx, `
-        SELECT collection_id, COUNT(*)
-        FROM comments
-        WHERE collection_id = ANY($1)
-          AND is_deleted = FALSE
-        GROUP BY collection_id
-    `, pq.Array(collectionIDs))
-	if err != nil {
-		return counts, stacktrace.Propagate(err, "")
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var collectionID int64
-		var count int64
-		if err := rows.Scan(&collectionID, &count); err != nil {
-			return counts, stacktrace.Propagate(err, "")
-		}
-		counts[collectionID] = count
-	}
-	if err := rows.Err(); err != nil {
-		return counts, stacktrace.Propagate(err, "")
-	}
-	return counts, nil
-}
-
-// LatestUpdateByCollection returns the most recent updated_at timestamp for each collection.
 func (repo *CommentsRepository) LatestUpdateByCollection(ctx context.Context, collectionIDs []int64) (map[int64]int64, error) {
 	results := make(map[int64]int64)
 	if len(collectionIDs) == 0 {

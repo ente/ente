@@ -38,10 +38,7 @@ class FileWithSameSize {
   FileWithSameSize(this.fileIDs, this.size);
 
   factory FileWithSameSize.fromMap(Map<String, dynamic> map) {
-    return FileWithSameSize(
-      List<int>.from(map['fileIDs']),
-      map['size'],
-    );
+    return FileWithSameSize(List<int>.from(map['fileIDs']), map['size']);
   }
 
   factory FileWithSameSize.fromJson(String source) =>
@@ -57,14 +54,9 @@ class DuplicateFiles {
   final Set<int> collectionIDs;
   static final collectionsService = CollectionsService.instance;
 
-  DuplicateFiles(
-    this.files,
-    this.size,
-    this.collectionIDs,
-  ) {
+  DuplicateFiles(this.files, this.size, this.collectionIDs) {
     sortByCollectionName();
   }
-  // sortByLocalIDs sorts the files such that files with localID are at the top
   List<EnteFile> sortByLocalIDs() {
     final List<EnteFile> filesWithoutLocalID = [];
     final List<EnteFile> localFiles = [];
@@ -82,7 +74,7 @@ class DuplicateFiles {
   @override
   String toString() => 'DuplicateFiles(files: $files, size: $size)';
 
-  sortByCollectionName() {
+  void sortByCollectionName() {
     files.sort((first, second) {
       final firstName = collectionsService
           .getCollectionByID(first.collectionID!)!

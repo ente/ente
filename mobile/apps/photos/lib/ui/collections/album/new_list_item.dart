@@ -1,76 +1,48 @@
-import 'package:dotted_border/dotted_border.dart';
-import 'package:flutter/material.dart';
-import "package:photos/generated/l10n.dart";
-import 'package:photos/theme/ente_theme.dart';
+import "dart:async";
 
-//https://www.figma.com/design/SYtMyLBs5SAOkTbfMMzhqt/Ente-Visual-Design?node-id=39181-172209&t=3qmSZWpXF3ZC4JGN-1
+import 'package:ente_components/ente_components.dart';
+import "package:ente_strings/ente_strings.dart";
+import 'package:flutter/material.dart';
+import "package:photos/ui/components/thumbnail_list_item.dart";
 
 class NewAlbumListItemWidget extends StatelessWidget {
-  const NewAlbumListItemWidget({
-    super.key,
-  });
+  final Future<void> Function(BuildContext context)? onTap;
+
+  const NewAlbumListItemWidget({super.key, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = getEnteTextTheme(context);
-    final colorScheme = getEnteColorScheme(context);
-    const sideOfThumbnail = 60.0;
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return Stack(
-          alignment: Alignment.center,
-          children: [
-            Row(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: Container(
-                    height: sideOfThumbnail,
-                    width: sideOfThumbnail,
-                    color: Theme.of(context).brightness == Brightness.light
-                        ? colorScheme.backdropBase
-                        : colorScheme.backdropFaint,
-                    child: Icon(
-                      Icons.add_outlined,
-                      color: colorScheme.strokeMuted,
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(left: 12),
-                  child: Text(
-                    AppLocalizations.of(context).newAlbum,
-                    style:
-                        textTheme.body.copyWith(color: colorScheme.textMuted),
-                  ),
-                ),
-              ],
+    final colors = context.componentColors;
+    return ThumbnailListItem(
+      backgroundColor: thumbnailListItemBackgroundColor(context),
+      onTap: onTap == null ? null : () => unawaited(onTap!(context)),
+      leading: ClipRRect(
+        borderRadius: BorderRadius.circular(
+          ThumbnailListItem.defaultLeadingRadius,
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: colors.strokeDark),
+            borderRadius: BorderRadius.circular(
+              ThumbnailListItem.defaultLeadingRadius,
             ),
-            IgnorePointer(
-              child: DottedBorder(
-                dashPattern: const [4],
-                color: colorScheme.strokeFaint,
-                strokeWidth: 1,
-                padding: const EdgeInsets.all(0),
-                borderType: BorderType.RRect,
-                radius: const Radius.circular(4),
-                child: SizedBox(
-                  //Have to decrease the height and width by 1 pt as the stroke
-                  //dotted border gives is of strokeAlign.center, so 0.5 inside and
-                  // outside. Here for the row, stroke should be inside so we
-                  //decrease the size of this sizedBox by 1 (so it shrinks 0.5 from
-                  //every side) so that the strokeAlign.center of this sizedBox
-                  //looks like a strokeAlign.inside in the row.
-                  height: sideOfThumbnail - 1,
-                  //This width will work for this only if the row widget takes up the
-                  //full size it's parent (stack).
-                  width: constraints.maxWidth - 1,
-                ),
-              ),
+          ),
+          child: Center(
+            child: Image.asset(
+              "assets/new_album_icon.png",
+              width: 20,
+              height: 20,
             ),
-          ],
-        );
-      },
+          ),
+        ),
+      ),
+      title: Text(
+        context.strings.createAlbum,
+        style: TextStyles.body.copyWith(color: colors.textLight),
+        maxLines: 1,
+        softWrap: false,
+        overflow: TextOverflow.ellipsis,
+      ),
     );
   }
 }

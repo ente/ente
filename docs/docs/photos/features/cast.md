@@ -1,10 +1,14 @@
 ---
-title: This Page Has Moved
-description: This content has been reorganized
+title: Cast to TV
+description: Cast your photos to a TV with Ente Photos
 search: false
+head:
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
-# This Page Has Moved
+# Cast to TV
 
 The **Cast** feature guide has moved to:
 

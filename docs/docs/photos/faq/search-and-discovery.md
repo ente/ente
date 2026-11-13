@@ -5,6 +5,16 @@ description: Frequently asked questions about finding photos using map, face rec
 
 # Search and Discovery
 
+## General Search
+
+### How do I view only photos, videos or Live Photos? {#filter-by-file-type}
+
+On mobile, open **Search** and scroll to **File types**. Select **Photos**, **Videos**, or **Live** to view that type. You can also select a file extension, such as **JPG** or **MP4**.
+
+These shortcuts search your library. They do not change an album's contents.
+
+On web and desktop, type the file extension without the dot, for example **dng** or **heic**, in search and choose the file name result.
+
 ## Map View
 
 ### Why doesn't the map show all my photos? {#missing-photos}
@@ -48,12 +58,16 @@ Yes! By default, the map view shows photos from all your albums. You can also:
 
 **From an album:**
 
-- Open any album
-- Tap the three dots menu
-- Select "Map"
+- Open an album with photos
+- On mobile, tap the map button on the album cover, or, after scrolling down, tap the three dots menu and select **Map**
+- On web and desktop, click the three dots menu on the right of the album header and select **Map**. For Favorites, click the globe button instead.
 - View only that album's photos on the map
 
 Learn more in the [Map and location guide](/photos/features/search-and-discovery/map-and-location).
+
+### Why does the Map setting turn back on? {#map-turns-back-on}
+
+Opening a map view turns Map back on so the view can load. On mobile, this happens when you open the map from Search or an album. On web and desktop, it happens when you open an album's map. If you want to keep Map off, avoid opening these map views. If you opened one, turn Map off again in Settings on mobile, or in **Preferences > Map** on web and desktop.
 
 ## Location Tags
 
@@ -102,6 +116,22 @@ Ente's servers cannot see your location tags or where your photos were taken.
 
 ## Machine Learning and Face Recognition
 
+### What happens if I enable Machine Learning but turn off local processing? {#ml-local-processing-off}
+
+Machine Learning enables features like face recognition and magic search.
+
+Local processing controls whether the current device performs the indexing work itself. When local processing is on, the device downloads photos, runs the ML models, and builds indexes locally.
+
+Local processing describes where the indexing work happens. While signed in, face recognition and Magic search index photos backed up to Ente. A photo being visible in the device gallery does not make it eligible for signed-in indexing if it has not been backed up.
+
+In [Gallery Mode](/photos/faq/gallery-mode), the mobile app can index local photos it has permission to access while you are signed out.
+
+If local processing is turned off, that device skips the heavy work and can instead use indexes created by another device, such as your desktop.
+
+This can be useful on phones with low memory or limited performance.
+
+Learn more in the [Machine learning guide](/photos/features/search-and-discovery/machine-learning#the-indexing-process).
+
 ### Why doesn't search work for me? {#search-not-working}
 
 If you're searching for objects (like "food", "car", "dog") or trying to find faces but nothing appears, you likely need to enable **Machine Learning (ML)**.
@@ -126,14 +156,27 @@ Open `Settings > Preferences > Machine learning` and toggle ON face recognition 
 
 **Important limitations:**
 
-- ❌ ML does NOT work on web.ente.io (web browser)
+- ❌ ML does NOT work on photos.ente.com (web browser)
 - ✅ ML only works on desktop and mobile apps
 - Initial indexing can take time depending on library size
 
+### Why aren't faces appearing on mobile even though ML is fully indexed on desktop? {#faces-not-syncing-to-mobile}
+
+If ML indexing shows 100% on desktop but faces aren't showing up on your mobile app, try clearing the app's cache and storage, then log back in and allow a few minutes for the face data to sync.
+
+**On Android:**
+
+Open device `Settings > Apps > Ente Photos > Storage`, then tap **Clear cache** and **Clear storage**. Log back in and wait a few minutes.
+
+**On iOS:**
+
+Delete and reinstall the app, then log back in and wait a few minutes.
+
+Faces should start appearing shortly after logging back in.
+
 ### Why is the People section empty even though Machine Learning shows 100%? {#people-section-empty}
 
-If Machine Learning shows 100% on both Android and Desktop, the People
-section should normally populate shortly after.
+If Machine Learning shows 100% on both Android and Desktop, the People section should normally populate shortly after.
 
 Try these steps first:
 
@@ -141,9 +184,19 @@ Try these steps first:
 2. Log out and log back in
 3. Check if People start showing up
 
-If the People section is still empty, please
-[send logs](/photos/faq/troubleshooting#sharing-logs) from your desktop app
-so we can investigate further.
+If the People section is still empty, please [send logs](/photos/faq/troubleshooting#sharing-logs) from your desktop app so we can investigate further.
+
+### Why do some people in my People section show letters instead of face thumbnails? {#face-thumbnails-show-letters}
+
+The letter placeholders are a fallback the app shows when it can't load the face thumbnail for someone yet. This often happens after adding new photos, when the app still needs to generate the thumbnails and download the original photos it needs.
+
+Try the following:
+
+1. Force-quit and reopen the Ente app.
+2. Open the People section and leave it on screen for a few minutes, with the app in the foreground and your device on WiFi. This gives the app a chance to generate the thumbnails and download the originals.
+3. If the thumbnails are still letters after 10-15 minutes, force-quit and reopen once more.
+
+The faces should gradually reappear as the app catches up.
 
 ### How do I enable face recognition? {#enable-face-recognition}
 
@@ -167,14 +220,22 @@ Open `Settings > Preferences > Machine learning`, enable "Face recognition", and
 **Troubleshooting:**
 
 - If stuck at 100% but faces don't appear, try disabling and re-enabling ML
-- Make sure you're using the desktop or mobile app, NOT web.ente.io
+- Make sure you're using the desktop or mobile app, NOT photos.ente.com
 - Check that indexing has actually completed (not just showing 100%)
 
 Learn more in the [Machine learning guide](/photos/features/search-and-discovery/machine-learning).
 
+### Does face recognition or Magic search include photos from albums shared with me? {#ml-shared-albums}
+
+Yes. When Machine learning is on, face recognition and Magic search index photos in albums shared with you and in collaborative albums, as well as photos you uploaded. You do not need to copy those photos into an album you own first.
+
+Indexing runs on your devices. If local indexing is off on a phone, that phone uses indexes built on another of your devices (for example desktop). A device with local indexing on still needs to process newly shared photos before they show up in People or Magic search there.
+
+Names you give people and face labels stay on your account only. They are not shared with other members of the album. See [Are people names and face labels shared with other members?](/photos/faq/sharing-and-collaboration#shared-face-labels).
+
 ### Can I search my library by text that appears inside images? {#search-text-in-images}
 
-Only partially. Ente does not maintain a full OCR index of your photos, so search cannot guarantee matches for arbitrary words. Text-related hits today come from metadata or from magic search (CLIP embeddings); magic search can surface photos with very apparent text, but doesn't offer a dedicated OCR search.
+Only partially (this includes what people often call OCR). Ente does not maintain a full OCR index of your photos, so search cannot guarantee matches for arbitrary words. Text-related hits today come from metadata or from magic search (CLIP embeddings); magic search can surface photos with very apparent text, but doesn't offer a dedicated OCR search.
 
 ### Can I merge or de-merge persons recognized by the app? {#merge-persons}
 
@@ -192,9 +253,21 @@ Similarly, on desktop you can use the "Add a name" button to merge people by sel
 
 ### How can I remove an incorrectly grouped face from a person? {#remove-incorrect-face}
 
-On our mobile app, open up the person from the People section, click on the three dots to open up overflow menu, and click on Edit. Now you will be presented with the list of all photos that were merged to create this person.
+You can fix this in bulk on the mobile app:
 
-You can click on the merged photos and select the photos you think are incorrectly grouped (by long-pressing on them) and select "Remove" from the action bar that pops up to remove any incorrect faces.
+1. Open the person in People, then tap **More** and **Edit**.
+2. Under **Merged photos**, find the group with the wrong face and tap the minus to remove it from this person.
+3. Open that group from People, tap **Add a name**, and pick the correct person from the list.
+
+If only a few photos are wrong, open the group under **Merged photos**, long press to select them, and tap **Not this person?**.
+
+If the same person is tagged on two different faces in one photo, one of those faces may be in the wrong group.
+
+1. Open the photo and tap the incorrectly named person.
+2. Scroll to the face clusters.
+3. Remove the cluster containing the wrong face.
+
+Ente uses that correction to avoid suggesting the same cluster for that person again. If you need to undo a previous merge, open the person, select **Review suggestions**, then open **History** and undo that merge.
 
 ### How do I change the cover for a recognized person? {#change-person-cover}
 
@@ -231,6 +304,18 @@ Please note this functionality is currently only available on mobile.
 ### Does face recognition work offline? {#ml-offline}
 
 Yes! Once your photos have been indexed, face recognition and magic search work completely offline. The initial indexing requires downloading your photos (which happens faster over WiFi), but after that all searches happen locally on your device. The indexes are synced across your devices using end-to-end encryption.
+
+### Does ML indexing require internet? {#ml-indexing-internet}
+
+ML indexing requires internet initially to download the ML models and to download any photos not already present locally on your device. Once your photos have been indexed completely, face recognition and magic search work completely offline.
+
+Internet is also required to sync the encrypted indexes across your devices.
+
+### How much data do Ente Photos' machine-learning models download? {#ml-model-download-size}
+
+The machine-learning models can take around 300 MB to download. The amount depends on which features you enable and may change with app updates.
+
+Ente may also download photos that are not already on your device to index them locally. Those photo downloads are separate from the model download, so total data use can be higher.
 
 ### Is my face data used to train AI models? {#face-data-training}
 
@@ -278,6 +363,55 @@ You can help improve face grouping by reviewing and confirming suggestions:
 4. Confirm or reject the suggested faces
 
 This helps the app learn and improve grouping accuracy for the specific person over time.
+
+### Will indexing on desktop download a fresh copy of my library even if I'm using watched folders? {#indexing-watched-folders}
+
+The desktop app may still download or cache items from your Ente account during ML indexing, depending on what's available locally. Expect some temporary local storage and network use during the initial indexing run.
+
+### Once indexing is done, will my phone storage be affected? {#indexing-phone-storage}
+
+No. ML results sync to your account and are available on your phone without re-running the work. Your phone may still cache thumbnails and any files you open, but it does not duplicate the full desktop processing cache.
+
+### Can I reset the machine learning database and re-run face detection from scratch? {#reset-ml-database}
+
+Not currently. There is no built-in option to reset the ML database and detected faces.
+
+### Does Ente adapt as I name people and clean up duplicate face clusters? {#ml-adapts-to-corrections}
+
+Yes. Naming a person triggers automatic merging of the closest matching clusters. Beyond that, Ente surfaces less-confident matches as suggestions for you to accept or reject, and rejected clusters won't be suggested again. All corrections sync across devices.
+
+The fastest way through a large cluster list is to name the people who appear most often in your library first, then accept or reject the follow-up suggestions.
+
+### What happens if I enable Machine Learning but turn off local indexing? {#ml-without-local-indexing}
+
+Local indexing lets your device do the ML work itself — downloading photos, running the models, and building the indexes locally. If you turn it off, the device skips that work and pulls in indexes already built by another of your devices (such as desktop). This is useful for phones with limited RAM.
+
+### Why do mobile and desktop show different Machine Learning percentages even though both are in sync? {#ml-percentage-mismatch-across-platforms}
+
+This can happen for a couple of reasons:
+
+- **Unstable network connection**: Switch between WiFi and mobile data, then force-quit and reopen the app. This resolves most mismatches.
+- **Files desktop can't process**: RAW images and a few other formats return an empty state on desktop, so it skips them and still shows 100%. If local indexing is off on mobile, your phone keeps counting those files and doesn't reach 100%.
+
+**Solution:**
+
+Open `Settings > Machine learning` on mobile and enable local indexing. This lets your phone index the files itself instead of relying on indexes from a device that skipped them.
+
+### Why does Machine Learning stay just below 100%? {#ml-stuck-below-100}
+
+A percentage such as 99.9% means a small number of files are still in the pending count. If local indexing is off on mobile, some files may be waiting for another device to process them. See [why mobile and desktop can show different percentages](#ml-percentage-mismatch-across-platforms) for what to check.
+
+Some files may also be too large, damaged, or in a format the app cannot process yet. Those files can stay in the pending count, so the total does not reach 100%.
+
+Everything else is still indexed. Face search and magic search keep working for the files that succeeded.
+
+You do not need to do anything if search works for you. If you want help identifying the files still pending, please contact [support@ente.com](mailto:support@ente.com) and [share your logs](/photos/faq/troubleshooting#sharing-logs).
+
+### Why does my desktop app show different unnamed people than my phone? {#unnamed-people-differ}
+
+People you name and people you ignore sync across all your devices. Unnamed groupings don't sync. Each device works them out on its own, so the list of unnamed people can look different on desktop and on your phone, even when both show 100% indexed.
+
+To keep the people you have named or ignored consistent across devices, make those changes on one device and let the others sync. Unnamed groupings may still differ because each device creates them locally.
 
 ## Magic Search
 
@@ -328,20 +462,37 @@ You can then search for words in those descriptions to find the photos.
 
 Learn more in [Metadata and Editing FAQ](/photos/faq/metadata-and-editing#descriptions).
 
+## Memories
+
+### How do I mute the music in Memories? {#mute-memories-music}
+
+To watch a memory without music in the mobile app:
+
+1. Open the memory.
+2. Tap the speaker icon to mute the music.
+
+Tap the speaker icon again to turn the music back on.
+
+Ente remembers this choice the next time you open a memory on the same device.
+
 ## General Search
 
 ### How do I search my photos? {#how-to-search}
 
 Ente supports multiple search types:
 
-**Date search**: Search by date, month, or year
-**Location search**: Find photos taken in specific locations (if they have GPS data)
-**Magic search**: Natural language descriptions of photo content
-**Face search**: Find photos of specific people
-**Description search**: Search descriptions/captions you've added
-**File name search**: Search by original file name
+**Date search**: Search by date, month, or year **Location search**: Find photos taken in specific locations (if they have GPS data) **Magic search**: Natural language descriptions of photo content **Face search**: Find photos of specific people **Description search**: Search descriptions/captions you've added **File name search**: Search by original file name
 
 Simply type in the search bar and Ente will show matching results across all these categories.
+
+### Why does searching for a month show photos from other years? {#month-search-other-years}
+
+Ente shows different types of search results. A **Magic search** result looks for visual content, so it may show photos from other dates. Choose the date result to filter by when a photo was taken.
+
+1. Type a month and year, such as `July 2019`.
+2. Select the matching result under **Moments**, rather than **Magic**.
+
+For place searches, select the matching result under **Locations**.
 
 ### Can I save my searches? {#save-searches}
 
@@ -363,7 +514,7 @@ Learn more in [Albums and Organization FAQ](/photos/faq/albums-and-organization#
 
 If indexing shows 100% but you don't see faces:
 
-1. Make sure you're using the mobile or desktop app (not web.ente.io)
+1. Make sure you're using the mobile or desktop app (not photos.ente.com)
 2. Try disabling and re-enabling machine learning
 3. Check that indexing has truly completed (not just displaying 100%)
 4. Restart the app
@@ -406,9 +557,9 @@ If search results aren't what you expect:
 
 If face recognition or magic search isn't available:
 
-- Ensure you're using mobile or desktop app (not web.ente.io)
+- Ensure you're using mobile or desktop app (not photos.ente.com)
 - Check that machine learning is enabled in ML settings
 - Verify indexing has completed
 - Restart the app
 
-Note: Machine learning features only work on mobile and desktop apps, not on web.ente.io.
+Note: Machine learning features only work on mobile and desktop apps, not on photos.ente.com.

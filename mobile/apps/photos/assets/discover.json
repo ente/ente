@@ -1,0 +1,116 @@
+{
+  "prompts": [
+    {
+      "query": "identity documents and cards",
+      "title": "Identity",
+      "minScore": 0.20,
+      "minSize": 0.0,
+      "showVideo" : false
+    },
+    {
+      "query": "screenshots",
+      "title": "Screenshots",
+      "minScore": 0.18,
+      "minSize": 0.0,
+      "recentFirst" : true,
+      "showVideo" : false
+    },
+    {
+      "query": "image containing a black and white QR code",
+      "title": "QR Codes",
+      "minScore": 0.20,
+      "minSize": 0.0,
+      "recentFirst" : true,
+      "showVideo" : false
+    },
+    {
+      "query": "receipts, bills and invoices",
+      "title": "Receipts",
+      "minScore": 0.20,
+      "minSize": 0.0,
+      "recentFirst" : true
+    },
+    {
+      "query": "screenshots of digital notes, photos of notebook and whiteboards",
+      "title": "Notes",
+      "minScore": 0.20,
+      "minSize": 0.0,
+      "recentFirst" : true
+    },
+    {
+      "query": "memes",
+      "title": "Memes",
+      "minScore": 0.18,
+      "minSize": 0.0,
+      "recentFirst" : true
+    },
+    {
+      "query": "business card",
+      "title": "Visiting Cards",
+      "minScore": 0.20,
+      "minSize": 0.0,
+      "recentFirst" : true,
+      "showVideo" : false
+    },
+    {
+      "query": "photo of toddler",
+      "title": "Babies",
+      "minScore": 0.20,
+      "minSize": 0.0,
+      "recentFirst" : true
+    },
+    {
+      "query": "photos of pets",
+      "title": "Pets",
+      "minScore": 0.20,
+      "minSize": 0.0,
+      "recentFirst" : true
+    },
+    {
+      "query": "selfie",
+      "title": "Selfies",
+      "minScore": 0.18,
+      "minSize": 0.0,
+      "recentFirst" : true
+    },
+    {
+      "query": "high resolution hd wallpaper",
+      "title": "Wallpapers",
+      "minScore": 0.18,
+      "minSize": 0.0,
+      "showVideo" : false
+    },
+    {
+      "query": "photo of food",
+      "title": "Food",
+      "minScore": 0.20,
+      "minSize": 0.0,
+      "recentFirst" : true
+    },
+    {
+      "query": "celebration with friends",
+      "title": "Celebrations",
+      "minScore": 0.20,
+      "minSize": 0.0,
+      "recentFirst" : true
+    },
+    {
+      "query": "photo of setting sun",
+      "title": "Sunset",
+      "minScore": 0.20,
+      "minSize": 0.0
+    },
+    {
+      "query": "photo of mountains or hills",
+      "title": "Hills",
+      "minScore": 0.20,
+      "minSize": 0.0
+    },
+    {
+      "query": "outdoor photo of trees, leaves, flowers",
+      "title": "Greenery",
+      "minScore": 0.20,
+      "minSize": 0.0
+    }
+  ]
+}

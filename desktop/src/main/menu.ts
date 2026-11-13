@@ -9,12 +9,7 @@ import { allowWindowClose } from "../main";
 import { forceCheckForAppUpdates } from "./services/app-update";
 import { setShouldHideDockIcon, shouldHideDockIcon } from "./services/store";
 
-/** Create and return the entries in the app's main menu bar */
 export const createApplicationMenu = (mainWindow: BrowserWindow) => {
-    // The state of checkboxes
-    //
-    // Whenever the menu is redrawn the current value of these variables is used
-    // to set the checked state for the various settings checkboxes.
     let hideDockIcon = shouldHideDockIcon();
 
     const macOSOnly = (options: MenuItemConstructorOptions[]) =>
@@ -23,14 +18,12 @@ export const createApplicationMenu = (mainWindow: BrowserWindow) => {
     const handleCheckForUpdates = () => forceCheckForAppUpdates(mainWindow);
 
     const toggleHideDockIcon = () => {
-        // Persist
         setShouldHideDockIcon(!hideDockIcon);
-        // And update the in-memory state
         hideDockIcon = !hideDockIcon;
     };
 
     const handleHelp = () =>
-        void shell.openExternal("https://ente.io/help/photos/");
+        void shell.openExternal("https://ente.com/help/photos/");
 
     return Menu.buildFromTemplate([
         {
@@ -113,10 +106,6 @@ export const createApplicationMenu = (mainWindow: BrowserWindow) => {
     ]);
 };
 
-/**
- * Create and return a {@link Menu} that is shown when the user clicks on our
- * system tray icon (e.g. the icon list at the top right of the screen on macOS)
- */
 export const createTrayContextMenu = (mainWindow: BrowserWindow) => {
     const handleOpen = () => {
         mainWindow.show();

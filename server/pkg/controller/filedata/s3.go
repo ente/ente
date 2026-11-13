@@ -8,10 +8,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"github.com/ente-io/museum/ente"
-	fileData "github.com/ente-io/museum/ente/filedata"
-	"github.com/ente-io/museum/pkg/utils/file"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	fileData "github.com/ente/museum/ente/filedata"
+	"github.com/ente/museum/pkg/utils/file"
+	"github.com/ente/stacktrace"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"os"
@@ -21,52 +21,56 @@ import (
 
 const PreSignedRequestValidityDuration = 7 * 24 * stime.Hour
 
-func (c *Controller) getUploadURL(dc string, objectKey string) (*ente.UploadURL, error) {
-	s3Client := c.S3Config.GetS3Client(dc)
+func (c *Controller) getUploadURL(object ente.TempObject) (string, error) {
+	s3Client := c.S3Config.GetS3Client(object.BucketId)
 	r, _ := s3Client.PutObjectRequest(&s3.PutObjectInput{
-		Bucket: c.S3Config.GetBucket(dc),
-		Key:    &objectKey,
+		Bucket:        c.S3Config.GetBucket(object.BucketId),
+		Key:           &object.ObjectKey,
+		ContentLength: object.ContentLength,
+		ContentMD5:    object.ContentMD5,
 	})
-	url, err := r.Presign(PreSignedRequestValidityDuration)
+	url, err := r.Presign(ente.UploadURLValidity(object.ContentLength))
 	if err != nil {
-		return nil, stacktrace.Propagate(err, "")
+		return "", stacktrace.Propagate(err, "")
 	}
+	err = c.ObjectCleanupController.AddTempObject(object)
 	if err != nil {
-		return nil, stacktrace.Propagate(err, "")
+		return "", stacktrace.Propagate(err, "")
 	}
-	err = c.ObjectCleanupController.AddTempObjectKey(objectKey, dc)
-	if err != nil {
-		return nil, stacktrace.Propagate(err, "")
-	}
-	return &ente.UploadURL{
-		ObjectKey: objectKey,
-		URL:       url,
-	}, nil
+	return url, nil
 }
-func (c *Controller) getMultiPartUploadURL(dc string, objectKey string, count *int64) (*ente.MultipartUploadURLs, error) {
-	s3Client := c.S3Config.GetS3Client(dc)
-	bucket := c.S3Config.GetBucket(dc)
+func (c *Controller) getMultiPartUploadURL(object ente.TempObject, count int64, partLength int64, partMD5s []string) (*ente.MultipartUploadURLs, error) {
+	s3Client := c.S3Config.GetS3Client(object.BucketId)
+	bucket := c.S3Config.GetBucket(object.BucketId)
 	r, err := s3Client.CreateMultipartUpload(&s3.CreateMultipartUploadInput{
 		Bucket: bucket,
-		Key:    &objectKey,
+		Key:    &object.ObjectKey,
 	})
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
-	err = c.ObjectCleanupController.AddMultipartTempObjectKey(objectKey, *r.UploadId, dc)
+	object.IsMultipart = true
+	object.UploadID = *r.UploadId
+	err = c.ObjectCleanupController.AddTempObject(object)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
-	multipartUploadURLs := ente.MultipartUploadURLs{ObjectKey: objectKey}
+	multipartUploadURLs := ente.MultipartUploadURLs{ObjectKey: object.ObjectKey}
+	validity := ente.MultipartUploadURLValidity
 	urls := make([]string, 0)
-	for i := int64(1); i <= *count; i++ {
-		partReq, _ := s3Client.UploadPartRequest(&s3.UploadPartInput{
+	for i := int64(1); i <= count; i++ {
+		input := &s3.UploadPartInput{
 			Bucket:     bucket,
-			Key:        &objectKey,
+			Key:        &object.ObjectKey,
 			UploadId:   r.UploadId,
 			PartNumber: &i,
-		})
-		partUrl, partUrlErr := partReq.Presign(PreSignedRequestValidityDuration)
+		}
+		if object.ContentLength != nil {
+			input.ContentLength = aws.Int64(min(partLength, *object.ContentLength-(i-1)*partLength))
+			input.ContentMD5 = &partMD5s[i-1]
+		}
+		partReq, _ := s3Client.UploadPartRequest(input)
+		partUrl, partUrlErr := partReq.Presign(validity)
 		if partUrlErr != nil {
 			return nil, stacktrace.Propagate(partUrlErr, "")
 		}
@@ -75,10 +79,10 @@ func (c *Controller) getMultiPartUploadURL(dc string, objectKey string, count *i
 	multipartUploadURLs.PartURLs = urls
 	r2, _ := s3Client.CompleteMultipartUploadRequest(&s3.CompleteMultipartUploadInput{
 		Bucket:   bucket,
-		Key:      &objectKey,
+		Key:      &object.ObjectKey,
 		UploadId: r.UploadId,
 	})
-	url, err := r2.Presign(PreSignedRequestValidityDuration)
+	url, err := r2.Presign(validity)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
@@ -120,7 +124,6 @@ func (c *Controller) downloadObject(ctx context.Context, objectKey string, dc st
 	return obj, nil
 }
 
-// uploadObject uploads the embedding object to the object store and returns the object size
 func (c *Controller) uploadObject(obj fileData.S3FileMetadata, objectKey string, dc string) (int64, error) {
 	embeddingObj, _ := json.Marshal(obj)
 	s3Client := c.S3Config.GetS3Client(dc)
@@ -133,7 +136,7 @@ func (c *Controller) uploadObject(obj fileData.S3FileMetadata, objectKey string,
 	}
 	var err error
 	var result *s3manager.UploadOutput
-	for retries := 0; retries < 3; retries++ {
+	for range 3 {
 		result, err = uploader.Upload(&up)
 		if err == nil || !strings.Contains(err.Error(), "connection reset by peer") {
 			break
@@ -162,7 +165,6 @@ func (c *Controller) verifySize(bucketID string, objectKey string, expectedSize 
 	if *res.ContentLength != expectedSize {
 		err = fmt.Errorf("size of the uploaded file (%d) does not match the expected size (%d) in bucket %s",
 			*res.ContentLength, expectedSize, *bucket)
-		//c.notifyDiscord(fmt.Sprint(err))
 		return stacktrace.Propagate(err, "")
 	}
 	return nil
@@ -175,7 +177,6 @@ type ReplicateObjectReq struct {
 	ObjectSize   int64
 }
 
-// copyObject copies the object from srcObjectKey to destObjectKey in the same bucket and returns the object size
 func (c *Controller) replicateObject(ctx context.Context, req *ReplicateObjectReq) error {
 	if err := file.EnsureSufficientSpace(req.ObjectSize); err != nil {
 		return stacktrace.Propagate(err, "")
@@ -186,7 +187,6 @@ func (c *Controller) replicateObject(ctx context.Context, req *ReplicateObjectRe
 	}
 	defer os.Remove(filePath)
 	defer file.Close()
-	//s3Client := c.S3Config.GetS3Client(req.SrcBucketID)
 	bucket := c.S3Config.GetBucket(req.SrcBucketID)
 	downloader := c.downloadManagerCache[req.SrcBucketID]
 	_, err = downloader.DownloadWithContext(ctx, file, &s3.GetObjectInput{
@@ -212,7 +212,6 @@ func (c *Controller) replicateObject(ctx context.Context, req *ReplicateObjectRe
 		return stacktrace.Propagate(err, "Failed to upload object to bucket %s", req.DestBucketID)
 	}
 	log.Infof("Uploaded to bucket %s", result.Location)
-	// verify the size of the uploaded object
 	if err := c.verifySize(req.DestBucketID, req.ObjectKey, req.ObjectSize); err != nil {
 		return stacktrace.Propagate(err, "")
 	}

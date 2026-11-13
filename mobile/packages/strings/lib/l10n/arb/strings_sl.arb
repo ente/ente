@@ -1,62 +1,144 @@
 {
-  "networkHostLookUpErr": "Ne morete se povezati z Ente, preverite omrežne nastavitve in se obrnite na podporo, če se napaka nadaljuje.",
-  "@networkHostLookUpErr": {
-    "description": "Error message shown when the app cannot connect to Ente due to network host lookup failure"
+  "about": "O nas",
+  "account": "Račun",
+  "activeSessions": "Aktivne seje",
+  "@activeSessions": {
+    "description": "Title for active sessions page"
   },
-  "networkConnectionRefusedErr": "Ne morete se povezati z Ente, poskusite znova čez nekaj časa. Če se napaka nadaljuje, se obrnite na podporo.",
-  "@networkConnectionRefusedErr": {
-    "description": "Error message shown when the app cannot connect to Ente due to connection refused"
-  },
-  "itLooksLikeSomethingWentWrongPleaseRetryAfterSome": "Zdi se, da je šlo nekaj narobe. Po določenem času poskusite znova. Če se napaka nadaljuje, se obrnite na našo ekipo za podporo.",
-  "@itLooksLikeSomethingWentWrongPleaseRetryAfterSome": {
-    "description": "Generic error message for temporary issues"
-  },
-  "error": "Napaka",
-  "@error": {
-    "description": "Generic error title"
-  },
-  "ok": "V redu",
-  "@ok": {
-    "description": "Generic OK button label"
-  },
-  "faq": "Pogosta vprašanja",
-  "@faq": {
-    "description": "FAQ link label"
-  },
-  "contactSupport": "Stik s podporo",
-  "@contactSupport": {
-    "description": "Contact support button label"
-  },
-  "emailYourLogs": "Pošlji loge po e-pošti",
-  "@emailYourLogs": {
-    "description": "Title for emailing logs dialog"
-  },
-  "pleaseSendTheLogsTo": "Loge pošljite na naslov \n{toEmail}",
-  "@pleaseSendTheLogsTo": {
-    "description": "Message asking user to send logs to email address",
+  "addCode": "Dodaj kodo",
+  "addedSuccessfullyTo": "Uspešno dodano v {albumName}",
+  "@addedSuccessfullyTo": {
     "placeholders": {
-      "toEmail": {
-        "type": "String",
-        "description": "Email address to send logs to"
-      }
+      "albumName": {}
     }
   },
-  "copyEmailAddress": "Kopiraj e-poštni naslov",
-  "@copyEmailAddress": {
-    "description": "Button to copy email address to clipboard"
+  "addLocation": "Dodaj lokacijo",
+  "addLocationButton": "Dodaj",
+  "addSelected": "Dodaj izbrane",
+  "addToAlbum": "Dodaj v album",
+  "advanced": "Napredno",
+  "all": "Vsi",
+  "androidBiometricHint": "Potrdite identiteto",
+  "@androidBiometricHint": {
+    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
   },
-  "exportLogs": "Izvozi loge",
-  "@exportLogs": {
-    "description": "Button to export logs"
+  "androidCancelButton": "Prekliči",
+  "@androidCancelButton": {
+    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
   },
+  "androidSignInTitle": "Potrebna je overitev",
+  "@androidSignInTitle": {
+    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
+  },
+  "appLock": "Zaklep aplikacije",
+  "@appLock": {
+    "description": "App lock setting title"
+  },
+  "appLockDescription": "Izbirate lahko med privzetim zaklenjenim zaslonom naprave in zaklenjenim zaslonom po meri s kodo PIN ali geslom.",
+  "@appLockDescription": {
+    "description": "Description of app lock feature"
+  },
+  "appLockNotEnabled": "Zaklepanje aplikacije ni omogočeno",
+  "appLockNotEnabledDescription": "Prosimo, omogočite zaklepanje aplikacije v Nastavitve > Zaklepanje Aplikacije (Security > App Lock)",
+  "appLockOfflineModeWarning": "Odločili ste se, da boste nadaljevali brez varnostnih kopij. Če boste pozabili geslo za odklepanje aplikacije, bo dostop do vaših podatkov onemogočen.",
+  "areYouSureThatYouWantToLeaveTheFamily": "Ste prepričani, da želite zapustiti družinski paket?",
+  "areYouSureYouWantToLogout": "Ali ste prepričani, da se želite odjaviti?",
+  "@areYouSureYouWantToLogout": {
+    "description": "Confirmation message before logout"
+  },
+  "authenticateGeneric": "Prosimo. overite se",
+  "authenticationFailedPleaseTryAgain": "Overitev ni uspela, prosimo poskusite znova",
+  "@authenticationFailedPleaseTryAgain": {
+    "description": "Error message when authentication fails"
+  },
+  "authenticationSuccessful": "Overitev uspešna!",
+  "@authenticationSuccessful": {
+    "description": "Success message when authentication is successful"
+  },
+  "authToChangeEmailVerificationSetting": "Za spremembo potrjevanja vašega naslova e-pošte, se overite",
+  "authToChangeLockscreenSetting": "Za spremembo nastavitev zaklenjenega zaslona, se overite",
+  "authToChangeYourEmail": "Za spremembo vašega naslova e-pošte, se overite",
+  "authToChangeYourPassword": "Za spremembo gesla, se overite",
+  "authToExportCodes": "Za izvoz kod, se overite",
+  "authToInitiateSignIn": "Za začetek prijave za varnostno kopiranje, se overite",
+  "authToViewPasskeyGeneric": "Da vidite passkey, se overite",
+  "authToViewSecrets": "Če si želite ogledati svoje skrivne ključe, se overite",
+  "@authToViewSecrets": {
+    "description": "Message prompting authentication to view secrets"
+  },
+  "authToViewYourActiveSessions": "Če si želite ogledati svoje aktivne seje, se overite",
+  "authToViewYourRecoveryKey": "Če si želite ogledati svoje ključ za obnovo, se overite",
+  "autoLock": "Samodejno zaklepanje",
+  "@autoLock": {
+    "description": "Auto lock setting title"
+  },
+  "autoLockFeatureDescription": "Čas po katerem se aplikacije zaklene, ko jo enkrat zapustite.",
+  "@autoLockFeatureDescription": {
+    "description": "Description of auto lock feature"
+  },
+  "bothIssuerAndAccountCanNotBeEmpty": "Izdajatelj in račun ne moreta biti prazna",
   "cancel": "Prekliči",
   "@cancel": {
     "description": "Cancel button label"
   },
-  "reportABug": "Prijavite napako",
-  "@reportABug": {
-    "description": "Label for reporting a bug"
+  "changeEmail": "Sprememba e-poštnega naslova",
+  "@changeEmail": {
+    "description": "Change email button label"
   },
+  "changePassword": "Sprememba gesla",
+  "changePasswordTitle": "Sprememba gesla",
+  "@changePasswordTitle": {
+    "description": "Change password title"
+  },
+  "checkForUpdates": "Preveri za posodobitve",
+  "checkInboxAndSpamFolder": "Prosimo, preverite svoj e-poštni predal (in nezaželeno pošto), da končate verifikacijo",
+  "@checkInboxAndSpamFolder": {
+    "description": "Message asking user to check inbox and spam folder"
+  },
+  "checking": "Preverjanje...",
+  "checkStatus": "Preveri status",
+  "@checkStatus": {
+    "description": "Check status button label"
+  },
+  "close": "Zapri",
+  "codeIssuerHint": "Izdajatelj",
+  "compactMode": "Kompaktni način",
+  "confirm": "Potrdi",
+  "@confirm": {
+    "description": "Confirm button label"
+  },
+  "confirm2FADisable": "Ali ste prepričani, da želite onemogočiti dvojno preverjanja pristnosti?",
+  "confirmPassword": "Potrdi geslo",
+  "@confirmPassword": {
+    "description": "Confirm password field label"
+  },
+  "confirmRecoveryKey": "Potrdi ključ za obnovitev",
+  "confirmUpdatingkey": "Ali ste prepričani, da želite posodobiti skrivni ključ?",
+  "confirmYourRecoveryKey": "Potrdite vaš ključ za obnovitev",
+  "contactSupport": "Stik s podporo",
+  "@contactSupport": {
+    "description": "Contact support button label"
+  },
+  "continueLabel": "Nadaljuj",
+  "@continueLabel": {
+    "description": "Continue button label"
+  },
+  "copied": "Kopirano",
+  "copiedNextToClipboard": "Naslednja koda kopirana v odložišče",
+  "copiedToClipboard": "Kopirano v odložišče",
+  "copyEmailAddress": "Kopiraj e-poštni naslov",
+  "@copyEmailAddress": {
+    "description": "Button to copy email address to clipboard"
+  },
+  "crashAndErrorReporting": "Poročanje o nesrečah in napakah",
+  "create": "Ustvari",
+  "createAccount": "Ustvari račun",
+  "@createAccount": {
+    "description": "Create account button label"
+  },
+  "createCollage": "Ustvari kolaž",
+  "createNewTag": "Ustvari novo oznako",
+  "criticalUpdateAvailable": "Nujna posodobitev je na voljo",
   "customEndpoint": "Povezano na {endpoint}",
   "@customEndpoint": {
     "description": "Text showing user is connected to a custom endpoint",
@@ -67,588 +149,61 @@
       }
     }
   },
-  "save": "Shrani",
-  "@save": {
-    "description": "Label for save button"
-  },
-  "send": "Pošlji",
-  "@send": {
-    "description": "Label for send button"
-  },
-  "saveOrSendDescription": "Želite to shraniti v shrambo (privzeto: mapa Prenosi) ali poslati drugim aplikacijam?",
-  "@saveOrSendDescription": {
-    "description": "Description text asking user if they want to save to storage or share with other apps"
-  },
-  "saveOnlyDescription": "Želite to shraniti v shrambo (privzeto: mapa Prenosi)?",
-  "@saveOnlyDescription": {
-    "description": "Description text asking user if they want to save to storage (for platforms that don't support sharing)"
-  },
-  "email": "E-pošta",
-  "@email": {
-    "description": "Email field label"
-  },
-  "verify": "Preveri",
-  "@verify": {
-    "description": "Verify button label"
-  },
-  "invalidEmailTitle": "Neveljaven e-poštni naslov",
-  "@invalidEmailTitle": {
-    "description": "Title for invalid email error dialog"
-  },
-  "invalidEmailMessage": "Prosimo vnesite veljaven e-poštni naslov.",
-  "@invalidEmailMessage": {
-    "description": "Message for invalid email error dialog"
-  },
-  "pleaseWait": "Prosim počakajte...",
-  "@pleaseWait": {
-    "description": "Please wait message"
-  },
-  "verifyPassword": "Potrdite geslo",
-  "@verifyPassword": {
-    "description": "Verify password button label"
-  },
-  "incorrectPasswordTitle": "Nepravilno geslo",
-  "@incorrectPasswordTitle": {
-    "description": "Title for incorrect password error"
-  },
-  "pleaseTryAgain": "Prosimo, poskusite ponovno",
-  "@pleaseTryAgain": {
-    "description": "Message asking user to try again"
-  },
-  "enterPassword": "Vnesite geslo",
-  "@enterPassword": {
-    "description": "Enter password field label"
-  },
-  "enterYourPasswordHint": "Vnesite svoje geslo",
-  "@enterYourPasswordHint": {
-    "description": "Hint for password field"
-  },
-  "activeSessions": "Aktivne seje",
-  "@activeSessions": {
-    "description": "Title for active sessions page"
-  },
-  "oops": "Ups",
-  "@oops": {
-    "description": "Oops error title"
-  },
-  "somethingWentWrongPleaseTryAgain": "Nekaj je šlo narobe, prosimo poizkusite znova.",
-  "@somethingWentWrongPleaseTryAgain": {
-    "description": "Generic error message"
-  },
-  "thisWillLogYouOutOfThisDevice": "To vas bo odjavilo iz te naprave!",
-  "@thisWillLogYouOutOfThisDevice": {
-    "description": "Warning message for logging out of current device"
-  },
-  "thisWillLogYouOutOfTheFollowingDevice": "To vas bo odjavilo iz naslednje naprave:",
-  "@thisWillLogYouOutOfTheFollowingDevice": {
-    "description": "Warning message for logging out of another device"
-  },
-  "terminateSession": "Končaj sejo",
-  "@terminateSession": {
-    "description": "Title for terminate session dialog"
-  },
-  "terminate": "Končaj",
-  "@terminate": {
-    "description": "Terminate button label"
-  },
-  "thisDevice": "Ta naprava",
-  "@thisDevice": {
-    "description": "Label for current device"
-  },
-  "createAccount": "Ustvari račun",
-  "@createAccount": {
-    "description": "Create account button label"
-  },
-  "weakStrength": "Šibko",
-  "@weakStrength": {
-    "description": "Weak password strength label"
-  },
-  "moderateStrength": "Zmerno",
-  "@moderateStrength": {
-    "description": "Moderate password strength label"
-  },
-  "strongStrength": "Močno",
-  "@strongStrength": {
-    "description": "Strong password strength label"
-  },
+  "darkTheme": "Temna",
+  "data": "Podatki",
+  "dayToday": "Danes",
+  "dayYesterday": "Včeraj",
+  "deduplicateCodes": "Dedupliciraj kode",
   "deleteAccount": "Izbriši račun",
   "@deleteAccount": {
     "description": "Delete account button label"
   },
-  "deleteAccountQuery": "Žal nam je, da odhajate. Imate kakšne težave?",
-  "@deleteAccountQuery": {
-    "description": "Message asking user why they want to delete account"
-  },
-  "yesSendFeedbackAction": "Ja, pošlji povratne informacije",
-  "@yesSendFeedbackAction": {
-    "description": "Button to confirm sending feedback"
-  },
-  "noDeleteAccountAction": "Ne, izbriši račun",
-  "@noDeleteAccountAction": {
-    "description": "Button to proceed with account deletion"
-  },
-  "initiateAccountDeleteTitle": "Za izbris računa, se overite",
-  "@initiateAccountDeleteTitle": {
-    "description": "Title for authentication dialog before account deletion"
-  },
-  "confirmAccountDeleteTitle": "Potrdi brisanje računa",
-  "@confirmAccountDeleteTitle": {
-    "description": "Title for account deletion confirmation dialog"
-  },
-  "confirmAccountDeleteMessage": "Ta račun je povezan z drugimi aplikacijami Ente, če jih uporabljate.\n\nVaši naloženi podatki v vseh aplikacijah Ente bodo načrtovane za izbris, vaš račun pa bo trajno izbrisan.",
-  "@confirmAccountDeleteMessage": {
-    "description": "Message warning about account deletion consequences"
-  },
-  "delete": "",
-  "@delete": {
-    "description": "Delete button label"
-  },
-  "createNewAccount": "Ustvari nov račun",
-  "@createNewAccount": {
-    "description": "Create new account button label"
-  },
-  "password": "Geslo",
-  "@password": {
-    "description": "Password field label"
-  },
-  "confirmPassword": "Potrdi geslo",
-  "@confirmPassword": {
-    "description": "Confirm password field label"
-  },
-  "passwordStrength": "Moč gesla: {passwordStrengthValue}",
-  "@passwordStrength": {
-    "description": "Text to indicate the password strength",
-    "placeholders": {
-      "passwordStrengthValue": {
-        "description": "The strength of the password as a string",
-        "type": "String",
-        "example": "Weak or Moderate or Strong"
-      }
-    }
-  },
-  "hearUsWhereTitle": "Kako ste slišali o Ente? (izbirno)",
-  "@hearUsWhereTitle": {
-    "description": "Title asking how user heard about Ente"
-  },
-  "hearUsExplanation": "Namestitvam aplikacij ne sledimo. Pomagalo bi, če bi nam povedali, kje ste nas našli!",
-  "@hearUsExplanation": {
-    "description": "Explanation for asking how user heard about Ente"
-  },
-  "signUpTerms": "Strinjam se s <u-terms>pogoji uporabe</u-terms> in <u-policy>politiko zasebnosti</u-policy>",
-  "@signUpTerms": {
-    "description": "Terms agreement text for sign up"
-  },
-  "termsOfServicesTitle": "Pogoji uporabe",
-  "@termsOfServicesTitle": {
-    "description": "Terms of service title"
-  },
-  "privacyPolicyTitle": "Politika zasebnosti",
-  "@privacyPolicyTitle": {
-    "description": "Privacy policy title"
-  },
-  "ackPasswordLostWarning": "Razumem, da lahko z izgubo gesla, izgubim svoje podatke, saj so <underline>end-to-end šifrirani</underline>",
-  "@ackPasswordLostWarning": {
-    "description": "Warning about password loss"
-  },
-  "encryption": "Šifriranje",
-  "@encryption": {
-    "description": "Encryption label"
-  },
-  "logInLabel": "Prijava",
-  "@logInLabel": {
-    "description": "Log in button label"
-  },
-  "welcomeBack": "Dobrodošli nazaj!",
-  "@welcomeBack": {
-    "description": "Welcome back message"
-  },
-  "loginTerms": "S klikom na prijava, se strinjam s <u-terms>pogoji uporabe</u-terms> in <u-policy>politiko zasebnosti</u-policy>",
-  "@loginTerms": {
-    "description": "Terms agreement text for login"
-  },
-  "noInternetConnection": "Ni internetne povezave",
-  "@noInternetConnection": {
-    "description": "No internet connection error message"
-  },
-  "pleaseCheckYourInternetConnectionAndTryAgain": "Preverite internetno povezavo in poskusite znova.",
-  "@pleaseCheckYourInternetConnectionAndTryAgain": {
-    "description": "Message asking user to check internet connection"
-  },
-  "verificationFailedPleaseTryAgain": "Potrjevanje ni bilo uspešno, prosimo poskusite znova.",
-  "@verificationFailedPleaseTryAgain": {
-    "description": "Verification failed error message"
-  },
-  "recreatePasswordTitle": "Ponovno ustvarite geslo",
-  "@recreatePasswordTitle": {
-    "description": "Title for recreate password dialog"
-  },
-  "recreatePasswordBody": "Trenutna naprava, ni dovolj zmogljiva za preverjanje vašega gesla, a ga lahko generiramo na način, ki deluje z vsemi napravami.\n\nProsimo, prijavite se z vašim ključem za obnovo in ponovno ustvarite geslo (če želite lahko uporabite enako kot prej).",
-  "@recreatePasswordBody": {
-    "description": "Body text for recreate password dialog"
-  },
-  "useRecoveryKey": "Uporabi ključ za obnovo",
-  "@useRecoveryKey": {
-    "description": "Use recovery key button label"
-  },
-  "forgotPassword": "Pozabljeno geslo",
-  "@forgotPassword": {
-    "description": "Forgot password link label"
-  },
-  "changeEmail": "Sprememba e-poštnega naslova",
-  "@changeEmail": {
-    "description": "Change email button label"
-  },
-  "verifyEmail": "Potrdite e-pošto",
-  "@verifyEmail": {
-    "description": "Verify email title"
-  },
-  "weHaveSendEmailTo": "Poslali smo e-pošto na <green>{email}</green>",
-  "@weHaveSendEmailTo": {
-    "description": "Text to indicate that we have sent a mail to the user",
-    "placeholders": {
-      "email": {
-        "description": "The email address of the user",
-        "type": "String",
-        "example": "example@ente.io"
-      }
-    }
-  },
-  "toResetVerifyEmail": "Če želite ponastaviti geslo, najprej potrdite svoj e-poštni naslov.",
-  "@toResetVerifyEmail": {
-    "description": "Message asking user to verify email before password reset"
-  },
-  "checkInboxAndSpamFolder": "Prosimo, preverite svoj e-poštni predal (in nezaželeno pošto), da končate verifikacijo",
-  "@checkInboxAndSpamFolder": {
-    "description": "Message asking user to check inbox and spam folder"
-  },
-  "tapToEnterCode": "Pritisni za vnos kode",
-  "@tapToEnterCode": {
-    "description": "Hint for entering verification code"
-  },
-  "sendEmail": "Pošlji e-pošto",
-  "resendEmail": "Ponovno pošlji e-pošto",
-  "@resendEmail": {
-    "description": "Resend email button label"
-  },
-  "passKeyPendingVerification": "Preverjanje še ni zaključeno",
-  "@passKeyPendingVerification": {
-    "description": "Message when passkey verification is pending"
-  },
-  "loginSessionExpired": "Seja je potekla",
-  "@loginSessionExpired": {
-    "description": "Login session expired title"
-  },
-  "loginSessionExpiredDetails": "Vaša seja je potekla. Prosimo ponovno se prijavite.",
-  "@loginSessionExpiredDetails": {
-    "description": "Login session expired details"
-  },
-  "passkeyAuthTitle": "Potrditev ključa za dostop (passkey)",
-  "@passkeyAuthTitle": {
-    "description": "Passkey authentication title"
-  },
-  "waitingForVerification": "Čakanje na potrditev...",
-  "@waitingForVerification": {
-    "description": "Waiting for verification message"
-  },
-  "tryAgain": "Poskusite ponovno",
-  "@tryAgain": {
-    "description": "Try again button label"
-  },
-  "checkStatus": "Preveri status",
-  "@checkStatus": {
-    "description": "Check status button label"
-  },
-  "loginWithTOTP": "Prijava z TOTP",
-  "@loginWithTOTP": {
-    "description": "Login with TOTP button label"
-  },
-  "recoverAccount": "Obnovi račun",
-  "@recoverAccount": {
-    "description": "Recover account button label"
-  },
-  "setPasswordTitle": "Nastavite geslo",
-  "@setPasswordTitle": {
-    "description": "Set password title"
-  },
-  "changePasswordTitle": "Sprememba gesla",
-  "@changePasswordTitle": {
-    "description": "Change password title"
-  },
-  "resetPasswordTitle": "Ponastavitev gesla",
-  "@resetPasswordTitle": {
-    "description": "Reset password title"
-  },
-  "encryptionKeys": "Šifrirni ključi",
-  "@encryptionKeys": {
-    "description": "Encryption keys title"
-  },
-  "enterPasswordToEncrypt": "Vnesite geslo, ki ga lahko uporabimo za šifriranje vaših podatkov",
-  "@enterPasswordToEncrypt": {
-    "description": "Prompt to enter password for encryption"
-  },
-  "enterNewPasswordToEncrypt": "Vnesite novo geslo, ki ga lahko uporabimo za šifriranje vaših podatkov",
-  "@enterNewPasswordToEncrypt": {
-    "description": "Prompt to enter new password for encryption"
-  },
-  "passwordWarning": "Tega gesla ne shranjujemo, zato v primeru, da ga pozabite, <underline>ne moremo dešifrirati vaših podatkov</underline>.",
-  "@passwordWarning": {
-    "description": "Warning about password storage"
-  },
-  "howItWorks": "Kako deluje? ",
-  "@howItWorks": {
-    "description": "How it works button label"
-  },
-  "generatingEncryptionKeys": "Ustvarjanje ključe za šifriranje",
-  "@generatingEncryptionKeys": {
-    "description": "Generating encryption keys message"
-  },
-  "passwordChangedSuccessfully": "Geslo je bilo uspešno spremenjeno",
-  "@passwordChangedSuccessfully": {
-    "description": "Password changed successfully message"
-  },
-  "signOutFromOtherDevices": "Odjavi se iz ostalih naprav",
-  "@signOutFromOtherDevices": {
-    "description": "Sign out from other devices title"
-  },
-  "signOutOtherBody": "Če menite, da bi lahko kdo poznal vaše geslo, lahko vse druge naprave, ki uporabljajo vaš račun, prisilite, da se odjavijo.",
-  "@signOutOtherBody": {
-    "description": "Sign out other devices explanation"
-  },
-  "signOutOtherDevices": "Odjavi ostale naprave",
-  "@signOutOtherDevices": {
-    "description": "Sign out other devices button label"
-  },
-  "doNotSignOut": "Ne odjavi se",
-  "@doNotSignOut": {
-    "description": "Do not sign out button label"
-  },
-  "generatingEncryptionKeysTitle": "Generiramo ključe za šifriranje",
-  "@generatingEncryptionKeysTitle": {
-    "description": "Generating encryption keys title"
-  },
-  "continueLabel": "Nadaljuj",
-  "@continueLabel": {
-    "description": "Continue button label"
-  },
-  "insecureDevice": "Nezanesljiva naprava",
-  "@insecureDevice": {
-    "description": "Insecure device warning title"
-  },
-  "sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": "Žal v tej napravi nismo mogli ustvariti varnih ključev.\n\nProsimo, prijavite se iz druge naprave.",
-  "@sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": {
-    "description": "Error message for insecure device"
-  },
-  "recoveryKeyCopiedToClipboard": "Ključ za obnovo kopiran v odložišče",
-  "@recoveryKeyCopiedToClipboard": {
-    "description": "Recovery key copied message"
-  },
-  "recoveryKey": "Ključ za obnovitev",
-  "@recoveryKey": {
-    "description": "Recovery key label"
-  },
-  "recoveryKeyOnForgotPassword": "Če pozabite svoje geslo, je edini način da obnovite svoje podatke s tem ključem",
-  "@recoveryKeyOnForgotPassword": {
-    "description": "Recovery key importance explanation"
-  },
-  "recoveryKeySaveDescription": "Tega ključa ne hranimo, prosimo shranite teh 24 besed na varnem",
-  "@recoveryKeySaveDescription": {
-    "description": "Recovery key save description"
-  },
-  "doThisLater": "Stori to kasneje",
-  "@doThisLater": {
-    "description": "Do this later button label"
-  },
-  "saveKey": "Shrani ključ",
-  "@saveKey": {
-    "description": "Save key button label"
-  },
-  "recoveryKeySaved": "Ključ za obnovitev je shranjen v mapi Prenosi!",
-  "@recoveryKeySaved": {
-    "description": "Recovery key saved confirmation message"
-  },
-  "noRecoveryKeyTitle": "Nimate ključa za obnovo?",
-  "@noRecoveryKeyTitle": {
-    "description": "No recovery key title"
-  },
-  "twoFactorAuthTitle": "Dvojno preverjanja pristnosti",
-  "@twoFactorAuthTitle": {
-    "description": "Two-factor authentication title"
-  },
-  "enterCodeHint": "Vnesite 6 mestno kodo iz vaše aplikacije za preverjanje pristnosti",
-  "@enterCodeHint": {
-    "description": "Hint for entering 2FA code"
-  },
-  "lostDeviceTitle": "Izgubljena naprava?",
-  "@lostDeviceTitle": {
-    "description": "Lost device title"
-  },
-  "enterRecoveryKeyHint": "Vnesite vaš ključ za obnovitev",
-  "@enterRecoveryKeyHint": {
-    "description": "Hint for entering recovery key"
-  },
-  "recover": "Obnovi",
-  "@recover": {
-    "description": "Recover button label"
-  },
-  "loggingOut": "Odjavljanje...",
-  "@loggingOut": {
-    "description": "Message shown while logging out"
-  },
-  "immediately": "Takoj",
-  "@immediately": {
-    "description": "Immediately option for auto lock timing"
-  },
-  "appLock": "Zaklep aplikacije",
-  "@appLock": {
-    "description": "App lock setting title"
-  },
-  "autoLock": "Samodejno zaklepanje",
-  "@autoLock": {
-    "description": "Auto lock setting title"
-  },
-  "noSystemLockFound": "Nobeno zaklepanje sistema ni bilo najdeno",
-  "@noSystemLockFound": {
-    "description": "Error when no system lock is found"
+  "deleteAll": "Izbriši vse",
+  "deleteCodeAuthMessage": "Za brisanje kod, se overite",
+  "deleteCodeMessage": "Ali ste prepričani, da želite izbrisati to kodo? To dejanje je nepovratno.",
+  "deleteCodeTitle": "Izbriši kodo?",
+  "deleteDuplicates": "Izbriši dvojnike",
+  "deleteTagMessage": "Ali ste prepričani, da želite izbrisati to oznako? To dejanje je nepovratno.",
+  "deleteTagTitle": "Izbriši oznako?",
+  "deselectAll": "Prekliči celoten izbor",
+  "developerSettings": "Nastavitve za razvijalce",
+  "@developerSettings": {
+    "description": "Label for developer settings"
+  },
+  "developerSettingsWarning": "Ste prepričani, da želite spremeniti nastavitve za razvijalce.",
+  "deviceLock": "Zaklepanje naprave",
+  "@deviceLock": {
+    "description": "Device lock option title"
   },
   "deviceLockEnablePreSteps": "Da omogočite zaklepanje naprave, prosimo nastavite kodo ali zaklepanje zaslona v sistemskih nastavitvah.",
   "@deviceLockEnablePreSteps": {
     "description": "Instructions for enabling device lock"
   },
-  "appLockDescription": "Izbirate lahko med privzetim zaklenjenim zaslonom naprave in zaklenjenim zaslonom po meri s kodo PIN ali geslom.",
-  "@appLockDescription": {
-    "description": "Description of app lock feature"
+  "distanceInKMUnit": "km",
+  "@distanceInKMUnit": {
+    "description": "Unit for distance in km"
   },
-  "deviceLock": "Zaklepanje naprave",
-  "@deviceLock": {
-    "description": "Device lock option title"
+  "doNotSignOut": "Ne odjavi se",
+  "@doNotSignOut": {
+    "description": "Do not sign out button label"
   },
-  "pinLock": "Zaklepanje s PIN",
-  "@pinLock": {
-    "description": "PIN lock option title"
-  },
-  "autoLockFeatureDescription": "Čas po katerem se aplikacije zaklene, ko jo enkrat zapustite.",
-  "@autoLockFeatureDescription": {
-    "description": "Description of auto lock feature"
-  },
-  "hideContent": "Skrij vsebino",
-  "@hideContent": {
-    "description": "Hide content setting title"
-  },
-  "hideContentDescriptionAndroid": "Skrije vsebino aplikacije v menjalniku opravil in onemogoči posnetke zaslona",
-  "@hideContentDescriptionAndroid": {
-    "description": "Description of hide content feature on Android"
-  },
-  "hideContentDescriptioniOS": "Skrije vsebino aplikacije v menjalniku opravil",
-  "@hideContentDescriptioniOS": {
-    "description": "Description of hide content feature on iOS"
-  },
-  "tooManyIncorrectAttempts": "Preveč nepravilnih poskusov",
-  "@tooManyIncorrectAttempts": {
-    "description": "Message shown when too many incorrect attempts are made"
-  },
-  "tapToUnlock": "Kliknite za odklepanje",
-  "@tapToUnlock": {
-    "description": "Message prompting user to tap to unlock"
-  },
-  "areYouSureYouWantToLogout": "Ali ste prepričani, da se želite odjaviti?",
-  "@areYouSureYouWantToLogout": {
-    "description": "Confirmation message before logout"
-  },
-  "yesLogout": "Ja, odjavi se",
-  "@yesLogout": {
-    "description": "Confirmation button for logout"
-  },
-  "authToViewSecrets": "Če si želite ogledati svoje skrivne ključe, se overite",
-  "@authToViewSecrets": {
-    "description": "Message prompting authentication to view secrets"
-  },
-  "next": "Naprej",
-  "@next": {
-    "description": "Next button label"
-  },
-  "setNewPassword": "Nastavi novo geslo",
-  "@setNewPassword": {
-    "description": "Set new password title"
-  },
-  "enterPin": "Vnesi PIN",
-  "@enterPin": {
-    "description": "Enter PIN prompt"
-  },
-  "setNewPin": "Nastavi nov PIN",
-  "@setNewPin": {
-    "description": "Set new PIN title"
-  },
-  "confirm": "Potrdi",
-  "@confirm": {
-    "description": "Confirm button label"
-  },
-  "reEnterPassword": "Ponovno vnesite geslo",
-  "@reEnterPassword": {
-    "description": "Re-enter password prompt"
-  },
-  "reEnterPin": "Ponovno vnesite PIN",
-  "@reEnterPin": {
-    "description": "Re-enter PIN prompt"
-  },
-  "androidBiometricHint": "Potrdite identiteto",
-  "@androidBiometricHint": {
-    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricNotRecognized": "Ni prepoznano. Poskusite znova.",
-  "@androidBiometricNotRecognized": {
-    "description": "Message to let the user know that authentication was failed. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricSuccess": "Uspešno",
-  "@androidBiometricSuccess": {
-    "description": "Message to let the user know that authentication was successful. It is used on Android side. Maximum 60 characters."
-  },
-  "androidCancelButton": "Prekliči",
-  "@androidCancelButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
-  },
-  "androidSignInTitle": "Potrebna je overitev",
-  "@androidSignInTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricRequiredTitle": "Zahtevani biometrični podatki",
-  "@androidBiometricRequiredTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user has not set up biometric authentication on their device. It is used on Android side. Maximum 60 characters."
-  },
-  "androidDeviceCredentialsRequiredTitle": "Zahtevani podatki za vpis v napravo",
-  "@androidDeviceCredentialsRequiredTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user has not set up credentials authentication on their device. It is used on Android side. Maximum 60 characters."
-  },
-  "androidDeviceCredentialsSetupDescription": "Zahtevani podatki za vpis v napravo",
-  "@androidDeviceCredentialsSetupDescription": {
-    "description": "Message advising the user to go to the settings and configure device credentials on their device. It shows in a dialog on Android side."
-  },
-  "goToSettings": "Pojdi v nastavitve",
-  "@goToSettings": {
-    "description": "Message showed on a button that the user can click to go to settings pages from the current dialog. It is used on both Android and iOS side. Maximum 30 characters."
-  },
-  "androidGoToSettingsDescription": "Biometrično overjanje v vaši napravi ni nastavljeno. Pojdite v \"Nastavitve > Varnost\" in dodajte biometrično overjanje.",
-  "@androidGoToSettingsDescription": {
-    "description": "Message advising the user to go to the settings and configure biometric on their device. It shows in a dialog on Android side."
-  },
-  "iOSLockOut": "Biometrično overjanje je onemogočeno. Če ga želite omogočiti, zaklenite in odklenite zaslon.",
-  "@iOSLockOut": {
-    "description": "Message advising the user to re-enable biometrics on their device. It shows in a dialog on iOS side."
-  },
-  "iOSOkButton": "V redu",
-  "@iOSOkButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on iOS side. Maximum 30 characters."
+  "doubleTapToViewHiddenCode": "Dvakrat kliknite vnos, da si ogledate kodo.",
+  "download": "Prenesi",
+  "downloadUpdate": "Prenesi",
+  "duplicateCodes": "Podvojene kode",
+  "edit": "Uredi",
+  "editCodeAuthMessage": "Za urejanje kod, se overite",
+  "editLocation": "Uredi lokacijo",
+  "editOrder": "Uredi vrstni red",
+  "editPerson": "Uredi osebo",
+  "editTag": "Uredi oznako",
+  "email": "E-pošta",
+  "@email": {
+    "description": "Email field label"
   },
   "emailAlreadyRegistered": "E-poštni naslov je že registriran.",
   "@emailAlreadyRegistered": {
     "description": "Error message when email is already registered"
-  },
-  "emailNotRegistered": "E-poštni naslov ni registriran.",
-  "@emailNotRegistered": {
-    "description": "Error message when email is not registered"
-  },
-  "thisEmailIsAlreadyInUse": "Ta e-poštni naslove je že v uporabi.",
-  "@thisEmailIsAlreadyInUse": {
-    "description": "Error message when email is already in use"
   },
   "emailChangedTo": "E-poštni naslove je bil spremenjen na {newEmail}",
   "@emailChangedTo": {
@@ -661,60 +216,714 @@
       }
     }
   },
-  "authenticationFailedPleaseTryAgain": "Overitev ni uspela, prosimo poskusite znova",
-  "@authenticationFailedPleaseTryAgain": {
-    "description": "Error message when authentication fails"
+  "emailHint": "Vnesite svoj e-poštni naslov",
+  "emailNotRegistered": "E-poštni naslov ni registriran.",
+  "@emailNotRegistered": {
+    "description": "Error message when email is not registered"
   },
-  "authenticationSuccessful": "Overitev uspešna!",
-  "@authenticationSuccessful": {
-    "description": "Success message when authentication is successful"
+  "emailUsMessage": "Prosim, pišite nam na {email}",
+  "@emailUsMessage": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
   },
-  "sessionExpired": "Seja je potekla",
-  "@sessionExpired": {
-    "description": "Error message when session has expired"
+  "emailVerificationEnableWarning": "Če se želite izogniti zaklepanju računa, pred omogočanjem preverjanja e-pošte shranite kopijo e-poštnega potrdila 2FA zunaj storitve Ente Auth.",
+  "emailVerificationToggle": "Verifikacija e-pošte",
+  "emailYourLogs": "Pošlji loge po e-pošti",
+  "@emailYourLogs": {
+    "description": "Title for emailing logs dialog"
+  },
+  "encrypted": "Šifrirano",
+  "encryptionKeys": "Šifrirni ključi",
+  "@encryptionKeys": {
+    "description": "Encryption keys title"
+  },
+  "endpointUpdatedMessage": "Endpoint posodobljen uspešno",
+  "@endpointUpdatedMessage": {
+    "description": "Success message when endpoint is updated"
+  },
+  "enterCodeHint": "Vnesite 6 mestno kodo iz vaše aplikacije za preverjanje pristnosti",
+  "@enterCodeHint": {
+    "description": "Hint for entering 2FA code"
+  },
+  "enterDetailsManually": "Vnesi podatke ročno",
+  "enterName": "Vnesi ime",
+  "enterNewPasswordToEncrypt": "Vnesite novo geslo, ki ga lahko uporabimo za šifriranje vaših podatkov",
+  "@enterNewPasswordToEncrypt": {
+    "description": "Prompt to enter new password for encryption"
+  },
+  "enterPassword": "Vnesite geslo",
+  "@enterPassword": {
+    "description": "Enter password field label"
+  },
+  "enterPasswordToEncrypt": "Vnesite geslo, ki ga lahko uporabimo za šifriranje vaših podatkov",
+  "@enterPasswordToEncrypt": {
+    "description": "Prompt to enter password for encryption"
+  },
+  "enterRecoveryKeyHint": "Vnesite vaš ključ za obnovitev",
+  "@enterRecoveryKeyHint": {
+    "description": "Hint for entering recovery key"
+  },
+  "enterYourPasswordHint": "Vnesite svoje geslo",
+  "@enterYourPasswordHint": {
+    "description": "Hint for password field"
+  },
+  "enterYourRecoveryKey": "Vnesite vaš ključ za obnovitev",
+  "error": "Napaka",
+  "@error": {
+    "description": "Generic error title"
+  },
+  "exif": "EXIF",
+  "export": "Izvoz",
+  "exportCodes": "Izvozi kode",
+  "exportDialogDesc": "Šifrirani izvozi bodo varovani z geslom po vaši izbiri.",
+  "exportLogs": "Izvozi loge",
+  "@exportLogs": {
+    "description": "Button to export logs"
+  },
+  "exportWarningDesc": "Izvožena datoteka vsebuje zasebne informacije. Prosimo, hranite jo na varnem.",
+  "faq": "Pogosta vprašanja",
+  "@faq": {
+    "description": "FAQ link label"
+  },
+  "faqs": "Pogosta vprašanja",
+  "filesDeleted": "Datoteke izbrisane",
+  "focusOnSearchBar": "Osredotočite iskanje ob zagonu aplikacije",
+  "forgotPassword": "Pozabljeno geslo",
+  "@forgotPassword": {
+    "description": "Forgot password link label"
+  },
+  "freeStorageOffer": "10 % popust na <bold-green>ente</bold-green> fotografije",
+  "freeStorageOfferDescription": "Uporabite kupon \"AUTH\" za 10% popusta za prvo leto",
+  "general": "Splošno",
+  "generatingEncryptionKeys": "Ustvarjanje ključe za šifriranje",
+  "@generatingEncryptionKeys": {
+    "description": "Generating encryption keys message"
+  },
+  "generatingEncryptionKeysTitle": "Generiramo ključe za šifriranje",
+  "@generatingEncryptionKeysTitle": {
+    "description": "Generating encryption keys title"
+  },
+  "getStarted": "Začnite",
+  "giveUsAStarOnGithub": "Dajte nam zvezdico na Githubu",
+  "hearUsWhereOptionalTitle": "Kako ste slišali o Ente? (izbirno)",
+  "@hearUsWhereOptionalTitle": {
+    "description": "Title asking how user heard about Ente"
+  },
+  "hide": "Skrij",
+  "hideContent": "Skrij vsebino",
+  "@hideContent": {
+    "description": "Hide content setting title"
+  },
+  "hideContentDescriptionAndroid": "Skrije vsebino aplikacije v menjalniku opravil in onemogoči posnetke zaslona",
+  "@hideContentDescriptionAndroid": {
+    "description": "Description of hide content feature on Android"
+  },
+  "hideContentDescriptioniOS": "Skrije vsebino aplikacije v menjalniku opravil",
+  "@hideContentDescriptioniOS": {
+    "description": "Description of hide content feature on iOS"
+  },
+  "hintForDesktop": "Uredite ali izbrišite kodo z desnim klikom na njo.",
+  "hintForMobile": "Uredite ali izbrišite kodo z držanjem na njej.",
+  "howItWorks": "Kako deluje? ",
+  "@howItWorks": {
+    "description": "How it works button label"
+  },
+  "immediately": "Takoj",
+  "@immediately": {
+    "description": "Immediately option for auto lock timing"
+  },
+  "import2FasGuide": "V programu 2FAS uporabite možnost \"Nastavitve ->Zaščitno kopiranje - Izvoz\" (\"Settings->Backup -Export\").\n\nČe je varnostna kopija šifrirana, boste morali vnesti geslo za dešifriranje varnostne kopije.",
+  "importAccountPageTitle": "Vnesite podatke o računu",
+  "importAegisGuide": "Uporabite možnost \"Izvozi trezor\" (\"Export the vault\") v nastavitvah aplikacije Aegis.\n\nČe je vaš trezor šifriran, boste morali vnesti geslo za dešifriranje trezorja.",
+  "importBitwardenGuide": "V orodjih Bitwarden Tools uporabite možnost \"Izvozi trezor\" (\"Export vault\") in uvozite nešifrirano datoteko JSON.",
+  "importCodeDelimiterInfo": "Kode so lahko ločene z vejico ali novo vrstico.",
+  "importCodes": "Uvozi kode",
+  "importEnteEncGuide": "Izberi šifrirano JSON datoteko izvoženo iz Ente",
+  "importEnterSetupKey": "Vnesite namestitveni ključ",
+  "importFailureDesc": "Izbrane datoteke ni bilo mogoče prebrati",
+  "importInstruction": "Izberite datoteko, ki vsebuje seznam vaših kod v naslednji obliki",
+  "importLabel": "Uvoz",
+  "importLastpassGuide": "Uporabite možnost \"Prenos računov\" (\"Transfer accounts\") v nastavitvah Lastpass Authenticatorja in pritisnite \"Izvozi račune v datoteko\" (\"Export accounts to file\"). Nato uvozite preneseno datoteko JSON.",
+  "importRaivoGuide": "Uporabite možnost \"Izvozi OTP v arhiv Zip\" (\"Export OTPs to Zip archive\") v nastavitvah Raivo.\n\nRazširite datoteko zip in uvozite datoteko JSON.",
+  "importSelectAppExport": "Izberi {appName} izvozno datoteko",
+  "@importSelectAppExport": {
+    "placeholders": {
+      "appName": {}
+    }
+  },
+  "importSelectJsonFile": "Izberi datoteko JSON",
+  "importSuccessDesc": "Uvozili ste {count} kod!",
+  "@importSuccessDesc": {
+    "placeholders": {
+      "count": {
+        "description": "The number of codes imported",
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "importSuccessTitle": "Juhu!",
+  "importTypeEnteEncrypted": "Ente šifriran izvoz",
+  "incorrectCode": "Nepravilna koda",
+  "@incorrectCode": {
+    "description": "Error message when code is incorrect"
+  },
+  "incorrectDetails": "Nepravilni podatki",
+  "incorrectPasswordTitle": "Nepravilno geslo",
+  "@incorrectPasswordTitle": {
+    "description": "Title for incorrect password error"
   },
   "incorrectRecoveryKey": "Nepravilen ključ za obnovitev",
   "@incorrectRecoveryKey": {
     "description": "Error message when recovery key is incorrect"
   },
+  "insecureDevice": "Nezanesljiva naprava",
+  "@insecureDevice": {
+    "description": "Insecure device warning title"
+  },
+  "invalidEmailMessage": "Prosimo vnesite veljaven e-poštni naslov.",
+  "@invalidEmailMessage": {
+    "description": "Message for invalid email error dialog"
+  },
+  "invalidEmailTitle": "Neveljaven e-poštni naslov",
+  "@invalidEmailTitle": {
+    "description": "Title for invalid email error dialog"
+  },
+  "invalidEndpoint": "Nepravilen endpoint",
+  "@invalidEndpoint": {
+    "description": "Error message when endpoint is invalid"
+  },
+  "invalidEndpointMessage": "Oprostite endpoint, ki ste ga vnesli ni bil pravilen. Prosimo, vnesite pravilen endpoint in poskusite znova.",
+  "@invalidEndpointMessage": {
+    "description": "Detailed error message when endpoint is invalid"
+  },
+  "invalidKey": "Neveljaven ključ",
+  "invalidQRCode": "Neveljavna QR koda",
+  "invalidRecoveryKey": "Vneseni obnovitveni ključ ni veljaven. Prepričajte se, da vsebuje 24 besed, in preverite črkovanje vsake od njih.\n\nČe ste vnesli starejšo obnovitveno kodo, se prepričajte, da je dolga 64 znakov, in preverite vsakega od njih.",
+  "invite": "Povabi",
+  "ok": "V redu",
+  "@ok": {
+    "description": "Generic OK button label"
+  },
+  "itLooksLikeSomethingWentWrongPleaseRetryAfterSome": "Zdi se, da je šlo nekaj narobe. Po določenem času poskusite znova. Če se napaka nadaljuje, se obrnite na našo ekipo za podporo.",
+  "@itLooksLikeSomethingWentWrongPleaseRetryAfterSome": {
+    "description": "Generic error message for temporary issues"
+  },
+  "iUnderStand": "Razumem",
+  "@iUnderStand": {
+    "description": "Text for the button to confirm the user understands the warning"
+  },
+  "kiloMeterUnit": "km",
+  "language": "Jezik",
+  "leaveFamily": "Zapusti družino",
+  "lightTheme": "Svetla",
+  "linkNeverExpires": "Nikoli",
+  "locationName": "Ime lokacije",
+  "loggingOut": "Odjavljanje...",
+  "@loggingOut": {
+    "description": "Message shown while logging out"
+  },
+  "logInLabel": "Prijava",
+  "@logInLabel": {
+    "description": "Log in button label"
+  },
+  "loginSessionExpired": "Seja je potekla",
+  "@loginSessionExpired": {
+    "description": "Login session expired title"
+  },
+  "loginSessionExpiredDetails": "Vaša seja je potekla. Prosimo ponovno se prijavite.",
+  "@loginSessionExpiredDetails": {
+    "description": "Login session expired details"
+  },
+  "loginTerms": "S klikom na prijava, se strinjam s <u-terms>pogoji uporabe</u-terms> in <u-policy>politiko zasebnosti</u-policy>",
+  "@loginTerms": {
+    "description": "Terms agreement text for login"
+  },
+  "loginWithAuthAccount": "Prijavite se s svojim Auth računom",
+  "loginWithTOTP": "Prijava z TOTP",
+  "@loginWithTOTP": {
+    "description": "Login with TOTP button label"
+  },
+  "logout": "Odjava",
+  "lostDeviceTitle": "Izgubljena naprava?",
+  "@lostDeviceTitle": {
+    "description": "Lost device title"
+  },
+  "manualSort": "Po meri",
+  "merchandise": "Trgovina",
+  "minimizeAppOnCopy": "Ob kopiranju, minimiziraj aplikacijo",
+  "moderateStrength": "Zmerno",
+  "@moderateStrength": {
+    "description": "Moderate password strength label"
+  },
+  "moments": "Trenutki",
+  "mostFrequentlyUsed": "Pogosto uporabljeni",
+  "mostRecentlyUsed": "Nedavno uporabljeno",
+  "movedSuccessfullyTo": "Uspešno premaknjeno v {albumName}",
+  "@movedSuccessfullyTo": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
+  "moveToAlbum": "Premakni v album",
+  "networkConnectionRefusedErr": "Ne morete se povezati z Ente, poskusite znova čez nekaj časa. Če se napaka nadaljuje, se obrnite na podporo.",
+  "@networkConnectionRefusedErr": {
+    "description": "Error message shown when the app cannot connect to Ente due to connection refused"
+  },
+  "networkHostLookUpErr": "Ne morete se povezati z Ente, preverite omrežne nastavitve in se obrnite na podporo, če se napaka nadaljuje.",
+  "@networkHostLookUpErr": {
+    "description": "Error message shown when the app cannot connect to Ente due to network host lookup failure"
+  },
+  "next": "Naprej",
+  "@next": {
+    "description": "Next button label"
+  },
+  "nextTotpTitle": "naslednja",
+  "no": "Ne",
+  "noDuplicates": "✨ Ni duplikatov",
+  "noExifData": "Ni EXIF podatkov",
+  "noInternetConnection": "Ni internetne povezave",
+  "@noInternetConnection": {
+    "description": "No internet connection error message"
+  },
+  "noRecoveryKeyTitle": "Nimate ključa za obnovo?",
+  "@noRecoveryKeyTitle": {
+    "description": "No recovery key title"
+  },
+  "noResult": "Ni rezultatov",
+  "noSystemLockFound": "Nobeno zaklepanje sistema ni bilo najdeno",
+  "@noSystemLockFound": {
+    "description": "Error when no system lock is found"
+  },
+  "notes": "Opombe",
+  "notesLengthLimit": "Opombe so lahko dolge največ {count} znakov",
+  "@notesLengthLimit": {
+    "description": "Text to indicate the maximum number of characters allowed for notes",
+    "placeholders": {
+      "count": {
+        "description": "The maximum number of characters allowed for notes",
+        "type": "int",
+        "example": "100"
+      }
+    }
+  },
+  "notPersonLabel": "Ni {name}?",
+  "@notPersonLabel": {
+    "description": "Label to indicate that the person in the photo is not the person whose name is mentioned",
+    "placeholders": {
+      "name": {
+        "content": "{name}",
+        "type": "String"
+      }
+    }
+  },
+  "offlineModeWarning": "Odločili ste se, da boste nadaljevali brez varnostnih kopij. Prosimo, da naredite ročne varnostne kopije in se prepričajte, da so vaše kode varne.",
+  "oops": "Ups",
+  "@oops": {
+    "description": "Oops error title"
+  },
+  "passkeyAuthTitle": "Potrditev ključa za dostop (passkey)",
+  "@passkeyAuthTitle": {
+    "description": "Passkey authentication title"
+  },
+  "passKeyPendingVerification": "Preverjanje še ni zaključeno",
+  "@passKeyPendingVerification": {
+    "description": "Message when passkey verification is pending"
+  },
+  "password": "Geslo",
+  "@password": {
+    "description": "Password field label"
+  },
+  "passwordChangedSuccessfully": "Geslo je bilo uspešno spremenjeno",
+  "@passwordChangedSuccessfully": {
+    "description": "Password changed successfully message"
+  },
+  "passwordEmptyError": "Geslo ne sme biti prazno",
+  "passwordForDecryptingExport": "Geslo za dešifriranje izvoza",
+  "passwordStrength": "Moč gesla: {passwordStrengthValue}",
+  "@passwordStrength": {
+    "description": "Text to indicate the password strength",
+    "placeholders": {
+      "passwordStrengthValue": {
+        "description": "The strength of the password as a string",
+        "type": "String",
+        "example": "Weak or Moderate or Strong"
+      }
+    }
+  },
+  "passwordToEncryptExport": "Geslo za šifriranje izvoza",
+  "passwordWarning": "Tega gesla ne shranjujemo, zato v primeru, da ga pozabite, <underline>ne moremo dešifrirati vaših podatkov</underline>.",
+  "@passwordWarning": {
+    "description": "Warning about password storage"
+  },
+  "pendingSyncs": "Opozorilo",
+  "pendingSyncsWarningBody": "Nekatere vaše kode niso varnostno kopirane.\n\nProsimo, prepričajte se, da so te kode varnostno kopirane preden se odjavite.",
+  "people": "Ljudje",
+  "photosAddedByYouWillBeRemovedFromTheAlbum": "Tvoje dodane slike bodo odstranjene iz albuma",
+  "pinLock": "Zaklepanje s PIN",
+  "@pinLock": {
+    "description": "PIN lock option title"
+  },
+  "pinnedCodeMessage": "{code} je bila pripeta",
+  "@pinnedCodeMessage": {
+    "placeholders": {
+      "code": {}
+    }
+  },
+  "pinText": "Pripni",
+  "plainHTML": "Navadni HTML",
+  "plainText": "Navadno besedilo",
+  "pleaseCheckYourInternetConnectionAndTryAgain": "Preverite internetno povezavo in poskusite znova.",
+  "@pleaseCheckYourInternetConnectionAndTryAgain": {
+    "description": "Message asking user to check internet connection"
+  },
+  "pleaseLoginAgain": "Prosimo, ponovno se prijavite",
+  "pleaseSendTheLogsTo": "Loge pošljite na naslov \n{toEmail}",
+  "@pleaseSendTheLogsTo": {
+    "description": "Message asking user to send logs to email address",
+    "placeholders": {
+      "toEmail": {
+        "type": "String",
+        "description": "Email address to send logs to"
+      }
+    }
+  },
+  "pleaseTryAgain": "Prosimo, poskusite ponovno",
+  "@pleaseTryAgain": {
+    "description": "Message asking user to try again"
+  },
+  "pleaseVerifyDetails": "Prosimo preverite vaše podatke in poizkusite ponovno",
+  "pleaseWait": "Prosim počakajte...",
+  "@pleaseWait": {
+    "description": "Please wait message"
+  },
+  "preparingLogs": "Pripravljamo loge...",
+  "preview": "Predogled",
+  "privacy": "Zasebnost",
+  "privacyPolicyTitle": "Politika zasebnosti",
+  "@privacyPolicyTitle": {
+    "description": "Privacy policy title"
+  },
+  "rateUs": "Ocenite nas",
+  "rateUsOnStore": "Ocenite nas na {storeName}",
+  "@rateUsOnStore": {
+    "placeholders": {
+      "storeName": {}
+    }
+  },
+  "rawCodeData": "Podatki neobdelanih kod",
+  "recover": "Obnovi",
+  "@recover": {
+    "description": "Recover button label"
+  },
+  "recoverAccount": "Obnovi račun",
+  "@recoverAccount": {
+    "description": "Recover account button label"
+  },
+  "recoveryKey": "Ključ za obnovitev",
+  "@recoveryKey": {
+    "description": "Recovery key label"
+  },
+  "recoveryKeyCopiedToClipboard": "Ključ za obnovo kopiran v odložišče",
+  "@recoveryKeyCopiedToClipboard": {
+    "description": "Recovery key copied message"
+  },
+  "recoveryKeyOnForgotPassword": "Če pozabite svoje geslo, je edini način da obnovite svoje podatke s tem ključem",
+  "@recoveryKeyOnForgotPassword": {
+    "description": "Recovery key importance explanation"
+  },
+  "recoveryKeySaved": "Ključ za obnovitev je shranjen v mapi Prenosi!",
+  "@recoveryKeySaved": {
+    "description": "Recovery key saved confirmation message"
+  },
+  "recoveryKeySaveDescription": "Tega ključa ne hranimo, prosimo shranite teh 24 besed na varnem",
+  "@recoveryKeySaveDescription": {
+    "description": "Recovery key save description"
+  },
+  "recoveryKeySuccessBody": "Odlično! Vaš ključ za obnovitev je veljaven. Hvala za preverjanje.\n\nNe pozabite shraniti varnostno kopijo obnovitvenega ključa.",
+  "recoveryKeyVerified": "Ključ za obnovitev preverjen",
+  "recoveryKeyVerifyReason": "Ključ za obnovitev je edini način za obnovitev fotografij, če pozabite geslo. Ključ za obnovitev najdete v razdelku Nastavitve > Račun.\n\nTukaj vnesite svoj obnovitveni ključ, da preverite, ali ste ga pravilno shranili.",
+  "recreatePasswordBody": "Trenutna naprava, ni dovolj zmogljiva za preverjanje vašega gesla, a ga lahko generiramo na način, ki deluje z vsemi napravami.\n\nProsimo, prijavite se z vašim ključem za obnovo in ponovno ustvarite geslo (če želite lahko uporabite enako kot prej).",
+  "@recreatePasswordBody": {
+    "description": "Body text for recreate password dialog"
+  },
+  "recreatePasswordTitle": "Ponovno ustvarite geslo",
+  "@recreatePasswordTitle": {
+    "description": "Title for recreate password dialog"
+  },
+  "reEnterPassword": "Ponovno vnesite geslo",
+  "@reEnterPassword": {
+    "description": "Re-enter password prompt"
+  },
+  "reEnterPin": "Ponovno vnesite PIN",
+  "@reEnterPin": {
+    "description": "Re-enter PIN prompt"
+  },
+  "removeFromFavorite": "Odstrani iz priljubljenih",
+  "rename": "Preimenuj",
+  "renameAlbum": "Preimenuj album",
+  "renameFile": "Preimenuj datoteko",
+  "reportABug": "Prijavite napako",
+  "@reportABug": {
+    "description": "Label for reporting a bug"
+  },
+  "resetPasswordTitle": "Ponastavitev gesla",
+  "@resetPasswordTitle": {
+    "description": "Reset password title"
+  },
+  "restore": "Povrni",
+  "@restore": {
+    "description": "Display text for an action which triggers a restore of item from trash",
+    "type": "text"
+  },
+  "ritualAlbumSelectionPlaceholder": "Izberi album",
+  "ritualSelectAlbumTitle": "Izberi album",
+  "save": "Shrani",
+  "@save": {
+    "description": "Label for save button"
+  },
+  "saveCollage": "Shrani kolaž",
+  "saveKey": "Shrani ključ",
+  "@saveKey": {
+    "description": "Save key button label"
+  },
+  "saveOnlyDescription": "Želite to shraniti v shrambo (privzeto: mapa Prenosi)?",
+  "@saveOnlyDescription": {
+    "description": "Description text asking user if they want to save to storage (for platforms that don't support sharing)"
+  },
+  "saveOrSendDescription": "Želite to shraniti v shrambo (privzeto: mapa Prenosi) ali poslati drugim aplikacijam?",
+  "@saveOrSendDescription": {
+    "description": "Description text asking user if they want to save to storage or share with other apps"
+  },
+  "savePerson": "Shrani osebo",
+  "saving": "Shranjevanje...",
+  "scan": "Skeniraj",
+  "scanACode": "Skeniraj kodo",
+  "search": "Iskanje",
+  "searchHint": "Iskanje...",
+  "secret": "Skrivni ključ",
+  "secretCanNotBeEmpty": "Skrivni ključ ne more biti prazen",
+  "security": "Varnost",
+  "selectAll": "Izberi vse",
+  "selectALocation": "Izberi lokacijo",
+  "selectExportFormat": "Izberite obliko izvoza",
+  "selectFile": "Izberi datoteko",
+  "selectLanguage": "Izberi jezik",
+  "send": "Pošlji",
+  "@send": {
+    "description": "Label for send button"
+  },
+  "sendLogsDescription": "To nam bo poslalo vaše loge, da vam lahko pomagamo rešiti vašo težavo. Kljub temu, da se trudimo, da vaših zasebnih podatkov ne zapišemo v loge, vam priporočamo, da si jih pred deljenjem ogledate.",
+  "serverEndpoint": "Endpoint strežnika",
+  "@serverEndpoint": {
+    "description": "Label for server endpoint setting"
+  },
+  "sessionExpired": "Seja je potekla",
+  "@sessionExpired": {
+    "description": "Error message when session has expired"
+  },
+  "setAPassword": "Nastavite geslo",
+  "setAs": "Nastavi kot",
+  "setNewPassword": "Nastavi novo geslo",
+  "@setNewPassword": {
+    "description": "Set new password title"
+  },
+  "setNewPin": "Nastavi nov PIN",
+  "@setNewPin": {
+    "description": "Set new PIN title"
+  },
+  "setPasswordTitle": "Nastavite geslo",
+  "@setPasswordTitle": {
+    "description": "Set password title"
+  },
+  "settings": "Nastavitve",
+  "share": "Deli",
+  "shareCodes": "Deli kode",
+  "shareCodesDuration": "Izberite trajanje, za katero želite deliti kode",
+  "shareLink": "Deli povezavo",
+  "shouldHideCode": "Skrij kode",
+  "showLargeIcons": "Prikaži velike ikone",
+  "showQRAuthMessage": "Da prikažete QR kodo, se overite",
+  "signInToBackup": "Prijavite se za varnostno kopiranje kod",
+  "signOutFromOtherDevices": "Odjavi se iz ostalih naprav",
+  "@signOutFromOtherDevices": {
+    "description": "Sign out from other devices title"
+  },
+  "signOutOtherBody": "Če menite, da bi lahko kdo poznal vaše geslo, lahko vse druge naprave, ki uporabljajo vaš račun, prisilite, da se odjavijo.",
+  "@signOutOtherBody": {
+    "description": "Sign out other devices explanation"
+  },
+  "signOutOtherDevices": "Odjavi ostale naprave",
+  "@signOutOtherDevices": {
+    "description": "Sign out other devices button label"
+  },
+  "signUpTerms": "Strinjam se s <u-terms>pogoji uporabe</u-terms> in <u-policy>politiko zasebnosti</u-policy>",
+  "@signUpTerms": {
+    "description": "Terms agreement text for sign up"
+  },
+  "singIn": "Prijava",
+  "somethingWentWrongMessage": "Nekaj je šlo narobe, prosimo poizkusite znova.",
+  "somethingWentWrongParsingCode": "Nismo mogli prebrati {x} kod.",
+  "@somethingWentWrongParsingCode": {
+    "placeholders": {
+      "x": {}
+    }
+  },
+  "somethingWentWrongPleaseTryAgain": "Nekaj je šlo narobe, prosimo poizkusite znova.",
+  "@somethingWentWrongPleaseTryAgain": {
+    "description": "Generic error message"
+  },
+  "sorry": "Oprostite",
+  "sorryTheCodeYouveEnteredIsIncorrect": "Oprostite, koda ki ste jo vnesli ni pravilna",
+  "@sorryTheCodeYouveEnteredIsIncorrect": {
+    "description": "Detailed error message when code is incorrect"
+  },
+  "sort": "Razvrsti",
+  "sortAlbumsBy": "Razvrsti po",
+  "sortNewestFirst": "Najnovejši najprej",
+  "sortOldestFirst": "Najstarejši najprej",
+  "storageBreakupFamily": "Družina",
+  "strongStrength": "Močno",
+  "@strongStrength": {
+    "description": "Strong password strength label"
+  },
+  "success": "Uspešno",
+  "suggestFeatures": "Predlagaj funkcije",
+  "support": "Podpora",
+  "supportEnte": "Podpiraj <bold-green>ente</bold-green>",
+  "systemTheme": "Sistemska",
+  "tag": "Oznaka",
+  "tags": "Oznake",
+  "tapToUnlock": "Kliknite za odklepanje",
+  "@tapToUnlock": {
+    "description": "Message prompting user to tap to unlock"
+  },
+  "tellUsWhatYouThink": "Povejte nam kaj mislite",
+  "tempErrorContactSupportIfPersists": "Zdi se, da je šlo nekaj narobe. Po določenem času poskusite znova. Če se napaka nadaljuje, se obrnite na našo ekipo za podporo.",
+  "terminate": "Končaj",
+  "@terminate": {
+    "description": "Terminate button label"
+  },
+  "terminateSession": "Končaj sejo",
+  "@terminateSession": {
+    "description": "Title for terminate session dialog"
+  },
+  "termsOfServicesTitle": "Pogoji uporabe",
+  "@termsOfServicesTitle": {
+    "description": "Terms of service title"
+  },
+  "theme": "Tema",
   "theRecoveryKeyYouEnteredIsIncorrect": "Ključ za obnovitev, ki ste ga vnesli ni pravilen",
   "@theRecoveryKeyYouEnteredIsIncorrect": {
     "description": "Detailed error message when recovery key is incorrect"
+  },
+  "thisDevice": "Ta naprava",
+  "@thisDevice": {
+    "description": "Label for current device"
+  },
+  "thisEmailIsAlreadyInUse": "Ta e-poštni naslove je že v uporabi.",
+  "@thisEmailIsAlreadyInUse": {
+    "description": "Error message when email is already in use"
+  },
+  "thisImageHasNoExifData": "Ta slika nima exif podatkov",
+  "thisWillLogYouOutOfTheFollowingDevice": "To vas bo odjavilo iz naslednje naprave:",
+  "@thisWillLogYouOutOfTheFollowingDevice": {
+    "description": "Warning message for logging out of another device"
+  },
+  "thisWillLogYouOutOfThisDevice": "To vas bo odjavilo iz te naprave!",
+  "@thisWillLogYouOutOfThisDevice": {
+    "description": "Warning message for logging out of current device"
+  },
+  "toEnableAppLockPleaseSetupDevicePasscodeOrScreen": "Da omogočite zaklepanje aplikacije, prosimo nastavite kodo ali zaklepanje zaslona v sistemskih nastavitvah.",
+  "tooManyIncorrectAttempts": "Preveč nepravilnih poskusov",
+  "@tooManyIncorrectAttempts": {
+    "description": "Message shown when too many incorrect attempts are made"
+  },
+  "toResetVerifyEmail": "Če želite ponastaviti geslo, najprej potrdite svoj e-poštni naslov.",
+  "@toResetVerifyEmail": {
+    "description": "Message asking user to verify email before password reset"
+  },
+  "trash": "V smetnjak",
+  "trashCode": "Premakni v smetnjak?",
+  "trashCodeMessage": "Ste prepričani da želite premakniti kodo za {account} v smetnjak?",
+  "@trashCodeMessage": {
+    "placeholders": {
+      "account": {}
+    }
+  },
+  "tryAgain": "Poskusite ponovno",
+  "@tryAgain": {
+    "description": "Try again button label"
   },
   "twofactorAuthenticationSuccessfullyReset": "Uspešna ponastavitev dvostopenjske avtentikacije",
   "@twofactorAuthenticationSuccessfullyReset": {
     "description": "Message when two-factor authentication is successfully reset"
   },
+  "twoFactorAuthTitle": "Dvojno preverjanja pristnosti",
+  "@twoFactorAuthTitle": {
+    "description": "Two-factor authentication title"
+  },
+  "unlock": "Odkleni",
+  "@unlock": {
+    "description": "Short action label used as the system authentication reason when unlocking the app"
+  },
+  "unpinnedCodeMessage": "{code} je bila odpeta",
+  "@unpinnedCodeMessage": {
+    "placeholders": {
+      "code": {}
+    }
+  },
+  "unpinText": "Odpni",
+  "updateAvailable": "Posodobitev je na voljo",
+  "useOffline": "Uporabljal brez varnostnih kopij",
+  "useRecoveryKey": "Uporabi ključ za obnovo",
+  "@useRecoveryKey": {
+    "description": "Use recovery key button label"
+  },
+  "verificationFailedPleaseTryAgain": "Potrjevanje ni bilo uspešno, prosimo poskusite znova.",
+  "@verificationFailedPleaseTryAgain": {
+    "description": "Verification failed error message"
+  },
+  "verify": "Preveri",
+  "@verify": {
+    "description": "Verify button label"
+  },
+  "verifyEmail": "Potrdite e-pošto",
+  "@verifyEmail": {
+    "description": "Verify email title"
+  },
+  "verifyingRecoveryKey": "Preverjanje ključa za obnovitev",
+  "verifyPassword": "Potrdite geslo",
+  "@verifyPassword": {
+    "description": "Verify password button label"
+  },
+  "viewActiveSessions": "Preglej aktivne seje",
+  "viewLogsAction": "Poglej loge",
+  "viewRawCodes": "Poglej neobdelane kode",
+  "viewRecoveryKey": "Poglej ključ za obnovitev",
+  "waitingForVerification": "Čakanje na potrditev...",
+  "@waitingForVerification": {
+    "description": "Waiting for verification message"
+  },
+  "warning": "Opozorilo",
+  "weakStrength": "Šibko",
+  "@weakStrength": {
+    "description": "Weak password strength label"
+  },
+  "weAreOpenSource": "Smo odprto kodni!",
+  "yes": "Da",
+  "yesDiscardChanges": "Da, zavrzi spremembe",
+  "yesLogout": "Ja, odjavi se",
+  "@yesLogout": {
+    "description": "Confirmation button for logout"
+  },
+  "youAreOnTheLatestVersion": "Imate najnovejšo verzijo",
   "yourVerificationCodeHasExpired": "Vaša koda za potrditev je potekla.",
   "@yourVerificationCodeHasExpired": {
     "description": "Error message when verification code has expired"
   },
-  "incorrectCode": "Nepravilna koda",
-  "@incorrectCode": {
-    "description": "Error message when code is incorrect"
-  },
-  "sorryTheCodeYouveEnteredIsIncorrect": "Oprostite, koda ki ste jo vnesli ni pravilna",
-  "@sorryTheCodeYouveEnteredIsIncorrect": {
-    "description": "Detailed error message when code is incorrect"
-  },
-  "developerSettings": "Nastavitve za razvijalce",
-  "@developerSettings": {
-    "description": "Label for developerSettings"
-  },
-  "serverEndpoint": "Endpoint strežnika",
-  "@serverEndpoint": {
-    "description": "Label for serverEndpoint"
-  },
-  "invalidEndpoint": "Nepravilen endpoint",
-  "@invalidEndpoint": {
-    "description": "Label for invalidEndpoint"
-  },
-  "invalidEndpointMessage": "Oprostite endpoint, ki ste ga vnesli ni bil pravilen. Prosimo, vnesite pravilen endpoint in poskusite znova.",
-  "@invalidEndpointMessage": {
-    "description": "Label for invalidEndpointMessage"
-  },
-  "endpointUpdatedMessage": "Endpoint posodobljen uspešno",
-  "@endpointUpdatedMessage": {
-    "description": "Label for endpointUpdatedMessage"
-  }
+  "youveNoDuplicateCodesThatCanBeCleared": "Nimate nobenih podvojenih kod, ki bi jih bilo mogoče izbrisati"
 }

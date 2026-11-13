@@ -1,0 +1,1 @@
+- Fixed the window opening off-screen when the display it was last on is no longer connected. - @y9ndra

@@ -1,98 +1,129 @@
-name: "Lint (mobile)"
+name: "Lint (Mobile)"
 
 on:
-    # Run on every pull request (open or push to it) that changes photos app or rust core
-    pull_request:
-        paths:
-            - "mobile/apps/photos/**"
-            - "rust/core/**"
-            - ".github/workflows/mobile-lint.yml"
-
-env:
-    FLUTTER_VERSION: "3.32.8"
-    RUST_VERSION: "1.90.0"
-    RUSTFLAGS: -D warnings
+    workflow_call:
+    workflow_dispatch:
 
 permissions:
     contents: read
 
+env:
+    RUSTFLAGS: -D warnings
+
 jobs:
-    mobile-lint:
+    lint:
         runs-on: ubuntu-latest
-        defaults:
-            run:
-                working-directory: mobile/apps/photos
         steps:
             - name: Checkout code and submodules
-              uses: actions/checkout@v4
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
                   submodules: recursive
 
-            - name: Install Flutter ${{ env.FLUTTER_VERSION  }}
-              uses: subosito/flutter-action@v2
-              with:
-                  channel: "stable"
-                  flutter-version: ${{ env.FLUTTER_VERSION  }}
-                  cache: true
+            - name: Verify frozen mobile pubspecs
+              run: ruby mobile/checks/frozen-pubspecs/check.rb mobile
 
-            - name: Install Rust ${{ env.RUST_VERSION }}
-              uses: dtolnay/rust-toolchain@stable
-              with:
-                  toolchain: ${{ env.RUST_VERSION }}
-                  components: rustfmt,clippy
+            - name: Verify source ARB plurals
+              run: ruby mobile/checks/source-arb-plurals/check.rb
 
-            - name: Cache
-              uses: actions/cache@v4
+            - name: Verify auth custom icons
+              run: |
+                  find assets/custom-icons -type f -name "*.svg" | while read -r file; do
+                      name=$(basename "$file")
+                      if [[ "$name" != "$(printf "%s" "$name" | tr '[:upper:]' '[:lower:]' | tr ' ' '_')" ]]; then
+                          echo "File name is not lowercase: $file"
+                          exit 1
+                      fi
+
+                      if [[ "$file" == "assets/custom-icons/icons/bbs_nga.svg" ]]; then
+                          continue
+                      fi
+
+                      size=$(wc -c < "$file")
+                      if (( size > 20480 )); then
+                          echo "File size is greater than 20KB: $file ($size bytes)"
+                          exit 1
+                      fi
+                  done
+
+                  jq empty assets/custom-icons/_data/custom-icons.json
+                  jq -r '.icons[] | select(.hex != null) | .hex' assets/custom-icons/_data/custom-icons.json | while read -r hex; do
+                      if [[ -n "$hex" && ! "$hex" =~ ^[0-9a-fA-F]{6}$ ]]; then
+                          echo "Invalid hex color '$hex'. Must be exactly 6 hexadecimal characters."
+                          exit 1
+                      fi
+                  done
+              working-directory: mobile/apps/auth
+
+            - name: Install Flutter
+              uses: $/.github/actions/setup-flutter
+
+            # Restore-only; primed on main by warm-caches.yml.
+            - name: Restore Rust cache
+              uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
               with:
+                  workspaces: rust
+                  shared-key: rust-flutter
+                  cache-targets: false
+                  save-if: false
+
+            - name: Restore Rust target
+              uses: $/.github/actions/restore-rust-target
+              with:
+                  shared-key: rust-flutter
+
+            - run: cargo codegen frb
+              working-directory: rust
+
+            - run: cargo clippy -p ente-auth-frb --features flutter --all-targets --locked
+              working-directory: rust
+
+            - run: cargo clippy -p ente-photos-frb --features flutter --all-targets --locked
+              working-directory: rust
+
+            - run: cargo clippy -p ente-locker-frb --features flutter --all-targets --locked
+              working-directory: rust
+
+            - name: Restore localizations
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  key: mobile-l10n-${{ hashFiles('.github/actions/setup-flutter/action.yml', 'mobile/analysis_options.yaml', 'mobile/packages/strings/*.yaml', 'mobile/packages/strings/lib/l10n/arb/*.arb') }}
                   path: |
-                      ~/.cargo/registry
-                      ~/.cargo/git
-                      mobile/packages/rust/rust/target
-                      mobile/apps/photos/rust/target
-                  key: ${{ runner.os }}-cargo-mobile-${{ hashFiles('mobile/**/Cargo.lock') }}
+                      mobile/packages/strings/build
+                      mobile/packages/strings/lib/l10n/strings_localizations*.dart
+                      mobile/packages/strings/lib/l10n/untranslated_messages.json
 
-            - run: flutter pub get
+            - run: flutter pub get --enforce-lockfile
+              working-directory: mobile
 
-            - name: Install Flutter Rust Bridge
-              run: cargo install flutter_rust_bridge_codegen
+            - run: dart format --output=none --set-exit-if-changed .
+              working-directory: mobile
 
-            - name: Generate Rust bindings (Core)
-              run: flutter_rust_bridge_codegen generate
-              working-directory: mobile/packages/rust
+            - run: flutter analyze --no-pub
+              working-directory: mobile
 
-            - name: Generate Rust bindings
-              run: flutter_rust_bridge_codegen generate
+            - name: Build Photos Rust library for tests
+              run: cargo build -p ente-photos-frb --features flutter --locked
+              working-directory: rust
 
-            - run: flutter analyze --no-fatal-infos
+            - name: Test
+              working-directory: mobile
+              env:
+                  ENTE_PHOTOS_FRB_LIBRARY: ${{ github.workspace }}/rust/target/debug/libente_photos_frb.so
+              run: |
+                  test -f "$ENTE_PHOTOS_FRB_LIBRARY"
+                  test_package() (
+                      member=${1#"$PWD/"}
+                      echo "Testing $member"
+                      cd "$member"
+                      flutter test --no-pub
+                  )
+                  export -f test_package
 
-            - name: Check formatting (ente_rust)
-              working-directory: mobile/packages/rust/rust
-              run: cargo fmt -- src/frb_generated.rs && cargo fmt --check
-
-            - name: Run clippy (ente_rust)
-              working-directory: mobile/packages/rust/rust
-              run: cargo clippy --all-targets --all-features
-
-            - name: Build (ente_rust)
-              working-directory: mobile/packages/rust/rust
-              run: cargo build
-
-            - name: Test (ente_rust)
-              working-directory: mobile/packages/rust/rust
-              run: cargo test
-
-            - name: Check formatting (ente_photos_rust)
-              working-directory: mobile/apps/photos/rust
-              run: cargo fmt -- src/frb_generated.rs && cargo fmt --check
-
-            - name: Run clippy (ente_photos_rust)
-              working-directory: mobile/apps/photos/rust
-              run: cargo clippy --all-targets --all-features
-
-            - name: Build (ente_photos_rust)
-              working-directory: mobile/apps/photos/rust
-              run: cargo build
-
-            - name: Test (ente_photos_rust)
-              working-directory: mobile/apps/photos/rust
-              run: cargo test
+                  dart pub workspace list --json |
+                      jq -r '.packages[] | select(.name != "ente_workspace") | .path' |
+                      while IFS= read -r member; do
+                          if [[ -d "$member/test" ]]; then
+                              printf '%s\n' "$member"
+                          fi
+                      done |
+                      xargs -P4 -n1 bash -e -c 'test_package "$1"' _

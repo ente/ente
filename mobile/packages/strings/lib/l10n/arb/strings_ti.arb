@@ -1,542 +1,104 @@
 {
-  "itLooksLikeSomethingWentWrongPleaseRetryAfterSome": "It looks like something went wrong. Please retry after some time. If the error persists, please contact our support team.",
-  "@itLooksLikeSomethingWentWrongPleaseRetryAfterSome": {
-    "description": "Generic error message for temporary issues"
+  "account": "ጸብጻብ",
+  "all": "ኩሉ",
+  "blog": "ብሎግ",
+  "bothIssuerAndAccountCanNotBeEmpty": "እቲ ኣወሃሃዲ ዀነ እቲ ሕሳብ ባዶ ኪኸውን ኣይክእልን እዩ",
+  "changePassword": "ቃለ-ምስጢር ቀያይር",
+  "codeIssuerHint": "ኣዋጂ",
+  "contactSupport": "ደገፍ ኣድራሻ",
+  "@contactSupport": {
+    "description": "Contact support button label"
   },
-  "error": "Error",
-  "@error": {
-    "description": "Generic error title"
+  "crashAndErrorReporting": "ጸብጻብ ውድቀትን ጌጋን",
+  "data": "ሓበሬታ",
+  "deleteCodeMessage": "ነዚ ኮድ ክትድምስሶ ከም እትደሊ ርግጸኛ ዲኻ፧ እዚ ተግባር ንድሕሪት ዘይምለስ ኣይኮነን።",
+  "deleteCodeTitle": "ኮድ ይደምሰሰ፧",
+  "doNotSignOut": "ኣውጽኡኒ።",
+  "@doNotSignOut": {
+    "description": "Do not sign out button label"
   },
-  "ok": "Ok",
-  "@ok": {
-    "description": "Generic OK button label"
+  "emailUsMessage": "በጃኹም ኢ-መይል ጽሓፉልና {email}",
+  "@emailUsMessage": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
   },
   "faq": "FAQ",
   "@faq": {
     "description": "FAQ link label"
   },
-  "contactSupport": "ደገፍ ኣድራሻ",
-  "@contactSupport": {
-    "description": "Contact support button label"
-  },
-  "emailYourLogs": "Email your logs",
-  "@emailYourLogs": {
-    "description": "Title for emailing logs dialog"
-  },
-  "pleaseSendTheLogsTo": "Please send the logs to \n{toEmail}",
-  "@pleaseSendTheLogsTo": {
-    "description": "Message asking user to send logs to email address",
-    "placeholders": {
-      "toEmail": {
-        "type": "String",
-        "description": "Email address to send logs to"
-      }
-    }
-  },
-  "copyEmailAddress": "Copy email address",
-  "@copyEmailAddress": {
-    "description": "Button to copy email address to clipboard"
-  },
-  "exportLogs": "Export logs",
-  "@exportLogs": {
-    "description": "Button to export logs"
-  },
-  "cancel": "Cancel",
-  "@cancel": {
-    "description": "Cancel button label"
-  },
-  "reportABug": "ጌጋ ጸብጻብ ልኣኸ",
-  "@reportABug": {
-    "description": "Label for reporting a bug"
-  },
-  "email": "Email",
-  "@email": {
-    "description": "Email field label"
-  },
-  "verify": "Verify",
-  "@verify": {
-    "description": "Verify button label"
-  },
-  "invalidEmailTitle": "Invalid email address",
-  "@invalidEmailTitle": {
-    "description": "Title for invalid email error dialog"
-  },
-  "invalidEmailMessage": "Please enter a valid email address.",
-  "@invalidEmailMessage": {
-    "description": "Message for invalid email error dialog"
-  },
-  "pleaseWait": "በጃኻ ተጸበ...",
-  "@pleaseWait": {
-    "description": "Please wait message"
-  },
-  "verifyPassword": "ቃለ-ምስጢር ኣረጋግጽ",
-  "@verifyPassword": {
-    "description": "Verify password button label"
-  },
-  "incorrectPasswordTitle": "ግጉይ ቃለ-ምስጢር",
-  "@incorrectPasswordTitle": {
-    "description": "Title for incorrect password error"
-  },
-  "pleaseTryAgain": "Please try again",
-  "@pleaseTryAgain": {
-    "description": "Message asking user to try again"
-  },
-  "enterPassword": "Enter password",
-  "@enterPassword": {
-    "description": "Enter password field label"
-  },
-  "enterYourPasswordHint": "Enter your password",
-  "@enterYourPasswordHint": {
-    "description": "Hint for password field"
-  },
-  "activeSessions": "Active sessions",
-  "@activeSessions": {
-    "description": "Title for active sessions page"
-  },
-  "oops": "ዉዉኡ",
-  "@oops": {
-    "description": "Oops error title"
-  },
-  "somethingWentWrongPleaseTryAgain": "Something went wrong, please try again",
-  "@somethingWentWrongPleaseTryAgain": {
-    "description": "Generic error message"
-  },
-  "thisWillLogYouOutOfThisDevice": "This will log you out of this device!",
-  "@thisWillLogYouOutOfThisDevice": {
-    "description": "Warning message for logging out of current device"
-  },
-  "thisWillLogYouOutOfTheFollowingDevice": "This will log you out of the following device:",
-  "@thisWillLogYouOutOfTheFollowingDevice": {
-    "description": "Warning message for logging out of another device"
-  },
-  "terminateSession": "Terminate session?",
-  "@terminateSession": {
-    "description": "Title for terminate session dialog"
-  },
-  "terminate": "Terminate",
-  "@terminate": {
-    "description": "Terminate button label"
-  },
-  "thisDevice": "This device",
-  "@thisDevice": {
-    "description": "Label for current device"
-  },
-  "createAccount": "Create account",
-  "@createAccount": {
-    "description": "Create account button label"
-  },
-  "weakStrength": "Weak",
-  "@weakStrength": {
-    "description": "Weak password strength label"
-  },
-  "moderateStrength": "Moderate",
-  "@moderateStrength": {
-    "description": "Moderate password strength label"
-  },
-  "strongStrength": "Strong",
-  "@strongStrength": {
-    "description": "Strong password strength label"
-  },
-  "deleteAccount": "Delete account",
-  "@deleteAccount": {
-    "description": "Delete account button label"
-  },
-  "deleteAccountQuery": "We'll be sorry to see you go. Are you facing some issue?",
-  "@deleteAccountQuery": {
-    "description": "Message asking user why they want to delete account"
-  },
-  "yesSendFeedbackAction": "Yes, send feedback",
-  "@yesSendFeedbackAction": {
-    "description": "Button to confirm sending feedback"
-  },
-  "noDeleteAccountAction": "No, delete account",
-  "@noDeleteAccountAction": {
-    "description": "Button to proceed with account deletion"
-  },
-  "initiateAccountDeleteTitle": "Please authenticate to initiate account deletion",
-  "@initiateAccountDeleteTitle": {
-    "description": "Title for authentication dialog before account deletion"
-  },
-  "confirmAccountDeleteTitle": "Confirm account deletion",
-  "@confirmAccountDeleteTitle": {
-    "description": "Title for account deletion confirmation dialog"
-  },
-  "delete": "Delete",
-  "@delete": {
-    "description": "Delete button label"
-  },
-  "createNewAccount": "Create new account",
-  "@createNewAccount": {
-    "description": "Create new account button label"
-  },
-  "password": "Password",
-  "@password": {
-    "description": "Password field label"
-  },
-  "confirmPassword": "Confirm password",
-  "@confirmPassword": {
-    "description": "Confirm password field label"
-  },
-  "passwordStrength": "Password strength: {passwordStrengthValue}",
-  "@passwordStrength": {
-    "description": "Text to indicate the password strength",
-    "placeholders": {
-      "passwordStrengthValue": {
-        "description": "The strength of the password as a string",
-        "type": "String",
-        "example": "Weak or Moderate or Strong"
-      }
-    }
-  },
-  "hearUsWhereTitle": "How did you hear about Ente? (optional)",
-  "@hearUsWhereTitle": {
-    "description": "Title asking how user heard about Ente"
-  },
-  "hearUsExplanation": "ተጠቀምትና ኣይንከታተልን ኢና። ኣበይ ከም ዝረኸብካና እንተ ትነግረና ሓጋዚ እዩ፦",
-  "@hearUsExplanation": {
-    "description": "Explanation for asking how user heard about Ente"
-  },
-  "signUpTerms": "I agree to the <u-terms>terms of service</u-terms> and <u-policy>privacy policy</u-policy>",
-  "@signUpTerms": {
-    "description": "Terms agreement text for sign up"
-  },
-  "termsOfServicesTitle": "Terms",
-  "@termsOfServicesTitle": {
-    "description": "Terms of service title"
-  },
-  "privacyPolicyTitle": "Privacy Policy",
-  "@privacyPolicyTitle": {
-    "description": "Privacy policy title"
-  },
-  "ackPasswordLostWarning": "I understand that if I lose my password, I may lose my data since my data is <underline>end-to-end encrypted</underline>.",
-  "@ackPasswordLostWarning": {
-    "description": "Warning about password loss"
-  },
-  "encryption": "Encryption",
-  "@encryption": {
-    "description": "Encryption label"
-  },
-  "logInLabel": "Log in",
-  "@logInLabel": {
-    "description": "Log in button label"
-  },
-  "welcomeBack": "እንኳዕ ብደሓን ተመለስካ!",
-  "@welcomeBack": {
-    "description": "Welcome back message"
-  },
-  "loginTerms": "By clicking log in, I agree to the <u-terms>terms of service</u-terms> and <u-policy>privacy policy</u-policy>",
-  "@loginTerms": {
-    "description": "Terms agreement text for login"
-  },
-  "noInternetConnection": "No internet connection",
-  "@noInternetConnection": {
-    "description": "No internet connection error message"
-  },
-  "pleaseCheckYourInternetConnectionAndTryAgain": "Please check your internet connection and try again.",
-  "@pleaseCheckYourInternetConnectionAndTryAgain": {
-    "description": "Message asking user to check internet connection"
-  },
-  "verificationFailedPleaseTryAgain": "Verification failed, please try again",
-  "@verificationFailedPleaseTryAgain": {
-    "description": "Verification failed error message"
-  },
-  "recreatePasswordTitle": "Recreate password",
-  "@recreatePasswordTitle": {
-    "description": "Title for recreate password dialog"
-  },
-  "recreatePasswordBody": "The current device is not powerful enough to verify your password, but we can regenerate in a way that works with all devices.\n\nPlease login using your recovery key and regenerate your password (you can use the same one again if you wish).",
-  "@recreatePasswordBody": {
-    "description": "Body text for recreate password dialog"
-  },
-  "useRecoveryKey": "ምሕዋይ መፍትሕ ተጠቐም",
-  "@useRecoveryKey": {
-    "description": "Use recovery key button label"
-  },
-  "forgotPassword": "Forgot password",
-  "@forgotPassword": {
-    "description": "Forgot password link label"
-  },
-  "changeEmail": "Change email",
-  "@changeEmail": {
-    "description": "Change email button label"
-  },
-  "verifyEmail": "Verify email",
-  "@verifyEmail": {
-    "description": "Verify email title"
-  },
-  "weHaveSendEmailTo": "We have sent a mail to <green>{email}</green>",
-  "@weHaveSendEmailTo": {
-    "description": "Text to indicate that we have sent a mail to the user",
-    "placeholders": {
-      "email": {
-        "description": "The email address of the user",
-        "type": "String",
-        "example": "example@ente.io"
-      }
-    }
-  },
-  "toResetVerifyEmail": "To reset your password, please verify your email first.",
-  "@toResetVerifyEmail": {
-    "description": "Message asking user to verify email before password reset"
-  },
-  "checkInboxAndSpamFolder": "Please check your inbox (and spam) to complete verification",
-  "@checkInboxAndSpamFolder": {
-    "description": "Message asking user to check inbox and spam folder"
-  },
-  "tapToEnterCode": "Tap to enter code",
-  "@tapToEnterCode": {
-    "description": "Hint for entering verification code"
-  },
-  "sendEmail": "Send email",
-  "resendEmail": "Resend email",
-  "@resendEmail": {
-    "description": "Resend email button label"
-  },
-  "tryAgain": "Try again",
-  "@tryAgain": {
-    "description": "Try again button label"
-  },
-  "recoverAccount": "Recover account",
-  "@recoverAccount": {
-    "description": "Recover account button label"
-  },
-  "setPasswordTitle": "Set password",
-  "@setPasswordTitle": {
-    "description": "Set password title"
-  },
-  "changePasswordTitle": "Change password",
-  "@changePasswordTitle": {
-    "description": "Change password title"
-  },
-  "resetPasswordTitle": "Reset password",
-  "@resetPasswordTitle": {
-    "description": "Reset password title"
-  },
-  "encryptionKeys": "Encryption keys",
-  "@encryptionKeys": {
-    "description": "Encryption keys title"
-  },
-  "enterPasswordToEncrypt": "Enter a password we can use to encrypt your data",
-  "@enterPasswordToEncrypt": {
-    "description": "Prompt to enter password for encryption"
-  },
-  "enterNewPasswordToEncrypt": "Enter a new password we can use to encrypt your data",
-  "@enterNewPasswordToEncrypt": {
-    "description": "Prompt to enter new password for encryption"
-  },
-  "passwordWarning": "We don't store this password, so if you forget, <underline>we cannot decrypt your data</underline>",
-  "@passwordWarning": {
-    "description": "Warning about password storage"
-  },
-  "howItWorks": "How it works",
-  "@howItWorks": {
-    "description": "How it works button label"
-  },
-  "generatingEncryptionKeys": "Generating encryption keys...",
-  "@generatingEncryptionKeys": {
-    "description": "Generating encryption keys message"
-  },
-  "passwordChangedSuccessfully": "Password changed successfully",
-  "@passwordChangedSuccessfully": {
-    "description": "Password changed successfully message"
-  },
-  "signOutFromOtherDevices": "Sign out from other devices",
-  "@signOutFromOtherDevices": {
-    "description": "Sign out from other devices title"
-  },
-  "signOutOtherBody": "If you think someone might know your password, you can force all other devices using your account to sign out.",
-  "@signOutOtherBody": {
-    "description": "Sign out other devices explanation"
-  },
-  "signOutOtherDevices": "ካብ ካልኦት መሳርሒታት ኣውጽኡኒ።",
-  "@signOutOtherDevices": {
-    "description": "Sign out other devices button label"
-  },
-  "doNotSignOut": "ኣውጽኡኒ።",
-  "@doNotSignOut": {
-    "description": "Do not sign out button label"
-  },
   "generatingEncryptionKeysTitle": "ናይ ምስጢራዊ ቁልፊ ዪፍጠር...",
   "@generatingEncryptionKeysTitle": {
     "description": "Generating encryption keys title"
   },
-  "continueLabel": "Continue",
-  "@continueLabel": {
-    "description": "Continue button label"
+  "getStarted": "ጀምር",
+  "importAccountPageTitle": "ዝርዝር ሕሳብ ኣእትዉ",
+  "importCodes": "ኮድ ኣእቱ",
+  "importEnterSetupKey": "ምድላው መፍትሕ ኣእቱ",
+  "incorrectDetails": "ጌጋ ዝርዝር-ሓበሬታ",
+  "incorrectPasswordTitle": "ግጉይ ቃለ-ምስጢር",
+  "@incorrectPasswordTitle": {
+    "description": "Title for incorrect password error"
   },
-  "insecureDevice": "Insecure device",
-  "@insecureDevice": {
-    "description": "Insecure device warning title"
+  "ok": "OK",
+  "@ok": {
+    "description": "Generic OK button label"
   },
-  "sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": "Sorry, we could not generate secure keys on this device.\n\nplease sign up from a different device.",
-  "@sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": {
-    "description": "Error message for insecure device"
+  "language": "ቋንቋ",
+  "loggingOut": "ወጸ...",
+  "@loggingOut": {
+    "description": "Message shown while logging out"
   },
-  "recoveryKeyCopiedToClipboard": "Recovery key copied to clipboard",
-  "@recoveryKeyCopiedToClipboard": {
-    "description": "Recovery key copied message"
+  "merchandise": "ሸቐጥ",
+  "nextTotpTitle": "ቀጽሊ",
+  "notes": "መዘኻኸሪታት",
+  "oops": "ዉዉኡ",
+  "@oops": {
+    "description": "Oops error title"
+  },
+  "pleaseLoginAgain": "በጃኹም እንደገና እቶ",
+  "pleaseVerifyDetails": "በጃኹም ዝርዝር-ሓበሬታ ኣረጋግጹ እሞ እንደገና ፈትኑ",
+  "pleaseWait": "በጃኻ ተጸበ...",
+  "@pleaseWait": {
+    "description": "Please wait message"
+  },
+  "rateUsOnStore": "ብዛዕባና ርእይቶ ኣብ {storeName} ኣካፍሎ",
+  "@rateUsOnStore": {
+    "placeholders": {
+      "storeName": {}
+    }
   },
   "recoveryKey": "ምሕዋይ መፍትሕ",
   "@recoveryKey": {
     "description": "Recovery key label"
   },
-  "recoveryKeyOnForgotPassword": "If you forget your password, the only way you can recover your data is with this key.",
-  "@recoveryKeyOnForgotPassword": {
-    "description": "Recovery key importance explanation"
+  "reportABug": "ጌጋ ጸብጻብ ልኣኸ",
+  "@reportABug": {
+    "description": "Label for reporting a bug"
   },
-  "recoveryKeySaveDescription": "We don't store this key, please save this 24 word key in a safe place.",
-  "@recoveryKeySaveDescription": {
-    "description": "Recovery key save description"
+  "save": "ዓቅብ",
+  "@save": {
+    "description": "Label for save button"
   },
-  "doThisLater": "Do this later",
-  "@doThisLater": {
-    "description": "Do this later button label"
-  },
-  "saveKey": "Save key",
-  "@saveKey": {
-    "description": "Save key button label"
-  },
-  "noRecoveryKeyTitle": "No recovery key?",
-  "@noRecoveryKeyTitle": {
-    "description": "No recovery key title"
-  },
-  "twoFactorAuthTitle": "Two-factor authentication",
-  "@twoFactorAuthTitle": {
-    "description": "Two-factor authentication title"
-  },
-  "enterCodeHint": "Enter the 6-digit code from\nyour authenticator app",
-  "@enterCodeHint": {
-    "description": "Hint for entering 2FA code"
-  },
-  "lostDeviceTitle": "Lost device?",
-  "@lostDeviceTitle": {
-    "description": "Lost device title"
-  },
-  "enterRecoveryKeyHint": "Enter your recovery key",
-  "@enterRecoveryKeyHint": {
-    "description": "Hint for entering recovery key"
-  },
-  "recover": "Recover",
-  "@recover": {
-    "description": "Recover button label"
-  },
-  "loggingOut": "ወጸ...",
-  "@loggingOut": {
-    "description": "Message shown while logging out"
-  },
-  "areYouSureYouWantToLogout": "Are you sure you want to logout?",
-  "@areYouSureYouWantToLogout": {
-    "description": "Confirmation message before logout"
-  },
-  "yesLogout": "Yes, logout",
-  "@yesLogout": {
-    "description": "Confirmation button for logout"
-  },
-  "authToViewSecrets": "Please authenticate to view your secrets",
-  "@authToViewSecrets": {
-    "description": "Message prompting authentication to view secrets"
-  },
-  "confirm": "Confirm",
-  "@confirm": {
-    "description": "Confirm button label"
-  },
-  "androidBiometricHint": "Verify identity",
-  "@androidBiometricHint": {
-    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricNotRecognized": "Not recognized. Try again.",
-  "@androidBiometricNotRecognized": {
-    "description": "Message to let the user know that authentication was failed. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricSuccess": "Success",
-  "@androidBiometricSuccess": {
-    "description": "Message to let the user know that authentication was successful. It is used on Android side. Maximum 60 characters."
-  },
-  "androidCancelButton": "Cancel",
-  "@androidCancelButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
-  },
-  "androidSignInTitle": "Authentication required",
-  "@androidSignInTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricRequiredTitle": "Biometric required",
-  "@androidBiometricRequiredTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user has not set up biometric authentication on their device. It is used on Android side. Maximum 60 characters."
-  },
-  "androidDeviceCredentialsRequiredTitle": "Device credentials required",
-  "@androidDeviceCredentialsRequiredTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user has not set up credentials authentication on their device. It is used on Android side. Maximum 60 characters."
-  },
-  "androidDeviceCredentialsSetupDescription": "Device credentials required",
-  "@androidDeviceCredentialsSetupDescription": {
-    "description": "Message advising the user to go to the settings and configure device credentials on their device. It shows in a dialog on Android side."
-  },
-  "goToSettings": "Go to settings",
-  "@goToSettings": {
-    "description": "Message showed on a button that the user can click to go to settings pages from the current dialog. It is used on both Android and iOS side. Maximum 30 characters."
-  },
-  "androidGoToSettingsDescription": "Biometric authentication is not set up on your device. Go to 'Settings > Security' to add biometric authentication.",
-  "@androidGoToSettingsDescription": {
-    "description": "Message advising the user to go to the settings and configure biometric on their device. It shows in a dialog on Android side."
-  },
-  "iOSLockOut": "Biometric authentication is disabled. Please lock and unlock your screen to enable it.",
-  "@iOSLockOut": {
-    "description": "Message advising the user to re-enable biometrics on their device. It shows in a dialog on iOS side."
-  },
-  "iOSOkButton": "OK",
-  "@iOSOkButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on iOS side. Maximum 30 characters."
-  },
-  "thisEmailIsAlreadyInUse": "This email is already in use",
-  "@thisEmailIsAlreadyInUse": {
-    "description": "Error message when email is already in use"
-  },
-  "emailChangedTo": "Email changed to {newEmail}",
-  "@emailChangedTo": {
-    "description": "Message when email has been changed",
-    "placeholders": {
-      "newEmail": {
-        "description": "The new email address",
-        "type": "String",
-        "example": "new@example.com"
-      }
-    }
-  },
-  "authenticationFailedPleaseTryAgain": "Authentication failed, please try again",
-  "@authenticationFailedPleaseTryAgain": {
-    "description": "Error message when authentication fails"
-  },
-  "authenticationSuccessful": "Authentication successful!",
-  "@authenticationSuccessful": {
-    "description": "Success message when authentication is successful"
-  },
+  "secretCanNotBeEmpty": "ምስጢር ባዶ ኪኸውን ኣይክእልን እዩ",
+  "security": "ድሕንነት",
   "sessionExpired": "ክፍለ ግዜኡ ኣኺሉ።",
   "@sessionExpired": {
     "description": "Error message when session has expired"
   },
-  "incorrectRecoveryKey": "Incorrect recovery key",
-  "@incorrectRecoveryKey": {
-    "description": "Error message when recovery key is incorrect"
+  "signOutOtherDevices": "ካብ ካልኦት መሳርሒታት ኣውጽኡኒ።",
+  "@signOutOtherDevices": {
+    "description": "Sign out other devices button label"
   },
-  "theRecoveryKeyYouEnteredIsIncorrect": "The recovery key you entered is incorrect",
-  "@theRecoveryKeyYouEnteredIsIncorrect": {
-    "description": "Detailed error message when recovery key is incorrect"
+  "useRecoveryKey": "ምሕዋይ መፍትሕ ተጠቐም",
+  "@useRecoveryKey": {
+    "description": "Use recovery key button label"
   },
-  "twofactorAuthenticationSuccessfullyReset": "Two-factor authentication successfully reset",
-  "@twofactorAuthenticationSuccessfullyReset": {
-    "description": "Message when two-factor authentication is successfully reset"
+  "verifyPassword": "ቃለ-ምስጢር ኣረጋግጽ",
+  "@verifyPassword": {
+    "description": "Verify password button label"
   },
-  "yourVerificationCodeHasExpired": "Your verification code has expired",
-  "@yourVerificationCodeHasExpired": {
-    "description": "Error message when verification code has expired"
-  },
-  "incorrectCode": "Incorrect code",
-  "@incorrectCode": {
-    "description": "Error message when code is incorrect"
-  },
-  "sorryTheCodeYouveEnteredIsIncorrect": "Sorry, the code you've entered is incorrect",
-  "@sorryTheCodeYouveEnteredIsIncorrect": {
-    "description": "Detailed error message when code is incorrect"
-  }
+  "viewLogsAction": "ምዝገባታት ርአ"
 }

@@ -1,0 +1,13 @@
+{
+    "name": "twoof3",
+    "version": "0.0.0",
+    "private": true,
+    "dependencies": {
+        "@fontsource/space-grotesk": "5.3.0",
+        "ente-base": "*",
+        "qr": "0.6.0"
+    },
+    "devDependencies": {
+        "ente-build-config": "*"
+    }
+}

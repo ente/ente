@@ -5,11 +5,11 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/controller"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/museum/pkg/utils/handler"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/controller"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/museum/pkg/utils/handler"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 )
 
@@ -19,7 +19,6 @@ type CollectionActionsHandler struct {
 
 const collectionActionsLimit = 2000
 
-// ListPendingRemove returns pending REMOVE actions after the provided updatedAt timestamp
 func (h *CollectionActionsHandler) ListPendingRemove(c *gin.Context) {
 	userID := auth.GetUserID(c.Request.Header)
 	updatedAfter, err := parseSinceTime(c.Query("sinceTime"))
@@ -27,7 +26,8 @@ func (h *CollectionActionsHandler) ListPendingRemove(c *gin.Context) {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
-	actions, err := h.Controller.ListPendingRemoveActions(c, userID, updatedAfter, collectionActionsLimit)
+	app, _ := auth.GetAuthenticatedApp(c)
+	actions, err := h.Controller.ListPendingRemoveActions(c, userID, app, updatedAfter, collectionActionsLimit)
 	if err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
@@ -38,7 +38,6 @@ func (h *CollectionActionsHandler) ListPendingRemove(c *gin.Context) {
 	})
 }
 
-// ListDeleteSuggestions returns pending DELETE_SUGGESTED actions for the actor.
 func (h *CollectionActionsHandler) ListDeleteSuggestions(c *gin.Context) {
 	userID := auth.GetUserID(c.Request.Header)
 	updatedAfter, err := parseSinceTime(c.Query("sinceTime"))
@@ -46,7 +45,8 @@ func (h *CollectionActionsHandler) ListDeleteSuggestions(c *gin.Context) {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
-	actions, err := h.Controller.ListPendingDeleteSuggestions(c, userID, updatedAfter, collectionActionsLimit)
+	app, _ := auth.GetAuthenticatedApp(c)
+	actions, err := h.Controller.ListPendingDeleteSuggestions(c, userID, app, updatedAfter, collectionActionsLimit)
 	if err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
@@ -61,11 +61,10 @@ type rejectDeleteSuggestionsRequest struct {
 	FileIDs []int64 `json:"fileIDs" binding:"required"`
 }
 
-// RejectDeleteSuggestions clears pending DELETE_SUGGESTED actions for the provided file IDs.
 func (h *CollectionActionsHandler) RejectDeleteSuggestions(c *gin.Context) {
 	userID := auth.GetUserID(c.Request.Header)
 	var req rejectDeleteSuggestionsRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := handler.BindJSON(c, &req); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, "invalid payload"))
 		return
 	}
@@ -77,7 +76,8 @@ func (h *CollectionActionsHandler) RejectDeleteSuggestions(c *gin.Context) {
 		handler.Error(c, stacktrace.Propagate(ente.NewBadRequestWithMessage(fmt.Sprintf("can not reject more than %d items in one request", collectionActionsLimit)), ""))
 		return
 	}
-	updated, err := h.Controller.RejectDeleteSuggestions(c, userID, req.FileIDs)
+	app, _ := auth.GetAuthenticatedApp(c)
+	updated, err := h.Controller.RejectDeleteSuggestions(c, userID, app, req.FileIDs)
 	if err != nil {
 		handler.Error(c, stacktrace.Propagate(err, "failed to reject delete suggestions"))
 		return

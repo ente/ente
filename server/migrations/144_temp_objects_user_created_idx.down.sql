@@ -1,0 +1,1 @@
+DROP INDEX CONCURRENTLY temp_objects_user_created_idx;

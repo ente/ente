@@ -1,0 +1,17 @@
+name: ffmpeg
+description: Native FFmpeg execution and media probing for Photos.
+version: 0.0.1
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ">=3.10.0 <4.0.0"
+
+dependencies:
+  ffi: 2.2.0
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        ffiPlugin: true

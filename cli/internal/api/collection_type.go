@@ -1,6 +1,5 @@
 package api
 
-// Collection represents a collection
 type Collection struct {
 	ID                  int64            `json:"id"`
 	Owner               CollectionUser   `json:"owner"`
@@ -19,7 +18,6 @@ type Collection struct {
 	collectionKey       []byte
 }
 
-// CollectionUser represents the owner of a collection
 type CollectionUser struct {
 	ID    int64  `json:"id"`
 	Email string `json:"email"`
@@ -35,7 +33,6 @@ type MagicMetadata struct {
 	Header  string `json:"header,omitempty" binding:"required"`
 }
 
-// CollectionFileItem represents a file in an AddFilesRequest and MoveFilesRequest
 type CollectionFileItem struct {
 	ID                 int64  `json:"id" binding:"required"`
 	EncryptedKey       string `json:"encryptedKey"  binding:"required"`

@@ -2,27 +2,19 @@ import { createWriteStream, existsSync } from "node:fs";
 import fs from "node:fs/promises";
 import { Readable } from "node:stream";
 
-/**
- * Write a (web) ReadableStream to a file at the given {@link filePath}.
- *
- * The returned promise resolves when the write completes.
- *
- * @param filePath The local file system path where the file should be written.
- *
- * @param readableStream A web
- * [ReadableStream](https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream).
- *
- */
 export const writeStream = (
     filePath: string,
-    readableStream: unknown /*ReadableStream*/, // @ts-expect-error [Note: Node and web stream type mismatch]
+    readableStream: unknown, // @ts-expect-error Node and web ReadableStream types disagree.
 ) => writeNodeStream(filePath, Readable.fromWeb(readableStream));
 
-const writeNodeStream = async (filePath: string, fileStream: Readable) => {
-    const writeable = createWriteStream(filePath);
+export const writeNodeStream = async (
+    filePath: string,
+    fileStream: NodeJS.ReadableStream,
+) => {
+    const writeable = createWriteStream(filePath, { mode: 0o600 });
 
-    fileStream.on("error", (err) => {
-        writeable.destroy(err); // Close the writable stream with an error
+    fileStream.on("error", (err: Error) => {
+        writeable.destroy(err);
     });
 
     fileStream.pipe(writeable);

@@ -1,25 +1,33 @@
 import "dart:io";
 import "dart:typed_data";
 
-import "package:ente_ui/components/alert_bottom_sheet.dart";
-import "package:ente_ui/components/progress_dialog.dart";
-import "package:ente_ui/utils/dialog_util.dart";
+import "package:ente_components/ente_components.dart";
+import "package:ente_strings/ente_strings.dart";
 import "package:ente_ui/utils/toast_util.dart";
 import "package:ente_utils/email_util.dart";
 import "package:file_saver/file_saver.dart";
 import "package:flutter/material.dart";
-import "package:locker/l10n/l10n.dart";
 import "package:locker/models/info/info_item.dart";
 import "package:locker/services/collections/collections_service.dart";
-import "package:locker/services/files/download/file_downloader.dart";
+import "package:locker/services/configuration.dart";
+import "package:locker/services/feature_flag_service.dart";
+import "package:locker/services/files/download/file_downloader.dart"
+    as file_downloader;
+import "package:locker/services/files/offline/offline_file_storage.dart";
 import "package:locker/services/files/sync/models/file.dart";
 import "package:locker/services/info_file_service.dart";
-import "package:locker/ui/components/gradient_button.dart";
+import "package:locker/services/trash/models/trash_file.dart";
+import 'package:locker/ui/components/locker_progress_dialog.dart';
 import "package:locker/ui/pages/account_credentials_page.dart";
 import "package:locker/ui/pages/base_info_page.dart";
 import "package:locker/ui/pages/emergency_contact_page.dart";
+import "package:locker/ui/pages/image_viewer_page.dart";
+import "package:locker/ui/pages/pdf_viewer_page.dart";
 import "package:locker/ui/pages/personal_note_page.dart";
 import "package:locker/ui/pages/physical_records_page.dart";
+import "package:locker/utils/bottom_sheet_illustration.dart";
+import "package:locker/utils/error_sheet.dart";
+import "package:locker/utils/file_actions.dart";
 import "package:logging/logging.dart";
 import "package:open_file/open_file.dart";
 import "package:path/path.dart" as p;
@@ -28,83 +36,92 @@ class FileUtil {
   static final Logger _logger = Logger("FileUtil");
 
   static Future<void> openFile(BuildContext context, EnteFile file) async {
+    final l10n = context.strings;
+
     if (InfoFileService.instance.isInfoFile(file)) {
       return _openInfoFile(context, file);
     }
 
-    if (file.localPath != null) {
-      final localFile = File(file.localPath!);
-      if (await localFile.exists()) {
-        await _launchFile(context, localFile, file.displayName);
-        return;
-      }
+    if (file.uploadedFileID == null) {
+      await showLockerErrorSheet(context, Exception(l10n.errorOpeningFile));
+      return;
     }
 
     final cachedDecryptedFile = File(getCachedDecryptedFilePath(file));
     if (await cachedDecryptedFile.exists()) {
-      await _launchFile(context, cachedDecryptedFile, file.displayName);
-      return;
+      final cachedSize = await cachedDecryptedFile.length();
+      if (cachedSize > 0) {
+        await _openDecryptedFile(
+          context.mounted ? context : null,
+          cachedDecryptedFile,
+          file,
+        );
+        return;
+      }
+      await cachedDecryptedFile.delete();
     }
 
-    final dialog = createProgressDialog(
-      context,
-      context.l10n.downloading,
-      isDismissible: false,
-    );
-
+    LockerProgressDialog? dialog;
     try {
-      await dialog.show();
+      if (context.mounted) {
+        dialog = await showLockerProgressDialog(context, l10n.downloading);
+      }
       final fileKey = await CollectionService.instance.getFileKey(file);
-      final decryptedFile = await downloadAndDecrypt(
+      void progressCallback(int downloaded, int total) {
+        if (!context.mounted) {
+          return;
+        }
+        if (total > 0 && downloaded >= 0) {
+          final percentage = ((downloaded / total) * 100).clamp(0, 100).round();
+          dialog?.update(
+            message: l10n.downloadingProgress(percentage: percentage),
+          );
+        } else {
+          dialog?.update(message: l10n.downloading);
+        }
+      }
+
+      final decryptedFile = await file_downloader.openFile(
         file,
         fileKey,
-        progressCallback: (downloaded, total) {
-          if (total > 0 && downloaded >= 0) {
-            final percentage =
-                ((downloaded / total) * 100).clamp(0, 100).round();
-            dialog.update(
-              message: context.l10n.downloadingProgress(percentage),
-            );
-          } else {
-            dialog.update(message: context.l10n.downloading);
-          }
-        },
-        shouldUseCache: true,
+        progressCallback: progressCallback,
       );
 
-      await dialog.hide();
+      await dialog?.hide();
 
       if (decryptedFile != null) {
-        await _launchFile(context, decryptedFile, file.displayName);
-      } else {
-        await showAlertBottomSheet(
-          context,
-          title: context.l10n.downloadFailed,
-          message: context.l10n.failedToDownloadOrDecrypt,
-          assetPath: "assets/warning-grey.png",
-          buttons: [
-            GradientButton(
-              text: context.l10n.contactSupport,
-              onTap: () async {
-                await sendLogs(context, "support@ente.io", postShare: () {});
-              },
-            ),
-          ],
+        await _openDecryptedFile(
+          context.mounted ? context : null,
+          decryptedFile,
+          file,
+        );
+      } else if (context.mounted) {
+        await showBottomSheetComponent(
+          context: context,
+          builder: (_) => BottomSheetComponent(
+            title: l10n.downloadFailed,
+            message: l10n.failedToDownloadOrDecrypt,
+            illustration: LockerBottomSheetIllustration.warningGrey,
+            actions: [
+              ButtonComponent(
+                label: l10n.contactSupport,
+                onTap: () async {
+                  await sendLogs(context, "support@ente.com", postShare: () {});
+                },
+              ),
+            ],
+          ),
         );
       }
     } catch (e) {
-      await dialog.hide();
-      await showGenericErrorBottomSheet(
-        context: context,
-        error: e,
-      );
+      await dialog?.hide();
+      if (context.mounted) {
+        await showLockerErrorSheet(context, e);
+      }
     }
   }
 
-  static Future<bool> downloadFile(
-    BuildContext context,
-    EnteFile file,
-  ) {
+  static Future<bool> downloadFile(BuildContext context, EnteFile file) {
     return _downloadFiles(context, [file]);
   }
 
@@ -124,13 +141,11 @@ class FileUtil {
     }
 
     final total = files.length;
-    final dialog = createProgressDialog(
+    final l10n = context.strings;
+    final dialog = await showLockerProgressDialog(
       context,
-      "${context.l10n.downloading} 0/$total",
-      isDismissible: false,
+      "${l10n.downloading} 0/$total",
     );
-
-    await dialog.show();
 
     var index = 0;
     final savedNames = <String>[];
@@ -140,16 +155,18 @@ class FileUtil {
     try {
       for (final file in files) {
         index += 1;
-        dialog.update(
-          message:
-              '${context.l10n.downloading} ${file.displayName} ($index/$total)',
-        );
+        if (context.mounted) {
+          dialog.update(
+            message: '${l10n.downloading} ${file.displayName} ($index/$total)',
+          );
+        }
 
         // Skip info items for now; they are meant to be viewed in-app.
         if (InfoFileService.instance.isInfoFile(file)) {
-          _logger
-              .fine('Skipping info file download (ID: ${file.uploadedFileID})');
-          if (!hasShownInfoSkipToast) {
+          _logger.fine(
+            'Skipping info file download (ID: ${file.uploadedFileID})',
+          );
+          if (!hasShownInfoSkipToast && context.mounted) {
             hasShownInfoSkipToast = true;
             showToast(
               context,
@@ -165,13 +182,18 @@ class FileUtil {
 
         final String? savedPath = await _saveRegularFile(
           file: file,
-          targetFileName:
-              fileExtension.isEmpty ? baseName : "$baseName.$fileExtension",
-          context: context,
-          progressDialog: dialog,
-          currentIndex: index,
-          totalCount: total,
+          targetFileName: fileExtension.isEmpty
+              ? baseName
+              : "$baseName.$fileExtension",
           fileExtension: fileExtension,
+          onProgress: (percentage) {
+            if (context.mounted) {
+              dialog.update(
+                message:
+                    '${l10n.downloadingProgress(percentage: percentage)} ($index/$total)',
+              );
+            }
+          },
         );
 
         savedNames.add(file.displayName);
@@ -195,15 +217,9 @@ class FileUtil {
       _logger.severe('Failed to save files', e, s);
       if (context.mounted) {
         if (e is UnsupportedError) {
-          showToast(
-            context,
-            'This file type is not supported for download',
-          );
+          showToast(context, 'This file type is not supported for download');
         } else {
-          showToast(
-            context,
-            context.l10n.failedToDownloadOrDecrypt,
-          );
+          showToast(context, l10n.failedToDownloadOrDecrypt);
         }
       }
       return false;
@@ -219,27 +235,21 @@ class FileUtil {
   static Future<String?> _saveRegularFile({
     required EnteFile file,
     required String targetFileName,
-    required BuildContext context,
-    required ProgressDialog progressDialog,
-    required int currentIndex,
-    required int totalCount,
     required String fileExtension,
+    required ValueChanged<int> onProgress,
   }) async {
     final fileKey = await CollectionService.instance.getFileKey(file);
 
-    final decryptedFile = await downloadAndDecrypt(
+    final decryptedFile = await file_downloader.openFile(
       file,
       fileKey,
+      useTemporaryDecryptedFile: true,
       progressCallback: (downloaded, total) {
         if (total > 0 && downloaded >= 0) {
           final percentage = ((downloaded / total) * 100).clamp(0, 100).round();
-          progressDialog.update(
-            message:
-                '${context.l10n.downloadingProgress(percentage)} ($currentIndex/$totalCount)',
-          );
+          onProgress(percentage);
         }
       },
-      shouldUseCache: false,
     );
 
     if (decryptedFile == null) {
@@ -247,8 +257,6 @@ class FileUtil {
     }
 
     try {
-      // Use system file picker on both Android and iOS to let user
-      // choose where to save the file.
       final fileBytes = await decryptedFile.readAsBytes();
       final baseName = _baseNameWithoutExtension(targetFileName);
       final savedPath = await _saveFile(
@@ -261,18 +269,10 @@ class FileUtil {
         throw Exception('Failed to save file');
       }
 
-      // After FileSaver returns, the context might be unmounted due to
-      // app lifecycle changes (e.g., LockScreen overlay appearing).
-      // Safely update the progress dialog if possible.
-      if (context.mounted) {
-        try {
-          progressDialog.update(
-            message:
-                '${context.l10n.downloadingProgress(100)} ($currentIndex/$totalCount)',
-          );
-        } catch (e) {
-          _logger.fine('Unable to update progress dialog after save: $e');
-        }
+      try {
+        onProgress(100);
+      } catch (e) {
+        _logger.fine('Unable to update progress dialog after save: $e');
       }
       return savedPath;
     } finally {
@@ -286,9 +286,6 @@ class FileUtil {
     }
   }
 
-  /// Saves files using the platform's system file picker.
-  /// On Android and iOS this shows a system sheet allowing the user
-  /// to choose where to save the file.
   static Future<String?> _saveFile({
     required Uint8List bytes,
     required String fileName,
@@ -306,6 +303,7 @@ class FileUtil {
         name: baseName,
         bytes: bytes,
         fileExtension: fileExtension,
+        includeExtension: fileExtension.isNotEmpty,
         mimeType: MimeType.other,
       );
 
@@ -339,19 +337,21 @@ class FileUtil {
     try {
       final infoItem = InfoFileService.instance.extractInfoFromFile(file);
       if (infoItem == null) {
-        await showAlertBottomSheet(
-          context,
-          title: context.l10n.errorOpeningFile,
-          message: "Unable to extract information from this file",
-          assetPath: "assets/warning-grey.png",
-          buttons: [
-            GradientButton(
-              text: context.l10n.contactSupport,
-              onTap: () async {
-                await sendLogs(context, "support@ente.io", postShare: () {});
-              },
-            ),
-          ],
+        await showBottomSheetComponent(
+          context: context,
+          builder: (_) => BottomSheetComponent(
+            title: context.strings.errorOpeningFile,
+            message: context.strings.unableToExtractFileInformation,
+            illustration: LockerBottomSheetIllustration.warningGrey,
+            actions: [
+              ButtonComponent(
+                label: context.strings.contactSupport,
+                onTap: () async {
+                  await sendLogs(context, "support@ente.com", postShare: () {});
+                },
+              ),
+            ],
+          ),
         );
         return;
       }
@@ -359,10 +359,7 @@ class FileUtil {
       Widget page;
       switch (infoItem.type) {
         case InfoType.note:
-          page = PersonalNotePage(
-            mode: InfoPageMode.view,
-            existingFile: file,
-          );
+          page = PersonalNotePage(mode: InfoPageMode.view, existingFile: file);
           break;
         case InfoType.accountCredential:
           page = AccountCredentialsPage(
@@ -384,29 +381,234 @@ class FileUtil {
           break;
       }
 
-      await Navigator.of(context).push(
-        MaterialPageRoute(builder: (context) => page),
-      );
+      await Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (context) => page));
     } catch (e) {
-      await showGenericErrorBottomSheet(
-        context: context,
-        error: e,
-      );
+      if (context.mounted) {
+        await showLockerErrorSheet(context, e);
+      }
     }
   }
 
-  static Future<void> _launchFile(
-    BuildContext context,
-    File file,
-    String fileName,
+  static Future<void> _openDecryptedFile(
+    BuildContext? context,
+    File localFile,
+    EnteFile file,
   ) async {
-    try {
-      await OpenFile.open(file.path);
-    } catch (e) {
-      await showGenericErrorBottomSheet(
-        context: context,
-        error: e,
-      );
+    final extension = getPreferredFileExtension(
+      file,
+      fallbackPath: localFile.path,
+    ).toLowerCase();
+    final isPdf = extension == ".pdf" && FeatureFlagService.instance.pdfViewer;
+    final isImage = _imageExtensions.contains(extension);
+    if (context == null || !context.mounted || !(isPdf || isImage)) {
+      return _openExternally(context, localFile, file);
     }
+    final canShare =
+        file is! TrashFile &&
+        file.ownerID == Configuration.instance.getUserID();
+    Future<void> openExternally(BuildContext viewerContext) =>
+        _openExternally(viewerContext, localFile, file);
+    Future<void> download(BuildContext viewerContext) =>
+        downloadFile(viewerContext, file);
+    Future<void> share(BuildContext viewerContext) =>
+        FileActions.shareFileLink(viewerContext, file);
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => isPdf
+            ? PdfViewerPage(
+                localFile: localFile,
+                fileName: file.displayName,
+                onOpenExternally: openExternally,
+                onDownload: download,
+                onShare: canShare ? share : null,
+              )
+            : ImageViewerPage(
+                localFile: localFile,
+                fileName: file.displayName,
+                onOpenExternally: openExternally,
+                onDownload: download,
+                onShare: canShare ? share : null,
+              ),
+      ),
+    );
+  }
+
+  static const _imageExtensions = {
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".webp",
+    ".heic",
+    ".heif",
+  };
+
+  static Future<void> _openExternally(
+    BuildContext? context,
+    File localFile,
+    EnteFile file,
+  ) {
+    return _launchFile(
+      localFile,
+      displayName: file.displayName,
+      lockerFile: file,
+      showError: ({required error, resultType}) async {
+        if (context == null || !context.mounted) {
+          return;
+        }
+        await _showOpenFileError(
+          context,
+          error: error,
+          resultType: resultType,
+          lockerFile: file,
+        );
+      },
+    );
+  }
+
+  static Future<void> _launchFile(
+    File file, {
+    String? displayName,
+    EnteFile? lockerFile,
+    required Future<void> Function({
+      required String error,
+      ResultType? resultType,
+    })
+    showError,
+  }) async {
+    File fileToOpen = file;
+
+    try {
+      fileToOpen = await _prepareOpenFile(
+        file,
+        displayName: displayName,
+        lockerFile: lockerFile,
+      );
+
+      if (!await fileToOpen.exists() || await fileToOpen.length() == 0) {
+        throw Exception("File is missing or empty");
+      }
+
+      final result = await OpenFile.open(fileToOpen.path);
+      if (result.type != ResultType.done) {
+        await showError(error: result.message, resultType: result.type);
+      }
+    } catch (e) {
+      await showError(error: e.toString());
+    }
+  }
+
+  static Future<File> _prepareOpenFile(
+    File file, {
+    required String? displayName,
+    required EnteFile? lockerFile,
+  }) async {
+    final contentExtension = getPreferredFileExtension(
+      lockerFile,
+      fallbackPath: file.path,
+      fallbackName: displayName,
+    );
+
+    final launchName = _openHandoffFileName(
+      displayName: displayName,
+      lockerFile: lockerFile,
+      contentExtension: contentExtension,
+    );
+    final fileDirectoryName =
+        lockerFile?.uploadedFileID?.toString() ??
+        file.path.hashCode.toUnsigned(32).toRadixString(16);
+    final launchDir = Directory(
+      p.join(
+        getOpenHandoffDirectoryPath(),
+        fileDirectoryName,
+        DateTime.now().microsecondsSinceEpoch.toString(),
+      ),
+    );
+
+    try {
+      await launchDir.create(recursive: true);
+      final launchPath = p.join(launchDir.path, launchName);
+      return await file.copy(launchPath);
+    } catch (_) {
+      throw Exception("Failed to prepare file for opening");
+    }
+  }
+
+  @visibleForTesting
+  static Future<File> prepareOpenFileForTest(
+    File file, {
+    required String? displayName,
+    required EnteFile? lockerFile,
+  }) {
+    return _prepareOpenFile(
+      file,
+      displayName: displayName,
+      lockerFile: lockerFile,
+    );
+  }
+
+  static String _openHandoffFileName({
+    required String? displayName,
+    required EnteFile? lockerFile,
+    required String contentExtension,
+  }) {
+    final rawName = displayName != null && displayName.trim().isNotEmpty
+        ? displayName
+        : lockerFile?.uploadedFileID != null
+        ? "file-${lockerFile!.uploadedFileID}"
+        : "file";
+    final sanitizedName = _sanitizeFileName(p.basename(rawName));
+    final sanitizedExtension = p.extension(sanitizedName);
+    if (contentExtension.isEmpty ||
+        sanitizedExtension.toLowerCase() == contentExtension.toLowerCase()) {
+      return sanitizedName;
+    }
+    return "${_baseNameWithoutExtension(sanitizedName)}$contentExtension";
+  }
+
+  static Future<void> _showOpenFileError(
+    BuildContext context, {
+    required String error,
+    ResultType? resultType,
+    EnteFile? lockerFile,
+  }) async {
+    await showBottomSheetComponent(
+      context: context,
+      builder: (_) => BottomSheetComponent(
+        title: context.strings.oops,
+        message: _openFileErrorMessage(context, error, resultType: resultType),
+        illustration: LockerBottomSheetIllustration.warningGrey,
+        actions: [
+          ButtonComponent(
+            label: context.strings.download,
+            onTap: () async {
+              Navigator.of(context).pop();
+              await downloadFile(context, lockerFile!);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _openFileErrorMessage(
+    BuildContext context,
+    String error, {
+    ResultType? resultType,
+  }) {
+    if (resultType == ResultType.noAppToOpen) {
+      return context.strings.noAppToOpenFileDownloadInstead;
+    }
+
+    final cleaned = error
+        .replaceFirst(RegExp(r"^Exception:\s*"), "")
+        .replaceAll("。", ".")
+        .trim();
+    return context.strings.couldNotOpenFile(
+      error: cleaned.isEmpty
+          ? context.strings.noAppToOpenFileDownloadInstead
+          : cleaned,
+    );
   }
 }

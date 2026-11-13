@@ -1,11 +1,7 @@
-name: "Lint (desktop)"
+name: "Lint (Photos desktop)"
 
 on:
-    # Run on every pull request (open or push to it) that changes desktop/
-    pull_request:
-        paths:
-            - "desktop/**"
-            - ".github/workflows/desktop-lint.yml"
+    workflow_call:
 
 permissions:
     contents: read
@@ -17,16 +13,34 @@ jobs:
             run:
                 working-directory: desktop
         steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
+            - name: Checkout
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-            - name: Setup node and enable yarn caching
-              uses: actions/setup-node@v4
+            - name: Setup node and enable npm caching
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
               with:
-                  node-version: 22
-                  cache: "yarn"
-                  cache-dependency-path: "desktop/yarn.lock"
+                  node-version: 24
+                  cache: "npm"
+                  cache-dependency-path: "desktop/package-lock.json"
 
-            - run: yarn install
+            - run: npm ci
 
-            - run: yarn lint
+            - run: npm run postinstall
+
+            # Restore-only; primed on main by warm-caches.yml.
+            - name: Restore Rust cache
+              uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+              with:
+                  workspaces: rust
+                  shared-key: photos-desktop-ensu-android
+                  cache-targets: false
+                  save-if: false
+
+            - name: Restore Rust target
+              uses: $/.github/actions/restore-rust-target
+              with:
+                  shared-key: photos-desktop-ensu-android
+
+            - run: npm run codegen:napi
+
+            - run: npm run lint

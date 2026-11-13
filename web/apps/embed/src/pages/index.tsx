@@ -9,15 +9,16 @@ import { useBaseContext } from "ente-base/context";
 import {
     isHTTP401Error,
     isHTTPErrorWithStatus,
+    isMuseumHTTPError,
     type PublicAlbumsCredentials,
 } from "ente-base/http";
 import log from "ente-base/log";
-import { isCustomAlbumsAppOrigin } from "ente-base/origins";
+import { apiOrigin, isCustomAPIOrigin } from "ente-base/origins";
 import { downloadManager } from "ente-gallery/services/download";
 import { extractCollectionKeyFromShareURL } from "ente-gallery/services/share";
-import { sortFiles } from "ente-gallery/utils/file";
 import type { Collection } from "ente-media/collection";
-import { type EnteFile } from "ente-media/file";
+import { sortCollectionFiles } from "ente-media/collection-sort";
+import type { EnteFile } from "ente-media/file";
 import { usePhotosAppContext } from "ente-new/photos/types/context";
 import { t } from "i18next";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -28,7 +29,9 @@ import {
     savedPublicCollectionAccessTokenJWT,
     savedPublicCollectionByKey,
     savedPublicCollectionFiles,
+    savedPublicCollectionLinkDeviceToken,
     savePublicCollectionAccessTokenJWT,
+    savePublicCollectionLinkDeviceToken,
 } from "../services/public-albums-storage";
 import {
     pullCollection,
@@ -36,6 +39,9 @@ import {
     removePublicCollectionFileData,
     verifyPublicAlbumPassword,
 } from "../services/public-collection";
+
+const accessTokenFromURL = (url: URL) =>
+    url.searchParams.get("t") || url.pathname.split("/").find(Boolean);
 
 export default function EmbedGallery() {
     const { onGenericError } = useBaseContext();
@@ -59,10 +65,19 @@ export default function EmbedGallery() {
         showLoadingBar();
         setLoading(true);
         try {
-            const { collection } = await pullCollection(
-                accessToken,
+            const { collection, linkDeviceToken } = await pullCollection(
+                credentials.current!,
                 collectionKey.current!,
             );
+            if (linkDeviceToken) {
+                credentials.current!.linkDeviceToken = linkDeviceToken;
+                downloadManager.setPublicAlbumsCredentials(credentials.current);
+                savePublicCollectionLinkDeviceToken(
+                    await apiOrigin(),
+                    accessToken,
+                    linkDeviceToken,
+                );
+            }
 
             setPublicCollection(collection);
             const isPasswordProtected =
@@ -99,13 +114,18 @@ export default function EmbedGallery() {
                 }
             }
         } catch (e) {
+            const isDeviceLimitExceeded = await isMuseumHTTPError(
+                e,
+                403,
+                "LINK_DEVICE_LIMIT_EXCEEDED",
+            );
             if (
                 isHTTPErrorWithStatus(e, 401) ||
                 isHTTPErrorWithStatus(e, 410) ||
-                isHTTPErrorWithStatus(e, 429)
+                isDeviceLimitExceeded
             ) {
                 setErrorMessage(
-                    isHTTPErrorWithStatus(e, 429)
+                    isDeviceLimitExceeded
                         ? t("link_request_limit_exceeded")
                         : t("link_expired_message"),
                 );
@@ -128,23 +148,26 @@ export default function EmbedGallery() {
             let redirectingToWebsite = false;
             try {
                 const currentURL = new URL(window.location.href);
-                const t = currentURL.searchParams.get("t");
+                const accessToken = accessTokenFromURL(currentURL);
                 const ck = await extractCollectionKeyFromShareURL(currentURL);
-                if (!t && !ck) {
-                    // Only redirect to ente.io if this is NOT a custom/self-hosted instance
-                    if (!isCustomAlbumsAppOrigin) {
-                        window.location.href = "https://ente.io";
+                if (!accessToken && !ck) {
+                    if (!isCustomAPIOrigin) {
+                        window.location.href = "https://ente.com";
                         redirectingToWebsite = true;
                     }
                 }
-                if (!t || !ck) {
+                if (!accessToken || !ck) {
                     return;
                 }
 
                 collectionKey.current = ck;
                 const collection = savedPublicCollectionByKey(ck);
-                const accessToken = t;
+                const currentAPIOrigin = await apiOrigin();
                 let accessTokenJWT: string | undefined;
+                const linkDeviceToken = savedPublicCollectionLinkDeviceToken(
+                    currentAPIOrigin,
+                    accessToken,
+                );
 
                 if (collection) {
                     setPublicCollection(collection);
@@ -161,7 +184,11 @@ export default function EmbedGallery() {
                         savedPublicCollectionAccessTokenJWT(accessToken);
                 }
 
-                credentials.current = { accessToken, accessTokenJWT };
+                credentials.current = {
+                    accessToken,
+                    accessTokenJWT,
+                    linkDeviceToken,
+                };
                 downloadManager.setPublicAlbumsCredentials(credentials.current);
 
                 await publicAlbumsRemotePull();
@@ -189,7 +216,7 @@ export default function EmbedGallery() {
         } catch (e) {
             log.error("Failed to verify password", e);
             if (isHTTP401Error(e)) {
-                throw new Error(t("incorrect_password"));
+                throw new Error(t("incorrect_password"), { cause: e });
             }
             throw e;
         }
@@ -243,7 +270,7 @@ export default function EmbedGallery() {
 }
 
 const sortFilesForCollection = (files: EnteFile[], collection?: Collection) =>
-    sortFiles(files, collection?.pubMagicMetadata?.data.asc ?? false);
+    sortCollectionFiles(files, collection?.pubMagicMetadata?.data);
 
 const EmbedContainer = styled("div")({
     width: "100%",

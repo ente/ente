@@ -3,14 +3,14 @@ package emergency
 import (
 	"database/sql"
 	"errors"
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/utils/time"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/utils/time"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 )
 
 func (c *Controller) AddContact(ctx *gin.Context, userID int64, request ente.AddContact) error {
-	emergencyContactID, err := c.UserRepo.GetUserIDWithEmail(request.Email)
+	emergencyContactID, err := c.UserLookup.LookupUserID(userID, request.Email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return stacktrace.Propagate(ente.ErrNotFound, "invited member is not on ente")
@@ -129,23 +129,12 @@ func (c *Controller) GetInfo(ctx *gin.Context, userID int64) (*ente.EmergencyDat
 }
 
 func (c *Controller) UpdateRecoveryNotice(ctx *gin.Context, userID int64, request ente.UpdateRecoveryNotice) error {
-	// Validate recovery notice is between 1 and 60 days
 	if request.RecoveryNoticeInDays < 1 || request.RecoveryNoticeInDays > 60 {
 		return stacktrace.Propagate(ente.NewBadRequestWithMessage("recovery notice must be between 1 and 60 days"), "")
 	}
 
-	// Check if there's an active recovery session
-	activeSessions, err := c.Repo.GetActiveSessions(ctx, userID, request.EmergencyContactID)
-	if err != nil {
-		return stacktrace.Propagate(err, "failed to check active recovery sessions")
-	}
-	if len(activeSessions) > 0 {
-		return stacktrace.Propagate(ente.NewBadRequestWithMessage("cannot update recovery notice while there is an active recovery session"), "")
-	}
-
-	// Update the recovery notice period
 	noticePeriodInHrs := request.RecoveryNoticeInDays * 24
-	err = c.Repo.UpdateRecoveryNotice(ctx, userID, request.EmergencyContactID, noticePeriodInHrs)
+	err := c.Repo.UpdateRecoveryNotice(ctx, userID, request.EmergencyContactID, noticePeriodInHrs)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to update recovery notice")
 	}

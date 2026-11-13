@@ -3,12 +3,11 @@ package filedata
 import (
 	"fmt"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/ente/base"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/ente/base"
 )
 
-// BasePrefix returns the base prefix for all objects related to a file. To check if the file data is deleted,
-// ensure that there's no file in the S3 bucket with this prefix.
+// File data is fully deleted only when no objects remain under this prefix.
 func BasePrefix(fileID int64, ownerID int64) string {
 	return fmt.Sprintf("%d/file-data/%d/", ownerID, fileID)
 }
@@ -19,7 +18,6 @@ func AllObjects(fileID int64, ownerID int64, oType ente.ObjectType) []string {
 		return []string{derivedMetaPath(fileID, ownerID)}
 
 	default:
-		// throw panic saying current object type is not supported
 		panic(fmt.Sprintf("object type %s is not supported", oType))
 	}
 }

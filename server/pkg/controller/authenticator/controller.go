@@ -1,26 +1,24 @@
-package authenticaor
+package authenticator
 
 import (
 	"errors"
-	"github.com/ente-io/museum/ente"
-	model "github.com/ente-io/museum/ente/authenticator"
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/museum/pkg/repo/authenticator"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	model "github.com/ente/museum/ente/authenticator"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/museum/pkg/repo/authenticator"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/stacktrace"
 	"github.com/google/uuid"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
-// Controller is interface for exposing business logic related to authenticator app
 type Controller struct {
 	Repo     *authenticator.Repository
 	UserRepo *repo.UserRepository
 }
 
-// CreateKey...
 func (c *Controller) CreateKey(ctx *gin.Context, req model.CreateKeyRequest) error {
 	userID := auth.GetUserID(ctx.Request.Header)
 	if _, keyErr := c.UserRepo.GetKeyAttributes(userID); keyErr != nil {
@@ -29,7 +27,6 @@ func (c *Controller) CreateKey(ctx *gin.Context, req model.CreateKeyRequest) err
 	return c.Repo.CreateKey(ctx, userID, req)
 }
 
-// GetKey...
 func (c *Controller) GetKey(ctx *gin.Context) (*model.Key, error) {
 	userID := auth.GetUserID(ctx.Request.Header)
 	res, err := c.Repo.GetKey(ctx, userID)
@@ -39,7 +36,6 @@ func (c *Controller) GetKey(ctx *gin.Context) (*model.Key, error) {
 	return &res, nil
 }
 
-// CreateEntity...
 func (c *Controller) CreateEntity(ctx *gin.Context, req model.CreateEntityRequest) (*model.Entity, error) {
 	if err := c.validateKey(ctx); err != nil {
 		return nil, stacktrace.Propagate(err, "failed to validateKey")
@@ -56,7 +52,6 @@ func (c *Controller) CreateEntity(ctx *gin.Context, req model.CreateEntityReques
 	return &entity, nil
 }
 
-// UpdateEntity...
 func (c *Controller) UpdateEntity(ctx *gin.Context, req model.UpdateEntityRequest) error {
 	if err := c.validateKey(ctx); err != nil {
 		return stacktrace.Propagate(err, "failed to validateKey")
@@ -79,13 +74,11 @@ func (c *Controller) validateKey(ctx *gin.Context) error {
 	return err
 }
 
-// Delete...
 func (c *Controller) Delete(ctx *gin.Context, entityID uuid.UUID) (bool, error) {
 	userID := auth.GetUserID(ctx.Request.Header)
 	return c.Repo.Delete(ctx, userID, entityID)
 }
 
-// GetDiff...
 func (c *Controller) GetDiff(ctx *gin.Context, req model.GetEntityDiffRequest) ([]model.Entity, error) {
 	if req.Limit <= 0 || req.Limit > 5000 {
 		return nil, ente.NewBadRequestWithMessage("limit must be between 1 and 5000")

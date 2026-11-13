@@ -1,7 +1,3 @@
-/**
- * @file file system related functions exposed over the context bridge.
- */
-
 import { existsSync } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -36,15 +32,8 @@ export const fsIsDir = async (dirPath: string) => {
     return stat.isDirectory();
 };
 
+// mtimeMs can be fractional; persisted mtimes must be integral and comparable.
 export const fsStatMtime = (path: string) =>
-    // [Note: Integral last modified time]
-    //
-    // Whenever we need to find the modified time of a file, use the
-    // `mtime.getTime()` instead of `mtimeMs` of the stat; this way, it is
-    // guaranteed that the times are integral (we persist these values to remote
-    // in some cases, and the contract is for them to be integral; mtimeMs is a
-    // float with sub-millisecond precision), and that all places use the same
-    // value so that they're comparable.
     fs.stat(path).then((st) => st.mtime.getTime());
 
 export const fsFindFiles = async (dirPath: string) => {

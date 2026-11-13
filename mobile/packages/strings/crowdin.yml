@@ -1,0 +1,79 @@
+api_token_env: CROWDIN_PERSONAL_TOKEN
+
+export_languages:
+  - ar
+  - az
+  - be
+  - bg
+  - ca
+  - ckb
+  - cs
+  - da
+  - de
+  - el
+  - es-ES
+  - et
+  - eu
+  - fa
+  - fi
+  - fr
+  - gu-IN
+  - he
+  - hi
+  - hu
+  - id
+  - it
+  - ja
+  - ka
+  - km
+  - ko
+  - ku
+  - lt
+  - lv
+  - ml-IN
+  - ms
+  - nb
+  - nl
+  - nn-NO
+  - "no"
+  - or
+  - pl
+  - pt-BR
+  - pt-PT
+  - ro
+  - ru
+  - sk
+  - sl
+  - sr
+  - sv-SE
+  - ta
+  - th
+  - ti
+  - tr
+  - uk
+  - ur-IN
+  - vi
+  - zh-CN
+  - zh-TW
+
+files:
+  - source: /lib/l10n/arb/strings_en.arb
+    translation: /lib/l10n/arb/strings_%two_letters_code%.arb
+    languages_mapping:
+      two_letters_code:
+        ckb: ckb
+        es-ES: es
+        gu-IN: gu
+        ku: ku
+        ml-IN: ml
+        ms: ms
+        ms-BN: ms_BN
+        nb: nb
+        nn-NO: nn
+        "no": "no"
+        pt-BR: pt_BR
+        pt-PT: pt_PT
+        sv-SE: sv
+        ur-IN: ur
+        zh-CN: zh_CN
+        zh-TW: zh_TW

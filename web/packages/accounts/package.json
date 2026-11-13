@@ -3,19 +3,20 @@
     "version": "0.0.0",
     "private": true,
     "dependencies": {
-        "bip39": "^3.1.0",
+        "@hugeicons/core-free-icons": "4.3.5",
+        "@hugeicons/react": "1.1.10",
+        "comlink": "4.4.2",
         "ente-base": "*",
-        "fast-srp-hap": "^2.0.4",
-        "react": "^19.2.0",
-        "react-dom": "^19.2.0",
-        "react-otp-input": "^3.1.1",
-        "uuid": "^13.0.0",
-        "zxcvbn": "^4.4.2"
+        "ente-prelogin-wasm": "*",
+        "react": "19.3.1",
+        "react-dom": "19.3.1",
+        "uuid": "14.0.3",
+        "zxcvbn": "4.4.2"
     },
     "devDependencies": {
-        "@types/react": "^19.2.2",
-        "@types/react-dom": "^19.2.2",
-        "@types/zxcvbn": "^4.4.5",
+        "@types/react": "19.3.0",
+        "@types/react-dom": "19.3.0",
+        "@types/zxcvbn": "4.4.5",
         "ente-build-config": "*"
     }
 }

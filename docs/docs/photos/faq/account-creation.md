@@ -12,8 +12,8 @@ description: Frequently asked questions about installing, setting up, and creati
 The easiest way to install Ente Photos for Android is through [PlayStore](https://play.google.com/store/apps/details?id=io.ente.photos). However, you can also download it through other channels, based on your preferences:
 
 - [F-Droid](https://f-droid.org/packages/io.ente.photos.fdroid/)
-- [GitHub](https://github.com/ente-io/ente/releases?q=photos-v1)
-- [Obtanium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22io.ente.photos.independent%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fente-io%2Fente%22%2C%22author%22%3A%22ente-io%22%2C%22name%22%3A%22Ente%20Photos%22%2C%22preferredApkIndex%22%3A0%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Afalse%2C%5C%22fallbackToOlderReleases%5C%22%3Atrue%2C%5C%22filterReleaseTitlesByRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22filterReleaseNotesByRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22verifyLatestTag%5C%22%3Afalse%2C%5C%22dontSortReleasesList%5C%22%3Atrue%2C%5C%22useLatestAssetDateAsReleaseDate%5C%22%3Afalse%2C%5C%22releaseTitleAsVersion%5C%22%3Afalse%2C%5C%22trackOnly%5C%22%3Afalse%2C%5C%22versionExtractionRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22matchGroupToUse%5C%22%3A%5C%22%5C%22%2C%5C%22versionDetection%5C%22%3Atrue%2C%5C%22releaseDateAsVersion%5C%22%3Afalse%2C%5C%22useVersionCodeAsOSVersion%5C%22%3Afalse%2C%5C%22apkFilterRegEx%5C%22%3A%5C%22ente-photos*%5C%22%2C%5C%22invertAPKFilter%5C%22%3Afalse%2C%5C%22autoApkFilterByArch%5C%22%3Atrue%2C%5C%22appName%5C%22%3A%5C%22%5C%22%2C%5C%22shizukuPretendToBeGooglePlay%5C%22%3Afalse%2C%5C%22allowInsecure%5C%22%3Afalse%2C%5C%22exemptFromBackgroundUpdates%5C%22%3Afalse%2C%5C%22skipUpdateNotifications%5C%22%3Afalse%2C%5C%22about%5C%22%3A%5C%22%5C%22%7D%22%2C%22overrideSource%22%3Anull%7D)
+- [GitHub](https://github.com/ente/ente/releases?q=photos-v1)
+- [Obtanium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22io.ente.photos.independent%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fente%2Fente%22%2C%22author%22%3A%22ente%22%2C%22name%22%3A%22Ente%20Photos%22%2C%22preferredApkIndex%22%3A0%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Afalse%2C%5C%22fallbackToOlderReleases%5C%22%3Atrue%2C%5C%22filterReleaseTitlesByRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22filterReleaseNotesByRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22verifyLatestTag%5C%22%3Afalse%2C%5C%22dontSortReleasesList%5C%22%3Atrue%2C%5C%22useLatestAssetDateAsReleaseDate%5C%22%3Afalse%2C%5C%22releaseTitleAsVersion%5C%22%3Afalse%2C%5C%22trackOnly%5C%22%3Afalse%2C%5C%22versionExtractionRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22matchGroupToUse%5C%22%3A%5C%22%5C%22%2C%5C%22versionDetection%5C%22%3Atrue%2C%5C%22releaseDateAsVersion%5C%22%3Afalse%2C%5C%22useVersionCodeAsOSVersion%5C%22%3Afalse%2C%5C%22apkFilterRegEx%5C%22%3A%5C%22ente-photos*%5C%22%2C%5C%22invertAPKFilter%5C%22%3Afalse%2C%5C%22autoApkFilterByArch%5C%22%3Atrue%2C%5C%22appName%5C%22%3A%5C%22%5C%22%2C%5C%22shizukuPretendToBeGooglePlay%5C%22%3Afalse%2C%5C%22allowInsecure%5C%22%3Afalse%2C%5C%22exemptFromBackgroundUpdates%5C%22%3Afalse%2C%5C%22skipUpdateNotifications%5C%22%3Afalse%2C%5C%22about%5C%22%3A%5C%22%5C%22%7D%22%2C%22overrideSource%22%3Anull%7D)
 
 ### How do I install Ente Photos on my iPhone or iPad? {#install-ios}
 
@@ -21,7 +21,7 @@ You can install Ente Photos on your iPhone or iPad from the [iOS AppStore](https
 
 ### How do I install Ente Photos on my desktop? {#install-desktop}
 
-You can install Ente Photos on your desktop by downloading the installer from [our website](https://ente.io/download/desktop).
+You can install Ente Photos on your desktop by downloading the installer from [our website](https://ente.com/download/desktop).
 
 **Supported platforms:**
 
@@ -29,17 +29,17 @@ You can install Ente Photos on your desktop by downloading the installer from [o
 - **macOS**: Download the DMG file
 - **Linux**: Download the installer or AppImage
 
+> [!NOTE]
+>
+> Ente Photos for macOS requires macOS 13.3 or later.
+
 ### How do I install CLI for Ente Photos? {#install-cli}
 
-Ente's CLI is distributed directly over [GitHub](https://github.com/ente-io/ente/releases?q=tag%3Acli-v0). The CLI is useful for:
-
-- Automated exports to NAS or local storage
-- Bulk operations
-- Server-to-server transfers
+Follow [Install Ente CLI](/cli/install) to download and set up the CLI on Linux, macOS or Windows. Use it to export your library to a local disk or NAS, choose albums, and download individual files.
 
 ### Can I access Ente Photos from my browser? {#web-app}
 
-Yes. Ente Photos is also available on the web at [web.ente.io](https://web.ente.io). It offers most of the functionality of the desktop app, except for machine learning and generating video streams.
+Yes. Ente Photos is also available on the web at [photos.ente.com](https://photos.ente.com). It offers most of the functionality of the desktop app, except for machine learning and generating video streams.
 
 You don't need to install anything - just log in with your email and password.
 
@@ -49,12 +49,12 @@ Releases over F-Droid are generally slower than other stores since they run thei
 
 ### How can I manually setup Ente Photos installation with Obtanium? {#manual-obtanium}
 
-You can setup [Obtainium](https://github.com/ImranR98/Obtainium) to track our GitHub releases by [clicking this link](https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22io.ente.photos.independent%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fente-io%2Fente%22%2C%22author%22%3A%22ente-io%22%2C%22name%22%3A%22Ente%20Photos%22%2C%22preferredApkIndex%22%3A0%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Afalse%2C%5C%22fallbackToOlderReleases%5C%22%3Atrue%2C%5C%22filterReleaseTitlesByRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22filterReleaseNotesByRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22verifyLatestTag%5C%22%3Afalse%2C%5C%22dontSortReleasesList%5C%22%3Atrue%2C%5C%22useLatestAssetDateAsReleaseDate%5C%22%3Afalse%2C%5C%22releaseTitleAsVersion%5C%22%3Afalse%2C%5C%22trackOnly%5C%22%3Afalse%2C%5C%22versionExtractionRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22matchGroupToUse%5C%22%3A%5C%22%5C%22%2C%5C%22versionDetection%5C%22%3Atrue%2C%5C%22releaseDateAsVersion%5C%22%3Afalse%2C%5C%22useVersionCodeAsOSVersion%5C%22%3Afalse%2C%5C%22apkFilterRegEx%5C%22%3A%5C%22ente-photos*%5C%22%2C%5C%22invertAPKFilter%5C%22%3Afalse%2C%5C%22autoApkFilterByArch%5C%22%3Atrue%2C%5C%22appName%5C%22%3A%5C%22%5C%22%2C%5C%22shizukuPretendToBeGooglePlay%5C%22%3Afalse%2C%5C%22allowInsecure%5C%22%3Afalse%2C%5C%22exemptFromBackgroundUpdates%5C%22%3Afalse%2C%5C%22skipUpdateNotifications%5C%22%3Afalse%2C%5C%22about%5C%22%3A%5C%22%5C%22%7D%22%2C%22overrideSource%22%3Anull%7D) to add it instantly.
+You can setup [Obtainium](https://github.com/ImranR98/Obtainium) to track our GitHub releases by [clicking this link](https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22io.ente.photos.independent%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fente%2Fente%22%2C%22author%22%3A%22ente%22%2C%22name%22%3A%22Ente%20Photos%22%2C%22preferredApkIndex%22%3A0%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Afalse%2C%5C%22fallbackToOlderReleases%5C%22%3Atrue%2C%5C%22filterReleaseTitlesByRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22filterReleaseNotesByRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22verifyLatestTag%5C%22%3Afalse%2C%5C%22dontSortReleasesList%5C%22%3Atrue%2C%5C%22useLatestAssetDateAsReleaseDate%5C%22%3Afalse%2C%5C%22releaseTitleAsVersion%5C%22%3Afalse%2C%5C%22trackOnly%5C%22%3Afalse%2C%5C%22versionExtractionRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22matchGroupToUse%5C%22%3A%5C%22%5C%22%2C%5C%22versionDetection%5C%22%3Atrue%2C%5C%22releaseDateAsVersion%5C%22%3Afalse%2C%5C%22useVersionCodeAsOSVersion%5C%22%3Afalse%2C%5C%22apkFilterRegEx%5C%22%3A%5C%22ente-photos*%5C%22%2C%5C%22invertAPKFilter%5C%22%3Afalse%2C%5C%22autoApkFilterByArch%5C%22%3Atrue%2C%5C%22appName%5C%22%3A%5C%22%5C%22%2C%5C%22shizukuPretendToBeGooglePlay%5C%22%3Afalse%2C%5C%22allowInsecure%5C%22%3Afalse%2C%5C%22exemptFromBackgroundUpdates%5C%22%3Afalse%2C%5C%22skipUpdateNotifications%5C%22%3Afalse%2C%5C%22about%5C%22%3A%5C%22%5C%22%7D%22%2C%22overrideSource%22%3Anull%7D) to add it instantly.
 
 Alternatively, you can follow these manual steps:
 
 1. Click **Add App** to open a new app config screen
-2. Enter `https://github.com/ente-io/ente` in the **App Source URL** field
+2. Enter `https://github.com/ente/ente` in the **App Source URL** field
 3. Enable the **Retain release order** from API toggle
 4. Scroll down to the **Filter APKs by Regular Expression** field and enter `ente-photos*`
 5. Enable the **Attempt to filter APKs by CPU architecture** if possible toggle
@@ -69,8 +69,24 @@ Alternatively, you can follow these manual steps:
 - **PlayStore, AppStore, F-Droid**: The stores handle updates based on your auto-update settings
 - **GitHub/Obtanium**: You'll get a notification to update and can download the latest APK
 
-**Desktop app:**
-You'll get an in-app notification to update. Ente desktop includes auto-update functionality - whenever updates are deployed, the app will automatically download and install them.
+**Desktop app:** You'll get an in-app notification to update. Ente desktop includes auto-update functionality - whenever updates are deployed, the app will automatically download and install them.
+
+Update the app on each device that needs it, using its existing distribution channel first. If uploads report that the upload API is no longer supported, follow the [specific troubleshooting steps](/photos/faq/troubleshooting#unsupported-upload-api).
+
+On Android, changing distribution channels may install a separate app and require signing in and setting up backup again. See [Android installation](/photos/getting-started/installation#android) before switching.
+
+### Why is my language not an option in Ente? {#language-not-available}
+
+Ente relies on community translations through Crowdin. A language is usually added to the apps once about 90% of it has been translated. New languages also need approval from Ente before they appear.
+
+You can help translate your language, even if it is not close to 90% yet:
+
+- [Ente Photos mobile app](https://crowdin.com/project/ente-photos-app)
+- [Ente Photos web and desktop](https://crowdin.com/project/ente-photos-web)
+
+If your language is not listed on Crowdin, request it on GitHub for [mobile](https://github.com/ente/ente/issues/new?title=Request+for+New+Language+Translation&body=Language+name%3A+%0AProject%3A+mobile) or [web and desktop](https://github.com/ente/ente/issues/new?title=Request+for+New+Language+Translation&body=Language+name%3A+%0AProject%3A+web) before you start translating.
+
+If a new language translation is complete but is still not available in the app, email [support@ente.com](mailto:support@ente.com) so we can confirm its approval status.
 
 ## Multi-Device Setup
 
@@ -101,6 +117,17 @@ You can view and manage all devices logged into your Ente account:
 
 This is useful if you've lost a device or want to ensure old devices no longer have access to your account.
 
+If you received a "New login to your Ente account" email, see [Why did I get a "New login to your Ente account" email?](/photos/faq/security-and-privacy#new-login-email).
+
+### How do I log out of Ente Photos? {#logout}
+
+- **Mobile:** Open Settings, scroll to the bottom and tap **Logout**, then confirm.
+- **Web/Desktop:** Open the sidebar, scroll to the bottom and click **Logout**, then confirm.
+
+Logging out does not delete your account or your backed-up photos. You can log in again at any time with your email and password.
+
+To sign out a device you no longer have, use [Active sessions](#manage-devices) instead.
+
 ### Can I use Ente on both mobile and desktop? {#mobile-and-desktop}
 
 Yes! You can use Ente Photos on as many devices as you want:
@@ -118,6 +145,14 @@ No. Use the same account across all your devices. Your photos, albums, and all y
 
 Only use separate accounts if you want to keep photo libraries completely separate (for example, personal vs. work photos).
 
+### Can I merge separate Ente accounts? {#merge-accounts}
+
+No. Changing an account's email address does not merge it with another account. Photos libraries, subscriptions, and account history remain separate.
+
+If you want to use your Photos account for Auth too, you can [export and import your Auth codes](/auth/faq/#merge-accounts). Verify the imported codes and sync before removing any source data.
+
+Before deleting an old account, check what it contains in Photos, Auth, and Locker. **Delete account** removes that account's data across all three apps. See [shared-account deletion](/photos/faq/security-and-privacy#shared-account-deletion).
+
 ## Account Creation & Security
 
 ### How do I create a new Ente account? {#create-account}
@@ -130,6 +165,16 @@ When you first open Ente Photos, you'll be guided through account creation:
 4. **Choose a plan** - Start with 10 GB free or select a paid plan
 
 For a detailed walkthrough, see [Creating an account](/photos/getting-started/signup).
+
+### Why am I not receiving the email verification code during signup? {#email-verification-code-signup}
+
+If you're not receiving the email verification code, try the following:
+
+1. Check your spam folder to see if the email was filtered there
+2. Make sure your email domain or provider isn't blocking emails from ente.com
+3. Resend the verification code
+
+If you still don't receive it after these steps, email [support@ente.com](mailto:support@ente.com) for further help.
 
 ### What is the recovery key and why is it important? {#recovery-key}
 
@@ -150,7 +195,7 @@ Since Ente uses end-to-end encryption, we cannot reset your password without you
 
 ### Can the recovery key be changed? {#change-recovery-key}
 
-No, the recovery key cannot be changed or rotated. If you suspect your recovery key has been compromised, we recommend creating a new account and migrating your data.
+No, the recovery key cannot be changed or rotated. Changing your password does not change it. If you suspect it was exposed, see [what to do next](/auth/faq/#change-recovery-key) before deleting or moving any data.
 
 ### How do I reset my password if I lost it? {#reset-password}
 
@@ -161,7 +206,7 @@ On the login page:
 3. Enter your recovery key
 4. Create a new password
 
-If you don't have your recovery key and are logged out of all devices, we cannot recover your account due to end-to-end encryption.
+If you don't have your recovery key and are logged out of all devices, we cannot recover your account due to end-to-end encryption. You can [start over with the same email](/photos/faq/security-and-privacy#start-fresh-same-email).
 
 ### Can I change my password later? {#change-password-later}
 
@@ -183,6 +228,18 @@ Warning: if you use the same account in Ente Auth, enabling 2FA in Ente Photos a
 
 Learn more in our [Security and Privacy FAQ](/photos/faq/security-and-privacy).
 
+### Why does Ente reject my codes when I set up two-factor authentication? {#2fa-setup-code-rejected}
+
+You can use any authenticator app that supports time-based codes (TOTP), such as Ente Auth, KeePassDX or Aegis. If Ente keeps saying the code is wrong while you set up 2FA, check these:
+
+- **The setup has expired.** Each 2FA setup is valid for 10 minutes, even if the setup screen is still open. After that, codes from the QR code or secret you added are rejected. Close the setup screen, open `Settings > Security > Two-factor` again, add the new QR code or secret to your authenticator as a new entry, and enter a code from that entry within 10 minutes.
+- **The code changed.** Each code is valid for about 30 seconds. Enter the code currently shown, not one that has just changed.
+- **Your device's clock is off.** Codes depend on the time. Turn on automatic date and time on the device that runs your authenticator app.
+
+Two-factor authentication is turned on only once Ente accepts a code, so restarting the setup does not change your password or sign you out. Once setup works, delete the old, unused entries for your Ente account from your authenticator app.
+
+If you use the same Ente account in Ente Auth, read [Enteception](/auth/faq/enteception/) before storing your Ente 2FA code inside Ente Auth.
+
 ### Can I use passkeys instead of passwords? {#use-passkeys}
 
 Passkeys serve as a second factor (2FA) for your Ente account, not as a replacement for your password. When you add a passkey to your account, it will be used instead of TOTP codes for two-factor authentication.
@@ -202,7 +259,7 @@ If you lose access to your passkey (for example, if you misplace a hardware secu
 3. Enter your Ente recovery key to log in
 4. Go to the Passkey settings page to delete the lost passkey and/or add a new one
 
-If you've lost both your passkey and recovery key, contact [support@ente.io](mailto:support@ente.io) for assistance.
+If you've lost both your passkey and recovery key, contact [support@ente.com](mailto:support@ente.com) for assistance.
 
 ### I'm not receiving the verification code email {#verification-code}
 
@@ -212,10 +269,41 @@ If you're not receiving verification codes:
 2. Wait a few minutes - emails can be delayed
 3. Try requesting a new code
 4. Make sure you entered the correct email address
-5. Contact [support@ente.io](mailto:support@ente.io) if the issue persists
+5. Contact [support@ente.com](mailto:support@ente.com) if the issue persists
 
 ### What if I lose access to my email address? {#lost-email}
 
 The recovery key does not bypass email verification. For security reasons, Ente does not disable or bypass email verification unless the account owner reaches out and successfully verifies their identity by providing account details.
 
-If you lose access to your email, contact [support@ente.io](mailto:support@ente.io).
+If you lose access to your email, contact [support@ente.com](mailto:support@ente.com).
+
+### I forgot which email address I used for Ente. How do I find it? {#forgot-account-email}
+
+Your Ente account is tied to the email address you signed up with, so finding that address is the first step. Try these:
+
+1. **A device where Ente is still signed in.** Open Settings in the Ente app. Your account email is shown at the top. Keep that device signed in while you sort things out.
+2. **Your inboxes.** Search every mailbox you use, including any email aliases or hide-my-email addresses, for emails from Ente, such as the welcome email, verification codes or payment receipts.
+3. **Your password manager or saved browser logins.** Search for "ente" to find the address you saved.
+4. **Your purchase records.** If you have a paid plan, look for Ente receipts. A Stripe receipt goes to the email your Ente account had when you paid. An App Store receipt goes to your Apple ID email, which may be different from the email you used for Ente.
+
+Once you've found the address, sign in with it. If you've also forgotten your password, see [What happens if I forget my password?](/photos/faq/security-and-privacy#account-recovery).
+
+If Ente says the address isn't registered, see [Why does Ente say my email address is not registered?](#email-not-registered).
+
+### Why does Ente say my email address is not registered? {#email-not-registered}
+
+This usually means the account was created with a different email address.
+
+Check whether you may have signed up using:
+
+- An email alias or hide-my-email service
+- A different personal email address
+- Apple Sign-In or another provider-linked email
+
+If you have a paid account, also check how the payment was made. App Store and Stripe payments can help identify which account was used.
+
+An App Store purchase may already be linked to a different Ente account. Making another purchase does not transfer that subscription or its storage to the account you are currently using. If the purchase appears on the wrong account, contact [support@ente.com](mailto:support@ente.com) so we can check the association before you buy again.
+
+### Why does Ente say "Account setup incomplete"? {#account-setup-incomplete}
+
+You started creating an account with this email but didn't finish, for example before you set a password and saved your recovery key. Tap **Sign up**, enter the same email and complete the steps.

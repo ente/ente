@@ -6,10 +6,7 @@ class TypeFilter extends Filter {
   final FileType type;
   final bool reverse;
 
-  TypeFilter(
-    this.type, {
-    this.reverse = false,
-  });
+  TypeFilter(this.type, {this.reverse = false});
 
   @override
   bool filter(EnteFile file) {

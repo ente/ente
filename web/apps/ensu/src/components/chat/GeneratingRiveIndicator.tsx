@@ -1,12 +1,13 @@
 import { Box, Typography } from "@mui/material";
 import { memo, useEffect, useState } from "react";
 
-type GeneratingRiveIndicatorProps = {
+interface GeneratingRiveIndicatorProps {
     size?: number;
     fallbackText?: string;
+    status?: string | null;
     isGenerating?: boolean;
     isOutroPhase?: boolean;
-};
+}
 
 const DOT_STEP_MS = 420;
 
@@ -14,6 +15,7 @@ const GeneratingRiveIndicator = memo(
     ({
         size = 42,
         fallbackText,
+        status,
         isGenerating = true,
         isOutroPhase = false,
     }: GeneratingRiveIndicatorProps) => {
@@ -39,7 +41,12 @@ const GeneratingRiveIndicator = memo(
 
         return (
             <Box
-                sx={{ display: "flex", alignItems: "center", minHeight: size }}
+                sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                    minHeight: size,
+                }}
             >
                 <Typography
                     variant="message"
@@ -54,6 +61,11 @@ const GeneratingRiveIndicator = memo(
                 >
                     {".".repeat(dotCount)}
                 </Typography>
+                {status && (
+                    <Typography variant="small" sx={{ color: "text.muted" }}>
+                        {status}
+                    </Typography>
+                )}
             </Box>
         );
     },

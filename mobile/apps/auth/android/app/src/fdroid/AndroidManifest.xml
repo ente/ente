@@ -1,0 +1,13 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Strips MainActivity's launcher entry; see independent/AndroidManifest.xml. -->
+    <application>
+        <activity android:name=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER" tools:node="remove"/>
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

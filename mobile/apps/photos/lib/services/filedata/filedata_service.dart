@@ -5,7 +5,6 @@ import "package:flutter/foundation.dart" show Uint8List;
 import "package:logging/logging.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/db/ml/db.dart";
-import "package:photos/db/ml/filedata.dart";
 import "package:photos/gateways/files/file_data_gateway.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/service_locator.dart";
@@ -16,27 +15,25 @@ import "package:photos/utils/file_key.dart";
 import "package:photos/utils/gzip.dart";
 import "package:shared_preferences/shared_preferences.dart";
 
+const _maxMLDataBytes = 4 * 1024 * 1024;
+
 class FileDataService {
   static final Computer _computer = Computer.shared();
   final _logger = Logger("FileDataService");
   final SharedPreferences _prefs;
   final FileDataGateway _gateway;
   late Map<int, PreviewInfo> previewIds;
+  Future<void>? _syncFDStatusFuture;
 
   FileDataService(this._prefs, this._gateway) {
     _logger.info("FileDataService constructor called");
     previewIds = <int, PreviewInfo>{};
   }
 
-  /// Used to not sync preview ids everytime a chunking and preview
-  /// upload is successful, instead update the local copy of those
-  /// preview ids
+  // Update the local preview cache without syncing after every upload.
   void appendPreview(int id, String objectId, int objectSize) {
     if (previewIds.containsKey(id)) return;
-    previewIds[id] = PreviewInfo(
-      objectId: objectId,
-      objectSize: objectSize,
-    );
+    previewIds[id] = PreviewInfo(objectId: objectId, objectSize: objectSize);
   }
 
   Future<void> putFileData(EnteFile file, FileDataEntity data) async {
@@ -80,8 +77,9 @@ class FileDataService {
       return FileDataResponse(
         fileIdToDataMap,
         fetchErrorFileIDs: Set<int>.from(errFileIds.map((x) => x as int)),
-        pendingIndexFileIDs:
-            Set<int>.from(pendingIndexFiles.map((x) => x as int)),
+        pendingIndexFileIDs: Set<int>.from(
+          pendingIndexFiles.map((x) => x as int),
+        ),
       );
     } catch (e, s) {
       _logger.severe("Failed to get embeddings", e, s);
@@ -97,8 +95,9 @@ class FileDataService {
       return result;
     }
     final inputs = <_DecoderInput>[];
-    final fileMap = await FilesDB.instance
-        .getFileIDToFileFromIDs(remoteData.map((e) => e.fileID).toList());
+    final fileMap = await FilesDB.instance.getFileIDToFileFromIDs(
+      remoteData.map((e) => e.fileID).toList(),
+    );
     for (final data in remoteData) {
       final file = fileMap[data.fileID];
       if (file == null) {
@@ -110,15 +109,28 @@ class FileDataService {
     }
     return _computer.compute<Map<String, dynamic>, Map<int, FileDataEntity>>(
       _decryptFileDataComputer,
-      param: {
-        "inputs": inputs,
-      },
+      param: {"inputs": inputs},
     );
   }
 
-  Future<void> syncFDStatus() async {
-    if (isOfflineMode) {
-      _logger.fine("Skipping file data sync in offline mode");
+  Future<void> syncFDStatus() {
+    final existing = _syncFDStatusFuture;
+    if (existing != null) {
+      _logger.info("syncFDStatus already running, joining existing run");
+      return existing;
+    }
+    final future = _syncFDStatusInternal();
+    _syncFDStatusFuture = future;
+    return future.whenComplete(() {
+      if (identical(_syncFDStatusFuture, future)) {
+        _syncFDStatusFuture = null;
+      }
+    });
+  }
+
+  Future<void> _syncFDStatusInternal() async {
+    if (isLocalGalleryMode) {
+      _logger.fine("Skipping file data sync in local gallery mode");
       return;
     }
     try {
@@ -156,17 +168,27 @@ Future<Map<int, FileDataEntity>> _decryptFileDataComputer(
 ) async {
   final result = <int, FileDataEntity>{};
   final inputs = args["inputs"] as List<_DecoderInput>;
+  final logger = Logger("FileDataService");
   for (final input in inputs) {
-    final decodedJson = decryptAndUnzipJsonSync(
-      input.decryptionKey,
-      encryptedData: input.data.encryptedData,
-      header: input.data.decryptionHeader,
-    );
-    result[input.data.fileID] = FileDataEntity.fromRemote(
-      input.data.fileID,
-      input.data.type,
-      decodedJson,
-    );
+    try {
+      final decodedJson = decryptAndUnzipJsonSync(
+        input.decryptionKey,
+        encryptedData: input.data.encryptedData,
+        header: input.data.decryptionHeader,
+        maxOutputBytes: _maxMLDataBytes,
+      );
+      result[input.data.fileID] = FileDataEntity.fromRemote(
+        input.data.fileID,
+        input.data.type,
+        decodedJson,
+      );
+    } on FormatException catch (e, s) {
+      logger.warning(
+        "Ignoring unparseable ML data for file id ${input.data.fileID}",
+        e,
+        s,
+      );
+    }
   }
   return result;
 }

@@ -1,0 +1,13 @@
+{
+    "extends": "ente-build-config/tsconfig-typecheck.json",
+    "compilerOptions": {
+        /* MUI doesn't work with exactOptionalPropertyTypes yet. */
+        "exactOptionalPropertyTypes": false
+    },
+    "include": [
+        ".",
+        "../base/global-electron.d.ts",
+        "../base/globals.d.ts",
+        "../base/components/utils/mui-theme.d.ts"
+    ]
+}

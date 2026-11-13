@@ -1,11 +1,34 @@
 package email
 
 import (
-	"os"
+	"io"
+	"mime/quotedprintable"
+	"strings"
 	"testing"
 
+	"github.com/ente/museum/internal/testutil"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestBuildHTMLMIMEPartPreservesUnicode(t *testing.T) {
+	htmlBody := "<p>Hello – emoji 😊</p>"
+
+	part, err := buildHTMLMIMEPart(htmlBody)
+	assert.NoError(t, err)
+	assert.Contains(t, part, "Content-Type: text/html; charset=utf-8")
+	assert.Contains(t, part, "Content-Transfer-Encoding: quoted-printable")
+	assert.Contains(t, part, "=E2=80=93")
+	assert.Contains(t, part, "=F0=9F=98=8A")
+
+	sections := strings.SplitN(part, "\n\n", 2)
+	if assert.Len(t, sections, 2) {
+		decodedBody, err := io.ReadAll(
+			quotedprintable.NewReader(strings.NewReader(strings.TrimSuffix(sections[1], "\n"))),
+		)
+		assert.NoError(t, err)
+		assert.Equal(t, htmlBody, string(decodedBody))
+	}
+}
 
 func TestGetMaskedEmailForPublic(t *testing.T) {
 	tests := []struct {
@@ -99,12 +122,7 @@ func TestGetMaskedEmailForPublic(t *testing.T) {
 }
 
 func TestInactiveUserDeletionTemplatesIncludeAccountEmail(t *testing.T) {
-	originalWD, err := os.Getwd()
-	assert.NoError(t, err)
-	assert.NoError(t, os.Chdir("../../.."))
-	defer func() {
-		assert.NoError(t, os.Chdir(originalWD))
-	}()
+	testutil.WithServerRoot(t)
 
 	templateData := map[string]interface{}{
 		"Email":        "alice@example.com",

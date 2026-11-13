@@ -1,0 +1,24 @@
+[package]
+name = "ente-image"
+edition.workspace = true
+
+[dependencies]
+ente_heic = { package = "heic_decoder", git = "https://github.com/ente/heic-decoder.git", rev = "288c4213e283042416e690788ba1ef631d789f53", features = [
+    "image-integration",
+] }
+fast_image_resize.workspace = true
+image.workspace = true
+jxl = "0.8.0"
+kamadak-exif = "0.6.1"
+log.workspace = true
+moxcms = { workspace = true, features = ["in_place"] }
+png = "0.18.1"
+rayon.workspace = true
+thiserror.workspace = true
+tiff = "0.11.3"
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

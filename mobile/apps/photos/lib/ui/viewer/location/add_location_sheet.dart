@@ -1,17 +1,17 @@
+import "package:ente_strings/ente_strings.dart";
+import "package:ente_ui/components/divider_widget.dart";
+import "package:ente_ui/components/loading_widget.dart";
 import 'package:flutter/material.dart';
 import "package:intl/intl.dart";
 import "package:modal_bottom_sheet/modal_bottom_sheet.dart";
 import "package:photos/core/constants.dart";
-import "package:photos/generated/l10n.dart";
 import "package:photos/models/location/location.dart";
 import "package:photos/service_locator.dart";
 import 'package:photos/states/location_state.dart';
 import "package:photos/theme/colors.dart";
 import "package:photos/theme/ente_theme.dart";
-import "package:photos/ui/common/loading_widget.dart";
 import "package:photos/ui/components/bottom_of_title_bar_widget.dart";
 import "package:photos/ui/components/buttons/button_widget.dart";
-import "package:photos/ui/components/divider_widget.dart";
 import 'package:photos/ui/components/keyboard/keyboard_oveylay.dart';
 import "package:photos/ui/components/keyboard/keyboard_top_button.dart";
 import "package:photos/ui/components/models/button_type.dart";
@@ -20,7 +20,7 @@ import "package:photos/ui/components/title_bar_title_widget.dart";
 import 'package:photos/ui/viewer/location/dynamic_location_gallery_widget.dart';
 import "package:photos/ui/viewer/location/radius_picker_widget.dart";
 
-showAddLocationSheet(
+void showAddLocationSheet(
   BuildContext context,
   Location coordinates, {
   String name = '',
@@ -31,18 +31,13 @@ showAddLocationSheet(
     builder: (context) {
       return LocationTagStateProvider(
         centerPoint: coordinates,
-        AddLocationSheet(
-          radius: radius,
-          name: name,
-        ),
+        AddLocationSheet(radius: radius, name: name),
         radius: radius,
       );
     },
     shape: const RoundedRectangleBorder(
       side: BorderSide(width: 0),
-      borderRadius: BorderRadius.vertical(
-        top: Radius.circular(5),
-      ),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(5)),
     ),
     topControl: const SizedBox.shrink(),
     backgroundColor: getEnteColorScheme(context).backgroundElevated,
@@ -64,12 +59,8 @@ class AddLocationSheet extends StatefulWidget {
 }
 
 class _AddLocationSheetState extends State<AddLocationSheet> {
-  //The value of this notifier has no significance.
-  //When memoriesCountNotifier is null, we show the loading widget in the
-  //memories count section which also means the gallery is loading.
+  // null means the gallery is still loading.
   final ValueNotifier<int?> _memoriesCountNotifier = ValueNotifier(null);
-
-  //The value of this notifier has no significance.
   final ValueNotifier<bool> _submitNotifer = ValueNotifier(false);
 
   final ValueNotifier<bool> _cancelNotifier = ValueNotifier(false);
@@ -110,9 +101,7 @@ class _AddLocationSheetState extends State<AddLocationSheet> {
           Padding(
             padding: const EdgeInsets.only(bottom: 16),
             child: BottomOfTitleBarWidget(
-              title: TitleBarTitleWidget(
-                title: AppLocalizations.of(context).addLocation,
-              ),
+              title: TitleBarTitleWidget(title: context.strings.addLocation),
             ),
           ),
           Expanded(
@@ -131,8 +120,7 @@ class _AddLocationSheetState extends State<AddLocationSheet> {
                           children: [
                             Expanded(
                               child: TextInputWidget(
-                                hintText:
-                                    AppLocalizations.of(context).locationName,
+                                hintText: context.strings.locationName,
                                 focusNode: _focusNode,
                                 submitNotifier: _submitNotifer,
                                 cancelNotifier: _cancelNotifier,
@@ -156,8 +144,8 @@ class _AddLocationSheetState extends State<AddLocationSheet> {
                                     key: ValueKey(value),
                                     buttonType: ButtonType.secondary,
                                     buttonSize: ButtonSize.small,
-                                    labelText: AppLocalizations.of(context)
-                                        .addLocationButton,
+                                    labelText:
+                                        context.strings.addLocationButton,
                                     isDisabled: value,
                                     onTap: () async {
                                       _focusNode.unfocus();
@@ -170,14 +158,11 @@ class _AddLocationSheetState extends State<AddLocationSheet> {
                           ],
                         ),
                         const SizedBox(height: 24),
-                        RadiusPickerWidget(
-                          _selectedRadiusNotifier,
-                        ),
+                        RadiusPickerWidget(_selectedRadiusNotifier),
                         if (widget.name.isEmpty) const SizedBox(height: 16),
                         if (widget.name.isEmpty)
                           Text(
-                            AppLocalizations.of(context)
-                                .locationTagFeatureDescription,
+                            context.strings.locationTagFeatureDescription,
                             style: textTheme.smallMuted,
                           ),
                       ],
@@ -208,10 +193,11 @@ class _AddLocationSheetState extends State<AddLocationSheet> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  AppLocalizations.of(context).memoryCount(
+                                  context.strings.memoryCount(
                                     count: value,
-                                    formattedCount:
-                                        NumberFormat().format(value),
+                                    formattedCount: NumberFormat().format(
+                                      value,
+                                    ),
                                   ),
                                   style: textTheme.body,
                                 ),
@@ -219,8 +205,7 @@ class _AddLocationSheetState extends State<AddLocationSheet> {
                                   Padding(
                                     padding: const EdgeInsets.only(top: 2),
                                     child: Text(
-                                      AppLocalizations.of(context)
-                                          .galleryMemoryLimitInfo,
+                                      context.strings.galleryMemoryLimitInfo,
                                       style: textTheme.miniMuted,
                                     ),
                                   ),
@@ -264,6 +249,7 @@ class _AddLocationSheetState extends State<AddLocationSheet> {
       coordinates,
       radius,
     );
+    if (!mounted) return;
     Navigator.pop(context);
   }
 
@@ -287,9 +273,7 @@ class _AddLocationSheetState extends State<AddLocationSheet> {
   void _selectedRadiusListener() {
     InheritedLocationTagData.of(
       context,
-    ).updateSelectedRadius(
-      _selectedRadiusNotifier.value,
-    );
+    ).updateSelectedRadius(_selectedRadiusNotifier.value);
     _memoriesCountNotifier.value = null;
   }
 }

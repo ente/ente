@@ -53,7 +53,6 @@ CREATE TABLE IF NOT EXISTS emergency_recovery (
                                                           ON DELETE CASCADE
 );
 
--- unique constraint on user_id, emergency_contact_id and status where status is WAITING or READY
 CREATE UNIQUE INDEX idx_emergency_recovery_limit_active_recovery ON emergency_recovery(user_id, emergency_contact_id, status)
     WHERE status IN ('WAITING', 'READY');
 

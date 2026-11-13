@@ -1,30 +1,37 @@
 package controller
 
 import (
+	"bytes"
 	"context"
+	"crypto/hpke"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
+	"os"
 	"strconv"
+	"sync"
+	"sync/atomic"
+	gotime "time"
 
-	firebase "firebase.google.com/go"
-	"firebase.google.com/go/messaging"
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/museum/pkg/utils/config"
-	"github.com/ente-io/museum/pkg/utils/time"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/museum/pkg/utils/config"
+	"github.com/ente/museum/pkg/utils/time"
+	"github.com/ente/stacktrace"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"google.golang.org/api/option"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 )
 
-// PushController controls all push related operations
 type PushController struct {
-	PushRepo       *repo.PushTokenRepository
-	TaskLockRepo   *repo.TaskLockRepository
-	HostName       string
-	FirebaseClient *messaging.Client
+	PushRepo     *repo.PushTokenRepository
+	TaskLockRepo *repo.TaskLockRepository
+	HostName     string
+	fcm          *fcmClient
 }
 
 type PushToken struct {
@@ -36,11 +43,11 @@ type PushToken struct {
 	LastNotifiedAt int64
 }
 
-// Interval before which the last push was sent
 const pushIntervalInMinutes = 60
 
-// Limit defined by FirebaseClient.SendAll(...)
 const concurrentPushesInOneShot = 500
+
+const fcmSendConcurrency = 10
 
 const taskLockName = "fcm-push-lock"
 
@@ -49,39 +56,101 @@ const taskLockDurationInMinutes = 5
 // As proposed by https://firebase.google.com/docs/cloud-messaging/manage-tokens#ensuring-registration-token-freshness
 const tokenExpiryDurationInDays = 61
 
+const fcmSendScope = "https://www.googleapis.com/auth/firebase.messaging"
+
+const fcmSendTimeout = 30 * gotime.Second
+
 func NewPushController(pushRepo *repo.PushTokenRepository, taskLockRepo *repo.TaskLockRepository, hostName string) *PushController {
-	client, err := newFirebaseClient()
+	client, err := newFCMClient()
 	if err != nil {
-		log.Error(fmt.Errorf("error creating Firebase client: %v", err))
+		log.Error(fmt.Errorf("error creating FCM client: %v", err))
 	}
-	return &PushController{PushRepo: pushRepo, TaskLockRepo: taskLockRepo, HostName: hostName, FirebaseClient: client}
+	return &PushController{PushRepo: pushRepo, TaskLockRepo: taskLockRepo, HostName: hostName, fcm: client}
 }
 
-func newFirebaseClient() (*messaging.Client, error) {
-	firebaseCredentialsFile, err := config.CredentialFilePath("fcm-service-account.json")
+// fcmClient sends pushes via the FCM HTTP v1 API directly. We avoid the Firebase
+// Admin SDK because it pulls in the entire google.golang.org/api + Firestore +
+// OpenTelemetry tree just to send a push.
+type fcmClient struct {
+	httpClient *http.Client
+	projectID  string
+}
+
+func newFCMClient() (*fcmClient, error) {
+	credentialsFile, err := config.CredentialFilePath("fcm-service-account.json")
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
-	if firebaseCredentialsFile == "" {
+	if credentialsFile == "" {
 		// Can happen when running locally
 		return nil, nil
 	}
-
-	opt := option.WithCredentialsFile(firebaseCredentialsFile)
-	app, err := firebase.NewApp(context.Background(), nil, opt)
+	data, err := os.ReadFile(credentialsFile)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
-	client, err := app.Messaging(context.Background())
+	creds, err := google.CredentialsFromJSONWithType(context.Background(), data, google.ServiceAccount, fcmSendScope)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
-
-	return client, nil
+	client := oauth2.NewClient(context.Background(), creds.TokenSource)
+	client.Timeout = fcmSendTimeout
+	return &fcmClient{
+		httpClient: client,
+		projectID:  creds.ProjectID,
+	}, nil
 }
 
-func (c *PushController) AddToken(userID int64, token ente.PushTokenRequest) error {
-	return stacktrace.Propagate(c.PushRepo.AddToken(userID, token), "")
+func (c *PushController) AddToken(userID int64, sessionTokenHash []byte, token ente.PushTokenRequest) error {
+	if token.NotificationKey != nil {
+		if _, err := hpke.MLKEM768X25519().NewPublicKey(token.NotificationKey); err != nil {
+			return ente.NewBadRequestWithMessage("invalid notification public key")
+		}
+	}
+	return stacktrace.Propagate(c.PushRepo.AddToken(userID, sessionTokenHash, token), "")
+}
+
+func (c *PushController) NotifyAlbumShare(ctx context.Context, recipients []int64) {
+	if viper.GetBool("internal.silent") || c.fcm == nil || len(recipients) == 0 {
+		return
+	}
+	ctx = context.WithoutCancel(ctx)
+	lookupCtx, cancel := context.WithTimeout(ctx, 5*gotime.Second)
+	tokens, err := c.PushRepo.GetTokensForAlbumShare(lookupCtx, recipients)
+	cancel()
+	if err != nil {
+		log.WithError(err).Warn("album share push token lookup failed")
+		return
+	}
+	var unregisteredTokens []string
+	for _, token := range tokens {
+		if token.NotificationPublicKey == nil {
+			continue
+		}
+		publicKey, err := hpke.MLKEM768X25519().NewPublicKey(token.NotificationPublicKey)
+		if err != nil {
+			log.WithError(err).Warn("invalid album share notification public key")
+			continue
+		}
+		ciphertext, err := hpke.Seal(publicKey, hpke.HKDFSHA256(), hpke.ChaCha20Poly1305(),
+			[]byte("ente-push"), []byte(`{"eventType":"album_shared"}`))
+		if err != nil {
+			log.WithError(err).Warn("album share notification encryption failed")
+			continue
+		}
+		err = c.fcm.sendMessage(ctx, map[string]any{
+			"token":   token.FCMToken,
+			"data":    map[string]string{"notificationCiphertext": base64.StdEncoding.EncodeToString(ciphertext)},
+			"android": map[string]string{"priority": "high", "ttl": "86400s"},
+		})
+		if err != nil {
+			log.WithError(err).Warn("album share push failed; album remains shared")
+			if errors.Is(err, errUnregisteredToken) {
+				unregisteredTokens = append(unregisteredTokens, token.FCMToken)
+			}
+		}
+	}
+	c.pruneTokens(unregisteredTokens)
 }
 
 func (c *PushController) RemoveTokensForUser(userID int64) error {
@@ -141,48 +210,128 @@ func (c *PushController) updateLastNotificationTime(pushTokens []ente.PushToken)
 }
 
 func (c *PushController) sendFCMPushes(pushTokens []ente.PushToken, payload map[string]string) error {
-	firebaseClient := c.FirebaseClient
 	silent := viper.GetBool("internal.silent")
-	if silent || firebaseClient == nil {
+	if silent || c.fcm == nil {
 		if len(pushTokens) > 0 {
 			log.Info("Skipping sending pushes to " + strconv.Itoa(len(pushTokens)) + " devices")
 		}
 		return nil
 	}
-
-	log.Info("Sending pushes to " + strconv.Itoa(len(pushTokens)) + " devices")
 	if len(pushTokens) == 0 {
 		return nil
 	}
-	if len(pushTokens) > concurrentPushesInOneShot {
-		return errors.New("cannot send these many pushes in one shot")
+
+	log.Info("Sending pushes to " + strconv.Itoa(len(pushTokens)) + " devices")
+	var successCount, failureCount int64
+	var lastErr atomic.Value
+	var unregisteredMu sync.Mutex
+	var unregisteredTokens []string
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, fcmSendConcurrency)
+	for _, pushToken := range pushTokens {
+		wg.Add(1)
+		sem <- struct{}{}
+		go func(token string) {
+			defer wg.Done()
+			defer func() { <-sem }()
+			if err := c.fcm.send(context.Background(), token, payload); err != nil {
+				atomic.AddInt64(&failureCount, 1)
+				lastErr.Store(err.Error())
+				if errors.Is(err, errUnregisteredToken) {
+					unregisteredMu.Lock()
+					unregisteredTokens = append(unregisteredTokens, token)
+					unregisteredMu.Unlock()
+				}
+			} else {
+				atomic.AddInt64(&successCount, 1)
+			}
+		}(pushToken.FCMToken)
 	}
-	marshal, _ := json.Marshal(pushTokens)
-	log.WithField("devices", string(marshal)).Info("push to following devices")
-	fcmTokens := make([]string, 0)
-	for _, pushTokenData := range pushTokens {
-		fcmTokens = append(fcmTokens, pushTokenData.FCMToken)
+	wg.Wait()
+
+	if successCount == 0 && failureCount > 0 {
+		msg, _ := lastErr.Load().(string)
+		log.Error("Failed to send any pushes to " + strconv.FormatInt(failureCount, 10) +
+			" devices; last error: " + msg)
+	} else {
+		log.Info("Send push result: success count: " + strconv.FormatInt(successCount, 10) +
+			", failure count: " + strconv.FormatInt(failureCount, 10))
 	}
 
-	message := &messaging.MulticastMessage{
-		Tokens:  fcmTokens,
-		Data:    payload,
-		Android: &messaging.AndroidConfig{Priority: "high"},
-		APNS: &messaging.APNSConfig{
-			Headers: map[string]string{
+	c.pruneTokens(unregisteredTokens)
+	return nil
+}
+
+func (c *PushController) pruneTokens(fcmTokens []string) {
+	if len(fcmTokens) == 0 {
+		return
+	}
+	if err := c.PushRepo.RemoveTokensByFCM(fcmTokens); err != nil {
+		log.Error(fmt.Errorf("error pruning %d unregistered FCM tokens: %w", len(fcmTokens), err))
+		return
+	}
+	log.Info("Pruned " + strconv.Itoa(len(fcmTokens)) + " unregistered FCM tokens")
+}
+
+func (c *fcmClient) send(ctx context.Context, token string, data map[string]string) error {
+	return c.sendMessage(ctx, map[string]any{
+		"token":   token,
+		"data":    data,
+		"android": map[string]any{"priority": "high"},
+		"apns": map[string]any{
+			"headers": map[string]string{
 				"apns-push-type": "background",
-				"apns-priority":  "5",             // Must be `5` when `contentAvailable` is set to true.
-				"apns-topic":     "io.ente.frame", // bundle identifier
+				"apns-priority":  "5",
+				"apns-topic":     "io.ente.frame",
 			},
-			Payload: &messaging.APNSPayload{Aps: &messaging.Aps{ContentAvailable: true}},
+			"payload": map[string]any{"aps": map[string]any{"content-available": 1}},
 		},
-	}
-	result, err := firebaseClient.SendMulticast(context.Background(), message)
+	})
+}
+
+func (c *fcmClient) sendMessage(ctx context.Context, message map[string]any) error {
+	body, err := json.Marshal(map[string]any{"message": message})
 	if err != nil {
-		return stacktrace.Propagate(err, "Error sending pushes")
-	} else {
-		log.Info("Send push result: success count: " + strconv.Itoa(result.SuccessCount) +
-			", failure count: " + strconv.Itoa(result.FailureCount))
-		return nil
+		return stacktrace.Propagate(err, "")
 	}
+	url := fmt.Sprintf("https://fcm.googleapis.com/v1/projects/%s/messages:send", c.projectID)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
+	if err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
+		if fcmErrorCode(b) == "UNREGISTERED" {
+			return fmt.Errorf("%w (status %d)", errUnregisteredToken, resp.StatusCode)
+		}
+		return fmt.Errorf("status %d: %s", resp.StatusCode, string(b))
+	}
+	return nil
+}
+
+var errUnregisteredToken = errors.New("fcm: unregistered token")
+
+func fcmErrorCode(body []byte) string {
+	var e struct {
+		Error struct {
+			Details []struct {
+				ErrorCode string `json:"errorCode"`
+			} `json:"details"`
+		} `json:"error"`
+	}
+	if json.Unmarshal(body, &e) != nil {
+		return ""
+	}
+	for _, d := range e.Error.Details {
+		if d.ErrorCode != "" {
+			return d.ErrorCode
+		}
+	}
+	return ""
 }

@@ -1,10 +1,14 @@
 ---
-title: This Page Has Moved
-description: This content has been reorganized
+title: Free Up Space
+description: Free up device storage after backing up to Ente Photos
 search: false
+head:
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
-# This Page Has Moved
+# Free Up Space
 
 The **Free Up Space** feature guide has moved to:
 

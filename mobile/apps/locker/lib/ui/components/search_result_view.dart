@@ -27,7 +27,6 @@ class SearchResultView extends StatelessWidget {
   Widget build(BuildContext context) {
     final displayCollections = showCollections ? collections : <Collection>[];
 
-    // For non-home pages, show search everywhere option
     return Padding(
       padding: const EdgeInsets.only(left: 16, right: 16),
       child: Column(

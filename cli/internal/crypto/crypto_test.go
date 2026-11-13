@@ -1,7 +1,6 @@
 package crypto
 
 import (
-	"crypto/rand"
 	"encoding/base64"
 	"testing"
 )
@@ -9,7 +8,7 @@ import (
 const (
 	password           = "test_password"
 	kdfSalt            = "vd0dcYMGNLKn/gpT6uTFTw=="
-	memLimit           = 64 * 1024 * 1024 // 64MB
+	memLimit           = 64 * 1024 * 1024
 	opsLimit           = 2
 	cipherText         = "kBXQ2PuX6y/aje5r22H0AehRPh6sQ0ULoeAO"
 	cipherNonce        = "v7wsI+BFZsRMIjDm3rTxPhmi/CaUdkdJ"
@@ -49,25 +48,6 @@ func TestDecryptChaCha20poly1305(t *testing.T) {
 	}
 	if string(decryptedText) != expectedPlainText {
 		t.Fatalf("Decrypted text : %s does not match the expected text: %s", string(decryptedText), expectedPlainText)
-	}
-}
-
-func TestEncryptAndDecryptChaCha20Ploy1305(t *testing.T) {
-	key := make([]byte, 32)
-	_, err := rand.Read(key)
-	if err != nil {
-		t.Fatalf("Failed to generate random key: %v", err)
-	}
-	cipher, nonce, err := EncryptChaCha20poly1305([]byte("plain_text"), key)
-	if err != nil {
-		return
-	}
-	plainText, err := decryptChaCha20poly1305(cipher, key, nonce)
-	if err != nil {
-		t.Fatalf("Failed to decrypt: %v", err)
-	}
-	if string(plainText) != "plain_text" {
-		t.Fatalf("Decrypted text : %s does not match the expected text: %s", string(plainText), "plain_text")
 	}
 }
 

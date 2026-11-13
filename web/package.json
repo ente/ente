@@ -4,45 +4,82 @@
     "private": true,
     "workspaces": [
         "apps/*",
-        "packages/*"
+        "packages/*",
+        "packages/wasm/*",
+        "e2e"
     ],
     "scripts": {
-        "build": "yarn build:photos",
-        "build:accounts": "yarn build:wasm && yarn workspace accounts next build",
-        "build:auth": "yarn build:wasm && yarn workspace auth next build",
-        "build:cast": "yarn build:wasm && yarn workspace cast next build",
-        "build:embed": "yarn build:wasm && yarn workspace embed next build",
-        "build:ensu": "yarn build:wasm && yarn workspace ensu next build",
-        "build:paste": "yarn build:wasm && yarn workspace paste next build && yarn workspace paste build:post",
-        "build:payments": "yarn workspace payments build",
-        "build:photos": "yarn build:wasm && yarn workspace photos next build",
-        "build:share": "yarn build:wasm && yarn workspace share next build && yarn workspace share build:post",
-        "build:wasm": "yarn workspace ente-wasm build --no-pack",
-        "dev": "yarn dev:photos",
-        "dev:accounts": "yarn build:wasm && yarn workspace accounts next dev -p 3001",
-        "dev:albums": "yarn build:wasm && yarn workspace photos next dev -p 3002",
-        "dev:auth": "yarn build:wasm && yarn workspace auth next dev -p 3003",
-        "dev:cast": "yarn build:wasm && yarn workspace cast next dev -p 3004",
-        "dev:embed": "yarn build:wasm && yarn workspace embed next dev -p 3006",
-        "dev:ensu": "yarn build:wasm && yarn workspace ensu next dev -p 3007",
-        "dev:paste": "yarn build:wasm && yarn workspace paste next dev -p 3008",
-        "dev:payments": "yarn workspace payments dev",
-        "dev:photos": "yarn build:wasm && yarn workspace photos next dev -p 3000",
-        "dev:share": "yarn build:wasm && yarn workspace share next dev -p 3005",
-        "lint": "concurrently --names 'prettier,eslint,tsc' \"yarn prettier --check --log-level warn .\" \"yarn workspaces run eslint\" \"yarn workspaces run tsc\"",
-        "lint-fix": "concurrently --names 'prettier,eslint,tsc' \"yarn prettier --write --log-level warn .\" \"yarn workspaces run eslint --fix\" \"yarn workspaces run tsc\"",
-        "test": "yarn workspace ente-wasm test",
-        "test:run": "yarn workspace ente-wasm test run"
+        "build": "npm run build:photos",
+        "build:accounts": "npm run build:prelogin-wasm && npm exec --workspace accounts -- next build --webpack",
+        "build:albums": "npm run build:prelogin-wasm && npm exec --workspace albums -- next build --webpack",
+        "build:auth": "npm run build:prelogin-wasm && npm run build:auth-wasm && npm exec --workspace auth -- next build --webpack",
+        "build:auth-wasm": "npm run build --workspace ente-auth-wasm",
+        "build:cast": "npm run build:prelogin-wasm && npm run build:cast-wasm && npm exec --workspace cast -- next build --webpack",
+        "build:cast-wasm": "npm run build --workspace ente-cast-wasm",
+        "build:embed": "npm run build:prelogin-wasm && npm exec --workspace embed -- next build --webpack",
+        "build:ensu": "npm run build:ensu-wasm && npm exec --workspace ensu -- next build --webpack",
+        "build:ensu-wasm": "npm run build --workspace ente-ensu-wasm",
+        "build:legacy": "npm run build:legacy-wasm && npm exec --workspace legacy -- next build --webpack",
+        "build:legacy-wasm": "npm run build --workspace ente-legacy-wasm",
+        "build:locker": "npm run build:prelogin-wasm && npm run build:locker-wasm && npm exec --workspace locker -- next build --webpack",
+        "build:locker-wasm": "npm run build --workspace ente-locker-wasm",
+        "build:memories": "npm run build:prelogin-wasm && npm exec --workspace memories -- next build --webpack && npm run build:post --workspace memories",
+        "build:paste": "npm run build:paste-wasm && npm exec --workspace paste -- next build --webpack && npm run build:post --workspace paste",
+        "build:paste-wasm": "npm run build --workspace ente-paste-wasm",
+        "build:payments": "npm run build --workspace payments",
+        "build:photobook": "npm run build:prelogin-wasm && npm run build:photobook-wasm && npm exec --workspace photobook -- next build --webpack",
+        "build:photobook-wasm": "npm run build --workspace ente-photobook-wasm",
+        "build:photos": "npm run build:prelogin-wasm && npm run build:photos-wasm && npm exec --workspace photos -- next build --webpack",
+        "build:photos-wasm": "npm run build --workspace ente-photos-wasm",
+        "build:prelogin-wasm": "npm run build --workspace ente-prelogin-wasm",
+        "build:share": "npm run build:prelogin-wasm && npm exec --workspace share -- next build --webpack && npm run build:post --workspace share",
+        "build:space": "npm run build:prelogin-wasm && npm run build:space-wasm && npm exec --workspace space -- next build --webpack && npm run build:post --workspace space",
+        "build:space-wasm": "npm run build --workspace ente-space-wasm",
+        "build:twoof3": "npm exec --workspace twoof3 -- next build --webpack",
+        "build:wasm": "npm run build:prelogin-wasm && npm run build:auth-wasm && npm run build:cast-wasm && npm run build:ensu-wasm && npm run build:legacy-wasm && npm run build:locker-wasm && npm run build:paste-wasm && npm run build:photos-wasm && npm run build:space-wasm && npm run build:photobook-wasm",
+        "dev": "npm run dev:photos",
+        "dev:accounts": "npm run build:prelogin-wasm && npm exec --workspace accounts -- next dev --webpack -p 3001",
+        "dev:albums": "npm run build:prelogin-wasm && npm exec --workspace albums -- next dev --webpack -p 3002",
+        "dev:auth": "npm run build:prelogin-wasm && npm run build:auth-wasm && npm exec --workspace auth -- next dev --webpack -p 3003",
+        "dev:cast": "npm run build:prelogin-wasm && npm run build:cast-wasm && npm exec --workspace cast -- next dev --webpack -p 3004",
+        "dev:embed": "npm run build:prelogin-wasm && npm exec --workspace embed -- next dev --webpack -p 3006",
+        "dev:ensu": "npm run build:ensu-wasm && npm exec --workspace ensu -- next dev --webpack -p 3007",
+        "dev:legacy": "npm run build:legacy-wasm && npm exec --workspace legacy -- next dev --webpack -p 3011",
+        "dev:locker": "npm run build:prelogin-wasm && npm run build:locker-wasm && npm exec --workspace locker -- next dev --webpack -p 3009",
+        "dev:memories": "npm run build:prelogin-wasm && npm exec --workspace memories -- next dev --webpack -p 3010",
+        "dev:paste": "npm run build:paste-wasm && npm exec --workspace paste -- next dev --webpack -p 3008",
+        "dev:payments": "npm run dev --workspace payments",
+        "dev:photobook": "npm run build:prelogin-wasm && npm run build:photobook-wasm && npm exec --workspace photobook -- next dev --webpack -p 3014",
+        "dev:photos": "npm run build:prelogin-wasm && npm run build:photos-wasm && npm exec --workspace photos -- next dev --webpack -p 3000",
+        "dev:share": "npm run build:prelogin-wasm && npm exec --workspace share -- next dev --webpack -p 3005",
+        "dev:space": "npm run build:prelogin-wasm && npm run build:space-wasm && npm exec --workspace space -- next dev --webpack -p 3013",
+        "dev:twoof3": "npm exec --workspace twoof3 -- next dev --webpack -p 3012",
+        "lint": "node scripts/lint.mjs",
+        "lint:fix": "node scripts/lint.mjs --fix",
+        "test": "npm run test --workspace ente-wasm-tests && npm run test --workspace ente-prelogin-wasm && npm run test --workspace ente-locker-wasm && npm run test --workspace ente-paste-wasm && npm run test --workspace ente-contacts && npm run test --workspace ensu && npm run test --workspace locker && npm run test --workspace paste && npm run test --workspace photos && npm run test --workspace space && npm run test --workspace photobook",
+        "test:e2e": "cargo run --locked --manifest-path ../rust/Cargo.toml -p ente-test-support --bin with-museum -- node e2e/run.ts"
     },
-    "resolutions": {
-        "@types/react": "^19.2.2",
-        "@types/react-dom": "^19.2.2"
+    "overrides": {
+        "@types/react": "19.3.0",
+        "@types/react-dom": "19.3.0",
+        "base-x": "5.0.1",
+        "concurrently": {
+            "shell-quote": "1.11.0"
+        },
+        "micromark-extension-math": {
+            "katex": "0.18.2"
+        },
+        "rehype-katex": {
+            "katex": "0.18.2"
+        }
     },
     "devDependencies": {
-        "concurrently": "^9.2.1",
-        "eslint": "^9.30.1",
-        "prettier": "^3.6.2",
-        "typescript": "^5.8.3"
+        "@playwright/test": "1.65.0",
+        "concurrently": "10.0.6",
+        "eslint": "10.12.0",
+        "knip": "6.41.0",
+        "prettier": "3.9.9",
+        "typescript": "6.0.3"
     },
-    "packageManager": "yarn@1.22.22"
+    "packageManager": "npm@11.12.1"
 }

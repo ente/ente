@@ -10,10 +10,7 @@ class Dimensions {
   }
 
   Map<String, int> toJson() {
-    return {
-      'width': width,
-      'height': height,
-    };
+    return {'width': width, 'height': height};
   }
 
   factory Dimensions.fromJson(Map<String, dynamic> json) {

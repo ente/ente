@@ -1,0 +1,913 @@
+import "dart:async";
+import "dart:math" as math;
+import "dart:typed_data";
+import "dart:ui";
+
+import "package:collection/collection.dart";
+import "package:ente_pure_utils/ente_pure_utils.dart";
+import "package:ente_strings/ente_strings.dart";
+import "package:flutter/material.dart";
+import "package:flutter/services.dart" show SystemUiOverlayStyle;
+import "package:hugeicons/hugeicons.dart";
+import "package:intl/intl.dart" show DateFormat;
+import "package:logging/logging.dart";
+import "package:photos/db/ml/db.dart";
+import "package:photos/models/file/file.dart";
+import "package:photos/models/memory_lane/memory_lane_models.dart";
+import "package:photos/models/ml/face/face_with_embedding.dart";
+import "package:photos/models/ml/face/person.dart";
+import "package:photos/service_locator.dart";
+import "package:photos/services/memory_lane/memory_lane_cache_service.dart";
+import "package:photos/services/memory_lane/memory_lane_service.dart";
+import "package:photos/services/memory_share_service.dart";
+import "package:photos/theme/ente_theme.dart";
+import "package:photos/ui/home/memories/memory_music_session.dart";
+import "package:photos/ui/home/memories/memory_progress_indicator.dart";
+import "package:photos/ui/home/memories/memory_viewer_constants.dart";
+import "package:photos/ui/viewer/gallery/jump_to_date_gallery.dart";
+import "package:photos/ui/viewer/people/memory_lane_caption.dart";
+import "package:photos/ui/viewer/people/memory_lane_scrubber.dart";
+import "package:photos/utils/dialog_util.dart";
+import "package:photos/utils/face/face_thumbnail_cache.dart";
+import "package:photos/utils/share_util.dart";
+
+Future<void> openMemoryLanePage(
+  BuildContext context, {
+  required String personId,
+  required PersonEntity? person,
+  bool isCluster = false,
+}) async {
+  if (!context.mounted || (!isCluster && person == null)) return;
+
+  await routeToPage(
+    context,
+    MemoryLanePageV2(personId: personId, isCluster: isCluster, person: person),
+  );
+}
+
+class MemoryLanePageV2 extends StatefulWidget {
+  final String personId;
+  final bool isCluster;
+  final PersonEntity? person;
+  final bool isActive;
+  final VoidCallback? onNextMemory;
+  final VoidCallback? onPreviousMemory;
+  final bool isFromMemoriesStrip;
+
+  const MemoryLanePageV2({
+    required this.personId,
+    required this.isCluster,
+    required this.person,
+    this.isActive = true,
+    this.onNextMemory,
+    this.onPreviousMemory,
+    this.isFromMemoriesStrip = false,
+    super.key,
+  });
+
+  @override
+  State<MemoryLanePageV2> createState() => _MemoryLanePageV2State();
+}
+
+class _MemoryLanePageV2State extends State<MemoryLanePageV2> {
+  late final _playbackInterval = Duration(
+    seconds: widget.isFromMemoriesStrip ? 3 : 1,
+  );
+
+  final _logger = Logger("MemoryLanePageV2");
+  Timer? _playbackTimer;
+  AnimationController? _progressAnimationController;
+  final _playbackElapsed = Stopwatch();
+  Object? _playbackToken;
+  int? _photoPointer;
+  bool _useFastTransition = false;
+  late final Future<void> _memoryLaneLoaded;
+  Key _currentEntryKey = UniqueKey();
+  MemoryLanePersonTimeline? _timeline;
+  final List<MemoryLaneEntry> _entries = [];
+  _Chunkinator<MemoryLaneEntry, Uint8List?>? _chunkinator;
+  final Map<(Future<Uint8List?>, Size, bool), Future<(Uint8List, int)?>>
+  _decodedEntries = {};
+  final List<EnteFile> _files = [];
+  int i = 0;
+  bool _hasMarkedScheduleSeen = false;
+  MemoryLaneSchedule? _schedule;
+  bool _isMusicPausedByPointer = false;
+  bool _isMusicPausedByDialog = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _memoryLaneLoaded = _loadMemoryLane();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (widget.isActive) {
+      _syncMusic();
+    }
+  }
+
+  void _syncMusic() {
+    if (!widget.isActive) return;
+    final scope = MemoryAudioScope.maybeOf(context, listen: false);
+    if (scope == null) return;
+    if (_entries.isEmpty) {
+      scope.setMusicViewerActionPaused(true);
+      return;
+    }
+    scope.activateMusic(
+      "memoryLane_${widget.personId}",
+      currentItemIsVideo: false,
+      viewerActionPaused: _isMusicPausedByPointer || _isMusicPausedByDialog,
+    );
+  }
+
+  void _setMusicPausedByPointer(bool paused) {
+    _isMusicPausedByPointer = paused;
+    _syncMusicViewerActionPaused();
+  }
+
+  void _setMusicPausedByDialog(bool paused) {
+    _isMusicPausedByDialog = paused;
+    _syncMusicViewerActionPaused();
+  }
+
+  void _syncMusicViewerActionPaused() {
+    if (!mounted || !widget.isActive) return;
+    MemoryAudioScope.maybeOf(
+      context,
+      listen: false,
+    )?.setMusicViewerActionPaused(
+      _isMusicPausedByPointer || _isMusicPausedByDialog || _entries.isEmpty,
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant MemoryLanePageV2 oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isActive == widget.isActive) return;
+    if (!widget.isActive) {
+      _pause();
+      return;
+    }
+    unawaited(_play(0));
+    _syncMusic();
+  }
+
+  @override
+  void dispose() {
+    _playbackTimer?.cancel();
+    _chunkinator?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadMemoryLane() async {
+    try {
+      if (widget.isFromMemoriesStrip) {
+        final schedule = await MemoryLaneCacheService.instance
+            .getCurrentMemoriesStripSchedule();
+        if (!mounted) return;
+        if (schedule?.personID == widget.personId &&
+            schedule?.isCluster == widget.isCluster) {
+          _schedule = schedule;
+        }
+      }
+      final timeline = await MemoryLaneService.instance.getTimeline(
+        widget.personId,
+        isCluster: widget.isCluster,
+      );
+      if (!mounted) return;
+      _timeline = timeline;
+      if (timeline == null ||
+          !timeline.isEligible ||
+          timeline.entries.isEmpty) {
+        return;
+      }
+      final files = await MemoryLaneService.instance.getTimelineFiles(
+        timeline.entries.map((entry) => entry.fileId).toSet(),
+      );
+      if (!mounted) return;
+      for (final entry in timeline.entries) {
+        final file = files[entry.fileId];
+        if (file != null) {
+          _files.add(file);
+          _entries.add(entry);
+        }
+      }
+      const chunkSize = 5;
+      _chunkinator = _Chunkinator(
+        keys: _entries,
+        chunkSize: chunkSize,
+        fetch: (entry) async {
+          if (!mounted) return null;
+          return _loadEntry(entry, files[entry.fileId]!);
+        },
+      );
+      _syncMusic();
+      unawaited(_play(0));
+    } catch (error) {
+      if (!mounted ||
+          !widget.isActive ||
+          ModalRoute.of(context)?.isCurrent != true) {
+        return;
+      }
+      final navigator = Navigator.of(context);
+      navigator.pop();
+      await showGenericErrorDialog(context: navigator.context, error: error);
+    }
+  }
+
+  Future<void> _play(int index, {bool fastTransition = false}) async {
+    if (!widget.isActive || _entries.isEmpty) return;
+    final token = Object();
+    setState(() {
+      _playbackTimer?.cancel();
+      _playbackElapsed
+        ..stop()
+        ..reset();
+      _progressAnimationController?.reset();
+      _selectEntry(index, fastTransition: fastTransition);
+      _playbackToken = token;
+    });
+    await _chunkinator!.get(_entries[index]);
+    if (!mounted || !widget.isActive || _playbackToken != token) return;
+    _playbackElapsed.start();
+    _progressAnimationController?.forward(from: 0);
+    _playbackTimer = Timer(_playbackInterval, () {
+      if (index < _entries.length - 1) {
+        unawaited(_play(index + 1));
+      } else {
+        _pause();
+        widget.onNextMemory?.call();
+      }
+    });
+  }
+
+  void _pause() {
+    setState(() {
+      _playbackTimer?.cancel();
+      _playbackElapsed.stop();
+      _progressAnimationController?.stop();
+      _playbackToken = null;
+    });
+  }
+
+  void _seekToIndex(int index) {
+    setState(() {
+      _playbackTimer?.cancel();
+      _playbackToken = null;
+      _selectEntry(index, fastTransition: true);
+    });
+  }
+
+  void _onPhotoPointerEnd(PointerEvent event) {
+    if (event.pointer != _photoPointer) return;
+    _photoPointer = null;
+    _setMusicPausedByPointer(false);
+    unawaited(_play(i, fastTransition: true));
+  }
+
+  Future<Uint8List?> _loadEntry(MemoryLaneEntry entry, EnteFile file) async {
+    try {
+      final mlDataDB = isLocalGalleryMode
+          ? MLDataDB.localGalleryInstance
+          : MLDataDB.instance;
+      final List<FaceWithoutEmbedding>? faces = await mlDataDB
+          .getFacesForGivenFileID(entry.fileId);
+      final face = faces?.firstWhereOrNull(
+        (face) => face.faceID == entry.faceId,
+      );
+      if (face == null) return null;
+      final crops = await getCachedFaceCrops(file, [face], useTempCache: false);
+      final bytes = crops?[entry.faceId];
+      if (bytes != null && bytes.isNotEmpty) {
+        return bytes;
+      }
+      return null;
+    } catch (e, s) {
+      _logger.severe("Failed to load memory lane entry", e, s);
+      return null;
+    }
+  }
+
+  Future<(Uint8List, int)?> _fetchEntry(
+    Future<Uint8List?> entry,
+    Size targetSize, {
+    bool fitWithin = false,
+  }) {
+    return _decodedEntries.putIfAbsent(
+      (entry, targetSize, fitWithin),
+      () async {
+        final bytes = await entry;
+        if (bytes == null || !mounted) return null;
+        final buffer = await ImmutableBuffer.fromUint8List(bytes);
+        try {
+          final descriptor = await ImageDescriptor.encoded(buffer);
+          try {
+            final scale = (fitWithin ? math.min : math.max)(
+              targetSize.width / descriptor.width,
+              targetSize.height / descriptor.height,
+            );
+            final scaledWidth = descriptor.width * scale;
+            final decodeWidth =
+                (fitWithin ? scaledWidth.floor() : scaledWidth.ceil()).clamp(
+                  1,
+                  descriptor.width,
+                );
+            return (bytes, decodeWidth);
+          } finally {
+            descriptor.dispose();
+          }
+        } finally {
+          buffer.dispose();
+        }
+      },
+    );
+  }
+
+  void _selectEntry(int index, {bool fastTransition = false}) {
+    if (i != index) {
+      _currentEntryKey = UniqueKey();
+      _useFastTransition = fastTransition;
+    }
+    i = index;
+    if (index != _entries.length - 1) {
+      _hasMarkedScheduleSeen = false;
+      return;
+    }
+    final entryKey = _currentEntryKey;
+    unawaited(
+      _chunkinator!.get(_entries[index]).then((bytes) async {
+        if (bytes == null ||
+            !mounted ||
+            !widget.isActive ||
+            _currentEntryKey != entryKey ||
+            ModalRoute.of(context)?.isCurrent != true) {
+          return;
+        }
+        final markScheduleSeen = !_hasMarkedScheduleSeen;
+        _hasMarkedScheduleSeen = true;
+        if (!localSettings.hasSeenMemoryLane(widget.personId)) {
+          await localSettings.markMemoryLaneSeen(widget.personId);
+        }
+        final schedule = _schedule;
+        if (markScheduleSeen && schedule != null) {
+          await MemoryLaneCacheService.instance.markScheduleCompletelySeen(
+            schedule,
+          );
+        }
+      }),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenSize = MediaQuery.sizeOf(context);
+    final safePadding = MediaQuery.paddingOf(context);
+    final memoryAudio = MemoryAudioScope.maybeOf(context);
+    final toolbarTopPadding = widget.isFromMemoriesStrip
+        ? math.max(40.0 - safePadding.top, 0.0) + 16
+        : 16.0;
+    return FutureBuilder<void>(
+      future: _memoryLaneLoaded,
+      builder: (context, snapshot) {
+        final name = widget.person?.data.name.trim();
+        var title = context.strings.facesTimelineAppBarTitle;
+        if (name != null && name.isNotEmpty) {
+          title = context.strings.memoryLaneCardTitle(
+            name: name,
+            nameEndsWithS: name.toLowerCase().endsWith("s").toString(),
+          );
+        }
+        final file = _files.isEmpty ? null : _files[i];
+        final entry = _entries.isEmpty ? null : _chunkinator!.get(_entries[i]);
+        final creationTime = file?.creationTime;
+        final creationDate = creationTime == null
+            ? null
+            : DateTime.fromMicrosecondsSinceEpoch(creationTime);
+        const captionPlaceholder = MemoryLaneCaption.timePlaceholder;
+        final captionName = name == null || name.isEmpty
+            ? ""
+            : MemoryLaneCaption.namePlaceholder;
+        int? captionValue;
+        String? caption;
+        if (creationDate != null) {
+          final now = DateTime.now();
+          final today = DateTime.utc(now.year, now.month, now.day);
+          var months =
+              (now.year - creationDate.year) * 12 +
+              now.month -
+              creationDate.month;
+          final anniversary = DateTime.utc(
+            now.year,
+            now.month,
+            creationDate.day.clamp(
+              1,
+              DateTime.utc(now.year, now.month + 1, 0).day,
+            ),
+          );
+          if (today.isBefore(anniversary)) months--;
+          if (months >= 12) {
+            captionValue = months ~/ 12;
+            caption = context.strings.memoryLaneCaptionYearsAgo(
+              name: captionName,
+              count: captionValue,
+              number: captionPlaceholder,
+            );
+          } else {
+            caption = context.strings.memoryLaneCaptionNow(
+              name: captionName,
+              now: captionPlaceholder,
+            );
+          }
+          caption = caption.trim();
+        }
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: ColoredBox(
+                color: Colors.black,
+                child: AnimatedSwitcher(
+                  duration: Duration(
+                    milliseconds: _useFastTransition ? 100 : 750,
+                  ),
+                  switchInCurve: Curves.easeOutExpo,
+                  switchOutCurve: Curves.easeInExpo,
+                  child: FutureBuilder<(Uint8List, int)?>(
+                    key: _currentEntryKey,
+                    future: entry == null
+                        ? null
+                        : _fetchEntry(
+                            entry,
+                            const Size.square(256),
+                            fitWithin: true,
+                          ),
+                    builder: (context, entrySnapshot) {
+                      final crop = entrySnapshot.data;
+                      if (crop == null) return const SizedBox.expand();
+                      return ImageFiltered(
+                        imageFilter: ImageFilter.blur(sigmaX: 100, sigmaY: 100),
+                        child: Image.memory(
+                          crop.$1,
+                          cacheWidth: crop.$2,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: double.infinity,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+            if (widget.isFromMemoriesStrip && _entries.isNotEmpty)
+              Positioned(
+                top: math.max(safePadding.top, 40),
+                left: safePadding.left + 16,
+                right: safePadding.right + 16,
+                child: MemoryProgressIndicator(
+                  totalSteps: _entries.length,
+                  currentIndex: i,
+                  duration: _playbackInterval,
+                  unselectedColor: Colors.white.withValues(alpha: 0.4),
+                  animationController: (controller) {
+                    _progressAnimationController = controller;
+                    controller.value =
+                        (_playbackElapsed.elapsedMicroseconds /
+                                _playbackInterval.inMicroseconds)
+                            .clamp(0.0, 1.0);
+                    if (_playbackElapsed.isRunning) controller.forward();
+                  },
+                  onAnimationControllerDisposed: (controller) {
+                    if (_progressAnimationController == controller) {
+                      _progressAnimationController = null;
+                    }
+                  },
+                ),
+              ),
+            Scaffold(
+              backgroundColor: Colors.transparent,
+              appBar: PreferredSize(
+                preferredSize: Size.fromHeight(
+                  kToolbarHeight + toolbarTopPadding,
+                ),
+                child: Padding(
+                  padding: EdgeInsets.only(top: toolbarTopPadding),
+                  child: AppBar(
+                    centerTitle: false,
+                    backgroundColor: Colors.transparent,
+                    foregroundColor: Colors.white,
+                    iconTheme: const IconThemeData(color: Colors.white),
+                    actionsIconTheme: const IconThemeData(color: Colors.white),
+                    systemOverlayStyle: SystemUiOverlayStyle.light,
+                    title: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Hero(
+                          tag: 'memory-lane-title-${widget.personId}',
+                          child: Text(
+                            title,
+                            style: darkTheme.textTheme.large.copyWith(
+                              inherit: false,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (file != null && creationTime != null)
+                          GestureDetector(
+                            onTap: () => _onDateTap(file),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  DateFormat.yMMMMd(
+                                    Localizations.localeOf(
+                                      context,
+                                    ).toLanguageTag(),
+                                  ).format(
+                                    DateTime.fromMicrosecondsSinceEpoch(
+                                      creationTime,
+                                    ),
+                                  ),
+                                  style: darkTheme.textTheme.small,
+                                ),
+                                const Icon(
+                                  Icons.chevron_right,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                    leadingWidth: 48 + screenSize.width * 0.04,
+                    actionsPadding: EdgeInsets.only(
+                      right: screenSize.width * 0.04,
+                    ),
+                    // TODO: Replace with an Ente component when it supports this pressed overlay.
+                    leading: Align(
+                      alignment: Alignment.centerRight,
+                      child: SizedBox.square(
+                        dimension: 48,
+                        child: IconButton(
+                          tooltip: context.strings.close,
+                          style: IconButton.styleFrom(
+                            overlayColor: Colors.white.withValues(alpha: 0.08),
+                          ),
+                          icon: const HugeIcon(
+                            icon: HugeIcons.strokeRoundedCancel01,
+                            color: Colors.white,
+                          ),
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                      ),
+                    ),
+                    actions: [
+                      if (!isLocalGalleryMode)
+                        // TODO: Replace with an Ente component when it supports this pressed overlay.
+                        SizedBox.square(
+                          dimension: 48,
+                          child: IconButton(
+                            tooltip: context.strings.shareLink,
+                            style: IconButton.styleFrom(
+                              overlayColor: Colors.white.withValues(
+                                alpha: 0.08,
+                              ),
+                            ),
+                            icon: const HugeIcon(
+                              icon: HugeIcons.strokeRoundedShare08,
+                              color: Colors.white,
+                            ),
+                            onPressed: _onShareTap,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              body: SafeArea(
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: Listener(
+                        onPointerDown: (event) {
+                          if (_photoPointer != null || !widget.isActive) return;
+                          _photoPointer = event.pointer;
+                          _pause();
+                          _setMusicPausedByPointer(true);
+                        },
+                        onPointerUp: _onPhotoPointerEnd,
+                        onPointerCancel: _onPhotoPointerEnd,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTapUp: (details) {
+                            if (!widget.isActive || _entries.isEmpty) return;
+                            final previous =
+                                details.localPosition.dx < screenSize.width / 2;
+                            final index = i + (previous ? -1 : 1);
+                            if (index < 0 || index >= _entries.length) {
+                              final onMemory = previous
+                                  ? widget.onPreviousMemory
+                                  : widget.onNextMemory;
+                              if (onMemory != null) {
+                                _pause();
+                                onMemory();
+                              }
+                            } else {
+                              unawaited(_play(index, fastTransition: true));
+                            }
+                          },
+                          onLongPress: () {},
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: screenSize.width * 0.08,
+                              vertical: screenSize.height * 0.02,
+                            ),
+                            child: Align(
+                              child: AspectRatio(
+                                aspectRatio: 3 / 4,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: AnimatedSwitcher(
+                                    duration: Duration(
+                                      milliseconds: _useFastTransition
+                                          ? 100
+                                          : 1000,
+                                    ),
+                                    switchInCurve: Curves.easeOutCubic,
+                                    switchOutCurve: Curves.easeInCubic,
+                                    transitionBuilder: (child, animation) {
+                                      return AnimatedBuilder(
+                                        animation: animation,
+                                        child: FadeTransition(
+                                          opacity: animation,
+                                          child: ScaleTransition(
+                                            scale: Tween<double>(
+                                              begin: 1,
+                                              end: 1.1,
+                                            ).animate(animation),
+                                            child: child,
+                                          ),
+                                        ),
+                                        builder: (context, child) {
+                                          final blur =
+                                              12 * (1 - animation.value);
+                                          return ImageFiltered(
+                                            imageFilter: ImageFilter.blur(
+                                              sigmaX: blur,
+                                              sigmaY: blur,
+                                            ),
+                                            child: child,
+                                          );
+                                        },
+                                      );
+                                    },
+                                    child: switch (snapshot.connectionState) {
+                                      ConnectionState.done when file != null =>
+                                        LayoutBuilder(
+                                          key: _currentEntryKey,
+                                          builder: (context, constraints) =>
+                                              FutureBuilder<(Uint8List, int)?>(
+                                                future: entry == null
+                                                    ? null
+                                                    : _fetchEntry(
+                                                        entry,
+                                                        constraints.biggest *
+                                                            MediaQuery.devicePixelRatioOf(
+                                                              context,
+                                                            ) *
+                                                            1.1,
+                                                      ),
+                                                builder: (context, entrySnapshot) {
+                                                  final crop =
+                                                      entrySnapshot.data;
+                                                  if (crop == null) {
+                                                    if (entrySnapshot
+                                                            .connectionState ==
+                                                        ConnectionState.done) {
+                                                      return Center(
+                                                        child: Text(
+                                                          context
+                                                              .strings
+                                                              .facesTimelineUnavailable,
+                                                          style: darkTheme
+                                                              .textTheme
+                                                              .small,
+                                                        ),
+                                                      );
+                                                    }
+                                                    return const Center(
+                                                      child:
+                                                          CircularProgressIndicator(
+                                                            color: Colors.white,
+                                                          ),
+                                                    );
+                                                  }
+                                                  return Image.memory(
+                                                    crop.$1,
+                                                    cacheWidth: crop.$2,
+                                                    fit: BoxFit.cover,
+                                                    width: double.infinity,
+                                                    height: double.infinity,
+                                                  );
+                                                },
+                                              ),
+                                        ),
+                                      ConnectionState.done => Center(
+                                        key: const ValueKey(
+                                          "memory-lane-empty",
+                                        ),
+                                        child: Text(
+                                          context
+                                              .strings
+                                              .facesTimelineUnavailable,
+                                          style: darkTheme.textTheme.small,
+                                        ),
+                                      ),
+                                      _ => const Center(
+                                        key: ValueKey("memory-lane-loading"),
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: screenSize.height * 0.1,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          if (caption != null) ...[
+                            ConstrainedBox(
+                              constraints: const BoxConstraints(minHeight: 48),
+                              child: Align(
+                                alignment: Alignment.bottomCenter,
+                                child: MemoryLaneCaption(
+                                  caption: caption,
+                                  name: name ?? "",
+                                  value: captionValue,
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: screenSize.height * 0.01),
+                          ],
+                          if (_entries.isNotEmpty)
+                            MemoryLaneScrubber(
+                              totalEntries: _entries.length,
+                              currentIndex: i,
+                              onTap: (index) =>
+                                  unawaited(_play(index, fastTransition: true)),
+                              onSeek: _seekToIndex,
+                              onSeekEnd: () => unawaited(_play(i)),
+                            ),
+                          SizedBox(height: screenSize.height * 0.055),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (memoryAudio != null && _entries.isNotEmpty)
+              Positioned(
+                left: safePadding.left + kMemoryOverlayHorizontalInset,
+                bottom: safePadding.bottom + kMemoryOverlayBottomInset,
+                child: MemoryAudioMuteButton(memoryAudio),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _runWithViewerPaused(Future<void> Function() action) async {
+    final wasPlaying = _playbackToken != null;
+    _pause();
+    _setMusicPausedByDialog(true);
+    try {
+      await action();
+    } finally {
+      _setMusicPausedByDialog(false);
+      if (mounted && wasPlaying && ModalRoute.of(context)?.isCurrent == true) {
+        unawaited(_play(i));
+      }
+    }
+  }
+
+  Future<void> _onShareTap() async {
+    final timeline = _timeline;
+    final person = widget.person;
+    if (isLocalGalleryMode ||
+        timeline == null ||
+        !timeline.isEligible ||
+        timeline.entries.isEmpty) {
+      return;
+    }
+    final l10n = context.strings;
+    final name = person?.data.name.trim() ?? "";
+    var title = l10n.facesTimelineAppBarTitle;
+    if (name.isNotEmpty) {
+      title = l10n.memoryLaneCardTitle(
+        name: name,
+        nameEndsWithS: name.toLowerCase().endsWith("s").toString(),
+      );
+    }
+    final dialog = createProgressDialog(context, l10n.creatingLink);
+    await _runWithViewerPaused(() async {
+      try {
+        await dialog.show();
+        final shareLinkData = await MemoryShareService.instance
+            .getOrCreateMemoryLaneLink(
+              entries: timeline.entries,
+              title: title,
+              personId: person?.remoteID,
+              personName: person?.data.name,
+              birthDate: person?.data.birthDate,
+            );
+        await dialog.hide();
+        if (!mounted) return;
+        await shareText(
+          formatMemoryShareText(title, shareLinkData.$1),
+          context: context,
+        );
+      } catch (e) {
+        await dialog.hide();
+        if (!mounted) return;
+        await showGenericErrorBottomSheet(context: context, error: e);
+      }
+    });
+  }
+
+  Future<void> _onDateTap(EnteFile file) async {
+    await _runWithViewerPaused(
+      () => routeToPage(context, JumpToDateGallery(fileToJumpTo: file)),
+    );
+  }
+}
+
+class _Chunkinator<K, V> {
+  final List<K> keys;
+  final Future<V> Function(K key) fetch;
+  final int chunkSize;
+
+  final Map<K, Future<V>> _cache = {};
+  bool _disposed = false;
+
+  _Chunkinator({required this.keys, required this.fetch, this.chunkSize = 5}) {
+    if (chunkSize <= 0) {
+      throw ArgumentError.value(
+        chunkSize,
+        'chunkSize',
+        'Must be greater than 0',
+      );
+    }
+  }
+
+  void dispose() {
+    _disposed = true;
+    _cache.clear();
+  }
+
+  Future<V> get(K key) {
+    if (_disposed) {
+      throw StateError('Chunkinator is disposed');
+    }
+    final index = keys.indexOf(key);
+    if (index == -1) {
+      throw StateError('Key not found in keys: $key');
+    }
+    unawaited(_fetchChunk(index));
+    return _cache[key]!;
+  }
+
+  Future<void> _fetchChunk(int start) async {
+    if (start >= keys.length) {
+      return;
+    }
+    final end = math.min(start + chunkSize, keys.length);
+    while (start < end && _cache.containsKey(keys[start])) {
+      start++;
+    }
+    for (var i = start; i < end; i++) {
+      if (_disposed) return;
+      final key = keys[i];
+      try {
+        await _cache.putIfAbsent(key, () => fetch(key));
+      } catch (_) {}
+    }
+  }
+}

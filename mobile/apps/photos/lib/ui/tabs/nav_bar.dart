@@ -28,6 +28,8 @@ class GNav extends StatefulWidget {
     this.tabShadow,
     this.haptic,
     this.tabBackgroundGradient,
+    this.borderRadius,
+    this.boxShadow,
     this.mainAxisAlignment = MainAxisAlignment.spaceBetween,
   });
 
@@ -54,6 +56,8 @@ class GNav extends StatefulWidget {
   final Border? tabActiveBorder;
   final List<BoxShadow>? tabShadow;
   final Gradient? tabBackgroundGradient;
+  final double? borderRadius;
+  final List<BoxShadow>? boxShadow;
   final MainAxisAlignment mainAxisAlignment;
 
   @override
@@ -78,9 +82,9 @@ class _GNavState extends State<GNav> {
 
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(32),
+        borderRadius: BorderRadius.circular(widget.borderRadius ?? 32),
         color: widget.backgroundColor,
-        boxShadow: shadowMenuLight,
+        boxShadow: widget.boxShadow ?? shadowMenuLight,
       ),
       child: Row(
         mainAxisAlignment: widget.mainAxisAlignment,
@@ -92,10 +96,8 @@ class _GNavState extends State<GNav> {
                 activeBorder: t.activeBorder ?? widget.tabActiveBorder,
                 borderRadius:
                     t.borderRadius as bool? ?? widget.tabBorderRadius != null
-                        ? BorderRadius.all(
-                            Radius.circular(widget.tabBorderRadius!),
-                          )
-                        : const BorderRadius.all(Radius.circular(100.0)),
+                    ? BorderRadius.all(Radius.circular(widget.tabBorderRadius!))
+                    : const BorderRadius.all(Radius.circular(100.0)),
                 debug: widget.debug ?? false,
                 margin: t.margin ?? widget.tabMargin,
                 active: selectedIndex == widget.tabs!.indexOf(t),
@@ -117,6 +119,8 @@ class _GNavState extends State<GNav> {
                     t.backgroundGradient ?? widget.tabBackgroundGradient,
                 backgroundColor: t.backgroundColor ?? widget.tabBackgroundColor,
                 duration: widget.duration ?? const Duration(milliseconds: 500),
+                semanticLabel: t.semanticLabel,
+                semanticIdentifier: t.semanticIdentifier,
                 onPressed: () {
                   widget.onTabChange!(widget.tabs!.indexOf(t));
                 },
@@ -155,6 +159,7 @@ class GButton extends StatefulWidget {
   final Border? activeBorder;
   final List<BoxShadow>? shadow;
   final String? semanticLabel;
+  final String? semanticIdentifier;
 
   const GButton({
     super.key,
@@ -184,6 +189,7 @@ class GButton extends StatefulWidget {
     this.activeBorder,
     this.shadow,
     this.semanticLabel,
+    this.semanticIdentifier,
   });
 
   @override
@@ -195,6 +201,7 @@ class _GButtonState extends State<GButton> {
   Widget build(BuildContext context) {
     return Semantics(
       label: widget.semanticLabel ?? widget.text,
+      identifier: widget.semanticIdentifier,
       child: Button(
         borderRadius: widget.borderRadius,
         border: widget.border,
@@ -311,7 +318,8 @@ class _ButtonState extends State<Button> with TickerProviderStateMixin {
       expandController.forward();
     }
 
-    final Widget icon = widget.leading ??
+    final Widget icon =
+        widget.leading ??
         Icon(
           widget.icon,
           color: _expanded! ? widget.iconColor : widget.iconActiveColor,
@@ -342,18 +350,16 @@ class _ButtonState extends State<Button> with TickerProviderStateMixin {
               color: _expanded!
                   ? widget.color!.withValues(alpha: 0)
                   : widget.debug!
-                      ? Colors.red
-                      : widget.gradient != null
-                          ? Colors.white
-                          : widget.color,
+                  ? Colors.red
+                  : widget.gradient != null
+                  ? Colors.white
+                  : widget.color,
               borderRadius: widget.borderRadius,
             ),
             child: FittedBox(
               fit: BoxFit.fitHeight,
               child: Stack(
-                children: [
-                  Align(alignment: Alignment.centerLeft, child: icon),
-                ],
+                children: [Align(alignment: Alignment.centerLeft, child: icon)],
               ),
             ),
           ),

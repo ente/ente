@@ -21,57 +21,22 @@ const hasDraggedFiles = (
     return false;
 };
 
-interface FullScreenDropZoneProps {
-    /**
-     * Optional override to the message show to the user when a drag is in
-     * progress.
-     *
-     * Default: t("upload_dropzone_hint")
-     */
+export interface FullScreenDropZoneProps {
     message?: string;
-    /**
-     * If `true`, then drag and drop functionality is disabled.
-     */
     disabled?: boolean;
-    /**
-     * Callback invoked when the user drags and drops files.
-     *
-     * It will only be called if there is at least one file in {@link files}.
-     */
     onDrop: (files: FileWithPath[]) => void;
 }
 
-/**
- * A full screen container that accepts drag and drop of files, and also shows a
- * visual overlay to the user while a drag is in progress.
- *
- * It can serves as the root component of the gallery pages as the container
- * itself is a stack with flex 1, and so will fill all the height (and width)
- * available to it. The other contents of the screen can then be placed as its
- * children.
- *
- * It is meant to be used in tandem with "react-dropzone"; specifically, it
- * requires the `getRootProps` function returned by a call to
- * {@link useDropzone}.
- */
 export const FullScreenDropZone: React.FC<
     React.PropsWithChildren<FullScreenDropZoneProps>
 > = ({ message, disabled, onDrop, children }) => {
-    const {
-        // A function to call to get the props we should apply to the container,
-        getRootProps,
-        // ... the props we should apply to the <input> element,
-        getInputProps,
-    } = useDropzone({
+    const { getRootProps, getInputProps } = useDropzone({
         noClick: true,
         noKeyboard: true,
         disabled,
         onDrop(acceptedFiles) {
             setIsDropPending(false);
-            // Invoked the `onDrop` callback only if there is at least 1 file.
             if (acceptedFiles.length) {
-                // Create a regular array from the readonly array returned by
-                // dropzone.
                 onDrop([...acceptedFiles]);
             }
         },
@@ -82,10 +47,10 @@ export const FullScreenDropZone: React.FC<
 
     const handleDragEnter = useCallback(
         (event: React.DragEvent<HTMLElement>) => {
-            if (!hasDraggedFiles(event.dataTransfer)) return;
+            if (disabled || !hasDraggedFiles(event.dataTransfer)) return;
             setIsDragActive(true);
         },
-        [],
+        [disabled],
     );
 
     const handleOverlayDrop = useCallback(
@@ -118,10 +83,10 @@ export const FullScreenDropZone: React.FC<
         <>
             <input {...getInputProps()} />
             <Stack
-                sx={{ flex: 1 }}
+                sx={{ flex: 1, minHeight: 0 }}
                 {...getRootProps({ onDragEnter: handleDragEnter })}
             >
-                {(isDragActive || isDropPending) && (
+                {!disabled && (isDragActive || isDropPending) && (
                     <DropZoneOverlay
                         onDrop={handleOverlayDrop}
                         onDragLeave={handleDragLeave}
@@ -163,8 +128,6 @@ const DropZoneOverlay = styled(Stack)(
     border-color: ${theme.vars.palette.accent.light};
     background-color: ${theme.vars.palette.backdrop.base};
     backdrop-filter: blur(10px);
-    /* Above the highest possible MUI z-index, that of the MUI tooltip
-       See: https://mui.com/material-ui/customization/default-theme/ */
     z-index: calc(var(--mui-zIndex-tooltip) + 1);
 `,
 );

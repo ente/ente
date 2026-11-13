@@ -5,29 +5,23 @@ description: Overview of organization features in Ente Locker
 
 # Organization
 
-Ente Locker provides several features to help you organize and find your items
-efficiently. All organization features maintain end-to-end encryption.
+Ente Locker provides several features to help you organize and find your items efficiently. All organization features maintain end-to-end encryption.
 
 ## Collections
 
-Collections are like folders that help you group related items together. Create
-collections for work, personal, financial, or any other category that makes
-sense for you.
+Collections are like folders that help you group related items together. Create collections for work, personal, financial, or any other category that makes sense for you.
 
 Learn more about [Collections](/locker/features/organization/collections).
 
 ## Search
 
-Quickly find any item by searching titles. Search works locally on your device
-to maintain privacy.
+Quickly find any item by searching titles. Search works locally on your device to maintain privacy.
 
 Learn more about [Search](/locker/features/organization/search).
 
 ## Trash
 
-Deleted items go to Trash where they remain for 30 days before permanent
-deletion. Recover accidentally deleted items or empty Trash to remove them
-immediately.
+Deleted items go to Trash where they remain for 30 days before permanent deletion. Recover accidentally deleted items or empty Trash to remove them immediately.
 
 Learn more about [Trash](/locker/features/organization/trash).
 

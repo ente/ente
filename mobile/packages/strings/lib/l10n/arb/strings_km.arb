@@ -1,111 +1,123 @@
 {
-  "error": "មានកំហុស",
-  "@error": {
-    "description": "Generic error title"
+  "about": "អំពី",
+  "account": "គណនី",
+  "activeSessions": "សកម្មភាពគណនី",
+  "@activeSessions": {
+    "description": "Title for active sessions page"
   },
-  "ok": "យល់ព្រម",
-  "@ok": {
-    "description": "Generic OK button label"
+  "addCode": "បន្ថែមកូដ",
+  "androidCancelButton": "បោះបង់",
+  "@androidCancelButton": {
+    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
   },
-  "faq": "សំនួរ-ចម្លើយ",
-  "@faq": {
-    "description": "FAQ link label"
-  },
-  "contactSupport": "ទំនាក់ទំនងសេវា",
-  "@contactSupport": {
-    "description": "Contact support button label"
-  },
-  "copyEmailAddress": "ចម្លង​អាសយដ្ឋាន​អ៊ីមែល",
-  "@copyEmailAddress": {
-    "description": "Button to copy email address to clipboard"
-  },
-  "exportLogs": "នាំចេញកំណត់ហេតុ",
-  "@exportLogs": {
-    "description": "Button to export logs"
+  "androidSignInTitle": "តម្រូវឱ្យមានការបញ្ជាក់ភាពត្រឹមត្រូវ",
+  "@androidSignInTitle": {
+    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
   },
   "cancel": "បោះបង់",
   "@cancel": {
     "description": "Cancel button label"
   },
-  "save": "រក្សាទុក",
-  "@save": {
-    "description": "Label for save button"
-  },
-  "send": "ផ្ញើរចេញ",
-  "@send": {
-    "description": "Label for send button"
-  },
-  "email": "អ៊ីម៉ែល",
-  "@email": {
-    "description": "Email field label"
-  },
-  "verify": "ផ្ទៀងផ្ទាត់",
-  "@verify": {
-    "description": "Verify button label"
-  },
-  "invalidEmailTitle": "អ៊ីម៉ែលនេះមិនត្រឹមត្រូវទេ",
-  "@invalidEmailTitle": {
-    "description": "Title for invalid email error dialog"
-  },
-  "verifyPassword": "ផ្ទៀងផ្ទាត់ពាក្យសម្ងាត់",
-  "@verifyPassword": {
-    "description": "Verify password button label"
-  },
-  "pleaseTryAgain": "សូមសាកល្បងម្តងទៀត",
-  "@pleaseTryAgain": {
-    "description": "Message asking user to try again"
-  },
-  "enterPassword": "វាយបញ្ចូល​ពាក្យ​សម្ងាត់",
-  "@enterPassword": {
-    "description": "Enter password field label"
-  },
-  "activeSessions": "សកម្មភាពគណនី",
-  "@activeSessions": {
-    "description": "Title for active sessions page"
-  },
-  "somethingWentWrongPleaseTryAgain": "មាន​អ្វីមួយ​មិន​ប្រក្រតី។ សូម​ព្យាយាម​ម្តង​ទៀត",
-  "@somethingWentWrongPleaseTryAgain": {
-    "description": "Generic error message"
-  },
-  "terminateSession": "កាត់់ផ្តាច់សកម្មភាពគណនីនេះ?",
-  "@terminateSession": {
-    "description": "Title for terminate session dialog"
-  },
-  "terminate": "កាត់ផ្តាច់",
-  "@terminate": {
-    "description": "Terminate button label"
-  },
-  "thisDevice": "ទូរស័ព្ទនេះ",
-  "@thisDevice": {
-    "description": "Label for current device"
-  },
-  "createAccount": "បង្កើតគណនី",
-  "@createAccount": {
-    "description": "Create account button label"
-  },
-  "weakStrength": "ខ្សោយ",
-  "@weakStrength": {
-    "description": "Weak password strength label"
-  },
-  "moderateStrength": "មធ្យម",
-  "@moderateStrength": {
-    "description": "Moderate password strength label"
-  },
-  "strongStrength": "ខ្លាំង",
-  "@strongStrength": {
-    "description": "Strong password strength label"
-  },
-  "createNewAccount": "បង្កើតគណនីថ្មី",
-  "@createNewAccount": {
-    "description": "Create new account button label"
-  },
-  "password": "ពាក្យសម្ងាត់",
-  "@password": {
-    "description": "Password field label"
+  "checking": "កំពុងត្រួតពិនិត្យ...",
+  "checkStatus": "ពិនិត្យស្ថានភាព",
+  "@checkStatus": {
+    "description": "Check status button label"
   },
   "confirmPassword": "បញ្ជាក់ពាក្យសម្ងាត់",
   "@confirmPassword": {
     "description": "Confirm password field label"
+  },
+  "contactSupport": "ទំនាក់ទំនងសេវា",
+  "@contactSupport": {
+    "description": "Contact support button label"
+  },
+  "copied": "បានចម្លង",
+  "copyEmailAddress": "ចម្លង​អាសយដ្ឋាន​អ៊ីមែល",
+  "@copyEmailAddress": {
+    "description": "Button to copy email address to clipboard"
+  },
+  "create": "បង្កើត",
+  "createAccount": "បង្កើតគណនី",
+  "@createAccount": {
+    "description": "Create account button label"
+  },
+  "data": "ទិន្នន័យ",
+  "deleteTagTitle": "លុបស្លាក",
+  "downloadUpdate": "ទាញយក",
+  "edit": "កែ",
+  "email": "អ៊ីម៉ែល",
+  "@email": {
+    "description": "Email field label"
+  },
+  "emailChangedTo": "អ៊ីម៉ែលត្រូវបានផ្លាស់ប្តូរទៅ{newEmail}",
+  "@emailChangedTo": {
+    "description": "Message when email has been changed",
+    "placeholders": {
+      "newEmail": {
+        "description": "The new email address",
+        "type": "String",
+        "example": "new@example.com"
+      }
+    }
+  },
+  "emailHint": "វាយបញ្ចូលអ៊ីម៉ែល​របស់អ្នក",
+  "encrypted": "បាន​អ៊ីនគ្រីប",
+  "enterPassword": "វាយបញ្ចូល​ពាក្យ​សម្ងាត់",
+  "@enterPassword": {
+    "description": "Enter password field label"
+  },
+  "error": "មានកំហុស",
+  "@error": {
+    "description": "Generic error title"
+  },
+  "export": "ទាញចេញ",
+  "exportLogs": "នាំចេញកំណត់ហេតុ",
+  "@exportLogs": {
+    "description": "Button to export logs"
+  },
+  "faq": "សំនួរ-ចម្លើយ",
+  "@faq": {
+    "description": "FAQ link label"
+  },
+  "forgotPassword": "ភ្លេចកូដសម្ងាត់",
+  "@forgotPassword": {
+    "description": "Forgot password link label"
+  },
+  "general": "ទូទៅ",
+  "getStarted": "ចាប់ផ្ដើម",
+  "hideContent": "លាក់ពត័មាន",
+  "@hideContent": {
+    "description": "Hide content setting title"
+  },
+  "immediately": "ភ្លាមៗ",
+  "@immediately": {
+    "description": "Immediately option for auto lock timing"
+  },
+  "importLabel": "នាំ​ចូល",
+  "invalidEmailTitle": "អ៊ីម៉ែលនេះមិនត្រឹមត្រូវទេ",
+  "@invalidEmailTitle": {
+    "description": "Title for invalid email error dialog"
+  },
+  "invalidQRCode": "កូដ QR មិនត្រឹមត្រូវ",
+  "ok": "យល់ព្រម",
+  "@ok": {
+    "description": "Generic OK button label"
+  },
+  "language": "ភាសា",
+  "logInLabel": "ចូលគណនី",
+  "@logInLabel": {
+    "description": "Log in button label"
+  },
+  "logout": "ចេញគណនី",
+  "moderateStrength": "មធ្យម",
+  "@moderateStrength": {
+    "description": "Moderate password strength label"
+  },
+  "no": "ទេ",
+  "noResult": "គ្មានលទ្ធផល",
+  "password": "ពាក្យសម្ងាត់",
+  "@password": {
+    "description": "Password field label"
   },
   "passwordStrength": "កម្លាំងពាក្យសម្ងាត់: {passwordStrengthValue}",
   "@passwordStrength": {
@@ -118,71 +130,88 @@
       }
     }
   },
+  "pendingSyncs": "ព្រមាន",
+  "pleaseTryAgain": "សូមសាកល្បងម្តងទៀត",
+  "@pleaseTryAgain": {
+    "description": "Message asking user to try again"
+  },
+  "privacy": "កម្មសិទ្ធិ​ឯកជន​",
   "privacyPolicyTitle": "គោលការណ៍​ភាព​ឯកជន",
   "@privacyPolicyTitle": {
     "description": "Privacy policy title"
-  },
-  "logInLabel": "ចូលគណនី",
-  "@logInLabel": {
-    "description": "Log in button label"
-  },
-  "forgotPassword": "ភ្លេចកូដសម្ងាត់",
-  "@forgotPassword": {
-    "description": "Forgot password link label"
-  },
-  "resendEmail": "ផ្ញើអ៊ីមែលម្ដងទៀត",
-  "@resendEmail": {
-    "description": "Resend email button label"
-  },
-  "checkStatus": "ពិនិត្យស្ថានភាព",
-  "@checkStatus": {
-    "description": "Check status button label"
-  },
-  "resetPasswordTitle": "ផ្ដាស់ប្ដូរពាក្សសម្ងាត់",
-  "@resetPasswordTitle": {
-    "description": "Reset password title"
   },
   "recover": "សង្គ្រោះមកវិញ",
   "@recover": {
     "description": "Recover button label"
   },
-  "immediately": "ភ្លាមៗ",
-  "@immediately": {
-    "description": "Immediately option for auto lock timing"
-  },
-  "hideContent": "លាក់ពត័មាន",
-  "@hideContent": {
-    "description": "Hide content setting title"
-  },
-  "tapToUnlock": "ប៉ះដើម្បីដោះសោ",
-  "@tapToUnlock": {
-    "description": "Message prompting user to tap to unlock"
-  },
-  "enterPin": "វាយបញ្ចូល​លេខ​កូដ PIN",
-  "@enterPin": {
-    "description": "Enter PIN prompt"
-  },
   "reEnterPassword": "បញ្ចូលពាក្យសម្ងាត់ម្តងទៀត",
   "@reEnterPassword": {
     "description": "Re-enter password prompt"
   },
-  "androidCancelButton": "បោះបង់",
-  "@androidCancelButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
+  "resetPasswordTitle": "ផ្ដាស់ប្ដូរពាក្សសម្ងាត់",
+  "@resetPasswordTitle": {
+    "description": "Reset password title"
   },
-  "androidSignInTitle": "តម្រូវឱ្យមានការបញ្ជាក់ភាពត្រឹមត្រូវ",
-  "@androidSignInTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
+  "save": "រក្សាទុក",
+  "@save": {
+    "description": "Label for save button"
   },
-  "emailChangedTo": "អ៊ីម៉ែលត្រូវបានផ្លាស់ប្តូរទៅ{newEmail}",
-  "@emailChangedTo": {
-    "description": "Message when email has been changed",
-    "placeholders": {
-      "newEmail": {
-        "description": "The new email address",
-        "type": "String",
-        "example": "new@example.com"
-      }
-    }
-  }
+  "scan": "ស្កេន",
+  "scanAQrCode": "ស្កេនកូដ QR",
+  "search": "ស្វែងរក",
+  "security": "សុវត្ថិភាព",
+  "selectFile": "ជ្រើស​ឯកសារ",
+  "selectLanguage": "រើសភាសា",
+  "send": "ផ្ញើរចេញ",
+  "@send": {
+    "description": "Label for send button"
+  },
+  "settings": "ការកំណត់",
+  "singIn": "ចូលគណនី",
+  "somethingWentWrongMessage": "មាន​អ្វីមួយ​មិន​ប្រក្រតី។ សូម​ព្យាយាម​ម្តង​ទៀត",
+  "somethingWentWrongPleaseTryAgain": "មាន​អ្វីមួយ​មិន​ប្រក្រតី។ សូម​ព្យាយាម​ម្តង​ទៀត",
+  "@somethingWentWrongPleaseTryAgain": {
+    "description": "Generic error message"
+  },
+  "strongStrength": "ខ្លាំង",
+  "@strongStrength": {
+    "description": "Strong password strength label"
+  },
+  "support": "ហៅជំនួយ",
+  "tags": "ស្លាក",
+  "tapToUnlock": "ប៉ះដើម្បីដោះសោ",
+  "@tapToUnlock": {
+    "description": "Message prompting user to tap to unlock"
+  },
+  "terminate": "កាត់ផ្តាច់",
+  "@terminate": {
+    "description": "Terminate button label"
+  },
+  "terminateSession": "កាត់់ផ្តាច់សកម្មភាពគណនីនេះ?",
+  "@terminateSession": {
+    "description": "Title for terminate session dialog"
+  },
+  "thisDevice": "ទូរស័ព្ទនេះ",
+  "@thisDevice": {
+    "description": "Label for current device"
+  },
+  "unlock": "ដោះ​សោ",
+  "@unlock": {
+    "description": "Short action label used as the system authentication reason when unlocking the app"
+  },
+  "updateAvailable": "មានបុច្ចប្បន្នភាព",
+  "verify": "ផ្ទៀងផ្ទាត់",
+  "@verify": {
+    "description": "Verify button label"
+  },
+  "verifyPassword": "ផ្ទៀងផ្ទាត់ពាក្យសម្ងាត់",
+  "@verifyPassword": {
+    "description": "Verify password button label"
+  },
+  "warning": "ព្រមាន",
+  "weakStrength": "ខ្សោយ",
+  "@weakStrength": {
+    "description": "Weak password strength label"
+  },
+  "yes": "បាទ/ចាស"
 }

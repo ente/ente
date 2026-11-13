@@ -1,0 +1,49 @@
+import { z } from "zod";
+
+const CachedSpacePostAsset = z.object({
+    encryptedPostKey: z.string(),
+    keyVersion: z.number(),
+    mediaType: z.string().optional(),
+    objectKey: z.string(),
+    postId: z.number(),
+    spaceId: z.string(),
+});
+
+const CachedSpacePostVideo = z.object({
+    asset: CachedSpacePostAsset,
+    durationMs: z.number(),
+});
+
+export const CachedSpacePost = z.object({
+    avatarKeyVersion: z.number().optional(),
+    avatarObjectID: z.string().optional(),
+    avatarSize: z.number().optional(),
+    avatarUpdatedAt: z.string().optional(),
+    caption: z.string().optional(),
+    commentCount: z.number().optional(),
+    friendID: z.string(),
+    height: z.number().optional(),
+    video: CachedSpacePostVideo.optional(),
+    imageAsset: CachedSpacePostAsset.optional(),
+    photos: z
+        .array(
+            z.object({
+                height: z.number().optional(),
+                video: CachedSpacePostVideo.optional(),
+                imageAsset: CachedSpacePostAsset.optional(),
+                thumbHash: z.string().optional(),
+                width: z.number().optional(),
+            }),
+        )
+        .optional(),
+    isUnavailable: z.boolean().optional(),
+    likeCount: z.number().optional(),
+    name: z.string(),
+    postId: z.number(),
+    spaceId: z.string(),
+    thumbHash: z.string().optional(),
+    timestampMs: z.number(),
+    username: z.string().optional(),
+    viewerLiked: z.boolean(),
+    width: z.number().optional(),
+});

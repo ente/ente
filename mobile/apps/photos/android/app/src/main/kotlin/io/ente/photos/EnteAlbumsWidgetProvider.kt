@@ -3,8 +3,6 @@ package io.ente.photos
 import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.SharedPreferences
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.drawable.BitmapDrawable
 import android.net.Uri
 import android.util.Log
@@ -23,7 +21,8 @@ data class AlbumsFileData(
         val title: String?,
         val subText: String?,
         val generatedId: Int?,
-        val mainKey: String?
+        val mainKey: String?,
+        val uploadedFileID: Int? = null
 )
 
 class EnteAlbumsWidgetProvider : HomeWidgetProvider() {
@@ -51,12 +50,9 @@ class EnteAlbumsWidgetProvider : HomeWidgetProvider() {
                                                                         null
                                                                 )
                                                 }
-                                                var imageExists: Boolean = false
-                                                if (imagePath != null) {
-                                                        val imageFile = File(imagePath)
-                                                        imageExists = imageFile.exists()
-                                                }
-                                                if (imageExists) {
+                                                val existingImagePath =
+                                                        imagePath?.takeIf { File(it).exists() }
+                                                if (existingImagePath != null) {
                                                         val data =
                                                                 widgetData.getString(
                                                                         "albums_widget_${randomNumber}_data",
@@ -91,26 +87,40 @@ class EnteAlbumsWidgetProvider : HomeWidgetProvider() {
 
                                                         Log.d(
                                                                 "EnteAlbumsWidgetProvider",
-                                                                "Image exists: $imagePath"
+                                                                "Image exists: $existingImagePath"
                                                         )
+                                                        val hideFlags =
+                                                                widgetData.getInt(
+                                                                        "widgetHideTitleFlags",
+                                                                        0
+                                                                )
+                                                        val hideText =
+                                                                (hideFlags and (1 shl 1)) != 0
+                                                        val textVisibility =
+                                                                if (hideText) View.GONE
+                                                                else View.VISIBLE
                                                         setViewVisibility(
                                                                 R.id.widget_img,
                                                                 View.VISIBLE
                                                         )
                                                         setViewVisibility(
                                                                 R.id.widget_subtitle,
-                                                                View.VISIBLE
+                                                                textVisibility
                                                         )
                                                         setViewVisibility(
                                                                 R.id.widget_title,
-                                                                View.VISIBLE
+                                                                textVisibility
                                                         )
                                                         setViewVisibility(
                                                                 R.id.widget_overlay,
-                                                                View.VISIBLE
+                                                                textVisibility
                                                         )
                                                         setViewVisibility(
                                                                 R.id.widget_placeholder,
+                                                                View.GONE
+                                                        )
+                                                        setViewVisibility(
+                                                                R.id.widget_placeholder_title,
                                                                 View.GONE
                                                         )
                                                         setViewVisibility(
@@ -122,8 +132,8 @@ class EnteAlbumsWidgetProvider : HomeWidgetProvider() {
                                                                 View.GONE
                                                         )
 
-                                                        val bitmap: Bitmap =
-                                                                BitmapFactory.decodeFile(imagePath)
+                                                        val bitmap =
+                                                                decodeWidgetBitmap(existingImagePath)
                                                         setImageViewBitmap(R.id.widget_img, bitmap)
                                                         setTextViewText(R.id.widget_title, title)
                                                         setTextViewText(
@@ -131,11 +141,15 @@ class EnteAlbumsWidgetProvider : HomeWidgetProvider() {
                                                                 subText
                                                         )
                                                 } else {
-                                                        // Open App on Widget Click
+                                                        val deepLinkUri =
+                                                                Uri.parse(
+                                                                        "albumwidget://configure?homeWidget"
+                                                                )
                                                         val pendingIntent =
                                                                 HomeWidgetLaunchIntent.getActivity(
                                                                         context,
-                                                                        MainActivity::class.java
+                                                                        MainActivity::class.java,
+                                                                        deepLinkUri
                                                                 )
                                                         setOnClickPendingIntent(
                                                                 R.id.widget_container,
@@ -162,14 +176,18 @@ class EnteAlbumsWidgetProvider : HomeWidgetProvider() {
                                                                 R.id.widget_overlay,
                                                                 View.GONE
                                                         )
-                                                        setViewVisibility(
-                                                                R.id.widget_placeholder,
-                                                                View.VISIBLE
-                                                        )
-                                                        setViewVisibility(
-                                                                R.id.widget_placeholder_text,
-                                                                View.VISIBLE
-                                                        )
+                                                         setViewVisibility(
+                                                                 R.id.widget_placeholder,
+                                                                 View.VISIBLE
+                                                         )
+                                                         setViewVisibility(
+                                                                 R.id.widget_placeholder_title,
+                                                                 View.VISIBLE
+                                                         )
+                                                         setViewVisibility(
+                                                                 R.id.widget_placeholder_text,
+                                                                 View.VISIBLE
+                                                         )
                                                         setViewVisibility(
                                                                 R.id.widget_placeholder_container,
                                                                 View.VISIBLE

@@ -1,8 +1,8 @@
+import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/events/files_updated_event.dart";
-import "package:photos/generated/l10n.dart";
 import "package:photos/models/file_load_result.dart";
 import "package:photos/models/gallery_type.dart";
 import "package:photos/models/selected_files.dart";
@@ -29,10 +29,16 @@ class DeleteSuggestionsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appBar = GalleryAppBarWidget.sliverConfig(
+      appBarType,
+      context.strings.deleteSuggestions,
+      _selectedFiles,
+    );
     final gallery = Gallery(
+      appBar: appBar,
       asyncLoader: (creationStartTime, creationEndTime, {limit, asc}) async {
-        final fileIDs =
-            await CollectionsService.instance.fetchDeleteSuggestionFileIDs();
+        final fileIDs = await CollectionsService.instance
+            .fetchDeleteSuggestionFileIDs();
         if (fileIDs.isEmpty) {
           return FileLoadResult([], false);
         }
@@ -52,24 +58,13 @@ class DeleteSuggestionsPage extends StatelessWidget {
     return GalleryBoundariesProvider(
       child: GalleryFilesState(
         child: Scaffold(
-          appBar: PreferredSize(
-            preferredSize: const Size.fromHeight(50.0),
-            child: GalleryAppBarWidget(
-              appBarType,
-              AppLocalizations.of(context).deleteSuggestions,
-              _selectedFiles,
-            ),
-          ),
           body: SelectionState(
             selectedFiles: _selectedFiles,
             child: Stack(
               alignment: Alignment.bottomCenter,
               children: [
                 gallery,
-                FileSelectionOverlayBar(
-                  overlayType,
-                  _selectedFiles,
-                ),
+                FileSelectionOverlayBar(overlayType, _selectedFiles),
               ],
             ),
           ),

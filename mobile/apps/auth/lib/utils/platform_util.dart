@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:ente_auth/ui/common/web_page.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:file_saver/file_saver.dart';
 import 'package:flutter/cupertino.dart';
@@ -26,27 +25,16 @@ class PlatformUtil {
   static TextSelectionControls get selectionControls => Platform.isAndroid
       ? materialTextSelectionControls
       : Platform.isIOS
-          ? cupertinoTextSelectionControls
-          : desktopTextSelectionControls;
+      ? cupertinoTextSelectionControls
+      : desktopTextSelectionControls;
 
-  static Future<void> openWebView(
-    BuildContext context,
-    String title,
-    String url,
-  ) async {
-    if (PlatformDetector.isDesktop()) {
-      await launchUrlString(url);
-      return;
-    }
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (BuildContext context) {
-          return WebPage(
-            title,
-            url,
-          );
-        },
-      ),
+  static Future<void> openUrlInBrowser(String url) async {
+    await launchUrlString(
+      url,
+      mode: PlatformDetector.isDesktop()
+          ? LaunchMode.externalApplication
+          : LaunchMode.inAppBrowserView,
+      browserConfiguration: const BrowserConfiguration(showTitle: true),
     );
   }
 

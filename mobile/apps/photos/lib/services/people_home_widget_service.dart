@@ -1,13 +1,13 @@
 import "dart:math";
 
 import "package:collection/collection.dart";
-import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:logging/logging.dart';
 import 'package:photos/db/files_db.dart';
 import 'package:photos/models/file/file.dart';
 import 'package:photos/service_locator.dart';
+import 'package:photos/services/app_navigation_service.dart';
 import 'package:photos/services/home_widget_service.dart';
 import 'package:photos/services/machine_learning/face_ml/person/person_service.dart';
 import 'package:photos/services/search_service.dart';
@@ -18,7 +18,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:synchronized/synchronized.dart';
 
 class PeopleHomeWidgetService {
-  // Constants
   static const String SELECTED_PEOPLE_KEY = "selectedPeopleHW";
   static const String PEOPLE_LAST_HASH_KEY = "peopleLastHash";
   static const String ANDROID_CLASS_NAME = "EntePeopleWidgetProvider";
@@ -28,17 +27,14 @@ class PeopleHomeWidgetService {
   static const String TOTAL_PEOPLE_KEY = "totalPeople";
   static const int MAX_PEOPLE_LIMIT = 50;
 
-  // Singleton pattern
   static final PeopleHomeWidgetService instance =
       PeopleHomeWidgetService._privateConstructor();
   PeopleHomeWidgetService._privateConstructor();
 
-  // Properties
   final Logger _logger = Logger((PeopleHomeWidgetService).toString());
   SharedPreferences get _prefs => ServiceLocator.instance.prefs;
   final peopleChangedLock = Lock();
 
-  // Public methods
   List<String>? getSelectedPeople() {
     return _prefs.getStringList(SELECTED_PEOPLE_KEY);
   }
@@ -152,11 +148,7 @@ class PeopleHomeWidgetService {
     );
   }
 
-  Future<void> onLaunchFromWidget(
-    int fileId,
-    String personId,
-    BuildContext context,
-  ) async {
+  Future<void> onLaunchFromWidget(int fileId, String personId) async {
     final file = await FilesDB.instance.getFile(fileId);
     if (file == null) {
       _logger.warning("Cannot launch widget: file with ID $fileId not found");
@@ -165,36 +157,32 @@ class PeopleHomeWidgetService {
 
     final person = await PersonService.instance.getPerson(personId);
     if (person == null) {
-      _logger
-          .warning("Cannot launch widget: person with ID $personId not found");
+      _logger.warning(
+        "Cannot launch widget: person with ID $personId not found",
+      );
       return;
     }
 
-    routeToPage(
-      context,
-      PeoplePage(
-        person: person,
-        searchResult: null,
-      ),
-      forceCustomPageRoute: true,
-    ).ignore();
+    AppNavigationService.instance
+        .pushPage(
+          PeoplePage(person: person, searchResult: null),
+          forceCustomPageRoute: true,
+        )
+        .ignore();
 
     final files = await SearchService.instance.getFilesForPersonID(
       personId,
       sortOnTime: false,
     );
 
-    routeToPage(
-      context,
-      DetailPage(
-        DetailPageConfiguration(
-          files,
-          files.indexOf(file),
-          "peoplewidget",
-        ),
-      ),
-      forceCustomPageRoute: true,
-    ).ignore();
+    AppNavigationService.instance
+        .pushPage(
+          DetailPage(
+            DetailPageConfiguration(files, files.indexOf(file), "peoplewidget"),
+          ),
+          forceCustomPageRoute: true,
+        )
+        .ignore();
     await _refreshPeopleWidget();
   }
 
@@ -223,19 +211,16 @@ class PeopleHomeWidgetService {
       return true;
     }
 
-    // Check if first import is completed
-    final hasCompletedFirstImport =
-        LocalSyncService.instance.hasCompletedFirstImportOrBypassed();
+    final hasCompletedFirstImport = LocalSyncService.instance
+        .hasCompletedFirstImportOrBypassed();
     if (!hasCompletedFirstImport) {
       return true;
     }
 
-    // Check ML consent
-    if (isOfflineMode || !hasGrantedMLConsent) {
+    if (isLocalGalleryMode || !hasGrantedMLConsent) {
       return true;
     }
 
-    // Check if selected people or hash exist
     final peopleIds = await _getEffectiveSelections();
     final hash = await _calculateHash(peopleIds);
 
@@ -249,20 +234,15 @@ class PeopleHomeWidgetService {
   }
 
   Future<void> _refreshPeopleWidget() async {
-    // only refresh if widget was synced without issues
     if (await countHomeWidgets() == 0) return;
     await _refreshWidget(message: "Refreshing from existing people set");
   }
 
   Future<bool> _shouldUpdateWidgetCache() async {
-    // Update widget cache when people were changed
     if (getPeopleChanged() == true) {
       return true;
     }
 
-    // update widget cache if
-    // - people not synced
-    // - people synced partially but now home widget is present
     final peopleStatus = getPeopleStatus();
     return peopleStatus == WidgetStatus.notSynced ||
         peopleStatus == WidgetStatus.syncedPartially &&
@@ -275,6 +255,10 @@ class PeopleHomeWidgetService {
     final Map<String, (String, Iterable<EnteFile>)> peopleFiles = {};
     final persons = await PersonService.instance.getCertainPersons(personIds);
     for (final person in persons) {
+      if (person.data.isIgnored) {
+        _logger.info("Skipping ignored person: ${person.data.name}");
+        continue;
+      }
       final files = await SearchService.instance.getFilesForPersonID(
         person.remoteID,
         sortOnTime: false,
@@ -353,25 +337,23 @@ class PeopleHomeWidgetService {
 
       final renderResult = await HomeWidgetService.instance
           .renderFile(
-        randomPersonFile,
-        "people_widget_$renderedCount",
-        personName,
-        personId,
-      )
+            randomPersonFile,
+            "people_widget_$renderedCount",
+            personName,
+            personId,
+          )
           .catchError((e, stackTrace) {
-        _logger.severe("Error rendering widget", e, stackTrace);
-        return null;
-      });
+            _logger.severe("Error rendering widget", e, stackTrace);
+            return null;
+          });
 
       if (renderResult != null) {
-        // Check for blockers again before continuing
         if (await _hasAnyBlockers()) {
           return;
         }
 
         await _setTotalPeople(renderedCount);
 
-        // Show update toast after first item is rendered
         if (renderedCount == 1) {
           await _refreshWidget(
             message: "First person fetched, updating widget",

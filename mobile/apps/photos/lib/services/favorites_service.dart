@@ -9,6 +9,7 @@ import 'package:photos/db/files_db.dart';
 import 'package:photos/events/collection_updated_event.dart';
 import "package:photos/events/favorites_service_init_complete_event.dart";
 import 'package:photos/events/files_updated_event.dart';
+import 'package:photos/events/local_photos_updated_event.dart';
 import 'package:photos/gateways/collections/models/create_request.dart';
 import 'package:photos/models/collection/collection.dart';
 import 'package:photos/models/file/file.dart';
@@ -27,7 +28,7 @@ class FavoritesService {
   final Map<String, int> _cachedFavFileHases = {};
   final Set<String> _cachedPendingLocalIDs = {};
   late StreamSubscription<CollectionUpdatedEvent>
-      _collectionUpdatesSubscription;
+  _collectionUpdatesSubscription;
 
   FavoritesService._privateConstructor();
   Future<void> initFav() async {
@@ -35,22 +36,22 @@ class FavoritesService {
     _collectionsService = CollectionsService.instance;
     _collectionActions = CollectionActions(_collectionsService);
     _filesDB = FilesDB.instance;
-    _collectionUpdatesSubscription =
-        Bus.instance.on<CollectionUpdatedEvent>().listen((event) {
-      if (event.collectionID != null &&
-          _cachedFavoritesCollectionID != null &&
-          _cachedFavoritesCollectionID == event.collectionID) {
-        if (event.type == EventType.addedOrUpdated) {
-          // Note: This source check is a ugly hack because currently we
-          // don't have any event type related to remove from collection
-          final bool isAdded = !event.source.contains("remove");
-          _updateFavoriteFilesCache(event.updatedFiles, favFlag: isAdded);
-        } else if (event.type == EventType.deletedFromEverywhere ||
-            event.type == EventType.deletedFromRemote) {
-          _updateFavoriteFilesCache(event.updatedFiles, favFlag: false);
-        }
-      }
-    });
+    _collectionUpdatesSubscription = Bus.instance
+        .on<CollectionUpdatedEvent>()
+        .listen((event) {
+          if (event.collectionID != null &&
+              _cachedFavoritesCollectionID != null &&
+              _cachedFavoritesCollectionID == event.collectionID) {
+            if (event.type == EventType.addedOrUpdated) {
+              // There is no collection-removal event; the source identifies it.
+              final bool isAdded = !event.source.contains("remove");
+              _updateFavoriteFilesCache(event.updatedFiles, favFlag: isAdded);
+            } else if (event.type == EventType.deletedFromEverywhere ||
+                event.type == EventType.deletedFromRemote) {
+              _updateFavoriteFilesCache(event.updatedFiles, favFlag: false);
+            }
+          }
+        });
     await _warmUpCache();
     Bus.instance.fire(FavoritesServiceInitCompleteEvent());
   }
@@ -64,8 +65,9 @@ class FavoritesService {
     if (favCollection != null) {
       Set<int> uploadedIDs;
       Map<String, int> fileHashes;
-      (uploadedIDs, fileHashes) =
-          await FilesDB.instance.getUploadAndHash(favCollection.id);
+      (uploadedIDs, fileHashes) = await FilesDB.instance.getUploadAndHash(
+        favCollection.id,
+      );
       _cachedFavUploadedIDs.addAll(uploadedIDs);
       _cachedFavFileHases.addAll(fileHashes);
     }
@@ -79,6 +81,9 @@ class FavoritesService {
 
   void clearCache() {
     _cachedFavoritesCollectionID = null;
+    _cachedFavUploadedIDs.clear();
+    _cachedFavFileHases.clear();
+    _cachedPendingLocalIDs.clear();
   }
 
   bool isFavoriteCache(EnteFile file, {bool checkOnlyAlbum = false}) {
@@ -130,10 +135,6 @@ class FavoritesService {
           hashes[file.hash!] = file.uploadedFileID!;
         }
       } else if (file.localID != null || file.localID != "") {
-        /* Note: Favorite un-uploaded files
-        For such files, as we don't have uploaded IDs yet, we will cache
-        cache the local ID for showing the fav icon in the gallery
-         */
         localIDs.add(file.localID!);
       }
     }
@@ -157,6 +158,7 @@ class FavoritesService {
       await _collectionsService.addOrCopyToCollection(collectionID, files);
     }
     _updateFavoriteFilesCache(files, favFlag: true);
+    Bus.instance.fire(LocalPhotosUpdatedEvent(files, source: "favoriteAdd"));
     RemoteSyncService.instance.sync(silently: true).ignore();
   }
 
@@ -178,18 +180,23 @@ class FavoritesService {
     } else {
       final Collection? favCollection = await getFavoritesCollection();
       await _collectionActions.moveFilesFromCurrentCollection(
-        context,
+        null,
         favCollection!,
         files,
       );
     }
     _updateFavoriteFilesCache(files, favFlag: favFlag);
+    Bus.instance.fire(
+      LocalPhotosUpdatedEvent(
+        files,
+        source: favFlag ? "favoriteAdd" : "favoriteRemove",
+      ),
+    );
+    RemoteSyncService.instance.sync(silently: true).ignore();
   }
 
-  Future<void> removeFromFavorites(
-    BuildContext context,
-    EnteFile file,
-  ) async {
+  Future<void> removeFromFavorites(BuildContext context, EnteFile file) async {
+    final EnteFile originalFile = file;
     final inUploadID = file.uploadedFileID;
     if (inUploadID == null) {
       // Do nothing, ignore
@@ -198,21 +205,27 @@ class FavoritesService {
       if (favCollection == null) {
         return;
       }
-      final EnteFile? favFile =
-          await _resolveFavoritesEntryForRemoval(file, favCollection.id);
+      final EnteFile? favFile = await _resolveFavoritesEntryForRemoval(
+        file,
+        favCollection.id,
+      );
       if (favFile == null) {
         throw StateError(
           "Failed to resolve favorites entry for file ${file.uploadedFileID}",
         );
       }
       await _collectionActions.moveFilesFromCurrentCollection(
-        context,
+        null,
         favCollection,
         [favFile],
       );
       file = favFile;
     }
     _updateFavoriteFilesCache([file], favFlag: false);
+    Bus.instance.fire(
+      LocalPhotosUpdatedEvent([originalFile], source: "favoriteRemove"),
+    );
+    RemoteSyncService.instance.sync(silently: true).ignore();
   }
 
   Future<EnteFile?> _resolveFavoritesEntryForRemoval(
@@ -225,8 +238,9 @@ class FavoritesService {
 
     if (file.ownerID != _config.getUserID()) {
       final String? hash = file.hash;
-      final int? cachedFavoriteFileID =
-          hash != null ? _cachedFavFileHases[hash] : null;
+      final int? cachedFavoriteFileID = hash != null
+          ? _cachedFavFileHases[hash]
+          : null;
       if (cachedFavoriteFileID != null) {
         final EnteFile? favFile = await _filesDB.getUploadedFile(
           cachedFavoriteFileID,
@@ -286,8 +300,10 @@ class FavoritesService {
       return _cachedFavoritesCollectionID!;
     }
     final favoriteCollectionKey = CryptoUtil.generateKey();
-    final encryptedKeyResult =
-        CryptoUtil.encryptSync(favoriteCollectionKey, _config.getKey()!);
+    final encryptedKeyResult = CryptoUtil.encryptSync(
+      favoriteCollectionKey,
+      _config.getKey()!,
+    );
     final encName = CryptoUtil.encryptSync(
       utf8.encode("Favorites"),
       favoriteCollectionKey,

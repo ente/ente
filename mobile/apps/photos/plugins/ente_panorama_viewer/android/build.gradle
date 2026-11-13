@@ -1,0 +1,15 @@
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+}
+
+group 'io.ente.panorama_viewer'
+version '1.0'
+
+android {
+    namespace 'io.ente.panorama_viewer'
+
+    defaultConfig {
+        minSdkVersion 26
+    }
+}

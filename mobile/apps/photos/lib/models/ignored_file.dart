@@ -10,7 +10,7 @@ class IgnoredFile {
 
   IgnoredFile(this.localID, this.title, this.deviceFolder, this.reason);
 
-  static fromTrashItem(TrashFile? trashFile) {
+  static IgnoredFile? fromTrashItem(TrashFile? trashFile) {
     if (trashFile == null) return null;
     if (trashFile.localID == null ||
         trashFile.localID!.isEmpty ||

@@ -1,6 +1,6 @@
+import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:photos/extensions/user_extension.dart";
-import "package:photos/generated/l10n.dart";
 import "package:photos/models/api/collection/user.dart";
 import "package:photos/models/social/comment.dart";
 import "package:photos/theme/ente_theme.dart";
@@ -21,12 +21,11 @@ class ReplyPreviewWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final l10n = context.strings;
     final colorScheme = getEnteColorScheme(context);
     final textTheme = getEnteTextTheme(context);
 
     return Container(
-      // padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
       padding: const EdgeInsets.fromLTRB(12, 24, 12, 12),
       decoration: const BoxDecoration(
         color: Colors.transparent,
@@ -54,7 +53,8 @@ class ReplyPreviewWidget extends StatelessWidget {
                     replyingToUser.id == currentUserID
                         ? l10n.replyingToYou
                         : l10n.replyingTo(
-                            name: replyingToUser.displayName ??
+                            name:
+                                replyingToUser.displayName ??
                                 replyingToUser.email,
                           ),
                     style: textTheme.tiny.copyWith(
@@ -81,11 +81,7 @@ class ReplyPreviewWidget extends StatelessWidget {
             ),
             GestureDetector(
               onTap: onDismiss,
-              child: Icon(
-                Icons.close,
-                size: 18,
-                color: colorScheme.textMuted,
-              ),
+              child: Icon(Icons.close, size: 18, color: colorScheme.textMuted),
             ),
           ],
         ),

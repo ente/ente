@@ -15,12 +15,7 @@ class DirectoryUtils {
 
     directoryPath ??= (await getApplicationSupportDirectory()).path;
 
-    return p.joinAll(
-      [
-        directoryPath,
-        ".$databaseName",
-      ],
-    );
+    return p.joinAll([directoryPath, ".$databaseName"]);
   }
 
   static Future<Directory> getDirectoryForInit() async {
@@ -59,12 +54,8 @@ class DirectoryUtils {
       await newDataDir.create(recursive: true);
 
       if (Platform.isLinux) {
-        oldDataDir = Directory(
-          p.join(dataHome.path, "ente_auth"),
-        );
-        Directory tempDir = Directory(
-          p.join(dataHome.path, "enteauth"),
-        );
+        oldDataDir = Directory(p.join(dataHome.path, "ente_auth"));
+        Directory tempDir = Directory(p.join(dataHome.path, "enteauth"));
         if (tempDir.existsSync()) {
           oldDataDir = tempDir;
         }
@@ -73,30 +64,16 @@ class DirectoryUtils {
         }
       } else if (Platform.isWindows) {
         oldDataDir = Directory(
-          p.join(
-            (await getApplicationDocumentsDirectory()).path,
-            "ente",
-          ),
+          p.join((await getApplicationDocumentsDirectory()).path, "ente"),
         );
         Directory tempDir = Directory(
-          p.join(
-            (await getApplicationDocumentsDirectory()).path,
-            "enteauth",
-          ),
+          p.join((await getApplicationDocumentsDirectory()).path, "enteauth"),
         );
         if (tempDir.existsSync()) {
           oldDataDir = tempDir;
-          databaseFile = File(
-            p.join(
-              tempDir.path,
-              ".ente.authenticator.db",
-            ),
-          );
+          databaseFile = File(p.join(tempDir.path, ".ente.authenticator.db"));
           offlineDatabaseFile = File(
-            p.join(
-              tempDir.path,
-              ".ente.offline_authenticator.db",
-            ),
+            p.join(tempDir.path, ".ente.offline_authenticator.db"),
           );
         }
       } else {
@@ -116,8 +93,9 @@ class DirectoryUtils {
       }
 
       final prefix = Platform.isMacOS ? "" : ".";
-      File newDatabaseFile =
-          File(p.join(newDataDir.path, "${prefix}ente.authenticator.db"));
+      File newDatabaseFile = File(
+        p.join(newDataDir.path, "${prefix}ente.authenticator.db"),
+      );
       if (await databaseFile.exists() && !await newDatabaseFile.exists()) {
         await databaseFile.copy(newDatabaseFile.path);
       }

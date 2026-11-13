@@ -3,13 +3,12 @@ package embedding
 import (
 	"context"
 	"fmt"
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/museum/pkg/utils/time"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/museum/pkg/utils/time"
 	log "github.com/sirupsen/logrus"
 	"strconv"
 )
 
-// CleanupDeletedEmbeddings clears all embeddings for deleted files from the object store
 func (c *Controller) CleanupDeletedEmbeddings() {
 	log.Info("Cleaning up deleted embeddings")
 	if c.cleanupCronRunning {

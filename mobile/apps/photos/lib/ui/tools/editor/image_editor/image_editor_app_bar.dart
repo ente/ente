@@ -1,8 +1,7 @@
+import "package:ente_components/ente_components.dart";
+import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
-import "package:flutter_svg/svg.dart";
-import "package:photos/ente_theme_data.dart";
-import "package:photos/generated/l10n.dart";
-import "package:photos/theme/ente_theme.dart";
+import "package:hugeicons/hugeicons.dart";
 import "package:pro_image_editor/pro_image_editor.dart";
 
 class ImageEditorAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -32,7 +31,8 @@ class ImageEditorAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
+    final colors = context.componentColors;
+    final actionTextStyle = TextStyles.large.copyWith(color: colors.textBase);
     return AppBar(
       elevation: 0,
       automaticallyImplyLeading: false,
@@ -43,40 +43,31 @@ class ImageEditorAppBar extends StatelessWidget implements PreferredSizeWidget {
             onPressed: () {
               enableUndo ? close() : Navigator.of(context).pop();
             },
-            child: Text(
-              AppLocalizations.of(context).cancel,
-              style: getEnteTextTheme(context).body,
-            ),
+            child: Text(context.strings.cancel, style: actionTextStyle),
           ),
           if (undo != null && redo != null)
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 IconButton(
-                  tooltip: AppLocalizations.of(context).undo,
+                  tooltip: context.strings.undo,
                   onPressed: () {
                     undo != null ? undo!() : null;
                   },
-                  icon: SvgPicture.asset(
-                    "assets/image-editor/image-editor-undo.svg",
-                    colorFilter: ColorFilter.mode(
-                      enableUndo ? colorScheme.textBase : colorScheme.textMuted,
-                      BlendMode.srcIn,
-                    ),
+                  icon: HugeIcon(
+                    icon: HugeIcons.strokeRoundedUndo03,
+                    color: enableUndo ? colors.textBase : colors.textLight,
                   ),
                 ),
                 const SizedBox(width: 12),
                 IconButton(
-                  tooltip: AppLocalizations.of(context).redo,
+                  tooltip: context.strings.redo,
                   onPressed: () {
                     redo != null ? redo!() : null;
                   },
-                  icon: SvgPicture.asset(
-                    'assets/image-editor/image-editor-redo.svg',
-                    colorFilter: ColorFilter.mode(
-                      enableRedo ? colorScheme.textBase : colorScheme.textMuted,
-                      BlendMode.srcIn,
-                    ),
+                  icon: HugeIcon(
+                    icon: HugeIcons.strokeRoundedRedo03,
+                    color: enableRedo ? colors.textBase : colors.textLight,
                   ),
                 ),
               ],
@@ -89,20 +80,12 @@ class ImageEditorAppBar extends StatelessWidget implements PreferredSizeWidget {
               key: ValueKey(isMainEditor ? 'save_copy' : 'done'),
               onPressed: done,
               child: Text(
-                isMainEditor
-                    ? AppLocalizations.of(context).saveCopy
-                    : AppLocalizations.of(context).done,
-                style: getEnteTextTheme(context).body.copyWith(
-                      color: isMainEditor
-                          ? (enableUndo
-                              ? Theme.of(context)
-                                  .colorScheme
-                                  .imageEditorPrimaryColor
-                              : colorScheme.textMuted)
-                          : Theme.of(context)
-                              .colorScheme
-                              .imageEditorPrimaryColor,
-                    ),
+                isMainEditor ? context.strings.saveCopy : context.strings.done,
+                style: actionTextStyle.copyWith(
+                  color: isMainEditor
+                      ? (enableUndo ? colors.primary : colors.textLight)
+                      : colors.primary,
+                ),
               ),
             ),
           ),

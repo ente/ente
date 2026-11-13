@@ -14,11 +14,10 @@ class Collection {
   final String encryptedKey;
   final String? keyDecryptionNonce;
 
-  /// WARNING: use collectionName instead of name! Name is deprecated but can't be removed because of old accounts.
+  // Deprecated but required for old accounts. Use collectionName.
   String? name;
 
-  // encryptedName & nameDecryptionNonce will be null for collections
-  // created before we started encrypting collection name
+  // Collections created before public launch may have only the plaintext name.
   final String? encryptedName;
   final String? nameDecryptionNonce;
   final CollectionType type;
@@ -29,14 +28,10 @@ class Collection {
   final int? sharedAt;
   final bool isDeleted;
 
-  // In early days before public launch, we used to store collection name
-  // un-encrypted. decryptName will be value either decrypted value for
-  // encryptedName or name itself.
+  // Falls back to name for those pre-launch collections.
   String? decryptedName;
 
-  // decryptedPath will be null for collections now owned by user, deleted
-  // collections, && collections which don't have a path. The path is used
-  // to map local on-device album on mobile to remote collection on ente.
+  // Links a user-owned remote collection to its on-device album.
   String? decryptedPath;
   String? mMdEncodedJson;
   String? mMdPubEncodedJson;
@@ -74,7 +69,7 @@ class Collection {
     return decryptedName ?? name ?? "Unnamed Album";
   }
 
-  // set the value for both name and decryptedName till we finish migration
+  // Keep the legacy name in sync until its migration is complete.
   void setName(String newName) {
     // ignore: deprecated_member_use_from_same_package
     name = newName;
@@ -121,13 +116,16 @@ class Collection {
     return (sharedMagicMetadata.order ?? 0) != 0;
   }
 
-  // hasLink returns true if there's any link attached to the collection
-  // including expired links
+  // Includes expired links.
   bool get hasLink => publicURLs.isNotEmpty;
 
   bool get hasCover => (pubMagicMetadata.coverID ?? 0) > 0;
 
-  // hasSharees returns true if the collection is shared with other ente users
+  String? get displayDescription {
+    final description = pubMagicMetadata.description?.trim();
+    return description == null || description.isEmpty ? null : description;
+  }
+
   bool get hasSharees => sharees.isNotEmpty;
 
   bool get isPinned => (magicMetadata.order ?? 0) != 0;
@@ -138,10 +136,8 @@ class Collection {
     }
     final userID = Configuration.instance.getUserID();
     if (userID != null && isOwner(userID)) {
-      // Owner: check owner's magic metadata
       return mMdVersion > 0 && magicMetadata.visibility == hiddenVisibility;
     } else {
-      // Sharee: check sharee's magic metadata
       return hasShareeHidden();
     }
   }
@@ -155,24 +151,31 @@ class Collection {
         !hasSharees;
   }
 
-  List<User> getSharees() {
-    return sharees;
-  }
-
   bool isOwner(int userID) {
-    return (owner.id ?? -100) == userID;
+    return owner.id == userID;
   }
 
   bool isAdmin(int userID) {
     return getRole(userID) == CollectionParticipantRole.admin;
   }
 
-  bool canAutoAdd(int userID) {
+  bool canAdd(int userID) {
     final participantRole = getRole(userID);
-    final canEditCollection = isOwner(userID) ||
+    final canEditCollection =
+        isOwner(userID) ||
         participantRole == CollectionParticipantRole.collaborator ||
         participantRole == CollectionParticipantRole.admin;
-    final isFavoritesOrUncategorized = type == CollectionType.favorites ||
+    return canEditCollection && !isDeleted;
+  }
+
+  bool canAutoAdd(int userID) {
+    final participantRole = getRole(userID);
+    final canEditCollection =
+        isOwner(userID) ||
+        participantRole == CollectionParticipantRole.collaborator ||
+        participantRole == CollectionParticipantRole.admin;
+    final isFavoritesOrUncategorized =
+        type == CollectionType.favorites ||
         type == CollectionType.uncategorized;
     return canEditCollection && !isDeleted && !isFavoritesOrUncategorized;
   }
@@ -219,9 +222,7 @@ class Collection {
     return CollectionParticipantRole.unknown;
   }
 
-  // canLinkToDevicePath returns true if the collection can be linked to local
-  // device album based on path. The path is nothing but the name of the device
-  // album.
+  // The encrypted path names the linked device album.
   bool canLinkToDevicePath(int userID) {
     return isOwner(userID) && !isDeleted && attributes.encryptedPath != null;
   }
@@ -279,17 +280,16 @@ class Collection {
     return result;
   }
 
-  static fromMap(Map<String, dynamic>? map) {
-    if (map == null) return null;
+  static Collection fromMap(Map<String, dynamic> map) {
     final sharees = (map['sharees'] == null || map['sharees'].length == 0)
         ? <User>[]
         : List<User>.from(map['sharees'].map((x) => User.fromMap(x)));
     final publicURLs =
         (map['publicURLs'] == null || map['publicURLs'].length == 0)
-            ? <PublicURL>[]
-            : List<PublicURL>.from(
-                map['publicURLs'].map((x) => PublicURL.fromMap(x)),
-              );
+        ? <PublicURL>[]
+        : List<PublicURL>.from(
+            map['publicURLs'].map((x) => PublicURL.fromMap(x)),
+          );
     return Collection(
       map['id'],
       User.fromMap(map['owner']),
@@ -322,13 +322,7 @@ class Collection {
   }
 }
 
-enum CollectionType {
-  folder,
-  favorites,
-  uncategorized,
-  album,
-  unknown,
-}
+enum CollectionType { folder, favorites, uncategorized, album, unknown }
 
 CollectionType typeFromString(String type) {
   switch (type) {
@@ -367,13 +361,7 @@ extension CollectionTypeExtn on CollectionType {
       this != CollectionType.favorites && this != CollectionType.uncategorized;
 }
 
-enum CollectionParticipantRole {
-  unknown,
-  viewer,
-  collaborator,
-  admin,
-  owner,
-}
+enum CollectionParticipantRole { unknown, viewer, collaborator, admin, owner }
 
 extension CollectionParticipantRoleExtn on CollectionParticipantRole {
   static CollectionParticipantRole fromString(String? val) {
@@ -416,9 +404,7 @@ class CollectionAttributes {
     return map;
   }
 
-  static fromMap(Map<String, dynamic>? map) {
-    if (map == null) return null;
-
+  static CollectionAttributes fromMap(Map<String, dynamic> map) {
     return CollectionAttributes(
       encryptedPath: map['encryptedPath'],
       pathDecryptionNonce: map['pathDecryptionNonce'],

@@ -14,10 +14,8 @@ class IconUtils {
 
   static final IconUtils instance = IconUtils._privateConstructor();
 
-  // Map of icon-title to the color code in HEX
-  final Map<String, String> _simpleIcons = {};
+  final Map<String, SimpleIconData> _simpleIcons = {};
   final Map<String, CustomIconData> _customIcons = {};
-  // Map of icon-color to its luminance
   final Map<Color, double> _colorLuminance = {};
   final List<String> _titleSplitCharacters = ['(', '.'];
 
@@ -33,26 +31,31 @@ class IconUtils {
       final simpleIterator = _simpleIcons.entries.iterator;
       final customIterator = _customIcons.entries.iterator;
 
-      var simpleEntry =
-          simpleIterator.moveNext() ? simpleIterator.current : null;
-      var customEntry =
-          customIterator.moveNext() ? customIterator.current : null;
+      var simpleEntry = simpleIterator.moveNext()
+          ? simpleIterator.current
+          : null;
+      var customEntry = customIterator.moveNext()
+          ? customIterator.current
+          : null;
 
       String simpleIconPath, customIconPath;
 
       while (simpleEntry != null && customEntry != null) {
         if (simpleEntry.key.compareTo(customEntry.key) <= 0) {
-          simpleIconPath = "assets/simple-icons/icons/${simpleEntry.key}.svg";
+          simpleIconPath =
+              "assets/simple-icons/icons/${simpleIconAssetStem(simpleEntry.key, simpleEntry.value.slug)}.svg";
           if (!processedIconPaths.contains(simpleIconPath)) {
             allIcons[simpleEntry.key] = AllIconData(
               title: simpleEntry.key,
               type: IconType.simpleIcon,
-              color: simpleEntry.value,
+              color: simpleEntry.value.color,
+              slug: simpleEntry.value.slug,
             );
             processedIconPaths.add(simpleIconPath);
           }
-          simpleEntry =
-              simpleIterator.moveNext() ? simpleIterator.current : null;
+          simpleEntry = simpleIterator.moveNext()
+              ? simpleIterator.current
+              : null;
         } else {
           customIconPath =
               "assets/custom-icons/icons/${customEntry.value.slug ?? customEntry.key}.svg";
@@ -66,19 +69,22 @@ class IconUtils {
             );
             processedIconPaths.add(customIconPath);
           }
-          customEntry =
-              customIterator.moveNext() ? customIterator.current : null;
+          customEntry = customIterator.moveNext()
+              ? customIterator.current
+              : null;
         }
       }
 
       while (simpleEntry != null) {
-        simpleIconPath = "assets/simple-icons/icons/${simpleEntry.key}.svg";
+        simpleIconPath =
+            "assets/simple-icons/icons/${simpleIconAssetStem(simpleEntry.key, simpleEntry.value.slug)}.svg";
 
         if (!processedIconPaths.contains(simpleIconPath)) {
           allIcons[simpleEntry.key] = AllIconData(
             title: simpleEntry.key,
             type: IconType.simpleIcon,
-            color: simpleEntry.value,
+            color: simpleEntry.value.color,
+            slug: simpleEntry.value.slug,
           );
           processedIconPaths.add(simpleIconPath);
         }
@@ -108,11 +114,7 @@ class IconUtils {
     }
   }
 
-  Widget getIcon(
-    BuildContext context,
-    String provider, {
-    double width = 24,
-  }) {
+  Widget getIcon(BuildContext context, String provider, {double width = 24}) {
     try {
       final providerTitle = _getProviderTitle(provider);
       final List<String> titlesList = [providerTitle];
@@ -131,11 +133,14 @@ class IconUtils {
             context,
           );
         } else if (_simpleIcons.containsKey(title)) {
-          final simpleIconPath = normalizeSimpleIconName(title);
+          final simpleIconPath = simpleIconAssetStem(
+            title,
+            _simpleIcons[title]!.slug,
+          );
           return getSVGIcon(
             "assets/simple-icons/icons/$simpleIconPath.svg",
             title,
-            _simpleIcons[title],
+            _simpleIcons[title]!.color,
             width,
             context,
           );
@@ -147,11 +152,9 @@ class IconUtils {
         return const SizedBox.shrink();
       }
     } catch (e, s) {
-      Logger("IconUtils").warning(
-        "Failed to get icon for provider '$provider'",
-        e,
-        s,
-      );
+      Logger(
+        "IconUtils",
+      ).warning("Failed to get icon for provider '$provider'", e, s);
       return _fallbackAvatar(provider, width, context);
     }
   }
@@ -170,23 +173,19 @@ class IconUtils {
         width: width,
         semanticsLabel: title,
         colorFilter: iconColor != null
-            ? ColorFilter.mode(
-                iconColor,
-                BlendMode.srcIn,
-              )
+            ? ColorFilter.mode(iconColor, BlendMode.srcIn)
             : null,
         errorBuilder: (context, error, stackTrace) {
-          Logger("IconUtils")
-              .warning("Failed to load icon $path", error, stackTrace);
+          Logger(
+            "IconUtils",
+          ).warning("Failed to load icon $path", error, stackTrace);
           return _fallbackAvatar(title, width, context);
         },
       );
     } catch (e, s) {
-      Logger("IconUtils").warning(
-        "Failed to create SVG icon for '$title' at path '$path'",
-        e,
-        s,
-      );
+      Logger(
+        "IconUtils",
+      ).warning("Failed to create SVG icon for '$title' at path '$path'", e, s);
       return _fallbackAvatar(title, width, context);
     }
   }
@@ -197,18 +196,18 @@ class IconUtils {
     final bool showLargeIcon = width > 24;
     return CircleAvatar(
       radius: width / 2,
-      backgroundColor: getEnteColorScheme(context).avatarColors[
-          providerTitle.hashCode %
+      backgroundColor:
+          getEnteColorScheme(context).avatarColors[providerTitle.hashCode %
               getEnteColorScheme(context).avatarColors.length],
       child: Text(
         providerTitle.toUpperCase()[0],
         style: showLargeIcon
-            ? getEnteTextTheme(context)
-                .h3Bold
-                .copyWith(color: Colors.white, fontSize: width * 0.6)
-            : getEnteTextTheme(context)
-                .body
-                .copyWith(color: Colors.white, fontSize: width * 0.6),
+            ? getEnteTextTheme(
+                context,
+              ).h3Bold.copyWith(color: Colors.white, fontSize: width * 0.6)
+            : getEnteTextTheme(
+                context,
+              ).body.copyWith(color: Colors.white, fontSize: width * 0.6),
       ),
     );
   }
@@ -217,7 +216,7 @@ class IconUtils {
     if (hexColor == null) return null;
     final theme = Theme.of(context).brightness;
     final color = Color(int.parse("0xFF$hexColor"));
-    // Color is close to neutral-grey and it's too light or dark for theme
+    // Use the theme icon color when a neutral grey lacks contrast.
     if (_isCloseToNeutralGrey(color) &&
         ((theme == Brightness.light && _getColorLuminance(color) > 0.70) ||
             (theme == Brightness.dark && _getColorLuminance(color) < 0.05))) {
@@ -241,33 +240,30 @@ class IconUtils {
 
   Future<void> _loadJson() async {
     try {
-      final simpleIconData = await rootBundle
-          .loadString('assets/simple-icons/_data/simple-icons.json');
+      final simpleIconData = await rootBundle.loadString(
+        'assets/simple-icons/_data/simple-icons.json',
+      );
       final simpleIcons = json.decode(simpleIconData);
       for (final icon in simpleIcons) {
         _simpleIcons[icon["title"]
             .toString()
             .replaceAll(' ', '')
-            .toLowerCase()] = icon["hex"];
-      }
-      final customIconData = await rootBundle
-          .loadString('assets/custom-icons/_data/custom-icons.json');
-      final customIcons = json.decode(customIconData);
-      for (final icon in customIcons["icons"]) {
-        _customIcons[icon["title"]
-            .toString()
-            .replaceAll(' ', '')
-            .toLowerCase()] = CustomIconData(
+            .toLowerCase()] = SimpleIconData(
           icon["slug"],
           icon["hex"],
         );
+      }
+      final customIconData = await rootBundle.loadString(
+        'assets/custom-icons/_data/custom-icons.json',
+      );
+      final customIcons = json.decode(customIconData);
+      for (final icon in customIcons["icons"]) {
+        final titleKey = _getProviderTitle(icon["title"].toString());
+        _customIcons[titleKey] = CustomIconData(icon["slug"], icon["hex"]);
         if (icon["altNames"] != null) {
           for (final name in icon["altNames"]) {
             _customIcons[name.toString().replaceAll(' ', '').toLowerCase()] =
-                CustomIconData(
-              icon["slug"] ?? ((icon["title"] as String).toLowerCase()),
-              icon["hex"],
-            );
+                CustomIconData(icon["slug"] ?? titleKey, icon["hex"]);
           }
         }
       }
@@ -291,11 +287,19 @@ class CustomIconData {
   CustomIconData(this.slug, this.color);
 }
 
+class SimpleIconData {
+  final String? slug;
+  final String? color;
+
+  SimpleIconData(this.slug, this.color);
+}
+
 final charMap = {
   'á': 'a',
   'à': 'a',
   'â': 'a',
   'ä': 'a',
+  'ã': 'a',
   'é': 'e',
   'è': 'e',
   'ê': 'e',
@@ -314,6 +318,9 @@ final charMap = {
   'ü': 'u',
   'ç': 'c',
   'ñ': 'n',
+  'ř': 'r',
+  'š': 's',
+  'ż': 'z',
   '.': 'dot',
   '-': '',
   '&': 'and',
@@ -322,6 +329,8 @@ final charMap = {
   "'": '',
   '/': '',
   '!': '',
+  '_': '',
+  '°': '',
 };
 String normalizeSimpleIconName(String input) {
   final buffer = StringBuffer();
@@ -329,4 +338,8 @@ String normalizeSimpleIconName(String input) {
     buffer.write(charMap[char] ?? char);
   }
   return buffer.toString().trim();
+}
+
+String simpleIconAssetStem(String title, String? slug) {
+  return slug ?? normalizeSimpleIconName(title);
 }

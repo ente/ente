@@ -13,36 +13,27 @@ class InfoFileService {
 
   final _logger = Logger('InfoFileService');
 
-  /// Creates and uploads an info file
   Future<EnteFile> createAndUploadInfoFile({
     required InfoItem infoItem,
     required Collection collection,
   }) async {
     try {
-      // Create EnteFile object directly without a physical file
       final enteFile = EnteFile();
       enteFile.fileType = FileType.info;
       enteFile.collectionID = collection.id;
 
-      // Set the title based on info type and data
       enteFile.title = getInfoFileTitle(infoItem);
 
-      // Set creation and modification times
       final now = DateTime.now().millisecondsSinceEpoch;
       enteFile.creationTime = now;
       enteFile.modificationTime = now;
 
-      // Create public magic metadata with info data
       final pubMagicMetadata = PubMagicMetadata(
-        info: {
-          'type': infoItem.type.name,
-          'data': infoItem.data.toJson(),
-        },
-        noThumb: true, // No thumbnail for info files
+        info: {'type': infoItem.type.name, 'data': infoItem.data.toJson()},
+        noThumb: true,
       );
       enteFile.pubMagicMetadata = pubMagicMetadata;
 
-      // Upload the file using the special info file upload method
       final uploadedFile = await _uploadInfoFile(enteFile, collection);
 
       _logger.info(
@@ -55,24 +46,18 @@ class InfoFileService {
     }
   }
 
-  /// Updates an existing info file with new data
   Future<bool> updateInfoFile({
     required EnteFile existingFile,
     required InfoItem updatedInfoItem,
   }) async {
     try {
-      // Prepare the info data structure
       final infoData = {
         'type': updatedInfoItem.type.name,
         'data': updatedInfoItem.data.toJson(),
       };
 
-      // Prepare metadata updates - only update info and name/time if needed
-      final Map<String, dynamic> metadataUpdates = {
-        infoKey: infoData,
-      };
+      final Map<String, dynamic> metadataUpdates = {infoKey: infoData};
 
-      // Update title if it's different from current display name
       // Use displayName (which considers editedName) instead of title (original name)
       final updatedTitle = getInfoFileTitle(updatedInfoItem);
       if (existingFile.displayName != updatedTitle) {
@@ -80,7 +65,6 @@ class InfoFileService {
         metadataUpdates[editTimeKey] = DateTime.now().millisecondsSinceEpoch;
       }
 
-      // Update metadata using the simple metadata updater service
       final success = await MetadataUpdaterService.instance.updateFileMetadata(
         existingFile,
         metadataUpdates,
@@ -100,15 +84,13 @@ class InfoFileService {
     }
   }
 
-  /// Extracts info data from a file
   InfoItem? extractInfoFromFile(EnteFile file) {
     try {
-      if (file.fileType != FileType.info ||
-          file.pubMagicMetadata.info == null) {
+      final infoData = file.pubMagicMetadata.info;
+      if (infoData == null) {
         return null;
       }
 
-      final infoData = file.pubMagicMetadata.info!;
       final typeString = infoData['type'] as String?;
       final data = infoData['data'] as Map<String, dynamic>?;
 
@@ -116,10 +98,11 @@ class InfoFileService {
         return null;
       }
 
-      final infoType = InfoType.values.firstWhere(
-        (type) => type.name == typeString,
-        orElse: () => InfoType.note,
-      );
+      if (file.fileType != FileType.info) {
+        file.fileType = FileType.info;
+      }
+
+      final infoType = InfoTypeExtension.fromString(typeString);
 
       InfoData infoDataObj;
       switch (infoType) {
@@ -148,12 +131,16 @@ class InfoFileService {
     }
   }
 
-  /// Checks if a file is an info file
   bool isInfoFile(EnteFile file) {
-    return file.fileType == FileType.info && file.pubMagicMetadata.info != null;
+    if (file.fileType == FileType.info) {
+      return true;
+    }
+    if (file.fileType != null && file.fileType != FileType.other) {
+      return false;
+    }
+    return file.pubMagicMetadata.info != null;
   }
 
-  /// Gets the display title for an info file based on its content
   String getInfoFileTitle(InfoItem infoItem) {
     switch (infoItem.type) {
       case InfoType.note:
@@ -173,18 +160,15 @@ class InfoFileService {
     }
   }
 
-  /// Gets the display title directly from an EnteFile (convenience method)
   String? getFileTitleFromFile(EnteFile file) {
     final infoItem = extractInfoFromFile(file);
     return infoItem != null ? getInfoFileTitle(infoItem) : null;
   }
 
-  /// Special upload method for info files that don't require physical file content
   Future<EnteFile> _uploadInfoFile(
     EnteFile enteFile,
     Collection collection,
   ) async {
-    // Use the FileUploader's special method for info files
     return await FileUploader.instance.uploadInfoFile(enteFile, collection);
   }
 }

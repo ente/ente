@@ -1,7 +1,6 @@
 # Grafana
 
-Grafana data is stored in a persistent Docker volume named `grafana-storage`. To
-create a backup of this, use
+Grafana data is stored in a persistent Docker volume named `grafana-storage`. To create a backup of this, use
 
 ```sh
 docker run --rm \
@@ -33,5 +32,5 @@ and reload the nginx service before starting Grafana for the first time.
 
 ```sh
 sudo systemctl reload nginx
-sudo systemctl start grafana
+sudo systemctl enable --now grafana
 ```

@@ -6,22 +6,14 @@ import (
 	"net/http"
 )
 
-// ErrPermissionDenied is returned when a user has insufficient permissions to
-// perform an action
 var ErrPermissionDenied = errors.New("insufficient permissions to perform this action")
 
-// ErrIncorrectOTT is returned when a user tries to validate an email with an
-// incorrect OTT
 var ErrIncorrectOTT = errors.New("incorrect OTT")
 
-// ErrExpiredOTT is returned when a user tries to validate an email but there's no active ott
 var ErrExpiredOTT = errors.New("no active OTT")
 
-// ErrIncorrectTOTP is returned when a user tries to validate an two factor with an
-// incorrect TOTP
 var ErrIncorrectTOTP = errors.New("incorrect TOTP")
 
-// ErrNotFound is returned when the requested resource was not found
 var ErrNotFound = errors.New("not found")
 
 var ErrCollectionDeleted = &ApiError{
@@ -36,75 +28,58 @@ var ErrFileLimitReached = ApiError{
 	HttpStatusCode: http.StatusForbidden,
 }
 
-// ErrBadRequest is returned when a bad request is encountered
 var ErrBadRequest = errors.New("bad request")
 
-// ErrTooManyBadRequest is returned when user send many bad requests, especailly for authentication
 var ErrTooManyBadRequest = errors.New("too many bad request")
 
-// ErrUnexpectedState is returned when certain assumption/assets fails
 var ErrUnexpectedState = errors.New("unexpected state")
 
-// ErrCannotDowngrade is thrown when a user tries to downgrade to a plan whose
-// limits are lower than current consumption
 var ErrCannotDowngrade = errors.New("usage is greater than selected plan, cannot downgrade")
 
-// ErrCannotSwitchPaymentProvider is thrown when a user attempts to renew a subscription from a different payment provider
 var ErrCannotSwitchPaymentProvider = errors.New("cannot switch payment provider")
 
-// ErrNoActiveSubscription is returned when user's doesn't has any active plans
 var ErrNoActiveSubscription = errors.New("no Active Subscription")
 
-// ErrStorageLimitExceeded is thrown when user exceed the plan's data Storage limit
 var ErrStorageLimitExceeded = errors.New("storage Limit exceeded")
 
-// ErrFileTooLarge thrown when an uploaded file is too large for the storage plan
 var ErrFileTooLarge = errors.New("file too large")
 
-// ErrSharingDisabledForFreeAccounts is thrown when free subscription user tries to share files
 var ErrSharingDisabledForFreeAccounts = errors.New("sharing Feature is disabled for free accounts")
 
-// ErrDuplicateFileObjectFound is thrown when another file with the same objectKey is detected
 var ErrDuplicateFileObjectFound = errors.New("file object already exists")
 
 var ErrFavoriteCollectionAlreadyExist = errors.New("favorites collection already exists")
 
 var ErrUncategorizeCollectionAlreadyExists = errors.New("uncategorized collection already exists")
 
-// ErrDuplicateThumbnailObjectFound is thrown when another thumbnail with the same objectKey is detected
 var ErrDuplicateThumbnailObjectFound = errors.New("thumbnail object already exists")
 
-// ErrVersionMismatch is thrown when for versioned updates, client is sending incorrect version to server
+var ErrFileUploadConflict = &ApiError{
+	Code:           "FILE_UPLOAD_CONFLICT",
+	Message:        "File upload conflicts with an existing file",
+	HttpStatusCode: http.StatusBadRequest,
+}
+
 var ErrVersionMismatch = errors.New("client version is out of sync")
 
-// ErrCanNotInviteUserWithPaidPlan is thrown when a family admin tries to invite another user with active paid plan
 var ErrCanNotInviteUserWithPaidPlan = errors.New("can not invite user with active paid plan")
 
-// ErrBatchSizeTooLarge is thrown when api request batch size is greater than API limit
 var ErrBatchSizeTooLarge = errors.New("batch size greater than API limit")
 
-// ErrAuthenticationRequired is thrown when authentication vector is missing
 var ErrAuthenticationRequired = errors.New("authentication required")
 
-// ErrInvalidPassword is thrown when incorrect password is provided by user
 var ErrInvalidPassword = errors.New("invalid password")
 
-// ErrCanNotInviteUserAlreadyInFamily is thrown when a family admin tries to invite another user with active paid plan
 var ErrCanNotInviteUserAlreadyInFamily = errors.New("can not invite user who is already part of a family")
 
-// ErrFamilySizeLimitReached is thrown when a family admin tries to invite more than max allowed members for family plan
 var ErrFamilySizeLimitReached = errors.New("can't invite new member, family already at max allowed size")
 
-// ErrUserDeleted is thrown when Get user is called for a deleted account
 var ErrUserDeleted = errors.New("user account has been deleted")
 
-// ErrLockUnavailable is thrown when a lock could not be acquired
 var ErrLockUnavailable = errors.New("could not acquire lock")
 
-// ErrActiveLinkAlreadyExists is thrown when an active link already exists for entity
 var ErrActiveLinkAlreadyExists = errors.New("link already exists for this entity")
 
-// ErrAccessTokenInUse is thrown when an access token is already active
 var ErrAccessTokenInUse = errors.New("access token already in use")
 
 // ErrNotImplemented indicates that the action that we tried to perform is not
@@ -202,6 +177,18 @@ var ErrUserNotFound = &ApiError{
 	HttpStatusCode: http.StatusNotFound,
 }
 
+var ErrRecipientIdentityMismatch = &ApiError{
+	Code:           "RECIPIENT_IDENTITY_MISMATCH",
+	Message:        "Recipient identity does not match",
+	HttpStatusCode: http.StatusConflict,
+}
+
+var ErrAutomaticShareRecipientNotEligible = &ApiError{
+	Code:           "AUTOMATIC_SHARE_RECIPIENT_NOT_ELIGIBLE",
+	Message:        "Automatic share recipient is not eligible",
+	HttpStatusCode: http.StatusForbidden,
+}
+
 var ErrMaxPasskeysReached = ApiError{
 	Code:           MaxPasskeysReached,
 	Message:        "Max passkeys limit reached",
@@ -231,6 +218,18 @@ var ErrLinkEditNotAllowed = ApiError{
 	HttpStatusCode: http.StatusForbidden,
 }
 
+var ErrLinkDeviceLimitExceeded = ApiError{
+	Code:           LinkDeviceLimitExceeded,
+	Message:        "Public link device limit reached",
+	HttpStatusCode: http.StatusForbidden,
+}
+
+var ErrActiveRecoverySession = ApiError{
+	Code:           ActiveRecoverySession,
+	Message:        "cannot update recovery notice while there is an active recovery session",
+	HttpStatusCode: http.StatusBadRequest,
+}
+
 var ErrFileInTrash = ApiError{
 	Code:           FileInTrash,
 	Message:        "One or more files are in trash or have been deleted, please restore them first",
@@ -252,61 +251,54 @@ var ErrLockerRollOutLimit = &ApiError{
 type ErrorCode string
 
 const (
-	// Standard, generic error codes
-	BadRequest ErrorCode = "BAD_REQUEST"
-	CONFLICT   ErrorCode = "CONFLICT"
+	BadRequest    ErrorCode = "BAD_REQUEST"
+	CONFLICT      ErrorCode = "CONFLICT"
+	AlreadyExists ErrorCode = "ALREADY_EXISTS"
 
 	InternalError ErrorCode = "INTERNAL_ERROR"
 
 	NotFoundError ErrorCode = "NOT_FOUND"
 
-	// Business specific error codes
-	FamiliySizeLimitExceeded ErrorCode = "FAMILY_SIZE_LIMIT_EXCEEDED"
+	FamilySizeLimitExceeded ErrorCode = "FAMILY_SIZE_LIMIT_EXCEEDED"
 
-	// UserSignupIncomplete indicates that account exists but signup is not fully completed
 	UserSignupIncomplete ErrorCode = "USER_SIGNUP_INCOMPLETE"
 
-	// Subscription Already Associted with different account
 	SubscriptionAlreadyClaimed ErrorCode = "SUBSCRIPTION_ALREADY_CLAIMED"
 
 	FileNotFoundInAlbum ErrorCode = "FILE_NOT_FOUND_IN_ALBUM"
 
 	AuthKeyNotCreated ErrorCode = "AUTH_KEY_NOT_CREATED"
 
-	// PublicCollectDisabled error code indicates that the user has not enabled public collect
 	PublicCollectDisabled ErrorCode = "PUBLIC_COLLECT_DISABLED"
 
-	// PublicCommentDisabled error code indicates that the user has not enabled public comments
 	PublicCommentDisabled ErrorCode = "PUBLIC_COMMENT_DISABLED"
 
-	// PublicCommentTooLong indicates that comment text exceeded allowed limit
 	PublicCommentTooLong ErrorCode = "PUBLIC_COMMENT_TOO_LONG"
 
-	// AnonNameTooLong indicates that anonymous display name exceeded allowed limit
 	AnonNameTooLong ErrorCode = "ANON_NAME_TOO_LONG"
 
-	// CollectionNotEmpty is thrown when user attempts to delete a collection but keep files but all files from that
-	// collections have been moved yet.
 	CollectionNotEmpty ErrorCode = "COLLECTION_NOT_EMPTY"
 
-	// MaxPasskeysReached is thrown when user attempts to create more than max allowed passkeys
 	MaxPasskeysReached ErrorCode = "MAX_PASSKEYS_REACHED"
 
-	// LockerRegistrationDisabled indicates that locker registration is currently disabled
 	LockerRegistrationDisabled ErrorCode = "LOCKER_REGISTRATION_DISABLED"
 
 	LockerRolloutLimit ErrorCode = "LOCKER_ROLLOUT_LIMIT"
 
-	// FileLimitReached indicates the user hit the maximum number of files allowed
 	FileLimitReached ErrorCode = "FILE_LIMIT_REACHED"
 
-	// FileInTrash indicates files are present in trash and cannot be added to collection
 	FileInTrash ErrorCode = "FILE_IN_TRASH"
 
 	SessionExpired ErrorCode = "SESSION_EXPIRED"
 
-	// LinkEditNotAllowed indicates that the user cannot change link settings
 	LinkEditNotAllowed ErrorCode = "LINK_EDIT_NOT_ALLOWED"
+
+	LinkDeviceLimitExceeded ErrorCode = "LINK_DEVICE_LIMIT_EXCEEDED"
+	LinkExpired             ErrorCode = "LINK_EXPIRED"
+	LinkDisabled            ErrorCode = "LINK_DISABLED"
+	LinkUnavailable         ErrorCode = "LINK_UNAVAILABLE"
+
+	ActiveRecoverySession ErrorCode = "ACTIVE_RECOVERY_SESSION"
 )
 
 type ApiError struct {
@@ -376,6 +368,14 @@ func NewPermissionDeniedError(message string) *ApiError {
 func NewConflictError(message string) *ApiError {
 	return &ApiError{
 		Code:           CONFLICT,
+		HttpStatusCode: http.StatusConflict,
+		Message:        message,
+	}
+}
+
+func NewAlreadyExistsError(message string) *ApiError {
+	return &ApiError{
+		Code:           AlreadyExists,
 		HttpStatusCode: http.StatusConflict,
 		Message:        message,
 	}

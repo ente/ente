@@ -1,29 +1,18 @@
 import { safeStorage } from "electron/main";
+import type { PersistedAppLockConfig } from "../../types/ipc";
 import { safeStorageStore } from "../stores/safe-storage";
 import { uploadStatusStore } from "../stores/upload-status";
 import { userPreferences } from "../stores/user-preferences";
 import { watchStore } from "../stores/watch";
 
-/**
- * Clear all stores except user preferences.
- *
- * This function is useful to reset state when the user logs out. User
- * preferences are preserved since they contain things tied to the person using
- * the app or other machine specific state not tied to the account they were
- * using inside the app.
- */
+// User preferences belong to the person or device, not the signed-in account.
 export const clearStores = () => {
     safeStorageStore.clear();
     uploadStatusStore.clear();
     watchStore.clear();
 };
 
-/**
- * [Note: Safe storage keys]
- *
- * On macOS, `safeStorage` stores our data under a Keychain entry named
- * "<app-name> Safe Storage". In our case, "ente Safe Storage".
- */
+// macOS Keychain entry: "ente Safe Storage".
 export const saveMasterKeyInSafeStorage = (masterKey: string) => {
     const encryptedKeyBuffer = safeStorage.encryptString(masterKey);
     const encryptedKey = Buffer.from(encryptedKeyBuffer).toString("base64");
@@ -37,33 +26,71 @@ export const masterKeyFromSafeStorage = (): string | undefined => {
     return safeStorage.decryptString(encryptedKeyBuffer);
 };
 
+const saveAppLockConfigStringInSafeStorage = (value: string) => {
+    const encryptedValueBuffer = safeStorage.encryptString(value);
+    const encryptedValue = Buffer.from(encryptedValueBuffer).toString("base64");
+    safeStorageStore.set("appLockConfig", encryptedValue);
+};
+
+const appLockConfigStringFromSafeStorage = (): string | undefined => {
+    const encryptedValue = safeStorageStore.get("appLockConfig");
+    if (!encryptedValue) return undefined;
+    const encryptedValueBuffer = Buffer.from(encryptedValue, "base64");
+    return safeStorage.decryptString(encryptedValueBuffer);
+};
+
+const parsePersistedAppLockConfig = (json: string): PersistedAppLockConfig => {
+    const parsed: unknown = JSON.parse(json);
+    if (!parsed || typeof parsed !== "object") {
+        throw new Error("Invalid persisted app lock config");
+    }
+
+    const { enabled, lockType, autoLockTimeMs } = parsed as Record<
+        string,
+        unknown
+    >;
+    if (
+        typeof enabled !== "boolean" ||
+        (lockType !== "pin" &&
+            lockType !== "password" &&
+            lockType !== "device" &&
+            lockType !== "none") ||
+        typeof autoLockTimeMs !== "number" ||
+        !Number.isFinite(autoLockTimeMs)
+    ) {
+        throw new Error("Invalid persisted app lock config");
+    }
+
+    return { enabled, lockType, autoLockTimeMs };
+};
+
+export const saveAppLockConfigInSafeStorage = (
+    config: PersistedAppLockConfig,
+) => {
+    saveAppLockConfigStringInSafeStorage(JSON.stringify(config));
+};
+
+export const appLockConfigFromSafeStorage = ():
+    | PersistedAppLockConfig
+    | undefined => {
+    const config = appLockConfigStringFromSafeStorage();
+
+    if (!config) return undefined;
+
+    return parsePersistedAppLockConfig(config);
+};
+
+export const clearAppLockConfigFromSafeStorage = () => {
+    safeStorageStore.delete("appLockConfig");
+};
+
 export const lastShownChangelogVersion = (): number | undefined =>
     userPreferences.get("lastShownChangelogVersion");
 
 export const setLastShownChangelogVersion = (version: number) =>
     userPreferences.set("lastShownChangelogVersion", version);
 
-/**
- * Return true if the dock icon should be hidden when the window is closed
- * [macOS only].
- *
- * On macOS, if this function returns true then when hiding ("closing" it with
- * the x traffic light) the window we also hide the app's icon in the dock. The
- * user can modify their preference using the Menu bar > ente > Settings > Hide
- * dock icon checkbox.
- *
- * If the user has not set a value for this preference (i.e., the value is
- * `undefined`), we use the default `true`. This is confusing, but this way we
- * can retain the preexisting preference key instead of doing a migration.
- *
- *     Value     | Behaviour
- *     ----------|--------------
- *     undefined |  default (hide)
- *     false     |  show
- *     true      |  hide
- *
- * On non-macOS platforms, it always returns false.
- */
+// A missing value preserves the legacy default without migrating the store.
 export const shouldHideDockIcon = (): boolean =>
     process.platform == "darwin" &&
     userPreferences.get("hideDockIcon") !== false;

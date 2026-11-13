@@ -1,11 +1,11 @@
 import 'dart:math';
 
+import 'package:ente_strings/ente_strings.dart';
 import 'package:logging/logging.dart';
 import 'package:photos/core/configuration.dart';
 import 'package:photos/db/files_db.dart';
 import 'package:photos/db/social_db.dart';
 import 'package:photos/extensions/user_extension.dart';
-import 'package:photos/generated/l10n.dart';
 import 'package:photos/models/collection/collection.dart';
 import 'package:photos/models/file/extensions/file_props.dart';
 import 'package:photos/models/file/file.dart';
@@ -20,10 +20,7 @@ import 'package:photos/services/language_service.dart';
 import 'package:photos/services/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-enum SocialNotificationTrigger {
-  remoteSync,
-  feedRefresh,
-}
+enum SocialNotificationTrigger { remoteSync, feedRefresh }
 
 class SocialNotificationCoordinator {
   static const String kLastSocialActivityNotificationTime =
@@ -112,8 +109,8 @@ class SocialNotificationCoordinator {
 
   Future<void> _notifyNewSocialActivity() async {
     final prefs = await _ensurePrefs();
-    final socialNotificationsEnabled =
-        NotificationService.instance.shouldShowSocialNotifications();
+    final socialNotificationsEnabled = NotificationService.instance
+        .shouldShowSocialNotifications();
     final sharedPhotosAndAlbumsNotificationsEnabled = NotificationService
         .instance
         .shouldShowNotificationsForSharedPhotosAndAlbums();
@@ -156,9 +153,20 @@ class SocialNotificationCoordinator {
       }
       final group = _notificationGroupForType(candidate.type);
       final fileIDKey = candidate.fileID ?? 0;
-      final key =
-          '${candidate.collectionID}_${candidate.type.index}_${fileIDKey}_${group.index}';
+      final key = candidate.type == FeedItemType.sharedCollection
+          ? 'sharedCollection_${candidate.actorUserID}'
+          : '${candidate.collectionID}_${candidate.type.index}_${fileIDKey}_${group.index}';
       final existing = latestByKey[key];
+      if (existing != null && candidate.type == FeedItemType.sharedCollection) {
+        final count =
+            existing.sharedCollectionCount + candidate.sharedCollectionCount;
+        final latest = candidate.createdAt > existing.createdAt
+            ? candidate
+            : existing;
+        latest.sharedCollectionCount = count;
+        latestByKey[key] = latest;
+        return;
+      }
       if (existing == null || candidate.createdAt > existing.createdAt) {
         latestByKey[key] = candidate;
       }
@@ -216,8 +224,9 @@ class SocialNotificationCoordinator {
       if (comment.fileID != null) allFileIDs.add(comment.fileID!);
     }
 
-    final filesByID =
-        await _filesDb.getFileIDToFileFromIDs(allFileIDs.toList());
+    final filesByID = await _filesDb.getFileIDToFileFromIDs(
+      allFileIDs.toList(),
+    );
 
     bool isOwnedByUser(int? fileID) {
       if (fileID == null) {
@@ -281,20 +290,11 @@ class SocialNotificationCoordinator {
           channelID: 'social_activity',
           channelName: 'Ente Feed',
           payload: _buildSocialNotificationPayload(candidate),
-          id: _buildSocialNotificationId(
-            candidate.collectionID,
-            fileID,
-            candidate.type,
-            _notificationGroupForType(candidate.type),
-          ),
+          id: _buildSocialNotificationId(candidate),
         );
         latestSentNotificationTime ??= candidate.createdAt;
       } catch (e, stackTrace) {
-        _logger.severe(
-          'Failed to prepare social notification',
-          e,
-          stackTrace,
-        );
+        _logger.severe('Failed to prepare social notification', e, stackTrace);
       }
     }
 
@@ -341,17 +341,17 @@ class SocialNotificationCoordinator {
     }
   }
 
-  int _buildSocialNotificationId(
-    int collectionID,
-    int? fileID,
-    FeedItemType type,
-    _SocialNotificationGroup group,
-  ) {
+  int _buildSocialNotificationId(_SocialActivityCandidate candidate) {
     const int base = 0x10000000;
-    int hash = collectionID & 0x7fffffff;
-    hash = ((hash * 31) ^ (fileID ?? 0)) & 0x7fffffff;
-    hash = ((hash * 31) ^ type.index) & 0x7fffffff;
-    hash = ((hash * 31) ^ group.index) & 0x7fffffff;
+    final primaryID = candidate.type == FeedItemType.sharedCollection
+        ? candidate.actorUserID
+        : candidate.collectionID;
+    int hash = primaryID & 0x7fffffff;
+    hash = ((hash * 31) ^ (candidate.fileID ?? 0)) & 0x7fffffff;
+    hash = ((hash * 31) ^ candidate.type.index) & 0x7fffffff;
+    hash =
+        ((hash * 31) ^ _notificationGroupForType(candidate.type).index) &
+        0x7fffffff;
     return base | (hash & 0x0fffffff);
   }
 
@@ -367,14 +367,16 @@ class SocialNotificationCoordinator {
         fallback: anonID,
       );
     }
-    final user =
-        _collectionsService.getFileOwner(userID, candidate.collectionID);
+    final user = _collectionsService.resolveUserIdentity(
+      userID,
+      candidate.collectionID,
+    );
     return user.nameOrEmail;
   }
 
   String _getSocialNotificationBody(
     _SocialActivityCandidate candidate,
-    AppLocalizations s,
+    StringsLocalizations s,
     FileType? fileType,
     bool isOwn,
   ) {
@@ -383,7 +385,7 @@ class SocialNotificationCoordinator {
 
   String _getSocialNotificationDetail(
     _SocialActivityCandidate candidate,
-    AppLocalizations s,
+    StringsLocalizations s,
     FileType? fileType,
     bool isOwn,
   ) {
@@ -410,7 +412,9 @@ class SocialNotificationCoordinator {
         }
         return s.addedNMemoriesTo(count: count, albumName: albumName);
       case FeedItemType.sharedCollection:
-        final albumName = candidate.collectionName ?? s.albums;
+        final albumName = candidate.sharedCollectionCount > 1
+            ? s.albumsCount(count: candidate.sharedCollectionCount)
+            : candidate.collectionName ?? s.albums;
         return s.sharedAlbumWithYou(albumName: albumName);
     }
   }
@@ -434,7 +438,6 @@ class SocialNotificationCoordinator {
       final ownerID = collection.owner.id;
       if (sharedAt == null ||
           sharedAt <= cutoffTime ||
-          ownerID == null ||
           hiddenCollectionIds.contains(collection.id)) {
         continue;
       }
@@ -487,7 +490,8 @@ class SocialNotificationCoordinator {
         }
       }
 
-      final reachedEnd = pageFiles.length < _kSharedPhotoFetchPageSize ||
+      final reachedEnd =
+          pageFiles.length < _kSharedPhotoFetchPageSize ||
           retainedRows >= _kSharedPhotoFetchMaxRows;
       if (reachedEnd) {
         break;
@@ -544,6 +548,7 @@ class _SocialActivityCandidate {
   final String? actorAnonID;
   final int? parentCommentUserID;
   final int sharedFileCount;
+  int sharedCollectionCount = 1;
   final String? collectionName;
 
   _SocialActivityCandidate({
@@ -560,12 +565,7 @@ class _SocialActivityCandidate {
   });
 }
 
-enum _SocialNotificationGroup {
-  comment,
-  like,
-  sharedPhoto,
-  sharedCollection,
-}
+enum _SocialNotificationGroup { comment, like, sharedPhoto, sharedCollection }
 
 class _SharedCollectionsContext {
   final Map<int, String> collectionNames;
@@ -634,8 +634,8 @@ class _SharedPhotoGroupBuilder {
     required this.ownerID,
     required this.createdAt,
     required int firstFileID,
-  })  : oldestAddedTime = createdAt,
-        sharedFileIDs = [firstFileID];
+  }) : oldestAddedTime = createdAt,
+       sharedFileIDs = [firstFileID];
 
   void add(int fileID, int addedTime) {
     sharedFileIDs.add(fileID);
@@ -658,9 +658,7 @@ class _SharedPhotoGroupingState {
   final Map<String, _SharedPhotoGroupBuilder> _activeGroups = {};
   final List<_SharedPhotoGroup> _closedGroups = [];
 
-  _SharedPhotoGroupingState({
-    required this.sessionGapMicros,
-  });
+  _SharedPhotoGroupingState({required this.sessionGapMicros});
 
   void addFile(EnteFile file) {
     final addedTime = file.addedTime;

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" role="img" aria-label="Racket Coach">
+  <title>Racket Coach</title>
+  <!-- Brand green: #16a34a. Single-colour silhouette so it sits well in
+       both light and dark themes; Ente Auth pairs the fill with the
+       theme background. -->
+  <g fill="#16a34a">
+    <!-- Racket head: filled rim with hollow centre (using fill-rule
+         evenodd to subtract the inner ellipse). -->
+    <path fill-rule="evenodd" d="M9 1.5a7 7 0 1 0 0 14A7 7 0 0 0 9 1.5Zm0 2a5 5 0 1 1 0 10A5 5 0 0 1 9 3.5Z"/>
+    <!-- Stringbed: 2 horizontal + 2 vertical lines, slim rectangles. -->
+    <rect x="4.2"  y="8.4" width="9.6" height="0.5" rx="0.25"/>
+    <rect x="4.2"  y="9.6" width="9.6" height="0.5" rx="0.25"/>
+    <rect x="8.4"  y="4.2" width="0.5" height="9.6" rx="0.25"/>
+    <rect x="9.6"  y="4.2" width="0.5" height="9.6" rx="0.25"/>
+    <!-- Handle/throat going to bottom-right at 45 deg. Two parts: short
+         throat connecting the rim to the grip, and a longer grip. -->
+    <path d="M13.05 13.05 L14.5 11.6 L21.4 18.5 L18.5 21.4 L11.6 14.5 Z"/>
+  </g>
+</svg>

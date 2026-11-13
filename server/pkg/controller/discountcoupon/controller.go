@@ -3,14 +3,14 @@ package discountcoupon
 import (
 	"context"
 	"fmt"
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/controller"
-	"github.com/ente-io/museum/pkg/controller/discord"
-	"github.com/ente-io/museum/pkg/controller/email"
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/museum/pkg/repo/discountcoupon"
-	emailUtil "github.com/ente-io/museum/pkg/utils/email"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/controller"
+	"github.com/ente/museum/pkg/controller/discord"
+	"github.com/ente/museum/pkg/controller/email"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/museum/pkg/repo/discountcoupon"
+	emailUtil "github.com/ente/museum/pkg/utils/email"
+	"github.com/ente/stacktrace"
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
@@ -19,14 +19,16 @@ import (
 
 const MaxSendCount = 10
 
-// AllowedProviders is a set of valid provider names for discount coupons.
 // While adding new providers, consider adding customized templates in email package.
 var AllowedProviders = map[string]bool{
-	"Kagi":       true,
-	"Tuta":       true,
-	"Notesnook":  true,
-	"Windscribe": true,
-	"Test":       true,
+	"Kagi":         true,
+	"Tuta":         true,
+	"Notesnook":    true,
+	"Windscribe":   true,
+	"LeaveMeAlone": true,
+	"Obscura":      true,
+	"Addy":         true,
+	"Test":         true,
 }
 
 type Controller struct {
@@ -51,18 +53,27 @@ func (c *Controller) ClaimCoupon(ctx *gin.Context, req ClaimCouponRequest) error
 	if !AllowedProviders[req.ProviderName] {
 		return stacktrace.Propagate(ente.NewBadRequestWithMessage("Invalid provider name"), "")
 	}
-	go c.processClaimRequest(ctx, req)
+	launchClaimProcess(ctx, req, c.processClaimRequest)
 	return nil
 }
 
-func (c *Controller) processClaimRequest(ctx *gin.Context, req ClaimCouponRequest) {
+func launchClaimProcess(
+	requestContext *gin.Context,
+	req ClaimCouponRequest,
+	process func(context.Context, string, ClaimCouponRequest),
+) {
+	requestID := requestid.Get(requestContext)
+	go process(context.Background(), requestID, req)
+}
+
+func (c *Controller) processClaimRequest(ctx context.Context, requestID string, req ClaimCouponRequest) {
 	sanitizedEmail := emailUtil.NormalizeEmail(req.Email)
 	logger :=
 		log.WithField("provider", req.ProviderName).
 			WithField("email", sanitizedEmail).
-			WithField("req_id", requestid.Get(ctx))
+			WithField("req_id", requestID)
 
-	userID, err := c.UserRepo.GetUserIDWithEmail(sanitizedEmail)
+	userID, err := c.UserRepo.GetUserIDWithEmailUnrestricted(sanitizedEmail)
 	if err != nil {
 		logger.WithError(err).Info("User not found for discount coupon claim")
 		return
@@ -156,6 +167,15 @@ func (c *Controller) sendCouponEmail(ctx context.Context, user ente.User, coupon
 	case "Windscribe":
 		subject = "Ente Friends - Windscribe discount code"
 		templateName = "discount_coupon_windscribe.html"
+	case "LeaveMeAlone":
+		subject = "Ente Friends - Leave Me Alone voucher code"
+		templateName = "discount_coupon_leave_me_alone.html"
+	case "Obscura":
+		subject = "Ente Friends - Obscura discount code"
+		templateName = "discount_coupon_obscura.html"
+	case "Addy":
+		subject = "Ente Friends - addy.io discount code"
+		templateName = "discount_coupon_addy.html"
 	case "Test":
 		subject = "Ente Friends - Test trial code"
 		templateName = "discount_coupon_test.html"
@@ -163,7 +183,7 @@ func (c *Controller) sendCouponEmail(ctx context.Context, user ente.User, coupon
 		subject = fmt.Sprintf("Your %s Discount Code", providerName)
 		templateName = "discount_coupon.html"
 	}
-	return emailUtil.SendTemplatedEmailV2([]string{user.Email}, "Ente", "team@ente.io", subject, "base.html", templateName, templateData, nil)
+	return emailUtil.SendTemplatedEmailV2([]string{user.Email}, "Ente", "team@ente.com", subject, "base.html", templateName, templateData, nil)
 }
 
 func (c *Controller) alertCouponsDepletedDiscord(providerName string) {
@@ -179,7 +199,6 @@ func (c *Controller) AddCoupons(ctx *gin.Context, req AddCouponsRequest) error {
 		return ente.NewBadRequestWithMessage("No coupon codes provided")
 	}
 
-	// Filter out empty codes and validate
 	validCodes := make([]string, 0, len(req.Codes))
 	for _, code := range req.Codes {
 		trimmed := strings.TrimSpace(code)
@@ -190,7 +209,7 @@ func (c *Controller) AddCoupons(ctx *gin.Context, req AddCouponsRequest) error {
 	if len(validCodes) == 0 {
 		return nil
 	}
-	err := c.Repo.AddCoupons(ctx, req.ProviderName, req.Codes)
+	err := c.Repo.AddCoupons(ctx, req.ProviderName, validCodes)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to add coupons")
 	}

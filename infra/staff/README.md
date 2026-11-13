@@ -1,19 +1,34 @@
-## Staff dashboard
+# Staff dashboard
 
 Web app for staff members to help with support and other administration.
 
 ### Development
 
-Use `yarn dev` to run a local dev server with hot reload.
+Install dependencies:
 
-> [!TIP]
->
-> See [web/docs/new.md](../../web/docs/new.md) for help in setting up your
-> editor to do the formatting and linting. You can also run the formatter and
-> linter manually using `yarn lint`, and `yarn lint-fix` to fix them. These
-> commands automatically run on every PR.
+```sh
+npm ci
+```
+
+Run the dev server:
+
+```sh
+npm run dev
+```
+
+By default, the app talks to `https://api.ente.com`. To point it at a local API:
+
+```sh
+VITE_ENTE_API_ORIGIN=http://localhost:8080 npm run dev
+```
+
+### Checks
+
+```sh
+npm run lint # or lint:fix
+npm run build
+```
 
 ### Deployment
 
-The app gets redeployed whenever a PR is merged into main. See
-[web/docs/deploy.md](../../web/docs/deploy.md) for more details.
+The app gets redeployed whenever a PR that touches `infra/staff/**` is merged into main.

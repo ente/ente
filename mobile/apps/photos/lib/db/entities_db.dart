@@ -1,80 +1,59 @@
 import 'package:flutter/foundation.dart';
+import 'package:photos/db/common/conflict_algo.dart';
 import 'package:photos/db/files_db.dart';
 import "package:photos/gateways/entity/models/type.dart";
 import "package:photos/models/local_entity_data.dart";
-import 'package:sqflite/sqlite_api.dart';
 
 extension EntitiesDB on FilesDB {
   Future<void> upsertEntities(
     List<LocalEntityData> data, {
-    ConflictAlgorithm conflictAlgorithm = ConflictAlgorithm.replace,
+    SqliteAsyncConflictAlgorithm conflictAlgorithm =
+        SqliteAsyncConflictAlgorithm.replace,
   }) async {
     debugPrint("entitiesDB: upsertEntities ${data.length} entities");
     final db = await sqliteAsyncDB;
     final parameterSets = <List<Object?>>[];
     int batchCounter = 0;
     for (LocalEntityData e in data) {
-      parameterSets.add([
-        e.id,
-        e.type.name,
-        e.ownerID,
-        e.data,
-        e.updatedAt,
-      ]);
+      parameterSets.add([e.id, e.type.name, e.ownerID, e.data, e.updatedAt]);
       batchCounter++;
 
       if (batchCounter == 400) {
-        await db.executeBatch(
-          '''
+        await db.executeBatch('''
           INSERT OR ${conflictAlgorithm.name.toUpperCase()} 
           INTO entities (id, type, ownerID, data, updatedAt)
           VALUES (?, ?, ?, ?, ?)
-''',
-          parameterSets,
-        );
+''', parameterSets);
         parameterSets.clear();
         batchCounter = 0;
       }
     }
-    await db.executeBatch(
-      '''
+    await db.executeBatch('''
           INSERT OR ${conflictAlgorithm.name.toUpperCase()} 
           INTO entities (id, type, ownerID, data, updatedAt)
           VALUES (?, ?, ?, ?, ?)
-''',
-      parameterSets,
-    );
+''', parameterSets);
   }
 
-  Future<void> deleteEntities(
-    List<String> ids,
-  ) async {
+  Future<void> deleteEntities(List<String> ids) async {
     final db = await sqliteAsyncDB;
     final parameterSets = <List<Object?>>[];
     int batchCounter = 0;
     for (String id in ids) {
-      parameterSets.add(
-        [id],
-      );
+      parameterSets.add([id]);
       batchCounter++;
 
       if (batchCounter == 400) {
-        await db.executeBatch(
-          '''
+        await db.executeBatch('''
             DELETE FROM entities WHERE id = ?
-          ''',
-          parameterSets,
-        );
+          ''', parameterSets);
         parameterSets.clear();
         batchCounter = 0;
       }
     }
-    await db.executeBatch(
-      '''
+    await db.executeBatch('''
             DELETE FROM entities WHERE id = ?
-          ''',
-      parameterSets,
-    );
+          ''', parameterSets);
   }
 
   Future<List<LocalEntityData>> getCertainEntities(

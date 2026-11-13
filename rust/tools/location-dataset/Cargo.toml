@@ -1,0 +1,17 @@
+[package]
+name = "ente-location-dataset"
+edition.workspace = true
+publish = false
+
+[dependencies]
+ente-location.workspace = true
+geo = { version = "0.33.1", default-features = false }
+reqwest = { workspace = true, features = ["blocking", "rustls-tls-webpki-roots"] }
+rusqlite.workspace = true
+sha2.workspace = true
+shapefile = { version = "0.9.0", features = ["geo-types"] }
+thiserror.workspace = true
+zip.workspace = true
+
+[lints]
+workspace = true

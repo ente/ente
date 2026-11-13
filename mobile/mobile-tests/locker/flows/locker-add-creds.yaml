@@ -1,0 +1,53 @@
+appId: io.ente.locker
+---
+- launchApp
+- tapOn: Add item
+- tapOn: |-
+    Secret
+    Preserve account credentials.
+- inputText: "automatedSecretName"
+- pressKey: Enter
+- inputText: "automatedUserName"
+- pressKey: Enter
+- inputText: "automatedPassword"
+- pressKey: Enter
+- tapOn: |-
+    Additional notes
+    Recovery methods, security questions, ...
+- inputText: "someRandomNotes"
+- tapOn: |-
+    Additional notes
+- scrollUntilVisible:
+    element: "Important"
+
+- tapOn: Important
+- tapOn: Save
+- extendedWaitUntil:
+    visible: Add item
+    timeout: 10000
+
+- tapOn: automatedSecretName
+- tapOn: show_password
+- assertVisible:
+    text: automatedPassword
+- tapOn: hide_password
+- tapOn: Edit
+- tapOn: someRandomNotes
+- inputText: " edited"
+- tapOn: Save
+- extendedWaitUntil:
+    notVisible:
+      id: Edit secret
+    timeout: 10000
+
+- assertVisible:
+    text: someRandomNotes edited
+- tapOn: Back
+- runFlow:
+    file: ../subflows/delete_item_to_trash.yaml
+    env:
+      ITEM_NAME: automatedSecretName
+- runFlow:
+    file: ../subflows/delete_item_from_trash.yaml
+    env:
+      ITEM_NAME: automatedSecretName

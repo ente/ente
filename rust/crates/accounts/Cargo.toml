@@ -1,0 +1,29 @@
+[package]
+name = "ente-accounts"
+edition.workspace = true
+
+[features]
+museum = []
+
+[dependencies]
+bip39 = { version = "3.0.0", default-features = false, features = ["std"] }
+ente-core.workspace = true
+getrandom.workspace = true
+hex.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+srp.workspace = true
+subtle.workspace = true
+thiserror.workspace = true
+urlencoding.workspace = true
+uuid = { workspace = true, features = ["js", "serde", "v4"] }
+zeroize.workspace = true
+
+[dev-dependencies]
+ente-test-support.workspace = true
+mockito.workspace = true
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "time"] }
+
+[lints]
+workspace = true

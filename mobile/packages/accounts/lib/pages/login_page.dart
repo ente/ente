@@ -1,13 +1,12 @@
 import "package:email_validator/email_validator.dart";
 import 'package:ente_accounts/ente_accounts.dart';
-import 'package:ente_accounts/models/errors.dart';
+import 'package:ente_accounts/widgets/account_app_bar_logo.dart';
 import 'package:ente_configuration/base_configuration.dart';
 import "package:ente_strings/ente_strings.dart";
 import 'package:ente_ui/components/buttons/dynamic_fab.dart';
 import 'package:ente_ui/theme/ente_theme.dart';
 import 'package:ente_utils/platform_util.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:logging/logging.dart';
 import "package:styled_text/tags/styled_text_tag_action.dart";
 import "package:styled_text/widgets/styled_text.dart";
@@ -34,32 +33,33 @@ class _LoginPageState extends State<LoginPage> {
     bool isEmailVerificationEnabled = true;
     try {
       attr = await UserService.instance.getSrpAttributes(_email!);
-      isEmailVerificationEnabled = attr.isEmailMFAEnabled;
+      isEmailVerificationEnabled = attr.isEmailMfaEnabled;
     } catch (e) {
-      if (e is! SrpSetupNotCompleteError) {
+      if (e != const AccountsError.srpNotConfigured()) {
         _logger.severe('Error getting SRP attributes', e);
       }
     }
     if (attr != null && !isEmailVerificationEnabled) {
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (BuildContext context) {
-            return LoginPasswordVerificationPage(
-              widget.config,
-              attr!,
-            );
-          },
-        ),
-      );
+      if (mounted) {
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (BuildContext context) {
+              return LoginPasswordVerificationPage(widget.config, attr!);
+            },
+          ),
+        );
+      }
     } else {
       await UserService.instance.sendOtt(
-        context,
+        mounted ? context : null,
         _email!,
         isCreateAccountScreen: false,
         purpose: 'login',
       );
     }
-    FocusScope.of(context).unfocus();
+    if (mounted) {
+      FocusScope.of(context).unfocus();
+    }
   }
 
   @override
@@ -89,16 +89,10 @@ class _LoginPageState extends State<LoginPage> {
         scrolledUnderElevation: 0,
         backgroundColor: colorScheme.backgroundBase,
         centerTitle: true,
-        title: SvgPicture.asset(
-          'assets/svg/app-logo.svg',
-          colorFilter: ColorFilter.mode(
-            colorScheme.primary700,
-            BlendMode.srcIn,
-          ),
-        ),
+        title: const AccountAppBarLogo(),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          color: colorScheme.primary700,
+          color: getAccountAppBarColor(context),
           onPressed: () {
             Navigator.of(context).pop();
           },
@@ -141,8 +135,9 @@ class _LoginPageState extends State<LoginPage> {
                       const SizedBox(height: 8),
                       TextFormField(
                         autofillHints: const [AutofillHints.email],
-                        onFieldSubmitted:
-                            _emailIsValid ? (value) => onPressed() : null,
+                        onFieldSubmitted: _emailIsValid
+                            ? (value) => onPressed()
+                            : null,
                         decoration: InputDecoration(
                           fillColor:
                               _emailInputFieldColor ?? colorScheme.backdropBase,
@@ -177,10 +172,9 @@ class _LoginPageState extends State<LoginPage> {
                             _email = value.trim();
                             _emailIsValid = EmailValidator.validate(_email!);
                             if (_emailIsValid) {
-                              _emailInputFieldColor =
-                                  getEnteColorScheme(context)
-                                      .primary700
-                                      .withValues(alpha: 0.2);
+                              _emailInputFieldColor = getEnteColorScheme(
+                                context,
+                              ).primary700.withValues(alpha: 0.2);
                             } else {
                               _emailInputFieldColor = null;
                             }
@@ -188,7 +182,6 @@ class _LoginPageState extends State<LoginPage> {
                         },
                         autocorrect: false,
                         keyboardType: TextInputType.emailAddress,
-                        //initialValue: _email,
                         autofocus: true,
                       ),
                       const SizedBox(height: 24),
@@ -201,10 +194,10 @@ class _LoginPageState extends State<LoginPage> {
                           'u-terms': StyledTextActionTag(
                             (String? text, Map<String?, String?> attrs) =>
                                 PlatformUtil.openWebView(
-                              context,
-                              context.strings.termsOfServicesTitle,
-                              "https://ente.io/terms",
-                            ),
+                                  context,
+                                  context.strings.termsOfServicesTitle,
+                                  "https://ente.com/terms",
+                                ),
                             style: TextStyle(
                               decoration: TextDecoration.underline,
                               color: colorScheme.textMuted,
@@ -213,10 +206,10 @@ class _LoginPageState extends State<LoginPage> {
                           'u-policy': StyledTextActionTag(
                             (String? text, Map<String?, String?> attrs) =>
                                 PlatformUtil.openWebView(
-                              context,
-                              context.strings.privacyPolicyTitle,
-                              "https://ente.io/privacy",
-                            ),
+                                  context,
+                                  context.strings.privacyPolicyTitle,
+                                  "https://ente.com/privacy",
+                                ),
                             style: TextStyle(
                               decoration: TextDecoration.underline,
                               color: colorScheme.textMuted,

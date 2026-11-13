@@ -1,16 +1,16 @@
+import "package:ente_components/ente_components.dart" as components;
 import "package:flutter/material.dart";
-import "package:photos/core/constants.dart";
 import "package:photos/models/selected_albums.dart";
-import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/collections/collection_list_page.dart";
 import "package:photos/ui/components/bottom_action_bar/album_action_bar_widget.dart";
-import "package:photos/ui/components/divider_widget.dart";
 import "package:photos/ui/viewer/actions/album_selection_action_widget.dart";
 
 class AlbumBottomActionBarWidget extends StatelessWidget {
   final SelectedAlbums selectedAlbums;
   final VoidCallback? onCancel;
   final Color? backgroundColor;
+  final ScrollController? backgroundScrollController;
+  final Widget? selectAllButton;
   final UISectionType sectionType;
 
   const AlbumBottomActionBarWidget(
@@ -19,40 +19,32 @@ class AlbumBottomActionBarWidget extends StatelessWidget {
     super.key,
     this.backgroundColor,
     this.onCancel,
+    this.backgroundScrollController,
+    this.selectAllButton,
   });
 
   @override
   Widget build(BuildContext context) {
-    final bottomPadding = MediaQuery.paddingOf(context).bottom;
-    final widthOfScreen = MediaQuery.sizeOf(context).width;
-    final colorScheme = getEnteColorScheme(context);
-    final double leftRightPadding = widthOfScreen > restrictedMaxWidth
-        ? (widthOfScreen - restrictedMaxWidth) / 2
-        : 0;
-    return Container(
-      decoration: BoxDecoration(
-        color: backgroundColor ?? colorScheme.backgroundElevated2,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(8),
-          topRight: Radius.circular(8),
+    return AlbumSelectionActionWidget(
+      selectedAlbums,
+      sectionType,
+      backgroundColor: backgroundColor,
+      backgroundScrollController: backgroundScrollController,
+      selectionControls: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: components.Spacing.sm),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            if (selectAllButton != null) Flexible(child: selectAllButton!),
+            const SizedBox(width: components.Spacing.sm),
+            Flexible(
+              child: AlbumActionBarWidget(
+                selectedAlbums: selectedAlbums,
+                onCancel: onCancel,
+              ),
+            ),
+          ],
         ),
-      ),
-      padding: EdgeInsets.only(
-        top: 4,
-        bottom: bottomPadding,
-        right: leftRightPadding,
-        left: leftRightPadding,
-      ),
-      child: Column(
-        children: [
-          const SizedBox(height: 8),
-          AlbumSelectionActionWidget(selectedAlbums, sectionType),
-          const DividerWidget(dividerType: DividerType.bottomBar),
-          AlbumActionBarWidget(
-            selectedAlbums: selectedAlbums,
-            onCancel: onCancel,
-          ),
-        ],
       ),
     );
   }

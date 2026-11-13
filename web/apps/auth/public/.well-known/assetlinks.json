@@ -1,11 +1,23 @@
 [
     {
         "relation": ["delegate_permission/common.get_login_creds"],
-        "target": { "namespace": "photos-web", "site": "https://web.ente.io" }
+        "target": { "namespace": "web", "site": "https://web.ente.io" }
     },
     {
         "relation": ["delegate_permission/common.get_login_creds"],
-        "target": { "namespace": "auth-web", "site": "https://auth.ente.io" }
+        "target": { "namespace": "web", "site": "https://photos.ente.com" }
+    },
+    {
+        "relation": ["delegate_permission/common.get_login_creds"],
+        "target": { "namespace": "web", "site": "https://auth.ente.io" }
+    },
+    {
+        "relation": ["delegate_permission/common.get_login_creds"],
+        "target": { "namespace": "web", "site": "https://auth.ente.com" }
+    },
+    {
+        "relation": ["delegate_permission/common.get_login_creds"],
+        "target": { "namespace": "web", "site": "https://locker.ente.com" }
     },
     {
         "relation": ["delegate_permission/common.get_login_creds"],
@@ -34,6 +46,26 @@
             "package_name": "io.ente.auth",
             "sha256_cert_fingerprints": [
                 "DD:CE:AA:D6:88:F0:05:D3:40:68:94:BA:00:FC:E3:FF:82:54:13:0A:10:2B:B2:52:E6:3C:D8:EA:A9:72:B2:EF"
+            ]
+        }
+    },
+    {
+        "relation": ["delegate_permission/common.get_login_creds"],
+        "target": {
+            "namespace": "android_app",
+            "package_name": "io.ente.locker",
+            "sha256_cert_fingerprints": [
+                "FE:BD:D7:3B:5D:52:1C:CD:14:A2:F5:E6:9F:19:E8:C0:66:BE:5B:EF:70:D7:F5:18:49:FC:E1:0C:7C:81:AE:FD"
+            ]
+        }
+    },
+    {
+        "relation": ["delegate_permission/common.get_login_creds"],
+        "target": {
+            "namespace": "android_app",
+            "package_name": "io.ente.locker.independent",
+            "sha256_cert_fingerprints": [
+                "6E:5B:71:61:B0:FA:F1:01:B6:AF:3D:33:C6:B0:8C:AD:AC:4A:8B:DF:85:E5:BE:A5:06:83:AA:FA:74:05:0D:B1"
             ]
         }
     }

@@ -9,40 +9,13 @@ import type { ParsedMetadataDate } from "ente-media/file-metadata";
 import React, { useState } from "react";
 
 interface FileDateTimePickerProps {
-    /**
-     * The initial date to preselect in the date/time picker.
-     *
-     * If not provided, the current date/time is used.
-     */
     initialValue?: Date;
-    /**
-     * Callback invoked when the user makes and confirms a date/time.
-     */
     onAccept: (date: ParsedMetadataDate) => void;
-    /**
-     * Optional callback invoked when the picker has been closed.
-     *
-     * > Note: This is only informational, for the caller to update their state.
-     * > The picker has already been closed at this point.
-     */
     onDidClose?: () => void;
 }
 
-/**
- * A customized version of MUI DateTimePicker suitable for use in selecting and
- * modifying the date/time for a photo.
- *
- * On success, it returns a {@link ParsedMetadataDate} which contains the a
- * local date/time string representation of the selected date, the current UTC
- * offset, and an epoch timestamp. The idea is that the user is picking a
- * date/time in the hypothetical timezone of where the photo was taken.
- *
- * We return local (current) UTC offset, but this might be different from what
- * the user is imagining when they're picking a date. So it should be taken as
- * an advisory, and only used if the photo does not already have an associated
- * UTC offset. For more discussion of the caveats and nuances around this, see
- * [Note: Photos are always in local date/time].
- */
+// The returned offset is the current local offset, not necessarily the photo's.
+// Preserve an existing photo offset instead of replacing it with this one.
 export const FileDateTimePicker: React.FC<FileDateTimePickerProps> = ({
     initialValue,
     onAccept,
@@ -74,21 +47,12 @@ export const FileDateTimePicker: React.FC<FileDateTimePickerProps> = ({
                 onOpen={() => setOpen(true)}
                 disableFuture={true}
                 timeSteps={{ minutes: 1 }}
-                /* The dialog grows too big on the default portrait mode with
-                   our theme customizations. So we instead use the landscape
-                   layout if the screen is large enough. */
+                // Our themed portrait dialog is too tall for larger screens.
                 orientation={isSmallWidth ? "portrait" : "landscape"}
                 onAccept={handleAccept}
                 slots={{ field: EmptyField }}
                 slotProps={{
-                    /* The time picker has a smaller height than the calendar,
-                       which causes an ungainly layout shift. Prevent this by
-                       giving a minimum height to the picker.
-
-                       The constant 336px will likely change in the future when
-                       MUI gets updated, so this solution is fragile. However
-                       MUI is anyways intending to replace the TimeClock with a
-                       DigitalTimePicker that has a better UX. */
+                    // Match the calendar height to prevent a mode-switch jump.
                     layout: {
                         sx: { ".MuiTimeClock-root": { minHeight: "336px" } },
                     },
@@ -98,43 +62,16 @@ export const FileDateTimePicker: React.FC<FileDateTimePickerProps> = ({
     );
 };
 
-/**
- * We don't wish to render any UI for the MUI DateTimePicker when it is closed,
- * and instead only wish to use it as a dialog that we trigger ourselves.
- *
- * To achieve this we provide this nop-DOM element as the "field" slot to the
- * date/time picker.
- *
- * See: https://mui.com/x/react-date-pickers/custom-field/
- */
+// The picker is only a dialog; it must not render a closed-state field.
 const EmptyField: React.FC = () => <></>;
 
-/**
- * A variant of {@link parseMetadataDate} that does the same thing, but for
- * {@link Dayjs} instances.
- */
 const parseMetadataDateFromDayjs = (d: Dayjs): ParsedMetadataDate => {
-    // `Dayjs.format` returns an ISO 8601 string of the form
-    // 2020-04-02T08:02:17-05:00'.
-    //
-    // https://day.js.org/docs/en/display/format
-    //
-    // This is different from the JavaScript `Date.toISOString` which also
-    // returns an ISO 8601 string, but with the time zone descriptor always set
-    // to UTC Zulu ("Z").
-    //
-    // The behaviour of Dayjs.format is more convenient for us, since it does
-    // both things we wish for:
-    // - Display the date in the local timezone
-    // - Include the timezone offset.
-
+    // Unlike Date.toISOString, this preserves local time and its offset.
     const s = d.format();
 
     let dateTime: string;
     let offset: string | undefined;
 
-    // Check to see if there is a time-zone descriptor of the form "Z" or
-    // "±05:30" or "±0530" at the end of s.
     const m = /Z|[+-]\d\d:?\d\d$/.exec(s);
     if (m?.index) {
         dateTime = s.substring(0, m.index);

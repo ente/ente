@@ -5,11 +5,7 @@ import "package:ente_ui/theme/ente_theme.dart";
 import "package:ente_utils/share_utils.dart";
 import "package:flutter/material.dart";
 
-/// Shows the invite sheet when a user doesn't have an Ente account
-Future<void> showInviteSheet(
-  BuildContext context, {
-  required String email,
-}) {
+Future<void> showInviteSheet(BuildContext context, {required String email}) {
   return showBaseBottomSheet<void>(
     context,
     title: context.strings.inviteToEnte,
@@ -22,10 +18,7 @@ Future<void> showInviteSheet(
 class InviteSheet extends StatelessWidget {
   final String email;
 
-  const InviteSheet({
-    super.key,
-    required this.email,
-  });
+  const InviteSheet({super.key, required this.email});
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +29,7 @@ class InviteSheet extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          context.strings.emailNoEnteAccount(email),
+          context.strings.emailNoEnteAccount(email: email),
           style: textTheme.small.copyWith(color: colorScheme.textMuted),
           textAlign: TextAlign.center,
         ),

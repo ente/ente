@@ -5,8 +5,7 @@ description: Frequently asked questions about item types in Ente Locker
 
 # Item Types FAQ
 
-Answers to common questions about the different types of items you can store in
-Ente Locker.
+Answers to common questions about the different types of items you can store in Ente Locker.
 
 ## General
 
@@ -21,23 +20,23 @@ Ente Locker supports four item types:
 
 Learn more about [Item Types](/locker/features/information-types/).
 
+### Do I need to fill in every field? {#locker-required-fields}
+
+No. You can save a Thing or Secret with just a name. For a Note, write your note and leave the title blank if you want Locker to choose one. You can add more details later by editing the item.
+
 ### Can I create custom item types? {#locker-custom-types}
 
-Currently, Locker supports only the four built-in item types. Custom types are
-not available.
+Currently, Locker supports only the four built-in item types. Custom types are not available.
 
-For information that doesn't fit the other types, use Note with a clear title
-and structured content.
+For information that doesn't fit the other types, use Note with a clear title and structured content.
 
 ### Can I edit an item after creating it? {#locker-edit-document}
 
-Yes. Long press on any item, then tap the edit button to make changes. Tap Save
-when finished.
+Yes. Long press on any item, then tap the edit button to make changes. Tap Save when finished.
 
 ### Can I delete an item? {#locker-delete-document}
 
-Yes. Long press on the item, tap the menu icon, and select Delete. The item
-moves to Trash where it stays for 30 days before permanent deletion.
+Yes. Long press on the item, tap the menu icon, and select Delete. The item moves to Trash where it stays for 30 days before permanent deletion.
 
 Learn more about [Trash](/locker/features/organization/trash).
 
@@ -55,23 +54,29 @@ Check the app for the complete list of supported formats.
 
 ### Is there a file size limit? {#locker-document-size-limit}
 
-Individual file uploads have size limits. Large files may need to be compressed
-or split before uploading. Check the app for current size limits.
+Individual file uploads have size limits. Large files may need to be compressed or split before uploading. Check the app for current size limits.
+
+If a large file fails to upload in Locker on mobile, try uploading it with Locker web on [locker.ente.com](https://locker.ente.com). Locker web handles large files more reliably. For a self-hosted account, use the Locker web client connected to your own server.
+
+### How do I add a photo or image to Locker on iOS? {#locker-add-image-ios}
+
+**On iOS:**
+
+Open Apple Photos, choose the photo, open the share sheet, and select Ente Locker to upload the image to Locker.
 
 ### How do I scan a physical document? {#locker-scan-document}
 
-Use your phone's camera or a scanning app to create an image or PDF of the
-physical document, then upload it to Locker as a Document.
+In the Locker mobile app on Android or iOS, tap the camera button on the home screen. Point the camera at a page and use automatic or manual capture to add one or more pages.
 
-Many phones have built-in document scanning in the camera app that
-automatically crops and enhances the image.
+Review the pages. Crop, rotate or retake any page you want to change. Then tap **Save to Ente**. Locker saves the pages as one PDF and lets you choose the collections to save it to.
+
+For detailed steps, see [Document](/locker/features/information-types/documents#scanning-a-document).
 
 ## Note
 
 ### Can I format text in Notes? {#locker-notes-formatting}
 
-Notes support plain text only. Rich text formatting like bold, italic, or lists
-is not currently available.
+Notes support plain text only. Rich text formatting like bold, italic, or lists is not currently available.
 
 ### Is there a character limit for notes? {#locker-notes-limit}
 
@@ -79,35 +84,29 @@ There is no practical character limit for Notes. Store as much text as you need.
 
 ### Can I attach files to notes? {#locker-notes-attachments}
 
-File attachments are not currently supported in Notes. For file storage, use
-the Document item type instead.
+File attachments are not currently supported in Notes. For file storage, use the Document item type instead.
 
 ## Secret
 
 ### Can I import passwords from other password managers? {#locker-import-passwords}
 
-Password import from other password managers is not currently supported. You'll
-need to add credentials manually.
+Password import from other password managers is not currently supported. You'll need to add credentials manually.
 
 ### Does Locker have browser integration? {#locker-browser-integration}
 
-No. Ente Locker is a mobile-only app and does not have browser extensions or
-autofill integration.
+No. Ente Locker does not currently have browser extensions or autofill integration.
 
-For frequent password use with autofill, consider using Locker alongside a
-dedicated password manager.
+For frequent password use with autofill, consider using Locker alongside a dedicated password manager.
 
 ### How do I copy a password? {#locker-copy-password}
 
-Tap on the secret to view it, then tap the copy icon next to the password field.
-The password is copied to your clipboard.
+Tap on the secret to view it, then tap the copy icon next to the password field. The password is copied to your clipboard.
 
 ## Thing
 
 ### Can I attach photos of physical documents? {#locker-attach-photos}
 
-For photos of physical documents, use the Document item type to upload images of
-the document. Things are designed for tracking locations, not storing images.
+For photos of physical documents, use the Document item type to upload images of the document. Things are designed for tracking locations, not storing images.
 
 ### How do I track multiple copies of a document? {#locker-multiple-copies}
 

@@ -14,41 +14,41 @@ import 'package:photos/db/files_db.dart';
 import 'package:photos/db/trash_db.dart';
 import 'package:photos/events/files_updated_event.dart';
 import 'package:photos/events/local_photos_updated_event.dart';
-import 'package:photos/models/api/collection/user.dart';
 import 'package:photos/models/file/extensions/file_props.dart';
 import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file/file_type.dart';
-import 'package:photos/models/file/trash_file.dart';
 import 'package:photos/models/gallery_type.dart';
+import 'package:photos/module/download/file.dart';
+import 'package:photos/module/download/thumbnail.dart';
 import 'package:photos/service_locator.dart';
 import 'package:photos/services/collections_service.dart';
 import 'package:photos/services/favorites_service.dart';
+import "package:photos/ui/sharing/user_avatar_widget.dart";
 import 'package:photos/ui/viewer/file/file_icons_widget.dart';
 import 'package:photos/ui/viewer/gallery/component/group/type.dart';
 import 'package:photos/ui/viewer/gallery/state/gallery_context_state.dart';
-import 'package:photos/utils/file_util.dart';
-import 'package:photos/utils/thumbnail_util.dart';
+import "package:photos/utils/avatar_util.dart";
 
 class ThumbnailWidget extends StatefulWidget {
   final EnteFile file;
   final BoxFit fit;
+  final Alignment alignment;
 
-  /// Returns ThumbnailWidget without any overlay icons if true.
   final bool rawThumbnail;
   final bool shouldShowSyncStatus;
-  final bool shouldShowArchiveStatus;
-  final bool shouldShowPinIcon;
   final bool showFavForAlbumOnly;
   final bool shouldShowLivePhotoOverlay;
   final Duration? diskLoadDeferDuration;
   final Duration? serverLoadDeferDuration;
   final int thumbnailSize;
   final bool useRequestedThumbnailSizeForLocalCache;
+  final bool useCachedThumbnailAsPlaceholder;
+  final bool gaplessPlayback;
   final bool shouldShowOwnerAvatar;
+  final AvatarType ownerAvatarType;
   final bool shouldShowFavoriteIcon;
+  final Color? placeholderColor;
 
-  ///On video thumbnails, shows the video duration if true. If false,
-  ///shows a centered play icon.
   final bool shouldShowVideoDuration;
   final bool shouldShowVideoOverlayIcon;
 
@@ -56,18 +56,21 @@ class ThumbnailWidget extends StatefulWidget {
     this.file, {
     Key? key,
     this.fit = BoxFit.cover,
+    this.alignment = Alignment.center,
     this.rawThumbnail = false,
     this.shouldShowSyncStatus = true,
     this.shouldShowLivePhotoOverlay = false,
-    this.shouldShowArchiveStatus = false,
-    this.shouldShowPinIcon = false,
     this.showFavForAlbumOnly = false,
     this.shouldShowOwnerAvatar = false,
+    this.ownerAvatarType = AvatarType.small,
     this.diskLoadDeferDuration,
     this.serverLoadDeferDuration,
     this.thumbnailSize = thumbnailSmallSize,
     this.useRequestedThumbnailSizeForLocalCache = false,
+    this.useCachedThumbnailAsPlaceholder = false,
+    this.gaplessPlayback = false,
     this.shouldShowFavoriteIcon = true,
+    this.placeholderColor,
     this.shouldShowVideoDuration = false,
     this.shouldShowVideoOverlayIcon = true,
   }) : super(key: key ?? Key(file.tag));
@@ -113,8 +116,7 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
           smallLocalThumbnailQueue.removeTask(_localThumbnailQueueTaskId!);
         }
       }
-      // Cancel request only if the widget has been unmounted
-      if (!mounted && widget.file.isRemoteFile && !_hasLoadedThumbnail) {
+      if (!mounted && widget.file.isRemoteOnlyFile && !_hasLoadedThumbnail) {
         removePendingGetThumbnailRequestIfAny(widget.file);
       }
     });
@@ -165,8 +167,6 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
     );
   }
 
-  ///Assigned dimension will be the size of a grid item. The size will be
-  ///assigned to the side which is smaller in dimension.
   void assignOptimizedImageDimensions() {
     if (widget.file.width == 0 || widget.file.height == 0) {
       return;
@@ -180,28 +180,32 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.file.isRemoteFile) {
+    if (widget.file.isRemoteOnlyFile) {
       _loadNetworkImage();
     } else {
       _loadLocalImage(context);
     }
-    final galleryContext = GalleryContextState.of(context);
     Widget? image;
     if (_imageProvider != null) {
       image = Image(
         image: _imageProvider!,
         fit: widget.fit,
+        alignment: widget.alignment,
+        gaplessPlayback:
+            widget.gaplessPlayback || widget.useCachedThumbnailAsPlaceholder,
       );
     }
+    if (widget.rawThumbnail) {
+      return image ?? ThumbnailPlaceHolder(color: widget.placeholderColor);
+    }
+    final galleryContext = GalleryContextState.of(context);
     // todo: [2ndJuly22] pref-review if the content Widget which depends on
     // thumbnail fetch logic should be part of separate stateFull widget.
     // If yes, parent thumbnail widget can be stateless
     Widget? content;
     if (image != null) {
-      if (widget.rawThumbnail) {
-        return image;
-      }
-      final shouldShowOwnerAvatar = widget.shouldShowOwnerAvatar &&
+      final shouldShowOwnerAvatar =
+          widget.shouldShowOwnerAvatar &&
           galleryContext?.galleryType != GalleryType.sharedPublicCollection;
       final List<Widget> contentChildren = [image];
       if (widget.shouldShowFavoriteIcon) {
@@ -220,59 +224,49 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
       }
       if (shouldShowOwnerAvatar) {
         if (!widget.file.isOwner) {
-          final owner = CollectionsService.instance
-              .getFileOwner(widget.file.ownerID!, widget.file.collectionID);
+          final owner = CollectionsService.instance.resolveUserIdentity(
+            widget.file.ownerID!,
+            widget.file.collectionID,
+          );
           contentChildren.add(
-            OwnerAvatarOverlayIcon(owner),
+            OwnerAvatarOverlayIcon(owner, type: widget.ownerAvatarType),
           );
         } else if (widget.file.isCollect) {
           contentChildren.add(
-            // Use -1 as userID for enforcing black avatar color
-            OwnerAvatarOverlayIcon(
-              User(id: -1, email: '', name: widget.file.uploaderName),
+            OwnerAvatarOverlayIcon.identity(
+              AvatarIdentity.publicUploader(widget.file.uploaderName!),
+              type: widget.ownerAvatarType,
             ),
           );
         }
       }
       content = contentChildren.length == 1
           ? contentChildren.first
-          : Stack(
-              fit: StackFit.expand,
-              children: contentChildren,
-            );
+          : Stack(fit: StackFit.expand, children: contentChildren);
     }
     final List<Widget> viewChildren = [
-      const ThumbnailPlaceHolder(),
+      ThumbnailPlaceHolder(color: widget.placeholderColor),
       content ?? const SizedBox(),
     ];
     if (!widget.rawThumbnail && widget.file.fileType == FileType.video) {
       if (widget.shouldShowVideoDuration) {
-        viewChildren.add(
-          VideoOverlayDuration(duration: widget.file.duration),
-        );
+        viewChildren.add(VideoOverlayDuration(duration: widget.file.duration));
       } else if (widget.shouldShowVideoOverlayIcon) {
         viewChildren.add(const VideoOverlayIcon());
       }
     }
     if (widget.shouldShowSyncStatus &&
         !widget.file.isUploaded &&
-        !isOfflineMode) {
+        !isLocalGalleryMode) {
       viewChildren.add(const UnSyncedIcon());
     }
 
     if (widget.file.isTrash) {
-      viewChildren.add(TrashedFileOverlayText(widget.file as TrashFile));
+      viewChildren.add(TrashedFileOverlayText(widget.file.asTrashFile!));
     } else if (galleryContext?.type == GroupType.size) {
       viewChildren.add(FileSizeOverlayText(widget.file));
     } else if (widget.file.debugCaption != null) {
       viewChildren.add(FileOverlayText(widget.file.debugCaption!));
-    }
-    // todo: Move this icon overlay to the collection widget.
-    if (widget.shouldShowArchiveStatus) {
-      viewChildren.add(const ArchiveOverlayIcon());
-    }
-    if (widget.shouldShowPinIcon) {
-      viewChildren.add(const PinOverlayIcon());
     }
     if (localSettings.showLocalIDOverThumbnails &&
         widget.file.localID != null) {
@@ -313,8 +307,10 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
         !_errorLoadingLocalThumbnail &&
         !_isLoadingLocalThumbnail) {
       _isLoadingLocalThumbnail = true;
-      final cachedSmallThumbnail =
-          ThumbnailInMemoryLruCache.get(widget.file, _localCacheThumbnailSize);
+      final cachedSmallThumbnail = ThumbnailInMemoryLruCache.get(
+        widget.file,
+        _localCacheThumbnailSize,
+      );
       if (cachedSmallThumbnail != null) {
         final imageProvider = Image.memory(
           cachedSmallThumbnail,
@@ -323,6 +319,22 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
         ).image;
         _cacheAndRender(imageProvider);
         return;
+      }
+      if (widget.useCachedThumbnailAsPlaceholder &&
+          _localCacheThumbnailSize != thumbnailSmallSize) {
+        final preview = ThumbnailInMemoryLruCache.get(
+          widget.file,
+          thumbnailSmallSize,
+        );
+        if (preview != null) {
+          _imageProvider = Image.memory(
+            preview,
+            cacheWidth: optimizedImageWidth == null ? null : thumbnailSmallSize,
+            cacheHeight: optimizedImageHeight == null
+                ? null
+                : thumbnailSmallSize,
+          ).image;
+        }
       }
       if (widget.diskLoadDeferDuration != null) {
         Future.delayed(widget.diskLoadDeferDuration!, () {
@@ -337,60 +349,66 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
   }
 
   Future _getThumbnailFromDisk() async {
-    return _loadWithRetry().then((thumbData) async {
-      if (thumbData == null) {
-        if (widget.file.isUploaded) {
-          _logger.info("Removing localID reference for " + widget.file.tag);
-          widget.file.localID = null;
-          if (widget.file.isTrash) {
-            unawaited(TrashDB.instance.update(widget.file as TrashFile));
-          } else {
-            unawaited(FilesDB.instance.update(widget.file));
+    return _loadWithRetry()
+        .then((thumbData) async {
+          if (thumbData == null) {
+            if (widget.file.isUploaded) {
+              _logger.info("Removing localID reference for " + widget.file.tag);
+              if (widget.file.isTrash) {
+                if (widget.file.isEnteTrash) {
+                  widget.file.localID = null;
+                  unawaited(
+                    TrashDB.instance.update(widget.file.asEnteTrashFile!),
+                  );
+                }
+              } else {
+                widget.file.localID = null;
+                unawaited(FilesDB.instance.update(widget.file));
+              }
+              _loadNetworkImage();
+            } else {
+              if (await doesLocalFileExist(widget.file) == false) {
+                _logger.info("Deleting file " + widget.file.tag);
+                await FilesDB.instance.deleteLocalFile(widget.file);
+                Bus.instance.fire(
+                  LocalPhotosUpdatedEvent(
+                    [widget.file],
+                    type: EventType.deletedFromDevice,
+                    source: "thumbFileDeleted",
+                  ),
+                );
+              }
+            }
+            return;
           }
-          _loadNetworkImage();
-        } else {
-          if (await doesLocalFileExist(widget.file) == false) {
-            _logger.info("Deleting file " + widget.file.tag);
-            await FilesDB.instance.deleteLocalFile(widget.file);
-            Bus.instance.fire(
-              LocalPhotosUpdatedEvent(
-                [widget.file],
-                type: EventType.deletedFromDevice,
-                source: "thumbFileDeleted",
-              ),
+
+          if (mounted) {
+            final imageProvider = Image.memory(
+              thumbData,
+              cacheHeight: optimizedImageHeight,
+              cacheWidth: optimizedImageWidth,
+            ).image;
+            _cacheAndRender(imageProvider);
+          }
+          ThumbnailInMemoryLruCache.put(
+            widget.file,
+            thumbData,
+            _localCacheThumbnailSize,
+          );
+        })
+        .catchError((e) {
+          _errorLoadingLocalThumbnail = true;
+          if (e is WidgetUnmountedException) {
+            _logger.fine(
+              "Thumbnail loading cancelled: widget unmounted for localID: ${widget.file.localID}",
+            );
+          } else {
+            _logger.warning(
+              "Could not load thumbnail from disk for localID: ${widget.file.localID}",
+              e,
             );
           }
-        }
-        return;
-      }
-
-      if (mounted) {
-        final imageProvider = Image.memory(
-          thumbData,
-          cacheHeight: optimizedImageHeight,
-          cacheWidth: optimizedImageWidth,
-        ).image;
-        _cacheAndRender(imageProvider);
-      }
-      ThumbnailInMemoryLruCache.put(
-        widget.file,
-        thumbData,
-        _localCacheThumbnailSize,
-      );
-    }).catchError((e) {
-      _errorLoadingLocalThumbnail = true;
-      if (e is WidgetUnmountedException) {
-        // Widget was unmounted - this is expected behavior
-        _logger.fine(
-          "Thumbnail loading cancelled: widget unmounted for localID: ${widget.file.localID}",
-        );
-      } else {
-        _logger.warning(
-          "Could not load thumbnail from disk for localID: ${widget.file.localID}",
-          e,
-        );
-      }
-    });
+        });
   }
 
   Future<Uint8List?> _loadWithRetry() async {
@@ -399,13 +417,11 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
       try {
         return await _getLocalThumbnailUsingHeapPriorityQueue();
       } catch (e) {
-        // only retry for specific exceptions
         if (e is! TaskQueueTimeoutException &&
             e is! TaskQueueOverflowException &&
             e is! TaskQueueCancelledException) {
           rethrow;
         }
-        //Do not retry if the widget is not mounted
         if (!mounted) {
           throw WidgetUnmountedException(
             "Thumbnail loading cancelled: widget unmounted",
@@ -421,7 +437,7 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
             "Error getting local thumbnail for ${widget.file.displayName} (localID: ${widget.file.localID}) due to ${e.runtimeType}, retrying (attempt $retryAttempts) in ${backoff.inMilliseconds} ms",
             e,
           );
-          await Future.delayed(backoff); // Exponential backoff
+          await Future.delayed(backoff);
         } else {
           rethrow;
         }
@@ -432,15 +448,23 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
   }
 
   Future<Uint8List?> _getLocalThumbnailUsingHeapPriorityQueue() async {
+    final localID = widget.file.localID;
+    if (localID == null) {
+      _logger.info(
+        "Skipping local thumbnail load because localID is unavailable for ${widget.file.tag}",
+      );
+      return null;
+    }
+
     final completer = Completer<Uint8List?>();
 
     late TaskQueue<String> relevantTaskQueue;
     if (widget.thumbnailSize == thumbnailLargeSize) {
       relevantTaskQueue = largeLocalThumbnailQueue;
-      _localThumbnailQueueTaskId = [widget.file.localID!, "-large"].join();
+      _localThumbnailQueueTaskId = [localID, "-large"].join();
     } else if (widget.thumbnailSize == thumbnailSmallSize) {
       relevantTaskQueue = smallLocalThumbnailQueue;
-      _localThumbnailQueueTaskId = [widget.file.localID!, "-small"].join();
+      _localThumbnailQueueTaskId = [localID, "-small"].join();
     } else {
       assert(false, "Invalid thumbnail size ${widget.thumbnailSize}");
       _logger.severe(
@@ -525,9 +549,8 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
         _imageProvider = imageProvider;
         _hasLoadedThumbnail = true;
       });
+      precacheImage(imageProvider, context);
     }
-
-    precacheImage(imageProvider, context);
   }
 
   void _reset() {

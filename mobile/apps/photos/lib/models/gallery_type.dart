@@ -5,15 +5,13 @@ enum GalleryType {
   homepage,
   archive,
   uncategorized,
-  // hidden section shows all the files that are present in the defaultHidden
-  // collections.
+  // Files from every default-hidden collection.
   hiddenSection,
   hiddenOwnedCollection,
   favorite,
   trash,
   deleteSuggestions,
   localFolder,
-  // indicator for gallery view of collections shared with the user
   sharedCollection,
   ownedCollection,
   searchResults,
@@ -81,8 +79,6 @@ extension GalleyTypeExtension on GalleryType {
     }
   }
 
-  // showDeleteTopOption indicates whether we should show
-  // delete icon as iconButton
   bool showDeleteIconOption() {
     switch (this) {
       case GalleryType.ownedCollection:
@@ -383,21 +379,9 @@ extension GalleryAppBarExtn on GalleryType {
     return false;
   }
 
-  bool canRename() {
-    if (this == GalleryType.ownedCollection ||
-        this == GalleryType.quickLink ||
-        this == GalleryType.hiddenOwnedCollection) {
-      return true;
-    }
-    return false;
-  }
-
-  bool canSetCover() {
-    if (this == GalleryType.ownedCollection ||
-        this == GalleryType.hiddenOwnedCollection) {
-      return true;
-    }
-    return false;
+  bool canEditDetails() {
+    return this == GalleryType.ownedCollection ||
+        this == GalleryType.hiddenOwnedCollection;
   }
 
   bool canArchive() {
@@ -432,7 +416,6 @@ extension GalleryAppBarExtn on GalleryType {
       case GalleryType.archive:
       case GalleryType.hiddenSection:
       case GalleryType.trash:
-      case GalleryType.localFolder:
       case GalleryType.locationTag:
       case GalleryType.searchResults:
       case GalleryType.magic:
@@ -440,6 +423,7 @@ extension GalleryAppBarExtn on GalleryType {
       case GalleryType.deleteSuggestions:
       case GalleryType.cleanupHiddenFromDevice:
         return false;
+      case GalleryType.localFolder:
       case GalleryType.uncategorized:
       case GalleryType.cluster:
       case GalleryType.peopleTag:
@@ -468,7 +452,9 @@ GalleryType getGalleryType(Collection c, int userID) {
   } else if (c.isHidden()) {
     return GalleryType.hiddenOwnedCollection;
   }
-  debugPrint("Unknown gallery type for collection ${c.id}, falling back to "
-      "default");
+  debugPrint(
+    "Unknown gallery type for collection ${c.id}, falling back to "
+    "default",
+  );
   return GalleryType.ownedCollection;
 }

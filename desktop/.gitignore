@@ -1,29 +1,13 @@
-# Node
-node_modules/
-
-# macOS
-.DS_Store
-
-# Editors
-.vscode/
-
-# Local env files
 .env
 .env.*.local
 
-# tsc transpiles src/**/*.ts and emits the generated JS into app
 app/
-
-# out is a symlink to the photos web app's out dir, which contains the built up
-# photos app.
 out
-
-# electron-builder
 dist/
 
-# Legacy, people who checked out main for a brief while in Jan 2025 may have
-# this. Can be removed in the future.
-build/magick*
-
-# We download it on demand, if needed for the particular OS/arch.
 build/vips*
+build/ffmpeg/
+build/onnxruntime/
+build/napi/
+
+rust-bindings/

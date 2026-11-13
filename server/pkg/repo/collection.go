@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/ente-io/museum/pkg/repo/public"
+	"github.com/ente/museum/pkg/repo/public"
 	"strconv"
 	t "time"
 
@@ -13,16 +13,15 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/stacktrace"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/utils/crypto"
-	"github.com/ente-io/museum/pkg/utils/time"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/utils/crypto"
+	"github.com/ente/museum/pkg/utils/dbmetrics"
+	"github.com/ente/museum/pkg/utils/time"
 	"github.com/lib/pq"
 )
 
-// CollectionRepository defines the methods for inserting, updating and
-// retrieving collection entities from the underlying repository
 type CollectionRepository struct {
 	DB                  *sql.DB
 	FileRepo            *FileRepository
@@ -39,10 +38,14 @@ type SharedCollection struct {
 	FromUserID   int64
 }
 
-// Create creates a collection
+type CollectionShareItem struct {
+	ToUserID     int64
+	EncryptedKey string
+	Role         ente.CollectionParticipantRole
+}
+
 func (repo *CollectionRepository) Create(c ente.Collection) (ente.Collection, error) {
 
-	// Check if the app type can create collection
 	if !ente.App(c.App).IsValidForCollection() {
 		return ente.Collection{}, ente.ErrInvalidApp
 	}
@@ -61,7 +64,6 @@ func (repo *CollectionRepository) Create(c ente.Collection) (ente.Collection, er
 	return c, stacktrace.Propagate(err, "")
 }
 
-// Get returns a collection identified by the collectionID
 func (repo *CollectionRepository) Get(collectionID int64) (ente.Collection, error) {
 	row := repo.DB.QueryRow(`SELECT collection_id, app, owner_id, encrypted_key, key_decryption_nonce, name, encrypted_name, name_decryption_nonce, type, attributes, updation_time, is_deleted, magic_metadata, pub_magic_metadata
 		FROM collections
@@ -91,14 +93,8 @@ func (repo *CollectionRepository) Get(collectionID int64) (ente.Collection, erro
 	return c, nil
 }
 
-// GetWithSharingDetailsForUser returns the collection along with sharees, active public URLs,
-// and decrypted owner email. If the actor is a sharee, the encrypted key sealed for that actor is returned.
-func (repo *CollectionRepository) GetWithSharingDetailsForUser(collectionID int64, actorUserID int64) (ente.Collection, error) {
-	c, err := repo.Get(collectionID)
-	if err != nil {
-		return c, stacktrace.Propagate(err, "")
-	}
-	sharees, err := repo.GetSharees(collectionID)
+func (repo *CollectionRepository) WithSharingDetailsForUser(c ente.Collection, actorUserID int64) (ente.Collection, error) {
+	sharees, err := repo.GetSharees(c.ID)
 	if err != nil {
 		return ente.Collection{}, stacktrace.Propagate(err, "failed to get sharees info")
 	}
@@ -122,15 +118,19 @@ func (repo *CollectionRepository) GetWithSharingDetailsForUser(collectionID int6
 	}
 	if actorUserID != c.Owner.ID {
 		var encryptedKey sql.NullString
-		err := repo.DB.QueryRow(`SELECT encrypted_key FROM collection_shares WHERE collection_id = $1 AND to_user_id = $2 AND is_deleted = $3`,
-			collectionID, actorUserID, false).Scan(&encryptedKey)
+		var sharedAt sql.NullInt64
+		err := repo.DB.QueryRow(`SELECT encrypted_key, magic_metadata, shared_at FROM collection_shares WHERE collection_id = $1 AND to_user_id = $2 AND is_deleted = $3`,
+			c.ID, actorUserID, false).Scan(&encryptedKey, &c.SharedMagicMetadata, &sharedAt)
 		if err != nil {
 			return ente.Collection{}, stacktrace.Propagate(err, "failed to fetch sharee encrypted key")
 		}
 		if !encryptedKey.Valid {
-			return ente.Collection{}, stacktrace.Propagate(fmt.Errorf("share key missing for user %d collection %d", actorUserID, collectionID), "")
+			return ente.Collection{}, stacktrace.Propagate(fmt.Errorf("share key missing for user %d collection %d", actorUserID, c.ID), "")
 		}
 		c.EncryptedKey = encryptedKey.String
+		if sharedAt.Valid {
+			c.SharedAt = &sharedAt.Int64
+		}
 	}
 	return c, nil
 }
@@ -254,19 +254,38 @@ pct.access_token, pct.valid_till, pct.device_limit, pct.created_at, pct.updated_
 	return result, nil
 }
 
-// GetCollectionsSharedWithUser returns the list of collections that are shared
-// with a user
 func (repo *CollectionRepository) GetCollectionsSharedWithUser(userID int64, updationTime int64, app ente.App, limit *int64) ([]ente.Collection, error) {
 	query := `
-		SELECT collections.collection_id, collections.owner_id, users.encrypted_email, users.email_decryption_nonce, collection_shares.encrypted_key, collections.name, collections.encrypted_name, collections.name_decryption_nonce, collections.type, collections.app, collections.pub_magic_metadata, collection_shares.magic_metadata, collections.updation_time, collection_shares.is_deleted, collection_shares.role_type, collection_shares.shared_at
+		SELECT collections.collection_id, collections.owner_id,
+			CASE WHEN collection_shares.is_deleted THEN NULL ELSE users.encrypted_email END,
+			CASE WHEN collection_shares.is_deleted THEN NULL ELSE users.email_decryption_nonce END,
+			collection_shares.encrypted_key,
+			CASE WHEN collection_shares.is_deleted THEN NULL ELSE collections.name END,
+			CASE WHEN collection_shares.is_deleted THEN NULL ELSE collections.encrypted_name END,
+			CASE WHEN collection_shares.is_deleted THEN NULL ELSE collections.name_decryption_nonce END,
+			collections.type,
+			CASE WHEN collection_shares.is_deleted THEN NULL ELSE collections.app::text END,
+			CASE WHEN collection_shares.is_deleted THEN NULL ELSE collections.pub_magic_metadata END,
+			CASE WHEN collection_shares.is_deleted THEN NULL ELSE collection_shares.magic_metadata END,
+			CASE WHEN collection_shares.is_deleted THEN collection_shares.updation_time ELSE GREATEST(collection_shares.updation_time, collections.updation_time) END AS effective_updation_time,
+			collection_shares.is_deleted OR collections.is_deleted,
+			CASE WHEN collection_shares.is_deleted THEN NULL ELSE collection_shares.role_type END,
+			CASE WHEN collection_shares.is_deleted THEN NULL ELSE collection_shares.shared_at END
 		FROM collections
 		INNER JOIN users
 			ON collections.owner_id = users.user_id
 		INNER JOIN collection_shares
-			ON collections.collection_id = collection_shares.collection_id AND collection_shares.to_user_id = $1 AND (collection_shares.updation_time > $2 OR collections.updation_time > $2) AND users.encrypted_email IS NOT NULL AND app = $3`
+			ON collections.collection_id = collection_shares.collection_id
+		WHERE collection_shares.to_user_id = $1
+			AND (collection_shares.is_deleted = TRUE OR collections.is_deleted = TRUE OR users.encrypted_email IS NOT NULL)
+			AND collections.app = $3
+			AND (
+				(collection_shares.is_deleted = FALSE AND (collection_shares.updation_time > $2 OR collections.updation_time > $2))
+				OR (collection_shares.is_deleted = TRUE AND collection_shares.updation_time > $2)
+			)`
 	args := []interface{}{userID, updationTime, string(app)}
 	if limit != nil {
-		query += " ORDER BY collections.updation_time ASC LIMIT $4"
+		query += " ORDER BY effective_updation_time ASC LIMIT $4"
 		args = append(args, *limit)
 	}
 
@@ -282,11 +301,12 @@ func (repo *CollectionRepository) GetCollectionsSharedWithUser(userID int64, upd
 		var c ente.Collection
 		var collectionName, encryptedName, nameDecryptionNonce sql.NullString
 		var encryptedEmail, emailDecryptionNonce []byte
-		var roleType sql.NullString
+		var collectionApp, roleType sql.NullString
 		var sharedAt sql.NullInt64
-		if err := rows.Scan(&c.ID, &c.Owner.ID, &encryptedEmail, &emailDecryptionNonce, &c.EncryptedKey, &collectionName, &encryptedName, &nameDecryptionNonce, &c.Type, &c.App, &c.PublicMagicMetadata, &c.SharedMagicMetadata, &c.UpdationTime, &c.IsDeleted, &roleType, &sharedAt); err != nil {
+		if err := rows.Scan(&c.ID, &c.Owner.ID, &encryptedEmail, &emailDecryptionNonce, &c.EncryptedKey, &collectionName, &encryptedName, &nameDecryptionNonce, &c.Type, &collectionApp, &c.PublicMagicMetadata, &c.SharedMagicMetadata, &c.UpdationTime, &c.IsDeleted, &roleType, &sharedAt); err != nil {
 			return collections, stacktrace.Propagate(err, "")
 		}
+		c.App = collectionApp.String
 		if sharedAt.Valid {
 			sharedAtValue := sharedAt.Int64
 			c.SharedAt = &sharedAtValue
@@ -297,7 +317,8 @@ func (repo *CollectionRepository) GetCollectionsSharedWithUser(userID int64, upd
 			c.EncryptedName = encryptedName.String
 			c.NameDecryptionNonce = nameDecryptionNonce.String
 		}
-		// if collection is unshared, no need to parse owner's email. Email decryption will fail if the owner's account is deleted
+		// Unshared collections appear deleted, and their former owner's email may
+		// no longer be decryptable.
 		if c.IsDeleted {
 			c.Owner.Email = ""
 		} else {
@@ -309,8 +330,7 @@ func (repo *CollectionRepository) GetCollectionsSharedWithUser(userID int64, upd
 		}
 		// TODO: Pull this information in the previous query
 		if c.IsDeleted {
-			// if collection is deleted or unshared, c.IsDeleted will be true. In both cases, we should not send
-			// back information about other sharees
+			// Don't expose other sharees after deletion or unsharing.
 			c.Sharees = make([]ente.CollectionUser, 0)
 		} else {
 			sharees, err := repo.GetSharees(c.ID)
@@ -355,7 +375,6 @@ func (repo *CollectionRepository) GetCollectionsSharedWithUser(userID int64, upd
 	return collections, nil
 }
 
-// GetCollectionIDsSharedWithUser returns the list of collections that a user has access to
 func (repo *CollectionRepository) GetCollectionIDsSharedWithUser(userID int64) ([]int64, error) {
 	rows, err := repo.DB.Query(`
 		SELECT collection_id
@@ -378,7 +397,6 @@ func (repo *CollectionRepository) GetCollectionIDsSharedWithUser(userID int64) (
 	return cIDs, nil
 }
 
-// FilterNonDeletedCollectionIDs returns collection IDs that are not deleted and match the provided app.
 func (repo *CollectionRepository) FilterNonDeletedCollectionIDs(collectionIDs []int64, app ente.App) ([]int64, error) {
 	if len(collectionIDs) == 0 {
 		return nil, nil
@@ -432,7 +450,6 @@ func (repo *CollectionRepository) GetCollectionsSharedWithOrByUser(userID int64)
 
 }
 
-// GetCollectionIDsOwnedByUser returns the map of collectionID (owned by user) to collection deletion status
 func (repo *CollectionRepository) GetCollectionIDsOwnedByUser(userID int64) (map[int64]bool, error) {
 	rows, err := repo.DB.Query(`
 		SELECT collection_id, is_deleted
@@ -457,7 +474,6 @@ func (repo *CollectionRepository) GetCollectionIDsOwnedByUser(userID int64) (map
 	return result, nil
 }
 
-// GetAllSharedCollections returns list of SharedCollection in which the given user is involed
 func (repo *CollectionRepository) GetAllSharedCollections(ctx context.Context, userID int64) ([]SharedCollection, error) {
 	rows, err := repo.DB.QueryContext(ctx, `SELECT collection_id, to_user_id, from_user_id
 		FROM collection_shares
@@ -477,10 +493,12 @@ func (repo *CollectionRepository) GetAllSharedCollections(ctx context.Context, u
 		}
 		result = append(result, sharedCollection)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, stacktrace.Propagate(err, "failed to read collection shares for access reset")
+	}
 	return result, nil
 }
 
-// GetCollectionShareeRole returns true if the collection is shared with the user
 func (repo *CollectionRepository) GetCollectionShareeRole(cID int64, userID int64) (*ente.CollectionParticipantRole, error) {
 	var role *ente.CollectionParticipantRole
 	err := repo.DB.QueryRow(`(SELECT role_type FROM collection_shares WHERE collection_id = $1 AND to_user_id = $2 AND is_deleted = $3)`,
@@ -495,7 +513,6 @@ func (repo *CollectionRepository) GetOwnerID(collectionID int64) (int64, error) 
 	return ownerID, stacktrace.Propagate(err, "failed to get collection owner")
 }
 
-// Share shares a collection with a userID
 func (repo *CollectionRepository) Share(
 	collectionID int64,
 	fromUserID int64,
@@ -508,6 +525,7 @@ func (repo *CollectionRepository) Share(
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
+	defer tx.Rollback()
 	if role != ente.VIEWER && role != ente.COLLABORATOR && role != ente.ADMIN {
 		err = fmt.Errorf("invalid role %s", string(role))
 		return stacktrace.Propagate(err, "")
@@ -524,19 +542,152 @@ func (repo *CollectionRepository) Share(
 				END`,
 		collectionID, fromUserID, toUserID, encryptedKey, updationTime, role, updationTime)
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
-	_, err = tx.ExecContext(context, `UPDATE collections SET updation_time = $1 WHERE collection_id = $2`, updationTime, collectionID)
+	result, err := tx.ExecContext(context, `UPDATE collections SET updation_time = $1
+		WHERE collection_id = $2 AND is_deleted = FALSE`, updationTime, collectionID)
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
-	err = tx.Commit()
-	return stacktrace.Propagate(err, "")
+	updated, err := result.RowsAffected()
+	if err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	if updated == 0 {
+		return stacktrace.Propagate(ente.ErrCollectionDeleted, "")
+	}
+	return stacktrace.Propagate(tx.Commit(), "")
 }
 
-// UpdateShareeMetadata shares a collection with a userID
+func (repo *CollectionRepository) BatchShare(
+	ctx context.Context,
+	collectionID int64,
+	fromUserID int64,
+	shares []CollectionShareItem,
+	updationTime int64,
+) error {
+	toUserIDs := make([]int64, len(shares))
+	encryptedKeys := make([]string, len(shares))
+	roles := make([]string, len(shares))
+	for index, share := range shares {
+		toUserIDs[index] = share.ToUserID
+		encryptedKeys[index] = share.EncryptedKey
+		roles[index] = string(share.Role)
+	}
+
+	tx, err := repo.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	defer tx.Rollback()
+
+	_, err = tx.ExecContext(ctx, `INSERT INTO collection_shares
+			(collection_id, from_user_id, to_user_id, encrypted_key, updation_time, role_type, shared_at)
+		SELECT $1, $2, input.to_user_id, input.encrypted_key, $3, input.role, $3
+		FROM unnest($4::bigint[], $5::text[], $6::role_enum[])
+			AS input(to_user_id, encrypted_key, role)
+		ORDER BY input.to_user_id
+		ON CONFLICT (collection_id, from_user_id, to_user_id)
+		DO UPDATE SET
+			is_deleted = FALSE,
+			updation_time = EXCLUDED.updation_time,
+			role_type = EXCLUDED.role_type,
+			shared_at = CASE
+				WHEN collection_shares.is_deleted = TRUE THEN EXCLUDED.shared_at
+				ELSE collection_shares.shared_at
+			END`,
+		collectionID,
+		fromUserID,
+		updationTime,
+		pq.Array(toUserIDs),
+		pq.Array(encryptedKeys),
+		pq.Array(roles),
+	)
+	if err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+
+	result, err := tx.ExecContext(ctx, `UPDATE collections SET updation_time = $1
+		WHERE collection_id = $2 AND is_deleted = FALSE`, updationTime, collectionID)
+	if err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	updated, err := result.RowsAffected()
+	if err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	if updated == 0 {
+		return stacktrace.Propagate(ente.ErrCollectionDeleted, "")
+	}
+	return stacktrace.Propagate(tx.Commit(), "")
+}
+
+// ShareAutomatically creates a share without modifying a prior share.
+func (repo *CollectionRepository) ShareAutomatically(
+	ctx context.Context,
+	collectionID int64,
+	fromUserID int64,
+	toUserID int64,
+	encryptedKey string,
+	role ente.CollectionParticipantRole,
+	updationTime int64,
+) (ente.CollectionShareStatus, error) {
+	if role != ente.VIEWER && role != ente.COLLABORATOR && role != ente.ADMIN {
+		return "", stacktrace.Propagate(fmt.Errorf("invalid role %s", role), "")
+	}
+	tx, err := repo.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return "", stacktrace.Propagate(err, "")
+	}
+	defer tx.Rollback()
+
+	result, err := tx.ExecContext(ctx, `INSERT INTO collection_shares(
+			collection_id, from_user_id, to_user_id, encrypted_key, updation_time,
+			role_type, shared_at
+		) VALUES($1, $2, $3, $4, $5, $6, $7)
+		ON CONFLICT (collection_id, from_user_id, to_user_id)
+		DO NOTHING
+	`, collectionID, fromUserID, toUserID, encryptedKey, updationTime, role, updationTime)
+	if err != nil {
+		return "", stacktrace.Propagate(err, "")
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return "", stacktrace.Propagate(err, "")
+	}
+	if affected == 0 {
+		var isDeleted bool
+		err := tx.QueryRowContext(ctx, `SELECT is_deleted
+			FROM collection_shares
+			WHERE collection_id = $1 AND from_user_id = $2 AND to_user_id = $3`,
+			collectionID, fromUserID, toUserID).
+			Scan(&isDeleted)
+		if err != nil {
+			return "", stacktrace.Propagate(err, "")
+		}
+		if isDeleted {
+			return ente.CollectionBlockedPriorRemoval, nil
+		}
+		return ente.CollectionAlreadyShared, nil
+	}
+
+	result, err = tx.ExecContext(ctx, `UPDATE collections SET updation_time = $1 WHERE collection_id = $2 AND is_deleted = FALSE`, updationTime, collectionID)
+	if err != nil {
+		return "", stacktrace.Propagate(err, "")
+	}
+	updated, err := result.RowsAffected()
+	if err != nil {
+		return "", stacktrace.Propagate(err, "")
+	}
+	if updated == 0 {
+		return "", stacktrace.Propagate(ente.ErrCollectionDeleted, "")
+	}
+	if err := tx.Commit(); err != nil {
+		return "", stacktrace.Propagate(err, "")
+	}
+	return ente.CollectionShared, nil
+}
+
 func (repo *CollectionRepository) UpdateShareeMetadata(
 	collectionID int64,
 	ownerUserID int64,
@@ -548,208 +699,302 @@ func (repo *CollectionRepository) UpdateShareeMetadata(
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
-	// Update collection_shares metadata if the collection is not deleted
+	defer tx.Rollback()
 	sqlResult, err := tx.ExecContext(context, `UPDATE collection_shares SET magic_metadata = $1, updation_time = $2  WHERE collection_id = $3 AND from_user_id = $4 AND to_user_id = $5 AND is_deleted = $6`,
 		metadata, updationTime, collectionID, ownerUserID, shareeUserID, false)
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
-	// verify that only one row is affected
 	affected, err := sqlResult.RowsAffected()
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
 	if affected != 1 {
-		tx.Rollback()
 		err = fmt.Errorf("invalid number of rows affected %d", affected)
 		return stacktrace.Propagate(err, "")
 	}
 
 	_, err = tx.ExecContext(context, `UPDATE collections SET updation_time = $1 WHERE collection_id = $2`, updationTime, collectionID)
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
 	err = tx.Commit()
 	return stacktrace.Propagate(err, "")
 }
 
-// UnShare un-shares a collection from a userID
 func (repo *CollectionRepository) UnShare(collectionID int64, toUserID int64) error {
-	updationTime := time.Microseconds()
-	context := context.Background()
-	tx, err := repo.DB.BeginTx(context, nil)
-	if err != nil {
-		return stacktrace.Propagate(err, "")
-	}
-	_, err = tx.ExecContext(context, `UPDATE collection_shares 
-		SET is_deleted = $1, updation_time = $2 
-		WHERE collection_id = $3 AND to_user_id = $4`, true, updationTime, collectionID, toUserID)
-	if err != nil {
-		tx.Rollback()
-		return stacktrace.Propagate(err, "")
-	}
-	// remove all the files which were added by this user
-	// todo: should we also add c_owner_id != toUserId
-	_, err = tx.ExecContext(context, `UPDATE collection_files 
-		SET is_deleted = $1, updation_time = $2 
-		WHERE collection_id = $3 AND f_owner_id = $4`, true, updationTime, collectionID, toUserID)
-	if err != nil {
-		tx.Rollback()
-		return stacktrace.Propagate(err, "")
-	}
-
-	_, err = tx.ExecContext(context, `UPDATE collections SET updation_time = $1 
-		WHERE collection_id = $2`, updationTime, collectionID)
-	if err != nil {
-		tx.Rollback()
-		return stacktrace.Propagate(err, "")
-	}
-	err = tx.Commit()
-	return stacktrace.Propagate(err, "")
+	_, err := repo.UnShareContext(context.Background(), collectionID, toUserID)
+	return err
 }
 
-// AddFiles adds files to a collection
+func (repo *CollectionRepository) RepairDeletedCollectionShare(ctx context.Context, collectionID, toUserID int64) (int64, error) {
+	result, err := repo.DB.ExecContext(ctx, `UPDATE collection_shares AS cs
+		SET is_deleted = TRUE,
+			updation_time = GREATEST(cs.updation_time, c.updation_time, $3) + 1
+		FROM collections AS c
+		WHERE cs.collection_id = c.collection_id
+			AND cs.collection_id = $1 AND cs.to_user_id = $2
+			AND c.is_deleted = TRUE AND cs.is_deleted = FALSE`,
+		collectionID, toUserID, time.Microseconds())
+	if err != nil {
+		return 0, stacktrace.Propagate(err, "")
+	}
+	updated, err := result.RowsAffected()
+	return updated, stacktrace.Propagate(err, "")
+}
+
+func (repo *CollectionRepository) UnShareContext(
+	ctx context.Context,
+	collectionID int64,
+	toUserID int64,
+) (ente.CollectionShareStatus, error) {
+	updationTime := time.Microseconds()
+	tx, err := repo.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return "", stacktrace.Propagate(err, "")
+	}
+	defer tx.Rollback()
+
+	status := ente.CollectionAlreadyUnshared
+	var isDeleted bool
+	err = tx.QueryRowContext(ctx, `SELECT is_deleted
+		FROM collection_shares
+		WHERE collection_id = $1 AND to_user_id = $2
+		FOR UPDATE`, collectionID, toUserID).Scan(&isDeleted)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ente.CollectionNotShared, nil
+	}
+	if err != nil {
+		return "", stacktrace.Propagate(err, "")
+	}
+	if !isDeleted {
+		status = ente.CollectionUnshared
+	}
+	_, err = tx.ExecContext(ctx, `UPDATE collection_shares
+		SET is_deleted = TRUE, updation_time = $1
+		WHERE collection_id = $2 AND to_user_id = $3 AND is_deleted = FALSE`,
+		updationTime, collectionID, toUserID)
+	if err != nil {
+		return "", stacktrace.Propagate(err, "")
+	}
+
+	_, err = tx.ExecContext(ctx, `UPDATE collection_files
+		SET is_deleted = TRUE, updation_time = $1
+		WHERE collection_id = $2 AND f_owner_id = $3 AND is_deleted = FALSE`,
+		updationTime, collectionID, toUserID)
+	if err != nil {
+		return "", stacktrace.Propagate(err, "")
+	}
+	if _, err = tx.ExecContext(ctx, `UPDATE collections SET updation_time = $1
+		WHERE collection_id = $2`, updationTime, collectionID); err != nil {
+		return "", stacktrace.Propagate(err, "")
+	}
+	if err := tx.Commit(); err != nil {
+		return "", stacktrace.Propagate(err, "")
+	}
+	return status, nil
+}
+
 func (repo *CollectionRepository) AddFiles(
+	ctx context.Context,
 	collectionID int64,
 	collectionOwnerID int64,
 	files []ente.CollectionFileItem,
 	fileOwnerID int64,
 ) error {
-	updationTime := time.Microseconds()
-	context := context.Background()
-	tx, err := repo.DB.BeginTx(context, nil)
+	finishPhase := dbmetrics.Start(dbmetrics.CollectionAddFiles, "begin_with_checkout")
+	tx, err := repo.DB.BeginTx(ctx, nil)
+	finishPhase(err)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
+	defer tx.Rollback()
+
+	fileIDs := make([]int64, 0, len(files))
 	for _, file := range files {
-		_, err := tx.ExecContext(context, `INSERT INTO collection_files
-            (collection_id, file_id, encrypted_key, key_decryption_nonce, is_deleted, updation_time, c_owner_id, f_owner_id)
-            VALUES($1, $2, $3, $4, $5, $6, $7, $8)
-            ON CONFLICT ON CONSTRAINT unique_collection_files_cid_fid
-            DO UPDATE SET
-                is_deleted = EXCLUDED.is_deleted,
-                updation_time = EXCLUDED.updation_time,
-                action_user = NULL,
-                action = NULL,
-                created_at = CASE
-                    WHEN collection_files.is_deleted = TRUE AND EXCLUDED.is_deleted = FALSE
-                        THEN now_utc_micro_seconds()
-                    ELSE collection_files.created_at
-                END`, collectionID, file.ID, file.EncryptedKey,
-			file.KeyDecryptionNonce, false, updationTime, collectionOwnerID, fileOwnerID)
-		if err != nil {
-			tx.Rollback()
-			return stacktrace.Propagate(err, "")
-		}
+		fileIDs = append(fileIDs, file.ID)
 	}
-	_, err = tx.ExecContext(context, `UPDATE collections SET updation_time = $1
-		 WHERE collection_id = $2`, updationTime, collectionID)
+	finishPhase = dbmetrics.Start(dbmetrics.CollectionAddFiles, "lock_files")
+	err = lockFiles(ctx, tx, fileOwnerID, fileIDs)
+	finishPhase(err)
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
+	updationTime := time.Microseconds()
+	finishPhase = dbmetrics.Start(dbmetrics.CollectionAddFiles, "check_trash")
+	trashedOrDeletedFileIDs, err := repo.TrashRepo.getFilesInTrashOrDeleted(ctx, tx, fileOwnerID, fileIDs)
+	finishPhase(err)
+	if err != nil {
+		return stacktrace.Propagate(err, "failed to check trash state")
+	}
+	if len(trashedOrDeletedFileIDs) > 0 {
+		return stacktrace.Propagate(&ente.ErrFileInTrash, "")
+	}
+	finishPhase = dbmetrics.Start(dbmetrics.CollectionAddFiles, "upsert_memberships")
+	err = upsertCollectionFiles(ctx, tx, collectionID, collectionOwnerID, files, fileOwnerID, updationTime)
+	finishPhase(err)
+	if err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	finishPhase = dbmetrics.Start(dbmetrics.CollectionAddFiles, "update_collection")
+	_, err = tx.ExecContext(ctx, `UPDATE collections SET updation_time = $1
+		 WHERE collection_id = $2`, updationTime, collectionID)
+	finishPhase(err)
+	if err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	finishPhase = dbmetrics.Start(dbmetrics.CollectionAddFiles, "commit")
 	err = tx.Commit()
+	finishPhase(err)
+	return stacktrace.Propagate(err, "")
+}
+
+func upsertCollectionFiles(
+	ctx context.Context,
+	tx *sql.Tx,
+	collectionID int64,
+	collectionOwnerID int64,
+	files []ente.CollectionFileItem,
+	fileOwnerID int64,
+	updationTime int64,
+) error {
+	if len(files) == 0 {
+		return nil
+	}
+
+	fileIDs := make([]int64, 0, len(files))
+	encryptedKeys := make([]string, 0, len(files))
+	keyDecryptionNonces := make([]string, 0, len(files))
+	seenFileIDs := make(map[int64]struct{}, len(files))
+	for _, file := range files {
+		if _, ok := seenFileIDs[file.ID]; ok {
+			continue
+		}
+		seenFileIDs[file.ID] = struct{}{}
+		fileIDs = append(fileIDs, file.ID)
+		encryptedKeys = append(encryptedKeys, file.EncryptedKey)
+		keyDecryptionNonces = append(keyDecryptionNonces, file.KeyDecryptionNonce)
+	}
+
+	_, err := tx.ExecContext(ctx, `INSERT INTO collection_files
+			(collection_id, file_id, encrypted_key, key_decryption_nonce, is_deleted, updation_time, c_owner_id, f_owner_id)
+		SELECT $1, input.file_id, input.encrypted_key, input.key_decryption_nonce, FALSE, $2, $3, $4
+		FROM unnest($5::bigint[], $6::text[], $7::text[])
+			AS input(file_id, encrypted_key, key_decryption_nonce)
+		ORDER BY input.file_id
+		ON CONFLICT ON CONSTRAINT unique_collection_files_cid_fid
+		DO UPDATE SET
+			is_deleted = EXCLUDED.is_deleted,
+			updation_time = EXCLUDED.updation_time,
+			action_user = NULL,
+			action = NULL,
+			created_at = CASE
+				WHEN collection_files.is_deleted = TRUE AND EXCLUDED.is_deleted = FALSE
+					THEN now_utc_micro_seconds()
+				ELSE collection_files.created_at
+			END`,
+		collectionID,
+		updationTime,
+		collectionOwnerID,
+		fileOwnerID,
+		pq.Array(fileIDs),
+		pq.Array(encryptedKeys),
+		pq.Array(keyDecryptionNonces),
+	)
 	return stacktrace.Propagate(err, "")
 }
 
 func (repo *CollectionRepository) RestoreFiles(ctx context.Context, userID int64, collectionID int64, newCollectionFiles []ente.CollectionFileItem) error {
-	fileIDs := make([]int64, 0)
+	fileIDs := make([]int64, 0, len(newCollectionFiles))
 	for _, newFile := range newCollectionFiles {
 		fileIDs = append(fileIDs, newFile.ID)
 	}
-	// verify that all files are restorable
-	_, canRestoreAllFiles, err := repo.TrashRepo.GetFilesInTrashState(ctx, userID, fileIDs)
+
+	tx, err := repo.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	defer tx.Rollback()
+	if err := lockFiles(ctx, tx, userID, fileIDs); err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	updationTime := time.Microseconds()
+	_, canRestoreAllFiles, err := repo.TrashRepo.getFilesInTrashState(ctx, tx, userID, fileIDs)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
 	if !canRestoreAllFiles {
 		return stacktrace.Propagate(ente.ErrBadRequest, "some fileIDs are not restorable")
 	}
-
-	tx, err := repo.DB.BeginTx(ctx, nil)
-	updationTime := time.Microseconds()
+	filesBecomingActive, err := inactiveOwnedFileCount(ctx, tx, userID, fileIDs)
 	if err != nil {
+		return stacktrace.Propagate(err, "failed to calculate file count transition")
+	}
+
+	if err := upsertCollectionFiles(ctx, tx, collectionID, userID, newCollectionFiles, userID, updationTime); err != nil {
 		return stacktrace.Propagate(err, "")
 	}
-
-	for _, file := range newCollectionFiles {
-		_, err := tx.ExecContext(ctx, `INSERT INTO collection_files
-            (collection_id, file_id, encrypted_key, key_decryption_nonce, is_deleted, updation_time, c_owner_id, f_owner_id)
-            VALUES($1, $2, $3, $4, $5, $6, $7, $8)
-            ON CONFLICT ON CONSTRAINT unique_collection_files_cid_fid
-            DO UPDATE SET
-                is_deleted = EXCLUDED.is_deleted,
-                updation_time = EXCLUDED.updation_time,
-                action_user = NULL,
-                action = NULL,
-                created_at = CASE
-                    WHEN collection_files.is_deleted = TRUE AND EXCLUDED.is_deleted = FALSE
-                        THEN now_utc_micro_seconds()
-                    ELSE collection_files.created_at
-                END`, collectionID, file.ID, file.EncryptedKey,
-			file.KeyDecryptionNonce, false, updationTime, userID, userID)
-		if err != nil {
-			tx.Rollback()
-			return stacktrace.Propagate(err, "")
+	// Match SuggestAction's membership-before-collection lock order.
+	var app ente.App
+	if err := tx.QueryRowContext(ctx, `UPDATE collections SET updation_time = $1
+		WHERE collection_id = $2 AND owner_id = $3 AND is_deleted = FALSE
+		RETURNING app`, updationTime, collectionID, userID).Scan(&app); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return stacktrace.Propagate(ente.ErrPermissionDenied, "restore destination is not an active owned collection")
 		}
-	}
-	_, err = tx.ExecContext(ctx, `UPDATE collections SET updation_time = $1
-		 WHERE collection_id = $2`, updationTime, collectionID)
-	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
 
 	_, err = tx.ExecContext(ctx, `UPDATE trash SET is_restored = true
 		 WHERE user_id = $1 and file_id = ANY ($2)`, userID, pq.Array(fileIDs))
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
-	return tx.Commit()
+	if filesBecomingActive != 0 {
+		photosFileDelta, lockerFileDelta, ok := fileCountDelta(app, filesBecomingActive)
+		if !ok {
+			return stacktrace.Propagate(ente.ErrInvalidApp, "unsupported collection app %s", app)
+		}
+		if _, err := applyUsageChange(ctx, tx, userID, usageChange{
+			PhotosFileDelta: photosFileDelta,
+			LockerFileDelta: lockerFileDelta,
+		}); err != nil {
+			return stacktrace.Propagate(err, "failed to update file counts")
+		}
+	}
+	return stacktrace.Propagate(tx.Commit(), "")
 }
 
-// RemoveFilesV3 just remove the entries from the collection. This method assume that collection owner is
-// different from the file owners
 func (repo *CollectionRepository) RemoveFilesV3(context context.Context, collectionID int64, collectionOwnerID int64, fileIDs []int64) error {
 	updationTime := time.Microseconds()
 	ownerToFileIDs, err := repo.FileRepo.GetOwnerToFileIDsMap(context, fileIDs)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
-	// verify that none of the file belongs to the collection owner
 	if _, ok := ownerToFileIDs[collectionOwnerID]; ok {
 		return errors.New("can not remove files owned by album owner")
 	}
-
-	// check if there are files owned by collection owner
 
 	tx, err := repo.DB.BeginTx(context, nil)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
+	defer tx.Rollback()
 	_, err = tx.ExecContext(context, `UPDATE collection_files 
 		SET is_deleted = $1, updation_time = $2 WHERE collection_id = $3 AND file_id = ANY($4)`,
 		true, updationTime, collectionID, pq.Array(fileIDs))
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
 	_, err = tx.ExecContext(context, `UPDATE collections SET updation_time = $1
 		WHERE collection_id = $2`, updationTime, collectionID)
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
 	err = tx.Commit()
 	return stacktrace.Propagate(err, "")
 }
 
-// SuggestAction sets action markers for the given files in the collection so that
-// clients can act on them. It does not mark the membership as deleted.
 func (repo *CollectionRepository) SuggestAction(ctx context.Context, collectionID int64, actorUserID int64, fileIDs []int64, action string) error {
 	if len(fileIDs) == 0 {
 		return nil
@@ -759,23 +1004,21 @@ func (repo *CollectionRepository) SuggestAction(ctx context.Context, collectionI
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
+	defer tx.Rollback()
 	_, err = tx.ExecContext(ctx, `UPDATE collection_files
             SET action_user = $1, action = $2, updation_time = $3
             WHERE collection_id = $4 AND file_id = ANY($5)`,
 		actorUserID, action, updationTime, collectionID, pq.Array(fileIDs))
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
 	_, err = tx.ExecContext(ctx, `UPDATE collections SET updation_time = $1 WHERE collection_id = $2`, updationTime, collectionID)
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
 	return tx.Commit()
 }
 
-// MoveFiles move files from one collection to another collection
 func (repo *CollectionRepository) MoveFiles(ctx context.Context,
 	toCollectionID int64, fromCollectionID int64,
 	fileItems []ente.CollectionFileItem,
@@ -785,61 +1028,46 @@ func (repo *CollectionRepository) MoveFiles(ctx context.Context,
 	if collectionOwner != fileOwner {
 		return fmt.Errorf("move is not supported when collection and file onwer are different")
 	}
-	updationTime := time.Microseconds()
+	if toCollectionID == fromCollectionID {
+		return fmt.Errorf("source and destination collections must differ")
+	}
 	tx, err := repo.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
-	fileIDs := make([]int64, 0)
+	defer tx.Rollback()
+	fileIDs := make([]int64, 0, len(fileItems))
 	for _, file := range fileItems {
 		fileIDs = append(fileIDs, file.ID)
-		_, err := tx.ExecContext(ctx, `INSERT INTO collection_files
-            (collection_id, file_id, encrypted_key, key_decryption_nonce, is_deleted, updation_time, c_owner_id, f_owner_id)
-            VALUES($1, $2, $3, $4, $5, $6, $7, $8)
-            ON CONFLICT ON CONSTRAINT unique_collection_files_cid_fid
-            DO UPDATE SET
-                is_deleted = EXCLUDED.is_deleted,
-                updation_time = EXCLUDED.updation_time,
-                action_user = NULL,
-                action = NULL,
-                created_at = CASE
-                    WHEN collection_files.is_deleted = TRUE AND EXCLUDED.is_deleted = FALSE
-                        THEN now_utc_micro_seconds()
-                    ELSE collection_files.created_at
-                END`, toCollectionID, file.ID, file.EncryptedKey,
-			file.KeyDecryptionNonce, false, updationTime, collectionOwner, fileOwner)
-		if err != nil {
-			if rollbackErr := tx.Rollback(); rollbackErr != nil {
-				logrus.WithError(rollbackErr).Error("transaction rollback failed")
-				return stacktrace.Propagate(rollbackErr, "")
-			}
-			return stacktrace.Propagate(err, "")
-		}
+	}
+	if err := lockFiles(ctx, tx, fileOwner, fileIDs); err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	updationTime := time.Microseconds()
+	trashedOrDeletedFileIDs, err := repo.TrashRepo.getFilesInTrashOrDeleted(ctx, tx, fileOwner, fileIDs)
+	if err != nil {
+		return stacktrace.Propagate(err, "failed to check trash state")
+	}
+	if len(trashedOrDeletedFileIDs) > 0 {
+		return stacktrace.Propagate(&ente.ErrFileInTrash, "")
+	}
+	if err := upsertCollectionFiles(ctx, tx, toCollectionID, collectionOwner, fileItems, fileOwner, updationTime); err != nil {
+		return stacktrace.Propagate(err, "")
 	}
 	_, err = tx.ExecContext(ctx, `UPDATE collection_files 
 		SET is_deleted = $1, updation_time = $2 WHERE collection_id = $3 AND file_id = ANY($4)`,
 		true, updationTime, fromCollectionID, pq.Array(fileIDs))
 	if err != nil {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			logrus.WithError(rollbackErr).Error("transaction rollback failed")
-			return stacktrace.Propagate(rollbackErr, "")
-		}
 		return stacktrace.Propagate(err, "")
 	}
 	_, err = tx.ExecContext(ctx, `UPDATE collections SET updation_time = $1
 		 WHERE (collection_id = $2 or collection_id = $3 )`, updationTime, toCollectionID, fromCollectionID)
 	if err != nil {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			logrus.WithError(rollbackErr).Error("transaction rollback failed")
-			return stacktrace.Propagate(rollbackErr, "")
-		}
 		return stacktrace.Propagate(err, "")
 	}
-	return tx.Commit()
+	return stacktrace.Propagate(tx.Commit(), "")
 }
 
-// GetDiff returns the diff of files added or modified within a collection since
-// the specified time
 func (repo *CollectionRepository) GetDiff(collectionID int64, sinceTime int64, limit int) ([]ente.File, error) {
 	startTime := t.Now()
 	defer func() {
@@ -912,7 +1140,6 @@ func (repo *CollectionRepository) GetFile(collectionID int64, fileID int64) ([]e
 	return files, nil
 }
 
-// GetSharees returns the list of users a collection has been shared with
 func (repo *CollectionRepository) GetSharees(cID int64) ([]ente.CollectionUser, error) {
 	rows, err := repo.DB.Query(`
 		SELECT users.user_id, users.encrypted_email, users.email_decryption_nonce, collection_shares.role_type
@@ -955,7 +1182,6 @@ func convertRowsToFileId(rows *sql.Rows) ([]int64, error) {
 	return fileIDs, nil
 }
 
-// TrashV3  move the files belonging to the collection owner to the trash
 func (repo *CollectionRepository) TrashV3(ctx context.Context, collectionID int64) error {
 	log := logrus.WithFields(logrus.Fields{
 		"deleting_collection": collectionID,
@@ -974,10 +1200,7 @@ func (repo *CollectionRepository) TrashV3(ctx context.Context, collectionID int6
 	log.WithField("file_count", len(fileIDs)).Info("Fetched fileIDs")
 	batchSize := 2000
 	for i := 0; i < len(fileIDs); i += batchSize {
-		end := i + batchSize
-		if end > len(fileIDs) {
-			end = len(fileIDs)
-		}
+		end := min(i+batchSize, len(fileIDs))
 		batch := fileIDs[i:end]
 		err := repo.FileRepo.VerifyFileOwner(ctx, batch, ownerID, log)
 		if err != nil {
@@ -990,13 +1213,12 @@ func (repo *CollectionRepository) TrashV3(ctx context.Context, collectionID int6
 				CollectionID: collectionID,
 			})
 		}
-		err = repo.TrashRepo.TrashFiles(fileIDs, ownerID, ente.TrashRequest{OwnerID: ownerID, TrashItems: items})
+		err = repo.TrashRepo.TrashFiles(ctx, ownerID, ente.TrashRequest{OwnerID: ownerID, TrashItems: items})
 		if err != nil {
 			log.WithError(err).Error("failed to trash file")
 			return stacktrace.Propagate(err, "")
 		}
 	}
-	// Verify that all files are processed in the collection.
 	count, err := repo.GetCollectionsFilesCount(collectionID)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
@@ -1043,9 +1265,6 @@ func (repo *CollectionRepository) removeAllFilesAddedByOthers(collectionID int64
 	return int64(len(fileIDs)), nil
 }
 
-// ScheduleDelete marks the collection as deleted and queue up an operation to
-// move the collection files to user's trash.
-// See [Collection Delete Versions] for more details
 func (repo *CollectionRepository) ScheduleDelete(collectionID int64) error {
 	updationTime := time.Microseconds()
 	ctx := context.Background()
@@ -1053,30 +1272,27 @@ func (repo *CollectionRepository) ScheduleDelete(collectionID int64) error {
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
+	defer tx.Rollback()
 	_, err = tx.ExecContext(ctx, `UPDATE collection_shares 
 		SET is_deleted = $1, updation_time = $2 
 		WHERE collection_id = $3`, true, updationTime, collectionID)
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
 	_, err = tx.ExecContext(ctx, `UPDATE collections 
 		SET is_deleted = $1, updation_time = $2 
 		WHERE collection_id = $3`, true, updationTime, collectionID)
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
 	err = repo.QueueRepo.AddItems(ctx, tx, TrashCollectionQueueV3, []string{strconv.FormatInt(collectionID, 10)})
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
 	err = tx.Commit()
 	return stacktrace.Propagate(err, "")
 }
 
-// Rename updates the collection's name by updating the encrypted_name and name_decryption_nonce of the collection
 func (repo *CollectionRepository) Rename(collectionID int64, encryptedName string, nameDecryptionNonce string) error {
 	updationTime := time.Microseconds()
 	_, err := repo.DB.Exec(`UPDATE collections 
@@ -1088,7 +1304,6 @@ func (repo *CollectionRepository) Rename(collectionID int64, encryptedName strin
 	return stacktrace.Propagate(err, "")
 }
 
-// UpdateMagicMetadata updates the magic metadata for the given collection
 func (repo *CollectionRepository) UpdateMagicMetadata(ctx context.Context,
 	collectionID int64,
 	magicMetadata ente.MagicMetadata,
@@ -1111,14 +1326,4 @@ func (repo *CollectionRepository) UpdateMagicMetadata(ctx context.Context,
 			magicMetadata, updationTime, collectionID)
 	}
 	return stacktrace.Propagate(err, "")
-}
-
-func (repo *CollectionRepository) GetSharedCollectionsCount(userID int64) (int64, error) {
-	row := repo.DB.QueryRow(`SELECT count(*) FROM collection_shares WHERE from_user_id = $1`, userID)
-	var count int64 = 0
-	err := row.Scan(&count)
-	if err != nil {
-		return -1, stacktrace.Propagate(err, "")
-	}
-	return count, nil
 }

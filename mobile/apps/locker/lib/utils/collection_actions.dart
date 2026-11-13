@@ -1,54 +1,50 @@
 import "dart:async";
 
 import "package:ente_accounts/services/user_service.dart";
+import "package:ente_components/ente_components.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_sharing/components/invite_dialog.dart";
 import "package:ente_sharing/models/user.dart";
-import "package:ente_ui/components/action_sheet_widget.dart";
-import "package:ente_ui/components/alert_bottom_sheet.dart";
-import 'package:ente_ui/components/buttons/button_widget.dart';
-import 'package:ente_ui/components/buttons/models/button_type.dart';
-import "package:ente_ui/components/progress_dialog.dart";
-import 'package:ente_ui/utils/dialog_util.dart';
+import 'package:ente_strings/ente_strings.dart';
 import "package:ente_ui/utils/toast_util.dart";
 import 'package:flutter/material.dart';
 import "package:locker/core/errors.dart";
-import 'package:locker/l10n/l10n.dart';
 import "package:locker/services/collections/collections_api_client.dart";
 import 'package:locker/services/collections/collections_service.dart';
 import 'package:locker/services/collections/models/collection.dart';
 import "package:locker/services/configuration.dart";
 import "package:locker/services/trash/trash_service.dart";
 import "package:locker/ui/components/delete_confirmation_sheet.dart";
-import "package:locker/ui/components/gradient_button.dart";
-import "package:locker/ui/components/input_sheet.dart";
+import 'package:locker/ui/components/locker_progress_dialog.dart';
 import "package:locker/ui/components/subscription_required_sheet.dart";
+import "package:locker/ui/components/text_input_sheet.dart";
+import "package:locker/utils/bottom_sheet_illustration.dart";
+import "package:locker/utils/error_sheet.dart";
 import 'package:logging/logging.dart';
 
-/// Utility class for common collection actions like edit and delete
 class CollectionActions {
   static final _logger = Logger('CollectionActions');
 
-  /// Shows a dialog sheet to create a new collection
   static Future<Collection?> createCollection(
     BuildContext context, {
     bool autoSelectInParent = false,
   }) async {
     Collection? createdCollection;
 
-    final result = await showInputSheet(
+    final result = await showTextInputSheet(
       context,
-      title: context.l10n.newCollection,
-      hintText: context.l10n.enterCollectionName,
-      submitButtonLabel: context.l10n.createCollection,
+      title: context.strings.newCollection,
+      hintText: context.strings.enterCollectionName,
+      submitButtonLabel: context.strings.createCollection,
       onSubmit: (String text) async {
         if (text.trim().isEmpty) {
           return;
         }
 
         try {
-          createdCollection =
-              await CollectionService.instance.createCollection(text.trim());
+          createdCollection = await CollectionService.instance.createCollection(
+            text.trim(),
+          );
         } catch (e, s) {
           _logger.severe('Failed to create collection', e, s);
           rethrow;
@@ -58,10 +54,7 @@ class CollectionActions {
 
     if (result is Exception) {
       if (context.mounted) {
-        await showGenericErrorDialog(
-          context: context,
-          error: result,
-        );
+        await showLockerErrorSheet(context, result);
       }
       return null;
     } else if (createdCollection != null) {
@@ -71,51 +64,48 @@ class CollectionActions {
     return null;
   }
 
-  // Shows a dialog to edit/rename a collection
   static Future<void> editCollection(
     BuildContext context,
     Collection collection, {
     VoidCallback? onSuccess,
   }) async {
+    final l10n = context.strings;
     if (!collection.type.canEdit) {
-      showToast(context, context.l10n.collectionCannotBeEdited);
+      showToast(context, l10n.collectionCannotBeEdited);
       return;
     }
 
-    await showInputSheet(
+    await showTextInputSheet(
       context,
-      title: context.l10n.renameCollection,
+      title: l10n.renameCollection,
       initialValue: collection.name ?? '',
-      hintText: context.l10n.documentsHint,
-      submitButtonLabel: context.l10n.save,
+      hintText: l10n.documentsHint,
+      submitButtonLabel: l10n.save,
       onSubmit: (String newName) async {
         if (newName.isEmpty || newName == collection.name) return;
 
-        final progressDialog =
-            createProgressDialog(context, context.l10n.pleaseWait);
-        await progressDialog.show();
+        final progressDialog = await showLockerProgressDialog(
+          context,
+          l10n.pleaseWait,
+        );
 
         try {
           await CollectionService.instance.rename(collection, newName);
           await progressDialog.hide();
 
-          showToast(
-            context,
-            context.l10n.collectionRenamedSuccessfully,
-          );
+          if (context.mounted) {
+            showToast(context, l10n.collectionRenamedSuccessfully);
+          }
 
-          // Update the collection name locally
           collection.setName(newName);
 
-          // Call success callback if provided
           onSuccess?.call();
         } catch (error) {
           await progressDialog.hide();
 
-          await showGenericErrorBottomSheet(
-            context: context,
-            error: error,
-          );
+          if (context.mounted) {
+            await showLockerErrorSheet(context, error);
+          }
         }
       },
     );
@@ -127,28 +117,30 @@ class CollectionActions {
     VoidCallback? onSuccess,
   }) async {
     if (collections.isEmpty) return;
+    final l10n = context.strings;
 
     final dialogChoice = await showDeleteConfirmationSheet(
       context,
-      title: context.l10n.areYouSure,
-      body:
-          context.l10n.deleteMultipleCollectionsDialogBody(collections.length),
-      deleteButtonLabel: context.l10n.yesDeleteCollections(collections.length),
-      assetPath: "assets/collection_delete_icon.png",
+      title: l10n.areYouSure,
+      body: l10n.deleteMultipleCollectionsDialogBody(count: collections.length),
+      deleteButtonLabel: l10n.yesDeleteCollections(count: collections.length),
+      illustration: LockerBottomSheetIllustration.collectionDelete,
       showDeleteFromAllCollectionsOption: true,
     );
 
-    if (dialogChoice?.buttonResult.action != ButtonAction.first) return;
+    if (dialogChoice == null) return;
 
-    final progressDialog =
-        createProgressDialog(context, context.l10n.pleaseWait);
-    await progressDialog.show();
+    LockerProgressDialog? progressDialog;
+    if (context.mounted) {
+      progressDialog = await showLockerProgressDialog(context, l10n.pleaseWait);
+    }
 
     bool isFavoriteCollection = false;
-    final bool keepFiles = !(dialogChoice?.deleteFromAllCollections ?? false);
+    final bool keepFiles = !dialogChoice.deleteFromAllCollections;
     final List<Collection> emptyCollections = [];
     final List<Collection> nonEmptyCollections = [];
     final List<dynamic> errors = [];
+    var deletedCount = 0;
 
     try {
       for (final collection in collections) {
@@ -160,8 +152,9 @@ class CollectionActions {
           continue;
         }
 
-        final fileCount =
-            await CollectionService.instance.getFileCount(collection);
+        final fileCount = await CollectionService.instance.getFileCount(
+          collection,
+        );
 
         if (fileCount == 0) {
           emptyCollections.add(collection);
@@ -176,6 +169,7 @@ class CollectionActions {
             collection,
             isBulkDelete: true,
           );
+          deletedCount++;
         } catch (e, s) {
           _logger.severe("Failed to trash empty collection", e, s);
           errors.add(e);
@@ -190,142 +184,130 @@ class CollectionActions {
       for (final collection in nonEmptyCollections) {
         try {
           await CollectionService.instance.trashCollection(
-            context,
+            context.mounted ? context : null,
             collection,
             keepFiles: keepFiles,
           );
+          deletedCount++;
         } catch (e, s) {
           _logger.severe("Failed to trash collection", e, s);
           errors.add(e);
         }
       }
 
-      await progressDialog.hide();
+      await progressDialog?.hide();
 
-      if (errors.isNotEmpty) {
-        await showGenericErrorDialog(
-          context: context,
-          error: errors.first,
-        );
+      if (deletedCount > 0) {
+        onSuccess?.call();
       }
 
-      showToast(
-        context,
-        context.l10n.collectionsDeletedSuccessfully(collections.length),
-      );
-
-      if (isFavoriteCollection) {
-        showToast(
-          context,
-          context.l10n.actionNotSupportedOnFavouritesAlbum,
-        );
+      if (errors.isNotEmpty && context.mounted) {
+        await showLockerErrorSheet(context, errors.first);
       }
 
-      onSuccess?.call();
+      if (context.mounted) {
+        if (deletedCount > 0) {
+          showToast(
+            context,
+            l10n.collectionsDeletedSuccessfully(count: deletedCount),
+          );
+        }
+
+        if (isFavoriteCollection) {
+          showToast(context, l10n.actionNotSupportedOnFavouritesAlbum);
+        }
+      }
     } catch (error) {
-      await progressDialog.hide();
+      await progressDialog?.hide();
 
-      await showGenericErrorBottomSheet(
-        context: context,
-        error: error,
-      );
+      if (context.mounted) {
+        await showLockerErrorSheet(context, error);
+      }
     }
   }
 
-  /// Shows a confirmation dialog and deletes a collection
   static Future<void> deleteCollection(
     BuildContext context,
     Collection collection, {
     VoidCallback? onSuccess,
   }) async {
-    final l10n = context.l10n;
+    final l10n = context.strings;
     if (!collection.type.canDelete) {
-      showToast(
-        context,
-        l10n.collectionCannotBeDeleted,
-      );
+      showToast(context, l10n.collectionCannotBeDeleted);
       return;
     }
 
     final fileCount = await CollectionService.instance.getFileCount(collection);
 
     if (fileCount == 0) {
-      final progressDialog = createProgressDialog(context, l10n.pleaseWait);
-      await progressDialog.show();
+      LockerProgressDialog? progressDialog;
+      if (context.mounted) {
+        progressDialog = await showLockerProgressDialog(
+          context,
+          l10n.pleaseWait,
+        );
+      }
 
       try {
         await CollectionService.instance.trashEmptyCollection(collection);
 
-        await progressDialog.hide();
+        await progressDialog?.hide();
 
         if (context.mounted) {
-          showToast(
-            context,
-            l10n.collectionDeletedSuccessfully,
-          );
+          showToast(context, l10n.collectionDeletedSuccessfully);
         }
 
-        // Call success callback if provided
         onSuccess?.call();
       } catch (error) {
-        await progressDialog.hide();
+        await progressDialog?.hide();
 
         if (context.mounted) {
-          await showGenericErrorBottomSheet(
-            context: context,
-            error: error,
-          );
+          await showLockerErrorSheet(context, error);
         }
       }
       return;
     }
 
     final collectionName = collection.name ?? 'this collection';
+    if (!context.mounted) return;
 
     final result = await showDeleteConfirmationSheet(
       context,
       title: l10n.areYouSure,
-      body: l10n.deleteCollectionDialogBody(collectionName),
-      deleteButtonLabel: l10n.yesDeleteCollections(1),
-      assetPath: "assets/collection_delete_icon.png",
+      body: l10n.deleteCollectionDialogBody(collectionName: collectionName),
+      deleteButtonLabel: l10n.yesDeleteCollections(count: 1),
+      illustration: LockerBottomSheetIllustration.collectionDelete,
       showDeleteFromAllCollectionsOption: true,
     );
 
-    if (result?.buttonResult.action != ButtonAction.first && context.mounted) {
+    if (result == null) {
       return;
     }
 
-    final progressDialog = createProgressDialog(context, l10n.pleaseWait);
-    await progressDialog.show();
+    LockerProgressDialog? progressDialog;
+    if (context.mounted) {
+      progressDialog = await showLockerProgressDialog(context, l10n.pleaseWait);
+    }
 
     try {
-      // If deleteFromAllCollections is true → keepFiles should be false (move files to trash)
-      // If deleteFromAllCollections is false → keepFiles should be true (keep files in other collections)
       await CollectionService.instance.trashCollection(
-        context,
+        context.mounted ? context : null,
         collection,
-        keepFiles: !(result?.deleteFromAllCollections ?? false),
+        keepFiles: !result.deleteFromAllCollections,
       );
 
-      await progressDialog.hide();
+      await progressDialog?.hide();
 
       if (context.mounted) {
-        showToast(
-          context,
-          l10n.collectionDeletedSuccessfully,
-        );
+        showToast(context, l10n.collectionDeletedSuccessfully);
       }
 
-      // Call success callback if provided
       onSuccess?.call();
     } catch (error) {
-      await progressDialog.hide();
+      await progressDialog?.hide();
 
       if (context.mounted) {
-        await showGenericErrorBottomSheet(
-          context: context,
-          error: error,
-        );
+        await showLockerErrorSheet(context, error);
       }
     }
   }
@@ -335,37 +317,31 @@ class CollectionActions {
     Collection collection, {
     VoidCallback? onSuccess,
   }) async {
-    final confirmed = await showAlertBottomSheet(
-      context,
-      title: context.l10n.leaveCollection,
-      message: context.l10n.filesAddedByYouWillBeRemovedFromTheCollection,
-      assetPath: "assets/warning-grey.png",
-      buttons: [
-        SizedBox(
-          child: GradientButton(
-            text: context.l10n.leaveCollection,
+    final confirmed = await showBottomSheetComponent(
+      context: context,
+      builder: (_) => BottomSheetComponent(
+        title: context.strings.leaveCollection,
+        message: context.strings.filesAddedByYouWillBeRemovedFromTheCollection,
+        illustration: LockerBottomSheetIllustration.warningGrey,
+        actions: [
+          ButtonComponent(
+            label: context.strings.leaveCollection,
             onTap: () => Navigator.of(context).pop(true),
           ),
-        ),
-      ],
+        ],
+      ),
     );
     if (confirmed == true) {
       try {
         await CollectionApiClient.instance.leaveCollection(collection);
+        onSuccess?.call();
         if (context.mounted) {
-          onSuccess?.call();
-          showToast(
-            context,
-            context.l10n.leaveCollectionSuccessfully,
-          );
+          showToast(context, context.strings.leaveCollectionSuccessfully);
         }
       } catch (e) {
         _logger.severe("Failed to leave collection", e);
         if (context.mounted) {
-          await showGenericErrorBottomSheet(
-            context: context,
-            error: e,
-          );
+          await showLockerErrorSheet(context, e);
         }
       }
     }
@@ -376,39 +352,38 @@ class CollectionActions {
     List<Collection> collections, {
     VoidCallback? onSuccess,
   }) async {
-    final confirmed = await showAlertBottomSheet(
-      context,
-      title: context.l10n.leaveCollection,
-      message: context.l10n.filesAddedByYouWillBeRemovedFromTheCollection,
-      assetPath: "assets/warning-grey.png",
-      buttons: [
-        SizedBox(
-          child: GradientButton(
-            text: context.l10n.leaveCollection,
+    final confirmed = await showBottomSheetComponent(
+      context: context,
+      builder: (_) => BottomSheetComponent(
+        title: context.strings.leaveCollection,
+        message: context.strings.filesAddedByYouWillBeRemovedFromTheCollection,
+        illustration: LockerBottomSheetIllustration.warningGrey,
+        actions: [
+          ButtonComponent(
+            label: context.strings.leaveCollection,
             onTap: () => Navigator.of(context).pop(true),
           ),
-        ),
-      ],
+        ],
+      ),
     );
     if (confirmed == true) {
       try {
         for (final col in collections) {
           await CollectionApiClient.instance.leaveCollection(col);
         }
+        onSuccess?.call();
         if (context.mounted) {
-          onSuccess?.call();
           showToast(
             context,
-            context.l10n.leftCollectionsSuccessfully(collections.length),
+            context.strings.leftCollectionsSuccessfully(
+              count: collections.length,
+            ),
           );
         }
       } catch (e) {
         _logger.severe("Failed to leave collections", e);
         if (context.mounted) {
-          await showGenericErrorBottomSheet(
-            context: context,
-            error: e,
-          );
+          await showLockerErrorSheet(context, e);
         }
       }
     }
@@ -426,11 +401,15 @@ class CollectionActions {
       );
       return true;
     } catch (e) {
-      if (e is SharingNotPermittedForFreeAccountsError) {
-        await showSubscriptionRequiredSheet(context);
-      } else {
+      if (e is! SharingNotPermittedForFreeAccountsError) {
         _logger.severe("Failed to update shareUrl collection", e);
-        await showGenericErrorDialog(context: context, error: e);
+      }
+      if (context.mounted) {
+        if (e is SharingNotPermittedForFreeAccountsError) {
+          await showSubscriptionRequiredSheet(context);
+        } else {
+          await showLockerErrorSheet(context, e);
+        }
       }
       return false;
     }
@@ -440,41 +419,35 @@ class CollectionActions {
     BuildContext context,
     Collection collection,
   ) async {
-    final actionResult = await showActionSheet(
+    final shouldRemove = await showBottomSheetComponent<bool>(
       context: context,
-      buttons: [
-        ButtonWidget(
-          buttonType: ButtonType.critical,
-          isInAlert: true,
-          shouldStickToDarkTheme: true,
-          buttonAction: ButtonAction.first,
-          shouldSurfaceExecutionStates: true,
-          labelText: context.l10n.yesRemove,
-          onTap: () async {
-            await CollectionApiClient.instance.disableShareUrl(collection);
-          },
+      builder: (_) => BottomSheetComponent(
+        title: context.strings.removePublicLink,
+        message: context.strings.removePublicLinkConfirmation(
+          collectionName: collection.name ?? "this collection",
         ),
-        ButtonWidget(
-          buttonType: ButtonType.secondary,
-          buttonAction: ButtonAction.cancel,
-          isInAlert: true,
-          shouldStickToDarkTheme: true,
-          labelText: context.l10n.cancel,
-        ),
-      ],
-      title: context.l10n.removePublicLink,
-      body: context.l10n
-          .removePublicLinkConfirmation(collection.name ?? "this collection"),
+        illustration: LockerBottomSheetIllustration.warningGrey,
+        actions: [
+          ButtonComponent(
+            label: context.strings.yesRemove,
+            variant: ButtonComponentVariant.critical,
+            onTap: () => Navigator.of(context).pop(true),
+          ),
+        ],
+      ),
     );
-    if (actionResult?.action != null) {
-      if (actionResult!.action == ButtonAction.error) {
-        await showGenericErrorDialog(
-          context: context,
-          error: actionResult.exception,
-        );
+
+    if (shouldRemove != true) {
+      return false;
+    }
+
+    try {
+      await CollectionApiClient.instance.disableShareUrl(collection);
+      return true;
+    } catch (e) {
+      if (context.mounted) {
+        await showLockerErrorSheet(context, e);
       }
-      return actionResult.action == ButtonAction.first;
-    } else {
       return false;
     }
   }
@@ -484,71 +457,78 @@ class CollectionActions {
     String email, {
     bool showProgress = false,
   }) async {
-    ProgressDialog? dialog;
+    LockerProgressDialog? dialog;
     String? publicKey;
     if (showProgress) {
-      dialog = createProgressDialog(
+      dialog = await showLockerProgressDialog(
         context,
-        context.l10n.sharing,
+        context.strings.sharing,
         isDismissible: true,
       );
-      await dialog.show();
     }
     try {
       publicKey = await UserService.instance.getPublicKey(email);
     } catch (e) {
       await dialog?.hide();
       _logger.severe("Failed to get public key", e);
-      await showGenericErrorDialog(context: context, error: e);
+      if (context.mounted) {
+        await showLockerErrorSheet(context, e);
+      }
       return false;
     }
-    // getPublicKey can return null when no user is associated with given
-    // email id
     if (publicKey == null || publicKey == '') {
       // todo: neeraj replace this as per the design where a new screen
       // is used for error. Do this change along with handling of network errors
-      await showInviteSheet(context, email: email);
+      if (context.mounted) {
+        await showInviteSheet(context, email: email);
+      }
       return false;
     } else {
       return true;
     }
   }
 
-  // addEmailToCollection returns true if add operation was successful
   Future<bool> addEmailToCollection(
-    BuildContext context,
+    BuildContext? context,
     Collection collection,
     String email,
     CollectionParticipantRole role, {
     bool showProgress = false,
   }) async {
     if (!isValidEmail(email)) {
-      await showAlertBottomSheet(
-        context,
-        title: context.l10n.invalidEmailAddress,
-        message: context.l10n.enterValidEmail,
-        assetPath: "assets/warning-blue.png",
-      );
+      if (context != null && context.mounted) {
+        await showBottomSheetComponent(
+          context: context,
+          builder: (_) => BottomSheetComponent(
+            title: context.strings.invalidEmailAddress,
+            message: context.strings.enterValidEmail,
+            illustration: LockerBottomSheetIllustration.warningBlue,
+          ),
+        );
+      }
       return false;
     } else if (email.trim() == Configuration.instance.getEmail()) {
-      await showAlertBottomSheet(
-        context,
-        title: context.l10n.oops,
-        message: context.l10n.youCannotShareWithYourself,
-        assetPath: "assets/warning-blue.png",
-      );
+      if (context != null && context.mounted) {
+        await showBottomSheetComponent(
+          context: context,
+          builder: (_) => BottomSheetComponent(
+            title: context.strings.oops,
+            message: context.strings.youCannotShareWithYourself,
+            illustration: LockerBottomSheetIllustration.warningBlue,
+          ),
+        );
+      }
       return false;
     }
 
-    ProgressDialog? dialog;
+    LockerProgressDialog? dialog;
     String? publicKey;
-    if (showProgress) {
-      dialog = createProgressDialog(
+    if (showProgress && context != null && context.mounted) {
+      dialog = await showLockerProgressDialog(
         context,
-        context.l10n.sharing,
+        context.strings.sharing,
         isDismissible: true,
       );
-      await dialog.show();
     }
 
     try {
@@ -556,49 +536,62 @@ class CollectionActions {
     } catch (e) {
       await dialog?.hide();
       _logger.severe("Failed to get public key", e);
-      await showGenericErrorDialog(context: context, error: e);
+      if (context != null && context.mounted) {
+        await showLockerErrorSheet(context, e);
+      }
       return false;
     }
-    // getPublicKey can return null when no user is associated with given
-    // email id
     if (publicKey == null || publicKey == '') {
       await dialog?.hide();
-      await showInviteSheet(context, email: email);
+      if (context != null && context.mounted) {
+        await showInviteSheet(context, email: email);
+      }
       return false;
     } else {
       try {
-        final newSharees = await CollectionApiClient.instance
-            .share(collection.id, email, publicKey, role);
+        final newSharees = await CollectionApiClient.instance.share(
+          collection.id,
+          email,
+          publicKey,
+          role,
+        );
         await dialog?.hide();
         collection.updateSharees(newSharees);
         return true;
       } catch (e) {
         await dialog?.hide();
-        if (e is SharingNotPermittedForFreeAccountsError) {
-          await showSubscriptionRequiredSheet(context);
-        } else {
+        if (e is! SharingNotPermittedForFreeAccountsError) {
           _logger.severe("failed to share collection", e);
-          await showGenericErrorDialog(context: context, error: e);
+        }
+        if (context != null && context.mounted) {
+          if (e is SharingNotPermittedForFreeAccountsError) {
+            await showSubscriptionRequiredSheet(context);
+          } else {
+            await showLockerErrorSheet(context, e);
+          }
         }
         return false;
       }
     }
   }
 
-  // removeParticipant remove the user from a share album
   Future<bool> removeParticipant(
     BuildContext context,
     Collection collection,
     User user,
   ) async {
     try {
-      final newSharees =
-          await CollectionApiClient.instance.unshare(collection.id, user.email);
+      final newSharees = await CollectionApiClient.instance.unshare(
+        collection.id,
+        user.email,
+      );
       collection.updateSharees(newSharees);
       return true;
     } catch (e) {
       _logger.severe("Failed to remove participant", e);
-      await showGenericErrorDialog(context: context, error: e);
+      if (context.mounted) {
+        await showLockerErrorSheet(context, e);
+      }
       return false;
     }
   }

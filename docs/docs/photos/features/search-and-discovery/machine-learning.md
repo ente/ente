@@ -42,15 +42,25 @@ You can enable machine learning on either the mobile app or the desktop app.
 
 Open `Settings > Machine learning` and enable **Machine learning** and/or **Local indexing**.
 
+![Mobile: home with Settings menu (three bars) highlighted, then Machine learning, then the Machine learning page](https://docs-assets.ente.com/screenshots/phone-settings-ml-path-nc.png){width=560px}
+
 **On desktop:**
 
 Open `Settings > Preferences > Machine learning` and enable **Machine learning** and/or **Local indexing**.
 
-> **Note**: Machine learning is not available on web.ente.io. You must use the mobile or desktop apps.
+> [!NOTE]
+>
+> Machine learning is not available on photos.ente.com. You must use the mobile or desktop apps.
 
 ## The Indexing Process
 
 After enabling machine learning, the app needs to download and index your photos locally.
+
+### Which photos are indexed? {#which-photos-are-indexed}
+
+While you are signed in, face recognition and Magic search index photos backed up to Ente. That includes photos in albums shared with you and collaborative albums, not only albums you own. Turning on local indexing does not include unbacked photos just because they are visible in your device gallery.
+
+On mobile, [Gallery Mode](/photos/faq/gallery-mode) can index local photos that Ente has permission to access while you are signed out. Gallery Mode is not available in the desktop app.
 
 ### What happens during indexing
 
@@ -72,6 +82,8 @@ While indexing is in progress:
 - **Mobile**: Check `Settings > Machine learning` for indexing status
 - **Desktop**: Progress shown in the app
 - **Search bar**: May show indexing status when clicked
+
+![Machine learning indexing progress showing Enabled and Processed percent on Ente Photos desktop](https://docs-assets.ente.com/screenshots/desktop-ml-indexing-progress.png){width=720px}
 
 ## Tips for Faster Indexing
 
@@ -115,6 +127,8 @@ The indexes created by machine learning are synced across all your devices autom
 
 ### Disabling local indexing on mobile
 
+![Local processing toggle turned off highlighted on Ente Photos mobile Machine learning settings](https://docs-assets.ente.com/screenshots/phone-ml-local-processing-callout.png){width=320px}
+
 On mobile devices with low RAM (4-6GB) and large photo libraries, indexing might affect app performance. In such cases, you can disable local indexing on mobile and let your desktop handle it instead.
 
 **To disable local indexing on mobile:**
@@ -139,7 +153,7 @@ This way, you can continue to use ML features without impacting your phone's per
 - Cannot currently modify face groupings (view only)
 - Face grouping management must be done on mobile
 
-### Web (web.ente.io)
+### Web (photos.ente.com)
 
 - ML features not available
 - Basic search only (date, file name, description, album)

@@ -17,7 +17,6 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
-/// Type definition for functions that may return a value or Future
 typedef FutureOrVoidCallback = dynamic Function();
 
 extension SuperString on String {
@@ -72,65 +71,21 @@ extension SuperLogRecord on log.LogRecord {
 }
 
 class LogConfig {
-  /// The DSN for a Sentry app.
-  /// This can be obtained from the Sentry apps's "settings > Client Keys (DSN)" page.
-  ///
-  /// Only logs containing errors are sent to sentry.
-  /// Errors can be caught using a try-catch block, like so:
-  ///
-  /// ```
-  /// final logger = Logger("main");
-  ///
-  /// try {
-  ///   // do something dangerous here
-  /// } catch(e, trace) {
-  ///   logger.info("Huston, we have a problem", e, trace);
-  /// }
-  /// ```
-  ///
-  /// If this is [null], Sentry logger is completely disabled (default).
   String? sentryDsn;
 
   String? tunnel;
 
-  /// A built-in retry mechanism for sending errors to sentry.
-  ///
-  /// This parameter defines the time to wait for, before retrying.
   Duration sentryRetryDelay;
 
-  /// Path of the directory where log files will be stored.
-  ///
-  /// If this is [null], file logging is completely disabled (default).
-  ///
-  /// If this is an empty string (['']),
-  /// then a 'logs' directory will be created in [getTemporaryDirectory()].
-  ///
-  /// A non-empty string will be treated as an explicit path to a directory.
-  ///
-  /// The chosen directory can be accessed using [SuperLogging.logFile.parent].
+  // Null disables file logging; empty uses the default directory.
   String? logDirPath;
 
-  /// The maximum number of log files inside [logDirPath].
-  ///
-  /// One log file is created per day.
-  /// Older log files are deleted automatically.
   int maxLogFiles;
 
-  /// Whether to enable super logging features in debug mode.
-  ///
-  /// Sentry and file logging are typically not needed in debug mode,
-  /// where a complete logcat is available.
   bool enableInDebugMode;
 
-  /// If provided, super logging will invoke this function, and
-  /// any uncaught errors during its execution will be reported.
-  ///
-  /// Works by using [FlutterError.onError] and [runZoned].
   FutureOrVoidCallback? body;
 
-  /// The date format for storing log files.
-  ///
-  /// `DateFormat('y-M-d')` by default.
   DateFormat? dateFmt;
 
   String prefix;
@@ -151,10 +106,8 @@ class LogConfig {
 }
 
 class SuperLogging {
-  /// The logger for SuperLogging
   static final $ = log.Logger('ente_logging');
 
-  /// The current super logging configuration
   static late LogConfig config;
 
   static late SharedPreferences _preferences;
@@ -184,7 +137,7 @@ class SuperLogging {
       setupSentry().ignore();
     }
 
-    log.Logger.root.level = log.Level.ALL;
+    log.Logger.root.level = kDebugMode ? log.Level.ALL : log.Level.INFO;
     log.Logger.root.onRecord.listen(onLogRecord);
 
     if (!enable) {
@@ -200,17 +153,18 @@ class SuperLogging {
     if (appConfig.body == null) return;
 
     if (enable && sentryIsEnabled) {
-      await SentryFlutter.init(
-        (options) {
-          options.dsn = appConfig!.sentryDsn;
-          options.httpClient = http.Client();
-          if (appConfig.tunnel != null) {
-            options.transport =
-                TunneledTransport(Uri.parse(appConfig.tunnel!), options);
-          }
-        },
-        appRunner: () => appConfig!.body!(),
-      );
+      await SentryFlutter.init((options) {
+        options.anrEnabled = true;
+        options.anrTimeoutInterval = const Duration(seconds: 5);
+        options.dsn = appConfig!.sentryDsn;
+        options.httpClient = http.Client();
+        if (appConfig.tunnel != null) {
+          options.transport = TunneledTransport(
+            Uri.parse(appConfig.tunnel!),
+            options,
+          );
+        }
+      }, appRunner: () => appConfig!.body!());
     } else {
       await appConfig.body!();
     }
@@ -228,10 +182,7 @@ class SuperLogging {
     StackTrace? stack,
   ) async {
     try {
-      await Sentry.captureException(
-        error,
-        stackTrace: stack,
-      );
+      await Sentry.captureException(error, stackTrace: stack);
     } catch (e) {
       $.info('Sending report to sentry.io failed: $e');
       $.info('Original error: $error');
@@ -241,7 +192,6 @@ class SuperLogging {
   static String _lastExtraLines = '';
 
   static Future onLogRecord(log.LogRecord rec) async {
-    // log misc info if it changed
     String? extraLines = "app version: '$appVersion'\n";
     if (extraLines != _lastExtraLines) {
       _lastExtraLines = extraLines;
@@ -251,10 +201,8 @@ class SuperLogging {
 
     final str = "${config.prefix} ${rec.toPrettyString(extraLines)}";
 
-    // write to stdout
     printLog(str);
 
-    // push to log queue
     if (fileIsEnabled) {
       fileQueueEntries.add('$str\n');
       if (fileQueueEntries.length == 1) {
@@ -262,7 +210,6 @@ class SuperLogging {
       }
     }
 
-    // add error to sentry queue
     if (sentryIsEnabled && rec.error != null) {
       _sendErrorToSentry(rec.error!, null).ignore();
     }
@@ -284,18 +231,16 @@ class SuperLogging {
     }
   }
 
-  // Logs on must be chunked or they get truncated otherwise
-  // See https://github.com/flutter/flutter/issues/22665
+  // Long logs are truncated unless chunked.
+  // https://github.com/flutter/flutter/issues/22665
   static var logChunkSize = 800;
 
   static void printLog(String text) {
     text.chunked(logChunkSize).forEach(debugPrint);
   }
 
-  /// A queue to be consumed by [setupSentry].
   static final sentryQueueControl = StreamController<Error>();
 
-  /// Whether sentry logging is currently enabled or not.
   static bool sentryIsEnabled = false;
 
   static Future<void> setupSentry() async {
@@ -303,9 +248,7 @@ class SuperLogging {
     SuperLogging.setUserID(await _getOrCreateAnonymousUserID());
     await for (final error in sentryQueueControl.stream.asBroadcastStream()) {
       try {
-        await Sentry.captureException(
-          error,
-        );
+        await Sentry.captureException(error);
       } catch (e) {
         $.fine(
           "sentry upload failed; will retry after ${config.sentryRetryDelay}",
@@ -340,29 +283,24 @@ class SuperLogging {
     return _preferences.getString(keyAnonymousUserID)!;
   }
 
-  /// The log file currently in use.
   static File? logFile;
 
-  /// Whether file logging is currently enabled or not.
   static bool fileIsEnabled = false;
 
   static Future<void> setupLogDir() async {
     var dirPath = config.logDirPath;
 
-    // choose [logDir]
     if (dirPath == null || dirPath.isEmpty) {
       final root = await getExternalStorageDirectory();
       dirPath = join(root!.path, 'logs');
     }
 
-    // create [logDir]
     final dir = Directory(dirPath);
     await dir.create(recursive: true);
 
     final files = <File>[];
     final dates = <File, DateTime>{};
 
-    // collect all log files with valid names
     await for (final file in dir.list()) {
       try {
         final date = config.dateFmt!.parse(basename(file.path));
@@ -372,9 +310,7 @@ class SuperLogging {
     }
     final nowTime = DateTime.now();
 
-    // delete old log files, if [maxLogFiles] is exceeded.
     if (files.length > config.maxLogFiles) {
-      // sort files based on ascending order of date (older first)
       files.sort(
         (a, b) => (dates[a] ?? nowTime).compareTo((dates[b] ?? nowTime)),
       );
@@ -384,34 +320,21 @@ class SuperLogging {
 
       for (final file in toDelete) {
         try {
-          $.fine(
-            "deleting log file ${file.path}",
-          );
+          $.fine("deleting log file ${file.path}");
           await file.delete();
         } on Exception catch (_) {}
       }
     }
 
-    logFile =
-        File(join(dirPath, "${config.dateFmt!.format(DateTime.now())}.txt"));
+    logFile = File(
+      join(dirPath, "${config.dateFmt!.format(DateTime.now())}.txt"),
+    );
   }
 
-  /// Current app version, obtained from package_info plugin.
-  ///
-  /// See: [getAppVersion]
   static String? appVersion;
 
   static Future<String> getAppVersion() async {
     final pkgInfo = await PackageInfo.fromPlatform();
     return "${pkgInfo.version}+${pkgInfo.buildNumber}";
-  }
-
-  // disable sentry on f-droid. We need to make it opt-in preference
-  static Future<bool> isFDroidBuild() async {
-    if (!Platform.isAndroid) {
-      return false;
-    }
-    final pkgName = (await PackageInfo.fromPlatform()).packageName;
-    return pkgName.endsWith("fdroid");
   }
 }

@@ -1,5 +1,0 @@
-api_token_env: CROWDIN_PERSONAL_TOKEN
-
-files:
-  - source: /lib/l10n/arb/app_en.arb
-    translation: /lib/l10n/arb/app_%two_letters_code%.arb

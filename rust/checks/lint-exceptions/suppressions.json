@@ -1,0 +1,65 @@
+{
+    "rust/apps/ensu/src-tauri/src/logging.rs": ["clippy::expect_used"],
+    "rust/bindings/frb/auth/src/lib.rs": [
+        "clippy::allow_attributes",
+        "clippy::allow_attributes_without_reason",
+        "clippy::unwrap_used",
+        "unsafe_code"
+    ],
+    "rust/bindings/frb/locker/src/lib.rs": [
+        "clippy::allow_attributes",
+        "clippy::allow_attributes_without_reason",
+        "clippy::unwrap_used",
+        "unsafe_code"
+    ],
+    "rust/bindings/frb/photos/src/lib.rs": [
+        "clippy::allow_attributes",
+        "clippy::allow_attributes_without_reason",
+        "clippy::unwrap_used",
+        "unsafe_code"
+    ],
+    "rust/bindings/uniffi/ensu/src/assets.rs": ["clippy::expect_used"],
+    "rust/bindings/wasm/lib/src/logging.rs": ["clippy::expect_used"],
+    "rust/crates/accounts/src/lifecycle.rs": ["clippy::large_enum_variant"],
+    "rust/crates/assets/src/download.rs": ["clippy::expect_used"],
+    "rust/crates/assets/src/store.rs": ["clippy::expect_used"],
+    "rust/crates/core/examples/ping.rs": ["clippy::expect_used"],
+    "rust/crates/core/src/crypto/hpke.rs": ["clippy::expect_used"],
+    "rust/crates/core/src/crypto/kdf.rs": ["clippy::expect_used"],
+    "rust/crates/core/src/crypto/secretbox.rs": ["clippy::expect_used"],
+    "rust/crates/core/src/crypto/types.rs": ["clippy::expect_used"],
+    "rust/crates/ensu/src/config.rs": ["clippy::expect_used"],
+    "rust/crates/ensu/src/llm/generate.rs": ["clippy::expect_used"],
+    "rust/crates/ensu/src/model/mod.rs": ["clippy::expect_used"],
+    "rust/crates/ensu/src/platform.rs": ["unsafe_code"],
+    "rust/crates/exif/src/isobmff.rs": ["clippy::expect_used"],
+    "rust/crates/image/src/allocator.rs": ["unsafe_code"],
+    "rust/crates/image/src/color_management.rs": ["clippy::expect_used"],
+    "rust/crates/location/src/binary.rs": ["clippy::expect_used"],
+    "rust/crates/location/src/city.rs": [
+        "clippy::expect_used",
+        "clippy::trivially_copy_pass_by_ref"
+    ],
+    "rust/crates/location/src/dispute.rs": ["clippy::expect_used"],
+    "rust/crates/location/src/lib.rs": ["clippy::expect_used"],
+    "rust/crates/location/src/urban.rs": ["clippy::expect_used"],
+    "rust/crates/ml/examples/ml_goldens.rs": ["dead_code"],
+    "rust/crates/ml/examples/ocr.rs": ["dead_code"],
+    "rust/crates/ml/src/assets.rs": ["clippy::expect_used"],
+    "rust/crates/ml/src/face/align.rs": ["clippy::expect_used"],
+    "rust/crates/ml/src/ocr/assets.rs": ["clippy::expect_used"],
+    "rust/crates/ml/src/ocr/mod.rs": ["clippy::expect_used"],
+    "rust/crates/ml/src/onnx/providers.rs": ["clippy::expect_used"],
+    "rust/crates/ml/src/onnx/webgpu.rs": ["unsafe_code"],
+    "rust/crates/ml/src/pet/preprocess.rs": ["clippy::expect_used"],
+    "rust/crates/ml/tests/ml_indexing.rs": ["dead_code"],
+    "rust/crates/photos/src/db.rs": ["clippy::expect_used"],
+    "rust/crates/space/src/transport.rs": [
+        "clippy::trivially_copy_pass_by_ref"
+    ],
+    "rust/crates/vecdb/examples/vecdb_bench.rs": ["clippy::expect_used"],
+    "rust/crates/vecdb/src/log.rs": ["clippy::expect_used"],
+    "rust/crates/vecdb/src/store.rs": ["clippy::needless_collect"],
+    "rust/tools/location-dataset/src/city.rs": ["clippy::expect_used"],
+    "rust/tools/location-dataset/src/lib.rs": ["clippy::expect_used"]
+}

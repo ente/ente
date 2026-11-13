@@ -1,3 +1,10 @@
+import {
+    deletePasskey,
+    getPasskeys,
+    registerPasskey,
+    renamePasskey,
+    type Passkey,
+} from "@/services/passkey";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -29,18 +36,13 @@ import { SingleInputDialog } from "ente-base/components/SingleInputDialog";
 import { errorDialogAttributes } from "ente-base/components/utils/dialog";
 import { useModalVisibility } from "ente-base/components/utils/modal";
 import { useBaseContext } from "ente-base/context";
+import { isNamedError } from "ente-base/error";
 import { formattedDateTime } from "ente-base/i18n-date";
 import log from "ente-base/log";
+import { httpOrHTTPSURL } from "ente-base/safe-navigation";
 import { useFormik } from "formik";
 import { t } from "i18next";
 import React, { useCallback, useEffect, useState } from "react";
-import {
-    deletePasskey,
-    getPasskeys,
-    registerPasskey,
-    renamePasskey,
-    type Passkey,
-} from "services/passkey";
 
 const AccountsPagePaper = styled(Paper)(({ theme }) => ({
     marginBlock: theme.spacing(2),
@@ -82,7 +84,26 @@ const Page: React.FC = () => {
 
     const refreshPasskeys = useCallback(async () => {
         try {
-            setPasskeys(await getPasskeys(token!));
+            const { accountsUrl, passkeys } = await getPasskeys(token!);
+
+            const accountsURL = accountsUrl
+                ? httpOrHTTPSURL(accountsUrl)
+                : undefined;
+            if (accountsURL && accountsURL.origin !== window.location.origin) {
+                const redirectURL = new URL(accountsURL.href);
+                if (!redirectURL.pathname.endsWith("/")) {
+                    redirectURL.pathname += "/";
+                }
+                redirectURL.pathname += "passkeys";
+                redirectURL.hash = "";
+                redirectURL.search = new URLSearchParams({
+                    token: token!,
+                }).toString();
+                window.location.href = redirectURL.toString();
+                return;
+            }
+
+            setPasskeys(passkeys);
         } catch (e) {
             log.error("Failed to fetch passkeys", e);
             showPasskeyFetchFailedErrorDialog();
@@ -102,11 +123,8 @@ const Page: React.FC = () => {
 
     const handleDrawerClose = () => {
         setShowPasskeyDrawer(false);
-        // Don't clear the selected passkey, let the stale value be so that the
-        // drawer closing animation is nicer.
-        //
-        // The value will get overwritten the next time we open the drawer for a
-        // different passkey, so this will not have a functional impact.
+        // The selected passkey is deliberately not cleared here so that the
+        // drawer close animation looks right. The next open overwrites it.
     };
 
     const handleUpdateOrDeletePasskey = () => {
@@ -191,17 +209,11 @@ const Page: React.FC = () => {
 export default Page;
 
 interface AddPasskeyFormProps {
-    /**
-     * The token to use for the API request for adding the passkey.
-     */
     token: string;
-    /**
-     * Called to refresh the list of passkeys shown on the page after the passkey was successfully added.
-     */
     onRefreshPasskeys: () => Promise<void>;
 }
 
-export const AddPasskeyForm: React.FC<AddPasskeyFormProps> = ({
+const AddPasskeyForm: React.FC<AddPasskeyFormProps> = ({
     token,
     onRefreshPasskeys,
 }) => {
@@ -221,13 +233,10 @@ export const AddPasskeyForm: React.FC<AddPasskeyFormProps> = ({
                 await registerPasskey(token, value);
             } catch (e) {
                 log.error("Failed to register a new passkey", e);
-                // If the user cancels the operation, then an error with name
-                // "NotAllowedError" is thrown.
-                //
-                // Ignore these, but in other cases add an error indicator to the
-                // add passkey text field. The browser is expected to already have
-                // shown an error dialog to the user.
-                if (!(e instanceof Error && e.name == "NotAllowedError")) {
+                // The browser throws an error named "NotAllowedError" when the
+                // user cancels the operation, and shows its own error dialog
+                // for other failures, so "NotAllowedError" is ignored here.
+                if (!isNamedError(e, "NotAllowedError")) {
                     setValueFieldError(t("passkey_add_failed"));
                 }
                 return;
@@ -248,7 +257,6 @@ export const AddPasskeyForm: React.FC<AddPasskeyFormProps> = ({
                 margin="normal"
                 disabled={formik.isSubmitting}
                 error={!!formik.errors.value}
-                // See: [Note: Use space as default TextField helperText]
                 helperText={formik.errors.value ?? " "}
                 label={t("enter_passkey_name")}
             />
@@ -265,13 +273,7 @@ export const AddPasskeyForm: React.FC<AddPasskeyFormProps> = ({
 };
 
 interface PasskeysListProps {
-    /** The list of {@link Passkey}s to show. */
     passkeys: Passkey[];
-    /**
-     * Callback to invoke when an passkey in the list is clicked.
-     *
-     * It is passed the corresponding {@link Passkey}.
-     */
     onSelectPasskey: (passkey: Passkey) => void;
 }
 
@@ -295,13 +297,7 @@ const PasskeysList: React.FC<PasskeysListProps> = ({
 };
 
 interface PasskeyListItemProps {
-    /** The passkey to show in the item. */
     passkey: Passkey;
-    /**
-     * Callback to invoke when the item is clicked.
-     *
-     * It is passed the item's {@link passkey}.
-     */
     onClick: (passkey: Passkey) => void;
 }
 
@@ -324,35 +320,15 @@ const PasskeyListItem: React.FC<PasskeyListItemProps> = ({
 );
 
 const PasskeyLabel = styled("div")`
-    /* If the name of the passkey does not fit in one line, break the text into
-       multiple lines as necessary */
     white-space: normal;
 `;
 
 interface ManagePasskeyDrawerProps {
-    /** If `true`, then the drawer is shown. */
     open: boolean;
-    /** Callback to invoke when the drawer wants to be closed. */
     onClose: () => void;
-    /**
-     * The token to use for authenticating with the backend when making requests
-     * for editing or deleting passkeys.
-     *
-     * It is guaranteed that this will be defined when `open` is true.
-     */
+    // Both token and passkey are guaranteed to be defined when open is true.
     token: string | undefined;
-    /**
-     * The {@link Passkey} whose details should be shown in the drawer.
-     *
-     * It is guaranteed that this will be defined when `open` is true.
-     */
     passkey: Passkey | undefined;
-    /**
-     * Callback to invoke when the passkey in the modified or deleted.
-     *
-     * The passkey that the drawer is showing will be out of date at this point,
-     * so the list of passkeys should be refreshed and the drawer closed.
-     */
     onUpdateOrDeletePasskey: () => void;
 }
 

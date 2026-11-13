@@ -7,28 +7,19 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ente-io/museum/pkg/controller"
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/museum/pkg/utils/rollout"
+	"github.com/ente/museum/pkg/controller"
+	"github.com/ente/museum/pkg/repo"
 	"github.com/spf13/viper"
 	"golang.org/x/net/idna"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/repo/remotestore"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/repo/remotestore"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	backupOptionsRolloutPercentage  = 100
-	backupOptionsRolloutNonce       = "backup-options-v1"
-	videoStreamingRolloutPercentage = 50
-	videoStreamingRolloutNonce      = "video-streaming-v1"
-)
-
-// Controller is interface for exposing business logic related to for remote store
 type Controller struct {
 	Repo        *remotestore.Repository
 	BillingCtrl *controller.BillingController
@@ -36,7 +27,6 @@ type Controller struct {
 	FamilyRepo  *repo.FamilyRepository
 }
 
-// InsertOrUpdate the key's value
 func (c *Controller) InsertOrUpdate(ctx *gin.Context, request ente.UpdateKeyValueRequest) error {
 	userID := auth.GetUserID(ctx.Request.Header)
 	if err := c._validateRequest(userID, request.Key, request.Value, false); err != nil {
@@ -51,7 +41,6 @@ func (c *Controller) InsertOrUpdate(ctx *gin.Context, request ente.UpdateKeyValu
 	return c.Repo.InsertOrUpdate(ctx, userID, request.Key, *request.Value)
 }
 
-// RemoveKey removes the key from remote store
 func (c *Controller) RemoveKey(ctx *gin.Context, key string) error {
 	userID := auth.GetUserID(ctx.Request.Header)
 	if valid := ente.IsValidFlagKey(key); !valid {
@@ -106,13 +95,11 @@ func (c *Controller) GetFeatureFlags(ctx *gin.Context) (*ente.FeatureFlagRespons
 		return nil, stacktrace.Propagate(err, "")
 	}
 	response := &ente.FeatureFlagResponse{
-		EnableStripe:    true, // enable stripe for all
+		EnableStripe:    true,
 		DisableCFWorker: false,
-		// When true, users will see an option to enable multiple part upload in the app
-		// Changing it to false will hide the option and disable multi part upload for everyone
-		// except internal user.rt
+		// Disabling this still leaves multipart enabled for internal users.
 		EnableMobMultiPart: true,
-		ServerApiFlag:      ente.UploadV2 | ente.Comments,
+		ServerApiFlag:      ente.UploadV2 | ente.Comments | ente.BackupOptions | ente.CastSessionsV2 | ente.DeferredMultipartChecksums | ente.VideoStreaming | ente.LibrarySharing,
 		CastUrl:            viper.GetString("apps.cast"),
 		EmbedUrl:           viper.GetString("apps.embed-albums"),
 		CustomDomainCNAME:  viper.GetString("apps.custom-domain.cname"),
@@ -130,9 +117,6 @@ func (c *Controller) GetFeatureFlags(ctx *gin.Context) (*ente.FeatureFlagRespons
 			response.PassKeyEnabled = value == "true"
 		case ente.IsInternalUser:
 			response.InternalUser = value == "true"
-			if response.InternalUser {
-				response.ServerApiFlag |= ente.Comments
-			}
 		case ente.IsBetaUser:
 			response.BetaUser = value == "true"
 		case ente.CustomDomain:
@@ -148,16 +132,9 @@ func (c *Controller) GetFeatureFlags(ctx *gin.Context) (*ente.FeatureFlagRespons
 		}
 	}
 
-	if response.InternalUser ||
-		rollout.IsInPercentageRollout(userID, backupOptionsRolloutNonce, backupOptionsRolloutPercentage) {
-		response.ServerApiFlag |= ente.BackupOptions
+	if response.InternalUser {
+		response.ServerApiFlag |= ente.PreviewUploadV2
 	}
-
-	if response.InternalUser ||
-		rollout.IsInPercentageRollout(userID, videoStreamingRolloutNonce, videoStreamingRolloutPercentage) {
-		response.ServerApiFlag |= ente.VideoStreaming
-	}
-
 	return response, nil
 }
 
@@ -171,10 +148,13 @@ func (c *Controller) insertOrUpdateCustomDomain(ctx *gin.Context, userID int64, 
 	if strings.HasPrefix(value, "_") {
 		return stacktrace.Propagate(ente.NewBadRequestWithMessage("invalid custom domain"), "family pointer not allowed in request")
 	}
+	if isReservedCustomDomain(value, viper.GetString("apps.custom-domain.cname")) {
+		return stacktrace.Propagate(ente.NewBadRequestWithMessage("custom domain is reserved"), "reserved custom domain")
+	}
 	ownerID, err := c.DomainOwner(ctx, value)
 	if err == nil {
 		if ownerID != nil && *ownerID == userID {
-			if err := c.Repo.InsertOrUpdate(ctx, userID, string(ente.CustomDomain), value); err != nil {
+			if err := c.Repo.InsertOrUpdateCustomDomain(ctx, userID, value); err != nil {
 				return err
 			}
 			return c.updateFamilyCustomDomainsIfAdmin(ctx, userID, value)
@@ -199,10 +179,27 @@ func (c *Controller) insertOrUpdateCustomDomain(ctx *gin.Context, userID int64, 
 	if !errors.Is(err, &ente.ErrNotFoundError) {
 		return stacktrace.Propagate(err, "")
 	}
-	if err := c.Repo.InsertOrUpdate(ctx, userID, string(ente.CustomDomain), value); err != nil {
+	if err := c.Repo.InsertOrUpdateCustomDomain(ctx, userID, value); err != nil {
 		return err
 	}
 	return c.updateFamilyCustomDomainsIfAdmin(ctx, userID, value)
+}
+
+func isReservedCustomDomain(value, configuredCNAME string) bool {
+	canonicalValue, err := ente.CanonicalDomain(value)
+	if err != nil {
+		return false
+	}
+	for _, domain := range []string{configuredCNAME, "my.ente.com", "my.ente.io"} {
+		if domain == "" {
+			continue
+		}
+		canonicalDomain, err := ente.CanonicalDomain(domain)
+		if err == nil && canonicalValue == canonicalDomain {
+			return true
+		}
+	}
+	return false
 }
 
 func (c *Controller) updateFamilyCustomDomainsIfAdmin(ctx context.Context, userID int64, domain string) error {
@@ -312,10 +309,10 @@ func (c *Controller) DomainOwner(ctx *gin.Context, domain string) (*int64, error
 
 	// Retry with ASCII/Unicode variants so IDN domains stored in either form still resolve.
 	var candidates []string
-	if asciiDomain, convErr := idna.ToASCII(domain); convErr == nil && asciiDomain != domain {
+	if asciiDomain, convErr := ente.CanonicalDomain(domain); convErr == nil && !strings.EqualFold(asciiDomain, domain) {
 		candidates = append(candidates, asciiDomain)
 	}
-	if unicodeDomain, convErr := idna.ToUnicode(domain); convErr == nil && unicodeDomain != domain {
+	if unicodeDomain, convErr := idna.Lookup.ToUnicode(domain); convErr == nil && !strings.EqualFold(unicodeDomain, domain) {
 		candidates = append(candidates, unicodeDomain)
 	}
 

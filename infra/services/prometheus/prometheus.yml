@@ -1,5 +1,3 @@
-# https://prometheus.io/docs/prometheus/latest/configuration/
-
 scrape_configs:
     - job_name: museum
       static_configs:
@@ -28,7 +26,6 @@ scrape_configs:
             target_label: instance
             replacement: XX-HOSTNAME
 
-# Grafana Cloud
 remote_write:
     - url: https://g/api/prom/push
       basic_auth:

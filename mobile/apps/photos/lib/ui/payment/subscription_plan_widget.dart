@@ -1,10 +1,15 @@
-import 'dart:math' as math;
-
+import 'package:ente_components/ente_components.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart';
+import "package:ente_strings/ente_strings.dart";
+import 'package:ente_ui/components/subscription/plan_card.dart';
+import 'package:ente_ui/components/subscription/plan_price.dart';
 import 'package:flutter/material.dart';
-import "package:photos/generated/l10n.dart";
-import "package:photos/service_locator.dart";
-import "package:photos/theme/ente_theme.dart";
+import "package:photos/ui/payment/subscription_locker_sheet.dart";
+
+String subscriptionStorageLabel(int storage) {
+  final (value, unit) = convertBytesToNumberAndUnit(storage);
+  return "$value ${unit.toUpperCase()}";
+}
 
 class SubscriptionPlanWidget extends StatelessWidget {
   const SubscriptionPlanWidget({
@@ -12,275 +17,140 @@ class SubscriptionPlanWidget extends StatelessWidget {
     required this.storage,
     required this.price,
     required this.period,
-    required this.isOnboarding,
+    this.monthlyPrice,
     this.isActive = false,
+    this.isCurrentPlan = false,
     this.isPopular = false,
   });
 
   final int storage;
   final String price;
   final String period;
+  final String? monthlyPrice;
   final bool isActive;
+  final bool isCurrentPlan;
   final bool isPopular;
-  final bool isOnboarding;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final numAndUnit = convertBytesToNumberAndUnit(storage);
-    int storageValueInUnit = numAndUnit.$1;
-    String storageUnit = numAndUnit.$2.toUpperCase();
-    if (storageUnit == "TB") {
-      storageValueInUnit = storageValueInUnit * 1000;
-      storageUnit = "GB";
-    }
-    final String storageValue = storageValueInUnit.toString();
-    final bool isSelected = isActive;
-
-    return Padding(
-      padding: const EdgeInsets.only(
-        left: 16,
-        right: 16,
-        bottom: 24,
+    final colors = context.componentColors;
+    final (value, unit) = convertBytesToNumberAndUnit(storage);
+    return SubscriptionPlanCard(
+      value: value.toString(),
+      unit: unit.toUpperCase(),
+      isSelected: isActive,
+      isFree: price.isEmpty,
+      badgeLabel: isCurrentPlan
+          ? context.strings.subscriptionCurrentPlan
+          : isPopular
+          ? context.strings.mostPopular
+          : null,
+      includedAllowance: isActive
+          ? _LockerAllowance(
+              count: price.isEmpty ? 100 : 1000,
+              color: colors.specialWhite,
+            )
+          : null,
+      onIncludedAllowanceTap: isActive
+          ? () => showSubscriptionLockerSheet(context)
+          : null,
+      price: _Price(
+        price: price,
+        period: period,
+        monthlyPrice: monthlyPrice,
+        isActive: isActive,
       ),
-      child: Stack(
-        clipBehavior: Clip.none,
+    );
+  }
+}
+
+class _LockerAllowance extends StatelessWidget {
+  const _LockerAllowance({required this.count, required this.color});
+
+  final int count;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = context.strings
+        .subscriptionLockerItems(count: count, appName: "\uFFFC")
+        .split("\uFFFC");
+    return Text.rich(
+      TextSpan(
         children: [
-          Container(
-            constraints: const BoxConstraints(minHeight: 72),
-            decoration: BoxDecoration(
-              color: isSelected ? colorScheme.greenLight : colorScheme.fill,
-              borderRadius: BorderRadius.circular(20),
-              border: isSelected
-                  ? Border.all(color: colorScheme.greenBase, width: 2)
-                  : null,
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: RichText(
-                        text: TextSpan(
-                          style: TextStyle(
-                            color: colorScheme.contentDarker,
-                            fontFamily: "Nunito",
-                            fontWeight: FontWeight.w900,
-                          ),
-                          children: [
-                            TextSpan(
-                              text: storageValue,
-                              style: const TextStyle(
-                                fontSize: 36,
-                                height: 28 / 36,
-                                letterSpacing: -1.8,
-                              ),
-                            ),
-                            const TextSpan(
-                              text: " ",
-                              style: TextStyle(
-                                fontSize: 24,
-                                height: 28 / 24,
-                                letterSpacing: -0.96,
-                              ),
-                            ),
-                            TextSpan(
-                              text: storageUnit.isEmpty
-                                  ? ""
-                                  : storageUnit.substring(0, 1),
-                              style: const TextStyle(
-                                fontSize: 16,
-                                height: 28 / 16,
-                                letterSpacing: -0.64,
-                              ),
-                            ),
-                            TextSpan(
-                              text: storageUnit.length > 1
-                                  ? storageUnit.substring(1)
-                                  : "",
-                              style: const TextStyle(
-                                fontSize: 16,
-                                height: 28 / 16,
-                              ),
-                            ),
-                          ],
-                        ),
-                        textAlign: TextAlign.left,
-                        textHeightBehavior: const TextHeightBehavior(
-                          applyHeightToFirstAscent: false,
-                          applyHeightToLastDescent: false,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Flexible(
-                    child: Align(
-                      alignment: Alignment.centerRight,
-                      child: _Price(
-                        price: price,
-                        period: period,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          TextSpan(text: label[0]),
+          const TextSpan(
+            text: "Locker",
+            style: TextStyle(decoration: TextDecoration.underline),
           ),
-          if (isPopular)
-            Positioned(
-              right: -8,
-              top: -4,
-              child: Transform.rotate(
-                angle: 8 * math.pi / 180,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: colorScheme.greenBase,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
-                  child: const Text(
-                    "Most popular",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontFamily: "Nunito",
-                      fontWeight: FontWeight.w800,
-                      fontSize: 10,
-                      height: 20 / 10,
-                    ),
-                  ),
-                ),
-              ),
-            ),
+          TextSpan(text: label[1]),
         ],
+      ),
+      style: TextStyles.mini.copyWith(
+        color: color,
+        decorationColor: color,
+        height: 18 / 12,
       ),
     );
   }
 }
 
 class _Price extends StatelessWidget {
-  final String price;
-  final String period;
-
   const _Price({
     required this.price,
     required this.period,
+    required this.monthlyPrice,
+    required this.isActive,
   });
+
+  final String price;
+  final String period;
+  final String? monthlyPrice;
+  final bool isActive;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
     if (price.isEmpty) {
-      return Text(
-        "Free",
-        style: textTheme.bodyBold.copyWith(
-          color: colorScheme.contentDarker,
-          fontFamily: "Inter",
-          fontSize: 16,
-          height: 28 / 16,
-        ),
+      return SubscriptionPrice(
+        amount: context.strings.free,
+        isSelected: isActive,
       );
     }
-
     if (period == "month") {
-      return Text.rich(
-        TextSpan(
-          style: textTheme.largeBold.copyWith(
-            color: colorScheme.contentDarker,
-            height: 1.1,
-          ),
-          children: [
-            TextSpan(text: price),
-            TextSpan(
-              text: "/${AppLocalizations.of(context).month}",
-              style: textTheme.small.copyWith(
-                color: colorScheme.contentLight,
-              ),
-            ),
-          ],
-        ),
-        textAlign: TextAlign.end,
+      return SubscriptionPrice(
+        amount: _displayPrice(price),
+        periodLabel: context.strings.month,
+        isSelected: isActive,
       );
     }
-
-    if (period == "year") {
-      final currencySymbol = price[0];
-      final priceWithoutCurrency = price.substring(1);
-      final priceDouble = double.parse(priceWithoutCurrency);
-      final pricePerMonth = priceDouble / 12;
-      String pricePerMonthString = pricePerMonth.toStringAsFixed(2);
-
-      if (pricePerMonthString.endsWith(".00")) {
-        pricePerMonthString =
-            pricePerMonthString.substring(0, pricePerMonthString.length - 3);
-      }
-
-      final bool isPlayStore = updateService.isPlayStoreFlavor();
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          if (isPlayStore)
-            Text.rich(
-              TextSpan(
-                style: textTheme.largeBold.copyWith(
-                  color: colorScheme.contentDarker,
-                  height: 1.1,
-                ),
-                children: [
-                  TextSpan(text: price),
-                  TextSpan(
-                    text: "/${AppLocalizations.of(context).yearShort}",
-                    style: textTheme.small.copyWith(
-                      color: colorScheme.contentLight,
-                    ),
-                  ),
-                ],
-              ),
-              textAlign: TextAlign.end,
-            ),
-          if (isPlayStore)
-            Text(
-              "$currencySymbol$pricePerMonthString / ${AppLocalizations.of(context).month}",
-              style: textTheme.tiny.copyWith(color: colorScheme.contentLight),
-              textAlign: TextAlign.end,
-            ),
-          if (!isPlayStore)
-            Text(
-              "$currencySymbol$pricePerMonthString / ${AppLocalizations.of(context).month}",
-              style: textTheme.largeBold.copyWith(
-                color: colorScheme.contentDarker,
-              ),
-              textAlign: TextAlign.end,
-            ),
-          if (!isPlayStore)
-            Text.rich(
-              TextSpan(
-                style: textTheme.tiny.copyWith(
-                  color: colorScheme.contentLight,
-                ),
-                children: [
-                  TextSpan(text: price),
-                  TextSpan(
-                    text: "/${AppLocalizations.of(context).yearShort}",
-                  ),
-                ],
-              ),
-              textAlign: TextAlign.end,
-            ),
-        ],
+    assert(period == "year", "Invalid period: $period");
+    final currencySymbol = price[0];
+    final pricePerMonth = double.parse(price.substring(1)) / 12;
+    String pricePerMonthString = pricePerMonth.toStringAsFixed(2);
+    if (pricePerMonthString.endsWith(".00")) {
+      pricePerMonthString = pricePerMonthString.substring(
+        0,
+        pricePerMonthString.length - 3,
       );
-    } else {
-      assert(false, "Invalid period: $period");
-      return const Text("");
     }
+    return SubscriptionPrice(
+      amount: _displayPrice(price),
+      periodLabel: context.strings.year,
+      monthlyPriceLabel:
+          "${_displayPrice("$currencySymbol$pricePerMonthString")}/${context.strings.month}",
+      originalMonthlyPrice: monthlyPrice == null
+          ? null
+          : _displayPrice(monthlyPrice!),
+      isSelected: isActive,
+    );
   }
+}
+
+String _displayPrice(String price) {
+  final parts = price.split(".");
+  parts[0] = parts[0].replaceAllMapped(
+    RegExp(r"\d(?=(\d{3})+$)"),
+    (match) => "${match[0]},",
+  );
+  return parts.join(".");
 }

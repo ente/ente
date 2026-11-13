@@ -5,10 +5,13 @@ description: Find items quickly in Ente Locker
 
 # Search
 
-Search helps you find any item in your Locker quickly. Search works locally on
-your device to maintain the privacy of your encrypted data.
+Search helps you find any item in your Locker quickly. Search works locally on your device to maintain the privacy of your encrypted data.
 
 ## Using search
+
+![Search your documents bar on Ente Locker mobile](https://docs-assets.ente.com/screenshots/locker-search-callout.png){width=320px}
+
+![Typed search with filtered Home Wi-Fi result on Ente Locker mobile](https://docs-assets.ente.com/screenshots/locker-search-typed-callout.png){width=320px}
 
 1. Tap the search icon on the home screen
 2. Type your search query
@@ -22,8 +25,9 @@ Search looks through:
 - **Item titles**: The name you gave each item
 - **Collection names**: Names of your collections
 
-> **Note**: Search currently matches item titles and names, not the full content
-> within items. Use descriptive titles to make items easier to find.
+> [!NOTE]
+>
+> Search currently matches item titles and names, not the full content within items. Use descriptive titles to make items easier to find.
 
 ## Search tips
 
@@ -44,14 +48,11 @@ Search finds partial word matches, so you don't need to type the full word:
 
 ### Case insensitive
 
-Search is case insensitive, so "Password" and "password" return the same
-results.
+Search is case insensitive, so "Password" and "password" return the same results.
 
 ## Privacy
 
-All search operations happen locally on your device. Your search queries are
-never sent to Ente's servers, and your decrypted item content never leaves your
-device.
+All search operations happen locally on your device. Your search queries are never sent to Ente's servers, and your decrypted item content never leaves your device.
 
 ## Limitations
 

@@ -1,7 +1,7 @@
 import "package:ente_qr/ente_qr.dart";
+import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
-import "package:photos/generated/l10n.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/components/base_bottom_sheet.dart";
 import "package:photos/ui/components/buttons/button_widget_v2.dart";
@@ -15,7 +15,7 @@ Future<void> showQrCodeContentSheet(
 }) {
   return showBaseBottomSheet(
     context,
-    title: AppLocalizations.of(context).qrCode,
+    title: context.strings.qrCode,
     child: Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -38,7 +38,7 @@ class _QrContentEntry extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = getEnteColorScheme(context);
     final textTheme = getEnteTextTheme(context);
-    final l10n = AppLocalizations.of(context);
+    final l10n = context.strings;
     final uri = Uri.tryParse(content);
     final isUrl =
         uri != null && (uri.scheme == "http" || uri.scheme == "https");
@@ -73,9 +73,7 @@ class _QrContentEntry extends StatelessWidget {
                 right: 12,
                 child: GestureDetector(
                   onTap: () async {
-                    await Clipboard.setData(
-                      ClipboardData(text: content),
-                    );
+                    await Clipboard.setData(ClipboardData(text: content));
                     if (context.mounted) {
                       showShortToast(context, l10n.copied);
                     }
@@ -105,6 +103,7 @@ class _QrContentEntry extends StatelessWidget {
           ButtonWidgetV2(
             buttonType: ButtonTypeV2.secondary,
             labelText: l10n.shareLink,
+            shouldSurfaceExecutionStates: false,
             onTap: () async {
               await shareText(content, context: context);
             },
@@ -134,6 +133,7 @@ class _QrContentEntry extends StatelessWidget {
           ButtonWidgetV2(
             buttonType: ButtonTypeV2.primary,
             labelText: l10n.shareLink,
+            shouldSurfaceExecutionStates: false,
             onTap: () async {
               await shareText(content, context: context);
             },

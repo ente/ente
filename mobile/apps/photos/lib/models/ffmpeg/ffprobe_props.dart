@@ -21,7 +21,6 @@ class FFProbeProps {
   int? _rotation;
   Duration? duration;
 
-  // dot separated bitrate, fps, codecWidth, codecHeight. Ignore null value
   String get videoInfo {
     final List<String> info = [];
     if (bitrate != null) info.add('$bitrate');
@@ -47,11 +46,10 @@ class FFProbeProps {
     return finalWidth;
   }
 
-  /// To know more, read about Sample Aspect Ratio (SAR), Display Aspect Ratio (DAR)
-  /// and Pixel Aspect Ratio (PAR)
   int _calculateWidthConsideringSAR(int width) {
-    final List<String> sar =
-        propData![FFProbeKeys.sampleAspectRatio].toString().split(":");
+    final List<String> sar = propData![FFProbeKeys.sampleAspectRatio]
+        .toString()
+        .split(":");
     if (sar.length == 2) {
       final int sarWidth = int.tryParse(sar[0]) ?? 1;
       final int sarHeight = int.tryParse(sar[1]) ?? 1;
@@ -84,7 +82,6 @@ class FFProbeProps {
 
   int? get rotation => _rotation;
 
-  // toString() method
   @override
   String toString() {
     final buffer = StringBuffer();
@@ -97,7 +94,7 @@ class FFProbeProps {
     return buffer.toString();
   }
 
-  static parseData(Map<dynamic, dynamic>? json) {
+  static FFProbeProps parseData(Map<dynamic, dynamic>? json) {
     final Map<String, dynamic> parsedData = {};
     final FFProbeProps result = FFProbeProps();
 
@@ -146,8 +143,9 @@ class FFProbeProps {
           }
           break;
         case FFProbeKeys.quickTimeLocation:
-          result.location =
-              _formatLocation(json[FFProbeKeys.quickTimeLocation]);
+          result.location = _formatLocation(
+            json[FFProbeKeys.quickTimeLocation],
+          );
           if (result.location != null) {
             parsedData[FFProbeKeys.location] =
                 '${result.location!.latitude}, ${result.location!.longitude}';
@@ -164,7 +162,6 @@ class FFProbeProps {
           parsedData[stringKey] = json[key];
       }
     }
-    // iterate through the streams
     final List<dynamic> streams = json["streams"];
     final List<dynamic> newStreams = [];
     final Map<String, dynamic> metadata = {};
@@ -184,33 +181,24 @@ class FFProbeProps {
         if (key == FFProbeKeys.rFrameRate) {
           result.fps = _formatFPS(stream[key]);
           parsedData[key] = result.fps;
-        }
-        //TODO: Use `height` and `width` instead of `codedHeight` and `codedWidth`
-        //for better accuracy. `height' and `width` will give the video's "visual"
-        //height and width.
-        else if (key == FFProbeKeys.codedWidth) {
-          final width = stream[key];
+        } else if (key == FFProbeKeys.width || key == FFProbeKeys.codedWidth) {
+          var width = stream[FFProbeKeys.width];
+          if (width == null || width == 0) {
+            width = stream[FFProbeKeys.codedWidth];
+          }
           if (width != null && width != 0) {
             result._width = width.toString();
-            parsedData[key] = result._width;
+            parsedData[FFProbeKeys.width] = result._width;
           }
-        } else if (key == FFProbeKeys.codedHeight) {
-          final height = stream[key];
+        } else if (key == FFProbeKeys.height ||
+            key == FFProbeKeys.codedHeight) {
+          var height = stream[FFProbeKeys.height];
+          if (height == null || height == 0) {
+            height = stream[FFProbeKeys.codedHeight];
+          }
           if (height != null && height != 0) {
             result._height = height.toString();
-            parsedData[key] = result._height;
-          }
-        } else if (key == FFProbeKeys.width) {
-          final width = stream[key];
-          if (width != null && width != 0) {
-            result._width = width.toString();
-            parsedData[key] = result._width;
-          }
-        } else if (key == FFProbeKeys.height) {
-          final height = stream[key];
-          if (height != null && height != 0) {
-            result._height = height.toString();
-            parsedData[key] = result._height;
+            parsedData[FFProbeKeys.height] = result._height;
           }
         } else if (key == FFProbeKeys.sideDataList) {
           for (Map sideData in stream[key]) {
@@ -259,17 +247,17 @@ class FFProbeProps {
 
   static String? _formatCodecName(String? value) =>
       value == null || value == "none"
-          ? null
-          : _codecNames[value] ?? value.toUpperCase().replaceAll('_', ' ');
+      ? null
+      : _codecNames[value] ?? value.toUpperCase().replaceAll('_', ' ');
 
-  // input example: '2021-04-12T09:14:37.000000Z'
   static String? _formatDate(String value) {
     final dateInUtc = DateTime.tryParse(value);
     if (dateInUtc == null) return value;
     final epoch = DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
     if (dateInUtc == epoch) return null;
-    final newDate =
-        DateTime.fromMicrosecondsSinceEpoch(dateInUtc.microsecondsSinceEpoch);
+    final newDate = DateTime.fromMicrosecondsSinceEpoch(
+      dateInUtc.microsecondsSinceEpoch,
+    );
     return formatDateTime(newDate, 'en_US', false);
   }
 
@@ -283,7 +271,6 @@ class FFProbeProps {
     );
   }
 
-  // input example: '00:00:05.408000000' or '5.408000'
   static Duration? _parseDuration(String? value) {
     if (value == null) return null;
 
@@ -308,17 +295,13 @@ class FFProbeProps {
       final s = int.tryParse(match.group(1)!);
       final millis = double.tryParse(match.group(2)!);
       if (s != null && millis != null) {
-        return Duration(
-          seconds: s,
-          milliseconds: (millis * 1000).toInt(),
-        );
+        return Duration(seconds: s, milliseconds: (millis * 1000).toInt());
       }
     }
 
     return null;
   }
 
-  // input example: '00:00:05.408000000' or '5.408000'
   static String? _formatDuration(String? value) {
     if (value == null) return null;
     final duration = _parseDuration(value);
@@ -336,9 +319,7 @@ class FFProbeProps {
     if (value == null) return null;
     final int? t = int.tryParse(value.split('/')[0]);
     final int? b = int.tryParse(value.split('/')[1]);
-    if (t != null && b != null) {
-      // return the value upto 2 decimal places. ignore even two decimal places
-      // if t is perfectly divisible by b
+    if (t != null && b != null && b != 0) {
       return (t % b == 0)
           ? (t / b).toStringAsFixed(0)
           : (t / b).toStringAsFixed(2);
@@ -350,19 +331,18 @@ class FFProbeProps {
   static final _durationSmPattern = RegExp(r'(\d+)(.\d+)');
   static final _locationPattern = RegExp(r'([+-][.0-9]+)');
 
-  // format ISO 6709 input, e.g. '+37.5090+127.0243/' (Samsung), '+51.3328-000.7053+113.474/' (Apple)
+  // ISO 6709 examples: '+37.5090+127.0243/' (Samsung) and
+  // '+51.3328-000.7053+113.474/' (Apple).
   static Location? _formatLocation(String? value) {
     if (value == null) return null;
     final matches = _locationPattern.allMatches(value);
     if (matches.isNotEmpty) {
-      final coordinates =
-          matches.map((m) => double.tryParse(m.group(0)!)).toList();
+      final coordinates = matches
+          .map((m) => double.tryParse(m.group(0)!))
+          .toList();
       if (coordinates.every((c) => c == 0)) return null;
       try {
-        return Location(
-          latitude: coordinates[0],
-          longitude: coordinates[1],
-        );
+        return Location(latitude: coordinates[0], longitude: coordinates[1]);
       } catch (e) {
         log('failed to parse location: $value', error: e);
         return null;
@@ -394,33 +374,32 @@ String formatDay(DateTime date, String locale) =>
 String formatTime(DateTime date, String locale, bool use24hour) =>
     (use24hour ? DateFormat.Hm(locale) : DateFormat.jm(locale)).format(date);
 
-String formatDateTime(DateTime date, String locale, bool use24hour) => [
-      formatDay(date, locale),
-      formatTime(date, locale, use24hour),
-    ].join(" ");
+String formatDateTime(DateTime date, String locale, bool use24hour) =>
+    [formatDay(date, locale), formatTime(date, locale, use24hour)].join(" ");
 
 String formatFriendlyDuration(Duration d) {
-  final seconds = (d.inSeconds.remainder(Duration.secondsPerMinute))
-      .toString()
-      .padLeft(2, '0');
+  final seconds = (d.inSeconds.remainder(
+    Duration.secondsPerMinute,
+  )).toString().padLeft(2, '0');
   if (d.inHours == 0) return '${d.inMinutes}:$seconds';
 
-  final minutes = (d.inMinutes.remainder(Duration.minutesPerHour))
-      .toString()
-      .padLeft(2, '0');
+  final minutes = (d.inMinutes.remainder(
+    Duration.minutesPerHour,
+  )).toString().padLeft(2, '0');
   return '${d.inHours}:$minutes:$seconds';
 }
 
 String? formatPreciseDuration(Duration d) {
   if (d.inSeconds == 0) return null;
-  final millis =
-      ((d.inMicroseconds / 1000.0).round() % 1000).toString().padLeft(3, '0');
-  final seconds = (d.inSeconds.remainder(Duration.secondsPerMinute))
+  final millis = ((d.inMicroseconds / 1000.0).round() % 1000)
       .toString()
-      .padLeft(2, '0');
-  final minutes = (d.inMinutes.remainder(Duration.minutesPerHour))
-      .toString()
-      .padLeft(2, '0');
+      .padLeft(3, '0');
+  final seconds = (d.inSeconds.remainder(
+    Duration.secondsPerMinute,
+  )).toString().padLeft(2, '0');
+  final minutes = (d.inMinutes.remainder(
+    Duration.minutesPerHour,
+  )).toString().padLeft(2, '0');
   final hours = (d.inHours).toString().padLeft(2, '0');
   return '$hours:$minutes:$seconds.$millis';
 }
@@ -433,8 +412,10 @@ const tera = giga * kilo;
 String formatFileSize(String locale, int size, {int round = 2}) {
   if (size < kilo) return '$size B';
 
-  final compactFormatter =
-      NumberFormat('0${round > 0 ? '.${'0' * round}' : ''}', locale);
+  final compactFormatter = NumberFormat(
+    '0${round > 0 ? '.${'0' * round}' : ''}',
+    locale,
+  );
   if (size < mega) return '${compactFormatter.format(size / kilo)} KB';
   if (size < giga) return '${compactFormatter.format(size / mega)} MB';
   if (size < tera) return '${compactFormatter.format(size / giga)} GB';

@@ -29,38 +29,28 @@ class UserDetails {
     this.lockerFamilyUsage,
   );
 
-  // Locker-specific limits computed client-side based on subscription
-  // Free tier: 100 files, 1GB storage
-  // Paid tier: 1000 files, 10GB storage
   static const int _lockerFileLimitFree = 100;
   static const int _lockerFileLimitPaid = 1000;
-  static const int _lockerStorageLimitFree = 1 * 1024 * 1024 * 1024; // 1GB
-  static const int _lockerStorageLimitPaid = 10 * 1024 * 1024 * 1024; // 10GB
+  static const int _lockerStorageLimitFree = 1 * 1024 * 1024 * 1024;
+  static const int _lockerStorageLimitPaid = 10 * 1024 * 1024 * 1024;
 
-  /// Returns true if user has paid access (direct subscription, family plan,
-  /// or paid add-ons)
   bool hasPaidSubscription() {
-    // Direct paid subscription
     if (!subscription.isFreePlan() && subscription.isValid()) {
       return true;
     }
-    // Family plan member
     if (isPartOfFamily()) {
       return true;
     }
-    // Has paid add-ons
     if (hasPaidAddon()) {
       return true;
     }
     return false;
   }
 
-  /// Returns the locker file limit based on subscription status
   int getLockerFileLimit() {
     return hasPaidSubscription() ? _lockerFileLimitPaid : _lockerFileLimitFree;
   }
 
-  /// Returns the locker storage limit based on subscription status
   int getLockerStorageLimit() {
     return hasPaidSubscription()
         ? _lockerStorageLimitPaid
@@ -77,14 +67,12 @@ class UserDetails {
 
   bool isFamilyAdmin() {
     assert(isPartOfFamily(), "verify user is part of family before calling");
-    final FamilyMember currentUserMember = familyData!.members!
-        .firstWhere((element) => element.email.trim() == email.trim());
+    final FamilyMember currentUserMember = familyData!.members!.firstWhere(
+      (element) => element.email.trim() == email.trim(),
+    );
     return currentUserMember.isAdmin;
   }
 
-  // getFamilyOrPersonalUsage will return total usage for family if user
-  // belong to family group. Otherwise, it will return storage consumed by
-  // current user
   int getFamilyOrPersonalUsage() {
     return isPartOfFamily() ? familyData!.getTotalUsage() : usage;
   }
@@ -97,20 +85,17 @@ class UserDetails {
     return max(getTotalStorage() - getFamilyOrPersonalUsage(), 0);
   }
 
-  // getTotalStorage will return total storage available including the
-  // storage bonus
   int getTotalStorage() {
     return (isPartOfFamily() ? familyData!.storage : subscription.storage) +
         storageBonus;
   }
 
-  // return the member storage limit if user is part of family and the admin
-  // has set the storage limit for the user.
   int? familyMemberStorageLimit() {
     if (isPartOfFamily()) {
       try {
-        final FamilyMember currentUserMember = familyData!.members!
-            .firstWhere((element) => element.email.trim() == email.trim());
+        final FamilyMember currentUserMember = familyData!.members!.firstWhere(
+          (element) => element.email.trim() == email.trim(),
+        );
         return currentUserMember.storageLimit;
       } catch (e) {
         return null;
@@ -119,7 +104,6 @@ class UserDetails {
     return null;
   }
 
-  // This is the total storage for which user has paid for.
   int getPlanPlusAddonStorage() {
     return (isPartOfFamily() ? familyData!.storage : subscription.storage) +
         bonusData!.totalAddOnBonus();
@@ -133,7 +117,7 @@ class UserDetails {
       (map['storageBonus'] ?? 0) as int,
       (map['sharedCollectionsCount'] ?? 0) as int,
       Subscription.fromMap(map['subscription']),
-      FamilyData.fromMap(map['familyData']),
+      map['familyData'] != null ? FamilyData.fromMap(map['familyData']) : null,
       ProfileData.fromJson(map['profileData']),
       BonusData.fromJson(map['bonusData']),
       LockerFamilyUsage.fromJson(map['lockerFamilyUsage']),
@@ -165,6 +149,7 @@ class FamilyMember {
   final String email;
   final int usage;
   final String id;
+  final int? userID;
   final bool isAdmin;
   final int? storageLimit;
 
@@ -172,6 +157,7 @@ class FamilyMember {
     this.email,
     this.usage,
     this.id,
+    this.userID,
     this.isAdmin,
     this.storageLimit,
   );
@@ -181,6 +167,7 @@ class FamilyMember {
       (map['email'] ?? '') as String,
       map['usage'] as int,
       map['id'] as String,
+      map['userID'] as int?,
       map['isAdmin'] as bool,
       map['storageLimit'] as int?,
     );
@@ -191,6 +178,7 @@ class FamilyMember {
       'email': email,
       'usage': usage,
       'id': id,
+      'userID': userID,
       'isAdmin': isAdmin,
       'storageLimit': storageLimit,
     };
@@ -207,14 +195,12 @@ class ProfileData {
   bool isEmailMFAEnabled;
   bool isTwoFactorEnabled;
 
-  // Constructor with default values
   ProfileData({
     this.canDisableEmailMFA = false,
     this.isEmailMFAEnabled = false,
     this.isTwoFactorEnabled = false,
   });
 
-  // Factory method to create ProfileData instance from JSON
   factory ProfileData.fromJson(Map<String, dynamic>? json) {
     return ProfileData(
       canDisableEmailMFA: json?['canDisableEmailMFA'] ?? false,
@@ -223,7 +209,6 @@ class ProfileData {
     );
   }
 
-  // Method to convert ProfileData instance to JSON
   Map<String, dynamic> toJson() {
     return {
       'canDisableEmailMFA': canDisableEmailMFA,
@@ -238,15 +223,10 @@ class ProfileData {
 class FamilyData {
   final List<FamilyMember>? members;
 
-  // Storage available based on the family plan
   final int storage;
   final int expiryTime;
 
-  FamilyData(
-    this.members,
-    this.storage,
-    this.expiryTime,
-  );
+  FamilyData(this.members, this.storage, this.expiryTime);
 
   int getTotalUsage() {
     return members!
@@ -263,17 +243,12 @@ class FamilyData {
     }
   }
 
-  static fromMap(Map<String, dynamic>? map) {
-    if (map == null) return null;
+  static FamilyData fromMap(Map<String, dynamic> map) {
     assert(map['members'] != null && map['members'].length >= 0);
     final members = List<FamilyMember>.from(
       map['members'].map((x) => FamilyMember.fromMap(x)),
     );
-    return FamilyData(
-      members,
-      map['storage'] as int,
-      map['expiryTime'] as int,
-    );
+    return FamilyData(members, map['storage'] as int, map['expiryTime'] as int);
   }
 
   Map<String, dynamic> toMap() {
@@ -296,14 +271,10 @@ class LockerFamilyUsage {
   const LockerFamilyUsage(this.familyFileCount);
 
   factory LockerFamilyUsage.fromJson(Map<String, dynamic>? json) {
-    return LockerFamilyUsage(
-      (json?['familyFileCount'] ?? 0) as int,
-    );
+    return LockerFamilyUsage((json?['familyFileCount'] ?? 0) as int);
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'familyFileCount': familyFileCount,
-    };
+    return {'familyFileCount': familyFileCount};
   }
 }

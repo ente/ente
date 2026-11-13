@@ -1,0 +1,440 @@
+{
+  "account": "Konto",
+  "activeSessions": "Aktive økter",
+  "@activeSessions": {
+    "description": "Title for active sessions page"
+  },
+  "addingToFavorites": "Legger til i favorittar …",
+  "adjust": "Juster",
+  "advanced": "Avansert",
+  "aNewVersionOfEnteIsAvailable": "Ein ny versjon av Ente er tilgjengeleg.",
+  "archive": "Arkiv",
+  "@archive": {
+    "description": "Action of 'Archiving' an element"
+  },
+  "areThey": "Er dette ",
+  "areYouSureYouWantToLogout": "Er du sikker på at du vil logga ut?",
+  "@areYouSureYouWantToLogout": {
+    "description": "Confirmation message before logout"
+  },
+  "authToChangeYourEmail": "Autentiser for å endra e-postadresse",
+  "authToChangeYourPassword": "Autentiser for å endra passord",
+  "authToViewTrashedFiles": "Autentiser deg for å visa filer i papirkorga",
+  "authToViewYourHiddenFiles": "Autentiser deg for å visa gøymde filer",
+  "backup": "Reservekopiering",
+  "backupFailed": "Feil ved reservekopiering",
+  "backupOverMobileData": "Ta reservekopi via mobildata",
+  "backupSettings": "Innstillingar for reservekopiering",
+  "backupStatus": "Status for reservekopiering",
+  "backupStatusDescription": "Reservekopierte element vert viste her",
+  "backupVideos": "Ta reservekopi av videoar",
+  "brushColor": "Penselfarge",
+  "cancel": "Avbryt",
+  "@cancel": {
+    "description": "Cancel button label"
+  },
+  "cannotDeleteSharedFiles": "Kan ikkje sletta delte filer",
+  "changeEmail": "Endra e-postadresse",
+  "@changeEmail": {
+    "description": "Change email button label"
+  },
+  "changePassword": "Endra passord",
+  "changePasswordTitle": "Endra passord",
+  "@changePasswordTitle": {
+    "description": "Change password title"
+  },
+  "codeCopiedToClipboard": "Kode kopiert til utklippstavla",
+  "confirm": "Stadfest",
+  "@confirm": {
+    "description": "Confirm button label"
+  },
+  "confirmPassword": "Stadfest passord",
+  "@confirmPassword": {
+    "description": "Confirm password field label"
+  },
+  "confirmRecoveryKey": "Stadfest gjenopprettingsnøkkel",
+  "confirmYourRecoveryKey": "Stadfest gjenopprettingsnøkkelen din",
+  "continueLabel": "Fortsett",
+  "@continueLabel": {
+    "description": "Continue button label"
+  },
+  "copypasteThisCodentoYourAuthenticatorApp": "Kopier og lim inn koden\ni autentikator-appen",
+  "couldNotBackUpTryLater": "Klarte ikkje reservekopiera dataa dine.\nMe prøver på nytt seinare.",
+  "createAccount": "Opprett konto",
+  "@createAccount": {
+    "description": "Create account button label"
+  },
+  "createAlbumActionHint": "Trykk lenge for å velja foto, og trykk på pluss-ikonet for å oppretta eit album",
+  "criticalUpdateAvailable": "Kritisk oppdatering tilgjengeleg",
+  "crop": "Skjer av",
+  "decrypting": "Dekrypterer …",
+  "deleteAccount": "Slett konto",
+  "@deleteAccount": {
+    "description": "Delete account button label"
+  },
+  "deleteFromBoth": "Slett frå begge",
+  "details": "Detaljar",
+  "discover_babies": "Babyar",
+  "discover_celebrations": "Feiringar",
+  "discover_food": "Mat",
+  "discover_hills": "Bakkar",
+  "discover_pets": "Kjæledyr",
+  "discover_selfies": "Selfiar",
+  "discover_sunset": "Solnedgang",
+  "done": "Ferdig",
+  "downloading": "Lastar ned …",
+  "draw": "Klistremerke",
+  "dropSupportEmail": "Send ein e-post til {supportEmail} frå e-postadressa du registrerte deg med",
+  "@dropSupportEmail": {
+    "placeholders": {
+      "supportEmail": {
+        "description": "The support email address",
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
+  },
+  "email": "E-post",
+  "@email": {
+    "description": "Email field label"
+  },
+  "emailAlreadyRegistered": "E-postadressa er registrert frå før.",
+  "@emailAlreadyRegistered": {
+    "description": "Error message when email is already registered"
+  },
+  "emailHint": "Skriv inn e-postadressa di",
+  "emailNotRegistered": "E-postadressa er ikkje registrert.",
+  "@emailNotRegistered": {
+    "description": "Error message when email is not registered"
+  },
+  "encryptingBackup": "Krypterer reservekopi …",
+  "encryptionKeys": "Krypteringsnøklar",
+  "@encryptionKeys": {
+    "description": "Encryption keys title"
+  },
+  "enterCode": "Skriv inn kode",
+  "enterEmail": "Skriv inn e-postadresse",
+  "enterNewPasswordToEncrypt": "Skriv inn eit nytt passord me kan kryptera dataa dine med",
+  "@enterNewPasswordToEncrypt": {
+    "description": "Prompt to enter new password for encryption"
+  },
+  "enterPassword": "Skriv inn passord",
+  "@enterPassword": {
+    "description": "Enter password field label"
+  },
+  "enterPasswordToEncrypt": "Skriv inn eit passord me kan kryptera dataa dine med",
+  "@enterPasswordToEncrypt": {
+    "description": "Prompt to enter password for encryption"
+  },
+  "enterThe6digitCodeFromnyourAuthenticatorApp": "Skriv inn den seks-sifra koden\nfrå autentikator-appen",
+  "enterValidEmail": "Skriv inn ei gyldig e-postadresse.",
+  "enterYourNewEmailAddress": "Skriv inn den nye e-postadressa di",
+  "enterYourPassword": "Skriv inn passordet ditt",
+  "enterYourRecoveryKey": "Skriv inn gjenopprettingsnøkkelen",
+  "exif": "Exif",
+  "exportYourData": "Eksporter dataa dine",
+  "failedToLoadAlbums": "Feil ved lasting av album",
+  "faq": "Spørsmål og svar",
+  "@faq": {
+    "description": "FAQ link label"
+  },
+  "faqs": "Spørsmål og svar",
+  "fileInfoAddDescHint": "Legg til skildring …",
+  "flip": "Spegelvend",
+  "forgotPassword": "Gløymt passordet",
+  "@forgotPassword": {
+    "description": "Forgot password link label"
+  },
+  "freeUpDeviceSpace": "Frigjer plass på eininga",
+  "general": "Generelt",
+  "generatingEncryptionKeys": "Lagar krypteringsnøklar …",
+  "@generatingEncryptionKeys": {
+    "description": "Generating encryption keys message"
+  },
+  "help": "Hjelp",
+  "hidden": "Gøymde",
+  "howItWorks": "Slik fungerer det",
+  "@howItWorks": {
+    "description": "How it works button label"
+  },
+  "ignore": "Ignorer",
+  "incorrectPasswordTitle": "Ugyldig passord",
+  "@incorrectPasswordTitle": {
+    "description": "Title for incorrect password error"
+  },
+  "incorrectRecoveryKeyBody": "Gjenopprettingsnøkkelen som du skreiv inn er feil",
+  "incorrectRecoveryKeyTitle": "Gjenopprettingsnøkkelen er feil",
+  "insecureDevice": "Usikker eining",
+  "@insecureDevice": {
+    "description": "Insecure device warning title"
+  },
+  "invalidEmailAddress": "Ugyldig e-postadresse",
+  "invalidKey": "Ugyldig nøkkel",
+  "invalidRecoveryKey": "Gjenopprettingsnøkkelen er ikkje gyldig. Pass på at han inneheld 24 ord og er stava riktig.\n\nViss du skreiv inn ein eldre gjenopprettingskode, pass på at han inneheld 64 teikn.",
+  "ok": "OK",
+  "@ok": {
+    "description": "Generic OK button label"
+  },
+  "loadingModel": "Lastar ned modellar  …",
+  "logInLabel": "Logg på",
+  "@logInLabel": {
+    "description": "Log in button label"
+  },
+  "logout": "Logg ut",
+  "manageLink": "Handsam lenkje",
+  "manageSubscription": "Handsam abonnement",
+  "memoryCount": "{count, plural, =0{ingen minne} one{{formattedCount} minne} other{{formattedCount} minne}}",
+  "@memoryCount": {
+    "description": "The text to display the number of memories",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "1",
+        "type": "int"
+      },
+      "formattedCount": {
+        "type": "String",
+        "example": "11.513, 11,511"
+      }
+    }
+  },
+  "moderateStrength": "Middels sterkt",
+  "@moderateStrength": {
+    "description": "Moderate password strength label"
+  },
+  "newAlbum": "Nytt album",
+  "next": "Neste",
+  "@next": {
+    "description": "Next button label"
+  },
+  "noExifData": "Ingen Exif-data",
+  "noFacesFound": "Fann ingen ansikt",
+  "oops": "Uff då",
+  "@oops": {
+    "description": "Oops error title"
+  },
+  "oopsSomethingWentWrong": "Uff då. Noko gjekk gale.",
+  "password": "Passord",
+  "@password": {
+    "description": "Password field label"
+  },
+  "passwordChangedSuccessfully": "Passordet er endra",
+  "@passwordChangedSuccessfully": {
+    "description": "Password changed successfully message"
+  },
+  "passwordStrength": "Passordstyrke: {passwordStrengthValue}",
+  "@passwordStrength": {
+    "description": "Text to indicate the password strength",
+    "placeholders": {
+      "passwordStrengthValue": {
+        "description": "The strength of the password as a string",
+        "type": "String",
+        "example": "Weak or Moderate or Strong"
+      }
+    }
+  },
+  "passwordWarning": "Vi lagrar ikkje dette passordet, så dersom du gløymer det <underline>kan vi ikkje dekryptera dataa dine</underline>",
+  "@passwordWarning": {
+    "description": "Warning about password storage"
+  },
+  "pleaseTryAgain": "Prøv på nytt",
+  "@pleaseTryAgain": {
+    "description": "Message asking user to try again"
+  },
+  "pleaseWait": "Vent litt …",
+  "@pleaseWait": {
+    "description": "Please wait message"
+  },
+  "privacyPolicyTitle": "Personvernerklæring",
+  "@privacyPolicyTitle": {
+    "description": "Privacy policy title"
+  },
+  "recover": "Gjenopprett",
+  "@recover": {
+    "description": "Recover button label"
+  },
+  "recoverAccount": "Gjenopprett konto",
+  "@recoverAccount": {
+    "description": "Recover account button label"
+  },
+  "recoveryKey": "Gjenopprettingsnøkkel",
+  "@recoveryKey": {
+    "description": "Recovery key label"
+  },
+  "recoveryKeyCopiedToClipboard": "Gjenopprettingsnøkkel kopiert til utklippstavla",
+  "@recoveryKeyCopiedToClipboard": {
+    "description": "Recovery key copied message"
+  },
+  "recoveryKeyOnForgotPassword": "Viss du gløymer passordet, er det berre ved å bruka denne nøkkelen at du kan gjenoppretta dataa dine.",
+  "@recoveryKeyOnForgotPassword": {
+    "description": "Recovery key importance explanation"
+  },
+  "recoveryKeySuccessBody": "Flott! Gjenopprettingsnøkkelen er gyldig. Takk for at du stadfesta han.\n\nHugs å oppbevara gjenopprettingsnøkkelen på ein trygg stad.",
+  "recoveryKeyVerified": "Gjenopprettingsnøkkelen er stadfesta",
+  "recoveryKeyVerifyReason": "Viss du gløymer passordet, er det berre ved å bruka gjenopprettingsnøkkelen at du kan gjenoppretta fotoa dine. Vel «Konto» frå «Innstillingar»-menyen for å finna gjenopprettingsnøkkelen.\n\nSkriv inn gjenopprettingsnøkkelen her for å stadfesta at du har lagra han på riktig måte.",
+  "recoverySuccessful": "Gjenoppretting var vellukka.",
+  "recreatePasswordBody": "Den gjeldande eininga er ikkje kraftig nok til å kunna stadfesta passordet ditt, men me kan laga det på nytt ved å bruka ein metode som vil fungere på alle einingar.\n\nLogg på ved å bruka gjenopprettingsnøkkelen din og lag passordet på nytt (du kan gjenbruka passordet viss du vil).",
+  "@recreatePasswordBody": {
+    "description": "Body text for recreate password dialog"
+  },
+  "recreatePasswordTitle": "Opprett passord på nytt",
+  "@recreatePasswordTitle": {
+    "description": "Title for recreate password dialog"
+  },
+  "removeLink": "Fjern lenkje",
+  "removingFromFavorites": "Fjernar frå favorittar …",
+  "rename": "Endra namn",
+  "renameAlbum": "Endra namn på album",
+  "renameFile": "Endra namn på fil",
+  "resetPasswordTitle": "Tilbakestill passord",
+  "@resetPasswordTitle": {
+    "description": "Reset password title"
+  },
+  "retry": "Prøv på nytt",
+  "rotate": "Roter",
+  "saveCopy": "Lagra kopi",
+  "saveKey": "Lagra nøkkel",
+  "@saveKey": {
+    "description": "Save key button label"
+  },
+  "saveYourRecoveryKeyIfYouHaventAlready": "Lagra gjenopprettingsnøkkelen viss du ikkje alt har gjort det",
+  "scanCode": "Skann kode",
+  "scanThisBarcodeWithnyourAuthenticatorApp": "Skann denne strekkoden med\nautentikator-appen",
+  "security": "Tryggleik",
+  "selectAll": "Merk alle",
+  "selectDate": "Vel dato",
+  "selectedPhotos": "{count} valde",
+  "@selectedPhotos": {
+    "description": "Display the number of selected photos",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "5",
+        "type": "int"
+      }
+    }
+  },
+  "selectedPhotosWithYours": "{count} valde ({yourCount} av desse er dine)",
+  "@selectedPhotosWithYours": {
+    "description": "Display the number of selected photos, including the number of selected photos owned by the user",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "12",
+        "type": "int"
+      },
+      "yourCount": {
+        "example": "2",
+        "type": "int"
+      }
+    }
+  },
+  "setPasswordTitle": "Vel passord",
+  "@setPasswordTitle": {
+    "description": "Set password title"
+  },
+  "setupComplete": "Oppsettet er fullført",
+  "signUpTerms": "Eg godtek <u-terms>tenestevilkåra</u-terms> og <u-policy>personvernerklæringa</u-policy>",
+  "@signUpTerms": {
+    "description": "Terms agreement text for sign up"
+  },
+  "skip": "Hopp over",
+  "somethingWentWrongPleaseTryAgain": "Det oppstod ein feil. Prøv på nytt.",
+  "@somethingWentWrongPleaseTryAgain": {
+    "description": "Generic error message"
+  },
+  "sorry": "Orsak",
+  "sorryBackupFailedDesc": "Klarte ikkje reservekopiera fila. Me prøver på nytt seinare.",
+  "sorryCouldNotAddToFavorites": "Klarte ikkje leggja til i favorittar.",
+  "sorryCouldNotRemoveFromFavorites": "Klarte ikkje fjerna frå favorittar.",
+  "sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": "Klarte ikkje laga tryggleiksnøklar på denne eininga.\n\nBruk ei anna eining for å registrera deg.",
+  "@sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": {
+    "description": "Error message for insecure device"
+  },
+  "startBackup": "Start reservekopiering",
+  "strongStrength": "Sterkt",
+  "@strongStrength": {
+    "description": "Strong password strength label"
+  },
+  "subscription": "Abonnement",
+  "tapToCopy": "trykk for å kopiera",
+  "terminate": "Avslutt",
+  "@terminate": {
+    "description": "Terminate button label"
+  },
+  "terminateSession": "Avslutta økt?",
+  "@terminateSession": {
+    "description": "Title for terminate session dialog"
+  },
+  "termsOfServicesTitle": "Vilkår",
+  "@termsOfServicesTitle": {
+    "description": "Terms of service title"
+  },
+  "thisDevice": "Denne eininga",
+  "@thisDevice": {
+    "description": "Label for current device"
+  },
+  "thisImageHasNoExifData": "Biletet har ingen exif-data",
+  "thisWillLogYouOutOfTheFollowingDevice": "Dette loggar deg ut frå dei følgjande einingane:",
+  "@thisWillLogYouOutOfTheFollowingDevice": {
+    "description": "Warning message for logging out of another device"
+  },
+  "thisWillLogYouOutOfThisDevice": "Dette loggar deg ut frå denne eininga.",
+  "@thisWillLogYouOutOfThisDevice": {
+    "description": "Warning message for logging out of current device"
+  },
+  "trash": "Papirkorg",
+  "tryAgain": "Prøv på nytt",
+  "@tryAgain": {
+    "description": "Try again button label"
+  },
+  "twoFactorAuthTitle": "Tofaktorautentisering",
+  "@twoFactorAuthTitle": {
+    "description": "Two-factor authentication title"
+  },
+  "twofactorSetup": "Oppsett av tofaktor",
+  "uncategorized": "Ikkje-kategoriserte",
+  "unselectAll": "Fjern all merking",
+  "updateAvailable": "Oppdatering tilgjengeleg",
+  "useRecoveryKey": "Bruk gjenopprettingsnøkkel",
+  "@useRecoveryKey": {
+    "description": "Use recovery key button label"
+  },
+  "verify": "Stadfest",
+  "@verify": {
+    "description": "Verify button label"
+  },
+  "verifyEmail": "Stadfest e-postadresse",
+  "@verifyEmail": {
+    "description": "Verify email title"
+  },
+  "verifyingRecoveryKey": "Stadfestar gjenopprettingsnøkkel …",
+  "verifyPassword": "Stadfest passord",
+  "@verifyPassword": {
+    "description": "Verify password button label"
+  },
+  "viewLargeFiles": "Store filer",
+  "viewRecoveryKey": "Vis gjenopprettingsnøkkel",
+  "waitingForWifi": "Ventar på Wi-Fi …",
+  "weakStrength": "Svakt",
+  "@weakStrength": {
+    "description": "Weak password strength label"
+  },
+  "yesLogout": "Ja, logg ut",
+  "@yesLogout": {
+    "description": "Confirmation button for logout"
+  },
+  "you": "Deg",
+  "youAreOnTheLatestVersion": "Du har siste versjon",
+  "youHaveSuccessfullyFreedUp": "Du har frigjort {storageSaved}!",
+  "@youHaveSuccessfullyFreedUp": {
+    "description": "The text to display when the user has successfully freed up storage",
+    "type": "text",
+    "placeholders": {
+      "storageSaved": {
+        "example": "1.2 GB",
+        "type": "String"
+      }
+    }
+  }
+}

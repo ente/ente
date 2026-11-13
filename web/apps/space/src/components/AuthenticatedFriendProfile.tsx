@@ -1,0 +1,257 @@
+import { Portal } from "@mui/material";
+import { spaceDefaultProfilePicPath } from "components/AvatarImage";
+import { SpacePageMeta } from "components/PageMeta";
+import { SpaceRouteFallback } from "components/RouteFallback";
+import log from "ente-base/log";
+import { useBrowserBackClose } from "hooks/use-browser-back-close";
+import React from "react";
+import {
+    FriendProfileImageViewerScreen,
+    friendProfileImageViewerBackground,
+} from "screens/ProfileImageViewerScreen";
+import { ProfileScreen } from "screens/ProfileScreen";
+import {
+    loadCurrentSpacePostAssetURL,
+    loadCurrentSpaceProfile,
+    loadCurrentSpaceProfilePostsPage,
+    removeCurrentSpaceFriend,
+    replyToCurrentPost,
+    sendCurrentPoke,
+    setCurrentPostLiked,
+    type SpaceProfilePost,
+} from "services/space";
+import { useSpaceAppState } from "state/app-state";
+import { spaceAppBackgroundColor } from "styles/colors";
+import { profilePostItemsFromPosts } from "utils/post-display";
+import { spaceDefaultCoverImagePath } from "utils/post-image";
+import { useSpaceRouter } from "utils/route-transitions";
+import { spaceRoutes } from "utils/routes";
+
+interface AuthenticatedFriendProfileProps {
+    friendSpaceId: string;
+    headerRef?: React.Ref<HTMLDivElement>;
+    isPreview?: boolean;
+    onBack?: () => void;
+    showPostLoadingIndicator?: boolean;
+    username: string;
+}
+
+export const AuthenticatedFriendProfile: React.FC<
+    AuthenticatedFriendProfileProps
+> = ({
+    friendSpaceId,
+    headerRef,
+    isPreview = false,
+    onBack,
+    showPostLoadingIndicator = false,
+    username,
+}) => {
+    const router = useSpaceRouter();
+    const { friends, profile, profileLoadError, profileLoadStatus } =
+        useSpaceAppState();
+    const [friendProfile, setFriendProfile] =
+        React.useState<Awaited<ReturnType<typeof loadCurrentSpaceProfile>>>();
+    const [posts, setPosts] = React.useState<SpaceProfilePost[]>([]);
+    const [isProfileLoading, setIsProfileLoading] = React.useState(true);
+    const [isPostsLoading, setIsPostsLoading] = React.useState(true);
+    const [openProfileImage, setOpenProfileImage] = React.useState<
+        "avatar" | "cover" | null
+    >(null);
+    const postItems = React.useMemo(
+        () => profilePostItemsFromPosts(posts),
+        [posts],
+    );
+    const cachedFriendProfile = friends.find(
+        (friend) =>
+            friend.spaceId == friendSpaceId ||
+            friend.id == friendSpaceId ||
+            friend.username == username,
+    );
+    const hadCachedFriendProfileOnMount = React.useRef(
+        Boolean(cachedFriendProfile),
+    );
+    const immediateFriendProfile = friendProfile ?? cachedFriendProfile;
+    const displayedProfile = immediateFriendProfile
+        ? {
+              ...immediateFriendProfile,
+              avatarUrl: immediateFriendProfile.avatarUrl ?? null,
+          }
+        : {
+              avatarUrl: null,
+              friendsCount: 0,
+              fullName: username,
+              id: friendSpaceId,
+              spaceId: friendSpaceId,
+              spaceSlug: username,
+              username,
+          };
+    const friendAvatarUrl =
+        displayedProfile.avatarUrl || spaceDefaultProfilePicPath;
+    const friendCoverUrl =
+        displayedProfile.coverUrl || spaceDefaultCoverImagePath;
+    const friendDisplayName =
+        displayedProfile.fullName.trim() ||
+        displayedProfile.username.trim() ||
+        "Friend";
+
+    useBrowserBackClose({
+        open: Boolean(openProfileImage),
+        onClose: () => setOpenProfileImage(null),
+        stateKey: "space-friend-profile-image",
+    });
+
+    React.useEffect(() => {
+        const viewerSpaceId = profile?.spaceId;
+        if (!viewerSpaceId) return;
+
+        let cancelled = false;
+        setFriendProfile(undefined);
+        setIsProfileLoading(true);
+        void loadCurrentSpaceProfile(friendSpaceId, viewerSpaceId)
+            .then((nextProfile) => {
+                if (!cancelled) setFriendProfile(nextProfile);
+            })
+            .catch((error: unknown) =>
+                log.error("Failed to load friend profile", error),
+            )
+            .finally(() => {
+                if (!cancelled) setIsProfileLoading(false);
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [friendSpaceId, profile?.spaceId]);
+
+    React.useEffect(() => {
+        const viewerSpaceId = profile?.spaceId;
+        if (isPreview || !viewerSpaceId) return;
+
+        let cancelled = false;
+        setPosts([]);
+        setIsPostsLoading(true);
+        void loadCurrentSpaceProfilePostsPage(friendSpaceId, viewerSpaceId)
+            .then((page) => {
+                if (!cancelled) setPosts(page.items);
+            })
+            .catch((error: unknown) =>
+                log.error("Failed to load friend posts", error),
+            )
+            .finally(() => {
+                if (!cancelled) setIsPostsLoading(false);
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [friendSpaceId, isPreview, profile?.spaceId]);
+
+    const goBack = () => {
+        void router.back(spaceRoutes.home);
+    };
+
+    const unfriend = React.useCallback(async () => {
+        const actorSpaceId = profile?.spaceId;
+        if (!actorSpaceId) return;
+
+        await removeCurrentSpaceFriend(actorSpaceId, friendSpaceId);
+    }, [friendSpaceId, profile?.spaceId]);
+
+    if (profileLoadStatus != "ready" || !profile?.spaceId) {
+        return (
+            <SpaceRouteFallback
+                background={spaceAppBackgroundColor}
+                message={profileLoadError}
+            />
+        );
+    }
+    if (
+        !hadCachedFriendProfileOnMount.current &&
+        (isProfileLoading || isPostsLoading)
+    ) {
+        return <SpaceRouteFallback background={spaceAppBackgroundColor} />;
+    }
+    const actorSpaceId = profile.spaceId;
+
+    return (
+        <>
+            <SpacePageMeta
+                themeColor={spaceAppBackgroundColor}
+                title={`${friendDisplayName}'s profile`}
+            />
+            <ProfileScreen
+                headerRef={headerRef}
+                headerVariant="friend"
+                isPreview={isPreview}
+                isCoverLoading={isProfileLoading}
+                isNameLoading={isProfileLoading && !immediateFriendProfile}
+                isPostsLoading={isPostsLoading}
+                onBack={onBack ?? goBack}
+                onLoadPostImage={loadCurrentSpacePostAssetURL}
+                onMessageFriend={() =>
+                    void router.push(spaceRoutes.message(friendSpaceId))
+                }
+                onPokeFriend={(requestID) =>
+                    sendCurrentPoke(actorSpaceId, friendSpaceId, requestID)
+                }
+                onOpenProfileCover={() => setOpenProfileImage("cover")}
+                onOpenProfilePhoto={() => setOpenProfileImage("avatar")}
+                onReplyToPost={(postSpaceId, postId, text, objectKey) =>
+                    replyToCurrentPost(
+                        actorSpaceId,
+                        postSpaceId,
+                        postId,
+                        text,
+                        objectKey,
+                    )
+                }
+                onSetPostLiked={async (postId, liked) => {
+                    const previousLiked =
+                        posts.find((post) => post.postId == postId)
+                            ?.viewerLiked ?? false;
+                    const updateLiked = (viewerLiked: boolean) =>
+                        setPosts((current) =>
+                            current.map((post) =>
+                                post.postId == postId
+                                    ? { ...post, viewerLiked }
+                                    : post,
+                            ),
+                        );
+                    updateLiked(liked);
+                    try {
+                        await setCurrentPostLiked(actorSpaceId, postId, liked);
+                    } catch (error) {
+                        updateLiked(previousLiked);
+                        throw error;
+                    }
+                }}
+                onUnfriend={unfriend}
+                onUnfriendComplete={() =>
+                    window.location.replace(spaceRoutes.friends)
+                }
+                postItems={postItems}
+                profile={displayedProfile}
+                showPostLoadingIndicator={showPostLoadingIndicator}
+            />
+            {openProfileImage && (
+                <>
+                    <SpacePageMeta
+                        themeColor={friendProfileImageViewerBackground}
+                    />
+                    <Portal>
+                        <FriendProfileImageViewerScreen
+                            displayName={friendDisplayName}
+                            imageUrl={
+                                openProfileImage == "cover"
+                                    ? friendCoverUrl
+                                    : friendAvatarUrl
+                            }
+                            onClose={() => setOpenProfileImage(null)}
+                            variant={openProfileImage}
+                        />
+                    </Portal>
+                </>
+            )}
+        </>
+    );
+};

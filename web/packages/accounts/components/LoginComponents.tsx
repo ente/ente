@@ -2,13 +2,13 @@ import { CircularProgress, Stack, Typography, styled } from "@mui/material";
 import { sessionExpiredDialogAttributes } from "ente-accounts/components/utils/dialog";
 import {
     checkPasskeyVerificationStatus,
-    passkeySessionExpiredErrorMessage,
     saveCredentialsAndNavigateTo,
 } from "ente-accounts/services/passkey";
 import { LinkButton } from "ente-base/components/LinkButton";
 import type { MiniDialogAttributes } from "ente-base/components/MiniDialog";
 import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
 import { genericErrorDialogAttributes } from "ente-base/components/utils/dialog";
+import { isNamedError } from "ente-base/error";
 import log from "ente-base/log";
 import { customAPIHost } from "ente-base/origins";
 import { t } from "i18next";
@@ -20,23 +20,8 @@ import {
 } from "./layouts/centered-paper";
 
 interface HeaderCaptionProps {
-    /**
-     * If specified, then a caption to display below the title (which is
-     * expected to be passed as the `children`).
-     *
-     * The components which use the {@link HeaderCaptionProps} that they'll have
-     * the same height irrespective of whether or not the caption is provided.
-     * This allows us to use this component to get a similar look across various
-     * pages in the login flow (some of which have a caption, some which not).
-     */
     caption?: string;
 }
-
-export const PasswordHeader: React.FC<HeaderCaptionProps> = (props) => (
-    <AccountsPageTitleWithCaption {...props}>
-        {t("password")}
-    </AccountsPageTitleWithCaption>
-);
 
 const PasskeyHeader: React.FC<HeaderCaptionProps> = (props) => (
     <AccountsPageTitleWithCaption {...props}>
@@ -44,7 +29,7 @@ const PasskeyHeader: React.FC<HeaderCaptionProps> = (props) => (
     </AccountsPageTitleWithCaption>
 );
 
-export const AccountsPageTitleWithCaption: React.FC<
+const AccountsPageTitleWithCaption: React.FC<
     React.PropsWithChildren<HeaderCaptionProps>
 > = ({ caption, children }) => {
     return (
@@ -64,7 +49,7 @@ const Header_ = styled("div")`
     gap: 8px;
 `;
 
-export const AccountsPageFooterWithHost: React.FC<React.PropsWithChildren> = ({
+const AccountsPageFooterWithHost: React.FC<React.PropsWithChildren> = ({
     children,
 }) => {
     const [host, setHost] = useState<string | undefined>();
@@ -86,16 +71,26 @@ export const AccountsPageFooterWithHost: React.FC<React.PropsWithChildren> = ({
     );
 };
 
-interface VerifyingPasskeyProps {
-    /** ID of the current passkey verification session. */
-    passkeySessionID: string;
-    /** The email of the user whose passkey we're verifying. */
+type PasskeyVerificationStatus = "waiting" | "checking" | "pending";
+
+export interface VerifyingPasskeyPresentationProps {
     email: string | undefined;
-    /** Called when the user wants to redirect again. */
+    host: string | undefined;
+    verificationStatus: PasskeyVerificationStatus;
+    isChecking: boolean;
     onRetry: () => void;
-    /** Perform the (possibly app specific) logout sequence. */
+    onCheckStatus: () => void;
+    onRecover: () => void;
+    onChangeEmail: () => void;
+}
+
+interface VerifyingPasskeyProps {
+    passkeySessionID: string;
+    email: string | undefined;
+    onRetry: () => void;
     logout: () => void;
     showMiniDialog: (attrs: MiniDialogAttributes) => void;
+    presentation?: React.ComponentType<VerifyingPasskeyPresentationProps>;
 }
 
 export const VerifyingPasskey: React.FC<VerifyingPasskeyProps> = ({
@@ -104,12 +99,17 @@ export const VerifyingPasskey: React.FC<VerifyingPasskeyProps> = ({
     onRetry,
     logout,
     showMiniDialog,
+    presentation: Presentation,
 }) => {
-    type VerificationStatus = "waiting" | "checking" | "pending";
     const [verificationStatus, setVerificationStatus] =
-        useState<VerificationStatus>("waiting");
+        useState<PasskeyVerificationStatus>("waiting");
+    const [host, setHost] = useState<string | undefined>();
 
     const router = useRouter();
+
+    useEffect(() => {
+        if (Presentation) void customAPIHost().then(setHost);
+    }, [Presentation]);
 
     const handleRetry = () => {
         setVerificationStatus("waiting");
@@ -126,8 +126,7 @@ export const VerifyingPasskey: React.FC<VerifyingPasskeyProps> = ({
         } catch (e) {
             log.error("Passkey verification status check failed", e);
             showMiniDialog(
-                e instanceof Error &&
-                    e.message == passkeySessionExpiredErrorMessage
+                isNamedError(e, "session_expired")
                     ? sessionExpiredDialogAttributes(logout)
                     : genericErrorDialogAttributes(),
             );
@@ -138,6 +137,25 @@ export const VerifyingPasskey: React.FC<VerifyingPasskeyProps> = ({
     const handleRecover = () => {
         void router.push("/passkeys/recover");
     };
+
+    const handleCheckStatusClick = () => {
+        void handleCheckStatus();
+    };
+
+    if (Presentation) {
+        return (
+            <Presentation
+                email={email}
+                host={host}
+                verificationStatus={verificationStatus}
+                isChecking={verificationStatus === "checking"}
+                onRetry={handleRetry}
+                onCheckStatus={handleCheckStatusClick}
+                onRecover={handleRecover}
+                onChangeEmail={logout}
+            />
+        );
+    }
 
     return (
         <AccountsPageContents>

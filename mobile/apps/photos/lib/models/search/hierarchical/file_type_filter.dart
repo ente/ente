@@ -1,19 +1,19 @@
-import "package:flutter/material.dart";
+import "package:hugeicons/hugeicons.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
 import "package:photos/models/search/hierarchical/hierarchical_search_filter.dart";
 
 extension FileTypeExtension on FileType {
-  IconData get icon {
+  SearchFilterIcon get icon {
     switch (this) {
       case FileType.image:
-        return Icons.image;
+        return HugeIcons.strokeRoundedImage01;
       case FileType.video:
-        return Icons.videocam;
+        return HugeIcons.strokeRoundedVideo02;
       case FileType.livePhoto:
-        return Icons.album_outlined;
+        return HugeIcons.strokeRoundedAlbum02;
       default:
-        return Icons.insert_drive_file;
+        return HugeIcons.strokeRoundedFile01;
     }
   }
 }
@@ -37,7 +37,7 @@ class FileTypeFilter extends HierarchicalSearchFilter {
   }
 
   @override
-  IconData icon() {
+  SearchFilterIcon icon() {
     return fileType.icon;
   }
 

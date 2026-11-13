@@ -28,16 +28,15 @@ class CreateRequest {
     CollectionType? type,
     CollectionAttributes? attributes,
     MetadataRequest? magicMetadata,
-  }) =>
-      CreateRequest(
-        encryptedKey: encryptedKey ?? this.encryptedKey,
-        keyDecryptionNonce: keyDecryptionNonce ?? this.keyDecryptionNonce,
-        encryptedName: encryptedName ?? this.encryptedName,
-        nameDecryptionNonce: nameDecryptionNonce ?? this.nameDecryptionNonce,
-        type: type ?? this.type,
-        attributes: attributes ?? this.attributes,
-        magicMetadata: magicMetadata ?? this.magicMetadata,
-      );
+  }) => CreateRequest(
+    encryptedKey: encryptedKey ?? this.encryptedKey,
+    keyDecryptionNonce: keyDecryptionNonce ?? this.keyDecryptionNonce,
+    encryptedName: encryptedName ?? this.encryptedName,
+    nameDecryptionNonce: nameDecryptionNonce ?? this.nameDecryptionNonce,
+    type: type ?? this.type,
+    attributes: attributes ?? this.attributes,
+    magicMetadata: magicMetadata ?? this.magicMetadata,
+  );
 
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{};

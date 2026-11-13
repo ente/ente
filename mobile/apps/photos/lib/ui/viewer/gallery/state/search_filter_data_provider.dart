@@ -6,23 +6,20 @@ import "package:photos/models/search/hierarchical/only_them_filter.dart";
 class SearchFilterDataProvider {
   final _appliedFiltersNotifier = _AppliedFiltersNotifier();
 
-  /// [_recommededFiltersNotifier.value] are filters sorted by decreasing
-  /// order of relevance
   final _recommendedFiltersNotifier = _RecommendedFiltersNotifier();
   final isSearchingNotifier = ValueNotifier(false);
   HierarchicalSearchFilter initialGalleryFilter;
 
   SearchFilterDataProvider({required this.initialGalleryFilter});
 
-  /// [recommendations] are sorted by decreasing order of relevance
+  // Ordered from most to least relevant.
   List<HierarchicalSearchFilter> get recommendations =>
       _recommendedFiltersNotifier.recommendedFilters;
   List<HierarchicalSearchFilter> get appliedFilters =>
       _appliedFiltersNotifier.appliedFilters;
 
   void clearAndAddRecommendations(List<HierarchicalSearchFilter> filters) {
-    _recommendedFiltersNotifier.clearFilters();
-    _safelyAddToRecommended(filters);
+    _safelyAddToRecommended(filters, replace: true);
   }
 
   void applyFilters(List<HierarchicalSearchFilter> filters) {
@@ -86,9 +83,13 @@ class SearchFilterDataProvider {
     }
   }
 
-  void _safelyAddToRecommended(List<HierarchicalSearchFilter> filters) {
-    if (_appliedFiltersNotifier.appliedFilters
-        .any((e) => e is OnlyThemFilter)) {
+  void _safelyAddToRecommended(
+    List<HierarchicalSearchFilter> filters, {
+    bool replace = false,
+  }) {
+    if (_appliedFiltersNotifier.appliedFilters.any(
+      (e) => e is OnlyThemFilter,
+    )) {
       filters.removeWhere((e) => e is FaceFilter);
     }
 
@@ -96,7 +97,7 @@ class SearchFilterDataProvider {
 
     final List<HierarchicalSearchFilter> filtersToAvoid = [
       ...appliedFilters,
-      ...recommendations,
+      if (!replace) ...recommendations,
     ];
 
     if (appliedFilters.isEmpty) {
@@ -106,13 +107,10 @@ class SearchFilterDataProvider {
     _recommendedFiltersNotifier.addFilters(
       filters,
       filtersToAvoid: filtersToAvoid,
+      replace: replace,
     );
   }
 
-  /// [InheritedSearchFilterDataWrapper] calls this method in its [dispose] so
-  /// if [InheritedSearchFilterDataWrapper] is an ancestor on the widget where
-  /// [SearchFilterDataProvider] is used, it's not necessary to call this method
-  /// explicitly
   void dispose() {
     _appliedFiltersNotifier.dispose();
     _recommendedFiltersNotifier.dispose();
@@ -148,10 +146,10 @@ class _RecommendedFiltersNotifier extends ChangeNotifier {
 
   void addFilters(
     List<HierarchicalSearchFilter> filters, {
-    ///This is to ensure that the filters that are being added are not already
-    ///already in recommendations or applied filters
     required List<HierarchicalSearchFilter> filtersToAvoid,
+    bool replace = false,
   }) {
+    if (replace) _recommendedFilters.clear();
     for (HierarchicalSearchFilter filter in filters) {
       bool avoidFilter = false;
       for (HierarchicalSearchFilter filterToAvoid in filtersToAvoid) {
@@ -171,11 +169,6 @@ class _RecommendedFiltersNotifier extends ChangeNotifier {
 
   void removeFilters(List<HierarchicalSearchFilter> filters) {
     _recommendedFilters.removeWhere((filter) => filters.contains(filter));
-    notifyListeners();
-  }
-
-  void clearFilters() {
-    _recommendedFilters.clear();
     notifyListeners();
   }
 }

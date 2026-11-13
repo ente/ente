@@ -2,18 +2,9 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
-/// A widget that detects when a touch pointer crosses its boundaries during a drag.
-///
-/// This widget solves the problem where on touch platforms, only the widget that
-/// receives the initial touch gets subsequent drag events. TouchCrossDetector uses
-/// a global listener to track all pointer movements and performs hit testing to
-/// determine when pointers enter or exit widget boundaries.
-///
-/// Note: onEnter, onHover and onPointerDown callbacks are not only triggered
-/// when the pointer is dragged into the widget, but also when the pointer
-/// is initially pressed down within the widget's bounds. Same applies for onExit
-/// when the pointer is released within the widget's bounds.
-
+// Flutter sends a drag only to the widget where it began. Track the pointer
+// globally so widgets can detect it crossing their boundaries.
+// Pressing inside reports enter and hover; releasing inside reports exit.
 class TouchCrossDetector extends SingleChildRenderObjectWidget {
   const TouchCrossDetector({
     super.key,
@@ -21,6 +12,7 @@ class TouchCrossDetector extends SingleChildRenderObjectWidget {
     this.onExit,
     this.onHover,
     this.onPointerDown,
+    this.shouldTrackPointerMoves,
     required Widget super.child,
   });
 
@@ -28,6 +20,10 @@ class TouchCrossDetector extends SingleChildRenderObjectWidget {
   final void Function(PointerExitEvent)? onExit;
   final void Function(PointerHoverEvent)? onHover;
   final void Function(PointerDownEvent)? onPointerDown;
+  // Read at dispatch time so a gesture can enable crossing without waiting for
+  // a rebuild. The tile where a pointer started keeps tracking it so long
+  // presses still know whether the pointer is inside.
+  final bool Function()? shouldTrackPointerMoves;
 
   static bool isPointerActive(int pointer) {
     return _TouchCrossRenderTracker.instance.isPointerActive(pointer);
@@ -40,6 +36,7 @@ class TouchCrossDetector extends SingleChildRenderObjectWidget {
       onExit: onExit,
       onHover: onHover,
       onPointerDown: onPointerDown,
+      shouldTrackPointerMoves: shouldTrackPointerMoves,
     );
   }
 
@@ -52,7 +49,8 @@ class TouchCrossDetector extends SingleChildRenderObjectWidget {
       ..onEnter = onEnter
       ..onExit = onExit
       ..onHover = onHover
-      ..onPointerDown = onPointerDown;
+      ..onPointerDown = onPointerDown
+      ..shouldTrackPointerMoves = shouldTrackPointerMoves;
   }
 }
 
@@ -62,12 +60,13 @@ class RenderTouchCrossDetector extends RenderProxyBox {
     void Function(PointerExitEvent)? onExit,
     void Function(PointerHoverEvent)? onHover,
     void Function(PointerDownEvent)? onPointerDown,
+    this.shouldTrackPointerMoves,
     RenderBox? child,
-  })  : _onEnter = onEnter,
-        _onExit = onExit,
-        _onHover = onHover,
-        _onPointerDown = onPointerDown,
-        super(child);
+  }) : _onEnter = onEnter,
+       _onExit = onExit,
+       _onHover = onHover,
+       _onPointerDown = onPointerDown,
+       super(child);
 
   void Function(PointerEnterEvent)? _onEnter;
   set onEnter(void Function(PointerEnterEvent)? value) {
@@ -98,6 +97,8 @@ class RenderTouchCrossDetector extends RenderProxyBox {
   }
 
   final Set<int> _activePointers = <int>{};
+  final Set<int> _pointersStartedInside = <int>{};
+  bool Function()? shouldTrackPointerMoves;
 
   @override
   void attach(PipelineOwner owner) {
@@ -115,9 +116,9 @@ class RenderTouchCrossDetector extends RenderProxyBox {
     if (!attached) return;
     final bool isInside = size.contains(globalToLocal(event.position));
     if (isInside) {
+      _pointersStartedInside.add(event.pointer);
       _activePointers.add(event.pointer);
       _onPointerDown?.call(event);
-      // Also trigger enter event for initial touch
       _onEnter?.call(
         PointerEnterEvent(
           position: event.position,
@@ -129,7 +130,11 @@ class RenderTouchCrossDetector extends RenderProxyBox {
   }
 
   void handlePointerUpdate(PointerEvent event) {
-    if (!attached) return;
+    if (!attached ||
+        (!_pointersStartedInside.contains(event.pointer) &&
+            shouldTrackPointerMoves?.call() == false)) {
+      return;
+    }
     final bool isInside = size.contains(globalToLocal(event.position));
     final bool wasInside = _activePointers.contains(event.pointer);
     if (isInside && !wasInside) {
@@ -162,6 +167,7 @@ class RenderTouchCrossDetector extends RenderProxyBox {
   }
 
   void handlePointerUp(PointerUpEvent event) {
+    _pointersStartedInside.remove(event.pointer);
     if (_activePointers.contains(event.pointer)) {
       _activePointers.remove(event.pointer);
       _onExit?.call(
@@ -175,6 +181,7 @@ class RenderTouchCrossDetector extends RenderProxyBox {
   }
 
   void handlePointerCancel(PointerCancelEvent event) {
+    _pointersStartedInside.remove(event.pointer);
     if (_activePointers.contains(event.pointer)) {
       _activePointers.remove(event.pointer);
       _onExit?.call(
@@ -188,7 +195,6 @@ class RenderTouchCrossDetector extends RenderProxyBox {
   }
 }
 
-/// Global tracker for RenderObject-based implementation
 class _TouchCrossRenderTracker {
   _TouchCrossRenderTracker._() {
     GestureBinding.instance.pointerRouter.addGlobalRoute(_handlePointerEvent);
@@ -210,7 +216,6 @@ class _TouchCrossRenderTracker {
   void _handlePointerEvent(PointerEvent event) {
     if (event is PointerDownEvent) {
       _activePointers.add(event.pointer);
-      // Handle pointer down to initialize swipe selection
       for (final renderObject in _trackedRenderObjects) {
         renderObject.handlePointerDown(event);
       }
@@ -220,7 +225,6 @@ class _TouchCrossRenderTracker {
         if (event is PointerUpEvent) {
           renderObject.handlePointerUp(event);
         } else if (event is PointerCancelEvent) {
-          // Also handle cancel events to ensure cleanup
           renderObject.handlePointerCancel(event);
         }
       }

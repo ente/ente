@@ -13,16 +13,16 @@ import 'package:photos/core/network/network.dart';
 import 'package:photos/db/files_db.dart';
 import 'package:photos/models/file/file.dart';
 import 'package:photos/models/metadata/file_magic.dart';
+import 'package:photos/module/download/file.dart';
+import 'package:photos/module/metadata/local_file.dart';
 import 'package:photos/service_locator.dart';
 import 'package:photos/services/file_magic_service.dart';
 import 'package:photos/ui/tools/editor/native_video_export_service.dart';
 import 'package:photos/ui/tools/editor/video_crop_util.dart';
 import 'package:photos/ui/tools/editor/video_editor/crop_value.dart';
-import 'package:photos/utils/file_util.dart';
+import 'package:photos/ui/tools/editor/video_editor/video_editor_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:video_editor/video_editor.dart';
 
-/// Trim configuration
 class TrimConfig {
   final String label;
   final Duration? duration;
@@ -40,12 +40,9 @@ class TrimConfig {
   String toString() => label;
 }
 
-/// Trim configuration factory
 class TrimConfigs {
   static const noTrim = TrimConfig(label: "no-trim", duration: null);
 
-  /// Create a trim config from seconds
-  /// Example: TrimConfigs.fromSeconds(15) → trim to 15 seconds
   static TrimConfig fromSeconds(int seconds) {
     return TrimConfig(
       label: "trim-${seconds}s",
@@ -53,17 +50,11 @@ class TrimConfigs {
     );
   }
 
-  /// Create a trim config from duration
-  /// Example: TrimConfigs.fromDuration(Duration(minutes: 1, seconds: 30))
   static TrimConfig fromDuration(Duration duration) {
     final totalSeconds = duration.inSeconds;
-    return TrimConfig(
-      label: "trim-${totalSeconds}s",
-      duration: duration,
-    );
+    return TrimConfig(label: "trim-${totalSeconds}s", duration: duration);
   }
 
-  /// Create a trim config from start offset and length
   static TrimConfig fromRange({
     required int startSeconds,
     required int lengthSeconds,
@@ -76,7 +67,6 @@ class TrimConfigs {
   }
 }
 
-/// Validation failure details
 class ValidationFailure {
   final String fileId;
   final String description;
@@ -95,16 +85,12 @@ class ValidationFailure {
   });
 }
 
-/// Result of processing a video iteration
 class IterationResult {
   final List<ValidationFailure> validationFailures;
 
-  IterationResult({
-    required this.validationFailures,
-  });
+  IterationResult({required this.validationFailures});
 }
 
-/// Configuration for one or more files to test with the same combinations
 class TestFileConfig {
   final List<int> fileIds;
   final int? collectionId;
@@ -126,53 +112,9 @@ class TestFileConfig {
   int get totalIterations => totalIterationsPerFile * fileIds.length;
 }
 
-/// Video Editor Integration Test
-///
-/// Tests native video editor by processing videos through all combinations
-/// of trim/crop/rotate. Validates exported video duration and dimensions.
-///
-/// CONFIGURATION:
-/// Update testFiles list below. Each TestFileConfig can have:
-/// - fileIds: [123, 456] - One or more video file IDs to test
-/// - collectionId: null (uses source's collection) or specific ID
-/// - trimOptions: [TrimConfigs.noTrim, TrimConfigs.fromSeconds(1), TrimConfigs.fromSeconds(15), ...]
-/// - cropOptions: ["None", "1:1", "16:9", "9:16", "3:4", "4:3"]
-/// - rotateOptions: [0, 90, 180, 270]
-///
-/// EXAMPLES:
-/// // Single file, full test
-/// TestFileConfig(
-///   fileIds: [123],
-///   trimOptions: [TrimConfigs.noTrim, TrimConfigs.fromSeconds(1)],
-///   cropOptions: ["None", "1:1"],
-///   rotateOptions: [0, 90],
-/// ) // 2 × 2 × 2 = 8 iterations
-///
-/// // Multiple files, same combinations
-/// TestFileConfig(
-///   fileIds: [123, 456, 789],
-///   trimOptions: [TrimConfigs.fromSeconds(2)],
-///   cropOptions: ["1:1"],
-///   rotateOptions: [0],
-/// ) // 1 × 1 × 1 × 3 files = 3 iterations
-///
-/// // Custom trim durations
-/// TestFileConfig(
-///   fileIds: [123],
-///   trimOptions: [TrimConfigs.fromSeconds(30), TrimConfigs.fromDuration(Duration(minutes: 2))],
-///   cropOptions: ["None"],
-///   rotateOptions: [0],
-/// )
-///
-/// RUN:
-/// flutter drive --driver=test_driver/integration_test.dart \
-///   --target=integration_test/video_editor_test.dart --flavor independent
-///
-/// VALIDATION:
-/// - Duration check: ±100ms tolerance
-/// - Width/Height check: ±2px tolerance
-/// - Failures are grouped by type (export vs validation) in the final report
-/// - Tests native editor only (no FFmpeg fallback)
+// Run:
+//   flutter drive --driver=test_driver/integration_test.dart \
+//     --target=integration_test/video_editor_test.dart --flavor independent
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
@@ -183,7 +125,6 @@ void main() {
     print('[${record.level.name}] ${record.time}: ${record.message}');
   });
 
-  // TEST CONFIGURATION - Update this list with your files and combinations
   final testFiles = [
     TestFileConfig(
       // TODO: Update with the generated file IDs available on the test device.
@@ -196,38 +137,26 @@ void main() {
       cropOptions: ["1:1", "9:16", "16:9", "3:4", "4:3"],
       rotateOptions: [0, 90, 180, 270],
     ),
-    // Add more configurations with different combinations:
-    // TestFileConfig(
-    //   fileIds: [456, 789, 101], // Multiple files with same combinations
-    //   collectionId: 999,        // Save to specific collection
-    //   trimOptions: [TrimConfigs.fromSeconds(2), TrimConfigs.fromSeconds(5)],
-    //   cropOptions: ["None", "1:1"],
-    //   rotateOptions: [0, 90],
-    // ),
   ];
 
   group('Video Editor Integration Test', () {
-    testWidgets('Process videos with all trim/crop/rotate combinations',
-        (WidgetTester tester) async {
-      // Initialize global singletons that the app normally sets up on startup.
+    testWidgets('Process videos with all trim/crop/rotate combinations', (
+      WidgetTester tester,
+    ) async {
       final prefs = await SharedPreferences.getInstance();
       final packageInfo = await PackageInfo.fromPlatform();
 
-      // Configuration provides endpoint & secure storage (must precede network init).
-      await Configuration.instance.init();
-
-      // Initialize network clients before service locator (mirrors app bootstrap).
-      await NetworkClient.instance.init(packageInfo);
+      await NetworkClient.instance.init(packageInfo, prefs);
 
       ServiceLocator.instance.init(
         prefs,
         NetworkClient.instance.enteDio,
         NetworkClient.instance.getDio(),
+        NetworkClient.instance.downloadDio,
         packageInfo,
       );
-      // Configuration already initialized above.
+      await Configuration.instance.init(prefs);
 
-      // Verify configuration
       expect(
         testFiles,
         isNotEmpty,
@@ -248,11 +177,14 @@ void main() {
         }
       }
 
-      // Calculate total files and iterations
-      final totalFiles =
-          testFiles.fold(0, (sum, config) => sum + config.fileIds.length);
-      final totalIterations =
-          testFiles.fold(0, (sum, config) => sum + config.totalIterations);
+      final totalFiles = testFiles.fold(
+        0,
+        (sum, config) => sum + config.fileIds.length,
+      );
+      final totalIterations = testFiles.fold(
+        0,
+        (sum, config) => sum + config.totalIterations,
+      );
       logger.info('═══════════════════════════════════════════════════════');
       logger.info(
         'Starting test with $totalFiles file(s), ${testFiles.length} configuration(s)',
@@ -265,7 +197,6 @@ void main() {
       final failedExports = <String, String>{};
       final validationFailures = <ValidationFailure>[];
 
-      // Process each configuration
       for (int configIndex = 0; configIndex < testFiles.length; configIndex++) {
         final config = testFiles[configIndex];
 
@@ -282,10 +213,11 @@ void main() {
           '╚═══════════════════════════════════════════════════════╝\n',
         );
 
-        // Process each file in this configuration
-        for (int fileIndex = 0;
-            fileIndex < config.fileIds.length;
-            fileIndex++) {
+        for (
+          int fileIndex = 0;
+          fileIndex < config.fileIds.length;
+          fileIndex++
+        ) {
           final fileId = config.fileIds[fileIndex];
 
           logger.info('─────────────────────────────────────────────────────');
@@ -294,7 +226,6 @@ void main() {
           );
           logger.info('─────────────────────────────────────────────────────');
 
-          // Load source file
           logger.info('Loading source file with ID: $fileId');
           final sourceFile = await FilesDB.instance.getAnyUploadedFile(fileId);
           expect(
@@ -341,7 +272,6 @@ void main() {
           logger.info('Source file loaded: ${sourceFile.title}');
           logger.info('Video path: ${sourceIoFile.path}\n');
 
-          // Iterate through all combinations for this file
           int fileIterationCount = 0;
           for (final trimOption in config.trimOptions) {
             for (final cropOption in config.cropOptions) {
@@ -401,13 +331,14 @@ void main() {
 
         logger.info('═══════════════════════════════════════════════════════');
         logger.info('Config ${configIndex + 1}/${testFiles.length} completed');
-        logger
-            .info('═══════════════════════════════════════════════════════\n');
+        logger.info(
+          '═══════════════════════════════════════════════════════\n',
+        );
       }
 
-      // Print final summary
-      logger
-          .info('\n╔═══════════════════════════════════════════════════════╗');
+      logger.info(
+        '\n╔═══════════════════════════════════════════════════════╗',
+      );
       logger.info('║ FINAL TEST SUMMARY');
       logger.info('╚═══════════════════════════════════════════════════════╝');
       logger.info('Total configurations: ${testFiles.length}');
@@ -440,7 +371,6 @@ void main() {
           '╚═══════════════════════════════════════════════════════╝',
         );
 
-        // Group by failure type
         final groupedFailures = <String, List<ValidationFailure>>{};
         for (final failure in validationFailures) {
           groupedFailures
@@ -465,7 +395,6 @@ void main() {
 
       logger.info('═══════════════════════════════════════════════════════\n');
 
-      // Fail test if any iteration failed or had validation errors
       final totalFailures = failedExports.length + validationFailures.length;
       expect(
         totalFailures,
@@ -477,8 +406,6 @@ void main() {
   });
 }
 
-/// Process a single video iteration with the specified settings.
-/// Returns any validation failures detected for the exported video.
 Future<IterationResult> _processVideoIteration({
   required EnteFile sourceFile,
   required File sourceIoFile,
@@ -495,7 +422,6 @@ Future<IterationResult> _processVideoIteration({
   CropCalculation? cropCalc;
 
   try {
-    // Step 1: Initialize video editor controller
     logger.info('  → Initializing video editor controller...');
     controller = VideoEditorController.file(
       sourceIoFile,
@@ -506,19 +432,18 @@ Future<IterationResult> _processVideoIteration({
     await controller.initialize();
 
     final originalDuration = controller.videoDuration;
-    final originalSize = controller.video.value.size;
+    final originalSize = controller.sourceDisplaySize;
     logger.info('  → Controller initialized');
-    logger
-        .info('     - Original duration: ${originalDuration.inMilliseconds}ms');
+    logger.info(
+      '     - Original duration: ${originalDuration.inMilliseconds}ms',
+    );
     logger.info(
       '     - Original size: ${originalSize.width.toInt()}x${originalSize.height.toInt()}',
     );
 
-    // Track expected dimensions (will be updated after crop)
     var expectedWidth = originalSize.width.toInt();
     var expectedHeight = originalSize.height.toInt();
 
-    // Step 2: Apply trim settings
     Duration? expectedDuration;
     if (trimOption.shouldTrim) {
       final startOffset = trimOption.startOffset;
@@ -541,11 +466,7 @@ Future<IterationResult> _processVideoIteration({
           '  → Applying trim from ${trimmedStart.inMilliseconds}ms to ${trimmedEnd.inMilliseconds}ms...',
         );
 
-        final minTrim =
-            trimmedStart.inMilliseconds / originalDuration.inMilliseconds;
-        final maxTrim =
-            trimmedEnd.inMilliseconds / originalDuration.inMilliseconds;
-        controller.updateTrim(minTrim, maxTrim);
+        controller.updateTrim(trimmedStart, trimmedEnd);
 
         expectedDuration = trimmedEnd - trimmedStart;
       }
@@ -554,11 +475,9 @@ Future<IterationResult> _processVideoIteration({
       logger.info('  → No trim applied');
     }
 
-    // Step 3: Apply crop settings
     if (cropOption != "None") {
       logger.info('  → Applying crop: $cropOption...');
 
-      // Map crop option to CropValue and apply aspect ratio
       CropValue? cropValue;
       switch (cropOption) {
         case "1:1":
@@ -582,14 +501,9 @@ Future<IterationResult> _processVideoIteration({
         final aspectRatio = cropValue.getFraction()?.toDouble();
         if (aspectRatio != null) {
           controller.preferredCropAspectRatio = aspectRatio;
-        } else {
-          controller.applyCacheCrop();
         }
-      } else {
-        controller.applyCacheCrop();
       }
 
-      // Calculate expected dimensions after crop
       try {
         cropCalc = VideoCropUtil.calculateFileSpaceCrop(controller: controller);
         expectedWidth = cropCalc.width;
@@ -605,26 +519,23 @@ Future<IterationResult> _processVideoIteration({
       logger.info('  → No crop applied');
     }
 
-    // Step 4: Apply rotation
     if (rotateOption != 0) {
       logger.info('  → Applying rotation: $rotateOption°...');
 
-      // Reset rotation to 0 first
       while (controller.rotation != 0) {
-        controller.rotate90Degrees(RotateDirection.left);
+        controller.rotate90Degrees(VideoRotationDirection.left);
       }
 
-      // Apply the desired rotation (from video_rotate_page.dart)
       switch (rotateOption) {
         case 90:
-          controller.rotate90Degrees(RotateDirection.right);
+          controller.rotate90Degrees(VideoRotationDirection.right);
           break;
         case 180:
-          controller.rotate90Degrees(RotateDirection.left);
-          controller.rotate90Degrees(RotateDirection.left);
+          controller.rotate90Degrees(VideoRotationDirection.left);
+          controller.rotate90Degrees(VideoRotationDirection.left);
           break;
         case 270:
-          controller.rotate90Degrees(RotateDirection.left);
+          controller.rotate90Degrees(VideoRotationDirection.left);
           break;
       }
 
@@ -633,27 +544,22 @@ Future<IterationResult> _processVideoIteration({
       logger.info('  → No rotation applied');
     }
 
-    // Step 5: Export video using native editor (no FFmpeg fallback)
     logger.info('  → Exporting video with native editor...');
 
-    // Create temp output path
-    final tempDir =
-        Directory.systemTemp.createTempSync('ente_video_export_test');
+    final tempDir = Directory.systemTemp.createTempSync('video_export_test');
     final outputPath = path_helper.join(
       tempDir.path,
       'export_${DateTime.now().millisecondsSinceEpoch}.mp4',
     );
 
-    // Use original NativeVideoExportService with FFmpeg fallback disabled
     final exportedFile = await NativeVideoExportService.exportVideo(
       controller: controller,
       outputPath: outputPath,
-      allowFfmpegFallback: false, // NO FFmpeg fallback for tests
       onProgress: (progress) {
-        // Log progress at 25% intervals
         if ((progress * 100).round() % 25 == 0) {
-          logger
-              .info('     - Progress: ${(progress * 100).toStringAsFixed(0)}%');
+          logger.info(
+            '     - Progress: ${(progress * 100).toStringAsFixed(0)}%',
+          );
         }
       },
       onError: (e, s) {
@@ -668,7 +574,6 @@ Future<IterationResult> _processVideoIteration({
     tempOutputFile = exportedFile;
     logger.info('  → Export completed: ${exportedFile.path}');
 
-    // Step 6: Save to gallery
     logger.info('  → Saving to gallery...');
     final suffixBuffer = StringBuffer();
     if (trimOption.shouldTrim) {
@@ -682,7 +587,8 @@ Future<IterationResult> _processVideoIteration({
     }
 
     final baseName = path_helper.basenameWithoutExtension(sourceFile.title!);
-    final fileName = baseName +
+    final fileName =
+        baseName +
         suffixBuffer.toString() +
         '_edited_' +
         DateTime.now().microsecondsSinceEpoch.toString() +
@@ -696,15 +602,10 @@ Future<IterationResult> _processVideoIteration({
       );
       logger.info('  → Saved to gallery: $fileName');
 
-      // Step 7: Create EnteFile entry
       logger.info('  → Creating file entry in database...');
-      final newFile = await EnteFile.fromAsset(
-        sourceFile.deviceFolder ?? '',
-        newAsset,
-      );
+      final newFile = fileFromAsset(sourceFile.deviceFolder ?? '', newAsset);
 
       newFile.creationTime = sourceFile.creationTime;
-      // Use provided collectionId, or source file's collection if null/0
       newFile.collectionID = (collectionId == null || collectionId == 0)
           ? sourceFile.collectionID
           : collectionId;
@@ -726,22 +627,21 @@ Future<IterationResult> _processVideoIteration({
         );
       }
 
-      // Step 8: Validate exported video
       logger.info('  → Validating exported video...');
       try {
-        final videoInfo =
-            await NativeVideoEditor.getVideoInfo(exportedFile.path);
-        final actualDuration = Duration(
-          milliseconds: (videoInfo['duration'] as num?)?.toInt() ?? 0,
+        final videoInfo = await NativeVideoEditor.inspectVideo(
+          exportedFile.path,
         );
-        final actualWidth = (videoInfo['width'] as num?)?.toInt() ?? 0;
-        final actualHeight = (videoInfo['height'] as num?)?.toInt() ?? 0;
+        final actualDuration = videoInfo.duration;
+        final actualWidth = videoInfo.width;
+        final actualHeight = videoInfo.height;
 
-        logger
-            .info('     - Actual duration: ${actualDuration.inMilliseconds}ms');
+        logger.info(
+          '     - Actual duration: ${actualDuration.inMilliseconds}ms',
+        );
         logger.info('     - Actual size: ${actualWidth}x$actualHeight');
 
-        // Validate duration (allow 100ms tolerance for encoding variations)
+        // Allow 100ms for encoding variation.
         final durationDiff =
             (actualDuration.inMilliseconds - expectedDuration.inMilliseconds)
                 .abs();
@@ -761,22 +661,19 @@ Future<IterationResult> _processVideoIteration({
           );
         }
 
-        // Validate dimensions (accounting for crop and rotation)
         final expectedRotation = rotateOption;
         final isRotated = expectedRotation % 180 != 0;
 
-        // expectedWidth and expectedHeight already account for crop
-        // Just swap if rotation is 90/270 degrees
         var finalExpectedWidth = expectedWidth;
         var finalExpectedHeight = expectedHeight;
 
         if (isRotated) {
-          // Swap dimensions for 90/270 rotation
           final temp = finalExpectedWidth;
           finalExpectedWidth = finalExpectedHeight;
           finalExpectedHeight = temp;
         }
 
+        // Allow 2px for encoding variation.
         bool widthOk = (actualWidth - finalExpectedWidth).abs() <= 2;
         bool heightOk = (actualHeight - finalExpectedHeight).abs() <= 2;
 
@@ -796,7 +693,6 @@ Future<IterationResult> _processVideoIteration({
           }
         }
 
-        // Check width (allow some tolerance for encoding)
         if (!widthOk) {
           failures.add(
             ValidationFailure(
@@ -812,7 +708,6 @@ Future<IterationResult> _processVideoIteration({
           );
         }
 
-        // Check height (allow some tolerance for encoding)
         if (!heightOk) {
           failures.add(
             ValidationFailure(
@@ -838,11 +733,8 @@ Future<IterationResult> _processVideoIteration({
         // Non-fatal - continue
       }
 
-      // Step 9: Update description with test parameters
       logger.info('  → Updating video description...');
 
-      // Only update if file is uploaded (has uploadedFileID)
-      // For local-only files, we skip the metadata update
       if (newFile.uploadedFileID != null) {
         try {
           await FileMagicService.instance.updatePublicMagicMetadata(
@@ -852,14 +744,13 @@ Future<IterationResult> _processVideoIteration({
           logger.info('  → Description set: "$description"');
         } catch (e) {
           logger.warning('     - Failed to update description (non-fatal): $e');
-          // Don't fail the test if description update fails
         }
       } else {
-        logger
-            .info('     - Skipping description update (file not uploaded yet)');
+        logger.info(
+          '     - Skipping description update (file not uploaded yet)',
+        );
       }
 
-      // Cleanup temp file
       if (tempOutputFile.existsSync()) {
         tempOutputFile.deleteSync();
       }
@@ -867,8 +758,7 @@ Future<IterationResult> _processVideoIteration({
       await PhotoManager.startChangeNotify();
     }
   } finally {
-    // Cleanup
-    await controller?.dispose();
+    controller?.dispose();
     if (tempOutputFile != null && tempOutputFile.existsSync()) {
       try {
         tempOutputFile.deleteSync();
@@ -876,9 +766,7 @@ Future<IterationResult> _processVideoIteration({
     }
   }
 
-  return IterationResult(
-    validationFailures: failures,
-  );
+  return IterationResult(validationFailures: failures);
 }
 
 String? _buildSettingsToastMessage({

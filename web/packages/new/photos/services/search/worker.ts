@@ -31,30 +31,18 @@ import type {
     SearchSuggestion,
 } from "./types";
 
-/**
- * A web worker that runs the search asynchronously so that the main thread
- * remains responsive.
- */
 export class SearchWorker {
     private locationTags: LocationTag[] = [];
     private cities: City[] = [];
     private collectionsAndFiles: SearchCollectionsAndFiles = {
+        currentUserID: 0,
         collections: [],
         files: [],
         collectionFiles: [],
     };
     private people: NamedPerson[] = [];
 
-    /**
-     * Fetch any state we might need when the actual search happens.
-     *
-     * @param masterKey The user's master key (as a base64 string). Web workers
-     * do not have access to session storage so this key needs to be passed to
-     * us explicitly.
-     */
     async sync(masterKey: string) {
-        // Let the cities fetch complete async. And do it only once per app
-        // startup (this list is static and doesn't change).
         if (this.cities.length == 0) {
             void fetchCities().then((cs) => (this.cities = cs));
         }
@@ -64,34 +52,23 @@ export class SearchWorker {
             .then((ts) => (this.locationTags = ts));
     }
 
-    /**
-     * Set the collections and files that we should search across.
-     */
     setCollectionsAndFiles(cf: SearchCollectionsAndFiles) {
         this.collectionsAndFiles = cf;
     }
 
-    /**
-     * Set the (named) people that we should search across.
-     */
     setPeople(people: NamedPerson[]) {
         this.people = people;
     }
 
-    /**
-     * Convert a search string into a list of {@link SearchSuggestion}s.
-     */
     suggestionsForString(
         s: string,
         searchString: string,
         localizedSearchData: LocalizedSearchData,
     ) {
+        // \b does not handle Unicode word boundaries.
         return suggestionsForString(
             s,
-            // Case insensitive word prefix match.  Note that \b doesn't work
-            // with unicode characters, so we use instead a set of common
-            // punctuation (and spaces) to discern the word boundary.
-            new RegExp("(^|[\\s.,!?\"'-_])" + s, "i"),
+            new RegExp("(^|[\\s.,!?\"'_-])" + s, "i"),
             searchString,
             this.collectionsAndFiles,
             this.people,
@@ -101,16 +78,10 @@ export class SearchWorker {
         );
     }
 
-    /**
-     * Return {@link EnteFile}s that satisfy the given {@link suggestion}.
-     */
     filterSearchableFiles(suggestion: SearchSuggestion) {
         return filterSearchableFiles(this.collectionsAndFiles, suggestion);
     }
 
-    /**
-     * Batched variant of {@link filterSearchableFiles}.
-     */
     filterSearchableFilesMulti(suggestions: SearchSuggestion[]) {
         const cf = this.collectionsAndFiles;
         return suggestions
@@ -123,25 +94,27 @@ expose(SearchWorker);
 
 logUnhandledErrorsAndRejectionsInWorker();
 
-/**
- * @param s The normalized form of {@link searchString}.
- * @param searchString The original search string.
- */
+// The caller inserts CLIP suggestions between these two groups.
 const suggestionsForString = (
     s: string,
     re: RegExp,
     searchString: string,
     { collections, files }: SearchCollectionsAndFiles,
     people: NamedPerson[],
-    { locale, holidays, labelledFileTypes }: LocalizedSearchData,
+    {
+        locale,
+        holidays,
+        labelledFileTypes,
+        noLocationLabel,
+    }: LocalizedSearchData,
     locationTags: LocationTag[],
     cities: City[],
 ): [SearchSuggestion[], SearchSuggestion[]] => [
     [peopleSuggestions(re, people)].flat(),
-    // . <-- clip suggestions will be inserted here by our caller.
     [
         fileTypeSuggestions(re, labelledFileTypes),
         dateSuggestions(s, re, locale, holidays),
+        noLocationSuggestion(s, noLocationLabel),
         locationSuggestions(re, locationTags, cities),
         collectionSuggestions(re, collections),
         fileNameSuggestion(s, re, searchString, files),
@@ -177,8 +150,6 @@ const fileNameSuggestion = (
     searchString: string,
     files: EnteFile[],
 ): SearchSuggestion[] => {
-    // Convert the search string to a number. This allows searching a file by
-    // its exact (integral) ID.
     const sn = Number(s) || undefined;
 
     const fileIDs = files
@@ -278,20 +249,6 @@ const dateSuggestions = (
         }),
     );
 
-/**
- * Try to parse an arbitrary search string into sets of date components.
- *
- * e.g. "December 2022" will be parsed into a
- *
- *     [(year 2022, month 12, day undefined)]
- *
- * while "22 December 2022" will be parsed into
- *
- *     [(year 2022, month 12, day 22)]
- *
- * In addition, also return a formatted representation of the "best" guess at
- * the date that was intended by the search string.
- */
 const parseDateComponents = (
     s: string,
     re: RegExp,
@@ -308,23 +265,15 @@ const parseChrono = (
     s: string,
     locale: string,
 ): LabelledSearchDateComponents[] => {
-    // Use the appropriate chrono parser based on locale
-    // For US locales, use the default parser (MM/DD/YYYY)
-    // For other locales, use the GB parser (DD/MM/YYYY)
     const isUSLocale =
         locale.toLowerCase().includes("en-us") || locale.toLowerCase() === "en";
 
-    // Select the appropriate chrono instance based on locale
     let chronoInstance;
     if (isUSLocale) {
-        // For US locale, use the default chrono parser (MM/DD/YYYY)
         chronoInstance = chrono;
     } else {
-        // For non-US locales, use GB parser (DD/MM/YYYY) and add DD.MM.YYYY support
         chronoInstance = new chrono.Chrono(chrono.en.GB);
 
-        // Add parser for DD.MM.YYYY format (common in Germany, Switzerland, etc.)
-        // This format uses dots as separators instead of slashes
         chronoInstance.parsers.push({
             pattern: () => /\b(\d{1,2})\.(\d{1,2})\.(\d{2,4})\b/,
             extract: (_context, match) => {
@@ -334,12 +283,10 @@ const parseChrono = (
                 const month = parseInt(match[2]);
                 let year = parseInt(match[3]);
 
-                // Handle 2-digit years
                 if (year < 100) {
                     year = year > 50 ? 1900 + year : 2000 + year;
                 }
 
-                // Validate the date
                 if (day < 1 || day > 31 || month < 1 || month > 12) {
                     return null;
                 }
@@ -362,15 +309,20 @@ const parseChrono = (
             const weekday = component("weekday");
             const hour = component("hour");
 
-            if (!year && !month && !day && !weekday && !hour) return undefined;
+            // Sunday is weekday 0 and midnight is hour 0.
+            const hasWeekday = weekday !== undefined;
+            const hasHour = hour !== undefined;
+
+            if (!year && !month && !day && !hasWeekday && !hasHour)
+                return undefined;
             const components = { year, month, day, weekday, hour };
 
             const format: Intl.DateTimeFormatOptions = {};
             if (year) format.year = "numeric";
             if (month) format.month = "long";
             if (day) format.day = "numeric";
-            if (weekday) format.weekday = "long";
-            if (hour) {
+            if (hasWeekday) format.weekday = "long";
+            if (hasHour) {
                 format.hour = "numeric";
                 format.dayPeriod = "short";
             }
@@ -382,9 +334,8 @@ const parseChrono = (
         .filter((x) => x !== undefined);
 };
 
-/** chrono does not parse years like "2024", so do it manually. */
+// chrono does not parse bare years such as "2024".
 const parseYearComponents = (s: string): LabelledSearchDateComponents[] => {
-    // s is already trimmed.
     if (s.length == 4) {
         const year = parseInt(s);
         if (year && year <= 9999) {
@@ -395,11 +346,6 @@ const parseYearComponents = (s: string): LabelledSearchDateComponents[] => {
     return [];
 };
 
-/**
- * Zod schema describing world_cities.json.
- *
- * The entries also have a country field which we don't currently use.
- */
 const RemoteWorldCities = z.object({
     data: z.array(
         z.object({ city: z.string(), lat: z.number(), lng: z.number() }),
@@ -407,7 +353,7 @@ const RemoteWorldCities = z.object({
 });
 
 const fetchCities = async () => {
-    const res = await fetch("https://assets.ente.io/world_cities.json");
+    const res = await fetch("https://assets.ente.com/world_cities.json");
     if (!res.ok) throw new HTTPError(res);
     return RemoteWorldCities.parse(await res.json()).data.map(
         ({ city, lat, lng }) => ({ name: city, latitude: lat, longitude: lng }),
@@ -430,41 +376,43 @@ const locationSuggestions = (
         .filter((c) => !matchingLocationTagLNames.has(c.name.toLowerCase()));
 
     return [
-        matchingLocationTags.map(
-            (locationTag): SearchSuggestion => ({
-                type: "location",
-                locationTag,
-                label: locationTag.name,
-            }),
-        ),
-        matchingCities.map(
-            (city): SearchSuggestion => ({
-                type: "city",
-                city,
-                label: city.name,
-            }),
-        ),
+        matchingLocationTags.map((locationTag): SearchSuggestion => ({
+            type: "location",
+            locationTag,
+            label: locationTag.name,
+        })),
+        matchingCities.map((city): SearchSuggestion => ({
+            type: "city",
+            city,
+            label: city.name,
+        })),
     ].flat();
 };
 
+const noLocationSuggestion = (s: string, label: string): SearchSuggestion[] =>
+    s.length > 2 && label.toLowerCase().startsWith(s)
+        ? [{ type: "noLocation", label }]
+        : [];
+
 const filterSearchableFiles = (
-    { files, collectionFiles }: SearchCollectionsAndFiles,
+    { currentUserID, files, collectionFiles }: SearchCollectionsAndFiles,
     suggestion: SearchSuggestion,
 ) => {
     if (suggestion.type == "sidebarAction") return [];
 
     return sortMatchesIfNeeded(
         (suggestion.type == "collection" ? collectionFiles : files).filter(
-            (f) => isMatchingFile(f, suggestion),
+            (f) => isMatchingFile(f, suggestion, currentUserID),
         ),
         suggestion,
     );
 };
 
-/**
- * Return true if file satisfies the given {@link query}.
- */
-const isMatchingFile = (file: EnteFile, suggestion: SearchSuggestion) => {
+const isMatchingFile = (
+    file: EnteFile,
+    suggestion: SearchSuggestion,
+    currentUserID: number,
+) => {
     switch (suggestion.type) {
         case "collection":
             return suggestion.collectionID === file.collectionID;
@@ -485,6 +433,9 @@ const isMatchingFile = (file: EnteFile, suggestion: SearchSuggestion) => {
                 suggestion.dateComponents,
                 fileCreationPhotoDate(file),
             );
+
+        case "noLocation":
+            return file.ownerID == currentUserID && !fileLocation(file);
 
         case "location": {
             const location = fileLocation(file);
@@ -515,16 +466,13 @@ const isDateComponentsMatch = (
     { year, month, day, weekday, hour }: SearchDateComponents,
     date: Date,
 ) => {
-    // Components are guaranteed to have at least one attribute present, so
-    // start by assuming true.
     let match = true;
 
     if (year) match = date.getFullYear() == year;
-    // JS getMonth is 0-indexed.
     if (match && month) match = date.getMonth() + 1 == month;
     if (match && day) match = date.getDate() == day;
-    if (match && weekday) match = date.getDay() == weekday;
-    if (match && hour) match = date.getHours() == hour;
+    if (match && weekday !== undefined) match = date.getDay() == weekday;
+    if (match && hour !== undefined) match = date.getHours() == hour;
 
     return match;
 };
@@ -550,30 +498,13 @@ const isWithinRadius = (
     return (x * x) / (a * a) + (y * y) / (b * b) <= 1;
 };
 
-/**
- * A latitude specific scaling factor to apply to the radius of a location
- * search.
- *
- * The area bounded by the location tag becomes more elliptical with increase in
- * the magnitude of the latitude on the cartesian plane. When latitude is 0
- * degrees, the ellipse is a circle with a = b = r. When latitude increases, the
- * major axis (a) has to be scaled by the secant of the latitude.
- */
 const radiusScaleFactor = (lat: number) => 1 / Math.cos(lat * (Math.PI / 180));
 
-/**
- * Sort the files if necessary.
- *
- * Currently, only the CLIP results are sorted (by their score), in the other
- * cases the files are displayed chronologically (when displaying them in search
- * results) or arbitrarily (when showing them in the search option preview).
- */
 const sortMatchesIfNeeded = (
     files: EnteFile[],
     suggestion: SearchSuggestion,
 ) => {
     if (suggestion.type != "clip") return files;
-    // Sort CLIP matches by their corresponding scores.
     const score = ({ id }: EnteFile) => suggestion.clipScoreForFileID.get(id)!;
     return files.sort((a, b) => score(b) - score(a));
 };

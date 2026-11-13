@@ -1,8 +1,42 @@
+import Avatar from "@/components/Avatar";
+import { DateScrubber } from "@/components/date-scrubber/DateScrubber";
+import {
+    createTimeline,
+    indexAtOffset,
+} from "@/components/date-scrubber/timeline";
+import {
+    FileContextMenu,
+    type ContextMenuPosition,
+} from "@/components/FileContextMenu";
+import type { GalleryBarMode } from "@/components/gallery/reducer";
+import { AlbumEmptyState } from "@/components/gallery/sections/albums/AlbumEmptyState";
+import {
+    selectedFavoriteCount as countSelectedFavorites,
+    type SelectedState,
+} from "@/utils/file";
+import {
+    getAvailableFileActions,
+    type FileContextAction,
+} from "@/utils/file-actions";
+import {
+    handleSelectCreator,
+    handleSelectCreatorMulti,
+} from "@/utils/photoFrame";
+import { StarIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import AlbumOutlinedIcon from "@mui/icons-material/AlbumOutlined";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
+import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import PlayCircleOutlineOutlinedIcon from "@mui/icons-material/PlayCircleOutlineOutlined";
-import { Box, Checkbox, Fab, Typography, styled } from "@mui/material";
-import Avatar from "components/Avatar";
+import {
+    Box,
+    Checkbox,
+    Fab,
+    Typography,
+    styled,
+    useMediaQuery,
+    useTheme,
+} from "@mui/material";
 import type { LocalUser } from "ente-accounts/services/user";
 import { assertionFailed } from "ente-base/assert";
 import { Overlay } from "ente-base/components/containers";
@@ -10,14 +44,11 @@ import { formattedDateRelative } from "ente-base/i18n-date";
 import log from "ente-base/log";
 import { downloadManager } from "ente-gallery/services/download";
 import type { EnteFile } from "ente-media/file";
-import { fileDurationString } from "ente-media/file-metadata";
-import { FileType } from "ente-media/file-type";
 import {
-    FileContextMenu,
-    type ContextMenuPosition,
-} from "ente-new/photos/components/FileContextMenu";
-import type { GalleryBarMode } from "ente-new/photos/components/gallery/reducer";
-import { StarIcon } from "ente-new/photos/components/icons/StarIcon";
+    fileCreationPhotoDate,
+    fileDurationString,
+} from "ente-media/file-metadata";
+import { FileType } from "ente-media/file-type";
 import {
     LoadingThumbnail,
     StaticThumbnail,
@@ -32,15 +63,12 @@ import {
     PseudoCollectionID,
     type CollectionSummary,
 } from "ente-new/photos/services/collection-summary";
-import {
-    getAvailableFileActions,
-    type FileContextAction,
-} from "ente-new/photos/utils/file-actions";
 import { batch } from "ente-utils/array";
-import { t } from "i18next";
 import React, {
+    createContext,
     memo,
     useCallback,
+    useContext,
     useDeferredValue,
     useEffect,
     useMemo,
@@ -52,291 +80,115 @@ import {
     areEqual,
     type ListChildComponentProps,
 } from "react-window";
-import { type SelectedState } from "utils/file";
-import {
-    handleSelectCreator,
-    handleSelectCreatorMulti,
-} from "utils/photoFrame";
 
-/**
- * A component with an explicit height suitable for being plugged in as the
- * {@link header} or {@link footer} of the {@link FileList}.
- */
 export interface FileListHeaderOrFooter {
-    /**
-     * The component itself.
-     */
     component: React.ReactNode;
-    /**
-     * The height of the component (in px).
-     */
     height: number;
-    /**
-     * By default, all items in the {@link FileList}, including headers and
-     * footers injected using this type, get an inline margin.
-     *
-     * Set this property to `true` to omit this default margin, and instead
-     * have the component extend to the container's edges.
-     */
     extendToInlineEdges?: boolean;
 }
 
-/**
- * Data needed to render each row in the variable size list that comprises the
- * file list.
- */
 type FileListItem =
     | {
           type: "file";
-          /**
-           * The height of the row that will render this item.
-           */
           height: number;
-          /**
-           * Groups of items that are shown in the row.
-           *
-           * Each group spans multiple columns (the number of columns being given by
-           * the length of {@link annotatedFiles} or the {@link span}). Groups are
-           * separated by gaps.
-           */
           groups: {
-              /**
-               * The annotated files in this group.
-               */
               annotatedFiles: FileListAnnotatedFile[];
-              /**
-               * The index of the first annotated file in the component's global list
-               * of annotated files.
-               */
               annotatedFilesStartIndex: number;
           }[];
       }
     | {
           type: "date";
           height: number;
-          groups: {
-              /**
-               * The date string to show.
-               */
-              date: string;
-              /**
-               * The number of columns to span.
-               */
-              dateSpan: number;
-          }[];
+          groups: { date: string; dateSpan: number }[];
       }
     | {
           type: "span";
           height: number;
-          /**
-           * The React component that is the rendered representation of the item.
-           */
           component: React.ReactNode;
           extendToInlineEdges?: boolean;
       };
 
 export interface FileListAnnotatedFile {
     file: EnteFile;
-    /**
-     * The date string using with the associated {@link file} should be shown in
-     * the timeline.
-     *
-     * [Note: Timeline date string]
-     *
-     * The timeline date string is a formatted date string under which a
-     * particular file should be grouped in the gallery listing. e.g. "Today",
-     * "Yesterday", "Fri, 21 Feb" etc.
-     *
-     * All files which have the same timelineDateString will be grouped under a
-     * single section in the gallery listing, prefixed by the timelineDateString
-     * itself, and a checkbox to select all files on that date.
-     */
     timelineDateString: string;
 }
 
-/**
- * A file augmented with the date when it will be permanently deleted.
- *
- * See: [Note: Files in trash pseudo collection have deleteBy]
- */
-export type EnteTrashFile = EnteFile & {
-    /**
-     * Timestamp (epoch microseconds) when the trash item (and its corresponding
-     * {@link EnteFile}) will be permanently deleted.
-     */
-    deleteBy?: number;
-};
-
-interface MasonryLayoutItem {
-    file: EnteFile;
-    fileIndex: number;
-    left: number;
-    top: number;
-    bottom: number;
-    width: number;
-    height: number;
-}
-
-interface MasonryLayout {
-    items: MasonryLayoutItem[];
-    rows: MasonryLayoutItem[][];
-    totalHeight: number;
-}
-
-interface MasonrySourceItem {
-    file: EnteFile;
-    fileIndex: number;
-    aspectRatio: number;
-}
-
-interface Dimensions {
-    width: number;
-    height: number;
-}
+// deleteBy is an epoch-microsecond timestamp.
+type EnteTrashFile = EnteFile & { deleteBy?: number };
 
 export interface FileListProps {
-    /** The height we should occupy (needed since the list is virtualized). */
     height: number;
-    /** The width we should occupy.*/
     width: number;
-    /**
-     * Optional border radius to apply to the scrollable list container.
-     */
     listBorderRadius?: string;
-    /**
-     * The files to show, annotated with cached precomputed properties that are
-     * frequently needed by the {@link FileList}.
-     */
+    gridLayout?: "map";
     annotatedFiles: FileListAnnotatedFile[];
     mode?: GalleryBarMode;
-    /**
-     * This is an experimental prop, to see if we can merge the separate
-     * "isInSearchMode" state kept by the gallery to be instead provided as a
-     * another mode in which the gallery operates.
-     */
     modePlus?: GalleryBarMode | "search";
-    /**
-     * The visual layout used to render the file listing.
-     */
-    layout?: "grid" | "masonry";
-    /**
-     * An optional component shown before all the items in the list.
-     *
-     * It is not sticky, and scrolls along with the content of the list.
-     */
     header?: FileListHeaderOrFooter;
-    /**
-     * An optional component shown after all the items in the list.
-     *
-     * It is not sticky, and scrolls along with the content of the list.
-     */
     footer?: FileListHeaderOrFooter;
-    /**
-     * The logged in user, if any.
-     *
-     * This is only expected to be present when the listing is shown within the
-     * photos app, where we have a logged in user. The public albums app can
-     * omit this prop.
-     */
+    onAddPhotos?: () => void;
     user?: LocalUser;
-    /**
-     * If `true`, then the default behaviour of grouping files by their date is
-     * suppressed.
-     *
-     * This behaviour is used when showing magic search results.
-     */
     disableGrouping?: boolean;
-    /**
-     * If `true`, then the user can select files in the listing by clicking on
-     * their thumbnails (and other range selection mechanisms).
-     */
     enableSelect?: boolean;
+    enableDateScrubber?: boolean;
     setSelected: (
         selected: SelectedState | ((selected: SelectedState) => SelectedState),
     ) => void;
     selected: SelectedState;
-    /** This will be set if mode is not "people". */
-    activeCollectionID: number;
-    /** This will be set if mode is "people". */
+    activeCollectionID: number | undefined;
     activePersonID?: string | undefined;
-    /**
-     * File IDs of all the files that the user has marked as a favorite.
-     *
-     * Not set in the context of the shared albums app.
-     */
     favoriteFileIDs?: Set<number>;
-    /**
-     * A map from known Ente user IDs to their emails.
-     *
-     * This is only expected in the context of the photos app, and will be
-     * omitted when running in the public albums app.
-     */
     emailByUserID?: Map<number, string>;
-    /**
-     * Called when the user activates the thumbnail at the given {@link index}.
-     *
-     * This corresponding file would be at the corresponding index of
-     * {@link annotatedFiles}.
-     */
     onItemClick: (index: number) => void;
-    /**
-     * Called when the list scrolls, providing the current scroll offset.
-     */
     onScroll?: (scrollOffset: number) => void;
-    /**
-     * Called when the visible date at the top of the viewport changes.
-     */
     onVisibleDateChange?: (date: string | undefined) => void;
-    /**
-     * The collection summary for the current view.
-     *
-     * Used to determine available context menu actions.
-     */
     collectionSummary?: CollectionSummary;
-    /**
-     * Called when a context menu action is triggered on a file.
-     *
-     * @param action The action that was triggered.
-     */
     onContextMenuAction?: (
         action: FileContextAction,
         targetFile?: EnteFile,
         meta?: { isEphemeralSingleSelection: boolean },
     ) => void;
-    /**
-     * Whether to show the "Add Person" action in the context menu.
-     */
     showAddPersonAction?: boolean;
-    /**
-     * Whether to show the "Edit Location" action in the context menu.
-     */
     showEditLocationAction?: boolean;
-    /**
-     * Called when the context menu opens or closes.
-     */
     onContextMenuOpenChange?: (open: boolean) => void;
-    /**
-     * Hide selection visuals/interactions while keeping selection data.
-     */
     suppressSelectionUI?: boolean;
 }
 
-/**
- * A virtualized list of files, each represented by their thumbnail.
- */
+const emptyTimeline = createTimeline([]);
+
+// Keep the inner element type stable so height changes preserve mounted rows.
+const ListInnerHeightContext = createContext<number | undefined>(undefined);
+
+const FileListInner = React.forwardRef<
+    HTMLDivElement,
+    React.HTMLAttributes<HTMLDivElement>
+>(({ style, ...props }, ref) => {
+    const height = useContext(ListInnerHeightContext);
+    return (
+        <div
+            {...props}
+            ref={ref}
+            style={height === undefined ? style : { ...style, height }}
+        />
+    );
+});
+FileListInner.displayName = "FileListInner";
+
 export const FileList: React.FC<FileListProps> = ({
     height,
     width,
     listBorderRadius,
+    gridLayout,
     mode,
     modePlus,
-    layout = "grid",
     header,
     footer,
+    onAddPhotos,
     user,
     annotatedFiles,
     disableGrouping,
     enableSelect,
+    enableDateScrubber = false,
     selected,
     setSelected,
     activeCollectionID,
@@ -355,67 +207,72 @@ export const FileList: React.FC<FileListProps> = ({
 }) => {
     const [_items, setItems] = useState<FileListItem[]>([]);
     const items = useDeferredValue(_items);
+    const theme = useTheme();
+    const desktop = useMediaQuery(theme.breakpoints.up("md"));
+    const scrubberEnabled = enableDateScrubber && desktop;
+    const [scrollOffset, setScrollOffset] = useState(0);
+    const timeline = useMemo(() => {
+        if (!scrubberEnabled) return emptyTimeline;
+        return createTimeline(
+            items.map((item) => {
+                if (item.type !== "file") return item;
+                const dates = item.groups.map(({ annotatedFiles }) =>
+                    fileCreationPhotoDate(annotatedFiles[0]!.file),
+                );
+                return { height: item.height, dates };
+            }),
+        );
+    }, [items, scrubberEnabled]);
+    const showScrubber =
+        timeline.months.length > 0 &&
+        timeline.totalHeight > height &&
+        height > 64;
 
     const [rangeStartIndex, setRangeStartIndex] = useState<number | undefined>(
         undefined,
     );
     const [hoverIndex, setHoverIndex] = useState<number | undefined>(undefined);
     const [isShiftKeyPressed, setIsShiftKeyPressed] = useState(false);
-    const [masonryScrollTop, setMasonryScrollTop] = useState(0);
-    const [masonryIsScrolling, setMasonryIsScrolling] = useState(false);
-    const masonryScrollIdleTimeoutRef = useRef<
-        ReturnType<typeof setTimeout> | undefined
-    >(undefined);
-    // Timeline date strings for which all photos have been selected.
-    //
-    // See: [Note: Timeline date string]
     const [checkedTimelineDateStrings, setCheckedTimelineDateStrings] =
         useState(new Set<string>());
-    // Show back-to-top button when scrolled past threshold
     const [showBackToTop, setShowBackToTop] = useState(false);
 
-    // Context menu state
     const [contextMenu, setContextMenu] = useState<{
         position: ContextMenuPosition;
         file: EnteFile;
         fileIndex: number;
     } | null>(null);
 
-    // Track selection state before right-click modified it.
-    // If there are already 3 files explicitly selected via checkmarks,
-    // right-clicking an unselected item will store the previous selections
-    // in this ref and temporarily select only the right-clicked file.
-    // If no action is taken from the context menu, the previous selection
-    // is restored when the menu closes.
+    // Right-click temporarily replaces selection; restore it if no action runs.
     const previousSelectionRef = useRef<SelectedState | null>(null);
-    // Track whether an action was taken from the context menu.
-    // This ref works in conjunction with previousSelectionRef: if an action
-    // is taken, the previous selection is not reverted when the context menu closes.
     const contextMenuActionTakenRef = useRef(false);
 
     const listRef = useRef<VariableSizeList | null>(null);
     const outerRef = useRef<HTMLDivElement | null>(null);
 
-    const layoutParams = useMemo(
-        () => computeThumbnailGridLayoutParams(width),
-        [width],
-    );
-    const shouldUseMasonry = layout === "masonry";
+    const layoutParams = useMemo(() => {
+        if (gridLayout !== "map")
+            return computeThumbnailGridLayoutParams(width);
+        const columns = 3;
+        const paddingInline = 20;
+        const itemWidth = Math.max(
+            0,
+            (width - 2 * paddingInline - (columns - 1) * thumbnailGap) /
+                columns,
+        );
+        return {
+            containerWidth: width,
+            isSmallerLayout: true,
+            paddingInline,
+            columns,
+            itemWidth,
+            itemHeight: itemWidth,
+            gap: thumbnailGap,
+        };
+    }, [width, gridLayout]);
 
     useEffect(() => {
-        if (shouldUseMasonry) {
-            setItems([]);
-            return;
-        }
-
-        // Since width and height are dependencies, there might be too many
-        // updates to the list during a resize. The list computation too, while
-        // fast, is non-trivial.
-        //
-        // To avoid these issues, the we use `useDeferredValue`: if it gets
-        // another update when processing one, React will restart the background
-        // rerender from scratch.
-
+        // Defer resize-heavy list rebuilds so React can discard stale renders.
         let items: FileListItem[] = [];
 
         if (header) items.push(asFullSpanFileListItem(header));
@@ -438,8 +295,6 @@ export const FileList: React.FC<FileListProps> = ({
                 ),
             );
         } else {
-            // A running counter of files that have been pushed into items, and
-            // a function to push them (incrementing the counter).
             let fileIndex = 0;
             const createFileItem = (splits: FileListAnnotatedFile[][]) =>
                 ({
@@ -457,8 +312,6 @@ export const FileList: React.FC<FileListProps> = ({
 
             const pushItemsFromSplits = (splits: FileListAnnotatedFile[][]) => {
                 if (splits.length > 1) {
-                    // If we get here, the combined number of files across
-                    // splits is less than the number of columns.
                     items.push({
                         height: dateListItemHeight,
                         type: "date",
@@ -469,8 +322,6 @@ export const FileList: React.FC<FileListProps> = ({
                     });
                     items.push(createFileItem(splits));
                 } else {
-                    // A single group of files, but the number of such files
-                    // might be more than what fits a single row.
                     items.push({
                         height: dateListItemHeight,
                         type: "date",
@@ -497,7 +348,6 @@ export const FileList: React.FC<FileListProps> = ({
                 );
                 const incomingColumns = split.length;
 
-                // Check if the files in this split can be added to same row.
                 if (
                     !isSmallerLayout &&
                     filledColumns +
@@ -520,13 +370,14 @@ export const FileList: React.FC<FileListProps> = ({
 
         if (!annotatedFiles.length) {
             items.push({
-                height: height - 48,
+                height: Math.max(
+                    onAddPhotos ? 412 : 340,
+                    height - (header?.height ?? 0) - (footer?.height ?? 0),
+                ),
                 type: "span",
                 component: (
                     <NoFilesListItem>
-                        <Typography sx={{ color: "text.faint" }}>
-                            {t("nothing_here")}
-                        </Typography>
+                        <AlbumEmptyState onAddPhotos={onAddPhotos} />
                     </NoFilesListItem>
                 ),
             });
@@ -553,44 +404,56 @@ export const FileList: React.FC<FileListProps> = ({
         height,
         header,
         footer,
+        onAddPhotos,
         annotatedFiles,
         disableGrouping,
-        shouldUseMasonry,
         layoutParams,
     ]);
 
     useEffect(() => {
-        // Refresh list
         listRef.current?.resetAfterIndex(0);
     }, [items]);
+
+    const seekTimeline = useCallback((offset: number, row: number) => {
+        listRef.current?.scrollToItem(row, "start");
+        listRef.current?.scrollTo(offset);
+    }, []);
+
+    const scrollTimelineBy = useCallback((delta: number) => {
+        if (outerRef.current) outerRef.current.scrollTop += delta;
+    }, []);
+
+    useEffect(() => {
+        if (showScrubber) {
+            const offset = Math.min(
+                outerRef.current?.scrollTop ?? 0,
+                timeline.totalHeight - height,
+            );
+            seekTimeline(offset, indexAtOffset(timeline.offsets, offset));
+            setScrollOffset(offset);
+        }
+    }, [timeline, height, showScrubber, seekTimeline]);
 
     useEffect(() => {
         const notSelectedFiles = annotatedFiles.filter(
             (af) => !selected[af.file.id],
         );
 
-        // Get dates of files which were manually unselected.
         const unselectedDates = new Set(
             notSelectedFiles.map((af) => af.timelineDateString),
         );
 
-        // Get files which were manually selected.
         const localSelectedFiles = annotatedFiles.filter(
             (af) => !unselectedDates.has(af.timelineDateString),
         );
 
-        // Get dates of files which were manually selected.
         const localSelectedDates = new Set(
             localSelectedFiles.map((af) => af.timelineDateString),
         );
 
         setCheckedTimelineDateStrings((prev) => {
             const checked = new Set(prev);
-            // Uncheck the "Select all" checkbox if any of the files on the date
-            // is unselected.
             unselectedDates.forEach((date) => checked.delete(date));
-            // Check the "Select all" checkbox if all of the files on a date are
-            // selected.
             localSelectedDates.forEach((date) => checked.add(date));
             return checked;
         });
@@ -621,7 +484,6 @@ export const FileList: React.FC<FileListProps> = ({
             }
             setCheckedTimelineDateStrings(next);
 
-            // All files on a checked/unchecked day.
             const filesOnADay = annotatedFiles.filter(
                 (af) => af.timelineDateString === date,
             );
@@ -661,8 +523,6 @@ export const FileList: React.FC<FileListProps> = ({
         [isSelectionContextMatching, selected, suppressSelectionUI],
     );
 
-    const haveSelection = !suppressSelectionUI && selected.count > 0;
-
     const handleRangeSelect = useCallback(
         (index: number) => {
             if (rangeStartIndex === undefined || rangeStartIndex == index)
@@ -697,17 +557,25 @@ export const FileList: React.FC<FileListProps> = ({
         };
 
         const handleKeyUp = (e: KeyboardEvent) => {
-            if (e.key == "Shift") {
+            if (e.key == "Shift" || !e.shiftKey) {
                 setIsShiftKeyPressed(false);
             }
         };
 
+        const handleBlur = () => {
+            setIsShiftKeyPressed(false);
+        };
+
         document.addEventListener("keydown", handleKeyDown);
         document.addEventListener("keyup", handleKeyUp);
+        window.addEventListener("blur", handleBlur);
+        document.addEventListener("visibilitychange", handleBlur);
 
         return () => {
             document.removeEventListener("keydown", handleKeyDown);
             document.removeEventListener("keyup", handleKeyUp);
+            window.removeEventListener("blur", handleBlur);
+            document.removeEventListener("visibilitychange", handleBlur);
         };
     }, []);
 
@@ -715,41 +583,48 @@ export const FileList: React.FC<FileListProps> = ({
         if (selected.count == 0) setRangeStartIndex(undefined);
     }, [selected]);
 
-    const selectedFavoriteCount = useMemo(() => {
-        if (!favoriteFileIDs || selected.count == 0) return 0;
-        let count = 0;
-        for (const [key, value] of Object.entries(selected)) {
-            if (typeof value === "boolean" && value) {
-                if (favoriteFileIDs.has(Number(key))) {
-                    count += 1;
-                }
-            }
-        }
-        return count;
-    }, [favoriteFileIDs, selected]);
+    const selectedFavoriteCount = useMemo(
+        () => countSelectedFavorites(selected, favoriteFileIDs),
+        [favoriteFileIDs, selected],
+    );
 
-    // Compute available context menu actions based on stable context and
-    // the favorite status of the current selection (for toggling).
     const contextMenuActions = useMemo(() => {
-        if (!onContextMenuAction) return [];
+        if (!onContextMenuAction || !contextMenu) return [];
+        const isTemporarySingleSelection =
+            previousSelectionRef.current !== null;
+        let selectionCount: number;
+        let favoriteCount: number;
+        let hasOwnFiles: boolean;
+        let hasOnlyOwnFiles: boolean;
+
+        if (isTemporarySingleSelection) {
+            selectionCount = 1;
+            favoriteCount = favoriteFileIDs?.has(contextMenu.file.id) ? 1 : 0;
+            hasOnlyOwnFiles = contextMenu.file.ownerID === user?.id;
+            hasOwnFiles = hasOnlyOwnFiles;
+        } else {
+            selectionCount = selected.count;
+            favoriteCount = selectedFavoriteCount;
+            hasOwnFiles = selected.ownCount > 0;
+            hasOnlyOwnFiles =
+                selectionCount > 0 && selected.ownCount === selectionCount;
+        }
         const actions = getAvailableFileActions({
             barMode: mode,
             isInSearchMode: modePlus === "search",
             collectionSummary,
+            hasOwnFiles,
+            hasOnlyOwnFiles,
             showAddPerson: !!showAddPersonAction,
-            showEditLocation: !!showEditLocationAction && selected.ownCount > 0,
-            showSendLink: selected.ownCount > 0,
+            showEditLocation: !!showEditLocationAction && hasOnlyOwnFiles,
         });
         if (!actions.includes("favorite")) return actions;
-        if (
-            selectedFavoriteCount > 0 &&
-            selectedFavoriteCount < selected.count
-        ) {
+        if (favoriteCount > 0 && favoriteCount < selectionCount) {
             return actions.filter(
                 (action) => action !== "favorite" && action !== "unfavorite",
             );
         }
-        if (selectedFavoriteCount === selected.count && selected.count > 0) {
+        if (favoriteCount === selectionCount && selectionCount > 0) {
             return actions.map((action) =>
                 action === "favorite" ? "unfavorite" : action,
             );
@@ -757,17 +632,19 @@ export const FileList: React.FC<FileListProps> = ({
         return actions;
     }, [
         onContextMenuAction,
+        contextMenu,
         mode,
         modePlus,
         collectionSummary,
         showAddPersonAction,
         showEditLocationAction,
+        favoriteFileIDs,
+        user?.id,
         selected.ownCount,
         selectedFavoriteCount,
         selected.count,
     ]);
 
-    // Handle context menu open
     const handleContextMenu = useCallback(
         (event: React.MouseEvent, file: EnteFile, fileIndex: number) => {
             if (!onContextMenuAction) return;
@@ -775,24 +652,18 @@ export const FileList: React.FC<FileListProps> = ({
             event.preventDefault();
             event.stopPropagation();
 
-            // Reset tracking for this menu open.
             previousSelectionRef.current = null;
             contextMenuActionTakenRef.current = false;
-
-            // Handle selection behavior on right-click
             if (!selected[file.id]) {
-                // Store current selection before replacing it
                 previousSelectionRef.current = { ...selected };
 
-                // File not selected: clear selection and select only this file
                 const isOwnFile = file.ownerID === user?.id;
                 const context =
                     mode === "people" && activePersonID
                         ? { mode: "people" as const, personID: activePersonID }
                         : {
                               mode: (mode ?? "albums") as
-                                  | "albums"
-                                  | "hidden-albums",
+                                  "albums" | "hidden-albums" | "archive-albums",
                               collectionID: activeCollectionID,
                           };
                 setSelected({
@@ -803,7 +674,6 @@ export const FileList: React.FC<FileListProps> = ({
                     context,
                 });
             }
-            // If file is already selected, keep current multi-selection
 
             setContextMenu({
                 position: { top: event.clientY, left: event.clientX },
@@ -824,9 +694,8 @@ export const FileList: React.FC<FileListProps> = ({
         ],
     );
 
-    // Handle context menu close
     const handleContextMenuClose = useCallback(() => {
-        // Defer restore so a menu-item click can mark the close as action-driven.
+        // Menu close precedes item click, so restoration must wait a microtask.
         void Promise.resolve().then(() => {
             if (
                 !contextMenuActionTakenRef.current &&
@@ -845,14 +714,13 @@ export const FileList: React.FC<FileListProps> = ({
     const handleContextMenuActionWithTracking = useCallback(
         (action: FileContextAction) => {
             const isEphemeralSingleSelection =
-                selected.count === 1 &&
                 previousSelectionRef.current?.count === 0;
             contextMenuActionTakenRef.current = true;
             onContextMenuAction?.(action, contextMenu?.file, {
                 isEphemeralSingleSelection,
             });
         },
-        [onContextMenuAction, contextMenu, selected.count],
+        [onContextMenuAction, contextMenu],
     );
 
     const renderListItem = useCallback(
@@ -953,7 +821,6 @@ export const FileList: React.FC<FileListProps> = ({
             contextMenu,
             emailByUserID,
             favoriteFileIDs,
-            haveSelection,
             handleContextMenu,
             handleRangeSelect,
             handleSelect,
@@ -993,17 +860,15 @@ export const FileList: React.FC<FileListProps> = ({
         }
     }, []);
 
-    // Track the last reported date to avoid unnecessary callbacks
     const lastVisibleDateRef = useRef<string | undefined>(undefined);
 
     const handleScroll = useCallback(
         ({ scrollOffset }: { scrollOffset: number }) => {
             onScroll?.(scrollOffset);
 
-            // Show back-to-top button when scrolled past threshold
             setShowBackToTop(scrollOffset > 500);
+            if (showScrubber) setScrollOffset(scrollOffset);
 
-            // Calculate which date is visible at the current scroll position
             if (onVisibleDateChange && items.length > 0) {
                 let cumulativeHeight = 0;
                 let currentDate: string | undefined;
@@ -1013,427 +878,31 @@ export const FileList: React.FC<FileListProps> = ({
                         currentDate = item.groups[0]?.date;
                     }
                     cumulativeHeight += item.height;
-                    // Found the item that contains the scroll position
                     if (cumulativeHeight > scrollOffset) {
                         break;
                     }
                 }
 
-                // Only call callback if date changed
                 if (currentDate !== lastVisibleDateRef.current) {
                     lastVisibleDateRef.current = currentDate;
                     onVisibleDateChange(currentDate);
                 }
             }
         },
-        [onScroll, onVisibleDateChange, items],
-    );
-
-    const masonryTargetRowHeight = useMemo(
-        () => preferredMasonryRowHeight(layoutParams.containerWidth),
-        [layoutParams.containerWidth],
-    );
-    const masonryInnerWidth = useMemo(
-        () => Math.max(0, width - 2 * layoutParams.paddingInline),
-        [layoutParams.paddingInline, width],
-    );
-    const masonryLayout = useMemo<MasonryLayout>(() => {
-        if (
-            !shouldUseMasonry ||
-            masonryTargetRowHeight <= 0 ||
-            masonryInnerWidth <= 0 ||
-            !annotatedFiles.length
-        ) {
-            return { items: [], rows: [], totalHeight: 0 };
-        }
-
-        const rows = new Array<MasonryLayoutItem[]>();
-        const items: MasonryLayoutItem[] = [];
-        const masonrySourceItems = new Array<MasonrySourceItem>();
-        let rowTop = 0;
-        let currentRow = new Array<MasonrySourceItem>();
-        let currentRowAspectRatio = 0;
-        const useAdaptiveMobileRows = shouldUseAdaptiveMobileMasonryRows(
-            layoutParams.containerWidth,
-        );
-
-        const placeCurrentRow = (fitToWidth: boolean) => {
-            if (!currentRow.length || currentRowAspectRatio <= 0) return;
-            const totalGapWidth = (currentRow.length - 1) * layoutParams.gap;
-            const maxContentWidth = Math.max(
-                1,
-                masonryInnerWidth - totalGapWidth,
-            );
-            const naturalRowHeight = Math.max(
-                1,
-                maxContentWidth / currentRowAspectRatio,
-            );
-            const rowHeight = fitToWidth
-                ? naturalRowHeight
-                : Math.min(masonryTargetRowHeight, naturalRowHeight);
-            const row = new Array<MasonryLayoutItem>();
-            let left = 0;
-
-            for (const { file, fileIndex, aspectRatio } of currentRow) {
-                const itemWidth = Math.max(1, rowHeight * aspectRatio);
-                const item = {
-                    file,
-                    fileIndex,
-                    top: rowTop,
-                    bottom: rowTop + rowHeight,
-                    left,
-                    width: itemWidth,
-                    height: rowHeight,
-                } satisfies MasonryLayoutItem;
-                items.push(item);
-                row.push(item);
-                left += itemWidth + layoutParams.gap;
-            }
-
-            rows.push(row);
-            rowTop += rowHeight + layoutParams.gap;
-            currentRow = [];
-            currentRowAspectRatio = 0;
-        };
-
-        for (const [fileIndex, { file }] of annotatedFiles.entries()) {
-            const dimensions = fileMasonryDimensions(file);
-            const aspectRatio = Math.max(
-                0.1,
-                dimensions.width / dimensions.height,
-            );
-            masonrySourceItems.push({ file, fileIndex, aspectRatio });
-        }
-
-        if (useAdaptiveMobileRows) {
-            let sourceIndex = 0;
-            let rowIndex = 0;
-            while (sourceIndex < masonrySourceItems.length) {
-                const desiredCount = preferredMobileMasonryRowItemCount(
-                    masonrySourceItems,
-                    sourceIndex,
-                    rowIndex,
-                );
-                const boundedCount = Math.max(
-                    1,
-                    Math.min(
-                        desiredCount,
-                        masonrySourceItems.length - sourceIndex,
-                    ),
-                );
-                for (let i = 0; i < boundedCount; i += 1) {
-                    const sourceItem = masonrySourceItems[sourceIndex + i]!;
-                    currentRow.push(sourceItem);
-                    currentRowAspectRatio += sourceItem.aspectRatio;
-                }
-                placeCurrentRow(true);
-                sourceIndex += boundedCount;
-                rowIndex += 1;
-            }
-        } else {
-            for (const sourceItem of masonrySourceItems) {
-                currentRow.push(sourceItem);
-                currentRowAspectRatio += sourceItem.aspectRatio;
-
-                const rowWidthAtTargetHeight =
-                    currentRowAspectRatio * masonryTargetRowHeight +
-                    (currentRow.length - 1) * layoutParams.gap;
-                if (rowWidthAtTargetHeight >= masonryInnerWidth) {
-                    placeCurrentRow(true);
-                }
-            }
-            placeCurrentRow(false);
-        }
-
-        const totalHeight = Math.max(0, rowTop - layoutParams.gap);
-        return { items, rows, totalHeight };
-    }, [
-        annotatedFiles,
-        masonryInnerWidth,
-        layoutParams.containerWidth,
-        layoutParams.gap,
-        masonryTargetRowHeight,
-        shouldUseMasonry,
-    ]);
-    const masonryHeaderHeight = header?.height ?? 0;
-    const masonryViewportTop = Math.max(
-        0,
-        masonryScrollTop - masonryHeaderHeight,
-    );
-    const masonryViewportBottom = masonryViewportTop + height;
-    const masonryOverscan = Math.max(height, 800);
-    const masonryVisibleItems = useMemo(() => {
-        const minTop = masonryViewportTop - masonryOverscan;
-        const maxTop = masonryViewportBottom + masonryOverscan;
-        const visible = new Array<MasonryLayoutItem>();
-        const startRowIndex = firstVisibleMasonryRowIndex(
-            masonryLayout.rows,
-            minTop,
-        );
-
-        for (
-            let rowIndex = startRowIndex;
-            rowIndex < masonryLayout.rows.length;
-            rowIndex += 1
-        ) {
-            const row = masonryLayout.rows[rowIndex]!;
-            if (!row.length) continue;
-            if (row[0]!.top > maxTop) break;
-            const startIndex = firstVisibleIndexForMasonryTrack(row, minTop);
-            for (let i = startIndex; i < row.length; i += 1) {
-                const item = row[i]!;
-                if (item.top > maxTop) break;
-                visible.push(item);
-            }
-        }
-
-        return visible;
-    }, [
-        masonryLayout.rows,
-        masonryOverscan,
-        masonryViewportBottom,
-        masonryViewportTop,
-    ]);
-
-    const handleMasonryScroll: React.UIEventHandler<HTMLDivElement> =
-        useCallback(
-            (event) => {
-                const scrollOffset = event.currentTarget.scrollTop;
-                onScroll?.(scrollOffset);
-                setShowBackToTop(scrollOffset > 500);
-                setMasonryScrollTop(scrollOffset);
-                setMasonryIsScrolling(true);
-                if (masonryScrollIdleTimeoutRef.current) {
-                    clearTimeout(masonryScrollIdleTimeoutRef.current);
-                }
-                masonryScrollIdleTimeoutRef.current = setTimeout(() => {
-                    setMasonryIsScrolling(false);
-                    masonryScrollIdleTimeoutRef.current = undefined;
-                }, masonryScrollIdleMs);
-            },
-            [onScroll],
-        );
-
-    useEffect(
-        () => () => {
-            if (masonryScrollIdleTimeoutRef.current) {
-                clearTimeout(masonryScrollIdleTimeoutRef.current);
-            }
-        },
-        [],
-    );
-
-    useEffect(() => {
-        if (!shouldUseMasonry) {
-            setMasonryScrollTop(0);
-            setMasonryIsScrolling(false);
-            if (masonryScrollIdleTimeoutRef.current) {
-                clearTimeout(masonryScrollIdleTimeoutRef.current);
-                masonryScrollIdleTimeoutRef.current = undefined;
-            }
-        }
-    }, [shouldUseMasonry]);
-
-    useEffect(() => {
-        if (!shouldUseMasonry || !onVisibleDateChange) return;
-        const topVisibleItem = masonryVisibleItems.reduce<
-            MasonryLayoutItem | undefined
-        >(
-            (best, item) =>
-                item.bottom > masonryViewportTop &&
-                (!best || item.top < best.top)
-                    ? item
-                    : best,
-            undefined,
-        );
-        const visibleDate =
-            topVisibleItem &&
-            annotatedFiles[topVisibleItem.fileIndex]?.timelineDateString;
-        const currentDate =
-            visibleDate ?? annotatedFiles[0]?.timelineDateString;
-        if (currentDate !== lastVisibleDateRef.current) {
-            lastVisibleDateRef.current = currentDate;
-            onVisibleDateChange(currentDate);
-        }
-    }, [
-        annotatedFiles,
-        masonryVisibleItems,
-        masonryViewportTop,
-        onVisibleDateChange,
-        shouldUseMasonry,
-    ]);
-
-    const renderMasonryItem = useCallback(
-        ({
-            file,
-            fileIndex,
-            top,
-            left,
-            width,
-            height,
-            bottom,
-        }: MasonryLayoutItem) => {
-            const isInViewport =
-                bottom > masonryViewportTop && top < masonryViewportBottom;
-            return (
-                <Box
-                    key={`masonry-photo-${file.id}-${fileIndex}`}
-                    sx={{ position: "absolute", top, left, width, height }}
-                >
-                    <FileThumbnail
-                        key={`tile-${file.id}-selected-${selected[file.id] ?? false}`}
-                        {...{
-                            user,
-                            emailByUserID,
-                            enableSelect:
-                                !!enableSelect && !suppressSelectionUI,
-                        }}
-                        file={file}
-                        selected={isFileSelected(file)}
-                        selectOnClick={haveSelection}
-                        isRangeSelectActive={isShiftKeyPressed && haveSelection}
-                        isInSelectRange={
-                            rangeStartIndex !== undefined &&
-                            hoverIndex !== undefined &&
-                            ((fileIndex >= rangeStartIndex &&
-                                fileIndex <= hoverIndex) ||
-                                (fileIndex >= hoverIndex &&
-                                    fileIndex <= rangeStartIndex))
-                        }
-                        activeCollectionID={activeCollectionID}
-                        showPlaceholder={masonryIsScrolling && !isInViewport}
-                        isFav={!!favoriteFileIDs?.has(file.id)}
-                        onClick={() => onItemClick(fileIndex)}
-                        onSelect={handleSelect(file, fileIndex)}
-                        onHover={() => setHoverIndex(fileIndex)}
-                        onRangeSelect={() => handleRangeSelect(fileIndex)}
-                        onContextMenu={
-                            onContextMenuAction
-                                ? (e) => handleContextMenu(e, file, fileIndex)
-                                : undefined
-                        }
-                        isMasonry
-                        style={{ width: "100%", height: "100%" }}
-                    />
-                </Box>
-            );
-        },
-        [
-            activeCollectionID,
-            emailByUserID,
-            enableSelect,
-            favoriteFileIDs,
-            handleContextMenu,
-            handleRangeSelect,
-            handleSelect,
-            haveSelection,
-            hoverIndex,
-            isFileSelected,
-            isShiftKeyPressed,
-            masonryIsScrolling,
-            masonryViewportBottom,
-            masonryViewportTop,
-            onContextMenuAction,
-            onItemClick,
-            rangeStartIndex,
-            selected,
-            suppressSelectionUI,
-            user,
-        ],
+        [onScroll, onVisibleDateChange, items, showScrubber],
     );
 
     const handleScrollToTop = useCallback(() => {
         outerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
     }, []);
 
-    if (shouldUseMasonry) {
-        return (
-            <Box sx={{ position: "relative", width, height }}>
-                <Box
-                    ref={outerRef}
-                    sx={{
-                        width: "100%",
-                        height: "100%",
-                        overflowY: "auto",
-                        ...(listBorderRadius && {
-                            borderRadius: listBorderRadius,
-                        }),
-                    }}
-                    onScroll={handleMasonryScroll}
-                >
-                    {header && (
-                        <Box
-                            sx={{
-                                px: header.extendToInlineEdges
-                                    ? 0
-                                    : `${layoutParams.paddingInline}px`,
-                            }}
-                        >
-                            {header.component}
-                        </Box>
-                    )}
-                    {masonryLayout.items.length > 0 ? (
-                        <Box sx={{ px: `${layoutParams.paddingInline}px` }}>
-                            <Box
-                                sx={{
-                                    width: masonryInnerWidth,
-                                    position: "relative",
-                                    height: masonryLayout.totalHeight,
-                                }}
-                            >
-                                {masonryVisibleItems.map(renderMasonryItem)}
-                            </Box>
-                        </Box>
-                    ) : (
-                        <NoFilesListItem sx={{ minHeight: "100%" }}>
-                            <Typography sx={{ color: "text.faint" }}>
-                                {t("nothing_here")}
-                            </Typography>
-                        </NoFilesListItem>
-                    )}
-                    {footer && (
-                        <Box
-                            sx={{
-                                px: footer.extendToInlineEdges
-                                    ? 0
-                                    : `${layoutParams.paddingInline}px`,
-                            }}
-                        >
-                            {footer.component}
-                        </Box>
-                    )}
-                </Box>
-                {showBackToTop && (
-                    <BackToTopButton
-                        size="small"
-                        aria-label="scroll to top"
-                        onClick={handleScrollToTop}
-                    >
-                        <KeyboardArrowUpIcon />
-                    </BackToTopButton>
-                )}
-                {onContextMenuAction && (
-                    <FileContextMenu
-                        open={contextMenu !== null}
-                        anchorPosition={contextMenu?.position}
-                        onClose={handleContextMenuClose}
-                        actions={contextMenuActions}
-                        onAction={handleContextMenuActionWithTracking}
-                    />
-                )}
-            </Box>
-        );
-    }
-
     if (!items.length) {
         return <></>;
     }
 
-    // The old, mode unaware, behaviour.
+    // A new key resets virtualization state when the view changes.
     let key = `${activeCollectionID}`;
     if (modePlus) {
-        // If the new experimental modePlus prop is provided, use it to derive a
-        // mode specific key.
         if (modePlus == "search") {
             key = "search";
         } else if (modePlus == "people") {
@@ -1446,26 +915,55 @@ export const FileList: React.FC<FileListProps> = ({
     }
 
     return (
-        <Box sx={{ position: "relative", width, height }}>
-            <VariableSizeList
-                key={key}
-                ref={listRef}
-                outerRef={outerRef}
-                {...{ width, height, itemData, itemSize, itemKey }}
-                itemCount={items.length}
-                overscanCount={3}
-                useIsScrolling
-                onScroll={handleScroll}
-                style={
-                    listBorderRadius
-                        ? { borderRadius: listBorderRadius }
-                        : undefined
-                }
+        <Box
+            sx={{
+                position: "relative",
+                width,
+                height,
+                ...(showScrubber && {
+                    "& > .photo-list": {
+                        scrollbarWidth: "none",
+                        "&::-webkit-scrollbar": { display: "none" },
+                    },
+                    "&:has([data-date-scrubber-active]) .back-to-top, &:has([data-date-scrubber]:hover) .back-to-top, &:has([data-date-scrubber] :focus-visible) .back-to-top":
+                        { visibility: "hidden" },
+                }),
+            }}
+        >
+            <ListInnerHeightContext.Provider
+                value={showScrubber ? timeline.totalHeight : undefined}
             >
-                {FileListRow}
-            </VariableSizeList>
+                <VariableSizeList
+                    key={key}
+                    ref={listRef}
+                    outerRef={outerRef}
+                    {...{ height, itemData, itemSize, itemKey }}
+                    innerElementType={FileListInner}
+                    width={width}
+                    className="photo-list"
+                    itemCount={items.length}
+                    overscanCount={3}
+                    useIsScrolling
+                    onScroll={handleScroll}
+                    style={
+                        listBorderRadius
+                            ? { borderRadius: listBorderRadius }
+                            : undefined
+                    }
+                >
+                    {FileListRow}
+                </VariableSizeList>
+            </ListInnerHeightContext.Provider>
+            {showScrubber && (
+                <DateScrubber
+                    {...{ timeline, height, scrollOffset }}
+                    onSeek={seekTimeline}
+                    onScrollBy={scrollTimelineBy}
+                />
+            )}
             {showBackToTop && (
                 <BackToTopButton
+                    className="back-to-top"
                     size="small"
                     aria-label="scroll to top"
                     onClick={handleScrollToTop}
@@ -1486,10 +984,6 @@ export const FileList: React.FC<FileListProps> = ({
     );
 };
 
-/**
- * Return a new array of splits, each split containing {@link annotatedFiles}
- * which have the same {@link timelineDateString}.
- */
 const splitByDate = (annotatedFiles: FileListAnnotatedFile[]) =>
     annotatedFiles.reduce(
         (splits, annotatedFile) => (
@@ -1502,109 +996,6 @@ const splitByDate = (annotatedFiles: FileListAnnotatedFile[]) =>
         new Array<FileListAnnotatedFile[]>(),
     );
 
-const firstVisibleIndexForMasonryTrack = (
-    track: MasonryLayoutItem[],
-    minTop: number,
-) => {
-    let low = 0;
-    let high = track.length;
-    while (low < high) {
-        const mid = Math.floor((low + high) / 2);
-        if (track[mid]!.bottom < minTop) {
-            low = mid + 1;
-        } else {
-            high = mid;
-        }
-    }
-    return low;
-};
-
-const firstVisibleMasonryRowIndex = (
-    rows: MasonryLayoutItem[][],
-    minTop: number,
-) => {
-    let low = 0;
-    let high = rows.length;
-    while (low < high) {
-        const mid = Math.floor((low + high) / 2);
-        const row = rows[mid]!;
-        const rowBottom = row.length ? row[row.length - 1]!.bottom : -Infinity;
-        if (rowBottom < minTop) {
-            low = mid + 1;
-        } else {
-            high = mid;
-        }
-    }
-    return low;
-};
-
-const fileMasonryDimensions = (file: EnteFile) => {
-    if (shouldUseSquareMasonryDimensions(file)) {
-        return { width: 1, height: 1 };
-    }
-
-    const width = file.pubMagicMetadata?.data.w;
-    const height = file.pubMagicMetadata?.data.h;
-    if (width && height && width > 0 && height > 0) {
-        return { width, height };
-    }
-
-    return { width: 1, height: 1 };
-};
-
-const shouldUseSquareMasonryDimensions = (file: EnteFile) =>
-    file.metadata.fileType === FileType.video ||
-    file.metadata.fileType === FileType.livePhoto;
-
-const masonryScrollIdleMs = 120;
-
-const preferredMasonryRowHeight = (containerWidth: number) => {
-    if (containerWidth < 560) return 210;
-    if (containerWidth < 900) return 250;
-    if (containerWidth < 1280) return 300;
-    if (containerWidth < 1800) return 345;
-    return 385;
-};
-
-const shouldUseAdaptiveMobileMasonryRows = (containerWidth: number) =>
-    containerWidth < 560;
-
-const preferredMobileMasonryRowItemCount = (
-    sourceItems: MasonrySourceItem[],
-    startIndex: number,
-    rowIndex: number,
-) => {
-    const first = sourceItems[startIndex];
-    const second = sourceItems[startIndex + 1];
-    const third = sourceItems[startIndex + 2];
-    if (!first || !second) return 1;
-
-    const firstRatio = first.aspectRatio;
-    const secondRatio = second.aspectRatio;
-    if (firstRatio >= 1.25) return 1;
-
-    const firstIsPortrait = firstRatio < 0.9;
-    const secondIsPortrait = secondRatio < 0.9;
-    const thirdIsPortrait = !!third && third.aspectRatio < 0.9;
-
-    // Occasionally show one tall portrait in a row to mimic the mobile collage feel.
-    if (firstRatio <= 0.62 && rowIndex % 4 === 1) return 1;
-
-    if (firstIsPortrait && secondIsPortrait && third && thirdIsPortrait) {
-        return rowIndex % 3 === 0 ? 3 : 2;
-    }
-    if (firstIsPortrait && secondIsPortrait) return 2;
-
-    if (firstRatio + secondRatio >= 1.6) return 2;
-    if (third && firstRatio + secondRatio + third.aspectRatio >= 1.9) return 3;
-    return 2;
-};
-
-/**
- * For each element of {@link xs}, obtain an array by applying {@link f},
- * then obtain a gap element by applying {@link g}. Return a flattened array
- * containing all of these, except the trailing gap.
- */
 const intersperseWithGaps = <T, U>(
     xs: T[],
     f: (x: T) => U[],
@@ -1614,9 +1005,6 @@ const intersperseWithGaps = <T, U>(
     return ys.slice(0, ys.length - 1);
 };
 
-/**
- * A list item container that spans the full width.
- */
 const FullSpanListItem = styled("div")`
     display: flex;
     align-items: center;
@@ -1627,9 +1015,6 @@ const NoFilesListItem = styled(FullSpanListItem)`
     justify-content: center;
 `;
 
-/**
- * Floating button to scroll back to the top of the file list.
- */
 const BackToTopButton = styled(Fab)(({ theme }) => ({
     position: "absolute",
     bottom: 24,
@@ -1641,10 +1026,6 @@ const BackToTopButton = styled(Fab)(({ theme }) => ({
     [theme.breakpoints.down("sm")]: { display: "none" },
 }));
 
-/**
- * Convert a {@link FileListHeaderOrFooter} into a {@link FileListItem}
- * that spans the entire width available to the row.
- */
 const asFullSpanFileListItem = ({
     component,
     ...rest
@@ -1654,18 +1035,12 @@ const asFullSpanFileListItem = ({
     component: <FullSpanListItem>{component}</FullSpanListItem>,
 });
 
-/**
- * An grid item, spanning {@link span} columns.
- */
 const GridSpanListItem = styled("div")<{ span: number }>`
     grid-column: span ${({ span }) => span};
     display: flex;
     align-items: center;
 `;
 
-/**
- * The fixed height (in px) of {@link DateListItem}.
- */
 const dateListItemHeight = 48;
 
 const DateListItem = styled(GridSpanListItem)(
@@ -1738,7 +1113,7 @@ type FileThumbnailProps = {
     isRangeSelectActive: boolean;
     selectOnClick: boolean;
     isInSelectRange: boolean;
-    activeCollectionID: number;
+    activeCollectionID: number | undefined;
     showPlaceholder: boolean;
     isFav: boolean;
     onClick: () => void;
@@ -1746,8 +1121,6 @@ type FileThumbnailProps = {
     onHover: () => void;
     onRangeSelect: () => void;
     onContextMenu?: (event: React.MouseEvent) => void;
-    onImageDimensions?: (dimensions: Dimensions) => void;
-    isMasonry?: boolean;
     style?: React.CSSProperties;
 } & Pick<FileListProps, "user" | "emailByUserID" | "enableSelect">;
 
@@ -1768,8 +1141,6 @@ const FileThumbnail: React.FC<FileThumbnailProps> = ({
     onHover,
     onRangeSelect,
     onContextMenu,
-    onImageDimensions,
-    isMasonry,
     style,
 }) => {
     const [imageURL, setImageURL] = useState<string | undefined>(undefined);
@@ -1838,7 +1209,7 @@ const FileThumbnail: React.FC<FileThumbnailProps> = ({
         }
     };
 
-    // See: [Note: Files in trash pseudo collection have deleteBy]
+    // Trash entries carry deleteBy despite the EnteFile type.
     const deleteBy =
         activeCollectionID == PseudoCollectionID.trash &&
         (file as EnteTrashFile).deleteBy;
@@ -1850,7 +1221,6 @@ const FileThumbnail: React.FC<FileThumbnailProps> = ({
             onContextMenu={onContextMenu}
             onMouseEnter={handleHover}
             disabled={!imageURL}
-            $disableBottomMargin={!!isMasonry}
             style={style}
             {...(enableSelect && longPressHandlers)}
         >
@@ -1866,17 +1236,7 @@ const FileThumbnail: React.FC<FileThumbnailProps> = ({
             {file.metadata.hasStaticThumbnail ? (
                 <StaticThumbnail fileType={file.metadata.fileType} />
             ) : imageURL ? (
-                <img
-                    src={imageURL}
-                    onLoad={(event) => {
-                        const { naturalWidth, naturalHeight } =
-                            event.currentTarget;
-                        onImageDimensions?.({
-                            width: naturalWidth,
-                            height: naturalHeight,
-                        });
-                    }}
-                />
+                <img src={imageURL} />
             ) : (
                 <LoadingThumbnail />
             )}
@@ -1897,7 +1257,12 @@ const FileThumbnail: React.FC<FileThumbnailProps> = ({
             )}
             {isFav && (
                 <FavoriteOverlay>
-                    <StarIcon fontSize="small" />
+                    <HugeiconsIcon
+                        icon={StarIcon}
+                        size={20}
+                        fill="currentColor"
+                        aria-hidden
+                    />
                 </FavoriteOverlay>
             )}
 
@@ -1918,14 +1283,10 @@ const FileThumbnail: React.FC<FileThumbnailProps> = ({
     );
 };
 
-const FileThumbnail_ = styled("div")<{
-    disabled: boolean;
-    $disableBottomMargin: boolean;
-}>`
+const FileThumbnail_ = styled("div")<{ disabled: boolean }>`
     display: flex;
     width: fit-content;
-    margin-bottom: ${({ $disableBottomMargin }) =>
-        $disableBottomMargin ? "0px" : `${thumbnailGap}px`};
+    margin-bottom: ${thumbnailGap}px;
     min-width: 100%;
     overflow: hidden;
     position: relative;
@@ -1956,6 +1317,7 @@ const FileThumbnail_ = styled("div")<{
     border-radius: 4px;
 `;
 
+// Safari needs explicit display and positioning for these pseudo-elements.
 const Check = styled("input")<{ $active: boolean }>(
     ({ theme, $active }) => `
     appearance: none;
@@ -1976,19 +1338,19 @@ const Check = styled("input")<{ $active: boolean }>(
 
     &::before {
         content: "";
-        display: block; /* Critical for Safari */
+        display: block;
         width: 19px;
         height: 19px;
         background-color: #ddd;
         border-radius: 50%;
         margin: 6px;
         transition: background-color 0.3s ease, opacity 0.3s ease;
-        position: relative; /* Important for Safari */
+        position: relative;
     }
     
     &::after {
         content: "";
-        display: block; /* Critical for Safari */
+        display: block;
         position: absolute;
         top: 50%;
         left: 50%;
@@ -2001,10 +1363,7 @@ const Check = styled("input")<{ $active: boolean }>(
         transform-origin: center;
     }
 
-    /* Default state - hide both */
     visibility: hidden;
-    
-    /* When $active - show both with reduced opacity */
     ${
         $active &&
         `
@@ -2013,13 +1372,11 @@ const Check = styled("input")<{ $active: boolean }>(
     `
     };
     
-    /* Hover state - show both */
     &:hover {
         visibility: visible;
         opacity: 0.7;
     }
     
-    /* Checked state - show both with full opacity and colored */
     &:checked {
         visibility: visible;
         opacity: 1 !important;
@@ -2048,10 +1405,6 @@ const HoverOverlay = styled("div")<{ checked: boolean }>`
         "background:linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0))"};
 `;
 
-/**
- * An overlay showing the avatars of the person who shared the item, at the top
- * right.
- */
 const AvatarOverlay = styled(Overlay)`
     display: flex;
     justify-content: flex-end;
@@ -2059,9 +1412,6 @@ const AvatarOverlay = styled(Overlay)`
     padding: 5px;
 `;
 
-/**
- * An overlay showing the favorite icon at bottom left.
- */
 const FavoriteOverlay = styled(Overlay)`
     display: flex;
     justify-content: flex-start;
@@ -2071,10 +1421,6 @@ const FavoriteOverlay = styled(Overlay)`
     opacity: 0.6;
 `;
 
-/**
- * An overlay with a gradient, showing the file type indicator (e.g. live photo,
- * video) at the bottom right.
- */
 const FileTypeIndicatorOverlay = styled(Overlay)`
     display: flex;
     justify-content: flex-end;
@@ -2113,25 +1459,21 @@ const VideoDurationOverlay: React.FC<VideoDurationOverlayProps> = ({
 }) => (
     <FileTypeIndicatorOverlay>
         {duration ? (
-            <Typography variant="mini">{duration}</Typography>
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+                <PlayArrowRoundedIcon
+                    sx={{ fontSize: 14, display: "block", mr: 0.5 }}
+                />
+                <Typography variant="mini">{duration}</Typography>
+            </Box>
         ) : (
             <PlayCircleOutlineOutlinedIcon fontSize="small" />
         )}
     </FileTypeIndicatorOverlay>
 );
 
-/**
- * Return `true` if the owner or uploader name avatar indicator should be shown
- * for the given {@link file}.
- */
 const shouldShowAvatar = (file: EnteFile, user: LocalUser | undefined) => {
-    // Public albums app.
     if (!user) return false;
-    // A file shared with the user.
     if (file.ownerID != user.id) return true;
-    // A public collected file (i.e. a file owned by the user, uploaded by an
-    // named guest via a public collect link)
     if (file.pubMagicMetadata?.data.uploaderName) return true;
-    // Regular file.
     return false;
 };

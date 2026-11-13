@@ -1,0 +1,54 @@
+name: "Lint (Android)"
+
+on:
+    workflow_call:
+
+permissions:
+    contents: read
+
+jobs:
+    lint:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+
+            - name: Setup JDK 17
+              uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+              with:
+                  distribution: "temurin"
+                  java-version: "17"
+
+            - name: Restore Rust cache
+              uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+              with:
+                  workspaces: rust
+                  shared-key: photos-desktop-ensu-android
+                  cache-targets: false
+                  save-if: false
+
+            - name: Restore Rust target
+              uses: $/.github/actions/restore-rust-target
+              with:
+                  shared-key: photos-desktop-ensu-android
+
+            - name: Install Vulkan build dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y libvulkan-dev glslc spirv-headers
+
+            - name: Restore Gradle cache
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  key: gradle-${{ github.sha }}
+                  restore-keys: gradle-
+                  path: |
+                      ~/.gradle/caches
+                      ~/.gradle/wrapper
+
+            - run: ./android/scripts/lint.sh
+
+            - name: Build Ensu
+              working-directory: android
+              run: ./gradlew --build-cache :ensu:app:assembleDebug

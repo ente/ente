@@ -1,9 +1,4 @@
-/**
- * Minimal MD5 implementation tailored for computing a base64 encoded checksum
- * of Uint8Array inputs.
- *
- * The implementation follows RFC 1321.
- */
+// RFC 1321 MD5, returning the checksum as base64.
 
 const shifts = new Uint8Array([
     7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 5, 9, 14, 20, 5,
@@ -45,9 +40,8 @@ const bytesToBase64 = (bytes: Uint8Array) => {
 
 export const computeMd5Base64 = (data: Uint8Array): string => {
     const originalLengthBits = data.length * 8;
-    const paddedLength =
-        (((data.length + 8) >>> 6) << 4) +
-        16; /* (n + 64) rounded up to multiple of 64 bytes, expressed in 32-bit words */
+    // Round MD5's padded input to 64-byte blocks, measured in 32-bit words.
+    const paddedLength = (((data.length + 8) >>> 6) << 4) + 16;
     const words = new Uint32Array(paddedLength);
 
     for (const [i, value] of data.entries()) {

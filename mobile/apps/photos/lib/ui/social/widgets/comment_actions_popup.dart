@@ -1,6 +1,6 @@
 import "package:ente_icons/ente_icons.dart";
+import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
-import "package:photos/generated/l10n.dart";
 import "package:photos/theme/ente_theme.dart";
 
 class CommentActionsPopup extends StatelessWidget {
@@ -21,7 +21,7 @@ class CommentActionsPopup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final l10n = context.strings;
     final colorScheme = getEnteColorScheme(context);
     final textTheme = getEnteTextTheme(context);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -104,18 +104,9 @@ class _ActionItem extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 16,
-              color: iconColor ?? defaultIconColor,
-            ),
+            Icon(icon, size: 16, color: iconColor ?? defaultIconColor),
             const SizedBox(width: 8),
-            Text(
-              label,
-              style: textStyle.copyWith(
-                color: defaultIconColor,
-              ),
-            ),
+            Text(label, style: textStyle.copyWith(color: defaultIconColor)),
           ],
         ),
       ),

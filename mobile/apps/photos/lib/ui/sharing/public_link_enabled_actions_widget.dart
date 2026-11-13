@@ -1,25 +1,29 @@
 import 'package:collection/collection.dart';
 import 'package:ente_qr_ui/ente_qr_ui.dart';
+import 'package:ente_strings/ente_strings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:photos/generated/l10n.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:photos/models/collection/collection.dart';
 import 'package:photos/services/collections_service.dart';
-import 'package:photos/theme/ente_theme.dart';
-import 'package:photos/ui/components/captioned_text_widget.dart';
-import 'package:photos/ui/components/divider_widget.dart';
-import 'package:photos/ui/components/menu_item_widget/menu_item_widget.dart';
 import 'package:photos/ui/notification/toast.dart';
+import 'package:photos/ui/sharing/share_components.dart';
 import 'package:photos/utils/share_util.dart';
 
 class PublicLinkEnabledActionsWidget extends StatelessWidget {
   final Collection collection;
   final GlobalKey? sendLinkButtonKey;
+  final List<Widget> additionalItems;
+  final bool showEmbedHtml;
+  final bool showShareActions;
 
   const PublicLinkEnabledActionsWidget({
     super.key,
     required this.collection,
     this.sendLinkButtonKey,
+    this.additionalItems = const [],
+    this.showEmbedHtml = false,
+    this.showShareActions = true,
   });
 
   @override
@@ -28,109 +32,91 @@ class PublicLinkEnabledActionsWidget extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    final enteColorScheme = getEnteColorScheme(context);
     final bool hasExpired =
         collection.publicURLs.firstOrNull?.isExpired ?? false;
+    final items = <Widget>[];
 
     if (hasExpired) {
-      return MenuItemWidget(
-        captionedTextWidget: CaptionedTextWidget(
-          title: AppLocalizations.of(context).linkHasExpired,
-          textColor: enteColorScheme.warning500,
+      items.add(
+        ShareMenuItem(
+          title: context.strings.linkHasExpired,
+          leading: const Icon(Icons.error_outline_rounded),
+          isDestructive: true,
+          isDisabled: true,
         ),
-        leadingIcon: Icons.error_outline,
-        leadingIconColor: enteColorScheme.warning500,
-        menuItemColor: enteColorScheme.fillFaint,
-        singleBorderRadius: 8,
       );
-    }
-
-    final String url = CollectionsService.instance.getPublicUrl(collection);
-    final GlobalKey effectiveKey = sendLinkButtonKey ?? GlobalKey();
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        MenuItemWidget(
-          captionedTextWidget: CaptionedTextWidget(
-            title: AppLocalizations.of(context).copyLink,
-            makeTextBold: true,
-          ),
-          leadingIcon: Icons.copy,
-          menuItemColor: enteColorScheme.fillFaint,
+    } else {
+      final String url = CollectionsService.instance.getPublicUrl(collection);
+      final GlobalKey effectiveKey = sendLinkButtonKey ?? GlobalKey();
+      items.addAll([
+        ShareMenuItem(
+          title: context.strings.copyLink,
+          icon: HugeIcons.strokeRoundedCopy01,
           showOnlyLoadingState: true,
           onTap: () async {
             await Clipboard.setData(ClipboardData(text: url));
-            showShortToast(
-              context,
-              AppLocalizations.of(context).linkCopiedToClipboard,
-            );
+            if (!context.mounted) return;
+            showShortToast(context, context.strings.linkCopiedToClipboard);
           },
-          isBottomBorderRadiusRemoved: true,
         ),
-        DividerWidget(
-          dividerType: DividerType.menu,
-          bgColor: enteColorScheme.fillFaint,
-        ),
-        MenuItemWidget(
-          key: effectiveKey,
-          captionedTextWidget: CaptionedTextWidget(
-            title: AppLocalizations.of(context).sendLink,
-            makeTextBold: true,
+        if (showEmbedHtml)
+          ShareMenuItem(
+            title: context.strings.copyEmbedHtml,
+            leading: const Icon(Icons.code_rounded),
+            onTap: () async {
+              final embedHtml = CollectionsService.instance.getEmbedHtml(
+                collection,
+              );
+              await Clipboard.setData(ClipboardData(text: embedHtml));
+              if (!context.mounted) return;
+              showShortToast(context, context.strings.linkCopiedToClipboard);
+            },
           ),
-          leadingIcon: Icons.adaptive.share,
-          menuItemColor: enteColorScheme.fillFaint,
-          onTap: () async {
-            await shareAlbumLink(
-              context,
-              url,
-              effectiveKey,
-            );
-          },
-          isTopBorderRadiusRemoved: true,
-          isBottomBorderRadiusRemoved: true,
-        ),
-        DividerWidget(
-          dividerType: DividerType.menu,
-          bgColor: enteColorScheme.fillFaint,
-        ),
-        MenuItemWidget(
-          captionedTextWidget: CaptionedTextWidget(
-            title: AppLocalizations.of(context).sendQrCode,
-            makeTextBold: true,
+        if (showShareActions) ...[
+          ShareMenuItem(
+            key: effectiveKey,
+            title: context.strings.sendLink,
+            icon: HugeIcons.strokeRoundedSent,
+            onTap: () async {
+              await shareAlbumLink(
+                context,
+                url,
+                effectiveKey,
+                albumName: collection.displayName,
+                albumDescription: collection.displayDescription,
+              );
+            },
           ),
-          leadingIcon: Icons.qr_code_outlined,
-          menuItemColor: enteColorScheme.fillFaint,
-          onTap: () async {
-            await showDialog<void>(
-              context: context,
-              builder: (BuildContext dialogContext) {
-                return QrCodeDialog(
-                  data: url,
-                  title: collection.displayName,
-                  accentColor: const Color(0xFF08C225),
-                  shareFileName: 'ente_qr_${collection.displayName}.png',
-                  shareText:
-                      'Scan this QR code to view my ${collection.displayName} album on ente',
-                  dialogTitle: AppLocalizations.of(context).qrCode,
-                  shareButtonText: AppLocalizations.of(context).share,
-                  logoAssetPath: 'assets/qr_logo.png',
-                  branding: const QrTextBranding(
-                    text: 'ente',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      fontFamily: 'Montserrat',
+          ShareMenuItem(
+            title: context.strings.sendQrCode,
+            icon: HugeIcons.strokeRoundedQrCode,
+            onTap: () async {
+              await showDialog<void>(
+                context: context,
+                builder: (BuildContext dialogContext) {
+                  return QrCodeDialog(
+                    data: url,
+                    title: collection.displayName,
+                    accentColor: const Color(0xFF08C225),
+                    shareFileName: 'ente_qr_${collection.displayName}.png',
+                    shareText:
+                        'Scan this QR code to view my ${collection.displayName} album on ente',
+                    dialogTitle: context.strings.qrCode,
+                    shareButtonText: context.strings.share,
+                    logoAssetPath: 'assets/qr_logo.png',
+                    branding: const QrSvgBranding(
+                      assetPath: 'assets/ente-branding.svg',
                     ),
-                  ),
-                );
-              },
-            );
-          },
-          isTopBorderRadiusRemoved: true,
-          isBottomBorderRadiusRemoved: false,
-        ),
-      ],
-    );
+                  );
+                },
+              );
+            },
+          ),
+        ],
+      ]);
+    }
+
+    items.addAll(additionalItems);
+    return ShareMenuGroup(items: items);
   }
 }

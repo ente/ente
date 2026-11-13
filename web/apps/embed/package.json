@@ -3,19 +3,22 @@
     "version": "0.0.0",
     "private": true,
     "dependencies": {
+        "@fontsource-variable/outfit": "5.3.0",
+        "ente-accounts": "*",
         "ente-base": "*",
         "ente-gallery": "*",
         "ente-media": "*",
         "ente-new": "*",
-        "memoize-one": "^6.0.0",
-        "react": "^19.2.0",
-        "react-dom": "^19.2.0",
-        "react-virtualized-auto-sizer": "^1.0.26"
+        "react": "19.3.1",
+        "react-dom": "19.3.1",
+        "react-virtualized-auto-sizer": "1.0.26",
+        "react-window": "1.8.11"
     },
     "devDependencies": {
-        "@types/node": "^22.15.32",
-        "@types/react": "^19.2.2",
-        "@types/react-dom": "^19.2.2",
+        "@types/node": "24.19.2",
+        "@types/react": "19.3.0",
+        "@types/react-dom": "19.3.0",
+        "@types/react-window": "1.8.8",
         "ente-build-config": "*"
     }
 }

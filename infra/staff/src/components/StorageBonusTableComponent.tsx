@@ -7,52 +7,22 @@ import {
     TableHead,
     TableRow,
 } from "@mui/material";
-import * as React from "react";
-import { useEffect, useState } from "react";
-import { getEmail, getToken } from "../App";
-import { apiOrigin } from "../services/support";
+import React, { useEffect, useState } from "react";
+import { getStorageBonuses, type StorageBonus } from "../services/admin-user";
+import { useInitialStaffSession } from "../services/session";
+import { dateFromMicroseconds, formatBytesToGB } from "../utils";
+import { StatusBadge } from "./StatusBadge";
 
-interface BonusData {
-    storage: number;
-    type: string;
-    createdAt: number;
-    validTill: number;
-    isRevoked: boolean;
-}
-
-interface UserData {
-    details: {
-        bonusData: {
-            storageBonuses: BonusData[];
-        };
-    };
-}
-
-const StorageBonusTableComponent: React.FC = () => {
-    const [storageBonuses, setStorageBonuses] = useState<BonusData[]>([]);
+export const StorageBonusTableComponent: React.FC = () => {
+    const [storageBonuses, setStorageBonuses] = useState<StorageBonus[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const session = useInitialStaffSession();
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const encodedEmail = encodeURIComponent(getEmail());
-                const token = getToken();
-                const url = `${apiOrigin}/admin/user?email=${encodedEmail}`;
-                const response = await fetch(url, {
-                    method: "GET",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-Auth-Token": token,
-                    },
-                });
-                if (!response.ok) {
-                    throw new Error("Failed to fetch bonus data");
-                }
-                const userData = (await response.json()) as UserData; // Typecast to UserData interface
-                const bonuses: BonusData[] =
-                    userData.details.bonusData.storageBonuses;
-                setStorageBonuses(bonuses);
+                setStorageBonuses(await getStorageBonuses(session));
             } catch (error) {
                 console.error("Error fetching bonus data:", error);
                 setError("No bonus data");
@@ -64,26 +34,7 @@ const StorageBonusTableComponent: React.FC = () => {
         fetchData().catch((error: unknown) =>
             console.error("Fetch data error:", error),
         );
-    }, []);
-
-    const formatCreatedAt = (createdAt: number): string => {
-        const date = new Date(createdAt / 1000);
-        return date.toLocaleDateString(); // Adjust date formatting as needed
-    };
-
-    const formatValidTill = (validTill: number): string => {
-        if (validTill === 0) {
-            return "Forever";
-        } else {
-            const date = new Date(validTill / 1000);
-            return date.toLocaleDateString(); // Adjust date formatting as needed
-        }
-    };
-
-    const formatStorage = (storage: number): string => {
-        const inGB = storage / (1024 * 1024 * 1024);
-        return `${inGB.toFixed(2)} GB`;
-    };
+    }, [session]);
 
     if (loading) {
         return <p>Loading...</p>;
@@ -98,69 +49,62 @@ const StorageBonusTableComponent: React.FC = () => {
     }
 
     return (
-        <div style={{ marginTop: "20px", marginBottom: "20px" }}>
-            <TableContainer
-                component={Paper}
-                style={{
-                    backgroundColor: "#F1F1F3",
-                }}
-            >
-                <Table aria-label="storage-bonus-table">
-                    <TableHead>
-                        <TableRow>
+        <TableContainer
+            component={Paper}
+            sx={{ mt: "20px", mb: "20px", bgcolor: "#F1F1F3" }}
+        >
+            <Table aria-label="storage-bonus-table">
+                <TableHead>
+                    <TableRow>
+                        <TableCell>
+                            <b>Storage</b>
+                        </TableCell>
+                        <TableCell>
+                            <b>Type</b>
+                        </TableCell>
+                        <TableCell>
+                            <b>Created At</b>
+                        </TableCell>
+                        <TableCell>
+                            <b>Valid Till</b>
+                        </TableCell>
+                        <TableCell>
+                            <b>Is Revoked</b>
+                        </TableCell>
+                    </TableRow>
+                </TableHead>
+                <TableBody>
+                    {storageBonuses.map((bonus, index) => (
+                        <TableRow key={index}>
                             <TableCell>
-                                <b>Storage</b>
+                                {formatBytesToGB(bonus.storage)}
+                            </TableCell>
+                            <TableCell>{bonus.type}</TableCell>
+                            <TableCell>
+                                {formatCreatedAt(bonus.createdAt)}
                             </TableCell>
                             <TableCell>
-                                <b>Type</b>
+                                {formatValidTill(bonus.validTill)}
                             </TableCell>
                             <TableCell>
-                                <b>Created At</b>
-                            </TableCell>
-                            <TableCell>
-                                <b>Valid Till</b>
-                            </TableCell>
-                            <TableCell>
-                                <b>Is Revoked</b>
+                                <StatusBadge highlighted={bonus.isRevoked}>
+                                    {bonus.isRevoked ? "Yes" : "No"}
+                                </StatusBadge>
                             </TableCell>
                         </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {storageBonuses.map((bonus, index) => (
-                            <TableRow key={index}>
-                                <TableCell>
-                                    {formatStorage(bonus.storage)}
-                                </TableCell>
-                                <TableCell>{bonus.type}</TableCell>
-                                <TableCell>
-                                    {formatCreatedAt(bonus.createdAt)}
-                                </TableCell>
-                                <TableCell>
-                                    {formatValidTill(bonus.validTill)}
-                                </TableCell>
-                                <TableCell>
-                                    <span
-                                        style={{
-                                            backgroundColor: bonus.isRevoked
-                                                ? "#494949"
-                                                : "transparent",
-                                            color: bonus.isRevoked
-                                                ? "white"
-                                                : "inherit",
-                                            padding: "4px 8px",
-                                            borderRadius: "10px",
-                                        }}
-                                    >
-                                        {bonus.isRevoked ? "Yes" : "No"}
-                                    </span>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </TableContainer>
-        </div>
+                    ))}
+                </TableBody>
+            </Table>
+        </TableContainer>
     );
 };
 
-export default StorageBonusTableComponent;
+const formatCreatedAt = (createdAt: number): string =>
+    dateFromMicroseconds(createdAt).toLocaleDateString();
+
+const formatValidTill = (validTill: number): string => {
+    if (validTill === 0) {
+        return "Forever";
+    }
+    return dateFromMicroseconds(validTill).toLocaleDateString();
+};

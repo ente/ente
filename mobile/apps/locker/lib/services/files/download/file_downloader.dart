@@ -5,31 +5,197 @@ import 'package:dio/dio.dart';
 import 'package:ente_crypto_api/ente_crypto_api.dart';
 import 'package:ente_network/network.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'package:locker/service_locator.dart';
 import 'package:locker/services/configuration.dart';
+import 'package:locker/services/db/locker_db.dart';
+import 'package:locker/services/files/download/file_url.dart';
 import 'package:locker/services/files/download/models/task.dart';
-import 'package:locker/services/files/download/service_locator.dart';
+import 'package:locker/services/files/offline/offline_file_storage.dart';
 import 'package:locker/services/files/sync/models/file.dart';
 import 'package:logging/logging.dart';
-import 'package:path/path.dart' as p;
 
 final _logger = Logger("FileDownloader");
 
-String getCachedEncryptedFilePath(EnteFile file) {
-  final String cacheDir = Configuration.instance.getCacheDirectory();
-  return "$cacheDir${file.uploadedFileID}.encrypted";
+@visibleForTesting
+String getTemporaryDecryptedFilePath(EnteFile file) {
+  final String tempDir = Configuration.instance.getTempDirectory();
+  return "$tempDir${file.uploadedFileID}.decrypted";
 }
 
-String getCachedDecryptedFilePath(EnteFile file) {
-  final String cacheDir = Configuration.instance.getCacheDirectory();
-  final String extension = _safeExtension(file.displayName);
-  return "$cacheDir${file.uploadedFileID}.decrypted$extension";
+Future<File> ensureEncryptedOfflineCopy(
+  EnteFile file, {
+  ProgressCallback? progressCallback,
+}) async {
+  final existingFile = await getCurrentOfflineEncryptedCopy(file);
+  final String logPrefix = 'File-${file.uploadedFileID}:';
+  if (existingFile != null) {
+    final existingSize = await existingFile.length();
+    progressCallback?.call(existingSize, existingSize);
+    return existingFile;
+  }
+
+  final String tempDir = Configuration.instance.getTempDirectory();
+  final String tempEncryptedFilePath =
+      "$tempDir${file.uploadedFileID}.encrypted";
+  final String finalEncryptedFilePath = await getOfflineEncryptedFilePath(file);
+  final File finalEncryptedFile = File(finalEncryptedFilePath);
+
+  String encryptedFilePath = tempEncryptedFilePath;
+  File encryptedFile = File(encryptedFilePath);
+
+  try {
+    if (downloadManager.enableResumableDownload(file.fileSize)) {
+      final DownloadResult result = await downloadManager.download(
+        file.uploadedFileID!,
+        file.displayName,
+        file.fileSize!,
+      );
+      if (!result.success || result.task.filePath == null) {
+        throw Exception(
+          '$logPrefix download failed ${result.task.error} ${result.task.status}',
+        );
+      }
+      encryptedFilePath = result.task.filePath!;
+      encryptedFile = File(encryptedFilePath);
+      final encryptedSize = await encryptedFile.length();
+      progressCallback?.call(encryptedSize, encryptedSize);
+    } else {
+      late final Response response;
+      try {
+        final headers = <String, dynamic>{
+          "X-Auth-Token": Configuration.instance.getToken(),
+        };
+        final signedUrl = await FileUrl.tryGetV3Url(
+          Network.instance.enteDio,
+          file.uploadedFileID!,
+          FileUrlType.download,
+          headers: headers,
+        );
+        response = await Network.instance.getDio().download(
+          signedUrl ?? file.downloadUrl,
+          tempEncryptedFilePath,
+          options: Options(headers: signedUrl == null ? headers : null),
+          onReceiveProgress: progressCallback,
+        );
+      } catch (e) {
+        try {
+          if (await encryptedFile.exists()) {
+            await encryptedFile.delete();
+          }
+        } catch (_) {}
+        rethrow;
+      }
+
+      if (response.statusCode != 200 || !await encryptedFile.exists()) {
+        throw Exception('$logPrefix download failed ${response.toString()}');
+      }
+    }
+
+    if (await finalEncryptedFile.exists()) {
+      await finalEncryptedFile.delete();
+    }
+
+    if (encryptedFilePath == finalEncryptedFilePath) {
+      return finalEncryptedFile;
+    }
+
+    await encryptedFile.copy(finalEncryptedFilePath);
+    await encryptedFile.delete();
+    return finalEncryptedFile;
+  } catch (e, s) {
+    _logger.severe('$logPrefix failed to ensure encrypted offline copy', e, s);
+    try {
+      if (await encryptedFile.exists() &&
+          encryptedFile.path != finalEncryptedFilePath) {
+        await encryptedFile.delete();
+      }
+    } catch (_) {}
+    try {
+      if (await finalEncryptedFile.exists()) {
+        await finalEncryptedFile.delete();
+      }
+    } catch (_) {}
+    rethrow;
+  }
 }
 
-String _safeExtension(String fileName) {
-  final ext = p.extension(p.basename(fileName));
-  if (ext.isEmpty) return '';
-  final sanitized = ext.replaceAll(RegExp(r'[\\/:*?"<>|]'), '');
-  return sanitized == '.' ? '' : sanitized;
+Future<File?> openFile(
+  EnteFile file,
+  Uint8List fileKey, {
+  ProgressCallback? progressCallback,
+  bool useTemporaryDecryptedFile = false,
+}) async {
+  if (!LockerDB.instance.isFileMarkedOffline(file)) {
+    return downloadAndDecrypt(
+      file,
+      fileKey,
+      progressCallback: progressCallback,
+      shouldUseCache: !useTemporaryDecryptedFile,
+    );
+  }
+
+  try {
+    final offlineEncryptedFile = await ensureEncryptedOfflineCopy(
+      file,
+      progressCallback: progressCallback,
+    );
+    final String logPrefix = 'File-${file.uploadedFileID}:';
+    final int startTime = DateTime.now().millisecondsSinceEpoch;
+    final String decryptedFilePath = useTemporaryDecryptedFile
+        ? getTemporaryDecryptedFilePath(file)
+        : getCachedDecryptedFilePath(file);
+    final File decryptedFile = File(decryptedFilePath);
+    final int sizeInBytes =
+        file.fileSize ?? await offlineEncryptedFile.length();
+
+    try {
+      if (await decryptedFile.exists()) {
+        final decryptedSize = await decryptedFile.length();
+        if (decryptedSize > 0) {
+          progressCallback?.call(decryptedSize, decryptedSize);
+          return decryptedFile;
+        }
+        await decryptedFile.delete();
+      }
+
+      await CryptoUtil.decryptFile(
+        offlineEncryptedFile.path,
+        decryptedFilePath,
+        CryptoUtil.base642bin(file.fileDecryptionHeader!),
+        fileKey,
+      );
+
+      final double elapsedSeconds =
+          (DateTime.now().millisecondsSinceEpoch - startTime) / 1000;
+      final double speedInKBps = elapsedSeconds <= 0
+          ? 0
+          : sizeInBytes / 1024.0 / elapsedSeconds;
+      _logger.info(
+        '$logPrefix local decrypt completed: ${formatBytes(sizeInBytes)}, avg speed: ${speedInKBps.toStringAsFixed(2)} KB/s',
+      );
+      return decryptedFile;
+    } catch (e, s) {
+      _logger.severe("Critical: $logPrefix failed to decrypt", e, s);
+      try {
+        if (await decryptedFile.exists()) {
+          await decryptedFile.delete();
+        }
+      } catch (_) {}
+    }
+  } catch (e, s) {
+    _logger.warning(
+      'Failed to use offline encrypted copy for ${file.uploadedFileID}, falling back to direct download',
+      e,
+      s,
+    );
+  }
+  return downloadAndDecrypt(
+    file,
+    fileKey,
+    progressCallback: progressCallback,
+    shouldUseCache: !useTemporaryDecryptedFile,
+  );
 }
 
 Future<File?> downloadAndDecrypt(
@@ -53,10 +219,9 @@ Future<File?> downloadAndDecrypt(
   bool usingCachedEncryptedFile = false;
   bool downloadedFreshEncryptedFile = false;
 
-  final String safeDisplayName = p.basename(file.displayName);
   final String decryptedFilePath = shouldUseCache
       ? cachedDecryptedFilePath
-      : "$tempDir${file.uploadedFileID}_$safeDisplayName";
+      : getTemporaryDecryptedFilePath(file);
   final File decryptedFile = File(decryptedFilePath);
 
   final startTime = DateTime.now().millisecondsSinceEpoch;
@@ -65,7 +230,6 @@ Future<File?> downloadAndDecrypt(
     if (shouldUseCache && await decryptedFile.exists()) {
       final decryptedSize = await decryptedFile.length();
       if (decryptedSize > 0) {
-        _logger.info('$logPrefix using cached decrypted file');
         progressCallback?.call(decryptedSize, decryptedSize);
         return decryptedFile;
       } else {
@@ -83,7 +247,6 @@ Future<File?> downloadAndDecrypt(
           usingCachedEncryptedFile = true;
           encryptedFilePath = cachedEncryptedFilePath;
           encryptedFile = cachedEncryptedFile;
-          _logger.info('$logPrefix using cached encrypted file');
         } else {
           await cachedEncryptedFile.delete();
         }
@@ -108,13 +271,19 @@ Future<File?> downloadAndDecrypt(
           return null;
         }
       } else {
-        // If the file is small, download it directly to the final location
+        final headers = <String, dynamic>{
+          "X-Auth-Token": Configuration.instance.getToken(),
+        };
+        final signedUrl = await FileUrl.tryGetV3Url(
+          Network.instance.enteDio,
+          file.uploadedFileID!,
+          FileUrlType.download,
+          headers: headers,
+        );
         final response = await Network.instance.getDio().download(
-          file.downloadUrl,
+          signedUrl ?? file.downloadUrl,
           tempEncryptedFilePath,
-          options: Options(
-            headers: {"X-Auth-Token": Configuration.instance.getToken()},
-          ),
+          options: Options(headers: signedUrl == null ? headers : null),
           onReceiveProgress: (a, b) {
             progressCallback?.call(a, b);
           },
@@ -138,18 +307,15 @@ Future<File?> downloadAndDecrypt(
       '$logPrefix download completed: ${formatBytes(sizeInBytes)}, avg speed: ${speedInKBps.toStringAsFixed(2)} KB/s',
     );
 
-    // As decryption can take time, emit fake progress for large files during
-    // decryption
     final FakePeriodicProgress? fakeProgress = shouldFakeProgress
         ? FakePeriodicProgress(
-            callback: (count) {
+            callback: (_) {
               progressCallback?.call(sizeInBytes, sizeInBytes);
             },
             duration: const Duration(milliseconds: 5000),
           )
         : null;
     try {
-      // Start the periodic callback after initial 5 seconds
       fakeProgress?.start();
       if (await decryptedFile.exists()) {
         await decryptedFile.delete();
@@ -161,24 +327,26 @@ Future<File?> downloadAndDecrypt(
         fileKey,
       );
       fakeProgress?.stop();
-      _logger
-          .info('$logPrefix decryption completed (ID ${file.uploadedFileID})');
     } catch (e, s) {
       fakeProgress?.stop();
       _logger.severe("Critical: $logPrefix failed to decrypt", e, s);
+      try {
+        if (await decryptedFile.exists()) {
+          await decryptedFile.delete();
+        }
+      } catch (_) {}
       if (downloadedFreshEncryptedFile) {
         try {
           await encryptedFile.delete();
         } catch (_) {}
       } else if (usingCachedEncryptedFile) {
-        // Cached encrypted file is likely corrupted; remove it so next attempt
-        // fetches a fresh copy.
         try {
           await encryptedFile.delete();
         } catch (_) {}
       }
       return null;
     }
+
     if (shouldUseCache && downloadedFreshEncryptedFile) {
       try {
         if (encryptedFilePath != cachedEncryptedFilePath) {

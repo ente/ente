@@ -1,0 +1,27 @@
+def compileSdk = 36
+def targetSdk = 36
+def ndkVersion = "28.2.13676358"
+def jvmTarget = "1.8"
+def javaVersion = JavaVersion.toVersion(jvmTarget)
+def mobileDirectory = rootProject.file("../../..").toPath().normalize()
+def configureAndroid = { extension ->
+    extension.compileSdk = compileSdk
+    extension.ndkVersion = ndkVersion
+    extension.compileOptions.sourceCompatibility = javaVersion
+    extension.compileOptions.targetCompatibility = javaVersion
+}
+
+subprojects {
+    if (!projectDir.toPath().normalize().startsWith(mobileDirectory)) return
+
+    pluginManager.withPlugin("com.android.application") {
+        configureAndroid(android)
+        android.defaultConfig.targetSdk = targetSdk
+    }
+    pluginManager.withPlugin("com.android.library") {
+        configureAndroid(android)
+    }
+    pluginManager.withPlugin("org.jetbrains.kotlin.android") {
+        android.kotlinOptions.jvmTarget = jvmTarget
+    }
+}

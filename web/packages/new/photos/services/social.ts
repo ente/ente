@@ -1,24 +1,18 @@
-import { decryptBox } from "ente-base/crypto";
+import { decryptBoxBytes } from "ente-base/crypto";
 import { authenticatedRequestHeaders, ensureOk } from "ente-base/http";
 import { apiURL } from "ente-base/origins";
 import { z } from "zod";
 import type { Comment } from "./comment";
 
-/**
- * Remove null byte padding from a decrypted reaction type.
- */
 const unpadReaction = (paddedReaction: string): string =>
     paddedReaction.replace(/\0+$/, "");
 
-/**
- * A decrypted reaction from the unified diff endpoint.
- */
 export interface UnifiedReaction {
     id: string;
     collectionID: number;
     fileID?: number;
     commentID?: string;
-    /** True if this reaction is on a reply (only in feed responses). */
+    // Only present in feed responses.
     isCommentReply?: boolean;
     reactionType: string;
     userID: number;
@@ -28,9 +22,6 @@ export interface UnifiedReaction {
     updatedAt: number;
 }
 
-/**
- * Result from the unified social diff endpoint.
- */
 export interface UnifiedSocialDiff {
     comments: Comment[];
     reactions: UnifiedReaction[];
@@ -38,71 +29,52 @@ export interface UnifiedSocialDiff {
     hasMoreReactions: boolean;
 }
 
-/**
- * Get comments and reactions for a file in a single request.
- *
- * @param collectionID The ID of the collection containing the file.
- * @param fileID The ID of the file to get social data for.
- * @param collectionKey The decrypted collection key (base64 encoded).
- * @returns Comments and reactions for the file.
- */
 export const getUnifiedSocialDiff = async (
     collectionID: number,
-    fileID: number,
     collectionKey: string,
-): Promise<UnifiedSocialDiff> => {
+    {
+        fileID,
+        commentsSinceTime = 0,
+        reactionsSinceTime = 0,
+        signal,
+    }: {
+        fileID?: number;
+        commentsSinceTime?: number;
+        reactionsSinceTime?: number;
+        signal?: AbortSignal;
+    } = {},
+) => {
     const res = await fetch(
         await apiURL("/social/diff", {
             collectionID,
-            fileID,
-            sinceTime: 0,
+            ...(fileID === undefined ? {} : { fileID }),
+            commentsSinceTime,
+            reactionsSinceTime,
             limit: 1000,
         }),
-        { headers: await authenticatedRequestHeaders() },
+        { headers: await authenticatedRequestHeaders(), signal },
     );
     ensureOk(res);
-    return decryptSocialDiff(collectionKey, await res.json());
+    const data = UnifiedDiffResponse.parse(await res.json());
+    return {
+        ...(await decryptSocialDiff(collectionKey, data)),
+        commentsUpdatedAt: Math.max(
+            commentsSinceTime,
+            ...data.comments.map((c) => c.updatedAt),
+        ),
+        reactionsUpdatedAt: Math.max(
+            reactionsSinceTime,
+            ...data.reactions.map((r) => r.updatedAt),
+        ),
+    };
 };
 
-/**
- * Get album feed - comments and reactions relevant to the current user.
- *
- * This uses a server-side filtered endpoint that only returns:
- * - Comments on files owned by the user (excluding user's own comments)
- * - Replies to user's comments
- * - Reactions on files owned by the user
- * - Reactions on user's comments
- *
- * @param collectionID The ID of the collection.
- * @param collectionKey The decrypted collection key (base64 encoded).
- * @returns Filtered comments and reactions for the user's feed.
- */
-export const getAlbumFeed = async (
-    collectionID: number,
-    collectionKey: string,
-): Promise<UnifiedSocialDiff> => {
-    const res = await fetch(
-        await apiURL("/social/album-feed", {
-            collectionID,
-            sinceTime: 0,
-            limit: 1000,
-        }),
-        { headers: await authenticatedRequestHeaders() },
-    );
-    ensureOk(res);
-    return decryptSocialDiff(collectionKey, await res.json());
-};
-
-/**
- * Decrypt comments and reactions from the unified diff endpoint response.
- */
 const decryptSocialDiff = async (
     collectionKey: string,
     responseJson: unknown,
 ): Promise<UnifiedSocialDiff> => {
     const data = UnifiedDiffResponse.parse(responseJson);
 
-    // Decrypt comments
     const comments: Comment[] = [];
     for (const comment of data.comments) {
         if (comment.isDeleted || !comment.cipher || !comment.nonce) {
@@ -122,13 +94,11 @@ const decryptSocialDiff = async (
             continue;
         }
         try {
-            const decryptedB64 = await decryptBox(
+            const decrypted = await decryptBoxBytes(
                 { encryptedData: comment.cipher, nonce: comment.nonce },
                 collectionKey,
             );
-            const text = new TextDecoder().decode(
-                Uint8Array.from(atob(decryptedB64), (c) => c.charCodeAt(0)),
-            );
+            const text = new TextDecoder().decode(decrypted);
             const decryptedComment = {
                 id: comment.id,
                 collectionID: comment.collectionID,
@@ -148,19 +118,16 @@ const decryptSocialDiff = async (
         }
     }
 
-    // Decrypt reactions
     const reactions: UnifiedReaction[] = [];
     for (const reaction of data.reactions) {
         if (reaction.isDeleted || !reaction.cipher || !reaction.nonce) continue;
         try {
-            const decryptedB64 = await decryptBox(
+            const decrypted = await decryptBoxBytes(
                 { encryptedData: reaction.cipher, nonce: reaction.nonce },
                 collectionKey,
             );
             const reactionType = unpadReaction(
-                new TextDecoder().decode(
-                    Uint8Array.from(atob(decryptedB64), (c) => c.charCodeAt(0)),
-                ),
+                new TextDecoder().decode(decrypted),
             );
             reactions.push({
                 id: reaction.id,
@@ -226,20 +193,14 @@ const UnifiedDiffResponse = z.object({
     hasMoreReactions: z.boolean(),
 });
 
-/**
- * Get anonymous user profiles for a collection.
- *
- * @param collectionID The ID of the collection.
- * @param collectionKey The decrypted collection key (base64 encoded).
- * @returns Map of anonUserID to decrypted userName.
- */
 export const getAnonProfiles = async (
     collectionID: number,
     collectionKey: string,
+    signal?: AbortSignal,
 ): Promise<Map<string, string>> => {
     const res = await fetch(
         await apiURL("/social/anon-profiles", { collectionID }),
-        { headers: await authenticatedRequestHeaders() },
+        { headers: await authenticatedRequestHeaders(), signal },
     );
     ensureOk(res);
     const { profiles } = GetAnonProfilesResponse.parse(await res.json());
@@ -248,13 +209,11 @@ export const getAnonProfiles = async (
     for (const profile of profiles) {
         if (!profile.cipher || !profile.nonce) continue;
         try {
-            const decryptedB64 = await decryptBox(
+            const decrypted = await decryptBoxBytes(
                 { encryptedData: profile.cipher, nonce: profile.nonce },
                 collectionKey,
             );
-            const userName = new TextDecoder().decode(
-                Uint8Array.from(atob(decryptedB64), (c) => c.charCodeAt(0)),
-            );
+            const userName = new TextDecoder().decode(decrypted);
             if (userName) {
                 anonUserNames.set(profile.anonUserID, userName);
             }
@@ -280,3 +239,26 @@ const GetAnonProfilesResponse = z.object({
         .nullish()
         .transform((v) => v ?? []),
 });
+
+const SocialUpdatesResponse = z.object({
+    updates: z
+        .array(
+            z.object({
+                collectionID: z.number(),
+                commentsUpdatedAt: z.number().nullish(),
+                reactionsUpdatedAt: z.number().nullish(),
+                anonProfilesUpdatedAt: z.number().nullish(),
+            }),
+        )
+        .nullish()
+        .transform((updates) => updates ?? []),
+});
+
+export const getSocialUpdates = async (signal?: AbortSignal) => {
+    const response = await fetch(
+        await apiURL("/comments-reactions/updated-at"),
+        { headers: await authenticatedRequestHeaders(), signal },
+    );
+    ensureOk(response);
+    return SocialUpdatesResponse.parse(await response.json()).updates;
+};

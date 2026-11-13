@@ -97,54 +97,51 @@ class _Tile extends StatelessWidget {
   Widget build(BuildContext context) {
     return switch (variant) {
       RitualDayThumbnailVariant.photo => _PhotoTile(
-          width: width,
-          height: height,
-          file: photoFile,
-          count: photoCount ?? 0,
-          fadePhoto: fadePhoto,
-          rotation: rotation,
-        ),
+        width: width,
+        height: height,
+        file: photoFile,
+        count: photoCount ?? 0,
+        fadePhoto: fadePhoto,
+        rotation: rotation,
+      ),
       RitualDayThumbnailVariant.empty => _DottedTile(
-          width: width,
-          height: height,
-          borderColor: _blueBorder,
-          fillColor: _blueFill,
-        ),
+        width: width,
+        height: height,
+        borderColor: _blueBorder,
+        fillColor: _blueFill,
+      ),
       RitualDayThumbnailVariant.camera => _DottedTile(
-          width: width,
-          height: height,
-          borderColor: _greenBorder,
-          fillColor: _greenFill,
-          child: IconButton(
-            padding: EdgeInsets.zero,
-            visualDensity: VisualDensity.compact,
-            icon: const Icon(
-              Icons.photo_camera_outlined,
-              size: 21,
-              color: _greenBorder,
-            ),
-            onPressed: onCameraTap,
+        width: width,
+        height: height,
+        borderColor: _greenBorder,
+        fillColor: _greenFill,
+        child: IconButton(
+          padding: EdgeInsets.zero,
+          visualDensity: VisualDensity.compact,
+          icon: const Icon(
+            Icons.photo_camera_outlined,
+            size: 21,
+            color: _greenBorder,
           ),
+          onPressed: onCameraTap,
         ),
+      ),
       RitualDayThumbnailVariant.future => _DottedTile(
-          width: width,
-          height: height,
-          borderColor: _futureBorder,
-          fillColor: _futureFill,
-        ),
+        width: width,
+        height: height,
+        borderColor: _futureBorder,
+        fillColor: _futureFill,
+      ),
       RitualDayThumbnailVariant.hidden => _HiddenTile(
-          width: width,
-          height: height,
-        ),
+        width: width,
+        height: height,
+      ),
     };
   }
 }
 
 class _HiddenTile extends StatelessWidget {
-  const _HiddenTile({
-    required this.width,
-    required this.height,
-  });
+  const _HiddenTile({required this.width, required this.height});
 
   final double width;
   final double height;
@@ -264,8 +261,6 @@ class _PhotoTile extends StatelessWidget {
                               fit: BoxFit.cover,
                               rawThumbnail: true,
                               shouldShowSyncStatus: false,
-                              shouldShowArchiveStatus: false,
-                              shouldShowPinIcon: false,
                               shouldShowOwnerAvatar: false,
                               shouldShowFavoriteIcon: false,
                               shouldShowVideoDuration: false,

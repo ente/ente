@@ -27,10 +27,10 @@ CARACTERÍSTICAS
 - ¡Y mucho más!
 
 PERMISOS
-ente solicita ciertos permisos para servir al propósito de un proveedor de almacenamiento de fotos, que puede ser revisado aquí: https://github.com/ente-io/ente/blob/f-droid/mobile/android/permissions.md
+ente solicita ciertos permisos para servir al propósito de un proveedor de almacenamiento de fotos, que puede ser revisado aquí: https://github.com/ente/ente/blob/f-droid/mobile/android/permissions.md
 
 PRECIOS
-No ofrecemos planes gratis para siempre, porque es importante para nosotros seguir siendo sostenibles y resistir a la prueba del tiempo. En su lugar, ofrecemos planes asequibles que puedes compartir libremente con tu familia. Puedes encontrar más información en ente.io.
+No ofrecemos planes gratis para siempre, porque es importante para nosotros seguir siendo sostenibles y resistir a la prueba del tiempo. En su lugar, ofrecemos planes asequibles que puedes compartir libremente con tu familia. Puedes encontrar más información en ente.com.
 
 SOPORTE
-Estamos orgullosos de ofrecer apoyo humano. Si eres un cliente de pago, puedes contactar con team@ente.io y esperar una respuesta de nuestro equipo en 24 horas.
+Estamos orgullosos de ofrecer apoyo humano. Si eres un cliente de pago, puedes contactar con team@ente.com y esperar una respuesta de nuestro equipo en 24 horas.

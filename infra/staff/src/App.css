@@ -1,58 +1,113 @@
 .container {
-    max-width: 1200px;
-    height: auto;
+    display: flex;
+    flex-direction: column;
     align-items: center;
+    justify-content: flex-start;
+    max-width: 1200px;
+    min-height: 100vh;
+    height: auto;
     margin: 0 auto;
 }
 
-.center-table {
-    display: table;
+.token-entry {
+    width: 100vw;
+    max-width: none;
+    min-height: 100svh;
+    justify-content: center;
+    padding: 24px;
+    box-sizing: border-box;
+    background-color: light-dark(#f7faf8, #1c211e);
 }
 
-.fetch-button-container button {
-    background-color: #00b33c;
+.token-entry-card {
+    width: min(100%, 440px);
+    padding: 36px;
+    box-sizing: border-box;
+    border: 1px solid light-dark(#e1e9e3, #39443d);
+    border-radius: 18px;
+    background-color: light-dark(#ffffff, #292f2b);
+    box-shadow: 0 16px 48px light-dark(rgb(29 73 44 / 8%), rgb(0 0 0 / 20%));
+}
+
+.token-entry-image {
+    display: block;
+    width: 96px;
+    height: auto;
+    margin: 0 auto 12px;
+}
+
+.token-entry h1 {
+    margin: 0 0 8px;
+    font-size: 36px;
+}
+
+.token-entry p {
+    margin: 0;
+    color: light-dark(#596860, #c0cac2);
+    line-height: 1.5;
+}
+
+.token-entry .token-entry-hint {
+    margin-top: 20px;
+    font-size: 13px;
+}
+
+.token-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+    max-width: 360px;
+    margin: 8px auto;
+}
+
+.token-entry .token-form {
+    max-width: none;
+    margin-top: 28px;
+}
+
+.token-entry .MuiInputLabel-root,
+.token-entry .MuiOutlinedInput-root {
+    color: inherit;
+}
+
+.token-entry .MuiInputAdornment-root,
+.token-entry .MuiInputAdornment-root .MuiIconButton-root {
+    color: inherit;
+}
+
+.token-entry .MuiOutlinedInput-notchedOutline {
+    border-color: light-dark(#cbd7ce, #637067);
+}
+
+.token-entry .MuiInputLabel-root.Mui-focused {
+    color: #168f40;
+}
+
+.token-entry
+    .MuiOutlinedInput-root.Mui-focused
+    .MuiOutlinedInput-notchedOutline {
+    border-color: #1db954;
+}
+
+.token-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.token-entry .token-form-actions .token-submit-button {
+    width: 100%;
+    height: 48px;
+}
+
+.token-submit-button.MuiButton-contained {
     color: white;
-    border: none;
-    width: 199px;
-    height: 56px;
+    background-color: #1db954;
 }
 
-.fetch-button-container button:hover {
-    background-color: #007c6c;
-}
-
-.link-text {
-    display: flex;
-    align-items: center;
-    text-decoration: none; /* Remove underline */
-    color: inherit; /* Inherit color from parent */
-    font-weight: bold; /* Make the text bold */
-    font-size: 40px;
-}
-
-.duckie-container {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-}
-.center-content {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh; /* Adjust as necessary */
-    position: relative;
-}
-
-.error-message {
-    color: red;
-    font-size: 1.5em;
-}
-
-.duckie-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
+.token-submit-button.MuiButton-contained:hover {
+    background-color: #00b33c;
 }
 
 .input-form {
@@ -66,142 +121,95 @@
 .horizontal-group {
     display: flex;
     align-items: center;
-    background-color: #fcfcfc;
-    padding: 20px; /* Add padding around content */
-    border-radius: 10px;
-    margin-top: 90px;
-    width: 1200px;
     justify-content: space-around;
+    width: 1200px;
+    margin-top: 90px;
+    padding: 20px;
+    border-radius: 10px;
+    background-color: light-dark(#fcfcfc, #1f1f1f);
+}
+
+.link-text {
+    display: flex;
+    align-items: center;
+    color: inherit;
+    font-size: 40px;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.link-text:hover {
+    color: #1db954;
 }
 
 .text-fields {
     display: flex;
-    justify-content: row;
     gap: 20px;
 }
-.fetch-button-container button {
-    background-color: #00b33c;
-    color: white;
-    border: none;
-    width: 199px;
-    height: 56px;
-}
 
-.fetch-button-container button:hover {
-    background-color: #007c6c;
-}
-
-.center-content {
+.fetch-button-container {
     display: flex;
-    justify-content: center;
     align-items: center;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    gap: 6px;
+    margin: 0 10px;
 }
 
-.duckie-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.fetch-button-container button {
-    background-color: #00b33c;
-    color: white;
-    border: none;
+.fetch-button-container .fetch-button {
     width: 150px;
     height: 56px;
-}
-
-.fetch-button-container button:hover {
-    background-color: #007c6c;
-}
-
-.center-content {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-}
-
-.duckie-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.dialog-popup-container {
-    /* Styles for the overlay/background */
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent black */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.dialog-popup {
-    background-color: white;
-    padding: 20px;
-    border-radius: 5px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-}
-
-.dialog-popup-header h2 {
-    margin-bottom: 20px; /* Add space between heading and fields */
-}
-
-.dialog-popup-field {
-    margin-bottom: 15px;
-}
-
-.dialog-popup-field label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
-}
-
-.dialog-popup-field input {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 3px;
-}
-
-.submit-button {
-    background-color: #4caf50; /* Green */
-    color: white;
-    padding: 10px 15px;
     border: none;
-    border-radius: 3px;
-    cursor: pointer;
+    color: white;
+    background-color: #1db954;
 }
 
-/* Specific styles for each field to match the image */
-.name-field input,
-.shortname-field input,
-.code-field input {
-    width: calc(100% - 100px); /* Adjust as needed */
+.fetch-button-container .fetch-button:hover {
+    background-color: #00b33c;
 }
 
-.active-field input {
-    width: 50px;
+.fetch-button-container .ad-hoc-actions-button {
+    height: 40px;
+    border: 1px solid rgb(0 0 0 / 14%);
+    border-radius: 8px;
+    color: #4a4a4a;
+    font-weight: 600;
+    text-transform: none;
 }
-/* Add to App.css or your CSS file */
-.container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    min-height: 100vh;
+
+.fetch-button-container .ad-hoc-actions-button:hover {
+    background-color: rgb(29 185 84 / 8%);
+    border-color: rgb(29 185 84 / 42%);
+    color: #168f40;
+}
+
+@media (prefers-color-scheme: dark) {
+    .fetch-button-container .ad-hoc-actions-button {
+        border-color: rgb(255 255 255 / 35%);
+        color: rgb(255 255 255 / 87%);
+    }
+
+    .fetch-button-container .ad-hoc-actions-button:hover {
+        background-color: rgb(29 185 84 / 16%);
+        border-color: #1db954;
+        color: #5cdb89;
+    }
+
+    .horizontal-group .MuiInputLabel-root {
+        color: rgb(255 255 255 / 70%);
+    }
+
+    .horizontal-group .MuiOutlinedInput-root {
+        color: rgb(255 255 255 / 87%);
+    }
+
+    .horizontal-group .MuiOutlinedInput-notchedOutline {
+        border-color: rgb(255 255 255 / 23%);
+    }
+
+    .horizontal-group
+        .MuiOutlinedInput-root:hover
+        .MuiOutlinedInput-notchedOutline {
+        border-color: rgb(255 255 255 / 87%);
+    }
 }
 
 .content-container {
@@ -212,57 +220,58 @@
     width: 100%;
 }
 
-.fetch-button-container {
-    margin-right: 10px;
-    margin-left: 10px;
-}
-
 .error-message {
-    color: red;
-    font-weight: bold;
     margin-top: 16px;
+    color: red;
+    font-size: 1.5em;
+    font-weight: bold;
 }
 
-/* MUi Component Custom CSS */
-css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input {
-    padding: none;
-    margin: none;
+.empty-state {
+    margin-top: 120px;
+    padding: 0 24px;
 }
 
-/* Mobile */
+.empty-state h2 {
+    margin: 16px 0 6px;
+    font-size: 20px;
+}
+
+.empty-state p {
+    margin: 0;
+    color: light-dark(#596860, #c0cac2);
+}
+
 @media screen and (max-width: 475px) {
+    .token-entry-card {
+        padding: 28px 24px;
+    }
+
+    .token-entry h1 {
+        font-size: 32px;
+    }
+
     .link-text {
         font-size: 30px;
         text-align: center;
     }
+
     .input-form {
         max-width: 400px;
+        flex-direction: row;
         align-items: center;
         gap: 20px;
-        flex-direction: row;
     }
+
     .horizontal-group {
         width: 500px;
         flex-direction: column;
         gap: 25px;
     }
+
     .text-fields {
         width: fit-content;
         flex-direction: column;
-        gap: 20px;
         justify-content: center;
     }
-    .text-fields label {
-        padding: 0;
-        margin: none;
-    }
-}
-
-@media screen and (max-width: 576px) {
-}
-
-@media screen and (max-width: 900px) {
-}
-
-@media screen and (max-width: 1200px) {
 }

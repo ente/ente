@@ -7,12 +7,14 @@ Current contents include:
 - `CLIP/`: CLIP/mobileclip notebooks and experiments.
 - `YOLOv5Face/`: YOLOv5Face notebooks and related assets.
 - `data/`: local sample images used by notebooks.
+- `optimizations/`: reproducible model-optimization scripts and their final
+  artifacts.
 
 ## Running notebooks
 
 1. Install `uv`.
-2. From repo root, run `uv sync --project infra/ml`.
-3. In VS Code/Jupyter, use kernel `infra/ml/.venv/bin/python`.
+2. From repo root, run `uv sync --project infra/ml/playground`.
+3. In VS Code/Jupyter, use kernel `infra/ml/playground/.venv/bin/python`.
 
 ## Notebook hygiene
 

@@ -1,0 +1,21 @@
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+}
+
+group 'com.flutter_rust_bridge.ente_locker_frb'
+version '1.0'
+
+android {
+    namespace 'com.flutter_rust_bridge.ente_locker_frb'
+
+    defaultConfig {
+        minSdkVersion 19
+    }
+}
+
+apply from: "../../../../cargokit/gradle/plugin.gradle"
+cargokit {
+    manifestDir = "../../../../../rust/bindings/frb/locker"
+    libname = "ente_locker_frb"
+}

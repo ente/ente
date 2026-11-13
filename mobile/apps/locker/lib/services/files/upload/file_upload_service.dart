@@ -30,11 +30,8 @@ import "package:uuid/uuid.dart";
 
 class FileUploader {
   static const kMaximumConcurrentUploads = 4;
-  static const kMaximumConcurrentVideoUploads = 2;
-  static const kMaximumThumbnailCompressionAttempts = 2;
   static const kMaximumUploadAttempts = 4;
   static const kMaxFileSize10Gib = 10737418240;
-  static const kBlockedUploadsPollFrequency = Duration(seconds: 2);
   static const kFileUploadTimeout = Duration(minutes: 50);
   static const k20MBStorageBuffer = 20 * 1024 * 1024;
   static const _lastStaleFileCleanupTime = "lastStaleFileCleanupTime";
@@ -46,23 +43,12 @@ class FileUploader {
       LinkedHashMap<String, FileUploadItem>();
   final LinkedHashMap<String, BackupItem> _allBackups =
       LinkedHashMap<String, BackupItem>();
-  final kSafeBufferForLockExpiry = const Duration(hours: 4).inMicroseconds;
-  final kBGTaskDeathTimeout = const Duration(seconds: 5).inMicroseconds;
 
   LinkedHashMap<String, BackupItem> get allBackups => _allBackups;
 
-  // Maintains the count of files in the current upload session.
-  // Upload session is the period between the first entry into the _queue and last entry out of the _queue
-  int _totalCountInUploadSession = 0;
-
-  // _uploadCounter indicates number of uploads which are currently in progress
   int _uploadCounter = 0;
   late SharedPreferences _prefs;
 
-  // _hasInitiatedForceUpload is used to track if user attempted force upload
-  // where files are uploaded directly (without adding them to DB). In such
-  // cases, we don't want to clear the stale upload files. See #removeStaleFiles
-  // as it can result in clearing files which are still being force uploaded.
   final bool _hasInitiatedForceUpload = false;
 
   FileUploader._privateConstructor();
@@ -79,11 +65,19 @@ class FileUploader {
     }
   }
 
-  Future<EnteFile> upload(File file, Collection collection) {
-    _totalCountInUploadSession++;
+  Future<EnteFile> upload(
+    File file,
+    Collection collection, {
+    String? fileName,
+  }) {
     final String path = file.path;
     final completer = Completer<EnteFile>();
-    _queue[path] = FileUploadItem(file, collection, completer);
+    _queue[path] = FileUploadItem(
+      file,
+      collection,
+      completer,
+      fileName: fileName,
+    );
     _allBackups[path] = BackupItem(
       status: BackupItemStatus.inQueue,
       file: file,
@@ -95,7 +89,6 @@ class FileUploader {
     return completer.future;
   }
 
-  /// Special upload method for info files that contain only metadata
   Future<EnteFile> uploadInfoFile(
     EnteFile infoFile,
     Collection collection,
@@ -105,10 +98,8 @@ class FileUploader {
 
       _checkIfWithinFileCountLimit();
 
-      // Generate a file key for encryption
       final fileKey = CryptoUtil.generateKey();
 
-      // Create metadata for the info file
       final Map<String, dynamic> metadata = infoFile.metadata;
       final encryptedMetadataResult = await CryptoUtil.encryptData(
         utf8.encode(jsonEncode(metadata)),
@@ -122,23 +113,21 @@ class FileUploader {
         encryptedMetadataResult.header!,
       );
 
-      // Encrypt the file key with collection key
       final encryptedFileKeyData = CryptoUtil.encryptSync(
         fileKey,
         CryptoHelper.instance.getCollectionKey(collection),
       );
-      final encryptedKey =
-          CryptoUtil.bin2base64(encryptedFileKeyData.encryptedData!);
-      final keyDecryptionNonce =
-          CryptoUtil.bin2base64(encryptedFileKeyData.nonce!);
-
-      final pubMetadataRequest = await getPubMetadataRequest(
-        infoFile,
-        {'info': infoFile.pubMagicMetadata.info},
-        fileKey,
+      final encryptedKey = CryptoUtil.bin2base64(
+        encryptedFileKeyData.encryptedData!,
+      );
+      final keyDecryptionNonce = CryptoUtil.bin2base64(
+        encryptedFileKeyData.nonce!,
       );
 
-      // Upload as metadata-only file (no file content or thumbnail)
+      final pubMetadataRequest = await getPubMetadataRequest(infoFile, {
+        'info': infoFile.pubMagicMetadata.info,
+      }, fileKey);
+
       final uploadedFile = await _uploadInfoFileMetadata(
         infoFile,
         collection.id,
@@ -159,17 +148,13 @@ class FileUploader {
     }
   }
 
-  int getCurrentSessionUploadCount() {
-    return _totalCountInUploadSession;
-  }
-
   void clearQueue(final Error reason) {
     final List<String> uploadsToBeRemoved = [];
     _queue.entries
         .where((entry) => entry.value.status == UploadStatus.notStarted)
         .forEach((pendingUpload) {
-      uploadsToBeRemoved.add(pendingUpload.key);
-    });
+          uploadsToBeRemoved.add(pendingUpload.key);
+        });
     for (final id in uploadsToBeRemoved) {
       _queue.remove(id)?.completer.completeError(reason);
       _allBackups[id] = _allBackups[id]!.copyWith(
@@ -178,37 +163,10 @@ class FileUploader {
       );
       Bus.instance.fire(BackupUpdatedEvent(_allBackups));
     }
-    _totalCountInUploadSession = 0;
-  }
-
-  void removeFromQueueWhere(
-    final bool Function(File) fn,
-    final Error reason,
-  ) {
-    final List<String> uploadsToBeRemoved = [];
-    _queue.entries
-        .where((entry) => entry.value.status == UploadStatus.notStarted)
-        .forEach((pendingUpload) {
-      if (fn(pendingUpload.value.file)) {
-        uploadsToBeRemoved.add(pendingUpload.key);
-      }
-    });
-    for (final id in uploadsToBeRemoved) {
-      _queue.remove(id)?.completer.completeError(reason);
-      _allBackups[id] = _allBackups[id]!
-          .copyWith(status: BackupItemStatus.retry, error: reason);
-      Bus.instance.fire(BackupUpdatedEvent(_allBackups));
-    }
-    _logger.info(
-      'number of enteries removed from queue ${uploadsToBeRemoved.length}',
-    );
-    _totalCountInUploadSession -= uploadsToBeRemoved.length;
   }
 
   void _pollQueue() {
     if (_queue.isEmpty) {
-      // Upload session completed
-      _totalCountInUploadSession = 0;
       return;
     }
     if (_uploadCounter < kMaximumConcurrentUploads) {
@@ -220,12 +178,14 @@ class FileUploader {
       if (pendingEntry != null) {
         pendingEntry.status = UploadStatus.inProgress;
         _allBackups[pendingEntry.file.path] =
-            _allBackups[pendingEntry.file.path]!
-                .copyWith(status: BackupItemStatus.uploading);
+            _allBackups[pendingEntry.file.path]!.copyWith(
+              status: BackupItemStatus.uploading,
+            );
         Bus.instance.fire(BackupUpdatedEvent(_allBackups));
         _encryptAndUploadFileToCollection(
           pendingEntry.file,
           pendingEntry.collection,
+          fileName: pendingEntry.fileName,
         );
       }
     }
@@ -235,28 +195,37 @@ class FileUploader {
     File file,
     Collection collection, {
     bool forcedUpload = false,
+    String? fileName,
   }) async {
     _uploadCounter++;
     final path = file.path;
     try {
       final uploadedFile =
-          await _tryToUpload(file, collection, forcedUpload).timeout(
-        kFileUploadTimeout,
-        onTimeout: () {
-          const message = "Upload timed out for file";
-          _logger.warning(message);
-          throw TimeoutException(message);
-        },
-      );
+          await _tryToUpload(
+            file,
+            collection,
+            forcedUpload,
+            fileName: fileName,
+          ).timeout(
+            kFileUploadTimeout,
+            onTimeout: () {
+              const message = "Upload timed out for file";
+              _logger.warning(message);
+              throw TimeoutException(message);
+            },
+          );
       _queue.remove(path)!.completer.complete(uploadedFile);
-      _allBackups[path] =
-          _allBackups[path]!.copyWith(status: BackupItemStatus.uploaded);
+      _allBackups[path] = _allBackups[path]!.copyWith(
+        status: BackupItemStatus.uploaded,
+      );
       Bus.instance.fire(BackupUpdatedEvent(_allBackups));
       return uploadedFile;
     } catch (e) {
       _queue.remove(path)!.completer.completeError(e);
-      _allBackups[path] =
-          _allBackups[path]!.copyWith(status: BackupItemStatus.retry, error: e);
+      _allBackups[path] = _allBackups[path]!.copyWith(
+        status: BackupItemStatus.retry,
+        error: e,
+      );
       Bus.instance.fire(BackupUpdatedEvent(_allBackups));
       return null;
     } finally {
@@ -267,15 +236,11 @@ class FileUploader {
 
   Future<void> removeStaleFiles() async {
     if (_hasInitiatedForceUpload) {
-      _logger.info(
-        "Force upload was initiated, skipping stale file cleanup",
-      );
+      _logger.info("Force upload was initiated, skipping stale file cleanup");
       return;
     }
     try {
       final String dir = Configuration.instance.getTempDirectory();
-      // delete all files in the temp directory that start with upload_ and
-      // ends with .encrypted. Fetch files in async manner
       final files = await Directory(dir).list().toList();
       final filesToDelete = files.where((file) {
         return file.path.contains(uploadTempFilePrefix) &&
@@ -295,8 +260,9 @@ class FileUploader {
   Future<EnteFile> _tryToUpload(
     File file,
     Collection collection,
-    bool forcedUpload,
-  ) async {
+    bool forcedUpload, {
+    String? fileName,
+  }) async {
     if (_allBackups[file.path] != null &&
         _allBackups[file.path]!.status != BackupItemStatus.uploading) {
       _allBackups[file.path] = _allBackups[file.path]!.copyWith(
@@ -316,8 +282,6 @@ class FileUploader {
     late final int encFileSize;
 
     var uploadCompleted = false;
-    // This flag is used to decide whether to clear the iOS origin file cache
-    // or not.
     var uploadHardFailure = false;
     try {
       _logger.info('starting ${forcedUpload ? 'forced' : ''} upload');
@@ -326,11 +290,9 @@ class FileUploader {
       final encryptedFileExists = File(encryptedFilePath).existsSync();
 
       if (encryptedFileExists) {
-        // otherwise just delete the file for singlepart upload
         await File(encryptedFilePath).delete();
       }
 
-      // Validate source file before encryption
       final sourceFileSize = await file.length();
       if (sourceFileSize == 0) {
         throw Exception('Source file is empty (0 bytes)');
@@ -357,27 +319,21 @@ class FileUploader {
         await File(encryptedThumbnailPath).delete();
       }
       final encryptedThumbnailFile = File(encryptedThumbnailPath);
-      await encryptedThumbnailFile
-          .writeAsBytes(encryptedThumbnailData.encryptedData!);
+      await encryptedThumbnailFile.writeAsBytes(
+        encryptedThumbnailData.encryptedData!,
+      );
       final encThumbSize = await encryptedThumbnailFile.length();
 
-      // Validate file sizes before upload
       if (encFileSize == 0) {
-        throw Exception(
-          'Encrypted file size is 0',
-        );
+        throw Exception('Encrypted file size is 0');
       }
       if (encThumbSize == 0) {
-        throw Exception(
-          'Encrypted thumbnail size is 0',
-        );
+        throw Exception('Encrypted thumbnail size is 0');
       }
 
-      // Calculate MD5 hashes for checksum verification
       final thumbnailMd5 = await computeMd5(encryptedThumbnailPath);
       final fileMd5 = fileAttributes.fileMd5;
 
-      // Validate that MD5 was calculated during encryption
       if (fileMd5 == null || fileMd5.isEmpty) {
         throw Exception('File MD5 hash is null or empty');
       }
@@ -408,28 +364,32 @@ class FileUploader {
         fileMd5,
       );
 
-      final enteFile = EnteFile.fromFile(file);
+      final enteFile = EnteFile.fromFile(file, fileName: fileName);
 
       final encryptedMetadataResult = await CryptoUtil.encryptData(
         utf8.encode(jsonEncode(enteFile.metadata)),
         fileAttributes.key,
       );
       final fileDecryptionHeader = CryptoUtil.bin2base64(fileAttributes.header);
-      final thumbnailDecryptionHeader =
-          CryptoUtil.bin2base64(encryptedThumbnailData.header!);
+      final thumbnailDecryptionHeader = CryptoUtil.bin2base64(
+        encryptedThumbnailData.header!,
+      );
       final encryptedMetadata = CryptoUtil.bin2base64(
         encryptedMetadataResult.encryptedData!,
       );
-      final metadataDecryptionHeader =
-          CryptoUtil.bin2base64(encryptedMetadataResult.header!);
+      final metadataDecryptionHeader = CryptoUtil.bin2base64(
+        encryptedMetadataResult.header!,
+      );
       final encryptedFileKeyData = CryptoUtil.encryptSync(
         fileAttributes.key,
         CryptoHelper.instance.getCollectionKey(collection),
       );
-      final encryptedKey =
-          CryptoUtil.bin2base64(encryptedFileKeyData.encryptedData!);
-      final keyDecryptionNonce =
-          CryptoUtil.bin2base64(encryptedFileKeyData.nonce!);
+      final encryptedKey = CryptoUtil.bin2base64(
+        encryptedFileKeyData.encryptedData!,
+      );
+      final keyDecryptionNonce = CryptoUtil.bin2base64(
+        encryptedFileKeyData.nonce!,
+      );
       final Map<String, dynamic> pubMetadata = {};
       pubMetadata["noThumb"] = true;
       MetadataRequest? pubMetadataRequest;
@@ -475,7 +435,6 @@ class FileUploader {
           e is FileTooLargeForPlanError ||
           e is NoActiveSubscriptionError ||
           e is FileLimitReachedError)) {
-        // file upload can not be retried in such cases without user intervention
         uploadHardFailure = true;
       }
       rethrow;
@@ -495,13 +454,13 @@ class FileUploader {
     Map<String, dynamic> newData,
     Uint8List fileKey,
   ) async {
-    final Map<String, dynamic> jsonToUpdate =
-        jsonDecode(file.pubMmdEncodedJson ?? '{}');
+    final Map<String, dynamic> jsonToUpdate = jsonDecode(
+      file.pubMmdEncodedJson ?? '{}',
+    );
     newData.forEach((key, value) {
       jsonToUpdate[key] = value;
     });
 
-    // update the local information so that it's reflected on UI
     file.pubMmdEncodedJson = jsonEncode(jsonToUpdate);
     file.pubMagicMetadata = PubMagicMetadata.fromJson(jsonToUpdate);
     final encryptedMMd = await CryptoUtil.encryptData(
@@ -523,7 +482,6 @@ class FileUploader {
     String encryptedFilePath,
     String encryptedThumbnailPath,
   ) async {
-    // Note: Consider removing source file if upload has completed / failed
     if (File(encryptedFilePath).existsSync()) {
       await File(encryptedFilePath).delete();
     }
@@ -532,13 +490,6 @@ class FileUploader {
     }
   }
 
-  /*
-  _checkIfWithinFileCountLimit verifies if the user has reached their file count
-   limit. It throws FileLimitReachedError if the limit is reached. For family
-   plan users, it checks the combined family file count against the shared limit.
-   This check is best effort and may not be completely accurate due to UserDetail
-   cache.
-   */
   void _checkIfWithinFileCountLimit() {
     try {
       final userDetails = UserService.instance.getCachedUserDetails();
@@ -548,8 +499,8 @@ class FileUploader {
       final maxFileCount = _effectiveLockerFileLimit(userDetails);
       final currentFileCount =
           userDetails.isPartOfFamily() && userDetails.lockerFamilyUsage != null
-              ? userDetails.lockerFamilyUsage!.familyFileCount
-              : userDetails.fileCount;
+          ? userDetails.lockerFamilyUsage!.familyFileCount
+          : userDetails.fileCount;
       if (currentFileCount >= maxFileCount) {
         _logger.warning(
           'File count limit reached: currentFileCount $currentFileCount, '
@@ -574,22 +525,14 @@ class FileUploader {
     return currentLimit;
   }
 
-  /*
-  _checkIfWithinStorageLimit verifies if the file size for encryption and upload
-   is within the storage limit. It throws StorageLimitExceededError if the limit
-    is exceeded. This check is best effort and may not be completely accurate
-    due to UserDetail cache. It prevents infinite loops when clients attempt to
-    upload files that exceed the server's storage limit + buffer.
-    Note: Local storageBuffer is 20MB, server storageBuffer is 50MB, and an
-    additional 30MB is reserved for thumbnails and encryption overhead.
-   */
+  // Keep the client buffer 30 MB below the server buffer for thumbnail and
+  // encryption overhead. Cached user details make this check best-effort.
   Future<void> _checkIfWithinStorageLimit(File fileToBeUploaded) async {
     try {
       final userDetails = UserService.instance.getCachedUserDetails();
       if (userDetails == null) {
         return;
       }
-      // add k20MBStorageBuffer to the free storage
       final num freeStorage = userDetails.getFreeStorage() + k20MBStorageBuffer;
       final num fileSize = await fileToBeUploaded.length();
       if (fileSize > freeStorage) {
@@ -678,7 +621,6 @@ class FileUploader {
       } else if (statusCode == 426) {
         _onStorageLimitExceeded();
       } else if (attempt < kMaximumUploadAttempts && statusCode == -1) {
-        // retry when DioException contains no response/status code
         _logger.info("Upload failed, will retry in 3 seconds");
         await Future.delayed(const Duration(seconds: 3));
         return _uploadFile(
@@ -704,7 +646,6 @@ class FileUploader {
     }
   }
 
-  // Fetch a fresh upload URL for each file with content length and MD5
   Future<UploadURL> _getUploadURL({
     required int contentLength,
     required String md5,
@@ -712,14 +653,9 @@ class FileUploader {
     try {
       final response = await _enteDio.post(
         "/files/upload-url",
-        data: {
-          "contentLength": contentLength,
-          "contentMD5": md5,
-        },
+        data: {"contentLength": contentLength, "contentMD5": md5},
       );
-      return UploadURL.fromMap(
-        (response.data as Map).cast<String, dynamic>(),
-      );
+      return UploadURL.fromMap((response.data as Map).cast<String, dynamic>());
     } on DioException catch (e, s) {
       if (_isFileLimitReachedResponse(e.response)) {
         throw FileLimitReachedError();
@@ -771,10 +707,7 @@ class FileUploader {
         uploadURL.url,
         data: file.openRead(),
         options: Options(
-          headers: {
-            Headers.contentLengthHeader: fileSize,
-            'Content-MD5': md5,
-          },
+          headers: {Headers.contentLengthHeader: fileSize, 'Content-MD5': md5},
         ),
       );
       _logger.info(
@@ -805,7 +738,6 @@ class FileUploader {
     }
   }
 
-  /// Upload method specifically for info files that don't require file content or thumbnails
   Future<EnteFile> _uploadInfoFileMetadata(
     EnteFile file,
     int collectionID,
@@ -857,6 +789,7 @@ class FileUploader {
 
 class FileUploadItem {
   final File file;
+  final String? fileName;
   final Collection collection;
   final Completer<EnteFile> completer;
   UploadStatus status;
@@ -865,13 +798,9 @@ class FileUploadItem {
     this.file,
     this.collection,
     this.completer, {
+    this.fileName,
     this.status = UploadStatus.notStarted,
   });
 }
 
-enum UploadStatus { notStarted, inProgress, inBackground, completed }
-
-enum ProcessType {
-  background,
-  foreground,
-}
+enum UploadStatus { notStarted, inProgress }

@@ -1,102 +1,345 @@
 {
-  "ok": "ठीक है",
-  "@ok": {
-    "description": "Generic OK button label"
+  "account": "खाता",
+  "accountCredentials": "सीक्रेट",
+  "activeSessions": "एक्टिव सेशन",
+  "@activeSessions": {
+    "description": "Title for active sessions page"
   },
-  "faq": "अक्सर किये गए सवाल",
-  "@faq": {
-    "description": "FAQ link label"
+  "addTag": "टैग जोड़ें\n",
+  "all": "सभी",
+  "allTabEmptyHint": "यहाँ अभी कुछ नहीं है। कोड जोड़ने के लिए + पर टैप करें या किसी को पुनः प्राप्त करने के लिए ट्रैश खोलें।",
+  "@allTabEmptyHint": {
+    "description": "Shown when the All tab has no active codes but Trash contains codes"
   },
-  "contactSupport": "सपोर्ट टीम से संपर्क करें",
-  "@contactSupport": {
-    "description": "Contact support button label"
+  "areYouSureThatYouWantToLeaveTheFamily": "क्या आप सच में परिवार प्लान छोड़ना चाहते हैं?",
+  "authenticateGeneric": "कृपया प्रमाणीकरण करें",
+  "authToChangeEmailVerificationSetting": "ईमेल सत्यापन बदलने के लिए कृपया प्रमाणीकरण करें",
+  "authToChangeYourEmail": "अपना ईमेल बदलने के लिए कृपया प्रमाणीकरण करें",
+  "authToChangeYourPassword": "अपना पासवर्ड बदलने के लिए कृपया प्रमाणीकरण करें",
+  "authToInitiateSignIn": "बैकअप के लिए साइन इन शुरू करने के लिए कृपया प्रमाणीकरण करें\n",
+  "authToViewSecrets": "अपने गुप्त जानकारी देखने के लिए कृपया प्रमाणीकरण करें\n",
+  "@authToViewSecrets": {
+    "description": "Message prompting authentication to view secrets"
   },
+  "authToViewYourRecoveryKey": "अपनी पुनर्प्राप्ति कुंजी देखने के लिए कृपया प्रमाणीकरण करें",
+  "blog": "ब्लॉग",
+  "bothIssuerAndAccountCanNotBeEmpty": "दोनों इश्यूअर और अकाउंट ख़ाली नहीं हो सकते है",
   "cancel": "रद्द करें",
   "@cancel": {
     "description": "Cancel button label"
-  },
-  "reportABug": "बग रिपोर्ट करें",
-  "@reportABug": {
-    "description": "Label for reporting a bug"
-  },
-  "verify": "सत्यापित करें",
-  "@verify": {
-    "description": "Verify button label"
-  },
-  "pleaseWait": "कृपया प्रतीक्षा करें...",
-  "@pleaseWait": {
-    "description": "Please wait message"
-  },
-  "verifyPassword": "पासवर्ड सत्यापित करें",
-  "@verifyPassword": {
-    "description": "Verify password button label"
-  },
-  "incorrectPasswordTitle": "ग़लत पासवर्ड",
-  "@incorrectPasswordTitle": {
-    "description": "Title for incorrect password error"
-  },
-  "pleaseTryAgain": "कृपया पुन: प्रयास करें",
-  "@pleaseTryAgain": {
-    "description": "Message asking user to try again"
-  },
-  "enterYourPasswordHint": "अपना पासवर्ड दर्ज करें",
-  "@enterYourPasswordHint": {
-    "description": "Hint for password field"
-  },
-  "oops": "ओह",
-  "@oops": {
-    "description": "Oops error title"
-  },
-  "delete": "हटाएं",
-  "@delete": {
-    "description": "Delete button label"
-  },
-  "welcomeBack": "आपका पुनः स्वागत है!",
-  "@welcomeBack": {
-    "description": "Welcome back message"
-  },
-  "useRecoveryKey": "रिकवरी कुंजी का उपयोग करें",
-  "@useRecoveryKey": {
-    "description": "Use recovery key button label"
-  },
-  "forgotPassword": "पासवर्ड भूल गए",
-  "@forgotPassword": {
-    "description": "Forgot password link label"
   },
   "changeEmail": "ईमेल बदलें",
   "@changeEmail": {
     "description": "Change email button label"
   },
-  "verifyEmail": "ईमेल सत्यापित करें",
-  "@verifyEmail": {
-    "description": "Verify email title"
+  "changePassword": "पासवर्ड बदलें",
+  "changePasswordTitle": "पासवर्ड बदलें",
+  "@changePasswordTitle": {
+    "description": "Change password title"
   },
-  "generatingEncryptionKeysTitle": "एन्क्रिप्शन कुंजियाँ उत्पन्न हो रही हैं...",
-  "@generatingEncryptionKeysTitle": {
-    "description": "Generating encryption keys title"
+  "codeIssuerHint": "ज़ारीकर्ता",
+  "confirmPassword": "पासवर्ड की पुष्टि करें",
+  "@confirmPassword": {
+    "description": "Confirm password field label"
   },
-  "recoveryKey": "पुनःप्राप्ति कुंजी",
-  "@recoveryKey": {
-    "description": "Recovery key label"
+  "contactSupport": "सपोर्ट टीम से संपर्क करें",
+  "@contactSupport": {
+    "description": "Contact support button label"
   },
-  "twoFactorAuthTitle": "दो-चरणीय प्रमाणीकरण |",
-  "@twoFactorAuthTitle": {
-    "description": "Two-factor authentication title"
+  "copied": "कॉपी किया गया\n",
+  "crashAndErrorReporting": "क्रैश एवं त्रुटि रिपोर्टिंग",
+  "createAccount": "अकाउंट बनायें",
+  "@createAccount": {
+    "description": "Create account button label"
   },
-  "loggingOut": "लॉग आउट हो रहा है...",
-  "@loggingOut": {
-    "description": "Message shown while logging out"
+  "createAccountTitle": "एक अकाउंट बनाएँ",
+  "credentialName": "खाता",
+  "data": "डेटा",
+  "decrypting": "डिक्रिप्ट हो रहा है...",
+  "delete": "हटाएं",
+  "@delete": {
+    "description": "Delete button label"
+  },
+  "deleteCodeMessage": "क्या आप वाकई इस कोड को हटाना चाहते हैं? इस क्रिया को वापस नहीं किया जा सकता",
+  "deleteCodeTitle": "कोड डिलीट करें?",
+  "email": "ईमेल",
+  "@email": {
+    "description": "Email field label"
   },
   "emailAlreadyRegistered": "ईमेल पहले से ही पंजीकृत है।",
   "@emailAlreadyRegistered": {
     "description": "Error message when email is already registered"
   },
+  "emailHint": "अपना ईमेल ऐड्रेस डालें",
   "emailNotRegistered": "ईमेल पंजीकृत नहीं है।",
   "@emailNotRegistered": {
     "description": "Error message when email is not registered"
   },
+  "emailUsMessage": "कृपया हमें {email} पर ईमेल करें",
+  "@emailUsMessage": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "emailVerificationEnableWarning": "अपने खाते से लॉक होने से बचने के लिए, ईमेल सत्यापन सक्षम करने से पहले अपने ईमेल दो-चरणीय प्रमाणीकरण की एक प्रति एंट ऑथ के बाहर सुरक्षित रखें।",
+  "emailVerificationToggle": "ईमेल सत्यापन",
+  "enterCodeHint": "अपने ऑथेंटिकेटर ऐप से 6-अंकीय कोड दर्ज करें\n",
+  "@enterCodeHint": {
+    "description": "Hint for entering 2FA code"
+  },
+  "enterNewEmailHint": "अपना नया ईमेल पता दर्ज करें\n",
+  "@enterNewEmailHint": {
+    "description": "Hint text for entering new email address"
+  },
+  "enterRecoveryKeyHint": "अपनी पुनर्प्राप्ति कुंजी दर्ज करें\n",
+  "@enterRecoveryKeyHint": {
+    "description": "Hint for entering recovery key"
+  },
+  "enterValidEmail": "कृपया वैद्य ईमेल ऐड्रेस डालें",
+  "enterYourPassword": "अपना पासवर्ड दर्ज करें",
+  "enterYourPasswordHint": "अपना पासवर्ड दर्ज करें",
+  "@enterYourPasswordHint": {
+    "description": "Hint for password field"
+  },
+  "enterYourRecoveryKey": "अपनी रिकवरी कुंजी दर्ज करें",
+  "exportCodes": "कोड निर्यात करें",
+  "exportLogs": "लॉग एक्सपोर्ट करें",
+  "@exportLogs": {
+    "description": "Button to export logs"
+  },
+  "faq": "अक्सर किये गए सवाल",
+  "@faq": {
+    "description": "FAQ link label"
+  },
+  "featureBackupCodes": "पूर्ण रूप से कूटबद्ध\nबैकअप और समन्वयन",
+  "featureOpenSource": "ओपन सोर्स और\nसुरक्षा विशेषज्ञों द्वारा ऑडिट किया गया",
+  "featureSearchEtc": "खोज, टैग, साझा करें,\nअगला कोड और बहुत कुछ",
+  "forgotPassword": "पासवर्ड भूल गए",
+  "@forgotPassword": {
+    "description": "Forgot password link label"
+  },
+  "general": "सामान्य\n",
+  "generatingEncryptionKeysTitle": "एन्क्रिप्शन कुंजियाँ उत्पन्न हो रही हैं...",
+  "@generatingEncryptionKeysTitle": {
+    "description": "Generating encryption keys title"
+  },
+  "getStarted": "प्रारंभ करें",
+  "hintForDesktop": "कोड को संपादित करने या हटाने के लिए उस पर राइट क्लिक करें।",
+  "hintForMobile": "कोड को संपादित करने या हटाने के लिए उसे लंबी देर तक दबाए।",
+  "import2FasGuide": "2FAS में \"सेटिंग्स->बैकअप-एक्सपोर्ट\" विकल्प का उपयोग करें।\n\nयदि आपका बैकअप एन्क्रिप्टेड है, तो आपको बैकअप को डिक्रिप्ट करने के लिए पासवर्ड दर्ज करना होगा",
+  "importAccountPageTitle": "अकाउंट विवरण डालें",
+  "importAegisGuide": "Aegis की सेटिंग्स में \"एक्सपोर्ट द वॉल्ट\" विकल्प का उपयोग करें।\n\nयदि आपकी वॉल्ट एन्क्रिप्टेड है, तो आपको वॉल्ट को डिक्रिप्ट करने के लिए वॉल्ट पासवर्ड दर्ज करना होगा।",
+  "importBitwardenGuide": "बिटवर्डन टूल्स के भीतर \"एक्सपोर्ट वॉल्ट\" विकल्प का उपयोग करें और अनएन्क्रिप्टेड JSON फ़ाइल आयात करें।",
+  "importCodeDelimiterInfo": "कोड को कॉमा या नई पंक्ति से अलग किया जा सकता है।",
+  "importCodes": "कोड आयात करें",
+  "importEnteEncGuide": "Ente से निर्यात की गई एन्क्रिप्टेड JSON फ़ाइल का चयन करें",
+  "importInstruction": "कृपया वह फ़ाइल चुनें जिसमें आपके कोड निम्नलिखित प्रारूप में सूचीबद्ध हों",
+  "importLabel": "इंपोर्ट",
+  "importLastpassGuide": "LastPass Authenticator सेटिंग्स में “खाते स्थानांतरित करें” विकल्प का उपयोग करें और “खातों को फ़ाइल में निर्यात करें” दबाएँ। डाउनलोड की गई JSON फ़ाइल आयात करें।",
+  "importRaivoGuide": "Raivo की सेटिंग्स में \"एक्सपोर्ट ओटीपी टू जिप आर्काइव\" विकल्प का उपयोग करें।\n\nज़िप फ़ाइल निकालें और JSON फ़ाइल आयात करें।",
+  "importSelectAppExport": "{appName} की निर्यात फ़ाइल का चयन करें",
+  "@importSelectAppExport": {
+    "placeholders": {
+      "appName": {}
+    }
+  },
+  "importSelectJsonFile": "JSON फाइल चुनें",
+  "incorrectDetails": "ग़लत विवरण",
+  "incorrectPasswordTitle": "ग़लत पासवर्ड",
+  "@incorrectPasswordTitle": {
+    "description": "Title for incorrect password error"
+  },
+  "incorrectRecoveryKeyBody": "आपके द्वारा दर्ज रिकवरी कुंजी ग़लत है",
+  "incorrectRecoveryKeyTitle": "रिकवरी कुंजी ग़लत है",
+  "invalidEmailAddress": "अमान्य ईमेल ऐड्रेस",
+  "invalidEmailMessage": "कृपया एक मान्य ईमेल पता दर्ज करें\n",
+  "@invalidEmailMessage": {
+    "description": "Message for invalid email error dialog"
+  },
+  "invalidEmailTitle": "अमान्य ईमेल पता\n",
+  "@invalidEmailTitle": {
+    "description": "Title for invalid email error dialog"
+  },
+  "invalidQRCode": "अमान्य क्यूआर कोड",
+  "ok": "ठीक है",
+  "@ok": {
+    "description": "Generic OK button label"
+  },
+  "leaveFamily": "परिवार छोड़ें",
+  "loggingOut": "लॉग आउट हो रहा है...",
+  "@loggingOut": {
+    "description": "Message shown while logging out"
+  },
+  "loginWithTOTP": "TOTP (टाइम-बेस्ड वन-टाइम पासकोड) के साथ लॉगिन करें\n",
+  "@loginWithTOTP": {
+    "description": "Login with TOTP button label"
+  },
+  "lostDeviceTitle": "डिवाइस खो गया?\n",
+  "@lostDeviceTitle": {
+    "description": "Lost device title"
+  },
+  "merchandise": "मर्चेंडाइज़",
+  "nextTotpTitle": "अगला",
+  "no": "नहीं",
+  "noRecoveryKeyNoDecryption": "हमारे एंड-टू-एंड एन्क्रिप्शन प्रोटोकॉल की प्रकृति के कारण, आपके डेटा को आपके पासवर्ड या रिकवरी कुंजी के बिना डिक्रिप्ट नहीं किया जा सकता है",
+  "@noRecoveryKeyNoDecryption": {
+    "description": "Explanation that data cannot be decrypted without password or recovery key"
+  },
+  "noRecoveryKeyTitle": "कोई पुनर्प्राप्ति कुंजी नहीं है?\n",
+  "@noRecoveryKeyTitle": {
+    "description": "No recovery key title"
+  },
+  "notes": "नोट्स",
+  "notesLengthLimit": "नोट्स अधिकतम {count} अक्षर लम्बे हो सकते हैं",
+  "@notesLengthLimit": {
+    "description": "Text to indicate the maximum number of characters allowed for notes",
+    "placeholders": {
+      "count": {
+        "description": "The maximum number of characters allowed for notes",
+        "type": "int",
+        "example": "100"
+      }
+    }
+  },
+  "passkeyAuthTitle": "पासकी सत्यापन\n",
+  "@passkeyAuthTitle": {
+    "description": "Passkey authentication title"
+  },
+  "password": "पासवर्ड",
+  "@password": {
+    "description": "Password field label"
+  },
+  "passwordEmptyError": "पासवर्ड रिक्त नहीं हो सकता है",
+  "passwordForDecryptingExport": "डीक्रिप्ट करने के लिए पासवर्ड",
+  "passwordHint": "पासवर्ड",
+  "passwordTooShort": "पासवर्ड कम से कम 8 अक्षरों का होना चाहिए।",
+  "plainText": "साधारण टेक्स्ट",
+  "pleaseLoginAgain": "कृपया फिर से लॉगिन करें",
+  "pleaseTryAgain": "कृपया पुन: प्रयास करें",
+  "@pleaseTryAgain": {
+    "description": "Message asking user to try again"
+  },
+  "pleaseVerifyDetails": "कृपया विवरण सत्यापित करें और पुनः प्रयास करें",
+  "pleaseWait": "कृपया प्रतीक्षा करें...",
+  "@pleaseWait": {
+    "description": "Please wait message"
+  },
+  "preparingLogs": "लॉग तैयार किये जा रहे हैं...",
+  "qr": "क्यूआर",
+  "qrCode": "क्यूआर कोड",
+  "rateUsOnStore": "हमें {storeName} पर रेट करें",
+  "@rateUsOnStore": {
+    "placeholders": {
+      "storeName": {}
+    }
+  },
+  "recordNotes": "नोट्स",
+  "recover": "पुनर्प्राप्त करें\n",
+  "@recover": {
+    "description": "Recover button label"
+  },
+  "recoverAccount": "खाता पुनर्प्राप्त करें\n",
+  "@recoverAccount": {
+    "description": "Recover account button label"
+  },
+  "recoveryKey": "पुनःप्राप्ति कुंजी",
+  "@recoveryKey": {
+    "description": "Recovery key label"
+  },
+  "recoverySuccessful": "रिकवरी सफल हुई!",
+  "recreatePasswordTitle": "पासवर्ड दोबारा बनाएं",
+  "@recreatePasswordTitle": {
+    "description": "Title for recreate password dialog"
+  },
+  "reportABug": "बग रिपोर्ट करें",
+  "@reportABug": {
+    "description": "Label for reporting a bug"
+  },
+  "save": "सेव करें",
+  "@save": {
+    "description": "Label for save button"
+  },
+  "scan": "स्कैन करें",
+  "scanACode": "कोड स्कैन करें",
+  "scanAQrCode": "एक QR कोड स्कैन करें",
+  "secret": "सीक्रेट",
+  "secretCanNotBeEmpty": "सीक्रेट खाली नहीं हो सकता है",
+  "selectFile": "फ़ाइल का चयन करें",
+  "sendLogsDescription": "यह आपकी समस्या को सुलझाने में हमारी सहायता के लिए लॉग भेजेगा। हालाँकि हम यह सुनिश्चित करने के लिए सावधानी बरतते हैं कि संवेदनशील जानकारी लॉग न हो, हम आपको इन लॉग को साझा करने से पहले देखने के लिए प्रोत्साहित करते हैं।",
   "sessionExpired": "सत्र की अवधि समाप्त",
   "@sessionExpired": {
     "description": "Error message when session has expired"
-  }
+  },
+  "settings": "सेटिंग",
+  "setupFirstAccount": "अपना पहला\nखाता सेट करें",
+  "signUp": "पंजीकरण",
+  "somethingWentWrongMessage": "कुछ गड़बड़ हुई है, कृपया दोबारा प्रयास करें",
+  "somethingWentWrongPleaseTryAgain": "कुछ गड़बड़ हुई है। कृपया दोबारा प्रयास करें।",
+  "@somethingWentWrongPleaseTryAgain": {
+    "description": "Generic error message"
+  },
+  "sorry": "क्षमा करें!",
+  "suggestFeatures": "विशेषताएं सुझाएं",
+  "support": "सहायता\n",
+  "tag": "टैग",
+  "terminate": "रद्द करें",
+  "@terminate": {
+    "description": "Terminate button label"
+  },
+  "terminateSession": "सेशन रद्द करें?",
+  "@terminateSession": {
+    "description": "Title for terminate session dialog"
+  },
+  "thisDevice": "यह डिवाइस",
+  "@thisDevice": {
+    "description": "Label for current device"
+  },
+  "thisWillLogYouOutOfTheFollowingDevice": "इससे आप इन डिवाइसों से लॉग आउट हो जाएँगे:",
+  "@thisWillLogYouOutOfTheFollowingDevice": {
+    "description": "Warning message for logging out of another device"
+  },
+  "thisWillLogYouOutOfThisDevice": "इससे आप इस डिवाइस से लॉग आउट हो जाएँगे!",
+  "@thisWillLogYouOutOfThisDevice": {
+    "description": "Warning message for logging out of current device"
+  },
+  "toResetVerifyEmail": "अपना पासवर्ड रीसेट करने के लिए, कृपया पहले अपना ईमेल सत्यापित करें।",
+  "@toResetVerifyEmail": {
+    "description": "Message asking user to verify email before password reset"
+  },
+  "trash": "नष्ट करें",
+  "trashCode": "?",
+  "trashCodeMessage": "क्या आप वाकई {account} के लिए कोड नष्ट करना चाहते हैं?",
+  "@trashCodeMessage": {
+    "placeholders": {
+      "account": {}
+    }
+  },
+  "twoFactorAuthTitle": "दो-चरणीय प्रमाणीकरण |",
+  "@twoFactorAuthTitle": {
+    "description": "Two-factor authentication title"
+  },
+  "unlock": "खोलें",
+  "@unlock": {
+    "description": "Short action label used as the system authentication reason when unlocking the app"
+  },
+  "useRecoveryKey": "रिकवरी कुंजी का उपयोग करें",
+  "@useRecoveryKey": {
+    "description": "Use recovery key button label"
+  },
+  "verify": "सत्यापित करें",
+  "@verify": {
+    "description": "Verify button label"
+  },
+  "verifyEmail": "ईमेल सत्यापित करें",
+  "@verifyEmail": {
+    "description": "Verify email title"
+  },
+  "verifyPassword": "पासवर्ड सत्यापित करें",
+  "@verifyPassword": {
+    "description": "Verify password button label"
+  },
+  "viewLogsAction": "लॉग देखें",
+  "yes": "हाँ"
 }

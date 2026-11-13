@@ -1,10 +1,10 @@
-name: ente_photos_rust
+name: ente_photos_frb
 description: "Utility to build Rust code"
 version: 0.0.1
 publish_to: none
 
 environment:
-  sdk: ">=3.3.0 <4.0.0"
+  sdk: ">=3.10.0 <4.0.0"
   flutter: ">=3.3.0"
 
 dependencies:
@@ -15,7 +15,7 @@ dependencies:
 dev_dependencies:
   ffi: ^2.0.2
   ffigen: ^11.0.0
-  flutter_lints: ^2.0.0
+  flutter_lints: 6.0.0
   flutter_test:
     sdk: flutter
 

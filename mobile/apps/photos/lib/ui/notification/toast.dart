@@ -16,6 +16,7 @@ void showToast(
 }) async {
   if (Platform.isAndroid) {
     await Fluttertoast.cancel();
+    if (!context.mounted) return;
     unawaited(
       Fluttertoast.showToast(
         msg: message,
@@ -38,8 +39,9 @@ void showToast(
       EasyLoading.showToast(
         message,
         duration: Duration(
-          seconds:
-              (toastLength == Toast.LENGTH_LONG ? iosLongToastLengthInSec : 1),
+          seconds: (toastLength == Toast.LENGTH_LONG
+              ? iosLongToastLengthInSec
+              : 1),
         ),
         toastPosition: position,
         dismissOnTap: false,

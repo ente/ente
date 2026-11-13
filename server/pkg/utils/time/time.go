@@ -18,32 +18,26 @@ const (
 	hoursInOneDay    = 24
 )
 
-// Microseconds returns the time in micro seconds
 func Microseconds() int64 {
 	return time.Now().UnixNano() / 1000
 }
 
-// Nanoseconds returns the time in nano seconds
 func Nanoseconds() int64 {
 	return time.Now().UnixNano()
 }
 
-// MicrosecondsAfterHours returns the time in micro seconds after noOfHours
 func MicrosecondsAfterHours(noOfHours int32) int64 {
 	return Microseconds() + int64(noOfHours)*MicroSecondsInOneHour
 }
 
-// MicrosecondsAfterDays returns the time in micro seconds after noOfDays
 func MicrosecondsAfterDays(noOfDays int) int64 {
 	return Microseconds() + int64(noOfDays*24)*MicroSecondsInOneHour
 }
 
-// MicrosecondsBeforeDays returns the time in micro seconds before noOfDays
 func MicrosecondsBeforeDays(noOfDays int) int64 {
 	return Microseconds() - int64(noOfDays*24)*MicroSecondsInOneHour
 }
 
-// NDaysFromNow returns the time n days from now in micro seconds
 func NDaysFromNow(n int) int64 {
 	return time.Now().AddDate(0, 0, n).UnixNano() / 1000
 }
@@ -52,17 +46,14 @@ func NYearsFromNow(n int) int64 {
 	return time.Now().AddDate(n, 0, 0).UnixNano() / 1000
 }
 
-// NMinFromNow returns the time n min from now in micro seconds
 func NMinFromNow(n int64) int64 {
 	return time.Now().Add(time.Minute*time.Duration(n)).UnixNano() / 1000
 }
 
-// MicrosecondsBeforeMinutes returns the unix time n minutes before now in micro seconds
 func MicrosecondsBeforeMinutes(noOfMinutes int64) int64 {
 	return Microseconds() - (MicroSecondsInOneMinute * noOfMinutes)
 }
 
-// MicrosecondsAfterMinutes returns the unix time n minutes from now in micro seconds
 func MicrosecondsAfterMinutes(noOfMinutes int64) int64 {
 	return Microseconds() + (MicroSecondsInOneMinute * noOfMinutes)
 }

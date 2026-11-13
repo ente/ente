@@ -1,22 +1,24 @@
 import "dart:async";
 import "dart:io";
 
-import "package:exif_reader/exif_reader.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/events/files_updated_event.dart";
 import "package:photos/events/local_photos_updated_event.dart";
-import "package:photos/models/file/extensions/file_props.dart";
+import "package:photos/main.dart" show isProcessBg;
 import "package:photos/models/file/file.dart";
 import "package:photos/models/location/location.dart";
+import "package:photos/module/download/file.dart";
+import "package:photos/module/metadata/exif.dart";
+import "package:photos/module/metadata/local_file.dart";
+import 'package:photos/module/metadata/location.dart';
+import "package:photos/module/metadata/photo.dart";
 import "package:photos/service_locator.dart";
-import "package:photos/utils/exif_util.dart";
-import "package:photos/utils/file_uploader_util.dart";
-import "package:photos/utils/file_util.dart";
+import "package:photos/services/process_activity.dart";
 
 class OfflineImportMetadataService {
-  static const kProcessingVersion = 1;
+  static const kProcessingVersion = 3;
   static const kDefaultBatchSize = 25;
 
   final _logger = Logger("OfflineImportMetadataService");
@@ -28,11 +30,8 @@ class OfflineImportMetadataService {
 
   static final instance = OfflineImportMetadataService._privateConstructor();
 
-  Future<void> processPendingFiles({
-    int batchSize = kDefaultBatchSize,
-    int maxBatches = 4,
-  }) async {
-    if (!Platform.isAndroid || !isOfflineMode) {
+  Future<void> processPendingFiles({int batchSize = kDefaultBatchSize}) async {
+    if (!Platform.isAndroid || !isLocalGalleryMode) {
       return;
     }
     if (_running != null) {
@@ -42,25 +41,28 @@ class OfflineImportMetadataService {
 
     _running = Completer<void>();
     try {
-      for (var batch = 0; batch < maxBatches; batch++) {
-        if (!isOfflineMode) {
-          _logger.info(
-            "Offline mode disabled, stopping metadata processing",
-          );
+      ({int creationTime, int generatedID})? cursor;
+      while (isLocalGalleryMode) {
+        if (isProcessBg && await isForegroundEngineActive()) {
+          _logger.info("Foreground active, stopping background processing");
           return;
         }
-
         final files = await _db.getUnUploadedLocalFilesPendingOfflineProcessing(
           kProcessingVersion,
           limit: batchSize,
+          cursor: cursor,
         );
         if (files.isEmpty) {
           return;
         }
+        cursor = (
+          creationTime: files.last.creationTime!,
+          generatedID: files.last.generatedID!,
+        );
 
         final updatedFiles = <EnteFile>[];
         for (final file in files) {
-          if (!isOfflineMode) {
+          if (!isLocalGalleryMode) {
             _logger.info(
               "Offline mode disabled during per-file processing, stopping",
             );
@@ -89,6 +91,7 @@ class OfflineImportMetadataService {
           return;
         }
       }
+      _logger.info("Offline mode disabled, stopping metadata processing");
     } finally {
       _running?.complete();
       _running = null;
@@ -96,39 +99,50 @@ class OfflineImportMetadataService {
   }
 
   Future<bool> _processFile(EnteFile file) async {
-    File? originFile;
     try {
-      originFile = await getFile(file, isOrigin: true);
+      final originFile = await getFile(file, isOrigin: true);
       if (originFile == null || !originFile.existsSync()) {
         return false;
       }
 
       final fileSize = await originFile.length();
-      final exifData = await tryExifFromFile(originFile);
-      final exifTime = await tryParseExifDateTime(null, exifData);
+      final metadata = shouldReadExif(file)
+          ? await tryReadPhotoMetadata(originFile)
+          : null;
+      final dimensions = metadata?.dimensions;
+      if (dimensions != null) {
+        applyDisplayDimensions(file, dimensions.width, dimensions.height);
+      }
 
-      await _updateLocationForOfflineFile(
+      await _updateLocationAndDimensions(
         file,
         originFile,
-        exifData,
+        metadata?.embeddedLocation,
       );
 
-      final mediaUploadData = MediaUploadData(
-        originFile,
-        null,
-        false,
-        null,
-        exifData: exifData,
-      );
-      await file.getMetadataForUpload(mediaUploadData, exifTime);
+      applyCreationTimeMetadata(file, metadata?.creationDateTime);
+      if (metadata != null) {
+        applyMediaTypeMetadata(
+          file,
+          metadata.isPanorama,
+          metadata.motionVideoStart?.toInt(),
+        );
+      }
 
-      await _db.updateOfflineImportMetadataForLocalID(
+      final updated = await _db.updateOfflineImportMetadataForLocalID(
         file.localID!,
         processingVersion: kProcessingVersion,
+        modificationTime: file.modificationTime!,
         creationTime: file.creationTime,
         location: file.location,
         fileSize: fileSize,
+        mediaType: metadata == null ? null : file.pubMagicMetadata!.mediaType,
+        motionVideoIndex: metadata == null ? null : file.pubMagicMetadata!.mvi,
+        dimensions: file.hasDimensions
+            ? (width: file.width, height: file.height)
+            : null,
       );
+      if (!updated) return false;
 
       file.fileSize = fileSize;
       file.metadataVersion = kProcessingVersion;
@@ -136,46 +150,40 @@ class OfflineImportMetadataService {
     } catch (e, s) {
       _logger.warning("Failed to process ${file.tag}", e, s);
       return false;
-    } finally {
-      if (Platform.isIOS &&
-          originFile != null &&
-          !file.isSharedMediaToAppSandbox) {
-        try {
-          await originFile.delete();
-        } catch (_) {}
-      }
     }
   }
 
-  Future<void> _updateLocationForOfflineFile(
+  Future<void> _updateLocationAndDimensions(
     EnteFile file,
     File originFile,
-    Map<String, IfdTag>? exifData,
+    Location? embeddedLocation,
   ) async {
-    final shouldFetchAssetLocation = file.location == null ||
-        ((file.location?.latitude ?? 0) == 0 &&
-            (file.location?.longitude ?? 0) == 0);
-    if (shouldFetchAssetLocation) {
+    if (Location.isValidLocation(embeddedLocation)) {
+      file.location = embeddedLocation;
+    }
+    final shouldFetchAssetLocation = !Location.isValidLocation(file.location);
+    if (shouldFetchAssetLocation || !file.hasDimensions) {
       final asset = await file.getAsset;
       if (asset != null) {
-        final latLong = await asset.latlngAsync();
-        file.location =
-            Location(latitude: latLong.latitude, longitude: latLong.longitude);
+        if (!file.hasDimensions) {
+          applyDisplayDimensions(
+            file,
+            asset.orientatedWidth,
+            asset.orientatedHeight,
+          );
+        }
+        if (shouldFetchAssetLocation) {
+          final latLong = await asset.latlngAsync();
+          if (latLong != null) {
+            file.location = Location(
+              latitude: latLong.latitude,
+              longitude: latLong.longitude,
+            );
+          }
+        }
       }
     }
 
-    if (!file.hasLocation && file.isVideo && Platform.isAndroid) {
-      final props = await getVideoPropsAsync(originFile);
-      if (props?.location != null) {
-        file.location = props!.location;
-      }
-    }
-
-    if (Platform.isAndroid && exifData != null) {
-      final exifLocation = locationFromExif(exifData);
-      if (Location.isValidLocation(exifLocation)) {
-        file.location = exifLocation;
-      }
-    }
+    await updateLocationFromEmbeddedMetadata(file, originFile, null);
   }
 }

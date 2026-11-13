@@ -1,17 +1,11 @@
-import "package:flutter/material.dart";
-import "package:flutter/widgets.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/search/hierarchical/hierarchical_search_filter.dart";
 import "package:photos/models/search/search_types.dart";
 
-///Not necessary that all top level filters in hierarchical search have to be
-///a [TopLevelGenericFilter]. This is just a generic filter that can be used
-///for dates, descriptions etc which do not have a specific
-///[HierarchicalSearchFilter].
 class TopLevelGenericFilter extends HierarchicalSearchFilter {
   final String filterName;
   final int occurrence;
-  final IconData? filterIcon;
+  final SearchFilterIcon? filterIcon;
   final ResultType filterResultType;
 
   TopLevelGenericFilter({
@@ -46,7 +40,7 @@ class TopLevelGenericFilter extends HierarchicalSearchFilter {
   }
 
   @override
-  IconData? icon() {
+  SearchFilterIcon? icon() {
     return filterIcon;
   }
 

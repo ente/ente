@@ -11,11 +11,5 @@ Future<dynamic> showAssignPersonAction(
   EnteFile? file,
   bool showOptionToAddNewPerson = true,
 }) async {
-  return routeToPage(
-    context,
-    SaveOrEditPerson(
-      clusterID,
-      file: file,
-    ),
-  );
+  return routeToPage(context, SaveOrEditPerson(clusterID, file: file));
 }

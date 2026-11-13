@@ -1,0 +1,89 @@
+import { SpacePageMeta } from "components/PageMeta";
+import { SpaceRouteFallback } from "components/RouteFallback";
+import { savedPartialLocalUser } from "ente-accounts/services/accounts-db";
+import { isNamedError } from "ente-base/error";
+import log from "ente-base/log";
+import React, { useEffect, useState } from "react";
+import { VerifyTwoFactorScreen } from "screens/VerifyTwoFactorScreen";
+import { spaceAuthErrorMessage } from "services/auth-error";
+import { completeSpaceLoginSecondFactor } from "services/login";
+import { useSpaceAppState } from "state/app-state";
+import { spaceAppBackgroundColor } from "styles/colors";
+import { routeAfterCompletedLogin } from "utils/login-navigation";
+import { useSpaceRouter } from "utils/route-transitions";
+import { spaceRoutes } from "utils/routes";
+
+const twoFactorErrorMessage = (error: unknown) => {
+    if (isNamedError(error, "incorrect_totp")) {
+        return "Incorrect code. Please try again.";
+    }
+    if (isNamedError(error, "session_expired")) {
+        return "Login session expired. Please sign in again.";
+    }
+    return spaceAuthErrorMessage(
+        error,
+        "Couldn't verify this code. Please try again.",
+    );
+};
+
+const isExpectedTwoFactorError = (error: unknown) =>
+    isNamedError(error, "incorrect_totp") ||
+    isNamedError(error, "session_expired");
+
+const Page: React.FC = () => {
+    const router = useSpaceRouter();
+    const { refreshProfile } = useSpaceAppState();
+    const [codeResetKey, setCodeResetKey] = useState(0);
+    const [twoFactorSessionID, setTwoFactorSessionID] = useState("");
+    const [errorMessage, setErrorMessage] = useState<string>();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    useEffect(() => {
+        const user = savedPartialLocalUser();
+        if (!user?.email || !user.twoFactorSessionID) {
+            void router.replace(spaceRoutes.login);
+            return;
+        }
+
+        setTwoFactorSessionID(user.twoFactorSessionID);
+    }, [router]);
+
+    const verifySecondFactor = async (code: string) => {
+        if (!twoFactorSessionID) return;
+
+        setIsSubmitting(true);
+        setErrorMessage(undefined);
+        try {
+            await completeSpaceLoginSecondFactor(code, twoFactorSessionID);
+            await routeAfterCompletedLogin(router, refreshProfile);
+        } catch (error) {
+            if (!isExpectedTwoFactorError(error)) {
+                log.error("Space 2FA verification failed", error);
+            }
+            if (isNamedError(error, "incorrect_totp")) {
+                setCodeResetKey((key) => key + 1);
+            }
+            setErrorMessage(twoFactorErrorMessage(error));
+            setIsSubmitting(false);
+        }
+    };
+
+    if (!twoFactorSessionID) {
+        return <SpaceRouteFallback background={spaceAppBackgroundColor} />;
+    }
+
+    return (
+        <>
+            <SpacePageMeta themeColor={spaceAppBackgroundColor} />
+            <VerifyTwoFactorScreen
+                codeResetKey={codeResetKey}
+                errorMessage={errorMessage}
+                isSubmitting={isSubmitting}
+                onBack={() => void router.back(spaceRoutes.login)}
+                onVerify={(code) => void verifySecondFactor(code)}
+            />
+        </>
+    );
+};
+
+export default Page;

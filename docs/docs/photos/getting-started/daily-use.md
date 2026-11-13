@@ -14,14 +14,15 @@ The first time you open Ente Photos on a mobile device, you'll be prompted to se
 **On mobile (iOS/Android):**
 
 1. When you first open the app, a list of albums from your device's photo library appears
-2. Select the albums to automatically back up (most people choose "Camera Roll" or "All Photos")
+2. Select the albums to automatically back up:
+    - **On iOS:** choose **Recents**. It contains every photo and video in your library, so you don't need to also select Live Photos, Portraits, Screenshots, or other system albums. See [On iOS, which album should I back up to capture everything?](/photos/faq/backup-and-sync#ios-which-album-to-backup)
+    - **On Android:** choose **Camera** for photos taken with your phone, plus any other folders you want to keep, such as Screenshots or WhatsApp images. Folder names vary by device.
 3. Tap to confirm your selection
 4. Your selected albums will now back up automatically
 
 You can change backed up albums later in **Settings > Backup > Backed up folders**.
 
-**On desktop:**
-Desktop works differently - instead of albums, you set up [watch folders](/photos/features/backup-and-sync/watch-folders) that automatically sync whenever files are added or deleted.
+**On desktop:** Desktop works differently - instead of albums, you set up [watch folders](/photos/features/backup-and-sync/watch-folders) that automatically sync whenever files are added or deleted.
 
 ## Understanding automatic backup
 
@@ -37,7 +38,7 @@ Once you've selected your albums, Ente will:
 **On mobile:**
 
 - **WiFi vs mobile data**: Open `Settings > Backup` and toggle "Backup over mobile data" if you want to back up without WiFi
-- **Background backup**: On iOS, videos won't backup in background - keep the app open for large video uploads
+- **Background backup**: On iOS, use [Backup mode](/photos/features/backup-and-sync/#backup-mode-ios) for large video uploads
 - **Battery optimization**: On Android, disable battery optimization for Ente to ensure reliable background backup
 
 The initial backup of your existing photos may take some time depending on how many photos you have. Subsequent backups of new photos happen quickly in the background.
@@ -54,13 +55,15 @@ Machine learning powers search in Ente Photos, allowing you to search for photos
 
 **How to enable:**
 
-**On mobile:**
-Open `Settings > Machine learning` and enable "Machine learning" and/or "Local indexing".
+**On mobile:** Open `Settings > Machine learning` and enable "Machine learning" and/or "Local indexing".
 
-**On desktop:**
-Open `Settings > Preferences > Machine learning` and enable "Machine learning" and/or "Local indexing".
+![Mobile: home with Settings menu (three bars) highlighted, then Machine learning, then the Machine learning page](https://docs-assets.ente.com/screenshots/phone-settings-ml-path-nc.png){width=560px}
 
-> **Note**: Machine learning is not available on the web app. You must use mobile or desktop apps.
+**On desktop:** Open `Settings > Preferences > Machine learning` and enable "Machine learning" and/or "Local indexing".
+
+> [!NOTE]
+>
+> Machine learning is not available on the web app. You must use mobile or desktop apps.
 
 **What happens next:**
 
@@ -70,7 +73,9 @@ After enabling, the app will download and process your photos locally on your de
 - Desktop computers process faster than mobile devices
 - Indexes are encrypted and synced to your other devices
 
-> **Tip**: If you have a large library, enable machine learning on desktop first for faster indexing. Once complete, the indexes sync to your mobile devices.
+> [!TIP]
+>
+> If you have a large library, enable machine learning on desktop first for faster indexing. Once complete, the indexes sync to your mobile devices.
 
 Learn more in the [Machine learning guide](/photos/features/search-and-discovery/machine-learning).
 

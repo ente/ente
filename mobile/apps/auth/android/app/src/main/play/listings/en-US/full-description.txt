@@ -1,34 +1,44 @@
-Ente Auth helps you generate and store 2 step verification (2FA) tokens on your mobile devices.
+Ente Auth is the best and the only 2FA authenticator app you will ever need. It provides secure, end-to-end encrypted backup to your codes, works across devices whether its Android, iOS, Mac, Windows, Linux or Web. It also offers quality of life features like Tap to Copy, Next Code, and even allows you to share your codes securely with others.
 
+Our customers absolutely love it.
 
-FEATURES
+- It works everywhere and can either be used in the cloud with end-to-end encryption or on a single device without the need for an account. Ente’s UI is well thought out and easy to use. Plus it even shows you the next code if the current one is about to expire so you dont have to wait for it to roll over before your start typing. You can even pin, tag, and search your codes which makes it a lot easier to manage a big list compared to Google Authenticator. They call it a labour of love on their Github page, and it really looks like one. - Linus Tech Tips
 
-- Secure Backups
-Auth provides end-to-end encrypted cloud backups so that you don't have to worry about losing your tokens. We use the same protocols Ente Photos uses to encrypt and preserve your data.
+- Underrated but great authenticator app. Free, open source, and offers cloud backup. Very stable, has nice QoL features like the preview for the next code and the search bar. Overall, the best 2FA app I've used yet. - Luna Lometta
 
-- Multi Device Synchronization
-Auth will automatically sync the 2FA tokens you add to your account, across all your devices. Every new device you sign into will have access to these tokens.
+- Fantastic, fluid, has a dark theme, is open source, and also has a PC program. I switched from Authy to Ente Auth precisely for this reason, and I was surprised since the app as a whole is better and faster. - Daniel Ramos
 
-- Web access
-You can access your 2FA code from any web browser by visiting https://auth.ente.io .
+- Better than Google Authenticator. - Piaw Piaw Kittens
 
-- Offline Mode
-Auth generates 2FA tokens offline, so your network connectivity will not get in the way of your workflow.
+- Authy's best replacement. Open source, desktop support, synchronization, convenient token export. Huge thanks to the developers, I hope your product will become popular and famous. - Sergey Tverye
 
-- Import and Export Tokens
-You can add tokens to Auth by one of the following methods: 
-1. Scanning a QR code
-2. Manually entering (copy-pasting) a 2FA secret
-3. Bulk importing from a file that contains a list of codes in the following format:
+Ente Auth is recommended by Linus Tech Tips, CERN, Zerodha and many others.
 
-otpauth://totp/provider.com:you@email.com?secret=YOUR_SECRET
+✨ Features
 
-The codes maybe separated by new lines or commas.
+EASY IMPORT
+Add TOTP 2FA Codes to Ente Auth easily. You can either scan a QR code, or import from other authenticator apps to make sure you never lose a code while migrating
 
-You can also export the codes you have added to Auth, to an **unencrypted** text file, that adheres to the above format.
+CROSS PLATFORM
+Ente Auth is available cross platform and supports all major devices and OS - including Android, iOS, Mac, Windows, Linux and Web.
 
+SECURE E2EE BACKUP
+Ente Auth provides end-to-end encrypted cloud backups so that you don't have to worry about losing your tokens. We use the same protocols Ente Photos uses to encrypt and preserve your data.
 
-SUPPORT
+OFFLINE MODE - NO SIGNUP REQUIRED
+Ente Auth generates 2FA tokens offline, so your network connectivity will not get in the way of your workflow. You can even use Ente Auth without signing up for backups and use it locally for as long as you want
 
-If you need help, please write to support@ente.io, and someone will get in touch with you.
-If you have feature requests, please visit @ https://github.com/ente-io/ente/discussions/categories/enhancements
+INTUITIVE SEARCH
+Ente Auth allows you to find your 2FA codes through one tap search. No more scrolling through a long list to find the right codes. Just tap on search and start typing.
+
+CUSTOMISE YOUR EXPERIENCE
+Customise your experience of Ente Auth to make it like you want. Reorder your 2FA codes so that your most frequently used services are always on top. Change the icons by choosing from our massive icon library. Add tags so that you can filter codes like you want
+
+SEE NEXT CODE
+Ever had to pause for the timer to run out on the current code, so you can type in the new 2FA code? Ente Auth makes your workflow extremely fast by displaying the next code prominently. Say goodbye to waiting
+
+SHARE 2FA CODE
+We all have sent multiple messages to that colleague who keeps asking for the 2FA code to a shared account. Such a waste of productive time. With Ente Auth, you can securely share your 2FA tokens as a link. You can even set an expiry time for the link as well.
+
+ADD NOTES
+Use notes to save any additional information including recovery codes. All notes are backed up with end to end encryption so you dont have to worry about losing them.

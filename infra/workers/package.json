@@ -2,13 +2,13 @@
     "name": "workers",
     "private": true,
     "devDependencies": {
-        "@cloudflare/workers-types": "^4.20250603.0",
-        "typescript": "^5.8.3",
-        "wrangler": "^4.18.0",
-        "prettier": "^3.5.3"
+        "@cloudflare/workers-types": "5.20261023.1",
+        "prettier": "3.9.6",
+        "typescript": "6.0.3",
+        "wrangler": "4.154.0"
     },
     "workspaces": [
         "*"
     ],
-    "packageManager": "yarn@1.22.22"
+    "packageManager": "npm@11.12.1"
 }

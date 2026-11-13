@@ -1,3 +1,4 @@
+import "./prepare-voice-runtime.mjs";
 import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -14,10 +15,11 @@ const port = process.env.ENSU_TAURI_PORT || process.env.PORT || "3010";
 
 const rawConfig = await fs.readFile(tauriConfigPath, "utf8");
 const config = JSON.parse(rawConfig);
+const desktopVersion = config.version;
+if (!desktopVersion) throw new Error("Missing Ensu desktop version");
 
 config.build = config.build || {};
-config.build.beforeDevCommand =
-    `cd ../../../web && yarn build:wasm && yarn workspace ensu next dev -p ${port}`;
+config.build.beforeDevCommand = `node ../../../web/scripts/check-deps.mjs && cd ../../../web && npm run build:ensu-wasm && NEXT_PUBLIC_ENSU_DESKTOP_VERSION=${desktopVersion} npm exec --workspace ensu -- next dev --webpack -p ${port}`;
 config.build.devUrl = `http://localhost:${port}`;
 
 await fs.writeFile(devConfigPath, JSON.stringify(config, null, 2));

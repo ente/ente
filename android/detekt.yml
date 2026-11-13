@@ -1,0 +1,53 @@
+config:
+  warningsAsErrors: true
+
+complexity:
+  active: false
+
+coroutines:
+  InjectDispatcher:
+    active: false
+  GlobalCoroutineUsage:
+    active: true
+  SuspendFunSwallowedCancellation:
+    active: true
+
+exceptions:
+  TooGenericExceptionCaught:
+    active: false
+
+naming:
+  FunctionNaming:
+    ignoreAnnotated: ['Composable']
+  TopLevelPropertyNaming:
+    constantPattern: '[A-Z][A-Za-z0-9_]*'
+
+potential-bugs:
+  CastToNullableType:
+    active: true
+  CharArrayToStringCall:
+    active: true
+  ElseCaseInsteadOfExhaustiveWhen:
+    active: true
+  UnnecessaryNotNullCheck:
+    active: true
+  UnsafeCallOnNullableType:
+    excludes: []
+
+style:
+  DestructuringDeclarationWithTooManyEntries:
+    active: false
+  ForbiddenComment:
+    active: false
+  LoopWithTooManyJumpStatements:
+    active: false
+  MagicNumber:
+    active: false
+  MaxLineLength:
+    active: false
+  ReturnCount:
+    active: false
+  ThrowsCount:
+    active: false
+  UnusedPrivateFunction:
+    ignoreAnnotated: ['Preview']

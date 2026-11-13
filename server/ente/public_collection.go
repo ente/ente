@@ -4,11 +4,10 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
-	"github.com/ente-io/museum/pkg/utils/time"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/pkg/utils/time"
+	"github.com/ente/stacktrace"
 )
 
-// CreatePublicAccessTokenRequest payload for creating accessToken for public albums
 type CreatePublicAccessTokenRequest struct {
 	CollectionID  int64 `json:"collectionID" binding:"required"`
 	EnableCollect bool  `json:"enableCollect"`
@@ -17,6 +16,10 @@ type CreatePublicAccessTokenRequest struct {
 	EnableJoin  *bool `json:"enableJoin"`
 	ValidTill   int64 `json:"validTill"`
 	DeviceLimit int   `json:"deviceLimit"`
+}
+
+func (ct *CreatePublicAccessTokenRequest) Validate() error {
+	return validatePublicLinkDeviceLimit(ct.DeviceLimit)
 }
 
 type UpdatePublicAccessTokenRequest struct {
@@ -41,8 +44,10 @@ func (ut *UpdatePublicAccessTokenRequest) Validate() error {
 		return NewBadRequestWithMessage("all parameters are missing")
 	}
 
-	if ut.DeviceLimit != nil && (*ut.DeviceLimit < 0 || *ut.DeviceLimit > 50) {
-		return NewBadRequestWithMessage(fmt.Sprintf("device limit: %d out of range [0-50]", *ut.DeviceLimit))
+	if ut.DeviceLimit != nil {
+		if err := validatePublicLinkDeviceLimit(*ut.DeviceLimit); err != nil {
+			return err
+		}
 	}
 
 	if ut.ValidTill != nil && *ut.ValidTill != 0 && *ut.ValidTill < time.Microseconds() {
@@ -55,6 +60,9 @@ func (ut *UpdatePublicAccessTokenRequest) Validate() error {
 	if !(allPassParamsMissing || allPassParamsPresent) {
 		return NewBadRequestWithMessage("all password params should be either present or missing")
 	}
+	if err := validatePublicLinkKDFParams(ut.MemLimit, ut.OpsLimit); err != nil {
+		return err
+	}
 
 	if allPassParamsPresent && ut.DisablePassword != nil && *ut.DisablePassword {
 		return NewBadRequestWithMessage("can not set and disable password in same request")
@@ -62,6 +70,23 @@ func (ut *UpdatePublicAccessTokenRequest) Validate() error {
 
 	if ut.MinRole != nil && !ut.MinRole.IsValidShareRole() {
 		return NewBadRequestWithMessage(fmt.Sprintf("invalid min role %s", *ut.MinRole))
+	}
+	return nil
+}
+
+func validatePublicLinkDeviceLimit(deviceLimit int) error {
+	if deviceLimit < 0 || deviceLimit > 50 {
+		return NewBadRequestWithMessage(fmt.Sprintf("device limit: %d out of range [0-50]", deviceLimit))
+	}
+	return nil
+}
+
+func validatePublicLinkKDFParams(memLimit, opsLimit *int64) error {
+	if memLimit == nil && opsLimit == nil {
+		return nil
+	}
+	if memLimit == nil || opsLimit == nil || *memLimit != 67108864 || *opsLimit != 2 {
+		return NewBadRequestWithMessage("invalid KDF parameters")
 	}
 	return nil
 }
@@ -74,7 +99,6 @@ type VerifyPasswordResponse struct {
 	JWTToken string `json:"jwtToken"`
 }
 
-// CollectionLinkRow represents row entity for public_collection_token table
 type CollectionLinkRow struct {
 	ID             int64
 	CollectionID   int64
@@ -109,22 +133,19 @@ func (p CollectionLinkRow) CanJoin() error {
 	return nil
 }
 
-// PublicURL represents information about non-disabled public url for a collection
 type PublicURL struct {
-	URL            string `json:"url"`
-	DeviceLimit    int    `json:"deviceLimit"`
-	ValidTill      int64  `json:"validTill"`
-	EnableDownload bool   `json:"enableDownload"`
-	// Enable collect indicates whether folks can upload files in a publicly shared url
-	EnableCollect   bool `json:"enableCollect"`
-	EnableComment   bool `json:"enableComment"`
-	PasswordEnabled bool `json:"passwordEnabled"`
-	// Nonce contains the nonce value for the password if the link is password protected.
-	Nonce      *string                    `json:"nonce,omitempty"`
-	MemLimit   *int64                     `json:"memLimit,omitempty"`
-	OpsLimit   *int64                     `json:"opsLimit,omitempty"`
-	EnableJoin bool                       `json:"enableJoin"`
-	MinRole    *CollectionParticipantRole `json:"minRole,omitempty"`
+	URL             string                     `json:"url"`
+	DeviceLimit     int                        `json:"deviceLimit"`
+	ValidTill       int64                      `json:"validTill"`
+	EnableDownload  bool                       `json:"enableDownload"`
+	EnableCollect   bool                       `json:"enableCollect"`
+	EnableComment   bool                       `json:"enableComment"`
+	PasswordEnabled bool                       `json:"passwordEnabled"`
+	Nonce           *string                    `json:"nonce,omitempty"`
+	MemLimit        *int64                     `json:"memLimit,omitempty"`
+	OpsLimit        *int64                     `json:"opsLimit,omitempty"`
+	EnableJoin      bool                       `json:"enableJoin"`
+	MinRole         *CollectionParticipantRole `json:"minRole,omitempty"`
 }
 
 type PublicAccessContext struct {
@@ -148,7 +169,6 @@ func FilterPublicURLsForRole(urls []PublicURL, role CollectionParticipantRole) [
 	return result
 }
 
-// PublicCollectionSummary represents an information about a public collection
 type PublicCollectionSummary struct {
 	ID                int64
 	CollectionID      int64
@@ -158,9 +178,8 @@ type PublicCollectionSummary struct {
 	CreatedAt         int64
 	UpdatedAt         int64
 	DeviceAccessCount int
-	// not empty value of passHash indicates that the link is password protected.
-	PassHash      *string
-	EnableComment bool
+	PassHash          *string
+	EnableComment     bool
 }
 
 type AbuseReportRequest struct {
@@ -180,7 +199,7 @@ type AbuseReportDetails struct {
 }
 
 type ReporterAddress struct {
-	Stress     string `json:"street" binding:"required"`
+	Street     string `json:"street" binding:"required"`
 	City       string `json:"city" binding:"required"`
 	State      string `json:"state" binding:"required"`
 	Country    string `json:"country" binding:"required"`
@@ -188,14 +207,10 @@ type ReporterAddress struct {
 	Phone      string `json:"phone" binding:"required"`
 }
 
-// Value implements the driver.Valuer interface. This method
-// simply returns the JSON-encoded representation of the struct.
 func (ca AbuseReportDetails) Value() (driver.Value, error) {
 	return json.Marshal(ca)
 }
 
-// Scan implements the sql.Scanner interface. This method
-// simply decodes a JSON-encoded value into the struct fields.
 func (ca *AbuseReportDetails) Scan(value interface{}) error {
 	b, ok := value.([]byte)
 	if !ok {
@@ -205,14 +220,10 @@ func (ca *AbuseReportDetails) Scan(value interface{}) error {
 	return json.Unmarshal(b, &ca)
 }
 
-// Value implements the driver.Valuer interface. This method
-// simply returns the JSON-encoded representation of the struct.
 func (ca ReporterAddress) Value() (driver.Value, error) {
 	return json.Marshal(ca)
 }
 
-// Scan implements the sql.Scanner interface. This method
-// simply decodes a JSON-encoded value into the struct fields.
 func (ca *ReporterAddress) Scan(value interface{}) error {
 	b, ok := value.([]byte)
 	if !ok {

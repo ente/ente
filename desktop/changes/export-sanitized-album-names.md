@@ -1,0 +1,1 @@
+- Fixed export folder names for albums with special characters. - @Sriram-PR

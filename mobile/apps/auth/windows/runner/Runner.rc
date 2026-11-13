@@ -93,7 +93,7 @@ BEGIN
             VALUE "FileDescription", "Ente Auth" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "Ente Auth" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2024 Ente Technologies, Inc.. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2024 Ente Technologies, Inc. All rights reserved." "\0"
             VALUE "OriginalFilename", "auth.exe" "\0"
             VALUE "ProductName", "Ente Auth" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"

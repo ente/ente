@@ -1,0 +1,10 @@
+appId: io.ente.locker
+env:
+  ITEM_NAME: ${ITEM_NAME || "automatedItem"}
+---
+- longPressOn: ${ITEM_NAME}
+- tapOn: Delete
+- tapOn: Yes, delete item
+- extendedWaitUntil:
+    visible: "Item deleted successfully"
+    timeout: 10000

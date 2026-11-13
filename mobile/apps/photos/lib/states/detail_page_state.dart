@@ -2,15 +2,32 @@ import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:photos/models/file/file.dart";
 
-enum FullScreenRequestReason {
-  userInteraction,
-  playbackStateChange,
+// Scale is relative to the contained image; offset is in logical pixels.
+@immutable
+class ZoomTransform {
+  static const ZoomTransform identity = ZoomTransform(
+    scale: 1.0,
+    offset: Offset.zero,
+  );
+
+  final double scale;
+  final Offset offset;
+
+  const ZoomTransform({required this.scale, required this.offset});
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ZoomTransform && other.scale == scale && other.offset == offset;
+
+  @override
+  int get hashCode => Object.hash(scale, offset);
 }
 
-typedef FullScreenRequestCallback = void Function(
-  bool shouldEnable,
-  FullScreenRequestReason reason,
-);
+enum FullScreenRequestReason { userInteraction, playbackStateChange }
+
+typedef FullScreenRequestCallback =
+    void Function(bool shouldEnable, FullScreenRequestReason reason);
 
 String? detailPageFileIdentifier(EnteFile file) {
   if (file.uploadedFileID != null) {
@@ -28,11 +45,11 @@ String? detailPageFileIdentifier(EnteFile file) {
 class InheritedDetailPageState extends InheritedWidget {
   final ValueNotifier<bool> enableFullScreenNotifier;
   final ValueNotifier<bool> isInSharedCollectionNotifier;
-
-  /// Holds the stable identifier of the file currently showing thumbnail
-  /// fallback. Only the file with matching ID should display the indicator.
   final ValueNotifier<String?> showingThumbnailFallbackNotifier;
-  // Cannot be const because we accept a ValueNotifier instance at runtime
+  final ValueNotifier<bool> isZoomedNotifier;
+  final ValueNotifier<ZoomTransform> zoomTransformNotifier;
+  final ValueNotifier<double> bottomControlsAdditionalInsetNotifier;
+
   // ignore: prefer_const_constructors_in_immutables
   InheritedDetailPageState({
     super.key,
@@ -40,6 +57,9 @@ class InheritedDetailPageState extends InheritedWidget {
     required this.enableFullScreenNotifier,
     required this.isInSharedCollectionNotifier,
     required this.showingThumbnailFallbackNotifier,
+    required this.isZoomedNotifier,
+    required this.zoomTransformNotifier,
+    required this.bottomControlsAdditionalInsetNotifier,
   });
 
   static InheritedDetailPageState of(BuildContext context) =>
@@ -72,10 +92,7 @@ class InheritedDetailPageState extends InheritedWidget {
     enableFullScreenNotifier.value = shouldEnable;
     if (shouldEnable) {
       Future.delayed(const Duration(milliseconds: 200), () {
-        SystemChrome.setEnabledSystemUIMode(
-          SystemUiMode.manual,
-          overlays: [],
-        );
+        SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
       });
     } else {
       SystemChrome.setEnabledSystemUIMode(
@@ -90,5 +107,9 @@ class InheritedDetailPageState extends InheritedWidget {
       oldWidget.enableFullScreenNotifier != enableFullScreenNotifier ||
       oldWidget.isInSharedCollectionNotifier != isInSharedCollectionNotifier ||
       oldWidget.showingThumbnailFallbackNotifier !=
-          showingThumbnailFallbackNotifier;
+          showingThumbnailFallbackNotifier ||
+      oldWidget.isZoomedNotifier != isZoomedNotifier ||
+      oldWidget.zoomTransformNotifier != zoomTransformNotifier ||
+      oldWidget.bottomControlsAdditionalInsetNotifier !=
+          bottomControlsAdditionalInsetNotifier;
 }

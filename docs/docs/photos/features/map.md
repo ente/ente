@@ -1,10 +1,14 @@
 ---
-title: This Page Has Moved
-description: This content has been reorganized
+title: Map
+description: View your photos on a map in Ente Photos
 search: false
+head:
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
-# This Page Has Moved
+# Map
 
 The **Map** feature guide has moved to:
 

@@ -18,11 +18,8 @@ class Memory {
     _seenTime = DateTime.now().microsecondsSinceEpoch;
   }
 
-  Memory.fromFile(
-    this.file,
-    Map<int, int>? seenTimes, {
-    int? seenTimeKey,
-  }) : _seenTime = seenTimes?[seenTimeKey ?? file.generatedID] ?? -1;
+  Memory.fromFile(this.file, Map<int, int>? seenTimes, {int? seenTimeKey})
+    : _seenTime = seenTimes?[seenTimeKey ?? file.generatedID] ?? -1;
 
   static List<Memory> fromFiles(
     List<EnteFile> files,

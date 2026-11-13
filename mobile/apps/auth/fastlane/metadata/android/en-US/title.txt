@@ -1,1 +1,0 @@
-Ente Auth - 2FA Authenticator

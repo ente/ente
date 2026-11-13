@@ -1,62 +1,25 @@
-/// Types of feed activity items.
 enum FeedItemType {
-  /// Reaction (like) on a photo/file
   photoLike,
-
-  /// Comment on a photo/file
   comment,
-
-  /// Reply to user's comment
   reply,
-
-  /// Reaction (like) on user's comment
   commentLike,
-
-  /// Reaction (like) on user's reply
   replyLike,
-
-  /// Photos shared by others to user's albums
   sharedPhoto,
-
-  /// Album shared with the current user
   sharedCollection,
 }
 
-/// Represents an activity item in the user's feed.
-///
-/// Feed items are aggregated by type and target (file or comment),
-/// showing multiple actors who performed the same action.
 class FeedItem {
   final FeedItemType type;
   final int collectionID;
   final int? fileID;
   final String? commentID;
-
-  /// User IDs of users who performed this action.
-  /// First user is the most recent actor.
   final List<int> actorUserIDs;
-
-  /// Anonymous user IDs corresponding to actorUserIDs.
-  /// Null entries indicate non-anonymous users.
   final List<String?> actorAnonIDs;
-
-  /// Timestamp of the most recent activity (microseconds since epoch).
   final int createdAt;
-
-  /// Whether the target of this action is owned by the current user.
-  ///
-  /// For photoLike/comment: whether the user owns the file.
-  /// For reply: whether the user wrote the parent comment.
-  /// For commentLike/replyLike: whether the user wrote the liked comment/reply.
   final bool isOwnedByCurrentUser;
-
-  /// File IDs for shared photo items (multiple photos can be grouped).
-  /// Only populated for [FeedItemType.sharedPhoto].
   final List<int>? sharedFileIDs;
-
-  /// Collection name for display in shared items.
-  /// Populated for [FeedItemType.sharedPhoto] and [FeedItemType.sharedCollection].
   final String? collectionName;
+  final bool isVideo;
 
   const FeedItem({
     required this.type,
@@ -69,25 +32,19 @@ class FeedItem {
     required this.isOwnedByCurrentUser,
     this.sharedFileIDs,
     this.collectionName,
+    this.isVideo = false,
   });
 
-  /// Number of users who performed this action.
   int get actorCount => actorUserIDs.length;
 
-  /// Whether this feed item has multiple actors.
   bool get hasMultipleActors => actorCount > 1;
 
-  /// The primary actor's user ID (most recent).
   int get primaryActorUserID => actorUserIDs.first;
 
-  /// The primary actor's anonymous ID (if anonymous).
   String? get primaryActorAnonID => actorAnonIDs.first;
 
-  /// Number of additional actors beyond the primary.
   int get additionalActorCount => actorCount - 1;
 
-  /// Number of shared files in this feed item.
-  /// Only meaningful for [FeedItemType.sharedPhoto].
   int get sharedFileCount => sharedFileIDs?.length ?? 0;
 
   @override
@@ -114,7 +71,6 @@ class FeedItem {
     return Object.hash(type, collectionID, fileID, commentID, createdAt);
   }
 
-  /// Creates a copy of this FeedItem with the given fields replaced.
   FeedItem copyWith({
     FeedItemType? type,
     int? collectionID,
@@ -126,6 +82,7 @@ class FeedItem {
     bool? isOwnedByCurrentUser,
     List<int>? sharedFileIDs,
     String? collectionName,
+    bool? isVideo,
   }) {
     return FeedItem(
       type: type ?? this.type,
@@ -138,6 +95,7 @@ class FeedItem {
       isOwnedByCurrentUser: isOwnedByCurrentUser ?? this.isOwnedByCurrentUser,
       sharedFileIDs: sharedFileIDs ?? this.sharedFileIDs,
       collectionName: collectionName ?? this.collectionName,
+      isVideo: isVideo ?? this.isVideo,
     );
   }
 }

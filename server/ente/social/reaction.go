@@ -1,6 +1,5 @@
 package social
 
-// Reaction represents an encrypted reaction scoped to a collection, file, or comment.
 type Reaction struct {
 	ID           string  `json:"id"`
 	CollectionID int64   `json:"collectionID"`

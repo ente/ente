@@ -1,7 +1,7 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:ente_auth/models/code.dart';
-import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 import 'package:pointycastle/export.dart';
 
@@ -97,9 +97,7 @@ List<Code> parseProtonExport(Map<String, dynamic> decodedJson) {
 
       final note = entryMap['note'] as String?;
       if (note != null && note.isNotEmpty) {
-        code = code.copyWith(
-          display: code.display.copyWith(note: note),
-        );
+        code = code.copyWith(display: code.display.copyWith(note: note));
       }
 
       parsedCodes.add(_serializeImportedCode(code));
@@ -159,14 +157,6 @@ String decryptProtonExport(
   }
   return utf8.decode(decryptedBytes);
 }
-
-@visibleForTesting
-Uint8List deriveProtonPasswordKeyForTesting(String password, Uint8List salt) {
-  return _deriveProtonPasswordKey(password, salt);
-}
-
-@visibleForTesting
-String get protonExportAadForTesting => _protonExportAad;
 
 Uint8List _deriveProtonPasswordKey(String password, Uint8List salt) {
   final generator = Argon2BytesGenerator()

@@ -1,16 +1,16 @@
 import "dart:async";
 
+import "package:ente_components/ente_components.dart";
+import "package:ente_strings/ente_strings.dart";
 import "package:flutter/foundation.dart";
 import 'package:flutter/material.dart';
-import "package:photos/generated/l10n.dart";
-import "package:photos/l10n/l10n.dart";
 import "package:photos/models/selected_people.dart";
+import "package:photos/service_locator.dart";
+import "package:photos/services/home_widget_service.dart";
 import "package:photos/services/people_home_widget_service.dart";
-import "package:photos/ui/components/buttons/button_widget.dart";
-import 'package:photos/ui/components/buttons/icon_button_widget.dart';
-import "package:photos/ui/components/models/button_type.dart";
-import 'package:photos/ui/components/title_bar_title_widget.dart';
-import 'package:photos/ui/components/title_bar_widget.dart';
+import "package:photos/settings/local_settings.dart";
+import "package:photos/theme/ente_theme.dart";
+import "package:photos/ui/components/banners/ml_progress_banner.dart";
 import "package:photos/ui/viewer/search/result/people_section_all_page.dart";
 
 class PeopleWidgetSettings extends StatefulWidget {
@@ -22,12 +22,14 @@ class PeopleWidgetSettings extends StatefulWidget {
 
 class _PeopleWidgetSettingsState extends State<PeopleWidgetSettings> {
   bool hasInstalledAny = false;
+  late bool _showText;
   final _selectedPeople = SelectedPeople();
   Set<String>? lastSelectedPeople;
 
   @override
   void initState() {
     super.initState();
+    _showText = !localSettings.isWidgetTextHidden(WidgetHideTextFlag.people);
     getSelections();
     checkIfAnyWidgetInstalled();
   }
@@ -48,7 +50,9 @@ class _PeopleWidgetSettingsState extends State<PeopleWidgetSettings> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = getEnteColorScheme(context);
     return Scaffold(
+      backgroundColor: colorScheme.backgroundColour,
       bottomNavigationBar: hasInstalledAny
           ? Padding(
               padding: EdgeInsets.fromLTRB(
@@ -67,10 +71,8 @@ class _PeopleWidgetSettingsState extends State<PeopleWidgetSettings> {
                         )
                       : _selectedPeople.personIds.isNotEmpty;
 
-                  return ButtonWidget(
-                    buttonType: ButtonType.primary,
-                    buttonSize: ButtonSize.large,
-                    labelText: AppLocalizations.of(context).save,
+                  return ButtonComponent(
+                    label: context.strings.save,
                     shouldSurfaceExecutionStates: false,
                     isDisabled: !areIdsChanged,
                     onTap: areIdsChanged
@@ -78,8 +80,8 @@ class _PeopleWidgetSettingsState extends State<PeopleWidgetSettings> {
                             unawaited(
                               PeopleHomeWidgetService.instance
                                   .setSelectedPeople(
-                                _selectedPeople.personIds.toList(),
-                              ),
+                                    _selectedPeople.personIds.toList(),
+                                  ),
                             );
                             Navigator.pop(context);
                           }
@@ -89,55 +91,70 @@ class _PeopleWidgetSettingsState extends State<PeopleWidgetSettings> {
               ),
             )
           : null,
-      body: CustomScrollView(
-        primary: false,
+      body: AppBarComponent(
+        title: context.strings.people,
+        subtitle: hasInstalledAny
+            ? context.strings.peopleWidgetDesc
+            : context.strings.addPeopleWidgetPrompt,
         slivers: <Widget>[
-          TitleBarWidget(
-            flexibleSpaceTitle: TitleBarTitleWidget(
-              title: AppLocalizations.of(context).people,
-            ),
-            expandedHeight: MediaQuery.textScalerOf(context).scale(136),
-            flexibleSpaceCaption: hasInstalledAny
-                ? AppLocalizations.of(context).peopleWidgetDesc
-                : context.l10n.addPeopleWidgetPrompt,
-            actionIcons: [
-              IconButtonWidget(
-                icon: Icons.close_outlined,
-                iconButtonType: IconButtonType.secondary,
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.pop(context);
-                  Navigator.pop(context);
-                },
-              ),
-            ],
-          ),
           if (!hasInstalledAny)
             SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      height: MediaQuery.sizeOf(context).height * 0.5 - 200,
-                    ),
-                    Image.asset(
-                      "assets/people-widget-static.png",
-                      height: 160,
-                    ),
-                  ],
-                ),
+              child: Column(
+                children: [
+                  Stack(
+                    children: [
+                      SizedBox(
+                        width: double.infinity,
+                        height: MediaQuery.sizeOf(context).height * 0.5 - 200,
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        child: MLProgressBanner(),
+                      ),
+                    ],
+                  ),
+                  Image.asset("assets/people-widget-static.png", height: 160),
+                ],
               ),
             )
-          else
+          else ...[
+            const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: MLProgressBanner(),
+              ),
+            ),
+            if (kDebugMode)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 18, 16, 8),
+                  child: MenuComponent(
+                    title: context.strings.showTextOnWidget,
+                    trailing: ToggleSwitchComponent(
+                      selected: _showText,
+                      onChanged: (showText) async {
+                        setState(() => _showText = showText);
+                        await localSettings.setWidgetTextHidden(
+                          WidgetHideTextFlag.people,
+                          !showText,
+                        );
+                        await HomeWidgetService.instance.updateWidget(
+                          androidClass:
+                              PeopleHomeWidgetService.ANDROID_CLASS_NAME,
+                          iOSClass: PeopleHomeWidgetService.IOS_CLASS_NAME,
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ),
             SliverFillRemaining(
               child: PeopleSectionAllWidget(
                 selectedPeople: _selectedPeople,
                 namedOnly: true,
               ),
             ),
+          ],
         ],
       ),
     );

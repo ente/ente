@@ -1,4 +1,4 @@
-import "package:ente_ui/theme/ente_theme.dart";
+import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
 
 class CustomPinKeypad extends StatelessWidget {
@@ -14,7 +14,7 @@ class CustomPinKeypad extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             Container(
-              color: getEnteColorScheme(context).strokeFainter,
+              color: context.componentColors.strokeFaint,
               child: Column(
                 children: [
                   Row(
@@ -133,8 +133,10 @@ class CustomPinKeypad extends StatelessWidget {
 
   void _onBackspace() {
     if (controller.text.isNotEmpty) {
-      controller.text =
-          controller.text.substring(0, controller.text.length - 1);
+      controller.text = controller.text.substring(
+        0,
+        controller.text.length - 1,
+      );
     }
     return;
   }
@@ -176,8 +178,7 @@ class _ButtonState extends State<_Button> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
+    final colors = context.componentColors;
     return Expanded(
       child: GestureDetector(
         onTap: widget.onTap,
@@ -191,41 +192,35 @@ class _ButtonState extends State<_Button> {
             decoration: BoxDecoration(
               shape: BoxShape.rectangle,
               borderRadius: BorderRadius.circular(6),
-              color: isPressed
-                  ? colorScheme.backgroundElevated
-                  : widget.muteButton
-                      ? colorScheme.fillFaintPressed
-                      : widget.icon == null
-                          ? colorScheme.backgroundElevated2
-                          : null,
+              color: widget.muteButton
+                  ? Colors.transparent
+                  : isPressed
+                  ? colors.fillDarkest
+                  : widget.icon == null
+                  ? colors.fillLight
+                  : null,
             ),
             child: Center(
               child: widget.muteButton
                   ? const SizedBox.shrink()
                   : widget.icon != null
-                      ? Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 4,
-                            vertical: 10,
-                          ),
-                          child: widget.icon,
-                        )
-                      : Container(
-                          padding: const EdgeInsets.all(4),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                widget.number,
-                                style: textTheme.h3,
-                              ),
-                              Text(
-                                widget.text,
-                                style: textTheme.tinyBold,
-                              ),
-                            ],
-                          ),
-                        ),
+                  ? Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 10,
+                      ),
+                      child: widget.icon,
+                    )
+                  : Container(
+                      padding: const EdgeInsets.all(4),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(widget.number, style: TextStyles.h1),
+                          Text(widget.text, style: TextStyles.tiny),
+                        ],
+                      ),
+                    ),
             ),
           ),
         ),

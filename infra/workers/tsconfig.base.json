@@ -17,7 +17,7 @@
         "types": ["@cloudflare/workers-types"],
 
         /* Tell TypeScript how to lookup the file for a given import. */
-        "moduleResolution": "node",
+        "moduleResolution": "bundler",
 
         /* Speed things up by not type checking `node_modules`. */
         "skipLibCheck": true,

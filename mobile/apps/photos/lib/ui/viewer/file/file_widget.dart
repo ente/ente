@@ -1,8 +1,14 @@
+import "dart:io";
+
+import "package:flutter/foundation.dart";
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file/file_type.dart';
 import "package:photos/states/detail_page_state.dart";
+import "package:photos/ui/viewer/file/file_viewer_image_page_readiness.dart";
+import "package:photos/ui/viewer/file/qr_code_detection_helper.dart";
+import "package:photos/ui/viewer/file/video_stream_change.dart";
 import "package:photos/ui/viewer/file/video_widget.dart";
 import "package:photos/ui/viewer/file/zoomable_live_image_new.dart";
 
@@ -14,7 +20,18 @@ class FileWidget extends StatelessWidget {
   final BoxDecoration? backgroundDecoration;
   final bool? autoPlay;
   final bool? isFromMemories;
+  final bool isActive;
+  final int? itemIndex;
+  final ValueListenable<int>? activeItemIndexListenable;
+  final bool? isAudioMutedOverride;
+  final ValueNotifier<double>? playbackSpeed;
+  final VideoStreamChangeController? streamChangeController;
   final Function({required int memoryDuration})? onFinalFileLoad;
+  final ValueChanged<File>? onFinalImageLoaded;
+  final FileViewerImagePageReadinessRegistration?
+  onImagePageReadinessRegistration;
+  final ValueNotifier<QrCodeDetectionResult?>? qrDetectionsNotifier;
+  final GestureLongPressStartCallback? onTextSelectionStart;
 
   const FileWidget(
     this.file, {
@@ -24,17 +41,24 @@ class FileWidget extends StatelessWidget {
     required this.tagPrefix,
     this.backgroundDecoration,
     this.isFromMemories = false,
+    this.isActive = true,
+    this.itemIndex,
+    this.activeItemIndexListenable,
+    this.isAudioMutedOverride,
+    this.playbackSpeed,
+    this.streamChangeController,
     this.onFinalFileLoad,
+    this.onFinalImageLoaded,
+    this.onImagePageReadinessRegistration,
+    this.qrDetectionsNotifier,
+    this.onTextSelectionStart,
     super.key,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Specify key to ensure that the widget is rebuilt when the file changes
-    // Before changing this, ensure that file deletes are handled properly
-
-    final String fileKey =
-        "file_genID_${file.generatedID}___file_id_${file.uploadedFileID}";
+    // Deleting a file can change the file at this index. Key by file identity.
+    final String fileKey = _fileWidgetKey(file);
     if (file.fileType == FileType.livePhoto ||
         file.fileType == FileType.image) {
       return ZoomableLiveImageNew(
@@ -45,18 +69,12 @@ class FileWidget extends StatelessWidget {
         isFromMemories: isFromMemories ?? false,
         key: key ?? ValueKey(fileKey),
         onFinalFileLoad: onFinalFileLoad,
+        onFinalImageLoaded: onFinalImageLoaded,
+        onImagePageReadinessRegistration: onImagePageReadinessRegistration,
+        qrDetectionsNotifier: qrDetectionsNotifier,
+        onTextSelectionStart: onTextSelectionStart,
       );
     } else if (file.fileType == FileType.video) {
-      // use old video widget on iOS simulator as the new one crashes while
-      // playing certain videos on iOS simulator
-      // if (kDebugMode && Platform.isIOS) {
-      //   return VideoWidgetChewie(
-      //     file,
-      //     tagPrefix: tagPrefix,
-      //     playbackCallback: playbackCallback,
-      //   );
-      // }
-
       return VideoWidget(
         file,
         tagPrefix: tagPrefix,
@@ -64,6 +82,12 @@ class FileWidget extends StatelessWidget {
         shouldDisableScroll: shouldDisableScroll,
         onFinalFileLoad: onFinalFileLoad,
         isFromMemories: isFromMemories ?? false,
+        isActive: isActive,
+        itemIndex: itemIndex,
+        activeItemIndexListenable: activeItemIndexListenable,
+        isAudioMutedOverride: isAudioMutedOverride,
+        playbackSpeed: playbackSpeed,
+        streamChangeController: streamChangeController,
         key: key ?? ValueKey(fileKey),
       );
     } else {
@@ -71,4 +95,18 @@ class FileWidget extends StatelessWidget {
       return const Icon(Icons.error);
     }
   }
+}
+
+String _fileWidgetKey(EnteFile file) {
+  final baseKey =
+      "file_genID_${file.generatedID}___file_id_${file.uploadedFileID}";
+  if (file.generatedID != null || file.uploadedFileID != null) {
+    return baseKey;
+  }
+
+  final localID = file.localID;
+  if (localID == null || localID.isEmpty) {
+    return baseKey;
+  }
+  return "${baseKey}___local_id_$localID";
 }

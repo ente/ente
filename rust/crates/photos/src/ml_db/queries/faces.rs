@@ -1,0 +1,928 @@
+use std::collections::{HashMap, HashSet};
+
+use super::helpers::{MAX_SQL_BIND_PARAMS_PER_QUERY, bind_placeholders, group_into, pair};
+use crate::db::{self, Row, ToSql, params_from_iter};
+
+use super::clip::CLIP_ML_VERSION;
+use super::pets::PET_ML_VERSION;
+use super::unique_in_order;
+use crate::ml_db::vector_encoding::{decode_evector, encode_evector};
+use crate::ml_db::{Error, MlDb, Result};
+
+pub const FACE_ML_VERSION: i64 = 1;
+
+const LAPLACIAN_HARD_THRESHOLD: f64 = 10.0;
+const LAPLACIAN_SOFT_THRESHOLD: f64 = 50.0;
+const LAPLACIAN_VERY_SOFT_THRESHOLD: f64 = 200.0;
+const MINIMUM_QUALITY_FACE_SCORE: f64 = 0.80;
+const MEDIUM_QUALITY_FACE_SCORE: f64 = 0.85;
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct FaceRow {
+    pub file_id: i64,
+    pub face_id: String,
+    pub detection_json: String,
+    pub embedding: Vec<f64>,
+    pub score: f64,
+    pub blur: f64,
+    pub is_sideways: bool,
+    pub image_height: i64,
+    pub image_width: i64,
+    pub ml_version: i64,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct FaceWithoutEmbedding {
+    pub face_id: String,
+    pub file_id: i64,
+    pub score: f64,
+    pub detection_json: String,
+    pub blur: f64,
+    pub image_height: i64,
+    pub image_width: i64,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct FaceForClustering {
+    pub face_id: String,
+    pub file_id: i64,
+    pub cluster_id: Option<String>,
+    pub embedding: Option<Vec<f32>>,
+    pub bad: bool,
+}
+
+const FACE_EMBEDDING_MAX_ROWS: usize = 20000;
+
+const FACE_WITHOUT_EMBEDDING_COLUMNS: &str =
+    "face_id, file_id, score, detection, blur, height, width";
+
+const UPSERT_FACE: &str = r#"
+    INSERT INTO faces (
+        file_id, face_id, detection, embedding, score, blur,
+        is_sideways, height, width, ml_version
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT (file_id, face_id) DO UPDATE SET
+        face_id = excluded.face_id,
+        detection = excluded.detection,
+        embedding = excluded.embedding,
+        score = excluded.score,
+        blur = excluded.blur,
+        is_sideways = excluded.is_sideways,
+        height = excluded.height,
+        width = excluded.width,
+        ml_version = excluded.ml_version
+"#;
+
+impl MlDb {
+    pub fn bulk_insert_faces(&self, faces: &[FaceRow]) -> Result<()> {
+        self.write_batch_atomic(
+            UPSERT_FACE,
+            faces.iter().map(|face| {
+                (
+                    face.file_id,
+                    &face.face_id,
+                    &face.detection_json,
+                    encode_evector(&face.embedding),
+                    face.score,
+                    face.blur,
+                    face.is_sideways,
+                    face.image_height,
+                    face.image_width,
+                    face.ml_version,
+                )
+            }),
+        )
+    }
+
+    pub fn face_indexed_file_ids(&self, minimum_ml_version: i64) -> Result<HashMap<i64, i64>> {
+        self.read_all(
+            "SELECT file_id, ml_version FROM faces WHERE ml_version >= ?",
+            [minimum_ml_version],
+            pair,
+        )
+    }
+
+    pub fn get_face_indexed_file_count(&self, minimum_ml_version: i64) -> Result<i64> {
+        self.read_value(
+            "SELECT COUNT(DISTINCT file_id) as count FROM faces WHERE ml_version >= ?",
+            [minimum_ml_version],
+        )
+    }
+
+    pub(crate) fn for_each_face_embedding_for_clusters(
+        &self,
+        cluster_ids: &[String],
+        mut visit: impl FnMut(String, Vec<u8>),
+    ) -> Result<()> {
+        let cluster_ids = unique_in_order(cluster_ids);
+        self.db
+            .read(|connection| {
+                for chunk in cluster_ids.chunks(MAX_SQL_BIND_PARAMS_PER_QUERY) {
+                    let sql = format!(
+                        r#"
+                        SELECT fc.cluster_id, fe.embedding
+                        FROM face_clusters fc
+                        INNER JOIN faces fe ON fc.face_id = fe.face_id
+                        WHERE fc.cluster_id IN ({})
+                        "#,
+                        bind_placeholders(chunk.len())
+                    );
+                    let mut statement = connection.prepare_cached(&sql)?;
+                    for row in statement.query_map(params_from_iter(chunk), pair)? {
+                        let (cluster_id, embedding) = row?;
+                        visit(cluster_id, embedding);
+                    }
+                }
+                Ok(())
+            })
+            .map_err(Into::into)
+    }
+
+    pub fn get_cover_face_for_person(
+        &self,
+        recent_file_id: i64,
+        person_id: Option<&str>,
+        avatar_face_id: Option<&str>,
+        cluster_id: Option<&str>,
+    ) -> Result<Option<FaceWithoutEmbedding>> {
+        if let Some(person_id) = person_id {
+            let mut file_ids = vec![recent_file_id];
+            let avatar_file_id = avatar_face_id.and_then(try_file_id_from_face_id);
+            if let Some(avatar_file_id) = avatar_file_id {
+                file_ids.push(avatar_file_id);
+            }
+            let cluster_ids: Vec<String> = self.read_column(
+                "SELECT cluster_id FROM cluster_person WHERE person_id = ?",
+                [person_id],
+            )?;
+            let sql = format!(
+                r#"
+                SELECT {FACE_WITHOUT_EMBEDDING_COLUMNS}
+                FROM faces
+                WHERE face_id IN (
+                    SELECT face_id
+                    FROM face_clusters
+                    WHERE cluster_id IN ({})
+                )
+                    AND file_id IN ({})
+                ORDER BY score DESC
+                "#,
+                bind_placeholders(cluster_ids.len()),
+                bind_placeholders(file_ids.len())
+            );
+            let mut parameters: Vec<&dyn ToSql> =
+                cluster_ids.iter().map(|id| id as &dyn ToSql).collect();
+            parameters.extend(file_ids.iter().map(|id| id as &dyn ToSql));
+            let faces: Vec<FaceWithoutEmbedding> =
+                self.read_all(&sql, parameters.as_slice(), read_face_without_embedding)?;
+            if !faces.is_empty() {
+                if let Some(avatar_file_id) = avatar_file_id
+                    && let Some(face) = faces.iter().find(|face| face.file_id == avatar_file_id)
+                {
+                    return Ok(Some(face.clone()));
+                }
+                return Ok(faces.into_iter().next());
+            }
+        }
+        if let Some(cluster_id) = cluster_id {
+            let face_ids: Vec<String> = self.read_column(
+                "SELECT face_id FROM face_clusters WHERE cluster_id = ?",
+                [cluster_id],
+            )?;
+            for face in self.get_faces_for_given_file_id(recent_file_id)? {
+                if face_ids.contains(&face.face_id) {
+                    return Ok(Some(face));
+                }
+            }
+        }
+        if person_id.is_none() && cluster_id.is_none() {
+            return Err(Error::Invalid(
+                "personID and clusterID cannot be null".to_string(),
+            ));
+        }
+        Ok(None)
+    }
+
+    pub fn get_faces_for_given_file_id(
+        &self,
+        file_upload_id: i64,
+    ) -> Result<Vec<FaceWithoutEmbedding>> {
+        self.read_all(
+            &format!("SELECT {FACE_WITHOUT_EMBEDDING_COLUMNS} FROM faces WHERE file_id = ?"),
+            [file_upload_id],
+            read_face_without_embedding,
+        )
+    }
+
+    pub fn get_file_ids_to_faces_without_embedding(
+        &self,
+    ) -> Result<HashMap<i64, Vec<FaceWithoutEmbedding>>> {
+        let faces: Vec<FaceWithoutEmbedding> = self.read_all(
+            &format!("SELECT {FACE_WITHOUT_EMBEDDING_COLUMNS} FROM faces"),
+            (),
+            read_face_without_embedding,
+        )?;
+        Ok(group_into(
+            faces.into_iter().map(|face| (face.file_id, face)),
+        ))
+    }
+
+    pub(crate) fn for_each_face_id(&self, mut visit: impl FnMut(i64, String)) -> Result<()> {
+        self.read_each("SELECT file_id, face_id FROM faces", (), |row| {
+            visit(row.get(0)?, row.get(1)?);
+            Ok(())
+        })
+    }
+
+    pub(crate) fn for_each_face_without_embedding(
+        &self,
+        mut visit: impl FnMut(FaceWithoutEmbedding),
+    ) -> Result<()> {
+        self.read_each(
+            &format!("SELECT {FACE_WITHOUT_EMBEDDING_COLUMNS} FROM faces"),
+            (),
+            |row| {
+                visit(read_face_without_embedding(row)?);
+                Ok(())
+            },
+        )
+    }
+
+    pub fn get_faces_for_clustering(&self) -> Result<Vec<FaceForClustering>> {
+        self.read_all(
+            r#"
+            SELECT faces.face_id, faces.file_id, face_clusters.cluster_id, faces.embedding,
+                faces.score, faces.blur, faces.is_sideways
+            FROM faces
+            LEFT JOIN face_clusters
+                ON face_clusters.face_id = faces.face_id
+            WHERE faces.score > ?
+                AND faces.blur > ?
+            ORDER BY faces.face_id DESC
+            "#,
+            (MINIMUM_QUALITY_FACE_SCORE, LAPLACIAN_HARD_THRESHOLD),
+            |row| {
+                let embedding: Vec<u8> = row.get(3)?;
+                Ok(FaceForClustering {
+                    face_id: row.get(0)?,
+                    file_id: row.get(1)?,
+                    cluster_id: row.get(2)?,
+                    embedding: decode_evector(&embedding)
+                        .ok()
+                        .map(|values| values.into_iter().map(|value| value as f32).collect()),
+                    bad: is_bad_face_for_clustering(
+                        row.get(4)?,
+                        row.get(5)?,
+                        row.get::<_, i64>(6)? == 1,
+                    ),
+                })
+            },
+        )
+    }
+
+    pub fn get_face_embedding_rows_for_faces(
+        &self,
+        face_ids: &[String],
+    ) -> Result<Vec<(String, Vec<u8>)>> {
+        let mut face_ids: Vec<&str> = face_ids.iter().map(String::as_str).collect();
+        face_ids.sort_unstable_by(|left, right| right.cmp(left));
+        face_ids.dedup();
+
+        let mut result = Vec::new();
+        for chunk in face_ids.chunks(MAX_SQL_BIND_PARAMS_PER_QUERY - 1) {
+            let remaining_limit = (FACE_EMBEDDING_MAX_ROWS - result.len()) as i64;
+            if remaining_limit == 0 {
+                break;
+            }
+            let sql = format!(
+                r#"
+                SELECT face_id, embedding
+                FROM faces
+                WHERE face_id IN ({})
+                ORDER BY face_id DESC
+                LIMIT ?
+                "#,
+                bind_placeholders(chunk.len())
+            );
+            let mut parameters: Vec<&dyn ToSql> = chunk.iter().map(|id| id as &dyn ToSql).collect();
+            parameters.push(&remaining_limit);
+            let rows: Vec<(String, Vec<u8>)> = self.read_all(&sql, parameters.as_slice(), pair)?;
+            result.extend(rows);
+        }
+        Ok(result)
+    }
+
+    pub fn get_total_face_count(&self) -> Result<i64> {
+        self.read_value(
+            "SELECT COUNT(*) as count FROM faces WHERE score > ? AND blur > ?",
+            (MINIMUM_QUALITY_FACE_SCORE, LAPLACIAN_HARD_THRESHOLD),
+        )
+    }
+
+    pub fn get_errored_face_count(&self) -> Result<i64> {
+        self.read_value("SELECT COUNT(*) as count FROM faces WHERE score < 0", ())
+    }
+
+    pub fn get_errored_file_ids(&self) -> Result<HashSet<i64>> {
+        self.read_column("SELECT DISTINCT file_id FROM faces WHERE score < 0", ())
+    }
+
+    pub fn prune_resolved_face_error_results(&self, file_ids: &[i64]) -> Result<()> {
+        if file_ids.is_empty() {
+            return Ok(());
+        }
+        self.execute_chunked_in(
+            r#"
+                DELETE FROM faces
+                WHERE file_id IN ({})
+                    AND score < 0
+                    AND EXISTS (
+                        SELECT 1
+                        FROM faces AS successful
+                        WHERE successful.file_id = faces.file_id
+                            AND successful.score >= 0
+                            AND successful.ml_version >= faces.ml_version
+                    )
+                "#,
+            file_ids,
+        )
+    }
+
+    pub fn get_file_ids_with_error_results(&self, file_ids: &[i64]) -> Result<HashSet<i64>> {
+        if file_ids.is_empty() {
+            return Ok(HashSet::new());
+        }
+        let mut result = HashSet::new();
+        for chunk in file_ids.chunks(MAX_SQL_BIND_PARAMS_PER_QUERY / 3) {
+            let placeholders = bind_placeholders(chunk.len());
+            let sql = format!(
+                r#"
+                SELECT failed.file_id
+                FROM faces AS failed
+                WHERE failed.file_id IN ({placeholders})
+                    AND failed.score < 0
+                    AND NOT EXISTS (
+                        SELECT 1
+                        FROM faces AS successful
+                        WHERE successful.file_id = failed.file_id
+                            AND successful.score >= 0
+                            AND successful.ml_version >= failed.ml_version
+                    )
+                UNION
+                SELECT file_id
+                FROM clip
+                WHERE file_id IN ({placeholders})
+                    AND LENGTH(embedding) = 0
+                UNION
+                SELECT file_id
+                FROM pet_faces
+                WHERE file_id IN ({placeholders})
+                    AND score < 0
+                "#
+            );
+            let matches: Vec<i64> = self.read_column(
+                &sql,
+                params_from_iter(chunk.iter().chain(chunk).chain(chunk)),
+            )?;
+            result.extend(matches);
+        }
+        Ok(result)
+    }
+
+    pub fn delete_face_index_for_files(&self, file_ids: &[i64]) -> Result<()> {
+        self.execute_chunked_in("DELETE FROM faces WHERE file_id IN ({})", file_ids)
+    }
+
+    pub fn delete_unclustered_face_index_for_files(&self, file_ids: &[i64]) -> Result<()> {
+        if file_ids.is_empty() {
+            return Ok(());
+        }
+        self.execute_chunked_in(
+            r#"
+                DELETE FROM faces
+                WHERE file_id IN ({})
+                    AND NOT EXISTS (
+                        SELECT 1
+                        FROM face_clusters
+                        WHERE face_clusters.face_id = faces.face_id
+                    )
+                "#,
+            file_ids,
+        )
+    }
+
+    pub fn get_clustered_or_faceless_file_count(&self) -> Result<i64> {
+        let clustered_face_ids: Vec<String> =
+            self.read_column("SELECT face_id FROM face_clusters", ())?;
+        let clustered_file_ids = clustered_face_ids
+            .iter()
+            .map(|face_id| file_id_from_face_id(face_id))
+            .collect::<Result<HashSet<i64>>>()?;
+
+        let bad_file_ids: HashSet<i64> = self.read_column(
+            "SELECT DISTINCT file_id FROM faces WHERE score <= ? OR blur <= ?",
+            (MINIMUM_QUALITY_FACE_SCORE, LAPLACIAN_HARD_THRESHOLD),
+        )?;
+        let good_file_ids: HashSet<i64> = self.read_column(
+            "SELECT DISTINCT file_id FROM faces WHERE score > ? AND blur > ?",
+            (MINIMUM_QUALITY_FACE_SCORE, LAPLACIAN_HARD_THRESHOLD),
+        )?;
+        let truly_faceless_files = bad_file_ids.difference(&good_file_ids).count();
+        Ok((clustered_file_ids.len() + truly_faceless_files) as i64)
+    }
+
+    pub fn get_unclustered_face_count(&self) -> Result<i64> {
+        self.read_value(
+            r#"
+                SELECT COUNT(*) as count
+                FROM faces f
+                LEFT JOIN face_clusters fc
+                    ON f.face_id = fc.face_id
+                WHERE f.score > ?
+                    AND f.blur > ?
+                    AND fc.face_id IS NULL
+                "#,
+            (MINIMUM_QUALITY_FACE_SCORE, LAPLACIAN_HARD_THRESHOLD),
+        )
+    }
+
+    pub fn get_all_file_ids_of_face_ids_not_in_any_cluster(&self) -> Result<HashSet<i64>> {
+        self.read_column(
+            r#"
+                SELECT DISTINCT file_id
+                FROM faces
+                LEFT JOIN face_clusters
+                    ON faces.face_id = face_clusters.face_id
+                WHERE face_clusters.face_id IS NULL
+                "#,
+            (),
+        )
+    }
+
+    pub fn get_all_files_associated_with_all_clusters(
+        &self,
+        except_clusters: Option<&[String]>,
+    ) -> Result<HashSet<i64>> {
+        let except_clusters = except_clusters.unwrap_or_default();
+        let sql = format!(
+            r#"
+            SELECT DISTINCT faces.file_id
+            FROM faces
+            JOIN face_clusters
+                on face_clusters.face_id = faces.face_id
+            WHERE face_clusters.cluster_id NOT IN ({})
+            "#,
+            bind_placeholders(except_clusters.len())
+        );
+        self.read_column(&sql, params_from_iter(except_clusters))
+    }
+
+    pub fn get_fully_indexed_file_ids(&self, include_pets: bool) -> Result<HashSet<i64>> {
+        let mut sql = String::from(
+            r#"
+            SELECT file_id
+            FROM faces
+            WHERE ml_version >= ?
+            INTERSECT
+            SELECT file_id
+            FROM clip
+            WHERE ml_version >= ?
+            "#,
+        );
+        let mut parameters = vec![FACE_ML_VERSION, CLIP_ML_VERSION];
+        if include_pets {
+            sql.push_str(" INTERSECT SELECT file_id FROM pet_faces WHERE ml_version >= ?");
+            parameters.push(PET_ML_VERSION);
+        }
+        self.read_column(&sql, params_from_iter(parameters))
+    }
+}
+
+pub(super) fn is_bad_face_for_clustering(
+    face_score: f64,
+    blur_value: f64,
+    is_sideways: bool,
+) -> bool {
+    face_score < MINIMUM_QUALITY_FACE_SCORE
+        || blur_value < LAPLACIAN_SOFT_THRESHOLD
+        || (blur_value < LAPLACIAN_VERY_SOFT_THRESHOLD && face_score < MEDIUM_QUALITY_FACE_SCORE)
+        || is_sideways
+}
+
+pub(super) fn file_id_from_face_id(face_id: &str) -> Result<i64> {
+    try_file_id_from_face_id(face_id)
+        .ok_or_else(|| Error::Invalid(format!("Error parsing faceId: {face_id}")))
+}
+
+pub(crate) fn try_file_id_from_face_id(face_id: &str) -> Option<i64> {
+    face_id
+        .split_once('_')
+        .and_then(|(file_id, _)| file_id.parse().ok())
+}
+
+fn read_face_without_embedding(row: &Row<'_>) -> db::Result<FaceWithoutEmbedding> {
+    Ok(FaceWithoutEmbedding {
+        face_id: row.get(0)?,
+        file_id: row.get(1)?,
+        score: row.get(2)?,
+        detection_json: row.get(3)?,
+        blur: row.get(4)?,
+        image_height: row.get(5)?,
+        image_width: row.get(6)?,
+    })
+}
+
+#[cfg(test)]
+pub(in crate::ml_db) mod tests {
+    use std::collections::HashMap;
+    use std::ops::RangeInclusive;
+
+    use super::{FaceRow, FaceWithoutEmbedding, MlDb};
+    use crate::ml_db::Error;
+    use crate::ml_db::queries::{clip, clusters, persons};
+    use crate::ml_db::tests::{cases, check, ids, open, strings};
+    use crate::ml_db::vector_encoding::encode_evector;
+    use tempfile::TempDir;
+
+    fn face(file_id: i64, index: i64, score: f64, blur: f64, is_sideways: bool) -> FaceRow {
+        FaceRow {
+            file_id,
+            face_id: format!("{file_id}_{index}"),
+            detection_json: format!("{{\"index\":{index}}}"),
+            embedding: vec![file_id as f64, index as f64, 0.5],
+            score,
+            blur,
+            is_sideways,
+            image_height: 100,
+            image_width: 200,
+            ml_version: 1,
+        }
+    }
+
+    fn good_face(file_id: i64, index: i64) -> FaceRow {
+        face(file_id, index, 0.9, 300.0, false)
+    }
+
+    fn without_embedding(face: FaceRow) -> FaceWithoutEmbedding {
+        FaceWithoutEmbedding {
+            face_id: face.face_id,
+            file_id: face.file_id,
+            score: face.score,
+            detection_json: face.detection_json,
+            blur: face.blur,
+            image_height: face.image_height,
+            image_width: face.image_width,
+        }
+    }
+
+    fn versions(file_ids: RangeInclusive<i64>, version: i64) -> HashMap<i64, i64> {
+        file_ids.map(|file_id| (file_id, version)).collect()
+    }
+
+    pub(in crate::ml_db) fn seed(db: &MlDb) {
+        db.bulk_insert_faces(&[
+            good_face(1, 0),
+            face(1, 1, 0.95, 300.0, false),
+            face(2, 0, 0.85, 300.0, false),
+            face(3, 0, 0.95, 300.0, false),
+            face(4, 0, 0.5, 300.0, false),
+            face(5, 0, -1.0, 300.0, false),
+            face(6, 0, 0.9, 5.0, false),
+            good_face(6, 1),
+            face(7, 0, 0.9, 300.0, true),
+            face(8, 0, 0.82, 150.0, false),
+            face(9, 0, 0.9, 20.0, false),
+            FaceRow {
+                ml_version: 0,
+                ..good_face(10, 0)
+            },
+        ])
+        .unwrap();
+    }
+
+    fn seeded() -> (TempDir, MlDb) {
+        let (directory, db) = open();
+        clip::tests::seed(&db);
+        seed(&db);
+        clusters::tests::seed(&db);
+        persons::tests::seed(&db);
+        (directory, db)
+    }
+
+    #[test]
+    fn seeded_counts() {
+        let (_directory, db) = seeded();
+        check(
+            &db,
+            &cases![
+                "total faces": 9 => |db| db.get_total_face_count(),
+                "errored faces": 1 => |db| db.get_errored_face_count(),
+                "face files": 9 => |db| db.get_face_indexed_file_count(1),
+                "face files v0": 10 => |db| db.get_face_indexed_file_count(0),
+                "unclustered faces": 2 => |db| db.get_unclustered_face_count(),
+                "clustered or faceless files": 8 => |db| db.get_clustered_or_faceless_file_count(),
+            ],
+        );
+    }
+
+    #[test]
+    fn seeded_file_id_sets() {
+        let (_directory, db) = seeded();
+        check(
+            &db,
+            &cases![
+                "errored": ids([5]) => |db| db.get_errored_file_ids(),
+                "fully indexed": ids([1, 2, 3, 4]) => |db| db.get_fully_indexed_file_ids(false),
+                "unclustered": ids([4, 5, 6, 10]) =>
+                    |db| db.get_all_file_ids_of_face_ids_not_in_any_cluster(),
+                "clustered": ids([1, 2, 3, 7, 8, 9]) =>
+                    |db| db.get_all_files_associated_with_all_clusters(None),
+                "clustered except c1": ids([1, 3, 7, 8, 9]) =>
+                    |db| db.get_all_files_associated_with_all_clusters(Some(&strings(["c1"]))),
+            ],
+        );
+    }
+
+    #[test]
+    fn seeded_versions() {
+        let (_directory, db) = seeded();
+        check(
+            &db,
+            &cases![
+                "face versions": versions(1..=9, 1) => |db| db.face_indexed_file_ids(1),
+                "face versions v0": versions(1..=9, 1).into_iter().chain([(10, 0)]).collect() =>
+                    |db| db.face_indexed_file_ids(0),
+            ],
+        );
+    }
+
+    #[test]
+    fn seeded_rows() {
+        let (_directory, db) = seeded();
+        let mut faces = db.get_faces_for_given_file_id(1).unwrap();
+        faces.sort_by(|left, right| left.face_id.cmp(&right.face_id));
+        assert_eq!(
+            faces,
+            vec![
+                without_embedding(good_face(1, 0)),
+                without_embedding(face(1, 1, 0.95, 300.0, false))
+            ]
+        );
+        assert!(db.get_faces_for_given_file_id(99).unwrap().is_empty());
+
+        let without_embedding = db.get_file_ids_to_faces_without_embedding().unwrap();
+        assert_eq!(without_embedding.len(), 10);
+        assert_eq!(without_embedding[&6].len(), 2);
+        let blurry = without_embedding[&6]
+            .iter()
+            .find(|face| face.face_id == "6_0")
+            .unwrap();
+        assert_eq!((blurry.file_id, blurry.score, blurry.blur), (6, 0.9, 5.0));
+        assert_eq!(blurry.detection_json, "{\"index\":0}");
+    }
+
+    #[test]
+    fn face_embedding_rows_for_faces() {
+        let (_directory, db) = seeded();
+        assert_eq!(
+            db.get_face_embedding_rows_for_faces(&strings(["1_0", "2_0", "1_1", "1_0", "nope"]))
+                .unwrap(),
+            vec![
+                ("2_0".to_string(), encode_evector(&[2.0, 0.0, 0.5])),
+                ("1_1".to_string(), encode_evector(&[1.0, 1.0, 0.5])),
+                ("1_0".to_string(), encode_evector(&[1.0, 0.0, 0.5])),
+            ]
+        );
+        assert!(
+            db.get_face_embedding_rows_for_faces(&[])
+                .unwrap()
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn faces_for_clustering_join_clusters_decode_embeddings_and_flag_bad_faces() {
+        let (_directory, db) = seeded();
+        db.execute(
+            "UPDATE faces SET embedding = x'0a' WHERE face_id = '3_0'",
+            (),
+        )
+        .unwrap();
+        let faces = db.get_faces_for_clustering().unwrap();
+        let rows: Vec<(&str, i64, Option<&str>, bool)> = faces
+            .iter()
+            .map(|face| {
+                (
+                    face.face_id.as_str(),
+                    face.file_id,
+                    face.cluster_id.as_deref(),
+                    face.bad,
+                )
+            })
+            .collect();
+        assert_eq!(
+            rows,
+            [
+                ("9_0", 9, Some("c9"), true),
+                ("8_0", 8, Some("c8"), true),
+                ("7_0", 7, Some("c7"), true),
+                ("6_1", 6, None, false),
+                ("3_0", 3, Some("c3"), false),
+                ("2_0", 2, Some("c1"), false),
+                ("1_1", 1, Some("c2"), false),
+                ("1_0", 1, Some("c1"), false),
+                ("10_0", 10, None, false),
+            ]
+        );
+        assert_eq!(faces[0].embedding, Some(vec![9.0, 0.0, 0.5]));
+        assert_eq!(faces[4].embedding, None);
+    }
+
+    #[test]
+    fn face_embedding_rows_keep_twenty_thousand_highest_face_ids_in_order() {
+        let (_directory, db) = open();
+        let faces: Vec<FaceRow> = (0..20005).map(|index| good_face(index, 0)).collect();
+        db.bulk_insert_faces(&faces).unwrap();
+        assert_eq!(db.get_total_face_count().unwrap(), 20005);
+        let mut face_ids: Vec<String> = faces.iter().map(|face| face.face_id.clone()).collect();
+        face_ids.rotate_left(1337);
+
+        let embeddings = db.get_face_embedding_rows_for_faces(&face_ids).unwrap();
+        assert_eq!(embeddings.len(), 20000);
+        face_ids.sort();
+        assert_eq!(
+            embeddings
+                .iter()
+                .map(|(face_id, _)| face_id)
+                .collect::<Vec<_>>(),
+            face_ids[5..].iter().rev().collect::<Vec<_>>()
+        );
+        let expected = embeddings;
+
+        let mut with_duplicates = face_ids[5..].to_vec();
+        with_duplicates.extend(face_ids[5..10].iter().cloned());
+        assert_eq!(
+            db.get_face_embedding_rows_for_faces(&with_duplicates)
+                .unwrap(),
+            expected
+        );
+
+        let mut with_missing = face_ids.clone();
+        with_missing.extend((0..20000).map(|index| format!("missing_{index}")));
+        with_missing.extend(face_ids.iter().cloned());
+        with_missing.reverse();
+        assert_eq!(
+            db.get_face_embedding_rows_for_faces(&with_missing).unwrap(),
+            expected
+        );
+
+        for count in [9998, 9999, 10000, 19999, 20000, 20001] {
+            let embeddings = db
+                .get_face_embedding_rows_for_faces(&face_ids[..count])
+                .unwrap();
+            assert_eq!(
+                embeddings
+                    .iter()
+                    .map(|(face_id, _)| face_id)
+                    .collect::<Vec<_>>(),
+                face_ids[..count]
+                    .iter()
+                    .rev()
+                    .take(20000)
+                    .collect::<Vec<_>>()
+            );
+        }
+    }
+
+    #[test]
+    fn cover_face_for_person_prefers_avatar_then_score() {
+        let (_directory, db) = seeded();
+        let cover = |recent_file_id, person_id, avatar_face_id, cluster_id| {
+            db.get_cover_face_for_person(recent_file_id, person_id, avatar_face_id, cluster_id)
+                .unwrap()
+                .map(|face| face.face_id)
+        };
+        let by_score = db
+            .get_cover_face_for_person(2, Some("p1"), None, None)
+            .unwrap()
+            .unwrap();
+        assert_eq!(by_score, without_embedding(face(2, 0, 0.85, 300.0, false)));
+        assert_eq!(
+            cover(2, Some("p1"), Some("1_1"), None),
+            Some("1_1".to_string())
+        );
+        assert_eq!(
+            cover(2, Some("p1"), Some("9_0"), None),
+            Some("2_0".to_string())
+        );
+        assert_eq!(
+            cover(3, Some("p1"), None, Some("c3")),
+            Some("3_0".to_string())
+        );
+        assert_eq!(cover(1, None, None, Some("c1")), Some("1_0".to_string()));
+        assert_eq!(cover(1, None, None, Some("c3")), None);
+        assert_eq!(cover(9, Some("p9"), None, None), None);
+        assert!(matches!(
+            db.get_cover_face_for_person(1, None, None, None),
+            Err(Error::Invalid(_))
+        ));
+    }
+
+    #[test]
+    fn face_upsert_and_deletion() {
+        let (_directory, db) = seeded();
+        let updated = FaceRow {
+            score: 0.99,
+            embedding: vec![9.0, 8.0],
+            ..good_face(1, 0)
+        };
+        db.bulk_insert_faces(std::slice::from_ref(&updated))
+            .unwrap();
+        let faces = db.get_faces_for_given_file_id(1).unwrap();
+        assert_eq!(faces.len(), 2);
+        assert_eq!(
+            faces.iter().find(|face| face.face_id == "1_0"),
+            Some(&without_embedding(updated.clone()))
+        );
+        assert_eq!(
+            db.get_face_embedding_rows_for_faces(std::slice::from_ref(&updated.face_id))
+                .unwrap(),
+            vec![(updated.face_id, encode_evector(&updated.embedding))]
+        );
+        assert_eq!(db.get_total_face_count().unwrap(), 9);
+
+        db.delete_unclustered_face_index_for_files(&[]).unwrap();
+        db.delete_unclustered_face_index_for_files(&[1, 6]).unwrap();
+        assert_eq!(db.get_faces_for_given_file_id(1).unwrap().len(), 2);
+        assert!(db.get_faces_for_given_file_id(6).unwrap().is_empty());
+
+        db.delete_face_index_for_files(&[]).unwrap();
+        db.delete_face_index_for_files(&[1, 2]).unwrap();
+        assert_eq!(db.get_face_indexed_file_count(1).unwrap(), 6);
+        assert!(db.get_faces_for_given_file_id(1).unwrap().is_empty());
+    }
+
+    #[test]
+    fn error_results_lookup_and_prune() {
+        let (_directory, db) = seeded();
+        db.bulk_insert_faces(&[
+            face(11, 0, -1.0, 300.0, false),
+            good_face(11, 1),
+            FaceRow {
+                ml_version: 2,
+                ..face(12, 0, -1.0, 300.0, false)
+            },
+            good_face(12, 1),
+        ])
+        .unwrap();
+        let file_ids: Vec<i64> = (1..=12).chain([99]).collect();
+        let many: Vec<i64> = (0..=10000).collect();
+        assert_eq!(db.get_file_ids_with_error_results(&[]).unwrap(), ids([]));
+        assert_eq!(
+            db.get_file_ids_with_error_results(&file_ids).unwrap(),
+            ids([4, 5, 12])
+        );
+        assert_eq!(
+            db.get_file_ids_with_error_results(&many).unwrap(),
+            ids([4, 5, 12])
+        );
+
+        db.prune_resolved_face_error_results(&[]).unwrap();
+        db.prune_resolved_face_error_results(&[5]).unwrap();
+        assert_eq!(db.get_errored_file_ids().unwrap(), ids([5, 11, 12]));
+        db.prune_resolved_face_error_results(&[5, 11, 12]).unwrap();
+        assert_eq!(db.get_errored_file_ids().unwrap(), ids([5, 12]));
+        assert_eq!(db.get_faces_for_given_file_id(11).unwrap().len(), 1);
+        assert_eq!(
+            db.get_file_ids_with_error_results(&file_ids).unwrap(),
+            ids([4, 5, 12])
+        );
+    }
+
+    #[test]
+    fn large_id_lists_are_chunked() {
+        let (_directory, db) = open();
+        let faces: Vec<FaceRow> = (0..30).map(|index| good_face(index, 0)).collect();
+        db.bulk_insert_faces(&faces).unwrap();
+        let mapping: HashMap<String, String> = (0..30)
+            .map(|index| (format!("{index}_0"), format!("c{}", index % 3)))
+            .collect();
+        db.update_face_id_to_cluster_id(&mapping).unwrap();
+
+        let face_ids: Vec<String> = (0..12000).map(|index| format!("{index}_0")).collect();
+        assert_eq!(db.get_face_ids_to_cluster_ids(&face_ids).unwrap().len(), 30);
+        assert_eq!(
+            db.get_face_embedding_rows_for_faces(&face_ids)
+                .unwrap()
+                .len(),
+            30
+        );
+        let file_ids: Vec<i64> = (0..12000).collect();
+        db.delete_unclustered_face_index_for_files(&file_ids)
+            .unwrap();
+        assert_eq!(db.get_total_face_count().unwrap(), 30);
+        db.delete_face_index_for_files(&file_ids).unwrap();
+        assert_eq!(db.get_total_face_count().unwrap(), 0);
+    }
+}

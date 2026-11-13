@@ -4,29 +4,27 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
+	"slices"
 	"strconv"
 
-	"github.com/ente-io/museum/pkg/controller/commonbilling"
+	"github.com/ente/museum/pkg/controller/commonbilling"
 
-	"github.com/ente-io/museum/pkg/repo/storagebonus"
+	"github.com/ente/museum/pkg/repo/storagebonus"
 
-	"github.com/ente-io/museum/pkg/controller/discord"
-	"github.com/ente-io/museum/pkg/controller/email"
-	"github.com/ente-io/museum/pkg/utils/array"
-	"github.com/ente-io/museum/pkg/utils/billing"
-	"github.com/ente-io/museum/pkg/utils/network"
-	"github.com/ente-io/museum/pkg/utils/time"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/pkg/controller/discord"
+	"github.com/ente/museum/pkg/controller/email"
+	"github.com/ente/museum/pkg/utils/billing"
+	"github.com/ente/museum/pkg/utils/network"
+	"github.com/ente/museum/pkg/utils/time"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/repo"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/repo"
 )
 
-// BillingController provides abstractions for handling billing related queries
 type BillingController struct {
 	BillingPlansPerAccount ente.BillingPlansPerAccount
 	BillingRepo            *repo.BillingRepository
@@ -41,7 +39,6 @@ type BillingController struct {
 	CommonBillCtrl         *commonbilling.Controller
 }
 
-// Return a new instance of BillingController
 func NewBillingController(
 	plans ente.BillingPlansPerAccount,
 	appStoreController *AppStoreController,
@@ -70,46 +67,39 @@ func NewBillingController(
 	}
 }
 
-// GetPlansV2 returns the available subscription plans for the given country and stripe account
 func (c *BillingController) GetPlansV2(countryCode string, stripeAccountCountry ente.StripeAccountCountry) []ente.BillingPlan {
 	plans := c.getAllPlans(countryCode, stripeAccountCountry)
 	result := make([]ente.BillingPlan, 0)
 	ids := billing.GetActivePlanIDs()
 	for _, plan := range plans {
-		if contains(ids, plan.ID) {
+		if slices.Contains(ids, plan.ID) {
 			result = append(result, plan)
 		}
 	}
 	return result
 }
 
-// GetStripeAccountCountry returns the stripe account country the user's existing plan is from
-// if he doesn't have a stripe subscription then ente.DefaultStripeAccountCountry is returned
 func (c *BillingController) GetStripeAccountCountry(userID int64) (ente.StripeAccountCountry, error) {
 	subscription, err := c.BillingRepo.GetUserSubscription(userID)
 	if err != nil {
 		return "", stacktrace.Propagate(err, "")
 	}
 	if subscription.PaymentProvider != ente.Stripe {
-		//if user doesn't have a stripe subscription, return the default stripe account country
 		return ente.DefaultStripeAccountCountry, nil
 	} else {
 		return subscription.Attributes.StripeAccountCountry, nil
 	}
 }
 
-// GetUserPlans returns the active plans for a user
 func (c *BillingController) GetUserPlans(ctx *gin.Context, userID int64) ([]ente.BillingPlan, error) {
 	stripeAccountCountry, err := c.GetStripeAccountCountry(userID)
 	if err != nil {
 		return []ente.BillingPlan{}, stacktrace.Propagate(err, "Failed to get user's country stripe account")
 	}
-	// always return the plans based on the user's country determined by the IP
 	return c.GetPlansV2(network.GetClientCountry(ctx), stripeAccountCountry), nil
 
 }
 
-// GetSubscription returns the current subscription for a user if any
 func (c *BillingController) GetSubscription(ctx *gin.Context, userID int64) (ente.Subscription, error) {
 	s, err := c.BillingRepo.GetUserSubscription(userID)
 	if err != nil {
@@ -127,7 +117,7 @@ func (c *BillingController) GetSubscription(ctx *gin.Context, userID int64) (ent
 func (c *BillingController) GetRedirectURL(ctx *gin.Context) (string, error) {
 	whitelistedRedirectURLs := viper.GetStringSlice("stripe.whitelisted-redirect-urls")
 	redirectURL := ctx.Query("redirectURL")
-	if len(redirectURL) > 0 && redirectURL[len(redirectURL)-1:] == "/" { // Ignore the trailing slash
+	if len(redirectURL) > 0 && redirectURL[len(redirectURL)-1:] == "/" {
 		redirectURL = redirectURL[:len(redirectURL)-1]
 	}
 	for _, ar := range whitelistedRedirectURLs {
@@ -135,10 +125,9 @@ func (c *BillingController) GetRedirectURL(ctx *gin.Context) (string, error) {
 			return ar, nil
 		}
 	}
-	return "", stacktrace.Propagate(ente.ErrBadRequest, fmt.Sprintf("not a whitelistedRedirectURL- %s", redirectURL))
+	return "", stacktrace.Propagate(ente.ErrBadRequest, "not a whitelistedRedirectURL- %s", redirectURL)
 }
 
-// GetActiveSubscription returns user's active subscription or throws a error if no active subscription
 func (c *BillingController) GetActiveSubscription(userID int64) (ente.Subscription, error) {
 	subscription, err := c.BillingRepo.GetUserSubscription(userID)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -157,7 +146,6 @@ func (c *BillingController) GetActiveSubscription(userID int64) (ente.Subscripti
 	return subscription, nil
 }
 
-// HasActiveSelfOrFamilySubscription validates if the user or user's family admin has active subscription
 func (c *BillingController) HasActiveSelfOrFamilySubscription(userID int64, mustBeOnPaidPlan bool) error {
 	var subscriptionUserID int64
 	familyAdminID, err := c.UserRepo.GetFamilyAdminID(userID)
@@ -194,7 +182,6 @@ func (c *BillingController) HasActiveSelfOrFamilySubscription(userID int64, must
 	return nil
 }
 
-// VerifySubscription verifies and returns the verified subscription
 func (c *BillingController) VerifySubscription(
 	userID int64,
 	paymentProvider ente.PaymentProvider,
@@ -222,14 +209,18 @@ func (c *BillingController) VerifySubscription(
 	if err != nil {
 		return ente.Subscription{}, stacktrace.Propagate(err, "")
 	}
-	newSubscriptionExpiresSooner := newSubscription.ExpiryTime < currentSubscription.ExpiryTime
 	isUpgradingFromFreePlan := currentSubscription.ProductID == ente.FreePlanProductID
-	hasChangedProductID := currentSubscription.ProductID != newSubscription.ProductID
-	isOutdatedPurchase := !isUpgradingFromFreePlan && !hasChangedProductID && newSubscriptionExpiresSooner
-	if isOutdatedPurchase {
-		// User is reporting an outdated purchase that was already verified
-		// no-op
-		log.Info("Outdated purchase reported")
+	if shouldSkipVerifiedSubscriptionReplacement(currentSubscription, newSubscription, time.Microseconds()) {
+		log.WithFields(log.Fields{
+			"user_id":                      userID,
+			"stored_payment_provider":      currentSubscription.PaymentProvider,
+			"stored_product_id":            currentSubscription.ProductID,
+			"stored_expiry_time":           currentSubscription.ExpiryTime,
+			"verified_payment_provider":    newSubscription.PaymentProvider,
+			"verified_product_id":          newSubscription.ProductID,
+			"verified_expiry_time":         newSubscription.ExpiryTime,
+			"same_original_transaction_id": currentSubscription.OriginalTransactionID == newSubscription.OriginalTransactionID,
+		}).Info("Skipping verified subscription replacement")
 		return currentSubscription, nil
 	}
 	if newSubscription.Storage < currentSubscription.Storage {
@@ -260,8 +251,7 @@ func (c *BillingController) VerifySubscription(
 					"current_user":            userID,
 				}).Error("Subscription for given transactionID is attached with different user")
 				log.Info("Subscription attached to different user")
-				return ente.Subscription{}, stacktrace.Propagate(&ente.ErrSubscriptionAlreadyClaimed,
-					fmt.Sprintf("Subscription with txn id %s already associated with user %d", newSubscription.OriginalTransactionID, existingSub.UserID))
+				return ente.Subscription{}, stacktrace.Propagate(&ente.ErrSubscriptionAlreadyClaimed, "Subscription with txn id %s already associated with user %d", newSubscription.OriginalTransactionID, existingSub.UserID)
 			}
 		}
 	}
@@ -279,7 +269,6 @@ func (c *BillingController) VerifySubscription(
 	newSubscription.ID = currentSubscription.ID
 	if paymentProvider == ente.PlayStore &&
 		newSubscription.OriginalTransactionID != currentSubscription.OriginalTransactionID {
-		// Acknowledge to PlayStore in case of upgrades/downgrades/renewals
 		err = c.PlayStoreController.AcknowledgeSubscription(newSubscription.ProductID, verificationData)
 		if err != nil {
 			log.Error("Error acknowledging subscription ", err)
@@ -304,15 +293,26 @@ func (c *BillingController) VerifySubscription(
 	return newSubscription, nil
 }
 
+func shouldSkipVerifiedSubscriptionReplacement(currentSubscription ente.Subscription, verifiedSubscription ente.Subscription, now int64) bool {
+	effectiveExpiry := verifiedSubscription.ExpiryTime + billing.ProviderToExpiryGracePeriodMap[verifiedSubscription.PaymentProvider]
+	isSameSubscription := currentSubscription.PaymentProvider == verifiedSubscription.PaymentProvider &&
+		currentSubscription.ProductID == verifiedSubscription.ProductID &&
+		(verifiedSubscription.PaymentProvider == ente.PlayStore ||
+			currentSubscription.OriginalTransactionID == verifiedSubscription.OriginalTransactionID)
+	return effectiveExpiry < now ||
+		(currentSubscription.ProductID != ente.FreePlanProductID &&
+			isSameSubscription &&
+			verifiedSubscription.ExpiryTime < currentSubscription.ExpiryTime)
+}
+
 func (c *BillingController) getAllPlans(countryCode string, stripeAccountCountry ente.StripeAccountCountry) []ente.BillingPlan {
-	if array.StringInList(countryCode, billing.CountriesInEU) {
+	if slices.Contains(billing.CountriesInEU, countryCode) {
 		countryCode = "EU"
 	}
 	countryWisePlans := c.BillingPlansPerAccount[stripeAccountCountry]
 	if plans, found := countryWisePlans[countryCode]; found {
 		return plans
 	}
-	// unable to find plans for given country code, return plans for default country
 	defaultCountry := billing.GetDefaultPlanCountry()
 	return countryWisePlans[defaultCountry]
 }
@@ -357,6 +357,10 @@ func (c *BillingController) HandleAccountDeletion(ctx context.Context, userID in
 	logger.Info("updating billing on account deletion")
 	subscription, err := c.BillingRepo.GetUserSubscription(userID)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			logger.Info("no subscription found; skipping billing cleanup")
+			return true, nil
+		}
 		return false, stacktrace.Propagate(err, "")
 	}
 	billingLogger := logger.WithFields(log.Fields{
@@ -368,26 +372,19 @@ func (c *BillingController) HandleAccountDeletion(ctx context.Context, userID in
 		"stripe_account_country": subscription.Attributes.StripeAccountCountry,
 	})
 	billingLogger.Info("subscription fetched")
-	// user on free plan, no action required
 	if subscription.ProductID == ente.FreePlanProductID {
 		billingLogger.Info("user on free plan")
 		return true, nil
 	}
-	// The word "family" here is a misnomer - these are some manually created
-	// accounts for very early adopters, and are unrelated to Family Plans.
-	// Cancelation of these accounts will require manual intervention. Ideally,
-	// we should never be deleting such accounts.
-	if subscription.ProductID == ente.FamilyPlanProductID || subscription.ProductID == "" {
-		return false, stacktrace.NewError(fmt.Sprintf("unexpected product id %s", subscription.ProductID), "")
+	if subscription.ProductID == "" {
+		return false, stacktrace.NewError("unexpected product id %s", subscription.ProductID)
 	}
 	isCancelled = subscription.Attributes.IsCancelled
-	// delete customer data from Stripe if user is on paid plan.
 	if subscription.PaymentProvider == ente.Stripe {
 		err = c.StripeController.CancelSubAndDeleteCustomer(subscription, billingLogger)
 		if err != nil {
 			return false, stacktrace.Propagate(err, "")
 		}
-		// on customer deletion, subscription is automatically cancelled
 		isCancelled = true
 	} else if subscription.PaymentProvider == ente.AppStore || subscription.PaymentProvider == ente.PlayStore {
 		logger.Info("Updating originalTransactionID for app/playStore provider")
@@ -450,20 +447,10 @@ func (c *BillingController) getPlanForCountry(s ente.Subscription, countryCode s
 		return ente.BillingPlan{Period: ente.PeriodYear}, nil
 	}
 
-	// If request has a different `countryCode` because the user is traveling, and we're unable to find a plan for that country,
-	// fallback to the previous logic for finding a plan.
+	// The request country may differ from the subscription country while traveling.
 	plan, _, err := c.getPlanWithCountry(s)
 	if err != nil {
 		return ente.BillingPlan{}, stacktrace.Propagate(err, "")
 	}
 	return plan, nil
-}
-
-func contains(planIDs []string, planID string) bool {
-	for _, id := range planIDs {
-		if id == planID {
-			return true
-		}
-	}
-	return false
 }

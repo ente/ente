@@ -12,11 +12,11 @@ import "package:photos/db/offline_files_db.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
 import "package:photos/models/ml/face/box.dart";
-import "package:photos/models/ml/face/face.dart";
-import "package:photos/service_locator.dart" show isOfflineMode;
+import "package:photos/models/ml/face/face_with_embedding.dart";
+import "package:photos/module/download/file.dart";
+import "package:photos/module/download/thumbnail.dart";
+import "package:photos/service_locator.dart" show isLocalGalleryMode;
 import "package:photos/services/machine_learning/face_thumbnail_generator.dart";
-import "package:photos/utils/file_util.dart";
-import "package:photos/utils/thumbnail_util.dart";
 
 final _logger = Logger("FaceCropUtils");
 
@@ -40,8 +40,9 @@ TaskQueue _queueThumbnailFaceGenerations = TaskQueue<String>(
 Uint8List? checkInMemoryCachedCropForPersonOrClusterID(
   String personOrClusterID,
 ) {
-  final String? faceID =
-      _personOrClusterIdToCachedFaceID.get(personOrClusterID);
+  final String? faceID = _personOrClusterIdToCachedFaceID.get(
+    personOrClusterID,
+  );
   if (faceID == null) return null;
   final Uint8List? cachedCover = _faceCropCache.get(faceID);
   return cachedCover;
@@ -52,15 +53,44 @@ Uint8List? _checkInMemoryCachedCropForFaceID(String faceID) {
   return cachedCover;
 }
 
+Future<bool> areFullFaceCropsCached(
+  Iterable<String> faceIDs, {
+  bool useTempCache = false,
+}) async {
+  final uniqueFaceIDs = faceIDs.toSet();
+  if (uniqueFaceIDs.isEmpty) {
+    return false;
+  }
+  for (final faceID in uniqueFaceIDs) {
+    final Uint8List? cachedFace = _checkInMemoryCachedCropForFaceID(faceID);
+    if (cachedFace != null && cachedFace.isNotEmpty) {
+      continue;
+    }
+    final faceCropCacheFile = cachedFaceCropPath(faceID, useTempCache);
+    if (!await faceCropCacheFile.exists()) {
+      return false;
+    }
+    final fileLength = await faceCropCacheFile.length();
+    if (fileLength <= 0) {
+      return false;
+    }
+  }
+  return true;
+}
+
 Future<String?> checkUsedFaceIDForPersonOrClusterId(
   String personOrClusterID,
 ) async {
-  final String? cachedFaceID =
-      _personOrClusterIdToCachedFaceID.get(personOrClusterID);
+  final String? cachedFaceID = _personOrClusterIdToCachedFaceID.get(
+    personOrClusterID,
+  );
   if (cachedFaceID != null) return cachedFaceID;
-  final mlDataDB = isOfflineMode ? MLDataDB.offlineInstance : MLDataDB.instance;
-  final String? faceIDFromDB =
-      await mlDataDB.getFaceIdUsedForPersonOrCluster(personOrClusterID);
+  final mlDataDB = isLocalGalleryMode
+      ? MLDataDB.localGalleryInstance
+      : MLDataDB.instance;
+  final String? faceIDFromDB = await mlDataDB.getFaceIdUsedForPersonOrCluster(
+    personOrClusterID,
+  );
   if (faceIDFromDB != null) {
     _personOrClusterIdToCachedFaceID.put(personOrClusterID, faceIDFromDB);
   }
@@ -71,11 +101,10 @@ Future<void> putFaceIdCachedForPersonOrCluster(
   String personOrClusterID,
   String faceID,
 ) async {
-  final mlDataDB = isOfflineMode ? MLDataDB.offlineInstance : MLDataDB.instance;
-  await mlDataDB.putFaceIdCachedForPersonOrCluster(
-    personOrClusterID,
-    faceID,
-  );
+  final mlDataDB = isLocalGalleryMode
+      ? MLDataDB.localGalleryInstance
+      : MLDataDB.instance;
+  await mlDataDB.putFaceIdCachedForPersonOrCluster(personOrClusterID, faceID);
   _personOrClusterIdToCachedFaceID.put(personOrClusterID, faceID);
 }
 
@@ -93,19 +122,22 @@ Future<void> _putCachedCropForFaceID(
 Future<void> checkRemoveCachedFaceIDForPersonOrClusterId(
   String personOrClusterID,
 ) async {
-  final mlDataDB = isOfflineMode ? MLDataDB.offlineInstance : MLDataDB.instance;
-  final String? cachedFaceID =
-      await mlDataDB.getFaceIdUsedForPersonOrCluster(personOrClusterID);
+  final mlDataDB = isLocalGalleryMode
+      ? MLDataDB.localGalleryInstance
+      : MLDataDB.instance;
+  final String? cachedFaceID = await mlDataDB.getFaceIdUsedForPersonOrCluster(
+    personOrClusterID,
+  );
   if (cachedFaceID != null) {
     _personOrClusterIdToCachedFaceID.remove(personOrClusterID);
     await mlDataDB.removeFaceIdCachedForPersonOrCluster(personOrClusterID);
   }
 }
 
-/// Careful to only use [personOrClusterID] if all [faces] are from the same person or cluster.
+// Pass personOrClusterID only when every face belongs to that person or cluster.
 Future<Map<String, Uint8List>?> getCachedFaceCrops(
   EnteFile enteFile,
-  Iterable<Face> faces, {
+  Iterable<FaceWithoutEmbedding> faces, {
   int fetchAttempt = 1,
   bool useFullFile = true,
   String? personOrClusterID,
@@ -115,8 +147,9 @@ Future<Map<String, Uint8List>?> getCachedFaceCrops(
     final faceIdToCrop = <String, Uint8List>{};
     final facesWithoutCrops = <String, FaceBox>{};
     for (final face in faces) {
-      final Uint8List? cachedFace =
-          _checkInMemoryCachedCropForFaceID(face.faceID);
+      final Uint8List? cachedFace = _checkInMemoryCachedCropForFaceID(
+        face.faceID,
+      );
       if (cachedFace != null) {
         faceIdToCrop[face.faceID] = cachedFace;
       } else {
@@ -158,8 +191,9 @@ Future<Map<String, Uint8List>?> getCachedFaceCrops(
     if (!useFullFile) {
       for (final face in faces) {
         if (facesWithoutCrops.containsKey(face.faceID)) {
-          final Uint8List? cachedFaceThumbnail =
-              _faceCropThumbnailCache.get(face.faceID);
+          final Uint8List? cachedFaceThumbnail = _faceCropThumbnailCache.get(
+            face.faceID,
+          );
           if (cachedFaceThumbnail != null) {
             faceIdToCrop[face.faceID] = cachedFaceThumbnail;
             facesWithoutCrops.remove(face.faceID);
@@ -191,8 +225,7 @@ Future<Map<String, Uint8List>?> getCachedFaceCrops(
           );
           final faceCropCacheFile = cachedFaceCropPath(entry.key, useTempCache);
           try {
-            // ignore: unawaited_futures
-            faceCropCacheFile.writeAsBytes(computedCrop);
+            await faceCropCacheFile.writeAsBytes(computedCrop, flush: true);
           } catch (e, s) {
             _logger.severe(
               "Error writing cached face crop for faceID ${entry.key} to file ${faceCropCacheFile.path}",
@@ -207,7 +240,8 @@ Future<Map<String, Uint8List>?> getCachedFaceCrops(
     }
     return faceIdToCrop.isEmpty ? null : faceIdToCrop;
   } catch (e, s) {
-    if (e is! TaskQueueTimeoutException &&
+    if (e is! UnsupportedFaceThumbnailException &&
+        e is! TaskQueueTimeoutException &&
         e is! TaskQueueOverflowException &&
         e is! TaskQueueCancelledException) {
       if (fetchAttempt <= _retryLimit) {
@@ -243,17 +277,18 @@ Future<Map<String, Uint8List>?> getCachedFaceCrops(
 }
 
 Future<Uint8List?> precomputeClusterFaceCrop(
-  file,
-  clusterID, {
+  EnteFile file,
+  String clusterID, {
   required bool useFullFile,
 }) async {
   try {
     final w = (kDebugMode ? EnteWatch('precomputeClusterFaceCrop') : null)
       ?..start();
-    final Face? face = await MLDataDB.instance.getCoverFaceForPerson(
-      recentFileID: file.uploadedFileID!,
-      clusterID: clusterID,
-    );
+    final FaceWithoutEmbedding? face = await MLDataDB.instance
+        .getCoverFaceForPerson(
+          recentFileID: file.uploadedFileID!,
+          clusterID: clusterID,
+        );
     w?.log('getCoverFaceForPerson');
     if (face == null) {
       debugPrint(
@@ -278,11 +313,7 @@ Future<Uint8List?> precomputeClusterFaceCrop(
     w?.logAndReset('getCachedFaceCrops');
     return cropMap?[face.faceID];
   } catch (e, s) {
-    _logger.severe(
-      "Error getting cover face for cluster $clusterID",
-      e,
-      s,
-    );
+    _logger.severe("Error getting cover face for cluster $clusterID", e, s);
     return null;
   }
 }
@@ -304,8 +335,6 @@ Future<Map<String, Uint8List>?> _getFaceCropsUsingHeapPriorityQueue(
   Map<String, FaceBox> faceBoxeMap, {
   bool useFullFile = true,
 }) async {
-  final completer = Completer<Map<String, Uint8List>?>();
-
   late final TaskQueue relevantTaskQueue;
   late final String taskId;
   if (useFullFile) {
@@ -316,16 +345,15 @@ Future<Map<String, Uint8List>?> _getFaceCropsUsingHeapPriorityQueue(
     taskId = await _faceCropTaskId(file, useFullFile: false);
   }
 
+  Map<String, Uint8List>? faceCrops;
   await relevantTaskQueue.addTask(taskId, () async {
-    final faceCrops = await _getFaceCrops(
+    faceCrops = await _getFaceCrops(
       file,
       faceBoxeMap,
       useFullFile: useFullFile,
     );
-    completer.complete(faceCrops);
   });
-
-  return completer.future;
+  return faceCrops;
 }
 
 Future<String> _faceCropTaskId(
@@ -333,16 +361,18 @@ Future<String> _faceCropTaskId(
   required bool useFullFile,
 }) async {
   final suffix = useFullFile ? "-full" : "-thumbnail";
-  if (isOfflineMode) {
+  if (isLocalGalleryMode) {
     final localId = file.localID;
     if (localId != null && localId.isNotEmpty) {
-      final localIntId =
-          await OfflineFilesDB.instance.getOrCreateLocalIntId(localId);
+      final localIntId = await OfflineFilesDB.instance.getOrCreateLocalIntId(
+        localId,
+      );
       return "$localIntId$suffix";
     }
     return "${file.hashCode}$suffix";
   }
-  final baseId = file.uploadedFileID?.toString() ??
+  final baseId =
+      file.uploadedFileID?.toString() ??
       file.generatedID?.toString() ??
       file.localID ??
       file.hashCode.toString();
@@ -356,14 +386,36 @@ Future<Map<String, Uint8List>?> _getFaceCrops(
 }) async {
   late String? imagePath;
   if (useFullFile && file.fileType != FileType.video) {
-    final File? ioFile = await getFile(file);
+    File? ioFile = await getFile(file);
+    if (file.isUploaded &&
+        !file.isRemoteOnlyFile &&
+        (ioFile == null || !await ioFile.exists())) {
+      ioFile = await getFile(EnteFile.from(file)..localID = null);
+    }
     if (ioFile == null) {
       _logger.severe("Failed to get file for face crop generation");
       return null;
     }
     imagePath = ioFile.path;
   } else {
-    final thumbnail = await getThumbnailForUploadedFile(file);
+    File? thumbnail;
+    try {
+      thumbnail = await getThumbnailForUploadedFile(file);
+    } catch (e, s) {
+      if (!file.isUploaded || file.isRemoteOnlyFile) {
+        rethrow;
+      }
+      _logger.warning(
+        "Failed to get local thumbnail for face crop generation",
+        e,
+        s,
+      );
+    }
+    if (thumbnail == null && file.isUploaded && !file.isRemoteOnlyFile) {
+      thumbnail = await getThumbnailForUploadedFile(
+        EnteFile.from(file)..localID = null,
+      );
+    }
     if (thumbnail == null) {
       _logger.severe("Failed to get thumbnail for face crop generation");
       return null;
@@ -376,12 +428,8 @@ Future<Map<String, Uint8List>?> _getFaceCrops(
     faceIds.add(e.key);
     faceBoxes.add(e.value);
   }
-  final List<Uint8List> faceCrop =
-      await FaceThumbnailGenerator.instance.generateFaceThumbnails(
-    // await generateJpgFaceThumbnails(
-    imagePath,
-    faceBoxes,
-  );
+  final List<Uint8List> faceCrop = await FaceThumbnailGenerator.instance
+      .generateFaceThumbnails(imagePath, faceBoxes);
   final Map<String, Uint8List> result = {};
   for (int i = 0; i < faceCrop.length; i++) {
     result[faceIds[i]] = faceCrop[i];

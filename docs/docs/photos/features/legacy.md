@@ -1,10 +1,14 @@
 ---
-title: This Page Has Moved
-description: This content has been reorganized
+title: Legacy
+description: Set up trusted contacts for account recovery in Ente Photos
 search: false
+head:
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
-# This Page Has Moved
+# Legacy
 
 The **Legacy** (Trusted Contacts) feature guide has moved to:
 

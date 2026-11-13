@@ -1,19 +1,11 @@
-/// Landmark coordinate data.
-///
-/// WARNING: All coordinates are relative to the image size, so in the range [0, 1]!
+// Coordinates are fractions of the original image dimensions.
 class Landmark {
   double x;
   double y;
 
-  Landmark({
-    required this.x,
-    required this.y,
-  });
+  Landmark({required this.x, required this.y});
 
-  Map<String, dynamic> toJson() => {
-        'x': x,
-        'y': y,
-      };
+  Map<String, dynamic> toJson() => {'x': x, 'y': y};
 
   factory Landmark.fromJson(Map<String, dynamic> json) {
     return Landmark(

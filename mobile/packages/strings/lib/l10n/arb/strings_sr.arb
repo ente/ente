@@ -1,61 +1,259 @@
 {
-  "networkHostLookUpErr": "Није могуће повезивање са Ente-ом, молимо вас да проверите мрежне поставке и контактирајте подршку ако грешка и даље постоји.",
-  "@networkHostLookUpErr": {
-    "description": "Error message shown when the app cannot connect to Ente due to network host lookup failure"
+  "about": "О програму",
+  "acceptTrustInvite": "Прихвати позивницу",
+  "account": "Рачун",
+  "activeSessions": "Активне сесије",
+  "@activeSessions": {
+    "description": "Title for active sessions page"
   },
-  "networkConnectionRefusedErr": "Није могуће повезивање са Ente-ом, покушајте поново мало касније. Ако грешка настави, обратите се подршци.",
-  "@networkConnectionRefusedErr": {
-    "description": "Error message shown when the app cannot connect to Ente due to connection refused"
-  },
-  "itLooksLikeSomethingWentWrongPleaseRetryAfterSome": "Изгледа да је нешто погрешно. Покушајте поново након неког времена. Ако грешка настави, обратите се нашем тиму за подршку.",
-  "@itLooksLikeSomethingWentWrongPleaseRetryAfterSome": {
-    "description": "Generic error message for temporary issues"
-  },
-  "error": "Грешка",
-  "@error": {
-    "description": "Generic error title"
-  },
-  "ok": "У реду",
-  "@ok": {
-    "description": "Generic OK button label"
-  },
-  "faq": "Питања",
-  "@faq": {
-    "description": "FAQ link label"
-  },
-  "contactSupport": "Контактирати подршку",
-  "@contactSupport": {
-    "description": "Contact support button label"
-  },
-  "emailYourLogs": "Имејлирајте извештаје",
-  "@emailYourLogs": {
-    "description": "Title for emailing logs dialog"
-  },
-  "pleaseSendTheLogsTo": "Пошаљите извештаје на \n{toEmail}",
-  "@pleaseSendTheLogsTo": {
-    "description": "Message asking user to send logs to email address",
+  "add": "Додај",
+  "addCode": "Додај кôд",
+  "addedSuccessfullyTo": "Успешно додато у {albumName}",
+  "@addedSuccessfullyTo": {
     "placeholders": {
-      "toEmail": {
-        "type": "String",
-        "description": "Email address to send logs to"
-      }
+      "albumName": {}
     }
   },
-  "copyEmailAddress": "Копирати имејл адресу",
-  "@copyEmailAddress": {
-    "description": "Button to copy email address to clipboard"
+  "addingToFavorites": "Додајем у омиљене",
+  "addLocation": "Додај локацију",
+  "addLocationButton": "Додај",
+  "addMore": "Додај још",
+  "addName": "Додај име",
+  "addNew": "Додај нову",
+  "@addNew": {
+    "description": "Text to add a new item (location tag, album, caption etc)"
   },
-  "exportLogs": "Извези изештаје",
-  "@exportLogs": {
-    "description": "Button to export logs"
+  "addOnPageSubtitle": "Детаљи додатака",
+  "addOns": "Додаци",
+  "addOnValidTill": "Ваш {storageAmount} додатак важи до {endDate}",
+  "@addOnValidTill": {
+    "placeholders": {
+      "endDate": {},
+      "storageAmount": {}
+    }
   },
+  "addPhotos": "Додај фотографије",
+  "addTag": "Додај ознаку",
+  "addToAlbum": "Додај у албум",
+  "addToEnte": "Додај у Енте",
+  "addToHiddenAlbum": "Додај у тајни албум",
+  "adjust": "Прилагоди",
+  "advanced": "Напредно",
+  "after1Day": "Након 1 дана",
+  "after1Hour": "Након 1 сата",
+  "after1Month": "Након 1 месеца",
+  "after1Week": "Након 1 недеље",
+  "after1Year": "Након 1 године",
+  "albums": "Албуми",
+  "albumTitle": "Наслов албума",
+  "albumUpdated": "Албум ажуриран",
+  "algorithm": "Алгоритам",
+  "align": "Поравнај",
+  "all": "Све",
+  "allClear": "✨ Све је чисто",
+  "allMemoriesPreserved": "Све успомене су сачуване",
+  "allow": "Дозволи",
+  "allowAddingPhotos": "Дозволи додавање фотографија",
+  "@allowAddingPhotos": {
+    "description": "Switch button to enable uploading photos to a public link"
+  },
+  "allowDownloads": "Дозволи преузимање",
+  "allowPermTitle": "Дозволи приступ фотографијама",
+  "allTabEmptyHint": "Овде још ништа. Додирните + да додате кôд или отворите Отпад да бисте га опоравили.",
+  "@allTabEmptyHint": {
+    "description": "Shown when the All tab has no active codes but Trash contains codes"
+  },
+  "analysis": "Анализа",
+  "androidBiometricHint": "Потврдите идентитет",
+  "@androidBiometricHint": {
+    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
+  },
+  "androidCancelButton": "Откажи",
+  "@androidCancelButton": {
+    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
+  },
+  "androidSignInTitle": "Потребна аутентификација",
+  "@androidSignInTitle": {
+    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
+  },
+  "aNewVersionOfEnteIsAvailable": "Нова Енте верзија је доступна.",
+  "appIcon": "Иконица апликације",
+  "appleId": "Епл идентификација",
+  "appLock": "Закључавање апликације",
+  "@appLock": {
+    "description": "App lock setting title"
+  },
+  "appLockDescription": "Изаберите између заданог закључавање екрана вашег уређаја и прилагођени екран за закључавање са ПИН-ом или лозинком.",
+  "@appLockDescription": {
+    "description": "Description of app lock feature"
+  },
+  "appLockNotEnabled": "Блокирање апликације није упаљено",
+  "appLockNotEnabledDescription": "Молимо упалие блокирање апликације на Безбедност > Блокирај апликацију",
+  "appLockOfflineModeWarning": "Одлучили сте да наставите без резервних копија. Ако заборавите лозинку, нећете моћи да приступите својим подацима.",
+  "apply": "Примени",
+  "applyCodeTitle": "Примени кôд",
+  "appstoreSubscription": "Претплата путем Епл продавнице",
+  "archive": "Архивирај",
+  "@archive": {
+    "description": "Action of 'Archiving' an element"
+  },
+  "archiving": "Архивирам...",
+  "areThey": "Да ли је то",
+  "areYouSureThatYouWantToLeaveTheFamily": "Да ли заиста желиш да напустиш породични пакет?",
+  "areYouSureYouWantToCancel": "Да ли сте сигурни да желите да откажете?",
+  "areYouSureYouWantToChangeYourPlan": "Да ли сигурно желиш да промениш пакет?",
+  "areYouSureYouWantToExit": "Сигурно желите да изађете?",
+  "areYouSureYouWantToRenew": "Да ли сте сигурни да желите да обновите претплату?",
+  "askCancelReason": "Отказали сте претплату. Да ли бисте нам рекли разлог?",
+  "authenticateGeneric": "Молимо потврдите аутентичност",
+  "authenticationFailedPleaseTryAgain": "Аутентификација није успела, покушајте поново",
+  "@authenticationFailedPleaseTryAgain": {
+    "description": "Error message when authentication fails"
+  },
+  "authenticationSuccessful": "Успешна аутентификација!",
+  "@authenticationSuccessful": {
+    "description": "Success message when authentication is successful"
+  },
+  "authToChangeEmailVerificationSetting": "Потврдите аутентичност да промените верификацији имејл",
+  "authToChangeLockscreenSetting": "Аутентификујте се да бисте променили закључавање екрана",
+  "authToChangeYourEmail": "Аутентификујте се да бисте променили имејл",
+  "authToExportCodes": "Аутентификујте се да бисте извезли кôдове",
+  "authToInitiateSignIn": "Аутентификујте се да бисте почели пријављивање за копију.",
+  "authToSetBackupPassword": "Потврдите аутентичност да бисте подесили лозинку за резервну копију",
+  "authToUpdateBackupPassword": "Потврдите аутентичност да бисте ажурирали лозинку за резервну копију",
+  "authToViewPasskeyGeneric": "Аутентификујте се да бисте прегледали кључ",
+  "authToViewSecrets": "Аутентификујте се да бисте прегледали Ваше тајне",
+  "@authToViewSecrets": {
+    "description": "Message prompting authentication to view secrets"
+  },
+  "authToViewTrashedFiles": "Молимо вас да се аутентификујете да бисте видели датотеке у отпаду",
+  "authToViewYourActiveSessions": "Аутентификујте се да бисте преглеадали активне сесије",
+  "authToViewYourHiddenFiles": "Молимо вас да се аутентификујете да бисте видели скривене датотеке",
+  "authToViewYourRecoveryKey": "Аутентификујте се да бисте погледали кључ за опоравак",
+  "autoLock": "Ауто-закључавање",
+  "@autoLock": {
+    "description": "Auto lock setting title"
+  },
+  "autoLockFeatureDescription": "Време након којег се апликација блокира након што је постављенеа у позадину",
+  "@autoLockFeatureDescription": {
+    "description": "Description of auto lock feature"
+  },
+  "background": "Позадина",
+  "backgroundWithThem": "Прелепи призори са {name}",
+  "@backgroundWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "backupCreated": "Креирана је резервна копија!",
+  "backupFailed": "Неуспешна израда резервне копије",
+  "backupFolderLabel": "Фасцикла резервних копија:",
+  "backupLocationChoiceDescription": "Где желите да сачувате своје резервне копије?",
+  "backupOverMobileData": "Копирај користећи мобилни интернет",
+  "backupPasswordCleared": "Лозинка за резервну копију је обрисана",
+  "backupPasswordHint": "Ваша резервна копија ће бити шифрована овом лозинком.",
+  "backupStatus": "Статус резервних копија",
+  "backupVideos": "Копирај видео снимке",
+  "beach": "Песак и море",
+  "birthdays": "Рођендани",
+  "blog": "Блог",
+  "bothIssuerAndAccountCanNotBeEmpty": "И издавалац и рачун не могу бити празни",
+  "brushColor": "Боја четкице",
   "cancel": "Откажи",
   "@cancel": {
     "description": "Cancel button label"
   },
-  "reportABug": "Пријави грешку",
-  "@reportABug": {
-    "description": "Label for reporting a bug"
+  "cancelOtherSubscription": "Молимо, прво откажите претплау на {paymentProvider}",
+  "@cancelOtherSubscription": {
+    "description": "The text to display when the user has an existing subscription from a different payment provider",
+    "type": "text",
+    "placeholders": {
+      "paymentProvider": {
+        "example": "Apple",
+        "type": "String"
+      }
+    }
+  },
+  "cancelSubscription": "Откажи претплату",
+  "cannotDeleteSharedFiles": "Не могу да обришем дељене фајлове",
+  "canNotOpenBody": "Жао ми је, овај албум се не може отворити у апликацији.",
+  "canNotOpenTitle": "Не могу да отворим овај албум",
+  "canOnlyCreateLinkForFilesOwnedByYou": "Можете направити линк само за фајлове који су ваше власништво",
+  "centerPoint": "Централна тачка",
+  "changeLocationOfSelectedItems": "Измени локацију изабраних ставки?",
+  "changePasswordTitle": "Промени лозинку",
+  "@changePasswordTitle": {
+    "description": "Change password title"
+  },
+  "checkInboxAndSpamFolder": "Молимо вас да проверите примљену пошту (и нежељену пошту) да бисте довршили верификацију",
+  "@checkInboxAndSpamFolder": {
+    "description": "Message asking user to check inbox and spam folder"
+  },
+  "checkStatus": "Провери статус",
+  "@checkStatus": {
+    "description": "Check status button label"
+  },
+  "chooseBackupLocation": "Изабери локацију резервне копије",
+  "city": "У граду",
+  "clearBackupFolder": "Обришите фасциклу резервних копија",
+  "clearBackupPassword": "Обриши лозинку за резервну копију",
+  "close": "Затвори",
+  "codeAppliedPageTitle": "Кôд примењен",
+  "codeChangeLimitReached": "Жао нам је, достигли сте максимум броја промена кôда.",
+  "codeCopiedToClipboard": "Копирано у међуспремник",
+  "codeIssuerHint": "Издавач",
+  "collaborator": "Сарадник",
+  "collectPhotos": "Прикупи фотографије",
+  "color": "Боја",
+  "compactMode": "Компактни режим",
+  "confirm": "Потврди",
+  "@confirm": {
+    "description": "Confirm button label"
+  },
+  "confirmPassword": "Потврдите лозинку",
+  "@confirmPassword": {
+    "description": "Confirm password field label"
+  },
+  "confirmPlanChange": "Потврди промену пакета",
+  "confirmUpdatingkey": "Јесте ли сигурни да желите да ажурирате тајну кључ?",
+  "contacts": "Контакти",
+  "contactSupport": "Контактирати подршку",
+  "@contactSupport": {
+    "description": "Contact support button label"
+  },
+  "continueLabel": "Настави",
+  "@continueLabel": {
+    "description": "Continue button label"
+  },
+  "copied": "Копирано",
+  "copiedNextToClipboard": "Копирали следећи кôд у остави",
+  "copiedToClipboard": "Копирано у оставу",
+  "copyEmailAddress": "Копирати имејл адресу",
+  "@copyEmailAddress": {
+    "description": "Button to copy email address to clipboard"
+  },
+  "copyLink": "Копирај везу",
+  "copypasteThisCodentoYourAuthenticatorApp": "Копирајте и налепите овај код \nу своју апликацију за аутентификацију",
+  "couldNotBackUpTryLater": "Нисмо могли да бекапујемо ваше податке.\nПокушаћемо касније.",
+  "couldNotUpdateSubscription": "Неуспешно ажурирање претплате",
+  "crashAndErrorReporting": "Пријављивање дања и грешке",
+  "create": "Направи",
+  "createAccount": "Направи налог",
+  "@createAccount": {
+    "description": "Create account button label"
+  },
+  "createAlbumActionHint": "Дуго притисните да бисте изабрали фотографије и кликните на + да бисте направили албум",
+  "createBackupNow": "Направите резервну копију сада",
+  "createCollage": "Направи колаж",
+  "createNewTag": "Креирај нову ознаку",
+  "createPublicLink": "Креирај јавну везу",
+  "creatingLink": "Креирам линк...",
+  "criticalUpdateAvailable": "Критично ажурирање је доступно",
+  "curatedMemories": "Пробране успомене",
+  "currentBackupFolder": "Тренутна фасцикла резервне копије:",
+  "custom": "Прилагођено",
+  "@custom": {
+    "description": "Label for setting custom value for link expiry"
   },
   "customEndpoint": "Везано за {endpoint}",
   "@customEndpoint": {
@@ -67,473 +265,256 @@
       }
     }
   },
-  "save": "Сачувај",
-  "@save": {
-    "description": "Label for save button"
-  },
-  "send": "Пошаљи",
-  "@send": {
-    "description": "Label for send button"
-  },
-  "saveOrSendDescription": "Да ли желите да ово сачувате у складиште (фасцикли за преузимање подразумевано) или да га пошаљете другим апликацијама?",
-  "@saveOrSendDescription": {
-    "description": "Description text asking user if they want to save to storage or share with other apps"
-  },
-  "saveOnlyDescription": "Да ли желите да ово сачувате у складиште (фасцикли за преузимање подразумевано)?",
-  "@saveOnlyDescription": {
-    "description": "Description text asking user if they want to save to storage (for platforms that don't support sharing)"
-  },
-  "enterNewEmailHint": "Унесите Ваш нови имејл",
-  "@enterNewEmailHint": {
-    "description": "Hint text for entering new email address"
-  },
-  "email": "Имејл",
-  "@email": {
-    "description": "Email field label"
-  },
-  "verify": "Верификуј",
-  "@verify": {
-    "description": "Verify button label"
-  },
-  "invalidEmailTitle": "Погрешна имејл адреса",
-  "@invalidEmailTitle": {
-    "description": "Title for invalid email error dialog"
-  },
-  "invalidEmailMessage": "Унесите важећи имејл.",
-  "@invalidEmailMessage": {
-    "description": "Message for invalid email error dialog"
-  },
-  "pleaseWait": "Молимо сачекајте...",
-  "@pleaseWait": {
-    "description": "Please wait message"
-  },
-  "verifyPassword": "Верификујте лозинку",
-  "@verifyPassword": {
-    "description": "Verify password button label"
-  },
-  "incorrectPasswordTitle": "Неисправна лозинка",
-  "@incorrectPasswordTitle": {
-    "description": "Title for incorrect password error"
-  },
-  "pleaseTryAgain": "Пробајте поново",
-  "@pleaseTryAgain": {
-    "description": "Message asking user to try again"
-  },
-  "enterPassword": "Унеси лозинку",
-  "@enterPassword": {
-    "description": "Enter password field label"
-  },
-  "enterYourPasswordHint": "Унесите лозинку",
-  "@enterYourPasswordHint": {
-    "description": "Hint for password field"
-  },
-  "activeSessions": "Активне сесије",
-  "@activeSessions": {
-    "description": "Title for active sessions page"
-  },
-  "oops": "Упс",
-  "@oops": {
-    "description": "Oops error title"
-  },
-  "somethingWentWrongPleaseTryAgain": "Нешто је пошло наопако. Покушајте поново",
-  "@somethingWentWrongPleaseTryAgain": {
-    "description": "Generic error message"
-  },
-  "thisWillLogYouOutOfThisDevice": "Ово ће вас одјавити из овог уређаја!",
-  "@thisWillLogYouOutOfThisDevice": {
-    "description": "Warning message for logging out of current device"
-  },
-  "thisWillLogYouOutOfTheFollowingDevice": "Ово ће вас одјавити из овог уређаја:",
-  "@thisWillLogYouOutOfTheFollowingDevice": {
-    "description": "Warning message for logging out of another device"
-  },
-  "terminateSession": "Прекинути сесију?",
-  "@terminateSession": {
-    "description": "Title for terminate session dialog"
-  },
-  "terminate": "Прекини",
-  "@terminate": {
-    "description": "Terminate button label"
-  },
-  "thisDevice": "Овај уређај",
-  "@thisDevice": {
-    "description": "Label for current device"
-  },
-  "createAccount": "Направи налог",
-  "@createAccount": {
-    "description": "Create account button label"
-  },
-  "weakStrength": "Слабо",
-  "@weakStrength": {
-    "description": "Weak password strength label"
-  },
-  "moderateStrength": "Умерено",
-  "@moderateStrength": {
-    "description": "Moderate password strength label"
-  },
-  "strongStrength": "Јако",
-  "@strongStrength": {
-    "description": "Strong password strength label"
-  },
-  "deleteAccount": "Избриши налог",
-  "@deleteAccount": {
-    "description": "Delete account button label"
-  },
-  "deleteAccountQuery": "Жао нам је што одлазите. Да ли се суочавате са неком грешком?",
-  "@deleteAccountQuery": {
-    "description": "Message asking user why they want to delete account"
-  },
-  "yesSendFeedbackAction": "Да, послати повратне информације",
-  "@yesSendFeedbackAction": {
-    "description": "Button to confirm sending feedback"
-  },
-  "noDeleteAccountAction": "Не, избрисати налог",
-  "@noDeleteAccountAction": {
-    "description": "Button to proceed with account deletion"
-  },
-  "initiateAccountDeleteTitle": "Молимо вас да се аутентификујете за брисање рачуна",
-  "@initiateAccountDeleteTitle": {
-    "description": "Title for authentication dialog before account deletion"
-  },
-  "confirmAccountDeleteTitle": "Потврда брисања рачуна",
-  "@confirmAccountDeleteTitle": {
-    "description": "Title for account deletion confirmation dialog"
-  },
-  "confirmAccountDeleteMessage": "Овај налог је повезан са другим Ente апликацијама, ако користите било коју.\n\nВаши преношени подаци, на свим Ente апликацијама биће заказани за брисање, и ваш рачун ће се трајно избрисати.",
-  "@confirmAccountDeleteMessage": {
-    "description": "Message warning about account deletion consequences"
-  },
+  "darkTheme": "Тамна",
+  "data": "Подаци",
+  "day": "Дан",
+  "dayToday": "Данас",
+  "dayYesterday": "Јуче",
+  "declineTrustInvite": "Одбиј позивницу",
+  "decrypting": "Дешифровање...",
+  "deduplicateCodes": "Дедуплицирај кодове",
   "delete": "Обриши",
   "@delete": {
     "description": "Delete button label"
   },
-  "createNewAccount": "Креирај нови налог",
-  "@createNewAccount": {
-    "description": "Create new account button label"
-  },
-  "password": "Лозинка",
-  "@password": {
-    "description": "Password field label"
-  },
-  "confirmPassword": "Потврдите лозинку",
-  "@confirmPassword": {
-    "description": "Confirm password field label"
-  },
-  "passwordStrength": "Снага лозинке: {passwordStrengthValue}",
-  "@passwordStrength": {
-    "description": "Text to indicate the password strength",
-    "placeholders": {
-      "passwordStrengthValue": {
-        "description": "The strength of the password as a string",
-        "type": "String",
-        "example": "Weak or Moderate or Strong"
-      }
-    }
-  },
-  "hearUsWhereTitle": "Како сте чули о Ente? (опционо)",
-  "@hearUsWhereTitle": {
-    "description": "Title asking how user heard about Ente"
-  },
-  "hearUsExplanation": "Не пратимо инсталацију апликације. Помогло би да нам кажеш како си нас нашао!",
-  "@hearUsExplanation": {
-    "description": "Explanation for asking how user heard about Ente"
-  },
-  "signUpTerms": "Прихватам <u-terms>услове сервиса</u-terms> и <u-policy>политику приватности</u-policy>",
-  "@signUpTerms": {
-    "description": "Terms agreement text for sign up"
-  },
-  "termsOfServicesTitle": "Услови",
-  "@termsOfServicesTitle": {
-    "description": "Terms of service title"
-  },
-  "privacyPolicyTitle": "Политика приватности",
-  "@privacyPolicyTitle": {
-    "description": "Privacy policy title"
-  },
-  "ackPasswordLostWarning": "Разумем да ако изгубим лозинку, могу изгубити своје податке пошто су <underline>шифрирани од краја до краја</underline>.",
-  "@ackPasswordLostWarning": {
-    "description": "Warning about password loss"
-  },
-  "encryption": "Шифровање",
-  "@encryption": {
-    "description": "Encryption label"
-  },
-  "logInLabel": "Пријави се",
-  "@logInLabel": {
-    "description": "Log in button label"
-  },
-  "welcomeBack": "Добродошли назад!",
-  "@welcomeBack": {
-    "description": "Welcome back message"
-  },
-  "loginTerms": "Кликом на пријаву, прихватам <u-terms>услове сервиса</u-terms> и <u-policy>политику приватности</u-policy>",
-  "@loginTerms": {
-    "description": "Terms agreement text for login"
-  },
-  "noInternetConnection": "Нема интернет везе",
-  "@noInternetConnection": {
-    "description": "No internet connection error message"
-  },
-  "pleaseCheckYourInternetConnectionAndTryAgain": "Провери своју везу са интернетом и покушај поново.",
-  "@pleaseCheckYourInternetConnectionAndTryAgain": {
-    "description": "Message asking user to check internet connection"
-  },
-  "verificationFailedPleaseTryAgain": "Неуспешна верификација, покушајте поново",
-  "@verificationFailedPleaseTryAgain": {
-    "description": "Verification failed error message"
-  },
-  "recreatePasswordTitle": "Поново креирати лозинку",
-  "@recreatePasswordTitle": {
-    "description": "Title for recreate password dialog"
-  },
-  "recreatePasswordBody": "Тренутни уређај није довољно моћан да потврди вашу лозинку, али можемо регенерирати на начин који ради са свим уређајима.\n\nПријавите се помоћу кључа за опоравак и обновите своју лозинку (можете поново користити исту ако желите).",
-  "@recreatePasswordBody": {
-    "description": "Body text for recreate password dialog"
-  },
-  "useRecoveryKey": "Користите кључ за опоравак",
-  "@useRecoveryKey": {
-    "description": "Use recovery key button label"
-  },
-  "forgotPassword": "Заборавио сам лозинку",
-  "@forgotPassword": {
-    "description": "Forgot password link label"
-  },
-  "changeEmail": "Промени имејл",
-  "@changeEmail": {
-    "description": "Change email button label"
-  },
-  "verifyEmail": "Потврди имејл",
-  "@verifyEmail": {
-    "description": "Verify email title"
-  },
-  "weHaveSendEmailTo": "Послали смо имејл на <green>{email}</green>",
-  "@weHaveSendEmailTo": {
-    "description": "Text to indicate that we have sent a mail to the user",
-    "placeholders": {
-      "email": {
-        "description": "The email address of the user",
-        "type": "String",
-        "example": "example@ente.io"
-      }
-    }
-  },
-  "toResetVerifyEmail": "Да бисте ресетовали лозинку, прво потврдите свој имејл.",
-  "@toResetVerifyEmail": {
-    "description": "Message asking user to verify email before password reset"
-  },
-  "checkInboxAndSpamFolder": "Молимо вас да проверите примљену пошту (и нежељену пошту) да бисте довршили верификацију",
-  "@checkInboxAndSpamFolder": {
-    "description": "Message asking user to check inbox and spam folder"
-  },
-  "tapToEnterCode": "Пипните да бисте унели кôд",
-  "@tapToEnterCode": {
-    "description": "Hint for entering verification code"
-  },
-  "sendEmail": "Шаљи имејл",
-  "resendEmail": "Поново послати имејл",
-  "@resendEmail": {
-    "description": "Resend email button label"
-  },
-  "passKeyPendingVerification": "Верификација је још у току",
-  "@passKeyPendingVerification": {
-    "description": "Message when passkey verification is pending"
-  },
-  "loginSessionExpired": "Сесија је истекла",
-  "@loginSessionExpired": {
-    "description": "Login session expired title"
-  },
-  "loginSessionExpiredDetails": "Ваша сесија је истекла. Молимо пријавите се поново.",
-  "@loginSessionExpiredDetails": {
-    "description": "Login session expired details"
-  },
-  "passkeyAuthTitle": "Верификација сигурносном кључем",
-  "@passkeyAuthTitle": {
-    "description": "Passkey authentication title"
-  },
-  "waitingForVerification": "Чека се верификација...",
-  "@waitingForVerification": {
-    "description": "Waiting for verification message"
-  },
-  "tryAgain": "Покушај поново",
-  "@tryAgain": {
-    "description": "Try again button label"
-  },
-  "checkStatus": "Провери статус",
-  "@checkStatus": {
-    "description": "Check status button label"
-  },
-  "loginWithTOTP": "Пријава са TOTP",
-  "@loginWithTOTP": {
-    "description": "Login with TOTP button label"
-  },
-  "recoverAccount": "Опоравак налога",
-  "@recoverAccount": {
-    "description": "Recover account button label"
-  },
-  "setPasswordTitle": "Постави лозинку",
-  "@setPasswordTitle": {
-    "description": "Set password title"
-  },
-  "changePasswordTitle": "Промени лозинку",
-  "@changePasswordTitle": {
-    "description": "Change password title"
-  },
-  "resetPasswordTitle": "Ресетуј лозинку",
-  "@resetPasswordTitle": {
-    "description": "Reset password title"
-  },
-  "encryptionKeys": "Кључеве шифровања",
-  "@encryptionKeys": {
-    "description": "Encryption keys title"
-  },
-  "enterPasswordToEncrypt": "Унесите лозинку за употребу за шифровање ваших података",
-  "@enterPasswordToEncrypt": {
-    "description": "Prompt to enter password for encryption"
-  },
-  "enterNewPasswordToEncrypt": "Унесите нову лозинку за употребу за шифровање ваших података",
-  "@enterNewPasswordToEncrypt": {
-    "description": "Prompt to enter new password for encryption"
-  },
-  "passwordWarning": "Не чувамо ову лозинку, па ако је заборавите, <underline>не можемо дешифрирати ваше податке</underline>",
-  "@passwordWarning": {
-    "description": "Warning about password storage"
-  },
-  "howItWorks": "Како то функционише",
-  "@howItWorks": {
-    "description": "How it works button label"
-  },
-  "generatingEncryptionKeys": "Генерисање кључева за шифровање...",
-  "@generatingEncryptionKeys": {
-    "description": "Generating encryption keys message"
-  },
-  "passwordChangedSuccessfully": "Лозинка је успешно промењена",
-  "@passwordChangedSuccessfully": {
-    "description": "Password changed successfully message"
-  },
-  "signOutFromOtherDevices": "Одјави се из других уређаја",
-  "@signOutFromOtherDevices": {
-    "description": "Sign out from other devices title"
-  },
-  "signOutOtherBody": "Ако мислиш да неко може знати твоју лозинку, можеш приморати одјављивање све остале уређаје које користе твој налог.",
-  "@signOutOtherBody": {
-    "description": "Sign out other devices explanation"
-  },
-  "signOutOtherDevices": "Одјави друге уређаје",
-  "@signOutOtherDevices": {
-    "description": "Sign out other devices button label"
-  },
-  "doNotSignOut": "Не одјави",
-  "@doNotSignOut": {
-    "description": "Do not sign out button label"
-  },
-  "generatingEncryptionKeysTitle": "Генерисање кључева за шифровање...",
-  "@generatingEncryptionKeysTitle": {
-    "description": "Generating encryption keys title"
-  },
-  "continueLabel": "Настави",
-  "@continueLabel": {
-    "description": "Continue button label"
-  },
-  "insecureDevice": "Уређај није сигуран",
-  "@insecureDevice": {
-    "description": "Insecure device warning title"
-  },
-  "sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": "Извините, не можемо да генеришемо сигурне кључеве на овом уређају.\n\nМолимо пријавите се са другог уређаја.",
-  "@sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": {
-    "description": "Error message for insecure device"
-  },
-  "recoveryKeyCopiedToClipboard": "Кључ за опоравак копирано у остави",
-  "@recoveryKeyCopiedToClipboard": {
-    "description": "Recovery key copied message"
-  },
-  "recoveryKey": "Резервни Кључ",
-  "@recoveryKey": {
-    "description": "Recovery key label"
-  },
-  "recoveryKeyOnForgotPassword": "Ако заборавите лозинку, једини начин на који можете повратити податке је са овим кључем.",
-  "@recoveryKeyOnForgotPassword": {
-    "description": "Recovery key importance explanation"
-  },
-  "recoveryKeySaveDescription": "Не чувамо овај кључ, молимо да сачувате кључ од 24 речи на сигурном месту.",
-  "@recoveryKeySaveDescription": {
-    "description": "Recovery key save description"
-  },
-  "doThisLater": "Уради то касније",
-  "@doThisLater": {
-    "description": "Do this later button label"
-  },
-  "saveKey": "Сачувај кључ",
-  "@saveKey": {
-    "description": "Save key button label"
-  },
-  "recoveryKeySaved": "Кључ за опоравак сачуван у фасцикли за преузимање!",
-  "@recoveryKeySaved": {
-    "description": "Recovery key saved confirmation message"
-  },
-  "noRecoveryKeyTitle": "Немате кључ за опоравак?",
-  "@noRecoveryKeyTitle": {
-    "description": "No recovery key title"
-  },
-  "twoFactorAuthTitle": "Дво-факторска аутентификација",
-  "@twoFactorAuthTitle": {
-    "description": "Two-factor authentication title"
-  },
-  "enterCodeHint": "Унесите 6-цифрени кôд из\nапликације за аутентификацију",
-  "@enterCodeHint": {
-    "description": "Hint for entering 2FA code"
-  },
-  "lostDeviceTitle": "Узгубили сте уређај?",
-  "@lostDeviceTitle": {
-    "description": "Lost device title"
-  },
-  "enterRecoveryKeyHint": "Унети кључ за опоравак",
-  "@enterRecoveryKeyHint": {
-    "description": "Hint for entering recovery key"
-  },
-  "recover": "Опорави",
-  "@recover": {
-    "description": "Recover button label"
-  },
-  "loggingOut": "Одјављивање...",
-  "@loggingOut": {
-    "description": "Message shown while logging out"
-  },
-  "immediately": "Одмах",
-  "@immediately": {
-    "description": "Immediately option for auto lock timing"
-  },
-  "appLock": "Закључавање апликације",
-  "@appLock": {
-    "description": "App lock setting title"
-  },
-  "autoLock": "Ауто-закључавање",
-  "@autoLock": {
-    "description": "Auto lock setting title"
-  },
-  "noSystemLockFound": "Није пронађено ниједно закључавање система",
-  "@noSystemLockFound": {
-    "description": "Error when no system lock is found"
+  "deleteAlbum": "Избриши албум",
+  "deleteCodeAuthMessage": "Аутентификуј се за брсање кôда",
+  "deleteCodeMessage": "Сигурно желите да избришете овај кôд? Ова акција је неповратна.",
+  "deleteCodeTitle": "Обрисати кôд?",
+  "deleteDuplicates": "Обриши дупликате",
+  "deleteEmptyAlbums": "Избриши празне албуме",
+  "deleteEmptyAlbumsWithQuestionMark": "Обриши празне албуме?",
+  "deleteFromBoth": "Обриши са оба",
+  "deleteFromDevice": "Обриши са уређаја",
+  "deleteFromEnte": "Обриши са Енте-а",
+  "deleteLocation": "Обриши локацију",
+  "deletePhotos": "Обриши фотгорафије",
+  "deleteSharedAlbum": "Иѕбриши дељени албум?",
+  "deleteSharedAlbumDialogBody": "Албум ће бити обрисан за све",
+  "deleteTagMessage": "Сигурно желите да избришете ову ознаку? Ова акција је неповратна.",
+  "deleteTagTitle": "Обрисати ознаку?",
+  "deselectAll": "Поништи избор свега",
+  "details": "Више детаља",
+  "developerSettingsWarning": "Сигурно желиш да промениш подешавања за програмере?",
+  "deviceLock": "Закључавање уређаја",
+  "@deviceLock": {
+    "description": "Device lock option title"
   },
   "deviceLockEnablePreSteps": "Да бисте омогућили закључавање уређаја, молимо вас да подесите шифру уређаја или закључавање екрана у системским подешавањима.",
   "@deviceLockEnablePreSteps": {
     "description": "Instructions for enabling device lock"
   },
-  "appLockDescription": "Изаберите између заданог закључавање екрана вашег уређаја и прилагођени екран за закључавање са ПИН-ом или лозинком.",
-  "@appLockDescription": {
-    "description": "Description of app lock feature"
+  "deviceNotFound": "Уређај није пронађен",
+  "digits": "Цифре",
+  "disableDownloadWarningBody": "Људи и даље могу да направе снимак екрана или да скину ваше фотографије користећи друге апликације",
+  "disableDownloadWarningTitle": "Молим, обратите пажњу",
+  "disableLinkMessage": "Ово ће уклонити јавни линк за приступ \"{albumName}\".",
+  "@disableLinkMessage": {
+    "placeholders": {
+      "albumName": {}
+    }
   },
-  "deviceLock": "Закључавање уређаја",
-  "@deviceLock": {
-    "description": "Device lock option title"
+  "discover": "Истражи",
+  "@discover": {
+    "description": "The text to display for the discover section under which we show receipts, screenshots, sunsets, greenery, etc."
   },
-  "pinLock": "ПИН клокирање",
-  "@pinLock": {
-    "description": "PIN lock option title"
+  "discover_babies": "Бебе",
+  "discover_celebrations": "Прославе",
+  "discover_food": "Храна",
+  "discover_greenery": "Зеленило",
+  "discover_hills": "Брда",
+  "discover_identity": "Идентитет",
+  "discover_memes": "Мимови",
+  "discover_notes": "Белешке",
+  "discover_pets": "Љубимци",
+  "discover_receipts": "Признанице",
+  "discover_screenshots": "Снимци екрана",
+  "discover_selfies": "Селфији",
+  "discover_sunset": "Заласци сунца",
+  "discover_visiting_cards": "Разгледнице",
+  "discover_wallpapers": "Позадине",
+  "distanceInKMUnit": "км",
+  "@distanceInKMUnit": {
+    "description": "Unit for distance in km"
   },
-  "autoLockFeatureDescription": "Време након којег се апликација блокира након што је постављенеа у позадину",
-  "@autoLockFeatureDescription": {
-    "description": "Description of auto lock feature"
+  "done": "Готово",
+  "doNotSignOut": "Не одјави",
+  "@doNotSignOut": {
+    "description": "Do not sign out button label"
   },
+  "doubleTapToViewHiddenCode": "Можете да двапут додирнете унос да бисте видели кôд",
+  "downloadUpdate": "Преузми",
+  "doYouWantToDiscardTheEditsYouHaveMade": "Да ли желиш да одбациш направљене измене?",
+  "draw": "Нацртај",
+  "dropSupportEmail": "Молимо Вас да пошаљете имејл на {supportEmail} са Ваше регистроване адресе е-поште",
+  "@dropSupportEmail": {
+    "placeholders": {
+      "supportEmail": {
+        "description": "The support email address",
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
+  },
+  "duplicateCodes": "Дупликатни кодови",
+  "duplicateFileCountWithStorageSaved": "Обрисали сте {count, plural, one{{count} дупликат} few{{count} дупликата} other{{count} дупликата}}, ослобађам ({storageSaved}!)",
+  "@duplicateFileCountWithStorageSaved": {
+    "description": "The text to display when the user has successfully cleaned up duplicate files",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "1",
+        "type": "int"
+      },
+      "storageSaved": {
+        "example": "1.2 GB",
+        "type": "String"
+      }
+    }
+  },
+  "duplicateItemsGroup": "{count} фајлова, {formattedSize} сваки",
+  "@duplicateItemsGroup": {
+    "description": "Display the number of duplicate files and their size",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "12",
+        "type": "int"
+      },
+      "formattedSize": {
+        "example": "2.3 MB",
+        "type": "String"
+      }
+    }
+  },
+  "editCodeAuthMessage": "Аутентификуј се за уред кôда",
+  "editLocation": "Измени локацију",
+  "editOrder": "Уреди поредак",
+  "editsSaved": "Измене сачуване",
+  "editTag": "Уреди ознаку",
+  "emailNoEnteAccountPhotos": "{email} нема Енте налог.\n\nПошаљи им позивницу за дељење фотографија.",
+  "@emailNoEnteAccountPhotos": {
+    "placeholders": {
+      "email": {}
+    }
+  },
+  "emailUsMessage": "Пошаљите нам имејл на {email}",
+  "@emailUsMessage": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "emailVerificationEnableWarning": "Да бисте избегли да се закључате са свог рачуна, обавезно чувајте копију 2ФА имејла ван Ente Auth пре него што омогућите имејл верификацију.",
+  "emailYourLogs": "Имејлирајте извештаје",
+  "@emailYourLogs": {
+    "description": "Title for emailing logs dialog"
+  },
+  "enableAutomaticBackups": "Аутоматске резервне копије",
+  "enableBackupsIosInstruction": "Да бисте омогућили прављење резервних копија на iOS, изаберите фасциклу у Files (на пример „On My iPhone“).",
+  "enableMaps": "Омогући мапе",
+  "encrypted": "Шифровано",
+  "endpointUpdatedMessage": "Крајна тачка успешно ажурирана",
+  "@endpointUpdatedMessage": {
+    "description": "Success message when endpoint is updated"
+  },
+  "enterAlbumName": "Унесите име албума",
+  "enterCode": "Унесите кôд",
+  "enterCodeDescription": "Унеси код који ти је дао пријатељ да бисте обоје добили бесплатан простор за складиштење",
+  "enterCodeHint": "Унесите 6-цифрени кôд из\nапликације за аутентификацију",
+  "@enterCodeHint": {
+    "description": "Hint for entering 2FA code"
+  },
+  "enterDetailsManually": "Ручно унети детеље",
+  "enterEmail": "Унеси имејл",
+  "enterFileName": "Именуј фајл",
+  "enterNewEmailHint": "Унесите Ваш нови имејл",
+  "@enterNewEmailHint": {
+    "description": "Hint text for entering new email address"
+  },
+  "enterPassword": "Унеси лозинку",
+  "@enterPassword": {
+    "description": "Enter password field label"
+  },
+  "enterPasswordToAegisVault": "Унети лозинку за aegis сеф",
+  "enterRecoveryKeyHint": "Унети кључ за опоравак",
+  "@enterRecoveryKeyHint": {
+    "description": "Hint for entering recovery key"
+  },
+  "enterReferralCode": "Унеси реферални код",
+  "enterThe6digitCodeFromnyourAuthenticatorApp": "Унесите 6-цифрени кôд из\nапликације за аутентификацију",
+  "enterValidEmail": "Молимо унесите исправну адресу е-поште.",
+  "enterYourNewEmailAddress": "Унесите Вашу нову е-пошту",
+  "enterYourPassword": "Унесите лозинку",
+  "enterYourPasswordHint": "Унесите лозинку",
+  "@enterYourPasswordHint": {
+    "description": "Hint for password field"
+  },
+  "error": "Грешка",
+  "@error": {
+    "description": "Generic error title"
+  },
+  "errorGenericBody": "Дошло је до неочекиване грешке приликом увоза.",
+  "errorGenericTitle": "Десила се грешка",
+  "errorInvalidQRCodeBody": "Скенирани QR кôд није важећи 2ФА налог.",
+  "errorNoQRCode": "QR кôд није пронађен",
+  "expiredLinkInfo": "Линк је истекао. Поставите ново време за престанак важности линка или онемогућите његово истицање.",
+  "export": "Извези",
+  "exportCodes": "Извоз кôдова",
+  "exportDialogDesc": "Шифровани извоз ће бити заштићен лозинком по вашем избору.",
+  "exportLogs": "Извези изештаје",
+  "@exportLogs": {
+    "description": "Button to export logs"
+  },
+  "exportWarningDesc": "Извозна датотека садржи осетљиве информације. Молимо вас да је чувате на сигурно.",
+  "exportYourData": "Извези своје податке",
+  "failedToApplyCode": "Грешка у примењивању кôда",
+  "failedToCancel": "Неуспешно отказивање",
+  "failedToLoadAlbums": "Грешка при учитавању албума",
+  "faqs": "Често постављана питања",
+  "featureBackupCodes": "Шифровано од краја до краја\nрезервне копије и синхронизације",
+  "featureOpenSource": "Отвореног кода и ревидирани\nод стране стручњака за безбедност",
+  "featureSearchEtc": "Претрага, ознаке, дељење,\nСледећи кôд и још много тога",
+  "fileInfoAddDescHint": "Додај опис",
+  "filesDeleted": "Обрисани фајлови",
+  "filter": "Филтер",
+  "flip": "Обрни у огледалу",
+  "focusOnSearchBar": "Фокус на претрагу на покретање",
+  "font": "Фонт",
+  "food": "Кулинарски ужици",
+  "forgotPassword": "Заборавио сам лозинку",
+  "@forgotPassword": {
+    "description": "Forgot password link label"
+  },
+  "freeStorageOffer": "Попуст од 10% на <bold-green>ente</bold-green> photos",
+  "freeStorageOfferDescription": "Употребите кôд \"AUTH\" да би добили попуст од 10% прве године",
+  "freeTrial": "Бесплатна проба",
+  "freeUpDeviceSpace": "Ослободи простор на уређају",
+  "gallery": "Галерија",
+  "general": "Опште",
+  "generatingEncryptionKeys": "Генерисање кључева за шифровање...",
+  "@generatingEncryptionKeys": {
+    "description": "Generating encryption keys message"
+  },
+  "generatingEncryptionKeysTitle": "Генерисање кључева за шифровање...",
+  "@generatingEncryptionKeysTitle": {
+    "description": "Generating encryption keys title"
+  },
+  "getStarted": "Почети",
+  "giveUsAStarOnGithub": "Дај нам звездицу на GitHub",
+  "googlePlayId": "Гугл плеј идентификација",
+  "grantFullAccessPrompt": "Дозволите приступ свим фотографијама у подешавањима уређаја",
+  "grantPermission": "Дозволите приступ",
+  "greenery": "Зеленило",
+  "happyBirthday": "Срећан рођендан! 🥳",
+  "hearUsWhereOptionalTitle": "Како сте чули о Ente? (опционо)",
+  "@hearUsWhereOptionalTitle": {
+    "description": "Title asking how user heard about Ente"
+  },
+  "help": "Помоћ",
+  "hidden": "Скривено",
+  "hide": "Сакриј",
   "hideContent": "Сакриј садржај",
   "@hideContent": {
     "description": "Hide content setting title"
@@ -546,45 +527,464 @@
   "@hideContentDescriptioniOS": {
     "description": "Description of hide content feature on iOS"
   },
-  "tooManyIncorrectAttempts": "Превише погрешних покушаја",
-  "@tooManyIncorrectAttempts": {
-    "description": "Message shown when too many incorrect attempts are made"
+  "hikingWithThem": "Походништво са {name}",
+  "@hikingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
   },
-  "tapToUnlock": "Додирните да бисте откључали",
-  "@tapToUnlock": {
-    "description": "Message prompting user to tap to unlock"
+  "hintForDesktop": "Десни клик на кôд за уређивање или уклањање.",
+  "hintForMobile": "Дуго притисните кôд за уређивање или уклањање.",
+  "howToViewShareeVerificationID": "Молимо их да дуго притисну своју адресу е-поште на екрану за подешавања и провере да ли се ИД-ови на оба уређаја поклапају.",
+  "ignore": "Игнориши",
+  "ignorePerson": "Игнориши особу",
+  "immediately": "Одмах",
+  "@immediately": {
+    "description": "Immediately option for auto lock timing"
   },
-  "areYouSureYouWantToLogout": "Да ли сте сигурни да се одјавите?",
-  "@areYouSureYouWantToLogout": {
-    "description": "Confirmation message before logout"
+  "import2FasGuide": "Употребити \"Settings->Backup -Export\" из 2FAS-а.\n\nАко је ваша копија шифрирана, мораћете да унесете лозинку за дешифрирање копије",
+  "importAccountPageTitle": "Унети детаље налога",
+  "importAegisGuide": "Употребити \"Export the vault\" из Aegis-а.\n\nАко је сеф шифрован, мораћете унети лозинку сефа да би га дешифровали.",
+  "importBitwardenGuide": "Употребите \"Извоз Сефа\" из Bitwarden и увезите нешифровану JSON датотеку.",
+  "importCodeDelimiterInfo": "Кôдови се могу одвојити зарезом или новом линијом",
+  "importCodes": "Увоз кôдова",
+  "importEnteEncGuide": "Одабрати шифровану извозну JSON датотеку од Ente",
+  "importEnterSetupKey": "Унети кључ за подешавање",
+  "importFailureDesc": "Није могао да анализира изабрану датотеку.",
+  "importFromGallery": "Увези из галерије",
+  "importInstruction": "Изаберите датотеку која садржи списак ваших кôдова у следећем формату",
+  "importLabel": "Увоз",
+  "importLastpassGuide": "Употребити \"Transfer accounts\" из Lastpass Authenticator и стисните \"Export accounts to file\". Унесите преузет JSON.",
+  "importRaivoGuide": "Употребите \"Export OTPs to Zip archive\" опцију из подешавања Raivo-а.\n\nИздвојите zip датотеку и увезите JSON датотеку.",
+  "importSelectAppExport": "Одабрати извозну датотеку {appName}-а",
+  "@importSelectAppExport": {
+    "placeholders": {
+      "appName": {}
+    }
   },
-  "yesLogout": "Да, одјави ме",
-  "@yesLogout": {
-    "description": "Confirmation button for logout"
+  "importSelectJsonFile": "Одабрати JSON датотеку",
+  "importSuccessDesc": "Увели сте {count} кôдова!",
+  "@importSuccessDesc": {
+    "placeholders": {
+      "count": {
+        "description": "The number of codes imported",
+        "type": "int",
+        "example": "1"
+      }
+    }
   },
-  "authToViewSecrets": "Аутентификујте се да бисте прегледали Ваше тајне",
-  "@authToViewSecrets": {
-    "description": "Message prompting authentication to view secrets"
+  "importSuccessTitle": "Jeeee!",
+  "importTypeEnteEncrypted": "Ente шифрован извоз",
+  "incorrectCode": "Погрешан кôд",
+  "@incorrectCode": {
+    "description": "Error message when code is incorrect"
   },
+  "incorrectDetails": "Погрешни детаљи",
+  "incorrectPasswordTitle": "Неисправна лозинка",
+  "@incorrectPasswordTitle": {
+    "description": "Title for incorrect password error"
+  },
+  "incorrectRecoveryKey": "Нетачан кључ за опоравак",
+  "@incorrectRecoveryKey": {
+    "description": "Error message when recovery key is incorrect"
+  },
+  "incorrectRecoveryKeyBody": "Унети кључ за опоравак је натачан",
+  "incorrectRecoveryKeyTitle": "Нетачан кључ за опоравак",
+  "initialBackupCreated": "Иницијална резервна копија је направљена!",
+  "insecureDevice": "Уређај није сигуран",
+  "@insecureDevice": {
+    "description": "Insecure device warning title"
+  },
+  "invalidEmailAddress": "Неисправна е-пошта",
+  "invalidEmailMessage": "Унесите важећи имејл.",
+  "@invalidEmailMessage": {
+    "description": "Message for invalid email error dialog"
+  },
+  "invalidEmailTitle": "Погрешна имејл адреса",
+  "@invalidEmailTitle": {
+    "description": "Title for invalid email error dialog"
+  },
+  "invalidEndpoint": "Погрешна крајња тачка",
+  "@invalidEndpoint": {
+    "description": "Error message when endpoint is invalid"
+  },
+  "invalidEndpointMessage": "Извини, крајња тачка коју си унео је неважећа. Унеси важећу крајњу тачку и покушај поново.",
+  "@invalidEndpointMessage": {
+    "description": "Detailed error message when endpoint is invalid"
+  },
+  "invalidKey": "Неисправан кључ",
+  "invalidQRCode": "Неважећи QR кôд",
+  "invalidRecoveryKey": "Кључ за опоравак који сте унели није исправан. Постарајте се да садржи 24 речи, и проверите да ли сте их правилно уписали.\n\nУколико сте унели стари формат кључа, постарајте се да садржи 64 карактера и додатно проверите да ли је сваки исправно уписан.",
+  "invite": "Позови",
+  "inviteToEnte": "Позови у Енте",
+  "ok": "ОК",
+  "@ok": {
+    "description": "Generic OK button label"
+  },
+  "iosOnMyDeviceNotSupported": "\"On My iPhone\" не може се користити директно. Изаберите или креирајте фасциклу унутар њега.",
+  "itemsWillBeRemovedFromAlbum": "Изабране ставке ће бити уклоњене из овог албума",
+  "itLooksLikeSomethingWentWrongPleaseRetryAfterSome": "Изгледа да је нешто погрешно. Покушајте поново након неког времена. Ако грешка настави, обратите се нашем тиму за подршку.",
+  "@itLooksLikeSomethingWentWrongPleaseRetryAfterSome": {
+    "description": "Generic error message for temporary issues"
+  },
+  "iUnderStand": "Разумем",
+  "@iUnderStand": {
+    "description": "Text for the button to confirm the user understands the warning"
+  },
+  "kiloMeterUnit": "км",
+  "language": "Језик",
+  "lastUpdated": "Последње ажурирано",
+  "lastYearsTrip": "Прошлогодишње путовање",
+  "layout": "Распоред",
+  "leave": "Напусти",
+  "leaveFamily": "Напусти породицу",
+  "left": "Лево",
+  "legacy": "Наслеђе",
+  "lightTheme": "Светла",
+  "linkCopiedToClipboard": "Линк је копиран у меморију",
+  "linkEnabled": "Омогућено",
+  "linkExpired": "Истекао",
+  "linkExpiresOn": "Веза ће истећи {expiryTime}",
+  "@linkExpiresOn": {
+    "placeholders": {
+      "expiryTime": {}
+    }
+  },
+  "linkExpiry": "Рок важења линка",
+  "linkHasExpired": "Веза је истекла",
+  "linkNeverExpires": "Никада",
+  "loadingGallery": "Учитавам галерију",
+  "localBackupDailyManualCopy": "Креира једну локалну резервну копију дневно када отворите апликацију. Користите „Сачувај сада“ да покренете ручну резервну копију. Резервне копије се чувају до 5 датотека.",
+  "localBackupSidebarTitle": "Локална резервна копија",
+  "locationName": "Назив локације",
+  "locations": "Локације",
+  "locationUpdatedAndBackupCreated": "Локација је ажурирана и иницијална резервна копија направљена!",
+  "lockButtonLabel": "Закључај",
+  "loggingOut": "Одјављивање...",
+  "@loggingOut": {
+    "description": "Message shown while logging out"
+  },
+  "logInLabel": "Пријави се",
+  "@logInLabel": {
+    "description": "Log in button label"
+  },
+  "loginSessionExpired": "Сесија је истекла",
+  "@loginSessionExpired": {
+    "description": "Login session expired title"
+  },
+  "loginSessionExpiredDetails": "Ваша сесија је истекла. Молимо пријавите се поново.",
+  "@loginSessionExpiredDetails": {
+    "description": "Login session expired details"
+  },
+  "loginTerms": "Кликом на пријаву, прихватам <u-terms>услове сервиса</u-terms> и <u-policy>политику приватности</u-policy>",
+  "@loginTerms": {
+    "description": "Terms agreement text for login"
+  },
+  "loginWithAuthAccount": "Пријави се са твојим Auth налогом",
+  "loginWithTOTP": "Пријава са TOTP",
+  "@loginWithTOTP": {
+    "description": "Login with TOTP button label"
+  },
+  "lostDevice": "Изгубили сте уређај?",
+  "lostDeviceTitle": "Узгубили сте уређај?",
+  "@lostDeviceTitle": {
+    "description": "Lost device title"
+  },
+  "machineLearning": "Машинско учење",
+  "manageDeviceStorage": "Управљај кеш меморијом уређаја",
+  "manageFamily": "Управљај породицом",
+  "manageLink": "Управљај везом",
+  "manageSubscription": "Управљај претплатом",
+  "manualSort": "Прилагођено",
+  "map": "Мапа",
+  "@map": {
+    "description": "Label for the map view"
+  },
+  "maps": "Мапе",
+  "me": "Ја",
+  "memories": "Успомене",
+  "memoryCount": "{count, plural, =0{нема сећања} one{{formattedCount} сећање} other{{formattedCount} сећања}}",
+  "@memoryCount": {
+    "description": "The text to display the number of memories",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "1",
+        "type": "int"
+      },
+      "formattedCount": {
+        "type": "String",
+        "example": "11.513, 11,511"
+      }
+    }
+  },
+  "merchandise": "Роба",
+  "merge": "Споји",
+  "mergeWithExisting": "Споји са постојећом",
+  "minimizeAppOnCopy": "Умањи апликацију после копије",
+  "minimizeToTrayOnClose": "Минимизирајте на затварање",
+  "mlConsent": "Омогући машинско учење",
+  "mlConsentConfirmation": "Разумем, и желим да укључим машинско учење",
+  "month": "месец",
+  "monthly": "Месечно",
+  "@monthly": {
+    "description": "The text to display for monthly plans",
+    "type": "text"
+  },
+  "moon": "Под светлом Месеца",
+  "mostFrequentlyUsed": "Често коришћено",
+  "mostRecent": "Најновије",
+  "mostRecentlyUsed": "Недавно коришћено",
+  "mostRelevant": "Најрелевантније",
+  "mountains": "Преко брда",
+  "movedSuccessfullyTo": "Успешно премештено у {albumName}",
+  "@movedSuccessfullyTo": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
+  "movedToTrash": "Премештено у смеће",
+  "moveMultipleToTrashMessage": "Да ли сте сигурни да желите да преместите {count} ставки у отпад?",
+  "@moveMultipleToTrashMessage": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "moveToAlbum": "Премести у албум",
+  "movingFilesToAlbum": "Премештам фајлове у албум...",
+  "name": "Име",
+  "networkConnectionRefusedErr": "Није могуће повезивање са Ente-ом, покушајте поново мало касније. Ако грешка настави, обратите се подршци.",
+  "@networkConnectionRefusedErr": {
+    "description": "Error message shown when the app cannot connect to Ente due to connection refused"
+  },
+  "networkHostLookUpErr": "Није могуће повезивање са Ente-ом, молимо вас да проверите мрежне поставке и контактирајте подршку ако грешка и даље постоји.",
+  "@networkHostLookUpErr": {
+    "description": "Error message shown when the app cannot connect to Ente due to network host lookup failure"
+  },
+  "never": "Никад",
+  "newAlbum": "Нови албум",
+  "newest": "Најновије",
   "next": "Следеће",
   "@next": {
     "description": "Next button label"
   },
-  "setNewPassword": "Постави нову лозинку",
-  "@setNewPassword": {
-    "description": "Set new password title"
+  "nextTotpTitle": "следеће",
+  "no": "Не",
+  "noDefaultBackupFolder": "Није могуће креирати подразумевану фасциклу резервних копија.",
+  "noDeviceThatCanBeDeleted": "Не постоје фајлови на овом уређају који би могли бити обрисани",
+  "noDuplicates": "✨ Нема дупликата",
+  "noInternetConnection": "Нема интернет везе",
+  "@noInternetConnection": {
+    "description": "No internet connection error message"
   },
-  "enterPin": "Унеси ПИН",
-  "@enterPin": {
-    "description": "Enter PIN prompt"
+  "noRecoveryKeyNoDecryption": "Због природе нашег протокола за крај-до-крај енкрипцију, ваши подаци не могу бити дешифровани без ваше лозинке или кључа за опоравак",
+  "@noRecoveryKeyNoDecryption": {
+    "description": "Explanation that data cannot be decrypted without password or recovery key"
   },
-  "setNewPin": "Постави нови ПИН",
-  "@setNewPin": {
-    "description": "Set new PIN title"
+  "noRecoveryKeyTitle": "Немате кључ за опоравак?",
+  "@noRecoveryKeyTitle": {
+    "description": "No recovery key title"
   },
-  "confirm": "Потврди",
-  "@confirm": {
-    "description": "Confirm button label"
+  "noResult": "Нема резултата",
+  "noSystemLockFound": "Није пронађено ниједно закључавање система",
+  "@noSystemLockFound": {
+    "description": "Error when no system lock is found"
+  },
+  "note": "Напомена",
+  "notes": "Белешке",
+  "notesLengthLimit": "Белешке могу имати највише {count} знакова",
+  "@notesLengthLimit": {
+    "description": "Text to indicate the maximum number of characters allowed for notes",
+    "placeholders": {
+      "count": {
+        "description": "The maximum number of characters allowed for notes",
+        "type": "int",
+        "example": "100"
+      }
+    }
+  },
+  "notifications": "Обавештења",
+  "notPersonLabel": "Није {name}?",
+  "@notPersonLabel": {
+    "description": "Label to indicate that the person in the photo is not the person whose name is mentioned",
+    "placeholders": {
+      "name": {
+        "content": "{name}",
+        "type": "String"
+      }
+    }
+  },
+  "notThisPerson": "То није та особа?",
+  "offlineModeWarning": "Одлучили сте да наставите без резервних копија. Молимо примите ручне резервне копије да бисте били сигурни да су ваше кодове на сигурном.",
+  "onlyFamilyAdminCanChangeCode": "Молимо вас да контактирате {familyAdminEmail} да бисте променили свој код.",
+  "@onlyFamilyAdminCanChangeCode": {
+    "placeholders": {
+      "familyAdminEmail": {}
+    }
+  },
+  "onTheRoad": "На путу",
+  "onThisDay": "На данашњи дан",
+  "onThisDayMemories": "Успомене на данашњи дан",
+  "oopsSomethingWentWrong": "Упс, дошло је до грешке",
+  "optionalAsShortAsYouLike": "Опционо, коико год кратко желите...",
+  "otherDetectedFaces": "Друга препозната лица",
+  "pair": "Упари",
+  "panorama": "Панорама",
+  "partyWithThem": "Журка са {name}",
+  "@partyWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "passkey": "Кључ за приступ",
+  "passkeyAuthTitle": "Верификација сигурносном кључем",
+  "@passkeyAuthTitle": {
+    "description": "Passkey authentication title"
+  },
+  "passKeyPendingVerification": "Верификација је још у току",
+  "@passKeyPendingVerification": {
+    "description": "Message when passkey verification is pending"
+  },
+  "password": "Лозинка",
+  "@password": {
+    "description": "Password field label"
+  },
+  "passwordChangedSuccessfully": "Лозинка је успешно промењена",
+  "@passwordChangedSuccessfully": {
+    "description": "Password changed successfully message"
+  },
+  "passwordEmptyError": "Лозинка не може да буде празна",
+  "passwordForDecryptingExport": "Лозинка за дешифровање извоза",
+  "passwordLock": "Закључај помоћу лозинке",
+  "passwordStrength": "Снага лозинке: {passwordStrengthValue}",
+  "@passwordStrength": {
+    "description": "Text to indicate the password strength",
+    "placeholders": {
+      "passwordStrengthValue": {
+        "description": "The strength of the password as a string",
+        "type": "String",
+        "example": "Weak or Moderate or Strong"
+      }
+    }
+  },
+  "passwordToEncryptExport": "Лозинка за шифровање извоза",
+  "passwordTooShort": "Лозинка мора имати бар 8 карактера.",
+  "passwordWarning": "Не чувамо ову лозинку, па ако је заборавите, <underline>не можемо дешифрирати ваше податке</underline>",
+  "@passwordWarning": {
+    "description": "Warning about password storage"
+  },
+  "pastYearsMemories": "Прошлогодишње успомене",
+  "paymentDetails": "Детаљи плаћања",
+  "paymentFailed": "Неуспела уплата",
+  "pendingSyncs": "Упозорење",
+  "pendingSyncsWarningBody": "Неки од ваших кôдова нису сачувани.\n\nМолимо вас осигурајте да имате резервну копију за ове кôдове пре него што се одјавите.",
+  "people": "Људи",
+  "period": "Период",
+  "permanentlyDelete": "Трајно избриши",
+  "personTurningAge": "{name} ускоро навршава {age}",
+  "@personTurningAge": {
+    "placeholders": {
+      "age": {},
+      "name": {}
+    }
+  },
+  "pets": "Чупави другари",
+  "photoGridSize": "Величина мреже за приказ фотографија",
+  "pickCenterPoint": "Изабери централну тачку",
+  "pinLock": "ПИН клокирање",
+  "@pinLock": {
+    "description": "PIN lock option title"
+  },
+  "pinnedCodeMessage": "{code} је прикачен",
+  "@pinnedCodeMessage": {
+    "placeholders": {
+      "code": {}
+    }
+  },
+  "pinText": "Закачи",
+  "plainHTML": "HTML",
+  "plainText": "Обичан текст",
+  "playOriginal": "Пусти оригинал",
+  "playstoreSubscription": "Претплата путем Гугл продавнице",
+  "pleaseCheckYourInternetConnectionAndTryAgain": "Провери своју везу са интернетом и покушај поново.",
+  "@pleaseCheckYourInternetConnectionAndTryAgain": {
+    "description": "Message asking user to check internet connection"
+  },
+  "pleaseGrantPermissions": "Молимо, дозволите приступ",
+  "pleaseSendTheLogsTo": "Пошаљите извештаје на \n{toEmail}",
+  "@pleaseSendTheLogsTo": {
+    "description": "Message asking user to send logs to email address",
+    "placeholders": {
+      "toEmail": {
+        "type": "String",
+        "description": "Email address to send logs to"
+      }
+    }
+  },
+  "pleaseTryAgain": "Пробајте поново",
+  "@pleaseTryAgain": {
+    "description": "Message asking user to try again"
+  },
+  "pleaseVerifyDetails": "Проверите детаље и покушајте поново",
+  "pleaseWait": "Молимо сачекајте...",
+  "@pleaseWait": {
+    "description": "Please wait message"
+  },
+  "pleaseWaitForSometimeBeforeRetrying": "Мало сачекајте пре него што покушате поново",
+  "posingWithThem": "Позирање са {name}",
+  "@posingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "preparingLogs": "Спремање извештаја...",
+  "preserveMore": "Сачувај још",
+  "privacy": "Приватност",
+  "privacyPolicyTitle": "Политика приватности",
+  "@privacyPolicyTitle": {
+    "description": "Privacy policy title"
+  },
+  "proceed": "Настави",
+  "publicLinkEnabled": "Јавна веза је укључена",
+  "qr": "QR",
+  "qrCode": "QR кôд",
+  "questionmark": "?",
+  "radius": "Пречник",
+  "raiseTicket": "Пошаљи упит",
+  "@raiseTicket": {
+    "description": "Button text for raising a support tickets in case of unhandled errors during backup",
+    "type": "text"
+  },
+  "rateUs": "Оцени нас",
+  "rawCodeData": "Податак сировог кôда",
+  "recover": "Опорави",
+  "@recover": {
+    "description": "Recover button label"
+  },
+  "recoverAccount": "Опоравак налога",
+  "@recoverAccount": {
+    "description": "Recover account button label"
+  },
+  "recoveryKeyCopiedToClipboard": "Кључ за опоравак је копиран у међуспремник",
+  "@recoveryKeyCopiedToClipboard": {
+    "description": "Recovery key copied message"
+  },
+  "recoveryKeyOnForgotPassword": "Ако заборавите лозинку, једини начин на који можете повратити податке је са овим кључем.",
+  "@recoveryKeyOnForgotPassword": {
+    "description": "Recovery key importance explanation"
+  },
+  "recoveryKeySaved": "Кључ за опоравак сачуван у фасцикли за преузимање!",
+  "@recoveryKeySaved": {
+    "description": "Recovery key saved confirmation message"
+  },
+  "recoveryKeySaveDescription": "Не чувамо овај кључ, молимо да сачувате кључ од 24 речи на сигурном месту.",
+  "@recoveryKeySaveDescription": {
+    "description": "Recovery key save description"
+  },
+  "recoverySuccessful": "Опоравак успешан!",
+  "recreatePasswordBody": "Тренутни уређај није довољно моћан да потврди вашу лозинку, али можемо регенерирати на начин који ради са свим уређајима.\n\nПријавите се помоћу кључа за опоравак и обновите своју лозинку (можете поново користити исту ако желите).",
+  "@recreatePasswordBody": {
+    "description": "Body text for recreate password dialog"
   },
   "reEnterPassword": "Поново унеси лозинку",
   "@reEnterPassword": {
@@ -594,131 +994,467 @@
   "@reEnterPin": {
     "description": "Re-enter PIN prompt"
   },
-  "androidBiometricHint": "Потврдите идентитет",
-  "@androidBiometricHint": {
-    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
+  "referrals": "Препоруке",
+  "referralsAreCurrentlyPaused": "Препоручивање је тренутно паузирано",
+  "remove": "Уклони",
+  "removeFromAlbum": "Уклони из албума",
+  "removeFromAlbumTitle": "Уклони из албума?",
+  "removeLink": "Уклони везу",
+  "removeParticipant": "Уклони учесника",
+  "@removeParticipant": {
+    "description": "menuSectionTitle for removing a participant"
   },
-  "androidBiometricNotRecognized": "Нисмо препознали. Покушати поново.",
-  "@androidBiometricNotRecognized": {
-    "description": "Message to let the user know that authentication was failed. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricSuccess": "Успех",
-  "@androidBiometricSuccess": {
-    "description": "Message to let the user know that authentication was successful. It is used on Android side. Maximum 60 characters."
-  },
-  "androidCancelButton": "Откажи",
-  "@androidCancelButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
-  },
-  "androidSignInTitle": "Потребна аутентификација",
-  "@androidSignInTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricRequiredTitle": "Потребна је биометрија",
-  "@androidBiometricRequiredTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user has not set up biometric authentication on their device. It is used on Android side. Maximum 60 characters."
-  },
-  "androidDeviceCredentialsRequiredTitle": "Потребни су акредитиви уређаја",
-  "@androidDeviceCredentialsRequiredTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user has not set up credentials authentication on their device. It is used on Android side. Maximum 60 characters."
-  },
-  "androidDeviceCredentialsSetupDescription": "Потребни су акредитиви уређаја",
-  "@androidDeviceCredentialsSetupDescription": {
-    "description": "Message advising the user to go to the settings and configure device credentials on their device. It shows in a dialog on Android side."
-  },
-  "goToSettings": "Иди на поставке",
-  "@goToSettings": {
-    "description": "Message showed on a button that the user can click to go to settings pages from the current dialog. It is used on both Android and iOS side. Maximum 30 characters."
-  },
-  "androidGoToSettingsDescription": "Биометријска аутентификација није постављена на вашем уређају. Идите на \"Подешавања> Сигурност\" да бисте додали биометријску аутентификацију.",
-  "@androidGoToSettingsDescription": {
-    "description": "Message advising the user to go to the settings and configure biometric on their device. It shows in a dialog on Android side."
-  },
-  "iOSLockOut": "Биометријска аутентификација је онемогућена. Закључајте и откључите екран да бисте је омогућили.",
-  "@iOSLockOut": {
-    "description": "Message advising the user to re-enable biometrics on their device. It shows in a dialog on iOS side."
-  },
-  "iOSOkButton": "У реду",
-  "@iOSOkButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on iOS side. Maximum 30 characters."
-  },
-  "emailAlreadyRegistered": "Имејл је већ регистрован.",
-  "@emailAlreadyRegistered": {
-    "description": "Error message when email is already registered"
-  },
-  "emailNotRegistered": "Имејл није регистрован.",
-  "@emailNotRegistered": {
-    "description": "Error message when email is not registered"
-  },
-  "thisEmailIsAlreadyInUse": "Овај имејл је већ у употреби",
-  "@thisEmailIsAlreadyInUse": {
-    "description": "Error message when email is already in use"
-  },
-  "emailChangedTo": "Имејл промењен на {newEmail}",
-  "@emailChangedTo": {
-    "description": "Message when email has been changed",
+  "removeWithQuestionMark": "Уклони?",
+  "removingFromFavorites": "Уклањам из омиљених",
+  "rename": "Преименуј",
+  "renameFile": "Преименуј фајл",
+  "renewsOn": "Претплата се обнавља {endDate}",
+  "@renewsOn": {
     "placeholders": {
-      "newEmail": {
-        "description": "The new email address",
-        "type": "String",
-        "example": "new@example.com"
+      "endDate": {}
+    }
+  },
+  "renewSubscription": "Однови претплату",
+  "reportABug": "Пријави грешку",
+  "@reportABug": {
+    "description": "Label for reporting a bug"
+  },
+  "reset": "Ресетуј",
+  "resetPasswordTitle": "Ресетуј лозинку",
+  "@resetPasswordTitle": {
+    "description": "Reset password title"
+  },
+  "retry": "Покушај поново",
+  "right": "Десно",
+  "roadtripWithThem": "Путовање са {name}",
+  "@roadtripWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "rotate": "Ротирај",
+  "save": "Сачувај",
+  "@save": {
+    "description": "Label for save button"
+  },
+  "saveAsAnotherPerson": "Сачувај као другу особу",
+  "saveCollage": "Сачувај колаж",
+  "saveCopy": "Сачувај копију",
+  "saveKey": "Сачувај кључ",
+  "@saveKey": {
+    "description": "Save key button label"
+  },
+  "saveOnlyDescription": "Да ли желите да ово сачувате у складиште (фасцикли за преузимање подразумевано)?",
+  "@saveOnlyDescription": {
+    "description": "Description text asking user if they want to save to storage (for platforms that don't support sharing)"
+  },
+  "saveOrSendDescription": "Да ли желите да ово сачувате у складиште (фасцикли за преузимање подразумевано) или да га пошаљете другим апликацијама?",
+  "@saveOrSendDescription": {
+    "description": "Description text asking user if they want to save to storage or share with other apps"
+  },
+  "saveYourRecoveryKeyIfYouHaventAlready": "Уколико већ нисте, сачувајте кључ за опоравак",
+  "saving": "Чувам...",
+  "scan": "Скенирај",
+  "scanACode": "Скенирај кôд",
+  "scanAQrCode": "Скенирај QR кôд",
+  "scanCode": "Скенирајте кôд",
+  "scanThisBarcodeWithnyourAuthenticatorApp": "Скенирајте овај баркод \nсвојом апликацијом за аутентификацију",
+  "search": "Претрага",
+  "searchByAlbumNameHint": "Име албума",
+  "searchHint": "Претрага...",
+  "searchHint4": "Локација",
+  "secret": "Тајна",
+  "secretCanNotBeEmpty": "Тајна не може бити празна",
+  "selectALocation": "Изабери локацију",
+  "selectALocationFirst": "Прво изабери локацију",
+  "selectBackupFolder": "Изаберите фасциклу резервне копије",
+  "selectDate": "Изабери датум",
+  "selected": "изабрано",
+  "selectedPhotos": "{count} изабрано",
+  "@selectedPhotos": {
+    "description": "Display the number of selected photos",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "5",
+        "type": "int"
       }
     }
   },
-  "authenticationFailedPleaseTryAgain": "Аутентификација није успела, покушајте поново",
-  "@authenticationFailedPleaseTryAgain": {
-    "description": "Error message when authentication fails"
+  "selectedPhotosWithYours": "{count} изабрано ({yourCount} Ваше)",
+  "@selectedPhotosWithYours": {
+    "description": "Display the number of selected photos, including the number of selected photos owned by the user",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "12",
+        "type": "int"
+      },
+      "yourCount": {
+        "example": "2",
+        "type": "int"
+      }
+    }
   },
-  "authenticationSuccessful": "Успешна аутентификација!",
-  "@authenticationSuccessful": {
-    "description": "Success message when authentication is successful"
+  "selectExportFormat": "Изабрати формат извоза",
+  "selectFile": "Изаберите датотеку",
+  "selectFolder": "Изабери фасциклу",
+  "selectFolderToContinue": "Изабрати фасциклу за наставак",
+  "selectLanguage": "Изабери језик",
+  "selectMorePhotos": "Изабери још фотографија",
+  "selectTime": "Изабери време",
+  "selfiesWithThem": "Селфији са {name}",
+  "@selfiesWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "send": "Пошаљи",
+  "@send": {
+    "description": "Label for send button"
+  },
+  "sendInvite": "Пошаљи позивницу",
+  "sendLink": "Пошаљи везу",
+  "sendLogsDescription": "Ово ће делите ваше записе како би нам помогли да вам исправимо проблем. Док преузмемо мере предострожности да осигурамо да осетљиве информације нису пријављене, охрабрујемо вас да прегледате ове записе пре него што их делите.",
+  "serverEndpoint": "Крајња тачка сервера",
+  "@serverEndpoint": {
+    "description": "Label for server endpoint setting"
   },
   "sessionExpired": "Сесија је истекла",
   "@sessionExpired": {
     "description": "Error message when session has expired"
   },
-  "incorrectRecoveryKey": "Нетачан кључ за опоравак",
-  "@incorrectRecoveryKey": {
-    "description": "Error message when recovery key is incorrect"
+  "setAPassword": "Постави лозинку",
+  "setBackupFolder": "Подесити фасциклу резервне копије",
+  "setBackupPassword": "Постави лозинку резервне копије",
+  "setNewPassword": "Постави нову лозинку",
+  "@setNewPassword": {
+    "description": "Set new password title"
   },
+  "setNewPin": "Постави нови ПИН",
+  "@setNewPin": {
+    "description": "Set new PIN title"
+  },
+  "setPasswordTitle": "Постави лозинку",
+  "@setPasswordTitle": {
+    "description": "Set password title"
+  },
+  "setRadius": "Задај пречник",
+  "settings": "Подешавања",
+  "setupComplete": "Постављање завршено",
+  "setupFirstAccount": "Подесити свој\nпрви налог",
+  "share": "Подели",
+  "shareALink": "Подели везу",
+  "shareCodes": "Дели кôдове",
+  "shareCodesDuration": "Изаберите трајање за које желите да поделите кôдове.",
+  "shareWithNonenteUsers": "Пошаљи корисницима који немају Енте налог",
+  "sharing": "Делим...",
+  "shouldHideCode": "Сакриј кодове",
+  "showLargeIcons": "Прикажи велике иконе",
+  "showMemories": "Прикажи успомене",
+  "showMoreFaces": "Прикажи још лица",
+  "showPerson": "Покажи особу",
+  "showQRAuthMessage": "Аутентификуј се за приказ QR кôда",
+  "sigInBackupReminder": "Ente ће аутоматски направити резервне кодове након пријављивања.\n\nИ даље препоручујемо извоз кодова као додатну резервну копију.",
+  "signInToBackup": "Пријавите се да бисте сачували кôдове",
+  "signOutOtherBody": "Ако мислиш да неко може знати твоју лозинку, можеш приморати одјављивање све остале уређаје које користе твој налог.",
+  "@signOutOtherBody": {
+    "description": "Sign out other devices explanation"
+  },
+  "signUp": "Региструј се",
+  "signUpTerms": "Прихватам <u-terms>услове сервиса</u-terms> и <u-policy>политику приватности</u-policy>",
+  "@signUpTerms": {
+    "description": "Terms agreement text for sign up"
+  },
+  "singIn": "Пријавите се",
+  "skip": "Прескочи",
+  "someoneSharingAlbumsWithYouShouldSeeTheSameId": "Особе које деле албуме с тобом би требале да виде исти ИД на свом уређају.",
+  "somethingWentWrong": "Нешто није у реду",
+  "somethingWentWrongMessage": "Нешто је пошло наопако, покушајте поново",
+  "somethingWentWrongParsingCode": "Нисмо били у стању да рашчланимо {x} кôдова.",
+  "@somethingWentWrongParsingCode": {
+    "placeholders": {
+      "x": {}
+    }
+  },
+  "sorryBackupFailedDesc": "Извините, нисмо успели да копирамо овај фајл тренутно. Покушаћемо касније.",
+  "sorryCouldNotAddToFavorites": "Извини, није додато у омиљене!",
+  "sorryCouldNotRemoveFromFavorites": "Извини, није уклоњено из омиљених!",
+  "sorryTheCodeYouveEnteredIsIncorrect": "Унет кôд није добар",
+  "@sorryTheCodeYouveEnteredIsIncorrect": {
+    "description": "Detailed error message when code is incorrect"
+  },
+  "sort": "Сортирај",
+  "sportsWithThem": "Спорт са {name}",
+  "@sportsWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "spotlightOnThem": "Сва светла на {name}",
+  "@spotlightOnThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "spotlightOnYourself": "Сва светла на теби",
+  "startBackup": "Започни сигурносно копирање",
+  "status": "Статус",
+  "sticker": "Налепница",
+  "storageBreakupFamily": "Породица",
+  "storageBreakupYou": "Ти",
+  "@storageBreakupYou": {
+    "description": "Label to indicate how much storage you are using when you are part of a family plan"
+  },
+  "storageLimitExceeded": "Расположив простор је прекорачен",
+  "strongStrength": "Јако",
+  "@strongStrength": {
+    "description": "Strong password strength label"
+  },
+  "submit": "Пошаљи",
+  "subscribe": "Претплати се",
+  "subscription": "Претплата",
+  "subWillBeCancelledOn": "Ваша претплата ће бити отказана {endDate}",
+  "@subWillBeCancelledOn": {
+    "placeholders": {
+      "endDate": {}
+    }
+  },
+  "success": "Успех",
+  "successfullyArchived": "Успешно архивирано",
+  "successfullyUnarchived": "Успешно премештено из архиве",
+  "sunrise": "На хирозонту",
+  "support": "Подршка",
+  "supportEnte": "Подржи <bold-green>ente</bold-green>",
+  "syncing": "Синхронизујем...",
+  "syncStopped": "Синхронизација прекинута",
+  "tag": "Ознака",
+  "tags": "Ознаке",
+  "tapToCopy": "питисните да копирате",
+  "tapToUnlock": "Додирните да бисте откључали",
+  "@tapToUnlock": {
+    "description": "Message prompting user to tap to unlock"
+  },
+  "tellUsWhatYouThink": "Реци нам шта мислиш",
+  "tempErrorContactSupportIfPersists": "Изгледа да је нешто погрешно. Покушајте поново након неког времена. Ако грешка настави, обратите се нашем тиму за подршку.",
+  "terminate": "Прекини",
+  "@terminate": {
+    "description": "Terminate button label"
+  },
+  "terminateSession": "Прекинути сесију?",
+  "@terminateSession": {
+    "description": "Title for terminate session dialog"
+  },
+  "termsOfServicesTitle": "Услови",
+  "@termsOfServicesTitle": {
+    "description": "Terms of service title"
+  },
+  "thankYou": "Хвала вам",
+  "thankYouForSubscribing": "Хвала што сте се претплатили!",
+  "theme": "Тема",
   "theRecoveryKeyYouEnteredIsIncorrect": "Унети кључ за опоравак је натачан",
   "@theRecoveryKeyYouEnteredIsIncorrect": {
     "description": "Detailed error message when recovery key is incorrect"
+  },
+  "thisCanBeUsedToRecoverYourAccountIfYou": "Може се користити за опоравак рачуна уколико заборавите други ниво провере идентитета",
+  "thisDevice": "Овај уређај",
+  "@thisDevice": {
+    "description": "Label for current device"
+  },
+  "thisIsMeExclamation": "Ово сам ја!",
+  "thisIsPersonVerificationId": "Ово је ИД за верификацију корисника {email}",
+  "@thisIsPersonVerificationId": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@ente.com"
+      }
+    }
+  },
+  "thisIsYourVerificationId": "Ово је Ваш ИД за верификацију",
+  "thisWeekThroughTheYears": "Тренутна недеља кроз године",
+  "throughTheYears": "{dateFormat} кроз године",
+  "@throughTheYears": {
+    "placeholders": {
+      "dateFormat": {}
+    }
+  },
+  "toEnableAppLockPleaseSetupDevicePasscodeOrScreen": "Да бисте омогућили закључавање апликације, молимо вас да подесите шифру уређаја или закључавање екрана у системским подешавањима.",
+  "tooManyIncorrectAttempts": "Превише погрешних покушаја",
+  "@tooManyIncorrectAttempts": {
+    "description": "Message shown when too many incorrect attempts are made"
+  },
+  "trash": "Смеће",
+  "trashCode": "Кôд у смеће?",
+  "trashCodeMessage": "Сигурно желите да поставите кôд у смеће за {account}?",
+  "@trashCodeMessage": {
+    "placeholders": {
+      "account": {}
+    }
+  },
+  "tripInYear": "Пут из {year}",
+  "@tripInYear": {
+    "placeholders": {
+      "year": {}
+    }
+  },
+  "tripToLocation": "Пут у {location}",
+  "@tripToLocation": {
+    "placeholders": {
+      "location": {}
+    }
+  },
+  "trustedContacts": "Контакти од поверења",
+  "tryAgain": "Покушај поново",
+  "@tryAgain": {
+    "description": "Try again button label"
   },
   "twofactorAuthenticationSuccessfullyReset": "Двофакторска аутентификација успешно рисетирана",
   "@twofactorAuthenticationSuccessfullyReset": {
     "description": "Message when two-factor authentication is successfully reset"
   },
-  "yourVerificationCodeHasExpired": "Ваш верификациони кôд је истекао",
+  "twoFactorAuthTitle": "Дво-факторска аутентификација",
+  "@twoFactorAuthTitle": {
+    "description": "Two-factor authentication title"
+  },
+  "twofactorSetup": "Постављање двофакторске аутентификације",
+  "type": "Тип",
+  "unarchive": "Врати из архиве",
+  "@unarchive": {
+    "description": "Action of 'Unarchiving' an element"
+  },
+  "unarchiving": "Премештам из архиве...",
+  "uncategorized": "Некатегоризовано",
+  "unlock": "Откључај",
+  "@unlock": {
+    "description": "Short action label used as the system authentication reason when unlocking the app"
+  },
+  "unpinnedCodeMessage": "{code} је одкачен",
+  "@unpinnedCodeMessage": {
+    "placeholders": {
+      "code": {}
+    }
+  },
+  "unpinText": "Откачи",
+  "unselectAll": "Деселектуј све",
+  "updateBackupPassword": "Ажурирајте лозинку за резервну копију",
+  "updatingFolderSelection": "Освежавам избор фолдера...",
+  "upgrade": "Ажурирај",
+  "useAsCover": "Користи за позадину",
+  "usedSpace": "Искоришћен простор",
+  "useOffline": "Користите без резервних копија",
+  "useSelectedPhoto": "Корисити изабрану фотографију",
+  "validTill": "Важи до {endDate}",
+  "@validTill": {
+    "placeholders": {
+      "endDate": {}
+    }
+  },
+  "verificationFailedPleaseTryAgain": "Неуспешна верификација, покушајте поново",
+  "@verificationFailedPleaseTryAgain": {
+    "description": "Verification failed error message"
+  },
+  "verify": "Верификуј",
+  "@verify": {
+    "description": "Verify button label"
+  },
+  "verifyPassword": "Верификујте лозинку",
+  "@verifyPassword": {
+    "description": "Verify password button label"
+  },
+  "viewActiveSessions": "Видети активне сесије",
+  "viewAddOnButton": "Погледај додатке",
+  "viewer": "Посматрач",
+  "viewLargeFiles": "Велики фајлови",
+  "viewLogsAction": "Прегледај извештаје",
+  "viewRawCodes": "Погледајте сирове кôдове",
+  "visitWebToManage": "Претплатом можете управљати на страници {webUrl}",
+  "@visitWebToManage": {
+    "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",
+    "placeholders": {
+      "webUrl": {
+        "type": "String",
+        "example": "photos.ente.com"
+      }
+    }
+  },
+  "waitingForVerification": "Чека се верификација...",
+  "@waitingForVerification": {
+    "description": "Waiting for verification message"
+  },
+  "waitingForWifi": "Чекам на бежичну мрежу...",
+  "warning": "Упозорење",
+  "weakStrength": "Слабо",
+  "@weakStrength": {
+    "description": "Weak password strength label"
+  },
+  "weAreOpenSource": "Користимо отворени извор!",
+  "whatsNew": "Шта је ново",
+  "widgets": "Виџети",
+  "wishThemAHappyBirthday": "Пожели {name} срећан рођендан! 🎉",
+  "@wishThemAHappyBirthday": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "yearly": "Годишње",
+  "@yearly": {
+    "description": "The text to display for yearly plans",
+    "type": "text"
+  },
+  "yearsAgo": "{count, plural, one{{count} година уназад} few{{count} године уназад} other{{count} година уназад}}",
+  "@yearsAgo": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "yearShort": "год",
+  "@yearShort": {
+    "description": "Appears in pricing page (/yr)"
+  },
+  "yes": "Да",
+  "yesCancel": "Да, откажи",
+  "yesConvertToViewer": "Да, претвори у посматрача",
+  "yesDelete": "Да, обриши",
+  "yesDiscardChanges": "Да, одбаци измене",
+  "yesLogout": "Да, одјави ме",
+  "@yesLogout": {
+    "description": "Confirmation button for logout"
+  },
+  "yesRemove": "Да, уклони",
+  "yesRenew": "Да, обнови претплату",
+  "you": "Ти",
+  "youAndThem": "Ти и {name}",
+  "@youAndThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "youAreOnTheLatestVersion": "Користите најновију верзију",
+  "youCannotDowngradeToThisPlan": "Не можете изабрати овај пакет",
+  "youCannotShareWithYourself": "Не можеш делити сам са собом",
+  "youHaveSuccessfullyFreedUp": "Успешно сте ослободили {storageSaved}!",
+  "@youHaveSuccessfullyFreedUp": {
+    "description": "The text to display when the user has successfully freed up storage",
+    "type": "text",
+    "placeholders": {
+      "storageSaved": {
+        "example": "1.2 GB",
+        "type": "String"
+      }
+    }
+  },
+  "yourMap": "Твоја мапа",
+  "yourPlanWasSuccessfullyDowngraded": "Успешно сте прешли на слабији пакет",
+  "yourPlanWasSuccessfullyUpgraded": "Успешно сте прешли на јачи пакет",
+  "yourPurchaseWasSuccessful": "Куповина успешно закључена",
+  "yourSubscriptionHasExpired": "Ваша претплата је истекла",
+  "yourSubscriptionWasUpdatedSuccessfully": "Претплата успешно ажурирана",
+  "yourVerificationCodeHasExpired": "Ваш верификациони код је истекао",
   "@yourVerificationCodeHasExpired": {
     "description": "Error message when verification code has expired"
   },
-  "incorrectCode": "Погрешан кôд",
-  "@incorrectCode": {
-    "description": "Error message when code is incorrect"
-  },
-  "sorryTheCodeYouveEnteredIsIncorrect": "Унет кôд није добар",
-  "@sorryTheCodeYouveEnteredIsIncorrect": {
-    "description": "Detailed error message when code is incorrect"
-  },
-  "developerSettings": "Подешавања за програмере",
-  "@developerSettings": {
-    "description": "Label for developerSettings"
-  },
-  "serverEndpoint": "Крајња тачка сервера",
-  "@serverEndpoint": {
-    "description": "Label for serverEndpoint"
-  },
-  "invalidEndpoint": "Погрешна крајња тачка",
-  "@invalidEndpoint": {
-    "description": "Label for invalidEndpoint"
-  },
-  "invalidEndpointMessage": "Извини, крајња тачка коју си унео је неважећа. Унеси важећу крајњу тачку и покушај поново.",
-  "@invalidEndpointMessage": {
-    "description": "Label for invalidEndpointMessage"
-  },
-  "endpointUpdatedMessage": "Крајна тачка успешно ажурирана",
-  "@endpointUpdatedMessage": {
-    "description": "Label for endpointUpdatedMessage"
-  }
+  "youveNoDuplicateCodesThatCanBeCleared": "Немате дупликатне кодове који се могу очистити",
+  "youveNoDuplicateFilesThatCanBeCleared": "Немаш дупликата које бисмо могли да обришемо",
+  "zoomOutToSeePhotos": "Одзумирај да видиш фотографије"
 }

@@ -1,25 +1,19 @@
-import 'dart:convert';
+enum InfoType { note, physicalRecord, accountCredential, emergencyContact }
 
-// Enum for different information types
-enum InfoType {
-  note,
-  physicalRecord,
-  accountCredential,
-  emergencyContact,
-}
-
-// Extension to convert enum to string and vice versa
+// Locker file metadata currently uses the enum's camelCase name on the wire.
+// Keep parsing tolerant of the older hyphenated representation so any
+// previously serialized JSON can still be read safely.
 extension InfoTypeExtension on InfoType {
   String get value {
     switch (this) {
       case InfoType.note:
         return 'note';
       case InfoType.physicalRecord:
-        return 'physical-record';
+        return 'physicalRecord';
       case InfoType.accountCredential:
-        return 'account-credential';
+        return 'accountCredential';
       case InfoType.emergencyContact:
-        return 'emergency-contact';
+        return 'emergencyContact';
     }
   }
 
@@ -27,10 +21,13 @@ extension InfoTypeExtension on InfoType {
     switch (value) {
       case 'note':
         return InfoType.note;
+      case 'physicalRecord':
       case 'physical-record':
         return InfoType.physicalRecord;
+      case 'accountCredential':
       case 'account-credential':
         return InfoType.accountCredential;
+      case 'emergencyContact':
       case 'emergency-contact':
         return InfoType.emergencyContact;
       default:
@@ -39,7 +36,6 @@ extension InfoTypeExtension on InfoType {
   }
 }
 
-// Base class for all information data
 abstract class InfoData {
   Map<String, dynamic> toJson();
 
@@ -57,15 +53,11 @@ abstract class InfoData {
   }
 }
 
-// Personal Note Data Model
 class PersonalNoteData extends InfoData {
   final String title;
   final String content;
 
-  PersonalNoteData({
-    required this.title,
-    required this.content,
-  });
+  PersonalNoteData({required this.title, required this.content});
 
   factory PersonalNoteData.fromJson(Map<String, dynamic> json) {
     return PersonalNoteData(
@@ -76,24 +68,16 @@ class PersonalNoteData extends InfoData {
 
   @override
   Map<String, dynamic> toJson() {
-    return {
-      'title': title,
-      'content': content,
-    };
+    return {'title': title, 'content': content};
   }
 }
 
-// Physical Record Data Model
 class PhysicalRecordData extends InfoData {
   final String name;
   final String location;
   final String? notes;
 
-  PhysicalRecordData({
-    required this.name,
-    required this.location,
-    this.notes,
-  });
+  PhysicalRecordData({required this.name, required this.location, this.notes});
 
   factory PhysicalRecordData.fromJson(Map<String, dynamic> json) {
     return PhysicalRecordData(
@@ -113,7 +97,6 @@ class PhysicalRecordData extends InfoData {
   }
 }
 
-// Account Credential Data Model
 class AccountCredentialData extends InfoData {
   final String name;
   final String username;
@@ -147,7 +130,6 @@ class AccountCredentialData extends InfoData {
   }
 }
 
-// Emergency Contact Data Model
 class EmergencyContactData extends InfoData {
   final String name;
   final String contactDetails;
@@ -177,7 +159,6 @@ class EmergencyContactData extends InfoData {
   }
 }
 
-// Main Information Item wrapper
 class InfoItem {
   final InfoType type;
   final InfoData data;
@@ -199,8 +180,9 @@ class InfoItem {
       type: type,
       data: data,
       createdAt: DateTime.parse(json['createdAt']),
-      updatedAt:
-          json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null,
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'])
+          : null,
     );
   }
 
@@ -213,13 +195,6 @@ class InfoItem {
     };
   }
 
-  String toJsonString() => jsonEncode(toJson());
-
-  static InfoItem fromJsonString(String jsonString) {
-    return InfoItem.fromJson(jsonDecode(jsonString));
-  }
-
-  // Create a copy with updated data
   InfoItem copyWith({
     InfoType? type,
     InfoData? data,
@@ -234,11 +209,7 @@ class InfoItem {
     );
   }
 
-  // Update with new data and timestamp
   InfoItem update(InfoData newData) {
-    return copyWith(
-      data: newData,
-      updatedAt: DateTime.now(),
-    );
+    return copyWith(data: newData, updatedAt: DateTime.now());
   }
 }

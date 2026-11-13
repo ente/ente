@@ -1,5 +1,3 @@
-/** Proxy requests for files. */
-
 export default {
     async fetch(request: Request) {
         switch (request.method) {
@@ -34,55 +32,42 @@ const isAllowedOrigin = (origin: string | null) => {
         const url = new URL(origin);
         const hostname = url.hostname;
         return (
-            origin == "ente://app" /* desktop app */ ||
-            hostname.endsWith("ente.io") ||
-            hostname.endsWith("ente.sh") ||
+            origin == "ente://app" ||
+            isEnteHostname(hostname) ||
             hostname == "localhost"
         );
     } catch {
-        // `origin` is likely an invalid URL.
         return false;
     }
 };
+
+const isEnteHostname = (hostname: string) =>
+    hostname.endsWith(".ente.com") ||
+    hostname.endsWith(".ente.io") ||
+    hostname.endsWith(".ente.sh");
 
 const handleGET = async (request: Request) => {
     const url = new URL(request.url);
 
     // Random bots keep trying to pentest causing noise in the logs. If the
-    // request doesn't have a fileID, we can just safely ignore it thereafter.
+    // request doesn't have a valid fileID, we can safely ignore it thereafter.
     const fileID = url.searchParams.get("fileID");
-    if (!fileID) return new Response(null, { status: 400 });
+    if (!fileID || !/^\d+$/.test(fileID))
+        return new Response(null, { status: 400 });
 
-    let token = request.headers.get("X-Auth-Token");
-    if (!token) {
-        console.warn("Using deprecated token query param");
-        token = url.searchParams.get("token");
+    const museumURL = `https://api.ente.com/files/download/v3/${fileID}`;
+    const museumRequest = new Request(museumURL, request);
+    const clientIP = request.headers.get("CF-Connecting-IP") ?? "";
+    museumRequest.headers.set("X-Forwarded-For", clientIP);
+    let response = await fetch(museumRequest);
+    if (response.ok) {
+        const { url } = await response.json<{ url: string }>();
+        const range = request.headers.get("Range");
+        response = await fetch(
+            url,
+            range ? { headers: { Range: range } } : undefined,
+        );
     }
-
-    if (!token) {
-        console.error("No token provided");
-        // return new Response(null, { status: 400 });
-    }
-
-    // We forward the auth token as a query parameter to museum. This is so that
-    // it does not get preserved when museum does a redirect to the presigned S3
-    // URL that serves the actual thumbnail.
-    //
-    // See: [Note: Passing credentials for self-hosted file fetches]
-    const params = new URLSearchParams();
-    if (token) params.set("token", token);
-
-    const headers = {
-        "X-Client-Package": request.headers.get("X-Client-Package") ?? "",
-        "X-Client-Version": request.headers.get("X-Client-Version") ?? "",
-        "User-Agent": request.headers.get("User-Agent") ?? "",
-        "Range": request.headers.get("Range") ?? "",
-    };
-
-    let response = await fetch(
-        `https://api.ente.io/files/download/${fileID}?${params.toString()}`,
-        { headers },
-    );
 
     if (!response.ok) console.log("Upstream error", response.status);
 

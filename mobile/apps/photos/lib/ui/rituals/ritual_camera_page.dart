@@ -2,10 +2,12 @@ import "dart:async";
 import "dart:io";
 
 import "package:camera/camera.dart";
+import "package:ente_components/ente_components.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
+import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
-import "package:photos/l10n/l10n.dart";
+import "package:permission_handler/permission_handler.dart";
 import "package:photos/models/collection/collection.dart";
 import "package:photos/models/rituals/ritual_models.dart";
 import "package:photos/service_locator.dart";
@@ -23,30 +25,25 @@ void openRitualCamera(BuildContext context, Ritual ritual) {
   final albumId = ritual.albumId;
   if (albumId == null) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          context.l10n.ritualSetAlbumToLaunchCamera,
-        ),
-      ),
+      SnackBar(content: Text(context.strings.ritualSetAlbumToLaunchCamera)),
     );
     return;
   }
-  routeToPage(
-    context,
-    RitualCameraPage(
-      ritualId: ritual.id,
-      albumId: albumId,
-    ),
-  );
+  routeToPage(context, RitualCameraPage(ritualId: ritual.id, albumId: albumId));
 }
 
 enum _CameraScreenMode { capture, review }
 
+enum _CameraIssue {
+  permissionDenied,
+  permissionSettingsRequired,
+  permissionRestricted,
+  unavailable,
+  initializationFailed,
+}
+
 class _RitualCapture {
-  const _RitualCapture({
-    required this.file,
-    required this.mirrorPreview,
-  });
+  const _RitualCapture({required this.file, required this.mirrorPreview});
 
   final XFile file;
   final bool mirrorPreview;
@@ -68,21 +65,23 @@ class RitualCameraPage extends StatefulWidget {
 
 class _RitualCameraPageState extends State<RitualCameraPage>
     with WidgetsBindingObserver {
-  static CameraDescription? _cachedPreferredBackCamera;
   CameraController? _controller;
+  Future<void>? _cameraInitialization;
+  Future<void>? _cameraDisposal;
   List<CameraDescription> _cameras = <CameraDescription>[];
   CameraDescription? _activeCamera;
-  CameraDescription? _preferredBackCamera = _cachedPreferredBackCamera;
   late final PageController _pageController;
   late final ScrollController _thumbScrollController;
   Ritual? _ritual;
   _CameraScreenMode _mode = _CameraScreenMode.capture;
   int _selectedIndex = 0;
+  bool _restartCameraOnResume = false;
+  bool _resumeCameraAfterSettings = false;
   bool _pausedForNavigation = false;
   bool _initializing = true;
   bool _capturing = false;
   bool _saving = false;
-  String? _error;
+  _CameraIssue? _cameraIssue;
   List<_RitualCapture> _captures = <_RitualCapture>[];
   Collection? _album;
   bool _isPinching = false;
@@ -182,7 +181,7 @@ class _RitualCameraPageState extends State<RitualCameraPage>
     ritualsService.stateNotifier.removeListener(_ritualsListener);
     _focusHideTimer?.cancel();
     _zoomHintTimer?.cancel();
-    _controller?.dispose();
+    unawaited(_disposeCamera());
     _pageController.dispose();
     _thumbScrollController.dispose();
     _cleanupCaptures();
@@ -191,27 +190,32 @@ class _RitualCameraPageState extends State<RitualCameraPage>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    final controller = _controller;
     if (state == AppLifecycleState.resumed) {
-      if (controller == null || !controller.value.isInitialized) {
+      if (_resumeCameraAfterSettings) {
+        _resumeCameraAfterSettings = false;
+        unawaited(_initializeCamera(_activeCamera));
+      } else if (_restartCameraOnResume) {
+        _restartCameraOnResume = false;
         unawaited(_initializeCamera(_activeCamera));
       }
       return;
     }
-    if (controller == null || !controller.value.isInitialized) {
-      return;
-    }
     if (state == AppLifecycleState.inactive ||
         state == AppLifecycleState.paused) {
-      unawaited(controller.dispose());
-      _controller = null;
+      final controller = _controller;
+      if (controller == null || !controller.value.isInitialized) {
+        return;
+      }
+      _restartCameraOnResume = true;
+      unawaited(_disposeCamera());
     }
   }
 
   Future<void> _loadAlbum() async {
     if (widget.albumId == null) return;
-    final collection =
-        CollectionsService.instance.getCollectionByID(widget.albumId!);
+    final collection = CollectionsService.instance.getCollectionByID(
+      widget.albumId!,
+    );
     if (mounted) {
       setState(() {
         _album = collection;
@@ -235,114 +239,137 @@ class _RitualCameraPageState extends State<RitualCameraPage>
     }
   }
 
-  Future<CameraDescription?> _pickPreferredBackCamera() async {
-    if (_preferredBackCamera != null &&
-        _cameras.contains(_preferredBackCamera)) {
-      return _preferredBackCamera;
+  Future<void> _initializeCamera([CameraDescription? description]) {
+    final inFlight = _cameraInitialization;
+    if (inFlight != null) {
+      return inFlight;
     }
-    final List<CameraDescription> backCameras = _cameras
-        .where((camera) => camera.lensDirection == CameraLensDirection.back)
-        .toList(growable: false);
-    if (backCameras.isEmpty) {
-      return null;
-    }
-    if (backCameras.length == 1) {
-      _preferredBackCamera = backCameras.first;
-      return _preferredBackCamera;
-    }
-
-    int bestPixels = -1;
-    CameraDescription? bestCamera;
-    for (final camera in backCameras) {
-      if (!mounted) break;
-      final controller = CameraController(
-        camera,
-        ResolutionPreset.max,
-        enableAudio: false,
-      );
-      try {
-        await controller.initialize();
-        final Size? size = controller.value.previewSize;
-        final int pixels =
-            size == null ? -1 : (size.width * size.height).toInt();
-        if (pixels > bestPixels) {
-          bestPixels = pixels;
-          bestCamera = camera;
-        }
-      } catch (_) {
-        // Ignore cameras that fail to initialize.
-      } finally {
-        try {
-          await controller.dispose();
-        } catch (_) {
-          // Ignore dispose failures.
-        }
+    late final Future<void> initialization;
+    initialization = _initializeCameraOnce(description).whenComplete(() {
+      if (identical(_cameraInitialization, initialization)) {
+        _cameraInitialization = null;
       }
-    }
-    _preferredBackCamera = bestCamera ?? backCameras.first;
-    _cachedPreferredBackCamera = _preferredBackCamera;
-    return _preferredBackCamera;
+    });
+    _cameraInitialization = initialization;
+    return initialization;
   }
 
-  Future<void> _initializeCamera([CameraDescription? description]) async {
+  Future<void> _initializeCameraOnce(CameraDescription? description) async {
     if (!flagService.ritualsFlag) return;
+    if (!mounted) return;
     setState(() {
       _initializing = true;
-      _error = null;
+      _cameraIssue = null;
     });
+    CameraController? controller;
     try {
+      if (Platform.isAndroid) {
+        final permission = await Permission.camera.request();
+        if (!permission.isGranted) {
+          if (!mounted) return;
+          setState(() {
+            _cameraIssue = _issueForPermission(permission);
+            _initializing = false;
+          });
+          return;
+        }
+      }
       _cameras = _cameras.isEmpty ? await availableCameras() : _cameras;
       if (_cameras.isEmpty) {
+        if (!mounted) return;
         setState(() {
-          _error = context.l10n.ritualCameraNotFound;
+          _cameraIssue = _CameraIssue.unavailable;
           _initializing = false;
         });
         return;
       }
-      final CameraDescription target = description ??
-          (_controller == null
-              ? await _pickPreferredBackCamera() ?? _cameras.first
-              : _preferredCamera() ?? _cameras.first);
-      final bool reuseExisting = _controller != null;
-      if (reuseExisting) {
-        await _controller!.setDescription(target);
-      } else {
-        final controller = CameraController(
-          target,
-          ResolutionPreset.max,
-          enableAudio: false,
-        );
-        await controller.initialize();
-        _controller = controller;
-      }
-      if (_controller != null) {
-        _minAvailableZoom = await _controller!.getMinZoomLevel();
-        _maxAvailableZoom = await _controller!.getMaxZoomLevel();
-        _currentZoom = 1.0;
-        _baseZoom = 1.0;
-        await _controller!.setZoomLevel(_currentZoom);
-      }
+      final CameraDescription target =
+          description ?? _preferredCamera() ?? _cameras.first;
+      await _disposeCamera();
+      controller = CameraController(
+        target,
+        ResolutionPreset.max,
+        enableAudio: false,
+      );
+      await controller.initialize();
+      _minAvailableZoom = await controller.getMinZoomLevel();
+      _maxAvailableZoom = await controller.getMaxZoomLevel();
+      _currentZoom = 1.0;
+      _baseZoom = 1.0;
+      await controller.setZoomLevel(_currentZoom);
       if (!mounted) {
-        await _controller?.dispose();
+        await controller.dispose();
         return;
       }
       setState(() {
+        _controller = controller;
         _activeCamera = target;
         _initializing = false;
       });
-    } catch (e) {
+    } on CameraException catch (error) {
+      await controller?.dispose();
+      if (!mounted) return;
       setState(() {
-        _error = context.l10n.ritualCameraStartError;
+        _cameraIssue = _issueForCameraException(error);
+        _initializing = false;
+      });
+    } catch (_) {
+      await controller?.dispose();
+      if (!mounted) return;
+      setState(() {
+        _cameraIssue = _CameraIssue.initializationFailed;
         _initializing = false;
       });
     }
   }
 
-  CameraDescription? _preferredCamera() {
-    if (_preferredBackCamera != null &&
-        _cameras.contains(_preferredBackCamera)) {
-      return _preferredBackCamera;
+  _CameraIssue _issueForPermission(PermissionStatus permission) {
+    if (permission.isPermanentlyDenied) {
+      return _CameraIssue.permissionSettingsRequired;
     }
+    if (permission.isRestricted) {
+      return _CameraIssue.permissionRestricted;
+    }
+    return _CameraIssue.permissionDenied;
+  }
+
+  _CameraIssue _issueForCameraException(CameraException error) {
+    return switch (error.code) {
+      "CameraAccessDenied" || "CameraAccessDeniedWithoutPrompt" =>
+        _CameraIssue.permissionSettingsRequired,
+      "CameraAccessRestricted" => _CameraIssue.permissionRestricted,
+      _ => _CameraIssue.initializationFailed,
+    };
+  }
+
+  Future<void> _openCameraSettings() async {
+    _resumeCameraAfterSettings = true;
+    final didOpen = await openAppSettings();
+    if (!didOpen) {
+      _resumeCameraAfterSettings = false;
+    }
+  }
+
+  Future<void> _disposeCamera() async {
+    final disposal = _cameraDisposal;
+    if (disposal != null) {
+      await disposal;
+      return;
+    }
+    final controller = _controller;
+    if (controller == null) return;
+    _controller = null;
+    late final Future<void> pendingDisposal;
+    pendingDisposal = controller.dispose().whenComplete(() {
+      if (identical(_cameraDisposal, pendingDisposal)) {
+        _cameraDisposal = null;
+      }
+    });
+    _cameraDisposal = pendingDisposal;
+    await pendingDisposal;
+  }
+
+  CameraDescription? _preferredCamera() {
     for (final camera in _cameras) {
       if (camera.lensDirection == CameraLensDirection.back) {
         return camera;
@@ -364,10 +391,6 @@ class _RitualCameraPageState extends State<RitualCameraPage>
   }
 
   CameraDescription? _backCameraForFlip() {
-    if (_preferredBackCamera != null &&
-        _cameras.contains(_preferredBackCamera)) {
-      return _preferredBackCamera;
-    }
     return _cameraForDirection(CameraLensDirection.back);
   }
 
@@ -413,17 +436,14 @@ class _RitualCameraPageState extends State<RitualCameraPage>
       setState(() {
         _captures = List<_RitualCapture>.from(_captures)
           ..add(
-            _RitualCapture(
-              file: capture,
-              mirrorPreview: shouldMirrorPreview,
-            ),
+            _RitualCapture(file: capture, mirrorPreview: shouldMirrorPreview),
           );
       });
       _ensurePageVisible(_captures.length - 1, animate: true);
       _scrollThumbsToIndex(_captures.length - 1, animate: true);
     } catch (_) {
       if (!mounted) return;
-      showShortToast(context, context.l10n.ritualCaptureError);
+      showShortToast(context, context.strings.ritualCaptureError);
     } finally {
       if (mounted) {
         setState(() {
@@ -438,7 +458,7 @@ class _RitualCameraPageState extends State<RitualCameraPage>
       if (mounted) {
         showShortToast(
           context,
-          context.l10n.ritualPhotoLimit(maxPhotos: _maxCaptures),
+          context.strings.ritualPhotoLimit(maxPhotos: _maxCaptures),
         );
       }
       return;
@@ -461,23 +481,22 @@ class _RitualCameraPageState extends State<RitualCameraPage>
 
   Future<void> _onAccept() async {
     if (_captures.isEmpty) {
-      showShortToast(context, context.l10n.ritualCaptureAtLeastOne);
+      showShortToast(context, context.strings.ritualCaptureAtLeastOne);
       return;
     }
     if (widget.albumId == null) {
       if (!mounted) return;
       final navContext = context;
       ScaffoldMessenger.of(navContext).showSnackBar(
-        SnackBar(
-          content: Text(
-            navContext.l10n.ritualAlbumMissing,
-          ),
-        ),
+        SnackBar(content: Text(navContext.strings.ritualAlbumMissing)),
       );
       await _pausePreview();
       if (!mounted) return;
-      await routeToPage(navContext, const AllRitualsScreen())
-          .whenComplete(_resumePreview);
+      if (!navContext.mounted) return;
+      await routeToPage(
+        navContext,
+        const AllRitualsScreen(),
+      ).whenComplete(_resumePreview);
       return;
     }
     final List<_RitualCapture> pending = List<_RitualCapture>.from(_captures);
@@ -506,9 +525,10 @@ class _RitualCameraPageState extends State<RitualCameraPage>
       showShortToast(
         context,
         _album == null
-            ? context.l10n.ritualAddedToAlbum
-            : context.l10n
-                .ritualAddedToAlbumWithName(albumName: _album!.displayName),
+            ? context.strings.ritualAddedToAlbum
+            : context.strings.ritualAddedToAlbumWithName(
+                albumName: _album!.displayName,
+              ),
       );
       await ritualsService.refresh();
       if (!mounted) return;
@@ -518,7 +538,7 @@ class _RitualCameraPageState extends State<RitualCameraPage>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              context.l10n.ritualAddToAlbumFailure(error: e.toString()),
+              context.strings.ritualAddToAlbumFailure(error: e.toString()),
             ),
           ),
         );
@@ -635,7 +655,8 @@ class _RitualCameraPageState extends State<RitualCameraPage>
     }
     final colorScheme = getEnteColorScheme(context);
     final textTheme = getEnteTextTheme(context);
-    final bool isReady = _controller != null &&
+    final bool isReady =
+        _controller != null &&
         _controller!.value.isInitialized &&
         !_initializing;
     return Scaffold(
@@ -667,7 +688,11 @@ class _RitualCameraPageState extends State<RitualCameraPage>
               ),
             ),
             _mode == _CameraScreenMode.capture
-                ? _buildCaptureControls(colorScheme, isReady)
+                ? _cameraIssue == null
+                      ? _buildCaptureControls(colorScheme, isReady)
+                      : SizedBox(
+                          height: 20 + MediaQuery.paddingOf(context).bottom,
+                        )
                 : Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -700,7 +725,7 @@ class _RitualCameraPageState extends State<RitualCameraPage>
   Widget _buildTopBar(EnteTextTheme textTheme) {
     final String title = _ritual?.title.trim().isNotEmpty == true
         ? _ritual!.title.trim()
-        : context.l10n.ritualDefaultCameraTitle;
+        : context.strings.ritualDefaultCameraTitle;
     final String icon = _ritual?.icon.isNotEmpty == true ? _ritual!.icon : "📸";
     return Container(
       color: Colors.black,
@@ -712,17 +737,12 @@ class _RitualCameraPageState extends State<RitualCameraPage>
             decoration: BoxDecoration(
               color: Colors.black.withValues(alpha: 0.6),
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.08),
-              ),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  icon,
-                  style: const TextStyle(fontSize: 18),
-                ),
+                Text(icon, style: const TextStyle(fontSize: 18)),
                 const SizedBox(width: 8),
                 Text(
                   title,
@@ -748,40 +768,8 @@ class _RitualCameraPageState extends State<RitualCameraPage>
     if (_initializing) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (_error != null) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.error_outline,
-              color: colorScheme.textMuted,
-              size: 32,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _error!,
-              style: Theme.of(context).textTheme.bodyMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: _initializing ? null : _initializeCamera,
-              child: Text(context.l10n.tryAgain),
-            ),
-            TextButton(
-              onPressed: () async {
-                await _pausePreview();
-                if (!mounted) return;
-                await routeToPage(context, const AllRitualsScreen())
-                    .whenComplete(_resumePreview);
-              },
-              child: Text(context.l10n.ritualBackToList),
-            ),
-          ],
-        ),
-      );
+    if (_cameraIssue != null) {
+      return _buildCameraIssue();
     }
     if (!isReady || _controller == null) {
       return const SizedBox.shrink();
@@ -791,20 +779,24 @@ class _RitualCameraPageState extends State<RitualCameraPage>
         final mediaOrientation = MediaQuery.of(context).orientation;
 
         final Size? rawPreviewSize = _controller!.value.previewSize;
-        final Size fallbackSize =
-            Size(constraints.maxWidth, constraints.maxHeight);
+        final Size fallbackSize = Size(
+          constraints.maxWidth,
+          constraints.maxHeight,
+        );
         final Size viewSize = Size(constraints.maxWidth, constraints.maxHeight);
         final Size rotatedPreviewSize =
             mediaOrientation == Orientation.portrait && rawPreviewSize != null
-                ? Size(rawPreviewSize.height, rawPreviewSize.width)
-                : (rawPreviewSize ?? fallbackSize);
+            ? Size(rawPreviewSize.height, rawPreviewSize.width)
+            : (rawPreviewSize ?? fallbackSize);
         final FittedSizes fittedSizes = applyBoxFit(
           BoxFit.contain,
           rotatedPreviewSize,
           viewSize,
         );
-        final Rect previewRect = Alignment.center
-            .inscribe(fittedSizes.destination, Offset.zero & viewSize);
+        final Rect previewRect = Alignment.center.inscribe(
+          fittedSizes.destination,
+          Offset.zero & viewSize,
+        );
 
         final Offset? focus = _focusPointRel == null
             ? null
@@ -835,19 +827,12 @@ class _RitualCameraPageState extends State<RitualCameraPage>
                 onScaleStart: _handleScaleStart,
                 onScaleUpdate: _handleScaleUpdate,
                 onScaleEnd: _handleScaleEnd,
-                onTapDown: (details) => _onViewFinderTap(
-                  details,
-                  previewRect,
-                ),
+                onTapDown: (details) => _onViewFinderTap(details, previewRect),
               ),
             ),
             Positioned.fromRect(
               rect: previewRect,
-              child: IgnorePointer(
-                child: CustomPaint(
-                  painter: _GridPainter(),
-                ),
-              ),
+              child: IgnorePointer(child: CustomPaint(painter: _GridPainter())),
             ),
             if (focus != null)
               Positioned(
@@ -915,7 +900,7 @@ class _RitualCameraPageState extends State<RitualCameraPage>
         color: Colors.black,
         child: Center(
           child: Text(
-            context.l10n.ritualNoPhotosYet,
+            context.strings.ritualNoPhotosYet,
             style: const TextStyle(color: Colors.white70),
           ),
         ),
@@ -948,18 +933,13 @@ class _RitualCameraPageState extends State<RitualCameraPage>
     );
   }
 
-  Widget _buildCaptureControls(
-    EnteColorScheme colorScheme,
-    bool isReady,
-  ) {
+  Widget _buildCaptureControls(EnteColorScheme colorScheme, bool isReady) {
     final double bottomPadding = MediaQuery.of(context).padding.bottom;
     final bool canCapture =
         !_capturing && !_saving && isReady && _captures.length < _maxCaptures;
     return Container(
       padding: EdgeInsets.fromLTRB(16, 32, 16, 26 + bottomPadding),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.60),
-      ),
+      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.60)),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -967,10 +947,7 @@ class _RitualCameraPageState extends State<RitualCameraPage>
             width: 96,
             child: Align(
               alignment: Alignment.centerLeft,
-              child: _LatestPreview(
-                captures: _captures,
-                onTap: _enterReview,
-              ),
+              child: _LatestPreview(captures: _captures, onTap: _enterReview),
             ),
           ),
           Expanded(
@@ -1014,9 +991,7 @@ class _RitualCameraPageState extends State<RitualCameraPage>
     final double bottomPadding = MediaQuery.of(context).padding.bottom;
     return Container(
       padding: EdgeInsets.fromLTRB(16, 18, 16, 24 + bottomPadding),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.60),
-      ),
+      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.60)),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1035,13 +1010,16 @@ class _RitualCameraPageState extends State<RitualCameraPage>
               ),
               const Spacer(),
               ElevatedButton(
-                onPressed:
-                    (_captures.isNotEmpty && !_saving) ? _onAccept : null,
+                onPressed: (_captures.isNotEmpty && !_saving)
+                    ? _onAccept
+                    : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
                   foregroundColor: Colors.black,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 12,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
@@ -1061,9 +1039,10 @@ class _RitualCameraPageState extends State<RitualCameraPage>
                           const Icon(Icons.check_circle_outline),
                           const SizedBox(width: 8),
                           Text(
-                            context.l10n.addToAlbum,
-                            style: textTheme.bodyBold
-                                .copyWith(color: Colors.black),
+                            context.strings.addToAlbum,
+                            style: textTheme.bodyBold.copyWith(
+                              color: Colors.black,
+                            ),
                           ),
                         ],
                       ),
@@ -1095,8 +1074,10 @@ class _RitualCameraPageState extends State<RitualCameraPage>
       _isPinching = true;
       _baseZoom = _currentZoom;
     }
-    final double newZoom =
-        (_baseZoom * details.scale).clamp(_minAvailableZoom, _maxAvailableZoom);
+    final double newZoom = (_baseZoom * details.scale).clamp(
+      _minAvailableZoom,
+      _maxAvailableZoom,
+    );
     if ((newZoom - _currentZoom).abs() < 0.001) return;
     _currentZoom = newZoom;
     try {
@@ -1107,10 +1088,7 @@ class _RitualCameraPageState extends State<RitualCameraPage>
     }
   }
 
-  void _onViewFinderTap(
-    TapDownDetails details,
-    Rect previewRect,
-  ) {
+  void _onViewFinderTap(TapDownDetails details, Rect previewRect) {
     final controller = _controller;
     if (controller == null || !controller.value.isInitialized) {
       return;
@@ -1129,8 +1107,9 @@ class _RitualCameraPageState extends State<RitualCameraPage>
       );
       final bool shouldMirrorPreview =
           _activeCamera?.lensDirection == CameraLensDirection.front;
-      final Offset cameraPoint =
-          shouldMirrorPreview ? Offset(1.0 - clamped.dx, clamped.dy) : clamped;
+      final Offset cameraPoint = shouldMirrorPreview
+          ? Offset(1.0 - clamped.dx, clamped.dy)
+          : clamped;
       controller.setExposurePoint(cameraPoint);
       controller.setFocusPoint(cameraPoint);
       _showFocusIndicator(clamped);
@@ -1151,6 +1130,107 @@ class _RitualCameraPageState extends State<RitualCameraPage>
         });
       }
     });
+  }
+
+  Widget _buildCameraIssue() {
+    final issue = _cameraIssue!;
+    final message = switch (issue) {
+      _CameraIssue.permissionDenied => context.strings.cameraPermissionRequired,
+      _CameraIssue.permissionSettingsRequired =>
+        context.strings.cameraPermissionSettings,
+      _CameraIssue.permissionRestricted =>
+        context.strings.cameraPermissionRestricted,
+      _CameraIssue.unavailable => context.strings.ritualCameraNotFound,
+      _CameraIssue.initializationFailed =>
+        context.strings.ritualCameraStartError,
+    };
+    final primaryLabel = switch (issue) {
+      _CameraIssue.permissionDenied => context.strings.grantAccess,
+      _CameraIssue.permissionSettingsRequired => context.strings.openSettings,
+      _CameraIssue.initializationFailed => context.strings.tryAgain,
+      _CameraIssue.permissionRestricted || _CameraIssue.unavailable => null,
+    };
+    final primaryAction = switch (issue) {
+      _CameraIssue.permissionDenied ||
+      _CameraIssue.initializationFailed => _initializeCamera,
+      _CameraIssue.permissionSettingsRequired => _openCameraSettings,
+      _CameraIssue.permissionRestricted || _CameraIssue.unavailable => null,
+    };
+
+    return Theme(
+      data: ComponentTheme.darkTheme(),
+      child: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 360),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: HugeIcon(
+                      icon: issue == _CameraIssue.initializationFailed
+                          ? HugeIcons.strokeRoundedAlertCircle
+                          : HugeIcons.strokeRoundedCamera01,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  context.strings.camera,
+                  style: darkTextTheme.largeBold,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  message,
+                  style: darkTextTheme.bodyMuted,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                if (primaryLabel != null && primaryAction != null) ...[
+                  ButtonComponent(
+                    label: primaryLabel,
+                    onTap: primaryAction,
+                    shouldSurfaceExecutionStates: false,
+                    leading: issue == _CameraIssue.permissionSettingsRequired
+                        ? const HugeIcon(
+                            icon: HugeIcons.strokeRoundedSettings01,
+                            color: Colors.white,
+                            size: 20,
+                          )
+                        : null,
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                ButtonComponent(
+                  label: context.strings.ritualBackToList,
+                  variant: ButtonComponentVariant.link,
+                  shouldSurfaceExecutionStates: false,
+                  onTap: () async {
+                    await _pausePreview();
+                    if (!mounted) return;
+                    await routeToPage(
+                      context,
+                      const AllRitualsScreen(),
+                    ).whenComplete(_resumePreview);
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   void _showZoomIndicator() {
@@ -1192,7 +1272,7 @@ class _ThumbnailStrip extends StatelessWidget {
         itemCount: captures.length,
         clipBehavior: Clip.none,
         controller: controller,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        separatorBuilder: (_, _) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
           final capture = captures[index];
           return GestureDetector(
@@ -1217,8 +1297,9 @@ class _LatestPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final _RitualCapture? lastCapture =
-        captures.isNotEmpty ? captures.last : null;
+    final _RitualCapture? lastCapture = captures.isNotEmpty
+        ? captures.last
+        : null;
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 220),
       switchInCurve: Curves.easeOut,
@@ -1298,11 +1379,7 @@ class _ConfirmChip extends StatelessWidget {
           clipBehavior: Clip.none,
           children: [
             const Center(
-              child: Icon(
-                Icons.check,
-                color: Colors.white,
-                size: 26,
-              ),
+              child: Icon(Icons.check, color: Colors.white, size: 26),
             ),
             Positioned(
               right: -2,
@@ -1357,10 +1434,7 @@ class _ShutterButton extends StatelessWidget {
         height: 78,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(26),
-          border: Border.all(
-            color: Colors.white,
-            width: 3,
-          ),
+          border: Border.all(color: Colors.white, width: 3),
         ),
         child: Center(
           child: Container(
@@ -1401,19 +1475,14 @@ class _RoundIconButton extends StatelessWidget {
           shape: BoxShape.circle,
           color: background ?? Colors.black.withValues(alpha: 0.1),
         ),
-        child: Center(
-          child: icon,
-        ),
+        child: Center(child: icon),
       ),
     );
   }
 }
 
 class _MirroredImage extends StatelessWidget {
-  const _MirroredImage({
-    required this.mirror,
-    required this.child,
-  });
+  const _MirroredImage({required this.mirror, required this.child});
 
   final bool mirror;
   final Widget child;
@@ -1425,7 +1494,7 @@ class _MirroredImage extends StatelessWidget {
     }
     return Transform(
       alignment: Alignment.center,
-      transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
+      transform: Matrix4.identity()..scaleByDouble(-1.0, 1.0, 1.0, 1.0),
       child: child,
     );
   }
@@ -1450,10 +1519,7 @@ class _ReviewThumb extends StatelessWidget {
         Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: Colors.white,
-              width: selected ? 2 : 1,
-            ),
+            border: Border.all(color: Colors.white, width: selected ? 2 : 1),
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(12),
@@ -1481,11 +1547,7 @@ class _ReviewThumb extends StatelessWidget {
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.white, width: 1.5),
               ),
-              child: const Icon(
-                Icons.close,
-                size: 16,
-                color: Colors.white,
-              ),
+              child: const Icon(Icons.close, size: 16, color: Colors.white),
             ),
           ),
         ),

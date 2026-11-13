@@ -1,9 +1,5 @@
--- Create comments and reactions tables with E2EE payloads, tombstones, and delta-sync indexes
--- Uses BIGINT microsecond timestamps via now_utc_micro_seconds()
-
 -- App supplies nanoid strings for primary keys; no pgcrypto dependency.
 
--- Helper: null cipher when tombstoned
 CREATE OR REPLACE FUNCTION tg_null_cipher_on_delete() RETURNS trigger AS $$
 BEGIN
   IF NEW.is_deleted THEN
@@ -13,7 +9,6 @@ BEGIN
   RETURN NEW;
 END; $$ LANGUAGE plpgsql;
 
--- Enforce replies stay within parent scope
 CREATE OR REPLACE FUNCTION tg_check_reply_scope() RETURNS trigger AS $$
 BEGIN
   IF NEW.parent_comment_id IS NULL THEN
@@ -29,7 +24,6 @@ BEGIN
   RETURN NEW;
 END; $$ LANGUAGE plpgsql;
 
--- Enforce reaction target integrity (if comment reaction, collection must match)
 CREATE OR REPLACE FUNCTION tg_check_reaction_target() RETURNS trigger AS $$
 DECLARE
   c_rec RECORD;
@@ -47,7 +41,6 @@ BEGIN
   RETURN NEW;
 END; $$ LANGUAGE plpgsql;
 
--- Anonymous users table storing encrypted profile metadata for public commenters
 CREATE TABLE IF NOT EXISTS anon_users (
   id TEXT PRIMARY KEY,
   collection_id BIGINT NOT NULL,
@@ -64,7 +57,6 @@ CREATE TRIGGER update_anon_users_updated_at
   BEFORE UPDATE ON anon_users
   FOR EACH ROW EXECUTE PROCEDURE trigger_updated_at_microseconds_column();
 
--- Soft-delete all reactions for a comment when the comment is tombstoned
 CREATE OR REPLACE FUNCTION tg_soft_delete_reactions_on_comment_delete() RETURNS trigger AS $$
 BEGIN
   IF NEW.is_deleted AND (OLD.is_deleted IS DISTINCT FROM NEW.is_deleted) THEN
@@ -79,7 +71,6 @@ BEGIN
   RETURN NEW;
 END; $$ LANGUAGE plpgsql;
 
--- Comments table
 CREATE TABLE IF NOT EXISTS comments (
   id TEXT PRIMARY KEY,
 
@@ -109,7 +100,6 @@ CREATE TABLE IF NOT EXISTS comments (
   CONSTRAINT fk_comments_anon_user FOREIGN KEY (anon_user_id) REFERENCES anon_users (id)
 );
 
--- Indexes for comments
 CREATE INDEX IF NOT EXISTS idx_comments_scope
   ON comments (collection_id, file_id)
   WHERE is_deleted = FALSE;
@@ -126,11 +116,9 @@ CREATE INDEX IF NOT EXISTS idx_comments_anon
   ON comments (anon_user_id)
   WHERE is_deleted = FALSE;
 
--- Delta sync by collection and updated_at
 CREATE INDEX IF NOT EXISTS idx_comments_collection_updated_at
   ON comments (collection_id, updated_at);
 
--- Triggers for comments
 CREATE TRIGGER comments_null_cipher_on_delete
   BEFORE INSERT OR UPDATE ON comments
   FOR EACH ROW EXECUTE PROCEDURE tg_null_cipher_on_delete();
@@ -148,7 +136,6 @@ CREATE TRIGGER soft_delete_reactions_on_comment_delete
   FOR EACH ROW WHEN (NEW.is_deleted)
   EXECUTE PROCEDURE tg_soft_delete_reactions_on_comment_delete();
 
--- Reactions table (multi-scope: collection, file, or comment)
 CREATE TABLE IF NOT EXISTS reactions (
   id TEXT PRIMARY KEY,
 
@@ -174,20 +161,17 @@ CREATE TABLE IF NOT EXISTS reactions (
   created_at BIGINT NOT NULL DEFAULT now_utc_micro_seconds(),
   updated_at BIGINT NOT NULL DEFAULT now_utc_micro_seconds(),
 
-  -- Only one of: comment OR (collection[/file])
   CONSTRAINT reactions_target_shape CHECK (
     (comment_id IS NOT NULL AND file_id IS NULL)
     OR
     (comment_id IS NULL)
   ),
 
-  -- Enforce payload nulling on tombstone
   CONSTRAINT reactions_cipher_on_delete CHECK (
     (is_deleted = FALSE AND cipher IS NOT NULL AND nonce IS NOT NULL) OR
     (is_deleted = TRUE  AND cipher IS NULL AND nonce IS NULL)
   ),
 
-  -- Unified identity for target to enforce one-per-user-per-target
   unique_key TEXT GENERATED ALWAYS AS (
     CASE
       WHEN comment_id IS NOT NULL THEN 'M:' || comment_id::TEXT
@@ -204,16 +188,13 @@ CREATE TABLE IF NOT EXISTS reactions (
   CONSTRAINT fk_reactions_anon_user FOREIGN KEY (anon_user_id) REFERENCES anon_users (id)
 );
 
--- Indexes for reactions
 CREATE INDEX IF NOT EXISTS idx_reactions_scope
   ON reactions (collection_id, file_id, comment_id)
   WHERE is_deleted = FALSE;
  
--- Delta sync by collection and updated_at
 CREATE INDEX IF NOT EXISTS idx_reactions_collection_updated_at
   ON reactions (collection_id, updated_at);
 
--- Per-comment lookups
 CREATE INDEX IF NOT EXISTS idx_reactions_comment
   ON reactions (comment_id)
   WHERE is_deleted = FALSE;
@@ -226,7 +207,6 @@ CREATE INDEX IF NOT EXISTS idx_reactions_anon
   ON reactions (anon_user_id)
   WHERE is_deleted = FALSE;
 
--- Triggers for reactions
 CREATE TRIGGER reactions_null_cipher_on_delete
   BEFORE INSERT OR UPDATE ON reactions
   FOR EACH ROW EXECUTE PROCEDURE tg_null_cipher_on_delete();

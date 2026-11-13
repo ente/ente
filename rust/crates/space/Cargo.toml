@@ -1,0 +1,28 @@
+[package]
+name = "ente-space"
+version = "0.0.1"
+edition.workspace = true
+
+[features]
+museum = []
+
+[dependencies]
+ente-core.workspace = true
+futures-util.workspace = true
+log.workspace = true
+md-5.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+urlencoding.workspace = true
+zeroize.workspace = true
+
+[dev-dependencies]
+ente-accounts.workspace = true
+ente-test-support.workspace = true
+mockito.workspace = true
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+uuid = { workspace = true, features = ["v4"] }
+
+[lints]
+workspace = true

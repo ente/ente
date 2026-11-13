@@ -46,9 +46,4 @@ class WindowsProtocolHandler {
       free(txtData);
     }
   }
-
-  // String _sanitize(String value) {
-  //   value = value.replaceAll(r'%s', '%1').replaceAll(r'"', '\\"');
-  //   return '"$value"';
-  // }
 }

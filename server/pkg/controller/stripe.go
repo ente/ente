@@ -9,19 +9,19 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ente-io/museum/pkg/controller/commonbilling"
+	"github.com/ente/museum/pkg/controller/commonbilling"
 
-	"github.com/ente-io/museum/pkg/controller/discord"
-	"github.com/ente-io/museum/pkg/controller/offer"
-	"github.com/ente-io/museum/pkg/repo/storagebonus"
+	"github.com/ente/museum/pkg/controller/discord"
+	"github.com/ente/museum/pkg/controller/offer"
+	"github.com/ente/museum/pkg/repo/storagebonus"
 
-	"github.com/ente-io/museum/ente"
-	emailCtrl "github.com/ente-io/museum/pkg/controller/email"
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/museum/pkg/utils/billing"
-	"github.com/ente-io/museum/pkg/utils/email"
-	timeUtil "github.com/ente-io/museum/pkg/utils/time"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	emailCtrl "github.com/ente/museum/pkg/controller/email"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/museum/pkg/utils/billing"
+	"github.com/ente/museum/pkg/utils/email"
+	timeUtil "github.com/ente/museum/pkg/utils/time"
+	"github.com/ente/stacktrace"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/stripe/stripe-go/v72"
@@ -30,7 +30,6 @@ import (
 	"golang.org/x/text/currency"
 )
 
-// StripeController provides abstractions for handling billing on Stripe
 type StripeController struct {
 	StripeClients          ente.StripeClientPerAccount
 	BillingPlansPerAccount ente.BillingPlansPerAccount
@@ -46,7 +45,6 @@ type StripeController struct {
 
 const BufferPeriodOnPaymentFailureInDays = 7
 
-// Return a new instance of StripeController
 func NewStripeController(plans ente.BillingPlansPerAccount, stripeClients ente.StripeClientPerAccount, billingRepo *repo.BillingRepository, fileRepo *repo.FileRepository, userRepo *repo.UserRepository, storageBonusRepo *storagebonus.Repository, discordController *discord.DiscordController, emailNotificationController *emailCtrl.EmailNotificationController, offerController *offer.OfferController, commonBillCtrl *commonbilling.Controller) *StripeController {
 	return &StripeController{
 		StripeClients:          stripeClients,
@@ -62,14 +60,12 @@ func NewStripeController(plans ente.BillingPlansPerAccount, stripeClients ente.S
 	}
 }
 
-// GetCheckoutSession handles the creation of stripe checkout session for subscription purchase
 func (c *StripeController) GetCheckoutSession(productID string, userID int64, redirectRootURL string) (string, error) {
 	if productID == "" {
 		return "", stacktrace.Propagate(ente.ErrBadRequest, "")
 	}
 	subscription, err := c.BillingRepo.GetUserSubscription(userID)
 	if err != nil {
-		// error sql.ErrNoRows not possible as user must at least have a free subscription
 		return "", stacktrace.Propagate(err, "")
 	}
 	hasActivePaidSubscription := billing.IsActivePaidPlan(subscription)
@@ -110,7 +106,6 @@ func (c *StripeController) GetCheckoutSession(productID string, userID int64, re
 	var stripeClient *client.API
 	if subscription.PaymentProvider == ente.Stripe {
 		stripeClient = c.StripeClients[subscription.Attributes.StripeAccountCountry]
-		// attach the subscription to existing customerID
 		params.Customer = stripe.String(subscription.Attributes.CustomerID)
 	} else {
 		stripeClient = c.StripeClients[ente.DefaultStripeAccountCountry]
@@ -118,7 +113,6 @@ func (c *StripeController) GetCheckoutSession(productID string, userID int64, re
 		if err != nil {
 			return "", stacktrace.Propagate(err, "")
 		}
-		// attach user's emailID to the checkout session and subsequent subscription bought
 		params.CustomerEmail = stripe.String(user.Email)
 	}
 
@@ -129,17 +123,14 @@ func (c *StripeController) GetCheckoutSession(productID string, userID int64, re
 	return s.ID, nil
 }
 
-// GetVerifiedSubscription verifies and returns the verified subscription
 func (c *StripeController) GetVerifiedSubscription(userID int64, sessionID string) (ente.Subscription, error) {
 	var stripeSubscription stripe.Subscription
 	var err error
 	if sessionID != "" {
 		log.Info("Received session ID: " + sessionID)
-		// Get verified subscription request was received from success redirect page
 		stripeSubscription, err = c.getStripeSubscriptionFromSession(userID, sessionID)
 	} else {
 		log.Info("Did not receive a session ID")
-		// Get verified subscription request for a subscription update
 		stripeSubscription, err = c.getUserStripeSubscription(userID)
 	}
 	if err != nil {
@@ -171,9 +162,6 @@ func (c *StripeController) HandleINNotification(payload []byte, header string) e
 }
 
 func (c *StripeController) handleWebhookEvent(event stripe.Event, country ente.StripeAccountCountry) error {
-	// The event body would already have been logged by the upper layers by the
-	// time we get here, so we can only handle the events that we care about. In
-	// case we receive an unexpected event, we do log an error though.
 	handler := c.findHandlerForEvent(event)
 	if handler == nil {
 		log.Error("Received an unexpected webhook from stripe:", event.Type)
@@ -184,11 +172,8 @@ func (c *StripeController) handleWebhookEvent(event stripe.Event, country ente.S
 		return stacktrace.Propagate(err, "")
 	}
 	if eventLog.UserID == 0 {
-		// Do not try to log if we do not have an associated user. This can
-		// happen, e.g. with out of order webhooks.
-		// Or in case of offer application, where events are logged by the Storage Bonus Repo
-		//
-		// See: Ignore webhooks received before user has been created
+		// Out-of-order events may have no user. Offer events are logged by
+		// StorageBonusRepo instead.
 		return nil
 	}
 	err = c.BillingRepo.LogStripePush(eventLog)
@@ -210,12 +195,10 @@ func (c *StripeController) findHandlerForEvent(event stripe.Event) func(event st
 	}
 }
 
-// Payment is successful and the subscription is created.
-// You should provision the subscription.
 func (c *StripeController) handleCheckoutSessionCompleted(event stripe.Event, country ente.StripeAccountCountry) (ente.StripeEventLog, error) {
 	var session stripe.CheckoutSession
 	json.Unmarshal(event.Data.Raw, &session)
-	if session.ClientReferenceID != "" { // via payments.ente.io, where we inserted the userID
+	if session.ClientReferenceID != "" { // via payments.ente.com, where we inserted the userID
 		userID, _ := strconv.ParseInt(session.ClientReferenceID, 10, 64)
 		newSubscription, err := c.GetVerifiedSubscription(userID, session.ID)
 		if err != nil {
@@ -231,6 +214,11 @@ func (c *StripeController) handleCheckoutSessionCompleted(event stripe.Event, co
 		}
 		if currentSubscription.ExpiryTime >= newSubscription.ExpiryTime &&
 			currentSubscription.ProductID != ente.FreePlanProductID {
+			if currentSubscription.PaymentProvider != newSubscription.PaymentProvider ||
+				currentSubscription.OriginalTransactionID != newSubscription.OriginalTransactionID ||
+				currentSubscription.ProductID != newSubscription.ProductID {
+				c.notifySkippedPaidStripeSubscriptionReplacement(userID, currentSubscription, newSubscription)
+			}
 			log.Warn("Webhook is reporting an outdated purchase that was already verified stripeSubscription:", stripeSubscription.ID)
 			return ente.StripeEventLog{UserID: userID, StripeSubscription: stripeSubscription, Event: event}, nil
 		}
@@ -270,18 +258,12 @@ func (c *StripeController) handleCheckoutSessionCompleted(event stripe.Event, co
 	return ente.StripeEventLog{}, nil
 }
 
-// Stripe fires this when a subscription starts or changes. For example,
-// renewing a subscription, adding a coupon, applying a discount, adding an
-// invoice item, and changing plans all trigger this event. In our case, we use
-// this only to track plan changes and renewal failures resulting in
-// subscriptions going past due.
 func (c *StripeController) handleCustomerSubscriptionUpdated(event stripe.Event, country ente.StripeAccountCountry) (ente.StripeEventLog, error) {
 	var stripeSubscription stripe.Subscription
 	json.Unmarshal(event.Data.Raw, &stripeSubscription)
 	currentSubscription, err := c.BillingRepo.GetSubscriptionForTransaction(stripeSubscription.ID, ente.Stripe)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			// See: Ignore webhooks received before user has been created
 			log.Warn("Webhook is reporting an event for un-verified subscription stripeSubscriptionID:", stripeSubscription.ID)
 			return ente.StripeEventLog{}, nil
 		}
@@ -292,24 +274,24 @@ func (c *StripeController) handleCustomerSubscriptionUpdated(event stripe.Event,
 	if err != nil {
 		return ente.StripeEventLog{}, stacktrace.Propagate(err, "")
 	}
-	// If the customer has changed the plan, we update state in the database. If
-	// the plan has not changed, we will ignore this webhook and rely on other
-	// events to update the state
+	// Other events update subscription state when the product is unchanged.
 	if currentSubscription.ProductID != newSubscription.ProductID {
-		c.BillingRepo.ReplaceSubscription(currentSubscription.ID, newSubscription)
+		if err := c.BillingRepo.ReplaceSubscription(currentSubscription.ID, newSubscription); err != nil {
+			return ente.StripeEventLog{}, stacktrace.Propagate(err, "failed to update subscription from Stripe webhook")
+		}
 	}
 
 	fullStripeSub, err := c.getStripeSubscriptionWithPaymentMethod(currentSubscription)
 	if err != nil {
 		return ente.StripeEventLog{}, stacktrace.Propagate(err, "")
 	}
-	isSEPA := isSEPASubscription(fullStripeSub)
+	defaultPaymentMethodType := getSubscriptionPaymentMethodType(fullStripeSub)
 
-	if stripeSubscription.Status == stripe.SubscriptionStatusPastDue && !isSEPA {
-		// Unfortunately, customer.subscription.updated is only fired for SEPA
-		// payments in case of updation failures (not for purchase or renewal
-		// failures). So for consistency (and to avoid duplicate mails), we
-		// trigger on-hold emails for SEPA within handlePaymentIntentFailed.
+	if stripeSubscription.Status == stripe.SubscriptionStatusPastDue &&
+		!usesAllowIncompleteSubscriptionUpdate(defaultPaymentMethodType) {
+		// Subscription updates that do not use allow_incomplete surface failures
+		// via customer.subscription.updated. SEPA and UPI are handled within
+		// handlePaymentIntentFailed to avoid duplicate on-hold emails.
 		err = c.sendAccountOnHoldEmail(userID)
 		if err != nil {
 			return ente.StripeEventLog{}, stacktrace.Propagate(err, "")
@@ -319,7 +301,6 @@ func (c *StripeController) handleCustomerSubscriptionUpdated(event stripe.Event,
 	return ente.StripeEventLog{UserID: userID, StripeSubscription: stripeSubscription, Event: event}, nil
 }
 
-// Continue to provision the subscription as payments continue to be made.
 func (c *StripeController) handleInvoicePaid(event stripe.Event, country ente.StripeAccountCountry) (ente.StripeEventLog, error) {
 	var invoice stripe.Invoice
 	json.Unmarshal(event.Data.Raw, &invoice)
@@ -327,7 +308,9 @@ func (c *StripeController) handleInvoicePaid(event stripe.Event, country ente.St
 	currentSubscription, err := c.BillingRepo.GetSubscriptionForTransaction(stripeSubscriptionID, ente.Stripe)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			// See: Ignore webhooks received before user has been created
+			if invoice.BillingReason != stripe.InvoiceBillingReasonSubscriptionCreate {
+				c.notifyIgnoredPaidStripeWebhook(event.Type, country, stripeSubscriptionID, invoice.Customer.ID)
+			}
 			log.Warn("Webhook is reporting an event for un-verified subscription stripeSubscriptionID:", stripeSubscriptionID)
 			return ente.StripeEventLog{}, nil
 		}
@@ -344,7 +327,6 @@ func (c *StripeController) handleInvoicePaid(event stripe.Event, country ente.St
 
 	newExpiryTime := stripeSubscription.CurrentPeriodEnd * 1000 * 1000
 	if currentSubscription.ExpiryTime == newExpiryTime {
-		//outdated invoice
 		log.Warn("Webhook is reporting an outdated purchase that was already verified stripeSubscriptionID:", stripeSubscription.ID)
 		return ente.StripeEventLog{UserID: userID, StripeSubscription: *stripeSubscription, Event: event}, nil
 	}
@@ -356,17 +338,14 @@ func (c *StripeController) handleInvoicePaid(event stripe.Event, country ente.St
 	return ente.StripeEventLog{UserID: userID, StripeSubscription: *stripeSubscription, Event: event}, nil
 }
 
-// Event used to ONLY handle failures to SEPA payments, since we set
-// SubscriptionPaymentBehaviorAllowIncomplete only for SEPA. Other payment modes
-// will fail and will be handled synchronously
+// SEPA and UPI failures are handled here because their updates use
+// allow_incomplete.
 func (c *StripeController) handlePaymentIntentFailed(event stripe.Event, country ente.StripeAccountCountry) (ente.StripeEventLog, error) {
 	var paymentIntent stripe.PaymentIntent
 	json.Unmarshal(event.Data.Raw, &paymentIntent)
-	isSEPA := paymentIntent.LastPaymentError.PaymentMethod.Type == stripe.PaymentMethodTypeSepaDebit
-	if !isSEPA {
-		// Ignore events for other payment methods, since they will be handled
-		// synchronously
-		log.Info("Ignoring payment intent failed event for non-SEPA payment method")
+	paymentMethodType := getPaymentIntentErrorPaymentMethodType(paymentIntent)
+	if !usesAllowIncompleteSubscriptionUpdate(paymentMethodType) {
+		log.Info("Ignoring payment intent failed event for payment method handled synchronously")
 		return ente.StripeEventLog{}, nil
 	}
 
@@ -381,7 +360,6 @@ func (c *StripeController) handlePaymentIntentFailed(event stripe.Event, country
 	currentSubscription, err := c.BillingRepo.GetSubscriptionForTransaction(stripeSubscriptionID, ente.Stripe)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			// See: Ignore webhooks received before user has been created
 			log.Warn("Webhook is reporting an event for un-verified subscription stripeSubscriptionID:", stripeSubscriptionID)
 		}
 		return ente.StripeEventLog{}, stacktrace.Propagate(err, "")
@@ -393,17 +371,16 @@ func (c *StripeController) handlePaymentIntentFailed(event stripe.Event, country
 		return ente.StripeEventLog{}, stacktrace.Propagate(err, "")
 	}
 
+	if isPaidStripeInvoice(invoice) {
+		log.Info("Ignoring stale payment intent failed event for paid invoice:", invoiceID)
+		return ente.StripeEventLog{UserID: userID, StripeSubscription: *stripeSubscription, Event: event}, nil
+	}
+
 	productID := stripeSubscription.Items.Data[0].Price.ID
-	// If the current subscription is not the same as the one in the webhook,
-	// then ignore
-	fmt.Printf("productID: %s, currentSubscription.ProductID: %s\n", productID, currentSubscription.ProductID)
 	if currentSubscription.ProductID != productID {
-		// no-op
 		log.Warn("Webhook is reporting un-verified subscription update", stripeSubscription.ID, "invoiceID:", invoiceID)
 		return ente.StripeEventLog{UserID: userID, StripeSubscription: *stripeSubscription, Event: event}, nil
 	}
-	// If the current subscription is the same as the one in the webhook, then
-	// we need to expire the subscription, and send an email to the user.
 	newExpiryTime := time.Now().UnixMicro()
 	err = c.BillingRepo.UpdateSubscriptionExpiryTime(
 		currentSubscription.ID, newExpiryTime)
@@ -436,7 +413,7 @@ func (c *StripeController) UpdateSubscription(stripeID string, userID int64) (en
 	if subscription.PaymentProvider != ente.Stripe || subscription.ProductID == stripeID || subscription.Attributes.StripeAccountCountry != newStripeAccountCountry {
 		return ente.SubscriptionUpdateResponse{}, stacktrace.Propagate(ente.ErrBadRequest, "")
 	}
-	if newPlan.Storage < subscription.Storage { // Downgrade
+	if newPlan.Storage < subscription.Storage {
 		canDowngrade, canDowngradeErr := c.CommonBillCtrl.CanDowngradeToGivenStorage(newPlan.Storage, userID)
 		if canDowngradeErr != nil {
 			return ente.SubscriptionUpdateResponse{}, stacktrace.Propagate(canDowngradeErr, "")
@@ -451,9 +428,9 @@ func (c *StripeController) UpdateSubscription(stripeID string, userID int64) (en
 	if err != nil {
 		return ente.SubscriptionUpdateResponse{}, stacktrace.Propagate(err, "")
 	}
-	isSEPA := isSEPASubscription(stripeSubscription)
+	defaultPaymentMethodType := getSubscriptionPaymentMethodType(stripeSubscription)
 	var paymentBehavior stripe.SubscriptionPaymentBehavior
-	if isSEPA {
+	if usesAllowIncompleteSubscriptionUpdate(defaultPaymentMethodType) {
 		paymentBehavior = stripe.SubscriptionPaymentBehaviorAllowIncomplete
 	} else {
 		paymentBehavior = stripe.SubscriptionPaymentBehaviorPendingIfIncomplete
@@ -480,18 +457,7 @@ func (c *StripeController) UpdateSubscription(stripeID string, userID int64) (en
 			return ente.SubscriptionUpdateResponse{}, stacktrace.Propagate(err, "")
 		}
 	}
-	if isSEPA {
-		if newStripeSubscription.Status == stripe.SubscriptionStatusPastDue {
-			if newStripeSubscription.LatestInvoice.PaymentIntent.Status == stripe.PaymentIntentStatusRequiresAction {
-				return ente.SubscriptionUpdateResponse{Status: "requires_action", ClientSecret: newStripeSubscription.LatestInvoice.PaymentIntent.ClientSecret}, nil
-			} else if newStripeSubscription.LatestInvoice.PaymentIntent.Status == stripe.PaymentIntentStatusRequiresPaymentMethod {
-				return ente.SubscriptionUpdateResponse{Status: "requires_payment_method"}, nil
-			} else if newStripeSubscription.LatestInvoice.PaymentIntent.Status == stripe.PaymentIntentStatusProcessing {
-				return ente.SubscriptionUpdateResponse{Status: "success"}, nil
-			}
-			return ente.SubscriptionUpdateResponse{}, stacktrace.Propagate(ente.ErrBadRequest, "")
-		}
-	} else {
+	if paymentBehavior == stripe.SubscriptionPaymentBehaviorPendingIfIncomplete {
 		if newStripeSubscription.PendingUpdate != nil {
 			switch newStripeSubscription.LatestInvoice.PaymentIntent.Status {
 			case stripe.PaymentIntentStatusRequiresAction:
@@ -503,6 +469,19 @@ func (c *StripeController) UpdateSubscription(stripeID string, userID int64) (en
 			}
 			return ente.SubscriptionUpdateResponse{}, stacktrace.Propagate(ente.ErrBadRequest, "")
 		}
+	} else if newStripeSubscription.LatestInvoice != nil && newStripeSubscription.LatestInvoice.PaymentIntent != nil {
+		switch newStripeSubscription.LatestInvoice.PaymentIntent.Status {
+		case stripe.PaymentIntentStatusRequiresAction:
+			return ente.SubscriptionUpdateResponse{Status: "requires_action", ClientSecret: newStripeSubscription.LatestInvoice.PaymentIntent.ClientSecret}, nil
+		case stripe.PaymentIntentStatusRequiresPaymentMethod:
+			return ente.SubscriptionUpdateResponse{Status: "requires_payment_method"}, nil
+		case stripe.PaymentIntentStatusProcessing:
+			return ente.SubscriptionUpdateResponse{Status: "success"}, nil
+		case stripe.PaymentIntentStatusSucceeded:
+			return ente.SubscriptionUpdateResponse{Status: "success"}, nil
+		default:
+			return ente.SubscriptionUpdateResponse{}, stacktrace.Propagate(ente.ErrBadRequest, "")
+		}
 	}
 	return ente.SubscriptionUpdateResponse{Status: "success"}, nil
 }
@@ -510,7 +489,6 @@ func (c *StripeController) UpdateSubscription(stripeID string, userID int64) (en
 func (c *StripeController) UpdateSubscriptionCancellationStatus(userID int64, shouldCancel bool) (ente.Subscription, error) {
 	subscription, err := c.BillingRepo.GetUserSubscription(userID)
 	if err != nil {
-		// error sql.ErrNoRows not possible as user must at least have a free subscription
 		return ente.Subscription{}, stacktrace.Propagate(err, "")
 	}
 	if subscription.PaymentProvider != ente.Stripe {
@@ -518,7 +496,6 @@ func (c *StripeController) UpdateSubscriptionCancellationStatus(userID int64, sh
 	}
 
 	if subscription.Attributes.IsCancelled == shouldCancel {
-		// no-op
 		return subscription, nil
 	}
 
@@ -567,6 +544,9 @@ func (c *StripeController) getStripeSubscriptionWithPaymentMethod(subscription e
 	client := c.StripeClients[subscription.Attributes.StripeAccountCountry]
 	params := &stripe.SubscriptionParams{}
 	params.AddExpand("default_payment_method")
+	params.AddExpand("default_source")
+	params.AddExpand("customer.invoice_settings.default_payment_method")
+	params.AddExpand("customer.default_source")
 	stripeSubscription, err := client.Subscriptions.Get(subscription.OriginalTransactionID, params)
 	if err != nil {
 		return stripe.Subscription{}, stacktrace.Propagate(err, "")
@@ -579,11 +559,38 @@ func (c *StripeController) sendAccountOnHoldEmail(userID int64) error {
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
-	err = email.SendTemplatedEmail([]string{user.Email}, "ente", "support@ente.io",
+	err = email.SendTemplatedEmail([]string{user.Email}, "ente", "support@ente.com",
 		ente.AccountOnHoldEmailSubject, ente.OnHoldTemplate, map[string]interface{}{
 			"PaymentProvider": "Stripe",
 		}, nil)
 	return err
+}
+
+func (c *StripeController) notifyIgnoredPaidStripeWebhook(eventType string, country ente.StripeAccountCountry, stripeSubscriptionID string, customerID string) {
+	message := fmt.Sprintf(
+		"Paid Stripe webhook `%s` for unknown subscription `%s` on `%s` account (customer `%s`) was acknowledged with 2xx and no subscription row was updated.",
+		eventType,
+		stripeSubscriptionID,
+		country,
+		customerID,
+	)
+	c.DiscordController.NotifyThrottled(message, 30*time.Minute)
+}
+
+func (c *StripeController) notifySkippedPaidStripeSubscriptionReplacement(userID int64, currentSubscription ente.Subscription, newSubscription ente.Subscription) {
+	message := fmt.Sprintf(
+		"Paid Stripe checkout for user `%d` was acknowledged with 2xx but subscription replacement was skipped. Current: provider=`%s` txn=`%s` product=`%s` expiry=`%d`; incoming: provider=`%s` txn=`%s` product=`%s` expiry=`%d`.",
+		userID,
+		currentSubscription.PaymentProvider,
+		currentSubscription.OriginalTransactionID,
+		currentSubscription.ProductID,
+		currentSubscription.ExpiryTime,
+		newSubscription.PaymentProvider,
+		newSubscription.OriginalTransactionID,
+		newSubscription.ProductID,
+		newSubscription.ExpiryTime,
+	)
+	c.DiscordController.NotifyThrottled(message, 30*time.Minute)
 }
 
 func (c *StripeController) getStripeSubscriptionFromSession(userID int64, checkoutSessionID string) (stripe.Subscription, error) {
@@ -603,6 +610,9 @@ func (c *StripeController) getStripeSubscriptionFromSession(userID int64, checko
 	if err != nil {
 		return stripe.Subscription{}, stacktrace.Propagate(err, "")
 	}
+	if checkoutSession.ClientReferenceID != strconv.FormatInt(userID, 10) {
+		return stripe.Subscription{}, stacktrace.Propagate(ente.ErrPermissionDenied, "")
+	}
 	if (*checkoutSession.Subscription).Status != stripe.SubscriptionStatusActive {
 		return stripe.Subscription{}, stacktrace.Propagate(&stripe.InvalidRequestError{}, "")
 	}
@@ -614,7 +624,7 @@ func (c *StripeController) getPriceIDFromSession(sessionID string) (string, erro
 	params := &stripe.CheckoutSessionListLineItemsParams{}
 	params.AddExpand("data.price")
 	items := stripeClient.CheckoutSessions.ListLineItems(sessionID, params)
-	for items.Next() { // Return the first PriceID that has been fetched
+	for items.Next() {
 		return items.LineItem().Price.ID, nil
 	}
 	return "", stacktrace.Propagate(ente.ErrNotFound, "")
@@ -728,26 +738,58 @@ func (c *StripeController) CancelSubAndDeleteCustomer(subscription ente.Subscrip
 			if stripe.ErrorCodeResourceMissing == stripeError.Code {
 				return nil
 			}
-			return stacktrace.Propagate(err, fmt.Sprintf("failed to delete customer %s", subscription.Attributes.CustomerID))
+			return stacktrace.Propagate(err, "failed to delete customer %s", subscription.Attributes.CustomerID)
 		default:
-			return stacktrace.Propagate(err, fmt.Sprintf("failed to delete customer %s", subscription.Attributes.CustomerID))
+			return stacktrace.Propagate(err, "failed to delete customer %s", subscription.Attributes.CustomerID)
 		}
 	}
 	return nil
 }
 
-func isSEPASubscription(stripeSubscription stripe.Subscription) bool {
-	isSEPA := false
-	if stripeSubscription.DefaultPaymentMethod != nil {
-		isSEPA = stripeSubscription.DefaultPaymentMethod.Type == stripe.PaymentMethodTypeSepaDebit
-	} else {
-		log.Info("No default payment method found")
+func getSubscriptionPaymentMethodType(stripeSubscription stripe.Subscription) stripe.PaymentMethodType {
+	if stripeSubscription.DefaultPaymentMethod == nil {
+		if stripeSubscription.DefaultSource != nil &&
+			stripeSubscription.DefaultSource.Type == stripe.PaymentSourceTypeCard {
+			return stripe.PaymentMethodTypeCard
+		}
+		if stripeSubscription.Customer != nil {
+			if stripeSubscription.Customer.InvoiceSettings != nil &&
+				stripeSubscription.Customer.InvoiceSettings.DefaultPaymentMethod != nil {
+				return stripeSubscription.Customer.InvoiceSettings.DefaultPaymentMethod.Type
+			}
+			if stripeSubscription.Customer.DefaultSource != nil &&
+				stripeSubscription.Customer.DefaultSource.Type == stripe.PaymentSourceTypeCard {
+				return stripe.PaymentMethodTypeCard
+			}
+		}
+		log.Info("No default payment method found on subscription or customer")
+		return ""
 	}
-	return isSEPA
+	return stripeSubscription.DefaultPaymentMethod.Type
 }
 
-// handleStripeError processes Stripe errors, sends Discord alerts for invalid_request_error,
-// and returns user-friendly errors to prevent 5xx responses
+func usesAllowIncompleteSubscriptionUpdate(paymentMethodType stripe.PaymentMethodType) bool {
+	return paymentMethodType == stripe.PaymentMethodTypeSepaDebit || paymentMethodType == stripe.PaymentMethodType("upi")
+}
+
+func isPaidStripeInvoice(invoice *stripe.Invoice) bool {
+	return invoice.Paid || invoice.Status == stripe.InvoiceStatusPaid
+}
+
+func getPaymentIntentErrorPaymentMethodType(paymentIntent stripe.PaymentIntent) stripe.PaymentMethodType {
+	if paymentIntent.LastPaymentError == nil {
+		return ""
+	}
+	if paymentIntent.LastPaymentError.PaymentMethod != nil {
+		return paymentIntent.LastPaymentError.PaymentMethod.Type
+	}
+	if paymentIntent.LastPaymentError.Source != nil &&
+		paymentIntent.LastPaymentError.Source.Type == stripe.PaymentSourceTypeCard {
+		return stripe.PaymentMethodTypeCard
+	}
+	return paymentIntent.LastPaymentError.PaymentMethodType
+}
+
 func (c *StripeController) handleStripeError(err error, userID int64, context string) error {
 	if err == nil {
 		return nil
@@ -755,13 +797,10 @@ func (c *StripeController) handleStripeError(err error, userID int64, context st
 
 	stripeError, ok := err.(*stripe.Error)
 	if !ok {
-		// Not a Stripe error, propagate as-is
 		return stacktrace.Propagate(err, "")
 	}
 
-	// Check if it's an invalid_request_error
 	if stripeError.Type == stripe.ErrorTypeInvalidRequest {
-		// Send Discord alert with details
 		alertMsg := fmt.Sprintf(
 			"⚠️ Stripe Invalid Request Error\n"+
 				"**Context:** %s\n"+
@@ -779,13 +818,11 @@ func (c *StripeController) handleStripeError(err error, userID int64, context st
 		)
 		c.DiscordController.Notify(alertMsg)
 
-		// Return user-friendly error based on error code
 		var userMsg string
 		switch stripeError.Code {
 		case stripe.ErrorCodeResourceMissing:
 			userMsg = "The requested resource no longer exists. Please create a new subscription or contact support."
 		default:
-			// For other invalid_request_error codes, use the Stripe message if available
 			if stripeError.Msg != "" {
 				userMsg = fmt.Sprintf("Unable to process request: %s", stripeError.Msg)
 			} else {
@@ -796,6 +833,5 @@ func (c *StripeController) handleStripeError(err error, userID int64, context st
 		return stacktrace.Propagate(ente.NewBadRequestWithMessage(userMsg), "")
 	}
 
-	// For other Stripe errors, propagate as-is
 	return stacktrace.Propagate(err, "")
 }

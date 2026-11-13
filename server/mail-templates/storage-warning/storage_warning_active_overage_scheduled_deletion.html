@@ -1,0 +1,22 @@
+{{define "content"}}
+<p>Hi,</p>
+
+<p>
+  Your Ente account associated with <strong>{{.AccountEmail}}</strong> has
+  remained significantly above the storage currently available on the account.
+</p>
+
+<p>
+  As a result, your Ente Photos &amp; Ente Locker data is now scheduled for
+  deletion. Access to your account has been restricted.
+</p>
+
+{{if .IsFamilyPlan}}
+<p>
+  If you're on a Family plan, your family members' backups and access may also
+  be affected.
+</p>
+{{end}}
+
+<p>If you think this was a mistake, please reply to this email.</p>
+{{end}}

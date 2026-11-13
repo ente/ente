@@ -31,10 +31,7 @@ class LinearProgressDialogState extends State<LinearProgressDialog>
     _tween = Tween<double>(begin: _target, end: _target);
 
     _animation = _tween.animate(
-      CurvedAnimation(
-        curve: Curves.easeInOut,
-        parent: controller,
-      ),
+      CurvedAnimation(curve: Curves.easeInOut, parent: controller),
     );
   }
 

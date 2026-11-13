@@ -1,10 +1,14 @@
 ---
-title: This Page Has Moved
-description: This content has been reorganized
+title: Quick Links
+description: Quickly create shareable links in Ente Photos
 search: false
+head:
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
-# This Page Has Moved
+# Quick Links
 
 The **Quick Links** content has been reorganized. You can find it in the following locations:
 

@@ -1,9 +1,9 @@
+import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
 import 'package:photos/core/event_bus.dart';
 import 'package:photos/events/collection_meta_event.dart';
 import 'package:photos/events/collection_updated_event.dart';
 import 'package:photos/events/files_updated_event.dart';
-import "package:photos/generated/l10n.dart";
 import "package:photos/models/file/extensions/file_props.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
@@ -20,11 +20,7 @@ import "package:photos/ui/viewer/gallery/state/gallery_boundaries_provider.dart"
 import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
 import "package:photos/ui/viewer/gallery/state/selection_state.dart";
 
-enum LargeFileFilter {
-  all,
-  photos,
-  videos,
-}
+enum LargeFileFilter { all, photos, videos }
 
 class LargeFilesPagePage extends StatefulWidget {
   final String tagPrefix;
@@ -72,8 +68,8 @@ class _LargeFilesPagePageState extends State<LargeFilesPagePage> {
     final gallery = Gallery(
       key: ValueKey(_currentFilter),
       asyncLoader: (creationStartTime, creationEndTime, {limit, asc}) async {
-        final List<EnteFile> allFiles =
-            await SearchService.instance.getAllFilesForSearch();
+        final List<EnteFile> allFiles = await SearchService.instance
+            .getAllFilesForSearch();
         final Set<int> alreadyTracked = <int>{};
 
         final filesWithSize = <EnteFile>[];
@@ -89,7 +85,6 @@ class _LargeFilesPagePageState extends State<LargeFilesPagePage> {
             }
           }
         }
-        // sort by file size descending
         filesWithSize.sort((a, b) => b.fileSize!.compareTo(a.fileSize!));
         final FileLoadResult result = FileLoadResult(filesWithSize, false);
         return result;
@@ -100,15 +95,13 @@ class _LargeFilesPagePageState extends State<LargeFilesPagePage> {
         EventType.deletedFromEverywhere,
         EventType.hide,
       },
-      forceReloadEvents: [
-        Bus.instance.on<CollectionMetaEvent>(),
-      ],
+      forceReloadEvents: [Bus.instance.on<CollectionMetaEvent>()],
       tagPrefix: widget.tagPrefix,
       selectedFiles: widget._selectedFiles,
       sortAsyncFn: () => false,
       groupType: GroupType.size,
       initialFiles: null,
-      albumName: AppLocalizations.of(context).viewLargeFiles,
+      albumName: context.strings.viewLargeFiles,
     );
     return GalleryBoundariesProvider(
       child: GalleryFilesState(
@@ -162,9 +155,10 @@ class _LargeFilesAppBarState extends State<_LargeFilesAppBar>
         elevation: 0,
         centerTitle: false,
         title: Text(
-          AppLocalizations.of(context).viewLargeFiles,
-          style:
-              Theme.of(context).textTheme.headlineSmall!.copyWith(fontSize: 16),
+          context.strings.viewLargeFiles,
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall!.copyWith(fontSize: 16),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
@@ -175,20 +169,20 @@ class _LargeFilesAppBarState extends State<_LargeFilesAppBar>
             child: Row(
               children: [
                 _FilterChip(
-                  label: AppLocalizations.of(context).all,
+                  label: context.strings.all,
                   isSelected: widget.currentFilter == LargeFileFilter.all,
                   onTap: () => widget.onFilterChanged(LargeFileFilter.all),
                 ),
                 const SizedBox(width: 8),
                 _FilterChip(
-                  label: AppLocalizations.of(context).photos,
+                  label: context.strings.photos,
                   icon: Icons.image,
                   isSelected: widget.currentFilter == LargeFileFilter.photos,
                   onTap: () => widget.onFilterChanged(LargeFileFilter.photos),
                 ),
                 const SizedBox(width: 8),
                 _FilterChip(
-                  label: AppLocalizations.of(context).videos,
+                  label: context.strings.videos,
                   icon: Icons.videocam,
                   isSelected: widget.currentFilter == LargeFileFilter.videos,
                   onTap: () => widget.onFilterChanged(LargeFileFilter.videos),
@@ -228,8 +222,9 @@ class _FilterChip extends StatelessWidget {
           color: isSelected ? colorScheme.primary500 : colorScheme.fillFaint,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color:
-                isSelected ? colorScheme.primary500 : colorScheme.strokeFaint,
+            color: isSelected
+                ? colorScheme.primary500
+                : colorScheme.strokeFaint,
             width: 0.5,
           ),
         ),
@@ -243,7 +238,7 @@ class _FilterChip extends StatelessWidget {
                   icon,
                   size: 16,
                   color: isSelected
-                      ? colorScheme.backgroundBase
+                      ? colorScheme.backgroundColour
                       : colorScheme.textBase,
                 ),
                 const SizedBox(width: 4),
@@ -252,7 +247,7 @@ class _FilterChip extends StatelessWidget {
                 label,
                 style: textTheme.miniBold.copyWith(
                   color: isSelected
-                      ? colorScheme.backgroundBase
+                      ? colorScheme.backgroundColour
                       : colorScheme.textBase,
                 ),
               ),

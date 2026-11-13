@@ -25,20 +25,13 @@ Future<void> showVerifyIdentitySheet(
     context,
     title: title ?? context.strings.verify,
     headerSpacing: 20,
-    child: VerifyIdentitySheet(
-      self: self,
-      email: email,
-      config: config,
-    ),
+    child: VerifyIdentitySheet(self: self, email: email, config: config),
   );
 }
 
 class VerifyIdentitySheet extends StatefulWidget {
-  // email id of the user who's verification ID is being displayed for
-  // verification
   final String email;
 
-  // self is true when the user is viewing their own verification ID
   final bool self;
   final BaseConfiguration config;
 
@@ -64,7 +57,7 @@ class _VerifyIdentitySheetState extends State<VerifyIdentitySheet> {
     final textStyle = getEnteTextTheme(context);
     final String subTitle = widget.self
         ? context.strings.thisIsYourVerificationId
-        : context.strings.thisIsPersonVerificationId(widget.email);
+        : context.strings.thisIsPersonVerificationId(email: widget.email);
     final String bottomText = widget.self
         ? context.strings.someoneSharingAlbumsWithYouShouldSeeTheSameId
         : context.strings.howToViewShareeVerificationID;
@@ -79,16 +72,14 @@ class _VerifyIdentitySheetState extends State<VerifyIdentitySheet> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  context.strings.emailNoEnteAccount(widget.email),
+                  context.strings.emailNoEnteAccount(email: widget.email),
                   style: textStyle.small.copyWith(color: colorScheme.textMuted),
                 ),
                 const SizedBox(height: 20),
                 GradientButton(
                   text: context.strings.sendInvite,
                   onTap: () {
-                    shareText(
-                      context.strings.shareTextRecommendUsingEnte,
-                    );
+                    shareText(context.strings.shareTextRecommendUsingEnte);
                   },
                 ),
               ],
@@ -113,17 +104,15 @@ class _VerifyIdentitySheetState extends State<VerifyIdentitySheet> {
             );
           }
         } else if (snapshot.hasError) {
-          Logger("VerificationID")
-              .severe("failed to end userID", snapshot.error);
+          Logger(
+            "VerificationID",
+          ).severe("failed to end userID", snapshot.error);
           return Text(
             context.strings.somethingWentWrong,
             style: textStyle.bodyMuted,
           );
         } else {
-          return const SizedBox(
-            height: 200,
-            child: EnteLoadingWidget(),
-          );
+          return const SizedBox(height: 200, child: EnteLoadingWidget());
         }
       },
     );
@@ -133,10 +122,10 @@ class _VerifyIdentitySheetState extends State<VerifyIdentitySheet> {
     if (widget.self) {
       return widget.config.getKeyAttributes()!.publicKey;
     }
-    final String? userPublicKey =
-        await UserService.instance.getPublicKey(widget.email);
+    final String? userPublicKey = await UserService.instance.getPublicKey(
+      widget.email,
+    );
     if (userPublicKey == null) {
-      // user not found
       return "";
     }
     return userPublicKey;
@@ -151,26 +140,23 @@ class _VerifyIdentitySheetState extends State<VerifyIdentitySheet> {
         if (verificationID.isEmpty) {
           return;
         }
-        await Clipboard.setData(
-          ClipboardData(text: verificationID),
-        );
+        final shareMessage = widget.self
+            ? context.strings.shareMyVerificationID(
+                verificationID: verificationID,
+              )
+            : context.strings.shareTextConfirmOthersVerificationID(
+                verificationID: verificationID,
+              );
+        await Clipboard.setData(ClipboardData(text: verificationID));
         // ignore: unawaited_futures
-        shareText(
-          widget.self
-              ? context.strings.shareMyVerificationID(verificationID)
-              : context.strings
-                  .shareTextConfirmOthersVerificationID(verificationID),
-        );
+        shareText(shareMessage);
       },
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           color: colorScheme.primary700,
         ),
-        padding: const EdgeInsets.symmetric(
-          horizontal: 22,
-          vertical: 24,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
         width: double.infinity,
         child: Text(
           verificationID,

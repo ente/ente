@@ -1,10 +1,14 @@
 ---
-title: This Page Has Moved
-description: This content has been reorganized
+title: Face Recognition FAQ
+description: FAQ about face recognition in Ente Photos
 search: false
+head:
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
-# This Page Has Moved
+# Face Recognition FAQ
 
 The content from **Face Recognition FAQ** has been reorganized. You can find it in the following locations:
 

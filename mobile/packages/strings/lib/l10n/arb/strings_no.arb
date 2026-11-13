@@ -1,0 +1,1767 @@
+{
+  "bringMemoriesTogether": "Samle minnene dine",
+  "createMyAccount": "Opprett kontoen min",
+  "localGalleryPermissionDesc": "Gi tilgang til bildene dine og organiser dem med ansiktsgjenkjenning. All behandling skjer på enheten din.",
+  "onboardingOrganizeDesc": "Organiser bildene og videoene dine. Alle minnene dine på ett sted.",
+  "about": "Om",
+  "acceptTrustInvite": "Godta invitasjonen",
+  "account": "Konto",
+  "accountIsAlreadyConfigured": "Kontoen er allerede konfigurert.",
+  "activeSessions": "Aktive økter",
+  "@activeSessions": {
+    "description": "Title for active sessions page"
+  },
+  "add": "Legg til",
+  "addedBy": "Lagt til av {emailOrName}",
+  "@addedBy": {
+    "placeholders": {
+      "emailOrName": {}
+    }
+  },
+  "addedSuccessfullyTo": "Lagt til {albumName}",
+  "@addedSuccessfullyTo": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
+  "addFiles": "Legg til filer",
+  "addFromDevice": "Legg til fra enhet",
+  "addingToFavorites": "Legger til i favoritter...",
+  "addLocation": "Legg til sted",
+  "addLocationButton": "Legg til",
+  "addMore": "Legg til flere",
+  "addName": "Legg til navn",
+  "addNew": "Legg til ny",
+  "@addNew": {
+    "description": "Text to add a new item (location tag, album, caption etc)"
+  },
+  "addOnPageSubtitle": "Detaljer om tillegg",
+  "addOns": "Tillegg",
+  "addOnValidTill": "Tillegget på {storageAmount} er gyldig til {endDate}",
+  "@addOnValidTill": {
+    "placeholders": {
+      "endDate": {},
+      "storageAmount": {}
+    }
+  },
+  "addPhotos": "Legg til bilder",
+  "addSelected": "Legg til valgte",
+  "addToAlbum": "Legg til i album",
+  "addToEnte": "Legg til i Ente",
+  "addToHiddenAlbum": "Legg til i skjult album",
+  "addYourPhotosNow": "Legg til bildene dine nå",
+  "admiringThem": "Beundrer {name}",
+  "@admiringThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "advanced": "Avansert",
+  "after1Day": "Etter 1 dag",
+  "after1Hour": "Etter 1 time",
+  "after1Month": "Etter 1 måned",
+  "after1Week": "Etter 1 uke",
+  "after1Year": "Etter 1 år",
+  "albums": "Album",
+  "albumTitle": "Albumtittel",
+  "albumUpdated": "Album oppdatert",
+  "allClear": "✨ Alt klart",
+  "allMemoriesPreserved": "Alle minner bevart",
+  "allow": "Tillat",
+  "allowAddingPhotos": "Tillat å legge til bilder",
+  "@allowAddingPhotos": {
+    "description": "Switch button to enable uploading photos to a public link"
+  },
+  "allowAppToOpenSharedAlbumLinks": "Tillat app å åpne delte albumlenker",
+  "allowDownloads": "Tillat nedlastinger",
+  "allowPermBody": "Vennligst gi tilgang til bildene dine i Innstillinger, slik at Ente kan vise og sikkerhetskopiere biblioteket.",
+  "allowPermTitle": "Gi tilgang til bilder",
+  "allPersonGroupingWillReset": "Alle grupperinger for denne personen vil bli tilbakestilt, og du vil miste alle forslag for denne personen",
+  "allWillShiftRangeBasedOnFirst": "Dette er den første i gruppen. Andre valgte bilder vil automatisk forflyttet basert på denne nye datoen",
+  "aNewVersionOfEnteIsAvailable": "En ny versjon av Ente er tilgjengelig.",
+  "appIcon": "App-ikon",
+  "appleId": "Apple ID",
+  "appLock": "Applås",
+  "@appLock": {
+    "description": "App lock setting title"
+  },
+  "appLockDescription": "Velg mellom enhetens standard låseskjerm og en egendefinert låseskjerm med en PIN-kode eller passord.",
+  "@appLockDescription": {
+    "description": "Description of app lock feature"
+  },
+  "apply": "Anvend",
+  "applyCodeTitle": "Bruk kode",
+  "archive": "Arkiv",
+  "@archive": {
+    "description": "Action of 'Archiving' an element"
+  },
+  "archiveAlbum": "Arkiver album",
+  "archiving": "Legger til i arkivet...",
+  "areYouSureThatYouWantToLeaveTheFamily": "Er du sikker på at du vil forlate familieabonnementet?",
+  "areYouSureYouWantToCancel": "Er du sikker på at du vil avslutte?",
+  "areYouSureYouWantToChangeYourPlan": "Er du sikker på at du vil endre abonnement?",
+  "areYouSureYouWantToExit": "Er du sikker på at du vil avslutte?",
+  "areYouSureYouWantToLogout": "Er du sikker på at du vil logge ut?",
+  "@areYouSureYouWantToLogout": {
+    "description": "Confirmation message before logout"
+  },
+  "areYouSureYouWantToRenew": "Er du sikker på at du vil fornye?",
+  "areYouSureYouWantToResetThisPerson": "Er du sikker på at du vil tilbakestille denne personen?",
+  "askCancelReason": "Abonnementet ble avbrutt. Ønsker du å dele grunnen?",
+  "authenticating": "Autentiserer...",
+  "authenticationFailedPleaseTryAgain": "Autentisering mislyktes, prøv igjen",
+  "@authenticationFailedPleaseTryAgain": {
+    "description": "Error message when authentication fails"
+  },
+  "authenticationSuccessful": "Autentisering var vellykket!",
+  "@authenticationSuccessful": {
+    "description": "Success message when authentication is successful"
+  },
+  "authToChangeEmailVerificationSetting": "Vennligst autentiser deg for å endre e-postbekreftelse",
+  "authToChangeLockscreenSetting": "Autentiser deg for å endre låseskjerminnstillingen",
+  "authToChangeYourEmail": "Vennlist autentiser deg for å endre e-postadressen din",
+  "authToChangeYourPassword": "Vennligst autentiser deg for å endre passordet ditt",
+  "authToConfigureTwofactorAuthentication": "Autentiser deg for å konfigurere tofaktorautentisering",
+  "authToManageLegacy": "Vennlist autentiser deg for å administrere de betrodde kontaktene dine",
+  "authToViewPasskey": "Vennligst autentiser deg for å se gjennopprettingsnøkkelen din",
+  "authToViewTrashedFiles": "Vennligst autentiser deg for å se dine slettede filer",
+  "authToViewYourActiveSessions": "Vennligst autentiser deg for å se dine aktive økter",
+  "authToViewYourHiddenFiles": "Vennligst autentiser deg for å se dine skjulte filer",
+  "authToViewYourMemories": "Vennligst autentiser deg for å se minnene dine",
+  "authToViewYourRecoveryKey": "Vennligst autentiser deg for å se gjennopprettingsnøkkelen din",
+  "autoCastDialogBody": "Du vil se tilgjengelige Cast enheter her.",
+  "autoCastiOSPermission": "Kontroller at lokale nettverkstillatelser er slått på for Ente Photos-appen, i innstillinger.",
+  "autoLockFeatureDescription": "Tid før appen låses etter at den er lagt i bakgrunnen",
+  "@autoLockFeatureDescription": {
+    "description": "Description of auto lock feature"
+  },
+  "autoPair": "Automatisk parring",
+  "backedUpFolders": "Sikkerhetskopierte mapper",
+  "backgroundWithThem": "Vakker utsikt med {name}",
+  "@backgroundWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "backup": "Sikkerhetskopi",
+  "backupFailed": "Sikkerhetskopiering mislyktes",
+  "backupFile": "Sikkerhetskopieringsfil\n",
+  "backupOverMobileData": "Sikkerhetskopier via mobildata",
+  "backupSettings": "Sikkerhetskopier innstillinger",
+  "backupStatus": "Status for sikkerhetskopi",
+  "backupStatusDescription": "Elementer som har blitt sikkerhetskopiert vil vises her",
+  "backupVideos": "Sikkerhetskopier videoer",
+  "beach": "Sand og sjø",
+  "birthday": "Bursdag",
+  "blog": "Blogg",
+  "cachedData": "Bufrede data",
+  "calculating": "Beregner...",
+  "cancel": "Avbryt",
+  "@cancel": {
+    "description": "Cancel button label"
+  },
+  "cancelOtherSubscription": "Vennlist avslutt ditt eksisterende abonnement fra {paymentProvider} først",
+  "@cancelOtherSubscription": {
+    "description": "The text to display when the user has an existing subscription from a different payment provider",
+    "type": "text",
+    "placeholders": {
+      "paymentProvider": {
+        "example": "Apple",
+        "type": "String"
+      }
+    }
+  },
+  "cancelRecovery": "Avbryt gjenoppretting",
+  "cancelSubscription": "Avslutt abonnement",
+  "cannotDeleteSharedFiles": "Kan ikke slette delte filer",
+  "canNotOpenBody": "Beklager, dette albumet kan ikke åpnes i appen.",
+  "canNotOpenTitle": "Kan ikke åpne dette albumet",
+  "canOnlyCreateLinkForFilesOwnedByYou": "Kan bare opprette link for filer som eies av deg",
+  "canOnlyRemoveFilesOwnedByYou": "Du kan kun fjerne filer som eies av deg",
+  "castIPMismatchBody": "Kontroller at du er på samme nettverk som TV-en.",
+  "castIPMismatchTitle": "Kunne ikke strømme album",
+  "centerPoint": "Midtstill punkt",
+  "changeEmail": "Endre e-postadresse",
+  "@changeEmail": {
+    "description": "Change email button label"
+  },
+  "changeLocationOfSelectedItems": "Endre plassering av valgte elementer?",
+  "changePassword": "Bytt passord",
+  "changePasswordTitle": "Bytt passord",
+  "@changePasswordTitle": {
+    "description": "Change password title"
+  },
+  "checkForUpdates": "Se etter oppdateringer",
+  "checkInboxAndSpamFolder": "Vennligst sjekk innboksen din (og søppelpost) for å fullføre verifiseringen",
+  "@checkInboxAndSpamFolder": {
+    "description": "Message asking user to check inbox and spam folder"
+  },
+  "checking": "Sjekker...",
+  "checkingModels": "Sjekker modeller...",
+  "checkStatus": "Kontroller status",
+  "@checkStatus": {
+    "description": "Check status button label"
+  },
+  "city": "I byen",
+  "cleanUncategorized": "Tøm ukategorisert",
+  "cleanUncategorizedDescription": "Fjern alle filer fra Ukategoriserte som finnes i andre album",
+  "clearCaches": "Tom hurtigbuffer",
+  "close": "Lukk",
+  "clusteringProgress": "Fremdrift for klynging",
+  "codeAppliedPageTitle": "Kode brukt",
+  "codeChangeLimitReached": "Beklager, du har nådd grensen for kodeendringer.",
+  "codeCopiedToClipboard": "Koden er kopiert til utklippstavlen",
+  "collaborator": "Samarbeidspartner",
+  "collageLayout": "Utforming",
+  "collageSaved": "Kollasje lagret i galleriet",
+  "collectPhotos": "Samle bilder",
+  "color": "Farge",
+  "confirm": "Bekreft",
+  "@confirm": {
+    "description": "Confirm button label"
+  },
+  "confirm2FADisable": "Er du sikker på at du vil deaktivere tofaktorautentisering?",
+  "confirmAddingTrustedContact": "Du er i ferd med å legge til {email} som en betrodd kontakt. De vil kunne gjenopprette kontoen din hvis du er fraværende i {numOfDays} dager.",
+  "@confirmAddingTrustedContact": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      },
+      "numOfDays": {
+        "type": "int",
+        "example": "30"
+      }
+    }
+  },
+  "confirmPassword": "Bekreft passordet",
+  "@confirmPassword": {
+    "description": "Confirm password field label"
+  },
+  "confirmPlanChange": "Bekreft endring av abonnement",
+  "confirmRecoveryKey": "Bekreft gjenopprettingsnøkkel",
+  "confirmYourRecoveryKey": "Bekreft din gjenopprettingsnøkkel",
+  "connectToDevice": "Koble til enheten",
+  "contacts": "Kontakter",
+  "contactSupport": "Kontakt kundestøtte",
+  "@contactSupport": {
+    "description": "Contact support button label"
+  },
+  "continueLabel": "Fortsett",
+  "@continueLabel": {
+    "description": "Continue button label"
+  },
+  "convertToAlbum": "Gjør om til album",
+  "copyEmailAddress": "Kopier e-postadresse",
+  "@copyEmailAddress": {
+    "description": "Button to copy email address to clipboard"
+  },
+  "copyLink": "Kopier lenke",
+  "copypasteThisCodentoYourAuthenticatorApp": "Kopier og lim inn denne koden\ntil autentiseringsappen din",
+  "couldNotBackUpTryLater": "Vi kunne ikke sikkerhetskopiere dine data.\nVi vil prøve på nytt senere.",
+  "couldNotFreeUpSpace": "Kunne ikke frigjøre plass",
+  "couldNotUpdateSubscription": "Kunne ikke oppdatere abonnement",
+  "count": "Antall",
+  "crashReporting": "Krasjrapportering",
+  "create": "Opprett",
+  "createAccount": "Opprett konto",
+  "@createAccount": {
+    "description": "Create account button label"
+  },
+  "createAlbumActionHint": "Trykk og holde inne for å velge bilder, og trykk på + for å lage et album",
+  "createCollaborativeLink": "Samarbeidslenke",
+  "createCollage": "Opprett kollasje",
+  "createPublicLink": "Opprett offentlig lenke",
+  "creatingLink": "Lager lenke...",
+  "criticalUpdateAvailable": "Kritisk oppdatering er tilgjengelig",
+  "crop": "Beskjær",
+  "curatedMemories": "Kuraterte minner",
+  "currentlyRunning": "Kjører for øyeblikket",
+  "custom": "Egendefinert",
+  "@custom": {
+    "description": "Label for setting custom value for link expiry"
+  },
+  "customEndpoint": "Koblet til {endpoint}",
+  "@customEndpoint": {
+    "description": "Text showing user is connected to a custom endpoint",
+    "placeholders": {
+      "endpoint": {
+        "type": "String",
+        "description": "URL of the custom endpoint"
+      }
+    }
+  },
+  "darkTheme": "Mørk",
+  "dayToday": "I dag",
+  "dayYesterday": "I går",
+  "declineTrustInvite": "Avslå invitasjon",
+  "decrypting": "Dekrypterer...",
+  "decryptingVideo": "Dekrypterer video...",
+  "deduplicateFiles": "Fjern duplikatfiler",
+  "delete": "Slett",
+  "@delete": {
+    "description": "Delete button label"
+  },
+  "deleteAccount": "Slett konto",
+  "@deleteAccount": {
+    "description": "Delete account button label"
+  },
+  "deleteAlbum": "Slett album",
+  "deleteAlbumDialog": "Også slette bilder (og videoer) i dette albumet fra <bold>alle</bold> andre album de er del av?",
+  "deleteAlbumsDialogBody": "Dette vil slette alle tomme albumer. Dette er nyttig når du vil redusere rotet i albumlisten din.",
+  "deleteAll": "Slett alt",
+  "deleteEmptyAlbums": "Slett tomme album",
+  "deleteEmptyAlbumsWithQuestionMark": "Slette tomme albumer?",
+  "deleteFromBoth": "Slett fra begge",
+  "deleteFromDevice": "Slett fra enhet",
+  "deleteFromEnte": "Slett fra Ente",
+  "deleteLocation": "Slett sted",
+  "deletePhotos": "Slett bilder",
+  "deleteProgress": "Sletter {currentlyDeleting} / {totalCount}",
+  "@deleteProgress": {
+    "placeholders": {
+      "currentlyDeleting": {},
+      "totalCount": {}
+    }
+  },
+  "deleteSharedAlbum": "Slett delt album?",
+  "deleteSharedAlbumDialogBody": "Albumet vil bli slettet for alle\n\nDu vil miste tilgang til delte bilder i dette albumet som eies av andre",
+  "deselectAll": "Fjern alle valg",
+  "details": "Detaljer",
+  "developerSettings": "Utviklerinnstillinger",
+  "@developerSettings": {
+    "description": "Label for developer settings"
+  },
+  "developerSettingsWarning": "Er du sikker på at du vil endre utviklerinnstillingene?",
+  "deviceLock": "Enhetslås",
+  "@deviceLock": {
+    "description": "Device lock option title"
+  },
+  "deviceNotFound": "Enhet ikke funnet",
+  "didYouKnow": "Visste du at?",
+  "disableDownloadWarningBody": "Seere kan fremdeles ta skjermbilder eller lagre en kopi av bildene dine ved bruk av eksterne verktøy",
+  "disableDownloadWarningTitle": "Vær oppmerksom på",
+  "disableLinkMessage": "Dette fjerner den offentlige lenken for tilgang til \"{albumName}\".",
+  "@disableLinkMessage": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
+  "disableTwofactor": "Deaktiver tofaktor",
+  "disablingTwofactorAuthentication": "Deaktiverer tofaktorautentisering...",
+  "discover": "Oppdag",
+  "@discover": {
+    "description": "The text to display for the discover section under which we show receipts, screenshots, sunsets, greenery, etc."
+  },
+  "discover_babies": "Babyer",
+  "discover_celebrations": "Feiringer",
+  "discover_food": "Mat",
+  "discover_greenery": "Grøntområder",
+  "discover_hills": "Åser",
+  "discover_identity": "Identitet",
+  "discover_notes": "Notater",
+  "discover_pets": "Kjæledyr",
+  "discover_receipts": "Kvitteringer",
+  "discover_screenshots": "Skjermbilder",
+  "discover_selfies": "Selfier",
+  "discover_sunset": "Solnedgang",
+  "discover_visiting_cards": "Visittkort",
+  "discover_wallpapers": "Bakgrunnsbilder",
+  "dismiss": "Avvis ",
+  "distanceInKMUnit": "km",
+  "@distanceInKMUnit": {
+    "description": "Unit for distance in km"
+  },
+  "done": "Ferdig",
+  "doNotSignOut": "Ikke logg ut",
+  "@doNotSignOut": {
+    "description": "Do not sign out button label"
+  },
+  "dontSave": "Ikke lagre",
+  "download": "Last ned",
+  "downloadFailed": "Nedlasting mislyktes",
+  "downloading": "Laster ned...",
+  "doYouWantToDiscardTheEditsYouHaveMade": "Vil du forkaste endringene du har gjort?",
+  "dropSupportEmail": "Vennligst send en e-post til {supportEmail} fra din registrerte e-postadresse",
+  "@dropSupportEmail": {
+    "placeholders": {
+      "supportEmail": {
+        "description": "The support email address",
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
+  },
+  "duplicateFileCountWithStorageSaved": "Du har ryddet bort {count, plural, one{{count} duplikatfil} other{{count} duplikatfiler}}, som frigjør ({storageSaved}!)",
+  "@duplicateFileCountWithStorageSaved": {
+    "description": "The text to display when the user has successfully cleaned up duplicate files",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "1",
+        "type": "int"
+      },
+      "storageSaved": {
+        "example": "1.2 GB",
+        "type": "String"
+      }
+    }
+  },
+  "duplicateItemsGroup": "{count} filer, {formattedSize} hver",
+  "@duplicateItemsGroup": {
+    "description": "Display the number of duplicate files and their size",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "12",
+        "type": "int"
+      },
+      "formattedSize": {
+        "example": "2.3 MB",
+        "type": "String"
+      }
+    }
+  },
+  "edit": "Rediger",
+  "editEmailAlreadyLinked": "Denne e-postadressen er allerede koblet til {name}.",
+  "@editEmailAlreadyLinked": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "editLocation": "Rediger plassering",
+  "editPerson": "Rediger person",
+  "editsSaved": "Endringer lagret",
+  "editsToLocationWillOnlyBeSeenWithinEnte": "Endringer i plassering vil kun være synlige i Ente",
+  "editTime": "Endre tidspunkt",
+  "eligible": "kvalifisert",
+  "email": "E-post",
+  "@email": {
+    "description": "Email field label"
+  },
+  "emailAlreadyRegistered": "E-postadressen er allerede registrert.",
+  "@emailAlreadyRegistered": {
+    "description": "Error message when email is already registered"
+  },
+  "emailChangedTo": "E-postadressen er endret til {newEmail}",
+  "@emailChangedTo": {
+    "description": "Message when email has been changed",
+    "placeholders": {
+      "newEmail": {
+        "description": "The new email address",
+        "type": "String",
+        "example": "new@example.com"
+      }
+    }
+  },
+  "emailHint": "Skriv inn e-postadressen din",
+  "emailNoEnteAccountPhotos": "{email} har ikke en Ente-konto.\n\nsender dem en invitasjon til å dele bilder.",
+  "@emailNoEnteAccountPhotos": {
+    "placeholders": {
+      "email": {}
+    }
+  },
+  "emailNotRegistered": "E-postadressen er ikke registrert.",
+  "@emailNotRegistered": {
+    "description": "Error message when email is not registered"
+  },
+  "emailVerificationToggle": "E-postbekreftelse",
+  "emailYourLogs": "Send loggene dine på e-post",
+  "@emailYourLogs": {
+    "description": "Title for emailing logs dialog"
+  },
+  "embracingThem": "Omfavner {name}",
+  "@embracingThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "empty": "Tom",
+  "emptyTrashQuestion": "Tøm papirkurv?",
+  "enable": "Aktiver",
+  "enabled": "Aktivert",
+  "enableMaps": "Aktiver kart",
+  "encryptingBackup": "Krypterer sikkerhetskopi...",
+  "encryptionKeys": "Krypteringsnøkkel",
+  "@encryptionKeys": {
+    "description": "Encryption keys title"
+  },
+  "endpointUpdatedMessage": "Endepunktet ble oppdatert",
+  "@endpointUpdatedMessage": {
+    "description": "Success message when endpoint is updated"
+  },
+  "enterAlbumName": "Skriv inn albumnavn",
+  "enterCode": "Angi kode",
+  "enterCodeDescription": "Angi koden fra vennen din for å få gratis lagringsplass for dere begge",
+  "enterEmail": "Skriv inn e-post",
+  "enterFileName": "Skriv inn filnavn",
+  "enterName": "Angi navn",
+  "enterNewPasswordToEncrypt": "Angi et nytt passord vi kan bruke til å kryptere dataene dine",
+  "@enterNewPasswordToEncrypt": {
+    "description": "Prompt to enter new password for encryption"
+  },
+  "enterPassword": "Angi passord",
+  "@enterPassword": {
+    "description": "Enter password field label"
+  },
+  "enterPasswordToEncrypt": "Angi et passord vi kan bruke til å kryptere dataene dine",
+  "@enterPasswordToEncrypt": {
+    "description": "Prompt to enter password for encryption"
+  },
+  "enterReferralCode": "Angi vervekode",
+  "enterThe6digitCodeFromnyourAuthenticatorApp": "Skriv inn den 6-sifrede koden fra\ndin autentiseringsapp",
+  "enterValidEmail": "Vennligst skriv inn en gyldig e-postadresse.",
+  "enterYourNewEmailAddress": "Skriv inn den nye e-postadressen din",
+  "enterYourPassword": "Angi passordet ditt",
+  "enterYourRecoveryKey": "Skriv inn din gjenopprettingsnøkkel",
+  "error": "Feil",
+  "@error": {
+    "description": "Generic error title"
+  },
+  "exif": "EXIF",
+  "expiredLinkInfo": "Denne lenken er utløpt. Vennligst velg en ny utløpstid eller deaktiver lenkeutløp.",
+  "exportLogs": "Eksporter logger",
+  "@exportLogs": {
+    "description": "Button to export logs"
+  },
+  "exportYourData": "Eksporter dine data",
+  "extraPhotosFound": "Ekstra bilder funnet",
+  "faceNotClusteredYet": "Ansikt ikke gruppert ennå, vennligst kom tilbake senere",
+  "failedToApplyCode": "Kunne ikke bruke koden",
+  "failedToCancel": "Kan ikke avbryte",
+  "failedToDownloadVideo": "Kan ikke laste ned video",
+  "failedToFetchActiveSessions": "Kunne ikke hente aktive økter",
+  "@failedToFetchActiveSessions": {
+    "description": "In session page, warn user (in toast) that active sessions could not be fetched."
+  },
+  "failedToFetchOriginalForEdit": "Kunne ikke hente originalen for redigering",
+  "failedToFetchReferralDetails": "Kan ikke hente vervedetaljer. Prøv igjen senere.",
+  "failedToLoadAlbums": "Kunne ikke laste inn album",
+  "failedToRefreshStripeSubscription": "Kunne ikke oppdatere abonnement",
+  "failedToRenew": "Kunne ikke fornye",
+  "failedToVerifyPaymentStatus": "Kunne ikke verifisere betalingsstatus",
+  "faq": "Ofte stilte spørsmål",
+  "@faq": {
+    "description": "FAQ link label"
+  },
+  "faqs": "Ofte stilte spørsmål",
+  "favorite": "Favoritt",
+  "feastingWithThem": "Festing med {name}",
+  "@feastingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "fileInfoAddDescHint": "Legg til en beskrivelse...",
+  "fileNotUploadedYet": "Filen er ikke lastet opp enda",
+  "fileSavedToGallery": "Fil lagret i galleriet",
+  "filesDeleted": "Filene er slettet",
+  "filesSavedToGallery": "Filer lagret i galleriet",
+  "fileTypes": "Filtyper",
+  "findThemQuickly": "Finn dem raskt",
+  "@findThemQuickly": {
+    "description": "Subtitle to indicate that the user can find people quickly by name"
+  },
+  "flip": "Speilvend",
+  "food": "Kulinær glede",
+  "forgotPassword": "Glemt passord",
+  "@forgotPassword": {
+    "description": "Forgot password link label"
+  },
+  "freeTrial": "Gratis prøveversjon",
+  "freeUpAmount": "Frigjør {sizeInMBorGB}",
+  "@freeUpAmount": {
+    "placeholders": {
+      "sizeInMBorGB": {}
+    }
+  },
+  "freeUpDeviceSpace": "Frigjør plass på enheten",
+  "freeUpSpace": "Frigjør lagringsplass",
+  "gallery": "Galleri",
+  "galleryMemoryLimitInfo": "Opptil 1000 minner vist i galleriet",
+  "general": "Generelt",
+  "generatingEncryptionKeys": "Genererer krypteringsnøkler...",
+  "@generatingEncryptionKeys": {
+    "description": "Generating encryption keys message"
+  },
+  "googlePlayId": "Google Play ID",
+  "grantFullAccessPrompt": "Vennligst gi tilgang til alle bilder i Innstillinger-appen",
+  "grantPermission": "Gi tillatelse",
+  "greenery": "Det grønne livet",
+  "guestView": "Gjestevisning",
+  "guestViewEnablePreSteps": "For å aktivere gjestevisning, vennligst konfigurer enhetens passord eller skjermlås i systeminnstillingene.",
+  "help": "Hjelp",
+  "hidden": "Skjult",
+  "hide": "Skjul",
+  "hideContent": "Skjul innhold",
+  "@hideContent": {
+    "description": "Hide content setting title"
+  },
+  "hideContentDescriptionAndroid": "Skjuler appinnhold i appveksleren og deaktiverer skjermbilder",
+  "@hideContentDescriptionAndroid": {
+    "description": "Description of hide content feature on Android"
+  },
+  "hideContentDescriptioniOS": "Skjuler appinnhold i appveksleren",
+  "@hideContentDescriptioniOS": {
+    "description": "Description of hide content feature on iOS"
+  },
+  "hideSharedItemsFromHomeGallery": "Skjul delte elementer fra hjemgalleriet",
+  "hiding": "Skjuler...",
+  "hikingWithThem": "Tur med {name}",
+  "@hikingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "hostedAtOsmFrance": "Hostet på OSM France",
+  "howItWorks": "Hvordan det fungerer",
+  "@howItWorks": {
+    "description": "How it works button label"
+  },
+  "howToViewShareeVerificationID": "Vennligst be dem om å trykke og holde inne på e-postadressen sin på innstillingsskjermen, og bekreft at ID-ene på begge enhetene er like.",
+  "ignore": "Ignorer",
+  "ignored": "ignorert",
+  "imageNotAnalyzed": "Bilde ikke analysert",
+  "immediately": "Umiddelbart",
+  "@immediately": {
+    "description": "Immediately option for auto lock timing"
+  },
+  "incorrectCode": "Feil kode",
+  "@incorrectCode": {
+    "description": "Error message when code is incorrect"
+  },
+  "incorrectPasswordTitle": "Feil passord",
+  "@incorrectPasswordTitle": {
+    "description": "Title for incorrect password error"
+  },
+  "incorrectRecoveryKey": "Feil gjenopprettingsnøkkel",
+  "@incorrectRecoveryKey": {
+    "description": "Error message when recovery key is incorrect"
+  },
+  "incorrectRecoveryKeyBody": "Gjennopprettingsnøkkelen du skrev inn er feil",
+  "incorrectRecoveryKeyTitle": "Feil gjenopprettingsnøkkel",
+  "insecureDevice": "Usikker enhet",
+  "@insecureDevice": {
+    "description": "Insecure device warning title"
+  },
+  "invalidEmailAddress": "Ugyldig e-postadresse",
+  "invalidEndpoint": "Ugyldig endepunkt",
+  "@invalidEndpoint": {
+    "description": "Error message when endpoint is invalid"
+  },
+  "invalidEndpointMessage": "Beklager, endepunktet du skrev inn er ugyldig. Skriv inn et gyldig endepunkt og prøv igjen.",
+  "@invalidEndpointMessage": {
+    "description": "Detailed error message when endpoint is invalid"
+  },
+  "invalidKey": "Ugyldig nøkkel",
+  "invalidRecoveryKey": "Gjenopprettingsnøkkelen du har skrevet inn er ikke gyldig. Kontroller at den inneholder 24 ord og kontroller stavemåten av hvert ord.\n\nHvis du har angitt en eldre gjenopprettingskode, må du kontrollere at den er 64 tegn lang, og kontrollere hvert av dem.",
+  "invite": "Inviter",
+  "inviteToEnte": "Inviter til Ente",
+  "ok": "OK",
+  "@ok": {
+    "description": "Generic OK button label"
+  },
+  "itemCount": "{count, plural, one{{count} element} other{{count} elementer}}",
+  "@itemCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "itemsShowTheNumberOfDaysRemainingBeforePermanentDeletion": "Elementer viser gjenværende dager før de slettes for godt",
+  "itemsWillBeRemovedFromAlbum": "Valgte elementer vil bli fjernet fra dette albumet",
+  "itLooksLikeSomethingWentWrongPleaseRetryAfterSome": "Det ser ut til at noe gikk galt. Prøv på nytt etter en stund. Hvis feilen vedvarer, kan du kontakte kundestøtte.",
+  "@itLooksLikeSomethingWentWrongPleaseRetryAfterSome": {
+    "description": "Generic error message for temporary issues"
+  },
+  "join": "Bli med",
+  "joinAlbum": "Bli med i albumet",
+  "joinAlbumConfirmationDialogBody": "Å bli med i et album vil gjøre e-postadressen din synlig for dens deltakere.",
+  "joinAlbumSubtext": "for å se og legge til bildene dine",
+  "joinAlbumSubtextViewer": "for å legge dette til til delte album",
+  "kiloMeterUnit": "km",
+  "language": "Språk",
+  "lastUpdated": "Sist oppdatert",
+  "lastYearsTrip": "Fjorårets tur",
+  "leave": "Forlat",
+  "leaveAlbum": "Forlat album",
+  "leaveFamily": "Forlat familie",
+  "leaveSharedAlbum": "Slett delt album?",
+  "left": "Venstre",
+  "legacy": "Arv",
+  "legacyAccounts": "Eldre kontoer",
+  "legacyInvite": "{email} har invitert deg til å være en betrodd kontakt",
+  "@legacyInvite": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "family@example.com"
+      }
+    }
+  },
+  "legacyPageDesc": "Arv-funksjonen lar betrodde kontakter få tilgang til kontoen din i ditt fravær.",
+  "legacyPageDesc2": "Betrodde kontakter kan starte gjenoppretting av kontoen, og hvis de ikke blir blokkert innen 30 dager, tilbakestille passordet ditt og få tilgang til kontoen din.",
+  "lightTheme": "Lys",
+  "linkCopiedToClipboard": "Lenker er kopiert til utklippstavlen",
+  "linkDeviceLimit": "Enhetsgrense",
+  "linkEnabled": "Aktivert",
+  "linkExpired": "Utløpt",
+  "linkExpiresOn": "Lenken utløper på {expiryTime}",
+  "@linkExpiresOn": {
+    "placeholders": {
+      "expiryTime": {}
+    }
+  },
+  "linkExpiry": "Lenkeutløp",
+  "linkHasExpired": "Lenken har utløpt",
+  "linkLabel": "Lenke",
+  "linkNeverExpires": "Aldri",
+  "livePhotos": "Live-bilder",
+  "loadingExifData": "Laster inn EXIF-data...",
+  "loadingGallery": "Laster galleri...",
+  "loadingModel": "Laster ned modeller...",
+  "loadingYourPhotos": "Laster bildene dine...",
+  "loadMessage1": "Du kan dele abonnementet med familien din",
+  "loadMessage3": "Vi beholder 3 kopier av dine data, en i en underjordisk bunker",
+  "loadMessage4": "Alle våre apper har åpen kildekode",
+  "loadMessage5": "Vår kildekode og kryptografi har blitt revidert eksternt",
+  "loadMessage6": "Du kan dele lenker til dine album med dine kjære",
+  "loadMessage7": "Våre mobilapper kjører i bakgrunnen for å kryptere og sikkerhetskopiere de nye bildene du klikker",
+  "loadMessage8": "{webUrl} har en flott opplaster",
+  "@loadMessage8": {
+    "description": "Loading screen message about the web uploader.",
+    "placeholders": {
+      "webUrl": {
+        "type": "String",
+        "example": "photos.ente.com"
+      }
+    }
+  },
+  "loadMessage9": "Vi bruker Xcha20Poly1305 for å trygt kryptere dataene dine",
+  "localGallery": "Lokalt galleri",
+  "localSyncErrorMessage": "Ser ut som noe gikk galt siden lokal synkronisering av bilder tar lengre tid enn forventet. Vennligst kontakt vårt supportteam",
+  "location": "Plassering",
+  "locationName": "Stedsnavn",
+  "locations": "Plasseringer",
+  "locationTagFeatureDescription": "En plasseringsetikett grupperer alle bilder som ble tatt innenfor en gitt radius av et bilde",
+  "lockButtonLabel": "Lås",
+  "loggingOut": "Logger ut...",
+  "@loggingOut": {
+    "description": "Message shown while logging out"
+  },
+  "logInLabel": "Logg inn",
+  "@logInLabel": {
+    "description": "Log in button label"
+  },
+  "loginSessionExpired": "Økten har utløpt",
+  "@loginSessionExpired": {
+    "description": "Login session expired title"
+  },
+  "loginSessionExpiredDetails": "Økten er utløpt. Vennligst logg inn på nytt.",
+  "@loginSessionExpiredDetails": {
+    "description": "Login session expired details"
+  },
+  "loginTerms": "Ved å klikke Logg inn, godtar jeg <u-terms>brukervilkårene</u-terms> og <u-policy>personvernreglene</u-policy>",
+  "@loginTerms": {
+    "description": "Terms agreement text for login"
+  },
+  "loginWithTOTP": "Pålogging med TOTP",
+  "@loginWithTOTP": {
+    "description": "Login with TOTP button label"
+  },
+  "logout": "Logg ut",
+  "logsDialogBody": "Dette vil sende over logger for å hjelpe oss med å feilsøke problemet. Vær oppmerksom på at filnavn vil bli inkludert for å hjelpe å spore problemer med spesifikke filer.",
+  "@logsDialogBody": {
+    "description": "Body text for the logs dialog explaining what will be sent"
+  },
+  "longPressAnEmailToVerifyEndToEndEncryption": "Trykk og hold på en e-post for å bekrefte ende-til-ende-kryptering.",
+  "lostDevice": "Mistet enhet?",
+  "machineLearning": "Maskinlæring",
+  "manageDeviceStorage": "Behandle enhetens hurtigbuffer",
+  "manageFamily": "Administrer familie",
+  "manageLink": "Administrer lenke",
+  "manageSubscription": "Administrer abonnement",
+  "map": "Kart",
+  "@map": {
+    "description": "Label for the map view"
+  },
+  "maps": "Kart",
+  "me": "Meg",
+  "memories": "Minner",
+  "memoryCount": "{count, plural, =0{ingen minner} one{{formattedCount} minne} other{{formattedCount} minner}}",
+  "@memoryCount": {
+    "description": "The text to display the number of memories",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "1",
+        "type": "int"
+      },
+      "formattedCount": {
+        "type": "String",
+        "example": "11.513, 11,511"
+      }
+    }
+  },
+  "merchandise": "Varer",
+  "mergedPhotos": "Sammenslåtte bilder",
+  "mergeWithExisting": "Slå sammen med eksisterende",
+  "mlConsent": "Aktiver maskinlæring",
+  "mlConsentConfirmation": "Jeg forstår, og ønsker å aktivere maskinlæring",
+  "mlConsentDescription": "Hvis du aktiverer maskinlæring, vil Ente hente ut informasjon som ansiktsgeometri fra filer, inkludert de som er delt med deg.\n\nDette skjer på enheten din, og all generert biometrisk informasjon blir ende-til-ende-kryptert.",
+  "moderateStrength": "Moderat",
+  "@moderateStrength": {
+    "description": "Moderate password strength label"
+  },
+  "modifyYourQueryOrTrySearchingFor": "Juster søket ditt, eller prøv å søke etter",
+  "moments": "Øyeblikk",
+  "month": "måned",
+  "monthly": "Månedlig",
+  "@monthly": {
+    "description": "The text to display for monthly plans",
+    "type": "text"
+  },
+  "moon": "I månelyset",
+  "moreDetails": "Flere detaljer",
+  "mostRecent": "Nyeste",
+  "mostRelevant": "Mest relevant",
+  "mountains": "Over åsene",
+  "movedSuccessfullyTo": "Flyttet til {albumName}",
+  "@movedSuccessfullyTo": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
+  "movedToTrash": "Flyttet til papirkurven",
+  "moveSelectedPhotosToOneDate": "Flytt valgte bilder til en dato",
+  "moveToAlbum": "Flytt til album",
+  "moveToHiddenAlbum": "Flytt til skjult album",
+  "movingFilesToAlbum": "Flytter filer til album...",
+  "name": "Navn",
+  "networkConnectionRefusedErr": "Kan ikke koble til Ente, prøv igjen etter en stund. Hvis feilen vedvarer, vennligst kontakt kundestøtte.",
+  "@networkConnectionRefusedErr": {
+    "description": "Error message shown when the app cannot connect to Ente due to connection refused"
+  },
+  "networkHostLookUpErr": "Kan ikke koble til Ente, kontroller nettverksinnstillingene og kontakt kundestøtte hvis feilen vedvarer.",
+  "@networkHostLookUpErr": {
+    "description": "Error message shown when the app cannot connect to Ente due to network host lookup failure"
+  },
+  "never": "Aldri",
+  "newAlbum": "Nytt album",
+  "newest": "Nyeste",
+  "newLocation": "Ny plassering",
+  "newRange": "Ny rekkevidde",
+  "next": "Neste",
+  "@next": {
+    "description": "Next button label"
+  },
+  "no": "Nei",
+  "noDeviceFound": "Ingen enheter funnet",
+  "noDeviceLimit": "Ingen",
+  "@noDeviceLimit": {
+    "description": "Text to indicate that there is limit on number of devices"
+  },
+  "noDeviceThatCanBeDeleted": "Du har ingen filer i dette albumet som kan bli slettet",
+  "noDuplicates": "✨ Ingen duplikater",
+  "noExifData": "Ingen EXIF-data",
+  "noFacesFound": "Ingen ansikter funnet",
+  "noImagesWithLocation": "Ingen bilder med plassering",
+  "noInternetConnection": "Ingen nettverksforbindelse",
+  "@noInternetConnection": {
+    "description": "No internet connection error message"
+  },
+  "noPhotosFoundHere": "Ingen bilder funnet her",
+  "noRecoveryKeyNoDecryption": "Grunnet vår type ente-til-ende-krypteringsprotokoll kan ikke dine data dekrypteres uten passordet ditt eller gjenopprettingsnøkkelen din",
+  "@noRecoveryKeyNoDecryption": {
+    "description": "Explanation that data cannot be decrypted without password or recovery key"
+  },
+  "noResultsFound": "Ingen resultater funnet",
+  "noSuggestionsForPerson": "Ingen forslag for {personName}",
+  "@noSuggestionsForPerson": {
+    "placeholders": {
+      "personName": {
+        "type": "String",
+        "example": "Alice"
+      }
+    }
+  },
+  "noSystemLockFound": "Ingen systemlås funnet",
+  "@noSystemLockFound": {
+    "description": "Error when no system lock is found"
+  },
+  "nothingToSeeHere": "Ingenting å se her",
+  "notifications": "Varslinger",
+  "notPersonLabel": "Ikke {name}?",
+  "@notPersonLabel": {
+    "description": "Label to indicate that the person in the photo is not the person whose name is mentioned",
+    "placeholders": {
+      "name": {
+        "content": "{name}",
+        "type": "String"
+      }
+    }
+  },
+  "notThisPerson": "Ikke denne personen?",
+  "onEnte": "På <branding>ente</branding>",
+  "@onEnte": {
+    "description": "The text displayed above albums backed up to Ente",
+    "type": "text"
+  },
+  "onlyFamilyAdminCanChangeCode": "Vennligst kontakt {familyAdminEmail} for å endre koden din.",
+  "@onlyFamilyAdminCanChangeCode": {
+    "placeholders": {
+      "familyAdminEmail": {}
+    }
+  },
+  "onlyThem": "Bare de",
+  "onTheRoad": "På veien igjen",
+  "oops": "Oisann",
+  "@oops": {
+    "description": "Oops error title"
+  },
+  "oopsCouldNotSaveEdits": "Oisann, kunne ikke lagre endringer",
+  "oopsSomethingWentWrong": "Oisann! Noe gikk galt",
+  "openAlbumInBrowser": "Åpne album i nettleser",
+  "openAlbumInBrowserTitle": "Vennligst bruk webapplikasjonen for å legge til bilder til dette albumet",
+  "openFile": "Åpne fil",
+  "openstreetmapContributors": "OpenStreetMap bidragsytere",
+  "optionalAsShortAsYouLike": "Valgfri, så kort som du vil...",
+  "pair": "Par",
+  "panorama": "Panora",
+  "partyWithThem": "Fest med {name}",
+  "@partyWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "passkey": "Tilgangsnøkkel",
+  "passkeyAuthTitle": "Verifisering av tilgangsnøkkel",
+  "@passkeyAuthTitle": {
+    "description": "Passkey authentication title"
+  },
+  "passKeyPendingVerification": "Bekreftelse venter fortsatt",
+  "@passKeyPendingVerification": {
+    "description": "Message when passkey verification is pending"
+  },
+  "password": "Passord",
+  "@password": {
+    "description": "Password field label"
+  },
+  "passwordChangedSuccessfully": "Passordet ble endret",
+  "@passwordChangedSuccessfully": {
+    "description": "Password changed successfully message"
+  },
+  "passwordLock": "Passordlås",
+  "passwordStrength": "Passordstyrke: {passwordStrengthValue}",
+  "@passwordStrength": {
+    "description": "Text to indicate the password strength",
+    "placeholders": {
+      "passwordStrengthValue": {
+        "description": "The strength of the password as a string",
+        "type": "String",
+        "example": "Weak or Moderate or Strong"
+      }
+    }
+  },
+  "passwordWarning": "Vi lagrer ikke dette passordet, så hvis du glemmer det, <underline>kan vi ikke dekryptere dataene dine</underline>",
+  "@passwordWarning": {
+    "description": "Warning about password storage"
+  },
+  "pastYearsMemories": "Tidligere års minner",
+  "paymentDetails": "Betalingsinformasjon",
+  "paymentFailed": "Betaling feilet",
+  "paymentFailedMessage": "Betalingen din mislyktes. Kontakt kundestøtte og vi vil hjelpe deg!",
+  "paymentFailedTalkToProvider": "Snakk med {providerName} kundestøtte hvis du ble belastet",
+  "@paymentFailedTalkToProvider": {
+    "description": "The text to display when the payment failed",
+    "type": "text",
+    "placeholders": {
+      "providerName": {
+        "example": "AppStore|PlayStore",
+        "type": "String"
+      }
+    }
+  },
+  "pendingSync": "Ventende synkronisering",
+  "people": "Folk",
+  "permanentlyDelete": "Slette for godt",
+  "permDeleteWarning": "Alle elementer i papirkurven vil slettes permanent\n\nDenne handlingen kan ikke angres",
+  "personIsAge": "{name} er {age}!",
+  "@personIsAge": {
+    "placeholders": {
+      "age": {},
+      "name": {}
+    }
+  },
+  "personTurningAge": "{name} fyller {age} snart",
+  "@personTurningAge": {
+    "placeholders": {
+      "age": {},
+      "name": {}
+    }
+  },
+  "pets": "Pelsvenner",
+  "photoGridSize": "Bilderutenettstørrelse",
+  "photos": "Bilder",
+  "photosAddedByYouWillBeRemovedFromTheAlbum": "Bilder lagt til av deg vil bli fjernet fra albumet",
+  "photosKeepRelativeTimeDifference": "Bilder holder relativ tidsforskjell",
+  "pickCenterPoint": "Velg midtpunkt",
+  "playOriginal": "Spill av original",
+  "playstoreSubscription": "PlayStore abonnement",
+  "playStream": "Spill av strøm",
+  "pleaseCheckYourInternetConnectionAndTryAgain": "Kontroller Internett-tilkoblingen din og prøv igjen.",
+  "@pleaseCheckYourInternetConnectionAndTryAgain": {
+    "description": "Message asking user to check internet connection"
+  },
+  "pleaseContactSupportIfTheProblemPersists": "Vennligst kontakt kundestøtte hvis problemet vedvarer",
+  "pleaseEmailUsAt": "Vennligst send oss en e-post på {toEmail}",
+  "@pleaseEmailUsAt": {
+    "placeholders": {
+      "toEmail": {}
+    }
+  },
+  "pleaseGrantPermissions": "Vennligst gi tillatelser",
+  "pleaseLoginAgain": "Vennligst logg inn igjen",
+  "pleaseSelectQuickLinksToRemove": "Velg hurtiglenker å fjerne",
+  "pleaseSendTheLogsTo": "Vennligst send loggene til \n{toEmail}",
+  "@pleaseSendTheLogsTo": {
+    "description": "Message asking user to send logs to email address",
+    "placeholders": {
+      "toEmail": {
+        "type": "String",
+        "description": "Email address to send logs to"
+      }
+    }
+  },
+  "pleaseTryAgain": "Vennligst prøv igjen",
+  "@pleaseTryAgain": {
+    "description": "Message asking user to try again"
+  },
+  "pleaseVerifyTheCodeYouHaveEntered": "Bekreft koden du har skrevet inn",
+  "pleaseWait": "Vennligst vent...",
+  "@pleaseWait": {
+    "description": "Please wait message"
+  },
+  "pleaseWaitDeletingAlbum": "Vennligst vent, sletter album",
+  "pleaseWaitForSometimeBeforeRetrying": "Vennligst vent en stund før du prøver på nytt",
+  "pleaseWaitThisWillTakeAWhile": "Vennligst vent, dette vil ta litt tid.",
+  "posingWithThem": "Poseringer med {name}",
+  "@posingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "preparingLogs": "Forbereder logger...",
+  "preserveMore": "Behold mer",
+  "pressAndHoldToPlayVideoDetailed": "Trykk og hold inne bildet for å spille av video",
+  "previous": "Forrige",
+  "privacy": "Personvern",
+  "privacyPolicyTitle": "Personvernserklæring",
+  "@privacyPolicyTitle": {
+    "description": "Privacy policy title"
+  },
+  "proceed": "Fortsett",
+  "processed": "Behandlet",
+  "processingImport": "Behandler {folderName}...",
+  "@processingImport": {
+    "placeholders": {
+      "folderName": {}
+    }
+  },
+  "publicLinkEnabled": "Offentlig lenke aktivert",
+  "queued": "I køen",
+  "raiseTicket": "Opprett sak",
+  "@raiseTicket": {
+    "description": "Button text for raising a support tickets in case of unhandled errors during backup",
+    "type": "text"
+  },
+  "rateUs": "Vurder oss",
+  "rateUsOnStore": "Vurder oss på {storeName}",
+  "@rateUsOnStore": {
+    "placeholders": {
+      "storeName": {}
+    }
+  },
+  "reassignedToName": "Tildeler deg til {name}{name}{name}{name}{name}",
+  "@reassignedToName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reassigningLoading": "Tildeler...",
+  "reassignMe": "Tildel \"Meg\"",
+  "recover": "Gjenopprett",
+  "@recover": {
+    "description": "Recover button label"
+  },
+  "recoverAccount": "Gjenopprett konto",
+  "@recoverAccount": {
+    "description": "Recover account button label"
+  },
+  "recoveryInitiated": "Gjenoppretting startet",
+  "recoveryInitiatedDesc": "Du kan få tilgang til kontoen etter {days} dager. En varsling vil bli sendt til {email}.",
+  "@recoveryInitiatedDesc": {
+    "placeholders": {
+      "days": {
+        "type": "int",
+        "example": "30"
+      },
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      }
+    }
+  },
+  "recoveryKey": "Gjenopprettingsnøkkel",
+  "@recoveryKey": {
+    "description": "Recovery key label"
+  },
+  "recoveryKeyCopiedToClipboard": "Gjenopprettingsnøkkel kopiert til utklippstavlen",
+  "@recoveryKeyCopiedToClipboard": {
+    "description": "Recovery key copied message"
+  },
+  "recoveryKeyOnForgotPassword": "Hvis du glemmer passordet ditt er den eneste måten du kan gjenopprette dataene dine på med denne nøkkelen.",
+  "@recoveryKeyOnForgotPassword": {
+    "description": "Recovery key importance explanation"
+  },
+  "recoveryKeySuccessBody": "Flott! Din gjenopprettingsnøkkel er gyldig. Takk for bekreftelsen.\n\nVennligst husk å holde gjenopprettingsnøkkelen din trygt sikkerhetskopiert.",
+  "recoveryKeyVerified": "Gjenopprettingsnøkkel bekreftet",
+  "recoveryKeyVerifyReason": "Gjenopprettingsnøkkelen er den eneste måten å gjenopprette bildene dine på hvis du glemmer passordet ditt. Du finner gjenopprettingsnøkkelen din i Innstillinger > Konto.\n\nVennligst skriv inn gjenopprettingsnøkkelen din her for å bekrefte at du har lagret den riktig.",
+  "recoveryReady": "Du kan nå gjenopprette {email} sin konto ved å sette et nytt passord.",
+  "@recoveryReady": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      }
+    }
+  },
+  "recoverySuccessful": "Gjenopprettingen var vellykket!",
+  "recoveryWarning": "En betrodd kontakt prøver å få tilgang til kontoen din",
+  "recoveryWarningBody": "{email} prøver å gjenopprette kontoen din.",
+  "@recoveryWarningBody": {
+    "placeholders": {
+      "email": {}
+    }
+  },
+  "recreatePasswordBody": "Den gjeldende enheten er ikke kraftig nok til å verifisere passordet ditt, men vi kan regenerere på en måte som fungerer på alle enheter.\n\nVennligst logg inn med gjenopprettingsnøkkelen og regenerer passordet (du kan bruke den samme igjen om du vil).",
+  "@recreatePasswordBody": {
+    "description": "Body text for recreate password dialog"
+  },
+  "recreatePasswordTitle": "Gjenopprett passord",
+  "@recreatePasswordTitle": {
+    "description": "Title for recreate password dialog"
+  },
+  "referrals": "Vervinger",
+  "referralsAreCurrentlyPaused": "Vervinger er for øyeblikket satt på pause",
+  "rejectRecovery": "Avslå gjenoppretting",
+  "remindToEmptyDeviceTrash": "Tøm også \"Nylig slettet\" fra \"Innstillinger\" → \"Lagring\" for å få frigjort plass",
+  "remindToEmptyEnteTrash": "Du kan også tømme \"Papirkurven\" for å få den frigjorte lagringsplassen",
+  "remoteImages": "Eksterne bilder",
+  "remoteThumbnails": "Eksterne miniatyrbilder",
+  "remoteVideos": "Eksterne videoer",
+  "remove": "Fjern",
+  "removeFromAlbum": "Fjern fra album",
+  "removeFromAlbumTitle": "Fjern fra album?",
+  "removeFromFavorite": "Fjern fra favoritter",
+  "removeLink": "Fjern lenke",
+  "removeParticipant": "Fjern deltaker",
+  "@removeParticipant": {
+    "description": "menuSectionTitle for removing a participant"
+  },
+  "removePersonLabel": "Fjern etikett for person",
+  "removePublicLink": "Fjern offentlig lenke",
+  "removePublicLinks": "Fjern offentlige lenker",
+  "removeWithQuestionMark": "Fjern?",
+  "removingFromFavorites": "Fjerner fra favoritter...",
+  "rename": "Endre navn",
+  "renameAlbum": "Gi album nytt navn",
+  "renameFile": "Gi nytt filnavn",
+  "renewsOn": "Abonnement fornyes på {endDate}",
+  "@renewsOn": {
+    "placeholders": {
+      "endDate": {}
+    }
+  },
+  "renewSubscription": "Forny abonnement",
+  "reportABug": "Rapporter en feil",
+  "@reportABug": {
+    "description": "Label for reporting a bug"
+  },
+  "resetIgnoredFiles": "Tilbakestill ignorerte filer",
+  "resetPasswordTitle": "Tilbakestill passord",
+  "@resetPasswordTitle": {
+    "description": "Reset password title"
+  },
+  "resetToDefault": "Tilbakestill til standard",
+  "@resetToDefault": {
+    "description": "Button text to reset cover photo to default"
+  },
+  "restore": "Gjenopprett",
+  "@restore": {
+    "description": "Display text for an action which triggers a restore of item from trash",
+    "type": "text"
+  },
+  "restoreToAlbum": "Gjenopprett til album",
+  "restoringFiles": "Gjenoppretter filer...",
+  "resumableUploads": "Fortsette opplastinger",
+  "retry": "Prøv på nytt",
+  "review": "Gjennomgå",
+  "reviewSuggestions": "Gjennomgå forslag",
+  "right": "Høyre",
+  "ritualAlbumSelectionPlaceholder": "Velg album",
+  "ritualSelectAlbumTitle": "Velg album",
+  "roadtripWithThem": "Biltur med {name}",
+  "@roadtripWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "rotate": "Roter",
+  "save": "Lagre",
+  "@save": {
+    "description": "Label for save button"
+  },
+  "saveChangesBeforeLeavingQuestion": "Lagre endringer før du drar?",
+  "saveCollage": "Lagre kollasje",
+  "saveCopy": "Lagre en kopi",
+  "saveKey": "Lagre nøkkel",
+  "@saveKey": {
+    "description": "Save key button label"
+  },
+  "savePerson": "Lagre person",
+  "saveYourRecoveryKeyIfYouHaventAlready": "Lagre gjenopprettingsnøkkelen hvis du ikke allerede har gjort det",
+  "saving": "Lagrer...",
+  "savingEdits": "Lagrer redigeringer...",
+  "scanCode": "Skann kode",
+  "scanThisBarcodeWithnyourAuthenticatorApp": "Skann denne strekkoden med\nautentiseringsappen din",
+  "search": "Søk",
+  "searchAlbumsEmptySection": "Album",
+  "searchByAlbumNameHint": "Albumnavn",
+  "searchDiscoverEmptySection": "Bilder vil vises her når behandlingen og synkronisering er fullført",
+  "searchFileTypesAndNamesEmptySection": "Filtyper og navn",
+  "searchHint1": "Raskt søk på enheten",
+  "searchHint2": "Bildedatoer, beskrivelser",
+  "searchHint3": "Albumer, filnavn og typer",
+  "searchHint4": "Plassering",
+  "searchHint5": "Kommer snart: ansikt & magisk søk ✨",
+  "searchLocationEmptySection": "Gruppebilder som er tatt innenfor noen radius av et bilde",
+  "searchPeopleEmptySection": "Inviter folk, og du vil se alle bilder som deles av dem her",
+  "searchPersonsEmptySection": "Folk vil vises her når behandling og synkronisering er fullført",
+  "searchResultCount": "{count, plural, one{{count} resultat funnet} other{{count} resultater funnet}}",
+  "@searchResultCount": {
+    "description": "Text to tell user how many results were found for their search query",
+    "placeholders": {
+      "count": {
+        "example": "1|2|3",
+        "type": "int"
+      }
+    }
+  },
+  "searchSectionsLengthMismatch": "Uoverensstemmelse i seksjonslengde: {snapshotLength} != {searchLength}",
+  "@searchSectionsLengthMismatch": {
+    "description": "Appears in search tab page",
+    "placeholders": {
+      "searchLength": {
+        "type": "int",
+        "example": "2"
+      },
+      "snapshotLength": {
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "security": "Sikkerhet",
+  "seePublicAlbumLinksInApp": "Se offentlige albumlenker i appen",
+  "selectAll": "Velg alle",
+  "selectAllShort": "Alle",
+  "@selectAllShort": {
+    "description": "Text that appears in bottom right when you start to select multiple photos. When clicked, it selects all photos."
+  },
+  "selectALocation": "Velg en plassering",
+  "selectALocationFirst": "Velg en plassering først",
+  "selectCoverPhoto": "Velg forsidebilde",
+  "selectDate": "Velg dato",
+  "selectedFilesAreNotOnEnte": "Valgte filer er ikke på Ente",
+  "selectedItemsWillBeRemovedFromThisPerson": "Valgte elementer fjernes fra denne personen, men blir ikke slettet fra biblioteket ditt.",
+  "selectedPhotos": "{count} valgt",
+  "@selectedPhotos": {
+    "description": "Display the number of selected photos",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "5",
+        "type": "int"
+      }
+    }
+  },
+  "selectedPhotosWithYours": "{count} valgt ({yourCount} dine)",
+  "@selectedPhotosWithYours": {
+    "description": "Display the number of selected photos, including the number of selected photos owned by the user",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "12",
+        "type": "int"
+      },
+      "yourCount": {
+        "example": "2",
+        "type": "int"
+      }
+    }
+  },
+  "selectItemsToAdd": "Velg produkter å legge til",
+  "selectLanguage": "Velg språk",
+  "selectMailApp": "Velg e-post-app",
+  "selectMorePhotos": "Velg flere bilder",
+  "selectOneDateAndTime": "Velg en dato og klokkeslett",
+  "selectOneDateAndTimeForAll": "Velg én dato og klokkeslett for alle",
+  "selectStartOfRange": "Velg starten på rekkevidde",
+  "selectTime": "Velg tidspunkt",
+  "selectYourFace": "Velg ansiktet ditt",
+  "selfiesWithThem": "Selfier med {name}",
+  "@selfiesWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "sendInvite": "Send invitasjon",
+  "sendLink": "Send lenke",
+  "serverEndpoint": "Serverendepunkt",
+  "@serverEndpoint": {
+    "description": "Label for server endpoint setting"
+  },
+  "sessionExpired": "Økten har utløpt",
+  "@sessionExpired": {
+    "description": "Error message when session has expired"
+  },
+  "sessionIdMismatch": "Økt-ID stemmer ikke",
+  "@sessionIdMismatch": {
+    "description": "In passkey page, deeplink is ignored because of session ID mismatch."
+  },
+  "setAPassword": "Lag et passord",
+  "setAs": "Angi som",
+  "setCover": "Angi forside",
+  "@setCover": {
+    "description": "Text to set cover photo for an album"
+  },
+  "setLabel": "Angi",
+  "@setLabel": {
+    "description": "Label of confirm button to add a new custom radius to the radius selector of a location tag"
+  },
+  "setPasswordTitle": "Angi passord",
+  "@setPasswordTitle": {
+    "description": "Set password title"
+  },
+  "setRadius": "Angi radius",
+  "setupComplete": "Oppsett fullført",
+  "share": "Del",
+  "shareALink": "Del en lenke",
+  "shareLink": "Del link",
+  "shareWithNonenteUsers": "Del med brukere som ikke har Ente",
+  "sharing": "Deler...",
+  "shiftDatesAndTime": "Forskyv datoer og klokkeslett",
+  "showMemories": "Vis minner",
+  "showPerson": "Vis person",
+  "signOutFromOtherDevices": "Logg ut fra andre enheter",
+  "@signOutFromOtherDevices": {
+    "description": "Sign out from other devices title"
+  },
+  "signOutOtherBody": "Hvis du tror noen kjenner til ditt passord, kan du tvinge alle andre enheter som bruker kontoen din til å logge ut.",
+  "@signOutOtherBody": {
+    "description": "Sign out other devices explanation"
+  },
+  "signOutOtherDevices": "Logg ut andre enheter",
+  "@signOutOtherDevices": {
+    "description": "Sign out other devices button label"
+  },
+  "signUpTerms": "Jeg godtar <u-terms>bruksvilkårene</u-terms> og <u-policy>personvernreglene</u-policy>",
+  "@signUpTerms": {
+    "description": "Terms agreement text for sign up"
+  },
+  "skip": "Hopp over",
+  "smartMemories": "Smarte minner",
+  "someoneSharingAlbumsWithYouShouldSeeTheSameId": "Folk som deler album med deg bør se den samme ID-en på deres enhet.",
+  "somethingWentWrong": "Noe gikk galt",
+  "somethingWentWrongPleaseTryAgain": "Noe gikk galt. Vennligst prøv igjen",
+  "@somethingWentWrongPleaseTryAgain": {
+    "description": "Generic error message"
+  },
+  "sorry": "Beklager",
+  "sorryBackupFailedDesc": "Beklager, vi kunne ikke sikkerhetskopiere denne filen akkurat nå, vil vi prøve på nytt senere.",
+  "sorryCouldNotAddToFavorites": "Beklager, kan ikke legge til i favoritter!",
+  "sorryCouldNotRemoveFromFavorites": "Beklager, kunne ikke fjerne fra favoritter!",
+  "sorryTheCodeYouveEnteredIsIncorrect": "Beklager, koden du skrev inn er feil",
+  "@sorryTheCodeYouveEnteredIsIncorrect": {
+    "description": "Detailed error message when code is incorrect"
+  },
+  "sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": "Beklager, vi kunne ikke generere sikre nøkler på denne enheten.\n\nVennligst registrer deg fra en annen enhet.",
+  "@sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": {
+    "description": "Error message for insecure device"
+  },
+  "sort": "Sorter",
+  "sortAlbumsBy": "Sorter etter",
+  "sortNewestFirst": "Nyeste først",
+  "sortOldestFirst": "Eldste først",
+  "sportsWithThem": "Sport med {name}",
+  "@sportsWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "spotlightOnThem": "Fremhev {name}",
+  "@spotlightOnThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "spotlightOnYourself": "Fremhev deg selv",
+  "startBackup": "Start sikkerhetskopiering",
+  "startRecovery": "Start gjenoppretting",
+  "stopCastingBody": "Vil du avbryte strømmingen?",
+  "stopCastingTitle": "Stopp strømmingen",
+  "storage": "Lagring",
+  "storageBreakupFamily": "Familie",
+  "storageBreakupYou": "Deg",
+  "@storageBreakupYou": {
+    "description": "Label to indicate how much storage you are using when you are part of a family plan"
+  },
+  "storageLimitExceeded": "Lagringsplassen er full",
+  "streamDetails": "Strømmedetaljer",
+  "strongStrength": "Sterkt",
+  "@strongStrength": {
+    "description": "Strong password strength label"
+  },
+  "subscribe": "Abonner",
+  "subscribeToEnableSharing": "Du trenger et aktivt betalt abonnement for å aktivere deling.",
+  "subscription": "Abonnement",
+  "subWillBeCancelledOn": "Abonnementet ditt blir avsluttet den {endDate}",
+  "@subWillBeCancelledOn": {
+    "placeholders": {
+      "endDate": {}
+    }
+  },
+  "success": "Suksess",
+  "successfullyArchived": "Lagt til i arkivet",
+  "successfullyHid": "Vellykket skjult",
+  "successfullyUnarchived": "Fjernet fra arkviet",
+  "successfullyUnhid": "Vellykket synliggjøring",
+  "suggestFeatures": "Foreslå funksjoner",
+  "sunrise": "På horisonten",
+  "support": "Brukerstøtte",
+  "syncing": "Synkroniserer...",
+  "syncProgress": "{completed}/{total} minner bevart",
+  "@syncProgress": {
+    "description": "Text to tell user how many memories have been preserved",
+    "placeholders": {
+      "completed": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "syncStopped": "Synkronisering stoppet",
+  "tapToCopy": "trykk for å kopiere",
+  "tapToUpload": "Trykk for å laste opp",
+  "@tapToUpload": {
+    "description": "Shown in upload icon widet, inside a tooltip."
+  },
+  "tapToUploadIsIgnoredDue": "Trykk for å laste opp, opplasting er ignorert nå på grunn av {ignoreReason}",
+  "@tapToUploadIsIgnoredDue": {
+    "description": "Shown in upload icon widet, inside a tooltip.",
+    "placeholders": {
+      "ignoreReason": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
+  },
+  "tempErrorContactSupportIfPersists": "Det ser ut som noe gikk galt. Prøv på nytt etter en stund. Hvis feilen vedvarer, kontakt kundestøtte.",
+  "terminate": "Avslutte",
+  "@terminate": {
+    "description": "Terminate button label"
+  },
+  "terminateSession": "Avslutte økten?",
+  "@terminateSession": {
+    "description": "Title for terminate session dialog"
+  },
+  "termsOfServicesTitle": "Vilkår",
+  "@termsOfServicesTitle": {
+    "description": "Terms of service title"
+  },
+  "thankYou": "Tusen takk",
+  "thankYouForSubscribing": "Takk for at du abonnerer!",
+  "theLinkYouAreTryingToAccessHasExpired": "Lenken du prøver å få tilgang til, er utløpt.",
+  "theme": "Tema",
+  "theRecoveryKeyYouEnteredIsIncorrect": "Gjennopprettingsnøkkelen du skrev inn er feil",
+  "@theRecoveryKeyYouEnteredIsIncorrect": {
+    "description": "Detailed error message when recovery key is incorrect"
+  },
+  "theseItemsWillBeDeletedFromYourDevice": "Disse elementene vil bli slettet fra enheten din.",
+  "thisCanBeUsedToRecoverYourAccountIfYou": "Dette kan brukes til å gjenopprette kontoen din hvis du mister din andre faktor",
+  "thisDevice": "Denne enheten",
+  "@thisDevice": {
+    "description": "Label for current device"
+  },
+  "thisEmailIsAlreadyInUse": "Denne e-postadressen er allerede i bruk",
+  "@thisEmailIsAlreadyInUse": {
+    "description": "Error message when email is already in use"
+  },
+  "thisImageHasNoExifData": "Dette bildet har ingen exif-data",
+  "thisIsMeExclamation": "Dette er meg!",
+  "thisIsPersonVerificationId": "Dette er {email} sin verifiserings-ID",
+  "@thisIsPersonVerificationId": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@ente.com"
+      }
+    }
+  },
+  "thisIsYourVerificationId": "Dette er din bekreftelses-ID",
+  "thisWeekThroughTheYears": "Denne uka gjennom årene",
+  "thisWillLogYouOutOfTheFollowingDevice": "Dette vil logge deg ut av følgende enhet:",
+  "@thisWillLogYouOutOfTheFollowingDevice": {
+    "description": "Warning message for logging out of another device"
+  },
+  "thisWillLogYouOutOfThisDevice": "Dette vil logge deg ut av denne enheten!",
+  "@thisWillLogYouOutOfThisDevice": {
+    "description": "Warning message for logging out of current device"
+  },
+  "thisWillMakeTheDateAndTimeOfAllSelected": "Dette vil gjøre dato og klokkeslett for alle valgte bilder det samme.",
+  "throughTheYears": "{dateFormat} gjennom årene",
+  "@throughTheYears": {
+    "placeholders": {
+      "dateFormat": {}
+    }
+  },
+  "todaysLogs": "Dagens logger",
+  "toEnableAppLockPleaseSetupDevicePasscodeOrScreen": "For å aktivere applås, vennligst angi passord eller skjermlås i systeminnstillingene.",
+  "tooManyIncorrectAttempts": "For mange gale forsøk",
+  "@tooManyIncorrectAttempts": {
+    "description": "Message shown when too many incorrect attempts are made"
+  },
+  "toResetVerifyEmail": "For å tilbakestille passordet ditt, vennligst bekreft e-posten din først.",
+  "@toResetVerifyEmail": {
+    "description": "Message asking user to verify email before password reset"
+  },
+  "totalSize": "Total størrelse",
+  "trash": "Papirkurv",
+  "trim": "Beskjær",
+  "tripInYear": "Reise i {year}",
+  "@tripInYear": {
+    "placeholders": {
+      "year": {}
+    }
+  },
+  "tripToLocation": "Reise til {location}",
+  "@tripToLocation": {
+    "placeholders": {
+      "location": {}
+    }
+  },
+  "trustedContacts": "Betrodde kontakter",
+  "tryAgain": "Prøv igjen",
+  "@tryAgain": {
+    "description": "Try again button label"
+  },
+  "twofactor": "Tofaktor",
+  "twofactorAuthenticationHasBeenDisabled": "Tofaktorautentisering har blitt deaktivert",
+  "twofactorAuthenticationSuccessfullyReset": "Tofaktorautentisering ble tilbakestilt",
+  "@twofactorAuthenticationSuccessfullyReset": {
+    "description": "Message when two-factor authentication is successfully reset"
+  },
+  "twoFactorAuthTitle": "Tofaktorautentisering",
+  "@twoFactorAuthTitle": {
+    "description": "Two-factor authentication title"
+  },
+  "twofactorSetup": "Oppsett av to-faktor",
+  "typeOfGallerGallerytypeIsNotSupportedForRename": "Galleritype {galleryType} støttes ikke for nytt navn",
+  "@typeOfGallerGallerytypeIsNotSupportedForRename": {
+    "placeholders": {
+      "galleryType": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
+  },
+  "unarchive": "Opphev arkivering",
+  "@unarchive": {
+    "description": "Action of 'Unarchiving' an element"
+  },
+  "unarchiveAlbum": "Gjenopprett album",
+  "unarchiving": "Fjerner fra arkivet...",
+  "uncategorized": "Ukategorisert",
+  "unhide": "Gjør synligjort",
+  "unhideToAlbum": "Gjør synlig i album",
+  "unhiding": "Synliggjør...",
+  "unhidingFilesToAlbum": "Gjør filer synlige i albumet",
+  "unlock": "Lås opp",
+  "@unlock": {
+    "description": "Short action label used as the system authentication reason when unlocking the app"
+  },
+  "unselectAll": "Velg bort alle",
+  "updateAvailable": "En oppdatering er tilgjengelig",
+  "updatingFolderSelection": "Oppdaterer mappevalg...",
+  "upgrade": "Oppgrader",
+  "uploadingFilesToAlbum": "Laster opp filer til albumet...",
+  "uploadingMultipleMemories": "Bevarer {count} minner...",
+  "@uploadingMultipleMemories": {
+    "description": "Text to tell user how many memories are being preserved",
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "uploadingSingleMemory": "Bevarer 1 minne...",
+  "uploadIsIgnoredDueToIgnorereason": "Opplastingen ble ignorert på grunn av {ignoreReason}",
+  "@uploadIsIgnoredDueToIgnorereason": {
+    "placeholders": {
+      "ignoreReason": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
+  },
+  "useAsCover": "Bruk som forsidebilde",
+  "usedSpace": "Benyttet lagringsplass",
+  "useRecoveryKey": "Bruk gjenopprettingsnøkkel",
+  "@useRecoveryKey": {
+    "description": "Use recovery key button label"
+  },
+  "useSelectedPhoto": "Bruk valgt bilde",
+  "validTill": "Gyldig til {endDate}",
+  "@validTill": {
+    "placeholders": {
+      "endDate": {}
+    }
+  },
+  "verificationFailedPleaseTryAgain": "Bekreftelse mislyktes, vennligst prøv igjen",
+  "@verificationFailedPleaseTryAgain": {
+    "description": "Verification failed error message"
+  },
+  "verify": "Bekreft",
+  "@verify": {
+    "description": "Verify button label"
+  },
+  "verifyEmail": "Bekreft e-postadresse",
+  "@verifyEmail": {
+    "description": "Verify email title"
+  },
+  "verifyIDLabel": "Bekreft",
+  "verifying": "Verifiserer...",
+  "verifyingRecoveryKey": "Verifiserer gjenopprettingsnøkkel...",
+  "verifyPassword": "Bekreft passord",
+  "@verifyPassword": {
+    "description": "Verify password button label"
+  },
+  "videoInfo": "Videoinformasjon",
+  "videos": "Videoer",
+  "videoStreaming": "Strømbare videoer",
+  "viewActiveSessions": "Vis aktive økter",
+  "viewAddOnButton": "Vis tillegg",
+  "viewAllExifData": "Vis alle EXIF-data",
+  "viewer": "Seer",
+  "viewLargeFiles": "Store filer",
+  "viewLogs": "Se logger",
+  "@viewLogs": {
+    "description": "Button to view logs"
+  },
+  "viewPersonToUnlink": "Vis {name} for å fjerne koblingen",
+  "@viewPersonToUnlink": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "viewRecoveryKey": "Vis gjenopprettingsnøkkel",
+  "visitWebToManage": "Vennligst besøk {webUrl} for å administrere abonnementet",
+  "@visitWebToManage": {
+    "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",
+    "placeholders": {
+      "webUrl": {
+        "type": "String",
+        "example": "photos.ente.com"
+      }
+    }
+  },
+  "waitingForVerification": "Venter på verifikasjon...",
+  "@waitingForVerification": {
+    "description": "Waiting for verification message"
+  },
+  "waitingForWifi": "Venter på WiFi...",
+  "warning": "Advarsel",
+  "weakStrength": "Svakt",
+  "@weakStrength": {
+    "description": "Weak password strength label"
+  },
+  "weAreOpenSource": "Vi har åpen kildekode!",
+  "weDontSupportEditingPhotosAndAlbumsThatYouDont": "Vi støtter ikke redigering av bilder og album som du ikke eier ennå",
+  "whatsNew": "Det som er nytt",
+  "widgets": "Moduler",
+  "yearly": "Årlig",
+  "@yearly": {
+    "description": "The text to display for yearly plans",
+    "type": "text"
+  },
+  "yearsAgo": "{count, plural, one{{count} år siden} other{{count} år siden}}",
+  "@yearsAgo": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "yearShort": "år",
+  "@yearShort": {
+    "description": "Appears in pricing page (/yr)"
+  },
+  "yes": "Ja",
+  "yesCancel": "Ja, avslutt",
+  "yesConvertToViewer": "Ja, konverter til seer",
+  "yesDelete": "Ja, slett",
+  "yesDiscardChanges": "Ja, forkast endringer",
+  "yesLogout": "Ja, logg ut",
+  "@yesLogout": {
+    "description": "Confirmation button for logout"
+  },
+  "yesRemove": "Ja, fjern",
+  "yesRenew": "Ja, forny",
+  "yesResetPerson": "Ja, tilbakestill person",
+  "you": "Deg",
+  "youAndThem": "Du og {name}",
+  "@youAndThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "youAreOnTheLatestVersion": "Du er på den nyeste versjonen",
+  "youCannotDowngradeToThisPlan": "Du kan ikke nedgradere til dette abonnementet",
+  "youCannotShareWithYourself": "Du kan ikke dele med deg selv",
+  "youHaveSuccessfullyFreedUp": "Du har frigjort {storageSaved}!",
+  "@youHaveSuccessfullyFreedUp": {
+    "description": "The text to display when the user has successfully freed up storage",
+    "type": "text",
+    "placeholders": {
+      "storageSaved": {
+        "example": "1.2 GB",
+        "type": "String"
+      }
+    }
+  },
+  "yourMap": "Ditt kart",
+  "yourPlanWasSuccessfullyDowngraded": "Abonnementet ditt ble nedgradert",
+  "yourPlanWasSuccessfullyUpgraded": "Abonnementet ditt ble oppgradert",
+  "yourPurchaseWasSuccessful": "Ditt kjøp var vellykket",
+  "yourSubscriptionHasExpired": "Abonnementet har utløpt",
+  "yourSubscriptionWasUpdatedSuccessfully": "Abonnementet ditt ble oppdatert",
+  "yourVerificationCodeHasExpired": "Bekreftelseskoden er utløpt",
+  "@yourVerificationCodeHasExpired": {
+    "description": "Error message when verification code has expired"
+  },
+  "youveNoDuplicateFilesThatCanBeCleared": "Du har ingen duplikatfiler som kan fjernes",
+  "youveNoFilesInThisAlbumThatCanBeDeleted": "Du har ingen filer i dette albumet som kan bli slettet",
+  "zoomOutToSeePhotos": "Zoom ut for å se bilder"
+}

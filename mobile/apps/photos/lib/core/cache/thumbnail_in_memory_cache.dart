@@ -15,11 +15,7 @@ class ThumbnailInMemoryLruCache {
     );
   }
 
-  static void put(
-    EnteFile enteFile,
-    Uint8List? imageData, [
-    int? size,
-  ]) {
+  static void put(EnteFile enteFile, Uint8List? imageData, [int? size]) {
     _map.put(
       enteFile.cacheKey() +
           "_" +
@@ -29,12 +25,8 @@ class ThumbnailInMemoryLruCache {
   }
 
   static void clearCache(EnteFile enteFile) {
-    _map.remove(
-      enteFile.cacheKey() + "_" + thumbnailLargeSize.toString(),
-    );
-    _map.remove(
-      enteFile.cacheKey() + "_" + thumbnailSmallSize.toString(),
-    );
+    _map.remove(enteFile.cacheKey() + "_" + thumbnailLargeSize.toString());
+    _map.remove(enteFile.cacheKey() + "_" + thumbnailSmallSize.toString());
   }
 
   static void clearAll() {

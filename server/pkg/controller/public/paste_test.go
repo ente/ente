@@ -36,4 +36,3 @@ func TestIsLikelyPreviewRequest_BlocksWhatsAppBotUA(t *testing.T) {
 
 	require.True(t, isLikelyPreviewRequest(ctx))
 }
-

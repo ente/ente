@@ -1,19 +1,19 @@
+import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
-import "package:photos/core/configuration.dart";
-import "package:photos/generated/l10n.dart";
+import "package:photos/service_locator.dart";
 
 class DeveloperSettingsWidget extends StatelessWidget {
   const DeveloperSettingsWidget({super.key});
 
   @override
   Widget build(BuildContext context) {
-    if (!Configuration.instance.isEnteProduction()) {
-      final endpoint = Configuration.instance.getHttpEndpoint();
+    if (!endpointConfig.isProduction) {
+      final endpoint = endpointConfig.endpoint;
       final endpointURI = Uri.parse(endpoint);
       return Padding(
         padding: const EdgeInsets.only(bottom: 20),
         child: Text(
-          AppLocalizations.of(context).customEndpoint(
+          context.strings.customEndpoint(
             endpoint: "${endpointURI.host}:${endpointURI.port}",
           ),
           style: Theme.of(context).textTheme.bodySmall,

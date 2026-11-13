@@ -1,0 +1,41 @@
+plugins {
+    id "com.android.library"
+    id "org.jetbrains.kotlin.android"
+}
+
+group = "io.ente.photos.media_extension"
+version = "1.0-SNAPSHOT"
+
+android {
+    namespace = "io.ente.photos.media_extension"
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_11
+    }
+
+    defaultConfig {
+        minSdk = 16
+    }
+
+    dependencies {
+        testImplementation("org.jetbrains.kotlin:kotlin-test")
+        testImplementation("org.mockito:mockito-core:5.0.0")
+    }
+
+    testOptions {
+        unitTests.all {
+            useJUnitPlatform()
+
+            testLogging {
+               events "passed", "skipped", "failed", "standardOut", "standardError"
+               outputs.upToDateWhen {false}
+               showStandardStreams = true
+            }
+        }
+    }
+}

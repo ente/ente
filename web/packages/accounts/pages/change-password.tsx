@@ -1,15 +1,19 @@
 import { Divider } from "@mui/material";
+import { useAuthPageConfig } from "ente-accounts/components/auth/AuthPageProvider";
+import { SetPasswordForm } from "ente-accounts/components/auth/SetPasswordForm";
 import {
     AccountsPageContents,
     AccountsPageFooter,
     AccountsPageTitle,
 } from "ente-accounts/components/layouts/centered-paper";
+import { changePassword } from "ente-accounts/services/password";
 import { appHomeRoute, stashRedirect } from "ente-accounts/services/redirect";
-import { changePassword, type LocalUser } from "ente-accounts/services/user";
+import type { LocalUser } from "ente-accounts/services/user";
 import { LinkButton } from "ente-base/components/LinkButton";
 import { LoadingIndicator } from "ente-base/components/loaders";
-import { deriveKeyInsufficientMemoryErrorMessage } from "ente-base/crypto/types";
+import { isNamedError } from "ente-base/error";
 import log from "ente-base/log";
+import { decryptBox as preloginDecryptBox } from "ente-prelogin-wasm";
 import { t } from "i18next";
 import { useRouter } from "next/router";
 import React, { useCallback, useEffect, useState } from "react";
@@ -19,18 +23,12 @@ import {
 } from "../components/NewPasswordForm";
 import { savedLocalUser } from "../services/accounts-db";
 
-/**
- * A page that allows a user to reset or change their password.
- *
- * See: [Note: Login pages]
- */
 const Page: React.FC = () => {
     const [user, setUser] = useState<LocalUser | undefined>(undefined);
 
     const router = useRouter();
 
-    // We're invoked with the "?op=reset" query parameter in the recovery flow.
-    const isReset = router.query.op == "reset";
+    const isReset = router.isReady && router.query.op == "reset";
 
     useEffect(() => {
         const user = savedLocalUser();
@@ -42,7 +40,7 @@ const Page: React.FC = () => {
         }
     }, [router]);
 
-    return user ? (
+    return user && router.isReady ? (
         <PageContents {...{ user, isReset }} />
     ) : (
         <LoadingIndicator />
@@ -53,30 +51,41 @@ export default Page;
 
 interface PageContentsProps {
     user: LocalUser;
-    /**
-     * True if the password is being reset during the account recovery flow.
-     */
     isReset: boolean;
 }
 
 const PageContents: React.FC<PageContentsProps> = ({ user, isReset }) => {
+    const { Shell, decryptBox: appDecryptBox } = useAuthPageConfig();
+    const decryptBox = isReset ? preloginDecryptBox : appDecryptBox;
     const router = useRouter();
 
     const handleSubmit: NewPasswordFormProps["onSubmit"] = useCallback(
         async (password, setPasswordsFieldError) =>
-            changePassword(password)
+            changePassword(password, decryptBox)
                 .then(() => void router.push(appHomeRoute))
                 .catch((e: unknown) => {
                     log.error("Could not change password", e);
                     setPasswordsFieldError(
-                        e instanceof Error &&
-                            e.message == deriveKeyInsufficientMemoryErrorMessage
+                        isNamedError(e, "insufficient_memory")
                             ? t("password_generation_failed")
                             : t("generic_error"),
                     );
                 }),
-        [router],
+        [router, decryptBox],
     );
+
+    if (isReset) {
+        return (
+            <Shell>
+                <NewPasswordForm
+                    userEmail={user.email}
+                    submitButtonTitle={t("change_password")}
+                    onSubmit={handleSubmit}
+                    presentation={SetPasswordForm}
+                />
+            </Shell>
+        );
+    }
 
     return (
         <AccountsPageContents>
@@ -86,16 +95,10 @@ const PageContents: React.FC<PageContentsProps> = ({ user, isReset }) => {
                 submitButtonTitle={t("change_password")}
                 onSubmit={handleSubmit}
             />
-            {!isReset && (
-                <>
-                    <Divider sx={{ mt: 1 }} />
-                    <AccountsPageFooter>
-                        <LinkButton onClick={router.back}>
-                            {t("go_back")}
-                        </LinkButton>
-                    </AccountsPageFooter>
-                </>
-            )}
+            <Divider sx={{ mt: 1 }} />
+            <AccountsPageFooter>
+                <LinkButton onClick={router.back}>{t("go_back")}</LinkButton>
+            </AccountsPageFooter>
         </AccountsPageContents>
     );
 };

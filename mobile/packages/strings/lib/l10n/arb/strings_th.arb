@@ -1,0 +1,561 @@
+{
+  "about": "รายละเอียด",
+  "account": "บัญชี",
+  "activeSessions": "เซสชันที่ใช้งานอยู่",
+  "@activeSessions": {
+    "description": "Title for active sessions page"
+  },
+  "addedBy": "เพิ่มโดย {emailOrName}",
+  "@addedBy": {
+    "placeholders": {
+      "emailOrName": {}
+    }
+  },
+  "addedSuccessfullyTo": "เพิ่มไปยัง {albumName} แล้ว",
+  "@addedSuccessfullyTo": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
+  "addMore": "เพิ่มอีก",
+  "addToAlbum": "เพิ่มไปยังอัลบั้ม",
+  "addToEnte": "เพิ่มไปที่ Ente",
+  "after1Day": "หลังจาก 1 วัน",
+  "after1Hour": "หลังจาก 1 ชั่วโมง",
+  "after1Month": "หลังจาก 1 เดือน",
+  "after1Week": "หลังจาก 1 สัปดาห์",
+  "after1Year": "หลังจาก 1 ปี",
+  "albums": "อัลบั้ม",
+  "albumUpdated": "อัปเดตอัลบั้มแล้ว",
+  "allowAddingPhotos": "อนุญาตให้เพิ่มรูปภาพ",
+  "@allowAddingPhotos": {
+    "description": "Switch button to enable uploading photos to a public link"
+  },
+  "allowDownloads": "อนุญาตให้ดาวน์โหลด",
+  "apply": "นำไปใช้",
+  "authToChangeYourEmail": "โปรดยืนยันตัวตนเพื่อเปลี่ยนอีเมล",
+  "authToChangeYourPassword": "โปรดยืนยันตัวตนเพื่อเปลี่ยนรหัสผ่าน",
+  "authToViewTrashedFiles": "โปรดยืนยันตัวตนเพื่อดูไฟล์ในถังขยะ",
+  "authToViewYourHiddenFiles": "โปรดยืนยันตัวตนเพื่อดูไฟล์ที่ซ่อนไว้",
+  "authToViewYourRecoveryKey": "โปรดตรวจสอบสิทธิ์เพื่อดูคีย์การกู้คืนของคุณ",
+  "cancel": "ยกเลิก",
+  "@cancel": {
+    "description": "Cancel button label"
+  },
+  "canNotOpenTitle": "ไม่สามารถเปิดอัลบั้มนี้ได้",
+  "canOnlyCreateLinkForFilesOwnedByYou": "สามารถสร้างลิงก์ได้เฉพาะไฟล์ที่คุณเป็นเจ้าของ",
+  "changeEmail": "เปลี่ยนอีเมล",
+  "@changeEmail": {
+    "description": "Change email button label"
+  },
+  "changePassword": "เปลี่ยนรหัสผ่าน",
+  "changePasswordTitle": "เปลี่ยนรหัสผ่าน",
+  "@changePasswordTitle": {
+    "description": "Change password title"
+  },
+  "changeYourReferralCode": "เปลี่ยนโค้ดของคุณ",
+  "checkForUpdates": "ตรวจหาอัปเดต",
+  "checkInboxAndSpamFolder": "โปรดตรวจสอบกล่องจดหมาย (และสแปม) ของคุณ เพื่อยืนยันให้เสร็จสิ้น",
+  "@checkInboxAndSpamFolder": {
+    "description": "Message asking user to check inbox and spam folder"
+  },
+  "checking": "กำลังตรวจสอบ...",
+  "checkStatus": "ตรวจสอบสถานะ",
+  "@checkStatus": {
+    "description": "Check status button label"
+  },
+  "codeCopiedToClipboard": "คัดลอกรหัสไปยังคลิปบอร์ดแล้ว",
+  "collectPhotos": "รวบรวมรูปภาพ",
+  "color": "สี",
+  "confirm": "ยืนยัน",
+  "@confirm": {
+    "description": "Confirm button label"
+  },
+  "confirmPassword": "ยืนยันรหัสผ่าน",
+  "@confirmPassword": {
+    "description": "Confirm password field label"
+  },
+  "confirmRecoveryKey": "ยืนยันคีย์การกู้คืน",
+  "confirmYourRecoveryKey": "ยืนยันคีย์การกู้คืนของคุณ",
+  "contactSupport": "ติดต่อฝ่ายสนับสนุน",
+  "@contactSupport": {
+    "description": "Contact support button label"
+  },
+  "continueLabel": "ดำเนินการต่อ",
+  "@continueLabel": {
+    "description": "Continue button label"
+  },
+  "copyLink": "คัดลอกลิงก์",
+  "createAccount": "สร้างบัญชี",
+  "@createAccount": {
+    "description": "Create account button label"
+  },
+  "createAlbumActionHint": "กดค้างเพื่อเลือกรูปภาพ แล้วกด + เพื่อสร้างอัลบั้ม",
+  "createAnEnteAccount": "สร้างบัญชี Ente",
+  "createPublicLink": "สร้างลิงก์สาธารณะ",
+  "creatingLink": "กำลังสร้างลิ้งค์",
+  "custom": "กำหนดเอง",
+  "@custom": {
+    "description": "Label for setting custom value for link expiry"
+  },
+  "darkTheme": "มืด",
+  "decrypting": "กำลังถอดรหัส...",
+  "delete": "ลบ",
+  "@delete": {
+    "description": "Delete button label"
+  },
+  "deleteAccount": "ลบบัญชี",
+  "@deleteAccount": {
+    "description": "Delete account button label"
+  },
+  "deleteAlbum": "ลบอัลบั้ม",
+  "deleteEmptyAlbums": "ลบอัลบั้มที่ว่างเปล่า",
+  "deleteEmptyAlbumsWithQuestionMark": "ลบอัลบั้มที่ว่างเปล่าหรือไม่?",
+  "deleteFromBoth": "ลบออกจากทั้งคู่",
+  "deleteFromDevice": "ลบออกจากเครื่อง",
+  "deleteFromEnte": "ลบออกจาก Ente",
+  "deleteProgress": "กำลังลบ {currentlyDeleting} / {totalCount}",
+  "@deleteProgress": {
+    "placeholders": {
+      "currentlyDeleting": {},
+      "totalCount": {}
+    }
+  },
+  "details": "รายละเอียด",
+  "disableDownloadWarningBody": "ผู้ชมยังคงสามรถถ่ายภาพหน้าจอ หรือบันทึกรูปภาพของคุณด้วยเครื่องมือภาพนอกได้อยู่",
+  "done": "เสร็จ",
+  "downloading": "กำลังดาวน์โหลด...",
+  "dropSupportEmail": "กรุณาส่งอีเมลไปที่ {supportEmail} จากที่อยู่อีเมลที่คุณลงทะเบียนไว้",
+  "@dropSupportEmail": {
+    "placeholders": {
+      "supportEmail": {
+        "description": "The support email address",
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
+  },
+  "earned": "ได้รับแล้ว",
+  "earnMoreSpace": "เพิ่มพื้นที่ของคุณ!",
+  "edit": "แก้ไข",
+  "editLocation": "แก้ไขตำแหน่ง",
+  "eligible": "มีสิทธิ์",
+  "email": "อีเมล",
+  "@email": {
+    "description": "Email field label"
+  },
+  "emailAlreadyRegistered": "อีเมล์นี้ถูกใช้แล้ว",
+  "@emailAlreadyRegistered": {
+    "description": "Error message when email is already registered"
+  },
+  "emailHint": "กรอกที่อยู่อีเมลของคุณ",
+  "emailNoEnteAccountPhotos": "{email} ไม่มีบัญชี Ente\n\nส่งคำเชิญไปให้พวกเขาเพื่อแบ่งปันรูปภาพ",
+  "@emailNoEnteAccountPhotos": {
+    "placeholders": {
+      "email": {}
+    }
+  },
+  "emailNotRegistered": "อีเมลยังไม่ได้ถูกใช้",
+  "@emailNotRegistered": {
+    "description": "Error message when email is not registered"
+  },
+  "enableMaps": "เปิดใช้งานแผนที่",
+  "enterCode": "ป้อนรหัส",
+  "enterCodeDescription": "กรอกโค้ด",
+  "enterEmail": "ใส่อีเมล",
+  "enterNewPasswordToEncrypt": "ใส่รหัสผ่านใหม่ที่เราสามารถใช้เพื่อเข้ารหัสข้อมูลของคุณ",
+  "@enterNewPasswordToEncrypt": {
+    "description": "Prompt to enter new password for encryption"
+  },
+  "enterPassword": "ป้อนรหัสผ่าน",
+  "@enterPassword": {
+    "description": "Enter password field label"
+  },
+  "enterPasswordToEncrypt": "ใส่รหัสผ่านที่เราสามารถใช้เพื่อเข้ารหัสข้อมูลของคุณ",
+  "@enterPasswordToEncrypt": {
+    "description": "Prompt to enter password for encryption"
+  },
+  "enterThe6digitCodeFromnyourAuthenticatorApp": "กรอกรหัส 6 หลักจากแอพยืนยันตัวตนของคุณ",
+  "enterValidEmail": "โปรดใส่ที่อยู่อีเมลที่ถูกต้อง",
+  "enterYourNewEmailAddress": "กรอกที่อยู่อีเมลใหม่ของคุณ",
+  "enterYourPassword": "ใส่รหัสผ่านของคุณ",
+  "enterYourRecoveryKey": "ป้อนคีย์การกู้คืน",
+  "exif": "EXIF",
+  "failedToLoadAlbums": "ไม่สามารถโหลดอัลบั้มได้",
+  "faq": "คำถามที่พบบ่อย",
+  "@faq": {
+    "description": "FAQ link label"
+  },
+  "faqs": "คำถามที่พบบ่อย",
+  "favorite": "ชื่นชอบ",
+  "fileInfoAddDescHint": "เพิ่มคำอธิบาย...",
+  "forgotPassword": "ลืมรหัสผ่าน",
+  "@forgotPassword": {
+    "description": "Forgot password link label"
+  },
+  "freeTrial": "ทดลองใช้ฟรี",
+  "general": "ทั่วไป",
+  "help": "ความช่วยเหลืแ",
+  "hide": "ซ่อน",
+  "hostedAtOsmFrance": "โฮสต์ที่ OSM ฝรั่งเศส",
+  "howItWorks": "วิธีการทำงาน",
+  "@howItWorks": {
+    "description": "How it works button label"
+  },
+  "incorrectPasswordTitle": "รหัสผ่านไม่ถูกต้อง",
+  "@incorrectPasswordTitle": {
+    "description": "Title for incorrect password error"
+  },
+  "incorrectRecoveryKey": "คีย์การกู้คืนไม่ถูกต้อง",
+  "@incorrectRecoveryKey": {
+    "description": "Error message when recovery key is incorrect"
+  },
+  "incorrectRecoveryKeyBody": "คีย์การกู้คืนที่คุณป้อนไม่ถูกต้อง",
+  "incorrectRecoveryKeyTitle": "คีย์การกู้คืนไม่ถูกต้อง",
+  "insecureDevice": "อุปกรณ์ไม่ปลอดภัย",
+  "@insecureDevice": {
+    "description": "Insecure device warning title"
+  },
+  "invalidEmailAddress": "ที่อยู่อีเมลไม่ถูกต้อง",
+  "invalidKey": "รหัสไม่ถูกต้อง",
+  "invalidRecoveryKey": "คีย์การกู้คืนที่คุณป้อนไม่ถูกต้อง โปรดตรวจสอบให้แน่ใจว่ามี 24 คำ และตรวจสอบการสะกดของแต่ละคำ\n\nหากคุณป้อนรหัสกู้คืนที่เก่ากว่า ตรวจสอบให้แน่ใจว่ามีความยาว 64 ตัวอักษร และตรวจสอบแต่ละตัวอักษร",
+  "invalidReferralCode": "โค้ดไม่ถูกต้อง",
+  "inviteToEnte": "เชิญเข้าร่วม Ente",
+  "ok": "ตกลง",
+  "@ok": {
+    "description": "Generic OK button label"
+  },
+  "itemCount": "{count, plural, other{{count} รายการ}}",
+  "@itemCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "lastUpdated": "อัปเดตล่าสุด",
+  "lightTheme": "สว่าง",
+  "linkCopiedToClipboard": "คัดลอกลิงก์ไปยังคลิปบอร์ดแล้ว",
+  "linkExpired": "ลิ้งค์หมดอายุ",
+  "linkExpiresOn": "ลิ้งจะหมดอายุใน {expiryTime}",
+  "@linkExpiresOn": {
+    "placeholders": {
+      "expiryTime": {}
+    }
+  },
+  "linkHasExpired": "ลิงก์หมดอายุแล้ว",
+  "loadingExifData": "กำลังโหลดข้อมูล EXIF...",
+  "loadMessage9": "เราใช้ Xchacha20Poly1305 เพื่อเข้ารหัสข้อมูลของคุณอย่างปลอดภัย",
+  "logInLabel": "เข้าสู่ระบบ",
+  "@logInLabel": {
+    "description": "Log in button label"
+  },
+  "loginTerms": "โดยการคลิกเข้าสู่ระบบ ฉันยอมรับ<u-terms>เงื่อนไขการให้บริการ</u-terms>และ<u-policy>นโยบายความเป็นส่วนตัว</u-policy>",
+  "@loginTerms": {
+    "description": "Terms agreement text for login"
+  },
+  "manageLink": "จัดการลิงก์",
+  "manageSubscription": "จัดการ การสมัครสมาชิก",
+  "map": "แผนที่",
+  "@map": {
+    "description": "Label for the map view"
+  },
+  "maps": "แผนที่",
+  "moderateStrength": "ปานกลาง",
+  "@moderateStrength": {
+    "description": "Moderate password strength label"
+  },
+  "monthly": "รายเดือน",
+  "@monthly": {
+    "description": "The text to display for monthly plans",
+    "type": "text"
+  },
+  "movedSuccessfullyTo": "ย้ายไปยัง {albumName} แล้ว",
+  "@movedSuccessfullyTo": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
+  "movedToTrash": "ย้ายไปถังขยะแล้ว",
+  "moveToAlbum": "ย้ายไปยังอัลบั้ม",
+  "name": "ชื่อ",
+  "newAlbum": "อัลบั้มใหม่",
+  "newest": "ใหม่สุด",
+  "noDuplicates": "✨ไม่มีไฟล์ซ้ำ",
+  "noExifData": "ไม่มีข้อมูล EXIF",
+  "noRecoveryKeyNoDecryption": "เนื่องจากลักษณะของโปรโตคอลการเข้ารหัสตั้งแต่ต้นทางถึงปลายทางของเรา ข้อมูลของคุณจึงไม่สามารถถอดรหัสได้หากไม่มีรหัสผ่านหรือคีย์การกู้คืน",
+  "@noRecoveryKeyNoDecryption": {
+    "description": "Explanation that data cannot be decrypted without password or recovery key"
+  },
+  "notifications": "การแจ้งเตือน",
+  "ocrGenericDetectError": "ไม่สามารถตรวจหาข้อความในรูปภาพ",
+  "ocrImageDecodeFailedError": "ไม่สามารถอ่านไฟล์รูปภาพได้",
+  "ocrImageNotFoundError": "ไม่พบไฟล์รูปภาพ",
+  "ocrNoTextDetected": "ไม่พบข้อความ",
+  "onEnte": "บน <branding>ente</branding>",
+  "@onEnte": {
+    "description": "The text displayed above albums backed up to Ente",
+    "type": "text"
+  },
+  "oops": "อ๊ะ",
+  "@oops": {
+    "description": "Oops error title"
+  },
+  "oopsSomethingWentWrong": "อ๊ะ มีบางอย่างผิดพลาด",
+  "openstreetmapContributors": "ผู้มีส่วนร่วม OpenStreetMap",
+  "password": "รหัสผ่าน",
+  "@password": {
+    "description": "Password field label"
+  },
+  "passwordChangedSuccessfully": "เปลี่ยนรหัสผ่านสำเร็จ",
+  "@passwordChangedSuccessfully": {
+    "description": "Password changed successfully message"
+  },
+  "passwordStrength": "ความแข็งแรงของรหัสผ่าน: {passwordStrengthValue}",
+  "@passwordStrength": {
+    "description": "Text to indicate the password strength",
+    "placeholders": {
+      "passwordStrengthValue": {
+        "description": "The strength of the password as a string",
+        "type": "String",
+        "example": "Weak or Moderate or Strong"
+      }
+    }
+  },
+  "passwordWarning": "เราไม่จัดเก็บรหัสผ่านนี้ ดังนั้นหากคุณลืม <underline>เราจะไม่สามารถถอดรหัสข้อมูลของคุณ</underline>",
+  "@passwordWarning": {
+    "description": "Warning about password storage"
+  },
+  "permanentlyDelete": "ลบอย่างถาวร",
+  "pleaseTryAgain": "กรุณาลองอีกครั้ง",
+  "@pleaseTryAgain": {
+    "description": "Message asking user to try again"
+  },
+  "pleaseWait": "กรุณารอสักครู่...",
+  "@pleaseWait": {
+    "description": "Please wait message"
+  },
+  "privacy": "ความเป็นส่วนตัว",
+  "privacyPolicyTitle": "นโยบายความเป็นส่วนตัว",
+  "@privacyPolicyTitle": {
+    "description": "Privacy policy title"
+  },
+  "publicLinkEnabled": "เปิดใช้ลิงก์สาธารณะแล้ว",
+  "qrCode": "รหัส QR",
+  "rateUs": "ให้คะแนนพวกเรา!",
+  "recover": "กู้คืน",
+  "@recover": {
+    "description": "Recover button label"
+  },
+  "recoverAccount": "กู้คืนบัญชี",
+  "@recoverAccount": {
+    "description": "Recover account button label"
+  },
+  "recoveryKey": "คีย์การกู้คืน",
+  "@recoveryKey": {
+    "description": "Recovery key label"
+  },
+  "recoveryKeyCopiedToClipboard": "คัดลอกคีย์การกู้คืนไปยังคลิปบอร์ดแล้ว",
+  "@recoveryKeyCopiedToClipboard": {
+    "description": "Recovery key copied message"
+  },
+  "recoveryKeyOnForgotPassword": "หากคุณลืมรหัสผ่าน วิธีเดียวที่คุณสามารถกู้คืนข้อมูลของคุณได้คือการใช้คีย์นี้",
+  "@recoveryKeyOnForgotPassword": {
+    "description": "Recovery key importance explanation"
+  },
+  "recoveryKeySuccessBody": "ยอดเยี่ยม! คีย์การกู้คืนของคุณถูกต้อง ขอบคุณสำหรับการยืนยัน\n\nโปรดอย่าลืมสำรองคีย์การกู้คืนของคุณไว้อย่างปลอดภัย",
+  "recoveryKeyVerified": "ยืนยันคีย์การกู้คืนแล้ว",
+  "recoverySuccessful": "กู้คืนสำเร็จ!",
+  "recreatePasswordBody": "อุปกรณ์ปัจจุบันไม่ทรงพลังพอที่จะยืนยันรหัสผ่านของคุณ แต่เราสามารถสร้างใหม่ในลักษณะที่ใช้ได้กับอุปกรณ์ทั้งหมดได้\n\nกรุณาเข้าสู่ระบบโดยใช้คีย์การกู้คืนของคุณและสร้างรหัสผ่านใหม่ (คุณสามารถใช้รหัสเดิมอีกครั้งได้หากต้องการ)",
+  "@recreatePasswordBody": {
+    "description": "Body text for recreate password dialog"
+  },
+  "recreatePasswordTitle": "สร้างรหัสผ่านใหม่",
+  "@recreatePasswordTitle": {
+    "description": "Title for recreate password dialog"
+  },
+  "referralCodeHint": "คุณสามารถปรับแต่งโค้ดนี้ได้ถึง 3 ครั้ง",
+  "removeFromAlbum": "นำออกจากอัลบั้ม",
+  "removeFromAlbumTitle": "นำออกจากอัลบั้ม?",
+  "removeLink": "ลบลิ้งค์",
+  "removePublicLink": "ลบลิ้งค์สาธารณะ",
+  "renameAlbum": "เปลี่ยนชื่ออัลบั้ม",
+  "reportABug": "รายงานปัญกา",
+  "@reportABug": {
+    "description": "Label for reporting a bug"
+  },
+  "resendCode": "ส่งรหัสอีกครั้ง",
+  "resetPasswordTitle": "รีเซ็ตรหัสผ่าน",
+  "@resetPasswordTitle": {
+    "description": "Reset password title"
+  },
+  "restore": " กู้คืน",
+  "@restore": {
+    "description": "Display text for an action which triggers a restore of item from trash",
+    "type": "text"
+  },
+  "restoreToAlbum": "กู้คืนไปยังอัลบั้ม",
+  "restoringFiles": "กำลังกู้คืนไฟล์...",
+  "ritualAlbumSelectionPlaceholder": "เลือกอัลบั้ม",
+  "ritualSelectAlbumTitle": "เลือกอัลบั้ม",
+  "save": "บันทึก",
+  "@save": {
+    "description": "Label for save button"
+  },
+  "saveCode": "บันทึกโค้ด",
+  "saveCopy": "บันทึกสำเนา",
+  "saveKey": "บันทึกคีย์",
+  "@saveKey": {
+    "description": "Save key button label"
+  },
+  "saveYourRecoveryKeyIfYouHaventAlready": "บันทึกคีย์การกู้คืนของคุณหากคุณยังไม่ได้ทำ",
+  "scanCode": "สแกนรหัส",
+  "security": "ความปลอดภัย",
+  "selectAll": "เลือกทั้งหมด",
+  "selectedPhotos": "เลือก {count} รายการ",
+  "@selectedPhotos": {
+    "description": "Display the number of selected photos",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "5",
+        "type": "int"
+      }
+    }
+  },
+  "send": "ส่ง",
+  "@send": {
+    "description": "Label for send button"
+  },
+  "sendInvite": "ส่งคำเชิญ",
+  "sendLink": "ส่งลิงก์",
+  "sendQrCode": "ส่งรหัส QR",
+  "setAPassword": "ตั้งรหัสผ่าน",
+  "setPasswordTitle": "ตั้งรหัสผ่าน",
+  "@setPasswordTitle": {
+    "description": "Set password title"
+  },
+  "setupComplete": "ตั้งค่าเสร็จสมบูรณ์",
+  "share": "แชร์",
+  "shareALink": "แชร์​ลิงก์",
+  "shareLink": "แชร์​ลิงก์",
+  "sharing": "กำลังแชร์...",
+  "showMemories": "แสดงความทรงจำ",
+  "signUpTerms": "ฉันยอมรับ<u-terms>เงื่อนไขการให้บริการ</u-terms>และ<u-policy>นโยบายความเป็นส่วนตัว</u-policy>",
+  "@signUpTerms": {
+    "description": "Terms agreement text for sign up"
+  },
+  "skip": "ข้าม",
+  "socialNotifications": "ความคิดเผ็นและการถูกใจ",
+  "somethingWentWrong": "เกิดข้อผิดพลาดขึ้น",
+  "somethingWentWrongPleaseTryAgain": "มีบางอย่างผิดพลาด โปรดลองอีกครั้ง",
+  "@somethingWentWrongPleaseTryAgain": {
+    "description": "Generic error message"
+  },
+  "sorry": "ขออภัย",
+  "status": "สถานะ",
+  "storageBreakupFamily": "ครอบครัว",
+  "storageBreakupYou": "คุณ",
+  "@storageBreakupYou": {
+    "description": "Label to indicate how much storage you are using when you are part of a family plan"
+  },
+  "storageClaimed": "ได้รับ {storageAmountInGB} GB แล้ว!",
+  "@storageClaimed": {
+    "placeholders": {
+      "storageAmountInGB": {}
+    }
+  },
+  "strongPassword": "รหัสผ่านรัดกุม",
+  "strongStrength": "แข็งแรง",
+  "@strongStrength": {
+    "description": "Strong password strength label"
+  },
+  "success": "สำเร็จ",
+  "syncing": "กำลังซิงค์...",
+  "syncStopped": "หยุดการซิงค์แล้ว",
+  "systemTheme": "ระบบ",
+  "tapToCopy": "แตะเพื่อคัดลอก",
+  "termsOfServicesTitle": "เงื่อนไข",
+  "@termsOfServicesTitle": {
+    "description": "Terms of service title"
+  },
+  "theme": "ธีม",
+  "theRecoveryKeyYouEnteredIsIncorrect": "คีย์การกู้คืนที่คุณป้อนไม่ถูกต้อง",
+  "@theRecoveryKeyYouEnteredIsIncorrect": {
+    "description": "Detailed error message when recovery key is incorrect"
+  },
+  "thisDevice": "อุปกรณ์นี้",
+  "@thisDevice": {
+    "description": "Label for current device"
+  },
+  "toResetVerifyEmail": "เพื่อรีเซ็ตรหัสผ่านของคุณ โปรดยืนยันอีเมลของคุณก่อน",
+  "@toResetVerifyEmail": {
+    "description": "Message asking user to verify email before password reset"
+  },
+  "trash": "ถังขยะ",
+  "tryAgain": "ลองอีกครั้ง",
+  "@tryAgain": {
+    "description": "Try again button label"
+  },
+  "twoFactorAuthTitle": "การยืนยันแบบ 2 ขั้นตอน",
+  "@twoFactorAuthTitle": {
+    "description": "Two-factor authentication title"
+  },
+  "twofactorSetup": "การตั้งค่าสองปัจจัย",
+  "unarchive": "เลิกเก็บถาวร",
+  "@unarchive": {
+    "description": "Action of 'Unarchiving' an element"
+  },
+  "uncategorized": "ไม่มีหมวดหมู่",
+  "unhide": "เลิกซ่อน",
+  "unhideToAlbum": "เลิกซ่อนไปยังอัลบั้ม",
+  "unselectAll": "ไม่เลือกทั้งหมด",
+  "usable": "ใช้ได้",
+  "usedYourCode": "คนที่ใช้โค้ดของคุณ",
+  "useRecoveryKey": "ใช้คีย์การกู้คืน",
+  "@useRecoveryKey": {
+    "description": "Use recovery key button label"
+  },
+  "verify": "ยืนยัน",
+  "@verify": {
+    "description": "Verify button label"
+  },
+  "verifyEmail": "ยืนยันอีเมล",
+  "@verifyEmail": {
+    "description": "Verify email title"
+  },
+  "verifyIDLabel": "ยืนยัน",
+  "verifyingRecoveryKey": "กำลังยืนยันคีย์การกู้คืน...",
+  "verifyPassword": "ยืนยันรหัสผ่าน",
+  "@verifyPassword": {
+    "description": "Verify password button label"
+  },
+  "viewAllExifData": "ดูข้อมูล EXIF ทั้งหมด",
+  "viewer": "ผู้ชม",
+  "viewLargeFiles": "ไฟล์ขนาดใหญ่",
+  "viewRecoveryKey": "ดูคีย์การกู้คืน",
+  "waitingForWifi": "กำลังรอ WiFi...",
+  "weakStrength": "อ่อน",
+  "@weakStrength": {
+    "description": "Weak password strength label"
+  },
+  "weAreOpenSource": "พวกเราเป็นโอเพนซอร์ส!",
+  "weHaveSentCodeTo": "เราได้ส่งรหัสไปยัง {email}",
+  "@weHaveSentCodeTo": {
+    "description": "Text to indicate that we have sent a verification code to the user's email",
+    "placeholders": {
+      "email": {
+        "description": "The email address of the user",
+        "type": "String",
+        "example": "example@ente.com"
+      }
+    }
+  },
+  "yearly": "รายปี",
+  "@yearly": {
+    "description": "The text to display for yearly plans",
+    "type": "text"
+  },
+  "yesDelete": "ยืนยันการลบ",
+  "you": "คุณ",
+  "youAreOnTheLatestVersion": "คุณอยู่ในเวอร์ชั่นปัจจุบันแล้ว",
+  "youCannotShareWithYourself": "คุณไม่สามารถแชร์กับตัวเองได้"
+}

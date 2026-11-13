@@ -1,9 +1,6 @@
 {
-    // See https://go.microsoft.com/fwlink/?LinkId=827846
-    // for the documentation about the extensions.json format
     "recommendations": [
         "dart-code.dart-code",
-        "dart-code.flutter",
-        "felixangelov.bloc"
+        "dart-code.flutter"
     ]
 }

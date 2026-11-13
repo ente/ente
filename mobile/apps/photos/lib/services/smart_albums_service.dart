@@ -3,8 +3,6 @@ import "dart:convert";
 
 import "package:logging/logging.dart";
 import "package:photos/core/configuration.dart";
-import "package:photos/core/event_bus.dart";
-import "package:photos/events/smart_album_syncing_event.dart";
 import "package:photos/gateways/entity/models/type.dart";
 import "package:photos/models/collection/smart_album_config.dart";
 import "package:photos/models/file/file.dart";
@@ -21,8 +19,6 @@ class SmartAlbumsService {
 
   Future<Map<int, SmartAlbumConfig>>? _cachedConfigsFuture;
 
-  (int, bool)? syncingCollection;
-
   void clearCache() {
     _cachedConfigsFuture = null;
     _lastCacheRefreshTime = 0;
@@ -36,7 +32,7 @@ class SmartAlbumsService {
     final lastRemoteSyncTimeValue = lastRemoteSyncTime();
     if (_lastCacheRefreshTime != lastRemoteSyncTimeValue) {
       _lastCacheRefreshTime = lastRemoteSyncTimeValue;
-      _cachedConfigsFuture = null; // Invalidate cache
+      _cachedConfigsFuture = null;
     }
     _cachedConfigsFuture ??= _fetchAndCacheSaConfigs();
     return _cachedConfigsFuture!;
@@ -81,18 +77,39 @@ class SmartAlbumsService {
   }
 
   Future<void> syncSmartAlbums() async {
+    await _syncSmartAlbums();
+  }
+
+  Future<void> syncSmartAlbumsFor(Set<int> collectionIds) =>
+      _syncSmartAlbums(collectionIds: collectionIds);
+
+  Future<void> _syncSmartAlbums({Set<int>? collectionIds}) async {
     final isMLEnabled = hasGrantedMLConsent;
     if (!isMLEnabled) {
       _logger.warning("ML is not enabled, skipping smart album sync");
+      if (collectionIds != null) throw StateError("ML is not enabled");
       return;
     }
 
     _logger.info("Syncing Smart Albums");
     final cachedConfigs = await getSmartConfigs();
-    final userId = Configuration.instance.getUserID()!;
+    if (collectionIds != null &&
+        !cachedConfigs.keys.toSet().containsAll(collectionIds)) {
+      throw StateError("Smart album config is missing");
+    }
+    final userId = Configuration.instance.getUserID();
+    if (userId == null) {
+      _logger.warning("No user ID, skipping smart album sync");
+      if (collectionIds != null) throw StateError("No user ID");
+      return;
+    }
 
+    var hasFailed = false;
     for (final entry in cachedConfigs.entries) {
       final collectionId = entry.key;
+      if (collectionIds != null && !collectionIds.contains(collectionId)) {
+        continue;
+      }
       final config = entry.value;
 
       if (config.personIDs.isEmpty) {
@@ -102,31 +119,22 @@ class SmartAlbumsService {
         continue;
       }
 
-      final collection =
-          CollectionsService.instance.getCollectionByID(collectionId);
+      final collection = CollectionsService.instance.getCollectionByID(
+        collectionId,
+      );
 
       if (collection == null || !collection.canAutoAdd(userId)) {
         _logger.warning(
           "For config ($collectionId) user does not have permission",
         );
+        hasFailed = true;
         if (collection?.isDeleted ?? false) {
-          await _deleteEntry(
-            userId: userId,
-            collectionId: collectionId,
-          );
+          await _deleteEntry(userId: userId, collectionId: collectionId);
         }
 
         continue;
       }
 
-      syncingCollection = (collectionId, false);
-      Bus.instance.fire(
-        SmartAlbumSyncingEvent(collectionId: collectionId, isSyncing: false),
-      );
-
-      final infoMap = config.infoMap;
-
-      // Person Id key mapped to updatedAt value
       final updatedAtMap = await entityService.getUpdatedAts(
         EntityType.cgroup,
         config.personIDs.toList(),
@@ -137,24 +145,26 @@ class SmartAlbumsService {
 
       var newConfig = config;
       for (final personId in config.personIDs) {
-        // compares current updateAt with last added file's updatedAt
-        if (updatedAtMap[personId] == null ||
-            infoMap[personId] != null &&
-                (updatedAtMap[personId]! <= infoMap[personId]!.updatedAt)) {
+        if (updatedAtMap[personId] == null) {
           continue;
         }
 
-        final fileIds = (await SearchService.instance.getFilesForPersonID(
-          personId,
-          sortOnTime: false,
-        ))
-          ..removeWhere(
-            (e) =>
-                e.uploadedFileID == null ||
-                config.infoMap[personId]!.addedFiles
-                    .contains(e.uploadedFileID) ||
-                e.ownerID != userId,
-          );
+        final fileIds =
+            (await SearchService.instance.getFilesForPersonID(
+              personId,
+              sortOnTime: false,
+            ))..removeWhere(
+              (e) =>
+                  e.uploadedFileID == null ||
+                  config.infoMap[personId]!.addedFiles.contains(
+                    e.uploadedFileID,
+                  ) ||
+                  e.ownerID != userId,
+            );
+
+        if (fileIds.isEmpty) {
+          continue;
+        }
 
         pendingSyncFiles = {
           ...pendingSyncFiles,
@@ -162,11 +172,6 @@ class SmartAlbumsService {
         };
         pendingSyncFileSet = {...pendingSyncFileSet, ...fileIds};
       }
-
-      syncingCollection = (collectionId, true);
-      Bus.instance.fire(
-        SmartAlbumSyncingEvent(collectionId: collectionId, isSyncing: true),
-      );
 
       if (pendingSyncFiles.isNotEmpty) {
         try {
@@ -180,11 +185,13 @@ class SmartAlbumsService {
           await saveConfig(newConfig);
         } catch (e, sT) {
           _logger.warning(e, sT);
+          hasFailed = true;
         }
       }
     }
-    syncingCollection = null;
-    Bus.instance.fire(SmartAlbumSyncingEvent());
+    if (collectionIds != null && hasFailed) {
+      throw StateError("Failed to sync one or more smart albums");
+    }
     _logger.fine("Smart Albums sync completed");
   }
 
@@ -200,8 +207,6 @@ class SmartAlbumsService {
     final infoMap = Map<String, PersonInfo>.from(config?.infoMap ?? {});
 
     for (final personId in personIDs) {
-      // skip if personId already exists in infoMap
-      // only relevant when config exists before
       if (infoMap.containsKey(personId)) continue;
       infoMap[personId] = (updatedAt: 0, addedFiles: {});
     }
@@ -238,7 +243,6 @@ class SmartAlbumsService {
   String getId({required int collectionId, required int userId}) =>
       "sa_${userId}_$collectionId";
 
-  /// Wrapper method for entityService.addOrUpdate that handles cache refresh
   Future<LocalEntityData> _addOrUpdateEntity(
     EntityType type,
     Map<String, dynamic> jsonMap, {
@@ -255,7 +259,7 @@ class SmartAlbumsService {
       addWithCustomID: addWithCustomID,
     );
 
-    _lastCacheRefreshTime = 0; // Invalidate cache
+    clearCache();
     return result;
   }
 
@@ -266,6 +270,6 @@ class SmartAlbumsService {
     _logger.fine("Deleting entry for collection ($collectionId)");
     final id = getId(collectionId: collectionId, userId: userId);
     await entityService.deleteEntry(id);
-    _lastCacheRefreshTime = 0; // Invalidate cache
+    clearCache();
   }
 }

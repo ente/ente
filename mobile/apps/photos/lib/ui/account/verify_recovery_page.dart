@@ -1,19 +1,18 @@
-import 'package:bip39/bip39.dart' as bip39;
 import 'package:dio/dio.dart';
+import "package:ente_components/ente_components.dart";
 import 'package:ente_crypto/ente_crypto.dart';
+import 'package:ente_lock_screen/local_authentication_service.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart';
+import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'package:photos/core/event_bus.dart';
-import 'package:photos/ente_theme_data.dart';
 import 'package:photos/events/notification_event.dart';
-import "package:photos/generated/l10n.dart";
 import "package:photos/service_locator.dart";
 import 'package:photos/services/account/user_service.dart';
-import 'package:photos/services/local_authentication_service.dart';
-import "package:photos/theme/ente_theme.dart";
+import 'package:photos/src/rust/third_party/ente_frb_lib/recovery.dart'
+    as recovery;
 import 'package:photos/ui/account/recovery_key_page.dart';
-import 'package:photos/ui/common/gradient_button.dart';
 import "package:photos/ui/components/alert_bottom_sheet.dart";
 import 'package:photos/ui/components/buttons/button_widget.dart';
 import 'package:photos/utils/dialog_util.dart';
@@ -38,41 +37,57 @@ class _VerifyRecoveryPageState extends State<VerifyRecoveryPage> {
   void _verifyRecoveryKey() async {
     final dialog = createProgressDialog(
       context,
-      AppLocalizations.of(context).verifyingRecoveryKey,
+      context.strings.verifyingRecoveryKey,
     );
     await dialog.show();
     try {
       final String inputKey = _recoveryKey.text.trim();
+      if (!mounted) return;
       final String recoveryKey = CryptoUtil.bin2hex(
         await UserService.instance.getOrCreateRecoveryKey(context),
       );
-      final String recoveryKeyWords = bip39.entropyToMnemonic(recoveryKey);
+      final String recoveryKeyWords = recovery.recoveryKeyToMnemonic(
+        recoveryKeyHex: recoveryKey,
+      );
       if (inputKey == recoveryKey || inputKey == recoveryKeyWords) {
         try {
           await flagService.setRecoveryKeyVerified(true);
         } catch (e) {
           await dialog.hide();
           if (e is DioException && e.type == DioExceptionType.connectionError) {
+            if (!mounted) return;
             await showAlertBottomSheet(
               context,
-              title: AppLocalizations.of(context).noInternetConnection,
-              message: AppLocalizations.of(context)
-                  .pleaseCheckYourInternetConnectionAndTryAgain,
-              assetPath: 'assets/warning-green.png',
+              title: context.strings.noInternetConnection,
+              message:
+                  context.strings.pleaseCheckYourInternetConnectionAndTryAgain,
+              assetPath: 'assets/warning-grey.png',
             );
           } else {
+            if (!mounted) return;
             await showGenericErrorBottomSheet(context: context, error: e);
           }
           return;
         }
         Bus.instance.fire(NotificationEvent());
         await dialog.hide();
+        if (!mounted) return;
+        final colors = context.componentColors;
         await showAlertBottomSheet(
           context,
-          title: AppLocalizations.of(context).recoveryKeyVerified,
-          message: AppLocalizations.of(context).recoveryKeySuccessBody,
-          assetPath: 'assets/warning-green.png',
+          title: context.strings.recoveryKeyVerified,
+          message: context.strings.recoveryKeySuccessBody,
+          illustration: Container(
+            width: 71,
+            height: 62,
+            decoration: BoxDecoration(
+              color: colors.primary,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.check, color: colors.specialWhite, size: 40),
+          ),
         );
+        if (!mounted) return;
         Navigator.of(context).pop();
       } else {
         throw Exception("recovery key didn't match");
@@ -80,39 +95,43 @@ class _VerifyRecoveryPageState extends State<VerifyRecoveryPage> {
     } catch (e, s) {
       _logger.severe("failed to verify recovery key", e, s);
       await dialog.hide();
-      final String errMessage = AppLocalizations.of(context).invalidRecoveryKey;
+      if (!mounted) return;
+      final String errMessage = context.strings.invalidRecoveryKey;
+      if (!mounted) return;
       final result = await showChoiceDialog(
         context,
-        title: AppLocalizations.of(context).invalidKey,
+        title: context.strings.invalidKey,
         body: errMessage,
-        firstButtonLabel: AppLocalizations.of(context).tryAgain,
-        secondButtonLabel: AppLocalizations.of(context).viewRecoveryKey,
+        firstButtonLabel: context.strings.tryAgain,
+        secondButtonLabel: context.strings.viewRecoveryKey,
         secondButtonAction: ButtonAction.second,
       );
-      if (result!.action == ButtonAction.second) {
+      if (result?.action == ButtonAction.second) {
         await _onViewRecoveryKeyClick();
       }
     }
   }
 
   Future<void> _onViewRecoveryKeyClick() async {
-    final hasAuthenticated =
-        await LocalAuthenticationService.instance.requestLocalAuthentication(
-      context,
-      "Please authenticate to view your recovery key",
-    );
+    final hasAuthenticated = await LocalAuthenticationService.instance
+        .requestLocalAuthentication(
+          context,
+          "Please authenticate to view your recovery key",
+        );
     if (hasAuthenticated) {
       String recoveryKey;
       try {
+        if (!mounted) return;
         recoveryKey = CryptoUtil.bin2hex(
           await UserService.instance.getOrCreateRecoveryKey(context),
         );
+        if (!mounted) return;
         // ignore: unawaited_futures
         routeToPage(
           context,
           RecoveryKeyPage(
             recoveryKey,
-            AppLocalizations.of(context).ok,
+            context.strings.ok,
             isOnboarding: false,
             onDone: () {
               Navigator.of(context).pop();
@@ -120,6 +139,7 @@ class _VerifyRecoveryPageState extends State<VerifyRecoveryPage> {
           ),
         );
       } catch (e) {
+        if (!mounted) return;
         await showGenericErrorBottomSheet(context: context, error: e);
         return;
       }
@@ -128,13 +148,15 @@ class _VerifyRecoveryPageState extends State<VerifyRecoveryPage> {
 
   @override
   Widget build(BuildContext context) {
-    final enteTheme = Theme.of(context).colorScheme.enteTheme;
+    final colors = context.componentColors;
     return Scaffold(
+      backgroundColor: colors.backgroundBase,
       appBar: AppBar(
         elevation: 0,
+        backgroundColor: colors.backgroundBase,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          color: Theme.of(context).iconTheme.color,
+          color: colors.iconColor,
           onPressed: () {
             Navigator.of(context).pop();
           },
@@ -157,36 +179,22 @@ class _VerifyRecoveryPageState extends State<VerifyRecoveryPage> {
                       SizedBox(
                         width: double.infinity,
                         child: Text(
-                          AppLocalizations.of(context).confirmRecoveryKey,
-                          style: enteTheme.textTheme.h3Bold,
+                          context.strings.confirmRecoveryKey,
+                          style: TextStyles.h1.copyWith(color: colors.textBase),
                           textAlign: TextAlign.left,
                         ),
                       ),
                       const SizedBox(height: 18),
                       Text(
-                        AppLocalizations.of(context).recoveryKeyVerifyReason,
-                        style: enteTheme.textTheme.small
-                            .copyWith(color: enteTheme.colorScheme.textMuted),
+                        context.strings.recoveryKeyVerifyReason,
+                        style: TextStyles.mini.copyWith(
+                          color: colors.textLight,
+                        ),
                       ),
                       const SizedBox(height: 12),
-                      TextFormField(
-                        decoration: InputDecoration(
-                          filled: true,
-                          fillColor: getEnteColorScheme(context).fillFaint,
-                          hintText:
-                              AppLocalizations.of(context).enterYourRecoveryKey,
-                          contentPadding: const EdgeInsets.all(20),
-                          border: UnderlineInputBorder(
-                            borderSide: BorderSide.none,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                        ),
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontFeatures: [FontFeature.tabularFigures()],
-                        ),
+                      TextInputComponent(
                         controller: _recoveryKey,
-                        autofocus: false,
+                        hintText: context.strings.enterYourRecoveryKey,
                         autocorrect: false,
                         keyboardType: TextInputType.multiline,
                         minLines: 4,
@@ -205,9 +213,9 @@ class _VerifyRecoveryPageState extends State<VerifyRecoveryPage> {
                             mainAxisAlignment: MainAxisAlignment.end,
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              GradientButton(
+                              ButtonComponent(
+                                label: context.strings.confirm,
                                 onTap: _verifyRecoveryKey,
-                                text: AppLocalizations.of(context).confirm,
                               ),
                               const SizedBox(height: 8),
                             ],

@@ -6,17 +6,11 @@ class UploadURL {
 
   UploadURL(this.url, this.objectKey);
   Map<String, dynamic> toMap() {
-    return {
-      'url': url,
-      'objectKey': objectKey,
-    };
+    return {'url': url, 'objectKey': objectKey};
   }
 
   factory UploadURL.fromMap(Map<String, dynamic> map) {
-    return UploadURL(
-      map['url'],
-      map['objectKey'],
-    );
+    return UploadURL(map['url'], map['objectKey']);
   }
 
   String toJson() => json.encode(toMap());

@@ -3,12 +3,11 @@ package emergency
 import (
 	"context"
 	"database/sql"
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/stacktrace"
 	"github.com/lib/pq"
 )
 
-// Repository defines the methods for managing emergency contacts and recovery process.
 type Repository struct {
 	DB *sql.DB
 }
@@ -21,8 +20,6 @@ type ContactRow struct {
 	EncryptedKey       *string
 }
 
-// HasActiveLegacyContact returns true when the user has at least one accepted
-// legacy contact configured on their account.
 func (r *Repository) HasActiveLegacyContact(ctx context.Context, userID int64) (bool, error) {
 	var exists bool
 	err := r.DB.QueryRowContext(ctx,
@@ -48,7 +45,7 @@ func (r *Repository) AddEmergencyContact(ctx context.Context, userID int64, emer
 INSERT INTO  emergency_contact(user_id, emergency_contact_id, state, encrypted_key, notice_period_in_hrs) VALUES ($1,$2,$3,$4,$5)
 ON CONFLICT (user_id, emergency_contact_id) DO UPDATE SET state=$3, encrypted_key=$4, notice_period_in_hrs=$5 
 WHERE emergency_contact.user_id=$1 AND emergency_contact.emergency_contact_id=$2 AND emergency_contact.state = ANY($6)`,
-		userID, // $1 user_id
+		userID,
 		emergencyContactID,
 		ente.UserInvitedContact,
 		encKey,
@@ -64,8 +61,6 @@ WHERE emergency_contact.user_id=$1 AND emergency_contact.emergency_contact_id=$2
 	return rowAffected > 0, nil
 }
 
-// GetActiveContactForUser returns all the contacts for a user that are in state accepted or invited
-// and also returns all the contacts that have added the user as emergency contact
 func (r *Repository) GetActiveContactForUser(ctx context.Context, userID int64) ([]*ContactRow, error) {
 	rows, err := r.DB.QueryContext(ctx,
 		`SELECT user_id, emergency_contact_id, state, notice_period_in_hrs, encrypted_key 
@@ -84,10 +79,12 @@ func (r *Repository) GetActiveContactForUser(ctx context.Context, userID int64) 
 		}
 		contacts = append(contacts, &c)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, stacktrace.Propagate(err, "failed to read emergency contacts")
+	}
 	return contacts, nil
 }
 
-// GetActiveEmergencyContact for a given userID and emergencyContactID in active state
 func (r *Repository) GetActiveEmergencyContact(ctx context.Context, userID int64, emergencyContactID int64) (*ContactRow, error) {
 	row := r.DB.QueryRowContext(ctx, `SELECT user_id, emergency_contact_id, state, notice_period_in_hrs, encrypted_key
                                                                        				FROM emergency_contact WHERE user_id=$1 and emergency_contact_id=$2 and state = $3`,
@@ -100,50 +97,108 @@ func (r *Repository) GetActiveEmergencyContact(ctx context.Context, userID int64
 	return &c, nil
 }
 
-// UpdateState will return true if the state was updated, false if the state was not updated
 func (r *Repository) UpdateState(ctx context.Context,
 	userID int64,
 	emergencyContactID int64,
-	newState ente.ContactState) (bool, error) {
+	newState ente.ContactState) (bool, int64, error) {
+	tx, err := r.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return false, 0, stacktrace.Propagate(err, "failed to start emergency contact update")
+	}
+	defer tx.Rollback()
+	if err = lockOwnerForUpdate(ctx, tx, userID); err != nil {
+		return false, 0, err
+	}
 	allowedPreviousStates := getValidPreviousState(newState)
-	var res sql.Result
-	var err error
+	var result sql.Result
 	if newState == ente.ContactAccepted || newState == ente.UserInvitedContact {
-		res, err = r.DB.ExecContext(ctx, `UPDATE emergency_contact SET state=$1 WHERE user_id=$2 and emergency_contact_id=$3 and state = ANY($4)`,
+		result, err = tx.ExecContext(ctx, `UPDATE emergency_contact SET state=$1 WHERE user_id=$2 and emergency_contact_id=$3 and state = ANY($4)`,
 			newState, userID, emergencyContactID, pq.Array(allowedPreviousStates))
 	} else {
-		res, err = r.DB.ExecContext(ctx, `UPDATE emergency_contact SET state=$1, encrypted_key = NULL WHERE user_id=$2 and emergency_contact_id=$3 and state = ANY($4)`,
+		result, err = tx.ExecContext(ctx, `UPDATE emergency_contact SET state=$1, encrypted_key = NULL WHERE user_id=$2 and emergency_contact_id=$3 and state = ANY($4)`,
 			newState, userID, emergencyContactID, pq.Array(allowedPreviousStates))
 	}
 	if err != nil {
-		return false, stacktrace.Propagate(err, "")
+		return false, 0, stacktrace.Propagate(err, "")
 	}
-	count, err2 := res.RowsAffected()
-	if count > 1 {
-		panic("invalid state, only one row should be updated")
+	count, err := result.RowsAffected()
+	if err != nil || count == 0 {
+		return false, 0, stacktrace.Propagate(err, "")
 	}
-	return count > 0, stacktrace.Propagate(err2, "")
+
+	var cancelled int64
+	if newState == ente.ContactDenied || newState == ente.ContactLeft || newState == ente.UserRevokedContact {
+		status := ente.RecoveryStatusStopped
+		if newState == ente.UserRevokedContact {
+			status = ente.RecoveryStatusRejected
+		}
+		result, err = tx.ExecContext(ctx, `UPDATE emergency_recovery SET status=$1 WHERE user_id=$2 AND emergency_contact_id=$3 AND status = ANY($4)`,
+			status, userID, emergencyContactID, pq.Array([]ente.RecoveryStatus{ente.RecoveryStatusWaiting, ente.RecoveryStatusReady}))
+		if err != nil {
+			return false, 0, stacktrace.Propagate(err, "failed to cancel emergency recovery")
+		}
+		cancelled, err = result.RowsAffected()
+		if err != nil {
+			return false, 0, stacktrace.Propagate(err, "")
+		}
+	}
+	if err = tx.Commit(); err != nil {
+		return false, 0, stacktrace.Propagate(err, "failed to commit emergency contact update")
+	}
+	return true, cancelled, nil
 }
 
-// UpdateRecoveryNotice updates the notice period for an emergency contact
-// Only allows update if the contact state is INVITED or ACCEPTED
 func (r *Repository) UpdateRecoveryNotice(ctx context.Context,
 	userID int64,
 	emergencyContactID int64,
 	noticePeriodInHrs int) error {
-	res, err := r.DB.ExecContext(ctx, `UPDATE emergency_contact SET notice_period_in_hrs=$1 WHERE user_id=$2 and emergency_contact_id=$3 and state = ANY($4)`,
-		noticePeriodInHrs, userID, emergencyContactID, pq.Array([]ente.ContactState{ente.UserInvitedContact, ente.ContactAccepted}))
+	tx, err := r.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return stacktrace.Propagate(err, "failed to start recovery notice update")
+	}
+	defer tx.Rollback()
+	if err = lockOwnerForUpdate(ctx, tx, userID); err != nil {
+		return err
+	}
+	contact, err := getContactForUpdate(ctx, tx, userID, emergencyContactID)
+	if err != nil && err != sql.ErrNoRows {
+		return err
+	}
+	hasActiveSession, err := hasActiveRecovery(ctx, tx, userID, emergencyContactID)
+	if err != nil {
+		return err
+	}
+	if hasActiveSession {
+		return stacktrace.Propagate(&ente.ErrActiveRecoverySession, "")
+	}
+	if contact == nil || contact.State != ente.UserInvitedContact && contact.State != ente.ContactAccepted {
+		return ente.NewBadRequestWithMessage("emergency contact not found or not in valid state")
+	}
+	_, err = tx.ExecContext(ctx, `UPDATE emergency_contact SET notice_period_in_hrs=$1 WHERE user_id=$2 and emergency_contact_id=$3`,
+		noticePeriodInHrs, userID, emergencyContactID)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to update notice period")
 	}
-	count, err := res.RowsAffected()
-	if err != nil {
-		return stacktrace.Propagate(err, "failed to get rows affected")
+	return stacktrace.Propagate(tx.Commit(), "failed to commit recovery notice update")
+}
+
+func lockOwnerForUpdate(ctx context.Context, tx *sql.Tx, userID int64) error {
+	var lockedUserID int64
+	err := tx.QueryRowContext(ctx, `SELECT user_id FROM users WHERE user_id=$1 FOR NO KEY UPDATE`, userID).Scan(&lockedUserID)
+	return stacktrace.Propagate(err, "failed to lock recovery owner")
+}
+
+func getContactForUpdate(ctx context.Context, tx *sql.Tx, userID, emergencyContactID int64) (*ContactRow, error) {
+	row := tx.QueryRowContext(ctx, `SELECT user_id, emergency_contact_id, state, notice_period_in_hrs, encrypted_key
+		FROM emergency_contact WHERE user_id=$1 AND emergency_contact_id=$2 FOR UPDATE`, userID, emergencyContactID)
+	var contact ContactRow
+	if err := row.Scan(&contact.UserID, &contact.EmergencyContactID, &contact.State, &contact.NoticePeriodInHrs, &contact.EncryptedKey); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, err
+		}
+		return nil, stacktrace.Propagate(err, "failed to lock emergency contact")
 	}
-	if count == 0 {
-		return ente.NewBadRequestWithMessage("emergency contact not found or not in valid state")
-	}
-	return nil
+	return &contact, nil
 }
 
 func getValidPreviousState(cs ente.ContactState) []ente.ContactState {

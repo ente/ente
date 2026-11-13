@@ -17,7 +17,6 @@ func (c *CollectionParticipantRole) CanAdd() bool {
 	return *c == OWNER || *c == COLLABORATOR || *c == ADMIN
 }
 
-// CanRemoveAny indicates if the role allows user to remove files added by others too
 func (c *CollectionParticipantRole) CanRemoveAny() bool {
 	if c == nil {
 		return false

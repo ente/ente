@@ -61,18 +61,23 @@ class EntityService {
     Map<String, dynamic> jsonMap, {
     String? id,
     bool addWithCustomID = false,
+    int? expectedUpdatedAt,
   }) async {
     final String plainText = jsonEncode(jsonMap);
     final key = await getOrCreateEntityKey(type);
     late String encryptedData, header;
     if (type.isZipped) {
-      final ChaChaEncryptionResult result =
-          await gzipAndEncryptJson(jsonMap, key);
+      final ChaChaEncryptionResult result = await gzipAndEncryptJson(
+        jsonMap,
+        key,
+      );
       encryptedData = result.encData;
       header = result.header;
     } else {
-      final encryptedKeyData =
-          await CryptoUtil.encryptChaCha(utf8.encode(plainText), key);
+      final encryptedKeyData = await CryptoUtil.encryptChaCha(
+        utf8.encode(plainText),
+        key,
+      );
       encryptedData = CryptoUtil.bin2base64(encryptedKeyData.encryptedData!);
       header = CryptoUtil.bin2base64(encryptedKeyData.header!);
     }
@@ -82,7 +87,13 @@ class EntityService {
 
     final EntityData data = id == null || addWithCustomID
         ? await _gateway.createEntity(type, id, encryptedData, header)
-        : await _gateway.updateEntity(type, id, encryptedData, header);
+        : await _gateway.updateEntity(
+            type,
+            id,
+            encryptedData,
+            header,
+            expectedUpdatedAt: expectedUpdatedAt,
+          );
     final localData = LocalEntityData(
       id: data.id,
       type: type,
@@ -113,7 +124,7 @@ class EntityService {
 
   Future<int> syncEntity(EntityType type) async {
     try {
-      return _remoteToLocalSync(type);
+      return await _remoteToLocalSync(type);
     } catch (e) {
       _logger.severe("Failed to sync entities", e);
       return -1;
@@ -141,8 +152,10 @@ class EntityService {
     final bool hasMoreItems = result.length == fetchLimit;
     _logger.info("${result.length} entries of type $type fetched");
     final maxSyncTime = result.map((e) => e.updatedAt).reduce(max);
-    final List<String> deletedIDs =
-        result.where((element) => element.isDeleted).map((e) => e.id).toList();
+    final List<String> deletedIDs = result
+        .where((element) => element.isDeleted)
+        .map((e) => e.id)
+        .toList();
     if (deletedIDs.isNotEmpty) {
       _logger.info("${deletedIDs.length} entries of type $type deleted");
       await _db.deleteEntities(deletedIDs);

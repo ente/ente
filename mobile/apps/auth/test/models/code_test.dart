@@ -5,6 +5,23 @@ import 'package:ente_auth/models/code_display.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('omits malformed OTP input from parsing errors', () {
+    const rawData = 'otpauth://totp:invalid/Example?secret=JBSWY3DPEHPK3PXP';
+
+    expect(
+      () => Code.fromOTPAuthUrl(rawData),
+      throwsA(
+        isA<FormatException>()
+            .having((error) => error.source, 'source', isNull)
+            .having(
+              (error) => error.toString(),
+              'description',
+              'FormatException: OTP URL is malformed',
+            ),
+      ),
+    );
+  });
+
   test("parseCodeFromRawData", () {
     final code1 = Code.fromOTPAuthUrl(
       "otpauth://totp/example%20finance%3Aee%40ff.gg?secret=ASKZNWOU6SVYAMVS",
@@ -42,16 +59,20 @@ void main() {
     expect(code.secret, "ASKZNWOU6SVYAMVS");
     expect(code.counter, 15);
     code = code.copyWith(
-      display: CodeDisplay(pinned: true, tags: ["tag1", "com,ma", ';;%\$']),
+      display: CodeDisplay(
+        pinned: true,
+        tags: ["tag1", "com,ma", "%2C", "com,ma%2C", ';;%\$'],
+        note: 'Comma, literal %2C.',
+      ),
     );
     final dataToStore = code.toOTPAuthUrlFormat();
     final restoredCode = Code.fromOTPAuthUrl(jsonDecode(dataToStore));
     expect(restoredCode.display.pinned, true);
-    expect(restoredCode.display.tags, ["tag1", "com,ma", ';;%\$']);
+    expect(restoredCode.display.tags, code.display.tags);
+    expect(restoredCode.note, code.note);
     final secondDataToStore = restoredCode.toOTPAuthUrlFormat();
     expect(dataToStore, secondDataToStore);
   });
-//
 
   test("parseWithFunnyAccountName", () {
     final code = Code.fromOTPAuthUrl(
@@ -67,8 +88,9 @@ void main() {
         'otpauth://totp/%E6%A9%A1%E7%9A%AE%E9%B8%AD?secret=2CWDCK4EOIN5DJDRMYUMYBBO4MKSR5AX&issuer=ente.io';
     final code = Code.fromOTPAuthUrl(rubberDuckQr);
     expect(code.account, '橡皮鸭');
-    final String updatedRawCode =
-        code.copyWith(account: '伍迪', issuer: '鸭子').rawData;
+    final String updatedRawCode = code
+        .copyWith(account: '伍迪', issuer: '鸭子')
+        .rawData;
     final updateCode = Code.fromOTPAuthUrl(updatedRawCode);
     expect(updateCode.account, '伍迪', reason: 'updated accountMismatch');
     expect(updateCode.issuer, '鸭子', reason: 'updated issuerMismatch');

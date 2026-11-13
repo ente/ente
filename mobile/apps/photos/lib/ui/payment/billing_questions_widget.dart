@@ -1,98 +1,51 @@
 import 'dart:convert';
 
-import 'package:expansion_tile_card/expansion_tile_card.dart';
+import 'package:ente_ui/components/faq/faq_widgets.dart';
+import 'package:ente_ui/components/loading_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:photos/core/network/network.dart';
-import 'package:photos/ente_theme_data.dart';
-import 'package:photos/ui/common/loading_widget.dart';
 
-class BillingQuestionsWidget extends StatelessWidget {
-  const BillingQuestionsWidget({
-    super.key,
-  });
+class BillingQuestionsWidget extends StatefulWidget {
+  const BillingQuestionsWidget({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: NetworkClient.instance
-          .getDio()
-          .get("https://static.ente.io/faq.json")
-          .then((response) {
-        final faqItems = <FaqItem>[];
-        for (final item in response.data as List) {
-          faqItems.add(FaqItem.fromMap(item));
-        }
-        return faqItems;
-      }),
-      builder: (BuildContext context, AsyncSnapshot snapshot) {
-        if (snapshot.hasData) {
-          final faqs = <Widget>[];
-          faqs.add(
-            const Padding(
-              padding: EdgeInsets.all(24),
-              child: Text(
-                "FAQs",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          );
-          for (final faq in snapshot.data) {
-            faqs.add(FaqWidget(faq: faq));
-          }
-          faqs.add(
-            const Padding(
-              padding: EdgeInsets.all(16),
-            ),
-          );
-          return SingleChildScrollView(
-            child: Column(
-              children: faqs,
-            ),
-          );
-        } else {
-          return const EnteLoadingWidget();
-        }
-      },
-    );
-  }
+  State<BillingQuestionsWidget> createState() => _BillingQuestionsWidgetState();
 }
 
-class FaqWidget extends StatelessWidget {
-  const FaqWidget({
-    super.key,
-    required this.faq,
-  });
+class _BillingQuestionsWidgetState extends State<BillingQuestionsWidget> {
+  late final Future<List<FaqItem>> _faqs = _loadFaqs();
 
-  final FaqItem? faq;
+  Future<List<FaqItem>> _loadFaqs() async {
+    final response = await NetworkClient.instance.getDio().get(
+      "https://static.ente.com/faq.json",
+    );
+    final faqItems = <FaqItem>[];
+    if (response.data is List) {
+      for (final item in response.data as List) {
+        if (item is Map<String, dynamic>) {
+          faqItems.add(FaqItem.fromMap(item));
+        }
+      }
+    }
+    return faqItems;
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(2),
-      child: ExpansionTileCard(
-        elevation: 0,
-        title: Text(faq!.q!),
-        expandedTextColor: Theme.of(context).colorScheme.greenAlternative,
-        baseColor: Theme.of(context).cardColor,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(
-              left: 16,
-              right: 16,
-              bottom: 12,
-            ),
-            child: Text(
-              faq!.a!,
-              style: const TextStyle(
-                height: 1.5,
-              ),
-            ),
-          ),
-        ],
-      ),
+    return FutureBuilder<List<FaqItem>>(
+      future: _faqs,
+      builder: (BuildContext context, AsyncSnapshot<List<FaqItem>> snapshot) {
+        final faqs = snapshot.data;
+        if (faqs == null) {
+          return const EnteLoadingWidget();
+        }
+        return FaqSection(
+          children: [
+            for (final faq in faqs)
+              FaqItemWidget(question: faq.q ?? '', answer: faq.a ?? ''),
+          ],
+        );
+      },
     );
   }
 }
@@ -100,32 +53,20 @@ class FaqWidget extends StatelessWidget {
 class FaqItem {
   final String? q;
   final String? a;
-  FaqItem({
-    this.q,
-    this.a,
-  });
+  FaqItem({this.q, this.a});
 
-  FaqItem copyWith({
-    String? q,
-    String? a,
-  }) {
-    return FaqItem(
-      q: q ?? this.q,
-      a: a ?? this.a,
-    );
+  FaqItem copyWith({String? q, String? a}) {
+    return FaqItem(q: q ?? this.q, a: a ?? this.a);
   }
 
   Map<String, dynamic> toMap() {
-    return {
-      'q': q,
-      'a': a,
-    };
+    return {'q': q, 'a': a};
   }
 
   factory FaqItem.fromMap(Map<String, dynamic> map) {
     return FaqItem(
-      q: map['q'] ?? 'q',
-      a: map['a'] ?? 'a',
+      q: map['q']?.toString() ?? '',
+      a: map['a']?.toString() ?? '',
     );
   }
 

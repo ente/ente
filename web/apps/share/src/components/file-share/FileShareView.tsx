@@ -1,27 +1,27 @@
 import { Box, Button, CircularProgress, Typography } from "@mui/material";
-import { useColorScheme } from "@mui/material/styles";
-import { Notification } from "ente-new/photos/components/Notification";
+import { Notification } from "ente-base/components/Notification";
 import Head from "next/head";
 import React from "react";
-import { useFileShare } from "../../hooks/useFileShare";
+import { useFileShare } from "../../hooks/use-file-share";
 import { formatFileSize } from "../../services/file-share";
 import { getLockerFileIcon } from "../../utils/file-type";
 import { LockerTypeDisplay } from "./LockerTypeDisplay";
 
 export const FileShareView: React.FC = () => {
-    const { systemMode } = useColorScheme();
-    const isDarkMode = systemMode === "dark";
-
     const {
         loading,
         downloading,
         error,
         fileInfo,
-        notificationAttributes,
+        notificationProps,
         handleDownload,
         handleCopyContent,
-        setNotificationAttributes,
     } = useFileShare();
+    const iconInfo = fileInfo
+        ? getLockerFileIcon(fileInfo.fileName, {
+              lockerType: fileInfo.lockerType,
+          })
+        : null;
 
     return (
         <>
@@ -30,27 +30,47 @@ export const FileShareView: React.FC = () => {
             </Head>
             <Box
                 sx={{
-                    minHeight: "100dvh",
+                    height: "100dvh",
+                    width: "100%",
+                    maxWidth: "100%",
                     bgcolor: "accent.main",
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
-                    padding: { xs: 1, md: 3 },
+                    p: { xs: 1.25, md: 2 },
                     boxSizing: "border-box",
+                    overflow: "hidden",
                 }}
             >
                 <Box
                     sx={{
-                        minHeight: {
-                            xs: "calc(100dvh - 16px)",
-                            md: "calc(100dvh - 48px)",
-                        },
                         width: "100%",
+                        height: {
+                            xs: "calc(100dvh - 20px)",
+                            md: "calc(100dvh - 32px)",
+                        },
                         bgcolor: "background.default",
-                        borderRadius: { xs: "20px", md: "40px" },
+                        borderRadius: { xs: "24px", md: "34px" },
                         display: "flex",
                         flexDirection: "column",
                         alignItems: "center",
+                        overflowX: "hidden",
+                        overflowY: "auto",
+                        "& > *": { flexShrink: 0 },
+                        scrollbarWidth: "thin",
+                        scrollbarColor: "rgba(128, 128, 128, 0.35) transparent",
+                        "&::-webkit-scrollbar": { width: 6 },
+                        "&::-webkit-scrollbar-track": {
+                            background: "transparent",
+                            marginBlock: "34px",
+                        },
+                        "&::-webkit-scrollbar-thumb": {
+                            backgroundColor: "rgba(128, 128, 128, 0.35)",
+                            borderRadius: "999px",
+                            "&:hover": {
+                                backgroundColor: "rgba(128, 128, 128, 0.55)",
+                            },
+                        },
                         "& ::selection": {
                             backgroundColor: "accent.main",
                             color: "fixed.white",
@@ -61,54 +81,55 @@ export const FileShareView: React.FC = () => {
                         },
                     }}
                 >
-                    {/* Ente Locker Logo */}
                     <Box
                         sx={{
-                            mt: { xs: 5, md: 6 },
-                            mb: fileInfo?.lockerType ? { xs: 16, md: 0 } : 0,
-                            alignSelf: { xs: "center", md: "flex-end" },
-                            mr: { xs: 0, md: 6 },
+                            position: "sticky",
+                            top: { xs: 16, md: 24 },
+                            zIndex: 1,
+                            alignSelf: "flex-end",
+                            height: 0,
+                            display: "flex",
+                            alignItems: "flex-start",
+                            justifyContent: "flex-end",
+                            px: { xs: 3, md: 4.5 },
                         }}
                     >
                         <a
-                            href="https://ente.io/locker"
+                            href="https://ente.com/locker"
                             target="_blank"
                             rel="noopener noreferrer"
                             style={{ display: "block", lineHeight: 0 }}
                         >
-                            <Box
-                                component="img"
-                                src={
-                                    isDarkMode
-                                        ? "/images/ente-locker-white.svg"
-                                        : "/images/ente-locker.svg"
-                                }
-                                alt="Ente Locker"
-                                sx={{ height: "56px", cursor: "pointer" }}
-                            />
+                            <picture>
+                                <source
+                                    srcSet="/images/ente-locker-white.svg"
+                                    media="(prefers-color-scheme: dark)"
+                                />
+                                <Box
+                                    component="img"
+                                    src="/images/ente-locker.svg"
+                                    alt="Ente Locker"
+                                    sx={{ height: "56px", cursor: "pointer" }}
+                                />
+                            </picture>
                         </a>
                     </Box>
 
-                    {/* Main Container */}
                     <Box
                         sx={{
                             display: "flex",
                             flexDirection: "column",
                             alignItems: "center",
-                            justifyContent: fileInfo?.lockerType
-                                ? "flex-start"
-                                : "center",
+                            justifyContent: "center",
                             width: "100%",
-                            maxWidth: 400,
+                            maxWidth: fileInfo?.lockerType
+                                ? { xs: 400, md: 640, lg: 720 }
+                                : 400,
                             flex: 1,
                             px: 3,
-                            pb: 8,
-                            mt: fileInfo?.lockerType
-                                ? { xs: 0, md: "20dvh" }
-                                : 0,
+                            py: { xs: "88px", md: 3 },
                         }}
                     >
-                        {/* Loading State */}
                         {loading && (
                             <Box
                                 sx={{
@@ -125,7 +146,6 @@ export const FileShareView: React.FC = () => {
                             </Box>
                         )}
 
-                        {/* Error State */}
                         {error && !loading && (
                             <Box
                                 sx={{
@@ -137,16 +157,17 @@ export const FileShareView: React.FC = () => {
                                     p: 3,
                                 }}
                             >
-                                <Typography variant="body" color="error">
+                                <Typography
+                                    variant="body"
+                                    sx={{ color: "error.main" }}
+                                >
                                     {error}
                                 </Typography>
                             </Box>
                         )}
 
-                        {/* File Info Display */}
-                        {fileInfo && !loading && (
+                        {fileInfo && iconInfo && !loading && (
                             <>
-                                {/* File Info - Centered */}
                                 <Box
                                     sx={{
                                         display: "flex",
@@ -155,16 +176,15 @@ export const FileShareView: React.FC = () => {
                                         justifyContent: "center",
                                         gap: 3,
                                         width: "100%",
-                                        marginBottom: 4,
+                                        marginBottom: fileInfo.lockerType
+                                            ? 0
+                                            : 4,
                                     }}
                                 >
-                                    {/* Large File Icon */}
                                     <Box
                                         sx={{
-                                            backgroundColor: getLockerFileIcon(
-                                                fileInfo.fileName,
-                                                fileInfo.lockerType,
-                                            ).backgroundColor,
+                                            backgroundColor:
+                                                iconInfo.backgroundColor,
                                             borderRadius: "20px",
                                             padding: 1.8,
                                             display: "flex",
@@ -172,15 +192,9 @@ export const FileShareView: React.FC = () => {
                                             justifyContent: "center",
                                         }}
                                     >
-                                        {
-                                            getLockerFileIcon(
-                                                fileInfo.fileName,
-                                                fileInfo.lockerType,
-                                            ).icon
-                                        }
+                                        {iconInfo.icon}
                                     </Box>
 
-                                    {/* File Name */}
                                     <Typography
                                         variant="h5"
                                         sx={{
@@ -196,7 +210,6 @@ export const FileShareView: React.FC = () => {
                                         {fileInfo.fileName}
                                     </Typography>
 
-                                    {/* File Size - only show if no locker type */}
                                     {!fileInfo.lockerType && (
                                         <Typography
                                             variant="body"
@@ -214,7 +227,6 @@ export const FileShareView: React.FC = () => {
                                         </Typography>
                                     )}
 
-                                    {/* Locker Type Display */}
                                     {fileInfo.lockerType &&
                                         fileInfo.lockerInfoData && (
                                             <LockerTypeDisplay
@@ -225,7 +237,6 @@ export const FileShareView: React.FC = () => {
                                         )}
                                 </Box>
 
-                                {/* Download Button - Only show if not a LockerInfoType */}
                                 {!fileInfo.lockerType && (
                                     <Box sx={{ width: "100%", mt: 4 }}>
                                         <Button
@@ -273,11 +284,7 @@ export const FileShareView: React.FC = () => {
                         )}
                     </Box>
 
-                    <Notification
-                        open={!!notificationAttributes}
-                        onClose={() => setNotificationAttributes(undefined)}
-                        attributes={notificationAttributes}
-                    />
+                    <Notification {...notificationProps} />
                 </Box>
             </Box>
         </>

@@ -1,10 +1,14 @@
 ---
-title: This Page Has Moved
-description: This content has been reorganized
+title: Public Links
+description: Share photos via public links with passwords and expiry in Ente Photos
 search: false
+head:
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
-# This Page Has Moved
+# Public Links
 
 The **Public Links** feature guide has moved to:
 

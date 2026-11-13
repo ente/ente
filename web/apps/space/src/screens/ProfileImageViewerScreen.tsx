@@ -1,0 +1,467 @@
+import { ArrowLeft02Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Box, Skeleton } from "@mui/material";
+import type { SpaceActionPhase } from "components/ActionFeedback";
+import { spaceAppAvatarCropSize } from "components/AvatarCropPage";
+import { SpaceAvatarImage } from "components/AvatarImage";
+import { ConfirmationActionSheet } from "components/ConfirmationActionSheet";
+import React, { useEffect, useRef } from "react";
+import type { SetupProfile } from "screens/SetupProfileScreen";
+import {
+    spaceAppBackground,
+    spaceDanger,
+    spaceOnAccent,
+    spaceSurface,
+    spaceText,
+} from "styles/colors";
+import { spaceTouchTargetSize } from "styles/touch-targets";
+import {
+    spaceAvatarImageInputAccept,
+    spaceCoverImageInputAccept,
+    spaceDefaultCoverImagePath,
+    spaceProfileCoverAspectRatio,
+} from "utils/post-image";
+
+const green = "#08C225";
+const textBase = spaceText;
+const profileCoverBackground = spaceSurface;
+const profileAvatarSkeletonBackground = spaceSurface;
+export const friendProfileImageViewerBackground = "#000000";
+
+interface FriendProfileImageViewerScreenProps {
+    displayName: string;
+    imageUrl: string;
+    onClose: () => void;
+    variant: "avatar" | "cover";
+}
+
+export const FriendProfileImageViewerScreen: React.FC<
+    FriendProfileImageViewerScreenProps
+> = ({ displayName, imageUrl, onClose, variant }) => {
+    const imageDescription =
+        variant == "cover" ? "cover image" : "profile picture";
+
+    useEffect(() => {
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+
+        const closeOnEscape = (event: KeyboardEvent) => {
+            if (event.key == "Escape") onClose();
+        };
+        window.addEventListener("keydown", closeOnEscape);
+
+        return () => {
+            document.body.style.overflow = previousOverflow;
+            window.removeEventListener("keydown", closeOnEscape);
+        };
+    }, [onClose]);
+
+    return (
+        <Box
+            role="dialog"
+            aria-label={`${displayName} ${imageDescription}`}
+            aria-modal="true"
+            onClick={onClose}
+            sx={{
+                alignItems: "center",
+                bgcolor: friendProfileImageViewerBackground,
+                display: "flex",
+                inset: 0,
+                justifyContent: "center",
+                overflow: "hidden",
+                position: "fixed",
+                zIndex: 1300,
+            }}
+        >
+            <Box
+                component="img"
+                alt={`${displayName}'s ${imageDescription}`}
+                src={imageUrl}
+                onClick={(event) => event.stopPropagation()}
+                sx={{
+                    aspectRatio: variant == "cover" ? undefined : "1 / 1",
+                    borderRadius: variant == "cover" ? 0 : "50%",
+                    display: "block",
+                    maxHeight:
+                        variant == "cover" ? "calc(100svh - 112px)" : undefined,
+                    maxWidth: variant == "cover" ? "100vw" : undefined,
+                    objectFit: "cover",
+                    width:
+                        variant == "cover"
+                            ? "auto"
+                            : "min(calc(100vw - 48px), calc(100svh - 112px), 512px)",
+                }}
+            />
+            <Box
+                component="button"
+                type="button"
+                aria-label={`Close ${imageDescription}`}
+                autoFocus
+                onClick={(event) => {
+                    event.stopPropagation();
+                    onClose();
+                }}
+                sx={{
+                    alignItems: "center",
+                    bgcolor: "transparent",
+                    border: 0,
+                    color: "#D8D8D8",
+                    cursor: "pointer",
+                    display: "flex",
+                    height: spaceTouchTargetSize,
+                    justifyContent: "center",
+                    p: 0,
+                    position: "absolute",
+                    right: "max(4px, env(safe-area-inset-right))",
+                    top: "calc(2px + env(safe-area-inset-top))",
+                    width: spaceTouchTargetSize,
+                    "&:focus-visible": {
+                        outline: `2px solid ${green}`,
+                        outlineOffset: 2,
+                    },
+                }}
+            >
+                <HugeiconsIcon
+                    icon={Cancel01Icon}
+                    size={18}
+                    strokeWidth={1.8}
+                />
+            </Box>
+        </Box>
+    );
+};
+
+interface ProfileImageViewerScreenProps {
+    onBack: () => void;
+    onRemoveImage?: () => Promise<void>;
+    onSelectFile: (file: File) => void;
+    profile: SetupProfile;
+    variant: "avatar" | "cover";
+}
+
+export const ProfileImageViewerScreen: React.FC<
+    ProfileImageViewerScreenProps
+> = ({ onBack, onRemoveImage, onSelectFile, profile, variant }) => {
+    const inputRef = useRef<HTMLInputElement | null>(null);
+    const [isRemoveImageSheetOpen, setIsRemoveImageSheetOpen] =
+        React.useState(false);
+    const [removeImageActionPhase, setRemoveImageActionPhase] =
+        React.useState<SpaceActionPhase | null>(null);
+    const [removeImageErrorMessage, setRemoveImageErrorMessage] =
+        React.useState<string | null>(null);
+    const isCover = variant == "cover";
+    const title = isCover ? "Cover image" : "Profile picture";
+    const removeLabel = isCover
+        ? "Remove cover image"
+        : "Remove profile picture";
+    const actionLabel = isCover
+        ? "Change cover image"
+        : "Change profile picture";
+    const imageUrl = isCover ? profile.coverUrl : profile.avatarUrl;
+    const isCoverURLPending = isCover && Boolean(profile.coverObjectID);
+    const isAvatarURLPending =
+        !isCover && Boolean(profile.avatarObjectID) && !imageUrl;
+    const displayImageUrl =
+        isCover && !imageUrl
+            ? isCoverURLPending
+                ? undefined
+                : spaceDefaultCoverImagePath
+            : imageUrl;
+
+    const handleFileSelect: React.ChangeEventHandler<HTMLInputElement> = (
+        event,
+    ) => {
+        const file = event.target.files?.[0];
+        event.target.value = "";
+        if (file) onSelectFile(file);
+    };
+
+    const cancelRemoveImage = () => {
+        if (removeImageActionPhase) return;
+        setRemoveImageErrorMessage(null);
+        setIsRemoveImageSheetOpen(false);
+    };
+
+    const confirmRemoveImage = async () => {
+        if (!onRemoveImage || removeImageActionPhase) return;
+
+        setRemoveImageActionPhase("busy");
+        setRemoveImageErrorMessage(null);
+        try {
+            await onRemoveImage();
+            setIsRemoveImageSheetOpen(false);
+            setRemoveImageActionPhase(null);
+        } catch (error) {
+            setRemoveImageErrorMessage(
+                error instanceof Error
+                    ? error.message
+                    : `Couldn't remove your ${isCover ? "cover image" : "profile picture"}. Please try again.`,
+            );
+            setRemoveImageActionPhase(null);
+        }
+    };
+
+    return (
+        <Box
+            component="main"
+            sx={{
+                background: spaceAppBackground,
+                color: textBase,
+                display: "grid",
+                minHeight: "var(--space-page-height, 100svh)",
+                overflowX: "hidden",
+                placeItems: { xs: "stretch", sm: "start center" },
+            }}
+        >
+            <Box
+                sx={{
+                    bgcolor: "transparent",
+                    boxSizing: "border-box",
+                    display: "grid",
+                    gridTemplateRows:
+                        "calc(68px + var(--space-ios-safe-area-top, 0px)) minmax(0, 1fr) auto",
+                    minHeight: "var(--space-page-height, 100svh)",
+                    mx: "auto",
+                    width: "100%",
+                    "@media (min-width: 600px)": { maxWidth: 390 },
+                }}
+            >
+                <Box
+                    ref={inputRef}
+                    component="input"
+                    type="file"
+                    accept={
+                        isCover
+                            ? spaceCoverImageInputAccept
+                            : spaceAvatarImageInputAccept
+                    }
+                    onChange={handleFileSelect}
+                    sx={{ display: "none" }}
+                />
+                <Box
+                    component="header"
+                    sx={{
+                        alignItems: "center",
+                        display: "grid",
+                        gridTemplateColumns: `${spaceTouchTargetSize}px 1fr ${spaceTouchTargetSize}px`,
+                        height: "calc(68px + var(--space-ios-safe-area-top, 0px))",
+                        pt: "var(--space-ios-safe-area-top, 0px)",
+                        pl: "max(16px, var(--space-ios-safe-area-left, 0px))",
+                        pr: "max(16px, var(--space-ios-safe-area-right, 0px))",
+                        width: "100%",
+                    }}
+                >
+                    <Box
+                        component="button"
+                        type="button"
+                        aria-label="Back"
+                        onClick={onBack}
+                        sx={{
+                            alignItems: "center",
+                            bgcolor: "transparent",
+                            border: 0,
+                            color: textBase,
+                            cursor: "pointer",
+                            display: "flex",
+                            height: spaceTouchTargetSize,
+                            justifyContent: "flex-start",
+                            ml: "-2px",
+                            p: 0,
+                            width: spaceTouchTargetSize,
+                            "&:focus-visible": {
+                                borderRadius: "50%",
+                                outline: `2px solid ${green}`,
+                                outlineOffset: 2,
+                            },
+                        }}
+                    >
+                        <HugeiconsIcon
+                            icon={ArrowLeft02Icon}
+                            size={24}
+                            strokeWidth={1.8}
+                        />
+                    </Box>
+                    <Box
+                        component="h1"
+                        sx={{
+                            color: textBase,
+                            fontFamily: '"Inter Variable", Inter, sans-serif',
+                            fontSize: 18,
+                            fontWeight: 700,
+                            justifySelf: "center",
+                            lineHeight: "24px",
+                            m: 0,
+                        }}
+                    >
+                        {title}
+                    </Box>
+                    <Box />
+                </Box>
+
+                <Box
+                    sx={{
+                        alignItems: "center",
+                        boxSizing: "border-box",
+                        display: "flex",
+                        justifyContent: "center",
+                        minHeight: 0,
+                        px: isCover ? 0 : 3,
+                    }}
+                >
+                    {isCover ? (
+                        <Box
+                            sx={{
+                                aspectRatio: `${spaceProfileCoverAspectRatio} / 1`,
+                                bgcolor: profileCoverBackground,
+                                overflow: "hidden",
+                                width: "100%",
+                            }}
+                        >
+                            {displayImageUrl ? (
+                                <Box
+                                    component="img"
+                                    alt=""
+                                    src={displayImageUrl}
+                                    sx={{
+                                        display: "block",
+                                        height: "100%",
+                                        objectFit: "cover",
+                                        objectPosition: "center",
+                                        width: "100%",
+                                    }}
+                                />
+                            ) : (
+                                <Skeleton
+                                    variant="rectangular"
+                                    sx={{
+                                        bgcolor:
+                                            profileAvatarSkeletonBackground,
+                                        display: "block",
+                                        height: "100%",
+                                        transform: "none",
+                                        width: "100%",
+                                    }}
+                                />
+                            )}
+                        </Box>
+                    ) : (
+                        <Box
+                            sx={{
+                                alignItems: "center",
+                                aspectRatio: "1 / 1",
+                                bgcolor: profileAvatarSkeletonBackground,
+                                borderRadius: "50%",
+                                display: "flex",
+                                justifyContent: "center",
+                                overflow: "hidden",
+                                width: spaceAppAvatarCropSize,
+                            }}
+                        >
+                            {isAvatarURLPending ? (
+                                <Skeleton
+                                    variant="circular"
+                                    sx={{
+                                        bgcolor:
+                                            profileAvatarSkeletonBackground,
+                                        height: "100%",
+                                        transform: "none",
+                                        width: "100%",
+                                    }}
+                                />
+                            ) : (
+                                <SpaceAvatarImage src={displayImageUrl} />
+                            )}
+                        </Box>
+                    )}
+                </Box>
+
+                <Box
+                    sx={{
+                        boxSizing: "border-box",
+                        pb: "calc(24px + env(safe-area-inset-bottom))",
+                        px: 3,
+                        pt: 3,
+                    }}
+                >
+                    <Box
+                        className="green-bg"
+                        component="button"
+                        type="button"
+                        onClick={() => inputRef.current?.click()}
+                        sx={{
+                            alignItems: "center",
+                            bgcolor: green,
+                            border: 0,
+                            borderRadius: "20px",
+                            color: spaceOnAccent,
+                            cursor: "pointer",
+                            display: "flex",
+                            fontFamily: '"Inter Variable", Inter, sans-serif',
+                            fontSize: 14,
+                            fontWeight: 500,
+                            height: 44,
+                            justifyContent: "center",
+                            lineHeight: "20px",
+                            px: 2,
+                            width: "100%",
+                            "&:focus-visible": {
+                                outline: `2px solid ${green}`,
+                                outlineOffset: 3,
+                            },
+                            "&:hover": { bgcolor: "#07AE22" },
+                        }}
+                    >
+                        {actionLabel}
+                    </Box>
+                    {onRemoveImage && (
+                        <Box
+                            component="button"
+                            type="button"
+                            disabled={Boolean(removeImageActionPhase)}
+                            onClick={() => {
+                                setRemoveImageErrorMessage(null);
+                                setIsRemoveImageSheetOpen(true);
+                            }}
+                            sx={{
+                                bgcolor: "transparent",
+                                border: 0,
+                                color: spaceDanger,
+                                cursor: removeImageActionPhase
+                                    ? "default"
+                                    : "pointer",
+                                display: "block",
+                                fontFamily:
+                                    '"Inter Variable", Inter, sans-serif',
+                                fontSize: 14,
+                                fontWeight: 500,
+                                height: 44,
+                                lineHeight: "20px",
+                                mt: 1,
+                                p: 0,
+                                width: "100%",
+                                "&:focus-visible": {
+                                    outline: `2px solid ${spaceDanger}`,
+                                    outlineOffset: 3,
+                                },
+                            }}
+                        >
+                            {removeLabel}
+                        </Box>
+                    )}
+                </Box>
+            </Box>
+            <ConfirmationActionSheet
+                open={isRemoveImageSheetOpen}
+                title={`${removeLabel}?`}
+                description={`Your profile will use the default ${isCover ? "cover image" : "profile picture"}.`}
+                confirmLabel={removeLabel}
+                confirmActionPhase={removeImageActionPhase}
+                confirmDisabled={Boolean(removeImageActionPhase)}
+                errorMessage={removeImageErrorMessage}
+                cancelDisabled={Boolean(removeImageActionPhase)}
+                onCancel={cancelRemoveImage}
+                onConfirm={() => void confirmRemoveImage()}
+            />
+        </Box>
+    );
+};

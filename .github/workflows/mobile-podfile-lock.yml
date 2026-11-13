@@ -1,0 +1,28 @@
+name: "Verify Podfile.lock (Mobile)"
+
+on:
+    workflow_call:
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    pod-check:
+        runs-on: macos-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+            - name: Install Flutter
+              uses: $/.github/actions/setup-flutter
+
+            - run: flutter pub get --enforce-lockfile
+              working-directory: mobile
+
+            - name: Verify Podfile.lock is current
+              run: |
+                  for app in photos auth locker; do
+                      echo "Checking $app"
+                      ( cd "mobile/apps/$app/ios" && pod install --deployment )
+                  done

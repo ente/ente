@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+const _htmlEscape = HtmlEscape(HtmlEscapeMode.element);
+
 Future<String> generateQRImageBase64(String data) async {
   const size = 250.0;
   const padding = 20.0;
@@ -47,7 +49,7 @@ Future<String> generateQRImageBase64(String data) async {
   return base64Encode(pngBytes);
 }
 
-Future<String> generateOTPEntryHtml(Code code, BuildContext context) async {
+Future<String> generateOTPEntryHtml(Code code) async {
   // Capitalize algorithm for Google Authenticator compatibility in QR codes
   final qrData = code.rawData
       .replaceAll('algorithm=Algorithm.', 'algorithm=')
@@ -55,20 +57,22 @@ Future<String> generateOTPEntryHtml(Code code, BuildContext context) async {
       .replaceAll('algorithm=sha256', 'algorithm=SHA256')
       .replaceAll('algorithm=sha512', 'algorithm=SHA512');
   final qrBase64 = await generateQRImageBase64(qrData);
-  String notes = code.display.note;
-  if (notes.isNotEmpty) {
-    notes = '<p class="group">Note: <b>$notes</b></p>';
-  }
+  final issuer = _htmlEscape.convert(code.issuer);
+  final account = _htmlEscape.convert(code.account);
+  final secret = _htmlEscape.convert(code.secret);
+  final note = _htmlEscape.convert(code.display.note);
+  final notes = note.isEmpty ? '' : '<p class="group">Note: <b>$note</b></p>';
   return '''
+    <section class="otp-entry-card">
     <table class="otp-entry">
       <tr>
         <td>
-          <p><b>${code.issuer}</b></p>
-          <p><b>${code.account}</b></p>
+          <p><b>$issuer</b></p>
+          <p><b>$account</b></p>
           <p class="group">Type: <b>${code.type.name}</b></p>
           <p>Algorithm: <b>${code.algorithm.name}</b></p>
           <p>Digits: <b>${code.digits}</b></p>
-          <p>Secret: <b>${code.secret}</b></p>
+          <p>Secret: <b>$secret</b></p>
           $notes
         </td>
         <td class="otp-qr">
@@ -76,9 +80,8 @@ Future<String> generateOTPEntryHtml(Code code, BuildContext context) async {
         </td>
       </tr>
     </table>
-    <br/>
     <hr class="red-separator" />
-    <br/>
+    </section>
   ''';
 }
 
@@ -90,15 +93,17 @@ Future<String> generateHtml(BuildContext context) async {
 
   for (final code in allCodes) {
     if (code.hasError) continue;
-    final entry = await generateOTPEntryHtml(code, context);
+    final entry = await generateOTPEntryHtml(code);
     enteries.add(entry);
   }
 
   return '''
   <!DOCTYPE html>
   <html>
-  <meta content="text/html; charset=utf-8" />
+  <head>
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'none'; img-src data: https://email-assets.ente.com; style-src 'unsafe-inline'; object-src 'none'; base-uri 'none'; form-action 'none'" />
   <style>
   body {
     background-color: #f0f1f3;
@@ -193,10 +198,17 @@ Future<String> generateHtml(BuildContext context) async {
     width: 24px !important;
   }
 
+  .otp-entry-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
   .otp-entry {
     width: 100%;
     table-layout: fixed;
     border-collapse: collapse;
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
   .otp-entry td {
@@ -222,6 +234,8 @@ Future<String> generateHtml(BuildContext context) async {
     width: 30%;
     text-align: center;
     vertical-align: middle;
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
   .otp-entry p {
@@ -237,6 +251,22 @@ Future<String> generateHtml(BuildContext context) async {
     height: 1px;
     background-color: rgb(173, 0, 255);
   }
+
+  @media print {
+    body {
+      background-color: #fff;
+    }
+
+    .otp-entry-card,
+    .otp-entry,
+    .otp-entry tr,
+    .otp-entry td,
+    .otp-qr,
+    .otp-qr img {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+  }
 </style>
   </head>
   <body>
@@ -248,9 +278,7 @@ Future<String> generateHtml(BuildContext context) async {
             30px 30px 30px; max-width: 700px; margin: 0 auto; border-radius: 5px;
             font-size: 16px; ">
       <main>
-        <p>
-          ${enteries.join('')}
-        </p>
+        ${enteries.join('')}
       </main>
     </div>
     <br />  
@@ -258,17 +286,17 @@ Future<String> generateHtml(BuildContext context) async {
   <div class="footer" style="text-align: center; font-size: 12px; color:
     rgb(136, 136, 136)">
     <div>
-      <a href="https://ente.io" target="_blank"><img src="https://email-assets.ente.io/ente-green.png" style="width: 100px;
+      <a href="https://ente.com" target="_blank"><img src="https://email-assets.ente.com/ente-2026-green.png" style="width: 100px;
         padding: 24px" title="Ente" alt="Ente" /></a>
     </div>
     <div>
-      <a href="https://fosstodon.org/@ente" target="_blank"><img src="https://email-assets.ente.io/mastodon-icon.png"
+      <a href="https://fosstodon.org/@ente" target="_blank"><img src="https://email-assets.ente.com/mastodon-icon.png"
           class="footer-icons" style="width: 24px; padding: 4px" title="Mastodon" alt="Mastodon" /></a>
-      <a href="https://twitter.com/enteio" target="_blank"><img src="https://email-assets.ente.io/twitter-icon.png"
+      <a href="https://twitter.com/enteio" target="_blank"><img src="https://email-assets.ente.com/twitter-icon.png"
           class="footer-icons" style="width: 24px; padding: 4px" title="Twitter" alt="Twitter" /></a>
-      <a href="https://discord.ente.io" target="_blank"><img src="https://email-assets.ente.io/discord-icon.png"
+      <a href="https://ente.com/discord" target="_blank"><img src="https://email-assets.ente.com/discord-icon.png"
           class="footer-icons" style="width: 24px; padding: 4px" title="Discord" alt="Discord" /></a>
-      <a href="https://github.com/ente-io" target="_blank"><img src="https://email-assets.ente.io/github-icon.png"
+      <a href="https://github.com/ente" target="_blank"><img src="https://email-assets.ente.com/github-icon.png"
           class="footer-icons" style="width: 24px; padding: 4px" title="GitHub" alt="GitHub" /></a>
     </div>
     <p>

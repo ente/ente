@@ -1,6 +1,6 @@
 name = "health-check"
 main = "src/index.ts"
-compatibility_date = "2024-06-14"
+compatibility_date = "2026-04-23"
 
 # Disable the default route, this worker does not handle fetch.
 workers_dev = false
@@ -13,5 +13,4 @@ tail_consumers = [{ service = "tail" }]
 # CHAT_ID = ""
 
 [triggers]
-# Every minute
 crons = [ "*/1 * * * *" ]

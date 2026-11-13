@@ -1,5 +1,3 @@
-//This method returns a newly declared list with separators. It will not
-//modify the original list
 import 'package:flutter/widgets.dart';
 
 List<Widget> addSeparators(List<Widget> listOfWidgets, Widget separator) {

@@ -1,16 +1,15 @@
+import "dart:async";
 import "dart:convert";
 import "dart:io";
-import "dart:typed_data";
 
-import "package:ente_configuration/base_configuration.dart";
 import "package:ente_crypto_api/ente_crypto_api.dart";
-import "package:ente_events/event_bus.dart";
-import "package:ente_events/models/signed_out_event.dart";
+import "package:ente_lock_screen/lock_screen_host.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
-import "package:flutter/material.dart";
+import "package:ente_screen_cover/ente_screen_cover.dart";
+import "package:flutter/foundation.dart";
+import "package:flutter/widgets.dart";
 import "package:flutter_secure_storage/flutter_secure_storage.dart";
 import "package:local_auth/local_auth.dart";
-import "package:privacy_screen/privacy_screen.dart";
 import "package:shared_preferences/shared_preferences.dart";
 
 class LockScreenSettings {
@@ -41,30 +40,36 @@ class LockScreenSettings {
     Duration(minutes: 30),
   ];
 
-  late BaseConfiguration _config;
+  late LockScreenHost _config;
   late SharedPreferences _preferences;
   late FlutterSecureStorage _secureStorage;
+  bool _useLegacyHashFallback = false;
+  bool _hideAppContentDefault = false;
+  String _appLogoAsset = 'assets/svg/app-logo.svg';
+  double? _appLogoHeight;
 
   Future<void> init(
-    BaseConfiguration config, {
+    LockScreenHost config, {
     bool hasOptedForOfflineMode = false,
+    bool useLegacyHashFallback = false,
+    bool hideAppContentDefault = false,
+    String appLogoAsset = 'assets/svg/app-logo.svg',
+    double? appLogoHeight,
   }) async {
     _config = config;
+    _useLegacyHashFallback = useLegacyHashFallback;
+    _hideAppContentDefault = hideAppContentDefault;
+    _appLogoAsset = appLogoAsset;
+    _appLogoHeight = appLogoHeight;
     _secureStorage = const FlutterSecureStorage();
     _preferences = await SharedPreferences.getInstance();
 
-    ///Workaround for privacyScreen not working when app is killed and opened.
+    // Workaround for privacyScreen not working when app is killed and opened.
     await setHideAppContent(getShouldHideAppContent());
 
-    /// Function to Check if the migration for lock screen changes has
-    /// already been done by checking a stored boolean value.
     await runLockScreenChangesMigration();
 
     await _clearLsDataInKeychainIfFreshInstall(hasOptedForOfflineMode);
-
-    Bus.instance.on<SignedOutEvent>().listen((event) {
-      removePinAndPassword();
-    });
   }
 
   Future<void> setOfflineModeWarningStatus(bool value) async {
@@ -97,25 +102,19 @@ class LockScreenSettings {
     }
   }
 
-  Future<void> setHideAppContent(bool hideContent) async {
+  Future<void> setHideAppContent(
+    bool hideContent, {
+    bool persist = true,
+  }) async {
     if (PlatformDetector.isDesktop()) return;
-    !hideContent
-        ? PrivacyScreen.instance.disable()
-        : await PrivacyScreen.instance.enable(
-            iosOptions: const PrivacyIosOptions(
-              enablePrivacy: true,
-            ),
-            androidOptions: const PrivacyAndroidOptions(
-              enableSecure: true,
-            ),
-            backgroundColor: const Color(0xff000000),
-            blurEffect: PrivacyBlurEffect.extraLight,
-          );
-    await _preferences.setBool(keyHideAppContent, hideContent);
+    !hideContent ? EnteScreenCover.disable() : await EnteScreenCover.enable();
+    if (persist) {
+      await _preferences.setBool(keyHideAppContent, hideContent);
+    }
   }
 
   bool getShouldHideAppContent() {
-    return _preferences.getBool(keyHideAppContent) ?? true;
+    return _preferences.getBool(keyHideAppContent) ?? _hideAppContentDefault;
   }
 
   Future<void> setAutoLockTime(Duration duration) async {
@@ -206,6 +205,67 @@ class LockScreenSettings {
     return _secureStorage.read(key: password);
   }
 
+  bool get useLegacyHashFallback => _useLegacyHashFallback;
+
+  String get appLogoAsset => _appLogoAsset;
+
+  double? get appLogoHeight => _appLogoHeight;
+
+  Future<bool> verify({
+    required String text,
+    required String? storedHash,
+  }) async {
+    if (storedHash == null) return false;
+    final Uint8List? salt = await getSalt();
+    if (salt == null) return false;
+    final hash = base64Encode(
+      CryptoUtil.cryptoPwHash(
+        utf8.encode(text),
+        salt,
+        CryptoUtil.pwhashMemLimitInteractive,
+        CryptoUtil.pwhashOpsLimitSensitive,
+      ),
+    );
+    return hash == storedHash;
+  }
+
+  // Photos may still have hashes made with legacy Interactive ops.
+  // Upgrade them best-effort; a storage failure must not reject the secret.
+  Future<bool> verifyWithLegacyFallback({
+    required String text,
+    required String? storedHash,
+    required String storageKey,
+  }) async {
+    if (await verify(text: text, storedHash: storedHash)) return true;
+    if (storedHash == null) return false;
+    final Uint8List? salt = await getSalt();
+    if (salt == null) return false;
+    final secret = utf8.encode(text);
+
+    final legacy = base64Encode(
+      CryptoUtil.cryptoPwHash(
+        secret,
+        salt,
+        CryptoUtil.pwhashMemLimitInteractive,
+        CryptoUtil.pwhashOpsLimitInteractive,
+      ),
+    );
+    if (legacy != storedHash) return false;
+
+    final upgraded = base64Encode(
+      CryptoUtil.cryptoPwHash(
+        secret,
+        salt,
+        CryptoUtil.pwhashMemLimitInteractive,
+        CryptoUtil.pwhashOpsLimitSensitive,
+      ),
+    );
+    try {
+      await _secureStorage.write(key: storageKey, value: upgraded);
+    } catch (_) {}
+    return true;
+  }
+
   Future<void> removePinAndPassword() async {
     await _secureStorage.delete(key: saltKey);
     await _secureStorage.delete(key: pin);
@@ -220,9 +280,25 @@ class LockScreenSettings {
     return await _secureStorage.containsKey(key: password);
   }
 
-  Future<bool> shouldShowLockScreen() async {
+  Future<bool> shouldShowLockScreen({bool isAppLaunch = false}) async {
+    final waitForForeground =
+        isAppLaunch && defaultTargetPlatform == TargetPlatform.iOS;
+    if (waitForForeground &&
+        WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
+      final resumed = Completer<void>();
+      final listener = AppLifecycleListener(onResume: () => resumed.complete());
+      try {
+        await resumed.future;
+      } finally {
+        listener.dispose();
+      }
+    }
     final bool isPin = await isPinSet();
     final bool isPass = await isPasswordSet();
+    if (waitForForeground &&
+        WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
+      return shouldShowLockScreen(isAppLaunch: true);
+    }
     return isPin || isPass || shouldShowSystemLockScreen();
   }
 
@@ -238,9 +314,7 @@ class LockScreenSettings {
     return _preferences.setBool(keyShouldShowLockScreen, value);
   }
 
-  // If the app was uninstalled (without logging out if it was used with
-  // backups), keychain items of the app persist in the keychain. To avoid using
-  // old keychain items, we delete them on reinstall.
+  // Keychain entries survive uninstall, so clear them after a reinstall.
   Future<void> _clearLsDataInKeychainIfFreshInstall(
     bool hasOptedForOfflineMode,
   ) async {

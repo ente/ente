@@ -1,19 +1,22 @@
 import 'package:ente_auth/theme/colors.dart';
 import 'package:ente_auth/theme/ente_theme.dart';
+import 'package:ente_components/theme/colors.dart' show ColorTokens;
 import 'package:flutter/material.dart';
 
 final lightThemeData = ThemeData(
   fontFamily: 'Inter',
   brightness: Brightness.light,
-  dividerTheme: const DividerThemeData(
-    color: Colors.black12,
-  ),
+  popupMenuTheme: PopupMenuThemeData(color: ColorTokens.light.fillLight),
+  dividerTheme: const DividerThemeData(color: Colors.black12),
   hintColor: const Color.fromRGBO(158, 158, 158, 1),
   primaryColor: const Color.fromRGBO(255, 110, 64, 1),
   primaryColorLight: const Color.fromRGBO(0, 0, 0, 0.541),
   iconTheme: const IconThemeData(color: Colors.black),
-  primaryIconTheme:
-      const IconThemeData(color: Colors.red, opacity: 1.0, size: 50.0),
+  primaryIconTheme: const IconThemeData(
+    color: Colors.red,
+    opacity: 1.0,
+    size: 50.0,
+  ),
   buttonTheme: const ButtonThemeData(),
   outlinedButtonTheme: buildOutlinedButtonThemeData(
     bgDisabled: const Color.fromRGBO(158, 158, 158, 1),
@@ -32,7 +35,6 @@ final lightThemeData = ThemeData(
     iconTheme: const IconThemeData(color: Colors.black),
     elevation: 0,
   ),
-  //https://api.flutter.dev/flutter/material/TextTheme-class.html
   textTheme: _buildTextTheme(const Color.fromRGBO(0, 0, 0, 1)),
   primaryTextTheme: const TextTheme().copyWith(
     bodyMedium: const TextStyle(color: Colors.yellow),
@@ -40,7 +42,7 @@ final lightThemeData = ThemeData(
   ),
   cardColor: const Color.fromRGBO(250, 250, 250, 1.0),
   dialogTheme: const DialogThemeData().copyWith(
-    backgroundColor: const Color.fromRGBO(250, 250, 250, 1.0), //
+    backgroundColor: const Color.fromRGBO(250, 250, 250, 1.0),
     titleTextStyle: const TextStyle(
       color: Colors.black,
       fontSize: 24,
@@ -56,16 +58,11 @@ final lightThemeData = ThemeData(
   ),
   inputDecorationTheme: const InputDecorationTheme().copyWith(
     focusedBorder: const UnderlineInputBorder(
-      borderSide: BorderSide(
-        color: Color.fromARGB(255, 152, 77, 244),
-      ),
+      borderSide: BorderSide(color: Color.fromARGB(255, 152, 77, 244)),
     ),
   ),
   checkboxTheme: CheckboxThemeData(
-    side: const BorderSide(
-      color: Colors.black,
-      width: 2,
-    ),
+    side: const BorderSide(color: Colors.black, width: 2),
     fillColor: WidgetStateProperty.resolveWith((states) {
       return states.contains(WidgetState.selected)
           ? const Color.fromRGBO(0, 0, 0, 1)
@@ -79,8 +76,9 @@ final lightThemeData = ThemeData(
   ),
 
   radioTheme: RadioThemeData(
-    fillColor:
-        WidgetStateProperty.resolveWith<Color?>((Set<WidgetState> states) {
+    fillColor: WidgetStateProperty.resolveWith<Color?>((
+      Set<WidgetState> states,
+    ) {
       if (states.contains(WidgetState.disabled)) {
         return null;
       }
@@ -91,8 +89,9 @@ final lightThemeData = ThemeData(
     }),
   ),
   switchTheme: SwitchThemeData(
-    thumbColor:
-        WidgetStateProperty.resolveWith<Color?>((Set<WidgetState> states) {
+    thumbColor: WidgetStateProperty.resolveWith<Color?>((
+      Set<WidgetState> states,
+    ) {
       if (states.contains(WidgetState.disabled)) {
         return null;
       }
@@ -101,8 +100,9 @@ final lightThemeData = ThemeData(
       }
       return null;
     }),
-    trackColor:
-        WidgetStateProperty.resolveWith<Color?>((Set<WidgetState> states) {
+    trackColor: WidgetStateProperty.resolveWith<Color?>((
+      Set<WidgetState> states,
+    ) {
       if (states.contains(WidgetState.disabled)) {
         return null;
       }
@@ -121,13 +121,15 @@ final lightThemeData = ThemeData(
 final darkThemeData = ThemeData(
   fontFamily: 'Inter',
   brightness: Brightness.dark,
-  dividerTheme: const DividerThemeData(
-    color: Colors.white12,
-  ),
+  popupMenuTheme: PopupMenuThemeData(color: ColorTokens.dark.fillLight),
+  dividerTheme: const DividerThemeData(color: Colors.white12),
   primaryColorLight: const Color.fromRGBO(255, 255, 255, 0.702),
   iconTheme: const IconThemeData(color: Colors.white),
-  primaryIconTheme:
-      const IconThemeData(color: Colors.red, opacity: 1.0, size: 50.0),
+  primaryIconTheme: const IconThemeData(
+    color: Colors.red,
+    opacity: 1.0,
+    size: 50.0,
+  ),
   hintColor: const Color.fromRGBO(158, 158, 158, 1),
   buttonTheme: const ButtonThemeData().copyWith(
     buttonColor: const Color.fromRGBO(45, 194, 98, 1.0),
@@ -146,7 +148,7 @@ final darkThemeData = ThemeData(
   ),
   scaffoldBackgroundColor: const Color.fromRGBO(0, 0, 0, 1),
   appBarTheme: const AppBarTheme().copyWith(
-    color: Colors.black,
+    backgroundColor: Colors.black,
     elevation: 0,
   ),
   cardColor: const Color.fromRGBO(10, 15, 15, 1.0),
@@ -166,10 +168,7 @@ final darkThemeData = ThemeData(
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
   ),
   checkboxTheme: CheckboxThemeData(
-    side: const BorderSide(
-      color: Colors.grey,
-      width: 2,
-    ),
+    side: const BorderSide(color: Colors.grey, width: 2),
     fillColor: WidgetStateProperty.resolveWith((states) {
       if (states.contains(WidgetState.selected)) {
         return const Color.fromRGBO(158, 158, 158, 1);
@@ -186,8 +185,9 @@ final darkThemeData = ThemeData(
     }),
   ),
   radioTheme: RadioThemeData(
-    fillColor:
-        WidgetStateProperty.resolveWith<Color?>((Set<WidgetState> states) {
+    fillColor: WidgetStateProperty.resolveWith<Color?>((
+      Set<WidgetState> states,
+    ) {
       if (states.contains(WidgetState.disabled)) {
         return null;
       }
@@ -198,8 +198,9 @@ final darkThemeData = ThemeData(
     }),
   ),
   switchTheme: SwitchThemeData(
-    thumbColor:
-        WidgetStateProperty.resolveWith<Color?>((Set<WidgetState> states) {
+    thumbColor: WidgetStateProperty.resolveWith<Color?>((
+      Set<WidgetState> states,
+    ) {
       if (states.contains(WidgetState.disabled)) {
         return null;
       }
@@ -208,8 +209,9 @@ final darkThemeData = ThemeData(
       }
       return null;
     }),
-    trackColor:
-        WidgetStateProperty.resolveWith<Color?>((Set<WidgetState> states) {
+    trackColor: WidgetStateProperty.resolveWith<Color?>((
+      Set<WidgetState> states,
+    ) {
       if (states.contains(WidgetState.disabled)) {
         return null;
       }
@@ -219,8 +221,9 @@ final darkThemeData = ThemeData(
       return null;
     }),
   ),
-  colorScheme: const ColorScheme.dark(primary: Colors.white)
-      .copyWith(surface: const Color.fromRGBO(0, 0, 0, 1)),
+  colorScheme: const ColorScheme.dark(
+    primary: Colors.white,
+  ).copyWith(surface: const Color.fromRGBO(0, 0, 0, 1)),
 );
 
 TextTheme _buildTextTheme(Color textColor) {
@@ -317,15 +320,14 @@ extension CustomColorScheme on ColorScheme {
       ? const Color.fromRGBO(0, 0, 0, 1)
       : const Color.fromRGBO(48, 48, 48, 1);
 
-  Color get dynamicFABTextColor =>
-      const Color.fromRGBO(255, 255, 255, 1); //same for both themes
+  Color get dynamicFABTextColor => const Color.fromRGBO(255, 255, 255, 1);
 
   // todo: use brightness == Brightness.light for changing color for dark/light theme
   ButtonStyle? get optionalActionButtonStyle => buildElevatedButtonThemeData(
-        onPrimary: const Color(0xFF777777),
-        primary: const Color(0xFFF0F0F0),
-        elevation: 0,
-      ).style;
+    onPrimary: const Color(0xFF777777),
+    primary: const Color(0xFFF0F0F0),
+    elevation: 0,
+  ).style;
 
   Color get recoveryKeyBoxColor => brightness == Brightness.light
       ? const Color.fromARGB(51, 150, 0, 220)
@@ -439,44 +441,43 @@ OutlinedButtonThemeData buildOutlinedButtonThemeData({
   required Color fgEnabled,
 }) {
   return OutlinedButtonThemeData(
-    style: OutlinedButton.styleFrom(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-      ),
-      fixedSize: const Size.fromHeight(56),
-      alignment: Alignment.center,
-      padding: const EdgeInsets.fromLTRB(50, 16, 50, 16),
-      textStyle: const TextStyle(
-        fontWeight: FontWeight.w600,
-        fontFamily: 'Inter-SemiBold',
-        fontSize: 18,
-      ),
-    ).copyWith(
-      backgroundColor: WidgetStateProperty.resolveWith<Color>(
-        (Set<WidgetState> states) {
-          if (states.contains(WidgetState.disabled)) {
-            return bgDisabled;
-          }
-          return bgEnabled;
-        },
-      ),
-      foregroundColor: WidgetStateProperty.resolveWith<Color>(
-        (Set<WidgetState> states) {
-          if (states.contains(WidgetState.disabled)) {
-            return fgDisabled;
-          }
-          return fgEnabled;
-        },
-      ),
-      alignment: Alignment.center,
-    ),
+    style:
+        OutlinedButton.styleFrom(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          fixedSize: const Size.fromHeight(56),
+          alignment: Alignment.center,
+          padding: const EdgeInsets.fromLTRB(50, 16, 50, 16),
+          textStyle: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontFamily: 'Inter-SemiBold',
+            fontSize: 18,
+          ),
+        ).copyWith(
+          backgroundColor: WidgetStateProperty.resolveWith<Color>((
+            Set<WidgetState> states,
+          ) {
+            if (states.contains(WidgetState.disabled)) {
+              return bgDisabled;
+            }
+            return bgEnabled;
+          }),
+          foregroundColor: WidgetStateProperty.resolveWith<Color>((
+            Set<WidgetState> states,
+          ) {
+            if (states.contains(WidgetState.disabled)) {
+              return fgDisabled;
+            }
+            return fgEnabled;
+          }),
+          alignment: Alignment.center,
+        ),
   );
 }
 
 ElevatedButtonThemeData buildElevatedButtonThemeData({
-  required Color onPrimary, // text button color
+  required Color onPrimary,
   required Color primary,
-  double elevation = 2, // background color of button
+  double elevation = 2,
 }) {
   return ElevatedButtonThemeData(
     style: ElevatedButton.styleFrom(

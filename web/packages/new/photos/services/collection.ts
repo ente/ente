@@ -1,20 +1,15 @@
 import { ensureLocalUser } from "ente-accounts/services/user";
 import { blobCache } from "ente-base/blob-cache";
-import {
-    boxSeal,
-    boxSealOpen,
-    decryptBox,
-    encryptBox,
-    generateKey,
-} from "ente-base/crypto";
+import { boxSeal, encryptBox, generateKey } from "ente-base/crypto";
 import { haveWindow } from "ente-base/env";
 import { authenticatedRequestHeaders, ensureOk } from "ente-base/http";
 import { apiURL } from "ente-base/origins";
-import { ensureMasterKeyFromSession } from "ente-base/session";
 import { groupFilesByCollectionID } from "ente-gallery/utils/file";
 import {
     CollectionSubType,
     decryptRemoteCollection,
+    findUserUncategorizedCollection,
+    maxAlbumDescriptionLength,
     RemoteCollection,
     RemotePublicURL,
     type Collection,
@@ -26,6 +21,7 @@ import {
     type CollectionType,
     type PublicURL,
 } from "ente-media/collection";
+import type { CollectionSortBy } from "ente-media/collection-sort";
 import {
     decryptRemoteFile,
     FileDiffResponse,
@@ -36,7 +32,8 @@ import {
     createMagicMetadata,
     encryptMagicMetadata,
 } from "ente-media/magic-metadata";
-import { splitByPredicate } from "ente-utils/array";
+import { ensureMasterKeyFromSession } from "ente-new/photos/services/account-keys";
+import { batch, splitByPredicate } from "ente-utils/array";
 import { z } from "zod";
 import { batched, type UpdateMagicMetadataRequest } from "./file";
 import {
@@ -50,60 +47,45 @@ import {
     savedCollections,
     savedCollectionsUpdationTime,
 } from "./photos-fdb";
-import { ensureUserKeyPair, getPublicKey } from "./user";
+import { getPublicKey } from "./user";
 
 const uncategorizedCollectionName = "Uncategorized";
 const defaultHiddenCollectionName = ".hidden";
 export const defaultHiddenCollectionUserFacingName = "Hidden";
 const favoritesCollectionName = "Favorites";
+const copyRequestBatchSize = 100;
 
-/**
- * Create a new album (a collection of type "album") on remote, and return its
- * local representation.
- *
- * Remote only, does not modify local state.
- *
- * @param albumName The name to use for the new album.
- */
+export type OpenCollectionKey = (input: {
+    ownerID: number;
+    encryptedKey: string;
+    keyDecryptionNonce?: string;
+}) => Promise<string>;
+
+let collectionKeyOpener: OpenCollectionKey | undefined;
+
+export const bindCollectionKeyOpener = (opener: OpenCollectionKey) => {
+    collectionKeyOpener = opener;
+};
+
+export const unbindCollectionKeyOpener = () => {
+    collectionKeyOpener = undefined;
+};
+
 export const createAlbum = (albumName: string) =>
     createCollection(albumName, "album");
 
-/**
- * Create a new quick link collection on remote, and return its local
- * representation.
- *
- * Remote only, does not modify local state.
- *
- * @param name The name to use for the new quick link collection.
- */
-export const createQuickLinkCollection = (name: string) =>
+export const createQuickLinkCollection = (
+    name: string,
+    visibility: ItemVisibility,
+) =>
     createCollection(name, "album", {
         subType: CollectionSubType.quicklink,
-        visibility: ItemVisibility.visible,
+        visibility,
     });
 
-/**
- * Create a new hidden album on remote, and return its local representation.
- *
- * Remote only, does not modify local state.
- *
- * @param albumName The name to use for the new hidden album.
- */
 export const createHiddenAlbum = (albumName: string) =>
     createCollection(albumName, "album", { visibility: ItemVisibility.hidden });
 
-/**
- * Create a new collection on remote, and return its local representation.
- *
- * Remote only, does not modify local state.
- *
- * @param name The name of the new collection.
- *
- * @param type The type of the new collection.
- *
- * @param magicMetadataData Optional metadata to use as the collection's private
- * mutable metadata when creating the new collection.
- */
 const createCollection = async (
     name: string,
     type: CollectionType,
@@ -133,44 +115,47 @@ const createCollection = async (
     return decryptRemoteKeyAndCollection(remoteCollection);
 };
 
-/**
- * Given a {@link RemoteCollection}, first obtain its decryption key, and then
- * use that to decrypt and return the collection itself.
- */
-const decryptRemoteKeyAndCollection = async (collection: RemoteCollection) =>
-    decryptRemoteCollection(collection, await decryptCollectionKey(collection));
-
-/**
- * Return the decrypted collection key (as a base64 string) for the given
- * {@link RemoteCollection}.
- */
-export const decryptCollectionKey = async (
-    collection: RemoteCollection,
-): Promise<string> => {
-    const { owner, encryptedKey, keyDecryptionNonce } = collection;
-    if (owner.id == ensureLocalUser().id) {
-        // The collection key of collections owned by the user is encrypted with
-        // the user's master key. The nonce will be present in such cases.
-        return decryptBox(
-            { encryptedData: encryptedKey, nonce: keyDecryptionNonce! },
-            await ensureMasterKeyFromSession(),
+const decryptRemoteKeyAndCollection = async (collection: RemoteCollection) => {
+    try {
+        return await decryptRemoteCollection(
+            collection,
+            await decryptCollectionKey(collection),
         );
-    } else {
-        // The collection key of collections shared with the user is encrypted
-        // with the user's public key.
-        return boxSealOpen(encryptedKey, await ensureUserKeyPair());
+    } catch (e) {
+        throw collectionDecryptionError(collection.id, e);
     }
 };
 
-/**
- * Zod schema for a remote response containing a single collection.
- */
+export const collectionDecryptionError = (
+    collectionID: number,
+    cause: unknown,
+) => {
+    const error = new Error(
+        `${cause instanceof Error ? cause.message : String(cause)} (collectionID: ${collectionID})`,
+        { cause },
+    );
+    // The logger prints only the top-level stack, without following the cause.
+    if (cause instanceof Error && cause.stack) {
+        error.stack = `${error.name}: ${error.message}\nCaused by: ${cause.stack}`;
+    }
+    return error;
+};
+
+const decryptCollectionKey = async (
+    collection: RemoteCollection,
+): Promise<string> => {
+    if (!collectionKeyOpener) {
+        throw new Error("Collection key opener is not bound");
+    }
+    return collectionKeyOpener({
+        ownerID: collection.owner.id,
+        encryptedKey: collection.encryptedKey,
+        keyDecryptionNonce: collection.keyDecryptionNonce,
+    });
+};
+
 const CollectionResponse = z.object({ collection: RemoteCollection });
 
-/**
- * Create a collection on remote with the provided data, and return the new
- * remote collection object returned by remote on success.
- */
 const postCollections = async (
     collectionData: Partial<RemoteCollection>,
 ): Promise<RemoteCollection> => {
@@ -183,19 +168,6 @@ const postCollections = async (
     return CollectionResponse.parse(await res.json()).collection;
 };
 
-/**
- * Fetch a collection from remote by its ID.
- *
- * Remote only, does not use or modify local state.
- *
- * This is not expected to be needed in the normal flow of things, since we
- * fetch collections en masse, and efficiently, using the collection diff
- * requests.
- *
- * @param collectionID The ID of the collection to fetch.
- *
- * @returns The collection obtained from remote after decrypting its contents.
- */
 export const getCollectionByID = async (
     collectionID: number,
 ): Promise<Collection> => {
@@ -207,52 +179,16 @@ export const getCollectionByID = async (
     return decryptRemoteKeyAndCollection(collection);
 };
 
-/**
- * Zod schema for a remote response containing a an array of collections.
- */
 const CollectionsResponse = z.object({
     collections: z.array(RemoteCollection),
 });
 
-/**
- * An collection upsert or deletion obtained as a result of
- * {@link getCollections} invocation.
- *
- * Each change either contains the latest data associated with the collection
- * that has been created or updated, or has a flag set to indicate that the
- * corresponding collection has been deleted.
- */
-export interface CollectionChange {
-    /**
-     * The ID of the collection.
-     */
+interface CollectionChange {
     id: number;
-    /**
-     * The added or updated collection, or `undefined` for deletions.
-     *
-     * - This will be set to the (decrypted) collection if it was added or
-     *   updated on remote.
-     *
-     * - This will not be set if the corresponding collection was deleted on
-     *   remote.
-     */
     collection?: Collection;
-    /**
-     * Epoch microseconds denoting when this collection was last changed
-     * (created or updated or deleted).
-     */
     updationTime: number;
 }
 
-/**
- * Pull the latest collections from remote.
- *
- * This function uses a delta diff, pulling only changes since the timestamp
- * saved by the last pull.
- *
- * @returns the latest list of collections, reflecting both the state in our
- * local database and on remote.
- */
 export const pullCollections = async (): Promise<Collection[]> => {
     const collections = await savedCollections();
     let sinceTime = (await savedCollectionsUpdationTime()) ?? 0;
@@ -267,7 +203,6 @@ export const pullCollections = async (): Promise<Collection[]> => {
         if (collection) {
             collectionsByID.set(id, collection);
         } else {
-            // Collection was deleted on remote.
             await removeCollectionIDLastSyncTime(id);
             collectionsByID.delete(id);
         }
@@ -281,18 +216,6 @@ export const pullCollections = async (): Promise<Collection[]> => {
     return updatedCollections;
 };
 
-/**
- * Fetch all collections that have been added or updated on remote since
- * {@link sinceTime}, with markers for those that have been deleted.
- *
- * @param sinceTime The {@link updationTime} of the latest collection that was
- * fetched in a previous set of changes. This allows us to resume fetching from
- * that point. Pass 0 to fetch from the beginning.
- *
- * @returns An array of {@link CollectionChange}s. It is guaranteed that there
- * will be at most one entry for a given collection in the result array. See:
- * [Note: Diff response will have at most one entry for an id]
- */
 const getCollections = async (
     sinceTime: number,
 ): Promise<CollectionChange[]> => {
@@ -312,29 +235,6 @@ const getCollections = async (
     );
 };
 
-/**
- * Fetch all files from remote and update our local database.
- *
- * Each time it updates the local database, the {@link onSetCollectionFiles}
- * callback is also invoked to give the caller a chance to bring its own
- * in-memory state up to speed.
- *
- * @param collections The user's collections. These are assumed to be the latest
- * collections on remote (that is, the pull for collections should happen prior
- * to calling this function).
- *
- * @param onSetCollectionFiles An optional callback invoked when the locally
- * saved collection files were replaced by the provided {@link collectionFiles}.
- *
- * The callback is optional because we might be called in a context where we
- * just want to update the local database, and there is no other in-memory state
- * we need to keep in sync.
- *
- * The callback can be invoked multiple times for each pull (once for each batch
- * of changes received, for each collection that was updated).
- *
- * @returns true if one or more files were updated locally, false otherwise.
- */
 export const pullCollectionFiles = async (
     collections: Collection[],
     onSetCollectionFiles: ((files: EnteFile[]) => void) | undefined,
@@ -343,11 +243,10 @@ export const pullCollectionFiles = async (
 
     const savedFiles = await savedCollectionFiles();
 
-    // Prune collections files for which we no longer have a collection.
+    // Collection deletion has no file tombstone; prune by surviving IDs.
     const collectionIDs = new Set(collections.map((c) => c.id));
     let files = savedFiles.filter((f) => collectionIDs.has(f.collectionID));
 
-    // Update both the saved and in-memory files to reflect the pruning.
     if (files.length != savedFiles.length) {
         await saveCollectionFiles(files);
         onSetCollectionFiles?.(files);
@@ -357,8 +256,6 @@ export const pullCollectionFiles = async (
     for (const collection of collections) {
         let sinceTime = (await savedCollectionLastSyncTime(collection)) ?? 0;
         if (sinceTime == collection.updationTime) {
-            // The updationTime of a collection is guaranteed to be >= the
-            // updationTime of any file in the collection.
             continue;
         }
 
@@ -386,7 +283,9 @@ export const pullCollectionFiles = async (
                     const file = await decryptRemoteFile(
                         change,
                         collection.key,
-                    );
+                    ).catch((e: unknown) => {
+                        throw collectionDecryptionError(collection.id, e);
+                    });
                     await clearCachedThumbnailIfContentChanged(
                         thisCollectionFilesByID.get(change.id),
                         file,
@@ -405,32 +304,13 @@ export const pullCollectionFiles = async (
             if (!hasMore) break;
         }
 
-        // There might be a difference between the latest updation time of a
-        // file in the collection, and the latest time of the collection itself,
-        // if something about the collection itself changed, not the files in it
-        // (e.g. if the collection was renamed).
-        //
-        // In such cases, advance the sync time to match the collection's update
-        // time so we don't do an unnecessary collection diff the next time.
+        // Collection metadata can advance without producing a file diff.
         await saveCollectionLastSyncTime(collection, collection.updationTime);
     }
 
     return didUpdateFiles;
 };
 
-/**
- * Fetch all files in the given collection have been created or updated since
- * {@link sinceTime}.
- *
- * Remote only, does not modify local state.
- *
- * @param collection The ID of the collection whose updates we want to fetch.
- *
- * @param sinceTime The timestamp of most recently update for the collection
- * that we have already pulled. This serves both as a pagination mechanish, and
- * a way to fetch a delta diff the next time the client needs to pull changes
- * from remote.
- */
 const getCollectionDiff = async (collectionID: number, sinceTime: number) => {
     const res = await fetch(
         await apiURL("/collections/v2/diff", { collectionID, sinceTime }),
@@ -440,67 +320,30 @@ const getCollectionDiff = async (collectionID: number, sinceTime: number) => {
     return FileDiffResponse.parse(await res.json());
 };
 
-/**
- * Clear cached thumbnail of an existing file if the thumbnail data has changed.
- *
- * This function in expected to be called when we are processing a collection
- * diff, updating our local state to reflect files that were updated on remote.
- * This is an opportune moment to invalidate any cached thumbnails for files
- * whose thumbnail content has changed.
- *
- * An example of when such invalidation is necessary:
- *
- * 1. Take a photo on mobile, and let it sync via the mobile app to us (web).
- * 2. Edit the photo outside of Ente (e.g. using Apple Photos).
- * 3. When the Ente mobile client next comes into foreground, it'll update the
- *    remote thumbnail for the existing file to reflect the changes.
- *
- * @param existingFile The {@link EnteFile} we had in our local database before
- * processing the diff response. Pass `undefined` to indicate that there was no
- * existing file corresponding to {@link updatedFile}; in such a case this
- * function is a no-op.
- *
- * @param updatedFile The update {@link EntneFile} (with the same file ID as the
- * {@link existingFile}) which we got in the diff response.
- */
 const clearCachedThumbnailIfContentChanged = async (
     existingFile: EnteFile | undefined,
     updatedFile: EnteFile,
 ) => {
     if (!existingFile) return;
 
-    // The hashes of the files differ, which indicates that the change was in
-    // the file's contents, not the metadata itself, and thus we should refresh
-    // the thumbnail.
+    // Content changes invalidate thumbnails; metadata-only changes do not.
     if (
         metadataHash(existingFile.metadata) !=
         metadataHash(updatedFile.metadata)
     ) {
-        // This is an infrequent occurrence, so we lazily get the cache.
         const thumbnailCache = await blobCache("thumbs");
         await thumbnailCache.delete(updatedFile.id.toString());
     }
 };
 
-/**
- * Return all collections (both normal and hidden) that are present in our
- * local database.
- */
 export const savedAllCollections = (): Promise<Collection[]> =>
     savedCollections();
 
-/**
- * Return all normal (non-hidden) collections that are present in our local
- * database.
- */
 export const savedNormalCollections = (): Promise<Collection[]> =>
     savedCollections().then(
         (cs) => splitByPredicate(cs, isHiddenCollection)[1],
     );
 
-/**
- * Return all hidden collections that are present in our local database.
- */
 export const savedHiddenCollections = (
     currentUserID?: number,
 ): Promise<Collection[]> =>
@@ -511,50 +354,43 @@ export const savedHiddenCollections = (
             )[0],
     );
 
-/**
- * Return a map of the (user-facing) collection name, indexed by collection ID.
- */
 export const createCollectionNameByID = (collections: Collection[]) =>
     new Map(collections.map((c) => [c.id, collectionUserFacingName(c)]));
 
-/**
- * Return the "user facing" name of the given collection.
- *
- * Usually this is the same as the collection name, but it might be a different
- * string for special collections like default hidden collections.
- */
 export const collectionUserFacingName = (collection: Collection) =>
     isDefaultHiddenCollection(collection)
         ? defaultHiddenCollectionUserFacingName
         : collection.name;
 
-/**
- * A CollectionFileItem represents a file in a API request to add, move or
- * restore files to a particular collection.
- */
 interface CollectionFileItem {
-    /**
-     * The file's ID.
-     */
     id: number;
-    /**
-     * The file's key (as a base64 string), encrypted with the key of the
-     * collection to which it is being added or moved.
-     */
     encryptedKey: string;
-    /**
-     * The nonce (as a base64 string) that was used during the encryption of
-     * {@link encryptedKey}.
-     */
     keyDecryptionNonce: string;
 }
 
-/**
- * Make a remote request to add the given {@link files} to the given
- * {@link collection}.
- *
- * Remote only, does not modify local state.
- */
+const CopyFilesResponse = z.object({
+    oldToNewFileIDMap: z.record(z.string(), z.number()),
+});
+
+const currentUserRoleInCollection = (
+    collection: Collection,
+    userID = ensureLocalUser().id,
+) => {
+    if (collection.owner.id == userID) return "OWNER";
+    return collection.sharees.find((sharee) => sharee.id == userID)?.role;
+};
+
+export const canAddFilesToCollection = (
+    collection: Collection,
+    userID?: number,
+) => {
+    const role = currentUserRoleInCollection(collection, userID);
+    return role == "OWNER" || role == "ADMIN" || role == "COLLABORATOR";
+};
+
+export const canDirectlyUploadToCollection = (collection: Collection) =>
+    collection.owner.id == ensureLocalUser().id;
+
 export const addToCollection = async (
     collection: Collection,
     files: EnteFile[],
@@ -576,12 +412,6 @@ export const addToCollection = async (
         );
     });
 
-/**
- * Make a remote request to restore the given {@link files} to the given
- * {@link collection}.
- *
- * Remote only, does not modify local state.
- */
 export const restoreToCollection = async (
     collection: Collection,
     files: EnteFile[],
@@ -603,16 +433,6 @@ export const restoreToCollection = async (
         );
     });
 
-/**
- * Make a remote request to move the given {@link files} (which may be in
- * different collections) to the given {@link collection}.
- *
- * This is a higher level primitive than {@link moveFromCollection} that first
- * segregates the files into per-collection sets, and then performs
- * {@link moveFromCollection} for each such set.
- *
- * Remote only, does not modify local state.
- */
 export const moveToCollection = async (
     collection: Collection,
     files: EnteFile[],
@@ -624,13 +444,6 @@ export const moveToCollection = async (
             .map(([cid, cf]) => moveFromCollection(cid, collection, cf)),
     );
 
-/**
- * Make a remote request to move the given {@link files} from a collection (as
- * identified by its {@link fromCollectionID}) to the given
- * {@link toCollection}.
- *
- * Remote only, does not modify local state.
- */
 export const moveFromCollection = async (
     fromCollectionID: number,
     toCollection: Collection,
@@ -653,12 +466,305 @@ export const moveFromCollection = async (
             }),
         );
     });
+const uniqueFilesByID = (files: EnteFile[]) => {
+    const seen = new Set<number>();
+    const uniqueFiles: EnteFile[] = [];
 
-/**
- * Return an array of {@link CollectionFileItem}s, one for each file in
- * {@link files}, containing the corresponding file' ID and keys, but this time
- * encrypted using the key of the given {@link collection}.
- */
+    for (const file of files) {
+        if (seen.has(file.id)) continue;
+        seen.add(file.id);
+        uniqueFiles.push(file);
+    }
+
+    return uniqueFiles;
+};
+
+const fileIDsInCollection = (
+    collectionID: number,
+    collectionFiles: EnteFile[],
+): Set<number> =>
+    new Set(
+        collectionFiles
+            .filter((file) => file.collectionID == collectionID)
+            .map((file) => file.id),
+    );
+
+const hashAndTypeKey = (file: EnteFile) => {
+    const hash = metadataHash(file.metadata);
+    if (!hash) return undefined;
+    return `${hash}:${file.metadata.fileType}`;
+};
+
+const userOwnedEquivalentFilesByHashAndType = (
+    files: EnteFile[],
+    currentUserID: number,
+) => {
+    const equivalents = new Map<string, EnteFile>();
+
+    for (const file of files) {
+        if (file.ownerID != currentUserID) continue;
+
+        const key = hashAndTypeKey(file);
+        if (!key || equivalents.has(key)) continue;
+        equivalents.set(key, file);
+    }
+
+    return equivalents;
+};
+
+// Bridge repeated shared favorite toggles before the next pull.
+const pendingFavoriteFilesByHashAndType = new Map<string, EnteFile>();
+let pendingUserFavoritesCollection: Collection | undefined;
+let pendingUserFavoritesCollectionPromise: Promise<Collection> | undefined;
+
+const rememberPendingFavoriteFiles = (
+    sourceFiles: EnteFile[],
+    favoriteFiles: EnteFile[],
+    userID: number,
+) => {
+    const favoriteFilesByHashAndType = userOwnedEquivalentFilesByHashAndType(
+        favoriteFiles,
+        userID,
+    );
+
+    for (const sourceFile of sourceFiles) {
+        const hashAndType = hashAndTypeKey(sourceFile);
+        const favoriteFile = hashAndType
+            ? favoriteFilesByHashAndType.get(hashAndType)
+            : undefined;
+        if (hashAndType && favoriteFile) {
+            pendingFavoriteFilesByHashAndType.set(hashAndType, favoriteFile);
+        }
+    }
+};
+
+const splitPendingFavoriteFiles = (files: EnteFile[], userID: number) => {
+    const pendingFiles: EnteFile[] = [];
+
+    const remainingFiles: EnteFile[] = [];
+    const seenPendingFileIDs = new Set<number>();
+
+    for (const file of files) {
+        if (file.ownerID == userID) {
+            remainingFiles.push(file);
+            continue;
+        }
+
+        const key = hashAndTypeKey(file);
+        const pendingFavoriteFile = key
+            ? pendingFavoriteFilesByHashAndType.get(key)
+            : undefined;
+
+        if (pendingFavoriteFile) {
+            if (!seenPendingFileIDs.has(pendingFavoriteFile.id)) {
+                seenPendingFileIDs.add(pendingFavoriteFile.id);
+                pendingFiles.push(pendingFavoriteFile);
+            }
+        } else {
+            remainingFiles.push(file);
+        }
+    }
+
+    return { pendingFiles, remainingFiles };
+};
+
+export const forgetPendingFavoriteFileIDs = (fileIDs: number[]) => {
+    if (!fileIDs.length) return;
+
+    const deletedFileIDs = new Set(fileIDs);
+    for (const [
+        key,
+        pendingFavoriteFile,
+    ] of pendingFavoriteFilesByHashAndType.entries()) {
+        if (deletedFileIDs.has(pendingFavoriteFile.id)) {
+            pendingFavoriteFilesByHashAndType.delete(key);
+        }
+    }
+};
+
+const copyFiles = async (
+    dstCollection: Collection,
+    files: EnteFile[],
+): Promise<EnteFile[]> => {
+    if (!files.length) return [];
+
+    // Copying creates owned IDs, so the destination must be owned.
+    const currentUserID = ensureLocalUser().id;
+    if (dstCollection.owner.id != currentUserID) {
+        throw new Error("Destination collection must be owned by the actor");
+    }
+
+    const uniqueFiles = uniqueFilesByID(files);
+    const copiedFiles: EnteFile[] = [];
+
+    for (const [srcCollectionID, sourceFiles] of groupFilesByCollectionID(
+        uniqueFiles,
+    ).entries()) {
+        for (const batchFiles of batch(sourceFiles, copyRequestBatchSize)) {
+            if (
+                batchFiles.some(
+                    (file) =>
+                        file.ownerID == currentUserID ||
+                        file.collectionID != srcCollectionID,
+                )
+            ) {
+                throw new Error(
+                    "Can only copy files owned by other users from the source collection",
+                );
+            }
+
+            const encryptedFileKeys = await encryptWithCollectionKey(
+                dstCollection,
+                batchFiles,
+            );
+
+            const res = await fetch(await apiURL("/files/copy"), {
+                method: "POST",
+                headers: await authenticatedRequestHeaders(),
+                body: JSON.stringify({
+                    dstCollectionID: dstCollection.id,
+                    srcCollectionID,
+                    files: encryptedFileKeys,
+                }),
+            });
+            ensureOk(res);
+
+            const { oldToNewFileIDMap } = CopyFilesResponse.parse(
+                await res.json(),
+            );
+
+            for (const file of batchFiles) {
+                const copiedFileID = oldToNewFileIDMap[file.id.toString()];
+                if (!copiedFileID) {
+                    throw new Error(`Failed to copy file ${file.id}`);
+                }
+
+                copiedFiles.push({
+                    ...file,
+                    id: copiedFileID,
+                    ownerID: currentUserID,
+                    collectionID: dstCollection.id,
+                });
+            }
+        }
+    }
+
+    return copiedFiles;
+};
+
+const savedUserUncategorizedCollection = async () => {
+    const userID = ensureLocalUser().id;
+    return findUserUncategorizedCollection(await savedCollections(), userID);
+};
+
+export const savedOrCreateUserUncategorizedCollection = async () =>
+    (await savedUserUncategorizedCollection()) ??
+    createUncategorizedCollection();
+
+export const addOrCopyToCollection = async (
+    dstCollection: Collection,
+    files: EnteFile[],
+) => {
+    const addedFiles: EnteFile[] = [];
+    if (!files.length) return addedFiles;
+
+    if (!canAddFilesToCollection(dstCollection)) {
+        throw new Error("Current user cannot add files to this collection");
+    }
+
+    const currentUserID = ensureLocalUser().id;
+    const collectionFiles = await savedCollectionFiles();
+
+    const destinationFileIDs = fileIDsInCollection(
+        dstCollection.id,
+        collectionFiles,
+    );
+    const filesMissingFromDestination = uniqueFilesByID(files).filter(
+        (file) => !destinationFileIDs.has(file.id),
+    );
+
+    if (!filesMissingFromDestination.length) return addedFiles;
+
+    const [ownedFiles, otherOwnedFiles] = splitByPredicate(
+        filesMissingFromDestination,
+        (file) => file.ownerID == currentUserID,
+    );
+
+    if (ownedFiles.length) {
+        await addToCollection(dstCollection, ownedFiles);
+        ownedFiles.forEach((file) => destinationFileIDs.add(file.id));
+        addedFiles.push(...ownedFiles);
+    }
+
+    if (!otherOwnedFiles.length) return addedFiles;
+
+    // Reuse an owned hash/type equivalent; copy only when none exists.
+    const userOwnedFilesByHashAndType = userOwnedEquivalentFilesByHashAndType(
+        collectionFiles,
+        currentUserID,
+    );
+
+    const filesToAdd: EnteFile[] = [];
+    const filesToCopy: EnteFile[] = [];
+    const seenAddFileIDs = new Set<number>();
+    const seenCopyFileIDs = new Set<number>();
+
+    for (const file of otherOwnedFiles) {
+        const fileHashAndTypeKey = hashAndTypeKey(file);
+
+        const userOwnedEquivalent = fileHashAndTypeKey
+            ? userOwnedFilesByHashAndType.get(fileHashAndTypeKey)
+            : undefined;
+        const shouldAddOwnedEquivalent = !!userOwnedEquivalent;
+
+        if (shouldAddOwnedEquivalent) {
+            if (!seenAddFileIDs.has(userOwnedEquivalent.id)) {
+                seenAddFileIDs.add(userOwnedEquivalent.id);
+                filesToAdd.push(userOwnedEquivalent);
+            }
+        } else if (!seenCopyFileIDs.has(file.id)) {
+            seenCopyFileIDs.add(file.id);
+            filesToCopy.push(file);
+        }
+    }
+
+    const reusableOwnedFiles = uniqueFilesByID(filesToAdd).filter(
+        (file) => !destinationFileIDs.has(file.id),
+    );
+
+    if (reusableOwnedFiles.length) {
+        await addToCollection(dstCollection, reusableOwnedFiles);
+        reusableOwnedFiles.forEach((file) => destinationFileIDs.add(file.id));
+        addedFiles.push(...reusableOwnedFiles);
+    }
+
+    if (!filesToCopy.length) return addedFiles;
+
+    // A shared destination cannot own the copy; stage it in Uncategorized.
+    const copyDestination = canDirectlyUploadToCollection(dstCollection)
+        ? dstCollection
+        : await savedOrCreateUserUncategorizedCollection();
+
+    const copiedFiles = await copyFiles(copyDestination, filesToCopy);
+
+    if (copyDestination.id != dstCollection.id) {
+        const filesToAddAfterCopy = uniqueFilesByID(copiedFiles).filter(
+            (file) => !destinationFileIDs.has(file.id),
+        );
+        if (filesToAddAfterCopy.length) {
+            await addToCollection(dstCollection, filesToAddAfterCopy);
+            filesToAddAfterCopy.forEach((file) =>
+                destinationFileIDs.add(file.id),
+            );
+            addedFiles.push(...filesToAddAfterCopy);
+        }
+    } else {
+        addedFiles.push(...copiedFiles);
+    }
+
+    return addedFiles;
+};
+
 const encryptWithCollectionKey = async (
     collection: Collection,
     files: EnteFile[],
@@ -674,17 +780,8 @@ const encryptWithCollectionKey = async (
         }),
     );
 
-/**
- * Make a remote request to move the given {@link files} to trash.
- *
- * @param files The {@link EnteFile}s to move to trash. The API request needs
- * both a file ID and a collection ID, but there should be at most one entry for
- * a particular fileID in this array.
- *
- * Remote only, does not modify local state.
- */
-export const moveToTrash = async (files: EnteFile[]) =>
-    batched(files, async (batchFiles) =>
+export const moveToTrash = async (files: EnteFile[]) => {
+    await batched(files, async (batchFiles) =>
         ensureOk(
             await fetch(await apiURL("/files/trash"), {
                 method: "POST",
@@ -698,14 +795,11 @@ export const moveToTrash = async (files: EnteFile[]) =>
             }),
         ),
     );
+    forgetPendingFavoriteFileIDs(files.map((file) => file.id));
+};
 
-/**
- * Make a remote request to delete the given {@link fileIDs} from trash.
- *
- * Remote only, does not modify local state.
- */
-export const deleteFromTrash = async (fileIDs: number[]) =>
-    batched(fileIDs, async (batchIDs) =>
+export const deleteFromTrash = async (fileIDs: number[]) => {
+    await batched(fileIDs, async (batchIDs) =>
         ensureOk(
             await fetch(await apiURL("/trash/delete"), {
                 method: "POST",
@@ -714,84 +808,11 @@ export const deleteFromTrash = async (fileIDs: number[]) =>
             }),
         ),
     );
+    forgetPendingFavoriteFileIDs(fileIDs);
+};
 
-/**
- * Remove the given files from the specified collection owned by the user.
- *
- * Reads local state but does not modify it. The effects are on remote.
- *
- * @param collection A collection (either owned by the user, or shared with the
- * user).
- *
- * @param files The files to remove from the collection. The files owned by the
- * user will be removed. If the collection is not owned by the user, then any
- * files that are not owned by the user will not be processed (unless the user
- * is an admin of the collection). In such cases, this function will return a
- * count less than the count of the provided files (after having removed what
- * can be removed).
- *
- * @returns The count of files that were processed. This can be less than the
- * count of the provided {@link files} if some files were not processed because
- * because they belong to other users (and {@link collection} also does not
- * belong to the current user, and the user is not an admin).
- *
- * [Note: Removing files from a collection]
- *
- * There are four scenarios
- *
- *                             own file      shared file
- *     own collection             M               R
- *     admin in collection        R               R
- *     others collection          R         not supported
- *
- *     M (move)   when both collection and file belongs to user
- *     R (remove) when only one of them belongs to the user, or user is admin
- *
- * The move operation is not supported across ownership boundaries. The remove
- * operation is only supported across ownership boundaries, but the user should
- * have ownership of either the file or collection (not both), or be an admin.
- *
- * In more detail, the above scenarios can be described this way.
- *
- * 1. Move: If the user owns both the collection and the file they're trying to
- *    remove from the collection, then instead of a remove the client needs to
- *    move it to a different user owned collection in which it already exists
- *    (such a move acts as a remove). If it doesn't exist in any other user
- *    owned collection, then move it to the user's "Uncategorized" collection.
- *    The intent is that a "remove from collection" should not remove the last
- *    copy of a file (thus deleting it).
- *
- * 2. Remove: If the user does not own the file being removed, or owns the file
- *    being removed but does not own the collection from which it is being
- *    removed, they can remove it from the collection using the POST
- *    "/collections/v3/remove-files".
- *
- * 3. Admin remove: If the user is an admin of a collection they don't own, they
- *    can remove any file from the collection (including files they don't own).
- *
- * 4. Not supported: Removing a file the user does not own from a collection
- *    that the user does not own and is not an admin of.
- *
- * The "remove from collection" primitive is provided to the user both as a UI
- * action (on selecting files in a collection), and as an implicit action if the
- * user chooses the option to "keep files" when deleting a collection.
- *
- * This entire shebang is implemented by the following set of functions:
- *
- * 1. [Public] {@link removeFromCollection} - Handles both own and others
- *    collections by delegating to the one of the following functions.
- *
- * 2. [Public] {@link removeFromOwnCollection} - Handles both cases for own
- *    collections by delegating to either "Move" or "Remove"
- *
- * 3. [Private] {@link removeFromOthersCollection} - Handles cases for other's
- *    collections. If the user is an admin, they can remove all files. Otherwise
- *    only the user's own files can be removed.
- *
- * 4. [Private] {@link removeOwnFilesFromOwnCollection} implements the "Move".
- *
- * 5. [Private] {@link removeNonCollectionOwnerFiles} implements the "Remove".
- */
+// The remove endpoint crosses ownership boundaries.
+// Owned files leave owned collections by moving, so one copy survives.
 export const removeFromCollection = async (
     collection: Collection,
     files: EnteFile[],
@@ -823,19 +844,16 @@ const removeFromOthersCollection = async (
     files: EnteFile[],
 ) => {
     const userID = ensureLocalUser().id;
-    // Check if user is an admin of this collection
     const isAdmin =
         collection.sharees.find((s) => s.id == userID)?.role == "ADMIN";
 
     if (isAdmin) {
-        // Admins can remove all files from the collection
         if (files.length) {
             await removeNonCollectionOwnerFiles(collection.id, files);
         }
         return files.length;
     }
 
-    // Non-admins can only remove their own files
     const [userFiles] = splitByPredicate(files, (f) => f.ownerID == userID);
     if (userFiles.length) {
         await removeNonCollectionOwnerFiles(collection.id, userFiles);
@@ -843,16 +861,7 @@ const removeFromOthersCollection = async (
     return userFiles.length;
 };
 
-/**
- * Remove the given user owned files from the given collection also owned by the
- * user, ensuring that at least one user owned instance is retained for them
- * (either in a different user owned collection in which they already existed,
- * or in the user's "Uncategorized" collection as a fallback).
- *
- * Reads local state but does not modify it. The effects are on remote.
- *
- * This is used as a subroutine of [Note: Removing files from a collection].
- */
+// Preserve one owned instance, falling back to Uncategorized.
 const removeOwnFilesFromOwnCollection = async (
     collectionID: number,
     filesToRemove: EnteFile[],
@@ -863,46 +872,35 @@ const removeOwnFilesFromOwnCollection = async (
 
     const collectionsByID = new Map(collections.map((c) => [c.id, c]));
 
-    // This set keeps a running track of file IDs that still need to be removed.
-    // It is seeded with the original set of files we were asked to remove.
     const filesToRemoveIDs = new Set(filesToRemove.map((f) => f.id));
-    // A predicate that checks if the given file is still pending removal.
     const pendingRemove = (f: EnteFile) => filesToRemoveIDs.has(f.id);
 
     const collectionFilesToRemove = collectionFiles.filter(pendingRemove);
     const groups = groupFilesByCollectionID(collectionFilesToRemove);
     for (const [targetCollectionID, filesInCollection] of groups.entries()) {
-        // Ignore the source collection itself.
         if (targetCollectionID == collectionID) continue;
 
         const targetCollection = collectionsByID.get(targetCollectionID)!;
-        // We want a copy to exist in at least one other user owned collection.
         if (targetCollection.owner.id != userID) continue;
-        // We'll move to uncategorized after the loop (if they still remain).
         if (targetCollection.type == "uncategorized") continue;
 
         const filesInCollectionToRemove =
             filesInCollection.filter(pendingRemove);
         if (!filesInCollectionToRemove.length) continue;
 
-        // The file already exists in the target collection, but this acts as
-        // "remove" from the source.
         await moveFromCollection(
             collectionID,
             targetCollection,
             filesInCollectionToRemove,
         );
 
-        // Mark the files we just moved as been taken care of.
         filesInCollectionToRemove.forEach((f) => filesToRemoveIDs.delete(f.id));
     }
 
-    // Any files that were not moved so far, move them to uncategorized,
-    // creating uncategorized if needed.
     const remainingFiles = filesToRemove.filter(pendingRemove);
     if (remainingFiles.length) {
         const uncategorizedCollection =
-            collections.find((c) => c.type == "uncategorized") ??
+            findUserUncategorizedCollection(collections, userID) ??
             (await createUncategorizedCollection());
 
         await moveFromCollection(
@@ -913,31 +911,6 @@ const removeOwnFilesFromOwnCollection = async (
     }
 };
 
-/**
- * Remove the provided files from the provided collection on remote.
- *
- * Only files which do not belong to the collection owner can be removed from
- * the collection using this endpoint. That is,
- *
- * - Either the user owns the collection and the all files being removed are
- *   owned by somebody else, or
- *
- * - The user owns all the files being removed, but the collection belongs to
- *   somebody else.
- *
- * If the collection owner wants to remove files owned by them, then their
- * client should first move those files first to other collections owned by the
- * collection owner.
- *
- * Remote only, does not modify local state.
- *
- * See also: [Note: Removing files from a collection].
- *
- * @param collectionID The ID of collection from which to remove the files.
- *
- * @param files A list of files which do not belong to the user, and which we
- * the user wants to remove from the given collection.
- */
 const removeNonCollectionOwnerFiles = async (
     collectionID: number,
     files: EnteFile[],
@@ -955,20 +928,6 @@ const removeNonCollectionOwnerFiles = async (
         ),
     );
 
-/**
- * Delete a collection on remote.
- *
- * Reads local state but does not modify it. The effects are on remote.
- *
- * @param collectionID The ID of the collection to delete.
- *
- * @param opts Deletion options. In particular, if {@link keepFiles} is true,
- *  then the any of the user's files that only exist in this collection are
- *  first moved to another one of the user's collection (or Uncategorized if no
- *  such collection exists) before deleting the collection.
- *
- * See: [Note: Removing files from a collection]
- */
 export const deleteCollection = async (
     collectionID: number,
     opts?: { keepFiles?: boolean },
@@ -994,21 +953,12 @@ export const deleteCollection = async (
     );
 };
 
-/**
- * Rename a collection on remote.
- *
- * Remote only, does not modify local state.
- *
- * @param collection The collection to rename.
- *
- * @param newName The new name of the collection
- */
 export const renameCollection = async (
     collection: Collection,
     newName: string,
 ) => {
+    // Named quick links become regular collections.
     if (collection.magicMetadata?.data.subType == CollectionSubType.quicklink) {
-        // Convert quicklinks to a regular collection before giving them a name.
         await updateCollectionPrivateMagicMetadata(collection, {
             subType: CollectionSubType.default,
         });
@@ -1037,18 +987,6 @@ const postCollectionsRename = async (renameRequest: RenameRequest) =>
         }),
     );
 
-/**
- * Change the visibility (normal, archived, hidden) of a collection on remote.
- *
- * Remote only, does not modify local state.
- *
- * This function works with both collections owned by the user, and collections
- * shared with the user.
- *
- * @param collection The collection whose visibility we want to change.
- *
- * @param visibility The new visibility (normal, archived, hidden).
- */
 export const updateCollectionVisibility = async (
     collection: Collection,
     visibility: ItemVisibility,
@@ -1057,106 +995,60 @@ export const updateCollectionVisibility = async (
         ? updateCollectionPrivateMagicMetadata(collection, { visibility })
         : updateCollectionShareeMagicMetadata(collection, { visibility });
 
-/**
- * Change the pinned state of a collection on remote.
- *
- * Remote only, does not modify local state.
- *
- * This function works only for collections owned by the user.
- *
- * @param collection The collection whose order we want to change.
- *
- * @param order Whether on not the collection is pinned.
- */
 export const updateCollectionOrder = async (
     collection: Collection,
     order: CollectionOrder,
 ) => updateCollectionPrivateMagicMetadata(collection, { order });
 
-/**
- * Change the order (pin/unpin) of a shared collection on remote for the sharee.
- *
- * Remote only, does not modify local state.
- *
- * This function works only for collections shared with the user (not owned).
- *
- * @param collection The shared collection whose order we want to change.
- *
- * @param order Whether on not the collection is pinned by the sharee.
- */
 export const updateShareeCollectionOrder = async (
     collection: Collection,
     order: CollectionOrder,
 ) => updateCollectionShareeMagicMetadata(collection, { order });
 
-/**
- * Change the sort order of the files with a collection on remote.
- *
- * Remote only, does not modify local state.
- *
- * This function works only for collections owned by the user.
- *
- * @param collection The collection whose file sort order we want to change.
- *
- * @param asc If true, then the files are sorted ascending (oldest first).
- * Otherwise they are sorted descending (newest first).
- */
 export const updateCollectionSortOrder = async (
     collection: Collection,
     asc: boolean,
-) => updateCollectionPublicMagicMetadata(collection, { asc });
+    sortBy: CollectionSortBy = "date",
+) => updateCollectionPublicMagicMetadata(collection, { asc, sortBy });
 
-/**
- * Change the cover photo of a collection on remote.
- *
- * Remote only, does not modify local state.
- *
- * This function works only for collections owned by the user.
- *
- * @param collection The collection whose cover we want to change.
- *
- * @param coverID The file ID to set as the cover.
- *
- * Pass `0` to reset to the default cover.
- */
-export const updateCollectionCover = async (
+const albumDescriptionSegmenter =
+    typeof Intl !== "undefined" && "Segmenter" in Intl
+        ? new Intl.Segmenter(undefined, { granularity: "grapheme" })
+        : null;
+
+export const albumDescriptionGraphemeCount = (description: string) =>
+    albumDescriptionSegmenter
+        ? Array.from(albumDescriptionSegmenter.segment(description)).length
+        : Array.from(description).length;
+
+export const updateCollectionDetails = async (
     collection: Collection,
-    coverID: number,
-) => updateCollectionPublicMagicMetadata(collection, { coverID });
+    { description, coverID }: { description?: string; coverID?: number },
+) => {
+    const updates: CollectionPublicMagicMetadataData = {};
+    if (description !== undefined) {
+        const normalizedDescription = description.trim();
+        if (
+            albumDescriptionGraphemeCount(normalizedDescription) >
+            maxAlbumDescriptionLength
+        ) {
+            throw new Error(
+                `Album descriptions cannot exceed ${maxAlbumDescriptionLength} characters`,
+            );
+        }
+        updates.caption = normalizedDescription;
+    }
+    if (coverID !== undefined) updates.coverID = coverID;
 
-/**
- * Change the layout type of a collection on remote.
- *
- * Remote only, does not modify local state.
- *
- * This function works only for collections owned by the user.
- *
- * @param collection The collection whose layout we want to change.
- *
- * @param layout The layout type ("masonry", "grouped", "continuous", "trip").
- */
+    return updateCollectionPublicMagicMetadata(collection, updates);
+};
+
 export const updateCollectionLayout = async (
     collection: Collection,
     layout: string,
 ) => updateCollectionPublicMagicMetadata(collection, { layout });
 
-/**
- * Update the private magic metadata of a collection on remote.
- *
- * Remote only, does not modify local state.
- *
- * @param collection The collection whose magic metadata we want to update.
- *
- * The existing magic metadata of this collection is used both to obtain the
- * current magic metadata version, and the existing contents on top of which the
- * updates are applied, so it is imperative that both these values are up to
- * sync with remote otherwise the update will fail.
- *
- * @param updates A non-empty subset of
- * {@link CollectionPrivateMagicMetadataData} entries.
- *
- * See: [Note: Magic metadata data cannot have nullish values]
- */
+// Every metadata merge below requires current remote data and version.
 const updateCollectionPrivateMagicMetadata = async (
     { id, key, magicMetadata }: Collection,
     updates: CollectionPrivateMagicMetadataData,
@@ -1172,9 +1064,6 @@ const updateCollectionPrivateMagicMetadata = async (
         ),
     });
 
-/**
- * Update the private magic metadata of a single collection on remote.
- */
 const putCollectionsMagicMetadata = async (
     updateRequest: UpdateMagicMetadataRequest,
 ) =>
@@ -1186,14 +1075,6 @@ const putCollectionsMagicMetadata = async (
         }),
     );
 
-/**
- * Update the public magic metadata of a collection on remote.
- *
- * Remote only, does not modify local state.
- *
- * This is a variant of {@link updateCollectionPrivateMagicMetadata} that works
- * with the {@link pubMagicMetadata} of a collection.
- */
 const updateCollectionPublicMagicMetadata = async (
     { id, key, pubMagicMetadata }: Collection,
     updates: CollectionPublicMagicMetadataData,
@@ -1209,9 +1090,6 @@ const updateCollectionPublicMagicMetadata = async (
         ),
     });
 
-/**
- * Update the public magic metadata of a single collection on remote.
- */
 const putCollectionsPublicMagicMetadata = async (
     updateRequest: UpdateMagicMetadataRequest,
 ) =>
@@ -1223,14 +1101,6 @@ const putCollectionsPublicMagicMetadata = async (
         }),
     );
 
-/**
- * Update the per-sharee magic metadata of a collection on remote.
- *
- * Remote only, does not modify local state.
- *
- * This is a variant of {@link updateCollectionPrivateMagicMetadata} that works
- * with the {@link sharedMagicMetadata} of a collection.
- */
 const updateCollectionShareeMagicMetadata = async (
     { id, key, sharedMagicMetadata }: Collection,
     updates: CollectionShareeMagicMetadataData,
@@ -1246,9 +1116,6 @@ const updateCollectionShareeMagicMetadata = async (
         ),
     });
 
-/**
- * Update the sharee magic metadata of a single shared collection on remote.
- */
 const putCollectionsShareeMagicMetadata = async (
     updateRequest: UpdateMagicMetadataRequest,
 ) =>
@@ -1260,122 +1127,162 @@ const putCollectionsShareeMagicMetadata = async (
         }),
     );
 
-/**
- * Create a new collection of type "favorites" for the user on remote, and
- * return its local representation.
- *
- * Remote only, does not modify local state.
- *
- * Each user can have at most one collection of type "favorites" owned by them.
- * While this function does not enforce the constraint locally, it will fail
- * because remote will enforce the constraint and fail the request when we
- * attempt to create a second collection of type "favorites".
- */
 const createFavoritesCollection = () =>
     createCollection(favoritesCollectionName, "favorites");
 
-/**
- * Create a new collection of type "uncategorized" for the user on remote, and
- * return its local representation.
- *
- * Remote only, does not modify local state.
- *
- * Each user can have at most one collection of type "uncategorized" owned by
- * them. While this function does not enforce the constraint locally, it will
- * fail because remote will enforce the constraint and fail the request when we
- * attempt to create a second collection of type "uncategorized".
- */
 export const createUncategorizedCollection = () =>
     createCollection(uncategorizedCollectionName, "uncategorized");
 
-/**
- * Return the user's own favorites collection if one is found in the local
- * database. Otherwise create a new one and return that.
- *
- * Reads local state but does not modify it. The effects are on remote.
- */
-const savedOrCreateUserFavoritesCollection = async () =>
-    (await savedUserFavoritesCollection()) ?? createFavoritesCollection();
+const savedOrCreateUserFavoritesCollection = async () => {
+    const favoritesCollection = await savedUserFavoritesCollection();
+    if (favoritesCollection) return favoritesCollection;
 
-/**
- * Return the user's own favorites collection, if any, present in the local
- * database.
- */
-export const savedUserFavoritesCollection = async () => {
+    // Avoid creating a second Favorites before the first one is pulled.
+    pendingUserFavoritesCollectionPromise ??= createFavoritesCollection()
+        .then((collection) => {
+            pendingUserFavoritesCollection = collection;
+            return collection;
+        })
+        .finally(() => {
+            pendingUserFavoritesCollectionPromise = undefined;
+        });
+
+    return pendingUserFavoritesCollectionPromise;
+};
+
+const savedUserFavoritesCollection = async () => {
     const userID = ensureLocalUser().id;
     const collections = await savedCollections();
-    return collections.find(
-        (collection) =>
-            // See: [Note: User and shared favorites]
-            collection.type == "favorites" && collection.owner.id == userID,
+    return (
+        collections.find(
+            (collection) =>
+                collection.type == "favorites" && collection.owner.id == userID,
+        ) ??
+        (pendingUserFavoritesCollection?.owner.id == userID
+            ? pendingUserFavoritesCollection
+            : undefined)
     );
 };
 
-/**
- * Mark the provided {@link files} as the user's favorites by adding them to the
- * user's favorites collection.
- *
- * If the user doesn't yet have a favorites collection, it is created.
- *
- * Reads local state but does not modify it. The effects are on remote.
- */
-export const addToFavoritesCollection = async (files: EnteFile[]) =>
-    addToCollection(await savedOrCreateUserFavoritesCollection(), files);
+export const addToFavoritesCollection = async (files: EnteFile[]) => {
+    const userID = ensureLocalUser().id;
 
-export const removeFromFavoritesCollection = async (files: EnteFile[]) =>
-    // Non-null assertion because if we get here and a favorites collection does
-    // not already exist, then something is wrong.
-    removeFromOwnCollection((await savedUserFavoritesCollection())!.id, files);
-
-/**
- * Return the default hidden collection for the user if one is found in the
- * local database. Otherwise create a new one and return that.
- *
- * Reads local state but does not modify it. The effects are on remote.
- */
-const savedOrCreateDefaultHiddenCollection = async () =>
-    (await savedDefaultHiddenCollection()) ?? createDefaultHiddenCollection();
-
-/**
- * Return the user's default hidden collection, if any, present in the
- * local database.
- */
-const savedDefaultHiddenCollection = async () =>
-    (await savedCollections()).find((collection) =>
-        isDefaultHiddenCollection(collection),
+    const hashlessSharedFile = files.find(
+        (file) => file.ownerID != userID && !hashAndTypeKey(file),
     );
 
-/**
- * Create a new collection with hidden visibility on remote, marking it as the
- * default hidden collection, and return its local representation.
- *
- * Remote only, does not modify local state.
- *
- * See also: [Note: Multiple "default" hidden collections].
- */
+    if (hashlessSharedFile) {
+        throw new Error("Cannot favorite shared files without metadata hash");
+    }
+
+    const favoritesCollection = await savedOrCreateUserFavoritesCollection();
+
+    const { pendingFiles, remainingFiles } = splitPendingFavoriteFiles(
+        files,
+        userID,
+    );
+
+    if (pendingFiles.length) {
+        await addToCollection(favoritesCollection, pendingFiles);
+    }
+
+    const addedFiles = await addOrCopyToCollection(
+        favoritesCollection,
+        remainingFiles,
+    );
+
+    rememberPendingFavoriteFiles(
+        files,
+        pendingFiles.concat(addedFiles),
+        userID,
+    );
+};
+
+export const removeFromFavoritesCollection = async (files: EnteFile[]) => {
+    const userID = ensureLocalUser().id;
+
+    const favoritesCollection = await savedUserFavoritesCollection();
+    if (!favoritesCollection) {
+        throw new Error("Favorites collection does not exist");
+    }
+
+    const resolvedFiles = await resolveFavoritesFilesForRemoval(
+        favoritesCollection,
+        files,
+    );
+    if (!resolvedFiles.length) return;
+
+    await removeFromOwnCollection(
+        favoritesCollection.id,
+        uniqueFilesByID(resolvedFiles),
+    );
+    rememberPendingFavoriteFiles(files, resolvedFiles, userID);
+};
+
+const resolveFavoritesFilesForRemoval = async (
+    favoritesCollection: Collection,
+    files: EnteFile[],
+) => {
+    const userID = ensureLocalUser().id;
+
+    const favoriteFilesByHashAndType = userOwnedEquivalentFilesByHashAndType(
+        (await savedCollectionFiles()).filter(
+            (file) => file.collectionID == favoritesCollection.id,
+        ),
+        userID,
+    );
+
+    return files.map((file) => {
+        if (
+            file.ownerID != userID &&
+            file.collectionID != favoritesCollection.id
+        ) {
+            const key = hashAndTypeKey(file);
+            const favoriteFile = key
+                ? (favoriteFilesByHashAndType.get(key) ??
+                  pendingFavoriteFilesByHashAndType.get(key))
+                : undefined;
+            if (!favoriteFile) {
+                throw new Error("Could not resolve favorite file for removal");
+            }
+            return favoriteFile;
+        }
+        return file;
+    });
+};
+
+export const getOrCreateDefaultHiddenCollection = async () =>
+    (await savedDefaultHiddenCollection()) ?? createDefaultHiddenCollection();
+
+const savedDefaultHiddenCollection = async () =>
+    findUserDefaultHiddenCollection(
+        await savedCollections(),
+        ensureLocalUser().id,
+    );
+
+const findUserDefaultHiddenCollection = (
+    collections: readonly Collection[],
+    userID: number,
+) =>
+    collections
+        .filter(
+            (collection) =>
+                collection.owner.id == userID &&
+                isDefaultHiddenCollection(collection),
+        )
+        .sort((a, b) => a.id - b.id)
+        .at(0);
+
 const createDefaultHiddenCollection = () =>
     createCollection(defaultHiddenCollectionName, "album", {
         subType: CollectionSubType.defaultHidden,
         visibility: ItemVisibility.hidden,
     });
 
-/**
- * Return true if the provided collection is the default hidden collection.
- *
- * See also: [Note: Multiple "default" hidden collections].
- */
 export const isDefaultHiddenCollection = (collection: Collection) =>
     collection.magicMetadata?.data.subType == CollectionSubType.defaultHidden;
 
-/**
- * Extract the IDs of all the "default" hidden collections.
- *
- * [Note: Multiple "default" hidden collections].
- *
- * Normally, there is only expected to be one such collection. But to provide
- * clients laxity in synchronization, we don't enforce this and instead allow
- * for multiple such default hidden collections to exist.
- */
+// Concurrent clients may create more than one default-hidden collection.
 export const findDefaultHiddenCollectionIDs = (collections: Collection[]) =>
     new Set<number>(
         collections
@@ -1383,21 +1290,11 @@ export const findDefaultHiddenCollectionIDs = (collections: Collection[]) =>
             .map((collection) => collection.id),
     );
 
-/**
- * Return `true` if the given collection is hidden.
- *
- * Hidden collections are those that have their visibility set to hidden for
- * the current user (owner or sharee).
- *
- * In one instance, the isHiddenCollection function is called outside of a window, like
- * for the people tab's review suggestions, this function was trigged from a worker.
- * In that case, since the worker has no access to the localStorage, we need to pass the currentUserID
- * explicitly.
- */
 export const isHiddenCollection = (
     collection: Collection,
     currentUserID?: number,
 ) => {
+    // Workers must pass this ID because they cannot read the browser session.
     const userID =
         currentUserID ?? (haveWindow() ? ensureLocalUser().id : undefined);
 
@@ -1416,57 +1313,39 @@ export const isHiddenCollection = (
     );
 };
 
-/**
- * Return `true` if the given collection is archived.
- *
- * Archived collections are those that have their visibility set to hidden in the
- * collection's private magic metadata or per-sharee private metadata.
- */
 export const isArchivedCollection = (collection: Collection) =>
     collection.magicMetadata?.data.visibility == ItemVisibility.archived ||
     collection.sharedMagicMetadata?.data.visibility == ItemVisibility.archived;
 
-/**
- * Return `true` if the current user can remove files from all participants in
- * the given collection.
- *
- * This is true if the user is either:
- * - The owner of the collection, or
- * - An admin of the collection
- *
- * This is used to determine if the user can remove files added by other users
- * from a shared collection.
- */
-export const canRemoveFilesFromAllParticipants = (collection: Collection) => {
+export const hideFiles = async (files: EnteFile[]) => {
     const userID = ensureLocalUser().id;
-    if (collection.owner.id == userID) return true;
-    // Check if the user is an admin of this collection
-    const sharee = collection.sharees.find((s) => s.id == userID);
-    return sharee?.role == "ADMIN";
+    const defaultHiddenCollection = await getOrCreateDefaultHiddenCollection();
+    const collections = await savedCollections();
+    const collectionsByID = new Map(collections.map((c) => [c.id, c]));
+
+    for (const [collectionID, collectionFiles] of groupFilesByCollectionID(
+        files,
+    ).entries()) {
+        if (collectionID == defaultHiddenCollection.id) continue;
+
+        const collection = collectionsByID.get(collectionID);
+        if (!collection) {
+            throw new Error(`Collection ${collectionID} not found`);
+        }
+
+        if (collection.owner.id == userID) {
+            await moveFromCollection(
+                collectionID,
+                defaultHiddenCollection,
+                collectionFiles,
+            );
+        } else {
+            // Shared collections cannot move files across ownership.
+            await removeFromCollection(collection, collectionFiles);
+        }
+    }
 };
 
-/**
- * Hide the provided {@link files} by moving them to the default hidden
- * collection.
- *
- * If the default hidden collection does not already exist, it is created.
- *
- * Reads local state but does not modify it. The effects are on remote.
- */
-export const hideFiles = async (files: EnteFile[]) =>
-    moveToCollection(await savedOrCreateDefaultHiddenCollection(), files);
-
-/**
- * Share the provided collection with another Ente user.
- *
- * Remote only, does not modify local state.
- *
- * @param collection The {@link Collection} to share.
- *
- * @param withUserEmail The email of the Ente user with whom to share it.
- *
- * @param role The desired role for the new participant.
- */
 export const shareCollection = async (
     collection: Collection,
     withUserEmail: string,
@@ -1489,16 +1368,6 @@ export const shareCollection = async (
     );
 };
 
-/**
- * Stop sharing a collection on remote with the given user.
- *
- * Remote only, does not modify local state.
- *
- * @param collectionID The ID of the collection to stop sharing with the user
- * having the given {@link email}.
- *
- * @param email The email of the Ente user with whom to stop sharing.
- */
 export const unshareCollection = async (collectionID: number, email: string) =>
     ensureOk(
         await fetch(await apiURL("/collections/unshare"), {
@@ -1508,10 +1377,6 @@ export const unshareCollection = async (collectionID: number, email: string) =>
         }),
     );
 
-/**
- * The subset of public URL attributes that can be customized by the user when
- * creating a link.
- */
 export type CreatePublicURLAttributes = Pick<
     Partial<PublicURL>,
     | "enableCollect"
@@ -1521,16 +1386,6 @@ export type CreatePublicURLAttributes = Pick<
     | "deviceLimit"
 >;
 
-/**
- * Create a new public link for the given collection.
- *
- * Remote only, does not modify local state.
- *
- * @param collectionID The ID of the collection for which the public link should
- * be created.
- *
- * @param attributes Optional attributes to set when creating the public link.
- */
 export const createPublicURL = async (
     collectionID: number,
     attributes?: CreatePublicURLAttributes,
@@ -1545,28 +1400,11 @@ export const createPublicURL = async (
     return z.object({ result: RemotePublicURL }).parse(await res.json()).result;
 };
 
-/**
- * The subset of public URL attributes that can be updated by the user after the
- * link has already been created.
- */
 export type UpdatePublicURLAttributes = Omit<
     Partial<PublicURL>,
     "url" | "enablePassword"
 > & { disablePassword?: boolean; passHash?: string };
 
-/**
- * Update the attributes of an existing public link for a shared collection.
- *
- * Remote only, does not modify local state.
- *
- * @param collectionID The ID of the collection whose public link to update.
- *
- * @param updates The public link attributes to modify. Only attributes
- * corresponding to entries with non nullish values will be updated, all the
- * other existing attributes will remain unmodified.
- *
- * @returns the updated public URL.
- */
 export const updatePublicURL = async (
     collectionID: number,
     updates: UpdatePublicURLAttributes,
@@ -1580,11 +1418,17 @@ export const updatePublicURL = async (
     return z.object({ result: RemotePublicURL }).parse(await res.json()).result;
 };
 
-/**
- * Delete the public link for the collection with given {@link collectionID}.
- *
- * Remote only, does not modify local state.
- */
+export const removePublicLink = async (collection: Collection) => {
+    if (
+        collection.magicMetadata?.data.subType == CollectionSubType.quicklink &&
+        collection.sharees.length === 0
+    ) {
+        await deleteCollection(collection.id, { keepFiles: true });
+    } else {
+        await deleteShareURL(collection.id);
+    }
+};
+
 export const deleteShareURL = async (collectionID: number) =>
     ensureOk(
         await fetch(await apiURL(`/collections/share-url/${collectionID}`), {
@@ -1593,13 +1437,6 @@ export const deleteShareURL = async (collectionID: number) =>
         }),
     );
 
-/**
- * Leave a collection which had previously been shared with the user.
- *
- * Remote only, does not modify local state.
- *
- * @param collectionID The ID of the shared collection to leave.
- */
 export const leaveSharedCollection = async (collectionID: number) =>
     ensureOk(
         await fetch(await apiURL(`/collections/leave/${collectionID}`), {
@@ -1608,9 +1445,6 @@ export const leaveSharedCollection = async (collectionID: number) =>
         }),
     );
 
-/**
- * Zod schema for a collection action (used for pending removal actions).
- */
 const CollectionAction = z.object({
     collectionID: z.number(),
     fileID: z.number().nullish(),
@@ -1618,28 +1452,11 @@ const CollectionAction = z.object({
 
 type CollectionAction = z.infer<typeof CollectionAction>;
 
-/**
- * Zod schema for the pending removal actions response.
- */
 const PendingRemovalActionsResponse = z.object({
     actions: z.array(CollectionAction).nullish(),
 });
 
-/**
- * Fetch pending removal actions from remote.
- *
- * Remote only, does not modify local state.
- *
- * Pending removal actions indicate files that have been removed from a
- * collection by the owner or an admin, and should be moved to the user's
- * uncategorized collection if they exist locally.
- *
- * @returns A list of {@link CollectionAction} objects representing files that
- * should be moved to uncategorized.
- */
-export const fetchPendingRemovalActions = async (): Promise<
-    CollectionAction[]
-> => {
+const fetchPendingRemovalActions = async (): Promise<CollectionAction[]> => {
     const res = await fetch(
         await apiURL("/collection-actions/pending-remove"),
         { headers: await authenticatedRequestHeaders() },
@@ -1649,27 +1466,13 @@ export const fetchPendingRemovalActions = async (): Promise<
     return actions ?? [];
 };
 
-/**
- * Process pending removal actions by moving affected files to the user's
- * uncategorized collection.
- *
- * This function fetches pending removal actions from remote, identifies which
- * files are affected, and moves them to the uncategorized collection. This
- * ensures that files removed from shared collections by owners/admins are not
- * lost but instead moved to a safe location.
- *
- * @param collections The current list of collections (used to find affected
- * files).
- *
- * Reads local state but does not modify it. The effects are on remote.
- */
 export const movePendingRemovalActionsToUncategorized = async (
     collections: Collection[],
 ) => {
+    const userID = ensureLocalUser().id;
     const pendingActions = await fetchPendingRemovalActions();
     if (!pendingActions.length) return;
 
-    // Group file IDs by collection ID
     const collectionToFileIDs = new Map<number, Set<number>>();
     for (const action of pendingActions) {
         if (action.fileID == null) continue;
@@ -1686,20 +1489,15 @@ export const movePendingRemovalActionsToUncategorized = async (
 
     if (!collectionToFileIDs.size) return;
 
-    // Get all files from local storage
     const collectionFiles = await savedCollectionFiles();
 
-    // Group files by collection ID for efficient lookup
     const filesByCollectionID = groupFilesByCollectionID(collectionFiles);
 
-    // Create a map of collection ID to collection for quick lookup
     const collectionByID = new Map(collections.map((c) => [c.id, c]));
 
-    // Lazily initialized target collections (only created if needed)
     let uncategorizedCollection: Collection | undefined;
     let defaultHiddenCollection: Collection | undefined;
 
-    // Process each collection with pending removal actions
     for (const [
         collectionID,
         pendingFileIDs,
@@ -1712,47 +1510,31 @@ export const movePendingRemovalActionsToUncategorized = async (
 
         if (!filesToMove.length) continue;
 
-        // Determine target collection based on whether source is hidden
         const isSourceHidden =
             sourceCollection && isHiddenCollection(sourceCollection);
 
+        // Rescue removals without changing their hidden/visible boundary.
         let targetCollection: Collection;
         if (isSourceHidden) {
-            // Move files from hidden collections to default hidden collection
             if (!defaultHiddenCollection) {
                 defaultHiddenCollection =
-                    collections.find(isDefaultHiddenCollection) ??
+                    findUserDefaultHiddenCollection(collections, userID) ??
                     (await createDefaultHiddenCollection());
             }
             targetCollection = defaultHiddenCollection;
         } else {
-            // Move files from normal collections to uncategorized
             if (!uncategorizedCollection) {
                 uncategorizedCollection =
-                    collections.find((c) => c.type == "uncategorized") ??
+                    findUserUncategorizedCollection(collections, userID) ??
                     (await createUncategorizedCollection());
             }
             targetCollection = uncategorizedCollection;
         }
 
-        // Move files to target collection (this also removes them from the
-        // source collection, which is the primary goal here)
         await moveFromCollection(collectionID, targetCollection, filesToMove);
     }
 };
 
-/**
- * Remove files from the uncategorized collection if they exist in other
- * user-owned albums.
- *
- * This is a cleanup operation that helps users remove duplicates from their
- * uncategorized collection. Files that exist both in uncategorized and in
- * other albums are moved out of uncategorized to one of those albums.
- *
- * Reads local state but does not modify it. The effects are on remote.
- *
- * @param uncategorizedCollection The user's uncategorized collection.
- */
 export const cleanUncategorized = async (
     uncategorizedCollection: Collection,
 ): Promise<number> => {
@@ -1760,15 +1542,12 @@ export const cleanUncategorized = async (
     const collections = await savedCollections();
     const collectionFiles = await savedCollectionFiles();
 
-    // Get files in the uncategorized collection
     const uncategorizedFiles = collectionFiles.filter(
         (f) => f.collectionID == uncategorizedCollection.id,
     );
 
     if (!uncategorizedFiles.length) return 0;
 
-    // Build a map from file ID to the collections it belongs to (excluding
-    // uncategorized itself)
     const fileIDToCollectionIDs = new Map<number, number[]>();
     for (const file of collectionFiles) {
         if (file.collectionID == uncategorizedCollection.id) continue;
@@ -1780,7 +1559,6 @@ export const cleanUncategorized = async (
         }
     }
 
-    // Filter to only user-owned normal collections (not hidden, not shared)
     const userOwnedCollectionIDs = new Set(
         collections
             .filter(
@@ -1794,11 +1572,9 @@ export const cleanUncategorized = async (
 
     const collectionsByID = new Map(collections.map((c) => [c.id, c]));
 
-    // Find files that exist in other user-owned collections
     const filesToClean = uncategorizedFiles.filter((file) => {
         const otherCollectionIDs = fileIDToCollectionIDs.get(file.id);
         if (!otherCollectionIDs) return false;
-        // Check if any of these collections are user-owned normal collections
         return otherCollectionIDs.some((cid) =>
             userOwnedCollectionIDs.has(cid),
         );
@@ -1806,7 +1582,6 @@ export const cleanUncategorized = async (
 
     if (!filesToClean.length) return 0;
 
-    // Group files by their target collection for efficient batching
     const filesByTargetCollection = new Map<number, EnteFile[]>();
     for (const file of filesToClean) {
         const otherCollectionIDs = fileIDToCollectionIDs.get(file.id)!;
@@ -1820,15 +1595,11 @@ export const cleanUncategorized = async (
         filesByTargetCollection.set(targetCollectionID, existing);
     }
 
-    // Move files in batches per target collection
     let cleanedCount = 0;
     for (const [targetCollectionID, files] of filesByTargetCollection) {
         const targetCollection = collectionsByID.get(targetCollectionID);
         if (!targetCollection) continue;
 
-        // Move files from uncategorized to the target collection.
-        // This effectively removes them from uncategorized since they already
-        // exist in the target.
         await moveFromCollection(
             uncategorizedCollection.id,
             targetCollection,

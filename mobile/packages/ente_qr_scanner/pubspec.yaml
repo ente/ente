@@ -1,0 +1,25 @@
+name: ente_qr_scanner
+description: Live QR scanner plugin for Ente mobile apps.
+
+resolution: workspace
+environment:
+  sdk: ">=3.10.0 <4.0.0"
+  flutter: ">=3.22.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_lints: 6.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: io.ente.qr_scanner
+        pluginClass: EnteQrScannerPlugin
+      ios:
+        pluginClass: EnteQrScannerPlugin

@@ -1,0 +1,6 @@
+{
+    "apple/apps/cast/Cast/Services/APIEndpoint.swift": ["NeverForceUnwrap"],
+    "apple/apps/cast/Cast/ViewModels/SlideshowService.swift": [
+        "NeverForceUnwrap"
+    ]
+}

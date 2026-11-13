@@ -9,17 +9,12 @@ import "package:photos/services/filter/upload_ignore.dart";
 import "package:photos/services/ignored_files_service.dart";
 
 class DBFilterOptions {
-  // typically used for filtering out all files which are present in hidden
-  // (searchable files result) or archived collections or both (ex: home
-  // timeline)
   Set<int>? ignoredCollectionIDs;
   bool dedupeUploadID;
   bool hideIgnoredForUpload;
-  // If true, shared files that are already saved in the users account will be ignored.
   bool ignoreSavedFiles;
   bool onlyUploadedFiles;
 
-  // If true, files owned by other users or uploaded by other users will be ignored.
   bool ignoreSharedItems = false;
 
   DBFilterOptions({
@@ -31,9 +26,7 @@ class DBFilterOptions {
     this.ignoreSharedItems = false,
   });
 
-  static DBFilterOptions dedupeOption = DBFilterOptions(
-    dedupeUploadID: true,
-  );
+  static DBFilterOptions dedupeOption = DBFilterOptions(dedupeUploadID: true);
 }
 
 Future<List<EnteFile>> applyDBFilters(
@@ -79,5 +72,22 @@ Future<List<EnteFile>> applyDBFilters(
       filterFiles.add(file);
     }
   }
+  if (options.dedupeUploadID) {
+    return _hidePendingLocalDuplicates(filterFiles);
+  }
   return filterFiles;
+}
+
+List<EnteFile> _hidePendingLocalDuplicates(List<EnteFile> files) {
+  final uploadedLocalIDs = {
+    for (final file in files)
+      if (file.isUploaded && file.localID != null) file.localID!,
+  };
+  final seenPendingLocalIDs = <String>{};
+  return files.where((file) {
+    final localID = file.localID;
+    if (file.isUploaded || localID == null) return true;
+    return !uploadedLocalIDs.contains(localID) &&
+        seenPendingLocalIDs.add(localID);
+  }).toList();
 }

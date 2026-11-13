@@ -1,21 +1,19 @@
-import "package:email_validator/email_validator.dart";
 import "package:ente_accounts/services/user_service.dart";
+import "package:ente_components/ente_components.dart";
+import 'package:ente_contacts/contacts.dart';
+import "package:ente_pure_utils/ente_pure_utils.dart";
+import "package:ente_sharing/extensions/user_extension.dart";
 import "package:ente_sharing/models/user.dart";
-import "package:ente_sharing/user_avator_widget.dart";
+import "package:ente_sharing/user_avatar_widget.dart";
 import "package:ente_sharing/verify_identity_dialog.dart";
-import "package:ente_ui/components/base_bottom_sheet.dart";
-import "package:ente_ui/components/captioned_text_widget_v2.dart";
-import "package:ente_ui/components/divider_widget.dart";
-import "package:ente_ui/components/menu_item_widget_v2.dart";
-import "package:ente_ui/theme/ente_theme.dart";
+import "package:ente_strings/ente_strings.dart";
+import "package:ente_ui/components/date_time_picker.dart";
 import "package:flutter/material.dart";
 import "package:intl/intl.dart";
-import "package:locker/l10n/l10n.dart";
 import "package:locker/services/collections/collections_service.dart";
 import "package:locker/services/collections/models/collection.dart";
 import "package:locker/services/configuration.dart";
-import "package:locker/ui/components/gradient_button.dart";
-import "package:locker/ui/viewer/date/date_time_picker.dart";
+import "package:locker/ui/components/custom_list_scrollbar.dart";
 import "package:locker/utils/collection_actions.dart";
 
 Future<void> showAddEmailSheet(
@@ -23,15 +21,10 @@ Future<void> showAddEmailSheet(
   required Collection collection,
   required VoidCallback onShareAdded,
 }) {
-  return showBaseBottomSheet<void>(
-    context,
-    title: context.l10n.addNewEmail,
-    headerSpacing: 20,
-    isKeyboardAware: true,
-    child: AddEmailSheet(
-      collection: collection,
-      onShareAdded: onShareAdded,
-    ),
+  return showBottomSheetComponent<void>(
+    context: context,
+    builder: (_) =>
+        AddEmailSheet(collection: collection, onShareAdded: onShareAdded),
   );
 }
 
@@ -63,7 +56,7 @@ class _AddEmailSheetState extends State<AddEmailSheet> {
   final _scrollController = ScrollController();
 
   late CollectionActions _collectionActions;
-  late List<User> _suggestedUsers;
+  late List<UserSuggestion> _suggestedUsers;
 
   @override
   void initState() {
@@ -82,85 +75,63 @@ class _AddEmailSheetState extends State<AddEmailSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
-
-    return SingleChildScrollView(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildEmailInputField(colorScheme, textTheme),
-          if (_suggestedUsers.isNotEmpty) ...[
-            const SizedBox(height: 20),
-            _buildExistingContactsSection(colorScheme, textTheme),
-          ],
-          // _buildShareLaterCheckbox(colorScheme, textTheme),
-          if (_shareLater) ...[
-            const SizedBox(height: 12),
-            _buildScheduleDateTimeRow(colorScheme, textTheme),
-          ],
-          const SizedBox(height: 20),
-          _buildShareButton(),
-        ],
+    return BottomSheetComponent(
+      title: context.strings.addNewEmail,
+      isKeyboardAware: true,
+      content: ValueListenableBuilder<int>(
+        valueListenable: ContactsDisplayService.instance.changes,
+        builder: (context, _, _) {
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildEmailInputField(),
+              if (_suggestedUsers.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                _buildExistingContactsSection(),
+              ],
+              if (_shareLater) ...[
+                const SizedBox(height: 12),
+                _buildScheduleDateTimeRow(),
+              ],
+            ],
+          );
+        },
       ),
+      actions: [_buildShareButton()],
     );
   }
 
-  Widget _buildEmailInputField(colorScheme, textTheme) {
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.fillFaint,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _textController,
-              focusNode: _textFieldFocusNode,
-              autofillHints: const [AutofillHints.email],
-              decoration: InputDecoration(
-                hintText: context.l10n.enterNameOrEmailToShareWith,
-                hintStyle: textTheme.body.copyWith(
-                  color: colorScheme.textMuted,
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 16,
-                ),
-                border: InputBorder.none,
-                isDense: true,
-              ),
-              onChanged: (value) {
-                _email = value.trim();
-                _emailIsValid = _isValidEmail(_email);
-                setState(() {});
-              },
-              autocorrect: false,
-              keyboardType: TextInputType.emailAddress,
-              textInputAction: TextInputAction.done,
+  Widget _buildEmailInputField() {
+    return TextInputComponent(
+      controller: _textController,
+      focusNode: _textFieldFocusNode,
+      hintText: context.strings.enterNameOrEmailToShareWith,
+      keyboardType: TextInputType.emailAddress,
+      autofillHints: const [AutofillHints.email],
+      autocorrect: false,
+      shouldUnfocusOnClearOrSubmit: true,
+      onChanged: (value) {
+        _email = value.trim();
+        _emailIsValid = isValidEmail(_email);
+        setState(() {});
+      },
+    );
+  }
+
+  Widget _buildExistingContactsSection() {
+    final colors = context.componentColors;
+    final filteredUsers =
+        _suggestedUsers
+            .where(
+              (user) => user.matchesResolvedNameOrEmail(_textController.text),
+            )
+            .toList()
+          ..sort(
+            (a, b) => a.resolvedDisplayName.toLowerCase().compareTo(
+              b.resolvedDisplayName.toLowerCase(),
             ),
-          ),
-          // TODO: Re-enable role selection when collaborator role is available
-          // Padding(
-          //   padding: const EdgeInsets.only(right: 8),
-          //   child: _buildRoleDropdown(colorScheme, textTheme),
-          // ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildExistingContactsSection(colorScheme, textTheme) {
-    final filteredUsers = _suggestedUsers
-        .where(
-          (user) => user.email
-              .toLowerCase()
-              .contains(_textController.text.trim().toLowerCase()),
-        )
-        .toList();
+          );
 
     if (filteredUsers.isEmpty) {
       return const SizedBox.shrink();
@@ -173,8 +144,8 @@ class _AddEmailSheetState extends State<AddEmailSheet> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          context.l10n.chooseFromAnExistingContact,
-          style: textTheme.small.copyWith(color: colorScheme.textMuted),
+          context.strings.chooseFromAnExistingContact,
+          style: TextStyles.body.copyWith(color: colors.textLight),
         ),
         const SizedBox(height: 8),
         Row(
@@ -183,37 +154,37 @@ class _AddEmailSheetState extends State<AddEmailSheet> {
             Expanded(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(20),
-                child: Container(
-                  constraints:
-                      const BoxConstraints(maxHeight: maxVisibleHeight),
-                  child: ListView.builder(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    maxHeight: maxVisibleHeight,
+                  ),
+                  child: ListView.separated(
                     controller: _scrollController,
                     shrinkWrap: true,
                     padding: EdgeInsets.zero,
                     itemCount: filteredUsers.length,
+                    separatorBuilder: (_, _) => ColoredBox(
+                      color: colors.fillLight,
+                      child: const DividerComponent(
+                        padding: EdgeInsets.only(left: 48),
+                      ),
+                    ),
                     itemBuilder: (context, index) {
                       final user = filteredUsers[index];
-                      final isFirst = index == 0;
-                      final isLast = index == filteredUsers.length - 1;
-                      return Column(
-                        children: [
-                          if (!isFirst)
-                            DividerWidget(
-                              dividerType: DividerType.menu,
-                              bgColor: colorScheme.fillFaint,
-                            ),
-                          MenuItemWidgetV2(
-                            captionedTextWidget: CaptionedTextWidgetV2(
-                              title: user.email,
-                            ),
-                            leadingIconSize: 24.0,
-                            leadingIconWidget: UserAvatarWidget(
+                      return MenuGroupComponent(
+                        backgroundColor: colors.fillLight,
+                        borderRadius: MenuGroupComponent.itemBorderRadius(
+                          index: index,
+                          itemCount: filteredUsers.length,
+                        ),
+                        items: [
+                          MenuComponent(
+                            title: user.resolvedDisplayName,
+                            leading: UserAvatarWidget.suggestion(
                               user,
                               type: AvatarType.mini,
                               config: Configuration.instance,
                             ),
-                            menuItemColor: colorScheme.fillFaint,
-                            surfaceExecutionStates: false,
                             onTap: () async {
                               _textFieldFocusNode.unfocus();
                               _textController.text = user.email;
@@ -229,8 +200,6 @@ class _AddEmailSheetState extends State<AddEmailSheet> {
                                 email: user.email,
                               );
                             },
-                            isTopBorderRadiusRemoved: !isFirst,
-                            isBottomBorderRadiusRemoved: !isLast,
                           ),
                         ],
                       );
@@ -241,10 +210,11 @@ class _AddEmailSheetState extends State<AddEmailSheet> {
             ),
             if (showScrollbar) ...[
               const SizedBox(width: 4),
-              _buildCustomScrollbar(
-                filteredUsers.length,
-                maxVisibleHeight,
-                colorScheme,
+              CustomListScrollbar(
+                scrollController: _scrollController,
+                itemCount: filteredUsers.length,
+                visibleItems: 2,
+                containerHeight: maxVisibleHeight,
               ),
             ],
           ],
@@ -253,62 +223,8 @@ class _AddEmailSheetState extends State<AddEmailSheet> {
     );
   }
 
-  Widget _buildCustomScrollbar(
-    int itemCount,
-    double containerHeight,
-    colorScheme,
-  ) {
-    const visibleItems = 2;
-    final thumbHeightRatio = visibleItems / itemCount;
-    final thumbHeight = containerHeight * thumbHeightRatio;
-
-    return AnimatedBuilder(
-      animation: _scrollController,
-      builder: (context, child) {
-        double thumbPosition = 0;
-        if (_scrollController.hasClients &&
-            _scrollController.positions.length == 1) {
-          final maxExtent = _scrollController.position.hasContentDimensions
-              ? _scrollController.position.maxScrollExtent
-              : 0.0;
-          if (maxExtent > 0) {
-            final scrollFraction = _scrollController.offset / maxExtent;
-            thumbPosition = scrollFraction * (containerHeight - thumbHeight);
-          }
-        }
-
-        return SizedBox(
-          height: containerHeight,
-          width: 5,
-          child: Stack(
-            children: [
-              Container(
-                width: 5,
-                height: containerHeight,
-                decoration: BoxDecoration(
-                  color: colorScheme.strokeFaint,
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-              Positioned(
-                top: thumbPosition,
-                child: Container(
-                  width: 5,
-                  height: thumbHeight,
-                  decoration: BoxDecoration(
-                    color: colorScheme.strokeMuted,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildScheduleDateTimeRow(colorScheme, textTheme) {
+  Widget _buildScheduleDateTimeRow() {
+    final colors = context.componentColors;
     final dateText = _scheduledDate != null
         ? DateFormat("dd/MM/yy").format(_scheduledDate!)
         : "DD/MM/YY";
@@ -324,7 +240,7 @@ class _AddEmailSheetState extends State<AddEmailSheet> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               decoration: BoxDecoration(
-                color: colorScheme.fillFaint,
+                color: colors.fillLight,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -332,15 +248,15 @@ class _AddEmailSheetState extends State<AddEmailSheet> {
                   Icon(
                     Icons.calendar_today_outlined,
                     size: 18,
-                    color: colorScheme.textMuted,
+                    color: colors.textLight,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     dateText,
-                    style: textTheme.small.copyWith(
+                    style: TextStyles.body.copyWith(
                       color: _scheduledDate != null
-                          ? colorScheme.textBase
-                          : colorScheme.textMuted,
+                          ? colors.textBase
+                          : colors.textLight,
                     ),
                   ),
                 ],
@@ -355,7 +271,7 @@ class _AddEmailSheetState extends State<AddEmailSheet> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               decoration: BoxDecoration(
-                color: colorScheme.fillFaint,
+                color: colors.fillLight,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -363,15 +279,15 @@ class _AddEmailSheetState extends State<AddEmailSheet> {
                   Icon(
                     Icons.access_time_outlined,
                     size: 18,
-                    color: colorScheme.textMuted,
+                    color: colors.textLight,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     timeText,
-                    style: textTheme.small.copyWith(
+                    style: TextStyles.body.copyWith(
                       color: _scheduledTime != null
-                          ? colorScheme.textBase
-                          : colorScheme.textMuted,
+                          ? colors.textBase
+                          : colors.textLight,
                     ),
                   ),
                 ],
@@ -384,14 +300,12 @@ class _AddEmailSheetState extends State<AddEmailSheet> {
   }
 
   Future<void> _selectDate() async {
-    final initialDate = _scheduledDate ??
-        DateTime.now().add(
-          const Duration(days: 1),
-        );
-    final pickedDate = await showDatePickerSheet(
+    final initialDate =
+        _scheduledDate ?? DateTime.now().add(const Duration(days: 1));
+    final pickedDate = await showDateTimePickerSheet(
       context,
-      initialDate: initialDate,
-      minDate: DateTime.now(),
+      initialDateTime: initialDate,
+      minDateTime: DateTime.now(),
     );
     if (pickedDate != null && mounted) {
       setState(() {
@@ -416,14 +330,12 @@ class _AddEmailSheetState extends State<AddEmailSheet> {
   Widget _buildShareButton() {
     final bool canShare =
         _emailIsValid && (!_shareLater || _isScheduledDateTimeValid());
-    final buttonText =
-        _shareLater ? context.l10n.scheduleShare : context.l10n.share;
-    return SizedBox(
-      width: double.infinity,
-      child: GradientButton(
-        text: buttonText,
-        onTap: canShare ? _onShareTap : null,
-      ),
+    final buttonText = _shareLater
+        ? context.strings.scheduleShare
+        : context.strings.share;
+    return ButtonComponent(
+      label: buttonText,
+      onTap: canShare ? _onShareTap : null,
     );
   }
 
@@ -444,48 +356,40 @@ class _AddEmailSheetState extends State<AddEmailSheet> {
     }
   }
 
-  List<User> _getSuggestedUsers() {
-    final List<User> suggestedUsers = [];
-    final Set<String> existingEmails = {};
-
-    existingEmails.add(Configuration.instance.getEmail() ?? "");
+  List<UserSuggestion> _getSuggestedUsers() {
     final int ownerID = Configuration.instance.getUserID()!;
+    final suggestedUsers = <UserSuggestion>[];
+    final existingEmails = <String>{Configuration.instance.getEmail() ?? ""};
+
+    void add(String email, {int? userID}) {
+      if (email.isNotEmpty && existingEmails.add(email)) {
+        suggestedUsers.add(UserSuggestion(email, userID: userID));
+      }
+    }
 
     for (final c in CollectionService.instance.getActiveCollections()) {
       if (c.owner.id == ownerID) {
         for (final User u in c.sharees) {
-          if (u.id != null &&
-              u.email.isNotEmpty &&
-              !existingEmails.contains(u.email)) {
-            existingEmails.add(u.email);
-            suggestedUsers.add(u);
-          }
+          add(u.email, userID: u.id);
         }
-      } else if (c.owner.id != null &&
-          c.owner.email.isNotEmpty &&
-          !existingEmails.contains(c.owner.email)) {
-        existingEmails.add(c.owner.email);
-        suggestedUsers.add(c.owner);
+      } else {
+        add(c.owner.email, userID: c.owner.id);
       }
     }
 
-    final cachedUserDetails = UserService.instance.getCachedUserDetails();
-    if (cachedUserDetails != null &&
-        (cachedUserDetails.familyData?.members?.isNotEmpty ?? false)) {
-      for (final member in cachedUserDetails.familyData!.members!) {
-        if (!existingEmails.contains(member.email)) {
-          existingEmails.add(member.email);
-          suggestedUsers.add(User(email: member.email));
-        }
-      }
+    final familyMembers =
+        UserService.instance.getCachedUserDetails()?.familyData?.members ?? [];
+    for (final member in familyMembers) {
+      add(member.email, userID: member.userID);
     }
 
-    suggestedUsers.sort((a, b) => a.email.compareTo(b.email));
+    suggestedUsers.sort((a, b) {
+      final byName = a.resolvedDisplayName.toLowerCase().compareTo(
+        b.resolvedDisplayName.toLowerCase(),
+      );
+      return byName != 0 ? byName : a.email.compareTo(b.email);
+    });
     return suggestedUsers;
-  }
-
-  bool _isValidEmail(String email) {
-    return EmailValidator.validate(email);
   }
 
   bool _isScheduledDateTimeValid() {

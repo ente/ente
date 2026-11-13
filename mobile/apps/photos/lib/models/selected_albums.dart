@@ -24,10 +24,7 @@ class SelectedAlbums extends ChangeNotifier {
     notifyListeners();
   }
 
-  void unSelect(
-    Set<Collection> albumsToUnselect, {
-    bool skipNotify = false,
-  }) {
+  void unSelect(Set<Collection> albumsToUnselect, {bool skipNotify = false}) {
     albums.removeWhere((album) => albumsToUnselect.contains(album));
     if (!skipNotify) {
       notifyListeners();

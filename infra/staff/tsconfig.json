@@ -1,48 +1,27 @@
 {
-    /* TSConfig file used for typechecking the files in src/.
-     *
-     * The base configuration was generated using `yarn create vite`. This was
-     * already almost the same as the `tsconfig-typecheck.json` we use
-     * elsewhere, with one or two differences.
-     *
-     * For more details about the flags vite cares about, see
-     * https://vitejs.dev/guide/features.html#typescript-compiler-options
-     */
     "compilerOptions": {
         "target": "ES2020",
-        "useDefineForClassFields": true,
         "lib": ["ES2020", "DOM", "DOM.Iterable"],
         "module": "esnext",
         "skipLibCheck": true,
 
         /* Bundler mode. */
         "moduleResolution": "bundler",
-        "allowImportingTsExtensions": true,
-        "resolveJsonModule": true,
+        "moduleDetection": "force",
         "isolatedModules": true,
+        "noUncheckedSideEffectImports": true,
         "noEmit": true,
         "jsx": "react-jsx",
 
-        /* Linting. */
+        /* Typechecking. */
         "strict": true,
         "noUnusedLocals": true,
         "noUnusedParameters": true,
         "noFallthroughCasesInSwitch": true,
-
-        /*
-         * On top of the generated configuration, we've mostly added additional
-         * strictness checks.
-         */
-
-        /* Require the `type` modifier when importing types. */
         "verbatimModuleSyntax": true,
-
-        /* Stricter than strict. */
         "noImplicitReturns": true,
-        /* e.g. makes array indexing returns undefined. */
         "noUncheckedIndexedAccess": true,
         "exactOptionalPropertyTypes": true
     },
-    "include": ["src"],
-    "references": [{ "path": "./tsconfig.node.json" }]
+    "include": ["src", "vite.config.ts"]
 }

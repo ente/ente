@@ -2,6 +2,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 import 'package:photo_manager/photo_manager.dart';
+import 'package:photos/db/common/conflict_algo.dart';
 import 'package:photos/db/files_db.dart';
 import 'package:photos/models/device_collection.dart';
 import 'package:photos/models/file/file.dart';
@@ -9,7 +10,6 @@ import 'package:photos/models/file_load_result.dart';
 import 'package:photos/models/freeable_space_info.dart';
 import 'package:photos/models/upload_strategy.dart';
 import "package:photos/services/sync/import/model.dart";
-import 'package:sqflite/sqlite_api.dart';
 import 'package:tuple/tuple.dart';
 
 extension DeviceFiles on FilesDB {
@@ -19,7 +19,8 @@ extension DeviceFiles on FilesDB {
 
   Future<void> insertPathIDToLocalIDMapping(
     Map<String, Set<String>> mappingToAdd, {
-    ConflictAlgorithm conflictAlgorithm = ConflictAlgorithm.ignore,
+    SqliteAsyncConflictAlgorithm conflictAlgorithm =
+        SqliteAsyncConflictAlgorithm.ignore,
   }) async {
     debugPrint("Inserting missing PathIDToLocalIDMapping");
     final parameterSets = <List<Object?>>[];
@@ -70,13 +71,11 @@ extension DeviceFiles on FilesDB {
   Future<Map<String, int>> getDevicePathIDToImportedFileCount() async {
     try {
       final db = await sqliteAsyncDB;
-      final rows = await db.getAll(
-        '''
+      final rows = await db.getAll('''
       SELECT count(*) as count, path_id
       FROM device_files
       GROUP BY path_id
-    ''',
-      );
+    ''');
       final result = <String, int>{};
       for (final row in rows) {
         result[row['path_id'] as String] = row["count"] as int;
@@ -135,13 +134,32 @@ extension DeviceFiles on FilesDB {
     return names.toList(growable: false);
   }
 
+  Future<Set<String>> getLocalIDsInBackupFolders(
+    Set<String> localIDs,
+    Set<int> excludedCollectionIDs,
+  ) async {
+    if (localIDs.isEmpty) return {};
+
+    final db = await sqliteAsyncDB;
+    final localIDPlaceholders = List.filled(localIDs.length, '?').join(',');
+    final rows = await db.getAll('''
+      SELECT DISTINCT df.id, dc.collection_id
+      FROM device_files df
+      INNER JOIN device_collections dc ON dc.id = df.path_id
+      WHERE dc.should_backup = $_sqlBoolTrue
+        AND df.id IN ($localIDPlaceholders)
+      ''', localIDs.toList(growable: false));
+    return rows
+        .where((row) => !excludedCollectionIDs.contains(row['collection_id']))
+        .map((row) => row['id'] as String)
+        .toSet();
+  }
+
   Future<Set<String>> getDevicePathIDs() async {
     final db = await sqliteAsyncDB;
-    final rows = await db.getAll(
-      '''
+    final rows = await db.getAll('''
       SELECT id FROM device_collections
-      ''',
-    );
+      ''');
     final Set<String> result = <String>{};
     for (final row in rows) {
       result.add(row['id'] as String);
@@ -164,8 +182,10 @@ extension DeviceFiles on FilesDB {
           pathIDToLocalIDsMap[localPathAsset.pathID] = localPathAsset.localIDs;
         }
         if (existingPathIds.contains(localPathAsset.pathID)) {
-          parameterSetsForUpdate
-              .add([localPathAsset.pathName, localPathAsset.pathID]);
+          parameterSetsForUpdate.add([
+            localPathAsset.pathName,
+            localPathAsset.pathID,
+          ]);
         } else if (localPathAsset.localIDs.isNotEmpty) {
           parameterSetsForInsert.add([
             localPathAsset.pathID,
@@ -175,21 +195,14 @@ extension DeviceFiles on FilesDB {
         }
       }
 
-      await db.executeBatch(
-        '''
+      await db.executeBatch('''
         INSERT OR IGNORE INTO device_collections (id, name, should_backup) VALUES (?, ?, ?);
-      ''',
-        parameterSetsForInsert,
-      );
+      ''', parameterSetsForInsert);
 
-      await db.executeBatch(
-        '''
+      await db.executeBatch('''
         UPDATE device_collections SET name = ? WHERE id = ?;
-      ''',
-        parameterSetsForUpdate,
-      );
+      ''', parameterSetsForUpdate);
 
-      // add the mappings for localIDs
       if (pathIDToLocalIDsMap.isNotEmpty) {
         await insertPathIDToLocalIDMapping(pathIDToLocalIDsMap);
       }
@@ -211,67 +224,55 @@ extension DeviceFiles on FilesDB {
         final AssetPathEntity pathEntity = tup.item1;
         final assetCount = await pathEntity.assetCountAsync;
         final String localID = tup.item2;
-        final bool shouldUpdate = existingPathIds.contains(pathEntity.id);
-        if (shouldUpdate) {
-          final rowUpdated = await db.writeTransaction((tx) async {
-            await tx.execute(
-              "UPDATE device_collections SET name = ?, cover_id = ?, count"
-              " = ? where id = ? AND (name != ? OR cover_id != ? OR count != ?)",
-              [
-                pathEntity.name,
-                localID,
-                assetCount,
-                pathEntity.id,
-                pathEntity.name,
-                localID,
-                assetCount,
-              ],
-            );
-            final result = await tx.get("SELECT changes();");
-            return result["changes()"] as int;
-          });
-
-          if (rowUpdated > 0) {
-            _logger.info("Updated $rowUpdated rows for ${pathEntity.name}");
-            hasUpdated = true;
-          }
-        } else {
-          hasUpdated = true;
-          await db.execute(
-            '''
-            INSERT INTO device_collections (id, name, count, cover_id, should_backup)
-            VALUES (?, ?, ?, ?, ?);
+        final int modifiedAt =
+            pathEntity.lastModified?.microsecondsSinceEpoch ?? 0;
+        final updatedRows = await db.execute(
+          '''
+            INSERT INTO device_collections (id, name, count, cover_id, modified_at, should_backup)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+              name = excluded.name,
+              count = excluded.count,
+              cover_id = excluded.cover_id,
+              modified_at = excluded.modified_at
+            WHERE device_collections.name IS NOT excluded.name
+              OR device_collections.count IS NOT excluded.count
+              OR device_collections.cover_id IS NOT excluded.cover_id
+              OR device_collections.modified_at IS NOT excluded.modified_at
+            RETURNING id;
           ''',
-            [
-              pathEntity.id,
-              pathEntity.name,
-              assetCount,
-              localID,
-              shouldBackup ? _sqlBoolTrue : _sqlBoolFalse,
-            ],
+          [
+            pathEntity.id,
+            pathEntity.name,
+            assetCount,
+            localID,
+            modifiedAt,
+            shouldBackup ? _sqlBoolTrue : _sqlBoolFalse,
+          ],
+        );
+        if (updatedRows.isNotEmpty) {
+          _logger.info(
+            "Updated ${updatedRows.length} rows for ${pathEntity.name}",
           );
+          hasUpdated = true;
         }
       }
-      // delete existing pathIDs which are missing on device
       existingPathIds.removeAll(devicePathInfo.map((e) => e.item1.id).toSet());
       if (existingPathIds.isNotEmpty) {
-        hasUpdated = true;
         _logger.info(
           'Deleting non-backed up pathIds from local '
           '$existingPathIds',
         );
         for (String pathID in existingPathIds) {
-          // do not delete device collection entries for paths which are
-          // marked for backup. This is to handle "Free up space"
-          // feature, where we delete files which are backed up. Deleting such
-          // entries here result in us losing out on the information that
-          // those folders were marked for automatic backup.
-          await db.execute(
+          // Keep folder backup settings after Free up space deletes their files.
+          final deletedRows = await db.execute(
             '''
-            DELETE FROM device_collections WHERE id = ? AND should_backup = $_sqlBoolFalse;
+            DELETE FROM device_collections WHERE id = ? AND should_backup = $_sqlBoolFalse
+            RETURNING id;
           ''',
             [pathID],
           );
+          hasUpdated |= deletedRows.isNotEmpty;
           await db.execute(
             '''
             DELETE FROM device_files WHERE path_id = ?;
@@ -287,17 +288,13 @@ extension DeviceFiles on FilesDB {
     }
   }
 
-  // getDeviceSyncCollectionIDs returns the collectionIDs for the
-  // deviceCollections which are marked for auto-backup
   Future<Set<int>> getDeviceSyncCollectionIDs() async {
     final db = await sqliteAsyncDB;
-    final rows = await db.getAll(
-      '''
+    final rows = await db.getAll('''
       SELECT collection_id FROM device_collections where should_backup =
       $_sqlBoolTrue
       and collection_id != -1;
-      ''',
-    );
+      ''');
     final Set<int> result = <int>{};
     for (final row in rows) {
       result.add(row['collection_id'] as int);
@@ -305,9 +302,7 @@ extension DeviceFiles on FilesDB {
     return result;
   }
 
-  Future<void> updateDevicePathSyncStatus(
-    Map<String, bool> syncStatus,
-  ) async {
+  Future<void> updateDevicePathSyncStatus(Map<String, bool> syncStatus) async {
     final db = await sqliteAsyncDB;
     int batchCounter = 0;
     final parameterSets = <List<Object?>>[];
@@ -317,29 +312,20 @@ extension DeviceFiles on FilesDB {
       batchCounter++;
 
       if (batchCounter == 400) {
-        await db.executeBatch(
-          '''
+        await db.executeBatch('''
           UPDATE device_collections SET should_backup = ? WHERE id = ?;
-        ''',
-          parameterSets,
-        );
+        ''', parameterSets);
         parameterSets.clear();
         batchCounter = 0;
       }
     }
 
-    await db.executeBatch(
-      '''
+    await db.executeBatch('''
           UPDATE device_collections SET should_backup = ? WHERE id = ?;
-        ''',
-      parameterSets,
-    );
+        ''', parameterSets);
   }
 
-  Future<void> updateDeviceCollection(
-    String pathID,
-    int collectionID,
-  ) async {
+  Future<void> updateDeviceCollection(String pathID, int collectionID) async {
     final db = await sqliteAsyncDB;
     await db.execute(
       '''
@@ -360,7 +346,8 @@ extension DeviceFiles on FilesDB {
   }) async {
     final db = await sqliteAsyncDB;
     final order = (asc ?? false ? 'ASC' : 'DESC');
-    final String rawQuery = '''
+    final String rawQuery =
+        '''
     SELECT *
           FROM ${FilesDB.filesTable}
           WHERE ${FilesDB.columnLocalID} IS NOT NULL AND
@@ -385,13 +372,15 @@ extension DeviceFiles on FilesDB {
     Set<String> excludeLocalIDs = const {},
   }) async {
     final db = await sqliteAsyncDB;
-    const String rawQuery = '''
+    const String rawQuery =
+        '''
     SELECT ${FilesDB.columnLocalID}, ${FilesDB.columnUploadedFileID},
     ${FilesDB.columnFileSize}
     FROM ${FilesDB.filesTable}
           WHERE ${FilesDB.columnLocalID} IS NOT NULL AND
           (${FilesDB.columnOwnerID} IS NULL OR ${FilesDB.columnOwnerID} = ?)
           AND (${FilesDB.columnUploadedFileID} IS NOT NULL AND ${FilesDB.columnUploadedFileID} IS NOT -1)
+          AND ${FilesDB.columnUpdationTime} IS NOT NULL
           AND
           ${FilesDB.columnLocalID} IN
           (SELECT id FROM device_files where path_id = ?)
@@ -442,6 +431,7 @@ extension DeviceFiles on FilesDB {
           count: row['count'] as int,
           collectionID: (row["collection_id"] ?? -1) as int,
           coverId: row["cover_id"] as String?,
+          modifiedAt: (row["modified_at"] ?? 0) as int,
           shouldBackup: (row["should_backup"] ?? _sqlBoolFalse) == _sqlBoolTrue,
           uploadStrategy: getUploadType((row["upload_strategy"] ?? 0) as int),
         );
@@ -450,12 +440,11 @@ extension DeviceFiles on FilesDB {
             (element) => element.localID == deviceCollection.coverId,
           );
           if (deviceCollection.thumbnail == null) {
-            final EnteFile? result =
-                await getDeviceCollectionThumbnail(deviceCollection.id);
+            final EnteFile? result = await getDeviceCollectionThumbnail(
+              deviceCollection.id,
+            );
             if (result == null) {
-              _logger.info(
-                'Failed to find coverThumbnail for deviceFolder',
-              );
+              _logger.info('Failed to find coverThumbnail for deviceFolder');
               continue;
             } else {
               deviceCollection.thumbnail = result;
@@ -496,25 +485,19 @@ extension DeviceFiles on FilesDB {
 
   Future<void> _insertBatch(
     List<List<Object?>> parameterSets,
-    ConflictAlgorithm conflictAlgorithm,
+    SqliteAsyncConflictAlgorithm conflictAlgorithm,
   ) async {
     final db = await sqliteAsyncDB;
-    await db.executeBatch(
-      '''
+    await db.executeBatch('''
         INSERT OR ${conflictAlgorithm.name.toUpperCase()}
         INTO device_files (id, path_id) VALUES (?, ?);
-      ''',
-      parameterSets,
-    );
+      ''', parameterSets);
   }
 
   Future<void> _deleteBatch(List<List<Object?>> parameterSets) async {
     final db = await sqliteAsyncDB;
-    await db.executeBatch(
-      '''
+    await db.executeBatch('''
         DELETE FROM device_files WHERE id = ? AND path_id = ?;
-      ''',
-      parameterSets,
-    );
+      ''', parameterSets);
   }
 }

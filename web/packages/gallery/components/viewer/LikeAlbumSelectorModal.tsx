@@ -1,12 +1,8 @@
 import CloseIcon from "@mui/icons-material/Close";
 import { Box, Dialog, IconButton, styled, Typography } from "@mui/material";
-import { type ModalVisibilityProps } from "ente-base/components/utils/modal";
+import type { ModalVisibilityProps } from "ente-base/components/utils/modal";
 import { t } from "i18next";
 import React from "react";
-
-// =============================================================================
-// Icons
-// =============================================================================
 
 const HeartFilledIcon: React.FC<{ size?: number; color?: string }> = ({
     size = 18,
@@ -116,10 +112,6 @@ const LikePhotoIllustration: React.FC = () => (
     </svg>
 );
 
-// =============================================================================
-// Types
-// =============================================================================
-
 interface Album {
     id: number;
     name: string;
@@ -127,31 +119,12 @@ interface Album {
 }
 
 export interface LikeAlbumSelectorModalProps extends ModalVisibilityProps {
-    /**
-     * List of albums containing this file that user can like in.
-     */
     albums: Album[];
-    /**
-     * Set of album IDs where the photo is currently liked.
-     */
     likedAlbumIDs: Set<number>;
-    /**
-     * Called when user clicks on an album to toggle like status.
-     * @param albumId The album ID
-     * @param isCurrentlyLiked Whether the album is currently liked
-     */
     onToggleAlbum: (albumId: number, isCurrentlyLiked: boolean) => void;
-    /**
-     * Called when user clicks "Like all" to like in all albums.
-     */
     onLikeAll: () => void;
 }
 
-/**
- * Modal dialog for selecting which album to like a photo in.
- * Shown when the like button is clicked and the photo was opened from
- * gallery view (not from a specific collection).
- */
 export const LikeAlbumSelectorModal: React.FC<LikeAlbumSelectorModalProps> = ({
     open,
     onClose,
@@ -219,7 +192,7 @@ export const LikeAlbumSelectorModal: React.FC<LikeAlbumSelectorModalProps> = ({
                             </LikeAllButton>
                         </AlbumsHeader>
 
-                        <AlbumsList>
+                        <AlbumsList data-custom-scrollbar>
                             {albums.map((album) => {
                                 const isLiked = likedAlbumIDs.has(album.id);
                                 return (
@@ -246,10 +219,6 @@ export const LikeAlbumSelectorModal: React.FC<LikeAlbumSelectorModalProps> = ({
         </StyledDialog>
     );
 };
-
-// =============================================================================
-// Styled Components
-// =============================================================================
 
 const StyledDialog = styled(Dialog)(({ theme }) => ({
     "& .MuiDialog-paper": {

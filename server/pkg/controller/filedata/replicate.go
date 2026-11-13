@@ -5,19 +5,17 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/ente/filedata"
-	fileDataRepo "github.com/ente-io/museum/pkg/repo/filedata"
-	"github.com/ente-io/museum/pkg/utils/file"
-	enteTime "github.com/ente-io/museum/pkg/utils/time"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/ente/filedata"
+	fileDataRepo "github.com/ente/museum/pkg/repo/filedata"
+	"github.com/ente/museum/pkg/utils/file"
+	enteTime "github.com/ente/museum/pkg/utils/time"
+	"github.com/ente/stacktrace"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"time"
 )
 
-// StartReplication starts the replication process for file data.
-// If
 func (c *Controller) StartReplication() error {
 	workerURL := viper.GetString("replication.worker-url")
 	if workerURL == "" {
@@ -67,20 +65,14 @@ func (c *Controller) startWorkers(n int) {
 
 	for i := 0; i < n; i++ {
 		go c.replicate(i)
-		// Stagger the workers
 		time.Sleep(time.Duration(2*i+1) * time.Second)
 	}
 }
 
-// Entry point for the replication worker (goroutine)
-//
-// i is an arbitrary index of the current routine.
 func (c *Controller) replicate(i int) {
 	for {
 		err := c.tryReplicate()
 		if err != nil {
-			// Sleep in proportion to the (arbitrary) index to space out the
-			// workers further.
 			time.Sleep(time.Duration(i+1) * time.Minute)
 		}
 	}
@@ -108,7 +100,6 @@ func (c *Controller) tryReplicate() error {
 		}).Errorf("Could not replicate file data: %s", err)
 		return err
 	} else {
-		// If the replication was completed without any errors, we can reset the lock time
 		return c.Repo.ResetSyncLock(ctx, *row, newLockTime)
 	}
 }
@@ -127,7 +118,7 @@ func (c *Controller) replicateRowData(ctx context.Context, row filedata.Row) err
 	if len(wantInBucketIDs) > 0 {
 		s3FileMetadata, err := c.downloadObject(ctx, row.S3FileMetadataObjectKey(), row.LatestBucket)
 		if err != nil {
-			return stacktrace.Propagate(err, "error fetching metadata object "+row.S3FileMetadataObjectKey())
+			return stacktrace.Propagate(err, "error fetching metadata object %s", row.S3FileMetadataObjectKey())
 		}
 		for key := range wantInBucketIDs {
 			bucketID := key

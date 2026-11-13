@@ -10,6 +10,7 @@ import { appHomeRoute } from "ente-accounts/services/redirect";
 import { changeEmail, sendOTT } from "ente-accounts/services/user";
 import { LinkButton } from "ente-base/components/LinkButton";
 import { LoadingButton } from "ente-base/components/mui/LoadingButton";
+import { isNamedError } from "ente-base/error";
 import { isHTTPErrorWithStatus } from "ente-base/http";
 import log from "ente-base/log";
 import { useFormik } from "formik";
@@ -19,10 +20,6 @@ import { useCallback, useState } from "react";
 import { Trans } from "react-i18next";
 import { z } from "zod";
 
-/**
- * A page that allows a user to change the email address associated with their
- * Ente account.
- */
 const Page: React.FC = () => {
     useRedirectIfNeedsCredentials("/change-email");
 
@@ -66,7 +63,7 @@ const ChangeEmailForm: React.FC = () => {
                     log.error("Could not send OTT for email change", e);
                     setFieldError(
                         "email",
-                        isHTTPErrorWithStatus(e, 403)
+                        isNamedError(e, "email_already_in_use")
                             ? t("email_already_taken")
                             : t("generic_error"),
                     );
@@ -131,11 +128,6 @@ const ChangeEmailForm: React.FC = () => {
                     value={formik.values.email}
                     onChange={formik.handleChange}
                     error={!!formik.errors.email}
-                    // See: [Note: Use space as default TextField helperText]
-                    //
-                    // Also, we only need keep the extra space until the email
-                    // has been entered (since the email field is read only
-                    // after that).
                     helperText={
                         formik.errors.email ?? (requestedEmail ? "" : " ")
                     }

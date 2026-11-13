@@ -1,10 +1,14 @@
 ---
-title: This Page Has Moved
-description: This content has been reorganized
+title: Backup
+description: Automatic photo backup on mobile and desktop with Ente Photos
 search: false
+head:
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
-# This Page Has Moved
+# Backup
 
 The **Backup** feature guide has moved to:
 

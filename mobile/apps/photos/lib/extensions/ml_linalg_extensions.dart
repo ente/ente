@@ -43,8 +43,8 @@ extension SetMatrixValues on Matrix {
         endColumn > columnCount) {
       throw Exception('Range must be within matrix');
     }
-    final tempList = asFlattenedList
-        .toList(); // You need `.toList()` here to make sure the list is growable, otherwise `replaceRange` will throw an error
+    // replaceRange requires a growable list.
+    final tempList = asFlattenedList.toList();
     for (var i = startRow; i < endRow; i++) {
       tempList.replaceRange(
         i * columnCount + startColumn,
@@ -72,8 +72,8 @@ extension SetMatrixValues on Matrix {
       throw Exception('Range must be within matrix');
     }
 
-    final tempList = asFlattenedList
-        .toList(); // You need `.toList()` here to make sure the list is growable, otherwise `replaceRange` will throw an error
+    // replaceRange requires a growable list.
+    final tempList = asFlattenedList.toList();
     var index = 0;
     for (var i = startRow; i < endRow; i++) {
       for (var j = startColumn; j < endColumn; j++) {
@@ -126,7 +126,8 @@ extension MatrixCalculations on Matrix {
     }
   }
 
-  /// Computes the singular value decomposition of a matrix, using https://lucidar.me/en/mathematics/singular-value-decomposition-of-a-2x2-matrix/ as reference, but with slightly different signs for the second columns of U and V
+  // Reference: https://lucidar.me/en/mathematics/singular-value-decomposition-of-a-2x2-matrix/
+  // The signs of the second columns of U and V differ.
   Map<String, dynamic> svd() {
     if (rowCount != 2 || columnCount != 2) {
       throw Exception('Matrix must be 2x2');
@@ -136,7 +137,6 @@ extension MatrixCalculations on Matrix {
     final c = this[1][0];
     final d = this[1][1];
 
-    // Computation of U matrix
     final tempCalc = a * a + b * b - c * c - d * d;
     final theta = 0.5 * math.atan2(2 * a * c + 2 * b * d, tempCalc);
     final U = Matrix.fromList([
@@ -144,33 +144,30 @@ extension MatrixCalculations on Matrix {
       [math.sin(theta), -math.cos(theta)],
     ]);
 
-    // Computation of S matrix
     // ignore: non_constant_identifier_names
     final S1 = a * a + b * b + c * c + d * d;
     // ignore: non_constant_identifier_names
-    final S2 =
-        math.sqrt(math.pow(tempCalc, 2) + 4 * math.pow(a * c + b * d, 2));
+    final S2 = math.sqrt(
+      math.pow(tempCalc, 2) + 4 * math.pow(a * c + b * d, 2),
+    );
     final sigma1 = math.sqrt((S1 + S2) / 2);
     final sigma2 = math.sqrt((S1 - S2) / 2);
     final S = Vector.fromList([sigma1, sigma2]);
 
-    // Computation of V matrix
     final tempCalc2 = a * a - b * b + c * c - d * d;
     final phi = 0.5 * math.atan2(2 * a * b + 2 * c * d, tempCalc2);
-    final s11 = (a * math.cos(theta) + c * math.sin(theta)) * math.cos(phi) +
+    final s11 =
+        (a * math.cos(theta) + c * math.sin(theta)) * math.cos(phi) +
         (b * math.cos(theta) + d * math.sin(theta)) * math.sin(phi);
-    final s22 = (a * math.sin(theta) - c * math.cos(theta)) * math.sin(phi) +
+    final s22 =
+        (a * math.sin(theta) - c * math.cos(theta)) * math.sin(phi) +
         (-b * math.sin(theta) + d * math.cos(theta)) * math.cos(phi);
     final V = Matrix.fromList([
       [s11.sign * math.cos(phi), s22.sign * math.sin(phi)],
       [s11.sign * math.sin(phi), -s22.sign * math.cos(phi)],
     ]);
 
-    return {
-      'U': U,
-      'S': S,
-      'V': V,
-    };
+    return {'U': U, 'S': S, 'V': V};
   }
 
   int matrixRank() {

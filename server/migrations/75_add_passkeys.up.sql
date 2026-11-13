@@ -15,8 +15,6 @@ CREATE TABLE
 
         credential_id TEXT NOT NULL UNIQUE,
 
--- credential info
-
 -- []byte data will be encoded in b64 before being inserted into the DB
 
 -- fields that are are arrays will be comma separated strings
@@ -24,14 +22,10 @@ CREATE TABLE
 -- structs will be encoded into JSON before being inserted into DB (they don't need to be queried anyway)
 
 public_key TEXT NOT NULL,
--- binary data
 attestation_type TEXT NOT NULL,
 authenticator_transports TEXT NOT NULL,
--- array
 credential_flags TEXT NOT NULL,
--- struct
 authenticator TEXT NOT NULL,
--- struct
 
 created_at bigint NOT NULL DEFAULT now_utc_micro_seconds(),
 

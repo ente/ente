@@ -27,8 +27,9 @@ class _LocationScreenStateProviderState
   @override
   void initState() {
     _locationTagEntity = widget.locationTagEntity;
-    _locTagUpdateListener =
-        Bus.instance.on<LocationTagUpdatedEvent>().listen((event) {
+    _locTagUpdateListener = Bus.instance.on<LocationTagUpdatedEvent>().listen((
+      event,
+    ) {
       if (event.type == LocTagEventType.update) {
         setState(() {
           _locationTagEntity = event.updatedLocTagEntities!.first;
@@ -61,8 +62,6 @@ class InheritedLocationScreenState extends InheritedWidget {
     required super.child,
   });
 
-  //This is used to show loading state when memory count is beign computed and to
-  //show count after computation.
   static final memoryCountNotifier = ValueNotifier<int?>(null);
 
   static InheritedLocationScreenState of(BuildContext context) {

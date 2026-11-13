@@ -4,94 +4,20 @@ from __future__ import annotations
 import argparse
 import html
 import json
-from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
-IST = timezone(timedelta(hours=5, minutes=30), name="IST")
-_STATUS_ORDER = {"fail": 0, "warning": 1, "pass": 2}
-
-
-def _format_value(value: object) -> str:
-    if isinstance(value, float):
-        return f"{value:.6f}"
-    if isinstance(value, int):
-        return str(value)
-    if value is None:
-        return "-"
-    return str(value)
-
-
-def _optional_bool(value: object) -> bool | None:
-    return value if isinstance(value, bool) else None
-
-
-def _normalize_status(value: object, *, passed: bool | None = None) -> str:
-    if isinstance(value, str):
-        normalized = value.strip().lower()
-        if normalized in _STATUS_ORDER:
-            return normalized
-    if passed is not None:
-        return "pass" if passed else "fail"
-    return "fail"
-
-
-def _status_class(value: object, *, passed: bool | None = None) -> str:
-    return _normalize_status(value, passed=passed)
-
-
-def _status_label(value: object, *, passed: bool | None = None) -> str:
-    return _normalize_status(value, passed=passed).upper()
-
-
-def _status_rank(value: object, *, passed: bool | None = None) -> int:
-    return _STATUS_ORDER[_normalize_status(value, passed=passed)]
-
-
-def _format_generated_timestamp(value: object) -> str:
-    if value is None:
-        return "-"
-
-    raw = str(value).strip()
-    if not raw:
-        return "-"
-
-    normalized = raw[:-1] + "+00:00" if raw.endswith("Z") else raw
-    try:
-        parsed = datetime.fromisoformat(normalized)
-    except ValueError:
-        return raw
-
-    if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=timezone.utc)
-    return parsed.astimezone(IST).strftime("%Y-%m-%d %H:%M:%S")
-
-
-def _platform_stats(report_dir: Path) -> dict[str, dict[str, Any]]:
-    stats: dict[str, dict[str, Any]] = {}
-    for platform in ("python", "desktop", "android", "ios"):
-        path = report_dir / platform / "results.json"
-        if not path.exists():
-            stats[platform] = {
-                "path": str(path),
-                "available": False,
-                "result_count": None,
-                "error_count": None,
-            }
-            continue
-
-        payload = json.loads(path.read_text())
-        results = payload.get("results", [])
-        errors = payload.get("errors", [])
-        stats[platform] = {
-            "path": str(path),
-            "available": True,
-            "result_count": len(results) if isinstance(results, list) else None,
-            "error_count": len(errors) if isinstance(errors, list) else None,
-            "errors": errors if isinstance(errors, list) else [],
-        }
-
-    return stats
+from _report_common import (
+    PLATFORMS,
+    count_file_findings,
+    format_generated_timestamp,
+    format_value,
+    normalize_status,
+    optional_bool,
+    platform_stats,
+    status_label,
+    status_rank,
+)
 
 
 def _render_comparison(comparison: dict[str, Any]) -> str:
@@ -109,8 +35,8 @@ def _render_comparison(comparison: dict[str, Any]) -> str:
     )
     findings = comparison.get("findings", [])
     warnings = comparison.get("warnings", [])
-    finding_count = len(findings) if isinstance(findings, list) else 0
-    warning_finding_count = len(warnings) if isinstance(warnings, list) else 0
+    finding_count = count_file_findings(findings)
+    warning_finding_count = count_file_findings(warnings)
 
     html_parts: list[str] = []
     html_parts.append(f"<h2>{html.escape(candidate)} vs {html.escape(reference)}</h2>")
@@ -148,9 +74,9 @@ def _render_comparison(comparison: dict[str, Any]) -> str:
 
     rows.sort(
         key=lambda row: (
-            _status_rank(
+            status_rank(
                 row.get("status"),
-                passed=_optional_bool(row.get("passed")),
+                passed=optional_bool(row.get("passed")),
             ),
             str(row.get("file_id", "")),
         )
@@ -163,9 +89,9 @@ def _render_comparison(comparison: dict[str, Any]) -> str:
 
     for status in rows:
         file_id = str(status.get("file_id", ""))
-        file_status = _normalize_status(
+        file_status = normalize_status(
             status.get("status"),
-            passed=_optional_bool(status.get("passed")),
+            passed=optional_bool(status.get("passed")),
         )
         failures = status.get("failures", [])
         if not isinstance(failures, list):
@@ -179,7 +105,7 @@ def _render_comparison(comparison: dict[str, Any]) -> str:
 
         html_parts.append(
             f"<details><summary>{html.escape(file_id)} "
-            f"<span class='{_status_class(file_status)}'>{_status_label(file_status)}</span> "
+            f"<span class='{normalize_status(file_status)}'>{status_label(file_status)}</span> "
             f"(fail: {len(failures)}, warning: {len(warnings)})"
             "</summary>"
         )
@@ -195,14 +121,14 @@ def _render_comparison(comparison: dict[str, Any]) -> str:
                 if not isinstance(metric, dict):
                     continue
                 metric_name = html.escape(str(metric.get("metric", "-")))
-                value = html.escape(_format_value(metric.get("value")))
-                threshold = html.escape(_format_value(metric.get("threshold")))
-                direction = html.escape(_format_value(metric.get("direction")))
-                metric_status = _normalize_status(
+                value = html.escape(format_value(metric.get("value")))
+                threshold = html.escape(format_value(metric.get("threshold")))
+                direction = html.escape(format_value(metric.get("direction")))
+                metric_status = normalize_status(
                     metric.get("status"),
-                    passed=_optional_bool(metric.get("passed")),
+                    passed=optional_bool(metric.get("passed")),
                 )
-                count = html.escape(_format_value(metric.get("count")))
+                count = html.escape(format_value(metric.get("count")))
                 applicable = bool(metric.get("applicable", True))
                 message = html.escape(str(metric.get("message", "")))
                 html_parts.append(
@@ -211,7 +137,7 @@ def _render_comparison(comparison: dict[str, Any]) -> str:
                     f"<td>{value}</td>"
                     f"<td>{threshold}</td>"
                     f"<td>{direction}</td>"
-                    f"<td class='{_status_class(metric_status)}'>{_status_label(metric_status)}</td>"
+                    f"<td class='{normalize_status(metric_status)}'>{status_label(metric_status)}</td>"
                     f"<td>{count}</td>"
                     f"<td>{'yes' if applicable else 'no'}</td>"
                     f"<td>{message}</td>"
@@ -232,16 +158,16 @@ def _render_comparison(comparison: dict[str, Any]) -> str:
             for failure in failures:
                 if not isinstance(failure, dict):
                     continue
-                severity = _normalize_status(
+                severity = normalize_status(
                     failure.get("severity"),
-                    passed=_optional_bool(failure.get("passed")),
+                    passed=optional_bool(failure.get("passed")),
                 )
                 html_parts.append(
                     "<tr>"
                     f"<td>{html.escape(str(failure.get('metric', '-')))}</td>"
-                    f"<td>{html.escape(_format_value(failure.get('value')))}</td>"
-                    f"<td>{html.escape(_format_value(failure.get('threshold')))}</td>"
-                    f"<td class='{_status_class(severity)}'>{_status_label(severity)}</td>"
+                    f"<td>{html.escape(format_value(failure.get('value')))}</td>"
+                    f"<td>{html.escape(format_value(failure.get('threshold')))}</td>"
+                    f"<td class='{normalize_status(severity)}'>{status_label(severity)}</td>"
                     f"<td>{html.escape(str(failure.get('message', '')))}</td>"
                     "</tr>"
                 )
@@ -258,16 +184,16 @@ def _render_comparison(comparison: dict[str, Any]) -> str:
             for warning in warnings:
                 if not isinstance(warning, dict):
                     continue
-                severity = _normalize_status(
+                severity = normalize_status(
                     warning.get("severity"),
-                    passed=_optional_bool(warning.get("passed")),
+                    passed=optional_bool(warning.get("passed")),
                 )
                 html_parts.append(
                     "<tr>"
                     f"<td>{html.escape(str(warning.get('metric', '-')))}</td>"
-                    f"<td>{html.escape(_format_value(warning.get('value')))}</td>"
-                    f"<td>{html.escape(_format_value(warning.get('threshold')))}</td>"
-                    f"<td class='{_status_class(severity)}'>{_status_label(severity)}</td>"
+                    f"<td>{html.escape(format_value(warning.get('value')))}</td>"
+                    f"<td>{html.escape(format_value(warning.get('threshold')))}</td>"
+                    f"<td class='{normalize_status(severity)}'>{status_label(severity)}</td>"
                     f"<td>{html.escape(str(warning.get('message', '')))}</td>"
                     "</tr>"
                 )
@@ -284,7 +210,6 @@ def render_report(
     *,
     report_path: Path,
     output_path: Path,
-    include_pairwise: bool,
 ) -> None:
     payload = json.loads(report_path.read_text())
     ground_truth_platform = str(payload.get("ground_truth_platform", "python"))
@@ -293,17 +218,9 @@ def render_report(
     if not isinstance(comparisons, list):
         comparisons = []
 
-    if not include_pairwise:
-        comparisons = [
-            comparison
-            for comparison in comparisons
-            if isinstance(comparison, dict)
-            and str(comparison.get("reference_platform", "")) == ground_truth_platform
-        ]
-
     report_dir = report_path.parent
-    platform_stats = _platform_stats(report_dir)
-    generated_at = _format_generated_timestamp(payload.get("generated_at"))
+    stats = platform_stats(report_dir)
+    generated_at = format_generated_timestamp(payload.get("generated_at"))
 
     html_parts: list[str] = []
     html_parts.append("<!doctype html><html><head><meta charset='utf-8'><title>ML Indexing Parity Report</title>")
@@ -334,12 +251,12 @@ def render_report(
 
     html_parts.append("<h2>Platform Outputs</h2>")
     html_parts.append("<table><thead><tr><th>Platform</th><th>Output File</th><th>Results</th><th>Runner Errors</th><th>Status</th></tr></thead><tbody>")
-    for platform in ("python", "desktop", "android", "ios"):
-        info = platform_stats[platform]
+    for platform in PLATFORMS:
+        info = stats[platform]
         status_text = "generated" if info["available"] else "missing"
         status_class = "pass" if info["available"] else "fail"
-        results = _format_value(info.get("result_count"))
-        errors = _format_value(info.get("error_count"))
+        results = format_value(info.get("result_count"))
+        errors = format_value(info.get("error_count"))
         html_parts.append(
             "<tr>"
             f"<td>{html.escape(platform)}</td>"
@@ -368,7 +285,7 @@ def render_report(
 
     html_parts.append("<h2>Runner Errors</h2>")
     for platform in ("desktop", "ios", "android", "python"):
-        info = platform_stats[platform]
+        info = stats[platform]
         html_parts.append(f"<h3>{html.escape(platform)}</h3>")
         errors = info.get("errors") if info.get("available") else None
         if not errors:
@@ -405,11 +322,6 @@ def main() -> int:
         "--output",
         help="Output HTML path (default: <report_dir>/parity_report.html)",
     )
-    parser.add_argument(
-        "--include-pairwise",
-        action="store_true",
-        help="Include non-ground-truth pairwise comparisons in the report.",
-    )
     args = parser.parse_args()
 
     report_path = Path(args.report)
@@ -421,7 +333,6 @@ def main() -> int:
     render_report(
         report_path=report_path,
         output_path=output_path,
-        include_pairwise=args.include_pairwise,
     )
     print(output_path)
     return 0

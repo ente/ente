@@ -1,7 +1,7 @@
+import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:logging/logging.dart";
-import "package:photos/generated/l10n.dart";
 import "package:photos/states/location_state.dart";
 import "package:photos/theme/colors.dart";
 import "package:photos/theme/ente_theme.dart";
@@ -23,13 +23,9 @@ class CustomTrackShape extends RoundedRectSliderTrackShape {
 }
 
 class RadiusPickerWidget extends StatefulWidget {
-  ///This notifier can be listened from a parent widget to get the selected radius
   final ValueNotifier<double> selectedRadiusNotifier;
 
-  const RadiusPickerWidget(
-    this.selectedRadiusNotifier, {
-    super.key,
-  });
+  const RadiusPickerWidget(this.selectedRadiusNotifier, {super.key});
 
   @override
   State<RadiusPickerWidget> createState() => _RadiusPickerWidgetState();
@@ -44,8 +40,9 @@ class _RadiusPickerWidgetState extends State<RadiusPickerWidget> {
 
   @override
   void didChangeDependencies() {
-    widget.selectedRadiusNotifier.value =
-        InheritedLocationTagData.of(context).selectedRadius;
+    widget.selectedRadiusNotifier.value = InheritedLocationTagData.of(
+      context,
+    ).selectedRadius;
     super.didChangeDependencies();
   }
 
@@ -94,7 +91,7 @@ class _RadiusPickerWidgetState extends State<RadiusPickerWidget> {
                 Expanded(
                   flex: 5,
                   child: Text(
-                    AppLocalizations.of(context).kiloMeterUnit,
+                    context.strings.kiloMeterUnit,
                     style: textTheme.miniMuted,
                   ),
                 ),
@@ -111,10 +108,7 @@ class _RadiusPickerWidgetState extends State<RadiusPickerWidget> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const SizedBox(height: 4),
-                Text(
-                  AppLocalizations.of(context).radius,
-                  style: textTheme.body,
-                ),
+                Text(context.strings.radius, style: textTheme.body),
                 const SizedBox(height: 16),
                 SizedBox(
                   height: 16,
@@ -160,8 +154,6 @@ class _RadiusPickerWidgetState extends State<RadiusPickerWidget> {
     );
   }
 
-  //9.99 -> 10, 9.0 -> 9, 5.02 -> 5, 5.09 -> 5.1
-  //12.3 -> 12, 121.65 -> 122, 999.9 -> 1000
   String roundRadius(double radius) {
     String result;
     final roundedRadius = (radius * 10).round() / 10;
@@ -181,7 +173,7 @@ class _RadiusPickerWidgetState extends State<RadiusPickerWidget> {
   Future<void> _customRadiusOnTap() async {
     final result = await showTextInputDialog(
       context,
-      title: AppLocalizations.of(context).setRadius,
+      title: context.strings.setRadius,
       onSubmit: (customRadius) async {
         final radius = double.tryParse(customRadius);
         if (radius != null) {
@@ -196,18 +188,16 @@ class _RadiusPickerWidgetState extends State<RadiusPickerWidget> {
           throw Exception("Radius is null");
         }
       },
-      submitButtonLabel: AppLocalizations.of(context).setLabel,
+      submitButtonLabel: context.strings.setLabel,
       textInputFormatter: [NumberWithDecimalInputFormatter(maxValue: 10000)],
       textInputType: const TextInputType.numberWithOptions(decimal: true),
-      message: AppLocalizations.of(context).distanceInKMUnit,
+      message: context.strings.distanceInKMUnit,
       alignMessage: Alignment.centerRight,
     );
     if (result is Exception) {
+      if (!mounted) return;
       await showGenericErrorDialog(context: context, error: result);
-      _logger.severe(
-        "Failed to create custom radius",
-        result,
-      );
+      _logger.severe("Failed to create custom radius", result);
     }
   }
 }
@@ -223,14 +213,12 @@ class NumberWithDecimalInputFormatter extends TextInputFormatter {
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    // Check if the new value matches the pattern
     if (_pattern.hasMatch(newValue.text)) {
       if (newValue.text.isEmpty) {
         return newValue;
       }
       final newValueAsDouble = double.tryParse(newValue.text);
 
-      // Check if the new value is within the allowed range
       if (newValueAsDouble != null && newValueAsDouble <= maxValue) {
         return newValue;
       }

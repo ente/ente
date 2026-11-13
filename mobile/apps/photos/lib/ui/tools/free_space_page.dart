@@ -1,14 +1,19 @@
 import "dart:io";
 
+import "package:ente_components/ente_components.dart";
 import 'package:ente_pure_utils/ente_pure_utils.dart';
+import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:logging/logging.dart';
-import "package:photos/generated/l10n.dart";
 import 'package:photos/models/freeable_space_info.dart';
-import 'package:photos/ui/common/gradient_button.dart';
+import "package:photos/services/files_service.dart";
+import "package:photos/services/free_space/deletion_batch_runner.dart";
 import "package:photos/ui/notification/toast.dart";
 import 'package:photos/utils/delete_file_util.dart';
+
+final _logger = Logger("FreeSpacePage");
+bool _isFreeSpaceDeletionInProgress = false;
 
 class FreeSpacePage extends StatefulWidget {
   final FreeableSpaceInfo status;
@@ -25,172 +30,167 @@ class FreeSpacePage extends StatefulWidget {
 }
 
 class _FreeSpacePageState extends State<FreeSpacePage> {
+  bool _isFreeingSpace = false;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        elevation: 0,
-        title: Text(AppLocalizations.of(context).freeUpSpace),
+      backgroundColor: context.componentColors.backgroundBase,
+      body: AppBarComponent(
+        title: context.strings.freeUpDeviceSpace,
+        backgroundColor: context.componentColors.backgroundBase,
+        slivers: [
+          SliverSafeArea(
+            top: false,
+            sliver: SliverFillRemaining(
+              hasScrollBody: false,
+              child: _getBody(widget.status),
+            ),
+          ),
+        ],
       ),
-      body: _getBody(),
     );
   }
 
-  Widget _getBody() {
-    Logger("FreeSpacePage").info(
-      "Number of uploaded files: " + widget.status.localIDs.length.toString(),
-    );
-    Logger("FreeSpacePage")
-        .info("Space consumed: " + widget.status.size.toString());
-    return SingleChildScrollView(
-      child: _getWidget(widget.status),
-    );
-  }
-
-  Widget _getWidget(FreeableSpaceInfo status) {
+  Widget _getBody(FreeableSpaceInfo status) {
+    _logger.info("Number of uploaded files: ${status.localIDs.length}");
+    _logger.info("Space consumed: ${status.size}");
     final count = status.localIDs.length;
     final formattedCount = NumberFormat().format(count);
-    final String textMessage = widget.clearSpaceForFolder
-        ? AppLocalizations.of(context)
-            .filesBackedUpInAlbum(count: count, formattedNumber: formattedCount)
-        : AppLocalizations.of(context).filesBackedUpFromDevice(
-            count: count,
-            formattedNumber: formattedCount,
-          );
-    final informationTextStyle = TextStyle(
-      fontSize: 14,
-      height: 1.3,
-      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
-      fontWeight: FontWeight.w500,
-    );
-    final isLightMode = Theme.of(context).brightness == Brightness.light;
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        const SizedBox(height: 24),
-        Stack(
-          alignment: Alignment.center,
+    final formattedSize = formatBytes(status.size);
+    final l10n = context.strings;
+    final colors = context.componentColors;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+      child: Align(
+        alignment: const Alignment(0, -0.2),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            isLightMode
-                ? Image.asset(
-                    'assets/loading_photos_background.png',
-                    color: Colors.white.withValues(alpha: 0.4),
-                    colorBlendMode: BlendMode.modulate,
-                  )
-                : Image.asset(
-                    'assets/loading_photos_background_dark.png',
-                    color: Colors.white.withValues(alpha: 0.25),
-                  ),
-            Padding(
-              padding: const EdgeInsets.only(top: 16),
-              child: Image.asset(
-                "assets/gallery_locked.png",
-                height: 160,
+            Image.asset("assets/on_ente.png", width: 260, fit: BoxFit.contain),
+            const SizedBox(height: 42),
+            Text(
+              l10n.reclaimSpace(sizeInMBorGB: formattedSize),
+              textAlign: TextAlign.center,
+              style: TextStyles.display2.copyWith(color: colors.textBase),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: 300,
+              child: Text(
+                widget.clearSpaceForFolder
+                    ? l10n.filesInAlbumSafelyOnEnte(
+                        count: count,
+                        formattedNumber: formattedCount,
+                      )
+                    : l10n.filesSafelyOnEnte(
+                        count: count,
+                        formattedNumber: formattedCount,
+                      ),
+                textAlign: TextAlign.center,
+                style: TextStyles.mini.copyWith(color: colors.textLight),
               ),
+            ),
+            const SizedBox(height: 32),
+            ButtonComponent(
+              shouldSurfaceExecutionStates: false,
+              isDisabled: _isFreeingSpace,
+              onTap: () async {
+                await _showConfirmFreeSpaceSheet(context, status);
+              },
+              label: l10n.freeUpAmount(sizeInMBorGB: formattedSize),
             ),
           ],
         ),
-        const SizedBox(height: 24),
-        Padding(
-          padding: const EdgeInsets.only(left: 36, right: 40),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.cloud_done_outlined,
-                color: Color.fromRGBO(45, 194, 98, 1.0),
-              ),
-              const Padding(padding: EdgeInsets.all(10)),
-              Expanded(
-                child: Text(
-                  textMessage,
-                  style: informationTextStyle,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const Padding(padding: EdgeInsets.all(12)),
-        Padding(
-          padding: const EdgeInsets.only(left: 36, right: 40),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.delete_outline,
-                color: Color.fromRGBO(45, 194, 98, 1.0),
-              ),
-              const Padding(padding: EdgeInsets.all(10)),
-              Expanded(
-                child: Text(
-                  AppLocalizations.of(context).freeUpSpaceSaving(
-                    count: count,
-                    formattedSize: formatBytes(status.size),
-                  ),
-                  style: informationTextStyle,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const Padding(padding: EdgeInsets.all(12)),
-        Padding(
-          padding: const EdgeInsets.only(left: 36, right: 40),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.devices,
-                color: Color.fromRGBO(45, 194, 98, 1.0),
-              ),
-              const Padding(padding: EdgeInsets.all(10)),
-              Expanded(
-                child: Text(
-                  AppLocalizations.of(context)
-                      .freeUpAccessPostDelete(count: count),
-                  style: informationTextStyle,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const Padding(padding: EdgeInsets.all(24)),
-        Container(
-          width: double.infinity,
-          constraints: const BoxConstraints(
-            minHeight: 64,
-          ),
-          padding: const EdgeInsets.fromLTRB(60, 0, 60, 0),
-          child: GradientButton(
-            onTap: () async {
-              await _freeStorage(status);
-            },
-            text: AppLocalizations.of(context)
-                .freeUpAmount(sizeInMBorGB: formatBytes(status.size)),
-          ),
-        ),
-        const Padding(padding: EdgeInsets.all(24)),
-      ],
+      ),
     );
   }
 
   Future<void> _freeStorage(FreeableSpaceInfo status) async {
-    bool isSuccess = await deleteLocalFiles(context, status.localIDs);
-
-    if (isSuccess == false) {
-      isSuccess = await deleteLocalFilesAfterRemovingAlreadyDeletedIDs(
-        context,
-        status.localIDs,
-      );
+    if (_isFreeSpaceDeletionInProgress) {
+      return;
+    }
+    _isFreeSpaceDeletionInProgress = true;
+    if (mounted) {
+      setState(() => _isFreeingSpace = true);
     }
 
-    if (isSuccess == false && Platform.isAndroid) {
-      isSuccess =
-          await retryFreeUpSpaceAfterRemovingAssetsNonExistingInDisk(context);
-    }
+    try {
+      late final Set<String> currentLocalIDs;
+      try {
+        final refreshedStatus = await FilesService.instance
+            .getFreeableSpaceInfo();
+        currentLocalIDs = retainOriginalDeletionCandidates(
+          refreshedLocalIDs: refreshedStatus.localIDs,
+          originalLocalIDs: status.localIDs,
+        );
+      } catch (e, s) {
+        _logger.severe("Could not refresh free-up-space candidates", e, s);
+        if (mounted) {
+          showToast(context, context.strings.couldNotFreeUpSpace);
+        }
+        return;
+      }
 
-    if (isSuccess) {
-      Navigator.of(context).pop(true);
-    } else {
-      showToast(context, AppLocalizations.of(context).couldNotFreeUpSpace);
+      if (!mounted) return;
+      final currentLocalIDList = currentLocalIDs.toList();
+      var result = await deleteLocalFiles(context, currentLocalIDList);
+
+      if (result.shouldTryNextFallback) {
+        if (!mounted) return;
+        result = await deleteLocalFilesAfterRemovingAlreadyDeletedIDs(
+          context,
+          currentLocalIDList,
+        );
+      }
+
+      if (result.shouldTryNextFallback && Platform.isAndroid) {
+        if (!mounted) return;
+        result = await retryFreeUpSpaceAfterRemovingAssetsNonExistingInDisk(
+          context,
+          originalLocalIDs: currentLocalIDs,
+        );
+      }
+
+      if (!mounted) return;
+      if (result.isCompleted) {
+        Navigator.of(context).pop(true);
+      } else if (!result.isCancelled) {
+        showToast(context, context.strings.couldNotFreeUpSpace);
+      }
+    } finally {
+      _isFreeSpaceDeletionInProgress = false;
+      if (mounted) {
+        setState(() => _isFreeingSpace = false);
+      }
     }
+  }
+
+  Future<void> _showConfirmFreeSpaceSheet(
+    BuildContext context,
+    FreeableSpaceInfo status,
+  ) async {
+    final l10n = context.strings;
+    await showBottomSheetComponent(
+      context: context,
+      builder: (_) => BottomSheetComponent(
+        title: l10n.areYouSure,
+        message: l10n.freeUpDeviceSpaceConfirmDesc(
+          count: status.localIDs.length,
+        ),
+        illustration: Image.asset("assets/warning-red.png"),
+        actions: [
+          ButtonComponent(
+            label: l10n.yesDelete,
+            variant: .critical,
+            onTap: () async {
+              Navigator.of(context).pop();
+              await _freeStorage(status);
+            },
+          ),
+        ],
+      ),
+    );
   }
 }

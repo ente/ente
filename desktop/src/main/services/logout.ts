@@ -6,13 +6,7 @@ import { watchReset } from "./watch";
 import { terminateUtilityProcesses } from "./workers";
 import { clearOpenZipCache } from "./zip";
 
-/**
- * Perform the native side logout sequence.
- *
- * This function is guaranteed not to throw any errors.
- *
- * See: [Note: Do not throw during logout].
- */
+// Every cleanup must run even if an earlier one fails.
 export const logout = (watcher: FSWatcher) => {
     const ignoreError = (label: string, e: unknown) =>
         log.error(`Ignoring error during logout (${label})`, e);

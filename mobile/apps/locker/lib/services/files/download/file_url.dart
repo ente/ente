@@ -1,5 +1,9 @@
+import "package:dio/dio.dart";
 import "package:locker/core/constants.dart";
 import "package:locker/services/configuration.dart";
+
+const _v3RetryDelay = Duration(hours: 1);
+DateTime? _v3RetryAfter;
 
 enum FileUrlType {
   download,
@@ -10,7 +14,38 @@ enum FileUrlType {
 }
 
 class FileUrl {
-  static String getUrl(int fileID, FileUrlType type) {
+  static Future<String?> tryGetV3Url(
+    Dio dio,
+    int fileID,
+    FileUrlType type, {
+    required Map<String, dynamic> headers,
+    CancelToken? cancelToken,
+  }) async {
+    final usesWorker =
+        type != FileUrlType.directDownload &&
+        Configuration.instance.getHttpEndpoint() == kDefaultProductionEndpoint;
+    if (usesWorker || (_v3RetryAfter?.isAfter(DateTime.now()) ?? false)) {
+      return null;
+    }
+
+    final response = await dio.get<Map<String, dynamic>>(
+      _v3Path(fileID, type),
+      options: Options(
+        headers: headers,
+        validateStatus: (status) => status == 200 || status == 404,
+      ),
+      cancelToken: cancelToken,
+    );
+    if (response.statusCode == 404) {
+      // TODO(migration): Remove the legacy fallback once all supported Museum
+      // versions provide the v3 file URL endpoints. Started 4 Aug 2026.
+      _v3RetryAfter = DateTime.now().add(_v3RetryDelay);
+      return null;
+    }
+    return response.data!["url"] as String;
+  }
+
+  static String getLegacyUrl(int fileID, FileUrlType type) {
     final endpoint = Configuration.instance.getHttpEndpoint();
     final disableWorker = endpoint != kDefaultProductionEndpoint;
 
@@ -20,22 +55,36 @@ class FileUrl {
       case FileUrlType.download:
         return disableWorker
             ? "$endpoint/files/download/$fileID"
-            : "https://files.ente.io/?fileID=$fileID";
+            : "https://files.ente.com/?fileID=$fileID";
 
       case FileUrlType.publicDownload:
         return disableWorker
             ? "$endpoint/public-collection/files/download/$fileID"
-            : "https://public-albums.ente.io/download/?fileID=$fileID";
+            : "https://public-albums.ente.com/download/?fileID=$fileID";
 
       case FileUrlType.thumbnail:
         return disableWorker
             ? "$endpoint/files/preview/$fileID"
-            : "https://thumbnails.ente.io/?fileID=$fileID";
+            : "https://thumbnails.ente.com/?fileID=$fileID";
 
       case FileUrlType.publicThumbnail:
         return disableWorker
             ? "$endpoint/public-collection/files/preview/$fileID"
-            : "https://public-albums.ente.io/preview/?fileID=$fileID";
+            : "https://public-albums.ente.com/preview/?fileID=$fileID";
+    }
+  }
+
+  static String _v3Path(int fileID, FileUrlType type) {
+    switch (type) {
+      case FileUrlType.download:
+      case FileUrlType.directDownload:
+        return "/files/download/v3/$fileID";
+      case FileUrlType.publicDownload:
+        return "/public-collection/files/download/v3/$fileID";
+      case FileUrlType.thumbnail:
+        return "/files/thumbnail/v3/$fileID";
+      case FileUrlType.publicThumbnail:
+        return "/public-collection/files/thumbnail/v3/$fileID";
     }
   }
 }

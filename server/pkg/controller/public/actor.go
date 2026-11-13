@@ -5,11 +5,11 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/ente-io/museum/ente"
-	socialcontroller "github.com/ente-io/museum/pkg/controller/social"
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	socialcontroller "github.com/ente/museum/pkg/controller/social"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 )
 
@@ -23,7 +23,8 @@ func resolvePublicActor(c *gin.Context, userAuthRepo *repo.UserAuthRepository, j
 	}
 	if token := auth.GetToken(c); token != "" {
 		app := auth.GetApp(c)
-		userID, expired, err := userAuthRepo.GetUserIDWithToken(token, app)
+		tokenHash := auth.HashToken(token)
+		userID, expired, err := userAuthRepo.GetUserIDWithTokenHash(tokenHash[:], app)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return socialcontroller.Actor{}, ente.ErrAuthenticationRequired

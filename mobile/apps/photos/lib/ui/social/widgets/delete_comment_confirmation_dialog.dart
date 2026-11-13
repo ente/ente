@@ -1,11 +1,9 @@
+import "package:ente_components/ente_components.dart";
+import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
-import "package:photos/generated/l10n.dart";
 import "package:photos/theme/ente_theme.dart";
-import "package:photos/ui/common/gradient_button.dart";
 import "package:photos/ui/components/buttons/icon_button_widget.dart";
 
-/// Shows a bottom sheet confirmation dialog for deleting a comment.
-/// Returns true if confirmed, null if cancelled.
 Future<bool?> showDeleteCommentConfirmationDialog(
   BuildContext context, {
   required String commentText,
@@ -15,18 +13,15 @@ Future<bool?> showDeleteCommentConfirmationDialog(
     isScrollControlled: true,
     isDismissible: true,
     backgroundColor: Colors.transparent,
-    builder: (context) => _DeleteCommentConfirmationSheet(
-      commentText: commentText,
-    ),
+    builder: (context) =>
+        _DeleteCommentConfirmationSheet(commentText: commentText),
   );
 }
 
 class _DeleteCommentConfirmationSheet extends StatelessWidget {
   final String commentText;
 
-  const _DeleteCommentConfirmationSheet({
-    required this.commentText,
-  });
+  const _DeleteCommentConfirmationSheet({required this.commentText});
 
   String _truncateComment(String text, int maxLength) {
     if (text.length <= maxLength) return text;
@@ -35,7 +30,7 @@ class _DeleteCommentConfirmationSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final l10n = context.strings;
     final textTheme = getEnteTextTheme(context);
     final colorScheme = getEnteColorScheme(context);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -93,13 +88,10 @@ class _DeleteCommentConfirmationSheet extends StatelessWidget {
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
-                child: GradientButton(
+                child: ButtonComponent(
                   onTap: () => Navigator.of(context).pop(true),
-                  text: l10n.deleteComment,
-                  linearGradientColors: const [
-                    Color(0xFFF63A3A),
-                    Color(0xFFF63A3A),
-                  ],
+                  label: l10n.deleteComment,
+                  variant: .critical,
                 ),
               ),
               const SizedBox(height: 16),

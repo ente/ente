@@ -1,12 +1,81 @@
-# This pubspec.yaml is for the root of your monorepo.
-# Its purpose is to lock the version of the melos tool.
 name: ente_workspace
 publish_to: none
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  sdk: ">=3.10.0 <4.0.0"
+
+flutter:
+  # Temporary Flutter 3.47 rollout guards: preserve CocoaPods and existing
+  # app lifecycle wiring. Remove after CI and Xcode support SwiftPM and each
+  # app has deliberately migrated to UIScene.
+  config:
+    enable-swift-package-manager: false
+    enable-uiscene-migration: false
+
+workspace:
+  - apps/auth
+  - apps/locker
+  - apps/photos
+  - apps/photos/plugins/ente_background_manager
+  - apps/photos/plugins/ente_cast
+  - apps/photos/plugins/ente_crypto
+  - apps/photos/plugins/ente_panorama_viewer
+  - apps/photos/plugins/ente_photos_platform
+  - apps/photos/plugins/ente_vision
+  - apps/photos/plugins/ffmpeg
+  - apps/photos/plugins/media_extension
+  - packages/accounts
+  - packages/account_deletion
+  - packages/backup_exclusion
+  - packages/base
+  - packages/configuration
+  - packages/contacts
+  - packages/ente_components
+  - packages/ente_components/example
+  - packages/ente_crypto_api
+  - packages/ente_crypto_dart_adapter
+  - packages/ente_icons
+  - packages/ente_pdf_renderer
+  - packages/install_source
+  - packages/ente_pure_utils
+  - packages/ente_qr
+  - packages/ente_qr_scanner
+  - packages/ente_screen_brightness
+  - packages/events
+  - packages/feature_flag
+  - packages/frb
+  - packages/legacy
+  - packages/local_auth_linux
+  - packages/lock_screen
+  - packages/logging
+  - packages/mail
+  - packages/native_video_editor
+  - packages/network
+  - packages/qr
+  - packages/scoped_dir_access
+  - packages/screen_cover
+  - packages/sharing
+  - packages/strings
+  - packages/ui
+  - packages/utils
 
 dev_dependencies:
-  melos: ^6.0.0
-dependencies:
-  flutter_lints: ^6.0.0
+  flutter_lints: 6.0.0
+
+dependency_overrides:
+  # Hosted 3.4.1 drops DB rows but fails to delete cache files; use the
+  # upstream delete fix until a fixed release ships.
+  flutter_cache_manager:
+    git:
+      url: https://github.com/Baseflow/flutter_cache_manager.git
+      ref: 54904e499a06d0364a2b3f4ca9789e5f829f1879
+      path: flutter_cache_manager
+  # 1.2.2 and 1.2.3 write secrets that GNOME Keyring cannot reload (#5589).
+  flutter_secure_storage_linux: 1.2.1
+  # Fixes an iOS AVFoundation crash for videos whose minFrameDuration is zero.
+  # https://github.com/flutter/flutter/issues/151031
+  video_player_avfoundation:
+    git:
+      url: https://github.com/ente/packages.git
+      path: packages/video_player/video_player_avfoundation
+      ref: e6f7518a2ea4b31cf44e7bd6f44b35b1d66b2085

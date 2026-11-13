@@ -1,22 +1,29 @@
 name: ente_crypto
-version: 0.0.1
-publish_to: none
 
+resolution: workspace
 environment:
-  sdk: '>=3.3.0 <4.0.0'
+  sdk: ">=3.10.0 <4.0.0"
 
 dependencies:
-  collection:
+  collection: 1.19.1
   computer:
-    git: "https://github.com/ente-io/computer.git"
-  convert: ^3.1.1
-  crypto: ^3.0.3
+    git:
+      url: https://github.com/ente/computer.git
+      ref: 82e365fed8a1a76f6eea0220de98389eed7b0445
+  convert: 3.1.2
+  crypto: 3.0.7
+  ffi: 2.2.0
   flutter:
     sdk: flutter
-  flutter_sodium: ^0.2.0
-  logging: ^1.3.0
+  flutter_sodium:
+    git:
+      url: https://github.com/ente/flutter_sodium
+      ref: 88b8b971521d4423eaa9b467d4b2baa4fd5e0962
+  logging: 1.3.0
   
 dev_dependencies:
-  flutter_lints:
+  flutter_lints: 6.0.0
+  flutter_test:
+    sdk: flutter
 
 flutter:

@@ -1,0 +1,72 @@
+import "dart:convert";
+import "dart:typed_data";
+
+import "package:photos/models/ml/clip.dart";
+import "package:photos/models/ml/face/detection.dart";
+import "package:photos/models/ml/face/face.dart";
+import "package:photos/models/ml/face/face_with_embedding.dart";
+import "package:photos/models/ml/ml_versions.dart";
+import "package:photos/models/ml/vector.dart";
+import "package:photos/services/filedata/model/file_data.dart";
+import "package:photos/src/rust/api/ml_db_api.dart" as rust;
+
+rust.FaceRow toFaceRow(Face face) {
+  return rust.FaceRow(
+    fileId: face.fileID,
+    faceId: face.faceID,
+    detectionJson: json.encode(face.detection.toJson()),
+    embedding: Float64List.fromList(face.embedding),
+    score: face.score,
+    blur: face.blur,
+    isSideways: face.detection.faceIsSideways(),
+    imageHeight: face.fileInfo?.imageHeight ?? 0,
+    imageWidth: face.fileInfo?.imageWidth ?? 0,
+    mlVersion: faceMlVersion,
+  );
+}
+
+FaceWithoutEmbedding toFaceWithoutEmbedding(rust.FaceWithoutEmbedding row) {
+  return FaceWithoutEmbedding(
+    row.faceId,
+    row.fileId,
+    row.score,
+    Detection.fromJson(json.decode(row.detectionJson) as Map<String, dynamic>),
+    row.blur,
+    fileInfo: FileInfo(
+      imageWidth: row.imageWidth,
+      imageHeight: row.imageHeight,
+    ),
+  );
+}
+
+rust.ClipEmbedding toClipEmbeddingRow(ClipEmbedding embedding) {
+  return rust.ClipEmbedding(
+    fileId: embedding.fileID,
+    embedding: Float64List.fromList(embedding.embedding),
+    version: embedding.version,
+  );
+}
+
+EmbeddingVector toEmbeddingVector(rust.EmbeddingVector vector) {
+  return EmbeddingVector(fileID: vector.fileId, embedding: vector.embedding);
+}
+
+rust.ClusterSummary toClusterSummaryRow((Uint8List, int) summary) {
+  return rust.ClusterSummary(avg: summary.$1, count: summary.$2);
+}
+
+rust.FdStatus toFdStatusRow(FDStatus status) {
+  return rust.FdStatus(
+    fileId: status.fileID,
+    userId: status.userID,
+    dataType: status.type,
+    size: status.size,
+    objectId: status.objectID,
+    objectNonce: status.objectNonce,
+    updatedAt: status.updatedAt,
+  );
+}
+
+PreviewInfo toPreviewInfo(rust.PreviewInfo info) {
+  return PreviewInfo(objectId: info.objectId, objectSize: info.objectSize);
+}

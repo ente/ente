@@ -3,9 +3,7 @@ import type { ChatMessage } from "./store";
 export const ROOT_SELECTION_KEY = "__root__";
 export const STREAMING_SELECTION_KEY = "__streaming__";
 
-export interface BranchSelections {
-    [selectionKey: string]: string;
-}
+export type BranchSelections = Record<string, string>;
 
 export interface BranchSwitcher {
     selectionKey: string;
@@ -25,6 +23,26 @@ export interface PathBuildResult {
 }
 
 const DEDUPE_WINDOW_US = 2_000_000;
+
+export const buildConversationPath = (
+    messages: ChatMessage[],
+    target: ChatMessage,
+): string[] => {
+    const byId = new Map(
+        messages.map((message) => [message.messageUuid, message]),
+    );
+    const path: string[] = [];
+    const visited = new Set<string>();
+    let current: ChatMessage | undefined = target;
+    while (current && !visited.has(current.messageUuid)) {
+        visited.add(current.messageUuid);
+        path.push(current.messageUuid);
+        current = current.parentMessageUuid
+            ? byId.get(current.parentMessageUuid)
+            : undefined;
+    }
+    return path.reverse();
+};
 
 export const buildSelectedPath = (
     messages: ChatMessage[],
@@ -84,7 +102,7 @@ export const buildSelectedPath = (
         const rawKids = children.get(current.messageUuid) ?? [];
         const kids = dedupeSiblingDuplicates(rawKids);
 
-        if (streaming && streaming.parentMessageUuid === current.messageUuid) {
+        if (streaming?.parentMessageUuid === current.messageUuid) {
             const targets = [
                 ...kids.map((msg) => msg.messageUuid),
                 STREAMING_SELECTION_KEY,

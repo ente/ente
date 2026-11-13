@@ -1,155 +1,108 @@
 import "package:flutter/material.dart";
-import "package:logging/logging.dart";
-import "package:photos/models/api/collection/user.dart";
 import 'package:photos/models/file/file.dart';
 import "package:photos/models/search/generic_search_result.dart";
 import "package:photos/models/search/search_constants.dart";
 import "package:photos/models/search/search_result.dart";
 import "package:photos/models/search/search_types.dart";
-import "package:photos/theme/ente_theme.dart";
-import "package:photos/ui/sharing/user_avator_widget.dart";
+import "package:photos/ui/viewer/file/hero_image.dart";
 import 'package:photos/ui/viewer/file/no_thumbnail_widget.dart';
 import 'package:photos/ui/viewer/file/thumbnail_widget.dart';
 import 'package:photos/ui/viewer/people/person_face_widget.dart';
+import "package:photos/ui/viewer/search/contact_avatar_widget.dart";
 
-class SearchThumbnailWidget extends StatelessWidget {
+class SearchThumbnailWidget extends StatefulWidget {
   final EnteFile? file;
   final SearchResult? searchResult;
   final String tagPrefix;
+  final double size;
+  final double borderRadius;
 
   const SearchThumbnailWidget(
     this.file,
     this.tagPrefix, {
     this.searchResult,
+    this.size = 56,
+    this.borderRadius = 12,
     super.key,
   });
 
   @override
+  State<SearchThumbnailWidget> createState() => _SearchThumbnailWidgetState();
+}
+
+class _SearchThumbnailWidgetState extends State<SearchThumbnailWidget> {
+  late final _heroChildKey = GlobalKey();
+
+  @override
   Widget build(BuildContext context) {
+    final isLocation =
+        widget.searchResult?.type() == ResultType.location ||
+        widget.searchResult?.type() == ResultType.locationSuggestion;
+    final result = widget.searchResult;
+    final isPerson =
+        result is GenericSearchResult && result.type() == ResultType.faces;
+    final hasCover =
+        isLocation || isPerson || result?.type() == ResultType.magic;
     return Hero(
-      tag: tagPrefix + (file?.tag ?? ""),
+      tag: isPerson
+          ? PersonFaceWidget.coverHeroTag(
+              tagPrefix: "people_search",
+              personId: result.params[kPersonParamID],
+              clusterID: result.params[kClusterParamId],
+            )
+          : isLocation
+          ? widget.tagPrefix
+          : widget.tagPrefix + (widget.file?.tag ?? ""),
+      createRectTween: hasCover
+          ? (begin, end) => RectTween(begin: begin, end: end)
+          : null,
+      transitionOnUserGestures: hasCover,
+      placeholderBuilder: isPerson ? imageHeroPlaceholderBuilder : null,
       child: SizedBox(
-        height: 56,
-        width: 56,
+        key: isPerson ? _heroChildKey : null,
+        height: widget.size,
+        width: widget.size,
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: file != null
-              ? (searchResult != null &&
-                      searchResult!.type() == ResultType.faces)
-                  ? PersonFaceWidget(
-                      personId: (searchResult as GenericSearchResult)
-                          .params[kPersonParamID],
-                      clusterID: (searchResult as GenericSearchResult)
-                          .params[kClusterParamId],
-                    )
-                  : ThumbnailWidget(
-                      file!,
-                    )
-              : const NoThumbnailWidget(
-                  addBorder: false,
-                ),
+          borderRadius: BorderRadius.circular(widget.borderRadius),
+          child: widget.file != null
+              ? (widget.searchResult != null &&
+                        widget.searchResult!.type() == ResultType.faces)
+                    ? PersonFaceWidget(
+                        personId: (widget.searchResult as GenericSearchResult)
+                            .params[kPersonParamID],
+                        clusterID: (widget.searchResult as GenericSearchResult)
+                            .params[kClusterParamId],
+                      )
+                    : ThumbnailWidget(widget.file!)
+              : const NoThumbnailWidget(addBorder: false),
         ),
       ),
     );
   }
 }
 
-class ContactSearchThumbnailWidget extends StatefulWidget {
+class ContactSearchThumbnailWidget extends StatelessWidget {
   final GenericSearchResult searchResult;
   final String tagPrefix;
+  final double size;
+  final double borderRadius;
+
   const ContactSearchThumbnailWidget(
     this.tagPrefix, {
     required this.searchResult,
-    super.key,
-  });
-
-  @override
-  State<ContactSearchThumbnailWidget> createState() =>
-      _ContactSearchThumbnailWidgetState();
-}
-
-class _ContactSearchThumbnailWidgetState
-    extends State<ContactSearchThumbnailWidget> {
-  bool _canUsePersonFaceWidget = true;
-  late String? _personID;
-  late String _email;
-  final _logger = Logger("_ContactSearchThumbnailWidgetState");
-
-  @override
-  void initState() {
-    super.initState();
-    _personID = widget.searchResult.params[kPersonParamID];
-    _email = widget.searchResult.params[kContactEmail];
-    _canUsePersonFaceWidget = _personID != null;
-  }
-
-  @override
-  void didUpdateWidget(covariant ContactSearchThumbnailWidget oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    final newPersonID = widget.searchResult.params[kPersonParamID];
-    final newEmail = widget.searchResult.params[kContactEmail];
-    if (newPersonID != _personID) {
-      _personID = newPersonID;
-      _canUsePersonFaceWidget = newPersonID != null;
-    }
-    if (newEmail != _email) {
-      _email = newEmail;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 56,
-      width: 56,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: _canUsePersonFaceWidget
-            ? PersonFaceWidget(
-                personId: _personID,
-                onErrorCallback: () {
-                  if (mounted) {
-                    _logger.severe(
-                      "Failed to load face for person with ID: $_personID",
-                    );
-                    setState(() {
-                      _canUsePersonFaceWidget = false;
-                    });
-                  }
-                },
-              )
-            : NoFaceForContactWidget(
-                user: User(email: _email),
-              ),
-      ),
-    );
-  }
-}
-
-class NoFaceForContactWidget extends StatelessWidget {
-  final User user;
-  final bool addBorder;
-  const NoFaceForContactWidget({
-    this.addBorder = true,
-    required this.user,
+    this.size = 56,
+    this.borderRadius = 12,
     super.key,
   });
 
   @override
   Widget build(BuildContext context) {
-    final enteColorScheme = getEnteColorScheme(context);
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: addBorder
-            ? Border.all(
-                color: enteColorScheme.strokeFaint,
-                width: 1,
-              )
-            : null,
-        color: enteColorScheme.fillFaint,
-      ),
-      child: Center(child: FirstLetterUserAvatar(user)),
+    return ContactAvatarWidget(
+      contactUserId: searchResult.params[kContactUserId] as int,
+      email: searchResult.params[kContactEmail] as String,
+      personId: searchResult.params[kPersonParamID] as String?,
+      size: size,
+      borderRadius: borderRadius,
     );
   }
 }

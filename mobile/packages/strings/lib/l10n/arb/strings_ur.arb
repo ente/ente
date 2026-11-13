@@ -1,0 +1,3285 @@
+{
+  "acceptTrustInvite": "دعوت قبول کریں",
+  "account": "اکاؤنٹ",
+  "accountIsAlreadyConfigured": "اکاؤنٹ پہلے سے کنفیگر ہے.",
+  "accountOwnerPersonAppbarTitle": "{title} (میں)",
+  "@accountOwnerPersonAppbarTitle": {
+    "description": "Title of appbar for account owner person",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "accountSetupIncompleteCreateAccount": "اکاؤنٹ سیٹ اپ نامکمل ہے۔ سیٹ اپ مکمل کرنے کے لیے اکاؤنٹ بنائیں.",
+  "@accountSetupIncompleteCreateAccount": {
+    "description": "Error shown when account exists but signup is incomplete"
+  },
+  "actionNotSupportedOnFavouritesAlbum": "پسندیدہ البم پر عمل سپورٹڈ نہیں ہے",
+  "activeSessions": "فعال سیشنز",
+  "@activeSessions": {
+    "description": "Title for active sessions page"
+  },
+  "add": "شامل کریں",
+  "addAlbumWidgetPrompt": "یہاں حسب ضرورت کرنے کے لیے ہوم اسکرین پر البم ویجیٹ شامل کریں.",
+  "addANameAndPhoto": "نام اور تصویر شامل کریں",
+  "addCode": "کوڈ شامل کریں",
+  "addedAMemoryTo": "{albumName} میں ایک یاد شامل کی",
+  "@addedAMemoryTo": {
+    "description": "Social notification action text shown after a person's name, for example 'John added a memory to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      }
+    }
+  },
+  "addedBy": "{emailOrName} کی طرف سے شامل کیا گیا",
+  "@addedBy": {
+    "placeholders": {
+      "emailOrName": {}
+    }
+  },
+  "addedFilesToPerson": "{count, plural, one{{personName} کو {count} فائل شامل کی گئی} other{{personName} کو {count} فائلیں شامل کی گئیں}}",
+  "@addedFilesToPerson": {
+    "description": "Toast shown after manually tagging one or more files to a person.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      },
+      "personName": {
+        "type": "String",
+        "example": "Alex"
+      }
+    }
+  },
+  "addedNMemoriesTo": "{albumName} میں {count} یادیں شامل کیں",
+  "@addedNMemoriesTo": {
+    "description": "Social notification action text shown after a person's name, for example 'John added 4 memories to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "addedSuccessfullyTo": "{albumName} میں کامیابی کے ساتھ شامل کر دیا گیا.",
+  "@addedSuccessfullyTo": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
+  "addedToAlbums": "{count, plural, one{{count} البم میں کامیابی سے شامل کیا گیا} other{{count} البمز میں کامیابی سے شامل کیا گیا}}",
+  "@addedToAlbums": {
+    "description": "Message shown when items are added to albums",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "addedToQueue": "قطار میں شامل کر دیا گیا",
+  "addFamilyMember": "فیملی ممبر شامل کریں",
+  "addFiles": "فائلیں شامل کریں",
+  "addFromDevice": "ڈیوائس سے شامل کریں",
+  "addingPhotos": "تصاویر شامل کی جا رہی ہیں",
+  "addingToFavorites": "پسندیدہ میں شامل کیا جا رہا ہے...",
+  "addItem": "{count, plural, one{آئٹم شامل کریں} other{آئٹمز شامل کریں}}",
+  "@addItem": {
+    "description": "Page title while adding one or more items to album",
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "addLocation": "مقام شامل کریں",
+  "addLocationButton": "شامل کریں",
+  "addMember": "ممبر شامل کریں",
+  "addMemoriesWidgetPrompt": "یہاں حسب ضرورت کرنے کے لیے اپنی ہوم اسکرین پر یادیں ویجیٹ شامل کریں.",
+  "addMore": "مزید شامل کریں",
+  "addName": "نام شامل کریں",
+  "addNew": "نیا شامل کریں",
+  "@addNew": {
+    "description": "Text to add a new item (location tag, album, caption etc)"
+  },
+  "addOnPageSubtitle": "ایڈ آنز کی تفصیلات",
+  "addOns": "ایڈ آنز",
+  "addOnValidTill": "آپ کا {storageAmount} ایڈ آن {endDate} تک کارآمد ہے",
+  "@addOnValidTill": {
+    "placeholders": {
+      "endDate": {},
+      "storageAmount": {}
+    }
+  },
+  "addPeopleWidgetPrompt": "یہاں حسب ضرورت کرنے کے لیے ہوم اسکرین پر لوگوں کا ویجیٹ شامل کریں.",
+  "addPerson": "شخص شامل کریں",
+  "@addPerson": {
+    "description": "Title for the manual tagging flow where user selects a person to tag files with."
+  },
+  "addPhotos": "تصاویر شامل کریں",
+  "addSelected": "منتخب شدہ شامل کریں",
+  "addTag": "ٹیگ شامل کریں",
+  "addToAlbum": "البم میں شامل کریں",
+  "addToEnte": "Ente میں شامل کریں",
+  "addToHiddenAlbum": "پوشیدہ البم میں شامل کریں",
+  "addToPerson": "شخص میں شامل کریں",
+  "@addToPerson": {
+    "description": "Action label to add selected files to an existing person."
+  },
+  "addTrustedContact": "قابل اعتماد رابطہ شامل کریں",
+  "addUpTo5MembersFree": "۵ اراکین تک مفت شامل کریں",
+  "addYourPhotosNow": "ابھی اپنی تصاویر شامل کریں",
+  "adjust": "ایڈجسٹ کریں",
+  "admin": "ایڈمن",
+  "admiringThem": "{name} کی تعریف",
+  "@admiringThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "aerialViews": "فضائی مناظر",
+  "after1Day": "۱ دن بعد",
+  "after1Hour": "۱ گھنٹہ بعد",
+  "after1Month": "۱ مہینہ بعد",
+  "after1Week": "۱ ہفتہ بعد",
+  "after1Year": "۱ سال بعد",
+  "albumLayout": "البم کا خاکہ",
+  "albums": "البمز",
+  "albumsCount": "{count, plural, one{{count} البم} other{{count} البمز}}",
+  "@albumsCount": {
+    "description": "Number of albums with pluralization",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "albumsWidgetDesc": "ان البمز کو منتخب کریں جنہیں آپ ہوم اسکرین پر دیکھنا چاہتے ہیں.",
+  "albumTitle": "البم کا عنوان",
+  "albumUpdated": "البم اپ ڈیٹ ہو گیا",
+  "algorithm": "الگورتھم",
+  "align": "سیدھ کریں",
+  "allClear": "✨ سب صاف",
+  "allMemoriesPreserved": "تمام یادیں محفوظ",
+  "allow": "اجازت دیں",
+  "allowAccessToYourPhotos": "اپنی تصاویر تک رسائی کی اجازت دیں",
+  "allowAddingPhotos": "تصاویر شامل کرنے کی اجازت دیں",
+  "@allowAddingPhotos": {
+    "description": "Switch button to enable uploading photos to a public link"
+  },
+  "allowAppToOpenSharedAlbumLinks": "ایپ کو مشترکہ البم لنکس کھولنے کی اجازت دیں",
+  "allowDownloads": "ڈاؤن لوڈز کی اجازت دیں",
+  "allowJoiningAlbum": "البم میں شامل ہونے کی اجازت دیں",
+  "allowPermBody": "براہ کرم سیٹنگز سے اپنی تصاویر تک رسائی کی اجازت دیں تاکہ Ente آپ کی لائبریری کو ڈسپلے اور بیک اپ کر سکے.",
+  "allowPermTitle": "تصاویر تک رسائی کی اجازت دیں",
+  "allPersonGroupingWillReset": "اس شخص کے لیے تمام گروپنگ ری سیٹ ہو جائے گی، اور آپ اس شخص کے لیے دی گئی تمام تجاویز کھو دیں گے",
+  "allTabEmptyHint": "یہاں ابھی کچھ نہیں ہے۔ کوڈ شامل کرنے کے لیے + پر ٹیپ کریں یا اسے بحال کرنے کے لیے ردی کی ٹوکری (Trash) کھولیں۔",
+  "@allTabEmptyHint": {
+    "description": "Shown when the All tab has no active codes but Trash contains codes"
+  },
+  "allWillShiftRangeBasedOnFirst": "یہ گروپ میں پہلی ہے. دیگر منتخب تصاویر خود بخود اس نئی تاریخ کی بنیاد پر تبدیل ہو جائیں گی",
+  "almostDone": "تقریباً مکمل...",
+  "alreadyAdded": "پہلے ہی شامل ہے",
+  "alreadyHaveAnAccount": "کیا پہلے سے اکاؤنٹ موجود ہے؟",
+  "analysis": "تجزیہ",
+  "analyzingPhotosLocally": "آپ کی تصاویر کا مقامی طور پر تجزیہ کیا جا رہا ہے...",
+  "and1Other": "اور ۱ دیگر",
+  "androidBiometricHint": "شناخت کی تصدیق کریں",
+  "@androidBiometricHint": {
+    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
+  },
+  "androidCancelButton": "منسوخ کریں",
+  "@androidCancelButton": {
+    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
+  },
+  "androidSignInTitle": "توثیق درکار ہے",
+  "@androidSignInTitle": {
+    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
+  },
+  "andXOthers": "اور {count} دیگر",
+  "@andXOthers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "aNewVersionOfEnteIsAvailable": "Ente کا ایک نیا ورژن دستیاب ہے.",
+  "appearance": "ظاہری شکل",
+  "appIcon": "ایپ آئیکن",
+  "appleId": "ایپل آئی ڈی",
+  "applePhotosUnsupportedResource": "یہ فائل Apple Photos میں محفوظ نہیں ہو سکی۔ آپ اسے Ente میں اب بھی دیکھ سکتے ہیں۔",
+  "@applePhotosUnsupportedResource": {
+    "description": "Shown when iOS Photos rejects a file while saving to gallery because the media resource is invalid or unsupported"
+  },
+  "appLock": "ایپ لاک",
+  "@appLock": {
+    "description": "App lock setting title"
+  },
+  "appLockDescription": "اپنی ڈیوائس کی ڈیفالٹ لاک اسکرین اور پن یا پاس ورڈ کے ساتھ کسٹم لاک اسکرین کے درمیان انتخاب کریں۔",
+  "@appLockDescription": {
+    "description": "Description of app lock feature"
+  },
+  "appLockNotEnabled": "ایپ لاک فعال نہیں ہے",
+  "appLockNotEnabledDescription": "براہ کرم Security > App Lock سے ایپ لاک فعال کریں",
+  "appLockOfflineModeWarning": "آپ نے بیک اپ کے بغیر آگے بڑھنے کا انتخاب کیا ہے۔ اگر آپ اپنا ایپ لاک بھول جاتے ہیں، تو آپ اپنے ڈیٹا تک رسائی حاصل کرنے سے قاصر ہو جائیں گے۔",
+  "apply": "لگائیں",
+  "applyCodeTitle": "کوڈ لگائیں",
+  "appstoreSubscription": "ایپ اسٹور سبسکرپشن",
+  "appVersion": "ورژن {versionValue}",
+  "@appVersion": {
+    "placeholders": {
+      "versionValue": {}
+    }
+  },
+  "architecture": "ڈیزائن آئیکنز",
+  "archive": "آرکائیو",
+  "@archive": {
+    "description": "Action of 'Archiving' an element"
+  },
+  "archiveAlbum": "البم آرکائیو کریں",
+  "archiving": "آرکائیو کیا جا رہا ہے...",
+  "areThey": "کیا وہ ",
+  "areYouSure": "کیا آپ کو یقین ہے؟",
+  "@areYouSure": {
+    "description": "Confirmation dialog title"
+  },
+  "areYouSureDeleteFiles": "کیا آپ واقعی ان فائلوں کو ڈیلیٹ کرنا چاہتے ہیں؟",
+  "areYouSureRemoveThisFaceFromPerson": "کیا آپ واقعی اس چہرے کو اس شخص سے ہٹانا چاہتے ہیں؟",
+  "areYouSureRemoveThisPersonTag": "کیا آپ واقعی اس شخص کا ٹیگ ہٹانا چاہتے ہیں؟",
+  "areYouSureThatYouWantToLeaveTheFamily": "کیا آپ واقعی فیملی پلان چھوڑنا چاہتے ہیں؟",
+  "areYouSureYouWantToCancel": "کیا آپ واقعی منسوخ کرنا چاہتے ہیں؟",
+  "areYouSureYouWantToChangeYourPlan": "کیا آپ واقعی اپنا پلان تبدیل کرنا چاہتے ہیں؟",
+  "areYouSureYouWantToExit": "کیا آپ واقعی باہر نکلنا چاہتے ہیں؟",
+  "areYouSureYouWantToIgnoreThesePersons": "کیا آپ واقعی ان لوگوں کو نظر انداز کرنا چاہتے ہیں؟",
+  "areYouSureYouWantToIgnoreThisPerson": "کیا آپ واقعی اس شخص کو نظر انداز کرنا چاہتے ہیں؟",
+  "areYouSureYouWantToLogout": "کیا آپ واقعی لاگ آؤٹ کرنا چاہتے ہیں؟",
+  "@areYouSureYouWantToLogout": {
+    "description": "Confirmation message before logout"
+  },
+  "areYouSureYouWantToRenew": "کیا آپ واقعی تجدید کرنا چاہتے ہیں؟",
+  "areYouSureYouWantToResetThisPerson": "کیا آپ واقعی اس شخص کو ری سیٹ کرنا چاہتے ہیں؟",
+  "areYouSureYouWantToShowThesePeopleInPeopleSectionAgain": "کیا آپ واقعی ان لوگوں کو دوبارہ لوگوں کے سیکشن میں دکھانا چاہتے ہیں؟",
+  "areYouSureYouWantToShowThisPersonInPeopleSectionAgain": "کیا آپ واقعی اس شخص کو دوبارہ لوگوں کے سیکشن میں دکھانا چاہتے ہیں؟",
+  "artisticPortraits": "فنکارانہ پورٹریٹ",
+  "askAQuestion": "سوال پوچھیں",
+  "askCancelReason": "آپ کی سبسکرپشن منسوخ کر دی گئی تھی. کیا آپ وجہ بتانا پسند کریں گے؟",
+  "attachLogs": "لاگس منسلک کریں",
+  "attachLogsHelper": "مسئلے کی تشخیص میں تیزی لانے میں مدد کرتا ہے",
+  "authenticateGeneric": "براہ کرم توثیق کریں",
+  "authenticating": "تصدیق کی جا رہی ہے...",
+  "authToConfigureTwofactorAuthentication": "ٹو فیکٹر تصدیق کو کنفیگر کرنے کے لیے براہ کرم تصدیق کریں",
+  "authToExportCodes": "اپنے کوڈز ایکسپورٹ کرنے کے لیے براہ کرم توثیق کریں",
+  "authToInitiateSignIn": "بیک اپ کے لیے سائن ان شروع کرنے کے لیے براہ کرم توثیق کریں۔",
+  "authToManageLegacy": "اپنے قابل اعتماد رابطوں کا انتظام کرنے کے لیے براہ کرم تصدیق کریں",
+  "authToSetBackupPassword": "بیک اپ پاس ورڈ سیٹ کرنے کے لیے توثیق کریں",
+  "authToUpdateBackupPassword": "بیک اپ پاس ورڈ کو اپ ڈیٹ کرنے کے لیے توثیق کریں",
+  "authToViewPasskey": "اپنی پاس کی دیکھنے کے لیے براہ کرم تصدیق کریں",
+  "authToViewPasskeyGeneric": "پاس کی passkey دیکھنے کے لیے براہ کرم توثیق کریں",
+  "authToViewSecrets": "اپنے راز (Secrets) دیکھنے کے لیے براہ کرم توثیق کریں",
+  "@authToViewSecrets": {
+    "description": "Message prompting authentication to view secrets"
+  },
+  "authToViewTrashedFiles": "اپنی ردی کی فائلیں دیکھنے کے لیے براہ کرم تصدیق کریں",
+  "authToViewYourHiddenFiles": "اپنی پوشیدہ فائلیں دیکھنے کے لیے براہ کرم تصدیق کریں",
+  "authToViewYourMemories": "اپنی یادیں دیکھنے کے لیے براہ کرم تصدیق کریں",
+  "autoAddPeople": "لوگ خود بخود شامل کریں",
+  "autoAddToAlbum": "البم میں خودکار شامل کریں",
+  "autoCastDialogBody": "آپ کو یہاں دستیاب Cast ڈیوائسز نظر آئیں گی.",
+  "autoCastiOSPermission": "یقینی بنائیں کہ سیٹنگز میں Ente Photos ایپ کے لیے لوکل نیٹ ورک کی اجازتیں آن ہیں.",
+  "autoLock": "آٹو لاک",
+  "@autoLock": {
+    "description": "Auto lock setting title"
+  },
+  "autoLogoutMessage": "تکنیکی خرابی کی وجہ سے آپ کو لاگ آؤٹ کر دیا گیا ہے۔ تکلیف کے لیے معذرت خواہ ہیں۔",
+  "automaticallyAnalyzeAndSplitGrouping": "ہم خود بخود گروپنگ کا تجزیہ کریں گے تاکہ یہ تعین کیا جا سکے کہ آیا متعدد لوگ موجود ہیں، اور انہیں دوبارہ الگ کریں گے. اس میں چند سیکنڈ لگ سکتے ہیں.",
+  "autoPair": "آٹو پیئر",
+  "autumnColors": "خزاں کی رونق",
+  "babySmiles": "بچوں کی مسکراہٹیں",
+  "backedUpFolders": "بیک اپ شدہ فولڈرز",
+  "background": "پس منظر",
+  "backgroundWithThem": "{name} کے ساتھ خوبصورت مناظر",
+  "@backgroundWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "backingUpLastSevenDaysPhotos": "گزشتہ ۷ دنوں کی تصاویر کا بیک اپ لیا جا رہا ہے",
+  "backup": "بیک اپ",
+  "backupAndSync": "بیک اپ اور سنک",
+  "backupAndSyncDesc": "خودکار بیک اپ، سنک کی حیثیت، اور اپ لوڈز",
+  "backupCreated": "بیک اپ بن گیا!",
+  "backupFailed": "بیک اپ ناکام",
+  "backupFile": "فائل کا بیک اپ لیں",
+  "backupFolderLabel": "بیک اپ فولڈر:",
+  "backupLocationChoiceDescription": "آپ اپنے بیک اپ کہاں محفوظ کرنا چاہتے ہیں؟",
+  "backupOnlyNewPhotos": "صرف نئی تصاویر کا بیک اپ لیں",
+  "backupOnlyNewPhotosAllFoldersSelected": "بیک اپ کے لیے اس وقت تمام فولڈرز منتخب ہیں.\n\nآپ ابھی جاری رکھ سکتے ہیں، یا منتخب کردہ فولڈرز میں تبدیلی کر سکتے ہیں.",
+  "backupOnlyNewPhotosNoFoldersSelectedContinue": "بیک اپ کے لیے اس وقت کوئی فولڈر منتخب نہیں ہے.\n\nآپ ابھی جاری رکھ سکتے ہیں، یا منتخب کردہ فولڈرز میں تبدیلی کر سکتے ہیں.",
+  "backupOnlyNewPhotosNoFoldersSelectedRequire": "بیک اپ کے لیے اس وقت کوئی فولڈر منتخب نہیں ہے.\n\nبراہ کرم جاری رکھنے کے لیے فولڈرز منتخب کریں.",
+  "backupOnlyNewPhotosWarningBody": "آپ فی الحال {formattedDate} سے تصاویر کا بیک اپ لے رہے ہیں. تمام تصاویر کا بیک اپ لینے کے لیے براہ کرم اپنی ترتیبات کو اپ ڈیٹ کریں.",
+  "@backupOnlyNewPhotosWarningBody": {
+    "description": "Warning shown when backup-only-new is enabled and user changes folders.",
+    "placeholders": {
+      "formattedDate": {
+        "type": "String",
+        "example": "Jan 5, 2026"
+      }
+    }
+  },
+  "backupOverMobileData": "موبائل ڈیٹا پر بیک اپ کریں",
+  "backupPasswordCleared": "بیک اپ پاس ورڈ صاف کر دیا گیا",
+  "backupPasswordHint": "آپ کا بیک اپ اس پاس ورڈ کے ساتھ انکرپٹ کیا جائے گا۔",
+  "backupSettings": "بیک اپ کی ترتیبات",
+  "backupStatus": "بیک اپ کی حیثیت",
+  "backupStatusDescription": "بیک اپ کی گئی آئٹمز یہاں نظر آئیں گی",
+  "backupToEnte": "Ente میں بیک اپ کریں",
+  "backupVideos": "ویڈیوز کا بیک اپ لیں",
+  "beach": "ریت اور سمندر",
+  "birthday": "سالگرہ",
+  "birthdayJoy": "سالگرہ کی خوشی",
+  "birthdays": "سالگرہ",
+  "blog": "بلاگ",
+  "bothIssuerAndAccountCanNotBeEmpty": "جاری کنندہ اور اکاؤنٹ دونوں خالی نہیں ہو سکتے",
+  "bringYourFamilyAlong": "اپنی فیملی کو ساتھ لائیں",
+  "browseHelpPages": "مدد کے صفحات دیکھیں",
+  "brushColor": "برش کا رنگ",
+  "byAgreeing": "جاری رکھ کر، آپ <terms>سروس کی شرائط</terms> اور <policy>پرائیویسی پالیسی</policy> سے اتفاق کرتے ہیں.",
+  "cachedData": "کیشڈ ڈیٹا",
+  "calculating": "حساب لگایا جا رہا ہے...",
+  "campingMoments": "کیمپ فائر کے لمحات",
+  "cancel": "منسوخ کریں",
+  "@cancel": {
+    "description": "Cancel button label"
+  },
+  "cancelInvite": "دعوت منسوخ کریں",
+  "@cancelInvite": {
+    "description": "Title for cancel invite confirmation dialog"
+  },
+  "cancelInviteDesc": "اگر آپ یہ دعوت حذف کر دیتے ہیں تو اگر آپ کا خیال بدلے تو نئی بھیجنی پڑے گی.",
+  "@cancelInviteDesc": {
+    "description": "Description for cancel invite confirmation dialog"
+  },
+  "cancelOtherSubscription": "براہ کرم پہلے {paymentProvider} سے اپنی موجودہ سبسکرپشن منسوخ کریں",
+  "@cancelOtherSubscription": {
+    "description": "The text to display when the user has an existing subscription from a different payment provider",
+    "type": "text",
+    "placeholders": {
+      "paymentProvider": {
+        "example": "Apple",
+        "type": "String"
+      }
+    }
+  },
+  "cancelRecovery": "بحالی منسوخ کریں",
+  "cancelRecoveryDesc": "کیا آپ واقعی {email} کے اکاؤنٹ کی بحالی منسوخ کرنا چاہتے ہیں؟",
+  "@cancelRecoveryDesc": {
+    "description": "Description for cancel recovery confirmation dialog",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "cancelSubscription": "سبسکرپشن منسوخ کریں",
+  "candidLaughter": "ہنسی کا پھوار",
+  "cannotDeleteSharedFiles": "مشترکہ فائلیں ڈیلیٹ نہیں کی جا سکتیں",
+  "cannotMoveToSharedAlbums": "مشترکہ البمز میں منتقل نہیں کیا جا سکتا",
+  "cannotMoveToSharedAlbumsMessage": "آئٹمز صرف مشترکہ البمز میں شامل کیے جا سکتے ہیں، منتقل نہیں. کیا آپ اس کے بجائے شامل کرنا چاہیں گے؟",
+  "canNotOpenBody": "معذرت، یہ البم ایپ میں نہیں کھولا جا سکتا.",
+  "canNotOpenTitle": "یہ البم نہیں کھولا جا سکتا",
+  "cannotUpdateRecoveryTime": "بحالی کا وقت اپ ڈیٹ نہیں کیا جا سکتا",
+  "cannotUpdateRecoveryTimeMessage": "فعال بحالی سیشن کے دوران بحالی کا وقت تبدیل نہیں کیا جا سکتا۔ براہ مہربانی مسترد کریں یا بحالی مکمل ہونے کا انتظار کریں.",
+  "canOnlyCreateLinkForFilesOwnedByYou": "صرف آپ کی ملکیتی فائلوں کے لیے لنک بنا سکتے ہیں",
+  "canOnlyRemoveFilesOwnedByYou": "صرف آپ کی ملکیتی فائلیں ہٹا سکتے ہیں",
+  "castAlbum": "البم کاسٹ کریں",
+  "castIPMismatchBody": "براہ کرم یقینی بنائیں کہ آپ اسی نیٹ ورک پر ہیں جس پر ٹی وی ہے.",
+  "castIPMismatchTitle": "البم کاسٹ کرنے میں ناکام",
+  "cat": "بلی",
+  "centerPoint": "مرکزی نقطہ",
+  "changeEmail": "ای میل تبدیل کریں",
+  "@changeEmail": {
+    "description": "Change email button label"
+  },
+  "changeLocationOfSelectedItems": "منتخب کردہ آئٹمز کا مقام تبدیل کریں؟",
+  "changePassword": "پاس ورڈ تبدیل کریں",
+  "changePasswordTitle": "پاس ورڈ تبدیل کریں",
+  "@changePasswordTitle": {
+    "description": "Change password title"
+  },
+  "changeYourReferralCode": "اپنا کوڈ تبدیل کریں",
+  "checkForUpdates": "اپ ڈیٹس چیک کریں",
+  "checkInboxAndSpamFolder": "تصدیق مکمل کرنے کے لیے براہ کرم اپنا ان باکس (اور اسپام) چیک کریں",
+  "@checkInboxAndSpamFolder": {
+    "description": "Message asking user to check inbox and spam folder"
+  },
+  "checking": "چیک کیا جا رہا ہے...",
+  "checkingModels": "ماڈلز چیک ہو رہے ہیں...",
+  "chooseARecoveryTime": "بحالی کا وقت منتخب کریں",
+  "chooseBackupLocation": "بیک اپ لوکیشن منتخب کریں",
+  "chooseFromAnExistingContact": "موجودہ رابطے میں سے منتخب کریں",
+  "chooseIcon": "آئیکن منتخب کریں",
+  "chooseYourPlan": "اپنا پلان منتخب کریں",
+  "city": "شہر میں",
+  "citySunsets": "شہر کا غروب آفتاب",
+  "claimedByYou": "آپ کا دعویٰ کردہ",
+  "cleanedUpSimilarImages": "آپ نے {size} جگہ خالی کر لی",
+  "@cleanedUpSimilarImages": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "cleanUncategorized": "غیر زمرہ بند صاف کریں",
+  "cleanUncategorizedDescription": "غیر زمرہ بند سے وہ تمام فائلیں ہٹا دیں جو دوسرے البمز میں موجود ہیں",
+  "cleanupComplete": "صفائی مکمل",
+  "cleanupHiddenFiles": "پوشیدہ فائلیں صاف کریں",
+  "cleanupHiddenFilesDescription": "پوشیدہ البمز میں کچھ فائلیں اب بھی غیر پوشیدہ البمز میں موجود ہیں جس کی وجہ سے وہ پوشیدہ سیکشن کے باہر دکھائی دیتی ہیں. صفائی کرنے سے انہیں غیر پوشیدہ البمز سے ہٹا دیا جائے گا.",
+  "clearBackupFolder": "بیک اپ فولڈر صاف کریں",
+  "clearBackupPassword": "بیک اپ پاس ورڈ صاف کریں",
+  "clearCaches": "کیشے صاف کریں",
+  "clearSelection": "انتخاب صاف کریں",
+  "clickToInstallOurBestVersionYet": "ہمارا اب تک کا بہترین ورژن انسٹال کرنے کے لیے کلک کریں",
+  "close": "بند کریں",
+  "closeBy": "قریب",
+  "@closeBy": {
+    "description": "Appears in the similar images page, to indicate that the images are close in terms of appearance"
+  },
+  "closeFamilyConfirmBody": "تمام اراکین مشترکہ اسٹوریج تک رسائی کھو دیں گے۔ یہ عمل واپس نہیں کیا جا سکتا۔",
+  "closeFamilyConfirmTitle": "فیملی پلان بند کریں؟",
+  "closeFamilyPlan": "فیملی پلان بند کریں",
+  "closest": "قریب ترین",
+  "clusteringProgress": "کلسٹرنگ کی پیشرفت",
+  "coastalCliffs": "سمندر کنارے چٹانیں",
+  "codeAppliedPageTitle": "کوڈ لگ گیا",
+  "codeChangeLimitReached": "معذرت، آپ کوڈ کی تبدیلیوں کی حد تک پہنچ چکے ہیں.",
+  "codeCopiedToClipboard": "کوڈ کلپ بورڈ پر کاپی ہو گیا",
+  "codeIssuerHint": "جاری کنندہ",
+  "collaborator": "معاون",
+  "collageLayout": "لی آؤٹ",
+  "collageSaved": "کولاج گیلری میں محفوظ ہو گیا",
+  "collectPhotos": "تصاویر جمع کریں",
+  "color": "رنگ",
+  "colorfulMarkets": "پررونق بازار",
+  "commentedOnAPhoto": "ایک تصویر پر تبصرہ کیا",
+  "@commentedOnAPhoto": {
+    "description": "Social notification action text shown after a person's name, for example 'John commented on a photo'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "commentedOnAVideo": "ایک ویڈیو پر تبصرہ کیا",
+  "@commentedOnAVideo": {
+    "description": "Social notification action text shown after a person's name, for example 'John commented on a video'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "commentedOnYourPhoto": "آپ کی تصویر پر تبصرہ کیا",
+  "@commentedOnYourPhoto": {
+    "description": "Social notification action text shown after a person's name, for example 'John commented on your photo'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "commentedOnYourVideo": "آپ کی ویڈیو پر تبصرہ کیا",
+  "@commentedOnYourVideo": {
+    "description": "Social notification action text shown after a person's name, for example 'John commented on your video'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "commentHint": "کچھ اچھی بات کہیں!",
+  "@commentHint": {
+    "description": "Placeholder text for comment input field"
+  },
+  "comments": "تبصرے",
+  "commentsCount": "{count, plural, =0{کوئی تبصرہ نہیں} one{{count} تبصرہ} other{{count} تبصرے}}",
+  "@commentsCount": {
+    "description": "Number of comments with pluralization",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "compactMode": "کمپیکٹ موڈ",
+  "comparingImageDetails": "تصویر کی تفصیلات کا موازنہ...",
+  "concertNights": "کنسرٹ کی راتیں",
+  "confirm": "تصدیق کریں",
+  "@confirm": {
+    "description": "Confirm button label"
+  },
+  "confirm2FADisable": "کیا آپ واقعی ٹو فیکٹر تصدیق کو غیر فعال کرنا چاہتے ہیں؟",
+  "confirmAddingTrustedContact": "آپ {email} کو قابل اعتماد رابطے کے طور پر شامل کرنے والے ہیں. اگر آپ {numOfDays} دنوں تک غائب رہتے ہیں تو وہ آپ کا اکاؤنٹ بازیافت کر سکیں گے.",
+  "@confirmAddingTrustedContact": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      },
+      "numOfDays": {
+        "type": "int",
+        "example": "30"
+      }
+    }
+  },
+  "confirmAddingTrustedContacts": "آپ {count} قابل اعتماد رابطے شامل کرنے والے ہیں۔ اگر آپ {numOfDays} دن غیر حاضر رہیں تو وہ آپ کا اکاؤنٹ بحال کر سکیں گے.",
+  "@confirmAddingTrustedContacts": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "numOfDays": {
+        "type": "int",
+        "example": "30"
+      }
+    }
+  },
+  "confirmPassword": "پاس ورڈ کی تصدیق کریں",
+  "@confirmPassword": {
+    "description": "Confirm password field label"
+  },
+  "confirmPlanChange": "پلان کی تبدیلی کی تصدیق کریں",
+  "confirmUpdatingkey": "کیا آپ واقعی خفیہ کلید (secret key) کو اپ ڈیٹ کرنا چاہتے ہیں؟",
+  "connectToDevice": "ڈیوائس سے جڑیں",
+  "contacts": "رابطے",
+  "contactSupport": "سپورٹ سے رابطہ کریں",
+  "@contactSupport": {
+    "description": "Contact support button label"
+  },
+  "contactToManageSubscription": "اپنی {provider} سبسکرپشن کا نظم کرنے کے لیے support@ente.com پر رابطہ کریں.",
+  "@contactToManageSubscription": {
+    "placeholders": {
+      "provider": {}
+    }
+  },
+  "continueInMailApp": "میل ایپ میں جاری رکھیں",
+  "continueLabel": "جاری رکھیں",
+  "@continueLabel": {
+    "description": "Continue button label"
+  },
+  "continueWithoutAccount": "اکاؤنٹ کے بغیر جاری رکھیں",
+  "convertToAlbum": "البم میں تبدیل کریں",
+  "copiedNextToClipboard": "اگلا کوڈ کلپ بورڈ پر کاپی کر لیا گیا",
+  "copiedToClipboard": "کلپ بورڈ پر کاپی کر لیا گیا",
+  "copyAllToClipboard": "سب کچھ کلپ بورڈ پر کاپی کریں",
+  "copyEmbedHtml": "ایمبیڈ HTML کاپی کریں",
+  "copyLink": "لنک کاپی کریں",
+  "copypasteThisCodentoYourAuthenticatorApp": "کاپی کر کے اس کوڈ کو اپنے آتھینٹیکیٹر ایپ میں پیسٹ کریں",
+  "couldNotBackUpTryLater": "ہم آپ کے ڈیٹا کا بیک اپ نہیں لے سکے.\nہم بعد میں دوبارہ کوشش کریں گے.",
+  "couldNotFreeUpSpace": "جگہ خالی نہیں ہو سکی",
+  "couldNotLoadAlbums": "البمز لوڈ نہیں ہو سکے",
+  "@couldNotLoadAlbums": {
+    "description": "Error when albums fail to load"
+  },
+  "couldNotLoadLikes": "لائکس لوڈ نہیں ہو سکے",
+  "@couldNotLoadLikes": {
+    "description": "Error when likes fail to load"
+  },
+  "couldNotLoadSelectedPhoto": "منتخب تصویر لوڈ نہیں ہو سکی",
+  "@couldNotLoadSelectedPhoto": {
+    "description": "Toast when the selected contact photo cannot be loaded"
+  },
+  "couldNotUpdateSubscription": "سبسکرپشن اپ ڈیٹ نہیں کی جا سکی",
+  "count": "تعداد",
+  "cozyCafes": "آرام دہ کیفے",
+  "crashAndErrorReporting": "کریش اور ایرر رپورٹنگ",
+  "crashReporting": "کریش رپورٹنگ",
+  "create": "بنائیں",
+  "createAccount": "اکاؤنٹ بنائیں",
+  "@createAccount": {
+    "description": "Create account button label"
+  },
+  "createAccountTitle": "اکاؤنٹ بنائیں",
+  "createAlbum": "البم بنائیں",
+  "createAlbumActionHint": "تصاویر منتخب کرنے کے لیے دیر تک دبائیں اور البم بنانے کے لیے + پر کلک کریں",
+  "createAnEnteAccount": "Ente اکاؤنٹ بنائیں",
+  "createBackupNow": "ابھی بیک اپ بنائیں",
+  "createCollaborativeLink": "تعاونی لنک بنائیں",
+  "createCollage": "کولاج بنائیں",
+  "createNewTag": "نیا ٹیگ بنائیں",
+  "createPublicLink": "عوامی لنک بنائیں",
+  "createStream": "اسٹریم بنائیں",
+  "creatingLink": "لنک بنایا جا رہا ہے...",
+  "creatingStream": "اسٹریم بنائی جا رہی ہے",
+  "criticalUpdateAvailable": "اہم اپ ڈیٹ دستیاب ہے",
+  "crop": "کراپ کریں",
+  "curatedMemories": "منتخب کردہ یادیں",
+  "currentBackupFolder": "موجودہ بیک اپ فولڈر:",
+  "currentlyRunning": "فی الحال جاری ہے",
+  "currentUsageNote": "موجودہ استعمال: {amount}. کوئی حد نہ رکھنے کے لیے 0 سیٹ کریں.",
+  "@currentUsageNote": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "20 GB"
+      }
+    }
+  },
+  "custom": "حسب ضرورت",
+  "@custom": {
+    "description": "Label for setting custom value for link expiry"
+  },
+  "customEndpoint": "{endpoint} سے منسلک",
+  "@customEndpoint": {
+    "description": "Text showing user is connected to a custom endpoint",
+    "placeholders": {
+      "endpoint": {
+        "type": "String",
+        "description": "URL of the custom endpoint"
+      }
+    }
+  },
+  "customOrder": "اپنی مرضی کی ترتیب",
+  "darkTheme": "ڈارک",
+  "data": "ڈیٹا",
+  "day": "دن",
+  "dayToday": "آج",
+  "dayYesterday": "کل",
+  "declineTrustInvite": "دعوت مسترد کریں",
+  "decrypting": "ڈکرپٹ کیا جا رہا ہے...",
+  "decryptingVideo": "ویڈیو ڈکرپٹ ہو رہی ہے...",
+  "deduplicateCodes": "ڈپلیکیٹ کوڈز ہٹائیں",
+  "deduplicateFiles": "ڈپلیکیٹ فائلیں ختم کریں",
+  "deleteAlbum": "البم ڈیلیٹ کریں",
+  "deleteAlbumDialog": "کیا اس البم میں موجود تصاویر (اور ویڈیوز) کو <bold>تمام</bold> دیگر البمز سے بھی ڈیلیٹ کر دیں جن کا وہ حصہ ہیں؟",
+  "deleteAlbumsDialogBody": "یہ تمام خالی البمز کو ڈیلیٹ کر دے گا. یہ تب مفید ہے جب آپ اپنی البم لسٹ میں بے ترتیبی کو کم کرنا چاہتے ہیں.",
+  "deleteAll": "سبھی ڈیلیٹ کریں",
+  "deleteCodeAuthMessage": "کوڈ حذف کرنے کے لیے توثیق کریں",
+  "deleteCodeMessage": "کیا آپ واقعی اس کوڈ کو حذف کرنا چاہتے ہیں؟ یہ عمل واپس نہیں لیا جا سکتا۔",
+  "deleteCodeTitle": "کوڈ حذف کریں؟",
+  "deleteComment": "تبصرہ ڈیلیٹ کریں",
+  "@deleteComment": {
+    "description": "Delete comment button label"
+  },
+  "deleteCommentConfirmation": "آپ کا تبصرہ \"{comment}\" مستقل طور پر ڈیلیٹ ہو جائے گا",
+  "@deleteCommentConfirmation": {
+    "description": "Confirmation message when deleting a comment",
+    "placeholders": {
+      "comment": {
+        "type": "String"
+      }
+    }
+  },
+  "deletedComment": "(ڈیلیٹ شدہ)",
+  "@deletedComment": {
+    "description": "Label for deleted comments"
+  },
+  "deleteDuplicates": "ڈپلیکیٹ حذف کریں",
+  "deleteEmptyAlbums": "خالی البمز ڈیلیٹ کریں",
+  "deleteEmptyAlbumsWithQuestionMark": "خالی البمز ڈیلیٹ کریں؟",
+  "deleteFiles": "فائلیں ڈیلیٹ کریں",
+  "deleteFromBoth": "دونوں سے ڈیلیٹ کریں",
+  "deleteFromDevice": "ڈیوائس سے ڈیلیٹ کریں",
+  "deleteFromEnte": "Ente سے ڈیلیٹ کریں",
+  "deleteHiddenFilesFromDevice": "ڈیوائس سے پوشیدہ فائلیں ڈیلیٹ کریں",
+  "deleteHiddenFilesFromDeviceDescription": "اپنی ڈیوائس سے پوشیدہ فائلوں کی مقامی کاپیاں ڈیلیٹ کریں",
+  "deleteItemCount": "{count, plural, one{{count} آئٹم حذف کریں} other{{count} آئٹمز حذف کریں}}",
+  "@deleteItemCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "deleteLink": "لنک حذف کریں",
+  "deleteLinkQuestion": "لنک حذف کریں؟",
+  "deleteLocation": "مقام ڈیلیٹ کریں",
+  "deleteMemoryLinkMessage": "جن لوگوں کے ساتھ آپ نے یہ لنک شیئر کیا ہے، وہ اسے حذف کرنے کے بعد رسائی کھو دیں گے۔",
+  "deleteMultipleAlbumDialog": "کیا ان {count} البمز میں موجود تصاویر (اور ویڈیوز) کو دیگر <bold>تمام</bold> البمز سے بھی ڈیلیٹ کر دیں جن کا وہ حصہ ہیں؟",
+  "@deleteMultipleAlbumDialog": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "deleteOnDeviceFiles": "ڈیوائس پر موجود فائلیں ڈیلیٹ کریں",
+  "deletePhotos": "تصاویر ڈیلیٹ کریں",
+  "deletePhotosWithSize": "{count} تصاویر ڈیلیٹ کریں ({size})",
+  "@deletePhotosWithSize": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteProgress": "ڈیلیٹ کیا جا رہا ہے {currentlyDeleting} / {totalCount}",
+  "@deleteProgress": {
+    "placeholders": {
+      "currentlyDeleting": {},
+      "totalCount": {}
+    }
+  },
+  "deleteSharedAlbum": "مشترکہ البم ڈیلیٹ کریں؟",
+  "deleteSharedAlbumDialogBody": "یہ البم ہر ایک کے لیے ڈیلیٹ کر دیا جائے گا\n\nآپ اس البم میں موجود ان تصاویر تک رسائی کھو دیں گے جو دوسروں کی ملکیت ہیں",
+  "deleteSuggestions": "ڈیلیٹ کرنے کی تجاویز",
+  "deleteSuggestionSent": "ڈیلیٹ کرنے کی تجویز بھیج دی گئی",
+  "deleteTagMessage": "کیا آپ واقعی اس ٹیگ کو حذف کرنا چاہتے ہیں؟ یہ عمل واپس نہیں لیا جا سکتا۔",
+  "deleteTagTitle": "ٹیگ حذف کریں؟",
+  "deleteWithCount": "ڈیلیٹ کریں ({count})",
+  "@deleteWithCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deletingDash": "ڈیلیٹ کیا جا رہا ہے - ",
+  "description": "تفصیل",
+  "desertDreams": "صحرائی خواب",
+  "designedForFamilies": "فیملیز کے لیے بنایا گیا",
+  "details": "تفصیلات",
+  "detailsAboutTheIssue": "مسئلے کی تفصیلات",
+  "developerSettings": "ڈویلپر سیٹنگز",
+  "@developerSettings": {
+    "description": "Label for developer settings"
+  },
+  "developerSettingsWarning": "کیا آپ واقعی ڈویلپر سیٹنگز میں ترمیم کرنا چاہتے ہیں؟",
+  "deviceInfo": "ڈیوائس کی معلومات",
+  "deviceLock": "ڈیوائس لاک",
+  "@deviceLock": {
+    "description": "Device lock option title"
+  },
+  "deviceLockEnablePreSteps": "ڈیوائس لاک کو فعال کرنے کے لیے، براہ کرم اپنی سسٹم سیٹنگز میں ڈیوائس پاس کوڈ یا اسکرین لاک سیٹ کریں۔",
+  "@deviceLockEnablePreSteps": {
+    "description": "Instructions for enabling device lock"
+  },
+  "deviceNotFound": "ڈیوائس نہیں ملی",
+  "didYouKnow": "کیا آپ جانتے ہیں؟",
+  "digits": "ہندسے",
+  "disableDownloadWarningBody": "ناظرین اب بھی اسکرین شاٹس لے سکتے ہیں یا بیرونی ٹولز کا استعمال کرتے ہوئے آپ کی تصاویر کی کاپی محفوظ کر سکتے ہیں",
+  "disableDownloadWarningTitle": "براہ کرم نوٹ کریں",
+  "disableLinkMessage": "یہ \"{albumName}\" تک رسائی کے لیے عوامی لنک کو ہٹا دے گا.",
+  "@disableLinkMessage": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
+  "disableTwofactor": "ٹو فیکٹر غیر فعال کریں",
+  "disablingTwofactorAuthentication": "ٹو فیکٹر تصدیق غیر فعال کی جا رہی ہے...",
+  "discover": "دریافت کریں",
+  "@discover": {
+    "description": "The text to display for the discover section under which we show receipts, screenshots, sunsets, greenery, etc."
+  },
+  "discover_babies": "بچے",
+  "discover_celebrations": "تقریبات",
+  "discover_food": "کھانا",
+  "discover_greenery": "ہریالی",
+  "discover_hills": "پہاڑیاں",
+  "discover_identity": "شناخت",
+  "discover_memes": "میمز",
+  "discover_notes": "نوٹس",
+  "discover_pets": "پالتو جانور",
+  "discover_qr_codes": "کیو آر کوڈز",
+  "discover_receipts": "رسیدیں",
+  "discover_screenshots": "اسکرین شاٹس",
+  "discover_selfies": "سیلفیز",
+  "discover_sunset": "غروب آفتاب",
+  "discover_visiting_cards": "وزٹنگ کارڈز",
+  "discover_wallpapers": "وال پیپرز",
+  "dismiss": "خارج کریں",
+  "distanceInKMUnit": "کلومیٹر",
+  "@distanceInKMUnit": {
+    "description": "Unit for distance in km"
+  },
+  "doesGroupContainMultiplePeople": "کیا اس گروپنگ میں متعدد لوگ شامل ہیں؟",
+  "dog": "کتا",
+  "done": "ہو گیا",
+  "doNotSignOut": "سائن آؤٹ نہ کریں",
+  "@doNotSignOut": {
+    "description": "Do not sign out button label"
+  },
+  "dontHaveAnAccount": "اکاؤنٹ نہیں ہے؟",
+  "dontSave": "محفوظ نہ کریں",
+  "doubleTapToViewHiddenCode": "آپ کوڈ دیکھنے کے لیے کسی بھی اندراج پر ڈبل ٹیپ کر سکتے ہیں",
+  "download": "ڈاؤن لوڈ",
+  "downloadFailed": "ڈاؤن لوڈ ناکام",
+  "downloading": "ڈاؤن لوڈ ہو رہا ہے...",
+  "downloadSkippedAlreadyAvailableOnDevice": "{fileName} آپ کی ڈیوائس پر {albumName} البم میں پہلے سے موجود ہے",
+  "@downloadSkippedAlreadyAvailableOnDevice": {
+    "description": "Toast shown in single-file download flow when the file already exists locally",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      },
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadSkippedInSelectionMultipleFiles": "{fileCount} فائلوں کا ڈاؤن لوڈ چھوڑ دیا گیا کیونکہ وہ پہلے سے ہی آپ کی ڈیوائس پر موجود ہیں",
+  "@downloadSkippedInSelectionMultipleFiles": {
+    "description": "Toast shown after multi-selection download when multiple selected files are skipped because they already exist locally",
+    "placeholders": {
+      "fileCount": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadSkippedInSelectionSingleFile": "{fileName} کا ڈاؤن لوڈ چھوڑ دیا گیا کیونکہ یہ آپ کی ڈیوائس پر {albumName} البم میں پہلے سے موجود ہے",
+  "@downloadSkippedInSelectionSingleFile": {
+    "description": "Toast shown after multi-selection download when exactly one selected file is skipped because it already exists locally",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      },
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadUpdate": "ڈاؤن لوڈ کریں",
+  "doYouWantToDiscardTheEditsYouHaveMade": "کیا آپ اپنی کی گئی ترامیم کو ختم کرنا چاہتے ہیں؟",
+  "draw": "ڈرا کریں",
+  "dropSupportEmail": "براہ کرم اپنے رجسٹرڈ ای میل ایڈریس سے {supportEmail} پر ای میل بھیجیں",
+  "@dropSupportEmail": {
+    "placeholders": {
+      "supportEmail": {
+        "description": "The support email address",
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
+  },
+  "duplicateCodes": "ڈپلیکیٹ کوڈز",
+  "duplicateFileCountWithStorageSaved": "آپ نے {count, plural, one{{count} ڈپلیکیٹ فائل} other{{count} ڈپلیکیٹ فائلیں}} صاف کر دی ہیں، ({storageSaved}!) کی بچت",
+  "@duplicateFileCountWithStorageSaved": {
+    "description": "The text to display when the user has successfully cleaned up duplicate files",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "1",
+        "type": "int"
+      },
+      "storageSaved": {
+        "example": "1.2 GB",
+        "type": "String"
+      }
+    }
+  },
+  "duplicateItemsGroup": "{count} فائلیں، ہر ایک {formattedSize}",
+  "@duplicateItemsGroup": {
+    "description": "Display the number of duplicate files and their size",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "12",
+        "type": "int"
+      },
+      "formattedSize": {
+        "example": "2.3 MB",
+        "type": "String"
+      }
+    }
+  },
+  "earned": "کمایا",
+  "earnMoreSpace": "مزید جگہ کمائیں!",
+  "edit": "ترمیم کریں",
+  "editAutoAddPeople": "لوگوں کے خودکار اضافے میں ترمیم کریں",
+  "editCodeAuthMessage": "کوڈ میں ترمیم کرنے کے لیے توثیق کریں",
+  "editContact": "رابطہ میں ترمیم کریں",
+  "editEmailAlreadyLinked": "یہ ای میل پہلے سے {name} سے منسلک ہے.",
+  "@editEmailAlreadyLinked": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "editLocation": "مقام میں ترمیم کریں",
+  "editOrder": "ترتیب میں ترمیم کریں",
+  "editPerson": "شخص میں ترمیم کریں",
+  "editsSaved": "ترامیم محفوظ ہو گئیں",
+  "editsToLocationWillOnlyBeSeenWithinEnte": "مقام میں ترامیم صرف Ente کے اندر دیکھی جائیں گی",
+  "editStorageLimit": "سٹوریج کی حد میں ترمیم کریں",
+  "editTag": "ٹیگ میں ترمیم کریں",
+  "editTime": "وقت میں ترمیم کریں",
+  "eligible": "اہل",
+  "email": "ای میل",
+  "@email": {
+    "description": "Email field label"
+  },
+  "emailAddress": "ای میل ایڈریس",
+  "emailAlreadyRegistered": "ای میل پہلے سے رجسٹرڈ ہے۔",
+  "@emailAlreadyRegistered": {
+    "description": "Error message when email is already registered"
+  },
+  "emailChangedTo": "ای میل {newEmail} میں تبدیل کر دی گئی",
+  "@emailChangedTo": {
+    "description": "Message when email has been changed",
+    "placeholders": {
+      "newEmail": {
+        "description": "The new email address",
+        "type": "String",
+        "example": "new@example.com"
+      }
+    }
+  },
+  "emailHint": "اپنا ای میل ایڈریس درج کریں",
+  "emailNeedsEnteAccountForFamily": "{email} کا Ente اکاؤنٹ نہیں ہے۔\n\nانہیں دعوت نامہ بھیجیں اور جب وہ Ente پر اکاؤنٹ بنا لیں تو فیملی میں شامل کریں.",
+  "@emailNeedsEnteAccountForFamily": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@example.com"
+      }
+    }
+  },
+  "emailNoEnteAccountPhotos": "{email} کے پاس Ente اکاؤنٹ نہیں ہے\n\nانہیں تصاویر کا اشتراک کرنے کے لیے دعوت نامہ بھیجیں.",
+  "@emailNoEnteAccountPhotos": {
+    "placeholders": {
+      "email": {}
+    }
+  },
+  "emailNotRegistered": "ای میل رجسٹرڈ نہیں ہے۔",
+  "@emailNotRegistered": {
+    "description": "Error message when email is not registered"
+  },
+  "emailUsMessage": "براہ کرم ہمیں {email} پر ای میل کریں",
+  "@emailUsMessage": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "emailVerificationEnableWarning": "اپنے اکاؤنٹ سے لاک آؤٹ ہونے سے بچنے کے لیے، ای میل کی تصدیق کو فعال کرنے سے پہلے Ente Auth کے باہر اپنے ای میل 2FA کی کاپی محفوظ کرنا یقینی بنائیں۔",
+  "emailVerificationToggle": "ای میل کی تصدیق",
+  "emailYourLogs": "اپنے لاگز ای میل کریں",
+  "@emailYourLogs": {
+    "description": "Title for emailing logs dialog"
+  },
+  "embracingThem": "{name} کو گلے لگاتے ہوئے",
+  "@embracingThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "empty": "خالی کریں",
+  "emptyTrashQuestion": "ردی خالی کریں؟",
+  "enable": "فعال کریں",
+  "enableAutomaticBackups": "خودکار بیک اپس",
+  "enableBackupsIosInstruction": "iOS پر بیک اپ فعال کرنے کے لیے، Files میں ایک فولڈر منتخب کریں (مثال کے طور پر ”On My iPhone“)۔",
+  "enableComment": "تبصرے اور رد عمل",
+  "enabled": "فعال",
+  "enableMaps": "نقشے فعال کریں",
+  "encrypted": "انکرپٹڈ",
+  "encryptingBackup": "بیک اپ انکرپٹ ہو رہا ہے...",
+  "endpointUpdatedMessage": "اینڈ پوائنٹ کامیابی سے اپ ڈیٹ ہو گیا",
+  "@endpointUpdatedMessage": {
+    "description": "Success message when endpoint is updated"
+  },
+  "ente": "اینٹی",
+  "enterAlbumName": "البم کا نام درج کریں",
+  "enterAnEmailAddress": "ایک ای میل ایڈریس درج کریں",
+  "enterAValidEmailAddress": "درست ای میل ایڈریس درج کریں",
+  "enterCode": "کوڈ درج کریں",
+  "enterCodeDescription": "اپنے دوست کا فراہم کردہ کوڈ درج کریں تاکہ آپ دونوں کے لیے مفت اسٹوریج کا دعویٰ کیا جا سکے",
+  "enterCodeHint": "اپنی ایتھنٹیکیٹر ایپ سے ۶ ہندسوں کا کوڈ درج کریں",
+  "@enterCodeHint": {
+    "description": "Hint for entering 2FA code"
+  },
+  "enterDateOfBirthHint": "تاریخ پیدائش درج کریں",
+  "enterDetailsManually": "تفصیلات دستی طور پر درج کریں",
+  "enterEmail": "ای میل درج کریں",
+  "enterFileName": "فائل کا نام درج کریں",
+  "enterName": "نام درج کریں",
+  "enterNewEmailHint": "اپنا نیا ای میل ایڈریس درج کریں",
+  "@enterNewEmailHint": {
+    "description": "Hint text for entering new email address"
+  },
+  "enterNewPasswordToEncrypt": "ایک نیا پاس ورڈ درج کریں جسے ہم آپ کے ڈیٹا کو انکرپٹ کرنے کے لیے استعمال کر سکیں",
+  "@enterNewPasswordToEncrypt": {
+    "description": "Prompt to enter new password for encryption"
+  },
+  "enterPassword": "پاس ورڈ درج کریں",
+  "@enterPassword": {
+    "description": "Enter password field label"
+  },
+  "enterPasswordToAegisVault": "Aegis والٹ کے لیے پاس ورڈ درج کریں",
+  "enterPasswordToDecrypt2FASBackup": "2FAS بیک اپ کو ڈی کرپٹ کرنے کے لیے پاس ورڈ درج کریں",
+  "enterPasswordToDecryptAndOTP": "andOTP بیک اپ کو ڈی کرپٹ کرنے کے لیے پاس ورڈ درج کریں",
+  "enterPasswordToEncrypt": "ایک پاس ورڈ درج کریں جسے ہم آپ کے ڈیٹا کو انکرپٹ کرنے کے لیے استعمال کر سکیں",
+  "@enterPasswordToEncrypt": {
+    "description": "Prompt to enter password for encryption"
+  },
+  "enterRecoveryKeyHint": "اپنی ریکوری کی (Key) درج کریں",
+  "@enterRecoveryKeyHint": {
+    "description": "Hint for entering recovery key"
+  },
+  "enterReferralCode": "ریفرل کوڈ درج کریں",
+  "enterThe6digitCodeFromnyourAuthenticatorApp": "اپنی آتھینٹیکر ایپ سے ۶ ہندسوں کا کوڈ درج کریں",
+  "enterValidEmail": "از کرم ایک درست ای میل پتہ درج کریں۔.",
+  "enterYourNewEmailAddress": "اپنا نیا ای میل پتہ درج کریں",
+  "enterYourPassword": "اپنا پاس ورڈ درج کریں",
+  "enterYourPasswordHint": "اپنا پاس ورڈ درج کریں",
+  "@enterYourPasswordHint": {
+    "description": "Hint for password field"
+  },
+  "errorGenericBody": "امپورٹ کرتے وقت ایک غیر متوقع ایرر پیش آیا۔",
+  "errorGenericTitle": "ایک ایرر پیش آیا",
+  "errorInvalidQRCodeBody": "اسکین شدہ QR کوڈ درست 2FA اکاؤنٹ نہیں ہے۔",
+  "errorNoQRCode": "کوئی QR کوڈ نہیں ملا",
+  "exif": "EXIF",
+  "expiredLinkInfo": "اس لنک کی میعاد ختم ہو چکی ہے. براہ کرم میعاد ختم ہونے کا نیا وقت منتخب کریں یا لنک کی میعاد ختم ہونے کو غیر فعال کریں.",
+  "exportCodes": "کوڈز ایکسپورٹ کریں",
+  "exportDialogDesc": "انکرپٹڈ ایکسپورٹ کو آپ کی پسند کے پاس ورڈ سے محفوظ کیا جائے گا۔",
+  "exportLogs": "لاگز ایکسپورٹ کریں",
+  "@exportLogs": {
+    "description": "Button to export logs"
+  },
+  "exportWarningDesc": "ایکسپورٹ فائل میں حساس معلومات موجود ہیں۔ براہ کرم اسے محفوظ طریقے سے اسٹور کریں۔",
+  "exportYourData": "اپنا ڈیٹا ایکسپورٹ کریں",
+  "extraPhotosFound": "اضافی تصاویر ملیں",
+  "faceNotClusteredYet": "چہرے کی ابھی تک کلسٹرنگ نہیں ہوئی، براہ کرم بعد میں واپس آئیں",
+  "facesTimelineAppBarTitle": "یادوں کی گزرگاہ",
+  "@facesTimelineAppBarTitle": {
+    "description": "Faces timeline page title shown in the app bar"
+  },
+  "facesTimelineBannerTitle": "یادوں کا راستہ",
+  "@facesTimelineBannerTitle": {
+    "description": "Title for the Memory Lane suggestion banner shown on a person's page"
+  },
+  "facesTimelineCaptionYearsAgo": "{count, plural, one{# سال پہلے} other{# سال پہلے}}",
+  "@facesTimelineCaptionYearsAgo": {
+    "description": "Caption for frames when birthdate is unknown, expressing time difference",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "Years ago"
+      }
+    }
+  },
+  "facesTimelineCaptionYearsOld": "{name} کی عمر {count, plural, one{{count} سال} other{{count} سال}} تھی",
+  "@facesTimelineCaptionYearsOld": {
+    "description": "Caption for frames when birthdate is known, describing the person's age",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "Number of years old"
+      },
+      "name": {
+        "type": "String",
+        "description": "Person's name"
+      }
+    }
+  },
+  "facesTimelinePlaybackPause": "روکیں",
+  "@facesTimelinePlaybackPause": {
+    "description": "Tooltip or semantics label for the pause button"
+  },
+  "facesTimelinePlaybackPlay": "چلائیں",
+  "@facesTimelinePlaybackPlay": {
+    "description": "Tooltip or semantics label for the play button"
+  },
+  "facesTimelineUnavailable": "چہروں کی ٹائم لائن تیار ہو رہی ہے...",
+  "@facesTimelineUnavailable": {
+    "description": "Fallback message when the Memory Lane cannot be displayed yet"
+  },
+  "faceThumbnailGenerationFailed": "چہرے کے تھمب نیلز بنانے سے قاصر",
+  "failedToApplyCode": "کوڈ لگانے میں ناکام",
+  "failedToCancel": "منسوخ کرنے میں ناکام",
+  "failedToDecrypt2FASExport": "2FAS ایکسپورٹ کو ڈی کرپٹ کرنے میں ناکامی",
+  "failedToDecryptAegisVault": "Aegis والٹ کو ڈی کرپٹ کرنے میں ناکامی",
+  "failedToDecryptAndOTPBackup": "اینڈ اوٹی پی andOTP بیک اپ کو ڈی کرپٹ کرنے میں ناکامی",
+  "failedToDeleteComment": "تبصرہ ڈیلیٹ کرنے میں ناکام",
+  "@failedToDeleteComment": {
+    "description": "Toast when comment deletion fails"
+  },
+  "failedToDownloadVideo": "ویڈیو ڈاؤن لوڈ کرنے میں ناکام",
+  "failedToFetchActiveSessions": "فعال سیشنز حاصل کرنے میں ناکام",
+  "@failedToFetchActiveSessions": {
+    "description": "In session page, warn user (in toast) that active sessions could not be fetched."
+  },
+  "failedToFetchOriginalForEdit": "ترمیم کے لیے اصل فائل حاصل کرنے میں ناکام",
+  "failedToFetchReferralDetails": "ریفرل تفصیلات حاصل کرنے سے قاصر. براہ کرم بعد میں دوبارہ کوشش کریں.",
+  "failedToInvite": "{email} کو دعوت نہیں دی جا سکی",
+  "@failedToInvite": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@example.com"
+      }
+    }
+  },
+  "failedToInviteCount": "{count} اراکین کو دعوت نہیں دی جا سکی",
+  "@failedToInviteCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "failedToLikeAlbums": "{count, plural, one{{count} البم کو لائک کرنے میں ناکامی} other{{count} البمز کو لائک کرنے میں ناکامی}}",
+  "@failedToLikeAlbums": {
+    "description": "Error when liking albums fails",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "failedToLikeComment": "تبصرہ لائک کرنے میں ناکام",
+  "@failedToLikeComment": {
+    "description": "Toast when comment like fails"
+  },
+  "failedToLoadAlbums": "البمز لوڈ کرنے میں ناکام",
+  "failedToRefreshStripeSubscription": "سبسکرپشن ریفریش کرنے میں ناکام",
+  "failedToRenew": "تجدید کرنے میں ناکام",
+  "failedToUpdateLike": "لائک اپ ڈیٹ کرنے میں ناکام",
+  "@failedToUpdateLike": {
+    "description": "Toast when like update fails"
+  },
+  "failedToVerifyPaymentStatus": "ادائیگی کی حیثیت کی تصدیق کرنے میں ناکام",
+  "family": "فیملی",
+  "familyMoments": "فیملی ٹائم",
+  "faqs": "اکثر پوچھے گئے سوالات",
+  "fasterUploads": "تیز اپ لوڈز",
+  "favorite": "پسندیدہ",
+  "feastingWithThem": "{name} کے ساتھ دعوت",
+  "@feastingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "featureBackupCodes": "اینڈ ٹو اینڈ انکرپٹڈ\nبیک اپ اور سنک",
+  "featureOpenSource": "اوپن سورس اور\nسیکیورٹی ماہرین سے تصدیق شدہ",
+  "featureSearchEtc": "تلاش، ٹیگز، شیئر،\nاگلا کوڈ اور بہت کچھ",
+  "feed": "فیڈ",
+  "feedToEngageWithFamily": "فیملی کے ساتھ جڑنے کے لیے ایک فیڈ",
+  "festivities": "تہوار کی خوشی",
+  "fileAnalysisFailed": "فائل کا تجزیہ کرنے سے قاصر",
+  "fileInfoAddDescHint": "تفصیل شامل کریں...",
+  "fileNotUploadedYet": "فائل ابھی تک اپ لوڈ نہیں ہوئی",
+  "files": "فائلیں",
+  "@files": {
+    "description": "Section header for file-related search results"
+  },
+  "filesAlreadyLinkedToPerson": "{count, plural, one{{personName} سے {count} فائل پہلے ہی منسلک ہے} other{{personName} سے {count} فائلیں پہلے ہی منسلک ہیں}}",
+  "@filesAlreadyLinkedToPerson": {
+    "description": "Toast shown when selected files are already manually tagged to the selected person.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      },
+      "personName": {
+        "type": "String",
+        "example": "Alex"
+      }
+    }
+  },
+  "fileSavedToGallery": "فائل گیلری میں محفوظ ہو گئی",
+  "filesDeleted": "فائلیں ڈیلیٹ ہو گئیں",
+  "filesSavedToGallery": "فائلیں گیلری میں محفوظ ہو گئیں",
+  "fileTypes": "فائل کی اقسام",
+  "filter": "فلٹر",
+  "findingSimilarImages": "ملتی جلتی تصاویر تلاش کی جا رہی ہیں...",
+  "findSimilarImages": "ملتی جلتی تصاویر تلاش کریں",
+  "findThemQuickly": "انہیں جلدی تلاش کریں",
+  "@findThemQuickly": {
+    "description": "Subtitle to indicate that the user can find people quickly by name"
+  },
+  "fireworks": "آتش بازی کا اختتام",
+  "flip": "پلٹائیں",
+  "flowers": "کھلتے ہوئے پھول",
+  "focusOnSearchBar": "ایپ اسٹارٹ ہونے پر تلاش پر فوکس کریں",
+  "font": "فونٹ",
+  "food": "کھانے کا لطف",
+  "forestTrails": "جنگل کی سیر",
+  "forgotPassword": "پاس ورڈ بھول گئے",
+  "@forgotPassword": {
+    "description": "Forgot password link label"
+  },
+  "forgotRecoveryKey": "ریکوری کی بھول گئے؟",
+  "free10GB": "<bold-green>ente</bold-green> فوٹوز پر ۱۰ جی بی مفت",
+  "freeStorageOffer": "<bold-green>ente</bold-green> فوٹوز پر ۱۰٪ کی چھوٹ",
+  "freeStorageOfferDescription": "پہلے سال ۱۰٪ چھوٹ حاصل کرنے کے لیے کوڈ ”AUTH“ استعمال کریں",
+  "freeTrial": "مفت ٹرائل",
+  "freeUpAmount": "{sizeInMBorGB} خالی کریں",
+  "@freeUpAmount": {
+    "placeholders": {
+      "sizeInMBorGB": {}
+    }
+  },
+  "freeUpDeviceSpace": "ڈیوائس کی جگہ خالی کریں",
+  "freeUpSpace": "جگہ خالی کریں",
+  "gallery": "گیلری",
+  "galleryMemoryLimitInfo": "گیلری میں ۱۰۰۰ تک یادیں دکھائی جاتی ہیں",
+  "general": "عمومی",
+  "generatingEncryptionKeysTitle": "انکرپشن کیز تیار کی جا رہی ہیں...",
+  "@generatingEncryptionKeysTitle": {
+    "description": "Generating encryption keys title"
+  },
+  "getInTouch": "رابطہ کریں",
+  "getStarted": "شروع کریں",
+  "gettingReady": "تیار ہو رہا ہے",
+  "giveUsAStarOnGithub": "ہمیں GitHub پر اسٹار دیں",
+  "goldenHourPortraits": "سنہری گھنٹے کے چہرے",
+  "googlePlayId": "گوگل پلے آئی ڈی",
+  "grantFullAccessPrompt": "براہ کرم سیٹنگز ایپ میں تمام تصاویر تک رسائی کی اجازت دیں",
+  "grantGalleryPermissionDesc": "چہرے کی پہچان کے ساتھ تصاویر تک رسائی اور ترتیب دینے کی اجازت دیں۔ تمام پراسیسنگ آپ کے ڈیوائس پر ہی ہوتی ہے.",
+  "grantPermission": "اجازت دیں",
+  "grantPermissionDesc": "براہ مہربانی Ente کو اپنی لائبریری تک رسائی دیں تاکہ ہم چہرہ پہچان کے ذریعے اسے ترتیب دے سکیں۔ تمام پراسیسنگ آپ کے ڈیوائس پر ہوتی ہے۔",
+  "greenery": "ہریالی زندگی",
+  "grid": "گرڈ",
+  "groupBy": "گروپ کریں",
+  "groupByDay": "دن",
+  "groupByMonth": "مہینہ",
+  "groupByWeek": "ہفتہ",
+  "groupByYear": "سال",
+  "groupSelfies": "ہم سب",
+  "guestView": "مہمان کا منظر",
+  "guestViewEnablePreSteps": "مہمان کا منظر فعال کرنے کے لیے، براہ کرم اپنی سسٹم کی ترتیبات میں ڈیوائس پاس کوڈ یا اسکرین لاک سیٹ کریں.",
+  "happyBirthday": "سالگرہ مبارک! 🥳",
+  "hearUsWhereOptionalTitle": "آپ نے Ente کے بارے میں کیسے سنا؟ (اختیاری)",
+  "@hearUsWhereOptionalTitle": {
+    "description": "Title asking how user heard about Ente"
+  },
+  "hearUsWhereTitle": "آپ نے Ente کے بارے میں کیسے سنا؟",
+  "help": "مدد",
+  "helpAndSupport": "مدد و سپورٹ",
+  "hidden": "پوشیدہ",
+  "hide": "چھپائیں",
+  "hideContent": "مواد چھپائیں",
+  "@hideContent": {
+    "description": "Hide content setting title"
+  },
+  "hideContentDescriptionAndroid": "ایپ سوئچر میں ایپ کا مواد چھپاتا ہے اور اسکرین شاٹس کو غیر فعال کرتا ہے",
+  "@hideContentDescriptionAndroid": {
+    "description": "Description of hide content feature on Android"
+  },
+  "hideContentDescriptioniOS": "ایپ سوئچر میں ایپ کا مواد چھپاتا ہے",
+  "@hideContentDescriptioniOS": {
+    "description": "Description of hide content feature on iOS"
+  },
+  "hideFromMemories": "یادوں سے چھپائیں",
+  "hideSharedItemsFromHomeGallery": "ہوم گیلری سے مشترکہ آئٹمز چھپائیں",
+  "hiding": "چھپایا جا رہا ہے...",
+  "hikingWithThem": "{name} کے ساتھ ہائیکنگ",
+  "@hikingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "hintForDesktop": "ترمیم یا حذف کرنے کے لیے کوڈ پر رائٹ کلک کریں۔",
+  "hintForMobile": "ترمیم یا حذف کرنے کے لیے کوڈ پر دیر تک دبا کر رکھیں۔",
+  "historicSites": "تاریخ کی بازگشت",
+  "hoorayyyy": "حُرے!",
+  "hostedAtOsmFrance": "OSM France پر ہوسٹ کردہ",
+  "howItWorks": "یہ کیسے کام کرتا ہے",
+  "@howItWorks": {
+    "description": "How it works button label"
+  },
+  "howToViewShareeVerificationID": "براہ کرم ان سے کہیں کہ سیٹنگ اسکرین پر اپنے ای میل ایڈریس کو دیر تک دبائیں، اور تصدیق کریں کہ دونوں ڈیوائسز پر IDs مماثل ہیں.",
+  "ignore": "نظر انداز کریں",
+  "ignored": "نظر انداز کردہ",
+  "ignorePerson": "شخص کو نظر انداز کریں",
+  "imageNotAnalyzed": "تصویر کا تجزیہ نہیں کیا گیا",
+  "immediately": "فوری طور پر",
+  "@immediately": {
+    "description": "Immediately option for auto lock timing"
+  },
+  "import2FasGuide": "2FAS میں ”Settings->Backup -Export“ کا آپشن استعمال کریں۔\n\nاگر آپ کا بیک اپ انکرپٹڈ ہے، تو آپ کو بیک اپ کو ڈی کرپٹ کرنے کے لیے پاس ورڈ درج کرنا ہوگا۔",
+  "importAccountPageTitle": "اکاؤنٹ کی تفصیلات درج کریں",
+  "importAegisGuide": "Aegis کی سیٹنگز میں ”Export the vault“ کا آپشن استعمال کریں۔\n\nاگر آپ کا والٹ انکرپٹڈ ہے، تو آپ کو والٹ کو ڈی کرپٹ کرنے کے لیے والٹ کا پاس ورڈ درج کرنا ہوگا۔",
+  "importAndOTPGuide": "سیٹنگز میں ”Backup“ کا آپشن استعمال کرتے ہوئے andOTP سے اپنا بیک اپ ایکسپورٹ کریں۔\n\nاگر آپ کا بیک اپ انکرپٹڈ ہے، تو آپ کو اسے ڈی کرپٹ کرنے کے لیے بیک اپ پاس ورڈ درج کرنا ہوگا۔",
+  "importBitwardenGuide": "Bitwarden ٹولز میں ”Export vault“ کا آپشن استعمال کریں اور ان انکرپٹڈ (unencrypted) JSON فائل امپورٹ کریں۔",
+  "importCodeDelimiterInfo": "کوڈز کو کوما یا نئی لائن کے ذریعے الگ کیا جا سکتا ہے",
+  "importCodes": "کوڈز امپورٹ کریں",
+  "importEnteEncGuide": "Ente سے ایکسپورٹ کی گئی انکرپٹڈ JSON فائل منتخب کریں",
+  "importEnterSetupKey": "سیٹ اپ کی (Key) درج کریں",
+  "importFailureDesc": "منتخب فائل کو پارس (parse) نہیں کیا جا سکا۔",
+  "importFromGallery": "گیلری سے امپورٹ کریں",
+  "importInstruction": "براہ کرم ایک فائل منتخب کریں جس میں آپ کے کوڈز کی فہرست درج ذیل فارمیٹ میں ہو",
+  "importLabel": "امپورٹ",
+  "importLastpassGuide": "LastPass Authenticator کی سیٹنگز میں ”Transfer accounts“ کا آپشن استعمال کریں اور ”Export accounts to file“ دبائیں۔\n\nڈاؤن لوڈ کردہ JSON کو امپورٹ کریں۔",
+  "importRaivoGuide": "Raivo کی سیٹنگز میں ”Export OTPs to Zip archive“ کا آپشن استعمال کریں۔\n\nزپ فائل کو ایکسٹریکٹ کریں اور JSON فائل امپورٹ کریں۔",
+  "importSelectAppExport": "{appName} ایکسپورٹ فائل منتخب کریں",
+  "@importSelectAppExport": {
+    "placeholders": {
+      "appName": {}
+    }
+  },
+  "importSelectJsonFile": "JSON فائل منتخب کریں",
+  "importSuccessDesc": "آپ نے {count} کوڈز امپورٹ کر لیے ہیں!",
+  "@importSuccessDesc": {
+    "placeholders": {
+      "count": {
+        "description": "The number of codes imported",
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "importSuccessTitle": "واہ!",
+  "importTypeEnteEncrypted": "Ente انکرپٹڈ ایکسپورٹ",
+  "incorrectCode": "غلط کوڈ",
+  "@incorrectCode": {
+    "description": "Error message when code is incorrect"
+  },
+  "incorrectDetails": "غلط تفصیلات",
+  "incorrectPasswordTitle": "غلط پاس ورڈ",
+  "@incorrectPasswordTitle": {
+    "description": "Title for incorrect password error"
+  },
+  "incorrectRecoveryKeyBody": "آپ کی درج کردہ ریکوری کی غلط ہے",
+  "incorrectRecoveryKeyTitle": "غلط ریکوری کی",
+  "indexingPausedStatusDescription": "پراسیسنگ روک دی گئی ہے۔ جب ڈیوائس تیار ہو جائے گا تو خود بخود دوبارہ شروع ہو جائے گی۔ ڈیوائس اس وقت تیار سمجھا جاتا ہے جب بیٹری لیول، بیٹری ہیلتھ، اور حرارت معمول کے مطابق ہو.",
+  "info": "معلومات",
+  "initialBackupCreated": "ابتدائی بیک اپ بن گیا!",
+  "insecureDevice": "غیر محفوظ ڈیوائس",
+  "@insecureDevice": {
+    "description": "Insecure device warning title"
+  },
+  "invalidEmailAddress": "غلط ای میل پتہ",
+  "invalidEmailMessage": "براہ کرم درست ای میل ایڈریس درج کریں۔",
+  "@invalidEmailMessage": {
+    "description": "Message for invalid email error dialog"
+  },
+  "invalidEmailTitle": "غلط ای میل ایڈریس",
+  "@invalidEmailTitle": {
+    "description": "Title for invalid email error dialog"
+  },
+  "invalidEndpoint": "غلط اینڈ پوائنٹ",
+  "@invalidEndpoint": {
+    "description": "Error message when endpoint is invalid"
+  },
+  "invalidQRCode": "غلط QR کوڈ",
+  "invalidReferralCode": "غلط کوڈ",
+  "invite": "دعوت دیں",
+  "inviteLimitReached": "آپ نے ۵ دعوت نامے شامل کر لیے ہیں۔ دوسرے کو شامل کرنے کے لیے ایک کو ہٹائیں",
+  "inviteMembers": "اراکین کو دعوت دیں",
+  "inviteResent": "دعوت نامہ دوبارہ بھیج دیا گیا",
+  "invitesSentCount": "{count, plural, one{دعوت نامہ بھیج دیا گیا} other{دعوت نامے بھیج دیے گئے}}",
+  "@invitesSentCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "inviteToEnte": "Ente پر مدعو کریں",
+  "ok": "ٹھیک ہے",
+  "@ok": {
+    "description": "Generic OK button label"
+  },
+  "iosOnMyDeviceNotSupported": "”On My iPhone“ کو براہ راست استعمال نہیں کیا جا سکتا۔ براہ کرم اس کے اندر ایک فولڈر منتخب کریں یا بنائیں۔",
+  "itemCount": "{count, plural, one{{count} آئٹم} other{{count} آئٹمز}}",
+  "@itemCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "itemsShowTheNumberOfDaysRemainingBeforePermanentDeletion": "آئٹمز مستقل ڈیلیٹ ہونے سے پہلے باقی دنوں کی تعداد دکھاتے ہیں",
+  "itemsWillBeRemovedFromAlbum": "منتخب کردہ آئٹمز اس البم سے ہٹا دیے جائیں گے",
+  "iUnderStand": "میں سمجھ گیا / گئی",
+  "@iUnderStand": {
+    "description": "Text for the button to confirm the user understands the warning"
+  },
+  "join": "شامل ہوں",
+  "joinAlbum": "البم جوائن کریں",
+  "joinAlbumConfirmationDialogBody": "البم میں شامل ہونے سے آپ کا ای میل اس کے شرکاء کو دکھائی دے گا.",
+  "joinAlbumSubtext": "اپنی تصاویر دیکھنے اور شامل کرنے کے لیے",
+  "joinAlbumSubtextViewer": "اسے مشترکہ البمز میں شامل کرنے کے لیے",
+  "kiloMeterUnit": "کلومیٹر",
+  "lakeside": "جھیل کے کنارے سکون",
+  "language": "زبان",
+  "lastMonth": "پچھلا مہینہ",
+  "lastUpdated": "آخری بار اپ ڈیٹ کیا گیا",
+  "lastWeek": "پچھلے ہفتے",
+  "lastYearsTrip": "پچھلے سال کا سفر",
+  "layout": "خاکہ",
+  "layoutGrouped": "گروپ شدہ",
+  "layoutMasonry": "میسنری",
+  "layoutTrip": "سفر",
+  "leave": "چھوڑیں",
+  "leaveAlbum": "البم چھوڑ دیں",
+  "leaveFamily": "فیملی چھوڑیں",
+  "leaveFamilyPlan": "فیملی پلان چھوڑیں",
+  "@leaveFamilyPlan": {
+    "description": "Button label for leaving family plan",
+    "type": "text"
+  },
+  "leaveSharedAlbum": "مشترکہ البم چھوڑ دیں؟",
+  "left": "بائیں",
+  "legacy": "ورثہ",
+  "legacyAccounts": "میراثی اکاؤنٹس",
+  "legacyInvite": "{email} نے آپ کو قابل اعتماد رابطہ بننے کی دعوت دی ہے",
+  "@legacyInvite": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "family@example.com"
+      }
+    }
+  },
+  "legacyPageDesc": "ورثہ قابل اعتماد رابطوں کو آپ کی غیر موجودگی میں آپ کے اکاؤنٹ تک رسائی کی اجازت دیتی ہے.",
+  "legacyPageDesc2": "قابل اعتماد رابطے اکاؤنٹ کی بحالی شروع کر سکتے ہیں، اور اگر ۳۰ دنوں کے اندر روکا نہ جائے تو، آپ کا پاس ورڈ دوبارہ ترتیب دے کر آپ کے اکاؤنٹ تک رسائی حاصل کر سکتے ہیں.",
+  "letsTryThatAgain": "دوبارہ کوشش کرتے ہیں",
+  "lightTheme": "لائٹ",
+  "like": "لائک",
+  "likeAll": "سب لائک کریں",
+  "@likeAll": {
+    "description": "Button to like in all shared albums"
+  },
+  "likedAComment": "ایک تبصرے کو پسند کیا",
+  "@likedAComment": {
+    "description": "Social action text shown after a person's name, for example 'John liked a comment'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedAPhoto": "ایک تصویر کو پسند کیا",
+  "@likedAPhoto": {
+    "description": "Social action text shown after a person's name, for example 'John liked a photo'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedAReply": "ایک جواب کو پسند کیا",
+  "@likedAReply": {
+    "description": "Social action text shown after a person's name, for example 'John liked a reply'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedAVideo": "ایک ویڈیو کو پسند کیا",
+  "@likedAVideo": {
+    "description": "Social action text shown after a person's name, for example 'John liked a video'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedYourComment": "آپ کے تبصرے کو پسند کیا",
+  "@likedYourComment": {
+    "description": "Social action text shown after a person's name, for example 'John liked your comment'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedYourPhoto": "آپ کی تصویر کو پسند کیا",
+  "@likedYourPhoto": {
+    "description": "Social notification action text shown after a person's name, for example 'John liked your photo'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedYourReply": "آپ کے جواب کو پسند کیا",
+  "@likedYourReply": {
+    "description": "Social action text shown after a person's name, for example 'John liked your reply'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedYourVideo": "آپ کی ویڈیو کو پسند کیا",
+  "@likedYourVideo": {
+    "description": "Social notification action text shown after a person's name, for example 'John liked your video'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likesCount": "{count, plural, one{{count} لائک} other{{count} لائکس}}",
+  "@likesCount": {
+    "description": "Number of likes with pluralization",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "limit": "حد",
+  "linkCopiedToClipboard": "لنک کلپ بورڈ پر کاپی ہو گیا",
+  "linkDeletedSuccessfully": "لنک کامیابی سے حذف ہو گیا",
+  "linkDeviceLimit": "ڈیوائس کی حد",
+  "linkEnabled": "فعال",
+  "linkExpired": "میعاد ختم",
+  "linkExpiresOn": "لنک کی میعاد {expiryTime} کو ختم ہو جائے گی",
+  "@linkExpiresOn": {
+    "placeholders": {
+      "expiryTime": {}
+    }
+  },
+  "linkExpiry": "لنک کی میعاد",
+  "linkHasExpired": "لنک کی میعاد ختم ہو گئی ہے",
+  "linkLabel": "لنک",
+  "linkNeverExpires": "کبھی نہیں",
+  "linkRequestLimitExceeded": "یہ البم بہت زیادہ ڈیوائسز پر دیکھا جا چکا ہے",
+  "links": "لنکس",
+  "list": "فہرست",
+  "livePhotos": "لائیو فوٹوز",
+  "loadingExifData": "EXIF ڈیٹا لوڈ ہو رہا ہے...",
+  "loadingGallery": "گیلری لوڈ ہو رہی ہے...",
+  "loadingModel": "ماڈلز ڈاؤن لوڈ ہو رہے ہیں...",
+  "loadingYourPhotos": "آپ کی تصاویر لوڈ ہو رہی ہیں...",
+  "loadMessage1": "آپ اپنی سبسکرپشن اپنی فیملی کے ساتھ شیئر کر سکتے ہیں",
+  "loadMessage2": "ہم نے اب تک {memoriesCountInMillions} ملین سے زیادہ یادیں محفوظ کی ہیں",
+  "@loadMessage2": {
+    "placeholders": {
+      "memoriesCountInMillions": {
+        "type": "int"
+      }
+    }
+  },
+  "loadMessage3": "ہم آپ کے ڈیٹا کی ۳ کاپیاں رکھتے ہیں، ایک زیر زمین فال آؤٹ شیلٹر میں",
+  "loadMessage4": "ہماری تمام ایپس اوپن سورس ہیں",
+  "loadMessage5": "ہمارے سورس کوڈ اور کرپٹوگرافی کا بیرونی آڈٹ کیا گیا ہے",
+  "loadMessage6": "آپ اپنے البمز کے لنکس اپنے پیاروں کے ساتھ شیئر کر سکتے ہیں",
+  "loadMessage7": "ہماری موبائل ایپس پس منظر میں چلتی ہیں تاکہ آپ کی کلک کردہ کسی بھی نئی تصویر کو انکرپٹ اور بیک اپ کیا جا سکے",
+  "loadMessage8": "{webUrl} میں ایک عمدہ اپ لوڈر ہے",
+  "@loadMessage8": {
+    "description": "Loading screen message about the web uploader.",
+    "placeholders": {
+      "webUrl": {
+        "type": "String",
+        "example": "photos.ente.com"
+      }
+    }
+  },
+  "loadMessage9": "ہم آپ کے ڈیٹا کو محفوظ طریقے سے انکرپٹ کرنے کے لیے Xchacha20Poly1305 استعمال کرتے ہیں",
+  "localBackupDailyManualCopy": "جب آپ ایپ کھولتے ہیں تو روزانہ ایک لوکل بیک اپ بناتا ہے۔ دستی بیک اپ چلانے کے لیے ”Backup now“ کا استعمال کریں۔ بیک اپ ۵ فائلوں تک رکھے جاتے ہیں۔",
+  "localBackupSidebarTitle": "لوکل بیک اپ",
+  "localGallery": "مقامی گیلری",
+  "localIndexing": "مقامی پراسیسنگ",
+  "localSyncErrorMessage": "لگتا ہے کچھ غلط ہو گیا ہے کیونکہ مقامی تصاویر کی sync توقع سے زیادہ وقت لے رہی ہے. براہ کرم ہماری سپورٹ ٹیم سے رابطہ کریں",
+  "location": "مقام",
+  "locationName": "مقام کا نام",
+  "locationPickerTip": "آپ تصویر کی معلوماتی اسکرین سے تصویر پر مرکوز مقام بھی شامل کر سکتے ہیں",
+  "@locationPickerTip": {
+    "description": "Helper tip text shown in the location picker that refers to the photo info screen."
+  },
+  "locations": "مقامات",
+  "locationTagFeatureDescription": "مقام کا ٹیگ ان تمام تصاویر کو گروپ کرتا ہے جو تصویر کے کچھ رداس کے اندر لی گئی ہیں",
+  "locationUpdatedAndBackupCreated": "لوکیشن اپ ڈیٹ ہو گئی اور ابتدائی بیک اپ بن گیا!",
+  "lockButtonLabel": "لاک",
+  "loginSessionExpiredDetails": "آپ کے سیشن کی میعاد ختم ہو گئی ہے۔ براہ کرم دوبارہ لاگ ان کریں۔",
+  "@loginSessionExpiredDetails": {
+    "description": "Login session expired details"
+  },
+  "loginToEnte": "Ente میں لاگ ان کریں",
+  "loginToExistingAccount": "موجودہ اکاؤنٹ میں لاگ ان کریں",
+  "loginWithAuthAccount": "اپنے Auth اکاؤنٹ کے ساتھ لاگ ان کریں",
+  "loginWithTOTP": "TOTP کے ساتھ لاگ ان کریں",
+  "@loginWithTOTP": {
+    "description": "Login with TOTP button label"
+  },
+  "logout": "لاگ آؤٹ",
+  "logs": "لاگس",
+  "logsDialogBody": "یہ آپ کے مسئلے کو ڈیبگ کرنے میں ہماری مدد کے لیے لاگز بھیجے گا. براہ کرم نوٹ کریں کہ مخصوص فائلوں کے مسائل کو ٹریک کرنے میں مدد کے لیے فائلوں کے نام شامل کیے جائیں گے.",
+  "@logsDialogBody": {
+    "description": "Body text for the logs dialog explaining what will be sent"
+  },
+  "logsNotCopiedDownloadNote": "لاگس کاپی نہیں ہوئے۔ لاگس ایکسپورٹ کریں اور انہیں اپنے ای میل میں منسلک کریں.",
+  "longPressAnEmailToVerifyEndToEndEncryption": "اینڈ ٹو اینڈ انکرپشن کی تصدیق کے لیے ای میل پر دیر تک دبائیں.",
+  "lookBackOnYourMemories": "اپنی یادوں پر نظر ڈالیں 🌄",
+  "lookingForVisualSimilarities": "بصری مماثلتوں کی تلاش...",
+  "loopVideoOff": "لوپنگ فعال کریں",
+  "loopVideoOn": "لوپنگ غیر فعال کریں",
+  "lostDevice": "ڈیوائس کھو گئی؟",
+  "lostDeviceTitle": "ڈیوائس کھو گئی؟",
+  "@lostDeviceTitle": {
+    "description": "Lost device title"
+  },
+  "machineLearning": "مشین لرننگ",
+  "magic": "میجک",
+  "@magic": {
+    "description": "Section header for magic search results"
+  },
+  "manageDeviceStorage": "ڈیوائس کیشے کا انتظام کریں",
+  "manageFamily": "فیملی کا انتظام کریں",
+  "manageLink": "لنک کا انتظام کریں",
+  "managePaymentMethod": "ادائیگی کا طریقہ نظم کریں",
+  "manageSubscription": "سبسکرپشن کا انتظام کریں",
+  "manualSort": "اپنی مرضی کے مطابق",
+  "map": "نقشہ",
+  "@map": {
+    "description": "Label for the map view"
+  },
+  "maps": "نقشے",
+  "mapsPrivacyNotice": "نقشہ اور مقام دکھانے کے لیے رازداری کے حوالے سے شعور رکھنے والے فریق ثالث جیسے OpenStreetMap کو تخمینی کوآرڈینیٹس بھیجے جائیں گے.",
+  "me": "میں",
+  "members": "اراکین",
+  "memberStorageUsed": "{amount} استعمال شدہ",
+  "@memberStorageUsed": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "20 GB"
+      }
+    }
+  },
+  "memories": "یادیں",
+  "memoriesWidgetDesc": "ان قسم کی یادوں کو منتخب کریں جنہیں آپ ہوم اسکرین پر دیکھنا چاہتے ہیں.",
+  "memoryCount": "{count, plural, =0{کوئی یادیں نہیں} one{{formattedCount} یاد} other{{formattedCount} یادیں}}",
+  "@memoryCount": {
+    "description": "The text to display the number of memories",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "1",
+        "type": "int"
+      },
+      "formattedCount": {
+        "type": "String",
+        "example": "11.513, 11,511"
+      }
+    }
+  },
+  "memoryLink": "یاد کا لنک",
+  "memoryShareLinkDescription": "یہ لنک خود بخود 7 دن بعد ختم ہو جائے گا۔",
+  "merge": "ضم کریں",
+  "mergedPhotos": "ضم شدہ تصاویر",
+  "mergeWithExisting": "موجودہ کے ساتھ ضم کریں",
+  "mergeWithPersonDescription": "دونوں فیس گروپس کی تمام تصاویر {name} کے تحت ضم کر دی جائیں گی.",
+  "@mergeWithPersonDescription": {
+    "description": "Description for confirming a merge with an existing person.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Jamie Long"
+      }
+    }
+  },
+  "mergeWithPersonTitle": "{name} کے ساتھ ضم کریں؟",
+  "@mergeWithPersonTitle": {
+    "description": "Title for confirming a merge with an existing person.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Jamie Long"
+      }
+    }
+  },
+  "message": "پیغام",
+  "minimizeAppOnCopy": "کاپی پر ایپ کو منیمائز (minimize) کریں",
+  "minimizeToTrayOnClose": "بند کرنے پر ٹرے (tray) میں منیمائز (minimize) کریں",
+  "mixedGrouping": "ملی جلی گروپنگ؟",
+  "mlConsent": "مشین لرننگ کو فعال کریں",
+  "mlConsentConfirmation": "میں سمجھتا ہوں، اور مشین لرننگ کو فعال کرنا چاہتا ہوں",
+  "mlConsentDescription": "اگر آپ مشین لرننگ کو فعال کرتے ہیں، تو اینٹی Ente فائلوں سے چہرے کی ساخت جیسی معلومات اخذ کرے گا، بشمول وہ فائلیں جو آپ کے ساتھ شیئر کی گئی ہیں.\n\nیہ عمل آپ کے اپنے آلے پر ہوگا، اور تیار کردہ تمام بائیومیٹرک معلومات مکمل طور پر اینڈ ٹو اینڈ انکرپٹڈ ہوں گی.",
+  "mlIndexingDescription": "نوٹ کریں کہ مشین لرننگ تمام آئٹمز پراسیس ہونے تک زیادہ انٹرنیٹ اور بیٹری استعمال کرے گی۔ تیز پراسیسنگ کے لیے ڈیسک ٹاپ ایپ استعمال کریں، تمام نتائج خود بخود سنک ہو جائیں گے.",
+  "mlProgressBannerDescription": "آپ کی تصاویر پر چہروں، اشیاء اور مزید کا پتہ لگانے کے لیے ڈیوائس پر کارروائی کی جا رہی ہے.",
+  "mlProgressBannerStatus": "{total} میں سے {indexed} تصاویر پر کارروائی کی گئی",
+  "@mlProgressBannerStatus": {
+    "placeholders": {
+      "indexed": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "mlProgressBannerTitle": "ڈٹے رہیں!",
+  "moderateStrength": "درمیانہ",
+  "@moderateStrength": {
+    "description": "Moderate password strength label"
+  },
+  "modifyYourQueryOrTrySearchingFor": "اپنی استفسار میں ترمیم کریں، یا تلاش کرنے کی کوشش کریں",
+  "moments": "لمحات",
+  "month": "مہینہ",
+  "monthly": "ماہانہ",
+  "@monthly": {
+    "description": "The text to display for monthly plans",
+    "type": "text"
+  },
+  "moon": "چاندنی میں",
+  "moreDetails": "مزید تفصیلات",
+  "mostFrequentlyUsed": "اکثر استعمال ہونے والے",
+  "mostRecent": "سب سے حالیہ",
+  "mostRecentlyUsed": "حال ہی میں استعمال ہونے والے",
+  "mostRelevant": "سب سے زیادہ متعلقہ",
+  "mountains": "پہاڑیوں کے اوپر",
+  "movedSuccessfullyTo": "{albumName} میں کامیابی سے منتقل کر دیا گیا",
+  "@movedSuccessfullyTo": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
+  "movedToTrash": "ردی میں منتقل کر دیا گیا",
+  "moveItem": "{count, plural, one{آئٹم منتقل کریں} other{آئٹمز منتقل کریں}}",
+  "@moveItem": {
+    "description": "Page title while moving one or more items to an album",
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "moveMultipleToTrashMessage": "کیا آپ واقعی {count} آئٹم(ز) کو ٹریش میں منتقل کرنا چاہتے ہیں؟",
+  "@moveMultipleToTrashMessage": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "moveSelectedPhotosToOneDate": "منتخب تصاویر کو ایک تاریخ پر منتقل کریں",
+  "moveToAlbum": "البم میں منتقل کریں",
+  "moveToHiddenAlbum": "پوشیدہ البم میں منتقل کریں",
+  "movingFilesToAlbum": "فائلیں البم میں منتقل ہو رہی ہیں...",
+  "name": "نام",
+  "never": "کبھی نہیں",
+  "newAlbum": "نیا البم",
+  "newest": "تازہ ترین",
+  "newLocation": "نیا مقام",
+  "newPhotosEmoji": " نئی 📸",
+  "newRange": "نئی رینج",
+  "next": "اگلا",
+  "@next": {
+    "description": "Next button label"
+  },
+  "nextTotpTitle": "اگلا",
+  "nightLights": "نیین راتیں",
+  "no": "نہیں",
+  "noDefaultBackupFolder": "ڈیفالٹ بیک اپ فولڈر نہیں بنا سکا.",
+  "noDeleteSuggestion": "ڈیلیٹ کرنے کی کوئی تجویز نہیں",
+  "noDeviceFound": "کوئی ڈیوائس نہیں ملی",
+  "noDeviceLimit": "کوئی نہیں",
+  "@noDeviceLimit": {
+    "description": "Text to indicate that there is limit on number of devices"
+  },
+  "noDeviceThatCanBeDeleted": "آپ کی اس ڈیوائس پر کوئی ایسی فائل نہیں ہے جسے ڈیلیٹ کیا جا سکے",
+  "noDuplicates": "✨ کوئی ڈپلیکیٹ نہیں",
+  "noEmailAppBody": "اپنا پیغام کاپی کریں اور اسے {email} پر کسی بھی ای میل سروس سے بھیجیں.",
+  "@noEmailAppBody": {
+    "description": "No-mail-app fallback subtitle with the target email address",
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
+  },
+  "noEmailAppFound": "کوئی ای میل ایپ نہیں ملی",
+  "noExifData": "کوئی EXIF ڈیٹا نہیں",
+  "noFacesFound": "کوئی چہرہ نہیں ملا",
+  "noHiddenFilesOnDevice": "ڈیوائس پر کوئی پوشیدہ فائل نہیں",
+  "noImagesWithLocation": "مقام کے ساتھ کوئی تصاویر نہیں",
+  "noLikesYet": "ابھی کوئی لائک نہیں",
+  "@noLikesYet": {
+    "description": "Empty state when no likes exist"
+  },
+  "noLimit": "کوئی حد نہیں",
+  "noLimitSet": "کوئی حد مقرر نہیں",
+  "noLocation": "کوئی مقام نہیں",
+  "@noLocation": {
+    "description": "Search result label for files owned by the user with missing location metadata"
+  },
+  "noLocationTag": "کوئی مقام ٹیگ نہیں",
+  "@noLocationTag": {
+    "description": "Search result label for files that do not have a manual location tag"
+  },
+  "noPaymentAppFound": "کوئی ادائیگی ایپ نہیں ملی",
+  "noPhotosFoundHere": "یہاں کوئی تصاویر نہیں ملیں",
+  "noRecoveryKeyNoDecryption": "ہمارے اینڈ ٹو اینڈ انکرپشن پروٹوکول کی نوعیت کی وجہ سے، آپ کا ڈیٹا آپ کے پاس ورڈ یا ریکوری کی کے بغیر ڈکرپٹ نہیں کیا جا سکتا",
+  "@noRecoveryKeyNoDecryption": {
+    "description": "Explanation that data cannot be decrypted without password or recovery key"
+  },
+  "noRecoveryKeyTitle": "کوئی ریکوری کی (Key) نہیں ہے؟",
+  "@noRecoveryKeyTitle": {
+    "description": "No recovery key title"
+  },
+  "noResult": "کوئی نتیجہ نہیں",
+  "noResultsFound": "کوئی نتائج نہیں ملے",
+  "noSimilarImagesFound": "کوئی ملتی جلتی تصویر نہیں ملی",
+  "noSuggestionsForPerson": "{personName} کے لیے کوئی تجاویز نہیں",
+  "@noSuggestionsForPerson": {
+    "placeholders": {
+      "personName": {
+        "type": "String",
+        "example": "Alice"
+      }
+    }
+  },
+  "noSystemLockFound": "کوئی سسٹم لاک نہیں ملا",
+  "@noSystemLockFound": {
+    "description": "Error when no system lock is found"
+  },
+  "note": "نوٹ",
+  "notes": "نوٹس",
+  "notesLengthLimit": "نوٹس زیادہ سے زیادہ {count} حروف پر مشتمل ہو سکتے ہیں",
+  "@notesLengthLimit": {
+    "description": "Text to indicate the maximum number of characters allowed for notes",
+    "placeholders": {
+      "count": {
+        "description": "The maximum number of characters allowed for notes",
+        "type": "int",
+        "example": "100"
+      }
+    }
+  },
+  "nothingToSeeHere": "یہاں دیکھنے کے لیے کچھ نہیں",
+  "nothingToTidyUpHere": "یہاں صاف کرنے کے لیے کچھ نہیں",
+  "notifications": "نوٹیفکیشنز",
+  "notPersonLabel": "{name} نہیں ہیں؟",
+  "@notPersonLabel": {
+    "description": "Label to indicate that the person in the photo is not the person whose name is mentioned",
+    "placeholders": {
+      "name": {
+        "content": "{name}",
+        "type": "String"
+      }
+    }
+  },
+  "notSupportedForHOTP": "HOTP کے لیے تعاون یافتہ نہیں ہے",
+  "notThisPerson": "یہ شخص نہیں؟",
+  "ocrGenericDetectError": "تصویر میں متن دریافت نہیں ہو سکا",
+  "ocrImageDecodeFailedError": "تصویری فائل نہیں پڑھی جا سکی",
+  "ocrImageNotFoundError": "تصویری فائل نہیں ملی",
+  "ocrModelsNetworkRequiredError": "پہلی بار OCR ماڈلز ڈاؤن لوڈ کرنے کے لیے نیٹ ورک کنکشن درکار ہے",
+  "ocrModelsPrepareFailed": "OCR ماڈلز تیار نہیں ہو سکے",
+  "ocrNoTextDetected": "کوئی متن دریافت نہیں ہوا",
+  "offlineEnableBackupTagLabel": "10 GB مفت!",
+  "offlineFacesBannerSubtitle": "لوگوں کو ٹیگ کرنے اور بعد میں انہیں آسانی سے تلاش کرنے کے لیے سائن اپ کریں.",
+  "offlineFacesBannerTitle": "کیا ان چہروں کو محفوظ کرنا چاہتے ہیں؟",
+  "offlineHomeSignupBannerAction": "ابھی بیک اپ کریں",
+  "offlineHomeSignupBannerDescription": "آپ کی یادیں محفوظ رکھنے کے لیے ۳ مقامات پر انکرپٹیڈ بیک اپس.",
+  "offlineHomeSignupBannerTitle": "اپنی یادیں ہمیشہ محفوظ رکھیں",
+  "offlineModeWarning": "آپ نے بیک اپ کے بغیر آگے بڑھنے کا انتخاب کیا ہے۔ براہ کرم دستی بیک اپ لیں تاکہ یہ یقینی بنایا جا سکے کہ آپ کے کوڈز محفوظ ہیں۔",
+  "offlineNameFaceBannerSubtitle": "انہیں ٹیگ کرنے کے لیے سائن اپ کریں اور بعد میں آسانی سے ان کی تصاویر تلاش کریں.",
+  "offlineNameFaceBannerTitle": "اس چہرے کو ایک نام دیں",
+  "offlineSettingsBannerDesc": "زیرو نالج انکرپشن کا مطلب ہے کہ آپ کی یادیں آپ کی رہیں.",
+  "offlineSettingsBannerTitle": "ہم آپ کی تصاویر نہیں دیکھ سکتے. کبھی بھی نہیں.",
+  "onDevice": "ڈیوائس",
+  "@onDevice": {
+    "description": "The text displayed above folders/albums stored on device",
+    "type": "text"
+  },
+  "oneLineAboutTheIssue": "مسئلے کے بارے میں ایک لائن",
+  "onEnte": "<branding>ente</branding> پر",
+  "@onEnte": {
+    "description": "The text displayed above albums backed up to Ente",
+    "type": "text"
+  },
+  "onlyFamilyAdminCanChangeCode": "اپنا کوڈ تبدیل کرنے کے لیے براہ کرم {familyAdminEmail} سے رابطہ کریں.",
+  "@onlyFamilyAdminCanChangeCode": {
+    "placeholders": {
+      "familyAdminEmail": {}
+    }
+  },
+  "onlyThem": "صرف وہ",
+  "onlyUploadedFilesCanBeAddedToPerson": "صرف اپ لوڈ شدہ فائلیں کسی شخص میں شامل کی جا سکتی ہیں",
+  "@onlyUploadedFilesCanBeAddedToPerson": {
+    "description": "Shown when user tries to manually tag files that are not uploaded yet."
+  },
+  "onTheRoad": "پھر سے سڑک پر",
+  "onThisDay": "آج کے دن",
+  "onThisDayMemories": "آج کے دن کی یادیں",
+  "onThisDayNotificationExplanation": "پچھلے سالوں میں اس دن کی یادیں",
+  "oops": "اوہ",
+  "@oops": {
+    "description": "Oops error title"
+  },
+  "oopsCouldNotSaveEdits": "اوہ، ترامیم محفوظ نہیں ہو سکیں",
+  "oopsSomethingWentWrong": "اوہ، کچھ غلط ہو گیا",
+  "openAlbumInBrowser": "براؤزر میں البم کھولیں",
+  "openAlbumInBrowserTitle": "اس البم میں تصاویر شامل کرنے کے لیے براہ کرم ویب ایپ استعمال کریں",
+  "openFile": "فائل کھولیں",
+  "openLink": "لنک کھولیں",
+  "openSettings": "سیٹنگز کھولیں",
+  "openstreetmapContributors": "OpenStreetMap تعاون کنندگان",
+  "optionalAsShortAsYouLike": "اختیاری، جتنا مختصر آپ چاہیں...",
+  "orRemoveYourself": "یا خود کو {email} کا قابل اعتماد رابطہ ہٹائیں",
+  "@orRemoveYourself": {
+    "description": "Text shown before remove contact button in ready state",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "otherDetectedFaces": "دیگر دریافت شدہ چہرے",
+  "pair": "جوڑا بنائیں",
+  "panorama": "پینوراما",
+  "partyWithThem": "{name} کے ساتھ پارٹی",
+  "@partyWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "passKeyPendingVerification": "تصدیق ابھی باقی ہے",
+  "@passKeyPendingVerification": {
+    "description": "Message when passkey verification is pending"
+  },
+  "password": "پاس ورڈ",
+  "@password": {
+    "description": "Password field label"
+  },
+  "passwordChangedSuccessfully": "پاس ورڈ کامیابی سے تبدیل ہو گیا",
+  "@passwordChangedSuccessfully": {
+    "description": "Password changed successfully message"
+  },
+  "passwordEmptyError": "پاس ورڈ خالی نہیں ہو سکتا",
+  "passwordForDecryptingExport": "ایکسپورٹ کو ڈی کرپٹ کرنے کے لیے پاس ورڈ",
+  "passwordLock": "پاس ورڈ لاک",
+  "passwordsDontMatch": "پاس ورڈز میچ نہیں ہیں",
+  "passwordsMatch": "پاس ورڈز میچ",
+  "passwordStrength": "پاس ورڈ کی مضبوطی: {passwordStrengthValue}",
+  "@passwordStrength": {
+    "description": "Text to indicate the password strength",
+    "placeholders": {
+      "passwordStrengthValue": {
+        "description": "The strength of the password as a string",
+        "type": "String",
+        "example": "Weak or Moderate or Strong"
+      }
+    }
+  },
+  "passwordToEncryptExport": "ایکسپورٹ کو انکرپٹ کرنے کے لیے پاس ورڈ",
+  "passwordTooShort": "پاس ورڈ کم از کم ۸ حروف پر مشتمل ہونا چاہیے۔",
+  "pastYearsMemories": "پچھلے سالوں کی یادیں",
+  "pay": "ادائیگی کریں",
+  "paymentDetails": "ادائیگی کی تفصیلات",
+  "paymentFailed": "ادائیگی ناکام",
+  "paymentFailedMessage": "بدقسمتی سے آپ کی ادائیگی ناکام ہوگئی. براہ کرم سپورٹ سے رابطہ کریں اور ہم آپ کی مدد کریں گے!",
+  "paymentFailedTalkToProvider": "اگر آپ سے چارج کیا گیا تھا تو براہ کرم {providerName} سپورٹ سے بات کریں",
+  "@paymentFailedTalkToProvider": {
+    "description": "The text to display when the payment failed",
+    "type": "text",
+    "placeholders": {
+      "providerName": {
+        "example": "AppStore|PlayStore",
+        "type": "String"
+      }
+    }
+  },
+  "pending": "زیر التواء",
+  "pendingSync": "زیر التواء Sync",
+  "pendingSyncs": "انتباہ",
+  "pendingSyncsWarningBody": "آپ کے کچھ کوڈز کا بیک اپ نہیں لیا گیا ہے۔\n\nبراہ کرم لاگ آؤٹ کرنے سے پہلے یقینی بنائیں کہ آپ کے پاس ان کوڈز کا بیک اپ موجود ہے۔",
+  "people": "لوگ",
+  "peopleAutoAddDesc": "منتخب لوگوں کی تصاویر خود بخود اس البم میں شامل کریں",
+  "@peopleAutoAddDesc": {
+    "description": "The message the copy should convey is that photos or videos containing the selected people's faces will be automatically added to this album"
+  },
+  "peopleWidgetDesc": "ان لوگوں کو منتخب کریں جنہیں آپ ہوم اسکرین پر دیکھنا چاہتے ہیں.",
+  "period": "مدت",
+  "permanentlyDelete": "مستقل طور پر ڈیلیٹ کریں",
+  "permDeleteWarning": "ردی میں موجود تمام آئٹمز مستقل طور پر ڈیلیٹ ہو جائیں گے\n\nیہ عمل واپس نہیں لیا جا سکتا",
+  "personIsAge": "{name} {age} کا ہے!",
+  "@personIsAge": {
+    "placeholders": {
+      "age": {},
+      "name": {}
+    }
+  },
+  "personTurningAge": "{name} جلد {age} کا ہو جائے گا",
+  "@personTurningAge": {
+    "placeholders": {
+      "age": {},
+      "name": {}
+    }
+  },
+  "pets": "پالتو ساتھی",
+  "photoGridSize": "فوٹو گرڈ کا سائز",
+  "photos": "تصاویر",
+  "photosAddedByYouWillBeRemovedFromTheAlbum": "آپ کی شامل کردہ تصاویر البم سے ہٹا دی جائیں گی",
+  "photosCount": "{count, plural, =0{0 تصاویر} one{{count} تصویر} other{{count} تصاویر}}",
+  "@photosCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "photosKeepRelativeTimeDifference": "تصاویر نسبتی وقت کا فرق برقرار رکھتی ہیں",
+  "photosSharedByWillAppearHere": "{email} کی شیئر کردہ تصاویر یہاں ظاہر ہوں گی۔",
+  "@photosSharedByWillAppearHere": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "a@test.test"
+      }
+    }
+  },
+  "pickCenterPoint": "مرکزی نقطہ منتخب کریں",
+  "picnicDays": "پکنک کی یادیں",
+  "pin": "پن کریں",
+  "pinLock": "پن لاک",
+  "@pinLock": {
+    "description": "PIN lock option title"
+  },
+  "pinnedCodeMessage": "{code} کو پن کر دیا گیا ہے",
+  "@pinnedCodeMessage": {
+    "placeholders": {
+      "code": {}
+    }
+  },
+  "pinnedCount": "{count, plural, one{{count} آئٹم پن کیا گیا} other{{count} آئٹمز پن کیے گئے}}",
+  "@pinnedCount": {
+    "description": "Text to show number of items pinned",
+    "placeholders": {
+      "count": {
+        "description": "Number of items pinned",
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "pinPerson": "شخص کو پن کریں",
+  "pinText": "پن (Pin)",
+  "plainHTML": "سادہ HTML",
+  "plainText": "سادہ ٹیکسٹ (Plain text)",
+  "plansStartAt": "پلانز {price} فی مہینہ سے شروع ہوتے ہیں",
+  "@plansStartAt": {
+    "placeholders": {
+      "price": {
+        "type": "String",
+        "example": "$1.99"
+      }
+    }
+  },
+  "playfulKids": "کھیلتے ہوئے بچے",
+  "playOriginal": "اصل چلائیں",
+  "playstoreSubscription": "پلے اسٹور سبسکرپشن",
+  "playStream": "اسٹریم چلائیں",
+  "pleaseCheckPasswordAndTryAgain": "براہ کرم اپنا پاس ورڈ چیک کریں اور دوبارہ کوشش کریں",
+  "pleaseCheckYourInternetConnectionAndTryAgain": "براہ کرم اپنا انٹرنیٹ کنکشن چیک کریں اور دوبارہ کوشش کریں۔",
+  "@pleaseCheckYourInternetConnectionAndTryAgain": {
+    "description": "Message asking user to check internet connection"
+  },
+  "pleaseContactSupportAndWeWillBeHappyToHelp": "از کرم support@ente.com پر رابطہ کریں اور ہمیں خوشی ہوگی مدد کر کے!",
+  "pleaseContactSupportIfTheProblemPersists": "اگر مسئلہ برقرار رہے تو براہ کرم سپورٹ سے رابطہ کریں",
+  "pleaseEmailUsAt": "براہ کرم ہمیں {toEmail} پر ای میل کریں",
+  "@pleaseEmailUsAt": {
+    "placeholders": {
+      "toEmail": {}
+    }
+  },
+  "pleaseEnterADescription": "براہ مہربانی تفصیل درج کریں",
+  "pleaseEnterASubject": "براہ مہربانی موضوع درج کریں",
+  "pleaseGrantPermissions": "براہ کرم اجازت دیں",
+  "pleaseLoginAgain": "براہ کرم دوبارہ لاگ ان کریں",
+  "pleaseNamePersonInPeopleSectionFirst": "براہ کرم پہلے لوگوں کے سیکشن میں کسی شخص کا نام دیں",
+  "@pleaseNamePersonInPeopleSectionFirst": {
+    "description": "Shown when manual tagging requires at least one named person."
+  },
+  "pleaseSelectQuickLinksToRemove": "براہ کرم ہٹانے کے لیے فوری لنکس منتخب کریں",
+  "pleaseSendTheLogsTo": "براہ کرم لاگز \n{toEmail} کو بھیجیں",
+  "@pleaseSendTheLogsTo": {
+    "description": "Message asking user to send logs to email address",
+    "placeholders": {
+      "toEmail": {
+        "type": "String",
+        "description": "Email address to send logs to"
+      }
+    }
+  },
+  "pleaseTryAgain": "براہ کرم دوبارہ کوشش کریں",
+  "@pleaseTryAgain": {
+    "description": "Message asking user to try again"
+  },
+  "pleaseVerifyDetails": "براہ کرم تفصیلات کی تصدیق کریں اور دوبارہ کوشش کریں",
+  "pleaseVerifyTheCodeYouHaveEntered": "براہ کرم اپنے درج کردہ کوڈ کی تصدیق کریں",
+  "pleaseWait": "براہ کرم انتظار کریں...",
+  "@pleaseWait": {
+    "description": "Please wait message"
+  },
+  "pleaseWaitDeletingAlbum": "براہ کرم انتظار کریں، البم ڈیلیٹ ہو رہا ہے",
+  "pleaseWaitForSometimeBeforeRetrying": "براہ کرم دوبارہ کوشش کرنے سے پہلے کچھ دیر انتظار کریں",
+  "pleaseWaitThisWillTakeAWhile": "براہ کرم انتظار کریں، اس میں کچھ وقت لگے گا.",
+  "poolDays": "پول کے کنارے کے دن",
+  "posingWithThem": "{name} کے ساتھ پوز",
+  "@posingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "preparingLogs": "لاگز تیار ہو رہے ہیں...",
+  "preserveMore": "مزید محفوظ کریں",
+  "pressAndHoldToPlayVideoDetailed": "ویڈیو چلانے کے لیے تصویر پر دبا کر رکھیں",
+  "preview": "پیش نظارہ",
+  "previous": "پچھلا",
+  "privacy": "پرائیویسی",
+  "privacyPolicyTitle": "پرائیویسی پالیسی",
+  "@privacyPolicyTitle": {
+    "description": "Privacy policy title"
+  },
+  "privateSpaceForEveryMember": "ہر رکن کے لیے ذاتی جگہ",
+  "proceed": "آگے بڑھیں",
+  "processed": "پروسیس شدہ",
+  "processingImport": "{folderName} پروسیس ہو رہا ہے...",
+  "@processingImport": {
+    "placeholders": {
+      "folderName": {}
+    }
+  },
+  "publicLinkEnabled": "عوامی لنک فعال ہے",
+  "qr": "QR",
+  "qrCode": "QR کوڈ",
+  "questionmark": "؟",
+  "queued": "قطار میں ہے",
+  "radius": "رداس",
+  "rainyDays": "بارش کے دن کا احساس",
+  "raiseTicket": "ٹکٹ جمع کرائیں",
+  "@raiseTicket": {
+    "description": "Button text for raising a support tickets in case of unhandled errors during backup",
+    "type": "text"
+  },
+  "rateUs": "ہمیں ریٹ کریں",
+  "rawCodeData": "خام (Raw) کوڈ ڈیٹا",
+  "readyToBackupSubtitle": "آپ کی تصاویر پس منظر میں سِنک ہوں گی۔ پہلا بیک اپ کچھ وقت لے سکتا ہے.",
+  "readyToBackupTitle": "بیک اپ کے لیے تیار",
+  "reassignedToName": "آپ کو {name} پر دوبارہ تفویض کر دیا گیا",
+  "@reassignedToName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reassigningLoading": "دوبارہ تفویض کیا جا رہا ہے...",
+  "reassignMe": "\"میں\" کو دوبارہ تفویض کریں",
+  "receiveRemindersOnBirthdays": "کسی کی سالگرہ پر یاد دہانیاں",
+  "recent": "حالیہ",
+  "recoverAccountAfter": "آپ {time} کے بعد {email} کا اکاؤنٹ بحال کر سکتے ہیں.",
+  "@recoverAccountAfter": {
+    "description": "Message when recovery is waiting",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "recoverAccountDesc": "بحالی کا عمل شروع کرنے کے {days} دن بعد آپ {email} کا اکاؤنٹ بحال کر سکتے ہیں.",
+  "@recoverAccountDesc": {
+    "description": "Description for recover account page when recovery not started",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "recoveryInitiated": "ریکوری شروع ہو گئی",
+  "recoveryInitiatedDesc": "آپ {days} دنوں کے بعد اکاؤنٹ تک رسائی حاصل کر سکتے ہیں. {email} پر ایک نوٹیفکیشن بھیجا جائے گا.",
+  "@recoveryInitiatedDesc": {
+    "placeholders": {
+      "days": {
+        "type": "int",
+        "example": "30"
+      },
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      }
+    }
+  },
+  "recoveryKeyOnForgotPassword": "اگر آپ اپنا پاس ورڈ بھول جاتے ہیں، تو اپنا ڈیٹا بازیافت کرنے کا واحد طریقہ اس کلید (Key) کے ذریعے ہے۔",
+  "@recoveryKeyOnForgotPassword": {
+    "description": "Recovery key importance explanation"
+  },
+  "recoveryKeySaved": "ریکوری کی (Key) ڈاؤن لوڈز فولڈر میں محفوظ کر لی گئی!",
+  "@recoveryKeySaved": {
+    "description": "Recovery key saved confirmation message"
+  },
+  "recoveryKeySaveDescription": "ہم اس کلید کو اسٹور نہیں کرتے، براہ کرم اس ۲۴ الفاظ کی کلید کو کسی محفوظ جگہ پر محفوظ رکھیں۔",
+  "@recoveryKeySaveDescription": {
+    "description": "Recovery key save description"
+  },
+  "recoveryKeySaveShortDescription": "براہ کرم اس key کو محفوظ جگہ پر محفوظ کریں.",
+  "recoveryReady": "اب آپ نیا پاس ورڈ سیٹ کر کے {email} کا اکاؤنٹ بازیافت کر سکتے ہیں.",
+  "@recoveryReady": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      }
+    }
+  },
+  "recoverySuccessful": "ریکووری کامیاب رہی!",
+  "recoveryWarning": "ایک قابل اعتماد رابطہ آپ کے اکاؤنٹ تک رسائی کی کوشش کر رہا ہے",
+  "recoveryWarningBody": "{email} آپ کا اکاؤنٹ بازیافت کرنے کی کوشش کر رہا ہے.",
+  "@recoveryWarningBody": {
+    "placeholders": {
+      "email": {}
+    }
+  },
+  "recreatePasswordTitle": "پاس ورڈ دوبارہ بنائیں",
+  "@recreatePasswordTitle": {
+    "description": "Title for recreate password dialog"
+  },
+  "recreateStream": "اسٹریم دوبارہ بنائیں",
+  "redo": "دوبارہ کریں",
+  "reEnterPassword": "پاس ورڈ دوبارہ درج کریں",
+  "@reEnterPassword": {
+    "description": "Re-enter password prompt"
+  },
+  "reEnterPin": "پن (PIN) دوبارہ درج کریں",
+  "@reEnterPin": {
+    "description": "Re-enter PIN prompt"
+  },
+  "referralCodeHint": "آپ اس کوڈ کو ۳ بار تک اپنی مرضی کے مطابق بنا سکتے ہیں",
+  "referrals": "ریفرلز",
+  "referralsAreCurrentlyPaused": "ریفرلز فی الحال روکے گئے ہیں",
+  "referralStats": "ریفرل کے اعدادوشمار",
+  "referralStorageForBoth": "ان کے لیے {storageAmountInGB} جی بی + آپ کے لیے {storageAmountInGB} جی بی جب وہ اپ گریڈ کریں.",
+  "@referralStorageForBoth": {
+    "placeholders": {
+      "storageAmountInGB": {}
+    }
+  },
+  "referralStorageInfo": "پیڈ سبسکرائبرز کے ریفرلز سے بونس اسٹوریج حاصل ہوتی ہے.\n\nآپ اپنے پلان کی حد تک ہی اسٹوریج استعمال کر سکتے ہیں. اپنی باقی حاصل کردہ اسٹوریج استعمال کرنے کے لیے اپ گریڈ کریں.",
+  "rejectRecovery": "ریکوری مسترد کریں",
+  "rejectSuggestions": "تجاویز مسترد کریں",
+  "related": "متعلقہ",
+  "remindToEmptyDeviceTrash": "خالی جگہ حاصل کرنے کے لیے ”سیٹنگز“ -> ”اسٹوریج“ سے ”حال ہی میں ڈیلیٹ شدہ“ کو بھی خالی کریں",
+  "remindToEmptyEnteTrash": "خالی جگہ حاصل کرنے کے لیے اپنی ”ردی“ بھی خالی کریں",
+  "remoteImages": "ریموٹ تصاویر",
+  "remoteThumbnails": "ریموٹ تھمب نیلز",
+  "remoteVideos": "ریموٹ ویڈیوز",
+  "remove": "ہٹائیں",
+  "removeContact": "رابطہ ہٹائیں",
+  "@removeContact": {
+    "description": "Button label to remove a trusted contact"
+  },
+  "removeContactDesc": "اگر آپ یہ رابطہ حذف کر دیتے ہیں تو نئی دعوت بھیجنی پڑے گی اور رابطے کو دوبارہ قبول کرنا پڑے گا.",
+  "@removeContactDesc": {
+    "description": "Description for remove contact confirmation dialog"
+  },
+  "removeFromAlbum": "البم سے ہٹائیں",
+  "removeFromAlbumTitle": "البم سے ہٹائیں؟",
+  "removeFromFamily": "فیملی سے ہٹائیں",
+  "removeFromFavorite": "پسندیدہ سے ہٹائیں",
+  "removeLink": "لنک ہٹائیں",
+  "removeMemberConfirmBody": "{email} مشترکہ اسٹوریج تک رسائی کھو دے گا۔",
+  "@removeMemberConfirmBody": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "member@example.com"
+      }
+    }
+  },
+  "removeMemberConfirmTitle": "ممبر کو ہٹائیں؟",
+  "removeParticipant": "شریک کو ہٹائیں",
+  "@removeParticipant": {
+    "description": "menuSectionTitle for removing a participant"
+  },
+  "removePersonLabel": "شخص کا لیبل ہٹائیں",
+  "removePersonTag": "شخص کا ٹیگ ہٹائیں",
+  "removePublicLink": "عوامی لنک ہٹائیں",
+  "removePublicLinks": "عوامی لنکس ہٹائیں",
+  "removeShareItemsWarning": "منتخب کردہ تصاویر اس البم کے کسی بھی ناظر کے لیے قابل رسائی نہیں ہوں گی، سوائے تصویر کے مالکان کے.",
+  "removeWithQuestionMark": "ہٹائیں؟",
+  "removeYourselfDesc": "اگر آپ خود کو قابل اعتماد رابطہ سے ہٹا دیتے ہیں تو {email} کے غیر فعال ہونے کے بعد آپ کو ان کے اکاؤنٹ تک رسائی ختم ہو جائے گی.",
+  "@removeYourselfDesc": {
+    "description": "Description for remove yourself as trusted contact confirmation dialog",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "removingFromFavorites": "پسندیدہ سے ہٹایا جا رہا ہے...",
+  "rename": "نام تبدیل کریں",
+  "renameAlbum": "البم کا نام تبدیل کریں",
+  "renameFile": "فائل کا نام تبدیل کریں",
+  "renewsOn": "سبسکرپشن کی تجدید {endDate} کو ہوگی",
+  "@renewsOn": {
+    "placeholders": {
+      "endDate": {}
+    }
+  },
+  "renewSubscription": "سبسکرپشن کی تجدید کریں",
+  "repliedToAComment": "ایک تبصرے کا جواب دیا",
+  "@repliedToAComment": {
+    "description": "Social notification action text shown after a person's name, for example 'John replied to a comment'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "repliedToYourComment": "آپ کے تبصرے کا جواب دیا",
+  "@repliedToYourComment": {
+    "description": "Social notification action text shown after a person's name, for example 'John replied to your comment'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "reply": "جواب دیں",
+  "@reply": {
+    "description": "Reply action button label"
+  },
+  "replyingTo": "{name} کو جواب دیا جا رہا ہے",
+  "@replyingTo": {
+    "description": "Label when replying to someone's comment",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "replyingToYou": "آپ کو جواب دیا جا رہا ہے",
+  "@replyingToYou": {
+    "description": "Label when replying to own comment"
+  },
+  "reportABug": "بگ کی اطلاع دیں",
+  "@reportABug": {
+    "description": "Label for reporting a bug"
+  },
+  "reportAnIssue": "مسئلہ رپورٹ کریں",
+  "requestAFeature": "فیچر کی درخواست کریں",
+  "resendCode": "کوڈ دوبارہ بھیجیں",
+  "resendInvite": "دعوت نامہ دوبارہ بھیجیں",
+  "reset": "ری سیٹ کریں",
+  "resetIgnoredFiles": "نظر انداز فائلیں ری سیٹ کریں",
+  "resetPasswordTitle": "پاس ورڈ ری سیٹ کریں",
+  "@resetPasswordTitle": {
+    "description": "Reset password title"
+  },
+  "resetToDefault": "پہلے جیسا کریں (Reset)",
+  "@resetToDefault": {
+    "description": "Button text to reset cover photo to default"
+  },
+  "restoreToAlbum": "البم میں بحال کریں",
+  "restoringFiles": "فائلیں بحال ہو رہی ہیں...",
+  "resumableUploads": "دوبارہ شروع ہونے والے اپ لوڈز",
+  "retry": "دوبارہ کوشش کریں",
+  "review": "جائزہ لیں",
+  "reviewSuggestions": "تجاویز کا جائزہ لیں",
+  "revoke": "منسوخ کریں",
+  "revokeInvite": "دعوت منسوخ کریں",
+  "@revokeInvite": {
+    "description": "Button label to revoke a pending trusted contact invite"
+  },
+  "revokeInviteConfirmBody": "{email} کی دعوت منسوخ کر دی جائے گی.",
+  "@revokeInviteConfirmBody": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "member@example.com"
+      }
+    }
+  },
+  "revokeInviteConfirmTitle": "دعوت نامہ منسوخ کریں؟",
+  "right": "دائیں",
+  "ritualAddedToAlbum": "البم میں شامل کر دیا گیا",
+  "ritualAddedToAlbumWithName": "{albumName} میں شامل کر دیا گیا",
+  "@ritualAddedToAlbumWithName": {
+    "placeholders": {
+      "albumName": {
+        "type": "String",
+        "description": "The target album name"
+      }
+    }
+  },
+  "ritualAddToAlbumFailure": "البم میں تصاویر شامل نہیں کی جا سکیں: {error}",
+  "@ritualAddToAlbumFailure": {
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "description": "Error message for album add failure"
+      }
+    }
+  },
+  "ritualAddTooltip": "معمول شامل کریں",
+  "ritualAlbumLabel": "البم",
+  "ritualAlbumMissing": "معمول کا البم غائب ہے. البم سیٹ کرنے کے لیے معمول میں ترمیم کریں.",
+  "ritualAlbumNotSet": "البم سیٹ نہیں ہے",
+  "ritualAlbumSelectionPlaceholder": "البم منتخب کریں",
+  "ritualBackToList": "معمولات پر واپس جائیں",
+  "ritualCameraNotFound": "اس ڈیوائس پر کوئی کیمرہ نہیں ملا.",
+  "ritualCaptureAtLeastOne": "پہلے کم از کم ایک تصویر لیں.",
+  "ritualCaptureError": "تصویر لینے سے قاصر. براہ کرم دوبارہ کوشش کریں.",
+  "ritualChooseAlbumLabel": "ایک البم منتخب کریں",
+  "ritualChooseDaysLabel": "معمول کے لیے دن منتخب کریں",
+  "ritualCreateAction": "معمول بنائیں",
+  "ritualCreateNewTitle": "نیا معمول بنائیں",
+  "ritualCreateYourOwn": "اپنا معمول خود بنائیں",
+  "ritualCustomKeyboardLabel": "کسٹم (کی بورڈ)",
+  "ritualDefaultCameraTitle": "ایک تصویر لیں",
+  "ritualEdit": "معمول میں ترمیم کریں",
+  "ritualEditorLabel": "معمول ایڈیٹر",
+  "ritualEmojiKeyboardHint": "ایموجی کی بورڈ کھولنے کے لیے دبائیں",
+  "ritualEmojiUseAction": "استعمال کریں",
+  "ritualEnterDescription": "براہ کرم تفصیل درج کریں",
+  "ritualEnterPrompt": "اپنا معمول درج کریں",
+  "ritualGetDailyReminders": "روزانہ یاد دہانیاں حاصل کریں",
+  "ritualNoAlbumsYet": "ابھی کوئی البم نہیں",
+  "ritualNoMatchingAlbums": "کوئی مماثل البم نہیں",
+  "ritualNoPhotosYet": "ابھی کوئی تصویر نہیں",
+  "ritualNotificationMessage": "ابھی تصویر لیں",
+  "ritualNotificationsOffHint": "نوٹیفکیشنز بند ہیں. انہیں آن کرنے کے لیے کسی دن پر ٹیپ کریں.",
+  "ritualOpenCameraTooltip": "معمول کا کیمرہ کھولیں",
+  "ritualPhotoLimit": "آپ {maxPhotos, plural, one{# تصویر} other{# تصاویر}} تک شامل کر سکتے ہیں.",
+  "@ritualPhotoLimit": {
+    "placeholders": {
+      "maxPhotos": {
+        "type": "int",
+        "description": "Maximum number of photos allowed"
+      }
+    }
+  },
+  "ritualPickEmojiTitle": "ایک ایموجی منتخب کریں",
+  "ritualSearchEmpty": "اپنی فوٹو ہیبٹ کو جاری رکھنے کے لیے ایک معمول بنائیں.",
+  "ritualSelectAlbumTitle": "البم منتخب کریں",
+  "ritualSendReminderLabel": "یاد دہانی بھیجیں",
+  "ritualSetAlbumToLaunchCamera": "کیمرہ لانچ کرنے کے لیے اس معمول کے لیے ایک البم سیٹ کریں.",
+  "ritualShareUnavailable": "ابھی شیئر کرنے سے قاصر. براہ کرم دوبارہ کوشش کریں.",
+  "ritualsTitle": "معمولات",
+  "ritualUntitled": "بلا عنوان معمول",
+  "ritualUpdate": "معمول اپ ڈیٹ کریں",
+  "riverCruises": "دریا کے کروز کے مناظر",
+  "roadtripWithThem": "{name} کے ساتھ روڈ ٹرپ",
+  "@roadtripWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "rotate": "گھمائیں",
+  "sameperson": "وہی شخص؟",
+  "save": "محفوظ کریں",
+  "@save": {
+    "description": "Label for save button"
+  },
+  "saveAsAnotherPerson": "دوسرے شخص کے طور پر محفوظ کریں",
+  "saveChangesBeforeLeavingQuestion": "کیا جانے سے پہلے تبدیلیاں محفوظ کریں؟",
+  "saveCode": "کوڈ محفوظ کریں",
+  "saveCollage": "کولاج محفوظ کریں",
+  "saveContact": "رابطہ محفوظ کریں",
+  "saveCopy": "کاپی محفوظ کریں",
+  "saveKey": "کلید محفوظ کریں",
+  "@saveKey": {
+    "description": "Save key button label"
+  },
+  "saveOnlyDescription": "کیا آپ اسے اپنی اسٹوریج (پہلے سے طے شدہ ڈاؤن لوڈز فولڈر) میں محفوظ کرنا چاہتے ہیں؟",
+  "@saveOnlyDescription": {
+    "description": "Description text asking user if they want to save to storage (for platforms that don't support sharing)"
+  },
+  "saveOrSendDescription": "کیا آپ اسے اپنی اسٹوریج (پہلے سے طے شدہ ڈاؤن لوڈز فولڈر) میں محفوظ کرنا چاہتے ہیں یا اسے دیگر ایپس پر بھیجنا چاہتے ہیں؟",
+  "@saveOrSendDescription": {
+    "description": "Description text asking user if they want to save to storage or share with other apps"
+  },
+  "savePerson": "شخص کو محفوظ کریں",
+  "saveYourRecoveryKeyIfYouHaventAlready": "اگر آپ نے پہلے سے نہیں کیا ہے تو اپنی ریکوری کی محفوظ کریں",
+  "saving": "محفوظ ہو رہا ہے...",
+  "savingEdits": "ترامیم محفوظ ہو رہی ہیں...",
+  "scan": "اسکین کریں",
+  "scanACode": "کوڈ اسکین کریں",
+  "scanAQrCode": "QR کوڈ اسکین کریں",
+  "scanCode": "کوڈ اسکین کریں",
+  "scanThisBarcodeWithnyourAuthenticatorApp": "اپنے آتھینٹیکیٹر ایپ کے ذریعہ اس بار کوڈ کو اسکین کریں",
+  "searchAlbums": "البمز تلاش کریں",
+  "searchAlbumsEmptySection": "البمز",
+  "searchAndDiscovery": "تلاش اور دریافت",
+  "searchAndDiscoveryDesc": "چہرے، مقامات، تفصیلات، اور بہت کچھ",
+  "searchByAlbumNameHint": "البم کا نام",
+  "searchDiscoverEmptySection": "پروسیسنگ اور Sync مکمل ہونے کے بعد تصاویر یہاں دکھائی جائیں گی",
+  "searchFileTypesAndNamesEmptySection": "فائل کی اقسام اور نام",
+  "searchHint": "تلاش کریں...",
+  "searchHint1": "تیز، آن ڈیوائس تلاش",
+  "searchHint2": "تصویر کی تاریخیں، تفصیلات",
+  "searchHint3": "البمز، فائل کے نام، اور اقسام",
+  "searchHint4": "مقام",
+  "searchHint5": "جلد آرہا ہے: چہرے اور میجک سرچ ✨",
+  "searchLocationEmptySection": "ان تصاویر کو گروپ کریں جو تصویر کے کچھ رداس کے اندر لی گئی ہیں",
+  "searchPeopleEmptySection": "لوگوں کو مدعو کریں، اور آپ ان کی طرف سے شیئر کردہ تمام تصاویر یہاں دیکھیں گے",
+  "searchPersonsEmptySection": "پروسیسنگ اور Sync مکمل ہونے کے بعد لوگ یہاں دکھائے جائیں گے",
+  "searchResultCameraMake": "کیمرہ میک",
+  "@searchResultCameraMake": {
+    "description": "Search result subtitle label for camera make matches"
+  },
+  "searchResultCameraModel": "کیمرہ ماڈل",
+  "@searchResultCameraModel": {
+    "description": "Search result subtitle label for camera model matches"
+  },
+  "searchResultCount": "{count, plural, one{{count} نتیجہ ملا} other{{count} نتائج ملے}}",
+  "@searchResultCount": {
+    "description": "Text to tell user how many results were found for their search query",
+    "placeholders": {
+      "count": {
+        "example": "1|2|3",
+        "type": "int"
+      }
+    }
+  },
+  "searchResultDescription": "تفصیل",
+  "@searchResultDescription": {
+    "description": "Search result subtitle label for description matches"
+  },
+  "searchResultFileExtension": "فائل ایکسٹینشن",
+  "@searchResultFileExtension": {
+    "description": "Search result subtitle label for file extension matches"
+  },
+  "searchResultFileName": "فائل کا نام",
+  "@searchResultFileName": {
+    "description": "Search result subtitle label for file name matches"
+  },
+  "searchResultPerson": "شخص",
+  "@searchResultPerson": {
+    "description": "Search result subtitle label for person results"
+  },
+  "searchResultType": "قسم",
+  "@searchResultType": {
+    "description": "Search result subtitle label for file type matches"
+  },
+  "searchResultUploadedBy": "اپ لوڈ کنندہ",
+  "@searchResultUploadedBy": {
+    "description": "Search result subtitle label for uploader results"
+  },
+  "searchSectionsLengthMismatch": "سیکشنز کی لمبائی مماثل نہیں: {snapshotLength} != {searchLength}",
+  "@searchSectionsLengthMismatch": {
+    "description": "Appears in search tab page",
+    "placeholders": {
+      "searchLength": {
+        "type": "int",
+        "example": "2"
+      },
+      "snapshotLength": {
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "searchSettings": "تلاش کی ترتیبات",
+  "secret": "خفیہ (Secret)",
+  "secretCanNotBeEmpty": "خفیہ کوڈ (Secret) خالی نہیں ہو سکتا",
+  "security": "سیکیورٹی",
+  "seePublicAlbumLinksInApp": "ایپ میں عوامی البم لنکس دیکھیں",
+  "selectAlbumsToBackUpToEnte": "Ente میں بیک اپ کرنے کے لیے البمز منتخب کریں",
+  "selectAlbumToLikePhoto": "اس تصویر کو لائک کرنے کے لیے البم منتخب کریں",
+  "@selectAlbumToLikePhoto": {
+    "description": "Instruction for liking photo"
+  },
+  "selectAlbumToLikeVideo": "اس ویڈیو کو لائک کرنے کے لیے البم منتخب کریں",
+  "@selectAlbumToLikeVideo": {
+    "description": "Instruction for liking video"
+  },
+  "selectAllShort": "سب",
+  "@selectAllShort": {
+    "description": "Text that appears in bottom right when you start to select multiple photos. When clicked, it selects all photos."
+  },
+  "selectALocation": "ایک مقام منتخب کریں",
+  "selectALocationFirst": "پہلے ایک مقام منتخب کریں",
+  "selectBackupFolder": "بیک اپ فولڈر منتخب کریں",
+  "selectCoverPhoto": "کور فوٹو منتخب کریں",
+  "selectDate": "تاریخ منتخب کریں",
+  "selected": "منتخب شدہ",
+  "selectedAlbums": "{count} منتخب",
+  "@selectedAlbums": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "selectedCount": "{count, plural, one{{count} منتخب} other{{count} منتخب}}",
+  "@selectedCount": {
+    "description": "Number of items selected",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "selectedFilesAreNotOnEnte": "منتخب کردہ فائلیں Ente پر نہیں ہیں",
+  "selectedItemsWillBeRemovedFromThisPerson": "منتخب آئٹمز اس شخص سے ہٹا دیے جائیں گے، لیکن آپ کی لائبریری سے ڈیلیٹ نہیں ہوں گے.",
+  "selectedPhotos": "{count} منتخب",
+  "@selectedPhotos": {
+    "description": "Display the number of selected photos",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "5",
+        "type": "int"
+      }
+    }
+  },
+  "selectedPhotosWithYours": "{count} منتخب ({yourCount} آپ کی)",
+  "@selectedPhotosWithYours": {
+    "description": "Display the number of selected photos, including the number of selected photos owned by the user",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "12",
+        "type": "int"
+      },
+      "yourCount": {
+        "example": "2",
+        "type": "int"
+      }
+    }
+  },
+  "selectExportFormat": "ایکسپورٹ فارمیٹ منتخب کریں",
+  "selectFile": "فائل منتخب کریں",
+  "selectFolder": "فولڈر منتخب کریں",
+  "selectFolders": "فولڈرز منتخب کریں",
+  "selectFolderToContinue": "جاری رکھنے کے لیے فولڈر منتخب کریں",
+  "selectItemsToAdd": "شامل کرنے کے لیے آئٹمز منتخب کریں",
+  "selectLanguage": "زبان منتخب کریں",
+  "selectMailApp": "میل ایپ منتخب کریں",
+  "selectMorePhotos": "مزید تصاویر منتخب کریں",
+  "selectOneDateAndTime": "ایک تاریخ اور وقت منتخب کریں",
+  "selectOneDateAndTimeForAll": "سب کے لیے ایک تاریخ اور وقت منتخب کریں",
+  "selectStartOfRange": "رینج کا آغاز منتخب کریں",
+  "selectTime": "وقت منتخب کریں",
+  "selectYourFace": "اپنا چہرہ منتخب کریں",
+  "selfiesWithThem": "{name} کے ساتھ سیلفیز",
+  "@selfiesWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "send": "بھیجیں",
+  "@send": {
+    "description": "Label for send button"
+  },
+  "sendCountInvites": "{count, plural, =0{دعوت نامے بھیجیں} one{{count} دعوت نامہ بھیجیں} other{{count} دعوت نامے بھیجیں}}",
+  "@sendCountInvites": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "sendInvite": "دعوت نامہ بھیجیں",
+  "sendLink": "لنک بھیجیں",
+  "sendLogsDescription": "یہ لاگز ہمیں بھیجے جائیں گے تاکہ ہم آپ کے مسئلے کو حل کر سکیں۔ اگرچہ ہم اس بات کو یقینی بنانے کے لیے احتیاطی تدابیر اختیار کرتے ہیں کہ حساس معلومات لاگ ان نہ ہوں، لیکن ہم آپ کی حوصلہ افزائی کرتے ہیں کہ شیئر کرنے سے پہلے ان لاگز کو دیکھ لیں۔",
+  "sendQrCode": "QR کوڈ بھیجیں",
+  "serverEndpoint": "سرور اینڈ پوائنٹ",
+  "@serverEndpoint": {
+    "description": "Label for server endpoint setting"
+  },
+  "sessionIdMismatch": "سیشن آئی ڈی مماثل نہیں ہے",
+  "@sessionIdMismatch": {
+    "description": "In passkey page, deeplink is ignored because of session ID mismatch."
+  },
+  "setAContactPhoto": "رابطہ کی تصویر سیٹ کریں",
+  "setAPassword": "پاس ورڈ سیٹ کریں",
+  "setAs": "بطور سیٹ کریں",
+  "setBackupFolder": "بیک اپ فولڈر سیٹ کریں",
+  "setBackupPassword": "بیک اپ پاس ورڈ سیٹ کریں",
+  "setCover": "کور سیٹ کریں",
+  "@setCover": {
+    "description": "Text to set cover photo for an album"
+  },
+  "setLabel": "سیٹ کریں",
+  "@setLabel": {
+    "description": "Label of confirm button to add a new custom radius to the radius selector of a location tag"
+  },
+  "setNewPassword": "نیا پاس ورڈ سیٹ کریں",
+  "@setNewPassword": {
+    "description": "Set new password title"
+  },
+  "setNewPin": "نیا پن (PIN) سیٹ کریں",
+  "@setNewPin": {
+    "description": "Set new PIN title"
+  },
+  "setPasswordTitle": "پاس ورڈ سیٹ کریں",
+  "@setPasswordTitle": {
+    "description": "Set password title"
+  },
+  "setRadius": "رداس سیٹ کریں",
+  "settings": "سیٹنگز",
+  "setupComplete": "سیٹ اپ مکمل",
+  "setupFirstAccount": "اپنا پہلا\nاکاؤنٹ سیٹ اپ کریں",
+  "share": "شیئر کریں",
+  "shareALink": "لنک شیئر کریں",
+  "shareAnAlbum": "البم شیئر کریں",
+  "shareCodes": "کوڈز شیئر کریں",
+  "shareCodesDuration": "وہ دورانیہ منتخب کریں جس کے لیے آپ کوڈز شیئر کرنا چاہتے ہیں۔",
+  "sharedAlbumWithYou": "آپ کے ساتھ {albumName} شیئر کیا",
+  "@sharedAlbumWithYou": {
+    "description": "Social notification action text shown after a person's name, for example 'John shared Recents with you'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      }
+    }
+  },
+  "sharedPhotoNotifications": "نئی شیئر کردہ تصاویر اور البمز",
+  "sharedPhotoNotificationsExplanation": "نئی تصاویر اور البمز جن میں آپ شامل ہیں یا آپ کے ساتھ شیئر کیے گئے",
+  "shareKey": "کی شیئر کریں",
+  "shareLink": "لنک شیئر کریں",
+  "shareMyVerificationID": "یہ میرا تصدیقی ID ہے: {verificationID} ente.com کے لیے.",
+  "@shareMyVerificationID": {
+    "placeholders": {
+      "verificationID": {}
+    }
+  },
+  "shareStorageWith5Members": "۵ اراکین کے ساتھ اسٹوریج شیئر کریں",
+  "shareTextConfirmOthersVerificationID": "ارے، کیا آپ تصدیق کر سکتے ہیں کہ یہ آپ کا ente.com تصدیقی ID ہے: {verificationID}",
+  "@shareTextConfirmOthersVerificationID": {
+    "placeholders": {
+      "verificationID": {}
+    }
+  },
+  "shareTextRecommendUsingEnteForFamily": "Ente ڈاؤن لوڈ کریں تاکہ میں آپ کو اپنے فیملی پلان میں شامل کر سکوں۔\n\nhttps://ente.com",
+  "shareTextRecommendUsingEnteForPhotos": "Ente ڈاؤن لوڈ کریں تاکہ ہم اصل معیار کی تصاویر اور ویڈیوز آسانی سے شیئر کر سکیں۔\n\nhttps://ente.com",
+  "shareWithNonenteUsers": "غیر Ente صارفین کے ساتھ شیئر کریں",
+  "shareYourSubscription": "اپنی سبسکرپشن اپنے پیاروں کے ساتھ شیئر کریں",
+  "sharing": "شیئر کیا جا رہا ہے...",
+  "sharingAndCollaboration": "شیئرنگ اور تعاون",
+  "sharingAndCollaborationDesc": "البمز، لنکس، اور فیملی پلانز",
+  "shiftDatesAndTime": "تاریخیں اور وقت شفٹ کریں",
+  "shouldHideCode": "کوڈز چھپائیں",
+  "shouldRemoveFilesSmartAlbumsDesc": "کیا اس شخص سے متعلق فائلیں جو پہلے سمارٹ البمز میں منتخب کی گئی تھیں انہیں ہٹا دیا جائے؟",
+  "showIgnored": "نظر انداز کردہ دکھائیں",
+  "showInMemories": "یادوں میں دکھائیں",
+  "showLargeIcons": "بڑے آئیکنز دکھائیں",
+  "showLessFaces": "کم چہرے دکھائیں",
+  "showMemories": "یادیں دکھائیں",
+  "showMoreFaces": "مزید چہرے دکھائیں",
+  "showPerson": "شخص دکھائیں",
+  "showQRAuthMessage": "QR کوڈ دکھانے کے لیے توثیق کریں",
+  "showTextOnWidget": "ویجیٹ پر متن دکھائیں",
+  "sigInBackupReminder": "Ente سائن ان کے بعد خود بخود کوڈز کا بیک اپ لے لے گا۔\n\nہم اب بھی اضافی بیک اپ کے طور پر کوڈز ایکسپورٹ کرنے کی سفارش کرتے ہیں۔",
+  "signInToBackup": "اپنے کوڈز کا بیک اپ لینے کے لیے سائن ان کریں",
+  "signUp": "سائن اپ کریں",
+  "signUpTerms": "میں <u-terms>سروس کی شرائط</u-terms> اور <u-policy>پرائیویسی پالیسی</u-policy> سے اتفاق کرتا ہوں",
+  "@signUpTerms": {
+    "description": "Terms agreement text for sign up"
+  },
+  "similar": "ملتی جلتی",
+  "similarImages": "ملتی جلتی تصاویر",
+  "similarImagesCount": "{count} ملتی جلتی تصاویر",
+  "@similarImagesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "singIn": "سائن ان",
+  "skip": "چھوڑ دیں",
+  "smartMemories": "اسمارٹ یادیں",
+  "snowAdventures": "سردیوں کی مہم جوئی",
+  "socialNotifications": "لائکس اور تبصرے",
+  "socialNotificationsExplanation": "آپ کی تصاویر پر لائکس اور البمز پر تبصرے جن میں آپ شامل ہیں",
+  "someoneSharingAlbumsWithYouShouldSeeTheSameId": "آپ کے ساتھ البمز شیئر کرنے والے شخص کو اپنی ڈیوائس پر وہی ID دیکھنی چاہیے.",
+  "somethingWentWrong": "کچھ غلط ہو گیا",
+  "somethingWentWrongMessage": "کچھ غلط ہو گیا، براہ کرم دوبارہ کوشش کریں",
+  "somethingWentWrongParsingCode": "ہم {x} کوڈز کو پارس (parse) کرنے سے قاصر تھے۔",
+  "@somethingWentWrongParsingCode": {
+    "placeholders": {
+      "x": {}
+    }
+  },
+  "somethingWentWrongPleaseTryAgain": "کچھ غلط ہو گیا، براہ کرم دوبارہ کوشش کریں",
+  "@somethingWentWrongPleaseTryAgain": {
+    "description": "Generic error message"
+  },
+  "sorry": "معذرت",
+  "sorryBackupFailedDesc": "معذرت، ہم ابھی اس فائل کا بیک اپ نہیں لے سکے، ہم بعد میں دوبارہ کوشش کریں گے.",
+  "sorryCouldNotAddToFavorites": "معذرت، پسندیدہ میں شامل نہیں کیا جا سکا!",
+  "sorryCouldNotRemoveFromFavorites": "معذرت، پسندیدہ سے نہیں ہٹایا جا سکا!",
+  "sorryTheCodeYouveEnteredIsIncorrect": "معذرت، آپ کا درج کردہ کوڈ غلط ہے",
+  "@sorryTheCodeYouveEnteredIsIncorrect": {
+    "description": "Detailed error message when code is incorrect"
+  },
+  "sorryWeHadToPauseYourBackups": "معذرت، ہمیں آپ کے بیک اپس روکنے پڑے",
+  "sort": "ترتیب دیں",
+  "sortAlbumsBy": "ترتیب دیں بذریعہ",
+  "sortAToZ": "A-Z",
+  "sortNewestFirst": "پہلے تازہ ترین",
+  "sortOldestFirst": "پہلے قدیم ترین",
+  "sortZToA": "Z-A",
+  "sportsAction": "کھیل جاری",
+  "sportsWithThem": "{name} کے ساتھ کھیل",
+  "@sportsWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "spotlightOnThem": "{name} پر اسپاٹ لائٹ",
+  "@spotlightOnThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "spotlightOnYourself": "آپ پر اسپاٹ لائٹ",
+  "stargazing": "ستاروں کے نیچے",
+  "startBackup": "بیک اپ شروع کریں",
+  "startRecovery": "بحالی شروع کریں",
+  "startRecoveryDesc": "کیا آپ واقعی {email} کے اکاؤنٹ کی بحالی شروع کرنا چاہتے ہیں؟",
+  "@startRecoveryDesc": {
+    "description": "Description for start recovery confirmation dialog",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "status": "اسٹیٹس",
+  "sticker": "اسٹیکر",
+  "stopCastingBody": "کیا آپ کاسٹنگ روکنا چاہتے ہیں؟",
+  "stopCastingTitle": "کاسٹنگ روکیں",
+  "storage": "اسٹوریج",
+  "storageAndPlans": "سٹوریج اور پلانز",
+  "storageAndPlansDesc": "پلانز، بلنگ، اور سٹوریج کا استعمال",
+  "storageBreakupFamily": "فیملی",
+  "storageBreakupYou": "آپ",
+  "@storageBreakupYou": {
+    "description": "Label to indicate how much storage you are using when you are part of a family plan"
+  },
+  "storageClaimed": "{storageAmountInGB} جی بی کا دعویٰ کیا گیا!",
+  "@storageClaimed": {
+    "placeholders": {
+      "storageAmountInGB": {}
+    }
+  },
+  "storageLimit": "سٹوریج کی حد",
+  "storageLimitExceeded": "اسٹوریج کی حد سے تجاوز",
+  "storageLimitExplanation": "اس رکن کے لیے زیادہ سے زیادہ اسٹوریج کی حد مقرر کریں۔ حد پوری ہونے کے بعد وہ اپ لوڈ نہیں کر سکیں گے۔",
+  "storageUsedOfTotal": "{used} از {total} استعمال شدہ",
+  "@storageUsedOfTotal": {
+    "placeholders": {
+      "total": {
+        "type": "String",
+        "example": "200 GB"
+      },
+      "used": {
+        "type": "String",
+        "example": "67 GB"
+      }
+    }
+  },
+  "streamDetails": "اسٹریم کی تفصیلات",
+  "streetArt": "اسٹریٹ آرٹ کی کہانیاں",
+  "streetFood": "اسٹریٹ فوڈ",
+  "strongPassword": "مضبوط پاس ورڈ",
+  "strongStrength": "مضبوط",
+  "@strongStrength": {
+    "description": "Strong password strength label"
+  },
+  "subject": "موضوع",
+  "submit": "جمع کرائیں",
+  "subscribe": "سبسکرائب کریں",
+  "subscribeToChangeLinkSetting": "اس لنک کی ترتیب کو تبدیل کرنے کے لیے آپ کو معاوضہ سبسکرپشن کی ضرورت ہے.",
+  "subscribeToEnableSharing": "شیئرنگ کو فعال کرنے کے لیے آپ کو فعال معاوضہ سبسکرپشن کی ضرورت ہے.",
+  "subscription": "سبسکرپشن",
+  "subWillBeCancelledOn": "آپ کی سبسکرپشن {endDate} کو منسوخ کر دی جائے گی",
+  "@subWillBeCancelledOn": {
+    "placeholders": {
+      "endDate": {}
+    }
+  },
+  "success": "کامیاب",
+  "successfullyArchived": "کامیابی سے آرکائیو ہو گیا",
+  "successfullyHid": "کامیابی سے چھپا دیا",
+  "successfullyUnarchived": "کامیابی سے ان آرکائیو ہو گیا",
+  "successfullyUnhid": "کامیابی سے ظاہر کر دیا",
+  "suggestDeletion": "ڈیلیٹ کرنے کی تجویز دیں",
+  "suggestDeletionDescription": "منتخب کردہ تصاویر اس البم سے ہٹا دی جائیں گی. تصویر کے مالکان کو بھی تصاویر کا جائزہ لینے اور ڈیلیٹ کرنے کی تجویز ملے گی.",
+  "suggestFeatures": "فیچرز تجویز کریں",
+  "suggestions": "تجاویز",
+  "sunrise": "افق پر",
+  "support": "سپورٹ",
+  "supportEnte": "<bold-green>ente</bold-green> کو سپورٹ کریں",
+  "syncing": "Sync ہو رہا ہے...",
+  "syncProgress": "{completed}/{total} یادیں محفوظ",
+  "@syncProgress": {
+    "description": "Text to tell user how many memories have been preserved",
+    "placeholders": {
+      "completed": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "syncStopped": "Sync رک گیا",
+  "systemTheme": "سسٹم",
+  "tag": "ٹیگ",
+  "tags": "ٹیگز",
+  "tapToCopy": "کاپی کرنے کے لیے ٹیپ کریں",
+  "tapToUnlock": "ان لاک کرنے کے لیے ٹیپ کریں",
+  "@tapToUnlock": {
+    "description": "Message prompting user to tap to unlock"
+  },
+  "tapToUpload": "اپ لوڈ کرنے کے لیے ٹیپ کریں",
+  "@tapToUpload": {
+    "description": "Shown in upload icon widet, inside a tooltip."
+  },
+  "tapToUploadIsIgnoredDue": "اپ لوڈ کرنے کے لیے ٹیپ کریں، فی الحال {ignoreReason} کی وجہ سے اپ لوڈ نظر انداز کیا جا رہا ہے",
+  "@tapToUploadIsIgnoredDue": {
+    "description": "Shown in upload icon widet, inside a tooltip.",
+    "placeholders": {
+      "ignoreReason": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
+  },
+  "tellUsWhatYouThink": "ہمیں اپنی رائے دیں",
+  "terminate": "ختم کریں",
+  "@terminate": {
+    "description": "Terminate button label"
+  },
+  "terminateSession": "سیشن ختم کریں؟",
+  "@terminateSession": {
+    "description": "Title for terminate session dialog"
+  },
+  "termsOfServicesTitle": "شرائط",
+  "@termsOfServicesTitle": {
+    "description": "Terms of service title"
+  },
+  "thankYou": "شکریہ",
+  "thankYouForSubscribing": "سبسکرائب کرنے کے لیے شکریہ!",
+  "theLinkYouAreTryingToAccessHasExpired": "جس لنک تک آپ رسائی حاصل کرنے کی کوشش کر رہے ہیں اس کی میعاد ختم ہو چکی ہے.",
+  "theme": "تھیم",
+  "thePersonGroupsWillNotBeDisplayed": "پرسن گروپس اب لوگوں کے سیکشن میں نہیں دکھائے جائیں گے. تصاویر متاثر نہیں ہوں گی.",
+  "thePersonWillNotBeDisplayed": "شخص اب لوگوں کے سیکشن میں نہیں دکھایا جائے گا. تصاویر متاثر نہیں ہوں گی.",
+  "theRecoveryKeyYouEnteredIsIncorrect": "آپ کی درج کردہ ریکوری کی غلط ہے",
+  "@theRecoveryKeyYouEnteredIsIncorrect": {
+    "description": "Detailed error message when recovery key is incorrect"
+  },
+  "theseItemsWillBeDeletedFromYourDevice": "یہ آئٹمز آپ کی ڈیوائس سے ڈیلیٹ کر دیے جائیں گے.",
+  "thisCanBeUsedToRecoverYourAccountIfYou": "اگر آپ اپنا دوسرا فیکٹر کھو دیتے ہیں تو اسے آپ کے اکاؤنٹ کو بازیافت کرنے کے لیے استعمال کیا جا سکتا ہے",
+  "thisDevice": "یہ ڈیوائس",
+  "@thisDevice": {
+    "description": "Label for current device"
+  },
+  "thisEmailIsAlreadyInUse": "یہ ای میل پہلے سے استعمال میں ہے",
+  "@thisEmailIsAlreadyInUse": {
+    "description": "Error message when email is already in use"
+  },
+  "thisImageHasNoExifData": "اس تصویر میں کوئی exif ڈیٹا نہیں ہے",
+  "thisIsMeExclamation": "یہ میں ہوں!",
+  "thisIsPersonVerificationId": "یہ {email} کی تصدیقی آئی ڈی ہے",
+  "@thisIsPersonVerificationId": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@ente.com"
+      }
+    }
+  },
+  "thisIsYourVerificationId": "یہ آپ کی تصدیقی آئی ڈی ہے",
+  "thisMonth": "اس مہینے",
+  "thisWeek": "اس ہفتے",
+  "thisWeekThroughTheYears": "اس ہفتے سالوں کے دوران",
+  "thisWeekXYearsAgo": "{count, plural, one{اس ہفتے، {count} سال پہلے} other{اس ہفتے، {count} سال پہلے}}",
+  "@thisWeekXYearsAgo": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "thisWillLogYouOutOfTheFollowingDevice": "یہ آپ کو درج ذیل ڈیوائس سے لاگ آؤٹ کر دے گا:",
+  "@thisWillLogYouOutOfTheFollowingDevice": {
+    "description": "Warning message for logging out of another device"
+  },
+  "thisWillLogYouOutOfThisDevice": "یہ آپ کو اس ڈیوائس سے لاگ آؤٹ کر دے گا!",
+  "@thisWillLogYouOutOfThisDevice": {
+    "description": "Warning message for logging out of current device"
+  },
+  "thisWillMakeTheDateAndTimeOfAllSelected": "یہ تمام منتخب تصاویر کی تاریخ اور وقت ایک جیسا کر دے گا.",
+  "thisYear": "اس سال",
+  "throughTheYears": "{dateFormat} سالوں کے دوران",
+  "@throughTheYears": {
+    "placeholders": {
+      "dateFormat": {}
+    }
+  },
+  "throwbackWithThem": "{name} کے ساتھ پرانی یادیں",
+  "@throwbackWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "todaysLogs": "آج کے لاگز",
+  "tooManyIncorrectAttempts": "بہت زیادہ غلط کوششیں",
+  "@tooManyIncorrectAttempts": {
+    "description": "Message shown when too many incorrect attempts are made"
+  },
+  "toResetVerifyEmail": "اپنا پاس ورڈ ری سیٹ کرنے کے لیے، براہ کرم پہلے اپنے ای میل کی تصدیق کریں۔",
+  "@toResetVerifyEmail": {
+    "description": "Message asking user to verify email before password reset"
+  },
+  "totalSize": "کل سائز",
+  "trashCode": "کوڈ کو ٹریش کریں؟",
+  "trashCodeMessage": "کیا آپ واقعی {account} کے کوڈ کو ٹریش کرنا چاہتے ہیں؟",
+  "@trashCodeMessage": {
+    "placeholders": {
+      "account": {}
+    }
+  },
+  "trashDaysLeft": "{count, plural, =0{جلد} one{{count} دن} other{{count} دن}}",
+  "@trashDaysLeft": {
+    "description": "Text to indicate number of days remaining before permanent deletion",
+    "placeholders": {
+      "count": {
+        "example": "1|2|3",
+        "type": "int"
+      }
+    }
+  },
+  "trim": "تراشیں",
+  "tripInYear": "{year} میں سفر",
+  "@tripInYear": {
+    "placeholders": {
+      "year": {}
+    }
+  },
+  "tripToLocation": "{location} کا سفر",
+  "@tripToLocation": {
+    "placeholders": {
+      "location": {}
+    }
+  },
+  "tropicalParadise": "استوائی مقامات",
+  "troubleshooting": "مسائل حل کرنا",
+  "troubleshootingDesc": "عام مسائل اور ان کے حل",
+  "trustedContactAccepted": "آپ نے {email} کو قابل اعتماد رابطہ کے طور پر شامل کیا ہے۔ انہوں نے آپ کی دعوت قبول کر لی ہے.",
+  "@trustedContactAccepted": {
+    "description": "Description shown when a trusted contact has accepted the invite",
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@example.com"
+      }
+    }
+  },
+  "trustedContactInvitePending": "آپ نے {email} کو قابل اعتماد رابطہ بننے کی دعوت دی ہے۔ انہوں نے ابھی تک قبول نہیں کیا.",
+  "@trustedContactInvitePending": {
+    "description": "Description shown when a trusted contact invite is pending",
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@example.com"
+      }
+    }
+  },
+  "trustedContacts": "قابل اعتماد رابطے",
+  "tryAgain": "دوبارہ کوشش کریں",
+  "@tryAgain": {
+    "description": "Try again button label"
+  },
+  "twofactor": "ٹو فیکٹر",
+  "twofactorAuthenticationHasBeenDisabled": "ٹو فیکٹر تصدیق غیر فعال کر دی گئی ہے",
+  "twoFactorAuthTitle": "دو مراحل پر مشتمل توثیق (2FA)",
+  "@twoFactorAuthTitle": {
+    "description": "Two-factor authentication title"
+  },
+  "twofactorSetup": "ٹو فیکٹر سیٹ اپ",
+  "twoFAVerification": "2FA تصدیق",
+  "type": "قسم",
+  "typeOfGallerGallerytypeIsNotSupportedForRename": "گیلری کی قسم {galleryType} نام تبدیل کرنے کے لیے سپورٹڈ نہیں ہے",
+  "@typeOfGallerGallerytypeIsNotSupportedForRename": {
+    "placeholders": {
+      "galleryType": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
+  },
+  "unarchive": "ان آرکائیو کریں",
+  "@unarchive": {
+    "description": "Action of 'Unarchiving' an element"
+  },
+  "unarchiveAlbum": "البم ان آرکائیو کریں",
+  "unarchiving": "ان آرکائیو کیا جا رہا ہے...",
+  "uncategorized": "غیر زمرہ بند",
+  "undo": "کالعدم کریں",
+  "unhide": "ظاہر کریں",
+  "unhideToAlbum": "البم میں ظاہر کریں",
+  "unhiding": "ظاہر کیا جا رہا ہے...",
+  "unhidingFilesToAlbum": "فائلیں البم میں ظاہر کی جا رہی ہیں",
+  "unlock": "ان لاک کریں",
+  "@unlock": {
+    "description": "Short action label used as the system authentication reason when unlocking the app"
+  },
+  "unnamedPeopleDoingSomethingTogether": "ایک ساتھ کرتے ہوئے",
+  "unnamedPeopleSpotlight": "ایک جانا پہچانا چہرہ",
+  "unnamedPeopleThrowbackTogether": "پرانی یادیں ایک ساتھ",
+  "unnamedPeopleYouAndThem": "آپ دونوں",
+  "unpin": "ان پن کریں",
+  "unpinnedCodeMessage": "{code} کو ان پن کر دیا گیا ہے",
+  "@unpinnedCodeMessage": {
+    "placeholders": {
+      "code": {}
+    }
+  },
+  "unpinnedCount": "{count, plural, one{{count} آئٹم ان پن کیا گیا} other{{count} آئٹمز ان پن کیے گئے}}",
+  "@unpinnedCount": {
+    "description": "Text to show number of items unpinned",
+    "placeholders": {
+      "count": {
+        "description": "Number of items unpinned",
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "unpinPerson": "شخص کو ان پن کریں",
+  "unpinText": "ان پن (Unpin)",
+  "unselectAll": "سبھی کو غیر منتخب کریں",
+  "updateAvailable": "اپ ڈیٹ دستیاب ہے",
+  "updateBackupPassword": "بیک اپ پاس ورڈ اپ ڈیٹ کریں",
+  "updated": "اپ ڈیٹ شدہ",
+  "updateSettings": "ترتیبات اپ ڈیٹ کریں",
+  "updateTime": "وقت اپ ڈیٹ کریں",
+  "@updateTime": {
+    "description": "Button label to update the recovery time for a trusted contact"
+  },
+  "updatingFolderSelection": "فولڈر کا انتخاب اپ ڈیٹ ہو رہا ہے...",
+  "upgrade": "اپ گریڈ کریں",
+  "uploadingFilesToAlbum": "فائلیں البم میں اپ لوڈ ہو رہی ہیں...",
+  "uploadingMultipleMemories": "{count} یادیں محفوظ کی جا رہی ہیں...",
+  "@uploadingMultipleMemories": {
+    "description": "Text to tell user how many memories are being preserved",
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "uploadingSingleMemory": "۱ یاد محفوظ کی جا رہی ہے...",
+  "uploadIsIgnoredDueToIgnorereason": "{ignoreReason} کی وجہ سے اپ لوڈ نظر انداز کر دیا گیا",
+  "@uploadIsIgnoredDueToIgnorereason": {
+    "placeholders": {
+      "ignoreReason": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
+  },
+  "usable": "قابل استعمال",
+  "useAsCover": "بطور کور استعمال کریں",
+  "usedSpace": "استعمال شدہ جگہ",
+  "usedYourCode": "نے آپ کا کوڈ استعمال کیا",
+  "useOffline": "بیک اپ کے بغیر استعمال کریں",
+  "useSelectedPhoto": "منتخب شدہ تصویر استعمال کریں",
+  "usingStorage": "{amount} استعمال کر رہے ہیں",
+  "@usingStorage": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "20 GB"
+      }
+    }
+  },
+  "validTill": "{endDate} تک کارآمد",
+  "@validTill": {
+    "placeholders": {
+      "endDate": {}
+    }
+  },
+  "verify": "تصدیق کریں",
+  "@verify": {
+    "description": "Verify button label"
+  },
+  "verifyEmail": "ای میل کی تصدیق کریں",
+  "@verifyEmail": {
+    "description": "Verify email title"
+  },
+  "verifyIDLabel": "تصدیق کریں",
+  "verifying": "تصدیق کی جا رہی ہے...",
+  "verifyPassword": "پاس ورڈ کی تصدیق کریں",
+  "@verifyPassword": {
+    "description": "Verify password button label"
+  },
+  "videoAlreadyInQueue": "ویڈیو فائل پہلے سے قطار میں موجود ہے",
+  "videoExportFailed": "ویڈیو بنانا ناکام. براہ کرم دوبارہ کوشش کریں.",
+  "videoExportSuccess": "ویڈیو کامیابی سے {path} پر بنائی گئی",
+  "@videoExportSuccess": {
+    "description": "Toast shown when a video export completes, mentioning the filesystem path.",
+    "placeholders": {
+      "path": {
+        "description": "File path where the exported video was written",
+        "type": "String",
+        "example": "/tmp/ente_export.mp4"
+      }
+    }
+  },
+  "videoInfo": "ویڈیو کی معلومات",
+  "videoPreviewAlreadyExists": "ویڈیو کا پیش نظارہ پہلے سے موجود ہے",
+  "videos": "ویڈیوز",
+  "videoStreaming": "اسٹریم کے قابل ویڈیوز",
+  "videoStreamingDescriptionLine1": "کسی بھی ڈیوائس پر فوری ویڈیوز چلائیں.",
+  "videoStreamingDescriptionLine2": "اس ڈیوائس پر ویڈیو اسٹریمز پروسیس کرنے کے لیے فعال کریں.",
+  "videoStreamingNote": "اس ڈیوائس پر صرف گزشتہ ۶۰ دنوں کی اور ۱ منٹ سے کم کی ویڈیوز پروسیس کی جاتی ہیں. پرانی/لمبی ویڈیوز کے لیے، ڈیسک ٹاپ ایپ میں اسٹریمنگ فعال کریں.",
+  "viewActiveSessions": "فعال سیشنز دیکھیں",
+  "viewAddOnButton": "ایڈ آنز دیکھیں",
+  "viewAllExifData": "تمام EXIF ڈیٹا دیکھیں",
+  "viewAllHelpTopics": "تمام مدد کے موضوعات دیکھیں",
+  "viewer": "ناظر",
+  "viewLargeFiles": "بڑی فائلیں",
+  "viewLogs": "لاگز دیکھیں",
+  "@viewLogs": {
+    "description": "Button to view logs"
+  },
+  "viewLogsAction": "لاگز دیکھیں",
+  "viewPersonToUnlink": "ان لنک کرنے کے لیے {name} دیکھیں",
+  "@viewPersonToUnlink": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "viewPlans": "پلانز دیکھیں",
+  "viewRawCodes": "خام (Raw) کوڈز دیکھیں",
+  "vintageVibes": "پرانی یادیں",
+  "visitWebToManage": "اپنی سبسکرپشن کا انتظام کرنے کے لیے براہ کرم {webUrl} پر جائیں",
+  "@visitWebToManage": {
+    "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",
+    "placeholders": {
+      "webUrl": {
+        "type": "String",
+        "example": "photos.ente.com"
+      }
+    }
+  },
+  "waitingForVerification": "تصدیق کا انتظار ہے...",
+  "@waitingForVerification": {
+    "description": "Waiting for verification message"
+  },
+  "waitingForWifi": "وائی ​​فائی کا انتظار ہے...",
+  "waterfalls": "آبشاروں کا پیچھا",
+  "weakStrength": "کمزور",
+  "@weakStrength": {
+    "description": "Weak password strength label"
+  },
+  "weAreOpenSource": "ہم اوپن سورس ہیں!",
+  "weddingMoments": "شادی کے دن کی چمک",
+  "weDontSupportEditingPhotosAndAlbumsThatYouDont": "ہم ان تصاویر اور البمز کی ایڈیٹنگ کو سپورٹ نہیں کرتے جو ابھی آپ کی ملکیت نہیں ہیں",
+  "weHaveSentCodeTo": "ہم نے {email} میں ایک کوڈ بھیجا ہے",
+  "@weHaveSentCodeTo": {
+    "description": "Text to indicate that we have sent a verification code to the user's email",
+    "placeholders": {
+      "email": {
+        "description": "The email address of the user",
+        "type": "String",
+        "example": "example@ente.com"
+      }
+    }
+  },
+  "whatsNew": "نیا کیا ہے",
+  "widgets": "ویجٹ",
+  "wildlife": "جنگل میں",
+  "wishThemAHappyBirthday": "{name} کو سالگرہ مبارک کہیں! 🎉",
+  "@wishThemAHappyBirthday": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "yearly": "سالانہ",
+  "@yearly": {
+    "description": "The text to display for yearly plans",
+    "type": "text"
+  },
+  "yearsAgo": "{count, plural, one{{count} سال پہلے} other{{count} سال پہلے}}",
+  "@yearsAgo": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "yearShort": "سال",
+  "@yearShort": {
+    "description": "Appears in pricing page (/yr)"
+  },
+  "yesCancel": "ہاں، منسوخ کریں",
+  "yesConvertToViewer": "ہاں، ناظر میں تبدیل کریں",
+  "yesDelete": "ہاں، ڈیلیٹ کریں",
+  "yesDiscardChanges": "ہاں، تبدیلیاں ختم کریں",
+  "yesIgnore": "ہاں، نظر انداز کریں",
+  "yesRemove": "ہاں، ہٹائیں",
+  "yesRenew": "ہاں، تجدید کریں",
+  "yesResetPerson": "ہاں، شخص کو ری سیٹ کریں",
+  "yesShowPeople": "ہاں، لوگ دکھائیں",
+  "yesShowPerson": "ہاں، شخص دکھائیں",
+  "you": "آپ",
+  "youAndThem": "آپ اور {name}",
+  "@youAndThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "youAreOnTheLatestVersion": "آپ تازہ ترین ورژن پر ہیں",
+  "youCannotDowngradeToThisPlan": "آپ اس پلان پر ڈاؤن گریڈ نہیں کر سکتے",
+  "youCannotShareWithYourself": "آپ خود کے ساتھ شیئر نہیں کر سکتے",
+  "youHaveNoFileSuggestedForDeletion": "آپ کے پاس ڈیلیٹ کرنے کے لیے کوئی تجویز کردہ فائل نہیں ہے",
+  "youHaveSuccessfullyFreedUp": "آپ نے کامیابی کے ساتھ {storageSaved} جگہ خالی کر لی ہے!",
+  "@youHaveSuccessfullyFreedUp": {
+    "description": "The text to display when the user has successfully freed up storage",
+    "type": "text",
+    "placeholders": {
+      "storageSaved": {
+        "example": "1.2 GB",
+        "type": "String"
+      }
+    }
+  },
+  "yourMap": "آپ کا نقشہ",
+  "yourPhotosLookUnique": "آپ کی تصاویر منفرد لگتی ہیں",
+  "yourPlanSupportsFamily": "آپ کا پلان پہلے ہی فیملی کو سپورٹ کرتا ہے",
+  "yourPlanWasSuccessfullyDowngraded": "آپ کا پلان کامیابی سے ڈاؤن گریڈ ہو گیا",
+  "yourPlanWasSuccessfullyUpgraded": "آپ کا پلان کامیابی سے اپ گریڈ ہو گیا",
+  "yourPurchaseWasSuccessful": "آپ کی خریداری کامیاب رہی",
+  "yourSubscriptionHasExpired": "آپ کی سبسکرپشن کی میعاد ختم ہو گئی ہے",
+  "yourSubscriptionWasUpdatedSuccessfully": "آپ کی سبسکرپشن کامیابی سے اپ ڈیٹ ہو گئی",
+  "yourVerificationCodeHasExpired": "آپ کے تصدیقی کوڈ کی میعاد ختم ہو گئی ہے",
+  "@yourVerificationCodeHasExpired": {
+    "description": "Error message when verification code has expired"
+  },
+  "youveNoDuplicateCodesThatCanBeCleared": "آپ کے پاس کوئی ڈپلیکیٹ کوڈ نہیں ہے جسے صاف کیا جا سکے",
+  "youveNoDuplicateFilesThatCanBeCleared": "آپ کے پاس کوئی ڈپلیکیٹ فائل نہیں ہے جسے صاف کیا جا سکے",
+  "youveNoFilesInThisAlbumThatCanBeDeleted": "آپ کے پاس اس البم میں کوئی ایسی فائل نہیں ہے جسے ڈیلیٹ کیا جا سکے",
+  "zoomOutToSeePhotos": "تصاویر دیکھنے کے لیے زوم آؤٹ کریں",
+  "grantAccess": "رسائی دیں"
+}

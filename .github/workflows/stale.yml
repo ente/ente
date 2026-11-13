@@ -6,16 +6,68 @@ on:
     workflow_dispatch:
 
 permissions:
-    contents: read
     issues: write
     pull-requests: write
+    statuses: read
 
 jobs:
     stale:
         runs-on: ubuntu-latest
         steps:
+            - name: Manage pull requests missing CLA
+              uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+              with:
+                  script: |
+                      const repo = context.repo;
+                      const cutoff = Date.now() - 3 * 24 * 60 * 60 * 1000;
+
+                      for (const pr of await github.paginate(github.rest.pulls.list, {
+                          ...repo,
+                          state: "open",
+                          per_page: 100,
+                      })) {
+                          const { data: { statuses } } = await github.rest.repos.getCombinedStatusForRef({
+                              ...repo,
+                              ref: pr.head.sha,
+                          });
+                          const cla = statuses.find((status) => status.context === "license/cla");
+                          const pending = pr.labels.some((label) => label.name === "pending-cla");
+
+                          if (cla?.state === "success") {
+                              if (pending) {
+                                  await github.rest.issues.removeLabel({
+                                      ...repo,
+                                      issue_number: pr.number,
+                                      name: "pending-cla",
+                                  });
+                              }
+                              continue;
+                          }
+                          if (cla?.state !== "pending") continue;
+
+                          if (!pending) {
+                              await github.rest.issues.addLabels({
+                                  ...repo,
+                                  issue_number: pr.number,
+                                  labels: ["pending-cla"],
+                              });
+                          }
+                          if (Date.parse(pr.created_at) > cutoff) continue;
+
+                          await github.rest.issues.createComment({
+                              ...repo,
+                              issue_number: pr.number,
+                              body: "This pull request has been automatically closed because the CLA has not been signed. Reopen it after signing.",
+                          });
+                          await github.rest.pulls.update({
+                              ...repo,
+                              pull_number: pr.number,
+                              state: "closed",
+                          });
+                      }
+
             - name: Mark and close stale pull requests
-              uses: actions/stale@v9
+              uses: actions/stale@4391f3da665fdf50b6810c1a66712fb9ba21aa93 # v11.0.0
               with:
                   days-before-pr-stale: 30
                   days-before-pr-close: 7

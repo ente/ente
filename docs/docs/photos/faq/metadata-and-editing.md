@@ -7,6 +7,12 @@ description: Frequently asked questions about photo metadata, EXIF data, and edi
 
 ## Viewing Metadata
 
+### Why is my iPhone Portrait photo smaller in Ente than in Apple Photos? {#portrait-photo-size}
+
+Apple Photos may include extra Portrait depth and adjustment data when showing an asset's size. Ente backs up the full-resolution image provided by iOS without compressing it, but that image file can be smaller than the complete Apple Photos asset. To compare them, export the photo from Apple Photos using **Current** and check its file size and resolution against the copy in Ente.
+
+Ente preserves the current look of the photo, but not Apple's separate editable Portrait data. If you restore the image from Ente, controls such as changing the depth or removing the Portrait effect may no longer be available. Keep a copy in Apple Photos or iCloud if you need those controls.
+
 ### What metadata does Ente preserve during import? {#metadata-preserved}
 
 Ente reads and preserves:
@@ -27,7 +33,7 @@ Ente will try to read as much information from Exif metadata when the image is u
 
 The app still shows all the fields in the raw Exif data in the file info panel when someone taps on the "View all Exif" option, but otherwise the app is unaware of these fields.
 
-In particular, for the description associated with a photo, the exact logic to determine the description from the Exif when uploading the image can be seen [in this part of the code](https://github.com/ente-io/ente/blob/0dcb185744da469848b41b668fe4b647226b6fe2/web/packages/gallery/services/exif.ts#L609-L620).
+In particular, for the description associated with a photo, the exact logic to determine the description from the Exif when uploading the image can be seen [in this part of the code](https://github.com/ente/ente/blob/0dcb185744da469848b41b668fe4b647226b6fe2/web/packages/gallery/services/exif.ts#L609-L620).
 
 ### Where does Ente import photo dates from? {#photo-date-sources}
 
@@ -39,7 +45,9 @@ Ente will import the date for your photos from three places (in order of priorit
 
 3. **File name**: If the photo does not have a date in the Exif data (and it is not a Google takeout), for example, for screenshots or WhatsApp forwards, Ente will try and deduce the correct date for the file from the name of the file.
 
-> **Note**: The filename-based detection works great most of the time, but it is inherently based on heuristics and is not exact.
+> [!NOTE]
+>
+> The filename-based detection works great most of the time, but it is inherently based on heuristics and is not exact.
 
 If we are unable to decipher the creation time from these 3 sources, we will set the upload time as the photo's creation time.
 
@@ -54,6 +62,16 @@ If we are unable to decipher the creation time from these 3 sources, we will set
 
 This shows all the technical data about the photo including camera settings, lens information, and more.
 
+### What metadata can people I share with see? {#shared-metadata-visibility}
+
+Anyone you share an album with sees the same item details you do: capture date, camera EXIF, captions, album titles, and map pins, because that metadata decrypts together with the photo.
+
+Public link viewers see the same fields. Contributor emails on a shared album are masked on public links by default; see [Why do emails on my feed appear masked for public links?](/photos/faq/sharing-and-collaboration#masked-emails-public-links).
+
+There is no public-link setting to hide location data. Editing a location in Ente does not remove GPS coordinates embedded in the original file or change the copy in your phone's photo library. Turning off downloads does not remove that metadata either.
+
+To share without GPS metadata, create separate copies outside Ente with location metadata removed, then verify those copies before uploading and sharing them. Keep your original files privately, and keep them out of the album containing the sanitized copies.
+
 ## Importing from Google Photos
 
 ### How does Ente handle Google Takeout metadata? {#google-takeout-metadata}
@@ -62,26 +80,68 @@ When you export your data using Google Takeout, Google provides both your photos
 
 For example, `flower.jpeg` might be in one zip and `flower.json` in another. This prevents Ente from correctly mapping them.
 
-**Best practice**: We [recommend](/photos/migration/from-google-photos/)
-unzipping all of your Google Takeout zips into a single parent folder, keeping
-subfolders as-is (do not flatten files), then importing that parent folder into
-Ente. This way, we can always correctly map photos and their metadata.
+**Best practice**: We [recommend](/photos/migration/from-google-photos/) unzipping all of your Google Takeout zips into a single parent folder, keeping subfolders as-is (do not flatten files), then importing that parent folder into Ente. This way, we can always correctly map photos and their metadata.
 
 ### Why are my Google Photos dates wrong after import? {#google-photos-dates-wrong}
 
-If the dates appear incorrect after importing from Google Takeout, it's usually because:
+A date can be incorrect if Ente could not match a photo to its Google Takeout JSON sidecar, or if the available metadata contains an unexpected date. Older desktop versions may also miss some of Google's sidecar filename formats.
 
-- The photo's Exif data has a different date than Google's metadata JSON
-- The JSON file wasn't matched with the photo during import
+Before retrying:
 
-To fix this:
+1. Update to the current stable [desktop app](https://ente.com/download/desktop).
+2. Keep the original Takeout ZIPs and a separate backup of any files you plan to change or remove.
+3. Extract all parts of the same Takeout into one combined folder. Merge matching album folders so their media and JSON files are together. Keep the album subfolders; do not flatten the files or leave each ZIP in its own numbered folder tree.
+4. Check a few affected photos and their matching JSON files before attempting a larger repair.
 
-1. Make sure you unzipped all Google Takeout zips into one parent folder (with
-   subfolders kept as-is)
-2. Import that parent folder (not individual zips)
-3. This ensures Ente can match JSON files with their photos
+**Repeating the import does not rewrite dates on files that Ente skips as already uploaded.** Updating the app or fixing the source folder alone does not change those existing items.
+
+For photos already in Ente, you can select the affected items in the desktop app and use **Fix time** to choose the correct date. If you need to reimport dates from the Takeout sidecars, contact [support@ente.com](mailto:support@ente.com) for help with an affected-only reimport. Before removing anything, verify that your backup opens and includes the originals and matching JSON files. Do not delete your entire library or empty Trash just to test a date repair.
+
+If an import is still running, [stop the upload](/photos/migration/from-local-hard-disk#stop-and-resume-an-upload) before cleanup. Files still present in the selected source can be uploaded again during that import or a later retry.
+
+## Editing Photos
+
+### What editing tools are available on mobile? {#mobile-photo-editor}
+
+In the Ente Photos mobile app, open a photo, tap the overflow menu (⋮) and select **Edit**. The editor has these tools:
+
+- **Crop & rotate**: **Crop**, **Straighten** a tilted photo, **Rotate**, or **Flip** it.
+- **Filter**: Apply a filter to the photo.
+- **Adjust**: Change **Brightness**, **Contrast**, **Saturation**, **Exposure**, **Hue**, **Temperature**, **Tint**, and **Fade**.
+- **Draw**: Draw on the photo.
+- **Text**: Add text, then choose its font, text color, background, and alignment.
+- **Sticker**: Add stickers.
+
+To change an added text, sticker, or drawing, tap it and select **Edit**, **Duplicate**, or **Delete**.
+
+Text you add becomes part of the edited image. To add searchable text without changing the image, [add a description](#add-descriptions) instead.
+
+When you are finished, tap **Save copy**. Ente saves the edit as a separate copy and leaves your original untouched. Learn more about [how saving edits affects the copy](#saving-photo-edits).
+
+### How do I straighten a tilted photo? {#straighten-photo}
+
+1. Open the photo, tap the overflow menu (⋮) and select **Edit**.
+2. Tap **Crop & rotate**, then select **Straighten**.
+3. Drag the slider until the photo is level.
+4. Tap **Done**, then **Save copy**.
 
 ## Editing Metadata
+
+### What metadata is preserved when I edit a photo? {#metadata-preserved-after-edit}
+
+When Ente creates an edited copy on mobile, it preserves key camera information along with the photo's date, time, and location metadata. Other metadata may not be retained in the edited copy.
+
+For JPEG photos, an edit that only rotates or flips the image is applied without re-encoding it, preserving the original image quality. Other image edits may re-encode the photo.
+
+The original photo remains untouched.
+
+### Does saving photo edits change the original or reduce resolution? {#saving-photo-edits}
+
+Saving an image edit creates a separate copy. Your original photo stays unchanged.
+
+The edited copy is rendered again, so its format, file size, and pixel dimensions can change. Cropping changes the dimensions by design. Other edits may re-encode the image even when you do not crop it. On mobile, most edits are saved as JPEG. On web and desktop, JPEG and WebP are kept where possible; other formats may be saved as PNG.
+
+A smaller file size does not always mean fewer pixels. Compare the width and height of the original and edited copy to check whether the resolution changed. If you need a full-resolution edited version and the copy has fewer pixels, edit the original in an app that exports at full resolution, then upload that copy to Ente.
 
 ### How do I add descriptions or captions to photos? {#add-descriptions}
 
@@ -114,7 +174,9 @@ This is useful for:
 - Adjusting timezone differences
 - Correcting dates on scanned photos
 
-**Note**: This feature is currently only available on the desktop app.
+> [!NOTE]
+>
+> This feature is currently only available on the desktop app.
 
 ### Can I bulk edit photo locations? {#bulk-edit-locations}
 
@@ -156,9 +218,19 @@ Photos sometimes have incorrect dates due to:
 
 Ente will store your corrections and sync them across all your devices.
 
+### What do the Fix time options mean? {#fix-time-options}
+
+- **Exif:DateTimeOriginal**: The original capture timestamp saved in the file's EXIF metadata.
+- **Exif:DateTimeDigitized**: The timestamp for when the image was converted to a digital file, such as when it was scanned.
+- **Exif:MetadataDate**: The timestamp for when the metadata was last updated. Use this only if the capture timestamps are incorrect.
+- **File name**: Parses a date from the file name, if it contains one.
+- **Custom time**: lets you enter the exact date and time manually.
+
 ### Are my metadata edits reversible? {#edits-reversible}
 
 Yes! When you edit metadata (dates, locations, descriptions) in Ente, the **original file is never modified**. Your edits are stored separately.
+
+This also means that changing a location in Ente does not strip embedded GPS from the original or update the copy in your phone's photo library. Before sharing a file without location data, see [what metadata recipients can see](#shared-metadata-visibility).
 
 When you export your photos:
 
@@ -275,17 +347,34 @@ Ente is a photos app, not a file system backup app. Customers for whom the creat
 
 ### Does the date taken of a file change when the file is downloaded or exported? {#date-taken-preservation}
 
-No, the date taken (or "date time") remains the same and is preserved in the EXIF of the file. However, the creation date and modification date are changed as stated in the above FAQ.
+Ente preserves the original file and its embedded metadata. If the original contains an EXIF capture date, that value remains in the file. Ente does not add or rewrite an EXIF date just because a different date appears in Ente.
+
+A date imported from a Google Takeout JSON file, or changed later in Ente, is stored separately. A library export includes that date in a metadata JSON sidecar. Another app needs to read the sidecar to use it.
+
+See [original files during export](#modify-originals) and [file-system creation times](#file-creation-time).
 
 ### Can I modify the original files during export? {#modify-originals}
 
-No. Ente guarantees that you will get back the _exact_ same original photos and videos that you imported. The modifications (e.g. date changes) you make within Ente will be written into a separate metadata JSON file during export so as to not modify the original.
+No. Ente exports the original photos and videos without changing their embedded metadata. Metadata imported from Google Takeout JSON files and changes you make in Ente are written separately to metadata JSON files during library export.
 
-This ensures:
+Keep those sidecars with the originals when transferring to another app that supports them. See [the export metadata format](#export-data-preserve-metadata). To export selected albums with their metadata, you can also use [CLI photo export](/cli/photos).
 
-- You always have access to originals
-- Your edits are preserved separately
-- You can use the metadata JSON with other tools
+### How can I read the date used by Ente from my export? {#read-corrected-date-export}
+
+Ente does not write imported or corrected dates back into the original file. To compare the values:
+
+- **Original embedded date**: inspect the EXIF metadata in the photo file, for example with [ExifTool](https://exiftool.org/).
+- **Date used by Ente**: open the matching JSON file in the export's `metadata/` folder and read `photoTakenTime`.
+
+The exported date can come from the original metadata, an imported Takeout sidecar, a date inferred during import, or a later correction in Ente. The original file and the sidecar can therefore contain different dates.
+
+### Why do some exported photos show the wrong date when imported into another app? {#wrong-export-date-other-app}
+
+Another app may be reading only the original file's embedded date. Ente leaves that file unchanged. Dates imported from Google Takeout sidecars, inferred during import, or corrected in Ente are included in the export's metadata JSON sidecars.
+
+If the original has no EXIF capture date, downloading the image alone does not add one. If its EXIF date differs from the date shown in Ente, the original embedded value remains unchanged too.
+
+Keep the `metadata/` folder with the photos, and check whether the destination app reads Google Takeout-style JSON and accepts that folder layout. See [the export metadata format](#export-data-preserve-metadata) and [how to check the exported date](#read-corrected-date-export).
 
 ## Platform-Specific Behavior
 
@@ -313,6 +402,32 @@ When you edit metadata on one device:
 - Bulk editing dates ("Edit time" feature)
 
 We're working on bringing all editing features to all platforms.
+
+### A photo I shared into Ente from WhatsApp shows the wrong date in the timeline. Why? {#whatsapp-wrong-date}
+
+The timeline date can depend on how the file reaches Ente. On Android, a video shared directly into Ente may use a date from its filename, or the time you imported it, rather than its embedded capture date. This does not by itself show that the sending app removed metadata.
+
+To fix dates already uploaded, the easiest path is the desktop app, which supports bulk editing:
+
+1. Install the desktop app and sign in.
+2. Select the affected photos and videos.
+3. Click **Edit time** in the action bar.
+4. Set the correct date and apply.
+
+The correction syncs to all your devices.
+
+To prevent this for future shared media, save photos to your phone's gallery first and let Ente back them up from the gallery. Ente reads dates correctly when files come from the gallery rather than directly from a sharing intent.
+
+### Why is GPS location missing when I share a photo to Ente on Android? {#android-share-gps-missing}
+
+The Android share flow or the app you share from may send Ente a copy without its GPS metadata. Ente cannot preserve location data it does not receive.
+
+To upload the original photo with its location data:
+
+1. Turn on backup for its folder in **Settings > Backup > Backed up folders**.
+2. Or open an album in Ente, tap **Add**, and select the photo from your device instead of using Android's Share menu.
+
+If the location is still missing, check that the original photo contains GPS coordinates.
 
 ### Does Ente modify any file metadata? {#modify-file-metadata}
 

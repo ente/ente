@@ -1,11 +1,11 @@
 import 'package:dots_indicator/dots_indicator.dart';
 import 'package:ente_accounts/ente_accounts.dart';
+import 'package:ente_accounts/widgets/account_app_bar_logo.dart';
+import 'package:ente_components/ente_components.dart';
 import 'package:ente_strings/ente_strings.dart';
 import 'package:ente_ui/components/buttons/dynamic_fab.dart';
 import 'package:ente_ui/theme/ente_theme.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:pinput/pinput.dart';
 
 class OTTVerificationPage extends StatefulWidget {
   final String email;
@@ -27,22 +27,39 @@ class OTTVerificationPage extends StatefulWidget {
 
 class _OTTVerificationPageState extends State<OTTVerificationPage> {
   final _pinController = TextEditingController();
+  bool _isSubmitting = false;
 
   Future<void> onPressed() async {
-    if (widget.isChangeEmail) {
-      await UserService.instance.changeEmail(
-        context,
-        widget.email,
-        _pinController.text,
-      );
-    } else {
-      await UserService.instance.verifyEmail(
-        context,
-        _pinController.text,
-        isResettingPasswordScreen: widget.isResetPasswordScreen,
-      );
+    if (_isSubmitting) {
+      return;
     }
-    FocusScope.of(context).unfocus();
+    setState(() {
+      _isSubmitting = true;
+    });
+    try {
+      if (widget.isChangeEmail) {
+        await UserService.instance.changeEmail(
+          context,
+          widget.email,
+          _pinController.text,
+        );
+      } else {
+        await UserService.instance.verifyEmail(
+          context,
+          _pinController.text,
+          isResettingPasswordScreen: widget.isResetPasswordScreen,
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
+    if (mounted) {
+      FocusScope.of(context).unfocus();
+    }
   }
 
   @override
@@ -72,16 +89,10 @@ class _OTTVerificationPageState extends State<OTTVerificationPage> {
         scrolledUnderElevation: 0,
         backgroundColor: colorScheme.backgroundBase,
         centerTitle: true,
-        title: SvgPicture.asset(
-          'assets/svg/app-logo.svg',
-          colorFilter: ColorFilter.mode(
-            colorScheme.primary700,
-            BlendMode.srcIn,
-          ),
-        ),
+        title: const AccountAppBarLogo(),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          color: colorScheme.primary700,
+          color: getAccountAppBarColor(context),
           onPressed: () {
             Navigator.of(context).pop();
           },
@@ -114,7 +125,7 @@ class _OTTVerificationPageState extends State<OTTVerificationPage> {
             ),
           DynamicFAB(
             isKeypadOpen: isKeypadOpen,
-            isFormValid: _pinController.text.length == 6,
+            isFormValid: _pinController.text.length == 6 && !_isSubmitting,
             buttonText: context.strings.verify,
             onPressedFunction: onPressed,
           ),
@@ -129,44 +140,6 @@ class _OTTVerificationPageState extends State<OTTVerificationPage> {
     final colorScheme = getEnteColorScheme(context);
     final textTheme = getEnteTextTheme(context);
 
-    final defaultPinTheme = PinTheme(
-      height: 48,
-      width: 48,
-      decoration: BoxDecoration(
-        color: colorScheme.backdropBase,
-        border: Border.all(
-          color: colorScheme.strokeFaint,
-          width: 1.75,
-        ),
-        borderRadius: BorderRadius.circular(18),
-      ),
-    );
-
-    final focusedPinTheme = defaultPinTheme.copyWith(
-      decoration: BoxDecoration(
-        color: colorScheme.backdropBase,
-        border: Border.all(
-          color: colorScheme.primary700,
-          width: 1.75,
-        ),
-        borderRadius: BorderRadius.circular(18),
-      ),
-    );
-
-    final submittedPinTheme = defaultPinTheme.copyWith(
-      textStyle: textTheme.h3Bold.copyWith(
-        color: colorScheme.primary700,
-      ),
-      decoration: BoxDecoration(
-        color: colorScheme.backdropBase,
-        border: Border.all(
-          color: colorScheme.strokeFaint,
-          width: 1.75,
-        ),
-        borderRadius: BorderRadius.circular(18),
-      ),
-    );
-
     return SafeArea(
       child: SingleChildScrollView(
         child: Padding(
@@ -178,30 +151,22 @@ class _OTTVerificationPageState extends State<OTTVerificationPage> {
               Image.asset('assets/upload_file.png'),
               const SizedBox(height: 24),
               Text(
-                context.strings.weHaveSentCode(widget.email),
-                style: textTheme.body.copyWith(
-                  color: colorScheme.textBase,
-                ),
+                context.strings.weHaveSentCode(email: widget.email),
+                style: textTheme.body.copyWith(color: colorScheme.textBase),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               Text(
                 context.strings.checkInboxAndSpamFolder,
-                style: textTheme.small.copyWith(
-                  color: colorScheme.textMuted,
-                ),
+                style: textTheme.small.copyWith(color: colorScheme.textMuted),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
-              Pinput(
+              PinInputComponent(
                 length: 6,
                 controller: _pinController,
                 autofocus: true,
-                defaultPinTheme: defaultPinTheme,
-                focusedPinTheme: focusedPinTheme,
-                submittedPinTheme: submittedPinTheme,
-                showCursor: false,
-                keyboardType: TextInputType.number,
+                autofillHints: const [AutofillHints.oneTimeCode],
                 onCompleted: (value) {
                   if (value.length == 6) {
                     onPressed();

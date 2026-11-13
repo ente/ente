@@ -2,27 +2,51 @@ import AVFoundation
 import Flutter
 import UIKit
 import UserNotifications
-import app_links
+import ente_background_manager
 import workmanager_apple
 
 @main
-@objc class AppDelegate: FlutterAppDelegate {
+@objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
   private static let workmanagerDebugThreadIdentifier =
     "io.ente.frame.workmanager.debug"
+  private let startupTrace: BackgroundStartupTrace = {
+    let trace = BackgroundStartupTrace(scope: "app")
+    trace.event("app.delegate.initializing")
+    return trace
+  }()
+
+  override func application(
+    _ application: UIApplication,
+    willFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+  ) -> Bool {
+    startupTrace.event(
+      "app.willFinishLaunching.begin",
+      detail: "applicationState=\(application.applicationState.rawValue)")
+    defer { startupTrace.event("app.willFinishLaunching.end") }
+    return super.application(application, willFinishLaunchingWithOptions: launchOptions)
+  }
 
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    configureWorkmanagerDebugHandler()
+    startupTrace.event(
+      "app.didFinishLaunching.begin",
+      detail: "applicationState=\(application.applicationState.rawValue)")
+    defer { startupTrace.event("app.didFinishLaunching.end") }
+    startupTrace.measure("app.debugHandler") {
+      configureWorkmanagerDebugHandler()
+    }
 
     // Prevent interrupting background audio from other apps on launch
     do {
-      try AVAudioSession.sharedInstance().setCategory(
-        .ambient,
-        mode: .default,
-        options: [.mixWithOthers]
-      )
+      try startupTrace.measure("app.audioSession") {
+        try AVAudioSession.sharedInstance().setCategory(
+          .ambient,
+          mode: .default,
+          options: [.mixWithOthers]
+        )
+      }
     } catch {
       print("Failed to configure initial audio session: \(error)")
     }
@@ -31,27 +55,44 @@ import workmanager_apple
       UNUserNotificationCenter.current().delegate = self as UNUserNotificationCenterDelegate
     }
 
-    GeneratedPluginRegistrant.register(with: self)
-    WorkmanagerPlugin.setPluginRegistrantCallback { registry in
-      GeneratedPluginRegistrant.register(with: registry)
+    startupTrace.measure("app.backgroundManager.install") {
+      BackgroundManagerPlugin.install(
+        isEnabled: { Self.shouldUseNativeBackgroundManager() },
+        registrant: { registry in
+          GeneratedPluginRegistrant.register(with: registry)
+          NotificationKeyPlugin.register(in: registry)
+        }
+      )
     }
-    var freqInMinutes = 30 * 60
-    // Register a periodic task in iOS 13+
-    WorkmanagerPlugin.registerPeriodicTask(
-      withIdentifier: "io.ente.frame.iOSBackgroundAppRefresh",
-      frequency: NSNumber(value: freqInMinutes))
-
-    // Retrieve the link from parameters
-    if let url = AppLinks.shared.getLink(launchOptions: launchOptions) {
-      // only accept non-homewidget urls for AppLinks
-      if !url.absoluteString.contains("&homeWidget") {
-        AppLinks.shared.handleLink(url: url)
-        // link is handled, stop propagation
-        return true
+    BackgroundManagerPlugin.registerTask(
+      identifier: "io.ente.photos.nativeBackgroundRefresh", processing: false)
+    BackgroundManagerPlugin.registerTask(
+      identifier: "io.ente.photos.nativeBackgroundProcessing", processing: true)
+    WorkmanagerPlugin.setPluginRegistrantCallback { registry in
+      BackgroundStartupTrace(scope: "workmanager").measure("task.plugins") {
+        GeneratedPluginRegistrant.register(with: registry)
+        NotificationKeyPlugin.register(in: registry)
       }
     }
+    startupTrace.measure("app.workmanager.register") {
+      let freqInMinutes = 30 * 60
+      WorkmanagerPlugin.registerPeriodicTask(
+        withIdentifier: "io.ente.frame.iOSBackgroundAppRefresh",
+        frequency: NSNumber(value: freqInMinutes))
+      WorkmanagerPlugin.registerBGProcessingTask(
+        withIdentifier: "io.ente.frame.iOSBackgroundProcessing")
+    }
 
-    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+    return startupTrace.measure("app.super.didFinishLaunching") {
+      super.application(application, didFinishLaunchingWithOptions: launchOptions)
+    }
+  }
+
+  func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
+    startupTrace.measure("app.plugins") {
+      GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+      NotificationKeyPlugin.register(in: engineBridge.pluginRegistry)
+    }
   }
 
   private func configureWorkmanagerDebugHandler() {
@@ -64,32 +105,39 @@ import workmanager_apple
     )
   }
 
+  private static func shouldUseNativeBackgroundManager() -> Bool {
+    let defaults = UserDefaults.standard
+    guard !defaults.bool(forKey: "flutter.ls.internal_user_disabled") else {
+      return false
+    }
+    guard let remoteFlags = defaults.string(forKey: "flutter.remote_flags"),
+      let data = remoteFlags.data(using: .utf8),
+      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+    else {
+      return false
+    }
+    return json["internalUser"] as? Bool ?? false
+  }
+
   private func shouldEnableWorkmanagerDebugNotifications() -> Bool {
     let defaults = UserDefaults.standard
     if defaults.bool(forKey: "flutter.ls.internal_user_disabled") {
       return false
     }
-    if !defaults.bool(forKey: "flutter.ls.bg_debug_notifications_enabled") &&
-        defaults.object(forKey: "flutter.ls.bg_debug_notifications_enabled") != nil {
+    if !defaults.bool(forKey: "flutter.ls.bg_debug_notifications_enabled")
+      && defaults.object(forKey: "flutter.ls.bg_debug_notifications_enabled") != nil
+    {
       return false
     }
 
     guard let remoteFlags = defaults.string(forKey: "flutter.remote_flags"),
-          let data = remoteFlags.data(using: .utf8),
-          let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+      let data = remoteFlags.data(using: .utf8),
+      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
     else {
       return false
     }
 
     return json["internalUser"] as? Bool ?? false
-  }
-
-  override func applicationDidBecomeActive(_ application: UIApplication) {
-    signal(SIGPIPE, SIG_IGN)
-  }
-
-  override func applicationWillEnterForeground(_ application: UIApplication) {
-    signal(SIGPIPE, SIG_IGN)
   }
 
   override func userNotificationCenter(
@@ -99,7 +147,8 @@ import workmanager_apple
   ) {
     let content = notification.request.content
     // iOS suppresses foreground notification presentation unless the delegate
-    // opts in, so explicitly allow only our internal Workmanager debug thread.
+    // opts in. Workmanager debug notifications are silent (banner only); all
+    // other notifications get the standard banner + sound + badge.
     if content.threadIdentifier == Self.workmanagerDebugThreadIdentifier {
       if #available(iOS 14.0, *) {
         completionHandler([.list, .banner])
@@ -109,6 +158,10 @@ import workmanager_apple
       return
     }
 
-    completionHandler([])
+    if #available(iOS 14.0, *) {
+      completionHandler([.list, .banner, .sound, .badge])
+    } else {
+      completionHandler([.alert, .sound, .badge])
+    }
   }
 }

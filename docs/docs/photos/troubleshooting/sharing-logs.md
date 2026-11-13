@@ -1,10 +1,14 @@
 ---
-title: This Page Has Moved
-description: This content has been reorganized
+title: Sharing Debug Logs
+description: Share debug logs with Ente support for troubleshooting
 search: false
+head:
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
-# This Page Has Moved
+# Sharing Debug Logs
 
 The content from **Sharing Logs** has been reorganized. You can find it in the following locations:
 

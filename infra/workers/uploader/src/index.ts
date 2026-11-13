@@ -1,14 +1,8 @@
-/**
- * Proxy file uploads.
- *
- * See: https://ente.io/blog/tech/making-uploads-faster/
- */
-
 export default {
     async fetch(request: Request) {
         switch (request.method) {
             case "OPTIONS":
-                return handleOPTIONS(request);
+                return handleOPTIONS();
             case "POST":
                 return handlePOSTOrPUT(request);
             case "PUT":
@@ -20,19 +14,16 @@ export default {
     },
 } satisfies ExportedHandler;
 
-// Strict allowlist of upload destinations. Expand as needed.
 const ALLOWED_UPLOAD_HOSTS = new Set<string>([
-    // Example: Backblaze B2 S3-compatible bucket endpoint
     "ente-prod-eu.s3.eu-central-003.backblazeb2.com",
+    "ente-prod-v3.s3.eu-central-2.wasabisys.com",
 ]);
 
 const isAllowedUploadURL = (uploadURL: string) => {
     try {
         const url = new URL(uploadURL);
-        // Enforce HTTPS, no credentials, and an allowlisted host.
         if (url.protocol !== "https:") return false;
         if (url.username || url.password) return false;
-        // Only default HTTPS port; signed URLs should not need a custom port.
         if (url.port && url.port !== "443") return false;
         if (!ALLOWED_UPLOAD_HOSTS.has(url.hostname)) return false;
         return true;
@@ -41,10 +32,8 @@ const isAllowedUploadURL = (uploadURL: string) => {
     }
 };
 
-const handleOPTIONS = (request: Request) => {
-    const origin = request.headers.get("Origin");
-    if (!isAllowedOrigin(origin)) console.warn("Unknown origin", origin);
-    return new Response("", {
+const handleOPTIONS = () =>
+    new Response("", {
         headers: {
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "POST, PUT, OPTIONS",
@@ -54,24 +43,6 @@ const handleOPTIONS = (request: Request) => {
             "Access-Control-Max-Age": "86400",
         },
     });
-};
-
-const isAllowedOrigin = (origin: string | null) => {
-    if (!origin) return false;
-    try {
-        const url = new URL(origin);
-        const hostname = url.hostname;
-        return (
-            origin == "ente://app" /* desktop app */ ||
-            hostname.endsWith("ente.io") ||
-            hostname.endsWith("ente.sh") ||
-            hostname == "localhost"
-        );
-    } catch {
-        // `origin` is likely an invalid URL.
-        return false;
-    }
-};
 
 const handlePOSTOrPUT = async (request: Request) => {
     const url = new URL(request.url);
@@ -82,7 +53,7 @@ const handlePOSTOrPUT = async (request: Request) => {
         return new Response(null, { status: 400 });
     }
     if (!isAllowedUploadURL(uploadURL)) {
-        console.warn("Blocked uploadURL due to allowlist", uploadURL);
+        console.warn("Blocked uploadURL due to allowlist");
         return new Response(JSON.stringify({ error: "host not whitelisted" }), {
             status: 400,
             headers: {
@@ -101,19 +72,19 @@ const handlePOSTOrPUT = async (request: Request) => {
             response = await fetch(uploadURL, {
                 method: request.method,
                 body: request.body,
-                headers: forwardHeaders,
+                ...(forwardHeaders ? { headers: forwardHeaders } : {}),
             });
             break;
         case "/multipart-upload":
             response = await fetch(uploadURL, {
                 method: request.method,
                 body: request.body,
-                headers: forwardHeaders,
+                ...(forwardHeaders ? { headers: forwardHeaders } : {}),
             });
             if (response.ok) {
                 const etag = response.headers.get("etag");
                 if (etag === null) {
-                    console.log("No etag in response", response);
+                    console.log("No etag in response");
                     response = new Response(null, { status: 500 });
                 } else {
                     response = new Response(JSON.stringify({ etag }), {

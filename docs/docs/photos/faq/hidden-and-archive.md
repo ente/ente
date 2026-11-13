@@ -1,10 +1,14 @@
 ---
-title: This Page Has Moved
-description: This content has been reorganized
+title: Hide vs Archive
+description: Understand the difference between hiding and archiving photos in Ente
 search: false
+head:
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
-# This Page Has Moved
+# Hide vs Archive
 
 The content from **Hide vs Archive** has been reorganized. You can find it in the following locations:
 

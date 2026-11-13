@@ -1,0 +1,261 @@
+import "dart:async";
+import "dart:convert";
+import "dart:developer";
+import "dart:io";
+
+import "package:dio/dio.dart";
+import "package:ente_feature_flag/src/remote_flags.dart";
+import "package:flutter/foundation.dart";
+import "package:shared_preferences/shared_preferences.dart";
+
+class FlagService {
+  static const int _commentsFlag = 1 << 1;
+  static const int _videoStreamingFlag = 1 << 3;
+  static const int _castSessionsV2Flag = 1 << 5;
+  static const int _librarySharingFlag = 1 << 7;
+  static const int _previewUploadV2Flag = 1 << 8;
+  static const int _cfUploadWorkerRolloutPercent = 50;
+
+  static const String _userIdKey = "user_id";
+
+  final SharedPreferences _prefs;
+  final Dio _enteDio;
+  final String? Function() _getToken;
+
+  FlagService(this._prefs, this._enteDio, this._getToken) {
+    Future.delayed(const Duration(seconds: 5), () {
+      _fetch();
+    });
+  }
+
+  RemoteFlags? _flags;
+  String? _flagsJson;
+
+  RemoteFlags get flags {
+    try {
+      if (!_prefs.containsKey("remote_flags")) {
+        _fetch().ignore();
+      }
+      final flagsJson = _prefs.getString("remote_flags");
+      if (_flags == null || flagsJson != _flagsJson) {
+        _flags = RemoteFlags.fromMap(jsonDecode(flagsJson ?? "{}"));
+        _flagsJson = flagsJson;
+      }
+      return _flags!;
+    } catch (e) {
+      debugPrint("Failed to get feature flags $e");
+      return RemoteFlags.defaultValue;
+    }
+  }
+
+  bool get disableCFWorker => flags.disableCFWorker;
+
+  bool get internalUser {
+    final isDisabled = _prefs.getBool("ls.internal_user_disabled") ?? false;
+    return (flags.internalUser || kDebugMode) && !isDisabled;
+  }
+
+  bool get librarySharing =>
+      internalUser || _isServerFlagEnabled(_librarySharingFlag);
+
+  bool get webGPUEnabled => true;
+
+  bool get cloudflareUploadWorker =>
+      internalUser || _isInUserRollout(_cfUploadWorkerRolloutPercent);
+
+  bool get betaUser => flags.betaUser;
+
+  bool get internalOrBetaUser => internalUser || betaUser;
+
+  bool get enableStripe => Platform.isIOS ? false : flags.enableStripe;
+
+  bool get mapEnabled => flags.mapEnabled;
+
+  bool get isBetaUser => internalUser || flags.betaUser;
+
+  bool get recoveryKeyVerified => flags.recoveryKeyVerified;
+
+  bool get hasGrantedMLConsent => flags.faceSearchEnabled;
+
+  bool get enableMobMultiPart => flags.enableMobMultiPart || internalUser;
+
+  bool get enableVectorDb => hasGrantedMLConsent;
+
+  bool get usearchForSearch => true;
+
+  bool get usearchForSuggestions => true;
+
+  // Internal users only for now. Everyone once no heavy ML DB queries run in
+  // Dart anymore and internal users have soaked it for a while.
+  bool get rustMlDb => internalUser;
+
+  bool get rustMemories => internalUser;
+
+  bool get rewind => internalUser;
+
+  String get castUrl => flags.castUrl;
+
+  String get customDomain => flags.customDomain;
+
+  String get embedUrl => flags.embedUrl;
+
+  bool get useNativeVideoEditor => true;
+
+  bool get videoEditorSpeedEnabled => internalUser;
+
+  bool get memoryVideoExportEnabled => internalUser;
+
+  bool get progressiveOriginalVideoPlayback => internalUser;
+
+  bool get facesTimeline => true;
+  bool get ritualsFlag => true;
+
+  bool get streamEnabledByDefault => _isServerFlagEnabled(_videoStreamingFlag);
+
+  bool get previewUploadV2 => _isServerFlagEnabled(_previewUploadV2Flag);
+
+  bool get manualTagFileToPerson => hasGrantedMLConsent;
+
+  bool get enableShareePin => true;
+
+  bool get isSocialEnabled =>
+      internalUser || _isServerFlagEnabled(_commentsFlag);
+
+  bool get enableMLInBackground => true;
+
+  bool get useRustForHeicDecoder => internalUser;
+
+  bool get petEnabled => false;
+
+  bool get qrFeatureEnabled => true;
+
+  bool get ocrOverlayEnabled => true;
+
+  bool get enableBgLocalUploadPriority => internalUser;
+
+  bool get syncRecoveryDiagnostics => internalUser;
+
+  bool get mLHydrationStaleFileRecovery => internalUser;
+
+  bool get enableMultiCast =>
+      internalUser || _isServerFlagEnabled(_castSessionsV2Flag);
+
+  Future<void> tryRefreshFlags() async {
+    try {
+      await _fetch();
+    } catch (e) {
+      debugPrint("Failed to refresh flags: $e");
+    }
+  }
+
+  bool hasSyncedAccountFlags() {
+    return _prefs.containsKey("remote_flags");
+  }
+
+  Future<void> setMapEnabled(bool isEnabled) async {
+    await _updateKeyValue("mapEnabled", isEnabled.toString());
+    _updateFlags(flags.copyWith(mapEnabled: isEnabled));
+  }
+
+  Future<void> setMLConsent(bool isEnabled) async {
+    await _updateKeyValue("faceSearchEnabled", isEnabled.toString());
+    _updateFlags(flags.copyWith(faceSearchEnabled: isEnabled));
+  }
+
+  Future<void> setRecoveryKeyVerified(bool isVerified) async {
+    await _updateKeyValue("recoveryKeyVerified", isVerified.toString());
+    _updateFlags(flags.copyWith(recoveryKeyVerified: isVerified));
+  }
+
+  Completer<void>? _fetchCompleter;
+  String? _fetchToken;
+  int? _fetchUserID;
+
+  Future<void> _fetch() async {
+    final requestToken = _getToken();
+    final requestUserID = _prefs.getInt(_userIdKey);
+    if (requestToken == null) {
+      log("token not found, skip", name: "FlagService");
+      return;
+    }
+
+    final pendingFetch = _fetchCompleter;
+    if (pendingFetch != null) {
+      final isSameAccount =
+          _fetchToken == requestToken && _fetchUserID == requestUserID;
+      await pendingFetch.future;
+      if (!isSameAccount && _isCurrentAccount(requestToken, requestUserID)) {
+        await _fetch();
+      }
+      return;
+    }
+
+    final fetchCompleter = Completer<void>();
+    _fetchCompleter = fetchCompleter;
+    _fetchToken = requestToken;
+    _fetchUserID = requestUserID;
+    try {
+      log("fetching feature flags", name: "FlagService");
+      final response = await _enteDio.get("/remote-store/feature-flags");
+      if (!_isCurrentAccount(requestToken, requestUserID)) {
+        log(
+          "discarding feature flags fetched for a stale account",
+          name: "FlagService",
+        );
+        return;
+      }
+      final remoteFlags = RemoteFlags.fromMap(response.data);
+      final flagsJson = remoteFlags.toJson();
+      await _prefs.setString("remote_flags", flagsJson);
+      _flags = remoteFlags;
+      _flagsJson = flagsJson;
+    } catch (e) {
+      debugPrint("Failed to sync feature flags $e");
+    } finally {
+      _fetchCompleter = null;
+      _fetchToken = null;
+      _fetchUserID = null;
+      fetchCompleter.complete();
+    }
+  }
+
+  bool _isCurrentAccount(String token, int? userID) =>
+      _getToken() == token && _prefs.getInt(_userIdKey) == userID;
+
+  Future<void> _updateKeyValue(String key, String value) async {
+    try {
+      final response = await _enteDio.post(
+        "/remote-store/update",
+        data: {"key": key, "value": value},
+      );
+      if (response.statusCode != HttpStatus.ok) {
+        throw Exception("Unexpected state");
+      }
+    } catch (e) {
+      debugPrint("Failed to set flag for $key $e");
+      rethrow;
+    }
+  }
+
+  void _updateFlags(RemoteFlags flags) {
+    final flagsJson = flags.toJson();
+    _flags = flags;
+    _flagsJson = flagsJson;
+    _prefs.setString("remote_flags", flagsJson);
+    _fetch().ignore();
+  }
+
+  bool _isServerFlagEnabled(int flagBit) =>
+      (flags.serverApiFlag & flagBit) != 0;
+
+  bool _isInUserRollout(int percent) {
+    final userId = _prefs.getInt(_userIdKey);
+    if (userId == null || userId <= 0 || percent <= 0) {
+      return false;
+    }
+    if (percent >= 100) {
+      return true;
+    }
+    return (userId % 100) < percent;
+  }
+}

@@ -1,11 +1,11 @@
+import "package:ente_strings/ente_strings.dart";
+import "package:ente_ui/components/date_time_picker.dart";
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import "package:photos/generated/l10n.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/components/buttons/button_widget.dart";
 import "package:photos/ui/components/models/button_type.dart";
-import "package:photos/ui/viewer/date/date_time_picker.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 import "package:photos/utils/magic_util.dart";
 
@@ -17,10 +17,8 @@ Future<DateTime?> showEditDateSheet(
   final newDate = await showModalBottomSheet<DateTime?>(
     context: context,
     isScrollControlled: true,
-    builder: (context) => EditDateSheet(
-      enteFiles: enteFiles,
-      showHeader: showHeader,
-    ),
+    builder: (context) =>
+        EditDateSheet(enteFiles: enteFiles, showHeader: showHeader),
   );
   return newDate;
 }
@@ -40,7 +38,6 @@ class EditDateSheet extends StatefulWidget {
 }
 
 class _EditDateSheetState extends State<EditDateSheet> {
-  // Single date or shift date
   bool showSingleOrShiftChoice = false;
   bool selectSingleDate = false;
 
@@ -106,7 +103,6 @@ class _EditDateSheetState extends State<EditDateSheet> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Photo count and date range section
             if (widget.showHeader)
               PhotoDateHeaderWidget(
                 enteFiles: widget.enteFiles,
@@ -147,19 +143,19 @@ class _EditDateSheetState extends State<EditDateSheet> {
                 },
               ),
             if (selectingDate || selectingTime)
-              DateTimePickerWidget(
-                (DateTime dateTime) {
+              DateTimePicker(
+                initialDateTime: selectedDate,
+                onDateTimeSelected: (dateTime) {
                   selectedDate = dateTime;
                   selectingDate = false;
                   selectingTime = false;
                   setState(() {});
                 },
-                () {
+                onCancel: () {
                   selectingDate = false;
                   selectingTime = false;
                   setState(() {});
                 },
-                selectedDate,
                 maxDateTime: maxDate,
                 startWithTime: selectingTime,
               ),
@@ -172,7 +168,7 @@ class _EditDateSheetState extends State<EditDateSheet> {
                   const SizedBox(height: 16),
                   ButtonWidget(
                     buttonType: ButtonType.primary,
-                    labelText: AppLocalizations.of(context).confirm,
+                    labelText: context.strings.confirm,
                     buttonSize: ButtonSize.large,
                     onTap: () async {
                       final newDate = await _editDates(
@@ -181,13 +177,14 @@ class _EditDateSheetState extends State<EditDateSheet> {
                         selectedDate,
                         selectSingleDate ? null : startDate,
                       );
+                      if (!context.mounted) return;
                       Navigator.of(context).pop(newDate);
                     },
                   ),
                   const SizedBox(height: 8),
                   ButtonWidget(
                     buttonType: ButtonType.neutral,
-                    labelText: AppLocalizations.of(context).cancel,
+                    labelText: context.strings.cancel,
                     buttonSize: ButtonSize.large,
                     onTap: () async {
                       Navigator.of(context).pop(null);
@@ -195,7 +192,6 @@ class _EditDateSheetState extends State<EditDateSheet> {
                   ),
                 ],
               ),
-            // Bottom indicator line
             const SizedBox(height: 20),
           ],
         ),
@@ -221,10 +217,7 @@ Future<DateTime> _editDates(
       final newTime = fileTime.add(firstDateDiff);
       filesToNewDates[file] = newTime.microsecondsSinceEpoch;
     }
-    await editTime(
-      context,
-      filesToNewDates,
-    );
+    await editTime(context, filesToNewDates);
   } else {
     final filesToNewDates = <EnteFile, int>{};
     for (final file in enteFiles) {
@@ -233,10 +226,7 @@ Future<DateTime> _editDates(
       }
       filesToNewDates[file] = newDate.microsecondsSinceEpoch;
     }
-    await editTime(
-      context,
-      filesToNewDates,
-    );
+    await editTime(context, filesToNewDates);
   }
   return newDate;
 }
@@ -277,12 +267,9 @@ class DateAndTimeWidget extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: Text(
                 selectDate
-                    ? AppLocalizations.of(context).selectOneDateAndTimeForAll
-                    : AppLocalizations.of(context).selectStartOfRange,
-                style: TextStyle(
-                  color: colorScheme.textBase,
-                  fontSize: 16,
-                ),
+                    ? context.strings.selectOneDateAndTimeForAll
+                    : context.strings.selectStartOfRange,
+                style: TextStyle(color: colorScheme.textBase, fontSize: 16),
               ),
             ),
           if (!singleFile) const SizedBox(height: 8),
@@ -291,25 +278,17 @@ class DateAndTimeWidget extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: Text(
                 selectDate
-                    ? AppLocalizations.of(context)
-                        .thisWillMakeTheDateAndTimeOfAllSelected
-                    : AppLocalizations.of(context)
-                        .allWillShiftRangeBasedOnFirst,
-                style: TextStyle(
-                  color: colorScheme.textFaint,
-                  fontSize: 12,
-                ),
+                    ? context.strings.thisWillMakeTheDateAndTimeOfAllSelected
+                    : context.strings.allWillShiftRangeBasedOnFirst,
+                style: TextStyle(color: colorScheme.textFaint, fontSize: 12),
               ),
             ),
           if (!singleFile) const SizedBox(height: 16),
-          Container(
-            decoration: BoxDecoration(
-              color: colorScheme.backgroundElevated2,
-              border: Border.all(
-                color: colorScheme.strokeFaint,
-                width: 0.5,
-              ),
+          Material(
+            color: colorScheme.backgroundElevated2,
+            shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
+              side: BorderSide(color: colorScheme.strokeFaint, width: 0.5),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -321,10 +300,7 @@ class DateAndTimeWidget extends StatelessWidget {
                   ),
                   title: Text(
                     date,
-                    style: TextStyle(
-                      color: colorScheme.textBase,
-                      fontSize: 16,
-                    ),
+                    style: TextStyle(color: colorScheme.textBase, fontSize: 16),
                   ),
                   trailing: Icon(
                     Icons.chevron_right,
@@ -345,10 +321,7 @@ class DateAndTimeWidget extends StatelessWidget {
                   ),
                   title: Text(
                     time,
-                    style: TextStyle(
-                      color: colorScheme.textBase,
-                      fontSize: 16,
-                    ),
+                    style: TextStyle(color: colorScheme.textBase, fontSize: 16),
                   ),
                   trailing: Icon(
                     Icons.chevron_right,
@@ -364,11 +337,8 @@ class DateAndTimeWidget extends StatelessWidget {
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                AppLocalizations.of(context).newRange,
-                style: TextStyle(
-                  color: colorScheme.textBase,
-                  fontSize: 12,
-                ),
+                context.strings.newRange,
+                style: TextStyle(color: colorScheme.textBase, fontSize: 12),
               ),
             ),
           if (newRangeEnd != null) const SizedBox(height: 8),
@@ -376,10 +346,7 @@ class DateAndTimeWidget extends StatelessWidget {
             Container(
               decoration: BoxDecoration(
                 color: colorScheme.backgroundElevated2,
-                border: Border.all(
-                  color: colorScheme.strokeFaint,
-                  width: 0.5,
-                ),
+                border: Border.all(color: colorScheme.strokeFaint, width: 0.5),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Padding(
@@ -451,37 +418,27 @@ class SelectDateOrShiftWidget extends StatelessWidget {
     final colorScheme = getEnteColorScheme(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Container(
-        decoration: BoxDecoration(
-          color: colorScheme.backgroundElevated2,
-          border: Border.all(
-            color: colorScheme.strokeFaint,
-            width: 0.5,
-          ),
+      child: Material(
+        color: colorScheme.backgroundElevated2,
+        shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
+          side: BorderSide(color: colorScheme.strokeFaint, width: 0.5),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Select one date option
             ListTile(
               leading: Icon(
                 Icons.calendar_today_outlined,
                 color: colorScheme.textBase,
               ),
               title: Text(
-                AppLocalizations.of(context).selectOneDateAndTime,
-                style: TextStyle(
-                  color: colorScheme.textBase,
-                  fontSize: 16,
-                ),
+                context.strings.selectOneDateAndTime,
+                style: TextStyle(color: colorScheme.textBase, fontSize: 16),
               ),
               subtitle: Text(
-                AppLocalizations.of(context).moveSelectedPhotosToOneDate,
-                style: TextStyle(
-                  color: colorScheme.textFaint,
-                  fontSize: 12,
-                ),
+                context.strings.moveSelectedPhotosToOneDate,
+                style: TextStyle(color: colorScheme.textFaint, fontSize: 12),
               ),
               trailing: Icon(
                 Icons.chevron_right,
@@ -495,25 +452,18 @@ class SelectDateOrShiftWidget extends StatelessWidget {
               endIndent: 16,
               height: 0.5,
             ),
-            // Shift dates option
             ListTile(
               leading: Icon(
                 Icons.calendar_month_outlined,
                 color: colorScheme.textBase,
               ),
               title: Text(
-                AppLocalizations.of(context).shiftDatesAndTime,
-                style: TextStyle(
-                  color: colorScheme.textBase,
-                  fontSize: 16,
-                ),
+                context.strings.shiftDatesAndTime,
+                style: TextStyle(color: colorScheme.textBase, fontSize: 16),
               ),
               subtitle: Text(
-                AppLocalizations.of(context).photosKeepRelativeTimeDifference,
-                style: TextStyle(
-                  color: colorScheme.textFaint,
-                  fontSize: 12,
-                ),
+                context.strings.photosKeepRelativeTimeDifference,
+                style: TextStyle(color: colorScheme.textFaint, fontSize: 12),
               ),
               trailing: Icon(
                 Icons.chevron_right,
@@ -553,7 +503,6 @@ class PhotoDateHeaderWidget extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          // Thumbnail
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: SizedBox(
@@ -563,15 +512,13 @@ class PhotoDateHeaderWidget extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 16),
-          // Photo count and date info
           multipleFiles
               ? Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        AppLocalizations.of(context)
-                            .photosCount(count: photoCount),
+                        context.strings.photosCount(count: photoCount),
                         style: TextStyle(
                           color: colorScheme.textBase,
                           fontSize: 18,
@@ -631,11 +578,7 @@ class PhotoDateHeaderWidget extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        "${DateFormat.yMEd(locale.toString()).format(startDate)} · ${DateFormat(
-                          MediaQuery.of(context).alwaysUse24HourFormat
-                              ? 'HH:mm'
-                              : 'h:mm a',
-                        ).format(startDate)}",
+                        "${DateFormat.yMEd(locale.toString()).format(startDate)} · ${DateFormat(MediaQuery.of(context).alwaysUse24HourFormat ? 'HH:mm' : 'h:mm a').format(startDate)}",
                         style: TextStyle(
                           color: colorScheme.textMuted,
                           fontSize: 12,
@@ -651,7 +594,5 @@ class PhotoDateHeaderWidget extends StatelessWidget {
 }
 
 String _formatDate(DateTime date, Locale locale, BuildContext context) {
-  return "${DateFormat.yMEd(locale.toString()).format(date)}\n${DateFormat(
-    MediaQuery.of(context).alwaysUse24HourFormat ? 'HH:mm' : 'h:mm a',
-  ).format(date)}";
+  return "${DateFormat.yMEd(locale.toString()).format(date)}\n${DateFormat(MediaQuery.of(context).alwaysUse24HourFormat ? 'HH:mm' : 'h:mm a').format(date)}";
 }

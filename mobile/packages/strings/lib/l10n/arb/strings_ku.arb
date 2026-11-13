@@ -1,0 +1,254 @@
+{
+  "about": "Derbar",
+  "account": "Jimar",
+  "activeSessions": "Danişînên çalak",
+  "@activeSessions": {
+    "description": "Title for active sessions page"
+  },
+  "after1Day": "Piştî 1 roj",
+  "after1Hour": "Piştî 1 demjimêr",
+  "after1Week": "Piştî 1 hefte",
+  "albumOwner": "Xwedî",
+  "@albumOwner": {
+    "description": "Role of the album owner"
+  },
+  "albums": "Elbum",
+  "areYouSureYouWantToCancel": "Ma tu piştrast î ku dixwazî têk bibî?",
+  "authToChangeYourEmail": "Bo guhertina e-nameya te, piştrast bike",
+  "authToChangeYourPassword": "Bo guhertina e-nameya te, piştrast bike",
+  "birthday": "Roja jidayîkbûnê",
+  "cancel": "Têk bibe",
+  "@cancel": {
+    "description": "Cancel button label"
+  },
+  "changePassword": "Borînpeyvê biguherîne",
+  "changePasswordTitle": "Borînpeyvê biguherîne",
+  "@changePasswordTitle": {
+    "description": "Change password title"
+  },
+  "checkForUpdates": "Bo rojanekirinê kontrol bike",
+  "checking": "Tê kontrolkirin...",
+  "checkStatus": "Amaran kontrol bike",
+  "@checkStatus": {
+    "description": "Check status button label"
+  },
+  "close": "Bigire",
+  "color": "Reng",
+  "confirm": "Biperjîne",
+  "@confirm": {
+    "description": "Confirm button label"
+  },
+  "confirmPassword": "Borînpeyvê biperjîne",
+  "@confirmPassword": {
+    "description": "Confirm password field label"
+  },
+  "contacts": "Têkilî",
+  "continueLabel": "Bidomîne",
+  "@continueLabel": {
+    "description": "Continue button label"
+  },
+  "create": "Biafirîne",
+  "createAccount": "Jimarê biafirîne",
+  "@createAccount": {
+    "description": "Create account button label"
+  },
+  "deleteAccount": "Jimarê jê bibe",
+  "@deleteAccount": {
+    "description": "Delete account button label"
+  },
+  "deleteAll": "Hemûyan jê bibe",
+  "deleteLocation": "Cihê jê bibe",
+  "download": "Daxe",
+  "downloading": "Tê daxistin...",
+  "edit": "Biguherîne",
+  "editLocation": "Cihê biguherîne",
+  "email": "Ename",
+  "@email": {
+    "description": "Email field label"
+  },
+  "emailAlreadyRegistered": "Ename jixwe hatiye tomarkirin.",
+  "@emailAlreadyRegistered": {
+    "description": "Error message when email is already registered"
+  },
+  "emailHint": "Navnîşana enameya xwe têxe",
+  "emailNotRegistered": "Ename nehatiye tomarkirin.",
+  "@emailNotRegistered": {
+    "description": "Error message when email is not registered"
+  },
+  "emailVerificationToggle": "Piştrastkirina enameyê",
+  "empty": "Vala bike",
+  "enterName": "Navê têxe",
+  "enterPassword": "Borînpeyvê têxe",
+  "@enterPassword": {
+    "description": "Enter password field label"
+  },
+  "enterValidEmail": "Jkxr enameyeke derbasdar têxe.",
+  "enterYourNewEmailAddress": "Navnîşana enameya xwe ya nû têxe",
+  "faq": "PPTP",
+  "@faq": {
+    "description": "FAQ link label"
+  },
+  "flip": "Teqle bike",
+  "forgotPassword": "Min borînpeyv ji bîr kir",
+  "@forgotPassword": {
+    "description": "Forgot password link label"
+  },
+  "generatingEncryptionKeys": "Kilîtên şîfrekirinê tên çêkirin...",
+  "@generatingEncryptionKeys": {
+    "description": "Generating encryption keys message"
+  },
+  "help": "Alîkarî",
+  "ignore": "Paşguh bike",
+  "insecureDevice": "Amûra ne ewle",
+  "@insecureDevice": {
+    "description": "Insecure device warning title"
+  },
+  "invalidEmailAddress": "Navnîşana enameya ne derbasdar",
+  "invite": "Vexwîne",
+  "ok": "Baş e",
+  "@ok": {
+    "description": "Generic OK button label"
+  },
+  "kiloMeterUnit": "km",
+  "leave": "Derkeve",
+  "left": "Çep",
+  "lightTheme": "Ronî",
+  "location": "Cih",
+  "lockButtonLabel": "Kilît bike",
+  "logInLabel": "Têkeve",
+  "@logInLabel": {
+    "description": "Log in button label"
+  },
+  "manageLink": "Girêdanê bi rê ve bibe",
+  "manageSubscription": "Endambûnê bi rê ve bibe",
+  "moderateStrength": "Navîn",
+  "@moderateStrength": {
+    "description": "Moderate password strength label"
+  },
+  "monthly": "Mehane",
+  "@monthly": {
+    "description": "The text to display for monthly plans",
+    "type": "text"
+  },
+  "newest": "Herî nû",
+  "noDeviceLimit": "Ne yek",
+  "@noDeviceLimit": {
+    "description": "Text to indicate that there is limit on number of devices"
+  },
+  "nothingToSeeHere": "Tiştekî ku li vir were dîtin tine ye",
+  "oops": "Ax",
+  "@oops": {
+    "description": "Oops error title"
+  },
+  "oopsSomethingWentWrong": "Wey li min! Tiştek şaş pêk hat",
+  "password": "Borînpeyv",
+  "@password": {
+    "description": "Password field label"
+  },
+  "passwordChangedSuccessfully": "Borînpeyv bi serkeftî hat guhertin",
+  "@passwordChangedSuccessfully": {
+    "description": "Password changed successfully message"
+  },
+  "passwordStrength": "Hêza borînpeyvê: {passwordStrengthValue}",
+  "@passwordStrength": {
+    "description": "Text to indicate the password strength",
+    "placeholders": {
+      "passwordStrengthValue": {
+        "description": "The strength of the password as a string",
+        "type": "String",
+        "example": "Weak or Moderate or Strong"
+      }
+    }
+  },
+  "people": "Mirov",
+  "pleaseWait": "Li bendê be...",
+  "@pleaseWait": {
+    "description": "Please wait message"
+  },
+  "preview": "Pêşdîtin",
+  "privacy": "Taybetî",
+  "rateUs": "Me binirxîne",
+  "rateUsOnStore": "Me li ser {storeName} binirxîne",
+  "@rateUsOnStore": {
+    "placeholders": {
+      "storeName": {}
+    }
+  },
+  "remove": "Rake",
+  "removeLink": "Girêdanê rake",
+  "renameAlbum": "Navê albumê biguherîne",
+  "reportABug": "Çewtiyekê ragihîne",
+  "@reportABug": {
+    "description": "Label for reporting a bug"
+  },
+  "resetPasswordTitle": "Borînpeyvê ji nû be saz bike",
+  "@resetPasswordTitle": {
+    "description": "Reset password title"
+  },
+  "right": "Rast",
+  "save": "Tomar bike",
+  "@save": {
+    "description": "Label for save button"
+  },
+  "saveCopy": "Jêgirtinê tomar bike",
+  "search": "Bigere",
+  "searchAlbumsEmptySection": "Elbum",
+  "searchHint4": "Cih",
+  "selectALocation": "Cihekî hilbijêre",
+  "selectedPhotos": "{count} hat hilbijartin",
+  "@selectedPhotos": {
+    "description": "Display the number of selected photos",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "5",
+        "type": "int"
+      }
+    }
+  },
+  "setAs": "Saz bike wekî",
+  "setLabel": "Saz bike",
+  "@setLabel": {
+    "description": "Label of confirm button to add a new custom radius to the radius selector of a location tag"
+  },
+  "skip": "Derbas bike",
+  "sorry": "Bibore",
+  "strongStrength": "Bihêz",
+  "@strongStrength": {
+    "description": "Strong password strength label"
+  },
+  "success": "Serkeftin",
+  "termsOfServicesTitle": "Merc",
+  "@termsOfServicesTitle": {
+    "description": "Terms of service title"
+  },
+  "thankYou": "Spas",
+  "thisDevice": "Ev amûr",
+  "@thisDevice": {
+    "description": "Label for current device"
+  },
+  "verify": "Biperjîne",
+  "@verify": {
+    "description": "Verify button label"
+  },
+  "verifyEmail": "Enameyê biperjîne",
+  "@verifyEmail": {
+    "description": "Verify email title"
+  },
+  "weakStrength": "Lawaz",
+  "@weakStrength": {
+    "description": "Weak password strength label"
+  },
+  "weAreOpenSource": "Em çavkaniya vekirî ne!",
+  "whatsNew": "Çi nû ye",
+  "yearly": "Salane",
+  "@yearly": {
+    "description": "The text to display for yearly plans",
+    "type": "text"
+  },
+  "yes": "Erê",
+  "yesCancel": "Erê, têk bibe",
+  "yesRenew": "Erê, nû bike",
+  "you": "Tu",
+  "youAreOnTheLatestVersion": "Tu li ser guhertoya herî dawî ye"
+}

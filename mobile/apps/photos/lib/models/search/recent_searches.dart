@@ -15,8 +15,7 @@ class RecentSearches with ChangeNotifier {
     while (searches.length > kSearchSectionLimit) {
       searches.remove(searches.first);
     }
-    //buffer for not surfacing a new recent search before going to the next
-    //screen
+    // Avoid surfacing the new search before the next screen opens.
     Future.delayed(const Duration(seconds: 1), () {
       notifyListeners();
     });

@@ -1,12 +1,16 @@
-import "package:photos/generated/l10n.dart";
+import "package:ente_strings/ente_strings.dart";
 import "package:photos/models/location/location.dart";
 import "package:photos/models/memories/memory.dart";
 import "package:photos/models/memories/smart_memory.dart";
 
 class TripMemory extends SmartMemory {
-  final Location location;
+  static final _baseNamePattern = RegExp(
+    r"(^Base \(|\(Base, )(current|old)\)$",
+  );
 
-  // Stuff for the title
+  final Location location;
+  final String? tripKey;
+
   String? locationName;
   int? tripYear;
 
@@ -15,17 +19,22 @@ class TripMemory extends SmartMemory {
     int firstDateToShow,
     int lastDateToShow,
     this.location, {
+    super.id,
     this.locationName,
     this.tripYear,
+    this.tripKey,
     super.firstCreationTime,
     super.lastCreationTime,
-  }) : super(
-          memories,
-          MemoryType.trips,
-          '',
-          firstDateToShow,
-          lastDateToShow,
-        );
+    super.capMemories,
+  }) : super(memories, MemoryType.trips, '', firstDateToShow, lastDateToShow);
+
+  static String baseName(String? place, {required bool isCurrent}) {
+    final status = isCurrent ? "current" : "old";
+    return place == null ? "Base ($status)" : "$place (Base, $status)";
+  }
+
+  bool get isBase =>
+      locationName != null && _baseNamePattern.hasMatch(locationName!);
 
   TripMemory copyWith({
     List<Memory>? memories,
@@ -33,24 +42,27 @@ class TripMemory extends SmartMemory {
     int? lastDateToShow,
     String? locationName,
     int? tripYear,
+    String? tripKey,
   }) {
     return TripMemory(
       memories ?? this.memories,
       firstDateToShow ?? this.firstDateToShow,
       lastDateToShow ?? this.lastDateToShow,
       location,
+      id: id,
       locationName: locationName ?? this.locationName,
       tripYear: tripYear ?? this.tripYear,
+      tripKey: tripKey ?? this.tripKey,
       firstCreationTime: firstCreationTime,
       lastCreationTime: lastCreationTime,
     );
   }
 
   @override
-  String createTitle(AppLocalizations locals, String languageCode) {
+  String createTitle(StringsLocalizations locals, String languageCode) {
     assert(locationName != null || tripYear != null);
     if (locationName != null) {
-      if (locationName!.toLowerCase().contains("base")) return locationName!;
+      if (isBase) return locationName!;
       return locals.tripToLocation(location: locationName!);
     }
     if (tripYear != null) {

@@ -1,15 +1,10 @@
-import "package:photos/generated/l10n.dart";
+import "package:ente_strings/ente_strings.dart";
 import "package:photos/models/base/id.dart";
 import "package:photos/models/memories/memory.dart";
 
-enum MemoryType {
-  people,
-  trips,
-  clip,
-  time,
-  filler,
-  onThisDay,
-}
+enum MemoryType { people, trips, clip, time, filler, onThisDay }
+
+const int kMaxSmartMemoryItems = 100;
 
 MemoryType memoryTypeFromString(String type) {
   switch (type) {
@@ -42,7 +37,7 @@ class SmartMemory {
   int? lastCreationTime;
 
   SmartMemory(
-    this.memories,
+    List<Memory> memories,
     this.type,
     this.title,
     this.firstDateToShow,
@@ -50,8 +45,16 @@ class SmartMemory {
     String? id,
     this.firstCreationTime,
     this.lastCreationTime,
-  }) {
+    bool capMemories = true,
+  }) : memories = capMemories ? _capMemories(memories) : memories {
     this.id = id ?? newID(type.name);
+  }
+
+  static List<Memory> _capMemories(List<Memory> memories) {
+    if (memories.length <= kMaxSmartMemoryItems) {
+      return memories;
+    }
+    return memories.take(kMaxSmartMemoryItems).toList();
   }
 
   bool get notForShow => firstDateToShow == 0 && lastDateToShow == 0;
@@ -65,7 +68,7 @@ class SmartMemory {
     return now >= firstDateToShow && now <= lastDateToShow;
   }
 
-  String createTitle(AppLocalizations locals, String languageCode) {
+  String createTitle(StringsLocalizations locals, String languageCode) {
     throw UnimplementedError("createTitle must be implemented in subclass");
   }
 

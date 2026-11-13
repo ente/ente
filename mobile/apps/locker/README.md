@@ -1,40 +1,35 @@
 # Ente Locker
 
-Ente's secure document storage app. An end-to-end encrypted app for storing
-important documents in the cloud with secure sharing capabilities.
+Ente's secure document storage app. An end-to-end encrypted app for storing important documents in the cloud with secure sharing capabilities.
 
 ## 🧑‍💻 Build from source
 
-1. [Install Flutter v3.32.8](https://flutter.dev/docs/get-started/install).
+1. Install [Flutter v3.47.8](https://flutter.dev/docs/get-started/install) and [Rust](https://www.rust-lang.org/tools/install).
 
-2. Pull in all submodules with `git submodule update --init --recursive`
+2. From any folder inside `mobile/`, install the workspace dependencies with `flutter pub get --enforce-lockfile`. Then, from `rust/`, generate the Rust bindings with `cargo codegen frb`.
 
-3. Install dependencies using one of these methods:
-   - **Using Melos (recommended):** Install Melos with `dart pub global activate melos`, then from any folder inside `mobile/`, run `melos bootstrap`. This will install dependencies.
-   - **Using Flutter directly:** Run `flutter pub get` in `packages/strings` and this folder
+3. Run the app:
+   - Android: `flutter run --flavor independent`
+   - iOS: `flutter run`
 
-4. For Android, [setup your
-   keystore](https://docs.flutter.dev/deployment/android#create-an-upload-keystore)
-   and run `flutter build apk --release --flavor independent`
+> [!NOTE]
+>
+> Re-run `cargo codegen frb` whenever the FRB-exported surface under `rust/bindings/frb/` changes. Internal Rust changes (function bodies, private helpers) are picked up by the normal Flutter build.
+>
+> From anywhere in the repo:
+>
+> ```sh
+> (cd "$(git rev-parse --show-toplevel)/rust" && cargo codegen frb)
+> ```
 
-5. For iOS, run `flutter build ios`
+To build a release APK, [setup your keystore](https://docs.flutter.dev/deployment/android#create-an-upload-keystore) and run `flutter build apk --release --flavor independent`. For iOS, use `flutter build ios`.
 
-## ⚙️ Develop
+### Updating dependencies
 
-For Android, use
+After updating Flutter dependencies, run `pod install` from `ios/` on macOS and commit `ios/Podfile.lock` if it changes.
 
-```sh
-flutter run -t lib/main.dart --flavor independent
-```
+## 🌍 Translate
 
-For iOS, use `flutter run`
+[![Crowdin](https://badges.crowdin.net/ente-photos-app/localized.svg)](https://crowdin.com/project/ente-photos-app)
 
-## Certificate Fingerprints
-
-- **SHA1**: EF:BA:46:7F:BE:E2:F7:9A:0C:A7:76:A2:9D:AA:70:13:B9:B7:AE:D2
-- **SHA256**: 6E:5B:71:61:B0:FA:F1:01:B6:AF:3D:33:C6:B0:8C:AD:AC:4A:8B:DF:85:E5:BE:A5:06:83:AA:FA:74:05:0D:B1
-
-To verify these fingerprints, use the following command:
-```bash
-apksigner verify --print-certs <path_to_apk>
-```
+If you're interested in helping out with translation, please visit our [Crowdin project](https://crowdin.com/project/ente-photos-app). For more details, see the docs for the [strings package](../../packages/strings/README.md).

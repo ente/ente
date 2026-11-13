@@ -1,885 +1,569 @@
-import Flutter
-import UIKit
-import AVFoundation
-import Photos
+@preconcurrency import Flutter
+import Foundation
 
-public class NativeVideoEditorPlugin: NSObject, FlutterPlugin {
-    private var currentExportSession: AVAssetExportSession?
+@MainActor
+public final class NativeVideoEditorPlugin: NSObject, @preconcurrency FlutterPlugin {
+    private var isDetached = false
     private var progressEventSink: FlutterEventSink?
-    private var progressTimer: Timer?
+    private var frameTasks: [String: Task<Void, Never>] = [:]
+    private var frameCancellationResults: [String: FlutterResult] = [:]
+    private var exportTask: Task<Void, Never>?
+    private var exportCancellationResult: FlutterResult?
+    private let metadataReader = VideoMetadataReader()
+    private lazy var frameExtractor = VideoFrameExtractor(metadataReader: metadataReader)
+    private let videoExporter = VideoExportEngine()
+    private let slideshowExporter = SlideshowExportEngine()
 
     public static func register(with registrar: FlutterPluginRegistrar) {
-        let channel = FlutterMethodChannel(name: "native_video_editor", binaryMessenger: registrar.messenger())
+        let channel = FlutterMethodChannel(
+            name: "native_video_editor",
+            binaryMessenger: registrar.messenger()
+        )
         let instance = NativeVideoEditorPlugin()
         registrar.addMethodCallDelegate(instance, channel: channel)
+        registrar.publish(instance)
 
-        let progressChannel = FlutterEventChannel(name: "native_video_editor/progress", binaryMessenger: registrar.messenger())
+        let progressChannel = FlutterEventChannel(
+            name: "native_video_editor/progress",
+            binaryMessenger: registrar.messenger()
+        )
         progressChannel.setStreamHandler(instance)
     }
 
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-        switch call.method {
-        case "trimVideo":
-            guard let args = call.arguments as? [String: Any],
-                  let inputPath = args["inputPath"] as? String,
-                  let outputPath = args["outputPath"] as? String,
-                  let startTimeMs = args["startTimeMs"] as? Int,
-                  let endTimeMs = args["endTimeMs"] as? Int else {
-                result(flutterError("INVALID_ARGS", message: "Invalid arguments"))
-                return
-            }
-
-            trimVideo(inputPath: inputPath, outputPath: outputPath,
-                      startTimeMs: startTimeMs, endTimeMs: endTimeMs, result: result)
-
-        case "rotateVideo":
-            guard let args = call.arguments as? [String: Any],
-                  let inputPath = args["inputPath"] as? String,
-                  let outputPath = args["outputPath"] as? String,
-                  let degrees = args["degrees"] as? Int else {
-                result(flutterError("INVALID_ARGS", message: "Invalid arguments"))
-                return
-            }
-
-            rotateVideo(inputPath: inputPath, outputPath: outputPath,
-                        degrees: degrees, result: result)
-
-        case "cropVideo":
-            guard let args = call.arguments as? [String: Any],
-                  let inputPath = args["inputPath"] as? String,
-                  let outputPath = args["outputPath"] as? String,
-                  let x = args["x"] as? Int,
-                  let y = args["y"] as? Int,
-                  let width = args["width"] as? Int,
-                  let height = args["height"] as? Int else {
-                result(flutterError("INVALID_ARGS", message: "Invalid arguments"))
-                return
-            }
-
-            cropVideo(inputPath: inputPath, outputPath: outputPath,
-                      x: x, y: y, width: width, height: height, result: result)
-
-        case "processVideo":
-            handleProcessVideo(call: call, result: result)
-
-        case "getVideoInfo":
-            guard let args = call.arguments as? [String: Any],
-                  let videoPath = args["videoPath"] as? String else {
-            result(flutterError("INVALID_ARGS", message: "Invalid arguments"))
+        guard !isDetached else {
+            result(flutterError("PLUGIN_DETACHED", message: "Native video editor is detached"))
             return
         }
-
-        getVideoInfo(videoPath: videoPath, result: result)
-
+        switch call.method {
+        case "getVideoInfo":
+            inspectVideo(call, result: result)
+        case "extractFrame":
+            extractSingleFrame(call, result: result)
+        case "extractTimeline":
+            extractTimeline(call, result: result)
+        case "cancelFrameExtraction":
+            cancelFrameExtraction(call, result: result)
+        case "processVideo":
+            processVideo(call, result: result)
+        case "exportSlideshow":
+            exportSlideshow(call, result: result)
         case "cancelProcessing":
-            currentExportSession?.cancelExport()
-            result(nil)
-
+            cancelProcessing(result: result)
         default:
             result(FlutterMethodNotImplemented)
         }
     }
 
-    private func trimVideo(inputPath: String, outputPath: String,
-                          startTimeMs: Int, endTimeMs: Int, result: @escaping FlutterResult) {
-        let asset = AVAsset(url: URL(fileURLWithPath: inputPath))
-
-        let startTime = CMTime(value: CMTimeValue(startTimeMs), timescale: 1000)
-        let endTime = CMTime(value: CMTimeValue(endTimeMs), timescale: 1000)
-        let timeRange = CMTimeRange(start: startTime, end: endTime)
-
-        // Check if video has metadata rotation
-        if let videoTrack = asset.tracks(withMediaType: .video).first {
-            let preferredTransform = videoTrack.preferredTransform
-            // Check if the transform is not identity (has rotation/orientation)
-            if !preferredTransform.isIdentity {
-
-                // Create composition to apply the preferred transform
-                let composition = AVMutableComposition()
-                guard let compositionVideoTrack = composition.addMutableTrack(
-                    withMediaType: .video,
-                    preferredTrackID: kCMPersistentTrackID_Invalid) else {
-                    result(flutterError("COMPOSITION_ERROR", message: "Failed to create composition track"))
-                    return
-                }
-
-                var compositionAudioTrack: AVMutableCompositionTrack?
-                if let audioTrack = asset.tracks(withMediaType: .audio).first {
-                    compositionAudioTrack = composition.addMutableTrack(
-                        withMediaType: .audio,
-                        preferredTrackID: kCMPersistentTrackID_Invalid)
-                }
-
-                do {
-                    try compositionVideoTrack.insertTimeRange(timeRange, of: videoTrack, at: .zero)
-
-                    if let audioTrack = asset.tracks(withMediaType: .audio).first,
-                       let compAudioTrack = compositionAudioTrack {
-                        try compAudioTrack.insertTimeRange(timeRange, of: audioTrack, at: .zero)
-                    }
-                } catch {
-                    result(flutterError("INSERT_ERROR", message: "Failed to insert track", error: error))
-                    return
-                }
-
-                // Create video composition with the preferred transform
-                let videoComp = AVMutableVideoComposition()
-                videoComp.frameDuration = frameDuration(for: videoTrack)
-
-                let naturalSize = videoTrack.naturalSize
-                let naturalBounds = CGRect(origin: .zero, size: naturalSize)
-                let preferredBounds = naturalBounds.applying(preferredTransform)
-                let orientationAdjustment = CGAffineTransform(
-                    translationX: -preferredBounds.minX,
-                    y: -preferredBounds.minY
-                )
-
-                let orientationTransform = preferredTransform.concatenating(orientationAdjustment)
-                let renderSize = CGSize(width: abs(preferredBounds.width), height: abs(preferredBounds.height))
-
-                videoComp.renderSize = renderSize
-
-                let instruction = AVMutableVideoCompositionInstruction()
-                instruction.timeRange = CMTimeRange(start: .zero, duration: composition.duration)
-
-                let layerInstruction = AVMutableVideoCompositionLayerInstruction(assetTrack: compositionVideoTrack)
-                layerInstruction.setTransform(orientationTransform, at: .zero)
-
-                instruction.layerInstructions = [layerInstruction]
-                videoComp.instructions = [instruction]
-
-                // Use composition for export
-                let presetName = AVAssetExportPresetHighestQuality
-                guard let exportSession = AVAssetExportSession(asset: composition, presetName: presetName) else {
-                    result(flutterError("EXPORT_ERROR", message: "Failed to create export session"))
-                    return
-                }
-
-                currentExportSession = exportSession
-                exportSession.videoComposition = videoComp
-                exportSession.outputURL = URL(fileURLWithPath: outputPath)
-                exportSession.outputFileType = .mp4
-                exportSession.shouldOptimizeForNetworkUse = true
-
-                startProgressReporting()
-                exportSession.exportAsynchronously {
-                    DispatchQueue.main.async {
-                        self.stopProgressReporting()
-                        switch exportSession.status {
-                        case .completed:
-                            result([
-                                "outputPath": outputPath,
-                                "isReEncoded": true
-                            ])
-                        case .failed:
-                            result(self.flutterError("TRIM_ERROR", message: "Failed to trim video", error: exportSession.error))
-                        case .cancelled:
-                            result(self.flutterError("CANCELLED", message: "Export cancelled"))
-                        default:
-                            result(self.flutterError("UNKNOWN", message: "Unknown export status", error: exportSession.error))
-                        }
-                        self.currentExportSession = nil
-                    }
-                }
-                return
-            }
-        }
-
-        // Use passthrough if no rotation needed
-        guard let exportSession = AVAssetExportSession(asset: asset,
-                                                       presetName: AVAssetExportPresetPassthrough) else {
-            result(flutterError("EXPORT_ERROR", message: "Failed to create export session"))
-            return
-        }
-
-        currentExportSession = exportSession
-
-        exportSession.timeRange = timeRange
-        exportSession.outputURL = URL(fileURLWithPath: outputPath)
-        exportSession.outputFileType = .mp4
-        exportSession.shouldOptimizeForNetworkUse = true
-
-        startProgressReporting()
-        exportSession.exportAsynchronously {
-            DispatchQueue.main.async {
-                self.stopProgressReporting()
-                switch exportSession.status {
-                case .completed:
-                    result([
-                        "outputPath": outputPath,
-                        "isReEncoded": false
-                    ])
-                case .failed:
-                    result(self.flutterError("TRIM_ERROR", message: "Failed to trim video", error: exportSession.error))
-                case .cancelled:
-                    result(self.flutterError("CANCELLED", message: "Export cancelled"))
-                default:
-                    result(self.flutterError("UNKNOWN", message: "Unknown export status", error: exportSession.error))
-                }
-                self.currentExportSession = nil
-            }
-        }
-    }
-
-    private func rotateVideo(inputPath: String, outputPath: String,
-                            degrees: Int, result: @escaping FlutterResult) {
-        let asset = AVAsset(url: URL(fileURLWithPath: inputPath))
-
-        guard let videoTrack = asset.tracks(withMediaType: .video).first else {
-            result(flutterError("NO_VIDEO", message: "No video track found"))
-            return
-        }
-
-        let composition = AVMutableComposition()
-        guard let compositionVideoTrack = composition.addMutableTrack(
-            withMediaType: .video,
-            preferredTrackID: kCMPersistentTrackID_Invalid) else {
-            result(flutterError("COMPOSITION_ERROR", message: "Failed to create composition track"))
-            return
-        }
-
-        var compositionAudioTrack: AVMutableCompositionTrack?
-        if let audioTrack = asset.tracks(withMediaType: .audio).first {
-            compositionAudioTrack = composition.addMutableTrack(
-                withMediaType: .audio,
-                preferredTrackID: kCMPersistentTrackID_Invalid)
-        }
-
-        do {
-            try compositionVideoTrack.insertTimeRange(
-                CMTimeRange(start: .zero, duration: asset.duration),
-                of: videoTrack,
-                at: .zero)
-
-            if let audioTrack = asset.tracks(withMediaType: .audio).first,
-               let compAudioTrack = compositionAudioTrack {
-                try compAudioTrack.insertTimeRange(
-                    CMTimeRange(start: .zero, duration: asset.duration),
-                    of: audioTrack,
-                    at: .zero)
-            }
-        } catch {
-            result(flutterError("INSERT_ERROR", message: "Failed to insert track", error: error))
-            return
-        }
-
-        let videoComposition = AVMutableVideoComposition()
-        videoComposition.frameDuration = frameDuration(for: videoTrack)
-
-        let naturalSize = videoTrack.naturalSize
-        let preferredTransform = videoTrack.preferredTransform
-
-        // Apply orientation adjustment to handle existing metadata rotation properly
-        let naturalBounds = CGRect(origin: .zero, size: naturalSize)
-        let preferredBounds = naturalBounds.applying(preferredTransform)
-        let orientationAdjustment = CGAffineTransform(
-            translationX: -preferredBounds.minX,
-            y: -preferredBounds.minY
-        )
-        let orientationTransform = preferredTransform.concatenating(orientationAdjustment)
-
-        // Calculate oriented size for render calculations
-        var orientedSize = CGSize(width: abs(preferredBounds.width), height: abs(preferredBounds.height))
-
-        var transform = orientationTransform
-
-        // iOS CGAffineTransform rotates counter-clockwise for positive angles
-        // To match Android behavior (positive = clockwise), we negate the radians
-        let radians = CGFloat(degrees) * .pi / 180
-        let clockwiseRadians = -radians
-
-        // Rotate around the center of the oriented video
-        let centerX = orientedSize.width / 2
-        let centerY = orientedSize.height / 2
-
-        transform = transform.translatedBy(x: centerX, y: centerY)
-        transform = transform.rotated(by: clockwiseRadians)
-        transform = transform.translatedBy(x: -centerX, y: -centerY)
-
-        // Calculate renderSize from actual transformed bounds (more accurate for metadata-rotated videos)
-        // Use naturalSize here because transform expects input in natural/file coordinate space
-        let testRect = CGRect(origin: .zero, size: naturalSize)
-        let transformedBounds = testRect.applying(transform)
-
-        // Get the actual dimensions after the full transform chain
-        let finalWidth = abs(transformedBounds.width)
-        let finalHeight = abs(transformedBounds.height)
-        let renderSize = CGSize(width: finalWidth, height: finalHeight)
-
-        // Center the video in the renderSize
-        let targetMinX: CGFloat = (renderSize.width - transformedBounds.width) / 2
-        let additionalTranslateX = targetMinX - transformedBounds.minX
-
-        let targetMinY: CGFloat = (renderSize.height - transformedBounds.height) / 2
-        let additionalTranslateY = targetMinY - transformedBounds.minY
-
-        transform = transform.concatenating(CGAffineTransform(translationX: additionalTranslateX, y: additionalTranslateY))
-
-        videoComposition.renderSize = renderSize
-
-        let instruction = AVMutableVideoCompositionInstruction()
-        instruction.timeRange = CMTimeRange(start: .zero, duration: composition.duration)
-
-        let layerInstruction = AVMutableVideoCompositionLayerInstruction(assetTrack: compositionVideoTrack)
-        layerInstruction.setTransform(transform, at: .zero)
-
-        instruction.layerInstructions = [layerInstruction]
-        videoComposition.instructions = [instruction]
-
-        guard let exportSession = AVAssetExportSession(
-            asset: composition,
-            presetName: AVAssetExportPresetHighestQuality) else {
-            result(flutterError("EXPORT_ERROR", message: "Failed to create export session"))
-            return
-        }
-
-        currentExportSession = exportSession
-
-        exportSession.videoComposition = videoComposition
-        exportSession.outputURL = URL(fileURLWithPath: outputPath)
-        exportSession.outputFileType = .mp4
-        exportSession.shouldOptimizeForNetworkUse = true
-
-        startProgressReporting()
-        exportSession.exportAsynchronously {
-            DispatchQueue.main.async {
-                self.stopProgressReporting()
-                switch exportSession.status {
-                case .completed:
-                    result([
-                        "outputPath": outputPath,
-                        "isReEncoded": true
-                    ])
-                case .failed:
-                    result(self.flutterError("ROTATE_ERROR", message: "Failed to rotate video", error: exportSession.error))
-                case .cancelled:
-                    result(self.flutterError("CANCELLED", message: "Export cancelled"))
-                default:
-                    result(self.flutterError("UNKNOWN", message: "Unknown export status", error: exportSession.error))
-                }
-                self.currentExportSession = nil
-            }
-        }
-    }
-
-    private func cropVideo(inputPath: String, outputPath: String,
-                          x: Int, y: Int, width: Int, height: Int, result: @escaping FlutterResult) {
-        let asset = AVAsset(url: URL(fileURLWithPath: inputPath))
-
-        guard let videoTrack = asset.tracks(withMediaType: .video).first else {
-            result(flutterError("NO_VIDEO", message: "No video track found"))
-            return
-        }
-
-        let preferredTransform = videoTrack.preferredTransform
-        let naturalSize = videoTrack.naturalSize
-
-        let cropRectDisplay = CGRect(
-            x: CGFloat(x),
-            y: CGFloat(y),
-            width: CGFloat(width),
-            height: CGFloat(height)
-        )
-
-        let composition = AVMutableComposition()
-        guard let compositionVideoTrack = composition.addMutableTrack(
-            withMediaType: .video,
-            preferredTrackID: kCMPersistentTrackID_Invalid) else {
-            result(flutterError("COMPOSITION_ERROR", message: "Failed to create composition track"))
-            return
-        }
-
-        var compositionAudioTrack: AVMutableCompositionTrack?
-        if let audioTrack = asset.tracks(withMediaType: .audio).first {
-            compositionAudioTrack = composition.addMutableTrack(
-                withMediaType: .audio,
-                preferredTrackID: kCMPersistentTrackID_Invalid)
-        }
-
-        do {
-            try compositionVideoTrack.insertTimeRange(
-                CMTimeRange(start: .zero, duration: asset.duration),
-                of: videoTrack,
-                at: .zero)
-
-            if let audioTrack = asset.tracks(withMediaType: .audio).first,
-               let compAudioTrack = compositionAudioTrack {
-                try compAudioTrack.insertTimeRange(
-                    CMTimeRange(start: .zero, duration: asset.duration),
-                    of: audioTrack,
-                    at: .zero)
-            }
-        } catch {
-            result(flutterError("INSERT_ERROR", message: "Failed to insert track", error: error))
-            return
-        }
-
-        // Create video composition for cropping
-        let videoComposition = AVMutableVideoComposition()
-        videoComposition.frameDuration = frameDuration(for: videoTrack)
-
-        // Create layer instruction with crop transform
-        let instruction = AVMutableVideoCompositionInstruction()
-        instruction.timeRange = CMTimeRange(start: .zero, duration: composition.duration)
-
-        let layerInstruction = AVMutableVideoCompositionLayerInstruction(assetTrack: compositionVideoTrack)
-
-        let naturalBounds = CGRect(origin: .zero, size: naturalSize)
-        let preferredBounds = naturalBounds.applying(preferredTransform)
-        let orientationAdjustment = CGAffineTransform(
-            translationX: -preferredBounds.minX,
-            y: -preferredBounds.minY
-        )
-
-        let orientationTransform = preferredTransform.concatenating(orientationAdjustment)
-
-        guard orientationTransform.isNearlyInvertible else {
-            result(flutterError("CROP_ERROR", message: "Invalid orientation transform"))
-            return
-        }
-        let orientationInverse = orientationTransform.inverted()
-
-        let displayCorners = [
-            cropRectDisplay.origin,
-            CGPoint(x: cropRectDisplay.maxX, y: cropRectDisplay.minY),
-            CGPoint(x: cropRectDisplay.minX, y: cropRectDisplay.maxY),
-            CGPoint(x: cropRectDisplay.maxX, y: cropRectDisplay.maxY)
-        ]
-
-        let fileCorners = displayCorners.map { $0.applying(orientationInverse) }
-
-        let fileMinX = fileCorners.map { $0.x }.min() ?? 0
-        let fileMinY = fileCorners.map { $0.y }.min() ?? 0
-        let fileMaxX = fileCorners.map { $0.x }.max() ?? 0
-        let fileMaxY = fileCorners.map { $0.y }.max() ?? 0
-
-        let fileCropRect = CGRect(
-            x: fileMinX,
-            y: fileMinY,
-            width: fileMaxX - fileMinX,
-            height: fileMaxY - fileMinY
-        )
-
-        let cropTranslation = CGAffineTransform(
-            translationX: -fileCropRect.origin.x,
-            y: -fileCropRect.origin.y
-        )
-
-        var transform = cropTranslation.concatenating(orientationTransform)
-
-        let transformedCorners = fileCorners.map { $0.applying(transform) }
-
-        let minX = transformedCorners.map { $0.x }.min() ?? 0
-        let minY = transformedCorners.map { $0.y }.min() ?? 0
-        let maxX = transformedCorners.map { $0.x }.max() ?? 0
-        let maxY = transformedCorners.map { $0.y }.max() ?? 0
-
-        let correctionTransform = CGAffineTransform(
-            translationX: -minX,
-            y: -minY
-        )
-        transform = transform.concatenating(correctionTransform)
-
-        let outputWidth = max((maxX - minX).rounded(), CGFloat(1))
-        let outputHeight = max((maxY - minY).rounded(), CGFloat(1))
-        let renderSize = CGSize(width: outputWidth, height: outputHeight)
-
-        layerInstruction.setTransform(transform, at: .zero)
-        videoComposition.renderSize = renderSize
-
-        instruction.layerInstructions = [layerInstruction]
-        videoComposition.instructions = [instruction]
-
-        guard let exportSession = AVAssetExportSession(
-            asset: composition,
-            presetName: AVAssetExportPresetHighestQuality) else {
-            result(flutterError("EXPORT_ERROR", message: "Failed to create export session"))
-            return
-        }
-
-        currentExportSession = exportSession
-
-        exportSession.videoComposition = videoComposition
-        exportSession.outputURL = URL(fileURLWithPath: outputPath)
-        exportSession.outputFileType = .mp4
-        exportSession.shouldOptimizeForNetworkUse = true
-
-        startProgressReporting()
-        exportSession.exportAsynchronously {
-            DispatchQueue.main.async {
-                self.stopProgressReporting()
-                switch exportSession.status {
-                case .completed:
-                    result([
-                        "outputPath": outputPath,
-                        "isReEncoded": true
-                    ])
-                case .failed:
-                    result(self.flutterError("CROP_ERROR", message: "Failed to crop video", error: exportSession.error))
-                case .cancelled:
-                    result(self.flutterError("CANCELLED", message: "Export cancelled"))
-                default:
-                    result(self.flutterError("UNKNOWN", message: "Unknown export status", error: exportSession.error))
-                }
-                self.currentExportSession = nil
-            }
-        }
-    }
-
-    private func handleProcessVideo(call: FlutterMethodCall, result: @escaping FlutterResult) {
+    private func inspectVideo(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         guard let args = call.arguments as? [String: Any],
-              let inputPath = args["inputPath"] as? String,
-              let outputPath = args["outputPath"] as? String else {
+            let videoPath = args["videoPath"] as? String,
+            !videoPath.isEmpty
+        else {
             result(flutterError("INVALID_ARGS", message: "Invalid arguments"))
             return
         }
 
-        let asset = AVAsset(url: URL(fileURLWithPath: inputPath))
-        var composition = AVMutableComposition()
-        var videoComposition: AVMutableVideoComposition?
-
-        // Handle trim
-        var timeRange = CMTimeRange(start: .zero, duration: asset.duration)
-        if let trimStartMs = args["trimStartMs"] as? Int,
-           let trimEndMs = args["trimEndMs"] as? Int {
-            let startTime = CMTime(value: CMTimeValue(trimStartMs), timescale: 1000)
-            let endTime = CMTime(value: CMTimeValue(trimEndMs), timescale: 1000)
-            timeRange = CMTimeRange(start: startTime, end: endTime)
+        Task { [weak self] in
+            guard let self else { return }
+            do {
+                let info = try await metadataReader.read(
+                    from: URL(fileURLWithPath: videoPath)
+                )
+                guard !isDetached else { return }
+                result(info.channelValue)
+            } catch {
+                guard !isDetached else { return }
+                result(flutterError(error, defaultCode: "INFO_ERROR"))
+            }
         }
+    }
 
-        guard let videoTrack = asset.tracks(withMediaType: .video).first,
-              let compositionVideoTrack = composition.addMutableTrack(
-                withMediaType: .video,
-                preferredTrackID: kCMPersistentTrackID_Invalid) else {
-            result(flutterError("COMPOSITION_ERROR", message: "Failed to create composition"))
+    private func extractSingleFrame(
+        _ call: FlutterMethodCall,
+        result: @escaping FlutterResult
+    ) {
+        guard let args = call.arguments as? [String: Any],
+            let outputPath = args["outputPath"] as? String,
+            !outputPath.isEmpty,
+            let positionMs = int64(args["positionMs"])
+        else {
+            result(flutterError("INVALID_ARGS", message: "Invalid frame arguments"))
             return
         }
+        startFrameExtraction(
+            args: args,
+            requestID: UUID().uuidString,
+            outputPaths: [outputPath],
+            positionsMs: [positionMs],
+            result: result
+        )
+    }
 
+    private func extractTimeline(
+        _ call: FlutterMethodCall,
+        result: @escaping FlutterResult
+    ) {
+        guard let args = call.arguments as? [String: Any],
+            let requestID = args["requestId"] as? String,
+            !requestID.isEmpty,
+            let outputPaths = args["outputPaths"] as? [String],
+            outputPaths.allSatisfy({ !$0.isEmpty }),
+            let positions = args["positionsMs"] as? [NSNumber]
+        else {
+            result(flutterError("INVALID_ARGS", message: "Invalid timeline arguments"))
+            return
+        }
+        startFrameExtraction(
+            args: args,
+            requestID: requestID,
+            outputPaths: outputPaths,
+            positionsMs: positions.map(\.int64Value),
+            result: result
+        )
+    }
+
+    private func startFrameExtraction(
+        args: [String: Any],
+        requestID: String,
+        outputPaths: [String],
+        positionsMs: [Int64],
+        result: @escaping FlutterResult
+    ) {
+        guard frameTasks[requestID] == nil else {
+            result(
+                flutterError(
+                    "DUPLICATE_REQUEST",
+                    message: "Frame request ID is already active",
+                    details: requestID
+                ))
+            return
+        }
+        let request: VideoFrameRequest
         do {
-            try compositionVideoTrack.insertTimeRange(timeRange, of: videoTrack, at: .zero)
-
-            if let audioTrack = asset.tracks(withMediaType: .audio).first,
-               let compositionAudioTrack = composition.addMutableTrack(
-                withMediaType: .audio,
-                preferredTrackID: kCMPersistentTrackID_Invalid) {
-                try compositionAudioTrack.insertTimeRange(timeRange, of: audioTrack, at: .zero)
-            }
+            request = try makeFrameRequest(
+                args: args,
+                outputPaths: outputPaths,
+                positionsMs: positionsMs
+            )
         } catch {
-            result(flutterError("INSERT_ERROR", message: "Failed to insert track", error: error))
+            result(flutterError(error, defaultCode: "INVALID_ARGS"))
             return
         }
 
-        var isReEncoded = false
-
-        let naturalSize = videoTrack.naturalSize
-        let preferredTransform = videoTrack.preferredTransform
-        var finalTransform = preferredTransform
-        var renderSize = naturalSize
-
-        // Check if video has metadata rotation even if no explicit transformations requested
-        let hasMetadataRotation = !preferredTransform.isIdentity
-
-        if let cropX = args["cropX"] as? Int,
-           let cropY = args["cropY"] as? Int,
-           let cropWidth = args["cropWidth"] as? Int,
-           let cropHeight = args["cropHeight"] as? Int {
-            isReEncoded = true
-
-            let requestedRotation = args["rotateDegrees"] as? Int ?? 0
-            let normalizedRotation = ((requestedRotation % 360) + 360) % 360
-
-            let naturalBounds = CGRect(origin: .zero, size: naturalSize)
-            let preferredBounds = naturalBounds.applying(preferredTransform)
-            let orientationAdjustment = CGAffineTransform(
-                translationX: -preferredBounds.minX,
-                y: -preferredBounds.minY
-            )
-
-            let orientationTransform = preferredTransform.concatenating(orientationAdjustment)
-
-            guard orientationTransform.isNearlyInvertible else {
-                result(flutterError("PROCESS_ERROR", message: "Invalid orientation transform during crop"))
-                return
+        let task = Task { [weak self] in
+            guard let self else { return }
+            let value: Any
+            do {
+                let extraction = try await frameExtractor.extract(request)
+                value = extraction.channelValue(outputPaths: outputPaths)
+            } catch is CancellationError {
+                value = flutterError(
+                    "FRAME_CANCELLED",
+                    message: "Frame extraction was cancelled",
+                    details: requestID
+                )
+            } catch {
+                value = flutterError(error, defaultCode: "FRAME_EXTRACTION_ERROR")
             }
-            let orientationInverse = orientationTransform.inverted()
-
-            let cropRectDisplay = CGRect(
-                x: CGFloat(cropX),
-                y: CGFloat(cropY),
-                width: CGFloat(cropWidth),
-                height: CGFloat(cropHeight)
-            )
-
-            let displayCorners = [
-                cropRectDisplay.origin,
-                CGPoint(x: cropRectDisplay.maxX, y: cropRectDisplay.minY),
-                CGPoint(x: cropRectDisplay.minX, y: cropRectDisplay.maxY),
-                CGPoint(x: cropRectDisplay.maxX, y: cropRectDisplay.maxY)
-            ]
-
-            let fileCorners = displayCorners.map { $0.applying(orientationInverse) }
-
-            let fileMinX = fileCorners.map { $0.x }.min() ?? 0
-            let fileMinY = fileCorners.map { $0.y }.min() ?? 0
-            let fileMaxX = fileCorners.map { $0.x }.max() ?? 0
-            let fileMaxY = fileCorners.map { $0.y }.max() ?? 0
-
-            let fileCropRect = CGRect(
-                x: fileMinX,
-                y: fileMinY,
-                width: fileMaxX - fileMinX,
-                height: fileMaxY - fileMinY
-            )
-
-            let cropTranslation = CGAffineTransform(
-                translationX: -fileCropRect.origin.x,
-                y: -fileCropRect.origin.y
-            )
-
-            var transform = cropTranslation.concatenating(orientationTransform)
-
-            if normalizedRotation != 0 {
-                // iOS CGAffineTransform rotates counter-clockwise for positive angles.
-                // To match Android behavior (positive = clockwise), negate the radians.
-                let radians = CGFloat(normalizedRotation) * .pi / 180
-                let clockwiseRadians = -radians
-                let rotationTransform = CGAffineTransform(rotationAngle: clockwiseRadians)
-                transform = transform.concatenating(rotationTransform)
-            }
-
-            let transformedCorners = fileCorners.map { $0.applying(transform) }
-
-            let minX = transformedCorners.map { $0.x }.min() ?? 0
-            let minY = transformedCorners.map { $0.y }.min() ?? 0
-            let maxX = transformedCorners.map { $0.x }.max() ?? 0
-            let maxY = transformedCorners.map { $0.y }.max() ?? 0
-
-            let correctionTransform = CGAffineTransform(
-                translationX: -minX,
-                y: -minY
-            )
-            transform = transform.concatenating(correctionTransform)
-
-            let outputWidth = max((maxX - minX).rounded(), CGFloat(1))
-            let outputHeight = max((maxY - minY).rounded(), CGFloat(1))
-            renderSize = CGSize(width: outputWidth, height: outputHeight)
-
-            finalTransform = transform
-
-        } else if let rotateDegrees = args["rotateDegrees"] as? Int, rotateDegrees != 0 {
-            isReEncoded = true
-
-            // Apply orientation adjustment to handle existing metadata rotation properly
-            let naturalBounds = CGRect(origin: .zero, size: naturalSize)
-            let preferredBounds = naturalBounds.applying(preferredTransform)
-            let orientationAdjustment = CGAffineTransform(
-                translationX: -preferredBounds.minX,
-                y: -preferredBounds.minY
-            )
-            let orientationTransform = preferredTransform.concatenating(orientationAdjustment)
-
-            // Calculate oriented size for render calculations
-            var orientedSize = CGSize(width: abs(preferredBounds.width), height: abs(preferredBounds.height))
-
-            var transform = orientationTransform
-
-            // iOS CGAffineTransform rotates counter-clockwise for positive angles
-            // To match Android behavior (positive = clockwise), we negate the radians
-            let radians = CGFloat(rotateDegrees) * .pi / 180
-            let clockwiseRadians = -radians
-
-            // Rotate around the center of the input video
-            let centerX = orientedSize.width / 2
-            let centerY = orientedSize.height / 2
-
-            transform = transform.translatedBy(x: centerX, y: centerY)
-            transform = transform.rotated(by: clockwiseRadians)
-            transform = transform.translatedBy(x: -centerX, y: -centerY)
-
-            // Calculate renderSize from actual transformed bounds (more accurate for metadata-rotated videos)
-            // Use naturalSize here because transform expects input in natural/file coordinate space
-            let testRect = CGRect(origin: .zero, size: naturalSize)
-            let transformedBounds = testRect.applying(transform)
-
-            // Get the actual dimensions after the full transform chain
-            let finalWidth = abs(transformedBounds.width)
-            let finalHeight = abs(transformedBounds.height)
-            renderSize = CGSize(width: finalWidth, height: finalHeight)
-
-            // Center the video in the renderSize
-            let targetMinX: CGFloat = (renderSize.width - transformedBounds.width) / 2
-            let additionalTranslateX = targetMinX - transformedBounds.minX
-
-            let targetMinY: CGFloat = (renderSize.height - transformedBounds.height) / 2
-            let additionalTranslateY = targetMinY - transformedBounds.minY
-
-            transform = transform.concatenating(CGAffineTransform(translationX: additionalTranslateX, y: additionalTranslateY))
-
-            finalTransform = transform
-        } else if hasMetadataRotation {
-            // If no explicit transformations but video has metadata rotation, apply it
-            isReEncoded = true
-
-            let naturalBounds = CGRect(origin: .zero, size: naturalSize)
-            let preferredBounds = naturalBounds.applying(preferredTransform)
-            let orientationAdjustment = CGAffineTransform(
-                translationX: -preferredBounds.minX,
-                y: -preferredBounds.minY
-            )
-
-            let orientationTransform = preferredTransform.concatenating(orientationAdjustment)
-            renderSize = CGSize(width: abs(preferredBounds.width), height: abs(preferredBounds.height))
-            finalTransform = orientationTransform
+            finishFrameRequest(requestID: requestID, result: result, value: value)
         }
+        frameTasks[requestID] = task
+    }
 
-        if isReEncoded {
-            videoComposition = AVMutableVideoComposition()
-            videoComposition!.frameDuration = frameDuration(for: videoTrack)
-            videoComposition!.renderSize = renderSize
-
-            let instruction = AVMutableVideoCompositionInstruction()
-            instruction.timeRange = CMTimeRange(start: .zero, duration: composition.duration)
-
-            let layerInstruction = AVMutableVideoCompositionLayerInstruction(assetTrack: compositionVideoTrack)
-            layerInstruction.setTransform(finalTransform, at: .zero)
-
-            instruction.layerInstructions = [layerInstruction]
-            videoComposition!.instructions = [instruction]
+    private func cancelFrameExtraction(
+        _ call: FlutterMethodCall,
+        result: @escaping FlutterResult
+    ) {
+        guard let args = call.arguments as? [String: Any],
+            let requestID = args["requestId"] as? String
+        else {
+            result(flutterError("INVALID_ARGS", message: "Missing frame request ID"))
+            return
         }
+        guard let task = frameTasks[requestID] else {
+            result(nil)
+            return
+        }
+        guard frameCancellationResults[requestID] == nil else {
+            result(nil)
+            return
+        }
+        frameCancellationResults[requestID] = result
+        task.cancel()
+    }
 
-        // Export
-        let presetName = isReEncoded ? AVAssetExportPresetHighestQuality : AVAssetExportPresetPassthrough
-        guard let exportSession = AVAssetExportSession(asset: composition, presetName: presetName) else {
-            result(flutterError("EXPORT_ERROR", message: "Failed to create export session"))
+    private func finishFrameRequest(
+        requestID: String,
+        result: @escaping FlutterResult,
+        value: Any
+    ) {
+        guard frameTasks.removeValue(forKey: requestID) != nil else { return }
+        let cancellationResult = frameCancellationResults.removeValue(forKey: requestID)
+        guard !isDetached else { return }
+        result(value)
+        cancellationResult?(nil)
+    }
+
+    private func processVideo(
+        _ call: FlutterMethodCall,
+        result: @escaping FlutterResult
+    ) {
+        guard exportTask == nil else {
+            result(flutterError("CONCURRENT_EXPORT", message: "A video export is already active"))
+            return
+        }
+        guard let args = call.arguments as? [String: Any],
+            let outputPath = args["outputPath"] as? String,
+            !outputPath.isEmpty
+        else {
+            result(flutterError("INVALID_ARGS", message: "Invalid arguments"))
+            return
+        }
+        let request: VideoEditRequest
+        do {
+            request = try makeEditRequest(args: args)
+        } catch {
+            result(flutterError(error, defaultCode: "INVALID_ARGS"))
             return
         }
 
-        currentExportSession = exportSession
-
-        if let videoComp = videoComposition {
-            exportSession.videoComposition = videoComp
-        }
-
-        exportSession.outputURL = URL(fileURLWithPath: outputPath)
-        exportSession.outputFileType = .mp4
-        exportSession.shouldOptimizeForNetworkUse = true
-
-        if !isReEncoded {
-            exportSession.timeRange =  CMTimeRange(start: .zero, duration: composition.duration)
-        }
-
-        startProgressReporting()
-        exportSession.exportAsynchronously {
-            DispatchQueue.main.async {
-                self.stopProgressReporting()
-                switch exportSession.status {
-                case .completed:
-                    result([
-                        "outputPath": outputPath,
-                        "isReEncoded": isReEncoded
-                    ])
-                case .failed:
-                    result(self.flutterError("PROCESS_ERROR", message: "Failed to process video", error: exportSession.error))
-                case .cancelled:
-                    result(self.flutterError("CANCELLED", message: "Export cancelled"))
-                default:
-                    result(self.flutterError("UNKNOWN", message: "Unknown export status", error: exportSession.error))
+        let task = Task { [weak self] in
+            guard let self else { return }
+            let value: Any
+            do {
+                let export = try await videoExporter.export(request) { [weak self] progress in
+                    Task { @MainActor [weak self] in
+                        guard let self, !isDetached else { return }
+                        progressEventSink?(progress)
+                    }
                 }
-                self.currentExportSession = nil
+                value = [
+                    "outputPath": outputPath,
+                    "isReEncoded": export.isReEncoded,
+                ]
+            } catch is CancellationError {
+                value = flutterError("PROCESS_CANCELLED", message: "Export cancelled")
+            } catch {
+                value = flutterError(error, defaultCode: "PROCESS_ERROR")
+            }
+            finishExport(result: result, value: value)
+        }
+        exportTask = task
+    }
+
+    private func exportSlideshow(
+        _ call: FlutterMethodCall,
+        result: @escaping FlutterResult
+    ) {
+        guard exportTask == nil else {
+            result(flutterError("CONCURRENT_EXPORT", message: "A video export is already active"))
+            return
+        }
+        guard let args = call.arguments as? [String: Any],
+            let outputPath = args["outputPath"] as? String,
+            !outputPath.isEmpty
+        else {
+            result(flutterError("INVALID_ARGS", message: "Invalid arguments"))
+            return
+        }
+        let request: SlideshowExportRequest
+        do {
+            request = try makeSlideshowRequest(args: args, outputPath: outputPath)
+        } catch {
+            result(flutterError(error, defaultCode: "INVALID_ARGS"))
+            return
+        }
+
+        let task = Task { [weak self] in
+            guard let self else { return }
+            let value: Any
+            do {
+                _ = try await slideshowExporter.export(request) { [weak self] progress in
+                    Task { @MainActor [weak self] in
+                        guard let self, !isDetached else { return }
+                        progressEventSink?(progress)
+                    }
+                }
+                value = ["outputPath": outputPath]
+            } catch is CancellationError {
+                value = flutterError("PROCESS_CANCELLED", message: "Export cancelled")
+            } catch {
+                value = flutterError(error, defaultCode: "PROCESS_ERROR")
+            }
+            finishExport(result: result, value: value)
+        }
+        exportTask = task
+    }
+
+    private func cancelProcessing(result: @escaping FlutterResult) {
+        guard let exportTask else {
+            result(nil)
+            return
+        }
+        guard exportCancellationResult == nil else {
+            result(nil)
+            return
+        }
+        exportCancellationResult = result
+        exportTask.cancel()
+    }
+
+    private func finishExport(result: @escaping FlutterResult, value: Any) {
+        guard exportTask != nil else { return }
+        exportTask = nil
+        let cancellationResult = exportCancellationResult
+        exportCancellationResult = nil
+        guard !isDetached else { return }
+        result(value)
+        cancellationResult?(nil)
+    }
+
+    private func makeFrameRequest(
+        args: [String: Any],
+        outputPaths: [String],
+        positionsMs: [Int64]
+    ) throws -> VideoFrameRequest {
+        guard let inputPath = args["inputPath"] as? String,
+            !inputPath.isEmpty,
+            outputPaths.allSatisfy({ !$0.isEmpty }),
+            let maxWidth = int(args["maxWidth"]),
+            let maxHeight = int(args["maxHeight"]),
+            let quality = int(args["quality"]),
+            let policyValue = args["policy"] as? String
+        else {
+            throw VideoEditorError.invalidRequest("Invalid frame extraction arguments")
+        }
+        let policy: VideoFramePolicy
+        switch policyValue {
+        case "precise": policy = .precise
+        case "nearestSync": policy = .nearestSync
+        default:
+            throw VideoEditorError.invalidRequest("Invalid frame policy")
+        }
+        return try VideoFrameRequest(
+            inputURL: URL(fileURLWithPath: inputPath),
+            outputURLs: outputPaths.map { URL(fileURLWithPath: $0) },
+            positionsMs: positionsMs,
+            maxWidth: maxWidth,
+            maxHeight: maxHeight,
+            quality: quality,
+            policy: policy
+        )
+    }
+
+    private func makeEditRequest(args: [String: Any]) throws -> VideoEditRequest {
+        guard let inputPath = args["inputPath"] as? String,
+            !inputPath.isEmpty,
+            let outputPath = args["outputPath"] as? String,
+            !outputPath.isEmpty
+        else {
+            throw VideoEditorError.invalidRequest("Invalid video paths")
+        }
+        let cropValues = [
+            int(args["cropX"]),
+            int(args["cropY"]),
+            int(args["cropWidth"]),
+            int(args["cropHeight"]),
+        ]
+        guard cropValues.allSatisfy({ $0 == nil }) || cropValues.allSatisfy({ $0 != nil }) else {
+            throw VideoEditorError.invalidRequest("Crop values must be provided together")
+        }
+        let crop =
+            cropValues[0] == nil
+            ? nil
+            : try VideoCrop(
+                x: cropValues[0]!,
+                y: cropValues[1]!,
+                width: cropValues[2]!,
+                height: cropValues[3]!
+            )
+        return try VideoEditRequest(
+            inputURL: URL(fileURLWithPath: inputPath),
+            outputURL: URL(fileURLWithPath: outputPath),
+            trimStartMs: int64(args["trimStartMs"]),
+            trimEndMs: int64(args["trimEndMs"]),
+            rotateDegrees: int(args["rotateDegrees"]),
+            crop: crop,
+            speed: double(args["speed"]) ?? 1
+        )
+    }
+
+    private func makeSlideshowRequest(
+        args: [String: Any],
+        outputPath: String
+    ) throws -> SlideshowExportRequest {
+        guard let width = int(args["width"]),
+            let height = int(args["height"]),
+            let frameRate = int(args["frameRate"]),
+            let crossfadeMs = int64(args["crossfadeMs"]),
+            let itemValues = args["items"] as? [[String: Any]]
+        else {
+            throw VideoEditorError.invalidRequest("Invalid slideshow arguments")
+        }
+        let items = try itemValues.map { value -> SlideshowItem in
+            guard let path = value["path"] as? String, !path.isEmpty,
+                let type = value["type"] as? String
+            else {
+                throw VideoEditorError.invalidRequest("Invalid slideshow item")
+            }
+            let url = URL(fileURLWithPath: path)
+            switch type {
+            case "photo":
+                guard let durationMs = int64(value["durationMs"]),
+                    let startScale = double(value["startScale"]),
+                    let endScale = double(value["endScale"]),
+                    let startX = double(value["startX"]),
+                    let startY = double(value["startY"]),
+                    let endX = double(value["endX"]),
+                    let endY = double(value["endY"])
+                else {
+                    throw VideoEditorError.invalidRequest("Invalid slideshow photo")
+                }
+                return .photo(
+                    url: url,
+                    durationMs: durationMs,
+                    motion: try SlideshowMotion(
+                        startScale: startScale,
+                        endScale: endScale,
+                        startOffset: CGPoint(x: startX, y: startY),
+                        endOffset: CGPoint(x: endX, y: endY)
+                    )
+                )
+            case "video":
+                return .video(url: url, isMuted: (value["isMuted"] as? Bool) ?? false)
+            default:
+                throw VideoEditorError.invalidRequest("Invalid slideshow item type")
             }
         }
+        var music: SlideshowMusic?
+        if let musicValue = args["music"] as? [String: Any] {
+            guard let path = musicValue["path"] as? String, !path.isEmpty,
+                let fadeInMs = int64(musicValue["fadeInMs"]),
+                let fadeOutMs = int64(musicValue["fadeOutMs"])
+            else {
+                throw VideoEditorError.invalidRequest("Invalid slideshow music")
+            }
+            music = try SlideshowMusic(
+                url: URL(fileURLWithPath: path),
+                fadeInMs: fadeInMs,
+                fadeOutMs: fadeOutMs
+            )
+        }
+        return try SlideshowExportRequest(
+            outputURL: URL(fileURLWithPath: outputPath),
+            width: width,
+            height: height,
+            frameRate: frameRate,
+            crossfadeMs: crossfadeMs,
+            items: items,
+            music: music
+        )
     }
 
-    private func frameDuration(for track: AVAssetTrack) -> CMTime {
-        let nominal = track.nominalFrameRate
-        if nominal.isFinite && nominal > 0 {
-            return CMTime(value: 1, timescale: Int32(round(nominal)))
-        }
-        if track.minFrameDuration.isValid && track.minFrameDuration.value != 0 {
-            return track.minFrameDuration
-        }
-        return CMTime(value: 1, timescale: 30)
+    private func int(_ value: Any?) -> Int? {
+        (value as? NSNumber)?.intValue
     }
 
-    private func flutterError(_ code: String, message: String, error: Error? = nil, details: Any? = nil) -> FlutterError {
-        let resolvedMessage = error?.localizedDescription ?? message
-        let resolvedDetails: Any?
-        if let details = details {
-            resolvedDetails = details
-        } else if let error = error {
-            resolvedDetails = String(describing: error)
-        } else {
-            resolvedDetails = nil
-        }
-        return FlutterError(code: code, message: resolvedMessage, details: resolvedDetails)
+    private func int64(_ value: Any?) -> Int64? {
+        (value as? NSNumber)?.int64Value
     }
 
-    private func getVideoInfo(videoPath: String, result: @escaping FlutterResult) {
-        let asset = AVAsset(url: URL(fileURLWithPath: videoPath))
+    private func double(_ value: Any?) -> Double? {
+        (value as? NSNumber)?.doubleValue
+    }
 
-        // Use the synchronous properties for iOS compatibility
-        let duration = asset.duration
-        let tracks = asset.tracks
+    private func flutterError(
+        _ error: Error,
+        defaultCode: String
+    ) -> FlutterError {
+        guard let videoError = error as? VideoEditorError else {
+            return flutterError(
+                defaultCode,
+                message: error.localizedDescription,
+                details: String(describing: error)
+            )
+        }
+        let code: String
+        switch videoError {
+        case .invalidRequest: code = "INVALID_ARGS"
+        case .metadataUnavailable: code = defaultCode
+        case .frameExtraction: code = "FRAME_EXTRACTION_ERROR"
+        case .frameWrite: code = "FRAME_WRITE_ERROR"
+        case .invalidTimeRange: code = "INVALID_TIME_RANGE"
+        case .composition: code = "COMPOSITION_ERROR"
+        case .export: code = defaultCode
+        }
+        return flutterError(
+            code,
+            message: videoError.message,
+            details: videoError.underlyingError.map(String.init(describing:))
+        )
+    }
 
-        var info: [String: Any] = [
-            "duration": CMTimeGetSeconds(duration) * 1000, // Convert to milliseconds
+    private func flutterError(
+        _ code: String,
+        message: String,
+        details: Any? = nil
+    ) -> FlutterError {
+        FlutterError(code: code, message: message, details: details)
+    }
+
+    public func detachFromEngine(for registrar: FlutterPluginRegistrar) {
+        guard !isDetached else { return }
+        isDetached = true
+        progressEventSink = nil
+        frameTasks.values.forEach { $0.cancel() }
+        frameTasks.removeAll()
+        frameCancellationResults.removeAll()
+        exportTask?.cancel()
+        exportTask = nil
+        exportCancellationResult = nil
+    }
+}
+
+private extension VideoMetadata {
+    var channelValue: [String: Any] {
+        var value: [String: Any] = [
+            "duration": durationMs,
+            "width": width,
+            "height": height,
+            "displayWidth": displayWidth,
+            "displayHeight": displayHeight,
+            "rotation": rotationDegrees,
         ]
-
-        if let videoTrack = tracks.first(where: { $0.mediaType == .video }) {
-            let naturalSize = videoTrack.naturalSize
-            let preferredTransform = videoTrack.preferredTransform
-            let nominalFrameRate = videoTrack.nominalFrameRate
-
-            info["width"] = Int(naturalSize.width)
-            info["height"] = Int(naturalSize.height)
-            info["frameRate"] = nominalFrameRate
-
-            let angle = atan2(preferredTransform.b, preferredTransform.a)
-            let rotation = Int(angle * 180 / .pi)
-            info["rotation"] = rotation
-        }
-
-        if let audioTrack = tracks.first(where: { $0.mediaType == .audio }) {
-            info["hasAudio"] = true
-        }
-
-        result(info)
-    }
-
-    private func startProgressReporting() {
-        progressTimer?.invalidate()
-        progressTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-            guard let self = self,
-                  let session = self.currentExportSession,
-                  let sink = self.progressEventSink else { return }
-
-            let progress = Double(session.progress)
-            sink(progress)
-        }
-    }
-
-    private func stopProgressReporting() {
-        progressTimer?.invalidate()
-        progressTimer = nil
+        if let bitrate { value["bitrate"] = bitrate }
+        if let frameRate { value["frameRate"] = frameRate }
+        return value
     }
 }
 
-private extension CGAffineTransform {
-    var isNearlyInvertible: Bool {
-        let determinant = (a * d) - (b * c)
-        return abs(determinant) > 1e-8
+private extension VideoFrameExtractionResult {
+    func channelValue(outputPaths: [String]) -> [String: Any] {
+        [
+            "videoInfo": videoInfo.channelValue,
+            "frames": zip(frames, outputPaths).map { frame, outputPath in
+                [
+                    "outputPath": outputPath,
+                    "width": frame.width,
+                    "height": frame.height,
+                ] as [String: Any]
+            },
+        ]
     }
 }
 
-extension NativeVideoEditorPlugin: FlutterStreamHandler {
-    public func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
-        progressEventSink = events
+extension NativeVideoEditorPlugin: @preconcurrency FlutterStreamHandler {
+    public func onListen(
+        withArguments arguments: Any?,
+        eventSink events: @escaping FlutterEventSink
+    ) -> FlutterError? {
+        if !isDetached { progressEventSink = events }
         return nil
     }
 
     public func onCancel(withArguments arguments: Any?) -> FlutterError? {
         progressEventSink = nil
-        stopProgressReporting()
         return nil
     }
 }

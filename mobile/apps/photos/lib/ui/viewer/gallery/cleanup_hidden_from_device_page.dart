@@ -1,16 +1,14 @@
-import "dart:ui";
-
+import "package:ente_components/ente_components.dart";
+import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/files_updated_event.dart";
 import "package:photos/events/local_photos_updated_event.dart";
-import "package:photos/generated/l10n.dart";
 import "package:photos/models/file_load_result.dart";
 import "package:photos/models/gallery_type.dart";
 import "package:photos/models/selected_files.dart";
 import "package:photos/services/collections_service.dart";
 import "package:photos/services/hidden_service.dart";
-import "package:photos/ui/common/bottom_shadow.dart";
 import "package:photos/ui/components/action_sheet_widget.dart";
 import "package:photos/ui/components/buttons/button_widget.dart";
 import "package:photos/ui/components/models/button_type.dart";
@@ -27,10 +25,7 @@ import "package:photos/utils/dialog_util.dart";
 class CleanupHiddenFromDevicePage extends StatefulWidget {
   final VoidCallback? onCleanupComplete;
 
-  const CleanupHiddenFromDevicePage({
-    this.onCleanupComplete,
-    super.key,
-  });
+  const CleanupHiddenFromDevicePage({this.onCleanupComplete, super.key});
 
   @override
   State<CleanupHiddenFromDevicePage> createState() =>
@@ -42,29 +37,18 @@ class _CleanupHiddenFromDevicePageState
   final _selectedFiles = SelectedFiles();
 
   @override
-  void initState() {
-    super.initState();
-    _selectedFiles.addListener(_onSelectionChange);
-  }
-
-  @override
-  void dispose() {
-    _selectedFiles.removeListener(_onSelectionChange);
-    super.dispose();
-  }
-
-  void _onSelectionChange() {
-    setState(() {});
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final filesAreSelected = _selectedFiles.files.isNotEmpty;
+    final appBar = GalleryAppBarWidget.sliverConfig(
+      GalleryType.cleanupHiddenFromDevice,
+      context.strings.deleteOnDeviceFiles,
+      _selectedFiles,
+    );
 
     final gallery = Gallery(
+      appBar: appBar,
       asyncLoader: (creationStartTime, creationEndTime, {limit, asc}) async {
-        final files =
-            await CollectionsService.instance.getHiddenFilesOnDevice();
+        final files = await CollectionsService.instance
+            .getHiddenFilesOnDevice();
         return FileLoadResult(files, false);
       },
       reloadEvent: Bus.instance.on<LocalPhotosUpdatedEvent>(),
@@ -72,48 +56,18 @@ class _CleanupHiddenFromDevicePageState
       tagPrefix: "cleanup_hidden_from_device",
       selectedFiles: _selectedFiles,
       enableFileGrouping: false,
-      emptyState: EmptyState(
-        text: AppLocalizations.of(context).noHiddenFilesOnDevice,
-      ),
+      emptyState: EmptyState(text: context.strings.noHiddenFilesOnDevice),
     );
 
     return GalleryBoundariesProvider(
       child: GalleryFilesState(
         child: Scaffold(
-          appBar: PreferredSize(
-            preferredSize: const Size.fromHeight(50.0),
-            child: GalleryAppBarWidget(
-              GalleryType.cleanupHiddenFromDevice,
-              AppLocalizations.of(context).deleteOnDeviceFiles,
-              _selectedFiles,
-            ),
-          ),
           body: SelectionState(
             selectedFiles: _selectedFiles,
             child: Stack(
               alignment: Alignment.bottomCenter,
               children: [
                 gallery,
-                const BottomShadowWidget(
-                  offsetDy: 20,
-                ),
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                  height: filesAreSelected ? 0 : 80,
-                  child: AnimatedOpacity(
-                    duration: const Duration(milliseconds: 100),
-                    opacity: filesAreSelected ? 0.0 : 1.0,
-                    curve: Curves.easeIn,
-                    child: IgnorePointer(
-                      ignoring: filesAreSelected,
-                      child: SafeArea(
-                        minimum: const EdgeInsets.only(bottom: 6),
-                        child: _deleteAllButton(context),
-                      ),
-                    ),
-                  ),
-                ),
                 FileSelectionOverlayBar(
                   GalleryType.cleanupHiddenFromDevice,
                   _selectedFiles,
@@ -121,46 +75,28 @@ class _CleanupHiddenFromDevicePageState
               ],
             ),
           ),
+          floatingActionButton: ListenableBuilder(
+            listenable: _selectedFiles,
+            builder: (context, _) {
+              if (_selectedFiles.files.isNotEmpty) {
+                return const SizedBox.shrink();
+              }
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: FABComponent(
+                  label: context.strings.deleteAll,
+                  variant: FABComponentVariant.destructive,
+                  onTap: _deleteAll,
+                ),
+              );
+            },
+          ),
+          floatingActionButtonLocation:
+              FloatingActionButtonLocation.centerFloat,
+          floatingActionButtonAnimator:
+              FloatingActionButtonAnimator.noAnimation,
         ),
       ),
-    );
-  }
-
-  Widget _deleteAllButton(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: InkWell(
-            onTap: _deleteAll,
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-              child: Container(
-                height: 40,
-                decoration: const BoxDecoration(
-                  color: Color.fromRGBO(255, 101, 101, 0.2),
-                ),
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 8.0,
-                      horizontal: 16,
-                    ),
-                    child: Text(
-                      AppLocalizations.of(context).deleteAll,
-                      style: Theme.of(context).textTheme.titleSmall!.copyWith(
-                            color: const Color.fromRGBO(255, 101, 101, 1),
-                          ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 
@@ -168,9 +104,12 @@ class _CleanupHiddenFromDevicePageState
     final allFiles = await CollectionsService.instance.getHiddenFilesOnDevice();
     if (allFiles.isEmpty) return;
 
-    final l10n = AppLocalizations.of(context);
+    if (!mounted) return;
+    final l10n = context.strings;
+    if (!mounted) return;
     final actionResult = await showActionSheet(
       context: context,
+      title: l10n.deleteFromDeviceQuestion,
       buttons: [
         ButtonWidget(
           labelText: l10n.deleteFromDevice,
@@ -185,6 +124,7 @@ class _CleanupHiddenFromDevicePageState
               await deleteFilesOnDeviceOnly(context, allFiles);
             } catch (e) {
               if (context.mounted) {
+                if (!mounted) return;
                 await showGenericErrorDialog(context: context, error: e);
               }
               rethrow;
@@ -207,6 +147,7 @@ class _CleanupHiddenFromDevicePageState
     if (actionResult?.action == ButtonAction.first) {
       widget.onCleanupComplete?.call();
       if (context.mounted) {
+        if (!mounted) return;
         Navigator.of(context).pop();
       }
     }

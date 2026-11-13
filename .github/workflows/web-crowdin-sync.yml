@@ -1,48 +1,46 @@
-name: "Sync Crowdin translations (web)"
+name: "Sync Crowdin (Web)"
 
 on:
     push:
         branches: [main]
         paths:
-            # Run workflow when web's en-US/translation.json is changed
+            - ".github/workflows/web-crowdin-sync.yml"
+            - "web/crowdin.yml"
             - "web/packages/base/locales/en-US/translation.json"
-            # Or the workflow itself is changed
-            - ".github/workflows/web-crowdin.yml"
     schedule:
-        # Run Mondays at ~6:00 AM IST
-        #
-        # [Note: Run workflow on specific days of the week]
-        #
-        # The last (5th) component of the cron syntax denotes the day of the
-        # week, with 0 == SUN and 6 == SAT. So, for example, to run on every TUE
-        # and FRI, this can be set to `2,5`.
-        #
-        # See also: [Note: Run workflow every 24 hours]
+        # Mondays at ~6:00 AM IST
         - cron: "20 0 * * 1"
-    # Also allow manually running the workflow.
     workflow_dispatch:
 
-# "In order to push translations and create pull requests, the Crowdin GitHub
-#  action requires the `GITHUB_TOKEN` to have write permission on the `contents`
-#  and `pull-requests`.
-#
-# - https://github.com/crowdin/github-action?tab=readme-ov-file#permissions
 permissions:
-    contents: write
-    pull-requests: write
+    contents: read
 
 jobs:
     synchronize-with-crowdin:
         runs-on: ubuntu-latest
+        environment:
+            name: crowdin-sync
+            deployment: false
 
         steps:
             - name: Checkout
-              uses: actions/checkout@v4
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+
+            - name: Mint App token
+              id: app_token
+              uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+              with:
+                  client-id: ${{ secrets.ENTE_CI_GH_CLIENT_ID }}
+                  private-key: ${{ secrets.ENTE_CI_GH_APP_PRIVATE_KEY }}
+                  repositories: ente
+                  permission-contents: write
+                  permission-pull-requests: write
 
             - name: Crowdin's action
-              uses: crowdin/github-action@v2
+              uses: crowdin/github-action@959dc74ac104447731cba99a016f85d0ae719788 # v3.5.0
               with:
-                  base_path: "web/"
                   config: "web/crowdin.yml"
                   upload_sources: true
                   upload_translations: false
@@ -55,5 +53,5 @@ jobs:
                   pull_request_base_branch_name: "main"
                   project_id: 569613
               env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  GITHUB_TOKEN: ${{ steps.app_token.outputs.token }}
                   CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}

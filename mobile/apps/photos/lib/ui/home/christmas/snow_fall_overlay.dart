@@ -3,11 +3,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
-enum SnowflakeStyle {
-  circles,
-  stars,
-  mixed,
-}
+enum SnowflakeStyle { circles, stars, mixed }
 
 class _Snowflake {
   double x;
@@ -42,7 +38,8 @@ class _Snowflake {
       phase: random.nextDouble() * 2 * pi,
       rotation: random.nextDouble() * 2 * pi,
       rotationSpeed: (random.nextDouble() - 0.5) * 0.1,
-      isStar: style == SnowflakeStyle.stars ||
+      isStar:
+          style == SnowflakeStyle.stars ||
           (style == SnowflakeStyle.mixed && random.nextBool()),
     );
   }
@@ -313,10 +310,7 @@ class _SnowFallOverlayState extends State<SnowFallOverlay>
 class FadingSnowOverlay extends StatefulWidget {
   final ValueNotifier<double> pullOffsetNotifier;
 
-  const FadingSnowOverlay({
-    super.key,
-    required this.pullOffsetNotifier,
-  });
+  const FadingSnowOverlay({super.key, required this.pullOffsetNotifier});
 
   @override
   State<FadingSnowOverlay> createState() => _FadingSnowOverlayState();

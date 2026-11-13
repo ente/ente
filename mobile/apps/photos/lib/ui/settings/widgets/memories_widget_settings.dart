@@ -1,17 +1,14 @@
+import "package:ente_components/ente_components.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
+import "package:ente_strings/ente_strings.dart";
+import "package:flutter/foundation.dart";
 import 'package:flutter/material.dart';
 import "package:flutter_svg/flutter_svg.dart";
-import "package:photos/generated/l10n.dart";
-import "package:photos/l10n/l10n.dart";
 import "package:photos/service_locator.dart";
+import "package:photos/services/home_widget_service.dart";
 import "package:photos/services/memory_home_widget_service.dart";
+import "package:photos/settings/local_settings.dart";
 import 'package:photos/theme/ente_theme.dart';
-import 'package:photos/ui/components/buttons/icon_button_widget.dart';
-import "package:photos/ui/components/captioned_text_widget.dart";
-import "package:photos/ui/components/menu_item_widget/menu_item_widget.dart";
-import 'package:photos/ui/components/title_bar_title_widget.dart';
-import 'package:photos/ui/components/title_bar_widget.dart';
-import "package:photos/ui/components/toggle_switch_widget.dart";
 
 class MemoriesWidgetSettings extends StatefulWidget {
   const MemoriesWidgetSettings({super.key});
@@ -26,6 +23,7 @@ class _MemoriesWidgetSettingsState extends State<MemoriesWidgetSettings> {
   bool? isYearlyMemoriesEnabled = true;
   bool? isSmartMemoriesEnabled = false;
   bool? isOnThisDayMemoriesEnabled = false;
+  late bool _showText;
 
   late final bool isMLEnabled;
 
@@ -35,6 +33,7 @@ class _MemoriesWidgetSettingsState extends State<MemoriesWidgetSettings> {
   void initState() {
     super.initState();
 
+    _showText = !localSettings.isWidgetTextHidden(WidgetHideTextFlag.memory);
     initVariables();
     checkIfAnyWidgetInstalled();
   }
@@ -49,12 +48,12 @@ class _MemoriesWidgetSettingsState extends State<MemoriesWidgetSettings> {
   Future<void> initVariables() async {
     _changeMemoriesSettings = Debouncer(const Duration(milliseconds: 2500));
     isMLEnabled = hasGrantedMLConsent;
-    isYearlyMemoriesEnabled =
-        MemoryHomeWidgetService.instance.hasLastYearMemoriesSelected();
-    isSmartMemoriesEnabled =
-        MemoryHomeWidgetService.instance.getMLMemoriesSelected();
-    isOnThisDayMemoriesEnabled =
-        MemoryHomeWidgetService.instance.getOnThisDayMemoriesSelected();
+    isYearlyMemoriesEnabled = MemoryHomeWidgetService.instance
+        .hasLastYearMemoriesSelected();
+    isSmartMemoriesEnabled = MemoryHomeWidgetService.instance
+        .getMLMemoriesSelected();
+    isOnThisDayMemoriesEnabled = MemoryHomeWidgetService.instance
+        .getOnThisDayMemoriesSelected();
 
     if (isYearlyMemoriesEnabled == null ||
         isSmartMemoriesEnabled == null ||
@@ -83,12 +82,15 @@ class _MemoriesWidgetSettingsState extends State<MemoriesWidgetSettings> {
 
   Future<void> updateVariables() async {
     _changeMemoriesSettings.run(MemoryHomeWidgetService.instance.memoryChanged);
-    await MemoryHomeWidgetService.instance
-        .setLastYearMemoriesSelected(isYearlyMemoriesEnabled!);
-    await MemoryHomeWidgetService.instance
-        .setSelectedMLMemories(isSmartMemoriesEnabled!);
-    await MemoryHomeWidgetService.instance
-        .setOnThisDayMemoriesSelected(isOnThisDayMemoriesEnabled!);
+    await MemoryHomeWidgetService.instance.setLastYearMemoriesSelected(
+      isYearlyMemoriesEnabled!,
+    );
+    await MemoryHomeWidgetService.instance.setSelectedMLMemories(
+      isSmartMemoriesEnabled!,
+    );
+    await MemoryHomeWidgetService.instance.setOnThisDayMemoriesSelected(
+      isOnThisDayMemoriesEnabled!,
+    );
     await MemoryHomeWidgetService.instance.memoryChanged();
   }
 
@@ -97,29 +99,13 @@ class _MemoriesWidgetSettingsState extends State<MemoriesWidgetSettings> {
     final colorScheme = getEnteColorScheme(context);
 
     return Scaffold(
-      body: CustomScrollView(
-        primary: false,
+      backgroundColor: colorScheme.backgroundColour,
+      body: AppBarComponent(
+        title: context.strings.memories,
+        subtitle: hasInstalledAny
+            ? context.strings.memoriesWidgetDesc
+            : context.strings.addMemoriesWidgetPrompt,
         slivers: <Widget>[
-          TitleBarWidget(
-            flexibleSpaceTitle: TitleBarTitleWidget(
-              title: AppLocalizations.of(context).memories,
-            ),
-            expandedHeight: MediaQuery.textScalerOf(context).scale(136),
-            flexibleSpaceCaption: hasInstalledAny
-                ? AppLocalizations.of(context).memoriesWidgetDesc
-                : context.l10n.addMemoriesWidgetPrompt,
-            actionIcons: [
-              IconButtonWidget(
-                icon: Icons.close_outlined,
-                iconButtonType: IconButtonType.secondary,
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.pop(context);
-                  Navigator.pop(context);
-                },
-              ),
-            ],
-          ),
           if (!hasInstalledAny)
             SliverToBoxAdapter(
               child: Padding(
@@ -141,103 +127,102 @@ class _MemoriesWidgetSettingsState extends State<MemoriesWidgetSettings> {
             )
           else
             SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        const SizedBox(height: 18),
-                        MenuItemWidget(
-                          captionedTextWidget: CaptionedTextWidget(
-                            title:
-                                AppLocalizations.of(context).pastYearsMemories,
-                          ),
-                          leadingIconWidget: SvgPicture.asset(
-                            "assets/icons/past-year-memory-icon.svg",
-                            colorFilter: ColorFilter.mode(
-                              colorScheme.textBase,
-                              BlendMode.srcIn,
-                            ),
-                          ),
-                          menuItemColor: colorScheme.fillFaint,
-                          trailingWidget: ToggleSwitchWidget(
-                            value: () => isYearlyMemoriesEnabled ?? true,
-                            onChanged: () async {
-                              setState(() {
-                                isYearlyMemoriesEnabled =
-                                    !isYearlyMemoriesEnabled!;
-                              });
-                              updateVariables().ignore();
+              delegate: SliverChildBuilderDelegate((context, index) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const SizedBox(height: 18),
+                      if (kDebugMode) ...[
+                        MenuComponent(
+                          title: context.strings.showTextOnWidget,
+                          trailing: ToggleSwitchComponent(
+                            selected: _showText,
+                            onChanged: (showText) async {
+                              setState(() => _showText = showText);
+                              await localSettings.setWidgetTextHidden(
+                                WidgetHideTextFlag.memory,
+                                !showText,
+                              );
+                              await HomeWidgetService.instance.updateWidget(
+                                androidClass:
+                                    MemoryHomeWidgetService.ANDROID_CLASS_NAME,
+                                iOSClass:
+                                    MemoryHomeWidgetService.IOS_CLASS_NAME,
+                              );
                             },
                           ),
-                          singleBorderRadius: 8,
-                          isGestureDetectorDisabled: true,
                         ),
-                        const SizedBox(height: 4),
-                        MenuItemWidget(
-                          captionedTextWidget: CaptionedTextWidget(
-                            title:
-                                AppLocalizations.of(context).onThisDayMemories,
-                          ),
-                          leadingIconWidget: SvgPicture.asset(
-                            "assets/icons/memories-widget-icon.svg",
-                            colorFilter: ColorFilter.mode(
-                              colorScheme.textBase,
-                              BlendMode.srcIn,
-                            ),
-                          ),
-                          menuItemColor: colorScheme.fillFaint,
-                          trailingWidget: ToggleSwitchWidget(
-                            value: () => isOnThisDayMemoriesEnabled!,
-                            onChanged: () async {
-                              setState(() {
-                                isOnThisDayMemoriesEnabled =
-                                    !isOnThisDayMemoriesEnabled!;
-                              });
-                              updateVariables().ignore();
-                            },
-                          ),
-                          singleBorderRadius: 8,
-                          isGestureDetectorDisabled: true,
-                        ),
-                        if (isMLEnabled) ...[
-                          const SizedBox(height: 4),
-                          MenuItemWidget(
-                            captionedTextWidget: CaptionedTextWidget(
-                              title: AppLocalizations.of(context).smartMemories,
-                            ),
-                            leadingIconWidget: SvgPicture.asset(
-                              "assets/icons/smart-memory-icon.svg",
+                        const SizedBox(height: 8),
+                      ],
+                      MenuGroupComponent(
+                        items: [
+                          MenuComponent(
+                            title: context.strings.pastYearsMemories,
+                            leading: SvgPicture.asset(
+                              "assets/icons/past-year-memory-icon.svg",
                               colorFilter: ColorFilter.mode(
                                 colorScheme.textBase,
                                 BlendMode.srcIn,
                               ),
                             ),
-                            menuItemColor: colorScheme.fillFaint,
-                            trailingWidget: ToggleSwitchWidget(
-                              value: () => isSmartMemoriesEnabled!,
-                              onChanged: () async {
-                                setState(() {
-                                  isSmartMemoriesEnabled =
-                                      !isSmartMemoriesEnabled!;
-                                });
-
+                            trailing: ToggleSwitchComponent(
+                              selected: isYearlyMemoriesEnabled ?? true,
+                              onChanged: (selected) {
+                                setState(
+                                  () => isYearlyMemoriesEnabled = selected,
+                                );
                                 updateVariables().ignore();
                               },
                             ),
-                            singleBorderRadius: 8,
-                            isGestureDetectorDisabled: true,
                           ),
+                          MenuComponent(
+                            title: context.strings.onThisDayMemories,
+                            leading: SvgPicture.asset(
+                              "assets/icons/memories-widget-icon.svg",
+                              colorFilter: ColorFilter.mode(
+                                colorScheme.textBase,
+                                BlendMode.srcIn,
+                              ),
+                            ),
+                            trailing: ToggleSwitchComponent(
+                              selected: isOnThisDayMemoriesEnabled!,
+                              onChanged: (selected) {
+                                setState(
+                                  () => isOnThisDayMemoriesEnabled = selected,
+                                );
+                                updateVariables().ignore();
+                              },
+                            ),
+                          ),
+                          if (isMLEnabled)
+                            MenuComponent(
+                              title: context.strings.smartMemories,
+                              leading: SvgPicture.asset(
+                                "assets/icons/smart-memory-icon.svg",
+                                colorFilter: ColorFilter.mode(
+                                  colorScheme.textBase,
+                                  BlendMode.srcIn,
+                                ),
+                              ),
+                              trailing: ToggleSwitchComponent(
+                                selected: isSmartMemoriesEnabled!,
+                                onChanged: (selected) {
+                                  setState(
+                                    () => isSmartMemoriesEnabled = selected,
+                                  );
+                                  updateVariables().ignore();
+                                },
+                              ),
+                            ),
                         ],
-                      ],
-                    ),
-                  );
-                },
-                childCount: 1,
-              ),
+                      ),
+                    ],
+                  ),
+                );
+              }, childCount: 1),
             ),
         ],
       ),

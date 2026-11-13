@@ -12,31 +12,32 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
+repositories {
+    exclusiveContent {
+        forRepository {
+            ivy {
+                name = 'enteOnnxRuntimePackaging'
+                url = 'https://github.com/ente/ort-packaging/releases/download'
+                patternLayout {
+                    artifact 'ort-[revision]/[artifact]-[revision].[ext]'
+                }
+                metadataSources { artifact() }
+            }
+        }
+        filter { includeGroup 'io.ente.onnxruntime' }
+    }
+}
+
 android {
     namespace = "io.ente.locker"
-    compileSdk = 35
-    ndkVersion = "28.2.13676358"
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
-    }
-
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_1_8
-    }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "io.ente.locker"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = 26
-        targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         ndk {
-            abiFilters "armeabi-v7a", "arm64-v8a", "x86_64"
+            abiFilters "armeabi-v7a", "arm64-v8a"
         }
     }
 
@@ -52,6 +53,10 @@ android {
     buildTypes {
         release {
             signingConfig signingConfigs.release
+            ndk {
+                abiFilters.clear()
+                abiFilters "arm64-v8a", "armeabi-v7a"
+            }
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
@@ -98,4 +103,6 @@ flutter {
 dependencies {
     // Needed at runtime for Tink since R8 strips these annotations otherwise.
     implementation 'com.google.errorprone:error_prone_annotations:2.24.0'
+    // Loaded at runtime via dlopen by the Rust document scanner.
+    implementation 'io.ente.onnxruntime:onnxruntime-webgpu-android:1.31.0-r1@aar'
 }

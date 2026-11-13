@@ -1,7 +1,7 @@
 import "dart:math";
 
 import "package:ente_sharing/models/user.dart";
-import "package:ente_sharing/user_avator_widget.dart";
+import "package:ente_sharing/user_avatar_widget.dart";
 import "package:flutter/material.dart";
 import "package:locker/services/configuration.dart";
 import "package:locker/ui/sharing/more_count_badge.dart";
@@ -37,7 +37,6 @@ class AlbumSharesIcons extends StatelessWidget {
         left: overlapPadding * index,
         child: UserAvatarWidget(
           sharees[index],
-          thumbnailView: removeBorder,
           type: type,
           config: Configuration.instance,
         ),
@@ -59,7 +58,8 @@ class AlbumSharesIcons extends StatelessWidget {
     if (trailingWidget != null) {
       widgets.add(
         Positioned(
-          left: (overlapPadding * (displayCount + (hasMore ? 1 : 0))) +
+          left:
+              (overlapPadding * (displayCount + (hasMore ? 1 : 0))) +
               (displayCount > 0 ? 12 : 0),
           child: trailingWidget!,
         ),

@@ -4,12 +4,11 @@ import (
 	"context"
 	"database/sql"
 
-	socialentity "github.com/ente-io/museum/ente/social"
-	"github.com/ente-io/stacktrace"
+	socialentity "github.com/ente/museum/ente/social"
+	"github.com/ente/stacktrace"
 	"github.com/lib/pq"
 )
 
-// AnonUsersRepository manages anonymous user profiles tied to public collections.
 type AnonUsersRepository struct {
 	DB *sql.DB
 }
@@ -80,7 +79,6 @@ func (r *AnonUsersRepository) ListByCollection(ctx context.Context, collectionID
 	return result, nil
 }
 
-// LatestUpdateByCollection returns the most recent updated_at timestamp per collection.
 func (r *AnonUsersRepository) LatestUpdateByCollection(ctx context.Context, collectionIDs []int64) (map[int64]int64, error) {
 	results := make(map[int64]int64)
 	if len(collectionIDs) == 0 {

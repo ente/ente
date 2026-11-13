@@ -5,13 +5,7 @@ import { useClipboardCopy } from "ente-base/components/utils/hooks";
 import { t } from "i18next";
 
 interface CopyButtonProps {
-    /**
-     * The text to copy when the button is clicked.
-     */
     text: string;
-    /**
-     * The size of the icon.
-     */
     size?: SvgIconProps["fontSize"];
 }
 

@@ -6,13 +6,10 @@ import 'package:gradient_borders/box_borders/gradient_box_border.dart';
 class GradientButton extends StatefulWidget {
   final Function? onTap;
 
-  // text is ignored if child is specified
   final String text;
 
-  // nullable
   final IconData? iconData;
 
-  // padding between the text and icon
   final double paddingValue;
 
   final double fontSize;
@@ -55,11 +52,7 @@ class _GradientButtonState extends State<GradientButton> {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Icon(
-            widget.iconData,
-            size: 20,
-            color: Colors.white,
-          ),
+          Icon(widget.iconData, size: 20, color: Colors.white),
           const Padding(padding: EdgeInsets.symmetric(horizontal: 6)),
           Text(
             widget.text,

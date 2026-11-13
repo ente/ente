@@ -6,19 +6,20 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/ente-io/museum/pkg/utils/byteMarshaller"
+	"github.com/ente/museum/pkg/utils/byteMarshaller"
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/google/uuid"
 )
 
-// WebAuthnSession is a protocol level session that stores challenges and other metadata during registration and login ceremonies
 type WebAuthnSession struct {
 	ID uuid.UUID
 
 	Challenge string
 
 	UserID int64
+
+	RPID string
 
 	AllowedCredentialIDs string // [][]byte as b64
 

@@ -5,21 +5,21 @@ description: Casting your photos on to a large screen or a TV or a Chromecast de
 
 # Cast
 
-With Ente Cast, you can play a slideshow of your favourite albums on your Google
-Chromecast TVs or any other internet-connected large screen devices.
+With Ente Cast, you can play a slideshow of your favourite albums on your Google Chromecast TVs or any other internet-connected large screen devices. You can also manage multiple active cast sessions, making it easier to switch between screens or control more than one ongoing cast.
 
 ## Get Started
 
 1. Open Ente on the web or on your mobile device.
 2. Select the album you want to play on your large screen device.
-3. Click "Play album on TV" in the album menu.
+3. Click "Play album on TV"/"Cast album" in the album menu.
 
-    On the web, you can find this option in the three dots menu on the right
-    hand side.
+    On the web, you can find this option in the three dots menu on the right hand side.
 
 <div align="center">
 
-![Album options menu](web-play-album-on-tv.webp){width=300px}
+![Play album on TV highlighted in the album overflow menu on Ente Photos web](https://docs-assets.ente.com/screenshots/web-cast-album-menu-callout.png){width=720px}
+
+![Album overflow menu (three dots) and Cast album highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-album-cast-callout.png){width=320px}
 
 </div>
 
@@ -27,51 +27,59 @@ Chromecast TVs or any other internet-connected large screen devices.
 
     <div align="center">
 
-    ![Pairing options](web-pairing-options.webp){width=300px}
+    ![Pair with PIN highlighted on the Cast pairing options on Ente Photos web](https://docs-assets.ente.com/screenshots/web-cast-pairing-options.png){width=720px}
 
     </div>
 
-    On Google Chrome and other Chromium browsers, you will see a button labeled
-    "Auto Pair". This option will prompt you to select a Chromecast supported
-    device on your local network. Note: this option requires connecting to
-    Google servers to load necessary dependencies. This option does not transmit
-    any sensitive data through Google servers, such as your photos. Once your
-    Chromecast device is connected, you're all set.
+    In the mobile app, **Auto Pair** discovers compatible Cast devices on your local network. Select a device from the list to connect. On iOS, allow the local network permission when prompted so Ente can discover devices.
 
-    On all browsers, you'll see the option to "Pair with PIN". This option works
-    with all devices, Chromecast-enabled or not. You'll be required to load up
-    [cast.ente.io](https://cast.ente.io) on your large screen device.
+    <div align="center">
 
-5. Enter the PIN displayed on your large screen device into the input field on
-   your mobile or web device.
+    ![Cast album sheet with Auto pair and Pair using code on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-cast-pair-options.png){width=320px}
+
+    </div>
+
+    On Google Chrome and other Chromium browsers, **Auto Pair** prompts you to select a Chromecast-supported device on your local network. This option requires connecting to Google servers to load necessary dependencies, but does not transmit sensitive data such as your photos through Google servers.
+
+    On all browsers, you'll see the option to "Pair with PIN". This option works with all devices, Chromecast-enabled or not. You'll be required to load up [cast.ente.com](https://cast.ente.com) on your large screen device.
+
+5. Enter the PIN displayed on your large screen device into the input field on your mobile or web device.
 
     On your large screen device, you'll see the following screen.
 
 <div align="center">
 
-![Pairing screen](tv-pairing-screen.png)
+![Cast PIN pairing screen in a TV browser](https://docs-assets.ente.com/screenshots/web-cast-pin-screen.png){width=720px}
 
 </div>
 
-6. Once you enter the correct PIN, you will see a screen on your TV with a green
-   checkmark confirming the connection. Your photos will start showing up in a
-   bit.
+6. Once you enter the correct PIN, you will see a screen on your TV with a green checkmark confirming the connection. Your photos will start showing up in a bit.
+
+## Managing cast sessions
+
+After you start casting, Ente lets you return to the cast controls to manage your active sessions.
+
+- Reopen the cast controls from the album you started casting from.
+- Switch between active cast sessions if you have more than one screen connected.
+- Disconnect a screen when you no longer want that session to keep playing.
+
+This is especially useful if you cast the same album to different screens at different times, or if you accidentally leave an older cast session running.
 
 ## Pairing options explained
 
-### Auto Pair (Chromium browsers only)
+### Auto Pair
 
-- Available in Google Chrome and other Chromium-based browsers
-- Automatically detects Chromecast devices on your local network
-- Requires connecting to Google servers to load necessary dependencies
-- Does not transmit sensitive data (like your photos) through Google servers
-- Quickest option if you have a Chromecast-enabled device
+- Available in the Ente mobile app and in Chromium-based browsers
+- Automatically detects compatible Cast devices on your local network
+- On iOS, requires local network permission for device discovery
+- In Chromium browsers, requires connecting to Google servers to load necessary dependencies
+- Does not transmit sensitive data such as your photos through Google servers
 
 ### Pair with PIN (All browsers & devices)
 
 - Works with any browser and any large screen device
 - No Chromecast required
-- Load [cast.ente.io](https://cast.ente.io) on your large screen device
+- Load [cast.ente.com](https://cast.ente.com) on your large screen device
 - Enter the displayed PIN to establish connection
 - Universal compatibility
 

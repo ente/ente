@@ -1,13 +1,16 @@
+import 'package:ente_components/theme/text_styles.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart';
+import "package:ente_strings/ente_strings.dart";
+import "package:ente_ui/components/loading_widget.dart";
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:logging/logging.dart';
 import 'package:photos/core/constants.dart';
-import "package:photos/generated/l10n.dart";
+import "package:photos/core/errors.dart";
 import 'package:photos/models/user_details.dart';
+import 'package:photos/service_locator.dart';
 import 'package:photos/states/user_details_state.dart';
 import 'package:photos/theme/colors.dart';
-import "package:photos/ui/common/loading_widget.dart";
 import 'package:photos/ui/payment/subscription.dart';
 import 'package:photos/ui/settings/storage_progress_widget.dart';
 
@@ -56,34 +59,40 @@ class _StorageCardWidgetState extends State<StorageCardWidget> {
   @override
   Widget build(BuildContext context) {
     final inheritedUserDetails = InheritedUserDetails.of(context);
-    final userDetails = inheritedUserDetails?.userDetails;
-
     if (inheritedUserDetails == null) {
-      _logger.severe(
-        (InheritedUserDetails).toString() + 'is null',
-      );
-      throw Error();
-    } else {
-      return GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTap: () async {
-          // ignore: unawaited_futures
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (BuildContext context) {
-                return getSubscriptionPage();
-              },
-            ),
-          );
-        },
-        child: containerForUserDetails(userDetails),
-      );
+      final msg = (InheritedUserDetails).toString() + 'is null';
+      _logger.severe(msg);
+      throw InvalidStateError(msg);
     }
+    final userDetails = inheritedUserDetails.userDetails;
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () async {
+        final isFamilyMember =
+            (userDetails?.isPartOfFamily() ?? false) &&
+            !((userDetails?.currentFamilyMember()?.isAdmin) ?? false);
+        if (isFamilyMember) {
+          await billingService.launchFamilyPortal(
+            context,
+            userDetails!,
+            refreshOnOpen: false,
+          );
+          return;
+        }
+        // ignore: unawaited_futures
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (BuildContext context) {
+              return getSubscriptionPage();
+            },
+          ),
+        );
+      },
+      child: containerForUserDetails(userDetails),
+    );
   }
 
-  Widget containerForUserDetails(
-    UserDetails? userDetails,
-  ) {
+  Widget containerForUserDetails(UserDetails? userDetails) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(15),
       child: Container(
@@ -94,29 +103,27 @@ class _StorageCardWidgetState extends State<StorageCardWidget> {
           gradient: const LinearGradient(
             begin: Alignment.bottomCenter,
             end: Alignment.topCenter,
-            colors: [
-              Color(0xFF212121),
-              Color(0xFF434343),
-            ],
+            colors: [Color(0xFF212121), Color(0xFF434343)],
           ),
         ),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: CustomPaint(
-                painter: _DotsPainter(),
-                size: Size.infinite,
-              ),
-            ),
-            userDetails is UserDetails
-                ? _userDetails(userDetails)
-                : const Center(
-                    child: EnteLoadingWidget(
-                      color: strokeBaseDark,
+        child: userDetails != null
+            ? Stack(
+                children: [
+                  Positioned.fill(
+                    child: CustomPaint(
+                      painter: _DotsPainter(),
+                      size: Size.infinite,
                     ),
                   ),
-          ],
-        ),
+                  _userDetails(userDetails),
+                ],
+              )
+            : const SizedBox(
+                height: 130,
+                child: Stack(
+                  children: [EnteLoadingWidget(color: strokeBaseDark)],
+                ),
+              ),
       ),
     );
   }
@@ -161,12 +168,10 @@ class _StorageCardWidgetState extends State<StorageCardWidget> {
         children: [
           Text(
             isMobileScreenSmall
-                ? AppLocalizations.of(context).usedSpace
-                : AppLocalizations.of(context).storage,
-            style: const TextStyle(
-              fontFamily: 'Montserrat',
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
+                ? context.strings.usedSpace
+                : context.strings.storage,
+            style: TextStyles.tiny.copyWith(
+              fontFamily: TextStyles.outfitFontFamily,
               color: textMutedDark,
             ),
           ),
@@ -175,10 +180,8 @@ class _StorageCardWidgetState extends State<StorageCardWidget> {
             overflow: TextOverflow.ellipsis,
             maxLines: 1,
             text: TextSpan(
-              style: const TextStyle(
-                fontFamily: 'Montserrat',
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
+              style: TextStyles.display2.copyWith(
+                fontWeight: FontWeight.w700,
                 color: textBaseDark,
                 letterSpacing: -1,
               ),
@@ -204,7 +207,7 @@ class _StorageCardWidgetState extends State<StorageCardWidget> {
               ),
               showFamilyBreakup
                   ? StorageProgressWidget(
-                      color: const Color(0xFFF4D93B), // Family: yellow
+                      color: const Color(0xFFF4D93B),
                       fractionOfStorage:
                           ((usedStorageInBytes) / totalStorageInBytes),
                     )
@@ -232,10 +235,9 @@ class _StorageCardWidgetState extends State<StorageCardWidget> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          AppLocalizations.of(context).storageBreakupYou,
-                          style: const TextStyle(
-                            fontFamily: 'Montserrat',
-                            fontSize: 9,
+                          context.strings.storageBreakupYou,
+                          style: TextStyles.tiny.copyWith(
+                            fontFamily: TextStyles.outfitFontFamily,
                             fontWeight: FontWeight.w600,
                             color: textBaseDark,
                           ),
@@ -251,10 +253,9 @@ class _StorageCardWidgetState extends State<StorageCardWidget> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          AppLocalizations.of(context).storageBreakupFamily,
-                          style: const TextStyle(
-                            fontFamily: 'Montserrat',
-                            fontSize: 9,
+                          context.strings.storageBreakupFamily,
+                          style: TextStyles.tiny.copyWith(
+                            fontFamily: TextStyles.outfitFontFamily,
                             fontWeight: FontWeight.w600,
                             color: textBaseDark,
                           ),
@@ -263,15 +264,14 @@ class _StorageCardWidgetState extends State<StorageCardWidget> {
                     )
                   : const SizedBox.shrink(),
               Text(
-                AppLocalizations.of(context).memoryCount(
+                context.strings.memoryCount(
                   count: userDetails.fileCount,
                   formattedCount: NumberFormat().format(userDetails.fileCount),
                 ),
-                style: const TextStyle(
-                  fontFamily: 'Montserrat',
-                  fontSize: 10,
+                style: TextStyles.tiny.copyWith(
+                  fontFamily: TextStyles.outfitFontFamily,
                   fontWeight: FontWeight.w600,
-                  color: Color.fromRGBO(165, 165, 165, 0.79),
+                  color: const Color.fromRGBO(165, 165, 165, 0.79),
                 ),
               ),
             ],
@@ -282,25 +282,22 @@ class _StorageCardWidgetState extends State<StorageCardWidget> {
   }
 
   List<TextSpan> _usedStorageDetails({
-    @required isMobileScreenSmall,
-    @required shouldShowUsedStorageInTBs,
-    @required shouldShowTotalStorageInTBs,
-    @required shouldShowUsedStorageInMBs,
-    @required usedStorageInBytes,
-    @required usedStorageInGB,
-    @required totalStorageInGB,
-    @required usedStorageInTB,
-    @required totalStorageInTB,
+    required bool isMobileScreenSmall,
+    required bool shouldShowUsedStorageInTBs,
+    required bool shouldShowTotalStorageInTBs,
+    required bool shouldShowUsedStorageInMBs,
+    required int usedStorageInBytes,
+    required num usedStorageInGB,
+    required int totalStorageInGB,
+    required num usedStorageInTB,
+    required num totalStorageInTB,
   }) {
     if (isMobileScreenSmall) {
-      return [
-        TextSpan(text: '$usedStorageInGB/$totalStorageInGB GB'),
-      ];
+      return [TextSpan(text: '$usedStorageInGB/$totalStorageInGB GB')];
     }
     late num currentUsage, totalStorage;
     late String currentUsageUnit, totalStorageUnit;
 
-    // Determine the appropriate usage and units
     if (shouldShowUsedStorageInTBs) {
       currentUsage = usedStorageInTB;
       currentUsageUnit = "TB";
@@ -312,7 +309,6 @@ class _StorageCardWidgetState extends State<StorageCardWidget> {
       currentUsageUnit = "GB";
     }
 
-    // Determine the appropriate total storage and units
     if (shouldShowTotalStorageInTBs) {
       totalStorage = totalStorageInTB;
       totalStorageUnit = "TB";

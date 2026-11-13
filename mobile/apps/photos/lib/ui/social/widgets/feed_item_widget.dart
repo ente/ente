@@ -1,42 +1,38 @@
 import "package:ente_icons/ente_icons.dart";
+import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:photos/db/files_db.dart";
-import "package:photos/extensions/user_extension.dart";
-import "package:photos/generated/l10n.dart";
 import "package:photos/models/api/collection/user.dart";
 import "package:photos/models/file/file.dart";
+import "package:photos/models/social/comment_author_utils.dart";
 import "package:photos/models/social/feed_item.dart";
 import "package:photos/services/collections_service.dart";
 import "package:photos/theme/colors.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/theme/text_style.dart";
-import "package:photos/ui/sharing/user_avator_widget.dart";
+import "package:photos/ui/sharing/user_avatar_widget.dart";
+import "package:photos/ui/social/widgets/resolved_social_user_name.dart";
 import "package:photos/ui/social/widgets/shared_photos_grid.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 
-/// Widget that displays a single feed item.
 class FeedItemWidget extends StatelessWidget {
   final FeedItem feedItem;
   final String heroTagPrefix;
   final bool enableThumbnailHero;
   final int currentUserID;
 
-  /// Called when the user taps anywhere on the feed item.
   final VoidCallback? onTap;
 
-  /// Called when the user taps a specific shared photo in the shared grid.
   final ValueChanged<int>? onSharedPhotoTap;
 
-  /// Called when the user taps shared-feed header text/avatar area.
   final VoidCallback? onSharedHeaderTap;
 
-  /// Called when the user taps the +N extra-count badge in the shared grid.
+  final ValueChanged<User>? onPrimaryActorTap;
+
   final VoidCallback? onSharedExtraCountTap;
 
-  /// Map of anonUserID -> decrypted display name for the collection.
   final Map<String, String> anonDisplayNames;
 
-  /// Whether this is the last item in the feed (hides timeline line).
   final bool isLastItem;
 
   const FeedItemWidget({
@@ -47,6 +43,7 @@ class FeedItemWidget extends StatelessWidget {
     this.onTap,
     this.onSharedPhotoTap,
     this.onSharedHeaderTap,
+    this.onPrimaryActorTap,
     this.onSharedExtraCountTap,
     this.anonDisplayNames = const {},
     this.isLastItem = false,
@@ -55,7 +52,6 @@ class FeedItemWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Shared feed items have a different layout with photos grid below.
     if (feedItem.type == FeedItemType.sharedPhoto ||
         feedItem.type == FeedItemType.sharedCollection) {
       return _buildSharedPhotoLayout(context);
@@ -72,7 +68,6 @@ class FeedItemWidget extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Left side - tappable for comments
           Expanded(
             child: GestureDetector(
               onTap: onTap,
@@ -81,32 +76,30 @@ class FeedItemWidget extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // First row: Icon with timeline + Avatars
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // Feed type icon with timeline line
                       _FeedTypeIconWithTimeline(
                         type: feedItem.type,
                         showTimeline: !isLastItem,
                       ),
                       const SizedBox(width: 10),
-                      // Stacked avatars
                       _StackedAvatars(
                         feedItem: feedItem,
                         currentUserID: currentUserID,
                         anonDisplayNames: anonDisplayNames,
+                        onPrimaryActorTap: onPrimaryActorTap,
                       ),
                     ],
                   ),
                   const SizedBox(height: 4),
-                  // Second row: Text content with left padding
                   Padding(
                     padding: const EdgeInsets.only(left: 42),
                     child: _FeedTextContent(
                       feedItem: feedItem,
                       currentUserID: currentUserID,
                       anonDisplayNames: anonDisplayNames,
+                      onPrimaryActorTap: onPrimaryActorTap,
                     ),
                   ),
                 ],
@@ -114,7 +107,6 @@ class FeedItemWidget extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          // Photo thumbnail
           if (feedItem.fileID != null)
             GestureDetector(
               onTap: onTap,
@@ -149,32 +141,27 @@ class FeedItemWidget extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Header row: Icon + Avatar + Text
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Feed type icon with timeline line
               _FeedTypeIconWithTimeline(
                 type: feedItem.type,
                 showTimeline: !isLastItem,
-                timelineExtensionHeight:
-                    hasSharedPhotos ? 400 : 95, // Longer only when grid exists
+                timelineExtensionHeight: hasSharedPhotos ? 400 : 95,
               ),
               const SizedBox(width: 10),
-              // Avatar and text
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Avatar
                     _StackedAvatars(
                       feedItem: feedItem,
                       currentUserID: currentUserID,
                       anonDisplayNames: anonDisplayNames,
+                      onPrimaryActorTap: onPrimaryActorTap,
                     ),
                     const SizedBox(height: 4),
-                    // Text content
                     GestureDetector(
                       behavior: HitTestBehavior.opaque,
                       onTap: onSharedHeaderTap,
@@ -184,6 +171,7 @@ class FeedItemWidget extends StatelessWidget {
                           feedItem: feedItem,
                           currentUserID: currentUserID,
                           anonDisplayNames: anonDisplayNames,
+                          onPrimaryActorTap: onPrimaryActorTap,
                         ),
                       ),
                     ),
@@ -192,7 +180,6 @@ class FeedItemWidget extends StatelessWidget {
               ),
             ],
           ),
-          // Photos grid below with left padding to align with text
           if (hasSharedPhotos)
             Padding(
               padding: const EdgeInsets.only(left: 42, top: 12),
@@ -211,18 +198,12 @@ class FeedItemWidget extends StatelessWidget {
   }
 }
 
-/// Displays the feed type icon with optional timeline line passing through center.
-///
-/// The timeline line connects feed items vertically, passing through the icon center.
 class _FeedTypeIconWithTimeline extends StatelessWidget {
   final FeedItemType type;
   final bool showTimeline;
 
-  /// Height of the timeline line extending below the icon.
-  /// Extends from icon center through text content and padding to next item's icon.
   final double timelineExtensionHeight;
 
-  /// Width of the dashed timeline line.
   static const double _timelineWidth = 1.5;
 
   const _FeedTypeIconWithTimeline({
@@ -234,10 +215,10 @@ class _FeedTypeIconWithTimeline extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = getEnteColorScheme(context);
-    // Timeline color: black with 8% opacity for light, white with 20% for dark
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final timelineColor =
-        isDarkMode ? const Color(0x33FFFFFF) : const Color(0x14000000);
+    final timelineColor = isDarkMode
+        ? const Color(0x33FFFFFF)
+        : const Color(0x14000000);
 
     return SizedBox(
       width: 32,
@@ -245,17 +226,15 @@ class _FeedTypeIconWithTimeline extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // Timeline line (behind the icon) - dashed
           if (showTimeline)
             Positioned(
-              left: (32 - _timelineWidth) / 2, // Center the line
-              top: 16, // Start from icon center
+              left: (32 - _timelineWidth) / 2,
+              top: 16,
               child: CustomPaint(
                 size: Size(_timelineWidth, timelineExtensionHeight),
                 painter: _DashedLinePainter(color: timelineColor),
               ),
             ),
-          // Icon container
           Container(
             width: 32,
             height: 32,
@@ -265,9 +244,7 @@ class _FeedTypeIconWithTimeline extends StatelessWidget {
                   : const Color(0xFFFFFFFF),
               shape: BoxShape.circle,
             ),
-            child: Center(
-              child: _buildIcon(context),
-            ),
+            child: Center(child: _buildIcon(context)),
           ),
         ],
       ),
@@ -350,16 +327,17 @@ class _FeedTypeIconWithTimeline extends StatelessWidget {
   }
 }
 
-/// Displays stacked user avatars (max 2, overlapping).
 class _StackedAvatars extends StatelessWidget {
   final FeedItem feedItem;
   final int currentUserID;
   final Map<String, String> anonDisplayNames;
+  final ValueChanged<User>? onPrimaryActorTap;
 
   const _StackedAvatars({
     required this.feedItem,
     required this.currentUserID,
     required this.anonDisplayNames,
+    this.onPrimaryActorTap,
   });
 
   @override
@@ -369,56 +347,49 @@ class _StackedAvatars extends StatelessWidget {
     final displayCount = actors.length.clamp(1, 2);
 
     if (displayCount == 1) {
-      return _buildSingleAvatar(actors.first, colorScheme);
+      return _wrapActorTap(
+        _buildSingleAvatar(actors.first, colorScheme),
+        actors.first,
+      );
     }
 
-    // Stacked avatars with overlap
-    return SizedBox(
-      width: 28 + 21, // First avatar + second avatar offset
-      height: 28,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          // First (front) avatar
-          Positioned(
-            left: 0,
-            child: Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: colorScheme.backgroundBase,
-                  width: 1.167,
+    return _wrapActorTap(
+      SizedBox(
+        width: 28 + 21,
+        height: 28,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned(
+              left: 0,
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: colorScheme.backgroundColour,
+                    width: 1.167,
+                  ),
                 ),
-              ),
-              child: UserAvatarWidget(
-                actors.first,
-                type: AvatarType.lg,
-                currentUserID: currentUserID,
-                addStroke: false,
+                child: UserAvatarWidget(actors.first, type: AvatarType.regular),
               ),
             ),
-          ),
-          // Second (back) avatar
-          Positioned(
-            left: 21, // Overlap by 7px (28 - 21 = 7)
-            child: Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: colorScheme.backgroundBase,
-                  width: 1.167,
+            Positioned(
+              left: 21,
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: colorScheme.backgroundColour,
+                    width: 1.167,
+                  ),
                 ),
-              ),
-              child: UserAvatarWidget(
-                actors[1],
-                type: AvatarType.lg,
-                currentUserID: currentUserID,
-                addStroke: false,
+                child: UserAvatarWidget(actors[1], type: AvatarType.regular),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
+      actors.first,
     );
   }
 
@@ -426,17 +397,21 @@ class _StackedAvatars extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(
-          color: colorScheme.backgroundBase,
-          width: 1.167,
-        ),
+        border: Border.all(color: colorScheme.backgroundColour, width: 1.167),
       ),
-      child: UserAvatarWidget(
-        user,
-        type: AvatarType.lg,
-        currentUserID: currentUserID,
-        addStroke: false,
-      ),
+      child: UserAvatarWidget(user, type: AvatarType.regular),
+    );
+  }
+
+  Widget _wrapActorTap(Widget child, User primaryActor) {
+    final onTap = onPrimaryActorTap;
+    if (onTap == null) {
+      return child;
+    }
+    return GestureDetector(
+      onTap: () => onTap(primaryActor),
+      behavior: HitTestBehavior.opaque,
+      child: child,
     );
   }
 
@@ -448,20 +423,19 @@ class _StackedAvatars extends StatelessWidget {
       final userID = feedItem.actorUserIDs[i];
       final anonID = feedItem.actorAnonIDs[i];
 
-      if (userID <= 0 && anonID != null) {
-        // Anonymous user - use decrypted display name if available
-        final displayName = anonDisplayNames[anonID] ?? anonID;
+      if (userID <= 0) {
         users.add(
-          User(
-            id: userID,
-            email: "$anonID@unknown.com",
-            name: displayName,
+          anonymousSocialUser(
+            userID: userID,
+            anonUserID: anonID,
+            anonDisplayNames: anonDisplayNames,
           ),
         );
       } else {
-        // Get user from collections service
-        final user = CollectionsService.instance
-            .getFileOwner(userID, feedItem.collectionID);
+        final user = CollectionsService.instance.resolveUserIdentity(
+          userID,
+          feedItem.collectionID,
+        );
         users.add(user);
       }
     }
@@ -470,16 +444,17 @@ class _StackedAvatars extends StatelessWidget {
   }
 }
 
-/// Displays the text content: usernames and action description.
 class _FeedTextContent extends StatelessWidget {
   final FeedItem feedItem;
   final int currentUserID;
   final Map<String, String> anonDisplayNames;
+  final ValueChanged<User>? onPrimaryActorTap;
 
   const _FeedTextContent({
     required this.feedItem,
     required this.currentUserID,
     required this.anonDisplayNames,
+    this.onPrimaryActorTap,
   });
 
   @override
@@ -488,16 +463,31 @@ class _FeedTextContent extends StatelessWidget {
     final textTheme = getEnteTextTheme(context);
 
     final primaryUser = _getPrimaryUser();
-    final primaryName = primaryUser.displayName ?? primaryUser.email;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Username row
-        _buildUsernameRow(context, primaryName, textTheme, colorScheme),
+        ResolvedSocialUserName(
+          user: primaryUser,
+          builder: (context, primaryName) {
+            final row = _buildUsernameRow(
+              context,
+              primaryName,
+              textTheme,
+              colorScheme,
+            );
+            if (onPrimaryActorTap == null) {
+              return row;
+            }
+            return GestureDetector(
+              onTap: () => onPrimaryActorTap!(primaryUser),
+              behavior: HitTestBehavior.opaque,
+              child: row,
+            );
+          },
+        ),
         const SizedBox(height: 2),
-        // Action description
         Text.rich(
           _getActionDescriptionSpan(
             context,
@@ -520,7 +510,6 @@ class _FeedTextContent extends StatelessWidget {
     EnteColorScheme colorScheme,
   ) {
     if (!feedItem.hasMultipleActors) {
-      // Single user
       return Text(
         primaryName,
         style: textTheme.small.copyWith(
@@ -532,11 +521,10 @@ class _FeedTextContent extends StatelessWidget {
       );
     }
 
-    // Multiple users: "Username and X others"
     final othersCount = feedItem.additionalActorCount;
     final othersText = othersCount == 1
-        ? AppLocalizations.of(context).and1Other
-        : AppLocalizations.of(context).andXOthers(count: othersCount);
+        ? context.strings.and1Other
+        : context.strings.andXOthers(count: othersCount);
 
     return Text.rich(
       TextSpan(
@@ -566,17 +554,21 @@ class _FeedTextContent extends StatelessWidget {
     BuildContext context,
     TextStyle baseStyle,
   ) {
-    final l10n = AppLocalizations.of(context);
+    final l10n = context.strings;
     final isOwn = feedItem.isOwnedByCurrentUser;
     switch (feedItem.type) {
       case FeedItemType.photoLike:
         return TextSpan(
-          text: isOwn ? l10n.likedYourPhoto : l10n.likedAPhoto,
+          text: feedItem.isVideo
+              ? (isOwn ? l10n.likedYourVideo : l10n.likedAVideo)
+              : (isOwn ? l10n.likedYourPhoto : l10n.likedAPhoto),
           style: baseStyle,
         );
       case FeedItemType.comment:
         return TextSpan(
-          text: isOwn ? l10n.commentedOnYourPhoto : l10n.commentedOnAPhoto,
+          text: feedItem.isVideo
+              ? (isOwn ? l10n.commentedOnYourVideo : l10n.commentedOnAVideo)
+              : (isOwn ? l10n.commentedOnYourPhoto : l10n.commentedOnAPhoto),
           style: baseStyle,
         );
       case FeedItemType.reply:
@@ -610,7 +602,7 @@ class _FeedTextContent extends StatelessWidget {
     BuildContext context,
     TextStyle baseStyle,
   ) {
-    final l10n = AppLocalizations.of(context);
+    final l10n = context.strings;
     final count = feedItem.sharedFileCount;
     final albumName = feedItem.collectionName ?? l10n.albums;
 
@@ -658,22 +650,21 @@ class _FeedTextContent extends StatelessWidget {
     final userID = feedItem.primaryActorUserID;
     final anonID = feedItem.primaryActorAnonID;
 
-    if (userID <= 0 && anonID != null) {
-      // Anonymous user - use decrypted display name if available
-      final displayName = anonDisplayNames[anonID] ?? anonID;
-      return User(
-        id: userID,
-        email: "$anonID@unknown.com",
-        name: displayName,
+    if (userID <= 0) {
+      return anonymousSocialUser(
+        userID: userID,
+        anonUserID: anonID,
+        anonDisplayNames: anonDisplayNames,
       );
     }
 
-    return CollectionsService.instance
-        .getFileOwner(userID, feedItem.collectionID);
+    return CollectionsService.instance.resolveUserIdentity(
+      userID,
+      feedItem.collectionID,
+    );
   }
 }
 
-/// Displays the photo thumbnail for the feed item.
 class _FeedThumbnail extends StatefulWidget {
   final int fileID;
   final int collectionID;
@@ -765,11 +756,7 @@ class _FeedThumbnailState extends State<_FeedThumbnail> {
         child: SizedBox(
           width: 66,
           height: 66,
-          child: ThumbnailWidget(
-            _file!,
-            fit: BoxFit.cover,
-            rawThumbnail: true,
-          ),
+          child: ThumbnailWidget(_file!, fit: BoxFit.cover, rawThumbnail: true),
         ),
       ),
     );
@@ -778,21 +765,15 @@ class _FeedThumbnailState extends State<_FeedThumbnail> {
       return thumbnail;
     }
 
-    return Hero(
-      tag: widget.heroTagPrefix + _file!.tag,
-      child: thumbnail,
-    );
+    return Hero(tag: widget.heroTagPrefix + _file!.tag, child: thumbnail);
   }
 }
 
-/// Custom painter for drawing a dashed vertical line.
 class _DashedLinePainter extends CustomPainter {
   final Color color;
 
-  /// Dash length per Figma spec: 7.5px
   static const double _dashHeight = 7.5;
 
-  /// Gap between dashes per Figma spec: 4.5px
   static const double _dashGap = 4.5;
 
   const _DashedLinePainter({required this.color});

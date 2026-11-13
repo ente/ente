@@ -4,18 +4,36 @@ import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:logging/logging.dart";
-import "package:photos/core/constants.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/files_updated_event.dart";
 import "package:photos/events/people_changed_event.dart";
 import "package:photos/events/people_sort_order_change_event.dart";
 import "package:photos/events/tab_changed_event.dart";
+import "package:photos/models/home_tab.dart";
 import "package:photos/models/search/search_result.dart";
 import "package:photos/models/search/search_types.dart";
+import "package:photos/services/search_service.dart";
+import "package:photos/ui/viewer/search_tab/search_tab_preview_limits.dart";
+
+class AllSectionsExamplesData {
+  final List<List<SearchResult>> sectionResults;
+  final bool hasAnySearchableFiles;
+
+  const AllSectionsExamplesData({
+    required this.sectionResults,
+    required this.hasAnySearchableFiles,
+  });
+}
 
 class AllSectionsExamplesProvider extends StatefulWidget {
   final Widget child;
-  const AllSectionsExamplesProvider({super.key, required this.child});
+  final SearchTabPreviewLimits previewLimits;
+
+  const AllSectionsExamplesProvider({
+    super.key,
+    required this.child,
+    required this.previewLimits,
+  });
 
   @override
   State<AllSectionsExamplesProvider> createState() =>
@@ -24,13 +42,14 @@ class AllSectionsExamplesProvider extends StatefulWidget {
 
 class _AllSectionsExamplesProviderState
     extends State<AllSectionsExamplesProvider> {
-  //Some section results in [allSectionsExamplesFuture] can be out of sync
-  //with what is displayed on UI. This happens when some section is
-  //independently listening to some set of events and is rebuilt. Sections
-  //can listen to a list of events and rebuild (see sectionUpdateEvents()
-  //in search_types.dart) and new results will not reflect in
-  //[allSectionsExamplesFuture] unless reloadAllSections() is called.
-  Future<List<List<SearchResult>>> allSectionsExamplesFuture = Future.value([]);
+  // Sections refresh independently, so their displayed results can be newer
+  // than this aggregate until reloadAllSections runs.
+  Future<AllSectionsExamplesData> allSectionsExamplesFuture = Future.value(
+    const AllSectionsExamplesData(
+      sectionResults: [],
+      hasAnySearchableFiles: false,
+    ),
+  );
 
   late StreamSubscription<FilesUpdatedEvent> _filesUpdatedEvent;
   late StreamSubscription<PeopleChangedEvent> _onPeopleChangedEvent;
@@ -40,7 +59,7 @@ class _AllSectionsExamplesProviderState
   bool isOnSearchTab = false;
   bool _firstLoadInProgressOrComplete = false;
   final _logger = Logger("AllSectionsExamplesProvider");
-  static const _initialLoadDelay = Duration(seconds: 10);
+  static const _initialLoadDelay = Duration(seconds: 30);
   Timer? _initialLoadTimer;
 
   final _debouncer = Debouncer(
@@ -52,21 +71,25 @@ class _AllSectionsExamplesProviderState
   @override
   void initState() {
     super.initState();
-    //add all common events for all search sections to reload to here.
+    // Reload the aggregate for events shared by every search section.
     _filesUpdatedEvent = Bus.instance.on<FilesUpdatedEvent>().listen((event) {
       onDataUpdate();
     });
-    _onPeopleChangedEvent =
-        Bus.instance.on<PeopleChangedEvent>().listen((event) {
+    _onPeopleChangedEvent = Bus.instance.on<PeopleChangedEvent>().listen((
+      event,
+    ) {
       onDataUpdate();
     });
-    _peopleSortChangedEvent =
-        Bus.instance.on<PeopleSortOrderChangeEvent>().listen((event) {
-      onDataUpdate();
-    });
+    _peopleSortChangedEvent = Bus.instance
+        .on<PeopleSortOrderChangeEvent>()
+        .listen((event) {
+          onDataUpdate();
+        });
     _tabChangeEvent = Bus.instance.on<TabChangedEvent>().listen((event) {
-      if (event.source == TabChangedEventSource.pageView &&
-          event.selectedIndex == 3) {
+      final entersSearch =
+          event.source == TabChangedEventSource.pageView ||
+          event.source == TabChangedEventSource.mlConsent;
+      if (entersSearch && event.selectedIndex == searchTabIndex) {
         isOnSearchTab = true;
         _cancelInitialLoadTimer();
         if (hasPendingUpdate || !_firstLoadInProgressOrComplete) {
@@ -104,23 +127,33 @@ class _AllSectionsExamplesProviderState
       setState(() {
         _logger.info("'_debounceTimer: reloading all sections in search tab");
         final allSectionsExamples = <Future<List<SearchResult>>>[];
+        final hasAnySearchableFilesFuture = SearchService.instance
+            .hasAnyFilesForSearch();
         for (SectionType sectionType in SectionType.values) {
-          // Contacts section have been moved to shared collections tab
-          // temporarily from search tab. So we can skip computing data here
-          // since 'allSectionsExamples' is for search tab sections only.
-          if (sectionType == SectionType.contacts) {
+          // Albums moved to the Albums tab. Contacts and file types render as
+          // lazy sections in Search so they do not block the section preload.
+          if (sectionType == SectionType.contacts ||
+              sectionType == SectionType.album ||
+              sectionType == SectionType.fileTypesAndExtension) {
             allSectionsExamples.add(Future.value([]));
           } else {
             allSectionsExamples.add(
-              sectionType.getData(context, limit: kSearchSectionLimit),
+              sectionType.getData(context, limit: _fetchLimitFor(sectionType)),
             );
           }
         }
         try {
-          allSectionsExamplesFuture = Future.wait<List<SearchResult>>(
-            allSectionsExamples,
-            eagerError: false,
-          );
+          allSectionsExamplesFuture = () async {
+            final sectionResults = await Future.wait<List<SearchResult>>(
+              allSectionsExamples,
+              eagerError: false,
+            );
+            final hasAnySearchableFiles = await hasAnySearchableFilesFuture;
+            return AllSectionsExamplesData(
+              sectionResults: sectionResults,
+              hasAnySearchableFiles: hasAnySearchableFiles,
+            );
+          }();
         } catch (e) {
           _logger.severe("Error reloading all sections: $e");
         }
@@ -131,6 +164,15 @@ class _AllSectionsExamplesProviderState
   void _cancelInitialLoadTimer() {
     _initialLoadTimer?.cancel();
     _initialLoadTimer = null;
+  }
+
+  int _fetchLimitFor(SectionType sectionType) {
+    return switch (sectionType) {
+      SectionType.face => widget.previewLimits.faceFetchLimit,
+      SectionType.magic => widget.previewLimits.magicFetchLimit,
+      SectionType.location => widget.previewLimits.locationFetchLimit,
+      _ => 0,
+    };
   }
 
   @override
@@ -155,7 +197,7 @@ class _AllSectionsExamplesProviderState
 }
 
 class InheritedAllSectionsExamples extends InheritedWidget {
-  final Future<List<List<SearchResult>>> allSectionsExamplesFuture;
+  final Future<AllSectionsExamplesData> allSectionsExamplesFuture;
   final ValueNotifier<bool> isDebouncingNotifier;
   const InheritedAllSectionsExamples(
     this.allSectionsExamplesFuture,

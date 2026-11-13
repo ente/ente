@@ -1,10 +1,14 @@
 ---
-title: This Page Has Moved
-description: This content has been reorganized
+title: Custom Domains
+description: Use your own domain for Ente Photos sharing links
 search: false
+head:
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
-# This Page Has Moved
+# Custom Domains
 
 The **Custom Domains** feature guide has moved to:
 

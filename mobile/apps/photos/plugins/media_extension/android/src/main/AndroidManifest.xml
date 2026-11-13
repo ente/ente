@@ -1,0 +1,13 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <provider
+            android:name=".MediaExtensionFileProvider"
+            android:authorities="${applicationId}.file_provider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/media_extension_provider_paths" />
+        </provider>
+    </application>
+</manifest>

@@ -1,8 +1,5 @@
 import type { CSSProperties } from "react";
 
-// Ensu-specific typography variant augmentations.
-// These extend the shared MUI theme types with variants only used by ensu.
-
 declare module "@mui/material/styles" {
     interface TypographyVariants {
         message: CSSProperties;

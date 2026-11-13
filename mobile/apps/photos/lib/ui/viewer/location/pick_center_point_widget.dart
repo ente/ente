@@ -1,10 +1,10 @@
+import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:modal_bottom_sheet/modal_bottom_sheet.dart";
 import "package:photos/core/constants.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/events/local_photos_updated_event.dart";
-import "package:photos/generated/l10n.dart";
 import "package:photos/models/file_load_result.dart";
 import "package:photos/models/location/location.dart";
 import "package:photos/models/selected_files.dart";
@@ -31,9 +31,7 @@ Future<Location?> showPickCenterPointSheet(
     },
     shape: const RoundedRectangleBorder(
       side: BorderSide(width: 0),
-      borderRadius: BorderRadius.vertical(
-        top: Radius.circular(5),
-      ),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(5)),
     ),
     topControl: const SizedBox.shrink(),
     backgroundColor: getEnteColorScheme(context).backgroundElevated,
@@ -45,10 +43,7 @@ Future<Location?> showPickCenterPointSheet(
 class PickCenterPointWidget extends StatelessWidget {
   final String? locationTagName;
 
-  const PickCenterPointWidget(
-    this.locationTagName, {
-    super.key,
-  });
+  const PickCenterPointWidget(this.locationTagName, {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -70,37 +65,38 @@ class PickCenterPointWidget extends StatelessWidget {
                 children: [
                   BottomOfTitleBarWidget(
                     title: TitleBarTitleWidget(
-                      title: AppLocalizations.of(context).pickCenterPoint,
+                      title: context.strings.pickCenterPoint,
                     ),
-                    caption: locationTagName ??
-                        AppLocalizations.of(context).newLocation,
+                    caption: locationTagName ?? context.strings.newLocation,
                     showCloseButton: true,
                   ),
                   Expanded(
                     child: GalleryFilesState(
                       child: Gallery(
-                        asyncLoader: (
-                          creationStartTime,
-                          creationEndTime, {
-                          limit,
-                          asc,
-                        }) async {
-                          final collectionsToHide = CollectionsService.instance
-                              .archivedOrHiddenCollectionIds();
-                          FileLoadResult result;
-                          result = await FilesDB.instance
-                              .fetchAllUploadedAndSharedFilesWithLocation(
-                            galleryLoadStartTime,
-                            galleryLoadEndTime,
-                            limit: null,
-                            asc: false,
-                            filterOptions: DBFilterOptions(
-                              ignoredCollectionIDs: collectionsToHide,
-                              hideIgnoredForUpload: true,
-                            ),
-                          );
-                          return result;
-                        },
+                        asyncLoader:
+                            (
+                              creationStartTime,
+                              creationEndTime, {
+                              limit,
+                              asc,
+                            }) async {
+                              final collectionsToHide = CollectionsService
+                                  .instance
+                                  .archivedOrHiddenCollectionIds();
+                              FileLoadResult result;
+                              result = await FilesDB.instance
+                                  .fetchAllUploadedAndSharedFilesWithLocation(
+                                    galleryLoadStartTime,
+                                    galleryLoadEndTime,
+                                    limit: null,
+                                    asc: false,
+                                    filterOptions: DBFilterOptions(
+                                      ignoredCollectionIDs: collectionsToHide,
+                                      hideIgnoredForUpload: true,
+                                    ),
+                                  );
+                              return result;
+                            },
                         reloadEvent: Bus.instance.on<LocalPhotosUpdatedEvent>(),
                         tagPrefix: "pick_center_point_gallery",
                         selectedFiles: selectedFiles,
@@ -109,7 +105,7 @@ class PickCenterPointWidget extends StatelessWidget {
                         header: Padding(
                           padding: const EdgeInsets.all(10),
                           child: NotificationTipWidget(
-                            AppLocalizations.of(context).locationPickerTip,
+                            context.strings.locationPickerTip,
                           ),
                         ),
                         disablePinnedGroupHeader: true,
@@ -133,7 +129,7 @@ class PickCenterPointWidget extends StatelessWidget {
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 428),
                     child: Padding(
-                      //inner stroke of 1pt + 15 pts of top padding = 16 pts
+                      // The 1 pixel inner stroke completes the 16 pixel inset.
                       padding: const EdgeInsets.fromLTRB(16, 15, 16, 8),
                       child: ValueListenableBuilder(
                         valueListenable: isFileSelected,
@@ -146,8 +142,7 @@ class PickCenterPointWidget extends StatelessWidget {
                               key: ValueKey(value),
                               isDisabled: !value,
                               buttonType: ButtonType.neutral,
-                              labelText:
-                                  AppLocalizations.of(context).useSelectedPhoto,
+                              labelText: context.strings.useSelectedPhoto,
                               onTap: () async {
                                 final selectedLocation =
                                     selectedFiles.files.first.location;

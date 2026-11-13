@@ -5,6 +5,5 @@
     X-Download-Options: noopen
     X-Frame-Options: deny
     X-XSS-Protection: 1; mode=block
-    Reporting-Endpoints: csp-endpoint="https://csp-reporter.ente.io"
-    Content-Security-Policy-Report-Only: default-src 'self'; img-src 'self' blob: data:; media-src 'self' blob:; style-src 'self' 'unsafe-inline'; font-src 'self'; script-src 'self' 'unsafe-eval' blob:; manifest-src 'self'; child-src 'self' blob:; object-src 'none'; connect-src 'self' https://*.ente.io data: blob:; base-uri 'self'; frame-ancestors 'none'; form-action 'none'; report-uri https://csp-reporter.ente.io; report-to csp-endpoint;
-
+    Reporting-Endpoints: csp-endpoint="https://csp-reporter.ente.com"
+    Content-Security-Policy-Report-Only: default-src 'self'; img-src 'self' blob: data:; media-src 'self' blob:; style-src 'self' 'unsafe-inline'; font-src 'self'; script-src 'self' 'unsafe-eval' blob:; manifest-src 'self'; child-src 'self' blob:; object-src 'none'; connect-src 'self' https://*.ente.com https://*.ente.io data: blob:; base-uri 'self'; form-action 'none'; report-uri https://csp-reporter.ente.com; report-to csp-endpoint;

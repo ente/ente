@@ -1,13 +1,7 @@
-###############
-# Mail Server #
-###############
-
 mail.host: "smtp.example.org"
 mail.port: 587
 mail.username: ""
 mail.password: ""
 mail.use-tls: true
 
-# ...
-
-system.url-prefix: "https://sentry.ente.io"
+system.url-prefix: "https://sentry.ente.com"

@@ -5,34 +5,14 @@ import 'package:photos/events/clear_selections_event.dart';
 import 'package:photos/models/file/dummy_file.dart';
 import 'package:photos/models/file/file.dart';
 
-/// Manages the set of currently selected files in the gallery.
-///
-/// This class serves as the single source of truth for file selection state
-/// and automatically filters out [DummyFile] instances from all selection
-/// operations. Dummy files are used for gallery layout purposes and should
-/// never be selected.
-///
-/// All selection methods ([toggleSelection], [selectAll],
-/// [unSelectAll], [toggleGroupSelection]) automatically exclude dummy files.
-/// Calling code does not need to check for or filter out dummy files before
-/// calling these methods.
 class SelectedFiles extends ChangeNotifier {
   final files = <EnteFile>{};
-
-  ///This variable is used to track the files that were involved in last selection
-  ///operation (select/unselect). Each [LazyGridView] checks this variable on
-  ///change in [SelectedFiles] to see if any of it's files were involved in last
-  ///select/unselect operation. If yes, then it will rebuild itself.
   final lastSelectionOperationFiles = <EnteFile>{};
 
   void toggleSelection(EnteFile fileToToggle) {
-    // Skip dummy files - they should never be selected
     if (fileToToggle is DummyFile) {
       return;
     }
-    // To handle the cases, where the file might have changed due to upload
-    // or any other update, using file.generatedID to track if this file was already
-    // selected or not
     final EnteFile? alreadySelected = files.firstWhereOrNull(
       (element) => _isMatch(fileToToggle, element),
     );
@@ -47,9 +27,9 @@ class SelectedFiles extends ChangeNotifier {
   }
 
   void toggleGroupSelection(Set<EnteFile> filesToToggle) {
-    // Filter out dummy files before processing
-    final nonDummyFiles =
-        filesToToggle.where((file) => file is! DummyFile).toSet();
+    final nonDummyFiles = filesToToggle
+        .where((file) => file is! DummyFile)
+        .toSet();
     if (nonDummyFiles.isEmpty) {
       return;
     }
@@ -61,9 +41,9 @@ class SelectedFiles extends ChangeNotifier {
   }
 
   void selectAll(Set<EnteFile> filesToSelect) {
-    // Filter out dummy files before adding to selection
-    final nonDummyFiles =
-        filesToSelect.where((file) => file is! DummyFile).toSet();
+    final nonDummyFiles = filesToSelect
+        .where((file) => file is! DummyFile)
+        .toSet();
     files.addAll(nonDummyFiles);
     lastSelectionOperationFiles.clear();
     lastSelectionOperationFiles.addAll(nonDummyFiles);
@@ -73,9 +53,9 @@ class SelectedFiles extends ChangeNotifier {
   void unSelectAll(Set<EnteFile> filesToUnselect, {bool skipNotify = false}) {
     files.removeWhere((file) => filesToUnselect.contains(file));
     lastSelectionOperationFiles.clear();
-    // Filter out dummy files before adding to lastSelectionOperationFiles
-    lastSelectionOperationFiles
-        .addAll(filesToUnselect.where((file) => file is! DummyFile));
+    lastSelectionOperationFiles.addAll(
+      filesToUnselect.where((file) => file is! DummyFile),
+    );
     if (!skipNotify) {
       notifyListeners();
     }
@@ -102,6 +82,8 @@ class SelectedFiles extends ChangeNotifier {
       }
     } else if (first.uploadedFileID != null && second.uploadedFileID != null) {
       return first.uploadedFileID == second.uploadedFileID;
+    } else if (first.localID != null && second.localID != null) {
+      return first.localID == second.localID;
     }
     return false;
   }
@@ -115,17 +97,25 @@ class SelectedFiles extends ChangeNotifier {
     notifyListeners();
   }
 
-  ///Retains only the files that are present in the [filesToRetain] set in
-  ///[files]. Takes the intersection of the two sets.
+  // Remove before mutating fields used by == or hashCode, then reinsert.
+  void mutateFile(EnteFile file, void Function() mutate) {
+    final wasInFiles = files.remove(file);
+    final wasInLastOp = lastSelectionOperationFiles.remove(file);
+    mutate();
+    if (wasInFiles) files.add(file);
+    if (wasInLastOp) lastSelectionOperationFiles.add(file);
+    if (wasInFiles || wasInLastOp) notifyListeners();
+  }
+
   void retainFiles(Set<EnteFile> filesToRetain) {
     files.retainAll(filesToRetain);
     notifyListeners();
   }
 
-  ///Replaces the current selection with [filesToSelect] in a single update.
   void replaceSelection(Set<EnteFile> filesToSelect) {
-    final nonDummyFiles =
-        filesToSelect.where((file) => file is! DummyFile).toSet();
+    final nonDummyFiles = filesToSelect
+        .where((file) => file is! DummyFile)
+        .toSet();
     lastSelectionOperationFiles.clear();
     lastSelectionOperationFiles.addAll(files);
     files

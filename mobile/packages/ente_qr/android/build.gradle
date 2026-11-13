@@ -1,0 +1,36 @@
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+}
+
+group 'io.ente.ente_qr'
+version '1.0-SNAPSHOT'
+
+repositories {
+    maven { url 'https://jitpack.io' }
+}
+
+android {
+    namespace 'io.ente.ente_qr'
+
+    defaultConfig {
+        minSdkVersion 16
+    }
+
+    dependencies {
+        implementation 'com.github.markusfisch:zxing-cpp:v3.0.2.1'
+        implementation 'androidx.exifinterface:exifinterface:1.3.7'
+    }
+
+    testOptions {
+        unitTests.all {
+            useJUnitPlatform()
+
+            testLogging {
+               events "passed", "skipped", "failed", "standardOut", "standardError"
+               outputs.upToDateWhen {false}
+               showStandardStreams = true
+            }
+        }
+    }
+}

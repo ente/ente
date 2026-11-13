@@ -1,8 +1,8 @@
+import { prettyFormatCode } from "@/utils/format";
 import { Box, Button, Stack, Typography, useTheme } from "@mui/material";
+import { decryptMetadataJSONBytes } from "ente-auth-wasm";
 import { EnteLogo } from "ente-base/components/EnteLogo";
-import { decryptMetadataJSON } from "ente-base/crypto";
 import React, { useEffect, useMemo, useState } from "react";
-import { prettyFormatCode } from "utils/format";
 
 interface SharedCode {
     startTime: number;
@@ -47,7 +47,7 @@ const Page: React.FC = () => {
             }
 
             try {
-                const decryptedCode = (await decryptMetadataJSON(
+                const decryptedCode = (await decryptMetadataJSONBytes(
                     {
                         encryptedData: base64URLToBytes(data),
                         decryptionHeader: base64URLToBytes(header),
@@ -217,7 +217,7 @@ const Page: React.FC = () => {
                     padding: "15px 30px",
                     marginBottom: "42px",
                 }}
-                href="https://ente.io/auth"
+                href="https://ente.com/auth"
                 target="_blank"
             >
                 Try Ente Auth

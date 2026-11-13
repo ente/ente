@@ -4,3 +4,5 @@ output-localization-file: strings_localizations.dart
 output-class: StringsLocalizations
 output-dir: lib/l10n
 nullable-getter: false
+use-named-parameters: true
+untranslated-messages-file: lib/l10n/untranslated_messages.json

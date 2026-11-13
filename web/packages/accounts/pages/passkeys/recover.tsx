@@ -1,5 +1,5 @@
-import Page_ from "../two-factor/recover";
+import TwoFactorRecoverPage from "../two-factor/recover";
 
-const Page = () => <Page_ twoFactorType="passkey" />;
-
-export default Page;
+export default function PasskeyRecoverPage(): React.JSX.Element {
+    return <TwoFactorRecoverPage twoFactorType="passkey" />;
+}

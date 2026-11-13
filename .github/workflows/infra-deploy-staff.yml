@@ -1,45 +1,42 @@
-name: "Deploy (staff)"
+name: "Deploy (Staff)"
 
 on:
-    # Run on every push to main that changes infra/staff/
     push:
         branches: [main]
         paths:
-            - "infra/staff/**"
             - ".github/workflows/infra-deploy-staff.yml"
-    # Also allow manually running the workflow
+            - "infra/staff/**"
     workflow_dispatch:
 
 permissions:
     contents: read
 
 jobs:
-    lint:
+    deploy:
         runs-on: ubuntu-latest
+        environment: production
 
         defaults:
             run:
                 working-directory: infra/staff
 
         steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
+            - name: Checkout
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-            - name: Setup node and enable yarn caching
-              uses: actions/setup-node@v4
+            - name: Setup node and enable npm caching
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
               with:
-                  node-version: 22
-                  cache: "yarn"
-                  cache-dependency-path: "infra/staff/yarn.lock"
+                  node-version: 24
+                  cache: "npm"
+                  cache-dependency-path: "infra/staff/package-lock.json"
 
-            - name: Install dependencies
-              run: yarn install
+            - run: npm ci
 
-            - name: Build
-              run: yarn build
+            - run: npm run build
 
             - name: Publish
-              uses: cloudflare/wrangler-action@v3
+              uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
               with:
                   accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
                   apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}

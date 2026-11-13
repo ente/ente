@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/ente-io/cli/pkg/mapper"
-	"github.com/ente-io/cli/pkg/model"
-	"github.com/ente-io/cli/utils/encoding"
+	"github.com/ente/cli/pkg/mapper"
+	"github.com/ente/cli/pkg/model"
+	"github.com/ente/cli/utils/encoding"
 	"log"
 	"strconv"
 	"time"
@@ -23,15 +23,34 @@ func (c *ClICtrl) fetchRemoteCollections(ctx context.Context) error {
 	}
 	maxUpdated := lastSyncTime
 	for _, collection := range collections {
-		if lastSyncTime == 0 && collection.IsDeleted {
+		if collection.UpdationTime > maxUpdated {
+			maxUpdated = collection.UpdationTime
+		}
+		if collection.IsDeleted {
+			albumJSON, getErr := c.GetValue(ctx, model.RemoteAlbums, []byte(strconv.FormatInt(collection.ID, 10)))
+			if getErr != nil {
+				return getErr
+			}
+			if albumJSON == nil {
+				continue
+			}
+			var album model.RemoteAlbum
+			if unmarshalErr := json.Unmarshal(albumJSON, &album); unmarshalErr != nil {
+				return unmarshalErr
+			}
+			album.IsDeleted = true
+			album.LastUpdatedAt = collection.UpdationTime
+			if putErr := c.PutValue(ctx, model.RemoteAlbums, []byte(strconv.FormatInt(album.ID, 10)), encoding.MustMarshalJSON(album)); putErr != nil {
+				return putErr
+			}
+			if putErr := c.PutConfigValue(ctx, fmt.Sprintf(model.CollectionsFileSyncKeyFmt, album.ID), []byte("0")); putErr != nil {
+				return putErr
+			}
 			continue
 		}
 		album, mapErr := mapper.MapCollectionToAlbum(ctx, collection, c.KeyHolder)
 		if mapErr != nil {
 			return mapErr
-		}
-		if album.LastUpdatedAt > maxUpdated {
-			maxUpdated = album.LastUpdatedAt
 		}
 		albumJson := encoding.MustMarshalJSON(album)
 		putErr := c.PutValue(ctx, model.RemoteAlbums, []byte(strconv.FormatInt(album.ID, 10)), albumJson)
@@ -91,10 +110,6 @@ func (c *ClICtrl) fetchRemoteFiles(ctx context.Context) error {
 			for _, file := range files {
 				if file.UpdationTime > maxUpdated {
 					maxUpdated = file.UpdationTime
-				}
-				if isFirstSync && file.IsRemovedFromAlbum() {
-					// on first sync, no need to sync delete markers
-					continue
 				}
 				albumEntry := model.AlbumFileEntry{AlbumID: album.ID, FileID: file.ID, IsDeleted: file.IsRemovedFromAlbum(), SyncedLocally: false}
 				putErr := c.UpsertAlbumEntry(ctx, &albumEntry)

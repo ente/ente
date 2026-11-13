@@ -1,8 +1,8 @@
 package details
 
 import (
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/ente/storagebonus"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/ente/storagebonus"
 )
 
 type UserDetailsResponse struct {
@@ -19,7 +19,6 @@ type UserDetailsResponse struct {
 	BonusData              *storagebonus.ActiveStorageBonus `json:"bonusData"`
 }
 
-// LockerFamilyUsage contains locker-specific usage data for family members
 type LockerFamilyUsage struct {
 	FamilyFileCount int64 `json:"familyFileCount"`
 }

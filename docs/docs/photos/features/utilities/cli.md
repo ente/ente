@@ -5,6 +5,8 @@ description: Ente's command-line tool for advanced users
 
 # CLI (Command Line Interface)
 
+This page covers the previous CLI. For the current CLI, see [Photos export](/cli/photos). To switch versions, follow [Migration](/cli/migration).
+
 The Ente CLI is a command-line tool for advanced users that provides programmatic access to Ente Photos. It's particularly useful for automation, server environments, and power users who prefer terminal-based tools.
 
 ## What is the CLI?
@@ -28,16 +30,16 @@ The CLI is particularly useful for:
 
 ## Installation
 
-Ente's CLI is distributed directly over [GitHub](https://github.com/ente-io/ente/releases?q=tag%3Acli-v0).
+Ente's CLI is distributed directly over [GitHub](https://github.com/ente/ente/releases?q=tag%3Acli-v0).
 
 **Steps:**
 
-1. Go to the [CLI releases page](https://github.com/ente-io/ente/releases?q=tag%3Acli-v0)
+1. Go to the [CLI releases page](https://github.com/ente/ente/releases?q=tag%3Acli-v0)
 2. Download the appropriate version for your platform:
     - Linux (x64, ARM64)
     - macOS (Intel, Apple Silicon)
     - Windows (x64)
-3. Follow the installation instructions in the [CLI README](https://github.com/ente-io/ente/tree/main/cli#readme)
+3. Follow the installation instructions in the [CLI README](https://github.com/ente/ente/tree/main/cli#readme)
 
 ## Basic usage
 
@@ -45,8 +47,8 @@ Ente's CLI is distributed directly over [GitHub](https://github.com/ente-io/ente
 
 Before using the CLI, you need to authenticate:
 
-```bash
-ente account login
+```sh
+ente account add
 ```
 
 This will prompt for your email and password, then store your session securely.
@@ -55,7 +57,7 @@ This will prompt for your email and password, then store your session securely.
 
 The CLI supports **incremental exports**, downloading only new or changed files. Set or change the destination directory per account, then run the export:
 
-```bash
+```sh
 # Configure the export directory for your account (run once)
 ente account update --app photos --email you@example.com --dir /path/to/backup
 
@@ -73,7 +75,7 @@ ente export --albums "Album Name","Another Album"
 - Safe to stop and restart without re-downloading
 - Preserves album structure and metadata
 
-For complete command documentation, see the [CLI README](https://github.com/ente-io/ente/tree/main/cli#readme).
+For complete command documentation, see the [CLI README](https://github.com/ente/ente/tree/main/cli#readme).
 
 ## Automated exports
 
@@ -83,7 +85,7 @@ You can automate exports using cron (Linux/macOS) or Task Scheduler (Windows).
 
 Set the export directory for the account once (outside cron) and then schedule `ente export`:
 
-```bash
+```sh
 # Run once to set the directory the export job should use
 /usr/local/bin/ente account update --app photos --email you@example.com --dir /nas/ente-backup
 
@@ -111,12 +113,14 @@ The recommended approach for keeping NAS and Ente synced is to use the CLI to **
 
 **Example for daily NAS sync:**
 
-```bash
+```sh
 /usr/local/bin/ente account update --app photos --email you@example.com --dir /nas/ente-backup
 0 2 * * * /usr/local/bin/ente export
 ```
 
-**Important:** Two-way sync is not currently supported. The CLI only pulls data from Ente to local storage - changes to local files won't sync back to Ente.
+> [!IMPORTANT]
+>
+> Two-way sync is not currently supported. The CLI only pulls data from Ente to local storage - changes to local files won't sync back to Ente.
 
 ## Export details
 
@@ -165,16 +169,16 @@ Learn more in the [Export feature guide](/photos/features/backup-and-sync/export
 
 The CLI is open source and part of the Ente project:
 
-- **Source code**: [GitHub](https://github.com/ente-io/ente/tree/main/cli)
-- **Documentation**: [CLI README](https://github.com/ente-io/ente/tree/main/cli#readme)
-- **Report issues**: [GitHub Issues](https://github.com/ente-io/ente/issues)
+- **Source code**: [GitHub](https://github.com/ente/ente/tree/main/cli)
+- **Documentation**: [CLI README](https://github.com/ente/ente/tree/main/cli#readme)
+- **Report issues**: [GitHub Issues](https://github.com/ente/ente/issues)
 
 You can review, contribute to, or extend the CLI for your specific needs.
 
 ## Related FAQs
 
 - [What is the Ente CLI?](/photos/faq/advanced-features#what-is-cli)
-- [How do I install the CLI?](/photos/faq/advanced-features#install-cli)
+- [How do I install the CLI?](/photos/faq/advanced-features#install-cli-advanced)
 - [How do I export photos with CLI?](/photos/faq/advanced-features#cli-export-photos)
 - [How do I sync NAS and Ente?](/photos/faq/advanced-features#nas-sync)
 - [CLI not found after installation](/photos/faq/advanced-features#cli-not-found)

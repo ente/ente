@@ -1,5 +1,5 @@
+import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
-import "package:photos/generated/l10n.dart";
 import "package:photos/models/location/location.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/states/location_state.dart";
@@ -36,10 +36,7 @@ class EditCenterPointTileWidget extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.start,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  AppLocalizations.of(context).centerPoint,
-                  style: textTheme.body,
-                ),
+                Text(context.strings.centerPoint, style: textTheme.body),
                 const SizedBox(height: 4),
                 Text(
                   "${centerPointInDMS![0]}, ${centerPointInDMS[1]}",
@@ -53,14 +50,15 @@ class EditCenterPointTileWidget extends StatelessWidget {
           onTap: () async {
             final Location? centerPoint = await showPickCenterPointSheet(
               context,
-              locationTagName: InheritedLocationTagData.of(context)
-                  .locationTagEntity!
-                  .item
-                  .name,
+              locationTagName: InheritedLocationTagData.of(
+                context,
+              ).locationTagEntity!.item.name,
             );
             if (centerPoint != null) {
-              InheritedLocationTagData.of(context)
-                  .updateCenterPoint(centerPoint);
+              if (!context.mounted) return;
+              InheritedLocationTagData.of(
+                context,
+              ).updateCenterPoint(centerPoint);
             }
           },
           icon: Icons.edit,

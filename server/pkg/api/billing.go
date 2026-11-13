@@ -8,24 +8,23 @@ import (
 
 	"net/http"
 
-	"github.com/ente-io/museum/pkg/utils/billing"
-	"github.com/ente-io/museum/pkg/utils/network"
+	"github.com/ente/museum/pkg/utils/billing"
+	"github.com/ente/museum/pkg/utils/network"
 	"github.com/gin-contrib/requestid"
 
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/stacktrace"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/awa/go-iap/appstore"
 	"github.com/awa/go-iap/playstore"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/controller"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/museum/pkg/utils/handler"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/controller"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/museum/pkg/utils/handler"
 	"github.com/gin-gonic/gin"
 )
 
-// BillingHandler exposes request handlers for all billing related requests
 type BillingHandler struct {
 	Controller          *controller.BillingController
 	AppStoreController  *controller.AppStoreController
@@ -33,7 +32,6 @@ type BillingHandler struct {
 	StripeController    *controller.StripeController
 }
 
-// GetPlansV2 returns the available default Stripe account subscription plans for the country the client request came from the
 func (h *BillingHandler) GetPlansV2(c *gin.Context) {
 	plans := h.Controller.GetPlansV2(network.GetClientCountry(c), ente.DefaultStripeAccountCountry)
 	freePlan := billing.GetFreePlan()
@@ -50,7 +48,6 @@ func (h *BillingHandler) GetPlansV2(c *gin.Context) {
 	})
 }
 
-// GetUserPlans returns the available  plans from the stripe account and the country the user's existing plan is from
 func (h *BillingHandler) GetUserPlans(c *gin.Context) {
 	userID := auth.GetUserID(c.Request.Header)
 	plans, err := h.Controller.GetUserPlans(c, userID)
@@ -73,8 +70,6 @@ func (h *BillingHandler) GetUserPlans(c *gin.Context) {
 	})
 }
 
-// GetStripeAccountCountry returns the stripe account country the user's existing plan is from
-// if he doesn't have default stripe account country is returned
 func (h *BillingHandler) GetStripeAccountCountry(c *gin.Context) {
 	userID := auth.GetUserID(c.Request.Header)
 	stripeAccountCountry, err := h.Controller.GetStripeAccountCountry(userID)
@@ -87,16 +82,6 @@ func (h *BillingHandler) GetStripeAccountCountry(c *gin.Context) {
 	})
 }
 
-// Deprecated:
-// GetUsage returns the storage usage for the requesting user
-func (h *BillingHandler) GetUsage(c *gin.Context) {
-	//	 status code to indicate that endpoint is deprecated
-	c.JSON(http.StatusGone, gin.H{
-		"message": "This endpoint is deprecated.",
-	})
-}
-
-// GetSubscription returns the current subscription for a user if any
 func (h *BillingHandler) GetSubscription(c *gin.Context) {
 	userID := auth.GetUserID(c.Request.Header)
 	subscription, err := h.Controller.GetSubscription(c, userID)
@@ -109,11 +94,10 @@ func (h *BillingHandler) GetSubscription(c *gin.Context) {
 	})
 }
 
-// VerifySubscription verifies and returns the verified subscription
 func (h *BillingHandler) VerifySubscription(c *gin.Context) {
 	userID := auth.GetUserID(c.Request.Header)
 	var request ente.SubscriptionVerificationRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
@@ -128,10 +112,9 @@ func (h *BillingHandler) VerifySubscription(c *gin.Context) {
 	})
 }
 
-// AndroidNotificationHandler handles the notifications from PlayStore
 func (h *BillingHandler) AndroidNotificationHandler(c *gin.Context) {
 	var request ente.AndroidNotification
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
@@ -159,10 +142,9 @@ func (h *BillingHandler) AndroidNotificationHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{})
 }
 
-// IOSNotificationHandler handles the notifications from AppStore
 func (h *BillingHandler) IOSNotificationHandler(c *gin.Context) {
 	var notification appstore.SubscriptionNotification
-	if err := c.ShouldBindJSON(&notification); err != nil {
+	if err := handler.BindJSON(c, &notification); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
@@ -176,7 +158,6 @@ func (h *BillingHandler) IOSNotificationHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{})
 }
 
-// GetCheckoutSession generates and returns stripe checkout session for subscription purchase
 func (h *BillingHandler) GetCheckoutSession(c *gin.Context) {
 	userID := auth.GetUserID(c.Request.Header)
 	productID := c.Query("productID")
@@ -193,7 +174,6 @@ func (h *BillingHandler) GetCheckoutSession(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"sessionID": sessionID})
 }
 
-// StripeINNotificationHandler handles the notifications from older StripeIN account
 func (h *BillingHandler) StripeINNotificationHandler(c *gin.Context) {
 	notification, err := io.ReadAll(c.Request.Body)
 	if err != nil {
@@ -210,7 +190,6 @@ func (h *BillingHandler) StripeINNotificationHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{})
 }
 
-// StripeUSNotificationHandler handles the notifications from new StripeUS account
 func (h *BillingHandler) StripeUSNotificationHandler(c *gin.Context) {
 	notification, err := io.ReadAll(c.Request.Body)
 	if err != nil {
@@ -227,11 +206,10 @@ func (h *BillingHandler) StripeUSNotificationHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{})
 }
 
-// StripeUpdateSubscription handles stripe subscription updates requests
 func (h *BillingHandler) StripeUpdateSubscription(c *gin.Context) {
 	userID := auth.GetUserID(c.Request.Header)
 	var request ente.StripeUpdateRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
@@ -243,7 +221,6 @@ func (h *BillingHandler) StripeUpdateSubscription(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"result": s})
 }
 
-// StripeCancelSubscription handles stripe subscription cancel requests
 func (h *BillingHandler) StripeCancelSubscription(c *gin.Context) {
 	userID := auth.GetUserID(c.Request.Header)
 	subscription, err := h.StripeController.UpdateSubscriptionCancellationStatus(userID, true)
@@ -254,7 +231,6 @@ func (h *BillingHandler) StripeCancelSubscription(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"subscription": subscription})
 }
 
-// StripeActivateSubscription handles stripe subscription activation requests
 func (h *BillingHandler) StripeActivateSubscription(c *gin.Context) {
 	userID := auth.GetUserID(c.Request.Header)
 	subscription, err := h.StripeController.UpdateSubscriptionCancellationStatus(userID, false)
@@ -265,7 +241,6 @@ func (h *BillingHandler) StripeActivateSubscription(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"subscription": subscription})
 }
 
-// GetStripeCustomerPortal handles stripe customer portal url retrieval request
 func (h *BillingHandler) GetStripeCustomerPortal(c *gin.Context) {
 	userID := auth.GetUserID(c.Request.Header)
 	redirectRootURL, err := h.Controller.GetRedirectURL(c)

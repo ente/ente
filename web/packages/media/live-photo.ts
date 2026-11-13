@@ -3,8 +3,18 @@ import {
     lowercaseExtension,
     nameAndExtension,
 } from "ente-base/file-name";
-import JSZip from "jszip";
+import { mergeUint8Arrays } from "ente-utils/array";
+import { ensureArrayBufferBacked } from "ente-utils/bytes";
+import JSZip, { type JSZipObject, type JSZipStreamHelper } from "jszip";
 import { FileType } from "./file-type";
+
+const maxExpandedArchiveRatio = 20;
+const maxExpandedArchiveOverhead = 16 * 1024 * 1024;
+const livePhotoEntryPattern = /^(image|video)(?:\.[a-zA-Z0-9]{1,16})?$/;
+
+type StreamableZipObject = JSZipObject & {
+    internalStream(type: "uint8array"): JSZipStreamHelper<Uint8Array>;
+};
 
 const potentialImageExtensions = [
     "heic",
@@ -29,16 +39,11 @@ const potentialVideoExtensions = [
     "webm",
     "3gp",
     "3g2",
-    "avi",
     "ogv",
     "mpg",
     "mp",
 ];
 
-/**
- * Use the file extension of the given {@link fileName} to deduce if is is
- * potentially the image or the video part of a Live Photo.
- */
 export const potentialFileTypeFromExtension = (
     fileName: string,
 ): FileType | undefined => {
@@ -50,65 +55,97 @@ export const potentialFileTypeFromExtension = (
     else return undefined;
 };
 
-/**
- * An in-memory representation of a live photo.
- */
 interface LivePhoto {
     imageFileName: string;
-    imageData: Uint8Array;
+    imageData: Uint8Array<ArrayBuffer>;
     videoFileName: string;
-    videoData: Uint8Array;
+    videoData: Uint8Array<ArrayBuffer>;
 }
 
-/**
- * Convert a binary serialized representation of a live photo to an in-memory
- * {@link LivePhoto}.
- *
- * A live photo is a zip file containing two files - an image and a video. This
- * functions reads that zip file (blob), and return separate bytes (and
- * filenames) for the image and video parts.
- *
- * @param fileName The name of the overall live photo. Both the image and video
- * parts of the decompressed live photo use this as their name, combined with
- * their original extensions.
- *
- * @param zipBlob A blob contained the zipped data (i.e. the binary serialized
- * live photo).
- */
 export const decodeLivePhoto = async (
     fileName: string,
     zipBlob: Blob,
 ): Promise<LivePhoto> => {
-    let imageFileName, videoFileName: string | undefined;
-    let imageData, videoData: Uint8Array | undefined;
-
-    const [name] = nameAndExtension(fileName);
-    const zip = await JSZip.loadAsync(zipBlob, { createFolders: true });
-
-    for (const zipFileName in zip.files) {
-        if (zipFileName.startsWith("image")) {
-            const [, imageExt] = nameAndExtension(zipFileName);
-            imageFileName = fileNameFromComponents([name, imageExt]);
-            imageData = await zip.files[zipFileName]?.async("uint8array");
-        } else if (zipFileName.startsWith("video")) {
-            const [, videoExt] = nameAndExtension(zipFileName);
-            videoFileName = fileNameFromComponents([name, videoExt]);
-            videoData = await zip.files[zipFileName]?.async("uint8array");
-        }
+    const zip = await JSZip.loadAsync(await zipBlob.arrayBuffer());
+    const entries = Object.values(zip.files);
+    let imageEntry, videoEntry: JSZipObject | undefined;
+    if (entries.length != 2)
+        throw new Error("Live Photo must contain one image and one video");
+    for (const entry of entries) {
+        const match = livePhotoEntryPattern.exec(entry.name);
+        if (
+            entry.dir ||
+            match?.[0] !== entry.name ||
+            entry.unsafeOriginalName !== entry.name
+        )
+            throw new Error("Invalid Live Photo component name");
+        if (match[1] === "image") imageEntry = entry;
+        else videoEntry = entry;
     }
+    if (!imageEntry || !videoEntry)
+        throw new Error("Live Photo must contain one image and one video");
 
-    if (!imageFileName || !imageData)
-        throw new Error(
-            `Decoded live photo ${fileName} does not have an image`,
-        );
-
-    if (!videoFileName || !videoData)
-        throw new Error(`Decoded live photo ${fileName} does not have a video`);
-
-    return { imageFileName, imageData, videoFileName, videoData };
+    const limit =
+        zipBlob.size * maxExpandedArchiveRatio + maxExpandedArchiveOverhead;
+    const imageData = await readLivePhotoEntry(imageEntry, limit);
+    const videoData = await readLivePhotoEntry(
+        videoEntry,
+        limit - imageData.length,
+    );
+    const [name] = nameAndExtension(fileName);
+    const [, imageExt] = nameAndExtension(imageEntry.name);
+    const [, videoExt] = nameAndExtension(videoEntry.name);
+    return {
+        imageFileName: fileNameFromComponents([name, imageExt]),
+        imageData,
+        videoFileName: fileNameFromComponents([name, videoExt]),
+        videoData,
+    };
 };
 
-/** Variant of {@link LivePhoto}, but one that allows files and data. */
+const readLivePhotoEntry = (
+    entry: JSZipObject,
+    limit: number,
+): Promise<Uint8Array<ArrayBuffer>> =>
+    new Promise((resolve, reject) => {
+        const stream = (entry as StreamableZipObject).internalStream(
+            "uint8array",
+        );
+        const chunks: Uint8Array[] = [];
+        let length = 0;
+        let settled = false;
+        const fail = (error: Error) => {
+            if (settled) return;
+            settled = true;
+            stream.pause();
+            chunks.length = 0;
+            reject(error);
+        };
+        stream
+            .on("data", (chunk) => {
+                if (settled) return;
+                if (chunk.length > limit - length) {
+                    fail(new Error("Live Photo archive expands beyond limit"));
+                    return;
+                }
+                length += chunk.length;
+                chunks.push(chunk);
+            })
+            .on("error", fail)
+            .on("end", () => {
+                if (settled) return;
+                try {
+                    const data = mergeUint8Arrays(chunks);
+                    chunks.length = 0;
+                    settled = true;
+                    resolve(data);
+                } catch (error) {
+                    fail(error as Error);
+                }
+            })
+            .resume();
+    });
+
 interface EncodeLivePhotoInput {
     imageFileName: string;
     imageFileOrData: File | Uint8Array;
@@ -116,27 +153,19 @@ interface EncodeLivePhotoInput {
     videoFileOrData: File | Uint8Array;
 }
 
-/**
- * Return a binary serialized representation of a live photo.
- *
- * This function takes the (in-memory) image and video data from the
- * {@link livePhoto} object, writes them to a zip file (using the respective
- * filenames), and returns the {@link Uint8Array} that represent the bytes of
- * this zip file.
- *
- * @param livePhoto The in-mem photo to serialized.
- */
 export const encodeLivePhoto = async ({
     imageFileName,
     imageFileOrData,
     videoFileName,
     videoFileOrData,
-}: EncodeLivePhotoInput) => {
+}: EncodeLivePhotoInput): Promise<Uint8Array<ArrayBuffer>> => {
     const [, imageExt] = nameAndExtension(imageFileName);
     const [, videoExt] = nameAndExtension(videoFileName);
 
     const zip = new JSZip();
     zip.file(fileNameFromComponents(["image", imageExt]), imageFileOrData);
     zip.file(fileNameFromComponents(["video", videoExt]), videoFileOrData);
-    return await zip.generateAsync({ type: "uint8array" });
+    return ensureArrayBufferBacked(
+        await zip.generateAsync({ type: "uint8array" }),
+    );
 };

@@ -1,0 +1,244 @@
+import { Box, Dialog, useMediaQuery } from "@mui/material";
+import {
+    SpaceActionFeedbackIcon,
+    type SpaceActionPhase,
+} from "components/ActionFeedback";
+import { SpaceBottomSheetTransition } from "components/BottomSheetTransition";
+import React from "react";
+import {
+    spaceControlBackgroundHover,
+    spaceDanger,
+    spaceDialogBackground,
+    spaceOnAccent,
+    spaceText,
+    spaceTextMuted,
+} from "styles/colors";
+
+const green = "#08C225";
+const textBase = spaceText;
+
+interface ConfirmationActionSheetProps {
+    open: boolean;
+    title: string;
+    description?: React.ReactNode;
+    confirmLabel: string;
+    confirmBackgroundColor?: string;
+    confirmClassName?: string;
+    confirmActionPhase?: SpaceActionPhase | null;
+    confirmDisabled?: boolean;
+    errorMessage?: string | null;
+    cancelLabel?: string;
+    cancelDisabled?: boolean;
+    onCancel: () => void;
+    onConfirm: () => void;
+    onExited?: () => void;
+}
+
+export const ConfirmationActionSheet: React.FC<
+    ConfirmationActionSheetProps
+> = ({
+    open,
+    title,
+    description,
+    confirmLabel,
+    confirmBackgroundColor = spaceDanger,
+    confirmClassName,
+    confirmActionPhase = null,
+    confirmDisabled = false,
+    errorMessage = null,
+    cancelLabel = "Cancel",
+    cancelDisabled = false,
+    onCancel,
+    onConfirm,
+    onExited,
+}) => {
+    const titleID = React.useId();
+    const isBottomSheet = useMediaQuery("(max-width: 599px)");
+
+    return (
+        <Dialog
+            open={open}
+            onClose={confirmActionPhase ? undefined : onCancel}
+            maxWidth={false}
+            aria-labelledby={titleID}
+            slots={
+                isBottomSheet
+                    ? { transition: SpaceBottomSheetTransition }
+                    : undefined
+            }
+            sx={{
+                zIndex: 1500,
+                "--space-dialog-backdrop": "rgba(0 0 0 / 0.86)",
+            }}
+            slotProps={{
+                paper: {
+                    sx: {
+                        bgcolor: spaceDialogBackground,
+                        borderRadius: "28px 28px 0 0",
+                        bottom: 0,
+                        boxShadow: "none",
+                        boxSizing: "border-box",
+                        left: 0,
+                        m: 0,
+                        maxWidth: "none",
+                        p: "26px 20px 24px",
+                        position: "fixed",
+                        width: "100vw",
+                        "@media (min-width: 600px)": {
+                            borderRadius: "20px",
+                            bottom: "auto",
+                            left: "50%",
+                            maxWidth: 363,
+                            top: "50%",
+                            transform: "translate(-50%, -50%)",
+                            width: 363,
+                        },
+                    },
+                },
+                transition: { onExited },
+            }}
+        >
+            <Box
+                sx={{
+                    maxWidth: 320,
+                    mx: "auto",
+                    width: "100%",
+                    "@media (min-width: 600px)": { maxWidth: "none" },
+                }}
+            >
+                <Box
+                    component="h2"
+                    id={titleID}
+                    sx={{
+                        color: textBase,
+                        fontFamily: '"Inter Variable", Inter, sans-serif',
+                        fontSize: 15,
+                        fontWeight: 600,
+                        lineHeight: "20px",
+                        m: 0,
+                        px: "20px",
+                        textAlign: "center",
+                        textWrap: "balance",
+                    }}
+                >
+                    {title}
+                </Box>
+                {description && (
+                    <Box
+                        sx={{
+                            color: spaceTextMuted,
+                            fontFamily: '"Inter Variable", Inter, sans-serif',
+                            fontSize: 13,
+                            lineHeight: "18px",
+                            mt: "8px",
+                            px: "20px",
+                            textAlign: "center",
+                            textWrap: "balance",
+                        }}
+                    >
+                        {description}
+                    </Box>
+                )}
+                <Box
+                    sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "12px",
+                        mt: description ? "20px" : "28px",
+                    }}
+                >
+                    <SheetButton
+                        label={confirmLabel}
+                        backgroundColor={confirmBackgroundColor}
+                        className={confirmClassName}
+                        color={spaceOnAccent}
+                        disabled={confirmDisabled}
+                        actionPhase={confirmActionPhase}
+                        onClick={onConfirm}
+                    />
+                    <SheetButton
+                        label={cancelLabel}
+                        backgroundColor={spaceControlBackgroundHover}
+                        color={spaceText}
+                        disabled={cancelDisabled}
+                        onClick={onCancel}
+                    />
+                    {errorMessage && (
+                        <Box
+                            role="alert"
+                            sx={{
+                                color: spaceDanger,
+                                fontFamily:
+                                    '"Inter Variable", Inter, sans-serif',
+                                fontSize: 13,
+                                fontWeight: 600,
+                                lineHeight: "18px",
+                                px: "12px",
+                                textAlign: "center",
+                            }}
+                        >
+                            {errorMessage}
+                        </Box>
+                    )}
+                </Box>
+            </Box>
+        </Dialog>
+    );
+};
+
+interface SheetButtonProps {
+    backgroundColor: string;
+    className?: string;
+    color: string;
+    actionPhase?: SpaceActionPhase | null;
+    disabled?: boolean;
+    label: string;
+    onClick: () => void;
+}
+
+const SheetButton: React.FC<SheetButtonProps> = ({
+    backgroundColor,
+    className,
+    color,
+    actionPhase = null,
+    disabled = false,
+    label,
+    onClick,
+}) => (
+    <Box
+        className={className}
+        component="button"
+        type="button"
+        aria-label={label}
+        disabled={disabled}
+        onClick={onClick}
+        sx={{
+            alignItems: "center",
+            bgcolor: backgroundColor,
+            border: 0,
+            borderRadius: "20px",
+            color,
+            cursor: disabled ? "default" : "pointer",
+            display: "flex",
+            fontFamily: '"Inter Variable", Inter, sans-serif',
+            fontSize: 14,
+            fontWeight: 600,
+            height: 48,
+            justifyContent: "center",
+            lineHeight: "20px",
+            px: "24px",
+            py: "14px",
+            transition: "filter 120ms ease, opacity 120ms ease",
+            width: "100%",
+            "&:active": disabled ? undefined : { filter: "brightness(0.96)" },
+            "&:disabled": { opacity: 1 },
+            "&:focus-visible": {
+                outline: `2px solid ${green}`,
+                outlineOffset: 2,
+            },
+            "&:hover": disabled ? undefined : { filter: "brightness(0.98)" },
+        }}
+    >
+        {actionPhase ? <SpaceActionFeedbackIcon phase={actionPhase} /> : label}
+    </Box>
+);

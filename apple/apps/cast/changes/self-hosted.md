@@ -1,0 +1,1 @@
+- Added support for self-hosted Ente servers.

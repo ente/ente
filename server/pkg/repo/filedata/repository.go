@@ -4,16 +4,16 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/ente/filedata"
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/museum/pkg/utils/array"
-	"github.com/ente-io/stacktrace"
-	"github.com/lib/pq"
+	"slices"
 	"time"
+
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/ente/filedata"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/stacktrace"
+	"github.com/lib/pq"
 )
 
-// Repository defines the methods for inserting, updating, and retrieving file data.
 type Repository struct {
 	DB                *sql.DB
 	ObjectCleanupRepo *repo.ObjectCleanupRepository
@@ -26,8 +26,7 @@ const (
 )
 
 func (r *Repository) InsertOrUpdate(ctx context.Context, data filedata.Row) error {
-	// During insert, we set the sync_locked_till to 5 minutes in the future. This is to prevent
-	// immediate replication of the file data row, that can result in failure of update/retry requests
+	// Delay replication to avoid failing immediate update retries.
 	query := `
         INSERT INTO file_data 
             (file_id, user_id, data_type, size, latest_bucket, sync_locked_till) 
@@ -59,10 +58,14 @@ func (r *Repository) InsertOrUpdate(ctx context.Context, data filedata.Row) erro
 }
 
 func (r *Repository) InsertOrUpdatePreviewData(ctx context.Context, data filedata.Row, previewObject string) error {
+	if data.ObjectID == nil {
+		return stacktrace.NewError("object ID is required")
+	}
 	tx, err := r.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
+	defer tx.Rollback()
 	query := `
         INSERT INTO file_data 
             (file_id, user_id, data_type, size, latest_bucket, obj_id, obj_nonce, obj_size, sync_locked_till) 
@@ -91,12 +94,10 @@ func (r *Repository) InsertOrUpdatePreviewData(ctx context.Context, data filedat
 	_, err = tx.ExecContext(ctx, query,
 		data.FileID, data.UserID, string(data.Type), data.Size, data.LatestBucket, *data.ObjectID, data.ObjectNonce, data.ObjectSize)
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "failed to insert file data")
 	}
 	err = r.ObjectCleanupRepo.RemoveTempObjectFromDC(ctx, tx, previewObject, data.LatestBucket)
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "failed to remove object from tempObjects")
 	}
 	return tx.Commit()
@@ -133,14 +134,14 @@ func (r *Repository) AddBucket(row filedata.Row, bucketID string, columnName str
         WHERE file_id = $2 AND data_type = $3 and user_id = $4`, columnName, columnName)
 	result, err := r.DB.Exec(query, bucketID, row.FileID, string(row.Type), row.UserID)
 	if err != nil {
-		return stacktrace.Propagate(err, "failed to add bucket to "+columnName)
+		return stacktrace.Propagate(err, "failed to add bucket to %s", columnName)
 	}
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
 	if rowsAffected == 0 {
-		return stacktrace.NewError("bucket not added to " + columnName)
+		return stacktrace.NewError("bucket not added to %s", columnName)
 	}
 	return nil
 }
@@ -160,14 +161,14 @@ func (r *Repository) RemoveBucket(row filedata.Row, bucketID string, columnName 
         WHERE file_id = $2 AND data_type = $3 and user_id = $4`, columnName, columnName)
 	result, err := r.DB.Exec(query, bucketID, row.FileID, string(row.Type), row.UserID)
 	if err != nil {
-		return stacktrace.Propagate(err, "failed to remove bucket from "+columnName)
+		return stacktrace.Propagate(err, "failed to remove bucket from %s", columnName)
 	}
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
 	if rowsAffected == 0 {
-		return stacktrace.NewError("bucket not removed from " + columnName)
+		return stacktrace.NewError("bucket not removed from %s", columnName)
 	}
 	return nil
 }
@@ -180,6 +181,7 @@ func (r *Repository) GetFDForUser(ctx context.Context, userID int64, lastUpdated
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
+	defer rows.Close()
 	var fdStatuses []filedata.FDStatus
 	for rows.Next() {
 		var status filedata.FDStatus
@@ -188,6 +190,9 @@ func (r *Repository) GetFDForUser(ctx context.Context, userID int64, lastUpdated
 			return nil, stacktrace.Propagate(scanErr, "")
 		}
 		fdStatuses = append(fdStatuses, status)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, stacktrace.Propagate(err, "failed to read file data statuses")
 	}
 	return fdStatuses, nil
 }
@@ -216,22 +221,19 @@ func (r *Repository) MoveBetweenBuckets(row filedata.Row, bucketID string, sourc
   WHERE file_id = $2 AND data_type = $3 and user_id = $4`, destColumn, destColumn, sourceColumn, sourceColumn)
 	result, err := r.DB.Exec(query, bucketID, row.FileID, string(row.Type), row.UserID)
 	if err != nil {
-		return stacktrace.Propagate(err, "failed to move bucket from "+sourceColumn+" to "+destColumn)
+		return stacktrace.Propagate(err, "failed to move bucket from %s to %s", sourceColumn, destColumn)
 	}
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
 	if rowsAffected == 0 {
-		return stacktrace.NewError("bucket not moved from " + sourceColumn + " to " + destColumn)
+		return stacktrace.NewError("bucket not moved from %s to %s", sourceColumn, destColumn)
 	}
 	return nil
 }
 
-// GetPendingSyncDataAndExtendLock in a transaction gets single file data row that has been deleted and pending sync is true and sync_lock_till is less than now_utc_micro_seconds() and extends the lock till newSyncLockTime
-// This is used to lock the file data row for deletion and extend
 func (r *Repository) GetPendingSyncDataAndExtendLock(ctx context.Context, newSyncLockTime int64, forDeletion bool) (*filedata.Row, error) {
-	// ensure newSyncLockTime is in the future
 	if newSyncLockTime < time.Now().Add(5*time.Minute).UnixMicro() {
 		return nil, stacktrace.NewError("newSyncLockTime should be at least 5min in the future")
 	}
@@ -251,7 +253,7 @@ func (r *Repository) GetPendingSyncDataAndExtendLock(ctx context.Context, newSyn
 		return nil, stacktrace.Propagate(err, "")
 	}
 	if fileData.SyncLockedTill > newSyncLockTime {
-		return nil, stacktrace.NewError(fmt.Sprintf("newSyncLockTime (%d) is less than existing SyncLockedTill(%d), newSync", newSyncLockTime, fileData.SyncLockedTill))
+		return nil, stacktrace.NewError("newSyncLockTime (%d) is less than existing SyncLockedTill(%d), newSync", newSyncLockTime, fileData.SyncLockedTill)
 	}
 	_, err = tx.Exec(`UPDATE file_data SET sync_locked_till = $1 WHERE file_id = $2 AND data_type = $3 AND user_id = $4`, newSyncLockTime, fileData.FileID, string(fileData.Type), fileData.UserID)
 	if err != nil {
@@ -264,8 +266,6 @@ func (r *Repository) GetPendingSyncDataAndExtendLock(ctx context.Context, newSyn
 	return &fileData, nil
 }
 
-// MarkReplicationAsDone marks the pending_sync as false for the file data row, while
-// ensuring that the row is not deleted
 func (r *Repository) MarkReplicationAsDone(ctx context.Context, row filedata.Row) error {
 	query := `UPDATE file_data SET pending_sync = false WHERE is_deleted=false and file_id = $1 AND data_type = $2 AND user_id = $3`
 	_, err := r.DB.ExecContext(ctx, query, row.FileID, string(row.Type), row.UserID)
@@ -276,17 +276,16 @@ func (r *Repository) MarkReplicationAsDone(ctx context.Context, row filedata.Row
 }
 
 func (r *Repository) RegisterReplicationAttempt(ctx context.Context, row filedata.Row, dstBucketID string) error {
-	if array.StringInList(dstBucketID, row.DeleteFromBuckets) {
+	if slices.Contains(row.DeleteFromBuckets, dstBucketID) {
 		return r.MoveBetweenBuckets(row, dstBucketID, DeletionColumn, InflightRepColumn)
 	}
-	if !array.StringInList(dstBucketID, row.InflightReplicas) {
+	if !slices.Contains(row.InflightReplicas, dstBucketID) {
 		return r.AddBucket(row, dstBucketID, InflightRepColumn)
 	}
 	return nil
 }
 
-// ResetSyncLock resets the sync_locked_till to now_utc_micro_seconds() for the file data row only if pending_sync is false and
-// the input syncLockedTill is equal to the existing sync_locked_till. This is used to reset the lock after the replication is done
+// Reset only after replication finishes and only if the lock has not changed.
 func (r *Repository) ResetSyncLock(ctx context.Context, row filedata.Row, syncLockedTill int64) error {
 	query := `UPDATE file_data SET sync_locked_till = now_utc_micro_seconds() WHERE pending_sync = false and file_id = $1 AND data_type = $2 AND user_id = $3 AND sync_locked_till = $4`
 	_, err := r.DB.ExecContext(ctx, query, row.FileID, string(row.Type), row.UserID, syncLockedTill)
@@ -310,12 +309,25 @@ func (r *Repository) DeleteFileData(ctx context.Context, row filedata.Row) error
 		return stacktrace.Propagate(err, "")
 	}
 	if rowsAffected == 0 {
-		return stacktrace.NewError("file data not deleted")
+		// A concurrent cleanup may already have removed the row. Only accept a
+		// no-op when the primary key is absent; a surviving row means one of the
+		// deletion invariants did not match.
+		var exists bool
+		err = r.DB.QueryRowContext(ctx, `SELECT EXISTS (
+			SELECT 1 FROM file_data WHERE file_id = $1 AND data_type = $2
+		)`, row.FileID, string(row.Type)).Scan(&exists)
+		if err != nil {
+			return stacktrace.Propagate(err, "failed to check file data after delete")
+		}
+		if exists {
+			return stacktrace.NewError("file data row exists but does not satisfy deletion conditions")
+		}
 	}
 	return nil
 }
 
 func convertRowsToFilesData(rows *sql.Rows) ([]filedata.Row, error) {
+	defer rows.Close()
 	var filesData []filedata.Row
 	for rows.Next() {
 		var fileData filedata.Row
@@ -324,6 +336,9 @@ func convertRowsToFilesData(rows *sql.Rows) ([]filedata.Row, error) {
 			return nil, stacktrace.Propagate(err, "")
 		}
 		filesData = append(filesData, fileData)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, stacktrace.Propagate(err, "failed to read file data")
 	}
 	return filesData, nil
 }

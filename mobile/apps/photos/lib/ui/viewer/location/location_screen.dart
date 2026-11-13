@@ -1,6 +1,7 @@
 import "dart:async";
 import 'dart:developer' as dev;
 
+import "package:ente_ui/components/loading_widget.dart";
 import "package:flutter/material.dart";
 import "package:photos/core/constants.dart";
 import "package:photos/core/event_bus.dart";
@@ -18,7 +19,6 @@ import "package:photos/services/filter/db_filters.dart";
 import "package:photos/services/location_service.dart";
 import "package:photos/states/location_screen_state.dart";
 import "package:photos/theme/ente_theme.dart";
-import "package:photos/ui/common/loading_widget.dart";
 import "package:photos/ui/viewer/actions/file_selection_overlay_bar.dart";
 import "package:photos/ui/viewer/gallery/gallery.dart";
 import "package:photos/ui/viewer/gallery/gallery_app_bar_widget.dart";
@@ -31,7 +31,14 @@ import "package:photos/ui/viewer/gallery/state/selection_state.dart";
 
 class LocationScreen extends StatefulWidget {
   final String tagPrefix;
-  const LocationScreen({this.tagPrefix = "", super.key});
+  final List<EnteFile>? initialFiles;
+  final String? coverHeroTag;
+  const LocationScreen({
+    this.tagPrefix = "",
+    this.initialFiles,
+    this.coverHeroTag,
+    super.key,
+  });
 
   @override
   State<LocationScreen> createState() => _LocationScreenState();
@@ -42,10 +49,9 @@ class _LocationScreenState extends State<LocationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final heightOfStatusBar = MediaQuery.of(context).viewPadding.top;
-    const heightOfAppBar = 90.0;
-    final locationTag =
-        InheritedLocationScreenState.of(context).locationTagEntity.item;
+    final locationTag = InheritedLocationScreenState.of(
+      context,
+    ).locationTagEntity.item;
 
     return GalleryBoundariesProvider(
       child: GalleryFilesState(
@@ -57,26 +63,11 @@ class _LocationScreenState extends State<LocationScreen> {
             ),
           ),
           child: Scaffold(
-            appBar: PreferredSize(
-              preferredSize: const Size(double.infinity, heightOfAppBar),
-              child: GalleryAppBarWidget(
-                GalleryType.locationTag,
-                locationTag.name,
-                selectedFiles,
-              ),
-            ),
-            body: Column(
-              children: <Widget>[
-                SizedBox(
-                  height: MediaQuery.of(context).size.height -
-                      (heightOfAppBar + heightOfStatusBar),
-                  width: double.infinity,
-                  child: LocationGalleryWidget(
-                    tagPrefix: widget.tagPrefix,
-                    selectedFiles: selectedFiles,
-                  ),
-                ),
-              ],
+            body: LocationGalleryWidget(
+              tagPrefix: widget.tagPrefix,
+              selectedFiles: selectedFiles,
+              initialFiles: widget.initialFiles,
+              coverHeroTag: widget.coverHeroTag,
             ),
           ),
         ),
@@ -87,10 +78,14 @@ class _LocationScreenState extends State<LocationScreen> {
 
 class LocationGalleryWidget extends StatefulWidget {
   final String tagPrefix;
+  final List<EnteFile>? initialFiles;
+  final String? coverHeroTag;
   final SelectedFiles selectedFiles;
   const LocationGalleryWidget({
     required this.tagPrefix,
     required this.selectedFiles,
+    this.initialFiles,
+    this.coverHeroTag,
     super.key,
   });
 
@@ -103,63 +98,68 @@ class _LocationGalleryWidgetState extends State<LocationGalleryWidget> {
   late final List<EnteFile> allFilesWithLocation;
 
   final _selectedFiles = SelectedFiles();
-  late final StreamSubscription<LocalPhotosUpdatedEvent> _filesUpdateEvent;
+  final _coverAppBarKey = GlobalKey();
+  StreamSubscription<LocalPhotosUpdatedEvent>? _filesUpdateEvent;
   @override
   void initState() {
     super.initState();
 
-    final collectionsToHide =
-        CollectionsService.instance.getHiddenCollectionIds();
+    final collectionsToHide = CollectionsService.instance
+        .getHiddenCollectionIds();
     fileLoadResult = FilesDB.instance
         .fetchAllUploadedAndSharedFilesWithLocation(
-      galleryLoadStartTime,
-      galleryLoadEndTime,
-      limit: null,
-      asc: false,
-      filterOptions: DBFilterOptions(
-        ignoredCollectionIDs: collectionsToHide,
-        hideIgnoredForUpload: true,
-      ),
-    )
+          galleryLoadStartTime,
+          galleryLoadEndTime,
+          limit: null,
+          asc: false,
+          filterOptions: DBFilterOptions(
+            ignoredCollectionIDs: collectionsToHide,
+            hideIgnoredForUpload: true,
+          ),
+        )
         .then((value) {
-      allFilesWithLocation = value.files;
-      _filesUpdateEvent =
-          Bus.instance.on<LocalPhotosUpdatedEvent>().listen((event) {
-        if (event.type == EventType.deletedFromDevice ||
-            event.type == EventType.deletedFromEverywhere ||
-            event.type == EventType.deletedFromRemote ||
-            event.type == EventType.hide) {
-          for (var updatedFile in event.updatedFiles) {
-            allFilesWithLocation.remove(updatedFile);
-          }
-          if (mounted) {
-            setState(() {});
-          }
-        }
-      });
-      return value;
-    });
+          allFilesWithLocation = value.files;
+          if (!mounted) return value;
+          _filesUpdateEvent = Bus.instance.on<LocalPhotosUpdatedEvent>().listen(
+            (event) {
+              if (event.type == EventType.deletedFromDevice ||
+                  event.type == EventType.deletedFromEverywhere ||
+                  event.type == EventType.deletedFromRemote ||
+                  event.type == EventType.hide) {
+                for (var updatedFile in event.updatedFiles) {
+                  allFilesWithLocation.remove(updatedFile);
+                }
+                if (mounted) {
+                  setState(() {});
+                }
+              }
+            },
+          );
+          return value;
+        });
   }
 
   @override
   void dispose() {
     InheritedLocationScreenState.memoryCountNotifier.value = null;
-    _filesUpdateEvent.cancel();
+    _filesUpdateEvent?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final selectedRadius =
-        InheritedLocationScreenState.of(context).locationTagEntity.item.radius;
-    final centerPoint = InheritedLocationScreenState.of(context)
-        .locationTagEntity
-        .item
-        .centerPoint;
-
+    final selectedRadius = InheritedLocationScreenState.of(
+      context,
+    ).locationTagEntity.item.radius;
+    final locationTag = InheritedLocationScreenState.of(
+      context,
+    ).locationTagEntity.item;
+    final centerPoint = InheritedLocationScreenState.of(
+      context,
+    ).locationTagEntity.item.centerPoint;
     Future<FileLoadResult> filterFiles() async {
-      //waiting for allFilesWithLocation to be initialized
       await fileLoadResult;
+      if (!mounted) return FileLoadResult([], false);
       final stopWatch = Stopwatch()..start();
       final filesInLocation = allFilesWithLocation;
       filesInLocation.removeWhere((f) {
@@ -176,18 +176,24 @@ class _LocationGalleryWidgetState extends State<LocationGalleryWidget> {
       InheritedLocationScreenState.memoryCountNotifier.value =
           filesInLocation.length;
 
-      return Future.value(
-        FileLoadResult(
-          filesInLocation,
-          false,
-        ),
-      );
+      return Future.value(FileLoadResult(filesInLocation, false));
     }
 
-    return FutureBuilder(
-      //rebuild gallery only when there is change in radius or center point
+    return FutureBuilder<FileLoadResult>(
       key: ValueKey("$centerPoint$selectedRadius"),
       builder: (context, snapshot) {
+        final files = snapshot.data?.files;
+        final appBar = GalleryAppBarWidget.sliverConfig(
+          GalleryType.locationTag,
+          locationTag.name,
+          _selectedFiles,
+          coverAppBarKey: _coverAppBarKey,
+          cover: files == null
+              ? widget.initialFiles?.firstOrNull
+              : files.firstOrNull,
+          coverHeroTag: widget.coverHeroTag,
+          files: files ?? widget.initialFiles,
+        );
         if (snapshot.hasData) {
           return SelectionState(
             selectedFiles: _selectedFiles,
@@ -197,40 +203,44 @@ class _LocationGalleryWidgetState extends State<LocationGalleryWidget> {
                 Builder(
                   builder: (context) {
                     return ValueListenableBuilder(
-                      valueListenable: InheritedSearchFilterData.of(context)
-                          .searchFilterDataProvider!
-                          .isSearchingNotifier,
+                      valueListenable: InheritedSearchFilterData.of(
+                        context,
+                      ).searchFilterDataProvider!.isSearchingNotifier,
                       builder: (context, value, _) {
                         return value
                             ? HierarchicalSearchGallery(
-                                tagPrefix: widget.tagPrefix,
+                                tagPrefix: "${widget.tagPrefix}_files",
                                 selectedFiles: _selectedFiles,
+                                appBar: appBar,
                               )
                             : Gallery(
+                                appBar: appBar,
                                 loadingWidget: Column(
                                   children: [
                                     EnteLoadingWidget(
-                                      color: getEnteColorScheme(context)
-                                          .strokeMuted,
+                                      color: getEnteColorScheme(
+                                        context,
+                                      ).strokeMuted,
                                     ),
                                   ],
                                 ),
-                                asyncLoader: (
-                                  creationStartTime,
-                                  creationEndTime, {
-                                  limit,
-                                  asc,
-                                }) async {
-                                  return snapshot.data as FileLoadResult;
-                                },
-                                reloadEvent:
-                                    Bus.instance.on<LocalPhotosUpdatedEvent>(),
+                                asyncLoader:
+                                    (
+                                      creationStartTime,
+                                      creationEndTime, {
+                                      limit,
+                                      asc,
+                                    }) async {
+                                      return snapshot.data!;
+                                    },
+                                reloadEvent: Bus.instance
+                                    .on<LocalPhotosUpdatedEvent>(),
                                 removalEventTypes: const {
                                   EventType.deletedFromRemote,
                                   EventType.deletedFromEverywhere,
                                 },
                                 selectedFiles: _selectedFiles,
-                                tagPrefix: widget.tagPrefix,
+                                tagPrefix: "${widget.tagPrefix}_files",
                               );
                       },
                     );
@@ -244,9 +254,11 @@ class _LocationGalleryWidgetState extends State<LocationGalleryWidget> {
             ),
           );
         } else {
-          return const Column(
-            children: [
-              Expanded(
+          return CustomScrollView(
+            slivers: [
+              appBar.buildSliver(context),
+              const SliverFillRemaining(
+                hasScrollBody: false,
                 child: EnteLoadingWidget(),
               ),
             ],

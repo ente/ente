@@ -12,9 +12,9 @@ class MenuSectionDescriptionWidget extends StatelessWidget {
       child: Text(
         content,
         textAlign: TextAlign.left,
-        style: getEnteTextTheme(context)
-            .mini
-            .copyWith(color: getEnteColorScheme(context).textMuted),
+        style: getEnteTextTheme(
+          context,
+        ).mini.copyWith(color: getEnteColorScheme(context).textMuted),
       ),
     );
   }

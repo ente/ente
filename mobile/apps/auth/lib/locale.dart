@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// list of locales which are enabled for auth app.
 // Add more language to the list only when at least 90% of the strings are
 // translated in the corresponding language.
 const List<Locale> appSupportedLocales = <Locale>[
@@ -38,36 +37,32 @@ const List<Locale> appSupportedLocales = <Locale>[
 ];
 
 Locale? autoDetectedLocale;
-// This function takes device locales and supported locales as input
-// and returns the best matching locale.
-// The device locales are sorted by priority, so the first one is the most preferred.
-Locale localResolutionCallBack(onDeviceLocales, supportedLocales) {
+Locale localResolutionCallBack(
+  List<Locale>? onDeviceLocales,
+  Iterable<Locale> supportedLocales,
+) {
   final Set<String> languageSupport = {};
   for (Locale supportedLocale in appSupportedLocales) {
     languageSupport.add(supportedLocale.languageCode);
   }
-  for (Locale locale in onDeviceLocales) {
-    // check if exact local is supported, if yes, return it
+  for (final deviceLocale in onDeviceLocales ?? const []) {
+    final locale = _normalizedLocale(deviceLocale);
     if (appSupportedLocales.contains(locale)) {
       autoDetectedLocale = locale;
       return locale;
     }
-    // check if language code is supported, if yes, return it
     if (languageSupport.contains(locale.languageCode)) {
       autoDetectedLocale = locale;
       return locale;
     }
   }
-  // Return the first language code match or default to 'en'
   return autoDetectedLocale ?? const Locale('en');
 }
 
-Future<Locale?> getLocale({
-  bool noFallback = false,
-}) async {
-  final String? savedValue =
-      (await SharedPreferences.getInstance()).getString('locale');
-  // if savedLocale is not null and is supported by the app, return it
+Future<Locale?> getLocale({bool noFallback = false}) async {
+  final String? savedValue = (await SharedPreferences.getInstance()).getString(
+    'locale',
+  );
   if (savedValue != null) {
     late Locale savedLocale;
     if (savedValue.contains('_')) {
@@ -76,8 +71,9 @@ Future<Locale?> getLocale({
     } else {
       savedLocale = Locale(savedValue);
     }
-    if (appSupportedLocales.contains(savedLocale)) {
-      return savedLocale;
+    final normalizedLocale = _normalizedLocale(savedLocale);
+    if (appSupportedLocales.contains(normalizedLocale)) {
+      return normalizedLocale;
     }
   }
   if (autoDetectedLocale != null) {
@@ -98,6 +94,27 @@ Future<void> setLocale(Locale locale) async {
     out.write('_');
     out.write(locale.countryCode);
   }
-  await (await SharedPreferences.getInstance())
-      .setString('locale', out.toString());
+  await (await SharedPreferences.getInstance()).setString(
+    'locale',
+    out.toString(),
+  );
+}
+
+Locale _normalizedLocale(Locale locale) {
+  if (locale.languageCode == 'pt') {
+    return const Locale('pt', 'BR');
+  }
+  if (locale.languageCode != 'zh') {
+    return locale;
+  }
+  if (locale.scriptCode == 'Hant') {
+    return const Locale('zh', 'TW');
+  }
+  if (locale.scriptCode == 'Hans') {
+    return const Locale('zh', 'CN');
+  }
+  return switch (locale.countryCode) {
+    'TW' || 'HK' || 'MO' => const Locale('zh', 'TW'),
+    _ => const Locale('zh', 'CN'),
+  };
 }

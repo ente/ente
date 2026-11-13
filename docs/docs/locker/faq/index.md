@@ -5,9 +5,7 @@ description: Answers to common questions about secure document storage, sharing,
 
 # Ente Locker FAQ
 
-Welcome to the Ente Locker FAQ index. Browse questions by category below, or
-use the search function at the top of the page to find specific answers
-quickly.
+Welcome to the Ente Locker FAQ index. Browse questions by category below, or use the search function at the top of the page to find specific answers quickly.
 
 ## Quick Navigation
 
@@ -31,6 +29,7 @@ Jump to a category:
 - [How do I install Ente Locker on iPhone or iPad?](/locker/faq/getting-started#locker-install-ios)
 - [Is Ente Locker available on desktop?](/locker/faq/getting-started#locker-desktop-availability)
 - [Can I access Locker from a web browser?](/locker/faq/getting-started#locker-web-access)
+- [Can I upload a whole folder to Ente Locker?](/locker/faq/getting-started#locker-folder-upload)
 
 ### Account
 
@@ -72,6 +71,7 @@ Jump to a category:
 ### General
 
 - [What types of information can I store?](/locker/faq/information-types#locker-what-types)
+- [Do I need to fill in every field?](/locker/faq/information-types#locker-required-fields)
 - [Can I create custom item types?](/locker/faq/information-types#locker-custom-types)
 - [Can I edit an item after creating it?](/locker/faq/information-types#locker-edit-document)
 
@@ -98,6 +98,7 @@ Jump to a category:
 - [How long do deleted items stay in Trash?](/locker/faq/organization#locker-trash-retention)
 - [Can I recover items after 30 days?](/locker/faq/organization#locker-recover-after-30-days)
 - [Does Trash count against my storage?](/locker/faq/organization#locker-trash-storage)
+- [How do I restore a deleted item?](/locker/faq/organization#locker-restore-document)
 
 ### Search
 
@@ -131,15 +132,26 @@ Jump to a category:
 
 - [What is Legacy?](/locker/faq/legacy#locker-legacy-what-is)
 - [What happens after the waiting period?](/locker/faq/legacy#locker-legacy-waiting-period)
-- [Can I customize the waiting period?](/locker/faq/legacy#locker-legacy-custom-waiting-period)
+- [What happens to 2FA during recovery?](/locker/faq/legacy#locker-legacy-2fa-recovery)
+- [Does Legacy work across all Ente apps?](/locker/faq/legacy#locker-legacy-all-apps)
+
+### Trusted Contacts
+
+- [Can I customize the trusted contact waiting period?](/locker/faq/legacy#locker-legacy-custom-waiting-period)
 - [Can I have multiple trusted contacts?](/locker/faq/legacy#locker-legacy-multiple-contacts)
-- [What data can trusted contacts access?](/locker/faq/legacy#locker-legacy-data-access)
-
-### Setup and Recovery
-
 - [How do I add a trusted contact?](/locker/faq/legacy#locker-legacy-add-contact)
 - [How does a trusted contact initiate recovery?](/locker/faq/legacy#locker-legacy-initiate-recovery)
 - [Can I block a recovery attempt?](/locker/faq/legacy#locker-legacy-block-recovery)
+
+### Legacy Kits
+
+- [What is a Legacy Kit?](/locker/faq/legacy#locker-legacy-kit-what-is)
+- [How is a Legacy Kit different from a trusted contact?](/locker/faq/legacy#locker-legacy-kit-vs-trusted-contact)
+- [Does a Legacy Kit helper need an Ente account?](/locker/faq/legacy#locker-legacy-kit-helper-account)
+- [Can one recovery sheet recover my account?](/locker/faq/legacy#locker-legacy-kit-one-sheet)
+- [Which waiting periods are available for Legacy Kits?](/locker/faq/legacy#locker-legacy-kit-waiting-periods)
+- [What happens if I delete a kit or block recovery?](/locker/faq/legacy#locker-legacy-kit-delete-block)
+- [Does a Legacy Kit work across all Ente apps?](/locker/faq/legacy#locker-legacy-kit-all-apps)
 
 ## Security
 
@@ -191,4 +203,4 @@ Jump to a category:
 - Check the [Getting Started guide](/locker/getting-started/)
 - Check the [Family Setup guide](/locker/getting-started/family-setup)
 - Visit the [main Locker documentation](/locker/)
-- Contact [support@ente.io](mailto:support@ente.io)
+- Contact [support@ente.com](mailto:support@ente.com)

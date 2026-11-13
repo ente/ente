@@ -1,0 +1,13 @@
+[package]
+name = "ente-vecdb"
+edition.workspace = true
+
+[dependencies]
+log.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

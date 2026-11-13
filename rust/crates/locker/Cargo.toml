@@ -1,0 +1,10 @@
+[package]
+name = "ente-locker"
+edition.workspace = true
+
+[dependencies]
+ente-core.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true

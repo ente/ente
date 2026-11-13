@@ -12,14 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/stacktrace"
 )
 
-// Listmonk credentials to interact with the Listmonk API.
-// It specifies BaseURL (url of the running listmonk server,
-// Listmonk Username and Password.
-// Visit https://listmonk.app/ to learn more about running
-// Listmonk locally
 type Credentials struct {
 	BaseURL  string
 	Username string
@@ -28,13 +23,13 @@ type Credentials struct {
 
 const listmonkRequestTimeout = 60 * time.Second
 
-// Subscriber captures a listmonk subscriber record required by museum.
+var ErrSubscriberNotFound = errors.New("subscriber not found")
+
 type Subscriber struct {
 	Email   string
 	ListIDs []int
 }
 
-// SubscribersPage represents one paginated subscribers page from listmonk.
 type SubscribersPage struct {
 	Results []Subscriber
 	Total   int
@@ -42,12 +37,7 @@ type SubscribersPage struct {
 	PerPage int
 }
 
-// GetSubscriberID returns subscriber id of the provided email address,
-// else returns an error if email was not found
 func GetSubscriberID(endpoint string, username string, password string, subscriberEmail string) (int, error) {
-	// Struct for the received API response.
-	// Can define other fields as well that can be
-	// extracted from response JSON
 	type SubscriberResponse struct {
 		Data struct {
 			Results []struct {
@@ -56,13 +46,11 @@ func GetSubscriberID(endpoint string, username string, password string, subscrib
 		} `json:"data"`
 	}
 
-	// Constructing query parameters
 	// Escape single quotes to prevent SQL-like injection in Listmonk's query syntax
 	sanitizedEmail := strings.ReplaceAll(subscriberEmail, "'", "''")
 	queryParams := url.Values{}
 	queryParams.Set("query", fmt.Sprintf("subscribers.email = '%s'", sanitizedEmail))
 
-	// Constructing the URL with query parameters
 	endpointURL, err := url.Parse(endpoint)
 	if err != nil {
 		return 0, stacktrace.Propagate(err, "")
@@ -76,7 +64,6 @@ func GetSubscriberID(endpoint string, username string, password string, subscrib
 
 	req.SetBasicAuth(username, password)
 
-	// Sending the HTTP request
 	client := &http.Client{Timeout: listmonkRequestTimeout}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -84,30 +71,31 @@ func GetSubscriberID(endpoint string, username string, password string, subscrib
 	}
 	defer resp.Body.Close()
 
-	// Reading the response body
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return 0, stacktrace.Propagate(err, "")
 	}
+	if resp.StatusCode != http.StatusOK {
+		return 0, stacktrace.Propagate(
+			fmt.Errorf("listmonk request failed with status %d: %s", resp.StatusCode, strings.TrimSpace(string(body))),
+			"",
+		)
+	}
 
-	// Parsing the JSON response
 	var subscriberResp SubscriberResponse
 	if err := json.Unmarshal(body, &subscriberResp); err != nil {
 		return 0, stacktrace.Propagate(err, "")
 	}
 
-	// Checking if there are any subscribers found
 	if len(subscriberResp.Data.Results) == 0 {
-		return 0, stacktrace.Propagate(errors.New("subscriber not found"), "")
+		return 0, stacktrace.Propagate(ErrSubscriberNotFound, "")
 	}
 
-	// Extracting the ID from the response
 	id := subscriberResp.Data.Results[0].ID
 
 	return id, nil
 }
 
-// ListSubscribers returns one paginated subscribers page from listmonk.
 func ListSubscribers(endpoint string, username string, password string, page int, perPage int) (SubscribersPage, error) {
 	type subscriberResponse struct {
 		Data struct {
@@ -254,9 +242,6 @@ func decodeListIDs(raw json.RawMessage) ([]int, error) {
 	return nil, errors.New("unsupported list ids format")
 }
 
-// SendRequest sends a request to the specified Listmonk API endpoint
-// with the provided method and data
-// after authentication with the provided credentials (username, password)
 func SendRequest(method string, url string, data interface{}, username string, password string) error {
 	jsonData, err := json.Marshal(data)
 	if err != nil {
@@ -272,7 +257,6 @@ func SendRequest(method string, url string, data interface{}, username string, p
 	req.SetBasicAuth(username, password)
 	req.Header.Set("Content-Type", "application/json")
 
-	// Send request
 	resp, err := client.Do(req)
 	if err != nil {
 		return stacktrace.Propagate(err, "")

@@ -1,3 +1,0 @@
-- Fixed system authentication prompt phrasing to read naturally as "... is trying to unlock ..."
-- Added shared `unlock` localization key in `ente_strings` for lock-screen auth reason
-- Added Proton Authenticator import support, including encrypted backups, and normalized Proton TOTP imports to prevent duplicate reimports

@@ -1,61 +1,210 @@
 {
-  "networkHostLookUpErr": "Ude af stand til at forbinde til Ente. Tjek venligst dine netværksindstillinger og kontakt support hvis fejlen varer ved.",
-  "@networkHostLookUpErr": {
-    "description": "Error message shown when the app cannot connect to Ente due to network host lookup failure"
+  "about": "Om os",
+  "account": "Konto",
+  "accountCredentials": "Hemmelighed",
+  "accountCredentialsDescription": "Bevar kontooplysninger.",
+  "accountSetupIncompleteCreateAccount": "Konto opsætning ufuldstændig. Opret konto for at færdiggøre opsætningen.",
+  "@accountSetupIncompleteCreateAccount": {
+    "description": "Error shown when account exists but signup is incomplete"
   },
-  "networkConnectionRefusedErr": "Ude af stand til at forbinde til Ente. Forsøg igen efter et stykke tid. Hvis fejlen varer ved, kontakt da venligst support.",
-  "@networkConnectionRefusedErr": {
-    "description": "Error message shown when the app cannot connect to Ente due to connection refused"
+  "activeSessions": "Aktive sessioner",
+  "@activeSessions": {
+    "description": "Title for active sessions page"
   },
-  "itLooksLikeSomethingWentWrongPleaseRetryAfterSome": "Det ser ud til at noget gik galt. Forsøg venligst igen efter lidt tid. Hvis fejlen varer ved, kontakt da venligst support.",
-  "@itLooksLikeSomethingWentWrongPleaseRetryAfterSome": {
-    "description": "Generic error message for temporary issues"
+  "add": "Tilføj",
+  "addCode": "Tilføj kode",
+  "addEmail": "Tilføj e-mail",
+  "addingToFavorites": "Tilføjer til favoritter...",
+  "addMore": "Tilføj flere",
+  "addNewEmail": "Tilføj ny e-mail",
+  "addOnPageSubtitle": "Oplysninger om tilføjelser",
+  "addToCollection": "Tilføj til samling",
+  "advanced": "Avanceret",
+  "after1Day": "Efter 1 dag",
+  "after1Hour": "Efter 1 time",
+  "after1Month": "Efter 1 måned",
+  "after1Week": "Efter 1 uge",
+  "after1Year": "Efter 1 år",
+  "albumUpdated": "Album er opdateret",
+  "all": "Alt",
+  "allFilesAlreadyMarkedAsImportant": "Alle elementer er allerede markeret som vigtige",
+  "allowAddingPhotos": "Tillad tilføjelse af fotos",
+  "@allowAddingPhotos": {
+    "description": "Switch button to enable uploading photos to a public link"
   },
-  "error": "Fejl",
-  "@error": {
-    "description": "Generic error title"
+  "allowDownloads": "Tillad downloads",
+  "androidBiometricHint": "Bekræft identitet",
+  "@androidBiometricHint": {
+    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
   },
-  "ok": "OK",
-  "@ok": {
-    "description": "Generic OK button label"
+  "androidCancelButton": "Afbryd",
+  "@androidCancelButton": {
+    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
   },
-  "faq": "FAQ",
-  "@faq": {
-    "description": "FAQ link label"
+  "androidSignInTitle": "Godkendelse påkrævet",
+  "@androidSignInTitle": {
+    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
   },
+  "appLock": "Låsning af app",
+  "@appLock": {
+    "description": "App lock setting title"
+  },
+  "appLockDescription": "Vælg mellem din enheds standard skærmlås eller skærmlås med pinkode eller adgangskode.",
+  "@appLockDescription": {
+    "description": "Description of app lock feature"
+  },
+  "appLockNotEnabled": "Låsning af app er ikke slået til",
+  "appLockNotEnabledDescription": "Slå venligst låsning af app til under \"Sikkerhed > Låsning af app\"",
+  "appLockOfflineModeWarning": "Du har valgt at fortsætte uden sikkerhedskopier. Hvis du glemmer din app-lås, vil du blive låst ude fra dine data.",
+  "areYouSure": "Er du sikker?",
+  "@areYouSure": {
+    "description": "Confirmation dialog title"
+  },
+  "areYouSureThatYouWantToLeaveTheFamily": "Er du sikker på at du vil forlade familie-abonnementet?",
+  "areYouSureYouWantToLogout": "Er du sikker på at du vil logge ud?",
+  "@areYouSureYouWantToLogout": {
+    "description": "Confirmation message before logout"
+  },
+  "authenticateGeneric": "Bekræft venligst din identitet",
+  "authenticationFailedPleaseTryAgain": "Bekræftelse af identitet fejlede, forsøg venligst igen",
+  "@authenticationFailedPleaseTryAgain": {
+    "description": "Error message when authentication fails"
+  },
+  "authenticationSuccessful": "Bekræftelse af identitet lykkedes!",
+  "@authenticationSuccessful": {
+    "description": "Success message when authentication is successful"
+  },
+  "authToChangeEmailVerificationSetting": "Bekræft venligst din identitet for at ændre email-verifikation",
+  "authToChangeLockscreenSetting": "Bekræft venligst din identitet for at ændre skærmlås indstillinger",
+  "authToChangeYourEmail": "Bekræft venligst din identitet for at ændre din email adresse",
+  "authToChangeYourPassword": "Bekræft venligst din identitet for at ændre din adgangskode",
+  "authToExportCodes": "Bekræft din identitet for at eksportere dine koder",
+  "authToInitiateSignIn": "Bekræft venligst din identitet for at påbegynde sikkerhedskopiering.",
+  "authToManageLegacy": "Bekræft venligst din identitet for at administrere dine betroede kontakter",
+  "authToViewPasskeyGeneric": "Bekræft venligst identitet for at se passkey",
+  "authToViewSecrets": "Bekræft venligst din identitet for at se dine hemmeligheder",
+  "@authToViewSecrets": {
+    "description": "Message prompting authentication to view secrets"
+  },
+  "authToViewYourActiveSessions": "Bekræft venligst din identitet for at se dine aktive sessioner",
+  "authToViewYourRecoveryKey": "Bekræft venligst din identitet for at se din gendannelseskode.",
+  "autoLock": "Automatisk lås",
+  "@autoLock": {
+    "description": "Auto lock setting title"
+  },
+  "autoLockFeatureDescription": "Tid til låsning af app efter at være blevet placeret i baggrunden",
+  "@autoLockFeatureDescription": {
+    "description": "Description of auto lock feature"
+  },
+  "backedUpFolders": "Sikkerhedskopierede mapper",
+  "backupStatusDescription": "Elementer, der er blevet sikkerhedskopieret, vil blive vist her",
+  "bothIssuerAndAccountCanNotBeEmpty": "Både udsteder og konto kan ikke være tomme",
+  "cannotAddMoreFilesAfterBecomingViewer": "{name} vil ikke længere kunne tilføje elementer til samlingen efter at blive en seer.",
+  "@cannotAddMoreFilesAfterBecomingViewer": {
+    "description": "Warning message when changing a collaborator to viewer",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "John"
+      }
+    }
+  },
+  "cannotDeleteSharedFiles": "Kan ikke slette delte filer",
+  "canNotOpenBody": "Beklager, dette album kan ikke åbnes i appen.",
+  "canOnlyRemoveFilesOwnedByYou": "Kan kun fjerne filer ejet af dig",
+  "changeEmail": "Skift email adresse",
+  "@changeEmail": {
+    "description": "Change email button label"
+  },
+  "changePassword": "Skift adgangskode",
+  "changePasswordTitle": "Skift adgangskode",
+  "@changePasswordTitle": {
+    "description": "Change password title"
+  },
+  "changePermissions": "Skift tilladelser",
+  "checkForUpdates": "Tjek for opdateringer",
+  "checking": "Tjekker...",
+  "checkStatus": "Tjek status",
+  "@checkStatus": {
+    "description": "Check status button label"
+  },
+  "chooseFromAnExistingContact": "Vælg fra en eksisterende kontakt",
+  "clearAllFilters": "Ryd alle filtre",
+  "clearingTrash": "Tømmer papirkurv...",
+  "close": "Luk",
+  "codeCopiedToClipboard": "Kode kopieret til udklipsholder",
+  "codeIssuerHint": "Udsteder",
+  "collaborator": "Samarbejdspartner",
+  "collectionCannotBeDeleted": "Denne samling kan ikke slettes",
+  "collectionCannotBeEdited": "Denne samling kan ikke redigeres",
+  "collectionCannotBeShared": "Denne samling kan ikke deles",
+  "collectionDeletedSuccessfully": "Samling slettet",
+  "collectionEmptyStateSubtitle": "Der er ingen elementer i denne samling",
+  "collectionLabel": "Samling",
+  "collectionRenamedSuccessfully": "Samling omdøbt",
+  "collections": "Samlinger",
+  "collectPhotos": "Indsaml billeder",
+  "compactMode": "Kompakt tilstand",
+  "confirm": "Bekræft",
+  "@confirm": {
+    "description": "Confirm button label"
+  },
+  "confirmRecoveryKey": "Bekræft gendannelsesnøgle",
+  "confirmUpdatingkey": "Er du sikker på at du vil opdatere den hemmelige nøgle?",
+  "confirmYourRecoveryKey": "Bekræft din gendannelsesnøgle",
+  "contactDetails": "Kontaktoplysninger",
+  "contactDetailsHint": "Telefonnummer, e-mail eller andre kontaktoplysninger",
+  "contactName": "Kontaktnavn",
+  "contactNameHint": "Nødkontaktens fulde navn",
+  "contactNotes": "Besked til kontakt",
+  "contactNotesHint": "Vigtig information, der skal deles med denne person, når de kontaktes",
   "contactSupport": "Kontakt support",
   "@contactSupport": {
     "description": "Contact support button label"
   },
-  "emailYourLogs": "Email dine logs",
-  "@emailYourLogs": {
-    "description": "Title for emailing logs dialog"
+  "continueLabel": "Fortsæt",
+  "@continueLabel": {
+    "description": "Continue button label"
   },
-  "pleaseSendTheLogsTo": "Send venligst logs til {toEmail}",
-  "@pleaseSendTheLogsTo": {
-    "description": "Message asking user to send logs to email address",
-    "placeholders": {
-      "toEmail": {
-        "type": "String",
-        "description": "Email address to send logs to"
-      }
-    }
-  },
+  "copied": "Kopieret",
+  "copiedNextToClipboard": "Næste kode kopieret til udklipsholderen",
+  "copiedToClipboard": "Kopieret til udklipsholderen",
   "copyEmailAddress": "Kopier email adresse",
   "@copyEmailAddress": {
     "description": "Button to copy email address to clipboard"
   },
-  "exportLogs": "Eksporter logs",
-  "@exportLogs": {
-    "description": "Button to export logs"
+  "copyLink": "Kopiér link",
+  "copypasteThisCodentoYourAuthenticatorApp": "Kopiér denne kode\ntil din autentificeringsapp",
+  "couldNotOpenFile": "Kunne ikke åbne element: {error}",
+  "@couldNotOpenFile": {
+    "description": "Error message when item cannot be opened",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Permission denied"
+      }
+    }
   },
-  "cancel": "Afbryd",
-  "@cancel": {
-    "description": "Cancel button label"
+  "couldNotUpdateSubscription": "Abonnementet kunne ikke opdateres.",
+  "crashAndErrorReporting": "Nedbruds- og fejlrapportering",
+  "create": "Opret",
+  "createAccount": "Opret konto",
+  "@createAccount": {
+    "description": "Create account button label"
   },
-  "reportABug": "Rapporter en fejl",
-  "@reportABug": {
-    "description": "Label for reporting a bug"
+  "createAccountTitle": "Opret en konto",
+  "createCollection": "Opret samling",
+  "createNewTag": "Opret nyt tag",
+  "createPublicLink": "Opret et offentligt link",
+  "creatingLink": "Opretter link...",
+  "credentialName": "Konto",
+  "credentialNameHint": "Navn på tjenesten",
+  "credentialNotes": "Yderligere noter",
+  "credentialNotesHint": "Gendannelsesmetoder, sikkerhedsspørgsmål, ...",
+  "criticalUpdateAvailable": "Kritisk opdatering er tilgængelig",
+  "custom": "Tilpasset",
+  "@custom": {
+    "description": "Label for setting custom value for link expiry"
   },
   "customEndpoint": "Forbindelse oprettet til {endpoint}",
   "@customEndpoint": {
@@ -67,576 +216,110 @@
       }
     }
   },
-  "save": "Gem",
-  "@save": {
-    "description": "Label for save button"
-  },
-  "send": "Send",
-  "@send": {
-    "description": "Label for send button"
-  },
-  "saveOrSendDescription": "Vil du gemme på din enhed (Downloads mappe som udgangspunkt) eller sende til andre apps?",
-  "@saveOrSendDescription": {
-    "description": "Description text asking user if they want to save to storage or share with other apps"
-  },
-  "saveOnlyDescription": "Vil du gemme på din enhed (Downloads mappe som udgangspunkt)?",
-  "@saveOnlyDescription": {
-    "description": "Description text asking user if they want to save to storage (for platforms that don't support sharing)"
-  },
-  "email": "Email",
-  "@email": {
-    "description": "Email field label"
-  },
-  "verify": "Bekræft",
-  "@verify": {
-    "description": "Verify button label"
-  },
-  "invalidEmailTitle": "Ugyldig email adresse",
-  "@invalidEmailTitle": {
-    "description": "Title for invalid email error dialog"
-  },
-  "invalidEmailMessage": "Indtast en gyldig email adresse.",
-  "@invalidEmailMessage": {
-    "description": "Message for invalid email error dialog"
-  },
-  "pleaseWait": "Vent venligst...",
-  "@pleaseWait": {
-    "description": "Please wait message"
-  },
-  "verifyPassword": "Bekræft adgangskode",
-  "@verifyPassword": {
-    "description": "Verify password button label"
-  },
-  "incorrectPasswordTitle": "Forkert adgangskode",
-  "@incorrectPasswordTitle": {
-    "description": "Title for incorrect password error"
-  },
-  "pleaseTryAgain": "Forsøg venligst igen",
-  "@pleaseTryAgain": {
-    "description": "Message asking user to try again"
-  },
-  "enterPassword": "Indtast adgangskode",
-  "@enterPassword": {
-    "description": "Enter password field label"
-  },
-  "enterYourPasswordHint": "Indtast adgangskode",
-  "@enterYourPasswordHint": {
-    "description": "Hint for password field"
-  },
-  "activeSessions": "Aktive sessioner",
-  "@activeSessions": {
-    "description": "Title for active sessions page"
-  },
-  "oops": "Ups",
-  "@oops": {
-    "description": "Oops error title"
-  },
-  "somethingWentWrongPleaseTryAgain": "Noget gik galt, forsøg venligst igen",
-  "@somethingWentWrongPleaseTryAgain": {
-    "description": "Generic error message"
-  },
-  "thisWillLogYouOutOfThisDevice": "Dette vil logge dig ud af denne enhed!",
-  "@thisWillLogYouOutOfThisDevice": {
-    "description": "Warning message for logging out of current device"
-  },
-  "thisWillLogYouOutOfTheFollowingDevice": "Dette vil logge dig ud af den følgende enhed:",
-  "@thisWillLogYouOutOfTheFollowingDevice": {
-    "description": "Warning message for logging out of another device"
-  },
-  "terminateSession": "Afslut session?",
-  "@terminateSession": {
-    "description": "Title for terminate session dialog"
-  },
-  "terminate": "Afslut",
-  "@terminate": {
-    "description": "Terminate button label"
-  },
-  "thisDevice": "Denne enhed",
-  "@thisDevice": {
-    "description": "Label for current device"
-  },
-  "createAccount": "Opret konto",
-  "@createAccount": {
-    "description": "Create account button label"
-  },
-  "weakStrength": "Svagt",
-  "@weakStrength": {
-    "description": "Weak password strength label"
-  },
-  "moderateStrength": "Middel",
-  "@moderateStrength": {
-    "description": "Moderate password strength label"
-  },
-  "strongStrength": "Stærkt",
-  "@strongStrength": {
-    "description": "Strong password strength label"
+  "darkTheme": "Mørk",
+  "dayYesterday": "I går",
+  "decrypting": "Dekrypterer...",
+  "delete": "Slet",
+  "@delete": {
+    "description": "Delete button label"
   },
   "deleteAccount": "Slet konto",
   "@deleteAccount": {
     "description": "Delete account button label"
   },
-  "deleteAccountQuery": "Vi er kede af at se dig gå. Er du stødt på et problem?",
-  "@deleteAccountQuery": {
-    "description": "Message asking user why they want to delete account"
-  },
-  "yesSendFeedbackAction": "Ja, send feedback",
-  "@yesSendFeedbackAction": {
-    "description": "Button to confirm sending feedback"
-  },
-  "noDeleteAccountAction": "Nej, slet konto",
-  "@noDeleteAccountAction": {
-    "description": "Button to proceed with account deletion"
-  },
-  "initiateAccountDeleteTitle": "Bekræft venligst for at påbegynde sletning af konto",
-  "@initiateAccountDeleteTitle": {
-    "description": "Title for authentication dialog before account deletion"
-  },
-  "confirmAccountDeleteTitle": "Bekræft sletning af konto",
-  "@confirmAccountDeleteTitle": {
-    "description": "Title for account deletion confirmation dialog"
-  },
-  "confirmAccountDeleteMessage": "Denne konto er forbundet til andre Ente apps, hvis du benytter nogle.\n\nDine uploadede data for alle Ente apps vil blive slettet, og din konto vil blive slettet permanent.",
-  "@confirmAccountDeleteMessage": {
-    "description": "Message warning about account deletion consequences"
-  },
-  "delete": "Slet",
-  "@delete": {
-    "description": "Delete button label"
-  },
-  "createNewAccount": "Opret konto",
-  "@createNewAccount": {
-    "description": "Create new account button label"
-  },
-  "password": "Kodeord",
-  "@password": {
-    "description": "Password field label"
-  },
-  "confirmPassword": "Bekræft kodeord",
-  "@confirmPassword": {
-    "description": "Confirm password field label"
-  },
-  "passwordStrength": "Kodeordets styrke: {passwordStrengthValue}",
-  "@passwordStrength": {
-    "description": "Text to indicate the password strength",
+  "deleteAlbum": "Slet album",
+  "deleteCodeAuthMessage": "Bekræft identitet for at slette kode",
+  "deleteCodeMessage": "Er du sikker på at du vil slette denne kode? Handlingen er irreversibel.",
+  "deleteCodeTitle": "Slet kode?",
+  "deleteCollectionDialogBody": "{collectionName} vil blive slettet permanent.",
+  "@deleteCollectionDialogBody": {
+    "description": "Confirmation message body for deleting a single collection",
     "placeholders": {
-      "passwordStrengthValue": {
-        "description": "The strength of the password as a string",
+      "collectionName": {
         "type": "String",
-        "example": "Weak or Moderate or Strong"
+        "example": "My Documents"
       }
     }
   },
-  "hearUsWhereTitle": "Hvordan hørte du om Ente? (valgfrit)",
-  "@hearUsWhereTitle": {
-    "description": "Title asking how user heard about Ente"
-  },
-  "hearUsExplanation": "Vi tracker ikke app installeringer. Det ville hjælpe os at vide hvordan du fandt os!",
-  "@hearUsExplanation": {
-    "description": "Explanation for asking how user heard about Ente"
-  },
-  "signUpTerms": "Jeg er enig i <u-terms>betingelser for brug</u-terms> og <u-policy>privatlivspolitik</u-policy>",
-  "@signUpTerms": {
-    "description": "Terms agreement text for sign up"
-  },
-  "termsOfServicesTitle": "Betingelser",
-  "@termsOfServicesTitle": {
-    "description": "Terms of service title"
-  },
-  "privacyPolicyTitle": "Privatlivspolitik",
-  "@privacyPolicyTitle": {
-    "description": "Privacy policy title"
-  },
-  "ackPasswordLostWarning": "Jeg forstår at hvis jeg mister min adgangskode kan jeg miste mine data, da mine data er <underline>end-to-end krypteret</underline>.",
-  "@ackPasswordLostWarning": {
-    "description": "Warning about password loss"
-  },
-  "encryption": "Kryptering",
-  "@encryption": {
-    "description": "Encryption label"
-  },
-  "logInLabel": "Log ind",
-  "@logInLabel": {
-    "description": "Log in button label"
-  },
-  "welcomeBack": "Velkommen tilbage!",
-  "@welcomeBack": {
-    "description": "Welcome back message"
-  },
-  "loginTerms": "Ved at logge ind godkender jeg Ente's <u-terms>betingelser for brug</u-terms> og <u-policy>privatlivspolitik</u-policy>.",
-  "@loginTerms": {
-    "description": "Terms agreement text for login"
-  },
-  "noInternetConnection": "Ingen internetforbindelse",
-  "@noInternetConnection": {
-    "description": "No internet connection error message"
-  },
-  "pleaseCheckYourInternetConnectionAndTryAgain": "Tjek venligst din internetforbindelse og forsøg igen.",
-  "@pleaseCheckYourInternetConnectionAndTryAgain": {
-    "description": "Message asking user to check internet connection"
-  },
-  "verificationFailedPleaseTryAgain": "Bekræftelse fejlede, forsøg venligst igen",
-  "@verificationFailedPleaseTryAgain": {
-    "description": "Verification failed error message"
-  },
-  "recreatePasswordTitle": "Gendan adgangskode",
-  "@recreatePasswordTitle": {
-    "description": "Title for recreate password dialog"
-  },
-  "recreatePasswordBody": "Denne enhed er ikke kraftfuld nok til at bekræfte adgangskoden, men vi kan gendanne den på en måde der fungerer for alle enheder.\n\nLog venligst ind med din gendannelsesnøgle og gendan din adgangskode (du kan bruge den samme adgangskode igen hvis du ønsker).",
-  "@recreatePasswordBody": {
-    "description": "Body text for recreate password dialog"
-  },
-  "useRecoveryKey": "Brug gendannelsesnøgle",
-  "@useRecoveryKey": {
-    "description": "Use recovery key button label"
-  },
-  "forgotPassword": "Glemt adgangskode",
-  "@forgotPassword": {
-    "description": "Forgot password link label"
-  },
-  "changeEmail": "Skift email adresse",
-  "@changeEmail": {
-    "description": "Change email button label"
-  },
-  "verifyEmail": "Bekræft email adresse",
-  "@verifyEmail": {
-    "description": "Verify email title"
-  },
-  "weHaveSendEmailTo": "Vi har sendt en email til <green>{email}</green>",
-  "@weHaveSendEmailTo": {
-    "description": "Text to indicate that we have sent a mail to the user",
-    "placeholders": {
-      "email": {
-        "description": "The email address of the user",
-        "type": "String",
-        "example": "example@ente.io"
-      }
-    }
-  },
-  "toResetVerifyEmail": "For at nulstille din adgangskode, bekræft venligst din email adresse.",
-  "@toResetVerifyEmail": {
-    "description": "Message asking user to verify email before password reset"
-  },
-  "checkInboxAndSpamFolder": "Tjek venligst din indboks (og spam) for at færdiggøre verificeringen",
-  "@checkInboxAndSpamFolder": {
-    "description": "Message asking user to check inbox and spam folder"
-  },
-  "tapToEnterCode": "Tryk for at indtaste kode",
-  "@tapToEnterCode": {
-    "description": "Hint for entering verification code"
-  },
-  "sendEmail": "Send email",
-  "resendEmail": "Send email igen",
-  "@resendEmail": {
-    "description": "Resend email button label"
-  },
-  "passKeyPendingVerification": "Bekræftelse afventes stadig",
-  "@passKeyPendingVerification": {
-    "description": "Message when passkey verification is pending"
-  },
-  "loginSessionExpired": "Session udløbet",
-  "@loginSessionExpired": {
-    "description": "Login session expired title"
-  },
-  "loginSessionExpiredDetails": "Din session er udløbet. Log venligst på igen.",
-  "@loginSessionExpiredDetails": {
-    "description": "Login session expired details"
-  },
-  "passkeyAuthTitle": "Bekræftelse af adgangskode",
-  "@passkeyAuthTitle": {
-    "description": "Passkey authentication title"
-  },
-  "waitingForVerification": "Venter på bekræftelse...",
-  "@waitingForVerification": {
-    "description": "Waiting for verification message"
-  },
-  "tryAgain": "Forsøg igen",
-  "@tryAgain": {
-    "description": "Try again button label"
-  },
-  "checkStatus": "Tjek status",
-  "@checkStatus": {
-    "description": "Check status button label"
-  },
-  "recoverAccount": "Gendan konto",
-  "@recoverAccount": {
-    "description": "Recover account button label"
-  },
-  "setPasswordTitle": "Angiv adgangskode",
-  "@setPasswordTitle": {
-    "description": "Set password title"
-  },
-  "changePasswordTitle": "Skift adgangskode",
-  "@changePasswordTitle": {
-    "description": "Change password title"
-  },
-  "resetPasswordTitle": "Nulstil adgangskode",
-  "@resetPasswordTitle": {
-    "description": "Reset password title"
-  },
-  "encryptionKeys": "Krypteringsnøgler",
-  "@encryptionKeys": {
-    "description": "Encryption keys title"
-  },
-  "enterPasswordToEncrypt": "Indtast en adgangskode vi kan bruge til at kryptere dine data",
-  "@enterPasswordToEncrypt": {
-    "description": "Prompt to enter password for encryption"
-  },
-  "enterNewPasswordToEncrypt": "Indtast en ny adgangskode vi kan bruge til at kryptere dine data",
-  "@enterNewPasswordToEncrypt": {
-    "description": "Prompt to enter new password for encryption"
-  },
-  "passwordWarning": "Vi gemmer ikke denne adgangskode, så hvis du glemmer den <underline>kan vi ikke dekryptere dine data</underline>",
-  "@passwordWarning": {
-    "description": "Warning about password storage"
-  },
-  "howItWorks": "Sådan fungerer det",
-  "@howItWorks": {
-    "description": "How it works button label"
-  },
-  "generatingEncryptionKeys": "Genererer krypteringsnøgler...",
-  "@generatingEncryptionKeys": {
-    "description": "Generating encryption keys message"
-  },
-  "passwordChangedSuccessfully": "Adgangskoden er blevet ændret",
-  "@passwordChangedSuccessfully": {
-    "description": "Password changed successfully message"
-  },
-  "signOutFromOtherDevices": "Log ud af andre enheder",
-  "@signOutFromOtherDevices": {
-    "description": "Sign out from other devices title"
-  },
-  "signOutOtherBody": "Hvis du mistænker at nogen kender din adgangskode kan du tvinge alle enheder der benytter din konto til at logge ud.",
-  "@signOutOtherBody": {
-    "description": "Sign out other devices explanation"
-  },
-  "signOutOtherDevices": "Log ud af andre enheder",
-  "@signOutOtherDevices": {
-    "description": "Sign out other devices button label"
-  },
-  "doNotSignOut": "Log ikke ud",
-  "@doNotSignOut": {
-    "description": "Do not sign out button label"
-  },
-  "generatingEncryptionKeysTitle": "Genererer krypteringsnøgler...",
-  "@generatingEncryptionKeysTitle": {
-    "description": "Generating encryption keys title"
-  },
-  "continueLabel": "Fortsæt",
-  "@continueLabel": {
-    "description": "Continue button label"
-  },
-  "insecureDevice": "Usikker enhed",
-  "@insecureDevice": {
-    "description": "Insecure device warning title"
-  },
-  "sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": "Beklager, vi kunne ikke generere sikre krypteringsnøgler på denne enhed.\n\nForsøg venligst at oprette en konto fra en anden enhed.",
-  "@sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": {
-    "description": "Error message for insecure device"
-  },
-  "recoveryKeyCopiedToClipboard": "Gendannelsesnøgle kopieret til udklipsholderen",
-  "@recoveryKeyCopiedToClipboard": {
-    "description": "Recovery key copied message"
-  },
-  "recoveryKey": "Gendannelsesnøgle",
-  "@recoveryKey": {
-    "description": "Recovery key label"
-  },
-  "recoveryKeyOnForgotPassword": "Hvis du glemmer dit kodeord er gendannelsesnøglen den eneste mulighed for at få adgang til dine data.",
-  "@recoveryKeyOnForgotPassword": {
-    "description": "Recovery key importance explanation"
-  },
-  "recoveryKeySaveDescription": "Vi gemmer ikke denne nøgle, gem venligst denne 24-ords nøgle et sikkert sted.",
-  "@recoveryKeySaveDescription": {
-    "description": "Recovery key save description"
-  },
-  "doThisLater": "Gør det senere",
-  "@doThisLater": {
-    "description": "Do this later button label"
-  },
-  "saveKey": "Gem nøgle",
-  "@saveKey": {
-    "description": "Save key button label"
-  },
-  "recoveryKeySaved": "Gendannelsesnøgle gemt i din Downloads mappe!",
-  "@recoveryKeySaved": {
-    "description": "Recovery key saved confirmation message"
-  },
-  "noRecoveryKeyTitle": "Ingen gendannelsesnøgle?",
-  "@noRecoveryKeyTitle": {
-    "description": "No recovery key title"
-  },
-  "twoFactorAuthTitle": "Tofaktorgodkendelse",
-  "@twoFactorAuthTitle": {
-    "description": "Two-factor authentication title"
-  },
-  "enterCodeHint": "Indtast den 6-cifrede kode fra din authenticator app",
-  "@enterCodeHint": {
-    "description": "Hint for entering 2FA code"
-  },
-  "lostDeviceTitle": "Mistet enhed?",
-  "@lostDeviceTitle": {
-    "description": "Lost device title"
-  },
-  "enterRecoveryKeyHint": "Indtast din gendannelsesnøgle",
-  "@enterRecoveryKeyHint": {
-    "description": "Hint for entering recovery key"
-  },
-  "recover": "Gendan",
-  "@recover": {
-    "description": "Recover button label"
-  },
-  "loggingOut": "Logger ud...",
-  "@loggingOut": {
-    "description": "Message shown while logging out"
-  },
-  "immediately": "Med det samme",
-  "@immediately": {
-    "description": "Immediately option for auto lock timing"
-  },
-  "appLock": "Låsning af app",
-  "@appLock": {
-    "description": "App lock setting title"
-  },
-  "autoLock": "Automatisk lås",
-  "@autoLock": {
-    "description": "Auto lock setting title"
-  },
-  "noSystemLockFound": "Ingen systemlås fundet",
-  "@noSystemLockFound": {
-    "description": "Error when no system lock is found"
-  },
-  "deviceLockEnablePreSteps": "For at aktivere enhedslås, indstil venligst kode eller skærmlås på din enhed i dine systemindstillinger.",
-  "@deviceLockEnablePreSteps": {
-    "description": "Instructions for enabling device lock"
-  },
-  "appLockDescription": "Vælg mellem din enheds standard skærmlås eller skærmlås med pinkode eller adgangskode.",
-  "@appLockDescription": {
-    "description": "Description of app lock feature"
+  "deleteCollectionFromEverywhere": "Slet også elementer overalt",
+  "@deleteCollectionFromEverywhere": {
+    "description": "Checkbox label asking whether to delete collection items everywhere"
+  },
+  "deleteLink": "Slet link",
+  "deleteLinkQuestion": "Slet link?",
+  "deleteSharedAlbum": "Slet delt album?",
+  "deleteShareLinkConfirmation": "Personer med dette link vil ikke længere kunne få adgang til elementet.",
+  "deleteTagMessage": "Er du sikker på at du vil slette dette tag? Denne handling er irreversibel.",
+  "deleteTagTitle": "Slet tag?",
+  "deletingFile": "Sletter element...",
+  "deletingShareLink": "Sletter link...",
+  "deselectAll": "Fravælg alle",
+  "details": "Detaljer",
+  "developerSettings": "Udvikler-indstillinger",
+  "@developerSettings": {
+    "description": "Label for developer settings"
   },
   "deviceLock": "Enhedslås",
   "@deviceLock": {
     "description": "Device lock option title"
   },
-  "pinLock": "Låsning med pinkode",
-  "@pinLock": {
-    "description": "PIN lock option title"
+  "deviceLockEnablePreSteps": "For at aktivere enhedslås, indstil venligst kode eller skærmlås på din enhed i dine systemindstillinger.",
+  "@deviceLockEnablePreSteps": {
+    "description": "Instructions for enabling device lock"
   },
-  "autoLockFeatureDescription": "Tid til låsning af app efter at være blevet placeret i baggrunden",
-  "@autoLockFeatureDescription": {
-    "description": "Description of auto lock feature"
+  "disableDownloadWarningTitle": "Bemærk venligst",
+  "discardChanges": "Kassér",
+  "discover_food": "Mad",
+  "discover_identity": "Identitet",
+  "discover_notes": "Noter",
+  "discover_pets": "Kæledyr",
+  "discover_screenshots": "Skærmbilleder",
+  "discover_selfies": "Selfier",
+  "discover_sunset": "Solnedgang",
+  "discover_wallpapers": "Baggrundsbilleder",
+  "documentsHint": "Dokumenter",
+  "done": "Færdig",
+  "doNotSignOut": "Log ikke ud",
+  "@doNotSignOut": {
+    "description": "Do not sign out button label"
   },
-  "hideContent": "Skjul indhold",
-  "@hideContent": {
-    "description": "Hide content setting title"
+  "dontHaveAnAccount": "Har du ikke en konto?",
+  "doubleTapToViewHiddenCode": "Du kan dobbelt-klikke på et felt for at se koden",
+  "downloadFailed": "Download mislykkedes",
+  "downloading": "Downloader...",
+  "downloadingProgress": "Downloader... {percentage}%",
+  "@downloadingProgress": {
+    "description": "Download progress message",
+    "placeholders": {
+      "percentage": {
+        "type": "int",
+        "example": "75"
+      }
+    }
   },
-  "hideContentDescriptionAndroid": "Skjul app indhold i app-vælger og deaktiver screenshots",
-  "@hideContentDescriptionAndroid": {
-    "description": "Description of hide content feature on Android"
+  "dropSupportEmail": "Send venligst en email til {supportEmail} fra din registrerede email adresse",
+  "@dropSupportEmail": {
+    "placeholders": {
+      "supportEmail": {
+        "description": "The support email address",
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
   },
-  "hideContentDescriptioniOS": "Skjul app indhold i app-vælger",
-  "@hideContentDescriptioniOS": {
-    "description": "Description of hide content feature on iOS"
+  "edit": "Rediger",
+  "editCodeAuthMessage": "Bekræft identitet for at redigere kode",
+  "editItem": "Rediger element",
+  "editLocation": "Rediger placering",
+  "editSecret": "Rediger hemmelighed",
+  "@editSecret": {
+    "description": "Title shown when editing an existing secret"
   },
-  "tooManyIncorrectAttempts": "For mange forkerte forsøg",
-  "@tooManyIncorrectAttempts": {
-    "description": "Message shown when too many incorrect attempts are made"
-  },
-  "tapToUnlock": "Tryk for at låse op",
-  "@tapToUnlock": {
-    "description": "Message prompting user to tap to unlock"
-  },
-  "areYouSureYouWantToLogout": "Er du sikker på at du vil logge ud?",
-  "@areYouSureYouWantToLogout": {
-    "description": "Confirmation message before logout"
-  },
-  "yesLogout": "Ja, log ud",
-  "@yesLogout": {
-    "description": "Confirmation button for logout"
-  },
-  "authToViewSecrets": "Bekræft venligst din identitet for at se dine hemmeligheder",
-  "@authToViewSecrets": {
-    "description": "Message prompting authentication to view secrets"
-  },
-  "next": "Næste",
-  "@next": {
-    "description": "Next button label"
-  },
-  "setNewPassword": "Indstil ny adgangskode",
-  "@setNewPassword": {
-    "description": "Set new password title"
-  },
-  "enterPin": "Indtast pinkode",
-  "@enterPin": {
-    "description": "Enter PIN prompt"
-  },
-  "setNewPin": "Indstil ny pinkode",
-  "@setNewPin": {
-    "description": "Set new PIN title"
-  },
-  "confirm": "Bekræft",
-  "@confirm": {
-    "description": "Confirm button label"
-  },
-  "reEnterPassword": "Indtast adgangskode igen",
-  "@reEnterPassword": {
-    "description": "Re-enter password prompt"
-  },
-  "reEnterPin": "Indtast pinkode igen",
-  "@reEnterPin": {
-    "description": "Re-enter PIN prompt"
-  },
-  "androidBiometricHint": "Bekræft identitet",
-  "@androidBiometricHint": {
-    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricNotRecognized": "Ikke genkendt. Forsøg igen.",
-  "@androidBiometricNotRecognized": {
-    "description": "Message to let the user know that authentication was failed. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricSuccess": "Succes",
-  "@androidBiometricSuccess": {
-    "description": "Message to let the user know that authentication was successful. It is used on Android side. Maximum 60 characters."
-  },
-  "androidCancelButton": "Afbryd",
-  "@androidCancelButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
-  },
-  "androidSignInTitle": "Godkendelse påkrævet",
-  "@androidSignInTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricRequiredTitle": "Biometri påkrævet",
-  "@androidBiometricRequiredTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user has not set up biometric authentication on their device. It is used on Android side. Maximum 60 characters."
-  },
-  "androidDeviceCredentialsRequiredTitle": "Enhedsoplysninger påkrævet",
-  "@androidDeviceCredentialsRequiredTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user has not set up credentials authentication on their device. It is used on Android side. Maximum 60 characters."
-  },
-  "androidDeviceCredentialsSetupDescription": "Enhedsoplysninger påkrævet",
-  "@androidDeviceCredentialsSetupDescription": {
-    "description": "Message advising the user to go to the settings and configure device credentials on their device. It shows in a dialog on Android side."
-  },
-  "goToSettings": "Gå til indstillinger",
-  "@goToSettings": {
-    "description": "Message showed on a button that the user can click to go to settings pages from the current dialog. It is used on both Android and iOS side. Maximum 30 characters."
-  },
-  "androidGoToSettingsDescription": "Biometrisk godkendelse er ikke indstillet på din enhed. Gå til \"Indstillinger > Sikkerhed\" for at indstille biometrisk godkendelse.",
-  "@androidGoToSettingsDescription": {
-    "description": "Message advising the user to go to the settings and configure biometric on their device. It shows in a dialog on Android side."
-  },
-  "iOSLockOut": "Biometrisk godkendelse er slået fra. Lås din skærm, og lås den derefter op for at aktivere det.",
-  "@iOSLockOut": {
-    "description": "Message advising the user to re-enable biometrics on their device. It shows in a dialog on iOS side."
-  },
-  "iOSOkButton": "OK",
-  "@iOSOkButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on iOS side. Maximum 30 characters."
-  },
-  "thisEmailIsAlreadyInUse": "Denne email adresse er allerede i brug",
-  "@thisEmailIsAlreadyInUse": {
-    "description": "Error message when email is already in use"
+  "editTag": "Rediger tag",
+  "eligible": "kvalificeret",
+  "emailAlreadyRegistered": "E-mail er allerede registreret.",
+  "@emailAlreadyRegistered": {
+    "description": "Error message when email is already registered"
   },
   "emailChangedTo": "Email adresse ændret til {newEmail}",
   "@emailChangedTo": {
@@ -649,60 +332,870 @@
       }
     }
   },
-  "authenticationFailedPleaseTryAgain": "Bekræftelse af identitet fejlede, forsøg venligst igen",
-  "@authenticationFailedPleaseTryAgain": {
-    "description": "Error message when authentication fails"
+  "emailHint": "Indtast din email adresse",
+  "emailNoEnteAccount": "{email} har ikke en Ente-konto.\n\nSend dem en invitation for at dele elementer.",
+  "@emailNoEnteAccount": {
+    "placeholders": {
+      "email": {}
+    }
   },
-  "authenticationSuccessful": "Bekræftelse af identitet lykkedes!",
-  "@authenticationSuccessful": {
-    "description": "Success message when authentication is successful"
+  "emailNotRegistered": "E-mail er ikke registreret.",
+  "@emailNotRegistered": {
+    "description": "Error message when email is not registered"
   },
-  "sessionExpired": "Session udløbet",
-  "@sessionExpired": {
-    "description": "Error message when session has expired"
+  "emailUsMessage": "Send os venligst en email på {email}",
+  "@emailUsMessage": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "emailVerificationEnableWarning": "For at undgå at blive låst ude af din konto, sørg for at gemme en kopi af din email 2FA udenfor Ente Auth før du aktiverer email-verifikation.",
+  "emailVerificationToggle": "Email-verifikation",
+  "emailYourLogs": "Email dine logs",
+  "@emailYourLogs": {
+    "description": "Title for emailing logs dialog"
+  },
+  "emergencyContact": "Nødkontakt",
+  "emptyTrash": "Tøm papirkurv",
+  "emptyTrashConfirmation": "Er du sikker på, at du vil slette alle elementer i papirkurven permanent? Denne handling kan ikke fortrydes.",
+  "encrypted": "Krypteret",
+  "encryptionKeys": "Krypteringsnøgler",
+  "@encryptionKeys": {
+    "description": "Encryption keys title"
+  },
+  "endpointUpdatedMessage": "Endpoint opdateret",
+  "@endpointUpdatedMessage": {
+    "description": "Success message when endpoint is updated"
+  },
+  "enterCode": "Indtast kode",
+  "enterCodeHint": "Indtast den 6-cifrede kode fra din authenticator app",
+  "@enterCodeHint": {
+    "description": "Hint for entering 2FA code"
+  },
+  "enterCollectionName": "Indtast samlingsnavn",
+  "enterDetailsManually": "Indtast oplysninger manuelt",
+  "enterEmail": "Indtast email adresse",
+  "enterNameOrEmailToShareWith": "Indtast navn eller e-mail for at dele med",
+  "enterNewPasswordToEncrypt": "Indtast en ny adgangskode vi kan bruge til at kryptere dine data",
+  "@enterNewPasswordToEncrypt": {
+    "description": "Prompt to enter new password for encryption"
+  },
+  "enterNewTitle": "Indtast en ny titel",
+  "enterPassword": "Indtast adgangskode",
+  "@enterPassword": {
+    "description": "Enter password field label"
+  },
+  "enterPasswordToEncrypt": "Indtast en adgangskode vi kan bruge til at kryptere dine data",
+  "@enterPasswordToEncrypt": {
+    "description": "Prompt to enter password for encryption"
+  },
+  "enterRecoveryKeyHint": "Indtast din gendannelsesnøgle",
+  "@enterRecoveryKeyHint": {
+    "description": "Hint for entering recovery key"
+  },
+  "enterThe6digitCodeFromnyourAuthenticatorApp": "Indtast den 6-cifrede kode fra din autentificeringsapp",
+  "enterValidEmail": "Indtast venligst en gyldig email adresse.",
+  "enterYourNewEmailAddress": "Indtast din nye e-mailadresse",
+  "enterYourPassword": "Indtast adgangskode",
+  "enterYourPasswordHint": "Indtast adgangskode",
+  "@enterYourPasswordHint": {
+    "description": "Hint for password field"
+  },
+  "error": "Fejl",
+  "@error": {
+    "description": "Generic error title"
+  },
+  "errorOpeningFile": "Fejl ved åbning af element",
+  "expiredLinkInfo": "Dette link er udløbet. Vælg venligst en ny udløbstid eller deaktiver linkudløb.",
+  "export": "Eksporter",
+  "exportCodes": "Eksporter koder",
+  "exportDialogDesc": "Krypterede eksporter vil blive beskyttet med en adgangskode efter dit valg.",
+  "exportLogs": "Eksporter logs",
+  "@exportLogs": {
+    "description": "Button to export logs"
+  },
+  "exportWarningDesc": "Den eksporterede fil indeholder fortrolige oplysninger. Opbevar den sikkert.",
+  "failedToDownloadOrDecrypt": "Kunne ikke downloade element",
+  "failedToLoadCollections": "Kunne ikke indlæse samlinger: {error}",
+  "@failedToLoadCollections": {
+    "description": "Error message when loading collections fails",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Network error"
+      }
+    }
+  },
+  "failedToUpdateFile": "Kunne ikke opdatere element: {error}",
+  "@failedToUpdateFile": {
+    "description": "Error message when item update fails",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Network error"
+      }
+    }
+  },
+  "faq": "FAQ",
+  "@faq": {
+    "description": "FAQ link label"
+  },
+  "featurePassAutomatically": "Videregiv dem automatisk i nødsituationer",
+  "featureSaveImportant": "Gem dine vigtige dokumenter og legitimationsoplysninger",
+  "featureShareAnytime": "Del dem når som helst",
+  "fieldCopiedToClipboard": "{fieldName} kopieret til udklipsholder",
+  "@fieldCopiedToClipboard": {
+    "description": "Message when a field is copied to clipboard",
+    "placeholders": {
+      "fieldName": {
+        "type": "String",
+        "example": "Password"
+      }
+    }
+  },
+  "fileDeletedSuccessfully": "Element slettet",
+  "fileMarkedAsImportant": "Element markeret som vigtig",
+  "fileRemovedFromImportant": "Element fjernet fra vigtige",
+  "filesAddedByYouWillBeRemovedFromTheCollection": "Elementer tilføjet af dig vil blive fjernet fra samlingen",
+  "fileSavedToGallery": "Fil gemt i galleri",
+  "fileUpdatedSuccessfully": "Element opdateret!",
+  "filters": "Filtre",
+  "focusOnSearchBar": "Fokus på søgning ved opstart",
+  "forgotPassword": "Glemt adgangskode",
+  "@forgotPassword": {
+    "description": "Forgot password link label"
+  },
+  "forgotRecoveryKey": "Glemt gendannelses nøgle?",
+  "freeUpDeviceSpace": "Frigør enhedsplads",
+  "general": "Generelt",
+  "generatingEncryptionKeys": "Genererer krypteringsnøgler...",
+  "@generatingEncryptionKeys": {
+    "description": "Generating encryption keys message"
+  },
+  "generatingEncryptionKeysTitle": "Genererer krypteringsnøgler...",
+  "@generatingEncryptionKeysTitle": {
+    "description": "Generating encryption keys title"
+  },
+  "getStarted": "Kom i gang",
+  "hearUsWhereOptionalTitle": "Hvordan hørte du om Ente? (valgfrit)",
+  "@hearUsWhereOptionalTitle": {
+    "description": "Title asking how user heard about Ente"
+  },
+  "help": "Hjælp",
+  "hideContent": "Skjul indhold",
+  "@hideContent": {
+    "description": "Hide content setting title"
+  },
+  "hideContentDescriptionAndroid": "Skjul app indhold i app-vælger og deaktiver screenshots",
+  "@hideContentDescriptionAndroid": {
+    "description": "Description of hide content feature on Android"
+  },
+  "hideContentDescriptioniOS": "Skjul app indhold i app-vælger",
+  "@hideContentDescriptioniOS": {
+    "description": "Description of hide content feature on iOS"
+  },
+  "hintForDesktop": "Højre-klik på en kode for at redigere eller slette.",
+  "hintForMobile": "Langt tryk på en kode for at redigere eller slette.",
+  "howItWorks": "Sådan fungerer det",
+  "@howItWorks": {
+    "description": "How it works button label"
+  },
+  "howToViewShareeVerificationID": "Bed dem om at trykke længe på deres e-mailadresse på indstillingsskærmen og bekræft, at ID'erne på begge enheder matcher.",
+  "immediately": "Med det samme",
+  "@immediately": {
+    "description": "Immediately option for auto lock timing"
+  },
+  "import2FasGuide": "Brug \"Settings > Backup Export\" i 2FAS.\n\nHvis din backup er krypteret bliver du nødt til at indtaste kodeordet for at dekryptere den.",
+  "importAccountPageTitle": "Indtast kontooplysninger",
+  "importAegisGuide": "Brug \"Export the vault\" i Aegis' indstillinger.\n\nHvis din vault er krypteret bliver du nødt til at indtaste kodeordet for at dekryptere den.",
+  "important": "Vigtig",
+  "importBitwardenGuide": "Brug \"Export vault\" i Bitwarden Tools og importer den ukrypterede JSON fil.",
+  "importCodeDelimiterInfo": "Koderne kan adskilles med enten et komma eller en ny linje",
+  "importCodes": "Importer koder",
+  "importEnteEncGuide": "Vælg den krypterede JSON fil eksporteret fra Ente",
+  "importEnterSetupKey": "Indtast en oprettelsesnøgle",
+  "importFailureDesc": "Kunne ikke afkode den valgte fil.",
+  "importInstruction": "Vælg venligst en fil der indeholder en liste af dine koder i det følgende format",
+  "importLabel": "Importer",
+  "importLastpassGuide": "Brug \"Transfer accounts\" i Lastpass Authenticator Settings og tryk på \"Export accounts to file\". Importer den downloadede JSON fil.",
+  "importRaivoGuide": "Brug \"Export OTPs to Zip archive\" fra Raivo's indstillinger.\n\nUdpak zip filen og importér JSON filen.",
+  "importSelectAppExport": "Vælg {appName} eksportfil",
+  "@importSelectAppExport": {
+    "placeholders": {
+      "appName": {}
+    }
+  },
+  "importSelectJsonFile": "Vælg JSON fil",
+  "importSuccessDesc": "Du har importeret {count} koder!",
+  "@importSuccessDesc": {
+    "placeholders": {
+      "count": {
+        "description": "The number of codes imported",
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "importTypeEnteEncrypted": "Krypteret Ente eksport",
+  "incorrectCode": "Forkert kode",
+  "@incorrectCode": {
+    "description": "Error message when code is incorrect"
+  },
+  "incorrectDetails": "Forkerte oplysninger",
+  "incorrectPasswordTitle": "Forkert adgangskode",
+  "@incorrectPasswordTitle": {
+    "description": "Title for incorrect password error"
   },
   "incorrectRecoveryKey": "Forkert gendannelsesnøgle",
   "@incorrectRecoveryKey": {
     "description": "Error message when recovery key is incorrect"
   },
-  "theRecoveryKeyYouEnteredIsIncorrect": "Den indtastede gendannelsesnøgle er ikke korrekt",
-  "@theRecoveryKeyYouEnteredIsIncorrect": {
-    "description": "Detailed error message when recovery key is incorrect"
+  "incorrectRecoveryKeyBody": "Den gendannelsesnøgle du indtastede er forkert",
+  "incorrectRecoveryKeyTitle": "Forkert gendannelsesnøgle",
+  "informationDescription": "Gem og del information med dine nærmeste.",
+  "insecureDevice": "Usikker enhed",
+  "@insecureDevice": {
+    "description": "Insecure device warning title"
   },
-  "twofactorAuthenticationSuccessfullyReset": "Tofaktorgodkendelse nulstillet",
-  "@twofactorAuthenticationSuccessfullyReset": {
-    "description": "Message when two-factor authentication is successfully reset"
+  "invalidEmailAddress": "Ugyldig email adresse",
+  "invalidEmailMessage": "Indtast en gyldig email adresse.",
+  "@invalidEmailMessage": {
+    "description": "Message for invalid email error dialog"
   },
-  "yourVerificationCodeHasExpired": "Din bekræftelseskode er udløbet",
-  "@yourVerificationCodeHasExpired": {
-    "description": "Error message when verification code has expired"
+  "invalidEmailTitle": "Ugyldig email adresse",
+  "@invalidEmailTitle": {
+    "description": "Title for invalid email error dialog"
   },
-  "incorrectCode": "Forkert kode",
-  "@incorrectCode": {
-    "description": "Error message when code is incorrect"
+  "invalidEndpoint": "Ugyldigt endpoint",
+  "@invalidEndpoint": {
+    "description": "Error message when endpoint is invalid"
   },
+  "invalidEndpointMessage": "Beklager, det indtastede endpoint er ugyldigt. Indtast venligst et gyldigt endpoint og forsøg igen.",
+  "@invalidEndpointMessage": {
+    "description": "Detailed error message when endpoint is invalid"
+  },
+  "invalidKey": "Ugyldig nøgle",
+  "invalidQRCode": "Ugyldig QR kode",
+  "invalidRecoveryKey": "Den indtastede gendannelsesnøgle er ikke gyldig. Sørg venligst for at den indeholder 24 ord, og tjek stavningen af hvert ord.\n\nHvis du indtastede en ældre gendannelseskode, sørg for at den er 64 tegn lang, og tjek hvert tegn.",
+  "invite": "Inviter",
+  "inviteToEnte": "Inviter til Ente",
+  "ok": "OK",
+  "@ok": {
+    "description": "Generic OK button label"
+  },
+  "items": "{count} elementer",
+  "@items": {
+    "description": "Number of items in a collection",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "itemsWillBeRemovedFromAlbum": "Valgte elementer vil blive fjernet fra dette album",
+  "itLooksLikeSomethingWentWrongPleaseRetryAfterSome": "Det ser ud til at noget gik galt. Forsøg venligst igen efter lidt tid. Hvis fejlen varer ved, kontakt da venligst support.",
+  "@itLooksLikeSomethingWentWrongPleaseRetryAfterSome": {
+    "description": "Generic error message for temporary issues"
+  },
+  "iUnderStand": "Jeg forstår",
+  "@iUnderStand": {
+    "description": "Text for the button to confirm the user understands the warning"
+  },
+  "language": "Sprog",
+  "leaveCollection": "Forlad samling",
+  "leaveFamily": "Forlad familie-abonnementet",
+  "legacy": "Arv",
+  "lightTheme": "Lys",
+  "linkCopiedToClipboard": "Link kopieret til udklipsholder",
+  "linkDeletedSuccessfully": "Link slettet",
+  "linkDeviceLimit": "Enheds grænse",
+  "linkEnabled": "Aktiveret",
+  "linkExpired": "Udløbet",
+  "linkExpiresOn": "Link udløber den {expiryTime}",
+  "@linkExpiresOn": {
+    "placeholders": {
+      "expiryTime": {}
+    }
+  },
+  "linkExpiry": "Udløb af link",
+  "linkHasExpired": "Linket er udløbet",
+  "linkNeverExpires": "Aldrig",
+  "loadingModel": "Downloader modeller...",
+  "lockButtonLabel": "Lås",
+  "loggingOut": "Logger ud...",
+  "@loggingOut": {
+    "description": "Message shown while logging out"
+  },
+  "logInLabel": "Log ind",
+  "@logInLabel": {
+    "description": "Log in button label"
+  },
+  "loginSessionExpired": "Session udløbet",
+  "@loginSessionExpired": {
+    "description": "Login session expired title"
+  },
+  "loginSessionExpiredDetails": "Din session er udløbet. Log venligst på igen.",
+  "@loginSessionExpiredDetails": {
+    "description": "Login session expired details"
+  },
+  "logout": "Log ud",
+  "logsDialogBodyLocker": "Dette vil sende logfiler for at hjælpe os med at fejlfinde dit problem.",
+  "@logsDialogBodyLocker": {
+    "description": "Dialog body text for sending logs in Locker app (without file name warning)"
+  },
+  "longPressAnEmailToVerifyEndToEndEncryption": "Langt tryk på en e-mail for at bekræfte slutningen af krypteringen.",
+  "lostDevice": "Har du mistet enhed?",
+  "lostDeviceTitle": "Mistet enhed?",
+  "@lostDeviceTitle": {
+    "description": "Lost device title"
+  },
+  "machineLearning": "Maskinlæring",
+  "manageLink": "Administrer link",
+  "markingAsImportant": "Markerer som vigtig...",
+  "minimizeAppOnCopy": "Minimer app ved kopiering",
+  "mlConsent": "Aktiver maskinlæring",
+  "moments": "Øjeblikke",
+  "name": "Navn",
+  "networkConnectionRefusedErr": "Ude af stand til at forbinde til Ente. Forsøg igen efter et stykke tid. Hvis fejlen varer ved, kontakt da venligst support.",
+  "@networkConnectionRefusedErr": {
+    "description": "Error message shown when the app cannot connect to Ente due to connection refused"
+  },
+  "networkHostLookUpErr": "Ude af stand til at forbinde til Ente. Tjek venligst dine netværksindstillinger og kontakt support hvis fejlen varer ved.",
+  "@networkHostLookUpErr": {
+    "description": "Error message shown when the app cannot connect to Ente due to network host lookup failure"
+  },
+  "never": "Aldrig",
+  "newAlbum": "Nyt album",
+  "newCollection": "Ny samling",
+  "next": "Næste",
+  "@next": {
+    "description": "Next button label"
+  },
+  "nextTotpTitle": "næste",
+  "no": "Nej",
+  "noChangesWereMade": "Ingen ændringer blev foretaget",
+  "noCollections": "Ingen samlinger",
+  "noDeviceLimit": "Ingen",
+  "@noDeviceLimit": {
+    "description": "Text to indicate that there is limit on number of devices"
+  },
+  "noFilesFound": "Ingen elementer her",
+  "noInternetConnection": "Ingen internetforbindelse",
+  "@noInternetConnection": {
+    "description": "No internet connection error message"
+  },
+  "noItemsMatchSelectedFilters": "Ingen elementer matcher de valgte filtre",
+  "noRecoveryKeyTitle": "Ingen gendannelsesnøgle?",
+  "@noRecoveryKeyTitle": {
+    "description": "No recovery key title"
+  },
+  "noResult": "Intet resultat",
+  "noSystemLockFound": "Ingen systemlås fundet",
+  "@noSystemLockFound": {
+    "description": "Error when no system lock is found"
+  },
+  "noteContent": "Indhold",
+  "noteContentHint": "Skriv vigtige tanker eller instruktioner ned",
+  "noteName": "Titel",
+  "noteNameHint": "Notetitel",
+  "notes": "Noter",
+  "notesLengthLimit": "Noter kan højest være {count} tegn",
+  "@notesLengthLimit": {
+    "description": "Text to indicate the maximum number of characters allowed for notes",
+    "placeholders": {
+      "count": {
+        "description": "The maximum number of characters allowed for notes",
+        "type": "int",
+        "example": "100"
+      }
+    }
+  },
+  "nothingToSeeHere": "Intet at se her",
+  "ocrGenericDetectError": "Kunne ikke registrere tekst på billedet",
+  "ocrImageDecodeFailedError": "Kunne ikke læse billedfil",
+  "ocrImageNotFoundError": "Billedfil ikke fundet",
+  "ocrModelsNetworkRequiredError": "Netværksforbindelse påkrævet for at downloade OCR-modeller ved første brug",
+  "ocrModelsPrepareFailed": "Kunne ikke forberede OCR modeller",
+  "ocrNoTextDetected": "Ingen tekst registreret",
+  "offlineModeWarning": "Du har valgt at fortsætte uden sikkerhedskopier. Tag venligst en manuel sikkerhedskopi for at sikre dine koders sikkerhed.",
+  "oops": "Ups",
+  "@oops": {
+    "description": "Oops error title"
+  },
+  "oopsSomethingWentWrong": "Ups, noget gik galt",
+  "passkeyAuthTitle": "Bekræftelse af adgangskode",
+  "@passkeyAuthTitle": {
+    "description": "Passkey authentication title"
+  },
+  "passKeyPendingVerification": "Bekræftelse afventes stadig",
+  "@passKeyPendingVerification": {
+    "description": "Message when passkey verification is pending"
+  },
+  "passwordChangedSuccessfully": "Adgangskoden er blevet ændret",
+  "@passwordChangedSuccessfully": {
+    "description": "Password changed successfully message"
+  },
+  "passwordEmptyError": "Kodeordet kan ikke være tomt",
+  "passwordForDecryptingExport": "Kodeord til dekryptering af eksport",
+  "passwordHint": "Adgangskode",
+  "passwordLock": "Adgangskodelås",
+  "passwordStrength": "Kodeordets styrke: {passwordStrengthValue}",
+  "@passwordStrength": {
+    "description": "Text to indicate the password strength",
+    "placeholders": {
+      "passwordStrengthValue": {
+        "description": "The strength of the password as a string",
+        "type": "String",
+        "example": "Weak or Moderate or Strong"
+      }
+    }
+  },
+  "passwordToEncryptExport": "Adgangskode til krypteret eksport",
+  "passwordWarning": "Vi gemmer ikke denne adgangskode, så hvis du glemmer den <underline>kan vi ikke dekryptere dine data</underline>",
+  "@passwordWarning": {
+    "description": "Warning about password storage"
+  },
+  "pendingSyncs": "Advarsel",
+  "pendingSyncsWarningBody": "Nogle af dine koder er ikke sikkerhedskopieret.\n\nForsikr venligst at du har sikkerhedskopieret dine koder før du logger af.",
+  "personalNoteDescription": "Skriv tanker og instruktioner ned.",
+  "physicalRecords": "Ting",
+  "physicalRecordsDescription": "Gem placeringer af fysiske genstande.",
+  "pinLock": "Låsning med pinkode",
+  "@pinLock": {
+    "description": "PIN lock option title"
+  },
+  "pinText": "Fastgør",
+  "plainText": "Almindelig tekst",
+  "pleaseCheckYourInternetConnectionAndTryAgain": "Tjek venligst din internetforbindelse og forsøg igen.",
+  "@pleaseCheckYourInternetConnectionAndTryAgain": {
+    "description": "Message asking user to check internet connection"
+  },
+  "pleaseLoginAgain": "Log venligst på igen",
+  "pleaseSendTheLogsTo": "Send venligst logs til {toEmail}",
+  "@pleaseSendTheLogsTo": {
+    "description": "Message asking user to send logs to email address",
+    "placeholders": {
+      "toEmail": {
+        "type": "String",
+        "description": "Email address to send logs to"
+      }
+    }
+  },
+  "pleaseVerifyDetails": "Bekræft venligst oplysningerne og forsøg igen",
+  "pleaseWait": "Vent venligst...",
+  "@pleaseWait": {
+    "description": "Please wait message"
+  },
+  "preparingLogs": "Forbereder logs...",
+  "previous": "Forrige",
+  "privacy": "Privatliv",
+  "privacyPolicyTitle": "Privatlivspolitik",
+  "@privacyPolicyTitle": {
+    "description": "Privacy policy title"
+  },
+  "publicLinkEnabled": "Offentligt link aktiveret",
+  "rateUsOnStore": "Anmeld os på {storeName}",
+  "@rateUsOnStore": {
+    "placeholders": {
+      "storeName": {}
+    }
+  },
+  "rawCodeData": "Rå kode data",
+  "recordLocation": "Placering",
+  "recordLocationHint": "Hvor opbevares denne genstand?",
+  "recordNameHint": "Navn på den fysiske genstand",
+  "recordNotes": "Noter",
+  "recordNotesHint": "Yderligere oplysninger om genstanden",
+  "recordSavedSuccessfully": "Post gemt",
+  "recover": "Gendan",
+  "@recover": {
+    "description": "Recover button label"
+  },
+  "recoverAccount": "Gendan konto",
+  "@recoverAccount": {
+    "description": "Recover account button label"
+  },
+  "recoveryKeySaved": "Gendannelsesnøgle gemt i din Downloads mappe!",
+  "@recoveryKeySaved": {
+    "description": "Recovery key saved confirmation message"
+  },
+  "recoveryKeySaveDescription": "Vi gemmer ikke denne nøgle, gem venligst denne 24-ords nøgle et sikkert sted.",
+  "@recoveryKeySaveDescription": {
+    "description": "Recovery key save description"
+  },
+  "recoveryKeyVerified": "Gendannelsesnøgle bekræftet",
+  "recoveryKeyVerifyReason": "Din gendannelsesnøgle er den eneste måde du kan gendanne dine data hvis du glemmer din adgangskode. Du kan finde din gendannelseskode under \"Indstillinger > Konto\".\n\nIndtast venligst din gendannelseskode for at bekræfte at du har gemt den korrekt.",
+  "recoverySuccessful": "Gendannelse lykkedes!",
+  "recreatePasswordBody": "Denne enhed er ikke kraftfuld nok til at bekræfte adgangskoden, men vi kan gendanne den på en måde der fungerer for alle enheder.\n\nLog venligst ind med din gendannelsesnøgle og gendan din adgangskode (du kan bruge den samme adgangskode igen hvis du ønsker).",
+  "@recreatePasswordBody": {
+    "description": "Body text for recreate password dialog"
+  },
+  "reEnterPassword": "Indtast adgangskode igen",
+  "@reEnterPassword": {
+    "description": "Re-enter password prompt"
+  },
+  "reEnterPin": "Indtast pinkode igen",
+  "@reEnterPin": {
+    "description": "Re-enter PIN prompt"
+  },
+  "remove": "Fjern",
+  "removeAccess": "Fjern adgang",
+  "removeCollectionParticipantBody": "{userEmail} vil blive fjernet fra denne delte samling\n\nAlle elementer tilføjet af dem vil også blive fjernet fra samlingen",
+  "@removeCollectionParticipantBody": {
+    "placeholders": {
+      "userEmail": {}
+    }
+  },
+  "removeFromAlbum": "Fjern fra album",
+  "removeFromAlbumTitle": "Fjern fra album?",
+  "removeLink": "Fjern link",
+  "removeParticipant": "Fjern deltager",
+  "@removeParticipant": {
+    "description": "menuSectionTitle for removing a participant"
+  },
+  "removeWithQuestionMark": "Fjern?",
+  "removingFromFavorites": "Fjerner fra favoritter...",
+  "removingFromImportant": "Fjerner fra vigtige...",
+  "renameCollection": "Omdøb samling",
+  "renameFile": "Omdøb fil",
+  "reportABug": "Rapporter en fejl",
+  "@reportABug": {
+    "description": "Label for reporting a bug"
+  },
+  "resetPasswordTitle": "Nulstil adgangskode",
+  "@resetPasswordTitle": {
+    "description": "Reset password title"
+  },
+  "restore": "Genopret",
+  "@restore": {
+    "description": "Display text for an action which triggers a restore of item from trash",
+    "type": "text"
+  },
+  "restoringItems": "Gendanner...",
+  "save": "Gem",
+  "@save": {
+    "description": "Label for save button"
+  },
+  "saveKey": "Gem nøgle",
+  "@saveKey": {
+    "description": "Save key button label"
+  },
+  "saveOnlyDescription": "Vil du gemme på din enhed (Downloads mappe som udgangspunkt)?",
+  "@saveOnlyDescription": {
+    "description": "Description text asking user if they want to save to storage (for platforms that don't support sharing)"
+  },
+  "saveOrSendDescription": "Vil du gemme på din enhed (Downloads mappe som udgangspunkt) eller sende til andre apps?",
+  "@saveOrSendDescription": {
+    "description": "Description text asking user if they want to save to storage or share with other apps"
+  },
+  "saveToLocker": "Gem i Locker",
+  "saveYourRecoveryKeyIfYouHaventAlready": "Gem din gendannelsesnøgle, hvis du ikke allerede har",
+  "scan": "Skan",
+  "scanACode": "Skan en kode",
+  "scanAQrCode": "Skan en QR kode",
+  "scanCode": "Skan kode",
+  "scanThisBarcodeWithnyourAuthenticatorApp": "Skan denne QR-kode med godkendelses-appen",
+  "scheduleShare": "Planlæg deling",
+  "search": "Søg",
+  "searchEmptyDescription": "Prøv at søge efter noget andet.",
+  "searchEmptyTitle": "Ingen resultater fundet",
+  "searchEverywhereSubtitle": "Søg på tværs af alle samlinger og filer.",
+  "searchEverywhereTitle": "Søg overalt efter \"{query}\"",
+  "@searchEverywhereTitle": {
+    "description": "CTA title prompting the user to search globally",
+    "placeholders": {
+      "query": {
+        "type": "String",
+        "example": "passport"
+      }
+    }
+  },
+  "searchHint": "Søg...",
+  "searchHint1": "Hurtig, søgning på enheden",
+  "secret": "Hemmelighed",
+  "secretCanNotBeEmpty": "Hemmelighed kan ikke være tom",
+  "security": "Sikkerhed",
+  "seeAllCollections": "Se alle samlinger",
+  "selectAll": "Vælg alle",
+  "selectDate": "Vælg dato",
+  "selectedPhotos": "{count} valgt",
+  "@selectedPhotos": {
+    "description": "Display the number of selected photos",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "5",
+        "type": "int"
+      }
+    }
+  },
+  "selectExportFormat": "Vælg eksportformat",
+  "selectFile": "Vælg fil",
+  "selectLanguage": "Vælg sprog",
+  "selectTime": "Vælg tid",
+  "sendInvite": "Send invitation",
+  "sendLogsDescription": "Dette vil sende os dine logs for at hjælpe os med at løse dit problem. Selvom vi tager forholdsregler for at sikre at følsomme oplysninger ikke bliver logget anbefaler vi at du tjekker dine logs før du sender dem.",
+  "sessionExpired": "Session udløbet",
+  "@sessionExpired": {
+    "description": "Error message when session has expired"
+  },
+  "setAPassword": "Indstil en adgangskode",
+  "setNewPassword": "Indstil ny adgangskode",
+  "@setNewPassword": {
+    "description": "Set new password title"
+  },
+  "setNewPin": "Indstil ny pinkode",
+  "@setNewPin": {
+    "description": "Set new PIN title"
+  },
+  "setPasswordTitle": "Angiv adgangskode",
+  "@setPasswordTitle": {
+    "description": "Set password title"
+  },
+  "settings": "Indstillinger",
+  "setupComplete": "Opsætning fuldført",
+  "share": "Del",
+  "shareALink": "Del et link",
+  "shareCodes": "Del koder",
+  "shareCodesDuration": "Vælg varighed for deling af koden.",
+  "sharedWith": "Delt med",
+  "shareLink": "Del link",
+  "shareThisLink": "Dette link giver alle, der modtager det, adgang til dit element. Du kan fjerne adgangen når som helst ved at slette linket.",
+  "shareWithNonenteUsers": "Del med ikke Ente brugere",
+  "sharing": "Deler...",
+  "shouldHideCode": "Skjul koder",
+  "showLargeIcons": "Vis store ikoner",
+  "showMemories": "Vis minder",
+  "showQRAuthMessage": "Bekræft identitet for at se QR kode",
+  "signInToBackup": "Log på for at tage sikkerhedskopier af dine koder",
+  "signOutFromOtherDevices": "Log ud af andre enheder",
+  "@signOutFromOtherDevices": {
+    "description": "Sign out from other devices title"
+  },
+  "signOutOtherBody": "Hvis du mistænker at nogen kender din adgangskode kan du tvinge alle enheder der benytter din konto til at logge ud.",
+  "@signOutOtherBody": {
+    "description": "Sign out other devices explanation"
+  },
+  "signOutOtherDevices": "Log ud af andre enheder",
+  "@signOutOtherDevices": {
+    "description": "Sign out other devices button label"
+  },
+  "signUp": "Tilmeld dig",
+  "signUpTerms": "Jeg er enig i <u-terms>betingelser for brug</u-terms> og <u-policy>privatlivspolitik</u-policy>",
+  "@signUpTerms": {
+    "description": "Terms agreement text for sign up"
+  },
+  "singIn": "Log på",
+  "skip": "Spring over",
+  "someoneSharingAlbumsWithYouShouldSeeTheSameId": "En person, der deler albummer med dig, bør se det samme ID på deres enhed.",
+  "somethingWentWrong": "Noget gik galt",
+  "somethingWentWrongMessage": "Noget gik galt, forsøg venligst igen",
+  "somethingWentWrongParsingCode": "Vi var ikke i stand til at afkode {x} koder.",
+  "@somethingWentWrongParsingCode": {
+    "placeholders": {
+      "x": {}
+    }
+  },
+  "sorry": "Beklager",
+  "sorryCouldNotAddToFavorites": "Beklager, kunne ikke føje til favoritter!",
+  "sorryCouldNotRemoveFromFavorites": "Beklager, kunne ikke fjernes fra favoritter!",
   "sorryTheCodeYouveEnteredIsIncorrect": "Beklager, den indtastede kode er forkert",
   "@sorryTheCodeYouveEnteredIsIncorrect": {
     "description": "Detailed error message when code is incorrect"
   },
-  "developerSettings": "Udvikler-indstillinger",
-  "@developerSettings": {
-    "description": "Label for developerSettings"
+  "sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": "Beklager, vi kunne ikke generere sikre krypteringsnøgler på denne enhed.\n\nForsøg venligst at oprette en konto fra en anden enhed.",
+  "@sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": {
+    "description": "Error message for insecure device"
   },
-  "serverEndpoint": "Server endpoint",
-  "@serverEndpoint": {
-    "description": "Label for serverEndpoint"
+  "strongStrength": "Stærkt",
+  "@strongStrength": {
+    "description": "Strong password strength label"
   },
-  "invalidEndpoint": "Ugyldigt endpoint",
-  "@invalidEndpoint": {
-    "description": "Label for invalidEndpoint"
+  "subscribe": "Abonner",
+  "subscribeToEnableSharing": "Du skal have et aktivt betalt abonnement for at aktivere deling.",
+  "subscriptionRequiredForSharing": "Du har brug for et betalt abonnement for at dele links",
+  "success": "Succes",
+  "suggestFeatures": "Foreslå funktioner",
+  "tapToCopy": "tryk for at kopiere",
+  "tapToUnlock": "Tryk for at låse op",
+  "@tapToUnlock": {
+    "description": "Message prompting user to tap to unlock"
   },
-  "invalidEndpointMessage": "Beklager, det indtastede endpoint er ugyldigt. Indtast venligst et gyldigt endpoint og forsøg igen.",
-  "@invalidEndpointMessage": {
-    "description": "Label for invalidEndpointMessage"
+  "tempErrorContactSupportIfPersists": "Det ser ud til at noget gik galt. Forsøg venligst igen efter lidt tid. Hvis fejlen varer ved, kontakt da venligst vores support.",
+  "terminateSession": "Afslut session?",
+  "@terminateSession": {
+    "description": "Title for terminate session dialog"
   },
-  "endpointUpdatedMessage": "Endpoint opdateret",
-  "@endpointUpdatedMessage": {
-    "description": "Label for endpointUpdatedMessage"
+  "termsOfServicesTitle": "Betingelser",
+  "@termsOfServicesTitle": {
+    "description": "Terms of service title"
+  },
+  "theme": "Tema",
+  "theRecoveryKeyYouEnteredIsIncorrect": "Den indtastede gendannelsesnøgle er ikke korrekt",
+  "@theRecoveryKeyYouEnteredIsIncorrect": {
+    "description": "Detailed error message when recovery key is incorrect"
+  },
+  "thisCanBeUsedToRecoverYourAccountIfYou": "Dette kan bruges til at gendanne din konto, hvis du mister din anden faktor",
+  "thisDevice": "Denne enhed",
+  "@thisDevice": {
+    "description": "Label for current device"
+  },
+  "thisEmailIsAlreadyInUse": "Denne email adresse er allerede i brug",
+  "@thisEmailIsAlreadyInUse": {
+    "description": "Error message when email is already in use"
+  },
+  "thisIsPersonVerificationId": "Dette er {email}s bekræftelses-ID",
+  "@thisIsPersonVerificationId": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@ente.com"
+      }
+    }
+  },
+  "thisIsYourVerificationId": "Dette er dit bekræftelses-ID",
+  "thisWillLogYouOutOfThisDevice": "Dette vil logge dig ud af denne enhed!",
+  "@thisWillLogYouOutOfThisDevice": {
+    "description": "Warning message for logging out of current device"
+  },
+  "title": "Titel",
+  "toEnableAppLockPleaseSetupDevicePasscodeOrScreen": "For at indstille låsning af app, indstil venligst en kode eller skærmlås i dine systemindstillinger.",
+  "tooManyIncorrectAttempts": "For mange forkerte forsøg",
+  "@tooManyIncorrectAttempts": {
+    "description": "Message shown when too many incorrect attempts are made"
+  },
+  "toResetVerifyEmail": "For at nulstille din adgangskode, bekræft venligst din email adresse.",
+  "@toResetVerifyEmail": {
+    "description": "Message asking user to verify email before password reset"
+  },
+  "trash": "Slet",
+  "trashClearedSuccessfully": "Papirkurv tømt",
+  "trashCode": "Slet kode?",
+  "trashCodeMessage": "Er du sikker på at du vil slette koden til {account}?",
+  "@trashCodeMessage": {
+    "placeholders": {
+      "account": {}
+    }
+  },
+  "trashIsEmpty": "Papirkurven er tom",
+  "twofactorAuthenticationSuccessfullyReset": "Tofaktorgodkendelse nulstillet",
+  "@twofactorAuthenticationSuccessfullyReset": {
+    "description": "Message when two-factor authentication is successfully reset"
+  },
+  "twoFactorAuthTitle": "Tofaktorgodkendelse",
+  "@twoFactorAuthTitle": {
+    "description": "Two-factor authentication title"
+  },
+  "twofactorSetup": "To-faktor opsætning",
+  "uncategorized": "Ukategoriseret",
+  "unimportant": "Ikke vigtig",
+  "unlock": "Lås op",
+  "@unlock": {
+    "description": "Short action label used as the system authentication reason when unlocking the app"
+  },
+  "unnamedCollection": "Unavngivet samling",
+  "unpinText": "Frigør",
+  "unsavedNoteChangesDescription": "Du har ændringer, der ikke er gemt i denne note. Hvis du går tilbage nu, vil de gå tabt.",
+  "unsavedNoteChangesTitle": "Kassér ændringer?",
+  "unselectAll": "Fravælg alle",
+  "untitled": "Unavngivet",
+  "updateAvailable": "Opdatering er tilgængelig",
+  "updatingFolderSelection": "Opdaterer mappevalg...",
+  "uploadedFilesProgress": "Uploadet {completed}/{total} elementer...",
+  "@uploadedFilesProgress": {
+    "description": "Progress message showing uploaded items",
+    "placeholders": {
+      "completed": {
+        "type": "int",
+        "example": "3"
+      },
+      "total": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "uploadError": "Uploadfejl",
+  "uploadFileCountLimitErrorBody": "Du har nået din filgrænse. Opgrader til et betalt abonnement for mere lagerplads.",
+  "@uploadFileCountLimitErrorBody": {
+    "description": "Body shown when uploads fail because the locker already has the maximum file count"
+  },
+  "uploadFileCountLimitErrorTitle": "Filgrænse nået",
+  "@uploadFileCountLimitErrorTitle": {
+    "description": "Title shown when uploads fail because the locker already has the maximum file count"
+  },
+  "uploadFileCountLimitErrorToast": "Handling mislykkedes. Du har nået din filgrænse.",
+  "@uploadFileCountLimitErrorToast": {
+    "description": "Toast shown when info items fail to save due to hitting the file count limit"
+  },
+  "uploadFiles": "Upload elementer",
+  "uploadFileTooLargeErrorBody": "Denne fil er større end den maksimalt understøttede uploadstørrelse på 10GB.",
+  "@uploadFileTooLargeErrorBody": {
+    "description": "Body shown when uploads fail because the file exceeds the supported size"
+  },
+  "uploadFileTooLargeErrorTitle": "Fil for stor",
+  "@uploadFileTooLargeErrorTitle": {
+    "description": "Title shown when uploads fail because the file exceeds the supported size"
+  },
+  "uploadStorageLimitErrorBody": "Du er løbet tør for lagerplads. Frigør plads for at fortsætte med at uploade.",
+  "@uploadStorageLimitErrorBody": {
+    "description": "Body shown when uploads fail due to running out of storage"
+  },
+  "uploadStorageLimitErrorTitle": "Lagergrænse nået",
+  "@uploadStorageLimitErrorTitle": {
+    "description": "Title shown when uploads fail due to running out of storage"
+  },
+  "useOffline": "Brug uden sikkerhedskopier",
+  "useRecoveryKey": "Brug gendannelsesnøgle",
+  "@useRecoveryKey": {
+    "description": "Use recovery key button label"
+  },
+  "username": "Brugernavn",
+  "usernameHint": "Login-ID eller e-mail",
+  "verificationFailedPleaseTryAgain": "Bekræftelse fejlede, forsøg venligst igen",
+  "@verificationFailedPleaseTryAgain": {
+    "description": "Verification failed error message"
+  },
+  "verify": "Bekræft",
+  "@verify": {
+    "description": "Verify button label"
+  },
+  "verifyPassword": "Bekræft adgangskode",
+  "@verifyPassword": {
+    "description": "Verify password button label"
+  },
+  "viewActiveSessions": "Se aktive sessioner",
+  "viewAddOnButton": "Vis tilføjelser",
+  "viewer": "Seer",
+  "viewLogsAction": "Se logs",
+  "viewRawCodes": "Vis rå koder",
+  "waitingForVerification": "Venter på bekræftelse...",
+  "@waitingForVerification": {
+    "description": "Waiting for verification message"
+  },
+  "waitingForWifi": "Venter på Wi-fi...",
+  "warning": "Advarsel",
+  "weakStrength": "Svagt",
+  "@weakStrength": {
+    "description": "Weak password strength label"
+  },
+  "weAreOpenSource": "Vi er open source!",
+  "yes": "Ja",
+  "yesConvertToViewer": "Ja, konverter til præsentation",
+  "yesLogout": "Ja, log ud",
+  "@yesLogout": {
+    "description": "Confirmation button for logout"
+  },
+  "yesRemove": "Ja, fjern",
+  "you": "Dig",
+  "youAreOnTheLatestVersion": "Du er på den seneste version",
+  "youCannotShareWithYourself": "Du kan ikke dele med dig selv",
+  "yourTrashIsEmpty": "Din papirkurv er tom",
+  "yourVerificationCodeHasExpired": "Din bekræftelseskode er udløbet",
+  "@yourVerificationCodeHasExpired": {
+    "description": "Error message when verification code has expired"
   }
 }

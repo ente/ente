@@ -1,20 +1,19 @@
 import 'dart:async';
 
 import 'package:dots_indicator/dots_indicator.dart';
+import 'package:ente_accounts/pages/developer_settings_page.dart';
 import 'package:ente_accounts/pages/email_entry_page.dart';
 import 'package:ente_accounts/pages/login_page.dart';
 import 'package:ente_accounts/pages/password_entry_page.dart';
 import 'package:ente_accounts/pages/password_reentry_page.dart';
-import 'package:ente_ui/components/alert_bottom_sheet.dart';
-import "package:ente_ui/pages/developer_settings_page.dart";
-import "package:ente_ui/theme/ente_theme.dart";
+import 'package:ente_components/ente_components.dart';
+import 'package:ente_strings/ente_strings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import "package:flutter_svg/flutter_svg.dart";
-import 'package:locker/l10n/l10n.dart';
 import 'package:locker/services/configuration.dart';
-import "package:locker/ui/components/gradient_button.dart";
 import 'package:locker/ui/pages/home_page.dart';
+import "package:locker/utils/bottom_sheet_illustration.dart";
 
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
@@ -106,15 +105,18 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
+    final colors = context.componentColors;
+    final lightComponentTheme = ComponentTheme.lightTheme(
+      app: ComponentApp.locker,
+    );
     debugPrint("Building OnboardingPage");
-    final l10n = context.l10n;
+    final l10n = context.strings;
     return Scaffold(
-      backgroundColor: colorScheme.primary700,
+      backgroundColor: colors.primary,
       appBar: AppBar(
         leading: const SizedBox(),
         title: SvgPicture.asset("assets/svg/app-logo.svg"),
-        backgroundColor: colorScheme.primary700,
+        backgroundColor: colors.primary,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: true,
@@ -125,34 +127,34 @@ class _OnboardingPageState extends State<OnboardingPage> {
             _developerModeTapCount++;
             if (_developerModeTapCount >= kDeveloperModeTapCountThreshold) {
               _developerModeTapCount = 0;
-              await showAlertBottomSheet(
-                context,
-                title: l10n.developerSettings,
-                message: l10n.developerSettingsWarning,
-                assetPath: 'assets/warning-grey.png',
-                isDismissible: false,
-                showCloseButton: false,
-                buttons: [
-                  GradientButton(
-                    text: l10n.yes,
-                    onTap: () async {
-                      Navigator.of(context).pop();
-                      await Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (BuildContext context) {
-                            return DeveloperSettingsPage(
-                              getCurrentEndpoint: () =>
-                                  Configuration.instance.getHttpEndpoint(),
-                              setEndpoint: (url) async =>
-                                  Configuration.instance.setHttpEndpoint(url),
-                            );
-                          },
-                        ),
-                      );
-                      setState(() {});
-                    },
-                  ),
-                ],
+              await showBottomSheetComponent(
+                context: context,
+                builder: (_) => BottomSheetComponent(
+                  title: l10n.developerSettings,
+                  message: l10n.developerSettingsWarning,
+                  illustration: LockerBottomSheetIllustration.warningGrey,
+                  actions: [
+                    ButtonComponent(
+                      label: l10n.yes,
+                      onTap: () async {
+                        Navigator.of(context).pop();
+                        await Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (BuildContext context) {
+                              return DeveloperSettingsPage(
+                                getCurrentEndpoint: () =>
+                                    Configuration.instance.getHttpEndpoint(),
+                                setEndpoint: (url) async =>
+                                    Configuration.instance.setHttpEndpoint(url),
+                              );
+                            },
+                          ),
+                        );
+                        setState(() {});
+                      },
+                    ),
+                  ],
+                ),
               );
             }
           },
@@ -172,13 +174,16 @@ class _OnboardingPageState extends State<OnboardingPage> {
                           const SizedBox(height: 12),
                           DotsIndicator(
                             dotsCount: _featureCount,
-                            position: _activeDotIndex,
+                            position: _activeDotIndex.toDouble(),
                             animate: true,
-                            animationDuration:
-                                const Duration(milliseconds: 300),
+                            animationDuration: const Duration(
+                              milliseconds: 300,
+                            ),
                             decorator: DotsDecorator(
-                              activeColor: Colors.white,
-                              color: Colors.white.withValues(alpha: 0.32),
+                              activeColor: colors.specialWhite,
+                              color: colors.specialWhite.withValues(
+                                alpha: 0.32,
+                              ),
                               activeShape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14),
                               ),
@@ -196,44 +201,41 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     ),
                     const SizedBox(height: 48),
                     Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        children: [
-                          GradientButton(
-                            text: l10n.loginToEnteAccount,
-                            backgroundColor: Colors.white,
-                            textColor: colorScheme.primary700,
-                            onTap: _navigateToSignInPage,
-                          ),
-                          const SizedBox(height: 20),
-                          Center(
-                            child: GestureDetector(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Theme(
+                        data: lightComponentTheme,
+                        child: Column(
+                          children: [
+                            ButtonComponent(
+                              variant: ButtonComponentVariant.neutral,
+                              label: l10n.createAnEnteAccount,
                               onTap: _navigateToSignUpPage,
-                              child: Text.rich(
-                                TextSpan(
-                                  text: "${l10n.dontHaveAccount} ",
-                                  style:
-                                      getEnteTextTheme(context).body.copyWith(
-                                            color: Colors.white,
-                                          ),
-                                  children: [
-                                    TextSpan(
-                                      text: l10n.signUp,
-                                      style: getEnteTextTheme(context)
-                                          .bodyBold
-                                          .copyWith(
-                                            color: Colors.white,
-                                            decoration:
-                                                TextDecoration.underline,
-                                            decorationColor: Colors.white,
-                                          ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                              shouldSurfaceExecutionStates: false,
                             ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: TextButton(
+                        onPressed: _navigateToSignInPage,
+                        style: TextButton.styleFrom(
+                          minimumSize: const Size.fromHeight(48),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 14,
                           ),
-                        ],
+                        ),
+                        child: Text(
+                          l10n.loginToExistingAccount,
+                          style: TextStyles.body.copyWith(
+                            decoration: TextDecoration.underline,
+                            decorationColor: colors.specialWhite,
+                            color: colors.specialWhite,
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -247,7 +249,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
   }
 
   Widget _getFeatureSlider(BuildContext context) {
-    final l10n = context.l10n;
+    final l10n = context.strings;
     final features = [
       ("assets/onboarding_lock.png", l10n.featureSaveImportant),
       ("assets/onboarding_file.png", l10n.featurePassAutomatically),
@@ -260,10 +262,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
         controller: _pageController,
         itemBuilder: (context, index) {
           final feature = features[index % features.length];
-          return FeatureItemWidget(
-            feature.$1,
-            feature.$2,
-          );
+          return FeatureItemWidget(feature.$1, feature.$2);
         },
         onPageChanged: (index) {
           setState(() {
@@ -281,22 +280,15 @@ class _OnboardingPageState extends State<OnboardingPage> {
     if (Configuration.instance.getEncryptedToken() == null) {
       page = EmailEntryPage(Configuration.instance);
     } else {
-      // No key
       if (Configuration.instance.getKeyAttributes() == null) {
-        // Never had a key
         page = PasswordEntryPage(
           Configuration.instance,
           PasswordEntryMode.set,
           const HomePage(),
         );
       } else if (Configuration.instance.getKey() == null) {
-        // Yet to decrypt the key
-        page = PasswordReentryPage(
-          Configuration.instance,
-          const HomePage(),
-        );
+        page = PasswordReentryPage(Configuration.instance, const HomePage());
       } else {
-        // All is well
         page = const HomePage();
       }
     }
@@ -314,23 +306,15 @@ class _OnboardingPageState extends State<OnboardingPage> {
     if (Configuration.instance.getEncryptedToken() == null) {
       page = LoginPage(Configuration.instance);
     } else {
-      // No key
       if (Configuration.instance.getKeyAttributes() == null) {
-        // Never had a key
         page = PasswordEntryPage(
           Configuration.instance,
           PasswordEntryMode.set,
           const HomePage(),
         );
       } else if (Configuration.instance.getKey() == null) {
-        // Yet to decrypt the key
-        page = PasswordReentryPage(
-          Configuration.instance,
-          const HomePage(),
-        );
+        page = PasswordReentryPage(Configuration.instance, const HomePage());
       } else {
-        // All is well, user just has not subscribed
-        // page = getSubscriptionPage(isOnBoarding: true);
         page = const HomePage();
       }
     }
@@ -356,14 +340,12 @@ class FeatureItemWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = getEnteTextTheme(context);
+    final colors = context.componentColors;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Image.asset(
-          assetPath,
-          height: 200,
-        ),
+        Image.asset(assetPath, height: 200),
         Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -372,7 +354,7 @@ class FeatureItemWidget extends StatelessWidget {
             children: [
               Text(
                 featureTitleFirstLine,
-                style: textTheme.largeBold.copyWith(color: Colors.white),
+                style: TextStyles.large.copyWith(color: colors.specialWhite),
                 textAlign: TextAlign.center,
               ),
             ],

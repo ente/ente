@@ -1,0 +1,21 @@
+[package]
+name = "ente-locker-frb"
+edition.workspace = true
+
+[lib]
+crate-type = ["cdylib", "staticlib"]
+
+[dependencies]
+ente-assets.workspace = true
+ente-core.workspace = true
+ente-frb-lib = { workspace = true, features = ["contacts", "legacy", "locker"] }
+ente-frb-log.workspace = true
+ente-ml.workspace = true
+flutter_rust_bridge.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+default = []
+flutter = []

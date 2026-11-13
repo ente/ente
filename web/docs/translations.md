@@ -1,45 +1,39 @@
-# Translations
+# Ente web translations
 
-We use Crowdin for translations, and the `i18next` library to load these at
-runtime.
+The user-facing strings and translations shared by the web apps live in `packages/base/locales`. The apps load them with `i18next`.
 
-Within our project we have the _source_ strings - these are the key value pairs
-in the `packages/base/locales/en-US/translation.json` file.
+## Translate
 
-Volunteers can add a new _translation_ in their language corresponding to each
-such source key-value to our
-[Crowdin project](https://crowdin.com/project/ente-photos-web).
+The strings can be translated in the [Ente Web Crowdin project](https://crowdin.com/project/ente-photos-web).
 
-Everyday, we run a [GitHub workflow](../../.github/workflows/web-crowdin.yml)
-that
+If your language is not listed, [request it on GitHub](https://github.com/ente/ente/issues/new?title=Request+for+New+Language+Translation&body=Language+name%3A+%0AProject%3A+web).
 
-- Uploads sources to Crowdin - So any new key value pair we add in the source
-  `translation.json` becomes available to translators to translate.
+Partial translations are welcome; the apps generally enable a language after roughly 90% of its strings are translated.
 
-- Downloads translations from Crowdin - So any new translations that translators
-  have made on the Crowdin dashboard (for existing sources) will be added to the
-  corresponding `lang/translation.json`.
+## Add a string
 
-The workflow also uploads existing translations and also downloads new sources
-from Crowdin, but these two should be no-ops.
+1. Add the key and English text to [`translation.json`](../packages/base/locales/en-US/translation.json).
 
-## Adding a new string
+2. Use the key in the app code:
 
-- Add a new entry in `packages/base/locales/en-US/translation.json` (the
-  **source `translation.json`**).
-- Use the new key in code with the `t` function (`import { t } from "i18next"`).
-- During the next sync, the workflow will upload this source item to Crowdin's
-  dashboard, allowing translators to translate it.
+    ```ts
+    import { t } from "i18next";
 
-## Updating an existing string
+    t("new_string_key");
+    ```
 
-- Update the existing value for the key in the source `translation.json`.
-- During the next sync, the workflow will clear out all the existing
-  translations so that they can be translated afresh.
+3. Commit the source string and app changes.
 
-## Deleting an existing string
+After the pull request merges, the [Crowdin workflow](../../.github/workflows/web-crowdin-sync.yml) uploads the new string. The same workflow downloads translations every Monday and opens a pull request for them.
 
-- Remove the key value pair from the source `translation.json`.
-- During the next sync, the workflow will delete that source item from all
-  existing translations (both in the Crowdin project and also from the he other
-  `lang/translation.json` files in the repository).
+## Update a string
+
+> [!WARNING]
+>
+> Updating the English text invalidates its existing translations.
+
+Update the value in [`translation.json`](../packages/base/locales/en-US/translation.json) and commit the change. After the pull request merges, the Crowdin workflow updates the source string.
+
+## Delete a string
+
+Remove every use of the key, remove it from [`translation.json`](../packages/base/locales/en-US/translation.json), and commit both changes. After the pull request merges, the Crowdin workflow removes the source string; its next translation pull removes the key from the translated files.

@@ -1,29 +1,43 @@
 import "dart:async";
-import "dart:io" show Platform;
-import "dart:math" show min;
-import "dart:typed_data" show Uint8List;
+import "dart:io" show File, Platform;
 
+import "package:ente_photos_platform/ente_photos_platform.dart";
 import "package:flutter/foundation.dart" show kDebugMode;
+import "package:flutter/widgets.dart" show AppLifecycleState, WidgetsBinding;
 import "package:logging/logging.dart";
+import "package:photo_manager/photo_manager.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/db/files_db.dart";
+import "package:photos/db/ml/base.dart";
 import "package:photos/db/ml/db.dart";
+import "package:photos/db/ml/rust_db.dart";
 import "package:photos/db/offline_files_db.dart";
+import "package:photos/events/app_mode_changed_event.dart";
 import "package:photos/events/compute_control_event.dart";
-import "package:photos/events/people_changed_event.dart";
+import "package:photos/events/files_updated_event.dart";
+import "package:photos/events/local_photos_updated_event.dart";
+import "package:photos/main.dart";
+import "package:photos/models/file/file.dart";
+import "package:photos/models/file/file_type.dart";
 import "package:photos/models/ml/clip.dart";
 import "package:photos/models/ml/face/face.dart";
 import "package:photos/models/ml/ml_versions.dart";
+import "package:photos/module/download/file.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/filedata/model/file_data.dart";
-import 'package:photos/services/machine_learning/face_ml/face_clustering/face_clustering_service.dart';
-import "package:photos/services/machine_learning/face_ml/face_clustering/face_db_info_for_clustering.dart";
+import "package:photos/services/machine_learning/face_ml/face_clustering/face_clustering.dart";
+import "package:photos/services/machine_learning/face_ml/face_clustering/face_clustering_service.dart";
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
+import "package:photos/services/machine_learning/ml_exceptions.dart";
 import "package:photos/services/machine_learning/ml_indexing_isolate.dart";
-import 'package:photos/services/machine_learning/ml_result.dart';
+import "package:photos/services/machine_learning/ml_model_download_service.dart";
+import "package:photos/services/machine_learning/ml_process_lock.dart";
+import "package:photos/services/machine_learning/ml_result.dart";
+import "package:photos/services/machine_learning/ml_run_control.dart";
 import "package:photos/services/machine_learning/semantic_search/semantic_search_service.dart";
 import "package:photos/services/search_service.dart";
 import "package:photos/services/video_preview_service.dart";
+import "package:photos/utils/isolate/isolate_operations.dart";
 import "package:photos/utils/ml_util.dart";
 import "package:photos/utils/network_util.dart";
 import "package:photos/utils/ram_check_util.dart";
@@ -31,15 +45,16 @@ import "package:photos/utils/ram_check_util.dart";
 class MLService {
   final _logger = Logger("MLService");
 
-  // Singleton pattern
   MLService._privateConstructor();
   static final instance = MLService._privateConstructor();
-  factory MLService() => instance;
 
   bool _isInitialized = false;
 
-  int? lastRemoteFetch;
+  int? _lastRemoteFetch;
   static const int _kRemoteFetchCooldownOnLite = 1000 * 60 * 5;
+  static const int _kStartupOwnedRemoteHydrationMissingFileThreshold = 200;
+  Future<void>? _ownedRemoteHydrationFuture;
+  bool _hasScheduledStartupOwnedRemoteHydration = false;
 
   late String client;
 
@@ -48,56 +63,55 @@ class MLService {
   bool debugIndexingDisabled = false;
   bool _clusteringIsHappening = false;
   bool _mlControllerStatus = false;
-  bool _isIndexingOrClusteringRunning = false;
-  bool _isRunningML = false;
-  bool _shouldPauseIndexingAndClustering = false;
+  final Set<MlRunControl> _runControls = {};
+  MlRunControl? _activeRunControl;
+  Timer? _deniedRunRetryTimer;
+  Timer? _predownloadLocalModelsTimer;
+
+  static const _kPredownloadLocalModelsDelay = Duration(seconds: 10);
+  static const _kDeniedRunRetryDelay = Duration(seconds: 15);
+  static const _kVectorGraphBuildBatch = 2000;
 
   bool get isRunningML =>
-      _isRunningML || memoriesCacheService.isUpdatingMemories;
+      MlProcessLock.instance.activeOperation == MlOperation.fullRun;
 
   static const _kForceClusteringFaceCount = 8000;
-  static const _kForceClusteringFaceCountOffline = 100;
+  static const _kForceClusteringFaceCountLocalGallery = 100;
   int _forceClusteringFaceCountForMode(MLMode mode) {
-    return mode == MLMode.offline
-        ? _kForceClusteringFaceCountOffline
+    return mode == MLMode.localGallery
+        ? _kForceClusteringFaceCountLocalGallery
         : _kForceClusteringFaceCount;
   }
 
-  MLDataDB get _mlDataDB =>
-      isOfflineMode ? MLDataDB.offlineInstance : MLDataDB.instance;
+  FaceClustering get _faceClustering => isLocalGalleryMode
+      ? FaceClustering.localGalleryInstance
+      : FaceClustering.instance;
 
-  MLDataDB _dbForMode(MLMode mode) {
-    return mode == MLMode.offline
-        ? MLDataDB.offlineInstance
+  IMLDataDB<int> _dbForMode(MLMode mode) {
+    return mode == MLMode.localGallery
+        ? MLDataDB.localGalleryInstance
         : MLDataDB.instance;
   }
 
-  bool _hasModeChanged(MLMode mode) {
-    return (isOfflineMode ? MLMode.offline : MLMode.online) != mode;
-  }
-
-  /// Only call this function once at app startup, after that you can directly call [runAllML]
   Future<void> init() async {
     if (_isInitialized) {
-      unawaited(_maybePredownloadLocalModels());
+      _schedulePredownloadLocalModels();
+      scheduleStartupOwnedRemoteHydration();
       return;
     }
     _logger.info("init called");
 
-    // Check if the device has enough RAM to run local indexing
     await checkDeviceTotalRAM();
 
     FaceClusteringService.init(localSettings);
 
-    // Get client name
     final packageInfo = ServiceLocator.instance.packageInfo;
     client = "${packageInfo.packageName}/${packageInfo.version}";
     _logger.info("client: $client");
 
-    // Listen on ComputeController
     Bus.instance.on<ComputeControlEvent>().listen((event) {
       if (!hasGrantedMLConsent) {
-        if (event.shouldRun) {
+        if (!isProcessBg && event.shouldRun) {
           VideoPreviewService.instance.queueFiles(duration: Duration.zero);
         }
         return;
@@ -105,31 +119,48 @@ class MLService {
 
       _mlControllerStatus = event.shouldRun;
       if (_mlControllerStatus) {
-        if (_shouldPauseIndexingAndClustering) {
-          _cancelPauseIndexingAndClustering();
-          _logger.info(
-            "MLController allowed running ML, faces indexing undoing previous pause",
-          );
-        } else {
-          _logger.info(
-            "MLController allowed running ML, faces indexing starting",
-          );
+        _logger.info(
+          "MLController allowed running ML, faces indexing starting",
+        );
+        // Background start is driven manually from _runMinimally to avoid
+        // duplicate runAllML invocations in the same cycle.
+        if (!isProcessBg) {
+          unawaited(runAllML());
         }
-        unawaited(runAllML());
       } else {
         _logger.info(
-          "MLController stopped running ML, faces indexing will be paused (unless it's fetching embeddings)",
+          "MLController stopped running ML, stopping any active ML run",
         );
-        pauseIndexingAndClustering();
+        stopActiveRun(MlStopReason.controller);
       }
     });
+    // Every setAppMode call site fires this event, so a latched stop fully
+    // replaces polled mode checks inside the pipeline.
+    Bus.instance.on<AppModeChangedEvent>().listen((_) {
+      stopActiveRun(MlStopReason.modeChanged);
+    });
+    _syncMlControllerStatusForBg();
 
     _isInitialized = true;
-    unawaited(_maybePredownloadLocalModels());
+    _schedulePredownloadLocalModels();
+    scheduleStartupOwnedRemoteHydration();
     _logger.info('init done');
   }
 
+  void _syncMlControllerStatusForBg() {
+    if (!isProcessBg || !hasGrantedMLConsent) {
+      return;
+    }
+    _mlControllerStatus = computeController.shouldRunCompute;
+    _logger.info(
+      "Background init synced MLController status to $_mlControllerStatus",
+    );
+  }
+
   Future<void> _maybePredownloadLocalModels() async {
+    if (isProcessBg) {
+      return;
+    }
     if (!hasGrantedMLConsent) {
       return;
     }
@@ -139,189 +170,566 @@ class MLService {
       );
       return;
     }
-    if (MLIndexingIsolate.instance.areModelsDownloaded) {
+    if (MLModelDownloadService.instance.areModelsDownloaded(
+      onlyIndexingModels: false,
+    )) {
       return;
     }
     try {
-      await MLIndexingIsolate.instance.ensureDownloadedModels();
+      await MLModelDownloadService.instance.ensureModelsDownloaded(
+        onlyIndexingModels: false,
+      );
     } catch (e, s) {
       _logger.warning("Failed to predownload local ML models", e, s);
     }
   }
 
+  void scheduleStartupOwnedRemoteHydration() {
+    if (_hasScheduledStartupOwnedRemoteHydration ||
+        isProcessBg ||
+        !hasGrantedMLConsent ||
+        isLocalGalleryMode ||
+        !localSettings.remoteFetchEnabled) {
+      return;
+    }
+    _hasScheduledStartupOwnedRemoteHydration = true;
+    unawaited(_runStartupOwnedRemoteHydration());
+  }
+
+  Future<void> _runStartupOwnedRemoteHydration() async {
+    if (!hasGrantedMLConsent || isLocalGalleryMode) {
+      return;
+    }
+    try {
+      await fileDataService.syncFDStatus();
+    } catch (e, s) {
+      _logger.warning(
+        "Skipping startup-owned remote ML hydration because FD status refresh failed",
+        e,
+        s,
+      );
+      return;
+    }
+    try {
+      await hydrateRemoteEmbeddingsForOwnedFiles(
+        reason: "startup",
+        skipHydrationIfCandidateFileCountAtMost:
+            _kStartupOwnedRemoteHydrationMissingFileThreshold,
+      );
+    } catch (e, s) {
+      _logger.warning(
+        "Skipping startup-owned remote ML hydration because owned hydration failed",
+        e,
+        s,
+      );
+    }
+  }
+
+  Future<void> hydrateRemoteEmbeddingsForOwnedFiles({
+    required String reason,
+    int? skipHydrationIfCandidateFileCountAtMost,
+  }) async {
+    if (isProcessBg ||
+        isLocalGalleryMode ||
+        !hasGrantedMLConsent ||
+        !localSettings.remoteFetchEnabled) {
+      return;
+    }
+    final existing = _ownedRemoteHydrationFuture;
+    if (existing != null) {
+      _logger.info(
+        "Owned remote ML hydration already running, joining existing run ($reason)",
+      );
+      return existing;
+    }
+    final control = MlRunControl();
+    final attempt = await _runExclusiveWithControl(
+      MlOperation.startupRemoteHydration,
+      control,
+      () async {
+        final future = _runOwnedRemoteHydrationSafely(
+          reason: reason,
+          control: control,
+          skipHydrationIfCandidateFileCountAtMost:
+              skipHydrationIfCandidateFileCountAtMost,
+        );
+        _ownedRemoteHydrationFuture = future;
+        try {
+          await future;
+        } finally {
+          if (identical(_ownedRemoteHydrationFuture, future)) {
+            _ownedRemoteHydrationFuture = null;
+          }
+        }
+      },
+    );
+    if (attempt != MlLockAttempt.ran) {
+      _logger.info(
+        "Skipping owned remote ML hydration ($reason): ml process lock "
+        "denied (${attempt.name})",
+      );
+    }
+  }
+
+  Future<void> _runOwnedRemoteHydrationSafely({
+    required String reason,
+    required MlRunControl control,
+    int? skipHydrationIfCandidateFileCountAtMost,
+  }) async {
+    assert(MlProcessLock.instance.isBusy, "ml funnel must be held");
+    if (control.stopRequested) {
+      _logRunStopped(control, "before owned remote hydration started");
+      return;
+    }
+    try {
+      final summary = await hydrateOwnedRemoteMLData(
+        mlDataDB: MLDataDB.instance,
+        control: control,
+        skipHydrationIfCandidateFileCountAtMost:
+            skipHydrationIfCandidateFileCountAtMost,
+      );
+      if (summary.candidateFiles == 0) {
+        _logger.info(
+          "Skipping owned remote ML hydration ($reason): no owned files need remote hydration",
+        );
+        return;
+      }
+      if (summary.skippedDueToCandidateThreshold) {
+        _logger.info(
+          "Skipping owned remote ML hydration ($reason): only ${summary.candidateFiles} "
+          "owned files are missing remote ML data (threshold: > "
+          "$skipHydrationIfCandidateFileCountAtMost)",
+        );
+        return;
+      }
+      _logger.info(
+        "Owned remote ML hydration ($reason) finished for ${summary.candidateFiles} files "
+        "(faces hydrated: ${summary.hydratedFaces}, clip hydrated: ${summary.hydratedClips}, "
+        "still pending local ML: ${summary.remainingLocalMl})",
+      );
+    } catch (e, s) {
+      _logger.warning("Owned remote ML hydration ($reason) failed", e, s);
+    }
+  }
+
+  void _schedulePredownloadLocalModels() {
+    if (isProcessBg || _predownloadLocalModelsTimer?.isActive == true) {
+      return;
+    }
+    _predownloadLocalModelsTimer = Timer(_kPredownloadLocalModelsDelay, () {
+      _predownloadLocalModelsTimer = null;
+      unawaited(_maybePredownloadLocalModels());
+    });
+  }
+
   bool canFetch() {
     if (localSettings.isMLLocalIndexingEnabled) return true;
-    if (lastRemoteFetch == null) {
-      lastRemoteFetch = DateTime.now().millisecondsSinceEpoch;
+    if (_lastRemoteFetch == null) {
+      _lastRemoteFetch = DateTime.now().millisecondsSinceEpoch;
       return true;
     }
-    final intDiff = DateTime.now().millisecondsSinceEpoch - lastRemoteFetch!;
+    final intDiff = DateTime.now().millisecondsSinceEpoch - _lastRemoteFetch!;
     final bool canFetch = intDiff > _kRemoteFetchCooldownOnLite;
     if (canFetch) {
-      lastRemoteFetch = DateTime.now().millisecondsSinceEpoch;
+      _lastRemoteFetch = DateTime.now().millisecondsSinceEpoch;
     }
     return canFetch;
   }
 
-  Future<void> sync() async {
+  Future<void> _sync() async {
     await fileDataService.syncFDStatus();
-    await faceRecognitionService.syncPersonFeedback();
+    await PersonService.instance.sync();
   }
 
-  Future<void> runAllML({bool force = false}) async {
+  Future<MlRunDisposition> runAllML({
+    bool force = false,
+    bool remoteSyncOnly = false,
+    bool allowImageIndexing = true,
+    int? maxFilesToIndex,
+    MlRunControl? control,
+    Duration? lockWait,
+  }) async {
+    final runControl = control ?? MlRunControl();
+    // A latched stop always wins, force included.
+    if (runControl.stopRequested) {
+      _logger.info(
+        "runAllML skipped, stop already requested "
+        "(${runControl.stopReason?.name})",
+      );
+      return MlRunDisposition.stopped;
+    }
+    if (isRunningML) {
+      _logger.info("runAllML called while already running, skipping");
+      _scheduleDeniedRunRetry();
+      return MlRunDisposition.denied;
+    }
+    if (!hasGrantedMLConsent) {
+      _logger.info("runAllML called without ML consent, skipping");
+      return MlRunDisposition.denied;
+    }
+    // On iOS the main engine may be woken without being resumed; the resume
+    // hook re-triggers ML, so no retry is scheduled here.
+    if (!force &&
+        !isProcessBg &&
+        Platform.isIOS &&
+        WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
+      _logger.info("runAllML skipped, app is not resumed");
+      return MlRunDisposition.denied;
+    }
+    final MLMode mode = isLocalGalleryMode
+        ? MLMode.localGallery
+        : MLMode.enteGallery;
+    if (force) {
+      _mlControllerStatus = true;
+    }
+    if (!_canRunMLFunction(function: "AllML") && !force) {
+      return MlRunDisposition.denied;
+    }
+    if (!force && !computeController.requestCompute(ml: true)) {
+      return MlRunDisposition.denied;
+    }
+    var disposition = MlRunDisposition.completed;
     try {
-      final MLMode mode = isOfflineMode ? MLMode.offline : MLMode.online;
-      final mlDataDB = _dbForMode(mode);
-      if (force) {
-        _mlControllerStatus = true;
+      final attempt = await _runExclusiveWithControl(
+        MlOperation.fullRun,
+        runControl,
+        () async {
+          disposition = await _runAllMLProtected(
+            mode: mode,
+            force: force,
+            remoteSyncOnly: remoteSyncOnly,
+            allowImageIndexing: allowImageIndexing,
+            maxFilesToIndex: maxFilesToIndex,
+            control: runControl,
+          );
+        },
+        lockWait: lockWait,
+      );
+      if (attempt != MlLockAttempt.ran) {
+        _logger.info("runAllML denied the ml process lock (${attempt.name})");
+        disposition = MlRunDisposition.denied;
+        _scheduleDeniedRunRetry();
       }
-      if (!_canRunMLFunction(function: "AllML") && !force) return;
-      if (!force && !computeController.requestCompute(ml: true)) return;
-      _isRunningML = true;
-      await sync();
-      if (_hasModeChanged(mode)) {
-        _logger.info("App mode changed during ML run, stopping");
+    } catch (e, s) {
+      _logger.severe("runAllML failed", e, s);
+      disposition = MlRunDisposition.failed;
+    } finally {
+      computeController.releaseCompute(ml: true);
+    }
+    if (disposition == MlRunDisposition.completed && _mlControllerStatus) {
+      await rewindService.refresh(afterMlRun: true);
+    }
+    return disposition;
+  }
+
+  // FG-only: one coalesced retry after a lock denial, because the natural
+  // ComputeControlEvent re-trigger only fires on an interaction or health
+  // transition — without this, an untouched device would stall until the
+  // next user interaction. Preconditions are re-validated when it fires.
+  void _scheduleDeniedRunRetry() {
+    if (isProcessBg) return;
+    if (_deniedRunRetryTimer != null) return;
+    _deniedRunRetryTimer = Timer(_kDeniedRunRetryDelay, () {
+      _deniedRunRetryTimer = null;
+      if (!hasGrantedMLConsent) return;
+      if (MlProcessLock.instance.isBusy) {
+        _scheduleDeniedRunRetry();
         return;
       }
+      triggerML();
+    });
+  }
 
-      final int unclusteredFacesCount =
-          await mlDataDB.getUnclusteredFaceCount();
+  Future<MlRunDisposition> _runAllMLProtected({
+    required MLMode mode,
+    required bool force,
+    required bool remoteSyncOnly,
+    required bool allowImageIndexing,
+    required int? maxFilesToIndex,
+    required MlRunControl control,
+  }) async {
+    assert(MlProcessLock.instance.isBusy, "ml funnel must be held");
+    if (control.stopRequested) {
+      _logRunStopped(control, "before sync");
+      return MlRunDisposition.stopped;
+    }
+    final mlDataDB = _dbForMode(mode);
+    try {
+      if (remoteSyncOnly && mode == MLMode.localGallery) {
+        return MlRunDisposition.completed;
+      }
+      await _sync();
+      if (control.stopRequested) {
+        _logRunStopped(control, "after sync");
+        return MlRunDisposition.stopped;
+      }
+
+      if (remoteSyncOnly) {
+        if (localSettings.remoteFetchEnabled && canFetch()) {
+          await _fetchAndIndexAllImages(
+            mode: mode,
+            control: control,
+            allowImageIndexing: false,
+          );
+        }
+        if (control.stopRequested) {
+          return MlRunDisposition.stopped;
+        }
+        await PersonService.instance.sync();
+        return control.stopRequested
+            ? MlRunDisposition.stopped
+            : MlRunDisposition.completed;
+      }
+
+      final int unclusteredFacesCount = await mlDataDB
+          .getUnclusteredFaceCount();
       if (unclusteredFacesCount > _forceClusteringFaceCountForMode(mode)) {
         _logger.info(
           "There are $unclusteredFacesCount unclustered faces, doing clustering first",
         );
-        await clusterAllImages();
+        await _clusterAllImages(control: control);
       }
-      if (_mlControllerStatus == true) {
-        if (_hasModeChanged(mode)) {
-          _logger.info("App mode changed during ML run, stopping");
-          return;
-        }
-        // refresh discover section
-        magicCacheService.updateCache(forced: force).ignore();
-        // refresh memories section
-        memoriesCacheService.updateCache(forced: force).ignore();
+      if (control.stopRequested) {
+        _logRunStopped(control, "after initial clustering");
+        return MlRunDisposition.stopped;
+      }
+      if (control.stopRequested) {
+        _logRunStopped(control, "before indexing");
+        return MlRunDisposition.stopped;
       }
       if (canFetch()) {
-        await fetchAndIndexAllImages(mode: mode);
+        await _fetchAndIndexAllImages(
+          mode: mode,
+          control: control,
+          allowImageIndexing: allowImageIndexing,
+          maxFilesToIndex: maxFilesToIndex,
+        );
       }
-      if (_hasModeChanged(mode)) {
-        _logger.info("App mode changed during ML run, stopping");
-        return;
+      if (control.stopRequested) {
+        _logRunStopped(control, "before final clustering");
+        return MlRunDisposition.stopped;
       }
       if ((await mlDataDB.getUnclusteredFaceCount()) > 0) {
-        await clusterAllImages();
+        await _clusterAllImages(control: control);
+      }
+      if (control.stopRequested) {
+        _logRunStopped(control, "before post-run cache scheduling");
+        return MlRunDisposition.stopped;
+      }
+      await PersonService.instance.sync();
+      if (control.stopRequested) {
+        _logRunStopped(control, "after post-run person sync");
+        return MlRunDisposition.stopped;
       }
       if (_mlControllerStatus == true) {
-        if (_hasModeChanged(mode)) {
-          _logger.info("App mode changed during ML run, stopping");
-          return;
+        await magicCacheService.updateCache(forced: force);
+        if (control.stopRequested) {
+          _logRunStopped(control, "after magic cache refresh");
+          return MlRunDisposition.stopped;
         }
-        // refresh discover section
-        magicCacheService.updateCache().ignore();
-        // refresh memories section (only runs if forced is true)
-        memoriesCacheService.updateCache(forced: force).ignore();
+        await memoriesCacheService.updateCache(forced: force, control: control);
+        if (control.stopRequested) {
+          _logRunStopped(control, "after memories cache refresh");
+          return MlRunDisposition.stopped;
+        }
       }
-    } catch (e, s) {
-      _logger.severe("runAllML failed", e, s);
-      rethrow;
+      if (mlDataDB is RustMLDataDB && mode != MLMode.localGallery) {
+        await _buildPendingVectorGraphs(mlDataDB, control);
+        if (control.stopRequested) {
+          _logRunStopped(control, "after building vector graphs");
+          return MlRunDisposition.stopped;
+        }
+      }
+      return MlRunDisposition.completed;
     } finally {
       _logger.info("ML finished running");
-      _isRunningML = false;
-      computeController.releaseCompute(ml: true);
-      VideoPreviewService.instance.queueFiles();
+      if (!isProcessBg) {
+        VideoPreviewService.instance.queueFiles();
+      }
     }
   }
 
+  Future<void> _buildPendingVectorGraphs(
+    RustMLDataDB mlDataDB,
+    MlRunControl control,
+  ) async {
+    try {
+      while (!control.stopRequested) {
+        final processed = await mlDataDB.buildPendingVectorGraphs(
+          maxVectors: _kVectorGraphBuildBatch,
+        );
+        if (processed < _kVectorGraphBuildBatch) break;
+      }
+    } catch (e, s) {
+      _logger.warning("Failed to build pending vector graphs", e, s);
+    }
+  }
+
+  void _logRunStopped(MlRunControl control, String where) {
+    _logger.info("ML run stopped $where (${control.stopReason?.name})");
+  }
+
+  Future<MlLockAttempt> _runExclusiveWithControl(
+    MlOperation operation,
+    MlRunControl control,
+    Future<void> Function() body, {
+    Duration? lockWait,
+  }) async {
+    _runControls.add(control);
+    try {
+      return await MlProcessLock.instance.tryRunExclusive(
+        operation,
+        () async {
+          _installRunControl(control);
+          try {
+            await body();
+          } finally {
+            _clearRunControl(control);
+          }
+        },
+        background: isProcessBg,
+        waitForAvailability: lockWait != null,
+        waitDeadline: lockWait,
+      );
+    } finally {
+      _runControls.remove(control);
+    }
+  }
+
+  void _installRunControl(MlRunControl control) {
+    _activeRunControl = control;
+    control.attachOnStop(() {
+      MLIndexingIsolate.instance.shouldPauseIndexingAndClustering = true;
+    });
+  }
+
+  // The isolate stop flag is cleared here, from the outer run cleanup, and
+  // nowhere else: a durable stop must survive stage-level finally blocks.
+  void _clearRunControl(MlRunControl control) {
+    control.detachOnStop();
+    if (identical(_activeRunControl, control)) {
+      _activeRunControl = null;
+    }
+    MLIndexingIsolate.instance.shouldPauseIndexingAndClustering = false;
+  }
+
   void triggerML() {
-    if (_mlControllerStatus &&
-        !_isIndexingOrClusteringRunning &&
-        !_isRunningML) {
+    if (_mlControllerStatus) {
       unawaited(runAllML());
     }
   }
 
-  void pauseIndexingAndClustering() {
-    if (_isIndexingOrClusteringRunning) {
-      _shouldPauseIndexingAndClustering = true;
-      MLIndexingIsolate.instance.shouldPauseIndexingAndClustering = true;
+  void stopActiveRun(MlStopReason reason) {
+    for (final control in _runControls.toList(growable: false)) {
+      control.requestStop(reason);
     }
   }
 
-  void _cancelPauseIndexingAndClustering() {
-    _shouldPauseIndexingAndClustering = false;
-    MLIndexingIsolate.instance.shouldPauseIndexingAndClustering = false;
+  Future<MlLockAttempt> fetchAndIndexAllImages({required MLMode mode}) async {
+    final control = MlRunControl();
+    final attempt = await _runExclusiveWithControl(
+      MlOperation.indexing,
+      control,
+      () => _fetchAndIndexAllImages(mode: mode, control: control),
+    );
+    if (attempt != MlLockAttempt.ran) {
+      _logger.info(
+        "fetchAndIndexAllImages denied the ml process lock (${attempt.name})",
+      );
+    }
+    return attempt;
   }
 
-  /// Analyzes all the images in the user library with the latest ml version and stores the results in the database.
-  ///
-  /// This function first fetches from remote and checks if the image has already been analyzed
-  /// with the lastest faceMlVersion and stored on remote or local database. If so, it skips the image.
-  Future<void> fetchAndIndexAllImages({required MLMode mode}) async {
+  Future<void> _fetchAndIndexAllImages({
+    required MLMode mode,
+    required MlRunControl control,
+    bool allowImageIndexing = true,
+    int? maxFilesToIndex,
+  }) async {
+    assert(MlProcessLock.instance.isBusy, "ml funnel must be held");
+    if (control.stopRequested) {
+      _logRunStopped(control, "before indexing started");
+      return;
+    }
     if (!_canRunMLFunction(function: "Indexing")) return;
 
     bool rustRuntimePrepared = false;
     try {
-      _isIndexingOrClusteringRunning = true;
       _logger.info('starting image indexing');
-      if (localSettings.isMLLocalIndexingEnabled) {
-        await MLIndexingIsolate.instance.ensureDownloadedModels();
+      if (allowImageIndexing && localSettings.isMLLocalIndexingEnabled) {
+        await MLModelDownloadService.instance.ensureModelsDownloaded(
+          onlyIndexingModels: true,
+        );
       }
       final Stream<List<FileMLInstruction>> instructionStream =
-          fetchEmbeddingsAndInstructions(fileDownloadMlLimit, mode: mode);
+          fetchEmbeddingsAndInstructions(
+            fileDownloadMlLimit,
+            mode: mode,
+            control: control,
+          );
 
       int fileAnalyzedCount = 0;
+      int fileAttemptCount = 0;
       final Stopwatch stopwatch = Stopwatch()..start();
 
-      stream:
+      bool stopRun = false;
       await for (final chunk in instructionStream) {
-        if ((isOfflineMode ? MLMode.offline : MLMode.online) != mode) {
-          _logger.info(
-            "App mode changed during indexing, stopping current ML run",
-          );
-          break stream;
+        if (control.stopRequested) {
+          _logRunStopped(control, "between indexing chunks");
+          break;
         }
-        if (!localSettings.isMLLocalIndexingEnabled) {
+        if (!allowImageIndexing || !localSettings.isMLLocalIndexingEnabled) {
           if (rustRuntimePrepared) {
             await MLIndexingIsolate.instance.releaseRustRuntime();
             rustRuntimePrepared = false;
           }
           await MLIndexingIsolate.instance.cleanupLocalIndexingModels();
           continue;
-        } else if (!(isOfflineMode || await canUseHighBandwidth())) {
+        } else if (!(isLocalGalleryMode || await canUseHighBandwidth())) {
           _logger.info(
             'stopping indexing because user is not connected to wifi and in online mode',
           );
-          break stream;
+          if (maxFilesToIndex != null) {
+            allowImageIndexing = false;
+            continue;
+          }
+          break;
         } else {
-          await MLIndexingIsolate.instance.ensureDownloadedModels();
-          if ((flagService.useRustForML || isOfflineMode) &&
-              !rustRuntimePrepared) {
+          await MLModelDownloadService.instance.ensureModelsDownloaded(
+            onlyIndexingModels: true,
+          );
+          if (!rustRuntimePrepared) {
             await MLIndexingIsolate.instance.prepareRustRuntime();
             rustRuntimePrepared = true;
           }
         }
         final futures = <Future<bool>>[];
-        for (final instruction in chunk) {
-          if ((isOfflineMode ? MLMode.offline : MLMode.online) != mode) {
-            _logger.info(
-              "App mode changed during indexing, stopping current ML run",
-            );
-            break stream;
+        final instructions = maxFilesToIndex == null
+            ? chunk
+            : chunk.take(maxFilesToIndex - fileAttemptCount);
+        for (final instruction in instructions) {
+          if (control.stopRequested) {
+            _logRunStopped(control, "between indexing instructions");
+            stopRun = true;
+            break;
           }
-          if (_shouldPauseIndexingAndClustering) {
-            _logger.info("indexAllImages() was paused, stopping");
-            break stream;
-          }
-          await MLIndexingIsolate.instance.ensureLoadedModels(instruction);
-          futures.add(processImage(instruction));
+          futures.add(_processImage(instruction));
         }
+        fileAttemptCount += futures.length;
+        // Drain: work that was already started must complete (and commit)
+        // before this run can exit and release the process lock.
         final awaitedFutures = await Future.wait(futures);
         final sumFutures = awaitedFutures.fold<int>(
           0,
           (previousValue, element) => previousValue + (element ? 1 : 0),
         );
         fileAnalyzedCount += sumFutures;
+        if (fileAttemptCount == maxFilesToIndex) {
+          allowImageIndexing = false;
+        }
+        if (stopRun) {
+          break;
+        }
       }
       if (fileAnalyzedCount > 0) {
         magicCacheService.queueUpdate('fileIndexed');
@@ -330,34 +738,52 @@ class MLService {
         "`indexAllImages()` finished. Analyzed $fileAnalyzedCount images, in ${stopwatch.elapsed.inSeconds} seconds (avg of ${stopwatch.elapsed.inSeconds / fileAnalyzedCount} seconds per image)",
       );
       _logStatus();
+    } on RustCorruptModelException catch (e) {
+      _logger.severe(
+        "Stopping image indexing because Rust ML reported a corrupt model at ${e.modelPath}",
+      );
     } catch (e, s) {
       _logger.severe("indexAllImages failed", e, s);
     } finally {
       await MLIndexingIsolate.instance.releaseRustRuntime();
-      _isIndexingOrClusteringRunning = false;
-      _cancelPauseIndexingAndClustering();
+      MLModelDownloadService.instance.invalidateModelDownloadCache();
     }
   }
 
-  Future<void> clusterAllImages({
-    bool clusterInBuckets = true,
+  Future<MlLockAttempt> clusterAllImages({bool force = false}) async {
+    final control = MlRunControl();
+    final attempt = await _runExclusiveWithControl(
+      MlOperation.clustering,
+      control,
+      () => _clusterAllImages(force: force, control: control),
+    );
+    if (attempt != MlLockAttempt.ran) {
+      _logger.info(
+        "clusterAllImages denied the ml process lock (${attempt.name})",
+      );
+    }
+    return attempt;
+  }
+
+  Future<void> _clusterAllImages({
+    required MlRunControl control,
     bool force = false,
   }) async {
-    if (!_canRunMLFunction(function: "Clustering") && !force) return;
-    if (_clusteringIsHappening) {
-      _logger.info("clusterAllImages() is already running, returning");
+    assert(MlProcessLock.instance.isBusy, "ml funnel must be held");
+    if (control.stopRequested) {
+      _logRunStopped(control, "before clustering started");
       return;
     }
-
+    if (!_canRunMLFunction(function: "Clustering") && !force) return;
+    final faceClustering = _faceClustering;
     _logger.info("`clusterAllImages()` called");
-    _isIndexingOrClusteringRunning = true;
     _clusteringIsHappening = true;
     final clusterAllImagesTime = DateTime.now();
 
     final faceIdNotToCluster = <String, List<String>>{};
-    if (!isOfflineMode) {
+    if (!isLocalGalleryMode) {
       _logger.info('Pulling remote feedback before actually clustering');
-      await PersonService.instance.fetchRemoteClusterFeedback();
+      await PersonService.instance.sync();
       final persons = await PersonService.instance.getPersons();
       for (final person in persons) {
         if (person.data.rejectedFaceIDs.isNotEmpty) {
@@ -368,200 +794,66 @@ class MLService {
         }
       }
     } else {
-      _logger.info("Skipping person metadata in offline mode");
+      _logger.info("Skipping person metadata in local gallery mode");
     }
 
     try {
-      // Get a sense of the total number of faces in the database
-      final int totalFaces = await _mlDataDB.getTotalFaceCount();
-      final fileIDToCreationTime = isOfflineMode
-          ? await _getOfflineFileIdToCreationTime()
+      final fileIDToCreationTime = isLocalGalleryMode
+          ? await _getLocalGalleryFileIdToCreationTime()
           : await FilesDB.instance.getFileIDToCreationTime();
-      final startEmbeddingFetch = DateTime.now();
-      // read all embeddings
-      final result = await _mlDataDB.getFaceInfoForClustering(
-        maxFaces: totalFaces,
+      await faceClustering.clusterAllFaces(
+        fileIDToCreationTime: fileIDToCreationTime,
+        rejectedClusterIDsByFaceID: faceIdNotToCluster,
+        control: control,
       );
-      final Set<int> missingFileIDs = {};
-      final allFaceInfoForClustering = <FaceDbInfoForClustering>[];
-      for (final faceInfo in result) {
-        if (!fileIDToCreationTime.containsKey(faceInfo.fileID)) {
-          missingFileIDs.add(faceInfo.fileID);
-        } else {
-          if (faceIdNotToCluster.containsKey(faceInfo.faceID)) {
-            faceInfo.rejectedClusterIds = faceIdNotToCluster[faceInfo.faceID];
-          }
-          allFaceInfoForClustering.add(faceInfo);
-        }
-      }
-      // sort the embeddings based on file creation time, newest first
-      allFaceInfoForClustering.sort((b, a) {
-        return fileIDToCreationTime[a.fileID]!
-            .compareTo(fileIDToCreationTime[b.fileID]!);
-      });
       _logger.info(
-        'Getting and sorting embeddings took ${DateTime.now().difference(startEmbeddingFetch).inMilliseconds} ms for ${allFaceInfoForClustering.length} embeddings'
-        'and ${missingFileIDs.length} missing fileIDs',
+        'clusterAllImages() finished, in '
+        '${DateTime.now().difference(clusterAllImagesTime).inSeconds} seconds',
       );
-
-      // Get the current cluster statistics
-      final Map<String, (Uint8List, int)> oldClusterSummaries =
-          await _mlDataDB.getAllClusterSummary();
-
-      if (clusterInBuckets) {
-        const int bucketSize = 10000;
-        const int offsetIncrement = 7500;
-        int offset = 0;
-        int bucket = 1;
-
-        while (true) {
-          if (_shouldPauseIndexingAndClustering) {
-            _logger.info(
-              "MLController does not allow running ML, stopping before clustering bucket $bucket",
-            );
-            break;
-          }
-          if (offset > allFaceInfoForClustering.length - 1) {
-            _logger.warning(
-              'faceIdToEmbeddingBucket is empty, this should ideally not happen as it should have stopped earlier. offset: $offset, totalFaces: $totalFaces',
-            );
-            break;
-          }
-          if (offset > totalFaces) {
-            _logger.warning(
-              'offset > totalFaces, this should ideally not happen. offset: $offset, totalFaces: $totalFaces',
-            );
-            break;
-          }
-
-          final bucketStartTime = DateTime.now();
-          final faceInfoForClustering = allFaceInfoForClustering.sublist(
-            offset,
-            min(offset + bucketSize, allFaceInfoForClustering.length),
-          );
-
-          if (faceInfoForClustering.every((face) => face.clusterId != null)) {
-            _logger.info('Everything in bucket $bucket is already clustered');
-            if (offset + bucketSize >= totalFaces) {
-              _logger.info('All faces clustered');
-              break;
-            } else {
-              _logger.info('Skipping to next bucket');
-              offset += offsetIncrement;
-              bucket++;
-              continue;
-            }
-          }
-
-          final clusteringResult =
-              await FaceClusteringService.instance.predictLinearIsolate(
-            faceInfoForClustering.toSet(),
-            fileIDToCreationTime: fileIDToCreationTime,
-            offset: offset,
-            oldClusterSummaries: oldClusterSummaries,
-          );
-          if (clusteringResult == null) {
-            _logger.warning("faceIdToCluster is null");
-            return;
-          }
-
-          await _mlDataDB
-              .updateFaceIdToClusterId(clusteringResult.newFaceIdToCluster);
-          await _mlDataDB
-              .clusterSummaryUpdate(clusteringResult.newClusterSummaries);
-          Bus.instance.fire(PeopleChangedEvent());
-          for (final faceInfo in faceInfoForClustering) {
-            faceInfo.clusterId ??=
-                clusteringResult.newFaceIdToCluster[faceInfo.faceID];
-          }
-          for (final clusterUpdate
-              in clusteringResult.newClusterSummaries.entries) {
-            oldClusterSummaries[clusterUpdate.key] = clusterUpdate.value;
-          }
-          _logger.info(
-            'Done with clustering ${offset + faceInfoForClustering.length} embeddings (${(100 * (offset + faceInfoForClustering.length) / totalFaces).toStringAsFixed(0)}%) in bucket $bucket, offset: $offset, in ${DateTime.now().difference(bucketStartTime).inSeconds} seconds',
-          );
-          if (offset + bucketSize >= totalFaces) {
-            _logger.info('All faces clustered');
-            break;
-          }
-          offset += offsetIncrement;
-          bucket++;
-        }
-      } else {
-        final clusterStartTime = DateTime.now();
-        // Cluster the embeddings using the linear clustering algorithm, returning a map from faceID to clusterID
-        final clusteringResult =
-            await FaceClusteringService.instance.predictLinearIsolate(
-          allFaceInfoForClustering.toSet(),
-          fileIDToCreationTime: fileIDToCreationTime,
-          oldClusterSummaries: oldClusterSummaries,
-        );
-        if (clusteringResult == null) {
-          _logger.warning("faceIdToCluster is null");
-          return;
-        }
-        final clusterDoneTime = DateTime.now();
-        _logger.info(
-          'done with clustering ${allFaceInfoForClustering.length} in ${clusterDoneTime.difference(clusterStartTime).inSeconds} seconds ',
-        );
-
-        // Store the updated clusterIDs in the database
-        _logger.info(
-          'Updating ${clusteringResult.newFaceIdToCluster.length} FaceIDs with clusterIDs in the DB',
-        );
-        await _mlDataDB
-            .updateFaceIdToClusterId(clusteringResult.newFaceIdToCluster);
-        await _mlDataDB
-            .clusterSummaryUpdate(clusteringResult.newClusterSummaries);
-        Bus.instance.fire(PeopleChangedEvent());
-        _logger.info('Done updating FaceIDs with clusterIDs in the DB, in '
-            '${DateTime.now().difference(clusterDoneTime).inSeconds} seconds');
-      }
-      _logger.info('clusterAllImages() finished, in '
-          '${DateTime.now().difference(clusterAllImagesTime).inSeconds} seconds');
     } catch (e, s) {
       _logger.severe("`clusterAllImages` failed", e, s);
     } finally {
       _clusteringIsHappening = false;
-      _isIndexingOrClusteringRunning = false;
-      _cancelPauseIndexingAndClustering();
     }
   }
 
-  Future<bool> processImage(FileMLInstruction instruction) async {
+  Future<bool> _processImage(FileMLInstruction instruction) async {
     bool actuallyRanML = false;
 
     final mlDataDB = _dbForMode(instruction.mode);
+    String? pathToDeleteAfterMLProcessing;
+    // True once result or skip-marker rows are stored, meaning the file
+    // won't be retried and its cached download/export can be dropped.
+    bool indexedOrSkipped = false;
     try {
       final String filePath = await getImagePathForML(instruction.file);
+      if (_shouldDeleteAfterMLProcessing(instruction.file)) {
+        pathToDeleteAfterMLProcessing = filePath;
+      }
 
       final MLResult? result = await MLIndexingIsolate.instance.analyzeImage(
         instruction,
         filePath,
       );
-      // Check if there's no result simply because MLController paused indexing
       if (result == null) {
-        if (!_shouldPauseIndexingAndClustering) {
+        if (!(_activeRunControl?.stopRequested ?? false) &&
+            !MLIndexingIsolate.instance.shouldPauseIndexingAndClustering) {
           _logger.severe(
             "Failed to analyze image with fileID: ${instruction.fileKey}",
           );
         }
         return actuallyRanML;
       }
-      // Check anything actually ran
       actuallyRanML = result.ranML;
       if (!actuallyRanML) return actuallyRanML;
-      final bool isOffline = instruction.isOffline;
-      // Prepare storing data on remote (online mode only)
-      final FileDataEntity? dataEntity = isOffline
+      final bool isLocalGallery = instruction.isLocalGallery;
+      final FileDataEntity? dataEntity = isLocalGallery
           ? null
           : (instruction.existingRemoteFileML ??
-              FileDataEntity.empty(
-                instruction.file.uploadedFileID!,
-                DataType.mlData,
-              ));
-      // Faces results
+                FileDataEntity.empty(
+                  instruction.file.uploadedFileID!,
+                  DataType.mlData,
+                ));
       final List<Face> faces = [];
       if (result.facesRan) {
         if (result.faces!.isEmpty) {
@@ -578,7 +870,7 @@ class MLService {
             );
           }
         }
-        if (!isOffline) {
+        if (!isLocalGallery) {
           dataEntity!.putFace(
             RemoteFaceEmbedding(
               faces,
@@ -586,33 +878,29 @@ class MLService {
               client: client,
               height: result.decodedImageSize.height,
               width: result.decodedImageSize.width,
+              flags: result.remoteFlags,
             ),
           );
         }
       }
-      // Clip results
       if (result.clipRan) {
-        if (!isOffline) {
+        if (!isLocalGallery) {
           dataEntity!.putClip(
             RemoteClipEmbedding(
               result.clip!.embedding,
               version: clipMlVersion,
               client: client,
+              flags: result.remoteFlags,
             ),
           );
         }
       }
-      if (!isOffline) {
-        // Storing results on remote
-        await fileDataService.putFileData(
-          instruction.file,
-          dataEntity!,
-        );
+      if (!isLocalGallery && (result.facesRan || result.clipRan)) {
+        await fileDataService.putFileData(instruction.file, dataEntity!);
       }
-      // Storing results locally
       if (result.facesRan) await mlDataDB.bulkInsertFaces(faces);
       if (result.clipRan) {
-        if (isOffline) {
+        if (isLocalGallery) {
           await mlDataDB.putClip([
             ClipEmbedding(
               fileID: result.fileId,
@@ -626,55 +914,156 @@ class MLService {
           );
         }
       }
+
       _logger.info("ML result for fileID ${result.fileId} stored remote+local");
+      indexedOrSkipped = true;
       return actuallyRanML;
     } catch (e, s) {
-      final String errorString = e.toString();
       final String format = instruction.file.displayName.split('.').last;
       final int? size = instruction.file.fileSize;
       final fileType = instruction.file.fileType;
-      final bool acceptedIssue =
-          errorString.contains('ThumbnailRetrievalException') ||
-              errorString.contains('InvalidImageFormatException') ||
-              errorString.contains('UnhandledExifOrientation') ||
-              errorString.contains('FileSizeTooLargeForMobileIndexing');
-      if (acceptedIssue) {
+      if (e is CouldNotRetrieveAnyFileData &&
+          await _removeMissingLocalFileReference(instruction)) {
+        return false;
+      }
+      if (e is RustCorruptModelException) {
+        stopActiveRun(MlStopReason.corruptModel);
         _logger.severe(
-          '$errorString for fileID ${instruction.fileKey} (format $format, type $fileType, size $size), storing empty results so indexing does not get stuck',
-          e,
-          s,
+          "Stopping ML indexing for fileID ${instruction.fileKey} "
+          "(format $format, type $fileType, size $size) because Rust ML "
+          "reported a corrupt model at ${e.modelPath}",
         );
-        await mlDataDB.bulkInsertFaces(
-          [Face.empty(instruction.fileKey, error: true)],
+        rethrow;
+      }
+      final bool acceptedIssue = isExpectedMlSkipError(e);
+      if (acceptedIssue) {
+        _logger.warning(
+          "Skipping ML indexing for fileID ${instruction.fileKey} (format $format, type $fileType, size $size): ${formatExpectedMlSkipReasonForLogs(e)}",
         );
-        if (instruction.isOffline) {
-          await mlDataDB.putClip([ClipEmbedding.empty(instruction.fileKey)]);
-        } else {
-          await SemanticSearchService.instance.storeEmptyClipImageResult(
-            instruction.file,
-          );
+        final storedMarkers = <String>[];
+        if (instruction.shouldRunFaces) {
+          await mlDataDB.bulkInsertFaces([
+            Face.empty(instruction.fileKey, error: true),
+          ]);
+          storedMarkers.add("faces");
         }
+        if (instruction.shouldRunClip) {
+          if (instruction.isLocalGallery) {
+            await mlDataDB.putClip([ClipEmbedding.empty(instruction.fileKey)]);
+          } else {
+            await SemanticSearchService.instance.storeEmptyClipImageResult(
+              instruction.file,
+            );
+          }
+          storedMarkers.add("clip");
+        }
+        _logger.info(
+          "Stored empty ML result markers for fileID ${instruction.fileKey}: ${storedMarkers.join(', ')}",
+        );
+        if (e is RepeatedFileDecryptionError) {
+          await mlDecryptionRecordStore.add(instruction.fileKey);
+        }
+        indexedOrSkipped = true;
         return true;
       }
       _logger.severe(
-        "Failed to index file for fileID ${instruction.fileKey} (format $format, type $fileType, size $size). Not storing any results locally, which means it will be automatically retried later.",
+        "Failed to index file for fileID ${instruction.fileKey} (format $format, type $fileType, size $size).",
         e,
         s,
       );
       return false;
+    } finally {
+      if (indexedOrSkipped) {
+        if (pathToDeleteAfterMLProcessing != null) {
+          try {
+            await File(pathToDeleteAfterMLProcessing).delete();
+          } catch (e, s) {
+            _logger.warning(
+              "Failed to delete origin file exported for ML at $pathToDeleteAfterMLProcessing",
+              e,
+              s,
+            );
+          }
+        }
+        await _evictRemoteCacheAfterMLProcessing(instruction.file);
+      }
+    }
+  }
+
+  Future<bool> _removeMissingLocalFileReference(
+    FileMLInstruction instruction,
+  ) async {
+    final file = instruction.file;
+    final localID = file.localID;
+    if (!Platform.isAndroid ||
+        !instruction.isLocalGallery ||
+        !isLocalGalleryMode ||
+        localID == null ||
+        localID.isEmpty ||
+        file.isSharedMediaToAppSandbox) {
+      return false;
+    }
+    try {
+      if (await permissionService.getPermissionState() !=
+          PermissionState.authorized) {
+        return false;
+      }
+      if (await LocalMediaClient.instance.assetExists(localID) != false) {
+        _logger.info("Retaining localID $localID: absence is not confirmed");
+        return false;
+      }
+      if (await permissionService.getPermissionState() !=
+              PermissionState.authorized ||
+          !isLocalGalleryMode ||
+          file.localID != localID ||
+          (file.uploadedFileID != null && file.uploadedFileID != -1)) {
+        return false;
+      }
+      await FilesDB.instance.deleteLocalFile(file);
+      SearchService.instance.invalidateFileCaches();
+      Bus.instance.fire(
+        LocalPhotosUpdatedEvent(
+          [file],
+          type: EventType.deletedFromDevice,
+          source: "mlMissingLocalFile",
+        ),
+      );
+      _logger.info("Removed missing Android local file reference $localID");
+      return true;
+    } catch (e, s) {
+      _logger.warning("Could not clean up missing localID $localID", e, s);
+      return false;
+    }
+  }
+
+  bool _shouldDeleteAfterMLProcessing(EnteFile file) {
+    return Platform.isIOS &&
+        file.fileType != FileType.video &&
+        !file.isRemoteOnlyFile;
+  }
+
+  bool _shouldEvictRemoteCacheAfterMLProcessing(EnteFile file) {
+    return file.isRemoteOnlyFile && file.fileType != FileType.video;
+  }
+
+  Future<void> _evictRemoteCacheAfterMLProcessing(EnteFile file) async {
+    if (!_shouldEvictRemoteCacheAfterMLProcessing(file)) {
+      return;
+    }
+    try {
+      await removeFromDownloadCache(file);
+    } catch (e, s) {
+      _logger.warning(
+        "Failed to evict remote file cached for ML for fileID ${file.uploadedFileID}",
+        e,
+        s,
+      );
     }
   }
 
   bool _canRunMLFunction({required String function}) {
-    if (kDebugMode && Platform.isIOS && !_isIndexingOrClusteringRunning) {
+    if (kDebugMode && Platform.isIOS) {
       return true;
-    }
-    if (_isIndexingOrClusteringRunning) {
-      _logger.info(
-        "Cannot run $function because indexing or clustering is already running",
-      );
-      _logStatus();
-      return false;
     }
     if (_mlControllerStatus == false) {
       _logger.info(
@@ -690,18 +1079,10 @@ class MLService {
       _logStatus();
       return false;
     }
-    if (_shouldPauseIndexingAndClustering) {
-      // This should ideally not be triggered, because one of the above should be triggered instead.
-      _logger.warning(
-        "Cannot run $function because indexing and clustering is being paused",
-      );
-      _logStatus();
-      return false;
-    }
     return true;
   }
 
-  Future<Map<int, int>> _getOfflineFileIdToCreationTime() async {
+  Future<Map<int, int>> _getLocalGalleryFileIdToCreationTime() async {
     final files = await SearchService.instance.getAllFilesForSearch();
     final localIdToCreation = <String, int>{};
     for (final file in files) {
@@ -712,10 +1093,8 @@ class MLService {
       }
     }
     if (localIdToCreation.isEmpty) return {};
-    final localIdToIntId =
-        await OfflineFilesDB.instance.getLocalIntIdsForLocalIds(
-      localIdToCreation.keys,
-    );
+    final localIdToIntId = await OfflineFilesDB.instance
+        .getLocalIntIdsForLocalIds(localIdToCreation.keys);
     final map = <int, int>{};
     localIdToIntId.forEach((localId, localIntId) {
       final creationTime = localIdToCreation[localId];
@@ -727,12 +1106,13 @@ class MLService {
   }
 
   void _logStatus() {
-    final String status = '''
+    final String status =
+        '''
     isInternalUser: ${flagService.internalUser}
     Local indexing: ${localSettings.isMLLocalIndexingEnabled}
     canRunMLController: $_mlControllerStatus
-    isIndexingOrClusteringRunning: $_isIndexingOrClusteringRunning
-    shouldPauseIndexingAndClustering: $_shouldPauseIndexingAndClustering
+    activeOperation: ${MlProcessLock.instance.activeOperation?.name}
+    stopRequested: ${_activeRunControl?.stopRequested} (reason: ${_activeRunControl?.stopReason?.name})
     debugIndexingDisabled: $debugIndexingDisabled
     ''';
     _logger.info(status);

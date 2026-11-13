@@ -3,18 +3,16 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"github.com/ente-io/cli/internal/api"
-	"github.com/ente-io/cli/pkg/model"
+	"github.com/ente/cli/internal/api"
+	"github.com/ente/cli/pkg/model"
 	"github.com/spf13/cobra"
 )
 
-// Define the 'account' command and its subcommands
 var accountCmd = &cobra.Command{
 	Use:   "account",
 	Short: "Manage account settings",
 }
 
-// Subcommand for 'account list'
 var listAccCmd = &cobra.Command{
 	Use:   "list",
 	Short: "list configured accounts",
@@ -24,7 +22,6 @@ var listAccCmd = &cobra.Command{
 	},
 }
 
-// Subcommand for 'account add'
 var addAccCmd = &cobra.Command{
 	Use:   "add",
 	Short: "login into existing account",
@@ -35,7 +32,6 @@ var addAccCmd = &cobra.Command{
 	},
 }
 
-// Subcommand for 'account update'
 var updateAccCmd = &cobra.Command{
 	Use:   "update",
 	Short: "Update an existing account's export directory",
@@ -74,7 +70,6 @@ var updateAccCmd = &cobra.Command{
 	},
 }
 
-// Subcommand for 'account update'
 var getTokenCmd = &cobra.Command{
 	Use:   "get-token",
 	Short: "Get token for an account for a specific app",
@@ -85,7 +80,6 @@ var getTokenCmd = &cobra.Command{
 		if email == "" {
 
 			fmt.Println("email must be specified, use --help for more information")
-			// print help
 			return
 		}
 
@@ -110,9 +104,7 @@ var getTokenCmd = &cobra.Command{
 }
 
 func init() {
-	// Add 'config' subcommands to the root command
 	rootCmd.AddCommand(accountCmd)
-	// Add 'config' subcommands to the 'config' command
 	updateAccCmd.Flags().String("dir", "", "update export directory")
 	updateAccCmd.Flags().String("email", "", "email address of the account")
 	updateAccCmd.Flags().String("app", "photos", "Specify the app, default is 'photos'")

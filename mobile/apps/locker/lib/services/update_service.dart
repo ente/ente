@@ -13,8 +13,10 @@ class UpdateService {
   static final UpdateService instance = UpdateService._privateConstructor();
   static const String kUpdateAvailableShownTimeKey =
       "update_available_shown_time_key";
+  static const String _updateNotificationsEnabledKey =
+      "update_notifications_enabled";
   static const String kChangeLogShownVersionKey = "update_change_log_key";
-  static const int currentChangeLogVersion = 0;
+  static const int currentChangeLogVersion = 3;
   static const String _lockerIndependentPackageName =
       "io.ente.locker.independent";
   static const String _lockerIndependentPackagePrefix =
@@ -22,7 +24,7 @@ class UpdateService {
   static const String _lockerFDroidPackagePrefix = "io.ente.locker.fdroid";
   static const String _releaseInfoUrl = String.fromEnvironment(
     "locker.release_info_url",
-    defaultValue: "https://ente.io/release-info/locker-independent.json",
+    defaultValue: "https://ente.com/release-info/locker-independent.json",
   );
 
   final _logger = Logger("UpdateService");
@@ -37,10 +39,10 @@ class UpdateService {
   }
 
   Future<bool> shouldUpdate() async {
+    _latestVersion = null;
     if (!_isInitialized || !isIndependent()) {
       return false;
     }
-    _latestVersion = null;
     try {
       _latestVersion = await _getLatestVersionInfo();
       final currentVersionCode = int.tryParse(_packageInfo!.buildNumber) ?? 0;
@@ -68,6 +70,13 @@ class UpdateService {
     return _latestVersion;
   }
 
+  bool get updateNotificationsEnabled =>
+      _prefs!.getBool(_updateNotificationsEnabledKey) ?? true;
+
+  Future<void> setUpdateNotificationsEnabled(bool enabled) async {
+    await _prefs!.setBool(_updateNotificationsEnabledKey, enabled);
+  }
+
   Future<bool> shouldShowUpdateNotification() async {
     if (!_isInitialized || !isIndependent()) {
       return false;
@@ -77,12 +86,19 @@ class UpdateService {
     if (!shouldUpdate || _latestVersion == null) {
       return false;
     }
+    if (shouldForceUpdate(_latestVersion)) {
+      return true;
+    }
+    if (!updateNotificationsEnabled) {
+      return false;
+    }
 
     final lastNotificationShownTime =
         _prefs!.getInt(kUpdateAvailableShownTimeKey) ?? 0;
     final now = DateTime.now().microsecondsSinceEpoch;
     final thresholdInDays = _latestVersion!.shouldNotify ? 1 : 3;
-    final hasExceededThreshold = (now - lastNotificationShownTime) >
+    final hasExceededThreshold =
+        (now - lastNotificationShownTime) >
         (thresholdInDays * microSecondsInDay);
 
     return hasExceededThreshold;
@@ -100,18 +116,17 @@ class UpdateService {
     if (!_isInitialized) {
       return false;
     }
-    final lastShownVersion = _prefs!.getInt(kChangeLogShownVersionKey) ?? 0;
+    final lastShownVersion = _prefs!.getInt(kChangeLogShownVersionKey);
+    if (lastShownVersion == null) {
+      await markChangeLogShown();
+      return false;
+    }
     return lastShownVersion < currentChangeLogVersion;
   }
 
   Future<void> markChangeLogShown() async {
     if (!_isInitialized) return;
     await _prefs!.setInt(kChangeLogShownVersionKey, currentChangeLogVersion);
-  }
-
-  Future<void> resetChangeLogShown() async {
-    if (!_isInitialized) return;
-    await _prefs!.remove(kChangeLogShownVersionKey);
   }
 
   bool isIndependent() {
@@ -131,8 +146,9 @@ class UpdateService {
     if (!_isInitialized || Platform.isIOS) {
       return false;
     }
-    return _packageInfo!.packageName
-        .startsWith(_lockerIndependentPackagePrefix);
+    return _packageInfo!.packageName.startsWith(
+      _lockerIndependentPackagePrefix,
+    );
   }
 
   bool isFDroidFlavor() {
@@ -151,8 +167,9 @@ class UpdateService {
 
   Future<LatestVersionInfo> _getLatestVersionInfo() async {
     final response = await Network.instance.getDio().get(_releaseInfoUrl);
-    final latestVersion =
-        Map<String, dynamic>.from(response.data["latestVersion"]);
+    final latestVersion = Map<String, dynamic>.from(
+      response.data["latestVersion"],
+    );
     return LatestVersionInfo.fromMap(latestVersion);
   }
 

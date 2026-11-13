@@ -1,8 +1,9 @@
 name = "csp-reporter"
 main = "src/index.ts"
-compatibility_date = "2025-05-19"
+compatibility_date = "2026-04-23"
 
 routes = [
+    { pattern = "csp-reporter.ente.com", custom_domain = true },
     { pattern = "csp-reporter.ente.io", custom_domain = true }
 ]
 

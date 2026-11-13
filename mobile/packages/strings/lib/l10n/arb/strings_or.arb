@@ -1,0 +1,353 @@
+{
+  "account": "ଆକାଉଣ୍ଟ",
+  "accountSetupIncompleteCreateAccount": "ଆକାଉଣ୍ଟ ସେଟଅପ୍ ଅସମ୍ପୂର୍ଣ୍ଣ। ସେଟଅପ୍ ସମାପ୍ତ କରିବାକୁ ଆକାଉଣ୍ଟ ତିଆରି କରନ୍ତୁ।",
+  "@accountSetupIncompleteCreateAccount": {
+    "description": "Error shown when account exists but signup is incomplete"
+  },
+  "activeSessions": "ସକ୍ରିୟ ସେସନ",
+  "@activeSessions": {
+    "description": "Title for active sessions page"
+  },
+  "addMore": "ଅଧିକ ଯୋଗ କରନ୍ତୁ",
+  "admin": "ଆଡମିନ",
+  "cancel": "ବାତିଲ କରନ୍ତୁ",
+  "@cancel": {
+    "description": "Cancel button label"
+  },
+  "changeEmail": "ଇମେଲ ପରିବର୍ତ୍ତନ କରନ୍ତୁ",
+  "@changeEmail": {
+    "description": "Change email button label"
+  },
+  "changePasswordTitle": "ପାସ୍‍ୱାର୍ଡ଼ ବଦଳାନ୍ତୁ",
+  "@changePasswordTitle": {
+    "description": "Change password title"
+  },
+  "checkInboxAndSpamFolder": "ଯାଞ୍ଚକରଣ ସମ୍ପୂର୍ଣ୍ଣ କରିବାକୁ ଦୟାକରି ଆପଣଙ୍କ ଇନବକ୍ସ (ଏବଂ ସ୍ପାମ୍) ଯାଞ୍ଚ କରନ୍ତୁ",
+  "@checkInboxAndSpamFolder": {
+    "description": "Message asking user to check inbox and spam folder"
+  },
+  "codeCopiedToClipboard": "କ୍ଲିପବୋର୍ଡକୁ କୋଡ୍ କପି ହୋଇଛି",
+  "collaborator": "ସହଯୋଗୀ",
+  "confirm": "ନିଶ୍ଚିତ କରନ୍ତୁ",
+  "@confirm": {
+    "description": "Confirm button label"
+  },
+  "confirmPassword": "ପାସୱାର୍ଡ ସୁନିଶ୍ଚିତ କରନ୍ତୁ",
+  "@confirmPassword": {
+    "description": "Confirm password field label"
+  },
+  "confirmRecoveryKey": "ପୁନରୁଦ୍ଧାର ଚାବି (key) ନିଶ୍ଚିତ କରନ୍ତୁ",
+  "confirmYourRecoveryKey": "ପୁନରୁଦ୍ଧାର ଚାବି (key) ନିଶ୍ଚିତ କରନ୍ତୁ",
+  "contactSupport": "ସହାୟତା ସହ ଯୋଗାଯୋଗ କରନ୍ତୁ",
+  "@contactSupport": {
+    "description": "Contact support button label"
+  },
+  "continueInMailApp": "ପାସୱାର୍ଡ ସଫଳପୂର୍ବକ ପରିବର୍ତ୍ତନ ହୋଇଛି",
+  "continueLabel": "ଜାରି ରଖ |",
+  "@continueLabel": {
+    "description": "Continue button label"
+  },
+  "copypasteThisCodentoYourAuthenticatorApp": "ଆପଣଙ୍କ ପ୍ରାମାଣିକରଣ ଆପ୍ଲିକେସନକୁ ଏହି କୋଡ୍\nକପି-ପେଷ୍ଟ କରନ୍ତୁ",
+  "createAccount": "ଆକାଉଣ୍ଟ ତିଆରି କରନ୍ତୁ",
+  "@createAccount": {
+    "description": "Create account button label"
+  },
+  "createAccountTitle": "ଆକାଉଣ୍ଟ ତିଆରି କରନ୍ତୁ",
+  "decrypting": "ଡିକ୍ରିପ୍ଟ ହେଉଛି...",
+  "deleteAccount": "ଆକାଉଣ୍ଟ ଡିଲିଟ କରନ୍ତୁ",
+  "@deleteAccount": {
+    "description": "Delete account button label"
+  },
+  "dropSupportEmail": "ଦୟାକରି ଆପଣଙ୍କ ପଞ୍ଜିକରଣ ହୋଇଥିବା ଇମେଲ୍ ଠିକଣାରୁ {supportEmail} କୁ ଏକ ଇମେଲ୍ ପ୍ରେରଣ କରନ୍ତୁ।",
+  "@dropSupportEmail": {
+    "placeholders": {
+      "supportEmail": {
+        "description": "The support email address",
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
+  },
+  "email": "ଇମେଲ୍",
+  "@email": {
+    "description": "Email field label"
+  },
+  "emailAlreadyRegistered": "ଇମେଲ ଆଗରୁ ରେଜିଷ୍ଟର ହେଇଛି ।",
+  "@emailAlreadyRegistered": {
+    "description": "Error message when email is already registered"
+  },
+  "emailHint": "ଆପଣଙ୍କ ଇମେଲ ଠିକଣା ପ୍ରବେଶ କରନ୍ତୁ",
+  "emailNotRegistered": "ଇମେଲ ଆଗରୁ ରେଜିଷ୍ଟର ହେଇନି.",
+  "@emailNotRegistered": {
+    "description": "Error message when email is not registered"
+  },
+  "encryptionKeys": "ଏନକ୍ରିପସନ୍ କିଗୁଡ଼ିକ |",
+  "@encryptionKeys": {
+    "description": "Encryption keys title"
+  },
+  "enterCode": "କୋଡ୍ ପ୍ରବେଶ କରନ୍ତୁ",
+  "enterEmail": "ଇମେଲ୍ ପ୍ରବେଶ କରନ୍ତୁ ।",
+  "enterNewPasswordToEncrypt": "ଆପଣଙ୍କ ଡାଟା ଏନକ୍ରିପ୍ଟ କରିବାକୁ ଆମେ ବ୍ୟବହାର କରିପାରିବା ଏକ ନୂତନ ପାସୱାର୍ଡ୍ ପ୍ରବେଶ କରନ୍ତୁ",
+  "@enterNewPasswordToEncrypt": {
+    "description": "Prompt to enter new password for encryption"
+  },
+  "enterPasswordToEncrypt": "ଆପଣଙ୍କ ଡାଟା ଏନକ୍ରିପ୍ଟ କରିବାକୁ ଆମେ ବ୍ୟବହାର କରିପାରିବା ଏକ ପାସୱାର୍ଡ୍ ପ୍ରବେଶ କରନ୍ତୁ",
+  "@enterPasswordToEncrypt": {
+    "description": "Prompt to enter password for encryption"
+  },
+  "enterValidEmail": "ଦୟାକରି ଏକ ବୈଧ ଇମେଲ୍ ଠିକଣା ପ୍ରବେଶ କରନ୍ତୁ।",
+  "enterYourNewEmailAddress": "ଆପଣଙ୍କ ନୂଆ ଇମେଲ ଠିକଣା ପ୍ରବେଶ କରନ୍ତୁ",
+  "enterYourPassword": "ଆପଣଙ୍କ ପାସୱାର୍ଡ ପ୍ରବେଶ କରନ୍ତୁ",
+  "enterYourRecoveryKey": "ପୁନରୁଦ୍ଧାର ଚାବି (key) ବ୍ୟବହାର କରନ୍ତୁ",
+  "featureBackupCodes": "ଏଣ୍ଡରୁ ଏଣ୍ଡ ଏନକ୍ରିପ୍ଟ ହୋଇଛି\nବ୍ୟାକଅପ୍ ଏବଂ ସିଙ୍କ୍",
+  "forgotPassword": "ପାସ୍‌ୱାର୍ଡ ଭୁଲିଯାଇଛନ୍ତି",
+  "@forgotPassword": {
+    "description": "Forgot password link label"
+  },
+  "forgotRecoveryKey": "ପୁନରୁଦ୍ଧାର ଚାବି (key) ଭୁଲିଯାଇଛନ୍ତି?",
+  "generatingEncryptionKeys": "ଏନକ୍ରିପସନ୍ କୀଗୁଡିକ ସୃଷ୍ଟି ହେଉଛି...",
+  "@generatingEncryptionKeys": {
+    "description": "Generating encryption keys message"
+  },
+  "howItWorks": "ଏହା କିପରି କାମ କରେ",
+  "@howItWorks": {
+    "description": "How it works button label"
+  },
+  "incorrectPasswordTitle": "ଭୁଲ ପାସୱାର୍ଡ",
+  "@incorrectPasswordTitle": {
+    "description": "Title for incorrect password error"
+  },
+  "incorrectRecoveryKeyBody": "ଆପଣ ପ୍ରବେଶ କରିଥିବା ପୁନରୁଦ୍ଧାର ଚାବି ଭୁଲ୍ ଅଟେ",
+  "incorrectRecoveryKeyTitle": "ଭୁଲ ଚାବି (key)",
+  "insecureDevice": "ଅସୁରକ୍ଷିତ ଡିଭାଇସ୍",
+  "@insecureDevice": {
+    "description": "Insecure device warning title"
+  },
+  "invalidEmailAddress": "ଅବୈଧ ଇମେଲ୍‌ ଠିକଣା",
+  "invalidKey": "ଅବୈଧ କି",
+  "invalidRecoveryKey": "ଆପଣ ପ୍ରବେଶ କରିଥିବା ପୁନରୁଦ୍ଧାର କୀ ବୈଧ ନୁହେଁ। ଦୟାକରି ନିଶ୍ଚିତ କରନ୍ତୁ ଯେ ଏଥିରେ 24 ଟି ଶବ୍ଦ ଅଛି, ଏବଂ ପ୍ରତ୍ୟେକର ବନାନ ଯାଞ୍ଚ କରନ୍ତୁ।\n\nଯଦି ଆପଣ ଏକ ପୁରାତନ ପୁନରୁଦ୍ଧାର କୋଡ୍ ପ୍ରବେଶ କରିଛନ୍ତି, ନିଶ୍ଚିତ କରନ୍ତୁ ଯେ ଏହା 64ଟି ବର୍ଣ୍ଣ ଲମ୍ୱା ଅଟେ, ଏବଂ ସେଗୁଡିକ ମଧ୍ୟରୁ ପ୍ରତ୍ୟେକ ଯାଞ୍ଚ କରନ୍ତୁ।",
+  "ok": "ଠିକ",
+  "@ok": {
+    "description": "Generic OK button label"
+  },
+  "locationPickerTip": "ଆପଣ ଫଟୋର ସୂଚନା ସ୍କ୍ରିନରୁ ଏକ ଫଟୋରେ କେନ୍ଦ୍ରିତ ଏକ ଅବସ୍ଥାନ ମଧ୍ୟ ଯୋଡିପାରିବେ",
+  "@locationPickerTip": {
+    "description": "Helper tip text shown in the location picker that refers to the photo info screen."
+  },
+  "logInLabel": "ଲଗ୍‌ ଇନ୍‌ କରନ୍ତୁ",
+  "@logInLabel": {
+    "description": "Log in button label"
+  },
+  "loginTerms": "ଲଗିନରେ କ୍ଲିକ କରି ମୁଁ ସେବାର <u-terms>ସର୍ତ୍ତାବଳୀ</u-terms> ଏବଂ <u-policy>ଗୋପନୀୟତା ନୀତିରେ</u-policy> ରାଜି ଅଛି",
+  "@loginTerms": {
+    "description": "Terms agreement text for login"
+  },
+  "lostDevice": "ଡିଭାଇସ୍ ହଜିଯାଇଛି?",
+  "moderateStrength": "ମଧ୍ୟମ",
+  "@moderateStrength": {
+    "description": "Moderate password strength label"
+  },
+  "noRecoveryKeyNoDecryption": "ଆମର ଏଣ୍ଡ-ଟୁ-ଏଣ୍ଡ ଏନକ୍ରିପସନ୍ ପ୍ରୋଟୋକଲର ପ୍ରକୃତି କାରଣରୁ, ଆପଣଙ୍କ ପାସୱାର୍ଡ୍ କିମ୍ୱା ପୁନରୁଦ୍ଧାର କୀ ଛଡ଼ା ଆପଣଙ୍କ ଡାଟା ଡିକ୍ରିପ୍ଟ ହୋଇପାରିବ ନାହିଁ",
+  "@noRecoveryKeyNoDecryption": {
+    "description": "Explanation that data cannot be decrypted without password or recovery key"
+  },
+  "ocrGenericDetectError": "ଫଟୋରେ ଟେକ୍ସଟ୍ ଚିହ୍ନଟ କରାଯାଇ ପାରିଲା ନାହିଁ",
+  "ocrImageDecodeFailedError": "ଫଟୋ ଫାଇଲ୍ ପଢି ପାରିଲା ନାହିଁ",
+  "ocrImageNotFoundError": "ଫଟୋ ଫାଇଲ୍ ମିଳିଲା ନାହିଁ",
+  "ocrModelsNetworkRequiredError": "ପ୍ରଥମ ବ୍ୟବହାରରେ OCR ମଡେଲଗୁଡିକ ଡାଉନଲୋଡ୍ କରିବାକୁ ନେଟୱାର୍କ୍ ସଂଯୋଜନା ଆବଶ୍ୟକୀୟ",
+  "ocrModelsPrepareFailed": "OCR ମଡେଲଗୁଡିକ ପ୍ରସ୍ତୁତ କରିପାରିବେ ନାହିଁ",
+  "ocrNoTextDetected": "କୌଣସି ଟେକ୍ସଟ୍ ଚିହ୍ନଟ ହୋଇନାହିଁ",
+  "oops": "ଓହୋ",
+  "@oops": {
+    "description": "Oops error title"
+  },
+  "password": "ପାସ୍‌ୱର୍ଡ଼",
+  "@password": {
+    "description": "Password field label"
+  },
+  "passwordChangedSuccessfully": "ପାସୱାର୍ଡ ସଫଳପୂର୍ବକ ପରିବର୍ତ୍ତନ ହୋଇଛି",
+  "@passwordChangedSuccessfully": {
+    "description": "Password changed successfully message"
+  },
+  "passwordsDontMatch": "ପାସୱାର୍ଡଗୁଡିକ ମେଳ ହେଉ ନାହିଁ",
+  "passwordsMatch": "ପାସୱାର୍ଡ ମେଳଖାଇଲା ",
+  "passwordStrength": "ପାସୱାର୍ଡ୍ ଦକ୍ଷତା: {passwordStrengthValue}",
+  "@passwordStrength": {
+    "description": "Text to indicate the password strength",
+    "placeholders": {
+      "passwordStrengthValue": {
+        "description": "The strength of the password as a string",
+        "type": "String",
+        "example": "Weak or Moderate or Strong"
+      }
+    }
+  },
+  "passwordWarning": "ଆମେ ଏହି ପାସୱାର୍ଡ୍ ଷ୍ଟୋର୍ କରୁନାହୁଁ, ତେଣୁ ଯଦି ଆପଣ ଭୁଲିଯାଆନ୍ତି, <underline>ଆମେ ଆପଣଙ୍କ ଡାଟା ଡିକ୍ରିପ୍ଟ କରିପାରିବୁ ନାହିଁ</underline>",
+  "@passwordWarning": {
+    "description": "Warning about password storage"
+  },
+  "pleaseTryAgain": "ଦୟାକରି ପୁନଃଚେଷ୍ଟା କରନ୍ତୁ",
+  "@pleaseTryAgain": {
+    "description": "Message asking user to try again"
+  },
+  "pleaseWait": "ଦୟାକରି ଅପେକ୍ଷା କରନ୍ତୁ...",
+  "@pleaseWait": {
+    "description": "Please wait message"
+  },
+  "privacyPolicyTitle": "ଗୋପନୀୟତା ନୀତି",
+  "@privacyPolicyTitle": {
+    "description": "Privacy policy title"
+  },
+  "readyToBackupSubtitle": "ପଛେ ପଟେ ଆପଣଙ୍କ ଫଟୋଗୁଡିକ ସିଙ୍କ୍ ହେବ। ପ୍ରଥମ ବ୍ୟାକଅପ କିଛି ସମୟ ନେଇ ପାରେ।",
+  "readyToBackupTitle": "ବ୍ୟାକଅପ୍ କରିବାକୁ ପ୍ରସ୍ତୁତ",
+  "recover": "ପୁନରୁଦ୍ଧାର କରନ୍ତୁ |",
+  "@recover": {
+    "description": "Recover button label"
+  },
+  "recoverAccount": "ଆକାଉଣ୍ଟ ପୁନରୁଦ୍ଧାର କରନ୍ତୁ",
+  "@recoverAccount": {
+    "description": "Recover account button label"
+  },
+  "recoveryKey": "ରିକଭରି ଚାବି",
+  "@recoveryKey": {
+    "description": "Recovery key label"
+  },
+  "recoveryKeyCopiedToClipboard": "କ୍ଲିପବୋର୍ଡକୁ ପୁନରୁଦ୍ଧାର କୀ କପି ହୋଇଛି",
+  "@recoveryKeyCopiedToClipboard": {
+    "description": "Recovery key copied message"
+  },
+  "recoveryKeyOnForgotPassword": "ଯଦି ଆପଣ ଆପଣଙ୍କ ପାସୱାର୍ଡ୍ ଭୁଲିଯାଇଛନ୍ତି, ଏହି ଚାବି ସହ ଆପଣ ଆପଣଙ୍କ ଡାଟା ପୁନରୁଦ୍ଧାର କରିବାର ଏକମାତ୍ର ଉପାୟ ରହିଛି।",
+  "@recoveryKeyOnForgotPassword": {
+    "description": "Recovery key importance explanation"
+  },
+  "recoveryKeySaveShortDescription": "ଦୟାକରି ଏହି ଚାବି ଏକ ନିରାପଦ ସ୍ଥାନରେ ରଖନ୍ତୁ ।",
+  "recoveryKeySuccessBody": "ଉତ୍ତମ! ଆପଣଙ୍କ ପୁନରୁଦ୍ଧାର କୀ ବୈଧ ଅଟେ। ଯାଞ୍ଚ କରିଥିବାରୁ ଆପଣଙ୍କୁ ଧନ୍ୟବାଦ।\n\nଦୟାକରି ଆପଣଙ୍କ ପୁନରୁଦ୍ଧାର କୀ ସୁରକ୍ଷିତ ଭାବେ ବ୍ୟାକ୍ ଅପ୍ ରଖିବାକୁ ମନେରଖନ୍ତୁ।.",
+  "recoveryKeyVerified": "ପୁନରୁଦ୍ଧାର କୀ ଯାଞ୍ଚ ହେଇଗଲା",
+  "recoveryKeyVerifyReason": "ଯଦି ଆପଣ ଆପଣଙ୍କ ପାସୱାର୍ଡ୍ ଭୁଲିଯାଇଛନ୍ତି ତେବେ ଆପଣଙ୍କ ଫଟୋଗୁଡିକ ପୁନରୁଦ୍ଧାର କରିବାର ଏକମାତ୍ର ଉପାୟ ହେଉଛି ଆପଣଙ୍କ ପୁନରୁଦ୍ଧାର କୀ। ଆପଣ ସେଟିଂସ୍ > ଆକାଉଣ୍ଟରେ ଆପଣଙ୍କ ପୁନରୁଦ୍ଧାର କୀ ସନ୍ଧାନ କରିପାରିବେ।\n\nଆପଣ ଏହାକୁ ସଠିକ୍ ଭାବରେ ସଞ୍ଚୟ କରିଛନ୍ତି କି ନାହିଁ ଯାଞ୍ଚ କରିବାକୁ ଦୟାକରି ଏଠାରେ ଆପଣଙ୍କ ପୁନରୁଦ୍ଧାର କୀ ପ୍ରବେଶ କରନ୍ତୁ।",
+  "recoverySuccessful": "ପୁନରୁଦ୍ଧାର ସଫଳ!",
+  "recreatePasswordBody": "ସମ୍ପ୍ରତି ଡିଭାଇସ୍ ଆପଣଙ୍କ ପାସୱାର୍ଡ୍ ଯାଞ୍ଚ କରିବାକୁ ଯଥେଷ୍ଟ ଶକ୍ତିଶାଳୀ ନୁହେଁ, କିନ୍ତୁ ଆମେ ଏପରି ଉପାୟରେ ପୁନଃସୃଷ୍ଟି କରିପାରିବା ଯାହା ସମସ୍ତ ଡିଭାଇସ୍ ସହ କାର୍ଯ୍ୟ କରେ।\n\nଦୟାକରି ଆପଣଙ୍କ ପୁନରୁଦ୍ଧାର କୀ ବ୍ୟବହାର କରି ଲଗଇନ୍ କରନ୍ତୁ ଏବଂ ଆପଣଙ୍କ ପାସୱାର୍ଡ୍ ପୁନଃସୃଷ୍ଟି କରନ୍ତୁ (ଯଦି ଆପଣ ଚାହାଁନ୍ତି ତେବେ ଆପଣ ପୁନଃ ସେହି ବ୍ୟବହାର କରିପାରିବେ)।",
+  "@recreatePasswordBody": {
+    "description": "Body text for recreate password dialog"
+  },
+  "recreatePasswordTitle": "ପାସୱାର୍ଡ ପୁନଃସୃଷ୍ଟି କରନ୍ତୁ",
+  "@recreatePasswordTitle": {
+    "description": "Title for recreate password dialog"
+  },
+  "remove": "କାଢନ୍ତୁ",
+  "removeParticipant": "ଅଂଶଗ୍ରହଣକାରୀଙ୍କୁ ଅପସାରଣ କରନ୍ତୁ",
+  "@removeParticipant": {
+    "description": "menuSectionTitle for removing a participant"
+  },
+  "resendCode": "ପୁଣିଥରେ କୋଡ୍ ପଠାନ୍ତୁ",
+  "resetPasswordTitle": "ପାସୱାର୍ଡ ରିସେଟ୍ କରନ୍ତୁ |",
+  "@resetPasswordTitle": {
+    "description": "Reset password title"
+  },
+  "retry": "ପୁନଃଚେଷ୍ଟା କରନ୍ତୁ",
+  "saveKey": "ଚାବିକୁ(key) ସାଇତି ରଖନ୍ତୁ",
+  "@saveKey": {
+    "description": "Save key button label"
+  },
+  "saveYourRecoveryKeyIfYouHaventAlready": "ଯଦି ଆପଣ ପୂର୍ବରୁ କରିନାହାଁନ୍ତି ତେବେ ଆପଣଙ୍କ ପୁନରୁଦ୍ଧାର କୀ ସଞ୍ଚୟ କରନ୍ତୁ",
+  "scanCode": "କୋଡ୍ ସ୍କାନ୍ କରନ୍ତୁ",
+  "setPasswordTitle": "ପାସୱାର୍ଡ୍ ରଖନ୍ତୁ",
+  "@setPasswordTitle": {
+    "description": "Set password title"
+  },
+  "shareKey": "ଚାବିକୁ(key) ସେଆର କରିବେ",
+  "signUpTerms": "ମୁଁ ସେବାର <u-terms>ସର୍ତ୍ତାବଳୀ</u-terms> ଏବଂ <u-policy>ଗୋପନୀୟତା ନୀତିରେ</u-policy> ରାଜି ଅଛି",
+  "@signUpTerms": {
+    "description": "Terms agreement text for sign up"
+  },
+  "somethingWentWrongPleaseTryAgain": "କିଛି ଭୁଲ୍ ହୋଇଛି, ଦୟାକରି ପୁନଃଚେଷ୍ଟା କରନ୍ତୁ",
+  "@somethingWentWrongPleaseTryAgain": {
+    "description": "Generic error message"
+  },
+  "sorry": "କ୍ଷମା କରନ୍ତୁ",
+  "sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": "ଦୁଃଖିତ, ଆମେ ଏହି ଡିଭାଇସରେ ସୁରକ୍ଷିତ କୀଗୁଡିକ ଉତ୍ପନ୍ନ କରିପାରିଲୁ ନାହିଁ।\n\nଦୟାକରି ଏକ ଭିନ୍ନ ଡିଭାଇସରୁ ସାଇନ୍ ଅପ୍ କରନ୍ତୁ।",
+  "@sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": {
+    "description": "Error message for insecure device"
+  },
+  "strongPassword": "ଶକ୍ତିଶାଳୀ ପାସୱାର୍ଡ",
+  "strongStrength": "ଶକ୍ତିଶାଳୀ",
+  "@strongStrength": {
+    "description": "Strong password strength label"
+  },
+  "terminate": "ସମାପ୍ତ କରନ୍ତୁ",
+  "@terminate": {
+    "description": "Terminate button label"
+  },
+  "terminateSession": "ଅଧିବେଶନ ଶେଷ ହେବ?",
+  "@terminateSession": {
+    "description": "Title for terminate session dialog"
+  },
+  "termsOfServicesTitle": "ସର୍ତ୍ତାବଳୀ",
+  "@termsOfServicesTitle": {
+    "description": "Terms of service title"
+  },
+  "thisCanBeUsedToRecoverYourAccountIfYou": "ଯଦି ଆପଣ ଆପଣଙ୍କର ଦ୍ୱିତୀୟ ଫ୍ୟାକ୍ଟର୍ ହରାନ୍ତି ତେବେ ଏହା ଆପଣଙ୍କ ଆକାଉଣ୍ଟ ପୁନରୁଦ୍ଧାର କରିବାକୁ ବ୍ୟବହାର କରାଯାଇପାରେ",
+  "thisDevice": "ଏହି ଡିଭାଇସ",
+  "@thisDevice": {
+    "description": "Label for current device"
+  },
+  "thisWillLogYouOutOfTheFollowingDevice": "ଏହା ଆପଣଙ୍କୁ ଏହି ଡିଭାଇସରୁ ଲଗ ଆଉଟ କରିବ:",
+  "@thisWillLogYouOutOfTheFollowingDevice": {
+    "description": "Warning message for logging out of another device"
+  },
+  "thisWillLogYouOutOfThisDevice": "ଏହା ଆପଣଙ୍କୁ ଏହି ଡିଭାଇସରୁ ଲଗ ଆଉଟ କରିବ!",
+  "@thisWillLogYouOutOfThisDevice": {
+    "description": "Warning message for logging out of current device"
+  },
+  "toResetVerifyEmail": "ଆପଣଙ୍କ ପାସୱାର୍ଡ୍ ପୁନଃସେଟ୍ କରିବାକୁ, ଦୟାକରି ପ୍ରଥମେ ଆପଣଙ୍କ ଇମେଲ୍ ଯାଞ୍ଚ କରନ୍ତୁ।",
+  "@toResetVerifyEmail": {
+    "description": "Message asking user to verify email before password reset"
+  },
+  "tryAgain": "ପୁଣିଥରେ ଚେଷ୍ଟା କରନ୍ତୁ",
+  "@tryAgain": {
+    "description": "Try again button label"
+  },
+  "twoFactorAuthTitle": "ଦୁଇ-କାରକ ପ୍ରାମାଣିକରଣ",
+  "@twoFactorAuthTitle": {
+    "description": "Two-factor authentication title"
+  },
+  "twofactorSetup": "ଦୁଇ-କାରକ ସେଟଅପ୍",
+  "unlock": "ଖୋଲନ୍ତୁ",
+  "@unlock": {
+    "description": "Short action label used as the system authentication reason when unlocking the app"
+  },
+  "useRecoveryKey": "ପୁନରୁଦ୍ଧାର ଚାବି (key) ବ୍ୟବହାର କରନ୍ତୁ",
+  "@useRecoveryKey": {
+    "description": "Use recovery key button label"
+  },
+  "verify": "ଯାଞ୍ଚ କରନ୍ତୁ",
+  "@verify": {
+    "description": "Verify button label"
+  },
+  "verifyEmail": "ଇମେଲ ଯାଞ୍ଚ କରନ୍ତୁ",
+  "@verifyEmail": {
+    "description": "Verify email title"
+  },
+  "verifyingRecoveryKey": "ପୁନରୁଦ୍ଧାର କୀ ଯାଞ୍ଚ ହେଉଛି...",
+  "verifyPassword": "ପାସ୍‌ୱାର୍ଡ ଯାଞ୍ଚ କରନ୍ତୁ",
+  "@verifyPassword": {
+    "description": "Verify password button label"
+  },
+  "viewer": "ଦର୍ଶକ",
+  "viewRecoveryKey": "ପୁନରୁଦ୍ଧାର ଚାବି (key) ଦେଖନ୍ତୁ ",
+  "weakStrength": "ଦୁର୍ବଳ",
+  "@weakStrength": {
+    "description": "Weak password strength label"
+  },
+  "weHaveSentCodeTo": "ଆମେ {email} କୁ ଏକ କୋଡ୍ ପଠେଇଛୁ",
+  "@weHaveSentCodeTo": {
+    "description": "Text to indicate that we have sent a verification code to the user's email",
+    "placeholders": {
+      "email": {
+        "description": "The email address of the user",
+        "type": "String",
+        "example": "example@ente.com"
+      }
+    }
+  },
+  "you": "ଆପଣ"
+}

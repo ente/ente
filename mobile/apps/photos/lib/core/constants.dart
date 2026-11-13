@@ -9,48 +9,43 @@ const String sentryDSN =
     "https://2235e5c99219488ea93da34b9ac1cb68@sentry.ente.io/4";
 const String sentryDebugDSN =
     "https://ca5e686dd7f149d9bf94e620564cceba@sentry.ente.io/3";
-const String sentryTunnel = "https://sentry-reporter.ente.io";
-const String githubDiscussionsUrl =
-    "https://github.com/ente-io/ente/discussions";
+const String sentryTunnel = "https://sentry-reporter.ente.com";
+const String githubDiscussionsUrl = "https://github.com/ente/ente/discussions";
 const int microSecondsInDay = 86400000000;
 const int android11SDKINT = 30;
+const int android12SDKINT = 31;
 const int jan011981Time = 347155200000000;
-const int galleryLoadStartTime = -8000000000000000; // Wednesday, March 6, 1748
-const int galleryLoadEndTime = 9223372036854775807; // 2^63 -1
+const int galleryLoadStartTime = -8000000000000000; // June 28, 1716
+const int galleryLoadEndTime = 9223372036854775807; // 2^63 - 1
 const int batchSize = 1000;
 const int batchSizeCopy = 100;
-const photoGridSizeDefault = 4;
-const photoGridSizeMin = 2;
+const photoGridSizeDefault = 3;
+const photoGridSizeMin = 3;
 const photoGridSizeMax = 6;
 const subGalleryMultiplier = 10;
 
-// used to identify which ente file are available in app cache
 const String sharedMediaIdentifier = 'ente-shared-media://';
 
 const galleryThumbnailDiskLoadDeferDuration = Duration(milliseconds: 80);
 const galleryThumbnailServerLoadDeferDuration = Duration(milliseconds: 80);
+const mediaManagementHintDismissDuration = Duration(days: 7);
+const mediaManagementHintDeleteAttemptThreshold = 3;
 
-// 256 bit key maps to 24 words
-// https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki#Generating_the_mnemonic
-const mnemonicKeyWordCount = 24;
-
-// https://stackoverflow.com/a/61162219
 const dragSensitivity = 8;
 
-const supportEmail = 'support@ente.io';
+const supportEmail = 'support@ente.com';
 
-// this is the chunk size of the un-encrypted file which is read and encrypted before uploading it as a single part.
 const multipartPartSize = 20 * 1024 * 1024;
 
-const kDefaultProductionEndpoint = 'https://api.ente.io';
-const kUploadProxyEndpoint = 'https://uploader.ente.io';
-const kAccountsUrl = 'https://accounts.ente.io';
-const kCasUrl = 'https://cas.ente.io';
+const kDefaultProductionEndpoint = 'https://api.ente.com';
+const kLegacyProductionEndpoint = 'https://api.ente.io';
+const kUploadProxyEndpoint = 'https://uploader.ente.com';
+const kPhotosWebDomain = 'photos.ente.com';
 const kFamilyUrl = 'https://family.ente.io';
 
 const int intMaxValue = 9223372036854775807;
 
-//Screen width of iPhone 14 pro max in points is taken as maximum
+// Cap layouts at the 430-point width of an iPhone 14 Pro Max.
 const double restrictedMaxWidth = 430;
 
 const double mobileSmallThreshold = 336;
@@ -64,9 +59,7 @@ const defaultRadiusValues = <double>[1, 2, 10, 20, 40, 80, 200, 400, 1200];
 
 const defaultRadiusValue = 40.0;
 
-const defaultCityRadius = 10.0;
-
-const galleryGridSpacing = 2.0;
+const galleryGridSpacing = 1.0;
 
 const kSearchSectionLimit = 9;
 
@@ -74,7 +67,8 @@ const maxPickAssetLimit = 50;
 
 const iOSGroupIDMemory = "group.io.ente.frame.EnteMemoryWidget";
 
-const blackThumbnailBase64 = '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAEBAQEBAQEB'
+const blackThumbnailBase64 =
+    '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAEBAQEBAQEB'
     'AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/2wBDAQEBAQEBAQ'
     'EBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/wAARC'
     'ACWASwDAREAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUF'
@@ -107,7 +101,6 @@ final tempDirCleanUpInterval = kDebugMode
     ? const Duration(hours: 1).inMicroseconds
     : const Duration(hours: 6).inMicroseconds;
 
-const kFilterChipHeight = 32.0;
 const kMaxAppbarFilters = 14;
 
 const kLivePhotoHashSeparator = ':';

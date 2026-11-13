@@ -1,0 +1,1 @@
+ALTER TABLE casting ADD COLUMN device_name TEXT DEFAULT NULL;

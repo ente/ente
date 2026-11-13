@@ -8,12 +8,12 @@ import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file_load_result.dart';
 import 'package:photos/models/gallery_type.dart';
 import 'package:photos/models/search/search_result.dart';
+import 'package:photos/models/search/search_types.dart';
 import 'package:photos/models/selected_files.dart';
 import 'package:photos/ui/viewer/actions/file_selection_overlay_bar.dart';
 import 'package:photos/ui/viewer/gallery/gallery.dart';
 import 'package:photos/ui/viewer/gallery/gallery_app_bar_widget.dart';
 import "package:photos/ui/viewer/gallery/hierarchical_search_gallery.dart";
-import "package:photos/ui/viewer/gallery/state/boundary_reporter_mixin.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_boundaries_provider.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
 import "package:photos/ui/viewer/gallery/state/inherited_search_filter_data.dart";
@@ -41,6 +41,7 @@ class SearchResultPage extends StatefulWidget {
 
 class _SearchResultPageState extends State<SearchResultPage> {
   final _selectedFiles = SelectedFiles();
+  final _coverAppBarKey = GlobalKey();
   late final List<EnteFile> files;
   late final StreamSubscription<LocalPhotosUpdatedEvent> _filesUpdatedEvent;
   late final SearchFilterDataProvider _searchFilterDataProvider;
@@ -49,8 +50,9 @@ class _SearchResultPageState extends State<SearchResultPage> {
   void initState() {
     super.initState();
     files = widget.searchResult.resultFiles();
-    _filesUpdatedEvent =
-        Bus.instance.on<LocalPhotosUpdatedEvent>().listen((event) {
+    _filesUpdatedEvent = Bus.instance.on<LocalPhotosUpdatedEvent>().listen((
+      event,
+    ) {
       if (event.type == EventType.deletedFromDevice ||
           event.type == EventType.deletedFromEverywhere ||
           event.type == EventType.deletedFromRemote ||
@@ -74,7 +76,22 @@ class _SearchResultPageState extends State<SearchResultPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isLocation =
+        widget.searchResult.type() == ResultType.location ||
+        widget.searchResult.type() == ResultType.locationSuggestion;
+    final heroTag = widget.tagPrefix + widget.searchResult.heroTag();
+    final filesTagPrefix = isLocation ? "${heroTag}_files" : heroTag;
+    final appBar = GalleryAppBarWidget.sliverConfig(
+      SearchResultPage.appBarType,
+      widget.searchResult.name(),
+      _selectedFiles,
+      coverAppBarKey: _coverAppBarKey,
+      cover: isLocation ? files.firstOrNull : null,
+      coverHeroTag: isLocation ? heroTag : null,
+      files: isLocation ? files : null,
+    );
     final gallery = Gallery(
+      appBar: appBar,
       asyncLoader: (creationStartTime, creationEndTime, {limit, asc}) {
         final result = files
             .where(
@@ -84,10 +101,7 @@ class _SearchResultPageState extends State<SearchResultPage> {
             )
             .toList();
         return Future.value(
-          FileLoadResult(
-            result,
-            result.length < files.length,
-          ),
+          FileLoadResult(result, result.length < files.length),
         );
       },
       reloadEvent: Bus.instance.on<LocalPhotosUpdatedEvent>(),
@@ -96,7 +110,7 @@ class _SearchResultPageState extends State<SearchResultPage> {
         EventType.deletedFromEverywhere,
         EventType.hide,
       },
-      tagPrefix: widget.tagPrefix + widget.searchResult.heroTag(),
+      tagPrefix: filesTagPrefix,
       selectedFiles: _selectedFiles,
       enableFileGrouping: widget.enableGrouping,
       initialFiles: widget.searchResult.resultFiles().isNotEmpty
@@ -109,22 +123,6 @@ class _SearchResultPageState extends State<SearchResultPage> {
         child: InheritedSearchFilterDataWrapper(
           searchFilterDataProvider: _searchFilterDataProvider,
           child: Scaffold(
-            appBar: PreferredSize(
-              preferredSize: const Size.fromHeight(90.0),
-              child: widget.enableGrouping
-                  ? GalleryAppBarWidget(
-                      SearchResultPage.appBarType,
-                      widget.searchResult.name(),
-                      _selectedFiles,
-                    )
-                  : _AppBarWithBoundary(
-                      child: GalleryAppBarWidget(
-                        SearchResultPage.appBarType,
-                        widget.searchResult.name(),
-                        _selectedFiles,
-                      ),
-                    ),
-            ),
             body: SelectionState(
               selectedFiles: _selectedFiles,
               child: Stack(
@@ -133,14 +131,17 @@ class _SearchResultPageState extends State<SearchResultPage> {
                   Builder(
                     builder: (context) {
                       return ValueListenableBuilder(
-                        valueListenable: InheritedSearchFilterData.of(context)
-                            .searchFilterDataProvider!
-                            .isSearchingNotifier,
+                        valueListenable: InheritedSearchFilterData.of(
+                          context,
+                        ).searchFilterDataProvider!.isSearchingNotifier,
                         builder: (context, value, _) {
                           return value
                               ? HierarchicalSearchGallery(
-                                  tagPrefix: widget.tagPrefix,
+                                  tagPrefix: isLocation
+                                      ? filesTagPrefix
+                                      : widget.tagPrefix,
                                   selectedFiles: _selectedFiles,
+                                  appBar: appBar,
                                 )
                               : gallery;
                         },
@@ -157,28 +158,6 @@ class _SearchResultPageState extends State<SearchResultPage> {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// Wrapper widget that reports the app bar as top boundary for auto-scroll
-/// when file grouping is disabled
-class _AppBarWithBoundary extends StatefulWidget {
-  final Widget child;
-
-  const _AppBarWithBoundary({required this.child});
-
-  @override
-  State<_AppBarWithBoundary> createState() => _AppBarWithBoundaryState();
-}
-
-class _AppBarWithBoundaryState extends State<_AppBarWithBoundary>
-    with BoundaryReporter {
-  @override
-  Widget build(BuildContext context) {
-    return boundaryWidget(
-      position: BoundaryPosition.top,
-      child: widget.child,
     );
   }
 }

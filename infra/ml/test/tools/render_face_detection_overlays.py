@@ -5,15 +5,11 @@ import argparse
 import json
 from pathlib import Path
 import re
-import subprocess
-import sys
 from typing import Any, Mapping
 
 from PIL import Image, ImageDraw, ImageFont
 
-ML_DIR = Path(__file__).resolve().parents[1]
-if str(ML_DIR) not in sys.path:
-    sys.path.insert(0, str(ML_DIR))
+from _paths import ML_DIR, repo_root, resolve_repo_relative
 
 from ground_truth._runtime import decode_image_rgb
 
@@ -34,40 +30,12 @@ _PALETTE = (
 )
 
 
-def _repo_root(ml_dir: Path) -> Path:
-    try:
-        completed = subprocess.run(
-            ["git", "-C", str(ml_dir), "rev-parse", "--show-toplevel"],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-    except (subprocess.SubprocessError, FileNotFoundError):
-        return ml_dir.parents[2]
-    root = completed.stdout.strip()
-    if not root:
-        return ml_dir.parents[2]
-    return Path(root)
-
-
-def _resolve_repo_relative(path_value: str, *, repo_root: Path) -> Path:
-    path = Path(path_value)
-    if path.is_absolute():
-        return path
-    return repo_root / path
-
-
-def _resolve_source_path(
-    source_value: str,
-    *,
-    ml_dir: Path,
-    repo_root: Path,
-) -> Path:
+def _resolve_source_path(source_value: str, *, repo_root: Path) -> Path:
     source_path = Path(source_value)
     if source_path.is_absolute():
         return source_path
 
-    ml_relative = ml_dir / source_path
+    ml_relative = ML_DIR / source_path
     if ml_relative.exists():
         return ml_relative
 
@@ -84,7 +52,6 @@ def _safe_output_name(file_id: str) -> str:
 def _load_manifest_sources(
     *,
     manifest_path: Path,
-    ml_dir: Path,
     repo_root: Path,
 ) -> dict[str, Path]:
     payload = json.loads(manifest_path.read_text())
@@ -100,11 +67,7 @@ def _load_manifest_sources(
         source = item.get("source")
         if not isinstance(file_id, str) or not isinstance(source, str):
             continue
-        sources_by_id[file_id] = _resolve_source_path(
-            source,
-            ml_dir=ml_dir,
-            repo_root=repo_root,
-        )
+        sources_by_id[file_id] = _resolve_source_path(source, repo_root=repo_root)
     return sources_by_id
 
 
@@ -315,19 +278,18 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    repo_root = _repo_root(ML_DIR)
-    manifest_path = _resolve_repo_relative(args.manifest, repo_root=repo_root)
-    parity_dir = _resolve_repo_relative(args.parity_dir, repo_root=repo_root)
+    root = repo_root()
+    manifest_path = resolve_repo_relative(args.manifest, repo_root=root)
+    parity_dir = resolve_repo_relative(args.parity_dir, repo_root=root)
     output_dir = (
-        _resolve_repo_relative(args.output_dir, repo_root=repo_root)
+        resolve_repo_relative(args.output_dir, repo_root=root)
         if args.output_dir
         else parity_dir / "detections"
     )
 
     sources_by_id = _load_manifest_sources(
         manifest_path=manifest_path,
-        ml_dir=ML_DIR,
-        repo_root=repo_root,
+        repo_root=root,
     )
 
     requested_platforms = args.platform or _discover_platforms(parity_dir)

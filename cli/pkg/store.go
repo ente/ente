@@ -3,7 +3,7 @@ package pkg
 import (
 	"context"
 	"fmt"
-	"github.com/ente-io/cli/pkg/model"
+	"github.com/ente/cli/pkg/model"
 	"log"
 	"strconv"
 	"time"
@@ -92,7 +92,6 @@ func (c *ClICtrl) DeleteValue(ctx context.Context, store model.PhotosStore, key 
 	})
 }
 
-// GetValue
 func (c *ClICtrl) GetValue(ctx context.Context, store model.PhotosStore, key []byte) ([]byte, error) {
 	var value []byte
 	err := c.DB.View(func(tx *bolt.Tx) error {

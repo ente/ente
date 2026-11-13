@@ -1,5 +1,6 @@
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:photos/models/ml/face/detection.dart";
+import "package:photos/models/ml/face/face.dart";
 import "package:photos/services/machine_learning/face_ml/face_filtering/face_filtering_constants.dart";
 import "package:photos/services/machine_learning/ml_result.dart";
 
@@ -9,6 +10,8 @@ class FaceWithoutEmbedding {
   Detection detection;
   final double score;
   final double blur;
+
+  final FileInfo? fileInfo;
 
   bool get isBlurry => blur < kLaplacianHardThreshold;
 
@@ -21,8 +24,9 @@ class FaceWithoutEmbedding {
     this.fileID,
     this.score,
     this.detection,
-    this.blur,
-  );
+    this.blur, {
+    this.fileInfo,
+  });
 
   factory FaceWithoutEmbedding.fromJson(Map<String, dynamic> json) {
     final String faceID = json['faceID'] as String;
@@ -32,17 +36,16 @@ class FaceWithoutEmbedding {
       fileID,
       parseIntOrDoubleAsDouble(json['score'])!,
       Detection.fromJson(json['detection'] as Map<String, dynamic>),
-      // high value means t
       parseIntOrDoubleAsDouble(json['blur']) ?? kLapacianDefault,
     );
   }
 
-  // Note: Keep the information in toJson minimum. Keep in sync with desktop.
-  // Derive fields like fileID from other values whenever possible
+  // Keep toJson minimal and in sync with desktop. Derive fields such as fileID
+  // from the serialized values.
   Map<String, dynamic> toJson() => {
-        'faceID': faceID,
-        'detection': detection.toJson(),
-        'score': score,
-        'blur': blur,
-      };
+    'faceID': faceID,
+    'detection': detection.toJson(),
+    'score': score,
+    'blur': blur,
+  };
 }

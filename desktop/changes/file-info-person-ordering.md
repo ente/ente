@@ -1,0 +1,1 @@
+- Updated person ordering in File Info to match the mobile app.

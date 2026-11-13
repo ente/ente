@@ -1,3 +1,4 @@
+import 'package:ente_components/theme/text_styles.dart' as component;
 import 'package:flutter/material.dart';
 import 'package:photos/theme/colors.dart';
 
@@ -5,18 +6,8 @@ const FontWeight _regularWeight = FontWeight.w500;
 const FontWeight _boldWeight = FontWeight.w600;
 const String _fontFamily = 'Inter';
 
-const TextStyle brandStyleSmall = TextStyle(
-  fontWeight: FontWeight.bold,
-  fontFamily: 'Montserrat',
-  fontSize: 21,
-);
-
-const TextStyle brandStyleMedium = TextStyle(
-  fontWeight: FontWeight.bold,
-  fontFamily: 'Montserrat',
-  fontSize: 24,
-);
-
+// h1-h3 stay on the legacy Photos scale because ente_components does not
+// define matching 48/32/24 styles yet.
 const TextStyle h1 = TextStyle(
   fontSize: 48,
   height: 48 / 28,
@@ -35,36 +26,15 @@ const TextStyle h3 = TextStyle(
   fontWeight: _regularWeight,
   fontFamily: _fontFamily,
 );
-const TextStyle large = TextStyle(
-  fontSize: 18,
-  height: 22 / 18.0,
-  fontWeight: _regularWeight,
-  fontFamily: _fontFamily,
-);
-const TextStyle body = TextStyle(
-  fontSize: 16,
-  height: 20 / 16.0,
-  fontWeight: _regularWeight,
-  fontFamily: _fontFamily,
-);
-const TextStyle small = TextStyle(
-  fontSize: 14,
-  height: 17 / 14.0,
-  fontWeight: _regularWeight,
-  fontFamily: _fontFamily,
-);
-const TextStyle mini = TextStyle(
-  fontSize: 12,
-  height: 15 / 12.0,
-  fontWeight: _regularWeight,
-  fontFamily: _fontFamily,
-);
-const TextStyle tiny = TextStyle(
-  fontSize: 10,
-  height: 12 / 10.0,
-  fontWeight: _regularWeight,
-  fontFamily: _fontFamily,
-);
+const TextStyle h4 = component.TextStyles.h1Bold;
+const TextStyle large = component.TextStyles.h2;
+const TextStyle body = component.TextStyles.large;
+const TextStyle small = component.TextStyles.body;
+const TextStyle mini = component.TextStyles.mini;
+const TextStyle tiny = component.TextStyles.tiny;
+
+const TextStyle _h4Bold = component.TextStyles.h1;
+const TextStyle _smallBold = component.TextStyles.bodyBold;
 
 class EnteTextTheme {
   final TextStyle h1;
@@ -73,6 +43,8 @@ class EnteTextTheme {
   final TextStyle h2Bold;
   final TextStyle h3;
   final TextStyle h3Bold;
+  final TextStyle h4;
+  final TextStyle h4Bold;
   final TextStyle large;
   final TextStyle largeBold;
   final TextStyle body;
@@ -83,13 +55,10 @@ class EnteTextTheme {
   final TextStyle miniBold;
   final TextStyle tiny;
   final TextStyle tinyBold;
-  final TextStyle brandSmall;
-  final TextStyle brandMedium;
-
-  // textMuted variants
   final TextStyle h1Muted;
   final TextStyle h2Muted;
   final TextStyle h3Muted;
+  final TextStyle h4Muted;
   final TextStyle largeMuted;
   final TextStyle bodyMuted;
   final TextStyle smallMuted;
@@ -97,10 +66,10 @@ class EnteTextTheme {
   final TextStyle miniBoldMuted;
   final TextStyle tinyMuted;
 
-  // textFaint variants
   final TextStyle h1Faint;
   final TextStyle h2Faint;
   final TextStyle h3Faint;
+  final TextStyle h4Faint;
   final TextStyle largeFaint;
   final TextStyle bodyFaint;
   final TextStyle smallFaint;
@@ -114,6 +83,8 @@ class EnteTextTheme {
     required this.h2Bold,
     required this.h3,
     required this.h3Bold,
+    required this.h4,
+    required this.h4Bold,
     required this.large,
     required this.largeBold,
     required this.body,
@@ -124,11 +95,10 @@ class EnteTextTheme {
     required this.miniBold,
     required this.tiny,
     required this.tinyBold,
-    required this.brandSmall,
-    required this.brandMedium,
     required this.h1Muted,
     required this.h2Muted,
     required this.h3Muted,
+    required this.h4Muted,
     required this.largeMuted,
     required this.bodyMuted,
     required this.smallMuted,
@@ -138,6 +108,7 @@ class EnteTextTheme {
     required this.h1Faint,
     required this.h2Faint,
     required this.h3Faint,
+    required this.h4Faint,
     required this.largeFaint,
     required this.bodyFaint,
     required this.smallFaint,
@@ -163,6 +134,8 @@ EnteTextTheme _buildEnteTextStyle(
   Color textMuted,
   Color textFaint,
 ) {
+  // Text colors still come from the legacy Photos color tokens; this adapter
+  // only sources the matching typography styles from ente_components.
   return EnteTextTheme(
     h1: h1.copyWith(color: color),
     h1Bold: h1.copyWith(color: color, fontWeight: _boldWeight),
@@ -170,21 +143,22 @@ EnteTextTheme _buildEnteTextStyle(
     h2Bold: h2.copyWith(color: color, fontWeight: _boldWeight),
     h3: h3.copyWith(color: color),
     h3Bold: h3.copyWith(color: color, fontWeight: _boldWeight),
+    h4: h4.copyWith(color: color),
+    h4Bold: _h4Bold.copyWith(color: color),
     large: large.copyWith(color: color),
     largeBold: large.copyWith(color: color, fontWeight: _boldWeight),
     body: body.copyWith(color: color),
     bodyBold: body.copyWith(color: color, fontWeight: _boldWeight),
     small: small.copyWith(color: color),
-    smallBold: small.copyWith(color: color, fontWeight: _boldWeight),
+    smallBold: _smallBold.copyWith(color: color),
     mini: mini.copyWith(color: color),
     miniBold: mini.copyWith(color: color, fontWeight: _boldWeight),
     tiny: tiny.copyWith(color: color),
     tinyBold: tiny.copyWith(color: color, fontWeight: _boldWeight),
-    brandSmall: brandStyleSmall.copyWith(color: color),
-    brandMedium: brandStyleMedium.copyWith(color: color),
     h1Muted: h1.copyWith(color: textMuted),
     h2Muted: h2.copyWith(color: textMuted),
     h3Muted: h3.copyWith(color: textMuted),
+    h4Muted: h4.copyWith(color: textMuted),
     largeMuted: large.copyWith(color: textMuted),
     bodyMuted: body.copyWith(color: textMuted),
     smallMuted: small.copyWith(color: textMuted),
@@ -194,6 +168,7 @@ EnteTextTheme _buildEnteTextStyle(
     h1Faint: h1.copyWith(color: textFaint),
     h2Faint: h2.copyWith(color: textFaint),
     h3Faint: h3.copyWith(color: textFaint),
+    h4Faint: h4.copyWith(color: textFaint),
     largeFaint: large.copyWith(color: textFaint),
     bodyFaint: body.copyWith(color: textFaint),
     smallFaint: small.copyWith(color: textFaint),

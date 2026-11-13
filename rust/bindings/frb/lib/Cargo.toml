@@ -1,0 +1,20 @@
+[package]
+name = "ente-frb-lib"
+edition.workspace = true
+
+[features]
+contacts = ["dep:ente-contacts"]
+legacy = ["dep:ente-legacy"]
+locker = ["dep:ente-locker"]
+
+[dependencies]
+ente-accounts.workspace = true
+ente-contacts = { workspace = true, optional = true }
+ente-core.workspace = true
+ente-legacy = { workspace = true, optional = true }
+ente-locker = { workspace = true, optional = true }
+flutter_rust_bridge.workspace = true
+hex.workspace = true
+
+[lints]
+workspace = true

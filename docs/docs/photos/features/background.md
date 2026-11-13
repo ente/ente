@@ -1,10 +1,14 @@
 ---
-title: This Page Has Moved
-description: This content has been reorganized
+title: Background Sync
+description: Automatic background sync for Ente Photos on mobile and desktop
 search: false
+head:
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
-# This Page Has Moved
+# Background Sync
 
 The **Background Sync** content has been reorganized. You can find it in the following locations:
 

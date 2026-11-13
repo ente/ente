@@ -1,0 +1,1 @@
+ALTER TABLE casting DROP COLUMN IF EXISTS device_name;

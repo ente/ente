@@ -1,15 +1,19 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-    <!-- Camera permissions for document scanner -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- The camera plugin unconditionally adds RECORD_AUDIO to the merged
+         manifest even when enableAudio is set to false. We don't record audio
+         anywhere, so strip it from the final build. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"
+        tools:node="remove" />
 
-    <!-- Storage permissions for saving files -->
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="29"
+        tools:replace="android:maxSdkVersion"
         tools:ignore="ScopedStorage" />
 
     <uses-feature android:name="android.hardware.camera" android:required="false" />
@@ -31,10 +35,6 @@
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">
-            <!-- Specifies an Android theme to apply to this Activity as soon as
-                 the Android process has started. This theme is visible to the user
-                 while the Flutter UI initializes. After that, this theme continues
-                 to determine the Window background behind the Flutter UI. -->
             <meta-data
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
@@ -46,6 +46,7 @@
             
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="*/*" />
             </intent-filter>
@@ -62,6 +63,8 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <meta-data android:name="asset_statements"
+            android:resource="@string/asset_statements" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
@@ -72,11 +75,6 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
-        </intent>
-        <!-- Allow flutter_email_sender to discover installed mail clients on Android 11+ -->
-        <intent>
-            <action android:name="android.intent.action.SENDTO" />
-            <data android:scheme="mailto" />
         </intent>
     </queries>
     <uses-permission android:name="android.permission.USE_BIOMETRIC"/>

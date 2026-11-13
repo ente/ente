@@ -5,6 +5,9 @@
 		<key>BGTaskSchedulerPermittedIdentifiers</key>
 		<array>
 			<string>io.ente.frame.iOSBackgroundAppRefresh</string>
+			<string>io.ente.frame.iOSBackgroundProcessing</string>
+			<string>io.ente.photos.nativeBackgroundRefresh</string>
+			<string>io.ente.photos.nativeBackgroundProcessing</string>
 		</array>
 		<key>CFBundleDevelopmentRegion</key>
 		<string>$(DEVELOPMENT_LANGUAGE)</string>
@@ -23,21 +26,9 @@
 		<key>CFBundleSignature</key>
 		<string>????</string>
 		<key>MinimumOSVersion</key>
-		<string>14.0</string>
+		<string>15.1</string>
 		<key>FlutterDeepLinkingEnabled</key>
 		<false/>
-		<key>LSApplicationQueriesSchemes</key>
-		<array>
-			<string>googlegmail</string>
-			<string>x-dispatch</string>
-			<string>readdle-spark</string>
-			<string>airmail</string>
-			<string>ms-outlook</string>
-			<string>ymail</string>
-			<string>fastmail</string>
-			<string>superhuman</string>
-			<string>protonmail</string>
-		</array>
 		<key>AppGroupId</key>
 		<string>$(CUSTOM_GROUP_ID)</string>
 		<key>CFBundleURLTypes</key>
@@ -62,7 +53,7 @@
 			</dict>
 			<dict>
 				<key>CFBundleURLName</key>
-				<string>albums.ente.io</string>
+				<string>public-albums</string>
 				<key>CFBundleURLSchemes</key>
 				<array>
 					<string>https</string>
@@ -94,6 +85,10 @@
 		<string>Please allow access to your camera so that you can take photos within ente</string>
 		<key>NSPhotoLibraryUsageDescription</key>
 		<string>Please allow access to your photos so that ente can encrypt and back them up.</string>
+		<key>NSPhotoLibraryAddUsageDescription</key>
+		<string>Allow Ente to save photos and videos to Apple Photos.</string>
+		<key>NSMotionUsageDescription</key>
+		<string>Ente uses device motion to let you look around panoramic photos.</string>
 		<key>PHPhotoLibraryPreventAutomaticLimitedAccessAlert</key>
 		<true/>
 		<key>UIBackgroundModes</key>
@@ -106,6 +101,27 @@
 		<string>LaunchScreen</string>
 		<key>UIMainStoryboardFile</key>
 		<string>Main</string>
+		<key>UIApplicationSceneManifest</key>
+		<dict>
+			<key>UIApplicationSupportsMultipleScenes</key>
+			<false/>
+			<key>UISceneConfigurations</key>
+			<dict>
+				<key>UIWindowSceneSessionRoleApplication</key>
+				<array>
+					<dict>
+						<key>UISceneClassName</key>
+						<string>UIWindowScene</string>
+						<key>UISceneDelegateClassName</key>
+						<string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
+						<key>UISceneConfigurationName</key>
+						<string>flutter</string>
+						<key>UISceneStoryboardFile</key>
+						<string>Main</string>
+					</dict>
+				</array>
+			</dict>
+		</dict>
 		<!-- Temporary workaround for iPad iOS 26 layout issue. Remove when fixed in Flutter: https://github.com/flutter/flutter/issues/170461 -->
 		<key>UIDesignRequiresCompatibility</key>
 		<true/>

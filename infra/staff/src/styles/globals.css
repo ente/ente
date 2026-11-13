@@ -1,38 +1,14 @@
 :root {
     color-scheme: light dark;
-    color: #213547;
-    background-color: #ffffff;
+    color: light-dark(#213547, rgb(255 255 255 / 87%));
+    background-color: light-dark(#ffffff, #242424);
 }
 
 body {
     font-family: system-ui, sans-serif;
-
     margin: 0;
     display: flex;
     justify-content: center;
     text-align: center;
     min-height: 100svh;
-}
-
-a {
-    color: green;
-}
-
-a:hover {
-    color: darkgreen;
-}
-
-@media (prefers-color-scheme: dark) {
-    :root {
-        color: rgba(255, 255, 255, 0.87);
-        background-color: #242424;
-    }
-
-    a {
-        color: lightgreen;
-    }
-
-    a:hover {
-        color: chartreuse;
-    }
 }

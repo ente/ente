@@ -9,14 +9,14 @@ import {
     styled,
     Typography,
 } from "@mui/material";
-import { type ModalVisibilityProps } from "ente-base/components/utils/modal";
+import type { ModalVisibilityProps } from "ente-base/components/utils/modal";
 import log from "ente-base/log";
+import { useResolvedContactAvatar } from "ente-contacts";
 import { downloadManager } from "ente-gallery/services/download";
 import { getAvatarColor } from "ente-gallery/utils/avatar-colors";
 import type { EnteFile } from "ente-media/file";
-import { getStoredAnonIdentity } from "ente-new/albums/services/public-reaction";
 import type { CollectionSummaries } from "ente-new/photos/services/collection-summary";
-import { type UnifiedReaction } from "ente-new/photos/services/social";
+import type { UnifiedReaction } from "ente-new/photos/services/social";
 import { t } from "i18next";
 import React, {
     useCallback,
@@ -25,10 +25,6 @@ import React, {
     useRef,
     useState,
 } from "react";
-
-// =============================================================================
-// Icons
-// =============================================================================
 
 const ChevronDownIcon: React.FC = () => (
     <svg
@@ -80,25 +76,59 @@ const PersonIcon: React.FC = () => (
     </svg>
 );
 
-// =============================================================================
-// Types
-// =============================================================================
-
-/** A liker with display info. */
 interface Liker {
     id: string;
     userID: number;
     anonUserID?: string;
     userName: string;
-    /** The actual email for avatar color, even when userName is "You". */
-    email: string;
-    /** The first letter of the actual name (not "You") for the avatar. */
+    email?: string;
+    avatarColorKey: string;
     avatarInitial: string;
-    /** True if this is a registered user with masked email (show person icon). */
     isMaskedEmail: boolean;
+    isCurrentUser: boolean;
 }
 
-/** Collection info for the dropdown. */
+const LikerRowItem: React.FC<{ liker: Liker }> = ({ liker }) => {
+    const shouldResolveContact =
+        !liker.anonUserID &&
+        liker.userID > 0 &&
+        !liker.isMaskedEmail &&
+        !liker.isCurrentUser;
+    const resolved = useResolvedContactAvatar({
+        userID: shouldResolveContact ? liker.userID : undefined,
+        email: shouldResolveContact ? liker.email : undefined,
+    });
+
+    return (
+        <LikerRow>
+            <Avatar
+                sx={{
+                    width: 32,
+                    height: 32,
+                    fontSize: 14,
+                    bgcolor: getAvatarColor(liker.avatarColorKey),
+                    color: "#fff",
+                }}
+                src={resolved.avatarURL}
+            >
+                {liker.isMaskedEmail ? (
+                    <PersonIcon />
+                ) : shouldResolveContact && resolved.source === "contact" ? (
+                    resolved.initial
+                ) : (
+                    liker.avatarInitial
+                )}
+            </Avatar>
+            <LikerName>
+                {shouldResolveContact
+                    ? resolved.primaryLabel || liker.userName
+                    : liker.userName}
+            </LikerName>
+            <HeartFilledIcon />
+        </LikerRow>
+    );
+};
+
 interface CollectionInfo {
     id: number;
     name: string;
@@ -106,48 +136,17 @@ interface CollectionInfo {
     coverFile?: EnteFile;
 }
 
-// =============================================================================
-// Main Component
-// =============================================================================
-
 export interface LikesSidebarProps extends ModalVisibilityProps {
-    /**
-     * The file whose likes are being displayed.
-     */
     file?: EnteFile;
-    /**
-     * The currently active collection ID (when viewing from within a collection).
-     */
     activeCollectionID?: number;
-    /**
-     * A mapping from file IDs to the IDs of collections they belong to.
-     */
     fileNormalCollectionIDs?: Map<number, number[]>;
-    /**
-     * Collection summaries indexed by their IDs.
-     */
     collectionSummaries?: CollectionSummaries;
-    /**
-     * The current user's ID.
-     */
     currentUserID?: number;
-    /**
-     * Pre-fetched reactions by collection ID (includes both file and comment reactions).
-     */
     prefetchedReactions?: Map<number, UnifiedReaction[]>;
-    /**
-     * Pre-fetched user ID to email mapping.
-     */
     prefetchedUserIDToEmail?: Map<number, string>;
-    /**
-     * Map of anonymous user ID to decrypted user name.
-     */
     anonUserNames?: Map<string, string>;
 }
 
-/**
- * A sidebar panel for displaying users who liked a file.
- */
 export const LikesSidebar: React.FC<LikesSidebarProps> = ({
     open,
     onClose,
@@ -163,43 +162,35 @@ export const LikesSidebar: React.FC<LikesSidebarProps> = ({
     const [loading, setLoading] = useState(false);
     const [collectionDropdownOpen, setCollectionDropdownOpen] = useState(false);
 
-    // Reactions grouped by collection: collectionID -> reactions
     const [reactionsByCollection, setReactionsByCollection] = useState<
         Map<number, UnifiedReaction[]>
     >(new Map());
 
-    // Selected collection for viewing likes (when in gallery view)
     const [selectedCollectionID, setSelectedCollectionID] = useState<
         number | undefined
     >(undefined);
 
-    // Thumbnail URLs for each collection's cover file: collectionID -> URL
     const [thumbnailURLs, setThumbnailURLs] = useState<Map<number, string>>(
         new Map(),
     );
 
-    // Check if opened from a collection context
     const hasCollectionContext =
         activeCollectionID !== undefined && activeCollectionID !== 0;
 
-    // Get shared collections the file belongs to
     const fileCollectionIDs = useMemo(() => {
         if (!file) return [];
         const allCollectionIDs = fileNormalCollectionIDs?.get(file.id) ?? [];
 
-        // If no collection IDs from fileNormalCollectionIDs (e.g., public album),
-        // use the file's collection ID directly
+        // Public viewers may only know the file's own collection.
         if (allCollectionIDs.length === 0) {
             return [file.collectionID];
         }
 
-        // Filter to only include shared collections
         return allCollectionIDs.filter((id) =>
             collectionSummaries?.get(id)?.attributes.has("shared"),
         );
     }, [file, fileNormalCollectionIDs, collectionSummaries]);
 
-    // Build collection info list with like counts and cover files
     const collectionsInfo = useMemo((): CollectionInfo[] => {
         return fileCollectionIDs.map((collectionID) => {
             const summary = collectionSummaries?.get(collectionID);
@@ -216,12 +207,10 @@ export const LikesSidebar: React.FC<LikesSidebarProps> = ({
         });
     }, [fileCollectionIDs, collectionSummaries, reactionsByCollection]);
 
-    // Collections sorted by like count (descending) for dropdown
     const sortedCollectionsInfo = useMemo(() => {
         return [...collectionsInfo].sort((a, b) => b.likeCount - a.likeCount);
     }, [collectionsInfo]);
 
-    // Currently selected collection info
     const selectedCollectionInfo = useMemo(() => {
         const targetID = hasCollectionContext
             ? activeCollectionID
@@ -238,57 +227,43 @@ export const LikesSidebar: React.FC<LikesSidebarProps> = ({
         sortedCollectionsInfo,
     ]);
 
-    // Get likers for the selected collection
     const likers = useMemo((): Liker[] => {
         if (!selectedCollectionInfo) return [];
         const reactions =
             reactionsByCollection.get(selectedCollectionInfo.id) ?? [];
 
-        // Get stored anonymous identity for this collection to check if current anon user
-        const storedAnonIdentity = getStoredAnonIdentity(
-            selectedCollectionInfo.id,
-        );
-
         return reactions
             .filter((r) => r.reactionType === "green_heart")
-            .sort((a, b) => b.createdAt - a.createdAt) // Most recent first
+            .sort((a, b) => b.createdAt - a.createdAt)
             .map((r) => {
-                // Check if this is an anonymous user
                 const isAnonymous =
                     r.anonUserID || r.userID === 0 || r.userID === -1;
 
-                // Check if this is the current user (logged-in or anonymous)
                 const isCurrentUser = r.userID === currentUserID;
-                const isCurrentAnonUser =
-                    storedAnonIdentity &&
-                    r.anonUserID === storedAnonIdentity.anonUserID;
 
-                let email: string;
+                let email: string | undefined;
+                let avatarColorKey: string;
                 let userName: string;
                 let actualName: string;
 
                 if (isAnonymous) {
-                    // Use decrypted name from anonUserNames if available
                     const decryptedName = r.anonUserID
                         ? anonUserNames?.get(r.anonUserID)
                         : undefined;
                     actualName =
                         decryptedName ??
                         `${t("anonymous")} ${r.anonUserID?.slice(-4) ?? ""}`;
-                    // Use actualName for avatar color (varying length like mobile emails)
                     email = actualName;
-                    userName = isCurrentAnonUser ? t("you") : actualName;
+                    avatarColorKey = actualName;
+                    userName = actualName;
                 } else {
                     const emailFromMap = prefetchedUserIDToEmail?.get(r.userID);
-                    // Use userID as string for unique avatar color
-                    email = emailFromMap ?? String(r.userID);
-                    // In public albums (no currentUserID), non-anonymous
-                    // users are album owner or collaborators
-                    actualName = emailFromMap ?? t("anonymous");
+                    email = emailFromMap;
+                    avatarColorKey = emailFromMap ?? String(r.userID);
+                    actualName = emailFromMap ?? t("user");
                     userName = isCurrentUser ? t("you") : actualName;
                 }
 
-                // Check if email is masked (starts with *)
                 const isMaskedEmail =
                     !isAnonymous && actualName.startsWith("*");
 
@@ -298,8 +273,10 @@ export const LikesSidebar: React.FC<LikesSidebarProps> = ({
                     anonUserID: r.anonUserID,
                     userName,
                     email,
+                    avatarColorKey,
                     avatarInitial: actualName[0]?.toUpperCase() ?? "?",
                     isMaskedEmail,
+                    isCurrentUser,
                 };
             });
     }, [
@@ -310,14 +287,13 @@ export const LikesSidebar: React.FC<LikesSidebarProps> = ({
         anonUserNames,
     ]);
 
-    // Load reactions from prefetched data
     const loadReactions = useCallback(() => {
         if (!file || !open || !prefetchedReactions) return;
 
         setLoading(true);
 
         try {
-            // Use prefetched reactions (filter to only file reactions, not comment reactions)
+            // Ignore comment reactions.
             const filteredReactions = new Map<number, UnifiedReaction[]>();
             for (const [collectionID, reactions] of prefetchedReactions) {
                 const fileReactions = reactions.filter(
@@ -334,16 +310,13 @@ export const LikesSidebar: React.FC<LikesSidebarProps> = ({
         }
     }, [file, open, prefetchedReactions]);
 
-    // Track previous open state to detect when sidebar opens
+    // Choose the most-liked collection only when the sidebar first opens.
     const prevOpenRef = useRef(false);
 
-    // Load reactions and set initial selection when the sidebar opens
     useEffect(() => {
         if (open && !prevOpenRef.current) {
-            // Sidebar just opened - load reactions and set initial selection
             loadReactions();
 
-            // Set initial selection to album with most likes (gallery view only)
             if (
                 !hasCollectionContext &&
                 prefetchedReactions &&
@@ -377,11 +350,10 @@ export const LikesSidebar: React.FC<LikesSidebarProps> = ({
         file?.id,
     ]);
 
-    // Update local state when prefetchedReactions changes (e.g., like/unlike from heart button)
     useEffect(() => {
         if (!open || !file || !prefetchedReactions) return;
 
-        // Filter to only file reactions (not comment reactions)
+        // Ignore comment reactions.
         const filteredReactions = new Map<number, UnifiedReaction[]>();
         for (const [collectionID, reactions] of prefetchedReactions) {
             const fileReactions = reactions.filter(
@@ -393,9 +365,8 @@ export const LikesSidebar: React.FC<LikesSidebarProps> = ({
         setReactionsByCollection(filteredReactions);
     }, [open, file, prefetchedReactions]);
 
-    // Fetch thumbnails for each collection's cover file
+    // Keep thumbnails while the sidebar closes to avoid an animation flash.
     useEffect(() => {
-        // Only fetch when open, don't clear when closing (avoids flash during animation)
         if (!open || collectionsInfo.length === 0) {
             return;
         }
@@ -578,7 +549,7 @@ export const LikesSidebar: React.FC<LikesSidebarProps> = ({
                     </CloseButton>
                 </Header>
 
-                <LikersContainer>
+                <LikersContainer data-custom-scrollbar>
                     {loading ? (
                         <LoadingContainer>
                             <CircularProgress size={32} />
@@ -587,25 +558,7 @@ export const LikesSidebar: React.FC<LikesSidebarProps> = ({
                         <EmptyMessage>{t("no_likes_yet")}</EmptyMessage>
                     ) : (
                         likers.map((liker) => (
-                            <LikerRow key={liker.id}>
-                                <Avatar
-                                    sx={{
-                                        width: 32,
-                                        height: 32,
-                                        fontSize: 14,
-                                        bgcolor: getAvatarColor(liker.email),
-                                        color: "#fff",
-                                    }}
-                                >
-                                    {liker.isMaskedEmail ? (
-                                        <PersonIcon />
-                                    ) : (
-                                        liker.avatarInitial
-                                    )}
-                                </Avatar>
-                                <LikerName>{liker.userName}</LikerName>
-                                <HeartFilledIcon />
-                            </LikerRow>
+                            <LikerRowItem key={liker.id} liker={liker} />
                         ))
                     )}
                 </LikersContainer>
@@ -614,17 +567,12 @@ export const LikesSidebar: React.FC<LikesSidebarProps> = ({
     );
 };
 
-// =============================================================================
-// Styled Components
-// =============================================================================
-
-// Drawer & Layout
 const SidebarDrawer = styled(Drawer)(({ theme }) => ({
     "& .MuiDrawer-paper": {
         width: "23vw",
         minWidth: "520px",
         maxWidth: "calc(100% - 32px)",
-        height: "calc(100% - 32px)",
+        height: "calc(100% - 32px - env(titlebar-area-height, 0px))",
         margin: "16px",
         borderRadius: "36px",
         backgroundColor: "#fff",
@@ -638,7 +586,7 @@ const SidebarDrawer = styled(Drawer)(({ theme }) => ({
             width: "100%",
             minWidth: "unset",
             maxWidth: "100%",
-            height: "100%",
+            height: "calc(100% - env(titlebar-area-height, 0px))",
             margin: 0,
             borderRadius: 0,
         },
@@ -677,7 +625,6 @@ const CloseButton = styled(IconButton)(({ theme }) => ({
     }),
 }));
 
-// Collection Dropdown
 const CollectionDropdownButton = styled(Box)(({ theme }) => ({
     display: "inline-flex",
     alignItems: "center",
@@ -802,7 +749,7 @@ const LoadingContainer = styled(Box)(() => ({
     justifyContent: "center",
     alignItems: "center",
     height: "100%",
-    // Offset for header (marginBottom: 48) + padding diff (32-24=8) = 56, halved
+    // Compensate for the 56px header offset.
     marginTop: -28,
 }));
 
@@ -811,13 +758,12 @@ const EmptyMessage = styled(Typography)(({ theme }) => ({
     justifyContent: "center",
     alignItems: "center",
     height: "100%",
-    // Offset for header (marginBottom: 48) + padding diff (32-24=8) = 56, halved
+    // Compensate for the 56px header offset.
     marginTop: -28,
     color: "#666",
     ...theme.applyStyles("dark", { color: "rgba(255, 255, 255, 0.5)" }),
 }));
 
-// Context Menu Overlay
 const ContextMenuOverlay = styled(Box)(() => ({
     position: "absolute",
     top: -25,

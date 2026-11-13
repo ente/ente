@@ -1,35 +1,52 @@
 package user
 
 import (
+	"errors"
 	"fmt"
-	"github.com/ente-io/museum/ente"
-	enteJWT "github.com/ente-io/museum/ente/jwt"
-	"github.com/ente-io/museum/pkg/utils/time"
-	"github.com/ente-io/stacktrace"
+	"net/http"
+
+	"github.com/ente/museum/ente"
+	enteJWT "github.com/ente/museum/ente/jwt"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/museum/pkg/utils/time"
+	"github.com/ente/stacktrace"
 	"github.com/golang-jwt/jwt/v4"
 )
 
-// jwt token validity = 1 day
 const ValidForDays = 1
 
+var errJWTExpired = &ente.ApiError{
+	Code:           ente.BadRequest,
+	Message:        "token expired",
+	HttpStatusCode: http.StatusBadRequest,
+}
+
 func (c *UserController) GetJWTToken(userID int64, scope enteJWT.ClaimScope) (string, error) {
+	return c.getJWTToken(userID, scope, nil, "")
+}
+
+func (c *UserController) GetSessionJWTToken(userID int64, scope enteJWT.ClaimScope, sessionToken string, sessionApp ente.App) (string, error) {
+	tokenHash := auth.HashToken(sessionToken)
+	return c.getJWTToken(userID, scope, tokenHash[:], sessionApp)
+}
+
+func (c *UserController) getJWTToken(userID int64, scope enteJWT.ClaimScope, sessionTokenHash []byte, sessionApp ente.App) (string, error) {
 	tokenExpiry := time.NDaysFromNow(1)
 	if scope == enteJWT.ACCOUNTS {
 		tokenExpiry = time.NMinFromNow(30)
 	}
 	claim := enteJWT.WebCommonJWTClaim{
-		UserID:     userID,
-		ExpiryTime: tokenExpiry,
-		ClaimScope: &scope,
+		UserID:           userID,
+		ExpiryTime:       tokenExpiry,
+		ClaimScope:       &scope,
+		SessionTokenHash: sessionTokenHash,
+		SessionApp:       string(sessionApp),
 	}
 	return c.GetJWTTokenForClaim(&claim)
 }
 
 func (c *UserController) GetJWTTokenForClaim(claim *enteJWT.WebCommonJWTClaim) (string, error) {
-	// Create a new token object, specifying signing method and the claims
-	// you would like it to contain.
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claim)
-	// Sign and get the complete encoded token as a string using the secret
 	tokenString, err := token.SignedString(c.JwtSecret)
 
 	if err != nil {
@@ -46,8 +63,8 @@ func (c *UserController) ValidateJWTToken(jwtToken string, scope enteJWT.ClaimSc
 		return c.JwtSecret, nil
 	})
 	if err != nil {
-		if ve, ok := err.(*jwt.ValidationError); ok && ve.Error() == "token expired" {
-			return nil, stacktrace.Propagate(ente.NewBadRequestWithMessage("token expired"), "")
+		if errors.Is(err, enteJWT.ErrTokenExpired) {
+			return nil, stacktrace.Propagate(errJWTExpired, "")
 		}
 		return nil, stacktrace.Propagate(err, "JWT parsed failed")
 	}

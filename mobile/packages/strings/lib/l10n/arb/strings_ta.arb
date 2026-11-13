@@ -1,0 +1,74 @@
+{
+  "activeSessions": "செயலில் உள்ள அமர்வுகள்",
+  "@activeSessions": {
+    "description": "Title for active sessions page"
+  },
+  "cancel": "ரத்து செய்",
+  "@cancel": {
+    "description": "Cancel button label"
+  },
+  "confirmPassword": "கடவுச்சொல்லை உறுதிப்படுத்தவும்",
+  "@confirmPassword": {
+    "description": "Confirm password field label"
+  },
+  "createAccount": "கணக்கை உருவாக்கு",
+  "@createAccount": {
+    "description": "Create account button label"
+  },
+  "deleteAccount": "கணக்கை நீக்கு",
+  "@deleteAccount": {
+    "description": "Delete account button label"
+  },
+  "email": "மின்னஞ்சல்",
+  "@email": {
+    "description": "Email field label"
+  },
+  "emailAlreadyRegistered": "மின்னஞ்சல் முன்பே பதிவுசெய்யப்பட்டுள்ளது.",
+  "@emailAlreadyRegistered": {
+    "description": "Error message when email is already registered"
+  },
+  "emailHint": "உங்கள் மின்னஞ்சல் முகவரியை உள்ளிடவும்",
+  "emailNotRegistered": "மின்னஞ்சல் பதிவு செய்யப்படவில்லை.",
+  "@emailNotRegistered": {
+    "description": "Error message when email is not registered"
+  },
+  "enterValidEmail": "சரியான மின்னஞ்சல் முகவரியை உள்ளிடவும்.",
+  "enterYourNewEmailAddress": "உங்கள் புதிய மின்னஞ்சல் முகவரியை உள்ளிடவும்",
+  "invalidEmailAddress": "தவறான மின்னஞ்சல் முகவரி",
+  "ok": "சரி",
+  "@ok": {
+    "description": "Generic OK button label"
+  },
+  "ocrGenericDetectError": "படத்தில் உள்ள உரையைக் கண்டறிய முடியவில்லை.",
+  "ocrImageDecodeFailedError": "படக் கோப்பைப் படிக்க முடியவில்லை.",
+  "ocrImageNotFoundError": "படக் கோப்பு கிடைக்கவில்லை.",
+  "ocrModelsNetworkRequiredError": "முதல் பயன்பாட்டிலேயே OCR மாதிரிகளைப் பதிவிறக்க நெட்வொர்க் இணைப்புத் தேவை.",
+  "ocrModelsPrepareFailed": "OCR மாதிரிகளைத் தயாரிக்க முடியவில்லை.",
+  "ocrNoTextDetected": "எந்த உரையும் கண்டறியப்படவில்லை.",
+  "oops": "அச்சச்சோ",
+  "@oops": {
+    "description": "Oops error title"
+  },
+  "password": "கடவுச்சொல்",
+  "@password": {
+    "description": "Password field label"
+  },
+  "retry": "மீண்டும் முயற்சிக்கவும்",
+  "somethingWentWrongPleaseTryAgain": "ஏதோ தவறாகிவிட்டது, மீண்டும் முயற்சிக்கவும்.",
+  "@somethingWentWrongPleaseTryAgain": {
+    "description": "Generic error message"
+  },
+  "thisWillLogYouOutOfTheFollowingDevice": "இது பின்வரும் சாதனத்திலிருந்து உங்களை வெளியேற்றும்:",
+  "@thisWillLogYouOutOfTheFollowingDevice": {
+    "description": "Warning message for logging out of another device"
+  },
+  "thisWillLogYouOutOfThisDevice": "இது உங்களை இந்தச் சாதனத்திலிருந்து வெளியேற்றும்!",
+  "@thisWillLogYouOutOfThisDevice": {
+    "description": "Warning message for logging out of current device"
+  },
+  "verify": "சரிபார்க்கவும்",
+  "@verify": {
+    "description": "Verify button label"
+  },
+  "permissions": "அனுமதிகள்"
+}

@@ -1,26 +1,22 @@
 import "dart:math" as math;
 
 import "package:flutter/widgets.dart";
+import "package:photos/ui/viewer/file/hero_image.dart";
 
-// Flutter's `RSuperellipse` clamps radii so they don't overlap, which means
-// radii > (side / 2) become circles. Historically we used an oversized radius
-// with `ContinuousRectangleBorder` to approximate the iOS squircle.
-//
-// This factor produces a similarly "squircled" look without collapsing into a
-// circle for the common square thumbnail sizes used across the app.
+// RSuperellipse radii above half the side collapse into a circle. This factor
+// preserves the previous iOS-style squircle shape.
 const double _kFaceThumbnailSquircleRadiusFactor = 0.30;
 const double _kFaceThumbnailSquircleMinStraightEdge = 8.0;
 
 BorderRadius faceThumbnailSquircleBorderRadius(double side) {
   final normalizedSide = side.isFinite ? side : 0.0;
   final clampedSide = normalizedSide > 0 ? normalizedSide : 0.0;
-  final maxRadius =
-      math.max(0.0, (clampedSide - _kFaceThumbnailSquircleMinStraightEdge) / 2);
+  final maxRadius = math.max(
+    0.0,
+    (clampedSide - _kFaceThumbnailSquircleMinStraightEdge) / 2,
+  );
   return BorderRadius.circular(
-    math.min(
-      clampedSide * _kFaceThumbnailSquircleRadiusFactor,
-      maxRadius,
-    ),
+    math.min(clampedSide * _kFaceThumbnailSquircleRadiusFactor, maxRadius),
   );
 }
 
@@ -40,28 +36,57 @@ Path faceThumbnailSquircleOuterPath(Size size) {
   return Path()..addRSuperellipse(radius.toRSuperellipse(rect));
 }
 
-class FaceThumbnailSquircleClip extends StatelessWidget {
+class FaceThumbnailSquircleClip extends StatefulWidget {
   final Widget child;
   final BorderRadiusGeometry? borderRadius;
+  final String? heroTag;
 
   const FaceThumbnailSquircleClip({
     required this.child,
     this.borderRadius,
+    this.heroTag,
     super.key,
   });
 
   @override
+  State<FaceThumbnailSquircleClip> createState() =>
+      _FaceThumbnailSquircleClipState();
+}
+
+class _FaceThumbnailSquircleClipState extends State<FaceThumbnailSquircleClip> {
+  late final _heroChildKey = GlobalKey();
+
+  @override
   Widget build(BuildContext context) {
-    if (borderRadius != null) {
+    if (widget.heroTag != null) {
+      return LayoutBuilder(
+        builder: (context, constraints) => Hero(
+          tag: widget.heroTag!,
+          createRectTween: imageHeroRectTween,
+          placeholderBuilder: imageHeroPlaceholderBuilder,
+          transitionOnUserGestures: true,
+          child: ClipRSuperellipse(
+            key: _heroChildKey,
+            borderRadius:
+                widget.borderRadius ??
+                faceThumbnailSquircleBorderRadius(
+                  constraints.biggest.shortestSide,
+                ),
+            child: widget.child,
+          ),
+        ),
+      );
+    }
+    if (widget.borderRadius != null) {
       return ClipRSuperellipse(
-        borderRadius: borderRadius!,
-        child: child,
+        borderRadius: widget.borderRadius!,
+        child: widget.child,
       );
     }
 
     return ClipRSuperellipse(
       clipper: const _FaceThumbnailSquircleClipper(),
-      child: child,
+      child: widget.child,
     );
   }
 }

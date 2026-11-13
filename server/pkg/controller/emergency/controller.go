@@ -2,14 +2,14 @@ package emergency
 
 import (
 	"fmt"
-	"github.com/ente-io/museum/pkg/controller"
-	"github.com/ente-io/museum/pkg/controller/lock"
+	"github.com/ente/museum/pkg/controller"
+	"github.com/ente/museum/pkg/controller/lock"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/controller/user"
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/museum/pkg/repo/emergency"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/controller/user"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/museum/pkg/repo/emergency"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 )
@@ -17,8 +17,8 @@ import (
 type Controller struct {
 	Repo                  *emergency.Repository
 	UserRepo              *repo.UserRepository
+	UserLookup            controller.UserLookup
 	UserCtrl              *user.UserController
-	PasskeyController     *controller.PasskeyController
 	LockCtrl              *lock.LockController
 	isReminderCronRunning bool
 }
@@ -29,42 +29,22 @@ func (c *Controller) UpdateContact(ctx *gin.Context,
 	if err := validateUpdateReq(userID, req); err != nil {
 		return stacktrace.Propagate(err, "")
 	}
-	if req.State == ente.ContactDenied || req.State == ente.ContactLeft || req.State == ente.UserRevokedContact {
-		activeSessions, sessionErr := c.Repo.GetActiveSessions(ctx, req.UserID, req.EmergencyContactID)
-		if sessionErr != nil {
-			return stacktrace.Propagate(sessionErr, "")
-		}
-		for _, session := range activeSessions {
-			if req.State == ente.UserRevokedContact {
-				rejErr := c.RejectRecovery(ctx, userID, ente.RecoveryIdentifier{
-					ID:                 session.ID,
-					UserID:             session.UserID,
-					EmergencyContactID: session.EmergencyContactID,
-				})
-				if rejErr != nil {
-					return stacktrace.Propagate(rejErr, "failed to reject recovery")
-				}
-			} else {
-				stopErr := c.StopRecovery(ctx, userID, ente.RecoveryIdentifier{
-					ID:                 session.ID,
-					UserID:             session.UserID,
-					EmergencyContactID: session.EmergencyContactID,
-				})
-				if stopErr != nil {
-					return stacktrace.Propagate(stopErr, "failed to stop recovery")
-				}
-			}
-		}
+	hasUpdate, cancelled, err := c.Repo.UpdateState(ctx, req.UserID, req.EmergencyContactID, req.State)
+	if err != nil {
+		return stacktrace.Propagate(err, "")
 	}
-	hasUpdate, err := c.Repo.UpdateState(ctx, req.UserID, req.EmergencyContactID, req.State)
 	if !hasUpdate {
 		log.WithField("userID", userID).WithField("req", req).
 			Warn("No update applied for emergency contact")
 	} else {
+		status := ente.RecoveryStatusStopped
+		if req.State == ente.UserRevokedContact {
+			status = ente.RecoveryStatusRejected
+		}
+		for range cancelled {
+			go c.sendRecoveryNotification(ctx, req.UserID, req.EmergencyContactID, status, nil)
+		}
 		go c.sendContactNotification(ctx, req.UserID, req.EmergencyContactID, req.State)
-	}
-	if err != nil {
-		return stacktrace.Propagate(err, "")
 	}
 	return nil
 }

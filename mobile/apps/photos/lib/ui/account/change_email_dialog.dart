@@ -1,82 +1,93 @@
+import 'package:ente_components/ente_components.dart';
+import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
-import "package:photos/l10n/l10n.dart";
 import 'package:photos/services/account/user_service.dart';
-import 'package:photos/utils/dialog_util.dart';
 import 'package:photos/utils/email_util.dart';
 
-class ChangeEmailDialog extends StatefulWidget {
-  const ChangeEmailDialog({super.key});
-
-  @override
-  State<ChangeEmailDialog> createState() => _ChangeEmailDialogState();
+Future<void> showChangeEmailBottomSheet(BuildContext context) {
+  return showBottomSheetComponent<void>(
+    context: context,
+    builder: (_) => const _ChangeEmailBottomSheet(),
+  );
 }
 
-class _ChangeEmailDialogState extends State<ChangeEmailDialog> {
-  String? _email;
+class _ChangeEmailBottomSheet extends StatefulWidget {
+  const _ChangeEmailBottomSheet();
+
+  @override
+  State<_ChangeEmailBottomSheet> createState() =>
+      _ChangeEmailBottomSheetState();
+}
+
+class _ChangeEmailBottomSheetState extends State<_ChangeEmailBottomSheet> {
+  final _emailController = TextEditingController();
+  bool _hasEmail = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    return AlertDialog(
-      title: Text(l10n.enterYourNewEmailAddress),
-      content: SingleChildScrollView(
+    final l10n = context.strings;
+
+    return BottomSheetComponent(
+      title: l10n.enterYourNewEmailAddress,
+      isKeyboardAware: true,
+      content: AutofillGroup(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            TextFormField(
-              decoration: InputDecoration(
-                hintText: l10n.email,
-                hintStyle: const TextStyle(
-                  color: Colors.white30,
-                ),
-                contentPadding: const EdgeInsets.all(12),
-              ),
-              onChanged: (value) {
-                setState(() {
-                  _email = value;
-                });
-              },
+            TextInputComponent(
+              controller: _emailController,
+              hintText: l10n.email,
+              autofocus: true,
+              isClearable: true,
               autocorrect: false,
               keyboardType: TextInputType.emailAddress,
-              initialValue: _email,
-              autofocus: true,
+              autofillHints: const [AutofillHints.email],
+              textCapitalization: TextCapitalization.none,
+              onSubmit: (_) => _verify(),
+              onChanged: (_) {
+                final hasEmail = _emailController.text.trim().isNotEmpty;
+                if (_hasEmail == hasEmail) {
+                  return;
+                }
+                setState(() {
+                  _hasEmail = hasEmail;
+                });
+              },
             ),
           ],
         ),
       ),
       actions: [
-        TextButton(
-          child: Text(
-            l10n.cancel,
-            style: const TextStyle(
-              color: Colors.redAccent,
-            ),
-          ),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-        TextButton(
-          child: Text(
-            l10n.verify,
-            style: const TextStyle(
-              color: Colors.green,
-            ),
-          ),
-          onPressed: () {
-            if (!isValidEmail(_email)) {
-              showErrorDialog(
-                context,
-                l10n.invalidEmailAddress,
-                l10n.enterValidEmail,
-              );
-              return;
-            }
-            UserService.instance.sendOtt(context, _email!, isChangeEmail: true);
-          },
+        ButtonComponent(
+          label: l10n.verify,
+          isDisabled: !_hasEmail,
+          onTap: () => _verify(),
         ),
       ],
     );
+  }
+
+  Future<void> _verify() async {
+    final l10n = context.strings;
+    final email = _emailController.text.trim();
+
+    if (!isValidEmail(email)) {
+      await showErrorBottomSheetComponent<void>(
+        context: context,
+        title: l10n.invalidEmailAddress,
+        message: l10n.enterValidEmail,
+        illustration: Image.asset('assets/warning-grey.png'),
+      );
+      return;
+    }
+
+    await UserService.instance.sendOtt(context, email, isChangeEmail: true);
   }
 }

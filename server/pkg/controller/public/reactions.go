@@ -1,17 +1,16 @@
 package public
 
 import (
-	"github.com/ente-io/museum/ente"
-	socialentity "github.com/ente-io/museum/ente/social"
-	socialcontroller "github.com/ente-io/museum/pkg/controller/social"
-	"github.com/ente-io/museum/pkg/repo"
-	socialrepo "github.com/ente-io/museum/pkg/repo/social"
+	"github.com/ente/museum/ente"
+	socialentity "github.com/ente/museum/ente/social"
+	socialcontroller "github.com/ente/museum/pkg/controller/social"
+	"github.com/ente/museum/pkg/repo"
+	socialrepo "github.com/ente/museum/pkg/repo/social"
 	"github.com/gin-gonic/gin"
 )
 
 const reactionCipherLength = 156
 
-// ReactionsController exposes reactions for public collections.
 type ReactionsController struct {
 	ReactionCtrl  *socialcontroller.ReactionsController
 	ReactionsRepo *socialrepo.ReactionsRepository

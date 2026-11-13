@@ -2,8 +2,11 @@ package jwt
 
 import (
 	"errors"
-	"github.com/ente-io/museum/pkg/utils/time"
+
+	"github.com/ente/museum/pkg/utils/time"
 )
+
+var ErrTokenExpired = errors.New("token expired")
 
 type ClaimScope string
 
@@ -20,10 +23,12 @@ func (c ClaimScope) Ptr() *ClaimScope {
 }
 
 type WebCommonJWTClaim struct {
-	UserID     int64       `json:"userID,omitempty"`
-	ExpiryTime int64       `json:"expiryTime,omitempty"`
-	Email      string      `json:"email,omitempty"`
-	ClaimScope *ClaimScope `json:"claimScope,omitempty"`
+	UserID           int64       `json:"userID,omitempty"`
+	ExpiryTime       int64       `json:"expiryTime,omitempty"`
+	Email            string      `json:"email,omitempty"`
+	ClaimScope       *ClaimScope `json:"claimScope,omitempty"`
+	SessionTokenHash []byte      `json:"sessionTokenHash,omitempty"`
+	SessionApp       string      `json:"sessionApp,omitempty"`
 }
 
 func (w *WebCommonJWTClaim) GetScope() ClaimScope {
@@ -35,12 +40,11 @@ func (w *WebCommonJWTClaim) GetScope() ClaimScope {
 
 func (w WebCommonJWTClaim) Valid() error {
 	if w.ExpiryTime < time.Microseconds() {
-		return errors.New("token expired")
+		return ErrTokenExpired
 	}
 	return nil
 }
 
-// LinkPasswordClaim refer to token granted post link password verification
 type LinkPasswordClaim struct {
 	PassHash   string `json:"passKey"`
 	ExpiryTime int64  `json:"expiryTime"`
@@ -48,12 +52,11 @@ type LinkPasswordClaim struct {
 
 func (c LinkPasswordClaim) Valid() error {
 	if c.ExpiryTime < time.Microseconds() {
-		return errors.New("token expired")
+		return ErrTokenExpired
 	}
 	return nil
 }
 
-// PasteGuardClaim gates one-time paste consumption.
 type PasteGuardClaim struct {
 	AccessToken   string `json:"accessToken"`
 	UserAgentHash string `json:"userAgentHash"`
@@ -62,7 +65,7 @@ type PasteGuardClaim struct {
 
 func (c PasteGuardClaim) Valid() error {
 	if c.ExpiryTime < time.Microseconds() {
-		return errors.New("token expired")
+		return ErrTokenExpired
 	}
 	return nil
 }

@@ -22,9 +22,12 @@ class EnteLoadingWidget extends StatelessWidget {
         padding: EdgeInsets.all(padding),
         child: SizedBox.fromSize(
           size: Size.square(size),
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            color: color ?? getEnteColorScheme(context).strokeBase,
+          child: RepaintBoundary(
+            child: CircularProgressIndicator(
+              strokeWidth: 1.5,
+              color: color ?? getEnteColorScheme(context).strokeBase,
+              strokeCap: StrokeCap.round,
+            ),
           ),
         ),
       ),

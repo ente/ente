@@ -1,64 +1,136 @@
 {
-  "contactSupport": "მხარდაჭერის გუნდთან დაკავშირება",
-  "@contactSupport": {
-    "description": "Contact support button label"
+  "account": "ანგარიში",
+  "androidCancelButton": "გაუქმება",
+  "@androidCancelButton": {
+    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
   },
+  "androidSignInTitle": "საჭიროა აუთენთიფიკაცია",
+  "@androidSignInTitle": {
+    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
+  },
+  "blog": "ბლოგი",
+  "bothIssuerAndAccountCanNotBeEmpty": "მომწოდებლისა და ანგარიშის ველი არ შეიძლება ცარიელი იყოს",
   "cancel": "გაუქმება",
   "@cancel": {
     "description": "Cancel button label"
-  },
-  "reportABug": "პრობლემის შესახებ შეტყობინება",
-  "@reportABug": {
-    "description": "Label for reporting a bug"
-  },
-  "email": "ელექტრონული ფოსტა",
-  "@email": {
-    "description": "Email field label"
-  },
-  "pleaseWait": "გთხოვთ, დაელოდოთ...",
-  "@pleaseWait": {
-    "description": "Please wait message"
-  },
-  "verifyPassword": "პაროლის დასტური",
-  "@verifyPassword": {
-    "description": "Verify password button label"
-  },
-  "incorrectPasswordTitle": "არასწორი პაროლი",
-  "@incorrectPasswordTitle": {
-    "description": "Title for incorrect password error"
-  },
-  "pleaseTryAgain": "გთხოვთ, სცადოთ ხელახლა",
-  "@pleaseTryAgain": {
-    "description": "Message asking user to try again"
-  },
-  "delete": "წაშლა",
-  "@delete": {
-    "description": "Delete button label"
-  },
-  "hearUsWhereTitle": "როგორ შეიტყვეთ Ente-ს შესახებ? (არასავალდებულო)",
-  "@hearUsWhereTitle": {
-    "description": "Title asking how user heard about Ente"
-  },
-  "hearUsExplanation": "ჩვენ არ ვაკონტროლებთ აპლიკაციის ინსტალაციას. სასარგებლო იქნებოდა, თუ გვეტყოდით, სად გვიპოვეთ!",
-  "@hearUsExplanation": {
-    "description": "Explanation for asking how user heard about Ente"
-  },
-  "welcomeBack": "კეთილი იყოს თქვენი დაბრუნება!",
-  "@welcomeBack": {
-    "description": "Welcome back message"
-  },
-  "noInternetConnection": "ინტერნეტთან კავშირი არ არის",
-  "@noInternetConnection": {
-    "description": "No internet connection error message"
-  },
-  "pleaseCheckYourInternetConnectionAndTryAgain": "გთხოვთ, შეამოწმოთ თქვენი ინტერნეტ კავშირი და სცადოთ ხელახლა.",
-  "@pleaseCheckYourInternetConnectionAndTryAgain": {
-    "description": "Message asking user to check internet connection"
   },
   "changeEmail": "ელექტრონული ფოსტის შეცვლა",
   "@changeEmail": {
     "description": "Change email button label"
   },
+  "changePassword": "პაროლის შეცვლა",
+  "codeIssuerHint": "მომწოდებელი",
+  "contactSupport": "მხარდაჭერის გუნდთან დაკავშირება",
+  "@contactSupport": {
+    "description": "Contact support button label"
+  },
+  "copied": "დაკოპირებულია",
+  "crashAndErrorReporting": "აპლიკაციის ხარვეზის & პრობლემის შეტყობინება",
+  "data": "მონაცემები",
+  "delete": "წაშლა",
+  "@delete": {
+    "description": "Delete button label"
+  },
+  "deleteCodeMessage": "დარწმუნებული ხართ რომ გსურთ ამ კოდის წაშლა? ამ მოქმედების გაუქმება შეუძლებელია.",
+  "deleteCodeTitle": "გსურთ კოდის წაშლა?",
+  "doNotSignOut": "არ მოხდეს გამოსვლა",
+  "@doNotSignOut": {
+    "description": "Do not sign out button label"
+  },
+  "email": "ელექტრონული ფოსტა",
+  "@email": {
+    "description": "Email field label"
+  },
+  "emailUsMessage": "გთხოვთ, მოგვწეროთ ელექტრონულ ფოსტაზე {email}",
+  "@emailUsMessage": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "emailVerificationToggle": "ელექტრონული ფოსტის ვერიფიკაცია",
+  "exportLogs": "აღრიცხვის ფაილების ექსპორტირება",
+  "@exportLogs": {
+    "description": "Button to export logs"
+  },
+  "general": "ზოგადი",
+  "generatingEncryptionKeysTitle": "მიმდინარეობს დაშიფრვის გასაღებების გენერირება...",
+  "@generatingEncryptionKeysTitle": {
+    "description": "Generating encryption keys title"
+  },
+  "getStarted": "დაწყება",
+  "hearUsWhereOptionalTitle": "როგორ შეიტყვეთ Ente-ს შესახებ? (არასავალდებულო)",
+  "@hearUsWhereOptionalTitle": {
+    "description": "Title asking how user heard about Ente"
+  },
+  "importAccountPageTitle": "შეიყვანეთ ანგარიშის მონაცემები",
+  "importCodes": "კოდების იმპორტირება",
+  "importEnterSetupKey": "შეიყვანეთ დაყენების კოდი",
+  "incorrectDetails": "არასწორი მონაცემები",
+  "incorrectPasswordTitle": "არასწორი პაროლი",
+  "@incorrectPasswordTitle": {
+    "description": "Title for incorrect password error"
+  },
+  "loggingOut": "მიმდინარეობს გამოსვლა...",
+  "@loggingOut": {
+    "description": "Message shown while logging out"
+  },
+  "merchandise": "მერჩანტი",
+  "nextTotpTitle": "შემდეგი",
+  "no": "არა",
+  "noInternetConnection": "ინტერნეტთან კავშირი არ არის",
+  "@noInternetConnection": {
+    "description": "No internet connection error message"
+  },
+  "passwordEmptyError": "პაროლის ველი არ შეიძლება იყოს ცარიელი",
+  "passwordForDecryptingExport": "ექსპორტის გაშიფრვის პაროლი",
+  "plainText": "სტანდარტული ტექსტი",
+  "pleaseCheckYourInternetConnectionAndTryAgain": "გთხოვთ, შეამოწმოთ თქვენი ინტერნეტ კავშირი და სცადოთ ხელახლა.",
+  "@pleaseCheckYourInternetConnectionAndTryAgain": {
+    "description": "Message asking user to check internet connection"
+  },
+  "pleaseLoginAgain": "გთხოვთ, გაიაროთ ავტორიზაცია ხელახლა",
+  "pleaseTryAgain": "გთხოვთ, სცადოთ ხელახლა",
+  "@pleaseTryAgain": {
+    "description": "Message asking user to try again"
+  },
+  "pleaseVerifyDetails": "გთხოვთ, გადაამოწმოთ მონაცემები და სცადოთ ხელახლა",
+  "pleaseWait": "გთხოვთ, დაელოდოთ...",
+  "@pleaseWait": {
+    "description": "Please wait message"
+  },
+  "preparingLogs": "მიმდინარეობს აღრიცხვის ფაილების მზადება...",
+  "rateUsOnStore": "შეგვაფასეთ {storeName}-ზე",
+  "@rateUsOnStore": {
+    "placeholders": {
+      "storeName": {}
+    }
+  },
+  "recoveryKey": "აღდგენის კოდი",
+  "@recoveryKey": {
+    "description": "Recovery key label"
+  },
+  "recreatePasswordTitle": "პაროლის ხელახლა შექმნა",
+  "@recreatePasswordTitle": {
+    "description": "Title for recreate password dialog"
+  },
+  "reportABug": "პრობლემის შესახებ შეტყობინება",
+  "@reportABug": {
+    "description": "Label for reporting a bug"
+  },
+  "save": "შენახვა",
+  "@save": {
+    "description": "Label for save button"
+  },
+  "scanAQrCode": "QR კოდის დასკანერება",
+  "secretCanNotBeEmpty": "გასაღების ველი არ შეიძლება ცარიელი იყოს",
+  "sendLogsDescription": "თქვენი პრობლემის აღმოსაფხვრელად, ეს ქმედება გააგზავნის აღრიცხვის ფაილებს. მიუხედავად იმისა, რომ ჩვენ ვიღებთ უსაფრთხოების ზომებს, რათა სენსიტიური ინფორმაცია არ მოხვდეს აღრიცხვის ფაილებში, გაგზავნამდე, გირჩევთ, გადახედოთ აღრიცხვის ფაილებს.",
+  "sessionExpired": "სესიის დრო ამოიწურა",
+  "@sessionExpired": {
+    "description": "Error message when session has expired"
+  },
+  "settings": "პარამეტრები",
   "signOutFromOtherDevices": "ყველა მოწყობილობიდან გამოსვლა",
   "@signOutFromOtherDevices": {
     "description": "Sign out from other devices title"
@@ -71,40 +143,16 @@
   "@signOutOtherDevices": {
     "description": "Sign out other devices button label"
   },
-  "doNotSignOut": "არ მოხდეს გამოსვლა",
-  "@doNotSignOut": {
-    "description": "Do not sign out button label"
+  "success": "წარმატებით",
+  "support": "მხარდაჭერა",
+  "unlock": "განბლოკვა",
+  "@unlock": {
+    "description": "Short action label used as the system authentication reason when unlocking the app"
   },
-  "generatingEncryptionKeysTitle": "მიმდინარეობს დაშიფრვის გასაღებების გენერირება...",
-  "@generatingEncryptionKeysTitle": {
-    "description": "Generating encryption keys title"
+  "verifyPassword": "პაროლის დასტური",
+  "@verifyPassword": {
+    "description": "Verify password button label"
   },
-  "recoveryKey": "აღდგენის კოდი",
-  "@recoveryKey": {
-    "description": "Recovery key label"
-  },
-  "loggingOut": "მიმდინარეობს გამოსვლა...",
-  "@loggingOut": {
-    "description": "Message shown while logging out"
-  },
-  "androidBiometricNotRecognized": "ამოცნობა ვერ მოხერხდა. გთხოვთ, სცადოთ ხელახლა.",
-  "@androidBiometricNotRecognized": {
-    "description": "Message to let the user know that authentication was failed. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricSuccess": "წარმატებით",
-  "@androidBiometricSuccess": {
-    "description": "Message to let the user know that authentication was successful. It is used on Android side. Maximum 60 characters."
-  },
-  "androidCancelButton": "გაუქმება",
-  "@androidCancelButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
-  },
-  "androidSignInTitle": "საჭიროა აუთენთიფიკაცია",
-  "@androidSignInTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
-  },
-  "sessionExpired": "სესიის დრო ამოიწურა",
-  "@sessionExpired": {
-    "description": "Error message when session has expired"
-  }
+  "viewLogsAction": "აღრიცხვის ფაილების ნახვა",
+  "yes": "დიახ"
 }

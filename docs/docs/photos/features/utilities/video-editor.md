@@ -7,7 +7,9 @@ description: Edit your videos with trim, crop, and rotate tools
 
 The video editor lets you make basic edits to your videos directly within Ente Photos. Edit videos with trim, crop, and rotate tools, and save them as new copies while preserving your originals.
 
-> **Note**: The video editor was revamped in v1.2.18 to drastically improve speed when editing larger videos and enhance the user experience.
+> [!NOTE]
+>
+> The video editor was revamped in v1.2.18 to drastically improve speed when editing larger videos and enhance the user experience.
 
 ## Features
 
@@ -58,6 +60,10 @@ Useful for correcting videos captured in the wrong orientation.
     - **Rotate** - Change video orientation
 4. Make your edits using one or more tools
 5. Tap **Save copy** to create the edited version
+
+![Overflow menu with Edit highlighted on a video in Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-video-edit-overflow-callout-v2.png){width=320px}
+
+![Video editor showing Trim Crop Rotate and Save copy on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-video-editor.png){width=320px}
 
 **What happens when you save:**
 

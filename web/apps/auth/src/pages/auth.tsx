@@ -1,3 +1,7 @@
+import { masterKeyFromSession } from "@/services/account-keys";
+import { generateOTPs, type Code } from "@/services/code";
+import { getAuthCodesAndTimeOffset } from "@/services/remote";
+import { prettyFormatCode } from "@/utils/format";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import PushPinIcon from "@mui/icons-material/PushPin";
 import {
@@ -24,13 +28,9 @@ import {
 import { useBaseContext } from "ente-base/context";
 import { isHTTP401Error } from "ente-base/http";
 import log from "ente-base/log";
-import { masterKeyFromSession } from "ente-base/session";
 import { t } from "i18next";
 import { useRouter } from "next/router";
 import React, { useCallback, useEffect, useState } from "react";
-import { generateOTPs, type Code } from "services/code";
-import { getAuthCodesAndTimeOffset } from "services/remote";
-import { prettyFormatCode } from "utils/format";
 
 const Page: React.FC = () => {
     const { logout, showMiniDialog } = useBaseContext();
@@ -199,7 +199,6 @@ const CodeDisplay: React.FC<CodeDisplayProps> = ({ code, timeOffset }) => {
         });
 
     useEffect(() => {
-        // Generate to set the initial otp and nextOTP on component mount.
         regen();
 
         const periodMs = code.period * 1000;
@@ -207,16 +206,15 @@ const CodeDisplay: React.FC<CodeDisplayProps> = ({ code, timeOffset }) => {
             periodMs - ((Date.now() + timeOffset) % periodMs);
 
         let interval: ReturnType<typeof setInterval> | undefined;
-        // Wait until we are at the start of the next code period, and then
-        // start the interval loop.
-        setTimeout(() => {
-            // We need to call regen() once before the interval loop to set the
-            // initial otp and nextOTP.
+        const timeout = setTimeout(() => {
             regen();
             interval = setInterval(regen, periodMs);
         }, timeToNextCode);
 
-        return () => interval && clearInterval(interval);
+        return () => {
+            clearTimeout(timeout);
+            if (interval) clearInterval(interval);
+        };
     }, [code, timeOffset, regen]);
 
     return (
@@ -440,7 +438,7 @@ const Footer: React.FC = () => {
     return (
         <Stack sx={{ my: "4rem", gap: 2, alignItems: "center" }}>
             <Typography>{t("auth_download_mobile_app")}</Typography>
-            <a href="https://ente.io/auth/#download-auth" download>
+            <a href="https://ente.com/auth/#download-auth" download>
                 <Button color="accent">{t("download")}</Button>
             </a>
         </Stack>

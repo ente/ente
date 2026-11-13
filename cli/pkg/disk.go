@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ente-io/cli/pkg/model"
-	"github.com/ente-io/cli/pkg/model/export"
+	"github.com/ente/cli/pkg/model"
+	"github.com/ente/cli/pkg/model/export"
 	"io"
 	"os"
 	"strings"
@@ -19,14 +19,13 @@ const (
 type albumDiskInfo struct {
 	ExportRoot string
 	AlbumMeta  *export.AlbumMetadata
-	// FileNames contain the name of the files at root level of the album folder
+	// FileNames tracks files at the root of the album directory.
 	FileNames                 *map[string]bool
 	MetaFileNameToDiskFileMap *map[string]*export.DiskFileMetadata
 	FileIdToDiskFileMap       *map[int64]*export.DiskFileMetadata
 }
 
 func (a *albumDiskInfo) IsFilePresent(file model.RemoteFile) bool {
-	// check if file.ID is present
 	_, ok := (*a.FileIdToDiskFileMap)[file.ID]
 	return ok
 }
@@ -74,12 +73,10 @@ func (a *albumDiskInfo) IsMetaFileNamePresent(metaFileName string) bool {
 	return ok
 }
 
-// GenerateUniqueMetaFileName generates a unique metafile name.
 func (a *albumDiskInfo) GenerateUniqueMetaFileName(baseFileName, extension string) string {
 	potentialDiskFileName := fmt.Sprintf("%s%s.json", baseFileName, extension)
 	count := 1
 	for a.IsMetaFileNamePresent(potentialDiskFileName) {
-		// separate the file name and extension
 		fileName := fmt.Sprintf("%s_%d", baseFileName, count)
 		potentialDiskFileName = fmt.Sprintf("%s%s.json", fileName, extension)
 		count++
@@ -90,12 +87,10 @@ func (a *albumDiskInfo) GenerateUniqueMetaFileName(baseFileName, extension strin
 	return potentialDiskFileName
 }
 
-// GenerateUniqueFileName generates a unique file name.
 func (a *albumDiskInfo) GenerateUniqueFileName(baseFileName, extension string) string {
 	fileName := fmt.Sprintf("%s%s", baseFileName, extension)
 	count := 1
 	for a.IsFileNamePresent(strings.ToLower(fileName)) {
-		// separate the file name and extension
 		fileName = fmt.Sprintf("%s_%d%s", baseFileName, count, extension)
 		count++
 		if !a.IsFileNamePresent(strings.ToLower(fileName)) {
@@ -106,7 +101,6 @@ func (a *albumDiskInfo) GenerateUniqueFileName(baseFileName, extension string) s
 }
 
 func (a *albumDiskInfo) GetDiskFileMetadata(file model.RemoteFile) *export.DiskFileMetadata {
-	// check if file.ID is present
 	diskFile, ok := (*a.FileIdToDiskFileMap)[file.ID]
 	if !ok {
 		return nil

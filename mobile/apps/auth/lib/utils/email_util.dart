@@ -3,16 +3,17 @@ import 'dart:io';
 import 'package:archive/archive_io.dart';
 import 'package:email_validator/email_validator.dart';
 import 'package:ente_auth/core/configuration.dart';
-import 'package:ente_auth/l10n/l10n.dart';
-import 'package:ente_auth/ui/components/buttons/button_widget.dart';
 import 'package:ente_auth/ui/components/dialog_widget.dart';
-import 'package:ente_auth/ui/components/models/button_type.dart';
-import 'package:ente_auth/ui/tools/debug/log_file_viewer.dart';
 import 'package:ente_auth/utils/dialog_util.dart';
 import 'package:ente_auth/utils/directory_utils.dart' as auth_dir;
 import 'package:ente_auth/utils/share_utils.dart' as auth_share;
 import 'package:ente_auth/utils/toast_util.dart';
 import 'package:ente_logging/logging.dart';
+import 'package:ente_mail/ente_mail.dart';
+import 'package:ente_strings/ente_strings.dart';
+import 'package:ente_ui/components/buttons/button_widget.dart';
+import 'package:ente_ui/components/buttons/models/button_type.dart';
+import 'package:ente_ui/pages/log_file_viewer.dart';
 import 'package:ente_utils/ente_utils.dart';
 import 'package:file_saver/file_saver.dart';
 import 'package:flutter/material.dart';
@@ -24,6 +25,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 final Logger _logger = Logger('email_util');
+const MailComposer _mailComposer = MailComposer();
 
 bool isValidEmail(String? email) {
   if (email == null) {
@@ -39,7 +41,7 @@ Future<void> sendLogs(
   String? subject,
   String? body,
 }) async {
-  final l10n = context.l10n;
+  final l10n = context.strings;
   await showDialogWidget(
     context: context,
     title: title,
@@ -59,20 +61,15 @@ Future<void> sendLogs(
           }
         },
       ),
-      //isInAlert is false here as we don't want to the dialog to dismiss
-      //on pressing this button
       ButtonWidget(
         buttonType: ButtonType.secondary,
         labelText: l10n.viewLogsAction,
         buttonAction: ButtonAction.second,
         onTap: () async {
-          await showDialog(
-            context: context,
-            builder: (BuildContext context) {
-              return LogFileViewer(SuperLogging.logFile!);
-            },
-            barrierColor: Colors.black87,
-            barrierDismissible: false,
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => LogFileViewer(SuperLogging.logFile!),
+            ),
           );
         },
       ),
@@ -82,21 +79,23 @@ Future<void> sendLogs(
         labelText: l10n.exportLogs,
         buttonAction: ButtonAction.third,
         onTap: () async {
-          Future.delayed(
-            const Duration(milliseconds: 200),
-            () => auth_share.shareDialog(
+          Future.delayed(const Duration(milliseconds: 200), () {
+            if (!context.mounted) return;
+            auth_share.shareDialog(
               context,
               title,
               saveAction: () async {
                 final zipFilePath = await getZippedLogsFile(context);
+                if (!context.mounted) return;
                 await exportLogs(context, zipFilePath);
               },
               sendAction: () async {
                 final zipFilePath = await getZippedLogsFile(context);
+                if (!context.mounted) return;
                 await exportLogs(context, zipFilePath, true);
               },
-            ),
-          );
+            );
+          });
         },
       ),
       ButtonWidget(
@@ -110,13 +109,12 @@ Future<void> sendLogs(
 }
 
 Future<void> openSupportPage(String? subject, String? body) async {
-  final baseSupportUri = Uri.https(
-    "github.com",
-    "/ente-io/ente/discussions/new",
-    {"category": "q-a"},
+  final baseSupportUri = Uri.https("github.com", "/ente/ente/discussions/new", {
+    "category": "q-a",
+  });
+  final queryParameters = Map<String, String>.from(
+    baseSupportUri.queryParameters,
   );
-  final queryParameters =
-      Map<String, String>.from(baseSupportUri.queryParameters);
   if (subject != null && body != null) {
     queryParameters["title"] = subject;
     queryParameters["body"] = body;
@@ -127,26 +125,11 @@ Future<void> openSupportPage(String? subject, String? body) async {
   if (!launched) {
     _logger.warning("Failed to open support discussions at $supportUri");
   }
-  // final String zipFilePath = await getZippedLogsFile(context);
-  // final Email email = Email(
-  //   recipients: [toEmail],
-  //   subject: subject ?? '',
-  //   body: body ?? '',
-  //   attachmentPaths: [zipFilePath],
-  //   isHTML: false,
-  // );
-  // try {
-  //   await FlutterEmailSender.send(email);
-  // } catch (e, s) {
-  //   _logger.severe('email sender failed', e, s);
-  //   Navigator.of(context, rootNavigator: true).pop();
-  //   await shareLogs(context, toEmail, zipFilePath);
-  // }
 }
 
 Future<String> getZippedLogsFile(BuildContext context) async {
-  final l10n = context.l10n;
-  final dialog = createProgressDialog(context, l10n.preparingLogsTitle);
+  final l10n = context.strings;
+  final dialog = createProgressDialog(context, l10n.preparingLogs);
   await dialog.show();
   final logsPath = (await getApplicationSupportDirectory()).path;
   final logsDirectory = Directory("$logsPath/logs");
@@ -166,11 +149,11 @@ Future<void> shareLogs(
   String toEmail,
   String zipFilePath,
 ) async {
-  final l10n = context.l10n;
+  final l10n = context.strings;
   final result = await showDialogWidget(
     context: context,
     title: l10n.emailYourLogs,
-    body: l10n.pleaseSendTheLogsTo(toEmail),
+    body: l10n.pleaseSendTheLogsTo(toEmail: toEmail),
     buttons: [
       ButtonWidget(
         buttonType: ButtonType.neutral,
@@ -197,21 +180,24 @@ Future<void> shareLogs(
     ],
   );
   if (result?.action != null && result!.action == ButtonAction.second) {
-    Future.delayed(
-      const Duration(milliseconds: 200),
-      () => auth_share.shareDialog(
+    if (!context.mounted) return;
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (!context.mounted) return;
+      auth_share.shareDialog(
         context,
-        context.l10n.exportLogs,
+        context.strings.exportLogs,
         saveAction: () async {
           final zipFilePath = await getZippedLogsFile(context);
+          if (!context.mounted) return;
           await exportLogs(context, zipFilePath);
         },
         sendAction: () async {
           final zipFilePath = await getZippedLogsFile(context);
+          if (!context.mounted) return;
           await exportLogs(context, zipFilePath, true);
         },
-      ),
-    );
+      );
+    });
   }
 }
 
@@ -223,23 +209,16 @@ Future<void> exportLogs(
   final Size size = MediaQuery.of(context).size;
   if (!isSharing) {
     final DateTime now = DateTime.now().toUtc();
-    final String shortMonthName = DateFormat('MMM').format(now); // Short month
+    final String shortMonthName = DateFormat('MMM').format(now);
     final String logFileName =
         'ente-logs-${now.year}-$shortMonthName-${now.day}-${now.hour}-${now.minute}';
 
     final bytes = await File(zipFilePath).readAsBytes();
-    await FileSaverUtil.saveFile(
-      logFileName,
-      'zip',
-      bytes,
-      MimeType.zip,
-    );
+    await FileSaverUtil.saveFile(logFileName, 'zip', bytes, MimeType.zip);
   } else {
     await SharePlus.instance.share(
       ShareParams(
-        files: <XFile>[
-          XFile(zipFilePath, mimeType: 'application/zip'),
-        ],
+        files: <XFile>[XFile(zipFilePath, mimeType: 'application/zip')],
         sharePositionOrigin: Rect.fromLTWH(0, 0, size.width, size.height / 2),
       ),
     );
@@ -253,35 +232,19 @@ Future<void> sendEmail(
   String? body,
 }) async {
   try {
+    if (!context.mounted) return;
     final String clientDebugInfo = await _clientInfo();
     final String subject0 = subject ?? '[Support]';
     final String body0 = (body ?? '') + clientDebugInfo;
-    // final EmailContent email = EmailContent(
-    //   to: [
-    //     to,
-    //   ],
-    //   subject: subject ?? '[Support]',
-    //   body: (body ?? '') + clientDebugInfo,
-    // );
-    if (Platform.isAndroid) {
-      // Special handling due to issue in proton mail android client
-      // https://github.com/ente-io/frame/pull/253
-      final Uri params = Uri(
-        scheme: 'mailto',
-        path: to,
-        query: 'subject=$subject0&body=$body0',
-      );
-      if (await canLaunchUrl(params)) {
-        await launchUrl(params);
-      } else {
-        // this will trigger _showNoMailAppsDialog
-        throw Exception('Could not launch ${params.toString()}');
-      }
-    } else {
+    final result = await _mailComposer.compose(
+      MailDraft(recipient: to, subject: subject0, body: body0),
+    );
+    if (result is MailUnavailable && context.mounted) {
       _showNoMailAppsDialog(context, to);
     }
   } catch (e) {
     _logger.severe("Failed to send email to $to", e);
+    if (!context.mounted) return;
     _showNoMailAppsDialog(context, to);
   }
 }
@@ -298,15 +261,16 @@ Future<String> _clientInfo() async {
 }
 
 void _showNoMailAppsDialog(BuildContext context, String toEmail) {
-  final l10n = context.l10n;
+  final l10n = context.strings;
   showChoiceDialog(
     context,
     icon: Icons.email_outlined,
-    title: l10n.emailUsMessage(toEmail),
+    title: l10n.emailUsMessage(email: toEmail),
     firstButtonLabel: l10n.copyEmailAddress,
     secondButtonLabel: l10n.ok,
     firstButtonOnTap: () async {
       await Clipboard.setData(ClipboardData(text: toEmail));
+      if (!context.mounted) return;
       showShortToast(context, l10n.copied);
     },
   );

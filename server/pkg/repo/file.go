@@ -1,24 +1,25 @@
 package repo
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/stacktrace"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/utils/s3config"
-	"github.com/ente-io/museum/pkg/utils/time"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/utils/dbmetrics"
+	"github.com/ente/museum/pkg/utils/s3config"
+	"github.com/ente/museum/pkg/utils/time"
 	"github.com/lib/pq"
 )
 
-// FileRepository is an implementation of the FileRepo that
-// persists and retrieves data from disk.
 type FileRepository struct {
 	DB                *sql.DB
 	S3Config          *s3config.S3Config
@@ -26,10 +27,13 @@ type FileRepository struct {
 	ObjectRepo        *ObjectRepository
 	ObjectCleanupRepo *ObjectCleanupRepository
 	ObjectCopiesRepo  *ObjectCopiesRepository
-	UsageRepo         *UsageRepository
 }
 
-// Create creates an entry in the database for the given file
+type FileObjectBuckets struct {
+	File      string
+	Thumbnail string
+}
+
 func (repo *FileRepository) Create(
 	file ente.File,
 	fileSize int64,
@@ -37,109 +41,125 @@ func (repo *FileRepository) Create(
 	usageDiff int64,
 	collectionOwnerID int64,
 	app ente.App,
+	buckets FileObjectBuckets,
 ) (ente.File, int64, error) {
-	hotDC := repo.S3Config.GetHotDataCenter()
-	dcsForNewEntry := pq.StringArray{hotDC}
-
-	ctx := context.Background()
-	tx, err := repo.DB.BeginTx(ctx, nil)
-	if err != nil {
-		return file, -1, stacktrace.Propagate(err, "")
-	}
 	if file.OwnerID != collectionOwnerID {
 		return file, -1, stacktrace.Propagate(errors.New("both file and collection should belong to same owner"), "")
 	}
+
+	ctx := context.Background()
+	finishPhase := dbmetrics.Start(dbmetrics.FileCreate, "begin_with_checkout")
+	tx, err := repo.DB.BeginTx(ctx, nil)
+	finishPhase(err)
+	if err != nil {
+		return file, -1, stacktrace.Propagate(err, "")
+	}
+	defer tx.Rollback()
 	var fileID int64
+	finishPhase = dbmetrics.Start(dbmetrics.FileCreate, "insert_file")
 	err = tx.QueryRowContext(ctx, `INSERT INTO files
-			(owner_id, encrypted_metadata,
+			(owner_id, app, encrypted_metadata,
 			file_decryption_header, thumbnail_decryption_header, metadata_decryption_header,
 			magic_metadata, pub_magic_metadata, info, updation_time)
-			VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING file_id`,
-		file.OwnerID, file.Metadata.EncryptedData, file.File.DecryptionHeader,
+			VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING file_id`,
+		file.OwnerID, app, file.Metadata.EncryptedData, file.File.DecryptionHeader,
 		file.Thumbnail.DecryptionHeader, file.Metadata.DecryptionHeader,
-		file.MagicMetadata, file.PubicMagicMetadata, file.Info,
+		file.MagicMetadata, file.PublicMagicMetadata, file.Info,
 		file.UpdationTime).Scan(&fileID)
+	finishPhase(err)
 	if err != nil {
-		tx.Rollback()
 		return file, -1, stacktrace.Propagate(err, "")
 	}
 	file.ID = fileID
+	finishPhase = dbmetrics.Start(dbmetrics.FileCreate, "insert_membership")
 	_, err = tx.ExecContext(ctx, `INSERT INTO collection_files
 			(collection_id, file_id, encrypted_key, key_decryption_nonce, is_deleted, updation_time, c_owner_id, f_owner_id)
 			VALUES($1, $2, $3, $4, $5, $6, $7, $8)`, file.CollectionID, file.ID,
 		file.EncryptedKey, file.KeyDecryptionNonce, false, file.UpdationTime, file.OwnerID, collectionOwnerID)
+	finishPhase(err)
 	if err != nil {
-		tx.Rollback()
 		return file, -1, stacktrace.Propagate(err, "")
 	}
+	finishPhase = dbmetrics.Start(dbmetrics.FileCreate, "update_collection")
 	_, err = tx.ExecContext(ctx, `UPDATE collections SET updation_time = $1
 			WHERE collection_id = $2`, file.UpdationTime, file.CollectionID)
+	finishPhase(err)
 	if err != nil {
-		tx.Rollback()
 		return file, -1, stacktrace.Propagate(err, "")
 	}
+	finishPhase = dbmetrics.Start(dbmetrics.FileCreate, "insert_original_object")
 	_, err = tx.ExecContext(ctx, `INSERT INTO object_keys(file_id, o_type, object_key, size, datacenters)
-			VALUES($1, $2, $3, $4, $5)`, fileID, ente.FILE, file.File.ObjectKey, fileSize, dcsForNewEntry)
+			VALUES($1, $2, $3, $4, $5)`, fileID, ente.FILE, file.File.ObjectKey, fileSize, pq.StringArray{buckets.File})
+	finishPhase(err)
 	if err != nil {
-		tx.Rollback()
 		if err.Error() == "pq: duplicate key value violates unique constraint \"object_keys_object_key_key\"" {
 			return file, -1, ente.ErrDuplicateFileObjectFound
 		}
 		return file, -1, stacktrace.Propagate(err, "")
 	}
+	finishPhase = dbmetrics.Start(dbmetrics.FileCreate, "insert_thumbnail_object")
 	_, err = tx.ExecContext(ctx, `INSERT INTO object_keys(file_id, o_type, object_key, size, datacenters)
-			VALUES($1, $2, $3, $4, $5)`, fileID, ente.THUMBNAIL, file.Thumbnail.ObjectKey, thumbnailSize, dcsForNewEntry)
+			VALUES($1, $2, $3, $4, $5)`, fileID, ente.THUMBNAIL, file.Thumbnail.ObjectKey, thumbnailSize, pq.StringArray{buckets.Thumbnail})
+	finishPhase(err)
 	if err != nil {
-		tx.Rollback()
 		if err.Error() == "pq: duplicate key value violates unique constraint \"object_keys_object_key_key\"" {
 			return file, -1, ente.ErrDuplicateThumbnailObjectFound
 		}
 		return file, -1, stacktrace.Propagate(err, "")
 	}
 
-	err = repo.ObjectCleanupRepo.RemoveTempObjectKey(ctx, tx, file.File.ObjectKey, hotDC)
+	finishPhase = dbmetrics.Start(dbmetrics.FileCreate, "consume_original_upload")
+	err = repo.ObjectCleanupRepo.ConsumeFileUpload(ctx, tx, file.File.ObjectKey, file.OwnerID, app, buckets.File)
+	finishPhase(err)
 	if err != nil {
-		tx.Rollback()
 		return file, -1, stacktrace.Propagate(err, "")
 	}
-	err = repo.ObjectCleanupRepo.RemoveTempObjectKey(ctx, tx, file.Thumbnail.ObjectKey, hotDC)
+	finishPhase = dbmetrics.Start(dbmetrics.FileCreate, "consume_thumbnail_upload")
+	err = repo.ObjectCleanupRepo.ConsumeFileUpload(ctx, tx, file.Thumbnail.ObjectKey, file.OwnerID, app, buckets.Thumbnail)
+	finishPhase(err)
 	if err != nil {
-		tx.Rollback()
 		return file, -1, stacktrace.Propagate(err, "")
 	}
-	usage, err := repo.updateUsage(ctx, tx, file.OwnerID, usageDiff)
+	finishPhase = dbmetrics.Start(dbmetrics.FileCreate, "update_usage")
+	usage, err := repo.updateUsageForFileCreation(ctx, tx, file.OwnerID, usageDiff, app)
+	finishPhase(err)
 	if err != nil {
-		tx.Rollback()
-		return file, -1, stacktrace.Propagate(err, "")
-	}
-
-	err = repo.markAsNeedingReplication(ctx, tx, file, hotDC)
-	if err != nil {
-		tx.Rollback()
 		return file, -1, stacktrace.Propagate(err, "")
 	}
 
+	finishPhase = dbmetrics.Start(dbmetrics.FileCreate, "mark_replication")
+	err = repo.markObjectAsNeedingReplication(ctx, tx, file.File.ObjectKey, buckets.File, ente.FILE)
+	if err == nil {
+		err = repo.markObjectAsNeedingReplication(ctx, tx, file.Thumbnail.ObjectKey, buckets.Thumbnail, ente.THUMBNAIL)
+	}
+	finishPhase(err)
+	if err != nil {
+		return file, -1, stacktrace.Propagate(err, "")
+	}
+
+	finishPhase = dbmetrics.Start(dbmetrics.FileCreate, "commit")
 	err = tx.Commit()
+	finishPhase(err)
 	if err != nil {
 		return file, -1, stacktrace.Propagate(err, "")
 	}
 	return file, usage, stacktrace.Propagate(err, "")
 }
 
-// CreateMetaFile creates an entry in the database for the given file
 func (repo *FileRepository) CreateMetaFile(
 	metaFile ente.MetaFile,
 	collectionOwnerID int64,
 	app ente.App,
 ) (*ente.File, error) {
+	if metaFile.OwnerID != collectionOwnerID {
+		return nil, stacktrace.Propagate(errors.New("both file and collection should belong to same owner"), "")
+	}
 	ctx := context.Background()
 	tx, err := repo.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
-	if metaFile.OwnerID != collectionOwnerID {
-		return nil, stacktrace.Propagate(errors.New("both file and collection should belong to same owner"), "")
-	}
+	defer tx.Rollback()
 
 	var fileID int64
 	info := &ente.FileInfo{
@@ -147,16 +167,15 @@ func (repo *FileRepository) CreateMetaFile(
 		ThumbnailSize: 0,
 	}
 	err = tx.QueryRowContext(ctx, `INSERT INTO files
-			(owner_id, encrypted_metadata,
+			(owner_id, app, encrypted_metadata,
 			file_decryption_header, thumbnail_decryption_header, metadata_decryption_header,
 			magic_metadata, pub_magic_metadata, info, updation_time)
-			VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING file_id`,
-		metaFile.OwnerID, metaFile.Metadata.EncryptedData, "",
+			VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING file_id`,
+		metaFile.OwnerID, app, metaFile.Metadata.EncryptedData, "",
 		"", metaFile.Metadata.DecryptionHeader,
-		metaFile.MagicMetadata, metaFile.PubicMagicMetadata, info,
+		metaFile.MagicMetadata, metaFile.PublicMagicMetadata, info,
 		metaFile.UpdationTime).Scan(&fileID)
 	if err != nil {
-		tx.Rollback()
 		return nil, stacktrace.Propagate(err, "")
 	}
 
@@ -165,11 +184,14 @@ func (repo *FileRepository) CreateMetaFile(
 			VALUES($1, $2, $3, $4, $5, $6, $7, $8)`, metaFile.CollectionID, fileID,
 		metaFile.EncryptedKey, metaFile.KeyDecryptionNonce, false, metaFile.UpdationTime, metaFile.OwnerID, collectionOwnerID)
 	if err != nil {
-		tx.Rollback()
 		return nil, stacktrace.Propagate(err, "")
 	}
 	_, err = tx.ExecContext(ctx, `UPDATE collections SET updation_time = $1
 			WHERE collection_id = $2`, metaFile.UpdationTime, metaFile.CollectionID)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "")
+	}
+	_, err = repo.updateUsageForFileCreation(ctx, tx, metaFile.OwnerID, 0, app)
 	if err != nil {
 		tx.Rollback()
 		return nil, stacktrace.Propagate(err, "")
@@ -179,114 +201,51 @@ func (repo *FileRepository) CreateMetaFile(
 		return nil, stacktrace.Propagate(err, "")
 	}
 	var file ente.File = ente.File{
-		ID:                 fileID,
-		UpdationTime:       metaFile.UpdationTime,
-		OwnerID:            metaFile.OwnerID,
-		Metadata:           metaFile.Metadata,
-		PubicMagicMetadata: metaFile.PubicMagicMetadata,
-		MagicMetadata:      metaFile.MagicMetadata,
-		EncryptedKey:       metaFile.EncryptedKey,
-		KeyDecryptionNonce: metaFile.KeyDecryptionNonce,
-		Info:               info,
-		CollectionID:       metaFile.CollectionID,
+		ID:                  fileID,
+		UpdationTime:        metaFile.UpdationTime,
+		OwnerID:             metaFile.OwnerID,
+		Metadata:            metaFile.Metadata,
+		PublicMagicMetadata: metaFile.PublicMagicMetadata,
+		MagicMetadata:       metaFile.MagicMetadata,
+		EncryptedKey:        metaFile.EncryptedKey,
+		KeyDecryptionNonce:  metaFile.KeyDecryptionNonce,
+		Info:                info,
+		CollectionID:        metaFile.CollectionID,
 	}
 	return &file, stacktrace.Propagate(err, "")
 }
 
-// markAsNeedingReplication inserts new entries in object_copies, setting the
-// current hot DC as the source copy.
-//
-// The higher layer above us (file controller) would've already checked that the
-// object exists in the current hot DC (See `c.sizeOf` in file controller). This
-// would cover cases where the client fetched presigned upload URLs for say
-// hotDC1, but by the time they connected to museum, museum switched to using
-// hotDC2. So then when museum would try to fetch the file size from hotDC2, the
-// object won't be found there, and the upload would fail (which is the
-// behaviour we want, since hot DC swaps are not a frequent/expected operation,
-// we just wish to guarantee correctness if they do happen).
-func (repo *FileRepository) markAsNeedingReplication(ctx context.Context, tx *sql.Tx, file ente.File, hotDC string) error {
-	if hotDC == repo.S3Config.GetHotBackblazeDC() {
-		err := repo.ObjectCopiesRepo.CreateNewB2Object(ctx, tx, file.File.ObjectKey, true, true)
-		if err != nil {
-			return stacktrace.Propagate(err, "")
-		}
-		err = repo.ObjectCopiesRepo.CreateNewB2Object(ctx, tx, file.Thumbnail.ObjectKey, true, false)
-		return stacktrace.Propagate(err, "")
-	} else if hotDC == repo.S3Config.GetHotWasabiDC() {
-		err := repo.ObjectCopiesRepo.CreateNewWasabiObject(ctx, tx, file.File.ObjectKey, true, true)
-		if err != nil {
-			return stacktrace.Propagate(err, "")
-		}
-		err = repo.ObjectCopiesRepo.CreateNewWasabiObject(ctx, tx, file.Thumbnail.ObjectKey, true, false)
-		return stacktrace.Propagate(err, "")
-	} else {
-		// Bail out if we're trying to add a new entry for a file but the
-		// primary hot DC is not one of the known types.
-		err := fmt.Errorf("only B2 and Wasabi DCs can be used for as the primary hot storage; instead, it was %s", hotDC)
-		return stacktrace.Propagate(err, "")
+func (repo *FileRepository) markObjectAsNeedingReplication(ctx context.Context, tx *sql.Tx, objectKey string, bucket string, objectType ente.ObjectType) error {
+	switch bucket {
+	case repo.S3Config.GetHotBackblazeDC():
+		return repo.ObjectCopiesRepo.CreateNewB2Object(ctx, tx, objectKey, true, objectType == ente.FILE)
+	case repo.S3Config.GetHotWasabiDC():
+		return repo.ObjectCopiesRepo.CreateNewWasabiObject(ctx, tx, objectKey, true, objectType == ente.FILE)
+	default:
+		return stacktrace.NewError("unsupported upload bucket: %s", bucket)
 	}
 }
 
-// See markAsNeedingReplication - this variant is for updating only thumbnails.
-func (repo *FileRepository) markThumbnailAsNeedingReplication(ctx context.Context, tx *sql.Tx, thumbnailObjectKey string, hotDC string) error {
-	if hotDC == repo.S3Config.GetHotBackblazeDC() {
-		err := repo.ObjectCopiesRepo.CreateNewB2Object(ctx, tx, thumbnailObjectKey, true, false)
-		return stacktrace.Propagate(err, "")
-	} else if hotDC == repo.S3Config.GetHotWasabiDC() {
-		err := repo.ObjectCopiesRepo.CreateNewWasabiObject(ctx, tx, thumbnailObjectKey, true, false)
-		return stacktrace.Propagate(err, "")
-	} else {
-		// Bail out if we're trying to add a new entry for a file but the
-		// primary hot DC is not one of the known types.
-		err := fmt.Errorf("only B2 and Wasabi DCs can be used for as the primary hot storage; instead, it was %s", hotDC)
-		return stacktrace.Propagate(err, "")
+func (repo *FileRepository) ResetObjectReplication(objectKey string, bucket string, objectType ente.ObjectType) error {
+	var sourceIsB2 bool
+	switch bucket {
+	case repo.S3Config.GetHotBackblazeDC():
+		sourceIsB2 = true
+	case repo.S3Config.GetHotWasabiDC():
+		sourceIsB2 = false
+	default:
+		return stacktrace.NewError("unsupported upload bucket: %s", bucket)
 	}
+	return repo.ObjectCopiesRepo.ResetReplication(objectKey, sourceIsB2, objectType == ente.FILE)
 }
 
-// ResetNeedsReplication resets the replication status for an existing file
-func (repo *FileRepository) ResetNeedsReplication(file ente.File, hotDC string) error {
-	if hotDC == repo.S3Config.GetHotBackblazeDC() {
-		err := repo.ObjectCopiesRepo.ResetNeedsWasabiReplication(file.File.ObjectKey)
-		if err != nil {
-			return stacktrace.Propagate(err, "")
-		}
-		err = repo.ObjectCopiesRepo.ResetNeedsScalewayReplication(file.File.ObjectKey)
-		if err != nil {
-			return stacktrace.Propagate(err, "")
-		}
-
-		err = repo.ObjectCopiesRepo.ResetNeedsWasabiReplication(file.Thumbnail.ObjectKey)
-		return stacktrace.Propagate(err, "")
-	} else if hotDC == repo.S3Config.GetHotWasabiDC() {
-		err := repo.ObjectCopiesRepo.ResetNeedsB2Replication(file.File.ObjectKey)
-		if err != nil {
-			return stacktrace.Propagate(err, "")
-		}
-		err = repo.ObjectCopiesRepo.ResetNeedsScalewayReplication(file.File.ObjectKey)
-		if err != nil {
-			return stacktrace.Propagate(err, "")
-		}
-
-		err = repo.ObjectCopiesRepo.ResetNeedsB2Replication(file.Thumbnail.ObjectKey)
-		return stacktrace.Propagate(err, "")
-	} else {
-		// Bail out if we're trying to update the replication flags but the
-		// primary hot DC is not one of the known types.
-		err := fmt.Errorf("only B2 and Wasabi DCs can be used for as the primary hot storage; instead, it was %s", hotDC)
-		return stacktrace.Propagate(err, "")
-	}
-}
-
-// Update updates the entry in the database for the given file
-func (repo *FileRepository) Update(file ente.File, fileSize int64, thumbnailSize int64, usageDiff int64, oldObjects []string, isDuplicateRequest bool) error {
-	hotDC := repo.S3Config.GetHotDataCenter()
-	dcsForNewEntry := pq.StringArray{hotDC}
-
+func (repo *FileRepository) Update(file ente.File, fileSize int64, thumbnailSize int64, usageDiff int64, oldObjects []string, stagedObjects []string, app ente.App, buckets FileObjectBuckets) error {
 	ctx := context.Background()
 	tx, err := repo.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
+	defer tx.Rollback()
 	_, err = tx.ExecContext(ctx, `UPDATE files SET encrypted_metadata = $1,
 			file_decryption_header = $2, thumbnail_decryption_header = $3, 
 			metadata_decryption_header = $4, updation_time = $5 , info = $6 WHERE file_id = $7`,
@@ -294,14 +253,12 @@ func (repo *FileRepository) Update(file ente.File, fileSize int64, thumbnailSize
 		file.Thumbnail.DecryptionHeader, file.Metadata.DecryptionHeader,
 		file.UpdationTime, file.Info, file.ID)
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
 	updatedRows, err := tx.QueryContext(ctx, `UPDATE collection_files 
 			SET updation_time = $1 WHERE file_id = $2 RETURNING collection_id`, file.UpdationTime,
 		file.ID)
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
 	defer updatedRows.Close()
@@ -317,78 +274,69 @@ func (repo *FileRepository) Update(file ente.File, fileSize int64, thumbnailSize
 	_, err = tx.ExecContext(ctx, `UPDATE collections SET updation_time = $1
 			WHERE collection_id = ANY($2)`, file.UpdationTime, pq.Array(updatedCIDs))
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
 	_, err = tx.ExecContext(ctx, `DELETE FROM object_copies WHERE object_key = ANY($1)`,
 		pq.Array(oldObjects))
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
 	_, err = tx.ExecContext(ctx, `UPDATE object_keys 
-			SET object_key = $1, size = $2, datacenters = $3 WHERE file_id = $4 AND o_type = $5`,
-		file.File.ObjectKey, fileSize, dcsForNewEntry, file.ID, ente.FILE)
+			SET object_key = $1, size = $2,
+				datacenters = CASE WHEN object_key = $1 THEN datacenters ELSE $3 END
+			WHERE file_id = $4 AND o_type = $5`,
+		file.File.ObjectKey, fileSize, pq.StringArray{buckets.File}, file.ID, ente.FILE)
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
 	_, err = tx.ExecContext(ctx, `UPDATE object_keys 
-			SET object_key = $1, size = $2, datacenters = $3 WHERE file_id = $4 AND o_type = $5`,
-		file.Thumbnail.ObjectKey, thumbnailSize, dcsForNewEntry, file.ID, ente.THUMBNAIL)
+			SET object_key = $1, size = $2,
+				datacenters = CASE WHEN object_key = $1 THEN datacenters ELSE $3 END
+			WHERE file_id = $4 AND o_type = $5`,
+		file.Thumbnail.ObjectKey, thumbnailSize, pq.StringArray{buckets.Thumbnail}, file.ID, ente.THUMBNAIL)
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
-	_, err = repo.updateUsage(ctx, tx, file.OwnerID, usageDiff)
+	_, err = applyUsageChange(ctx, tx, file.OwnerID, usageChange{StorageDelta: usageDiff})
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
-	err = repo.ObjectCleanupRepo.RemoveTempObjectKey(ctx, tx, file.File.ObjectKey, hotDC)
-	if err != nil {
-		tx.Rollback()
-		return stacktrace.Propagate(err, "")
-	}
-	err = repo.ObjectCleanupRepo.RemoveTempObjectKey(ctx, tx, file.Thumbnail.ObjectKey, hotDC)
-	if err != nil {
-		tx.Rollback()
-		return stacktrace.Propagate(err, "")
-	}
-	if isDuplicateRequest {
-		// Skip markAsNeedingReplication for duplicate requests, it'd fail with
-		//     pq: duplicate key value violates unique constraint \"object_copies_pkey\"
-		// and render our transaction uncommittable
-		log.Infof("Skipping update of object_copies for a duplicate request to update file %d", file.ID)
-	} else {
-		err = repo.markAsNeedingReplication(ctx, tx, file, hotDC)
+	for _, objectKey := range stagedObjects {
+		bucket, objectType := buckets.File, ente.FILE
+		if objectKey == file.Thumbnail.ObjectKey {
+			bucket, objectType = buckets.Thumbnail, ente.THUMBNAIL
+		}
+		if err = repo.ObjectCleanupRepo.ConsumeFileUpload(ctx, tx, objectKey, file.OwnerID, app, bucket); err != nil {
+			return stacktrace.Propagate(err, "")
+		}
+		err = repo.markObjectAsNeedingReplication(ctx, tx, objectKey, bucket, objectType)
 		if err != nil {
-			tx.Rollback()
 			return stacktrace.Propagate(err, "")
 		}
 	}
 	err = repo.QueueRepo.AddItems(ctx, tx, OutdatedObjectsQueue, oldObjects)
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
 	err = tx.Commit()
 	return stacktrace.Propagate(err, "")
 }
 
-// UpdateMagicAttributes updates the magic attributes for the list of files and update collection_files & collection
-// which have this file.
 func (repo *FileRepository) UpdateMagicAttributes(
 	ctx context.Context,
 	fileUpdates []ente.UpdateMagicMetadata,
 	isPublicMetadata bool,
 	skipVersion *bool,
 ) error {
+	slices.SortStableFunc(fileUpdates, func(a, b ente.UpdateMagicMetadata) int {
+		return cmp.Compare(a.ID, b.ID)
+	})
 	updationTime := time.Microseconds()
 	tx, err := repo.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
+	defer tx.Rollback()
 	fileIDs := make([]int64, 0)
 	for _, update := range fileUpdates {
 		update.MagicMetadata.Version = update.MagicMetadata.Version + 1
@@ -401,10 +349,6 @@ func (repo *FileRepository) UpdateMagicAttributes(
 				update.MagicMetadata, updationTime, update.ID)
 		}
 		if err != nil {
-			if rollbackErr := tx.Rollback(); rollbackErr != nil {
-				log.WithError(rollbackErr).Error("transaction rollback failed")
-				return stacktrace.Propagate(rollbackErr, "")
-			}
 			return stacktrace.Propagate(err, "")
 		}
 	}
@@ -416,10 +360,6 @@ func (repo *FileRepository) UpdateMagicAttributes(
 			SET updation_time = $1 WHERE file_id = ANY($2) AND is_deleted= false RETURNING collection_id`, updationTime,
 		pq.Array(fileIDs))
 	if err != nil {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			log.WithError(rollbackErr).Error("transaction rollback failed")
-			return stacktrace.Propagate(rollbackErr, "")
-		}
 		return stacktrace.Propagate(err, "")
 	}
 	defer updatedRows.Close()
@@ -435,24 +375,17 @@ func (repo *FileRepository) UpdateMagicAttributes(
 	_, err = tx.ExecContext(ctx, `UPDATE collections SET updation_time = $1
 			WHERE collection_id = ANY($2)`, updationTime, pq.Array(updatedCIDs))
 	if err != nil {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			log.WithError(rollbackErr).Error("transaction rollback failed")
-			return stacktrace.Propagate(rollbackErr, "")
-		}
 		return stacktrace.Propagate(err, "")
 	}
 	return tx.Commit()
 }
 
-// Update updates the entry in the database for the given file
-func (repo *FileRepository) UpdateThumbnail(ctx context.Context, fileID int64, userID int64, thumbnail ente.FileAttributes, thumbnailSize int64, usageDiff int64, oldThumbnailObject *string) error {
-	hotDC := repo.S3Config.GetHotDataCenter()
-	dcsForNewEntry := pq.StringArray{hotDC}
-
+func (repo *FileRepository) UpdateThumbnail(ctx context.Context, fileID int64, userID int64, thumbnail ente.FileAttributes, thumbnailSize int64, usageDiff int64, oldThumbnailObject *string, app ente.App, bucket string) error {
 	tx, err := repo.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
+	defer tx.Rollback()
 	updationTime := time.Microseconds()
 	_, err = tx.ExecContext(ctx, `UPDATE files SET 
 			thumbnail_decryption_header = $1, 
@@ -460,14 +393,12 @@ func (repo *FileRepository) UpdateThumbnail(ctx context.Context, fileID int64, u
 		thumbnail.DecryptionHeader,
 		updationTime, fileID)
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
 	updatedRows, err := tx.QueryContext(ctx, `UPDATE collection_files 
 			SET updation_time = $1 WHERE file_id = $2 RETURNING collection_id`, updationTime,
 		fileID)
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
 	defer updatedRows.Close()
@@ -483,43 +414,38 @@ func (repo *FileRepository) UpdateThumbnail(ctx context.Context, fileID int64, u
 	_, err = tx.ExecContext(ctx, `UPDATE collections SET updation_time = $1
 			WHERE collection_id = ANY($2)`, updationTime, pq.Array(updatedCIDs))
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
 	if oldThumbnailObject != nil {
 		_, err = tx.ExecContext(ctx, `DELETE FROM object_copies WHERE object_key = $1`,
 			*oldThumbnailObject)
 		if err != nil {
-			tx.Rollback()
 			return stacktrace.Propagate(err, "")
 		}
 	}
 	_, err = tx.ExecContext(ctx, `UPDATE object_keys 
-			SET object_key = $1, size = $2, datacenters = $3 WHERE file_id = $4 AND o_type = $5`,
-		thumbnail.ObjectKey, thumbnailSize, dcsForNewEntry, fileID, ente.THUMBNAIL)
+			SET object_key = $1, size = $2,
+				datacenters = CASE WHEN object_key = $1 THEN datacenters ELSE $3 END
+			WHERE file_id = $4 AND o_type = $5`,
+		thumbnail.ObjectKey, thumbnailSize, pq.StringArray{bucket}, fileID, ente.THUMBNAIL)
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
-	_, err = repo.updateUsage(ctx, tx, userID, usageDiff)
+	_, err = applyUsageChange(ctx, tx, userID, usageChange{StorageDelta: usageDiff})
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
 
-	err = repo.ObjectCleanupRepo.RemoveTempObjectKey(ctx, tx, thumbnail.ObjectKey, hotDC)
-	if err != nil {
-		tx.Rollback()
-		return stacktrace.Propagate(err, "")
-	}
-	err = repo.markThumbnailAsNeedingReplication(ctx, tx, thumbnail.ObjectKey, hotDC)
-	if err != nil {
-		return stacktrace.Propagate(err, "")
-	}
 	if oldThumbnailObject != nil {
+		if err = repo.ObjectCleanupRepo.ConsumeFileUpload(ctx, tx, thumbnail.ObjectKey, userID, app, bucket); err != nil {
+			return stacktrace.Propagate(err, "")
+		}
+		err = repo.markObjectAsNeedingReplication(ctx, tx, thumbnail.ObjectKey, bucket, ente.THUMBNAIL)
+		if err != nil {
+			return stacktrace.Propagate(err, "")
+		}
 		err = repo.QueueRepo.AddItems(ctx, tx, OutdatedObjectsQueue, []string{*oldThumbnailObject})
 		if err != nil {
-			tx.Rollback()
 			return stacktrace.Propagate(err, "")
 		}
 	}
@@ -527,7 +453,6 @@ func (repo *FileRepository) UpdateThumbnail(ctx context.Context, fileID int64, u
 	return stacktrace.Propagate(err, "")
 }
 
-// GetOwnerID returns the ownerID for a file
 func (repo *FileRepository) GetOwnerID(fileID int64) (int64, error) {
 	row := repo.DB.QueryRow(`SELECT owner_id FROM files WHERE file_id = $1`,
 		fileID)
@@ -536,7 +461,13 @@ func (repo *FileRepository) GetOwnerID(fileID int64) (int64, error) {
 	return ownerID, stacktrace.Propagate(err, "failed to get file owner")
 }
 
-// GetOwnerToFileCountMap will return a map of ownerId & number of files owned by that owner
+func (repo *FileRepository) GetOwnerAndApp(fileID int64) (int64, ente.App, error) {
+	var ownerID int64
+	var app sql.NullString
+	err := repo.DB.QueryRow(`SELECT owner_id, app FROM files WHERE file_id = $1`, fileID).Scan(&ownerID, &app)
+	return ownerID, ente.App(app.String), stacktrace.Propagate(err, "failed to get file owner and app")
+}
+
 func (repo *FileRepository) GetOwnerToFileCountMap(ctx context.Context, fileIDs []int64) (map[int64]int64, error) {
 	rows, err := repo.DB.QueryContext(ctx, `SELECT owner_id, count(*) FROM files WHERE file_id = ANY($1) group by owner_id`,
 		pq.Array(fileIDs))
@@ -552,10 +483,9 @@ func (repo *FileRepository) GetOwnerToFileCountMap(ctx context.Context, fileIDs 
 		}
 		result[ownerID] = count
 	}
-	return result, nil
+	return result, stacktrace.Propagate(rows.Err(), "failed to read file owner counts")
 }
 
-// GetOwnerToFileIDsMap will return a map of ownerId & number of files owned by that owner
 func (repo *FileRepository) GetOwnerToFileIDsMap(ctx context.Context, fileIDs []int64) (map[int64][]int64, error) {
 	rows, err := repo.DB.QueryContext(ctx, `SELECT owner_id, file_id FROM files WHERE file_id = ANY($1)`,
 		pq.Array(fileIDs))
@@ -574,6 +504,9 @@ func (repo *FileRepository) GetOwnerToFileIDsMap(ctx context.Context, fileIDs []
 		} else {
 			result[ownerID] = []int64{fileID}
 		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, stacktrace.Propagate(err, "failed to read file ownership")
 	}
 	return result, nil
 }
@@ -607,7 +540,6 @@ func (repo *FileRepository) VerifyFileOwner(ctx context.Context, fileIDs []int64
 	}
 }
 
-// GetOwnerAndMagicMetadata returns the ownerID and magicMetadata for given file id
 func (repo *FileRepository) GetOwnerAndMagicMetadata(fileID int64, publicMetadata bool) (int64, *ente.MagicMetadata, error) {
 	var row *sql.Row
 	if publicMetadata {
@@ -623,7 +555,6 @@ func (repo *FileRepository) GetOwnerAndMagicMetadata(fileID int64, publicMetadat
 	return ownerID, magicMetadata, stacktrace.Propagate(err, "")
 }
 
-// GetSize returns the size of files indicated by fileIDs that are owned by the given userID.
 func (repo *FileRepository) GetSize(userID int64, fileIDs []int64) (int64, error) {
 	row := repo.DB.QueryRow(`
 			SELECT COALESCE(SUM(size), 0) FROM object_keys WHERE o_type = 'file' AND is_deleted = false AND file_id = ANY(SELECT file_id FROM files WHERE (file_id = ANY($1) AND owner_id = $2))`,
@@ -636,14 +567,13 @@ func (repo *FileRepository) GetSize(userID int64, fileIDs []int64) (int64, error
 	return size, nil
 }
 
-// GetFileCountForUser returns the total number of files in the system for a given user.
 func (repo *FileRepository) GetFileCountForUser(userID int64, app ente.App) (int64, error) {
-	row := repo.DB.QueryRow(`SELECT count(distinct files.file_id)  
+	row := repo.DB.QueryRow(`SELECT count(distinct files.file_id) AS file_count
 			FROM collection_files
 			JOIN collections c on c.owner_id = $1 and c.collection_id = collection_files.collection_id 
 			JOIN files ON 
 			files.owner_id = $1 AND files.file_id = collection_files.file_id
-			WHERE (c.app = $2 AND collection_files.is_deleted = false);`, userID, app)
+			WHERE (c.app = $2 AND collection_files.is_deleted = false)`, userID, app)
 
 	var fileCount int64
 	err := row.Scan(&fileCount)
@@ -696,7 +626,7 @@ func (repo *FileRepository) GetFileAttributesForCopy(fileIDs []int64) ([]ente.Fi
 	defer rows.Close()
 	for rows.Next() {
 		var file ente.File
-		err := rows.Scan(&file.ID, &file.OwnerID, &file.File.DecryptionHeader, &file.Thumbnail.DecryptionHeader, &file.Metadata.DecryptionHeader, &file.Metadata.EncryptedData, &file.PubicMagicMetadata)
+		err := rows.Scan(&file.ID, &file.OwnerID, &file.File.DecryptionHeader, &file.Thumbnail.DecryptionHeader, &file.Metadata.DecryptionHeader, &file.Metadata.EncryptedData, &file.PublicMagicMetadata)
 		if err != nil {
 			return nil, stacktrace.Propagate(err, "")
 		}
@@ -708,21 +638,14 @@ func (repo *FileRepository) GetFileAttributesForCopy(fileIDs []int64) ([]ente.Fi
 func (repo *FileRepository) GetFileAttributes(fileID int64) (*ente.File, error) {
 	rows := repo.DB.QueryRow(`SELECT file_id, owner_id, file_decryption_header, thumbnail_decryption_header, metadata_decryption_header, encrypted_metadata, pub_magic_metadata, info FROM files WHERE file_id = $1`, fileID)
 	var file ente.File
-	err := rows.Scan(&file.ID, &file.OwnerID, &file.File.DecryptionHeader, &file.Thumbnail.DecryptionHeader, &file.Metadata.DecryptionHeader, &file.Metadata.EncryptedData, &file.PubicMagicMetadata, &file.Info)
+	err := rows.Scan(&file.ID, &file.OwnerID, &file.File.DecryptionHeader, &file.Thumbnail.DecryptionHeader, &file.Metadata.DecryptionHeader, &file.Metadata.EncryptedData, &file.PublicMagicMetadata, &file.Info)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
 	return &file, nil
 }
 
-// GetUsage  gets the Storage usage of a user
-// Deprecated: GetUsage is deprecated, use UsageRepository.GetUsage
-func (repo *FileRepository) GetUsage(userID int64) (int64, error) {
-	return repo.UsageRepo.GetUsage(userID)
-}
-
 func (repo *FileRepository) DropFilesMetadata(ctx context.Context, fileIDs []int64) error {
-	// ensure that the fileIDs are not present in object_keys
 	rows, err := repo.DB.QueryContext(ctx, `SELECT distinct(file_id) FROM object_keys WHERE file_id = ANY($1)`, pq.Array(fileIDs))
 	if err != nil {
 		return stacktrace.Propagate(err, "")
@@ -736,6 +659,9 @@ func (repo *FileRepository) DropFilesMetadata(ctx context.Context, fileIDs []int
 			return stacktrace.Propagate(err, "")
 		}
 		fileIdsNotDeleted = append(fileIdsNotDeleted, fileID)
+	}
+	if err := rows.Err(); err != nil {
+		return stacktrace.Propagate(err, "failed to check remaining file objects")
 	}
 	if len(fileIdsNotDeleted) > 0 {
 		return stacktrace.Propagate(fmt.Errorf("fileIDs %v are still present in object_keys", fileIdsNotDeleted), "")
@@ -752,7 +678,6 @@ func (repo *FileRepository) DropFilesMetadata(ctx context.Context, fileIDs []int
 	return stacktrace.Propagate(err, "")
 }
 
-// GetDuplicateFiles returns the list of files for a user that are of the same size
 func (repo *FileRepository) GetDuplicateFiles(userID int64) ([]ente.DuplicateFiles, error) {
 	rows, err := repo.DB.Query(`SELECT string_agg(o.file_id::character varying, ','), o.size FROM object_keys o JOIN files f ON f.file_id = o.file_id
 											WHERE f.owner_id = $1 AND o.o_type = 'file' AND o.is_deleted = false
@@ -770,9 +695,8 @@ func (repo *FileRepository) GetDuplicateFiles(userID int64) ([]ente.DuplicateFil
 		if err != nil {
 			return result, stacktrace.Propagate(err, "")
 		}
-		fileIDStrs := strings.Split(res, ",")
 		fileIDs := make([]int64, 0)
-		for _, fileIDStr := range fileIDStrs {
+		for fileIDStr := range strings.SplitSeq(res, ",") {
 			fileID, err := strconv.ParseInt(fileIDStr, 10, 64)
 			if err != nil {
 				return result, stacktrace.Propagate(err, "")
@@ -780,26 +704,6 @@ func (repo *FileRepository) GetDuplicateFiles(userID int64) ([]ente.DuplicateFil
 			fileIDs = append(fileIDs, fileID)
 		}
 		result = append(result, ente.DuplicateFiles{FileIDs: fileIDs, Size: size})
-	}
-	return result, nil
-}
-
-func (repo *FileRepository) GetLargeThumbnailFiles(userID int64, threshold int64) ([]int64, error) {
-	rows, err := repo.DB.Query(`
-			SELECT file_id FROM object_keys WHERE o_type = 'thumbnail' AND is_deleted = false AND size >= $2 AND file_id = ANY(SELECT file_id FROM files WHERE owner_id = $1)`,
-		userID, threshold)
-	if err != nil {
-		return nil, stacktrace.Propagate(err, "")
-	}
-	defer rows.Close()
-	result := make([]int64, 0)
-	for rows.Next() {
-		var fileID int64
-		err := rows.Scan(&fileID)
-		if err != nil {
-			return result, stacktrace.Propagate(err, "")
-		}
-		result = append(result, fileID)
 	}
 	return result, nil
 }
@@ -828,7 +732,7 @@ func convertRowsToFiles(rows *sql.Rows) ([]ente.File, error) {
 			&file.EncryptedKey, &file.KeyDecryptionNonce,
 			&file.File.DecryptionHeader, &file.Thumbnail.DecryptionHeader,
 			&file.Metadata.DecryptionHeader,
-			&file.Metadata.EncryptedData, &file.MagicMetadata, &file.PubicMagicMetadata,
+			&file.Metadata.EncryptedData, &file.MagicMetadata, &file.PublicMagicMetadata,
 			&file.Info, &actionUser, &action, &file.IsDeleted, &updationTime, &addedAt)
 		if err != nil {
 			return files, stacktrace.Propagate(err, "")
@@ -851,7 +755,6 @@ func convertRowsToFiles(rows *sql.Rows) ([]ente.File, error) {
 	return files, nil
 }
 
-// scheduleDeletion added a list of files's object ids to delete queue for deletion from datastore
 func (repo *FileRepository) scheduleDeletion(ctx context.Context, tx *sql.Tx, fileIDs []int64, userID int64) error {
 	diff := int64(0)
 
@@ -864,30 +767,18 @@ func (repo *FileRepository) scheduleDeletion(ctx context.Context, tx *sql.Tx, fi
 		totalObjectSize += object.FileSize
 	}
 	diff = diff - (totalObjectSize)
-	_, err = repo.updateUsage(ctx, tx, userID, diff)
+	_, err = applyUsageChange(ctx, tx, userID, usageChange{StorageDelta: diff})
 	return stacktrace.Propagate(err, "")
 }
 
-// updateUsage updates the storage usage of a user and returns the updated value
-func (repo *FileRepository) updateUsage(ctx context.Context, tx *sql.Tx, userID int64, diff int64) (int64, error) {
-	row := tx.QueryRowContext(ctx, `SELECT storage_consumed FROM usage WHERE user_id = $1 FOR UPDATE`, userID)
-	var usage int64
-	err := row.Scan(&usage)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			usage = 0
-		} else {
-			return -1, stacktrace.Propagate(err, "")
-		}
+func (repo *FileRepository) updateUsageForFileCreation(ctx context.Context, tx *sql.Tx, userID, storageDiff int64, app ente.App) (int64, error) {
+	photosFileCountDiff, lockerFileCountDiff, ok := fileCountDelta(app, 1)
+	if !ok {
+		return -1, stacktrace.Propagate(ente.ErrInvalidApp, "")
 	}
-	newUsage := usage + diff
-	_, err = tx.ExecContext(ctx, `INSERT INTO usage (user_id, storage_consumed)
-			VALUES ($1, $2)
-			ON CONFLICT (user_id) DO UPDATE
-				SET storage_consumed = $2`,
-		userID, newUsage)
-	if err != nil {
-		return -1, stacktrace.Propagate(err, "")
-	}
-	return newUsage, nil
+	return applyUsageChange(ctx, tx, userID, usageChange{
+		StorageDelta:    storageDiff,
+		PhotosFileDelta: photosFileCountDiff,
+		LockerFileDelta: lockerFileCountDiff,
+	})
 }

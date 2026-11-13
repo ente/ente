@@ -1,23 +1,57 @@
 import "dart:core";
+import "dart:math" as math;
+import "dart:typed_data";
 
+import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/configuration.dart";
+import "package:photos/core/constants.dart";
 import "package:photos/models/file/dummy_file.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/gallery/fixed_extent_grid_row.dart";
 import "package:photos/models/gallery/fixed_extent_section_layout.dart";
+import "package:photos/models/gallery/flex_layout.dart";
+import "package:photos/models/gallery/gallery_grid_zoom_layout.dart";
+import "package:photos/models/gallery/justified_grid_row.dart";
+import "package:photos/models/gallery/justified_layout.dart";
+import "package:photos/models/gallery/section_layout.dart";
 import "package:photos/models/selected_files.dart";
 import "package:photos/service_locator.dart";
+import "package:photos/settings/local_settings.dart";
 import "package:photos/ui/viewer/gallery/component/dummy_file_widget.dart";
 import "package:photos/ui/viewer/gallery/component/gallery_file_widget.dart";
 import "package:photos/ui/viewer/gallery/component/group/group_header_widget.dart";
 import "package:photos/ui/viewer/gallery/component/group/type.dart";
 import "package:uuid/uuid.dart";
 
-/// In order to make the gallery performant when GroupTypes do not show group
-/// headers, groups are still created here but with the group header replaced by
-/// the grid's main axis spacing.
+typedef _JustifiedZoomRequest = ({
+  Float64List aspectRatios,
+  Uint32List groupEndIndexes,
+  double width,
+  double targetRowHeight,
+  double spacing,
+});
+
+List<List<JustifiedRowLayout>> _computeJustifiedZoomRows(
+  _JustifiedZoomRequest request,
+) {
+  final sections = <List<JustifiedRowLayout>>[];
+  var start = 0;
+  for (final end in request.groupEndIndexes) {
+    sections.add(
+      FlexLayoutCalculator.computeRows(
+        aspectRatios: request.aspectRatios.getRange(start, end),
+        availableWidth: request.width,
+        targetRowHeight: request.targetRowHeight,
+        spacing: request.spacing,
+      ),
+    );
+    start = end;
+  }
+  return sections;
+}
+
 class GalleryGroups {
   final List<EnteFile> allFiles;
   final GroupType groupType;
@@ -27,10 +61,13 @@ class GalleryGroups {
   final bool showSelectAll;
   final _logger = Logger("GalleryGroups");
   final bool showGallerySettingsCTA;
+  final Widget? groupHeaderAction;
+  final GalleryLayoutType? layoutTypeOverride;
 
   final bool sortOrderAsc;
   final double widthAvailable;
   final double groupHeaderExtent;
+  static const double spacing = galleryGridSpacing;
   GalleryGroups({
     required this.allFiles,
     required this.groupType,
@@ -38,13 +75,29 @@ class GalleryGroups {
     required this.selectedFiles,
     required this.tagPrefix,
     this.sortOrderAsc = true,
-
-    /// Should be GroupGallery.spacing if GroupType.showGroupHeader() is false.
     required this.groupHeaderExtent,
     required this.showSelectAll,
     this.limitSelectionToOne = false,
     this.showGallerySettingsCTA = false,
+    this.groupHeaderAction,
+    this.layoutTypeOverride,
+    GalleryGroups? reuseLayoutFrom,
   }) {
+    if (reuseLayoutFrom != null &&
+        identical(allFiles, reuseLayoutFrom.allFiles) &&
+        widthAvailable == reuseLayoutFrom.widthAvailable &&
+        groupType == reuseLayoutFrom.groupType &&
+        sortOrderAsc == reuseLayoutFrom.sortOrderAsc) {
+      _justifiedZoomRows = reuseLayoutFrom._justifiedZoomRows;
+      if (_justifiedZoomRows == null &&
+          reuseLayoutFrom.layoutType == GalleryLayoutType.justified) {
+        _justifiedZoomRows = [
+          for (final section in reuseLayoutFrom._groupLayouts)
+            (section as JustifiedSectionLayout).rows,
+        ];
+      }
+      _justifiedZoomRowsFuture = reuseLayoutFrom._justifiedZoomRowsFuture;
+    }
     init();
     if (!groupType.showGroupHeader()) {
       assert(
@@ -55,17 +108,29 @@ class GalleryGroups {
     }
   }
 
-  static const double spacing = 2.0;
+  // Product decision: limit how tall the preferred justified row can grow as
+  // the gallery widens.
+  static const double _maximumJustifiedTargetRowHeight = 320.0;
+  static const double _justifiedTargetRowHeightScale = 1.12;
 
   late final int crossAxisCount;
-  late final List<FixedExtentSectionLayout> _groupLayouts;
+  late final GalleryLayoutType layoutType;
+  late final List<SectionLayout> _groupLayouts;
   final List<EnteFile> _allFilesWithDummies = [];
+  final List<int> _groupEndIndexes = [];
+  final Map<(int, double), GalleryGridZoomLayout> _zoomLayouts = {};
+  final Map<double, Future<GalleryGridZoomLayout>> _justifiedZoomPreparations =
+      {};
+  Future<List<List<JustifiedRowLayout>>>? _justifiedZoomRowsFuture;
+  List<List<JustifiedRowLayout>>? _justifiedZoomRows;
 
   final List<String> _groupIds = [];
   final Map<String, List<EnteFile>> _groupIdToFilesMap = {};
-  final Map<String,
-          ({GroupType groupType, int maxCreationTime, int minCreationTime})>
-      _groupIdToGroupDataMap = {};
+  final Map<
+    String,
+    ({GroupType groupType, int maxCreationTime, int minCreationTime})
+  >
+  _groupIdToGroupDataMap = {};
   final Map<double, String> _scrollOffsetToGroupIdMap = {};
   final Map<String, double> _groupIdToScrollOffsetMap = {};
   final List<double> _groupScrollOffsets = [];
@@ -76,17 +141,92 @@ class GalleryGroups {
   List<String> get groupIDs => _groupIds;
   Map<String, List<EnteFile>> get groupIDToFilesMap => _groupIdToFilesMap;
   Map<String, ({GroupType groupType, int maxCreationTime, int minCreationTime})>
-      get groupIdToGroupDataMap => _groupIdToGroupDataMap;
+  get groupIdToGroupDataMap => _groupIdToGroupDataMap;
   Map<double, String> get scrollOffsetToGroupIdMap => _scrollOffsetToGroupIdMap;
   Map<String, double> get groupIdToScrollOffsetMap => _groupIdToScrollOffsetMap;
-  List<FixedExtentSectionLayout> get groupLayouts => _groupLayouts;
+  List<SectionLayout> get groupLayouts => _groupLayouts;
   List<double> get groupScrollOffsets => _groupScrollOffsets;
   List<({String groupID, String title})> get scrollbarDivisions =>
       _scrollbarDivisions;
 
-  /// Returns allFiles with dummy entries added at appropriate positions to fill
-  /// incomplete rows in each group.
   List<EnteFile> get allFilesWithDummies => _allFilesWithDummies;
+
+  GalleryGridZoomLayout gridZoomLayout({
+    required int columns,
+    required double headerExtent,
+  }) => _zoomLayouts.putIfAbsent((columns, headerExtent), () {
+    if (columns == 2) {
+      if (layoutType == GalleryLayoutType.justified) {
+        _justifiedZoomRows ??= [
+          for (final section in _groupLayouts)
+            (section as JustifiedSectionLayout).rows,
+        ];
+      }
+      if (_justifiedZoomRows == null) {
+        throw StateError(
+          "Prepare the Justified zoom layout asynchronously first",
+        );
+      }
+    }
+    return GalleryGridZoomLayout(
+      files: allFiles,
+      groupEndIndexes: _groupEndIndexes,
+      groupType: groupType,
+      width: widthAvailable,
+      columns: columns,
+      headerExtent: headerExtent,
+      spacing: spacing,
+      justifiedRows: columns == 2 ? _justifiedZoomRows : null,
+    );
+  });
+
+  GalleryGridZoomLayout? cachedGridZoomLayout({
+    required int columns,
+    required double headerExtent,
+  }) {
+    if (columns == 2 &&
+        (_justifiedZoomRows != null ||
+            layoutType == GalleryLayoutType.justified)) {
+      return gridZoomLayout(columns: columns, headerExtent: headerExtent);
+    }
+    return _zoomLayouts[(columns, headerExtent)];
+  }
+
+  Future<GalleryGridZoomLayout> prepareJustifiedZoomLayout({
+    required double headerExtent,
+  }) => _justifiedZoomPreparations.putIfAbsent(headerExtent, () async {
+    final cached = cachedGridZoomLayout(columns: 2, headerExtent: headerExtent);
+    if (cached != null) return cached;
+    _justifiedZoomRows ??= await (_justifiedZoomRowsFuture ??=
+        _prepareJustifiedZoomRows());
+    return gridZoomLayout(columns: 2, headerExtent: headerExtent);
+  });
+
+  Future<List<List<JustifiedRowLayout>>> _prepareJustifiedZoomRows() async {
+    if (allFiles.isEmpty) return const [];
+    final aspectRatios = Float64List(allFiles.length);
+    const chunkSize = 2048;
+    for (var start = 0; start < allFiles.length; start += chunkSize) {
+      final end = math.min(start + chunkSize, allFiles.length);
+      for (var index = start; index < end; index++) {
+        final file = allFiles[index];
+        aspectRatios[index] = FlexLayoutCalculator.aspectRatioForDimensions(
+          file.width,
+          file.height,
+        );
+      }
+      if (end < allFiles.length) await Future<void>.delayed(Duration.zero);
+    }
+    return compute(_computeJustifiedZoomRows, (
+      aspectRatios: aspectRatios,
+      groupEndIndexes: Uint32List.fromList(
+        groupType.showGroupHeader() ? _groupEndIndexes : [allFiles.length],
+      ),
+      width: widthAvailable,
+      targetRowHeight: _justifiedTargetRowHeight,
+      spacing: spacing,
+    ), debugLabel: "gallery-justified-zoom");
+  }
 
   double? getOffsetOfGroupContainingFile(EnteFile file) {
     final creationTime = file.creationTime;
@@ -97,9 +237,7 @@ class GalleryGroups {
 
     final groupId = _findGroupForCreationTime(creationTime);
     if (groupId == null) {
-      _logger.warning(
-        'No group found for creation time: $creationTime',
-      );
+      _logger.warning('No group found for creation time: $creationTime');
       return null;
     }
 
@@ -112,7 +250,105 @@ class GalleryGroups {
     return scrollOffset;
   }
 
-  /// Uses binary search to find the group ID that contains the given creation time.
+  EnteFile? getFileAtScrollOffset(double scrollOffset) {
+    if (_groupLayouts.isEmpty || !scrollOffset.isFinite) return null;
+    final section = _groupLayouts.sectionForOffset(scrollOffset);
+    if (section == null) return null;
+    final groupIndex = _groupLayouts.indexOf(section);
+    if (groupIndex < 0 || groupIndex >= _groupIds.length) return null;
+    final files = _groupIdToFilesMap[_groupIds[groupIndex]];
+    if (files == null || files.isEmpty) return null;
+
+    final childIndex = section.getMinChildIndexForScrollOffset(scrollOffset);
+    if (childIndex <= section.firstIndex) return files.first;
+    final rowIndex = childIndex - section.bodyFirstIndex;
+    final fileIndex = switch (section) {
+      FixedExtentSectionLayout() => rowIndex * crossAxisCount,
+      JustifiedSectionLayout() => section.rows[rowIndex].firstIndex,
+      _ => 0,
+    };
+    return files[fileIndex.clamp(0, files.length - 1)];
+  }
+
+  ({double headerExtent, double rowOffset, double rowExtent})?
+  getGeometryOfFile(EnteFile file) {
+    final location = _findExactFileLocation(file);
+    if (location == null) return null;
+    final groupIndex = location.groupIndex;
+    final fileIndex = location.fileIndex;
+    final section = _groupLayouts[groupIndex];
+
+    return switch (section) {
+      FixedExtentSectionLayout() => (
+        headerExtent: section.headerExtent,
+        rowOffset:
+            section.bodyMinOffset +
+            (fileIndex ~/ crossAxisCount) * section.mainAxisStride,
+        rowExtent: section.tileHeight,
+      ),
+      JustifiedSectionLayout() => () {
+        final row =
+            section.rows[_justifiedRowIndexForFile(section.rows, fileIndex)];
+        return (
+          headerExtent: section.headerExtent,
+          rowOffset: section.bodyMinOffset + row.minOffset,
+          rowExtent: row.height,
+        );
+      }(),
+      _ => null,
+    };
+  }
+
+  double? getOffsetOfFile(EnteFile file) => getGeometryOfFile(file)?.rowOffset;
+
+  ({int groupIndex, int fileIndex})? _findExactFileLocation(EnteFile file) {
+    ({int groupIndex, int fileIndex})? generatedIDLocation;
+    ({int groupIndex, int fileIndex})? uploadedFileIDLocation;
+    ({int groupIndex, int fileIndex})? localIDLocation;
+    for (var groupIndex = 0; groupIndex < _groupIds.length; groupIndex++) {
+      final files = _groupIdToFilesMap[_groupIds[groupIndex]]!;
+      for (var fileIndex = 0; fileIndex < files.length; fileIndex++) {
+        final candidate = files[fileIndex];
+        if (identical(candidate, file)) {
+          return (groupIndex: groupIndex, fileIndex: fileIndex);
+        }
+        if (candidate is DummyFile || file is DummyFile) continue;
+        final location = (groupIndex: groupIndex, fileIndex: fileIndex);
+        if (file.generatedID != null &&
+            candidate.generatedID == file.generatedID) {
+          generatedIDLocation ??= location;
+        }
+        if (file.uploadedFileID != null &&
+            candidate.uploadedFileID == file.uploadedFileID) {
+          uploadedFileIDLocation ??= location;
+        }
+        if (file.localID != null &&
+            file.localID!.isNotEmpty &&
+            candidate.localID == file.localID) {
+          localIDLocation ??= location;
+        }
+      }
+    }
+    return generatedIDLocation ?? uploadedFileIDLocation ?? localIDLocation;
+  }
+
+  int _justifiedRowIndexForFile(List<JustifiedRowLayout> rows, int fileIndex) {
+    var low = 0;
+    var high = rows.length - 1;
+    while (low <= high) {
+      final mid = (low + high) >>> 1;
+      final row = rows[mid];
+      if (fileIndex < row.firstIndex) {
+        high = mid - 1;
+      } else if (fileIndex > row.lastIndex) {
+        low = mid + 1;
+      } else {
+        return mid;
+      }
+    }
+    return rows.length - 1;
+  }
+
   String? _findGroupForCreationTime(int creationTime) {
     if (_groupIds.isEmpty) {
       _logger.warning(
@@ -137,7 +373,6 @@ class GalleryGroups {
       final minTime = groupData.minCreationTime;
 
       if (creationTime <= maxTime && creationTime >= minTime) {
-        // Found the group containing this creation time
         return groupId;
       } else if (sortOrderAsc) {
         if (creationTime < minTime) {
@@ -161,30 +396,60 @@ class GalleryGroups {
   }
 
   void init() {
-    crossAxisCount = localSettings.getPhotoGridSize();
+    layoutType = layoutTypeOverride ?? localSettings.getGalleryLayoutType();
+    crossAxisCount = layoutType == GalleryLayoutType.justified
+        ? 2
+        : localSettings.getPhotoGridSize();
     _buildGroups();
 
-    _groupLayouts = _computeGroupLayouts();
+    _groupLayouts = switch (layoutType) {
+      GalleryLayoutType.grid => _computeFixedGroupLayouts(),
+      GalleryLayoutType.justified => _computeJustifiedGroupLayouts(),
+    };
 
     assert(groupIDs.length == _groupIdToFilesMap.length);
     assert(groupIDs.length == _groupIdToGroupDataMap.length);
-    assert(
-      groupIDs.length == _scrollOffsetToGroupIdMap.length,
-    );
-    assert(
-      groupIDs.length == _groupIdToScrollOffsetMap.length,
-    );
+    assert(groupIDs.length == _scrollOffsetToGroupIdMap.length);
+    assert(groupIDs.length == _groupIdToScrollOffsetMap.length);
     assert(groupIDs.length == _groupScrollOffsets.length);
   }
 
-  List<FixedExtentSectionLayout> _computeGroupLayouts() {
+  Widget _buildGroupHeader(
+    BuildContext context,
+    String groupID,
+    List<EnteFile> filesInGroup,
+    int rowIndex,
+  ) {
+    if (!groupType.showGroupHeader()) {
+      return const SizedBox(height: spacing);
+    }
+    return GroupHeaderWidget(
+      title: _groupIdToGroupDataMap[groupID]!.groupType.getTitle(
+        context,
+        filesInGroup.first,
+      ),
+      gridSize: crossAxisCount,
+      filesInGroup: filesInGroup,
+      selectedFiles: selectedFiles,
+      showSelectAll: showSelectAll && !limitSelectionToOne,
+      showGalleryLayoutSettingCTA: rowIndex == 0 && showGallerySettingsCTA,
+      action: rowIndex == 0 ? groupHeaderAction : null,
+    );
+  }
+
+  void _registerGroupScrollOffset(String groupID, double scrollOffset) {
+    _scrollOffsetToGroupIdMap[scrollOffset] = groupID;
+    _groupIdToScrollOffsetMap[groupID] = scrollOffset;
+    _groupScrollOffsets.add(scrollOffset);
+  }
+
+  List<SectionLayout> _computeFixedGroupLayouts() {
     final stopwatch = Stopwatch()..start();
-    final showGroupHeader = groupType.showGroupHeader();
     int currentIndex = 0;
     double currentOffset = 0.0;
     final tileHeight =
         (widthAvailable - (crossAxisCount - 1) * spacing) / crossAxisCount;
-    final groupLayouts = <FixedExtentSectionLayout>[];
+    final groupLayouts = <SectionLayout>[];
 
     final groupIDs = _groupIdToFilesMap.keys;
 
@@ -194,7 +459,8 @@ class GalleryGroups {
       final firstIndex = currentIndex == 0 ? currentIndex : currentIndex + 1;
       final lastIndex = firstIndex + numberOfGridRows;
       final minOffset = currentOffset;
-      final maxOffset = minOffset +
+      final maxOffset =
+          minOffset +
           (numberOfGridRows * tileHeight) +
           (numberOfGridRows - 1) * spacing +
           groupHeaderExtent;
@@ -211,21 +477,12 @@ class GalleryGroups {
           spacing: spacing,
           builder: (context, rowIndex) {
             if (rowIndex == firstIndex) {
-              if (showGroupHeader) {
-                return GroupHeaderWidget(
-                  title: _groupIdToGroupDataMap[groupID]!
-                      .groupType
-                      .getTitle(context, groupIDToFilesMap[groupID]!.first),
-                  gridSize: crossAxisCount,
-                  filesInGroup: groupIDToFilesMap[groupID]!,
-                  selectedFiles: selectedFiles,
-                  showSelectAll: showSelectAll && !limitSelectionToOne,
-                  showGalleryLayoutSettingCTA:
-                      rowIndex == 0 && showGallerySettingsCTA,
-                );
-              } else {
-                return const SizedBox(height: spacing);
-              }
+              return _buildGroupHeader(
+                context,
+                groupID,
+                filesInGroup,
+                rowIndex,
+              );
             } else {
               final gridRowChildren = <Widget>[];
               final firstIndexOfRowWrtFilesInGroup =
@@ -240,7 +497,6 @@ class GalleryGroups {
                       filesInGroup[firstIndexOfRowWrtFilesInGroup + i];
 
                   if (currentFile is DummyFile) {
-                    // Add dummy widget for DummyFile
                     gridRowChildren.add(
                       RepaintBoundary(
                         key: ValueKey(tagPrefix + currentFile.tag),
@@ -252,12 +508,9 @@ class GalleryGroups {
                       ),
                     );
                   } else {
-                    // Add normal GalleryFileWidget for real files
                     gridRowChildren.add(
                       RepaintBoundary(
-                        key: ValueKey(
-                          tagPrefix + currentFile.tag,
-                        ),
+                        key: ValueKey(tagPrefix + currentFile.tag),
                         child: GalleryFileWidget(
                           file: currentFile,
                           selectedFiles: selectedFiles,
@@ -307,49 +560,145 @@ class GalleryGroups {
         ),
       );
 
-      _scrollOffsetToGroupIdMap[currentOffset] = groupID;
-      _groupIdToScrollOffsetMap[groupID] = currentOffset;
-      _groupScrollOffsets.add(currentOffset);
+      _registerGroupScrollOffset(groupID, currentOffset);
+
+      currentIndex = lastIndex;
+      currentOffset = maxOffset;
+    }
+
+    _logger.info("Built group layouts in ${stopwatch.elapsedMilliseconds} ms");
+    stopwatch.stop();
+
+    return groupLayouts;
+  }
+
+  double get _justifiedTargetRowHeight {
+    final gridTargetRowHeight = (widthAvailable - spacing) / 2;
+    final baseTargetRowHeight = gridTargetRowHeight.isFinite
+        ? math.min(gridTargetRowHeight, _maximumJustifiedTargetRowHeight)
+        : gridTargetRowHeight;
+    return baseTargetRowHeight * _justifiedTargetRowHeightScale;
+  }
+
+  List<SectionLayout> _computeJustifiedGroupLayouts() {
+    final stopwatch = Stopwatch()..start();
+    final targetRowHeight = _justifiedTargetRowHeight;
+    final groupLayouts = <SectionLayout>[];
+    var currentIndex = 0;
+    var currentOffset = 0.0;
+
+    for (final groupID in _groupIdToFilesMap.keys) {
+      final filesInGroup = _groupIdToFilesMap[groupID]!;
+      final rows =
+          _justifiedZoomRows?[groupLayouts.length] ??
+          FlexLayoutCalculator.computeRows(
+            aspectRatios: filesInGroup.map(
+              (file) => FlexLayoutCalculator.aspectRatioForDimensions(
+                file.width,
+                file.height,
+              ),
+            ),
+            availableWidth: widthAvailable,
+            targetRowHeight: targetRowHeight,
+            spacing: spacing,
+          );
+      final firstIndex = currentIndex == 0 ? currentIndex : currentIndex + 1;
+      final lastIndex = firstIndex + rows.length;
+      final minOffset = currentOffset;
+      final maxOffset = minOffset + groupHeaderExtent + rows.last.maxOffset;
+      final bodyFirstIndex = firstIndex + 1;
+
+      groupLayouts.add(
+        JustifiedSectionLayout(
+          firstIndex: firstIndex,
+          lastIndex: lastIndex,
+          minOffset: minOffset,
+          maxOffset: maxOffset,
+          headerExtent: groupHeaderExtent,
+          spacing: spacing,
+          rows: rows,
+          builder: (context, rowIndex) {
+            if (rowIndex == firstIndex) {
+              return _buildGroupHeader(
+                context,
+                groupID,
+                filesInGroup,
+                rowIndex,
+              );
+            }
+
+            final row = rows[rowIndex - bodyFirstIndex];
+            final rowChildren = <Widget>[];
+            for (
+              var fileIndex = row.firstIndex;
+              fileIndex <= row.lastIndex;
+              fileIndex++
+            ) {
+              final file = filesInGroup[fileIndex];
+              rowChildren.add(
+                RepaintBoundary(
+                  key: ValueKey(tagPrefix + file.tag),
+                  child: GalleryFileWidget(
+                    file: file,
+                    selectedFiles: selectedFiles,
+                    limitSelectionToOne: limitSelectionToOne,
+                    tag: tagPrefix,
+                    photoGridSize: crossAxisCount,
+                    thumbnailSize: thumbnailLargeSize,
+                    currentUserID: currentUserID,
+                  ),
+                ),
+              );
+            }
+
+            return JustifiedGridRow(
+              itemWidths: row.itemWidths,
+              height: row.height,
+              spacing: spacing,
+              textDirection: TextDirection.ltr,
+              children: rowChildren,
+            );
+          },
+        ),
+      );
+
+      _registerGroupScrollOffset(groupID, currentOffset);
 
       currentIndex = lastIndex;
       currentOffset = maxOffset;
     }
 
     _logger.info(
-      "Built group layouts in ${stopwatch.elapsedMilliseconds} ms",
+      "Built justified group layouts in ${stopwatch.elapsedMilliseconds} ms",
     );
     stopwatch.stop();
-
     return groupLayouts;
   }
 
   void _buildGroups() {
     final stopwatch = Stopwatch()..start();
 
-    final yearsInGroups = <int>{}; //Only relevant for time grouping
-    List<EnteFile> groupFiles = [];
-    final allFilesLength = allFiles.length;
+    final yearsInGroups = <int>{};
 
     if (groupType.showGroupHeader()) {
-      for (int index = 0; index < allFilesLength; index++) {
-        if (index > 0 &&
-            !groupType.areFromSameGroup(allFiles[index - 1], allFiles[index])) {
-          _createNewGroup(groupFiles, yearsInGroups);
-          groupFiles = [];
-        }
-        groupFiles.add(allFiles[index]);
+      var start = 0;
+      for (final end in _timeGroupEndIndexes()) {
+        _groupEndIndexes.add(end);
+        _createNewGroup(_copyFilesInRange(start, end), yearsInGroups);
+        start = end;
       }
-      if (groupFiles.isNotEmpty) {
-        _createNewGroup(groupFiles, yearsInGroups);
+    } else if (layoutType == GalleryLayoutType.justified) {
+      if (allFiles.isNotEmpty) {
+        _createNewGroup(_copyFilesInRange(0, allFiles.length), yearsInGroups);
       }
     } else {
-// Split allFiles into groups of max length 10 * crossAxisCount for
+      // Split allFiles into groups of max length 10 * crossAxisCount for
       // better performance since SectionedSliverList is used.
       for (int i = 0; i < allFiles.length; i += 10 * crossAxisCount) {
         final end = (i + 10 * crossAxisCount < allFiles.length)
             ? i + 10 * crossAxisCount
             : allFiles.length;
-        final subGroup = allFiles.sublist(i, end);
+        final subGroup = _copyFilesInRange(i, end);
         _createNewGroup(subGroup, yearsInGroups);
       }
     }
@@ -360,31 +709,43 @@ class GalleryGroups {
     stopwatch.stop();
   }
 
-  void _createNewGroup(
-    List<EnteFile> groupFiles,
-    Set<int> yearsInGroups,
-  ) {
+  List<EnteFile> _copyFilesInRange(int start, int end) {
+    // Create a real List<EnteFile> so _createNewGroup can add DummyFiles.
+    // A sublist of List<EnteTrashFile>, for example, only accepts EnteTrashFile.
+    return List<EnteFile>.from(allFiles.getRange(start, end));
+  }
+
+  List<int> _timeGroupEndIndexes() {
+    final ends = <int>[];
+    if (allFiles.isEmpty) {
+      return ends;
+    }
+
+    var groupRange = groupType.getGroupRange(allFiles.first);
+    for (var index = 1; index < allFiles.length; index++) {
+      final creationTime = allFiles[index].creationTime!;
+      if (creationTime < groupRange.$1 || creationTime > groupRange.$2) {
+        ends.add(index);
+        groupRange = groupType.getGroupRange(allFiles[index]);
+      }
+    }
+    ends.add(allFiles.length);
+    return ends;
+  }
+
+  void _createNewGroup(List<EnteFile> groupFiles, Set<int> yearsInGroups) {
     final uuid = _uuid.v1();
 
-    // Save original last file before adding dummies to the end
     final lastFile = groupFiles.last;
 
     // Dummy files are used for gesture tracking in swipe-to-select
-    if (!limitSelectionToOne) {
-      // Add dummy files to fill the last row if needed
+    if (layoutType == GalleryLayoutType.grid && !limitSelectionToOne) {
       final incompleteRowCount = groupFiles.length % crossAxisCount;
       if (incompleteRowCount != 0) {
         final dummiesNeeded = crossAxisCount - incompleteRowCount;
-        final filesWithDummies = List<EnteFile>.from(groupFiles);
         for (int i = 0; i < dummiesNeeded; i++) {
-          filesWithDummies.add(
-            DummyFile(
-              groupID: uuid,
-              index: i,
-            ),
-          );
+          groupFiles.add(DummyFile(groupID: uuid, index: i));
         }
-        groupFiles = filesWithDummies;
       }
     }
 
@@ -402,23 +763,20 @@ class GalleryGroups {
     _groupIdToGroupDataMap[uuid] = (
       groupType: groupType,
       maxCreationTime: maxCreationTime,
-      minCreationTime: minCreationTime
+      minCreationTime: minCreationTime,
     );
 
     if (!limitSelectionToOne) {
       _allFilesWithDummies.addAll(groupFiles);
     }
 
-    // For scrollbar divisions
     if (groupType.timeGrouping()) {
       final yearOfGroup = DateTime.fromMicrosecondsSinceEpoch(
         groupFiles.first.creationTime!,
       ).year;
       if (!yearsInGroups.contains(yearOfGroup)) {
         yearsInGroups.add(yearOfGroup);
-        _scrollbarDivisions.add(
-          (groupID: uuid, title: yearOfGroup.toString()),
-        );
+        _scrollbarDivisions.add((groupID: uuid, title: yearOfGroup.toString()));
       }
     }
   }

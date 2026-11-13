@@ -1,20 +1,15 @@
 import "package:dio/dio.dart";
+import "package:photos/gateways/collections/models/collection_share.dart";
 import "package:photos/gateways/collections/models/public_url.dart";
 import "package:photos/models/api/collection/user.dart";
 
-/// Gateway for collection sharing API endpoints.
-///
-/// Handles sharing collections with other users and managing public links.
+const _linkDeviceLimitExceededCode = "LINK_DEVICE_LIMIT_EXCEEDED";
+
 class CollectionShareGateway {
   final Dio _enteDio;
 
   CollectionShareGateway(this._enteDio);
 
-  /// Gets the list of users a collection is shared with.
-  ///
-  /// [collectionID] - The collection to get sharees for.
-  ///
-  /// Returns a list of [User] objects representing the sharees.
   Future<List<User>> getSharees(int collectionID) async {
     final response = await _enteDio.get(
       "/collections/sharees",
@@ -27,14 +22,6 @@ class CollectionShareGateway {
     return sharees;
   }
 
-  /// Shares a collection with another user.
-  ///
-  /// [collectionID] - The collection to share.
-  /// [email] - The email of the user to share with.
-  /// [encryptedKey] - The collection key encrypted for the recipient.
-  /// [role] - The role to grant (e.g., "VIEWER", "COLLABORATOR").
-  ///
-  /// Returns the updated list of sharees.
   Future<List<User>> share({
     required int collectionID,
     required String email,
@@ -57,21 +44,24 @@ class CollectionShareGateway {
     return sharees;
   }
 
-  /// Removes sharing of a collection with a user.
-  ///
-  /// [collectionID] - The collection to unshare.
-  /// [email] - The email of the user to remove sharing for.
-  ///
-  /// Returns the updated list of sharees.
-  Future<List<User>> unshare({
+  Future<List<User>> shareBatch({
     required int collectionID,
-    required String email,
+    required Map<String, String> encryptedKeys,
+    required String role,
   }) async {
     final response = await _enteDio.post(
-      "/collections/unshare",
+      "/collections/share/batch",
       data: {
-        "collectionID": collectionID,
-        "email": email,
+        "shares": encryptedKeys.entries
+            .map(
+              (entry) => {
+                "collectionID": collectionID,
+                "email": entry.key,
+                "encryptedKey": entry.value,
+                "role": role,
+              },
+            )
+            .toList(),
       },
     );
     final sharees = <User>[];
@@ -81,18 +71,59 @@ class CollectionShareGateway {
     return sharees;
   }
 
-  /// Creates a public share URL for a collection.
-  ///
-  /// [collectionID] - The collection to create a public link for.
-  /// [enableCollect] - Whether to allow others to add files.
-  /// [enableJoin] - Whether to allow others to join the album.
-  /// [enableComment] - Whether to allow comments.
-  ///
-  /// Returns the created [PublicURL].
+  Future<List<User>> unshare({
+    required int collectionID,
+    required String email,
+  }) async {
+    final response = await _enteDio.post(
+      "/collections/unshare",
+      data: {"collectionID": collectionID, "email": email},
+    );
+    final sharees = <User>[];
+    for (final user in response.data["sharees"]) {
+      sharees.add(User.fromMap(user));
+    }
+    return sharees;
+  }
+
+  Future<List<CollectionShareResult>> shareBulk({
+    required int recipientUserID,
+    required String recipientEmail,
+    required CollectionShareSource source,
+    required List<BulkCollectionShareItem> collections,
+  }) async {
+    final response = await _enteDio.post(
+      "/collections/share/bulk",
+      data: {
+        "recipientUserID": recipientUserID,
+        "recipientEmail": recipientEmail,
+        "source": source.name,
+        "collections": collections.map((item) => item.toJson()).toList(),
+      },
+    );
+    return _parseBulkResults(response.data);
+  }
+
+  Future<List<CollectionShareResult>> unshareBulk({
+    required int recipientUserID,
+    required CollectionShareSource source,
+    required List<int> collectionIDs,
+  }) async {
+    final response = await _enteDio.post(
+      "/collections/unshare/bulk",
+      data: {
+        "recipientUserID": recipientUserID,
+        "source": source.name,
+        "collectionIDs": collectionIDs,
+      },
+    );
+    return _parseBulkResults(response.data);
+  }
+
   Future<PublicURL> createShareUrl({
     required int collectionID,
     bool enableCollect = false,
-    bool enableJoin = true,
+    bool enableJoin = false,
     bool enableComment = true,
   }) async {
     final response = await _enteDio.post(
@@ -107,66 +138,42 @@ class CollectionShareGateway {
     return PublicURL.fromMap(response.data["result"]);
   }
 
-  /// Updates a public share URL for a collection.
-  ///
-  /// [collectionID] - The collection whose public link to update.
-  /// [props] - Map of properties to update on the public URL.
-  ///
-  /// Returns the updated [PublicURL].
   Future<PublicURL> updateShareUrl({
     required int collectionID,
     required Map<String, dynamic> props,
   }) async {
     final data = Map<String, dynamic>.from(props);
     data["collectionID"] = collectionID;
-    final response = await _enteDio.put(
-      "/collections/share-url",
-      data: data,
-    );
+    final response = await _enteDio.put("/collections/share-url", data: data);
     return PublicURL.fromMap(response.data["result"]);
   }
 
-  /// Deletes a public share URL for a collection.
-  ///
-  /// [collectionID] - The collection whose public link to delete.
   Future<void> deleteShareUrl(int collectionID) async {
-    await _enteDio.delete(
-      "/collections/share-url/$collectionID",
-    );
+    await _enteDio.delete("/collections/share-url/$collectionID");
   }
 
-  /// Gets information about a public collection.
-  ///
-  /// [authToken] - The public access token from the share URL.
-  ///
-  /// Returns the raw response data containing collection information.
-  ///
-  /// Throws:
-  /// - [PublicCollectionInfoUnauthorizedException] when the token is invalid.
-  /// - [PublicCollectionInfoExpiredException] when the link has expired/disabled.
-  /// - [PublicCollectionDeviceLimitExceededException] when the link device
-  ///   limit is reached.
-  /// - [PublicCollectionRateLimitedException] when API rate limits are hit.
   Future<Map<String, dynamic>> getPublicCollectionInfo(String authToken) async {
     try {
       final response = await _enteDio.get(
         "/public-collection/info",
-        options: Options(
-          headers: {"X-Auth-Access-Token": authToken},
-        ),
+        options: Options(headers: {"X-Auth-Access-Token": authToken}),
       );
       return response.data;
     } on DioException catch (e) {
       switch (e.response?.statusCode) {
         case 401:
-          throw PublicCollectionInfoUnauthorizedException();
+          throw PublicCollectionInfoUnavailableException();
         case 410:
-          throw PublicCollectionInfoExpiredException();
-        case 429:
-          final errorMessage = _extractErrorMessage(e.response?.data);
-          if (errorMessage?.toLowerCase().contains("device limit") ?? false) {
+          if (_hasErrorCode(e.response?.data, "LINK_EXPIRED")) {
+            throw PublicCollectionInfoExpiredException();
+          }
+          throw PublicCollectionInfoUnavailableException();
+        case 403:
+          if (_hasErrorCode(e.response?.data, _linkDeviceLimitExceededCode)) {
             throw PublicCollectionDeviceLimitExceededException();
           }
+          rethrow;
+        case 429:
           throw PublicCollectionRateLimitedException();
         default:
           rethrow;
@@ -174,12 +181,6 @@ class CollectionShareGateway {
     }
   }
 
-  /// Verifies the password for a password-protected public collection.
-  ///
-  /// [authToken] - The public access token from the share URL.
-  /// [passwordHash] - The hash of the password to verify.
-  ///
-  /// Returns the JWT token if verification succeeds.
   Future<String> verifyPublicPassword({
     required String authToken,
     required String passwordHash,
@@ -187,19 +188,11 @@ class CollectionShareGateway {
     final response = await _enteDio.post(
       "/public-collection/verify-password",
       data: {"passHash": passwordHash},
-      options: Options(
-        headers: {"X-Auth-Access-Token": authToken},
-      ),
+      options: Options(headers: {"X-Auth-Access-Token": authToken}),
     );
     return response.data["jwtToken"];
   }
 
-  /// Gets the diff of files in a public collection.
-  ///
-  /// [headers] - The authentication headers for the public collection.
-  /// [sinceTime] - The timestamp to get changes since.
-  ///
-  /// Returns the raw response data containing the diff.
   Future<Map<String, dynamic>> getPublicDiff({
     required Map<String, String> headers,
     required int sinceTime,
@@ -213,17 +206,26 @@ class CollectionShareGateway {
   }
 }
 
-String? _extractErrorMessage(dynamic data) {
+List<CollectionShareResult> _parseBulkResults(dynamic data) =>
+    (data['results'] as List)
+        .map(
+          (result) => CollectionShareResult.fromJson(
+            Map<String, dynamic>.from(result as Map),
+          ),
+        )
+        .toList();
+
+bool _hasErrorCode(dynamic data, String code) {
   if (data is Map<String, dynamic>) {
-    return data["error"]?.toString();
+    return data["code"] == code;
   }
   if (data is Map) {
-    return data["error"]?.toString();
+    return data["code"] == code;
   }
-  return null;
+  return false;
 }
 
-class PublicCollectionInfoUnauthorizedException implements Exception {}
+class PublicCollectionInfoUnavailableException implements Exception {}
 
 class PublicCollectionInfoExpiredException implements Exception {}
 

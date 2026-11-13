@@ -1,7 +1,7 @@
+import 'package:ente_components/ente_components.dart';
+import 'package:ente_strings/ente_strings.dart';
 import 'package:flutter/material.dart';
-import 'package:locker/l10n/l10n.dart';
 import 'package:locker/models/info/info_item.dart';
-import 'package:locker/ui/components/form_text_input_widget.dart';
 import 'package:locker/ui/pages/base_info_page.dart';
 
 class EmergencyContactPage extends BaseInfoPage<EmergencyContactData> {
@@ -22,26 +22,25 @@ class _EmergencyContactPageState
   final TextEditingController _contactDetailsController =
       TextEditingController();
   final TextEditingController _notesController = TextEditingController();
+  String _initialName = '';
+  String _initialContactDetails = '';
+  String _initialNotes = '';
 
   @override
-  void initState() {
-    super.initState();
-    _loadExistingData();
-  }
-
-  void _loadExistingData() {
+  void loadExistingData() {
     final data = currentData;
-    if (data != null) {
-      _nameController.text = data.name;
-      _contactDetailsController.text = data.contactDetails;
-      _notesController.text = data.notes ?? '';
-    }
+    _nameController.text = data?.name ?? '';
+    _contactDetailsController.text = data?.contactDetails ?? '';
+    _notesController.text = data?.notes ?? '';
+    _initialName = _nameController.text;
+    _initialContactDetails = _contactDetailsController.text;
+    _initialNotes = _notesController.text;
   }
 
   @override
   void refreshUIWithCurrentData() {
     super.refreshUIWithCurrentData();
-    _loadExistingData();
+    loadExistingData();
   }
 
   @override
@@ -53,68 +52,68 @@ class _EmergencyContactPageState
   }
 
   @override
-  String get pageTitle => context.l10n.emergencyContact;
+  String get pageTitle => context.strings.emergencyContact;
 
   @override
-  String get submitButtonText => context.l10n.saveRecord;
+  String get submitButtonText => context.strings.save;
 
   @override
   InfoType get infoType => InfoType.emergencyContact;
 
   @override
   bool validateForm() {
-    return _nameController.text.trim().isNotEmpty &&
-        _contactDetailsController.text.trim().isNotEmpty;
+    return _nameController.text.isNotEmpty &&
+        _contactDetailsController.text.isNotEmpty;
+  }
+
+  @override
+  bool get hasUnsavedChanges {
+    return _nameController.text != _initialName ||
+        _contactDetailsController.text != _initialContactDetails ||
+        _notesController.text != _initialNotes;
   }
 
   @override
   EmergencyContactData createInfoData() {
     return EmergencyContactData(
-      name: _nameController.text.trim(),
-      contactDetails: _contactDetailsController.text.trim(),
-      notes: _notesController.text.trim().isEmpty
-          ? null
-          : _notesController.text.trim(),
+      name: _nameController.text,
+      contactDetails: _contactDetailsController.text,
+      notes: _notesController.text.isEmpty ? null : _notesController.text,
     );
   }
 
   @override
   List<Widget> buildFormFields() {
     return [
-      FormTextInputWidget(
-        labelText: context.l10n.contactName,
-        hintText: context.l10n.contactNameHint,
+      TextInputComponent(
+        label: context.strings.contactName,
+        hintText: context.strings.contactNameHint,
         controller: _nameController,
-        shouldUseTextInputWidget: false,
-        validator: (value) {
-          if (value == null || value.trim().isEmpty) {
-            return context.l10n.pleaseEnterContactName;
-          }
-          return null;
-        },
+        isRequired: true,
+        textCapitalization: TextCapitalization.sentences,
+        textInputAction: TextInputAction.next,
+        onChanged: (_) => onFieldChanged(),
       ),
       const SizedBox(height: 24),
-      FormTextInputWidget(
-        labelText: context.l10n.contactDetails,
-        hintText: context.l10n.contactDetailsHint,
+      TextInputComponent(
+        label: context.strings.contactDetails,
+        hintText: context.strings.contactDetailsHint,
         controller: _contactDetailsController,
-        shouldUseTextInputWidget: false,
-        validator: (value) {
-          if (value == null || value.trim().isEmpty) {
-            return context.l10n.pleaseEnterContactDetails;
-          }
-          return null;
-        },
+        isRequired: true,
+        textInputAction: TextInputAction.next,
+        onChanged: (_) => onFieldChanged(),
       ),
       const SizedBox(height: 24),
-      FormTextInputWidget(
-        labelText: context.l10n.contactNotes,
-        hintText: context.l10n.contactNotesHint,
+      TextInputComponent(
+        label: context.strings.contactNotes,
+        hintText: context.strings.contactNotesHint,
         controller: _notesController,
-        shouldUseTextInputWidget: false,
-        maxLines: 3,
+        keyboardType: TextInputType.multiline,
+        minLines: 3,
+        maxLines: 12,
+        textCapitalization: TextCapitalization.sentences,
+        textInputAction: TextInputAction.newline,
       ),
-      const SizedBox(height: 24),
     ];
   }
 
@@ -122,18 +121,18 @@ class _EmergencyContactPageState
   List<Widget> buildViewFields() {
     return [
       buildViewField(
-        label: context.l10n.contactName,
+        label: context.strings.contactName,
         value: _nameController.text,
       ),
       const SizedBox(height: 24),
       buildViewField(
-        label: context.l10n.contactDetails,
+        label: context.strings.contactDetails,
         value: _contactDetailsController.text,
       ),
       if (_notesController.text.isNotEmpty) ...[
         const SizedBox(height: 24),
         buildViewField(
-          label: context.l10n.contactNotes,
+          label: context.strings.contactNotes,
           value: _notesController.text,
           maxLines: 3,
         ),

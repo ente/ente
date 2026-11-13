@@ -6,50 +6,52 @@ import "package:flutter/foundation.dart";
 import "package:logging/logging.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
-import "package:photos/utils/file_util.dart";
+
+class QrCodeDetectionResult {
+  final String fileTag;
+  final List<QrDetection> detections;
+
+  const QrCodeDetectionResult(this.fileTag, this.detections);
+
+  List<QrDetection> forFile(EnteFile file) =>
+      file.tag == fileTag ? detections : const [];
+}
 
 class QrCodeDetectionHelper {
-  static const _debounceDuration = Duration(milliseconds: 1500);
-
+  static const _debounceDuration = Duration(milliseconds: 500);
   final Logger _logger = Logger("QrCodeDetectionHelper");
   final EnteQr _enteQr = EnteQr();
 
-  final ValueNotifier<List<QrDetection>> qrDetectionsNotifier =
-      ValueNotifier<List<QrDetection>>(const []);
+  final ValueNotifier<QrCodeDetectionResult?> qrDetectionsNotifier =
+      ValueNotifier<QrCodeDetectionResult?>(null);
 
   int _requestId = 0;
   bool _disposed = false;
   Timer? _debounceTimer;
 
-  Future<void> evaluateFile(EnteFile file) async {
+  void evaluateFile(EnteFile file, File? localFile) {
     _debounceTimer?.cancel();
 
-    final bool isEligible = _isFileEligible(file);
     final int requestId = ++_requestId;
-
-    if (!isEligible) {
-      qrDetectionsNotifier.value = const [];
+    if (!_isFileEligible(file) || localFile == null) {
+      _clearDetections();
       return;
     }
 
-    qrDetectionsNotifier.value = const [];
+    _clearDetections();
 
     _debounceTimer = Timer(_debounceDuration, () {
-      _scanFile(file, requestId);
+      _scanFile(file, localFile, requestId);
     });
   }
 
-  Future<void> _scanFile(
-    EnteFile file,
-    int requestId,
-  ) async {
+  Future<void> _scanFile(EnteFile file, File localFile, int requestId) async {
     if (_disposed || requestId != _requestId) return;
 
     try {
-      final File? localFile = await getFile(file);
-      if (_disposed || requestId != _requestId) return;
-      if (localFile == null || !localFile.existsSync()) {
-        qrDetectionsNotifier.value = const [];
+      final stopwatch = Stopwatch()..start();
+      if (!localFile.existsSync()) {
+        _clearDetections();
         return;
       }
 
@@ -63,13 +65,25 @@ class QrCodeDetectionHelper {
         _logger.severe("Failed to scan QR codes", error, stackTrace);
       }
 
+      final totalMs = stopwatch.elapsedMilliseconds;
+      _logger.info(
+        "QR scan: detect=${totalMs}ms, "
+        "found=${detections.length}",
+      );
+
       if (_disposed || requestId != _requestId) return;
 
-      qrDetectionsNotifier.value = detections;
+      qrDetectionsNotifier.value = QrCodeDetectionResult(file.tag, detections);
     } catch (error, stackTrace) {
       _logger.severe("QR code detection failed", error, stackTrace);
       if (_disposed || requestId != _requestId) return;
-      qrDetectionsNotifier.value = const [];
+      _clearDetections();
+    }
+  }
+
+  void _clearDetections() {
+    if (qrDetectionsNotifier.value != null) {
+      qrDetectionsNotifier.value = null;
     }
   }
 

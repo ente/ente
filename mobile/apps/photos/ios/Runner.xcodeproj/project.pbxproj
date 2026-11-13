@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A17E00000000000000000011 /* NotificationKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E00000000000000000001 /* NotificationKeyStore.swift */; };
+		A17E00000000000000000010 /* NotificationKeyPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E00000000000000000000 /* NotificationKeyPlugin.swift */; };
+		ABB487F057701138D27F550A /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DB627F0726BF9EB1E87E584 /* SceneDelegate.swift */; };
 		0856877A9F80F9E052DBFDB4 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F82DAEEB9A7D9FD00E0FFA1E /* Pods_Runner.framework */; };
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
 		274DC65125920DD100F526A4 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 274DC65025920DD100F526A4 /* StoreKit.framework */; };
@@ -14,6 +17,7 @@
 		359D8BCF50FB143064FFC56F /* Pods_ShareExtension.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D025F2F5A163F84B724D14D7 /* Pods_ShareExtension.framework */; };
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
 		54D121F62F02675C00B8CC69 /* ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 54D121EC2F02675C00B8CC69 /* ShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		6DA601B38B4BCCD1C4BB0E25 /* ForegroundHeartbeat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57EEDBC4E19D917C19BF4545 /* ForegroundHeartbeat.swift */; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
@@ -27,7 +31,10 @@
 		CEE6BE702D7AE7FD00E4048B /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6DACD83C2B755B0600BA9516 /* WidgetKit.framework */; };
 		CEE6BE712D7AE7FD00E4048B /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6DACD83E2B755B0600BA9516 /* SwiftUI.framework */; };
 		CEE6BE7C2D7AE7FE00E4048B /* EnteMemoryWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = CEE6BE6F2D7AE7FD00E4048B /* EnteMemoryWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		D3E09F452C70B1E300F01A01 /* FFmpegRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = D3E09F452C70B1E300F01A03 /* FFmpegRuntime */; };
 		DA6BE5E826B3BC8600656280 /* BuildFile in Resources */ = {isa = PBXBuildFile; };
+		074CAC9E3088DD8200DF0FD6 /* NotificationServiceExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 074CAC973088DD8200DF0FD6 /* NotificationServiceExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		38B442BF75FB4064D4FB816E /* Pods_NotificationServiceExtension.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4DED740990C035FB879F4AB2 /* Pods_NotificationServiceExtension.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -59,6 +66,13 @@
 			remoteGlobalIDString = CEE6BE6E2D7AE7FD00E4048B;
 			remoteInfo = EnteMemoryWidgetExtension;
 		};
+		074CAC9C3088DD8200DF0FD6 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 97C146E61CF9000F007C117D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 074CAC963088DD8200DF0FD6;
+			remoteInfo = NotificationServiceExtension;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -72,6 +86,7 @@
 				CEE166302DD5E7830012CF61 /* EnteAlbumWidgetExtension.appex in Embed Foundation Extensions */,
 				CEE6BE7C2D7AE7FE00E4048B /* EnteMemoryWidgetExtension.appex in Embed Foundation Extensions */,
 				CEE166882DD5F6F30012CF61 /* EntePeopleWidgetExtension.appex in Embed Foundation Extensions */,
+				074CAC9E3088DD8200DF0FD6 /* NotificationServiceExtension.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -89,6 +104,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		A17E00000000000000000001 /* NotificationKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "../NotificationServiceExtension/NotificationKeyStore.swift"; sourceTree = "<group>"; };
+		A17E00000000000000000000 /* NotificationKeyPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NotificationKeyPlugin.swift"; sourceTree = "<group>"; };
+		6DB627F0726BF9EB1E87E584 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
 		1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GeneratedPluginRegistrant.m; sourceTree = "<group>"; };
 		271BD99F270EE74F00D86E6F /* Runner.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Runner.entitlements; sourceTree = "<group>"; };
@@ -97,6 +115,7 @@
 		3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = AppFrameworkInfo.plist; path = Flutter/AppFrameworkInfo.plist; sourceTree = "<group>"; };
 		53DBFBDBE805FC6E13E3F31E /* Pods-ShareExtension.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ShareExtension.debug.xcconfig"; path = "Target Support Files/Pods-ShareExtension/Pods-ShareExtension.debug.xcconfig"; sourceTree = "<group>"; };
 		54D121EC2F02675C00B8CC69 /* ShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		57EEDBC4E19D917C19BF4545 /* ForegroundHeartbeat.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ForegroundHeartbeat.swift; sourceTree = "<group>"; };
 		6A1E2DBA51995DADEC1ED952 /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
 		6DACD83C2B755B0600BA9516 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		6DACD83E2B755B0600BA9516 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
@@ -104,6 +123,9 @@
 		74858FAE1ED2DC5600515810 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Flutter/Release.xcconfig; sourceTree = "<group>"; };
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Debug.xcconfig; path = Flutter/Debug.xcconfig; sourceTree = "<group>"; };
+		A17E00000000000000000041 /* NotificationDebug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = NotificationDebug.xcconfig; path = Flutter/NotificationDebug.xcconfig; sourceTree = "<group>"; };
+		A17E00000000000000000042 /* NotificationRelease.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = NotificationRelease.xcconfig; path = Flutter/NotificationRelease.xcconfig; sourceTree = "<group>"; };
+		A17E00000000000000000043 /* NotificationProfile.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = NotificationProfile.xcconfig; path = Flutter/NotificationProfile.xcconfig; sourceTree = "<group>"; };
 		9740EEB31CF90195004384FC /* Generated.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Generated.xcconfig; path = Flutter/Generated.xcconfig; sourceTree = "<group>"; };
 		97C146EE1CF9000F007C117D /* Runner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Runner.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		97C146FB1CF9000F007C117D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
@@ -124,6 +146,11 @@
 		D025F2F5A163F84B724D14D7 /* Pods_ShareExtension.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_ShareExtension.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		DA8D6672273BBB59007651D4 /* Runner.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Runner.entitlements; sourceTree = "<group>"; };
 		F82DAEEB9A7D9FD00E0FFA1E /* Pods_Runner.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Runner.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		074CAC973088DD8200DF0FD6 /* NotificationServiceExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = NotificationServiceExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		4DED740990C035FB879F4AB2 /* Pods_NotificationServiceExtension.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_NotificationServiceExtension.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		6ED373D1AC6D19CD79AD833F /* Pods-NotificationServiceExtension.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-NotificationServiceExtension.release.xcconfig"; path = "Target Support Files/Pods-NotificationServiceExtension/Pods-NotificationServiceExtension.release.xcconfig"; sourceTree = "<group>"; };
+		B21A56DCD06AC3D46D32CBE6 /* Pods-NotificationServiceExtension.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-NotificationServiceExtension.debug.xcconfig"; path = "Target Support Files/Pods-NotificationServiceExtension/Pods-NotificationServiceExtension.debug.xcconfig"; sourceTree = "<group>"; };
+		F7200DA71C0EF4D67BAF8476 /* Pods-NotificationServiceExtension.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-NotificationServiceExtension.profile.xcconfig"; path = "Target Support Files/Pods-NotificationServiceExtension/Pods-NotificationServiceExtension.profile.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -154,6 +181,15 @@
 				Info.plist,
 			);
 			target = CEE6BE6E2D7AE7FD00E4048B /* EnteMemoryWidgetExtension */;
+		};
+		074CACA23088DD8200DF0FD6 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Generated/.gitignore,
+				ente_notification_uniffi.podspec,
+				Info.plist,
+			);
+			target = 074CAC963088DD8200DF0FD6 /* NotificationServiceExtension */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -206,6 +242,7 @@
 			path = EnteMemoryWidget;
 			sourceTree = "<group>";
 		};
+		074CAC983088DD8200DF0FD6 /* NotificationServiceExtension */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (074CACA23088DD8200DF0FD6 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = NotificationServiceExtension; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -221,6 +258,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D3E09F452C70B1E300F01A01 /* FFmpegRuntime in Frameworks */,
 				274DC65125920DD100F526A4 /* StoreKit.framework in Frameworks */,
 				0856877A9F80F9E052DBFDB4 /* Pods_Runner.framework in Frameworks */,
 			);
@@ -253,6 +291,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		074CAC943088DD8200DF0FD6 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				38B442BF75FB4064D4FB816E /* Pods_NotificationServiceExtension.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -262,6 +308,9 @@
 				3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */,
 				9740EEB21CF90195004384FC /* Debug.xcconfig */,
 				7AFA3C8E1D35360C0083082E /* Release.xcconfig */,
+				A17E00000000000000000041 /* NotificationDebug.xcconfig */,
+				A17E00000000000000000042 /* NotificationRelease.xcconfig */,
+				A17E00000000000000000043 /* NotificationProfile.xcconfig */,
 				9740EEB31CF90195004384FC /* Generated.xcconfig */,
 			);
 			name = Flutter;
@@ -284,6 +333,7 @@
 				97C146EF1CF9000F007C117D /* Products */,
 				AC6CA265BB505D982CB00391 /* Pods */,
 				C6A22658E77FF012720BEDDA /* Frameworks */,
+				074CAC983088DD8200DF0FD6 /* NotificationServiceExtension */,
 			);
 			sourceTree = "<group>";
 		};
@@ -295,6 +345,7 @@
 				CEE166232DD5E7820012CF61 /* EnteAlbumWidgetExtension.appex */,
 				CEE1667B2DD5F6F20012CF61 /* EntePeopleWidgetExtension.appex */,
 				54D121EC2F02675C00B8CC69 /* ShareExtension.appex */,
+				074CAC973088DD8200DF0FD6 /* NotificationServiceExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -312,6 +363,10 @@
 				1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */,
 				1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */,
 				74858FAE1ED2DC5600515810 /* AppDelegate.swift */,
+				A17E00000000000000000001 /* NotificationKeyStore.swift */,
+				A17E00000000000000000000 /* NotificationKeyPlugin.swift */,
+				6DB627F0726BF9EB1E87E584 /* SceneDelegate.swift */,
+				57EEDBC4E19D917C19BF4545 /* ForegroundHeartbeat.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
 			);
 			path = Runner;
@@ -333,6 +388,9 @@
 				53DBFBDBE805FC6E13E3F31E /* Pods-ShareExtension.debug.xcconfig */,
 				C540B46EB90E9D7FDF10AC56 /* Pods-ShareExtension.release.xcconfig */,
 				AAB2B37A8A7F46DD9D1734DF /* Pods-ShareExtension.profile.xcconfig */,
+				B21A56DCD06AC3D46D32CBE6 /* Pods-NotificationServiceExtension.debug.xcconfig */,
+				6ED373D1AC6D19CD79AD833F /* Pods-NotificationServiceExtension.release.xcconfig */,
+				F7200DA71C0EF4D67BAF8476 /* Pods-NotificationServiceExtension.profile.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -345,6 +403,7 @@
 				6DACD83C2B755B0600BA9516 /* WidgetKit.framework */,
 				6DACD83E2B755B0600BA9516 /* SwiftUI.framework */,
 				D025F2F5A163F84B724D14D7 /* Pods_ShareExtension.framework */,
+				4DED740990C035FB879F4AB2 /* Pods_NotificationServiceExtension.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -395,8 +454,12 @@
 				CEE1662F2DD5E7830012CF61 /* PBXTargetDependency */,
 				CEE166872DD5F6F30012CF61 /* PBXTargetDependency */,
 				54D121F52F02675C00B8CC69 /* PBXTargetDependency */,
+				074CAC9D3088DD8200DF0FD6 /* PBXTargetDependency */,
 			);
 			name = Runner;
+			packageProductDependencies = (
+				D3E09F452C70B1E300F01A03 /* FFmpegRuntime */,
+			);
 			productName = Runner;
 			productReference = 97C146EE1CF9000F007C117D /* Runner.app */;
 			productType = "com.apple.product-type.application";
@@ -461,6 +524,29 @@
 			productReference = CEE6BE6F2D7AE7FD00E4048B /* EnteMemoryWidgetExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		074CAC963088DD8200DF0FD6 /* NotificationServiceExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 074CACA33088DD8200DF0FD6 /* Build configuration list for PBXNativeTarget "NotificationServiceExtension" */;
+			buildPhases = (
+				E7BD861B2DAA578D401B7082 /* [CP] Check Pods Manifest.lock */,
+				074CAC933088DD8200DF0FD6 /* Sources */,
+				074CAC943088DD8200DF0FD6 /* Frameworks */,
+				074CAC953088DD8200DF0FD6 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				074CAC983088DD8200DF0FD6 /* NotificationServiceExtension */,
+			);
+			name = NotificationServiceExtension;
+			packageProductDependencies = (
+			);
+			productName = NotificationServiceExtension;
+			productReference = 074CAC973088DD8200DF0FD6 /* NotificationServiceExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -469,8 +555,10 @@
 			attributes = {
 				LastSwiftUpdateCheck = 2620;
 				LastUpgradeCheck = 1510;
-				ORGANIZATIONNAME = "The Chromium Authors";
 				TargetAttributes = {
+					074CAC963088DD8200DF0FD6 = {
+						CreatedOnToolsVersion = 27.0;
+					};
 					54D121EB2F02675C00B8CC69 = {
 						CreatedOnToolsVersion = 26.2;
 					};
@@ -498,6 +586,9 @@
 				Base,
 			);
 			mainGroup = 97C146E51CF9000F007C117D;
+			packageReferences = (
+				D3E09F452C70B1E300F01A02 /* XCLocalSwiftPackageReference "FFmpegRuntime" */,
+			);
 			productRefGroup = 97C146EF1CF9000F007C117D /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -507,6 +598,7 @@
 				CEE166222DD5E7820012CF61 /* EnteAlbumWidgetExtension */,
 				CEE1667A2DD5F6F20012CF61 /* EntePeopleWidgetExtension */,
 				54D121EB2F02675C00B8CC69 /* ShareExtension */,
+				074CAC963088DD8200DF0FD6 /* NotificationServiceExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -547,6 +639,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		CEE6BE6D2D7AE7FD00E4048B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		074CAC953088DD8200DF0FD6 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -630,16 +729,21 @@
 				"${BUILT_PRODUCTS_DIR}/Sentry/Sentry.framework",
 				"${BUILT_PRODUCTS_DIR}/app_links/app_links.framework",
 				"${BUILT_PRODUCTS_DIR}/audio_session/audio_session.framework",
-				"${BUILT_PRODUCTS_DIR}/battery_info/battery_info.framework",
+				"${BUILT_PRODUCTS_DIR}/backup_exclusion/backup_exclusion.framework",
 				"${BUILT_PRODUCTS_DIR}/camera_avfoundation/camera_avfoundation.framework",
 				"${BUILT_PRODUCTS_DIR}/connectivity_plus/connectivity_plus.framework",
-				"${BUILT_PRODUCTS_DIR}/cupertino_http/cupertino_http.framework",
-				"${BUILT_PRODUCTS_DIR}/dart_ui_isolate/dart_ui_isolate.framework",
 				"${BUILT_PRODUCTS_DIR}/device_info_plus/device_info_plus.framework",
-				"${BUILT_PRODUCTS_DIR}/ente_photos_rust/ente_photos_rust.framework",
-				"${BUILT_PRODUCTS_DIR}/ente_rust/ente_rust.framework",
+				"${BUILT_PRODUCTS_DIR}/ente_background_manager/ente_background_manager.framework",
+				"${BUILT_PRODUCTS_DIR}/ente_cast/ente_cast.framework",
+				"${BUILT_PRODUCTS_DIR}/ente_mail/ente_mail.framework",
+				"${BUILT_PRODUCTS_DIR}/ente_panorama_viewer/ente_panorama_viewer.framework",
+				"${BUILT_PRODUCTS_DIR}/ente_photos_frb/ente_photos_frb.framework",
+				"${BUILT_PRODUCTS_DIR}/ente_photos_platform/ente_photos_platform.framework",
+				"${BUILT_PRODUCTS_DIR}/ente_qr/ente_qr.framework",
+				"${BUILT_PRODUCTS_DIR}/ente_screen_brightness/ente_screen_brightness.framework",
+				"${BUILT_PRODUCTS_DIR}/ente_screen_cover/ente_screen_cover.framework",
+				"${BUILT_PRODUCTS_DIR}/ente_vision/ente_vision.framework",
 				"${BUILT_PRODUCTS_DIR}/file_saver/file_saver.framework",
-				"${BUILT_PRODUCTS_DIR}/flutter_email_sender/flutter_email_sender.framework",
 				"${BUILT_PRODUCTS_DIR}/flutter_image_compress_common/flutter_image_compress_common.framework",
 				"${BUILT_PRODUCTS_DIR}/flutter_inappwebview_ios/flutter_inappwebview_ios.framework",
 				"${BUILT_PRODUCTS_DIR}/flutter_local_notifications/flutter_local_notifications.framework",
@@ -654,24 +758,17 @@
 				"${BUILT_PRODUCTS_DIR}/just_audio/just_audio.framework",
 				"${BUILT_PRODUCTS_DIR}/launcher_icon_switcher/launcher_icon_switcher.framework",
 				"${BUILT_PRODUCTS_DIR}/libwebp/libwebp.framework",
-				"${BUILT_PRODUCTS_DIR}/local_auth_ios/local_auth_ios.framework",
-				"${BUILT_PRODUCTS_DIR}/maps_launcher/maps_launcher.framework",
-				"${BUILT_PRODUCTS_DIR}/media_extension/media_extension.framework",
+				"${BUILT_PRODUCTS_DIR}/local_auth_darwin/local_auth_darwin.framework",
 				"${BUILT_PRODUCTS_DIR}/media_kit_libs_ios_video/media_kit_libs_ios_video.framework",
 				"${BUILT_PRODUCTS_DIR}/media_kit_video/media_kit_video.framework",
-				"${BUILT_PRODUCTS_DIR}/mobile_ocr/mobile_ocr.framework",
-				"${BUILT_PRODUCTS_DIR}/motion_sensors/motion_sensors.framework",
 				"${BUILT_PRODUCTS_DIR}/motionphoto/motionphoto.framework",
 				"${BUILT_PRODUCTS_DIR}/move_to_background/move_to_background.framework",
 				"${BUILT_PRODUCTS_DIR}/nanopb/nanopb.framework",
 				"${BUILT_PRODUCTS_DIR}/native_video_editor/native_video_editor.framework",
 				"${BUILT_PRODUCTS_DIR}/native_video_player/native_video_player.framework",
-				"${BUILT_PRODUCTS_DIR}/objective_c/objective_c.framework",
-				"${BUILT_PRODUCTS_DIR}/open_mail_app/open_mail_app.framework",
 				"${BUILT_PRODUCTS_DIR}/package_info_plus/package_info_plus.framework",
-				"${BUILT_PRODUCTS_DIR}/path_provider_foundation/path_provider_foundation.framework",
 				"${BUILT_PRODUCTS_DIR}/photo_manager/photo_manager.framework",
-				"${BUILT_PRODUCTS_DIR}/privacy_screen/privacy_screen.framework",
+				"${BUILT_PRODUCTS_DIR}/pro_image_editor/pro_image_editor.framework",
 				"${BUILT_PRODUCTS_DIR}/receive_sharing_intent/receive_sharing_intent.framework",
 				"${BUILT_PRODUCTS_DIR}/rive_native/rive_native.framework",
 				"${BUILT_PRODUCTS_DIR}/sentry_flutter/sentry_flutter.framework",
@@ -680,23 +777,11 @@
 				"${BUILT_PRODUCTS_DIR}/sqflite_darwin/sqflite_darwin.framework",
 				"${BUILT_PRODUCTS_DIR}/sqlite3/sqlite3.framework",
 				"${BUILT_PRODUCTS_DIR}/sqlite3_flutter_libs/sqlite3_flutter_libs.framework",
-				"${BUILT_PRODUCTS_DIR}/system_info_plus/system_info_plus.framework",
-				"${BUILT_PRODUCTS_DIR}/thermal/thermal.framework",
 				"${BUILT_PRODUCTS_DIR}/ua_client_hints/ua_client_hints.framework",
 				"${BUILT_PRODUCTS_DIR}/url_launcher_ios/url_launcher_ios.framework",
 				"${BUILT_PRODUCTS_DIR}/video_player_avfoundation/video_player_avfoundation.framework",
-				"${BUILT_PRODUCTS_DIR}/video_thumbnail/video_thumbnail.framework",
-				"${BUILT_PRODUCTS_DIR}/volume_controller/volume_controller.framework",
 				"${BUILT_PRODUCTS_DIR}/wakelock_plus/wakelock_plus.framework",
 				"${BUILT_PRODUCTS_DIR}/workmanager_apple/workmanager_apple.framework",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ffmpeg_kit_custom/ffmpegkit.framework/ffmpegkit",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ffmpeg_kit_custom/libavcodec.framework/libavcodec",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ffmpeg_kit_custom/libavdevice.framework/libavdevice",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ffmpeg_kit_custom/libavfilter.framework/libavfilter",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ffmpeg_kit_custom/libavformat.framework/libavformat",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ffmpeg_kit_custom/libavutil.framework/libavutil",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ffmpeg_kit_custom/libswresample.framework/libswresample",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ffmpeg_kit_custom/libswscale.framework/libswscale",
 				"${PODS_XCFRAMEWORKS_BUILD_DIR}/media_kit_libs_ios_video/Ass.framework/Ass",
 				"${PODS_XCFRAMEWORKS_BUILD_DIR}/media_kit_libs_ios_video/Avcodec.framework/Avcodec",
 				"${PODS_XCFRAMEWORKS_BUILD_DIR}/media_kit_libs_ios_video/Avfilter.framework/Avfilter",
@@ -732,16 +817,21 @@
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Sentry.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/app_links.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/audio_session.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/battery_info.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/backup_exclusion.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/camera_avfoundation.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/connectivity_plus.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/cupertino_http.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/dart_ui_isolate.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/device_info_plus.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ente_photos_rust.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ente_rust.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ente_background_manager.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ente_cast.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ente_mail.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ente_panorama_viewer.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ente_photos_frb.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ente_photos_platform.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ente_qr.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ente_screen_brightness.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ente_screen_cover.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ente_vision.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/file_saver.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/flutter_email_sender.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/flutter_image_compress_common.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/flutter_inappwebview_ios.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/flutter_local_notifications.framework",
@@ -756,24 +846,17 @@
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/just_audio.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/launcher_icon_switcher.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/libwebp.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/local_auth_ios.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/maps_launcher.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/media_extension.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/local_auth_darwin.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/media_kit_libs_ios_video.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/media_kit_video.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/mobile_ocr.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/motion_sensors.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/motionphoto.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/move_to_background.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/nanopb.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/native_video_editor.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/native_video_player.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/objective_c.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/open_mail_app.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/package_info_plus.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/path_provider_foundation.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/photo_manager.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/privacy_screen.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/pro_image_editor.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/receive_sharing_intent.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/rive_native.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/sentry_flutter.framework",
@@ -782,23 +865,11 @@
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/sqflite_darwin.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/sqlite3.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/sqlite3_flutter_libs.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/system_info_plus.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/thermal.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ua_client_hints.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/url_launcher_ios.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/video_player_avfoundation.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/video_thumbnail.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/volume_controller.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/wakelock_plus.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/workmanager_apple.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ffmpegkit.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/libavcodec.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/libavdevice.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/libavfilter.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/libavformat.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/libavutil.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/libswresample.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/libswscale.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Ass.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Avcodec.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Avfilter.framework",
@@ -865,6 +936,28 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
+		E7BD861B2DAA578D401B7082 /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-NotificationServiceExtension-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -880,6 +973,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
+				A17E00000000000000000011 /* NotificationKeyStore.swift in Sources */,
+				A17E00000000000000000010 /* NotificationKeyPlugin.swift in Sources */,
+				ABB487F057701138D27F550A /* SceneDelegate.swift in Sources */,
+				6DA601B38B4BCCD1C4BB0E25 /* ForegroundHeartbeat.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -899,6 +996,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		CEE6BE6B2D7AE7FD00E4048B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		074CAC933088DD8200DF0FD6 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -927,6 +1031,11 @@
 			isa = PBXTargetDependency;
 			target = CEE6BE6E2D7AE7FD00E4048B /* EnteMemoryWidgetExtension */;
 			targetProxy = CEE6BE7A2D7AE7FE00E4048B /* PBXContainerItemProxy */;
+		};
+		074CAC9D3088DD8200DF0FD6 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 074CAC963088DD8200DF0FD6 /* NotificationServiceExtension */;
+			targetProxy = 074CAC9C3088DD8200DF0FD6 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -995,7 +1104,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				MACH_O_TYPE = mh_execute;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
@@ -1023,13 +1132,14 @@
 				CUSTOM_GROUP_ID = group.io.ente.frame.ShareExtension;
 				DEVELOPMENT_TEAM = 6Z68YJY9Q2;
 				ENABLE_BITCODE = NO;
+				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = "$(inherited) x86_64";
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/Flutter",
 				);
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Ente Photos";
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1072,7 +1182,7 @@
 				INFOPLIST_FILE = ShareExtension/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Ente Photos";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 Ente Technologies, Inc. All rights reserved.";
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1118,7 +1228,7 @@
 				INFOPLIST_FILE = ShareExtension/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Ente Photos";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 Ente Technologies, Inc. All rights reserved.";
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1129,6 +1239,7 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = io.ente.frame.ShareExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "$(SHARE_EXTENSION_APP_STORE_PROFILE_SPECIFIER)";
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -1162,7 +1273,7 @@
 				INFOPLIST_FILE = ShareExtension/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Ente Photos";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 Ente Technologies, Inc. All rights reserved.";
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1235,7 +1346,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				MACH_O_TYPE = mh_execute;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -1295,7 +1406,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				MACH_O_TYPE = mh_execute;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
@@ -1325,13 +1436,14 @@
 				CUSTOM_GROUP_ID = group.io.ente.frame.ShareExtension;
 				DEVELOPMENT_TEAM = 6Z68YJY9Q2;
 				ENABLE_BITCODE = NO;
+				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = "$(inherited) x86_64";
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/Flutter",
 				);
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Ente Photos";
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1347,6 +1459,7 @@
 				SWIFT_ENABLE_EXPLICIT_MODULES = NO;
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VERSIONING_SYSTEM = "apple-generic";
@@ -1368,13 +1481,14 @@
 				CUSTOM_GROUP_ID = group.io.ente.frame.ShareExtension;
 				DEVELOPMENT_TEAM = 6Z68YJY9Q2;
 				ENABLE_BITCODE = NO;
+				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = "$(inherited) x86_64";
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/Flutter",
 				);
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Ente Photos";
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1386,7 +1500,7 @@
 				MARKETING_VERSION = 0.0.11;
 				PRODUCT_BUNDLE_IDENTIFIER = io.ente.frame;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				PROVISIONING_PROFILE_SPECIFIER = "";
+				PROVISIONING_PROFILE_SPECIFIER = "$(APP_STORE_PROFILE_SPECIFIER)";
 				SWIFT_ENABLE_EXPLICIT_MODULES = NO;
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -1416,7 +1530,6 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = EnteAlbumWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = EnteAlbumWidget;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 The Chromium Authors. All rights reserved.";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1458,7 +1571,6 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = EnteAlbumWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = EnteAlbumWidget;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 The Chromium Authors. All rights reserved.";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1470,6 +1582,7 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = io.ente.frame.EnteAlbumWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "$(ALBUM_WIDGET_APP_STORE_PROFILE_SPECIFIER)";
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -1498,7 +1611,6 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = EnteAlbumWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = EnteAlbumWidget;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 The Chromium Authors. All rights reserved.";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1538,7 +1650,6 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = EntePeopleWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = EntePeopleWidget;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 The Chromium Authors. All rights reserved.";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1580,7 +1691,6 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = EntePeopleWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = EntePeopleWidget;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 The Chromium Authors. All rights reserved.";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1592,6 +1702,7 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = io.ente.frame.EntePeopleWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "$(PEOPLE_WIDGET_APP_STORE_PROFILE_SPECIFIER)";
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -1620,7 +1731,6 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = EntePeopleWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = EntePeopleWidget;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 The Chromium Authors. All rights reserved.";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1660,7 +1770,6 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = EnteMemoryWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = EnteMemoryWidget;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 The Chromium Authors. All rights reserved.";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1702,7 +1811,6 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = EnteMemoryWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = EnteMemoryWidget;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 The Chromium Authors. All rights reserved.";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1714,6 +1822,7 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = io.ente.frame.EnteMemoryWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "$(MEMORY_WIDGET_APP_STORE_PROFILE_SPECIFIER)";
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -1742,7 +1851,6 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = EnteMemoryWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = EnteMemoryWidget;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 The Chromium Authors. All rights reserved.";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1756,6 +1864,95 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Profile;
+		};
+		074CAC9F3088DD8200DF0FD6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A17E00000000000000000041 /* NotificationDebug.xcconfig */;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = NotificationServiceExtension/NotificationServiceExtension.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = 6Z68YJY9Q2;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NotificationServiceExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Ente Photos";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
+				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+				OTHER_LDFLAGS = ("$(inherited)", "-framework", Security, );
+				PRODUCT_BUNDLE_IDENTIFIER = io.ente.frame.debug.NotificationServiceExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				OTHER_SWIFT_FLAGS = "$(inherited) -Xcc -fmodule-map-file=$(SRCROOT)/NotificationServiceExtension/Generated/ente_notification_uniffiFFI.modulemap";
+				SWIFT_INCLUDE_PATHS = "$(inherited) $(SRCROOT)/NotificationServiceExtension/Generated";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		074CACA03088DD8200DF0FD6 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A17E00000000000000000042 /* NotificationRelease.xcconfig */;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = NotificationServiceExtension/NotificationServiceExtension.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = 6Z68YJY9Q2;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NotificationServiceExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Ente Photos";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
+				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+				OTHER_LDFLAGS = ("$(inherited)", "-framework", Security, );
+				PRODUCT_BUNDLE_IDENTIFIER = io.ente.frame.NotificationServiceExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "$(NOTIFICATION_SERVICE_EXTENSION_APP_STORE_PROFILE_SPECIFIER)";
+				SKIP_INSTALL = YES;
+				OTHER_SWIFT_FLAGS = "$(inherited) -Xcc -fmodule-map-file=$(SRCROOT)/NotificationServiceExtension/Generated/ente_notification_uniffiFFI.modulemap";
+				SWIFT_INCLUDE_PATHS = "$(inherited) $(SRCROOT)/NotificationServiceExtension/Generated";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		074CACA13088DD8200DF0FD6 /* Profile */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A17E00000000000000000043 /* NotificationProfile.xcconfig */;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = NotificationServiceExtension/NotificationServiceExtension.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = 6Z68YJY9Q2;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NotificationServiceExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Ente Photos";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
+				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+				OTHER_LDFLAGS = ("$(inherited)", "-framework", Security, );
+				PRODUCT_BUNDLE_IDENTIFIER = io.ente.frame.NotificationServiceExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				OTHER_SWIFT_FLAGS = "$(inherited) -Xcc -fmodule-map-file=$(SRCROOT)/NotificationServiceExtension/Generated/ente_notification_uniffiFFI.modulemap";
+				SWIFT_INCLUDE_PATHS = "$(inherited) $(SRCROOT)/NotificationServiceExtension/Generated";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -1824,7 +2021,31 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		074CACA33088DD8200DF0FD6 /* Build configuration list for PBXNativeTarget "NotificationServiceExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				074CAC9F3088DD8200DF0FD6 /* Debug */,
+				074CACA03088DD8200DF0FD6 /* Release */,
+				074CACA13088DD8200DF0FD6 /* Profile */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		D3E09F452C70B1E300F01A02 /* XCLocalSwiftPackageReference "FFmpegRuntime" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../../../apple/packages/FFmpegRuntime;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		D3E09F452C70B1E300F01A03 /* FFmpegRuntime */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = FFmpegRuntime;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 97C146E61CF9000F007C117D /* Project object */;
 }

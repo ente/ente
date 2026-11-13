@@ -10,12 +10,11 @@ import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
 import "package:photos/services/filter/db_filters.dart";
 import "package:photos/services/location_service.dart";
+import "package:photos/settings/local_settings.dart";
 import 'package:photos/states/location_state.dart';
 import "package:photos/ui/viewer/gallery/gallery.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
 
-///This gallery will get rebuilt with the updated radius when
-///InheritedLocationTagData notifies a change in radius.
 class DynamicLocationGalleryWidget extends StatefulWidget {
   final ValueNotifier<int?> memoriesCountNotifier;
   final String tagPrefix;
@@ -37,19 +36,19 @@ class _DynamicLocationGalleryWidgetState
 
   @override
   void initState() {
-    final collectionsToHide =
-        CollectionsService.instance.archivedOrHiddenCollectionIds();
-    fileLoadResult =
-        FilesDB.instance.fetchAllUploadedAndSharedFilesWithLocation(
-      galleryLoadStartTime,
-      galleryLoadEndTime,
-      limit: null,
-      asc: false,
-      filterOptions: DBFilterOptions(
-        ignoredCollectionIDs: collectionsToHide,
-        hideIgnoredForUpload: true,
-      ),
-    );
+    final collectionsToHide = CollectionsService.instance
+        .archivedOrHiddenCollectionIds();
+    fileLoadResult = FilesDB.instance
+        .fetchAllUploadedAndSharedFilesWithLocation(
+          galleryLoadStartTime,
+          galleryLoadEndTime,
+          limit: null,
+          asc: false,
+          filterOptions: DBFilterOptions(
+            ignoredCollectionIDs: collectionsToHide,
+            hideIgnoredForUpload: true,
+          ),
+        );
 
     super.initState();
   }
@@ -76,16 +75,10 @@ class _DynamicLocationGalleryWidgetState
       widget.memoriesCountNotifier.value = copyOfFiles.length;
       final limitedResults = copyOfFiles.take(galleryFilesLimit).toList();
 
-      return Future.value(
-        FileLoadResult(
-          limitedResults,
-          result.hasMore,
-        ),
-      );
+      return Future.value(FileLoadResult(limitedResults, result.hasMore));
     }
 
     return FutureBuilder(
-      //Only rebuild Gallery if the center point or radius changes
       key: ValueKey(
         "${InheritedLocationTagData.of(context).centerPoint}$selectedRadius",
       ),
@@ -105,16 +98,18 @@ class _DynamicLocationGalleryWidgetState
                   child: Gallery(
                     loadingWidget: const SizedBox.shrink(),
                     disableScroll: true,
-                    asyncLoader: (
-                      creationStartTime,
-                      creationEndTime, {
-                      limit,
-                      asc,
-                    }) async {
-                      return snapshot.data as FileLoadResult;
-                    },
+                    asyncLoader:
+                        (
+                          creationStartTime,
+                          creationEndTime, {
+                          limit,
+                          asc,
+                        }) async {
+                          return snapshot.data as FileLoadResult;
+                        },
                     tagPrefix: widget.tagPrefix,
                     enableFileGrouping: false,
+                    layoutTypeOverride: GalleryLayoutType.grid,
                     showSelectAll: false,
                   ),
                 ),
@@ -139,7 +134,8 @@ class _DynamicLocationGalleryWidgetState
 
     final numberOfRows = (fileCount / photoGridSize).ceil();
 
-    final galleryHeight = (thumbnailHeight * numberOfRows) +
+    final galleryHeight =
+        (thumbnailHeight * numberOfRows) +
         (galleryGridSpacing * (numberOfRows - 1));
     return galleryHeight + 120;
   }

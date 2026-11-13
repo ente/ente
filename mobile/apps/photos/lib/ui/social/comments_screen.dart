@@ -1,54 +1,69 @@
 import "dart:async";
 
+import "package:ente_strings/ente_strings.dart";
+import "package:ente_ui/components/loading_widget.dart";
 import "package:flutter/material.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/core/event_bus.dart";
-import "package:photos/db/files_db.dart";
 import "package:photos/events/comment_deleted_event.dart";
-import "package:photos/generated/l10n.dart";
 import "package:photos/models/api/collection/user.dart";
 import "package:photos/models/collection/collection.dart";
 import "package:photos/models/social/comment.dart";
+import "package:photos/models/social/comment_author_utils.dart";
+import "package:photos/models/social/comment_draft_store.dart";
 import "package:photos/models/social/reaction.dart";
 import "package:photos/models/social/social_data_provider.dart";
 import "package:photos/services/collections_service.dart";
 import 'package:photos/services/social_notification_coordinator.dart';
 import "package:photos/theme/ente_theme.dart";
-import "package:photos/ui/common/loading_widget.dart";
 import "package:photos/ui/components/buttons/icon_button_widget.dart";
+import "package:photos/ui/social/comment_collection_selection.dart";
+import "package:photos/ui/social/social_actor_contact_navigation.dart";
 import "package:photos/ui/social/widgets/collection_selector_widget.dart";
 import "package:photos/ui/social/widgets/comment_bubble_widget.dart";
 import "package:photos/ui/social/widgets/comment_input_widget.dart";
 
-/// Shows the file comments bottom sheet
+final _commentDraftStore = CommentDraftStore.instance;
+
 Future<void> showFileCommentsBottomSheet(
   BuildContext context, {
   required int collectionID,
   required int fileID,
   String? highlightCommentID,
+  bool preferDraftCollection = true,
+  List<Collection>? sharedCollections,
 }) {
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
     builder: (_) => _DraggableCommentsSheet(
+      launchContext: context,
       collectionID: collectionID,
       fileID: fileID,
       highlightCommentID: highlightCommentID,
+      preferDraftCollection: preferDraftCollection,
+      sharedCollections: sharedCollections,
     ),
   );
 }
 
 class _DraggableCommentsSheet extends StatefulWidget {
+  final BuildContext launchContext;
   final int collectionID;
   final int fileID;
   final String? highlightCommentID;
+  final bool preferDraftCollection;
+  final List<Collection>? sharedCollections;
 
   const _DraggableCommentsSheet({
+    required this.launchContext,
     required this.collectionID,
     required this.fileID,
     this.highlightCommentID,
+    required this.preferDraftCollection,
+    this.sharedCollections,
   });
 
   @override
@@ -77,9 +92,12 @@ class _DraggableCommentsSheetState extends State<_DraggableCommentsSheet> {
       snapSizes: isKeyboardOpen ? null : const [0.6],
       expand: false,
       builder: (context, scrollController) => FileCommentsBottomSheet(
+        launchContext: widget.launchContext,
         collectionID: widget.collectionID,
         fileID: widget.fileID,
         highlightCommentID: widget.highlightCommentID,
+        preferDraftCollection: widget.preferDraftCollection,
+        sharedCollections: widget.sharedCollections,
         dragController: scrollController,
         sheetController: sheetController,
       ),
@@ -88,21 +106,25 @@ class _DraggableCommentsSheetState extends State<_DraggableCommentsSheet> {
 }
 
 class FileCommentsBottomSheet extends StatefulWidget {
+  final BuildContext launchContext;
   final int collectionID;
   final int fileID;
+  final List<Collection>? sharedCollections;
 
-  /// Optional comment ID to scroll to and highlight.
   final String? highlightCommentID;
 
-  /// Scroll controller for the drag handle (from DraggableScrollableSheet).
+  final bool preferDraftCollection;
+
   final ScrollController dragController;
 
-  /// Controller to programmatically expand/collapse the sheet.
   final DraggableScrollableController sheetController;
 
   const FileCommentsBottomSheet({
+    required this.launchContext,
     required this.collectionID,
     required this.fileID,
+    this.sharedCollections,
+    this.preferDraftCollection = true,
     required this.dragController,
     required this.sheetController,
     this.highlightCommentID,
@@ -126,7 +148,9 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
   Timer? _sendLoadingTimer;
   bool _hasMoreComments = true;
   int _offset = 0;
-  final Map<int, User> _userCache = {};
+  final CommentAuthorResolver _commentAuthorResolver = CommentAuthorResolver();
+  final MissingAnonProfileSyncTracker _anonProfileSyncTracker =
+      MissingAnonProfileSyncTracker();
   Map<String, String> _anonDisplayNames = {};
   String? _highlightedCommentID;
   bool _hasScrolledToHighlight = false;
@@ -150,10 +174,18 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
     super.initState();
     unawaited(SocialNotificationCoordinator.instance.markSocialSeen());
     _textController = TextEditingController();
+    _textController.addListener(_saveOrClearDraft);
     _inputFocusNode = FocusNode()..addListener(_onInputFocusChange);
     _scrollController = ScrollController()..addListener(_onScroll);
     _currentUserID = Configuration.instance.getUserID()!;
-    _selectedCollectionID = widget.collectionID;
+    _selectedCollectionID = resolveInitialCommentsCollectionID(
+      requestedCollectionID: widget.collectionID,
+      draftCollectionID: _commentDraftStore.lastSelectedCollectionID(
+        _draftFileKey,
+      ),
+      preferDraftCollection: widget.preferDraftCollection,
+      hasHighlightedComment: widget.highlightCommentID != null,
+    );
     _highlightedCommentID = widget.highlightCommentID;
     _loadSharedCollections();
   }
@@ -171,6 +203,7 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
   @override
   void dispose() {
     _sendLoadingTimer?.cancel();
+    _textController.removeListener(_saveOrClearDraft);
     _textController.dispose();
     _inputFocusNode.removeListener(_onInputFocusChange);
     _inputFocusNode.dispose();
@@ -178,38 +211,25 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
     super.dispose();
   }
 
+  bool _isOpenedFromHiddenCollection() => CollectionsService.instance
+      .getHiddenCollectionIds()
+      .contains(widget.collectionID);
+
   Future<void> _loadSharedCollections() async {
-    final collectionIDs = await FilesDB.instance.getAllCollectionIDsOfFile(
-      widget.fileID,
-    );
+    final sharedCollectionsList =
+        widget.sharedCollections ??
+        await CollectionsService.instance.getSharedCollectionsForFile(
+          widget.fileID,
+          includeHidden: _isOpenedFromHiddenCollection(),
+        );
 
-    // Filter to shared collections first (sync operation)
-    var sharedCollectionsList = collectionIDs
-        .map((id) => CollectionsService.instance.getCollectionByID(id))
-        .whereType<Collection>()
-        .where(
-          (c) => c.hasSharees || c.hasLink || !c.isOwner(_currentUserID),
-        )
-        .toList();
-
-    // Filter out hidden collections unless viewing from a hidden collection
-    final hiddenCollectionIds =
-        CollectionsService.instance.getHiddenCollectionIds();
-    final isInitialCollectionHidden =
-        hiddenCollectionIds.contains(widget.collectionID);
-    if (!isInitialCollectionHidden) {
-      sharedCollectionsList = sharedCollectionsList
-          .where((c) => !hiddenCollectionIds.contains(c.id))
-          .toList();
-    }
-
-    // Fetch data in parallel
     final sharedCollections = await Future.wait(
       sharedCollectionsList.map((collection) async {
         final commentCount = await SocialDataProvider.instance
             .getCommentCountForFileInCollection(widget.fileID, collection.id);
-        final thumbnail =
-            await CollectionsService.instance.getCover(collection);
+        final thumbnail = await CollectionsService.instance.getCover(
+          collection,
+        );
         return CollectionCommentInfo(
           collection: collection,
           commentCount: commentCount,
@@ -227,16 +247,25 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
         return;
       }
 
-      final isSelectedInShared = sharedCollections.any(
-        (info) => info.collection.id == _selectedCollectionID,
-      );
+      final savedSelectedCollectionID = _commentDraftStore
+          .lastSelectedCollectionID(_draftFileKey);
+      final nextSelectedCollectionID =
+          _shouldPreferDraftCollection &&
+              savedSelectedCollectionID != null &&
+              sharedCollections.any(
+                (info) => info.collection.id == savedSelectedCollectionID,
+              )
+          ? savedSelectedCollectionID
+          : sharedCollections.any(
+              (info) => info.collection.id == _selectedCollectionID,
+            )
+          ? _selectedCollectionID
+          : sharedCollections.first.collection.id;
 
       setState(() {
         _sharedCollections = sharedCollections;
-
-        if (!isSelectedInShared) {
-          _selectedCollectionID = sharedCollections.first.collection.id;
-        }
+        _selectedCollectionID = nextSelectedCollectionID;
+        _restoreDraftForSelectedCollection();
       });
 
       unawaited(_loadInitialComments());
@@ -246,7 +275,6 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
   Future<void> _loadInitialComments() async {
     setState(() => _isLoading = true);
 
-    // Load local data first for immediate display
     final results = await Future.wait([
       SocialDataProvider.instance.getCommentsForFilePaginated(
         widget.fileID,
@@ -254,8 +282,9 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
         limit: _pageSize,
         offset: 0,
       ),
-      SocialDataProvider.instance
-          .getAnonDisplayNamesForCollection(_selectedCollectionID),
+      SocialDataProvider.instance.getAnonDisplayNamesForCollection(
+        _selectedCollectionID,
+      ),
     ]);
 
     final comments = results[0] as List<Comment>;
@@ -268,11 +297,10 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
       _hasMoreComments = comments.length == _pageSize;
       _isLoading = false;
     });
+    unawaited(_syncMissingAnonDisplayNamesFor(comments));
 
-    // Scroll to highlighted comment if specified
     _scrollToHighlightedComment();
 
-    // Sync in background and refresh if there are changes
     unawaited(_syncAndRefresh());
   }
 
@@ -285,22 +313,30 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
 
       if (!mounted) return;
 
-      // Reload comments after sync
-      final freshComments =
-          await SocialDataProvider.instance.getCommentsForFilePaginated(
-        widget.fileID,
-        collectionID: _selectedCollectionID,
-        limit: _pageSize,
-        offset: 0,
-      );
+      final results = await Future.wait([
+        SocialDataProvider.instance.getCommentsForFilePaginated(
+          widget.fileID,
+          collectionID: _selectedCollectionID,
+          limit: _pageSize,
+          offset: 0,
+        ),
+        SocialDataProvider.instance.getAnonDisplayNamesForCollection(
+          _selectedCollectionID,
+        ),
+      ]);
+
+      final freshComments = results[0] as List<Comment>;
+      final anonNames = results[1] as Map<String, String>;
 
       if (mounted) {
         setState(() {
           _comments.clear();
           _comments.addAll(freshComments);
+          _anonDisplayNames = anonNames;
           _offset = freshComments.length;
           _hasMoreComments = freshComments.length == _pageSize;
         });
+        unawaited(_syncMissingAnonDisplayNamesFor(freshComments));
       }
     } catch (_) {
       // Ignore sync errors, local data is already displayed
@@ -312,13 +348,13 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
 
     setState(() => _isLoadingMore = true);
 
-    final comments =
-        await SocialDataProvider.instance.getCommentsForFilePaginated(
-      widget.fileID,
-      collectionID: _selectedCollectionID,
-      limit: _pageSize,
-      offset: _offset,
-    );
+    final comments = await SocialDataProvider.instance
+        .getCommentsForFilePaginated(
+          widget.fileID,
+          collectionID: _selectedCollectionID,
+          limit: _pageSize,
+          offset: _offset,
+        );
 
     setState(() {
       _comments.addAll(comments);
@@ -326,6 +362,31 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
       _hasMoreComments = comments.length == _pageSize;
       _isLoadingMore = false;
     });
+    unawaited(_syncMissingAnonDisplayNamesFor(comments));
+  }
+
+  Future<void> _syncMissingAnonDisplayNamesFor(List<Comment> comments) async {
+    final collectionID = _selectedCollectionID;
+    final missingIDs = _anonProfileSyncTracker.nextIDsToSync(
+      collectionID: collectionID,
+      comments: comments,
+      anonDisplayNames: _anonDisplayNames,
+    );
+    if (missingIDs.isEmpty) {
+      return;
+    }
+
+    try {
+      await SocialDataProvider.instance.syncAnonProfiles(collectionID);
+      final anonNames = await SocialDataProvider.instance
+          .getAnonDisplayNamesForCollection(collectionID);
+      if (!mounted || _selectedCollectionID != collectionID) {
+        return;
+      }
+      setState(() => _anonDisplayNames = anonNames);
+    } catch (_) {
+      // Missing anonymous names should not block showing comments.
+    }
   }
 
   void _onScroll() {
@@ -346,15 +407,16 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scrollController.hasClients) return;
 
-      // Phase 1: Jump to approximate position to bring item into view
+      // Jump close enough to build the item before using ensureVisible.
       const estimatedItemHeight = 120.0;
       final maxScroll = _scrollController.position.maxScrollExtent;
-      final scrollPosition =
-          (index * estimatedItemHeight).clamp(0.0, maxScroll);
+      final scrollPosition = (index * estimatedItemHeight).clamp(
+        0.0,
+        maxScroll,
+      );
 
       _scrollController.jumpTo(scrollPosition);
 
-      // Phase 2: After item is built, use ensureVisible for precise positioning
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         final context = _highlightedCommentKey?.currentContext;
@@ -370,10 +432,9 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
   }
 
   Future<void> _scrollToParentComment(String parentCommentID) async {
-    _scrollTargetCommentID =
-        parentCommentID; // Set immediately for race detection
+    // Set before loading so another tap can cancel this scroll.
+    _scrollTargetCommentID = parentCommentID;
 
-    // Check if already loaded
     int index = _comments.indexWhere((c) => c.id == parentCommentID);
 
     if (index != -1) {
@@ -381,14 +442,12 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
       return;
     }
 
-    // Parent not in loaded comments - need to load more
     while (_hasMoreComments) {
       await _loadMoreComments();
 
-      // Check if user tapped a different parent (race condition)
       if (_scrollTargetCommentID != null &&
           _scrollTargetCommentID != parentCommentID) {
-        return; // Abort, another scroll is in progress
+        return;
       }
 
       index = _comments.indexWhere((c) => c.id == parentCommentID);
@@ -397,8 +456,6 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
         return;
       }
     }
-
-    // Parent not found (deleted) - do nothing silently
   }
 
   void _performScrollToIndex(int index, String commentID) {
@@ -409,14 +466,15 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scrollController.hasClients) return;
 
-      // Phase 1: Jump to approximate position
+      // Jump close enough to build the item before using ensureVisible.
       const estimatedItemHeight = 120.0;
       final maxScroll = _scrollController.position.maxScrollExtent;
-      final scrollPosition =
-          (index * estimatedItemHeight).clamp(0.0, maxScroll);
+      final scrollPosition = (index * estimatedItemHeight).clamp(
+        0.0,
+        maxScroll,
+      );
       _scrollController.jumpTo(scrollPosition);
 
-      // Phase 2: Precise scroll with ensureVisible
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         final context = _scrollTargetKey?.currentContext;
@@ -427,7 +485,6 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
             curve: Curves.easeOutExpo,
           );
         }
-        // Clear scroll target and trigger highlight
         _scrollTargetCommentID = null;
         _scrollTargetKey = null;
         if (mounted) {
@@ -438,12 +495,14 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
   }
 
   void _onCollectionSelected(int collectionID) {
+    _saveOrClearDraft();
     setState(() {
       _selectedCollectionID = collectionID;
+      _restoreDraftForSelectedCollection();
       _comments.clear();
       _offset = 0;
       _hasMoreComments = true;
-      _userCache.clear();
+      _commentAuthorResolver.clear();
       _anonDisplayNames = {};
     });
     _loadInitialComments();
@@ -459,45 +518,33 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
 
   void _onReplyTap(Comment comment) {
     setState(() => _replyingTo = comment);
+    _saveOrClearDraft();
     _inputFocusNode.requestFocus();
   }
 
   User _getUserForComment(Comment comment) {
-    if (_userCache.containsKey(comment.userID)) {
-      return _userCache[comment.userID]!;
-    }
-
-    if (comment.isAnonymous) {
-      final anonID = comment.anonUserID;
-      final displayName =
-          anonID != null ? (_anonDisplayNames[anonID] ?? anonID) : "Anonymous";
-      final user = User(
-        id: comment.userID,
-        email: "${anonID ?? "anonymous"}@unknown.com",
-        name: displayName,
-      );
-      _userCache[comment.userID] = user;
-      return user;
-    }
-
-    final user = CollectionsService.instance
-        .getFileOwner(comment.userID, _selectedCollectionID);
-    _userCache[comment.userID] = user;
-    return user;
+    return _commentAuthorResolver.resolve(
+      comment: comment,
+      anonDisplayNames: _anonDisplayNames,
+      registeredUserResolver: (userID) => CollectionsService.instance
+          .resolveUserIdentity(userID, _selectedCollectionID),
+    );
   }
 
   void _dismissReply() {
     setState(() => _replyingTo = null);
+    _saveOrClearDraft();
   }
 
   Future<void> _sendComment() async {
     final text = _textController.text.trim();
     if (text.isEmpty || _sendState != SendButtonState.idle) return;
+    final collectionID = _selectedCollectionID;
+    final replyingTo = _replyingTo;
 
-    // Mark as sending internally (blocks duplicate sends) but don't show UI yet
+    // Block duplicate sends immediately; show progress only after 400 ms.
     _sendState = SendButtonState.sending;
 
-    // Only show loading indicator after 400ms delay
     _sendLoadingTimer = Timer(const Duration(milliseconds: 400), () {
       if (mounted && _sendState == SendButtonState.sending) {
         setState(() {});
@@ -506,10 +553,10 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
 
     try {
       final result = await SocialDataProvider.instance.addComment(
-        collectionID: _selectedCollectionID,
+        collectionID: collectionID,
         text: text,
         fileID: widget.fileID,
-        parentCommentID: _replyingTo?.id,
+        parentCommentID: replyingTo?.id,
       );
       _sendLoadingTimer?.cancel();
 
@@ -519,16 +566,19 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
         return;
       }
 
-      // Update UI only after successful persistence
+      _clearDraftForCollection(collectionID);
       if (mounted) {
         setState(() {
           _sendState = SendButtonState.idle;
-          _comments.insert(0, result);
-          _replyingTo = null;
+          if (_selectedCollectionID == collectionID) {
+            _comments.insert(0, result);
+            if (_replyingTo?.id == replyingTo?.id) {
+              _replyingTo = null;
+            }
+          }
 
-          // Update comment count in shared collections list
           final index = _sharedCollections.indexWhere(
-            (c) => c.collection.id == _selectedCollectionID,
+            (c) => c.collection.id == collectionID,
           );
           if (index != -1) {
             final old = _sharedCollections[index];
@@ -539,10 +589,12 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
             );
           }
         });
-        _textController.clear();
+        if (_selectedCollectionID == collectionID) {
+          _textController.clear();
+        }
 
-        // Scroll to the newly added comment (position 0 in reversed list)
-        if (_scrollController.hasClients) {
+        if (_selectedCollectionID == collectionID &&
+            _scrollController.hasClients) {
           unawaited(
             _scrollController.animateTo(
               0,
@@ -575,7 +627,6 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
     setState(() {
       _comments.removeWhere((c) => c.id == commentId);
 
-      // Decrement comment count in shared collections list
       final index = _sharedCollections.indexWhere(
         (c) => c.collection.id == _selectedCollectionID,
       );
@@ -602,8 +653,55 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
         .collection;
   }
 
+  CommentDraftFileKey get _draftFileKey =>
+      (userID: _currentUserID, fileID: widget.fileID);
+
+  bool get _shouldPreferDraftCollection =>
+      widget.preferDraftCollection && widget.highlightCommentID == null;
+
+  CommentDraftKey get _draftKey => (
+    userID: _currentUserID,
+    fileID: widget.fileID,
+    collectionID: _selectedCollectionID,
+  );
+
+  CommentDraftKey _draftKeyForCollection(int collectionID) => (
+    userID: _currentUserID,
+    fileID: widget.fileID,
+    collectionID: collectionID,
+  );
+
+  void _restoreDraftForSelectedCollection() {
+    final draft = _commentDraftStore.draftFor(_draftKey);
+    final text = draft?.text ?? '';
+    _replyingTo = draft?.replyingTo;
+    _textController.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+  }
+
+  void _saveOrClearDraft() {
+    if (_textController.text.isEmpty && _replyingTo == null) {
+      _removeDraftForCollection(_selectedCollectionID);
+      return;
+    }
+    _commentDraftStore.save(
+      _draftKey,
+      CommentDraft(text: _textController.text, replyingTo: _replyingTo),
+    );
+  }
+
+  void _clearDraftForCollection(int collectionID) {
+    _removeDraftForCollection(collectionID);
+  }
+
+  void _removeDraftForCollection(int collectionID) {
+    _commentDraftStore.remove(_draftKeyForCollection(collectionID));
+  }
+
   Widget _buildHeader(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final l10n = context.strings;
     final textTheme = getEnteTextTheme(context);
     return SingleChildScrollView(
       controller: widget.dragController,
@@ -642,7 +740,8 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final selectedCollection = _currentCollection;
-    final canModerateComments = selectedCollection != null &&
+    final canModerateComments =
+        selectedCollection != null &&
         (selectedCollection.isOwner(_currentUserID) ||
             selectedCollection.isAdmin(_currentUserID));
 
@@ -651,9 +750,7 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
         color: isDarkMode
             ? const Color(0xFF0E0E0E)
             : colorScheme.backgroundElevated,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(24),
-        ),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Padding(
         padding: EdgeInsets.only(bottom: keyboardHeight),
@@ -689,15 +786,15 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
                             final comment = _comments[index];
                             final isHighlighted =
                                 comment.id == _highlightedCommentID ||
-                                    comment.id == _scrollTargetHighlightID;
-                            // Use widget.highlightCommentID (not state) to keep key stable after dismiss
-                            // Priority: highlightCommentID (deep link) > scrollTargetCommentID (tap)
+                                comment.id == _scrollTargetHighlightID;
+                            // Keep the deep-link key stable after its highlight
+                            // is dismissed.
                             final key =
                                 (comment.id == widget.highlightCommentID)
-                                    ? (_highlightedCommentKey ??= GlobalKey())
-                                    : (comment.id == _scrollTargetCommentID)
-                                        ? _scrollTargetKey
-                                        : ValueKey(comment.id);
+                                ? (_highlightedCommentKey ??= GlobalKey())
+                                : (comment.id == _scrollTargetCommentID)
+                                ? _scrollTargetKey
+                                : ValueKey(comment.id);
                             return CommentBubbleWidget(
                               key: key,
                               comment: comment,
@@ -709,8 +806,8 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
                               isHighlighted: isHighlighted,
                               onFetchParent: comment.isReply
                                   ? () => _getParentComment(
-                                        comment.parentCommentID!,
-                                      )
+                                      comment.parentCommentID!,
+                                    )
                                   : null,
                               onFetchReactions: () =>
                                   _getReactionsForComment(comment.id),
@@ -732,14 +829,22 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
                                       _scrollTargetHighlightID = null;
                                     }
                                   });
-                                  // Don't clear _highlightedCommentKey - prevents avatar flicker
+                                  // Keep the key to prevent avatar flicker.
                                 }
                               },
                               onParentQuoteTap: comment.isReply
                                   ? () => _scrollToParentComment(
-                                        comment.parentCommentID!,
-                                      )
+                                      comment.parentCommentID!,
+                                    )
                                   : null,
+                              onAuthorTap: () =>
+                                  openSocialActorContactDestination(
+                                    context,
+                                    _getUserForComment(comment),
+                                    currentUserID: _currentUserID,
+                                    navigationContext: widget.launchContext,
+                                    dismissCurrentRoute: true,
+                                  ),
                             );
                           },
                         ),

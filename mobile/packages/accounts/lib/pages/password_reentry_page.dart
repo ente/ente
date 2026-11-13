@@ -2,28 +2,28 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:ente_accounts/ente_accounts.dart';
-import 'package:ente_accounts/models/errors.dart';
+import 'package:ente_accounts/widgets/account_app_bar_logo.dart';
+import 'package:ente_components/ente_components.dart';
 import 'package:ente_configuration/base_configuration.dart';
-import 'package:ente_crypto_api/ente_crypto_api.dart';
 import 'package:ente_strings/ente_strings.dart';
 import "package:ente_ui/components/alert_bottom_sheet.dart";
 import 'package:ente_ui/components/buttons/dynamic_fab.dart';
-import "package:ente_ui/components/buttons/gradient_button.dart";
 import 'package:ente_ui/pages/base_home_page.dart';
 import 'package:ente_ui/theme/ente_theme.dart';
 import 'package:ente_ui/utils/dialog_util.dart';
 import 'package:ente_utils/email_util.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:logging/logging.dart';
 
 class PasswordReentryPage extends StatefulWidget {
   final BaseConfiguration config;
   final BaseHomePage homePage;
+  final Uint8List? keyEncryptionKey;
 
   const PasswordReentryPage(
     this.config,
     this.homePage, {
+    this.keyEncryptionKey,
     super.key,
   });
 
@@ -73,16 +73,10 @@ class _PasswordReentryPageState extends State<PasswordReentryPage> {
         scrolledUnderElevation: 0,
         backgroundColor: colorScheme.backgroundBase,
         centerTitle: true,
-        title: SvgPicture.asset(
-          'assets/svg/app-logo.svg',
-          colorFilter: ColorFilter.mode(
-            colorScheme.primary700,
-            BlendMode.srcIn,
-          ),
-        ),
+        title: const AccountAppBarLogo(),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          color: colorScheme.primary700,
+          color: getAccountAppBarColor(context),
           onPressed: () {
             Navigator.of(context).pop();
           },
@@ -115,14 +109,21 @@ class _PasswordReentryPageState extends State<PasswordReentryPage> {
       _logger.info("Using volatile password");
     }
     try {
-      final kek = await widget.config.decryptSecretsAndGetKeyEncKey(
+      final loginKey = await UserService.instance.unlockAccount(
         password,
         widget.config.getKeyAttributes()!,
+        keyEncryptionKey: password == _volatilePassword
+            ? widget.keyEncryptionKey
+            : null,
       );
-      _registerSRPForExistingUsers(kek).ignore();
-    } on KeyDerivationError catch (e, s) {
+      unawaited(UserService.instance.autoAttributePendingSource());
+      _registerSRPForExistingUsers(loginKey).ignore();
+    } on AccountsError_KeyDerivation catch (e, s) {
       _logger.severe("Password verification failed", e, s);
       await dialog.hide();
+      if (!mounted) {
+        return;
+      }
 
       final result = await showAlertBottomSheet<bool>(
         context,
@@ -130,83 +131,90 @@ class _PasswordReentryPageState extends State<PasswordReentryPage> {
         message: context.strings.recreatePasswordBody,
         assetPath: 'assets/warning-grey.png',
         buttons: [
-          GradientButton(
-            text: context.strings.useRecoveryKey,
+          ButtonComponent(
+            label: context.strings.useRecoveryKey,
             onTap: () {
               Navigator.of(context).pop(true);
             },
+            shouldSurfaceExecutionStates: false,
           ),
         ],
       );
-      if (result == true) {
+      if (result == true && mounted) {
         // ignore: unawaited_futures
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (BuildContext context) {
-              return RecoveryPage(
-                widget.config,
-                widget.homePage,
-              );
+              return RecoveryPage(widget.config, widget.homePage);
             },
           ),
         );
       }
       return;
     } catch (e, s) {
-      _logger.severe("Password verification failed", e, s);
+      final incorrectPassword = e == const AccountsError.incorrectPassword();
+      if (incorrectPassword) {
+        _logger.info("Incorrect password");
+      } else {
+        _logger.severe("Password verification failed", e, s);
+      }
       await dialog.hide();
+      if (!mounted) {
+        return;
+      }
 
       final result = await showAlertBottomSheet<bool>(
         context,
-        title: context.strings.incorrectPasswordTitle,
-        message: context.strings.pleaseTryAgain,
+        title: incorrectPassword
+            ? context.strings.incorrectPasswordTitle
+            : context.strings.oops,
+        message: incorrectPassword
+            ? context.strings.pleaseTryAgain
+            : context.strings.verificationFailedPleaseTryAgain,
         assetPath: 'assets/warning-grey.png',
         buttons: [
-          GradientButton(
-            text: context.strings.contactSupport,
+          ButtonComponent(
+            label: context.strings.contactSupport,
             onTap: () {
               Navigator.of(context).pop(true);
             },
+            shouldSurfaceExecutionStates: false,
           ),
         ],
       );
-      if (result == true) {
-        await sendLogs(
-          context,
-          "support@ente.io",
-          postShare: () {},
-        );
+      if (result == true && mounted) {
+        await sendLogs(context, "support@ente.com", postShare: () {});
       }
       return;
     }
     widget.config.resetVolatilePassword();
     await dialog.hide();
-    unawaited(
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (BuildContext context) {
-            return widget.homePage;
-          },
+    if (mounted) {
+      unawaited(
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (BuildContext context) {
+              return widget.homePage;
+            },
+          ),
+          (route) => false,
         ),
-        (route) => false,
-      ),
-    );
+      );
+    }
   }
 
-  Future<void> _registerSRPForExistingUsers(Uint8List key) async {
+  Future<void> _registerSRPForExistingUsers(Uint8List loginKey) async {
     bool shouldSetupSRP = false;
     try {
-      // ignore: unused_local_variable
-      final attr = await UserService.instance.getSrpAttributes(email!);
-    } on SrpSetupNotCompleteError {
+      await UserService.instance.getSrpAttributes(email!);
+    } on AccountsError_SrpNotConfigured {
       shouldSetupSRP = true;
     } catch (e, s) {
       _logger.severe("error while fetching attr", e, s);
     }
     if (shouldSetupSRP) {
       try {
-        final Uint8List loginKey = await CryptoUtil.deriveLoginKey(key);
-        await UserService.instance.registerOrUpdateSrp(loginKey);
+        await UserService.instance.setupSrp(loginKey);
       } catch (e, s) {
         _logger.severe("error while setting up srp for existing users", e, s);
       }
@@ -237,13 +245,10 @@ class _PasswordReentryPageState extends State<PasswordReentryPage> {
                       ),
                       const SizedBox(height: 8),
                       Visibility(
-                        // hidden textForm for suggesting auto-fill service for saving
-                        // password
+                        // Prompts platform password saving.
                         visible: false,
                         child: TextFormField(
-                          autofillHints: const [
-                            AutofillHints.email,
-                          ],
+                          autofillHints: const [AutofillHints.email],
                           autocorrect: false,
                           keyboardType: TextInputType.emailAddress,
                           initialValue: email,
@@ -334,8 +339,11 @@ class _PasswordReentryPageState extends State<PasswordReentryPage> {
                               await dialog.show();
                               await widget.config.logout();
                               await dialog.hide();
-                              Navigator.of(context)
-                                  .popUntil((route) => route.isFirst);
+                              if (mounted) {
+                                Navigator.of(
+                                  context,
+                                ).popUntil((route) => route.isFirst);
+                              }
                             },
                             child: Text(
                               context.strings.changeEmail,

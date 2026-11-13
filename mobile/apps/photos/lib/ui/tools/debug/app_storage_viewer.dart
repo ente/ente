@@ -1,21 +1,15 @@
 import 'dart:io';
 
+import 'package:ente_components/ente_components.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart';
+import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import "package:logging/logging.dart";
 import 'package:path_provider/path_provider.dart';
 import 'package:photos/core/cache/video_cache_manager.dart';
 import 'package:photos/core/configuration.dart';
-import "package:photos/generated/l10n.dart";
 import "package:photos/service_locator.dart";
-import 'package:photos/theme/ente_theme.dart';
-import 'package:photos/ui/components/buttons/icon_button_widget.dart';
-import 'package:photos/ui/components/captioned_text_widget.dart';
-import 'package:photos/ui/components/menu_item_widget/menu_item_widget.dart';
-import 'package:photos/ui/components/menu_section_title.dart';
-import 'package:photos/ui/components/title_bar_title_widget.dart';
-import 'package:photos/ui/components/title_bar_widget.dart';
 import 'package:photos/ui/tools/debug/path_storage_viewer.dart';
 
 class AppStorageViewer extends StatefulWidget {
@@ -50,39 +44,37 @@ class _AppStorageViewerState extends State<AppStorageViewer> {
         "${appTemporaryDirectory.path}/image_manager_disk_cache/";
 
     final String tempDownload = Configuration.instance.getTempDirectory();
-    final String personFaceThumbnails =
-        Configuration.instance.getPersonFaceThumbnailCacheDirectory();
-    final String cacheDirectory =
-        Configuration.instance.getThumbnailCacheDirectory();
+    final String personFaceThumbnails = Configuration.instance
+        .getPersonFaceThumbnailCacheDirectory();
+    final String cacheDirectory = Configuration.instance
+        .getThumbnailCacheDirectory();
     final imageCachePath =
         appTemporaryDirectory.path + "/" + DefaultCacheManager.key;
     final videoCachePath =
         appTemporaryDirectory.path + "/" + VideoCacheManager.key;
+    if (!mounted) return;
     paths.addAll([
       PathStorageItem.name(
         imageCachePath,
-        AppLocalizations.of(context).remoteImages,
+        context.strings.remoteImages,
         allowCacheClear: true,
       ),
       PathStorageItem.name(
         videoCachePath,
-        AppLocalizations.of(context).remoteVideos,
+        context.strings.remoteVideos,
         allowCacheClear: true,
       ),
       PathStorageItem.name(
         cacheDirectory,
-        AppLocalizations.of(context).remoteThumbnails,
+        context.strings.remoteThumbnails,
         allowCacheClear: true,
       ),
-      PathStorageItem.name(
-        tempDownload,
-        AppLocalizations.of(context).pendingSync,
-      ),
+      PathStorageItem.name(tempDownload, context.strings.pendingSync),
       PathStorageItem.name(
         Platform.isAndroid
             ? androidGlideCacheDirectory
             : iOSPhotoManagerInAppCacheDirectory,
-        AppLocalizations.of(context).localGallery,
+        context.strings.localGallery,
         allowCacheClear: true,
       ),
     ]);
@@ -133,103 +125,58 @@ class _AppStorageViewerState extends State<AppStorageViewer> {
   Widget build(BuildContext context) {
     debugPrint("$runtimeType building");
 
-    return Scaffold(
-      body: CustomScrollView(
-        primary: false,
-        slivers: <Widget>[
-          TitleBarWidget(
-            flexibleSpaceTitle: TitleBarTitleWidget(
-              title: AppLocalizations.of(context).manageDeviceStorage,
-            ),
-            actionIcons: [
-              IconButtonWidget(
-                icon: Icons.close_outlined,
-                iconButtonType: IconButtonType.secondary,
-                onTap: () {
-                  Navigator.pop(context);
-                  if (Navigator.canPop(context)) {
-                    Navigator.pop(context);
-                  }
-                  if (Navigator.canPop(context)) {
-                    Navigator.pop(context);
-                  }
-                },
+    return SettingsPageScaffold(
+      title: context.strings.manageDeviceStorage,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(
+            left: Spacing.lg,
+            top: Spacing.md,
+            bottom: Spacing.sm,
+          ),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              context.strings.cachedData,
+              style: TextStyles.mini.copyWith(
+                color: context.componentColors.textLight,
               ),
-            ],
-          ),
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Column(
-                        children: [
-                          MenuSectionTitle(
-                            title: AppLocalizations.of(context).cachedData,
-                          ),
-                          ListView.builder(
-                            shrinkWrap: true,
-                            padding: const EdgeInsets.all(0),
-                            physics: const ScrollPhysics(),
-                            // to disable GridView's scrolling
-                            itemBuilder: (context, index) {
-                              final path = paths[index];
-                              return PathStorageViewer(
-                                path,
-                                removeTopRadius: index > 0,
-                                removeBottomRadius: index < paths.length - 1,
-                                enableDoubleTapClear: internalUser,
-                                key: ValueKey("$index-$_refreshCounterKey"),
-                              );
-                            },
-                            itemCount: paths.length,
-                          ),
-                          const SizedBox(height: 24),
-                          MenuItemWidget(
-                            leadingIcon: Icons.delete_sweep_outlined,
-                            captionedTextWidget: CaptionedTextWidget(
-                              title: AppLocalizations.of(context).clearCaches,
-                            ),
-                            menuItemColor:
-                                getEnteColorScheme(context).fillFaint,
-                            singleBorderRadius: 8,
-                            alwaysShowSuccessState: true,
-                            onTap: () async {
-                              for (var pathItem in paths) {
-                                if (pathItem.allowCacheClear) {
-                                  await deleteDirectoryContents(pathItem.path);
-                                }
-                              }
-                              if (!Platform.isAndroid) {
-                                await deleteDirectoryContents(
-                                  iosTempDirectoryPath,
-                                );
-                              }
-                              // Small delay to allow file system to sync
-                              await Future.delayed(
-                                const Duration(milliseconds: 300),
-                              );
-                              _refreshCounterKey++;
-                              if (mounted) {
-                                setState(() => {});
-                              }
-                            },
-                          ),
-                          const SizedBox(height: 24),
-                        ],
-                      ),
-                    ],
-                  ),
-                );
-              },
-              childCount: 1,
             ),
           ),
-        ],
-      ),
+        ),
+        MenuGroupComponent(
+          items: [
+            for (var index = 0; index < paths.length; index++)
+              PathStorageViewer(
+                paths[index],
+                enableDoubleTapClear: internalUser,
+                key: ValueKey("$index-$_refreshCounterKey"),
+              ),
+          ],
+        ),
+        const SizedBox(height: Spacing.xl),
+        ButtonComponent(
+          label: context.strings.clearCaches,
+          variant: ButtonComponentVariant.neutral,
+          onTap: () async {
+            for (var pathItem in paths) {
+              if (pathItem.allowCacheClear) {
+                await deleteDirectoryContents(pathItem.path);
+              }
+            }
+            if (!Platform.isAndroid) {
+              await deleteDirectoryContents(iosTempDirectoryPath);
+            }
+            // Small delay to allow file system to sync
+            await Future.delayed(const Duration(milliseconds: 300));
+            _refreshCounterKey++;
+            if (mounted) {
+              setState(() => {});
+            }
+          },
+        ),
+        const SizedBox(height: Spacing.xl),
+      ],
     );
   }
 }

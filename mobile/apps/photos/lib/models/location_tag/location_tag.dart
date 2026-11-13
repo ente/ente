@@ -5,7 +5,7 @@ part 'location_tag.freezed.dart';
 part 'location_tag.g.dart';
 
 @freezed
-class LocationTag with _$LocationTag {
+abstract class LocationTag with _$LocationTag {
   const LocationTag._();
   const factory LocationTag({
     required String name,

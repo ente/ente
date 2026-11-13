@@ -24,23 +24,13 @@ abstract class Detection {
 
   const Detection.empty() : score = 0;
 
-  get width;
-  get height;
+  double get width;
+  double get height;
 
   @override
   String toString();
 }
 
-/// This class represents a face detection with relative coordinates in the range [0, 1].
-/// The coordinates are relative to the image size. The pattern for the coordinates is always [x, y], where x is the horizontal coordinate and y is the vertical coordinate.
-///
-/// The [score] attribute is a double representing the confidence of the face detection.
-///
-/// The [box] attribute is a list of 4 doubles, representing the coordinates of the bounding box of the face detection.
-/// The four values of the box in order are: [xMinBox, yMinBox, xMaxBox, yMaxBox].
-///
-/// The [allKeypoints] attribute is a list of 6 lists of 2 doubles, representing the coordinates of the keypoints of the face detection.
-/// The six lists of two values in order are: [leftEye, rightEye, nose, mouth, leftEar, rightEar]. Again, all in [x, y] order.
 class FaceDetectionRelative extends Detection {
   final List<double> box;
   final List<List<double>> allKeypoints;
@@ -60,42 +50,39 @@ class FaceDetectionRelative extends Detection {
     required super.score,
     required List<double> box,
     required List<List<double>> allKeypoints,
-  })  : assert(
-          box.every((e) => e >= -0.1 && e <= 1.1),
-          "Bounding box values must be in the range [0, 1], with only a small margin of error allowed.",
-        ),
-        assert(
-          allKeypoints
-              .every((sublist) => sublist.every((e) => e >= -0.1 && e <= 1.1)),
-          "All keypoints must be in the range [0, 1], with only a small margin of error allowed.",
-        ),
-        box = List<double>.from(box.map((e) => e.clamp(0.0, 1.0))),
-        allKeypoints = allKeypoints
-            .map(
-              (sublist) =>
-                  List<double>.from(sublist.map((e) => e.clamp(0.0, 1.0))),
-            )
-            .toList();
+  }) : assert(
+         box.every((e) => e >= -0.1 && e <= 1.1),
+         "Bounding box values must be in the range [0, 1], with only a small margin of error allowed.",
+       ),
+       assert(
+         allKeypoints.every(
+           (sublist) => sublist.every((e) => e >= -0.1 && e <= 1.1),
+         ),
+         "All keypoints must be in the range [0, 1], with only a small margin of error allowed.",
+       ),
+       box = List<double>.from(box.map((e) => e.clamp(0.0, 1.0))),
+       allKeypoints = allKeypoints
+           .map(
+             (sublist) =>
+                 List<double>.from(sublist.map((e) => e.clamp(0.0, 1.0))),
+           )
+           .toList();
 
   void correctForMaintainedAspectRatio(
     Dimensions originalSize,
     Dimensions newSize,
   ) {
-    // Return if both are the same size, meaning no scaling was done on both width and height
     if (originalSize == newSize) {
       return;
     }
 
-    // Calculate the scaling
     final double scaleX = originalSize.width / newSize.width;
     final double scaleY = originalSize.height / newSize.height;
     const double translateX = 0;
     const double translateY = 0;
 
-    // Transform Box
     _transformBox(box, scaleX, scaleY, translateX, translateY);
 
-    // Transform All Keypoints
     for (int i = 0; i < allKeypoints.length; i++) {
       allKeypoints[i] = _transformPoint(
         allKeypoints[i],
@@ -147,14 +134,10 @@ class FaceDetectionRelative extends Detection {
     boxCopy[1] *= imageHeight;
     boxCopy[2] *= imageWidth;
     boxCopy[3] *= imageHeight;
-    // final intbox = boxCopy.map((e) => e.toInt()).toList();
-
     for (List<double> keypoint in allKeypointsCopy) {
       keypoint[0] *= imageWidth;
       keypoint[1] *= imageHeight;
     }
-    // final intKeypoints =
-    //     allKeypointsCopy.map((e) => e.map((e) => e.toInt()).toList()).toList();
     return FaceDetectionAbsolute(
       score: scoreCopy,
       box: boxCopy,
@@ -163,7 +146,6 @@ class FaceDetectionRelative extends Detection {
   }
 
   String toFaceID({required int fileID}) {
-    // Assert that the values are within the expected range
     assert(
       (xMinBox >= 0 && xMinBox <= 1) &&
           (yMinBox >= 0 && yMinBox <= 1) &&
@@ -172,22 +154,27 @@ class FaceDetectionRelative extends Detection {
       "Bounding box values must be in the range [0, 1]",
     );
 
-    // Extract bounding box values
-    final String xMin =
-        xMinBox.clamp(0.0, 0.999999).toStringAsFixed(5).substring(2);
-    final String yMin =
-        yMinBox.clamp(0.0, 0.999999).toStringAsFixed(5).substring(2);
-    final String xMax =
-        xMaxBox.clamp(0.0, 0.999999).toStringAsFixed(5).substring(2);
-    final String yMax =
-        yMaxBox.clamp(0.0, 0.999999).toStringAsFixed(5).substring(2);
+    final String xMin = xMinBox
+        .clamp(0.0, 0.999999)
+        .toStringAsFixed(5)
+        .substring(2);
+    final String yMin = yMinBox
+        .clamp(0.0, 0.999999)
+        .toStringAsFixed(5)
+        .substring(2);
+    final String xMax = xMaxBox
+        .clamp(0.0, 0.999999)
+        .toStringAsFixed(5)
+        .substring(2);
+    final String yMax = yMaxBox
+        .clamp(0.0, 0.999999)
+        .toStringAsFixed(5)
+        .substring(2);
 
-    // Convert the bounding box values to string and concatenate
     final String rawID = "${xMin}_${yMin}_${xMax}_$yMax";
 
     final faceID = fileID.toString() + '_' + rawID.toString();
 
-    // Return the hexadecimal representation of the hash
     return faceID;
   }
 
@@ -197,11 +184,7 @@ class FaceDetectionRelative extends Detection {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'score': score,
-      'box': box,
-      'allKeypoints': allKeypoints,
-    };
+    return {'score': score, 'box': box, 'allKeypoints': allKeypoints};
   }
 
   factory FaceDetectionRelative.fromJson(Map<String, dynamic> json) {
@@ -215,26 +198,12 @@ class FaceDetectionRelative extends Detection {
   }
 
   @override
-
-  /// The width of the bounding box of the face detection, in relative range [0, 1].
   double get width => xMaxBox - xMinBox;
 
   @override
-
-  /// The height of the bounding box of the face detection, in relative range [0, 1].
   double get height => yMaxBox - yMinBox;
 }
 
-/// This class represents a face detection with absolute coordinates in pixels, in the range [0, imageWidth] for the horizontal coordinates and [0, imageHeight] for the vertical coordinates.
-/// The pattern for the coordinates is always [x, y], where x is the horizontal coordinate and y is the vertical coordinate.
-///
-/// The [score] attribute is a double representing the confidence of the face detection.
-///
-/// The [box] attribute is a list of 4 integers, representing the coordinates of the bounding box of the face detection.
-/// The four values of the box in order are: [xMinBox, yMinBox, xMaxBox, yMaxBox].
-///
-/// The [allKeypoints] attribute is a list of 6 lists of 2 integers, representing the coordinates of the keypoints of the face detection.
-/// The six lists of two values in order are: [leftEye, rightEye, nose, mouth, leftEar, rightEar]. Again, all in [x, y] order.
 class FaceDetectionAbsolute extends Detection {
   final List<double> box;
   final List<List<double>> allKeypoints;
@@ -262,12 +231,8 @@ class FaceDetectionAbsolute extends Detection {
   }
 
   @override
-
-  /// The width of the bounding box of the face detection, in number of pixels, range [0, imageWidth].
   double get width => xMaxBox - xMinBox;
   @override
-
-  /// The height of the bounding box of the face detection, in number of pixels, range [0, imageHeight].
   double get height => yMaxBox - yMinBox;
 
   FaceDirection getFaceDirection() {
@@ -277,23 +242,22 @@ class FaceDetectionAbsolute extends Detection {
 
     final bool faceIsUpright =
         (max(leftEye[1], rightEye[1]) + 0.5 * eyeDistanceY < nose[1]) &&
-            (nose[1] + 0.5 * mouthDistanceY < min(leftMouth[1], rightMouth[1]));
+        (nose[1] + 0.5 * mouthDistanceY < min(leftMouth[1], rightMouth[1]));
 
-    final bool noseStickingOutLeft = (nose[0] < min(leftEye[0], rightEye[0])) &&
+    final bool noseStickingOutLeft =
+        (nose[0] < min(leftEye[0], rightEye[0])) &&
         (nose[0] < min(leftMouth[0], rightMouth[0]));
     final bool noseStickingOutRight =
         (nose[0] > max(leftEye[0], rightEye[0])) &&
-            (nose[0] > max(leftMouth[0], rightMouth[0]));
+        (nose[0] > max(leftMouth[0], rightMouth[0]));
 
     final bool noseCloseToLeftEye =
         (nose[0] - leftEye[0]).abs() < 0.2 * eyeDistanceX;
     final bool noseCloseToRightEye =
         (nose[0] - rightEye[0]).abs() < 0.2 * eyeDistanceX;
 
-    // if (faceIsUpright && (noseStickingOutLeft || noseCloseToLeftEye)) {
     if (noseStickingOutLeft || (faceIsUpright && noseCloseToLeftEye)) {
       return FaceDirection.left;
-      // } else if (faceIsUpright && (noseStickingOutRight || noseCloseToRightEye)) {
     } else if (noseStickingOutRight || (faceIsUpright && noseCloseToRightEye)) {
       return FaceDirection.right;
     }

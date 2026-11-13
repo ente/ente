@@ -1,432 +1,483 @@
 {
-  "itLooksLikeSomethingWentWrongPleaseRetryAfterSome": "נראה שמשהו לא פעל כשורה. אנא נסה שוב אחרי כמה זמן. אם הבעיה ממשיכה, אנא צור קשר עם צוות התמיכה שלנו.",
-  "@itLooksLikeSomethingWentWrongPleaseRetryAfterSome": {
-    "description": "Generic error message for temporary issues"
-  },
-  "error": "שגיאה",
-  "@error": {
-    "description": "Generic error title"
-  },
-  "ok": "אוקיי",
-  "@ok": {
-    "description": "Generic OK button label"
-  },
-  "faq": "שאלות נפוצות",
-  "@faq": {
-    "description": "FAQ link label"
-  },
-  "contactSupport": "צור קשר עם התמיכה",
-  "@contactSupport": {
-    "description": "Contact support button label"
-  },
-  "emailYourLogs": "שלח באימייל את הלוגים שלך",
-  "@emailYourLogs": {
-    "description": "Title for emailing logs dialog"
-  },
-  "pleaseSendTheLogsTo": "אנא שלחו את הלוגים האלו ל-{toEmail}",
-  "@pleaseSendTheLogsTo": {
-    "description": "Message asking user to send logs to email address",
+  "about": "אודות",
+  "acceptTrustInvite": "קבל הזמנה",
+  "account": "חשבון",
+  "accountCredentials": "סוד",
+  "accountCredentialsDescription": "לשמור אישורים של המשתמש.",
+  "accountIsAlreadyConfigured": "משתמש כבר הוגדר.",
+  "accountOwnerPersonAppbarTitle": "{title} (אני)",
+  "@accountOwnerPersonAppbarTitle": {
+    "description": "Title of appbar for account owner person",
     "placeholders": {
-      "toEmail": {
-        "type": "String",
-        "description": "Email address to send logs to"
+      "title": {
+        "type": "String"
       }
     }
   },
-  "copyEmailAddress": "העתק כתובת דוא\"ל",
-  "@copyEmailAddress": {
-    "description": "Button to copy email address to clipboard"
+  "accountRecovery": "שחזור חשבון",
+  "accountSetupIncompleteCreateAccount": "הגדרת משתמש חסרה. יש ליצור משתמש כדי לסיים התקנה.",
+  "@accountSetupIncompleteCreateAccount": {
+    "description": "Error shown when account exists but signup is incomplete"
   },
-  "exportLogs": "ייצוא לוגים",
-  "@exportLogs": {
-    "description": "Button to export logs"
+  "actionNotSupportedForSharedFiles": "{count, plural, one{פעולה לא נתמכת עבור {count} קובץ מצורף} other{פעולה לא נתמכת עבור {count} קבצים משותפים}}",
+  "@actionNotSupportedForSharedFiles": {
+    "description": "Message when action is not supported for shared files",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
   },
-  "cancel": "בטל",
-  "@cancel": {
-    "description": "Cancel button label"
-  },
-  "reportABug": "דווח על באג",
-  "@reportABug": {
-    "description": "Label for reporting a bug"
-  },
-  "save": "שמור",
-  "@save": {
-    "description": "Label for save button"
-  },
-  "send": "שלח",
-  "@send": {
-    "description": "Label for send button"
-  },
-  "email": "דוא\"ל",
-  "@email": {
-    "description": "Email field label"
-  },
-  "verify": "אמת",
-  "@verify": {
-    "description": "Verify button label"
-  },
-  "invalidEmailTitle": "כתובת דוא״ל לא תקינה",
-  "@invalidEmailTitle": {
-    "description": "Title for invalid email error dialog"
-  },
-  "invalidEmailMessage": "אנא הכנס כתובת דוא\"ל תקינה.",
-  "@invalidEmailMessage": {
-    "description": "Message for invalid email error dialog"
-  },
-  "pleaseWait": "אנא המתן...",
-  "@pleaseWait": {
-    "description": "Please wait message"
-  },
-  "verifyPassword": "אמת סיסמא",
-  "@verifyPassword": {
-    "description": "Verify password button label"
-  },
-  "incorrectPasswordTitle": "סיסמא לא נכונה",
-  "@incorrectPasswordTitle": {
-    "description": "Title for incorrect password error"
-  },
-  "pleaseTryAgain": "אנא נסה שנית",
-  "@pleaseTryAgain": {
-    "description": "Message asking user to try again"
-  },
-  "enterPassword": "הזן את הסיסמה",
-  "@enterPassword": {
-    "description": "Enter password field label"
-  },
-  "enterYourPasswordHint": "הכנס סיסמא",
-  "@enterYourPasswordHint": {
-    "description": "Hint for password field"
-  },
+  "actionNotSupportedOnFavouritesAlbum": "פעולה לא נתמכת באלבום מועדפים",
+  "activeLinksWillShowUpHere": "קישורים פעילים יופיעו כאן",
   "activeSessions": "חיבורים פעילים",
   "@activeSessions": {
     "description": "Title for active sessions page"
   },
-  "oops": "אופס",
-  "@oops": {
-    "description": "Oops error title"
-  },
-  "somethingWentWrongPleaseTryAgain": "משהו השתבש, אנא נסה שנית",
-  "@somethingWentWrongPleaseTryAgain": {
-    "description": "Generic error message"
-  },
-  "thisWillLogYouOutOfThisDevice": "זה ינתק אותך במכשיר זה!",
-  "@thisWillLogYouOutOfThisDevice": {
-    "description": "Warning message for logging out of current device"
-  },
-  "thisWillLogYouOutOfTheFollowingDevice": "זה ינתק אותך מהמכשיר הבא:",
-  "@thisWillLogYouOutOfTheFollowingDevice": {
-    "description": "Warning message for logging out of another device"
-  },
-  "terminateSession": "סיים חיבור?",
-  "@terminateSession": {
-    "description": "Title for terminate session dialog"
-  },
-  "terminate": "סיים",
-  "@terminate": {
-    "description": "Terminate button label"
-  },
-  "thisDevice": "מכשיר זה",
-  "@thisDevice": {
-    "description": "Label for current device"
-  },
-  "createAccount": "צור חשבון",
-  "@createAccount": {
-    "description": "Create account button label"
-  },
-  "weakStrength": "חלש",
-  "@weakStrength": {
-    "description": "Weak password strength label"
-  },
-  "moderateStrength": "מתון",
-  "@moderateStrength": {
-    "description": "Moderate password strength label"
-  },
-  "strongStrength": "חזק",
-  "@strongStrength": {
-    "description": "Strong password strength label"
-  },
-  "deleteAccount": "מחק חשבון",
-  "@deleteAccount": {
-    "description": "Delete account button label"
-  },
-  "deleteAccountQuery": "אנו מצטערים שאתה עוזב. האם יש בעיות שאתה חווה?",
-  "@deleteAccountQuery": {
-    "description": "Message asking user why they want to delete account"
-  },
-  "yesSendFeedbackAction": "כן, שלח משוב",
-  "@yesSendFeedbackAction": {
-    "description": "Button to confirm sending feedback"
-  },
-  "noDeleteAccountAction": "לא, מחק את החשבון",
-  "@noDeleteAccountAction": {
-    "description": "Button to proceed with account deletion"
-  },
-  "initiateAccountDeleteTitle": "אנא אמת על מנת להתחיל את מחיקת החשבון שלך",
-  "@initiateAccountDeleteTitle": {
-    "description": "Title for authentication dialog before account deletion"
-  },
-  "confirmAccountDeleteTitle": "אישור מחיקת חשבון",
-  "@confirmAccountDeleteTitle": {
-    "description": "Title for account deletion confirmation dialog"
-  },
-  "delete": "למחוק",
-  "@delete": {
-    "description": "Delete button label"
-  },
-  "createNewAccount": "צור חשבון חדש",
-  "@createNewAccount": {
-    "description": "Create new account button label"
-  },
-  "password": "סיסמא",
-  "@password": {
-    "description": "Password field label"
-  },
-  "confirmPassword": "אמת סיסמא",
-  "@confirmPassword": {
-    "description": "Confirm password field label"
-  },
-  "passwordStrength": "חוזק הסיסמא: {passwordStrengthValue}",
-  "@passwordStrength": {
-    "description": "Text to indicate the password strength",
+  "add": "להוסיף",
+  "addAlbumWidgetPrompt": "להוסיף ווידג'ט אלבום למסך הבית כדי לעצב אותו כאן.",
+  "addANameAndPhoto": "להוסיף שם ותמונה",
+  "addCode": "הוסף קוד",
+  "addedAMemoryTo": "נוסף זיכרון ל-{albumName}",
+  "@addedAMemoryTo": {
+    "description": "Social notification action text shown after a person's name, for example 'John added a memory to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
     "placeholders": {
-      "passwordStrengthValue": {
-        "description": "The strength of the password as a string",
-        "type": "String",
-        "example": "Weak or Moderate or Strong"
+      "albumName": {
+        "type": "String"
       }
     }
   },
-  "signUpTerms": "אני מסכים ל<u-terms>תנאי שירות</u-terms> ול<u-policy>מדיניות הפרטיות</u-policy>",
-  "@signUpTerms": {
-    "description": "Terms agreement text for sign up"
+  "addedBy": "נוסף על ידי {emailOrName}",
+  "@addedBy": {
+    "placeholders": {
+      "emailOrName": {}
+    }
   },
-  "termsOfServicesTitle": "תנאים",
-  "@termsOfServicesTitle": {
-    "description": "Terms of service title"
+  "addedFilesToPerson": "{count, plural, one{נוסף {count} קובץ ל-{personName}} other{נוספו {count} קבצים ל-{personName}}}",
+  "@addedFilesToPerson": {
+    "description": "Toast shown after manually tagging one or more files to a person.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      },
+      "personName": {
+        "type": "String",
+        "example": "Alex"
+      }
+    }
   },
-  "privacyPolicyTitle": "מדיניות פרטיות",
-  "@privacyPolicyTitle": {
-    "description": "Privacy policy title"
+  "addedNMemoriesTo": "נוספו {count} זיכרונות ל-{albumName}",
+  "@addedNMemoriesTo": {
+    "description": "Social notification action text shown after a person's name, for example 'John added 4 memories to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
   },
-  "ackPasswordLostWarning": "אני מבין שאם אאבד את הסיסמא, אני עלול לאבד את המידע שלי מכיוון שהמידע שלי <underline>מוצפן מקצה אל קצה</underline>.",
-  "@ackPasswordLostWarning": {
-    "description": "Warning about password loss"
+  "addedSuccessfullyTo": "נוסף בהצלחה ל-{albumName}",
+  "@addedSuccessfullyTo": {
+    "placeholders": {
+      "albumName": {}
+    }
   },
-  "encryption": "הצפנה",
-  "@encryption": {
-    "description": "Encryption label"
+  "addedToAlbums": "{count, plural, one{נוסף בהצלחה ל-{count} אלבום} other{נוספו בהצלחה ל-{count} אלבומים}}",
+  "@addedToAlbums": {
+    "description": "Message shown when items are added to albums",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
-  "logInLabel": "התחבר",
-  "@logInLabel": {
-    "description": "Log in button label"
+  "addedToQueue": "נוסף לתור",
+  "addEmail": "להוסיף אימייל",
+  "addFamilyMember": "להוסיף קרוב משפחה",
+  "addFiles": "להוסיף קבצים",
+  "addFromDevice": "להוסיף מהמכשיר",
+  "addingPhotos": "הוספת תמונות",
+  "addingToFavorites": "מוסיף למועדפים...",
+  "addItem": "{count, plural, one{להוסיף פריט} other{להוסיף פריטים}}",
+  "@addItem": {
+    "description": "Page title while adding one or more items to album",
+    "placeholders": {
+      "count": {}
+    }
   },
-  "welcomeBack": "ברוך שובך!",
-  "@welcomeBack": {
-    "description": "Welcome back message"
+  "addLocation": "להוסיף מיקום",
+  "addLocationButton": "הוסף",
+  "addMember": "להוסיף חבר",
+  "addMemoriesWidgetPrompt": "יש להוסיף ווידג'ט זיכרונות למסך הבית כדי לעצב אותו כאן.",
+  "addMore": "הוסף עוד",
+  "addName": "הוסף שם",
+  "addNew": "הוסף חדש",
+  "@addNew": {
+    "description": "Text to add a new item (location tag, album, caption etc)"
   },
-  "loginTerms": "על ידי לחיצה על התחברות, אני מסכים ל<u-terms>תנאי שירות</u-terms> ול<u-policy>מדיניות הפרטיות</u-policy>",
-  "@loginTerms": {
-    "description": "Terms agreement text for login"
+  "addNewEmail": "הוסף דוא\"ל חדש",
+  "addOnPageSubtitle": "פרטים של תוספות",
+  "addOns": "תוספות",
+  "addOnValidTill": "תוסף ה-{storageAmount} שלך תקף עד {endDate}",
+  "@addOnValidTill": {
+    "placeholders": {
+      "endDate": {},
+      "storageAmount": {}
+    }
   },
-  "noInternetConnection": "אין חיבור לאינטרנט",
-  "@noInternetConnection": {
-    "description": "No internet connection error message"
+  "addPage": "הוסף עמוד",
+  "@addPage": {
+    "description": "Button to capture another page in the document scanner"
   },
-  "pleaseCheckYourInternetConnectionAndTryAgain": "אנא בדוק את חיבור האינטרנט שלך ונסה שוב.",
-  "@pleaseCheckYourInternetConnectionAndTryAgain": {
-    "description": "Message asking user to check internet connection"
+  "addPeopleWidgetPrompt": "יש להוסיף ווידג'ט אנשים לדף הבית שלך כדי לעצב אותו כאן.",
+  "addPerson": "הוסף אדם",
+  "@addPerson": {
+    "description": "Title for the manual tagging flow where user selects a person to tag files with."
   },
-  "verificationFailedPleaseTryAgain": "אימות נכשל, אנא נסה שנית",
-  "@verificationFailedPleaseTryAgain": {
-    "description": "Verification failed error message"
+  "addPhotos": "הוסף תמונות",
+  "addSelected": "הוסף נבחרים",
+  "addTag": "הוספת תגית",
+  "addTo": "הוסף ל",
+  "addToAlbum": "הוסף לאלבום",
+  "addToCollection": "להוסיף לאוסף",
+  "addToEnte": "הוסף ל-ente",
+  "addToHiddenAlbum": "להוסיף לאלבום מוסתר",
+  "addToPerson": "להוסיף לאדם",
+  "@addToPerson": {
+    "description": "Action label to add selected files to an existing person."
   },
-  "recreatePasswordTitle": "צור סיסמא מחדש",
-  "@recreatePasswordTitle": {
-    "description": "Title for recreate password dialog"
+  "addTrustedContact": "להוסיף איש קשר אמין",
+  "addTrustedPerson": "להוסיף אדם אמין",
+  "addUpTo5MembersFree": "להוסיף עד 5 משתמשים בחינם",
+  "addYourPhotosNow": "להוסיף את התמונות שלך עכשיו",
+  "adjust": "לסדר",
+  "adjustCrop": "לסדר חיתוך",
+  "admin": "מנהל",
+  "advanced": "מתקדם",
+  "after1Day": "אחרי יום 1",
+  "after1Hour": "אחרי שעה 1",
+  "after1Month": "אחרי חודש 1",
+  "after1Week": "אחרי שבוע 1",
+  "after1Year": "אחרי שנה 1",
+  "albums": "אלבומים",
+  "albumTitle": "כותרת האלבום",
+  "albumUpdated": "האלבום עודכן",
+  "all": "הכל",
+  "allClear": "✨ הכל נוקה",
+  "allMemoriesPreserved": "כל הזכרונות נשמרו",
+  "allowAddingPhotos": "אפשר הוספת תמונות",
+  "@allowAddingPhotos": {
+    "description": "Switch button to enable uploading photos to a public link"
   },
-  "recreatePasswordBody": "המכשיר הנוכחי אינו חזק מספיק כדי לאמת את הסיסמא שלך, אבל אנחנו יכולים ליצור מחדש בצורה שתעבוד עם כל המכשירים.\n\nאנא התחבר בעזרת המפתח שחזור שלך וצור מחדש את הסיסמא שלך (אתה יכול להשתמש באותה אחת אם אתה רוצה).",
-  "@recreatePasswordBody": {
-    "description": "Body text for recreate password dialog"
+  "allowDownloads": "אפשר הורדות",
+  "allTabEmptyHint": "עדיין אין כאן כלום. לחיצה על + להוספת קוד או לשיחזור של קוד מהאשפה.",
+  "@allTabEmptyHint": {
+    "description": "Shown when the All tab has no active codes but Trash contains codes"
   },
-  "useRecoveryKey": "השתמש במפתח שחזור",
-  "@useRecoveryKey": {
-    "description": "Use recovery key button label"
+  "androidBiometricHint": "אימות זהותך",
+  "@androidBiometricHint": {
+    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
   },
-  "forgotPassword": "שכחתי סיסמה",
-  "@forgotPassword": {
-    "description": "Forgot password link label"
+  "androidCancelButton": "ביטול",
+  "@androidCancelButton": {
+    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
   },
+  "androidSignInTitle": "נדרש אימות",
+  "@androidSignInTitle": {
+    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
+  },
+  "appleId": "Apple ID",
+  "appLock": "נעילת יישומים",
+  "@appLock": {
+    "description": "App lock setting title"
+  },
+  "appLockDescription": "בחירה בין מסך הנעילה ברירת המחדל של המכשיר שלך לבין מסך נעילה מותאם עם קוד גישה (PIN) או סיסמה.",
+  "@appLockDescription": {
+    "description": "Description of app lock feature"
+  },
+  "appLockNotEnabled": "נעילת יישום אינה מופעלת",
+  "appLockNotEnabledDescription": "אנא הפעילו נעילת יישום מאבטחה > נעילת יישום",
+  "appLockOfflineModeWarning": "בחרתם להמשיך מבלי ליצור גיבויים. אם תשכחו את נעילת היישומים, לא תהיה לכם גישה לנתונים שלכם.",
+  "apply": "החל",
+  "applyCodeTitle": "החל קוד",
+  "appstoreSubscription": "מנוי AppStore",
+  "archive": "שמירה בארכיון",
+  "@archive": {
+    "description": "Action of 'Archiving' an element"
+  },
+  "areYouSureThatYouWantToLeaveTheFamily": "אתה בטוח שאתה רוצה לעזוב את התוכנית המשפתחית?",
+  "areYouSureYouWantToCancel": "אתה בטוח שאתה רוצה לבטל?",
+  "areYouSureYouWantToChangeYourPlan": "אתה בטוח שאתה רוצה לשנות את התוכנית שלך?",
+  "areYouSureYouWantToExit": "האם אתה בטוח שברצונך לצאת?",
+  "areYouSureYouWantToRenew": "אתה בטוח שאתה רוצה לחדש?",
+  "askCancelReason": "המנוי שלך בוטל. תרצה לשתף את הסיבה?",
+  "authenticateGeneric": "נא לאמת",
+  "authenticationFailedPleaseTryAgain": "אימות נכשל, אנא נסה שוב",
+  "@authenticationFailedPleaseTryAgain": {
+    "description": "Error message when authentication fails"
+  },
+  "authenticationSuccessful": "אימות הצליח!",
+  "@authenticationSuccessful": {
+    "description": "Success message when authentication is successful"
+  },
+  "authToChangeLockscreenSetting": "אנא בצע אימות כדי לשנות את הגדרות מסך הנעילה",
+  "authToChangeYourPassword": "אנא אמת על מנת לשנות את הסיסמא שלך",
+  "authToConfigureTwofactorAuthentication": "אנא התאמת כדי להגדיר את האימות הדו-גורמי",
+  "authToExportCodes": "אנא בצע אימות כדי לייצא את הקודים שלך",
+  "authToInitiateAccountDeletion": "יש לפתוח את הנעילה על-מנת למחוק את החשבון שלך",
+  "authToInitiateSignIn": "אנא בצעו אימות לביצוע כניסה רשומה לגיבוי.",
+  "authToSetBackupPassword": "יש לאמת על-מנת להגדיר את סיסמת הגיבוי",
+  "authToUpdateBackupPassword": "יש לאמת על-מנת לעדכן את סיסמת הגיבוי",
+  "authToViewPasskeyGeneric": "אנא אמתו על מנת לצפות במפתח הגישה",
+  "authToViewSecrets": "אנא אמתו על מנת לצפות בסודות שלכם",
+  "@authToViewSecrets": {
+    "description": "Message prompting authentication to view secrets"
+  },
+  "authToViewYourHiddenFiles": "אנא התאמת על מנת לראות את הקבצים החבויים שלך",
+  "authToViewYourMemories": "אנא אמת על מנת לצפות בזכרונות שלך",
+  "authToViewYourRecoveryKey": "אנא אמת על מנת לראות את מפתח השחזור שלך",
+  "autoLock": "נעילה אוטומטית",
+  "@autoLock": {
+    "description": "Auto lock setting title"
+  },
+  "autoLockFeatureDescription": "משך הזמן לנעילת היישום לאחר שהיישום הועבר לרקע",
+  "@autoLockFeatureDescription": {
+    "description": "Description of auto lock feature"
+  },
+  "backedUpFolders": "תיקיות שגובו",
+  "backup": "גיבוי",
+  "backupFailed": "הגיבוי נכשל",
+  "backupFolderLabel": "תיקיית גיבוי:",
+  "backupOverMobileData": "גבה על רשת סלולרית",
+  "backupPasswordCleared": "סיסמת הגיבוי נמחקה",
+  "backupPasswordHint": "הגיבוי שלך יהיה מוצפן באמצעות סיסמה זו.",
+  "backupSettings": "הגדרות גיבוי",
+  "backupVideos": "גבה סרטונים",
+  "blog": "בלוג",
+  "bothIssuerAndAccountCanNotBeEmpty": "גם המנפיק והחשבון לא יכולים להיות ריקים",
+  "cachedData": "נתונים מוטמנים",
+  "cancel": "בטל",
+  "@cancel": {
+    "description": "Cancel button label"
+  },
+  "cancelOtherSubscription": "אנא בטל את המנוי הקיים מ-{paymentProvider} קודם",
+  "@cancelOtherSubscription": {
+    "description": "The text to display when the user has an existing subscription from a different payment provider",
+    "type": "text",
+    "placeholders": {
+      "paymentProvider": {
+        "example": "Apple",
+        "type": "String"
+      }
+    }
+  },
+  "cancelSubscription": "בטל מנוי",
+  "cannotDeleteSharedFiles": "לא ניתן למחוק את הקבצים המשותפים",
+  "canOnlyCreateLinkForFilesOwnedByYou": "ניתן אך ורק ליצור קישור לקבצים שאתה בבעולתם",
+  "canOnlyRemoveFilesOwnedByYou": "יכול להסיר רק קבצים שבבעלותך",
   "changeEmail": "שנה דוא\"ל",
   "@changeEmail": {
     "description": "Change email button label"
   },
-  "verifyEmail": "אימות דוא\"ל",
-  "@verifyEmail": {
-    "description": "Verify email title"
-  },
-  "weHaveSendEmailTo": "שלחנו דוא\"ל ל<green>{email}</green>",
-  "@weHaveSendEmailTo": {
-    "description": "Text to indicate that we have sent a mail to the user",
-    "placeholders": {
-      "email": {
-        "description": "The email address of the user",
-        "type": "String",
-        "example": "example@ente.io"
-      }
-    }
-  },
-  "toResetVerifyEmail": "כדי לאפס את הסיסמא שלך, אנא אמת את האימייל שלך קודם.",
-  "@toResetVerifyEmail": {
-    "description": "Message asking user to verify email before password reset"
+  "changePassword": "שנה סיסמה",
+  "changePasswordTitle": "שנה סיסמה",
+  "@changePasswordTitle": {
+    "description": "Change password title"
   },
   "checkInboxAndSpamFolder": "אנא בדוק את תיבת הדואר שלך (והספאם) כדי להשלים את האימות",
   "@checkInboxAndSpamFolder": {
     "description": "Message asking user to check inbox and spam folder"
   },
-  "tapToEnterCode": "הקש כדי להזין את הקוד",
-  "@tapToEnterCode": {
-    "description": "Hint for entering verification code"
-  },
-  "sendEmail": "שלח אימייל",
-  "resendEmail": "שלח דוא\"ל מחדש",
-  "@resendEmail": {
-    "description": "Resend email button label"
-  },
-  "tryAgain": "נסה שוב",
-  "@tryAgain": {
-    "description": "Try again button label"
-  },
+  "checking": "בודק...",
   "checkStatus": "בדוק סטטוס",
   "@checkStatus": {
     "description": "Check status button label"
   },
-  "recoverAccount": "שחזר חשבון",
-  "@recoverAccount": {
-    "description": "Recover account button label"
+  "close": "סגור",
+  "codeAppliedPageTitle": "הקוד הוחל",
+  "codeCopiedToClipboard": "הקוד הועתק ללוח",
+  "codeIssuerHint": "מנפיק",
+  "collaborator": "משתף פעולה",
+  "collageLayout": "פריסה",
+  "collageSaved": "הקולז נשמר לגלריה",
+  "collectPhotos": "אסוף תמונות",
+  "color": "צבע",
+  "compactMode": "מצב מצומצם",
+  "confirm": "אשר",
+  "@confirm": {
+    "description": "Confirm button label"
   },
-  "setPasswordTitle": "הגדר סיסמא",
-  "@setPasswordTitle": {
-    "description": "Set password title"
+  "confirm2FADisable": "האם אתה בטוח שאתה רוצה להשבית את האימות הדו-גורמי?",
+  "confirmPassword": "אמת סיסמא",
+  "@confirmPassword": {
+    "description": "Confirm password field label"
   },
-  "changePasswordTitle": "שנה סיסמה",
-  "@changePasswordTitle": {
-    "description": "Change password title"
-  },
-  "resetPasswordTitle": "איפוס סיסמה",
-  "@resetPasswordTitle": {
-    "description": "Reset password title"
-  },
-  "encryptionKeys": "מפתחות ההצפנה",
-  "@encryptionKeys": {
-    "description": "Encryption keys title"
-  },
-  "enterPasswordToEncrypt": "הזן סיסמא כדי שנוכל להצפין את המידע שלך",
-  "@enterPasswordToEncrypt": {
-    "description": "Prompt to enter password for encryption"
-  },
-  "enterNewPasswordToEncrypt": "הכנס סיסמא חדשה כדי שנוכל להצפין את המידע שלך",
-  "@enterNewPasswordToEncrypt": {
-    "description": "Prompt to enter new password for encryption"
-  },
-  "passwordWarning": "אנחנו לא שומרים את הסיסמא הזו, לכן אם אתה שוכח אותה, <underline>אנחנו לא יכולים לפענח את המידע שלך</underline>",
-  "@passwordWarning": {
-    "description": "Warning about password storage"
-  },
-  "howItWorks": "איך זה עובד",
-  "@howItWorks": {
-    "description": "How it works button label"
-  },
-  "generatingEncryptionKeys": "יוצר מפתחות הצפנה...",
-  "@generatingEncryptionKeys": {
-    "description": "Generating encryption keys message"
-  },
-  "passwordChangedSuccessfully": "הסיסמה הוחלפה בהצלחה",
-  "@passwordChangedSuccessfully": {
-    "description": "Password changed successfully message"
-  },
-  "generatingEncryptionKeysTitle": "יוצר מפתחות הצפנה...",
-  "@generatingEncryptionKeysTitle": {
-    "description": "Generating encryption keys title"
+  "confirmPlanChange": "אשר שינוי תוכנית",
+  "confirmRecoveryKey": "אמת את מפתח השחזור",
+  "confirmUpdatingkey": "האם אתה בטוח שברצונך לעדכן את המפתח הסודי?",
+  "contactSupport": "צור קשר עם התמיכה",
+  "@contactSupport": {
+    "description": "Contact support button label"
   },
   "continueLabel": "המשך",
   "@continueLabel": {
     "description": "Continue button label"
   },
-  "insecureDevice": "מכשיר בלתי מאובטח",
-  "@insecureDevice": {
-    "description": "Insecure device warning title"
+  "copied": "הועתק",
+  "copiedNextToClipboard": "הקוד הבא הועתק ללוח הכתיבה",
+  "copiedToClipboard": "הועתק ללוח הגזירים",
+  "copyEmailAddress": "העתק כתובת דוא\"ל",
+  "@copyEmailAddress": {
+    "description": "Button to copy email address to clipboard"
   },
-  "sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": "אנחנו מצטערים, לא הצלחנו ליצור מפתחות מאובטחים על מכשיר זה.\n\nאנא הירשם ממכשיר אחר.",
-  "@sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": {
-    "description": "Error message for insecure device"
+  "copyLink": "העתק קישור",
+  "copypasteThisCodentoYourAuthenticatorApp": "תעתיק ותדביק את הקוד הזה\nלאפליקציית האימות שלך",
+  "couldNotBackUpTryLater": "לא יכולנו לגבות את המידע שלך.\nאנא נסה שוב מאוחר יותר.",
+  "couldNotUpdateSubscription": "לא ניתן לעדכן את המנוי",
+  "count": "כמות",
+  "crashAndErrorReporting": "דיווח על שגיאות וקריסות",
+  "createAccount": "צור חשבון",
+  "@createAccount": {
+    "description": "Create account button label"
   },
-  "recoveryKeyCopiedToClipboard": "מפתח השחזור הועתק ללוח",
-  "@recoveryKeyCopiedToClipboard": {
-    "description": "Recovery key copied message"
+  "createAlbumActionHint": "לחץ לחיצה ארוכה על מנת לבחור תמונות ולחץ על + על מנת ליצור אלבום",
+  "createCollage": "צור קולז",
+  "createNewTag": "יצירת תגית חדשה",
+  "createPublicLink": "צור קישור ציבורי",
+  "creatingLink": "יוצר קישור...",
+  "criticalUpdateAvailable": "עדכון חשוב זמין",
+  "custom": "מותאם אישית",
+  "@custom": {
+    "description": "Label for setting custom value for link expiry"
   },
-  "recoveryKey": "מפתח שחזור",
-  "@recoveryKey": {
-    "description": "Recovery key label"
+  "customEndpoint": "מחובר ל{endpoint}",
+  "@customEndpoint": {
+    "description": "Text showing user is connected to a custom endpoint",
+    "placeholders": {
+      "endpoint": {
+        "type": "String",
+        "description": "URL of the custom endpoint"
+      }
+    }
   },
-  "recoveryKeyOnForgotPassword": "אם אתה שוכח את הסיסמא שלך, הדרך היחידה שתוכל לשחזר את המידע שלך היא עם המפתח הזה.",
-  "@recoveryKeyOnForgotPassword": {
-    "description": "Recovery key importance explanation"
+  "darkTheme": "כהה",
+  "data": "נתונים",
+  "dayToday": "היום",
+  "dayYesterday": "אתמול",
+  "decrypting": "מפענח...",
+  "decryptingVideo": "מפענח את הסרטון...",
+  "deduplicateCodes": "הסרת קודים כפולים",
+  "deduplicateFiles": "הסר קבצים כפולים",
+  "deleteAccount": "מחק חשבון",
+  "@deleteAccount": {
+    "description": "Delete account button label"
   },
-  "recoveryKeySaveDescription": "אנחנו לא מאחסנים את המפתח הזה, אנא שמור את המפתח 24 מילים הזה במקום בטוח.",
-  "@recoveryKeySaveDescription": {
-    "description": "Recovery key save description"
+  "deleteAlbum": "מחק אלבום",
+  "deleteAlbumDialog": "גם להסיר תמונות (וסרטונים) שנמצאים באלבום הזה מ<bold>כל</bold> שאר האלבומים שהם שייכים אליהם?",
+  "deleteAlbumsDialogBody": "זה ימחק את כל האלבומים הריקים. זה שימושי כשאתה רוצה להפחית את כמות האי סדר ברשימת האלבומים שלך.",
+  "deleteAll": "מחק הכל",
+  "deleteCodeAuthMessage": "אמת כדי למחוק קוד",
+  "deleteCodeMessage": "האם אתה בטוח שברצונך למחוק את הקוד הזה? פעולה זו היא בלתי הפיכה.",
+  "deleteCodeTitle": "מחק קוד?",
+  "deleteDuplicates": "מחיקת כפילויות",
+  "deleteEmptyAlbums": "למחוק אלבומים ריקים",
+  "deleteEmptyAlbumsWithQuestionMark": "למחוק אלבומים ריקים?",
+  "deleteFromBoth": "מחק משניהם",
+  "deleteFromDevice": "מחק מהמכשיר",
+  "deletePhotos": "מחק תמונות",
+  "deleteProgress": "מוחק {currentlyDeleting} / {totalCount}",
+  "@deleteProgress": {
+    "placeholders": {
+      "currentlyDeleting": {},
+      "totalCount": {}
+    }
   },
-  "doThisLater": "עשה זאת מאוחר יותר",
-  "@doThisLater": {
-    "description": "Do this later button label"
+  "deleteSharedAlbum": "מחק את האלבום המשותף?",
+  "deleteSharedAlbumDialogBody": "האלבום הזה יימחק עבור כולם\n\nאתה תאבד גישה לתמונות משותפות באלבום הזה שבבעלות של אחרים",
+  "deleteTagMessage": "האם אתם בטוחים שברצונכם למחוק את התגית הזו? פעולה זו היא בלתי הפיכה.",
+  "deleteTagTitle": "למחוק את התגית?",
+  "deleteUnparseableCodeMessage": "בכך יימחק הקוד מ-Auth לצמיתות. הוא לא יועבר לאשפה.",
+  "deleteUnparseableCodeTitle": "למחוק קוד שאינו ניתן לניתוח?",
+  "deselectAll": "בטל בחירה של הכל",
+  "details": "פרטים",
+  "developerSettings": "הגדרות מפתחים",
+  "@developerSettings": {
+    "description": "Label for developer settings"
   },
-  "saveKey": "שמור מפתח",
-  "@saveKey": {
-    "description": "Save key button label"
+  "developerSettingsWarning": "האם אתם בטוחים שברצונכם לשנות הגדרות מפתחים?",
+  "deviceLock": "נעילת המכשיר",
+  "@deviceLock": {
+    "description": "Device lock option title"
   },
-  "noRecoveryKeyTitle": "אין מפתח שחזור?",
-  "@noRecoveryKeyTitle": {
-    "description": "No recovery key title"
+  "deviceLockEnablePreSteps": "כדי לאפשר את מסך הנעילה, נא להגדיר קוד גישה למכשיר או לנעילת המסך בהגדרות המערכת שלך.",
+  "@deviceLockEnablePreSteps": {
+    "description": "Instructions for enabling device lock"
   },
-  "twoFactorAuthTitle": "אימות דו-שלבי",
-  "@twoFactorAuthTitle": {
-    "description": "Two-factor authentication title"
+  "disableDownloadWarningBody": "צופים יכולים עדיין לקחת צילומי מסך או לשמור עותק של התמונות שלך בעזרת כלים חיצוניים",
+  "disableDownloadWarningTitle": "שים לב",
+  "disableLinkMessage": "זה יסיר את הלינק הפומבי שדרכו ניתן לגשת ל\"{albumName}\".",
+  "@disableLinkMessage": {
+    "placeholders": {
+      "albumName": {}
+    }
   },
-  "enterCodeHint": "הכנס את הקוד בעל 6 ספרות מתוך\nאפליקציית האימות שלך",
-  "@enterCodeHint": {
-    "description": "Hint for entering 2FA code"
+  "disableTwofactor": "השבת דו-גורמי",
+  "dismiss": "התעלם",
+  "distanceInKMUnit": "ק\"מ",
+  "@distanceInKMUnit": {
+    "description": "Unit for distance in km"
   },
-  "lostDeviceTitle": "איבדת את המכשיר?",
-  "@lostDeviceTitle": {
-    "description": "Lost device title"
+  "done": "בוצע",
+  "doNotSignOut": "לא לצאת מהחשבון",
+  "@doNotSignOut": {
+    "description": "Do not sign out button label"
   },
-  "enterRecoveryKeyHint": "הזן את מפתח השחזור שלך",
-  "@enterRecoveryKeyHint": {
-    "description": "Hint for entering recovery key"
+  "doubleTapToViewHiddenCode": "באפשרותך לצפות בקוד של רשומה ע\"י לחיצה כפולה",
+  "download": "הורד",
+  "downloadFailed": "ההורדה נכשלה",
+  "downloading": "מוריד...",
+  "downloadUpdate": "הורד",
+  "dropSupportEmail": "אנא תשלח דוא\"ל ל{supportEmail} מהכתובת דוא\"ל שנרשמת איתה",
+  "@dropSupportEmail": {
+    "placeholders": {
+      "supportEmail": {
+        "description": "The support email address",
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
   },
-  "recover": "שחזר",
-  "@recover": {
-    "description": "Recover button label"
+  "duplicateCodes": "שכפול קודים",
+  "duplicateItemsGroup": "{count} קבצים, כל אחד {formattedSize}",
+  "@duplicateItemsGroup": {
+    "description": "Display the number of duplicate files and their size",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "12",
+        "type": "int"
+      },
+      "formattedSize": {
+        "example": "2.3 MB",
+        "type": "String"
+      }
+    }
   },
-  "loggingOut": "מתנתק...",
-  "@loggingOut": {
-    "description": "Message shown while logging out"
+  "editCodeAuthMessage": "אמת כדי לערוך קוד",
+  "editOrder": "עריכת הסידור",
+  "editTag": "עריכת תגית",
+  "eligible": "זכאי",
+  "email": "דוא\"ל",
+  "@email": {
+    "description": "Email field label"
   },
-  "areYouSureYouWantToLogout": "האם את/ה בטוח/ה שאת/ה רוצה לצאת?",
-  "@areYouSureYouWantToLogout": {
-    "description": "Confirmation message before logout"
-  },
-  "yesLogout": "כן, התנתק",
-  "@yesLogout": {
-    "description": "Confirmation button for logout"
-  },
-  "confirm": "אשר",
-  "@confirm": {
-    "description": "Confirm button label"
-  },
-  "thisEmailIsAlreadyInUse": "כתובת דואר אלקטרוני זאת כבר נמצאת בשימוש",
-  "@thisEmailIsAlreadyInUse": {
-    "description": "Error message when email is already in use"
+  "emailAlreadyRegistered": "כתובת הדוא\"ל כבר רשומה.",
+  "@emailAlreadyRegistered": {
+    "description": "Error message when email is already registered"
   },
   "emailChangedTo": "אימייל שונה ל-{newEmail}",
   "@emailChangedTo": {
@@ -439,40 +490,1002 @@
       }
     }
   },
-  "authenticationFailedPleaseTryAgain": "אימות נכשל, אנא נסה שוב",
-  "@authenticationFailedPleaseTryAgain": {
-    "description": "Error message when authentication fails"
+  "emailHint": "הכנס את כתובת הדוא״ל שלך",
+  "emailNoEnteAccountPhotos": "לא נמצא חשבון ente ל-{email}.\n\nשלח להם הזמנה על מנת לשתף תמונות.",
+  "@emailNoEnteAccountPhotos": {
+    "placeholders": {
+      "email": {}
+    }
   },
-  "authenticationSuccessful": "אימות הצליח!",
-  "@authenticationSuccessful": {
-    "description": "Success message when authentication is successful"
+  "emailNotRegistered": "כתובת הדוא\"ל איננה רשומה.",
+  "@emailNotRegistered": {
+    "description": "Error message when email is not registered"
   },
-  "sessionExpired": "זמן החיבור הסתיים",
-  "@sessionExpired": {
-    "description": "Error message when session has expired"
+  "emailUsMessage": "אנא שלחו לנו אימייל ב-{email}",
+  "@emailUsMessage": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "emailVerificationEnableWarning": "אם אתם מאחסנים את האימות הדו שלבי לאיימיל שלך איתנו, הדלקה של אימות אימייל יכול להגיע לנעילה. אם אתם ננעלים מחוץ לאחד השירותים, אתם אולי לא תצליחו להתחבר לאחר.",
+  "emailYourLogs": "שלח באימייל את הלוגים שלך",
+  "@emailYourLogs": {
+    "description": "Title for emailing logs dialog"
+  },
+  "empty": "ריק",
+  "encrypted": "מוצפן",
+  "encryptionKeys": "מפתחות ההצפנה",
+  "@encryptionKeys": {
+    "description": "Encryption keys title"
+  },
+  "endpointUpdatedMessage": "נקודת-הקצה עודכנה בהצלחה",
+  "@endpointUpdatedMessage": {
+    "description": "Success message when endpoint is updated"
+  },
+  "enterAlbumName": "הזן שם אלבום",
+  "enterCode": "הזן קוד",
+  "enterCodeDescription": "הכנס את הקוד שנמסר לך מחברך בשביל לקבל מקום אחסון בחינם עבורך ועבורו",
+  "enterCodeHint": "הכנס את הקוד בעל 6 ספרות מתוך\nאפליקציית האימות שלך",
+  "@enterCodeHint": {
+    "description": "Hint for entering 2FA code"
+  },
+  "enterDetailsManually": "הכנס פרטים באופן ידני",
+  "enterEmail": "הזן דוא\"ל",
+  "enterNewEmailHint": "נא להזין את כתובת הדוא״ל החדשה שלך",
+  "@enterNewEmailHint": {
+    "description": "Hint text for entering new email address"
+  },
+  "enterPassword": "הזן את הסיסמה",
+  "@enterPassword": {
+    "description": "Enter password field label"
+  },
+  "enterPasswordToEncrypt": "הזן סיסמא כדי שנוכל להצפין את המידע שלך",
+  "@enterPasswordToEncrypt": {
+    "description": "Prompt to enter password for encryption"
+  },
+  "enterRecoveryKeyHint": "הזן את מפתח השחזור שלך",
+  "@enterRecoveryKeyHint": {
+    "description": "Hint for entering recovery key"
+  },
+  "enterReferralCode": "הזן קוד הפניה",
+  "enterThe6digitCodeFromnyourAuthenticatorApp": "הכנס את הקוד בעל 6 ספרות מתוך\nאפליקציית האימות שלך",
+  "enterValidEmail": "אנא הכנס כתובת דוא\"ל חוקית.",
+  "enterYourPassword": "הכנס סיסמא",
+  "enterYourPasswordHint": "הכנס סיסמא",
+  "@enterYourPasswordHint": {
+    "description": "Hint for password field"
+  },
+  "enterYourRecoveryKey": "הזן את מפתח השחזור שלך",
+  "error": "שגיאה",
+  "@error": {
+    "description": "Generic error title"
+  },
+  "exif": "EXIF",
+  "expiredLinkInfo": "פג תוקף הקישור. אנא בחר בתאריך תפוגה חדש או השבת את תאריך התפוגה של הקישור.",
+  "export": "יצוא",
+  "exportCodes": "ייצא קודים",
+  "exportDialogDesc": "יצוא מוצפן יהיה מוגן על ידי סיסמא שאתה תבחר.",
+  "exportLogs": "ייצוא לוגים",
+  "@exportLogs": {
+    "description": "Button to export logs"
+  },
+  "exportWarningDesc": "הקובץ שייוצא מכיל מידע רגיש. אנא שמור אותו מאובטח.",
+  "exportYourData": "ייצוא הנתונים שלך",
+  "failedToApplyCode": "נכשל בהחלת הקוד",
+  "failedToCancel": "הביטול נכשל",
+  "failedToFetchReferralDetails": "אחזור פרטי ההפניה נכשל. אנא נסה שוב מאוחר יותר.",
+  "failedToLoadAlbums": "נכשל בטעינת האלבומים",
+  "failedToRenew": "החידוש נכשל",
+  "failedToVerifyPaymentStatus": "נכשל באימות סטטוס התשלום",
+  "faq": "שאלות נפוצות",
+  "@faq": {
+    "description": "FAQ link label"
+  },
+  "faqs": "שאלות נפוצות",
+  "favorite": "מועדף",
+  "featureBackupCodes": "גיבוי וסינכרון מוצפנים מקצה-לקצה",
+  "featureOpenSource": "קוד-מקור פתוח\nובקרה ע\"י מומחי אבטחה",
+  "featureSearchEtc": "חיפוש, תגיות, שיתוף,\nהקוד הבא ועוד המון",
+  "fileSavedToGallery": "הקובץ נשמר לגלריה",
+  "flip": "הפוך",
+  "focusOnSearchBar": "התמקד בחיפוש בהתחלת האפליקציה",
+  "forgotPassword": "שכחתי סיסמה",
+  "@forgotPassword": {
+    "description": "Forgot password link label"
+  },
+  "free10GB": "10GB בחינם ב-<bold-green>ente</bold-green> תמונות",
+  "freeTrial": "ניסיון חינמי",
+  "freeUpDeviceSpace": "פנה אחסון במכשיר",
+  "freeUpSpace": "פנה מקום",
+  "general": "כללי",
+  "generatingEncryptionKeys": "יוצר מפתחות הצפנה...",
+  "@generatingEncryptionKeys": {
+    "description": "Generating encryption keys message"
+  },
+  "generatingEncryptionKeysTitle": "יוצר מפתחות הצפנה...",
+  "@generatingEncryptionKeysTitle": {
+    "description": "Generating encryption keys title"
+  },
+  "getStarted": "התחילו",
+  "giveUsAStarOnGithub": "תנו לנו כוכב ב-Github",
+  "googlePlayId": "Google Play ID",
+  "grantFullAccessPrompt": "נא לתת גישה לכל התמונות בתוך ההגדרות של הטלפון",
+  "grantPermission": "הענק הרשאה",
+  "hearUsWhereOptionalTitle": "איך שמעת על Ente? (אופציונלי)",
+  "@hearUsWhereOptionalTitle": {
+    "description": "Title asking how user heard about Ente"
+  },
+  "hidden": "מוסתר",
+  "hide": "הסתר",
+  "hideContent": "הסתרת התוכן",
+  "@hideContent": {
+    "description": "Hide content setting title"
+  },
+  "hideContentDescriptionAndroid": "הסתרת תוכן היישום במעבר יישומים ומניעת צילומי מסך",
+  "@hideContentDescriptionAndroid": {
+    "description": "Description of hide content feature on Android"
+  },
+  "hideContentDescriptioniOS": "הסתרת תוכן היישום במעבר יישומים",
+  "@hideContentDescriptioniOS": {
+    "description": "Description of hide content feature on iOS"
+  },
+  "hiding": "מחביא...",
+  "hintForDesktop": "קליק ימני על קוד לעריכה או להסרה.",
+  "hintForMobile": "לחיצה ממושכת על קוד לעריכה או להסרה.",
+  "howItWorks": "איך זה עובד",
+  "@howItWorks": {
+    "description": "How it works button label"
+  },
+  "howToViewShareeVerificationID": "אנא בקש מהם ללחוץ לחיצה ארוכה על הכתובת אימייל שלהם בעמוד ההגדרות, וודא שהמזההים בשני המכשירים תואמים.",
+  "ignore": "התעלם",
+  "immediately": "מיידית",
+  "@immediately": {
+    "description": "Immediately option for auto lock timing"
+  },
+  "import2FasGuide": "השתמשו באפשרות \"הגדרות->גיבוי -ייצוא\" ב-2FAS.\n\nאם הגיבוי שלכם מוצפן, תידרשו להזין את הסיסמה לפענוח הגיבוי",
+  "importAccountPageTitle": "הכנס פרטי חשבון",
+  "importAegisGuide": "אנא השתמש באפשרות של \"ייצוא של הכספת\" בתוך ההגדרות של Aegis.",
+  "importBitwardenGuide": "השתמשו באפשרות \"ייצוא כספת\" הכלולה בכלים של Bitwarden ובצעו ייבוא של קובץ ה-JSON הבלתי-מוצפן.",
+  "importCodeDelimiterInfo": "הקודים יכולים להיות מופרדים על-ידי פסיק או שורה חדשה",
+  "importCodes": "ייבא קוד",
+  "importEnteEncGuide": "בחירת קובץ ה-JSON המוצפן שייוצא מ-Ente",
+  "importEnterSetupKey": "הכנס מפתח התקנה",
+  "importFailureDesc": "לא ניתן לנתח את הקובץ שבחרת.",
+  "importGoogleAuthConfirmation": "{codeCount, plural, one{לייבא קוד 1 מ-Google Authenticator?} two{לייבא {codeCount} קודים מ-Google Authenticator?} many{לייבא {codeCount} קודים מ-Google Authenticator?} other{לייבא {codeCount} קודים מ-Google Authenticator?}}",
+  "@importGoogleAuthConfirmation": {
+    "placeholders": {
+      "codeCount": {
+        "description": "The number of Google Authenticator codes to import",
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "importGoogleAuthGuide": "בצעו ייצוא של החשבונות שלכם מ-Google Authenticator לקוד QR באמצעות האפשרות \"העברת חשבונות\". לאחר מכן סירקו את קוד ה-QR או ייבאו אותו מתמונה.",
+  "importInstruction": "אנא בחר קובץ שמכיל רשימה של הקודים שלך לפי הפורמט הבא",
+  "importLabel": "יבוא",
+  "importLastpassGuide": "השתמשו באפשרות \"העברת חשבונות\" הכלולה בהגדרות של Lastpass Authenticator וביחרו באפשרות \"ייצוא חשבונות לקובץ\". ייבאו את קובץ ה-JSON שהורדתם.",
+  "importOtpAuthGuide": "בצעו ייצוא של גיבוי מוצפן ממאמת OTP, ואז ביחרו בקובץ .otpauthdb או .otpauthdp. ייצוא .otpauth של חשבון-יחיד גם נתמך.",
+  "importProtonAuthGuide": "השתמשו באפשרות \"ייצוא\" בהגדרות Proton Authenticator לייצוא הקודים שלכם.\n\nאם הייצוא שלכם מגון בסיסמה, תידרשו להזין את הסיסמה לפענוחו.",
+  "importRaivoGuide": "השתמש באפוציה של \"Export OTPs to Zip archive\" בהגדרות של Raivo.",
+  "importSelectAppExport": "בחירת קובץ הייצוא של {appName}",
+  "@importSelectAppExport": {
+    "placeholders": {
+      "appName": {}
+    }
+  },
+  "importSelectJsonFile": "בחר קובץ JSON",
+  "importSuccessDesc": "אתה ייבאת {count} קודים!",
+  "@importSuccessDesc": {
+    "placeholders": {
+      "count": {
+        "description": "The number of codes imported",
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "importSuccessTitle": "הידד!",
+  "importTypeEnteEncrypted": "ייצוא מוצפן של Ente",
+  "incorrectCode": "קוד שגוי",
+  "@incorrectCode": {
+    "description": "Error message when code is incorrect"
+  },
+  "incorrectDetails": "פרטים לא נכונים",
+  "incorrectPasswordTitle": "סיסמא לא נכונה",
+  "@incorrectPasswordTitle": {
+    "description": "Title for incorrect password error"
   },
   "incorrectRecoveryKey": "מפתח שחזור שגוי",
   "@incorrectRecoveryKey": {
     "description": "Error message when recovery key is incorrect"
   },
+  "incorrectRecoveryKeyBody": "המפתח שחזור שהזנת שגוי",
+  "incorrectRecoveryKeyTitle": "מפתח שחזור שגוי",
+  "insecureDevice": "מכשיר בלתי מאובטח",
+  "@insecureDevice": {
+    "description": "Insecure device warning title"
+  },
+  "invalidEmailAddress": "כתובת דוא״ל לא תקינה",
+  "invalidEmailMessage": "אנא הכנס כתובת דוא\"ל תקינה.",
+  "@invalidEmailMessage": {
+    "description": "Message for invalid email error dialog"
+  },
+  "invalidEmailTitle": "כתובת דוא״ל לא תקינה",
+  "@invalidEmailTitle": {
+    "description": "Title for invalid email error dialog"
+  },
+  "invalidEndpoint": "נקודת-קצה בלתי תקינה",
+  "@invalidEndpoint": {
+    "description": "Error message when endpoint is invalid"
+  },
+  "invalidEndpointMessage": "מצטערים, נוקדת-הקצה שהזנת איננה תקינה. נא להזין נקודת-קצה תקינה ולנסות שוב.",
+  "@invalidEndpointMessage": {
+    "description": "Detailed error message when endpoint is invalid"
+  },
+  "invalidKey": "מפתח לא חוקי",
+  "invalidProtonExportMessage": "הקובץ שנבחר אינו קובץ ייצוא תקין של Proton Authenticator.",
+  "invalidProtonExportTitle": "ייצוא Proton בלתי תקין",
+  "invalidQRCode": "קוד QR לא תקין",
+  "invite": "הזמן",
+  "ok": "אישור",
+  "@ok": {
+    "description": "Generic OK button label"
+  },
+  "itemCount": "{count, plural, one{{count} פריט} two{{count} פריטים} many{{count} פריטים} other{{count} פריטים}}",
+  "@itemCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "itemsWillBeRemovedFromAlbum": "הפריטים שנבחרו יוסרו מהאלבום הזה",
+  "itLooksLikeSomethingWentWrongPleaseRetryAfterSome": "נראה שמשהו לא פעל כשורה. אנא נסה שוב אחרי כמה זמן. אם הבעיה ממשיכה, אנא צור קשר עם צוות התמיכה שלנו.",
+  "@itLooksLikeSomethingWentWrongPleaseRetryAfterSome": {
+    "description": "Generic error message for temporary issues"
+  },
+  "iUnderStand": "אני מבין",
+  "@iUnderStand": {
+    "description": "Text for the button to confirm the user understands the warning"
+  },
+  "kiloMeterUnit": "ק\"מ",
+  "language": "שפה",
+  "lastUpdated": "עדכון אחרון",
+  "leave": "עזוב",
+  "leaveAlbum": "צא מהאלבום",
+  "leaveFamily": "עזוב משפחה",
+  "leaveSharedAlbum": "לעזוב את האלבום המשותף?",
+  "lightTheme": "בהיר",
+  "linkCopiedToClipboard": "הקישור הועתק ללוח",
+  "linkDeviceLimit": "מגבלת כמות מכשירים",
+  "linkEnabled": "מאופשר",
+  "linkExpired": "פג תוקף",
+  "linkExpiresOn": "תוקף הקישור יפוג ב-{expiryTime}",
+  "@linkExpiresOn": {
+    "placeholders": {
+      "expiryTime": {}
+    }
+  },
+  "linkExpiry": "תאריך תפוגה ללינק",
+  "linkHasExpired": "הקישור פג תוקף",
+  "linkNeverExpires": "לעולם לא",
+  "location": "מקום",
+  "lockButtonLabel": "נעל",
+  "loggingOut": "מתנתק...",
+  "@loggingOut": {
+    "description": "Message shown while logging out"
+  },
+  "logInLabel": "התחבר",
+  "@logInLabel": {
+    "description": "Log in button label"
+  },
+  "loginSessionExpired": "פג תוקף ההפעלה",
+  "@loginSessionExpired": {
+    "description": "Login session expired title"
+  },
+  "loginSessionExpiredDetails": "פג תוקף ההפעלה שלך. נא להתחבר שוב.",
+  "@loginSessionExpiredDetails": {
+    "description": "Login session expired details"
+  },
+  "loginTerms": "על ידי לחיצה על התחברות, אני מסכים ל<u-terms>תנאי שירות</u-terms> ול<u-policy>מדיניות הפרטיות</u-policy>",
+  "@loginTerms": {
+    "description": "Terms agreement text for login"
+  },
+  "loginWithTOTP": "כניסה רשומה באמצעות TOTP",
+  "@loginWithTOTP": {
+    "description": "Login with TOTP button label"
+  },
+  "lostDevice": "איבדת את המכשיר?",
+  "lostDeviceTitle": "איבדת את המכשיר?",
+  "@lostDeviceTitle": {
+    "description": "Lost device title"
+  },
+  "manageFamily": "נהל משפחה",
+  "manageLink": "ניהול קישור",
+  "manageSubscription": "נהל מנוי",
+  "manualSort": "מותאם",
+  "map": "מפה",
+  "@map": {
+    "description": "Label for the map view"
+  },
+  "maps": "מפות",
+  "merchandise": "סחורה",
+  "minimizeAppOnCopy": "מזער אפליקציה בהעתקה",
+  "minimizeToTrayOnClose": "מיזעור למגש המערכת בעת הסגירה",
+  "monthly": "חודשי",
+  "@monthly": {
+    "description": "The text to display for monthly plans",
+    "type": "text"
+  },
+  "mostFrequentlyUsed": "בשימוש תדיר",
+  "mostRecentlyUsed": "בשימוש לאחרונה",
+  "movedToTrash": "הועבר לאשפה",
+  "moveToAlbum": "הזז לאלבום",
+  "movingFilesToAlbum": "מעביר קבצים לאלבום...",
+  "name": "שם",
+  "networkConnectionRefusedErr": "לא ניתן להתחבר ל-Ente, אנא נסו בשנית מאוחר יותר. אם השגיאה נמשכת, אנא צרו קשר עם התמיכה.",
+  "@networkConnectionRefusedErr": {
+    "description": "Error message shown when the app cannot connect to Ente due to connection refused"
+  },
+  "networkHostLookUpErr": "לא ניתן להתחבר ל-Ente, אנא בידקו את הגדרות הרשת שלכם וצרו קשר עם התמיכה אם השגיאה נמשכת.",
+  "@networkHostLookUpErr": {
+    "description": "Error message shown when the app cannot connect to Ente due to network host lookup failure"
+  },
+  "never": "לעולם לא",
+  "newAlbum": "אלבום חדש",
+  "newest": "החדש ביותר",
+  "next": "הבא",
+  "@next": {
+    "description": "Next button label"
+  },
+  "nextTotpTitle": "הבא",
+  "no": "לא",
+  "noDeviceLimit": "אין",
+  "@noDeviceLimit": {
+    "description": "Text to indicate that there is limit on number of devices"
+  },
+  "noDeviceThatCanBeDeleted": "אין לך קבצים במכשיר הזה שניתן למחוק אותם",
+  "noDuplicates": "✨ אין כפילויות",
+  "noInternetConnection": "אין חיבור לאינטרנט",
+  "@noInternetConnection": {
+    "description": "No internet connection error message"
+  },
+  "noRecoveryKeyNoDecryption": "בשל טבע הפרוטוקול של ההצפנת קצה-אל-קצה שלנו, אין אפשרות לפענח את הנתונים שלך בלי הסיסמה או מפתח השחזור שלך",
+  "@noRecoveryKeyNoDecryption": {
+    "description": "Explanation that data cannot be decrypted without password or recovery key"
+  },
+  "noRecoveryKeyTitle": "אין מפתח שחזור?",
+  "@noRecoveryKeyTitle": {
+    "description": "No recovery key title"
+  },
+  "noResult": "אין תוצאות",
+  "noSystemLockFound": "לא נמצאה נעילת מערכת",
+  "@noSystemLockFound": {
+    "description": "Error when no system lock is found"
+  },
+  "note": "הערה",
+  "notes": "הערות",
+  "notesLengthLimit": "הערות יכולות להכיל לכל היותר {count} תווים",
+  "@notesLengthLimit": {
+    "description": "Text to indicate the maximum number of characters allowed for notes",
+    "placeholders": {
+      "count": {
+        "description": "The maximum number of characters allowed for notes",
+        "type": "int",
+        "example": "100"
+      }
+    }
+  },
+  "notifications": "התראות",
+  "offlineModeWarning": "בחרת להמשיך ללא גיבויים. אנא בצע גיבויים ידניים כדי לוודא שהקודים שלך בטוחים.",
+  "onEnte": "ב<branding>אנטע</branding>",
+  "@onEnte": {
+    "description": "The text displayed above albums backed up to Ente",
+    "type": "text"
+  },
+  "oops": "אופס",
+  "@oops": {
+    "description": "Oops error title"
+  },
+  "oopsSomethingWentWrong": "אופס, משהו השתבש",
+  "optionalAsShortAsYouLike": "אופציונלי, קצר ככל שתרצה...",
+  "parsingError": "שגיאת ניתוח",
+  "passkey": "מפתח גישה",
+  "passkeyAuthTitle": "אימות באמצעות סיסמה",
+  "@passkeyAuthTitle": {
+    "description": "Passkey authentication title"
+  },
+  "passKeyPendingVerification": "האימות עדיין בהמתנה",
+  "@passKeyPendingVerification": {
+    "description": "Message when passkey verification is pending"
+  },
+  "password": "סיסמא",
+  "@password": {
+    "description": "Password field label"
+  },
+  "passwordChangedSuccessfully": "הסיסמה הוחלפה בהצלחה",
+  "@passwordChangedSuccessfully": {
+    "description": "Password changed successfully message"
+  },
+  "passwordEmptyError": "הסיסמה אינה יכולה להיות ריקה",
+  "passwordForDecryptingExport": "סיסמא כדי לפענח יצוא",
+  "passwordLock": "נעילת סיסמא",
+  "passwordStrength": "חוזק הסיסמא: {passwordStrengthValue}",
+  "@passwordStrength": {
+    "description": "Text to indicate the password strength",
+    "placeholders": {
+      "passwordStrengthValue": {
+        "description": "The strength of the password as a string",
+        "type": "String",
+        "example": "Weak or Moderate or Strong"
+      }
+    }
+  },
+  "passwordToEncryptExport": "סיסמא כדי להצפין יצוא",
+  "passwordTooShort": "סיסמה חייבת להכיל לפחות 8 תווים.",
+  "passwordWarning": "אנחנו לא שומרים את הסיסמא הזו, לכן אם אתה שוכח אותה, <underline>אנחנו לא יכולים לפענח את המידע שלך</underline>",
+  "@passwordWarning": {
+    "description": "Warning about password storage"
+  },
+  "paymentDetails": "פרטי תשלום",
+  "paymentFailed": "התשלום נכשל",
+  "paymentFailedTalkToProvider": "אנא דבר עם התמיכה של {providerName} אם אתה חוייבת",
+  "@paymentFailedTalkToProvider": {
+    "description": "The text to display when the payment failed",
+    "type": "text",
+    "placeholders": {
+      "providerName": {
+        "example": "AppStore|PlayStore",
+        "type": "String"
+      }
+    }
+  },
+  "pendingSyncs": "אזהרה",
+  "pendingSyncsWarningBody": "חלק מהקודים שלך לא גובו.\n\nאנא ודא שיש לך גיבוי לקודים האלו לפני שאתה מתנתק.",
+  "permanentlyDelete": "למחוק לצמיתות?",
+  "photoGridSize": "גודל לוח של התמונה",
+  "pinLock": "נעילת קוד גישה (PIN)",
+  "@pinLock": {
+    "description": "PIN lock option title"
+  },
+  "pinnedCodeMessage": "{code} הוצמד",
+  "@pinnedCodeMessage": {
+    "placeholders": {
+      "code": {}
+    }
+  },
+  "pinText": "הצמדה",
+  "plainHTML": "HTML רגיל",
+  "plainText": "טקסט רגיל",
+  "playstoreSubscription": "מנוי PlayStore",
+  "pleaseCheckYourInternetConnectionAndTryAgain": "אנא בדוק את חיבור האינטרנט שלך ונסה שוב.",
+  "@pleaseCheckYourInternetConnectionAndTryAgain": {
+    "description": "Message asking user to check internet connection"
+  },
+  "pleaseGrantPermissions": "נא הענק את ההרשאות",
+  "pleaseLoginAgain": "אנא התחבר שוב",
+  "pleaseSendTheLogsTo": "אנא שלחו את הלוגים האלו ל-{toEmail}",
+  "@pleaseSendTheLogsTo": {
+    "description": "Message asking user to send logs to email address",
+    "placeholders": {
+      "toEmail": {
+        "type": "String",
+        "description": "Email address to send logs to"
+      }
+    }
+  },
+  "pleaseTryAgain": "אנא נסה שנית",
+  "@pleaseTryAgain": {
+    "description": "Message asking user to try again"
+  },
+  "pleaseVerifyDetails": "אנא אמתו את הפרטים ונסו שוב",
+  "pleaseWait": "אנא המתן...",
+  "@pleaseWait": {
+    "description": "Please wait message"
+  },
+  "pleaseWaitForSometimeBeforeRetrying": "אנא חכה מעט לפני שאתה מנסה שוב",
+  "preparingLogs": "מכין לוגים...",
+  "preserveMore": "שמור עוד",
+  "pressAndHoldToPlayVideoDetailed": "לחץ והחזק על התמונה על מנת להריץ את הסרטון",
+  "privacy": "פרטיות",
+  "privacyPolicyTitle": "מדיניות פרטיות",
+  "@privacyPolicyTitle": {
+    "description": "Privacy policy title"
+  },
+  "publicLinkEnabled": "לינק ציבורי אופשר",
+  "qr": "QR",
+  "qrCode": "קוד QR",
+  "radius": "רדיוס",
+  "raiseTicket": "צור ticket",
+  "@raiseTicket": {
+    "description": "Button text for raising a support tickets in case of unhandled errors during backup",
+    "type": "text"
+  },
+  "rateUs": "דרג אותנו",
+  "rateUsOnStore": "דרג אותנו ב-{storeName}",
+  "@rateUsOnStore": {
+    "placeholders": {
+      "storeName": {}
+    }
+  },
+  "rawCodeData": "נתוני קוד גולמיים",
+  "recover": "שחזר",
+  "@recover": {
+    "description": "Recover button label"
+  },
+  "recoverAccount": "שחזר חשבון",
+  "@recoverAccount": {
+    "description": "Recover account button label"
+  },
+  "recoveryKey": "מפתח שחזור",
+  "@recoveryKey": {
+    "description": "Recovery key label"
+  },
+  "recoveryKeyCopiedToClipboard": "מפתח השחזור הועתק ללוח",
+  "@recoveryKeyCopiedToClipboard": {
+    "description": "Recovery key copied message"
+  },
+  "recoveryKeyOnForgotPassword": "אם אתה שוכח את הסיסמא שלך, הדרך היחידה שתוכל לשחזר את המידע שלך היא עם המפתח הזה.",
+  "@recoveryKeyOnForgotPassword": {
+    "description": "Recovery key importance explanation"
+  },
+  "recoveryKeySaved": "מפתח השחזור נשמר בתיקיית ההורדות!",
+  "@recoveryKeySaved": {
+    "description": "Recovery key saved confirmation message"
+  },
+  "recoveryKeySaveDescription": "אנחנו לא מאחסנים את המפתח הזה, אנא שמור את המפתח 24 מילים הזה במקום בטוח.",
+  "@recoveryKeySaveDescription": {
+    "description": "Recovery key save description"
+  },
+  "recoveryKeySuccessBody": "נהדר! מפתח השחזור תקין. אנחנו מודים לך על האימות.\n\nאנא תזכור לגבות את מפתח השחזור שלך באופן בטוח.",
+  "recoveryKeyVerified": "מפתח השחזור אומת",
+  "recoveryKeyVerifyReason": "מפתח השחזור שלך הוא הדרך היחידה לשחזר את התמונות שלך במקרה ותשכח את הסיסמא שלך. אתה יכול למצוא את מפתח השחזור שלך ב-הגדרות > חשבון.\n\nאנא הכנס את מפתח השחזור שלך כאן על מנת לוודא ששמרת אותו כשורה.",
+  "recoverySuccessful": "השחזור עבר בהצלחה!",
+  "recreatePasswordBody": "המכשיר הנוכחי אינו חזק מספיק כדי לאמת את הסיסמא שלך, אבל אנחנו יכולים ליצור מחדש בצורה שתעבוד עם כל המכשירים.\n\nאנא התחבר בעזרת המפתח שחזור שלך וצור מחדש את הסיסמא שלך (אתה יכול להשתמש באותה אחת אם אתה רוצה).",
+  "@recreatePasswordBody": {
+    "description": "Body text for recreate password dialog"
+  },
+  "recreatePasswordTitle": "צור סיסמא מחדש",
+  "@recreatePasswordTitle": {
+    "description": "Title for recreate password dialog"
+  },
+  "reEnterPassword": "נא להזין את הסיסמה בשנית",
+  "@reEnterPassword": {
+    "description": "Re-enter password prompt"
+  },
+  "reEnterPin": "נא להזין את קוד הגישה בשנית",
+  "@reEnterPin": {
+    "description": "Re-enter PIN prompt"
+  },
+  "referrals": "הפניות",
+  "referralsAreCurrentlyPaused": "הפניות כרגע מושהות",
+  "remindToEmptyDeviceTrash": "גם נקה \"נמחק לאחרונה\" מ-\"הגדרות\" -> \"אחסון\" על מנת לקבל המקום אחסון שהתפנה",
+  "remindToEmptyEnteTrash": "גם נקה את ה-\"אשפה\" שלך על מנת לקבל את המקום אחסון שהתפנה",
+  "remove": "הסר",
+  "removeFromAlbum": "הסר מהאלבום",
+  "removeFromAlbumTitle": "הסר מהאלבום?",
+  "removeLink": "הסרת קישור",
+  "removeParticipant": "הסר משתתף",
+  "@removeParticipant": {
+    "description": "menuSectionTitle for removing a participant"
+  },
+  "removePublicLink": "הסר לינק ציבורי",
+  "removeWithQuestionMark": "הסר?",
+  "removingFromFavorites": "מסיר מהמועדפים...",
+  "rename": "שנה שם",
+  "renameFile": "שנה שם הקובץ",
+  "renewSubscription": "חדש מנוי",
+  "reportABug": "דווח על באג",
+  "@reportABug": {
+    "description": "Label for reporting a bug"
+  },
+  "resetPasswordTitle": "איפוס סיסמה",
+  "@resetPasswordTitle": {
+    "description": "Reset password title"
+  },
+  "restoreToAlbum": "שחזר לאלבום",
+  "restoringFiles": "משחזר קבצים...",
+  "retry": "נסה שוב",
+  "ritualAlbumSelectionPlaceholder": "בחר אלבום",
+  "ritualSelectAlbumTitle": "בחר אלבום",
+  "save": "שמור",
+  "@save": {
+    "description": "Label for save button"
+  },
+  "saveCollage": "שמור קולז",
+  "saveCopy": "שמירת עותק",
+  "saveKey": "שמור מפתח",
+  "@saveKey": {
+    "description": "Save key button label"
+  },
+  "saveOnlyDescription": "האם ברצונך לשמור זאת באחסון שלך (תיקיית ההורדות כברירת מחדל)?",
+  "@saveOnlyDescription": {
+    "description": "Description text asking user if they want to save to storage (for platforms that don't support sharing)"
+  },
+  "saveOrSendDescription": "האם ברצונך לשמור זאת באחסון שלך (תיקיית ההורדות כברירת מחדל) או לשלוח ליישומים אחרים?",
+  "@saveOrSendDescription": {
+    "description": "Description text asking user if they want to save to storage or share with other apps"
+  },
+  "saveYourRecoveryKeyIfYouHaventAlready": "שמור את מפתח השחזור שלך אם לא שמרת כבר",
+  "saving": "שומר...",
+  "scan": "סרוק",
+  "scanACode": "סרוק קוד",
+  "scanAQrCode": "סרוק קוד QR",
+  "scanCode": "סרוק קוד",
+  "scannerTorchOff": "כיבוי הפנס",
+  "scannerTorchOn": "הפעלת הפנס",
+  "scanThisBarcodeWithnyourAuthenticatorApp": "סרוק את הברקוד הזה\nבעזרת אפליקציית האימות שלך",
+  "search": "חיפוש",
+  "searchByAlbumNameHint": "שם האלבום",
+  "searchHint": "חיפוש...",
+  "secret": "סוד",
+  "secretCanNotBeEmpty": "סוד לא יכול להיות ריק",
+  "security": "אבטחה",
+  "selectAll": "בחר הכל",
+  "selectBackupFolder": "נא לבחור תיקיית גיבוי",
+  "selectedPhotos": "{count} נבחרו",
+  "@selectedPhotos": {
+    "description": "Display the number of selected photos",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "5",
+        "type": "int"
+      }
+    }
+  },
+  "selectedPhotosWithYours": "{count} נבחרו ({yourCount} שלך)",
+  "@selectedPhotosWithYours": {
+    "description": "Display the number of selected photos, including the number of selected photos owned by the user",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "12",
+        "type": "int"
+      },
+      "yourCount": {
+        "example": "2",
+        "type": "int"
+      }
+    }
+  },
+  "selectExportFormat": "בחר פורמט ייצוא",
+  "selectFile": "בחר קובץ",
+  "selectLanguage": "בחר שפה",
+  "selectMorePhotos": "בחר תמונות נוספות",
+  "send": "שלח",
+  "@send": {
+    "description": "Label for send button"
+  },
+  "sendInvite": "שלח הזמנה",
+  "sendLink": "שלח קישור",
+  "sendLogsDescription": "זה ישלח לוגים לנו כדי לעזור לנו לדבג את הבעיה שלך. אנחנו לוקחים אמצעי זהירות כדי לוודא שמידע רגיש לא יהיה בלוגים, אנו מעודדים אותך לעבור על הלוגים האלו לפני שאתה משתף אותם.",
+  "serverEndpoint": "נקודת-קצה של שרת",
+  "@serverEndpoint": {
+    "description": "Label for server endpoint setting"
+  },
+  "setAPassword": "הגדר סיסמה",
+  "setAs": "הגדר בתור",
+  "setBackupFolder": "הגדרת תיקיית גיבוי",
+  "setCover": "הגדר כרקע",
+  "@setCover": {
+    "description": "Text to set cover photo for an album"
+  },
+  "setLabel": "הגדר",
+  "@setLabel": {
+    "description": "Label of confirm button to add a new custom radius to the radius selector of a location tag"
+  },
+  "setNewPassword": "הגדרת סיסמה חדשה",
+  "@setNewPassword": {
+    "description": "Set new password title"
+  },
+  "setNewPin": "הגדרת קוד גישה (PIN) חדש",
+  "@setNewPin": {
+    "description": "Set new PIN title"
+  },
+  "setPasswordTitle": "הגדר סיסמא",
+  "@setPasswordTitle": {
+    "description": "Set password title"
+  },
+  "setRadius": "הגדר רדיוס",
+  "settings": "הגדרות",
+  "setupComplete": "ההתקנה הושלמה",
+  "setupFirstAccount": "יצירת החשבון הראשון שלך",
+  "shareALink": "שתף קישור",
+  "shareCodes": "שיתוף הקודים",
+  "shareCodesDuration": "בחירת משך הזמן שבמהלכו ברצונך לשתף את הקודים.",
+  "shareLink": "שתף קישור",
+  "shareWithNonenteUsers": "שתף עם משתמשים שהם לא של ente",
+  "sharing": "משתף...",
+  "shouldHideCode": "הסתר קודים",
+  "showLargeIcons": "הצג סמלים גדולים",
+  "showMemories": "הצג זכרונות",
+  "showQRAuthMessage": "אמת כדי להראות קוד QR",
+  "sigInBackupReminder": "Ente תבצע אוטומטית גיבוי הקודים לאחר כניסה רשומה.\n\nאנו בכל זאת ממליצים לייצא קודים כגיבוי נוסף.",
+  "signInToBackup": "אנא התחבר כדי לבצע גיבוי לקודים שלך",
+  "signOutFromOtherDevices": "יציאה מהחשבון במכשירים אחרים",
+  "@signOutFromOtherDevices": {
+    "description": "Sign out from other devices title"
+  },
+  "signOutOtherBody": "אם יש לך חשד שסיסמתך ידועה למישהו, באפשרותך לכפות על כל המכשירים האחרים המחוברים לחשבונך להתנתק ממנו.",
+  "@signOutOtherBody": {
+    "description": "Sign out other devices explanation"
+  },
+  "signOutOtherDevices": "יציאה מהחשבון במכשירים אחרים",
+  "@signOutOtherDevices": {
+    "description": "Sign out other devices button label"
+  },
+  "signUp": "הרשמה",
+  "signUpTerms": "אני מסכים ל<u-terms>תנאי שירות</u-terms> ול<u-policy>מדיניות הפרטיות</u-policy>",
+  "@signUpTerms": {
+    "description": "Terms agreement text for sign up"
+  },
+  "singIn": "התחברות",
+  "skip": "דלג",
+  "someoneSharingAlbumsWithYouShouldSeeTheSameId": "מי שמשתף איתך אלבומים יוכל לראות את אותו המזהה במכשיר שלהם.",
+  "somethingWentWrong": "משהו השתבש",
+  "somethingWentWrongMessage": "משהו השתבש, אנא נסה שנית",
+  "somethingWentWrongParsingCode": "לא הצלחנו לנתח {x} קודים.",
+  "@somethingWentWrongParsingCode": {
+    "placeholders": {
+      "x": {}
+    }
+  },
+  "somethingWentWrongPleaseTryAgain": "משהו השתבש, אנא נסה שנית",
+  "@somethingWentWrongPleaseTryAgain": {
+    "description": "Generic error message"
+  },
+  "sorryCouldNotAddToFavorites": "סליחה, לא ניתן להוסיף למועדפים!",
+  "sorryCouldNotRemoveFromFavorites": "סליחה, לא ניתן להסיר מהמועדפים!",
+  "sorryTheCodeYouveEnteredIsIncorrect": "אנו מתנצלים, אבל הקוד שהזנת איננו נכון",
+  "@sorryTheCodeYouveEnteredIsIncorrect": {
+    "description": "Detailed error message when code is incorrect"
+  },
+  "sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": "אנחנו מצטערים, לא הצלחנו ליצור מפתחות מאובטחים על מכשיר זה.\n\nאנא הירשם ממכשיר אחר.",
+  "@sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": {
+    "description": "Error message for insecure device"
+  },
+  "sortAlbumsBy": "מיין לפי",
+  "sortOldestFirst": "הישן ביותר קודם",
+  "startBackup": "התחל גיבוי",
+  "storage": "אחסון",
+  "storageBreakupFamily": "משפחה",
+  "storageBreakupYou": "אתה",
+  "@storageBreakupYou": {
+    "description": "Label to indicate how much storage you are using when you are part of a family plan"
+  },
+  "storageLimitExceeded": "גבול מקום האחסון נחרג",
+  "subscribe": "הרשם",
+  "subscription": "מנוי",
+  "subWillBeCancelledOn": "המנוי שלך יבוטל ב-{endDate}",
+  "@subWillBeCancelledOn": {
+    "placeholders": {
+      "endDate": {}
+    }
+  },
+  "success": "הצלחה",
+  "suggestFeatures": "הציעו מאפיינים",
+  "support": "תמיכה",
+  "supportEnte": "תמיכה ב-<bold-green>ente</bold-green>",
+  "syncing": "מסנכרן...",
+  "syncProgress": "{completed}/{total} זכרונות נשמרו",
+  "@syncProgress": {
+    "description": "Text to tell user how many memories have been preserved",
+    "placeholders": {
+      "completed": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "systemTheme": "מערכת",
+  "tag": "תגית",
+  "tags": "תגיות",
+  "tapToCopy": "הקש כדי להעתיק",
+  "tapToUnlock": "ליחצו כדי לפתוח",
+  "@tapToUnlock": {
+    "description": "Message prompting user to tap to unlock"
+  },
+  "tellUsWhatYouThink": "ספרו לנו מה דעתכם",
+  "tempErrorContactSupportIfPersists": "נראה שמשהו לא פעל כשורה. אנא נסה שוב אחרי כמה זמן. אם הבעיה ממשיכה, אנא צור קשר עם צוות התמיכה שלנו.",
+  "terminate": "סיים",
+  "@terminate": {
+    "description": "Terminate button label"
+  },
+  "terminateSession": "סיים חיבור?",
+  "@terminateSession": {
+    "description": "Title for terminate session dialog"
+  },
+  "termsOfServicesTitle": "תנאים",
+  "@termsOfServicesTitle": {
+    "description": "Terms of service title"
+  },
+  "thankYou": "תודה",
+  "thankYouForSubscribing": "תודה שנרשמת!",
+  "theme": "ערכת נושא",
   "theRecoveryKeyYouEnteredIsIncorrect": "המפתח שחזור שהזנת שגוי",
   "@theRecoveryKeyYouEnteredIsIncorrect": {
     "description": "Detailed error message when recovery key is incorrect"
   },
+  "thisCanBeUsedToRecoverYourAccountIfYou": "זה יכול לשמש לשחזור החשבון שלך במקרה ותאבד את הגורם השני",
+  "thisDevice": "מכשיר זה",
+  "@thisDevice": {
+    "description": "Label for current device"
+  },
+  "thisEmailIsAlreadyInUse": "כתובת דואר אלקטרוני זאת כבר נמצאת בשימוש",
+  "@thisEmailIsAlreadyInUse": {
+    "description": "Error message when email is already in use"
+  },
+  "thisIsPersonVerificationId": "זה מזהה האימות של {email}",
+  "@thisIsPersonVerificationId": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@ente.com"
+      }
+    }
+  },
+  "thisIsYourVerificationId": "זה מזהה האימות שלך",
+  "thisWillLogYouOutOfTheFollowingDevice": "זה ינתק אותך מהמכשיר הבא:",
+  "@thisWillLogYouOutOfTheFollowingDevice": {
+    "description": "Warning message for logging out of another device"
+  },
+  "thisWillLogYouOutOfThisDevice": "זה ינתק אותך במכשיר זה!",
+  "@thisWillLogYouOutOfThisDevice": {
+    "description": "Warning message for logging out of current device"
+  },
+  "toEnableAppLockPleaseSetupDevicePasscodeOrScreen": "כדי לאפשר את מסך הנעילה, נא להגדיר קוד גישה למכשיר או נעילת מסך בהגדרות המערכת שלך.",
+  "tooManyIncorrectAttempts": "יותר מדי ניסיונות שגויים",
+  "@tooManyIncorrectAttempts": {
+    "description": "Message shown when too many incorrect attempts are made"
+  },
+  "toResetVerifyEmail": "כדי לאפס את הסיסמא שלך, אנא אמת את האימייל שלך קודם.",
+  "@toResetVerifyEmail": {
+    "description": "Message asking user to verify email before password reset"
+  },
+  "totalSize": "גודל כולל",
+  "trash": "אשפה",
+  "trashCode": "להעביר קוד לאשפה?",
+  "trashCodeMessage": "בטוחים שברצונכם להעביר לאשפה את הקוד עבור {account}?",
+  "@trashCodeMessage": {
+    "placeholders": {
+      "account": {}
+    }
+  },
+  "tryAgain": "נסה שוב",
+  "@tryAgain": {
+    "description": "Try again button label"
+  },
+  "twofactor": "דו-גורמי",
   "twofactorAuthenticationSuccessfullyReset": "אימות דו-שלבי אופס בהצלחה",
   "@twofactorAuthenticationSuccessfullyReset": {
     "description": "Message when two-factor authentication is successfully reset"
   },
+  "twoFactorAuthTitle": "אימות דו-שלבי",
+  "@twoFactorAuthTitle": {
+    "description": "Two-factor authentication title"
+  },
+  "twofactorSetup": "אימות דו-שלבי",
+  "unarchive": "הוצאה מארכיון",
+  "@unarchive": {
+    "description": "Action of 'Unarchiving' an element"
+  },
+  "uncategorized": "ללא קטגוריה",
+  "unhide": "בטל הסתרה",
+  "unhideToAlbum": "בטל הסתרה בחזרה לאלבום",
+  "unhidingFilesToAlbum": "מבטל הסתרת הקבצים לאלבום",
+  "unlock": "בטל נעילה",
+  "@unlock": {
+    "description": "Short action label used as the system authentication reason when unlocking the app"
+  },
+  "unpinnedCodeMessage": "בוטלה הצמדת {code}",
+  "@unpinnedCodeMessage": {
+    "placeholders": {
+      "code": {}
+    }
+  },
+  "unpinText": "ביטול הצמדה",
+  "unselectAll": "בטל בחירה של הכל",
+  "updateAvailable": "עדכון זמין",
+  "updatingFolderSelection": "מעדכן את בחירת התיקיות...",
+  "upgrade": "שדרג",
+  "uploadingFilesToAlbum": "מעלה קבצים לאלבום...",
+  "usedSpace": "מקום בשימוש",
+  "useOffline": "השתמש בלי גיבוי",
+  "useRecoveryKey": "השתמש במפתח שחזור",
+  "@useRecoveryKey": {
+    "description": "Use recovery key button label"
+  },
+  "verificationFailedPleaseTryAgain": "אימות נכשל, אנא נסה שנית",
+  "@verificationFailedPleaseTryAgain": {
+    "description": "Verification failed error message"
+  },
+  "verify": "אמת",
+  "@verify": {
+    "description": "Verify button label"
+  },
+  "verifyEmail": "אימות דוא\"ל",
+  "@verifyEmail": {
+    "description": "Verify email title"
+  },
+  "verifyIDLabel": "אמת",
+  "verifyingRecoveryKey": "מוודא את מפתח השחזור...",
+  "verifyPassword": "אמת סיסמא",
+  "@verifyPassword": {
+    "description": "Verify password button label"
+  },
+  "viewActiveSessions": "צפה בחיבורים פעילים",
+  "viewer": "צפיין",
+  "viewLogs": "צפייה בלוגים",
+  "@viewLogs": {
+    "description": "Button to view logs"
+  },
+  "viewLogsAction": "צפייה ביומן",
+  "viewRawCodes": "הצגת קודים גולמיים",
+  "viewRecoveryKey": "צפה במפתח השחזור",
+  "visitWebToManage": "אנא בקר ב-{webUrl} על מנת לנהל את המנוי שלך",
+  "@visitWebToManage": {
+    "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",
+    "placeholders": {
+      "webUrl": {
+        "type": "String",
+        "example": "photos.ente.com"
+      }
+    }
+  },
+  "waitingForVerification": "בהמתנה לאימות...",
+  "@waitingForVerification": {
+    "description": "Waiting for verification message"
+  },
+  "warning": "אזהרה",
+  "weAreOpenSource": "הקוד שלנו פתוח!",
+  "yearly": "שנתי",
+  "@yearly": {
+    "description": "The text to display for yearly plans",
+    "type": "text"
+  },
+  "yearsAgo": "{count, plural, one{לפני {count} שנה} two{לפני {count} שנים} many{לפני {count} שנים} other{לפני {count} שנים}}",
+  "@yearsAgo": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "yes": "כן",
+  "yesCancel": "כן, בטל",
+  "yesConvertToViewer": "כן, המר לצפיין",
+  "yesDelete": "כן, מחק",
+  "yesLogout": "כן, התנתק",
+  "@yesLogout": {
+    "description": "Confirmation button for logout"
+  },
+  "yesRemove": "כן, הסר",
+  "yesRenew": "כן, חדש",
+  "you": "אתה",
+  "youAreOnTheLatestVersion": "אתה על הגרסא הכי עדכנית",
+  "youCannotDowngradeToThisPlan": "אתה לא יכול לשנמך לתוכנית הזו",
+  "youCannotShareWithYourself": "אתה לא יכול לשתף עם עצמך",
+  "youHaveSuccessfullyFreedUp": "הצלחת לפנות {storageSaved}!",
+  "@youHaveSuccessfullyFreedUp": {
+    "description": "The text to display when the user has successfully freed up storage",
+    "type": "text",
+    "placeholders": {
+      "storageSaved": {
+        "example": "1.2 GB",
+        "type": "String"
+      }
+    }
+  },
+  "yourPlanWasSuccessfullyDowngraded": "התוכנית שלך שונמכה בהצלחה",
+  "yourPlanWasSuccessfullyUpgraded": "התוכנית שלך שודרגה בהצלחה",
+  "yourPurchaseWasSuccessful": "התשלום שלך עבר בהצלחה",
+  "yourSubscriptionHasExpired": "פג תוקף המנוי שלך",
+  "yourSubscriptionWasUpdatedSuccessfully": "המנוי שלך עודכן בהצלחה",
   "yourVerificationCodeHasExpired": "קוד האימות שלך פג תוקף",
   "@yourVerificationCodeHasExpired": {
     "description": "Error message when verification code has expired"
   },
-  "incorrectCode": "קוד שגוי",
-  "@incorrectCode": {
-    "description": "Error message when code is incorrect"
-  },
-  "sorryTheCodeYouveEnteredIsIncorrect": "אנו מתנצלים, אבל הקוד שהזנת איננו נכון",
-  "@sorryTheCodeYouveEnteredIsIncorrect": {
-    "description": "Detailed error message when code is incorrect"
-  }
+  "youveNoDuplicateCodesThatCanBeCleared": "אין לך קודים כפולים שניתן למחוק"
 }

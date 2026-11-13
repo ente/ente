@@ -1,61 +1,437 @@
 {
-  "networkHostLookUpErr": "Enteに接続できませんでした。ネットワーク設定を確認し、エラーが解決しない場合はサポートにお問い合わせください。",
-  "@networkHostLookUpErr": {
-    "description": "Error message shown when the app cannot connect to Ente due to network host lookup failure"
-  },
-  "networkConnectionRefusedErr": "Enteに接続できませんでした。しばらくしてから再試行してください。エラーが解決しない場合は、サポートにお問い合わせください。",
-  "@networkConnectionRefusedErr": {
-    "description": "Error message shown when the app cannot connect to Ente due to connection refused"
-  },
-  "itLooksLikeSomethingWentWrongPleaseRetryAfterSome": "問題が発生したようです。しばらくしてから再試行してください。エラーが解決しない場合は、サポートチームにお問い合わせください。",
-  "@itLooksLikeSomethingWentWrongPleaseRetryAfterSome": {
-    "description": "Generic error message for temporary issues"
-  },
-  "error": "エラー",
-  "@error": {
-    "description": "Generic error title"
-  },
-  "ok": "OK",
-  "@ok": {
-    "description": "Generic OK button label"
-  },
-  "faq": "FAQ",
-  "@faq": {
-    "description": "FAQ link label"
-  },
-  "contactSupport": "サポートに問い合わせ",
-  "@contactSupport": {
-    "description": "Contact support button label"
-  },
-  "emailYourLogs": "ログをメールで送信",
-  "@emailYourLogs": {
-    "description": "Title for emailing logs dialog"
-  },
-  "pleaseSendTheLogsTo": "ログを以下のアドレスに送信してください \n{toEmail}",
-  "@pleaseSendTheLogsTo": {
-    "description": "Message asking user to send logs to email address",
+  "bringMemoriesTogether": "思い出をひとつにまとめよう",
+  "createMyAccount": "アカウントを作成",
+  "localGalleryPermissionDesc": "写真へのアクセスを許可すると、顔認識で整理できます。すべての処理はデバイス上で行われます。",
+  "onboardingOrganizeDesc": "写真や動画を整理。すべての思い出をひとつの場所に。",
+  "acceptTrustInvite": "招待を受け入れる",
+  "account": "アカウント",
+  "accountCredentials": "シークレット",
+  "accountCredentialsDescription": "アカウント認証情報を保存します。",
+  "accountIsAlreadyConfigured": "アカウントが既に設定されています",
+  "accountOwnerPersonAppbarTitle": "{title} (私)",
+  "@accountOwnerPersonAppbarTitle": {
+    "description": "Title of appbar for account owner person",
     "placeholders": {
-      "toEmail": {
-        "type": "String",
-        "description": "Email address to send logs to"
+      "title": {
+        "type": "String"
       }
     }
   },
-  "copyEmailAddress": "メールアドレスをコピー",
-  "@copyEmailAddress": {
-    "description": "Button to copy email address to clipboard"
+  "accountSetupIncompleteCreateAccount": "セットアップが完了していません。セットアップを完了するためにアカウントを作成してください。",
+  "@accountSetupIncompleteCreateAccount": {
+    "description": "Error shown when account exists but signup is incomplete"
   },
-  "exportLogs": "ログのエクスポート",
-  "@exportLogs": {
-    "description": "Button to export logs"
+  "add": "追加",
+  "addANameAndPhoto": "名前と写真を追加",
+  "addCode": "コードを追加",
+  "addedBy": "{emailOrName} が追加",
+  "@addedBy": {
+    "placeholders": {
+      "emailOrName": {}
+    }
   },
+  "addedSuccessfullyTo": "{albumName} に追加しました",
+  "@addedSuccessfullyTo": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
+  "addedToQueue": "キューに追加しました",
+  "addEmail": "メールを追加",
+  "addFamilyMember": "ファミリーメンバーを追加",
+  "addFiles": "ファイルを追加",
+  "addFromDevice": "デバイスから追加",
+  "addingToFavorites": "お気に入りに追加しています...",
+  "addLocation": "位置情報を追加",
+  "addLocationButton": "追加",
+  "addMember": "メンバーを追加",
+  "addMore": "さらに追加",
+  "addName": "名前を追加",
+  "addNew": "新規追加",
+  "@addNew": {
+    "description": "Text to add a new item (location tag, album, caption etc)"
+  },
+  "addNewEmail": "新しいメールを追加",
+  "addOnPageSubtitle": "アドオンの詳細",
+  "addOns": "アドオン",
+  "addOnValidTill": "あなたの {storageAmount} アドオンは {endDate} まで有効です",
+  "@addOnValidTill": {
+    "placeholders": {
+      "endDate": {},
+      "storageAmount": {}
+    }
+  },
+  "addPerson": "人物を追加",
+  "@addPerson": {
+    "description": "Title for the manual tagging flow where user selects a person to tag files with."
+  },
+  "addPhotos": "写真を追加",
+  "addSelected": "選んだものをアルバムに追加",
+  "addTag": "タグの追加",
+  "addToAlbum": "アルバムに追加",
+  "addToCollection": "コレクションに追加",
+  "addToEnte": "Enteに追加",
+  "addToHiddenAlbum": "非表示アルバムに追加",
+  "addToPerson": "人物を追加",
+  "@addToPerson": {
+    "description": "Action label to add selected files to an existing person."
+  },
+  "addTrustedContact": "信頼できる連絡先を追加",
+  "addYourPhotosNow": "写真を今すぐ追加する",
+  "admin": "管理者",
+  "admiringThem": "{name}に注目！",
+  "@admiringThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "advanced": "詳細",
+  "after1Day": "1日後",
+  "after1Hour": "1時間後",
+  "after1Month": "1ヶ月後",
+  "after1Week": "1週間後",
+  "after1Year": "1年後",
+  "albumLayout": "アルバムのレイアウト",
+  "albums": "アルバム",
+  "albumsWidgetDesc": "ホーム画面で表示したいアルバムを選択してください。",
+  "albumTitle": "アルバムタイトル",
+  "albumUpdated": "アルバムが更新されました",
+  "algorithm": "アルゴリズム",
+  "align": "配置",
+  "all": "すべて",
+  "allClear": "✨ オールクリア",
+  "allFilesAlreadyMarkedAsImportant": "すべてのアイテムは既に重要としてマークされています",
+  "allMemoriesPreserved": "すべての思い出が保存されました",
+  "allow": "許可",
+  "allowAddingPhotos": "写真の追加を許可",
+  "@allowAddingPhotos": {
+    "description": "Switch button to enable uploading photos to a public link"
+  },
+  "allowAppToOpenSharedAlbumLinks": "共有アルバムリンクを開くことをアプリに許可する",
+  "allowDownloads": "ダウンロードを許可",
+  "allowJoiningAlbum": "アルバムへの参加を許可",
+  "allowPermBody": "Enteがライブラリを表示およびバックアップできるように、端末の設定から写真へのアクセスを許可してください。",
+  "allowPermTitle": "写真へのアクセスを許可",
+  "allPersonGroupingWillReset": "この人のグループ化がリセットされ、この人かもしれない写真への提案もなくなります",
+  "allTabEmptyHint": "まだ何もありません。+ をタップしてコードを追加するか、ゴミ箱を開いて復元してください。",
+  "@allTabEmptyHint": {
+    "description": "Shown when the All tab has no active codes but Trash contains codes"
+  },
+  "allWillShiftRangeBasedOnFirst": "これはグループ内の最初のものです。他の選択した写真は、この新しい日付に基づいて自動的にシフトされます",
+  "almostDone": "ほぼ完了しています...",
+  "alreadyAdded": "すでに追加されています",
+  "alreadyHaveAnAccount": "すでにアカウントをお持ちですか？",
+  "analysis": "分析",
+  "androidBiometricHint": "本人を確認する",
+  "@androidBiometricHint": {
+    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
+  },
+  "androidCancelButton": "キャンセル",
+  "@androidCancelButton": {
+    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
+  },
+  "androidSignInTitle": "認証が必要です",
+  "@androidSignInTitle": {
+    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
+  },
+  "aNewVersionOfEnteIsAvailable": "Enteの新しいバージョンが利用可能です。",
+  "appearance": "表示",
+  "appIcon": "アプリアイコン",
+  "appleId": "Apple ID",
+  "appLock": "アプリのロック",
+  "@appLock": {
+    "description": "App lock setting title"
+  },
+  "appLockDescription": "端末のデフォルトのロック画面と、PINまたはパスワードを使用したカスタムロック画面を選択します。",
+  "@appLockDescription": {
+    "description": "Description of app lock feature"
+  },
+  "appLockNotEnabled": "アプリロックが有効になっていません",
+  "appLockNotEnabledDescription": "セキュリティ > アプリロック からアプリロックを有効化してください",
+  "appLockOfflineModeWarning": "バックアップなしで進むことを選択しました。アプリロックを忘れると、データにアクセスできなくなります。",
+  "apply": "適用",
+  "applyCodeTitle": "コードを適用",
+  "appstoreSubscription": "AppStore サブスクリプション",
+  "appVersion": "バージョン: {versionValue}",
+  "@appVersion": {
+    "placeholders": {
+      "versionValue": {}
+    }
+  },
+  "archive": "アーカイブ",
+  "@archive": {
+    "description": "Action of 'Archiving' an element"
+  },
+  "archiveAlbum": "アルバムをアーカイブ",
+  "archiving": "アーカイブ中です",
+  "areYouSure": "よろしいですか？",
+  "@areYouSure": {
+    "description": "Confirmation dialog title"
+  },
+  "areYouSureDeleteFiles": "これらのファイルを削除してもよろしいですか？",
+  "areYouSureThatYouWantToLeaveTheFamily": "本当にファミリープランを退会しますか？",
+  "areYouSureYouWantToCancel": "キャンセルしてもよろしいですか？",
+  "areYouSureYouWantToChangeYourPlan": "プランを変更して良いですか？",
+  "areYouSureYouWantToExit": "本当に中止してよろしいですか？",
+  "areYouSureYouWantToLogout": "本当にログアウトしてよろしいですか？",
+  "@areYouSureYouWantToLogout": {
+    "description": "Confirmation message before logout"
+  },
+  "areYouSureYouWantToRenew": "更新してもよろしいですか？",
+  "areYouSureYouWantToResetThisPerson": "この人を忘れてもよろしいですね？",
+  "askAQuestion": "質問",
+  "askCancelReason": "サブスクリプションはキャンセルされました。理由を教えていただけますか？",
+  "attachLogs": "ログを添付する",
+  "authenticateGeneric": "認証してください",
+  "authenticating": "認証中...",
+  "authenticationFailedPleaseTryAgain": "認証に失敗しました、再試行してください",
+  "@authenticationFailedPleaseTryAgain": {
+    "description": "Error message when authentication fails"
+  },
+  "authenticationSuccessful": "認証に成功しました！",
+  "@authenticationSuccessful": {
+    "description": "Success message when authentication is successful"
+  },
+  "authToChangeLockscreenSetting": "画面のロックの設定を変更するためには認証が必要です",
+  "authToChangeYourPassword": "パスワードを変更するためには認証が必要です",
+  "authToConfigureTwofactorAuthentication": "2段階認証を設定するには認証してください",
+  "authToExportCodes": "コードをエクスポートするためには認証が必要です",
+  "authToInitiateSignIn": "バックアップのためのサインインを開始するためには認証が必要です。",
+  "authToManageLegacy": "信頼する連絡先を管理するために認証してください",
+  "authToViewPasskey": "パスキーを表示するには認証してください",
+  "authToViewPasskeyGeneric": "パスキーを見るには認証してください",
+  "authToViewSecrets": "秘密鍵を閲覧するためには認証が必要です",
+  "@authToViewSecrets": {
+    "description": "Message prompting authentication to view secrets"
+  },
+  "authToViewTrashedFiles": "削除したファイルを閲覧するには認証が必要です",
+  "authToViewYourActiveSessions": "アクティブなセッションを表示するためには認証が必要です",
+  "authToViewYourHiddenFiles": "隠しファイルを表示するには認証してください",
+  "authToViewYourMemories": "思い出を閲覧するためには認証が必要です",
+  "autoCastDialogBody": "利用可能なキャストデバイスが表示されます。",
+  "autoCastiOSPermission": "ローカルネットワークへのアクセス許可がEnte Photosアプリに与えられているか確認してください",
+  "autoLock": "自動ロック",
+  "@autoLock": {
+    "description": "Auto lock setting title"
+  },
+  "autoPair": "オートペアリング",
+  "backedUpFolders": "バックアップされたフォルダ",
+  "background": "背景",
+  "backgroundWithThem": "{name}と見た美しい景色！",
+  "@backgroundWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "backingUpLastSevenDaysPhotos": "過去7日間の写真をバックアップ中",
+  "backup": "バックアップ",
+  "backupAndSync": "バックアップと同期",
+  "backupAndSyncDesc": "自動バックアップ、同期、アップロード",
+  "backupCreated": "バックアップを作成しました！",
+  "backupFailed": "バックアップ失敗",
+  "backupFile": "バックアップファイル",
+  "backupLocationChoiceDescription": "バックアップをどこに保存しますか？",
+  "backupOnlyNewPhotos": "新しい写真のみをバックアップ",
+  "backupOverMobileData": "モバイルデータを使ってバックアップ",
+  "backupSettings": "バックアップ設定",
+  "backupStatus": "バックアップの状態",
+  "backupStatusDescription": "バックアップされたアイテムがここに表示されます",
+  "backupToEnte": "Enteにバックアップ",
+  "backupVideos": "動画をバックアップ",
+  "beach": "砂浜と海",
+  "birthday": "誕生日",
+  "birthdays": "誕生日",
+  "blog": "ブログ",
+  "bothIssuerAndAccountCanNotBeEmpty": "発行者とアカウントの両方を空欄にはできません",
+  "browseHelpPages": "ヘルプを見る",
+  "brushColor": "ブラシの色",
+  "byAgreeing": "続行すると、 お客様は<terms>サービス規約</terms> および <policy>プライバシーポリシー</policy>に同意したものとします。",
+  "cachedData": "キャッシュデータ",
+  "calculating": "計算中...",
   "cancel": "キャンセル",
   "@cancel": {
     "description": "Cancel button label"
   },
-  "reportABug": "バグを報告",
-  "@reportABug": {
-    "description": "Label for reporting a bug"
+  "cancelInvite": "招待をキャンセル",
+  "@cancelInvite": {
+    "description": "Title for cancel invite confirmation dialog"
+  },
+  "cancelOtherSubscription": "まず{paymentProvider} から既存のサブスクリプションをキャンセルしてください",
+  "@cancelOtherSubscription": {
+    "description": "The text to display when the user has an existing subscription from a different payment provider",
+    "type": "text",
+    "placeholders": {
+      "paymentProvider": {
+        "example": "Apple",
+        "type": "String"
+      }
+    }
+  },
+  "cancelRecovery": "復元をキャンセル",
+  "cancelSubscription": "サブスクリプションをキャンセル",
+  "cannotAddMoreFilesAfterBecomingViewer": "{name}は閲覧者になると、コレクションにアイテムを追加できなくなります。",
+  "@cannotAddMoreFilesAfterBecomingViewer": {
+    "description": "Warning message when changing a collaborator to viewer",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "John"
+      }
+    }
+  },
+  "cannotDeleteSharedFiles": "共有ファイルは削除できません",
+  "canNotOpenBody": "申し訳ありません。このアルバムをアプリで開くことができませんでした。",
+  "canNotOpenTitle": "このアルバムは開けません",
+  "canOnlyCreateLinkForFilesOwnedByYou": "あなたが所有するファイルのみリンクを作成できます",
+  "canOnlyRemoveFilesOwnedByYou": "あなたが所有しているファイルのみを削除できます",
+  "castAlbum": "アルバムをキャスト",
+  "castIPMismatchBody": "TVと同じネットワーク上にいることを確認してください。",
+  "castIPMismatchTitle": "アルバムのキャストに失敗しました",
+  "cat": "猫",
+  "centerPoint": "中心点",
+  "changeLocationOfSelectedItems": "選択したアイテムの位置を変更しますか？",
+  "changePassword": "パスワードを変更",
+  "changePermissions": "権限を変更",
+  "changeYourReferralCode": "コードを変更する",
+  "checkForUpdates": "アップデートを確認",
+  "checking": "確認中…",
+  "checkingModels": "モデルを確認しています...",
+  "checkStatus": "ステータスの確認",
+  "@checkStatus": {
+    "description": "Check status button label"
+  },
+  "chooseBackupLocation": "バックアップ先を選択",
+  "chooseFromAnExistingContact": "既存の連絡先から選択",
+  "chooseIcon": "アイコンを選択",
+  "chooseYourPlan": "プランを選択してください",
+  "city": "市街",
+  "citySunsets": "街の夕焼け",
+  "cleanUncategorized": "未分類のクリーンアップ",
+  "cleanUncategorizedDescription": "他のアルバムに存在する「未分類」からすべてのファイルを削除",
+  "clearAllFilters": "すべてのフィルターをクリア",
+  "clearCaches": "キャッシュをクリア",
+  "clearingTrash": "ゴミ箱を空にしています...",
+  "clearSelection": "選択を解除",
+  "clickToInstallOurBestVersionYet": "クリックして最適なバージョンをインストールしてください",
+  "close": "閉じる",
+  "closeBy": "近い",
+  "@closeBy": {
+    "description": "Appears in the similar images page, to indicate that the images are close in terms of appearance"
+  },
+  "clusteringProgress": "クラスタリングの進行状況",
+  "codeAppliedPageTitle": "コードが適用されました。",
+  "codeChangeLimitReached": "コード変更の回数上限に達しました。",
+  "codeCopiedToClipboard": "コードがクリップボードにコピーされました",
+  "codeIssuerHint": "発行者",
+  "collageLayout": "レイアウト",
+  "collageSaved": "コラージュをギャラリーに保存しました",
+  "collectionCannotBeDeleted": "このコレクションは削除できません",
+  "collectionCannotBeEdited": "このコレクションは編集できません",
+  "collectionCannotBeShared": "このコレクションは共有できません",
+  "collectionDeletedSuccessfully": "コレクションが正常に削除されました",
+  "collectionEmptyStateSubtitle": "このコレクションにはアイテムがありません",
+  "collectionLabel": "コレクション",
+  "collectionRenamedSuccessfully": "コレクションの名前が正常に変更されました",
+  "collections": "コレクション",
+  "collectPhotos": "写真を集めよう",
+  "color": "色",
+  "comments": "コメント",
+  "compactMode": "コンパクトモード",
+  "confirm": "確認",
+  "@confirm": {
+    "description": "Confirm button label"
+  },
+  "confirm2FADisable": "2 要素認証を無効にしてよろしいですか。",
+  "confirmAddingTrustedContact": "{email} を信頼する連絡先として追加しようとしています。 {numOfDays} 日間あなたの利用がなくなった場合、アカウントを復旧することができるようになります。",
+  "@confirmAddingTrustedContact": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      },
+      "numOfDays": {
+        "type": "int",
+        "example": "30"
+      }
+    }
+  },
+  "confirmPlanChange": "プランの変更を確認",
+  "confirmRecoveryKey": "回復キーを確認",
+  "confirmUpdatingkey": "秘密鍵を変更してよろしいですか？",
+  "confirmYourRecoveryKey": "回復キーを確認",
+  "connectToDevice": "デバイスに接続",
+  "contactDetails": "連絡先詳細",
+  "contactDetailsHint": "電話番号、メールアドレス、その他の連絡先情報",
+  "contactName": "連絡先名",
+  "contactNameHint": "緊急連絡先のフルネーム",
+  "contactNotes": "連絡先へのメッセージ",
+  "contactNotesHint": "この人に連絡する際に共有する重要な情報",
+  "contacts": "連絡先",
+  "continueInMailApp": "メールアプリで続ける",
+  "continueLabel": "続行",
+  "@continueLabel": {
+    "description": "Continue button label"
+  },
+  "continueWithoutAccount": "アカウントなしで続ける",
+  "convertToAlbum": "アルバムに変換",
+  "copied": "コピーしました",
+  "copiedNextToClipboard": "次のコードをクリップボードにコピーしました",
+  "copiedToClipboard": "クリップボードにコピーしました",
+  "copyAllToClipboard": "すべてをクリップボードにコピー",
+  "copyEmailAddress": "メールアドレスをコピー",
+  "@copyEmailAddress": {
+    "description": "Button to copy email address to clipboard"
+  },
+  "copyEmbedHtml": "埋め込みHTMLをコピー",
+  "copyLink": "リンクをコピー",
+  "copypasteThisCodentoYourAuthenticatorApp": "認証アプリにこのコードをコピペしてください",
+  "couldNotBackUpTryLater": "データをバックアップできませんでした。\n後で再試行します。",
+  "couldNotFreeUpSpace": "スペースを解放できませんでした",
+  "couldNotLoadAlbums": "アルバムを読み込めませんでした",
+  "@couldNotLoadAlbums": {
+    "description": "Error when albums fail to load"
+  },
+  "couldNotLoadLikes": "「いいね」を読み込めませんでした",
+  "@couldNotLoadLikes": {
+    "description": "Error when likes fail to load"
+  },
+  "couldNotOpenFile": "アイテムを開けませんでした: {error}",
+  "@couldNotOpenFile": {
+    "description": "Error message when item cannot be opened",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Permission denied"
+      }
+    }
+  },
+  "couldNotUpdateSubscription": "サブスクリプションを更新できませんでした",
+  "count": "カウント",
+  "crashAndErrorReporting": "クラッシュとエラーの報告",
+  "crashReporting": "クラッシュを報告",
+  "create": "作成",
+  "createAccount": "アカウント作成",
+  "@createAccount": {
+    "description": "Create account button label"
+  },
+  "createAccountTitle": "アカウントを作成する",
+  "createAlbumActionHint": "長押しで写真を選択し、+をクリックしてアルバムを作成します",
+  "createAnEnteAccount": "Enteのアカウントを作成",
+  "createCollaborativeLink": "共同作業用リンクを作成",
+  "createCollage": "コラージュを作る",
+  "createCollection": "コレクションを作成",
+  "createNewTag": "新しいタグの作成",
+  "createPublicLink": "公開リンクを作成",
+  "creatingLink": "リンクを作成中...",
+  "credentialName": "アカウント",
+  "credentialNameHint": "サービス名",
+  "credentialNotes": "追加メモ",
+  "credentialNotesHint": "復旧方法、セキュリティの質問など",
+  "crop": "クロップ",
+  "currentlyRunning": "現在実行中",
+  "custom": "カスタム",
+  "@custom": {
+    "description": "Label for setting custom value for link expiry"
   },
   "customEndpoint": "{endpoint} に接続しました",
   "@customEndpoint": {
@@ -67,154 +443,970 @@
       }
     }
   },
-  "save": "保存",
-  "@save": {
-    "description": "Label for save button"
+  "darkTheme": "ダーク",
+  "data": "データ",
+  "dayToday": "今日",
+  "dayYesterday": "昨日",
+  "declineTrustInvite": "招待を拒否する",
+  "decrypting": "復号しています",
+  "decryptingVideo": "ビデオの復号化中...",
+  "deduplicateCodes": "重複コード",
+  "deduplicateFiles": "重複ファイル",
+  "delete": "削除",
+  "@delete": {
+    "description": "Delete button label"
   },
-  "send": "送信",
-  "@send": {
-    "description": "Label for send button"
+  "deleteAlbum": "アルバムの削除",
+  "deleteAlbumDialog": "このアルバムに含まれている写真 (およびビデオ) を <bold>すべて</bold> 他のアルバムからも削除しますか?",
+  "deleteAlbumsDialogBody": "空のアルバムはすべて削除されます。",
+  "deleteAll": "全て削除",
+  "deleteCodeAuthMessage": "コードを削除するためには認証が必要です",
+  "deleteCodeMessage": "本当にこのコードを削除してもよろしいですか？この決定は元に戻せません。",
+  "deleteCodeTitle": "コードを削除しますか？",
+  "deleteCollectionDialogBody": "「{collectionName}」は完全に削除されます。",
+  "@deleteCollectionDialogBody": {
+    "description": "Confirmation message body for deleting a single collection",
+    "placeholders": {
+      "collectionName": {
+        "type": "String",
+        "example": "My Documents"
+      }
+    }
   },
-  "saveOrSendDescription": "これをストレージ (デフォルトではダウンロードフォルダ) に保存しますか、もしくは他のアプリに送信しますか？",
-  "@saveOrSendDescription": {
-    "description": "Description text asking user if they want to save to storage or share with other apps"
+  "deleteCollectionFromEverywhere": "すべての場所からアイテムも削除",
+  "@deleteCollectionFromEverywhere": {
+    "description": "Checkbox label asking whether to delete collection items everywhere"
   },
-  "saveOnlyDescription": "これをストレージに保存しますか？ (デフォルトではダウンロードフォルダに保存)",
-  "@saveOnlyDescription": {
-    "description": "Description text asking user if they want to save to storage (for platforms that don't support sharing)"
+  "deleteComment": "コメントを削除する",
+  "@deleteComment": {
+    "description": "Delete comment button label"
   },
-  "email": "E メール",
-  "@email": {
-    "description": "Email field label"
+  "deleteCommentConfirmation": "\"{comment}\" は完全に削除されます",
+  "@deleteCommentConfirmation": {
+    "description": "Confirmation message when deleting a comment",
+    "placeholders": {
+      "comment": {
+        "type": "String"
+      }
+    }
   },
-  "verify": "認証",
-  "@verify": {
-    "description": "Verify button label"
+  "deletedComment": "(削除済み)",
+  "@deletedComment": {
+    "description": "Label for deleted comments"
+  },
+  "deleteDuplicates": "重複を削除",
+  "deleteEmptyAlbums": "空のアルバムを削除",
+  "deleteEmptyAlbumsWithQuestionMark": "空のアルバムを削除しますか？",
+  "deleteFiles": "ファイルを削除",
+  "deleteFromBoth": "両方から削除",
+  "deleteFromDevice": "デバイスから削除",
+  "deleteFromEnte": "Enteから削除",
+  "deleteHiddenFilesFromDevice": "デバイスから隠れたファイルを削除する",
+  "deleteLink": "リンクを削除",
+  "deleteLinkQuestion": "リンクを削除しますか？",
+  "deleteLocation": "位置情報を削除",
+  "deleteOnDeviceFiles": "デバイス上のファイルを削除",
+  "deletePhotos": "写真を削除",
+  "deleteProgress": "{currentlyDeleting} / {totalCount} を削除中",
+  "@deleteProgress": {
+    "placeholders": {
+      "currentlyDeleting": {},
+      "totalCount": {}
+    }
+  },
+  "deleteSharedAlbum": "共有アルバムを削除しますか？",
+  "deleteSharedAlbumDialogBody": "このアルバムは他の人からも削除されます\n\n他の人が共有してくれた写真も、あなたからは見れなくなります",
+  "deleteShareLinkConfirmation": "このリンクを持つ人はアイテムにアクセスできなくなります。",
+  "deleteTagMessage": "このタグを削除してもよろしいですか？この操作は取り消しできません。",
+  "deleteTagTitle": "タグを削除しますか？",
+  "deletingFile": "アイテムを削除中...",
+  "deletingShareLink": "リンクを削除中...",
+  "description": "説明",
+  "desertDreams": "砂漠の夢",
+  "details": "詳細",
+  "detailsAboutTheIssue": "問題の詳細",
+  "developerSettings": "開発者向け設定",
+  "@developerSettings": {
+    "description": "Label for developer settings"
+  },
+  "developerSettingsWarning": "開発者向け設定を変更してもよろしいですか？",
+  "deviceInfo": "デバイス情報",
+  "deviceLock": "デバイスロック",
+  "@deviceLock": {
+    "description": "Device lock option title"
+  },
+  "deviceLockEnablePreSteps": "端末のロックを有効にするには、システム設定で端末のパスコードまたは画面ロックを設定してください。",
+  "@deviceLockEnablePreSteps": {
+    "description": "Instructions for enabling device lock"
+  },
+  "deviceNotFound": "デバイスが見つかりません",
+  "didYouKnow": "ご存知ですか?",
+  "digits": "桁",
+  "disableDownloadWarningBody": "ビューアーはスクリーンショットを撮ったり、外部ツールを使用して写真のコピーを保存したりすることができます",
+  "disableDownloadWarningTitle": "ご注意ください",
+  "disableLinkMessage": "\"{albumName}\" にアクセスするための公開リンクが削除されます。",
+  "@disableLinkMessage": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
+  "disableTwofactor": "2段階認証を無効にする",
+  "disablingTwofactorAuthentication": "2要素認証を無効にしています...",
+  "discardChanges": "破棄",
+  "discover": "新たな発見",
+  "@discover": {
+    "description": "The text to display for the discover section under which we show receipts, screenshots, sunsets, greenery, etc."
+  },
+  "discover_babies": "赤ちゃん",
+  "discover_celebrations": "お祝い",
+  "discover_food": "食べ物",
+  "discover_greenery": "自然",
+  "discover_hills": "丘",
+  "discover_identity": "身分証",
+  "discover_memes": "ミーム",
+  "discover_notes": "メモ",
+  "discover_pets": "ペット",
+  "discover_receipts": "レシート",
+  "discover_screenshots": "スクリーンショット",
+  "discover_selfies": "セルフィー",
+  "discover_sunset": "夕焼け",
+  "discover_visiting_cards": "訪問カード",
+  "discover_wallpapers": "壁紙",
+  "dismiss": "閉じる",
+  "distanceInKMUnit": "km",
+  "@distanceInKMUnit": {
+    "description": "Unit for distance in km"
+  },
+  "documentsHint": "ドキュメント",
+  "doesGroupContainMultiplePeople": "このグループには複数の人物が含まれていますか？",
+  "dog": "犬",
+  "done": "完了",
+  "doNotSignOut": "サインアウトしない",
+  "@doNotSignOut": {
+    "description": "Do not sign out button label"
+  },
+  "dontHaveAnAccount": "アカウントをお持ちではありませんか？",
+  "dontSave": "保存しない",
+  "doubleTapToViewHiddenCode": "項目をダブルタップしてコードを閲覧できます",
+  "download": "ダウンロード",
+  "downloadFailed": "ダウンロード失敗",
+  "downloading": "ダウンロード中…",
+  "downloadingProgress": "ダウンロード中... {percentage}%",
+  "@downloadingProgress": {
+    "description": "Download progress message",
+    "placeholders": {
+      "percentage": {
+        "type": "int",
+        "example": "75"
+      }
+    }
+  },
+  "downloadUpdate": "ダウンロード",
+  "doYouWantToDiscardTheEditsYouHaveMade": "編集を破棄しますか？",
+  "dropSupportEmail": "あなたの登録したメールアドレスから{supportEmail} にメールを送ってください",
+  "@dropSupportEmail": {
+    "placeholders": {
+      "supportEmail": {
+        "description": "The support email address",
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
+  },
+  "duplicateCodes": "重複コード",
+  "duplicateFileCountWithStorageSaved": "お掃除しました {count, plural, one{{count} 個の重複ファイル} other{{count} 個の重複ファイル}}, ({storageSaved}が開放されます！)",
+  "@duplicateFileCountWithStorageSaved": {
+    "description": "The text to display when the user has successfully cleaned up duplicate files",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "1",
+        "type": "int"
+      },
+      "storageSaved": {
+        "example": "1.2 GB",
+        "type": "String"
+      }
+    }
+  },
+  "duplicateItemsGroup": "{count} 個のファイル、それぞれ{formattedSize}",
+  "@duplicateItemsGroup": {
+    "description": "Display the number of duplicate files and their size",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "12",
+        "type": "int"
+      },
+      "formattedSize": {
+        "example": "2.3 MB",
+        "type": "String"
+      }
+    }
+  },
+  "earned": "獲得済み",
+  "earnMoreSpace": "より多くのスペースを獲得！",
+  "edit": "編集",
+  "editCodeAuthMessage": "コードを編集するためには認証が必要です",
+  "editItem": "アイテムを編集",
+  "editLocation": "位置情報を編集",
+  "editOrder": "並べ替え",
+  "editPerson": "人物を編集",
+  "editSecret": "シークレットを編集",
+  "@editSecret": {
+    "description": "Title shown when editing an existing secret"
+  },
+  "editsSaved": "編集が保存されました",
+  "editsToLocationWillOnlyBeSeenWithinEnte": "位置情報の編集はEnteでのみ表示されます",
+  "editTag": "タグの編集",
+  "editTime": "時刻を編集",
+  "eligible": "対象となる",
+  "emailAddress": "メールアドレス",
+  "emailChangedTo": "メールアドレスが {newEmail} に変更されました",
+  "@emailChangedTo": {
+    "description": "Message when email has been changed",
+    "placeholders": {
+      "newEmail": {
+        "description": "The new email address",
+        "type": "String",
+        "example": "new@example.com"
+      }
+    }
+  },
+  "emailNoEnteAccount": "{email}はEnteアカウントを持っていません。\n\nアイテムを共有するには招待を送信してください。",
+  "@emailNoEnteAccount": {
+    "placeholders": {
+      "email": {}
+    }
+  },
+  "emailNoEnteAccountPhotos": "{email} はEnteアカウントを持っていません。\n\n写真を共有するために「招待」を送信してください。",
+  "@emailNoEnteAccountPhotos": {
+    "placeholders": {
+      "email": {}
+    }
+  },
+  "emailUsMessage": "{email} にメールでご連絡ください",
+  "@emailUsMessage": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "emailVerificationEnableWarning": "アカウントから閉め出されるのを防ぐために、メール認証を有効にする前にメール 2FA のコピーが ente Auth 外に保管されていることを確認してください。",
+  "emailYourLogs": "ログをメールで送信",
+  "@emailYourLogs": {
+    "description": "Title for emailing logs dialog"
+  },
+  "embracingThem": "{name}抱きしめて！",
+  "@embracingThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "emergencyContact": "緊急連絡先",
+  "empty": "空",
+  "emptyTrash": "ゴミ箱を空にする",
+  "emptyTrashConfirmation": "ゴミ箱内のすべてのアイテムを完全に削除してもよろしいですか？この操作は元に戻せません。",
+  "emptyTrashQuestion": "ゴミ箱を空にしますか？",
+  "enable": "有効化",
+  "enableAutomaticBackups": "自動バックアップ",
+  "enableComment": "コメントとリアクション",
+  "enabled": "有効",
+  "enableMaps": "マップを有効にする",
+  "encrypted": "暗号化済み",
+  "encryptingBackup": "バックアップを暗号化中...",
+  "endpointUpdatedMessage": "エンドポイントの更新に成功しました",
+  "@endpointUpdatedMessage": {
+    "description": "Success message when endpoint is updated"
+  },
+  "enterAlbumName": "アルバム名を入力",
+  "enterAnEmailAddress": "メールアドレスを入力",
+  "enterAValidEmailAddress": "有効なメールアドレスを入力してください",
+  "enterCode": "コードを入力",
+  "enterCodeDescription": "もらったコードを入力して、無料のストレージを入手してください",
+  "enterCodeHint": "認証アプリに表示された 6 桁のコードを入力してください",
+  "@enterCodeHint": {
+    "description": "Hint for entering 2FA code"
+  },
+  "enterCollectionName": "コレクション名を入力",
+  "enterDateOfBirthHint": "生年月日を入力",
+  "enterDetailsManually": "手動で詳細を入力する",
+  "enterFileName": "ファイル名を入力してください",
+  "enterName": "名前を入力",
+  "enterNameOrEmailToShareWith": "共有する名前またはメールアドレスを入力",
+  "enterNewEmailHint": "新しいメールアドレスを入力してください",
+  "@enterNewEmailHint": {
+    "description": "Hint text for entering new email address"
+  },
+  "enterNewTitle": "新しいタイトルを入力",
+  "enterPassword": "パスワードを入力",
+  "@enterPassword": {
+    "description": "Enter password field label"
+  },
+  "enterRecoveryKeyHint": "回復キーを入力",
+  "@enterRecoveryKeyHint": {
+    "description": "Hint for entering recovery key"
+  },
+  "enterReferralCode": "紹介コードを入力してください",
+  "enterThe6digitCodeFromnyourAuthenticatorApp": "認証アプリに表示された 6 桁のコードを入力してください",
+  "enterValidEmail": "有効なEメールアドレスを入力してください",
+  "enterYourNewEmailAddress": "新しいメールアドレスを入力してください",
+  "enterYourPassword": "パスワードを入力",
+  "enterYourPasswordHint": "パスワードを入力してください",
+  "@enterYourPasswordHint": {
+    "description": "Hint for password field"
+  },
+  "error": "エラー",
+  "@error": {
+    "description": "Generic error title"
+  },
+  "errorGenericBody": "インポート中に予期しないエラーが発生しました。",
+  "errorGenericTitle": "エラーが発生しました",
+  "errorInvalidQRCodeBody": "スキャンしたQRコードは有効な2FAアカウントではありません。",
+  "errorNoQRCode": "QRコードが見つかりませんでした",
+  "errorOpeningFile": "アイテムを開く際にエラーが発生しました",
+  "exif": "EXIF",
+  "expiredLinkInfo": "このリンクは期限切れです。新たな期限を設定するか、期限設定そのものを無くすか、選択してください",
+  "export": "エクスポート",
+  "exportCodes": "コードをエクスポート",
+  "exportDialogDesc": "暗号化されたエクスポートはあなたが選択したパスワードで保護されます。",
+  "exportLogs": "ログのエクスポート",
+  "@exportLogs": {
+    "description": "Button to export logs"
+  },
+  "exportWarningDesc": "エクスポートされたファイルには機密情報が含まれています。安全に保管してください。",
+  "exportYourData": "データをエクスポート",
+  "extraPhotosFound": "追加の写真が見つかりました",
+  "faceNotClusteredYet": "顔がまだ集まっていません。後で戻ってきてください",
+  "facesTimelinePlaybackPause": "一時停止",
+  "@facesTimelinePlaybackPause": {
+    "description": "Tooltip or semantics label for the pause button"
+  },
+  "faceThumbnailGenerationFailed": "顔のサムネイルを生成できません",
+  "failedToApplyCode": "コードを適用できませんでした",
+  "failedToCancel": "キャンセルに失敗しました",
+  "failedToDeleteComment": "コメントを削除できませんでした",
+  "@failedToDeleteComment": {
+    "description": "Toast when comment deletion fails"
+  },
+  "failedToDownloadOrDecrypt": "アイテムのダウンロードに失敗しました",
+  "failedToDownloadVideo": "ビデオをダウンロードできませんでした",
+  "failedToFetchActiveSessions": "アクティブなセッションの取得に失敗しました",
+  "@failedToFetchActiveSessions": {
+    "description": "In session page, warn user (in toast) that active sessions could not be fetched."
+  },
+  "failedToFetchOriginalForEdit": "編集前の状態の取得に失敗しました",
+  "failedToFetchReferralDetails": "紹介の詳細を取得できません。後でもう一度お試しください。",
+  "failedToLikeComment": "コメントをいいねできませんでした",
+  "@failedToLikeComment": {
+    "description": "Toast when comment like fails"
+  },
+  "failedToLoadAlbums": "アルバムの読み込みに失敗しました",
+  "failedToLoadCollections": "コレクションの読み込みに失敗しました: {error}",
+  "@failedToLoadCollections": {
+    "description": "Error message when loading collections fails",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Network error"
+      }
+    }
+  },
+  "failedToRefreshStripeSubscription": "サブスクリプションの更新に失敗しました",
+  "failedToRenew": "更新に失敗しました",
+  "failedToUpdateFile": "アイテムの更新に失敗しました: {error}",
+  "@failedToUpdateFile": {
+    "description": "Error message when item update fails",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Network error"
+      }
+    }
+  },
+  "failedToVerifyPaymentStatus": "支払ステータスの確認に失敗しました",
+  "family": "ファミリー",
+  "familyMoments": "家族の時間",
+  "faqs": "よくある質問",
+  "favorite": "お気に入り",
+  "feastingWithThem": "{name}とご飯！",
+  "@feastingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "featureBackupCodes": "エンドツーエンドの暗号化された\nバックアップと同期",
+  "featureOpenSource": "オープンソースと\nセキュリティ専門家による監査",
+  "featurePassAutomatically": "緊急時に自動的に引き継ぎ",
+  "featureSaveImportant": "重要なドキュメントと認証情報を保存",
+  "featureSearchEtc": "検索、タグ、共有、\n次のコードとその他",
+  "featureShareAnytime": "いつでも共有",
+  "feed": "フィード",
+  "fieldCopiedToClipboard": "{fieldName}がクリップボードにコピーされました",
+  "@fieldCopiedToClipboard": {
+    "description": "Message when a field is copied to clipboard",
+    "placeholders": {
+      "fieldName": {
+        "type": "String",
+        "example": "Password"
+      }
+    }
+  },
+  "fileAnalysisFailed": "ファイルを分析できません",
+  "fileDeletedSuccessfully": "アイテムが正常に削除されました",
+  "fileInfoAddDescHint": "説明を追加...",
+  "fileMarkedAsImportant": "アイテムを重要としてマークしました",
+  "fileNotUploadedYet": "ファイルがまだアップロードされていません",
+  "fileRemovedFromImportant": "アイテムを重要から削除しました",
+  "files": "ファイル",
+  "@files": {
+    "description": "Section header for file-related search results"
+  },
+  "filesAddedByYouWillBeRemovedFromTheCollection": "あなたが追加したアイテムはコレクションから削除されます",
+  "fileSavedToGallery": "ファイルをギャラリーに保存しました",
+  "filesDeleted": "削除されたファイル",
+  "filesSavedToGallery": "写真をダウンロードしました",
+  "fileTypes": "ファイルの種類",
+  "fileUpdatedSuccessfully": "アイテムが正常に更新されました！",
+  "filter": "フィルター",
+  "filters": "フィルター",
+  "findSimilarImages": "類似した画像を検索",
+  "findThemQuickly": "すばやく見つける",
+  "@findThemQuickly": {
+    "description": "Subtitle to indicate that the user can find people quickly by name"
+  },
+  "flip": "反転",
+  "focusOnSearchBar": "アプリの起動時、検索欄にフォーカスする",
+  "font": "フォント",
+  "food": "料理を楽しむ",
+  "forgotRecoveryKey": "リカバリーキーをお忘れですか？",
+  "freeStorageOffer": "<bold-green>ente</bold-green>の写真が10%オフ",
+  "freeStorageOfferDescription": "クーポンコード \"AUTH\" の使用で初年度が10%オフになります",
+  "freeTrial": "無料トライアル",
+  "freeUpAmount": "{sizeInMBorGB} を解放する",
+  "@freeUpAmount": {
+    "placeholders": {
+      "sizeInMBorGB": {}
+    }
+  },
+  "freeUpDeviceSpace": "デバイスの空き領域を解放する",
+  "freeUpSpace": "スペースを解放する",
+  "gallery": "ギャラリー",
+  "galleryMemoryLimitInfo": "ギャラリーに表示されるメモリは最大1000個までです",
+  "generatingEncryptionKeysTitle": "暗号化鍵を生成中...",
+  "@generatingEncryptionKeysTitle": {
+    "description": "Generating encryption keys title"
+  },
+  "getInTouch": "お問い合わせ",
+  "getStarted": "始める",
+  "gettingReady": "準備中",
+  "giveUsAStarOnGithub": "Githubで星をつける",
+  "googlePlayId": "Google Play ID",
+  "grantFullAccessPrompt": "設定アプリで、すべての写真へのアクセスを許可してください",
+  "grantPermission": "許可する",
+  "greenery": "緑の生活",
+  "groupByDay": "日",
+  "groupByMonth": "月",
+  "groupByWeek": "週",
+  "groupByYear": "年",
+  "guestView": "ゲストビュー",
+  "guestViewEnablePreSteps": "アプリのロックを有効にするには、システム設定でデバイスのパスコードまたは画面ロックを設定してください。",
+  "happyBirthday": "お誕生日おめでとうございます! 🥳",
+  "hearUsWhereOptionalTitle": "Ente についてどのようにお聞きになりましたか？（任意）",
+  "@hearUsWhereOptionalTitle": {
+    "description": "Title asking how user heard about Ente"
+  },
+  "help": "ヘルプ",
+  "helpAndSupport": "ヘルプとサポート",
+  "hidden": "非表示",
+  "hide": "非表示",
+  "hideContent": "内容を非表示",
+  "@hideContent": {
+    "description": "Hide content setting title"
+  },
+  "hideContentDescriptioniOS": "アプリを切り替えた際に、アプリの内容を非表示にします",
+  "@hideContentDescriptioniOS": {
+    "description": "Description of hide content feature on iOS"
+  },
+  "hideSharedItemsFromHomeGallery": "ホームギャラリーから共有された写真等を非表示",
+  "hiding": "非表示にしています",
+  "hikingWithThem": "{name}とハイキング！",
+  "@hikingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "hintForDesktop": "コードを右クリックすると、編集または削除できます。",
+  "hintForMobile": "コードを長押しすると、編集または削除できます。",
+  "hostedAtOsmFrance": "OSM Franceでホスト",
+  "howToViewShareeVerificationID": "設定画面でメールアドレスを長押しし、両デバイスのIDが一致していることを確認してください。",
+  "ignore": "無視する",
+  "ignored": "無視された",
+  "imageNotAnalyzed": "画像が分析されていません",
+  "immediately": "すぐに",
+  "@immediately": {
+    "description": "Immediately option for auto lock timing"
+  },
+  "import2FasGuide": "2FAS の \"設定->バックアップ-エクスポート\" オプションを使用します。\n\nバックアップが暗号化されている場合は、バックアップを復号するためにパスワードの入力が必要になります。",
+  "importAccountPageTitle": "アカウントの詳細を入力",
+  "importAegisGuide": "Aegis の設定の \"保管庫をエクスポート\" を使用してください。\n\n保管庫が暗号化されている場合、保管庫を復号するためにパスワードの入力が必要になります。",
+  "important": "重要",
+  "importBitwardenGuide": "Bitwarden Tools の \"保管庫のエクスポート\" オプションを使用後、平文の JSON ファイルをインポートしてください。",
+  "importCodeDelimiterInfo": "コードはカンマまたは改行で区切ることができます",
+  "importCodes": "コードをインポート",
+  "importEnteEncGuide": "Enteからエクスポートした暗号化されたJSONファイルを選択してください",
+  "importEnterSetupKey": "手動で入力",
+  "importFailureDesc": "選択されたファイルを解析できませんでした。",
+  "importFromGallery": "ギャラリーからインポート",
+  "importInstruction": "以下の形式のコードのリストを含むファイルを選択してください",
+  "importLabel": "インポート",
+  "importLastpassGuide": "Lastpass Authenticator の設定内にある \"アカウントを転送\" オプションを使用し、\"アカウントをファイルにエクスポート\" を押してください。その後ダウンロードした JSON をインポートしてください。",
+  "importRaivoGuide": "Raivo の設定の \"OTP を zip アーカイブにエクスポート\" を使用してください。\n\nzip ファイルを解凍し JSON ファイルをインポートしてください。",
+  "importSelectAppExport": "{appName} のエクスポートファイルを選択",
+  "@importSelectAppExport": {
+    "placeholders": {
+      "appName": {}
+    }
+  },
+  "importSelectJsonFile": "JSON ファイルを選択",
+  "importSuccessDesc": "{count} 個のコードをインポートしました!",
+  "@importSuccessDesc": {
+    "placeholders": {
+      "count": {
+        "description": "The number of codes imported",
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "importSuccessTitle": "やりました！",
+  "importTypeEnteEncrypted": "Ente 暗号化されたエクスポート",
+  "incorrectDetails": "不正な詳細",
+  "incorrectRecoveryKeyBody": "リカバリーキーが間違っています",
+  "incorrectRecoveryKeyTitle": "リカバリーキーの誤り",
+  "info": "情報",
+  "informationDescription": "大切な人と情報を保存・共有します。",
+  "initialBackupCreated": "初期バックアップが作成されました！",
+  "invalidEmailAddress": "無効なEメールアドレス",
+  "invalidEmailMessage": "有効なメールアドレスを入力して下さい",
+  "@invalidEmailMessage": {
+    "description": "Message for invalid email error dialog"
   },
   "invalidEmailTitle": "メールアドレスが無効です",
   "@invalidEmailTitle": {
     "description": "Title for invalid email error dialog"
   },
-  "invalidEmailMessage": "有効なメールアドレスを入力して下さい",
-  "@invalidEmailMessage": {
-    "description": "Message for invalid email error dialog"
+  "invalidEndpoint": "無効なエンドポイントです",
+  "@invalidEndpoint": {
+    "description": "Error message when endpoint is invalid"
   },
-  "pleaseWait": "お待ちください...",
-  "@pleaseWait": {
-    "description": "Please wait message"
+  "invalidEndpointMessage": "入力されたエンドポイントは無効です。有効なエンドポイントを入力して再試行してください。",
+  "@invalidEndpointMessage": {
+    "description": "Detailed error message when endpoint is invalid"
   },
-  "verifyPassword": "パスワードを確認",
-  "@verifyPassword": {
-    "description": "Verify password button label"
+  "invalidRecoveryKey": "入力された回復キーが無効です。24 単語が含まれていることを確認し、それぞれのスペルを確認してください。\n\n古い形式の回復コードを入力した場合は、64 文字であることを確認して、それぞれを確認してください。",
+  "invalidReferralCode": "無効なコードです",
+  "invite": "招待",
+  "inviteMembers": "メンバーを招待",
+  "inviteResent": "招待を再送する",
+  "inviteToEnte": "Enteに招待する",
+  "ok": "OK",
+  "@ok": {
+    "description": "Generic OK button label"
   },
-  "incorrectPasswordTitle": "パスワードが正しくありません",
-  "@incorrectPasswordTitle": {
-    "description": "Title for incorrect password error"
+  "itemCount": "{count, plural, other{{count}個のアイテム}}",
+  "@itemCount": {
+    "placeholders": {
+      "count": {}
+    }
   },
-  "pleaseTryAgain": "再度お試しください",
-  "@pleaseTryAgain": {
-    "description": "Message asking user to try again"
+  "items": "{count}個のアイテム",
+  "@items": {
+    "description": "Number of items in a collection",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
   },
-  "enterPassword": "パスワードを入力",
-  "@enterPassword": {
-    "description": "Enter password field label"
+  "itemsShowTheNumberOfDaysRemainingBeforePermanentDeletion": "完全に削除されるまでの日数が項目に表示されます",
+  "itemsWillBeRemovedFromAlbum": "選択したアイテムはこのアルバムから削除されます",
+  "itLooksLikeSomethingWentWrongPleaseRetryAfterSome": "問題が発生したようです。しばらくしてから再試行してください。エラーが解決しない場合は、サポートチームにお問い合わせください。",
+  "@itLooksLikeSomethingWentWrongPleaseRetryAfterSome": {
+    "description": "Generic error message for temporary issues"
   },
-  "enterYourPasswordHint": "パスワードを入力してください",
-  "@enterYourPasswordHint": {
-    "description": "Hint for password field"
+  "iUnderStand": "理解しました",
+  "@iUnderStand": {
+    "description": "Text for the button to confirm the user understands the warning"
   },
-  "activeSessions": "アクティブセッション",
-  "@activeSessions": {
-    "description": "Title for active sessions page"
+  "join": "参加する",
+  "joinAlbum": "アルバムに参加",
+  "joinAlbumConfirmationDialogBody": "アルバムに参加すると、参加者にメールアドレスが公開されます。",
+  "joinAlbumSubtext": "写真を表示したり、追加したりするために",
+  "joinAlbumSubtextViewer": "これを共有アルバムに追加するために",
+  "kiloMeterUnit": "km",
+  "language": "言語",
+  "lastMonth": "先月",
+  "lastUpdated": "更新された順",
+  "lastWeek": "先週",
+  "lastYearsTrip": "昨年の旅行",
+  "layout": "レイアウト",
+  "layoutTrip": "旅行",
+  "leave": "離脱",
+  "leaveAlbum": "アルバムを抜ける",
+  "leaveCollection": "コレクションから退出",
+  "leaveFamily": "ファミリープランから退会",
+  "leaveFamilyPlan": "ファミリープランから抜ける",
+  "@leaveFamilyPlan": {
+    "description": "Button label for leaving family plan",
+    "type": "text"
   },
+  "leaveSharedAlbum": "共有アルバムを抜けてよいですか？",
+  "left": "左",
+  "legacy": "レガシー",
+  "legacyAccounts": "レガシーアカウント",
+  "legacyInvite": "{email} があなたを信頼する連絡先として招待しました",
+  "@legacyInvite": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "family@example.com"
+      }
+    }
+  },
+  "legacyPageDesc": "レガシーでは、信頼できる連絡先が不在時(あなたが亡くなった時など)にアカウントにアクセスできます。",
+  "legacyPageDesc2": "信頼できる連絡先はアカウントの回復を開始することができます。30日以内にあなたが拒否しない場合は、その信頼する人がパスワードをリセットしてあなたのアカウントにアクセスできるようになります。",
+  "letsTryThatAgain": "もう一度お試しください",
+  "lightTheme": "ライト",
+  "like": "いいね",
+  "linkCopiedToClipboard": "リンクをクリップボードにコピーしました",
+  "linkDeletedSuccessfully": "リンクが正常に削除されました",
+  "linkDeviceLimit": "デバイスの制限",
+  "linkEnabled": "有効",
+  "linkExpired": "期限切れ",
+  "linkExpiresOn": "リンクは {expiryTime} に期限切れになります",
+  "@linkExpiresOn": {
+    "placeholders": {
+      "expiryTime": {}
+    }
+  },
+  "linkExpiry": "リンクの期限切れ",
+  "linkHasExpired": "リンクは期限切れです",
+  "linkLabel": "リンク",
+  "linkNeverExpires": "なし",
+  "linkRequestLimitExceeded": "このアルバムはあまりにも多くの端末で閲覧されています",
+  "livePhotos": "ライブフォト",
+  "loadingExifData": "EXIF データを読み込み中...",
+  "loadingGallery": "ギャラリーを読み込み中...",
+  "loadingModel": "モデルをダウンロード中",
+  "loadingYourPhotos": "写真を読み込んでいます...",
+  "loadMessage1": "サブスクリプションを家族と共有できます",
+  "loadMessage3": "私たちはあなたのデータのコピーを3つ保管しています。1つは地下のシェルターにあります。",
+  "loadMessage4": "すべてのアプリはオープンソースです",
+  "loadMessage5": "当社のソースコードと暗号方式は外部から監査されています",
+  "loadMessage6": "アルバムへのリンクを共有できます",
+  "loadMessage7": "当社のモバイルアプリはバックグラウンドで実行され、新しい写真を暗号化してバックアップします",
+  "loadMessage8": "{webUrl}にはアップローダーがあります",
+  "@loadMessage8": {
+    "description": "Loading screen message about the web uploader.",
+    "placeholders": {
+      "webUrl": {
+        "type": "String",
+        "example": "photos.ente.com"
+      }
+    }
+  },
+  "loadMessage9": "Xchacha20Poly1305を使用してデータを安全に暗号化します。",
+  "localBackupSidebarTitle": "ローカルバックアップ",
+  "localGallery": "デバイス上のギャラリー",
+  "localIndexing": "ローカル処理",
+  "localSyncErrorMessage": "ローカルの写真の同期には予想以上の時間がかかっています。問題が発生したようです。サポートチームまでご連絡ください。",
+  "location": "場所",
+  "locationName": "場所の名前",
+  "locations": "場所",
+  "locationTagFeatureDescription": "位置タグは、写真の半径内で撮影されたすべての写真をグループ化します",
+  "locationUpdatedAndBackupCreated": "場所が更新され、初期バックアップが作成されました！",
+  "lockButtonLabel": "ロック",
+  "loggingOut": "ログアウト中...",
+  "@loggingOut": {
+    "description": "Message shown while logging out"
+  },
+  "logInLabel": "ログイン",
+  "@logInLabel": {
+    "description": "Log in button label"
+  },
+  "loginSessionExpired": "セッションの有効期限が切れました",
+  "@loginSessionExpired": {
+    "description": "Login session expired title"
+  },
+  "loginSessionExpiredDetails": "セッションの有効期限が切れました。再度ログインしてください。",
+  "@loginSessionExpiredDetails": {
+    "description": "Login session expired details"
+  },
+  "loginToEnte": "Enteにログイン",
+  "loginToExistingAccount": "既存のアカウントでログイン",
+  "loginWithAuthAccount": "認証アカウントでログイン",
+  "loginWithTOTP": "TOTPでログイン",
+  "@loginWithTOTP": {
+    "description": "Login with TOTP button label"
+  },
+  "logout": "ログアウト",
+  "logs": "ログ",
+  "logsDialogBody": "これにより、問題のデバッグに役立つログが送信されます。 特定のファイルの問題を追跡するために、ファイル名が含まれることに注意してください。",
+  "@logsDialogBody": {
+    "description": "Body text for the logs dialog explaining what will be sent"
+  },
+  "logsDialogBodyLocker": "問題のデバッグに役立てるためにログを送信します。",
+  "@logsDialogBodyLocker": {
+    "description": "Dialog body text for sending logs in Locker app (without file name warning)"
+  },
+  "logsNotCopiedDownloadNote": "ログはコピーされません。ログをエクスポートしてメールに添付してください。",
+  "longPressAnEmailToVerifyEndToEndEncryption": "表示されているEメールアドレスを長押しして、暗号化を確認します。",
+  "lookBackOnYourMemories": "思い出を振り返ってみましょう 🌄",
+  "loopVideoOff": "ループを有効にする",
+  "loopVideoOn": "ループを無効にする",
+  "lostDevice": "デバイスを紛失しましたか？",
+  "lostDeviceTitle": "デバイスを紛失しましたか？",
+  "@lostDeviceTitle": {
+    "description": "Lost device title"
+  },
+  "machineLearning": "機械学習",
+  "magic": "マジック",
+  "@magic": {
+    "description": "Section header for magic search results"
+  },
+  "manageDeviceStorage": "端末のキャッシュを管理",
+  "manageFamily": "ファミリーの管理",
+  "manageLink": "リンクを管理",
+  "managePaymentMethod": "支払い方法の管理",
+  "manageSubscription": "サブスクリプションの管理",
+  "manualSort": "カスタム",
+  "map": "地図",
+  "@map": {
+    "description": "Label for the map view"
+  },
+  "maps": "地図",
+  "markingAsImportant": "重要としてマーク中...",
+  "me": "自分",
+  "members": "メンバー",
+  "memoryShareLinkDescription": "このリンクは7日後に期限切れになります。",
+  "merchandise": "グッズ",
+  "mergedPhotos": "統合された写真",
+  "mergeWithExisting": "既存の人物とまとめる",
+  "message": "メッセージ",
+  "minimizeAppOnCopy": "コピー時にアプリを最小化する",
+  "minimizeToTrayOnClose": "閉じたときにトレイに最小化",
+  "mlConsent": "機械学習を有効にする",
+  "mlConsentConfirmation": "機械学習を有効にします",
+  "mlConsentDescription": "機械学習を有効にすると、Enteは顔などの情報をファイルから抽出します。\n\nこれはお使いのデバイスで行われ、生成された生体情報は暗号化されます。",
+  "mlProgressBannerDescription": "あなたの写真は、顔やオブジェクトなどを検出するためにデバイス上で処理されます。",
+  "mlProgressBannerTitle": "もう少しお待ちください！",
+  "modifyYourQueryOrTrySearchingFor": "クエリを変更するか、以下のように検索してみてください",
+  "moments": "日々の瞬間",
+  "month": "月",
+  "monthly": "月額",
+  "@monthly": {
+    "description": "The text to display for monthly plans",
+    "type": "text"
+  },
+  "moon": "月明かりの中",
+  "moreDetails": "さらに詳細を表示",
+  "mostFrequentlyUsed": "よく使う",
+  "mostRecent": "新しい順",
+  "mostRecentlyUsed": "最近使った",
+  "mostRelevant": "関連度順",
+  "mountains": "丘を超えて",
+  "movedSuccessfullyTo": "{albumName} に移動しました",
+  "@movedSuccessfullyTo": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
+  "movedToTrash": "ごみ箱へ移動",
+  "moveMultipleToTrashMessage": "{count} アイテムをゴミ箱に移動してもよろしいですか？",
+  "@moveMultipleToTrashMessage": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "moveSelectedPhotosToOneDate": "選択した写真を1つの日付に移動",
+  "moveToAlbum": "アルバムに移動",
+  "moveToHiddenAlbum": "隠しアルバムに移動",
+  "movingFilesToAlbum": "アルバムにファイルを移動中",
+  "name": "名前順",
+  "networkConnectionRefusedErr": "Enteに接続できませんでした。しばらくしてから再試行してください。エラーが解決しない場合は、サポートにお問い合わせください。",
+  "@networkConnectionRefusedErr": {
+    "description": "Error message shown when the app cannot connect to Ente due to connection refused"
+  },
+  "networkHostLookUpErr": "Enteに接続できませんでした。ネットワーク設定を確認し、エラーが解決しない場合はサポートにお問い合わせください。",
+  "@networkHostLookUpErr": {
+    "description": "Error message shown when the app cannot connect to Ente due to network host lookup failure"
+  },
+  "never": "なし",
+  "newAlbum": "新しいアルバム",
+  "newCollection": "新しいコレクション",
+  "newest": "新しい順",
+  "newLocation": "新しいロケーション",
+  "newPhotosEmoji": " 新規 📸",
+  "newRange": "範囲を追加",
+  "next": "次へ",
+  "@next": {
+    "description": "Next button label"
+  },
+  "nextTotpTitle": "次のコード",
+  "nightLights": "ネオンの夜",
+  "no": "いいえ",
+  "noChangesWereMade": "変更はありませんでした",
+  "noCollections": "コレクションがありません",
+  "noDefaultBackupFolder": "デフォルトのバックアップフォルダを作成できませんでした。",
+  "noDeviceFound": "デバイスが見つかりません",
+  "noDeviceLimit": "なし",
+  "@noDeviceLimit": {
+    "description": "Text to indicate that there is limit on number of devices"
+  },
+  "noDeviceThatCanBeDeleted": "削除できるファイルがありません",
+  "noDuplicates": "✨ 重複なし",
+  "noEmailAppFound": "メールアプリが見つかりません",
+  "noExifData": "EXIFデータはありません",
+  "noFacesFound": "顔が見つかりません",
+  "noFilesFound": "アイテムがありません",
+  "noHiddenFilesOnDevice": "デバイスに隠れたファイルがありません",
+  "noImagesWithLocation": "位置情報のある画像がありません",
+  "noInternetConnection": "インターネット接続なし",
+  "@noInternetConnection": {
+    "description": "No internet connection error message"
+  },
+  "noItemsMatchSelectedFilters": "選択したフィルターに一致するアイテムがありません",
+  "noLikesYet": "「いいね」はまだありません",
+  "@noLikesYet": {
+    "description": "Empty state when no likes exist"
+  },
+  "noLocation": "位置情報がありません",
+  "@noLocation": {
+    "description": "Search result label for files owned by the user with missing location metadata"
+  },
+  "noLocationTag": "位置情報のタグがありません",
+  "@noLocationTag": {
+    "description": "Search result label for files that do not have a manual location tag"
+  },
+  "noPaymentAppFound": "支払い用のアプリが見つかりません",
+  "noPhotosFoundHere": "写真が見つかりません",
+  "noRecoveryKeyNoDecryption": "あなたのデータはエンドツーエンド暗号化されており、パスワードかリカバリーキーがない場合、データを復号することはできません",
+  "@noRecoveryKeyNoDecryption": {
+    "description": "Explanation that data cannot be decrypted without password or recovery key"
+  },
+  "noRecoveryKeyTitle": "回復キーがありませんか？",
+  "@noRecoveryKeyTitle": {
+    "description": "No recovery key title"
+  },
+  "noResult": "該当結果なし",
+  "noResultsFound": "一致する結果が見つかりませんでした",
+  "noSimilarImagesFound": "類似した画像が見つかりません",
+  "noSuggestionsForPerson": "{personName} の候補はありません",
+  "@noSuggestionsForPerson": {
+    "placeholders": {
+      "personName": {
+        "type": "String",
+        "example": "Alice"
+      }
+    }
+  },
+  "noSystemLockFound": "システムロックが見つかりませんでした",
+  "@noSystemLockFound": {
+    "description": "Error when no system lock is found"
+  },
+  "note": "メモ",
+  "noteContent": "内容",
+  "noteContentHint": "重要な考えや指示を書き留めてください",
+  "noteName": "タイトル",
+  "noteNameHint": "メモのタイトル",
+  "notes": "ノート",
+  "notesLengthLimit": "ノートは {count} 文字までです",
+  "@notesLengthLimit": {
+    "description": "Text to indicate the maximum number of characters allowed for notes",
+    "placeholders": {
+      "count": {
+        "description": "The maximum number of characters allowed for notes",
+        "type": "int",
+        "example": "100"
+      }
+    }
+  },
+  "nothingToSeeHere": "ここには何もありません",
+  "notifications": "通知",
+  "notPersonLabel": "{name} ではありませんか？",
+  "@notPersonLabel": {
+    "description": "Label to indicate that the person in the photo is not the person whose name is mentioned",
+    "placeholders": {
+      "name": {
+        "content": "{name}",
+        "type": "String"
+      }
+    }
+  },
+  "notThisPerson": "この人ではありませんか？",
+  "ocrGenericDetectError": "画像内のテキストを検出できませんでした",
+  "ocrImageDecodeFailedError": "画像を読み込めません",
+  "ocrImageNotFoundError": "画像が見つかりませんでした",
+  "ocrModelsNetworkRequiredError": "OCRモデルのダウンロードにはネットワーク接続が必要です",
+  "ocrModelsPrepareFailed": "OCRモデルを準備できませんでした",
+  "ocrNoTextDetected": "テキストが見つかりませんでした",
+  "offlineEnableBackupTagLabel": "10GB 無料！",
+  "offlineFacesBannerTitle": "これらの顔を保存しますか？",
+  "offlineHomeSignupBannerAction": "今すぐバックアップ",
+  "offlineModeWarning": "あなたはバックアップなしに続行することを選択しました。コードを安全に保つために手動でのバックアップを行ってください。",
+  "offlineNameFaceBannerTitle": "この顔に名前を付けてください",
+  "offlineSettingsBannerTitle": "あなたの写真を見ることはできません。",
+  "oneLineAboutTheIssue": "問題の概要",
+  "onEnte": "<branding>Ente</branding>が保管",
+  "@onEnte": {
+    "description": "The text displayed above albums backed up to Ente",
+    "type": "text"
+  },
+  "onlyFamilyAdminCanChangeCode": "コードを変更するには、 {familyAdminEmail} までご連絡ください。",
+  "@onlyFamilyAdminCanChangeCode": {
+    "placeholders": {
+      "familyAdminEmail": {}
+    }
+  },
+  "onlyThem": "この人のみ",
+  "onTheRoad": "再び道で",
+  "onThisDay": "今日",
   "oops": "おっと",
   "@oops": {
     "description": "Oops error title"
   },
-  "somethingWentWrongPleaseTryAgain": "問題が発生しました、再試行してください",
-  "@somethingWentWrongPleaseTryAgain": {
-    "description": "Generic error message"
+  "oopsCouldNotSaveEdits": "編集を保存できませんでした",
+  "oopsSomethingWentWrong": "問題が発生しました",
+  "openAlbumInBrowser": "ブラウザでアルバムを開く",
+  "openAlbumInBrowserTitle": "このアルバムに写真を追加するには、Webアプリを使用してください",
+  "openFile": "ファイルを開く",
+  "openLink": "リンクを開く",
+  "openSettings": "設定を開く",
+  "openstreetmapContributors": "OpenStreetMap のコントリビューター",
+  "optionalAsShortAsYouLike": "省略可能、好きなだけお書きください...",
+  "otherDetectedFaces": "その他の検出された顔",
+  "pair": "ペアリング",
+  "panorama": "パノラマ",
+  "partyWithThem": "{name}とパーティー！",
+  "@partyWithThem": {
+    "placeholders": {
+      "name": {}
+    }
   },
-  "thisWillLogYouOutOfThisDevice": "このデバイスからログアウトします！",
-  "@thisWillLogYouOutOfThisDevice": {
-    "description": "Warning message for logging out of current device"
-  },
-  "thisWillLogYouOutOfTheFollowingDevice": "以下のデバイスからログアウトします:",
-  "@thisWillLogYouOutOfTheFollowingDevice": {
-    "description": "Warning message for logging out of another device"
-  },
-  "terminateSession": "セッションを終了しますか？",
-  "@terminateSession": {
-    "description": "Title for terminate session dialog"
-  },
-  "terminate": "終了",
-  "@terminate": {
-    "description": "Terminate button label"
-  },
-  "thisDevice": "このデバイス",
-  "@thisDevice": {
-    "description": "Label for current device"
-  },
-  "createAccount": "アカウント作成",
-  "@createAccount": {
-    "description": "Create account button label"
-  },
-  "weakStrength": "脆弱",
-  "@weakStrength": {
-    "description": "Weak password strength label"
-  },
-  "moderateStrength": "まあまあ",
-  "@moderateStrength": {
-    "description": "Moderate password strength label"
-  },
-  "strongStrength": "強力",
-  "@strongStrength": {
-    "description": "Strong password strength label"
-  },
-  "deleteAccount": "アカウント削除",
-  "@deleteAccount": {
-    "description": "Delete account button label"
-  },
-  "deleteAccountQuery": "ご不便をおかけして申し訳ありません。なにか問題が発生していますか？",
-  "@deleteAccountQuery": {
-    "description": "Message asking user why they want to delete account"
-  },
-  "yesSendFeedbackAction": "はい、フィードバックを送信します",
-  "@yesSendFeedbackAction": {
-    "description": "Button to confirm sending feedback"
-  },
-  "noDeleteAccountAction": "いいえ、アカウントを削除します",
-  "@noDeleteAccountAction": {
-    "description": "Button to proceed with account deletion"
-  },
-  "initiateAccountDeleteTitle": "アカウントの削除を開始するためには認証が必要です",
-  "@initiateAccountDeleteTitle": {
-    "description": "Title for authentication dialog before account deletion"
-  },
-  "confirmAccountDeleteTitle": "アカウントの削除に同意",
-  "@confirmAccountDeleteTitle": {
-    "description": "Title for account deletion confirmation dialog"
-  },
-  "confirmAccountDeleteMessage": "このアカウントは他のEnteアプリも使用している場合はそれらにも紐づけされています。\nすべてのEnteアプリでアップロードされたデータは削除され、アカウントは完全に削除されます。",
-  "@confirmAccountDeleteMessage": {
-    "description": "Message warning about account deletion consequences"
-  },
-  "delete": "削除",
-  "@delete": {
-    "description": "Delete button label"
-  },
-  "createNewAccount": "新規アカウント作成",
-  "@createNewAccount": {
-    "description": "Create new account button label"
-  },
+  "passkey": "パスキー",
   "password": "パスワード",
   "@password": {
     "description": "Password field label"
   },
-  "confirmPassword": "パスワードの確認",
-  "@confirmPassword": {
-    "description": "Confirm password field label"
-  },
+  "passwordEmptyError": "パスワードは空欄にできません",
+  "passwordForDecryptingExport": "復号化用パスワード",
+  "passwordHint": "パスワード",
+  "passwordLock": "パスワード保護",
+  "passwordsDontMatch": "パスワードが違います",
+  "passwordsMatch": "パスワードが一致しました",
   "passwordStrength": "パスワードの強度: {passwordStrengthValue}",
   "@passwordStrength": {
     "description": "Text to indicate the password strength",
@@ -226,186 +1418,638 @@
       }
     }
   },
-  "hearUsWhereTitle": "Ente についてどのようにお聞きになりましたか？（任意）",
-  "@hearUsWhereTitle": {
-    "description": "Title asking how user heard about Ente"
+  "passwordToEncryptExport": "エクスポートを暗号化するためのパスワード",
+  "passwordTooShort": "パスワードは8文字以上でなければなりません。",
+  "passwordWarning": "私たちはこのパスワードを保存していないので、あなたがそれを忘れた場合に<underline>私たちがあなたのデータを代わりに復号することはできません</underline>",
+  "@passwordWarning": {
+    "description": "Warning about password storage"
   },
-  "hearUsExplanation": "私たちはアプリのインストールを追跡していません。私たちをお知りになった場所を教えてください！",
-  "@hearUsExplanation": {
-    "description": "Explanation for asking how user heard about Ente"
+  "pastYearsMemories": "過去数年の思い出",
+  "pay": "支払い",
+  "paymentDetails": "お支払い情報",
+  "paymentFailed": "支払いに失敗しました",
+  "paymentFailedMessage": "残念ながらお支払いに失敗しました。サポートにお問い合わせください。お手伝いします！",
+  "paymentFailedTalkToProvider": "請求された場合は、 {providerName} のサポートに連絡してください",
+  "@paymentFailedTalkToProvider": {
+    "description": "The text to display when the payment failed",
+    "type": "text",
+    "placeholders": {
+      "providerName": {
+        "example": "AppStore|PlayStore",
+        "type": "String"
+      }
+    }
   },
-  "signUpTerms": "<u-terms>利用規約</u-terms>と<u-policy>プライバシー ポリシー</u-policy>に同意します",
-  "@signUpTerms": {
-    "description": "Terms agreement text for sign up"
+  "pendingSync": "同期を保留中",
+  "pendingSyncs": "警告",
+  "pendingSyncsWarningBody": "いくつかのコードがバックアップされていません。\n\nログアウトする前に、これらのコードのバックアップがあることを確認してください。",
+  "people": "人物",
+  "peopleAutoAddDesc": "このアルバムに選択した人物の写真を自動的に追加する",
+  "@peopleAutoAddDesc": {
+    "description": "The message the copy should convey is that photos or videos containing the selected people's faces will be automatically added to this album"
   },
-  "termsOfServicesTitle": "利用規約",
-  "@termsOfServicesTitle": {
-    "description": "Terms of service title"
+  "peopleWidgetDesc": "ホーム画面で表示したい人を選択してください。",
+  "period": "期間",
+  "permanentlyDelete": "完全に削除",
+  "permDeleteWarning": "ゴミ箱を空にしました\n\nこの操作はもとに戻せません",
+  "personalNote": "メモ",
+  "personalNoteDescription": "考えや指示を書き留めます。",
+  "personIsAge": "{name}が{age}才！",
+  "@personIsAge": {
+    "placeholders": {
+      "age": {},
+      "name": {}
+    }
   },
-  "privacyPolicyTitle": "プライバシーポリシー",
-  "@privacyPolicyTitle": {
-    "description": "Privacy policy title"
+  "personTurningAge": "{name}が{age}才になった！",
+  "@personTurningAge": {
+    "placeholders": {
+      "age": {},
+      "name": {}
+    }
   },
-  "ackPasswordLostWarning": "私のデータは<underline>エンドツーエンドで暗号化される</underline>ため、パスワードを紛失した場合、データが失われる可能性があることを理解しています。",
-  "@ackPasswordLostWarning": {
-    "description": "Warning about password loss"
+  "pets": "毛むくじゃらな仲間たち",
+  "photoGridSize": "写真のグリッドサイズ",
+  "photos": "写真",
+  "photosAddedByYouWillBeRemovedFromTheAlbum": "あなたの追加した写真はこのアルバムから削除されます",
+  "photosKeepRelativeTimeDifference": "写真はお互いの相対的な時間差を維持します",
+  "photosSharedByWillAppearHere": "{email}が共有した写真はここに表示されます。",
+  "@photosSharedByWillAppearHere": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "a@test.test"
+      }
+    }
   },
-  "encryption": "暗号化",
-  "@encryption": {
-    "description": "Encryption label"
+  "physicalRecords": "物品",
+  "physicalRecordsDescription": "実物の保管場所を記録します。",
+  "pickCenterPoint": "中心点を選択",
+  "pin": "固定",
+  "pinLock": "PIN",
+  "@pinLock": {
+    "description": "PIN lock option title"
   },
-  "logInLabel": "ログイン",
-  "@logInLabel": {
-    "description": "Log in button label"
+  "pinnedCodeMessage": "{code}がピン留めされました",
+  "@pinnedCodeMessage": {
+    "placeholders": {
+      "code": {}
+    }
   },
-  "welcomeBack": "おかえりなさい！",
-  "@welcomeBack": {
-    "description": "Welcome back message"
+  "pinnedCount": "{count, plural, one{{count} 個の項目を固定} other{{count} 個の項目を固定}}",
+  "@pinnedCount": {
+    "description": "Text to show number of items pinned",
+    "placeholders": {
+      "count": {
+        "description": "Number of items pinned",
+        "type": "int",
+        "example": "3"
+      }
+    }
   },
-  "loginTerms": "ログインをクリックする場合、<u-terms>利用規約</u-terms>および<u-policy>プライバシー ポリシー</u-policy>に同意するものとします。",
-  "@loginTerms": {
-    "description": "Terms agreement text for login"
-  },
-  "noInternetConnection": "インターネット接続なし",
-  "@noInternetConnection": {
-    "description": "No internet connection error message"
-  },
+  "pinText": "固定",
+  "playOriginal": "元動画を再生",
+  "playstoreSubscription": "PlayStoreサブスクリプション",
+  "playStream": "再生",
   "pleaseCheckYourInternetConnectionAndTryAgain": "インターネット接続を確認して、再試行してください。",
   "@pleaseCheckYourInternetConnectionAndTryAgain": {
     "description": "Message asking user to check internet connection"
   },
-  "verificationFailedPleaseTryAgain": "確認に失敗しました、再試行してください",
-  "@verificationFailedPleaseTryAgain": {
-    "description": "Verification failed error message"
-  },
-  "recreatePasswordTitle": "パスワードを再設定",
-  "@recreatePasswordTitle": {
-    "description": "Title for recreate password dialog"
-  },
-  "recreatePasswordBody": "現在のデバイスはパスワードを確認するのには不十分ですが、すべてのデバイスで動作するように再生成することはできます。\n\n回復キーを使用してログインし、パスワードを再生成してください（ご希望の場合は同じものを再度使用できます）。",
-  "@recreatePasswordBody": {
-    "description": "Body text for recreate password dialog"
-  },
-  "useRecoveryKey": "回復キーを使用",
-  "@useRecoveryKey": {
-    "description": "Use recovery key button label"
-  },
-  "forgotPassword": "パスワードを忘れた場合",
-  "@forgotPassword": {
-    "description": "Forgot password link label"
-  },
-  "changeEmail": "メールアドレスを変更",
-  "@changeEmail": {
-    "description": "Change email button label"
-  },
-  "verifyEmail": "メールアドレス認証",
-  "@verifyEmail": {
-    "description": "Verify email title"
-  },
-  "weHaveSendEmailTo": "<green>{email}</green> にメールを送信しました",
-  "@weHaveSendEmailTo": {
-    "description": "Text to indicate that we have sent a mail to the user",
+  "pleaseContactSupportAndWeWillBeHappyToHelp": "support@ente.comまでお問い合わせください。お手伝いします！",
+  "pleaseContactSupportIfTheProblemPersists": "問題が解決しない場合はサポートにお問い合わせください",
+  "pleaseEmailUsAt": "{toEmail} にメールでご連絡ください",
+  "@pleaseEmailUsAt": {
     "placeholders": {
-      "email": {
-        "description": "The email address of the user",
+      "toEmail": {}
+    }
+  },
+  "pleaseEnterADescription": "説明を入力してください",
+  "pleaseEnterASubject": "件名を入力してください",
+  "pleaseGrantPermissions": "権限を付与してください",
+  "pleaseLoginAgain": "再度ログインしてください",
+  "pleaseSelectQuickLinksToRemove": "削除するクイックリンクを選択してください",
+  "pleaseSendTheLogsTo": "ログを以下のアドレスに送信してください \n{toEmail}",
+  "@pleaseSendTheLogsTo": {
+    "description": "Message asking user to send logs to email address",
+    "placeholders": {
+      "toEmail": {
         "type": "String",
-        "example": "example@ente.io"
+        "description": "Email address to send logs to"
       }
     }
   },
-  "toResetVerifyEmail": "パスワードをリセットするには、メールの確認を先に行ってください。",
-  "@toResetVerifyEmail": {
-    "description": "Message asking user to verify email before password reset"
+  "pleaseVerifyDetails": "詳細を確認し、もう一度お試しください",
+  "pleaseVerifyTheCodeYouHaveEntered": "入力したコードを確認してください",
+  "pleaseWaitDeletingAlbum": "お待ちください、アルバムを削除しています",
+  "pleaseWaitForSometimeBeforeRetrying": "再試行する前にしばらくお待ちください",
+  "pleaseWaitThisWillTakeAWhile": "しばらくお待ちください。時間がかかります。",
+  "posingWithThem": "{name}と一緒にポーズ！",
+  "@posingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
   },
-  "checkInboxAndSpamFolder": "受信トレイ（および迷惑メール）を確認して認証を完了してください",
-  "@checkInboxAndSpamFolder": {
-    "description": "Message asking user to check inbox and spam folder"
+  "preparingLogs": "ログを準備中...",
+  "preserveMore": "もっと保存する",
+  "pressAndHoldToPlayVideoDetailed": "画像の長押しで動画を再生",
+  "preview": "プレビュー",
+  "previous": "前",
+  "privacy": "プライバシー",
+  "privacyPolicyTitle": "プライバシーポリシー",
+  "@privacyPolicyTitle": {
+    "description": "Privacy policy title"
   },
-  "tapToEnterCode": "タップしてコードを入力",
-  "@tapToEnterCode": {
-    "description": "Hint for entering verification code"
+  "proceed": "続行",
+  "processed": "処理完了",
+  "processingImport": "{folderName} を処理中...",
+  "@processingImport": {
+    "placeholders": {
+      "folderName": {}
+    }
   },
-  "sendEmail": "メール送信",
-  "resendEmail": "メールを再送信",
-  "@resendEmail": {
-    "description": "Resend email button label"
+  "publicLinkEnabled": "公開リンクを有効にしました",
+  "qr": "QR",
+  "qrCode": "QRコード",
+  "questionmark": "？",
+  "queued": "処理待ち",
+  "radius": "半径",
+  "raiseTicket": "サポートを受ける",
+  "@raiseTicket": {
+    "description": "Button text for raising a support tickets in case of unhandled errors during backup",
+    "type": "text"
   },
-  "passKeyPendingVerification": "認証はまだ保留中です",
-  "@passKeyPendingVerification": {
-    "description": "Message when passkey verification is pending"
+  "rateUs": "評価して下さい",
+  "rateUsOnStore": "{storeName} で評価",
+  "@rateUsOnStore": {
+    "placeholders": {
+      "storeName": {}
+    }
   },
-  "loginSessionExpired": "セッションの有効期限が切れました",
-  "@loginSessionExpired": {
-    "description": "Login session expired title"
+  "rawCodeData": "生のコードデータ",
+  "readyToBackupSubtitle": "バックグラウンドで写真が同期されます。最初のバックアップには時間がかかることがあります。",
+  "readyToBackupTitle": "バックアップの準備ができました",
+  "reassignedToName": "あなたを {name} に紐づけました",
+  "@reassignedToName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
-  "loginSessionExpiredDetails": "セッションの有効期限が切れました。再度ログインしてください。",
-  "@loginSessionExpiredDetails": {
-    "description": "Login session expired details"
-  },
-  "passkeyAuthTitle": "パスキー認証",
-  "@passkeyAuthTitle": {
-    "description": "Passkey authentication title"
-  },
-  "waitingForVerification": "認証を待っています...",
-  "@waitingForVerification": {
-    "description": "Waiting for verification message"
-  },
-  "tryAgain": "再試行",
-  "@tryAgain": {
-    "description": "Try again button label"
-  },
-  "checkStatus": "ステータスの確認",
-  "@checkStatus": {
-    "description": "Check status button label"
-  },
-  "loginWithTOTP": "TOTPでログイン",
-  "@loginWithTOTP": {
-    "description": "Login with TOTP button label"
+  "reassigningLoading": "再割り当て中...",
+  "reassignMe": "\"自分\" を再割り当て",
+  "recent": "最近の",
+  "recordLocation": "場所",
+  "recordLocationHint": "このアイテムはどこに保管されていますか？",
+  "recordNameHint": "実物のアイテム名",
+  "recordNotes": "メモ",
+  "recordNotesHint": "アイテムに関する追加情報",
+  "recordSavedSuccessfully": "レコードが正常に保存されました",
+  "recover": "回復",
+  "@recover": {
+    "description": "Recover button label"
   },
   "recoverAccount": "アカウントを回復",
   "@recoverAccount": {
     "description": "Recover account button label"
   },
-  "setPasswordTitle": "パスワードの設定",
-  "@setPasswordTitle": {
-    "description": "Set password title"
+  "recoveryInitiated": "リカバリが開始されました",
+  "recoveryInitiatedDesc": "{days} 日後にアカウントにアクセスできます。通知は {email}に送信されます。",
+  "@recoveryInitiatedDesc": {
+    "placeholders": {
+      "days": {
+        "type": "int",
+        "example": "30"
+      },
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      }
+    }
   },
-  "changePasswordTitle": "パスワードの変更",
-  "@changePasswordTitle": {
-    "description": "Change password title"
+  "recoveryKeyCopiedToClipboard": "回復キーをクリップボードにコピーしました",
+  "@recoveryKeyCopiedToClipboard": {
+    "description": "Recovery key copied message"
   },
-  "resetPasswordTitle": "パスワードのリセット",
-  "@resetPasswordTitle": {
-    "description": "Reset password title"
+  "recoveryKeySaved": "リカバリキーをダウンロードフォルダに保存しました！",
+  "@recoveryKeySaved": {
+    "description": "Recovery key saved confirmation message"
   },
-  "encryptionKeys": "暗号鍵",
-  "@encryptionKeys": {
-    "description": "Encryption keys title"
+  "recoveryKeySaveDescription": "私たちはこのキーを保存しません。この 24 単語のキーを安全な場所に保存してください。",
+  "@recoveryKeySaveDescription": {
+    "description": "Recovery key save description"
   },
-  "enterPasswordToEncrypt": "データの暗号化に使用するパスワードを入力してください",
-  "@enterPasswordToEncrypt": {
-    "description": "Prompt to enter password for encryption"
+  "recoveryKeySaveShortDescription": "このキーを安全な場所に保存してください。",
+  "recoveryKeySuccessBody": "素晴らしい！回復キーは有効です。ご確認いただきありがとうございます。\n\n回復キーを安全にバックアップしておいてください。",
+  "recoveryKeyVerified": "回復キーが確認されました",
+  "recoveryKeyVerifyReason": "パスワードを忘れた場合、回復キーは写真を復元するための唯一の方法です。設定 > アカウント で回復キーを確認することができます。\n\n回復キーを入力して、正しく保存したことを確認してください。",
+  "recoveryReady": "{email}のアカウントを復元できるようになりました。新しいパスワードを設定してください。",
+  "@recoveryReady": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      }
+    }
   },
-  "enterNewPasswordToEncrypt": "データの暗号化に使用する新しいパスワードを入力してください",
-  "@enterNewPasswordToEncrypt": {
-    "description": "Prompt to enter new password for encryption"
+  "recoverySuccessful": "復元に成功しました！",
+  "recoveryWarning": "信頼する連絡先の持ち主があなたのアカウントにアクセスしようとしています",
+  "recoveryWarningBody": "{email} はあなたのアカウントを復元しようとしています。",
+  "@recoveryWarningBody": {
+    "placeholders": {
+      "email": {}
+    }
   },
-  "passwordWarning": "私たちはこのパスワードを保存していないので、あなたがそれを忘れた場合に<underline>私たちがあなたのデータを代わりに復号することはできません</underline>",
-  "@passwordWarning": {
-    "description": "Warning about password storage"
+  "recreatePasswordBody": "現在のデバイスはパスワードを確認するのには不十分ですが、すべてのデバイスで動作するように再生成することはできます。\n\n回復キーを使用してログインし、パスワードを再生成してください（ご希望の場合は同じものを再度使用できます）。",
+  "@recreatePasswordBody": {
+    "description": "Body text for recreate password dialog"
   },
-  "howItWorks": "動作の仕組み",
-  "@howItWorks": {
-    "description": "How it works button label"
+  "recreatePasswordTitle": "パスワードを再生成",
+  "@recreatePasswordTitle": {
+    "description": "Title for recreate password dialog"
   },
-  "generatingEncryptionKeys": "暗号鍵を生成中...",
-  "@generatingEncryptionKeys": {
-    "description": "Generating encryption keys message"
+  "reEnterPassword": "パスワードを再入力してください",
+  "@reEnterPassword": {
+    "description": "Re-enter password prompt"
   },
-  "passwordChangedSuccessfully": "パスワードを変更しました",
-  "@passwordChangedSuccessfully": {
-    "description": "Password changed successfully message"
+  "reEnterPin": "PINを再入力してください",
+  "@reEnterPin": {
+    "description": "Re-enter PIN prompt"
   },
+  "referralCodeHint": "このコードを3回までカスタマイズできます",
+  "referrals": "紹介",
+  "referralsAreCurrentlyPaused": "リフェラルは現在一時停止しています",
+  "referralStats": "紹介の状況",
+  "rejectRecovery": "リカバリを拒否する",
+  "remindToEmptyDeviceTrash": "また、空き領域を取得するには、「設定」→「ストレージ」から「最近削除した項目」を空にします",
+  "remindToEmptyEnteTrash": "「ゴミ箱」も空にするとアカウントのストレージが解放されます",
+  "remoteImages": "デバイス上にない画像",
+  "remoteThumbnails": "リモートのサムネイル画像",
+  "remoteVideos": "デバイス上にない動画",
+  "remove": "削除",
+  "removeAccess": "アクセスを削除",
+  "removeCollectionParticipantBody": "{userEmail}はこの共有コレクションから削除されます\n\nその人が追加したアイテムもコレクションから削除されます",
+  "@removeCollectionParticipantBody": {
+    "placeholders": {
+      "userEmail": {}
+    }
+  },
+  "removeContact": "連絡先を削除",
+  "@removeContact": {
+    "description": "Button label to remove a trusted contact"
+  },
+  "removeFromAlbum": "アルバムから削除",
+  "removeFromAlbumTitle": "アルバムから削除しますか？",
+  "removeFromFavorite": "お気に入りリストから外す",
+  "removeLink": "リンクを削除",
+  "removeMemberConfirmBody": "{email}は共有ストレージにアクセスできなくなります。",
+  "@removeMemberConfirmBody": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "member@example.com"
+      }
+    }
+  },
+  "removeMemberConfirmTitle": "メンバーを削除しますか？",
+  "removeParticipant": "参加者を削除",
+  "@removeParticipant": {
+    "description": "menuSectionTitle for removing a participant"
+  },
+  "removePersonLabel": "人名を削除",
+  "removePublicLink": "公開リンクを削除",
+  "removePublicLinks": "公開リンクを削除",
+  "removeWithQuestionMark": "削除しますか?",
+  "removingFromFavorites": "お気に入りから削除しています...",
+  "removingFromImportant": "重要から削除中...",
+  "rename": "名前変更",
+  "renameAlbum": "アルバムの名前変更",
+  "renameCollection": "コレクションの名前を変更",
+  "renameFile": "ファイル名を変更",
+  "renewsOn": "サブスクリプションは {endDate} に更新します",
+  "@renewsOn": {
+    "placeholders": {
+      "endDate": {}
+    }
+  },
+  "renewSubscription": "サブスクリプションの更新",
+  "reply": "返信",
+  "@reply": {
+    "description": "Reply action button label"
+  },
+  "replyingTo": "{name}に返信",
+  "@replyingTo": {
+    "description": "Label when replying to someone's comment",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "replyingToYou": "あなたへの返信",
+  "@replyingToYou": {
+    "description": "Label when replying to own comment"
+  },
+  "reportABug": "バグを報告",
+  "@reportABug": {
+    "description": "Label for reporting a bug"
+  },
+  "reportAnIssue": "問題を報告",
+  "requestAFeature": "機能の提案",
+  "resendCode": "コードを再送",
+  "resendInvite": "招待を再送",
+  "reset": "リセット",
+  "resetIgnoredFiles": "アップロード時に無視されるファイルをリセット",
+  "resetToDefault": "初期設定にリセット",
+  "@resetToDefault": {
+    "description": "Button text to reset cover photo to default"
+  },
+  "restore": "復元",
+  "@restore": {
+    "description": "Display text for an action which triggers a restore of item from trash",
+    "type": "text"
+  },
+  "restoreToAlbum": "アルバムに戻す",
+  "restoringFiles": "ファイルを復元中...",
+  "restoringItems": "復元中...",
+  "resumableUploads": "再開可能なアップロード",
+  "retry": "再試行",
+  "review": "確認",
+  "reviewSuggestions": "提案を確認",
+  "revoke": "取り消し",
+  "revokeInvite": "招待を取り消す",
+  "@revokeInvite": {
+    "description": "Button label to revoke a pending trusted contact invite"
+  },
+  "revokeInviteConfirmBody": "{email}への招待はキャンセルされます。",
+  "@revokeInviteConfirmBody": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "member@example.com"
+      }
+    }
+  },
+  "revokeInviteConfirmTitle": "招待を削除しますか？",
+  "right": "右",
+  "ritualAlbumLabel": "アルバム",
+  "ritualAlbumNotSet": "アルバムが設定されていません",
+  "ritualAlbumSelectionPlaceholder": "アルバムを選択",
+  "ritualCaptureError": "写真をキャプチャできません。もう一度お試しください。",
+  "ritualDefaultCameraTitle": "写真を撮る",
+  "ritualNoPhotosYet": "まだ写真はありません",
+  "ritualPickEmojiTitle": "絵文字を選択",
+  "ritualSelectAlbumTitle": "アルバムを選択",
+  "roadtripWithThem": "{name}と車で旅行！",
+  "@roadtripWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "rotate": "回転",
+  "sameperson": "同じ人物ですか？",
+  "save": "保存",
+  "@save": {
+    "description": "Label for save button"
+  },
+  "saveAsAnotherPerson": "他の人として保存",
+  "saveChangesBeforeLeavingQuestion": "その前に変更を保存しますか？",
+  "saveCode": "コードを保存する",
+  "saveCollage": "コラージュを保存",
+  "saveContact": "連絡先を保存",
+  "saveCopy": "コピーを保存",
+  "saveKey": "キーを保存",
+  "@saveKey": {
+    "description": "Save key button label"
+  },
+  "saveOnlyDescription": "これをストレージに保存しますか？ (デフォルトではダウンロードフォルダに保存)",
+  "@saveOnlyDescription": {
+    "description": "Description text asking user if they want to save to storage (for platforms that don't support sharing)"
+  },
+  "saveOrSendDescription": "これをストレージ (デフォルトではダウンロードフォルダ) に保存しますか、もしくは他のアプリに送信しますか？",
+  "@saveOrSendDescription": {
+    "description": "Description text asking user if they want to save to storage or share with other apps"
+  },
+  "savePerson": "人物を保存",
+  "saveToLocker": "Lockerに保存",
+  "saveYourRecoveryKeyIfYouHaventAlready": "リカバリーキーを保存してください",
+  "saving": "保存中…",
+  "savingEdits": "編集を保存中...",
+  "scan": "読み取り",
+  "scanACode": "コードを読み取り",
+  "scanAQrCode": "QRコードを読み取り",
+  "scanCode": "コードをスキャン",
+  "scanThisBarcodeWithnyourAuthenticatorApp": "認証アプリでQRコードをスキャンして下さい。",
+  "scheduleShare": "共有をスケジュール",
+  "search": "検索",
+  "searchAlbumsEmptySection": "アルバム",
+  "searchAndDiscovery": "検索と検出",
+  "searchAndDiscoveryDesc": "顔、位置情報、説明など",
+  "searchByAlbumNameHint": "アルバム名",
+  "searchDiscoverEmptySection": "処理と同期が完了すると、画像がここに表示されます",
+  "searchEmptyDescription": "別のキーワードで検索してみてください。",
+  "searchEmptyTitle": "一致するものが見つかりません",
+  "searchEverywhereSubtitle": "すべてのコレクションとファイルを検索します。",
+  "searchEverywhereTitle": "「{query}」をすべての場所で検索",
+  "@searchEverywhereTitle": {
+    "description": "CTA title prompting the user to search globally",
+    "placeholders": {
+      "query": {
+        "type": "String",
+        "example": "passport"
+      }
+    }
+  },
+  "searchFileTypesAndNamesEmptySection": "ファイルの種類と名前",
+  "searchHint": "検索...",
+  "searchHint1": "デバイス上で高速検索",
+  "searchHint2": "写真の日付、説明",
+  "searchHint3": "アルバム、ファイル名、種類",
+  "searchHint4": "場所",
+  "searchHint5": "近日公開: フェイスとマジック検索 ✨",
+  "searchLocationEmptySection": "当時の直近で撮影された写真をグループ化",
+  "searchPeopleEmptySection": "友達を招待すると、共有される写真はここから閲覧できます",
+  "searchPersonsEmptySection": "処理と同期が完了すると、ここに人々が表示されます",
+  "searchResultCount": "{count, plural, one{{count} 個の結果} other{{count} 個の結果}}",
+  "@searchResultCount": {
+    "description": "Text to tell user how many results were found for their search query",
+    "placeholders": {
+      "count": {
+        "example": "1|2|3",
+        "type": "int"
+      }
+    }
+  },
+  "searchResultDescription": "説明",
+  "@searchResultDescription": {
+    "description": "Search result subtitle label for description matches"
+  },
+  "searchResultFileExtension": "ファイルの拡張子",
+  "@searchResultFileExtension": {
+    "description": "Search result subtitle label for file extension matches"
+  },
+  "searchResultFileName": "ファイル名",
+  "@searchResultFileName": {
+    "description": "Search result subtitle label for file name matches"
+  },
+  "searchResultPerson": "人物",
+  "@searchResultPerson": {
+    "description": "Search result subtitle label for person results"
+  },
+  "searchResultType": "種類",
+  "@searchResultType": {
+    "description": "Search result subtitle label for file type matches"
+  },
+  "searchSectionsLengthMismatch": "セクションの長さの不一致: {snapshotLength} != {searchLength}",
+  "@searchSectionsLengthMismatch": {
+    "description": "Appears in search tab page",
+    "placeholders": {
+      "searchLength": {
+        "type": "int",
+        "example": "2"
+      },
+      "snapshotLength": {
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "searchSettings": "設定を検索",
+  "secret": "シークレット",
+  "secretCanNotBeEmpty": "秘密鍵は空欄にできません",
+  "security": "セキュリティ",
+  "seeAllCollections": "すべてのコレクションを見る",
+  "seePublicAlbumLinksInApp": "アプリ内で公開アルバムのリンクを見る",
+  "selectAllShort": "すべて",
+  "@selectAllShort": {
+    "description": "Text that appears in bottom right when you start to select multiple photos. When clicked, it selects all photos."
+  },
+  "selectALocation": "場所を選択",
+  "selectALocationFirst": "先に場所を選択してください",
+  "selectCoverPhoto": "カバー写真を選択",
+  "selectDate": "日付を選択する",
+  "selected": "選択済み",
+  "selectedAlbums": "{count}個が選択済み",
+  "@selectedAlbums": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "selectedCount": "{count, plural, one{{count} 個選択} other{{count} 個選択}}",
+  "@selectedCount": {
+    "description": "Number of items selected",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "selectedFilesAreNotOnEnte": "選択したファイルはEnte上にありません",
+  "selectedItemsWillBeRemovedFromThisPerson": "選択したアイテムはこの人としての登録が解除されますが、ライブラリからは削除されません。",
+  "selectedPhotos": "{count} 個を選択",
+  "@selectedPhotos": {
+    "description": "Display the number of selected photos",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "5",
+        "type": "int"
+      }
+    }
+  },
+  "selectedPhotosWithYours": "{count} 個選択中（{yourCount} あなた）",
+  "@selectedPhotosWithYours": {
+    "description": "Display the number of selected photos, including the number of selected photos owned by the user",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "12",
+        "type": "int"
+      },
+      "yourCount": {
+        "example": "2",
+        "type": "int"
+      }
+    }
+  },
+  "selectExportFormat": "エクスポートの形式を選択",
+  "selectFile": "ファイルを選択",
+  "selectFolder": "フォルダを選択",
+  "selectFolders": "フォルダーを選択",
+  "selectItemsToAdd": "追加するアイテムを選んでください",
+  "selectMailApp": "メールアプリを選択",
+  "selectMorePhotos": "さらに写真を選択",
+  "selectOneDateAndTime": "日付と時刻を1つ選択してください",
+  "selectOneDateAndTimeForAll": "すべてに対して日付と時刻を1つ選択してください",
+  "selectStartOfRange": "範囲の開始位置を選択",
+  "selectTime": "時刻を選択",
+  "selectYourFace": "あなたの顔を選択",
+  "selfiesWithThem": "{name}とセルフィー！",
+  "@selfiesWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "send": "送信",
+  "@send": {
+    "description": "Label for send button"
+  },
+  "sendLink": "リンクを送信",
+  "sendLogsDescription": "問題のデバッグに役立つログが送信されます。機密情報が記録されないように予防措置を講じていますが、共有する前にこれらのログを確認することをお勧めします。",
+  "sendQrCode": "QRコードを送信",
+  "serverEndpoint": "サーバーエンドポイント",
+  "@serverEndpoint": {
+    "description": "Label for server endpoint setting"
+  },
+  "sessionIdMismatch": "セッションIDが一致しません",
+  "@sessionIdMismatch": {
+    "description": "In passkey page, deeplink is ignored because of session ID mismatch."
+  },
+  "setAPassword": "パスワードを設定",
+  "setAs": "設定：",
+  "setBackupFolder": "バックアップフォルダを設定",
+  "setBackupPassword": "バックアップパスワードを設定",
+  "setCover": "カバー画像をセット",
+  "@setCover": {
+    "description": "Text to set cover photo for an album"
+  },
+  "setLabel": "セット",
+  "@setLabel": {
+    "description": "Label of confirm button to add a new custom radius to the radius selector of a location tag"
+  },
+  "setNewPassword": "新しいパスワードを設定",
+  "@setNewPassword": {
+    "description": "Set new password title"
+  },
+  "setNewPin": "新しいPINを設定",
+  "@setNewPin": {
+    "description": "Set new PIN title"
+  },
+  "setRadius": "半径の設定",
+  "settings": "設定",
+  "setupComplete": "セットアップ完了",
+  "share": "共有",
+  "shareALink": "リンクをシェアする",
+  "shareCodes": "コードを共有",
+  "shareCodesDuration": "コードを共有したい期間を選択してください。",
+  "sharedWith": "共有先",
+  "shareLink": "リンクの共有",
+  "shareTextRecommendUsingEnteForPhotos": "Enteをダウンロードして、写真や動画を簡単に共有\n\nhttps://ente.com",
+  "shareThisLink": "このリンクを受け取った人は誰でもあなたのアイテムにアクセスできます。リンクを削除することでいつでもアクセスを取り消すことができます。",
+  "shareWithNonenteUsers": "Enteを使っていない人に共有",
+  "sharing": "共有中...",
+  "sharingAndCollaboration": "共有と共同作業",
+  "sharingAndCollaborationDesc": "アルバム、リンク、ファミリープラン",
+  "shiftDatesAndTime": "日付と時間のシフト",
+  "shouldHideCode": "コードを隠す",
+  "showInMemories": "思い出を表示",
+  "showLargeIcons": "大きなアイコンを表示",
+  "showMemories": "思い出を表示",
+  "showPerson": "人物を表示",
+  "showQRAuthMessage": "QR コードを表示するためには認証が必要です",
+  "sigInBackupReminder": "サインイン後、Enteは自動的にコードをバックアップします。\n\nコードを追加のバックアップとしてエクスポートすることをお勧めします。",
+  "signInToBackup": "コードをバックアップするためにサインインする",
   "signOutFromOtherDevices": "他のデバイスからサインアウトする",
   "@signOutFromOtherDevices": {
     "description": "Sign out from other devices title"
@@ -418,303 +2062,475 @@
   "@signOutOtherDevices": {
     "description": "Sign out other devices button label"
   },
-  "doNotSignOut": "サインアウトしない",
-  "@doNotSignOut": {
-    "description": "Do not sign out button label"
+  "signUpTerms": "<u-terms>利用規約</u-terms>と<u-policy>プライバシーポリシー</u-policy>に同意します",
+  "@signUpTerms": {
+    "description": "Terms agreement text for sign up"
   },
-  "generatingEncryptionKeysTitle": "暗号化鍵を生成中...",
-  "@generatingEncryptionKeysTitle": {
-    "description": "Generating encryption keys title"
+  "similarImages": "類似した画像",
+  "singIn": "サインイン",
+  "skip": "スキップ",
+  "snowAdventures": "冬の冒険",
+  "socialNotifications": "いいねとコメント",
+  "someoneSharingAlbumsWithYouShouldSeeTheSameId": "アルバムを共有している人はデバイス上で同じIDを見るはずです。",
+  "somethingWentWrong": "エラーが発生しました",
+  "somethingWentWrongMessage": "問題が発生しました、再試行してください",
+  "somethingWentWrongParsingCode": "{x} のコードを解析できませんでした。",
+  "@somethingWentWrongParsingCode": {
+    "placeholders": {
+      "x": {}
+    }
   },
-  "continueLabel": "続行",
-  "@continueLabel": {
-    "description": "Continue button label"
+  "sorryCouldNotAddToFavorites": "お気に入りに追加できませんでした。",
+  "sorryCouldNotRemoveFromFavorites": "お気に入りから削除できませんでした",
+  "sorryTheCodeYouveEnteredIsIncorrect": "申し訳ありませんが、入力されたコードは正しくありません",
+  "@sorryTheCodeYouveEnteredIsIncorrect": {
+    "description": "Detailed error message when code is incorrect"
   },
-  "insecureDevice": "安全ではないデバイス",
-  "@insecureDevice": {
-    "description": "Insecure device warning title"
+  "sort": "並び替え",
+  "sortAlbumsBy": "並び替え",
+  "sortAToZ": "昇順",
+  "sortNewestFirst": "新しい順",
+  "sortOldestFirst": "古い順",
+  "sortZToA": "降順",
+  "sportsWithThem": "{name}とスポーツ！",
+  "@sportsWithThem": {
+    "placeholders": {
+      "name": {}
+    }
   },
-  "sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": "申し訳ありませんが、このデバイスでは安全な鍵を生成できませんでした。\n\n別のデバイスから登録してください。",
-  "@sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": {
-    "description": "Error message for insecure device"
+  "spotlightOnThem": "{name}にスポットライト！",
+  "@spotlightOnThem": {
+    "placeholders": {
+      "name": {}
+    }
   },
-  "recoveryKeyCopiedToClipboard": "回復キーをクリップボードにコピーしました",
-  "@recoveryKeyCopiedToClipboard": {
-    "description": "Recovery key copied message"
+  "spotlightOnYourself": "あなた自身にスポットライト！",
+  "stargazing": "星の下で",
+  "startBackup": "バックアップを開始",
+  "startRecovery": "回復を開始",
+  "startRecoveryDesc": "本当に{email}のアカウントの回復を開始しますか？",
+  "@startRecoveryDesc": {
+    "description": "Description for start recovery confirmation dialog",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
   },
-  "recoveryKey": "回復キー",
-  "@recoveryKey": {
-    "description": "Recovery key label"
+  "status": "ステータス",
+  "sticker": "ステッカー",
+  "stopCastingBody": "キャストを停止しますか？",
+  "stopCastingTitle": "キャストを停止",
+  "storage": "ストレージ",
+  "storageAndPlans": "ストレージとプラン",
+  "storageAndPlansDesc": "プラン、課金、ストレージの使用状況",
+  "storageBreakupFamily": "ファミリー",
+  "storageBreakupYou": "あなた",
+  "@storageBreakupYou": {
+    "description": "Label to indicate how much storage you are using when you are part of a family plan"
   },
-  "recoveryKeyOnForgotPassword": "パスワードを忘れた場合、データを回復できる唯一の方法がこのキーです。",
-  "@recoveryKeyOnForgotPassword": {
-    "description": "Recovery key importance explanation"
+  "storageLimit": "ストレージの制限",
+  "storageLimitExceeded": "ストレージの上限を超えました",
+  "streamDetails": "動画の詳細",
+  "strongPassword": "安全なパスワード",
+  "subject": "件名",
+  "submit": "送信",
+  "subscribe": "サブスクライブ",
+  "subscribeToEnableSharing": "共有を有効にするには、有料サブスクリプションが必要です。",
+  "subscription": "サブスクリプション",
+  "subscriptionRequiredForSharing": "リンクを共有するには有料サブスクリプションが必要です",
+  "subWillBeCancelledOn": "サブスクリプションは {endDate} でキャンセルされます",
+  "@subWillBeCancelledOn": {
+    "placeholders": {
+      "endDate": {}
+    }
   },
-  "recoveryKeySaveDescription": "私たちはこのキーを保存しません。この 24 単語のキーを安全な場所に保存してください。",
-  "@recoveryKeySaveDescription": {
-    "description": "Recovery key save description"
+  "success": "成功",
+  "successfullyArchived": "アーカイブしました",
+  "successfullyHid": "非表示にしました",
+  "successfullyUnarchived": "アーカイブを解除しました",
+  "successfullyUnhid": "非表示を解除しました",
+  "suggestFeatures": "機能を提案",
+  "suggestions": "提案",
+  "sunrise": "水平線",
+  "support": "サポート",
+  "supportEnte": "<bold-green>ente</bold-green>をサポートする",
+  "syncing": "同期中...",
+  "syncProgress": "{completed}/{total} のメモリが保存されました",
+  "@syncProgress": {
+    "description": "Text to tell user how many memories have been preserved",
+    "placeholders": {
+      "completed": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
   },
-  "doThisLater": "後で行う",
-  "@doThisLater": {
-    "description": "Do this later button label"
+  "syncStopped": "同期が停止しました",
+  "systemTheme": "システム",
+  "tag": "タグ",
+  "tags": "タグ",
+  "tapToCopy": "タップしてコピー",
+  "tapToUnlock": "タップして解除",
+  "@tapToUnlock": {
+    "description": "Message prompting user to tap to unlock"
   },
-  "saveKey": "キーを保存",
-  "@saveKey": {
-    "description": "Save key button label"
+  "tapToUpload": "タップしてアップロード",
+  "@tapToUpload": {
+    "description": "Shown in upload icon widet, inside a tooltip."
   },
-  "recoveryKeySaved": "リカバリキーをダウンロードフォルダに保存しました！",
-  "@recoveryKeySaved": {
-    "description": "Recovery key saved confirmation message"
+  "tapToUploadIsIgnoredDue": "アップロードするにはタップしてください。 以下の理由のためアップロードは現在無視されています: {ignoreReason}",
+  "@tapToUploadIsIgnoredDue": {
+    "description": "Shown in upload icon widet, inside a tooltip.",
+    "placeholders": {
+      "ignoreReason": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
   },
-  "noRecoveryKeyTitle": "回復キーがありませんか？",
-  "@noRecoveryKeyTitle": {
-    "description": "No recovery key title"
+  "tellUsWhatYouThink": "ご意見をお聞かせください",
+  "tempErrorContactSupportIfPersists": "問題が発生したようです。しばらくしてから再試行してください。エラーが解決しない場合は、サポートチームにお問い合わせください。",
+  "terminateSession": "セッションを終了しますか？",
+  "@terminateSession": {
+    "description": "Title for terminate session dialog"
+  },
+  "thankYou": "ありがとうございます",
+  "thankYouForSubscribing": "ありがとうございます！",
+  "theLinkYouAreTryingToAccessHasExpired": "アクセスしようとしているリンクの期限が切れています。",
+  "theme": "テーマ",
+  "theseItemsWillBeDeletedFromYourDevice": "これらの項目はデバイスから削除されます。",
+  "thisCanBeUsedToRecoverYourAccountIfYou": "2段階認証を失った場合、アカウントを回復するために使用できます。",
+  "thisDevice": "このデバイス",
+  "@thisDevice": {
+    "description": "Label for current device"
+  },
+  "thisEmailIsAlreadyInUse": "このメールアドレスはすでに使用されています。",
+  "@thisEmailIsAlreadyInUse": {
+    "description": "Error message when email is already in use"
+  },
+  "thisImageHasNoExifData": "この画像にEXIFデータはありません",
+  "thisIsMeExclamation": "これは私です",
+  "thisIsPersonVerificationId": "これは {email} の確認用ID",
+  "@thisIsPersonVerificationId": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@ente.com"
+      }
+    }
+  },
+  "thisIsYourVerificationId": "これはあなたの認証IDです",
+  "thisMonth": "今月",
+  "thisWeek": "今週",
+  "thisWeekThroughTheYears": "毎年のこの週",
+  "thisWillLogYouOutOfTheFollowingDevice": "以下のデバイスからログアウトします:",
+  "@thisWillLogYouOutOfTheFollowingDevice": {
+    "description": "Warning message for logging out of another device"
+  },
+  "thisWillLogYouOutOfThisDevice": "このデバイスからログアウトします！",
+  "@thisWillLogYouOutOfThisDevice": {
+    "description": "Warning message for logging out of current device"
+  },
+  "thisWillMakeTheDateAndTimeOfAllSelected": "選択したすべての写真の日付と時刻が同じになります。",
+  "thisYear": "今年",
+  "throughTheYears": "{dateFormat} から年",
+  "@throughTheYears": {
+    "placeholders": {
+      "dateFormat": {}
+    }
+  },
+  "title": "タイトル",
+  "todaysLogs": "今日のログ",
+  "toEnableAppLockPleaseSetupDevicePasscodeOrScreen": "アプリのロックを有効にするには、システム設定でデバイスのパスコードまたは画面ロックを設定してください。",
+  "tooManyIncorrectAttempts": "間違った回数が多すぎます",
+  "@tooManyIncorrectAttempts": {
+    "description": "Message shown when too many incorrect attempts are made"
+  },
+  "totalSize": "合計サイズ",
+  "trash": "ゴミ箱",
+  "trashClearedSuccessfully": "ゴミ箱が正常に空になりました",
+  "trashCode": "コードを削除しますか？",
+  "trashCodeMessage": "{account} のコードをゴミ箱に入れてもよろしいですか？",
+  "@trashCodeMessage": {
+    "placeholders": {
+      "account": {}
+    }
+  },
+  "trashIsEmpty": "ゴミ箱は空です",
+  "trim": "トリミング",
+  "tripInYear": "{year}年の旅行",
+  "@tripInYear": {
+    "placeholders": {
+      "year": {}
+    }
+  },
+  "tripToLocation": "{location}への旅行",
+  "@tripToLocation": {
+    "placeholders": {
+      "location": {}
+    }
+  },
+  "troubleshooting": "トラブルシューティング",
+  "troubleshootingDesc": "よくある問題とその解決策",
+  "trustedContacts": "信頼する連絡先",
+  "twofactor": "二段階認証",
+  "twofactorAuthenticationHasBeenDisabled": "二段階認証が無効になりました。",
+  "twofactorAuthenticationSuccessfullyReset": "2 要素認証は正常にリセットされました",
+  "@twofactorAuthenticationSuccessfullyReset": {
+    "description": "Message when two-factor authentication is successfully reset"
   },
   "twoFactorAuthTitle": "2 要素認証",
   "@twoFactorAuthTitle": {
     "description": "Two-factor authentication title"
   },
-  "enterCodeHint": "認証アプリに表示された 6 桁のコードを入力してください",
-  "@enterCodeHint": {
-    "description": "Hint for entering 2FA code"
+  "twofactorSetup": "2段階認証のセットアップ",
+  "twoFAVerification": "2段階認証",
+  "type": "種類",
+  "typeOfGallerGallerytypeIsNotSupportedForRename": "このギャラリーのタイプ {galleryType} は名前の変更には対応していません",
+  "@typeOfGallerGallerytypeIsNotSupportedForRename": {
+    "placeholders": {
+      "galleryType": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
   },
-  "lostDeviceTitle": "デバイスを紛失しましたか？",
-  "@lostDeviceTitle": {
-    "description": "Lost device title"
+  "unarchive": "アーカイブ解除",
+  "@unarchive": {
+    "description": "Action of 'Unarchiving' an element"
   },
-  "enterRecoveryKeyHint": "回復キーを入力",
-  "@enterRecoveryKeyHint": {
-    "description": "Hint for entering recovery key"
+  "unarchiveAlbum": "アルバムのアーカイブ解除",
+  "unarchiving": "アーカイブを解除中...",
+  "uncategorized": "カテゴリなし",
+  "undo": "元に戻す",
+  "unhide": "再表示",
+  "unhideToAlbum": "アルバムを再表示する",
+  "unhiding": "非表示を解除しています",
+  "unhidingFilesToAlbum": "アルバムにファイルを表示しない",
+  "unimportant": "重要でない",
+  "unlock": "ロック解除",
+  "@unlock": {
+    "description": "Short action label used as the system authentication reason when unlocking the app"
   },
-  "recover": "回復",
-  "@recover": {
-    "description": "Recover button label"
+  "unnamedCollection": "名前のないコレクション",
+  "unpinnedCodeMessage": "{code}のピン留めが解除されました",
+  "@unpinnedCodeMessage": {
+    "placeholders": {
+      "code": {}
+    }
   },
-  "loggingOut": "ログアウト中...",
-  "@loggingOut": {
-    "description": "Message shown while logging out"
+  "unpinText": "固定を解除",
+  "unsavedNoteChangesDescription": "このメモには保存されていない変更があります。今戻ると、変更は失われます。",
+  "unsavedNoteChangesTitle": "変更を破棄しますか？",
+  "unselectAll": "すべての選択を解除",
+  "untitled": "無題",
+  "updateBackupPassword": "バックアップパスワードを更新",
+  "updated": "更新済",
+  "updateTime": "更新日時",
+  "@updateTime": {
+    "description": "Button label to update the recovery time for a trusted contact"
   },
-  "immediately": "すぐに",
-  "@immediately": {
-    "description": "Immediately option for auto lock timing"
+  "updatingFolderSelection": "フォルダの選択を更新しています...",
+  "upgrade": "アップグレード",
+  "uploadedFilesProgress": "{completed}/{total}個のアイテムをアップロード済み...",
+  "@uploadedFilesProgress": {
+    "description": "Progress message showing uploaded items",
+    "placeholders": {
+      "completed": {
+        "type": "int",
+        "example": "3"
+      },
+      "total": {
+        "type": "int",
+        "example": "5"
+      }
+    }
   },
-  "appLock": "アプリのロック",
-  "@appLock": {
-    "description": "App lock setting title"
+  "uploadError": "アップロードエラー",
+  "uploadFileCountLimitErrorBody": "ファイル制限に達しました。有料プランにアップグレードして、より多くのストレージを利用してください。",
+  "@uploadFileCountLimitErrorBody": {
+    "description": "Body shown when uploads fail because the locker already has the maximum file count"
   },
-  "autoLock": "自動ロック",
-  "@autoLock": {
-    "description": "Auto lock setting title"
+  "uploadFileCountLimitErrorTitle": "ファイル制限に達しました",
+  "@uploadFileCountLimitErrorTitle": {
+    "description": "Title shown when uploads fail because the locker already has the maximum file count"
   },
-  "noSystemLockFound": "システムロックが見つかりませんでした",
-  "@noSystemLockFound": {
-    "description": "Error when no system lock is found"
+  "uploadFileCountLimitErrorToast": "操作に失敗しました。ファイル制限に達しています。",
+  "@uploadFileCountLimitErrorToast": {
+    "description": "Toast shown when info items fail to save due to hitting the file count limit"
   },
-  "deviceLockEnablePreSteps": "端末のロックを有効にするには、システム設定で端末のパスコードまたは画面ロックを設定してください。",
-  "@deviceLockEnablePreSteps": {
-    "description": "Instructions for enabling device lock"
+  "uploadFiles": "アイテムをアップロード",
+  "uploadFileTooLargeErrorBody": "このファイルはサポートされている最大アップロードサイズ10GBを超えています。",
+  "@uploadFileTooLargeErrorBody": {
+    "description": "Body shown when uploads fail because the file exceeds the supported size"
   },
-  "appLockDescription": "端末のデフォルトのロック画面と、PINまたはパスワードを使用したカスタムロック画面を選択します。",
-  "@appLockDescription": {
-    "description": "Description of app lock feature"
+  "uploadFileTooLargeErrorTitle": "ファイルが大きすぎます",
+  "@uploadFileTooLargeErrorTitle": {
+    "description": "Title shown when uploads fail because the file exceeds the supported size"
   },
-  "deviceLock": "生体認証",
-  "@deviceLock": {
-    "description": "Device lock option title"
+  "uploadingFilesToAlbum": "アルバムにファイルをアップロード中",
+  "uploadingMultipleMemories": "{count} メモリを保存しています...",
+  "@uploadingMultipleMemories": {
+    "description": "Text to tell user how many memories are being preserved",
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
   },
-  "pinLock": "PIN",
-  "@pinLock": {
-    "description": "PIN lock option title"
+  "uploadingSingleMemory": "1メモリを保存しています...",
+  "uploadIsIgnoredDueToIgnorereason": "以下の理由によりアップロードは無視されます: {ignoreReason}",
+  "@uploadIsIgnoredDueToIgnorereason": {
+    "placeholders": {
+      "ignoreReason": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
   },
-  "autoLockFeatureDescription": "アプリをバックグラウンドでロックするまでの時間",
-  "@autoLockFeatureDescription": {
-    "description": "Description of auto lock feature"
+  "uploadStorageLimitErrorBody": "ストレージ容量が不足しています。アップロードを続けるには空き容量を確保してください。",
+  "@uploadStorageLimitErrorBody": {
+    "description": "Body shown when uploads fail due to running out of storage"
   },
-  "hideContent": "内容を非表示",
-  "@hideContent": {
-    "description": "Hide content setting title"
+  "uploadStorageLimitErrorTitle": "ストレージ制限に達しました",
+  "@uploadStorageLimitErrorTitle": {
+    "description": "Title shown when uploads fail due to running out of storage"
   },
-  "hideContentDescriptionAndroid": "アプリの内容を非表示にし、スクリーンショットを無効にします",
-  "@hideContentDescriptionAndroid": {
-    "description": "Description of hide content feature on Android"
+  "usable": "使用可能",
+  "useAsCover": "カバー写真として使用",
+  "usedSpace": "使用済み領域",
+  "useOffline": "バックアップなしで使用する",
+  "username": "ユーザー名",
+  "usernameHint": "ログインIDまたはメールアドレス",
+  "useSelectedPhoto": "選択した写真を使用",
+  "validTill": "{endDate} まで",
+  "@validTill": {
+    "placeholders": {
+      "endDate": {}
+    }
   },
-  "hideContentDescriptioniOS": "アプリを切り替えた際に、アプリの内容を非表示にします",
-  "@hideContentDescriptioniOS": {
-    "description": "Description of hide content feature on iOS"
+  "verificationFailedPleaseTryAgain": "確認に失敗しました、再試行してください",
+  "@verificationFailedPleaseTryAgain": {
+    "description": "Verification failed error message"
   },
-  "tooManyIncorrectAttempts": "間違った回数が多すぎます",
-  "@tooManyIncorrectAttempts": {
-    "description": "Message shown when too many incorrect attempts are made"
+  "verifyIDLabel": "確認",
+  "verifying": "確認中...",
+  "verifyingRecoveryKey": "回復キーを確認中...",
+  "verifyPassword": "パスワードを確認",
+  "@verifyPassword": {
+    "description": "Verify password button label"
   },
-  "tapToUnlock": "タップして解除",
-  "@tapToUnlock": {
-    "description": "Message prompting user to tap to unlock"
+  "videoInfo": "ビデオ情報",
+  "videos": "ビデオ",
+  "videoStreaming": "動画のストリーミング",
+  "videoStreamingDescriptionLine1": "どのデバイスでも動画をすぐに再生できます。",
+  "viewActiveSessions": "アクティブなセッションを表示",
+  "viewAddOnButton": "アドオンを表示",
+  "viewAllExifData": "全ての EXIF データを表示",
+  "viewAllHelpTopics": "すべてのヘルプを表示",
+  "viewer": "ビューアー",
+  "viewLargeFiles": "大きなファイル",
+  "viewLogs": "ログを表示",
+  "@viewLogs": {
+    "description": "Button to view logs"
   },
-  "areYouSureYouWantToLogout": "本当にログアウトしてよろしいですか？",
-  "@areYouSureYouWantToLogout": {
-    "description": "Confirmation message before logout"
+  "viewLogsAction": "ログの表示",
+  "viewPlans": "プランを見る",
+  "viewRawCodes": "生のコードを表示",
+  "viewRecoveryKey": "回復キーを表示",
+  "visitWebToManage": "サブスクリプションを管理するには{webUrl}をご覧ください",
+  "@visitWebToManage": {
+    "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",
+    "placeholders": {
+      "webUrl": {
+        "type": "String",
+        "example": "photos.ente.com"
+      }
+    }
   },
+  "waitingForWifi": "WiFi を待っています",
+  "warning": "警告",
+  "weDontSupportEditingPhotosAndAlbumsThatYouDont": "あなたが所有していない写真やアルバムの編集はサポートされていません",
+  "weHaveSentCodeTo": "{email}にコードを送信しました",
+  "@weHaveSentCodeTo": {
+    "description": "Text to indicate that we have sent a verification code to the user's email",
+    "placeholders": {
+      "email": {
+        "description": "The email address of the user",
+        "type": "String",
+        "example": "example@ente.com"
+      }
+    }
+  },
+  "whatsNew": "最新情報",
+  "widgets": "ウィジェット",
+  "wildlife": "野生の中へ",
+  "wishThemAHappyBirthday": "{name}の誕生日をお祝いしましょう! 🎉",
+  "@wishThemAHappyBirthday": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "yearly": "年額",
+  "@yearly": {
+    "description": "The text to display for yearly plans",
+    "type": "text"
+  },
+  "yearsAgo": "{count, plural, one{{count} 年前} other{{count} 年前}}",
+  "@yearsAgo": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "yearShort": "年",
+  "@yearShort": {
+    "description": "Appears in pricing page (/yr)"
+  },
+  "yes": "はい",
+  "yesCancel": "キャンセル",
+  "yesConvertToViewer": "ビューアーに変換する",
+  "yesDelete": "はい、削除します",
+  "yesDiscardChanges": "はい、変更を破棄します。",
   "yesLogout": "はい、ログアウトします",
   "@yesLogout": {
     "description": "Confirmation button for logout"
   },
-  "authToViewSecrets": "秘密鍵を閲覧するためには認証が必要です",
-  "@authToViewSecrets": {
-    "description": "Message prompting authentication to view secrets"
-  },
-  "next": "次へ",
-  "@next": {
-    "description": "Next button label"
-  },
-  "setNewPassword": "新しいパスワードを設定",
-  "@setNewPassword": {
-    "description": "Set new password title"
-  },
-  "enterPin": "PINを入力してください",
-  "@enterPin": {
-    "description": "Enter PIN prompt"
-  },
-  "setNewPin": "新しいPINを設定",
-  "@setNewPin": {
-    "description": "Set new PIN title"
-  },
-  "confirm": "確認",
-  "@confirm": {
-    "description": "Confirm button label"
-  },
-  "reEnterPassword": "パスワードを再入力してください",
-  "@reEnterPassword": {
-    "description": "Re-enter password prompt"
-  },
-  "reEnterPin": "PINを再入力してください",
-  "@reEnterPin": {
-    "description": "Re-enter PIN prompt"
-  },
-  "androidBiometricHint": "本人を確認する",
-  "@androidBiometricHint": {
-    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricNotRecognized": "認識できません。再試行してください。",
-  "@androidBiometricNotRecognized": {
-    "description": "Message to let the user know that authentication was failed. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricSuccess": "成功",
-  "@androidBiometricSuccess": {
-    "description": "Message to let the user know that authentication was successful. It is used on Android side. Maximum 60 characters."
-  },
-  "androidCancelButton": "キャンセル",
-  "@androidCancelButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
-  },
-  "androidSignInTitle": "認証が必要です",
-  "@androidSignInTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricRequiredTitle": "生体認証が必要です",
-  "@androidBiometricRequiredTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user has not set up biometric authentication on their device. It is used on Android side. Maximum 60 characters."
-  },
-  "androidDeviceCredentialsRequiredTitle": "デバイスの認証情報が必要です",
-  "@androidDeviceCredentialsRequiredTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user has not set up credentials authentication on their device. It is used on Android side. Maximum 60 characters."
-  },
-  "androidDeviceCredentialsSetupDescription": "デバイスの認証情報が必要です",
-  "@androidDeviceCredentialsSetupDescription": {
-    "description": "Message advising the user to go to the settings and configure device credentials on their device. It shows in a dialog on Android side."
-  },
-  "goToSettings": "設定を開く",
-  "@goToSettings": {
-    "description": "Message showed on a button that the user can click to go to settings pages from the current dialog. It is used on both Android and iOS side. Maximum 30 characters."
-  },
-  "androidGoToSettingsDescription": "生体認証がデバイスで設定されていません。生体認証を追加するには、\"設定 > セキュリティ\"を開いてください。",
-  "@androidGoToSettingsDescription": {
-    "description": "Message advising the user to go to the settings and configure biometric on their device. It shows in a dialog on Android side."
-  },
-  "iOSLockOut": "生体認証が無効化されています。画面をロック・ロック解除して生体認証を有効化してください。",
-  "@iOSLockOut": {
-    "description": "Message advising the user to re-enable biometrics on their device. It shows in a dialog on iOS side."
-  },
-  "iOSOkButton": "OK",
-  "@iOSOkButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on iOS side. Maximum 30 characters."
-  },
-  "emailAlreadyRegistered": "メールアドレスはすでに登録されています。",
-  "@emailAlreadyRegistered": {
-    "description": "Error message when email is already registered"
-  },
-  "emailNotRegistered": "メールアドレスはまだ登録されていません。",
-  "@emailNotRegistered": {
-    "description": "Error message when email is not registered"
-  },
-  "thisEmailIsAlreadyInUse": "このアドレスは既に使用されています",
-  "@thisEmailIsAlreadyInUse": {
-    "description": "Error message when email is already in use"
-  },
-  "emailChangedTo": "メールアドレスが {newEmail} に変更されました",
-  "@emailChangedTo": {
-    "description": "Message when email has been changed",
+  "yesRemove": "削除",
+  "yesRenew": "更新する",
+  "yesResetPerson": "リセット",
+  "you": "あなた",
+  "youAndThem": "あなたと{name}",
+  "@youAndThem": {
     "placeholders": {
-      "newEmail": {
-        "description": "The new email address",
-        "type": "String",
-        "example": "new@example.com"
+      "name": {}
+    }
+  },
+  "youAreOnTheLatestVersion": "あなたは最新バージョンを使用しています",
+  "youCannotDowngradeToThisPlan": "このプランにダウングレードはできません",
+  "youCannotShareWithYourself": "自分自身と共有することはできません",
+  "youHaveSuccessfullyFreedUp": "{storageSaved} を解放しました",
+  "@youHaveSuccessfullyFreedUp": {
+    "description": "The text to display when the user has successfully freed up storage",
+    "type": "text",
+    "placeholders": {
+      "storageSaved": {
+        "example": "1.2 GB",
+        "type": "String"
       }
     }
   },
-  "authenticationFailedPleaseTryAgain": "認証に失敗しました、再試行してください",
-  "@authenticationFailedPleaseTryAgain": {
-    "description": "Error message when authentication fails"
-  },
-  "authenticationSuccessful": "認証に成功しました！",
-  "@authenticationSuccessful": {
-    "description": "Success message when authentication is successful"
-  },
-  "sessionExpired": "セッションが失効しました",
-  "@sessionExpired": {
-    "description": "Error message when session has expired"
-  },
-  "incorrectRecoveryKey": "不正な回復キー",
-  "@incorrectRecoveryKey": {
-    "description": "Error message when recovery key is incorrect"
-  },
-  "theRecoveryKeyYouEnteredIsIncorrect": "入力された回復キーは正しくありません",
-  "@theRecoveryKeyYouEnteredIsIncorrect": {
-    "description": "Detailed error message when recovery key is incorrect"
-  },
-  "twofactorAuthenticationSuccessfullyReset": "2 要素認証は正常にリセットされました",
-  "@twofactorAuthenticationSuccessfullyReset": {
-    "description": "Message when two-factor authentication is successfully reset"
-  },
-  "yourVerificationCodeHasExpired": "確認コードが失効しました",
-  "@yourVerificationCodeHasExpired": {
-    "description": "Error message when verification code has expired"
-  },
-  "incorrectCode": "不正なコード",
-  "@incorrectCode": {
-    "description": "Error message when code is incorrect"
-  },
-  "sorryTheCodeYouveEnteredIsIncorrect": "申し訳ありませんが、入力されたコードは正しくありません",
-  "@sorryTheCodeYouveEnteredIsIncorrect": {
-    "description": "Detailed error message when code is incorrect"
-  },
-  "developerSettings": "開発者向け設定",
-  "@developerSettings": {
-    "description": "Label for developerSettings"
-  },
-  "serverEndpoint": "サーバーエンドポイント",
-  "@serverEndpoint": {
-    "description": "Label for serverEndpoint"
-  },
-  "invalidEndpoint": "無効なエンドポイントです",
-  "@invalidEndpoint": {
-    "description": "Label for invalidEndpoint"
-  },
-  "invalidEndpointMessage": "入力されたエンドポイントは無効です。有効なエンドポイントを入力して再試行してください。",
-  "@invalidEndpointMessage": {
-    "description": "Label for invalidEndpointMessage"
-  },
-  "endpointUpdatedMessage": "エンドポイントの更新に成功しました",
-  "@endpointUpdatedMessage": {
-    "description": "Label for endpointUpdatedMessage"
-  }
+  "yourMap": "あなたの地図",
+  "yourPlanWasSuccessfullyDowngraded": "プランはダウングレードされました",
+  "yourPlanWasSuccessfullyUpgraded": "プランはアップグレードされました",
+  "yourPurchaseWasSuccessful": "決済に成功しました",
+  "yourSubscriptionHasExpired": "サブスクリプションの有効期限が終了しました",
+  "yourSubscriptionWasUpdatedSuccessfully": "サブスクリプションが更新されました",
+  "yourTrashIsEmpty": "ゴミ箱は空です",
+  "youveNoDuplicateCodesThatCanBeCleared": "削除できる重複コードはありません",
+  "youveNoDuplicateFilesThatCanBeCleared": "削除できる同一ファイルはありません",
+  "youveNoFilesInThisAlbumThatCanBeDeleted": "このアルバムには消すファイルがありません",
+  "zoomOutToSeePhotos": "ズームアウトして写真を表示"
 }

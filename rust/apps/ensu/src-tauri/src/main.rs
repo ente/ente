@@ -1,72 +1,163 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use tauri::Manager;
+use tauri::{Manager, RunEvent, async_runtime};
 
 mod commands;
+mod logging;
+#[path = "../../../../crates/ensu/src/platform.rs"]
+mod platform;
+#[cfg(any(windows, target_os = "linux"))]
+mod single_instance;
 
 fn main() {
-    tauri::Builder::default()
+    logging::install_panic_hook();
+    logging::log("App", "starting Tauri backend");
+
+    let builder = tauri::Builder::default();
+    #[cfg(any(windows, target_os = "linux"))]
+    let builder = builder.plugin(single_instance::plugin());
+
+    let app = builder
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
-        .plugin(tauri_plugin_shell::init())
-        .manage(commands::SrpState::default())
-        .manage(commands::LlmState::default())
-        .manage(commands::ChatDbState::default())
+        .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .manage(commands::llm::State::default())
+        .manage(commands::voice::State::default())
+        .manage(commands::chat_db::ChatDbState::default())
+        .manage(commands::knowledge::State::default())
+        .manage(commands::conversation::State::default())
+        .manage(commands::followup::State::default())
         .setup(|app| {
-            // Show the main window after setup is complete
-            if let Some(window) = app.get_webview_window("main") {
-                window.show().unwrap();
+            logging::init_logging(app.handle());
+            logging::log("App", "setup started");
+
+            app.manage(commands::llm::ModelDownloadState::new(
+                app.path().app_data_dir()?,
+            ));
+            let notes_available = match commands::notes::State::new(app.path().app_data_dir()?) {
+                Ok(state) => {
+                    app.manage(state);
+                    true
+                }
+                Err(error) => {
+                    logging::log(
+                        "Notes",
+                        format!(
+                            "initialization failed; Notes disabled error={}",
+                            error.message
+                        ),
+                    );
+                    false
+                }
+            };
+            if let Some(window) = app.get_webview_window("main")
+                && let Err(err) = window.show()
+            {
+                logging::log("App", format!("failed to show main window error={err}"));
+                return Err(Box::new(err));
             }
+            if notes_available {
+                let notes_app = app.handle().clone();
+                async_runtime::spawn(async move {
+                    commands::notes::initialize_for_app(notes_app).await;
+                });
+            }
+            logging::log("App", "setup complete");
             Ok(())
         })
+        .on_permission_request(|webview, kind| {
+            use tauri::webview::{PermissionKind, PermissionResponse};
+            if matches!(kind, PermissionKind::Microphone) {
+                if commands::voice::microphone_allowed(webview.app_handle(), webview.label()) {
+                    PermissionResponse::Allow
+                } else {
+                    PermissionResponse::Deny
+                }
+            } else {
+                PermissionResponse::Default
+            }
+        })
+        .on_page_load(|window, payload| {
+            if matches!(payload.event(), tauri::webview::PageLoadEvent::Started) {
+                commands::voice::clear_for_window(window.app_handle(), Some(window.label()));
+            }
+        })
+        .on_window_event(|window, event| {
+            if matches!(event, tauri::WindowEvent::Destroyed) {
+                commands::voice::clear_for_window(window.app_handle(), Some(window.label()));
+            }
+        })
         .invoke_handler(tauri::generate_handler![
-            commands::crypto_init,
-            commands::crypto_generate_key,
-            commands::crypto_encrypt_box,
-            commands::crypto_decrypt_box,
-            commands::crypto_encrypt_blob,
-            commands::crypto_decrypt_blob,
-            commands::auth_derive_srp_credentials,
-            commands::auth_decrypt_secrets,
-            commands::auth_decrypt_keys_only,
-            commands::srp_session_new,
-            commands::srp_session_public_a,
-            commands::srp_session_compute_m1,
-            commands::srp_session_verify_m2,
-            commands::chat_db_list_sessions,
-            commands::chat_db_list_sessions_with_preview,
-            commands::chat_db_get_session,
-            commands::chat_db_get_message,
-            commands::chat_db_create_session,
-            commands::chat_db_update_session_title,
-            commands::chat_db_delete_session,
-            commands::chat_db_get_messages,
-            commands::chat_db_get_messages_for_sync,
-            commands::chat_db_insert_message,
-            commands::chat_db_update_message_text,
-            commands::chat_db_list_sessions_for_sync,
-            commands::chat_db_upsert_session,
-            commands::chat_db_insert_message_with_uuid,
-            commands::chat_db_mark_session_synced,
-            commands::chat_db_mark_session_deleted,
-            commands::chat_db_mark_message_deleted,
-            commands::chat_db_mark_attachment_uploaded,
-            commands::chat_db_get_pending_deletions,
-            commands::chat_db_hard_delete,
-            commands::chat_db_reset,
-            commands::chat_sync,
-            commands::llm_init_backend,
-            commands::llm_load_model,
-            commands::llm_create_context,
-            commands::llm_free_context,
-            commands::llm_free_model,
-            commands::llm_generate_chat_stream,
-            commands::llm_cancel,
-            commands::system_info,
-            commands::fs_file_size,
-            commands::fs_read_head,
-            commands::fs_append_bytes,
+            commands::voice::voice_unavailable_reason,
+            commands::voice::voice_create,
+            commands::voice::voice_run,
+            commands::voice::voice_feed,
+            commands::voice::voice_capture_failed,
+            commands::voice::voice_stop,
+            commands::voice::voice_insert,
+            commands::crypto::chat_crypto_generate_key,
+            commands::crypto::chat_crypto_encrypt_payload,
+            commands::crypto::chat_crypto_decrypt_payload,
+            commands::crypto::chat_crypto_encrypt_field,
+            commands::crypto::chat_crypto_decrypt_field,
+            commands::crypto::chat_crypto_encrypt_attachment,
+            commands::crypto::chat_crypto_decrypt_attachment,
+            commands::secure_storage::secure_storage_get,
+            commands::secure_storage::secure_storage_set,
+            commands::secure_storage::secure_storage_delete,
+            commands::chat_db::chat_db_list_sessions,
+            commands::chat_db::chat_db_list_sessions_with_preview,
+            commands::chat_db::chat_db_get_session,
+            commands::chat_db::chat_db_create_session,
+            commands::chat_db::chat_db_update_session_title,
+            commands::chat_db::chat_db_delete_session,
+            commands::chat_db::chat_db_get_messages,
+            commands::chat_db::chat_db_insert_message,
+            commands::chat_db::chat_db_upsert_session,
+            commands::chat_db::chat_db_insert_message_with_uuid,
+            commands::chat_db::chat_db_compress_attachment_image_file,
+            commands::chat_db::chat_db_open,
+            commands::chat_db::chat_db_has_existing_store,
+            commands::llm::llm_init_backend,
+            commands::llm::llm_load_model,
+            commands::llm::llm_create_context,
+            commands::llm::llm_free_context,
+            commands::llm::llm_free_model,
+            commands::llm::llm_prewarm_multimodal_context,
+            commands::llm::llm_generate_chat_stream,
+            commands::conversation::conversation_prepare,
+            commands::followup::conversation_resolve_followup,
+            commands::llm::llm_cancel,
+            commands::llm::llm_retrieval_epoch,
+            commands::llm::llm_model_state_epoch,
+            commands::system::system_info,
+            commands::config::desktop_model_policy,
+            commands::llm::llm_model_status,
+            commands::llm::llm_model_download_size,
+            commands::llm::llm_migrate_models,
+            commands::llm::llm_download_model,
+            commands::llm::llm_cancel_model_download,
+            commands::knowledge::knowledge_catalog,
+            commands::knowledge::knowledge_download_pack,
+            commands::knowledge::knowledge_cancel_pack_download,
+            commands::knowledge::knowledge_retrieve,
+            commands::notes::notes_list_collections,
+            commands::notes::notes_add_collection,
+            commands::notes::notes_remove_collection,
+            commands::notes::notes_index_collection,
+            commands::notes::notes_open_document,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .unwrap_or_else(|err| {
+            logging::log("App", format!("tauri build failed error={err}"));
+            panic!("error while building tauri application: {err}");
+        });
+
+    app.run(|app_handle, event| {
+        if matches!(event, RunEvent::ExitRequested { .. } | RunEvent::Exit) {
+            commands::cleanup_for_exit(app_handle);
+        }
+    });
 }

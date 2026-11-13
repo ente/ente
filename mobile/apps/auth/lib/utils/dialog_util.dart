@@ -3,53 +3,53 @@ import 'dart:math';
 
 import 'package:confetti/confetti.dart';
 import "package:dio/dio.dart";
-import 'package:ente_auth/l10n/l10n.dart';
-import 'package:ente_auth/theme/colors.dart';
-import 'package:ente_auth/ui/common/loading_widget.dart';
 import 'package:ente_auth/ui/components/action_sheet_widget.dart';
-import 'package:ente_auth/ui/components/buttons/button_widget.dart';
 import 'package:ente_auth/ui/components/components_constants.dart';
 import 'package:ente_auth/ui/components/dialog_widget.dart';
-import 'package:ente_auth/ui/components/models/button_result.dart';
-import 'package:ente_auth/ui/components/models/button_type.dart';
 import 'package:ente_auth/utils/email_util.dart';
 import 'package:ente_auth/utils/platform_util.dart';
 import 'package:ente_base/typedefs.dart';
+import 'package:ente_components/ente_components.dart';
+import 'package:ente_strings/ente_strings.dart';
+import 'package:ente_ui/components/buttons/button_widget.dart';
+import 'package:ente_ui/components/buttons/models/button_result.dart';
+import 'package:ente_ui/components/buttons/models/button_type.dart';
+import 'package:ente_ui/components/loading_widget.dart';
 import 'package:ente_ui/components/progress_dialog.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 typedef DialogBuilder = DialogWidget Function(BuildContext context);
 
-///Will return null if dismissed by tapping outside
 Future<ButtonResult?> showErrorDialog(
   BuildContext context,
   String title,
   String? body, {
   bool isDismissable = true,
+  bool showContactSupport = true,
+  String dismissButtonLabel = "OK",
+  bool useRootNavigator = false,
 }) async {
   return showDialogWidget(
     context: context,
     title: title,
     body: body,
     isDismissible: isDismissable,
+    useRootNavigator: useRootNavigator,
     buttons: [
+      if (showContactSupport)
+        ButtonWidget(
+          buttonType: ButtonType.primary,
+          labelText: context.strings.contactSupport,
+          isInAlert: true,
+          buttonAction: ButtonAction.first,
+          onTap: () async {
+            await sendEmail(context, to: "support@ente.com", body: body);
+          },
+        ),
       ButtonWidget(
-        buttonType: ButtonType.primary,
-        labelText: context.l10n.contactSupport,
-        isInAlert: true,
-        buttonAction: ButtonAction.first,
-        onTap: () async {
-          await sendEmail(
-            context,
-            to: "support@ente.io",
-            body: body,
-          );
-        },
-      ),
-      const ButtonWidget(
         buttonType: ButtonType.secondary,
-        labelText: "OK",
+        labelText: dismissButtonLabel,
         isInAlert: true,
         buttonAction: ButtonAction.second,
       ),
@@ -63,7 +63,7 @@ Future<ButtonResult?> showErrorDialogForException({
   bool isDismissible = true,
   String apiErrorPrefix = "It looks like something went wrong.",
 }) async {
-  String errorMessage = context.l10n.tempErrorContactSupportIfPersists;
+  String errorMessage = context.strings.tempErrorContactSupportIfPersists;
   if (exception is DioException &&
       exception.response != null &&
       exception.response!.data["code"] != null) {
@@ -72,7 +72,7 @@ Future<ButtonResult?> showErrorDialogForException({
   }
   return showDialogWidget(
     context: context,
-    title: context.l10n.error,
+    title: context.strings.error,
     icon: Icons.error_outline_outlined,
     body: errorMessage,
     isDismissible: isDismissible,
@@ -100,13 +100,12 @@ String parseErrorForUI(
       final DioException dioError = error;
       if (dioError.type == DioExceptionType.unknown) {
         if (dioError.error.toString().contains('Failed host lookup')) {
-          return context.l10n.networkHostLookUpErr;
+          return context.strings.networkHostLookUpErr;
         } else if (dioError.error.toString().contains('SocketException')) {
-          return context.l10n.networkConnectionRefusedErr;
+          return context.strings.networkConnectionRefusedErr;
         }
       }
     }
-    // return generic error if the user is not internal and the error is not in debug mode
     if (!kDebugMode) {
       return genericError;
     }
@@ -140,7 +139,6 @@ String parseErrorForUI(
   }
 }
 
-///Will return null if dismissed by tapping outside
 Future<ButtonResult?> showGenericErrorDialog({
   required BuildContext context,
   bool isDismissible = true,
@@ -148,7 +146,7 @@ Future<ButtonResult?> showGenericErrorDialog({
 }) async {
   String errorBody = parseErrorForUI(
     context,
-    context.l10n.itLooksLikeSomethingWentWrongPleaseRetryAfterSome,
+    context.strings.itLooksLikeSomethingWentWrongPleaseRetryAfterSome,
     error: error,
   );
   bool isWindowCertError = false;
@@ -162,14 +160,14 @@ Future<ButtonResult?> showGenericErrorDialog({
 
   return showDialogWidget(
     context: context,
-    title: context.l10n.error,
+    title: context.strings.error,
     icon: Icons.error_outline_outlined,
     body: errorBody,
     isDismissible: isDismissible,
     buttons: [
       ButtonWidget(
         buttonType: ButtonType.primary,
-        labelText: context.l10n.ok,
+        labelText: context.strings.ok,
         buttonAction: ButtonAction.first,
         isInAlert: true,
       ),
@@ -180,21 +178,19 @@ Future<ButtonResult?> showGenericErrorDialog({
           buttonAction: ButtonAction.third,
           isInAlert: true,
           onTap: () async {
-            PlatformUtil.openWebView(
-              context,
-              context.l10n.faq,
-              "https://ente.io/help/auth/troubleshooting/windows-login",
+            PlatformUtil.openUrlInBrowser(
+              "https://ente.com/help/auth/troubleshooting/windows-login",
             ).ignore();
           },
         ),
       ButtonWidget(
         buttonType: ButtonType.secondary,
-        labelText: context.l10n.contactSupport,
+        labelText: context.strings.contactSupport,
         buttonAction: ButtonAction.second,
         onTap: () async {
           await sendLogs(
             context,
-            context.l10n.contactSupport,
+            context.strings.contactSupport,
             postShare: () {},
           );
         },
@@ -237,7 +233,6 @@ DialogWidget choiceDialog({
   return DialogWidget(title: title, body: body, buttons: buttons, icon: icon);
 }
 
-///Will return null if dismissed by tapping outside
 Future<ButtonResult?> showChoiceDialog(
   BuildContext context, {
   required String title,
@@ -281,7 +276,6 @@ Future<ButtonResult?> showChoiceDialog(
   );
 }
 
-///Will return null if dismissed by tapping outside
 Future<ButtonResult?> showChoiceActionSheet(
   BuildContext context, {
   required String title,
@@ -360,11 +354,10 @@ Future<ButtonResult?> showConfettiDialog<T>({
 }) {
   final widthOfScreen = MediaQuery.of(context).size.width;
   final isMobileSmall = widthOfScreen <= mobileSmallThreshold;
-  final pageBuilder = Builder(
-    builder: dialogBuilder,
+  final pageBuilder = Builder(builder: dialogBuilder);
+  final ConfettiController confettiController = ConfettiController(
+    duration: const Duration(seconds: 1),
   );
-  final ConfettiController confettiController =
-      ConfettiController(duration: const Duration(seconds: 1));
   confettiController.play();
   return showDialog(
     context: context,
@@ -381,7 +374,6 @@ Future<ButtonResult?> showConfettiDialog<T>({
                 blastDirection: pi / 2,
                 emissionFrequency: 0,
                 numberOfParticles: 100,
-                // a lot of particles at once
                 gravity: 1,
                 blastDirectionality: BlastDirectionality.explosive,
               ),
@@ -398,7 +390,7 @@ Future<ButtonResult?> showConfettiDialog<T>({
   );
 }
 
-//Can return ButtonResult? from ButtonWidget or Exception? from TextInputDialog
+// Returns null after submit, ButtonResult on cancel, and Exception on failure.
 Future<dynamic> showTextInputDialog(
   BuildContext context, {
   required String title,
@@ -420,38 +412,27 @@ Future<dynamic> showTextInputDialog(
   bool useRootNavigator = false,
   VoidCallback? onCancel,
 }) {
-  return showDialog(
-    barrierColor: backdropFaintDark,
+  return showBottomSheetComponent<dynamic>(
     useRootNavigator: useRootNavigator,
     context: context,
-    builder: (context) {
-      final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-      final isKeyboardUp = bottomInset > 100;
-      return Material(
-        color: Colors.transparent,
-        child: Center(
-          child: Padding(
-            padding: EdgeInsets.only(bottom: isKeyboardUp ? bottomInset : 0),
-            child: TextInputDialog(
-              title: title,
-              message: message,
-              label: label,
-              body: body,
-              icon: icon,
-              submitButtonLabel: submitButtonLabel,
-              onSubmit: onSubmit,
-              hintText: hintText,
-              prefixIcon: prefixIcon,
-              initialValue: initialValue,
-              alignMessage: alignMessage,
-              maxLength: maxLength,
-              showOnlyLoadingState: showOnlyLoadingState,
-              textCapitalization: textCapitalization,
-              alwaysShowSuccessState: alwaysShowSuccessState,
-              isPasswordInput: isPasswordInput,
-            ),
-          ),
-        ),
+    builder: (_) {
+      return TextInputDialog(
+        title: title,
+        message: message,
+        label: label,
+        body: body,
+        icon: icon,
+        submitButtonLabel: submitButtonLabel,
+        onSubmit: onSubmit,
+        hintText: hintText,
+        prefixIcon: prefixIcon,
+        initialValue: initialValue,
+        alignMessage: alignMessage,
+        maxLength: maxLength,
+        showOnlyLoadingState: showOnlyLoadingState,
+        textCapitalization: textCapitalization,
+        alwaysShowSuccessState: alwaysShowSuccessState,
+        isPasswordInput: isPasswordInput,
       );
     },
   );

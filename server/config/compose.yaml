@@ -24,7 +24,6 @@ services:
     image: postgres:15-trixie
     env_file:
       - .env
-    # Wait for postgres to accept connections before starting museum.
     healthcheck:
       test: pg_isready -q -d ${POSTGRES_DB} -U ${POSTGRES_USER}
       start_period: 30s
@@ -33,7 +32,7 @@ services:
       - postgres-data:/var/lib/postgresql/data
 
   minio:
-    image: minio/minio
+    image: pgsty/silo
     ports:
       - 3200:3200 # MinIO API
       # - 3201:3201 # MinIO Console (uncomment to access externally)
@@ -45,8 +44,6 @@ services:
     post_start:
       - command: |
           sh -c '
-          #!/bin/sh
-
           while ! mc alias set h0 http://minio:3200 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD} 2>/dev/null
           do
             echo "Waiting for minio..."
@@ -72,6 +69,9 @@ services:
       - 3004:3004
       - 3005:3005
       - 3006:3006
+      - 3008:3008
+      - 3009:3009
+      - 3010:3010
     environment:
       - NODE_ENV=development
     env_file:

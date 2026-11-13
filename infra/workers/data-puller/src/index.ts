@@ -1,9 +1,3 @@
-/**
- * Proxy requests for downloading files from object storage.
- *
- * Used by museum when replicating.
- */
-
 export default {
     async fetch(request: Request) {
         switch (request.method) {

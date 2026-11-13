@@ -1,0 +1,27 @@
+appId: io.ente.locker
+---
+- launchApp
+- swipe:
+    start: 2%, 50%
+    end: 80%, 50%
+    duration: 300
+- tapOn: General
+- tapOn: Select Language
+- waitForAnimationToEnd
+- tapOn:
+    text: "Deutsch (de)"
+    optional: true
+
+- tapOn:
+    text: "Deutsch"
+    optional: true
+- tapOn: Sprache auswählen
+
+- tapOn:
+    text: "English (en)"
+    optional: true
+- tapOn:
+    text: "English"
+    optional: true
+- back
+

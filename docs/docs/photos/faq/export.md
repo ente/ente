@@ -1,10 +1,14 @@
 ---
-title: This Page Has Moved
-description: This content has been reorganized
+title: Export FAQ
+description: FAQ about exporting your data from Ente Photos
 search: false
+head:
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
-# This Page Has Moved
+# Export FAQ
 
 The content from **Export FAQ** has been reorganized. You can find it in the following locations:
 

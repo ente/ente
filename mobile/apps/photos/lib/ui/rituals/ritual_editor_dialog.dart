@@ -1,18 +1,20 @@
 import "dart:io";
 
+import "package:ente_strings/ente_strings.dart";
 import "package:flutter/cupertino.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
-import "package:photos/l10n/l10n.dart";
 import "package:photos/models/collection/collection.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/rituals/ritual_models.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
+import "package:photos/services/notification_service.dart";
 import "package:photos/theme/colors.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/collections/album/column_item.dart";
 import "package:photos/ui/collections/album/new_list_item.dart";
+import "package:photos/ui/components/thumbnail_list_item.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 import "package:photos/utils/dialog_util.dart";
 
@@ -40,7 +42,7 @@ Future<void> _showRitualEditor(BuildContext context, {Ritual? ritual}) async {
   try {
     await showGeneralDialog(
       context: context,
-      barrierLabel: context.l10n.ritualEditorLabel,
+      barrierLabel: context.strings.ritualEditorLabel,
       barrierColor: Colors.black.withValues(alpha: 0.45),
       barrierDismissible: true,
       transitionDuration: const Duration(milliseconds: 240),
@@ -81,29 +83,33 @@ Future<void> _showRitualEditor(BuildContext context, {Ritual? ritual}) async {
                       builder: (context, setState) {
                         final bool canSave =
                             controller.text.trim().isNotEmpty &&
-                                selectedAlbumId != null;
-                        final bool allDaysOff =
-                            days.every((selected) => !selected);
+                            selectedAlbumId != null;
+                        final bool allDaysOff = days.every(
+                          (selected) => !selected,
+                        );
                         final widgetBackgroundColor =
                             colorScheme.backgroundElevated2;
                         final segmentedBackgroundColor = colorScheme.fillFaint;
-                        final localizations =
-                            MaterialLocalizations.of(dialogContext);
-                        final bool use24HourFormat =
-                            MediaQuery.of(context).alwaysUse24HourFormat;
+                        final localizations = MaterialLocalizations.of(
+                          dialogContext,
+                        );
+                        final bool use24HourFormat = MediaQuery.of(
+                          context,
+                        ).alwaysUse24HourFormat;
                         final int hour12 = selectedTime.hourOfPeriod == 0
                             ? 12
                             : selectedTime.hourOfPeriod;
                         final String hourText = use24HourFormat
                             ? selectedTime.hour.toString().padLeft(2, "0")
                             : hour12.toString();
-                        final String minuteText =
-                            selectedTime.minute.toString().padLeft(2, "0");
+                        final String minuteText = selectedTime.minute
+                            .toString()
+                            .padLeft(2, "0");
                         final String? periodText = use24HourFormat
                             ? null
                             : (selectedTime.period == DayPeriod.am
-                                ? localizations.anteMeridiemAbbreviation
-                                : localizations.postMeridiemAbbreviation);
+                                  ? localizations.anteMeridiemAbbreviation
+                                  : localizations.postMeridiemAbbreviation);
                         final timeTextStyle = textTheme.large.copyWith(
                           fontWeight: FontWeight.w400,
                         );
@@ -119,9 +125,7 @@ Future<void> _showRitualEditor(BuildContext context, {Ritual? ritual}) async {
                               color: segmentedBackgroundColor,
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Center(
-                              child: Text(text, style: style),
-                            ),
+                            child: Center(child: Text(text, style: style)),
                           );
                         }
 
@@ -149,8 +153,10 @@ Future<void> _showRitualEditor(BuildContext context, {Ritual? ritual}) async {
                                     children: [
                                       Text(
                                         ritual == null
-                                            ? context.l10n.ritualCreateNewTitle
-                                            : context.l10n.ritualEdit,
+                                            ? context
+                                                  .strings
+                                                  .ritualCreateNewTitle
+                                            : context.strings.ritualEdit,
                                         style: textTheme.largeBold,
                                       ),
                                       const Spacer(),
@@ -200,9 +206,9 @@ Future<void> _showRitualEditor(BuildContext context, {Ritual? ritual}) async {
                                                 onTap: () async {
                                                   final emoji =
                                                       await _pickEmoji(
-                                                    context,
-                                                    selectedEmoji,
-                                                  );
+                                                        context,
+                                                        selectedEmoji,
+                                                      );
                                                   if (emoji != null) {
                                                     setState(() {
                                                       selectedEmoji = emoji;
@@ -232,8 +238,9 @@ Future<void> _showRitualEditor(BuildContext context, {Ritual? ritual}) async {
                                               TextCapitalization.sentences,
                                           onChanged: (_) => setState(() {}),
                                           decoration: InputDecoration(
-                                            hintText:
-                                                context.l10n.ritualEnterPrompt,
+                                            hintText: context
+                                                .strings
+                                                .ritualEnterPrompt,
                                             hintStyle: textTheme.body.copyWith(
                                               color: const Color(0xFF969696),
                                             ),
@@ -241,9 +248,9 @@ Future<void> _showRitualEditor(BuildContext context, {Ritual? ritual}) async {
                                             fillColor: widgetBackgroundColor,
                                             contentPadding:
                                                 const EdgeInsets.symmetric(
-                                              horizontal: 14,
-                                              vertical: 14,
-                                            ),
+                                                  horizontal: 14,
+                                                  vertical: 14,
+                                                ),
                                             border: OutlineInputBorder(
                                               borderRadius:
                                                   BorderRadius.circular(18),
@@ -264,7 +271,8 @@ Future<void> _showRitualEditor(BuildContext context, {Ritual? ritual}) async {
                                             if (value == null ||
                                                 value.trim().isEmpty) {
                                               return context
-                                                  .l10n.ritualEnterDescription;
+                                                  .strings
+                                                  .ritualEnterDescription;
                                             }
                                             return null;
                                           },
@@ -275,7 +283,7 @@ Future<void> _showRitualEditor(BuildContext context, {Ritual? ritual}) async {
                                   const SizedBox(height: 28),
                                   _sectionLabel(
                                     context,
-                                    context.l10n.ritualChooseDaysLabel,
+                                    context.strings.ritualChooseDaysLabel,
                                   ),
                                   const SizedBox(height: 8),
                                   Container(
@@ -297,18 +305,20 @@ Future<void> _showRitualEditor(BuildContext context, {Ritual? ritual}) async {
                                         double circleSize = maxCircleSize;
                                         double spacing =
                                             (availableWidth - circleSize * 7) /
-                                                8;
+                                            8;
 
                                         if (spacing < minSpacing) {
                                           spacing = minSpacing;
-                                          circleSize = ((availableWidth -
-                                                      (spacing * 8)) /
-                                                  7)
-                                              .clamp(
-                                            minCircleSize,
-                                            maxCircleSize,
-                                          );
-                                          spacing = (availableWidth -
+                                          circleSize =
+                                              ((availableWidth -
+                                                          (spacing * 8)) /
+                                                      7)
+                                                  .clamp(
+                                                    minCircleSize,
+                                                    maxCircleSize,
+                                                  );
+                                          spacing =
+                                              (availableWidth -
                                                   circleSize * 7) /
                                               8;
                                         }
@@ -316,9 +326,11 @@ Future<void> _showRitualEditor(BuildContext context, {Ritual? ritual}) async {
                                         final children = <Widget>[
                                           SizedBox(width: spacing),
                                         ];
-                                        for (int index = 0;
-                                            index < days.length;
-                                            index++) {
+                                        for (
+                                          int index = 0;
+                                          index < days.length;
+                                          index++
+                                        ) {
                                           children.add(
                                             _DayCircle(
                                               label: _weekLabel(context, index),
@@ -332,8 +344,9 @@ Future<void> _showRitualEditor(BuildContext context, {Ritual? ritual}) async {
                                               },
                                             ),
                                           );
-                                          children
-                                              .add(SizedBox(width: spacing));
+                                          children.add(
+                                            SizedBox(width: spacing),
+                                          );
                                         }
 
                                         return Row(children: children);
@@ -343,7 +356,7 @@ Future<void> _showRitualEditor(BuildContext context, {Ritual? ritual}) async {
                                   const SizedBox(height: 16),
                                   _sectionLabel(
                                     context,
-                                    context.l10n.ritualChooseAlbumLabel,
+                                    context.strings.ritualChooseAlbumLabel,
                                   ),
                                   const SizedBox(height: 8),
                                   GestureDetector(
@@ -385,7 +398,8 @@ Future<void> _showRitualEditor(BuildContext context, {Ritual? ritual}) async {
                                           const SizedBox(width: 10),
                                           Expanded(
                                             child: Text(
-                                              context.l10n
+                                              context
+                                                  .strings
                                                   .ritualNotificationsOffHint,
                                               style: textTheme.small.copyWith(
                                                 color: colorScheme.textMuted,
@@ -400,7 +414,9 @@ Future<void> _showRitualEditor(BuildContext context, {Ritual? ritual}) async {
                                       children: [
                                         _sectionLabel(
                                           context,
-                                          context.l10n.ritualSendReminderLabel,
+                                          context
+                                              .strings
+                                              .ritualSendReminderLabel,
                                         ),
                                         const Spacer(),
                                         CupertinoSwitch(
@@ -426,8 +442,9 @@ Future<void> _showRitualEditor(BuildContext context, {Ritual? ritual}) async {
                                               if (child == null) {
                                                 return const SizedBox.shrink();
                                               }
-                                              final mediaQuery =
-                                                  MediaQuery.of(context);
+                                              final mediaQuery = MediaQuery.of(
+                                                context,
+                                              );
                                               return MediaQuery(
                                                 data: mediaQuery.copyWith(
                                                   alwaysUse24HourFormat:
@@ -447,8 +464,9 @@ Future<void> _showRitualEditor(BuildContext context, {Ritual? ritual}) async {
                                           padding: const EdgeInsets.all(12),
                                           decoration: BoxDecoration(
                                             color: widgetBackgroundColor,
-                                            borderRadius:
-                                                BorderRadius.circular(12),
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
                                           ),
                                           child: Row(
                                             mainAxisAlignment:
@@ -481,8 +499,9 @@ Future<void> _showRitualEditor(BuildContext context, {Ritual? ritual}) async {
                                                 ],
                                               ),
                                               Container(
-                                                padding:
-                                                    const EdgeInsets.all(8),
+                                                padding: const EdgeInsets.all(
+                                                  8,
+                                                ),
                                                 decoration: BoxDecoration(
                                                   color:
                                                       segmentedBackgroundColor,
@@ -513,36 +532,56 @@ Future<void> _showRitualEditor(BuildContext context, {Ritual? ritual}) async {
                                           vertical: 18,
                                         ),
                                         shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(18),
+                                          borderRadius: BorderRadius.circular(
+                                            18,
+                                          ),
                                         ),
                                         side: BorderSide.none,
                                         elevation: 0,
                                       ),
                                       onPressed: canSave
                                           ? () async {
-                                              final updated = (ritual ??
-                                                      ritualsService
-                                                          .createEmptyRitual())
-                                                  .copyWith(
-                                                title: controller.text.trim(),
-                                                daysOfWeek: days,
-                                                timeOfDay: selectedTime,
-                                                remindersEnabled:
-                                                    sendReminderEnabled,
-                                                albumId: selectedAlbumId,
-                                                albumName: selectedAlbumName,
-                                                icon: selectedEmoji,
+                                              if (!allDaysOff &&
+                                                  sendReminderEnabled &&
+                                                  !await NotificationService
+                                                      .instance
+                                                      .hasGrantedPermissions() &&
+                                                  !await NotificationService
+                                                      .instance
+                                                      .requestPermissions(
+                                                        // ignore: use_build_context_synchronously
+                                                        context,
+                                                      )) {
+                                                return;
+                                              }
+                                              final updated =
+                                                  (ritual ??
+                                                          ritualsService
+                                                              .createEmptyRitual())
+                                                      .copyWith(
+                                                        title: controller.text
+                                                            .trim(),
+                                                        daysOfWeek: days,
+                                                        timeOfDay: selectedTime,
+                                                        remindersEnabled:
+                                                            sendReminderEnabled,
+                                                        albumId:
+                                                            selectedAlbumId,
+                                                        albumName:
+                                                            selectedAlbumName,
+                                                        icon: selectedEmoji,
+                                                      );
+                                              await ritualsService.saveRitual(
+                                                updated,
                                               );
-                                              await ritualsService
-                                                  .saveRitual(updated);
+                                              if (!context.mounted) return;
                                               Navigator.of(context).pop();
                                             }
                                           : null,
                                       child: Text(
                                         ritual == null
-                                            ? context.l10n.ritualCreateAction
-                                            : context.l10n.ritualUpdate,
+                                            ? context.strings.ritualCreateAction
+                                            : context.strings.ritualUpdate,
                                         style: textTheme.bodyBold.copyWith(
                                           color: canSave
                                               ? Colors.white
@@ -598,6 +637,7 @@ Future<Collection?> _pickAlbum(BuildContext context) async {
   );
   Collection? selected;
 
+  if (!context.mounted) return null;
   await showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -614,10 +654,7 @@ Future<Collection?> _pickAlbum(BuildContext context) async {
 }
 
 class _AlbumPickerSheet extends StatefulWidget {
-  const _AlbumPickerSheet({
-    required this.albums,
-    required this.onSelected,
-  });
+  const _AlbumPickerSheet({required this.albums, required this.onSelected});
 
   final List<Collection> albums;
   final ValueChanged<Collection?> onSelected;
@@ -648,17 +685,17 @@ class _AlbumPickerSheetState extends State<_AlbumPickerSheet> {
     final mediaQuery = MediaQuery.of(context);
     final colorScheme = getEnteColorScheme(context);
     final textTheme = getEnteTextTheme(context);
-    final l10n = context.l10n;
+    final l10n = context.strings;
     final trimmedQuery = _controller.text.trim();
     final bool showNewAlbumRow = trimmedQuery.isEmpty;
     final queryLower = trimmedQuery.toLowerCase();
     final filteredAlbums = queryLower.isEmpty
         ? widget.albums
         : widget.albums
-            .where(
-              (album) => album.displayName.toLowerCase().contains(queryLower),
-            )
-            .toList();
+              .where(
+                (album) => album.displayName.toLowerCase().contains(queryLower),
+              )
+              .toList();
 
     Future<void> createAlbum() async {
       Collection? created;
@@ -673,7 +710,7 @@ class _AlbumPickerSheetState extends State<_AlbumPickerSheet> {
           created = await service.createAlbum(trimmedName);
         },
         showOnlyLoadingState: true,
-        textCapitalization: TextCapitalization.words,
+        textCapitalization: TextCapitalization.sentences,
         popnavAfterSubmission: true,
       );
       if (!context.mounted) return;
@@ -688,11 +725,7 @@ class _AlbumPickerSheetState extends State<_AlbumPickerSheet> {
       Navigator.of(context).pop();
     }
 
-    final newAlbumRow = GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: createAlbum,
-      child: const NewAlbumListItemWidget(),
-    );
+    final newAlbumRow = NewAlbumListItemWidget(onTap: (_) => createAlbum());
 
     Widget buildEmptyState() {
       final message = widget.albums.isEmpty
@@ -702,9 +735,7 @@ class _AlbumPickerSheetState extends State<_AlbumPickerSheet> {
         return Center(
           child: Text(
             message,
-            style: textTheme.small.copyWith(
-              color: colorScheme.textMuted,
-            ),
+            style: textTheme.small.copyWith(color: colorScheme.textMuted),
           ),
         );
       }
@@ -717,9 +748,7 @@ class _AlbumPickerSheetState extends State<_AlbumPickerSheet> {
             child: Center(
               child: Text(
                 message,
-                style: textTheme.small.copyWith(
-                  color: colorScheme.textMuted,
-                ),
+                style: textTheme.small.copyWith(color: colorScheme.textMuted),
               ),
             ),
           ),
@@ -782,21 +811,15 @@ class _AlbumPickerSheetState extends State<_AlbumPickerSheet> {
                       fillColor: colorScheme.fillFaint,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide(
-                          color: colorScheme.strokeFaint,
-                        ),
+                        borderSide: BorderSide(color: colorScheme.strokeFaint),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide(
-                          color: colorScheme.strokeFaint,
-                        ),
+                        borderSide: BorderSide(color: colorScheme.strokeFaint),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide(
-                          color: colorScheme.strokeFaint,
-                        ),
+                        borderSide: BorderSide(color: colorScheme.strokeFaint),
                       ),
                     ),
                     onChanged: (_) => setState(() {}),
@@ -812,6 +835,8 @@ class _AlbumPickerSheetState extends State<_AlbumPickerSheet> {
                             child: buildEmptyState(),
                           )
                         : ListView.separated(
+                            keyboardDismissBehavior:
+                                ScrollViewKeyboardDismissBehavior.onDrag,
                             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                             itemBuilder: (context, index) {
                               if (showNewAlbumRow && index == 0) {
@@ -835,9 +860,11 @@ class _AlbumPickerSheetState extends State<_AlbumPickerSheet> {
                                 ),
                               );
                             },
-                            separatorBuilder: (_, __) =>
-                                const SizedBox(height: 10),
-                            itemCount: filteredAlbums.length +
+                            separatorBuilder: (_, _) => const SizedBox(
+                              height: ThumbnailListItem.defaultItemSpacing,
+                            ),
+                            itemCount:
+                                filteredAlbums.length +
                                 (showNewAlbumRow ? 1 : 0),
                           ),
                   ),
@@ -861,9 +888,10 @@ class _AlbumPreviewTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = getEnteColorScheme(context);
     final textTheme = getEnteTextTheme(context);
-    final displayedName = album?.displayName ??
+    final displayedName =
+        album?.displayName ??
         fallbackName ??
-        context.l10n.ritualAlbumSelectionPlaceholder;
+        context.strings.ritualAlbumSelectionPlaceholder;
     final isPlaceholder =
         album == null && (fallbackName == null || fallbackName!.trim().isEmpty);
     return Container(
@@ -881,7 +909,7 @@ class _AlbumPreviewTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  context.l10n.ritualAlbumLabel,
+                  context.strings.ritualAlbumLabel,
                   style: textTheme.miniMuted,
                 ),
                 const SizedBox(height: 2),
@@ -894,10 +922,7 @@ class _AlbumPreviewTile extends StatelessWidget {
               ],
             ),
           ),
-          Icon(
-            Icons.chevron_right_rounded,
-            color: colorScheme.textMuted,
-          ),
+          Icon(Icons.chevron_right_rounded, color: colorScheme.textMuted),
         ],
       ),
     );
@@ -920,10 +945,7 @@ class _AlbumThumbnail extends StatelessWidget {
           color: colorScheme.fillFaintPressed,
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Icon(
-          Icons.photo_album_outlined,
-          color: colorScheme.textMuted,
-        ),
+        child: Icon(Icons.photo_album_outlined, color: colorScheme.textMuted),
       );
     }
     return ClipRRect(
@@ -1107,8 +1129,9 @@ class _EmojiPickerSheetState extends State<_EmojiPickerSheet> {
   void _handleChanged(String value) {
     if (_isUpdatingController || _didPop) return;
     final trimmed = value.trim();
-    final firstGrapheme =
-        trimmed.characters.isEmpty ? "" : trimmed.characters.take(1).toString();
+    final firstGrapheme = trimmed.characters.isEmpty
+        ? ""
+        : trimmed.characters.take(1).toString();
     if (firstGrapheme.isEmpty) {
       _customEmoji = "";
       _isUpdatingController = true;
@@ -1124,9 +1147,7 @@ class _EmojiPickerSheetState extends State<_EmojiPickerSheet> {
       _isUpdatingController = true;
       _customEmojiController.value = TextEditingValue(
         text: _customEmoji,
-        selection: TextSelection.collapsed(
-          offset: _customEmoji.length,
-        ),
+        selection: TextSelection.collapsed(offset: _customEmoji.length),
       );
       _isUpdatingController = false;
       return;
@@ -1135,9 +1156,7 @@ class _EmojiPickerSheetState extends State<_EmojiPickerSheet> {
     _isUpdatingController = true;
     _customEmojiController.value = TextEditingValue(
       text: firstGrapheme,
-      selection: TextSelection.collapsed(
-        offset: firstGrapheme.length,
-      ),
+      selection: TextSelection.collapsed(offset: firstGrapheme.length),
     );
     _isUpdatingController = false;
     _popWithEmoji(firstGrapheme);
@@ -1163,7 +1182,7 @@ class _EmojiPickerSheetState extends State<_EmojiPickerSheet> {
             Row(
               children: [
                 Text(
-                  context.l10n.ritualPickEmojiTitle,
+                  context.strings.ritualPickEmojiTitle,
                   style: textTheme.bodyBold,
                 ),
                 const Spacer(),
@@ -1198,10 +1217,7 @@ class _EmojiPickerSheetState extends State<_EmojiPickerSheet> {
                       ),
                     ),
                     child: Center(
-                      child: Text(
-                        emoji,
-                        style: const TextStyle(fontSize: 22),
-                      ),
+                      child: Text(emoji, style: const TextStyle(fontSize: 22)),
                     ),
                   ),
                 );
@@ -1209,7 +1225,7 @@ class _EmojiPickerSheetState extends State<_EmojiPickerSheet> {
             ),
             const SizedBox(height: 12),
             Text(
-              context.l10n.ritualCustomKeyboardLabel,
+              context.strings.ritualCustomKeyboardLabel,
               style: textTheme.miniMuted,
             ),
             const SizedBox(height: 6),
@@ -1230,26 +1246,20 @@ class _EmojiPickerSheetState extends State<_EmojiPickerSheet> {
                     onChanged: _handleChanged,
                     onSubmitted: _handleSubmitted,
                     decoration: InputDecoration(
-                      hintText: context.l10n.ritualEmojiKeyboardHint,
+                      hintText: context.strings.ritualEmojiKeyboardHint,
                       filled: true,
                       fillColor: colorScheme.fillFaint,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: colorScheme.strokeFaint,
-                        ),
+                        borderSide: BorderSide(color: colorScheme.strokeFaint),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: colorScheme.strokeFaint,
-                        ),
+                        borderSide: BorderSide(color: colorScheme.strokeFaint),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: colorScheme.strokeFaint,
-                        ),
+                        borderSide: BorderSide(color: colorScheme.strokeFaint),
                       ),
                     ),
                   ),
@@ -1265,11 +1275,9 @@ class _EmojiPickerSheetState extends State<_EmojiPickerSheet> {
                   ),
                   onPressed: _customEmoji.isEmpty
                       ? null
-                      : () => _popWithEmoji(
-                            _customEmoji,
-                          ),
+                      : () => _popWithEmoji(_customEmoji),
                   child: Text(
-                    context.l10n.ritualEmojiUseAction,
+                    context.strings.ritualEmojiUseAction,
                     style: textTheme.bodyBold.copyWith(color: Colors.white),
                   ),
                 ),

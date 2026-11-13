@@ -1,277 +1,90 @@
 {
-  "error": "Eroare",
-  "@error": {
-    "description": "Generic error title"
-  },
-  "ok": "Ok",
-  "@ok": {
-    "description": "Generic OK button label"
-  },
-  "faq": "Întrebări frecvente",
-  "@faq": {
-    "description": "FAQ link label"
-  },
-  "contactSupport": "Contactează suportul",
-  "@contactSupport": {
-    "description": "Contact support button label"
-  },
-  "pleaseSendTheLogsTo": "Te rugăm să trimiți jurnalele la {toEmail}",
-  "@pleaseSendTheLogsTo": {
-    "description": "Message asking user to send logs to email address",
-    "placeholders": {
-      "toEmail": {
-        "type": "String",
-        "description": "Email address to send logs to"
-      }
-    }
-  },
-  "copyEmailAddress": "Copiază adresa de e-mail",
-  "@copyEmailAddress": {
-    "description": "Button to copy email address to clipboard"
-  },
-  "cancel": "Anulare",
-  "@cancel": {
-    "description": "Cancel button label"
-  },
-  "reportABug": "Raportează o eroare",
-  "@reportABug": {
-    "description": "Label for reporting a bug"
-  },
-  "save": "Salvare",
-  "@save": {
-    "description": "Label for save button"
-  },
-  "send": "Trimitere",
-  "@send": {
-    "description": "Label for send button"
-  },
-  "email": "E-mail",
-  "@email": {
-    "description": "Email field label"
-  },
-  "invalidEmailTitle": "Adresa e-mail nu este validă",
-  "@invalidEmailTitle": {
-    "description": "Title for invalid email error dialog"
-  },
-  "invalidEmailMessage": "Te rugăm să introduci o adresă de e-mail validă.",
-  "@invalidEmailMessage": {
-    "description": "Message for invalid email error dialog"
-  },
-  "pleaseWait": "Te rog așteaptă...",
-  "@pleaseWait": {
-    "description": "Please wait message"
-  },
-  "verifyPassword": "Verifică parola",
-  "@verifyPassword": {
-    "description": "Verify password button label"
-  },
-  "incorrectPasswordTitle": "Parolă incorectă",
-  "@incorrectPasswordTitle": {
-    "description": "Title for incorrect password error"
-  },
-  "pleaseTryAgain": "Te rugăm să încerci din nou",
-  "@pleaseTryAgain": {
-    "description": "Message asking user to try again"
-  },
-  "enterPassword": "Introdu parola",
-  "@enterPassword": {
-    "description": "Enter password field label"
-  },
-  "enterYourPasswordHint": "Introdu parola",
-  "@enterYourPasswordHint": {
-    "description": "Hint for password field"
+  "bringMemoriesTogether": "Adună-ți amintirile",
+  "createMyAccount": "Creează contul meu",
+  "localGalleryPermissionDesc": "Acordă permisiunea de a accesa și organiza fotografiile cu recunoaștere facială. Toată procesarea are loc pe dispozitivul tău.",
+  "onboardingOrganizeDesc": "Organizează-ți fotografiile și videoclipurile. Toate amintirile într-un singur loc.",
+  "about": "Despre",
+  "acceptTrustInvite": "Acceptați invitația",
+  "account": "Cont",
+  "accountCredentialsDescription": "Pastreaza credentialele conturilor.",
+  "accountIsAlreadyConfigured": "Contul este deja configurat.",
+  "accountSetupIncompleteCreateAccount": "Configurarea contului este incompletă. Creați un cont pentru a finaliza configurarea.",
+  "@accountSetupIncompleteCreateAccount": {
+    "description": "Error shown when account exists but signup is incomplete"
   },
   "activeSessions": "Sesiuni active",
   "@activeSessions": {
     "description": "Title for active sessions page"
   },
-  "oops": "Ups",
-  "@oops": {
-    "description": "Oops error title"
-  },
-  "somethingWentWrongPleaseTryAgain": "Ceva n-a mers bine, te rog încearcă din nou",
-  "@somethingWentWrongPleaseTryAgain": {
-    "description": "Generic error message"
-  },
-  "thisDevice": "Acest dispozitiv",
-  "@thisDevice": {
-    "description": "Label for current device"
-  },
-  "deleteAccount": "Ștergere cont",
-  "@deleteAccount": {
-    "description": "Delete account button label"
-  },
-  "yesSendFeedbackAction": "Da, trimite feedback",
-  "@yesSendFeedbackAction": {
-    "description": "Button to confirm sending feedback"
-  },
-  "noDeleteAccountAction": "Nu, șterge contul",
-  "@noDeleteAccountAction": {
-    "description": "Button to proceed with account deletion"
-  },
-  "initiateAccountDeleteTitle": "Te rugăm să te autentifici pentru a iniția ștergerea contului",
-  "@initiateAccountDeleteTitle": {
-    "description": "Title for authentication dialog before account deletion"
-  },
-  "delete": "Ștergere",
-  "@delete": {
-    "description": "Delete button label"
-  },
-  "password": "Parolă",
-  "@password": {
-    "description": "Password field label"
-  },
-  "confirmPassword": "Confirmă parola",
-  "@confirmPassword": {
-    "description": "Confirm password field label"
-  },
-  "termsOfServicesTitle": "Termeni",
-  "@termsOfServicesTitle": {
-    "description": "Terms of service title"
-  },
-  "welcomeBack": "Bine ai revenit!",
-  "@welcomeBack": {
-    "description": "Welcome back message"
-  },
-  "noInternetConnection": "Nu există conexiune la internet",
-  "@noInternetConnection": {
-    "description": "No internet connection error message"
-  },
-  "recreatePasswordTitle": "Recreează parola",
-  "@recreatePasswordTitle": {
-    "description": "Title for recreate password dialog"
-  },
-  "forgotPassword": "Am uitat parola",
-  "@forgotPassword": {
-    "description": "Forgot password link label"
-  },
-  "changeEmail": "Schimbă e-mailul",
-  "@changeEmail": {
-    "description": "Change email button label"
-  },
-  "verifyEmail": "Verifică e-mail",
-  "@verifyEmail": {
-    "description": "Verify email title"
-  },
-  "weHaveSendEmailTo": "Am trimis un e-mail la <green>{email}</green>",
-  "@weHaveSendEmailTo": {
-    "description": "Text to indicate that we have sent a mail to the user",
+  "add": "Adăugare",
+  "addedBy": "Adăugat de {emailOrName}",
+  "@addedBy": {
     "placeholders": {
-      "email": {
-        "description": "The email address of the user",
-        "type": "String",
-        "example": "example@ente.io"
-      }
+      "emailOrName": {}
     }
   },
-  "toResetVerifyEmail": "Pentru a reseta parola, te rugăm să confirmi mai întâi adresa de e-mail.",
-  "@toResetVerifyEmail": {
-    "description": "Message asking user to verify email before password reset"
+  "addedSuccessfullyTo": "S-au adăugat cu succes la {albumName}",
+  "@addedSuccessfullyTo": {
+    "placeholders": {
+      "albumName": {}
+    }
   },
-  "tapToEnterCode": "Apasă pentru a introduce codul",
-  "@tapToEnterCode": {
-    "description": "Hint for entering verification code"
+  "addEmail": "Adauga email",
+  "addFiles": "Adăugați fișiere",
+  "addFromDevice": "Adăugați de pe dispozitiv",
+  "addingToFavorites": "Se adaugă la favorite...",
+  "addLocation": "Adăugare locație",
+  "addLocationButton": "Adăugare",
+  "addMore": "Adăugați mai mulți",
+  "addName": "Adăugare nume",
+  "addNew": "Adăugare nou",
+  "@addNew": {
+    "description": "Text to add a new item (location tag, album, caption etc)"
   },
-  "sendEmail": "Trimite e-mail",
-  "resendEmail": "Retrimite e-mail",
-  "@resendEmail": {
-    "description": "Resend email button label"
+  "addNewEmail": "Adauga email nou",
+  "addOnPageSubtitle": "Detaliile suplimentelor",
+  "addOns": "Suplimente",
+  "addOnValidTill": "Suplimentul de {storageAmount} este valabil până pe {endDate}",
+  "@addOnValidTill": {
+    "placeholders": {
+      "endDate": {},
+      "storageAmount": {}
+    }
   },
-  "loginSessionExpired": "Sesiune expirată",
-  "@loginSessionExpired": {
-    "description": "Login session expired title"
+  "addPhotos": "Adăugați fotografii",
+  "addSelected": "Adăugați selectate",
+  "addToAlbum": "Adăugare la album",
+  "addToCollection": "Adauga la colectie",
+  "addToEnte": "Adăugare la Ente",
+  "addToHiddenAlbum": "Adăugați la album ascuns",
+  "addYourPhotosNow": "Adăugați-vă fotografiile acum",
+  "advanced": "Avansat",
+  "after1Day": "După o zi",
+  "after1Hour": "După o oră",
+  "after1Month": "După o lună",
+  "after1Week": "După o săptămâna",
+  "after1Year": "După un an",
+  "albumLayout": "Aspect album",
+  "albums": "Albume",
+  "albumTitle": "Titlu album",
+  "albumUpdated": "Album actualizat",
+  "allClear": "✨ Totul e curat",
+  "allFilesAlreadyMarkedAsImportant": "Toate elementele sunt deja marcate ca importante",
+  "allMemoriesPreserved": "S-au salvat toate amintirile",
+  "allow": "Permiteți",
+  "allowAddingPhotos": "Permiteți adăugarea fotografiilor",
+  "@allowAddingPhotos": {
+    "description": "Switch button to enable uploading photos to a public link"
   },
-  "tryAgain": "Încearcă din nou",
-  "@tryAgain": {
-    "description": "Try again button label"
-  },
-  "checkStatus": "Verifică status",
-  "@checkStatus": {
-    "description": "Check status button label"
-  },
-  "recoverAccount": "Recuperare cont",
-  "@recoverAccount": {
-    "description": "Recover account button label"
-  },
-  "setPasswordTitle": "Setează parola",
-  "@setPasswordTitle": {
-    "description": "Set password title"
-  },
-  "changePasswordTitle": "Schimbă parola",
-  "@changePasswordTitle": {
-    "description": "Change password title"
-  },
-  "resetPasswordTitle": "Resetează parola",
-  "@resetPasswordTitle": {
-    "description": "Reset password title"
-  },
-  "enterPasswordToEncrypt": "Introdu o parolă pe care o putem folosi pentru a-ți cripta datele",
-  "@enterPasswordToEncrypt": {
-    "description": "Prompt to enter password for encryption"
-  },
-  "passwordWarning": "Nu stocăm această parolă, deci dacă o uiți, <underline>nu îți putem decripta datele</underline>",
-  "@passwordWarning": {
-    "description": "Warning about password storage"
-  },
-  "passwordChangedSuccessfully": "Parola a fost modificată cu succes",
-  "@passwordChangedSuccessfully": {
-    "description": "Password changed successfully message"
-  },
-  "signOutFromOtherDevices": "Deconectare de pe alte dispozitive",
-  "@signOutFromOtherDevices": {
-    "description": "Sign out from other devices title"
-  },
-  "signOutOtherDevices": "Deconectează alte dispozitive",
-  "@signOutOtherDevices": {
-    "description": "Sign out other devices button label"
-  },
-  "doNotSignOut": "Nu te deconecta",
-  "@doNotSignOut": {
-    "description": "Do not sign out button label"
-  },
-  "recoveryKeyCopiedToClipboard": "Cheie de recuperare salvată în clipboard",
-  "@recoveryKeyCopiedToClipboard": {
-    "description": "Recovery key copied message"
-  },
-  "recoveryKey": "Cheie de recuperare",
-  "@recoveryKey": {
-    "description": "Recovery key label"
-  },
-  "recoveryKeyOnForgotPassword": "Dacă îți uiți parola, singura modalitate prin care poți recupera datele este cu această cheie.",
-  "@recoveryKeyOnForgotPassword": {
-    "description": "Recovery key importance explanation"
-  },
-  "recoveryKeySaveDescription": "Nu stocăm această cheie, vă rugăm salvați această cheie de 24 de cuvinte într-un loc sigur.",
-  "@recoveryKeySaveDescription": {
-    "description": "Recovery key save description"
-  },
-  "saveKey": "Salvare cheie",
-  "@saveKey": {
-    "description": "Save key button label"
-  },
-  "twoFactorAuthTitle": "Autentificare cu doi factori",
-  "@twoFactorAuthTitle": {
-    "description": "Two-factor authentication title"
-  },
-  "recover": "Recuperează",
-  "@recover": {
-    "description": "Recover button label"
-  },
-  "loggingOut": "Deconectare...",
-  "@loggingOut": {
-    "description": "Message shown while logging out"
-  },
+  "allowAppToOpenSharedAlbumLinks": "Permiteți aplicației să deschidă link-uri de album partajate",
+  "allowDownloads": "Permiteți descărcările",
+  "allowJoiningAlbum": "Permiteți alăturarea albumului",
+  "allowPermBody": "Vă rugăm să permiteți accesul la fotografiile dvs. din Setări, astfel încât Ente să vă poată afișa și salva biblioteca.",
+  "allowPermTitle": "Permiteți accesul la fotografii",
+  "allPersonGroupingWillReset": "Toate grupările pentru această persoană vor fi resetate și veți pierde toate sugestiile făcute pentru această persoană",
   "androidBiometricHint": "Verifică identitatea",
   "@androidBiometricHint": {
     "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricNotRecognized": "Neidentificat. Încearcă din nou.",
-  "@androidBiometricNotRecognized": {
-    "description": "Message to let the user know that authentication was failed. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricSuccess": "Succes",
-  "@androidBiometricSuccess": {
-    "description": "Message to let the user know that authentication was successful. It is used on Android side. Maximum 60 characters."
   },
   "androidCancelButton": "Anulare",
   "@androidCancelButton": {
@@ -281,17 +94,419 @@
   "@androidSignInTitle": {
     "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
   },
-  "goToSettings": "Mergi la setări",
-  "@goToSettings": {
-    "description": "Message showed on a button that the user can click to go to settings pages from the current dialog. It is used on both Android and iOS side. Maximum 30 characters."
+  "aNewVersionOfEnteIsAvailable": "Este disponibilă o nouă versiune de Ente.",
+  "appleId": "Apple ID",
+  "appLock": "Blocare aplicație",
+  "@appLock": {
+    "description": "App lock setting title"
   },
-  "iOSOkButton": "Ok",
-  "@iOSOkButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on iOS side. Maximum 30 characters."
+  "appLockDescription": "Alegeți între ecranul de blocare implicit al dispozitivului dvs. și un ecran de blocare personalizat cu PIN sau parolă.",
+  "@appLockDescription": {
+    "description": "Description of app lock feature"
   },
-  "thisEmailIsAlreadyInUse": "Această adresă de e-mail este deja folosită",
-  "@thisEmailIsAlreadyInUse": {
-    "description": "Error message when email is already in use"
+  "appLockOfflineModeWarning": "Ati ales sa continuati fara copii de rezerva. Daca uitati blocarea aplicatiei, veti fi blocat si nu veti putea accesa datele.",
+  "apply": "Aplicare",
+  "applyCodeTitle": "Aplicați codul",
+  "appstoreSubscription": "Abonament AppStore",
+  "archive": "Arhivă",
+  "@archive": {
+    "description": "Action of 'Archiving' an element"
+  },
+  "archiveAlbum": "Arhivare album",
+  "archiving": "Se arhivează...",
+  "areYouSure": "Sunteti sigur?",
+  "@areYouSure": {
+    "description": "Confirmation dialog title"
+  },
+  "areYouSureThatYouWantToLeaveTheFamily": "Sunteți sigur că doriți să părăsiți planul de familie?",
+  "areYouSureYouWantToCancel": "Sunteți sigur că doriți să anulați?",
+  "areYouSureYouWantToChangeYourPlan": "Sunteți sigur că doriți să vă schimbați planul?",
+  "areYouSureYouWantToExit": "Sigur doriți să ieșiți?",
+  "areYouSureYouWantToLogout": "Sunteți sigur că doriți să vă deconectați?",
+  "@areYouSureYouWantToLogout": {
+    "description": "Confirmation message before logout"
+  },
+  "areYouSureYouWantToRenew": "Sunteți sigur că doriți să reînnoiți?",
+  "areYouSureYouWantToResetThisPerson": "Sunteți sigur că doriți să resetaţi această persoană?",
+  "askCancelReason": "Abonamentul dvs. a fost anulat. Doriți să ne comunicați motivul?",
+  "authenticateGeneric": "Va rugam autentificati-va",
+  "authenticating": "Autentificare...",
+  "authenticationFailedPleaseTryAgain": "Autentificare eșuată, încercați din nou",
+  "@authenticationFailedPleaseTryAgain": {
+    "description": "Error message when authentication fails"
+  },
+  "authenticationSuccessful": "Autentificare cu succes!",
+  "@authenticationSuccessful": {
+    "description": "Success message when authentication is successful"
+  },
+  "authToChangeLockscreenSetting": "Vă rugăm să vă autentificați pentru a schimba setarea ecranului de blocare",
+  "authToChangeYourPassword": "Vă rugăm să vă autentificați pentru a vă schimba parola",
+  "authToConfigureTwofactorAuthentication": "Vă rugăm să vă autentificați pentru a configura autentificarea cu doi factori",
+  "authToManageLegacy": "Vă rugăm să vă autentificați pentru a gestiona contactele de încredere",
+  "authToViewPasskey": "Vă rugăm să vă autentificați pentru a vizualiza cheia de acces",
+  "authToViewPasskeyGeneric": "Va rugam autentificati-va pentru a vedea cheia de acces",
+  "authToViewTrashedFiles": "Vă rugăm să vă autentificați pentru a vedea fișierele din coșul de gunoi",
+  "authToViewYourActiveSessions": "Vă rugăm să vă autentificați pentru a vedea sesiunile active",
+  "authToViewYourHiddenFiles": "Vă rugăm să vă autentificați pentru a vedea fișierele ascunse",
+  "authToViewYourMemories": "Vă rugăm să vă autentificați pentru a vă vizualiza amintirile",
+  "authToViewYourRecoveryKey": "Vă rugăm să vă autentificați pentru a vedea cheia de recuperare",
+  "autoCastDialogBody": "Veți vedea dispozitivele disponibile pentru Cast aici.",
+  "autoCastiOSPermission": "Asigurați-vă că permisiunile de rețea locală sunt activate pentru aplicația Ente Foto, în Setări.",
+  "autoLockFeatureDescription": "Timpul după care aplicația se blochează după ce a fost pusă în fundal",
+  "@autoLockFeatureDescription": {
+    "description": "Description of auto lock feature"
+  },
+  "autoPair": "Asociere automată",
+  "backedUpFolders": "Foldere salvate",
+  "backup": "Copie de rezervă",
+  "backupFailed": "Copie de rezervă eșuată",
+  "backupFile": "Salvare fișier",
+  "backupOverMobileData": "Efectuare copie de rezervă prin date mobile",
+  "backupSettings": "Setări copie de rezervă",
+  "backupStatus": "Stare copie de rezervă",
+  "backupStatusDescription": "Articolele care au fost salvate vor apărea aici",
+  "backupVideos": "Copie de rezervă videoclipuri",
+  "birthday": "Ziua de naștere",
+  "cachedData": "Date salvate în memoria cache",
+  "calculating": "Se calculează...",
+  "cancel": "Anulare",
+  "@cancel": {
+    "description": "Cancel button label"
+  },
+  "cancelOtherSubscription": "Vă rugăm să vă anulați mai întâi abonamentul existent de la {paymentProvider}",
+  "@cancelOtherSubscription": {
+    "description": "The text to display when the user has an existing subscription from a different payment provider",
+    "type": "text",
+    "placeholders": {
+      "paymentProvider": {
+        "example": "Apple",
+        "type": "String"
+      }
+    }
+  },
+  "cancelRecovery": "Anulare recuperare",
+  "cancelSubscription": "Anulare abonament",
+  "cannotAddMoreFilesAfterBecomingViewer": "{name} nu va mai putea adauga elemente in colectie dupa ce devine vizualizator.",
+  "@cannotAddMoreFilesAfterBecomingViewer": {
+    "description": "Warning message when changing a collaborator to viewer",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "John"
+      }
+    }
+  },
+  "cannotDeleteSharedFiles": "Nu se pot șterge fișierele distribuite",
+  "canNotOpenBody": "Ne pare rău, acest album nu poate fi deschis în aplicație.",
+  "canNotOpenTitle": "Nu se poate deschide acest album",
+  "canOnlyCreateLinkForFilesOwnedByYou": "Se pot crea linkuri doar pentru fișiere deținute de dvs.",
+  "canOnlyRemoveFilesOwnedByYou": "Puteți elimina numai fișierele deținute de dvs.",
+  "castAlbum": "Difuzați albumul",
+  "castIPMismatchBody": "Vă rugăm să vă asigurați că sunteți în aceeași rețea cu televizorul.",
+  "castIPMismatchTitle": "Nu s-a reușit proiectarea albumului",
+  "castSessions": "Sesiuni de difuzare",
+  "centerPoint": "Punctul central",
+  "changeLocationOfSelectedItems": "Schimbați locația articolelor selectate?",
+  "changePermissions": "Schimba permisiunile",
+  "checkInboxAndSpamFolder": "Vă rugăm să verificaţi inbox-ul (şi spam) pentru a finaliza verificarea",
+  "@checkInboxAndSpamFolder": {
+    "description": "Message asking user to check inbox and spam folder"
+  },
+  "checking": "Se verifică...",
+  "checkingModels": "Se verifică modelele...",
+  "chooseFromAnExistingContact": "Alegeti din contactele existente",
+  "cleanUncategorized": "Curățare Necategorisite",
+  "cleanUncategorizedDescription": "Eliminați toate fișierele din „Fără categorie” care sunt prezente în alte albume",
+  "clearAllFilters": "Sterge toate filtrele",
+  "clearCaches": "Ștergeți memoria cache",
+  "clearingTrash": "Se goleste cosul de gunoi...",
+  "clusteringProgress": "Progres grupare",
+  "codeAppliedPageTitle": "Cod aplicat",
+  "codeChangeLimitReached": "Ne pare rău, ați atins limita de modificări ale codului.",
+  "codeCopiedToClipboard": "Cod copiat în clipboard",
+  "codeIssuerHint": "Emitent",
+  "collabLinkSectionDescription": "Permiteți utilizatorilor să adauge fotografii fără a avea un cont Ente",
+  "collaborator": "Colaborator",
+  "collageLayout": "Aspect",
+  "collageSaved": "Colaj salvat în galerie",
+  "collectionCannotBeDeleted": "Aceasta colectie nu poate fi stearsa",
+  "collectionCannotBeEdited": "Aceasta colectie nu poate fi editata",
+  "collectionCannotBeShared": "Aceasta colectie nu poate fi partajata",
+  "collectionDeletedSuccessfully": "Colectie stearsa cu succes",
+  "collectionEmptyStateSubtitle": "Nu exista elemente in aceasta colectie",
+  "collectionLabel": "Colectie",
+  "collectionRenamedSuccessfully": "Colectie redenumita cu succes",
+  "collections": "Colectii",
+  "collectPhotos": "Colectare fotografii",
+  "color": "Culoare",
+  "confirm": "Confirmare",
+  "@confirm": {
+    "description": "Confirm button label"
+  },
+  "confirm2FADisable": "Sigur doriți dezactivarea autentificării cu doi factori?",
+  "confirmAddingTrustedContact": "Sunteți pe cale să adăugați {email} ca persoană de contact de încredere. Acesta va putea să vă recupereze contul dacă lipsiți timp de {numOfDays} de zile.",
+  "@confirmAddingTrustedContact": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      },
+      "numOfDays": {
+        "type": "int",
+        "example": "30"
+      }
+    }
+  },
+  "confirmPlanChange": "Confirmați schimbarea planului",
+  "confirmRecoveryKey": "Confirmați cheia de recuperare",
+  "confirmYourRecoveryKey": "Confirmați cheia de recuperare",
+  "connectToDevice": "Conectați-vă la dispozitiv",
+  "contactDetails": "Detalii contact",
+  "contactDetailsHint": "Numar de telefon, email sau alte informatii de contact",
+  "contactName": "Numele contactului",
+  "contactNameHint": "Numele complet al contactului de urgenta",
+  "contactNotes": "Mesaj pentru contact",
+  "contactNotesHint": "Informatii importante de partajat cu aceasta persoana cand este contactata",
+  "contacts": "Contacte",
+  "continueInMailApp": "Continuați în aplicația e-mail",
+  "continueLabel": "Continuare",
+  "@continueLabel": {
+    "description": "Continue button label"
+  },
+  "convertToAlbum": "Convertire în album",
+  "copied": "S-a copiat",
+  "copiedNextToClipboard": "Codul următor a fost copiat în clipboard",
+  "copiedToClipboard": "Copiat în clipboard",
+  "copyEmbedHtml": "Copiați codul HTML încorporat",
+  "copyLink": "Copere link",
+  "copypasteThisCodentoYourAuthenticatorApp": "Copiați acest cod\nîn aplicația de autentificare",
+  "couldNotBackUpTryLater": "Nu s-a putut face copie de rezervă datelor.\nSe va reîncerca mai târziu.",
+  "couldNotFreeUpSpace": "Nu s-a putut elibera spațiu",
+  "couldNotOpenFile": "Nu s-a putut deschide elementul: {error}",
+  "@couldNotOpenFile": {
+    "description": "Error message when item cannot be opened",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Permission denied"
+      }
+    }
+  },
+  "couldNotUpdateSubscription": "Nu s-a putut actualiza abonamentul",
+  "count": "Total",
+  "crashAndErrorReporting": "Închidere accidentală şi raportare erori",
+  "crashReporting": "Raportarea problemelor",
+  "create": "Creare",
+  "createAccount": "Creare cont",
+  "@createAccount": {
+    "description": "Create account button label"
+  },
+  "createAccountTitle": "Creați un cont",
+  "createAlbumActionHint": "Apăsați lung pentru a selecta fotografii și apăsați pe + pentru a crea un album",
+  "createCollaborativeLink": "Creați un link colaborativ",
+  "createCollage": "Creare colaj",
+  "createCollection": "Creaza colectie",
+  "createPublicLink": "Creare link public",
+  "credentialName": "Cont",
+  "credentialNameHint": "Numele serviciului",
+  "credentialNotes": "Note suplimentare",
+  "credentialNotesHint": "Metode de recuperare, intrebari de securitate, ...",
+  "criticalUpdateAvailable": "Actualizare critică disponibilă",
+  "crop": "Decupare",
+  "currentlyRunning": "rulează în prezent",
+  "custom": "Particularizat",
+  "@custom": {
+    "description": "Label for setting custom value for link expiry"
+  },
+  "customEndpoint": "Conectat la {endpoint}",
+  "@customEndpoint": {
+    "description": "Text showing user is connected to a custom endpoint",
+    "placeholders": {
+      "endpoint": {
+        "type": "String",
+        "description": "URL of the custom endpoint"
+      }
+    }
+  },
+  "darkTheme": "Întunecată",
+  "data": "Date",
+  "dayToday": "Astăzi",
+  "dayYesterday": "Ieri",
+  "declineTrustInvite": "Refuzați invitația",
+  "decrypting": "Se decriptează...",
+  "decryptingVideo": "Se decriptează videoclipul...",
+  "deduplicateFiles": "Elim. dubluri fișiere",
+  "delete": "Ștergere",
+  "@delete": {
+    "description": "Delete button label"
+  },
+  "deleteAccount": "Ștergere cont",
+  "@deleteAccount": {
+    "description": "Delete account button label"
+  },
+  "deleteAlbum": "Ştergeţi albumul",
+  "deleteAlbumDialog": "De asemenea, ștergeți fotografiile (și videoclipurile) prezente în acest album din <bold>toate</bold> celelalte albume din care fac parte?",
+  "deleteAlbumsDialogBody": "Urmează să ștergeți toate albumele goale. Este util atunci când doriți să reduceți dezordinea din lista de albume.",
+  "deleteAll": "Ștergeți tot",
+  "deleteCodeMessage": "Ești sigur că vrei să ștergi acest cod? Acțiunea este ireversibilă.",
+  "deleteCodeTitle": "Șterge codul?",
+  "deleteCollectionDialogBody": "{collectionName} va fi stearsa definitiv.",
+  "@deleteCollectionDialogBody": {
+    "description": "Confirmation message body for deleting a single collection",
+    "placeholders": {
+      "collectionName": {
+        "type": "String",
+        "example": "My Documents"
+      }
+    }
+  },
+  "deleteCollectionFromEverywhere": "De asemenea, sterge elementele de peste tot",
+  "@deleteCollectionFromEverywhere": {
+    "description": "Checkbox label asking whether to delete collection items everywhere"
+  },
+  "deleteEmptyAlbums": "Ștergeți albumele goale",
+  "deleteEmptyAlbumsWithQuestionMark": "Ștergeți albumele goale?",
+  "deleteFromBoth": "Ștergeți din ambele",
+  "deleteFromDevice": "Ștergeți de pe dispozitiv",
+  "deleteFromEnte": "Ștergeți din Ente",
+  "deleteLink": "Sterge link",
+  "deleteLocation": "Ștergeți locația",
+  "deletePhotos": "Ștergeți fotografiile",
+  "deleteProgress": "Se șterg {currentlyDeleting} / {totalCount}",
+  "@deleteProgress": {
+    "placeholders": {
+      "currentlyDeleting": {},
+      "totalCount": {}
+    }
+  },
+  "deleteSharedAlbum": "Ștergeți albumul distribuit?",
+  "deleteSharedAlbumDialogBody": "Albumul va fi șters pentru toată lumea\n\nVeți pierde accesul la fotografiile distribuite din acest album care sunt deținute de alții",
+  "deleteShareLinkConfirmation": "Persoanele cu acest link nu vor mai putea accesa elementul.",
+  "deletingFile": "Se sterge elementul...",
+  "deletingShareLink": "Se sterge link-ul...",
+  "deselectAll": "Deselectare totală",
+  "details": "Detalii",
+  "developerSettings": "Setări dezvoltator",
+  "@developerSettings": {
+    "description": "Label for developer settings"
+  },
+  "developerSettingsWarning": "Sunteți sigur că doriți să modificați setările pentru dezvoltatori?",
+  "deviceLock": "Blocare dispozitiv",
+  "@deviceLock": {
+    "description": "Device lock option title"
+  },
+  "deviceNotFound": "Dispozitivul nu a fost găsit",
+  "didYouKnow": "Știați că?",
+  "disableDownloadWarningBody": "Observatorii pot să facă capturi de ecran sau să salveze o copie a fotografiilor dvs. folosind instrumente externe",
+  "disableDownloadWarningTitle": "Rețineți",
+  "disableLinkMessage": "Urmează să eliminați linkul public pentru accesarea „{albumName}”.",
+  "@disableLinkMessage": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
+  "disableTwofactor": "Dezactivați al doilea factor",
+  "disablingTwofactorAuthentication": "Se dezactivează autentificarea cu doi factori...",
+  "discardChanges": "Renunta",
+  "discover": "Descoperire",
+  "@discover": {
+    "description": "The text to display for the discover section under which we show receipts, screenshots, sunsets, greenery, etc."
+  },
+  "discover_babies": "Bebeluși",
+  "discover_celebrations": "Celebrări",
+  "discover_food": "Alimente",
+  "discover_greenery": "Verdeață",
+  "discover_hills": "Dealuri",
+  "discover_identity": "Identitate",
+  "discover_memes": "Meme-uri",
+  "discover_notes": "Notițe",
+  "discover_pets": "Animale",
+  "discover_receipts": "Bonuri fiscale",
+  "discover_screenshots": "Capturi de ecran",
+  "discover_selfies": "Selfie-uri",
+  "discover_sunset": "Apusuri",
+  "discover_visiting_cards": "Carte de vizită",
+  "discover_wallpapers": "Imagini de fundal",
+  "dismiss": "Renunțați",
+  "distanceInKMUnit": "km",
+  "@distanceInKMUnit": {
+    "description": "Unit for distance in km"
+  },
+  "documentsHint": "Documente",
+  "done": "Finalizat",
+  "download": "Descărcare",
+  "downloadFailed": "Descărcarea nu a reușit",
+  "downloading": "Se descarcă...",
+  "downloadingProgress": "Se descarca... {percentage}%",
+  "@downloadingProgress": {
+    "description": "Download progress message",
+    "placeholders": {
+      "percentage": {
+        "type": "int",
+        "example": "75"
+      }
+    }
+  },
+  "downloadUpdate": "Descărcare",
+  "doYouWantToDiscardTheEditsYouHaveMade": "Doriți să renunțați la editările efectuate?",
+  "dropSupportEmail": "Vă rugăm să trimiteți un e-mail la {supportEmail} de pe adresa de e-mail înregistrată",
+  "@dropSupportEmail": {
+    "placeholders": {
+      "supportEmail": {
+        "description": "The support email address",
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
+  },
+  "duplicateFileCountWithStorageSaved": "Ați curățat {count, plural, one{{count} dublură} few{{count} dubluri} other{{count} de dubluri}}, economisind ({storageSaved}!)",
+  "@duplicateFileCountWithStorageSaved": {
+    "description": "The text to display when the user has successfully cleaned up duplicate files",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "1",
+        "type": "int"
+      },
+      "storageSaved": {
+        "example": "1.2 GB",
+        "type": "String"
+      }
+    }
+  },
+  "duplicateItemsGroup": "{count} fișiere, {formattedSize} fiecare",
+  "@duplicateItemsGroup": {
+    "description": "Display the number of duplicate files and their size",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "12",
+        "type": "int"
+      },
+      "formattedSize": {
+        "example": "2.3 MB",
+        "type": "String"
+      }
+    }
+  },
+  "edit": "Editare",
+  "editItem": "Editeaza element",
+  "editLocation": "Editare locaţie",
+  "editPerson": "Editați persoana",
+  "editSecret": "Editeaza secret",
+  "@editSecret": {
+    "description": "Title shown when editing an existing secret"
+  },
+  "editsSaved": "Editări salvate",
+  "editsToLocationWillOnlyBeSeenWithinEnte": "Editările locației vor fi vizibile doar pe Ente",
+  "eligible": "eligibil",
+  "email": "E-mail",
+  "@email": {
+    "description": "Email field label"
+  },
+  "emailAlreadyRegistered": "E-mail deja înregistrat.",
+  "@emailAlreadyRegistered": {
+    "description": "Error message when email is already registered"
   },
   "emailChangedTo": "E-mail modificat în {newEmail}",
   "@emailChangedTo": {
@@ -304,8 +519,1334 @@
       }
     }
   },
+  "emailHint": "Introduceți adresa de e-mail",
+  "emailNoEnteAccountPhotos": "{email} nu are un cont Ente.\n\nTrimiteți-le o invitație pentru a distribui fotografii.",
+  "@emailNoEnteAccountPhotos": {
+    "placeholders": {
+      "email": {}
+    }
+  },
+  "emailNotRegistered": "E-mailul nu este înregistrat.",
+  "@emailNotRegistered": {
+    "description": "Error message when email is not registered"
+  },
+  "emailUsMessage": "Te rugăm să ne trimiți un e-mail la {email}",
+  "@emailUsMessage": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "emailVerificationEnableWarning": "Pentru a evita blocarea contului tău, asigurați-vă că stocați o copie a e-mailului 2FA în afara Ente Auth înainte de a permite verificarea e-mail-ului.",
+  "emailVerificationToggle": "Verificarea adresei de e-mail",
+  "emailYourLogs": "Trimiteți jurnalele prin e-mail",
+  "@emailYourLogs": {
+    "description": "Title for emailing logs dialog"
+  },
+  "emergencyContact": "Contact de urgenta",
+  "empty": "Gol",
+  "emptyTrash": "Goleste cosul de gunoi",
+  "emptyTrashConfirmation": "Sunteti sigur ca doriti sa stergeti definitiv toate elementele din cos? Aceasta actiune nu poate fi anulata.",
+  "emptyTrashQuestion": "Goliți coșul de gunoi?",
+  "enable": "Activare",
+  "enableComment": "Comentarii si reacții",
+  "enabled": "Activat",
+  "enableMaps": "Activare hărți",
+  "encryptingBackup": "Criptare copie de rezervă...",
+  "encryptionKeys": "Chei de criptare",
+  "@encryptionKeys": {
+    "description": "Encryption keys title"
+  },
+  "endpointUpdatedMessage": "Endpoint actualizat cu succes",
+  "@endpointUpdatedMessage": {
+    "description": "Success message when endpoint is updated"
+  },
+  "enterAlbumName": "Introduceți numele albumului",
+  "enterCode": "Introduceți codul",
+  "enterCodeDescription": "Introduceți codul oferit de prietenul dvs. pentru a beneficia de spațiu gratuit pentru amândoi",
+  "enterCollectionName": "Introduceti numele colectiei",
+  "enterEmail": "Introduceți e-mailul",
+  "enterFileName": "Introduceți numele fișierului",
+  "enterName": "Introduceți numele",
+  "enterNameOrEmailToShareWith": "Introduceti numele sau email-ul pentru partajare",
+  "enterNewPasswordToEncrypt": "Introduceți o parolă nouă pe care o putem folosi pentru a cripta datele",
+  "@enterNewPasswordToEncrypt": {
+    "description": "Prompt to enter new password for encryption"
+  },
+  "enterNewTitle": "Introduceti un titlu nou",
+  "enterReferralCode": "Introduceţi codul de recomandare",
+  "enterThe6digitCodeFromnyourAuthenticatorApp": "Introduceți codul de 6 cifre\ndin aplicația de autentificare",
+  "enterValidEmail": "Vă rugăm să introduceți o adresă de e-mail validă.",
+  "enterYourNewEmailAddress": "Introduceți noua adresa de e-mail",
+  "enterYourPassword": "Introduceţi parola",
+  "enterYourPasswordHint": "Introdu parola",
+  "@enterYourPasswordHint": {
+    "description": "Hint for password field"
+  },
+  "enterYourRecoveryKey": "Introduceți cheia de recuperare",
+  "error": "Eroare",
+  "@error": {
+    "description": "Generic error title"
+  },
+  "errorOpeningFile": "Eroare la deschiderea elementului",
+  "exif": "EXIF",
+  "expiredLinkInfo": "Acest link a expirat. Vă rugăm să selectați un nou termen de expirare sau să dezactivați expirarea linkului.",
+  "exportCodes": "Exportă coduri",
+  "exportLogs": "Exportați jurnalele",
+  "@exportLogs": {
+    "description": "Button to export logs"
+  },
+  "exportYourData": "Export de date",
+  "extraPhotosFound": "S-au găsit fotografii extra",
+  "faceNotClusteredYet": "Fața nu este încă grupată, vă rugăm să reveniți mai târziu",
+  "failedToApplyCode": "Codul nu a putut fi aplicat",
+  "failedToCancel": "Nu s-a reușit anularea",
+  "failedToDownloadOrDecrypt": "Descarcare element esuata",
+  "failedToDownloadVideo": "Descărcarea videoclipului nu a reușit",
+  "failedToFetchActiveSessions": "Nu s-a reușit preluarea sesiunilor active",
+  "@failedToFetchActiveSessions": {
+    "description": "In session page, warn user (in toast) that active sessions could not be fetched."
+  },
+  "failedToFetchOriginalForEdit": "Nu s-a reușit preluarea originalului pentru editare",
+  "failedToFetchReferralDetails": "Nu se pot obține detaliile recomandării. Vă rugăm să încercați din nou mai târziu.",
+  "failedToLoadAlbums": "Încărcarea albumelor nu a reușit",
+  "failedToLoadCollections": "Incarcare colectii esuata: {error}",
+  "@failedToLoadCollections": {
+    "description": "Error message when loading collections fails",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Network error"
+      }
+    }
+  },
+  "failedToRefreshStripeSubscription": "Nu s-a reușit reîmprospătarea abonamentului",
+  "failedToRenew": "Nu s-a reușit reînnoirea",
+  "failedToUpdateFile": "Actualizare element esuata: {error}",
+  "@failedToUpdateFile": {
+    "description": "Error message when item update fails",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Network error"
+      }
+    }
+  },
+  "failedToVerifyPaymentStatus": "Verificarea stării plății nu a reușit",
+  "faq": "Întrebări frecvente",
+  "@faq": {
+    "description": "FAQ link label"
+  },
+  "faqs": "Întrebări frecvente",
+  "favorite": "Favorit",
+  "featurePassAutomatically": "Transmiteti-le automat in situatii de urgenta",
+  "featureSaveImportant": "Salvati documentele si credentialele importante",
+  "featureShareAnytime": "Partajati-le oricand",
+  "fieldCopiedToClipboard": "{fieldName} copiat in clipboard",
+  "@fieldCopiedToClipboard": {
+    "description": "Message when a field is copied to clipboard",
+    "placeholders": {
+      "fieldName": {
+        "type": "String",
+        "example": "Password"
+      }
+    }
+  },
+  "fileDeletedSuccessfully": "Element sters cu succes",
+  "fileInfoAddDescHint": "Adăugați o descriere...",
+  "fileMarkedAsImportant": "Element marcat ca important",
+  "fileNotUploadedYet": "Fișierul nu a fost încărcat încă",
+  "fileRemovedFromImportant": "Element eliminat din importante",
+  "filesAddedByYouWillBeRemovedFromTheCollection": "Elementele adaugate de dumneavoastra vor fi eliminate din colectie",
+  "fileSavedToGallery": "Fișier salvat în galerie",
+  "filesDeleted": "Fișiere șterse",
+  "filesSavedToGallery": "Fișiere salvate în galerie",
+  "fileTypes": "Tipuri de fișiere",
+  "fileUpdatedSuccessfully": "Element actualizat cu succes!",
+  "filters": "Filtre",
+  "findThemQuickly": "Găsiți rapid",
+  "@findThemQuickly": {
+    "description": "Subtitle to indicate that the user can find people quickly by name"
+  },
+  "flip": "Răsturnare",
+  "forgotPassword": "Am uitat parola",
+  "@forgotPassword": {
+    "description": "Forgot password link label"
+  },
+  "forgotRecoveryKey": "Ați uitat cheia de recuperare?",
+  "freeTrial": "Perioadă de încercare gratuită",
+  "freeUpAmount": "Eliberați {sizeInMBorGB}",
+  "@freeUpAmount": {
+    "placeholders": {
+      "sizeInMBorGB": {}
+    }
+  },
+  "freeUpDeviceSpace": "Eliberați spațiu pe dispozitiv",
+  "freeUpSpace": "Eliberați spațiu",
+  "gallery": "Galerie",
+  "galleryMemoryLimitInfo": "Până la 1000 de amintiri afișate în galerie",
+  "generatingEncryptionKeys": "Se generează cheile de criptare...",
+  "@generatingEncryptionKeys": {
+    "description": "Generating encryption keys message"
+  },
+  "getStarted": "Începe",
+  "googlePlayId": "ID Google Play",
+  "grantFullAccessPrompt": "Vă rugăm să permiteți accesul la toate fotografiile în aplicația Setări",
+  "grantPermission": "Acordați permisiunea",
+  "guestView": "Mod oaspete",
+  "guestViewEnablePreSteps": "Pentru a activa modul oaspete, vă rugăm să configurați codul de acces al dispozitivului sau blocarea ecranului în setările sistemului.",
+  "help": "Asistență",
+  "hidden": "Ascunse",
+  "hide": "Ascundere",
+  "hideContent": "Ascundeți conținutul",
+  "@hideContent": {
+    "description": "Hide content setting title"
+  },
+  "hideContentDescriptionAndroid": "Ascunde conținutul aplicației în comutatorul de aplicații și dezactivează capturile de ecran",
+  "@hideContentDescriptionAndroid": {
+    "description": "Description of hide content feature on Android"
+  },
+  "hideContentDescriptioniOS": "Ascunde conținutul aplicației în comutatorul de aplicații",
+  "@hideContentDescriptioniOS": {
+    "description": "Description of hide content feature on iOS"
+  },
+  "hideSharedItemsFromHomeGallery": "Ascundeți elementele distribuite din galeria principală",
+  "hiding": "Se ascunde...",
+  "hostedAtOsmFrance": "Găzduit la OSM Franţa",
+  "howItWorks": "Cum funcţionează",
+  "@howItWorks": {
+    "description": "How it works button label"
+  },
+  "howToViewShareeVerificationID": "Rugați-i să țină apăsat pe adresa de e-mail din ecranul de setări și să verifice dacă ID-urile de pe ambele dispozitive se potrivesc.",
+  "ignore": "Ignorare",
+  "ignored": "ignorat",
+  "imageNotAnalyzed": "Imaginea nu a fost analizată",
+  "immediately": "Imediat",
+  "@immediately": {
+    "description": "Immediately option for auto lock timing"
+  },
+  "importAccountPageTitle": "Introdu detaliile contului",
+  "importBitwardenGuide": "Utilizați opțiunea \"Export vault\" din Bitwarden Tools și importați fișierul JSON necriptat.",
+  "importCodes": "Importă coduri",
+  "importEnteEncGuide": "Selectează fișierul criptat JSON exportat din Bențe",
+  "importEnterSetupKey": "Introdu o cheie de configurare",
+  "importLabel": "Importă",
+  "importRaivoGuide": "Utilizați opțiunea \"Export OTPs to Zip archive\" în Setările Raivo.\n\nExtrageți fișierul zip și importați fișierul JSON.",
+  "importSelectAppExport": "Selectează fișierul de export din {appName}",
+  "@importSelectAppExport": {
+    "placeholders": {
+      "appName": {}
+    }
+  },
+  "importSelectJsonFile": "Selectează fișierul JSON",
+  "importSuccessTitle": "Ura!",
+  "importTypeEnteEncrypted": "Export Ente criptat",
+  "incorrectCode": "Cod incorect",
+  "@incorrectCode": {
+    "description": "Error message when code is incorrect"
+  },
+  "incorrectDetails": "Detalii incorecte",
+  "incorrectPasswordTitle": "Parolă incorectă",
+  "@incorrectPasswordTitle": {
+    "description": "Title for incorrect password error"
+  },
+  "incorrectRecoveryKey": "Cheie de recuperare incorectă",
+  "@incorrectRecoveryKey": {
+    "description": "Error message when recovery key is incorrect"
+  },
+  "incorrectRecoveryKeyBody": "Cheia de recuperare introdusă este incorectă",
+  "incorrectRecoveryKeyTitle": "Cheie de recuperare incorectă",
+  "info": "Informații",
+  "informationDescription": "Salvati si partajati informatii cu cei dragi.",
+  "insecureDevice": "Dispozitiv nesigur",
+  "@insecureDevice": {
+    "description": "Insecure device warning title"
+  },
+  "invalidEmailAddress": "Adresa e-mail nu este validă",
+  "invalidEmailMessage": "Te rugăm să introduci o adresă de e-mail validă.",
+  "@invalidEmailMessage": {
+    "description": "Message for invalid email error dialog"
+  },
+  "invalidEmailTitle": "Adresa e-mail nu este validă",
+  "@invalidEmailTitle": {
+    "description": "Title for invalid email error dialog"
+  },
+  "invalidEndpoint": "Endpoint invalid",
+  "@invalidEndpoint": {
+    "description": "Error message when endpoint is invalid"
+  },
+  "invalidEndpointMessage": "Ne pare rău, endpoint-ul introdus nu este valabil. Vă rugăm să introduceți un endpoint valid și să încercați din nou.",
+  "@invalidEndpointMessage": {
+    "description": "Detailed error message when endpoint is invalid"
+  },
+  "invalidKey": "Cheie invalidă",
+  "invalidQRCode": "Codul QR nu este valid",
+  "invalidRecoveryKey": "Cheia de recuperare pe care ați introdus-o nu este validă. Vă rugăm să vă asigurați că aceasta conține 24 de cuvinte și să verificați ortografia fiecăruia.\n\nDacă ați introdus un cod de recuperare mai vechi, asigurați-vă că acesta conține 64 de caractere și verificați fiecare dintre ele.",
+  "invite": "Invitați",
+  "inviteToEnte": "Invitați la Ente",
+  "ok": "OK",
+  "@ok": {
+    "description": "Generic OK button label"
+  },
+  "itemCount": "{count, plural, one{{count} articol} few{{count} articole} other{{count} de articole}}",
+  "@itemCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "items": "{count} elemente",
+  "@items": {
+    "description": "Number of items in a collection",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "itemsShowTheNumberOfDaysRemainingBeforePermanentDeletion": "Articolele afișează numărul de zile rămase până la ștergerea definitivă",
+  "itemsWillBeRemovedFromAlbum": "Articolele selectate vor fi eliminate din acest album",
+  "itLooksLikeSomethingWentWrongPleaseRetryAfterSome": "Se pare că ceva nu a mers bine. Vă rugăm să încercați din nou după ceva timp. Dacă eroarea persistă, vă rugăm să contactați echipa noastră de asistență.",
+  "@itLooksLikeSomethingWentWrongPleaseRetryAfterSome": {
+    "description": "Generic error message for temporary issues"
+  },
+  "iUnderStand": "Înţeleg",
+  "@iUnderStand": {
+    "description": "Text for the button to confirm the user understands the warning"
+  },
+  "join": "Alăturare",
+  "joinAlbum": "Alăturați-vă albumului",
+  "joinAlbumSubtext": "pentru a vedea și a adăuga fotografii",
+  "joinAlbumSubtextViewer": "pentru a adăuga la albumele distribuite",
+  "kiloMeterUnit": "km",
+  "language": "Limbă",
+  "lastUpdated": "Ultima actualizare",
+  "layoutGrouped": "Grupate",
+  "layoutMasonry": "Zid",
+  "layoutTrip": "Călătorie",
+  "leave": "Părăsiți",
+  "leaveAlbum": "Părăsiți albumul",
+  "leaveCollection": "Paraseste colectia",
+  "leaveSharedAlbum": "Părăsiți albumul distribuit?",
+  "left": "Stânga",
+  "legacy": "Moștenire",
+  "legacyAccounts": "Conturi de moștenire",
+  "legacyInvite": "{email} v-a invitat să fiți un contact de încredere",
+  "@legacyInvite": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "family@example.com"
+      }
+    }
+  },
+  "legacyPageDesc": "Moștenirea permite contactelor de încredere să vă acceseze contul în absența dvs.",
+  "legacyPageDesc2": "Persoanele de contact de încredere pot iniția recuperarea contului și, dacă nu este blocată în termen de 30 de zile, vă pot reseta parola și accesa contul.",
+  "lightTheme": "Luminoasă",
+  "linkCopiedToClipboard": "Linkul a fost copiat în clipboard",
+  "linkDeviceLimit": "Limită de dispozitive",
+  "linkEnabled": "Activat",
+  "linkExpired": "Expirat",
+  "linkExpiresOn": "Linkul va expira pe {expiryTime}",
+  "@linkExpiresOn": {
+    "placeholders": {
+      "expiryTime": {}
+    }
+  },
+  "linkExpiry": "Expirarea linkului",
+  "linkHasExpired": "Linkul a expirat",
+  "linkNeverExpires": "Niciodată",
+  "linkRequestLimitExceeded": "Acest album a fost vizualizat pe prea multe dispozitive",
+  "livePhotos": "Fotografii live",
+  "loadingExifData": "Se încarcă date EXIF...",
+  "loadingGallery": "Se încarcă galeria...",
+  "loadingModel": "Se descarcă modelele...",
+  "loadingYourPhotos": "Se încarcă fotografiile dvs...",
+  "loadMessage1": "Puteți împărți abonamentul cu familia dvs.",
+  "loadMessage3": "Păstrăm 3 copii ale datelor dvs., dintre care una într-un adăpost antiatomic subteran",
+  "loadMessage4": "Toate aplicațiile noastre sunt open source",
+  "loadMessage5": "Codul nostru sursă și criptografia au fost evaluate extern",
+  "loadMessage6": "Puteți distribui linkuri către albumele dvs. celor dragi",
+  "loadMessage7": "Aplicațiile noastre mobile rulează în fundal pentru a cripta și salva orice fotografie nouă pe care o realizați",
+  "loadMessage8": "{webUrl} are un instrument de încărcare sofisticat",
+  "@loadMessage8": {
+    "description": "Loading screen message about the web uploader.",
+    "placeholders": {
+      "webUrl": {
+        "type": "String",
+        "example": "photos.ente.com"
+      }
+    }
+  },
+  "loadMessage9": "Folosim Xchacha20Poly1305 pentru a vă cripta datele în siguranță",
+  "localGallery": "Galerie locală",
+  "localSyncErrorMessage": "Se pare că ceva nu a mers bine, deoarece sincronizarea fotografiilor locale durează mai mult decât ne așteptam. Vă rugăm să contactați echipa noastră de asistență",
+  "location": "Locație",
+  "locationName": "Numele locației",
+  "locationPickerTip": "De asemenea, puteți adăuga o locație centrată pe o fotografie din ecranul cu informații despre fotografie",
+  "@locationPickerTip": {
+    "description": "Helper tip text shown in the location picker that refers to the photo info screen."
+  },
+  "locations": "Locații",
+  "locationTagFeatureDescription": "O etichetă de locație grupează toate fotografiile care au fost făcute pe o anumită rază a unei fotografii",
+  "lockButtonLabel": "Blocat",
+  "logInLabel": "Conectare",
+  "@logInLabel": {
+    "description": "Log in button label"
+  },
+  "loginSessionExpired": "Sesiune expirată",
+  "@loginSessionExpired": {
+    "description": "Login session expired title"
+  },
+  "loginSessionExpiredDetails": "Sesiunea a expirat. Vă rugăm să vă autentificați din nou.",
+  "@loginSessionExpiredDetails": {
+    "description": "Login session expired details"
+  },
+  "loginTerms": "Apăsând pe „Conectare”, sunteți de acord cu <u-terms>termenii de prestare ai serviciului</u-terms> și <u-policy>politica de confidenţialitate</u-policy>",
+  "@loginTerms": {
+    "description": "Terms agreement text for login"
+  },
+  "loginWithTOTP": "Autentificare cu parolă unică (TOTP)",
+  "@loginWithTOTP": {
+    "description": "Login with TOTP button label"
+  },
+  "logout": "Deconectare",
+  "logsDialogBody": "Aceasta va trimite jurnalele pentru a ne ajuta să depistăm problema. Vă rugăm să rețineți că numele fișierelor vor fi incluse pentru a ne ajuta să urmărim problemele cu anumite fișiere.",
+  "@logsDialogBody": {
+    "description": "Body text for the logs dialog explaining what will be sent"
+  },
+  "logsDialogBodyLocker": "Aceasta va trimite jurnale pentru a ne ajuta sa depistam problema dumneavoastra.",
+  "@logsDialogBodyLocker": {
+    "description": "Dialog body text for sending logs in Locker app (without file name warning)"
+  },
+  "longPressAnEmailToVerifyEndToEndEncryption": "Apăsați lung un e-mail pentru a verifica criptarea integrală.",
+  "lostDevice": "Dispozitiv pierdut?",
+  "machineLearning": "Învățare automată",
+  "manageDeviceStorage": "Gestionați memoria cache a dispozitivului",
+  "manageFamily": "Administrați familia",
+  "manageLink": "Gestionați linkul",
+  "manageSubscription": "Gestionare abonament",
+  "map": "Hartă",
+  "@map": {
+    "description": "Label for the map view"
+  },
+  "maps": "Hărţi",
+  "markingAsImportant": "Se marcheaza ca important...",
+  "merchandise": "Produse",
+  "mergedPhotos": "Fotografii combinate",
+  "mergeWithExisting": "Îmbinare cu unul existent",
+  "mlConsent": "Activați învățarea automată",
+  "mlConsentConfirmation": "Înțeleg și doresc să activez învățarea automată",
+  "mlConsentDescription": "Dacă activați învățarea automată, Ente va extrage informații precum geometria fețelor din fișiere, inclusiv din cele distribuite cu dvs.\n\nAcest lucru se va întâmpla pe dispozitivul dvs., iar orice informații biometrice generate vor fi criptate integral.",
+  "moderateStrength": "Moderată",
+  "@moderateStrength": {
+    "description": "Moderate password strength label"
+  },
+  "modifyYourQueryOrTrySearchingFor": "Modificați interogarea sau încercați să căutați",
+  "moments": "Momente",
+  "month": "lună",
+  "monthly": "Lunar",
+  "@monthly": {
+    "description": "The text to display for monthly plans",
+    "type": "text"
+  },
+  "moreDetails": "Mai multe detalii",
+  "mostRecent": "Cele mai recente",
+  "mostRelevant": "Cele mai relevante",
+  "movedSuccessfullyTo": "S-au mutat cu succes în {albumName}",
+  "@movedSuccessfullyTo": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
+  "movedToTrash": "S-a mutat în coșul de gunoi",
+  "moveToAlbum": "Mutare în album",
+  "moveToHiddenAlbum": "Mutați în albumul ascuns",
+  "movingFilesToAlbum": "Se mută fișierele în album...",
+  "name": "Nume",
+  "networkConnectionRefusedErr": "Nu se poate conecta la Ente, vă rugăm să reîncercați după un timp. Dacă eroarea persistă, contactați asistența.",
+  "@networkConnectionRefusedErr": {
+    "description": "Error message shown when the app cannot connect to Ente due to connection refused"
+  },
+  "networkHostLookUpErr": "Nu se poate conecta la Ente, vă rugăm să verificați setările de rețea și să contactați asistenta dacă eroarea persistă.",
+  "@networkHostLookUpErr": {
+    "description": "Error message shown when the app cannot connect to Ente due to network host lookup failure"
+  },
+  "never": "Niciodată",
+  "newAlbum": "Album nou",
+  "newCollection": "Colectie noua",
+  "newest": "Cele mai noi",
+  "newLocation": "Locație nouă",
+  "next": "Înainte",
+  "@next": {
+    "description": "Next button label"
+  },
+  "nextTotpTitle": "următor",
+  "no": "Nu",
+  "noChangesWereMade": "Nu au fost facute modificari",
+  "noCollections": "Nicio colectie",
+  "noDeviceFound": "Niciun dispozitiv găsit",
+  "noDeviceLimit": "Niciuna",
+  "@noDeviceLimit": {
+    "description": "Text to indicate that there is limit on number of devices"
+  },
+  "noDeviceThatCanBeDeleted": "Nu aveți fișiere pe acest dispozitiv care pot fi șterse",
+  "noDuplicates": "✨ Fără dubluri",
+  "noExifData": "Nu există date EXIF",
+  "noFacesFound": "Nu au fost găsite fețe",
+  "noFilesFound": "Niciun element aici",
+  "noImagesWithLocation": "Nicio imagine cu locație",
+  "noInternetConnection": "Nu există conexiune la internet",
+  "@noInternetConnection": {
+    "description": "No internet connection error message"
+  },
+  "noItemsMatchSelectedFilters": "Niciun element nu corespunde filtrelor selectate",
+  "noPhotosFoundHere": "Nu s-au găsit fotografii aici",
+  "noRecoveryKeyNoDecryption": "Datorită naturii protocolului nostru de criptare integrală, datele dvs. nu pot fi decriptate fără parola sau cheia dvs. de recuperare",
+  "@noRecoveryKeyNoDecryption": {
+    "description": "Explanation that data cannot be decrypted without password or recovery key"
+  },
+  "noResultsFound": "Nu s-au găsit rezultate",
+  "noSessionsFound": "Nu s-au găsit sesiuni!",
+  "noSuggestionsForPerson": "Nicio sugestie pentru {personName}",
+  "@noSuggestionsForPerson": {
+    "placeholders": {
+      "personName": {
+        "type": "String",
+        "example": "Alice"
+      }
+    }
+  },
+  "noSystemLockFound": "Nu s-a găsit nicio blocare de sistem",
+  "@noSystemLockFound": {
+    "description": "Error when no system lock is found"
+  },
+  "note": "Nota",
+  "noteContent": "Continut",
+  "noteContentHint": "Scrieti ganduri sau instructiuni importante",
+  "noteName": "Titlu",
+  "noteNameHint": "Titlul notei",
+  "nothingToSeeHere": "Nimic de văzut aici",
+  "notifications": "Notificări",
+  "notPersonLabel": "Nu este {name}?",
+  "@notPersonLabel": {
+    "description": "Label to indicate that the person in the photo is not the person whose name is mentioned",
+    "placeholders": {
+      "name": {
+        "content": "{name}",
+        "type": "String"
+      }
+    }
+  },
+  "ocrGenericDetectError": "Nu s-a putut detecta text în imagine",
+  "ocrImageDecodeFailedError": "Nu s-a putut citi fișierul imagine",
+  "ocrImageNotFoundError": "Fișierul imagine nu a fost găsit",
+  "ocrModelsNetworkRequiredError": "Conexiune la rețea necesară pentru a descărca modele OCR la prima utilizare",
+  "ocrModelsPrepareFailed": "Nu s-au putut pregăti modelele OCR",
+  "ocrNoTextDetected": "Niciun text detectat",
+  "offlineModeWarning": "Ai ales să continui fără backup-uri. Te rog salvează-ți backup-urile manual ca să fii sigur că ai codurile în siguranță.",
+  "onboardingDesc": "Salvați-vă fotografiile și videoclipurile. Toate aminitirle într-un singur loc.",
+  "onboardingTitle": "Pentru tot ce nu vreți să uitați",
+  "onEnte": "Pe <branding>ente</branding>",
+  "@onEnte": {
+    "description": "The text displayed above albums backed up to Ente",
+    "type": "text"
+  },
+  "onlyFamilyAdminCanChangeCode": "Vă rugăm să contactați {familyAdminEmail} pentru a vă schimba codul.",
+  "@onlyFamilyAdminCanChangeCode": {
+    "placeholders": {
+      "familyAdminEmail": {}
+    }
+  },
+  "onlyThem": "Numai el/ea",
+  "oops": "Ups",
+  "@oops": {
+    "description": "Oops error title"
+  },
+  "oopsCouldNotSaveEdits": "Hopa, nu s-au putut salva editările",
+  "oopsSomethingWentWrong": "Hopa, ceva nu a mers bine",
+  "openAlbumInBrowser": "Deschideți albumul în browser",
+  "openAlbumInBrowserTitle": "Vă rugăm să utilizați aplicația web pentru a adăuga fotografii la acest album",
+  "openFile": "Deschidere fișier",
+  "openstreetmapContributors": "Contribuitori OpenStreetMap",
+  "optionalAsShortAsYouLike": "Opțional, cât de scurt doriți...",
+  "pair": "Asociere",
+  "panorama": "Panoramă",
+  "passkey": "Cheie de acces",
+  "passkeyAuthTitle": "Verificare cheie de acces",
+  "@passkeyAuthTitle": {
+    "description": "Passkey authentication title"
+  },
+  "passKeyPendingVerification": "Verificarea este încă în așteptare",
+  "@passKeyPendingVerification": {
+    "description": "Message when passkey verification is pending"
+  },
+  "password": "Parolă",
+  "@password": {
+    "description": "Password field label"
+  },
+  "passwordEmptyError": "Parola nu poate fi goală",
+  "passwordForDecryptingExport": "Parola pentru a decripta exportul",
+  "passwordHint": "Parolă",
+  "passwordLock": "Blocare cu parolă",
+  "passwordsDontMatch": "Parolele nu corespund",
+  "passwordsMatch": "Parolele corespund",
+  "passwordStrength": "Complexitatea parolei: {passwordStrengthValue}",
+  "@passwordStrength": {
+    "description": "Text to indicate the password strength",
+    "placeholders": {
+      "passwordStrengthValue": {
+        "description": "The strength of the password as a string",
+        "type": "String",
+        "example": "Weak or Moderate or Strong"
+      }
+    }
+  },
+  "passwordToEncryptExport": "Parolă pentru a cripta exportul",
+  "paymentDetails": "Detalii de plată",
+  "paymentFailed": "Plata nu a reușit",
+  "paymentFailedMessage": "Din păcate, plata dvs. nu a reușit. Vă rugăm să contactați asistență și vom fi bucuroși să vă ajutăm!",
+  "paymentFailedTalkToProvider": "Vă rugăm să vorbiți cu asistența {providerName} dacă ați fost taxat",
+  "@paymentFailedTalkToProvider": {
+    "description": "The text to display when the payment failed",
+    "type": "text",
+    "placeholders": {
+      "providerName": {
+        "example": "AppStore|PlayStore",
+        "type": "String"
+      }
+    }
+  },
+  "pendingSync": "Sincronizare în așteptare",
+  "pendingSyncs": "Atenție",
+  "people": "Persoane",
+  "permanentlyDelete": "Ștergere definitivă",
+  "permDeleteWarning": "Toate articolele din coșul de gunoi vor fi șterse definitiv\n\nAceastă acțiune nu poate fi anulată",
+  "personalNote": "Nota",
+  "personalNoteDescription": "Notati ganduri si instructiuni.",
+  "photoGridSize": "Dimensiunea grilei foto",
+  "photos": "Fotografii",
+  "photosAddedByYouWillBeRemovedFromTheAlbum": "Fotografiile adăugate de dvs. vor fi eliminate din album",
+  "physicalRecords": "Obiect",
+  "physicalRecordsDescription": "Salvati locatiile obiectelor din lumea reala.",
+  "pickCenterPoint": "Alegeți punctul central",
+  "plainText": "Text simplu",
+  "playstoreSubscription": "Abonament PlayStore",
+  "pleaseCheckYourInternetConnectionAndTryAgain": "Vă rugăm să verificați conexiunea la internet și să încercați din nou.",
+  "@pleaseCheckYourInternetConnectionAndTryAgain": {
+    "description": "Message asking user to check internet connection"
+  },
+  "pleaseContactSupportIfTheProblemPersists": "Vă rugăm să contactați asistența dacă problema persistă",
+  "pleaseEmailUsAt": "Vă rugăm să ne trimiteți un e-mail la {toEmail}",
+  "@pleaseEmailUsAt": {
+    "placeholders": {
+      "toEmail": {}
+    }
+  },
+  "pleaseGrantPermissions": "Vă rugăm să acordați permisiuni",
+  "pleaseSelectQuickLinksToRemove": "Vă rugăm să selectați linkurile rapide de eliminat",
+  "pleaseVerifyDetails": "Te rog verifică detaliile și încearcă din nou",
+  "pleaseVerifyTheCodeYouHaveEntered": "Vă rugăm să verificați codul introdus",
+  "pleaseWaitDeletingAlbum": "Vă rugăm așteptați, se șterge albumul",
+  "pleaseWaitForSometimeBeforeRetrying": "Vă rugăm să așteptați un moment înainte să reîncercați",
+  "preparingLogs": "Se pregătesc jurnalele...",
+  "preserveMore": "Păstrați mai multe",
+  "pressAndHoldToPlayVideoDetailed": "Apăsați lung pe imagine pentru a reda videoclipul",
+  "preview": "Previzualizare",
+  "previous": "Anterior",
+  "privacy": "Confidențialitate",
+  "privacyPolicyTitle": "Politică de confidențialitate",
+  "@privacyPolicyTitle": {
+    "description": "Privacy policy title"
+  },
+  "proceed": "Continuați",
+  "processed": "Procesate",
+  "processingImport": "Se procesează {folderName}...",
+  "@processingImport": {
+    "placeholders": {
+      "folderName": {}
+    }
+  },
+  "publicLinkEnabled": "Link public activat",
+  "qrCode": "Cod QR",
+  "radius": "Rază",
+  "raiseTicket": "Solicitați asistență",
+  "@raiseTicket": {
+    "description": "Button text for raising a support tickets in case of unhandled errors during backup",
+    "type": "text"
+  },
+  "rateUs": "Evaluați-ne",
+  "readyToBackupSubtitle": "Fotografiile dvs. se vor sincroniza în fundal. Prima copiere de rezervă poate dura ceva timp.",
+  "readyToBackupTitle": "Pregătit pentru copie de siguranță",
+  "recordLocation": "Locație",
+  "recordLocationHint": "Unde este pastrat acest obiect?",
+  "recordNameHint": "Numele obiectului din lumea reala",
+  "recordNotes": "Notițe",
+  "recordNotesHint": "Informatii suplimentare despre obiect",
+  "recordSavedSuccessfully": "Inregistrare salvata cu succes",
+  "recoverAccount": "Recuperare cont",
+  "@recoverAccount": {
+    "description": "Recover account button label"
+  },
+  "recoveryInitiated": "Recuperare inițiată",
+  "recoveryInitiatedDesc": "Puteți accesa contul după {days} zile. O notificare va fi trimisă la {email}.",
+  "@recoveryInitiatedDesc": {
+    "placeholders": {
+      "days": {
+        "type": "int",
+        "example": "30"
+      },
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      }
+    }
+  },
+  "recoveryKey": "Cheie de recuperare",
+  "@recoveryKey": {
+    "description": "Recovery key label"
+  },
+  "recoveryKeyCopiedToClipboard": "Cheie de recuperare copiată în clipboard",
+  "@recoveryKeyCopiedToClipboard": {
+    "description": "Recovery key copied message"
+  },
+  "recoveryKeySaveDescription": "Nu stocăm această cheie, vă rugăm salvați această cheie de 24 de cuvinte într-un loc sigur.",
+  "@recoveryKeySaveDescription": {
+    "description": "Recovery key save description"
+  },
+  "recoveryKeySaveShortDescription": "Vă rugăm să salvați această cheie într-un loc sigur.",
+  "recoveryKeySuccessBody": "Super! Cheia dvs. de recuperare este validă. Vă mulțumim pentru verificare.\n\nVă rugăm să nu uitați să păstrați cheia de recuperare în siguranță.",
+  "recoveryKeyVerified": "Cheie de recuperare verificată",
+  "recoveryKeyVerifyReason": "Cheia dvs. de recuperare este singura modalitate de a vă recupera fotografiile dacă uitați parola. Puteți găsi cheia dvs. de recuperare în Setări > Cont.\n\nVă rugăm să introduceți aici cheia de recuperare pentru a verifica dacă ați salvat-o corect.",
+  "recoveryReady": "Acum puteți recupera contul {email} setând o nouă parolă.",
+  "@recoveryReady": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      }
+    }
+  },
+  "recoverySuccessful": "Recuperare reușită!",
+  "recoveryWarning": "Un contact de încredere încearcă să vă acceseze contul",
+  "recoveryWarningBody": "{email} încearcă să vă recupereze contul.",
+  "@recoveryWarningBody": {
+    "placeholders": {
+      "email": {}
+    }
+  },
+  "recreatePasswordBody": "Dispozitivul actual nu este suficient de puternic pentru a vă verifica parola, dar o putem regenera într-un mod care să funcționeze cu toate dispozitivele.\n\nVă rugăm să vă conectați utilizând cheia de recuperare și să vă regenerați parola (dacă doriți, o puteți utiliza din nou pe aceeași).",
+  "@recreatePasswordBody": {
+    "description": "Body text for recreate password dialog"
+  },
+  "referrals": "Recomandări",
+  "referralsAreCurrentlyPaused": "Recomandările sunt momentan întrerupte",
+  "rejectRecovery": "Respingeți recuperarea",
+  "remindToEmptyDeviceTrash": "De asemenea, goliți dosarul „Șterse recent” din „Setări” -> „Spațiu” pentru a recupera spațiul eliberat",
+  "remindToEmptyEnteTrash": "De asemenea, goliți „Coșul de gunoi” pentru a revendica spațiul eliberat",
+  "remoteImages": "Imagini la distanță",
+  "remoteThumbnails": "Miniaturi la distanță",
+  "remoteVideos": "Videoclipuri la distanță",
+  "remove": "Eliminare",
+  "removeAccess": "Elimina accesul",
+  "removeCollectionParticipantBody": "{userEmail} va fi eliminat din aceasta colectie partajata\n\nOrice elemente adaugate de ei vor fi de asemenea eliminate din colectie",
+  "@removeCollectionParticipantBody": {
+    "placeholders": {
+      "userEmail": {}
+    }
+  },
+  "removeFromAlbum": "Eliminați din album",
+  "removeFromAlbumTitle": "Eliminați din album?",
+  "removeFromFavorite": "Eliminați din favorite",
+  "removeLink": "Eliminați linkul",
+  "removeParticipant": "Eliminați participantul",
+  "@removeParticipant": {
+    "description": "menuSectionTitle for removing a participant"
+  },
+  "removePersonLabel": "Eliminați eticheta persoanei",
+  "removePublicLink": "Eliminați linkul public",
+  "removePublicLinks": "Eliminați linkurile publice",
+  "removeWithQuestionMark": "Eliminați?",
+  "removingFromFavorites": "Se elimină din favorite...",
+  "removingFromImportant": "Se elimina din importante...",
+  "rename": "Redenumire",
+  "renameAlbum": "Redenumire album",
+  "renameCollection": "Redenumeste colectia",
+  "renameFile": "Redenumiți fișierul",
+  "renewsOn": "Abonamentul se reînnoiește pe {endDate}",
+  "@renewsOn": {
+    "placeholders": {
+      "endDate": {}
+    }
+  },
+  "renewSubscription": "Reînnoire abonament",
+  "resendCode": "Retrimitere cod",
+  "resetIgnoredFiles": "Resetare fișiere ignorate",
+  "resetToDefault": "Resetare la valori implicite",
+  "@resetToDefault": {
+    "description": "Button text to reset cover photo to default"
+  },
+  "restore": "Restaurare",
+  "@restore": {
+    "description": "Display text for an action which triggers a restore of item from trash",
+    "type": "text"
+  },
+  "restoreToAlbum": "Restaurare în album",
+  "restoringFiles": "Se restaurează fișierele...",
+  "resumableUploads": "Reluare încărcări",
+  "retry": "Încercați din nou",
+  "review": "Examinați",
+  "reviewSuggestions": "Revizuire sugestii",
+  "right": "Dreapta",
+  "ritualAlbumSelectionPlaceholder": "Selectare album",
+  "ritualSelectAlbumTitle": "Selectare album",
+  "rotate": "Rotire",
+  "save": "Salvare",
+  "@save": {
+    "description": "Label for save button"
+  },
+  "saveCollage": "Salvați colajul",
+  "saveCopy": "Salvare copie",
+  "savePerson": "Salvați persoana",
+  "saveToLocker": "Salveaza in Locker",
+  "saveYourRecoveryKeyIfYouHaventAlready": "Salvați cheia de recuperare, dacă nu ați făcut-o deja",
+  "saving": "Se salvează...",
+  "savingEdits": "Se salvează editările...",
+  "scanAQrCode": "Scanează un cod QR",
+  "scanCode": "Scanare cod",
+  "scanThisBarcodeWithnyourAuthenticatorApp": "Scanați acest cod de bare\ncu aplicația de autentificare",
+  "scheduleShare": "Programeaza partajare",
+  "search": "Căutare",
+  "searchAlbumsEmptySection": "Albume",
+  "searchByAlbumNameHint": "Nume album",
+  "searchDiscoverEmptySection": "Imaginile vor fi afișate aici odată ce procesarea și sincronizarea este completă",
+  "searchEmptyDescription": "Incercati sa cautati altceva.",
+  "searchEmptyTitle": "Nu s-au gasit rezultate",
+  "searchEverywhereSubtitle": "Cauta in toate colectiile si fisierele.",
+  "searchEverywhereTitle": "Cauta peste tot \"{query}\"",
+  "@searchEverywhereTitle": {
+    "description": "CTA title prompting the user to search globally",
+    "placeholders": {
+      "query": {
+        "type": "String",
+        "example": "passport"
+      }
+    }
+  },
+  "searchFileTypesAndNamesEmptySection": "Tipuri de fișiere și denumiri",
+  "searchHint1": "Căutare rapidă, pe dispozitiv",
+  "searchHint2": "Date, descrieri ale fotografiilor",
+  "searchHint3": "Albume, numele fișierelor și tipuri",
+  "searchHint4": "Locație",
+  "searchHint5": "În curând: chipuri și căutare magică ✨",
+  "searchLocationEmptySection": "Grupare fotografii realizate în raza unei fotografii",
+  "searchPeopleEmptySection": "Invitați persoane și veți vedea aici toate fotografiile distribuite de acestea",
+  "searchPersonsEmptySection": "Persoanele vor fi afișate aici odată ce procesarea și sincronizarea este completă",
+  "searchResultCount": "{count, plural, one{{count} rezultat găsit} few{{count} rezultate găsite} other{{count} de rezultate găsite}}",
+  "@searchResultCount": {
+    "description": "Text to tell user how many results were found for their search query",
+    "placeholders": {
+      "count": {
+        "example": "1|2|3",
+        "type": "int"
+      }
+    }
+  },
+  "searchSectionsLengthMismatch": "Lungimea secțiunilor nu se potrivesc: {snapshotLength} != {searchLength}",
+  "@searchSectionsLengthMismatch": {
+    "description": "Appears in search tab page",
+    "placeholders": {
+      "searchLength": {
+        "type": "int",
+        "example": "2"
+      },
+      "snapshotLength": {
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "secretCanNotBeEmpty": "Secretul nu poate fi gol",
+  "security": "Securitate",
+  "seeAllCollections": "Vezi toate colectiile",
+  "seePublicAlbumLinksInApp": "Vedeți linkurile albumelor publice în aplicație",
+  "selectAll": "Selectare totală",
+  "selectAllShort": "Toate",
+  "@selectAllShort": {
+    "description": "Text that appears in bottom right when you start to select multiple photos. When clicked, it selects all photos."
+  },
+  "selectALocation": "Selectați o locație",
+  "selectALocationFirst": "Selectați mai întâi o locație",
+  "selectCoverPhoto": "Selectați fotografia de copertă",
+  "selectDate": "Selectati data",
+  "selectedFilesAreNotOnEnte": "Fișierele selectate nu sunt pe Ente",
+  "selectedPhotos": "{count} selectate",
+  "@selectedPhotos": {
+    "description": "Display the number of selected photos",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "5",
+        "type": "int"
+      }
+    }
+  },
+  "selectedPhotosWithYours": "{count} selectate ({yourCount} ale dvs.)",
+  "@selectedPhotosWithYours": {
+    "description": "Display the number of selected photos, including the number of selected photos owned by the user",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "12",
+        "type": "int"
+      },
+      "yourCount": {
+        "example": "2",
+        "type": "int"
+      }
+    }
+  },
+  "selectFile": "Selectează fișier",
+  "selectItemsToAdd": "Selectați elementele de adăugat",
+  "selectMailApp": "Selectați aplicația de e-mail",
+  "selectMorePhotos": "Selectați mai multe fotografii",
+  "selectTime": "Selectati ora",
+  "send": "Trimitere",
+  "@send": {
+    "description": "Label for send button"
+  },
+  "sendInvite": "Trimiteți invitația",
+  "sendLink": "Trimitere link",
+  "sendQrCode": "Trimiteți codul QR",
+  "serverEndpoint": "Adresa (endpoint) server-ului",
+  "@serverEndpoint": {
+    "description": "Label for server endpoint setting"
+  },
   "sessionExpired": "Sesiune expirată",
   "@sessionExpired": {
     "description": "Error message when session has expired"
-  }
+  },
+  "sessionIdMismatch": "Nepotrivire ID sesiune",
+  "@sessionIdMismatch": {
+    "description": "In passkey page, deeplink is ignored because of session ID mismatch."
+  },
+  "setAPassword": "Setați o parolă",
+  "setAs": "Setare ca",
+  "setCover": "Setare copertă",
+  "@setCover": {
+    "description": "Text to set cover photo for an album"
+  },
+  "setLabel": "Setare",
+  "@setLabel": {
+    "description": "Label of confirm button to add a new custom radius to the radius selector of a location tag"
+  },
+  "setRadius": "Setare rază",
+  "settings": "Setări",
+  "setupComplete": "Configurare finalizată",
+  "share": "Distribuire",
+  "shareALink": "Distribuiți un link",
+  "sharedWith": "Partajat cu",
+  "shareKey": "Distribuiți cheia",
+  "shareLink": "Distribuiți linkul",
+  "shareThisLink": "Acest link permite oricui il primeste sa acceseze elementul dumneavoastra. Puteti revoca accesul oricand stergand link-ul.",
+  "shareWithNonenteUsers": "Distribuiți cu utilizatori din afara Ente",
+  "sharing": "Se distribuie...",
+  "shouldHideCode": "Ascunde codurile",
+  "showLargeIcons": "Afișează iconițele mari",
+  "showMemories": "Afișare amintiri",
+  "showPerson": "Afișare persoană",
+  "signOutFromOtherDevices": "Deconectare de pe alte dispozitive",
+  "@signOutFromOtherDevices": {
+    "description": "Sign out from other devices title"
+  },
+  "signOutOtherBody": "Dacă credeți că cineva ar putea să vă cunoască parola, puteți forța toate celelalte dispozitive care utilizează contul dvs. să se deconecteze.",
+  "@signOutOtherBody": {
+    "description": "Sign out other devices explanation"
+  },
+  "signUp": "Inregistrare",
+  "signUpTerms": "Sunt de acord cu <u-terms>termenii de prestare ai serviciului</u-terms> și <u-policy>politica de confidențialitate</u-policy>",
+  "@signUpTerms": {
+    "description": "Terms agreement text for sign up"
+  },
+  "skip": "Omiteți",
+  "someoneSharingAlbumsWithYouShouldSeeTheSameId": "Cineva care distribuie albume cu dvs. ar trebui să vadă același ID pe dispozitivul său.",
+  "somethingWentWrong": "Ceva nu a funcţionat corect",
+  "somethingWentWrongMessage": "Ceva n-a mers bine, te rog încearcă din nou",
+  "sorry": "Ne pare rău",
+  "sorryCouldNotAddToFavorites": "Ne pare rău, nu s-a putut adăuga la favorite!",
+  "sorryCouldNotRemoveFromFavorites": "Ne pare rău, nu s-a putut elimina din favorite!",
+  "sorryTheCodeYouveEnteredIsIncorrect": "Ne pare rău, codul introdus este incorect",
+  "@sorryTheCodeYouveEnteredIsIncorrect": {
+    "description": "Detailed error message when code is incorrect"
+  },
+  "sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": "Ne pare rău, nu am putut genera chei securizate pe acest dispozitiv.\n\nVă rugăm să vă înregistrați de pe un alt dispozitiv.",
+  "@sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": {
+    "description": "Error message for insecure device"
+  },
+  "sort": "Sortare",
+  "sortAlbumsBy": "Sortare după",
+  "sortNewestFirst": "Cele mai noi primele",
+  "sortOldestFirst": "Cele mai vechi primele",
+  "startBackup": "Începeți copia de rezervă",
+  "startRecovery": "Începeți recuperarea",
+  "stopCastingBody": "Doriți să opriți proiectarea?",
+  "stopCastingTitle": "Opriți proiectarea",
+  "storage": "Spațiu",
+  "storageBreakupFamily": "Familie",
+  "storageBreakupYou": "Dvs.",
+  "@storageBreakupYou": {
+    "description": "Label to indicate how much storage you are using when you are part of a family plan"
+  },
+  "storageLimitExceeded": "Limita de spațiu depășită",
+  "strongPassword": "Parolă puternică",
+  "strongStrength": "Puternică",
+  "@strongStrength": {
+    "description": "Strong password strength label"
+  },
+  "subscribe": "Abonare",
+  "subscribeToEnableSharing": "Aveți nevoie de un abonament plătit activ pentru a activa distribuirea.",
+  "subscription": "Abonament",
+  "subscriptionRequiredForSharing": "Aveti nevoie de un abonament platit pentru a partaja link-uri",
+  "subWillBeCancelledOn": "Abonamentul dvs. va fi anulat pe {endDate}",
+  "@subWillBeCancelledOn": {
+    "placeholders": {
+      "endDate": {}
+    }
+  },
+  "success": "Succes",
+  "successfullyArchived": "Arhivat cu succes",
+  "successfullyHid": "S-a ascuns cu succes",
+  "successfullyUnarchived": "Dezarhivat cu succes",
+  "successfullyUnhid": "S-a reafișat cu succes",
+  "support": "Asistență",
+  "syncing": "Sincronizare...",
+  "syncProgress": "{completed}/{total} amintiri salvate",
+  "@syncProgress": {
+    "description": "Text to tell user how many memories have been preserved",
+    "placeholders": {
+      "completed": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "syncStopped": "Sincronizare oprită",
+  "systemTheme": "Sistem",
+  "tag": "Etichetă",
+  "tapToCopy": "atingeți pentru a copia",
+  "tapToUpload": "Atingeți pentru a încărca",
+  "@tapToUpload": {
+    "description": "Shown in upload icon widet, inside a tooltip."
+  },
+  "tapToUploadIsIgnoredDue": "Atingeți pentru a încărca, încărcarea este ignorată în prezent datorită {ignoreReason}",
+  "@tapToUploadIsIgnoredDue": {
+    "description": "Shown in upload icon widet, inside a tooltip.",
+    "placeholders": {
+      "ignoreReason": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
+  },
+  "tempErrorContactSupportIfPersists": "Se pare că ceva nu a mers bine. Vă rugăm să încercați din nou după ceva timp. Dacă eroarea persistă, vă rugăm să contactați echipa noastră de asistență.",
+  "terminate": "Terminare",
+  "@terminate": {
+    "description": "Terminate button label"
+  },
+  "terminateSession": "Terminați sesiunea?",
+  "@terminateSession": {
+    "description": "Title for terminate session dialog"
+  },
+  "termsOfServicesTitle": "Termeni",
+  "@termsOfServicesTitle": {
+    "description": "Terms of service title"
+  },
+  "thankYou": "Vă mulțumim",
+  "thankYouForSubscribing": "Mulțumim pentru abonare!",
+  "theLinkYouAreTryingToAccessHasExpired": "Linkul pe care încercați să îl accesați a expirat.",
+  "theme": "Temă",
+  "theRecoveryKeyYouEnteredIsIncorrect": "Cheia de recuperare introdusă este incorectă",
+  "@theRecoveryKeyYouEnteredIsIncorrect": {
+    "description": "Detailed error message when recovery key is incorrect"
+  },
+  "theseItemsWillBeDeletedFromYourDevice": "Aceste articole vor fi șterse din dispozitivul dvs.",
+  "thisCanBeUsedToRecoverYourAccountIfYou": "Aceasta poate fi utilizată pentru a vă recupera contul în cazul în care pierdeți al doilea factor",
+  "thisDevice": "Acest dispozitiv",
+  "@thisDevice": {
+    "description": "Label for current device"
+  },
+  "thisEmailIsAlreadyInUse": "Această adresă de e-mail este deja folosită",
+  "@thisEmailIsAlreadyInUse": {
+    "description": "Error message when email is already in use"
+  },
+  "thisImageHasNoExifData": "Această imagine nu are date exif",
+  "thisIsPersonVerificationId": "Acesta este ID-ul de verificare al {email}",
+  "@thisIsPersonVerificationId": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@ente.com"
+      }
+    }
+  },
+  "thisIsYourVerificationId": "Acesta este ID-ul dvs. de verificare",
+  "thisWillLogYouOutOfTheFollowingDevice": "Urmează să vă deconectați de pe următorul dispozitiv:",
+  "@thisWillLogYouOutOfTheFollowingDevice": {
+    "description": "Warning message for logging out of another device"
+  },
+  "thisWillLogYouOutOfThisDevice": "Urmează să vă deconectați de pe acest dispozitiv!",
+  "@thisWillLogYouOutOfThisDevice": {
+    "description": "Warning message for logging out of current device"
+  },
+  "title": "Titlu",
+  "todaysLogs": "Jurnalele de astăzi",
+  "toEnableAppLockPleaseSetupDevicePasscodeOrScreen": "Pentru a activa blocarea aplicației, vă rugăm să configurați codul de acces al dispozitivului sau blocarea ecranului în setările sistemului.",
+  "tooManyIncorrectAttempts": "Prea multe încercări incorecte",
+  "@tooManyIncorrectAttempts": {
+    "description": "Message shown when too many incorrect attempts are made"
+  },
+  "totalSize": "Dimensiune totală",
+  "trash": "Coș de gunoi",
+  "trashClearedSuccessfully": "Cos de gunoi golit cu succes",
+  "trashIsEmpty": "Cosul de gunoi este gol",
+  "trim": "Decupare",
+  "trustedContacts": "Contacte de încredere",
+  "twofactor": "Doi factori",
+  "twofactorAuthenticationHasBeenDisabled": "Autentificarea cu doi factori a fost dezactivată",
+  "twofactorAuthenticationSuccessfullyReset": "Autentificarea cu doi factori a fost resetată cu succes",
+  "@twofactorAuthenticationSuccessfullyReset": {
+    "description": "Message when two-factor authentication is successfully reset"
+  },
+  "twoFactorAuthTitle": "Autentificare cu doi factori",
+  "@twoFactorAuthTitle": {
+    "description": "Two-factor authentication title"
+  },
+  "twofactorSetup": "Configurare doi factori",
+  "twoFAVerification": "Verificare 2FA",
+  "typeOfGallerGallerytypeIsNotSupportedForRename": "Tipul de galerie {galleryType} nu este acceptat pentru redenumire",
+  "@typeOfGallerGallerytypeIsNotSupportedForRename": {
+    "placeholders": {
+      "galleryType": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
+  },
+  "unarchive": "Dezarhivare",
+  "@unarchive": {
+    "description": "Action of 'Unarchiving' an element"
+  },
+  "unarchiveAlbum": "Dezarhivare album",
+  "unarchiving": "Se dezarhivează...",
+  "uncategorized": "Necategorisite",
+  "unhide": "Reafişare",
+  "unhideToAlbum": "Reafișare în album",
+  "unhiding": "Se reafișează...",
+  "unhidingFilesToAlbum": "Se reafișează fișierele în album",
+  "unimportant": "Neimportant",
+  "unlock": "Deblochează",
+  "@unlock": {
+    "description": "Short action label used as the system authentication reason when unlocking the app"
+  },
+  "unsavedNoteChangesDescription": "Aveti modificari nesalvate in aceasta nota. Daca reveniti acum, acestea vor fi pierdute.",
+  "unsavedNoteChangesTitle": "Renuntati la modificari?",
+  "unselectAll": "Deselectare totală",
+  "untitled": "Fara titlu",
+  "updateAvailable": "Actualizare disponibilă",
+  "updatingFolderSelection": "Se actualizează selecția dosarelor...",
+  "upgrade": "Îmbunătățire",
+  "uploadedFilesProgress": "{completed}/{total} elemente incarcate...",
+  "@uploadedFilesProgress": {
+    "description": "Progress message showing uploaded items",
+    "placeholders": {
+      "completed": {
+        "type": "int",
+        "example": "3"
+      },
+      "total": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "uploadError": "Eroare la incarcare",
+  "uploadFileCountLimitErrorBody": "Ati atins limita de fisiere. Faceti upgrade la un plan platit pentru mai mult spatiu de stocare.",
+  "@uploadFileCountLimitErrorBody": {
+    "description": "Body shown when uploads fail because the locker already has the maximum file count"
+  },
+  "uploadFileCountLimitErrorTitle": "Limita de fisiere atinsa",
+  "@uploadFileCountLimitErrorTitle": {
+    "description": "Title shown when uploads fail because the locker already has the maximum file count"
+  },
+  "uploadFileCountLimitErrorToast": "Actiune esuata. Ati atins limita de fisiere.",
+  "@uploadFileCountLimitErrorToast": {
+    "description": "Toast shown when info items fail to save due to hitting the file count limit"
+  },
+  "uploadFiles": "Incarca elemente",
+  "uploadFileTooLargeErrorBody": "Acest fisier este mai mare decat dimensiunea maxima de incarcare suportata de 10GB.",
+  "@uploadFileTooLargeErrorBody": {
+    "description": "Body shown when uploads fail because the file exceeds the supported size"
+  },
+  "uploadFileTooLargeErrorTitle": "Fisier prea mare",
+  "@uploadFileTooLargeErrorTitle": {
+    "description": "Title shown when uploads fail because the file exceeds the supported size"
+  },
+  "uploadingFilesToAlbum": "Se încarcă fișiere în album...",
+  "uploadingMultipleMemories": "Se salvează {count} amintiri...",
+  "@uploadingMultipleMemories": {
+    "description": "Text to tell user how many memories are being preserved",
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "uploadingSingleMemory": "Se salvează o amintire...",
+  "uploadIsIgnoredDueToIgnorereason": "Încărcare ignorată din motivul {ignoreReason}",
+  "@uploadIsIgnoredDueToIgnorereason": {
+    "placeholders": {
+      "ignoreReason": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
+  },
+  "uploadStorageLimitErrorBody": "Ati ramas fara spatiu de stocare. Eliberati spatiu pentru a continua incarcarea.",
+  "@uploadStorageLimitErrorBody": {
+    "description": "Body shown when uploads fail due to running out of storage"
+  },
+  "uploadStorageLimitErrorTitle": "Limita de stocare atinsa",
+  "@uploadStorageLimitErrorTitle": {
+    "description": "Title shown when uploads fail due to running out of storage"
+  },
+  "useAsCover": "Utilizați ca și copertă",
+  "usedSpace": "Spațiu utilizat",
+  "useOffline": "Utilizează fără backup-uri",
+  "useRecoveryKey": "Folosiți cheia de recuperare",
+  "@useRecoveryKey": {
+    "description": "Use recovery key button label"
+  },
+  "username": "Nume utilizator",
+  "usernameHint": "ID de autentificare sau email",
+  "useSelectedPhoto": "Folosiți fotografia selectată",
+  "validTill": "Valabil până pe {endDate}",
+  "@validTill": {
+    "placeholders": {
+      "endDate": {}
+    }
+  },
+  "verificationFailedPleaseTryAgain": "Verificare eșuată, încercați din nou",
+  "@verificationFailedPleaseTryAgain": {
+    "description": "Verification failed error message"
+  },
+  "verify": "Verificare",
+  "@verify": {
+    "description": "Verify button label"
+  },
+  "verifyIDLabel": "Verificare",
+  "verifying": "Se verifică...",
+  "verifyingRecoveryKey": "Se verifică cheia de recuperare...",
+  "videoInfo": "Informaţii video",
+  "videos": "Videoclipuri",
+  "viewActiveSessions": "Vedeți sesiunile active",
+  "viewAddOnButton": "Vizualizare suplimente",
+  "viewAllExifData": "Vizualizați toate datele EXIF",
+  "viewer": "Observator",
+  "viewLargeFiles": "Fișiere mari",
+  "viewLogs": "Afișare jurnale",
+  "@viewLogs": {
+    "description": "Button to view logs"
+  },
+  "viewLogsAction": "Afișare jurnale",
+  "visitWebToManage": "Vă rugăm să vizitați {webUrl} pentru a vă gestiona abonamentul",
+  "@visitWebToManage": {
+    "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",
+    "placeholders": {
+      "webUrl": {
+        "type": "String",
+        "example": "photos.ente.com"
+      }
+    }
+  },
+  "waitingForVerification": "Se așteaptă verificarea...",
+  "@waitingForVerification": {
+    "description": "Waiting for verification message"
+  },
+  "waitingForWifi": "Se așteaptă WiFi...",
+  "warning": "Atenție",
+  "weakStrength": "Slabă",
+  "@weakStrength": {
+    "description": "Weak password strength label"
+  },
+  "weAreOpenSource": "Suntem open source!",
+  "weDontSupportEditingPhotosAndAlbumsThatYouDont": "Nu se acceptă editarea fotografiilor sau albumelor pe care nu le dețineți încă",
+  "weHaveSentCodeTo": "Am trimis un cod la {email}",
+  "@weHaveSentCodeTo": {
+    "description": "Text to indicate that we have sent a verification code to the user's email",
+    "placeholders": {
+      "email": {
+        "description": "The email address of the user",
+        "type": "String",
+        "example": "example@ente.com"
+      }
+    }
+  },
+  "whatsNew": "Noutăți",
+  "yearly": "Anual",
+  "@yearly": {
+    "description": "The text to display for yearly plans",
+    "type": "text"
+  },
+  "yearsAgo": "{count, plural, one{acum {count} an} few{acum {count} ani} other{acum {count} de ani}}",
+  "@yearsAgo": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "yearShort": "an",
+  "@yearShort": {
+    "description": "Appears in pricing page (/yr)"
+  },
+  "yes": "Da",
+  "yesCancel": "Da, anulează",
+  "yesConvertToViewer": "Da, covertiți la observator",
+  "yesDelete": "Da, șterge",
+  "yesDiscardChanges": "Da, renunțați la modificări",
+  "yesLogout": "Da, mă deconectez",
+  "@yesLogout": {
+    "description": "Confirmation button for logout"
+  },
+  "yesRemove": "Da, elimină",
+  "yesRenew": "Da, reînnoiește",
+  "yesResetPerson": "Da, resetează persoana",
+  "you": "Dvs.",
+  "youCannotDowngradeToThisPlan": "Nu puteți retrograda la acest plan",
+  "youCannotShareWithYourself": "Nu poți distribui cu tine însuți",
+  "youHaveSuccessfullyFreedUp": "Ați eliberat cu succes {storageSaved}!",
+  "@youHaveSuccessfullyFreedUp": {
+    "description": "The text to display when the user has successfully freed up storage",
+    "type": "text",
+    "placeholders": {
+      "storageSaved": {
+        "example": "1.2 GB",
+        "type": "String"
+      }
+    }
+  },
+  "yourMap": "Harta dvs.",
+  "yourPlanWasSuccessfullyDowngraded": "Planul dvs. a fost retrogradat cu succes",
+  "yourPlanWasSuccessfullyUpgraded": "Planul dvs. a fost îmbunătățit cu succes",
+  "yourPurchaseWasSuccessful": "Achiziția dvs. a fost efectuată cu succes",
+  "yourSubscriptionHasExpired": "Abonamentul dvs. a expirat",
+  "yourSubscriptionWasUpdatedSuccessfully": "Abonamentul dvs. a fost actualizat cu succes",
+  "yourTrashIsEmpty": "Cosul de gunoi este gol",
+  "yourVerificationCodeHasExpired": "Codul dvs. de verificare a expirat",
+  "@yourVerificationCodeHasExpired": {
+    "description": "Error message when verification code has expired"
+  },
+  "youveNoFilesInThisAlbumThatCanBeDeleted": "Nu aveți fișiere în acest album care pot fi șterse",
+  "zoomOutToSeePhotos": "Micșorați pentru a vedea fotografiile"
 }

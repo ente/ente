@@ -11,6 +11,8 @@ Ente Photos can be used as a gallery app on your phone without creating an accou
 
 ## Getting started
 
+![Welcome screen on Ente Photos mobile with Continue without an account highlighted](https://docs-assets.ente.com/screenshots/phone-gallery-mode-continue-callout.png){width=320px}
+
 1. Download Ente Photos from the App Store or Google Play
 2. On the welcome screen, tap **Continue without account**
 3. Grant Ente access to your photo library when prompted
@@ -20,31 +22,31 @@ Ente scans your device for photos and videos and groups them by their native alb
 
 ## Feature comparison: gallery mode vs signed-in mode {#feature-comparison}
 
-| Feature | Gallery mode | Signed-in mode |
-|---|:---:|:---:|
-| Browse device photos and videos | Yes | Yes |
-| Device folder browsing (Camera, Screenshots, etc.) | Yes | Yes |
-| Full-screen photo and video viewer | Yes | Yes |
-| Face recognition (on-device) | Yes | Yes |
-| Magic search / natural language search (on-device) | Yes | Yes |
-| Map view (requires location data in photos) | Yes | Yes |
-| Memories | Yes | Yes |
-| App lock | Yes | Yes |
-| Theme and appearance settings | Yes | Yes |
-| Cloud backup and sync | -- | Yes |
-| Cross-device sync | -- | Yes |
-| Ente albums (create, organize) | -- | Yes |
-| Favorites | -- | Yes |
-| Uncategorized album | -- | Yes |
-| Archive and Hide | -- | Yes |
-| Sharing and collaborative albums | -- | Yes |
-| Public links and embed | -- | Yes |
-| Comments and likes | -- | Yes |
-| Rituals | -- | Yes |
-| Free up device space | -- | Yes |
-| Storage plan management | -- | Yes |
-| Cross-device ML sync (face names, etc.) | -- | Yes |
-| Home widgets (albums, people) | -- | Yes |
+| Feature                                            | Gallery mode | Signed-in mode |
+| -------------------------------------------------- | :----------: | :------------: |
+| Browse device photos and videos                    |     Yes      |      Yes       |
+| Device folder browsing (Camera, Screenshots, etc.) |     Yes      |      Yes       |
+| Full-screen photo and video viewer                 |     Yes      |      Yes       |
+| Face recognition (on-device)                       |     Yes      |      Yes       |
+| Magic search / natural language search (on-device) |     Yes      |      Yes       |
+| Map view (requires location data in photos)        |     Yes      |      Yes       |
+| Memories                                           |     Yes      |      Yes       |
+| App lock                                           |     Yes      |      Yes       |
+| Theme and appearance settings                      |     Yes      |      Yes       |
+| Cloud backup and sync                              |      --      |      Yes       |
+| Cross-device sync                                  |      --      |      Yes       |
+| Ente albums (create, organize)                     |      --      |      Yes       |
+| Favorites                                          |      --      |      Yes       |
+| Uncategorized album                                |      --      |      Yes       |
+| Archive and Hide                                   |      --      |      Yes       |
+| Sharing and collaborative albums                   |      --      |      Yes       |
+| Public links and embed                             |      --      |      Yes       |
+| Comments and likes                                 |      --      |      Yes       |
+| Rituals                                            |      --      |      Yes       |
+| Free up device space                               |      --      |      Yes       |
+| Storage plan management                            |      --      |      Yes       |
+| Cross-device ML sync (face names, etc.)            |      --      |      Yes       |
+| Home widgets (albums, people)                      |      --      |      Yes       |
 
 ### What works in gallery mode
 
@@ -77,9 +79,9 @@ Create an Ente account at any time without losing your local data.
 After signing up:
 
 - Device folders become available for backup selection
-- ML indexes built in gallery mode are preserved
+- ML and magic search will only run for backed up photos; indexes built in gallery mode are not preserved
 - All cloud features (sharing, cross-device sync, etc.) become available
-- The Sharing tab shows shared albums instead of the gallery mode placeholder
+- Shared albums become available under the "Shared" and "Received" tabs in the Albums section
 
 ## Going back
 

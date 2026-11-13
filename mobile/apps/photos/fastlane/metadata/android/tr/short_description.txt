@@ -1,1 +1,0 @@
-ente uçtan uca şifrelenmiş bir fotoğraf depolama uygulamasıdır

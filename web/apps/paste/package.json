@@ -3,14 +3,19 @@
     "version": "0.0.0",
     "private": true,
     "scripts": {
-        "build:post": "rm -f out/404.html"
+        "build:post": "rm -f out/404.html",
+        "test": "vitest --run"
     },
     "dependencies": {
-        "@hugeicons/core-free-icons": "^1.1.0",
-        "@hugeicons/react": "^1.1.4",
-        "ente-base": "*"
+        "@fontsource/gochi-hand": "5.3.0",
+        "@hugeicons/core-free-icons": "4.3.5",
+        "@hugeicons/react": "1.1.10",
+        "ente-base": "*",
+        "ente-paste-wasm": "*",
+        "qr-code-styling": "1.9.2"
     },
     "devDependencies": {
-        "ente-build-config": "*"
+        "ente-build-config": "*",
+        "vitest": "5.0.5"
     }
 }

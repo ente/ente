@@ -8,10 +8,8 @@ class SimilarFiles {
   final Set<int> fileIds;
   double furthestDistance;
 
-  SimilarFiles(
-    this.files,
-    this.furthestDistance,
-  ) : fileIds = files.map((file) => file.uploadedFileID!).toSet();
+  SimilarFiles(this.files, this.furthestDistance)
+    : fileIds = files.map((file) => file.uploadedFileID!).toSet();
 
   int get totalSize => files.fold(0, (sum, file) => sum + (file.fileSize ?? 0));
 
@@ -38,10 +36,7 @@ class SimilarFiles {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'fileIDs': fileIds.toList(),
-      'distance': furthestDistance,
-    };
+    return {'fileIDs': fileIds.toList(), 'distance': furthestDistance};
   }
 
   String toJsonString() {
@@ -62,10 +57,7 @@ class SimilarFiles {
       files.add(file);
     }
 
-    return SimilarFiles(
-      files,
-      furthestDistance,
-    );
+    return SimilarFiles(files, furthestDistance);
   }
 
   static SimilarFiles fromJsonString(
@@ -83,8 +75,7 @@ class SimilarFilesCache {
   final bool exact;
 
   List<SimilarFiles>? _similarFilesList;
-
-  /// Milliseconds since epoch
+  // Milliseconds since epoch.
   final int cachedTime;
 
   SimilarFilesCache({
@@ -117,12 +108,11 @@ class SimilarFilesCache {
     return groupedFileIDs;
   }
 
-  factory SimilarFilesCache.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory SimilarFilesCache.fromJson(Map<String, dynamic> json) {
     return SimilarFilesCache(
-      similarFilesJsonStringList:
-          List<String>.from(json['similarFilesJsonStringList']),
+      similarFilesJsonStringList: List<String>.from(
+        json['similarFilesJsonStringList'],
+      ),
       allCheckedFileIDs: Set<int>.from(json['allCheckedFileIDs']),
       distanceThreshold: (json['distanceThreshold'] as num).toDouble(),
       exact: json['exact'] as bool,
@@ -144,9 +134,7 @@ class SimilarFilesCache {
     return jsonEncode(cache.toJson());
   }
 
-  static SimilarFilesCache decodeFromJsonString(
-    String jsonString,
-  ) {
+  static SimilarFilesCache decodeFromJsonString(String jsonString) {
     return SimilarFilesCache.fromJson(jsonDecode(jsonString));
   }
 }

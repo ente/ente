@@ -1,13 +1,13 @@
 package user
 
 import (
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 )
 
-// GetTwoFactorRecoveryStatus returns a user's passkey reset status
 func (c *UserController) GetTwoFactorRecoveryStatus(ctx *gin.Context) (*ente.TwoFactorRecoveryStatus, error) {
 	userID := auth.GetUserID(ctx.Request.Header)
 	return c.TwoFactorRecoveryRepo.GetStatus(userID)
@@ -46,14 +46,23 @@ func (c *UserController) SkipPasskeyVerification(context *gin.Context, req *ente
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
-	exists, err := c.TwoFactorRecoveryRepo.ValidatePasskeyRecoverySecret(userID, req.Secret)
-	if err != nil {
-		return nil, stacktrace.Propagate(err, "")
+	var valid bool
+	if req.Proof != "" {
+		secret, err := c.TwoFactorRecoveryRepo.GetPasskeyRecoverySecret(userID)
+		if err != nil {
+			return nil, stacktrace.Propagate(err, "")
+		}
+		valid = verifyRecoveryProof(secret, "passkey", req.SessionID, req.Proof)
+	} else {
+		valid, err = c.TwoFactorRecoveryRepo.ValidatePasskeyRecoverySecret(userID, req.Secret)
+		if err != nil {
+			return nil, stacktrace.Propagate(err, "")
+		}
 	}
-	if !exists {
+	if !valid {
 		return nil, stacktrace.Propagate(ente.ErrPermissionDenied, "")
 	}
-	response, err := c.GetKeyAttributeAndToken(context, userID)
+	response, err := c.GetKeyAttributeAndToken(context, userID, req.SessionID, repo.PasskeyPendingLogin, false, false)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}

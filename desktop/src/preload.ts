@@ -1,67 +1,12 @@
-/**
- * @file The preload script
- *
- * The preload script runs in a renderer process before its web contents begin
- * loading. During their execution they have access to a subset of Node.js APIs
- * and imports. Its purpose is to expose the relevant imports and other
- * functions as an object on the DOM, so that the renderer process can invoke
- * functions that live in the main (Node.js) process if needed.
- *
- * Ref: https://www.electronjs.org/docs/latest/tutorial/tutorial-preload
- *
- * Note that this script cannot import other code from `src/` - conceptually it
- * can be thought of as running in a separate, third, process different from
- * both the main or a renderer process (technically, it runs in a BrowserWindow
- * context that runs prior to the renderer process).
- *
- * > Since enabling the sandbox disables Node.js integration in your preload
- * > scripts, you can no longer use require("../my-script"). In other words,
- * > your preload script needs to be a single file.
- * >
- * > https://www.electronjs.org/blog/breach-to-barrier
- *
- * If we really wanted, we could setup a bundler to package this into a single
- * file. However, since this is just boilerplate code providing a bridge between
- * the main and renderer, we avoid introducing another moving part into the mix
- * and just keep the entire preload setup in this single file.
- *
- * [Note: types.ts <-> preload.ts <-> ipc.ts]
- *
- * The following three files are boilerplatish linkage of the same functions,
- * and when changing one of them, remember to see if the other two also need
- * changing:
- *
- * - [renderer]  web/packages/base/types/ipc.ts      contains docs
- * - [preload]   desktop/src/preload.ts                    ↕︎
- * - [main]      desktop/src/main/ipc.ts             contains impl
- */
-
-// This code runs in the (isolated) web layer. Contrary to the impression given
-// by the Electron docs (as of 2024), the window object is actually available to
-// the preload script, and it is necessary for legitimate uses too.
-//
-// > The isolated world is connected to the DOM just the same is the main world,
-// > it is just the JS contexts that are separated.
-// >
-// > https://github.com/electron/electron/issues/27024#issuecomment-745618327
-//
-// Adding this reference here tells TypeScript that DOM typings (in particular,
-// window) should be introduced in the ambient scope.
-//
-// [Note: Node and web stream type mismatch]
-//
-// Unfortunately, adding this reference causes the ReadableStream typings to
-// break since lib.dom.d.ts adds its own incompatible definitions of
-// ReadableStream to the global scope.
-//
-// https://github.com/DefinitelyTyped/DefinitelyTyped/discussions/68407
-
+// Sandboxed preload scripts cannot import runtime code from src, so this file
+// must remain self-contained. DOM types expose window here but conflict with
+// Node's ReadableStream types; see main/utils/stream.ts.
 /// <reference lib="dom" />
+
+// Keep the exposed bridge in sync with web/packages/base/types/ipc.ts.
 
 import { contextBridge, ipcRenderer, webUtils } from "electron/renderer";
 
-// While we can't import other code, we can import types since they're just
-// needed when compiling and will not be needed or looked around for at runtime.
 import type { IpcRendererEvent } from "electron";
 import type {
     AppUpdate,
@@ -70,24 +15,15 @@ import type {
     FolderWatch,
     NativeDeviceLockCapability,
     PendingUploads,
+    PersistedAppLockConfig,
+    ThemeMode,
     UtilityProcessType,
     ZipItem,
 } from "./types/ipc";
 
-// - Infrastructure
-
-// We need to wait until the renderer is ready before sending ports via
-// postMessage, and this promise comes handy in such cases. We create the
-// promise at the top level so that it is guaranteed to be registered before the
-// load event is fired.
-//
-// See: https://www.electronjs.org/docs/latest/tutorial/message-ports
-
 const windowLoaded = new Promise((resolve) => {
     window.onload = resolve;
 });
-
-// - General
 
 const appVersion = () => ipcRenderer.invoke("appVersion");
 
@@ -100,9 +36,6 @@ const openDirectory = (dirPath: string) =>
 const openLogDirectory = () => ipcRenderer.invoke("openLogDirectory");
 
 const selectDirectory = () => ipcRenderer.invoke("selectDirectory");
-
-// The path that we get back from `webUtils.getPathForFile` on Windows uses "\"
-// as the path separator. Convert them to POSIX separators.
 
 const pathForFile =
     process.platform == "win32"
@@ -119,6 +52,19 @@ const masterKeyFromSafeStorage = () =>
 
 const saveMasterKeyInSafeStorage = (masterKey: string) =>
     ipcRenderer.invoke("saveMasterKeyInSafeStorage", masterKey);
+
+const isSafeStorageAvailable = (): Promise<boolean> =>
+    ipcRenderer.invoke("isSafeStorageAvailable");
+
+const appLockConfigFromSafeStorage = (): Promise<
+    PersistedAppLockConfig | undefined
+> => ipcRenderer.invoke("appLockConfigFromSafeStorage");
+
+const saveAppLockConfigInSafeStorage = (config: PersistedAppLockConfig) =>
+    ipcRenderer.invoke("saveAppLockConfigInSafeStorage", config);
+
+const clearAppLockConfigFromSafeStorage = () =>
+    ipcRenderer.invoke("clearAppLockConfigFromSafeStorage");
 
 const lastShownChangelogVersion = () =>
     ipcRenderer.invoke("lastShownChangelogVersion");
@@ -160,12 +106,13 @@ const onMainWindowBlur = (cb: (() => void) | undefined) => {
     if (cb) ipcRenderer.on("mainWindowBlur", cb);
 };
 
+const setTitleBarOverlay = (themeMode: ThemeMode, isFileViewerOpen: boolean) =>
+    ipcRenderer.send("setTitleBarOverlay", themeMode, isFileViewerOpen);
+
 const onOpenEnteURL = (cb: ((url: string) => void) | undefined) => {
     ipcRenderer.removeAllListeners("openEnteURL");
     if (cb) ipcRenderer.on("openEnteURL", (_, url: string) => cb(url));
 };
-
-// - App update
 
 const onAppUpdateAvailable = (
     cb: ((update: AppUpdate) => void) | undefined,
@@ -186,8 +133,6 @@ const updateOnNextRestart = (version: string) =>
 const skipAppUpdate = (version: string) => {
     ipcRenderer.send("skipAppUpdate", version);
 };
-
-// - FS
 
 const fsExists = (path: string) => ipcRenderer.invoke("fsExists", path);
 
@@ -214,28 +159,32 @@ const fsIsDir = (dirPath: string) => ipcRenderer.invoke("fsIsDir", dirPath);
 
 const fsStatMtime = (path: string) => ipcRenderer.invoke("fsStatMtime", path);
 
-// - Conversion
-
-const convertToJPEG = (imageData: Uint8Array) =>
-    ipcRenderer.invoke("convertToJPEG", imageData);
+const convertToJPEG = (
+    imageData: Uint8Array,
+    detectedExtension: string,
+    fileName: string,
+): Promise<Uint8Array<ArrayBuffer>> =>
+    ipcRenderer.invoke("convertToJPEG", imageData, detectedExtension, fileName);
 
 const generateImageThumbnail = (
     pathOrZipItem: string | ZipItem,
     maxDimension: number,
     maxSize: number,
-) =>
+    extension: string,
+): Promise<Uint8Array<ArrayBuffer>> =>
     ipcRenderer.invoke(
         "generateImageThumbnail",
         pathOrZipItem,
         maxDimension,
         maxSize,
+        extension,
     );
 
 const ffmpegExec = (
     command: FFmpegCommand,
     pathOrZipItem: string | ZipItem,
     outputFileExtension: string,
-) =>
+): Promise<Uint8Array<ArrayBuffer>> =>
     ipcRenderer.invoke(
         "ffmpegExec",
         command,
@@ -246,13 +195,10 @@ const ffmpegExec = (
 const ffmpegDetermineVideoDuration = (pathOrZipItem: string | ZipItem) =>
     ipcRenderer.invoke("ffmpegDetermineVideoDuration", pathOrZipItem);
 
-// - Utility processes
-
 const triggerCreateUtilityProcess = (type: UtilityProcessType) => {
     const portEvent = `utilityProcessPort/${type}`;
     const l = (event: IpcRendererEvent) => {
         void windowLoaded.then(() => {
-            // "*"" is the origin to send to.
             window.postMessage(portEvent, "*", event.ports);
             ipcRenderer.off(portEvent, l);
         });
@@ -260,8 +206,6 @@ const triggerCreateUtilityProcess = (type: UtilityProcessType) => {
     ipcRenderer.on(portEvent, l);
     ipcRenderer.send("triggerCreateUtilityProcess", type);
 };
-
-// - Watch
 
 const watchGet = () => ipcRenderer.invoke("watchGet");
 
@@ -311,8 +255,6 @@ const watchRemoveListeners = () => {
     ipcRenderer.removeAllListeners("watchRemoveDir");
 };
 
-// - Upload
-
 const listZipItems = (zipPath: string) =>
     ipcRenderer.invoke("listZipItems", zipPath);
 
@@ -332,52 +274,8 @@ const markUploadedZipItem = (item: ZipItem, associatedItem?: ZipItem) =>
 
 const clearPendingUploads = () => ipcRenderer.invoke("clearPendingUploads");
 
-/**
- * These objects exposed here will become available to the JS code in our
- * renderer (the web/ code) as `window.ElectronAPIs.*`
- *
- * There are a few related concepts at play here, and it might be worthwhile to
- * read their (excellent) documentation to get an understanding;
- *`
- * - ContextIsolation:
- *   https://www.electronjs.org/docs/latest/tutorial/context-isolation
- *
- * - IPC https://www.electronjs.org/docs/latest/tutorial/ipc
- *
- * ---
- *
- * [Note: Transferring large amount of data over IPC]
- *
- * Electron's IPC implementation uses the HTML standard Structured Clone
- * Algorithm to serialize objects passed between processes.
- * https://www.electronjs.org/docs/latest/tutorial/ipc#object-serialization
- *
- * In particular, ArrayBuffer is eligible for structured cloning.
- * https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Structured_clone_algorithm
- *
- * Also, ArrayBuffer is "transferable", which means it is a zero-copy operation
- * operation when it happens across threads.
- * https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Transferable_objects
- *
- * In our case though, we're not dealing with threads but separate processes.
- * Electron currently only supports transferring MessagePorts:
- * https://github.com/electron/electron/issues/34905
- *
- * So the ArrayBuffer will be copied:
- *
- * > "parameters, errors and return values are **copied** when they're sent over
- * > the bridge".
- * >
- * > https://www.electronjs.org/docs/latest/api/context-bridge#methods
- *
- * The copy itself is relatively fast, but the problem with transferring large
- * amounts of data is potentially running out of memory during the copy.
- *
- * For an alternative, see [Note: IPC streams].
- */
+// contextBridge copies ArrayBuffers between processes; use stream:// for large data.
 contextBridge.exposeInMainWorld("electron", {
-    // - General
-
     appVersion,
     logToDisk,
     openDirectory,
@@ -387,6 +285,10 @@ contextBridge.exposeInMainWorld("electron", {
     logout,
     masterKeyFromSafeStorage,
     saveMasterKeyInSafeStorage,
+    isSafeStorageAvailable,
+    appLockConfigFromSafeStorage,
+    saveAppLockConfigInSafeStorage,
+    clearAppLockConfigFromSafeStorage,
     lastShownChangelogVersion,
     setLastShownChangelogVersion,
     isAutoLaunchEnabled,
@@ -395,16 +297,13 @@ contextBridge.exposeInMainWorld("electron", {
     promptDeviceLock,
     onMainWindowFocus,
     onMainWindowBlur,
+    setTitleBarOverlay,
     onOpenEnteURL,
-
-    // - App update
 
     onAppUpdateAvailable,
     updateAndRestart,
     updateOnNextRestart,
     skipAppUpdate,
-
-    // - FS
 
     fs: {
         exists: fsExists,
@@ -420,18 +319,12 @@ contextBridge.exposeInMainWorld("electron", {
         findFiles: fsFindFiles,
     },
 
-    // - Conversion
-
     convertToJPEG,
     generateImageThumbnail,
     ffmpegExec,
     ffmpegDetermineVideoDuration,
 
-    // - ML
-
     triggerCreateUtilityProcess,
-
-    // - Watch
 
     watch: {
         get: watchGet,
@@ -443,8 +336,6 @@ contextBridge.exposeInMainWorld("electron", {
         onRemoveFile: watchOnRemoveFile,
         onRemoveDir: watchOnRemoveDir,
     },
-
-    // - Upload
 
     listZipItems,
     pathOrZipItemSize,

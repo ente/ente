@@ -9,14 +9,13 @@ class OfflineFilesDB with SqlDbBase {
   static final Logger _logger = Logger("OfflineFilesDB");
 
   static const _databaseName = "ente.offline_files.db";
+  static const _maxSqlBindParamsPerQuery = 500;
 
   OfflineFilesDB._privateConstructor();
 
   static final OfflineFilesDB instance = OfflineFilesDB._privateConstructor();
 
-  static const List<String> _migrationScripts = [
-    createOfflineFileKeyMapTable,
-  ];
+  static const List<String> _migrationScripts = [createOfflineFileKeyMapTable];
 
   Future<SqliteDatabase>? _sqliteAsyncDBFuture;
 
@@ -27,11 +26,15 @@ class OfflineFilesDB with SqlDbBase {
 
   Future<SqliteDatabase> _initSqliteAsyncDatabase() async {
     final documentsDirectory = await getApplicationDocumentsDirectory();
-    final String databaseDirectory =
-        join(documentsDirectory.path, _databaseName);
+    final String databaseDirectory = join(
+      documentsDirectory.path,
+      _databaseName,
+    );
     _logger.info("Opening offline files DB at $databaseDirectory");
-    final asyncDBConnection =
-        SqliteDatabase(path: databaseDirectory, maxReaders: 2);
+    final asyncDBConnection = SqliteDatabase(
+      path: databaseDirectory,
+      maxReaders: 2,
+    );
     await migrate(asyncDBConnection, _migrationScripts);
     return asyncDBConnection;
   }
@@ -69,18 +72,20 @@ class OfflineFilesDB with SqlDbBase {
   Future<Map<int, String>> getLocalIdsForIntIds(
     Iterable<int> localIntIds,
   ) async {
-    final ids = localIntIds.toList();
+    final ids = localIntIds.toSet().toList();
     if (ids.isEmpty) return {};
     final db = await asyncDB;
-    final inParam = List.filled(ids.length, '?').join(',');
-    final result = await db.getAll(
-      'SELECT $offlineFileKeyIntIdColumn, $offlineFileKeyLocalIdColumn FROM $offlineFileKeyMapTable WHERE $offlineFileKeyIntIdColumn IN ($inParam)',
-      ids,
-    );
     final mapping = <int, String>{};
-    for (final row in result) {
-      mapping[row[offlineFileKeyIntIdColumn] as int] =
-          row[offlineFileKeyLocalIdColumn] as String;
+    for (final chunk in _chunkSqlBindParams(ids)) {
+      final inParam = List.filled(chunk.length, '?').join(',');
+      final result = await db.getAll(
+        'SELECT $offlineFileKeyIntIdColumn, $offlineFileKeyLocalIdColumn FROM $offlineFileKeyMapTable WHERE $offlineFileKeyIntIdColumn IN ($inParam)',
+        chunk,
+      );
+      for (final row in result) {
+        mapping[row[offlineFileKeyIntIdColumn] as int] =
+            row[offlineFileKeyLocalIdColumn] as String;
+      }
     }
     return mapping;
   }
@@ -88,25 +93,25 @@ class OfflineFilesDB with SqlDbBase {
   Future<Map<String, int>> getLocalIntIdsForLocalIds(
     Iterable<String> localIds,
   ) async {
-    final ids = localIds.toList();
+    final ids = localIds.toSet().toList();
     if (ids.isEmpty) return {};
     final db = await asyncDB;
-    final inParam = List.filled(ids.length, '?').join(',');
-    final result = await db.getAll(
-      'SELECT $offlineFileKeyLocalIdColumn, $offlineFileKeyIntIdColumn FROM $offlineFileKeyMapTable WHERE $offlineFileKeyLocalIdColumn IN ($inParam)',
-      ids,
-    );
     final mapping = <String, int>{};
-    for (final row in result) {
-      mapping[row[offlineFileKeyLocalIdColumn] as String] =
-          row[offlineFileKeyIntIdColumn] as int;
+    for (final chunk in _chunkSqlBindParams(ids)) {
+      final inParam = List.filled(chunk.length, '?').join(',');
+      final result = await db.getAll(
+        'SELECT $offlineFileKeyLocalIdColumn, $offlineFileKeyIntIdColumn FROM $offlineFileKeyMapTable WHERE $offlineFileKeyLocalIdColumn IN ($inParam)',
+        chunk,
+      );
+      for (final row in result) {
+        mapping[row[offlineFileKeyLocalIdColumn] as String] =
+            row[offlineFileKeyIntIdColumn] as int;
+      }
     }
     return mapping;
   }
 
-  Future<Map<String, int>> ensureLocalIntIds(
-    Iterable<String> localIds,
-  ) async {
+  Future<Map<String, int>> ensureLocalIntIds(Iterable<String> localIds) async {
     final ids = localIds.toSet().toList();
     if (ids.isEmpty) return {};
     final existing = await getLocalIntIdsForLocalIds(ids);
@@ -122,5 +127,12 @@ class OfflineFilesDB with SqlDbBase {
       existing.addAll(inserted);
     }
     return existing;
+  }
+
+  Iterable<List<T>> _chunkSqlBindParams<T>(List<T> values) sync* {
+    for (var i = 0; i < values.length; i += _maxSqlBindParamsPerQuery) {
+      final end = i + _maxSqlBindParamsPerQuery;
+      yield values.sublist(i, end > values.length ? values.length : end);
+    }
   }
 }

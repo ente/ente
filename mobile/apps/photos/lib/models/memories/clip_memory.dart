@@ -1,4 +1,4 @@
-import "package:photos/generated/l10n.dart";
+import "package:ente_strings/ente_strings.dart";
 import "package:photos/models/memories/memory.dart";
 import "package:photos/models/memories/smart_memory.dart";
 
@@ -257,7 +257,7 @@ String clipQuery(ClipMemoryType clipMemoryType) {
   }
 }
 
-String clipTitle(AppLocalizations locals, ClipMemoryType clipMemoryType) {
+String clipTitle(StringsLocalizations locals, ClipMemoryType clipMemoryType) {
   switch (clipMemoryType) {
     case ClipMemoryType.sunrise:
       return locals.sunrise;
@@ -366,18 +366,13 @@ class ClipMemory extends SmartMemory {
     int firstDateToShow,
     int lastDateToShow,
     this.clipMemoryType, {
+    super.id,
     super.firstCreationTime,
     super.lastCreationTime,
-  }) : super(
-          memories,
-          MemoryType.clip,
-          '',
-          firstDateToShow,
-          lastDateToShow,
-        );
+  }) : super(memories, MemoryType.clip, '', firstDateToShow, lastDateToShow);
 
   @override
-  String createTitle(AppLocalizations locals, String languageCode) {
+  String createTitle(StringsLocalizations locals, String languageCode) {
     return clipTitle(locals, clipMemoryType);
   }
 }

@@ -11,6 +11,8 @@ Ente provides automatic, continuous backup of your photos and videos with end-to
 
 ### Mobile backup (iOS and Android)
 
+![Backup settings hub with Backed up folders Backup status and Backup settings on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-backup-hub.png){width=320px}
+
 Ente will automatically backup any albums in your native photos app that you select for backup. The app runs in the background, and any new photos added to these albums (or any photos in these albums that were modified) will be automatically synced to Ente.
 
 **Key features:**
@@ -32,24 +34,49 @@ You can choose which albums should be backed up when you first sign up for Ente.
 
 Open `Settings > Backup > Backed up folders` and select or deselect albums as needed.
 
-**On desktop:**
-Use the [watch folders](/photos/features/backup-and-sync/watch-folders) feature to select directories to sync.
+![Ente Photos Android Backup menu highlighting the Backed up folders row](https://docs-assets.ente.com/screenshots/phone-backup-backed-up-folders-callout.png){width=320px}
+
+![Ente Photos Android Backed up folders screen with selectable device albums and checkmarks](https://docs-assets.ente.com/screenshots/phone-backup-backed-up-folders.png){width=320px}
+
+**On desktop:** Use the [watch folders](/photos/features/backup-and-sync/watch-folders) feature to select directories to sync.
 
 ## Background sync {#background-sync}
 
 Ente Photos supports seamless background sync so that you don't need to open the app to backup your photos. It will sync in the background and automatically backup the albums that you have selected for syncing.
 
+> [!NOTE]
+>
+> Background sync isn't currently consistent on iOS and on certain Android devices. We're actively working on a fix.
+
 Day to day sync will work automatically. However, there are some platform specific considerations that apply:
 
 ### iOS
 
-On iOS, if you have a very large number of photos and videos, then you might need to keep Ente running in the foreground for the first backup to happen (since we get only a limited amount of background execution time). To help with this, under `Settings > Backup` there is an option to disable the automatic device screen lock. But once your initial backup has completed, subsequent backups will work fine in the background and don't need disabling the screen lock.
+Day-to-day backups run automatically on iOS. However, iOS gives Ente limited time to work when the app is not open. Your initial backup and large videos may need more time.
 
-On iOS, Ente will not backup videos in the background (since videos are usually much larger and need more time to upload than what we get). However, they will get backed up the next time the Ente app is opened.
+#### Backup mode {#backup-mode-ios}
 
-Note that the Ente app will not be able to backup in the background if you force kill the app.
+Backup mode helps large backups finish by keeping Ente open and the screen awake. The screen dims to save battery.
 
-> If you're curious, the way this works is, our servers "tickle" your device every once in a while by sending a silent push notification, which wakes up our app and gives it 30 seconds to execute a background sync. However, if you have killed the app from recents, iOS will not deliver the push to the app, breaking the background sync.
+Ente offers Backup mode on iOS when an upload session has **50 or more pending files**. You can also open it from Backup settings.
+
+To use Backup mode:
+
+1. Connect your iPhone to power and stable WiFi.
+2. Open `Settings > Backup > Backup settings > Backup mode`.
+3. Tap **Start backup mode** and keep Ente open on screen. Switching apps pauses Backup mode.
+
+Backup mode keeps an upload that is already running going. It doesn't start one by itself. If Backup mode says **No backup in progress**, Ente isn't uploading right now, even if photos are still waiting. Return to the home screen and wait until uploads are moving, then open Backup mode. See [Why does Backup mode say "No backup in progress"?](/photos/faq/backup-and-sync#backup-mode-no-backup).
+
+You only need Backup mode for large uploads. New photos will continue to back up in the background afterwards.
+
+The progress shown during Backup mode relates to the current upload session. It may restart when a new session begins. A reset counter alone does not mean your entire library is uploading again.
+
+Large videos may not finish during the short time iOS gives Ente in the background. Ente will continue the upload when iOS gives it more time or when you open the app.
+
+Do not swipe Ente away from the app switcher. iOS cannot wake Ente for a background backup after the app has been closed this way.
+
+> Ente uses silent notifications to ask iOS to start a short background backup. iOS does not deliver these notifications after you swipe the app away.
 
 ### Android
 
@@ -57,13 +84,15 @@ On some Android versions, newly downloaded apps activate a mode called "Optimize
 
 On Android versions 15 and later, if an app is in private space and the private space is locked, Android doesn't allow the app to run any background processes. As a result, background sync will not work.
 
+![Unrestricted / Optimize battery usage option highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-android-battery-background-usage-callout.png){width=320px}
+
 ### Desktop
 
 In addition to our mobile apps, the background sync also works on our desktop app through the [watch folders](/photos/features/backup-and-sync/watch-folders) feature.
 
 ### Troubleshooting background sync
 
-- On iOS, make sure that you're not killing the Ente app.
+- On iOS, do not swipe Ente away from the app switcher.
 - On Android, make sure that "Optimize battery usage" is not turned on in system settings for the Ente app.
 
 ## Understanding backup behavior
@@ -74,6 +103,8 @@ In addition to our mobile apps, the background sync also works on our desktop ap
 - Original quality files (no compression)
 - Photo metadata (EXIF, location, date/time)
 - Live Photos (both photo and video components)
+
+Photos shared to Ente from other apps may not include location information. Ente shows a reminder when you add these photos; it cannot preserve location metadata that the other app did not provide. To preserve the original metadata, back up the original photos from your device library instead.
 
 ### What happens when files are deleted
 
@@ -87,6 +118,46 @@ Ente automatically detects duplicates during upload. If you try to upload the sa
 
 Learn more about how [Duplicate detection](/photos/features/backup-and-sync/duplicate-detection) works.
 
+## Backup only new photos {#backup-only-new-photos}
+
+By default, Ente backs up your entire photo library from selected folders. If you only want to back up photos going forward - without uploading your existing library - you can enable **Backup only new photos**.
+
+This option is available in two places:
+
+- **During signup/login**: On the permissions screen, you can choose to back up only new photos instead of your full library.
+- **In settings**: Open `Settings > Backup > Backup settings` and toggle on **Backup only new photos**.
+
+![Mobile: home with Settings menu (three bars) highlighted, then Backup, then Backup settings, then Backup settings page](https://docs-assets.ente.com/screenshots/phone-settings-backup-backup-settings-path-nc.png){width=560px}
+
+### What "new photos" means
+
+When you select this option during onboarding, Ente backs up photos from the **last 7 days** onward. This ensures you have some recent photos available right away rather than starting with an empty library.
+
+When you enable the toggle in settings after onboarding, Ente uses the **current moment** as the cutoff - only photos created from that point forward will be backed up.
+
+The cutoff applies when Ente selects photos for automatic backup. Turning it on does not cancel uploads already queued. You can also manually select older photos to upload.
+
+### Folder selection prompt
+
+![Backup to Ente folder selection with Movies and Pictures albums on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-backup-folder-prompt.png){width=320px}
+
+When you first enable this setting, Ente may prompt you to select which folders to back up:
+
+- If you haven't selected any folders yet, tap **Select folders** to choose which folders to include.
+- Tap **Continue** to proceed with your existing folder selection.
+
+### Disabling backup only new photos
+
+To resume backing up all photos (including your existing library), toggle **Backup only new photos** off. Ente will then include all photos from selected folders in the next sync.
+
+![Backup only new photos toggle highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-backup-only-new-photos-callout.png){width=320px}
+
+### Use cases
+
+- **New devices**: Back up only photos taken on a new device without uploading photos already backed up elsewhere.
+- **Privacy**: Exclude older photos from your library while still keeping new ones backed up automatically.
+- **Storage management**: Avoid uploading a large existing library while still protecting new memories.
+
 ## Backup frequency
 
 - **Mobile**: Background sync happens automatically. The exact timing depends on your device's operating system.
@@ -94,6 +165,7 @@ Learn more about how [Duplicate detection](/photos/features/backup-and-sync/dupl
 
 ## Related FAQs
 
+- [Can I backup only new photos without uploading my existing library?](/photos/faq/backup-and-sync#backup-only-new-photos)
 - [How does automatic backup work?](/photos/faq/backup-and-sync#automatic-backup)
 - [How do I select which albums to back up?](/photos/faq/backup-and-sync#select-albums)
 - [Why isn't background sync working?](/photos/faq/backup-and-sync#background-sync-not-working)

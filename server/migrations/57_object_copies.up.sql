@@ -20,7 +20,5 @@ ON object_copies (scw) WHERE scw IS NULL AND want_scw = true;
 -- object_copies serves a queue for which all objects still need to be
 -- replicated. However, the canonical source of truth for an object is still
 -- maintained in the original object_keys table.
---
--- Add types for the new dcs that are introduced as part of replication v3.
 ALTER TYPE s3region ADD VALUE 'wasabi-eu-central-2-v3';
 ALTER TYPE s3region ADD VALUE 'scw-eu-fr-v3';

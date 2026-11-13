@@ -1,0 +1,381 @@
+name: "Warm caches"
+
+# PR workflows cannot save caches that other PRs can restore.
+# This main-only workflow primes shared caches; consumers use save-if: false.
+
+on:
+    schedule:
+        - cron: "17 18 * * *"
+    # Dispatch only on main or caches will be saved against the wrong ref.
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    rust-workspace:
+        # For rust-lint.yml and rust-test.yml.
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: rust
+        env:
+            RUSTFLAGS: -D warnings
+        steps:
+            - name: Checkout
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+            - name: Setup go
+              uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+              with:
+                  go-version-file: server/go.mod
+                  cache: false
+
+            - name: Setup Linux for Rust
+              uses: $/.github/actions/setup-rust-linux
+
+            - name: Setup Rust cache
+              uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+              with:
+                  workspaces: rust
+                  shared-key: rust-workspace
+                  cache-targets: false
+                  cache-directories: rust/.cache
+
+            - name: Check Rust target cache
+              id: rust-target
+              uses: $/.github/actions/restore-rust-target
+              with:
+                  lookup-only: true
+                  shared-key: rust-workspace
+
+            - name: Reset ML test cache
+              run: rm -rf .cache
+
+            - run: cargo install cargo-audit --version 0.22.2 --locked
+
+            - run: ./scripts/lint.sh
+
+            - name: Cache Museum
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  key: museum-${{ github.sha }}
+                  restore-keys: museum-
+                  path: |
+                      ~/go/pkg/mod
+                      ~/.cache/go-build
+                      ~/.cache/.theseus/postgresql
+
+            - run: cargo test --locked --workspace --exclude ente-cli --features museum,ente-ml/ml-assets
+              env:
+                  GITHUB_TOKEN: ${{ github.token }}
+
+            - run: cargo test --locked -p ente-cli --features museum --no-run
+
+            - run: node .github/actions/restore-rust-target/mtimes.mjs save
+              working-directory: ${{ github.workspace }}
+
+            - name: Save Rust target
+              if: steps.rust-target.outputs.cache-hit != 'true'
+              uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  key: ${{ steps.rust-target.outputs.cache-key }}
+                  path: rust/target
+
+    rust-cli:
+        # For rust-cli-test.yml.
+        strategy:
+            matrix:
+                os: [macos-latest, windows-latest]
+        runs-on: ${{ matrix.os }}
+        defaults:
+            run:
+                working-directory: rust
+        env:
+            RUSTFLAGS: -D warnings
+        steps:
+            - name: Checkout
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+            - name: Setup Rust cache
+              uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+              with:
+                  workspaces: rust
+                  shared-key: rust-cli
+                  cache-targets: false
+
+            - name: Check Rust target cache
+              id: rust-target
+              uses: $/.github/actions/restore-rust-target
+              with:
+                  lookup-only: true
+                  shared-key: rust-cli
+
+            - run: cargo test --locked -p ente-cli --test cli --no-run
+
+            - run: node .github/actions/restore-rust-target/mtimes.mjs save
+              working-directory: ${{ github.workspace }}
+
+            - name: Save Rust target
+              if: steps.rust-target.outputs.cache-hit != 'true'
+              uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  key: ${{ steps.rust-target.outputs.cache-key }}
+                  path: rust/target
+
+    rust-flutter:
+        # For mobile-lint.yml.
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: rust
+        env:
+            RUSTFLAGS: -D warnings
+        steps:
+            - name: Checkout code and submodules
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  submodules: recursive
+
+            - name: Install Flutter
+              uses: $/.github/actions/setup-flutter
+
+            - name: Setup Rust cache
+              uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+              with:
+                  workspaces: rust
+                  shared-key: rust-flutter
+                  cache-targets: false
+
+            - name: Check Rust target cache
+              id: rust-target
+              uses: $/.github/actions/restore-rust-target
+              with:
+                  lookup-only: true
+                  shared-key: rust-flutter
+
+            - run: cargo codegen frb
+
+            - run: cargo clippy -p ente-auth-frb --features flutter --all-targets --locked
+
+            - run: cargo clippy -p ente-photos-frb --features flutter --all-targets --locked
+
+            - run: cargo clippy -p ente-locker-frb --features flutter --all-targets --locked
+
+            - run: node .github/actions/restore-rust-target/mtimes.mjs save
+              working-directory: ${{ github.workspace }}
+
+            - name: Save Rust target
+              if: steps.rust-target.outputs.cache-hit != 'true'
+              uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  key: ${{ steps.rust-target.outputs.cache-key }}
+                  path: rust/target
+
+            - name: Cache localizations
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  key: mobile-l10n-${{ hashFiles('.github/actions/setup-flutter/action.yml', 'mobile/analysis_options.yaml', 'mobile/packages/strings/*.yaml', 'mobile/packages/strings/lib/l10n/arb/*.arb') }}
+                  path: |
+                      mobile/packages/strings/build
+                      mobile/packages/strings/lib/l10n/strings_localizations*.dart
+                      mobile/packages/strings/lib/l10n/untranslated_messages.json
+
+            - run: flutter pub get --enforce-lockfile
+              working-directory: mobile
+
+    web:
+        # For web-lint.yml.
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: web
+        steps:
+            - name: Checkout
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+            - name: Setup node
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+              with:
+                  node-version: 24
+                  cache: "npm"
+                  cache-dependency-path: "web/package-lock.json"
+
+            - name: Setup Rust cache
+              uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+              with:
+                  workspaces: rust
+                  shared-key: rust-wasm
+                  cache-targets: false
+
+            - name: Check Rust target cache
+              id: rust-target
+              uses: $/.github/actions/restore-rust-target
+              with:
+                  lookup-only: true
+                  shared-key: rust-wasm
+
+            # rust-src timestamps must match the cached build-std artifacts.
+            - name: Cache Cast toolchain
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  key: cast-toolchain-${{ hashFiles('rust/bindings/wasm/cast/rust-toolchain.toml') }}
+                  path: ~/.rustup/toolchains/nightly-*
+
+            - name: Cache web
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  key: web-${{ github.sha }}
+                  restore-keys: web-
+                  path: |
+                      web/apps/photos/.next/cache
+                      web/apps/*/*.tsbuildinfo
+                      web/packages/*/*.tsbuildinfo
+                      web/packages/wasm/*/*.tsbuildinfo
+
+            - run: npm ci
+
+            - run: _ENTE_IS_DESKTOP=1 npm run build:photos
+
+            - run: npm run build:wasm
+
+            - run: npm exec --workspaces -- tsc --incremental
+
+            - run: node .github/actions/restore-rust-target/mtimes.mjs save
+              working-directory: ${{ github.workspace }}
+
+            - name: Save Rust target
+              if: steps.rust-target.outputs.cache-hit != 'true'
+              uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  key: ${{ steps.rust-target.outputs.cache-key }}
+                  path: rust/target
+
+    photos-desktop-ensu-android:
+        # For desktop-lint.yml and android-lint.yml.
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+            - name: Setup node
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+              with:
+                  node-version: 24
+
+            - run: npm ci
+              working-directory: desktop
+
+            - name: Setup Rust cache
+              uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+              with:
+                  workspaces: rust
+                  shared-key: photos-desktop-ensu-android
+                  cache-targets: false
+
+            - name: Check Rust target cache
+              id: rust-target
+              uses: $/.github/actions/restore-rust-target
+              with:
+                  lookup-only: true
+                  shared-key: photos-desktop-ensu-android
+
+            - name: Free runner disk space
+              run: sudo rm -rf /usr/share/dotnet
+
+            - name: Install Vulkan build dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y libvulkan-dev glslc spirv-headers
+
+            - run: cargo codegen native
+              working-directory: rust
+
+            - run: cargo codegen napi
+              working-directory: rust
+
+            - name: Cache Gradle
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  key: gradle-${{ github.sha }}
+                  restore-keys: gradle-
+                  path: |
+                      ~/.gradle/caches
+                      ~/.gradle/wrapper
+
+            - name: Build Ensu
+              working-directory: android
+              run: |
+                  ./gradlew --build-cache :ensu:app:assembleDebug
+                  ./gradlew --stop
+
+            - run: node .github/actions/restore-rust-target/mtimes.mjs save
+              working-directory: ${{ github.workspace }}
+
+            - name: Save Rust target
+              if: steps.rust-target.outputs.cache-hit != 'true'
+              uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  key: ${{ steps.rust-target.outputs.cache-key }}
+                  path: rust/target
+
+    ensu-ios:
+        # For apple-lint.yml.
+        runs-on: macos-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+            - name: Setup Rust cache
+              uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+              with:
+                  workspaces: rust
+                  shared-key: ensu-ios
+                  cache-targets: false
+
+            - name: Check Rust target cache
+              id: rust-target
+              uses: $/.github/actions/restore-rust-target
+              with:
+                  lookup-only: true
+                  shared-key: ensu-ios
+
+            - run: cargo codegen native
+              working-directory: rust
+
+            - name: Build Ensu
+              working-directory: apple/apps/ensu
+              run: xcodebuild build-for-testing -scheme Ensu -destination 'platform=iOS Simulator,name=iPhone 17'
+
+            - run: node .github/actions/restore-rust-target/mtimes.mjs save
+              working-directory: ${{ github.workspace }}
+
+            - name: Save Rust target
+              if: steps.rust-target.outputs.cache-hit != 'true'
+              uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  key: ${{ steps.rust-target.outputs.cache-key }}
+                  path: rust/target
+
+    go-server:
+        # For server-lint.yml.
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: server
+        steps:
+            - name: Checkout
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+            - name: Setup go
+              uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+              with:
+                  go-version-file: server/go.mod
+                  cache-dependency-path: server/go.sum
+                  cache: true
+
+            - name: Install dependencies
+              run: sudo apt-get update && sudo apt-get install libsodium-dev
+
+            - name: Lint
+              run: "./scripts/lint.sh"

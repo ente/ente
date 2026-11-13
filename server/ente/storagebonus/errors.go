@@ -3,7 +3,7 @@ package storagebonus
 import (
 	"net/http"
 
-	"github.com/ente-io/museum/ente"
+	"github.com/ente/museum/ente"
 )
 
 const (
@@ -13,7 +13,6 @@ const (
 	accountNotEligible ente.ErrorCode = "ACCOUNT_NOT_ELIGIBLE"
 )
 
-// InvalidCodeErr is thrown when user gives a code which either doesn't exist or belong to a now deleted user
 var InvalidCodeErr = &ente.ApiError{
 	Code:           invalid,
 	Message:        "Invalid code",

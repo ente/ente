@@ -1,10 +1,14 @@
 ---
-title: This Page Has Moved
-description: This content has been reorganized
+title: Collect Photos
+description: Collect photos from others into your Ente Photos albums
 search: false
+head:
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
-# This Page Has Moved
+# Collect Photos
 
 The **Collecting Photos** content has been reorganized. You can find it in the following locations:
 

@@ -3,35 +3,21 @@ import { authenticatedRequestHeaders, ensureOk } from "ente-base/http";
 import { apiURL } from "ente-base/origins";
 import { z } from "zod";
 
-/**
- * A decrypted comment.
- */
 export interface Comment {
     id: string;
     collectionID: number;
     fileID?: number;
     parentCommentID?: string;
-    /** User ID of the parent comment's author (only in feed responses). */
+    // Only present in feed responses.
     parentCommentUserID?: number;
     userID: number;
     anonUserID?: string;
-    /** The decrypted comment text. */
     text: string;
     isDeleted: boolean;
     createdAt: number;
     updatedAt: number;
 }
 
-/**
- * Add a comment to a file in a collection.
- *
- * @param collectionID The ID of the collection containing the file.
- * @param fileID The ID of the file to comment on.
- * @param text The comment text to encrypt.
- * @param collectionKey The decrypted collection key (base64 encoded).
- * @param parentCommentID Optional parent comment ID for replies.
- * @returns The ID of the created comment.
- */
 export const addComment = async (
     collectionID: number,
     fileID: number,
@@ -63,11 +49,6 @@ export const addComment = async (
     return id;
 };
 
-/**
- * Delete a comment by its ID.
- *
- * @param commentID The ID of the comment to delete.
- */
 export const deleteComment = async (commentID: string): Promise<void> => {
     const res = await fetch(await apiURL(`/comments/${commentID}`), {
         method: "DELETE",

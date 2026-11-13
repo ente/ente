@@ -1,0 +1,19 @@
+name = "feedback"
+main = "src/index.ts"
+compatibility_date = "2026-10-23"
+
+routes = [
+    { pattern = "feedback.ente.com", custom_domain = true }
+]
+
+tail_consumers = [{ service = "tail" }]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "feedback"
+database_id = "475a08a9-71ea-48e3-8264-a372c3902bfb"
+
+[[ratelimits]]
+name = "SUBMISSIONS"
+namespace_id = "2026110401"
+simple = { limit = 6, period = 60 }

@@ -1,10 +1,14 @@
 ---
-title: This Page Has Moved
-description: This content has been reorganized
+title: Referral Program
+description: Earn free storage by inviting friends to Ente Photos
 search: false
+head:
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
-# This Page Has Moved
+# Referral Program
 
 The **Referral Program** feature guide has moved to:
 

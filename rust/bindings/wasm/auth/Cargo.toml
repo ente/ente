@@ -1,0 +1,12 @@
+[package]
+name = "ente-auth-wasm"
+edition.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ente-wasm-lib = { workspace = true, features = ["crypto-blob", "session"] }
+
+[lints]
+workspace = true

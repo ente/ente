@@ -1,63 +1,62 @@
 import "dart:async";
 
+import "package:ente_components/theme/text_styles.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
+import "package:ente_strings/ente_strings.dart";
+import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:intl/intl.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/local_photos_updated_event.dart";
 import "package:photos/events/notification_event.dart";
-import "package:photos/events/tab_changed_event.dart";
-import "package:photos/generated/intl/app_localizations.dart";
 import "package:photos/service_locator.dart";
-import "package:photos/services/machine_learning/ml_indexing_isolate.dart";
+import "package:photos/services/machine_learning/ml_model_download_service.dart";
+import "package:photos/services/machine_learning/ml_service.dart";
+import "package:photos/services/wake_lock_service.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/settings/ml/machine_learning_settings_page.dart";
 import "package:photos/utils/ml_util.dart";
 
 class MLProgressBanner extends StatefulWidget {
-  const MLProgressBanner({super.key});
+  const MLProgressBanner({super.key, this.isOnSearchTab});
+
+  final ValueListenable<bool>? isOnSearchTab;
 
   @override
   State<MLProgressBanner> createState() => _MLProgressBannerState();
 }
 
-class _MLProgressBannerState extends State<MLProgressBanner> {
-  static const int _searchTabIndex = 3;
-
+class _MLProgressBannerState extends State<MLProgressBanner>
+    with WidgetsBindingObserver, AutomaticKeepAliveClientMixin {
   IndexStatus? _indexStatus;
   Timer? _timer;
   bool _dismissed = false;
   bool _indexingComplete = false;
-  bool _isOnSearchTab = true;
-  late final StreamSubscription<TabChangedEvent> _tabChangedSubscription;
+  bool _keepsScreenAwake = false;
   late final StreamSubscription<LocalPhotosUpdatedEvent>
-      _localPhotosUpdatedSubscription;
+  _localPhotosUpdatedSubscription;
   late final StreamSubscription<NotificationEvent> _notificationSubscription;
+
+  bool get _isOnVisibleTab => widget.isOnSearchTab?.value ?? true;
 
   @override
   void initState() {
     super.initState();
-    _tabChangedSubscription =
-        Bus.instance.on<TabChangedEvent>().listen((event) {
-      final wasOnSearchTab = _isOnSearchTab;
-      _isOnSearchTab = event.selectedIndex == _searchTabIndex;
-      if (_isOnSearchTab && !wasOnSearchTab) {
-        _ensurePolling();
-      } else if (!_isOnSearchTab && wasOnSearchTab) {
-        _stopPolling();
-      }
-    });
-    _localPhotosUpdatedSubscription =
-        Bus.instance.on<LocalPhotosUpdatedEvent>().listen((_) {
-      _indexStatus = null;
+    WidgetsBinding.instance.addObserver(this);
+    widget.isOnSearchTab?.addListener(_onSearchTabChanged);
+    _localPhotosUpdatedSubscription = Bus.instance
+        .on<LocalPhotosUpdatedEvent>()
+        .listen((_) {
+          _indexingComplete = false;
+          _ensurePolling();
+        });
+    _notificationSubscription = Bus.instance.on<NotificationEvent>().listen((
+      _,
+    ) {
       _indexingComplete = false;
       _ensurePolling();
-    });
-    _notificationSubscription =
-        Bus.instance.on<NotificationEvent>().listen((_) {
-      _indexingComplete = false;
-      _ensurePolling();
+      setState(() {});
     });
     _ensurePolling();
   }
@@ -74,10 +73,19 @@ class _MLProgressBannerState extends State<MLProgressBanner> {
   void _stopPolling() {
     _timer?.cancel();
     _timer = null;
+    _updateWakeLock();
+  }
+
+  void _onSearchTabChanged() {
+    if (_isOnVisibleTab) {
+      _ensurePolling();
+    } else {
+      _stopPolling();
+    }
   }
 
   void _ensurePolling() {
-    if (!_isOnSearchTab) return;
+    if (!_isOnVisibleTab) return;
     if (!_shouldPoll) {
       _stopPolling();
       return;
@@ -90,7 +98,32 @@ class _MLProgressBannerState extends State<MLProgressBanner> {
       !_dismissed &&
       hasGrantedMLConsent &&
       !localSettings.isMLProgressBannerDismissed &&
+      localSettings.isMLLocalIndexingEnabled &&
       !_indexingComplete;
+
+  bool get _isShown {
+    final status = _indexStatus;
+    return !_dismissed &&
+        hasGrantedMLConsent &&
+        !localSettings.isMLProgressBannerDismissed &&
+        localSettings.isMLLocalIndexingEnabled &&
+        status != null &&
+        status.pendingItems > 0;
+  }
+
+  void _updateWakeLock() {
+    final keepScreenAwake =
+        (widget.isOnSearchTab?.value ?? false) &&
+        _isShown &&
+        MLService.instance.isRunningML &&
+        WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+    if (keepScreenAwake == _keepsScreenAwake) return;
+    _keepsScreenAwake = keepScreenAwake;
+    wakeLockService.updateWakeLock(
+      enable: keepScreenAwake,
+      wakeLockFor: WakeLockFor.mlProgressBanner,
+    );
+  }
 
   Future<void> _fetchStatus() async {
     try {
@@ -103,52 +136,66 @@ class _MLProgressBannerState extends State<MLProgressBanner> {
           _indexingComplete = true;
           _stopPolling();
         }
+        _updateWakeLock();
       }
     } catch (_) {}
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _updateWakeLock();
+  }
+
+  @override
+  void didUpdateWidget(MLProgressBanner oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isOnSearchTab != widget.isOnSearchTab) {
+      oldWidget.isOnSearchTab?.removeListener(_onSearchTabChanged);
+      widget.isOnSearchTab?.addListener(_onSearchTabChanged);
+      _onSearchTabChanged();
+    }
+  }
+
+  @override
   void dispose() {
-    _tabChangedSubscription.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    widget.isOnSearchTab?.removeListener(_onSearchTabChanged);
     _localPhotosUpdatedSubscription.cancel();
     _notificationSubscription.cancel();
     _timer?.cancel();
+    if (_keepsScreenAwake) {
+      wakeLockService.updateWakeLock(
+        enable: false,
+        wakeLockFor: WakeLockFor.mlProgressBanner,
+      );
+    }
     super.dispose();
   }
 
   @override
+  bool get wantKeepAlive => true;
+
+  @override
   Widget build(BuildContext context) {
-    if (_dismissed) return const SizedBox.shrink();
-    if (!hasGrantedMLConsent) return const SizedBox.shrink();
-    if (localSettings.isMLProgressBannerDismissed) {
-      return const SizedBox.shrink();
-    }
+    super.build(context);
+    if (!_isShown) return const SizedBox.shrink();
 
-    final status = _indexStatus;
-    if (status == null) return const SizedBox.shrink();
-    if (status.pendingItems <= 0) return const SizedBox.shrink();
-
+    final status = _indexStatus!;
     final total = status.indexedItems + status.pendingItems;
-    if (total <= 0) return const SizedBox.shrink();
 
     final colorScheme = getEnteColorScheme(context);
     final textTheme = getEnteTextTheme(context);
-    final l10n = AppLocalizations.of(context);
+    final l10n = context.strings;
     final format = NumberFormat();
     final progress = total > 0 ? status.indexedItems.toDouble() / total : 0.0;
     final showModelDownloadPhase = _shouldShowModelDownloadPhase(status);
 
-    final titleStyle = textTheme.largeBold.copyWith(
-      fontFamily: "Nunito",
-      fontWeight: FontWeight.w800,
-      fontSize: 20,
-      height: 24 / 18,
-      letterSpacing: -1,
+    final titleStyle = TextStyles.display3.copyWith(
       color: colorScheme.greenBase,
     );
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.only(top: 8, bottom: 20),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () {
@@ -156,8 +203,8 @@ class _MLProgressBannerState extends State<MLProgressBanner> {
         },
         child: Container(
           decoration: BoxDecoration(
-            color: colorScheme.backgroundColour,
-            borderRadius: BorderRadius.circular(14),
+            color: colorScheme.backgroundElevated2,
+            borderRadius: BorderRadius.circular(20),
           ),
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -166,10 +213,7 @@ class _MLProgressBannerState extends State<MLProgressBanner> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    l10n.mlProgressBannerTitle,
-                    style: titleStyle,
-                  ),
+                  Text(l10n.mlProgressBannerTitle, style: titleStyle),
                   GestureDetector(
                     onTap: _onDismiss,
                     behavior: HitTestBehavior.opaque,
@@ -201,7 +245,7 @@ class _MLProgressBannerState extends State<MLProgressBanner> {
                 borderRadius: BorderRadius.circular(2.5),
                 child: LinearProgressIndicator(
                   value: showModelDownloadPhase ? 0.0 : progress,
-                  minHeight: 5,
+                  minHeight: 4,
                   backgroundColor: colorScheme.fillFaint,
                   valueColor: AlwaysStoppedAnimation<Color>(
                     colorScheme.greenBase,
@@ -232,7 +276,9 @@ class _MLProgressBannerState extends State<MLProgressBanner> {
     if (!localSettings.isMLLocalIndexingEnabled) return false;
     if (status.indexedItems > 0) return false;
     if (status.pendingItems <= 0) return false;
-    return !MLIndexingIsolate.instance.areModelsDownloaded;
+    return !MLModelDownloadService.instance.areModelsDownloaded(
+      onlyIndexingModels: true,
+    );
   }
 
   void _onDismiss() {

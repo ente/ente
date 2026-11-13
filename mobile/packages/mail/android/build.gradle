@@ -1,0 +1,20 @@
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+}
+
+group 'io.ente.mail'
+version '1.0'
+
+android {
+    namespace 'io.ente.mail'
+
+    defaultConfig {
+        minSdkVersion 24
+    }
+}
+
+dependencies {
+    implementation 'androidx.core:core:1.15.0'
+    testImplementation 'junit:junit:4.13.2'
+}

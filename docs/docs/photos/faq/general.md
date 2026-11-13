@@ -1,10 +1,14 @@
 ---
-title: This Page Has Moved
-description: This content has been reorganized
+title: General FAQ
+description: General frequently asked questions about Ente Photos
 search: false
+head:
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
-# This Page Has Moved
+# General FAQ
 
 The content from **General FAQ** has been reorganized into topic-specific FAQ sections:
 

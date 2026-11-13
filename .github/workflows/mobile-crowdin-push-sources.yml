@@ -1,0 +1,37 @@
+name: "Push sources to Crowdin (Mobile)"
+
+on:
+    push:
+        branches: [main]
+        paths:
+            - ".github/workflows/mobile-crowdin-push-sources.yml"
+            - "mobile/packages/strings/crowdin.yml"
+            - "mobile/packages/strings/lib/l10n/arb/strings_en.arb"
+
+concurrency:
+    group: ${{ github.workflow }}
+    cancel-in-progress: false
+
+permissions:
+    contents: read
+
+jobs:
+    push-sources-to-crowdin:
+        name: "Push mobile string sources"
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+            - name: Crowdin push
+              uses: crowdin/github-action@959dc74ac104447731cba99a016f85d0ae719788 # v3.5.0
+              with:
+                  config: mobile/packages/strings/crowdin.yml
+                  upload_sources: true
+                  upload_translations: false
+                  download_translations: false
+                  project_id: 574741
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}

@@ -1,22 +1,23 @@
+import "package:ente_components/ente_components.dart";
+import "package:ente_strings/ente_strings.dart";
+import "package:ente_ui/pages/log_file_viewer.dart";
+import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/constants.dart";
-import "package:photos/generated/l10n.dart";
-import "package:photos/theme/ente_theme.dart";
+import "package:photos/core/error-reporting/super_logging.dart";
+import "package:photos/service_locator.dart";
 import "package:photos/ui/common/web_page.dart";
-import "package:photos/ui/components/menu_item_widget/menu_item_widget_new.dart";
-import "package:photos/ui/components/menu_section_title.dart";
 import "package:photos/ui/notification/toast.dart";
-import "package:photos/ui/settings/support/ask_question_page.dart";
 import "package:photos/ui/settings/support/report_issue_page.dart";
 import "package:photos/utils/email_util.dart";
 import "package:url_launcher/url_launcher_string.dart";
 
 class HelpSupportPage extends StatelessWidget {
   static final _logger = Logger("HelpSupportPage");
-  static const _helpUrl = "https://ente.io/help";
-  static const _photosFaqBaseUrl = "https://ente.io/help/photos/faq";
+  static const _helpUrl = "https://ente.com/help";
+  static const _photosFaqBaseUrl = "https://ente.com/help/photos/faq";
   static const _searchAndDiscoveryFaqUrl =
       "$_photosFaqBaseUrl/search-and-discovery";
   static const _backupAndSyncFaqUrl = "$_photosFaqBaseUrl/backup-and-sync";
@@ -29,156 +30,112 @@ class HelpSupportPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final l10n = context.strings;
 
-    final pageBackgroundColor =
-        isDarkMode ? const Color(0xFF161616) : const Color(0xFFFAFAFA);
-
-    return Scaffold(
-      backgroundColor: pageBackgroundColor,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 24),
-              GestureDetector(
-                onTap: () => Navigator.of(context).pop(),
-                child: Icon(
-                  Icons.arrow_back,
-                  color: colorScheme.strokeBase,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                l10n.helpAndSupport,
-                style: textTheme.h3Bold,
-              ),
-              const SizedBox(height: 24),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      MenuSectionTitle(title: l10n.browseHelpPages),
-                      _buildHelpTopicItem(
-                        context,
-                        title: l10n.searchAndDiscovery,
-                        subText: l10n.searchAndDiscoveryDesc,
-                        icon: HugeIcons.strokeRoundedSearch01,
-                        faqUrl: _searchAndDiscoveryFaqUrl,
-                      ),
-                      const SizedBox(height: 8),
-                      _buildHelpTopicItem(
-                        context,
-                        title: l10n.backupAndSync,
-                        subText: l10n.backupAndSyncDesc,
-                        icon: HugeIcons.strokeRoundedCloudUpload,
-                        faqUrl: _backupAndSyncFaqUrl,
-                      ),
-                      const SizedBox(height: 8),
-                      _buildHelpTopicItem(
-                        context,
-                        title: l10n.sharingAndCollaboration,
-                        subText: l10n.sharingAndCollaborationDesc,
-                        icon: HugeIcons.strokeRoundedShare01,
-                        faqUrl: _sharingAndCollaborationFaqUrl,
-                      ),
-                      const SizedBox(height: 8),
-                      _buildHelpTopicItem(
-                        context,
-                        title: l10n.storageAndPlans,
-                        subText: l10n.storageAndPlansDesc,
-                        icon: HugeIcons.strokeRoundedHardDrive,
-                        faqUrl: _storageAndPlansFaqUrl,
-                      ),
-                      const SizedBox(height: 8),
-                      _buildHelpTopicItem(
-                        context,
-                        title: l10n.troubleshooting,
-                        subText: l10n.troubleshootingDesc,
-                        icon: HugeIcons.strokeRoundedWrench01,
-                        faqUrl: _troubleshootingFaqUrl,
-                      ),
-                      _SupportLink(
-                        label: l10n.viewAllHelpTopics,
-                        onTap: () async {
-                          await _openHelpPage(
-                            context,
-                            title: l10n.helpAndSupport,
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 24),
-                      MenuSectionTitle(title: l10n.getInTouch),
-                      MenuItemWidgetNew(
-                        title: l10n.reportAnIssue,
-                        leadingIconWidget: _buildIconWidget(
-                          context,
-                          HugeIcons.strokeRoundedBug02,
-                        ),
-                        trailingIcon: Icons.chevron_right_outlined,
-                        trailingIconIsMuted: true,
-                        onTap: () async {
-                          await Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) => const ReportIssuePage(),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 8),
-                      MenuItemWidgetNew(
-                        title: l10n.askAQuestion,
-                        leadingIconWidget: _buildIconWidget(
-                          context,
-                          HugeIcons.strokeRoundedHelpCircle,
-                        ),
-                        trailingIcon: Icons.chevron_right_outlined,
-                        trailingIconIsMuted: true,
-                        onTap: () async {
-                          await Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) => const AskQuestionPage(),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 8),
-                      MenuItemWidgetNew(
-                        title: l10n.requestAFeature,
-                        leadingIconWidget: _buildIconWidget(
-                          context,
-                          HugeIcons.strokeRoundedIdea01,
-                        ),
-                        trailingIcon: Icons.chevron_right_outlined,
-                        trailingIconIsMuted: true,
-                        onTap: () async {
-                          await launchUrlString(
-                            githubDiscussionsUrl,
-                            mode: LaunchMode.externalApplication,
-                          );
-                        },
-                      ),
-                      _SupportLink(
-                        label: l10n.exportLogs,
-                        onTap: () async {
-                          await _exportLogs(context);
-                        },
-                      ),
-                      const SizedBox(height: 24),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+    return SettingsPageScaffold(
+      title: l10n.helpAndSupport,
+      children: [
+        _sectionTitle(context, l10n.getInTouch),
+        SettingsItem(
+          title: l10n.askAQuestion,
+          icon: HugeIcons.strokeRoundedHelpCircle,
+          showOnlyLoadingState: true,
+          onTap: () async {
+            await openEmailComposer(context, to: supportEmail);
+          },
         ),
+        const SizedBox(height: 8),
+        SettingsItem(
+          title: l10n.requestAFeature,
+          icon: HugeIcons.strokeRoundedIdea01,
+          showOnlyLoadingState: true,
+          onTap: () async {
+            await launchUrlString(
+              githubDiscussionsUrl,
+              mode: LaunchMode.externalApplication,
+            );
+          },
+        ),
+        const SizedBox(height: 8),
+        SettingsItem(
+          title: l10n.reportAnIssue,
+          icon: HugeIcons.strokeRoundedBug01,
+          showOnlyLoadingState: true,
+          onTap: () async {
+            await Navigator.of(context).push(
+              MaterialPageRoute(builder: (context) => const ReportIssuePage()),
+            );
+          },
+        ),
+        if (flagService.internalUser || kDebugMode) ...[
+          const SizedBox(height: 8),
+          SettingsItem(
+            title: "(i) ${l10n.viewLogs}",
+            icon: HugeIcons.strokeRoundedNote01,
+            showOnlyLoadingState: true,
+            onTap: () async {
+              await _viewLogs(context);
+            },
+          ),
+        ],
+        SettingsLink(label: l10n.exportLogs, onTap: () => _exportLogs(context)),
+        const SizedBox(height: 24),
+        _sectionTitle(context, l10n.browseHelpPages),
+        _buildHelpTopicItem(
+          context,
+          title: l10n.searchAndDiscovery,
+          subText: l10n.searchAndDiscoveryDesc,
+          icon: HugeIcons.strokeRoundedSearch01,
+          faqUrl: _searchAndDiscoveryFaqUrl,
+        ),
+        const SizedBox(height: 8),
+        _buildHelpTopicItem(
+          context,
+          title: l10n.backupAndSync,
+          subText: l10n.backupAndSyncDesc,
+          icon: HugeIcons.strokeRoundedCloudUpload,
+          faqUrl: _backupAndSyncFaqUrl,
+        ),
+        const SizedBox(height: 8),
+        _buildHelpTopicItem(
+          context,
+          title: l10n.sharingAndCollaboration,
+          subText: l10n.sharingAndCollaborationDesc,
+          icon: HugeIcons.strokeRoundedShare04,
+          faqUrl: _sharingAndCollaborationFaqUrl,
+        ),
+        const SizedBox(height: 8),
+        _buildHelpTopicItem(
+          context,
+          title: l10n.storageAndPlans,
+          subText: l10n.storageAndPlansDesc,
+          icon: HugeIcons.strokeRoundedDatabase,
+          faqUrl: _storageAndPlansFaqUrl,
+        ),
+        const SizedBox(height: 8),
+        _buildHelpTopicItem(
+          context,
+          title: l10n.troubleshooting,
+          subText: l10n.troubleshootingDesc,
+          icon: HugeIcons.strokeRoundedWrench01,
+          faqUrl: _troubleshootingFaqUrl,
+        ),
+        SettingsLink(
+          label: l10n.viewAllHelpTopics,
+          onTap: () => _openHelpPage(context, title: l10n.helpAndSupport),
+        ),
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+
+  Widget _sectionTitle(BuildContext context, String title) {
+    final colors = context.componentColors;
+    return Padding(
+      padding: const EdgeInsets.only(left: Spacing.sm, top: 6, bottom: 6),
+      child: Text(
+        title,
+        style: TextStyles.large.copyWith(color: colors.textBase),
       ),
     );
   }
@@ -190,28 +147,15 @@ class HelpSupportPage extends StatelessWidget {
     required List<List<dynamic>> icon,
     required String faqUrl,
   }) {
-    final textTheme = getEnteTextTheme(context);
-    return MenuItemWidgetNew(
+    return SettingsItem(
       title: title,
-      subText: subText,
-      subTextStyle: textTheme.miniMuted,
-      verticalPaddingWithSubText: 12,
-      titleToSubTextSpacing: 2,
-      leadingIconWidget: _buildIconWidget(context, icon),
-      trailingIcon: Icons.chevron_right_outlined,
-      trailingIconIsMuted: true,
+      subtitle: subText,
+      subtitleMaxLines: 2,
+      icon: icon,
+      showOnlyLoadingState: true,
       onTap: () async {
         await _openHelpPage(context, title: title, url: faqUrl);
       },
-    );
-  }
-
-  Widget _buildIconWidget(BuildContext context, List<List<dynamic>> icon) {
-    final colorScheme = getEnteColorScheme(context);
-    return HugeIcon(
-      icon: icon,
-      color: colorScheme.menuItemIconStroke,
-      size: 20,
     );
   }
 
@@ -229,56 +173,27 @@ class HelpSupportPage extends StatelessWidget {
     );
   }
 
+  Future<void> _viewLogs(BuildContext context) async {
+    final logFile = SuperLogging.logFile;
+    if (logFile == null) {
+      showShortToast(context, context.strings.somethingWentWrong);
+      return;
+    }
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (context) => LogFileViewer(logFile)));
+  }
+
   Future<void> _exportLogs(BuildContext context) async {
     try {
       final zipFilePath = await getZippedLogsFile(context);
+      if (!context.mounted) return;
       await exportLogs(context, zipFilePath);
     } catch (e, s) {
       _logger.severe("Failed to export logs", e, s);
       if (context.mounted) {
-        showShortToast(
-          context,
-          AppLocalizations.of(context).somethingWentWrong,
-        );
+        showShortToast(context, context.strings.somethingWentWrong);
       }
     }
-  }
-}
-
-class _SupportLink extends StatelessWidget {
-  final String label;
-  final Future<void> Function() onTap;
-
-  const _SupportLink({
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: textTheme.small.copyWith(color: colorScheme.primary500),
-            ),
-            const SizedBox(width: 4),
-            Icon(
-              Icons.chevron_right_outlined,
-              color: colorScheme.primary500,
-              size: 16,
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

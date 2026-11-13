@@ -1,0 +1,679 @@
+use std::num::NonZeroUsize;
+use std::panic::{AssertUnwindSafe, catch_unwind};
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex, PoisonError};
+use std::time::{Duration, Instant};
+
+use ente_assets::{Asset, AssetStore, download};
+use ente_ensu::llm;
+use serde::Serialize;
+use tauri::async_runtime;
+use tauri::{AppHandle, Emitter, Manager, State as TauriState, WebviewWindow};
+
+use crate::commands::common::{ApiError, log_command_panic, panic_message};
+use crate::logging;
+
+#[derive(Default)]
+pub struct State {
+    model: Mutex<Option<llm::ModelRef>>,
+    context: Mutex<Option<llm::ContextRef>>,
+    lifecycle: async_runtime::Mutex<()>,
+    retrieval_epoch: Arc<AtomicU64>,
+    model_state_epoch: AtomicU64,
+}
+
+impl State {
+    pub(crate) fn lifecycle(&self) -> &async_runtime::Mutex<()> {
+        &self.lifecycle
+    }
+
+    pub(crate) fn retrieval_epoch(&self) -> Arc<AtomicU64> {
+        Arc::clone(&self.retrieval_epoch)
+    }
+
+    fn cancel_retrieval(&self) {
+        self.retrieval_epoch.fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub(crate) fn model_state_epoch(&self) -> u64 {
+        self.model_state_epoch.load(Ordering::SeqCst)
+    }
+
+    pub(crate) fn context_ref(&self) -> Result<llm::ContextRef, ApiError> {
+        self.context
+            .lock()
+            .map_err(|_| ApiError::new("lock", "Failed to lock model context"))?
+            .clone()
+            .ok_or_else(|| ApiError::new("llm_not_ready", "Model context not loaded"))
+    }
+
+    fn mark_model_state_changed(&self) {
+        self.model_state_epoch.fetch_add(1, Ordering::SeqCst);
+    }
+}
+
+#[tauri::command]
+pub fn llm_retrieval_epoch(state: TauriState<'_, State>) -> u64 {
+    state.retrieval_epoch.load(Ordering::Relaxed)
+}
+
+#[tauri::command]
+pub fn llm_model_state_epoch(state: TauriState<'_, State>) -> u64 {
+    state.model_state_epoch()
+}
+
+pub struct ModelDownloadState {
+    store: Arc<AssetStore>,
+    assets_dir: PathBuf,
+    legacy_models_dir: PathBuf,
+    active_token: Mutex<Option<download::CancellationToken>>,
+}
+
+impl ModelDownloadState {
+    pub fn new(app_data_dir: PathBuf) -> Self {
+        let assets_dir = app_data_dir.join("assets");
+        Self {
+            store: Arc::new(AssetStore::new(&assets_dir)),
+            assets_dir,
+            legacy_models_dir: app_data_dir.join("models"),
+            active_token: Mutex::new(None),
+        }
+    }
+
+    pub(crate) fn store(&self) -> Arc<AssetStore> {
+        Arc::clone(&self.store)
+    }
+}
+
+#[derive(Debug, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ModelStatus {
+    model_path: String,
+    mmproj_path: Option<String>,
+    downloaded: bool,
+}
+
+#[derive(Debug, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct DownloadProgress {
+    percent: i32,
+    status: String,
+    bytes_downloaded: u64,
+    total_bytes: Option<u64>,
+}
+
+fn llm_error(message: impl Into<String>) -> ApiError {
+    ApiError::new("llm", message)
+}
+
+pub(crate) fn llm_api_error(err: llm::Error) -> ApiError {
+    let code = match &err {
+        llm::Error::Cancelled => "cancelled",
+        llm::Error::Panicked => "panicked",
+        llm::Error::InsufficientMemory => "insufficient_memory",
+        llm::Error::InvalidInput(_) => "invalid_input",
+        llm::Error::NotFound { .. } => "not_found",
+        llm::Error::Unsupported(_) => "unsupported",
+        llm::Error::PromptTooLong { .. } => "prompt_too_long",
+        llm::Error::Llama { .. } => "llm",
+    };
+    ApiError::new(code, err.to_string())
+}
+
+pub(crate) fn download_code(err: &download::Error) -> &'static str {
+    match err {
+        download::Error::Cancelled => "cancelled",
+        download::Error::Target { source, .. } => download_code(source),
+        download::Error::Fallback { single, .. } => download_code(single),
+        download::Error::Http(_) => "http",
+        download::Error::Validation(_) => "validation",
+        download::Error::Network(_) => "network",
+        download::Error::StorageFull => "storage_full",
+        download::Error::SizeMismatch { .. } => "size_mismatch",
+        download::Error::Protocol(_) => "protocol",
+        download::Error::InvalidTarget(_) => "invalid_target",
+        download::Error::Io(_) => "io",
+        download::Error::Json(_) => "json",
+    }
+}
+
+fn llm_thread_error() -> ApiError {
+    ApiError::new("llm", "LLM task failed")
+}
+
+fn fs_thread_error() -> ApiError {
+    ApiError::new("io_thread", "FS task failed")
+}
+
+fn desktop_asset(model_id: &str) -> Result<Asset, ApiError> {
+    ente_ensu::model::desktop_llm_asset(model_id)
+        .map_err(|err| ApiError::new("invalid_target", err.to_string()))
+}
+
+pub(crate) fn replace_state(
+    state: &State,
+    model: Option<llm::ModelRef>,
+    context: Option<llm::ContextRef>,
+) -> Result<(), ApiError> {
+    let mut model_guard = state
+        .model
+        .lock()
+        .map_err(|_| ApiError::new("lock", "Failed to lock LLM model store"))?;
+    let mut context_guard = state
+        .context
+        .lock()
+        .map_err(|_| ApiError::new("lock", "Failed to lock LLM context store"))?;
+
+    *model_guard = model;
+    *context_guard = context;
+    state.mark_model_state_changed();
+    drop(context_guard);
+    drop(model_guard);
+    Ok(())
+}
+
+fn default_threads() -> i32 {
+    let available = std::thread::available_parallelism()
+        .map(NonZeroUsize::get)
+        .unwrap_or(2);
+    let half = available / 2;
+    let threads = if half == 0 { 1 } else { half };
+    i32::try_from(threads).unwrap_or(1)
+}
+
+pub(crate) fn load_knowledge_embedding_context(
+    model_path: &Path,
+    check_cancelled: impl Fn() -> Result<(), ApiError>,
+) -> Result<llm::ContextRef, ApiError> {
+    let model = llm::Model::load(llm::ModelLoadParams {
+        model_path: model_path.display().to_string(),
+        n_gpu_layers: Some(0),
+        use_mmap: Some(true),
+        use_mlock: Some(false),
+    })
+    .map_err(llm_api_error)?;
+    check_cancelled()?;
+    let threads = std::thread::available_parallelism()
+        .map(|count| count.get().saturating_sub(1).max(1))
+        .unwrap_or(1);
+    llm::Context::new_knowledge_embedding(&model, Some(i32::try_from(threads).unwrap_or(1)))
+        .map_err(llm_api_error)
+}
+
+#[derive(Serialize, Clone)]
+#[serde(tag = "type", rename_all = "snake_case")]
+enum Event {
+    Text {
+        job_id: llm::JobId,
+        text: String,
+        token_id: Option<i32>,
+    },
+    Done {
+        summary: llm::GenerationSummary,
+    },
+}
+
+const EVENT_BATCH_MS: u64 = 80;
+const EVENT_BATCH_BYTES: usize = 2048;
+
+struct EventSink {
+    window: WebviewWindow,
+    buffered_text: String,
+    buffered_job_id: Option<llm::JobId>,
+    buffered_token_id: Option<i32>,
+    last_emit: Instant,
+}
+
+impl EventSink {
+    fn new(window: WebviewWindow) -> Self {
+        Self {
+            window,
+            buffered_text: String::new(),
+            buffered_job_id: None,
+            buffered_token_id: None,
+            last_emit: Instant::now(),
+        }
+    }
+
+    fn flush_text(&mut self) {
+        if self.buffered_text.is_empty() {
+            self.buffered_job_id = None;
+            self.buffered_token_id = None;
+            self.last_emit = Instant::now();
+            return;
+        }
+
+        if let Some(job_id) = self.buffered_job_id.take() {
+            let payload = Event::Text {
+                job_id,
+                text: std::mem::take(&mut self.buffered_text),
+                token_id: self.buffered_token_id.take(),
+            };
+            let _ = self.window.emit("llm-event", payload);
+        } else {
+            self.buffered_text.clear();
+            self.buffered_token_id = None;
+        }
+
+        self.last_emit = Instant::now();
+    }
+}
+
+impl llm::EventSink for EventSink {
+    fn add(&mut self, event: llm::GenerationEvent) {
+        match event {
+            llm::GenerationEvent::PromptProgress { .. } => {}
+            llm::GenerationEvent::Text {
+                job_id,
+                text,
+                token_id,
+            } => {
+                if let Some(current) = self.buffered_job_id
+                    && current != job_id
+                {
+                    self.flush_text();
+                }
+
+                if self.buffered_text.is_empty() {
+                    self.last_emit = Instant::now();
+                }
+
+                self.buffered_job_id = Some(job_id);
+                self.buffered_token_id = token_id;
+                self.buffered_text.push_str(&text);
+
+                let elapsed = self.last_emit.elapsed();
+                if self.buffered_text.len() >= EVENT_BATCH_BYTES
+                    || elapsed >= Duration::from_millis(EVENT_BATCH_MS)
+                {
+                    self.flush_text();
+                }
+            }
+            llm::GenerationEvent::Done { summary } => {
+                self.flush_text();
+                let _ = self.window.emit("llm-event", Event::Done { summary });
+            }
+        }
+    }
+}
+
+#[tauri::command]
+pub fn llm_model_status(
+    state: TauriState<'_, ModelDownloadState>,
+    model_id: String,
+) -> Result<ModelStatus, ApiError> {
+    let asset = desktop_asset(&model_id)?;
+    let embedding_asset = ente_ensu::model::knowledge_embedding_model_asset();
+    Ok(ModelStatus {
+        model_path: ente_ensu::model::llm_model_path(&state.store, &asset)
+            .map(|path| path.display().to_string())
+            .unwrap_or_default(),
+        mmproj_path: ente_ensu::model::llm_mmproj_path(&state.store, &asset)
+            .map(|path| path.display().to_string()),
+        downloaded: state.store.is_downloaded(&asset)
+            && state.store.is_downloaded(&embedding_asset),
+    })
+}
+
+#[tauri::command]
+pub async fn llm_model_download_size(
+    state: TauriState<'_, ModelDownloadState>,
+    model_id: String,
+) -> Result<Option<u64>, ApiError> {
+    let asset = desktop_asset(&model_id)?;
+    let embedding_asset = ente_ensu::model::knowledge_embedding_model_asset();
+    Ok(state
+        .store
+        .estimated_download_size(&[asset, embedding_asset])
+        .await)
+}
+
+#[tauri::command]
+pub async fn llm_migrate_models(
+    state: TauriState<'_, ModelDownloadState>,
+    legacy_model_url: Option<String>,
+    legacy_mmproj_url: Option<String>,
+) -> Result<Option<String>, ApiError> {
+    let assets_dir = state.assets_dir.clone();
+    let legacy_models_dir = state.legacy_models_dir.clone();
+    async_runtime::spawn_blocking(move || {
+        ente_ensu::model::migrations::migrate_ensu_assets(
+            &assets_dir,
+            ente_ensu::model::migrations::LegacyAssets {
+                llm_dir: None,
+                transcription_dir: None,
+                models_dir: Some(legacy_models_dir),
+                model_url: legacy_model_url,
+                mmproj_url: legacy_mmproj_url,
+            },
+        )
+    })
+    .await
+    .map_err(|_| fs_thread_error())
+}
+
+#[tauri::command]
+pub async fn llm_download_model(
+    window: WebviewWindow,
+    state: TauriState<'_, ModelDownloadState>,
+    model_id: String,
+) -> Result<(), ApiError> {
+    let store = Arc::clone(&state.store);
+    let asset = desktop_asset(&model_id)?;
+    let embedding_asset = ente_ensu::model::knowledge_embedding_model_asset();
+    let token = {
+        let mut slot = state
+            .active_token
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner);
+        if slot.is_some() {
+            return Err(ApiError::new(
+                "download_active",
+                "A model download is already in progress",
+            ));
+        }
+        let token = download::CancellationToken::new();
+        *slot = Some(token.clone());
+        token
+    };
+    let result = store
+        .download(
+            &[asset, embedding_asset],
+            |progress| {
+                let display = ente_ensu::model::display_progress(&progress);
+                if let Some(line) = &display.log_line {
+                    logging::log("LLMDownload", line.clone());
+                }
+                let _ = window.emit(
+                    "llm-download-progress",
+                    DownloadProgress {
+                        percent: (progress.batch_percentage as i32).clamp(0, 99),
+                        status: display.status,
+                        bytes_downloaded: progress.batch_downloaded_bytes,
+                        total_bytes: progress.batch_total_bytes,
+                    },
+                );
+            },
+            token,
+        )
+        .await
+        .map_err(|err| ApiError::new(download_code(&err), err.to_string()));
+    *state
+        .active_token
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner) = None;
+    result
+}
+
+#[tauri::command]
+pub fn llm_cancel_model_download(state: TauriState<'_, ModelDownloadState>) {
+    if let Some(token) = state
+        .active_token
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .as_ref()
+    {
+        token.cancel();
+    }
+}
+
+#[tauri::command]
+pub async fn llm_init_backend() -> Result<(), ApiError> {
+    logging::log("LLM", "init backend requested");
+    async_runtime::spawn_blocking(|| match catch_unwind(AssertUnwindSafe(llm::init_backend)) {
+        Ok(result) => result.map_err(llm_api_error),
+        Err(payload) => {
+            let message = panic_message(payload);
+            log_command_panic("llm_init_backend", &message);
+            Err(ApiError::new(
+                "llm_panic",
+                format!("llm_init_backend panicked: {message}"),
+            ))
+        }
+    })
+    .await
+    .map_err(|err| {
+        logging::log("LLM", format!("init backend join failed error={err}"));
+        llm_thread_error()
+    })??;
+    logging::log("LLM", "init backend succeeded");
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn llm_load_model(
+    state: TauriState<'_, State>,
+    params: llm::ModelLoadParams,
+) -> Result<(), ApiError> {
+    let _lifecycle = state.lifecycle.lock().await;
+    logging::log(
+        "LLM",
+        format!("load model requested model_path={}", params.model_path),
+    );
+    // llama.cpp clamps this to the model's layer count.
+    const DEFAULT_GPU_LAYERS: i32 = 999;
+    let mut params = params;
+    if params.n_gpu_layers.is_none() {
+        params.n_gpu_layers = Some(DEFAULT_GPU_LAYERS);
+    }
+    let model = async_runtime::spawn_blocking(move || {
+        match catch_unwind(AssertUnwindSafe(|| llm::Model::load(params))) {
+            Ok(result) => result.map_err(llm_api_error),
+            Err(payload) => {
+                let message = panic_message(payload);
+                log_command_panic("llm_load_model", &message);
+                Err(ApiError::new(
+                    "llm_panic",
+                    format!("llm_load_model panicked: {message}"),
+                ))
+            }
+        }
+    })
+    .await
+    .map_err(|err| {
+        logging::log("LLM", format!("load model join failed error={err}"));
+        llm_thread_error()
+    })??;
+    replace_state(&state, Some(model), None)?;
+
+    logging::log("LLM", "load model succeeded");
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn llm_create_context(
+    state: TauriState<'_, State>,
+    params: llm::ContextParams,
+) -> Result<u32, ApiError> {
+    let _lifecycle = state.lifecycle.lock().await;
+    let model = state
+        .model
+        .lock()
+        .map_err(|_| ApiError::new("lock", "Failed to lock LLM model store"))?
+        .clone()
+        .ok_or_else(|| ApiError::new("llm_not_loaded", "Model not loaded"))?;
+
+    let mut params = params;
+    if params.n_threads.is_none() {
+        params.n_threads = Some(default_threads());
+    }
+    logging::log(
+        "LLM",
+        format!(
+            "create context requested context_size={:?} n_threads={:?} n_batch={:?}",
+            params.context_size, params.n_threads, params.n_batch
+        ),
+    );
+
+    let context = async_runtime::spawn_blocking(move || {
+        match catch_unwind(AssertUnwindSafe(|| llm::Context::new(&model, params))) {
+            Ok(result) => result.map_err(llm_api_error),
+            Err(payload) => {
+                let message = panic_message(payload);
+                log_command_panic("llm_create_context", &message);
+                Err(ApiError::new(
+                    "llm_panic",
+                    format!("llm_create_context panicked: {message}"),
+                ))
+            }
+        }
+    })
+    .await
+    .map_err(|err| {
+        logging::log("LLM", format!("create context join failed error={err}"));
+        llm_thread_error()
+    })??;
+
+    let context_size = context.context_size();
+    let mut context_guard = state
+        .context
+        .lock()
+        .map_err(|_| ApiError::new("lock", "Failed to lock LLM context store"))?;
+    *context_guard = Some(context);
+    state.mark_model_state_changed();
+    drop(context_guard);
+
+    logging::log(
+        "LLM",
+        format!("create context succeeded context_size={context_size}"),
+    );
+    Ok(context_size)
+}
+
+#[tauri::command]
+pub async fn llm_free_context(state: TauriState<'_, State>) -> Result<(), ApiError> {
+    let _lifecycle = state.lifecycle.lock().await;
+    let mut context_guard = state
+        .context
+        .lock()
+        .map_err(|_| ApiError::new("lock", "Failed to lock LLM context store"))?;
+    *context_guard = None;
+    state.mark_model_state_changed();
+    drop(context_guard);
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn llm_free_model(state: TauriState<'_, State>) -> Result<(), ApiError> {
+    let _lifecycle = state.lifecycle.lock().await;
+    replace_state(&state, None, None)
+}
+
+#[tauri::command]
+pub async fn llm_prewarm_multimodal_context(
+    state: TauriState<'_, State>,
+    mmproj_path: String,
+    media_marker: Option<String>,
+) -> Result<(), ApiError> {
+    let _lifecycle = state.lifecycle.lock().await;
+    let context = state
+        .context
+        .lock()
+        .map_err(|_| ApiError::new("lock", "Failed to lock LLM context store"))?
+        .clone()
+        .ok_or_else(|| ApiError::new("llm_not_ready", "Model context not loaded"))?;
+
+    logging::log(
+        "LLM",
+        format!("prewarm multimodal context requested mmproj_path={mmproj_path}"),
+    );
+    async_runtime::spawn_blocking(move || {
+        match catch_unwind(AssertUnwindSafe(|| {
+            context.prewarm_multimodal(mmproj_path, media_marker)
+        })) {
+            Ok(result) => result.map_err(llm_api_error),
+            Err(payload) => {
+                let message = panic_message(payload);
+                log_command_panic("llm_prewarm_multimodal_context", &message);
+                Err(ApiError::new(
+                    "llm_panic",
+                    format!("llm_prewarm_multimodal_context panicked: {message}"),
+                ))
+            }
+        }
+    })
+    .await
+    .map_err(|err| {
+        logging::log("LLM", format!("prewarm multimodal join failed error={err}"));
+        llm_thread_error()
+    })??;
+    logging::log("LLM", "prewarm multimodal context succeeded");
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn llm_generate_chat_stream(
+    state: TauriState<'_, State>,
+    conversation_state: TauriState<'_, super::conversation::State>,
+    window: WebviewWindow,
+    request: llm::ChatRequest,
+    preparation_token: Option<String>,
+) -> Result<llm::GenerationSummary, ApiError> {
+    let _lifecycle = state.lifecycle.lock().await;
+    if let Some(token) = preparation_token.as_deref() {
+        conversation_state.validate_answer(
+            window.app_handle(),
+            window.label(),
+            token,
+            state.model_state_epoch(),
+            state.retrieval_epoch.load(Ordering::Relaxed),
+        )?;
+    }
+    let context = state
+        .context
+        .lock()
+        .map_err(|_| ApiError::new("lock", "Failed to lock LLM context store"))?
+        .clone()
+        .ok_or_else(|| ApiError::new("llm_not_ready", "Model context not loaded"))?;
+
+    async_runtime::spawn_blocking(move || {
+        match catch_unwind(AssertUnwindSafe(|| {
+            let mut sink = EventSink::new(window.clone());
+            context.generate_chat_stream(request, &mut sink)
+        })) {
+            Ok(Ok(summary)) => Ok(summary),
+            Ok(Err(err)) => Err(llm_api_error(err)),
+            Err(payload) => {
+                let message = panic_message(payload);
+                log_command_panic("llm_generate_chat_stream", &message);
+                Err(llm_error(format!("Generation panicked: {message}")))
+            }
+        }
+    })
+    .await
+    .map_err(|_| llm_thread_error())?
+}
+
+#[tauri::command]
+pub async fn llm_cancel(state: TauriState<'_, State>, job_id: i64) -> Result<(), ApiError> {
+    if job_id <= 0 {
+        state.cancel_retrieval();
+    }
+    llm::cancel(job_id);
+    let _lifecycle = state.lifecycle.lock().await;
+    Ok(())
+}
+
+pub(crate) fn clear_for_exit(app: &AppHandle) {
+    if let Some(state) = app.try_state::<State>() {
+        state.cancel_retrieval();
+        match replace_state(&state, None, None) {
+            Ok(()) => {
+                logging::log("App", "cleared LLM model");
+                logging::log("App", "cleared LLM context");
+            }
+            Err(error) => {
+                logging::log(
+                    "App",
+                    format!(
+                        "failed to clear LLM state during exit error={}",
+                        error.message
+                    ),
+                );
+            }
+        }
+    } else {
+        logging::log("App", "LLM state unavailable during exit");
+    }
+}

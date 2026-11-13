@@ -1,43 +1,51 @@
+import "dart:async";
 import "dart:typed_data";
 
+import "package:ente_ui/components/loading_widget.dart";
 import "package:flutter/foundation.dart" show kDebugMode;
 import "package:flutter/material.dart";
 import "package:logging/logging.dart";
+import "package:photos/core/configuration.dart";
+import "package:photos/core/event_bus.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/db/ml/db.dart";
 import "package:photos/db/offline_files_db.dart";
+import "package:photos/events/contacts_changed_event.dart";
+import "package:photos/events/people_changed_event.dart";
 import 'package:photos/models/file/file.dart';
-import "package:photos/models/ml/face/face.dart";
+import "package:photos/models/ml/face/face_with_embedding.dart";
 import "package:photos/models/ml/face/person.dart";
-import "package:photos/service_locator.dart" show isOfflineMode;
+import "package:photos/service_locator.dart" show isLocalGalleryMode;
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
 import "package:photos/services/machine_learning/ml_result.dart";
+import "package:photos/services/photos_contacts_service.dart";
 import "package:photos/services/search_service.dart";
 import "package:photos/theme/ente_theme.dart";
-import "package:photos/ui/common/loading_widget.dart";
+import "package:photos/utils/avatar_util.dart";
+import "package:photos/utils/contact_string_util.dart";
 import "package:photos/utils/face/face_thumbnail_cache.dart";
 
 final _logger = Logger("PersonFaceWidget");
 
 class PersonFaceWidget extends StatefulWidget {
+  static String coverHeroTag({
+    required String tagPrefix,
+    String? personId,
+    String? clusterID,
+  }) => personId != null
+      ? "$tagPrefix:person_cover:$personId"
+      : "$tagPrefix:cluster_cover:$clusterID";
+
   final String? personId;
   final String? clusterID;
   final bool useFullFile;
   final VoidCallback? onErrorCallback;
   final bool keepAlive;
+  final Object? retryKey;
 
-  /// Physical pixel width for image decoding optimization.
-  ///
-  /// When provided and > 0, the image will be decoded at this width, with height
-  /// computed to preserve aspect ratio. This reduces memory usage for small displays.
-  ///
-  /// Typically calculated as: `(logicalWidth * MediaQuery.devicePixelRatioOf(context)).toInt()`
-  ///
-  /// If null or <= 0, the image is decoded at full resolution.
+  // Physical pixels; null or non-positive decodes at full resolution.
   final int? cachedPixelWidth;
 
-  // PersonFaceWidget constructor checks that both personId and clusterID are not null
-  // and that the file is not null
   const PersonFaceWidget({
     this.personId,
     this.clusterID,
@@ -45,11 +53,12 @@ class PersonFaceWidget extends StatefulWidget {
     this.onErrorCallback,
     this.keepAlive = false,
     this.cachedPixelWidth,
+    this.retryKey,
     super.key,
   }) : assert(
-          personId != null || clusterID != null,
-          "PersonFaceWidget requires either personId or clusterID to be non-null",
-        );
+         personId != null || clusterID != null,
+         "PersonFaceWidget requires either personId or clusterID to be non-null",
+       );
 
   @override
   State<PersonFaceWidget> createState() => _PersonFaceWidgetState();
@@ -58,11 +67,17 @@ class PersonFaceWidget extends StatefulWidget {
 class _PersonFaceWidgetState extends State<PersonFaceWidget>
     with AutomaticKeepAliveClientMixin {
   Future<Uint8List?>? faceCropFuture;
-  EnteFile? fileForFaceCrop;
   int? _faceCropFileId;
-  String? _personName;
+  AvatarIdentity? _personIdentity;
   bool _showingFallback = false;
+  bool _faceCropFailed = false;
   bool _fallbackEverUsed = false;
+  bool _personHasContactLink = false;
+  int? _linkedContactUserId;
+  int _loadGeneration = 0;
+  int _faceCropRetryRevision = 0;
+  StreamSubscription<ContactsChangedEvent>? _contactsChangedSubscription;
+  StreamSubscription<PeopleChangedEvent>? _peopleChangedSubscription;
 
   bool get isPerson => widget.personId != null;
 
@@ -72,11 +87,40 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
   @override
   void initState() {
     super.initState();
-    faceCropFuture = _loadFaceCrop();
+    _contactsChangedSubscription = Bus.instance
+        .on<ContactsChangedEvent>()
+        .listen(_onContactsChanged);
+    _peopleChangedSubscription = Bus.instance.on<PeopleChangedEvent>().listen((
+      event,
+    ) {
+      if (mounted && isPerson && event.person?.remoteID == widget.personId) {
+        setState(() => faceCropFuture = _startFaceCropLoad());
+      }
+    });
+    faceCropFuture = _startFaceCropLoad();
+  }
+
+  @override
+  void didUpdateWidget(covariant PersonFaceWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.personId != widget.personId ||
+        oldWidget.clusterID != widget.clusterID ||
+        oldWidget.useFullFile != widget.useFullFile) {
+      _personHasContactLink = false;
+      _linkedContactUserId = null;
+      _personIdentity = null;
+      faceCropFuture = _startFaceCropLoad();
+    } else if (widget.retryKey != null &&
+        oldWidget.retryKey != widget.retryKey) {
+      _faceCropRetryRevision++;
+      if (_faceCropFailed) faceCropFuture = _startFaceCropLoad();
+    }
   }
 
   @override
   void dispose() {
+    _contactsChangedSubscription?.cancel();
+    _peopleChangedSubscription?.cancel();
     if (_faceCropFileId != null) {
       checkStopTryingToGenerateFaceThumbnails(
         _faceCropFileId!,
@@ -92,19 +136,32 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
     super.dispose();
   }
 
+  void _onContactsChanged(ContactsChangedEvent event) {
+    if (!isPerson || !mounted) {
+      return;
+    }
+    if (!_personHasContactLink && _linkedContactUserId == null) {
+      return;
+    }
+    if (event.contactUserIds == null ||
+        _linkedContactUserId == null ||
+        event.matchesContactUserId(_linkedContactUserId)) {
+      setState(() {
+        faceCropFuture = _startFaceCropLoad();
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    super.build(
-      context,
-    ); // Calling super.build for AutomaticKeepAliveClientMixin
+    super.build(context);
 
     return FutureBuilder<Uint8List?>(
       future: faceCropFuture,
       builder: (context, snapshot) {
         if (snapshot.hasData && snapshot.data != null) {
-          // Only cacheWidth (not cacheHeight) to preserve aspect ratio.
-          // Face crops are typically portrait, so constraining width ensures
-          // sufficient height for BoxFit.cover without upscaling.
+          // Decode by width only so portrait crops retain enough height for
+          // BoxFit.cover without upscaling.
           final shouldOptimize =
               widget.cachedPixelWidth != null && widget.cachedPixelWidth! > 0;
           final ImageProvider imageProvider = shouldOptimize
@@ -116,10 +173,7 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
           return Stack(
             fit: StackFit.expand,
             children: [
-              Image(
-                image: imageProvider,
-                fit: BoxFit.cover,
-              ),
+              Image(image: imageProvider, fit: BoxFit.cover),
               if (kDebugMode && _showingFallback)
                 Positioned(
                   top: 4,
@@ -163,40 +217,73 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
             "faceCropFuture is null, no cover face found for person or cluster.",
           );
         }
-        return _EmptyPersonThumbnail(
-          initial: isPerson ? _personName : null,
-        );
+        return _EmptyPersonThumbnail(identity: _personIdentity);
       },
     );
   }
 
-  Future<Uint8List?> _loadFaceCrop() async {
-    if (!widget.useFullFile) {
-      final Uint8List? thumbnailCrop =
-          await _getFaceCrop(useFullFile: widget.useFullFile);
-      if (thumbnailCrop != null) {
-        _fallbackEverUsed = true;
+  Future<Uint8List?> _startFaceCropLoad() async {
+    final generation = ++_loadGeneration;
+    while (true) {
+      _faceCropFailed = false;
+      final retryRevision = _faceCropRetryRevision;
+      try {
+        final crop = await _loadFaceCrop(generation);
+        if (_isCurrentLoad(generation)) _faceCropFailed = crop == null;
+        if (crop != null || !_hasNewFaceCropRetry(generation, retryRevision)) {
+          return crop;
+        }
+      } catch (_) {
+        if (_isCurrentLoad(generation)) _faceCropFailed = true;
+        if (!_hasNewFaceCropRetry(generation, retryRevision)) rethrow;
       }
-      _showingFallback = false;
+    }
+  }
+
+  bool _hasNewFaceCropRetry(int generation, int retryRevision) =>
+      mounted &&
+      _isCurrentLoad(generation) &&
+      widget.retryKey != null &&
+      _faceCropRetryRevision != retryRevision;
+
+  Future<Uint8List?> _loadFaceCrop(int generation) async {
+    final String personOrClusterId = widget.personId ?? widget.clusterID!;
+    if (!widget.useFullFile) {
+      final Uint8List? thumbnailCrop = await _getFaceCrop(
+        generation: generation,
+        useFullFile: widget.useFullFile,
+      );
+      if (_isCurrentLoad(generation) && thumbnailCrop != null) {
+        _fallbackEverUsed = true;
+        _showingFallback = false;
+      }
       return thumbnailCrop;
     }
 
-    final Uint8List? fullCrop =
-        await _getFaceCrop(useFullFile: widget.useFullFile);
+    final Uint8List? fullCrop = await _getFaceCrop(
+      generation: generation,
+      useFullFile: widget.useFullFile,
+    );
     if (fullCrop != null) {
-      _showingFallback = false;
+      if (_isCurrentLoad(generation)) {
+        _showingFallback = false;
+      }
       return fullCrop;
     }
 
-    final String personOrClusterId = widget.personId ?? widget.clusterID!;
     _logger.warning(
       "Full face crop unavailable for $personOrClusterId, attempting thumbnail fallback.",
     );
 
-    final Uint8List? fallbackCrop = await _getFaceCrop(useFullFile: false);
+    final Uint8List? fallbackCrop = await _getFaceCrop(
+      generation: generation,
+      useFullFile: false,
+    );
     if (fallbackCrop != null) {
-      _showingFallback = true;
-      _fallbackEverUsed = true;
+      if (_isCurrentLoad(generation)) {
+        _showingFallback = true;
+        _fallbackEverUsed = true;
+      }
       return fallbackCrop;
     }
 
@@ -206,32 +293,70 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
     return null;
   }
 
-  Future<Uint8List?> _getFaceCrop({required bool useFullFile}) async {
+  Future<Uint8List?> _getFaceCrop({
+    required int generation,
+    required bool useFullFile,
+  }) async {
     try {
       final String personOrClusterId = widget.personId ?? widget.clusterID!;
-      final tryInMemoryCachedCrop =
-          checkInMemoryCachedCropForPersonOrClusterID(personOrClusterId);
-      if (tryInMemoryCachedCrop != null) return tryInMemoryCachedCrop;
       String? fixedFaceID;
       PersonEntity? personEntity;
-      final mlDataDB =
-          isOfflineMode ? MLDataDB.offlineInstance : MLDataDB.instance;
-      if (isPerson && !isOfflineMode) {
-        personEntity = await PersonService.instance.getPerson(widget.personId!);
+      final mlDataDB = isLocalGalleryMode
+          ? MLDataDB.localGalleryInstance
+          : MLDataDB.instance;
+      if (isPerson && !isLocalGalleryMode) {
+        personEntity =
+            PersonService.instance.getCachedPerson(widget.personId!) ??
+            await PersonService.instance.getPerson(widget.personId!);
         if (personEntity == null) {
           _logger.severe(
             "Person with ID ${widget.personId} not found, cannot get cover face.",
           );
           return null;
         }
-        _personName = personEntity.data.name;
+        if (!_isCurrentLoad(generation)) {
+          return null;
+        }
+        _personHasContactLink = _hasContactLink(personEntity);
+        final contactPhotoBytes = await _getLinkedContactPhotoBytes(
+          personEntity,
+          generation: generation,
+        );
+        if (!_isCurrentLoad(generation)) {
+          return null;
+        }
+        final personData = personEntity.data;
+        final contact = PhotosContactsService.instance.getCachedContact(
+          contactUserId: personData.userID,
+          email: personData.email,
+        );
+        _personIdentity = AvatarIdentity.account(
+          label: trimToNull(contact?.name) ?? personData.name,
+          email: trimToNull(contact?.email) ?? personData.email,
+          userID: personData.userID,
+          personID: personEntity.remoteID,
+          currentUserID: Configuration.instance.getUserID(),
+          currentUserEmail: Configuration.instance.getEmail(),
+        );
+        if (contactPhotoBytes != null) {
+          return contactPhotoBytes;
+        }
         fixedFaceID = personEntity.data.avatarFaceID;
+      } else {
+        _personHasContactLink = false;
+        _linkedContactUserId = null;
+        _personIdentity = null;
       }
-      fixedFaceID ??=
-          await checkUsedFaceIDForPersonOrClusterId(personOrClusterId);
+      final tryInMemoryCachedCrop = checkInMemoryCachedCropForPersonOrClusterID(
+        personOrClusterId,
+      );
+      if (tryInMemoryCachedCrop != null) return tryInMemoryCachedCrop;
+      fixedFaceID ??= await checkUsedFaceIDForPersonOrClusterId(
+        personOrClusterId,
+      );
 
       EnteFile? fileForFaceCrop;
-      if (isOfflineMode) {
+      if (isLocalGalleryMode) {
         final allFiles = await SearchService.instance.getAllFilesForSearch();
         final localIdToFile = <String, EnteFile>{};
         for (final file in allFiles) {
@@ -242,8 +367,9 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
         }
         if (fixedFaceID != null) {
           final localIntId = getFileIdFromFaceId<int>(fixedFaceID);
-          final localId =
-              await OfflineFilesDB.instance.getLocalIdForIntId(localIntId);
+          final localId = await OfflineFilesDB.instance.getLocalIdForIntId(
+            localIntId,
+          );
           if (localId == null) {
             await checkRemoveCachedFaceIDForPersonOrClusterId(
               personOrClusterId,
@@ -259,15 +385,18 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
         }
         if (fileForFaceCrop == null) {
           final List<String> allFaces = isPerson
-              ? await mlDataDB
-                  .getFaceIDsForPersonOrderedByScore(widget.personId!)
-              : await mlDataDB
-                  .getFaceIDsForClusterOrderedByScore(widget.clusterID!);
+              ? await mlDataDB.getFaceIDsForPersonOrderedByScore(
+                  widget.personId!,
+                )
+              : await mlDataDB.getFaceIDsForClusterOrderedByScore(
+                  widget.clusterID!,
+                );
           final localIntIds = allFaces
               .map((faceID) => getFileIdFromFaceId<int>(faceID))
               .toSet();
-          final localIdMap =
-              await OfflineFilesDB.instance.getLocalIdsForIntIds(localIntIds);
+          final localIdMap = await OfflineFilesDB.instance.getLocalIdsForIntIds(
+            localIntIds,
+          );
           for (final faceID in allFaces) {
             final localIntId = getFileIdFromFaceId<int>(faceID);
             final localId = localIdMap[localIntId];
@@ -312,10 +441,12 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
         }
         if (fileForFaceCrop == null) {
           final List<String> allFaces = isPerson
-              ? await mlDataDB
-                  .getFaceIDsForPersonOrderedByScore(widget.personId!)
-              : await mlDataDB
-                  .getFaceIDsForClusterOrderedByScore(widget.clusterID!);
+              ? await mlDataDB.getFaceIDsForPersonOrderedByScore(
+                  widget.personId!,
+                )
+              : await mlDataDB.getFaceIDsForClusterOrderedByScore(
+                  widget.clusterID!,
+                );
           for (final faceID in allFaces) {
             final fileID = getFileIdFromFaceId<int>(faceID);
             if (hiddenFileIDs.contains(fileID)) {
@@ -342,7 +473,7 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
         }
       }
       int? recentFileID;
-      if (isOfflineMode) {
+      if (isLocalGalleryMode) {
         final localId = fileForFaceCrop.localID;
         if (localId == null || localId.isEmpty) {
           _logger.severe(
@@ -350,8 +481,9 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
           );
           return null;
         }
-        recentFileID =
-            await OfflineFilesDB.instance.getOrCreateLocalIntId(localId);
+        recentFileID = await OfflineFilesDB.instance.getOrCreateLocalIntId(
+          localId,
+        );
       } else {
         recentFileID = fileForFaceCrop.uploadedFileID;
       }
@@ -361,7 +493,7 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
         );
         return null;
       }
-      final Face? face = await mlDataDB.getCoverFaceForPerson(
+      final FaceWithoutEmbedding? face = await mlDataDB.getCoverFaceForPerson(
         recentFileID: recentFileID,
         avatarFaceId: fixedFaceID,
         personID: widget.personId,
@@ -371,9 +503,7 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
         _logger.severe(
           "No cover face for person: ${widget.personId} or cluster ${widget.clusterID} and fileID $recentFileID",
         );
-        await checkRemoveCachedFaceIDForPersonOrClusterId(
-          personOrClusterId,
-        );
+        await checkRemoveCachedFaceIDForPersonOrClusterId(personOrClusterId);
         return null;
       }
       final cropMap = await getCachedFaceCrops(
@@ -383,8 +513,9 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
         personOrClusterID: personOrClusterId,
         useTempCache: false,
       );
-      this.fileForFaceCrop = fileForFaceCrop;
-      _faceCropFileId = recentFileID;
+      if (_isCurrentLoad(generation)) {
+        _faceCropFileId = recentFileID;
+      }
       final result = cropMap?[face.faceID];
       if (result == null) {
         _logger.severe(
@@ -402,31 +533,60 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
       return null;
     }
   }
+
+  bool _isCurrentLoad(int generation) => _loadGeneration == generation;
+
+  bool _hasContactLink(PersonEntity personEntity) {
+    final userId = personEntity.data.userID;
+    final email = personEntity.data.email?.trim();
+    return (userId != null && userId > 0) ||
+        (email != null && email.isNotEmpty);
+  }
+
+  Future<Uint8List?> _getLinkedContactPhotoBytes(
+    PersonEntity personEntity, {
+    required int generation,
+  }) async {
+    if (!_personHasContactLink) {
+      _linkedContactUserId = null;
+      return null;
+    }
+    final contact = await PhotosContactsService.instance.getContact(
+      contactUserId: personEntity.data.userID,
+      email: personEntity.data.email,
+    );
+    if (!_isCurrentLoad(generation)) {
+      return null;
+    }
+    _linkedContactUserId = contact?.contactUserId ?? personEntity.data.userID;
+    if (contact == null) {
+      return null;
+    }
+    return PhotosContactsService.instance.getProfilePictureBytesByUserId(
+      contact.contactUserId,
+    );
+  }
 }
 
 class _EmptyPersonThumbnail extends StatelessWidget {
-  final String? initial;
+  final AvatarIdentity? identity;
 
-  const _EmptyPersonThumbnail({
-    this.initial,
-  });
+  const _EmptyPersonThumbnail({this.identity});
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = getEnteColorScheme(context);
     final textTheme = getEnteTextTheme(context);
-    final trimmed = initial?.trim();
-    final hasInitial = trimmed != null && trimmed.isNotEmpty;
+    final hasIdentity = identity != null;
     return Container(
       decoration: BoxDecoration(
-        color: colorScheme.fillFaint,
-        border: Border.all(
-          color: colorScheme.strokeFaint,
-          width: 1,
-        ),
+        color: hasIdentity
+            ? avatarBackgroundColor(context, identity!)
+            : colorScheme.fillFaint,
+        border: Border.all(color: colorScheme.strokeFaint, width: 1),
       ),
       child: Center(
-        child: hasInitial
+        child: hasIdentity
             ? LayoutBuilder(
                 builder: (context, constraints) {
                   final shortestSide = constraints.biggest.shortestSide.isFinite
@@ -436,19 +596,16 @@ class _EmptyPersonThumbnail extends StatelessWidget {
                       ? shortestSide * 0.42
                       : textTheme.h2.fontSize ?? 24;
                   return Text(
-                    trimmed.substring(0, 1).toUpperCase(),
+                    identity!.initials,
                     style: textTheme.h2Bold.copyWith(
-                      color: colorScheme.textMuted,
+                      color: Colors.white,
                       fontSize: fontSize,
                       height: 1,
                     ),
                   );
                 },
               )
-            : Icon(
-                Icons.person_outline,
-                color: colorScheme.strokeMuted,
-              ),
+            : Icon(Icons.person_outline, color: colorScheme.strokeMuted),
       ),
     );
   }

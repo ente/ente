@@ -15,18 +15,14 @@ class MenuSectionTitle extends StatelessWidget {
       child: Row(
         children: [
           iconData != null
-              ? Icon(
-                  iconData,
-                  color: colorScheme.strokeMuted,
-                  size: 17,
-                )
+              ? Icon(iconData, color: colorScheme.strokeMuted, size: 17)
               : const SizedBox.shrink(),
           iconData != null ? const SizedBox(width: 8) : const SizedBox.shrink(),
           Text(
             title,
-            style: getEnteTextTheme(context).small.copyWith(
-                  color: colorScheme.textMuted,
-                ),
+            style: getEnteTextTheme(
+              context,
+            ).small.copyWith(color: colorScheme.textMuted),
           ),
         ],
       ),

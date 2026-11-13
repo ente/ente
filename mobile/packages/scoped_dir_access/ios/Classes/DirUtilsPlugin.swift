@@ -38,8 +38,6 @@ public class DirUtilsPlugin: NSObject, FlutterPlugin {
         }
     }
 
-    // MARK: - Directory Picker
-
     private func handlePickDirectory(result: @escaping FlutterResult) {
         guard let viewController = UIApplication.shared.windows.first?.rootViewController else {
             result(FlutterError(code: "NO_VIEW_CONTROLLER", message: "Could not find root view controller", details: nil))
@@ -59,8 +57,6 @@ public class DirUtilsPlugin: NSObject, FlutterPlugin {
 
         viewController.present(picker, animated: true)
     }
-
-    // MARK: - Security-Scoped Access
 
     private func handleStartAccess(call: FlutterMethodCall, result: @escaping FlutterResult) {
         guard let args = call.arguments as? [String: Any],
@@ -124,8 +120,6 @@ public class DirUtilsPlugin: NSObject, FlutterPlugin {
             ))
         }
     }
-
-    // MARK: - File Operations
 
     private func handleWriteFile(call: FlutterMethodCall, result: @escaping FlutterResult) {
         guard let args = call.arguments as? [String: Any],
@@ -243,7 +237,6 @@ public class DirUtilsPlugin: NSObject, FlutterPlugin {
     }
 }
 
-// MARK: - UIDocumentPickerDelegate
 extension DirUtilsPlugin: UIDocumentPickerDelegate {
     public func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
         guard let result = pendingResult else { return }
@@ -254,7 +247,6 @@ extension DirUtilsPlugin: UIDocumentPickerDelegate {
             return
         }
 
-        // Start accessing the security-scoped resource
         let didStartAccessing = url.startAccessingSecurityScopedResource()
 
         defer {

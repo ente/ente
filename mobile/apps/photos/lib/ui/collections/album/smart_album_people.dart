@@ -1,12 +1,11 @@
-import "dart:async";
-
+import "package:ente_components/ente_components.dart";
+import "package:ente_strings/ente_strings.dart";
 import "package:flutter/foundation.dart";
 import 'package:flutter/material.dart';
 import "package:logging/logging.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/events/collection_updated_event.dart";
-import "package:photos/generated/l10n.dart";
 import "package:photos/models/collection/smart_album_config.dart";
 import "package:photos/models/selected_people.dart";
 import "package:photos/service_locator.dart";
@@ -15,17 +14,12 @@ import "package:photos/ui/actions/collection/collection_sharing_actions.dart";
 import "package:photos/ui/components/action_sheet_widget.dart";
 import "package:photos/ui/components/buttons/button_widget.dart";
 import "package:photos/ui/components/models/button_type.dart";
-import 'package:photos/ui/components/title_bar_title_widget.dart';
-import 'package:photos/ui/components/title_bar_widget.dart';
 import "package:photos/ui/viewer/search/result/people_section_all_page.dart"
     show PeopleSectionAllWidget;
 import "package:photos/utils/dialog_util.dart";
 
 class SmartAlbumPeople extends StatefulWidget {
-  const SmartAlbumPeople({
-    super.key,
-    required this.collectionId,
-  });
+  const SmartAlbumPeople({super.key, required this.collectionId});
 
   final int collectionId;
 
@@ -36,6 +30,7 @@ class SmartAlbumPeople extends StatefulWidget {
 class _SmartAlbumPeopleState extends State<SmartAlbumPeople> {
   final _selectedPeople = SelectedPeople();
   SmartAlbumConfig? currentConfig;
+  bool _hasSaveError = false;
 
   final _logger = Logger("SmartAlbumPeople");
 
@@ -57,7 +52,9 @@ class _SmartAlbumPeopleState extends State<SmartAlbumPeople> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.componentColors;
     return Scaffold(
+      backgroundColor: colors.backgroundBase,
       bottomNavigationBar: Padding(
         padding: EdgeInsets.fromLTRB(
           16,
@@ -74,40 +71,30 @@ class _SmartAlbumPeopleState extends State<SmartAlbumPeople> {
                     currentConfig!.personIDs,
                   )
                 : _selectedPeople.personIds.isNotEmpty;
-            return ButtonWidget(
-              buttonType: ButtonType.primary,
-              buttonSize: ButtonSize.large,
-              labelText: AppLocalizations.of(context).save,
+            final canSave = areIdsChanged || _hasSaveError;
+            return ButtonComponent(
+              variant: ButtonComponentVariant.primary,
+              label: context.strings.save,
               shouldSurfaceExecutionStates: false,
-              isDisabled: !areIdsChanged,
-              onTap: areIdsChanged
+              isDisabled: !canSave,
+              onTap: canSave
                   ? () async {
                       final dialog = createProgressDialog(
                         context,
-                        AppLocalizations.of(context).pleaseWait,
-                        isDismissible: true,
+                        context.strings.pleaseWait,
+                        isDismissible: false,
                       );
-
-                      if (_selectedPeople.personIds.length ==
-                              currentConfig?.personIDs.length &&
-                          _selectedPeople.personIds
-                              .toSet()
-                              .difference(
-                                currentConfig?.personIDs.toSet() ?? {},
-                              )
-                              .isEmpty) {
-                        Navigator.pop(context);
-                        return;
-                      }
 
                       try {
                         await dialog.show();
+                        currentConfig = await smartAlbumsService.getConfig(
+                          widget.collectionId,
+                        );
                         SmartAlbumConfig newConfig;
 
                         if (currentConfig == null) {
                           final infoMap = <String, PersonInfo>{};
 
-                          // Add files which are needed
                           for (final personId in _selectedPeople.personIds) {
                             infoMap[personId] = (updatedAt: 0, addedFiles: {});
                           }
@@ -124,18 +111,26 @@ class _SmartAlbumPeopleState extends State<SmartAlbumPeople> {
                               .toList();
 
                           if (removedPersonIds.isNotEmpty) {
+                            if (!context.mounted) {
+                              await dialog.hide();
+                              return;
+                            }
                             final toDelete = await removeFilesDialog(context);
-                            await dialog.show();
+                            if (toDelete == null) {
+                              await dialog.hide();
+                              return;
+                            }
 
                             if (toDelete) {
                               for (final personId in removedPersonIds) {
                                 final files = currentConfig!
-                                    .infoMap[personId]?.addedFiles;
+                                    .infoMap[personId]
+                                    ?.addedFiles;
 
                                 final enteFiles = await FilesDB.instance
                                     .getAllFilesGroupByCollectionID(
-                                  files?.toList() ?? [],
-                                );
+                                      files?.toList() ?? [],
+                                    );
 
                                 final collection = CollectionsService.instance
                                     .getCollectionByID(widget.collectionId);
@@ -144,7 +139,7 @@ class _SmartAlbumPeopleState extends State<SmartAlbumPeople> {
                                   await CollectionActions(
                                     CollectionsService.instance,
                                   ).moveFilesFromCurrentCollection(
-                                    context,
+                                    null,
                                     collection!,
                                     enteFiles[widget.collectionId] ?? [],
                                     isHidden: collection.isHidden(),
@@ -167,17 +162,22 @@ class _SmartAlbumPeopleState extends State<SmartAlbumPeople> {
                         }
 
                         await smartAlbumsService.saveConfig(newConfig);
-                        unawaited(smartAlbumsService.syncSmartAlbums());
+                        await smartAlbumsService.syncSmartAlbumsFor({
+                          widget.collectionId,
+                        });
 
                         await dialog.hide();
+                        if (!context.mounted) return;
                         Navigator.pop(context);
                       } catch (error, stackTrace) {
                         _logger.severe(
-                          "Error saving smart album config",
+                          "Error updating smart album",
                           error,
                           stackTrace,
                         );
                         await dialog.hide();
+                        if (!context.mounted) return;
+                        setState(() => _hasSaveError = true);
                         await showGenericErrorDialog(
                           context: context,
                           error: error,
@@ -189,18 +189,11 @@ class _SmartAlbumPeopleState extends State<SmartAlbumPeople> {
           },
         ),
       ),
-      body: CustomScrollView(
-        primary: false,
+      body: AppBarComponent(
+        title: context.strings.people,
+        subtitle: context.strings.peopleAutoAddDesc,
+        physics: const BouncingScrollPhysics(),
         slivers: <Widget>[
-          TitleBarWidget(
-            flexibleSpaceTitle: TitleBarTitleWidget(
-              title: AppLocalizations.of(context).people,
-            ),
-            expandedHeight: MediaQuery.textScalerOf(context).scale(120),
-            flexibleSpaceCaption:
-                AppLocalizations.of(context).peopleAutoAddDesc,
-            actionIcons: const [],
-          ),
           SliverFillRemaining(
             child: PeopleSectionAllWidget(
               selectedPeople: _selectedPeople,
@@ -213,39 +206,30 @@ class _SmartAlbumPeopleState extends State<SmartAlbumPeople> {
   }
 }
 
-Future<bool> removeFilesDialog(
-  BuildContext context,
-) async {
-  final completer = Completer<bool>();
-  await showActionSheet(
+Future<bool?> removeFilesDialog(BuildContext context) async {
+  final result = await showActionSheet(
     context: context,
-    body: AppLocalizations.of(context).shouldRemoveFilesSmartAlbumsDesc,
+    body: context.strings.shouldRemoveFilesSmartAlbumsDesc,
     buttons: [
       ButtonWidget(
-        labelText: AppLocalizations.of(context).yes,
+        labelText: context.strings.yes,
         buttonType: ButtonType.neutral,
         buttonSize: ButtonSize.large,
         shouldStickToDarkTheme: true,
         buttonAction: ButtonAction.first,
         shouldSurfaceExecutionStates: true,
         isInAlert: true,
-        onTap: () async {
-          completer.complete(true);
-        },
       ),
       ButtonWidget(
-        labelText: AppLocalizations.of(context).no,
+        labelText: context.strings.no,
         buttonType: ButtonType.secondary,
         buttonSize: ButtonSize.large,
         shouldStickToDarkTheme: true,
         buttonAction: ButtonAction.cancel,
         isInAlert: true,
-        onTap: () async {
-          completer.complete(false);
-        },
       ),
     ],
   );
 
-  return completer.future;
+  return result == null ? null : result.action == ButtonAction.first;
 }

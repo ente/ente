@@ -1,7 +1,7 @@
 {
-	email custom-domains@ente.io
+	email custom-domains@ente.com
 	on_demand_tls {
-		ask https://api.ente.io/custom-domain
+		ask https://api.ente.com/custom-domain
 	}
 }
 
@@ -9,7 +9,7 @@ https:// {
 	tls {
 		on_demand
 	}
-	reverse_proxy https://custom-albums.ente.io {
+	reverse_proxy https://albums.ente.com {
 		header_up Host {upstream_hostport}
 	}
 }

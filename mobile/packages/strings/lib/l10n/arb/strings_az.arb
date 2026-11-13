@@ -1,0 +1,2553 @@
+{
+  "about": "Haqqında",
+  "acceptTrustInvite": "Dəvəti qəbul et",
+  "account": "Hesab",
+  "accountIsAlreadyConfigured": "Hesab artıq konfiqurasiya edilib.",
+  "accountOwnerPersonAppbarTitle": "{title} (Mən)",
+  "@accountOwnerPersonAppbarTitle": {
+    "description": "Title of appbar for account owner person",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "actionNotSupportedOnFavouritesAlbum": "Seçilmişlər albomunda bu əməliyyat dəstəklənmir",
+  "activeSessions": "Aktiv sessiyalar",
+  "@activeSessions": {
+    "description": "Title for active sessions page"
+  },
+  "add": "Əlavə et",
+  "addedBy": "{emailOrName} tərəfindən əlavə edildi",
+  "@addedBy": {
+    "placeholders": {
+      "emailOrName": {}
+    }
+  },
+  "addedSuccessfullyTo": "{albumName} albomuna uğurla əlavə edildi",
+  "@addedSuccessfullyTo": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
+  "addedToQueue": "Növbəyə əlavə edildi",
+  "addFiles": "Faylları əlavə et",
+  "addFromDevice": "Cihazdan əlavə et",
+  "addingPhotos": "Fotolar əlavə edilir",
+  "addingToFavorites": "Seçilmişlərə əlavə edilir...",
+  "addLocation": "Məkan əlavə et",
+  "addLocationButton": "Əlavə et",
+  "addMore": "Daha çox əlavə et",
+  "addName": "Ad əlavə et",
+  "addNew": "Yeni əlavə et",
+  "@addNew": {
+    "description": "Text to add a new item (location tag, album, caption etc)"
+  },
+  "addOnPageSubtitle": "Əlavələrin təfərrüatları",
+  "addOns": "Əlavələr",
+  "addOnValidTill": "Sizin {storageAmount} əlavəniz {endDate} tarixinədək keçərlidir",
+  "@addOnValidTill": {
+    "placeholders": {
+      "endDate": {},
+      "storageAmount": {}
+    }
+  },
+  "addPerson": "Şəxs əlavə et",
+  "@addPerson": {
+    "description": "Title for the manual tagging flow where user selects a person to tag files with."
+  },
+  "addPhotos": "Şəkillər əlavə et",
+  "addSelected": "Seçilmişləri əlavə et",
+  "addToAlbum": "Alboma əlavə et",
+  "addToEnte": "Ente-yə əlavə et",
+  "addToHiddenAlbum": "Gizli alboma əlavə et",
+  "addToPerson": "Şəxsə əlavə et",
+  "@addToPerson": {
+    "description": "Action label to add selected files to an existing person."
+  },
+  "addTrustedContact": "Etibarlı kontakt əlavə edin",
+  "addYourPhotosNow": "Şəkillərinizi indi əlavə edin",
+  "adjust": "Tənzimlə",
+  "admiringThem": "{name} personasına heyranlıqla",
+  "@admiringThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "advanced": "Qabaqcıl",
+  "aerialViews": "Quş baxışı perspektivlər",
+  "after1Day": "1 gündən sonra",
+  "after1Hour": "1 saatdan sonra",
+  "after1Month": "1 aydan sonra",
+  "after1Week": "1 həftədən sonra",
+  "after1Year": "1 ildən sonra",
+  "albumLayout": "Albom düzəni",
+  "albums": "Albomlar",
+  "albumTitle": "Albom başlığı",
+  "albumUpdated": "Albom yeniləndi",
+  "align": "Hizala",
+  "all": "Hamısı",
+  "allClear": "✨ Hər şey təmizdir",
+  "allMemoriesPreserved": "Bütün xatirələr qorundu",
+  "allow": "İcazə ver",
+  "allowAddingPhotos": "Fotoşəkil əlavə etməyə icazə ver",
+  "@allowAddingPhotos": {
+    "description": "Switch button to enable uploading photos to a public link"
+  },
+  "allowAppToOpenSharedAlbumLinks": "Tətbiqə paylaşılan albom linklərini açmağa icazə verin",
+  "allowDownloads": "Yükləmələrə icazə ver",
+  "allowJoiningAlbum": "Alboma qoşulmağa icazə ver",
+  "allowPermBody": "Lütfən, Ayarlardan şəkillərinizə giriş icazəsi verin ki, Ente kitabxananızı göstərə və yedəkləyə bilsin.",
+  "allowPermTitle": "Şəkillərə girişə icazə ver",
+  "allPersonGroupingWillReset": "Bu şəxs üçün bütün qruplaşmalar sıfırlanacaq və bu şəxs üçün edilən bütün təklifləri itirəcəksiniz",
+  "allWillShiftRangeBasedOnFirst": "Bu, qrupdakı birincidir. Digər seçilmiş şəkillər bu yeni tarixə əsasən avtomatik sürüşdürüləcək",
+  "almostDone": "Az qaldı...",
+  "alreadyHaveAnAccount": "Artıq hesabınız var?",
+  "analysis": "Analiz",
+  "analyzingPhotosLocally": "Şəkilləriniz yerli olaraq analiz edilir...",
+  "and1Other": "və daha 1 nəfər",
+  "andXOthers": "və daha {count} nəfər",
+  "@andXOthers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "aNewVersionOfEnteIsAvailable": "Ente-nin yeni versiyası mövcuddur.",
+  "appearance": "Görünüş",
+  "appIcon": "Tətbiq ikonu",
+  "appleId": "Apple ID",
+  "appLock": "Tətbiq kilidi",
+  "@appLock": {
+    "description": "App lock setting title"
+  },
+  "appLockDescription": "Cihazınızın standart kilid ekranı ilə PIN və ya şifrəli xüsusi kilid ekranı arasında seçim edin.",
+  "@appLockDescription": {
+    "description": "Description of app lock feature"
+  },
+  "apply": "Tətbiq et",
+  "applyCodeTitle": "Kodu tətbiq et",
+  "appstoreSubscription": "AppStore abunəliyi",
+  "appVersion": "Versiya {versionValue}",
+  "@appVersion": {
+    "placeholders": {
+      "versionValue": {}
+    }
+  },
+  "architecture": "Dizayn ikonları",
+  "archive": "Arxivlə",
+  "@archive": {
+    "description": "Action of 'Archiving' an element"
+  },
+  "archiveAlbum": "Albomu arxivlə",
+  "archiving": "Arxivlənir...",
+  "areThey": "Onlar ",
+  "areYouSure": "Əminsiniz?",
+  "@areYouSure": {
+    "description": "Confirmation dialog title"
+  },
+  "areYouSureDeleteFiles": "Bu faylları silmək istədiyinizə əminsiniz?",
+  "areYouSureRemoveThisFaceFromPerson": "Bu üzü həmin şəxsdən silmək istədiyinizə əminsiniz?",
+  "areYouSureRemoveThisPersonTag": "Bu şəxs teqini silmək istədiyinizə əminsiniz?",
+  "areYouSureThatYouWantToLeaveTheFamily": "Ailə planından ayrılmaq istədiyinizə əminsiniz?",
+  "areYouSureYouWantToCancel": "Ləğv etmək istədiyinizdən əminsiniz?",
+  "areYouSureYouWantToChangeYourPlan": "Planınızı dəyişmək istədiyinizdən əminsiniz?",
+  "areYouSureYouWantToExit": "Çıxmaq istədiyinizə əminsiniz?",
+  "areYouSureYouWantToIgnoreThesePersons": "Bu şəxsləri görməməzliyə vurmaq istədiyinizə əminsinizmi?",
+  "areYouSureYouWantToIgnoreThisPerson": "Bu şəxsi görməməzliyə vurmaq istədiyinizə əminsiniz?",
+  "areYouSureYouWantToLogout": "Çıxış etmək istədiyinizə əminsiniz?",
+  "@areYouSureYouWantToLogout": {
+    "description": "Confirmation message before logout"
+  },
+  "areYouSureYouWantToRenew": "Yeniləmək istədiyinizdən əminsiniz?",
+  "areYouSureYouWantToResetThisPerson": "Bu şəxsi sıfırlamaq istədiyinizə əminsiniz?",
+  "areYouSureYouWantToShowThesePeopleInPeopleSectionAgain": "Bu insanları yenidən insanlar bölməsində göstərmək istədiyinizə əminsiniz?",
+  "areYouSureYouWantToShowThisPersonInPeopleSectionAgain": "Bu şəxsi yenidən insanlar bölməsində göstərmək istədiyinizə əminsiniz?",
+  "artisticPortraits": "Bədii portretlər",
+  "askCancelReason": "Abunəliyiniz ləğv edildi. Səbəbini bölüşmək istərdinizmi?",
+  "authenticating": "Kimlik təsdiqlənir...",
+  "authenticationFailedPleaseTryAgain": "Kimlik təsdiqi uğursuz oldu, zəhmət olmasa yenidən cəhd edin",
+  "@authenticationFailedPleaseTryAgain": {
+    "description": "Error message when authentication fails"
+  },
+  "authenticationSuccessful": "Kimlik təsdiqi uğurludur!",
+  "@authenticationSuccessful": {
+    "description": "Success message when authentication is successful"
+  },
+  "authToChangeEmailVerificationSetting": "E-poçt təsdiqini dəyişmək üçün kimliyinizi təsdiqləyin",
+  "authToChangeLockscreenSetting": "Kilid ekranı ayarını dəyişmək üçün kimliyinizi təsdiqləyin",
+  "authToChangeYourEmail": "E-poçtunuzu dəyişmək üçün kimliyinizi təsdiqləyin",
+  "authToChangeYourPassword": "Şifrənizi dəyişmək üçün kimliyinizi təsdiqləyin",
+  "authToConfigureTwofactorAuthentication": "İki faktorlu identifikasiyanı tənzimləmək üçün kimliyinizi təsdiqləyin",
+  "authToManageLegacy": "Etibarlı kontaktlarınızı idarə etmək üçün kimliyinizi təsdiqləyin",
+  "authToViewPasskey": "Giriş açarınızı görmək üçün kimliyinizi təsdiqləyin",
+  "authToViewTrashedFiles": "Zibil qutusundakı fayllarınıza baxmaq üçün kimliyinizi təsdiqləyin",
+  "authToViewYourActiveSessions": "Aktiv sessiyalarınıza baxmaq üçün kimliyinizi təsdiqləyin",
+  "authToViewYourHiddenFiles": "Gizli fayllarınıza baxmaq üçün kimliyinizi təsdiqləyin",
+  "authToViewYourMemories": "Xatirələrinizə baxmaq üçün zəhmət olmasa kimliyinizi təsdiqləyin",
+  "authToViewYourRecoveryKey": "Bərpa açarınıza baxmaq üçün kimliyinizi təsdiqləyin",
+  "autoAddPeople": "İnsanları avtomatik əlavə et",
+  "autoAddToAlbum": "Alboma avtomatik əlavə et",
+  "autoCastDialogBody": "Mövcud Cast cihazlarını burada görəcəksiniz.",
+  "autoCastiOSPermission": "Tənzimləmələrdə Ente Photos tətbiqi üçün \"Yerli Şəbəkə\" icazələrinin aktiv olduğundan əmin olun.",
+  "autoLockFeatureDescription": "Tətbiq arxa fona keçdikdən nə qədər vaxt sonra kilidlənsin",
+  "@autoLockFeatureDescription": {
+    "description": "Description of auto lock feature"
+  },
+  "automaticallyAnalyzeAndSplitGrouping": "Bir neçə şəxsin olub-olmadığını müəyyən etmək üçün qruplaşmanı avtomatik analiz edəcəyik və onları yenidən ayıracağıq. Bu, bir neçə saniyə çəkə bilər.",
+  "autoPair": "Avtomatik qoşma",
+  "autumnColors": "Payız ehtişamı",
+  "backedUpFolders": "Yedəklənmiş qovluqlar",
+  "background": "Arxa plan",
+  "backgroundWithThem": "{name} ilə gözəl mənzərələr",
+  "@backgroundWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "backingUpLastSevenDaysPhotos": "Son 7 günün fotoları yedəklənir",
+  "backup": "Yedəklə",
+  "backupFailed": "Yedəkləmə uğursuz oldu",
+  "backupFile": "Faylı ehtiyat nüsxələ",
+  "backupOnlyNewPhotos": "Yalnız yeni fotoları yedəklə",
+  "backupOnlyNewPhotosAllFoldersSelected": "Hal-hazırda bütün qovluqlar yedəkləmə üçün seçilib.\n\nİndi davam edə bilərsiniz və ya seçilmiş qovluqları yeniləyə bilərsiniz.",
+  "backupOnlyNewPhotosNoFoldersSelectedContinue": "Hal-hazırda yedəkləmə üçün heç bir qovluq seçilməyib.\n\nİndi davam edə bilərsiniz və ya seçilmiş qovluqları yeniləyə bilərsiniz.",
+  "backupOnlyNewPhotosNoFoldersSelectedRequire": "Hal-hazırda yedəkləmə üçün heç bir qovluq seçilməyib.\n\nDavam etmək üçün zəhmət olmasa qovluqları seçin.",
+  "backupOnlyNewPhotosWarningBody": "Hal-hazırda fotoları {formattedDate} tarixindən yedəkləyirsiniz. Bütün fotoları yedəkləmək üçün zəhmət olmasa parametrlərinizi yeniləyin.",
+  "@backupOnlyNewPhotosWarningBody": {
+    "description": "Warning shown when backup-only-new is enabled and user changes folders.",
+    "placeholders": {
+      "formattedDate": {
+        "type": "String",
+        "example": "Jan 5, 2026"
+      }
+    }
+  },
+  "backupOverMobileData": "Mobil data üzərindən yedəklə",
+  "backupSettings": "Yedəkləmə tənzimləmələri",
+  "backupStatus": "Yedəkləmə statusu",
+  "backupStatusDescription": "Yedəklənmiş elementlər burada görünəcək",
+  "backupToEnte": "Ente yedəklə",
+  "backupVideos": "Videoları yedəklə",
+  "beach": "Qum və dəniz",
+  "birthday": "Ad günü",
+  "birthdays": "Ad günləri",
+  "blog": "Bloq",
+  "brushColor": "Fırça rəngi",
+  "byAgreeing": "Davam edərək, <terms>xidmət şərtləri</terms> və <policy>məxfilik siyasəti</policy> ilə razılaşırsınız.",
+  "cachedData": "Keşlənmiş məlumatlar",
+  "calculating": "Hesablanır...",
+  "cancel": "Ləğv et",
+  "@cancel": {
+    "description": "Cancel button label"
+  },
+  "cancelInvite": "Dəvəti ləğv et",
+  "@cancelInvite": {
+    "description": "Title for cancel invite confirmation dialog"
+  },
+  "cancelInviteDesc": "Bu dəvəti silsəniz, fikrinizi dəyişdiyiniz təqdirdə yenisini göndərməli olacaqsınız.",
+  "@cancelInviteDesc": {
+    "description": "Description for cancel invite confirmation dialog"
+  },
+  "cancelOtherSubscription": "Lütfən, öncə {paymentProvider} üzərindən mövcud abunəliyinizi ləğv edin",
+  "@cancelOtherSubscription": {
+    "description": "The text to display when the user has an existing subscription from a different payment provider",
+    "type": "text",
+    "placeholders": {
+      "paymentProvider": {
+        "example": "Apple",
+        "type": "String"
+      }
+    }
+  },
+  "cancelRecovery": "Bərpanı ləğv et",
+  "cancelRecoveryDesc": "{email} hesabının bərpasını ləğv etmək istədiyinizə əminsiniz?",
+  "@cancelRecoveryDesc": {
+    "description": "Description for cancel recovery confirmation dialog",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "cancelSubscription": "Abunəliyi ləğv et",
+  "cannotDeleteSharedFiles": "Paylaşılan faylları silmək olmur",
+  "cannotMoveToSharedAlbums": "Paylaşılan albomlara köçürmək mümkün deyil",
+  "cannotMoveToSharedAlbumsMessage": "Elementlər paylaşılan albomlara yalnız əlavə edilə bilər, köçürülə bilməz. Əvəzində əlavə etmək istərdinizmi?",
+  "canNotOpenBody": "Bağışlayın, bu albom tətbiqdə açıla bilməz.",
+  "canNotOpenTitle": "Bu albomu açmaq mümkün deyil",
+  "cannotUpdateRecoveryTime": "Bərpa vaxtını yeniləmək mümkün deyil",
+  "cannotUpdateRecoveryTimeMessage": "Aktiv bərpa sessiyası zamanı bərpa vaxtı dəyişdirilə bilməz. Zəhmət olmasa, imtina edin və ya bərpanın tamamlanmasını gözləyin.",
+  "canOnlyCreateLinkForFilesOwnedByYou": "Yalnız sizə məxsus olan fayllar üçün link yarada bilərsiniz",
+  "canOnlyRemoveFilesOwnedByYou": "Yalnız sahibi olduğunuz faylları silə bilərsiniz",
+  "castAlbum": "Albomu yayımla",
+  "castIPMismatchBody": "Zəhmət olmasa, TV ilə eyni şəbəkədə olduğunuzdan əmin olun.",
+  "castIPMismatchTitle": "Albom yayımlana bilmədi",
+  "centerPoint": "Mərkəz nöqtəsi",
+  "changeEmail": "E-poçtu dəyişdir",
+  "@changeEmail": {
+    "description": "Change email button label"
+  },
+  "changeLocationOfSelectedItems": "Seçilmiş elementlərin məkanı dəyişdirilsin?",
+  "changePassword": "Şifrəni dəyiş",
+  "changePasswordTitle": "Şifrəni dəyişdir",
+  "@changePasswordTitle": {
+    "description": "Change password title"
+  },
+  "changeYourReferralCode": "Kodunuzu dəyişdirin",
+  "checkForUpdates": "Yenilənmələri yoxla",
+  "checkInboxAndSpamFolder": "Təsdiqləməni tamamlamaq üçün, lütfən, gələnlər qutunuzu (və spam qovluğunu) yoxlayın",
+  "@checkInboxAndSpamFolder": {
+    "description": "Message asking user to check inbox and spam folder"
+  },
+  "checking": "Yoxlanılır...",
+  "checkingModels": "Modellər yoxlanılır...",
+  "checkStatus": "Statusu yoxla",
+  "@checkStatus": {
+    "description": "Check status button label"
+  },
+  "chooseARecoveryTime": "Bərpa vaxtı seçin",
+  "chooseFromAnExistingContact": "Mövcud kontaktlardan seçin",
+  "city": "Şəhərdə",
+  "citySunsets": "Şəhər qürubunun parıltısı",
+  "claimedByYou": "sizin tərəfinizdən əldə edilib",
+  "cleanedUpSimilarImages": "{size} qədər yer boşaltdınız",
+  "@cleanedUpSimilarImages": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "cleanUncategorized": "Kateqoriyasızları təmizlə",
+  "cleanUncategorizedDescription": "Digər albomlarda mövcud olan bütün faylları \"Kateqoriyasızlar\"dan silin",
+  "cleanupComplete": "Təmizləmə tamamlandı",
+  "cleanupHiddenFiles": "Gizli faylları təmizlə",
+  "cleanupHiddenFilesDescription": "Gizli albomlardakı bəzi fayllar hələ də gizli olmayan albomlarda mövcuddur və bu onları gizli bölmədən kənarda görünən edir. Təmizləmə onları gizli olmayan albomlardan siləcək.",
+  "clearCaches": "Keşləri təmizlə",
+  "clearSelection": "Seçimi təmizlə",
+  "clickToInstallOurBestVersionYet": "İndiyə qədərki ən yaxşı versiyamızı quraşdırmaq üçün klikləyin",
+  "close": "Bağla",
+  "closeBy": "Bağla",
+  "@closeBy": {
+    "description": "Appears in the similar images page, to indicate that the images are close in terms of appearance"
+  },
+  "closest": "Ən yaxın",
+  "clusteringProgress": "Qruplaşdırma prosesi",
+  "coastalCliffs": "Dəniz kənarındakı qayalar",
+  "codeAppliedPageTitle": "Kod tətbiq olundu",
+  "codeChangeLimitReached": "Bağışlayın, siz kod dəyişdirmə limitinə çatdınız.",
+  "codeCopiedToClipboard": "Kod müvəqqəti yaddaşa kopyalandı",
+  "collaborator": "Əməkdaş",
+  "collageLayout": "Düzen",
+  "collageSaved": "Kollaj qalereyaya yadda saxlanıldı",
+  "collectPhotos": "Fotoları topla",
+  "color": "Rəng",
+  "colorfulMarkets": "Canlı bazarlar",
+  "commentHint": "Xoş bir söz yaz!",
+  "@commentHint": {
+    "description": "Placeholder text for comment input field"
+  },
+  "comments": "Şərhlər",
+  "comparingImageDetails": "Şəkil detalları müqayisə edilir...",
+  "confirm": "Təsdiqlə",
+  "@confirm": {
+    "description": "Confirm button label"
+  },
+  "confirm2FADisable": "İki faktorlu identifikasiyanı söndürmək istədiyinizə əminsiniz?",
+  "confirmAddingTrustedContact": "{email} ünvanını etibarlı kontakt kimi əlavə etmək üzrəsiniz. Əgər {numOfDays} gün ərzində aktiv olmasanız, onlar hesabınızı bərpa edə biləcəklər.",
+  "@confirmAddingTrustedContact": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      },
+      "numOfDays": {
+        "type": "int",
+        "example": "30"
+      }
+    }
+  },
+  "confirmAddingTrustedContacts": "Siz {count} etibarlı kontakt əlavə etmək üzrəsiniz. {numOfDays} gün ərzində aktiv olmasanız, onlar hesabınızı bərpa edə biləcəklər.",
+  "@confirmAddingTrustedContacts": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "numOfDays": {
+        "type": "int",
+        "example": "30"
+      }
+    }
+  },
+  "confirmPassword": "Şifrəni təsdiqləyin",
+  "@confirmPassword": {
+    "description": "Confirm password field label"
+  },
+  "confirmPlanChange": "Plan dəyişikliyini təsdiqlə",
+  "confirmRecoveryKey": "Bərpa açarını təsdiqləyin",
+  "confirmYourRecoveryKey": "Bərpa açarınızı təsdiqləyin",
+  "connectToDevice": "Cihaza qoşul",
+  "contacts": "Kontaktlar",
+  "contactSupport": "Dəstək ilə əlaqə",
+  "@contactSupport": {
+    "description": "Contact support button label"
+  },
+  "continueLabel": "Davam et",
+  "@continueLabel": {
+    "description": "Continue button label"
+  },
+  "continueWithoutAccount": "Hesabsız davam edin",
+  "convertToAlbum": "Alboma çevir",
+  "copyEmailAddress": "E-poçt ünvanını kopyala",
+  "@copyEmailAddress": {
+    "description": "Button to copy email address to clipboard"
+  },
+  "copyEmbedHtml": "Yerləşdirmə HTML kopyala",
+  "copyLink": "Linki kopyala",
+  "copypasteThisCodentoYourAuthenticatorApp": "Bu kodu autentifikator tətbiqinizə kopyalayıb yapışdırın",
+  "couldNotBackUpTryLater": "Məlumatlarınızı yedəkləyə bilmədik. Yenidən cəhd edəcəyik.",
+  "couldNotFreeUpSpace": "Yer boşaltmaq mümkün olmadı",
+  "couldNotLoadAlbums": "Albomları yükləmək mümkün olmadı",
+  "@couldNotLoadAlbums": {
+    "description": "Error when albums fail to load"
+  },
+  "couldNotLoadLikes": "Bəyənmələri yükləmək mümkün olmadı",
+  "@couldNotLoadLikes": {
+    "description": "Error when likes fail to load"
+  },
+  "couldNotUpdateSubscription": "Abunəliyi yeniləmək mümkün olmadı",
+  "count": "Say",
+  "cozyCafes": "Rahat kafe küncləri",
+  "crashReporting": "Xəta hesabatı",
+  "create": "Yarat",
+  "createAccount": "Hesab yarat",
+  "@createAccount": {
+    "description": "Create account button label"
+  },
+  "createAlbumActionHint": "Fotoşəkilləri seçmək üçün üzərinə uzun basın və albom yaratmaq üçün + düyməsinə klikləyin",
+  "createAnEnteAccount": "Ente hesabı yaradın",
+  "createCollaborativeLink": "Birgə iş linki yaradın",
+  "createCollage": "Kollaj yarat",
+  "createPublicLink": "İctimai link yarat",
+  "createStream": "Yayım yaradın",
+  "creatingLink": "Link yaradılır...",
+  "creatingStream": "Yayım yaradılır",
+  "criticalUpdateAvailable": "Kritik yenilənmə mövcuddur",
+  "crop": "Kəs",
+  "curatedMemories": "Seçilmiş xatirələr",
+  "currentlyRunning": "hazırda işləyir",
+  "custom": "Fərdi",
+  "@custom": {
+    "description": "Label for setting custom value for link expiry"
+  },
+  "customEndpoint": "{endpoint} nöqtəsinə qoşuldu",
+  "@customEndpoint": {
+    "description": "Text showing user is connected to a custom endpoint",
+    "placeholders": {
+      "endpoint": {
+        "type": "String",
+        "description": "URL of the custom endpoint"
+      }
+    }
+  },
+  "darkTheme": "Tünd",
+  "day": "Gün",
+  "dayToday": "Bu gün",
+  "dayYesterday": "Dünən",
+  "declineTrustInvite": "Dəvəti rədd et",
+  "decrypting": "Şifrə açılır...",
+  "decryptingVideo": "Video şifrəsi açılır...",
+  "deduplicateFiles": "Dublikat faylları təmizlə",
+  "delete": "Sil",
+  "@delete": {
+    "description": "Delete button label"
+  },
+  "deleteAccount": "Hesabı sil",
+  "@deleteAccount": {
+    "description": "Delete account button label"
+  },
+  "deleteAlbum": "Albomu sil",
+  "deleteAlbumDialog": "Bu albomda olan fotoşəkillər (və videolar) daxil olduqları <bold>bütün</bold> digər albumlardan da silinsin?",
+  "deleteAlbumsDialogBody": "Bu, bütün boş albomları siləcək. Bu, albom siyahınızdakı dağınıqlığı azaltmaq istədiyiniz zaman faydalıdır.",
+  "deleteAll": "Hamısını sil",
+  "deleteComment": "Şərhi sil",
+  "@deleteComment": {
+    "description": "Delete comment button label"
+  },
+  "deleteCommentConfirmation": "\"{comment}\" şərhiniz həmişəlik silinəcək",
+  "@deleteCommentConfirmation": {
+    "description": "Confirmation message when deleting a comment",
+    "placeholders": {
+      "comment": {
+        "type": "String"
+      }
+    }
+  },
+  "deletedComment": "(silindi)",
+  "@deletedComment": {
+    "description": "Label for deleted comments"
+  },
+  "deleteEmptyAlbums": "Boş albomları sil",
+  "deleteEmptyAlbumsWithQuestionMark": "Boş albomlar silinsin?",
+  "deleteFiles": "Faylları sil",
+  "deleteFromBoth": "Hər ikisindən sil",
+  "deleteFromDevice": "Cihazdan sil",
+  "deleteFromEnte": "Ente-dən sil",
+  "deleteHiddenFilesFromDevice": "Gizli faylları cihazdan sil",
+  "deleteHiddenFilesFromDeviceDescription": "Gizli faylların yerli nüsxələrini cihazınızdan silin",
+  "deleteLocation": "Məkanı sil",
+  "deleteMultipleAlbumDialog": "Bu {count} albomda olan fotoşəkilləri (və videoları) daxil olduqları <bold>bütün</bold> digər albomlardan da silmək istəyirsiniz?",
+  "@deleteMultipleAlbumDialog": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "deleteOnDeviceFiles": "Cihazdakı faylları sil",
+  "deletePhotos": "Fotoşəkilləri sil",
+  "deletePhotosWithSize": "{count} şəkli sil ({size})",
+  "@deletePhotosWithSize": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteProgress": "Silinir: {currentlyDeleting} / {totalCount}",
+  "@deleteProgress": {
+    "placeholders": {
+      "currentlyDeleting": {},
+      "totalCount": {}
+    }
+  },
+  "deleteSharedAlbum": "Paylaşılan albom silinsin?",
+  "deleteSharedAlbumDialogBody": "Albom hər kəs üçün silinəcək.\n\nBu albomda başqalarına məxsus olan paylaşılan fotoşəkillərə giriş imkanını itirəcəksiniz",
+  "deleteSuggestions": "Silmə təklifləri",
+  "deleteSuggestionSent": "Silmə təklifi göndərildi",
+  "deleteWithCount": "Sil ({count})",
+  "@deleteWithCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deletingDash": "Silinir - ",
+  "deselectAll": "Hamısını ləğv et",
+  "desertDreams": "Səhra xəyalları",
+  "details": "Təfərrüatlar",
+  "developerSettings": "Tərtibatçı tənzimləmələri",
+  "@developerSettings": {
+    "description": "Label for developer settings"
+  },
+  "developerSettingsWarning": "Tərtibatçı tənzimləmələrini dəyişdirmək istədiyinizə əminsiniz?",
+  "deviceLock": "Cihaz kilidi",
+  "@deviceLock": {
+    "description": "Device lock option title"
+  },
+  "deviceNotFound": "Cihaz tapılmadı",
+  "didYouKnow": "Bilirdinizmi?",
+  "disableDownloadWarningBody": "Nəzərə alın ki, izləyicilər hələ də kənar alətlər vasitəsilə fotoşəkillərinizin ekran görüntüsünü götürə və ya surətini yadda saxlaya bilərlər",
+  "disableDownloadWarningTitle": "Qeyd edək ki",
+  "disableLinkMessage": "Bu, \"{albumName}\" albomuna giriş üçün olan ictimai linki siləcək.",
+  "@disableLinkMessage": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
+  "disableTwofactor": "İki faktorlu identifikasiyanı söndürün",
+  "disablingTwofactorAuthentication": "İki-mərhələli təsdiqləmə dövrədən çıxarılır...",
+  "discover": "Kəşf et",
+  "@discover": {
+    "description": "The text to display for the discover section under which we show receipts, screenshots, sunsets, greenery, etc."
+  },
+  "discover_babies": "Körpələr",
+  "discover_celebrations": "Bayramlar",
+  "discover_food": "Yemək",
+  "discover_greenery": "Yaşıllıq",
+  "discover_hills": "Təpələr",
+  "discover_identity": "Kimlik",
+  "discover_memes": "Memlər",
+  "discover_notes": "Qeydlər",
+  "discover_pets": "Ev heyvanları",
+  "discover_receipts": "Qəbzlər",
+  "discover_screenshots": "Ekran görüntüləri",
+  "discover_selfies": "Selfilər",
+  "discover_sunset": "Gün batımı",
+  "discover_visiting_cards": "Vizit kartları",
+  "discover_wallpapers": "Divar kağızları",
+  "dismiss": "Bağla",
+  "distanceInKMUnit": "km",
+  "@distanceInKMUnit": {
+    "description": "Unit for distance in km"
+  },
+  "doesGroupContainMultiplePeople": "Bu qruplaşmada bir neçə şəxs var?",
+  "done": "Hazırdır",
+  "doNotSignOut": "Çıxış etmə",
+  "@doNotSignOut": {
+    "description": "Do not sign out button label"
+  },
+  "dontSave": "Yadda saxlama",
+  "download": "Yüklə",
+  "downloadFailed": "Yükləmə uğursuz oldu",
+  "downloading": "Yüklənir...",
+  "downloadSkippedAlreadyAvailableOnDevice": "{fileName} artıq cihazınızdakı {albumName} albomunda mövcuddur",
+  "@downloadSkippedAlreadyAvailableOnDevice": {
+    "description": "Toast shown in single-file download flow when the file already exists locally",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      },
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadSkippedInSelectionMultipleFiles": "{fileCount} sayda fayl artıq cihazınızda olduğu üçün endirilməsi ləğv edildi",
+  "@downloadSkippedInSelectionMultipleFiles": {
+    "description": "Toast shown after multi-selection download when multiple selected files are skipped because they already exist locally",
+    "placeholders": {
+      "fileCount": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadSkippedInSelectionSingleFile": "{fileName} faylı artıq cihazınızdakı {albumName} albomunda mövcud olduğu üçün endirilməsi ləğv edildi",
+  "@downloadSkippedInSelectionSingleFile": {
+    "description": "Toast shown after multi-selection download when exactly one selected file is skipped because it already exists locally",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      },
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+  "doYouWantToDiscardTheEditsYouHaveMade": "Etdiyiniz redaktələri ləğv etmək istəyirsiniz?",
+  "draw": "Çək",
+  "dropSupportEmail": "Xahiş olunur qeydiyyatdan keçdiyiniz e-poçt ünvanından {supportEmail} ünvanına e-məktub göndərin",
+  "@dropSupportEmail": {
+    "placeholders": {
+      "supportEmail": {
+        "description": "The support email address",
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
+  },
+  "duplicateFileCountWithStorageSaved": "Siz {count, plural, one{{count} dublikat faylı} other{{count} dublikat faylı}} təmizləyərək ({storageSaved}!) qənaət etdiniz",
+  "@duplicateFileCountWithStorageSaved": {
+    "description": "The text to display when the user has successfully cleaned up duplicate files",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "1",
+        "type": "int"
+      },
+      "storageSaved": {
+        "example": "1.2 GB",
+        "type": "String"
+      }
+    }
+  },
+  "duplicateItemsGroup": "{count} fayl, hər biri {formattedSize}",
+  "@duplicateItemsGroup": {
+    "description": "Display the number of duplicate files and their size",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "12",
+        "type": "int"
+      },
+      "formattedSize": {
+        "example": "2.3 MB",
+        "type": "String"
+      }
+    }
+  },
+  "earned": "qazanılıb",
+  "earnMoreSpace": "Daha çox yer qazan!",
+  "edit": "Redaktə et",
+  "editAutoAddPeople": "İnsanların avtomatik əlavə edilməsini redaktə et",
+  "editEmailAlreadyLinked": "Bu e-poçt artıq {name} ilə əlaqələndirilib.",
+  "@editEmailAlreadyLinked": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "editLocation": "Məkanı redaktə et",
+  "editPerson": "Şəxsi redaktə et",
+  "editsSaved": "Redaktələr saxlanıldı",
+  "editsToLocationWillOnlyBeSeenWithinEnte": "Məkan redaktələri yalnız Ente daxilində görünəcək",
+  "editTime": "Vaxtı redaktə et",
+  "eligible": "uyğun",
+  "email": "E-poçt",
+  "@email": {
+    "description": "Email field label"
+  },
+  "emailAlreadyRegistered": "E-poçt ünvanı artıq qeydiyyatdan keçib.",
+  "@emailAlreadyRegistered": {
+    "description": "Error message when email is already registered"
+  },
+  "emailChangedTo": "E-poçt {newEmail} olaraq dəyişdirildi",
+  "@emailChangedTo": {
+    "description": "Message when email has been changed",
+    "placeholders": {
+      "newEmail": {
+        "description": "The new email address",
+        "type": "String",
+        "example": "new@example.com"
+      }
+    }
+  },
+  "emailHint": "E-poçt ünvanınızı daxil edin",
+  "emailNoEnteAccountPhotos": "{email} ünvanının Ente hesabı yoxdur. Fotoları paylaşmaq üçün onlara dəvət göndərin.",
+  "@emailNoEnteAccountPhotos": {
+    "placeholders": {
+      "email": {}
+    }
+  },
+  "emailNotRegistered": "E-poçt ünvanı qeydiyyatdan keçməyib.",
+  "@emailNotRegistered": {
+    "description": "Error message when email is not registered"
+  },
+  "emailVerificationToggle": "E-poçt təsdiqi",
+  "emailYourLogs": "Qeydlərinizi e-poçtla göndərin",
+  "@emailYourLogs": {
+    "description": "Title for emailing logs dialog"
+  },
+  "embracingThem": "{name} ilə qucaqlaşarkən",
+  "@embracingThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "empty": "Boşalt",
+  "emptyTrashQuestion": "Zibil qutusu boşaldılsın?",
+  "enable": "Aktivləşdir",
+  "enableComment": "Şərhlər və reaksiyalar",
+  "enabled": "Aktivləşdirildi",
+  "enableMaps": "Xəritələri aktivləşdir",
+  "encryptingBackup": "Yedək nüsxə şifrələnir...",
+  "encryptionKeys": "Şifrələmə açarları",
+  "@encryptionKeys": {
+    "description": "Encryption keys title"
+  },
+  "endpointUpdatedMessage": "Son nöqtə uğurla yeniləndi",
+  "@endpointUpdatedMessage": {
+    "description": "Success message when endpoint is updated"
+  },
+  "enterAlbumName": "Albom adını daxil edin",
+  "enterCode": "Kodu daxil edin",
+  "enterCodeDescription": "Hər ikiniz üçün pulsuz yaddaş əldə etmək üçün dostunuz tərəfindən verilən kodu daxil edin",
+  "enterEmail": "E-poçt ünvanını daxil edin",
+  "enterFileName": "Fayl adını daxil edin",
+  "enterName": "Adı daxil edin",
+  "enterNewPasswordToEncrypt": "Məlumatlarınızı şifrələmək üçün yeni bir şifrə daxil edin",
+  "@enterNewPasswordToEncrypt": {
+    "description": "Prompt to enter new password for encryption"
+  },
+  "enterPassword": "Şifrəni daxil edin",
+  "@enterPassword": {
+    "description": "Enter password field label"
+  },
+  "enterPasswordToEncrypt": "Məlumatlarınızı şifrələmək üçün istifadə edəcəyimiz şifrəni daxil edin",
+  "@enterPasswordToEncrypt": {
+    "description": "Prompt to enter password for encryption"
+  },
+  "enterReferralCode": "Referal kodunu daxil edin",
+  "enterThe6digitCodeFromnyourAuthenticatorApp": "Autentifikator tətbiqinizdəki 6 rəqəmli kodu daxil edin",
+  "enterValidEmail": "Zəhmət olmasa doğru bir e-poçt ünvanı daxil edin.",
+  "enterYourNewEmailAddress": "Yeni e-poçt ünvanınızı daxil edin",
+  "enterYourPassword": "Şifrənizi daxil edin",
+  "enterYourRecoveryKey": "Bərpa açarınızı daxil edin",
+  "error": "Xəta",
+  "@error": {
+    "description": "Generic error title"
+  },
+  "exif": "EXIF",
+  "expiredLinkInfo": "Bu linkin vaxtı bitib. Zəhmət olmasa, yeni bitmə vaxtı seçin və ya linkin vaxt məhdudiyyətini ləğv edin.",
+  "exportLogs": "Qeydləri ixrac et",
+  "@exportLogs": {
+    "description": "Button to export logs"
+  },
+  "exportYourData": "Məlumatlarınızı ixrac edin",
+  "extraPhotosFound": "Əlavə şəkillər tapıldı",
+  "faceNotClusteredYet": "Üz hələ qruplaşdırılmayıb, zəhmət olmasa sonra yenidən yoxlayın",
+  "facesTimelineAppBarTitle": "Yaddaş zolağı",
+  "@facesTimelineAppBarTitle": {
+    "description": "Faces timeline page title shown in the app bar"
+  },
+  "facesTimelineCaptionYearsAgo": "{count, plural, one{# il əvvəl} other{# il əvvəl}}",
+  "@facesTimelineCaptionYearsAgo": {
+    "description": "Caption for frames when birthdate is unknown, expressing time difference",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "Years ago"
+      }
+    }
+  },
+  "facesTimelineCaptionYearsOld": "{name} -ın {count, plural, one{{count} yaşı} other{{count} yaşı}} var idi",
+  "@facesTimelineCaptionYearsOld": {
+    "description": "Caption for frames when birthdate is known, describing the person's age",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "Number of years old"
+      },
+      "name": {
+        "type": "String",
+        "description": "Person's name"
+      }
+    }
+  },
+  "facesTimelinePlaybackPause": "Durdur",
+  "@facesTimelinePlaybackPause": {
+    "description": "Tooltip or semantics label for the pause button"
+  },
+  "facesTimelinePlaybackPlay": "Başlat",
+  "@facesTimelinePlaybackPlay": {
+    "description": "Tooltip or semantics label for the play button"
+  },
+  "facesTimelineUnavailable": "Üzlərin zaman qrafiki hazırlanır...",
+  "@facesTimelineUnavailable": {
+    "description": "Fallback message when the Memory Lane cannot be displayed yet"
+  },
+  "faceThumbnailGenerationFailed": "Üz kiçik rəsmləri yaradıla bilmədi",
+  "failedToApplyCode": "Kodun tətbiqi baş tutmadı",
+  "failedToCancel": "Ləğv etmək mümkün olmadı",
+  "failedToDeleteComment": "Şərhi silmək alınmadı",
+  "@failedToDeleteComment": {
+    "description": "Toast when comment deletion fails"
+  },
+  "failedToDownloadVideo": "Videonu yükləmək mümkün olmadı",
+  "failedToFetchActiveSessions": "Aktiv sessiyaları əldə etmək mümkün olmadı",
+  "@failedToFetchActiveSessions": {
+    "description": "In session page, warn user (in toast) that active sessions could not be fetched."
+  },
+  "failedToFetchOriginalForEdit": "Redaktə üçün orijinalı gətirmək mümkün olmadı",
+  "failedToFetchReferralDetails": "Referal təfərrüatlarını gətirmək mümkün olmadı. Zəhmət olmasa, bir az sonra yenidən cəhd edin.",
+  "failedToLikeComment": "Şərhi bəyənmək alınmadı",
+  "@failedToLikeComment": {
+    "description": "Toast when comment like fails"
+  },
+  "failedToLoadAlbums": "Albomları yükləmək mümkün olmadı",
+  "failedToRefreshStripeSubscription": "Abunəliyi yeniləmək mümkün olmadı",
+  "failedToRenew": "Yeniləmək mümkün olmadı",
+  "failedToUpdateLike": "Bəyənməni yeniləmək alınmadı",
+  "@failedToUpdateLike": {
+    "description": "Toast when like update fails"
+  },
+  "failedToVerifyPaymentStatus": "Ödəniş statusunu təsdiqləmək mümkün olmadı",
+  "familyMoments": "Ailə vaxtı",
+  "faq": "Çox verilən suallar",
+  "@faq": {
+    "description": "FAQ link label"
+  },
+  "faqs": "Çox verilən suallar",
+  "favorite": "Seçilmiş",
+  "feastingWithThem": "{name} ilə ziyafətdə",
+  "@feastingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "feed": "Lent",
+  "festivities": "Bayram şənliyi",
+  "fileAnalysisFailed": "Fayl analiz edilə bilmədi",
+  "fileInfoAddDescHint": "Təsvir əlavə edin...",
+  "fileNotUploadedYet": "Fayl hələ yüklənməyib",
+  "files": "Fayllar",
+  "@files": {
+    "description": "Section header for file-related search results"
+  },
+  "fileSavedToGallery": "Fayl qalereyaya yadda saxlanıldı",
+  "filesDeleted": "Fayllar silindi",
+  "filesSavedToGallery": "Fayllar qalereyaya yadda saxlanıldı",
+  "fileTypes": "Fayl növləri",
+  "filter": "Filtr",
+  "findingSimilarImages": "Oxşar şəkillər tapılır...",
+  "findSimilarImages": "Oxşar şəkilləri tap",
+  "findThemQuickly": "Onları tez tapın",
+  "@findThemQuickly": {
+    "description": "Subtitle to indicate that the user can find people quickly by name"
+  },
+  "fireworks": "Atəşfəşanlıq finalı",
+  "flip": "Çevir",
+  "flowers": "Çiçəklənən gözəlliklər",
+  "font": "Şrift",
+  "food": "Kulinariya həzzi",
+  "forestTrails": "Meşə gəzintiləri",
+  "forgotPassword": "Şifrəni unutmusunuz",
+  "@forgotPassword": {
+    "description": "Forgot password link label"
+  },
+  "forgotRecoveryKey": "Bərpa açarını unutmusunuz?",
+  "freeTrial": "Pulsuz sınaq",
+  "freeUpAmount": "{sizeInMBorGB} yer boşalt",
+  "@freeUpAmount": {
+    "placeholders": {
+      "sizeInMBorGB": {}
+    }
+  },
+  "freeUpDeviceSpace": "Cihazda yer açın",
+  "freeUpSpace": "Yer boşaltın",
+  "gallery": "Qalereya",
+  "galleryMemoryLimitInfo": "Qalereyada 1000-ə qədər xatirə göstərilir",
+  "general": "Ümumi",
+  "generatingEncryptionKeys": "Şifrələmə açarları yaradılır...",
+  "@generatingEncryptionKeys": {
+    "description": "Generating encryption keys message"
+  },
+  "getStarted": "Başla",
+  "gettingReady": "Hazırlanır",
+  "googlePlayId": "Google Play ID",
+  "grantFullAccessPrompt": "Lütfən, \"Ayarlar\" tətbiqində bütün şəkillərə giriş icazəsi verin",
+  "grantPermission": "İcazə ver",
+  "greenery": "Yaşıl həyat",
+  "groupBy": "Qruplaşdır",
+  "groupByDay": "Gün",
+  "groupByMonth": "Ay",
+  "groupByWeek": "Həftə",
+  "groupByYear": "İl",
+  "guestView": "Qonaq görünüşü",
+  "guestViewEnablePreSteps": "Qonaq görünüşünü aktivləşdirmək üçün zəhmət olmasa sistem parametrlərində cihaz şifrəsini və ya ekran kilidini quraşdırın.",
+  "happyBirthday": "Ad günün mübarək! 🥳",
+  "hearUsWhereTitle": "Ente haqqında haradan eşitmisiniz?",
+  "help": "Kömək",
+  "hidden": "Gizli",
+  "hide": "Gizlə",
+  "hideContent": "Məzmunu gizlət",
+  "@hideContent": {
+    "description": "Hide content setting title"
+  },
+  "hideContentDescriptionAndroid": "Tətbiq dəyişdiricisində tətbiq məzmununu gizlədir və ekran görüntüsü almağı söndürür",
+  "@hideContentDescriptionAndroid": {
+    "description": "Description of hide content feature on Android"
+  },
+  "hideContentDescriptioniOS": "Tətbiq dəyişdiricisində tətbiq məzmununu gizlədir",
+  "@hideContentDescriptioniOS": {
+    "description": "Description of hide content feature on iOS"
+  },
+  "hideFromMemories": "Xatirələrdən gizlət",
+  "hideSharedItemsFromHomeGallery": "Paylaşılan elementləri əsas qalereyadan gizlət",
+  "hiding": "Gizlədilir...",
+  "hikingWithThem": "{name} ilə yürüşdə",
+  "@hikingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "historicSites": "Tarixin əks-sədası",
+  "hoorayyyy": "Uraaaa!",
+  "hostedAtOsmFrance": "OSM France-da yerləşdirilir",
+  "howItWorks": "Necə işləyir",
+  "@howItWorks": {
+    "description": "How it works button label"
+  },
+  "howToViewShareeVerificationID": "Zəhmət olmasa, onlardan tənzimləmələr ekranında e-poçt ünvanlarının üzərinə uzun basmalarını və hər iki cihazdakı ID-lərin uyğunluğunu yoxlamalarını istəyin.",
+  "ignore": "Nəzərə alma",
+  "ignored": "rədd edildi",
+  "ignorePerson": "İnsanı görməzdən gəlin",
+  "imageNotAnalyzed": "Şəkil analiz edilməyib",
+  "immediately": "Dərhal",
+  "@immediately": {
+    "description": "Immediately option for auto lock timing"
+  },
+  "incorrectCode": "Yanlış kod",
+  "@incorrectCode": {
+    "description": "Error message when code is incorrect"
+  },
+  "incorrectPasswordTitle": "Şifrə yanlışdır",
+  "@incorrectPasswordTitle": {
+    "description": "Title for incorrect password error"
+  },
+  "incorrectRecoveryKey": "Yanlış bərpa açarı",
+  "@incorrectRecoveryKey": {
+    "description": "Error message when recovery key is incorrect"
+  },
+  "incorrectRecoveryKeyBody": "Daxil etdiyiniz bərpa açarı yanlışdır",
+  "incorrectRecoveryKeyTitle": "Bərpa açarı yanlışdır",
+  "info": "Məlumat",
+  "insecureDevice": "Təhlükəsiz olmayan cihaz",
+  "@insecureDevice": {
+    "description": "Insecure device warning title"
+  },
+  "invalidEmailAddress": "E-poçt ünvanı yanlışdır",
+  "invalidEndpoint": "Yanlış son nöqtə",
+  "@invalidEndpoint": {
+    "description": "Error message when endpoint is invalid"
+  },
+  "invalidEndpointMessage": "Təəssüf ki, daxil etdiyiniz son nöqtə yanlışdır. Zəhmət olmasa, etibarlı bir nöqtə daxil edin və yenidən cəhd edin.",
+  "@invalidEndpointMessage": {
+    "description": "Detailed error message when endpoint is invalid"
+  },
+  "invalidKey": "Yanlış açar",
+  "invalidRecoveryKey": "Daxil etdiyiniz bərpa açarı yanlışdır. Zəhmət olmasa, onun 24 sözdən ibarət olduğundan əmin olun və hər bir sözün yazılışını yoxlayın.\n\n​Əgər köhnə bərpa kodunu daxil etmisinizsə, onun 64 simvoldan ibarət olduğuna və hər birinin düzgünlüyünə əmin olun.",
+  "invalidReferralCode": "Yanlış kod",
+  "invite": "Dəvət et",
+  "inviteToEnte": "Ente-yə dəvət et",
+  "ok": "Bəli",
+  "@ok": {
+    "description": "Generic OK button label"
+  },
+  "itemCount": "{count, plural, one{{count} element} other{{count} element}}",
+  "@itemCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "itemsShowTheNumberOfDaysRemainingBeforePermanentDeletion": "Elementlər həmişəlik silinməyə qalan günlərin sayını göstərir",
+  "itemsWillBeRemovedFromAlbum": "Seçilmiş elementlər bu albomdan silinəcək",
+  "itLooksLikeSomethingWentWrongPleaseRetryAfterSome": "Görünür, nəsə yanlış getdi. Zəhmət olmasa, bir müddət sonra yenidən cəhd edin. Xəta davam edərsə, dəstək komandamızla əlaqə saxlayın.",
+  "@itLooksLikeSomethingWentWrongPleaseRetryAfterSome": {
+    "description": "Generic error message for temporary issues"
+  },
+  "join": "Qoşul",
+  "joinAlbum": "Albuma qoşul",
+  "joinAlbumConfirmationDialogBody": "Alboma qoşulmaq e-poçt ünvanınızı digər iştirakçılar üçün görünən edəcək.",
+  "joinAlbumSubtext": "şəkillərinizə baxmaq və əlavə etmək üçün",
+  "joinAlbumSubtextViewer": "bunu paylaşılan albumlara əlavə etmək üçün",
+  "kiloMeterUnit": "km",
+  "lakeside": "Göl kənarı sakitliyi",
+  "language": "Dil",
+  "lastUpdated": "Son yenilənmə",
+  "lastWeek": "Keçən həftə",
+  "lastYearsTrip": "Keçən ilki səyahət",
+  "layout": "Düzen",
+  "layoutGrouped": "Qruplaşdırılmış",
+  "layoutTrip": "Səyahət",
+  "leave": "Ayrıl",
+  "leaveAlbum": "Albomdan çıx",
+  "leaveFamily": "Ailədən ayrıl",
+  "leaveFamilyPlan": "Ailə planından çıxın",
+  "@leaveFamilyPlan": {
+    "description": "Button label for leaving family plan",
+    "type": "text"
+  },
+  "leaveSharedAlbum": "Paylaşılan albomdan çıxılsın?",
+  "left": "Sol",
+  "legacy": "Varislik",
+  "legacyAccounts": "Varislik hesabları",
+  "legacyInvite": "{email} sizi etibarlı kontakt olmağa dəvət etdi",
+  "@legacyInvite": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "family@example.com"
+      }
+    }
+  },
+  "legacyPageDesc": "Varislik sistemi siz olmadıqda etibarlı əlaqələrinizin hesabınıza daxil olmasına icazə verir.",
+  "legacyPageDesc2": "Etibarlı əlaqələr hesabın bərpasını başlada bilər və əgər 30 gün ərzində bloklanmasa, şifrənizi sıfırlayıb hesabınıza daxil ola bilərlər.",
+  "letsTryThatAgain": "Yenidən yoxlayaq",
+  "lightTheme": "Açıq",
+  "like": "Bəyən",
+  "likeAll": "Hamısını bəyən",
+  "@likeAll": {
+    "description": "Button to like in all shared albums"
+  },
+  "linkCopiedToClipboard": "Link mübadilə buferinə kopyalandı",
+  "linkDeviceLimit": "Cihaz limiti",
+  "linkEnabled": "Aktivdir",
+  "linkExpired": "Vaxtı bitib",
+  "linkExpiresOn": "Linkin vaxtı {expiryTime} tarixində bitəcək",
+  "@linkExpiresOn": {
+    "placeholders": {
+      "expiryTime": {}
+    }
+  },
+  "linkExpiry": "Linkin vaxtı",
+  "linkHasExpired": "Linkin vaxtı bitib",
+  "linkNeverExpires": "Heç vaxt",
+  "livePhotos": "Canlı Şəkillər",
+  "loadingExifData": "EXIF məlumatları yüklənir...",
+  "loadingGallery": "Qalereya yüklənir...",
+  "loadingModel": "Modellər endirilir...",
+  "loadingYourPhotos": "Şəkilləriniz yüklənir...",
+  "loadMessage1": "Abunəliyinizi ailənizlə bölüşə bilərsiniz",
+  "loadMessage3": "Məlumatlarınızın 3 nüsxəsini saxlayırıq, onlardan biri yeraltı sığınacaqdadır",
+  "loadMessage4": "Bütün tətbiqlərimiz açıq mənbəlidir",
+  "loadMessage5": "Mənbə kodumuz və kriptoqrafiyamız kənar auditdən keçib",
+  "loadMessage6": "Albomlarınızın linklərini sevdiklərinizlə bölüşə bilərsiniz",
+  "loadMessage7": "Mobil tətbiqlərimiz çəkdiyiniz hər bir yeni şəkli şifrələmək və yedəkləmək üçün arxa fonda çalışır",
+  "loadMessage8": "{webUrl}-nun rahat yükləyicisi var",
+  "@loadMessage8": {
+    "description": "Loading screen message about the web uploader.",
+    "placeholders": {
+      "webUrl": {
+        "type": "String",
+        "example": "photos.ente.com"
+      }
+    }
+  },
+  "loadMessage9": "Məlumatlarınızı təhlükəsiz şəkildə şifrələmək üçün Xchacha20Poly1305-dən istifadə edirik",
+  "localGallery": "Yerli qalereya",
+  "localSyncErrorMessage": "Yerli şəkillərin sinxronizasiyası gözləniləndən çox vaxt apardığı üçün nəsə xəta baş verdi. Zəhmət olmasa, dəstək komandamızla əlaqə saxlayın",
+  "location": "Məkan",
+  "locationName": "Məkan adı",
+  "locationPickerTip": "Siz həmçinin fotoşəkilin məlumat ekranından istifadə edərək həmin fotonun mərkəzində olduğu bir məkan əlavə edə bilərsiniz",
+  "@locationPickerTip": {
+    "description": "Helper tip text shown in the location picker that refers to the photo info screen."
+  },
+  "locations": "Məkanlar",
+  "locationTagFeatureDescription": "Məkan teqi bir şəklin müəyyən radiusunda çəkilmiş bütün şəkilləri qruplaşdırır",
+  "lockButtonLabel": "Kilidlə",
+  "loggingOut": "Çıxış edilir...",
+  "@loggingOut": {
+    "description": "Message shown while logging out"
+  },
+  "logInLabel": "Daxil ol",
+  "@logInLabel": {
+    "description": "Log in button label"
+  },
+  "loginSessionExpired": "Sessiyanın vaxtı bitdi",
+  "@loginSessionExpired": {
+    "description": "Login session expired title"
+  },
+  "loginSessionExpiredDetails": "Sessiyanızın vaxtı bitib. Zəhmət olmasa, yenidən daxil olun.",
+  "@loginSessionExpiredDetails": {
+    "description": "Login session expired details"
+  },
+  "loginTerms": "Daxil ol düyməsinə klikləməklə, mən <u-terms>xidmət şərtləri</u-terms> və <u-policy>məxfilik siyasəti</u-policy> ilə razılaşıram",
+  "@loginTerms": {
+    "description": "Terms agreement text for login"
+  },
+  "loginToEnte": "Ente-yə daxil ol",
+  "loginToExistingAccount": "Mövcud hesaba daxil olun",
+  "loginWithTOTP": "TOTP ilə daxil ol",
+  "@loginWithTOTP": {
+    "description": "Login with TOTP button label"
+  },
+  "logout": "Çıxış",
+  "logsDialogBody": "Bu, probleminizi həll etməyə kömək etmək üçün qeydləri göndərəcək. Zəhmət olmasa nəzərə alın ki, konkret fayllarla bağlı problemləri izləmək üçün fayl adları bura daxil ediləcək.",
+  "@logsDialogBody": {
+    "description": "Body text for the logs dialog explaining what will be sent"
+  },
+  "longPressAnEmailToVerifyEndToEndEncryption": "Ucdan-uca şifrələməni doğrulamaq üçün e-poçtun üzərinə uzun basın.",
+  "lookBackOnYourMemories": "Xatirələrinizə nəzər salın 🌄",
+  "lookingForVisualSimilarities": "Vizual oxşarlıqlar axtarılır...",
+  "loopVideoOff": "Döngünü aktivləşdir",
+  "loopVideoOn": "Döngünü söndür",
+  "lostDevice": "Cihazınızı itirmisiniz?",
+  "machineLearning": "Maşın öyrənməsi",
+  "magic": "Sehrli",
+  "@magic": {
+    "description": "Section header for magic search results"
+  },
+  "manageDeviceStorage": "Cihaz keşini idarə et",
+  "manageFamily": "Ailəni idarə et",
+  "manageLink": "Linki idarə et",
+  "manageSubscription": "Abunəliyi idarə et",
+  "map": "Xəritə",
+  "@map": {
+    "description": "Label for the map view"
+  },
+  "maps": "Xəritələr",
+  "mapsPrivacyNotice": "Xəritəni və məkanı göstərmək üçün təxmini koordinatlar OpenStreetMap kimi məxfiliyə önəm verən üçüncü tərəflərə göndəriləcək.",
+  "me": "Mən",
+  "memories": "Xatirələr",
+  "memoryCount": "{count, plural, =0{xatirə yoxdur} one{{formattedCount} xatirə} other{{formattedCount} xatirə}}",
+  "@memoryCount": {
+    "description": "The text to display the number of memories",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "1",
+        "type": "int"
+      },
+      "formattedCount": {
+        "type": "String",
+        "example": "11.513, 11,511"
+      }
+    }
+  },
+  "merchandise": "Məhsullar",
+  "merge": "Birləşdir",
+  "mergedPhotos": "Birləşdirilmiş şəkillər",
+  "mergeWithExisting": "Mövcud olanla birləşdir",
+  "mergeWithPersonDescription": "Hər iki üz qrupundakı bütün şəkillər {name} altında birləşdiriləcək.",
+  "@mergeWithPersonDescription": {
+    "description": "Description for confirming a merge with an existing person.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Jamie Long"
+      }
+    }
+  },
+  "mergeWithPersonTitle": "{name} ilə birləşdirilsin?",
+  "@mergeWithPersonTitle": {
+    "description": "Title for confirming a merge with an existing person.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Jamie Long"
+      }
+    }
+  },
+  "mixedGrouping": "Qarışıq qruplaşdırma?",
+  "mlConsent": "Maşın öyrənməsini aktivləşdir",
+  "mlConsentConfirmation": "Anlayıram və maşın öyrənməsini aktivləşdirmək istəyirəm",
+  "mlConsentDescription": "Maşın öyrənməsini aktivləşdirsəniz, Ente fayllardan, o cümlədən sizinlə paylaşılanlardan üz həndəsəsi kimi məlumatları çıxaracaq.\n\nBu, cihazınızda baş verəcək və yaradılan hər hansı biometrik məlumat uçdan-uca şifrələnəcək.",
+  "mlProgressBannerDescription": "Üzləri, obyektləri və daha çoxunu müəyyən etmək üçün fotolarınız cihazda emal olunur.",
+  "mlProgressBannerStatus": "{total} fotodan {indexed} ədədi emal olundu",
+  "@mlProgressBannerStatus": {
+    "placeholders": {
+      "indexed": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "mlProgressBannerTitle": "Bir az gözləyin!",
+  "moderateStrength": "Orta",
+  "@moderateStrength": {
+    "description": "Moderate password strength label"
+  },
+  "modifyYourQueryOrTrySearchingFor": "Sorğunuzu dəyişdirin və ya bunu axtarmağa çalışın",
+  "moments": "Anlar",
+  "month": "ay",
+  "monthly": "Aylıq",
+  "@monthly": {
+    "description": "The text to display for monthly plans",
+    "type": "text"
+  },
+  "moon": "Ay işığında",
+  "moreDetails": "Daha çox detal",
+  "mostRecent": "Ən sonuncular",
+  "mostRelevant": "Ən uyğun olanlar",
+  "mountains": "Təpələrin arxasında",
+  "movedSuccessfullyTo": "{albumName} albomuna uğurla köçürüldü",
+  "@movedSuccessfullyTo": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
+  "movedToTrash": "Zibil qutusuna köçürüldü",
+  "moveSelectedPhotosToOneDate": "Seçilmiş şəkilləri bir tarixə köçürün",
+  "moveToAlbum": "Alboma köçür",
+  "moveToHiddenAlbum": "Gizli alboma köçür",
+  "movingFilesToAlbum": "Fayllar alboma köçürülür...",
+  "name": "Ad",
+  "networkConnectionRefusedErr": "Ente-yə qoşulmaq mümkün deyil, bir müddət sonra yenidən cəhd edin. Xəta davam edərsə, zəhmət olmasa, dəstək xidməti ilə əlaqə saxlayın.",
+  "@networkConnectionRefusedErr": {
+    "description": "Error message shown when the app cannot connect to Ente due to connection refused"
+  },
+  "networkHostLookUpErr": "Ente-yə qoşulmaq mümkün deyil, zəhmət olmasa şəbəkə parametrlərinizi yoxlayın və xəta davam edərsə dəstək ilə əlaqə saxlayın.",
+  "@networkHostLookUpErr": {
+    "description": "Error message shown when the app cannot connect to Ente due to network host lookup failure"
+  },
+  "never": "Heç vaxt",
+  "newAlbum": "Yeni albom",
+  "newest": "Ən yeni",
+  "newLocation": "Yeni məkan",
+  "newPhotosEmoji": " yeni 📸",
+  "newRange": "Yeni aralıq",
+  "next": "Növbəti",
+  "@next": {
+    "description": "Next button label"
+  },
+  "nightLights": "Neon gecələri",
+  "no": "Xeyr",
+  "noDeleteSuggestion": "Silmə təklifi yoxdur",
+  "noDeviceFound": "Cihaz tapılmadı",
+  "noDeviceLimit": "Heç biri",
+  "@noDeviceLimit": {
+    "description": "Text to indicate that there is limit on number of devices"
+  },
+  "noDeviceThatCanBeDeleted": "Bu cihazda silinə biləcək faylınız yoxdur",
+  "noDuplicates": "✨ Dublikat yoxdur",
+  "noExifData": "EXIF məlumatı yoxdur",
+  "noFacesFound": "Üz tapılmadı",
+  "noHiddenFilesOnDevice": "Cihazda gizli fayl yoxdur",
+  "noImagesWithLocation": "Məkanı olan şəkil yoxdur",
+  "noInternetConnection": "İnternet bağlantısı yoxdur",
+  "@noInternetConnection": {
+    "description": "No internet connection error message"
+  },
+  "noLikesYet": "Hələ bəyənmə yoxdur",
+  "@noLikesYet": {
+    "description": "Empty state when no likes exist"
+  },
+  "noPhotosFoundHere": "Burada şəkil tapılmadı",
+  "noRecoveryKeyNoDecryption": "Ucdan-uca şifrələmə end-to-end protokolumuzun xüsusiyyətinə görə, məlumatlarınız şifrəniz və ya bərpa açarınız olmadan deşifrə edilə açıla bilməz",
+  "@noRecoveryKeyNoDecryption": {
+    "description": "Explanation that data cannot be decrypted without password or recovery key"
+  },
+  "noResultsFound": "Heç bir nəticə tapılmadı",
+  "noSimilarImagesFound": "Oxşar şəkil tapılmadı",
+  "noSuggestionsForPerson": "{personName} üçün təklif yoxdur",
+  "@noSuggestionsForPerson": {
+    "placeholders": {
+      "personName": {
+        "type": "String",
+        "example": "Alice"
+      }
+    }
+  },
+  "noSystemLockFound": "Sistem kilidi tapılmadı",
+  "@noSystemLockFound": {
+    "description": "Error when no system lock is found"
+  },
+  "nothingToSeeHere": "Burada görunəcək bir şey yoxdur",
+  "nothingToTidyUpHere": "Burada təmizlənəcək bir şey yoxdur",
+  "notPersonLabel": "{name} deyil?",
+  "@notPersonLabel": {
+    "description": "Label to indicate that the person in the photo is not the person whose name is mentioned",
+    "placeholders": {
+      "name": {
+        "content": "{name}",
+        "type": "String"
+      }
+    }
+  },
+  "notThisPerson": "Bu şəxs deyil?",
+  "ocrGenericDetectError": "Şəkildə mətn müəyyən edilə bilmədi",
+  "ocrImageDecodeFailedError": "Şəkil faylını oxumaq mümkün olmadı",
+  "ocrImageNotFoundError": "Şəkil faylı tapılmadı",
+  "ocrModelsNetworkRequiredError": "İlkin istifadə zamanı OCR modellərini yükləmək üçün şəbəkə bağlantısı tələb olunur",
+  "ocrModelsPrepareFailed": "OCR modellərini hazırlamaq mümkün olmadı",
+  "ocrNoTextDetected": "Mətn tapılmadı",
+  "offlineFacesBannerSubtitle": "İnsanları etiketləmək və onları sonra asanlıqla tapmaq üçün qeydiyyatdan keçin.",
+  "offlineFacesBannerTitle": "Bu üzləri yadda saxlamaq istəyirsiniz?",
+  "offlineNameFaceBannerSubtitle": "Onları etiketləmək və fotolarını sonra asanlıqla tapmaq üçün qeydiyyatdan keçin.",
+  "offlineNameFaceBannerTitle": "Bu üzə ad verin",
+  "offlineSettingsBannerDesc": "Sıfır bilik\" Zero-knowledge şifrələməsi o deməkdir ki, xatirələriniz yalnız sizə məxsus qalır.",
+  "offlineSettingsBannerTitle": "Biz sizin fotolarınızı görə bilmərik. Heç vaxt.",
+  "onEnte": "<branding>ente</branding>-də",
+  "@onEnte": {
+    "description": "The text displayed above albums backed up to Ente",
+    "type": "text"
+  },
+  "onlyFamilyAdminCanChangeCode": "Kodunuzu dəyişmək üçün zəhmət olmasa {familyAdminEmail} ilə əlaqə saxlayın.",
+  "@onlyFamilyAdminCanChangeCode": {
+    "placeholders": {
+      "familyAdminEmail": {}
+    }
+  },
+  "onlyThem": "Yalnız onlar",
+  "onlyUploadedFilesCanBeAddedToPerson": "Şəxsə yalnız yüklənmiş fayllar əlavə edilə bilər",
+  "@onlyUploadedFilesCanBeAddedToPerson": {
+    "description": "Shown when user tries to manually tag files that are not uploaded yet."
+  },
+  "onTheRoad": "Yenidən yollarda",
+  "onThisDay": "Bu gün",
+  "onThisDayMemories": "Bu günün xatirələri",
+  "oops": "Vay",
+  "@oops": {
+    "description": "Oops error title"
+  },
+  "oopsCouldNotSaveEdits": "Xəta, redaktələri saxlamaq mümkün olmadı",
+  "oopsSomethingWentWrong": "Bağışlayın, xəta baş verdi",
+  "openAlbumInBrowser": "Albomu brauzerdə aç",
+  "openAlbumInBrowserTitle": "Bu alboma şəkil əlavə etmək üçün zəhmət olmasa veb tətbiqindən istifadə edin",
+  "openFile": "Faylı aç",
+  "openstreetmapContributors": "OpenStreetMap iştirakçıları",
+  "optionalAsShortAsYouLike": "İstəyə bağlı, istədiyiniz qədər qısa...",
+  "orRemoveYourself": "Və ya özünüzü {email} üçün etibarlı kontakt siyahısından çıxarın",
+  "@orRemoveYourself": {
+    "description": "Text shown before remove contact button in ready state",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "otherDetectedFaces": "Digər aşkar edilmiş üzlər",
+  "pair": "Cütləşdirin",
+  "partyWithThem": "{name} ilə partidə",
+  "@partyWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "passkey": "Giriş açarı",
+  "passkeyAuthTitle": "Giriş açarı doğrulaması",
+  "@passkeyAuthTitle": {
+    "description": "Passkey authentication title"
+  },
+  "passKeyPendingVerification": "Doğrulama hələ də gözləmədədir",
+  "@passKeyPendingVerification": {
+    "description": "Message when passkey verification is pending"
+  },
+  "password": "Şifrə",
+  "@password": {
+    "description": "Password field label"
+  },
+  "passwordChangedSuccessfully": "Şifrə uğurla dəyişdirildi",
+  "@passwordChangedSuccessfully": {
+    "description": "Password changed successfully message"
+  },
+  "passwordLock": "Şifrə kilidi",
+  "passwordsDontMatch": "Şifrələr uyğun gəlmir",
+  "passwordsMatch": "Şifrələr uyğun gəlir",
+  "passwordStrength": "Şifrənin gücü: {passwordStrengthValue}",
+  "@passwordStrength": {
+    "description": "Text to indicate the password strength",
+    "placeholders": {
+      "passwordStrengthValue": {
+        "description": "The strength of the password as a string",
+        "type": "String",
+        "example": "Weak or Moderate or Strong"
+      }
+    }
+  },
+  "passwordWarning": "Biz bu şifrəni yadda saxlamırıq, buna görə də şifrənizi unutsanız, <underline>məlumatlarınızın şifrəsini aça bilmərik</underline>",
+  "@passwordWarning": {
+    "description": "Warning about password storage"
+  },
+  "pastYearsMemories": "Ötən illərin xatirələri",
+  "paymentDetails": "Ödəniş məlumatları",
+  "paymentFailed": "Ödəniş uğursuz oldu",
+  "paymentFailedMessage": "Təəssüf ki, ödənişiniz uğursuz oldu. Lütfən dəstək xidməti ilə əlaqə saxlayın, biz sizə kömək edəcəyik!",
+  "paymentFailedTalkToProvider": "Əgər ödəniş balansımdan çıxılıbsa, lütfən {providerName} dəstək xidməti ilə danışın",
+  "@paymentFailedTalkToProvider": {
+    "description": "The text to display when the payment failed",
+    "type": "text",
+    "placeholders": {
+      "providerName": {
+        "example": "AppStore|PlayStore",
+        "type": "String"
+      }
+    }
+  },
+  "pendingSync": "Gözləyən sinxronizasiya",
+  "people": "İnsanlar",
+  "peopleAutoAddDesc": "Seçilmiş insanların şəkillərini avtomatik olaraq bu alboma əlavə et",
+  "@peopleAutoAddDesc": {
+    "description": "The message the copy should convey is that photos or videos containing the selected people's faces will be automatically added to this album"
+  },
+  "permanentlyDelete": "Həmişəlik sil",
+  "permDeleteWarning": "Zibil qutusundakı bütün elementlər birdəfəlik silinəcək\n\nBu əməliyyat geri qaytarıla bilməz",
+  "personIsAge": "{name} şəxsin {age} yaşı var!",
+  "@personIsAge": {
+    "placeholders": {
+      "age": {},
+      "name": {}
+    }
+  },
+  "personTurningAge": "Tezliklə {name} şəxsin {age} yaşı tamam olur",
+  "@personTurningAge": {
+    "placeholders": {
+      "age": {},
+      "name": {}
+    }
+  },
+  "pets": "Tüklü Dostlar",
+  "photoGridSize": "Fotoşəkil şəbəkəsinin ölçüsü",
+  "photos": "Şəkillər",
+  "photosAddedByYouWillBeRemovedFromTheAlbum": "Sizin tərəfinizdən əlavə edilən şəkillər albomdan silinəcək",
+  "photosKeepRelativeTimeDifference": "Şəkillər nisbi vaxt fərqini saxlayır",
+  "pickCenterPoint": "Mərkəz nöqtəsini seçin",
+  "pin": "Sabitlə",
+  "pinPerson": "Şəxsi sabitlə",
+  "playfulKids": "Oynaq uşaqlar",
+  "playOriginal": "Originalı başlat",
+  "playstoreSubscription": "PlayStore abunəliyi",
+  "playStream": "Yayımı başlat",
+  "pleaseCheckYourInternetConnectionAndTryAgain": "Zəhmət olmasa, internet bağlantınızı yoxlayın və yenidən cəhd edin.",
+  "@pleaseCheckYourInternetConnectionAndTryAgain": {
+    "description": "Message asking user to check internet connection"
+  },
+  "pleaseContactSupportIfTheProblemPersists": "Problem davam edərsə, dəstək xidməti ilə əlaqə saxlayın",
+  "pleaseEmailUsAt": "Zəhmət olmasa, bizə {toEmail} ünvanından e-poçt yazın",
+  "@pleaseEmailUsAt": {
+    "placeholders": {
+      "toEmail": {}
+    }
+  },
+  "pleaseGrantPermissions": "Lütfən, icazə verin",
+  "pleaseLoginAgain": "Lütfən, yenidən daxil olun",
+  "pleaseNamePersonInPeopleSectionFirst": "Zəhmət olmasa, əvvəlcə Şəxslər bölməsində bir şəxsə ad verin",
+  "@pleaseNamePersonInPeopleSectionFirst": {
+    "description": "Shown when manual tagging requires at least one named person."
+  },
+  "pleaseSelectQuickLinksToRemove": "Silmək üçün sürətli keçidləri seçin",
+  "pleaseSendTheLogsTo": "Zəhmət olmasa, qeydləri {toEmail} ünvanına göndərin",
+  "@pleaseSendTheLogsTo": {
+    "description": "Message asking user to send logs to email address",
+    "placeholders": {
+      "toEmail": {
+        "type": "String",
+        "description": "Email address to send logs to"
+      }
+    }
+  },
+  "pleaseTryAgain": "Zəhmət olmasa, yenidən cəhd edin",
+  "@pleaseTryAgain": {
+    "description": "Message asking user to try again"
+  },
+  "pleaseVerifyTheCodeYouHaveEntered": "Zəhmət olmasa daxil etdiyiniz kodu doğrulayın",
+  "pleaseWait": "Xahiş olunur gözləyin...",
+  "@pleaseWait": {
+    "description": "Please wait message"
+  },
+  "pleaseWaitDeletingAlbum": "Lütfən gözləyin, albom silinir",
+  "pleaseWaitForSometimeBeforeRetrying": "Yenidən cəhd etməzdən əvvəl bir az gözləyin",
+  "pleaseWaitThisWillTakeAWhile": "Zəhmət olmasa gözləyin, bu bir az vaxt aparacaq.",
+  "posingWithThem": "{name} ilə poz verərkən",
+  "@posingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "preparingLogs": "Qeydlər hazırlanır...",
+  "preserveMore": "Daha çoxunu qoru",
+  "pressAndHoldToPlayVideoDetailed": "Videonu oynatmaq üçün şəklin üzərinə basıb saxlayın",
+  "preview": "Önizləmə",
+  "previous": "Əvvəlki",
+  "privacy": "Məxfilik",
+  "privacyPolicyTitle": "Məxfilik Siyasəti",
+  "@privacyPolicyTitle": {
+    "description": "Privacy policy title"
+  },
+  "proceed": "Davam et",
+  "processed": "Emal edildi",
+  "processingImport": "{folderName} emal olunur...",
+  "@processingImport": {
+    "placeholders": {
+      "folderName": {}
+    }
+  },
+  "publicLinkEnabled": "İctimai link aktiv edildi",
+  "qrCode": "QR kodu",
+  "questionmark": "?",
+  "queued": "Növbəyə alındı",
+  "rainyDays": "Yağışlı gün hissləri",
+  "raiseTicket": "Sorğu göndər",
+  "@raiseTicket": {
+    "description": "Button text for raising a support tickets in case of unhandled errors during backup",
+    "type": "text"
+  },
+  "rateUs": "Bizi qiymətləndirin",
+  "rateUsOnStore": "Bizi {storeName} platformasında qiymətləndirin",
+  "@rateUsOnStore": {
+    "placeholders": {
+      "storeName": {}
+    }
+  },
+  "readyToBackupSubtitle": "Şəkilləriniz arxa planda sinxronizasiya olunacaq. İlk yedəkləmə bir qədər vaxt ala bilər.",
+  "readyToBackupTitle": "Yedəkləməyə hazırdır",
+  "reassignedToName": "Sizi {name} olaraq yenidən təyin etdi",
+  "@reassignedToName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reassigningLoading": "Yenidən təyin edilir...",
+  "reassignMe": "''Mən'' yenidən təyin et",
+  "recent": "Sonuncular",
+  "recover": "Bərpa et",
+  "@recover": {
+    "description": "Recover button label"
+  },
+  "recoverAccount": "Hesabı bərpa et",
+  "@recoverAccount": {
+    "description": "Recover account button label"
+  },
+  "recoverAccountAfter": "{time} vaxtından sonra {email} hesabını bərpa edə bilərsiniz.",
+  "@recoverAccountAfter": {
+    "description": "Message when recovery is waiting",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "recoverAccountDesc": "Bərpa prosesini başlatdıqdan {days} gün sonra {email} hesabını bərpa edə bilərsiniz.",
+  "@recoverAccountDesc": {
+    "description": "Description for recover account page when recovery not started",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "recoveryInitiated": "Bərpa başladıldı",
+  "recoveryInitiatedDesc": "Hesaba {days} gündən sonra daxil ola bilərsiniz. {email} ünvanına bildiriş göndəriləcək.",
+  "@recoveryInitiatedDesc": {
+    "placeholders": {
+      "days": {
+        "type": "int",
+        "example": "30"
+      },
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      }
+    }
+  },
+  "recoveryKey": "Bərpa açarı",
+  "@recoveryKey": {
+    "description": "Recovery key label"
+  },
+  "recoveryKeyCopiedToClipboard": "Bərpa açarı müvəqqəti yaddaşa kopyalandı",
+  "@recoveryKeyCopiedToClipboard": {
+    "description": "Recovery key copied message"
+  },
+  "recoveryKeyOnForgotPassword": "Şifrənizi unutsanız, məlumatlarınızı bərpa etməyin yeganə yolu bu açardır.",
+  "@recoveryKeyOnForgotPassword": {
+    "description": "Recovery key importance explanation"
+  },
+  "recoveryKeySaveShortDescription": "Zəhmət olmasa, bu açarı təhlükəsiz yerdə saxlayın.",
+  "recoveryKeySuccessBody": "Əla! Bərpa açarınız keçərlidir. Təsdiqlədiyiniz üçün təşəkkür edirik.\n​Zəhmət olmasa, bərpa açarınızın təhlükəsiz yerdə ehtiyat nüsxəsini saxlamağı unutmayın.",
+  "recoveryKeyVerified": "Bərpa açarı doğrulandı",
+  "recoveryKeyVerifyReason": "Bərpa açarınız, şifrənizi unutduğunuz halda şəkillərinizi geri qaytarmağın yeganə yoludur. Bərpa açarınızı Ayarlar > Hesab bölməsində tapa bilərsiniz.\n\n​Onu düzgün yadda saxladığınızdan əmin olmaq üçün, zəhmət olmasa, bərpa açarınızı bura daxil edin.",
+  "recoveryReady": "İndi yeni şifrə təyin edərək {email} hesabını bərpa edə bilərsiniz.",
+  "@recoveryReady": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      }
+    }
+  },
+  "recoverySuccessful": "Bərpa uğurludur!",
+  "recoveryWarning": "Etibarlı əlaqə hesabınıza daxil olmağa çalışır",
+  "recoveryWarningBody": "{email} hesabınızı bərpa etməyə çalışır.",
+  "@recoveryWarningBody": {
+    "placeholders": {
+      "email": {}
+    }
+  },
+  "recreatePasswordBody": "Mövcud cihaz şifrənizi təsdiqləmək üçün kifayət qədər güclü deyil, lakin biz onu bütün cihazlarda işləyəcək şəkildə yenidən yarada bilərik.\n\n​Xahiş olunur bərpa açarınızdan istifadə edərək daxil olun və şifrənizi yenidən təyin edin (istəsəniz, yenidən eyni şifrədən istifadə edə bilərsiniz).",
+  "@recreatePasswordBody": {
+    "description": "Body text for recreate password dialog"
+  },
+  "recreatePasswordTitle": "Şifrəni yenidən təyin edin",
+  "@recreatePasswordTitle": {
+    "description": "Title for recreate password dialog"
+  },
+  "recreateStream": "Yayımı yenidən yaradın",
+  "redo": "İrəli al",
+  "referralCodeHint": "Bu kodu 3 dəfəyə qədər fərdiləşdirə bilərsiniz",
+  "referrals": "Tövsiyələr",
+  "referralsAreCurrentlyPaused": "Referallar hazırda dayandırılıb",
+  "referralStats": "Referal statistikası",
+  "referralStorageForBoth": "Onlar üçün {storageAmountInGB} GB + onlar abunəliklərini yüksəltdikdə sizin üçün {storageAmountInGB} GB.",
+  "@referralStorageForBoth": {
+    "placeholders": {
+      "storageAmountInGB": {}
+    }
+  },
+  "referralStorageInfo": "Ödənişli abunəçilərdən gələn referallar bonus yaddaş qazandırır.\n\nYaddaşdan plan limitinizə qədər istifadə edə bilərsiniz. Qalan qazanılmış yaddaşdan istifadə etmək üçün planınızı yüksəldin.",
+  "rejectRecovery": "Bərpanı rədd et",
+  "rejectSuggestions": "Təklifləri rədd edin",
+  "related": "Əlaqəli",
+  "remindToEmptyDeviceTrash": "Azad edilmiş sahəni əldə etmək üçün \"Parametrlər\" -> \"Yaddaş\" bölməsindən \"Son silinənlər\"i də boşaldın",
+  "remindToEmptyEnteTrash": "Azad edilmiş sahəni əldə etmək üçün \"Zibil qutusu\"nu da boşaldın",
+  "remoteImages": "Uzaqdakı şəkillər",
+  "remoteThumbnails": "Uzaqdakı kiçik şəkillər",
+  "remoteVideos": "Uzaqdakı videolar",
+  "remove": "Sil",
+  "removeContact": "Kontaktı silin",
+  "@removeContact": {
+    "description": "Button label to remove a trusted contact"
+  },
+  "removeContactDesc": "Bu kontaktı silsəniz, yeni dəvət göndərməli olacaqsınız və həmin şəxs dəvəti yenidən qəbul etməli olacaq.",
+  "@removeContactDesc": {
+    "description": "Description for remove contact confirmation dialog"
+  },
+  "removeFromAlbum": "Albomdan sil",
+  "removeFromAlbumTitle": "Albomdan silinsin?",
+  "removeFromFavorite": "Seçilmişlərdən sil",
+  "removeLink": "Linki sil",
+  "removeParticipant": "İştirakçını sil",
+  "@removeParticipant": {
+    "description": "menuSectionTitle for removing a participant"
+  },
+  "removePersonLabel": "Şəxs etiketini sil",
+  "removePersonTag": "Şəxs teqini sil",
+  "removePublicLink": "İctimai linki sil",
+  "removePublicLinks": "İctimai linkləri sil",
+  "removeShareItemsWarning": "Seçilmiş fotolar, foto sahibləri istisna olmaqla, bu albomun heç bir izləyicisi üçün əlçatan olmayacaq.",
+  "removeWithQuestionMark": "Silinsin?",
+  "removeYourselfDesc": "Özünüzü etibarlı kontakt siyahısından silsəniz, qeyri-aktivlik müddəti bitdikdən sonra {email} hesabına giriş imkanınızı itirəcəksiniz.",
+  "@removeYourselfDesc": {
+    "description": "Description for remove yourself as trusted contact confirmation dialog",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "removingFromFavorites": "Seçilmişlərdən silinir...",
+  "rename": "Adı dəyiş",
+  "renameAlbum": "Albomun adını dəyiş",
+  "renameFile": "Faylın adını dəyiş",
+  "renewsOn": "Abunəlik bu tarixdə yenilənir: {endDate}",
+  "@renewsOn": {
+    "placeholders": {
+      "endDate": {}
+    }
+  },
+  "renewSubscription": "Abunəliyi yenilə",
+  "reply": "Cavabla",
+  "@reply": {
+    "description": "Reply action button label"
+  },
+  "replyingTo": "{name} adlı istifadəçiyə cavab verir",
+  "@replyingTo": {
+    "description": "Label when replying to someone's comment",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "replyingToYou": "Sizə cavab verir",
+  "@replyingToYou": {
+    "description": "Label when replying to own comment"
+  },
+  "reportABug": "Xəta barədə məlumat verin",
+  "@reportABug": {
+    "description": "Label for reporting a bug"
+  },
+  "resendCode": "Kodu yenidən göndər",
+  "reset": "Sıfırla",
+  "resetIgnoredFiles": "Nəzərə alınmayan faylları sıfırla",
+  "resetPasswordTitle": "Şifrəni sıfırla",
+  "@resetPasswordTitle": {
+    "description": "Reset password title"
+  },
+  "resetToDefault": "Standart parametrlərə qaytar",
+  "@resetToDefault": {
+    "description": "Button text to reset cover photo to default"
+  },
+  "restore": "Bərpa et",
+  "@restore": {
+    "description": "Display text for an action which triggers a restore of item from trash",
+    "type": "text"
+  },
+  "restoreToAlbum": "Alboma bərpa et",
+  "restoringFiles": "Fayllar bərpa olunur...",
+  "resumableUploads": "Davam etdirilə bilən yükləmələr",
+  "review": "Baxış",
+  "reviewSuggestions": "Təkliflərə baxın",
+  "revokeInvite": "Dəvəti geri alın",
+  "@revokeInvite": {
+    "description": "Button label to revoke a pending trusted contact invite"
+  },
+  "right": "Sağ",
+  "ritualAddedToAlbum": "Alboma əlavə edildi",
+  "ritualAddedToAlbumWithName": "{albumName} albomuna əlavə edildi",
+  "@ritualAddedToAlbumWithName": {
+    "placeholders": {
+      "albumName": {
+        "type": "String",
+        "description": "The target album name"
+      }
+    }
+  },
+  "ritualAddToAlbumFailure": "Şəkilləri alboma əlavə etmək mümkün olmadı: {error}",
+  "@ritualAddToAlbumFailure": {
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "description": "Error message for album add failure"
+      }
+    }
+  },
+  "ritualAddTooltip": "Ritual əlavə et",
+  "ritualAlbumLabel": "Albom",
+  "ritualAlbumMissing": "Ritual albomu çatışmır. Albom təyin etmək üçün ritualı redaktə edin.",
+  "ritualAlbumNotSet": "Albom təyin edilməyib",
+  "ritualAlbumSelectionPlaceholder": "Albom seçin",
+  "ritualBackToList": "Rituallara qayıt",
+  "ritualCameraNotFound": "Bu cihazda kamera tapılmadı.",
+  "ritualCaptureAtLeastOne": "Öncə ən azı bir şəkil çəkin.",
+  "ritualCaptureError": "Şəkil çəkmək mümkün olmadı. Zəhmət olmasa, yenidən cəhd edin.",
+  "ritualChooseAlbumLabel": "Albom seçin",
+  "ritualChooseDaysLabel": "Ritual üçün günləri seçin",
+  "ritualCreateAction": "Ritual yaradın",
+  "ritualCreateNewTitle": "Yeni ritual yarat",
+  "ritualCreateYourOwn": "Öz ritualını yarat",
+  "ritualCustomKeyboardLabel": "Xüsusi (klaviatura)",
+  "ritualDefaultCameraTitle": "Şəkil çək",
+  "ritualEdit": "Ritualı redaktə et",
+  "ritualEditorLabel": "Ritual redaktoru",
+  "ritualEmojiKeyboardHint": "Emoji klaviaturasını açmaq üçün basın",
+  "ritualEmojiUseAction": "İstifadə et",
+  "ritualEnterDescription": "Zəhmət olmasa, təsvir daxil edin",
+  "ritualEnterPrompt": "Ritualınızı daxil edin",
+  "ritualGetDailyReminders": "Gündəlik xatırlatmalar al",
+  "ritualNoAlbumsYet": "Hələ albom yoxdur",
+  "ritualNoMatchingAlbums": "Uyğun gələn albom yoxdur",
+  "ritualNoPhotosYet": "Hələ şəkil yoxdur",
+  "ritualNotificationMessage": "İndi şəkil çək",
+  "ritualNotificationsOffHint": "Bildirişlər söndürülüb. Aktivləşdirmək üçün bir günə toxunun.",
+  "ritualOpenCameraTooltip": "Ritual kamerasını aç",
+  "ritualPhotoLimit": "Ən çox {maxPhotos, plural, one{# şəkil.} other{# şəkil.}} əlavə edə bilərsiniz",
+  "@ritualPhotoLimit": {
+    "placeholders": {
+      "maxPhotos": {
+        "type": "int",
+        "description": "Maximum number of photos allowed"
+      }
+    }
+  },
+  "ritualPickEmojiTitle": "Emoji seçin",
+  "ritualSearchEmpty": "Şəkil çəkmə vərdişinizi davam etdirmək üçün bir ritual qurun.",
+  "ritualSelectAlbumTitle": "Albom seçin",
+  "ritualSendReminderLabel": "Xatırlatma göndər",
+  "ritualSetAlbumToLaunchCamera": "Kameranı başlatmaq üçün bu rituala bir albom təyin edin.",
+  "ritualShareUnavailable": "Hazırda paylaşmaq mümkün deyil. Zəhmət olmasa, yenidən cəhd edin.",
+  "ritualsTitle": "Rituallar",
+  "ritualUntitled": "Adsız ritual",
+  "ritualUpdate": "Ritualı yenilə",
+  "riverCruises": "Çay kruizi mənzərələri",
+  "roadtripWithThem": "{name} ilə səyahət",
+  "@roadtripWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "rotate": "Döndər",
+  "sameperson": "Eyni şəxsdir?",
+  "save": "Saxla",
+  "@save": {
+    "description": "Label for save button"
+  },
+  "saveAsAnotherPerson": "Başqa bir şəxs kimi saxla",
+  "saveChangesBeforeLeavingQuestion": "Çıxmazdan əvvəl dəyişikliklər yadda saxlanılsın?",
+  "saveCode": "Kodu saxla",
+  "saveCollage": "Kollajı yadda saxla",
+  "saveCopy": "Kopiyanı saxla",
+  "saveKey": "Açarı yadda saxla",
+  "@saveKey": {
+    "description": "Save key button label"
+  },
+  "savePerson": "Şəxsi yadda saxla",
+  "saveYourRecoveryKeyIfYouHaventAlready": "Əgər hələ də etməmisinizsə, bərpa açarınızı yadda saxlayın",
+  "saving": "Saxlanılır...",
+  "savingEdits": "Redaktələr yadda saxlanılır...",
+  "scanCode": "Kodu skan edin",
+  "scanThisBarcodeWithnyourAuthenticatorApp": "Bu barkodu autentifikator tətbiqinizlə skan edin",
+  "search": "Axtarış",
+  "searchAlbumsEmptySection": "Albomlar",
+  "searchByAlbumNameHint": "Albom adı",
+  "searchDiscoverEmptySection": "Emal və sinxronizasiya başa çatdıqdan sonra şəkillər burada göstəriləcək",
+  "searchFileTypesAndNamesEmptySection": "Fayl növləri və adları",
+  "searchHint1": "Cihaz daxili sürətli axtarış",
+  "searchHint2": "Şəkil tarixləri, təsvirlər",
+  "searchHint3": "Albomlar, fayl adları və növləri",
+  "searchHint4": "Məkan",
+  "searchHint5": "Tezliklə: Üzlər və sehrli axtarış ✨",
+  "searchLocationEmptySection": "Şəklin müəyyən radiusunda çəkilmiş şəkilləri qruplaşdırın",
+  "searchPeopleEmptySection": "İnsanları dəvət edin və onların paylaşdığı bütün şəkilləri burada görəcəksiniz",
+  "searchPersonsEmptySection": "Emal və sinxronizasiya bitdikdən sonra şəxslər burada görünəcək",
+  "searchResultCameraMake": "Kamera markası",
+  "@searchResultCameraMake": {
+    "description": "Search result subtitle label for camera make matches"
+  },
+  "searchResultCameraModel": "Kamera modeli",
+  "@searchResultCameraModel": {
+    "description": "Search result subtitle label for camera model matches"
+  },
+  "searchResultCount": "{count, plural, one{{count} nəticə tapıldı} other{{count} nəticə tapıldı}}",
+  "@searchResultCount": {
+    "description": "Text to tell user how many results were found for their search query",
+    "placeholders": {
+      "count": {
+        "example": "1|2|3",
+        "type": "int"
+      }
+    }
+  },
+  "searchResultDescription": "Təsvir",
+  "@searchResultDescription": {
+    "description": "Search result subtitle label for description matches"
+  },
+  "searchResultFileExtension": "Fayl uzantısı",
+  "@searchResultFileExtension": {
+    "description": "Search result subtitle label for file extension matches"
+  },
+  "searchResultFileName": "Fayl adı",
+  "@searchResultFileName": {
+    "description": "Search result subtitle label for file name matches"
+  },
+  "searchResultPerson": "Şəxs",
+  "@searchResultPerson": {
+    "description": "Search result subtitle label for person results"
+  },
+  "searchResultType": "Növ",
+  "@searchResultType": {
+    "description": "Search result subtitle label for file type matches"
+  },
+  "searchResultUploadedBy": "Yüklədi",
+  "@searchResultUploadedBy": {
+    "description": "Search result subtitle label for uploader results"
+  },
+  "searchSectionsLengthMismatch": "Bölmələrin uzunluğu uyğun gəlmir: {snapshotLength} != {searchLength}",
+  "@searchSectionsLengthMismatch": {
+    "description": "Appears in search tab page",
+    "placeholders": {
+      "searchLength": {
+        "type": "int",
+        "example": "2"
+      },
+      "snapshotLength": {
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "searchSettings": "Axtarış tənzimləmələri",
+  "security": "Təhlükəsizlik",
+  "seePublicAlbumLinksInApp": "İctimai albom linklərini tətbiqdə gör",
+  "selectAlbumsToBackUpToEnte": "Ente yedəkləmək üçün albomları seçin",
+  "selectAlbumToLikePhoto": "Bu şəkli bəyənmək üçün albom seçin",
+  "@selectAlbumToLikePhoto": {
+    "description": "Instruction for liking photo"
+  },
+  "selectAlbumToLikeVideo": "Bu videonu bəyənmək üçün albom seçin",
+  "@selectAlbumToLikeVideo": {
+    "description": "Instruction for liking video"
+  },
+  "selectAll": "Hamısını seç",
+  "selectAllShort": "Bütün",
+  "@selectAllShort": {
+    "description": "Text that appears in bottom right when you start to select multiple photos. When clicked, it selects all photos."
+  },
+  "selectALocation": "Məkan seçin",
+  "selectALocationFirst": "Əvvəlcə bir məkan seçin",
+  "selectCoverPhoto": "Üz qabığı şəklini seçin",
+  "selectDate": "Tarixi seçin",
+  "selectedAlbums": "{count} seçildi",
+  "@selectedAlbums": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "selectedFilesAreNotOnEnte": "Seçilmiş fayllar Ente-də deyil",
+  "selectedItemsWillBeRemovedFromThisPerson": "Seçilmiş elementlər bu şəxsdən silinəcək, lakin kitabxananızdan silinməyəcək.",
+  "selectedPhotos": "{count} seçildi",
+  "@selectedPhotos": {
+    "description": "Display the number of selected photos",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "5",
+        "type": "int"
+      }
+    }
+  },
+  "selectedPhotosWithYours": "{count} seçildi ({yourCount} sizindir)",
+  "@selectedPhotosWithYours": {
+    "description": "Display the number of selected photos, including the number of selected photos owned by the user",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "12",
+        "type": "int"
+      },
+      "yourCount": {
+        "example": "2",
+        "type": "int"
+      }
+    }
+  },
+  "selectFolders": "Qovluqları seçin",
+  "selectItemsToAdd": "Əlavə etmək üçün elementləri seçin",
+  "selectLanguage": "Dil seçin",
+  "selectMailApp": "Poçt tətbiqini seçin",
+  "selectMorePhotos": "Daha çox şəkil seçin",
+  "selectOneDateAndTime": "Bir tarix və vaxt seçin",
+  "selectOneDateAndTimeForAll": "Hamısı üçün bir tarix və vaxt seçin",
+  "selectStartOfRange": "Aralığın başlanğıcını seçin",
+  "selectTime": "Vaxtı seçin",
+  "selectYourFace": "Üzünüzü seçin",
+  "selfiesWithThem": "{name} ilə selfilər",
+  "@selfiesWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "send": "Göndər",
+  "@send": {
+    "description": "Label for send button"
+  },
+  "sendInvite": "Dəvət göndər",
+  "sendLink": "Linki göndər",
+  "sendQrCode": "QR kodu göndər",
+  "serverEndpoint": "Server son nöqtəsi",
+  "@serverEndpoint": {
+    "description": "Label for server endpoint setting"
+  },
+  "sessionExpired": "Sessiyanın vaxtı bitdi",
+  "@sessionExpired": {
+    "description": "Error message when session has expired"
+  },
+  "sessionIdMismatch": "Sessiya ID uyğunsuzluğu",
+  "@sessionIdMismatch": {
+    "description": "In passkey page, deeplink is ignored because of session ID mismatch."
+  },
+  "setAPassword": "Şifrə təyin et",
+  "setAs": "Belə təyin et",
+  "setCover": "Üz qabığı təyin et",
+  "@setCover": {
+    "description": "Text to set cover photo for an album"
+  },
+  "setLabel": "Təyin et",
+  "@setLabel": {
+    "description": "Label of confirm button to add a new custom radius to the radius selector of a location tag"
+  },
+  "setPasswordTitle": "Şifrəni təyin edin",
+  "@setPasswordTitle": {
+    "description": "Set password title"
+  },
+  "setRadius": "Radiusu təyin et",
+  "setupComplete": "Quraşdırma tamamlandı",
+  "share": "Paylaş",
+  "shareALink": "Link paylaş",
+  "shareKey": "Açarı paylaş",
+  "shareLink": "Linki paylaş",
+  "shareWithNonenteUsers": "Ente istifadəçisi olmayanlarla paylaş",
+  "sharing": "Paylaşılır...",
+  "shiftDatesAndTime": "Tarixləri və vaxtı sürüşdürün",
+  "shouldRemoveFilesSmartAlbumsDesc": "Ağıllı albomlarda əvvəllər seçilmiş şəxslə bağlı fayllar silinsin?",
+  "showIgnored": "İqnor edilənləri göstər",
+  "showInMemories": "Xatirələrdə göstər",
+  "showLessFaces": "Daha az üz göstər",
+  "showMemories": "Xatirələri göstər",
+  "showMoreFaces": "Daha çox üz göstər",
+  "showPerson": "Şəxsi göstər",
+  "signOutFromOtherDevices": "Digər cihazlardan çıxış et",
+  "@signOutFromOtherDevices": {
+    "description": "Sign out from other devices title"
+  },
+  "signOutOtherBody": "Əgər kiminsə şifrənizi bildiyini düşünürsünüzsə, hesabınızı istifadə edən bütün digər cihazları çıxış etməyə məcbur edə bilərsiniz.",
+  "@signOutOtherBody": {
+    "description": "Sign out other devices explanation"
+  },
+  "signOutOtherDevices": "Digər cihazları çıxış et",
+  "@signOutOtherDevices": {
+    "description": "Sign out other devices button label"
+  },
+  "signUp": "Qeydiyyatdan keçin",
+  "signUpTerms": "Mən <u-terms>xidmət şərtləri</u-terms> və <u-policy>məxfilik siyasəti</u-policy> ilə razıyam",
+  "@signUpTerms": {
+    "description": "Terms agreement text for sign up"
+  },
+  "similar": "Oxşar",
+  "similarImages": "Oxşar şəkillər",
+  "similarImagesCount": "{count} oxşar şəkil",
+  "@similarImagesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "skip": "Ötür",
+  "smartMemories": "Ağıllı xatirələr",
+  "snowAdventures": "Qış macəraları",
+  "socialNotifications": "Bəyənmələr və şərhlər",
+  "someoneSharingAlbumsWithYouShouldSeeTheSameId": "Sizinlə albom paylaşan şəxs öz cihazında eyni ID-ni görməlidir.",
+  "somethingWentWrong": "Xəta baş verdi",
+  "somethingWentWrongPleaseTryAgain": "Xəta baş verdi, xahiş olunur yenidən cəhd edin",
+  "@somethingWentWrongPleaseTryAgain": {
+    "description": "Generic error message"
+  },
+  "sorry": "Bağışlayın",
+  "sorryBackupFailedDesc": "Bağışlayın, bu faylı hal-hazırda yedəkləyə bilmədik, bir az sonra yenidən cəhd edəcəyik.",
+  "sorryCouldNotAddToFavorites": "Bağışlayın, seçilmişlərə əlavə etmək mümkün olmadı!",
+  "sorryCouldNotRemoveFromFavorites": "Bağışlayın, seçilmişlərdən silmək mümkün olmadı!",
+  "sorryTheCodeYouveEnteredIsIncorrect": "Bağışlayın, daxil etdiyiniz kod yanlışdır",
+  "@sorryTheCodeYouveEnteredIsIncorrect": {
+    "description": "Detailed error message when code is incorrect"
+  },
+  "sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": "Təəssüf ki, bu cihazda təhlükəsiz açarlar yaradıla bilmədi.\n\n​Lütfən, başqa bir cihazdan qeydiyyatdan keçin.",
+  "@sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": {
+    "description": "Error message for insecure device"
+  },
+  "sorryWeHadToPauseYourBackups": "Üzr istəyirik, ehtiyat nüsxələməni dayandırmalı olduq",
+  "sort": "Sırala",
+  "sortAlbumsBy": "Çeşidlə",
+  "sortAToZ": "A-Z",
+  "sortNewestFirst": "Əvvəlcə ən yeni",
+  "sortOldestFirst": "Əvvəlcə ən köhnə",
+  "sortZToA": "Z-A",
+  "sportsAction": "Oyun başladı",
+  "sportsWithThem": "{name} ilə idman",
+  "@sportsWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "spotlightOnThem": "Diqqət mərkəzində {name}",
+  "@spotlightOnThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "spotlightOnYourself": "Diqqət mərkəzində özünüz",
+  "stargazing": "Ulduzlar altında",
+  "startBackup": "Yedəkləməyə Bakup başla",
+  "startRecovery": "Bərpanı başladın",
+  "startRecoveryDesc": "{email} hesabının bərpasını başlatmaq istədiyinizə əminsiniz?",
+  "@startRecoveryDesc": {
+    "description": "Description for start recovery confirmation dialog",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "sticker": "Stiker",
+  "stopCastingBody": "Yayımı dayandırmaq istəyirsiniz?",
+  "stopCastingTitle": "Yayımı dayandır",
+  "storage": "Yaddaş",
+  "storageBreakupFamily": "Ailə",
+  "storageBreakupYou": "Sən",
+  "@storageBreakupYou": {
+    "description": "Label to indicate how much storage you are using when you are part of a family plan"
+  },
+  "storageClaimed": "{storageAmountInGB} GB əldə edildi!",
+  "@storageClaimed": {
+    "placeholders": {
+      "storageAmountInGB": {}
+    }
+  },
+  "storageLimitExceeded": "Yaddaş limiti keçilib",
+  "streamDetails": "Yayım detalları",
+  "streetArt": "Küçə sənəti hekayələri",
+  "streetFood": "Küçə yeməkləri",
+  "strongPassword": "Güclü şifrə",
+  "strongStrength": "Güclü",
+  "@strongStrength": {
+    "description": "Strong password strength label"
+  },
+  "subscribe": "Abunə ol",
+  "subscribeToChangeLinkSetting": "Bu link parametrini dəyişmək üçün ödənişli abunəlik lazımdır.",
+  "subscribeToEnableSharing": "Paylaşımı aktiv etmək üçün aktiv ödənişli abunəliyiniz olmalıdır.",
+  "subscription": "Abunəlik",
+  "subWillBeCancelledOn": "Abunəliyiniz {endDate} tarixində ləğv ediləcək",
+  "@subWillBeCancelledOn": {
+    "placeholders": {
+      "endDate": {}
+    }
+  },
+  "success": "Uğurlu",
+  "successfullyArchived": "Uğurla arxivləndi",
+  "successfullyHid": "Uğurla gizlədildi",
+  "successfullyUnarchived": "Uğurla arxivdən çıxarıldı",
+  "successfullyUnhid": "Uğurla gizliddən çıxarıldı",
+  "suggestDeletion": "Silinməni təklif et",
+  "suggestDeletionDescription": "Seçilmiş şəkillər bu albomdan silinəcək. Şəkil sahiblərinə də şəkilləri nəzərdən keçirmək və silmək üçün təklif göndəriləcək.",
+  "suggestFeatures": "Özəlliklər təklif et",
+  "suggestions": "Təkliflər",
+  "sunrise": "Üfüqdə",
+  "support": "Dəstək",
+  "syncing": "Sinxronizasiya edilir...",
+  "syncProgress": "{completed}/{total} xatirə qorundu",
+  "@syncProgress": {
+    "description": "Text to tell user how many memories have been preserved",
+    "placeholders": {
+      "completed": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "syncStopped": "Sinxronizasiya dayandırıldı",
+  "systemTheme": "Sistem",
+  "tapToCopy": "kopyalamaq üçün toxunun",
+  "tapToUpload": "Yükləmək üçün toxunun",
+  "@tapToUpload": {
+    "description": "Shown in upload icon widet, inside a tooltip."
+  },
+  "tapToUploadIsIgnoredDue": "Yükləmək üçün toxunun, yükləmə hazırda {ignoreReason} səbəbindən rədd edilir",
+  "@tapToUploadIsIgnoredDue": {
+    "description": "Shown in upload icon widet, inside a tooltip.",
+    "placeholders": {
+      "ignoreReason": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
+  },
+  "tempErrorContactSupportIfPersists": "Görünür, nəsə yanlış getdi. Zəhmət olmasa, bir müddət sonra yenidən cəhd edin. Xəta davam edərsə, dəstək komandamızla əlaqə saxlayın.",
+  "terminate": "Dayandır",
+  "@terminate": {
+    "description": "Terminate button label"
+  },
+  "terminateSession": "Sessiya sonlandırılsın?",
+  "@terminateSession": {
+    "description": "Title for terminate session dialog"
+  },
+  "termsOfServicesTitle": "Şərtlər",
+  "@termsOfServicesTitle": {
+    "description": "Terms of service title"
+  },
+  "thankYou": "Təşəkkür edirik",
+  "thankYouForSubscribing": "Abunə olduğunuz üçün təşəkkür edirik!",
+  "theLinkYouAreTryingToAccessHasExpired": "Daxil olmağa çalışdığınız linkin vaxtı bitib.",
+  "theme": "Mövzu",
+  "thePersonGroupsWillNotBeDisplayed": "Şəxs qrupları artıq insanlar bölməsində göstərilməyəcək. Fotolara toxunulmayacaq.",
+  "thePersonWillNotBeDisplayed": "Şəxs artıq insanlar bölməsində göstərilməyəcək. Fotolara toxunulmayacaq.",
+  "theRecoveryKeyYouEnteredIsIncorrect": "Daxil etdiyiniz bərpa açarı yanlışdır",
+  "@theRecoveryKeyYouEnteredIsIncorrect": {
+    "description": "Detailed error message when recovery key is incorrect"
+  },
+  "theseItemsWillBeDeletedFromYourDevice": "Bu elementlər cihazınızdan silinəcək.",
+  "thisCanBeUsedToRecoverYourAccountIfYou": "İkinci faktorunuzu 2FA itirdiyiniz təqdirdə, bu, hesabınızı bərpa etmək üçün istifadə edilə bilər",
+  "thisDevice": "Bu cihaz",
+  "@thisDevice": {
+    "description": "Label for current device"
+  },
+  "thisEmailIsAlreadyInUse": "Bu e-poçt artıq istifadə olunur",
+  "@thisEmailIsAlreadyInUse": {
+    "description": "Error message when email is already in use"
+  },
+  "thisImageHasNoExifData": "Bu şəkildə exif məlumatı yoxdur",
+  "thisIsMeExclamation": "Bu mənəm!",
+  "thisIsPersonVerificationId": "Bu, {email} ünvanının Doğrulama ID-sidir",
+  "@thisIsPersonVerificationId": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@ente.com"
+      }
+    }
+  },
+  "thisIsYourVerificationId": "Bu sizin Doğrulama ID-nizdir",
+  "thisMonth": "Bu ay",
+  "thisWeek": "Bu həftə",
+  "thisWeekThroughTheYears": "İllər ərzində bu həftə",
+  "thisWillLogYouOutOfTheFollowingDevice": "Bu, sizi aşağıdakı cihazdan çıxış etdirəcək:",
+  "@thisWillLogYouOutOfTheFollowingDevice": {
+    "description": "Warning message for logging out of another device"
+  },
+  "thisWillLogYouOutOfThisDevice": "Bu, sizi bu cihazdan çıxış etdirəcək!",
+  "@thisWillLogYouOutOfThisDevice": {
+    "description": "Warning message for logging out of current device"
+  },
+  "thisWillMakeTheDateAndTimeOfAllSelected": "Bu, seçilmiş bütün şəkillərin tarix və vaxtını eyniləşdirəcək.",
+  "thisYear": "Bu il",
+  "throughTheYears": "İllər ərzində {dateFormat}",
+  "@throughTheYears": {
+    "placeholders": {
+      "dateFormat": {}
+    }
+  },
+  "todaysLogs": "Bugünün qeydləri",
+  "toEnableAppLockPleaseSetupDevicePasscodeOrScreen": "Tətbiq kilidini aktivləşdirmək üçün zəhmət olmasa sistem parametrlərində cihaz şifrəsini və ya ekran kilidini quraşdırın.",
+  "tooManyIncorrectAttempts": "Çox sayda yanlış cəhd",
+  "@tooManyIncorrectAttempts": {
+    "description": "Message shown when too many incorrect attempts are made"
+  },
+  "toResetVerifyEmail": "Şifrənizi sıfırlamaq üçün, lütfən, əvvəlcə e-poçt ünvanınızı təsdiqləyin.",
+  "@toResetVerifyEmail": {
+    "description": "Message asking user to verify email before password reset"
+  },
+  "totalSize": "Ümumi ölçü",
+  "trash": "Zibil qutusu",
+  "trim": "Kəs",
+  "tripInYear": "{year}-ci ildə səyahət",
+  "@tripInYear": {
+    "placeholders": {
+      "year": {}
+    }
+  },
+  "tripToLocation": "{location} yerinə səyahət",
+  "@tripToLocation": {
+    "placeholders": {
+      "location": {}
+    }
+  },
+  "tropicalParadise": "Tropik qaçışlar",
+  "trustedContactAccepted": "Siz {email} ünvanını etibarlı kontakt olmaq üçün əlavə etmisiniz. Onlar dəvətinizi qəbul ediblər.",
+  "@trustedContactAccepted": {
+    "description": "Description shown when a trusted contact has accepted the invite",
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@example.com"
+      }
+    }
+  },
+  "trustedContactInvitePending": "Siz {email} ünvanını etibarlı kontakt olmaq üçün dəvət etmisiniz. Onlar hələ dəvətinizi qəbul etməyiblər.",
+  "@trustedContactInvitePending": {
+    "description": "Description shown when a trusted contact invite is pending",
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@example.com"
+      }
+    }
+  },
+  "trustedContacts": "Etibarlı əlaqələr",
+  "tryAgain": "Yenidən cəhd et",
+  "@tryAgain": {
+    "description": "Try again button label"
+  },
+  "twofactor": "İki faktorlu",
+  "twofactorAuthenticationHasBeenDisabled": "İki faktorlu kimlik təsdiqi dövriyyədən çıxarıldı",
+  "twofactorAuthenticationSuccessfullyReset": "İki faktorlu kimlik təsdiqi uğurla sıfırlandı",
+  "@twofactorAuthenticationSuccessfullyReset": {
+    "description": "Message when two-factor authentication is successfully reset"
+  },
+  "twoFactorAuthTitle": "İki-mərhələli autentifikasiya",
+  "@twoFactorAuthTitle": {
+    "description": "Two-factor authentication title"
+  },
+  "twofactorSetup": "İki-mərhələli quraşdırma",
+  "twoFAVerification": "2FA doğrulaması",
+  "typeOfGallerGallerytypeIsNotSupportedForRename": "{galleryType} qalereya növü ad dəyişdirmə üçün dəstəklənmir",
+  "@typeOfGallerGallerytypeIsNotSupportedForRename": {
+    "placeholders": {
+      "galleryType": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
+  },
+  "unarchiveAlbum": "Albomu arxivdən çıxar",
+  "unarchiving": "Arxivdən çıxarılır...",
+  "uncategorized": "Kateqoriyasız",
+  "undo": "Geri al",
+  "unhide": "Gizlilikdən çıxar",
+  "unhideToAlbum": "Albomda gizlilikdən çıxar",
+  "unhiding": "Gizliddən çıxarılır...",
+  "unhidingFilesToAlbum": "Fayllar albomda gizlilikdən çıxarılır",
+  "unlock": "Kilidi aç",
+  "@unlock": {
+    "description": "Short action label used as the system authentication reason when unlocking the app"
+  },
+  "unnamedPeopleDoingSomethingTogether": "Birlikdə edirik",
+  "unnamedPeopleSpotlight": "Tanış sima",
+  "unnamedPeopleYouAndThem": "Siz ikiniz",
+  "unpin": "Sabitdən çıxar",
+  "unpinPerson": "Şəxsi sabitdən çıxar",
+  "unselectAll": "Hamısını ləğv et",
+  "updateAvailable": "Yenilənmə mövcuddur",
+  "updated": "Yeniləndi",
+  "updateSettings": "Parametrləri yenilə",
+  "updateTime": "Vaxtı yeniləyin",
+  "@updateTime": {
+    "description": "Button label to update the recovery time for a trusted contact"
+  },
+  "updatingFolderSelection": "Qovluq seçimi yenilənir...",
+  "upgrade": "Yüksəlt",
+  "uploadingFilesToAlbum": "Fayllar alboma yüklənir...",
+  "uploadingMultipleMemories": "{count} xatirə qorunur...",
+  "@uploadingMultipleMemories": {
+    "description": "Text to tell user how many memories are being preserved",
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "uploadingSingleMemory": "1 xatirə qorunur...",
+  "uploadIsIgnoredDueToIgnorereason": "{ignoreReason} səbəbindən yükləmə rədd edildi",
+  "@uploadIsIgnoredDueToIgnorereason": {
+    "placeholders": {
+      "ignoreReason": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
+  },
+  "usable": "istifadə edilə bilən",
+  "useAsCover": "Üzlük kimi istifadə et",
+  "usedSpace": "İstifadə edilmiş sahə",
+  "usedYourCode": "kodunuzu istifadə etdi",
+  "useRecoveryKey": "Bərpa açarından istifadə edin",
+  "@useRecoveryKey": {
+    "description": "Use recovery key button label"
+  },
+  "useSelectedPhoto": "Seçilmiş şəkli istifadə et",
+  "validTill": "{endDate} tarixinədək keçərlidir",
+  "@validTill": {
+    "placeholders": {
+      "endDate": {}
+    }
+  },
+  "verificationFailedPleaseTryAgain": "Doğrulama uğursuz oldu, zəhmət olmasa yenidən cəhd edin",
+  "@verificationFailedPleaseTryAgain": {
+    "description": "Verification failed error message"
+  },
+  "verify": "Təsdiqlə",
+  "@verify": {
+    "description": "Verify button label"
+  },
+  "verifyEmail": "E-poçtu təsdiqləyin",
+  "@verifyEmail": {
+    "description": "Verify email title"
+  },
+  "verifyIDLabel": "Təsdiqlə",
+  "verifying": "Yoxlanılır...",
+  "verifyingRecoveryKey": "Bərpa açarı yoxlanılır...",
+  "verifyPassword": "Şifrəni təsdiqləyin",
+  "@verifyPassword": {
+    "description": "Verify password button label"
+  },
+  "videoAlreadyInQueue": "Video faylı artıq növbədədir",
+  "videoExportFailed": "Video yaradılması uğursuz oldu. Zəhmət olmasa, yenidən cəhd edin.",
+  "videoExportSuccess": "Video {path} ünvanında uğurla yaradıldı",
+  "@videoExportSuccess": {
+    "description": "Toast shown when a video export completes, mentioning the filesystem path.",
+    "placeholders": {
+      "path": {
+        "description": "File path where the exported video was written",
+        "type": "String",
+        "example": "/tmp/ente_export.mp4"
+      }
+    }
+  },
+  "videoInfo": "Video məlumatı",
+  "videoPreviewAlreadyExists": "Videonun önbaxışı artıq mövcuddur",
+  "videos": "Videolar",
+  "videoStreaming": "Yayımlana bilən videolar",
+  "videoStreamingDescriptionLine1": "Videoları istənilən cihazda dərhal oxudun.",
+  "videoStreamingDescriptionLine2": "Bu cihazda video axınlarını emal etmək üçün aktivləşdirin.",
+  "videoStreamingNote": "Bu cihazda yalnız son 60 günün və 1 dəqiqədən qısa olan videolar emal edilir. Daha köhnə/uzun videolar üçün masaüstü tətbiqində yayımı aktivləşdirin.",
+  "viewActiveSessions": "Aktiv sessiyalara baxın",
+  "viewAddOnButton": "Əlavələrə baxın",
+  "viewAllExifData": "Bütün EXIF məlumatlarına baxın",
+  "viewer": "İzləyici",
+  "viewLargeFiles": "Böyük fayllar",
+  "viewLogs": "Qeydlərə bax",
+  "@viewLogs": {
+    "description": "Button to view logs"
+  },
+  "viewPersonToUnlink": "Əlaqəni kəsmək üçün {name}-ə baxın",
+  "@viewPersonToUnlink": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "viewRecoveryKey": "Bərpa açarına bax",
+  "vintageVibes": "Vintage abu-havası",
+  "visitWebToManage": "Abunəliyinizi idarə etmək üçün lütfən {webUrl} saytına daxil olun",
+  "@visitWebToManage": {
+    "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",
+    "placeholders": {
+      "webUrl": {
+        "type": "String",
+        "example": "photos.ente.com"
+      }
+    }
+  },
+  "waitingForVerification": "Doğrulama gözlənilir...",
+  "@waitingForVerification": {
+    "description": "Waiting for verification message"
+  },
+  "waitingForWifi": "WiFi gözlənilir...",
+  "warning": "Xəbərdarlıq",
+  "waterfalls": "Şəlalələrin izi ilə",
+  "weakStrength": "Zəif",
+  "@weakStrength": {
+    "description": "Weak password strength label"
+  },
+  "weAreOpenSource": "Biz açıq mənbəliyik!",
+  "weDontSupportEditingPhotosAndAlbumsThatYouDont": "Hələlik sizə aid olmayan fotoşəkillərin və albomların redaktəsini dəstəkləmirik",
+  "weHaveSentCodeTo": "Biz {email} ünvanına kod göndərdik",
+  "@weHaveSentCodeTo": {
+    "description": "Text to indicate that we have sent a verification code to the user's email",
+    "placeholders": {
+      "email": {
+        "description": "The email address of the user",
+        "type": "String",
+        "example": "example@ente.com"
+      }
+    }
+  },
+  "whatsNew": "Yeniliklər",
+  "widgets": "Vidjetlər",
+  "wildlife": "Vəhşi təbiətə doğru",
+  "wishThemAHappyBirthday": "{name} şəxsini ad günü münasibətilə təbrik edin! 🎉",
+  "@wishThemAHappyBirthday": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "yearly": "İllik",
+  "@yearly": {
+    "description": "The text to display for yearly plans",
+    "type": "text"
+  },
+  "yearsAgo": "{count, plural, one{{count} il əvvəl} other{{count} il əvvəl}}",
+  "@yearsAgo": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "yearShort": "il",
+  "@yearShort": {
+    "description": "Appears in pricing page (/yr)"
+  },
+  "yes": "Bəli",
+  "yesCancel": "Bəli, ləğv et",
+  "yesConvertToViewer": "Bəli, izləyici statusuna dəyiş",
+  "yesDelete": "Bəli, sil",
+  "yesDiscardChanges": "Bəli, dəyişiklikləri ləğv et",
+  "yesIgnore": "Bəli, görməzdən gəlin",
+  "yesLogout": "Bəli, çıxış et",
+  "@yesLogout": {
+    "description": "Confirmation button for logout"
+  },
+  "yesRemove": "Bəli, sil",
+  "yesRenew": "Bəli, yenilə",
+  "yesResetPerson": "Bəli, şəxsi sıfırla",
+  "yesShowPeople": "Bəli, insanları göstər",
+  "yesShowPerson": "Bəli, şəxsi göstər",
+  "you": "Sən",
+  "youAndThem": "Sən və {name}",
+  "@youAndThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "youAreOnTheLatestVersion": "Ən son versiyadasınız",
+  "youCannotDowngradeToThisPlan": "Bu plana keçid edərək dərəcəni aşağı sala bilməzsiniz",
+  "youCannotShareWithYourself": "Özünüzlə paylaşa bilməzsiniz",
+  "youHaveNoFileSuggestedForDeletion": "Silinməsi təklif olunan heç bir faylınız yoxdur",
+  "youHaveSuccessfullyFreedUp": "{storageSaved} sahəni uğurla azad etdiniz!",
+  "@youHaveSuccessfullyFreedUp": {
+    "description": "The text to display when the user has successfully freed up storage",
+    "type": "text",
+    "placeholders": {
+      "storageSaved": {
+        "example": "1.2 GB",
+        "type": "String"
+      }
+    }
+  },
+  "yourMap": "Xəritəniz",
+  "yourPhotosLookUnique": "Şəkilləriniz unikal görünür",
+  "yourPlanWasSuccessfullyDowngraded": "Planınızın dərəcəsi uğurla endirildi",
+  "yourPlanWasSuccessfullyUpgraded": "Planınız uğurla yüksəldildi",
+  "yourPurchaseWasSuccessful": "Satınalma uğurla başa çatdı",
+  "yourSubscriptionHasExpired": "Abunəlik müddətiniz başa çatıb",
+  "yourSubscriptionWasUpdatedSuccessfully": "Abunəliyiniz uğurla yeniləndi",
+  "yourVerificationCodeHasExpired": "Doğrulama kodunuzun vaxtı bitib",
+  "@yourVerificationCodeHasExpired": {
+    "description": "Error message when verification code has expired"
+  },
+  "youveNoDuplicateFilesThatCanBeCleared": "Təmizlənə biləcək heç bir dublikat faylınız yoxdur",
+  "youveNoFilesInThisAlbumThatCanBeDeleted": "Bu albomda silinə biləcək faylınız yoxdur",
+  "zoomOutToSeePhotos": "Şəkilləri görmək üçün miqyası kiçildin"
+}

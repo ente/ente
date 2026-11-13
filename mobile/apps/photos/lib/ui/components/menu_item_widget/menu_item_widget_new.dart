@@ -5,67 +5,54 @@ import 'package:photos/models/typedefs.dart';
 import 'package:photos/theme/ente_theme.dart';
 import 'package:photos/ui/components/menu_item_widget/menu_item_child_widgets.dart';
 
-/// A menu item widget with the new design system.
-/// Features:
-/// - 20px border radius
-/// - 16px horizontal padding
-/// - Background color: Light #FFFFFF, Dark #212121
 class MenuItemWidgetNew extends StatefulWidget {
   final String title;
   final String? subText;
+  final int titleMaxLines;
+  final int subTextMaxLines;
   final TextStyle? subTextStyle;
-  final double verticalPaddingWithSubText;
   final double titleToSubTextSpacing;
 
-  /// Color for the title text
   final Color? titleColor;
 
-  /// leading icon can be passed without specifing size of icon,
-  /// this component sets size to 20x20 irrespective of passed icon's size
   final IconData? leadingIcon;
   final Color? leadingIconColor;
 
   final Widget? leadingIconWidget;
 
-  // leadIconSize default value is 20.
   final double leadingIconSize;
 
-  /// trailing icon can be passed without size as default size set by
-  /// flutter is what this component expects
   final IconData? trailingIcon;
   final Color? trailingIconColor;
   final Widget? trailingWidget;
   final bool trailingIconIsMuted;
 
-  /// If provided, add this much extra spacing to the right of the trailing icon.
   final double trailingExtraMargin;
   final FutureVoidCallback? onTap;
   final VoidCallback? onDoubleTap;
   final VoidCallback? onLongPress;
   final Color? menuItemColor;
 
-  /// Border radius for the menu item, defaults to 20
   final double borderRadius;
+
+  final EdgeInsetsGeometry padding;
+
   final Color? pressedColor;
 
-  /// disable gesture detector if not used
   final bool isGestureDetectorDisabled;
 
-  /// Success state will not be shown if this flag is set to true, only idle and
-  /// loading state
   final bool showOnlyLoadingState;
 
   final bool surfaceExecutionStates;
 
-  /// To show success state even when execution time < debounce time, set this
-  /// flag to true.
   final bool alwaysShowSuccessState;
 
   const MenuItemWidgetNew({
     required this.title,
     this.subText,
+    this.titleMaxLines = 2,
+    this.subTextMaxLines = 1,
     this.subTextStyle,
-    this.verticalPaddingWithSubText = 9.0,
     this.titleToSubTextSpacing = 0.0,
     this.titleColor,
     this.leadingIcon,
@@ -82,6 +69,7 @@ class MenuItemWidgetNew extends StatefulWidget {
     this.onLongPress,
     this.menuItemColor,
     this.borderRadius = 20.0,
+    this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
     this.pressedColor,
     this.isGestureDetectorDisabled = false,
     this.showOnlyLoadingState = false,
@@ -147,21 +135,19 @@ class _MenuItemWidgetNewState extends State<MenuItemWidgetNew> {
     final circularRadius = Radius.circular(widget.borderRadius);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    // Figma colors: Light #FFFFFF, Dark #212121
-    final defaultMenuItemColor =
-        isDarkMode ? const Color(0xFF212121) : const Color(0xFFFFFFFF);
+    final defaultMenuItemColor = isDarkMode
+        ? const Color(0xFF212121)
+        : const Color(0xFFFFFFFF);
 
     final effectiveMenuItemColor = menuItemColor ?? defaultMenuItemColor;
     final bool hasSubText =
         widget.subText != null && widget.subText!.isNotEmpty;
-    final verticalPadding =
-        hasSubText ? widget.verticalPaddingWithSubText : 16.0;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 20),
       width: double.infinity,
       clipBehavior: Clip.none,
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: verticalPadding),
+      padding: widget.padding,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.all(circularRadius),
         color: effectiveMenuItemColor,
@@ -184,7 +170,7 @@ class _MenuItemWidgetNewState extends State<MenuItemWidgetNew> {
                     children: [
                       Text(
                         widget.title,
-                        maxLines: 1,
+                        maxLines: widget.titleMaxLines,
                         overflow: TextOverflow.ellipsis,
                         style: widget.titleColor != null
                             ? textTheme.small.copyWith(color: widget.titleColor)
@@ -194,16 +180,17 @@ class _MenuItemWidgetNewState extends State<MenuItemWidgetNew> {
                         SizedBox(height: widget.titleToSubTextSpacing),
                       Text(
                         widget.subText!,
-                        maxLines: 1,
+                        maxLines: widget.subTextMaxLines,
                         overflow: TextOverflow.ellipsis,
-                        style: widget.subTextStyle ??
+                        style:
+                            widget.subTextStyle ??
                             textTheme.tinyMuted.copyWith(height: 17 / 10),
                       ),
                     ],
                   )
                 : Text(
                     widget.title,
-                    maxLines: 1,
+                    maxLines: widget.titleMaxLines,
                     overflow: TextOverflow.ellipsis,
                     style: widget.titleColor != null
                         ? textTheme.small.copyWith(color: widget.titleColor)
@@ -238,14 +225,11 @@ class _MenuItemWidgetNewState extends State<MenuItemWidgetNew> {
     );
     final onTapResult = widget.onTap?.call();
     if (onTapResult != null) {
-      await onTapResult.then(
-        (value) {
-          widget.alwaysShowSuccessState
-              ? executionStateNotifier.value = ExecutionState.successful
-              : null;
-        },
-        onError: (error, stackTrace) => _debouncer.cancelDebounceTimer(),
-      );
+      await onTapResult.then((value) {
+        widget.alwaysShowSuccessState
+            ? executionStateNotifier.value = ExecutionState.successful
+            : null;
+      }, onError: (error, stackTrace) => _debouncer.cancelDebounceTimer());
     }
     _debouncer.cancelDebounceTimer();
     if (widget.alwaysShowSuccessState) {
@@ -266,7 +250,7 @@ class _MenuItemWidgetNewState extends State<MenuItemWidgetNew> {
     }
   }
 
-  void _onTapDown(details) {
+  void _onTapDown(TapDownDetails details) {
     if (executionStateNotifier.value == ExecutionState.inProgress ||
         executionStateNotifier.value == ExecutionState.successful) {
       return;
@@ -275,10 +259,9 @@ class _MenuItemWidgetNewState extends State<MenuItemWidgetNew> {
       if (widget.pressedColor == null) {
         if (hasPassedGestureCallbacks()) {
           final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-          // Pressed color: Light #F5F5F5, Dark #2C2C2C
-          // These are the result of overlaying fillFaintPressed on the base color
-          menuItemColor =
-              isDarkMode ? const Color(0xFF2C2C2C) : const Color(0xFFF5F5F5);
+          menuItemColor = isDarkMode
+              ? const Color(0xFF2C2C2C)
+              : const Color(0xFFF5F5F5);
         } else {
           menuItemColor = widget.menuItemColor;
         }
@@ -294,21 +277,18 @@ class _MenuItemWidgetNewState extends State<MenuItemWidgetNew> {
         widget.onLongPress != null;
   }
 
-  void _onTapUp(details) {
+  void _onTapUp(TapUpDetails details) {
     if (executionStateNotifier.value == ExecutionState.inProgress ||
         executionStateNotifier.value == ExecutionState.successful) {
       return;
     }
-    Future.delayed(
-      const Duration(milliseconds: 100),
-      () {
-        if (mounted) {
-          setState(() {
-            menuItemColor = widget.menuItemColor;
-          });
-        }
-      },
-    );
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        setState(() {
+          menuItemColor = widget.menuItemColor;
+        });
+      }
+    });
   }
 
   void _onCancel() {
@@ -316,15 +296,12 @@ class _MenuItemWidgetNewState extends State<MenuItemWidgetNew> {
         executionStateNotifier.value == ExecutionState.successful) {
       return;
     }
-    Future.delayed(
-      const Duration(milliseconds: 100),
-      () {
-        if (mounted) {
-          setState(() {
-            menuItemColor = widget.menuItemColor;
-          });
-        }
-      },
-    );
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        setState(() {
+          menuItemColor = widget.menuItemColor;
+        });
+      }
+    });
   }
 }

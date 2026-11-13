@@ -16,8 +16,16 @@ class NoActiveSubscriptionError extends Error {}
 
 class StorageLimitExceededError extends Error {}
 
-// error when file size + current usage >= storage plan limit + buffer
 class FileTooLargeForPlanError extends Error {}
+
+class ImportFileTooLargeException implements Exception {
+  final int maxBytes;
+
+  const ImportFileTooLargeException(this.maxBytes);
+
+  @override
+  String toString() => 'Import file exceeds the $maxBytes byte limit';
+}
 
 class SilentlyCancelUploadsError extends Error {}
 
@@ -39,10 +47,4 @@ class InvalidStateError extends AssertionError {
   InvalidStateError(String super.message);
 }
 
-class SrpSetupNotCompleteError extends Error {}
-
 class AuthenticatorKeyNotFound extends Error {}
-
-class PassKeySessionNotVerifiedError extends Error {}
-
-class PassKeySessionExpiredError extends Error {}

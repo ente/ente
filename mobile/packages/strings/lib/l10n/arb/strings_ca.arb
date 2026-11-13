@@ -1,61 +1,407 @@
 {
-  "networkHostLookUpErr": "No s'ha pogut connectar a Ente, si us plau, comprova la configuració de la xarxa i contacta amb suport si l'error persisteix.",
-  "@networkHostLookUpErr": {
-    "description": "Error message shown when the app cannot connect to Ente due to network host lookup failure"
-  },
-  "networkConnectionRefusedErr": "No s'ha pogut connectar a Ente, si us plau, torna-ho a intentar després d'un temps. Si l'error persisteix, contacta amb suport.",
-  "@networkConnectionRefusedErr": {
-    "description": "Error message shown when the app cannot connect to Ente due to connection refused"
-  },
-  "itLooksLikeSomethingWentWrongPleaseRetryAfterSome": "Sembla que alguna cosa ha anat malament. Si us plau, torna-ho a intentar després d'un temps. Si l'error persisteix, contacta amb el nostre equip de suport.",
-  "@itLooksLikeSomethingWentWrongPleaseRetryAfterSome": {
-    "description": "Generic error message for temporary issues"
-  },
-  "error": "Error",
-  "@error": {
-    "description": "Generic error title"
-  },
-  "ok": "D'acord",
-  "@ok": {
-    "description": "Generic OK button label"
-  },
-  "faq": "FAQ",
-  "@faq": {
-    "description": "FAQ link label"
-  },
-  "contactSupport": "Contacta amb suport",
-  "@contactSupport": {
-    "description": "Contact support button label"
-  },
-  "emailYourLogs": "Envia els teus registres per correu",
-  "@emailYourLogs": {
-    "description": "Title for emailing logs dialog"
-  },
-  "pleaseSendTheLogsTo": "Si us plau, envia els registres a \n{toEmail}",
-  "@pleaseSendTheLogsTo": {
-    "description": "Message asking user to send logs to email address",
+  "bringMemoriesTogether": "Reuneix els teus records",
+  "createMyAccount": "Crea el meu compte",
+  "localGalleryPermissionDesc": "Dona permís per accedir a les teves fotos i organitzar-les amb reconeixement facial. Tot el processament es fa al teu dispositiu.",
+  "onboardingOrganizeDesc": "Organitza les teves fotos i vídeos. Cada record, en un sol lloc.",
+  "about": "Sobre",
+  "acceptTrustInvite": "Accepta invitació",
+  "account": "Compte",
+  "accountIsAlreadyConfigured": "El compte ja està configurat.",
+  "accountOwnerPersonAppbarTitle": "{title} (Jo)",
+  "@accountOwnerPersonAppbarTitle": {
+    "description": "Title of appbar for account owner person",
     "placeholders": {
-      "toEmail": {
-        "type": "String",
-        "description": "Email address to send logs to"
+      "title": {
+        "type": "String"
       }
     }
   },
-  "copyEmailAddress": "Copia l'adreça de correu",
-  "@copyEmailAddress": {
-    "description": "Button to copy email address to clipboard"
+  "actionNotSupportedOnFavouritesAlbum": "Acció no suportada a l'àlbum de Favorits",
+  "activeSessions": "Sessions actives",
+  "@activeSessions": {
+    "description": "Title for active sessions page"
   },
-  "exportLogs": "Exporta els registres",
-  "@exportLogs": {
-    "description": "Button to export logs"
+  "add": "Afegeix",
+  "addCode": "Afegeix codi",
+  "addedBy": "Afegit per {emailOrName}",
+  "@addedBy": {
+    "placeholders": {
+      "emailOrName": {}
+    }
   },
+  "addedSuccessfullyTo": "Afegit amb èxit a {albumName}",
+  "@addedSuccessfullyTo": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
+  "addedToQueue": "Afegit a la cua",
+  "addFiles": "Afegeix fitxers",
+  "addFromDevice": "Afegeix des del dispositiu",
+  "addingPhotos": "Afegint fotos",
+  "addingToFavorites": "Afegint a favorits...",
+  "addLocation": "Afegeix ubicació",
+  "addLocationButton": "Afegeix",
+  "addMore": "Afegeix més",
+  "addName": "Afegeix nom",
+  "addOnPageSubtitle": "Detalls dels complements",
+  "addOns": "Complements",
+  "addOnValidTill": "El teu complement de {storageAmount} és vàlid fins al {endDate}",
+  "@addOnValidTill": {
+    "placeholders": {
+      "endDate": {},
+      "storageAmount": {}
+    }
+  },
+  "addPerson": "Afegeix persona",
+  "@addPerson": {
+    "description": "Title for the manual tagging flow where user selects a person to tag files with."
+  },
+  "addPhotos": "Afegeix fotos",
+  "addSelected": "Afegeix seleccionats",
+  "addTag": "Afegeix etiqueta",
+  "addToAlbum": "Afegeix a l'àlbum",
+  "addToEnte": "Afegeix a Ente",
+  "addToHiddenAlbum": "Afegeix a l'àlbum ocult",
+  "addToPerson": "Afegeix a la persona",
+  "@addToPerson": {
+    "description": "Action label to add selected files to an existing person."
+  },
+  "addYourPhotosNow": "Afegeix les teves fotos ara",
+  "adjust": "Ajusta",
+  "admin": "Administrador",
+  "admiringThem": "Admirant {name}",
+  "@admiringThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "advanced": "Avançat",
+  "aerialViews": "Perspectives aèries",
+  "after1Day": "Després d'1 dia",
+  "after1Hour": "Després d'1 hora",
+  "after1Month": "Després d'1 mes",
+  "after1Week": "Després d'1 setmana",
+  "after1Year": "Després d'1 any",
+  "albumLayout": "Disposició de l'àlbum",
+  "albums": "Àlbums",
+  "albumTitle": "Títol de l'àlbum",
+  "albumUpdated": "Àlbum actualitzat",
+  "algorithm": "Algorisme",
+  "align": "Alinea",
+  "allClear": "✨ Tot net",
+  "allMemoriesPreserved": "Tots els records preservats",
+  "allow": "Permet",
+  "allowAddingPhotos": "Permet afegir fotos",
+  "@allowAddingPhotos": {
+    "description": "Switch button to enable uploading photos to a public link"
+  },
+  "allowAppToOpenSharedAlbumLinks": "Permet que l'aplicació obri enllaços d'àlbums compartits",
+  "allowDownloads": "Permet descàrregues",
+  "allowJoiningAlbum": "Permet unir-se a l'àlbum",
+  "allowPermBody": "Si us plau, permet l'accés a les teves fotos des de Configuració perquè Ente pugui mostrar i fer còpia de seguretat de la teva biblioteca.",
+  "allowPermTitle": "Permet l'accés a les fotos",
+  "allPersonGroupingWillReset": "Tots els agrupaments per a aquesta persona es restabliran, i perdràs tots els suggeriments fets per a aquesta persona",
+  "allTabEmptyHint": "Encara no hi ha res aquí. Toca + per afegir un codi o obre la Paperera per recuperar-ne un.",
+  "@allTabEmptyHint": {
+    "description": "Shown when the All tab has no active codes but Trash contains codes"
+  },
+  "allWillShiftRangeBasedOnFirst": "Aquesta és la primera del grup. Altres fotos seleccionades es desplaçaran automàticament basant-se en aquesta nova data",
+  "almostDone": "Gairebé llest...",
+  "analysis": "Anàlisi",
+  "analyzingPhotosLocally": "Analitzant les teves fotos localment...",
+  "and1Other": "i 1 altre",
+  "androidBiometricHint": "Verifica la identitat",
+  "@androidBiometricHint": {
+    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
+  },
+  "androidCancelButton": "Cancel·la",
+  "@androidCancelButton": {
+    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
+  },
+  "androidSignInTitle": "Es requereix autenticació",
+  "@androidSignInTitle": {
+    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
+  },
+  "andXOthers": "i {count} altres",
+  "@andXOthers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "aNewVersionOfEnteIsAvailable": "Una nova versió d'Ente està disponible.",
+  "appIcon": "Icona de l'aplicació",
+  "appleId": "Apple ID",
+  "appLockDescription": "Tria entre el bloqueig predeterminat del dispositiu o un bloqueig personalitzat amb PIN o contrasenya.",
+  "@appLockDescription": {
+    "description": "Description of app lock feature"
+  },
+  "appLockNotEnabled": "Bloqueig de l'aplicació no habilitat",
+  "appLockNotEnabledDescription": "Si us plau, habilita el bloqueig de l'aplicació a Seguretat > Bloqueig de l'aplicació",
+  "appLockOfflineModeWarning": "Has triat procedir sense còpies de seguretat. Si oblides el bloqueig de l'aplicació, no podràs accedir a les teves dades.",
+  "apply": "Aplica",
+  "applyCodeTitle": "Aplica codi",
+  "appstoreSubscription": "Subscripció d'AppStore",
+  "architecture": "Icones de disseny",
+  "archive": "Arxiva",
+  "@archive": {
+    "description": "Action of 'Archiving' an element"
+  },
+  "archiveAlbum": "Arxiva àlbum",
+  "archiving": "Arxivant...",
+  "areThey": "Són ells ",
+  "areYouSure": "N'esteu segur?",
+  "@areYouSure": {
+    "description": "Confirmation dialog title"
+  },
+  "areYouSureDeleteFiles": "Estàs segur que vols esborrar aquests fitxers?",
+  "areYouSureRemoveThisFaceFromPerson": "Estàs segur que vols eliminar aquesta cara d'aquesta persona?",
+  "areYouSureRemoveThisPersonTag": "Esteu segur que voleu eliminar aquesta etiqueta de persona?",
+  "areYouSureThatYouWantToLeaveTheFamily": "Estàs segur que vols deixar el pla familiar?",
+  "areYouSureYouWantToCancel": "Estàs segur que vols cancel·lar?",
+  "areYouSureYouWantToChangeYourPlan": "Estàs segur que vols canviar el teu pla?",
+  "areYouSureYouWantToExit": "Estàs segur que vols sortir?",
+  "areYouSureYouWantToIgnoreThesePersons": "Estàs segur que vols ignorar aquestes persones?",
+  "areYouSureYouWantToIgnoreThisPerson": "Estàs segur que vols ignorar aquesta persona?",
+  "areYouSureYouWantToRenew": "Estàs segur que vols renovar?",
+  "areYouSureYouWantToResetThisPerson": "Estàs segur que vols restablir aquesta persona?",
+  "artisticPortraits": "Retrats artístics",
+  "askCancelReason": "La teva subscripció s'ha cancel·lat. T'agradaria compartir la raó?",
+  "authenticateGeneric": "Si us plau, autentica't",
+  "authenticating": "Autenticant...",
+  "authToChangeLockscreenSetting": "Si us plau, autentica't per canviar la configuració de la pantalla de bloqueig",
+  "authToChangeYourPassword": "Si us plau, autentica't per canviar la teva contrasenya",
+  "authToConfigureTwofactorAuthentication": "Si us plau, autentica't per configurar l'autenticació de doble factor",
+  "authToExportCodes": "Si us plau, autentica't per exportar els teus codis",
+  "authToInitiateSignIn": "Si us plau, autentica't per iniciar la sessió per a la còpia de seguretat.",
+  "authToManageLegacy": "Si us plau, autentica't per gestionar els teus contactes de confiança",
+  "authToSetBackupPassword": "Autentica't per establir la contrasenya de la còpia de seguretat",
+  "authToUpdateBackupPassword": "Autentica't per actualitzar la contrasenya de la còpia de seguretat",
+  "authToViewPasskey": "Si us plau, autentica't per veure la teva clau d'accés",
+  "authToViewPasskeyGeneric": "Autentica't per veure la passkey",
+  "authToViewSecrets": "Si us plau, autentica't per veure els teus secrets",
+  "@authToViewSecrets": {
+    "description": "Message prompting authentication to view secrets"
+  },
+  "authToViewTrashedFiles": "Si us plau, autentica't per veure els teus fitxers a la paperera",
+  "authToViewYourActiveSessions": "Si us plau, autentica't per veure les teves sessions actives",
+  "authToViewYourHiddenFiles": "Si us plau, autentica't per veure els teus fitxers ocults",
+  "authToViewYourMemories": "Si us plau, autentica't per veure els teus records",
+  "authToViewYourRecoveryKey": "Si us plau, autentica't per veure la teva clau de recuperació",
+  "autoAddPeople": "Afegit automàtic de persones",
+  "autoAddToAlbum": "Afegit automàtic a l'àlbum",
+  "autoCastDialogBody": "Veuràs els dispositius Cast disponibles aquí.",
+  "autoCastiOSPermission": "Assegura't que els permisos de Xarxa Local estiguin activats per a l'aplicació Ente Photos, a Configuració.",
+  "autoLock": "Bloqueig automàtic",
+  "@autoLock": {
+    "description": "Auto lock setting title"
+  },
+  "automaticallyAnalyzeAndSplitGrouping": "Analitzarem automàticament l'agrupament per determinar si hi ha múltiples persones presents, i les separarem de nou. Això pot trigar uns segons.",
+  "autoPair": "Aparellament automàtic",
+  "autumnColors": "Esplendor de tardor",
+  "backedUpFolders": "Carpetes amb còpia de seguretat",
+  "background": "Fons",
+  "backgroundWithThem": "Vistes boniques amb {name}",
+  "@backgroundWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "backingUpLastSevenDaysPhotos": "Còpia de seguretat de les fotos dels darrers 7 dies",
+  "backup": "Còpia de seguretat",
+  "backupCreated": "Còpia de seguretat creada!",
+  "backupFailed": "La còpia de seguretat ha fallat",
+  "backupFile": "Fes còpia de seguretat del fitxer",
+  "backupFolderLabel": "Carpeta de la còpia de seguretat:",
+  "backupLocationChoiceDescription": "On vols desar les teves còpies de seguretat?",
+  "backupOnlyNewPhotos": "Còpia de seguretat només de les fotos noves",
+  "backupOnlyNewPhotosAllFoldersSelected": "Totes les carpetes estan actualment seleccionades per a la còpia de seguretat.\n\nPots continuar per ara o actualitzar les carpetes seleccionades.",
+  "backupOnlyNewPhotosNoFoldersSelectedContinue": "Actualment no hi ha cap carpeta seleccionada per a la còpia de seguretat.\n\nPots continuar per ara o actualitzar les carpetes seleccionades.",
+  "backupOnlyNewPhotosNoFoldersSelectedRequire": "Actualment no hi ha cap carpeta seleccionada per a la còpia de seguretat.\n\nSi us plau, selecciona les carpetes per continuar.",
+  "backupOnlyNewPhotosWarningBody": "Actualment estàs fent una còpia de seguretat de les fotos de {formattedDate}. Si us plau, actualitza la teva configuració per fer una còpia de seguretat de totes les fotos.",
+  "@backupOnlyNewPhotosWarningBody": {
+    "description": "Warning shown when backup-only-new is enabled and user changes folders.",
+    "placeholders": {
+      "formattedDate": {
+        "type": "String",
+        "example": "Jan 5, 2026"
+      }
+    }
+  },
+  "backupOverMobileData": "Còpia de seguretat amb dades mòbils",
+  "backupPasswordCleared": "S'ha esborrat la contrasenya de la còpia de seguretat",
+  "backupPasswordHint": "La vostra còpia de seguretat s'encriptarà amb aquesta contrasenya.",
+  "backupSettings": "Configuració de còpia de seguretat",
+  "backupStatus": "Estat de la còpia de seguretat",
+  "backupStatusDescription": "Els elements dels quals s'ha fet còpia de seguretat apareixeran aquí",
+  "backupVideos": "Còpia de seguretat de vídeos",
+  "beach": "Sorra i mar",
+  "birthday": "Aniversari",
+  "birthdays": "Aniversaris",
+  "bothIssuerAndAccountCanNotBeEmpty": "Ni l'emissor ni el compte poden estar buits",
+  "brushColor": "Color del pinzell",
+  "cachedData": "Dades en memòria cau",
+  "calculating": "Calculant...",
   "cancel": "Cancel·la",
   "@cancel": {
     "description": "Cancel button label"
   },
-  "reportABug": "Informa d'un error",
-  "@reportABug": {
-    "description": "Label for reporting a bug"
+  "cancelOtherSubscription": "Si us plau, cancel·la primer la teva subscripció existent de {paymentProvider}",
+  "@cancelOtherSubscription": {
+    "description": "The text to display when the user has an existing subscription from a different payment provider",
+    "type": "text",
+    "placeholders": {
+      "paymentProvider": {
+        "example": "Apple",
+        "type": "String"
+      }
+    }
+  },
+  "cancelRecovery": "Cancel·la recuperació",
+  "cancelSubscription": "Cancel·la subscripció",
+  "cannotDeleteSharedFiles": "No es poden esborrar fitxers compartits",
+  "cannotMoveToSharedAlbums": "No es pot moure a àlbums compartits",
+  "cannotMoveToSharedAlbumsMessage": "Els elements només es poden afegir a àlbums compartits, no moure. Vols afegir-los en el seu lloc?",
+  "canNotOpenBody": "Ho sentim, aquest àlbum no es pot obrir a l'aplicació.",
+  "canNotOpenTitle": "No es pot obrir aquest àlbum",
+  "canOnlyCreateLinkForFilesOwnedByYou": "Només pots crear enllaços per a fitxers que siguin teus",
+  "canOnlyRemoveFilesOwnedByYou": "Només pots eliminar fitxers que siguin teus",
+  "castAlbum": "Transmet àlbum",
+  "castIPMismatchBody": "Si us plau, assegura't que estàs a la mateixa xarxa que la TV.",
+  "castIPMismatchTitle": "No s'ha pogut transmetre l'àlbum",
+  "centerPoint": "Punt central",
+  "changeLocationOfSelectedItems": "Canviar la ubicació dels elements seleccionats?",
+  "changePassword": "Canvia la contrasenya",
+  "changePasswordTitle": "Canvia la contrasenya",
+  "@changePasswordTitle": {
+    "description": "Change password title"
+  },
+  "changeYourReferralCode": "Canvia el teu codi",
+  "checking": "Comprovant...",
+  "checkingModels": "Comprovant models...",
+  "chooseBackupLocation": "Trieu una ubicació per a la còpia de seguretat",
+  "chooseIcon": "Tria l'icona",
+  "city": "A la ciutat",
+  "citySunsets": "Resplendor de posta de sol a la ciutat",
+  "claimedByYou": "reclamat per tu",
+  "cleanedUpSimilarImages": "Has alliberat {size} d'espai",
+  "@cleanedUpSimilarImages": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "cleanUncategorized": "Neteja Sense categoria",
+  "cleanUncategorizedDescription": "Elimina tots els fitxers de Sense categoria que estiguin presents en altres àlbums",
+  "cleanupComplete": "Neteja completa",
+  "cleanupHiddenFiles": "Neteja fitxers ocults",
+  "cleanupHiddenFilesDescription": "Alguns fitxers en àlbums ocults encara existeixen en àlbums no ocults fent-los visibles fora de la secció oculta. Netejar-los els eliminarà dels àlbums no ocults.",
+  "clearBackupFolder": "Esborra la carpeta de la còpia de seguretat",
+  "clearBackupPassword": "Esborra la contrasenya de la còpia de seguretat",
+  "clearCaches": "Neteja memòries cau",
+  "clearSelection": "Neteja selecció",
+  "clickToInstallOurBestVersionYet": "Fes clic per instal·lar la nostra millor versió fins ara",
+  "close": "Tanca",
+  "closeBy": "A prop",
+  "@closeBy": {
+    "description": "Appears in the similar images page, to indicate that the images are close in terms of appearance"
+  },
+  "closest": "Més proper",
+  "clusteringProgress": "Progrés d'agrupament",
+  "coastalCliffs": "Penya-segats vora el mar",
+  "codeAppliedPageTitle": "Codi aplicat",
+  "codeChangeLimitReached": "Ho sentim, has assolit el límit de canvis de codi.",
+  "codeCopiedToClipboard": "Codi copiat al porta-retalls",
+  "codeIssuerHint": "Emissor",
+  "collaborator": "Col·laborador",
+  "collageLayout": "Disposició",
+  "collageSaved": "Collage guardat a la galeria",
+  "collectPhotos": "Recull fotos",
+  "colorfulMarkets": "Mercats vibrants",
+  "commentHint": "Digues alguna cosa bonica!",
+  "@commentHint": {
+    "description": "Placeholder text for comment input field"
+  },
+  "comments": "Comentaris",
+  "compactMode": "Mode compacte",
+  "comparingImageDetails": "Comparant detalls de la imatge...",
+  "confirm": "Confirma",
+  "@confirm": {
+    "description": "Confirm button label"
+  },
+  "confirm2FADisable": "Estàs segur que vols desactivar l'autenticació de doble factor?",
+  "confirmAddingTrustedContact": "Estàs a punt d'afegir {email} com a contacte de confiança. Podran recuperar el teu compte si estàs absent durant {numOfDays} dies.",
+  "@confirmAddingTrustedContact": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      },
+      "numOfDays": {
+        "type": "int",
+        "example": "30"
+      }
+    }
+  },
+  "confirmPassword": "Confirma la contrasenya",
+  "@confirmPassword": {
+    "description": "Confirm password field label"
+  },
+  "confirmPlanChange": "Confirma el canvi de pla",
+  "confirmUpdatingkey": "Estàs segur que vols actualitzar la clau secreta?",
+  "confirmYourRecoveryKey": "Confirma la teva clau de recuperació",
+  "connectToDevice": "Connecta al dispositiu",
+  "contacts": "Contactes",
+  "contactSupport": "Contacta amb suport",
+  "@contactSupport": {
+    "description": "Contact support button label"
+  },
+  "continueLabel": "Continua",
+  "@continueLabel": {
+    "description": "Continue button label"
+  },
+  "convertToAlbum": "Converteix a àlbum",
+  "copied": "Copiat",
+  "copiedNextToClipboard": "El següent codi s'ha copiat al porta-retalls",
+  "copiedToClipboard": "Copiat al porta-retalls",
+  "copyEmbedHtml": "Copia HTML incrustat",
+  "copyLink": "Copia enllaç",
+  "copypasteThisCodentoYourAuthenticatorApp": "Copia i enganxa aquest codi\na la teva aplicació d'autenticació",
+  "couldNotBackUpTryLater": "No hem pogut fer còpia de seguretat de les teves dades.\nHo reintentarem més tard.",
+  "couldNotFreeUpSpace": "No s'ha pogut alliberar espai",
+  "couldNotLoadAlbums": "No s'han pogut carregar els àlbums",
+  "@couldNotLoadAlbums": {
+    "description": "Error when albums fail to load"
+  },
+  "couldNotLoadLikes": "Impossible de carregar els m'agrada",
+  "@couldNotLoadLikes": {
+    "description": "Error when likes fail to load"
+  },
+  "couldNotUpdateSubscription": "No s'ha pogut actualitzar la subscripció",
+  "count": "Recompte",
+  "cozyCafes": "Racons de cafeteria acollidors",
+  "crashAndErrorReporting": "Informes d'errors i fallades",
+  "crashReporting": "Informe d'errors",
+  "createAlbumActionHint": "Fes una pressió llarga per seleccionar fotos i fes clic a + per crear un àlbum",
+  "createBackupNow": "Fes una còpia de seguretat ara",
+  "createCollaborativeLink": "Crea enllaç col·laboratiu",
+  "createCollage": "Crea collage",
+  "createNewTag": "Crea una nova etiqueta",
+  "createPublicLink": "Crea enllaç públic",
+  "createStream": "Crea transmissió",
+  "creatingLink": "Creant enllaç...",
+  "creatingStream": "Creant transmissió",
+  "criticalUpdateAvailable": "Actualització crítica disponible",
+  "crop": "Retalla",
+  "curatedMemories": "Records seleccionats",
+  "currentBackupFolder": "Carpeta de la còpia de seguretat actual:",
+  "currentlyRunning": "actualment en execució",
+  "custom": "Personalitzat",
+  "@custom": {
+    "description": "Label for setting custom value for link expiry"
   },
   "customEndpoint": "Connectat a {endpoint}",
   "@customEndpoint": {
@@ -67,154 +413,919 @@
       }
     }
   },
-  "save": "Guarda",
-  "@save": {
-    "description": "Label for save button"
+  "customOrder": "Ordre personalitzat",
+  "darkTheme": "Fosc",
+  "data": "Dades",
+  "day": "Dia",
+  "dayToday": "Avui",
+  "dayYesterday": "Ahir",
+  "declineTrustInvite": "Rebutja invitació",
+  "decrypting": "Desxifrant...",
+  "decryptingVideo": "Desxifrant vídeo...",
+  "deduplicateCodes": "Desduplica codis",
+  "deduplicateFiles": "Desduplica fitxers",
+  "deleteAlbum": "Esborra àlbum",
+  "deleteAlbumDialog": "Esborrar també les fotos (i vídeos) presents en aquest àlbum de <bold>tots</bold> els altres àlbums dels quals formen part?",
+  "deleteAlbumsDialogBody": "Això esborrarà tots els àlbums buits. Això és útil quan vols reduir el desordre a la teva llista d'àlbums.",
+  "deleteAll": "Esborra tot",
+  "deleteCodeAuthMessage": "Autentica't per eliminar el codi",
+  "deleteCodeMessage": "Segur que vols esborrar aquest codi? Aquesta acció és irreversible.",
+  "deleteCodeTitle": "Esborrar el codi?",
+  "deleteComment": "Esborrar comentari",
+  "@deleteComment": {
+    "description": "Delete comment button label"
   },
-  "send": "Envia",
-  "@send": {
-    "description": "Label for send button"
+  "deleteCommentConfirmation": "El teu comentari \"{comment}\" serà eliminat permanentment",
+  "@deleteCommentConfirmation": {
+    "description": "Confirmation message when deleting a comment",
+    "placeholders": {
+      "comment": {
+        "type": "String"
+      }
+    }
   },
-  "saveOrSendDescription": "Vols guardar-ho al teu emmagatzematge (per defecte, a la carpeta Descàrregues) o enviar-ho a altres aplicacions?",
-  "@saveOrSendDescription": {
-    "description": "Description text asking user if they want to save to storage or share with other apps"
+  "deletedComment": "(esborrat)",
+  "@deletedComment": {
+    "description": "Label for deleted comments"
   },
-  "saveOnlyDescription": "Vols guardar-ho al teu emmagatzematge (per defecte, a la carpeta Descàrregues)?",
-  "@saveOnlyDescription": {
-    "description": "Description text asking user if they want to save to storage (for platforms that don't support sharing)"
+  "deleteDuplicates": "Elimina duplicats",
+  "deleteEmptyAlbums": "Esborra àlbums buits",
+  "deleteEmptyAlbumsWithQuestionMark": "Esborrar àlbums buits?",
+  "deleteFiles": "Esborra fitxers",
+  "deleteFromBoth": "Esborra de tots dos",
+  "deleteFromDevice": "Esborra del dispositiu",
+  "deleteFromEnte": "Esborra d'Ente",
+  "deleteHiddenFilesFromDevice": "Esborra fitxers ocults del dispositiu",
+  "deleteHiddenFilesFromDeviceDescription": "Esborra les còpies locals dels fitxers ocults del teu dispositiu",
+  "deleteLocation": "Esborra ubicació",
+  "deleteMultipleAlbumDialog": "Esborrar també les fotos (i vídeos) presents en aquests {count} àlbums de <bold>tots</bold> els altres àlbums dels quals formen part?",
+  "@deleteMultipleAlbumDialog": {
+    "placeholders": {
+      "count": {}
+    }
   },
-  "email": "Correu electrònic",
-  "@email": {
-    "description": "Email field label"
+  "deleteOnDeviceFiles": "Esborra fitxers al dispositiu",
+  "deletePhotos": "Esborra fotos",
+  "deletePhotosWithSize": "Esborra {count} fotos ({size})",
+  "@deletePhotosWithSize": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
   },
-  "verify": "Verifica",
-  "@verify": {
-    "description": "Verify button label"
+  "deleteProgress": "Esborrant {currentlyDeleting} / {totalCount}",
+  "@deleteProgress": {
+    "placeholders": {
+      "currentlyDeleting": {},
+      "totalCount": {}
+    }
   },
-  "invalidEmailTitle": "Adreça de correu electrònic no vàlida",
-  "@invalidEmailTitle": {
-    "description": "Title for invalid email error dialog"
+  "deleteSharedAlbum": "Esborrar àlbum compartit?",
+  "deleteSharedAlbumDialogBody": "L'àlbum s'esborrarà per a tothom\n\nPerdràs l'accés a les fotos compartides en aquest àlbum que siguin propietat d'altres",
+  "deleteSuggestions": "Eliminar els suggeriments",
+  "deleteSuggestionSent": "Suggerència d'eliminació enviada",
+  "deleteTagMessage": "Estàs segur que vols eliminar aquesta etiqueta? Aquesta acció és irreversible.",
+  "deleteTagTitle": "Eliminar etiqueta?",
+  "deleteWithCount": "Esborra ({count})",
+  "@deleteWithCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
-  "invalidEmailMessage": "Si us plau, introdueix una adreça de correu electrònic vàlida.",
-  "@invalidEmailMessage": {
-    "description": "Message for invalid email error dialog"
+  "deletingDash": "Esborrant - ",
+  "desertDreams": "Somnis del desert",
+  "details": "Detalls",
+  "developerSettings": "Configuració de desenvolupador",
+  "@developerSettings": {
+    "description": "Label for developer settings"
   },
-  "pleaseWait": "Si us plau, espera...",
-  "@pleaseWait": {
-    "description": "Please wait message"
+  "developerSettingsWarning": "Estàs segur que vols modificar la configuració de desenvolupador?",
+  "deviceLock": "Bloqueig del dispositiu",
+  "@deviceLock": {
+    "description": "Device lock option title"
   },
-  "verifyPassword": "Verifica la contrasenya",
-  "@verifyPassword": {
-    "description": "Verify password button label"
+  "deviceLockEnablePreSteps": "Per habilitar el bloqueig de dispositiu, configura un codi o bloqueig de pantalla en la configuració del sistema.",
+  "@deviceLockEnablePreSteps": {
+    "description": "Instructions for enabling device lock"
   },
-  "incorrectPasswordTitle": "Contrasenya incorrecta",
-  "@incorrectPasswordTitle": {
-    "description": "Title for incorrect password error"
+  "deviceNotFound": "Dispositiu no trobat",
+  "didYouKnow": "Sabies que?",
+  "digits": "Dígits",
+  "disableDownloadWarningBody": "Els visualitzadors encara poden fer captures de pantalla o guardar una còpia de les teves fotos utilitzant eines externes",
+  "disableDownloadWarningTitle": "Si us plau, tingues en compte",
+  "disableLinkMessage": "Això eliminarà l'enllaç públic per accedir a \"{albumName}\".",
+  "@disableLinkMessage": {
+    "placeholders": {
+      "albumName": {}
+    }
   },
-  "pleaseTryAgain": "Si us plau, intenta-ho de nou",
-  "@pleaseTryAgain": {
-    "description": "Message asking user to try again"
+  "disableTwofactor": "Desactiva doble factor",
+  "disablingTwofactorAuthentication": "Desactivant l'autenticació de doble factor...",
+  "discover": "Descobreix",
+  "@discover": {
+    "description": "The text to display for the discover section under which we show receipts, screenshots, sunsets, greenery, etc."
+  },
+  "discover_babies": "Bebès",
+  "discover_celebrations": "Celebracions",
+  "discover_food": "Menjar",
+  "discover_greenery": "Verdor",
+  "discover_hills": "Turons",
+  "discover_identity": "Identitat",
+  "discover_memes": "Mems",
+  "discover_pets": "Mascotes",
+  "discover_receipts": "Rebuts",
+  "discover_screenshots": "Captures de pantalla",
+  "discover_sunset": "Posta de sol",
+  "discover_visiting_cards": "Targetes de visita",
+  "discover_wallpapers": "Fons de pantalla",
+  "dismiss": "Descarta",
+  "distanceInKMUnit": "km",
+  "@distanceInKMUnit": {
+    "description": "Unit for distance in km"
+  },
+  "doesGroupContainMultiplePeople": "Aquest agrupament conté múltiples persones?",
+  "done": "Fet",
+  "dontSave": "No guardis",
+  "doubleTapToViewHiddenCode": "Pots tocar dues vegades en una entrada per veure el codi",
+  "download": "Descarrega",
+  "downloadFailed": "Descàrrega fallida",
+  "downloading": "Descarregant...",
+  "downloadUpdate": "Descarrega",
+  "doYouWantToDiscardTheEditsYouHaveMade": "Vols descartar les edicions que has fet?",
+  "draw": "Dibuixa",
+  "dropSupportEmail": "Si us plau, envia un correu a {supportEmail} des de la teva adreça de correu registrada",
+  "@dropSupportEmail": {
+    "placeholders": {
+      "supportEmail": {
+        "description": "The support email address",
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
+  },
+  "duplicateCodes": "Codis duplicats",
+  "duplicateFileCountWithStorageSaved": "Has netejat {count, plural, one{{count} fitxer duplicat} other{{count} fitxers duplicats}}, estalviant ({storageSaved}!)",
+  "@duplicateFileCountWithStorageSaved": {
+    "description": "The text to display when the user has successfully cleaned up duplicate files",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "1",
+        "type": "int"
+      },
+      "storageSaved": {
+        "example": "1.2 GB",
+        "type": "String"
+      }
+    }
+  },
+  "duplicateItemsGroup": "{count} fitxers, {formattedSize} cadascun",
+  "@duplicateItemsGroup": {
+    "description": "Display the number of duplicate files and their size",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "12",
+        "type": "int"
+      },
+      "formattedSize": {
+        "example": "2.3 MB",
+        "type": "String"
+      }
+    }
+  },
+  "earned": "guanyat",
+  "earnMoreSpace": "Guanya més espai!",
+  "edit": "Edita",
+  "editAutoAddPeople": "Edita persones d'afegit automàtic",
+  "editCodeAuthMessage": "Autentica't per editar el codi",
+  "editEmailAlreadyLinked": "Aquest correu ja està vinculat a {name}.",
+  "@editEmailAlreadyLinked": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "editLocation": "Edita ubicació",
+  "editOrder": "Edita l'ordre",
+  "editPerson": "Edita persona",
+  "editsSaved": "Edicions guardades",
+  "editsToLocationWillOnlyBeSeenWithinEnte": "Les edicions a la ubicació només es veuran dins d'Ente",
+  "editTag": "Editar etiqueta",
+  "editTime": "Edita hora",
+  "eligible": "elegible",
+  "emailHint": "Introdueix la teva adreça de correu electrònic",
+  "emailNoEnteAccountPhotos": "{email} no té un compte d'Ente.\n\nEnvia'ls una invitació per compartir fotos.",
+  "@emailNoEnteAccountPhotos": {
+    "placeholders": {
+      "email": {}
+    }
+  },
+  "emailUsMessage": "Si us plau, envia'ns un correu a {email}",
+  "@emailUsMessage": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "emailVerificationEnableWarning": "Per evitar quedar bloquejat fora del teu compte, assegura't de desar una còpia del teu correu electrònic 2FA fora d'Ente Auth abans d'habilitar la verificació per correu.",
+  "emailYourLogs": "Envia els teus registres per correu",
+  "@emailYourLogs": {
+    "description": "Title for emailing logs dialog"
+  },
+  "embracingThem": "Abraçant {name}",
+  "@embracingThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "empty": "Buida",
+  "emptyTrashQuestion": "Buidar paperera?",
+  "enable": "Activa",
+  "enableAutomaticBackups": "Còpies de seguretat automàtiques",
+  "enableBackupsIosInstruction": "Per habilitar les còpies de seguretat a iOS, trieu una carpeta a Fitxers (per exemple, \"Al meu iPhone\").",
+  "enableComment": "Comentaris i reaccions",
+  "enabled": "Activat",
+  "enableMaps": "Activa mapes",
+  "encrypted": "Xifrat",
+  "encryptingBackup": "Xifrant còpia de seguretat...",
+  "encryptionKeys": "Claus de xifratge",
+  "@encryptionKeys": {
+    "description": "Encryption keys title"
+  },
+  "enterAlbumName": "Introdueix nom de l'àlbum",
+  "enterCode": "Introdueix el codi",
+  "enterCodeDescription": "Introdueix el codi proporcionat pel teu amic per reclamar emmagatzematge gratuït per a tots dos",
+  "enterCodeHint": "Introdueix el codi de 6 dígits de\nl'aplicació d'autenticació",
+  "@enterCodeHint": {
+    "description": "Hint for entering 2FA code"
+  },
+  "enterDetailsManually": "Introdueix els detalls manualment",
+  "enterEmail": "Introdueix correu",
+  "enterFileName": "Introdueix nom del fitxer",
+  "enterName": "Introdueix nom",
+  "enterNewEmailHint": "Introdueix la teva nova adreça de correu electrònic",
+  "@enterNewEmailHint": {
+    "description": "Hint text for entering new email address"
+  },
+  "enterNewPasswordToEncrypt": "Introdueix una nova contrasenya que puguem utilitzar per xifrar les teves dades",
+  "@enterNewPasswordToEncrypt": {
+    "description": "Prompt to enter new password for encryption"
   },
   "enterPassword": "Introdueix la contrasenya",
   "@enterPassword": {
     "description": "Enter password field label"
   },
+  "enterPasswordToAegisVault": "Introduïu la contrasenya per la volta d'aegis",
+  "enterPasswordToDecrypt2FASBackup": "Introduïu la contrasenya per desxifrar la còpia de seguretat 2FAS",
+  "enterPasswordToDecryptAndOTP": "Introduïu la contrasenya per desxifrar la còpia de seguretat andOTP",
+  "enterPasswordToEncrypt": "Introdueix una contrasenya que puguem utilitzar per xifrar les teves dades",
+  "@enterPasswordToEncrypt": {
+    "description": "Prompt to enter password for encryption"
+  },
+  "enterRecoveryKeyHint": "Introdueix la teva clau de recuperació",
+  "@enterRecoveryKeyHint": {
+    "description": "Hint for entering recovery key"
+  },
+  "enterReferralCode": "Introdueix codi de referència",
+  "enterThe6digitCodeFromnyourAuthenticatorApp": "Introdueix el codi de 6 dígits de\nla teva aplicació d'autenticació",
+  "enterValidEmail": "Si us plau, introdueix una adreça de correu vàlida.",
+  "enterYourNewEmailAddress": "Introdueix la teva nova adreça de correu",
+  "enterYourPassword": "Introdueix la teva contrasenya",
   "enterYourPasswordHint": "Introdueix la teva contrasenya",
   "@enterYourPasswordHint": {
     "description": "Hint for password field"
   },
-  "activeSessions": "Sessions actives",
-  "@activeSessions": {
-    "description": "Title for active sessions page"
+  "enterYourRecoveryKey": "Introdueix la teva clau de recuperació",
+  "errorGenericBody": "S'ha produït un error inesperat durant la importació.",
+  "errorGenericTitle": "S'ha produït un error",
+  "errorInvalidQRCodeBody": "El codi QR escanejat no és un compte 2FA vàlid.",
+  "errorNoQRCode": "No s'ha trobat cap codi QR",
+  "exif": "EXIF",
+  "expiredLinkInfo": "Aquest enllaç ha caducat. Si us plau, selecciona una nova hora de caducitat o desactiva la caducitat de l'enllaç.",
+  "export": "Exporta",
+  "exportCodes": "Exporta codis",
+  "exportDialogDesc": "Les exportacions xifrades estaran protegides amb una contrasenya que triïs.",
+  "exportWarningDesc": "El fitxer exportat conté informació sensible. Guarda-ho de manera segura.",
+  "exportYourData": "Exporta les teves dades",
+  "extraPhotosFound": "Fotos extra trobades",
+  "faceNotClusteredYet": "Cara encara no agrupada, si us plau torna més tard",
+  "facesTimelineAppBarTitle": "Camí dels records",
+  "@facesTimelineAppBarTitle": {
+    "description": "Faces timeline page title shown in the app bar"
   },
-  "oops": "Ups",
-  "@oops": {
-    "description": "Oops error title"
+  "facesTimelineCaptionYearsAgo": "{count, plural, one{fa # any} other{fa # anys}}",
+  "@facesTimelineCaptionYearsAgo": {
+    "description": "Caption for frames when birthdate is unknown, expressing time difference",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "Years ago"
+      }
+    }
   },
-  "somethingWentWrongPleaseTryAgain": "S'ha produït un error, si us plau, intenta-ho de nou",
-  "@somethingWentWrongPleaseTryAgain": {
-    "description": "Generic error message"
+  "facesTimelineCaptionYearsOld": "{name} tenia {count, plural, one{{count} any} other{{count} anys}}",
+  "@facesTimelineCaptionYearsOld": {
+    "description": "Caption for frames when birthdate is known, describing the person's age",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "Number of years old"
+      },
+      "name": {
+        "type": "String",
+        "description": "Person's name"
+      }
+    }
   },
-  "thisWillLogYouOutOfThisDevice": "Això tancarà la sessió en aquest dispositiu!",
-  "@thisWillLogYouOutOfThisDevice": {
-    "description": "Warning message for logging out of current device"
+  "facesTimelinePlaybackPause": "Pausa",
+  "@facesTimelinePlaybackPause": {
+    "description": "Tooltip or semantics label for the pause button"
   },
-  "thisWillLogYouOutOfTheFollowingDevice": "Això tancarà la sessió en el següent dispositiu:",
-  "@thisWillLogYouOutOfTheFollowingDevice": {
-    "description": "Warning message for logging out of another device"
+  "facesTimelinePlaybackPlay": "Reprodueix",
+  "@facesTimelinePlaybackPlay": {
+    "description": "Tooltip or semantics label for the play button"
   },
-  "terminateSession": "Finalitzar sessió?",
-  "@terminateSession": {
-    "description": "Title for terminate session dialog"
+  "facesTimelineUnavailable": "El camí dels records s'està preparant...",
+  "@facesTimelineUnavailable": {
+    "description": "Fallback message when the Memory Lane cannot be displayed yet"
   },
-  "terminate": "Finalitzar",
-  "@terminate": {
-    "description": "Terminate button label"
+  "faceThumbnailGenerationFailed": "No s'han pogut generar miniatures de cares",
+  "failedToApplyCode": "No s'ha pogut aplicar el codi",
+  "failedToCancel": "No s'ha pogut cancel·lar",
+  "failedToDecrypt2FASExport": "No s'ha pogut desxifrar l'exportació 2FAS",
+  "failedToDecryptAegisVault": "No s'ha pogut desxifrar la volta d'aegis",
+  "failedToDecryptAndOTPBackup": "No s'ha pogut desxifrar la còpia de seguretat d'andOTP",
+  "failedToDeleteComment": "No s'ha pogut esborrar el comentari",
+  "@failedToDeleteComment": {
+    "description": "Toast when comment deletion fails"
   },
-  "thisDevice": "Aquest dispositiu",
-  "@thisDevice": {
-    "description": "Label for current device"
+  "failedToDownloadVideo": "No s'ha pogut descarregar el vídeo",
+  "failedToFetchActiveSessions": "No s'han pogut obtenir les sessions actives",
+  "@failedToFetchActiveSessions": {
+    "description": "In session page, warn user (in toast) that active sessions could not be fetched."
   },
-  "createAccount": "Crea un compte",
-  "@createAccount": {
-    "description": "Create account button label"
+  "failedToFetchOriginalForEdit": "No s'ha pogut obtenir l'original per editar",
+  "failedToFetchReferralDetails": "No s'han pogut obtenir els detalls de la referència. Si us plau, torna-ho a provar més tard.",
+  "failedToLikeComment": "No s'ha pogut donar m'agrada al comentari",
+  "@failedToLikeComment": {
+    "description": "Toast when comment like fails"
   },
-  "weakStrength": "Feble",
-  "@weakStrength": {
-    "description": "Weak password strength label"
+  "failedToLoadAlbums": "No s'han pogut carregar els àlbums",
+  "failedToRefreshStripeSubscription": "No s'ha pogut actualitzar la subscripció",
+  "failedToRenew": "No s'ha pogut renovar",
+  "failedToUpdateLike": "No s'ha pogut reproduir el m'agrada",
+  "@failedToUpdateLike": {
+    "description": "Toast when like update fails"
   },
+  "failedToVerifyPaymentStatus": "No s'ha pogut verificar l'estat del pagament",
+  "familyMoments": "Temps en família",
+  "faqs": "Preguntes freqüents",
+  "favorite": "Favorit",
+  "feastingWithThem": "Banquet amb {name}",
+  "@feastingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "featureBackupCodes": "Còpia de seguretat i sincronització\nxifrades d'extrem a extrem",
+  "featureOpenSource": "Codi obert i auditat\nper experts en seguretat",
+  "featureSearchEtc": "Cerca, Etiqueta, Comparteix,\nCodi següent i molt més",
+  "feed": "Canal",
+  "festivities": "Alegria festiva",
+  "fileAnalysisFailed": "No s'ha pogut analitzar el fitxer",
+  "fileInfoAddDescHint": "Afegeix una descripció...",
+  "fileNotUploadedYet": "Fitxer encara no pujat",
+  "files": "Fitxers",
+  "@files": {
+    "description": "Section header for file-related search results"
+  },
+  "fileSavedToGallery": "Fitxer guardat a la galeria",
+  "filesDeleted": "Fitxers esborrats",
+  "filesSavedToGallery": "Fitxers guardats a la galeria",
+  "fileTypes": "Tipus de fitxers",
+  "filter": "Filtre",
+  "findingSimilarImages": "Trobant imatges similars...",
+  "findSimilarImages": "Troba imatges similars",
+  "findThemQuickly": "Troba'ls ràpidament",
+  "@findThemQuickly": {
+    "description": "Subtitle to indicate that the user can find people quickly by name"
+  },
+  "fireworks": "Final de focs artificials",
+  "flip": "Gira",
+  "flowers": "Belleses en flor",
+  "focusOnSearchBar": "Enfoca la barra de cerca en iniciar l'app",
+  "food": "Delícia culinària",
+  "forestTrails": "Passejades pel bosc",
+  "forgotPassword": "Has oblidat la contrasenya?",
+  "@forgotPassword": {
+    "description": "Forgot password link label"
+  },
+  "free10GB": "10GB gratuïts a <bold-green>ente</bold-green> Fotos",
+  "freeStorageOffer": "10% de descompte a <bold-green>ente</bold-green> photos",
+  "freeStorageOfferDescription": "Utilitzeu el codi \"AUTH\" per obtenir un 10% de descompte el primer any",
+  "freeTrial": "Prova gratuïta",
+  "freeUpAmount": "Allibera {sizeInMBorGB}",
+  "@freeUpAmount": {
+    "placeholders": {
+      "sizeInMBorGB": {}
+    }
+  },
+  "freeUpDeviceSpace": "Allibera espai al dispositiu",
+  "freeUpSpace": "Allibera espai",
+  "gallery": "Galeria",
+  "galleryMemoryLimitInfo": "Fins a 1000 records mostrats a la galeria",
+  "generatingEncryptionKeys": "Generant claus de xifratge...",
+  "@generatingEncryptionKeys": {
+    "description": "Generating encryption keys message"
+  },
+  "generatingEncryptionKeysTitle": "Generant claus d'encriptació...",
+  "@generatingEncryptionKeysTitle": {
+    "description": "Generating encryption keys title"
+  },
+  "getStarted": "Primers passos",
+  "gettingReady": "Preparant-se",
+  "giveUsAStarOnGithub": "Dona'ns una estrella a GitHub",
+  "googlePlayId": "Google Play ID",
+  "grantFullAccessPrompt": "Si us plau, permet l'accés a totes les fotos a l'aplicació de Configuració",
+  "grantPermission": "Concedeix permís",
+  "greenery": "La vida verda",
+  "groupBy": "Agrupa per",
+  "groupByDay": "Dia",
+  "groupByMonth": "Mes",
+  "groupByWeek": "Setmana",
+  "groupByYear": "Any",
+  "guestView": "Vista de convidat",
+  "guestViewEnablePreSteps": "Per activar la vista de convidat, si us plau configura el codi d'accés del dispositiu o el bloqueig de pantalla a la configuració del sistema.",
+  "happyBirthday": "Per molts anys! 🥳",
+  "hearUsWhereOptionalTitle": "Com vas conèixer Ente? (opcional)",
+  "@hearUsWhereOptionalTitle": {
+    "description": "Title asking how user heard about Ente"
+  },
+  "help": "Ajuda",
+  "hidden": "Ocult",
+  "hide": "Amaga",
+  "hideContentDescriptioniOS": "Amaga el contingut d'aquesta app en el commutador d'apps del sistema",
+  "@hideContentDescriptioniOS": {
+    "description": "Description of hide content feature on iOS"
+  },
+  "hideFromMemories": "Amaga dels records",
+  "hideSharedItemsFromHomeGallery": "Amaga elements compartits de la galeria d'inici",
+  "hiding": "Amagant...",
+  "hikingWithThem": "Excursió amb {name}",
+  "@hikingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "hintForDesktop": "Clic dret sobre un codi per editar o eliminar.",
+  "hintForMobile": "Mantingues pressionat un codi per editar o eliminar.",
+  "historicSites": "Ecos de la història",
+  "hoorayyyy": "Viscaaaa!",
+  "hostedAtOsmFrance": "Allotjat a OSM França",
+  "howItWorks": "Com funciona",
+  "@howItWorks": {
+    "description": "How it works button label"
+  },
+  "howToViewShareeVerificationID": "Si us plau, demana'ls que facin una pressió llarga sobre la seva adreça de correu a la pantalla de configuració, i verifica que els ID en ambdós dispositius coincideixen.",
+  "ignore": "Ignora",
+  "ignored": "ignorat",
+  "ignorePerson": "Ignora persona",
+  "imageNotAnalyzed": "Imatge no analitzada",
+  "immediately": "Immediatament",
+  "@immediately": {
+    "description": "Immediately option for auto lock timing"
+  },
+  "import2FasGuide": "Utilitza l'opció \"Configuració->Còpia de seguretat - Exporta\" a 2FAS.\n\nSi la teva còpia de seguretat està xifrada, hauràs d'introduir la contrasenya per desxifrar-la.",
+  "importAccountPageTitle": "Introdueix les dades del compte",
+  "importAegisGuide": "Utilitza l'opció \"Exporta la caixa forta\" a la configuració d'Aegis.\n\nSi la teva caixa forta està xifrada, hauràs d'introduir la contrasenya per desxifrar-la.",
+  "importAndOTPGuide": "Exporta la teva còpia de seguretat des d'andOTP mitjançant l'opció \"Còpia de seguretat\" a la Configuració.\n\nSi la teva còpia de seguretat està xifrada, hauràs d'introduir la contrasenya de la còpia de seguretat per desxifrar-la.",
+  "importBitwardenGuide": "Utilitza l'opció \"Exporta caixa forta\" a la configuració de Bitwarden i importa el fitxer JSON sense xifrar.",
+  "importCodeDelimiterInfo": "Els codis poden estar separats per una coma o una nova línia",
+  "importCodes": "Importa codis",
+  "importEnteEncGuide": "Selecciona el fitxer JSON xifrat exportat des d'Ente",
+  "importEnterSetupKey": "Introdueix una clau de configuració",
+  "importFailureDesc": "No s'ha pogut analitzar el fitxer seleccionat.",
+  "importFromGallery": "Importa des de la galeria",
+  "importInstruction": "Si us plau, selecciona un fitxer que contingui una llista dels teus codis en el següent format",
+  "importLabel": "Importa",
+  "importLastpassGuide": "Utilitza l'opció \"Transferir comptes\" a la configuració de Lastpass Authenticator i prem \"Exporta comptes a fitxer\". Importa el fitxer JSON descarregat.",
+  "importProtonAuthGuide": "Si l'exportació està protegida amb contrasenya, haureu d'introduir la contrasenya per desxifrar-la.",
+  "importRaivoGuide": "Utilitza l'opció \"Exporta OTPs a un arxiu Zip\" a la configuració de Raivo.\n\nExtreu el fitxer zip i importa el fitxer JSON.",
+  "importSelectAppExport": "Selecciona el fitxer d'exportació de {appName}",
+  "@importSelectAppExport": {
+    "placeholders": {
+      "appName": {}
+    }
+  },
+  "importSelectJsonFile": "Selecciona un fitxer JSON",
+  "importSuccessDesc": "Has importat {count} codis!",
+  "@importSuccessDesc": {
+    "placeholders": {
+      "count": {
+        "description": "The number of codes imported",
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "importSuccessTitle": "Visca!",
+  "importTypeEnteEncrypted": "Exportació xifrada d'Ente",
+  "incorrectCode": "Codi incorrecte",
+  "@incorrectCode": {
+    "description": "Error message when code is incorrect"
+  },
+  "incorrectDetails": "Detalls incorrectes",
+  "incorrectPasswordTitle": "Contrasenya incorrecta",
+  "@incorrectPasswordTitle": {
+    "description": "Title for incorrect password error"
+  },
+  "incorrectRecoveryKey": "Clau de recuperació incorrecta",
+  "@incorrectRecoveryKey": {
+    "description": "Error message when recovery key is incorrect"
+  },
+  "incorrectRecoveryKeyBody": "La clau de recuperació que has introduït és incorrecta",
+  "incorrectRecoveryKeyTitle": "Clau de recuperació incorrecta",
+  "info": "Informació",
+  "initialBackupCreated": "Còpia de seguretat inicial creada!",
+  "invalidEmailAddress": "Adreça de correu invàlida",
+  "invalidEmailMessage": "Si us plau, introdueix una adreça de correu electrònic vàlida.",
+  "@invalidEmailMessage": {
+    "description": "Message for invalid email error dialog"
+  },
+  "invalidEmailTitle": "Adreça de correu electrònic no vàlida",
+  "@invalidEmailTitle": {
+    "description": "Title for invalid email error dialog"
+  },
+  "invalidProtonExportMessage": "El fitxer seleccionat no és una exportació vàlida de Proton Authenticator.",
+  "invalidProtonExportTitle": "Exportació de Proton no vàlida",
+  "invalidReferralCode": "Codi invàlid",
+  "invite": "Convida",
+  "inviteToEnte": "Convida a Ente",
+  "ok": "D'acord",
+  "@ok": {
+    "description": "Generic OK button label"
+  },
+  "iosOnMyDeviceNotSupported": "\"Al meu iPhone\" no es pot utilitzar directament. Seleccioneu o creeu una carpeta a dins.",
+  "itemCount": "{count, plural, one{{count} element} other{{count} elements}}",
+  "@itemCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "itemsShowTheNumberOfDaysRemainingBeforePermanentDeletion": "Els elements mostren el nombre de dies restants abans de l'eliminació permanent",
+  "itemsWillBeRemovedFromAlbum": "Els elements seleccionats s'eliminaran d'aquest àlbum",
+  "iUnderStand": "Ho entenc",
+  "@iUnderStand": {
+    "description": "Text for the button to confirm the user understands the warning"
+  },
+  "join": "Uneix-te",
+  "joinAlbum": "Uneix-te a l'àlbum",
+  "joinAlbumConfirmationDialogBody": "Unir-se a un àlbum farà que el teu correu sigui visible per als seus participants.",
+  "joinAlbumSubtext": "per veure i afegir les teves fotos",
+  "joinAlbumSubtextViewer": "per afegir això als àlbums compartits",
+  "kiloMeterUnit": "km",
+  "lakeside": "Calma al costat del llac",
+  "language": "Idioma",
+  "lastUpdated": "Última actualització",
+  "lastWeek": "La setmana passada",
+  "lastYearsTrip": "Viatge de l'any passat",
+  "layout": "Disposició",
+  "layoutGrouped": "Agrupat",
+  "layoutTrip": "Viatge",
+  "leave": "Deixa",
+  "leaveAlbum": "Deixa l'àlbum",
+  "leaveFamily": "Deixa la família",
+  "leaveSharedAlbum": "Deixar l'àlbum compartit?",
+  "left": "Esquerra",
+  "legacy": "Llegat",
+  "legacyAccounts": "Comptes de llegat",
+  "legacyInvite": "{email} t'ha convidat a ser un contacte de confiança",
+  "@legacyInvite": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "family@example.com"
+      }
+    }
+  },
+  "legacyPageDesc": "El llegat permet als contactes de confiança accedir al teu compte en la teva absència.",
+  "legacyPageDesc2": "Els contactes de confiança poden iniciar la recuperació del compte, i si no es bloquegen en 30 dies, restablir la teva contrasenya i accedir al teu compte.",
+  "lightTheme": "Clar",
+  "like": "M'agrada",
+  "likeAll": "Donar m'agrada a tots",
+  "@likeAll": {
+    "description": "Button to like in all shared albums"
+  },
+  "linkCopiedToClipboard": "Enllaç copiat al porta-retalls",
+  "linkDeviceLimit": "Límit de dispositius",
+  "linkEnabled": "Activat",
+  "linkExpired": "Caducat",
+  "linkExpiresOn": "L'enllaç caducarà el {expiryTime}",
+  "@linkExpiresOn": {
+    "placeholders": {
+      "expiryTime": {}
+    }
+  },
+  "linkExpiry": "Caducitat de l'enllaç",
+  "linkHasExpired": "L'enllaç ha caducat",
+  "linkNeverExpires": "Mai",
+  "loadingExifData": "Carregant dades EXIF...",
+  "loadingGallery": "Carregant galeria...",
+  "loadingModel": "Descarregant models...",
+  "loadingYourPhotos": "Carregant les teves fotos...",
+  "loadMessage1": "Pots compartir la teva subscripció amb la teva família",
+  "loadMessage3": "Guardem 3 còpies de les teves dades, una en un refugi nuclear subterrani",
+  "loadMessage4": "Totes les nostres aplicacions són de codi obert",
+  "loadMessage5": "El nostre codi font i criptografia han estat auditats externament",
+  "loadMessage6": "Pots compartir enllaços als teus àlbums amb els teus éssers estimats",
+  "loadMessage7": "Les nostres aplicacions mòbils s'executen en segon pla per xifrar i fer còpia de seguretat de qualsevol foto nova que facis",
+  "loadMessage8": "{webUrl} té un carregador elegant",
+  "@loadMessage8": {
+    "description": "Loading screen message about the web uploader.",
+    "placeholders": {
+      "webUrl": {
+        "type": "String",
+        "example": "photos.ente.com"
+      }
+    }
+  },
+  "loadMessage9": "Utilitzem Xchacha20Poly1305 per xifrar de manera segura les teves dades",
+  "localBackupDailyManualCopy": "Crea una còpia de seguretat local al dia quan obriu l'aplicació. Feu servir \"Fes una còpia de seguretat ara\" per executar una còpia de seguretat manual. Les còpies de seguretat es conserven fins a un màxim de 5 fitxers.",
+  "localBackupSidebarTitle": "Còpia de seguretat local",
+  "localGallery": "Galeria local",
+  "localSyncErrorMessage": "Sembla que alguna cosa ha anat malament ja que la sincronització de fotos locals està trigant més del previst. Si us plau, contacta amb el nostre equip de suport",
+  "location": "Ubicació",
+  "locationName": "Nom de la ubicació",
+  "locationPickerTip": "També pots afegir una ubicació centrada en una foto des de la pantalla d'informació de la foto",
+  "@locationPickerTip": {
+    "description": "Helper tip text shown in the location picker that refers to the photo info screen."
+  },
+  "locations": "Ubicacions",
+  "locationTagFeatureDescription": "Una etiqueta d'ubicació agrupa totes les fotos que s'han fet dins d'un cert radi d'una foto",
+  "locationUpdatedAndBackupCreated": "Ubicació actualitzada i còpia de seguretat inicial creada!",
+  "lockButtonLabel": "Bloqueja",
+  "loggingOut": "Tancant sessió...",
+  "@loggingOut": {
+    "description": "Message shown while logging out"
+  },
+  "logInLabel": "Inicia sessió",
+  "@logInLabel": {
+    "description": "Log in button label"
+  },
+  "loginSessionExpired": "Sessió caducada",
+  "@loginSessionExpired": {
+    "description": "Login session expired title"
+  },
+  "loginWithAuthAccount": "Inicieu sessió amb el vostre compte Auth",
+  "logsDialogBody": "Això enviarà els registres per ajudar-nos a depurar el teu problema. Si us plau, tingues en compte que els noms dels fitxers s'inclouran per ajudar a rastrejar problemes amb fitxers específics.",
+  "@logsDialogBody": {
+    "description": "Body text for the logs dialog explaining what will be sent"
+  },
+  "longPressAnEmailToVerifyEndToEndEncryption": "Fes una pressió llarga sobre un correu per verificar el xifratge d'extrem a extrem.",
+  "lookBackOnYourMemories": "Mira enrere als teus records 🌄",
+  "lookingForVisualSimilarities": "Buscant similituds visuals...",
+  "loopVideoOff": "Activa bucle",
+  "loopVideoOn": "Desactiva bucle",
+  "lostDevice": "Dispositiu perdut?",
+  "lostDeviceTitle": "Dispositiu perdut?",
+  "@lostDeviceTitle": {
+    "description": "Lost device title"
+  },
+  "machineLearning": "Aprenentatge automàtic",
+  "magic": "Màgia",
+  "@magic": {
+    "description": "Section header for magic search results"
+  },
+  "manageDeviceStorage": "Gestiona la memòria cau del dispositiu",
+  "manageFamily": "Gestiona família",
+  "manageLink": "Gestiona enllaç",
+  "manageSubscription": "Gestiona subscripció",
+  "manualSort": "Personalitzat",
+  "map": "Mapa",
+  "@map": {
+    "description": "Label for the map view"
+  },
+  "maps": "Mapes",
+  "mapsPrivacyNotice": "Les coordenades aproximades s'enviaran a tercers conscients de la privadesa com OpenStreetMap per mostrar el mapa i la ubicació.",
+  "me": "Jo",
+  "memories": "Records",
+  "memoryCount": "{count, plural, =0{sense records} one{{formattedCount} record} other{{formattedCount} records}}",
+  "@memoryCount": {
+    "description": "The text to display the number of memories",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "1",
+        "type": "int"
+      },
+      "formattedCount": {
+        "type": "String",
+        "example": "11.513, 11,511"
+      }
+    }
+  },
+  "merchandise": "Marxandatge",
+  "merge": "Fusiona",
+  "mergedPhotos": "Fotos fusionades",
+  "mergeWithExisting": "Fusiona amb existent",
+  "mergeWithPersonDescription": "Totes les fotos d'ambdós grups de cares es fusionaran sota {name}.",
+  "@mergeWithPersonDescription": {
+    "description": "Description for confirming a merge with an existing person.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Jamie Long"
+      }
+    }
+  },
+  "mergeWithPersonTitle": "Fusionar amb {name}?",
+  "@mergeWithPersonTitle": {
+    "description": "Title for confirming a merge with an existing person.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Jamie Long"
+      }
+    }
+  },
+  "minimizeAppOnCopy": "Minimitza l'app en copiar",
+  "minimizeToTrayOnClose": "Minimitzar a la safata en tancar",
+  "mixedGrouping": "Agrupament mixt?",
+  "mlConsent": "Activa aprenentatge automàtic",
+  "mlConsentConfirmation": "Ho entenc, i vull activar l'aprenentatge automàtic",
+  "mlConsentDescription": "Si actives l'aprenentatge automàtic, Ente extreurà informació com la geometria facial dels fitxers, inclosos els compartits amb tu.\n\nAixò passarà al teu dispositiu, i qualsevol informació biomètrica generada estarà xifrada d'extrem a extrem.",
   "moderateStrength": "Moderada",
   "@moderateStrength": {
     "description": "Moderate password strength label"
   },
-  "strongStrength": "Forta",
-  "@strongStrength": {
-    "description": "Strong password strength label"
+  "modifyYourQueryOrTrySearchingFor": "Modifica la teva consulta, o intenta cercar",
+  "month": "mes",
+  "monthly": "Mensual",
+  "@monthly": {
+    "description": "The text to display for monthly plans",
+    "type": "text"
   },
-  "deleteAccount": "Elimina el compte",
-  "@deleteAccount": {
-    "description": "Delete account button label"
+  "moon": "A la llum de la lluna",
+  "moreDetails": "Més detalls",
+  "mostFrequentlyUsed": "Usats sovint",
+  "mostRecent": "Més recent",
+  "mostRecentlyUsed": "Usats recentment",
+  "mostRelevant": "Més rellevant",
+  "mountains": "Sobre els turons",
+  "movedSuccessfullyTo": "Mogut amb èxit a {albumName}",
+  "@movedSuccessfullyTo": {
+    "placeholders": {
+      "albumName": {}
+    }
   },
-  "deleteAccountQuery": "Ens sabrà greu veure't marxar. Tens algun problema?",
-  "@deleteAccountQuery": {
-    "description": "Message asking user why they want to delete account"
+  "movedToTrash": "Mogut a la paperera",
+  "moveMultipleToTrashMessage": "Esteu segur que voleu moure {count} element(s) a la paperera?",
+  "@moveMultipleToTrashMessage": {
+    "placeholders": {
+      "count": {}
+    }
   },
-  "yesSendFeedbackAction": "Sí, envia comentaris",
-  "@yesSendFeedbackAction": {
-    "description": "Button to confirm sending feedback"
+  "moveSelectedPhotosToOneDate": "Mou les fotos seleccionades a una data",
+  "moveToAlbum": "Mou a l'àlbum",
+  "moveToHiddenAlbum": "Mou a l'àlbum ocult",
+  "movingFilesToAlbum": "Movent fitxers a l'àlbum...",
+  "name": "Nom",
+  "never": "Mai",
+  "newAlbum": "Nou àlbum",
+  "newest": "Més nou",
+  "newLocation": "Nova ubicació",
+  "newPhotosEmoji": " noves 📸",
+  "newRange": "Nou rang",
+  "next": "Següent",
+  "@next": {
+    "description": "Next button label"
   },
-  "noDeleteAccountAction": "No, elimina el compte",
-  "@noDeleteAccountAction": {
-    "description": "Button to proceed with account deletion"
+  "nextTotpTitle": "següent",
+  "nightLights": "Nits de neó",
+  "noDefaultBackupFolder": "No s'ha pogut crear la carpeta de còpia de seguretat predeterminada.",
+  "noDeleteSuggestion": "No hi ha suggeriments d'eliminació",
+  "noDeviceFound": "No s'ha trobat cap dispositiu",
+  "noDeviceLimit": "Cap",
+  "@noDeviceLimit": {
+    "description": "Text to indicate that there is limit on number of devices"
   },
-  "initiateAccountDeleteTitle": "Si us plau, autentica't per iniciar l'eliminació del compte",
-  "@initiateAccountDeleteTitle": {
-    "description": "Title for authentication dialog before account deletion"
+  "noDeviceThatCanBeDeleted": "No tens fitxers en aquest dispositiu que es puguin esborrar",
+  "noDuplicates": "✨ Sense duplicats",
+  "noExifData": "Sense dades EXIF",
+  "noFacesFound": "No s'han trobat cares",
+  "noHiddenFilesOnDevice": "No hi ha fitxers ocults al dispositiu",
+  "noImagesWithLocation": "No hi ha imatges amb ubicació",
+  "noLikesYet": "Cap m'agrada encara",
+  "@noLikesYet": {
+    "description": "Empty state when no likes exist"
   },
-  "confirmAccountDeleteTitle": "Confirma la supressió del compte",
-  "@confirmAccountDeleteTitle": {
-    "description": "Title for account deletion confirmation dialog"
+  "noPhotosFoundHere": "No s'han trobat fotos aquí",
+  "noRecoveryKeyNoDecryption": "A causa de la naturalesa del nostre protocol de xifratge d'extrem a extrem, les teves dades no es poden desxifrar sense la teva contrasenya o clau de recuperació",
+  "@noRecoveryKeyNoDecryption": {
+    "description": "Explanation that data cannot be decrypted without password or recovery key"
   },
-  "confirmAccountDeleteMessage": "Aquest compte està vinculat a altres apps d'Ente, si en fas ús.\n\nLes dades pujades, a través de totes les apps d'Ente, es programaran per a la supressió, i el teu compte s'eliminarà permanentment.",
-  "@confirmAccountDeleteMessage": {
-    "description": "Message warning about account deletion consequences"
+  "noRecoveryKeyTitle": "No tens clau de recuperació?",
+  "@noRecoveryKeyTitle": {
+    "description": "No recovery key title"
   },
-  "delete": "Elimina",
-  "@delete": {
-    "description": "Delete button label"
+  "noResult": "Sense resultat",
+  "noResultsFound": "No s'han trobat resultats",
+  "noSimilarImagesFound": "No s'han trobat imatges similars",
+  "noSuggestionsForPerson": "No hi ha suggeriments per a {personName}",
+  "@noSuggestionsForPerson": {
+    "placeholders": {
+      "personName": {
+        "type": "String",
+        "example": "Alice"
+      }
+    }
   },
-  "createNewAccount": "Crea un nou compte",
-  "@createNewAccount": {
-    "description": "Create new account button label"
+  "note": "Nota",
+  "notesLengthLimit": "Les notes poden tenir un màxim de {count} caràcters",
+  "@notesLengthLimit": {
+    "description": "Text to indicate the maximum number of characters allowed for notes",
+    "placeholders": {
+      "count": {
+        "description": "The maximum number of characters allowed for notes",
+        "type": "int",
+        "example": "100"
+      }
+    }
+  },
+  "nothingToSeeHere": "Res a veure aquí",
+  "nothingToTidyUpHere": "Res a endreçar aquí",
+  "notifications": "Notificacions",
+  "notPersonLabel": "No és {name}?",
+  "@notPersonLabel": {
+    "description": "Label to indicate that the person in the photo is not the person whose name is mentioned",
+    "placeholders": {
+      "name": {
+        "content": "{name}",
+        "type": "String"
+      }
+    }
+  },
+  "notSupportedForHOTP": "No compatible amb HOTP",
+  "notThisPerson": "No és aquesta persona?",
+  "ocrGenericDetectError": "No s'ha pogut detectar text a la imatge",
+  "ocrImageDecodeFailedError": "No s'ha pogut llegir el fitxer d'imatge",
+  "ocrImageNotFoundError": "No s'ha trobat el fitxer d'imatge",
+  "ocrModelsNetworkRequiredError": "Es requereix connexió a la xarxa per descarregar els models OCR en el primer ús",
+  "ocrModelsPrepareFailed": "No s'han pogut preparar els models OCR",
+  "ocrNoTextDetected": "No s'ha detectat text",
+  "offlineModeWarning": "Has triat procedir sense còpies de seguretat. Realitza còpies manuals per garantir la seguretat dels teus codis.",
+  "onEnte": "A <branding>ente</branding>",
+  "@onEnte": {
+    "description": "The text displayed above albums backed up to Ente",
+    "type": "text"
+  },
+  "onlyFamilyAdminCanChangeCode": "Si us plau, contacta amb {familyAdminEmail} per canviar el teu codi.",
+  "@onlyFamilyAdminCanChangeCode": {
+    "placeholders": {
+      "familyAdminEmail": {}
+    }
+  },
+  "onlyThem": "Només ells",
+  "onlyUploadedFilesCanBeAddedToPerson": "Només els fitxers carregats es poden afegir a una persona",
+  "@onlyUploadedFilesCanBeAddedToPerson": {
+    "description": "Shown when user tries to manually tag files that are not uploaded yet."
+  },
+  "onTheRoad": "De nou a la carretera",
+  "onThisDay": "Aquest dia",
+  "onThisDayMemories": "Records d'aquest dia",
+  "oopsCouldNotSaveEdits": "Vaja, no s'han pogut guardar les edicions",
+  "oopsSomethingWentWrong": "Vaja, alguna cosa ha anat malament",
+  "openAlbumInBrowser": "Obre àlbum al navegador",
+  "openAlbumInBrowserTitle": "Si us plau, utilitza l'aplicació web per afegir fotos a aquest àlbum",
+  "openFile": "Obre fitxer",
+  "openstreetmapContributors": "Col·laboradors d'OpenStreetMap",
+  "optionalAsShortAsYouLike": "Opcional, tan curt com vulguis...",
+  "otherDetectedFaces": "Altres cares detectades",
+  "pair": "Aparella",
+  "partyWithThem": "Festa amb {name}",
+  "@partyWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "passKeyPendingVerification": "La verificació encara està pendent",
+  "@passKeyPendingVerification": {
+    "description": "Message when passkey verification is pending"
   },
   "password": "Contrasenya",
   "@password": {
     "description": "Password field label"
   },
-  "confirmPassword": "Confirma la contrasenya",
-  "@confirmPassword": {
-    "description": "Confirm password field label"
-  },
+  "passwordEmptyError": "La contrasenya no pot estar buida",
+  "passwordForDecryptingExport": "Contrasenya per desxifrar l'exportació",
+  "passwordLock": "Bloqueig per contrasenya",
   "passwordStrength": "Força de la contrasenya: {passwordStrengthValue}",
   "@passwordStrength": {
     "description": "Text to indicate the password strength",
@@ -226,221 +1337,187 @@
       }
     }
   },
-  "hearUsWhereTitle": "Com vas conèixer Ente? (opcional)",
-  "@hearUsWhereTitle": {
-    "description": "Title asking how user heard about Ente"
-  },
-  "hearUsExplanation": "No fem seguiment de les instal·lacions de l'app. Ens ajudaria saber on ens has trobat!",
-  "@hearUsExplanation": {
-    "description": "Explanation for asking how user heard about Ente"
-  },
-  "signUpTerms": "Estic d'acord amb els <u-terms>termes del servei</u-terms> i la <u-policy>política de privacitat</u-policy>",
-  "@signUpTerms": {
-    "description": "Terms agreement text for sign up"
-  },
-  "termsOfServicesTitle": "Termes",
-  "@termsOfServicesTitle": {
-    "description": "Terms of service title"
-  },
-  "privacyPolicyTitle": "Política de privacitat",
-  "@privacyPolicyTitle": {
-    "description": "Privacy policy title"
-  },
-  "ackPasswordLostWarning": "Entenc que si perdo la meva contrasenya, puc perdre les meves dades ja que les meves dades estan <underline>xifrades d'extrem a extrem</underline>.",
-  "@ackPasswordLostWarning": {
-    "description": "Warning about password loss"
-  },
-  "encryption": "Xifratge",
-  "@encryption": {
-    "description": "Encryption label"
-  },
-  "logInLabel": "Inicia sessió",
-  "@logInLabel": {
-    "description": "Log in button label"
-  },
-  "welcomeBack": "Benvingut de nou!",
-  "@welcomeBack": {
-    "description": "Welcome back message"
-  },
-  "loginTerms": "En fer clic a iniciar sessió, estic d'acord amb els <u-terms>termes del servei</u-terms> i la <u-policy>política de privacitat</u-policy>",
-  "@loginTerms": {
-    "description": "Terms agreement text for login"
-  },
-  "noInternetConnection": "Sense connexió a Internet",
-  "@noInternetConnection": {
-    "description": "No internet connection error message"
-  },
-  "pleaseCheckYourInternetConnectionAndTryAgain": "Comprova la connexió a Internet i torna-ho a intentar.",
-  "@pleaseCheckYourInternetConnectionAndTryAgain": {
-    "description": "Message asking user to check internet connection"
-  },
-  "verificationFailedPleaseTryAgain": "La verificació ha fallat, intenta-ho de nou",
-  "@verificationFailedPleaseTryAgain": {
-    "description": "Verification failed error message"
-  },
-  "recreatePasswordTitle": "Recrea la contrasenya",
-  "@recreatePasswordTitle": {
-    "description": "Title for recreate password dialog"
-  },
-  "recreatePasswordBody": "El dispositiu actual no és prou potent per verificar la teva contrasenya, però podem regenerar-la d'una manera que funcioni amb tots els dispositius.\n\nSi us plau, inicia sessió utilitzant la teva clau de recuperació i regenera la teva contrasenya (pots tornar a utilitzar la mateixa si ho desitges).",
-  "@recreatePasswordBody": {
-    "description": "Body text for recreate password dialog"
-  },
-  "useRecoveryKey": "Usa la clau de recuperació",
-  "@useRecoveryKey": {
-    "description": "Use recovery key button label"
-  },
-  "forgotPassword": "Has oblidat la contrasenya",
-  "@forgotPassword": {
-    "description": "Forgot password link label"
-  },
-  "changeEmail": "Canvia el correu electrònic",
-  "@changeEmail": {
-    "description": "Change email button label"
-  },
-  "verifyEmail": "Verifica el correu electrònic",
-  "@verifyEmail": {
-    "description": "Verify email title"
-  },
-  "weHaveSendEmailTo": "Hem enviat un correu a <green>{email}</green>",
-  "@weHaveSendEmailTo": {
-    "description": "Text to indicate that we have sent a mail to the user",
+  "passwordToEncryptExport": "Contrasenya per xifrar l'exportació",
+  "passwordTooShort": "La contrasenya ha de tenir com a mínim 8 caràcters.",
+  "pastYearsMemories": "Records d'anys passats",
+  "paymentDetails": "Detalls del pagament",
+  "paymentFailed": "El pagament ha fallat",
+  "paymentFailedMessage": "Malauradament el teu pagament ha fallat. Si us plau, contacta amb suport i t'ajudarem!",
+  "paymentFailedTalkToProvider": "Si us plau, parla amb el suport de {providerName} si se t'ha cobrat",
+  "@paymentFailedTalkToProvider": {
+    "description": "The text to display when the payment failed",
+    "type": "text",
     "placeholders": {
-      "email": {
-        "description": "The email address of the user",
-        "type": "String",
-        "example": "example@ente.io"
+      "providerName": {
+        "example": "AppStore|PlayStore",
+        "type": "String"
       }
     }
   },
-  "toResetVerifyEmail": "Per restablir la teva contrasenya, si us plau verifica primer el teu correu electrònic.",
-  "@toResetVerifyEmail": {
-    "description": "Message asking user to verify email before password reset"
+  "pendingSync": "Sincronització pendent",
+  "pendingSyncs": "Advertència",
+  "pendingSyncsWarningBody": "Alguns dels teus codis no s'han sincronitzat.\n\nSi us plau, assegura't de tenir una còpia de seguretat d'aquests codis abans de tancar la sessió.",
+  "people": "Gent",
+  "peopleAutoAddDesc": "Afegeix automàticament fotos de les persones seleccionades a aquest àlbum",
+  "@peopleAutoAddDesc": {
+    "description": "The message the copy should convey is that photos or videos containing the selected people's faces will be automatically added to this album"
   },
-  "checkInboxAndSpamFolder": "Comprova la teva safata d'entrada (i el correu no desitjat) per completar la verificació",
-  "@checkInboxAndSpamFolder": {
-    "description": "Message asking user to check inbox and spam folder"
+  "period": "Període",
+  "permanentlyDelete": "Esborra permanentment",
+  "permDeleteWarning": "Tots els elements de la paperera s'esborraran permanentment\n\nAquesta acció no es pot desfer",
+  "personIsAge": "{name} té {age}!",
+  "@personIsAge": {
+    "placeholders": {
+      "age": {},
+      "name": {}
+    }
   },
-  "tapToEnterCode": "Toca per introduir el codi",
-  "@tapToEnterCode": {
-    "description": "Hint for entering verification code"
+  "personTurningAge": "{name} farà {age} aviat",
+  "@personTurningAge": {
+    "placeholders": {
+      "age": {},
+      "name": {}
+    }
   },
-  "sendEmail": "Envia correu electrònic",
-  "resendEmail": "Reenviar correu electrònic",
-  "@resendEmail": {
-    "description": "Resend email button label"
+  "pets": "Companys peluts",
+  "photoGridSize": "Mida de la graella de fotos",
+  "photos": "Fotos",
+  "photosAddedByYouWillBeRemovedFromTheAlbum": "Les fotos afegides per tu s'eliminaran de l'àlbum",
+  "photosKeepRelativeTimeDifference": "Les fotos mantenen la diferència horària relativa",
+  "pickCenterPoint": "Tria punt central",
+  "pin": "Fixa",
+  "pinLock": "Bloqueig amb PIN",
+  "@pinLock": {
+    "description": "PIN lock option title"
   },
-  "passKeyPendingVerification": "La verificació encara està pendent",
-  "@passKeyPendingVerification": {
-    "description": "Message when passkey verification is pending"
+  "pinnedCodeMessage": "{code} s'ha fixat",
+  "@pinnedCodeMessage": {
+    "placeholders": {
+      "code": {}
+    }
   },
-  "loginSessionExpired": "Sessió caducada",
-  "@loginSessionExpired": {
-    "description": "Login session expired title"
+  "pinnedCount": "{count, plural, one{{count} element fixat} other{{count} elements fixats}}",
+  "@pinnedCount": {
+    "description": "Text to show number of items pinned",
+    "placeholders": {
+      "count": {
+        "description": "Number of items pinned",
+        "type": "int",
+        "example": "3"
+      }
+    }
   },
-  "loginSessionExpiredDetails": "La teva sessió ha caducat. Torna a iniciar sessió.",
-  "@loginSessionExpiredDetails": {
-    "description": "Login session expired details"
+  "pinPerson": "Fixa la persona",
+  "pinText": "Fixa",
+  "plainHTML": "HTML pla",
+  "plainText": "Text pla",
+  "playfulKids": "Nens juganers",
+  "playOriginal": "Reprodueix original",
+  "playstoreSubscription": "Subscripció de PlayStore",
+  "playStream": "Reprodueix transmissió",
+  "pleaseCheckPasswordAndTryAgain": "Comproveu la vostra contrasenya i torneu-ho a intentar.",
+  "pleaseContactSupportIfTheProblemPersists": "Si us plau, contacta amb suport si el problema persisteix",
+  "pleaseEmailUsAt": "Si us plau, envia'ns un correu a {toEmail}",
+  "@pleaseEmailUsAt": {
+    "placeholders": {
+      "toEmail": {}
+    }
   },
-  "passkeyAuthTitle": "Verificació per passkey",
-  "@passkeyAuthTitle": {
-    "description": "Passkey authentication title"
+  "pleaseGrantPermissions": "Si us plau, concedeix permisos",
+  "pleaseNamePersonInPeopleSectionFirst": "Si us plau, primer nomeneu una persona a la secció Persones",
+  "@pleaseNamePersonInPeopleSectionFirst": {
+    "description": "Shown when manual tagging requires at least one named person."
   },
-  "waitingForVerification": "Esperant verificació...",
-  "@waitingForVerification": {
-    "description": "Waiting for verification message"
+  "pleaseSelectQuickLinksToRemove": "Si us plau, selecciona enllaços ràpids per eliminar",
+  "pleaseSendTheLogsTo": "Si us plau, envia els registres a \n{toEmail}",
+  "@pleaseSendTheLogsTo": {
+    "description": "Message asking user to send logs to email address",
+    "placeholders": {
+      "toEmail": {
+        "type": "String",
+        "description": "Email address to send logs to"
+      }
+    }
   },
-  "tryAgain": "Intenta-ho de nou",
-  "@tryAgain": {
-    "description": "Try again button label"
+  "pleaseVerifyDetails": "Verifica els detalls i torna-ho a provar",
+  "pleaseVerifyTheCodeYouHaveEntered": "Si us plau, verifica el codi que has introduït",
+  "pleaseWait": "Si us plau, espera...",
+  "@pleaseWait": {
+    "description": "Please wait message"
   },
-  "checkStatus": "Comprova l'estat",
-  "@checkStatus": {
-    "description": "Check status button label"
+  "pleaseWaitDeletingAlbum": "Si us plau, espera, esborrant àlbum",
+  "pleaseWaitForSometimeBeforeRetrying": "Si us plau, espera una estona abans de tornar-ho a provar",
+  "pleaseWaitThisWillTakeAWhile": "Si us plau, espera, això trigarà una estona.",
+  "posingWithThem": "Posant amb {name}",
+  "@posingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
   },
-  "loginWithTOTP": "Inici de sessió amb TOTP",
-  "@loginWithTOTP": {
-    "description": "Login with TOTP button label"
+  "preparingLogs": "Preparant registres...",
+  "preserveMore": "Preserva més",
+  "pressAndHoldToPlayVideoDetailed": "Prem i mantén a la imatge per reproduir vídeo",
+  "preview": "Previsualització",
+  "previous": "Anterior",
+  "proceed": "Procedeix",
+  "processed": "Processat",
+  "processingImport": "Processant {folderName}...",
+  "@processingImport": {
+    "placeholders": {
+      "folderName": {}
+    }
+  },
+  "publicLinkEnabled": "Enllaç públic activat",
+  "qr": "QR",
+  "qrCode": "Codi QR",
+  "questionmark": "?",
+  "queued": "En cua",
+  "radius": "Radi",
+  "rainyDays": "Sensacions de dia plujós",
+  "raiseTicket": "Obre tiquet",
+  "@raiseTicket": {
+    "description": "Button text for raising a support tickets in case of unhandled errors during backup",
+    "type": "text"
+  },
+  "rateUs": "Valora'ns",
+  "rateUsOnStore": "Valora'ns a {storeName}",
+  "@rateUsOnStore": {
+    "placeholders": {
+      "storeName": {}
+    }
+  },
+  "rawCodeData": "Dades del codi en brut",
+  "reassignedToName": "T'has reassignat a {name}",
+  "@reassignedToName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reassigningLoading": "Reassignant...",
+  "reassignMe": "Reassigna \"Jo\"",
+  "recover": "Recupera",
+  "@recover": {
+    "description": "Recover button label"
   },
   "recoverAccount": "Recupera el compte",
   "@recoverAccount": {
     "description": "Recover account button label"
   },
-  "setPasswordTitle": "Configura la contrasenya",
-  "@setPasswordTitle": {
-    "description": "Set password title"
-  },
-  "changePasswordTitle": "Canvia la contrasenya",
-  "@changePasswordTitle": {
-    "description": "Change password title"
-  },
-  "resetPasswordTitle": "Restableix la contrasenya",
-  "@resetPasswordTitle": {
-    "description": "Reset password title"
-  },
-  "encryptionKeys": "Claus de xifratge",
-  "@encryptionKeys": {
-    "description": "Encryption keys title"
-  },
-  "enterPasswordToEncrypt": "Introdueix una contrasenya que puguem utilitzar per xifrar les teves dades",
-  "@enterPasswordToEncrypt": {
-    "description": "Prompt to enter password for encryption"
-  },
-  "enterNewPasswordToEncrypt": "Introdueix una nova contrasenya que puguem utilitzar per xifrar les teves dades",
-  "@enterNewPasswordToEncrypt": {
-    "description": "Prompt to enter new password for encryption"
-  },
-  "passwordWarning": "No guardem aquesta contrasenya, per tant, si l'oblides, <underline>no podrem desxifrar les teves dades</underline>",
-  "@passwordWarning": {
-    "description": "Warning about password storage"
-  },
-  "howItWorks": "Com funciona",
-  "@howItWorks": {
-    "description": "How it works button label"
-  },
-  "generatingEncryptionKeys": "Generant claus de xifratge...",
-  "@generatingEncryptionKeys": {
-    "description": "Generating encryption keys message"
-  },
-  "passwordChangedSuccessfully": "La contrasenya s'ha canviat amb èxit",
-  "@passwordChangedSuccessfully": {
-    "description": "Password changed successfully message"
-  },
-  "signOutFromOtherDevices": "Tanca sessió en altres dispositius",
-  "@signOutFromOtherDevices": {
-    "description": "Sign out from other devices title"
-  },
-  "signOutOtherBody": "Si creus que algú pot saber la teva contrasenya, pots forçar tots els altres dispositius que usen el teu compte a tancar sessió.",
-  "@signOutOtherBody": {
-    "description": "Sign out other devices explanation"
-  },
-  "signOutOtherDevices": "Tancar sessió en altres dispositius",
-  "@signOutOtherDevices": {
-    "description": "Sign out other devices button label"
-  },
-  "doNotSignOut": "No tancar sessió",
-  "@doNotSignOut": {
-    "description": "Do not sign out button label"
-  },
-  "generatingEncryptionKeysTitle": "Generant claus d'encriptació...",
-  "@generatingEncryptionKeysTitle": {
-    "description": "Generating encryption keys title"
-  },
-  "continueLabel": "Continua",
-  "@continueLabel": {
-    "description": "Continue button label"
-  },
-  "insecureDevice": "Dispositiu no segur",
-  "@insecureDevice": {
-    "description": "Insecure device warning title"
-  },
-  "sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": "Ho sentim, no hem pogut generar claus segures en aquest dispositiu.\n\nSi us plau, registra't des d'un altre dispositiu.",
-  "@sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": {
-    "description": "Error message for insecure device"
-  },
-  "recoveryKeyCopiedToClipboard": "La clau de recuperació s'ha copiat al porta-retalls",
-  "@recoveryKeyCopiedToClipboard": {
-    "description": "Recovery key copied message"
+  "recoveryInitiated": "Recuperació iniciada",
+  "recoveryInitiatedDesc": "Pots accedir al compte després de {days} dies. S'enviarà una notificació a {email}.",
+  "@recoveryInitiatedDesc": {
+    "placeholders": {
+      "days": {
+        "type": "int",
+        "example": "30"
+      },
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      }
+    }
   },
   "recoveryKey": "Clau de recuperació",
   "@recoveryKey": {
@@ -450,138 +1527,34 @@
   "@recoveryKeyOnForgotPassword": {
     "description": "Recovery key importance explanation"
   },
-  "recoveryKeySaveDescription": "No guardem aquesta clau, si us plau, guarda aquesta clau de 24 paraules en un lloc segur.",
-  "@recoveryKeySaveDescription": {
-    "description": "Recovery key save description"
-  },
-  "doThisLater": "Fes-ho més tard",
-  "@doThisLater": {
-    "description": "Do this later button label"
-  },
-  "saveKey": "Guarda la clau",
-  "@saveKey": {
-    "description": "Save key button label"
-  },
   "recoveryKeySaved": "Clau de recuperació guardada a la carpeta Descàrregues!",
   "@recoveryKeySaved": {
     "description": "Recovery key saved confirmation message"
   },
-  "noRecoveryKeyTitle": "No tens clau de recuperació?",
-  "@noRecoveryKeyTitle": {
-    "description": "No recovery key title"
+  "recoveryKeySaveDescription": "No guardem aquesta clau, si us plau, guarda aquesta clau de 24 paraules en un lloc segur.",
+  "@recoveryKeySaveDescription": {
+    "description": "Recovery key save description"
   },
-  "twoFactorAuthTitle": "Autenticació de dos factors",
-  "@twoFactorAuthTitle": {
-    "description": "Two-factor authentication title"
+  "recoveryKeyVerified": "Clau de recuperació verificada",
+  "recoveryReady": "Ara pots recuperar el compte de {email} establint una nova contrasenya.",
+  "@recoveryReady": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      }
+    }
   },
-  "enterCodeHint": "Introdueix el codi de 6 dígits de\nl'aplicació d'autenticació",
-  "@enterCodeHint": {
-    "description": "Hint for entering 2FA code"
+  "recoverySuccessful": "Recuperació exitosa!",
+  "recoveryWarning": "Un contacte de confiança està intentant accedir al teu compte",
+  "recoveryWarningBody": "{email} està intentant recuperar el teu compte.",
+  "@recoveryWarningBody": {
+    "placeholders": {
+      "email": {}
+    }
   },
-  "lostDeviceTitle": "Dispositiu perdut?",
-  "@lostDeviceTitle": {
-    "description": "Lost device title"
-  },
-  "enterRecoveryKeyHint": "Introdueix la teva clau de recuperació",
-  "@enterRecoveryKeyHint": {
-    "description": "Hint for entering recovery key"
-  },
-  "recover": "Recupera",
-  "@recover": {
-    "description": "Recover button label"
-  },
-  "loggingOut": "Tancant sessió...",
-  "@loggingOut": {
-    "description": "Message shown while logging out"
-  },
-  "immediately": "Immediatament",
-  "@immediately": {
-    "description": "Immediately option for auto lock timing"
-  },
-  "appLock": "Bloqueig de l'aplicació",
-  "@appLock": {
-    "description": "App lock setting title"
-  },
-  "autoLock": "Bloqueig automàtic",
-  "@autoLock": {
-    "description": "Auto lock setting title"
-  },
-  "noSystemLockFound": "No s'ha trobat cap bloqueig del sistema",
-  "@noSystemLockFound": {
-    "description": "Error when no system lock is found"
-  },
-  "deviceLockEnablePreSteps": "Per habilitar el bloqueig de dispositiu, configura un codi o bloqueig de pantalla en la configuració del sistema.",
-  "@deviceLockEnablePreSteps": {
-    "description": "Instructions for enabling device lock"
-  },
-  "appLockDescription": "Tria entre el bloqueig predeterminat del dispositiu o un bloqueig personalitzat amb PIN o contrasenya.",
-  "@appLockDescription": {
-    "description": "Description of app lock feature"
-  },
-  "deviceLock": "Bloqueig del dispositiu",
-  "@deviceLock": {
-    "description": "Device lock option title"
-  },
-  "pinLock": "Bloqueig amb PIN",
-  "@pinLock": {
-    "description": "PIN lock option title"
-  },
-  "autoLockFeatureDescription": "Temps després del qual l'app es bloqueja quan es posa en segon pla",
-  "@autoLockFeatureDescription": {
-    "description": "Description of auto lock feature"
-  },
-  "hideContent": "Amaga el contingut",
-  "@hideContent": {
-    "description": "Hide content setting title"
-  },
-  "hideContentDescriptionAndroid": "Amaga el contingut d'aquesta app en el commutador d'apps del sistema i desactiva les captures de pantalla",
-  "@hideContentDescriptionAndroid": {
-    "description": "Description of hide content feature on Android"
-  },
-  "hideContentDescriptioniOS": "Amaga el contingut d'aquesta app en el commutador d'apps del sistema",
-  "@hideContentDescriptioniOS": {
-    "description": "Description of hide content feature on iOS"
-  },
-  "tooManyIncorrectAttempts": "Massa intents incorrectes",
-  "@tooManyIncorrectAttempts": {
-    "description": "Message shown when too many incorrect attempts are made"
-  },
-  "tapToUnlock": "Toca per desbloquejar",
-  "@tapToUnlock": {
-    "description": "Message prompting user to tap to unlock"
-  },
-  "areYouSureYouWantToLogout": "Segur que vols tancar la sessió?",
-  "@areYouSureYouWantToLogout": {
-    "description": "Confirmation message before logout"
-  },
-  "yesLogout": "Sí, tanca la sessió",
-  "@yesLogout": {
-    "description": "Confirmation button for logout"
-  },
-  "authToViewSecrets": "Si us plau, autentica't per veure els teus secrets",
-  "@authToViewSecrets": {
-    "description": "Message prompting authentication to view secrets"
-  },
-  "next": "Següent",
-  "@next": {
-    "description": "Next button label"
-  },
-  "setNewPassword": "Estableix una nova contrasenya",
-  "@setNewPassword": {
-    "description": "Set new password title"
-  },
-  "enterPin": "Introdueix el PIN",
-  "@enterPin": {
-    "description": "Enter PIN prompt"
-  },
-  "setNewPin": "Estableix un nou PIN",
-  "@setNewPin": {
-    "description": "Set new PIN title"
-  },
-  "confirm": "Confirma",
-  "@confirm": {
-    "description": "Confirm button label"
-  },
+  "recreateStream": "Recrea transmissió",
+  "redo": "Refés",
   "reEnterPassword": "Torna a introduir la contrasenya",
   "@reEnterPassword": {
     "description": "Re-enter password prompt"
@@ -590,131 +1563,842 @@
   "@reEnterPin": {
     "description": "Re-enter PIN prompt"
   },
-  "androidBiometricHint": "Verifica la identitat",
-  "@androidBiometricHint": {
-    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricNotRecognized": "No reconegut. Torna-ho a provar.",
-  "@androidBiometricNotRecognized": {
-    "description": "Message to let the user know that authentication was failed. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricSuccess": "Correcte",
-  "@androidBiometricSuccess": {
-    "description": "Message to let the user know that authentication was successful. It is used on Android side. Maximum 60 characters."
-  },
-  "androidCancelButton": "Cancel·la",
-  "@androidCancelButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
-  },
-  "androidSignInTitle": "Es requereix autenticació",
-  "@androidSignInTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricRequiredTitle": "Biometria necessària",
-  "@androidBiometricRequiredTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user has not set up biometric authentication on their device. It is used on Android side. Maximum 60 characters."
-  },
-  "androidDeviceCredentialsRequiredTitle": "Credencials del dispositiu requerides",
-  "@androidDeviceCredentialsRequiredTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user has not set up credentials authentication on their device. It is used on Android side. Maximum 60 characters."
-  },
-  "androidDeviceCredentialsSetupDescription": "Es requereixen credencials del dispositiu",
-  "@androidDeviceCredentialsSetupDescription": {
-    "description": "Message advising the user to go to the settings and configure device credentials on their device. It shows in a dialog on Android side."
-  },
-  "goToSettings": "Ves a configuració",
-  "@goToSettings": {
-    "description": "Message showed on a button that the user can click to go to settings pages from the current dialog. It is used on both Android and iOS side. Maximum 30 characters."
-  },
-  "androidGoToSettingsDescription": "L'autenticació biomètrica no està configurada al teu dispositiu. Ves a 'Configuració > Seguretat' per afegir autenticació biomètrica.",
-  "@androidGoToSettingsDescription": {
-    "description": "Message advising the user to go to the settings and configure biometric on their device. It shows in a dialog on Android side."
-  },
-  "iOSLockOut": "L'autenticació biomètrica està desactivada. Bloqueja i desbloqueja la pantalla per activar-la.",
-  "@iOSLockOut": {
-    "description": "Message advising the user to re-enable biometrics on their device. It shows in a dialog on iOS side."
-  },
-  "iOSOkButton": "D'acord",
-  "@iOSOkButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on iOS side. Maximum 30 characters."
-  },
-  "emailAlreadyRegistered": "El correu electrònic ja està registrat.",
-  "@emailAlreadyRegistered": {
-    "description": "Error message when email is already registered"
-  },
-  "emailNotRegistered": "El correu electrònic no està registrat.",
-  "@emailNotRegistered": {
-    "description": "Error message when email is not registered"
-  },
-  "thisEmailIsAlreadyInUse": "Aquest correu electrònic ja està en ús",
-  "@thisEmailIsAlreadyInUse": {
-    "description": "Error message when email is already in use"
-  },
-  "emailChangedTo": "Correu electrònic canviat a {newEmail}",
-  "@emailChangedTo": {
-    "description": "Message when email has been changed",
+  "referralCodeHint": "Pots personalitzar aquest codi fins a 3 vegades",
+  "referrals": "Referències",
+  "referralsAreCurrentlyPaused": "Les referències estan actualment en pausa",
+  "referralStats": "Estadístiques de referències",
+  "referralStorageForBoth": "{storageAmountInGB} GB per a ells + {storageAmountInGB} GB per a tu quan millorin el pla.",
+  "@referralStorageForBoth": {
     "placeholders": {
-      "newEmail": {
-        "description": "The new email address",
-        "type": "String",
-        "example": "new@example.com"
+      "storageAmountInGB": {}
+    }
+  },
+  "referralStorageInfo": "Les referències de subscriptors de pagament guanyen emmagatzematge extra.\n\nPots utilitzar emmagatzematge fins al límit del teu pla. Millora el pla per utilitzar la resta del teu emmagatzematge guanyat.",
+  "rejectRecovery": "Rebutja recuperació",
+  "rejectSuggestions": "Rebutja les suggerències",
+  "related": "Relacionat",
+  "remindToEmptyDeviceTrash": "També buida \"Eliminats recentment\" de \"Configuració\" -> \"Emmagatzematge\" per reclamar l'espai alliberat",
+  "remindToEmptyEnteTrash": "També buida la teva \"Paperera\" per reclamar l'espai alliberat",
+  "remoteImages": "Imatges remotes",
+  "remoteThumbnails": "Miniatures remotes",
+  "remoteVideos": "Vídeos remots",
+  "remove": "Elimina",
+  "removeFromAlbum": "Elimina de l'àlbum",
+  "removeFromAlbumTitle": "Eliminar de l'àlbum?",
+  "removeFromFavorite": "Elimina de favorits",
+  "removeLink": "Elimina enllaç",
+  "removeParticipant": "Elimina participant",
+  "@removeParticipant": {
+    "description": "menuSectionTitle for removing a participant"
+  },
+  "removePersonLabel": "Elimina etiqueta de persona",
+  "removePersonTag": "Elimina l'etiqueta de persona",
+  "removePublicLink": "Elimina enllaç públic",
+  "removePublicLinks": "Elimina enllaços públics",
+  "removeShareItemsWarning": "Les fotos seleccionades no seran accessibles per a cap visualitzador d'aquest àlbum, excepte els propietaris de les fotos.",
+  "removeWithQuestionMark": "Eliminar?",
+  "removingFromFavorites": "Eliminant de favorits...",
+  "rename": "Reanomena",
+  "renameAlbum": "Reanomena àlbum",
+  "renameFile": "Reanomena fitxer",
+  "renewsOn": "La subscripció es renova el {endDate}",
+  "@renewsOn": {
+    "placeholders": {
+      "endDate": {}
+    }
+  },
+  "renewSubscription": "Renova subscripció",
+  "reply": "Respon",
+  "@reply": {
+    "description": "Reply action button label"
+  },
+  "replyingTo": "Responent a {name}",
+  "@replyingTo": {
+    "description": "Label when replying to someone's comment",
+    "placeholders": {
+      "name": {
+        "type": "String"
       }
     }
   },
-  "authenticationFailedPleaseTryAgain": "Autenticació fallida, intenta-ho de nou",
-  "@authenticationFailedPleaseTryAgain": {
-    "description": "Error message when authentication fails"
+  "replyingToYou": "Responent-te a tu",
+  "@replyingToYou": {
+    "description": "Label when replying to own comment"
   },
-  "authenticationSuccessful": "Autenticació amb èxit!",
-  "@authenticationSuccessful": {
-    "description": "Success message when authentication is successful"
+  "reportABug": "Informa d'un error",
+  "@reportABug": {
+    "description": "Label for reporting a bug"
   },
-  "sessionExpired": "La sessió ha caducat",
-  "@sessionExpired": {
-    "description": "Error message when session has expired"
+  "reset": "Restableix",
+  "resetIgnoredFiles": "Restableix fitxers ignorats",
+  "resetPasswordTitle": "Restableix la contrasenya",
+  "@resetPasswordTitle": {
+    "description": "Reset password title"
   },
-  "incorrectRecoveryKey": "Clau de recuperació incorrecta",
-  "@incorrectRecoveryKey": {
-    "description": "Error message when recovery key is incorrect"
+  "resetToDefault": "Restableix a per defecte",
+  "@resetToDefault": {
+    "description": "Button text to reset cover photo to default"
   },
-  "theRecoveryKeyYouEnteredIsIncorrect": "La clau de recuperació que has introduït és incorrecta",
-  "@theRecoveryKeyYouEnteredIsIncorrect": {
-    "description": "Detailed error message when recovery key is incorrect"
+  "restore": "Restaura",
+  "@restore": {
+    "description": "Display text for an action which triggers a restore of item from trash",
+    "type": "text"
   },
-  "twofactorAuthenticationSuccessfullyReset": "Autenticació de dos factors restablerta amb èxit",
-  "@twofactorAuthenticationSuccessfullyReset": {
-    "description": "Message when two-factor authentication is successfully reset"
+  "restoreToAlbum": "Restaura a l'àlbum",
+  "restoringFiles": "Restaurant fitxers...",
+  "resumableUploads": "Pujades reprenibles",
+  "retry": "Reintenta",
+  "review": "Revisa",
+  "reviewSuggestions": "Revisa suggeriments",
+  "right": "Dreta",
+  "ritualAddedToAlbum": "Afegit a l'àlbum",
+  "ritualAddedToAlbumWithName": "Afegit a {albumName}",
+  "@ritualAddedToAlbumWithName": {
+    "placeholders": {
+      "albumName": {
+        "type": "String",
+        "description": "The target album name"
+      }
+    }
   },
-  "yourVerificationCodeHasExpired": "El teu codi de verificació ha expirat",
-  "@yourVerificationCodeHasExpired": {
-    "description": "Error message when verification code has expired"
+  "ritualAddToAlbumFailure": "No s'han pogut afegir fotos a l'àlbum: {error}",
+  "@ritualAddToAlbumFailure": {
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "description": "Error message for album add failure"
+      }
+    }
   },
-  "incorrectCode": "Codi incorrecte",
-  "@incorrectCode": {
-    "description": "Error message when code is incorrect"
+  "ritualAddTooltip": "Afegeix ritual",
+  "ritualAlbumLabel": "Àlbum",
+  "ritualAlbumMissing": "Falta l'àlbum del ritual. Edita el ritual per establir un àlbum.",
+  "ritualAlbumNotSet": "Àlbum no establert",
+  "ritualAlbumSelectionPlaceholder": "Selecciona àlbum",
+  "ritualBackToList": "Torna als rituals",
+  "ritualCameraNotFound": "No s'ha trobat càmera en aquest dispositiu.",
+  "ritualCaptureAtLeastOne": "Captura almenys una foto primer.",
+  "ritualCaptureError": "No s'ha pogut capturar la foto. Si us plau, torna-ho a provar.",
+  "ritualChooseAlbumLabel": "Tria un àlbum",
+  "ritualChooseDaysLabel": "Trieu els dies per al ritual",
+  "ritualCreateAction": "Crea un ritual",
+  "ritualCreateNewTitle": "Crea un nou ritual",
+  "ritualCreateYourOwn": "Crea el teu propi ritual",
+  "ritualCustomKeyboardLabel": "Personalitzat (teclat)",
+  "ritualDefaultCameraTitle": "Fes una foto",
+  "ritualEdit": "Edita ritual",
+  "ritualEditorLabel": "Editor de rituals",
+  "ritualEmojiKeyboardHint": "Prem per obrir el teclat d'emojis",
+  "ritualEmojiUseAction": "Utilitza",
+  "ritualEnterDescription": "Si us plau, introdueix una descripció",
+  "ritualEnterPrompt": "Introdueix el teu ritual",
+  "ritualGetDailyReminders": "Rep recordatoris diaris",
+  "ritualNoAlbumsYet": "Encara no hi ha àlbums",
+  "ritualNoMatchingAlbums": "No hi ha àlbums coincidents",
+  "ritualNoPhotosYet": "Encara no hi ha fotos",
+  "ritualNotificationMessage": "Fes una foto ara",
+  "ritualNotificationsOffHint": "Les notificacions estan desactivades. Toca un dia per activar-les.",
+  "ritualOpenCameraTooltip": "Obre càmera de ritual",
+  "ritualPhotoLimit": "Pots afegir fins a {maxPhotos, plural, one{# foto.} other{# fotos.}}",
+  "@ritualPhotoLimit": {
+    "placeholders": {
+      "maxPhotos": {
+        "type": "int",
+        "description": "Maximum number of photos allowed"
+      }
+    }
   },
+  "ritualPickEmojiTitle": "Tria un emoji",
+  "ritualSearchEmpty": "Construeix un ritual per mantenir el teu hàbit de fotos.",
+  "ritualSelectAlbumTitle": "Selecciona àlbum",
+  "ritualSendReminderLabel": "Envia un recordatori",
+  "ritualSetAlbumToLaunchCamera": "Estableix un àlbum per a aquest ritual per iniciar la càmera.",
+  "ritualShareUnavailable": "No es pot compartir ara mateix. Si us plau, torna-ho a provar.",
+  "ritualUntitled": "Ritual sense títol",
+  "ritualUpdate": "Actualitza ritual",
+  "riverCruises": "Vistes de creuer fluvial",
+  "roadtripWithThem": "Viatge per carretera amb {name}",
+  "@roadtripWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "rotate": "Rota",
+  "sameperson": "Mateixa persona?",
+  "save": "Desa",
+  "@save": {
+    "description": "Label for save button"
+  },
+  "saveAsAnotherPerson": "Guarda com una altra persona",
+  "saveChangesBeforeLeavingQuestion": "Guardar canvis abans de sortir?",
+  "saveCode": "Guarda el codi",
+  "saveCollage": "Guarda collage",
+  "saveCopy": "Guarda còpia",
+  "saveKey": "Guarda la clau",
+  "@saveKey": {
+    "description": "Save key button label"
+  },
+  "saveOnlyDescription": "Vols guardar-ho al teu emmagatzematge (per defecte, a la carpeta Descàrregues)?",
+  "@saveOnlyDescription": {
+    "description": "Description text asking user if they want to save to storage (for platforms that don't support sharing)"
+  },
+  "saveOrSendDescription": "Vols guardar-ho al teu emmagatzematge (per defecte, a la carpeta Descàrregues) o enviar-ho a altres aplicacions?",
+  "@saveOrSendDescription": {
+    "description": "Description text asking user if they want to save to storage or share with other apps"
+  },
+  "savePerson": "Guarda persona",
+  "saveYourRecoveryKeyIfYouHaventAlready": "Guarda la teva clau de recuperació si encara no ho has fet",
+  "saving": "Guardant...",
+  "savingEdits": "Guardant edicions...",
+  "scan": "Escaneja",
+  "scanACode": "Escaneja un codi",
+  "scanAQrCode": "Escaneja un codi QR",
+  "scanCode": "Escaneja el codi",
+  "scanThisBarcodeWithnyourAuthenticatorApp": "Escaneja aquest codi de barres amb\nla teva aplicació d'autenticació",
+  "search": "Cerca",
+  "searchAlbumsEmptySection": "Àlbums",
+  "searchByAlbumNameHint": "Nom de l'àlbum",
+  "searchDiscoverEmptySection": "Les imatges es mostraran aquí un cop completat el processament i la sincronització",
+  "searchFileTypesAndNamesEmptySection": "Tipus i noms de fitxers",
+  "searchHint": "Cerca...",
+  "searchHint1": "Cerca ràpida al dispositiu",
+  "searchHint2": "Dates de fotos, descripcions",
+  "searchHint3": "Àlbums, noms de fitxers i tipus",
+  "searchHint4": "Ubicació",
+  "searchHint5": "Properament: Cares i cerca màgica ✨",
+  "searchLocationEmptySection": "Agrupa fotos que s'han fet dins d'un cert radi d'una foto",
+  "searchPeopleEmptySection": "Convida gent, i veuràs totes les fotos compartides per ells aquí",
+  "searchPersonsEmptySection": "La gent es mostrarà aquí un cop completat el processament i la sincronització",
+  "searchResultCameraMake": "Marca de la càmera",
+  "@searchResultCameraMake": {
+    "description": "Search result subtitle label for camera make matches"
+  },
+  "searchResultCameraModel": "Model de la càmera",
+  "@searchResultCameraModel": {
+    "description": "Search result subtitle label for camera model matches"
+  },
+  "searchResultCount": "{count, plural, one{{count} resultat trobat} other{{count} resultats trobats}}",
+  "@searchResultCount": {
+    "description": "Text to tell user how many results were found for their search query",
+    "placeholders": {
+      "count": {
+        "example": "1|2|3",
+        "type": "int"
+      }
+    }
+  },
+  "searchResultDescription": "Descripció",
+  "@searchResultDescription": {
+    "description": "Search result subtitle label for description matches"
+  },
+  "searchResultFileExtension": "Extensió de fitxer",
+  "@searchResultFileExtension": {
+    "description": "Search result subtitle label for file extension matches"
+  },
+  "searchResultFileName": "Nom de fitxer",
+  "@searchResultFileName": {
+    "description": "Search result subtitle label for file name matches"
+  },
+  "searchResultPerson": "Persona",
+  "@searchResultPerson": {
+    "description": "Search result subtitle label for person results"
+  },
+  "searchResultType": "Tipus",
+  "@searchResultType": {
+    "description": "Search result subtitle label for file type matches"
+  },
+  "searchResultUploadedBy": "Pujat per",
+  "@searchResultUploadedBy": {
+    "description": "Search result subtitle label for uploader results"
+  },
+  "searchSectionsLengthMismatch": "La longitud de les seccions no coincideix: {snapshotLength} != {searchLength}",
+  "@searchSectionsLengthMismatch": {
+    "description": "Appears in search tab page",
+    "placeholders": {
+      "searchLength": {
+        "type": "int",
+        "example": "2"
+      },
+      "snapshotLength": {
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "searchSettings": "Configuració de cerca",
+  "secretCanNotBeEmpty": "El secret no pot estar buit",
+  "security": "Seguretat",
+  "seePublicAlbumLinksInApp": "Veure enllaços d'àlbums públics a l'aplicació",
+  "selectAlbumToLikePhoto": "Selecciona l'àlbum per donar m'agrada a aquesta foto",
+  "@selectAlbumToLikePhoto": {
+    "description": "Instruction for liking photo"
+  },
+  "selectAlbumToLikeVideo": "Selecciona l'àlbum per donar m'agrada a aquest vídeo",
+  "@selectAlbumToLikeVideo": {
+    "description": "Instruction for liking video"
+  },
+  "selectAllShort": "Tot",
+  "@selectAllShort": {
+    "description": "Text that appears in bottom right when you start to select multiple photos. When clicked, it selects all photos."
+  },
+  "selectALocation": "Selecciona una ubicació",
+  "selectALocationFirst": "Selecciona una ubicació primer",
+  "selectBackupFolder": "Seleccioneu una carpeta per la còpia de seguretat",
+  "selectCoverPhoto": "Selecciona foto de portada",
+  "selectDate": "Selecciona data",
+  "selected": "seleccionat",
+  "selectedAlbums": "{count} seleccionats",
+  "@selectedAlbums": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "selectedCount": "{count, plural, one{{count} seleccionat} other{{count} seleccionats}}",
+  "@selectedCount": {
+    "description": "Number of items selected",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "selectedFilesAreNotOnEnte": "Els fitxers seleccionats no estan a Ente",
+  "selectedItemsWillBeRemovedFromThisPerson": "Els elements seleccionats s'eliminaran d'aquesta persona, però no s'esborraran de la teva biblioteca.",
+  "selectedPhotos": "{count} seleccionats",
+  "@selectedPhotos": {
+    "description": "Display the number of selected photos",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "5",
+        "type": "int"
+      }
+    }
+  },
+  "selectedPhotosWithYours": "{count} seleccionats ({yourCount} teus)",
+  "@selectedPhotosWithYours": {
+    "description": "Display the number of selected photos, including the number of selected photos owned by the user",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "12",
+        "type": "int"
+      },
+      "yourCount": {
+        "example": "2",
+        "type": "int"
+      }
+    }
+  },
+  "selectExportFormat": "Selecciona el format d'exportació",
+  "selectFile": "Selecciona fitxer",
+  "selectFolder": "Seleccioneu una carpeta",
+  "selectFolders": "Selecciona les carpetes",
+  "selectFolderToContinue": "Seleccioneu una carpeta per continuar",
+  "selectItemsToAdd": "Selecciona elements per afegir",
+  "selectMailApp": "Selecciona aplicació de correu",
+  "selectMorePhotos": "Selecciona més fotos",
+  "selectOneDateAndTime": "Selecciona una data i hora",
+  "selectOneDateAndTimeForAll": "Selecciona una data i hora per a tots",
+  "selectStartOfRange": "Selecciona inici del rang",
+  "selectTime": "Selecciona hora",
+  "selectYourFace": "Selecciona la teva cara",
+  "selfiesWithThem": "Selfies amb {name}",
+  "@selfiesWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "send": "Envia",
+  "@send": {
+    "description": "Label for send button"
+  },
+  "sendInvite": "Envia invitació",
+  "sendLink": "Envia enllaç",
+  "sendLogsDescription": "Això enviarà els registres per ajudar-nos a diagnosticar el problema. Tot i que prenem precaucions per assegurar que la informació sensible no es registri, et recomanem que revisis els registres abans de compartir-los.",
+  "sendQrCode": "Envia codi QR",
+  "sessionIdMismatch": "L'ID de sessió no coincideix",
+  "@sessionIdMismatch": {
+    "description": "In passkey page, deeplink is ignored because of session ID mismatch."
+  },
+  "setAPassword": "Estableix una contrasenya",
+  "setAs": "Estableix com a",
+  "setBackupFolder": "Defineix la carpeta de la còpia de seguretat",
+  "setBackupPassword": "Estableix la contrasenya de la còpia de seguretat",
+  "setCover": "Estableix portada",
+  "@setCover": {
+    "description": "Text to set cover photo for an album"
+  },
+  "setLabel": "Estableix",
+  "@setLabel": {
+    "description": "Label of confirm button to add a new custom radius to the radius selector of a location tag"
+  },
+  "setNewPassword": "Estableix una nova contrasenya",
+  "@setNewPassword": {
+    "description": "Set new password title"
+  },
+  "setNewPin": "Estableix un nou PIN",
+  "@setNewPin": {
+    "description": "Set new PIN title"
+  },
+  "setRadius": "Estableix radi",
+  "settings": "Configuració",
+  "setupComplete": "Configuració completa",
+  "setupFirstAccount": "Configura el teu\nprimer compte",
+  "share": "Comparteix",
+  "shareALink": "Comparteix un enllaç",
+  "shareCodes": "Comparteix codis",
+  "shareCodesDuration": "Selecciona la durada per a la qual vols compartir els codis.",
+  "shareLink": "Comparteix enllaç",
+  "shareWithNonenteUsers": "Comparteix amb usuaris no Ente",
+  "sharing": "Compartint...",
+  "shiftDatesAndTime": "Desplaça dates i hora",
+  "shouldHideCode": "Amaga els codis",
+  "shouldRemoveFilesSmartAlbumsDesc": "S'han d'eliminar els fitxers relacionats amb la persona que es van seleccionar prèviament en àlbums intel·ligents?",
+  "showIgnored": "Mostra ignorats",
+  "showInMemories": "Mostra als records",
+  "showLargeIcons": "Mostra icones grans",
+  "showLessFaces": "Mostra menys cares",
+  "showMemories": "Mostra records",
+  "showMoreFaces": "Mostra més cares",
+  "showPerson": "Mostra persona",
+  "showQRAuthMessage": "Autentica't per mostrar el codi QR",
+  "sigInBackupReminder": "Ente farà una còpia de seguretat dels codis automàticament després d'iniciar la sessió.\n\nTot i això, recomanem exportar els codis com a còpia de seguretat addicional.",
+  "signInToBackup": "Inicia sessió per fer una còpia de seguretat dels teus codis",
+  "signUp": "Registra't",
+  "similarImages": "Imatges similars",
+  "similarImagesCount": "{count} imatges similars",
+  "@similarImagesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "singIn": "Inicia sessió",
+  "skip": "Omet",
+  "smartMemories": "Records intel·ligents",
+  "snowAdventures": "Aventures d'hivern",
+  "socialNotifications": "M'agrada i comentaris",
+  "someoneSharingAlbumsWithYouShouldSeeTheSameId": "Algú que comparteixi àlbums amb tu hauria de veure el mateix ID al seu dispositiu.",
+  "somethingWentWrong": "Alguna cosa ha anat malament",
+  "somethingWentWrongMessage": "Alguna cosa ha anat malament, si us plau intenta-ho de nou",
+  "somethingWentWrongParsingCode": "No hem pogut analitzar {x} codis.",
+  "@somethingWentWrongParsingCode": {
+    "placeholders": {
+      "x": {}
+    }
+  },
+  "sorry": "Ho sentim",
+  "sorryBackupFailedDesc": "Ho sentim, no hem pogut fer còpia de seguretat d'aquest fitxer ara mateix, ho reintentarem més tard.",
+  "sorryCouldNotAddToFavorites": "Ho sentim, no s'ha pogut afegir a favorits!",
+  "sorryCouldNotRemoveFromFavorites": "Ho sentim, no s'ha pogut eliminar de favorits!",
   "sorryTheCodeYouveEnteredIsIncorrect": "Ho sentim, el codi que has introduït és incorrecte",
   "@sorryTheCodeYouveEnteredIsIncorrect": {
     "description": "Detailed error message when code is incorrect"
   },
-  "developerSettings": "Configuració de desenvolupador",
-  "@developerSettings": {
-    "description": "Label for developerSettings"
+  "sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": "Ho sentim, no hem pogut generar claus segures en aquest dispositiu.\n\nSi us plau, registra't des d'un altre dispositiu.",
+  "@sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": {
+    "description": "Error message for insecure device"
   },
-  "serverEndpoint": "Endpoint del servidor",
-  "@serverEndpoint": {
-    "description": "Label for serverEndpoint"
+  "sorryWeHadToPauseYourBackups": "Ho sentim, hem hagut de pausar les teves còpies de seguretat",
+  "sort": "Ordena",
+  "sortAlbumsBy": "Ordena per",
+  "sortNewestFirst": "Més nous primer",
+  "sortOldestFirst": "Més antics primer",
+  "sportsAction": "Joc en marxa",
+  "sportsWithThem": "Esports amb {name}",
+  "@sportsWithThem": {
+    "placeholders": {
+      "name": {}
+    }
   },
-  "invalidEndpoint": "Endpoint no vàlid",
-  "@invalidEndpoint": {
-    "description": "Label for invalidEndpoint"
+  "spotlightOnThem": "Focus en {name}",
+  "@spotlightOnThem": {
+    "placeholders": {
+      "name": {}
+    }
   },
-  "invalidEndpointMessage": "Ho sentim, l'endpoint que has introduït no és vàlid. Introdueix un endpoint vàlid i torna-ho a intentar.",
-  "@invalidEndpointMessage": {
-    "description": "Label for invalidEndpointMessage"
+  "spotlightOnYourself": "Focus en tu mateix",
+  "stargazing": "Sota les estrelles",
+  "startBackup": "Inicia còpia de seguretat",
+  "startRecovery": "Inicia recuperació",
+  "status": "Estat",
+  "sticker": "Adhesiu",
+  "stopCastingBody": "Vols aturar la transmissió?",
+  "stopCastingTitle": "Atura la transmissió",
+  "storage": "Emmagatzematge",
+  "storageBreakupFamily": "Família",
+  "storageBreakupYou": "Tu",
+  "@storageBreakupYou": {
+    "description": "Label to indicate how much storage you are using when you are part of a family plan"
   },
-  "endpointUpdatedMessage": "Extrem actualitzat correctament",
-  "@endpointUpdatedMessage": {
-    "description": "Label for endpointUpdatedMessage"
-  }
+  "storageClaimed": "{storageAmountInGB} GB reclamats!",
+  "@storageClaimed": {
+    "placeholders": {
+      "storageAmountInGB": {}
+    }
+  },
+  "storageLimitExceeded": "Límit d'emmagatzematge superat",
+  "streamDetails": "Detalls de la transmissió",
+  "streetArt": "Històries d'art urbà",
+  "streetFood": "Mossegades de menjar de carrer",
+  "strongStrength": "Forta",
+  "@strongStrength": {
+    "description": "Strong password strength label"
+  },
+  "submit": "Envia",
+  "subscribe": "Subscriu-te",
+  "subscribeToChangeLinkSetting": "Necessiteu una subscripció de pagament per canviar aquesta configuració d'enllaç.",
+  "subscribeToEnableSharing": "Necessites una subscripció de pagament activa per activar la compartició.",
+  "subscription": "Subscripció",
+  "subWillBeCancelledOn": "La teva subscripció es cancel·larà el {endDate}",
+  "@subWillBeCancelledOn": {
+    "placeholders": {
+      "endDate": {}
+    }
+  },
+  "success": "Èxit",
+  "successfullyArchived": "Arxivat amb èxit",
+  "successfullyHid": "Amagat amb èxit",
+  "successfullyUnarchived": "Desarxivat amb èxit",
+  "successfullyUnhid": "Mostrat amb èxit",
+  "suggestDeletion": "Suggerir eliminació",
+  "suggestDeletionDescription": "Les fotos seleccionades seran eliminades d'aquest àlbum. Els propietaris de les fotos també rebran una suggerència per revisar i eliminar les fotos.",
+  "suggestions": "Suggeriments",
+  "sunrise": "A l'horitzó",
+  "support": "Suport",
+  "supportEnte": "Donar suport a <bold-green>ente</bold-green>",
+  "syncing": "Sincronitzant...",
+  "syncProgress": "{completed}/{total} records preservats",
+  "@syncProgress": {
+    "description": "Text to tell user how many memories have been preserved",
+    "placeholders": {
+      "completed": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "syncStopped": "Sincronització aturada",
+  "tag": "Etiqueta",
+  "tags": "Etiquetes",
+  "tapToCopy": "toca per copiar",
+  "tapToUnlock": "Toca per desbloquejar",
+  "@tapToUnlock": {
+    "description": "Message prompting user to tap to unlock"
+  },
+  "tapToUpload": "Toca per pujar",
+  "@tapToUpload": {
+    "description": "Shown in upload icon widet, inside a tooltip."
+  },
+  "tapToUploadIsIgnoredDue": "Toca per pujar, la pujada s'ignora actualment a causa de {ignoreReason}",
+  "@tapToUploadIsIgnoredDue": {
+    "description": "Shown in upload icon widet, inside a tooltip.",
+    "placeholders": {
+      "ignoreReason": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
+  },
+  "tellUsWhatYouThink": "Digueu-nos què us sembla",
+  "termsOfServicesTitle": "Termes",
+  "@termsOfServicesTitle": {
+    "description": "Terms of service title"
+  },
+  "thankYou": "Gràcies",
+  "thankYouForSubscribing": "Gràcies per subscriure't!",
+  "theLinkYouAreTryingToAccessHasExpired": "L'enllaç al qual intentes accedir ha caducat.",
+  "theme": "Tema",
+  "thePersonGroupsWillNotBeDisplayed": "Els grups de persones ja no es mostraran a la secció de persones. Les fotos romandran intactes.",
+  "thePersonWillNotBeDisplayed": "La persona ja no es mostrarà a la secció de persones. Les fotos romandran intactes.",
+  "theRecoveryKeyYouEnteredIsIncorrect": "La clau de recuperació que has introduït és incorrecta",
+  "@theRecoveryKeyYouEnteredIsIncorrect": {
+    "description": "Detailed error message when recovery key is incorrect"
+  },
+  "theseItemsWillBeDeletedFromYourDevice": "Aquests elements s'eliminaran del teu dispositiu.",
+  "thisCanBeUsedToRecoverYourAccountIfYou": "Això es pot utilitzar per recuperar el teu compte si perds el teu segon factor",
+  "thisDevice": "Aquest dispositiu",
+  "@thisDevice": {
+    "description": "Label for current device"
+  },
+  "thisImageHasNoExifData": "Aquesta imatge no té dades exif",
+  "thisIsMeExclamation": "Aquest soc jo!",
+  "thisIsPersonVerificationId": "Aquest és l'ID de verificació de {email}",
+  "@thisIsPersonVerificationId": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@ente.com"
+      }
+    }
+  },
+  "thisIsYourVerificationId": "Aquest és el teu ID de verificació",
+  "thisMonth": "Aquest mes",
+  "thisWeek": "Aquesta setmana",
+  "thisWeekThroughTheYears": "Aquesta setmana a través dels anys",
+  "thisWillMakeTheDateAndTimeOfAllSelected": "Això farà que la data i hora de totes les fotos seleccionades sigui la mateixa.",
+  "thisYear": "Aquest any",
+  "throughTheYears": "{dateFormat} a través dels anys",
+  "@throughTheYears": {
+    "placeholders": {
+      "dateFormat": {}
+    }
+  },
+  "tooManyIncorrectAttempts": "Massa intents incorrectes",
+  "@tooManyIncorrectAttempts": {
+    "description": "Message shown when too many incorrect attempts are made"
+  },
+  "totalSize": "Mida total",
+  "trash": "Paperera",
+  "trashCode": "Enviar el codi a la paperera?",
+  "trashCodeMessage": "Estàs segur que vols enviar a la paperera el codi per a {account}?",
+  "@trashCodeMessage": {
+    "placeholders": {
+      "account": {}
+    }
+  },
+  "trim": "Retalla",
+  "tripInYear": "Viatge el {year}",
+  "@tripInYear": {
+    "placeholders": {
+      "year": {}
+    }
+  },
+  "tripToLocation": "Viatge a {location}",
+  "@tripToLocation": {
+    "placeholders": {
+      "location": {}
+    }
+  },
+  "tropicalParadise": "Escapades tropicals",
+  "trustedContacts": "Contactes de confiança",
+  "twofactor": "Doble factor",
+  "twofactorAuthenticationHasBeenDisabled": "L'autenticació de doble factor ha estat desactivada",
+  "twoFactorAuthTitle": "Autenticació de dos factors",
+  "@twoFactorAuthTitle": {
+    "description": "Two-factor authentication title"
+  },
+  "twofactorSetup": "Configuració de doble factor",
+  "type": "Tipus",
+  "typeOfGallerGallerytypeIsNotSupportedForRename": "El tipus de galeria {galleryType} no és compatible amb el canvi de nom",
+  "@typeOfGallerGallerytypeIsNotSupportedForRename": {
+    "placeholders": {
+      "galleryType": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
+  },
+  "unarchive": "Desarxiva",
+  "@unarchive": {
+    "description": "Action of 'Unarchiving' an element"
+  },
+  "unarchiveAlbum": "Desarxiva àlbum",
+  "unarchiving": "Desarxivant...",
+  "uncategorized": "Sense categoria",
+  "undo": "Desfés",
+  "unhide": "Mostra",
+  "unhideToAlbum": "Mostra a l'àlbum",
+  "unhiding": "Mostrant...",
+  "unhidingFilesToAlbum": "Mostrant fitxers a l'àlbum",
+  "unlock": "Desbloqueja",
+  "@unlock": {
+    "description": "Short action label used as the system authentication reason when unlocking the app"
+  },
+  "unpin": "Desfixa",
+  "unpinnedCodeMessage": "{code} s'ha deixat de fixar",
+  "@unpinnedCodeMessage": {
+    "placeholders": {
+      "code": {}
+    }
+  },
+  "unpinnedCount": "{count, plural, one{{count} element deixat de fixar} other{{count} elements deixats de fixar}}",
+  "@unpinnedCount": {
+    "description": "Text to show number of items unpinned",
+    "placeholders": {
+      "count": {
+        "description": "Number of items unpinned",
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "unpinPerson": "Desfixa la persona",
+  "unpinText": "Desfixa",
+  "unselectAll": "Deselecciona tot",
+  "updateAvailable": "Actualització disponible",
+  "updateBackupPassword": "Actualitza la contrasenya de la còpia de seguretat",
+  "updated": "Actualitzat",
+  "updateSettings": "Actualitza la configuració",
+  "updatingFolderSelection": "Actualitzant selecció de carpetes...",
+  "upgrade": "Millora",
+  "uploadingFilesToAlbum": "Pujant fitxers a l'àlbum...",
+  "uploadingMultipleMemories": "Preservant {count} records...",
+  "@uploadingMultipleMemories": {
+    "description": "Text to tell user how many memories are being preserved",
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "uploadingSingleMemory": "Preservant 1 record...",
+  "uploadIsIgnoredDueToIgnorereason": "La pujada s'ignora a causa de {ignoreReason}",
+  "@uploadIsIgnoredDueToIgnorereason": {
+    "placeholders": {
+      "ignoreReason": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
+  },
+  "usable": "utilitzable",
+  "useAsCover": "Utilitza com a portada",
+  "usedSpace": "Espai utilitzat",
+  "usedYourCode": "han utilitzat el teu codi",
+  "useOffline": "Usa sense còpies de seguretat",
+  "useSelectedPhoto": "Utilitza foto seleccionada",
+  "validTill": "Vàlid fins al {endDate}",
+  "@validTill": {
+    "placeholders": {
+      "endDate": {}
+    }
+  },
+  "verify": "Verifica",
+  "@verify": {
+    "description": "Verify button label"
+  },
+  "verifyIDLabel": "Verifica",
+  "verifying": "Verificant...",
+  "verifyingRecoveryKey": "Verificant clau de recuperació...",
+  "verifyPassword": "Verifica la contrasenya",
+  "@verifyPassword": {
+    "description": "Verify password button label"
+  },
+  "videoAlreadyInQueue": "El fitxer de vídeo ja és present a la cua",
+  "videoExportFailed": "La creació del vídeo ha fallat. Si us plau, torna-ho a provar.",
+  "videoExportSuccess": "Vídeo creat amb èxit a {path}",
+  "@videoExportSuccess": {
+    "description": "Toast shown when a video export completes, mentioning the filesystem path.",
+    "placeholders": {
+      "path": {
+        "description": "File path where the exported video was written",
+        "type": "String",
+        "example": "/tmp/ente_export.mp4"
+      }
+    }
+  },
+  "videoInfo": "Informació del vídeo",
+  "videoPreviewAlreadyExists": "La previsualització del vídeo ja existeix",
+  "videos": "Vídeos",
+  "videoStreaming": "Vídeos reproduïbles",
+  "videoStreamingDescriptionLine1": "Reprodueix vídeos a l'instant en qualsevol dispositiu.",
+  "videoStreamingDescriptionLine2": "Activa per processar fluxos de vídeo en aquest dispositiu.",
+  "videoStreamingNote": "Només els vídeos dels últims 60 dies i de menys d'1 minut es processen en aquest dispositiu. Per a vídeos més antics/llargs, activa la transmissió a l'aplicació d'escriptori.",
+  "viewActiveSessions": "Veure sessions actives",
+  "viewAddOnButton": "Veure complements",
+  "viewAllExifData": "Veure totes les dades EXIF",
+  "viewer": "Visualitzador",
+  "viewLargeFiles": "Fitxers grans",
+  "viewLogs": "Veure registres",
+  "@viewLogs": {
+    "description": "Button to view logs"
+  },
+  "viewLogsAction": "Veure registres",
+  "viewPersonToUnlink": "Veure {name} per desvincular",
+  "@viewPersonToUnlink": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "viewRawCodes": "Veure codis en brut",
+  "viewRecoveryKey": "Veure clau de recuperació",
+  "vintageVibes": "Vibes vintage",
+  "visitWebToManage": "Si us plau, visita {webUrl} per gestionar la teva subscripció",
+  "@visitWebToManage": {
+    "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",
+    "placeholders": {
+      "webUrl": {
+        "type": "String",
+        "example": "photos.ente.com"
+      }
+    }
+  },
+  "waitingForVerification": "Esperant verificació...",
+  "@waitingForVerification": {
+    "description": "Waiting for verification message"
+  },
+  "waitingForWifi": "Esperant WiFi...",
+  "waterfalls": "Perseguint cascades",
+  "weAreOpenSource": "Som de codi obert!",
+  "weDontSupportEditingPhotosAndAlbumsThatYouDont": "Encara no suportem l'edició de fotos i àlbums que no són teus",
+  "whatsNew": "Novetats",
+  "wildlife": "A la natura",
+  "wishThemAHappyBirthday": "Desitja a {name} un feliç aniversari! 🎉",
+  "@wishThemAHappyBirthday": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "yearly": "Anual",
+  "@yearly": {
+    "description": "The text to display for yearly plans",
+    "type": "text"
+  },
+  "yearsAgo": "{count, plural, one{fa {count} any} other{fa {count} anys}}",
+  "@yearsAgo": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "yearShort": "any",
+  "@yearShort": {
+    "description": "Appears in pricing page (/yr)"
+  },
+  "yes": "Sí",
+  "yesCancel": "Sí, cancel·la",
+  "yesConvertToViewer": "Sí, converteix a visualitzador",
+  "yesDelete": "Sí, esborra",
+  "yesDiscardChanges": "Sí, descarta canvis",
+  "yesIgnore": "Sí, ignora",
+  "yesRemove": "Sí, elimina",
+  "yesRenew": "Sí, renova",
+  "yesResetPerson": "Sí, restablir persona",
+  "you": "Tu",
+  "youAndThem": "Tu i {name}",
+  "@youAndThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "youCannotDowngradeToThisPlan": "No pots baixar a aquest pla",
+  "youCannotShareWithYourself": "No pots compartir amb tu mateix",
+  "youHaveNoFileSuggestedForDeletion": "No tens cap fitxer que s'hagi suggerit per a la seva eliminació",
+  "youHaveSuccessfullyFreedUp": "Has alliberat amb èxit {storageSaved}!",
+  "@youHaveSuccessfullyFreedUp": {
+    "description": "The text to display when the user has successfully freed up storage",
+    "type": "text",
+    "placeholders": {
+      "storageSaved": {
+        "example": "1.2 GB",
+        "type": "String"
+      }
+    }
+  },
+  "yourMap": "El teu mapa",
+  "yourPhotosLookUnique": "Les teves fotos semblen úniques",
+  "yourPlanWasSuccessfullyDowngraded": "El teu pla s'ha rebaixat amb èxit",
+  "yourPlanWasSuccessfullyUpgraded": "El teu pla s'ha millorat amb èxit",
+  "yourPurchaseWasSuccessful": "La teva compra ha estat exitosa",
+  "yourSubscriptionHasExpired": "La teva subscripció ha caducat",
+  "yourSubscriptionWasUpdatedSuccessfully": "La teva subscripció s'ha actualitzat amb èxit",
+  "youveNoDuplicateCodesThatCanBeCleared": "No teniu cap codi duplicat que es puguin esborrar",
+  "youveNoDuplicateFilesThatCanBeCleared": "No tens cap fitxer duplicat que es pugui netejar",
+  "youveNoFilesInThisAlbumThatCanBeDeleted": "No tens fitxers en aquest àlbum que es puguin esborrar",
+  "zoomOutToSeePhotos": "Allunya per veure fotos"
 }

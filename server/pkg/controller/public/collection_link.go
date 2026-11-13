@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/controller"
-	emailCtrl "github.com/ente-io/museum/pkg/controller/email"
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/museum/pkg/repo/public"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/museum/pkg/utils/time"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/controller"
+	emailCtrl "github.com/ente/museum/pkg/controller/email"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/museum/pkg/repo/public"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/museum/pkg/utils/time"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 	"github.com/lithammer/shortuuid/v3"
 	"github.com/sirupsen/logrus"
@@ -22,24 +22,28 @@ import (
 const (
 	AccessTokenLength = 10
 
-	// DeviceLimitThreshold represents number of unique devices which can access a shared collection. (ip + user agent)
-	// is treated as unique device
+	// A device is identified by its IP and user agent.
 	DeviceLimitThreshold = 50
 
 	DeviceLimitThresholdMultiplier = 10
 
 	DeviceLimitWarningThreshold = 2000
 
-	// FreeUserDeviceLimit is the hardcoded device limit for free users
-	FreeUserDeviceLimit = 5
+	FreeUserDeviceLimit = 10
+
+	legacyFreeUserDeviceLimit = 5
 )
 
-// CollectionLinkController controls share collection operations
+func IsAllowedFreeUserDeviceLimit(deviceLimit int) bool {
+	return deviceLimit == FreeUserDeviceLimit || deviceLimit == legacyFreeUserDeviceLimit
+}
+
 type CollectionLinkController struct {
 	FileController        *controller.FileController
 	EmailNotificationCtrl *emailCtrl.EmailNotificationController
 	CollectionLinkRepo    *public.CollectionLinkRepo
 	FileLinkRepo          *public.FileLinkRepository
+	MemoryShareRepo       *repo.MemoryShareRepository
 	CollectionRepo        *repo.CollectionRepository
 	UserRepo              *repo.UserRepository
 	JwtSecret             []byte
@@ -47,7 +51,7 @@ type CollectionLinkController struct {
 
 func (c *CollectionLinkController) CreateLink(ctx *gin.Context, req ente.CreatePublicAccessTokenRequest) (ente.PublicURL, error) {
 	app := auth.GetApp(ctx)
-	for attempt := 0; attempt < 5; attempt++ {
+	for range 5 {
 		accessToken := strings.ToUpper(shortuuid.New()[0:AccessTokenLength])
 		err := c.CollectionLinkRepo.
 			Insert(ctx, req.CollectionID, accessToken, req.ValidTill, req.DeviceLimit, req.EnableCollect, req.EnableComment, req.EnableJoin)
@@ -65,7 +69,6 @@ func (c *CollectionLinkController) CreateLink(ctx *gin.Context, req ente.CreateP
 						return publicUrls[0], nil
 					}
 				}
-				// ideally we should never reach here
 				return ente.PublicURL{}, stacktrace.NewError("Unexpected state")
 			}
 			return ente.PublicURL{}, stacktrace.Propagate(err, "")
@@ -102,7 +105,7 @@ func (c *CollectionLinkController) CreateFile(ctx *gin.Context, file ente.File, 
 		return ente.File{}, stacktrace.Propagate(err, "")
 	}
 	collectionOwnerID := collection.Owner.ID
-	// Do not let any update happen via public Url
+	// Don't allow public links to update files.
 	file.ID = 0
 	file.OwnerID = collectionOwnerID
 	file.UpdationTime = time.Microseconds()
@@ -118,7 +121,6 @@ func (c *CollectionLinkController) CreateFile(ctx *gin.Context, file ente.File, 
 	return createdFile, nil
 }
 
-// Disable all public accessTokens generated for the given cID till date.
 func (c *CollectionLinkController) Disable(ctx context.Context, cID int64) error {
 	err := c.CollectionLinkRepo.DisableSharing(ctx, cID)
 	return stacktrace.Propagate(err, "")
@@ -184,10 +186,7 @@ func (c *CollectionLinkController) UpdateSharedUrl(ctx *gin.Context, req ente.Up
 	}, nil
 }
 
-// VerifyPassword verifies if the user has provided correct pw hash. If yes, it returns a signed jwt token which can be
-// used by the client to pass in other requests for public collection.
-// Having a separate endpoint for password validation allows us to easily rate-limit the attempts for brute-force
-// attack for guessing password.
+// Password verification is separate so attempts can be rate-limited.
 func (c *CollectionLinkController) VerifyPassword(ctx *gin.Context, req ente.VerifyPasswordRequest) (*ente.VerifyPasswordResponse, error) {
 	accessContext := auth.MustGetPublicAccessContext(ctx)
 	collectionLinkRow, err := c.CollectionLinkRepo.GetActiveCollectionLinkRow(ctx, accessContext.CollectionID)
@@ -214,11 +213,13 @@ func (c *CollectionLinkController) HandleAccountDeletion(ctx context.Context, us
 			return stacktrace.Propagate(err, "")
 		}
 	}
-	return c.FileLinkRepo.DisableLinksForUser(ctx, userID)
+	err = c.FileLinkRepo.DisableLinksForUser(ctx, userID)
+	if err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	return c.MemoryShareRepo.DeleteForUser(ctx, userID)
 }
 
-// GetPublicCollection will return collection info for a public url.
-// is mustAllowCollect is set to true but the underlying collection doesn't allow uploading
 func (c *CollectionLinkController) GetPublicCollection(ctx *gin.Context, mustAllowCollect bool) (ente.Collection, error) {
 	accessContext := auth.MustGetPublicAccessContext(ctx)
 	collection, err := c.CollectionRepo.Get(accessContext.CollectionID)
@@ -228,7 +229,7 @@ func (c *CollectionLinkController) GetPublicCollection(ctx *gin.Context, mustAll
 	if collection.IsDeleted {
 		return ente.Collection{}, stacktrace.Propagate(ente.ErrNotFound, "collection is deleted")
 	}
-	// hide redundant/private information
+	// Don't expose private collection metadata through public links.
 	collection.Sharees = nil
 	collection.MagicMetadata = nil
 	publicURLsWithLimitedInfo := make([]ente.PublicURL, 0)

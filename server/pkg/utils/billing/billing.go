@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"os"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/utils/config"
-	"github.com/ente-io/museum/pkg/utils/time"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/utils/config"
+	"github.com/ente/museum/pkg/utils/time"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/stripe/stripe-go/v72/client"
@@ -49,7 +49,6 @@ var CountriesInEU = []string{
 	"SK",
 }
 
-// GetPlans returns current billing plans
 func GetPlans() ente.BillingPlansPerAccount {
 	var plans = make(ente.BillingPlansPerAccount)
 	plans[ente.StripeIN] = getPlansIN()
@@ -57,7 +56,6 @@ func GetPlans() ente.BillingPlansPerAccount {
 	return plans
 }
 
-// GetStripeClients returns stripe clients for all accounts
 func GetStripeClients() ente.StripeClientPerAccount {
 	stripeClients := make(ente.StripeClientPerAccount)
 	stripeClients[ente.StripeIN] = getStripeClient(viper.GetString("stripe.in.key"))
@@ -101,7 +99,6 @@ func parsePricingFile(fileName string) ente.BillingPlansPerCountry {
 	return plansPerCountry
 }
 
-// GetFreeSubscription return a free subscription for a new signed up user
 func GetFreeSubscription(userID int64) ente.Subscription {
 	return ente.Subscription{
 		UserID:                userID,

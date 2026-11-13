@@ -25,7 +25,7 @@ class PersonGridItem extends StatelessWidget {
     final textStyle = getEnteTextTheme(context).small;
     final textScaleFactor =
         MediaQuery.textScalerOf(context).scale(textStyle.fontSize!) /
-            textStyle.fontSize!;
+        textStyle.fontSize!;
     final textHeight = 24 * textScaleFactor;
 
     return GestureDetector(

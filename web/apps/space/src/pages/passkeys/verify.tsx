@@ -1,0 +1,160 @@
+import { SpacePageMeta } from "components/PageMeta";
+import { SpaceRouteFallback } from "components/RouteFallback";
+import { savedPartialLocalUser } from "ente-accounts/services/accounts-db";
+import { openPasskeyVerificationURL } from "ente-accounts/services/passkey";
+import { isNamedError } from "ente-base/error";
+import log from "ente-base/log";
+import React, { useCallback, useEffect, useState } from "react";
+import {
+    PasskeyVerificationScreen,
+    type PasskeyVerificationStatus,
+} from "screens/PasskeyVerificationScreen";
+import { spaceAuthErrorMessage } from "services/auth-error";
+import {
+    checkSpaceLoginPasskeyStatus,
+    useSpaceLoginTwoFactorInstead,
+} from "services/login";
+import {
+    clearPendingSpacePasskeyVerification,
+    hasAutoOpenedSpacePasskeyVerification,
+    markAutoOpenedSpacePasskeyVerification,
+    savedPendingSpacePasskeyVerification,
+    type PendingSpacePasskeyVerification,
+} from "services/passkey-verification";
+import { useSpaceAppState } from "state/app-state";
+import { spaceAppBackgroundColor } from "styles/colors";
+import { routeAfterCompletedLogin } from "utils/login-navigation";
+import { useSpaceRouter } from "utils/route-transitions";
+import { spaceRoutes } from "utils/routes";
+
+const Page: React.FC = () => {
+    const router = useSpaceRouter();
+    const {
+        pendingPasskeyVerification,
+        refreshProfile,
+        setPendingPasskeyVerification,
+    } = useSpaceAppState();
+    const [verification, setVerification] =
+        useState<PendingSpacePasskeyVerification>();
+    const [status, setStatus] = useState<PasskeyVerificationStatus>("waiting");
+    const [errorMessage, setErrorMessage] = useState<string>();
+
+    const openVerification = useCallback(
+        (nextVerification: PendingSpacePasskeyVerification) => {
+            try {
+                openPasskeyVerificationURL(nextVerification);
+                markAutoOpenedSpacePasskeyVerification(
+                    nextVerification.passkeySessionID,
+                );
+            } catch (error) {
+                log.error("Failed to open Space passkey verification", error);
+                setErrorMessage(
+                    "Couldn't open passkey verification. Try again or use another sign-in method.",
+                );
+            }
+        },
+        [],
+    );
+
+    useEffect(() => {
+        const nextVerification =
+            pendingPasskeyVerification ??
+            savedPendingSpacePasskeyVerification();
+        const user = savedPartialLocalUser();
+
+        if (
+            !nextVerification ||
+            !user?.email ||
+            user.passkeySessionID != nextVerification.passkeySessionID
+        ) {
+            void router.replace(spaceRoutes.login);
+            return;
+        }
+
+        setVerification(nextVerification);
+        setPendingPasskeyVerification(nextVerification);
+
+        if (
+            !hasAutoOpenedSpacePasskeyVerification(
+                nextVerification.passkeySessionID,
+            )
+        ) {
+            openVerification(nextVerification);
+        }
+    }, [
+        openVerification,
+        pendingPasskeyVerification,
+        router,
+        setPendingPasskeyVerification,
+    ]);
+
+    const clearPasskeyVerification = () => {
+        clearPendingSpacePasskeyVerification();
+        setPendingPasskeyVerification(null);
+    };
+
+    const tryAgain = () => {
+        if (!verification) return;
+        setStatus("waiting");
+        setErrorMessage(undefined);
+        openVerification(verification);
+    };
+
+    const checkStatus = async () => {
+        if (!verification || status == "checking") return;
+
+        setStatus("checking");
+        setErrorMessage(undefined);
+        try {
+            const result = await checkSpaceLoginPasskeyStatus(
+                verification.passkeySessionID,
+            );
+            if (result.status == "pending") {
+                setStatus("pending");
+                return;
+            }
+
+            clearPasskeyVerification();
+            await routeAfterCompletedLogin(router, refreshProfile);
+        } catch (error) {
+            log.error("Space passkey status check failed", error);
+            setErrorMessage(passkeyErrorMessage(error));
+            setStatus("waiting");
+        }
+    };
+
+    const useTwoFactor = () => {
+        useSpaceLoginTwoFactorInstead();
+        clearPasskeyVerification();
+        void router.push(spaceRoutes.twoFactorVerify);
+    };
+
+    if (!verification) {
+        return <SpaceRouteFallback background={spaceAppBackgroundColor} />;
+    }
+
+    return (
+        <>
+            <SpacePageMeta themeColor={spaceAppBackgroundColor} />
+            <PasskeyVerificationScreen
+                canUseTwoFactor={verification.hasTwoFactorFallback}
+                errorMessage={errorMessage}
+                onBack={() => void router.back(spaceRoutes.login)}
+                onCheckStatus={() => void checkStatus()}
+                onTryAgain={tryAgain}
+                onUseTwoFactor={useTwoFactor}
+                status={status}
+            />
+        </>
+    );
+};
+
+const passkeyErrorMessage = (error: unknown) =>
+    isNamedError(error, "session_expired")
+        ? "Passkey session expired. Please sign in again."
+        : spaceAuthErrorMessage(
+              error,
+              "Couldn't check passkey status. Please try again.",
+          );
+
+export default Page;

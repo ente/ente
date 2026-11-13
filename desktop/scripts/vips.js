@@ -1,68 +1,121 @@
-/**
- * [Note: vips]
- *
- * For use within our Electron app we need static builds for Linux and Windows
- * for both x64 and ARM. For this, we need a custom workflow because (as of
- * writing) upstream doesn't publish these.
- *
- * This is our custom workflow, which runs on a fork of upstream:
- * https://github.com/ente-io/libvips-packaging/commit/a298aff3e1f25f713508d31d0c3a55a4f828fdd3
- *
- * The binaries it creates are available at
- * https://github.com/ente-io/libvips-packaging/releases/tag/v8.16.0
- *
- * To integrate this binary, we need to modify two places:
- *
- * 1. This script, `vips.js`, runs during "yarn install" (it is set as the
- *    "prepare" step in our `package.json`). It downloads the relevant binary
- *    for the current OS/arch combination and places it in the `build` folder,
- *    allowing it to be used during development.
- *
- * 2. The sibling script, `beforeBuild.js`, runs during "yarn build" (it is set
- *    as the beforeBuild script in `electrons-builder.yml`). It downloads the
- *    relevant binary for the OS/arch combination being built.
- *
- * Note that `vips.js` would've already run once `beforeBuild.js` is run, but on
- * our CI we prepare builds for multiple architectures in one go, so we need to
- * unconditionally replace the binary with the relevant one for the current
- * architecture being built (which might be different from the one we're running
- * on). `beforeBuild.js` runs for each architecture being built.
- *
- * On macOS, we don't need `vips` since there we use the native `sips`.
- */
+const crypto = require("node:crypto");
+const fs = require("node:fs");
+const fsp = require("node:fs/promises");
+const path = require("node:path");
 
-const fs = require("fs");
-const fsp = require("fs/promises");
+const vipsVersion = "8.18.7-1";
 
-const main = () => {
-    switch (`${process.platform}-${process.arch}`) {
-        case "linux-x64":
-            return downloadIfNeeded("vips-x64", "vips");
-        case "linux-arm64":
-            return downloadIfNeeded("vips-arm64", "vips");
-        case "win32-x64":
-            return downloadIfNeeded("vips-x86_64.exe", "vips.exe");
-        case "linux-arm64":
-            return downloadIfNeeded("vips-aarch64.exe", "vips.exe");
+const vipsAssets = {
+    "linux-x64": {
+        name: "vips-x64",
+        sha256: "23080fc90f113d3689d6c50e6e8c1f3f080813242c109d2b720fee002153f034",
+        size: 19507632,
+    },
+    "linux-arm64": {
+        name: "vips-arm64",
+        sha256: "6c8f9c7d33a3995acda6d63e3aed1ddd4fb353217b63a7b17fa73debb0a6b111",
+        size: 18719728,
+    },
+    "win32-x64": {
+        name: "vips-x86_64.exe",
+        sha256: "91f5b1299b59452cff1762e7f4b1700fc4fd096306af76af1df394238265ff0b",
+        size: 31219200,
+    },
+    "win32-arm64": {
+        name: "vips-aarch64.exe",
+        sha256: "3dce2a96420d908903d685b4a4efd525a71b6eed7cfa2c54787a4185dea3e40b",
+        size: 21212672,
+    },
+};
+
+const fileSHA256 = async (file) => {
+    const hash = crypto.createHash("sha256");
+    for await (const chunk of fs.createReadStream(file)) hash.update(chunk);
+    return hash.digest("hex");
+};
+
+const downloadVipsIfNeeded = async (asset, out) => {
+    try {
+        const stat = await fsp.lstat(out);
+        if (
+            stat.isFile() &&
+            stat.size == asset.size &&
+            (await fileSHA256(out)) == asset.sha256
+        ) {
+            await fsp.chmod(out, "744");
+            return;
+        }
+    } catch (e) {
+        if (e.code != "ENOENT") throw e;
+    }
+
+    console.log(`Downloading ${asset.name}`);
+    const res = await fetch(
+        `https://github.com/ente/libvips-packaging/releases/download/v${vipsVersion}/${asset.name}`,
+    );
+    if (!res.ok)
+        throw new Error(`Failed to download ${asset.name}: HTTP ${res.status}`);
+
+    await fsp.mkdir(path.dirname(out), { recursive: true });
+    const tempDir = await fsp.mkdtemp(path.join(path.dirname(out), ".vips-"));
+    try {
+        const tempFile = path.join(tempDir, "vips");
+        const file = await fsp.open(tempFile, "wx", 0o600);
+        const hash = crypto.createHash("sha256");
+        let size = 0;
+        try {
+            for await (const chunk of res.body) {
+                size += chunk.length;
+                if (size > asset.size)
+                    throw new Error(
+                        `Download of ${asset.name} exceeds its pinned size`,
+                    );
+                hash.update(chunk);
+                await file.writeFile(chunk);
+            }
+        } finally {
+            await file.close();
+        }
+        if (size != asset.size)
+            throw new Error(
+                `Unexpected download size for ${asset.name}: ${size}`,
+            );
+        const actual = hash.digest("hex");
+        if (actual != asset.sha256)
+            throw new Error(
+                `SHA-256 mismatch for ${asset.name}: expected ${asset.sha256}, got ${actual}`,
+            );
+
+        await fsp.chmod(tempFile, "744");
+        await fsp.rename(tempFile, out);
+    } finally {
+        await fsp.rm(tempDir, { recursive: true, force: true });
     }
 };
 
-const downloadIfNeeded = (downloadName, outputName) => {
-    const out = `build/${outputName}`;
+const ensureVips = async (platform, arch, appDir) => {
+    // macOS uses sips.
+    if (platform == "darwin") return;
 
-    try {
-        // Making the file executable is the last step, so if the file exists at
-        // this path and is executable, we assume it is the correct one.
-        fs.accessSync(out, fs.constants.X_OK);
-        return;
-    } catch {}
-
-    console.log(`Downloading ${downloadName}`);
-    const downloadPath = `https://github.com/ente-io/libvips-packaging/releases/download/v8.16.0/${downloadName}`;
-    return fetch(downloadPath)
-        .then((res) => res.blob())
-        .then((blob) => fsp.writeFile(out, blob.stream()))
-        .then(() => fsp.chmod(out, "744"));
+    const asset = vipsAssets[`${platform}-${arch}`];
+    if (!asset)
+        throw new Error(`Unsupported libvips target: ${platform}-${arch}`);
+    const out = path.join(
+        appDir,
+        "build",
+        platform == "win32" ? "vips.exe" : "vips",
+    );
+    await downloadVipsIfNeeded(asset, out);
 };
 
-main();
+module.exports = { ensureVips };
+
+if (require.main === module)
+    ensureVips(
+        process.platform,
+        process.arch,
+        path.resolve(__dirname, ".."),
+    ).catch((e) => {
+        console.error(e);
+        process.exit(1);
+    });

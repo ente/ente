@@ -2,20 +2,21 @@ package main
 
 import (
 	"fmt"
-	"github.com/ente-io/cli/cmd"
-	"github.com/ente-io/cli/internal"
-	"github.com/ente-io/cli/internal/api"
-	"github.com/ente-io/cli/pkg"
-	"github.com/ente-io/cli/pkg/secrets"
-	"github.com/ente-io/cli/utils/constants"
+	"github.com/ente/cli/cmd"
+	"github.com/ente/cli/internal"
+	"github.com/ente/cli/internal/api"
+	"github.com/ente/cli/pkg"
+	"github.com/ente/cli/pkg/secrets"
+	"github.com/ente/cli/utils/constants"
 	"github.com/spf13/viper"
 	"log"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
-var AppVersion = "0.2.3"
+var AppVersion = "v0.3.0"
 
 func main() {
 	cliConfigDir, err := GetCLIConfigDir()
@@ -29,7 +30,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("Could not create cli config path\n%v\n", err)
 	}
-	initConfig(cliConfigDir)
+	if err := initConfig(cliConfigDir); err != nil {
+		log.Fatal(err)
+	}
 	newCliDBPath := filepath.Join(cliConfigDir, "ente-cli.db")
 	if !strings.HasPrefix(cliConfigDir, "/") {
 		oldCliPath := fmt.Sprintf("%sente-cli.db", cliConfigDir)
@@ -50,32 +53,20 @@ func main() {
 		}
 	}
 
-	// Define a set of commands that do not require KeyHolder or cli initialisation.
-	skipInitCommands := map[string]struct{}{"version": {}, "docs": {}, "help": {}}
-
-	var keyHolder *secrets.KeyHolder
-	// Only initialise KeyHolder if the command isn't in the skip list.
-	shouldInit := len(os.Args) > 1
-	if len(os.Args) > 1 {
-		if _, skip := skipInitCommands[os.Args[1]]; skip {
-			shouldInit = false
+	defer func() {
+		if err := db.Close(); err != nil {
+			panic(err)
 		}
-	}
-
-	if shouldInit {
-		keyHolder = secrets.NewKeyHolder(secrets.GetOrCreateClISecret())
-	}
+	}()
 	ctrl := pkg.ClICtrl{
 		Client: api.NewClient(api.Params{
 			Debug: viper.GetBool("log.http"),
 			Host:  viper.GetString("endpoint.api"),
 		}),
-		DB:        db,
-		KeyHolder: keyHolder,
+		DB: db,
 	}
 
 	if len(os.Args) == 1 {
-		// If no arguments are passed, show help
 		os.Args = append(os.Args, "help")
 	}
 	if len(os.Args) == 2 && os.Args[1] == "docs" {
@@ -86,54 +77,104 @@ func main() {
 		}
 		return
 	}
-	if shouldInit {
-		err = ctrl.Init()
-		if err != nil {
-			panic(err)
-		}
-		defer func() {
-			if err := db.Close(); err != nil {
-				panic(err)
-			}
-		}()
-	}
 	if os.Args[1] == "version" && viper.GetString("endpoint.api") != constants.EnteApiUrl {
 		log.Printf("Custom endpoint: %s\n", viper.GetString("endpoint.api"))
 	}
-	cmd.Execute(&ctrl, AppVersion)
+	cmd.Execute(&ctrl, AppVersion, checkWorkingDirectoryConfig(cliConfigDir))
 }
 
-func initConfig(cliConfigDir string) {
-	viper.SetConfigName("config")           // name of config file (without extension)
-	viper.SetConfigType("yaml")             // REQUIRED if the config file does not have the extension in the name
-	viper.AddConfigPath(cliConfigDir + "/") // path to look for the config file in
-	viper.AddConfigPath(".")                // optionally look for config in the working directory
-
-	viper.SetDefault("endpoint.api", constants.EnteApiUrl)
-	viper.SetDefault("log.http", false)
-	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-		} else {
-			// Config file was found but another error was produced
+func initConfig(cliConfigDir string) error {
+	viper.SetConfigType("yaml")
+	path, err := findConfigFile(cliConfigDir)
+	if err != nil {
+		return fmt.Errorf("cannot inspect trusted configuration directory %q", cliConfigDir)
+	}
+	if path != "" {
+		viper.SetConfigFile(path)
+		if err := viper.ReadInConfig(); err != nil {
+			return fmt.Errorf("cannot load trusted configuration %q; check file permissions and YAML syntax", path)
 		}
 	}
+	value := viper.Get("endpoint.api")
+	keys := viper.AllKeys()
+	if value != nil || slices.Contains(keys, "endpoint") || slices.Contains(keys, "endpoint.api") {
+		endpoint, ok := value.(string)
+		if !ok || strings.TrimSpace(endpoint) == "" {
+			return fmt.Errorf("invalid endpoint.api in trusted configuration %q; expected a non-empty string", path)
+		}
+	}
+	viper.SetDefault("endpoint.api", constants.EnteApiUrl)
+	viper.SetDefault("log.http", false)
+	return nil
 }
 
-// GetCLIConfigDir returns the path to the .ente-cli folder and creates it if it doesn't exist.
+func findConfigFile(dir string) (string, error) {
+	info, err := os.Stat(dir)
+	if err != nil {
+		return "", err
+	}
+	if !info.IsDir() {
+		return "", fmt.Errorf("%q is not a directory", dir)
+	}
+	for i := 0; i <= len(viper.SupportedExts); i++ {
+		name := "config"
+		if i < len(viper.SupportedExts) {
+			name += "." + viper.SupportedExts[i]
+		}
+		path := filepath.Join(dir, name)
+		info, err := os.Lstat(path)
+		if os.IsNotExist(err) {
+			continue
+		}
+		if err != nil {
+			return "", err
+		}
+		if info.Mode()&os.ModeSymlink != 0 {
+			info, err = os.Stat(path)
+			if err != nil {
+				return "", err
+			}
+		}
+		if !info.IsDir() {
+			return path, nil
+		}
+	}
+	return "", nil
+}
+
+func checkWorkingDirectoryConfig(cliConfigDir string) error {
+	cwd, err := os.Stat(".")
+	if err != nil {
+		return fmt.Errorf("cannot inspect the working directory")
+	}
+	trustedDir, err := os.Stat(cliConfigDir)
+	if err != nil {
+		return fmt.Errorf("cannot inspect trusted configuration directory %q", cliConfigDir)
+	}
+	if os.SameFile(cwd, trustedDir) {
+		return nil
+	}
+	path, err := findConfigFile(".")
+	if err != nil {
+		return fmt.Errorf("cannot inspect working-directory configuration")
+	}
+	if path != "" {
+		return fmt.Errorf("refusing network command: working-directory configuration %q is ignored. If it contains your intended Ente CLI settings, migrate them into %q and remove or rename the old file; otherwise run from another directory. ENTE_CLI_CONFIG_DIR selects both configuration and account storage", path, cliConfigDir)
+	}
+	return nil
+}
+
 func GetCLIConfigDir() (string, error) {
 	var configDir = os.Getenv("ENTE_CLI_CONFIG_DIR")
 
 	if configDir == "" {
-		// for backward compatibility, check for ENTE_CLI_CONFIG_PATH
+		// ENTE_CLI_CONFIG_PATH is kept for backward compatibility.
 		configDir = os.Getenv("ENTE_CLI_CONFIG_PATH")
 	}
 
 	if configDir != "" {
-		// remove trailing slash (for all OS)
-		configDir = strings.TrimSuffix(configDir, string(filepath.Separator))
-		return configDir, nil
+		return filepath.Clean(configDir), nil
 	}
-	// Get the user's home directory
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
@@ -141,7 +182,6 @@ func GetCLIConfigDir() (string, error) {
 
 	cliDBPath := filepath.Join(homeDir, ".ente")
 
-	// Check if the folder already exists, if not, create it
 	if _, err := os.Stat(cliDBPath); os.IsNotExist(err) {
 		err := os.MkdirAll(cliDBPath, 0755)
 		if err != nil {

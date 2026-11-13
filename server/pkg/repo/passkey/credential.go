@@ -3,7 +3,7 @@ package passkey
 import (
 	"time"
 
-	"github.com/ente-io/museum/ente"
+	"github.com/ente/museum/ente"
 	"github.com/google/uuid"
 )
 
@@ -42,6 +42,7 @@ func (r *Repository) createPasskeyCredential(credential *ente.PasskeyCredential)
 	_, err = r.DB.Exec(`
 		INSERT INTO passkey_credentials(
 			passkey_id,
+			rp_id,
 			public_key,
 			attestation_type,
 			authenticator_transports,
@@ -57,9 +58,11 @@ func (r *Repository) createPasskeyCredential(credential *ente.PasskeyCredential)
 			$5,
 			$6,
 			$7,
-			$8
+			$8,
+			$9
 		)`,
 		credential.PasskeyID,
+		credential.RPID,
 		credential.PublicKey,
 		credential.AttestationType,
 		credential.AuthenticatorTransports,

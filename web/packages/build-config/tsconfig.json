@@ -1,5 +1,4 @@
 {
-    /* A minimal tsconfig so that we can run tsc on the build-config itself. */
     "compilerOptions": {
         "target": "ES2023",
         "module": "ESNext",

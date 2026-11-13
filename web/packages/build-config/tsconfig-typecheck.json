@@ -1,87 +1,22 @@
 {
-    /* TSConfig for a TypeScript project that'll get transpiled by Next.js */
-    /* TSConfig docs: https://aka.ms/tsconfig.json */
     "compilerOptions": {
-        /* We use TypeScript (tsc) as a type checker, not as a build tool */
         "noEmit": true,
-
-        /*
-         * Tell TypeScript which all things it can assume that our target
-         * runtime will have.
-         *
-         * In our case, we tell it that the code will run in a modern browser,
-         * and will have access to a latest JS ("ESNext") and the DOM ("DOM")
-         * and web workers ("WebWorker").
-         *
-         * Unlike the other individual library components (say how "esnext"
-         * implies "ESNext.*"), "DOM.Iterable" (the ability to iterate over DOM
-         * elements) is not a subset of "DOM" and needs to be listed out
-         * explicitly.
-         */
         "lib": ["ESnext", "DOM", "DOM.Iterable", "WebWorker"],
-
-        /**
-         * We don't potentially need to specify the `target` compilerOption,
-         * since tsc isn't actually generating (emitting) the JavaScript.
-         * However, without a target TypeScript becomes very conservative, and
-         * complains about things like
-         *
-         * > Type 'Float32Array' can only be iterated through when using the
-         * > '--downlevelIteration' flag or with a '--target' of 'es2015' or
-         * > higher.
-         *
-         > > BigInt literals are not available when targeting lower than ES2020
-         */
         "target": "ES2020",
-
-        /*
-         * The module system to assume the generated JavaScript will use.
-         *
-         * Since we're using a bundler, we should set this to "esnext"
-         * https://www.typescriptlang.org/docs/handbook/modules/guides/choosing-compiler-options.html
-         */
         "module": "ESNext",
-
-        /*
-         * Tell TypeScript how to lookup the file for a given import
-         *
-         * From the TypeScript docs:
-         *
-         * > 'bundler' is for use with bundlers. Like node16 and nodenext, this
-         *   mode supports package.json `imports` and `exports`, but unlinke the
-         *   Node.js resolution modes, bundler never requires file extensions on
-         *   relative paths in imports.
-         *
-         * > bundler does not support resolution of `require` calls.
-         */
         "moduleResolution": "bundler",
-
-        /* Allow use of `.tsx` files, but don't transform them */
         "jsx": "preserve",
-
-        /* Ask TypeScript to warn us if we use TypeScript features that cannot
-           be used by single-file transpilers */
         "isolatedModules": true,
-        /* Enable various workarounds to play better with CJS libraries */
         "esModuleInterop": true,
-
-        /* Speed things up by not type checking `node_modules` */
         "skipLibCheck": true,
-        /* Require the `type` modifier when importing types */
         "verbatimModuleSyntax": true,
-        /* Enable importing .json files */
         "resolveJsonModule": true,
-
         "strict": true,
-        /* Stricter than strict */
         "noImplicitReturns": true,
         "noUnusedParameters": true,
         "noUnusedLocals": true,
         "noFallthroughCasesInSwitch": true,
-        /* e.g. makes array indexing returns undefined. */
         "noUncheckedIndexedAccess": true,
-        /* Treat optional (?) properties and properties where undefined is a
-           valid value separately */
         "exactOptionalPropertyTypes": true
     }
 }

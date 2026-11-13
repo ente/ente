@@ -1,0 +1,37 @@
+appId: io.ente.locker
+---
+- launchApp
+- tapOn: Add item
+- tapOn: |-
+    Note
+    Write down thoughts and instructions.
+- inputText: This is my randomNote
+- tapOn: Note title
+- inputText: automatedNote
+- tapOn: done
+- tapOn: Important
+- tapOn: Save
+- extendedWaitUntil:
+    visible: Add item
+    timeout: 10000
+- tapOn: automatedNote
+- assertVisible: Edit
+- tapOn: Edit
+- inputText: " edited"
+- tapOn: Save
+- extendedWaitUntil:
+    visible: Edit
+    timeout: 10000
+- tapOn: Back
+- extendedWaitUntil:
+    notVisible:
+      id: automatedNote
+    timeout: 10000
+- runFlow:
+    file: ../subflows/delete_item_to_trash.yaml
+    env:
+      ITEM_NAME: automatedNote
+- runFlow:
+    file: ../subflows/delete_item_from_trash.yaml
+    env:
+      ITEM_NAME: automatedNote

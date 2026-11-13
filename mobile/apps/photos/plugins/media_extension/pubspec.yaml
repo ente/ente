@@ -1,0 +1,24 @@
+name: media_extension
+description: Native gallery integration for Ente Photos
+version: 1.0.2
+publish_to: none
+
+resolution: workspace
+environment:
+  sdk: ">=3.10.0 <4.0.0"
+  flutter: ">=3.38.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  plugin_platform_interface: 2.1.8
+
+dev_dependencies:
+  flutter_lints: 6.0.0
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: io.ente.photos.media_extension
+        pluginClass: MediaExtensionPlugin

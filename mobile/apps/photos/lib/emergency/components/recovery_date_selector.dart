@@ -1,5 +1,5 @@
+import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
-import "package:photos/l10n/l10n.dart";
 import "package:photos/theme/colors.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/theme/text_style.dart";
@@ -23,7 +23,7 @@ class RecoveryDateSelector extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
         _DayChip(
-          label: context.l10n.trashDaysLeft(count: 7),
+          label: context.strings.trashDaysLeft(count: 7),
           isSelected: selectedDays == 7,
           onTap: () => onDaysChanged(7),
           colorScheme: colorScheme,
@@ -31,7 +31,7 @@ class RecoveryDateSelector extends StatelessWidget {
         ),
         const SizedBox(width: 12),
         _DayChip(
-          label: context.l10n.trashDaysLeft(count: 14),
+          label: context.strings.trashDaysLeft(count: 14),
           isSelected: selectedDays == 14,
           onTap: () => onDaysChanged(14),
           colorScheme: colorScheme,
@@ -39,7 +39,7 @@ class RecoveryDateSelector extends StatelessWidget {
         ),
         const SizedBox(width: 12),
         _DayChip(
-          label: context.l10n.trashDaysLeft(count: 30),
+          label: context.strings.trashDaysLeft(count: 30),
           isSelected: selectedDays == 30,
           onTap: () => onDaysChanged(30),
           colorScheme: colorScheme,

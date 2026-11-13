@@ -1,101 +1,49 @@
-import "package:ente_ui/components/title_bar_title_widget.dart";
-import "package:ente_ui/theme/ente_theme.dart";
-import "package:ente_ui/utils/dialog_util.dart";
+import "package:ente_components/ente_components.dart";
+import "package:ente_strings/ente_strings.dart";
+import "package:ente_ui/components/settings/about_settings_section.dart";
 import "package:ente_ui/utils/toast_util.dart";
-import "package:ente_utils/platform_util.dart";
 import "package:flutter/material.dart";
-import "package:locker/l10n/l10n.dart";
+import "package:hugeicons/hugeicons.dart";
 import "package:locker/services/update_service.dart";
-import "package:locker/ui/settings/widgets/app_update_dialog.dart";
-import "package:locker/ui/settings/widgets/settings_widget.dart";
-import "package:url_launcher/url_launcher.dart";
+import "package:locker/ui/settings/app_update_sheet.dart";
+import "package:locker/ui/settings/widgets/change_log_sheet.dart";
 
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    final colorScheme = getEnteColorScheme(context);
+    final l10n = context.strings;
 
-    return Scaffold(
-      backgroundColor: colorScheme.backgroundBase,
-      appBar: AppBar(
-        backgroundColor: colorScheme.backgroundBase,
-        surfaceTintColor: Colors.transparent,
-        toolbarHeight: 48,
-        leadingWidth: 48,
-        leading: GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: const Icon(Icons.arrow_back_outlined),
+    return SettingsPageScaffold(
+      title: l10n.about,
+      children: [
+        SettingsItem(
+          title: l10n.whatsNew,
+          icon: HugeIcons.strokeRoundedParty,
+          onTap: () => _openChangeLog(context),
         ),
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TitleBarTitleWidget(title: l10n.about),
-              const SizedBox(height: 24),
-              SettingsItem(
-                title: l10n.weAreOpenSource,
-                onTap: () => _onOpenSourceTapped(),
-              ),
-              const SizedBox(height: 8),
-              SettingsItem(
-                title: l10n.privacy,
-                onTap: () => _onPrivacyTapped(context),
-              ),
-              const SizedBox(height: 8),
-              SettingsItem(
-                title: l10n.termsOfServicesTitle,
-                onTap: () => _onTermsTapped(context),
-              ),
-              if (UpdateService.instance.isIndependent()) ...[
-                const SizedBox(height: 8),
-                SettingsItem(
-                  title: l10n.checkForUpdates,
-                  onTap: () => _onCheckForUpdatesTapped(context),
-                ),
-              ],
-            ],
-          ),
+        const SizedBox(height: Spacing.sm),
+        AboutSettingsSection(
+          onCheckForUpdates: UpdateService.instance.isIndependent()
+              ? () => _onCheckForUpdatesTapped(context)
+              : null,
         ),
-      ),
+      ],
     );
   }
 
-  void _onOpenSourceTapped() {
-    // ignore: unawaited_futures
-    launchUrl(Uri.parse("https://github.com/ente-io/ente"));
-  }
-
-  Future<void> _onPrivacyTapped(BuildContext context) async {
-    final l10n = context.l10n;
-    await PlatformUtil.openWebView(
-      context,
-      l10n.privacy,
-      "https://ente.io/privacy",
-    );
-  }
-
-  Future<void> _onTermsTapped(BuildContext context) async {
-    final l10n = context.l10n;
-    await PlatformUtil.openWebView(
-      context,
-      l10n.termsOfServicesTitle,
-      "https://ente.io/terms",
-    );
+  Future<void> _openChangeLog(BuildContext context) async {
+    await UpdateService.instance.markChangeLogShown();
+    if (context.mounted) {
+      await showChangeLogSheet(context);
+    }
   }
 
   Future<void> _onCheckForUpdatesTapped(BuildContext context) async {
-    final l10n = context.l10n;
-    final dialog = createProgressDialog(context, l10n.checkingForUpdates);
-    await dialog.show();
+    final l10n = context.strings;
     final shouldUpdate = await UpdateService.instance.shouldUpdate();
     final latestVersion = UpdateService.instance.getLatestVersionInfo();
-    await dialog.hide();
     if (!context.mounted) {
       return;
     }
@@ -107,9 +55,6 @@ class AboutPage extends StatelessWidget {
       showShortToast(context, l10n.youAreOnTheLatestVersion);
       return;
     }
-    await showAppUpdateBottomSheet(
-      context,
-      latestVersionInfo: latestVersion,
-    );
+    await showAppUpdateSheet(context, latestVersionInfo: latestVersion);
   }
 }

@@ -1,5 +1,6 @@
 import CloseIcon from "@mui/icons-material/Close";
 import {
+    Box,
     Button,
     Dialog,
     DialogActions,
@@ -8,54 +9,28 @@ import {
     TextField,
 } from "@mui/material";
 import React, { useEffect, useState } from "react";
-import { getEmail, getToken } from "../App";
-import { apiOrigin } from "../services/support";
-import type { ErrorResponse } from "../types";
+import { changeUserEmail, getSelectedUserID } from "../services/admin-user";
+import { useStaffSessionRef } from "../services/session";
+import { SUCCESS_COLOR } from "../utils";
 
-// The below interfaces will only be used in this file
-// hence not including them into a sub-merged types file
 interface ChangeEmailProps {
     open: boolean;
     onClose: () => void;
 }
 
-interface UserDataResponse {
-    subscription: {
-        userID: string;
-    } | null;
-}
-
-const ChangeEmail: React.FC<ChangeEmailProps> = ({ open, onClose }) => {
-    const [newEmail, setNewEmail] = useState<string>("");
-    const [userID, setUserID] = useState<string>("");
+export const ChangeEmail: React.FC<ChangeEmailProps> = ({ open, onClose }) => {
+    const [newEmail, setNewEmail] = useState("");
+    const [userID, setUserID] = useState<number | undefined>(undefined);
+    const sessionRef = useStaffSessionRef();
 
     useEffect(() => {
         const fetchUserID = async () => {
-            const email = getEmail();
-            setNewEmail(email); // Set initial email state
+            const session = sessionRef.current;
+            const { email } = session;
+            setNewEmail(email);
 
-            const encodedEmail = encodeURIComponent(email);
-
-            const url = `${apiOrigin}/admin/user?email=${encodedEmail}`;
             try {
-                const response = await fetch(url, {
-                    method: "GET",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-AUTH-TOKEN": getToken(),
-                    },
-                });
-
-                if (!response.ok) {
-                    throw new Error("Network response was not ok");
-                }
-
-                const data = (await response.json()) as UserDataResponse;
-                if (data.subscription) {
-                    setUserID(data.subscription.userID); // Update userID state
-                } else {
-                    throw new Error("Subscription data not found");
-                }
+                setUserID(await getSelectedUserID(session));
             } catch (error) {
                 console.error("Error fetching user ID:", error);
             }
@@ -66,98 +41,58 @@ const ChangeEmail: React.FC<ChangeEmailProps> = ({ open, onClose }) => {
                 console.error("Error in fetchUserID:", error),
             );
         }
-    }, [open]);
+    }, [open, sessionRef]);
 
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setNewEmail(event.target.value); // Update newEmail state on input change
+        setNewEmail(event.target.value);
     };
 
-    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (
+        event: React.SyntheticEvent<HTMLFormElement>,
+    ) => {
         event.preventDefault();
 
-        const token = getToken();
-        const url = `${apiOrigin}/admin/user/change-email`;
-
-        const body = {
-            userID,
-            email: newEmail,
-        };
-
         try {
-            const response = await fetch(url, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-AUTH-TOKEN": token,
-                },
-                body: JSON.stringify(body),
-            });
-
-            if (!response.ok) {
-                let errorData;
-                try {
-                    errorData = (await response.json()) as ErrorResponse;
-                } catch (error) {
-                    console.error("Error parsing error response:", error);
-                }
-                throw new Error(
-                    errorData?.message ?? "Network response was not ok",
-                );
+            if (userID === undefined) {
+                throw new Error("User ID not found");
             }
-
-            console.log("Email updated successfully");
+            await changeUserEmail(sessionRef.current, userID, newEmail);
             onClose();
         } catch (error) {
             console.error("Error updating email:", error);
         }
-    };
-    const handleSubmitSync: React.FormEventHandler<HTMLFormElement> = (
-        event,
-    ) => {
-        handleSubmit(event).catch((error: unknown) => {
-            console.error("Error in handleSubmit:", error);
-        });
     };
 
     return (
         <Dialog
             open={open}
             onClose={onClose}
-            BackdropProps={{
-                style: {
-                    backdropFilter: "blur(5px)",
-                    backgroundColor: "rgba(255, 255, 255, 0.8)",
+            slotProps={{
+                backdrop: {
+                    style: {
+                        backdropFilter: "blur(5px)",
+                        backgroundColor: "rgba(255, 255, 255, 0.8)",
+                    },
                 },
-            }}
-            PaperProps={{
-                style: {
-                    width: "444px",
-                    height: "300px",
-                },
+                paper: { style: { width: "444px", height: "300px" } },
             }}
         >
-            <DialogTitle style={{ marginBottom: "20px", marginTop: "20px" }}>
+            <DialogTitle sx={dialogTitleSx}>
                 Change Email
-                <Button
-                    onClick={onClose}
-                    style={{ position: "absolute", right: 10, top: 10 }}
-                >
-                    <CloseIcon style={{ color: "black" }} />
+                <Button onClick={onClose} sx={dialogCloseButtonSx}>
+                    <CloseIcon sx={{ color: "black" }} />
                 </Button>
             </DialogTitle>
             <DialogContent>
-                <form onSubmit={handleSubmitSync}>
-                    <div style={{ marginBottom: "16px" }}>
-                        <label
+                <form onSubmit={handleSubmit}>
+                    <Box sx={{ mb: 2 }}>
+                        <Box
+                            component="label"
                             htmlFor="newEmail"
-                            style={{
-                                textAlign: "left",
-                                display: "block",
-                                marginBottom: "4px",
-                            }}
+                            sx={fieldLabelSx}
                         >
                             Email
-                        </label>
+                        </Box>
                         <TextField
                             id="newEmail"
                             name="newEmail"
@@ -165,19 +100,10 @@ const ChangeEmail: React.FC<ChangeEmailProps> = ({ open, onClose }) => {
                             onChange={handleChange}
                             fullWidth
                         />
-                    </div>
+                    </Box>
 
-                    <DialogActions
-                        style={{ justifyContent: "center", marginTop: "40px" }}
-                    >
-                        <Button
-                            type="submit"
-                            variant="contained"
-                            style={{
-                                backgroundColor: "#00B33C",
-                                color: "white",
-                            }}
-                        >
+                    <DialogActions sx={{ justifyContent: "center", mt: 5 }}>
+                        <Button type="submit" variant="contained" sx={submitSx}>
                             Change Email
                         </Button>
                     </DialogActions>
@@ -187,4 +113,10 @@ const ChangeEmail: React.FC<ChangeEmailProps> = ({ open, onClose }) => {
     );
 };
 
-export default ChangeEmail;
+const dialogTitleSx = { mb: "20px", mt: "20px" };
+
+const dialogCloseButtonSx = { position: "absolute", right: 10, top: 10 };
+
+const fieldLabelSx = { display: "block", mb: "4px", textAlign: "left" };
+
+const submitSx = { bgcolor: SUCCESS_COLOR, color: "white" };

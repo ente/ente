@@ -1,0 +1,22 @@
+[
+    {
+        "relation": ["delegate_permission/common.handle_all_urls"],
+        "target": {
+            "namespace": "android_app",
+            "package_name": "io.ente.photos",
+            "sha256_cert_fingerprints": [
+                "37:D4:0B:10:3B:BF:86:43:EB:AE:23:B3:BB:73:F8:65:B4:E9:3A:BF:65:45:EF:37:12:8A:4C:EA:5B:C2:7E:2E"
+            ]
+        }
+    },
+    {
+        "relation": ["delegate_permission/common.handle_all_urls"],
+        "target": {
+            "namespace": "android_app",
+            "package_name": "io.ente.photos.independent",
+            "sha256_cert_fingerprints": [
+                "37:D4:0B:10:3B:BF:86:43:EB:AE:23:B3:BB:73:F8:65:B4:E9:3A:BF:65:45:EF:37:12:8A:4C:EA:5B:C2:7E:2E"
+            ]
+        }
+    }
+]

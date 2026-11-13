@@ -1,0 +1,21 @@
+appId: io.ente.locker
+---
+- launchApp:
+    clearState: true
+- assertVisible: Log in to your Ente account
+- tapOn: Log in to your Ente account
+- waitForAnimationToEnd
+- tapOn: |-
+    Email
+    Enter your email id
+- inputText:
+    text: ${USER_EMAIL}
+    label: "Input the test system username"
+- tapOn: done
+- tapOn: Log in
+- tapOn: Enter your password
+- inputText:
+    text: ${USER_PASSWORD}
+- doubleTapOn:
+    point: 0%,12%
+- tapOn: Log in

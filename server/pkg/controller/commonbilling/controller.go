@@ -3,10 +3,10 @@ package commonbilling
 import (
 	"context"
 
-	"github.com/ente-io/museum/pkg/controller/email"
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/museum/pkg/repo/storagebonus"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/pkg/controller/email"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/museum/pkg/repo/storagebonus"
+	"github.com/ente/stacktrace"
 	"github.com/sirupsen/logrus"
 )
 
@@ -49,8 +49,6 @@ func (c *Controller) CanDowngradeToGivenStorage(newStorage int64, userID int64) 
 		if err != nil {
 			return false, stacktrace.Propagate(err, "")
 		}
-		// newStore + addOnStorage + referralStorage should not be greater than usage.
-
 		if usage > (newStorage + bonusStorage.GetUsableBonus(newStorage)) {
 			logrus.Infof("user with %d usage and %d bonus, can not downgrade to %d", usage, bonusStorage.GetUsableBonus(newStorage), newStorage)
 			return false, nil

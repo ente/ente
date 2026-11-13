@@ -7,13 +7,20 @@
 	<key>com.apple.developer.associated-domains</key>
 	<array>
 		<string>webcredentials:web.ente.io</string>
+		<string>webcredentials:photos.ente.com</string>
 		<string>webcredentials:auth.ente.io</string>
+		<string>webcredentials:auth.ente.com</string>
+		<string>webcredentials:locker.ente.com</string>
 		<string>applinks:albums.ente.io</string>
+		<string>applinks:albums.ente.com</string>
 	</array>
 	<key>com.apple.security.application-groups</key>
 	<array>
 		<string>group.io.ente.frame.EnteMemoryWidget</string>
 		<string>group.io.ente.frame.ShareExtension</string>
+		<string>group.io.ente.frame.NotificationServiceExtension</string>
 	</array>
+	<key>com.apple.developer.kernel.increased-memory-limit</key>
+	<true/>
 </dict>
 </plist>

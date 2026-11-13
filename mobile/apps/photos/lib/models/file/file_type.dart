@@ -1,13 +1,8 @@
+import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:photo_manager/photo_manager.dart";
-import "package:photos/l10n/l10n.dart";
 
-enum FileType {
-  image,
-  video,
-  livePhoto,
-  other,
-}
+enum FileType { image, video, livePhoto, other }
 
 int getInt(FileType fileType) {
   switch (fileType) {
@@ -59,11 +54,11 @@ FileType fileTypeFromAsset(AssetEntity asset) {
 String getHumanReadableString(BuildContext context, FileType fileType) {
   switch (fileType) {
     case FileType.image:
-      return context.l10n.photos;
+      return context.strings.photos;
     case FileType.video:
-      return context.l10n.videos;
+      return context.strings.videos;
     case FileType.livePhoto:
-      return context.l10n.livePhotos;
+      return context.strings.livePhotos;
     default:
       return fileType.name.toUpperCase();
   }

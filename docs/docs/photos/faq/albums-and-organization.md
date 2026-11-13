@@ -1,11 +1,29 @@
 ---
 title: Albums and Organization FAQ
-description: Frequently asked questions about organizing photos with albums, hiding, archiving, and deletion in Ente Photos
+description: Frequently asked questions about albums, slideshows, hiding, archiving, and deleting photos in Ente Photos
 ---
 
 # Albums and Organization
 
 ## Albums {#albums-section}
+
+### How do I change an album's cover or description? {#edit-album-details}
+
+Open the album and select the three-dot menu, then **Edit details**. To change the cover, select the pencil icon on the current cover and choose a photo. You can also add or update the album description here. Save your changes when finished.
+
+See the [Albums guide](/photos/features/albums-and-organization/albums) for steps on mobile, web, and desktop.
+
+### Can I manually arrange photos and videos within an album? {#manual-album-order}
+
+Ente does not currently support dragging photos and videos into a custom order within an album. To change the order using the options available in your app:
+
+1. Open the album.
+2. Open the three-dot menu.
+3. Select **Sort by** and choose an option.
+
+### Can I sort my home timeline oldest first? {#timeline-sort}
+
+No. The home timeline always shows your newest photos first, by the date each photo was taken. To see photos oldest first, open an album, open the three-dot menu, select **Sort by** and choose **Oldest first**.
 
 ### Can Ente albums be nested? {#nested-albums}
 
@@ -63,6 +81,7 @@ Google Takeout does not reliably export shared albums:
 - Shared albums you own may appear in Takeout and may export as a folder, but not consistently. Some photos may be missing, folders may be split, or the album might not be recreated at all.
 - Shared albums you joined (someone else owns) do not export unless you manually added each photo to your own library.
 - Shared-album names or structure are not preserved in the metadata, hence the shared album cannot be automatically reconstructed.
+- Metadata regarding who shared the photo with you will not be present.
 
 The best way to export shared albums is to manually download each shared album:
 
@@ -72,6 +91,89 @@ The best way to export shared albums is to manually download each shared album:
 4. Import that folder into Ente → the album is preserved correctly
 
 This will reliably preserve the shared album name and contents.
+
+## Gallery layout {#gallery-layout-section}
+
+### How do I change the gallery layout? {#gallery-layout}
+
+In the Ente Photos mobile app, you can show your photos as square tiles or in a mosaic layout that keeps each photo's original proportions.
+
+1. Open `Settings > Appearance > Gallery`.
+2. Under **Layout**, select **Square photos** or **Photos in original proportions**.
+
+You can also pinch in or out on the gallery to switch layouts. Changing the layout only changes how photos are displayed. It does not crop or edit your photos.
+
+### How do I change how many photos fit on my screen? {#gallery-photos-per-row}
+
+In the Ente Photos mobile app, pinch in or out on the gallery. Pinch in to fit more, smaller photos on your screen, and pinch out to show fewer, larger photos. Pinching out past the largest square grid switches to the mosaic layout. Pinching also works while you are selecting photos.
+
+To set this in Settings, open `Settings > Appearance > Gallery` and change **Photos per row**. This option appears only when **Square photos** is selected.
+
+## Slideshows {#album-slideshows-section}
+
+### What does Slideshow do? {#what-is-album-slideshow}
+
+Slideshow plays the photos in an album one after another, full screen, on your device. It is especially useful on large screens such as tablets and computers, where you can leave an album playing like a photo frame.
+
+### How do I start a slideshow from an album? {#start-album-slideshow}
+
+Album slideshows are available in Ente Photos on iOS and Android for both Ente albums and **On device** albums. They are also available for Ente albums in the desktop app.
+
+**On mobile:**
+
+1. Open the **Albums** tab.
+2. Open an Ente album.
+3. Tap the play button on the album cover at the top of the album.
+
+If you have scrolled down the album, you can instead tap the three dots in the top-right corner and select **Slideshow**.
+
+**On desktop:**
+
+1. Open an album.
+2. Click the three dots in the top-right corner.
+3. Click **Slideshow**.
+
+### Can I create one slideshow from multiple albums? {#slideshow-multiple-albums}
+
+On mobile, yes. Open the **Albums** tab. Press and hold an Ente album, then select the other albums. Tap **Slideshow** at the bottom of the screen.
+
+You can select albums you own and albums shared with you.
+
+On desktop, slideshows play photos from one open album; combining multiple albums is currently supported only on mobile.
+
+### What can I change during a slideshow? {#album-slideshow-settings}
+
+On mobile, tap the middle of the screen to show the controls. On desktop, move the pointer over the slideshow to show the controls. The controls also appear when you use the left or right arrow key to change photos or the Space bar to pause or resume. Then tap or click the settings button in the top-right corner. You can choose:
+
+- **Time per photo:** 5, 10, 15, or 30 seconds; or 1, 5, or 10 minutes
+- **Photo order:** In order or Shuffle
+- **Background:** Blurred or Black
+
+### How do I control a slideshow? {#control-album-slideshow}
+
+Tap the left side of the screen to see the previous photo. Tap the right side to see the next photo. Tap the middle to show or hide the controls.
+
+Tap pause to stop the slideshow or play to continue.
+
+On desktop, you can also use the left and right arrow keys to move between photos, and the space bar to pause or resume.
+
+### Which items appear in an album slideshow? {#album-slideshow-supported-items}
+
+Slideshows show photos and Live Photos. Videos are not included.
+
+### Can I use an album slideshow without an internet connection? {#album-slideshow-offline}
+
+Yes, for photos that are already on your device. Ente needs an internet connection to download any photos stored only in Ente.
+
+### Can I start a slideshow from On device albums or Gallery mode? {#album-slideshow-gallery-mode}
+
+Yes. Open an **On device** album and tap the play button on the album cover. If you have scrolled down, tap the three dots in the top-right corner and select **Slideshow** instead. Because this works with device albums, you can also use it while browsing without an account in [Gallery mode](/photos/faq/gallery-mode).
+
+### How do I view only my starred or Favorite photos? {#view-favorites}
+
+Use the **Favorites** album. On mobile or desktop, open a photo and tap or click the **star** to add it to Favorites. Open **Albums** and open **Favorites** to see only those photos.
+
+**Likes** (the heart on photos in shared albums and public links) are collaboration reactions. They are not a library filter. There is no way to filter your library to only photos you liked with the heart. See [Comments and Likes](/photos/features/sharing-and-collaboration/comments-and-likes).
 
 ## Uncategorized
 
@@ -85,7 +187,25 @@ Photos appear in Uncategorized when:
 - You delete an album but choose to keep the photos
 - You delete a file from a [watched folder](/photos/faq/backup-and-sync#watch-folders) on desktop
 
+You cannot choose Uncategorized as the destination for mobile automatic backup. Selected device folders back up to corresponding Ente albums. See [how mobile backup maps to albums](/photos/faq/backup-and-sync#automatic-backup).
+
 Learn more in the [Uncategorized feature guide](/photos/features/albums-and-organization/uncategorized).
+
+### Why can't I share the Uncategorized album? {#share-uncategorized-album}
+
+Uncategorized is a special system album. You cannot share it using the regular album **Share** controls or create a public link for it.
+
+If the recipient is on your family plan, you can share Uncategorized on mobile: open `Settings > Family`, select the family member, tap **Share albums**, select Uncategorized, and tap **Share**. It is always shared as Viewer. See [library sharing](/photos/features/sharing-and-collaboration/library-sharing#share-albums).
+
+To share photos with someone outside your family plan or by public link on mobile:
+
+1. If you need a new album, open **Albums > Ente** and tap **Create album**.
+2. Open Uncategorized, select the photos, tap **Add to album**, and choose the album.
+3. Open that album and tap **Share**. Enter the email address of someone with an Ente account, or create a public link for someone without one.
+
+On web or desktop, select photos in Uncategorized and choose **Move** to put them in a regular album. Then open that album and use **Share**.
+
+The photos may still appear in Uncategorized. [Clean Uncategorized](#clean-uncategorized) removes them from that section once they are also in an album you own.
 
 ### Why are photos appearing in Uncategorized? {#why-uncategorized}
 
@@ -97,24 +217,39 @@ Photos automatically move to Uncategorized in these situations:
 
 **When deleting from watched folders**: On desktop, if you delete a file from a folder being watched by Ente, the corresponding photo in Ente moves to Uncategorized (it's not permanently deleted).
 
-**Note**: Photos uploaded by others (from shared albums) do not go to Uncategorized when removed.
+> [!NOTE]
+>
+> Photos uploaded by others (from shared albums) do not go to Uncategorized when removed.
+
+### If all my photos are in Uncategorized, how do I move them to resemble the local album structure I have on my device? {#move-uncategorized-to-albums}
+
+If your photos are in Uncategorized instead of their original albums, you can reorganize them manually:
+
+1. Open **On device**, go to an album, select all photos, and add them to the corresponding album in Ente.
+2. Repeat for each album.
+3. Open Uncategorized, tap the three dots menu, and select **Clean up Uncategorized**. This removes any photos from Uncategorized that now exist in another album.
+
+Alternatively, if you have the original photos on your device, you can delete them from Uncategorized and re-upload them via **Backup folders** on mobile.
 
 ### How do I clean up Uncategorized items? {#clean-uncategorized}
 
-**On mobile:**
+To remove entries that are also in another album you own:
 
-1. Open the Uncategorized album
-2. Tap the three dots (overflow menu)
-3. Select "Clean Uncategorized"
+- **On mobile:** Open Uncategorized, tap the three-dot menu, and select **Clean Uncategorized**
+- **On desktop:** Open Uncategorized and select the clean icon (broom)
 
-This will automatically remove all files from Uncategorized that are also present in another album that you own. Only files exclusive to Uncategorized will remain.
+Items that exist only in Uncategorized remain there.
 
-**Manual cleanup:**
-You can also manually:
+To organize those remaining items on desktop:
 
-- Add photos from Uncategorized to specific albums
-- Delete photos you don't need from Uncategorized
-- Move photos to appropriate albums by selecting them and choosing "Add to album"
+1. Select the photos in Uncategorized and choose **Move** in the action bar
+2. Choose the first destination album
+3. Open that album and select the photos again
+4. Choose **Add to album** for each additional destination, one at a time
+
+On mobile, **Add to album** lets you select multiple destination albums. Adding a photo to another album does not require uploading the original again and does not use extra photo storage.
+
+See [organizing Uncategorized photos](/photos/features/albums-and-organization/uncategorized#organize-uncategorized-photos) for details.
 
 ### Can I delete the Uncategorized album? {#delete-uncategorized}
 
@@ -176,7 +311,7 @@ Not directly, but you can minimize it:
 **On mobile:**
 
 - Open the Albums tab
-- Scroll to the bottom
+- Tap on 'v' icon at the right.
 - Tap on "Uncategorized"
 
 **On web/desktop:**
@@ -208,11 +343,21 @@ Yes, archived photos still appear in search results and in their respective albu
 
 Open the photo, tap the three dots menu (overflow menu), and select "Hide" (the action with the eye icon). Hidden items will only be accessible from the special "Hidden" category at the bottom of the Albums screen, which requires biometric authentication to view.
 
-**Note**: Hidden items may still appear in "On device" albums within Ente as long as they're present in your native device gallery. Once you remove them from your device, they'll stop showing up there.
+> [!NOTE]
+>
+> Hidden items may still appear in "On device" albums within Ente as long as they're present in your native device gallery. Once you remove them from your device, they'll stop showing up there.
+
+### Why does a photo appear in both Hidden and a hidden album? {#hidden-photo-in-album}
+
+A photo may appear in both Hidden and a hidden album if you first add it to Hidden, then choose **Add to album**. It is the same photo in both views, not a duplicate. Deleting it from either view deletes it everywhere.
 
 ### How do I archive photos in Ente? {#how-to-archive}
 
 Long press to select the photo(s) you want to archive, then select "Archive" from the bottom menu. To archive an entire album, open the album, tap the three dots menu, and select "Archive album". You can view archived content anytime by going to the "Archive" section (no authentication required).
+
+### Can I hide an album's photos from my timeline? {#album-off-timeline}
+
+Yes. Use **Archive album**, not Hide. Open the album, tap the three dots and select **Archive album**. The photos stay in the album and leave your home timeline. You can view them later in the **Archive** section. See [How do I archive photos in Ente?](#how-to-archive).
 
 ## Storage Management
 
@@ -260,6 +405,18 @@ Ente intelligently manages symlinks to ensure no album loses all photos from a s
 
 Learn more in the [Storage optimization guide](/photos/features/albums-and-organization/storage-optimization).
 
+### How does Ente decide which photo to keep in a similar photos group? {#similar-photos-selection-criteria}
+
+When you review a similar photos group, Ente auto-selects every file except one for deletion, in this order:
+
+1. **Favorited status**: A photo you've marked Favorite is always kept and never auto-selected for deletion, regardless of size.
+2. **File size**: Among the rest, the largest file is kept. Smaller ones are auto-selected for deletion.
+3. **Filename**: Used only as a tiebreaker when two files are the exact same size.
+
+> [!NOTE]
+>
+> This compares file size only, not resolution or EXIF completeness. These usually line up with size, but not always - a heavily-compressed high-resolution photo can be smaller than a lightly-compressed low-resolution one.
+
 ### Will I lose my photos when freeing up device space? {#free-up-space-safe}
 
 No! Freeing up device space only removes local copies from your device. All photos remain safely stored in Ente's encrypted cloud and can be viewed or re-downloaded anytime.
@@ -294,7 +451,7 @@ Learn more about [Duplicate detection during backup](/photos/features/backup-and
 
 ### How do I delete photos in Ente? {#delete-photos}
 
-When you delete a photo or video in Ente, it's moved to Trash rather than being permanently deleted immediately.
+When you delete a photo or video from your Ente account, it's moved to Trash rather than being permanently deleted immediately.
 
 **On mobile:**
 
@@ -302,26 +459,31 @@ When you delete a photo or video in Ente, it's moved to Trash rather than being 
 - Tap the trash icon in the action bar
 - Confirm the deletion
 
+On Android 11 and newer, photos deleted from your device's gallery through Ente move to Android's system trash. You can restore them from the **Device** tab in Trash, even if they were never backed up.
+
 **On web/desktop:**
 
 - Select the photo(s) you want to delete
 - Click the trash icon or press the Delete key
 - Confirm the deletion
 
-Deleted items remain in Trash for 30 days before being permanently deleted automatically.
+Photos deleted from your Ente account remain in Trash for 30 days before being permanently deleted automatically.
 
 Learn more in the [deletion feature guide](/photos/features/albums-and-organization/deleting).
 
 ### How do I restore deleted photos? {#restore-photos}
 
-If you accidentally deleted photos, you can restore them from Trash within 30 days:
+If you accidentally deleted photos from your Ente account, you can restore them from Trash within 30 days:
 
 **On mobile:**
 
 - Open the Albums tab
-- Scroll to the bottom and tap "Trash"
+- Tap on 'v' icon at the right.
+- Tap **Trash**, then select **Ente** if both tabs are shown
 - Select the photos you want to restore
 - Tap the "Restore" button
+
+To restore photos deleted from your device on Android 11 and newer, select **Device** in Trash instead. Learn more about [Android Device Trash](/photos/features/albums-and-organization/deleting#android-device-trash).
 
 **On web/desktop:**
 
@@ -330,11 +492,25 @@ If you accidentally deleted photos, you can restore them from Trash within 30 da
 - Select the items to restore
 - Click the "Restore" button
 
-Restored photos will be moved back to their original albums.
+Restored photos will be moved to an album of choice.
+
+### How do I select all items in Ente Trash on mobile? {#select-all-ente-trash}
+
+The **All** option appears after you select one item.
+
+1. Open **Albums**, then open **Trash**. Choose **Ente** if you see both Ente and Device tabs.
+2. Select one item in Trash.
+3. Tap **All**.
+
+### If I restore several photos from Trash, will they return to their original albums? {#bulk-restore-original-albums}
+
+No. You can restore several photos together, but Ente moves the selection to an album you choose. It does not automatically return each photo to its previous album.
+
+If the photos came from different albums, restore them in separate groups and choose the right album for each group. If a photo was in more than one album, add it back to the other albums after restoring it. Photos in Ente Trash can be restored within 30 days.
 
 ### How do I permanently delete photos or empty trash? {#empty-trash}
 
-To free up storage space immediately, you can permanently delete items from trash:
+To free up storage space immediately, you can permanently delete items from trash. If the **Ente** and **Device** tabs are shown, select the trash you want to empty first:
 
 **To empty all trash:**
 
@@ -349,17 +525,19 @@ To free up storage space immediately, you can permanently delete items from tras
 - Choose "Delete permanently" from the menu
 - Confirm the action
 
-**Warning**: Permanently deleted items cannot be recovered.
+> [!WARNING]
+>
+> Permanently deleted items cannot be recovered.
 
 ### Can I recover files after 30 days in trash? {#recover-after-30-days}
 
-No, files in trash are permanently deleted after 30 days and cannot be recovered. This is an irreversible operation.
+Files in Ente Trash are permanently deleted after 30 days and cannot be recovered. For Android's system trash, check the recovery time shown on each photo.
 
-If you need to keep certain files, make sure to restore them from trash before the 30-day period expires. We recommend regularly checking your trash if you're unsure about deleting certain items.
+Restore any photos you want to keep before their recovery period ends.
 
 ### Does trash count against my storage? {#trash-storage}
 
-Yes, items in trash are included in your storage quota calculation. To free up storage space, you can:
+Items in Ente Trash count toward your Ente storage quota. Photos in Android's system trash use storage on your device. To free up Ente storage, you can:
 
 - Manually empty your trash
 - Permanently delete specific items
@@ -403,7 +581,7 @@ When a participant leaves or is removed from a shared album, any photos they upl
 
 ### Can I recover photos after deleting my account? {#recover-after-account-deletion}
 
-No. When you delete your Ente account, all your data (including photos in trash) is permanently deleted and cannot be recovered. This is an irreversible operation.
+If you deleted your Ente account by mistake, you can recover it within 7 days using the link in the confirmation email. After 7 days, your data (including photos in trash) is permanently deleted and cannot be recovered. See [I deleted my account by mistake. Can I get it back?](/photos/faq/security-and-privacy#recover-deleted-account).
 
 Before deleting your account, make sure to:
 
@@ -427,7 +605,7 @@ Before deleting your account, make sure to:
 - Press Delete key or click the trash icon
 - Confirm deletion
 
-All selected photos will be moved to trash together.
+Photos deleted from your Ente account will be moved to Trash together.
 
 ### Why can't I delete some photos? {#cannot-delete}
 
@@ -439,7 +617,7 @@ You may not be able to delete photos if:
 
 If you're an admin or owner and want to remove photos that others uploaded, you can remove them from the album or use [suggest deletion](/photos/faq/sharing-and-collaboration#suggest-deletion).
 
-If you still can't delete photos you own, contact [support@ente.io](mailto:support@ente.io).
+If you still can't delete photos you own, contact [support@ente.com](mailto:support@ente.com).
 
 ### How is Uncategorized different from Trash? {#uncategorized-vs-trash}
 

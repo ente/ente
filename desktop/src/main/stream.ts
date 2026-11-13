@@ -1,7 +1,4 @@
-/**
- * @file stream data to-from renderer using a custom protocol handler.
- */
-import { net, protocol } from "electron/main";
+import { net, protocol, type BrowserWindow } from "electron/main";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import { Writable } from "node:stream";
@@ -18,44 +15,49 @@ import {
     makeTempFilePath,
 } from "./utils/temp";
 
-/**
- * Register a protocol handler that we use for streaming large files between the
- * main (Node.js) and renderer (Chromium) processes.
- *
- * [Note: IPC streams]
- *
- * When running without node integration, there is no direct way to pass streams
- * across IPC. And passing the entire contents of the file is not feasible for
- * large video files because of the memory pressure the copying would entail.
- *
- * As an alternative, we register a custom protocol handler that can provides a
- * bi-directional stream. The renderer can stream data to the node side by
- * streaming the request. The node side can stream to the renderer side by
- * streaming the response.
- *
- * The stream is not full duplex - while both reads and writes can be streamed,
- * they need to be streamed separately.
- *
- * See also: [Note: Transferring large amount of data over IPC]
- *
- * Depends on {@link registerPrivilegedSchemes}.
- */
-export const registerStreamProtocol = () => {
-    protocol.handle("stream", (request: Request) => {
+// This protocol avoids contextBridge's buffer copies for large files.
+export const registerStreamProtocol = (mainWindow: BrowserWindow) => {
+    protocol.handle("stream", async (request: Request) => {
         try {
-            return handleStreamRequest(request);
+            return await handleStreamRequest(mainWindow, request);
         } catch (e) {
-            log.error(`Failed to handle stream request for ${request.url}`, e);
-            return new Response(String(e), { status: 500 });
+            log.error("Failed to handle stream request", e);
+            return new Response("Internal stream error", { status: 500 });
         }
     });
 };
 
-const handleStreamRequest = async (request: Request): Promise<Response> => {
-    const url = request.url;
-    // The request URL contains the command to run as the host, and the
-    // pathname of the file(s) as the search params.
-    const { host, searchParams } = new URL(url);
+const rendererOrigin = "ente://app";
+
+const handleStreamRequest = async (
+    mainWindow: BrowserWindow,
+    request: Request,
+): Promise<Response> => {
+    // Custom-scheme requests omit Origin and Referer, so gate them by the
+    // document loaded in the app's only window.
+    const windowURL = mainWindow.webContents.getURL();
+    if (
+        windowURL != rendererOrigin &&
+        !windowURL.startsWith(`${rendererOrigin}/`)
+    )
+        return new Response("", { status: 403 });
+
+    const { host, searchParams } = new URL(request.url);
+    if (
+        request.method == "OPTIONS" &&
+        host == "video" &&
+        searchParams.get("op") == "generate-hls"
+    ) {
+        return new Response(null, {
+            status: 204,
+            headers: {
+                "Access-Control-Allow-Origin": rendererOrigin,
+                "Access-Control-Allow-Methods": "POST",
+                "Access-Control-Allow-Headers": "X-Auth-Token",
+            },
+        });
+    }
+
     switch (host) {
         case "read":
             return handleRead(searchParams.get("path")!);
@@ -101,26 +103,11 @@ const handleStreamRequest = async (request: Request): Promise<Response> => {
 const handleRead = async (path: string) => {
     const res = await net.fetch(pathToFileURL(path).toString());
     if (res.ok) {
-        // net.fetch already seems to add "Content-Type" and "Last-Modified"
-        // headers, but I couldn't find documentation for this. In any case,
-        // since we already are stat-ting the file for the "Content-Length", we
-        // explicitly add the "X-Last-Modified-Ms" too,
-        //
-        // 1. Guaranteeing its presence,
-        //
-        // 2. Having it be in the exact format we want (no string <-> date
-        //    conversions),
-        //
-        // 3. Retaining milliseconds.
-
         const stat = await fs.stat(path);
 
-        // Add the file's size as the Content-Length header.
         const fileSize = stat.size;
         res.headers.set("Content-Length", `${fileSize}`);
 
-        // Add the file's last modified time (as epoch milliseconds).
-        // See: [Note: Integral last modified time]
         const mtimeMs = stat.mtime.getTime();
         res.headers.set("X-Last-Modified-Ms", `${mtimeMs}`);
     }
@@ -135,25 +122,16 @@ const handleReadZip = async (zipPath: string, entryName: string) => {
         return new Response("", { status: 404 });
     }
 
-    // zip.stream returns an "old style" NodeJS.ReadableStream. We then write it
-    // to the writable end of the web stream pipe, the readable end of which is
-    // relayed back to the renderer as the response.
     const { writable, readable } = new TransformStream();
     const stream = await zip.stream(entry);
 
-    // Silence a type error about the Promise<void> returned by the close method
-    // of writable as not being assignable to Promise<undefined> which started
-    // appearing after updating to TypeScript 5.8.
-    //
+    // Node and DOM disagree about WritableStream.close's Promise return.
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
     const nodeWritable = Writable.fromWeb(writable as any);
     stream.pipe(nodeWritable);
 
     nodeWritable.on("error", (e: unknown) => {
-        // If the renderer process closes the network connection (say when it
-        // only needs the content-length and doesn't care about the body), we
-        // get an AbortError. Handle them here otherwise they litter the logs
-        // with unhandled exceptions.
+        // Closing the response body early aborts the writable side.
         if (e instanceof Error && e.name == "AbortError") return;
         log.error("Error event for the writable end of zip stream", e);
     });
@@ -162,18 +140,11 @@ const handleReadZip = async (zipPath: string, entryName: string) => {
         markClosableZip(zipPath);
     });
 
-    // While it is documented that entry.time is the modification time,
-    // the units are not mentioned. By seeing the source code, we can
-    // verify that it is indeed epoch milliseconds. See `parseZipTime`
-    // in the node-stream-zip source,
-    // https://github.com/antelle/node-stream-zip/blob/master/node_stream_zip.js
+    // node-stream-zip's parseZipTime returns epoch milliseconds.
     const modifiedMs = entry.time;
 
     return new Response(readable, {
         headers: {
-            // We don't know the exact type, but it doesn't really matter, just
-            // set it to a generic binary content-type so that the browser
-            // doesn't tinker with it thinking of it as text.
             "Content-Type": "application/octet-stream",
             "Content-Length": `${entry.size}`,
             "X-Last-Modified-Ms": `${modifiedMs}`,
@@ -186,48 +157,12 @@ const handleWrite = async (path: string, request: Request) => {
     return new Response("", { status: 200 });
 };
 
-/**
- * A map from token to file paths generated as a result of stream://video
- * requests we have received.
- */
+// Chromium cannot stream both halves of one fetch. Video operations return a
+// token for a second read request; a final done request releases the temp file.
 const pendingVideoResults = new Map<string, string>();
 
-/**
- * Clear any in-memory state for in-flight streamed video processing requests.
- * Meant to be called during logout.
- */
 export const clearPendingVideoResults = () => pendingVideoResults.clear();
 
-/**
- * [Note: Convert to MP4]
- *
- * When we want to convert a video to MP4, if we were to send the entire
- * contents of the video from the renderer to the main process over IPC, it just
- * causes the renderer to run out of memory and restart when the videos are very
- * large. So we need to stream the original video renderer → main and then
- * stream back the converted video renderer ← main.
- *
- * Currently Chromium does not support bi-directional streaming ("full" duplex
- * mode for the Web fetch API). So we need to simulate that using two different
- * streaming requests.
- *
- *     renderer → main  stream://video?op=convert-to-mp4
- *                      → request.body is the original video
- *                      ← response is [token]
- *
- *     renderer → main  stream://video?token=<token>
- *                      ← response.body is the converted video
- *
- *     renderer → main  stream://video?token=<token>&done
- *                      ← 200 OK
- *
- * Note that the conversion itself is not streaming. The conversion still
- * happens in a single invocation of ffmpeg, we are just streaming the data
- * across the IPC boundary to allow us to pass large amounts of data without
- * running out of memory.
- *
- * See also: [Note: IPC streams]
- */
 const handleConvertToMP4Write = async (request: Request) => {
     const worker = await ffmpegUtilityProcess();
 
@@ -269,30 +204,16 @@ const handleVideoDone = async (token: string) => {
     return new Response("", { status: 200 });
 };
 
-/**
- * Generate a HLS playlist for the given video.
- *
- * See: [Note: Convert to MP4] for the general architecture of commands that do
- * renderer <-> main I/O using streams.
- *
- * The difference here is that we the conversion generates two streams^ - one
- * for the HLS playlist itself, and one for the file containing the encrypted
- * and transcoded video chunks. The video stream we write to the pre-signed
- * object upload URL(s), and then we return a JSON object containing the token
- * for the playlist, and other metadata for use by the renderer.
- *
- * ^ if the video doesn't require a stream to be generated (e.g. it is very
- *   small and already uses a compatible codec) then a HTT 204 is returned and
- *   no stream is generated.
- */
 const handleGenerateHLSWrite = async (
     request: Request,
     params: URLSearchParams,
 ) => {
     const fileID = parseInt(params.get("fileID") ?? "", 10);
     const fetchURL = params.get("fetchURL");
-    const authToken = params.get("authToken");
-    if (!fileID || !fetchURL || !authToken) throw new Error("Missing params");
+    const authToken = request.headers.get("X-Auth-Token");
+    const previewUploadV2 = params.get("previewUploadV2") == "true";
+    if (!fileID || !fetchURL || !authToken)
+        return new Response("Invalid generate HLS request", { status: 400 });
 
     let inputItem: Parameters<typeof makeFileForStreamOrPathOrZipItem>[0];
     const path = params.get("path");
@@ -329,10 +250,10 @@ const handleGenerateHLSWrite = async (
             fileID,
             fetchURL,
             authToken,
+            previewUploadV2,
         );
 
         if (!result) {
-            // This video doesn't require stream generation.
             return new Response(null, { status: 204 });
         }
 

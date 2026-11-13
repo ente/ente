@@ -1,0 +1,6 @@
+{
+    "android/apps/ensu/app/src/main/AndroidManifest.xml": ["UnusedAttribute"],
+    "android/apps/ensu/app/src/main/java/io/ente/ensu/AppViewModel.kt": [
+        "DEPRECATION"
+    ]
+}

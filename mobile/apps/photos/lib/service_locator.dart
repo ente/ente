@@ -1,15 +1,18 @@
 import "package:dio/dio.dart";
 import "package:ente_cast/ente_cast.dart";
-import "package:ente_cast_normal/ente_cast_normal.dart";
 import "package:ente_feature_flag/ente_feature_flag.dart";
+import "package:ente_install_source/ente_install_source.dart";
 import "package:package_info_plus/package_info_plus.dart";
-import "package:photos/app_mode.dart";
 import "package:photos/core/configuration.dart";
+import "package:photos/core/event_bus.dart";
+import "package:photos/core/network/endpoint_config.dart";
+import "package:photos/db/ml/db.dart";
+import "package:photos/events/ml_consent_changed_event.dart";
 import "package:photos/gateways/billing/billing_gateway.dart";
+import "package:photos/gateways/cast/cast_gateway.dart";
 import "package:photos/gateways/collections/collection_files_gateway.dart";
 import "package:photos/gateways/collections/collection_share_gateway.dart";
 import "package:photos/gateways/collections/collections_gateway.dart";
-import "package:photos/gateways/emergency/emergency_gateway.dart";
 import "package:photos/gateways/entity/entity_gateway.dart";
 import "package:photos/gateways/files/file_data_gateway.dart";
 import "package:photos/gateways/files/file_magic_gateway.dart";
@@ -18,56 +21,76 @@ import "package:photos/gateways/files/files_gateway.dart";
 import "package:photos/gateways/push/push_gateway.dart";
 import "package:photos/gateways/social/social_gateway.dart";
 import "package:photos/gateways/trash/trash_gateway.dart";
-import "package:photos/gateways/users/passkey_gateway.dart";
 import "package:photos/gateways/users/users_gateway.dart";
 import "package:photos/module/download/gallery_download_queue_service.dart";
 import "package:photos/module/download/manager.dart";
 import "package:photos/services/account/billing_service.dart";
+import "package:photos/services/auto_cast_service.dart";
 import "package:photos/services/backup_preference_service.dart";
 import "package:photos/services/collections_service.dart";
 import "package:photos/services/entity_service.dart";
 import "package:photos/services/filedata/filedata_service.dart";
+import "package:photos/services/library_sharing_service.dart";
+import "package:photos/services/library_sharing_store.dart";
 import "package:photos/services/location_service.dart";
 import "package:photos/services/machine_learning/compute_controller.dart";
-import "package:photos/services/machine_learning/face_ml/face_recognition_service.dart";
+import "package:photos/services/machine_learning/ml_decryption_record_store.dart";
 import "package:photos/services/magic_cache_service.dart";
+import "package:photos/services/memories/dart_memories_computer.dart";
+import "package:photos/services/memories/memories_computer.dart";
+import "package:photos/services/memories/rust_memories_computer.dart";
+import "package:photos/services/memories/smart_memories_service.dart";
 import "package:photos/services/memories_cache_service.dart";
 import "package:photos/services/permission/service.dart";
+import "package:photos/services/rewind/rewind_service.dart";
 import "package:photos/services/rituals/rituals_service.dart";
 import "package:photos/services/smart_albums_service.dart";
-import "package:photos/services/smart_memories_service.dart";
 import "package:photos/services/storage_bonus_service.dart";
 import "package:photos/services/sync/trash_sync_service.dart";
 import "package:photos/services/text_embeddings_cache_service.dart";
 import "package:photos/services/update_service.dart";
-import "package:photos/services/wrapped/wrapped_cache_service.dart";
-import "package:photos/services/wrapped/wrapped_service.dart";
-import "package:photos/utils/local_settings.dart";
+import "package:photos/services/wake_lock_service.dart";
+import "package:photos/settings/backup_settings.dart";
+import "package:photos/settings/local_settings.dart";
 import "package:shared_preferences/shared_preferences.dart";
 
 class ServiceLocator {
   late final SharedPreferences prefs;
   late final Dio enteDio;
   late final Dio nonEnteDio;
+  late final Dio downloadDio;
   late final PackageInfo packageInfo;
+  late final EndpointConfig endpointConfig;
+  late final LocalSettings localSettings;
+  late final BackupSettings backupSettings;
+  late final EnteWakeLockService wakeLockService;
+  late final MlDecryptionRecordStore mlDecryptionRecordStore;
 
-  // instance
   ServiceLocator._privateConstructor();
 
   static final ServiceLocator instance = ServiceLocator._privateConstructor();
 
-  init(
+  void init(
     SharedPreferences prefs,
     Dio enteDio,
     Dio nonEnteDio,
+    Dio downloadDio,
     PackageInfo packageInfo,
   ) {
     this.prefs = prefs;
     this.enteDio = enteDio;
     this.nonEnteDio = nonEnteDio;
+    this.downloadDio = downloadDio;
     this.packageInfo = packageInfo;
+    endpointConfig = EndpointConfig(prefs);
+    localSettings = LocalSettings(prefs);
+    backupSettings = BackupSettings(prefs);
+    wakeLockService = EnteWakeLockService();
+    mlDecryptionRecordStore = MlDecryptionRecordStore(prefs);
   }
 }
+
+EndpointConfig get endpointConfig => ServiceLocator.instance.endpointConfig;
 
 FlagService? _flagService;
 
@@ -75,6 +98,7 @@ FlagService get flagService {
   _flagService ??= FlagService(
     ServiceLocator.instance.prefs,
     ServiceLocator.instance.enteDio,
+    Configuration.instance.getToken,
   );
   return _flagService!;
 }
@@ -82,43 +106,61 @@ FlagService get flagService {
 CastService? _castService;
 
 CastService get castService {
-  _castService ??= CastServiceImpl();
+  _castService ??= CastService();
   return _castService!;
 }
 
-LocalSettings? _localSettings;
-LocalSettings get localSettings {
-  _localSettings ??= LocalSettings(ServiceLocator.instance.prefs);
-  return _localSettings!;
+AutoCastService? _autoCastService;
+
+AutoCastService get autoCastService {
+  _autoCastService ??= AutoCastService(
+    transport: castService,
+    gateway: CastGateway(ServiceLocator.instance.enteDio),
+    encodePayload: collectionsService.prepareCastPayloadForCollection,
+  );
+  return _autoCastService!;
 }
 
-bool get isOfflineMode => localSettings.appMode == AppMode.offline;
+LocalSettings get localSettings => ServiceLocator.instance.localSettings;
+
+BackupSettings get backupSettings => ServiceLocator.instance.backupSettings;
+
+EnteWakeLockService get wakeLockService =>
+    ServiceLocator.instance.wakeLockService;
+
+MlDecryptionRecordStore get mlDecryptionRecordStore =>
+    ServiceLocator.instance.mlDecryptionRecordStore;
+
+// True when showing local-device photos instead of an Ente account. Network
+// access may still be used.
+bool get isLocalGalleryMode => localSettings.isLocalGalleryMode;
 
 bool get hasGrantedMLConsent {
-  if (isOfflineMode) {
-    return localSettings.offlineMLConsent;
+  if (isLocalGalleryMode) {
+    return localSettings.localGalleryMLConsent;
   }
   return flagService.hasGrantedMLConsent;
 }
 
 Future<void> setMLConsent(bool enabled) async {
-  if (isOfflineMode) {
-    await localSettings.setOfflineMLConsent(enabled);
-    return;
+  if (isLocalGalleryMode) {
+    await localSettings.setLocalGalleryMLConsent(enabled);
+  } else {
+    await flagService.setMLConsent(enabled);
   }
-  await flagService.setMLConsent(enabled);
+  Bus.instance.fire(MLConsentChangedEvent(enabled));
 }
 
 bool get mapEnabled {
-  if (isOfflineMode) {
-    return localSettings.offlineMapEnabled;
+  if (isLocalGalleryMode) {
+    return localSettings.localGalleryMapEnabled;
   }
   return flagService.mapEnabled;
 }
 
 Future<void> setMapEnabled(bool enabled) async {
-  if (isOfflineMode) {
-    await localSettings.setOfflineMapEnabled(enabled);
+  if (isLocalGalleryMode) {
+    await localSettings.setLocalGalleryMapEnabled(enabled);
     return;
   }
   await flagService.setMapEnabled(enabled);
@@ -128,7 +170,6 @@ BackupPreferenceService? _backupPreferenceService;
 BackupPreferenceService get backupPreferenceService {
   _backupPreferenceService ??= BackupPreferenceService(
     ServiceLocator.instance.prefs,
-    flagService,
   );
   return _backupPreferenceService!;
 }
@@ -173,30 +214,43 @@ TrashSyncService get trashSyncService {
 
 LocationService? _locationService;
 LocationService get locationService {
-  _locationService ??= LocationService(ServiceLocator.instance.prefs);
+  _locationService ??= LocationService();
   return _locationService!;
 }
 
 MagicCacheService? _magicCacheService;
 MagicCacheService get magicCacheService {
-  _magicCacheService ??= MagicCacheService(
-    ServiceLocator.instance.prefs,
-  );
+  _magicCacheService ??= MagicCacheService(ServiceLocator.instance.prefs);
   return _magicCacheService!;
 }
 
 MemoriesCacheService? _memoriesCacheService;
 MemoriesCacheService get memoriesCacheService {
-  _memoriesCacheService ??= MemoriesCacheService(
-    ServiceLocator.instance.prefs,
-  );
+  _memoriesCacheService ??= MemoriesCacheService(ServiceLocator.instance.prefs);
   return _memoriesCacheService!;
+}
+
+RewindService? _rewindService;
+RewindService get rewindService {
+  _rewindService ??= RewindService(ServiceLocator.instance.prefs);
+  return _rewindService!;
 }
 
 SmartMemoriesService? _smartMemoriesService;
 SmartMemoriesService get smartMemoriesService {
   _smartMemoriesService ??= SmartMemoriesService();
   return _smartMemoriesService!;
+}
+
+DartMemoriesComputer? _dartMemoriesComputer;
+RustMemoriesComputer? _rustMemoriesComputer;
+RustMemoriesComputer get rustMemoriesComputer =>
+    _rustMemoriesComputer ??= RustMemoriesComputer();
+MemoriesComputer get memoriesComputer {
+  if (flagService.rustMemories && MLDataDB.isRustBackend) {
+    return rustMemoriesComputer;
+  }
+  return _dartMemoriesComputer ??= DartMemoriesComputer();
 }
 
 TextEmbeddingsCacheService? _textEmbeddingsCacheService;
@@ -217,12 +271,6 @@ ComputeController get computeController {
   return _computeController!;
 }
 
-FaceRecognitionService? _faceRecognitionService;
-FaceRecognitionService get faceRecognitionService {
-  _faceRecognitionService ??= FaceRecognitionService();
-  return _faceRecognitionService!;
-}
-
 PermissionService? _permissionService;
 PermissionService get permissionService {
   _permissionService ??= PermissionService(ServiceLocator.instance.prefs);
@@ -240,9 +288,7 @@ FileDataService get fileDataService {
 
 DownloadManager? _downloadManager;
 DownloadManager get downloadManager {
-  _downloadManager ??= DownloadManager(
-    ServiceLocator.instance.nonEnteDio,
-  );
+  _downloadManager ??= DownloadManager(ServiceLocator.instance.downloadDio);
   return _downloadManager!;
 }
 
@@ -270,29 +316,28 @@ CollectionsService get collectionsService {
   return _collectionsService!;
 }
 
-WrappedService? _wrappedService;
-WrappedService get wrappedService {
-  _wrappedService ??= WrappedService.instance;
-  return _wrappedService!;
+LibrarySharingService? _librarySharingService;
+LibrarySharingService get librarySharingService {
+  _librarySharingService ??= LibrarySharingService(
+    store: LibrarySharingEntityStore(entityService),
+  );
+  return _librarySharingService!;
 }
 
-WrappedCacheService? _wrappedCacheService;
-WrappedCacheService get wrappedCacheService {
-  _wrappedCacheService ??= WrappedCacheService.instance;
-  return _wrappedCacheService!;
+InstallSourceService? _installSourceService;
+InstallSourceService get installSourceService {
+  _installSourceService ??= InstallSourceService(
+    ServiceLocator.instance.enteDio,
+    app: "photos",
+    getToken: Configuration.instance.getToken,
+  );
+  return _installSourceService!;
 }
 
-// Gateways
 PushGateway? _pushGateway;
 PushGateway get pushGateway {
   _pushGateway ??= PushGateway(ServiceLocator.instance.enteDio);
   return _pushGateway!;
-}
-
-EmergencyGateway? _emergencyGateway;
-EmergencyGateway get emergencyGateway {
-  _emergencyGateway ??= EmergencyGateway(ServiceLocator.instance.enteDio);
-  return _emergencyGateway!;
 }
 
 SocialGateway? _socialGateway;
@@ -333,15 +378,17 @@ TrashGateway get trashGateway {
 
 CollectionFilesGateway? _collectionFilesGateway;
 CollectionFilesGateway get collectionFilesGateway {
-  _collectionFilesGateway ??=
-      CollectionFilesGateway(ServiceLocator.instance.enteDio);
+  _collectionFilesGateway ??= CollectionFilesGateway(
+    ServiceLocator.instance.enteDio,
+  );
   return _collectionFilesGateway!;
 }
 
 CollectionShareGateway? _collectionShareGateway;
 CollectionShareGateway get collectionShareGateway {
-  _collectionShareGateway ??=
-      CollectionShareGateway(ServiceLocator.instance.enteDio);
+  _collectionShareGateway ??= CollectionShareGateway(
+    ServiceLocator.instance.enteDio,
+  );
   return _collectionShareGateway!;
 }
 
@@ -357,18 +404,12 @@ BillingGateway get billingGateway {
   return _billingGateway!;
 }
 
-PasskeyGateway? _passkeyGateway;
-PasskeyGateway get passkeyGateway {
-  _passkeyGateway ??= PasskeyGateway(ServiceLocator.instance.enteDio);
-  return _passkeyGateway!;
-}
-
 UsersGateway? _usersGateway;
 UsersGateway get usersGateway {
   _usersGateway ??= UsersGateway(
     ServiceLocator.instance.enteDio,
     ServiceLocator.instance.nonEnteDio,
-    Configuration.instance,
+    endpointConfig,
   );
   return _usersGateway!;
 }

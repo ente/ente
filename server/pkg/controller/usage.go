@@ -3,18 +3,16 @@ package controller
 import (
 	"context"
 	"errors"
-	"fmt"
 	"sync"
 
-	"github.com/ente-io/museum/ente"
-	bonus "github.com/ente-io/museum/ente/storagebonus"
-	"github.com/ente-io/museum/pkg/controller/storagebonus"
-	"github.com/ente-io/museum/pkg/controller/usercache"
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	bonus "github.com/ente/museum/ente/storagebonus"
+	"github.com/ente/museum/pkg/controller/storagebonus"
+	"github.com/ente/museum/pkg/controller/usercache"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/stacktrace"
 )
 
-// UsageController exposes functions which can be used to check around storage
 type UsageController struct {
 	mu                sync.Mutex
 	BillingCtrl       *BillingController
@@ -25,43 +23,83 @@ type UsageController struct {
 	FamilyRepo        *repo.FamilyRepository
 	FileRepo          *repo.FileRepository
 	UploadResultCache map[int64]bool
+
+	uploadURLResultCache map[int64]bool
 }
 
-// Locker limits by subscription tier
+const softPhotosFileLimit = 50_000
 const lockerFreeFileLimit = 100
 const lockerPaidFileLimit = 1000
-const lockerFreeStorageLimit = 1 * 1024 * 1024 * 1024  // 1 GiB
-const lockerPaidStorageLimit = 10 * 1024 * 1024 * 1024 // 10 GiB
+const lockerFreeStorageLimit = 1 * 1024 * 1024 * 1024
+const lockerPaidStorageLimit = 10 * 1024 * 1024 * 1024
 
 const hundredMBInBytes = 100 * 1024 * 1024
 
-// CanUploadFile returns error if the file of given size (with StorageOverflowAboveSubscriptionLimit buffer) can be
-// uploaded or not. If size is not passed, it validates if current usage is less than subscription storage.
+type LockerLimits struct {
+	IsPaid       bool
+	FileLimit    int64
+	StorageLimit int64
+}
+
+func GetLockerLimitsForTier(isPaid bool) LockerLimits {
+	limits := LockerLimits{
+		IsPaid:       isPaid,
+		FileLimit:    int64(lockerFreeFileLimit),
+		StorageLimit: int64(lockerFreeStorageLimit),
+	}
+	if isPaid {
+		limits.FileLimit = int64(lockerPaidFileLimit)
+		limits.StorageLimit = int64(lockerPaidStorageLimit)
+	}
+	return limits
+}
+
+func (c *UsageController) CanIssueUploadURLs(ctx context.Context, userID int64, size *int64, app ente.App) error {
+	return c.canUploadFileWithCache(ctx, userID, size, app, app == ente.Photos)
+}
+
 func (c *UsageController) CanUploadFile(ctx context.Context, userID int64, size *int64, app ente.App) error {
-	// check if size is nil or less than 100 MB
-	if app != ente.Locker && (size == nil || *size < hundredMBInBytes) {
+	return c.canUploadFileWithCache(ctx, userID, size, app, false)
+}
+
+func (c *UsageController) canUploadFileWithCache(ctx context.Context, userID int64, size *int64, app ente.App, checkPhotoFileLimit bool) error {
+	if app == ente.Locker {
+		return c.canUploadFile(ctx, userID, size, app, false)
+	}
+	if size == nil || *size < hundredMBInBytes {
 		c.mu.Lock()
 		canUpload, ok := c.UploadResultCache[userID]
+		if checkPhotoFileLimit {
+			canUpload, ok = c.uploadURLResultCache[userID]
+		}
 		c.mu.Unlock()
 		if ok && canUpload {
 			go func() {
-				_ = c.checkAndUpdateCache(ctx, userID, size, app)
+				_ = c.checkAndUpdateCache(ctx, userID, size, app, checkPhotoFileLimit)
 			}()
 			return nil
 		}
 	}
-	return c.checkAndUpdateCache(ctx, userID, size, app)
+	return c.checkAndUpdateCache(ctx, userID, size, app, checkPhotoFileLimit)
 }
 
-func (c *UsageController) checkAndUpdateCache(ctx context.Context, userID int64, size *int64, app ente.App) error {
-	err := c.canUploadFile(ctx, userID, size, app)
+func (c *UsageController) checkAndUpdateCache(ctx context.Context, userID int64, size *int64, app ente.App, checkPhotoFileLimit bool) error {
+	err := c.canUploadFile(ctx, userID, size, app, checkPhotoFileLimit)
 	c.mu.Lock()
-	c.UploadResultCache[userID] = err == nil
+	if checkPhotoFileLimit {
+		if c.uploadURLResultCache == nil {
+			c.uploadURLResultCache = make(map[int64]bool)
+		}
+		c.uploadURLResultCache[userID] = err == nil
+	}
+	if !checkPhotoFileLimit || !errors.Is(err, &ente.ErrFileLimitReached) {
+		c.UploadResultCache[userID] = err == nil
+	}
 	c.mu.Unlock()
 	return err
 }
 
-func (c *UsageController) canUploadFile(ctx context.Context, userID int64, size *int64, app ente.App) error {
+func (c *UsageController) canUploadFile(ctx context.Context, userID int64, size *int64, app ente.App, checkPhotoFileLimit bool) error {
 	familyAdminID, err := c.UserRepo.GetFamilyAdminID(userID)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
@@ -69,8 +107,6 @@ func (c *UsageController) canUploadFile(ctx context.Context, userID int64, size 
 	var subscriptionAdminID int64
 	var subscriptionUserIDs []int64
 
-	// if user is part of a family group, validate if subscription of familyAdmin is valid & member's total storage
-	// is less than the storage accordingly to subscription plan of the admin
 	var memberStorageLimit *int64
 	if familyAdminID != nil {
 		familyMembers, err := c.FamilyRepo.GetMembersWithStatus(*familyAdminID, repo.ActiveFamilyMemberStatus)
@@ -92,6 +128,7 @@ func (c *UsageController) canUploadFile(ctx context.Context, userID int64, size 
 	var subStorage int64
 	var bonus *bonus.ActiveStorageBonus
 	sub, err := c.BillingCtrl.GetActiveSubscription(subscriptionAdminID)
+	hasPaidSubscription := err == nil && sub.ProductID != ente.FreePlanProductID
 	if err != nil {
 		subStorage = 0
 		if errors.Is(err, ente.ErrNoActiveSubscription) {
@@ -109,7 +146,6 @@ func (c *UsageController) canUploadFile(ctx context.Context, userID int64, size 
 	} else {
 		subStorage = sub.Storage
 	}
-	// Plan expiry check is done at this point
 	var lockerUsage *repo.LockerUsage
 	var lUsageErr error
 	if app == ente.Locker {
@@ -118,52 +154,52 @@ func (c *UsageController) canUploadFile(ctx context.Context, userID int64, size 
 			return stacktrace.Propagate(lUsageErr, "failed to fetch locker usage")
 		}
 
-		// Determine if user has paid subscription for tiered limits
 		isPaidUser := false
 		if err := c.BillingCtrl.HasActiveSelfOrFamilySubscription(subscriptionAdminID, true); err == nil {
 			isPaidUser = true
 		}
 
-		// Apply tiered file and storage limits
-		maxFiles := int64(lockerFreeFileLimit)
-		maxStorage := int64(lockerFreeStorageLimit)
-		if isPaidUser {
-			maxFiles = int64(lockerPaidFileLimit)
-			maxStorage = int64(lockerPaidStorageLimit)
-		}
+		limits := GetLockerLimitsForTier(isPaidUser)
 
-		// Check file count limit
-		if lockerUsage.TotalFileCount >= maxFiles {
+		if lockerUsage.TotalFileCount >= limits.FileLimit {
 			return stacktrace.Propagate(&ente.ErrFileLimitReached, "")
 		}
 
-		// Check storage limit
 		projectedLockerUsage := lockerUsage.TotalUsage
 		if size != nil {
 			projectedLockerUsage += *size
 		}
-		if projectedLockerUsage >= maxStorage {
-			return stacktrace.Propagate(ente.ErrStorageLimitExceeded,
-				fmt.Sprintf("locker storage limit exceeded (limit %d, usage %d)", maxStorage, projectedLockerUsage))
+		if projectedLockerUsage >= limits.StorageLimit {
+			return stacktrace.Propagate(ente.ErrStorageLimitExceeded, "locker storage limit exceeded (limit %d, usage %d)", limits.StorageLimit, projectedLockerUsage)
 		}
 		// Locker uploads should not be blocked by Photos subscription limits.
 		return nil
 	}
 
-	usage, err := c.UsageRepo.GetCombinedUsage(ctx, subscriptionUserIDs)
+	usage, err := c.UsageRepo.GetUploadUsage(ctx, userID, subscriptionUserIDs)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
-	newUsage := usage
+	if checkPhotoFileLimit && app == ente.Photos && !hasPaidSubscription &&
+		usage.PhotosFileCount != nil && *usage.PhotosFileCount >= softPhotosFileLimit && !c.UserRepo.IsLikelySelfHosted() {
+		if bonus == nil {
+			bonus, err = c.UserCacheCtrl.GetActiveStorageBonus(ctx, subscriptionAdminID)
+			if err != nil {
+				return stacktrace.Propagate(err, "failed to get storage bonus")
+			}
+		}
+		if bonus.GetAddonStorage() == 0 {
+			return stacktrace.Propagate(&ente.ErrFileLimitReached, "free Photos accounts are limited to %d files", softPhotosFileLimit)
+		}
+	}
+	newUsage := usage.TotalStorage
 
 	if size != nil {
-		// Add the size of the file to be uploaded to the current usage and buffer in sub.Storage
 		newUsage += *size
 		subStorage += StorageOverflowAboveSubscriptionLimit
 	}
 	if newUsage > subStorage {
 		if bonus == nil {
-			// Check if the subAdmin has any storage bonus
 			bonus, err = c.UserCacheCtrl.GetActiveStorageBonus(ctx, subscriptionAdminID)
 			if err != nil {
 				return stacktrace.Propagate(err, "failed to get storage bonus")
@@ -171,7 +207,6 @@ func (c *UsageController) canUploadFile(ctx context.Context, userID int64, size 
 		}
 		var eligibleBonus = bonus.GetUsableBonus(subStorage)
 		if newUsage > (subStorage + eligibleBonus) {
-			// fetch lockerUsage if it's null. We need to discount locker usage while checking storage limit
 			if lockerUsage == nil && lUsageErr == nil {
 				lockerUsage, lUsageErr = c.UsageRepo.GetLockerUsage(ctx, subscriptionUserIDs)
 				if lUsageErr != nil {
@@ -179,25 +214,18 @@ func (c *UsageController) canUploadFile(ctx context.Context, userID int64, size 
 				}
 			}
 			if lockerUsage == nil || (newUsage-lockerUsage.TotalUsage) > (subStorage+eligibleBonus) {
-				return stacktrace.Propagate(ente.ErrStorageLimitExceeded,
-					fmt.Sprintf("subscription Storage Limit Exceeded (limit %d, usage %d, bonus %d) for admin %d", subStorage, usage, eligibleBonus, subscriptionAdminID))
+				return stacktrace.Propagate(ente.ErrStorageLimitExceeded, "subscription Storage Limit Exceeded (limit %d, usage %d, bonus %d) for admin %d", subStorage, usage.TotalStorage, eligibleBonus, subscriptionAdminID)
 			}
 		}
 	}
 
-	// Get particular member's storage and check if the file size is larger than the size of the storage allocated
-	// to the Member and fail if it's too large.
 	if subscriptionAdminID != userID && memberStorageLimit != nil {
-		memberUsage, memberUsageErr := c.UsageRepo.GetUsage(userID)
-		if memberUsageErr != nil {
-			return stacktrace.Propagate(memberUsageErr, "Couldn't get Members Usage")
-		}
+		memberUsage := usage.UserStorage
 		if size != nil {
 			memberUsage += *size
 		}
-		// Upload fail if memberStorageLimit > memberUsage ((fileSize + total Usage) + StorageOverflowAboveSubscriptionLimit (50mb))
 		if memberUsage > (*memberStorageLimit + StorageOverflowAboveSubscriptionLimit) {
-			return stacktrace.Propagate(ente.ErrStorageLimitExceeded, fmt.Sprintf("member Storage Limit Exceeded (limit %d, usage %d)", *memberStorageLimit, memberUsage))
+			return stacktrace.Propagate(ente.ErrStorageLimitExceeded, "member Storage Limit Exceeded (limit %d, usage %d)", *memberStorageLimit, memberUsage)
 
 		}
 	}

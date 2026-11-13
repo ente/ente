@@ -1,6 +1,4 @@
 import "package:logging/logging.dart";
-import "package:path/path.dart";
-import "package:path_provider/path_provider.dart";
 import "package:photos/db/common/base.dart";
 import "package:photos/module/download/task.dart";
 import "package:sqlite_async/sqlite_async.dart";
@@ -50,21 +48,13 @@ class GalleryDownloadsDB with SqlDbBase {
   static final GalleryDownloadsDB instance =
       GalleryDownloadsDB._privateConstructor();
 
-  static Future<SqliteDatabase>? _sqliteAsyncDBFuture;
-
-  Future<SqliteDatabase> get sqliteAsyncDB async {
-    _sqliteAsyncDBFuture ??= _initSqliteAsyncDatabase();
-    return _sqliteAsyncDBFuture!;
-  }
-
-  Future<SqliteDatabase> _initSqliteAsyncDatabase() async {
-    final documentsDirectory = await getApplicationDocumentsDirectory();
-    final path = join(documentsDirectory.path, _databaseName);
-    _logger.info("DB path $path");
-    final database = SqliteDatabase(path: path);
-    await migrate(database, _migrationScripts);
-    return database;
-  }
+  Future<SqliteDatabase> get sqliteAsyncDB => getOrOpenDatabase(
+    () => openMigratedDatabase(
+      _databaseName,
+      _migrationScripts,
+      logPath: (path) => _logger.info("DB path $path"),
+    ),
+  );
 
   Future<void> upsertTask(DownloadTask task) async {
     final db = await sqliteAsyncDB;
@@ -100,8 +90,7 @@ class GalleryDownloadsDB with SqlDbBase {
 
   Future<List<DownloadTask>> getAllTasks() async {
     final db = await sqliteAsyncDB;
-    final rows = await db.getAll(
-      '''
+    final rows = await db.getAll('''
       SELECT
         $columnID as id,
         $columnFilename as filename,
@@ -115,17 +104,13 @@ class GalleryDownloadsDB with SqlDbBase {
         $columnUpdatedAt as updatedAt
       FROM $tableName
       ORDER BY $columnCreatedAt ASC
-      ''',
-    );
+      ''');
     return rows.map((row) => DownloadTask.fromMap(row)).toList();
   }
 
   Future<void> deleteTask(int id) async {
     final db = await sqliteAsyncDB;
-    await db.execute(
-      "DELETE FROM $tableName WHERE $columnID = ?",
-      [id],
-    );
+    await db.execute("DELETE FROM $tableName WHERE $columnID = ?", [id]);
   }
 
   Future<void> deleteTasks(List<int> ids) async {

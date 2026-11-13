@@ -1,11 +1,11 @@
 import 'package:ente_accounts/ente_accounts.dart';
+import 'package:ente_components/ente_components.dart';
 import 'package:ente_configuration/base_configuration.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:ente_strings/ente_strings.dart';
 import 'package:ente_ui/components/base_bottom_sheet.dart';
 import 'package:ente_ui/components/buttons/button_widget.dart';
 import 'package:ente_ui/components/buttons/models/button_type.dart';
-import 'package:ente_ui/components/centered_constrained_widget.dart';
 import 'package:ente_ui/components/loading_widget.dart';
 import 'package:ente_ui/theme/ente_theme.dart';
 import 'package:ente_ui/utils/dialog_util.dart';
@@ -15,10 +15,7 @@ import 'package:logging/logging.dart';
 
 class SessionsPage extends StatefulWidget {
   final BaseConfiguration config;
-  const SessionsPage(
-    this.config, {
-    super.key,
-  });
+  const SessionsPage(this.config, {super.key});
 
   @override
   State<SessionsPage> createState() => _SessionsPageState();
@@ -31,7 +28,9 @@ class _SessionsPageState extends State<SessionsPage> {
   @override
   void initState() {
     _fetchActiveSessions().onError((error, stackTrace) {
-      showToast(context, "Failed to fetch active sessions");
+      if (mounted) {
+        showToast(context, "Failed to fetch active sessions");
+      }
     });
     super.initState();
   }
@@ -39,13 +38,8 @@ class _SessionsPageState extends State<SessionsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        elevation: 0,
-        title: Text(context.strings.activeSessions),
-      ),
-      body: CenteredConstrainedWidget(
-        child: _getBody(),
-      ),
+      appBar: AppBar(elevation: 0, title: Text(context.strings.activeSessions)),
+      body: CenteredConstrainedComponent(child: _getBody()),
     );
   }
 
@@ -58,16 +52,13 @@ class _SessionsPageState extends State<SessionsPage> {
     for (final session in _sessions!.sessions) {
       rows.add(_getSessionWidget(session));
     }
-    return SingleChildScrollView(
-      child: Column(
-        children: rows,
-      ),
-    );
+    return SingleChildScrollView(child: Column(children: rows));
   }
 
   Widget _getSessionWidget(Session session) {
-    final lastUsedTime =
-        DateTime.fromMicrosecondsSinceEpoch(session.lastUsedTime);
+    final lastUsedTime = DateTime.fromMicrosecondsSinceEpoch(
+      session.lastUsedTime,
+    );
     return Column(
       children: [
         InkWell(
@@ -88,10 +79,9 @@ class _SessionsPageState extends State<SessionsPage> {
                       child: Text(
                         session.ip,
                         style: TextStyle(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.8),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.8),
                           fontSize: 14,
                         ),
                       ),
@@ -101,10 +91,9 @@ class _SessionsPageState extends State<SessionsPage> {
                       child: Text(
                         getFormattedTime(lastUsedTime),
                         style: TextStyle(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.8),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.8),
                           fontSize: 12,
                         ),
                       ),
@@ -130,12 +119,14 @@ class _SessionsPageState extends State<SessionsPage> {
     } catch (e) {
       await dialog.hide();
       _logger.severe('failed to terminate');
-      // ignore: unawaited_futures
-      showErrorDialog(
-        context,
-        context.strings.oops,
-        context.strings.somethingWentWrongPleaseTryAgain,
-      );
+      if (mounted) {
+        // ignore: unawaited_futures
+        showErrorDialog(
+          context,
+          context.strings.oops,
+          context.strings.somethingWentWrongPleaseTryAgain,
+        );
+      }
     }
   }
 
@@ -155,8 +146,9 @@ class _SessionsPageState extends State<SessionsPage> {
   }
 
   void _showSessionTerminationDialog(Session session) {
-    final isLoggingOutFromThisDevice =
-        session.token == widget.config.getToken();
+    final isLoggingOutFromThisDevice = session.isCurrentSession(
+      widget.config.getToken(),
+    );
     final textTheme = getEnteTextTheme(context);
 
     showBaseBottomSheet(
@@ -178,10 +170,7 @@ class _SessionsPageState extends State<SessionsPage> {
               style: textTheme.body,
             ),
             const SizedBox(height: 8),
-            Text(
-              session.ua,
-              style: textTheme.small,
-            ),
+            Text(session.ua, style: textTheme.small),
           ],
           const SizedBox(height: 24),
           SizedBox(
@@ -205,7 +194,7 @@ class _SessionsPageState extends State<SessionsPage> {
   }
 
   Widget _getUAWidget(Session session) {
-    if (session.token == widget.config.getToken()) {
+    if (session.isCurrentSession(widget.config.getToken())) {
       return Text(
         context.strings.thisDevice,
         style: TextStyle(

@@ -2,11 +2,14 @@ import "package:flutter/material.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/components/base_bottom_sheet.dart";
 
+// Pass only one of illustration and assetPath. If both are provided,
+// illustration takes precedence over assetPath.
 Future<T?> showAlertBottomSheet<T>(
   BuildContext context, {
   required String title,
   required String message,
   String? assetPath,
+  Widget? illustration,
   List<Widget>? buttons,
   bool isDismissible = true,
   bool showCloseButton = true,
@@ -17,10 +20,12 @@ Future<T?> showAlertBottomSheet<T>(
     isScrollControlled: true,
     isDismissible: isDismissible,
     enableDrag: isDismissible,
+    backgroundColor: Colors.transparent,
     builder: (context) => AlertBottomSheet<T>(
       title: title,
       message: message,
       assetPath: assetPath,
+      illustration: illustration,
       buttons: buttons,
       showCloseButton: showCloseButton,
       onClose: onClose,
@@ -32,6 +37,7 @@ class AlertBottomSheet<T> extends StatelessWidget {
   final String title;
   final String message;
   final String? assetPath;
+  final Widget? illustration;
   final List<Widget>? buttons;
   final bool showCloseButton;
   final VoidCallback? onClose;
@@ -40,6 +46,7 @@ class AlertBottomSheet<T> extends StatelessWidget {
     required this.title,
     required this.message,
     this.assetPath,
+    this.illustration,
     this.buttons,
     this.showCloseButton = true,
     this.onClose,
@@ -53,7 +60,7 @@ class AlertBottomSheet<T> extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: colorScheme.fill,
+        color: colorScheme.backgroundColour,
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(20),
           topRight: Radius.circular(20),
@@ -62,7 +69,7 @@ class AlertBottomSheet<T> extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -71,24 +78,34 @@ class AlertBottomSheet<T> extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    BottomSheetCloseButton(onTap: onClose),
+                    BottomSheetCloseButton(
+                      onTap: onClose,
+                      backgroundColor: colorScheme.fill,
+                      iconSize: 18,
+                    ),
                   ],
                 ),
-              SizedBox(height: showCloseButton ? 12 : 24),
-              if (assetPath != null) ...[
-                Center(child: Image.asset(assetPath!)),
-                const SizedBox(height: 20),
+              if (showCloseButton) const SizedBox(height: 4),
+              if (illustration != null || assetPath != null) ...[
+                Center(
+                  child: FittedBox(
+                    alignment: Alignment.bottomCenter,
+                    fit: BoxFit.scaleDown,
+                    child: illustration ?? Image.asset(assetPath!),
+                  ),
+                ),
+                const SizedBox(height: 16),
               ],
               Text(
                 title,
-                style: textTheme.h3Bold,
+                style: textTheme.largeBold,
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               Text(
                 message,
-                style: textTheme.body.copyWith(
-                  color: colorScheme.textMuted,
+                style: textTheme.small.copyWith(
+                  color: colorScheme.contentLight,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -104,12 +121,12 @@ class AlertBottomSheet<T> extends StatelessWidget {
     if (buttons == null || buttons!.isEmpty) return [];
 
     return [
-      const SizedBox(height: 20),
+      const SizedBox(height: 24),
       ListView.separated(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: buttons!.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        separatorBuilder: (_, _) => const SizedBox(height: 12),
         itemBuilder: (_, index) => buttons![index],
       ),
     ];

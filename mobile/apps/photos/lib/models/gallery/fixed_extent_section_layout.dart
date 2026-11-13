@@ -1,38 +1,28 @@
-import 'package:flutter/material.dart';
+import "package:photos/models/gallery/section_layout.dart";
 
-// Used to store layout information for a section (group) in a gallery
-
-class FixedExtentSectionLayout {
-  final double tileHeight, mainAxisStride;
-  final int firstIndex, lastIndex, bodyFirstIndex;
-  final double minOffset, maxOffset, bodyMinOffset;
-  final double headerExtent, spacing;
-  final IndexedWidgetBuilder builder;
+class FixedExtentSectionLayout extends SectionLayout {
+  final double tileHeight;
+  final double mainAxisStride;
 
   const FixedExtentSectionLayout({
-    required this.firstIndex,
-    required this.lastIndex,
-    required this.minOffset,
-    required this.maxOffset,
-    required this.headerExtent,
+    required super.firstIndex,
+    required super.lastIndex,
+    required super.minOffset,
+    required super.maxOffset,
+    required super.headerExtent,
     required this.tileHeight,
-    required this.spacing,
-    required this.builder,
-  })  : bodyFirstIndex = firstIndex + 1,
-        bodyMinOffset = minOffset + headerExtent,
-        mainAxisStride = tileHeight + spacing;
+    required super.spacing,
+    required super.builder,
+  }) : mainAxisStride = tileHeight + spacing;
 
-  bool hasChild(int index) => firstIndex <= index && index <= lastIndex;
-
-  bool hasChildAtOffset(double scrollOffset) =>
-      minOffset <= scrollOffset && scrollOffset <= maxOffset;
-
+  @override
   double indexToLayoutOffset(int index) {
     index -= bodyFirstIndex;
     if (index < 0) return minOffset;
     return bodyMinOffset + index * mainAxisStride;
   }
 
+  @override
   int getMinChildIndexForScrollOffset(double scrollOffset) {
     scrollOffset -= bodyMinOffset;
     if (mainAxisStride == 0 || !scrollOffset.isFinite || scrollOffset < 0) {
@@ -42,6 +32,7 @@ class FixedExtentSectionLayout {
     return bodyFirstIndex + scrollOffset ~/ mainAxisStride;
   }
 
+  @override
   int getMaxChildIndexForScrollOffset(double scrollOffset) {
     scrollOffset -= bodyMinOffset;
     if (mainAxisStride == 0 || !scrollOffset.isFinite || scrollOffset < 0) {

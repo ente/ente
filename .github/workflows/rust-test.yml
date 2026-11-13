@@ -1,0 +1,78 @@
+name: "Test (Rust)"
+
+on:
+    workflow_call:
+
+permissions:
+    contents: read
+
+env:
+    RUSTFLAGS: -D warnings
+
+jobs:
+    test:
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                suite: [workspace, cli]
+        timeout-minutes: 30
+        defaults:
+            run:
+                working-directory: rust
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+            - name: Free runner disk space
+              run: sudo rm -rf /usr/local/lib/android
+
+            - name: Setup Linux for Rust
+              uses: $/.github/actions/setup-rust-linux
+
+            - name: Setup go
+              uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+              with:
+                  go-version-file: server/go.mod
+                  cache: false
+
+            # Restore-only; primed on main by warm-caches.yml.
+            - name: Restore Rust cache
+              uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+              with:
+                  workspaces: rust
+                  shared-key: rust-workspace
+                  cache-targets: false
+                  save-if: false
+                  cache-directories: rust/.cache
+
+            - name: Restore Rust target
+              uses: $/.github/actions/restore-rust-target
+              with:
+                  shared-key: rust-workspace
+
+            - name: Restore Museum cache
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  key: museum-${{ github.sha }}
+                  restore-keys: museum-
+                  path: |
+                      ~/go/pkg/mod
+                      ~/.cache/go-build
+                      ~/.cache/.theseus/postgresql
+
+            - run: cargo test --locked --workspace --exclude ente-cli --features museum,ente-ml/ml-assets
+              if: matrix.suite == 'workspace'
+              # postgresql_embedded downloads its binaries from GitHub.
+              # GITHUB_TOKEN raises the API rate limit for those downloads.
+              env:
+                  GITHUB_TOKEN: ${{ github.token }}
+
+            # Avoid unifying SQLCipher into other packages' SQLite tests.
+            - run: cargo test --locked -p ente-cli --features museum
+              if: matrix.suite == 'cli'
+              env:
+                  GITHUB_TOKEN: ${{ github.token }}
+
+            - run: apps/cli/scripts/test-with-keyring-linux.sh --features museum
+              if: matrix.suite == 'cli'

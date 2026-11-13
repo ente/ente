@@ -1,53 +1,215 @@
 {
-  "itLooksLikeSomethingWentWrongPleaseRetryAfterSome": "به نظر می‌رسد مشکلی پیش آمده است. لطفا بعد از مدتی دوباره تلاش کنید. اگر همچنان با خطا مواجه می‌شوید، لطفا با تیم پشتیبانی ما ارتباط برقرار کنید.",
-  "@itLooksLikeSomethingWentWrongPleaseRetryAfterSome": {
-    "description": "Generic error message for temporary issues"
+  "about": "درباره ما",
+  "acceptTrustInvite": "پذیرفتن دعوت",
+  "account": "حساب کاربری",
+  "activeSessions": "نشست های فعال",
+  "@activeSessions": {
+    "description": "Title for active sessions page"
   },
-  "error": "خطا",
-  "@error": {
-    "description": "Generic error title"
+  "add": "اضافه کردن",
+  "addANameAndPhoto": "اضافه کردن یک نام و عکس",
+  "addCode": "اضافه کردن کد",
+  "addLocationButton": "اضافه کردن",
+  "addMember": "افزودن عضو",
+  "addMore": "افزودن بیشتر",
+  "addName": "افزودن نام",
+  "addNew": "ایجاد جدید",
+  "@addNew": {
+    "description": "Text to add a new item (location tag, album, caption etc)"
   },
-  "ok": "تایید",
-  "@ok": {
-    "description": "Generic OK button label"
+  "addNewEmail": "افزودن ایمیل جدید",
+  "addOns": "افزونه‌ها",
+  "addPerson": "اضافه کردن فرد",
+  "@addPerson": {
+    "description": "Title for the manual tagging flow where user selects a person to tag files with."
   },
-  "faq": "سوالات متداول",
-  "@faq": {
-    "description": "FAQ link label"
+  "addPhotos": "اضافه کردن عکس ها",
+  "addSelected": "اضافه کردن انتخاب شده",
+  "addTag": "افزودن برچسب",
+  "addTo": "افزودن به",
+  "addToAlbum": "افزودن به آلبوم",
+  "addToCollection": "افزودن به مجموعه",
+  "addToEnte": "افزودن به Ente",
+  "addToHiddenAlbum": "افزودن به آلبوم پنهان",
+  "advanced": "پیشرفته",
+  "after1Year": "بعد از 1 سال",
+  "albumLayout": "چینش آلبوم",
+  "albumName": "نام آلبوم",
+  "albums": "آلبوم‌ها",
+  "albumsOnDevicePermissionCta": "دادن اجازه دسترسی",
+  "albumUpdated": "آلبوم به‌روز شد",
+  "algorithm": "الگوریتم",
+  "all": "همه",
+  "allClear": "همه چیز عالیه ✨",
+  "allow": "اجازه",
+  "allowAddingPhotos": "اجازه اضافه کردن عکس",
+  "@allowAddingPhotos": {
+    "description": "Switch button to enable uploading photos to a public link"
   },
-  "contactSupport": "ارتباط با پشتیبانی",
-  "@contactSupport": {
-    "description": "Contact support button label"
+  "allowDownloads": "اجازه بارگیری",
+  "allowJoiningAlbum": "مجاز کردن پیوستن به آلبوم",
+  "allTabEmptyHint": "هنوز چیزی اینجا نیست. روی + ضربه بزنید تا کدی اضافه کنید یا برای بازیابی، زباله‌دان را باز کنید.",
+  "@allTabEmptyHint": {
+    "description": "Shown when the All tab has no active codes but Trash contains codes"
   },
-  "emailYourLogs": "لاگ‌های خود را ایمیل کنید",
-  "@emailYourLogs": {
-    "description": "Title for emailing logs dialog"
+  "almostDone": "تقریبا تمام شده...",
+  "alreadyAdded": "از قبل افزوده شده است",
+  "alreadyHaveAnAccount": "حساب کاربری دارید؟",
+  "analysis": "تجزیه و تحلیل",
+  "analyzingPhotosLocally": "در حال تجزیه و تحلیل عکس‌های شما روی دستگاه شما...",
+  "androidBiometricHint": "تایید هویت",
+  "@androidBiometricHint": {
+    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
   },
-  "pleaseSendTheLogsTo": "لطفا لاگ‌ها را به ایمیل زیر ارسال کنید \n{toEmail}",
-  "@pleaseSendTheLogsTo": {
-    "description": "Message asking user to send logs to email address",
-    "placeholders": {
-      "toEmail": {
-        "type": "String",
-        "description": "Email address to send logs to"
-      }
-    }
+  "androidCancelButton": "لغو",
+  "@androidCancelButton": {
+    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
   },
-  "copyEmailAddress": "کپی آدرس ایمیل",
-  "@copyEmailAddress": {
-    "description": "Button to copy email address to clipboard"
+  "androidSignInTitle": "احراز هویت لازم است",
+  "@androidSignInTitle": {
+    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
   },
-  "exportLogs": "صدور لاگ‌ها",
-  "@exportLogs": {
-    "description": "Button to export logs"
+  "aNewVersionOfEnteIsAvailable": "نسخه جدید Ente در دسترس است.",
+  "aNewVersionOfEnteLockerIsAvailable": "نسخه جدید Ente Locker در دسترس است.",
+  "anythingElse": "چیز دیگری هم هست؟",
+  "@anythingElse": {
+    "description": "Label for optional account deletion feedback"
   },
+  "appearance": "ظاهر",
+  "appIcon": "نماد اپلیکیشن",
+  "appLock": "قفل برنامه",
+  "@appLock": {
+    "description": "App lock setting title"
+  },
+  "appLockDescription": "میان صفحهٔ قفل پیش‌فرض گوشی و یک قفل صفحهٔ دلخواه با رمز یا پین، گزینهٔ مورد نظر را انتخاب کنید.",
+  "@appLockDescription": {
+    "description": "Description of app lock feature"
+  },
+  "appLockNotEnabled": "قفل برنامه فعال نیست",
+  "appLockNotEnabledDescription": "لطفاً از بخش امنیت > قفل برنامه، قفل برنامه را روشن نمایید",
+  "appLockOfflineModeWarning": "شما انتخاب کرده‌اید که بدون تهیهٔ نسخهٔ پشتیبان ادامه دهید. اگر قفل برنامه را فراموش کنید، برای همیشه دسترسی به داده‌هایتان را از دست خواهید داد.",
+  "archive": "بایگانی",
+  "@archive": {
+    "description": "Action of 'Archiving' an element"
+  },
+  "archiveCollectionName": "بایگانی",
+  "@archiveCollectionName": {
+    "description": "Name of the 'Archive' collection"
+  },
+  "archiving": "در حال بایگانی...",
+  "areYouSureThatYouWantToLeaveTheFamily": "آیا مطمئنید که میخواهید از طرح خانواده خارج شوید؟",
+  "authenticateGeneric": "لطفا احراز هویت کنید",
+  "authenticationFailedPleaseTryAgain": "احراز هویت ناموفق بود، لطفا دوباره تلاش کنید",
+  "@authenticationFailedPleaseTryAgain": {
+    "description": "Error message when authentication fails"
+  },
+  "authenticationSuccessful": "احراز هویت موفق آمیز!",
+  "@authenticationSuccessful": {
+    "description": "Success message when authentication is successful"
+  },
+  "authToChangeEmailVerificationSetting": "لطفا جهت تغییر ایمیل تایید هویت کنید",
+  "authToChangeLockscreenSetting": "لطفا جهت تغییر تنظیمات قفل صفحه، اعتبارسنجی کنید",
+  "authToChangeYourEmail": "لطفا جهت تغییر ایمیل خود، اعتبارسنجی کنید",
+  "authToChangeYourPassword": "لطفا جهت تغییر گذرواژه خود، اعتبارسنجی کنید",
+  "authToExportCodes": "لطفا جهت صدور کدهای خود، اعتبارسنجی کنید",
+  "authToInitiateAccountDeletion": "جهت حذف حساب، قفل را باز کنید",
+  "authToInitiateSignIn": "لطفا جهت ورود برای پشتیبان گیری خود احراز هویت کنید.",
+  "authToSetBackupPassword": "جهت تغییر رمز عبور نسخهٔ پشتیبان، لطفاً هویت خود را تأیید کنید",
+  "authToViewPasskeyGeneric": "برای دیدن رمز عبور، لطفاً تأیید هویت نمایید",
+  "authToViewSecrets": "لطفا جهت دیدن راز های خود احراز هویت کنید",
+  "@authToViewSecrets": {
+    "description": "Message prompting authentication to view secrets"
+  },
+  "authToViewYourRecoveryKey": "لطفا جهت نمایش کلید بازیابی خود، اعتبارسنجی کنید",
+  "autoLock": "قفل خودکار",
+  "@autoLock": {
+    "description": "Auto lock setting title"
+  },
+  "autoLockFeatureDescription": "مدت زمان تا قفل شدن برنامه، بعد از انتقال به پس‌زمینه",
+  "@autoLockFeatureDescription": {
+    "description": "Description of auto lock feature"
+  },
+  "backedUpFolders": "پوشه‌های پشتیبان گیری شده",
+  "backup": "پشتیبان گیری",
+  "backupCreated": "نسخهٔ پشتیبان ایجاد شد!",
+  "backupFolderLabel": "پوشهٔ پشتیبان گیری:",
+  "backupLocationChoiceDescription": "می خواهید نسخه‌های پشتیبان در کجا ذخیره شوند؟",
+  "backupPasswordCleared": "رمزعبور برای نسخهٔ پشتیبان حذف شد",
+  "backupPasswordHint": "نسخهٔ پشتیبان شما با این رمز عبور رمزگذاری خواهد شد.",
+  "blog": "وبلاگ",
+  "bothIssuerAndAccountCanNotBeEmpty": "هیچکدام از «صادر کننده» و «حساب کاربری» نمی‌توانند خالی باشند",
   "cancel": "لغو",
   "@cancel": {
     "description": "Cancel button label"
   },
-  "reportABug": "گزارش یک اشکال",
-  "@reportABug": {
-    "description": "Label for reporting a bug"
+  "cancelRecovery": "لغو بازیابی",
+  "cancelSubscription": "لغو اشتراک",
+  "cannotDeleteSharedFiles": "پرونده‌های به اشتراک گذاشته شده را نمی‌توان حذف کرد",
+  "canNotOpenBody": "متأسفانه، این آلبوم در برنامه قابل باز شدن نیست.",
+  "canNotOpenTitle": "نمی‌توان این آلبوم را باز کرد",
+  "changeEmail": "تغییر ایمیل",
+  "@changeEmail": {
+    "description": "Change email button label"
+  },
+  "changePassword": "تغییر گذرواژه",
+  "changePasswordTitle": "تغییر گذرواژه",
+  "@changePasswordTitle": {
+    "description": "Change password title"
+  },
+  "checkInboxAndSpamFolder": "لطفا صندوق ورودی (و هرزنامه) خود را برای تایید کامل بررسی کنید",
+  "@checkInboxAndSpamFolder": {
+    "description": "Message asking user to check inbox and spam folder"
+  },
+  "checking": "در حال بررسی...",
+  "checkStatus": "بررسی وضعیت",
+  "@checkStatus": {
+    "description": "Check status button label"
+  },
+  "chooseBackupLocation": "یک محل پشتیبان‌گیری انتخاب نمایید",
+  "chooseIcon": "آیکون را انتخاب کنید",
+  "cleanupComplete": "پاکسازی کامل شد",
+  "clearBackupFolder": "پاک کردن پوشهٔ پشتیبان",
+  "clearBackupPassword": "پاک کردن رمز عبور نسخهٔ پشتیبان",
+  "close": "بستن",
+  "codeIssuerHint": "صادر کننده",
+  "collaborator": "همکار",
+  "color": "رنگ",
+  "compactMode": "حالت فشرده",
+  "confirm": "تایید",
+  "@confirm": {
+    "description": "Confirm button label"
+  },
+  "confirmRecoveryKey": "تایید کلید بازیابی",
+  "confirmUpdatingkey": "آیا از به‌روزرسانی کلید امنیتی اطمینان دارید؟",
+  "confirmYourRecoveryKey": "کلید بازیابی خود را تایید کنید",
+  "contactSupport": "ارتباط با پشتیبانی",
+  "@contactSupport": {
+    "description": "Contact support button label"
+  },
+  "continueLabel": "ادامه",
+  "@continueLabel": {
+    "description": "Continue button label"
+  },
+  "convertToAlbum": "تبدیل به آلبوم",
+  "copied": "کپی شد",
+  "copiedNextToClipboard": "کد بعدی، در کلیپ‌بورد کپی شد",
+  "copiedToClipboard": "به حافظه موقت کپی شد",
+  "copyEmailAddress": "کپی آدرس ایمیل",
+  "@copyEmailAddress": {
+    "description": "Button to copy email address to clipboard"
+  },
+  "crashAndErrorReporting": "ﮔﺰﺍﺭﺵ ﺧﺮﺍﺑﯽ ﻭ ﺧﻄﺎ",
+  "create": "ایجاد",
+  "createAccount": "ایجاد حساب کاربری",
+  "@createAccount": {
+    "description": "Create account button label"
+  },
+  "createBackupNow": "ساخت نسخهٔ پشتیبان همین الان",
+  "createNewTag": "ایجاد برچسب جدید",
+  "currentBackupFolder": "پوشهٔ فعلی پشتیبان:",
+  "custom": "سفارشی",
+  "@custom": {
+    "description": "Label for setting custom value for link expiry"
   },
   "customEndpoint": "متصل شده به {endpoint}",
   "@customEndpoint": {
@@ -59,516 +221,72 @@
       }
     }
   },
-  "save": "ذخیره",
-  "@save": {
-    "description": "Label for save button"
-  },
-  "send": "ارسال",
-  "@send": {
-    "description": "Label for send button"
-  },
-  "email": "ایمیل",
-  "@email": {
-    "description": "Email field label"
-  },
-  "verify": "تایید",
-  "@verify": {
-    "description": "Verify button label"
-  },
-  "invalidEmailTitle": "آدرس ایمیل نامعتبر است",
-  "@invalidEmailTitle": {
-    "description": "Title for invalid email error dialog"
-  },
-  "invalidEmailMessage": "لطفا یک آدرس ایمیل معتبر وارد کنید.",
-  "@invalidEmailMessage": {
-    "description": "Message for invalid email error dialog"
-  },
-  "pleaseWait": "لطفا صبر کنید...",
-  "@pleaseWait": {
-    "description": "Please wait message"
-  },
-  "verifyPassword": "تایید رمز عبور",
-  "@verifyPassword": {
-    "description": "Verify password button label"
-  },
-  "incorrectPasswordTitle": "رمز عبور نادرست",
-  "@incorrectPasswordTitle": {
-    "description": "Title for incorrect password error"
-  },
-  "pleaseTryAgain": "لطفا دوباره تلاش کنید",
-  "@pleaseTryAgain": {
-    "description": "Message asking user to try again"
-  },
-  "enterPassword": "رمز عبور را وارد کنید",
-  "@enterPassword": {
-    "description": "Enter password field label"
-  },
-  "enterYourPasswordHint": "رمز عبور خود را وارد کنید",
-  "@enterYourPasswordHint": {
-    "description": "Hint for password field"
-  },
-  "activeSessions": "نشست های فعال",
-  "@activeSessions": {
-    "description": "Title for active sessions page"
-  },
-  "oops": "اوه",
-  "@oops": {
-    "description": "Oops error title"
-  },
-  "somethingWentWrongPleaseTryAgain": "مشکلی پیش آمده، لطفا دوباره تلاش کنید",
-  "@somethingWentWrongPleaseTryAgain": {
-    "description": "Generic error message"
-  },
-  "thisWillLogYouOutOfThisDevice": "این کار شما را از این دستگاه خارج می‌کند!",
-  "@thisWillLogYouOutOfThisDevice": {
-    "description": "Warning message for logging out of current device"
-  },
-  "thisWillLogYouOutOfTheFollowingDevice": "با این کار شما از دستگاه زیر خارج می‌شوید:",
-  "@thisWillLogYouOutOfTheFollowingDevice": {
-    "description": "Warning message for logging out of another device"
-  },
-  "terminateSession": "خروچ دستگاه؟",
-  "@terminateSession": {
-    "description": "Title for terminate session dialog"
-  },
-  "terminate": "خروج",
-  "@terminate": {
-    "description": "Terminate button label"
-  },
-  "thisDevice": "این دستگاه",
-  "@thisDevice": {
-    "description": "Label for current device"
-  },
-  "createAccount": "ایجاد حساب کاربری",
-  "@createAccount": {
-    "description": "Create account button label"
-  },
-  "weakStrength": "ضعیف",
-  "@weakStrength": {
-    "description": "Weak password strength label"
-  },
-  "moderateStrength": "متوسط",
-  "@moderateStrength": {
-    "description": "Moderate password strength label"
-  },
-  "strongStrength": "قوی",
-  "@strongStrength": {
-    "description": "Strong password strength label"
+  "customOrder": "مرتب‌سازی شخصی‌سازی‌شده",
+  "darkTheme": "تیره",
+  "data": "داده ها",
+  "dayToday": "امروز",
+  "dayYesterday": "دیروز",
+  "decrypting": "در حال رمزگشایی...",
+  "deduplicateCodes": "یکتاسازی کد‌ها",
+  "delete": "حذف",
+  "@delete": {
+    "description": "Delete button label"
   },
   "deleteAccount": "حذف حساب کاربری",
   "@deleteAccount": {
     "description": "Delete account button label"
   },
-  "deleteAccountQuery": "از رفتن شما متاسفیم. آیا با مشکلی روبرو هستید؟",
-  "@deleteAccountQuery": {
-    "description": "Message asking user why they want to delete account"
-  },
-  "yesSendFeedbackAction": "بله، ارسال بازخورد",
-  "@yesSendFeedbackAction": {
-    "description": "Button to confirm sending feedback"
-  },
-  "noDeleteAccountAction": "خیر، حساب کاربری را حذف کن",
-  "@noDeleteAccountAction": {
-    "description": "Button to proceed with account deletion"
-  },
-  "initiateAccountDeleteTitle": "لطفا جهت شروع فرآیند حذف حساب کاربری، اعتبارسنجی کنید",
-  "@initiateAccountDeleteTitle": {
-    "description": "Title for authentication dialog before account deletion"
-  },
-  "confirmAccountDeleteTitle": "تایید حذف حساب کاربری",
-  "@confirmAccountDeleteTitle": {
-    "description": "Title for account deletion confirmation dialog"
-  },
-  "delete": "حذف",
-  "@delete": {
-    "description": "Delete button label"
-  },
-  "createNewAccount": "ایجاد حساب کاربری جدید",
-  "@createNewAccount": {
-    "description": "Create new account button label"
-  },
-  "password": "رمز عبور",
-  "@password": {
-    "description": "Password field label"
-  },
-  "confirmPassword": "تایید رمز عبور",
-  "@confirmPassword": {
-    "description": "Confirm password field label"
-  },
-  "passwordStrength": "قدرت رمز عبور: {passwordStrengthValue}",
-  "@passwordStrength": {
-    "description": "Text to indicate the password strength",
-    "placeholders": {
-      "passwordStrengthValue": {
-        "description": "The strength of the password as a string",
-        "type": "String",
-        "example": "Weak or Moderate or Strong"
-      }
-    }
-  },
-  "hearUsWhereTitle": "از کجا در مورد Ente شنیدی؟ (اختیاری)",
-  "@hearUsWhereTitle": {
-    "description": "Title asking how user heard about Ente"
-  },
-  "hearUsExplanation": "ما نصب برنامه را ردیابی نمی‌کنیم. اگر بگویید کجا ما را پیدا کردید، به ما کمک می‌کند!",
-  "@hearUsExplanation": {
-    "description": "Explanation for asking how user heard about Ente"
-  },
-  "signUpTerms": "با <u-terms>شرایط استفاده از خدمات</u-terms> و <u-policy>سیاست حفظ حریم خصوصی</u-policy> موافقت می‌کنم",
-  "@signUpTerms": {
-    "description": "Terms agreement text for sign up"
-  },
-  "termsOfServicesTitle": "شرایط و ضوابط",
-  "@termsOfServicesTitle": {
-    "description": "Terms of service title"
-  },
-  "privacyPolicyTitle": "سیاست حفظ حریم خصوصی",
-  "@privacyPolicyTitle": {
-    "description": "Privacy policy title"
-  },
-  "ackPasswordLostWarning": "می‌دانم که اگر رمز عبور خود را گم کنم، از آنجایی که اطلاعات من <underline>رمزگذاری سرتاسری</underline> شده است، ممکن است اطلاعاتم را از دست بدهم.",
-  "@ackPasswordLostWarning": {
-    "description": "Warning about password loss"
-  },
-  "encryption": "رمزگذاری",
-  "@encryption": {
-    "description": "Encryption label"
-  },
-  "logInLabel": "ورود",
-  "@logInLabel": {
-    "description": "Log in button label"
-  },
-  "welcomeBack": "خوش آمدید!",
-  "@welcomeBack": {
-    "description": "Welcome back message"
-  },
-  "loginTerms": "با کلیک روی ورود، با <u-terms>شرایط استفاده از خدمات</u-terms> و <u-policy>سیاست حفظ حریم خصوصی</u-policy> موافقت می‌کنم",
-  "@loginTerms": {
-    "description": "Terms agreement text for login"
-  },
-  "noInternetConnection": "نبود اتصال اینترنت",
-  "@noInternetConnection": {
-    "description": "No internet connection error message"
-  },
-  "pleaseCheckYourInternetConnectionAndTryAgain": "لطفا اتصال اینترنت خود را بررسی کنید و دوباره امتحان کنید.",
-  "@pleaseCheckYourInternetConnectionAndTryAgain": {
-    "description": "Message asking user to check internet connection"
-  },
-  "verificationFailedPleaseTryAgain": "تایید ناموفق بود، لطفا مجددا تلاش کنید",
-  "@verificationFailedPleaseTryAgain": {
-    "description": "Verification failed error message"
-  },
-  "recreatePasswordTitle": "بازتولید رمز عبور",
-  "@recreatePasswordTitle": {
-    "description": "Title for recreate password dialog"
-  },
-  "recreatePasswordBody": "دستگاه فعلی جهت تایید رمز عبور شما به اندازه کافی قدرتمند نیست، اما ما میتوانیم آن را به گونه ای بازتولید کنیم که با همه دستگاه‌ها کار کند.\n\nلطفا با استفاده از کلید بازیابی خود وارد شوید و رمز عبور خود را دوباره ایجاد کنید (در صورت تمایل می‌توانید دوباره از همان رمز عبور استفاده کنید).",
-  "@recreatePasswordBody": {
-    "description": "Body text for recreate password dialog"
-  },
-  "useRecoveryKey": "از کلید بازیابی استفاده کنید",
-  "@useRecoveryKey": {
-    "description": "Use recovery key button label"
-  },
-  "forgotPassword": "فراموشی رمز عبور",
-  "@forgotPassword": {
-    "description": "Forgot password link label"
-  },
-  "changeEmail": "تغییر ایمیل",
-  "@changeEmail": {
-    "description": "Change email button label"
-  },
-  "verifyEmail": "تایید ایمیل",
-  "@verifyEmail": {
-    "description": "Verify email title"
-  },
-  "weHaveSendEmailTo": "ما یک ایمیل به <green>{email}</green> ارسال کرده‌ایم",
-  "@weHaveSendEmailTo": {
-    "description": "Text to indicate that we have sent a mail to the user",
-    "placeholders": {
-      "email": {
-        "description": "The email address of the user",
-        "type": "String",
-        "example": "example@ente.io"
-      }
-    }
-  },
-  "toResetVerifyEmail": "برای تنظیم مجدد رمز عبور، لطفا ابتدا ایمیل خود را تایید کنید.",
-  "@toResetVerifyEmail": {
-    "description": "Message asking user to verify email before password reset"
-  },
-  "checkInboxAndSpamFolder": "لطفا صندوق ورودی (و هرزنامه) خود را برای تایید کامل بررسی کنید",
-  "@checkInboxAndSpamFolder": {
-    "description": "Message asking user to check inbox and spam folder"
-  },
-  "tapToEnterCode": "برای وارد کردن کد ضربه بزنید",
-  "@tapToEnterCode": {
-    "description": "Hint for entering verification code"
-  },
-  "sendEmail": "ارسال ایمیل",
-  "resendEmail": "ارسال مجدد ایمیل",
-  "@resendEmail": {
-    "description": "Resend email button label"
-  },
-  "passKeyPendingVerification": "تأییدیه هنوز در انتظار است",
-  "@passKeyPendingVerification": {
-    "description": "Message when passkey verification is pending"
-  },
-  "loginSessionExpired": "نشست منقضی شده است",
-  "@loginSessionExpired": {
-    "description": "Login session expired title"
-  },
-  "loginSessionExpiredDetails": "نشست شما منقضی شده. لطفا دوباره وارد شوید.",
-  "@loginSessionExpiredDetails": {
-    "description": "Login session expired details"
-  },
-  "passkeyAuthTitle": "تایید کردن پسکی",
-  "@passkeyAuthTitle": {
-    "description": "Passkey authentication title"
-  },
-  "waitingForVerification": "درانتظار تأییدیه...",
-  "@waitingForVerification": {
-    "description": "Waiting for verification message"
-  },
-  "tryAgain": "دوباره امتحان کنید",
-  "@tryAgain": {
-    "description": "Try again button label"
-  },
-  "checkStatus": "بررسی وضعیت",
-  "@checkStatus": {
-    "description": "Check status button label"
-  },
-  "recoverAccount": "بازیابی حساب کاربری",
-  "@recoverAccount": {
-    "description": "Recover account button label"
-  },
-  "setPasswordTitle": "تنظیم پسورد",
-  "@setPasswordTitle": {
-    "description": "Set password title"
-  },
-  "changePasswordTitle": "تغییر رمز عبور",
-  "@changePasswordTitle": {
-    "description": "Change password title"
-  },
-  "resetPasswordTitle": "بازنشانی رمز عبور",
-  "@resetPasswordTitle": {
-    "description": "Reset password title"
-  },
-  "encryptionKeys": "کلیدهای رمزنگاری",
-  "@encryptionKeys": {
-    "description": "Encryption keys title"
-  },
-  "enterPasswordToEncrypt": "رمز عبوری را وارد کنید که بتوانیم از آن برای رمزگذاری اطلاعات شما استفاده کنیم",
-  "@enterPasswordToEncrypt": {
-    "description": "Prompt to enter password for encryption"
-  },
-  "enterNewPasswordToEncrypt": "رمز عبور جدیدی را وارد کنید که بتوانیم از آن برای رمزگذاری اطلاعات شما استفاده کنیم",
-  "@enterNewPasswordToEncrypt": {
-    "description": "Prompt to enter new password for encryption"
-  },
-  "howItWorks": "چگونه کار می‌کند",
-  "@howItWorks": {
-    "description": "How it works button label"
-  },
-  "generatingEncryptionKeys": "در حال تولید کلیدهای رمزگذاری...",
-  "@generatingEncryptionKeys": {
-    "description": "Generating encryption keys message"
-  },
-  "passwordChangedSuccessfully": "رمز عبور با موفقیت تغییر کرد",
-  "@passwordChangedSuccessfully": {
-    "description": "Password changed successfully message"
-  },
-  "signOutFromOtherDevices": "از دستگاه های دیگر خارج شوید",
-  "@signOutFromOtherDevices": {
-    "description": "Sign out from other devices title"
-  },
-  "signOutOtherDevices": "از دستگاه های دیگر خارج شوید",
-  "@signOutOtherDevices": {
-    "description": "Sign out other devices button label"
-  },
-  "doNotSignOut": "خارج نشوید",
-  "@doNotSignOut": {
-    "description": "Do not sign out button label"
-  },
-  "generatingEncryptionKeysTitle": "در حال تولید کلید‌های رمزگذاری...",
-  "@generatingEncryptionKeysTitle": {
-    "description": "Generating encryption keys title"
-  },
-  "continueLabel": "ادامه",
-  "@continueLabel": {
-    "description": "Continue button label"
-  },
-  "insecureDevice": "دستگاه ناامن",
-  "@insecureDevice": {
-    "description": "Insecure device warning title"
-  },
-  "sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": "با عرض پوزش، ما نمی‌توانیم کلیدهای امن را در این دستگاه تولید کنیم.\n\nلطفا از دستگاه دیگری ثبت نام کنید.",
-  "@sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": {
-    "description": "Error message for insecure device"
-  },
-  "recoveryKeyCopiedToClipboard": "کلید بازیابی به حافظه موقت کپی شد",
-  "@recoveryKeyCopiedToClipboard": {
-    "description": "Recovery key copied message"
-  },
-  "recoveryKey": "کلید بازیابی",
-  "@recoveryKey": {
-    "description": "Recovery key label"
-  },
-  "recoveryKeyOnForgotPassword": "اگر رمز عبور خود را فراموش کرده‌اید، این کد تنها راهی است که با آن می‌توانید اطلاعات خود را بازیابی کنید.",
-  "@recoveryKeyOnForgotPassword": {
-    "description": "Recovery key importance explanation"
-  },
-  "recoveryKeySaveDescription": "ما این کلید را ذخیره نمی‌کنیم، لطفا این کلید ۲۴ کلمه‌ای را در مکانی امن ذخیره کنید.",
-  "@recoveryKeySaveDescription": {
-    "description": "Recovery key save description"
-  },
-  "doThisLater": "بعداً انجام شود",
-  "@doThisLater": {
-    "description": "Do this later button label"
-  },
-  "saveKey": "ذخیره کلید",
-  "@saveKey": {
-    "description": "Save key button label"
-  },
-  "noRecoveryKeyTitle": "کلید بازیابی ندارید؟",
-  "@noRecoveryKeyTitle": {
-    "description": "No recovery key title"
-  },
-  "twoFactorAuthTitle": "احراز هویت دو مرحله‌ای",
-  "@twoFactorAuthTitle": {
-    "description": "Two-factor authentication title"
-  },
-  "enterCodeHint": "کد تایید ۶ رقمی را از برنامه\nاحراز هویت خود وارد کنید",
-  "@enterCodeHint": {
-    "description": "Hint for entering 2FA code"
-  },
-  "lostDeviceTitle": "دستگاه را گم کرده‌اید؟",
-  "@lostDeviceTitle": {
-    "description": "Lost device title"
-  },
-  "enterRecoveryKeyHint": "کلید بازیابی خود را وارد کنید",
-  "@enterRecoveryKeyHint": {
-    "description": "Hint for entering recovery key"
-  },
-  "recover": "بازیابی",
-  "@recover": {
-    "description": "Recover button label"
-  },
-  "loggingOut": "در حال خروج از سیستم...",
-  "@loggingOut": {
-    "description": "Message shown while logging out"
-  },
-  "immediately": "فوری",
-  "@immediately": {
-    "description": "Immediately option for auto lock timing"
-  },
-  "appLock": "قفل برنامه",
-  "@appLock": {
-    "description": "App lock setting title"
-  },
-  "autoLock": "قفل خودکار",
-  "@autoLock": {
-    "description": "Auto lock setting title"
-  },
-  "noSystemLockFound": "هیج قبل سیستمی پیدا نشد",
-  "@noSystemLockFound": {
-    "description": "Error when no system lock is found"
-  },
+  "deleteAll": "حذف همه",
+  "deleteCodeAuthMessage": "احراز هویت برای حذف کد",
+  "deleteCodeMessage": "آیا مطمئن هستید که می خواهید این کد را حذف کنید؟ این کار غیرقابل تغییر است.",
+  "deleteCodeTitle": "کد حذف شود؟",
+  "deleteDuplicates": "پاک کردن موارد تکراری",
+  "deleteTagMessage": "آیا مطمئن هستید که می خواهید این تگ را حذف کنید؟ این کار غیرقابل تغییر است.",
+  "deleteTagTitle": "حذف تگ؟",
+  "deleteUnparseableCodeMessage": "با این کار، این کد برای همیشه از Auth حذف می‌شود و به سطل زباله نمی‌رود.",
+  "deleteUnparseableCodeTitle": "کد غیرقابل تجزیه حذف شود؟",
+  "deselectAll": "رد انتخاب همه",
+  "details": "جزئیات",
+  "developerSettingsWarning": "واقعاً می‌خواهید تنظیمات برنامه‌نویس را تغییر بدهید؟",
   "deviceLock": "قفل دستگاه",
   "@deviceLock": {
     "description": "Device lock option title"
   },
-  "pinLock": "پین قفل",
-  "@pinLock": {
-    "description": "PIN lock option title"
+  "deviceLockEnablePreSteps": "برای به‌کارگیری قفل دستگاه، یک رمز عبور یا الگوی قفل صفحه تعیین کنید.",
+  "@deviceLockEnablePreSteps": {
+    "description": "Instructions for enabling device lock"
   },
-  "hideContent": "پنهان کردن محتوا",
-  "@hideContent": {
-    "description": "Hide content setting title"
+  "didYouKnow": "آیا می‌دانستید؟",
+  "digits": "ارقام",
+  "disableDownloadWarningBody": "بینندگان همچنان می‌توانند با استفاده از ابزارهای خارجی از صفحه عکس بگیرند یا نسخه‌ای از عکس‌های شما را ذخیره کنند",
+  "disableDownloadWarningTitle": "لطفا توجه کنید",
+  "done": "انجام شد",
+  "doNotSignOut": "خارج نشوید",
+  "@doNotSignOut": {
+    "description": "Do not sign out button label"
   },
-  "tapToUnlock": "برای باز کردن قفل ضربه بزنید",
-  "@tapToUnlock": {
-    "description": "Message prompting user to tap to unlock"
+  "doubleTapToViewHiddenCode": "شما میتونید با دوبار فشردن یه گزینه تا کد آنرا ببینید",
+  "downloading": "در حال دانلود...",
+  "downloadUpdate": "دانلود",
+  "dropSupportEmail": "لطفا یک ایمیل از آدرس ایمیلی که ثبت نام کردید به {supportEmail} ارسال کنید",
+  "@dropSupportEmail": {
+    "placeholders": {
+      "supportEmail": {
+        "description": "The support email address",
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
   },
-  "areYouSureYouWantToLogout": "آیا مطمئنید که می‌خواهید خارج شوید؟",
-  "@areYouSureYouWantToLogout": {
-    "description": "Confirmation message before logout"
-  },
-  "yesLogout": "بله، خروج",
-  "@yesLogout": {
-    "description": "Confirmation button for logout"
-  },
-  "authToViewSecrets": "لطفا جهت دیدن راز های خود احراز هویت کنید",
-  "@authToViewSecrets": {
-    "description": "Message prompting authentication to view secrets"
-  },
-  "next": "بعدی",
-  "@next": {
-    "description": "Next button label"
-  },
-  "enterPin": "پین را وارد کنید",
-  "@enterPin": {
-    "description": "Enter PIN prompt"
-  },
-  "setNewPin": "پین جدید انتخاب کنید",
-  "@setNewPin": {
-    "description": "Set new PIN title"
-  },
-  "confirm": "تایید",
-  "@confirm": {
-    "description": "Confirm button label"
-  },
-  "reEnterPassword": "رمز عبور را مجدداً وارد کنید",
-  "@reEnterPassword": {
-    "description": "Re-enter password prompt"
-  },
-  "reEnterPin": "پین را مجدداً وارد کنید",
-  "@reEnterPin": {
-    "description": "Re-enter PIN prompt"
-  },
-  "androidBiometricHint": "تایید هویت",
-  "@androidBiometricHint": {
-    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricNotRecognized": "شناخته نشد. دوباره امتحان کنید.",
-  "@androidBiometricNotRecognized": {
-    "description": "Message to let the user know that authentication was failed. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricSuccess": "موفقیت",
-  "@androidBiometricSuccess": {
-    "description": "Message to let the user know that authentication was successful. It is used on Android side. Maximum 60 characters."
-  },
-  "androidCancelButton": "لغو",
-  "@androidCancelButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
-  },
-  "androidSignInTitle": "احراز هویت لازم است",
-  "@androidSignInTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricRequiredTitle": "بیومتریک لازم است",
-  "@androidBiometricRequiredTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user has not set up biometric authentication on their device. It is used on Android side. Maximum 60 characters."
-  },
-  "androidDeviceCredentialsRequiredTitle": "اعتبار دستگاه لازم است",
-  "@androidDeviceCredentialsRequiredTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user has not set up credentials authentication on their device. It is used on Android side. Maximum 60 characters."
-  },
-  "androidDeviceCredentialsSetupDescription": "اعتبار دستگاه لازم است",
-  "@androidDeviceCredentialsSetupDescription": {
-    "description": "Message advising the user to go to the settings and configure device credentials on their device. It shows in a dialog on Android side."
-  },
-  "goToSettings": "به تنظیمات بروید",
-  "@goToSettings": {
-    "description": "Message showed on a button that the user can click to go to settings pages from the current dialog. It is used on both Android and iOS side. Maximum 30 characters."
-  },
-  "iOSOkButton": "تأیید",
-  "@iOSOkButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on iOS side. Maximum 30 characters."
-  },
-  "thisEmailIsAlreadyInUse": "این ایمیل درحال استفاده است",
-  "@thisEmailIsAlreadyInUse": {
-    "description": "Error message when email is already in use"
+  "duplicateCodes": "کدهای تکراری",
+  "edit": "ویرایش",
+  "editCodeAuthMessage": "احراز هویت برای ویرایش کد",
+  "editLocation": "ویرایش مکان",
+  "editOrder": "ویرایش سفارش",
+  "editTag": "ویرایش برچسب",
+  "email": "ایمیل",
+  "@email": {
+    "description": "Email field label"
   },
   "emailChangedTo": "ایمیل عوض شد به {newEmail}",
   "@emailChangedTo": {
@@ -581,40 +299,741 @@
       }
     }
   },
-  "authenticationFailedPleaseTryAgain": "احراز هویت ناموفق بود، لطفا دوباره تلاش کنید",
-  "@authenticationFailedPleaseTryAgain": {
-    "description": "Error message when authentication fails"
+  "emailHint": "آدرس ایمیل خود را وارد کنید",
+  "emailUsMessage": "لطفا به آدرس {email} به ما ایمیل بزنید",
+  "@emailUsMessage": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
   },
-  "authenticationSuccessful": "احراز هویت موفق آمیز!",
-  "@authenticationSuccessful": {
-    "description": "Success message when authentication is successful"
+  "emailVerificationEnableWarning": "جهت پیشگیری از مسدود شدن حساب، حتماً قبل از فعال‌سازی تأیید ایمیل، یک نسخه از تأیید هویت دو‌مرحله‌ای ایمیلی 2FA خود را خارج از Ente Auth ذخیره کنید.",
+  "emailVerificationToggle": "تائید ایمیل",
+  "emailYourLogs": "لاگ‌های خود را ایمیل کنید",
+  "@emailYourLogs": {
+    "description": "Title for emailing logs dialog"
+  },
+  "enableAutomaticBackups": "پشتیبان‌گیری خودکار",
+  "enableBackupsIosInstruction": "برای فعال‌سازی پشتیبان‌گیری در iOS، یک پوشه در Files انتخاب کنید (برای مثال «On My iPhone»).",
+  "encrypted": "رمزنگاری شده",
+  "encryptionKeys": "کلیدهای رمزنگاری",
+  "@encryptionKeys": {
+    "description": "Encryption keys title"
+  },
+  "endpointUpdatedMessage": "نشانی با موفقیت به‌روز شد",
+  "@endpointUpdatedMessage": {
+    "description": "Success message when endpoint is updated"
+  },
+  "enterCode": "کد را وارد کنید",
+  "enterCodeHint": "کد تایید ۶ رقمی را از برنامه\nاحراز هویت خود وارد کنید",
+  "@enterCodeHint": {
+    "description": "Hint for entering 2FA code"
+  },
+  "enterDetailsManually": "ورود دستی جزئیات",
+  "enterEmail": "ایمیل را وارد کنید",
+  "enterNewEmailHint": "نشانی ایمیل جدید خود را وارد کنید",
+  "@enterNewEmailHint": {
+    "description": "Hint text for entering new email address"
+  },
+  "enterPasswordToAegisVault": "رمز عبور گاوصندوق aegis را وارد کنید",
+  "enterPasswordToDecrypt2FASBackup": "برای رمزگشایی نسخهٔ پشتیبان 2FAS، رمز عبور را وارد کنید",
+  "enterPasswordToDecryptAndOTP": "برای رمزگشایی نسخهٔ پشتیبان andOTP، رمز عبور را وارد کنید",
+  "enterRecoveryKeyHint": "کلید بازیابی خود را وارد کنید",
+  "@enterRecoveryKeyHint": {
+    "description": "Hint for entering recovery key"
+  },
+  "enterValidEmail": "لطفا یک ایمیل معتبر وارد کنید.",
+  "enterYourNewEmailAddress": "ایمیل جدید خود را وارد کنید",
+  "enterYourPassword": "رمز عبور خود را وارد کنید",
+  "enterYourRecoveryKey": "کلید بازیابی خود را وارد کنید",
+  "error": "خطا",
+  "@error": {
+    "description": "Generic error title"
+  },
+  "errorGenericBody": "هنگام واردکردن خطایی پیش‌بینی نشده رخ داد.",
+  "errorGenericTitle": "خطایی رخ داد",
+  "errorInvalidQRCodeBody": "کد QR بررسی شده یک حساب 2FA معتبر نیست.",
+  "errorNoQRCode": "هیچ QR Code یافت نشد",
+  "export": "صدور",
+  "exportCodes": "صدور کدها",
+  "exportDialogDesc": "نسخه‌های خروجی رمزگذاری‌شده با یک رمز عبور به انتخاب شما محافظت خواهند شد.",
+  "exportLogs": "صدور لاگ‌ها",
+  "@exportLogs": {
+    "description": "Button to export logs"
+  },
+  "exportWarningDesc": "فایل صادر شده حاوی اطلاعات حساس است. لطفا این فایل را به صورت امن ذخیره کنید.",
+  "failedToDecrypt2FASExport": "رمزگشایی فایل خروجی 2FAS ناموفق بود",
+  "failedToDecryptAegisVault": "رمزگشایی گاوصندوق aegis ناموفق بود",
+  "failedToDecryptAndOTPBackup": "رمزگشایی نسخه پشتیبان andOTP با شکست مواجه شد",
+  "faq": "سوالات متداول",
+  "@faq": {
+    "description": "FAQ link label"
+  },
+  "featureBackupCodes": "پشتیبان‌گیری و همگام‌سازی، به صورت سرتاسر رمزگذاری شده",
+  "featureOpenSource": "متن باز و بررسی‌شده توسط متخصصین امنیت",
+  "featureSearchEtc": "جستجو، برچسب، اشتراک‌گذاری، کد بعدی و موارد بسیار دیگر",
+  "fileInfoAddDescHint": "افزودن توضیحات...",
+  "fileTypes": "انواع پرونده",
+  "focusOnSearchBar": "در زمان شروع برنامه، در حالت جستجو باش",
+  "free10GB": "10 گیگابایت فضای رایگان در <bold-green>ente</bold-green> Photos",
+  "freeStorageOffer": "۱۰٪ تخفیف بر تصاویر <bold-green>ente</bold-green>",
+  "freeStorageOfferDescription": "کد \"AUTH\" را وارد کنید تا برای سال نخست ۱۰٪ تخفیف بگیرید",
+  "general": "عمومی",
+  "generatingEncryptionKeys": "در حال تولید کلیدهای رمزگذاری...",
+  "@generatingEncryptionKeys": {
+    "description": "Generating encryption keys message"
+  },
+  "generatingEncryptionKeysTitle": "در حال تولید کلید‌های رمزگذاری...",
+  "@generatingEncryptionKeysTitle": {
+    "description": "Generating encryption keys title"
+  },
+  "getStarted": "شروع کنید",
+  "giveUsAStarOnGithub": "در گیت‌هاب به ما ستاره بدهید",
+  "grantFullAccessPrompt": "لطفا در تنظیمات برنامه، دسترسی به تمام عکس‌ها را فعال کنید",
+  "grantPermission": "اعطای مجوز",
+  "hearUsWhereOptionalTitle": "از کجا در مورد Ente شنیدی؟ (اختیاری)",
+  "@hearUsWhereOptionalTitle": {
+    "description": "Title asking how user heard about Ente"
+  },
+  "hideContent": "پنهان کردن محتوا",
+  "@hideContent": {
+    "description": "Hide content setting title"
+  },
+  "hideContentDescriptionAndroid": "محتوای برنامه در فهرست برنامه‌های اخیر مخفی شود و اسکرین‌شات غیرفعال گردد",
+  "@hideContentDescriptionAndroid": {
+    "description": "Description of hide content feature on Android"
+  },
+  "hideContentDescriptioniOS": "محتوای اپ در فهرست برنامه‌های اخیر دیده نمی شود",
+  "@hideContentDescriptioniOS": {
+    "description": "Description of hide content feature on iOS"
+  },
+  "hintForDesktop": "روی کد کلیک راست کنید تا بتوانید آن را ویرایش یا حذف نمایید.",
+  "hintForMobile": "برای ویرایش یا حذف، میتوانید کد را طولانی لمس کنید.",
+  "howItWorks": "چگونه کار می‌کند",
+  "@howItWorks": {
+    "description": "How it works button label"
+  },
+  "ignore": "نادیده گرفتن",
+  "immediately": "فوری",
+  "@immediately": {
+    "description": "Immediately option for auto lock timing"
+  },
+  "import2FasGuide": "از گزینهٔ «تنظیمات->پشتیبان‌گیری - خروجی» در برنامهٔ 2FAS استفاده نمایید.\n\nاگر پشتیبانی رمزگذاری بود، برای رمزگشایی آن نیاز به وارد کردن رمز عبور دارید",
+  "importAccountPageTitle": "ورود اطلاعات حساب",
+  "importAegisGuide": "در تنظیمات Aegis، گزینهٔ «خروجی از گاوصندوق» را به کار ببرید.\n\nاگر گاوصندوق رمزگذاری‌شده است، برای رمزگشایی لازم است رمز آن را وارد نمایید.",
+  "importAndOTPGuide": "از گزینهٔ «Backup» در بخش تنظیمات andOTP برای خروجی گرفتن از پشتیبان استفاده کنید.\n\nدر صورت رمزگذاری بودن فایل پشتیبان، جهت رمزگشایی نیاز به وارد کردن رمز پشتیبان دارید.",
+  "importBitwardenGuide": "از گزینهٔ «تهیه خروجی از گاوصندوق» در بخش ابزارهای Bitwarden استفاده کنید و فایل JSON رمزگذاری‌نشده را وارد کنید.",
+  "importCodeDelimiterInfo": "کدها می‌توانند با کاما یا یک خط جدید از یکدیگر جدا شوند",
+  "importCodes": "ورود کدها",
+  "importEnteEncGuide": "انتخاب فایل JSON رمزگذاری شده از Ente",
+  "importEnterSetupKey": "وارد کردن کلید تنظیم",
+  "importFailureDesc": "تجزیهٔ فایل انتخاب‌شده، با خطا مواجه شد.",
+  "importFromGallery": "وارد کردن از گالری",
+  "importGoogleAuthConfirmation": "{codeCount, plural, one{دریافت یک کد از Google Authenticator؟} other{دریافت {codeCount} کد از Google Authenticator؟}}",
+  "@importGoogleAuthConfirmation": {
+    "placeholders": {
+      "codeCount": {
+        "description": "The number of Google Authenticator codes to import",
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "importGoogleAuthGuide": "حساب‌های خود را از Google Authenticator با گزینهٔ «انتقال حساب» به یک کیو آر کد صادر کنید. سپس کد QR را اسکن کنید یا آن را از یک تصویر وارد کنید.",
+  "importInstruction": "لطفا یک فایل که حاوی لیستی از کدهای شما در قالب زیر است، انتخاب کنید",
+  "importLabel": "وارد کردن",
+  "importLastpassGuide": "در بخش تنظیمات برنامهٔ Lastpass Authenticator، گزینهٔ «انتقال اکانت» را انتخاب کرده و روی «خروجی گرفتن حساب به فایل» کلیک کنید. در ادامه فایل JSON دانلود شده را وارد کنید.",
+  "importOtpAuthGuide": "از OTP Auth یک پشتیبان رمزنگاری‌شده صادر کنید، آنگاه فایل با پسوند.otpauthdb یا.otpauthdp را انتخاب کنید. همچنین فایل‌های.otpauth تک حساب نیز قابل قبول هستند.",
+  "importProtonAuthGuide": "در بخش تنظیمات Proton Authenticator، گزینهٔ «خروجی گرفتن» را انتخاب کرده و کدهای خود را صادر کنید. چنانچه خروجی شما رمزگذاری‌شده باشد، برای رمزگشایی نیاز به وارد کردن رمز دارید.",
+  "importRaivoGuide": "از گزینهٔ «صادر کردن کدهای یکبار مصرف OTP به فایل Zip» در تنظیمات Raivo استفاده کنید. \n\nسپس فایل Zip را استخراج کرده و فایل JSON را وارد کنید.",
+  "importSelectAppExport": "انتخاب فایل وارد کردن {appName}",
+  "@importSelectAppExport": {
+    "placeholders": {
+      "appName": {}
+    }
+  },
+  "importSelectJsonFile": "انتخاب کنید فایل JSON",
+  "importSuccessDesc": "شما {count} کد را وارد کردید!",
+  "@importSuccessDesc": {
+    "placeholders": {
+      "count": {
+        "description": "The number of codes imported",
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "importSuccessTitle": "آره!",
+  "incorrectCode": "کد اشتباه",
+  "@incorrectCode": {
+    "description": "Error message when code is incorrect"
+  },
+  "incorrectDetails": "اطلاعات اشتباه",
+  "incorrectRecoveryKey": "کلید بازیابی درست نیست",
+  "@incorrectRecoveryKey": {
+    "description": "Error message when recovery key is incorrect"
+  },
+  "incorrectRecoveryKeyBody": "کلید بازیابی که وارد کردید درست نیست",
+  "incorrectRecoveryKeyTitle": "کلید بازیابی درست نیست",
+  "initialBackupCreated": "پشتیبان اولیه ساخته شد!",
+  "insecureDevice": "دستگاه ناامن",
+  "@insecureDevice": {
+    "description": "Insecure device warning title"
+  },
+  "invalidEmailAddress": "آدرس ایمیل معتبر نیست",
+  "invalidEmailMessage": "لطفا یک آدرس ایمیل معتبر وارد کنید.",
+  "@invalidEmailMessage": {
+    "description": "Message for invalid email error dialog"
+  },
+  "invalidEmailTitle": "آدرس ایمیل نامعتبر است",
+  "@invalidEmailTitle": {
+    "description": "Title for invalid email error dialog"
+  },
+  "invalidEndpoint": "نشانی نادرست است",
+  "@invalidEndpoint": {
+    "description": "Error message when endpoint is invalid"
+  },
+  "invalidEndpointMessage": "متاسفیم، نشانی که وارد کرده‌اید اشتباه است. لطفا یک نشانی درست را وارد کرده و دوباره امتحان کنید.",
+  "@invalidEndpointMessage": {
+    "description": "Detailed error message when endpoint is invalid"
+  },
+  "invalidKey": "کلید نامعتبر",
+  "invalidProtonExportMessage": "فایل انتخاب‌شده یک خروجی معتبر از Proton Authenticator نمی باشد.",
+  "invalidProtonExportTitle": "فایل خروجی Proton نامعتبر می باشد",
+  "invalidQRCode": "کد QR نامعتبر",
+  "invalidRecoveryKey": "کلید بازیابی که وارد کرده‌اید نامعتبر است. لطفا مطمئن شوید که شامل ۲۴ کلمه است و همه کلمات را صحیح نوشته‌اید.\n\nاگر کد بازیابی قدیمی تری را وارد کرده‌اید، مطمئن شوید که شامل ۶۴ حرف است و همه حروف را صحیح نوشته‌اید.",
+  "invite": "دعوت",
+  "inviteMembers": "دعوت اعضا",
+  "inviteToEnte": "دعوت به Ente",
+  "ok": "تأیید",
+  "@ok": {
+    "description": "Generic OK button label"
+  },
+  "iosOnMyDeviceNotSupported": "استفادهٔ مستقیم از «On My iPhone» ممکن نیست. لطفاً درون آن یک پوشه انتخاب یا ایجاد کنید.",
+  "iUnderStand": "متوجه ام",
+  "@iUnderStand": {
+    "description": "Text for the button to confirm the user understands the warning"
+  },
+  "language": "زبان",
+  "layoutGrouped": "گروه‌بندی شده",
+  "layoutTrip": "سفر",
+  "leaveFamily": "خروج از طرح خانواده",
+  "lightTheme": "روشن",
+  "linkDeviceLimit": "محدودیت دستگاه",
+  "linkExpiry": "انقضا پیوند",
+  "localBackupDailyManualCopy": "هنگامی که اپ را باز می‌کنید، روزی یک بک‌آپ محلی گرفته می‌شود. برای اجرای بک‌آپ دستی «Backup now» را بفشارید. بک‌آپ‌ها تا ۵ فایل نگهداری می‌شوند.",
+  "localBackupSidebarTitle": "پشتیبان‌گیری محلی",
+  "locationUpdatedAndBackupCreated": "موقعیت مکانی بروز شد و پشتیبان اولیه ایجاد گردید!",
+  "lockButtonLabel": "قفل",
+  "logInLabel": "ورود",
+  "@logInLabel": {
+    "description": "Log in button label"
+  },
+  "loginSessionExpired": "نشست منقضی شده است",
+  "@loginSessionExpired": {
+    "description": "Login session expired title"
+  },
+  "loginSessionExpiredDetails": "نشست شما منقضی شده. لطفا دوباره وارد شوید.",
+  "@loginSessionExpiredDetails": {
+    "description": "Login session expired details"
+  },
+  "loginWithAuthAccount": "با حساب Auth خود وارد شوید",
+  "loginWithTOTP": "ورود با TOTP",
+  "@loginWithTOTP": {
+    "description": "Login with TOTP button label"
+  },
+  "lostDevice": "دستگاه را گم کرده‌اید؟",
+  "lostDeviceTitle": "دستگاه را گم کرده‌اید؟",
+  "@lostDeviceTitle": {
+    "description": "Lost device title"
+  },
+  "manageFamily": "مدیریت خانواده",
+  "manageLink": "مدیریت پیوند",
+  "manageSubscription": "مدیریت اشتراک",
+  "manualSort": "سفارشی",
+  "merchandise": "کالا",
+  "minimizeAppOnCopy": "هنگام رونویسی برنامه را کمینه کن",
+  "minimizeToTrayOnClose": "با بستن برنامه، به ناحیهٔ اعلان منتقل شو",
+  "moderateStrength": "متوسط",
+  "@moderateStrength": {
+    "description": "Moderate password strength label"
+  },
+  "mostFrequentlyUsed": "پراستفاده",
+  "mostRecentlyUsed": "به‌تازگی استفاده شده",
+  "moveMultipleToTrashMessage": "مطمئنید می‌خواهید {count} آیتم(ها) را به سطل زباله منتقل کنید؟",
+  "@moveMultipleToTrashMessage": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "networkConnectionRefusedErr": "نمی‌توان به Ente متصل شد. لطفاً کمی بعد دوباره امتحان کنید. در صورتی که مشکل برطرف نشد، لطفا به پشتیبانی اطلاع دهید.",
+  "@networkConnectionRefusedErr": {
+    "description": "Error message shown when the app cannot connect to Ente due to connection refused"
+  },
+  "networkHostLookUpErr": "نمی‌توان به Ente متصل شد. لطفاً وضعیت شبکه را بررسی کنید و اگر خطا برطرف نشد، به پشتیبانی اطلاع دهید.",
+  "@networkHostLookUpErr": {
+    "description": "Error message shown when the app cannot connect to Ente due to network host lookup failure"
+  },
+  "never": "هرگز",
+  "next": "بعدی",
+  "@next": {
+    "description": "Next button label"
+  },
+  "nextTotpTitle": "بعدی",
+  "no": "خیر",
+  "noDefaultBackupFolder": "ایجاد پوشهٔ پیش‌فرض نسخهٔ پشتیبان با خطا مواجه شد.",
+  "noDeviceLimit": "هیچ‌کدام",
+  "@noDeviceLimit": {
+    "description": "Text to indicate that there is limit on number of devices"
+  },
+  "noDuplicates": "✨ بدون تکراری",
+  "noInternetConnection": "نبود اتصال اینترنت",
+  "@noInternetConnection": {
+    "description": "No internet connection error message"
+  },
+  "noRecoveryKeyNoDecryption": "با توجه به ماهیت پروتکل رمزگذاری سرتاسر ما، اطلاعات شما بدون رمز عبور یا کلید بازیابی شما قابل رمزگشایی نیست",
+  "@noRecoveryKeyNoDecryption": {
+    "description": "Explanation that data cannot be decrypted without password or recovery key"
+  },
+  "noRecoveryKeyTitle": "کلید بازیابی ندارید؟",
+  "@noRecoveryKeyTitle": {
+    "description": "No recovery key title"
+  },
+  "noResult": "نتیجه ای یافت نشد",
+  "noSystemLockFound": "هیج قبل سیستمی پیدا نشد",
+  "@noSystemLockFound": {
+    "description": "Error when no system lock is found"
+  },
+  "note": "یادداشت",
+  "notes": "یادداشت‌ها",
+  "notesLengthLimit": "یادداشت میتوانند {count} کارکتر بلند باشند",
+  "@notesLengthLimit": {
+    "description": "Text to indicate the maximum number of characters allowed for notes",
+    "placeholders": {
+      "count": {
+        "description": "The maximum number of characters allowed for notes",
+        "type": "int",
+        "example": "100"
+      }
+    }
+  },
+  "notifications": "آگاه‌سازی‌ها",
+  "notSupportedForHOTP": "برای HOTP پشتیبانی نمی‌شود",
+  "ocrModelsNetworkRequiredError": "در استفاده اول برای بارگیری مدل‌های OCR ارتباط شبکه لازم است",
+  "ocrModelsPrepareFailed": "مدل‌های OCR آماده نشدند",
+  "ocrNoTextDetected": "متنی شناسایی نشد",
+  "offlineModeWarning": "شما گزینهٔ ادامه بدون پشتیبان‌گیری را برگزیده‌اید. خواهشمندیم برای حفظ امنیت کدها، می‌کنیم به‌طور دستی پشتیبان تهیه کنید.",
+  "oops": "اوه",
+  "@oops": {
+    "description": "Oops error title"
+  },
+  "parsingError": "خطا در پردازش",
+  "passkey": "پس کی",
+  "passkeyAuthTitle": "تایید کردن پسکی",
+  "@passkeyAuthTitle": {
+    "description": "Passkey authentication title"
+  },
+  "passKeyPendingVerification": "تأییدیه هنوز در انتظار است",
+  "@passKeyPendingVerification": {
+    "description": "Message when passkey verification is pending"
+  },
+  "passwordEmptyError": "گذرواژه نمی‌تواند خالی باشد",
+  "passwordForDecryptingExport": "گذرواژه برای رمزگشایی ورودی",
+  "passwordLock": "قفل گذرواژه",
+  "passwordToEncryptExport": "گذرواژه برای رمزنگاری ورودی",
+  "passwordTooShort": "رمز عبور باید حداقل ۸ حرف داشته باشد.",
+  "pendingSyncs": "اخطار",
+  "pendingSyncsWarningBody": "برخی از کدهای شما پشتیبان گیری نشده اند.\n\nلطفا قبل از خروج، مطمئن شوید که یک نسخه پشتیبان برای این کدها دارید.",
+  "period": "دوره",
+  "pinLock": "پین قفل",
+  "@pinLock": {
+    "description": "PIN lock option title"
+  },
+  "pinnedCodeMessage": "{code} سنجاق شد",
+  "@pinnedCodeMessage": {
+    "placeholders": {
+      "code": {}
+    }
+  },
+  "pinnedCount": "{count, plural, one{{count} مورد سنجاق‌شده} other{{count} مورد سنجاق‌شده}}",
+  "@pinnedCount": {
+    "description": "Text to show number of items pinned",
+    "placeholders": {
+      "count": {
+        "description": "Number of items pinned",
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "pinText": "پین",
+  "plainHTML": "HTML خالص",
+  "plainText": "متن ساده",
+  "pleaseCheckPasswordAndTryAgain": "لطفاً رمز عبور خود را بررسی و دوباره تلاش کنید.",
+  "pleaseCheckYourInternetConnectionAndTryAgain": "لطفا اتصال اینترنت خود را بررسی کنید و دوباره امتحان کنید.",
+  "@pleaseCheckYourInternetConnectionAndTryAgain": {
+    "description": "Message asking user to check internet connection"
+  },
+  "pleaseGrantPermissions": "لطفا اجازه دسترسی‌های لازم را بدهید",
+  "pleaseLoginAgain": "لطفا دوباره وارد شوید",
+  "pleaseSendTheLogsTo": "لطفا لاگ‌ها را به ایمیل زیر ارسال کنید \n{toEmail}",
+  "@pleaseSendTheLogsTo": {
+    "description": "Message asking user to send logs to email address",
+    "placeholders": {
+      "toEmail": {
+        "type": "String",
+        "description": "Email address to send logs to"
+      }
+    }
+  },
+  "pleaseTryAgain": "لطفا دوباره تلاش کنید",
+  "@pleaseTryAgain": {
+    "description": "Message asking user to try again"
+  },
+  "pleaseVerifyDetails": "لطفا اطلاعات را تایید کنید و دوباره امتحان کنید",
+  "pleaseWait": "لطفا صبر کنید...",
+  "@pleaseWait": {
+    "description": "Please wait message"
+  },
+  "preparingLogs": "در حال آماده‌سازی لاگ‌ها...",
+  "preview": "پیش‌نمایش",
+  "privacy": "حریم خصوصی",
+  "privacyPolicyTitle": "سیاست حفظ حریم خصوصی",
+  "@privacyPolicyTitle": {
+    "description": "Privacy policy title"
+  },
+  "qr": "QR",
+  "qrCode": "کد تصویر",
+  "rateUsOnStore": "به ما در {storeName} امتیاز دهید",
+  "@rateUsOnStore": {
+    "placeholders": {
+      "storeName": {}
+    }
+  },
+  "rawCodeData": "داده‌های کد خام",
+  "recover": "بازیابی",
+  "@recover": {
+    "description": "Recover button label"
+  },
+  "recoverAccount": "بازیابی حساب کاربری",
+  "@recoverAccount": {
+    "description": "Recover account button label"
+  },
+  "recoveryKey": "کلید بازیابی",
+  "@recoveryKey": {
+    "description": "Recovery key label"
+  },
+  "recoveryKeySaved": "رمز بازیابی در پوشهٔ دانلودها ذخیره شد!",
+  "@recoveryKeySaved": {
+    "description": "Recovery key saved confirmation message"
+  },
+  "recoveryKeySaveDescription": "ما این کلید را ذخیره نمی‌کنیم، لطفا این کلید ۲۴ کلمه‌ای را در مکانی امن ذخیره کنید.",
+  "@recoveryKeySaveDescription": {
+    "description": "Recovery key save description"
+  },
+  "recoveryKeySuccessBody": "عالی! کلید بازیابی شما معتبر است. با تشکر از شما.\n\nلطفا به یاد داشته باشید که از کلید بازیابی خود به طور ایمن نسخه پشتیبان تهیه کنید.",
+  "recoveryKeyVerified": "کلید بازیابی تایید شد",
+  "recoveryKeyVerifyReason": "در صورتی که گذرواژه خود را فراموش کنید، کلید بازیابی شما تنها راه بازیابی عکس‌های شماست. شما می‌توانید کلید بازیابی خود را در قسمت تنظیمات > حساب کاربری پیدا کنید.\n\nلطفا کلید بازیابی خود را در اینجا وارد کنید تا اطمینان حاصل شود که آن را به درستی نگه‌داری کرده‌اید.",
+  "recoverySuccessful": "بازیابی موفقیت آمیز بود!",
+  "reEnterPin": "پین را مجدداً وارد کنید",
+  "@reEnterPin": {
+    "description": "Re-enter PIN prompt"
+  },
+  "remove": "برداشتن",
+  "removeLink": "حذف پیوند",
+  "removeParticipant": "برداشتن شرکت‌کننده",
+  "@removeParticipant": {
+    "description": "menuSectionTitle for removing a participant"
+  },
+  "rename": "تغییر نام",
+  "renameAlbum": "تغییر نام آلبوم",
+  "renameFile": "تغییر نام پرونده",
+  "reportABug": "گزارش یک اشکال",
+  "@reportABug": {
+    "description": "Label for reporting a bug"
+  },
+  "restore": "بازگرداندن",
+  "@restore": {
+    "description": "Display text for an action which triggers a restore of item from trash",
+    "type": "text"
+  },
+  "reviewSuggestions": "مرور پیشنهادها",
+  "revokeInvite": "حذف دعوت",
+  "@revokeInvite": {
+    "description": "Button label to revoke a pending trusted contact invite"
+  },
+  "revokeInviteConfirmTitle": "حذف دعوت؟",
+  "save": "ذخیره",
+  "@save": {
+    "description": "Label for save button"
+  },
+  "saveKey": "ذخیره کلید",
+  "@saveKey": {
+    "description": "Save key button label"
+  },
+  "saveOnlyDescription": "آیا می خواهید این فایل در فضای ذخیره‌سازی شما (پوشهٔ پیش‌فرض دانلودها) ذخیره شود؟",
+  "@saveOnlyDescription": {
+    "description": "Description text asking user if they want to save to storage (for platforms that don't support sharing)"
+  },
+  "saveOrSendDescription": "آیا می‌خواهید این را در حافظهٔ دستگاه ذخیره کنید (پوشهٔ دانلودها به‌طور پیش‌فرض) یا برای سایر اپلیکیشن‌ها ارسال گردد؟",
+  "@saveOrSendDescription": {
+    "description": "Description text asking user if they want to save to storage or share with other apps"
+  },
+  "scan": "اسکن",
+  "scanACode": "یک کد را اسکن کنید",
+  "scanAQrCode": "اسکن کردن کد QR",
+  "scanCode": "کد را شناسایی کنید",
+  "scannerTorchOff": "خاموش کردن چراغ قوه",
+  "scannerTorchOn": "روشن کردن چراغ قوه",
+  "search": "جستجو",
+  "searchHint": "جستجو...",
+  "secret": "سکرت",
+  "secretCanNotBeEmpty": "رمز محرمانه نمیتواند خالی باشد",
+  "security": "امنیت",
+  "selectAll": "انتخاب همه",
+  "selectBackupFolder": "انتخاب پوشهٔ پشتیبان گیری",
+  "selected": "انتخاب شده",
+  "selectedCount": "{count, plural, one{{count} مورد انتخاب‌شده} other{{count} مورد انتخاب‌شده}}",
+  "@selectedCount": {
+    "description": "Number of items selected",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "selectExportFormat": "انتخاب فرمت استخراج",
+  "selectFile": "انتخاب فایل",
+  "selectFolder": "انتخاب پوشه",
+  "selectFolderToContinue": "برای ادامه، یک پوشه انتخاب کنید",
+  "selectLanguage": "انتخاب زبان",
+  "send": "ارسال",
+  "@send": {
+    "description": "Label for send button"
+  },
+  "sendInvite": "ارسال دعوت",
+  "sendLogsDescription": "این باعث ارسال لاگ‌ها می‌شود تا به ما در رفع مشکل شما کمک کند. هرچند ما اقداماتی را جهت جلوگیری از ثبت اطلاعات حساس در لاگ انجام می‌دهیم، اما به شما توصیه می‌کنیم قبل از اشتراک گذاری لاگ‌ها آن‌ها را مشاهده کنید.",
+  "serverEndpoint": "نشانی سرور",
+  "@serverEndpoint": {
+    "description": "Label for server endpoint setting"
   },
   "sessionExpired": "نشست منقضی شده است",
   "@sessionExpired": {
     "description": "Error message when session has expired"
   },
-  "incorrectRecoveryKey": "کلید بازیابی درست نیست",
-  "@incorrectRecoveryKey": {
-    "description": "Error message when recovery key is incorrect"
+  "setBackupFolder": "تعیین پوشهٔ نسخهٔ پشتیبان",
+  "setBackupPassword": "تعیین رمز عبور نسخهٔ پشتیبان",
+  "setNewPassword": "تنظیم گذرواژه جدید",
+  "@setNewPassword": {
+    "description": "Set new password title"
   },
+  "setNewPin": "پین جدید انتخاب کنید",
+  "@setNewPin": {
+    "description": "Set new PIN title"
+  },
+  "settings": "تنظیمات",
+  "setupComplete": "آماده‌سازی کامل شد",
+  "setupFirstAccount": "راه‌اندازی اولین حساب شما",
+  "share": "اشتراک‌گذاری",
+  "shareCodes": "به اشتراک گزاشتن کدها",
+  "shareCodesDuration": "مدت زمان مورد نظر برای اشتراک گذاری کدها را مشخص کنید.",
+  "shouldHideCode": "کد هارا مخفی کردن",
+  "showLargeIcons": "نشان دادن ایکون های بزرگ",
+  "showQRAuthMessage": "احراز هویت برای نمایش کد QR",
+  "sigInBackupReminder": "بعد از ورود به حساب، به‌طور خودکار از کدها پشتیبان‌گیری می‌کند.\n\nبا این وجود، توصیه می‌کنیم برای اطمینان بیشتر، کدها را به‌صورت دستی نیز خروجی بگیرید.",
+  "signInToBackup": "ورود برای پشتیبان گیری کد های شما",
+  "signOutFromOtherDevices": "از دستگاه های دیگر خارج شوید",
+  "@signOutFromOtherDevices": {
+    "description": "Sign out from other devices title"
+  },
+  "signOutOtherBody": "اگر احتمال می‌دهید شخصی از گذرواژهٔ شما مطلع شده، می‌توانید تمام دستگاه‌های دیگر متصل به حساب خود را به‌اجبار از حساب خارج نمایید.",
+  "@signOutOtherBody": {
+    "description": "Sign out other devices explanation"
+  },
+  "signOutOtherDevices": "از دستگاه های دیگر خارج شوید",
+  "@signOutOtherDevices": {
+    "description": "Sign out other devices button label"
+  },
+  "signUp": "ثبت نام",
+  "singIn": "ورود",
+  "skip": "رد کردن",
+  "somethingWentWrongMessage": "مشکلی پیش آمده است، لطفا دوباره تلاش کنید",
+  "somethingWentWrongParsingCode": "قادر به تجزیه {x} کد نبودیم.",
+  "@somethingWentWrongParsingCode": {
+    "placeholders": {
+      "x": {}
+    }
+  },
+  "somethingWentWrongPleaseTryAgain": "مشکلی پیش آمده، لطفا دوباره تلاش کنید",
+  "@somethingWentWrongPleaseTryAgain": {
+    "description": "Generic error message"
+  },
+  "sorry": "متاسفیم",
+  "sorryTheCodeYouveEnteredIsIncorrect": "معظرت میخوام، کدی که شما وارد کردید اشتباه است",
+  "@sorryTheCodeYouveEnteredIsIncorrect": {
+    "description": "Detailed error message when code is incorrect"
+  },
+  "sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": "با عرض پوزش، ما نمی‌توانیم کلیدهای امن را در این دستگاه تولید کنیم.\n\nلطفا از دستگاه دیگری ثبت نام کنید.",
+  "@sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": {
+    "description": "Error message for insecure device"
+  },
+  "sortAlbumsBy": "مبنای چیدمان",
+  "sortNewestFirst": "ابتدا جدیدترین",
+  "sortOldestFirst": "ابتدا قدیمی‌ترین",
+  "startBackup": "شروع پشتیبان‌گیری",
+  "status": "وضعیت",
+  "storage": "حافظه ذخیره‌سازی",
+  "storageBreakupFamily": "خانوادگی",
+  "storageBreakupYou": "شما",
+  "@storageBreakupYou": {
+    "description": "Label to indicate how much storage you are using when you are part of a family plan"
+  },
+  "strongStrength": "قوی",
+  "@strongStrength": {
+    "description": "Strong password strength label"
+  },
+  "submit": "ثبت",
+  "success": "موفقیت",
+  "suggestFeatures": "پیشنهاد قابلیت ها",
+  "support": "پشتیبانی",
+  "supportEnte": "حمایت از <bold-green>ente</bold-green>",
+  "tag": "برچسب",
+  "tags": "برچسب‌ها",
+  "tapToCopy": "برای رونویسی ضربه بزنید",
+  "tapToUnlock": "برای باز کردن قفل ضربه بزنید",
+  "@tapToUnlock": {
+    "description": "Message prompting user to tap to unlock"
+  },
+  "tellUsWhatYouThink": "ما را از دیدگاه‌تان آگاه کنید",
+  "terminate": "خروج",
+  "@terminate": {
+    "description": "Terminate button label"
+  },
+  "terminateSession": "خروچ دستگاه؟",
+  "@terminateSession": {
+    "description": "Title for terminate session dialog"
+  },
+  "theme": "پوسته",
   "theRecoveryKeyYouEnteredIsIncorrect": "کلید بازیابی که وارد کردید درست نیست",
   "@theRecoveryKeyYouEnteredIsIncorrect": {
     "description": "Detailed error message when recovery key is incorrect"
+  },
+  "thisDevice": "این دستگاه",
+  "@thisDevice": {
+    "description": "Label for current device"
+  },
+  "thisEmailIsAlreadyInUse": "این ایمیل درحال استفاده است",
+  "@thisEmailIsAlreadyInUse": {
+    "description": "Error message when email is already in use"
+  },
+  "thisWillLogYouOutOfTheFollowingDevice": "با این کار شما از دستگاه زیر خارج می‌شوید:",
+  "@thisWillLogYouOutOfTheFollowingDevice": {
+    "description": "Warning message for logging out of another device"
+  },
+  "thisWillLogYouOutOfThisDevice": "این کار شما را از این دستگاه خارج می‌کند!",
+  "@thisWillLogYouOutOfThisDevice": {
+    "description": "Warning message for logging out of current device"
+  },
+  "todaysLogs": "رویدادهای امروز",
+  "toEnableAppLockPleaseSetupDevicePasscodeOrScreen": "جهت فعالسازی قفل برنامه، لطفا در تنظیمات سیستم خود یک رمز یا قفل صفحه را فعال کنید.",
+  "tooManyIncorrectAttempts": "تلاش های اشتباه بسیار",
+  "@tooManyIncorrectAttempts": {
+    "description": "Message shown when too many incorrect attempts are made"
+  },
+  "trash": "زباله",
+  "trashCode": "کد زباله؟",
+  "trashCodeMessage": "آیا مطمئنید که میخواهید کد {account} را به زباله‌دان بریزید؟",
+  "@trashCodeMessage": {
+    "placeholders": {
+      "account": {}
+    }
+  },
+  "trustedContactStatusPending": "در انتظار",
+  "@trustedContactStatusPending": {
+    "description": "Short status label shown for a pending trusted contact invite"
+  },
+  "tryAgain": "دوباره امتحان کنید",
+  "@tryAgain": {
+    "description": "Try again button label"
   },
   "twofactorAuthenticationSuccessfullyReset": "احراز هویت دو مرحله با موفقیت بازنشانی شد",
   "@twofactorAuthenticationSuccessfullyReset": {
     "description": "Message when two-factor authentication is successfully reset"
   },
+  "twoFactorAuthTitle": "احراز هویت دو مرحله‌ای",
+  "@twoFactorAuthTitle": {
+    "description": "Two-factor authentication title"
+  },
+  "type": "نوع",
+  "uncategorized": "دسته‌بندی نشده",
+  "unlock": "بازکردن",
+  "@unlock": {
+    "description": "Short action label used as the system authentication reason when unlocking the app"
+  },
+  "unpinnedCodeMessage": "{code} از سنجاق خارج شد",
+  "@unpinnedCodeMessage": {
+    "placeholders": {
+      "code": {}
+    }
+  },
+  "unpinnedCount": "{count, plural, one{{count} آیتم سنجاق شده} other{{count} آیتم سنجاق شده}}",
+  "@unpinnedCount": {
+    "description": "Text to show number of items unpinned",
+    "placeholders": {
+      "count": {
+        "description": "Number of items unpinned",
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "unpinText": "حذف پین",
+  "unselectAll": "لغو انتخاب همه",
+  "updateAvailable": "به‌رورزرسانی در دسترس است",
+  "updateBackupPassword": "ویرایش گذرواژهٔ نسخهٔ پشتیبان",
+  "updatingFolderSelection": "در حال به‌روزرسانی گزینش پوشه...",
+  "useOffline": "استفاده بدون پشتیبان گیری",
+  "useRecoveryKey": "از کلید بازیابی استفاده کنید",
+  "@useRecoveryKey": {
+    "description": "Use recovery key button label"
+  },
+  "verificationFailedPleaseTryAgain": "تایید ناموفق بود، لطفا مجددا تلاش کنید",
+  "@verificationFailedPleaseTryAgain": {
+    "description": "Verification failed error message"
+  },
+  "verify": "تایید",
+  "@verify": {
+    "description": "Verify button label"
+  },
+  "verifyEmail": "تایید ایمیل",
+  "@verifyEmail": {
+    "description": "Verify email title"
+  },
+  "verifyIDLabel": "تایید",
+  "verifying": "در حال تایید...",
+  "verifyingRecoveryKey": "در حال تایید کلید بازیابی...",
+  "viewer": "بیننده",
+  "viewLogsAction": "نمایش لاگ‌ها",
+  "viewRawCodes": "نمایش کدهای خام",
+  "viewRecoveryKey": "نمایش کلید بازیابی",
+  "waitingForVerification": "درانتظار تأییدیه...",
+  "@waitingForVerification": {
+    "description": "Waiting for verification message"
+  },
+  "warning": "اخطار",
+  "weakStrength": "ضعیف",
+  "@weakStrength": {
+    "description": "Weak password strength label"
+  },
+  "whatsNew": "تغییرات جدید",
+  "yes": "بله",
+  "yesConvertToViewer": "بله، تبدیل به بیننده شود",
+  "you": "شما",
   "yourVerificationCodeHasExpired": "کد تایید شما باطل شد",
   "@yourVerificationCodeHasExpired": {
     "description": "Error message when verification code has expired"
   },
-  "incorrectCode": "کد اشتباه",
-  "@incorrectCode": {
-    "description": "Error message when code is incorrect"
-  },
-  "sorryTheCodeYouveEnteredIsIncorrect": "معظرت میخوام، کدی که شما وارد کردید اشتباه است",
-  "@sorryTheCodeYouveEnteredIsIncorrect": {
-    "description": "Detailed error message when code is incorrect"
-  }
+  "youveNoDuplicateCodesThatCanBeCleared": "شما هیچ کد تکراری برای پاک کردن ندارید"
 }

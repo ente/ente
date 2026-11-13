@@ -1,4 +1,19 @@
-import { VerifyMasterPasswordForm } from "ente-accounts/components/VerifyMasterPasswordForm";
+import CloseIcon from "@mui/icons-material/Close";
+import {
+    ButtonBase,
+    Dialog,
+    DialogTitle,
+    IconButton,
+    Input,
+    InputBase,
+    Stack,
+    Typography,
+} from "@mui/material";
+import { useAuthPageConfig } from "ente-accounts/components/auth/AuthPageProvider";
+import {
+    VerifyMasterPasswordForm,
+    type VerifyMasterPasswordPresentationProps,
+} from "ente-accounts/components/VerifyMasterPasswordForm";
 import { checkSessionValidity } from "ente-accounts/services/session";
 import {
     ensureLocalUser,
@@ -6,54 +21,73 @@ import {
     type KeyAttributes,
     type LocalUser,
 } from "ente-accounts/services/user";
+import type { MiniDialogAttributes } from "ente-base/components/MiniDialog";
+import { LoadingButton } from "ente-base/components/mui/LoadingButton";
+import { ShowHidePasswordInputAdornment } from "ente-base/components/mui/PasswordInputAdornment";
 import {
-    TitledMiniDialog,
-    type MiniDialogAttributes,
-} from "ente-base/components/MiniDialog";
+    peopleActionFocusSx,
+    v2CancelButtonSx,
+    v2CloseButtonSx,
+    v2HeaderRowSx,
+    v2HelperSx,
+    v2InputSx,
+    v2LabelSx,
+    v2PaperSx,
+    v2SubmitButtonSx,
+    v2TitleSx,
+} from "ente-base/components/SingleInput.styles";
 import type { ModalVisibilityProps } from "ente-base/components/utils/modal";
 import { useBaseContext } from "ente-base/context";
 import log from "ente-base/log";
 import { t } from "i18next";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 
 type AuthenticateUserProps = ModalVisibilityProps & {
-    /**
-     * Called when the user successfully reauthenticates themselves.
-     */
     onAuthenticate: () => void;
 };
 
-/**
- * A dialog for reauthenticating the logged in user by prompting them for their
- * password.
- *
- * This is used as precursor to performing various sensitive or locked actions.
- */
 export const AuthenticateUser: React.FC<AuthenticateUserProps> = ({
     open,
     onClose,
     ...rest
 }) => (
-    <TitledMiniDialog
+    <Dialog
         open={open}
         onClose={onClose}
-        sx={{ position: "absolute" }}
-        title={t("password")}
+        maxWidth={false}
+        slotProps={{ paper: { sx: v2PaperSx } }}
     >
-        <AuthenticateUserDialogContents {...{ open, onClose }} {...rest} />
-    </TitledMiniDialog>
+        <Stack sx={{ p: "20px", gap: "20px" }}>
+            <Stack direction="row" sx={v2HeaderRowSx}>
+                <DialogTitle
+                    sx={{
+                        ...v2TitleSx,
+                        fontSize: "20px",
+                        lineHeight: "28px",
+                        "&&": { p: 0 },
+                    }}
+                >
+                    {t("password")}
+                </DialogTitle>
+                <IconButton
+                    aria-label={t("close")}
+                    onClick={onClose}
+                    sx={v2CloseButtonSx}
+                >
+                    <CloseIcon sx={{ fontSize: 18 }} />
+                </IconButton>
+            </Stack>
+            <AuthenticateUserDialogContents {...{ open, onClose }} {...rest} />
+        </Stack>
+    </Dialog>
 );
 
-/**
- * The contents of the {@link AuthenticateUser} dialog.
- *
- * See: [Note: MUI dialog state] for why this is a separate component.
- */
 const AuthenticateUserDialogContents: React.FC<AuthenticateUserProps> = ({
     open,
     onClose,
     onAuthenticate,
 }) => {
+    const { decryptBox } = useAuthPageConfig();
     const { logout, showMiniDialog } = useBaseContext();
 
     const [user, setUser] = useState<LocalUser | undefined>();
@@ -61,11 +95,7 @@ const AuthenticateUserDialogContents: React.FC<AuthenticateUserProps> = ({
         KeyAttributes | undefined
     >(undefined);
 
-    // This is a altered version of the check we do on the password verification
-    // screen, except here it don't try to overwrite local state and instead
-    // just request the user to login again if we detect that their password has
-    // changed on a different device and they haven't unlocked even once since
-    // then on this device.
+    // Reauthentication must not overwrite local state.
     const validateSession = useCallback(async () => {
         try {
             const session = await checkSessionValidity();
@@ -76,8 +106,7 @@ const AuthenticateUserDialogContents: React.FC<AuthenticateUserProps> = ({
                 );
             }
         } catch (e) {
-            // Ignore errors since we shouldn't be logging the user out for
-            // potentially transient issues.
+            // A transient validation failure must not log the user out.
             log.warn("Ignoring error when determining session validity", e);
         }
     }, [logout, showMiniDialog, onClose]);
@@ -88,16 +117,22 @@ const AuthenticateUserDialogContents: React.FC<AuthenticateUserProps> = ({
     }, []);
 
     useEffect(() => {
-        // Do a non-blocking validation of the session whenever we show the
-        // dialog to the user.
         if (open) void validateSession();
     }, [open, validateSession]);
 
-    // They'll be read from disk shortly.
+    const presentation = useCallback(
+        (props: VerifyMasterPasswordPresentationProps) => (
+            <AuthenticateUserForm {...props} onCancel={onClose} />
+        ),
+        [onClose],
+    );
+
     if (!user || !keyAttributes) return <></>;
 
     return (
         <VerifyMasterPasswordForm
+            presentation={presentation}
+            decryptBox={decryptBox}
             userEmail={user.email}
             keyAttributes={keyAttributes}
             submitButtonTitle={t("authenticate")}
@@ -109,13 +144,6 @@ const AuthenticateUserDialogContents: React.FC<AuthenticateUserProps> = ({
     );
 };
 
-/**
- * Attributes for a dialog box that informs the user that their password was
- * changed on a different device, and they the need to login again to be able to
- * use the new one. Cancellable.
- *
- * @param onLogin Called if the user chooses the login option.
- */
 const passwordChangedElsewhereDialogAttributes = (
     onLogin: () => void,
 ): MiniDialogAttributes => ({
@@ -124,3 +152,83 @@ const passwordChangedElsewhereDialogAttributes = (
     continue: { text: t("login"), action: onLogin },
     cancel: false,
 });
+
+const AuthenticateUserForm: React.FC<
+    VerifyMasterPasswordPresentationProps & { onCancel: () => void }
+> = ({
+    userEmail,
+    password,
+    passwordError,
+    isSubmitting,
+    submitButtonTitle,
+    onPasswordChange,
+    onSubmit,
+    onCancel,
+}) => {
+    const inputID = useId();
+    const helperID = useId();
+    const [showPassword, setShowPassword] = useState(false);
+    return (
+        <Stack component="form" onSubmit={onSubmit} sx={{ gap: "20px" }}>
+            <Input
+                sx={{ display: "none" }}
+                name="email"
+                autoComplete="username"
+                type="email"
+                value={userEmail}
+            />
+            <Stack sx={{ gap: "8px" }}>
+                <Typography component="label" htmlFor={inputID} sx={v2LabelSx}>
+                    {t("password")}
+                </Typography>
+                <InputBase
+                    id={inputID}
+                    name="password"
+                    value={password}
+                    onChange={onPasswordChange}
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
+                    autoFocus
+                    disabled={isSubmitting}
+                    error={!!passwordError}
+                    sx={v2InputSx}
+                    inputProps={{
+                        "aria-describedby": passwordError
+                            ? helperID
+                            : undefined,
+                        "aria-invalid": !!passwordError,
+                    }}
+                    endAdornment={
+                        <ShowHidePasswordInputAdornment
+                            showPassword={showPassword}
+                            onToggle={() => setShowPassword((show) => !show)}
+                        />
+                    }
+                />
+                <Typography
+                    id={helperID}
+                    aria-live="polite"
+                    sx={v2HelperSx(!!passwordError)}
+                >
+                    {passwordError ?? ""}
+                </Typography>
+            </Stack>
+            <Stack direction="row" sx={{ gap: "12px" }}>
+                <ButtonBase
+                    onClick={onCancel}
+                    disabled={isSubmitting}
+                    sx={[v2CancelButtonSx, peopleActionFocusSx]}
+                >
+                    {t("cancel")}
+                </ButtonBase>
+                <LoadingButton
+                    type="submit"
+                    loading={isSubmitting}
+                    sx={{ ...v2SubmitButtonSx, p: 0 }}
+                >
+                    {submitButtonTitle}
+                </LoadingButton>
+            </Stack>
+        </Stack>
+    );
+};

@@ -1,0 +1,10 @@
+[package]
+name = "ente-location"
+edition.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+unicode-normalization.workspace = true
+
+[lints]
+workspace = true

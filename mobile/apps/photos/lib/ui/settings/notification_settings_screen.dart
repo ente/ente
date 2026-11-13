@@ -1,190 +1,134 @@
-import 'package:flutter/material.dart';
-import "package:photos/generated/l10n.dart";
+import "package:ente_components/ente_components.dart";
+import "package:ente_strings/ente_strings.dart";
+import "package:flutter/material.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/notification_service.dart";
-import 'package:photos/theme/ente_theme.dart';
-import "package:photos/ui/components/menu_item_widget/menu_item_widget_new.dart";
-import 'package:photos/ui/components/toggle_switch_widget.dart';
 
-class NotificationSettingsScreen extends StatelessWidget {
+class NotificationSettingsScreen extends StatefulWidget {
   const NotificationSettingsScreen({super.key});
 
   @override
+  State<NotificationSettingsScreen> createState() =>
+      _NotificationSettingsScreenState();
+}
+
+class _NotificationSettingsScreenState
+    extends State<NotificationSettingsScreen> {
+  bool _hasPermission = false;
+
+  @override
+  void initState() {
+    super.initState();
+    NotificationService.instance.hasGrantedPermissions().then((granted) {
+      if (mounted && _hasPermission != granted) {
+        setState(() => _hasPermission = granted);
+      }
+    });
+  }
+
+  Future<void> _toggleWithPermission(
+    bool Function() getValue,
+    Future<void> Function(bool value) setValue,
+  ) async {
+    final oldValue = _hasPermission && getValue();
+
+    if (_hasPermission) {
+      await setValue(!oldValue);
+      if (mounted) setState(() {});
+      return;
+    }
+
+    final granted = await NotificationService.instance.requestPermissions(
+      context,
+    );
+
+    if (!granted) {
+      return;
+    }
+
+    _hasPermission = true;
+    await setValue(true);
+    if (mounted) setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final showOnlyOnThisDay = isOfflineMode;
+    final l10n = context.strings;
+    final service = NotificationService.instance;
+    final showOnlyOnThisDay = isLocalGalleryMode;
 
-    final pageBackgroundColor =
-        isDarkMode ? const Color(0xFF161616) : const Color(0xFFFAFAFA);
-
-    return Scaffold(
-      backgroundColor: pageBackgroundColor,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 24),
-              GestureDetector(
-                onTap: () => Navigator.of(context).pop(),
-                child: Icon(
-                  Icons.arrow_back,
-                  color: colorScheme.strokeBase,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                AppLocalizations.of(context).notifications,
-                style: textTheme.h3Bold,
-              ),
-              const SizedBox(height: 24),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (!showOnlyOnThisDay) ...[
-                        MenuItemWidgetNew(
-                          title: AppLocalizations.of(context)
-                              .sharedPhotoNotifications,
-                          trailingWidget: ToggleSwitchWidget(
-                            value: () =>
-                                NotificationService.instance
-                                    .hasGrantedPermissions() &&
-                                NotificationService.instance
-                                    .shouldShowNotificationsForSharedPhotosAndAlbums(),
-                            onChanged: () async {
-                              await NotificationService.instance
-                                  .requestPermissions();
-                              await NotificationService.instance
-                                  .setShouldShowNotificationsForSharedPhotosAndAlbums(
-                                !NotificationService.instance
-                                    .shouldShowNotificationsForSharedPhotosAndAlbums(),
-                              );
-                            },
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.only(
-                            left: 16,
-                            right: 16,
-                            top: 8,
-                            bottom: 16,
-                          ),
-                          child: Text(
-                            AppLocalizations.of(context)
-                                .sharedPhotoNotificationsExplanation,
-                            style: textTheme.mini
-                                .copyWith(color: colorScheme.textMuted),
-                          ),
-                        ),
-                        MenuItemWidgetNew(
-                          title:
-                              AppLocalizations.of(context).socialNotifications,
-                          trailingWidget: ToggleSwitchWidget(
-                            value: () =>
-                                NotificationService.instance
-                                    .hasGrantedPermissions() &&
-                                NotificationService.instance
-                                    .shouldShowSocialNotifications(),
-                            onChanged: () async {
-                              await NotificationService.instance
-                                  .requestPermissions();
-                              await NotificationService.instance
-                                  .setShouldShowSocialNotifications(
-                                !NotificationService.instance
-                                    .shouldShowSocialNotifications(),
-                              );
-                            },
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.only(
-                            left: 16,
-                            right: 16,
-                            top: 8,
-                            bottom: 16,
-                          ),
-                          child: Text(
-                            AppLocalizations.of(context)
-                                .socialNotificationsExplanation,
-                            style: textTheme.mini
-                                .copyWith(color: colorScheme.textMuted),
-                          ),
-                        ),
-                      ],
-                      MenuItemWidgetNew(
-                        title: AppLocalizations.of(context).onThisDayMemories,
-                        trailingWidget: ToggleSwitchWidget(
-                          value: () =>
-                              NotificationService.instance
-                                  .hasGrantedPermissions() &&
-                              localSettings.isOnThisDayNotificationsEnabled,
-                          onChanged: () async {
-                            await NotificationService.instance
-                                .requestPermissions();
-                            await memoriesCacheService
-                                .toggleOnThisDayNotifications();
-                          },
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.only(
-                          left: 16,
-                          right: 16,
-                          top: 8,
-                          bottom: 16,
-                        ),
-                        child: Text(
-                          AppLocalizations.of(context)
-                              .onThisDayNotificationExplanation,
-                          style: textTheme.mini
-                              .copyWith(color: colorScheme.textMuted),
-                        ),
-                      ),
-                      if (!showOnlyOnThisDay) ...[
-                        MenuItemWidgetNew(
-                          title: AppLocalizations.of(context).birthdays,
-                          trailingWidget: ToggleSwitchWidget(
-                            value: () =>
-                                NotificationService.instance
-                                    .hasGrantedPermissions() &&
-                                localSettings.birthdayNotificationsEnabled,
-                            onChanged: () async {
-                              await NotificationService.instance
-                                  .requestPermissions();
-                              await memoriesCacheService
-                                  .toggleBirthdayNotifications();
-                            },
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.only(
-                            left: 16,
-                            right: 16,
-                            top: 8,
-                            bottom: 16,
-                          ),
-                          child: Text(
-                            AppLocalizations.of(context)
-                                .receiveRemindersOnBirthdays,
-                            style: textTheme.mini
-                                .copyWith(color: colorScheme.textMuted),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-            ],
+    return SettingsPageScaffold(
+      title: l10n.notifications,
+      children: [
+        if (!showOnlyOnThisDay) ...[
+          SettingsItem(
+            title: l10n.sharedPhotoNotifications,
+            subtitle: l10n.sharedPhotoNotificationsExplanation,
+            subtitleMaxLines: 2,
+            showChevron: false,
+            trailing: ToggleSwitchComponent.async(
+              value: () =>
+                  _hasPermission &&
+                  service.shouldShowNotificationsForSharedPhotosAndAlbums(),
+              onChanged: () => _toggleWithPermission(
+                service.shouldShowNotificationsForSharedPhotosAndAlbums,
+                service.setShouldShowNotificationsForSharedPhotosAndAlbums,
+              ).ignore(),
+              showStateIcon: false,
+            ),
+          ),
+          const SizedBox(height: 8),
+          SettingsItem(
+            title: l10n.socialNotifications,
+            subtitle: l10n.socialNotificationsExplanation,
+            subtitleMaxLines: 2,
+            showChevron: false,
+            trailing: ToggleSwitchComponent.async(
+              value: () =>
+                  _hasPermission && service.shouldShowSocialNotifications(),
+              onChanged: () => _toggleWithPermission(
+                service.shouldShowSocialNotifications,
+                service.setShouldShowSocialNotifications,
+              ).ignore(),
+              showStateIcon: false,
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+        SettingsItem(
+          title: l10n.onThisDayMemories,
+          subtitle: l10n.onThisDayNotificationExplanation,
+          subtitleMaxLines: 2,
+          showChevron: false,
+          trailing: ToggleSwitchComponent.async(
+            value: () =>
+                _hasPermission && localSettings.isOnThisDayNotificationsEnabled,
+            onChanged: () => _toggleWithPermission(
+              () => localSettings.isOnThisDayNotificationsEnabled,
+              memoriesCacheService.setOnThisDayNotifications,
+            ).ignore(),
+            showStateIcon: false,
           ),
         ),
-      ),
+        if (!showOnlyOnThisDay) ...[
+          const SizedBox(height: 8),
+          SettingsItem(
+            title: l10n.birthdays,
+            subtitle: l10n.receiveRemindersOnBirthdays,
+            subtitleMaxLines: 2,
+            showChevron: false,
+            trailing: ToggleSwitchComponent.async(
+              value: () =>
+                  _hasPermission && localSettings.birthdayNotificationsEnabled,
+              onChanged: () => _toggleWithPermission(
+                () => localSettings.birthdayNotificationsEnabled,
+                memoriesCacheService.setBirthdayNotifications,
+              ).ignore(),
+              showStateIcon: false,
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

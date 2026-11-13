@@ -1,0 +1,171 @@
+import { MultiplicationSignIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Box } from "@mui/material";
+import { keyframes } from "@mui/material/styles";
+import React from "react";
+import { spaceHomeSurface, spaceText } from "styles/colors";
+import { spaceTouchTargetSize } from "styles/touch-targets";
+
+const green = "#08C225";
+const textBase = spaceText;
+const toastHorizontalPadding = "8px";
+export const spaceToastAutoDismissDurationMs = 1800;
+const toastEnter = keyframes`
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+`;
+
+interface SpaceActionToastProps {
+    action?: React.ReactNode;
+    animateEntrance?: boolean;
+    autoDismissAfterMs?: number;
+    closeLabel: string;
+    icon: React.ReactNode;
+    message: React.ReactNode;
+    onClose?: () => void;
+    showCloseButton?: boolean;
+    zIndex?: number;
+}
+
+export const SpaceActionToast: React.FC<SpaceActionToastProps> = ({
+    action,
+    animateEntrance = false,
+    autoDismissAfterMs,
+    closeLabel,
+    icon,
+    message,
+    onClose,
+    showCloseButton = autoDismissAfterMs === undefined,
+    zIndex = 20,
+}) => {
+    React.useEffect(() => {
+        if (autoDismissAfterMs === undefined || !onClose) return;
+
+        const timeoutID = window.setTimeout(onClose, autoDismissAfterMs);
+        return () => window.clearTimeout(timeoutID);
+    }, [autoDismissAfterMs, onClose]);
+
+    return (
+        <Box
+            sx={{
+                animation: animateEntrance
+                    ? `${toastEnter} 320ms cubic-bezier(0.22, 1, 0.36, 1) both`
+                    : undefined,
+                boxSizing: "border-box",
+                left: "50%",
+                px: toastHorizontalPadding,
+                pointerEvents: "none",
+                position: "fixed",
+                top: "calc(env(safe-area-inset-top) + 8px)",
+                transform: "translateX(-50%)",
+                width: "100%",
+                zIndex,
+                "@media (min-width: 600px)": { maxWidth: 390 },
+                "@media (prefers-reduced-motion: reduce)": {
+                    animation: animateEntrance ? "none" : undefined,
+                },
+            }}
+        >
+            <Box
+                role="status"
+                aria-live="polite"
+                sx={{
+                    alignItems: "center",
+                    bgcolor: spaceHomeSurface,
+                    borderRadius: "32px",
+                    boxShadow: "0 12px 32px rgba(0, 0, 0, 0.18)",
+                    boxSizing: "border-box",
+                    color: textBase,
+                    display: "flex",
+                    fontFamily: '"Inter Variable", Inter, sans-serif',
+                    fontSize: 14,
+                    fontWeight: 650,
+                    gap: "10px",
+                    lineHeight: "20px",
+                    minHeight: spaceTouchTargetSize,
+                    pointerEvents: "auto",
+                    pl: "10px",
+                    pr: showCloseButton ? "6px" : "14px",
+                    py: 0,
+                    width: "100%",
+                }}
+            >
+                <Box
+                    component="span"
+                    sx={{
+                        alignItems: "center",
+                        color: green,
+                        display: "flex",
+                        flexShrink: 0,
+                        height: 24,
+                        justifyContent: "center",
+                        width: 24,
+                    }}
+                >
+                    {icon}
+                </Box>
+                <Box
+                    sx={{
+                        flex: "1 1 auto",
+                        minWidth: 0,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                    }}
+                >
+                    {message}
+                </Box>
+                <Box
+                    sx={{
+                        alignItems: "center",
+                        display: "flex",
+                        flexShrink: 0,
+                        gap: 0,
+                    }}
+                >
+                    {action}
+                    {showCloseButton && (
+                        <Box
+                            component="button"
+                            type="button"
+                            aria-label={closeLabel}
+                            onClick={onClose}
+                            sx={{
+                                alignItems: "center",
+                                appearance: "none",
+                                bgcolor: "transparent",
+                                border: 0,
+                                color: textBase,
+                                cursor: onClose ? "pointer" : "default",
+                                display: "flex",
+                                flexShrink: 0,
+                                height: spaceTouchTargetSize,
+                                justifyContent: "center",
+                                opacity: 0.9,
+                                p: 0,
+                                width: 36,
+                                "&:focus-visible": {
+                                    outline: `2px solid ${spaceText}`,
+                                    outlineOffset: 2,
+                                },
+                            }}
+                        >
+                            <HugeiconsIcon
+                                icon={MultiplicationSignIcon}
+                                size={16}
+                                strokeWidth={2}
+                            />
+                        </Box>
+                    )}
+                </Box>
+            </Box>
+        </Box>
+    );
+};

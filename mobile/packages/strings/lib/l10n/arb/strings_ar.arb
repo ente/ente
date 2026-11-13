@@ -1,610 +1,115 @@
 {
-  "networkHostLookUpErr": "تعذر الاتصال بـEnte، فضلا تحقق من إعدادات الشبكة الخاصة بك وتواصل مع الدعم إذا استمر الخطأ.",
-  "@networkHostLookUpErr": {
-    "description": "Error message shown when the app cannot connect to Ente due to network host lookup failure"
-  },
-  "networkConnectionRefusedErr": "تعذر الإتصال بـEnte، فضلا أعد المحاولة لاحقا. إذا استمر الخطأ، فضلا تواصل مع الدعم.",
-  "@networkConnectionRefusedErr": {
-    "description": "Error message shown when the app cannot connect to Ente due to connection refused"
-  },
-  "itLooksLikeSomethingWentWrongPleaseRetryAfterSome": "يبدو أنه حدث خطأ ما. الرجاء إعادة المحاولة لاحقا. إذا استمر الخطأ، يرجى الاتصال بفريق الدعم.",
-  "@itLooksLikeSomethingWentWrongPleaseRetryAfterSome": {
-    "description": "Generic error message for temporary issues"
-  },
-  "error": "خطأ",
-  "@error": {
-    "description": "Generic error title"
-  },
-  "ok": "حسناً",
-  "@ok": {
-    "description": "Generic OK button label"
-  },
-  "faq": "الأسئلة الأكثر شيوعاً",
-  "@faq": {
-    "description": "FAQ link label"
-  },
-  "contactSupport": "الاتصال بالدعم",
-  "@contactSupport": {
-    "description": "Contact support button label"
-  },
-  "emailYourLogs": "إرسال السجلات عبر البريد الإلكتروني",
-  "@emailYourLogs": {
-    "description": "Title for emailing logs dialog"
-  },
-  "pleaseSendTheLogsTo": "الرجاء إرسال السجلات إلى {toEmail}",
-  "@pleaseSendTheLogsTo": {
-    "description": "Message asking user to send logs to email address",
+  "wallpaper": "خلفية",
+  "setWallpaper": "تعيين خلفية",
+  "wallpaperHome": "الشاشة الرئيسية",
+  "wallpaperLock": "قفل الشاشة",
+  "wallpaperBoth": "الشاشة الرئيسية و قفل الشاشة",
+  "wallpaperSet": "تعيين خلفية",
+  "acceptTrustInvite": "قبول الدعوة",
+  "account": "الحساب",
+  "accountCredentials": "سري",
+  "accountCredentialsDescription": "احتفظ ببيانات اعتماد الحساب.",
+  "accountIsAlreadyConfigured": "الحساب تم تكوينه بالفعل.",
+  "accountOwnerPersonAppbarTitle": "{title} (أنا)",
+  "@accountOwnerPersonAppbarTitle": {
+    "description": "Title of appbar for account owner person",
     "placeholders": {
-      "toEmail": {
-        "type": "String",
-        "description": "Email address to send logs to"
+      "title": {
+        "type": "String"
       }
     }
   },
-  "copyEmailAddress": "نسخ عنوان البريد الإلكتروني",
-  "@copyEmailAddress": {
-    "description": "Button to copy email address to clipboard"
-  },
-  "exportLogs": "تصدير السجلات",
-  "@exportLogs": {
-    "description": "Button to export logs"
-  },
-  "cancel": "إلغاء",
-  "@cancel": {
-    "description": "Cancel button label"
-  },
-  "reportABug": "ألإبلاغ عن خلل تقني",
-  "@reportABug": {
-    "description": "Label for reporting a bug"
-  },
-  "customEndpoint": "متصل بـ{endpoint}",
-  "@customEndpoint": {
-    "description": "Text showing user is connected to a custom endpoint",
-    "placeholders": {
-      "endpoint": {
-        "type": "String",
-        "description": "URL of the custom endpoint"
-      }
-    }
-  },
-  "save": "حفظ",
-  "@save": {
-    "description": "Label for save button"
-  },
-  "send": "إرسال",
-  "@send": {
-    "description": "Label for send button"
-  },
-  "saveOrSendDescription": "هل تريد حفظه إلى السعة التخزينية الخاصة بك (مجلد التنزيلات افتراضيا) أم إرساله إلى تطبيقات أخرى؟",
-  "@saveOrSendDescription": {
-    "description": "Description text asking user if they want to save to storage or share with other apps"
-  },
-  "saveOnlyDescription": "هل تريد حفظه إلى السعة التخزينية الخاصة بك (مجلد التنزيلات افتراضيا)؟",
-  "@saveOnlyDescription": {
-    "description": "Description text asking user if they want to save to storage (for platforms that don't support sharing)"
-  },
-  "enterNewEmailHint": "أدخل عنوان بريدك الإلكتروني الجديد",
-  "@enterNewEmailHint": {
-    "description": "Hint text for entering new email address"
-  },
-  "email": "البريد الإلكتروني",
-  "@email": {
-    "description": "Email field label"
-  },
-  "verify": "التحقق",
-  "@verify": {
-    "description": "Verify button label"
-  },
-  "invalidEmailTitle": "عنوان البريد الإلكتروني غير صالح",
-  "@invalidEmailTitle": {
-    "description": "Title for invalid email error dialog"
-  },
-  "invalidEmailMessage": "الرجاء إدخال بريد إلكتروني صالح.",
-  "@invalidEmailMessage": {
-    "description": "Message for invalid email error dialog"
-  },
-  "pleaseWait": "انتظر قليلاً...",
-  "@pleaseWait": {
-    "description": "Please wait message"
-  },
-  "verifyPassword": "التحقق من كلمة المرور",
-  "@verifyPassword": {
-    "description": "Verify password button label"
-  },
-  "incorrectPasswordTitle": "كلمة المرور غير صحيحة",
-  "@incorrectPasswordTitle": {
-    "description": "Title for incorrect password error"
-  },
-  "pleaseTryAgain": "يرجى المحاولة مرة أخرى",
-  "@pleaseTryAgain": {
-    "description": "Message asking user to try again"
-  },
-  "enterPassword": "أدخل كلمة المرور",
-  "@enterPassword": {
-    "description": "Enter password field label"
-  },
-  "enterYourPasswordHint": "أدخل كلمة المرور الخاصة بك",
-  "@enterYourPasswordHint": {
-    "description": "Hint for password field"
-  },
+  "actionNotSupportedOnFavouritesAlbum": "الإجراء غير مدعوم في ألبوم المفضلة",
   "activeSessions": "الجلسات النشطة",
   "@activeSessions": {
     "description": "Title for active sessions page"
   },
-  "oops": "عذرًا",
-  "@oops": {
-    "description": "Oops error title"
-  },
-  "somethingWentWrongPleaseTryAgain": "حدث خطأ ما، يرجى المحاولة مرة أخرى",
-  "@somethingWentWrongPleaseTryAgain": {
-    "description": "Generic error message"
-  },
-  "thisWillLogYouOutOfThisDevice": "سيؤدي هذا إلى تسجيل خروجك من هذا الجهاز!",
-  "@thisWillLogYouOutOfThisDevice": {
-    "description": "Warning message for logging out of current device"
-  },
-  "thisWillLogYouOutOfTheFollowingDevice": "سيؤدي هذا إلى تسجيل خروجك من هذا الجهاز:",
-  "@thisWillLogYouOutOfTheFollowingDevice": {
-    "description": "Warning message for logging out of another device"
-  },
-  "terminateSession": "إنهاء الجلسة؟",
-  "@terminateSession": {
-    "description": "Title for terminate session dialog"
-  },
-  "terminate": "إنهاء",
-  "@terminate": {
-    "description": "Terminate button label"
-  },
-  "thisDevice": "هذا الجهاز",
-  "@thisDevice": {
-    "description": "Label for current device"
-  },
-  "createAccount": "إنشاء حساب",
-  "@createAccount": {
-    "description": "Create account button label"
-  },
-  "weakStrength": "ضعيف",
-  "@weakStrength": {
-    "description": "Weak password strength label"
-  },
-  "moderateStrength": "متوسط",
-  "@moderateStrength": {
-    "description": "Moderate password strength label"
-  },
-  "strongStrength": "قوي",
-  "@strongStrength": {
-    "description": "Strong password strength label"
-  },
-  "deleteAccount": "إزالة الحساب",
-  "@deleteAccount": {
-    "description": "Delete account button label"
-  },
-  "deleteAccountQuery": "سوف نأسف لرؤيتك تذهب. هل تواجه بعض المشاكل؟",
-  "@deleteAccountQuery": {
-    "description": "Message asking user why they want to delete account"
-  },
-  "yesSendFeedbackAction": "نعم، ارسل الملاحظات",
-  "@yesSendFeedbackAction": {
-    "description": "Button to confirm sending feedback"
-  },
-  "noDeleteAccountAction": "لا، حذف الحساب",
-  "@noDeleteAccountAction": {
-    "description": "Button to proceed with account deletion"
-  },
-  "initiateAccountDeleteTitle": "الرجاء المصادقة لبدء حذف الحساب",
-  "@initiateAccountDeleteTitle": {
-    "description": "Title for authentication dialog before account deletion"
-  },
-  "confirmAccountDeleteTitle": "تأكيد حذف الحساب",
-  "@confirmAccountDeleteTitle": {
-    "description": "Title for account deletion confirmation dialog"
-  },
-  "confirmAccountDeleteMessage": "هذا الحساب مرتبط بتطبيقات Ente أخرى، إذا كنت تستخدم أحدها.\n\nسنضع موعدا لحذف بياناتك المرفوعة عبر كل تطبيقات Ente، وسيتم حذف حسابك بصورة دائمة.",
-  "@confirmAccountDeleteMessage": {
-    "description": "Message warning about account deletion consequences"
-  },
-  "delete": "حذف",
-  "@delete": {
-    "description": "Delete button label"
-  },
-  "createNewAccount": "إنشاء حساب جديد",
-  "@createNewAccount": {
-    "description": "Create new account button label"
-  },
-  "password": "كلمة المرور",
-  "@password": {
-    "description": "Password field label"
-  },
-  "confirmPassword": "تأكيد كلمة المرور",
-  "@confirmPassword": {
-    "description": "Confirm password field label"
-  },
-  "passwordStrength": "قوة كلمة المرور: {passwordStrengthValue}",
-  "@passwordStrength": {
-    "description": "Text to indicate the password strength",
+  "add": "إضافة",
+  "addCode": "أضف رمز",
+  "addedBy": "تمت الإضافة بواسطة {emailOrName}",
+  "@addedBy": {
     "placeholders": {
-      "passwordStrengthValue": {
-        "description": "The strength of the password as a string",
-        "type": "String",
-        "example": "Weak or Moderate or Strong"
-      }
+      "emailOrName": {}
     }
   },
-  "hearUsWhereTitle": "كيف سمعت عن Ente؟ (اختياري)",
-  "@hearUsWhereTitle": {
-    "description": "Title asking how user heard about Ente"
-  },
-  "hearUsExplanation": "نحن لا نتتبع تثبيت التطبيق. سيكون من المفيد إذا أخبرتنا أين وجدتنا!",
-  "@hearUsExplanation": {
-    "description": "Explanation for asking how user heard about Ente"
-  },
-  "signUpTerms": "أوافق على <u-terms>شروط الخدمة</u-terms> و<u-policy>سياسة الخصوصية</u-policy>",
-  "@signUpTerms": {
-    "description": "Terms agreement text for sign up"
-  },
-  "termsOfServicesTitle": "الشروط",
-  "@termsOfServicesTitle": {
-    "description": "Terms of service title"
-  },
-  "privacyPolicyTitle": "سياسة الخصوصية",
-  "@privacyPolicyTitle": {
-    "description": "Privacy policy title"
-  },
-  "ackPasswordLostWarning": "أنا أفهم أنه إذا فقدت كلمة المرور الخاصة بي، قد أفقد بياناتي لأن بياناتي هي <underline>مشفرة من الند للند</underline>.",
-  "@ackPasswordLostWarning": {
-    "description": "Warning about password loss"
-  },
-  "encryption": "التشفير",
-  "@encryption": {
-    "description": "Encryption label"
-  },
-  "logInLabel": "تسجيل الدخول",
-  "@logInLabel": {
-    "description": "Log in button label"
-  },
-  "welcomeBack": "مرحبًا مجددًا!",
-  "@welcomeBack": {
-    "description": "Welcome back message"
-  },
-  "loginTerms": "بالنقر على تسجيل الدخول، أوافق على شروط الخدمة <u-terms></u-terms> و <u-policy>سياسة الخصوصية</u-policy>",
-  "@loginTerms": {
-    "description": "Terms agreement text for login"
-  },
-  "noInternetConnection": "لا يوجد اتصال بالإنترنت",
-  "@noInternetConnection": {
-    "description": "No internet connection error message"
-  },
-  "pleaseCheckYourInternetConnectionAndTryAgain": "يرجى التحقق من اتصالك بالإنترنت ثم المحاولة من جديد.",
-  "@pleaseCheckYourInternetConnectionAndTryAgain": {
-    "description": "Message asking user to check internet connection"
-  },
-  "verificationFailedPleaseTryAgain": "فشل في المصادقة ، يرجى المحاولة مرة أخرى في وقت لاحق",
-  "@verificationFailedPleaseTryAgain": {
-    "description": "Verification failed error message"
-  },
-  "recreatePasswordTitle": "إعادة كتابة كلمة المرور",
-  "@recreatePasswordTitle": {
-    "description": "Title for recreate password dialog"
-  },
-  "recreatePasswordBody": "الجهاز الحالي ليس قويًا بما يكفي للتحقق من كلمة المرور الخاصة بك، لذا نحتاج إلى إعادة إنشائها مرة واحدة بطريقة تعمل مع جميع الأجهزة.\n\nالرجاء تسجيل الدخول باستخدام مفتاح الاسترداد وإعادة إنشاء كلمة المرور الخاصة بك (يمكنك استخدام نفس كلمة المرور مرة أخرى إذا كنت ترغب في ذلك).",
-  "@recreatePasswordBody": {
-    "description": "Body text for recreate password dialog"
-  },
-  "useRecoveryKey": "استخدم مفتاح الاسترداد",
-  "@useRecoveryKey": {
-    "description": "Use recovery key button label"
-  },
-  "forgotPassword": "هل نسيت كلمة المرور",
-  "@forgotPassword": {
-    "description": "Forgot password link label"
-  },
-  "changeEmail": "غير البريد الإلكتروني",
-  "@changeEmail": {
-    "description": "Change email button label"
-  },
-  "verifyEmail": "تأكيد البريد الإلكتروني",
-  "@verifyEmail": {
-    "description": "Verify email title"
-  },
-  "weHaveSendEmailTo": "لقد أرسلنا رسالة إلى <green>{email}</green>",
-  "@weHaveSendEmailTo": {
-    "description": "Text to indicate that we have sent a mail to the user",
+  "addedSuccessfullyTo": "تمت الإضافة بنجاح إلى {albumName}",
+  "@addedSuccessfullyTo": {
     "placeholders": {
-      "email": {
-        "description": "The email address of the user",
-        "type": "String",
-        "example": "example@ente.io"
-      }
+      "albumName": {}
     }
   },
-  "toResetVerifyEmail": "لإعادة تعيين كلمة المرور الخاصة بك، يرجى التحقق من بريدك الإلكتروني أولاً.",
-  "@toResetVerifyEmail": {
-    "description": "Message asking user to verify email before password reset"
-  },
-  "checkInboxAndSpamFolder": "الرجاء التحقق من صندوق الوارد (والرسائل غير المرغوب فيها) لإكمال التحقق",
-  "@checkInboxAndSpamFolder": {
-    "description": "Message asking user to check inbox and spam folder"
-  },
-  "tapToEnterCode": "انقر لإدخال الرمز",
-  "@tapToEnterCode": {
-    "description": "Hint for entering verification code"
-  },
-  "sendEmail": "إرسال بريد إلكتروني",
-  "resendEmail": "إعادة إرسال البريد الإلكتروني",
-  "@resendEmail": {
-    "description": "Resend email button label"
-  },
-  "passKeyPendingVerification": "التحقق ما زال جارٍ",
-  "@passKeyPendingVerification": {
-    "description": "Message when passkey verification is pending"
-  },
-  "loginSessionExpired": "انتهت صلاحية الجلسة",
-  "@loginSessionExpired": {
-    "description": "Login session expired title"
-  },
-  "loginSessionExpiredDetails": "انتهت صلاحية جلستك. فضلا أعد تسجيل الدخول.",
-  "@loginSessionExpiredDetails": {
-    "description": "Login session expired details"
-  },
-  "passkeyAuthTitle": "التحقق من مفتاح المرور",
-  "@passkeyAuthTitle": {
-    "description": "Passkey authentication title"
-  },
-  "waitingForVerification": "بانتظار التحقق...",
-  "@waitingForVerification": {
-    "description": "Waiting for verification message"
-  },
-  "tryAgain": "حاول مرة أخرى",
-  "@tryAgain": {
-    "description": "Try again button label"
-  },
-  "checkStatus": "تحقق من الحالة",
-  "@checkStatus": {
-    "description": "Check status button label"
-  },
-  "loginWithTOTP": "",
-  "@loginWithTOTP": {
-    "description": "Login with TOTP button label"
-  },
-  "recoverAccount": "إسترجاع الحساب",
-  "@recoverAccount": {
-    "description": "Recover account button label"
-  },
-  "setPasswordTitle": "تعيين كلمة المرور",
-  "@setPasswordTitle": {
-    "description": "Set password title"
-  },
-  "changePasswordTitle": "تغيير كلمة المرور",
-  "@changePasswordTitle": {
-    "description": "Change password title"
-  },
-  "resetPasswordTitle": "إعادة تعيين كلمة المرور",
-  "@resetPasswordTitle": {
-    "description": "Reset password title"
-  },
-  "encryptionKeys": "مفاتيح التشفير",
-  "@encryptionKeys": {
-    "description": "Encryption keys title"
-  },
-  "enterPasswordToEncrypt": "أدخل كلمة المرور التي يمكننا استخدامها لتشفير بياناتك",
-  "@enterPasswordToEncrypt": {
-    "description": "Prompt to enter password for encryption"
-  },
-  "enterNewPasswordToEncrypt": "أدخل كلمة مرور جديدة يمكننا استخدامها لتشفير بياناتك",
-  "@enterNewPasswordToEncrypt": {
-    "description": "Prompt to enter new password for encryption"
-  },
-  "passwordWarning": "نحن لا نقوم بتخزين كلمة المرور هذه، لذا إذا نسيتها، <underline>لا يمكننا فك تشفير بياناتك</underline>",
-  "@passwordWarning": {
-    "description": "Warning about password storage"
-  },
-  "howItWorks": "كيف يعمل",
-  "@howItWorks": {
-    "description": "How it works button label"
-  },
-  "generatingEncryptionKeys": "توليد مفاتيح التشفير...",
-  "@generatingEncryptionKeys": {
-    "description": "Generating encryption keys message"
-  },
-  "passwordChangedSuccessfully": "تم تغيير كلمة المرور بنجاح",
-  "@passwordChangedSuccessfully": {
-    "description": "Password changed successfully message"
-  },
-  "signOutFromOtherDevices": "تسجيل الخروج من الأجهزة الأخرى",
-  "@signOutFromOtherDevices": {
-    "description": "Sign out from other devices title"
-  },
-  "signOutOtherBody": "إذا كنت تعتقد أن شخصا ما يعرف كلمة المرور الخاصة بك، يمكنك إجبار جميع الأجهزة الأخرى الستخدمة حاليا لحسابك على تسجيل الخروج.",
-  "@signOutOtherBody": {
-    "description": "Sign out other devices explanation"
-  },
-  "signOutOtherDevices": "تسجيل الخروج من الأجهزة الأخرى",
-  "@signOutOtherDevices": {
-    "description": "Sign out other devices button label"
-  },
-  "doNotSignOut": "لا تقم بتسجيل الخروج",
-  "@doNotSignOut": {
-    "description": "Do not sign out button label"
-  },
-  "generatingEncryptionKeysTitle": "توليد مفاتيح التشفير...",
-  "@generatingEncryptionKeysTitle": {
-    "description": "Generating encryption keys title"
-  },
-  "continueLabel": "المتابعة",
-  "@continueLabel": {
-    "description": "Continue button label"
-  },
-  "insecureDevice": "جهاز غير آمن",
-  "@insecureDevice": {
-    "description": "Insecure device warning title"
-  },
-  "sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": "عذرًا، لم نتمكن من إنشاء مفاتيح آمنة على هذا الجهاز.\n\nيرجى التسجيل من جهاز مختلف.",
-  "@sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": {
-    "description": "Error message for insecure device"
-  },
-  "recoveryKeyCopiedToClipboard": "تم نسخ عبارة الاسترداد للحافظة",
-  "@recoveryKeyCopiedToClipboard": {
-    "description": "Recovery key copied message"
-  },
-  "recoveryKey": "مفتاح الاسترداد",
-  "@recoveryKey": {
-    "description": "Recovery key label"
-  },
-  "recoveryKeyOnForgotPassword": "إذا نسيت كلمة المرور الخاصة بك، فالطريقة الوحيدة التي يمكنك بها استرداد بياناتك هي بهذا المفتاح.",
-  "@recoveryKeyOnForgotPassword": {
-    "description": "Recovery key importance explanation"
-  },
-  "recoveryKeySaveDescription": "نحن لا نخزن هذا المفتاح، يرجى حفظ مفتاح الـ 24 كلمة هذا في مكان آمن.",
-  "@recoveryKeySaveDescription": {
-    "description": "Recovery key save description"
-  },
-  "doThisLater": "قم بهذا لاحقاً",
-  "@doThisLater": {
-    "description": "Do this later button label"
-  },
-  "saveKey": "حفظ المفتاح",
-  "@saveKey": {
-    "description": "Save key button label"
-  },
-  "recoveryKeySaved": "حُفِظ مفتاح الاستعادة في مجلد التنزيلات!",
-  "@recoveryKeySaved": {
-    "description": "Recovery key saved confirmation message"
-  },
-  "noRecoveryKeyTitle": "لا يوجد مفتاح استرجاع؟",
-  "@noRecoveryKeyTitle": {
-    "description": "No recovery key title"
-  },
-  "twoFactorAuthTitle": "المصادقة الثنائية",
-  "@twoFactorAuthTitle": {
-    "description": "Two-factor authentication title"
-  },
-  "enterCodeHint": "أدخل الرمز المكون من 6 أرقام من\nتطبيق المصادقة",
-  "@enterCodeHint": {
-    "description": "Hint for entering 2FA code"
-  },
-  "lostDeviceTitle": "جهاز مفقود ؟",
-  "@lostDeviceTitle": {
-    "description": "Lost device title"
-  },
-  "enterRecoveryKeyHint": "أدخل رمز الاسترداد",
-  "@enterRecoveryKeyHint": {
-    "description": "Hint for entering recovery key"
-  },
-  "recover": "استرداد",
-  "@recover": {
-    "description": "Recover button label"
-  },
-  "loggingOut": "جاري تسجيل الخروج...",
-  "@loggingOut": {
-    "description": "Message shown while logging out"
-  },
-  "immediately": "فورًا",
-  "@immediately": {
-    "description": "Immediately option for auto lock timing"
-  },
-  "appLock": "قُفْل التطبيق",
-  "@appLock": {
-    "description": "App lock setting title"
-  },
-  "autoLock": "قفل تلقائي",
-  "@autoLock": {
-    "description": "Auto lock setting title"
-  },
-  "noSystemLockFound": "لا يوجد قفل نظام",
-  "@noSystemLockFound": {
-    "description": "Error when no system lock is found"
-  },
-  "deviceLockEnablePreSteps": "لتفعيل قُفْل الجهاز، اضبط رمز مرور أو قُفْل الشاشة من الإعدادات",
-  "@deviceLockEnablePreSteps": {
-    "description": "Instructions for enabling device lock"
-  },
-  "appLockDescription": "اختر نوع قُفْل الشاشة: افتراضي أو مخصص.",
-  "@appLockDescription": {
-    "description": "Description of app lock feature"
-  },
-  "deviceLock": "قفل الجهاز",
-  "@deviceLock": {
-    "description": "Device lock option title"
-  },
-  "pinLock": "قفل رقم التعريف الشخصي",
-  "@pinLock": {
-    "description": "PIN lock option title"
-  },
-  "autoLockFeatureDescription": "الوقت الذي بعده ينقفل التطبيق بعدما يوضع في الخلفية",
-  "@autoLockFeatureDescription": {
-    "description": "Description of auto lock feature"
-  },
-  "hideContent": "أخفِ المحتوى",
-  "@hideContent": {
-    "description": "Hide content setting title"
-  },
-  "hideContentDescriptionAndroid": "يخفي محتوى التطبيق في مبدل التطبيقات ويمنع لقطات الشاشة",
-  "@hideContentDescriptionAndroid": {
-    "description": "Description of hide content feature on Android"
-  },
-  "hideContentDescriptioniOS": "يخفي محتوى التطبيق في مبدل التطبيقات",
-  "@hideContentDescriptioniOS": {
-    "description": "Description of hide content feature on iOS"
-  },
-  "tooManyIncorrectAttempts": "محاولات خاطئة أكثر من المسموح",
-  "@tooManyIncorrectAttempts": {
-    "description": "Message shown when too many incorrect attempts are made"
-  },
-  "tapToUnlock": "المس لإلغاء القفل",
-  "@tapToUnlock": {
-    "description": "Message prompting user to tap to unlock"
-  },
-  "areYouSureYouWantToLogout": "هل أنت متأكد من أنك تريد تسجيل الخروج؟",
-  "@areYouSureYouWantToLogout": {
-    "description": "Confirmation message before logout"
-  },
-  "yesLogout": "نعم، تسجيل الخروج",
-  "@yesLogout": {
-    "description": "Confirmation button for logout"
-  },
-  "authToViewSecrets": "الرجاء المصادقة لعرض مفتاح الاسترداد الخاص بك",
-  "@authToViewSecrets": {
-    "description": "Message prompting authentication to view secrets"
-  },
-  "next": "التالي",
-  "@next": {
-    "description": "Next button label"
-  },
-  "setNewPassword": "عين كلمة مرور جديدة",
-  "@setNewPassword": {
-    "description": "Set new password title"
-  },
-  "enterPin": "أدخل رقم التعريف الشخصي",
-  "@enterPin": {
-    "description": "Enter PIN prompt"
-  },
-  "setNewPin": "عين رقم تعريف شخصي جديد",
-  "@setNewPin": {
-    "description": "Set new PIN title"
-  },
-  "confirm": "تأكيد",
-  "@confirm": {
-    "description": "Confirm button label"
-  },
-  "reEnterPassword": "أعد إدخال كلمة المرور",
-  "@reEnterPassword": {
-    "description": "Re-enter password prompt"
-  },
-  "reEnterPin": "أعد إدخال رقم التعريف الشخصي",
-  "@reEnterPin": {
-    "description": "Re-enter PIN prompt"
-  },
+  "addEmail": "إضافة بريد إلكتروني",
+  "addFiles": "إضافة ملفات",
+  "addFromDevice": "إضافة من الجهاز",
+  "addingPhotos": "جاري إضافة الصور",
+  "addingToFavorites": "جارٍ الإضافة إلى المفضلة...",
+  "addLocation": "إضافة موقع",
+  "addLocationButton": "إضافة",
+  "addMember": "إضافة عضو",
+  "addMore": "إضافة المزيد",
+  "addName": "إضافة اسم",
+  "addNewEmail": "إضافة بريد إلكتروني جديد",
+  "addOnPageSubtitle": "تفاصيل الإضافات",
+  "addOns": "الإضافات",
+  "addOnValidTill": "إضافتك بسعة {storageAmount} صالحة حتى {endDate}",
+  "@addOnValidTill": {
+    "placeholders": {
+      "endDate": {},
+      "storageAmount": {}
+    }
+  },
+  "addPhotos": "إضافة صور",
+  "addSelected": "إضافة المحدد",
+  "addTag": "إضافة وسم",
+  "addToAlbum": "إضافة إلى الألبوم",
+  "addToCollection": "إضافة إلى المجموعة",
+  "addToEnte": "إضافة إلى Ente",
+  "addToHiddenAlbum": "إضافة إلى الألبوم المخفي",
+  "addYourPhotosNow": "أضف صورك الآن",
+  "adjust": "تعديل",
+  "admin": "مشرف",
+  "admiringThem": "الإعجاب بـ {name}",
+  "@admiringThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "advanced": "متقدم",
+  "after1Day": "بعد يوم",
+  "after1Hour": "بعد ساعة",
+  "after1Month": "بعد شهر",
+  "after1Week": "بعد أسبوع",
+  "after1Year": "بعد سنة",
+  "albumName": "اسم الألبوم",
+  "albums": "الألبومات",
+  "albumsOnEnteEmptyTitle": "النسخ الاحتياطي لذكرياتك",
+  "albumTitle": "عنوان الألبوم",
+  "albumUpdated": "تم تحديث الألبوم",
+  "algorithm": "الخوارزمية",
+  "align": "محاذاة",
+  "all": "الكل",
+  "allClear": "✨ كل شيء واضح",
+  "allFilesAlreadyMarkedAsImportant": "جميع العناصر محددة كمهمة بالفعل",
+  "allMemoriesPreserved": "تم حفظ جميع الذكريات",
+  "allow": "السماح",
+  "allowAddingPhotos": "السماح بإضافة الصور",
+  "@allowAddingPhotos": {
+    "description": "Switch button to enable uploading photos to a public link"
+  },
+  "allowAppToOpenSharedAlbumLinks": "السماح للتطبيق بفتح روابط الألبومات المشتركة",
+  "allowDownloads": "السماح بالتنزيلات",
+  "allowPermBody": "يرجى السماح بالوصول إلى صورك من الإعدادات حتى يتمكن Ente من عرض نسختك الاحتياطية ومكتبتك.",
+  "allowPermTitle": "السماح بالوصول إلى الصور",
+  "allPersonGroupingWillReset": "سيتم إعادة تعيين جميع تجمعات هذا الشخص، وستفقد جميع الاقتراحات المقدمة لهذا الشخص.",
+  "allTabEmptyHint": "لا يوجد شيء هنا حتى الآن. انقر على زر + لإضافة رمز أو افتح سلة المهملات لاستعادة رمز.",
+  "@allTabEmptyHint": {
+    "description": "Shown when the All tab has no active codes but Trash contains codes"
+  },
+  "allWillShiftRangeBasedOnFirst": "هذه هي الأولى في المجموعة. سيتم تغيير تواريخ الصور المحددة الأخرى تلقائيًا بناءً على هذا التاريخ الجديد.",
+  "analysis": "تحليل",
   "androidBiometricHint": "التحقق من الهوية",
   "@androidBiometricHint": {
     "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricNotRecognized": "لم يتم التعرف عليه. حاول مرة أخرى.",
-  "@androidBiometricNotRecognized": {
-    "description": "Message to let the user know that authentication was failed. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricSuccess": "تم بنجاح",
-  "@androidBiometricSuccess": {
-    "description": "Message to let the user know that authentication was successful. It is used on Android side. Maximum 60 characters."
   },
   "androidCancelButton": "إلغاء",
   "@androidCancelButton": {
@@ -614,45 +119,466 @@
   "@androidSignInTitle": {
     "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
   },
-  "androidBiometricRequiredTitle": "البيومترية مطلوبة",
-  "@androidBiometricRequiredTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user has not set up biometric authentication on their device. It is used on Android side. Maximum 60 characters."
+  "aNewVersionOfEnteIsAvailable": "يتوفر إصدار جديد من Ente.",
+  "appIcon": "أيقونة التطبيق",
+  "appleId": "معرّف Apple",
+  "appLockDescription": "اختر نوع قُفْل الشاشة: افتراضي أو مخصص.",
+  "@appLockDescription": {
+    "description": "Description of app lock feature"
   },
-  "androidDeviceCredentialsRequiredTitle": "بيانات اعتماد الجهاز مطلوبة",
-  "@androidDeviceCredentialsRequiredTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user has not set up credentials authentication on their device. It is used on Android side. Maximum 60 characters."
+  "appLockNotEnabled": "قُفْل التطبيق غير مفعل ",
+  "appLockNotEnabledDescription": "لحماية بياناتك، فعِّل قُفْل التطبيق من إعدادات الأمان ← قُفْل التطبيق",
+  "appLockOfflineModeWarning": "لقد اخترتَ المُتابعة دون نُسخ احتياطية. إذا نَسيتَ قُفْل التطبيق، فلن تتمكن من الوصول إلى بياناتك.",
+  "apply": "تطبيق",
+  "applyCodeTitle": "تطبيق الرمز",
+  "appstoreSubscription": "اشتراك متجر App Store",
+  "archive": "الأرشيف",
+  "@archive": {
+    "description": "Action of 'Archiving' an element"
   },
-  "androidDeviceCredentialsSetupDescription": "بيانات اعتماد الجهاز مطلوبة",
-  "@androidDeviceCredentialsSetupDescription": {
-    "description": "Message advising the user to go to the settings and configure device credentials on their device. It shows in a dialog on Android side."
+  "archiveAlbum": "أرشفة الألبوم",
+  "archiving": "جارٍ الأرشفة...",
+  "areThey": "هل هم ",
+  "areYouSure": "هل أنت متأكد؟",
+  "@areYouSure": {
+    "description": "Confirmation dialog title"
   },
-  "goToSettings": "الانتقال إلى الإعدادات",
-  "@goToSettings": {
-    "description": "Message showed on a button that the user can click to go to settings pages from the current dialog. It is used on both Android and iOS side. Maximum 30 characters."
+  "areYouSureRemoveThisFaceFromPerson": "هل أنت متأكد من رغبتك في إزالة هذا الوجه من هذا الشخص؟",
+  "areYouSureThatYouWantToLeaveTheFamily": "هل أنت متأكد من رغبتك في مغادرة الخطة العائلية؟",
+  "areYouSureYouWantToCancel": "هل أنت متأكد من رغبتك في الإلغاء؟",
+  "areYouSureYouWantToChangeYourPlan": "هل أنت متأكد من رغبتك في تغيير خطتك؟",
+  "areYouSureYouWantToExit": "هل أنت متأكد من رغبتك في الخروج؟",
+  "areYouSureYouWantToIgnoreThesePersons": "هل أنت متأكد أنك تريد تجاهل هؤلاء الأشخاص؟",
+  "areYouSureYouWantToIgnoreThisPerson": "هل أنت متأكد من أنك تريد تجاهل هذا الشخص؟",
+  "areYouSureYouWantToRenew": "هل أنت متأكد من رغبتك في التجديد؟",
+  "areYouSureYouWantToResetThisPerson": "هل أنت متأكد من رغبتك في إعادة تعيين هذا الشخص؟",
+  "askCancelReason": "تم إلغاء اشتراكك. هل ترغب في مشاركة السبب؟",
+  "authenticateGeneric": "الرجاء المصادقة",
+  "authenticating": "جارٍ المصادقة...",
+  "authenticationSuccessful": "تمت المصادقة بنجاح!",
+  "@authenticationSuccessful": {
+    "description": "Success message when authentication is successful"
   },
-  "androidGoToSettingsDescription": "لم يتم إعداد المصادقة الحيوية على جهازك. انتقل إلى 'الإعدادات > الأمن' لإضافة المصادقة البيومترية.",
-  "@androidGoToSettingsDescription": {
-    "description": "Message advising the user to go to the settings and configure biometric on their device. It shows in a dialog on Android side."
+  "authToConfigureTwofactorAuthentication": "يرجى المصادقة لإعداد المصادقة الثنائية.",
+  "authToExportCodes": "الرجاء المصادقة لتصدير الرموز الخاصة بك",
+  "authToInitiateSignIn": "الرجاء المصادقة لبدء تسجيل الدخول للنسخ الاحتياطي.",
+  "authToManageLegacy": "يرجى المصادقة لإدارة جهات الاتصال الموثوقة الخاصة بك.",
+  "authToSetBackupPassword": "يرجي المصادقة لتعيين كلمة مرور النسخة الاحتياطية",
+  "authToUpdateBackupPassword": "يرجي المصادقة لتحديث كلمة مرور النسخة الاحتياطية",
+  "authToViewPasskey": "يرجى المصادقة لعرض مفتاح المرور الخاص بك.",
+  "authToViewPasskeyGeneric": "الرجاء المصادقة لعرض مفتاح الاسترداد الخاص بك",
+  "authToViewSecrets": "الرجاء المصادقة لعرض مفتاح الاسترداد الخاص بك",
+  "@authToViewSecrets": {
+    "description": "Message prompting authentication to view secrets"
   },
-  "iOSLockOut": "المصادقة البيومترية معطلة. الرجاء قفل الشاشة وفتح القفل لتفعيلها.",
-  "@iOSLockOut": {
-    "description": "Message advising the user to re-enable biometrics on their device. It shows in a dialog on iOS side."
+  "authToViewTrashedFiles": "يرجى المصادقة لعرض ملفاتك المحذوفة",
+  "authToViewYourHiddenFiles": "يرجى المصادقة للوصول إلى ملفاتك المخفية",
+  "authToViewYourMemories": "يرجى المصادقة لعرض ذكرياتك.",
+  "autoAddPeople": "إضافة الأشخاص التلقائية",
+  "autoAddToAlbum": "إضافة تلقائية إلى الألبوم",
+  "autoCastDialogBody": "سترى أجهزة Cast المتاحة هنا.",
+  "autoCastiOSPermission": "تأكد من تشغيل أذونات الشبكة المحلية لتطبيق Ente Photos في الإعدادات.",
+  "autoLock": "قفل تلقائي",
+  "@autoLock": {
+    "description": "Auto lock setting title"
   },
-  "iOSOkButton": "حسناً",
-  "@iOSOkButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on iOS side. Maximum 30 characters."
+  "automaticallyAnalyzeAndSplitGrouping": "سنقوم تلقائيا بتحليل المجموعة لتحديد ما إذا كان هناك عدة أشخاص، وفصلهم مرة أخرى. قد يستغرق هذا بضع ثوان.",
+  "autoPair": "إقران تلقائي",
+  "backedUpFolders": "المجلدات المنسوخة احتياطيًا",
+  "background": "خلفية",
+  "backgroundWithThem": "مناظر جميلة مع {name}",
+  "@backgroundWithThem": {
+    "placeholders": {
+      "name": {}
+    }
   },
-  "emailAlreadyRegistered": "البريد الإلكتروني مُسَجَّل من قبل.",
-  "@emailAlreadyRegistered": {
-    "description": "Error message when email is already registered"
+  "backup": "النسخ الاحتياطي",
+  "backupCreated": "تم إنشاء نسخة احتياطية!",
+  "backupFailed": "فشل النسخ الاحتياطي",
+  "backupFile": "نسخ احتياطي للملف",
+  "backupFolderLabel": "مجلد النسخ الاحتياطية:",
+  "backupLocationChoiceDescription": "أين تريد حفظ نُسخك الاحتياطية؟",
+  "backupOverMobileData": "النسخ الاحتياطي عبر بيانات الجوال",
+  "backupPasswordCleared": "تم محو كلمة مرور النسخة الاحتياطية",
+  "backupPasswordHint": "ستقوم كلمة المرور بتشفير نسختك الاحتياطية.",
+  "backupSettings": "إعدادات النسخ الاحتياطي",
+  "backupStatus": "حالة النسخ الاحتياطي",
+  "backupStatusDescription": "ستظهر العناصر التي تم نسخها احتياطيًا هنا",
+  "backupVideos": "النسخ الاحتياطي لمقاطع الفيديو",
+  "beach": "رمال وبحر",
+  "birthday": "تاريخ الميلاد",
+  "birthdays": "أعياد الميلاد",
+  "blog": "المدونة",
+  "bothIssuerAndAccountCanNotBeEmpty": "لا يمكن أن يكون المُصدر والحساب فارغًا",
+  "brushColor": "لون الفرشاة",
+  "cachedData": "البيانات المؤقتة",
+  "calculating": "جارٍ الحساب...",
+  "cancel": "إلغاء",
+  "@cancel": {
+    "description": "Cancel button label"
   },
-  "emailNotRegistered": "البريد الإلكتروني غير مُسَجَّل.",
-  "@emailNotRegistered": {
-    "description": "Error message when email is not registered"
+  "cancelOtherSubscription": "يرجى إلغاء اشتراكك الحالي من {paymentProvider} أولاً.",
+  "@cancelOtherSubscription": {
+    "description": "The text to display when the user has an existing subscription from a different payment provider",
+    "type": "text",
+    "placeholders": {
+      "paymentProvider": {
+        "example": "Apple",
+        "type": "String"
+      }
+    }
   },
-  "thisEmailIsAlreadyInUse": "هذا البريد مستخدم مسبقاً",
-  "@thisEmailIsAlreadyInUse": {
-    "description": "Error message when email is already in use"
+  "cancelRecovery": "إلغاء استرداد الحساب",
+  "cancelSubscription": "إلغاء الاشتراك",
+  "cannotAddMoreFilesAfterBecomingViewer": "لن يتمكن {name} من إضافة عناصر إلى المجموعة بعد أن يصبح مشاهداً.",
+  "@cannotAddMoreFilesAfterBecomingViewer": {
+    "description": "Warning message when changing a collaborator to viewer",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "John"
+      }
+    }
+  },
+  "cannotDeleteSharedFiles": "لا يمكن حذف الملفات المشتركة",
+  "canNotOpenBody": "عذرًا، لا يمكن فتح هذا الألبوم في التطبيق.",
+  "canNotOpenTitle": "لا يمكن فتح هذا الألبوم",
+  "canOnlyCreateLinkForFilesOwnedByYou": "يمكن إنشاء رابط للملفات التي تملكها فقط.",
+  "canOnlyRemoveFilesOwnedByYou": "يمكنك فقط إزالة الملفات التي تملكها.",
+  "castAlbum": "بث الألبوم",
+  "castIPMismatchBody": "يرجى التأكد من أنك متصل بنفس الشبكة المتصل بها التلفزيون.",
+  "castIPMismatchTitle": "فشل بث الألبوم",
+  "centerPoint": "نقطة المركز",
+  "changeLocationOfSelectedItems": "تغيير موقع العناصر المحددة؟",
+  "changePasswordTitle": "تغيير كلمة المرور",
+  "@changePasswordTitle": {
+    "description": "Change password title"
+  },
+  "changePermissions": "تغيير الصلاحيات",
+  "checking": "جارٍ التحقق...",
+  "checkingModels": "جارٍ فحص النماذج...",
+  "chooseBackupLocation": "اختر موقع النسخة الاحتياطية",
+  "chooseFromAnExistingContact": "اختر من جهة اتصال موجودة",
+  "chooseIcon": "اختر أيقونة",
+  "city": "في المدينة",
+  "cleanUncategorized": "تنظيف غير المصنف",
+  "cleanUncategorizedDescription": "إزالة جميع الملفات من قسم 'غير مصنف' الموجودة في ألبومات أخرى.",
+  "clearAllFilters": "مسح جميع عوامل التصفية",
+  "clearBackupFolder": "مسح مجلد النسخ الاحتياطية",
+  "clearBackupPassword": "محو كلمة مرور النسخة الاحتياطية",
+  "clearCaches": "مسح ذاكرة التخزين المؤقت",
+  "clearingTrash": "جارٍ إفراغ سلة المهملات...",
+  "clickToInstallOurBestVersionYet": "انقر لتثبيت أفضل إصدار لنا حتى الآن",
+  "close": "إغلاق",
+  "clusteringProgress": "تقدم التجميع",
+  "codeAppliedPageTitle": "تم تطبيق الرمز",
+  "codeChangeLimitReached": "عذرًا، لقد تجاوزت الحد المسموح به لتعديلات الرمز.",
+  "codeCopiedToClipboard": "تم نسخ الرمز إلى الحافظة",
+  "codeIssuerHint": "المصدِّر",
+  "collaborator": "متعاون",
+  "collageLayout": "التخطيط",
+  "collageSaved": "تم حفظ الكولاج في المعرض.",
+  "collectionCannotBeDeleted": "لا يمكن حذف هذه المجموعة",
+  "collectionCannotBeEdited": "لا يمكن تعديل هذه المجموعة",
+  "collectionCannotBeShared": "لا يمكن مشاركة هذه المجموعة",
+  "collectionDeletedSuccessfully": "تم حذف المجموعة بنجاح",
+  "collectionEmptyStateSubtitle": "لا توجد عناصر في هذه المجموعة",
+  "collectionLabel": "مجموعة",
+  "collectionRenamedSuccessfully": "تمت إعادة تسمية المجموعة بنجاح",
+  "collections": "المجموعات",
+  "collectPhotos": "جمع الصور",
+  "color": "اللون",
+  "compactMode": "الوضع المضغوط",
+  "confirm": "تأكيد",
+  "@confirm": {
+    "description": "Confirm button label"
+  },
+  "confirm2FADisable": "هل أنت متأكد من رغبتك في تعطيل المصادقة الثنائية؟",
+  "confirmAddingTrustedContact": "أنت على وشك إضافة {email} كجهة اتصال موثوقة. سيكون بإمكانهم استعادة حسابك إذا كنت غائبًا لمدة {numOfDays} أيام.",
+  "@confirmAddingTrustedContact": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      },
+      "numOfDays": {
+        "type": "int",
+        "example": "30"
+      }
+    }
+  },
+  "confirmPassword": "تأكيد كلمة المرور",
+  "@confirmPassword": {
+    "description": "Confirm password field label"
+  },
+  "confirmPlanChange": "تأكيد تغيير الخطة",
+  "confirmRecoveryKey": "تأكيد مفتاح الاسترداد",
+  "confirmUpdatingkey": "هل أنت متأكد من أنك تريد تحديث المفتاح السري؟",
+  "connectToDevice": "الاتصال بالجهاز",
+  "contactDetails": "تفاصيل الاتصال",
+  "contactDetailsHint": "رقم الهاتف أو البريد الإلكتروني أو معلومات اتصال أخرى",
+  "contactName": "اسم جهة الاتصال",
+  "contactNameHint": "الاسم الكامل لجهة اتصال الطوارئ",
+  "contactNotes": "رسالة لجهة الاتصال",
+  "contactNotesHint": "معلومات مهمة لمشاركتها مع هذا الشخص عند الاتصال به",
+  "contacts": "جهات الاتصال",
+  "contactSupport": "الاتصال بالدعم",
+  "@contactSupport": {
+    "description": "Contact support button label"
+  },
+  "convertToAlbum": "تحويل إلى ألبوم",
+  "copied": "تم النسخ",
+  "copiedNextToClipboard": "تم نسخ الرموز التالية إلى الحافظة",
+  "copiedToClipboard": "تم النسخ إلى الحافظة",
+  "copyEmailAddress": "نسخ عنوان البريد الإلكتروني",
+  "@copyEmailAddress": {
+    "description": "Button to copy email address to clipboard"
+  },
+  "copyLink": "نسخ الرابط",
+  "copypasteThisCodentoYourAuthenticatorApp": "انسخ هذا الرمز وألصقه\n في تطبيق المصادقة الخاص بك",
+  "couldNotBackUpTryLater": "لم نتمكن من نسخ بياناتك احتياطيًا.\nسنحاول مرة أخرى لاحقًا.",
+  "couldNotFreeUpSpace": "تعذر تحرير المساحة.",
+  "couldNotOpenFile": "تعذر فتح العنصر: {error}",
+  "@couldNotOpenFile": {
+    "description": "Error message when item cannot be opened",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Permission denied"
+      }
+    }
+  },
+  "couldNotUpdateSubscription": "تعذر تحديث الاشتراك.",
+  "count": "العدد",
+  "crashAndErrorReporting": "الإبلاغ عن الأعطال والأخطاء",
+  "crashReporting": "الإبلاغ عن الأعطال",
+  "createAccount": "إنشاء حساب",
+  "@createAccount": {
+    "description": "Create account button label"
+  },
+  "createAlbumActionHint": "اضغط مطولاً لتحديد الصور ثم انقر على '+' لإنشاء ألبوم",
+  "createBackupNow": "أنشئ نسخة احتياطية الآن",
+  "createCollaborativeLink": "إنشاء رابط تعاوني",
+  "createCollage": "إنشاء كولاج",
+  "createCollection": "إنشاء مجموعة",
+  "createNewTag": "أنشيء وسم جديد",
+  "createPublicLink": "إنشاء رابط عام",
+  "creatingLink": "جارٍ إنشاء الرابط...",
+  "credentialName": "الحساب",
+  "credentialNameHint": "اسم الخدمة",
+  "credentialNotes": "ملاحظات إضافية",
+  "credentialNotesHint": "طرق الاسترداد، أسئلة الأمان، ...",
+  "crop": "اقتصاص",
+  "curatedMemories": "ذكريات منسقة",
+  "currentBackupFolder": "مجلد النسخ الاحتياطي الحالي:",
+  "currentlyRunning": "قيد التشغيل حاليًا",
+  "custom": "مخصص",
+  "@custom": {
+    "description": "Label for setting custom value for link expiry"
+  },
+  "customOrder": "ترتيب مخصّص",
+  "darkTheme": "داكن",
+  "data": "البيانات",
+  "day": "اليوم",
+  "dayToday": "اليوم",
+  "dayYesterday": "الأمس",
+  "declineTrustInvite": "رفض الدعوة",
+  "decrypting": "جارٍ فك التشفير...",
+  "decryptingVideo": "جارٍ فك تشفير الفيديو...",
+  "deduplicateCodes": "أكواد مكررة",
+  "deduplicateFiles": "إزالة الملفات المكررة",
+  "delete": "حذف",
+  "@delete": {
+    "description": "Delete button label"
+  },
+  "deleteAlbum": "حذف الألبوم",
+  "deleteAlbumDialog": "هل ترغب أيضًا في حذف الصور (ومقاطع الفيديو) الموجودة في هذا الألبوم من <bold>جميع</bold> الألبومات الأخرى التي هي جزء منها؟",
+  "deleteAlbumsDialogBody": "سيؤدي هذا إلى حذف جميع الألبومات الفارغة. هذا مفيد عندما تريد تقليل الفوضى في قائمة ألبوماتك.",
+  "deleteAll": "حذف الكل",
+  "deleteCodeAuthMessage": "المصادقة لحذف الرمز",
+  "deleteCodeMessage": "هل أنت متيقِّن من أنك تريد حذف هذه الشيفرة؟ هذا الإجراء لا رجعة فيه.",
+  "deleteCodeTitle": "حذف الرمز؟",
+  "deleteCollectionDialogBody": "سيتم حذف {collectionName} نهائياً.",
+  "@deleteCollectionDialogBody": {
+    "description": "Confirmation message body for deleting a single collection",
+    "placeholders": {
+      "collectionName": {
+        "type": "String",
+        "example": "My Documents"
+      }
+    }
+  },
+  "deleteCollectionFromEverywhere": "حذف العناصر من كل مكان أيضاً",
+  "@deleteCollectionFromEverywhere": {
+    "description": "Checkbox label asking whether to delete collection items everywhere"
+  },
+  "deleteDuplicates": "احذف التكرار",
+  "deleteEmptyAlbums": "حذف الألبومات الفارغة",
+  "deleteEmptyAlbumsWithQuestionMark": "حذف الألبومات الفارغة؟",
+  "deleteFromBoth": "الحذف من كليهما",
+  "deleteFromDevice": "الحذف من الجهاز",
+  "deleteFromEnte": "حذف من Ente",
+  "deleteLink": "حذف الرابط",
+  "deleteLinkQuestion": "حذف الرابط؟",
+  "deleteLocation": "حذف الموقع",
+  "deleteMultipleAlbumDialog": "هل تريد أيضًا حذف الصور (والمقاطع) الموجودة في هذه الألبومات {count} من <bold>كافة</bold> الألبومات الأخرى التي تشترك فيها؟",
+  "@deleteMultipleAlbumDialog": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "deletePhotos": "حذف الصور",
+  "deleteProgress": "جارٍ الحذف {currentlyDeleting} / {totalCount}",
+  "@deleteProgress": {
+    "placeholders": {
+      "currentlyDeleting": {},
+      "totalCount": {}
+    }
+  },
+  "deleteSharedAlbum": "حذف الألبوم المشترك؟",
+  "deleteSharedAlbumDialogBody": "سيتم حذف الألبوم للجميع.\n\nستفقد الوصول إلى الصور المشتركة في هذا الألبوم التي يملكها الآخرون.",
+  "deleteShareLinkConfirmation": "لن يتمكن الأشخاص الذين لديهم هذا الرابط من الوصول إلى العنصر بعد الآن.",
+  "deleteTagMessage": "هل أنت متأكد أنك تريد حذف هذا الوسم؟ لا يمكن عكس هذا الإجراء.",
+  "deleteTagTitle": "حذف الوسم؟",
+  "deleteUnparseableCodeMessage": "سيؤدي ذلك إلى حذف الرمز من Auth. لن يتم نقله إلى سلة المهملات.",
+  "deleteUnparseableCodeTitle": "حذف الرمز الغير قابل للتحليل؟",
+  "deletingFile": "جارٍ حذف العنصر...",
+  "deletingShareLink": "جارٍ حذف الرابط...",
+  "details": "التفاصيل",
+  "deviceLock": "قفل الجهاز",
+  "@deviceLock": {
+    "description": "Device lock option title"
+  },
+  "deviceLockEnablePreSteps": "لتفعيل قُفْل الجهاز، اضبط رمز مرور أو قُفْل الشاشة من الإعدادات",
+  "@deviceLockEnablePreSteps": {
+    "description": "Instructions for enabling device lock"
+  },
+  "deviceNotFound": "لم يتم العثور على الجهاز",
+  "didYouKnow": "هل تعلم؟",
+  "digits": "الأرقام",
+  "disableDownloadWarningBody": "لا يزال بإمكان المشاهدين التقاط لقطات شاشة أو حفظ نسخة من صورك باستخدام أدوات خارجية",
+  "disableDownloadWarningTitle": "يرجى الملاحظة",
+  "disableLinkMessage": "سيؤدي هذا إلى إزالة الرابط العام للوصول إلى \"{albumName}\".",
+  "@disableLinkMessage": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
+  "disableTwofactor": "تعطيل المصادقة الثنائية",
+  "disablingTwofactorAuthentication": "جارٍ تعطيل المصادقة الثنائية...",
+  "discardChanges": "تجاهل",
+  "discover": "اكتشاف",
+  "@discover": {
+    "description": "The text to display for the discover section under which we show receipts, screenshots, sunsets, greenery, etc."
+  },
+  "discover_babies": "الأطفال",
+  "discover_celebrations": "الاحتفالات",
+  "discover_food": "الطعام",
+  "discover_greenery": "المساحات الخضراء",
+  "discover_hills": "التلال",
+  "discover_identity": "الهوية",
+  "discover_memes": "الميمز",
+  "discover_notes": "الملاحظات",
+  "discover_pets": "الحيوانات الأليفة",
+  "discover_receipts": "الإيصالات",
+  "discover_screenshots": "لقطات الشاشة",
+  "discover_selfies": "صور السيلفي",
+  "discover_sunset": "غروب الشمس",
+  "discover_visiting_cards": "بطاقات الزيارة",
+  "discover_wallpapers": "الخلفيات",
+  "dismiss": "تجاهل",
+  "distanceInKMUnit": "كم",
+  "@distanceInKMUnit": {
+    "description": "Unit for distance in km"
+  },
+  "documentsHint": "المستندات",
+  "doesGroupContainMultiplePeople": "هل هذه المجموعة تحتوي على أشخاص متعددين؟",
+  "done": "تم",
+  "dontHaveAnAccount": "ليس لديك حساب؟",
+  "dontSave": "عدم الحفظ",
+  "doubleTapToViewHiddenCode": "يمكنك النقر مرتين على أي عنصر لعرض الرمز",
+  "download": "تنزيل",
+  "downloadFailed": "فشل التنزيل",
+  "downloading": "جارٍ التنزيل...",
+  "downloadingProgress": "جارٍ التنزيل... {percentage}%",
+  "@downloadingProgress": {
+    "description": "Download progress message",
+    "placeholders": {
+      "percentage": {
+        "type": "int",
+        "example": "75"
+      }
+    }
+  },
+  "downloadUpdate": "تحميل",
+  "doYouWantToDiscardTheEditsYouHaveMade": "هل تريد تجاهل التعديلات التي قمت بها؟",
+  "draw": "رسم",
+  "dropSupportEmail": "يرجى إرسال بريد إلكتروني إلى {supportEmail} من عنوان بريدك الإلكتروني المسجل",
+  "@dropSupportEmail": {
+    "placeholders": {
+      "supportEmail": {
+        "description": "The support email address",
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
+  },
+  "duplicateCodes": "رموز مكررة",
+  "duplicateFileCountWithStorageSaved": "لقد قمت بتنظيف {count, plural, one{ملف مكرر واحد} two{ملفين مكررين} few{{count} ملفات مكررة} many{{count} ملفًا مكررًا} other{{count} ملفًا مكررًا}}، مما وفر {storageSaved}!",
+  "@duplicateFileCountWithStorageSaved": {
+    "description": "The text to display when the user has successfully cleaned up duplicate files",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "1",
+        "type": "int"
+      },
+      "storageSaved": {
+        "example": "1.2 GB",
+        "type": "String"
+      }
+    }
+  },
+  "duplicateItemsGroup": "{count} ملفات، {formattedSize} لكل منها",
+  "@duplicateItemsGroup": {
+    "description": "Display the number of duplicate files and their size",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "12",
+        "type": "int"
+      },
+      "formattedSize": {
+        "example": "2.3 MB",
+        "type": "String"
+      }
+    }
+  },
+  "edit": "تعديل",
+  "editAutoAddPeople": "تحرير إضافة الأشخاص التلقائية",
+  "editCodeAuthMessage": "المصادقة لتعديل الرمز",
+  "editEmailAlreadyLinked": "هذا البريد الإلكتروني مرتبط مسبقاً بـ {name}.",
+  "@editEmailAlreadyLinked": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "editItem": "تعديل العنصر",
+  "editLocation": "تعديل الموقع",
+  "editOrder": "تعديل الطلب",
+  "editPerson": "تعديل الشخص",
+  "editSecret": "تعديل السر",
+  "@editSecret": {
+    "description": "Title shown when editing an existing secret"
+  },
+  "editsSaved": "تم حفظ التعديلات.",
+  "editsToLocationWillOnlyBeSeenWithinEnte": "ستكون التعديلات على الموقع مرئية فقط داخل Ente.",
+  "editTag": "حرر الوسم",
+  "editTime": "تعديل الوقت",
+  "eligible": "مؤهل",
+  "email": "البريد الإلكتروني",
+  "@email": {
+    "description": "Email field label"
   },
   "emailChangedTo": "تم تغيير البريد الإلكتروني إلى {newEmail}",
   "@emailChangedTo": {
@@ -665,60 +591,1591 @@
       }
     }
   },
-  "authenticationFailedPleaseTryAgain": "فشلت المصادقة. الرجاء المحاولة مرة أخرى",
-  "@authenticationFailedPleaseTryAgain": {
-    "description": "Error message when authentication fails"
+  "emailHint": "أدخل عنوان بريدك الإلكتروني",
+  "emailNoEnteAccount": "لا يملك {email} حساب Ente.\n\nأرسل له دعوة لمشاركة العناصر.",
+  "@emailNoEnteAccount": {
+    "placeholders": {
+      "email": {}
+    }
   },
-  "authenticationSuccessful": "تمت المصادقة بنجاح!",
-  "@authenticationSuccessful": {
-    "description": "Success message when authentication is successful"
+  "emailNoEnteAccountPhotos": "{email} لا يملك حسابًا على Ente.\n\nأرسل له دعوة لمشاركة الصور.",
+  "@emailNoEnteAccountPhotos": {
+    "placeholders": {
+      "email": {}
+    }
   },
-  "sessionExpired": "انتهت صَلاحِيَة الجِلسة",
-  "@sessionExpired": {
-    "description": "Error message when session has expired"
+  "emailUsMessage": "الرجاء مراسلتنا على {email}",
+  "@emailUsMessage": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "emailVerificationEnableWarning": "لتجنب إقفال حسابك، تأكد من تخزين نسخة من بريدك الإلكتروني 2FA خارج Ente Auth قبل تمكين التحقق من البريد الإلكتروني.",
+  "emailVerificationToggle": "تأكيد عنوان البريد الإلكتروني",
+  "embracingThem": "معانقة {name}",
+  "@embracingThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "emergencyContact": "جهة اتصال الطوارئ",
+  "empty": "إفراغ",
+  "emptyTrash": "إفراغ سلة المهملات",
+  "emptyTrashConfirmation": "هل أنت متأكد من أنك تريد حذف جميع العناصر في سلة المهملات نهائياً؟ لا يمكن التراجع عن هذا الإجراء.",
+  "emptyTrashQuestion": "إفراغ سلة المهملات؟",
+  "enable": "تمكين",
+  "enableAutomaticBackups": "النسخ الاحتياطية التلقائية",
+  "enableBackupsIosInstruction": "لتفعيل النسخ الاحتياطي على نظام iOS، يرجي اختيار مجلد في تطبيق الملفات (مثلًا، «On My iPhone»).",
+  "enabled": "مُمكّن",
+  "enableMaps": "تمكين الخرائط",
+  "encrypted": "مشفَّرة",
+  "encryptingBackup": "جارٍ تشفير النسخة الاحتياطية...",
+  "encryptionKeys": "مفاتيح التشفير",
+  "@encryptionKeys": {
+    "description": "Encryption keys title"
+  },
+  "enterAlbumName": "أدخل اسم الألبوم",
+  "enterCode": "أدخل الرمز",
+  "enterCodeDescription": "أدخل الرمز المقدم من صديقك للمطالبة بمساحة تخزين مجانية لكما",
+  "enterCodeHint": "أدخل الرمز المكون من 6 أرقام من\nتطبيق المصادقة",
+  "@enterCodeHint": {
+    "description": "Hint for entering 2FA code"
+  },
+  "enterCollectionName": "أدخل اسم المجموعة",
+  "enterDetailsManually": "أدخل التفاصيل يدوياً",
+  "enterEmail": "أدخل البريد الإلكتروني",
+  "enterFileName": "أدخل اسم الملف",
+  "enterName": "أدخل الاسم",
+  "enterNameOrEmailToShareWith": "أدخل الاسم أو البريد الإلكتروني للمشاركة معه",
+  "enterNewEmailHint": "أدخل عنوان بريدك الإلكتروني الجديد",
+  "@enterNewEmailHint": {
+    "description": "Hint text for entering new email address"
+  },
+  "enterNewPasswordToEncrypt": "أدخل كلمة مرور جديدة يمكننا استخدامها لتشفير بياناتك",
+  "@enterNewPasswordToEncrypt": {
+    "description": "Prompt to enter new password for encryption"
+  },
+  "enterNewTitle": "أدخل عنواناً جديداً",
+  "enterPassword": "أدخل كلمة المرور",
+  "@enterPassword": {
+    "description": "Enter password field label"
+  },
+  "enterPasswordToDecryptAndOTP": "أدخل كلمة المرور لفك تشفير النسخ الاحتياطي لـ andOTP",
+  "enterRecoveryKeyHint": "أدخل رمز الاسترداد",
+  "@enterRecoveryKeyHint": {
+    "description": "Hint for entering recovery key"
+  },
+  "enterReferralCode": "أدخل رمز الإحالة",
+  "enterThe6digitCodeFromnyourAuthenticatorApp": "أدخل الرمز المكون من 6 أرقام من\n تطبيق المصادقة الخاص بك",
+  "enterValidEmail": "يرجى إدخال عنوان بريد إلكتروني صالح.",
+  "enterYourNewEmailAddress": "أدخل عنوان بريدك الإلكتروني الجديد",
+  "enterYourPassword": "أدخل كلمة المرور",
+  "enterYourPasswordHint": "أدخل كلمة المرور الخاصة بك",
+  "@enterYourPasswordHint": {
+    "description": "Hint for password field"
+  },
+  "enterYourRecoveryKey": "أدخل مفتاح الاسترداد",
+  "error": "خطأ",
+  "@error": {
+    "description": "Generic error title"
+  },
+  "errorGenericBody": "‎حدث خطأ غير متوقع خلال الاستيراد.",
+  "errorGenericTitle": "حدث خطأ",
+  "errorInvalidQRCodeBody": "رمز QR الممسوح ليس حساب 2FA صحيح.",
+  "errorNoQRCode": "لم يتم العثور على رمز QR",
+  "errorOpeningFile": "خطأ في فتح العنصر",
+  "exif": "EXIF",
+  "expiredLinkInfo": "انتهت صلاحية هذا الرابط. يرجى اختيار وقت انتهاء صلاحية جديد أو تعطيل انتهاء صلاحية الرابط.",
+  "export": "تصدير",
+  "exportCodes": "تصدير الرموز",
+  "exportDialogDesc": "سيتم حماية الصادرات المشفرة بكلمة مرور من اختيارك.",
+  "exportLogs": "تصدير السجلات",
+  "@exportLogs": {
+    "description": "Button to export logs"
+  },
+  "exportWarningDesc": "الملف الذي تم تصديره يحتوي على معلومات حساسة. الرجاء تخزين هذا بشكل آمن.",
+  "exportYourData": "تصدير بياناتك",
+  "extraPhotosFound": "تم العثور على صور إضافية",
+  "faceNotClusteredYet": "لم يتم تجميع الوجه بعد، يرجى العودة لاحقًا",
+  "faceThumbnailGenerationFailed": "تعذر إنشاء الصور المصغرة للوجه",
+  "failedToApplyCode": "فشل تطبيق الرمز",
+  "failedToCancel": "فشل الإلغاء",
+  "failedToDecryptAndOTPBackup": "فشل فك تشفير النسخ الاحتياطي لـ andOTP",
+  "failedToDownloadOrDecrypt": "فشل تنزيل العنصر",
+  "failedToDownloadVideo": "فشل تنزيل الفيديو",
+  "failedToFetchActiveSessions": "فشل جلب الجلسات النشطة.",
+  "@failedToFetchActiveSessions": {
+    "description": "In session page, warn user (in toast) that active sessions could not be fetched."
+  },
+  "failedToFetchOriginalForEdit": "فشل جلب النسخة الأصلية للتعديل.",
+  "failedToFetchReferralDetails": "تعذر جلب تفاصيل الإحالة. يرجى المحاولة مرة أخرى لاحقًا.",
+  "failedToLoadAlbums": "فشل تحميل الألبومات",
+  "failedToLoadCollections": "فشل في تحميل المجموعات: {error}",
+  "@failedToLoadCollections": {
+    "description": "Error message when loading collections fails",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Network error"
+      }
+    }
+  },
+  "failedToRefreshStripeSubscription": "فشل تحديث الاشتراك.",
+  "failedToRenew": "فشل التجديد",
+  "failedToUpdateFile": "فشل في تحديث العنصر: {error}",
+  "@failedToUpdateFile": {
+    "description": "Error message when item update fails",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Network error"
+      }
+    }
+  },
+  "failedToVerifyPaymentStatus": "فشل التحقق من حالة الدفع.",
+  "faqs": "الأسئلة الشائعة",
+  "favorite": "المفضلة",
+  "feastingWithThem": "الاستمتاع بالطعام مع {name}",
+  "@feastingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "featureBackupCodes": "إمكانية المزامنة والنسخ الإحتياطي المشفر من طرف إلى طرف",
+  "featureOpenSource": "مفتوح المصدر، وتمت مراجعته بواسطة خبراء الأمان",
+  "featurePassAutomatically": "مررها تلقائياً في حالات الطوارئ",
+  "featureSaveImportant": "احفظ مستنداتك وبيانات اعتمادك المهمة",
+  "featureSearchEtc": "بحث، أوسمة، مشاركة، عرض الرمز التالي والعديد من المزايا",
+  "featureShareAnytime": "شاركها في أي وقت",
+  "fieldCopiedToClipboard": "تم نسخ {fieldName} إلى الحافظة",
+  "@fieldCopiedToClipboard": {
+    "description": "Message when a field is copied to clipboard",
+    "placeholders": {
+      "fieldName": {
+        "type": "String",
+        "example": "Password"
+      }
+    }
+  },
+  "fileAnalysisFailed": "تعذر تحليل الملف",
+  "fileDeletedSuccessfully": "تم حذف العنصر بنجاح",
+  "fileInfoAddDescHint": "إضافة وصف...",
+  "fileMarkedAsImportant": "تم تحديد العنصر كمهم",
+  "fileNotUploadedYet": "لم يتم تحميل الملف بعد",
+  "fileRemovedFromImportant": "تمت إزالة العنصر من المهم",
+  "filesAddedByYouWillBeRemovedFromTheCollection": "ستتم إزالة العناصر التي أضفتها من المجموعة",
+  "fileSavedToGallery": "تم حفظ الملف في المعرض.",
+  "filesDeleted": "تم حذف الملفات.",
+  "filesSavedToGallery": "تم حفظ الملفات في المعرض.",
+  "fileTypes": "أنواع الملفات",
+  "fileUpdatedSuccessfully": "تم تحديث العنصر بنجاح!",
+  "filter": "فلتر",
+  "filters": "عوامل التصفية",
+  "findThemQuickly": "اعثر عليهم بسرعة",
+  "@findThemQuickly": {
+    "description": "Subtitle to indicate that the user can find people quickly by name"
+  },
+  "flip": "قلب",
+  "focusOnSearchBar": "التركيز على البحث عند بدء التطبيق",
+  "font": "الخط",
+  "food": "متعة الطهي",
+  "free10GB": "مساحة 10GB مجانية على <bold-green>ente</bold-green> Photos",
+  "freeStorageOffer": "خَصْم 10٪ على صور <bold-green>ente</bold-green>",
+  "freeStorageOfferDescription": "استخدم الكود \"AUTH\" وأحصل على 10٪ خَصْم في السنة الأولى",
+  "freeTrial": "تجربة مجانية",
+  "freeUpAmount": "تحرير {sizeInMBorGB}",
+  "@freeUpAmount": {
+    "placeholders": {
+      "sizeInMBorGB": {}
+    }
+  },
+  "freeUpDeviceSpace": "تحرير مساحة على الجهاز",
+  "freeUpSpace": "تحرير المساحة",
+  "gallery": "المعرض",
+  "galleryMemoryLimitInfo": "يتم عرض ما يصل إلى 1000 ذكرى في المعرض.",
+  "generatingEncryptionKeysTitle": "توليد مفاتيح التشفير...",
+  "@generatingEncryptionKeysTitle": {
+    "description": "Generating encryption keys title"
+  },
+  "getStarted": "ابدأ الآن",
+  "gettingReady": "جاري الإعداد",
+  "giveUsAStarOnGithub": "من فضلك أعطِنا نجمة على جيت هاب",
+  "googlePlayId": "معرّف Google Play",
+  "grantFullAccessPrompt": "الرجاء السماح بالوصول إلى جميع الصور في تطبيق الإعدادات",
+  "grantPermission": "منح الإذن",
+  "greenery": "الحياة الخضراء",
+  "groupBy": "تجميع حسب",
+  "guestView": "عرض الضيف",
+  "guestViewEnablePreSteps": "لتمكين عرض الضيف، يرجى إعداد رمز مرور الجهاز أو قفل الشاشة في إعدادات النظام.",
+  "happyBirthday": "عيد ميلاد سعيد! 🥳",
+  "hearUsWhereOptionalTitle": "كيف سمعت عن Ente؟ (اختياري)",
+  "@hearUsWhereOptionalTitle": {
+    "description": "Title asking how user heard about Ente"
+  },
+  "help": "المساعدة",
+  "hidden": "المخفية",
+  "hide": "إخفاء",
+  "hideContentDescriptioniOS": "يخفي محتوى التطبيق في مبدل التطبيقات",
+  "@hideContentDescriptioniOS": {
+    "description": "Description of hide content feature on iOS"
+  },
+  "hideSharedItemsFromHomeGallery": "إخفاء العناصر المشتركة من معرض الصفحة الرئيسية",
+  "hiding": "جارٍ الإخفاء...",
+  "hikingWithThem": "التنزه مع {name}",
+  "@hikingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "hintForDesktop": "انقر بزر الأيمن على الكود لتعديله.",
+  "hintForMobile": "اضغط مطولاً على الكود لتعديل أو إزالته.",
+  "hostedAtOsmFrance": "مستضاف في OSM France",
+  "howItWorks": "كيف يعمل",
+  "@howItWorks": {
+    "description": "How it works button label"
+  },
+  "howToViewShareeVerificationID": "يرجى الطلب منهم الضغط مطولًا على عنوان بريدهم الإلكتروني في شاشة الإعدادات، والتأكد من تطابق المعرّفات على كلا الجهازين.",
+  "ignore": "تجاهل",
+  "ignored": "تم التجاهل",
+  "ignorePerson": "تجاهل الشخص",
+  "imageNotAnalyzed": "لم يتم تحليل الصورة",
+  "immediately": "فورًا",
+  "@immediately": {
+    "description": "Immediately option for auto lock timing"
+  },
+  "import2FasGuide": "استخدم خيار \"الإعدادات -> النسخ الاحتياطي - التصدير\" في 2FAS.\n\nإذا تم تشفير النسخة الاحتياطية، سوف تحتاج إلى إدخال كلمة المرور لفك تشفير النسخة الاحتياطية",
+  "importAccountPageTitle": "أدخل تفاصيل الحساب",
+  "importAegisGuide": "استخدم خيار \"Export the vault\" في إعدادات Aegis.\n\nإذا كان المخزن الخاص بك مشفرًا، فستحتاج إلى إدخال كلمة مرور المخزن لفك تشفير المخزن.",
+  "importAndOTPGuide": "صدّر النسخة الاحتياطية من andOTP باستخدام خيار \"النسخ الاحتياطي\" في الإعدادات.\n\nإذا تم تشفير النسخة الاحتياطية، سوف تحتاج إلى إدخال كلمة مرور النسخ الاحتياطي لفك تشفيرها.",
+  "important": "مهم",
+  "importBitwardenGuide": "استخدم خيار \"تصدير خزانة\" داخل أدوات Bitwarden واستيراد ملف JSON غير مشفر.",
+  "importCodeDelimiterInfo": "يمكن فصل الرموز بفاصلة أو سطر جديد",
+  "importCodes": "استورد شيفرات",
+  "importEnteEncGuide": "اختر ملف JSON المشفر المصدَّر من Ente",
+  "importEnterSetupKey": "أدخِل مفتاح الإعداد",
+  "importFailureDesc": "تعذر إعراب الملف المنتقى.",
+  "importFromGallery": "‎استيراد من معر الصور ‎",
+  "importGoogleAuthGuide": "قم بتصدير حساباتك من Google Authenticator إلى رمز QR باستخدام خيار \"تحويل الحسابات\". ثم قم بمسح رمز QR أو قم باستيراده من صورة.",
+  "importInstruction": "الرجاء تحديد ملف يحتوي على قائمة بالرموز الخاصة بك بالشكل التالي",
+  "importLabel": "استيراد",
+  "importLastpassGuide": "استخدم خيار \"حسابات النقل\" ضمن إعدادات مصادقة Lastpass، واضغط على \"تصدير الحسابات إلى الملف\". استيراد JSON الذي تم تنزيله.",
+  "importProtonAuthGuide": "استخدم خِيار «تصدير» في إعدادات Proton Authenticator لتصدير رموزك.\n\nإذا كان ملف التصدير محميًا بكلمة مرور، عليك أن تدخل كلمة المرور لفك تشفيرها.",
+  "importRaivoGuide": "استخدم خيار تصدير OTP إلى أرشيف Zip في إعدادات Raivo.\n\nاستخرج ملف zip واسترد ملف JSON.",
+  "importSelectAppExport": "حدد ملف التصدير الخاص بـ{appName}",
+  "@importSelectAppExport": {
+    "placeholders": {
+      "appName": {}
+    }
+  },
+  "importSelectJsonFile": "انتقِ ملف JSON",
+  "importSuccessDesc": "لقد استوردت {count} رمز!",
+  "@importSuccessDesc": {
+    "placeholders": {
+      "count": {
+        "description": "The number of codes imported",
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "importSuccessTitle": "مرحى!",
+  "importTypeEnteEncrypted": "تصدير مشفَّر ente",
+  "incorrectCode": "رمز غير صحيح",
+  "@incorrectCode": {
+    "description": "Error message when code is incorrect"
+  },
+  "incorrectDetails": "بيانات غير صحيحة",
+  "incorrectPasswordTitle": "كلمة المرور غير صحيحة",
+  "@incorrectPasswordTitle": {
+    "description": "Title for incorrect password error"
   },
   "incorrectRecoveryKey": "مفتاح الاسترداد غير صحيح",
   "@incorrectRecoveryKey": {
     "description": "Error message when recovery key is incorrect"
   },
+  "incorrectRecoveryKeyBody": "مفتاح الاسترداد الذي أدخلته غير صحيح",
+  "incorrectRecoveryKeyTitle": "مفتاح الاسترداد غير صحيح",
+  "info": "معلومات",
+  "informationDescription": "احفظ وشارك المعلومات مع الأحباء.",
+  "initialBackupCreated": "أُنشئ النسخة الاحتياطية الأولية!",
+  "insecureDevice": "جهاز غير آمن",
+  "@insecureDevice": {
+    "description": "Insecure device warning title"
+  },
+  "invalidEmailAddress": "عنوان البريد الإلكتروني غير صالح",
+  "invalidEmailMessage": "الرجاء إدخال بريد إلكتروني صالح.",
+  "@invalidEmailMessage": {
+    "description": "Message for invalid email error dialog"
+  },
+  "invalidEmailTitle": "عنوان البريد الإلكتروني غير صالح",
+  "@invalidEmailTitle": {
+    "description": "Title for invalid email error dialog"
+  },
+  "invalidKey": "المفتاح غير صالح",
+  "invalidProtonExportMessage": "المِلف الذي حددته ليس مِلف تصدير Proton Authenticator صالحًا.",
+  "invalidProtonExportTitle": "تصدير Proton غير صالح",
+  "invite": "دعوة",
+  "inviteToEnte": "دعوة إلى Ente",
+  "ok": "حسنًا",
+  "@ok": {
+    "description": "Generic OK button label"
+  },
+  "iosOnMyDeviceNotSupported": "تعذر استخدام «On My iPhone» بشكل مباشر، حدّد أو أنشئ مجلد داخله.",
+  "itemCount": "{count, plural, one{{count} عُنْصُر} other{{count} عَنَاصِر}}",
+  "@itemCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "items": "{count} عناصر",
+  "@items": {
+    "description": "Number of items in a collection",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "itemsShowTheNumberOfDaysRemainingBeforePermanentDeletion": "تعرض العناصر عدد الأيام المتبقية قبل الحذف الدائم.",
+  "itemsWillBeRemovedFromAlbum": "سيتم إزالة العناصر المحددة من هذا الألبوم.",
+  "iUnderStand": "فهمت",
+  "@iUnderStand": {
+    "description": "Text for the button to confirm the user understands the warning"
+  },
+  "join": "انضمام",
+  "joinAlbum": "الانضمام إلى الألبوم",
+  "joinAlbumConfirmationDialogBody": "الانضمام إلى ألبوم سيجعل بريدك الإلكتروني مرئيًا للمشاركين فيه.",
+  "joinAlbumSubtext": "لعرض صورك وإضافتها",
+  "joinAlbumSubtextViewer": "لإضافة هذا إلى الألبومات المشتركة",
+  "kiloMeterUnit": "كم",
+  "language": "اللغة",
+  "lastUpdated": "آخر تحديث",
+  "lastWeek": "الأسبوع الماضي",
+  "lastYearsTrip": "رحلة العام الماضي",
+  "layout": "التخطيط",
+  "leave": "مغادرة",
+  "leaveAlbum": "مغادرة الألبوم",
+  "leaveCollection": "مغادرة المجموعة",
+  "leaveFamily": "مغادرة خطة العائلة",
+  "leaveSharedAlbum": "مغادرة الألبوم المشترك؟",
+  "left": "يسار",
+  "legacy": "جهات الاتصال الموثوقة",
+  "legacyAccounts": "الحسابات الموثوقة",
+  "legacyInvite": "{email} دعاك لتكون جهة اتصال موثوقة",
+  "@legacyInvite": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "family@example.com"
+      }
+    }
+  },
+  "legacyPageDesc": "تسمح جهات الاتصال الموثوقة لأشخاص معينين بالوصول إلى حسابك في حالة غيابك.",
+  "legacyPageDesc2": "يمكن لجهات الاتصال الموثوقة بدء استرداد الحساب، وإذا لم يتم حظر ذلك خلال 30 يومًا، يمكنهم إعادة تعيين كلمة المرور والوصول إلى حسابك.",
+  "lightTheme": "فاتح",
+  "linkCopiedToClipboard": "تم نسخ الرابط إلى الحافظة.",
+  "linkDeletedSuccessfully": "تم حذف الرابط بنجاح",
+  "linkDeviceLimit": "حد الأجهزة",
+  "linkEnabled": "مفعّل",
+  "linkExpired": "منتهي الصلاحية",
+  "linkExpiresOn": "ستنتهي صلاحية الرابط في {expiryTime}",
+  "@linkExpiresOn": {
+    "placeholders": {
+      "expiryTime": {}
+    }
+  },
+  "linkExpiry": "انتهاء صلاحية الرابط",
+  "linkHasExpired": "انتهت صلاحية الرابط",
+  "linkNeverExpires": "أبدًا",
+  "livePhotos": "الصور الحية",
+  "loadingExifData": "جارٍ تحميل بيانات EXIF...",
+  "loadingGallery": "جارٍ تحميل المعرض...",
+  "loadingModel": "جارٍ تحميل النماذج...",
+  "loadingYourPhotos": "جارٍ تحميل صورك...",
+  "loadMessage1": "يمكنك مشاركة اشتراكك مع عائلتك.",
+  "loadMessage3": "نحتفظ بـ 3 نسخ من بياناتك، إحداها في ملجأ للطوارئ تحت الأرض.",
+  "loadMessage4": "جميع تطبيقاتنا مفتوحة المصدر.",
+  "loadMessage5": "تم تدقيق شفرتنا المصدرية والتشفير الخاص بنا خارجيًا.",
+  "loadMessage6": "يمكنك مشاركة روابط ألبوماتك مع أحبائك.",
+  "loadMessage7": "تعمل تطبيقات الهاتف المحمول الخاصة بنا في الخلفية لتشفير أي صور جديدة تلتقطها ونسخها احتياطيًا.",
+  "loadMessage8": "{webUrl} لديه أداة تحميل رائعة.",
+  "@loadMessage8": {
+    "description": "Loading screen message about the web uploader.",
+    "placeholders": {
+      "webUrl": {
+        "type": "String",
+        "example": "photos.ente.com"
+      }
+    }
+  },
+  "loadMessage9": "نستخدم XChaCha20-Poly1305 لتشفير بياناتك بأمان.",
+  "localBackupDailyManualCopy": "يتم إنشاء نسخة احتياطية محلية كل يوم عند فتح التطبيق. استخدم «انسخ احتياطيًا الآن» لتشغيل النسخ الاحتياطي اليدوي. يتم الحفاظ على ما يصل إلى 5 نسخ.",
+  "localBackupSidebarTitle": "النسخ الاحتياطي المحلي",
+  "localGallery": "المعرض المحلي",
+  "localSyncErrorMessage": "يبدو أن خطأً ما قد حدث لأن مزامنة الصور المحلية تستغرق وقتًا أطول من المتوقع. يرجى التواصل مع فريق الدعم لدينا.",
+  "location": "الموقع",
+  "locationName": "اسم الموقع",
+  "locations": "المواقع",
+  "locationTagFeatureDescription": "تقوم علامة الموقع بتجميع جميع الصور التي تم التقاطها ضمن نصف قطر معين لصورة ما.",
+  "locationUpdatedAndBackupCreated": "حُدّث الموقع وأُنشئ النسخ الاحتياطي الأولي!",
+  "lockButtonLabel": "قفل",
+  "logInLabel": "تسجيل الدخول",
+  "@logInLabel": {
+    "description": "Log in button label"
+  },
+  "loginSessionExpired": "انتهت صلاحية الجلسة",
+  "@loginSessionExpired": {
+    "description": "Login session expired title"
+  },
+  "loginTerms": "بالنقر على تسجيل الدخول، أوافق على <u-terms>شروط الخدمة</u-terms> و <u-policy>سياسة الخصوصية</u-policy>",
+  "@loginTerms": {
+    "description": "Terms agreement text for login"
+  },
+  "loginWithAuthAccount": "سجّل الدخول باستخدام حساب المُصادقة",
+  "loginWithTOTP": "تسجيل الدخول باستخدام TOTP",
+  "@loginWithTOTP": {
+    "description": "Login with TOTP button label"
+  },
+  "logout": "تسجيل الخروج",
+  "logsDialogBody": "سيؤدي هذا إلى إرسال السجلات لمساعدتنا في تصحيح مشكلتك. يرجى ملاحظة أنه سيتم تضمين أسماء الملفات للمساعدة في تتبع المشكلات المتعلقة بملفات معينة.",
+  "@logsDialogBody": {
+    "description": "Body text for the logs dialog explaining what will be sent"
+  },
+  "logsDialogBodyLocker": "سيرسل هذا السجلات لمساعدتنا في تصحيح مشكلتك.",
+  "@logsDialogBodyLocker": {
+    "description": "Dialog body text for sending logs in Locker app (without file name warning)"
+  },
+  "longPressAnEmailToVerifyEndToEndEncryption": "اضغط مطولاً على بريد إلكتروني للتحقق من التشفير من طرف إلى طرف.",
+  "lookBackOnYourMemories": "استرجع ذكرياتك 🌄",
+  "lostDevice": "جهاز مفقود؟",
+  "lostDeviceTitle": "جهاز مفقود ؟",
+  "@lostDeviceTitle": {
+    "description": "Lost device title"
+  },
+  "machineLearning": "تعلم الآلة",
+  "manageDeviceStorage": "إدارة مساحة تخزين الجهاز",
+  "manageFamily": "إدارة العائلة",
+  "manageLink": "إدارة الرابط",
+  "manageSubscription": "إدارة الاشتراك",
+  "manualSort": "مخصّص",
+  "map": "الخريطة",
+  "@map": {
+    "description": "Label for the map view"
+  },
+  "maps": "الخرائط",
+  "markingAsImportant": "جارٍ التحديد كمهم...",
+  "me": "أنا",
+  "memories": "ذكريات",
+  "memoryCount": "{count, plural, =0{لا توجد ذكريات} one{ذكرى واحدة} two{ذكريتان} few{{formattedCount} ذكريات} many{{formattedCount} ذكرى} other{{formattedCount} ذكرى}}",
+  "@memoryCount": {
+    "description": "The text to display the number of memories",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "1",
+        "type": "int"
+      },
+      "formattedCount": {
+        "type": "String",
+        "example": "11.513, 11,511"
+      }
+    }
+  },
+  "merge": "دمج",
+  "mergedPhotos": "الصور المدمجة",
+  "mergeWithExisting": "الدمج مع شخص موجود",
+  "minimizeAppOnCopy": "تصغير التطبيق عند النسخ",
+  "minimizeToTrayOnClose": "تصغير إلى لوحة النظام عند إغلاق",
+  "mixedGrouping": "تجميع مختلط؟",
+  "mlConsent": "تمكين تعلم الآلة",
+  "mlConsentConfirmation": "أنا أفهم، وأرغب في تمكين تعلم الآلة",
+  "mlConsentDescription": "إذا قمت بتمكين تعلم الآلة، سيقوم Ente باستخراج معلومات مثل هندسة الوجه من الملفات، بما في ذلك تلك التي تمت مشاركتها معك.\n\nسيحدث هذا على جهازك، وسيتم تشفير أي معلومات بيومترية تم إنشاؤها تشفيرًا تامًا من طرف إلى طرف.",
+  "modifyYourQueryOrTrySearchingFor": "قم بتعديل استعلامك، أو حاول البحث عن",
+  "moments": "اللحظات",
+  "month": "شهر",
+  "monthly": "شهريًا",
+  "@monthly": {
+    "description": "The text to display for monthly plans",
+    "type": "text"
+  },
+  "moon": "في ضوء القمر",
+  "moreDetails": "المزيد من التفاصيل",
+  "mostFrequentlyUsed": "مستخدم بكثرة",
+  "mostRecent": "الأحدث",
+  "mostRecentlyUsed": "مستخدمة مؤخراً",
+  "mostRelevant": "الأكثر صلة",
+  "mountains": "فوق التلال",
+  "movedSuccessfullyTo": "تم النقل بنجاح إلى {albumName}",
+  "@movedSuccessfullyTo": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
+  "movedToTrash": "تم النقل إلى سلة المهملات",
+  "moveSelectedPhotosToOneDate": "نقل الصور المحددة إلى تاريخ واحد",
+  "moveToAlbum": "نقل إلى ألبوم",
+  "moveToHiddenAlbum": "نقل إلى الألبوم المخفي",
+  "movingFilesToAlbum": "جارٍ نقل الملفات إلى الألبوم...",
+  "name": "الاسم",
+  "never": "أبدًا",
+  "newAlbum": "ألبوم جديد",
+  "newCollection": "مجموعة جديدة",
+  "newest": "الأحدث",
+  "newLocation": "موقع جديد",
+  "newPhotosEmoji": " جديد 📸",
+  "newRange": "نطاق جديد",
+  "next": "التالي",
+  "@next": {
+    "description": "Next button label"
+  },
+  "nextTotpTitle": "التالي",
+  "no": "لا",
+  "noChangesWereMade": "لم يتم إجراء أي تغييرات",
+  "noCollections": "لا توجد مجموعات",
+  "noDefaultBackupFolder": "تعذر إنشاء مجلد النسخ الاحتياطي الافتراضي.",
+  "noDeviceFound": "لم يتم العثور على جهاز.",
+  "noDeviceLimit": "لا شيء",
+  "@noDeviceLimit": {
+    "description": "Text to indicate that there is limit on number of devices"
+  },
+  "noDeviceThatCanBeDeleted": "لا توجد ملفات على هذا الجهاز يمكن حذفها",
+  "noExifData": "لا توجد بيانات EXIF",
+  "noFacesFound": "لم يتم العثور على وجوه",
+  "noFilesFound": "لا توجد عناصر هنا",
+  "noImagesWithLocation": "لا توجد صور تحتوي على موقع",
+  "noInternetConnection": "لا يوجد اتصال بالإنترنت",
+  "@noInternetConnection": {
+    "description": "No internet connection error message"
+  },
+  "noItemsMatchSelectedFilters": "لا توجد عناصر تطابق عوامل التصفية المحددة",
+  "noPhotosFoundHere": "لم يتم العثور على صور هنا",
+  "noRecoveryKeyNoDecryption": "نظرًا لطبيعة التشفير الكامل من طرف إلى طرف، لا يمكن فك تشفير بياناتك دون كلمة المرور أو مفتاح الاسترداد الخاص بك",
+  "@noRecoveryKeyNoDecryption": {
+    "description": "Explanation that data cannot be decrypted without password or recovery key"
+  },
+  "noRecoveryKeyTitle": "لا يوجد مفتاح استرجاع؟",
+  "@noRecoveryKeyTitle": {
+    "description": "No recovery key title"
+  },
+  "noResult": "لا توجد نتيجة",
+  "noResultsFound": "لم يتم العثور على نتائج.",
+  "noSuggestionsForPerson": "لا توجد اقتراحات لـ {personName}",
+  "@noSuggestionsForPerson": {
+    "placeholders": {
+      "personName": {
+        "type": "String",
+        "example": "Alice"
+      }
+    }
+  },
+  "note": "ملاحظة",
+  "noteContent": "المحتوى",
+  "noteContentHint": "اكتب الأفكار أو التعليمات المهمة",
+  "noteName": "العنوان",
+  "noteNameHint": "عنوان الملاحظة",
+  "notes": "ملاحظات",
+  "notesLengthLimit": "يمكن أن تصل الملاحظات إلى {count} حرفا كحد أقصى",
+  "@notesLengthLimit": {
+    "description": "Text to indicate the maximum number of characters allowed for notes",
+    "placeholders": {
+      "count": {
+        "description": "The maximum number of characters allowed for notes",
+        "type": "int",
+        "example": "100"
+      }
+    }
+  },
+  "nothingToSeeHere": "لا شيء لعرضه هنا",
+  "notifications": "الإشعارات",
+  "notPersonLabel": "ليس {name}؟",
+  "@notPersonLabel": {
+    "description": "Label to indicate that the person in the photo is not the person whose name is mentioned",
+    "placeholders": {
+      "name": {
+        "content": "{name}",
+        "type": "String"
+      }
+    }
+  },
+  "notSupportedForHOTP": "غير مدعوم لـ HOTP",
+  "notThisPerson": "ليس هذا الشخص؟",
+  "offlineModeWarning": "لقد اخترت المضي قدما بدون نسخ احتياطية. يرجى أخذ نسخ احتياطية يدوية للتأكد من سلامة الرموز الخاصة بك.",
+  "onEnte": "على <branding>Ente</branding>",
+  "@onEnte": {
+    "description": "The text displayed above albums backed up to Ente",
+    "type": "text"
+  },
+  "onlyFamilyAdminCanChangeCode": "يرجى الاتصال بـ {familyAdminEmail} لتغيير الرمز الخاص بك.",
+  "@onlyFamilyAdminCanChangeCode": {
+    "placeholders": {
+      "familyAdminEmail": {}
+    }
+  },
+  "onlyThem": "هم فقط",
+  "onTheRoad": "على الطريق مرة أخرى",
+  "onThisDay": "في هذا اليوم",
+  "onThisDayMemories": "ذكريات هذا اليوم",
+  "oopsCouldNotSaveEdits": "عفوًا، تعذر حفظ التعديلات.",
+  "oopsSomethingWentWrong": "عفوًا، حدث خطأ ما",
+  "openAlbumInBrowser": "فتح الألبوم في المتصفح",
+  "openAlbumInBrowserTitle": "يرجى استخدام تطبيق الويب لإضافة صور إلى هذا الألبوم",
+  "openFile": "فتح الملف",
+  "openstreetmapContributors": "مساهمو OpenStreetMap",
+  "optionalAsShortAsYouLike": "اختياري، قصير كما تشاء...",
+  "otherDetectedFaces": "وجوه أخرى تم اكتشافها",
+  "pair": "إقران",
+  "panorama": "بانوراما",
+  "parsingError": "خطأ في التحليل",
+  "partyWithThem": "الاحتفال مع {name}",
+  "@partyWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "passkey": "مفتاح المرور",
+  "passkeyAuthTitle": "التحقق من مفتاح المرور",
+  "@passkeyAuthTitle": {
+    "description": "Passkey authentication title"
+  },
+  "password": "كلمة المرور",
+  "@password": {
+    "description": "Password field label"
+  },
+  "passwordChangedSuccessfully": "تم تغيير كلمة المرور بنجاح",
+  "@passwordChangedSuccessfully": {
+    "description": "Password changed successfully message"
+  },
+  "passwordEmptyError": "لا يمكن أن تكون كلمة المرور فارغة",
+  "passwordForDecryptingExport": "كلمة المرور لفك تشفير التصدير",
+  "passwordHint": "كلمة المرور",
+  "passwordLock": "قفل بكلمة مرور",
+  "passwordStrength": "قوة كلمة المرور: {passwordStrengthValue}",
+  "@passwordStrength": {
+    "description": "Text to indicate the password strength",
+    "placeholders": {
+      "passwordStrengthValue": {
+        "description": "The strength of the password as a string",
+        "type": "String",
+        "example": "Weak or Moderate or Strong"
+      }
+    }
+  },
+  "passwordToEncryptExport": "كلمة المرور لتشفير التصدير",
+  "passwordTooShort": "يجب أن تتكون كلمة المرور من 8 أحرف على الأقل.",
+  "passwordWarning": "نحن لا نقوم بتخزين كلمة المرور هذه، لذا إذا نسيتها، <underline>لا يمكننا فك تشفير بياناتك</underline>",
+  "@passwordWarning": {
+    "description": "Warning about password storage"
+  },
+  "pastYearsMemories": "ذكريات السنوات الماضية",
+  "paymentDetails": "تفاصيل الدفع",
+  "paymentFailed": "فشلت عملية الدفع",
+  "paymentFailedMessage": "للأسف، فشلت عملية الدفع الخاصة بك. يرجى الاتصال بالدعم وسوف نساعدك!",
+  "paymentFailedTalkToProvider": "يرجى التواصل مع دعم {providerName} إذا تم خصم المبلغ منك.",
+  "@paymentFailedTalkToProvider": {
+    "description": "The text to display when the payment failed",
+    "type": "text",
+    "placeholders": {
+      "providerName": {
+        "example": "AppStore|PlayStore",
+        "type": "String"
+      }
+    }
+  },
+  "pendingSync": "المزامنة المعلقة",
+  "pendingSyncs": "تحذير",
+  "pendingSyncsWarningBody": "لم يتم نسخ بعض رموزك احتياطيًا.\n\nيرجى التأكد من أن لديك نسخة احتياطية لهذه الرموز قبل تسجيل الخروج.",
+  "people": "الأشخاص",
+  "period": "المدّة",
+  "permanentlyDelete": "حذف نهائي",
+  "permDeleteWarning": "سيتم حذف جميع العناصر في سلة المهملات نهائيًا.\n\nلا يمكن التراجع عن هذا الإجراء.",
+  "personalNote": "ملاحظة",
+  "personalNoteDescription": "اكتب الأفكار والتعليمات.",
+  "personIsAge": "{name} يبلغ {age}!",
+  "@personIsAge": {
+    "placeholders": {
+      "age": {},
+      "name": {}
+    }
+  },
+  "personTurningAge": "{name} سيبلغ {age} قريبًا",
+  "@personTurningAge": {
+    "placeholders": {
+      "age": {},
+      "name": {}
+    }
+  },
+  "pets": "رفاق فروي",
+  "photoGridSize": "حجم شبكة الصور",
+  "photos": "الصور",
+  "photosAddedByYouWillBeRemovedFromTheAlbum": "ستتم إزالة الصور التي أضفتها من الألبوم.",
+  "photosKeepRelativeTimeDifference": "تحتفظ الصور بالفرق الزمني النسبي",
+  "physicalRecords": "شيء",
+  "physicalRecordsDescription": "احفظ مواقع الأشياء في العالم الحقيقي.",
+  "pickCenterPoint": "اختيار نقطة المركز",
+  "pinLock": "قفل رقم التعريف الشخصي",
+  "@pinLock": {
+    "description": "PIN lock option title"
+  },
+  "pinnedCodeMessage": "ثُبِّت {code}",
+  "@pinnedCodeMessage": {
+    "placeholders": {
+      "code": {}
+    }
+  },
+  "pinText": "ثبت",
+  "plainHTML": "HTML عَادِي ",
+  "playOriginal": "تشغيل الأصلي",
+  "playstoreSubscription": "اشتراك متجر Play",
+  "playStream": "تشغيل البث",
+  "pleaseContactSupportIfTheProblemPersists": "يرجى الاتصال بالدعم إذا استمرت المشكلة.",
+  "pleaseEmailUsAt": "يرجى مراسلتنا عبر البريد الإلكتروني على {toEmail}",
+  "@pleaseEmailUsAt": {
+    "placeholders": {
+      "toEmail": {}
+    }
+  },
+  "pleaseGrantPermissions": "يرجى منح الأذونات",
+  "pleaseSelectQuickLinksToRemove": "يرجى تحديد الروابط السريعة للإزالة.",
+  "pleaseTryAgain": "يرجى المحاولة مرة أخرى",
+  "@pleaseTryAgain": {
+    "description": "Message asking user to try again"
+  },
+  "pleaseVerifyDetails": "الرجاء التأكد من البيانات وإعادة المحاولة",
+  "pleaseVerifyTheCodeYouHaveEntered": "يرجى التحقق من الرمز الذي أدخلته.",
+  "pleaseWaitDeletingAlbum": "يرجى الانتظار، جارٍ حذف الألبوم",
+  "pleaseWaitForSometimeBeforeRetrying": "يرجى الانتظار لبعض الوقت قبل إعادة المحاولة",
+  "pleaseWaitThisWillTakeAWhile": "يرجى الانتظار، قد يستغرق هذا بعض الوقت.",
+  "posingWithThem": "التقاط صور مع {name}",
+  "@posingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "preserveMore": "حفظ المزيد",
+  "pressAndHoldToPlayVideoDetailed": "اضغط مطولاً على الصورة لتشغيل الفيديو",
+  "previous": "السابق",
+  "privacy": "الخصوصية",
+  "privacyPolicyTitle": "سياسة الخصوصية",
+  "@privacyPolicyTitle": {
+    "description": "Privacy policy title"
+  },
+  "proceed": "متابعة",
+  "processed": "تمت المعالجة",
+  "processingImport": "جارٍ معالجة {folderName}...",
+  "@processingImport": {
+    "placeholders": {
+      "folderName": {}
+    }
+  },
+  "publicLinkEnabled": "تمكين الرابط العام",
+  "qr": "QR",
+  "qrCode": "رمز QR",
+  "questionmark": "؟",
+  "queued": "في قائمة الانتظار",
+  "radius": "نصف القطر",
+  "raiseTicket": "فتح تذكرة دعم",
+  "@raiseTicket": {
+    "description": "Button text for raising a support tickets in case of unhandled errors during backup",
+    "type": "text"
+  },
+  "rateUs": "تقييم التطبيق",
+  "rawCodeData": "بيانات الشيفرات الأصلية",
+  "reassignedToName": "تمت إعادة تعيينك إلى {name}",
+  "@reassignedToName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reassigningLoading": "جارٍ إعادة التعيين...",
+  "reassignMe": "إعادة تعيين \"أنا\"",
+  "recordLocation": "الموقع",
+  "recordLocationHint": "أين يتم الاحتفاظ بهذا الشيء؟",
+  "recordNameHint": "اسم الشيء في العالم الحقيقي",
+  "recordNotes": "الملاحظات",
+  "recordNotesHint": "معلومات إضافية عن الشيء",
+  "recordSavedSuccessfully": "تم حفظ السجل بنجاح",
+  "recoveryInitiated": "بدء الاسترداد",
+  "recoveryInitiatedDesc": "يمكنك الوصول إلى الحساب بعد {days} أيام. سيتم إرسال إشعار إلى {email}.",
+  "@recoveryInitiatedDesc": {
+    "placeholders": {
+      "days": {
+        "type": "int",
+        "example": "30"
+      },
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      }
+    }
+  },
+  "recoveryKey": "مفتاح الاسترداد",
+  "@recoveryKey": {
+    "description": "Recovery key label"
+  },
+  "recoveryKeyCopiedToClipboard": "تم نسخ مفتاح الاسترداد إلى الحافظة",
+  "@recoveryKeyCopiedToClipboard": {
+    "description": "Recovery key copied message"
+  },
+  "recoveryKeySaved": "حُفِظ مفتاح الاستعادة في مجلد التنزيلات!",
+  "@recoveryKeySaved": {
+    "description": "Recovery key saved confirmation message"
+  },
+  "recoveryKeySaveDescription": "نحن لا نخزن هذا المفتاح، يرجى حفظ مفتاح الـ 24 كلمة هذا في مكان آمن.",
+  "@recoveryKeySaveDescription": {
+    "description": "Recovery key save description"
+  },
+  "recoveryKeyVerified": "تم التحقق من مفتاح الاسترداد",
+  "recoveryReady": "يمكنك الآن استرداد حساب {email} عن طريق تعيين كلمة مرور جديدة.",
+  "@recoveryReady": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      }
+    }
+  },
+  "recoverySuccessful": "تم الاسترداد بنجاح!",
+  "recoveryWarning": "جهة اتصال موثوقة تحاول الوصول إلى حسابك",
+  "recoveryWarningBody": "{email} يحاول استرداد حسابك.",
+  "@recoveryWarningBody": {
+    "placeholders": {
+      "email": {}
+    }
+  },
+  "redo": "إعادة",
+  "reEnterPassword": "أعد إدخال كلمة المرور",
+  "@reEnterPassword": {
+    "description": "Re-enter password prompt"
+  },
+  "reEnterPin": "أعد إدخال رقم التعريف الشخصي",
+  "@reEnterPin": {
+    "description": "Re-enter PIN prompt"
+  },
+  "referrals": "الإحالات",
+  "referralsAreCurrentlyPaused": "الإحالات متوقفة مؤقتًا",
+  "rejectRecovery": "رفض الاسترداد",
+  "remindToEmptyDeviceTrash": "تذكر أيضًا إفراغ \"المحذوفة مؤخرًا\" من \"الإعدادات\" -> \"التخزين\" لاستعادة المساحة المحررة",
+  "remindToEmptyEnteTrash": "تذكر أيضًا إفراغ \"سلة المهملات\" لاستعادة المساحة المحررة.",
+  "remoteImages": "الصور عن بعد",
+  "remoteThumbnails": "الصور المصغرة عن بعد",
+  "remoteVideos": "مقاطع الفيديو عن بعد",
+  "remove": "إزالة",
+  "removeAccess": "إزالة الوصول",
+  "removeCollectionParticipantBody": "ستتم إزالة {userEmail} من هذه المجموعة المشتركة\n\nسيتم أيضاً إزالة أي عناصر أضافها من المجموعة",
+  "@removeCollectionParticipantBody": {
+    "placeholders": {
+      "userEmail": {}
+    }
+  },
+  "removeFromAlbum": "إزالة من الألبوم",
+  "removeFromAlbumTitle": "إزالة من الألبوم؟",
+  "removeFromFavorite": "إزالة من المفضلة",
+  "removeLink": "إزالة الرابط",
+  "removeParticipant": "إزالة المشارك",
+  "@removeParticipant": {
+    "description": "menuSectionTitle for removing a participant"
+  },
+  "removePersonLabel": "إزالة تسمية الشخص",
+  "removePublicLink": "إزالة الرابط العام",
+  "removePublicLinks": "إزالة الروابط العامة",
+  "removeWithQuestionMark": "إزالة؟",
+  "removingFromFavorites": "جارٍ الإزالة من المفضلة...",
+  "removingFromImportant": "جارٍ الإزالة من المهم...",
+  "rename": "إعادة تسمية",
+  "renameAlbum": "إعادة تسمية الألبوم",
+  "renameCollection": "إعادة تسمية المجموعة",
+  "renameFile": "إعادة تسمية الملف",
+  "renewsOn": "يتجدد الاشتراك في {endDate}",
+  "@renewsOn": {
+    "placeholders": {
+      "endDate": {}
+    }
+  },
+  "renewSubscription": "تجديد الاشتراك",
+  "reset": "إعادة تعيين",
+  "resetIgnoredFiles": "إعادة تعيين الملفات المتجاهلة",
+  "resetPasswordTitle": "إعادة تعيين كلمة المرور",
+  "@resetPasswordTitle": {
+    "description": "Reset password title"
+  },
+  "resetToDefault": "إعادة التعيين إلى الافتراضي",
+  "@resetToDefault": {
+    "description": "Button text to reset cover photo to default"
+  },
+  "restore": "استعادة",
+  "@restore": {
+    "description": "Display text for an action which triggers a restore of item from trash",
+    "type": "text"
+  },
+  "restoreToAlbum": "استعادة إلى الألبوم",
+  "restoringFiles": "جارٍ استعادة الملفات...",
+  "restoringItems": "جارٍ الاستعادة...",
+  "resumableUploads": "تحميلات قابلة للاستئناف",
+  "retry": "إعادة المحاولة",
+  "review": "مراجعة",
+  "reviewSuggestions": "مراجعة الاقتراحات",
+  "right": "يمين",
+  "ritualAlbumSelectionPlaceholder": "تحديد ألبوم",
+  "ritualSelectAlbumTitle": "تحديد ألبوم",
+  "roadtripWithThem": "رحلة برية مع {name}",
+  "@roadtripWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "rotate": "تدوير",
+  "sameperson": "نفس الشخص؟",
+  "save": "حفظ",
+  "@save": {
+    "description": "Label for save button"
+  },
+  "saveAsAnotherPerson": "حفظ كشخص آخر",
+  "saveChangesBeforeLeavingQuestion": "حفظ التغييرات قبل المغادرة؟",
+  "saveCollage": "حفظ الكولاج",
+  "saveCopy": "حفظ نسخة",
+  "saveKey": "حفظ المفتاح",
+  "@saveKey": {
+    "description": "Save key button label"
+  },
+  "saveOnlyDescription": "هل تريد حفظه إلى السعة التخزينية الخاصة بك (مجلد التنزيلات افتراضيا)؟",
+  "@saveOnlyDescription": {
+    "description": "Description text asking user if they want to save to storage (for platforms that don't support sharing)"
+  },
+  "saveOrSendDescription": "هل تريد حفظه إلى السعة التخزينية الخاصة بك (مجلد التنزيلات افتراضيا) أم إرساله إلى تطبيقات أخرى؟",
+  "@saveOrSendDescription": {
+    "description": "Description text asking user if they want to save to storage or share with other apps"
+  },
+  "savePerson": "حفظ الشخص",
+  "saveToLocker": "حفظ في Locker",
+  "saveYourRecoveryKeyIfYouHaventAlready": "احفظ مفتاح الاسترداد إذا لم تكن قد فعلت ذلك",
+  "saving": "جارٍ الحفظ...",
+  "savingEdits": "جارٍ حفظ التعديلات...",
+  "scan": "مسح",
+  "scanACode": "فحص رمز Qr",
+  "scanAQrCode": "مسح رمز QR",
+  "scanCode": "مسح الرمز",
+  "scannerTorchOff": "إيقاف تشغيل الفلاش",
+  "scannerTorchOn": "تشغيل الفلاش",
+  "scanThisBarcodeWithnyourAuthenticatorApp": "امسح هذا الباركود باستخدام\nتطبيق المصادقة الخاص بك",
+  "scheduleShare": "جدولة المشاركة",
+  "search": "بحث",
+  "searchAlbumsEmptySection": "الألبومات",
+  "searchByAlbumNameHint": "اسم الألبوم",
+  "searchDiscoverEmptySection": "سيتم عرض الصور هنا بمجرد اكتمال المعالجة والمزامنة.",
+  "searchEmptyDescription": "حاول البحث عن شيء آخر.",
+  "searchEmptyTitle": "لم يتم العثور على نتائج",
+  "searchEverywhereSubtitle": "البحث في جميع المجموعات والملفات.",
+  "searchEverywhereTitle": "البحث في كل مكان عن \"{query}\"",
+  "@searchEverywhereTitle": {
+    "description": "CTA title prompting the user to search globally",
+    "placeholders": {
+      "query": {
+        "type": "String",
+        "example": "passport"
+      }
+    }
+  },
+  "searchFileTypesAndNamesEmptySection": "أنواع وأسماء الملفات",
+  "searchHint": "بحث...",
+  "searchHint1": "بحث سريع على الجهاز",
+  "searchHint2": "تواريخ الصور، الأوصاف",
+  "searchHint3": "الألبومات، أسماء الملفات، والأنواع",
+  "searchHint4": "الموقع",
+  "searchHint5": "قريبًا: الوجوه والبحث السحري ✨",
+  "searchLocationEmptySection": "تجميع الصور الملتقطة ضمن نصف قطر معين لصورة ما.",
+  "searchPeopleEmptySection": "ادعُ الأشخاص، وسترى جميع الصور التي شاركوها هنا.",
+  "searchPersonsEmptySection": "سيتم عرض الأشخاص هنا بمجرد اكتمال المعالجة والمزامنة.",
+  "searchResultCount": "{count, plural, one{{count} النتائج التي تم العثور عليها} other{{count} النتائج التي تم العثور عليها}}",
+  "@searchResultCount": {
+    "description": "Text to tell user how many results were found for their search query",
+    "placeholders": {
+      "count": {
+        "example": "1|2|3",
+        "type": "int"
+      }
+    }
+  },
+  "searchSectionsLengthMismatch": "عدم تطابق طول الأقسام: {snapshotLength} != {searchLength}",
+  "@searchSectionsLengthMismatch": {
+    "description": "Appears in search tab page",
+    "placeholders": {
+      "searchLength": {
+        "type": "int",
+        "example": "2"
+      },
+      "snapshotLength": {
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "secret": "سري",
+  "secretCanNotBeEmpty": "لا يمكن أن يكون رمز السر فارغ",
+  "security": "الأمان",
+  "seeAllCollections": "عرض جميع المجموعات",
+  "seePublicAlbumLinksInApp": "رؤية روابط الألبومات العامة في التطبيق",
+  "selectAllShort": "الكل",
+  "@selectAllShort": {
+    "description": "Text that appears in bottom right when you start to select multiple photos. When clicked, it selects all photos."
+  },
+  "selectALocation": "تحديد موقع",
+  "selectALocationFirst": "حدد موقعًا أولاً",
+  "selectBackupFolder": "حدّد مجلدًا للنسخ الاحتياطية",
+  "selectCoverPhoto": "تحديد صورة الغلاف",
+  "selectDate": "تحديد التاريخ",
+  "selected": "محدّد",
+  "selectedAlbums": "{count} تم تحديد",
+  "@selectedAlbums": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "selectedFilesAreNotOnEnte": "الملفات المحددة ليست موجودة على Ente.",
+  "selectedItemsWillBeRemovedFromThisPerson": "سيتم إزالة العناصر المحددة من هذا الشخص، ولكن لن يتم حذفها من مكتبتك.",
+  "selectedPhotos": "تم تحديد {count}",
+  "@selectedPhotos": {
+    "description": "Display the number of selected photos",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "5",
+        "type": "int"
+      }
+    }
+  },
+  "selectedPhotosWithYours": "تم تحديد {count} ({yourCount} منها لك)",
+  "@selectedPhotosWithYours": {
+    "description": "Display the number of selected photos, including the number of selected photos owned by the user",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "12",
+        "type": "int"
+      },
+      "yourCount": {
+        "example": "2",
+        "type": "int"
+      }
+    }
+  },
+  "selectExportFormat": "اختر صيغة التصدير",
+  "selectFile": "حدد مِلَفّ",
+  "selectFolder": "اختر مجلد",
+  "selectFolderToContinue": "اختر مجلدًا للمتابعة",
+  "selectItemsToAdd": "تحديد العناصر للإضافة",
+  "selectLanguage": "اختر اللغة",
+  "selectMailApp": "تحديد تطبيق البريد",
+  "selectMorePhotos": "تحديد المزيد من الصور",
+  "selectOneDateAndTime": "تحديد تاريخ ووقت واحد",
+  "selectOneDateAndTimeForAll": "تحديد تاريخ ووقت واحد للجميع",
+  "selectStartOfRange": "تحديد بداية النطاق",
+  "selectTime": "تحديد الوقت",
+  "selectYourFace": "حدد وجهك",
+  "selfiesWithThem": "صور سيلفي مع {name}",
+  "@selfiesWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "send": "إرسال",
+  "@send": {
+    "description": "Label for send button"
+  },
+  "sendInvite": "إرسال دعوة",
+  "sendLink": "إرسال الرابط",
+  "sendLogsDescription": "سوف يُرسل هذا السجلات لنا لمساعدتنا على تصحيح مشكلتك. بينما نتخذ الاحتياطات لضمان عدم تسجيل المعلومات الحساسة، نشجعك على رؤية هذه السجلات قبل مشاركتها.",
+  "sessionExpired": "انتهت صلاحية الجلسة",
+  "@sessionExpired": {
+    "description": "Error message when session has expired"
+  },
+  "sessionIdMismatch": "عدم تطابق معرّف الجلسة",
+  "@sessionIdMismatch": {
+    "description": "In passkey page, deeplink is ignored because of session ID mismatch."
+  },
+  "setAPassword": "تعيين كلمة مرور",
+  "setAs": "تعيين كـ",
+  "setBackupFolder": "تعيين مجلد النسخ الاحتياطية",
+  "setBackupPassword": "تعيين كلمة مرور النسخة الاحتياطية",
+  "setCover": "تعيين كغلاف",
+  "@setCover": {
+    "description": "Text to set cover photo for an album"
+  },
+  "setLabel": "تعيين",
+  "@setLabel": {
+    "description": "Label of confirm button to add a new custom radius to the radius selector of a location tag"
+  },
+  "setNewPassword": "عين كلمة مرور جديدة",
+  "@setNewPassword": {
+    "description": "Set new password title"
+  },
+  "setNewPin": "عين رقم تعريف شخصي جديد",
+  "@setNewPin": {
+    "description": "Set new PIN title"
+  },
+  "setPasswordTitle": "تعيين كلمة المرور",
+  "@setPasswordTitle": {
+    "description": "Set password title"
+  },
+  "setRadius": "تعيين نصف القطر",
+  "settings": "الإعدادات",
+  "setupComplete": "اكتمل الإعداد",
+  "setupFirstAccount": "إعداد أول حساب لك",
+  "share": "مشاركة",
+  "shareALink": "مشاركة رابط",
+  "shareCodes": "شارك الرموز",
+  "shareCodesDuration": "حدد المدة التي تريد أن تشارك فيها ألاكوا د.",
+  "sharedWith": "مشترك مع",
+  "shareLink": "مشاركة الرابط",
+  "shareThisLink": "يسمح هذا الرابط لأي شخص يستلمه بالوصول إلى عنصرك. يمكنك إزالة الوصول في أي وقت عن طريق حذف الرابط.",
+  "shareWithNonenteUsers": "المشاركة مع غير مستخدمي Ente",
+  "sharing": "جارٍ المشاركة...",
+  "shiftDatesAndTime": "تغيير التواريخ والوقت",
+  "shouldHideCode": "إخفاء الرموز",
+  "shouldRemoveFilesSmartAlbumsDesc": "هل ينبغي إزالة الملفات المتعلقة بالشخص الذي تم اختياره سابقا في الألبومات الذكية؟",
+  "showLargeIcons": "إظهار أيقونات كبيرة",
+  "showMemories": "عرض الذكريات",
+  "showMoreFaces": "إظهار المزيد من الوجوه",
+  "showPerson": "إظهار الشخص",
+  "showQRAuthMessage": "المصادقة لإظهار رمز QR",
+  "sigInBackupReminder": "سيقوم Ente تلقائيًا بإنشاء نسخة احتياطية لرموزك بعد تسجيل الدخول.\n\nننصح بتصدير الرموز كنسخة احتياطية إضافية.",
+  "signInToBackup": "قم بتسجيل الدخول للنسخ الاحتياطي للرموز الخاصة بك",
+  "signOutFromOtherDevices": "تسجيل الخروج من الأجهزة الأخرى",
+  "@signOutFromOtherDevices": {
+    "description": "Sign out from other devices title"
+  },
+  "signOutOtherBody": "إذا كنت تعتقد أن شخصًا ما قد يعرف كلمة مرورك، يمكنك إجبار جميع الأجهزة الأخرى التي تستخدم حسابك على تسجيل الخروج.",
+  "@signOutOtherBody": {
+    "description": "Sign out other devices explanation"
+  },
+  "signOutOtherDevices": "تسجيل الخروج من الأجهزة الأخرى",
+  "@signOutOtherDevices": {
+    "description": "Sign out other devices button label"
+  },
+  "signUpTerms": "أوافق على <u-terms>شروط الخدمة</u-terms> و<u-policy>سياسة الخصوصية</u-policy>",
+  "@signUpTerms": {
+    "description": "Terms agreement text for sign up"
+  },
+  "singIn": "تسجل الدخول",
+  "skip": "تخط",
+  "smartMemories": "ذكريات ذكية",
+  "someoneSharingAlbumsWithYouShouldSeeTheSameId": "يجب أن يرى أي شخص يشارك ألبومات معك نفس معرّف التحقق على جهازه.",
+  "somethingWentWrong": "حدث خطأ ما",
+  "somethingWentWrongMessage": "حدث خطأ ما، يرجى المحاولة مرة أخرى",
+  "somethingWentWrongParsingCode": "تعذر علينا إعراب أكواد {x}.",
+  "@somethingWentWrongParsingCode": {
+    "placeholders": {
+      "x": {}
+    }
+  },
+  "somethingWentWrongPleaseTryAgain": "حدث خطأ ما، يرجى المحاولة مرة أخرى",
+  "@somethingWentWrongPleaseTryAgain": {
+    "description": "Generic error message"
+  },
+  "sorryBackupFailedDesc": "عذرًا، لم نتمكن من عمل نسخة احتياطية لهذا الملف الآن، سنعيد المحاولة لاحقًا.",
+  "sorryCouldNotAddToFavorites": "عذرًا، تعذرت الإضافة إلى المفضلة!",
+  "sorryCouldNotRemoveFromFavorites": "عذرًا، تعذرت الإزالة من المفضلة!",
+  "sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": "عذرًا، لم نتمكن من إنشاء مفاتيح آمنة على هذا الجهاز.\n\nيرجى التسجيل من جهاز مختلف.",
+  "@sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": {
+    "description": "Error message for insecure device"
+  },
+  "sorryWeHadToPauseYourBackups": "عذراً، لقد اضطررنا إلى إيقاف النسخ الاحتياطي الخاصة بك",
+  "sort": "فرز",
+  "sortAlbumsBy": "فرز حسب",
+  "sortNewestFirst": "الأحدث أولاً",
+  "sortOldestFirst": "الأقدم أولاً",
+  "sportsWithThem": "الرياضة مع {name}",
+  "@sportsWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "spotlightOnThem": "تسليط الضوء على {name}",
+  "@spotlightOnThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "spotlightOnYourself": "تسليط الضوء عليك",
+  "startBackup": "بدء النسخ الاحتياطي",
+  "startRecovery": "بدء الاسترداد",
+  "status": "الحالة",
+  "sticker": "ملصق",
+  "stopCastingBody": "هل تريد إيقاف البث؟",
+  "stopCastingTitle": "إيقاف البث",
+  "storage": "التخزين",
+  "storageBreakupFamily": "العائلة",
+  "storageBreakupYou": "أنت",
+  "@storageBreakupYou": {
+    "description": "Label to indicate how much storage you are using when you are part of a family plan"
+  },
+  "storageLimitExceeded": "تم تجاوز حد التخزين",
+  "streamDetails": "تفاصيل البث",
+  "subscribe": "اشتراك",
+  "subscribeToEnableSharing": "المشاركة متاحة فقط للاشتراكات المدفوعة النشطة.",
+  "subscription": "الاشتراك",
+  "subscriptionRequiredForSharing": "تحتاج إلى اشتراك مدفوع لمشاركة الروابط",
+  "subWillBeCancelledOn": "سيتم إلغاء اشتراكك في {endDate}",
+  "@subWillBeCancelledOn": {
+    "placeholders": {
+      "endDate": {}
+    }
+  },
+  "successfullyArchived": "تمت الأرشفة بنجاح.",
+  "successfullyHid": "تم الإخفاء بنجاح.",
+  "successfullyUnarchived": "تم إلغاء الأرشفة بنجاح.",
+  "successfullyUnhid": "تم الإظهار بنجاح.",
+  "suggestFeatures": "اقتراح ميزة",
+  "sunrise": "على الأفق",
+  "support": "الدعم",
+  "syncing": "جارٍ المزامنة...",
+  "syncProgress": "{completed}/{total} ذكريات محفوظة",
+  "@syncProgress": {
+    "description": "Text to tell user how many memories have been preserved",
+    "placeholders": {
+      "completed": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "syncStopped": "توقفت المزامنة",
+  "systemTheme": "النظام",
+  "tag": "وسم",
+  "tags": "الأوسمة",
+  "tapToCopy": "انقر للنسخ",
+  "tapToUnlock": "المس لإلغاء القفل",
+  "@tapToUnlock": {
+    "description": "Message prompting user to tap to unlock"
+  },
+  "tapToUpload": "انقر للتحميل",
+  "@tapToUpload": {
+    "description": "Shown in upload icon widet, inside a tooltip."
+  },
+  "tapToUploadIsIgnoredDue": "انقر للتحميل، تم تجاهل التحميل حاليًا بسبب {ignoreReason}",
+  "@tapToUploadIsIgnoredDue": {
+    "description": "Shown in upload icon widet, inside a tooltip.",
+    "placeholders": {
+      "ignoreReason": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
+  },
+  "tellUsWhatYouThink": "شاركنا برأيك",
+  "terminate": "إنهاء",
+  "@terminate": {
+    "description": "Terminate button label"
+  },
+  "thankYou": "شكرًا لك",
+  "thankYouForSubscribing": "شكرًا لاشتراكك!",
+  "theLinkYouAreTryingToAccessHasExpired": "انتهت صلاحية الرابط الذي تحاول الوصول إليه.",
+  "thePersonGroupsWillNotBeDisplayed": "لن تظهر مجموعات الأشخاص في قسم الأشخاص بعد الآن. ستظل الصور دون تغيير.",
+  "thePersonWillNotBeDisplayed": "لن يتم عرض هذا الشخص في قسم الأشخاص بعد الآن. الصور ستبقى كما هي دون تغيير.",
   "theRecoveryKeyYouEnteredIsIncorrect": "مفتاح الاسترداد الذي أدخلته غير صحيح",
   "@theRecoveryKeyYouEnteredIsIncorrect": {
     "description": "Detailed error message when recovery key is incorrect"
   },
-  "twofactorAuthenticationSuccessfullyReset": "تم تحديث المصادقة الثنائية بنجاح",
-  "@twofactorAuthenticationSuccessfullyReset": {
-    "description": "Message when two-factor authentication is successfully reset"
+  "theseItemsWillBeDeletedFromYourDevice": "سيتم حذف هذه العناصر من جهازك.",
+  "thisCanBeUsedToRecoverYourAccountIfYou": "يمكن استخدام هذا المفتاح لاستعادة حسابك إذا فقدت العامل الثاني للمصادقة",
+  "thisDevice": "هذا الجهاز",
+  "@thisDevice": {
+    "description": "Label for current device"
   },
-  "yourVerificationCodeHasExpired": "انتهت صلاحية رمز التحقق",
-  "@yourVerificationCodeHasExpired": {
-    "description": "Error message when verification code has expired"
+  "thisImageHasNoExifData": "لا تحتوي هذه الصورة على بيانات EXIF.",
+  "thisIsMeExclamation": "هذا أنا!",
+  "thisIsPersonVerificationId": "هذا هو معرّف التحقق الخاص بـ {email}",
+  "@thisIsPersonVerificationId": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@ente.com"
+      }
+    }
   },
-  "incorrectCode": "رمز غير صحيح",
-  "@incorrectCode": {
-    "description": "Error message when code is incorrect"
+  "thisIsYourVerificationId": "هذا هو معرّف التحقق الخاص بك",
+  "thisMonth": "هذا الشهر",
+  "thisWeek": "هذا الأسبوع",
+  "thisWeekThroughTheYears": "هذا الأسبوع عبر السنين",
+  "thisWillLogYouOutOfThisDevice": "سيؤدي هذا إلى تسجيل خروجك من هذا الجهاز!",
+  "@thisWillLogYouOutOfThisDevice": {
+    "description": "Warning message for logging out of current device"
   },
-  "sorryTheCodeYouveEnteredIsIncorrect": "عذراً، الرمز الذي أدخلته غير صحيح",
-  "@sorryTheCodeYouveEnteredIsIncorrect": {
-    "description": "Detailed error message when code is incorrect"
+  "thisWillMakeTheDateAndTimeOfAllSelected": "سيجعل هذا تاريخ ووقت جميع الصور المحددة متماثلاً.",
+  "thisYear": "هذه السنة",
+  "throughTheYears": "{dateFormat} عبر السنين",
+  "@throughTheYears": {
+    "placeholders": {
+      "dateFormat": {}
+    }
   },
-  "developerSettings": "اعدادات المطور",
-  "@developerSettings": {
-    "description": "Label for developerSettings"
+  "title": "العنوان",
+  "todaysLogs": "سجلات اليوم",
+  "totalSize": "الحجم الإجمالي",
+  "trash": "سلة المهملات",
+  "trashClearedSuccessfully": "تم إفراغ سلة المهملات بنجاح",
+  "trashCode": "حذف الكود؟",
+  "trashCodeMessage": "هل أنت متيقِّن أنك تريد حذف الكود الخاص بـ {account}؟",
+  "@trashCodeMessage": {
+    "placeholders": {
+      "account": {}
+    }
   },
-  "serverEndpoint": "نقطة طرف الخادم",
-  "@serverEndpoint": {
-    "description": "Label for serverEndpoint"
+  "trashIsEmpty": "سلة المهملات فارغة",
+  "trim": "قص",
+  "tripInYear": "رحلة في {year}",
+  "@tripInYear": {
+    "placeholders": {
+      "year": {}
+    }
   },
-  "invalidEndpoint": "نقطة طرف غير صالحة",
-  "@invalidEndpoint": {
-    "description": "Label for invalidEndpoint"
+  "tripToLocation": "رحلة إلى {location}",
+  "@tripToLocation": {
+    "placeholders": {
+      "location": {}
+    }
   },
-  "invalidEndpointMessage": "عذرا، نقطة الطرف التي أدخلتها غير صالحة. فضلا أدخل نقطة طرف صالحة وأعد المحاولة.",
-  "@invalidEndpointMessage": {
-    "description": "Label for invalidEndpointMessage"
+  "trustedContacts": "جهات الاتصال الموثوقة",
+  "twofactor": "المصادقة الثنائية",
+  "twofactorAuthenticationHasBeenDisabled": "تم تعطيل المصادقة الثنائية.",
+  "twoFactorAuthTitle": "المصادقة الثنائية",
+  "@twoFactorAuthTitle": {
+    "description": "Two-factor authentication title"
   },
-  "endpointUpdatedMessage": "حُدِّثَت نقطة الطرف بنجاح",
-  "@endpointUpdatedMessage": {
-    "description": "Label for endpointUpdatedMessage"
-  }
+  "twofactorSetup": "إعداد المصادقة الثنائية",
+  "type": "النوع",
+  "typeOfGallerGallerytypeIsNotSupportedForRename": "نوع المعرض {galleryType} غير مدعوم لإعادة التسمية.",
+  "@typeOfGallerGallerytypeIsNotSupportedForRename": {
+    "placeholders": {
+      "galleryType": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
+  },
+  "unarchive": "إلغاء الأرشفة",
+  "@unarchive": {
+    "description": "Action of 'Unarchiving' an element"
+  },
+  "unarchiveAlbum": "إلغاء أرشفة الألبوم",
+  "unarchiving": "جارٍ إلغاء الأرشفة...",
+  "uncategorized": "غير مصنف",
+  "undo": "تراجع",
+  "unhide": "إظهار",
+  "unhideToAlbum": "إظهار في الألبوم",
+  "unhiding": "جارٍ إظهار...",
+  "unhidingFilesToAlbum": "جارٍ إظهار الملفات في الألبوم...",
+  "unimportant": "غير مهم",
+  "unlock": "فتح القفل",
+  "@unlock": {
+    "description": "Short action label used as the system authentication reason when unlocking the app"
+  },
+  "unnamedCollection": "مجموعة بدون اسم",
+  "unpinnedCodeMessage": "أُلغِي تثبيت {code}",
+  "@unpinnedCodeMessage": {
+    "placeholders": {
+      "code": {}
+    }
+  },
+  "unpinText": "ألغِ التثبيت",
+  "unsavedNoteChangesDescription": "لديك تغييرات غير محفوظة في هذه الملاحظة. إذا عدت الآن، ستفقدها.",
+  "unsavedNoteChangesTitle": "تجاهل التغييرات؟",
+  "unselectAll": "إلغاء تحديد الكل",
+  "untitled": "بدون عنوان",
+  "updateBackupPassword": "تحديث كلمة مرور النسخة الاحتياطية",
+  "updatingFolderSelection": "جارٍ تحديث تحديد المجلد...",
+  "upgrade": "ترقية",
+  "uploadedFilesProgress": "تم رفع {completed}/{total} عناصر...",
+  "@uploadedFilesProgress": {
+    "description": "Progress message showing uploaded items",
+    "placeholders": {
+      "completed": {
+        "type": "int",
+        "example": "3"
+      },
+      "total": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "uploadError": "خطأ في الرفع",
+  "uploadFileCountLimitErrorBody": "لقد وصلت إلى حد الملفات الخاص بك. قم بالترقية إلى خطة مدفوعة للحصول على مساحة تخزين أكبر.",
+  "@uploadFileCountLimitErrorBody": {
+    "description": "Body shown when uploads fail because the locker already has the maximum file count"
+  },
+  "uploadFileCountLimitErrorTitle": "تم الوصول إلى حد الملفات",
+  "@uploadFileCountLimitErrorTitle": {
+    "description": "Title shown when uploads fail because the locker already has the maximum file count"
+  },
+  "uploadFileCountLimitErrorToast": "فشل الإجراء. لقد وصلت إلى حد الملفات الخاص بك.",
+  "@uploadFileCountLimitErrorToast": {
+    "description": "Toast shown when info items fail to save due to hitting the file count limit"
+  },
+  "uploadFiles": "رفع عناصر",
+  "uploadFileTooLargeErrorBody": "هذا الملف أكبر من الحد الأقصى المدعوم للرفع وهو 10 جيجابايت.",
+  "@uploadFileTooLargeErrorBody": {
+    "description": "Body shown when uploads fail because the file exceeds the supported size"
+  },
+  "uploadFileTooLargeErrorTitle": "الملف كبير جداً",
+  "@uploadFileTooLargeErrorTitle": {
+    "description": "Title shown when uploads fail because the file exceeds the supported size"
+  },
+  "uploadingFilesToAlbum": "جارٍ تحميل الملفات إلى الألبوم...",
+  "uploadingMultipleMemories": "جارٍ حفظ {count} ذكريات...",
+  "@uploadingMultipleMemories": {
+    "description": "Text to tell user how many memories are being preserved",
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "uploadingSingleMemory": "جارٍ حفظ ذكرى واحدة...",
+  "uploadIsIgnoredDueToIgnorereason": "تم تجاهل التحميل بسبب {ignoreReason}",
+  "@uploadIsIgnoredDueToIgnorereason": {
+    "placeholders": {
+      "ignoreReason": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
+  },
+  "uploadStorageLimitErrorBody": "لقد نفدت مساحة التخزين لديك. حرر مساحة لمواصلة الرفع.",
+  "@uploadStorageLimitErrorBody": {
+    "description": "Body shown when uploads fail due to running out of storage"
+  },
+  "uploadStorageLimitErrorTitle": "تم الوصول إلى حد التخزين",
+  "@uploadStorageLimitErrorTitle": {
+    "description": "Title shown when uploads fail due to running out of storage"
+  },
+  "useAsCover": "استخدام كغلاف",
+  "usedSpace": "المساحة المستخدمة",
+  "useOffline": "استخدام بدون نسخ إحتياطية",
+  "username": "اسم المستخدم",
+  "usernameHint": "معرّف تسجيل الدخول أو البريد الإلكتروني",
+  "useSelectedPhoto": "استخدام الصورة المحددة",
+  "validTill": "صالح حتى {endDate}",
+  "@validTill": {
+    "placeholders": {
+      "endDate": {}
+    }
+  },
+  "verify": "التحقق",
+  "@verify": {
+    "description": "Verify button label"
+  },
+  "verifyIDLabel": "تحقق",
+  "verifying": "جارٍ التحقق...",
+  "verifyPassword": "التحقق من كلمة المرور",
+  "@verifyPassword": {
+    "description": "Verify password button label"
+  },
+  "videoInfo": "معلومات الفيديو",
+  "videos": "مقاطع الفيديو",
+  "videoStreaming": "مقاطع فيديو قابلة للبث",
+  "viewActiveSessions": "عرض الجلسات النشطة",
+  "viewAddOnButton": "عرض الإضافات",
+  "viewAllExifData": "عرض جميع بيانات EXIF",
+  "viewer": "مشاهد",
+  "viewLargeFiles": "الملفات الكبيرة",
+  "viewLogs": "عرض السجلات",
+  "@viewLogs": {
+    "description": "Button to view logs"
+  },
+  "viewLogsAction": "عرض السجلات",
+  "viewPersonToUnlink": "عرض {name} لإلغاء الربط",
+  "@viewPersonToUnlink": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "viewRawCodes": "عرض الشيفرات الأصلية",
+  "viewRecoveryKey": "عرض مفتاح الاسترداد",
+  "visitWebToManage": "يرجى زيارة {webUrl} لإدارة اشتراكك.",
+  "@visitWebToManage": {
+    "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",
+    "placeholders": {
+      "webUrl": {
+        "type": "String",
+        "example": "photos.ente.com"
+      }
+    }
+  },
+  "waitingForWifi": "في انتظار شبكة Wi-Fi...",
+  "warning": "تحذير",
+  "weDontSupportEditingPhotosAndAlbumsThatYouDont": "لا ندعم تعديل الصور والألبومات التي لا تملكها بعد.",
+  "whatsNew": "ما الجديد",
+  "widgets": "عناصر واجهة",
+  "wishThemAHappyBirthday": "أتمنى لـ{name} عيد ميلاد سعيد! 🎉",
+  "@wishThemAHappyBirthday": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "yearly": "سنويًا",
+  "@yearly": {
+    "description": "The text to display for yearly plans",
+    "type": "text"
+  },
+  "yearsAgo": "{count, plural, one{قبل سنة} two{قبل سنتين} few{قبل {count} سنوات} many{قبل {count} سنة} other{قبل {count} سنة}}",
+  "@yearsAgo": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "yearShort": "سنة",
+  "@yearShort": {
+    "description": "Appears in pricing page (/yr)"
+  },
+  "yes": "نعم",
+  "yesCancel": "نعم، إلغاء",
+  "yesConvertToViewer": "نعم، التحويل إلى مشاهد",
+  "yesDelete": "نعم، حذف",
+  "yesDiscardChanges": "نعم، تجاهل التغييرات",
+  "yesIgnore": "نعم، تجاهل",
+  "yesLogout": "نعم، تسجيل الخروج",
+  "@yesLogout": {
+    "description": "Confirmation button for logout"
+  },
+  "yesRemove": "نعم، إزالة",
+  "yesRenew": "نعم، تجديد",
+  "yesResetPerson": "نعم، إعادة تعيين الشخص",
+  "you": "أنت",
+  "youAndThem": "أنت و {name}",
+  "@youAndThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "youCannotDowngradeToThisPlan": "لا يمكنك الترقية إلى هذه الخطة.",
+  "youCannotShareWithYourself": "لا يمكنك المشاركة مع نفسك.",
+  "youHaveSuccessfullyFreedUp": "لقد حررت {storageSaved} بنجاح!",
+  "@youHaveSuccessfullyFreedUp": {
+    "description": "The text to display when the user has successfully freed up storage",
+    "type": "text",
+    "placeholders": {
+      "storageSaved": {
+        "example": "1.2 GB",
+        "type": "String"
+      }
+    }
+  },
+  "yourMap": "خريطتك",
+  "yourPlanWasSuccessfullyDowngraded": "تم تخفيض خطتك بنجاح.",
+  "yourPlanWasSuccessfullyUpgraded": "تمت ترقية خطتك بنجاح.",
+  "yourPurchaseWasSuccessful": "تم الشراء بنجاح.",
+  "yourSubscriptionHasExpired": "انتهت صلاحية اشتراكك",
+  "yourSubscriptionWasUpdatedSuccessfully": "تم تحديث اشتراكك بنجاح.",
+  "yourTrashIsEmpty": "سلة المهملات فارغة",
+  "youveNoDuplicateCodesThatCanBeCleared": "لا توجد لديك أي أكواد مكررة يمكن حذفها",
+  "youveNoDuplicateFilesThatCanBeCleared": "لا توجد لديك أي ملفات مكررة يمكن مسحها",
+  "youveNoFilesInThisAlbumThatCanBeDeleted": "لا توجد لديك ملفات في هذا الألبوم يمكن حذفها.",
+  "zoomOutToSeePhotos": "صغر لرؤية الصور"
 }

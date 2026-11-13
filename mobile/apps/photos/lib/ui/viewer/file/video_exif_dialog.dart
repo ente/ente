@@ -1,5 +1,5 @@
+import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
-import "package:photos/l10n/l10n.dart";
 import "package:photos/models/ffmpeg/ffprobe_keys.dart";
 import "package:photos/models/ffmpeg/ffprobe_props.dart";
 import "package:photos/theme/ente_theme.dart";
@@ -32,9 +32,9 @@ class VideoExifDialog extends StatelessWidget {
       child: ExpansionTile(
         initiallyExpanded: false,
         title: Text(title, style: getEnteTextTheme(context).body),
-        childrenPadding: EdgeInsets.zero, // Remove padding around children
+        childrenPadding: EdgeInsets.zero,
         tilePadding: EdgeInsets.zero,
-        collapsedShape: const Border(), // Remove border when collapsed
+        collapsedShape: const Border(),
         shape: const Border(),
         children: [content],
       ),
@@ -45,13 +45,10 @@ class VideoExifDialog extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          context.l10n.videoInfo,
-          style: getEnteTextTheme(context).large,
-        ),
+        Text(context.strings.videoInfo, style: getEnteTextTheme(context).large),
         _buildInfoRow(context, 'Creation Time', props, 'creation_time'),
         _buildInfoRow(context, 'Duration', props, 'duration'),
-        _buildInfoRow(context, context.l10n.location, props, 'location'),
+        _buildInfoRow(context, context.strings.location, props, 'location'),
         _buildInfoRow(context, 'Bitrate', props, 'bitrate'),
         _buildInfoRow(context, 'Frame Rate', props, FFProbeKeys.rFrameRate),
         _buildInfoRow(context, 'Width', props, null),
@@ -75,7 +72,6 @@ class VideoExifDialog extends StatelessWidget {
         if (value is List) {
           continue;
         }
-        // print type of value
         if (value is int ||
             value is double ||
             value is String ||
@@ -89,8 +85,9 @@ class VideoExifDialog extends StatelessWidget {
     }
 
     return Column(
-      children:
-          data.map((stream) => _buildStreamInfo(context, stream)).toList(),
+      children: data
+          .map((stream) => _buildStreamInfo(context, stream))
+          .toList(),
     );
   }
 
@@ -101,13 +98,10 @@ class VideoExifDialog extends StatelessWidget {
       titleString += ' - $codeName';
     }
     return ExpansionTile(
-      title: Text(
-        titleString,
-        style: getEnteTextTheme(context).small,
-      ),
+      title: Text(titleString, style: getEnteTextTheme(context).small),
       childrenPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 4),
       tilePadding: EdgeInsets.zero,
-      collapsedShape: const Border(), // Remove border when collapsed
+      collapsedShape: const Border(),
       shape: const Border(),
       children: [
         Column(
@@ -146,8 +140,7 @@ class VideoExifDialog extends StatelessWidget {
       }
 
       if (value == null) {
-        return const SizedBox
-            .shrink(); // Return an empty container if there's no data for the key.
+        return const SizedBox.shrink();
       }
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -156,16 +149,13 @@ class VideoExifDialog extends StatelessWidget {
           children: [
             SizedBox(
               width: 150,
-              child: Text(
-                rowName,
-                style: getEnteTextTheme(context).smallMuted,
-              ),
+              child: Text(rowName, style: getEnteTextTheme(context).smallMuted),
             ),
             Expanded(child: Text(value.toString())),
           ],
         ),
       );
-    } catch (e, _) {
+    } catch (e) {
       return const SizedBox.shrink();
     }
   }

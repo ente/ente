@@ -1,0 +1,23 @@
+{{define "content"}}
+<p>Hi,</p>
+
+<p>
+  Your Ente plan for the account associated with
+  <strong>{{.AccountEmail}}</strong> expired, and the renewal window has now
+  ended.
+</p>
+
+<p>
+  As a result, your Ente Photos &amp; Ente Locker data is now scheduled for
+  deletion. Access to your account has been restricted.
+</p>
+
+{{if .IsFamilyPlan}}
+<p>
+  If you're on a Family plan, your family members' data and access may also be
+  affected.
+</p>
+{{end}}
+
+<p>If you think this was a mistake, please reply to this email.</p>
+{{end}}

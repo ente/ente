@@ -26,9 +26,15 @@ Collaborative albums allow multiple Ente users to contribute photos to the same 
 4. Choose permissions (Viewer, Collaborator, or Admin)
 5. Send the invitation
 
+![Share with Ente users in the share panel on Ente Photos web](https://docs-assets.ente.com/screenshots/web-collab-share-ente-users.png){width=720px}
+
 Recipients receive a notification and can access the shared album from their Ente app.
 
+![Shared album appearing in the recipient library on Ente Photos web](https://docs-assets.ente.com/screenshots/web-collab-shared-with-you.png){width=720px}
+
 Multiple albums can be selected (long press to select), and choosing Share will apply sharing to all selected albums at once.
+
+![Mobile steps 2-4: Share icon, then Add person, then Choose access with Collaborator highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-collab-add-participants-steps-nc.png){width=560px}
 
 ### Permissions explained
 
@@ -37,13 +43,13 @@ Multiple albums can be selected (long press to select), and choosing Share will 
 - View all photos in the album
 - Download photos
 - Add photos to their own albums (creates a copy)
+- Comment and react
 
 **Collaborators can:**
 
 - Everything viewers can do, plus:
 - Add new photos and videos to the shared album
 - Remove photos they uploaded
-- Comment and react (coming soon)
 
 **Admins can:**
 
@@ -103,6 +109,8 @@ Album owners and admins can suggest that other participants delete their photos 
 3. Tap the suggest deletion action
 4. Confirm the suggestion
 
+![Suggest deletion action highlighted in the selection toolbar on Ente Photos mobile, Friends album filtered to Alex with one collaborator photo selected](https://docs-assets.ente.com/screenshots/phone-suggest-deletion-callout.png){width=320px}
+
 **What happens:**
 
 - Photos are immediately removed from the album
@@ -113,19 +121,16 @@ Photo owners can review delete suggestions in `Settings > Backup > Free up space
 
 Learn more in the [storage optimization guide](/photos/features/albums-and-organization/storage-optimization#delete-suggestions).
 
-> **Note**: Suggest deletion is currently available on mobile apps only.
+> [!NOTE]
+>
+> Suggest deletion is currently available on mobile apps only.
 
 ### Platform availability
 
-**Mobile apps (iOS and Android):**
+**Mobile, web, and desktop:**
 
 - Full support for collaborative albums
 - Can view, add, and manage photos
-
-**Web and desktop:**
-
-- Currently view-only mode for collaborative albums
-- We're actively working on adding full collaboration support
 
 ## Collecting photos from anyone
 
@@ -153,6 +158,8 @@ Collect links are public links with the "Allow adding photos" option enabled. An
 4. Tap "Copy link"
 5. Share the link with anyone you want to collect photos from
 
+![Album share panel on Ente Photos mobile with Add collaborator Create public link and Create collaborative link](https://docs-assets.ente.com/screenshots/phone-collab-share-panel.png){width=320px}
+
 **On web/desktop:**
 
 1. Open the album
@@ -160,6 +167,8 @@ Collect links are public links with the "Allow adding photos" option enabled. An
 3. Select "Collect photos"
 4. Click "Copy link"
 5. Share the link with others
+
+![Allow adding photos toggle highlighted in Manage link on Ente Photos web](https://docs-assets.ente.com/screenshots/web-album-manage-link-allow-adding-callout.png){width=720px}
 
 Anyone with the link can view existing photos and add their own through their web browser. They can also download photos if you haven't disabled downloads.
 
@@ -192,19 +201,22 @@ When someone adds a photo via a collect link:
 2. **Disable uploads**: Edit link settings and turn off "Allow adding photos"
 3. **Change to view-only**: Convert the collect link to a regular public link
 
-**View contributors:**
-Currently, you cannot see who added which photos to a collect link. All collected photos appear in the album without attribution. We're considering adding this feature based on user feedback.
+**View contributors:** Currently, you cannot see who added which photos to a collect link. All collected photos appear in the album without attribution. We're considering adding this feature based on user feedback.
+
+![Manage public link options on Ente Photos web](https://docs-assets.ente.com/screenshots/web-album-manage-link.png){width=720px}
+
+![Mobile: Share icon, then Create collaborative link, then Link settings with Allow adding photos highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-collect-link-settings-steps-nc.png){width=560px}
 
 ## Comparison
 
-| Feature                            | Collaborative Albums                   | Collect Links                         |
-| ---------------------------------- | -------------------------------------- | ------------------------------------- |
-| **Participants need Ente account** | Yes                                    | No                                    |
-| **Access method**                  | Email invitation                       | Link                                  |
-| **Who pays for storage**           | Each uploader                          | Album owner                           |
-| **Best for**                       | Ongoing collaboration with Ente users  | One-time collection from large groups |
-| **Platform support**               | Mobile (full), Web/Desktop (view only) | All platforms via web browser         |
-| **Can set upload limits**          | No (trust-based)                       | Yes (password, expiry, device limits) |
+| Feature                            | Collaborative Albums                  | Collect Links                         |
+| ---------------------------------- | ------------------------------------- | ------------------------------------- |
+| **Participants need Ente account** | Yes                                   | No                                    |
+| **Access method**                  | Email invitation                      | Link                                  |
+| **Who pays for storage**           | Each uploader                         | Album owner                           |
+| **Best for**                       | Ongoing collaboration with Ente users | One-time collection from large groups |
+| **Platform support**               | Mobile, web, and desktop              | All platforms via web browser         |
+| **Can set upload limits**          | No (trust-based)                      | Yes (password, expiry, device limits) |
 
 ## Related topics
 

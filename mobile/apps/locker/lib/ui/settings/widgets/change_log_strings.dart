@@ -1,27 +1,9 @@
 import "dart:ui";
 
 class ChangeLogStrings {
-  final String sheetTitle;
-  final String sheetSubtitle;
-  final String continueLabel;
-  final String title1;
-  final String desc1;
-  final String title2;
-  final String desc2;
-  final String title3;
-  final String desc3;
+  final List<ChangeLogEntryStrings> entries;
 
-  const ChangeLogStrings({
-    required this.sheetTitle,
-    required this.sheetSubtitle,
-    required this.continueLabel,
-    required this.title1,
-    required this.desc1,
-    required this.title2,
-    required this.desc2,
-    required this.title3,
-    required this.desc3,
-  });
+  const ChangeLogStrings({required this.entries});
 
   static ChangeLogStrings forLocale(Locale locale) {
     final key = locale.countryCode != null && locale.countryCode!.isNotEmpty
@@ -35,15 +17,28 @@ class ChangeLogStrings {
 
   static const Map<String, ChangeLogStrings> _translations = {
     "en": ChangeLogStrings(
-      sheetTitle: "What's new",
-      sheetSubtitle: "",
-      continueLabel: "Continue",
-      title1: "",
-      desc1: "",
-      title2: "",
-      desc2: "",
-      title3: "",
-      desc3: "",
+      entries: [
+        ChangeLogEntryStrings(
+          title: "Image viewer",
+          description:
+              "Open images right in Locker. Pinch or double-tap to zoom.",
+        ),
+        ChangeLogEntryStrings(
+          title: "New upload screen",
+          description: "A fresh look for adding files to Locker.",
+        ),
+        ChangeLogEntryStrings(
+          title: "Now in Korean",
+          description: "You can now use Locker in Korean.",
+        ),
+      ],
     ),
   };
+}
+
+class ChangeLogEntryStrings {
+  final String title;
+  final String description;
+
+  const ChangeLogEntryStrings({required this.title, required this.description});
 }

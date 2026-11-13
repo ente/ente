@@ -1,7 +1,12 @@
 import 'dart:async';
+import 'dart:io';
 
+import "package:ente_components/ente_components.dart";
 import 'package:ente_pure_utils/ente_pure_utils.dart';
+import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import "package:hugeicons/hugeicons.dart";
 import "package:intl/intl.dart";
 import "package:logging/logging.dart";
 import 'package:photos/core/event_bus.dart';
@@ -9,20 +14,21 @@ import 'package:photos/ente_theme_data.dart';
 import 'package:photos/events/christmas_banner_event.dart';
 import 'package:photos/events/notification_event.dart';
 import 'package:photos/events/sync_status_update_event.dart';
-import "package:photos/generated/l10n.dart";
+import 'package:photos/events/tab_changed_event.dart';
+import 'package:photos/models/home_tab.dart';
 import "package:photos/service_locator.dart";
+import "package:photos/services/sync/large_backup_session_tracker.dart";
 import 'package:photos/services/sync/sync_service.dart';
 import "package:photos/theme/ente_theme.dart";
-import 'package:photos/theme/text_style.dart';
 import 'package:photos/ui/account/verify_recovery_page.dart';
 import 'package:photos/ui/components/home_header_widget.dart';
-import 'package:photos/ui/components/notification_widget.dart';
 import 'package:photos/ui/home/christmas/christmas_lights_banner.dart';
 import 'package:photos/ui/home/christmas/christmas_utils.dart';
 import 'package:photos/ui/home/header_error_widget.dart';
+import "package:photos/ui/home/large_backup_screen.dart";
 import "package:photos/ui/settings/backup/backup_settings_screen.dart";
 import "package:photos/ui/settings/backup/backup_status_screen.dart";
-import "package:photos/ui/settings/ml/machine_learning_settings_page.dart";
+import "package:photos/ui/settings/ml/ml_consent_sheet.dart";
 
 const double kContainerHeight = 36;
 
@@ -42,9 +48,12 @@ class _StatusBarWidgetState extends State<StatusBarWidget> {
   bool _isPausedDueToNetwork = false;
   bool _showStatus = false;
   bool _showErrorBanner = false;
-  bool _showMlBanner = !hasGrantedMLConsent &&
-      (isOfflineMode || flagService.hasSyncedAccountFlags()) &&
+  bool _showMlBanner =
+      !hasGrantedMLConsent &&
+      (isLocalGalleryMode || flagService.hasSyncedAccountFlags()) &&
       !localSettings.hasSeenMLEnablingBanner;
+  final LargeBackupSessionTracker _largeBackupSession =
+      SyncService.instance.largeBackupSessionTracker;
   Error? _syncError;
 
   @override
@@ -78,20 +87,22 @@ class _StatusBarWidgetState extends State<StatusBarWidget> {
         });
       }
     });
-    _notificationSubscription =
-        Bus.instance.on<NotificationEvent>().listen((event) {
+    _notificationSubscription = Bus.instance.on<NotificationEvent>().listen((
+      event,
+    ) {
       if (mounted) {
         _showMlBanner =
             !hasGrantedMLConsent && !localSettings.hasSeenMLEnablingBanner;
         setState(() {});
       }
     });
-    _christmasBannerSubscription =
-        Bus.instance.on<ChristmasBannerEvent>().listen((_) {
-      if (mounted) {
-        setState(() {});
-      }
-    });
+    _christmasBannerSubscription = Bus.instance
+        .on<ChristmasBannerEvent>()
+        .listen((_) {
+          if (mounted) {
+            setState(() {});
+          }
+        });
 
     super.initState();
   }
@@ -123,62 +134,49 @@ class _StatusBarWidgetState extends State<StatusBarWidget> {
                   },
                   child: const SyncStatusWidget(),
                 )
-              : const Text("ente", style: brandStyleMedium),
+              : SvgPicture.asset(
+                  "assets/ente-branding.svg",
+                  height: 15,
+                  colorFilter: ColorFilter.mode(
+                    Theme.of(context).brightness == Brightness.light
+                        ? Colors.black
+                        : Colors.white,
+                    BlendMode.srcIn,
+                  ),
+                ),
         ),
         _showErrorBanner
-            ? Divider(
-                height: 8,
-                color: getEnteColorScheme(context).strokeFaint,
-              )
+            ? Divider(height: 8, color: getEnteColorScheme(context).strokeFaint)
             : const SizedBox.shrink(),
-        _showErrorBanner
-            ? HeaderErrorWidget(error: _syncError)
-            : const SizedBox.shrink(),
-        _showMlBanner && !_showErrorBanner
-            ? Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 2.0, vertical: 12),
-                child: NotificationWidget(
-                  startIcon: Icons.offline_bolt,
-                  actionIcon: Icons.arrow_forward,
-                  text:
-                      AppLocalizations.of(context).enableMachineLearningBanner,
-                  type: NotificationType.greenBanner,
-                  mainTextStyle: darkTextTheme.smallMuted,
-                  onTap: () async => {
-                    await routeToPage(
-                      context,
-                      const MachineLearningSettingsPage(),
-                      forceCustomPageRoute: true,
-                    ),
-                  },
-                ),
-              )
-            : const SizedBox.shrink(),
-        _showVerificationBanner()
-            ? Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
-                child: NotificationWidget(
-                  startIcon: Icons.error_outline,
-                  actionIcon: Icons.arrow_forward,
-                  text: AppLocalizations.of(context).confirmYourRecoveryKey,
-                  type: NotificationType.banner,
-                  onTap: () async => {
-                    await routeToPage(
-                      context,
-                      const VerifyRecoveryPage(),
-                      forceCustomPageRoute: true,
-                    ),
-                  },
-                ),
-              )
-            : const SizedBox.shrink(),
+        if (_showErrorBanner) HeaderErrorWidget(error: _syncError),
+        if (_shouldShowLargeBackupBanner) _largeBackupBanner(context),
+        if (_showMlBanner && !_showErrorBanner) const _MachineLearningBanner(),
+        if (_showVerificationBanner()) const _RecoveryKeyBanner(),
       ],
     );
   }
 
-  // _showVerificationBanner after 3 days of installation
+  bool get _shouldShowLargeBackupBanner =>
+      Platform.isIOS && !_showErrorBanner && _largeBackupSession.isActive;
+
+  Widget _largeBackupBanner(BuildContext context) {
+    return _bannerPadding(
+      BannerComponent(
+        key: const ValueKey("large-backup-standby-banner"),
+        leadingIcon: HugeIcons.strokeRoundedMoon02,
+        title: context.strings.backupModeKeepAppOpen,
+        subtitle: context.strings.backupModeScreenWillDim,
+        state: BannerComponentState.success,
+        onTap: () async {
+          if (!_largeBackupSession.isActive) {
+            return;
+          }
+          await showLargeBackupScreen(context, _largeBackupSession);
+        },
+      ),
+    );
+  }
+
   bool _showVerificationBanner() {
     if (_showErrorBanner ||
         _showErrorBanner ||
@@ -188,6 +186,61 @@ class _StatusBarWidgetState extends State<StatusBarWidget> {
     final DateTime installTime = localSettings.getInstallDateTime();
     return DateTime.now().difference(installTime).inDays >= 3;
   }
+}
+
+class _MachineLearningBanner extends StatelessWidget {
+  const _MachineLearningBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.strings;
+    return _bannerPadding(
+      BannerComponent(
+        leadingIcon: HugeIcons.strokeRoundedAiBrain01,
+        title: l10n.machineLearning,
+        subtitle: l10n.machineLearningBannerSubtitle,
+        state: BannerComponentState.success,
+        trailingWidget: const Icon(Icons.arrow_forward),
+        onTap: () async {
+          if (await showMLConsentSheet(context)) {
+            Bus.instance.fire(
+              TabChangedEvent(searchTabIndex, TabChangedEventSource.mlConsent),
+            );
+          }
+        },
+      ),
+    );
+  }
+}
+
+class _RecoveryKeyBanner extends StatelessWidget {
+  const _RecoveryKeyBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return _bannerPadding(
+      BannerComponent(
+        leadingIcon: HugeIcons.strokeRoundedAlertCircle,
+        title: context.strings.confirmYourRecoveryKey,
+        state: BannerComponentState.warning,
+        trailingWidget: const Icon(Icons.arrow_forward),
+        onTap: () async {
+          await routeToPage(
+            context,
+            const VerifyRecoveryPage(),
+            forceCustomPageRoute: true,
+          );
+        },
+      ),
+    );
+  }
+}
+
+Widget _bannerPadding(Widget child) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+    child: child,
+  );
 }
 
 class SyncStatusWidget extends StatefulWidget {
@@ -222,14 +275,15 @@ class _SyncStatusWidgetState extends State<SyncStatusWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isNotOutdatedEvent = _event != null &&
+    final bool isNotOutdatedEvent =
+        _event != null &&
         (_event!.status == SyncStatus.completedBackup ||
             _event!.status == SyncStatus.completedFirstGalleryImport) &&
         (DateTime.now().microsecondsSinceEpoch - _event!.timestamp >
             kSleepDuration.inMicroseconds);
     if (_event == null ||
         isNotOutdatedEvent ||
-        //sync error cases are handled in StatusBarWidget
+        // StatusBarWidget handles sync errors.
         _event!.status == SyncStatus.error) {
       return const SizedBox.shrink();
     }
@@ -241,29 +295,29 @@ class _SyncStatusWidgetState extends State<SyncStatusWidget> {
 
   String _getRefreshingText(BuildContext context) {
     if (_event == null) {
-      return AppLocalizations.of(context).loadingGallery;
+      return context.strings.loadingGallery;
     }
     if (_event!.status == SyncStatus.startedFirstGalleryImport ||
         _event!.status == SyncStatus.completedFirstGalleryImport) {
-      return AppLocalizations.of(context).loadingGallery;
+      return context.strings.loadingGallery;
     }
     if (_event!.status == SyncStatus.applyingRemoteDiff) {
-      return AppLocalizations.of(context).syncing;
+      return context.strings.syncing;
     }
     if (_event!.status == SyncStatus.preparingForUpload) {
       if (_event!.total == null || _event!.total! <= 0) {
-        return AppLocalizations.of(context).encryptingBackup;
+        return context.strings.encryptingBackup;
       } else if (_event!.total == 1) {
-        return AppLocalizations.of(context).uploadingSingleMemory;
+        return context.strings.uploadingSingleMemory;
       } else {
-        return AppLocalizations.of(context).uploadingMultipleMemories(
+        return context.strings.uploadingMultipleMemories(
           count: NumberFormat().format(_event!.total!),
         );
       }
     }
     if (_event!.status == SyncStatus.inProgress) {
       final format = NumberFormat();
-      return AppLocalizations.of(context).syncProgress(
+      return context.strings.syncProgress(
         completed: format.format(_event!.completed!),
         total: format.format(_event!.total!),
       );
@@ -276,10 +330,10 @@ class _SyncStatusWidgetState extends State<SyncStatusWidget> {
     }
     if (_event!.status == SyncStatus.completedBackup) {
       if (_event!.wasStopped) {
-        return AppLocalizations.of(context).syncStopped;
+        return context.strings.syncStopped;
       }
     }
-    return AppLocalizations.of(context).allMemoriesPreserved;
+    return context.strings.allMemoriesPreserved;
   }
 }
 
@@ -352,8 +406,7 @@ class SyncStatusCompletedWidget extends StatelessWidget {
                 ),
                 Padding(
                   padding: const EdgeInsets.only(left: 12),
-                  child:
-                      Text(AppLocalizations.of(context).allMemoriesPreserved),
+                  child: Text(context.strings.allMemoriesPreserved),
                 ),
               ],
             ),

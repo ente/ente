@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import "package:ente_crypto_api/ente_crypto_api.dart";
+import 'package:locker/models/file_type.dart';
 import 'package:locker/services/db/locker_db.dart';
 import 'package:locker/services/trash/models/trash_file.dart';
 import 'package:locker/utils/crypto_helper.dart';
@@ -77,10 +78,12 @@ Future<Map<String, dynamic>> _trashFileToMap(
     'created_at': trashFile.createdAt,
     'update_at': trashFile.updateAt,
     'delete_by': trashFile.deleteBy,
-    'payload_encrypted_data':
-        CryptoUtil.bin2base64(encryptedPayload.encryptedData!),
-    'payload_decryption_header':
-        CryptoUtil.bin2base64(encryptedPayload.header!),
+    'payload_encrypted_data': CryptoUtil.bin2base64(
+      encryptedPayload.encryptedData!,
+    ),
+    'payload_decryption_header': CryptoUtil.bin2base64(
+      encryptedPayload.header!,
+    ),
     'payload_version': _trashPayloadVersion,
   };
 }
@@ -89,6 +92,9 @@ Map<String, dynamic> _trashPayloadToMap(TrashFile trashFile) {
   return {
     'local_path': trashFile.localPath,
     'title': trashFile.title,
+    'file_type': trashFile.fileType != null
+        ? getInt(trashFile.fileType!)
+        : null,
     'creation_time': trashFile.creationTime,
     'modification_time': trashFile.modificationTime,
     'added_time': trashFile.addedTime,
@@ -136,15 +142,23 @@ Future<TrashFile> _trashFileFromRow(
   trashFile.metadataVersion = payload['metadata_version'];
   trashFile.fileDecryptionHeader =
       row['file_decryption_header'] ?? payload['file_decryption_header'];
-  trashFile.thumbnailDecryptionHeader = row['thumbnail_decryption_header'] ??
+  trashFile.thumbnailDecryptionHeader =
+      row['thumbnail_decryption_header'] ??
       payload['thumbnail_decryption_header'];
-  trashFile.metadataDecryptionHeader = row['metadata_decryption_header'] ??
+  trashFile.metadataDecryptionHeader =
+      row['metadata_decryption_header'] ??
       payload['metadata_decryption_header'];
   trashFile.fileSize = row['file_size'] ?? payload['file_size'];
   trashFile.mMdEncodedJson = payload['m_md_encoded_json'];
   trashFile.mMdVersion = payload['m_md_version'] ?? 0;
   trashFile.pubMmdEncodedJson = payload['pub_mmd_encoded_json'];
   trashFile.pubMmdVersion = payload['pub_mmd_version'] ?? 1;
+  final fileTypeIndex = payload['file_type'] as int?;
+  if (fileTypeIndex != null) {
+    trashFile.fileType = getFileType(fileTypeIndex);
+  } else if (trashFile.pubMagicMetadata.info != null) {
+    trashFile.fileType = FileType.info;
+  }
   trashFile.createdAt = row['created_at'] ?? payload['created_at'];
   trashFile.updateAt = row['update_at'] ?? payload['update_at'];
   trashFile.deleteBy = row['delete_by'] ?? payload['delete_by'];
@@ -152,10 +166,7 @@ Future<TrashFile> _trashFileFromRow(
   return trashFile;
 }
 
-Future<Uint8List> _getTrashFileKey(
-  LockerDB db,
-  TrashFile file,
-) async {
+Future<Uint8List> _getTrashFileKey(LockerDB db, TrashFile file) async {
   if (file.collectionID == null ||
       file.encryptedKey == null ||
       file.keyDecryptionNonce == null) {

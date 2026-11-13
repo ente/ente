@@ -1,41 +1,38 @@
 import 'dart:async';
 
+import "package:ente_components/ente_components.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
+import "package:ente_strings/ente_strings.dart";
+import 'package:ente_ui/components/loading_widget.dart';
+import 'package:ente_ui/components/subscription/plan_card.dart';
 import 'package:flutter/material.dart';
+import "package:hugeicons/hugeicons.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/subscription_purchased_event.dart";
 import 'package:photos/gateways/billing/models/billing_plan.dart';
 import 'package:photos/gateways/billing/models/subscription.dart';
-import "package:photos/generated/l10n.dart";
 import 'package:photos/models/user_details.dart';
 import "package:photos/service_locator.dart";
 import 'package:photos/services/account/user_service.dart';
-import "package:photos/theme/colors.dart";
-import 'package:photos/theme/ente_theme.dart';
-import 'package:photos/ui/common/loading_widget.dart';
+import "package:photos/ui/account/onboarding_page_scaffold.dart";
 import 'package:photos/ui/common/progress_dialog.dart';
 import 'package:photos/ui/common/web_page.dart';
 import 'package:photos/ui/components/buttons/button_widget.dart';
-import 'package:photos/ui/components/buttons/button_widget_v2.dart';
-import "package:photos/ui/components/menu_item_widget/menu_item_widget_new.dart";
+import 'package:photos/ui/family/family_plan_page.dart';
 import 'package:photos/ui/notification/toast.dart';
-import 'package:photos/ui/payment/child_subscription_widget.dart';
 import 'package:photos/ui/payment/payment_web_page.dart';
 import 'package:photos/ui/payment/subscription_common_widgets.dart';
+import "package:photos/ui/payment/subscription_page_scaffold.dart";
 import 'package:photos/ui/payment/subscription_plan_widget.dart';
 import "package:photos/ui/payment/view_add_on_widget.dart";
-import "package:photos/ui/tabs/home_widget.dart";
 import 'package:photos/utils/dialog_util.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 class StripeSubscriptionPage extends StatefulWidget {
   final bool isOnboarding;
 
-  const StripeSubscriptionPage({
-    this.isOnboarding = false,
-    super.key,
-  });
+  const StripeSubscriptionPage({this.isOnboarding = false, super.key});
 
   @override
   State<StripeSubscriptionPage> createState() => _StripeSubscriptionPageState();
@@ -48,30 +45,43 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
   late ProgressDialog _dialog;
   late UserDetails _userDetails;
 
-  // indicates if user's subscription plan is still active
   late bool _hasActiveSubscription;
   bool _hideCurrentPlanSelection = false;
   late FreePlan _freePlan;
   List<BillingPlan> _plans = [];
+  List<BillingPlan> _allPlans = [];
+  final _scaffoldKey = GlobalKey<OnboardingPageScaffoldState>();
   bool _hasLoadedData = false;
   bool _isLoading = false;
   bool _isStripeSubscriber = false;
   bool _showYearlyPlan = false;
-  EnteColorScheme colorScheme = darkScheme;
   final Logger logger = Logger("StripeSubscriptionPage");
   String? _selectedPlanProductID;
 
   Future<void> _fetchSub() async {
-    return _userService
-        .getUserDetailsV2(memoryCount: false)
-        .then((userDetails) async {
+    return _userService.getUserDetailsV2(memoryCount: false).then((
+      userDetails,
+    ) async {
       _userDetails = userDetails;
       _currentSubscription = userDetails.subscription;
+
+      if (_userDetails.isPartOfFamily() && !_userDetails.isFamilyAdmin()) {
+        if (mounted) {
+          replacePage(
+            context,
+            FamilyPlanPage(
+              initialUserDetails: _userDetails,
+              refreshOnOpen: false,
+            ),
+          );
+        }
+        return;
+      }
 
       _showYearlyPlan = _currentSubscription!.isYearlyPlan();
       _hideCurrentPlanSelection =
           (_currentSubscription?.attributes?.isCancelled ?? false) &&
-              userDetails.hasPaidAddon();
+          userDetails.hasPaidAddon();
       _hasActiveSubscription = _currentSubscription!.isValid();
       _isStripeSubscriber = _currentSubscription!.paymentProvider == stripe;
 
@@ -80,16 +90,17 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
       }
 
       return _filterStripeForUI().then((value) {
-        _syncOnboardingSelection();
+        if (!mounted) return;
+        _syncSelection();
         _hasLoadedData = true;
         setState(() {});
       });
     });
   }
 
-  // _filterPlansForUI is used for initializing initState & plan toggle states
   Future<void> _filterStripeForUI() async {
     final billingPlans = await _billingService.getBillingPlans();
+    _allPlans = billingPlans.plans;
     _freePlan = billingPlans.freePlan;
     _plans = billingPlans.plans.where((plan) {
       if (plan.id == freeProductID || plan.stripeID.isEmpty) {
@@ -98,135 +109,156 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
       final isYearlyPlan = plan.period == 'year';
       return isYearlyPlan == _showYearlyPlan;
     }).toList();
-    _syncOnboardingSelection();
+    _syncSelection();
     if (mounted) {
       setState(() {});
     }
   }
 
   FutureOr onWebPaymentGoBack(dynamic value) async {
-    // refresh subscription
     await _dialog.show();
     try {
       await _fetchSub();
     } catch (e) {
-      showToast(
-        context,
-        AppLocalizations.of(context).failedToRefreshStripeSubscription,
-      );
+      if (!mounted) return;
+      showToast(context, context.strings.failedToRefreshStripeSubscription);
     }
     await _dialog.hide();
 
-    // verify user has subscribed before redirecting to main page
     if (widget.isOnboarding &&
         _currentSubscription != null &&
         _currentSubscription!.isValid() &&
         _currentSubscription!.productID != freeProductID) {
+      if (!mounted) return;
       Navigator.of(context).popUntil((route) => route.isFirst);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
-    final bool isFamilyChildUser = _hasLoadedData &&
-        _userDetails.isPartOfFamily() &&
-        !_userDetails.isFamilyAdmin();
-
-    return Scaffold(
-      backgroundColor: colorScheme.backgroundColour,
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: colorScheme.backgroundColour,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          color: colorScheme.content,
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-        ),
-        title: isFamilyChildUser
-            ? null
-            : Text(
-                widget.isOnboarding
-                    ? AppLocalizations.of(context).chooseYourPlan
-                    : AppLocalizations.of(context).subscription,
-                style: textTheme.largeBold,
-              ),
-        centerTitle: !isFamilyChildUser,
-      ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(child: _getBody()),
-        ],
-      ),
-      bottomNavigationBar: widget.isOnboarding &&
-              _hasLoadedData &&
-              !(_userDetails.isPartOfFamily() && !_userDetails.isFamilyAdmin())
-          ? Container(
-              color: colorScheme.backgroundColour,
-              child: SafeArea(
-                top: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 12, 24, 12),
-                  child: ButtonWidgetV2(
-                    buttonType: ButtonTypeV2.primary,
-                    labelText: AppLocalizations.of(context).continueLabel,
-                    isDisabled: _selectedPlanProductID == null,
-                    onTap: _selectedPlanProductID == null
-                        ? null
-                        : _onOnboardingContinueTap,
-                  ),
-                ),
-              ),
-            )
-          : null,
-    );
+    if (!_isLoading) {
+      _isLoading = true;
+      _dialog = createProgressDialog(context, context.strings.pleaseWait);
+      _fetchSub();
+    }
+    return _buildSubscriptionPage();
   }
 
   Widget _getBody() {
-    if (!_isLoading) {
-      _isLoading = true;
-      _dialog = createProgressDialog(
-        context,
-        AppLocalizations.of(context).pleaseWait,
-      );
-      _fetchSub();
-    }
     if (_hasLoadedData) {
-      if (_userDetails.isPartOfFamily() && !_userDetails.isFamilyAdmin()) {
-        return ChildSubscriptionWidget(userDetails: _userDetails);
-      } else {
-        return _buildPlans();
-      }
+      return _buildPlans();
     }
     return const EnteLoadingWidget();
+  }
+
+  Widget _buildSubscriptionPage() {
+    return SubscriptionPageScaffold(
+      scaffoldKey: _scaffoldKey,
+      onHelpTap: () => showPlanFaqSheet(context),
+      isBodyCentered: !_hasLoadedData,
+      body: widget.isOnboarding
+          ? (_hasLoadedData
+                ? _buildOnboardingPlans()
+                : const EnteLoadingWidget())
+          : _getBody(),
+      actions: [
+        if (_hasLoadedData)
+          SubscriptionContinueButton(
+            label: _continueLabel(),
+            isDisabled: !_canContinue,
+            onTap: _canContinue ? _onContinueTap : null,
+          ),
+      ],
+    );
+  }
+
+  bool get _canContinue {
+    final selected = _selectedPlanProductID;
+    if (selected == null) {
+      return false;
+    }
+    if (widget.isOnboarding) {
+      return true;
+    }
+    if (selected == freeProductID) {
+      return false;
+    }
+    return !_hasActiveSubscription ||
+        selected != _currentSubscription?.productID;
+  }
+
+  String _continueLabel() {
+    final selected = _selectedPlanProductID;
+    final storage = selected == freeProductID
+        ? _freePlan.storage
+        : _plans
+              .where((plan) => plan.stripeID == selected)
+              .firstOrNull
+              ?.storage;
+    return storage == null
+        ? context.strings.continueLabel
+        : context.strings.subscriptionContinueWithPlan(
+            storage: subscriptionStorageLabel(storage),
+          );
+  }
+
+  Widget _buildOnboardingPlans() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SubscriptionToggle(
+          isYearly: _showYearlyPlan,
+          onToggle: _onToggleBillingPeriod,
+        ),
+        const SizedBox(height: Spacing.md),
+        SubscriptionPlanList(children: _getStripePlanWidgets()),
+        const SizedBox(height: Spacing.lg),
+        const SubFaqWidget(),
+      ],
+    );
+  }
+
+  void _onToggleBillingPeriod(bool isYearly) {
+    _showYearlyPlan = isYearly;
+    _scaffoldKey.currentState?.trigger(isYearly ? "yearly" : "monthly");
+    _filterStripeForUI();
+  }
+
+  String? _monthlyPriceFor(BillingPlan plan) {
+    if (plan.period != 'year') {
+      return null;
+    }
+    return _allPlans
+        .where((p) => p.period == 'month' && p.storage == plan.storage)
+        .map((p) => p.price)
+        .firstOrNull;
   }
 
   Widget _buildPlans() {
     final widgets = <Widget>[];
 
     widgets.add(
-      SubscriptionToggle(
-        onToggle: (p0) {
-          _showYearlyPlan = p0;
-          _filterStripeForUI();
-        },
+      Padding(
+        padding: const EdgeInsets.only(bottom: Spacing.md),
+        child: SubscriptionToggle(
+          isYearly: _showYearlyPlan,
+          onToggle: _onToggleBillingPeriod,
+        ),
       ),
     );
 
-    widgets.addAll([
-      Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: _getStripePlanWidgets(),
+    widgets.add(
+      Padding(
+        padding: const EdgeInsets.only(bottom: Spacing.xxl),
+        child: SubscriptionPlanList(children: _getStripePlanWidgets()),
       ),
-    ]);
+    );
 
     final hasAddOnBonus =
         _userDetails.bonusData?.getAddOnBonuses().isNotEmpty ?? false;
-    final shouldShowValidity = _currentSubscription != null &&
+    final shouldShowValidity =
+        _currentSubscription != null &&
         (!_currentSubscription!.isFreePlan() || hasAddOnBonus);
     if (shouldShowValidity) {
       widgets.add(
@@ -240,7 +272,10 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
 
     if (_currentSubscription!.productID == freeProductID) {
       widgets.add(
-        SubFaqWidget(isOnboarding: widget.isOnboarding),
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: Spacing.xs),
+          child: SubFaqWidget(),
+        ),
       );
       if (!widget.isOnboarding) {
         widgets.add(const SizedBox(height: 8));
@@ -250,18 +285,33 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
     if (!widget.isOnboarding) {
       widgets.add(
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 2, 16, 2),
-          child: MenuItemWidgetNew(
-            title: AppLocalizations.of(context).manageFamily,
-            menuItemColor: colorScheme.fillFaint,
-            pressedColor: colorScheme.fillFaintPressed,
-            trailingWidget: Icon(
-              Icons.chevron_right_outlined,
-              color: colorScheme.strokeBase,
-            ),
+          padding: const EdgeInsets.symmetric(vertical: Spacing.xs),
+          child: SubscriptionFamilyWidget(
+            title: context.strings.manageFamily,
             onTap: () async {
-              // ignore: unawaited_futures
-              _billingService.launchFamilyPortal(context, _userDetails);
+              late final UserDetails userDetails;
+              try {
+                userDetails = await _userService.getUserDetailsV2(
+                  memoryCount: false,
+                );
+              } catch (error) {
+                if (!context.mounted) {
+                  return;
+                }
+                if (!mounted) return;
+                await showGenericErrorDialog(context: context, error: error);
+                return;
+              }
+              if (!context.mounted) {
+                return;
+              }
+              if (!mounted) return;
+              await _billingService.launchFamilyPortal(
+                context,
+                userDetails,
+                popOnFreeAdvertViewPlans: true,
+                refreshOnOpen: false,
+              );
             },
           ),
         ),
@@ -272,14 +322,13 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
     if (_currentSubscription!.productID != freeProductID) {
       widgets.add(
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 2, 16, 2),
-          child: MenuItemWidgetNew(
-            title: "Manage payment method",
-            menuItemColor: colorScheme.fillFaint,
-            pressedColor: colorScheme.fillFaintPressed,
-            trailingWidget: Icon(
-              Icons.chevron_right_outlined,
-              color: colorScheme.strokeBase,
+          padding: const EdgeInsets.symmetric(vertical: Spacing.xs),
+          child: NavigationCardComponent(
+            title: context.strings.managePaymentMethod,
+            leading: HugeIcon(
+              icon: HugeIcons.strokeRoundedCreditCard,
+              size: NavigationCardComponent.leadingSize,
+              color: context.componentColors.textLight,
             ),
             onTap: () async {
               _redirectToPaymentPortal();
@@ -289,11 +338,10 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
       );
     }
 
-    // only active subscription can be renewed/canceled
     if (_hasActiveSubscription && _isStripeSubscriber) {
       widgets.add(
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+          padding: const EdgeInsets.symmetric(vertical: Spacing.xs),
           child: _stripeRenewOrCancelButton(),
         ),
       );
@@ -301,16 +349,12 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
 
     widgets.add(const SizedBox(height: 80));
 
-    return SingleChildScrollView(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: widgets,
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: widgets,
     );
   }
 
-  // _redirectToPaymentPortal action allows the user to update
-  // their stripe payment details
   void _redirectToPaymentPortal() async {
     final String paymentProvider = _currentSubscription!.paymentProvider;
     switch (_currentSubscription!.paymentProvider) {
@@ -335,9 +379,10 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
             : '';
         await showErrorDialog(
           context,
-          AppLocalizations.of(context).sorry,
-          AppLocalizations.of(context)
-              .contactToManageSubscription(provider: capitalizedWord),
+          context.strings.sorry,
+          context.strings.contactToManageSubscription(
+            provider: capitalizedWord,
+          ),
         );
     }
   }
@@ -347,15 +392,19 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
     try {
       final String url = await _billingService.getStripeCustomerPortalUrl();
       await _dialog.hide();
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (BuildContext context) {
-            return WebPage(AppLocalizations.of(context).paymentDetails, url);
-          },
-        ),
-      ).then((value) => onWebPaymentGoBack);
+      if (!mounted) return;
+      await Navigator.of(context)
+          .push(
+            MaterialPageRoute(
+              builder: (BuildContext context) {
+                return WebPage(context.strings.paymentDetails, url);
+              },
+            ),
+          )
+          .then((value) => onWebPaymentGoBack);
     } catch (e) {
       await _dialog.hide();
+      if (!mounted) return;
       await showGenericErrorDialog(context: context, error: e);
     }
   }
@@ -367,17 +416,16 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
       return const SizedBox.shrink();
     }
     final String title = isRenewCancelled
-        ? AppLocalizations.of(context).renewSubscription
-        : AppLocalizations.of(context).cancelSubscription;
-    return MenuItemWidgetNew(
+        ? context.strings.renewSubscription
+        : context.strings.cancelSubscription;
+    return NavigationCardComponent(
       title: title,
-      alwaysShowSuccessState: false,
-      surfaceExecutionStates: false,
-      menuItemColor: colorScheme.fillFaint,
-      pressedColor: colorScheme.fillFaintPressed,
-      trailingWidget: Icon(
-        Icons.chevron_right_outlined,
-        color: colorScheme.strokeBase,
+      leading: HugeIcon(
+        icon: isRenewCancelled
+            ? HugeIcons.strokeRoundedRefresh
+            : HugeIcons.strokeRoundedCancelCircle,
+        size: NavigationCardComponent.leadingSize,
+        color: context.componentColors.textLight,
       ),
       onTap: () async {
         bool confirmAction = false;
@@ -385,17 +433,17 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
           final choice = await showChoiceDialog(
             context,
             title: title,
-            body: AppLocalizations.of(context).areYouSureYouWantToRenew,
-            firstButtonLabel: AppLocalizations.of(context).yesRenew,
+            body: context.strings.areYouSureYouWantToRenew,
+            firstButtonLabel: context.strings.yesRenew,
           );
           confirmAction = choice!.action == ButtonAction.first;
         } else {
           final choice = await showChoiceDialog(
             context,
             title: title,
-            body: AppLocalizations.of(context).areYouSureYouWantToCancel,
-            firstButtonLabel: AppLocalizations.of(context).yesCancel,
-            secondButtonLabel: AppLocalizations.of(context).no,
+            body: context.strings.areYouSureYouWantToCancel,
+            firstButtonLabel: context.strings.yesCancel,
+            secondButtonLabel: context.strings.no,
             isCritical: true,
           );
           confirmAction = choice!.action == ButtonAction.first;
@@ -407,8 +455,6 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
     );
   }
 
-  // toggleStripeSubscription, based on current auto renew status, will
-  // toggle the auto renew status of the user's subscription
   Future<void> toggleStripeSubscription(bool isAutoRenewDisabled) async {
     await _dialog.show();
     try {
@@ -417,24 +463,24 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
           : await _billingService.cancelStripeSubscription();
       await _fetchSub();
     } catch (e) {
+      if (!mounted) return;
       showShortToast(
         context,
         isAutoRenewDisabled
-            ? AppLocalizations.of(context).failedToRenew
-            : AppLocalizations.of(context).failedToCancel,
+            ? context.strings.failedToRenew
+            : context.strings.failedToCancel,
       );
     }
     await _dialog.hide();
     if (!isAutoRenewDisabled && mounted) {
       await showTextInputDialog(
         context,
-        title: AppLocalizations.of(context).askCancelReason,
-        submitButtonLabel: AppLocalizations.of(context).send,
-        hintText: AppLocalizations.of(context).optionalAsShortAsYouLike,
+        title: context.strings.askCancelReason,
+        submitButtonLabel: context.strings.send,
+        hintText: context.strings.optionalAsShortAsYouLike,
         alwaysShowSuccessState: true,
         textCapitalization: TextCapitalization.words,
         onSubmit: (String text) async {
-          // indicates user cancelled the rename request
           if (text == "" || text.trim().isEmpty) {
             return;
           }
@@ -454,9 +500,6 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
       planWidgets.add(
         GestureDetector(
           onTap: () {
-            if (!widget.isOnboarding) {
-              return;
-            }
             setState(() {
               _selectedPlanProductID = freeProductID;
             });
@@ -464,11 +507,9 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
           child: SubscriptionPlanWidget(
             storage: _freePlan.storage,
             price: "",
-            period: AppLocalizations.of(context).freeTrial,
-            isActive: widget.isOnboarding
-                ? _selectedPlanProductID == freeProductID
-                : _isFreePlanUser(),
-            isOnboarding: widget.isOnboarding,
+            period: context.strings.freeTrial,
+            isActive: _selectedPlanProductID == freeProductID,
+            isCurrentPlan: _isFreePlanUser(),
           ),
         ),
       );
@@ -479,88 +520,24 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
       if (productID.isEmpty) {
         continue;
       }
-      final isActive = _hasActiveSubscription &&
+      final isActive =
+          _hasActiveSubscription &&
           _currentSubscription!.productID == productID;
       planWidgets.add(
         GestureDetector(
-          onTap: () async {
-            if (widget.isOnboarding) {
-              setState(() {
-                _selectedPlanProductID = productID;
-              });
-              return;
-            }
-            if (isActive) {
-              return;
-            }
-            // prompt user to cancel their active subscription form other
-            // payment providers
-            if (!_isStripeSubscriber &&
-                _hasActiveSubscription &&
-                _currentSubscription!.productID != freeProductID) {
-              await showErrorDialog(
-                context,
-                AppLocalizations.of(context).sorry,
-                AppLocalizations.of(context).cancelOtherSubscription(
-                  paymentProvider: _currentSubscription!.paymentProvider,
-                ),
-              );
-              return;
-            }
-            final int addOnBonus =
-                _userDetails.bonusData?.totalAddOnBonus() ?? 0;
-            if (_userDetails.getFamilyOrPersonalUsage() >
-                (plan.storage + addOnBonus)) {
-              logger.warning(
-                " familyUsage ${convertBytesToReadableFormat(_userDetails.getFamilyOrPersonalUsage())}"
-                " plan storage ${convertBytesToReadableFormat(plan.storage)} "
-                "addOnBonus ${convertBytesToReadableFormat(addOnBonus)},"
-                "overshooting by ${convertBytesToReadableFormat(_userDetails.getFamilyOrPersonalUsage() - (plan.storage + addOnBonus))}",
-              );
-              await showErrorDialog(
-                context,
-                AppLocalizations.of(context).sorry,
-                AppLocalizations.of(context).youCannotDowngradeToThisPlan,
-              );
-              return;
-            }
-            String stripPurChaseAction = 'buy';
-            if (_isStripeSubscriber && _hasActiveSubscription) {
-              // confirm if user wants to change plan or not
-              final result = await showChoiceDialog(
-                context,
-                title: AppLocalizations.of(context).confirmPlanChange,
-                body: AppLocalizations.of(context)
-                    .areYouSureYouWantToChangeYourPlan,
-                firstButtonLabel: AppLocalizations.of(context).yes,
-              );
-              if (result!.action == ButtonAction.first) {
-                stripPurChaseAction = 'update';
-              } else {
-                return;
-              }
-            }
-            await Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (BuildContext context) {
-                  return PaymentWebPage(
-                    planId: plan.stripeID,
-                    actionType: stripPurChaseAction,
-                  );
-                },
-              ),
-            ).then((value) => onWebPaymentGoBack(value));
+          onTap: () {
+            setState(() {
+              _selectedPlanProductID = productID;
+            });
           },
           child: SubscriptionPlanWidget(
             storage: plan.storage,
             price: plan.price,
             period: plan.period,
-            isActive: widget.isOnboarding
-                ? _selectedPlanProductID == productID
-                : isActive && !_hideCurrentPlanSelection,
+            isActive: _selectedPlanProductID == productID,
+            isCurrentPlan: isActive && !_hideCurrentPlanSelection,
             isPopular: _isPopularPlan(plan),
-            isOnboarding: widget.isOnboarding,
+            monthlyPrice: _monthlyPriceFor(plan),
           ),
         ),
       );
@@ -569,7 +546,7 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
   }
 
   bool _isPopularPlan(BillingPlan plan) {
-    return popularProductIDs.contains(plan.id);
+    return popularProductIDs.any((id) => plan.id.startsWith(id));
   }
 
   bool _isFreePlanUser() {
@@ -581,10 +558,7 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
     return widget.isOnboarding || _isFreePlanUser();
   }
 
-  void _syncOnboardingSelection() {
-    if (!widget.isOnboarding) {
-      return;
-    }
+  void _syncSelection() {
     final visibleProductIDs = _plans
         .map((plan) => plan.stripeID)
         .where((id) => id.isNotEmpty)
@@ -608,27 +582,20 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
       _selectedPlanProductID = freeProductID;
       return;
     }
-    _selectedPlanProductID =
-        visibleProductIDs.isNotEmpty ? visibleProductIDs.first : null;
+    _selectedPlanProductID = visibleProductIDs.isNotEmpty
+        ? visibleProductIDs.first
+        : null;
   }
 
-  Future<void> _onOnboardingContinueTap() async {
+  Future<void> _onContinueTap() async {
     final selectedPlanProductID = _selectedPlanProductID;
-    if (selectedPlanProductID == null) {
+    if (!_canContinue || selectedPlanProductID == null) {
       return;
     }
 
     if (selectedPlanProductID == freeProductID) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
       Bus.instance.fire(SubscriptionPurchasedEvent());
-      // ignore: unawaited_futures
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (BuildContext context) {
-            return const HomeWidget();
-          },
-        ),
-        (route) => false,
-      );
       unawaited(
         _billingService.verifySubscription(
           freeProductID,
@@ -646,7 +613,8 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
       return;
     }
 
-    final isActive = _hasActiveSubscription &&
+    final isActive =
+        _hasActiveSubscription &&
         _currentSubscription!.productID == selectedPlanProductID;
     if (isActive) {
       return;
@@ -657,8 +625,8 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
         _currentSubscription!.productID != freeProductID) {
       await showErrorDialog(
         context,
-        AppLocalizations.of(context).sorry,
-        AppLocalizations.of(context).cancelOtherSubscription(
+        context.strings.sorry,
+        context.strings.cancelOtherSubscription(
           paymentProvider: _currentSubscription!.paymentProvider,
         ),
       );
@@ -676,8 +644,8 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
       );
       await showErrorDialog(
         context,
-        AppLocalizations.of(context).sorry,
-        AppLocalizations.of(context).youCannotDowngradeToThisPlan,
+        context.strings.sorry,
+        context.strings.youCannotDowngradeToThisPlan,
       );
       return;
     }
@@ -686,16 +654,17 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
     if (_isStripeSubscriber && _hasActiveSubscription) {
       final result = await showChoiceDialog(
         context,
-        title: AppLocalizations.of(context).confirmPlanChange,
-        body: AppLocalizations.of(context).areYouSureYouWantToChangeYourPlan,
-        firstButtonLabel: AppLocalizations.of(context).yes,
+        title: context.strings.confirmPlanChange,
+        body: context.strings.areYouSureYouWantToChangeYourPlan,
+        firstButtonLabel: context.strings.yes,
       );
-      if (result!.action == ButtonAction.first) {
+      if (result?.action == ButtonAction.first) {
         stripPurChaseAction = 'update';
       } else {
         return;
       }
     }
+    if (!mounted) return;
     await Navigator.push(
       context,
       MaterialPageRoute(

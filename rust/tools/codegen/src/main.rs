@@ -1,0 +1,576 @@
+use std::collections::HashMap;
+use std::env;
+use std::error::Error;
+use std::ffi::OsStr;
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::process::Command;
+use std::time::{SystemTime, UNIX_EPOCH};
+
+use camino::Utf8PathBuf;
+use lib_flutter_rust_bridge_codegen::codegen::{
+    self as frb_codegen, Config as FrbConfig, MetaConfig as FrbMetaConfig,
+};
+use uniffi_bindgen::bindings::{self, GenerateOptions, TargetLanguage};
+
+type DynError = Box<dyn Error>;
+
+struct UniffiCrate<'a> {
+    crate_name: &'a str,
+    crate_dir: PathBuf,
+}
+
+#[derive(Clone, Copy)]
+enum NativeTarget {
+    All,
+    Ensu,
+    Cast,
+}
+
+#[derive(Clone, Copy)]
+enum FrbTarget {
+    All,
+    Auth,
+    Photos,
+    Locker,
+}
+
+fn main() {
+    if let Err(error) = run() {
+        eprintln!("{error}");
+        std::process::exit(1);
+    }
+}
+
+fn run() -> Result<(), DynError> {
+    let mut args = env::args().skip(1);
+    match args.next().as_deref() {
+        Some("native") => {
+            let target = match args.next().as_deref() {
+                None => NativeTarget::All,
+                Some("ensu") => NativeTarget::Ensu,
+                Some("cast") => NativeTarget::Cast,
+                _ => return Err(usage_error()),
+            };
+            if args.next().is_some() {
+                return Err(usage_error());
+            }
+            generate_native(target)
+        }
+        Some("frb") => {
+            let target = match args.next().as_deref() {
+                None => FrbTarget::All,
+                Some("auth") => FrbTarget::Auth,
+                Some("photos") => FrbTarget::Photos,
+                Some("locker") => FrbTarget::Locker,
+                _ => return Err(usage_error()),
+            };
+            if args.next().is_some() {
+                return Err(usage_error());
+            }
+            generate_frb(target)
+        }
+        Some("napi") => {
+            if args.next().is_some() {
+                return Err(usage_error());
+            }
+            generate_napi()
+        }
+        _ => Err(usage_error()),
+    }
+}
+
+fn usage_error() -> DynError {
+    "usage: cargo codegen <native [ensu|cast]|frb [auth|photos|locker]|napi>".into()
+}
+
+fn generate_native(target: NativeTarget) -> Result<(), DynError> {
+    let rust_root = rust_root()?;
+
+    if matches!(target, NativeTarget::All | NativeTarget::Ensu) {
+        let ensu = UniffiCrate {
+            crate_name: "ensu",
+            crate_dir: rust_root.join("bindings/uniffi/ensu"),
+        };
+        generate_swift(&ensu, "apple/apps/ensu/Ensu/Generated")?;
+        generate_kotlin(
+            &ensu,
+            "android/apps/ensu/rust/src/main/kotlin",
+            "io/ente/ensu/bindings/ensu.kt",
+        )?;
+    }
+
+    if matches!(target, NativeTarget::All | NativeTarget::Cast) {
+        let cast = UniffiCrate {
+            crate_name: "cast",
+            crate_dir: rust_root.join("bindings/uniffi/cast"),
+        };
+        generate_swift(&cast, "apple/apps/cast/Cast/Generated")?;
+        // TODO: Android cast bindings scaffold
+        // generate_kotlin(
+        //     &cast,
+        //     "android/apps/cast/app/src/main/kotlin",
+        //     "io/ente/cast/bindings/cast.kt",
+        // )?;
+    }
+
+    Ok(())
+}
+
+fn generate_swift(uniffi_crate: &UniffiCrate<'_>, generated_rel: &str) -> Result<(), DynError> {
+    let generated_dir = repo_root()?.join(generated_rel);
+    write_generated_gitignore(&generated_dir)?;
+
+    build_host_library(&uniffi_crate.crate_dir)?;
+    remove_paths(&swift_generated_paths(
+        &generated_dir,
+        uniffi_crate.crate_name,
+    ))?;
+    generate_bindings(TargetLanguage::Swift, &generated_dir, uniffi_crate)?;
+
+    sanitize_generated_swift_bindings(
+        &generated_dir.join(format!("{}.swift", uniffi_crate.crate_name)),
+        uniffi_crate.crate_name,
+    )?;
+
+    Ok(())
+}
+
+fn generate_kotlin(
+    uniffi_crate: &UniffiCrate<'_>,
+    out_rel: &str,
+    generated_rel: &str,
+) -> Result<(), DynError> {
+    let rust_out_dir = repo_root()?.join(out_rel);
+    let generated_path = rust_out_dir.join(generated_rel);
+    if let Some(bindings_dir) = generated_path.parent() {
+        write_generated_gitignore(bindings_dir)?;
+    }
+
+    build_host_library(&uniffi_crate.crate_dir)?;
+    remove_path(&generated_path)?;
+    generate_bindings(TargetLanguage::Kotlin, &rust_out_dir, uniffi_crate)?;
+
+    Ok(())
+}
+
+fn write_generated_gitignore(dir: &Path) -> Result<(), DynError> {
+    fs::create_dir_all(dir)?;
+    let path = dir.join(".gitignore");
+    fs::write(&path, "*\n!.gitignore\n")
+        .map_err(|error| format!("failed to write {}: {error}", path.display()).into())
+}
+
+fn generate_frb(target: FrbTarget) -> Result<(), DynError> {
+    let rust_root = rust_root()?;
+    let repo_root = rust_root
+        .parent()
+        .ok_or("failed to resolve repo root from rust/tools/codegen")?;
+
+    let apps: &[&str] = match target {
+        FrbTarget::All => &["auth", "photos", "locker"],
+        FrbTarget::Auth => &["auth"],
+        FrbTarget::Photos => &["photos"],
+        FrbTarget::Locker => &["locker"],
+    };
+    let shared_dir = repo_root.join("mobile/packages/frb/lib");
+    write_generated_gitignore(&shared_dir)?;
+    let mut shared_types = HashMap::new();
+    for app in apps {
+        let package_dir = repo_root.join("mobile/apps").join(app);
+        let generated_dir = package_dir.join("lib/src/rust");
+        if generated_dir.exists() {
+            fs::remove_dir_all(&generated_dir)?;
+        }
+        generate_frb_package(&package_dir)?;
+        for name in ["account_deletion", "accounts", "contacts", "legacy"] {
+            if *app == "auth" && matches!(name, "contacts" | "legacy") {
+                continue;
+            }
+            let types_path = package_dir
+                .join("lib/src/rust/third_party/ente_frb_lib")
+                .join(format!("{name}/types.dart"));
+            let types = fs::read_to_string(&types_path)?
+                .replace(
+                    "part 'types.freezed.dart';",
+                    &format!("part '{name}.freezed.dart';"),
+                )
+                .lines()
+                .filter(|line| !line.ends_with("/frb_generated.dart';"))
+                .collect::<Vec<_>>()
+                .join("\n")
+                + "\n";
+            if shared_types
+                .get(name)
+                .is_some_and(|previous| previous != &types)
+            {
+                return Err(format!("Apps generated different shared {name} types").into());
+            }
+            let freezed_file = format!("{name}.freezed.dart");
+            if types.contains(&format!("part '{freezed_file}';")) {
+                let freezed_path = types_path.with_extension("freezed.dart");
+                let freezed = fs::read_to_string(&freezed_path)?
+                    .replace("part of 'types.dart';", &format!("part of '{name}.dart';"));
+                fs::write(shared_dir.join(freezed_file), freezed)?;
+                fs::remove_file(freezed_path)?;
+            }
+            fs::write(shared_dir.join(format!("{name}.dart")), &types)?;
+            fs::write(
+                types_path,
+                format!(
+                    "// This file is automatically generated, so please do not edit it.\n\n\
+                     export 'package:ente_frb/{name}.dart';\n"
+                ),
+            )?;
+            shared_types.insert(name, types);
+        }
+    }
+    if apps.contains(&"photos") {
+        let notifications = UniffiCrate {
+            crate_name: "ente_notification_uniffi",
+            crate_dir: rust_root.join("bindings/uniffi/notifications"),
+        };
+        generate_swift(
+            &notifications,
+            "mobile/apps/photos/ios/NotificationServiceExtension/Generated",
+        )?;
+    }
+    format_frb_bindings(target)
+}
+
+fn generate_frb_package(package_dir: &Path) -> Result<(), DynError> {
+    let previous_dir = env::current_dir().map_err(|error| {
+        format!("failed to capture current directory before generating FRB bindings: {error}")
+    })?;
+
+    env::set_current_dir(package_dir).map_err(|error| {
+        format!(
+            "failed to enter {} before generating FRB bindings: {error}",
+            package_dir.display()
+        )
+    })?;
+
+    let result = FrbConfig::from_files_auto().and_then(|config| {
+        let config = FrbConfig::merge(
+            FrbConfig {
+                build_runner: Some(false),
+                dart_fix: Some(false),
+                dart_format: Some(false),
+                ..Default::default()
+            },
+            config,
+        );
+        frb_codegen::generate(config, FrbMetaConfig { watch: false })
+    });
+
+    env::set_current_dir(&previous_dir).map_err(|error| {
+        format!(
+            "failed to restore current directory to {}: {error}",
+            previous_dir.display()
+        )
+    })?;
+
+    result?;
+
+    let dart = if cfg!(windows) { "dart.bat" } else { "dart" };
+    run_command(
+        Command::new(dart)
+            .args(["run", "build_runner", "build"])
+            .current_dir(package_dir),
+        format!("failed to generate Dart code in {}", package_dir.display()),
+    )?;
+    run_command(
+        Command::new(dart)
+            .args(["format", "lib/src/rust"])
+            .current_dir(package_dir),
+        format!("failed to format Dart code in {}", package_dir.display()),
+    )
+}
+
+fn generate_napi() -> Result<(), DynError> {
+    let rust_root = rust_root()?;
+    let desktop_dir = repo_root()?.join("desktop");
+    ensure_napi_codegen_dependencies(&desktop_dir)?;
+
+    let out_dir = desktop_dir.join("rust-bindings");
+    write_generated_gitignore(&out_dir)?;
+
+    let type_def_dir = target_dir()?.join("napi-type-defs");
+    match fs::remove_dir_all(&type_def_dir) {
+        Ok(()) => {}
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => {
+            return Err(format!("failed to clear {}: {error}", type_def_dir.display()).into());
+        }
+    }
+    fs::create_dir_all(&type_def_dir)?;
+    let force_build = SystemTime::now()
+        .duration_since(UNIX_EPOCH)?
+        .as_nanos()
+        .to_string();
+    run_command(
+        Command::new("cargo")
+            .arg("check")
+            .arg("--locked")
+            .arg("-p")
+            .arg("ente-photos-napi")
+            .arg("--target-dir")
+            .arg(target_dir()?)
+            .env("NAPI_TYPE_DEF_TMP_FOLDER", &type_def_dir)
+            .env("NAPI_FORCE_BUILD_ENTE_PHOTOS_NAPI", force_build)
+            .current_dir(&rust_root),
+        "failed to type-check the desktop Node bindings".to_owned(),
+    )?;
+
+    run_command(
+        Command::new("node")
+            .arg("scripts/napi.js")
+            .arg("dts")
+            .arg(&type_def_dir)
+            .arg(out_dir.join("index.d.ts"))
+            .current_dir(&desktop_dir),
+        "failed to render the TypeScript declarations".to_owned(),
+    )
+}
+
+fn ensure_napi_codegen_dependencies(desktop_dir: &Path) -> Result<(), DynError> {
+    let status = Command::new("node")
+        .arg("-e")
+        .arg("try { require.resolve('@napi-rs/cli') } catch { process.exit(1) }")
+        .current_dir(desktop_dir)
+        .status()
+        .map_err(|error| {
+            format!(
+                concat!(
+                    "N-API codegen requires Node.js and the desktop npm dependencies.\n\n",
+                    "Failed to run Node.js:\n",
+                    "  {}\n\n",
+                    "After installing Node.js, run:\n",
+                    "  (cd \"{}\" && npm ci)"
+                ),
+                error,
+                desktop_dir.display(),
+            )
+        })?;
+
+    if !status.success() {
+        return Err(format!(
+            concat!(
+                "N-API codegen requires the desktop npm dependencies.\n\n",
+                "Run:\n",
+                "  (cd \"{}\" && npm ci)"
+            ),
+            desktop_dir.display(),
+        )
+        .into());
+    }
+
+    Ok(())
+}
+
+fn format_frb_bindings(target: FrbTarget) -> Result<(), DynError> {
+    let rust_root = rust_root()?;
+    let mut command = Command::new("cargo");
+    command.arg("fmt");
+    match target {
+        FrbTarget::All => {
+            command
+                .arg("-p")
+                .arg("ente-auth-frb")
+                .arg("-p")
+                .arg("ente-photos-frb")
+                .arg("-p")
+                .arg("ente-locker-frb");
+        }
+        FrbTarget::Auth => {
+            command.arg("-p").arg("ente-auth-frb");
+        }
+        FrbTarget::Photos => {
+            command.arg("-p").arg("ente-photos-frb");
+        }
+        FrbTarget::Locker => {
+            command.arg("-p").arg("ente-locker-frb");
+        }
+    }
+    command.current_dir(rust_root);
+    run_command(
+        &mut command,
+        "failed to format generated FRB Rust bindings".to_owned(),
+    )
+}
+
+fn rust_root() -> Result<PathBuf, DynError> {
+    let root = env::current_dir()?;
+    if !root.join("Cargo.toml").is_file() {
+        return Err("run cargo codegen from the Rust workspace root".into());
+    }
+    Ok(root)
+}
+
+fn repo_root() -> Result<PathBuf, DynError> {
+    Ok(rust_root()?
+        .parent()
+        .ok_or("failed to resolve repo root from rust/tools/codegen")?
+        .to_path_buf())
+}
+
+fn target_dir() -> Result<PathBuf, DynError> {
+    Ok(rust_root()?.join("target"))
+}
+
+fn build_host_library(crate_dir: &Path) -> Result<(), DynError> {
+    let target_dir = target_dir()?;
+    run_command(
+        Command::new("cargo")
+            .arg("build")
+            .arg("--locked")
+            .arg("--target-dir")
+            .arg(target_dir)
+            .current_dir(crate_dir),
+        format!("failed to build {}", crate_dir.display()),
+    )
+}
+
+fn swift_generated_paths(generated_dir: &Path, crate_name: &str) -> [PathBuf; 3] {
+    [
+        generated_dir.join(format!("{crate_name}.swift")),
+        generated_dir.join(format!("{crate_name}FFI.h")),
+        generated_dir.join(format!("{crate_name}FFI.modulemap")),
+    ]
+}
+
+fn remove_path(path: &Path) -> Result<(), DynError> {
+    match fs::remove_file(path) {
+        Ok(()) => {}
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => {
+            return Err(format!("failed to remove {}: {error}", path.display()).into());
+        }
+    }
+
+    Ok(())
+}
+
+fn remove_paths(paths: &[PathBuf]) -> Result<(), DynError> {
+    for path in paths {
+        remove_path(path)?;
+    }
+
+    Ok(())
+}
+
+fn generate_bindings(
+    language: TargetLanguage,
+    out_dir: &Path,
+    uniffi_crate: &UniffiCrate<'_>,
+) -> Result<(), DynError> {
+    let source = target_dir()?.join("debug").join(format!(
+        "{}{}{}",
+        env::consts::DLL_PREFIX,
+        uniffi_crate.crate_name,
+        env::consts::DLL_SUFFIX
+    ));
+    let source = utf8_path(&source)?;
+    let out_dir = utf8_path(out_dir)?;
+    let previous_dir = env::current_dir().map_err(|error| {
+        format!(
+            "failed to capture current directory before generating {} bindings: {error}",
+            uniffi_crate.crate_name
+        )
+    })?;
+
+    env::set_current_dir(&uniffi_crate.crate_dir).map_err(|error| {
+        format!(
+            "failed to enter {} before generating bindings: {error}",
+            uniffi_crate.crate_dir.display()
+        )
+    })?;
+
+    let result = bindings::generate(GenerateOptions {
+        languages: vec![language],
+        source,
+        out_dir,
+        config_override: None,
+        format: false,
+        crate_filter: Some(uniffi_crate.crate_name.to_owned()),
+        metadata_no_deps: false,
+    });
+
+    env::set_current_dir(&previous_dir).map_err(|error| {
+        format!(
+            "failed to restore current directory to {}: {error}",
+            previous_dir.display()
+        )
+    })?;
+
+    result?;
+
+    Ok(())
+}
+
+fn sanitize_generated_swift_bindings(swift_file: &Path, crate_name: &str) -> Result<(), DynError> {
+    let original = fs::read_to_string(swift_file)
+        .map_err(|error| format!("failed to read {}: {error}", swift_file.display()))?;
+    let free_call_prefix = format!("try! rustCall {{ uniffi_{crate_name}_fn_free_");
+
+    let mut rewritten = String::from("// swift-format-ignore-file\n");
+
+    for segment in original.split_inclusive('\n') {
+        let line = segment.strip_suffix('\n').unwrap_or(segment);
+        let trimmed = line.trim_start();
+
+        if trimmed.starts_with(&free_call_prefix) && trimmed.ends_with("(handle, $0) }") {
+            let indent = &line[..line.len() - trimmed.len()];
+            rewritten.push_str(indent);
+            rewritten.push_str("// Avoid aborting the host app if Rust-side teardown fails during process shutdown.\n");
+            rewritten.push_str(indent);
+            rewritten.push_str(&line.replacen("try!", "try?", 1));
+            if segment.ends_with('\n') {
+                rewritten.push('\n');
+            }
+        } else {
+            rewritten.push_str(segment);
+        }
+    }
+
+    fs::write(swift_file, rewritten)
+        .map_err(|error| format!("failed to write {}: {error}", swift_file.display()))?;
+
+    Ok(())
+}
+
+fn utf8_path(path: &Path) -> Result<Utf8PathBuf, DynError> {
+    Utf8PathBuf::from_path_buf(path.to_path_buf())
+        .map_err(|path| format!("path is not valid UTF-8: {}", path.display()).into())
+}
+
+fn run_command(command: &mut Command, error_context: String) -> Result<(), DynError> {
+    let program = command.get_program().to_os_string();
+    let args = command
+        .get_args()
+        .map(OsStr::to_os_string)
+        .collect::<Vec<_>>();
+    let status = command.status().map_err(|error| {
+        format!(
+            "{error_context}: failed to start {}: {error}",
+            render_command(&program, &args)
+        )
+    })?;
+
+    if status.success() {
+        return Ok(());
+    }
+
+    Err(format!(
+        "{error_context}: {} exited with status {status}",
+        render_command(&program, &args)
+    )
+    .into())
+}
+
+fn render_command(program: &OsStr, args: &[std::ffi::OsString]) -> String {
+    let mut parts = Vec::with_capacity(args.len() + 1);
+    parts.push(program.to_string_lossy().into_owned());
+    parts.extend(args.iter().map(|arg| arg.to_string_lossy().into_owned()));
+    parts.join(" ")
+}

@@ -17,6 +17,5 @@ import app_links
 
     return false
 
-    // return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 }

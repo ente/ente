@@ -53,8 +53,9 @@ class _RitualEmojiIconState extends State<RitualEmojiIcon> {
   Widget build(BuildContext context) {
     final resolvedTextScaler =
         widget.textScaler ?? MediaQuery.textScalerOf(context);
-    final resolvedStyle =
-        DefaultTextStyle.of(context).style.merge(widget.style);
+    final resolvedStyle = DefaultTextStyle.of(
+      context,
+    ).style.merge(widget.style);
 
     return Transform.translate(
       offset: _offset,
@@ -79,11 +80,13 @@ class _RitualEmojiIconState extends State<RitualEmojiIcon> {
 
     final resolvedTextScaler =
         widget.textScaler ?? MediaQuery.textScalerOf(context);
-    final resolvedStyle =
-        DefaultTextStyle.of(context).style.merge(widget.style);
+    final resolvedStyle = DefaultTextStyle.of(
+      context,
+    ).style.merge(widget.style);
     final textDirection = Directionality.of(context);
-    final measurementPixelRatio =
-        MediaQuery.devicePixelRatioOf(context).clamp(2.0, 3.5);
+    final measurementPixelRatio = MediaQuery.devicePixelRatioOf(
+      context,
+    ).clamp(2.0, 3.5);
 
     final key = _EmojiCacheKey(
       emoji: widget.emoji,
@@ -113,22 +116,26 @@ class _RitualEmojiIconState extends State<RitualEmojiIcon> {
       });
     }
 
-    _inFlight[key] ??= _computeVisualCenterOffset(
-      emoji: widget.emoji,
-      style: resolvedStyle,
-      textDirection: textDirection,
-      textScaler: resolvedTextScaler,
-      textHeightBehavior: widget.textHeightBehavior,
-      pixelRatio: measurementPixelRatio,
-    ).then((offset) {
-      _storeCachedOffset(key, offset);
-      return offset;
-    }).catchError((_) {
-      _storeCachedOffset(key, Offset.zero);
-      return Offset.zero;
-    }).whenComplete(() {
-      _inFlight.remove(key);
-    });
+    _inFlight[key] ??=
+        _computeVisualCenterOffset(
+              emoji: widget.emoji,
+              style: resolvedStyle,
+              textDirection: textDirection,
+              textScaler: resolvedTextScaler,
+              textHeightBehavior: widget.textHeightBehavior,
+              pixelRatio: measurementPixelRatio,
+            )
+            .then((offset) {
+              _storeCachedOffset(key, offset);
+              return offset;
+            })
+            .catchError((_) {
+              _storeCachedOffset(key, Offset.zero);
+              return Offset.zero;
+            })
+            .whenComplete(() {
+              _inFlight.remove(key);
+            });
 
     _inFlight[key]!.then((offset) {
       if (!mounted) return;
@@ -185,13 +192,13 @@ class _EmojiCacheKey {
 
   @override
   int get hashCode => Object.hash(
-        emoji,
-        style,
-        textHeightBehavior,
-        textDirection,
-        scale,
-        pixelRatio,
-      );
+    emoji,
+    style,
+    textHeightBehavior,
+    textDirection,
+    scale,
+    pixelRatio,
+  );
 }
 
 Future<Offset> _computeVisualCenterOffset({

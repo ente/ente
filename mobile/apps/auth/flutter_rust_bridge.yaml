@@ -1,0 +1,9 @@
+rust_input: crate::api, ente-frb-lib
+rust_root: ../../../rust/bindings/frb/auth/
+dart_output: lib/src/rust
+dart_entrypoint_class_name: EnteAuthRust
+
+dart_preamble: |
+  // ignore_for_file: require_trailing_commas
+
+web: false

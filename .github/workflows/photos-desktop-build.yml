@@ -1,0 +1,211 @@
+name: "Build (Photos desktop)"
+
+# See .github/docs/app-release.md
+
+on:
+    push:
+        branches:
+            - "release/photos-desktop-v*"
+    workflow_dispatch:
+    schedule:
+        # Weekdays at ~6:45 AM IST
+        - cron: "15 1 * * 1-5"
+
+permissions:
+    contents: read
+
+concurrency:
+    group: photos-desktop-build
+    cancel-in-progress: false
+
+jobs:
+    build-metadata:
+        runs-on: ubuntu-latest
+
+        outputs:
+            should_build: ${{ steps.prepare.outputs.should_build }}
+            commit_sha: ${{ steps.prepare.outputs.commit_sha }}
+            release_version: ${{ steps.prepare.outputs.release_version }}
+            release_tag: ${{ steps.prepare.outputs.release_tag }}
+            release_title: ${{ steps.prepare.outputs.release_title }}
+            release_body: ${{ steps.prepare.outputs.release_body }}
+            release_body_grouped: ${{ steps.prepare.outputs.release_body_grouped }}
+            has_new_changes: ${{ steps.prepare.outputs.has_new_changes }}
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  ref: ${{ github.ref_name }}
+
+            - name: Prepare release
+              id: prepare
+              shell: bash
+              run: |
+                  set -euo pipefail
+
+                  if [[ "${GITHUB_EVENT_NAME}" == "schedule" ]] && git ls-remote --exit-code --heads origin 'release/photos-desktop-v*' >/dev/null 2>&1; then
+                      echo "Active Photos desktop release branch found; skipping scheduled nightly"
+                      echo "should_build=false" >> "${GITHUB_OUTPUT}"
+                      exit 0
+                  fi
+
+                  release_version="$(node .github/scripts/photos-desktop-version.mjs get)"
+
+                  if [[ "${GITHUB_REF_NAME}" == release/photos-desktop-v* ]]; then
+                      if [[ "${GITHUB_REF_NAME}" != "release/photos-desktop-v${release_version}" ]]; then
+                          echo "::error::Branch ${GITHUB_REF_NAME} does not match desktop version ${release_version}"
+                          exit 1
+                      fi
+                      release_tag="photos-desktop-v${release_version}-rc"
+                      release_title="🖥️ Photos desktop release candidate - ${release_version}"
+                  else
+                      release_tag="photos-desktop-v${release_version}"
+                      release_title="🖥️ Photos desktop nightly - ${release_version}"
+                  fi
+
+                  git fetch --force --depth=1 --no-tags origin "refs/tags/${release_tag}:refs/tags/${release_tag}" || true
+
+                  echo "should_build=true" >> "${GITHUB_OUTPUT}"
+                  echo "commit_sha=$(git rev-parse HEAD)" >> "${GITHUB_OUTPUT}"
+                  echo "release_version=${release_version}" >> "${GITHUB_OUTPUT}"
+                  echo "release_tag=${release_tag}" >> "${GITHUB_OUTPUT}"
+                  echo "release_title=${release_title}" >> "${GITHUB_OUTPUT}"
+                  node .github/scripts/release-notes.mjs desktop/changes "${release_tag}" >> "${GITHUB_OUTPUT}"
+
+    build:
+        needs: build-metadata
+        if: needs.build-metadata.outputs.should_build == 'true'
+        runs-on: ${{ matrix.os }}
+        environment:
+            name: production
+
+        strategy:
+            matrix:
+                os: [macos-latest, ubuntu-latest, windows-latest]
+
+        env:
+            RELEASE_TAG: ${{ needs.build-metadata.outputs.release_tag }}
+            IS_RC: ${{ startsWith(github.ref_name, 'release/') }}
+            RELEASE_BODY: ${{ needs.build-metadata.outputs.release_body }}
+
+        defaults:
+            run:
+                working-directory: desktop
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  ref: ${{ needs.build-metadata.outputs.commit_sha }}
+
+            - name: Setup node
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+              with:
+                  node-version: 24
+                  cache: "npm"
+                  cache-dependency-path: "desktop/package-lock.json"
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Setup Rust cache
+              uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+              with:
+                  workspaces: rust
+                  shared-key: rust-desktop
+
+            - name: Fetch binary dependencies and rebuild native modules
+              run: npm run postinstall
+
+            - name: Install libarchive-tools for pacman build
+              if: startsWith(matrix.os, 'ubuntu')
+              run: sudo apt-get update && sudo apt-get install libarchive-tools
+
+            - name: Build
+              run: npm run build:ci
+
+            - name: Mint nightly token
+              id: nightly_token
+              uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+              with:
+                  client-id: ${{ secrets.ENTE_CI_GH_CLIENT_ID }}
+                  private-key: ${{ secrets.ENTE_CI_GH_APP_PRIVATE_KEY }}
+                  repositories: nightly,photos-desktop
+                  permission-contents: write
+
+            - name: Publish
+              shell: bash
+              run: |
+                  if [ "${RUNNER_OS}" = "macOS" ]; then
+                      export CSC_LINK="${MAC_OS_CERTIFICATE}"
+                      export CSC_KEY_PASSWORD="${MAC_OS_CERTIFICATE_PASSWORD}"
+                  elif [ "${RUNNER_OS}" = "Linux" ]; then
+                      export TARGET_CC=clang
+                      export TARGET_CXX=clang++
+                  fi
+
+                  platform=${{ startsWith(matrix.os, 'macos') && 'mac' || startsWith(matrix.os, 'windows') && 'windows' || 'linux' }}
+
+                  if [ "${IS_RC}" = "true" ]; then
+                      npm exec -- electron-builder --$platform --publish always "-c.releaseInfo.releaseNotes=${RELEASE_BODY}"
+                  else
+                      npm exec -- electron-builder --$platform --publish never
+                  fi
+              env:
+                  GH_TOKEN: ${{ steps.nightly_token.outputs.token }}
+                  MAC_OS_CERTIFICATE: ${{ secrets.MAC_OS_CERTIFICATE }}
+                  MAC_OS_CERTIFICATE_PASSWORD: ${{ secrets.MAC_OS_CERTIFICATE_PASSWORD }}
+                  APPLE_ID: ${{ secrets.APPLE_ID }}
+                  APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+                  APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+                  AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+                  AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+                  AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+                  # Allow rebuilds to keep updating the rolling RC draft.
+                  EP_GH_IGNORE_TIME: true
+
+            - name: Upload to nightly
+              uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1.21.0
+              with:
+                  repo: nightly
+                  token: ${{ steps.nightly_token.outputs.token }}
+                  tag: ${{ env.RELEASE_TAG }}
+                  name: ${{ env.RELEASE_TAG }}
+                  body: ${{ env.RELEASE_BODY }}
+                  artifacts: "desktop/dist/ente-*.@(exe|dmg|AppImage|deb|rpm|pacman)"
+                  prerelease: true
+                  makeLatest: false
+                  allowUpdates: true
+                  updateOnlyUnreleased: true
+
+    finish-build:
+        needs: [build-metadata, build]
+        if: needs.build-metadata.outputs.should_build == 'true'
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  ref: ${{ needs.build-metadata.outputs.commit_sha }}
+
+            - name: Point release tag at the successfully built commit
+              env:
+                  COMMIT_SHA: ${{ needs.build-metadata.outputs.commit_sha }}
+                  RELEASE_TAG: ${{ needs.build-metadata.outputs.release_tag }}
+              run: |
+                  git tag --force "${RELEASE_TAG}" "${COMMIT_SHA}"
+                  git push --force origin "refs/tags/${RELEASE_TAG}"
+
+            - name: Notify Discord
+              if: github.event_name != 'schedule' || needs.build-metadata.outputs.has_new_changes == 'true'
+              continue-on-error: true
+              env:
+                  DISCORD_WEBHOOK: ${{ secrets.DISCORD_INTERNAL_RELEASE_WEBHOOK }}
+                  RELEASE_TITLE: ${{ needs.build-metadata.outputs.release_title }}
+                  RELEASE_BODY_GROUPED: ${{ needs.build-metadata.outputs.release_body_grouped }}
+                  RELEASE_TAG: ${{ needs.build-metadata.outputs.release_tag }}
+              run: node .github/scripts/release-notify.mjs photos-desktop "${RELEASE_TAG}"

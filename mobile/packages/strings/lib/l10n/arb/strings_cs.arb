@@ -1,61 +1,627 @@
 {
-  "networkHostLookUpErr": "Nelze se připojit k Ente, zkontrolujte, prosím, nastavení své sítě a kontaktujte podporu, pokud chyba přetrvává",
-  "@networkHostLookUpErr": {
-    "description": "Error message shown when the app cannot connect to Ente due to network host lookup failure"
-  },
-  "networkConnectionRefusedErr": "Nepodařilo se připojit k Ente, zkuste to po nějaké době znovu. Pokud chyba přetrvává, kontaktujte, prosím, podporu.",
-  "@networkConnectionRefusedErr": {
-    "description": "Error message shown when the app cannot connect to Ente due to connection refused"
-  },
-  "itLooksLikeSomethingWentWrongPleaseRetryAfterSome": "Vypadá to, že se něco pokazilo. Zkuste to prosím znovu po nějaké době. Pokud chyba přetrvává, kontaktujte prosím naši podporu.",
-  "@itLooksLikeSomethingWentWrongPleaseRetryAfterSome": {
-    "description": "Generic error message for temporary issues"
-  },
-  "error": "Chyba",
-  "@error": {
-    "description": "Generic error title"
-  },
-  "ok": "Ok",
-  "@ok": {
-    "description": "Generic OK button label"
-  },
-  "faq": "Často kladené dotazy (FAQ)",
-  "@faq": {
-    "description": "FAQ link label"
-  },
-  "contactSupport": "Kontaktovat podporu",
-  "@contactSupport": {
-    "description": "Contact support button label"
-  },
-  "emailYourLogs": "Zašlete své logy e-mailem",
-  "@emailYourLogs": {
-    "description": "Title for emailing logs dialog"
-  },
-  "pleaseSendTheLogsTo": "Pošlete prosím logy na \n{toEmail}",
-  "@pleaseSendTheLogsTo": {
-    "description": "Message asking user to send logs to email address",
+  "bringMemoriesTogether": "Shromážděte své vzpomínky na jednom místě",
+  "createMyAccount": "Vytvořit si účet",
+  "localGalleryPermissionDesc": "Udělte oprávnění k přístupu k fotografiím a jejich uspořádání pomocí rozpoznávání obličejů. Veškeré zpracování probíhá ve vašem zařízení.",
+  "onboardingOrganizeDesc": "Uspořádejte své fotografie a videa. Všechny vzpomínky na jednom místě.",
+  "about": "O aplikaci",
+  "acceptTrustInvite": "Přijmout pozvání",
+  "account": "Účet",
+  "accountCredentials": "Tajný klíč",
+  "accountCredentialsDescription": "Zachovat přihlašovací údaje účtu.",
+  "accountIsAlreadyConfigured": "Účet je již nastaven.",
+  "accountOwnerPersonAppbarTitle": "{title} (Já)",
+  "@accountOwnerPersonAppbarTitle": {
+    "description": "Title of appbar for account owner person",
     "placeholders": {
-      "toEmail": {
-        "type": "String",
-        "description": "Email address to send logs to"
+      "title": {
+        "type": "String"
       }
     }
   },
-  "copyEmailAddress": "Kopírovat e-mailovou adresu",
-  "@copyEmailAddress": {
-    "description": "Button to copy email address to clipboard"
+  "accountRecovery": "Obnovení účtu",
+  "accountSetupIncompleteCreateAccount": "Nastavení účtu je neúplné. Pro dokončení nastavení vytvořte účet.",
+  "@accountSetupIncompleteCreateAccount": {
+    "description": "Error shown when account exists but signup is incomplete"
   },
-  "exportLogs": "Exportovat logy",
-  "@exportLogs": {
-    "description": "Button to export logs"
+  "activeSessions": "Aktivní relace",
+  "@activeSessions": {
+    "description": "Title for active sessions page"
   },
+  "add": "Přidat",
+  "addAlbumWidgetPrompt": "Přidejte na domovskou obrazovku widget alba a upravte jej zde.",
+  "addANameAndPhoto": "Přidat jméno a fotografii",
+  "addCode": "Přidat kód",
+  "addedAMemoryTo": "přidána vzpomínka do {albumName}",
+  "@addedAMemoryTo": {
+    "description": "Social notification action text shown after a person's name, for example 'John added a memory to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      }
+    }
+  },
+  "addedBy": "Přidáno uživatelem {emailOrName}",
+  "@addedBy": {
+    "placeholders": {
+      "emailOrName": {}
+    }
+  },
+  "addedNMemoriesTo": "přidáno {count} vzpomínek do {albumName}",
+  "@addedNMemoriesTo": {
+    "description": "Social notification action text shown after a person's name, for example 'John added 4 memories to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "addedSuccessfullyTo": "Úspěšně přidáno do {albumName}",
+  "@addedSuccessfullyTo": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
+  "addedToQueue": "Přidáno do fronty",
+  "addEmail": "Přidat email",
+  "addFamilyMember": "Přidat člena rodiny",
+  "addFiles": "Přidat soubory",
+  "addFromDevice": "Přidat ze zařízení",
+  "addingPhotos": "Přidávání fotografií",
+  "addingToFavorites": "Přidávání k oblíbeným...",
+  "addLocation": "Přidat polohu",
+  "addLocationButton": "Přidat",
+  "addMember": "Přidat člena",
+  "addMemoriesWidgetPrompt": "Přidejte na domovskou obrazovku widget vzpomínek a upravte jej zde.",
+  "addMore": "Přidat další",
+  "addName": "Přidat název",
+  "addNew": "Přidat nový",
+  "@addNew": {
+    "description": "Text to add a new item (location tag, album, caption etc)"
+  },
+  "addNewEmail": "Přidat nový email",
+  "addOnPageSubtitle": "Podrobnosti o doplňcích",
+  "addOns": "Doplňky",
+  "addOnValidTill": "Váš doplněk {storageAmount} je platný do {endDate}",
+  "@addOnValidTill": {
+    "placeholders": {
+      "endDate": {},
+      "storageAmount": {}
+    }
+  },
+  "addPeopleWidgetPrompt": "Přidejte na domovskou obrazovku widget lidí a upravte jej zde.",
+  "addPerson": "Přidat osobu",
+  "@addPerson": {
+    "description": "Title for the manual tagging flow where user selects a person to tag files with."
+  },
+  "addPhotos": "Přidat fotografie",
+  "addSelected": "Přidat vybrané",
+  "addTag": "Přidat štítek",
+  "addTo": "Přidat do",
+  "addToAlbum": "Přidat do alba",
+  "addToCollection": "Přidat do kolekce",
+  "addToEnte": "Přidat do Ente",
+  "addToHiddenAlbum": "Přidat do skrytého alba",
+  "addToPerson": "Přidat k osobě",
+  "@addToPerson": {
+    "description": "Action label to add selected files to an existing person."
+  },
+  "addTrustedContact": "Přidat důvěryhodný kontakt",
+  "addUpTo5MembersFree": "Přidejte až 5 členů zdarma",
+  "addYourPhotosNow": "Přidejte své fotografie nyní",
+  "adjust": "Upravit",
+  "admin": "Správce",
+  "admiringThem": "Obdiv k {name}",
+  "@admiringThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "advanced": "Pokročilé",
+  "aerialViews": "Letecká perspektiva",
+  "after1Day": "Po 1 dni",
+  "after1Hour": "Po 1 hodině",
+  "after1Month": "Po 1 měsíci",
+  "after1Week": "Po 1 týdnu",
+  "after1Year": "Po 1 roce",
+  "albumLayout": "Rozložení alba",
+  "albums": "Alba",
+  "albumsWidgetDesc": "Vyberte alba, která chcete zobrazit na své domovské obrazovce.",
+  "albumTitle": "Nadpis alba",
+  "albumUpdated": "Album bylo aktualizováno",
+  "algorithm": "Algoritmus",
+  "align": "Zarovnat",
+  "all": "Vše",
+  "allClear": "✨ Vše v pořádku",
+  "allFilesAlreadyMarkedAsImportant": "Všechny položky jsou již označeny jako důležité",
+  "allMemoriesPreserved": "Všechny vzpomínky zachovány",
+  "allow": "Povolit",
+  "allowAddingPhotos": "Povolit přidávání fotek",
+  "@allowAddingPhotos": {
+    "description": "Switch button to enable uploading photos to a public link"
+  },
+  "allowAppToOpenSharedAlbumLinks": "Povolit aplikaci otevírat odkazy na sdílená alba",
+  "allowDownloads": "Povolit stahování",
+  "allowJoiningAlbum": "Povolit připojení k albu",
+  "allowPermBody": "Povolte v Nastavení přístup k vašim fotografiím aby Ente mohl zobrazit a zálohovat vaši knihovnu.",
+  "allowPermTitle": "Povolit přístup k fotografiím",
+  "allPersonGroupingWillReset": "Všechna seskupení pro tuto osobu budou zapomenuta a ztratíte všechny návrhy vytvořené pro tuto osobu",
+  "allTabEmptyHint": "Zatím zde nic není. Klepnutím na + přidáte kód nebo otevřete koš pro jeho obnovení.",
+  "@allTabEmptyHint": {
+    "description": "Shown when the All tab has no active codes but Trash contains codes"
+  },
+  "allWillShiftRangeBasedOnFirst": "Toto je první v této skupině. Ostatní vybrané fotografie se automaticky posunou podle tohoto nového data",
+  "almostDone": "Téměř hotovo...",
+  "alreadyAdded": "Již přidáno",
+  "alreadyHaveAnAccount": "Už máte účet?",
+  "analysis": "Analýza",
+  "analyzingPhotosLocally": "Analyzuji Vaše fotografie lokálně...",
+  "and1Other": "a 1 další",
+  "androidBiometricHint": "Ověřte svou identitu",
+  "@androidBiometricHint": {
+    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
+  },
+  "androidCancelButton": "Zrušit",
+  "@androidCancelButton": {
+    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
+  },
+  "androidSignInTitle": "Je požadováno ověření",
+  "@androidSignInTitle": {
+    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
+  },
+  "andXOthers": "a {count} další",
+  "@andXOthers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "aNewVersionOfEnteIsAvailable": "Je dostupná nová verze Ente.",
+  "aNewVersionOfEnteLockerIsAvailable": "Je k dispozici nová verze Ente Locker.",
+  "appearance": "Vzhled",
+  "appIcon": "Ikona aplikace",
+  "appleId": "Apple ID",
+  "appLock": "Zámek aplikace",
+  "@appLock": {
+    "description": "App lock setting title"
+  },
+  "appLockNotEnabled": "Zámek aplikace není povolen",
+  "appLockNotEnabledDescription": "Povolte prosím zámek aplikace v Zabezpečení > Zámek aplikace",
+  "appLockOfflineModeWarning": "Rozhodli jste se pokračovat bez zálohování. Pokud zapomenete své heslo do aplikace, ztratíte přístup k Vašim datům.",
+  "apply": "Použít",
+  "applyCodeTitle": "Uplatnit kód",
+  "appstoreSubscription": "Předplatné AppStore",
+  "appVersion": "Verze {versionValue}",
+  "@appVersion": {
+    "placeholders": {
+      "versionValue": {}
+    }
+  },
+  "architecture": "Ikony vzhledu",
+  "archive": "Archiv",
+  "@archive": {
+    "description": "Action of 'Archiving' an element"
+  },
+  "archiveAlbum": "Archivovat album",
+  "archiving": "Archivování...",
+  "areThey": "Je to ",
+  "areYouSureDeleteFiles": "Opravdu chcete tyto soubory smazat?",
+  "areYouSureRemoveThisFaceFromPerson": "Opravdu chcete odstranit tento obličej z této osoby?",
+  "areYouSureRemoveThisPersonTag": "Opravdu chcete odebrat štítek této osoby?",
+  "areYouSureThatYouWantToLeaveTheFamily": "Opravdu chcete opustit rodinný plán?",
+  "areYouSureYouWantToCancel": "Opravdu chcete zrušit?",
+  "areYouSureYouWantToChangeYourPlan": "Opravdu chcete změnit svůj plán?",
+  "areYouSureYouWantToExit": "Určitě chcete odejít?",
+  "areYouSureYouWantToIgnoreThesePersons": "Opravdu chcete tyto osoby ignorovat?",
+  "areYouSureYouWantToIgnoreThisPerson": "Opravdu chcete tuto osobu ignorovat?",
+  "areYouSureYouWantToLogout": "Opravdu se chcete odhlásit?",
+  "@areYouSureYouWantToLogout": {
+    "description": "Confirmation message before logout"
+  },
+  "areYouSureYouWantToRenew": "Opravdu chcete obnovit?",
+  "areYouSureYouWantToResetThisPerson": "Opravdu chcete tuto osobu zapomenout?",
+  "areYouSureYouWantToShowThesePeopleInPeopleSectionAgain": "Opravdu chcete tyto osoby znovu zobrazit v sekci „Lidé“?",
+  "areYouSureYouWantToShowThisPersonInPeopleSectionAgain": "Opravdu chcete tuto osobu znovu zobrazit v sekci „Lidé“?",
+  "artisticPortraits": "Umělecké portréty",
+  "askAQuestion": "Zeptejte se",
+  "askCancelReason": "Vaše předplatné bylo zrušeno. Chcete nám sdělit důvod?",
+  "attachLogs": "Připojit protokoly",
+  "attachLogsHelper": "Pomůže nám rychleji diagnostikovat problém",
+  "authenticateGeneric": "Ověřte se prosím",
+  "authenticating": "Ověřování...",
+  "authenticationFailedPleaseTryAgain": "Ověření se nezdařilo, zkuste to prosím znovu",
+  "@authenticationFailedPleaseTryAgain": {
+    "description": "Error message when authentication fails"
+  },
+  "authenticationSuccessful": "Ověření bylo úspěšné!",
+  "@authenticationSuccessful": {
+    "description": "Success message when authentication is successful"
+  },
+  "authToChangeEmailVerificationSetting": "Pro změnu ověření pomocí e-mailu se prosím ověřte",
+  "authToChangeLockscreenSetting": "Pro změnu nastavení uzamčení obrazovky se prosím ověřte",
+  "authToConfigureTwofactorAuthentication": "Pro konfiguraci dvoufázového ověřování se prosím ověřte",
+  "authToExportCodes": "Pro export svých kódů se prosím ověřte",
+  "authToInitiateSignIn": "Proveďte ověření a přihlaste se k zálohování.",
+  "authToManageLegacy": "Pro správu důvěryhodných kontaktů se prosím ověřte",
+  "authToSetBackupPassword": "Ověřit pro nastavení hesla pro zálohu",
+  "authToUpdateBackupPassword": "Ověřit pro aktualizaci hesla pro zálohu",
+  "authToViewPasskey": "Pro zobrazení Vašeho přístupového klíče se prosím ověřte",
+  "authToViewPasskeyGeneric": "Pro zobrazení Vašeho přístupového klíče se prosím ověřte",
+  "authToViewTrashedFiles": "Pro zobrazení smazaných souborů se prosím ověřte",
+  "authToViewYourHiddenFiles": "Pro zobrazení skrytých souborů se prosím ověřte",
+  "authToViewYourMemories": "Pro zobrazení svých vzpomínek se prosím ověřte",
+  "autoAddPeople": "Automatické přidávání osob",
+  "autoAddToAlbum": "Automaticky přidávat do alba",
+  "autoCastDialogBody": "Zde uvidíte dostupná zařízení pro přenos.",
+  "autoCastiOSPermission": "V nastavení se ujistěte, že jsou pro aplikaci Ente Photos zapnutá oprávnění pro místní síť.",
+  "autoLock": "Automatické zamykání",
+  "@autoLock": {
+    "description": "Auto lock setting title"
+  },
+  "autoLockFeatureDescription": "Čas, po kterém se aplikace zamkne po přesunutí na pozadí",
+  "@autoLockFeatureDescription": {
+    "description": "Description of auto lock feature"
+  },
+  "automaticallyAnalyzeAndSplitGrouping": "Automaticky analyzujeme seskupení, abychom zjistili, zda je přítomno více osob, a opět je oddělíme. To může trvat několik sekund.",
+  "autoPair": "Automatické párování",
+  "autumnColors": "Podzimní nádhera",
+  "babySmiles": "Dětské úsměvy",
+  "backedUpFolders": "Zálohované složky",
+  "background": "Pozadí",
+  "backgroundWithThem": "Krásný výhled s {name}",
+  "@backgroundWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "backingUpLastSevenDaysPhotos": "Zálohování fotografií za posledních 7 dní",
+  "backup": "Zálohování",
+  "backupAndSync": "Zálohování a synchronizace",
+  "backupAndSyncDesc": "Automatické zálohování, stav synchronizace a nahrávání",
+  "backupCreated": "Záloha vytvořena!",
+  "backupFailed": "Záloha se nezdařila",
+  "backupFile": "Zálohovat soubor",
+  "backupFolderLabel": "Složka zálohy:",
+  "backupLocationChoiceDescription": "Kam chcete uložit své zálohy?",
+  "backupOnlyNewPhotos": "Zálohovat pouze nové fotografie",
+  "backupOnlyNewPhotosAllFoldersSelected": "Všechny složky jsou momentálně vybrány pro zálohu.\n\nNyní můžete pokračovat, nebo aktualizovat vybrané složky.",
+  "backupOnlyNewPhotosNoFoldersSelectedContinue": "Pro zálohování momentálně nejsou vybrány žádné složky.\n\nNyní můžete pokračovat, nebo aktualizovat vybrané složky.",
+  "backupOnlyNewPhotosNoFoldersSelectedRequire": "Pro zálohování momentálně nejsou vybrány žádné složky.\n\nPro pokračování prosím vyberte složky.",
+  "backupOnlyNewPhotosWarningBody": "Momentálně zálohujete fotografie z {formattedDate}. Aktualizujte prosím své nastavení pro zálohování všech fotografií.",
+  "@backupOnlyNewPhotosWarningBody": {
+    "description": "Warning shown when backup-only-new is enabled and user changes folders.",
+    "placeholders": {
+      "formattedDate": {
+        "type": "String",
+        "example": "Jan 5, 2026"
+      }
+    }
+  },
+  "backupOverMobileData": "Zálohovat přes mobilní data",
+  "backupPasswordCleared": "Heslo pro zálohu vymazáno",
+  "backupPasswordHint": "Vaše záloha bude zašifrována pomocí tohoto hesla.",
+  "backupSettings": "Nastavení zálohování",
+  "backupStatus": "Stav zálohování",
+  "backupStatusDescription": "Položky, které byly zálohovány, se zobrazí zde",
+  "backupToEnte": "Zálohování na Ente",
+  "backupVideos": "Zálohovat videa",
+  "beach": "Písek a moře",
+  "birthday": "Narozeniny",
+  "birthdayJoy": "Narozeninová radost",
+  "birthdays": "Narozeniny",
+  "bothIssuerAndAccountCanNotBeEmpty": "Pole vydavatel a účet nesmějí být prázdná",
+  "bringYourFamilyAlong": "Přiveďte svou rodinu",
+  "browseHelpPages": "Procházet stránky nápovědy",
+  "brushColor": "Barva štětce",
+  "byAgreeing": "Pokračováním souhlasíte s <terms>podmínkami služby</terms> a <policy>zásadami ochrany osobních údajů</policy>.",
+  "cachedData": "Data uložená v mezipaměti",
+  "calculating": "Probíhá výpočet...",
+  "campingMoments": "Táborákové momenty",
   "cancel": "Zrušit",
   "@cancel": {
     "description": "Cancel button label"
   },
-  "reportABug": "Nahlásit chybu",
-  "@reportABug": {
-    "description": "Label for reporting a bug"
+  "cancelInvite": "Zrušit pozvánku",
+  "@cancelInvite": {
+    "description": "Title for cancel invite confirmation dialog"
+  },
+  "cancelInviteDesc": "Pokud tuto pozvánku smažete, budete muset poslat novou, pokud si to rozmyslíte.",
+  "@cancelInviteDesc": {
+    "description": "Description for cancel invite confirmation dialog"
+  },
+  "cancelOtherSubscription": "Nejprve zrušte své stávající předplatné u {paymentProvider}",
+  "@cancelOtherSubscription": {
+    "description": "The text to display when the user has an existing subscription from a different payment provider",
+    "type": "text",
+    "placeholders": {
+      "paymentProvider": {
+        "example": "Apple",
+        "type": "String"
+      }
+    }
+  },
+  "cancelRecovery": "Zrušit obnovení",
+  "cancelRecoveryDesc": "Opravdu chcete zrušit obnovení účtu {email}?",
+  "@cancelRecoveryDesc": {
+    "description": "Description for cancel recovery confirmation dialog",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "cancelSubscription": "Zrušit předplatné",
+  "candidLaughter": "Výbuch smíchu",
+  "cannotAddMoreFilesAfterBecomingViewer": "{name} již nebude moci přidávat položky do kolekce po převedení na prohlížejícího.",
+  "@cannotAddMoreFilesAfterBecomingViewer": {
+    "description": "Warning message when changing a collaborator to viewer",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "John"
+      }
+    }
+  },
+  "cannotDeleteSharedFiles": "Sdílené soubory nelze odstranit",
+  "cannotMoveToSharedAlbums": "Nelze přesunout do sdílených alb",
+  "cannotMoveToSharedAlbumsMessage": "Položky mohou být pouze přidány do sdílených alb, nikoliv přesunuty. Chcete je tedy místo toho přidat?",
+  "canNotOpenBody": "Omlouváme se, ale toto album nelze otevřít v aplikaci.",
+  "canNotOpenTitle": "Nelze otevřít toto album",
+  "cannotUpdateRecoveryTime": "Čas obnovení nelze aktualizovat",
+  "cannotUpdateRecoveryTimeMessage": "Čas obnovení nelze změnit, pokud je aktivní relace obnovy. Zrušte nebo počkejte, až bude obnova dokončena.",
+  "canOnlyCreateLinkForFilesOwnedByYou": "Můžete vytvářet odkazy pouze na soubory, které vlastníte",
+  "canOnlyRemoveFilesOwnedByYou": "Můžete odstranit pouze Vámi vlastněné soubory",
+  "castAlbum": "Přenášet album",
+  "castIPMismatchBody": "Ujistěte se, že jste připojeni ke stejné síti jako televizor.",
+  "castIPMismatchTitle": "Nepodařilo se odeslat album",
+  "cat": "Kočka",
+  "centerPoint": "Středový bod",
+  "changeEmail": "Změnit e-mail",
+  "@changeEmail": {
+    "description": "Change email button label"
+  },
+  "changeLocationOfSelectedItems": "Změnit polohu vybraných položek?",
+  "changePassword": "Změnit heslo",
+  "changePasswordTitle": "Změnit heslo",
+  "@changePasswordTitle": {
+    "description": "Change password title"
+  },
+  "changePermissions": "Změnit oprávnění",
+  "changeYourReferralCode": "Změnit svůj kód",
+  "checkForUpdates": "Zkontrolovat aktualizace",
+  "checkInboxAndSpamFolder": "Zkontrolujte prosím svou doručenou poštu (a spam) pro dokončení ověření",
+  "@checkInboxAndSpamFolder": {
+    "description": "Message asking user to check inbox and spam folder"
+  },
+  "checking": "Probíhá kontrola...",
+  "checkingModels": "Kontrola modelů...",
+  "checkStatus": "Zkontrolovat stav",
+  "@checkStatus": {
+    "description": "Check status button label"
+  },
+  "chooseARecoveryTime": "Vyberte čas obnovy",
+  "chooseBackupLocation": "Vyberte umístění zálohy",
+  "chooseFromAnExistingContact": "Vyberte z existujícího kontaktu",
+  "chooseIcon": "Vybrat ikonu",
+  "chooseYourPlan": "Vyberte si svůj plán",
+  "city": "Ve městě",
+  "citySunsets": "Západ slunce nad městem",
+  "claimedByYou": "Vámi nárokovaný",
+  "cleanedUpSimilarImages": "Uvolnili jste {size} místa",
+  "@cleanedUpSimilarImages": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "cleanUncategorized": "Vyčistit Nezařazené",
+  "cleanUncategorizedDescription": "Odeberte všechny soubory z alba Nezařazené, které se nacházejí v jiných albech",
+  "cleanupComplete": "Vyčištění dokončeno",
+  "cleanupHiddenFiles": "Vyčistit skryté soubory",
+  "cleanupHiddenFilesDescription": "Některé soubory ve skrytých albech stále existují v neskrytých albech, takže jsou viditelné mimo skrytou sekci. Vyčištění je odstraní z neskrytých alb.",
+  "clearAllFilters": "Vymazat všechny filtry",
+  "clearBackupFolder": "Vymazat složku zálohy",
+  "clearBackupPassword": "Vymazat heslo zálohy",
+  "clearCaches": "Vymazat mezipaměť",
+  "clearingTrash": "Vymazání koše...",
+  "clearSelection": "Zrušit výběr",
+  "clickToInstallOurBestVersionYet": "Klikněte pro instalaci naší dosud nejlepší verze",
+  "close": "Zavřít",
+  "closeBy": "Blízké",
+  "@closeBy": {
+    "description": "Appears in the similar images page, to indicate that the images are close in terms of appearance"
+  },
+  "closeFamilyConfirmBody": "Všichni členové ztratí přístup ke sdílenému úložišti. Tuto akci nelze vrátit zpět.",
+  "closeFamilyConfirmTitle": "Uzavřít rodinný plán?",
+  "closeFamilyPlan": "Uzavřít rodinný plán",
+  "closest": "Nejbližší",
+  "cloudOnly": "Smazat lokálně",
+  "clusteringProgress": "Průběh seskupování",
+  "coastalCliffs": "Útesy u moře",
+  "codeAppliedPageTitle": "Kód byl použit",
+  "codeChangeLimitReached": "Omlouváme se, dosáhli jste limitu změn kódu.",
+  "codeCopiedToClipboard": "Kód zkopírován do schránky",
+  "codeIssuerHint": "Vydavatel",
+  "collaborator": "Spolupracovník",
+  "collageLayout": "Rozvržení",
+  "collageSaved": "Koláž uložena do galerie",
+  "collectionCannotBeDeleted": "Tuto kolekci nelze smazat",
+  "collectionCannotBeEdited": "Tuto kolekci nelze upravit",
+  "collectionCannotBeShared": "Tuto kolekci nelze sdílet",
+  "collectionDeletedSuccessfully": "Kolekce byla úspěšně odstraněna",
+  "collectionEmptyStateSubtitle": "V této kolekci nejsou žádné položky",
+  "collectionLabel": "Kolekce",
+  "collectionRenamedSuccessfully": "Kolekce byla úspěšně přejmenována",
+  "collections": "Kolekce",
+  "collectionUpdated": "Kolekce aktualizována",
+  "collectPhotos": "Shromáždit fotografie",
+  "color": "Barva",
+  "colorfulMarkets": "Trhy plné života",
+  "commentedOnAPhoto": "okomentoval(a) fotografii",
+  "@commentedOnAPhoto": {
+    "description": "Social notification action text shown after a person's name, for example 'John commented on a photo'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "commentedOnAVideo": "okomentoval(a) video",
+  "@commentedOnAVideo": {
+    "description": "Social notification action text shown after a person's name, for example 'John commented on a video'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "commentedOnYourPhoto": "okomentoval(a) Vaši fotografii",
+  "@commentedOnYourPhoto": {
+    "description": "Social notification action text shown after a person's name, for example 'John commented on your photo'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "commentedOnYourVideo": "okomentoval(a) Vaše video",
+  "@commentedOnYourVideo": {
+    "description": "Social notification action text shown after a person's name, for example 'John commented on your video'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "commentHint": "Řekněte něco hezkého!",
+  "@commentHint": {
+    "description": "Placeholder text for comment input field"
+  },
+  "comments": "Komentáře",
+  "compactMode": "Kompaktní režim",
+  "comparingImageDetails": "Porovnávání detailů obrázku...",
+  "concertNights": "Koncertní noci",
+  "confirm": "Potvrdit",
+  "@confirm": {
+    "description": "Confirm button label"
+  },
+  "confirm2FADisable": "Opravdu chcete deaktivovat dvoufázové ověřování?",
+  "confirmAddingTrustedContact": "Chystáte se přidat {email} jako důvěryhodný kontakt. Ten bude moci obnovit Váš účet, pokud budete {numOfDays} dní nepřítomní.",
+  "@confirmAddingTrustedContact": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      },
+      "numOfDays": {
+        "type": "int",
+        "example": "30"
+      }
+    }
+  },
+  "confirmAddingTrustedContacts": "Chystáte se přidat {count} důvěryhodných kontaktů. Ti budou moci obnovit Váš účet, pokud budete {numOfDays} dní nepřítomní.",
+  "@confirmAddingTrustedContacts": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "numOfDays": {
+        "type": "int",
+        "example": "30"
+      }
+    }
+  },
+  "confirmPlanChange": "Potvrdit změnu plánu",
+  "confirmRecoveryKey": "Potvrdit obnovovací klíč",
+  "confirmUpdatingkey": "Opravdu chcete aktualizovat tajný klíč?",
+  "confirmYourRecoveryKey": "Potvrďte svůj obnovovací klíč",
+  "connectToDevice": "Připojit k zařízení",
+  "contactDetails": "Kontaktní údaje",
+  "contactDetailsHint": "Telefonní číslo, emailová adresa nebo jiné kontaktní údaje",
+  "contactName": "Jméno kontaktní osoby",
+  "contactNameHint": "Celé jméno kontaktní osoby pro případ nouze",
+  "contactNotes": "Zpráva pro kontakt",
+  "contactNotesHint": "Důležité informace, které je třeba této osobě sdělit při navázání kontaktu",
+  "contacts": "Kontakty",
+  "contactSupport": "Kontaktovat podporu",
+  "@contactSupport": {
+    "description": "Contact support button label"
+  },
+  "contactToManageSubscription": "Kontaktujte nás prosím na adrese support@ente.com pro správu Vašeho {provider} předplatného.",
+  "@contactToManageSubscription": {
+    "placeholders": {
+      "provider": {}
+    }
+  },
+  "continueInMailApp": "Pokračovat v e-mailové aplikaci",
+  "continueLabel": "Pokračovat",
+  "@continueLabel": {
+    "description": "Continue button label"
+  },
+  "continueWithoutAccount": "Pokračovat bez účtu",
+  "convertToAlbum": "Převést na album",
+  "copied": "Zkopírováno",
+  "copiedNextToClipboard": "Další kód zkopírován do schránky",
+  "copiedToClipboard": "Zkopírováno do schránky",
+  "copyAllToClipboard": "Kopírovat vše do schránky",
+  "copyEmailAddress": "Zkopírovat e-mailovou adresu",
+  "@copyEmailAddress": {
+    "description": "Button to copy email address to clipboard"
+  },
+  "copyEmbedHtml": "Zkopírovat vložené HTML",
+  "copyLink": "Kopírovat odkaz",
+  "copypasteThisCodentoYourAuthenticatorApp": "Zkopírujte tento kód\ndo vaší ověřovací aplikace",
+  "couldNotBackUpTryLater": "Vaše data se nepodařilo zálohovat.\nZkusíme to znovu později.",
+  "couldNotFreeUpSpace": "Nelze uvolnit místo",
+  "couldNotLoadAlbums": "Nepodařilo se načíst alba",
+  "@couldNotLoadAlbums": {
+    "description": "Error when albums fail to load"
+  },
+  "couldNotLoadLikes": "Nelze načíst líbí se",
+  "@couldNotLoadLikes": {
+    "description": "Error when likes fail to load"
+  },
+  "couldNotLoadSelectedPhoto": "Nelze načíst vybranou fotografii",
+  "@couldNotLoadSelectedPhoto": {
+    "description": "Toast when the selected contact photo cannot be loaded"
+  },
+  "couldNotOpenFile": "Položku nelze otevřít: {error}",
+  "@couldNotOpenFile": {
+    "description": "Error message when item cannot be opened",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Permission denied"
+      }
+    }
+  },
+  "couldNotUpdateSubscription": "Předplatné nelze aktualizovat",
+  "count": "Počet",
+  "cozyCafes": "Útulné kavárny",
+  "crashAndErrorReporting": "Hlášení pádů a chyb",
+  "crashReporting": "Hlášení o selhání",
+  "create": "Vytvořit",
+  "createAccount": "Vytvořit účet",
+  "@createAccount": {
+    "description": "Create account button label"
+  },
+  "createAccountTitle": "Vytvořit účet",
+  "createAlbumActionHint": "Dlouze podržte pro výběr fotografií a klikněte na + pro vytvoření alba",
+  "createAnEnteAccount": "Vytvořit účet Ente",
+  "createBackupNow": "Vytvořit zálohu nyní",
+  "createCollaborativeLink": "Vytvořit odkaz pro spolupráci",
+  "createCollage": "Vytvořit koláž",
+  "createCollection": "Vytvořit kolekci",
+  "createNewTag": "Vytvořit nový štítek",
+  "createPublicLink": "Vytvořit veřejný odkaz",
+  "createStream": "Vytvořit stream",
+  "creatingLink": "Vytváření odkazu...",
+  "creatingStream": "Vytváření streamu",
+  "credentialName": "Účet",
+  "credentialNameHint": "Název služby",
+  "credentialNotes": "Další poznámky",
+  "credentialNotesHint": "Způsoby obnovení, bezpečnostní otázky, ...",
+  "crop": "Oříznout",
+  "curatedMemories": "Vybrané vzpomínky",
+  "currentBackupFolder": "Aktuální složka zálohy:",
+  "currentlyRunning": "aktuálně běží",
+  "currentUsageNote": "Aktuální použití: {amount}. Nastavte na 0 pro žádné omezení.",
+  "@currentUsageNote": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "20 GB"
+      }
+    }
+  },
+  "custom": "Vlastní",
+  "@custom": {
+    "description": "Label for setting custom value for link expiry"
   },
   "customEndpoint": "Připojeno k {endpoint}",
   "@customEndpoint": {
@@ -67,585 +633,309 @@
       }
     }
   },
-  "save": "Uložit",
-  "@save": {
-    "description": "Label for save button"
-  },
-  "send": "Odeslat",
-  "@send": {
-    "description": "Label for send button"
-  },
-  "saveOrSendDescription": "Chcete toto uložit do paměti zařízení (ve výchozím nastavení do složky Stažené soubory), nebo odeslat do jiných aplikací?",
-  "@saveOrSendDescription": {
-    "description": "Description text asking user if they want to save to storage or share with other apps"
-  },
-  "saveOnlyDescription": "Chcete toto uložit do paměti zařízení (ve výchozím nastavení do složky Stažené soubory)?",
-  "@saveOnlyDescription": {
-    "description": "Description text asking user if they want to save to storage (for platforms that don't support sharing)"
-  },
-  "email": "E-mail",
-  "@email": {
-    "description": "Email field label"
-  },
-  "verify": "Ověřit",
-  "@verify": {
-    "description": "Verify button label"
-  },
-  "invalidEmailTitle": "Neplatná e-mailová adresa",
-  "@invalidEmailTitle": {
-    "description": "Title for invalid email error dialog"
-  },
-  "invalidEmailMessage": "Prosím, zadejte platnou e-mailovou adresu.",
-  "@invalidEmailMessage": {
-    "description": "Message for invalid email error dialog"
-  },
-  "pleaseWait": "Čekejte prosím...",
-  "@pleaseWait": {
-    "description": "Please wait message"
-  },
-  "verifyPassword": "Ověření hesla",
-  "@verifyPassword": {
-    "description": "Verify password button label"
-  },
-  "incorrectPasswordTitle": "Nesprávné heslo",
-  "@incorrectPasswordTitle": {
-    "description": "Title for incorrect password error"
-  },
-  "pleaseTryAgain": "Zkuste to prosím znovu",
-  "@pleaseTryAgain": {
-    "description": "Message asking user to try again"
-  },
-  "enterPassword": "Zadejte heslo",
-  "@enterPassword": {
-    "description": "Enter password field label"
-  },
-  "enterYourPasswordHint": "Zadejte své heslo",
-  "@enterYourPasswordHint": {
-    "description": "Hint for password field"
-  },
-  "activeSessions": "Aktivní relace",
-  "@activeSessions": {
-    "description": "Title for active sessions page"
-  },
-  "oops": "Jejda",
-  "@oops": {
-    "description": "Oops error title"
-  },
-  "somethingWentWrongPleaseTryAgain": "Něco se pokazilo. Zkuste to, prosím, znovu",
-  "@somethingWentWrongPleaseTryAgain": {
-    "description": "Generic error message"
-  },
-  "thisWillLogYouOutOfThisDevice": "Tato akce Vás odhlásí z tohoto zařízení!",
-  "@thisWillLogYouOutOfThisDevice": {
-    "description": "Warning message for logging out of current device"
-  },
-  "thisWillLogYouOutOfTheFollowingDevice": "Toto Vás odhlásí z následujícího zařízení:",
-  "@thisWillLogYouOutOfTheFollowingDevice": {
-    "description": "Warning message for logging out of another device"
-  },
-  "terminateSession": "Ukončit relaci?",
-  "@terminateSession": {
-    "description": "Title for terminate session dialog"
-  },
-  "terminate": "Ukončit",
-  "@terminate": {
-    "description": "Terminate button label"
-  },
-  "thisDevice": "Toto zařízení",
-  "@thisDevice": {
-    "description": "Label for current device"
-  },
-  "createAccount": "Vytvořit účet",
-  "@createAccount": {
-    "description": "Create account button label"
-  },
-  "weakStrength": "Slabé",
-  "@weakStrength": {
-    "description": "Weak password strength label"
-  },
-  "moderateStrength": "Střední",
-  "@moderateStrength": {
-    "description": "Moderate password strength label"
-  },
-  "strongStrength": "Silné",
-  "@strongStrength": {
-    "description": "Strong password strength label"
-  },
-  "deleteAccount": "Odstranit účet",
-  "@deleteAccount": {
-    "description": "Delete account button label"
-  },
-  "deleteAccountQuery": "Mrzí nás, že odcházíte. Máte nějaké problémy s aplikací?",
-  "@deleteAccountQuery": {
-    "description": "Message asking user why they want to delete account"
-  },
-  "yesSendFeedbackAction": "Ano, poslat zpětnou vazbu",
-  "@yesSendFeedbackAction": {
-    "description": "Button to confirm sending feedback"
-  },
-  "noDeleteAccountAction": "Ne, odstranit účet",
-  "@noDeleteAccountAction": {
-    "description": "Button to proceed with account deletion"
-  },
-  "initiateAccountDeleteTitle": "Pro zahájení odstranění účtu se, prosím, ověřte",
-  "@initiateAccountDeleteTitle": {
-    "description": "Title for authentication dialog before account deletion"
-  },
-  "confirmAccountDeleteTitle": "Potvrdit odstranění účtu",
-  "@confirmAccountDeleteTitle": {
-    "description": "Title for account deletion confirmation dialog"
-  },
-  "confirmAccountDeleteMessage": " ",
-  "@confirmAccountDeleteMessage": {
-    "description": "Message warning about account deletion consequences"
-  },
+  "customOrder": "Vlastní pořadí",
+  "darkTheme": "Tmavý",
+  "day": "Den",
+  "dayToday": "Dnes",
+  "dayYesterday": "Včera",
+  "declineTrustInvite": "Odmítnout pozvání",
+  "decrypting": "Dešifrování...",
+  "decryptingVideo": "Dešifrování videa...",
+  "deduplicateCodes": "Odduplikovat soubory",
+  "deduplicateFiles": "Duplicitní soubory",
   "delete": "Smazat",
   "@delete": {
     "description": "Delete button label"
   },
-  "createNewAccount": "Vytvořit nový účet",
-  "@createNewAccount": {
-    "description": "Create new account button label"
+  "deleteAccount": "Smazat účet",
+  "@deleteAccount": {
+    "description": "Delete account button label"
   },
-  "password": "Heslo",
-  "@password": {
-    "description": "Password field label"
-  },
-  "confirmPassword": "Potvrzení hesla",
-  "@confirmPassword": {
-    "description": "Confirm password field label"
-  },
-  "passwordStrength": "Síla hesla: {passwordStrengthValue}",
-  "@passwordStrength": {
-    "description": "Text to indicate the password strength",
+  "deleteAlbum": "Odstranit album",
+  "deleteAlbumDialog": "Odstranit také fotografie (a videa) obsažená v tomto albu ze <bold>všech</bold> ostatních alb, jejichž součástí jsou?",
+  "deleteAlbumsDialogBody": "Tímto se odstraní všechna prázdná alba. Toto je užitečné, pokud chcete zredukovat nepořádek ve Vašem seznamu alb.",
+  "deleteAll": "Smazat vše",
+  "deleteCodeAuthMessage": "Pro odstranění kódu se ověřte",
+  "deleteCodeMessage": "Opravdu chcete smazat tento kód? Tato akce je nevratná.",
+  "deleteCodeTitle": "Odstranit kód?",
+  "deleteCollectionDialogBody": "\"{collectionName}\" bude trvale smazána.",
+  "@deleteCollectionDialogBody": {
+    "description": "Confirmation message body for deleting a single collection",
     "placeholders": {
-      "passwordStrengthValue": {
-        "description": "The strength of the password as a string",
+      "collectionName": {
         "type": "String",
-        "example": "Weak or Moderate or Strong"
+        "example": "My Documents"
       }
     }
   },
-  "hearUsWhereTitle": "Jak jste se dozvěděli o Ente? (volitelné)",
-  "@hearUsWhereTitle": {
-    "description": "Title asking how user heard about Ente"
+  "deleteCollectionFromEverywhere": "Smazat položky také ze všech míst",
+  "@deleteCollectionFromEverywhere": {
+    "description": "Checkbox label asking whether to delete collection items everywhere"
   },
-  "hearUsExplanation": "Ne sledujeme instalace aplikace. Pomůže nám, když nám sdělíte, kde jste nás našli!",
-  "@hearUsExplanation": {
-    "description": "Explanation for asking how user heard about Ente"
+  "deleteComment": "Odstranit komentář",
+  "@deleteComment": {
+    "description": "Delete comment button label"
   },
-  "signUpTerms": "Souhlasím s <u-terms>podmínkami služby</u-terms> a <u-terms>zásadami ochrany osobních údajů</u-terms>",
-  "@signUpTerms": {
-    "description": "Terms agreement text for sign up"
-  },
-  "termsOfServicesTitle": "Podmínky",
-  "@termsOfServicesTitle": {
-    "description": "Terms of service title"
-  },
-  "privacyPolicyTitle": "Podmínky ochrany osobních údajů",
-  "@privacyPolicyTitle": {
-    "description": "Privacy policy title"
-  },
-  "ackPasswordLostWarning": "Rozumím, že při zapomenutí hesla mohu ztratit svá data, protože jsou zabezpečena <underline>koncovým šifrováním</underline>.",
-  "@ackPasswordLostWarning": {
-    "description": "Warning about password loss"
-  },
-  "encryption": "Šifrování",
-  "@encryption": {
-    "description": "Encryption label"
-  },
-  "logInLabel": "Přihlásit se",
-  "@logInLabel": {
-    "description": "Log in button label"
-  },
-  "welcomeBack": "Vítejte zpět!",
-  "@welcomeBack": {
-    "description": "Welcome back message"
-  },
-  "loginTerms": "Kliknutím na přihlášení souhlasím s <u-terms>podmínkami služby</u-terms> a <u-policy>zásadami ochrany osobních údajů</u-policy>",
-  "@loginTerms": {
-    "description": "Terms agreement text for login"
-  },
-  "noInternetConnection": "Žádné připojení k internetu",
-  "@noInternetConnection": {
-    "description": "No internet connection error message"
-  },
-  "pleaseCheckYourInternetConnectionAndTryAgain": "Zkontrolujte, prosím, své připojení k internetu a zkuste to znovu.",
-  "@pleaseCheckYourInternetConnectionAndTryAgain": {
-    "description": "Message asking user to check internet connection"
-  },
-  "verificationFailedPleaseTryAgain": "Ověření selhalo, přihlaste se, prosím, znovu",
-  "@verificationFailedPleaseTryAgain": {
-    "description": "Verification failed error message"
-  },
-  "recreatePasswordTitle": "Resetovat heslo",
-  "@recreatePasswordTitle": {
-    "description": "Title for recreate password dialog"
-  },
-  "recreatePasswordBody": "Aktzální zařízení není dostatečně výkonné pro ověření Vašeho hesla, ale můžeme ho regenerovat způsobem, který funguje ve všech zařízením.\n\nPřihlašte se pomocí obnovovacího klíče a znovu si vygenerujte své heslo (můžete použít opět stejné, pokud chcete).",
-  "@recreatePasswordBody": {
-    "description": "Body text for recreate password dialog"
-  },
-  "useRecoveryKey": "Použít obnovovací klíč",
-  "@useRecoveryKey": {
-    "description": "Use recovery key button label"
-  },
-  "forgotPassword": "Zapomenuté heslo",
-  "@forgotPassword": {
-    "description": "Forgot password link label"
-  },
-  "changeEmail": "Změnit e-mail",
-  "@changeEmail": {
-    "description": "Change email button label"
-  },
-  "verifyEmail": "Ověřit e-mail",
-  "@verifyEmail": {
-    "description": "Verify email title"
-  },
-  "weHaveSendEmailTo": "Odeslali jsme e-mail na <green>{email}</green>",
-  "@weHaveSendEmailTo": {
-    "description": "Text to indicate that we have sent a mail to the user",
+  "deleteCommentConfirmation": "Váš komentář \"{comment}\" bude trvale odstraněn",
+  "@deleteCommentConfirmation": {
+    "description": "Confirmation message when deleting a comment",
     "placeholders": {
-      "email": {
-        "description": "The email address of the user",
-        "type": "String",
-        "example": "example@ente.io"
+      "comment": {
+        "type": "String"
       }
     }
   },
-  "toResetVerifyEmail": "Pro obnovení hesla obnovte, prosím, nejprve svůj e-mail.",
-  "@toResetVerifyEmail": {
-    "description": "Message asking user to verify email before password reset"
+  "deletedComment": "(odstraněno)",
+  "@deletedComment": {
+    "description": "Label for deleted comments"
   },
-  "checkInboxAndSpamFolder": "Pro dokončení ověření prosím zkontrolujte, prosím, svou doručenou poštu (a spamy)",
-  "@checkInboxAndSpamFolder": {
-    "description": "Message asking user to check inbox and spam folder"
+  "deleteDuplicates": "Odstranit duplikáty",
+  "deleteEmptyAlbums": "Odstranit prázdná alba",
+  "deleteEmptyAlbumsWithQuestionMark": "Odstranit prázdná alba?",
+  "deleteFiles": "Smazat soubory",
+  "deleteFromBoth": "Odstranit z obou",
+  "deleteFromDevice": "Odstranit ze zařízení",
+  "deleteFromEnte": "Odstranit z Ente",
+  "deleteHiddenFilesFromDevice": "Odstranit skryté soubory ze zařízení",
+  "deleteHiddenFilesFromDeviceDescription": "Odstranit místní kopie skrytých souborů z vašeho zařízení",
+  "deleteLink": "Smazat odkaz",
+  "deleteLinkQuestion": "Smazat odkaz?",
+  "deleteLocation": "Odstranit polohu",
+  "deleteMemoryLinkMessage": "Lidé, se kterými jste sdíleli tento odkaz, ztratí přístup, jakmile bude smazán.",
+  "deleteMultipleAlbumDialog": "Odstranit také fotografie (a videa) obsažená v těchto {count} albech ze <bold>všech</bold> ostatních alb, jejichž součástí jsou?",
+  "@deleteMultipleAlbumDialog": {
+    "placeholders": {
+      "count": {}
+    }
   },
-  "tapToEnterCode": "Klepnutím zadejte kód",
-  "@tapToEnterCode": {
-    "description": "Hint for entering verification code"
+  "deleteNotSupportedForSharedFiles": "U sdílených souborů není funkce odstranit podporována",
+  "deleteOnDeviceFiles": "Odstranit soubory ze zařízení",
+  "deletePhotos": "Smazat fotografie",
+  "deletePhotosWithSize": "Smazat {count} fotek ({size})",
+  "@deletePhotosWithSize": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
   },
-  "sendEmail": "Odeslat e-mail",
-  "resendEmail": "Odeslat e-mail znovu",
-  "@resendEmail": {
-    "description": "Resend email button label"
+  "deleteProgress": "Odstraňování {currentlyDeleting} / {totalCount}",
+  "@deleteProgress": {
+    "placeholders": {
+      "currentlyDeleting": {},
+      "totalCount": {}
+    }
   },
-  "passKeyPendingVerification": "Ověřování stále probíhá",
-  "@passKeyPendingVerification": {
-    "description": "Message when passkey verification is pending"
+  "deleteSharedAlbum": "Smazat sdílené album?",
+  "deleteSharedAlbumDialogBody": "Album bude smazáno pro všechny\n\nZtratíte přístup ke sdíleným fotkám v tomto albu, které vlastní jiní uživatelé",
+  "deleteShareLinkConfirmation": "Lidé s tímto odkazem již nebudou mít k danému obsahu přístup.",
+  "deleteSuggestions": "Odstranit návrhy",
+  "deleteSuggestionSent": "Návrh k odstranění odeslán",
+  "deleteTagMessage": "Jste si jistí, že chcete odstranit tento štítek? Tato akce je nevratná.",
+  "deleteTagTitle": "Odstranit štítek?",
+  "deleteWithCount": "Smazat ({count})",
+  "@deleteWithCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
-  "loginSessionExpired": "Relace vypršela",
-  "@loginSessionExpired": {
-    "description": "Login session expired title"
+  "deletingDash": "Mazání - ",
+  "deletingFile": "Odstraňování položky...",
+  "deletingFiles": "Mazání...",
+  "deletingShareLink": "Odstraňování odkazu...",
+  "description": "Popis",
+  "desertDreams": "Pouštní sny",
+  "designedForFamilies": "Navrženo pro rodiny",
+  "details": "Detaily",
+  "detailsAboutTheIssue": "Podrobnosti o problému",
+  "developerSettings": "Nastavení pro vývojáře",
+  "@developerSettings": {
+    "description": "Label for developer settings"
   },
-  "loginSessionExpiredDetails": "Vaše relace vypršela. Přihlaste se, prosím, znovu.",
-  "@loginSessionExpiredDetails": {
-    "description": "Login session expired details"
-  },
-  "waitingForVerification": "Čekání na ověření...",
-  "@waitingForVerification": {
-    "description": "Waiting for verification message"
-  },
-  "tryAgain": "Zkusit znovu",
-  "@tryAgain": {
-    "description": "Try again button label"
-  },
-  "checkStatus": "Zkontrolovat stav",
-  "@checkStatus": {
-    "description": "Check status button label"
-  },
-  "loginWithTOTP": "Přihlášení s TOTP",
-  "@loginWithTOTP": {
-    "description": "Login with TOTP button label"
-  },
-  "recoverAccount": "Obnovit účet",
-  "@recoverAccount": {
-    "description": "Recover account button label"
-  },
-  "setPasswordTitle": "Nastavit heslo",
-  "@setPasswordTitle": {
-    "description": "Set password title"
-  },
-  "changePasswordTitle": "Změnit heslo",
-  "@changePasswordTitle": {
-    "description": "Change password title"
-  },
-  "resetPasswordTitle": "Obnovit heslo",
-  "@resetPasswordTitle": {
-    "description": "Reset password title"
-  },
-  "encryptionKeys": "Šifrovací klíče",
-  "@encryptionKeys": {
-    "description": "Encryption keys title"
-  },
-  "enterPasswordToEncrypt": "Zadejte heslo, kterým můžeme zašifrovat Vaše data",
-  "@enterPasswordToEncrypt": {
-    "description": "Prompt to enter password for encryption"
-  },
-  "enterNewPasswordToEncrypt": "Zadejte nové heslo, kterým můžeme šifrovat Vaše data",
-  "@enterNewPasswordToEncrypt": {
-    "description": "Prompt to enter new password for encryption"
-  },
-  "passwordWarning": "Vaše heslo neuchováváme. Pokud ho zapomenete, <underline>nemůžeme Vaše data dešifrovat</underline>",
-  "@passwordWarning": {
-    "description": "Warning about password storage"
-  },
-  "howItWorks": "Jak to funguje",
-  "@howItWorks": {
-    "description": "How it works button label"
-  },
-  "generatingEncryptionKeys": "Generování šifrovacích klíčů...",
-  "@generatingEncryptionKeys": {
-    "description": "Generating encryption keys message"
-  },
-  "passwordChangedSuccessfully": "Heslo úspěšně změněno",
-  "@passwordChangedSuccessfully": {
-    "description": "Password changed successfully message"
-  },
-  "signOutFromOtherDevices": "Odhlásit z ostatních zařízení",
-  "@signOutFromOtherDevices": {
-    "description": "Sign out from other devices title"
-  },
-  "signOutOtherBody": "Pokud si myslíte, že by někdo mohl znát Vaše heslo, můžete vynutit odhlášení ostatních zařízení používajících Váš účet.",
-  "@signOutOtherBody": {
-    "description": "Sign out other devices explanation"
-  },
-  "signOutOtherDevices": "Odhlásit z ostatních zařízení",
-  "@signOutOtherDevices": {
-    "description": "Sign out other devices button label"
-  },
-  "doNotSignOut": "Neodhlašovat",
-  "@doNotSignOut": {
-    "description": "Do not sign out button label"
-  },
-  "generatingEncryptionKeysTitle": "Generování šifrovacích klíčů...",
-  "@generatingEncryptionKeysTitle": {
-    "description": "Generating encryption keys title"
-  },
-  "continueLabel": "Pokračovat",
-  "@continueLabel": {
-    "description": "Continue button label"
-  },
-  "insecureDevice": "Nezabezpečené zařízení",
-  "@insecureDevice": {
-    "description": "Insecure device warning title"
-  },
-  "sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": "Omlouváme se, na tomto zařízení nemůžeme vygenerovat bezpečné klíče.\n\nprosím přihlaste se z jiného zařízení.",
-  "@sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": {
-    "description": "Error message for insecure device"
-  },
-  "recoveryKeyCopiedToClipboard": "Obnovovací klíč byl zkopírován",
-  "@recoveryKeyCopiedToClipboard": {
-    "description": "Recovery key copied message"
-  },
-  "recoveryKey": "Obnovovací klíč",
-  "@recoveryKey": {
-    "description": "Recovery key label"
-  },
-  "recoveryKeyOnForgotPassword": "Tento klíč je jedinou cestou pro obnovení Vašich dat, pokud zapomenete heslo.",
-  "@recoveryKeyOnForgotPassword": {
-    "description": "Recovery key importance explanation"
-  },
-  "recoveryKeySaveDescription": "Tento 24místný klíč neuchováváme, uschovejte ho, prosím, na bezpečném místě.",
-  "@recoveryKeySaveDescription": {
-    "description": "Recovery key save description"
-  },
-  "doThisLater": "Udělat později",
-  "@doThisLater": {
-    "description": "Do this later button label"
-  },
-  "saveKey": "Uložit klíč",
-  "@saveKey": {
-    "description": "Save key button label"
-  },
-  "recoveryKeySaved": "Obnovovací klíč uložen do složky Stažené soubory!",
-  "@recoveryKeySaved": {
-    "description": "Recovery key saved confirmation message"
-  },
-  "noRecoveryKeyTitle": "Nemáte obnovovací klíč?",
-  "@noRecoveryKeyTitle": {
-    "description": "No recovery key title"
-  },
-  "twoFactorAuthTitle": "Dvoufaktorové ověření",
-  "@twoFactorAuthTitle": {
-    "description": "Two-factor authentication title"
-  },
-  "enterCodeHint": "Zadejte 6místný kód ze své autentizační aplikace",
-  "@enterCodeHint": {
-    "description": "Hint for entering 2FA code"
-  },
-  "lostDeviceTitle": "Ztratili jste zařízení?",
-  "@lostDeviceTitle": {
-    "description": "Lost device title"
-  },
-  "enterRecoveryKeyHint": "Zadejte svůj obnovovací klíč",
-  "@enterRecoveryKeyHint": {
-    "description": "Hint for entering recovery key"
-  },
-  "recover": "Obnovit",
-  "@recover": {
-    "description": "Recover button label"
-  },
-  "loggingOut": "Odhlašování...",
-  "@loggingOut": {
-    "description": "Message shown while logging out"
-  },
-  "immediately": "Ihned",
-  "@immediately": {
-    "description": "Immediately option for auto lock timing"
-  },
-  "appLock": "Zámek aplikace",
-  "@appLock": {
-    "description": "App lock setting title"
-  },
-  "autoLock": "Automatické zamykání",
-  "@autoLock": {
-    "description": "Auto lock setting title"
-  },
-  "noSystemLockFound": "Zámek systému nenalezen",
-  "@noSystemLockFound": {
-    "description": "Error when no system lock is found"
-  },
-  "deviceLockEnablePreSteps": "Pro aktivaci zámku zařízení si nastavte přístupový kód zařízení nebo zámek obrazovky v nastavení systému.",
-  "@deviceLockEnablePreSteps": {
-    "description": "Instructions for enabling device lock"
-  },
-  "appLockDescription": "Vyberte si mezi zámkem obrazovky svého zařízení a vlastním zámkem obrazovky s PIN kódem nebo heslem.",
-  "@appLockDescription": {
-    "description": "Description of app lock feature"
-  },
+  "developerSettingsWarning": "Opravdu chcete změnit nastavení pro vývojáře?",
+  "deviceInfo": "Informace o zařízení",
   "deviceLock": "Zámek zařízení",
   "@deviceLock": {
     "description": "Device lock option title"
   },
-  "pinLock": "Uzamčení na PIN",
-  "@pinLock": {
-    "description": "PIN lock option title"
+  "deviceNotFound": "Zařízení nebylo nalezeno",
+  "didYouKnow": "Věděli jste?",
+  "digits": "Číslice",
+  "disableDownloadWarningBody": "Diváci mohou stále pořizovat snímky obrazovky nebo ukládat kopii vašich fotografií pomocí externích nástrojů",
+  "disableDownloadWarningTitle": "Upozornění",
+  "disableLinkMessage": "Toto odstraní veřejný odkaz pro přístup k \"{albumName}\".",
+  "@disableLinkMessage": {
+    "placeholders": {
+      "albumName": {}
+    }
   },
-  "autoLockFeatureDescription": "Interval, po kterém se aplikace běžící na pozadí uzamkne",
-  "@autoLockFeatureDescription": {
-    "description": "Description of auto lock feature"
+  "disableTwofactor": "Vypnout dvoufázové ověřování",
+  "disablingTwofactorAuthentication": "Vypínání dvoufázového ověřování...",
+  "discardChanges": "Zahodit",
+  "discover": "Objevit",
+  "@discover": {
+    "description": "The text to display for the discover section under which we show receipts, screenshots, sunsets, greenery, etc."
   },
-  "hideContent": "Skrýt obsah",
-  "@hideContent": {
-    "description": "Hide content setting title"
+  "discover_babies": "Děti",
+  "discover_celebrations": "Oslavy",
+  "discover_food": "Jídlo",
+  "discover_greenery": "Zeleň",
+  "discover_hills": "Kopce",
+  "discover_identity": "Identita",
+  "discover_memes": "Memy",
+  "discover_notes": "Poznámky",
+  "discover_pets": "Domácí mazlíčci",
+  "discover_qr_codes": "QR kódy",
+  "discover_receipts": "Účtenky",
+  "discover_screenshots": "Snímky obrazovky",
+  "discover_selfies": "Selfie",
+  "discover_sunset": "Západ slunce",
+  "discover_visiting_cards": "Vizitky",
+  "discover_wallpapers": "Tapety",
+  "dismiss": "Zrušit",
+  "distanceInKMUnit": "km",
+  "@distanceInKMUnit": {
+    "description": "Unit for distance in km"
   },
-  "hideContentDescriptionAndroid": "Skryje obsah aplikace ve ",
-  "@hideContentDescriptionAndroid": {
-    "description": "Description of hide content feature on Android"
+  "documentsHint": "Dokumenty",
+  "doesGroupContainMultiplePeople": "Obsahuje tato skupina více osob?",
+  "dog": "Pes",
+  "done": "Hotovo",
+  "doNotSignOut": "Neodhlašovat",
+  "@doNotSignOut": {
+    "description": "Do not sign out button label"
   },
-  "hideContentDescriptioniOS": "Skryje obsah aplikace při přepínání úloh",
-  "@hideContentDescriptioniOS": {
-    "description": "Description of hide content feature on iOS"
+  "dontHaveAnAccount": "Ještě nemáte účet?",
+  "dontSave": "Neukládat",
+  "doubleTapToViewHiddenCode": "Můžete dvakrát klepnout na položku pro zobrazení kódu",
+  "download": "Stáhnout",
+  "downloadApplicationUpdate": "Stáhnout aktualizaci",
+  "downloadFailed": "Stahování selhalo",
+  "downloading": "Stahuji...",
+  "downloadingProgress": "Stahuji... {percentage}%",
+  "@downloadingProgress": {
+    "description": "Download progress message",
+    "placeholders": {
+      "percentage": {
+        "type": "int",
+        "example": "75"
+      }
+    }
   },
-  "tooManyIncorrectAttempts": "Příliš mnoho neúspěšných pokusů",
-  "@tooManyIncorrectAttempts": {
-    "description": "Message shown when too many incorrect attempts are made"
+  "downloadSkippedAlreadyAvailableOnDevice": "{fileName} je již k dispozici v albu {albumName} ve vašem zařízení",
+  "@downloadSkippedAlreadyAvailableOnDevice": {
+    "description": "Toast shown in single-file download flow when the file already exists locally",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      },
+      "fileName": {
+        "type": "String"
+      }
+    }
   },
-  "tapToUnlock": "Pro odemčení klepněte",
-  "@tapToUnlock": {
-    "description": "Message prompting user to tap to unlock"
+  "downloadSkippedInSelectionMultipleFiles": "Stažení {fileCount} souborů bylo přeskočeno, protože již jsou ve vašem zařízení",
+  "@downloadSkippedInSelectionMultipleFiles": {
+    "description": "Toast shown after multi-selection download when multiple selected files are skipped because they already exist locally",
+    "placeholders": {
+      "fileCount": {
+        "type": "int"
+      }
+    }
   },
-  "areYouSureYouWantToLogout": "Opravdu se chcete odhlásit?",
-  "@areYouSureYouWantToLogout": {
-    "description": "Confirmation message before logout"
+  "downloadSkippedInSelectionSingleFile": "Stahování souboru {fileName} bylo přeskočeno, protože je již k dispozici v albu {albumName} ve vašem zařízení",
+  "@downloadSkippedInSelectionSingleFile": {
+    "description": "Toast shown after multi-selection download when exactly one selected file is skipped because it already exists locally",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      },
+      "fileName": {
+        "type": "String"
+      }
+    }
   },
-  "yesLogout": "Ano, odhlásit se",
-  "@yesLogout": {
-    "description": "Confirmation button for logout"
+  "downloadUpdate": "Stáhnout",
+  "doYouWantToDiscardTheEditsYouHaveMade": "Chcete zrušit provedené úpravy?",
+  "draw": "Kreslit",
+  "dropSupportEmail": "Prosíme, napište e-mail na {supportEmail} z e-mailové schránky, kterou jste použili k registraci",
+  "@dropSupportEmail": {
+    "placeholders": {
+      "supportEmail": {
+        "description": "The support email address",
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
   },
-  "authToViewSecrets": "Pro zobrazení svých tajných údajů se musíte ověřit",
-  "@authToViewSecrets": {
-    "description": "Message prompting authentication to view secrets"
+  "duplicateCodes": "Duplikovat kódy",
+  "duplicateFileCountWithStorageSaved": "Vyčistili jste {count, plural, one{{count} duplicitní soubor} few{{count} duplicitní soubory} other{{count} duplicitních souborů}}, a ušetřili jste {storageSaved}!",
+  "@duplicateFileCountWithStorageSaved": {
+    "description": "The text to display when the user has successfully cleaned up duplicate files",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "1",
+        "type": "int"
+      },
+      "storageSaved": {
+        "example": "1.2 GB",
+        "type": "String"
+      }
+    }
   },
-  "next": "Další",
-  "@next": {
-    "description": "Next button label"
+  "duplicateItemsGroup": "{count} souborů, {formattedSize} každý",
+  "@duplicateItemsGroup": {
+    "description": "Display the number of duplicate files and their size",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "12",
+        "type": "int"
+      },
+      "formattedSize": {
+        "example": "2.3 MB",
+        "type": "String"
+      }
+    }
   },
-  "setNewPassword": "Nastavit nové heslo",
-  "@setNewPassword": {
-    "description": "Set new password title"
+  "earned": "získáno",
+  "earnMoreSpace": "Získejte více prostoru!",
+  "edit": "Upravit",
+  "editAutoAddPeople": "Upravit automatické přidávání osob",
+  "editCodeAuthMessage": "Pro úpravu kódu se ověřte",
+  "editContact": "Upravit kontakt",
+  "editEmailAlreadyLinked": "Tento e-mail je již propojen s {name}.",
+  "@editEmailAlreadyLinked": {
+    "placeholders": {
+      "name": {}
+    }
   },
-  "enterPin": "Zadejte PIN",
-  "@enterPin": {
-    "description": "Enter PIN prompt"
+  "editItem": "Upravit položku",
+  "editLocation": "Upravit polohu",
+  "editNotSupportedForSharedFiles": "U sdílených souborů není funkce úprav podporována",
+  "editOrder": "Upravit pořadí",
+  "editPerson": "Upravit osobu",
+  "editSecret": "Upravit tajný klíč",
+  "@editSecret": {
+    "description": "Title shown when editing an existing secret"
   },
-  "setNewPin": "Nadra",
-  "@setNewPin": {
-    "description": "Set new PIN title"
+  "editsSaved": "Úpravy uloženy",
+  "editsToLocationWillOnlyBeSeenWithinEnte": "Úpravy polohy budou viditelné pouze v rámci Ente",
+  "editStorageLimit": "Upravit limit úložiště",
+  "editTag": "Upravit štítek",
+  "editTime": "Upravit čas",
+  "eligible": "způsobilí",
+  "email": "E-mail",
+  "@email": {
+    "description": "Email field label"
   },
-  "confirm": "Potvrdit",
-  "@confirm": {
-    "description": "Confirm button label"
-  },
-  "reEnterPassword": "Zadejte heslo znovu",
-  "@reEnterPassword": {
-    "description": "Re-enter password prompt"
-  },
-  "reEnterPin": "Zadejte PIN znovu",
-  "@reEnterPin": {
-    "description": "Re-enter PIN prompt"
-  },
-  "androidBiometricHint": "Ověřte svou identitu",
-  "@androidBiometricHint": {
-    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricNotRecognized": "Nerozpoznáno. Zkuste znovu.",
-  "@androidBiometricNotRecognized": {
-    "description": "Message to let the user know that authentication was failed. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricSuccess": "Úspěch",
-  "@androidBiometricSuccess": {
-    "description": "Message to let the user know that authentication was successful. It is used on Android side. Maximum 60 characters."
-  },
-  "androidCancelButton": "Zrušit",
-  "@androidCancelButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
-  },
-  "androidSignInTitle": "Je požadováno ověření",
-  "@androidSignInTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricRequiredTitle": "Je požadováno biometrické ověření",
-  "@androidBiometricRequiredTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user has not set up biometric authentication on their device. It is used on Android side. Maximum 60 characters."
-  },
-  "androidDeviceCredentialsRequiredTitle": "Jsou vyžadovány přihlašovací údaje zařízení",
-  "@androidDeviceCredentialsRequiredTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user has not set up credentials authentication on their device. It is used on Android side. Maximum 60 characters."
-  },
-  "androidDeviceCredentialsSetupDescription": "Jsou vyžadovány přihlašovací údaje zařízení",
-  "@androidDeviceCredentialsSetupDescription": {
-    "description": "Message advising the user to go to the settings and configure device credentials on their device. It shows in a dialog on Android side."
-  },
-  "goToSettings": "Jít do nastavení",
-  "@goToSettings": {
-    "description": "Message showed on a button that the user can click to go to settings pages from the current dialog. It is used on both Android and iOS side. Maximum 30 characters."
-  },
-  "androidGoToSettingsDescription": "Na Vašem zařízení není nastaveno biometrické ověřování. Pro aktivaci běžte do 'Nastavení > Zabezpečení'.",
-  "@androidGoToSettingsDescription": {
-    "description": "Message advising the user to go to the settings and configure biometric on their device. It shows in a dialog on Android side."
-  },
-  "iOSLockOut": "Biometrické ověřování není povoleno. Pro povolení zamkněte a odemkněte obrazovku.",
-  "@iOSLockOut": {
-    "description": "Message advising the user to re-enable biometrics on their device. It shows in a dialog on iOS side."
-  },
-  "iOSOkButton": "OK",
-  "@iOSOkButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on iOS side. Maximum 30 characters."
-  },
-  "emailAlreadyRegistered": "E-mail je již registrován.",
-  "@emailAlreadyRegistered": {
-    "description": "Error message when email is already registered"
-  },
-  "emailNotRegistered": "E-mail není registrován.",
-  "@emailNotRegistered": {
-    "description": "Error message when email is not registered"
-  },
-  "thisEmailIsAlreadyInUse": "Tento e-mail je již používán",
-  "@thisEmailIsAlreadyInUse": {
-    "description": "Error message when email is already in use"
-  },
+  "emailAddress": "E-mailová adresa",
   "emailChangedTo": "E-mail změněn na {newEmail}",
   "@emailChangedTo": {
     "description": "Message when email has been changed",
@@ -657,60 +947,2550 @@
       }
     }
   },
-  "authenticationFailedPleaseTryAgain": "Ověření selhalo, zkuste to, prosím, znovu",
-  "@authenticationFailedPleaseTryAgain": {
-    "description": "Error message when authentication fails"
+  "emailHint": "Zadejte svou e-mailovou adresu",
+  "emailNeedsEnteAccountForFamily": "{email} nemá účet Ente.\n\nPošlete jim pozvánku a přidejte je do své rodiny, jakmile si vytvoří účet na Ente.",
+  "@emailNeedsEnteAccountForFamily": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@example.com"
+      }
+    }
   },
-  "authenticationSuccessful": "Ověření bylo úspěšné!",
-  "@authenticationSuccessful": {
-    "description": "Success message when authentication is successful"
+  "emailNoEnteAccount": "{email} nemá účet Ente.\n\nPošlete jim pozvánku pro sdílení položek.",
+  "@emailNoEnteAccount": {
+    "placeholders": {
+      "email": {}
+    }
   },
-  "sessionExpired": "Relace vypršela",
-  "@sessionExpired": {
-    "description": "Error message when session has expired"
+  "emailNoEnteAccountPhotos": "{email} nemá účet Ente.\n\nPošlete jim pozvánku ke sdílení fotek.",
+  "@emailNoEnteAccountPhotos": {
+    "placeholders": {
+      "email": {}
+    }
+  },
+  "emailNotRegistered": "E-mail není registrován.",
+  "@emailNotRegistered": {
+    "description": "Error message when email is not registered"
+  },
+  "emailUsMessage": "Pošlete nám prosím e-mail na {email}",
+  "@emailUsMessage": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "emailVerificationEnableWarning": "Abyste předešli uzamčení ze svého účtu, nezapomeňte si před povolením ověření e-mailem uložit kopii svého 2FA emailu mimo Ente Auth.",
+  "emailVerificationToggle": "Ověření pomocí e-mailu",
+  "emailYourLogs": "Zašlete své záznamy e-mailem",
+  "@emailYourLogs": {
+    "description": "Title for emailing logs dialog"
+  },
+  "embracingThem": "Objímání {name}",
+  "@embracingThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "emergencyContact": "Nouzovy kontakt",
+  "empty": "Vyprázdnit",
+  "emptyTrash": "Vyprázdnit koš",
+  "emptyTrashConfirmation": "Opravdu chcete trvale odstranit všechny položky z koše? Tuto akci nelze vrátit zpět.",
+  "emptyTrashQuestion": "Vyprázdnit koš?",
+  "enable": "Povolit",
+  "enableAutomaticBackups": "Automatické zálohy",
+  "enableBackupsIosInstruction": "Chcete-li povolit zálohování na iOS, vyberte složku v souborech (například \"Na mém iPhone\").",
+  "enableComment": "Komentáře a reakce",
+  "enabled": "Povoleno",
+  "enableMaps": "Povolit mapy",
+  "encrypted": "Šifrovaný",
+  "encryptingBackup": "Šifrování zálohy...",
+  "encryptionKeys": "Šifrovací klíče",
+  "@encryptionKeys": {
+    "description": "Encryption keys title"
+  },
+  "endpointUpdatedMessage": "Koncový bod byl úspěšně aktualizován",
+  "@endpointUpdatedMessage": {
+    "description": "Success message when endpoint is updated"
+  },
+  "enteLocker": "Ente Locker",
+  "@enteLocker": {
+    "description": "Product name"
+  },
+  "enterAlbumName": "Zadejte název alba",
+  "enterAnEmailAddress": "Zadejte e-mailovou adresu",
+  "enterAValidEmailAddress": "Zadejte platnou e-mailovou adresu",
+  "enterCode": "Zadat kód",
+  "enterCodeDescription": "Zadejte kód, který Vám poskytl Váš přítel, a získejte bezplatné úložiště pro Vás oba",
+  "enterCollectionName": "Zadejte název kolekce",
+  "enterDateOfBirthHint": "Zadejte datum narození",
+  "enterDetailsManually": "Vložit údaje ručně",
+  "enterEmail": "Zadejte email",
+  "enterFileName": "Zadat název souboru",
+  "enterName": "Zadejte jméno",
+  "enterNameOrEmailToShareWith": "Zadejte jméno nebo email pro sdílení",
+  "enterNewEmailHint": "Zadejte novou e-mailovou adresu",
+  "@enterNewEmailHint": {
+    "description": "Hint text for entering new email address"
+  },
+  "enterNewTitle": "Zadejte nový název",
+  "enterPassword": "Zadejte heslo",
+  "@enterPassword": {
+    "description": "Enter password field label"
+  },
+  "enterPasswordToAegisVault": "Zadejte heslo do trezoru",
+  "enterPasswordToDecrypt2FASBackup": "Zadejte heslo pro dešifrování zálohy 2FAS",
+  "enterPasswordToDecryptAndOTP": "Zadejte heslo pro dešifrování zálohy andOTP",
+  "enterRecoveryKeyHint": "Zadejte svůj obnovovací klíč",
+  "@enterRecoveryKeyHint": {
+    "description": "Hint for entering recovery key"
+  },
+  "enterReferralCode": "Zadejte kód doporučení",
+  "enterThe6digitCodeFromnyourAuthenticatorApp": "Zadejte 6-místný kód\nz vaší ověřovací aplikace",
+  "enterValidEmail": "Prosím, zadejte platnou e-mailovou adresu.",
+  "enterYourNewEmailAddress": "Zadejte novou e-mailovou adresu",
+  "enterYourPassword": "Zadejte své heslo",
+  "enterYourPasswordHint": "Zadejte své heslo",
+  "@enterYourPasswordHint": {
+    "description": "Hint for password field"
+  },
+  "enterYourRecoveryKey": "Zadejte svůj obnovovací klíč",
+  "error": "Chyba",
+  "@error": {
+    "description": "Generic error title"
+  },
+  "errorGenericBody": "Při importu došlo k neočekávané chybě.",
+  "errorGenericTitle": "Došlo k chybě",
+  "errorInvalidQRCodeBody": "Naskenovaný QR kód není platný 2FA účet.",
+  "errorNoQRCode": "Nenalezen žádný QR kód",
+  "errorOpeningFile": "Chyba při otevírání položky",
+  "exif": "EXIF",
+  "expiredLinkInfo": "Platnost odkazu vypršela. Zvolte prosím nový čas vypršení platnosti, nebo zakažte platnost odkazu.",
+  "exportCodes": "Exportovat kódy",
+  "exportDialogDesc": "Šifrované exporty budou chráněny heslem dle vašeho výběru.",
+  "exportLogs": "Exportovat záznamy",
+  "@exportLogs": {
+    "description": "Button to export logs"
+  },
+  "exportWarningDesc": "Exportovaný soubor obsahuje citlivé informace. Uložte jej bezpečně.",
+  "exportYourData": "Exportujte svá data",
+  "extraPhotosFound": "Nalezeny další fotografie",
+  "faceNotClusteredYet": "Obličej ještě není seskupen, vraťte se prosím později",
+  "facesTimelineAppBarTitle": "Vzpomínání",
+  "@facesTimelineAppBarTitle": {
+    "description": "Faces timeline page title shown in the app bar"
+  },
+  "facesTimelineBannerTitle": "Vzpomínání",
+  "@facesTimelineBannerTitle": {
+    "description": "Title for the Memory Lane suggestion banner shown on a person's page"
+  },
+  "facesTimelineCaptionYearsAgo": "{count, plural, one{před # rokem} few{před # lety} many{před # lety} other{před # lety}}",
+  "@facesTimelineCaptionYearsAgo": {
+    "description": "Caption for frames when birthdate is unknown, expressing time difference",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "Years ago"
+      }
+    }
+  },
+  "facesTimelineCaptionYearsOld": "{name} byl {count, plural, one{{count} rok starý} few{{count} roky starý} many{{count} roky starý} other{{count} let starý}}",
+  "@facesTimelineCaptionYearsOld": {
+    "description": "Caption for frames when birthdate is known, describing the person's age",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "Number of years old"
+      },
+      "name": {
+        "type": "String",
+        "description": "Person's name"
+      }
+    }
+  },
+  "facesTimelinePlaybackPause": "Pozastavit",
+  "@facesTimelinePlaybackPause": {
+    "description": "Tooltip or semantics label for the pause button"
+  },
+  "facesTimelinePlaybackPlay": "Přehrát",
+  "@facesTimelinePlaybackPlay": {
+    "description": "Tooltip or semantics label for the play button"
+  },
+  "facesTimelineUnavailable": "Časová osa obličejů se připravuje...",
+  "@facesTimelineUnavailable": {
+    "description": "Fallback message when the Memory Lane cannot be displayed yet"
+  },
+  "faceThumbnailGenerationFailed": "Nelze vygenerovat miniatury obličejů",
+  "failedToApplyCode": "Nepodařilo se použít kód",
+  "failedToCancel": "Zrušení se nezdařilo",
+  "failedToDecrypt2FASExport": "Nepodařilo se dešifrovat export 2FAS",
+  "failedToDecryptAegisVault": "Nepodařilo se dešifrovat trezor",
+  "failedToDecryptAndOTPBackup": "Nepodařilo se dešifrovat zálohu andOTP",
+  "failedToDeleteComment": "Komentář se nepodařilo smazat",
+  "@failedToDeleteComment": {
+    "description": "Toast when comment deletion fails"
+  },
+  "failedToDownloadOrDecrypt": "Položku se nepodařilo stáhnout",
+  "failedToDownloadVideo": "Stahování videa se nezdařilo",
+  "failedToFetchActiveSessions": "Nepodařilo se načíst aktivní relace",
+  "@failedToFetchActiveSessions": {
+    "description": "In session page, warn user (in toast) that active sessions could not be fetched."
+  },
+  "failedToFetchOriginalForEdit": "Nepodařilo se načíst originál pro úpravy",
+  "failedToFetchReferralDetails": "Nelze načíst podrobnosti o doporučení. Zkuste to prosím znovu později.",
+  "failedToInvite": "Nelze pozvat {email}",
+  "@failedToInvite": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@example.com"
+      }
+    }
+  },
+  "failedToInviteCount": "Nelze pozvat {count} členy",
+  "@failedToInviteCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "failedToLikeComment": "Nepodařilo se dát líbí se komentáři",
+  "@failedToLikeComment": {
+    "description": "Toast when comment like fails"
+  },
+  "failedToLoadAlbums": "Nepodařilo se načíst alba",
+  "failedToLoadCollections": "Načítání kolekcí se nezdařilo: {error}",
+  "@failedToLoadCollections": {
+    "description": "Error message when loading collections fails",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Network error"
+      }
+    }
+  },
+  "failedToRefreshStripeSubscription": "Obnovení předplatného se nezdařilo",
+  "failedToRenew": "Nepodařilo se obnovit",
+  "failedToUpdateFile": "Nepodařilo se aktualizovat položku: {error}",
+  "@failedToUpdateFile": {
+    "description": "Error message when item update fails",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Network error"
+      }
+    }
+  },
+  "failedToUpdateLike": "Nepodařilo se aktualizovat líbí se",
+  "@failedToUpdateLike": {
+    "description": "Toast when like update fails"
+  },
+  "failedToVerifyPaymentStatus": "Nepodařilo se ověřit stav platby",
+  "family": "Rodina",
+  "familyMoments": "Rodinný čas",
+  "faq": "Často kladené dotazy (FAQ)",
+  "@faq": {
+    "description": "FAQ link label"
+  },
+  "faqs": "Často kladené dotazy (FAQ)",
+  "favorite": "Oblíbené",
+  "feastingWithThem": "Hodování s {name}",
+  "@feastingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "featureBackupCodes": "Koncově šifrovaná\nzáloha a synchronizace",
+  "featureOpenSource": "Open source a\nprověřené bezpečnostními odborníky",
+  "featurePassAutomatically": "Automaticky je předejte v případě nouze",
+  "featureSaveImportant": "Uložte své důležité dokumenty a přihlašovací údaje",
+  "featureSearchEtc": "Vyhledávání, štítky, sdílení,\ndalší kód a mnoho dalších",
+  "featureShareAnytime": "Sdílejte je kdykoliv",
+  "feed": "Kanál",
+  "feedToEngageWithFamily": "Feed pro spojení s rodinou",
+  "festivities": "Slavnostní veselí",
+  "fieldCopiedToClipboard": "{fieldName} zkopírován do schránky",
+  "@fieldCopiedToClipboard": {
+    "description": "Message when a field is copied to clipboard",
+    "placeholders": {
+      "fieldName": {
+        "type": "String",
+        "example": "Password"
+      }
+    }
+  },
+  "fileAnalysisFailed": "Nelze analyzovat soubor",
+  "fileDeletedSuccessfully": "Položka byla úspěšně smazána",
+  "fileInfoAddDescHint": "Přidat popis...",
+  "fileMarkedAsImportant": "Položka označena jako důležitá",
+  "fileNotUploadedYet": "Soubor ještě nebyl nahrán",
+  "fileRemovedFromImportant": "Položka odebrána z důležitých",
+  "files": "Soubory",
+  "@files": {
+    "description": "Section header for file-related search results"
+  },
+  "filesAddedByYouWillBeRemovedFromTheCollection": "Položky přidané Vámi budou odebrány z kolekce",
+  "fileSavedToGallery": "Soubor uložen do galerie",
+  "filesDeleted": "Soubory odstraněny",
+  "filesSavedToGallery": "Soubory uloženy do galerie",
+  "fileTypes": "Typy souborů",
+  "fileUpdatedSuccessfully": "Položka byla úspěšně aktualizována!",
+  "filter": "Filtr",
+  "filters": "Filtry",
+  "findingSimilarImages": "Hledání podobných obrázků...",
+  "findSimilarImages": "Najít podobné obrázky",
+  "findThemQuickly": "Najděte je rychle",
+  "@findThemQuickly": {
+    "description": "Subtitle to indicate that the user can find people quickly by name"
+  },
+  "fireworks": "Ohňostrojové finále",
+  "flip": "Překlopit",
+  "flowers": "Kvetoucí krásy",
+  "focusOnSearchBar": "Zaměřit vyhledávání při spuštění aplikace",
+  "font": "Písmo",
+  "food": "Kulinářský zážitek",
+  "forestTrails": "Lesní procházky",
+  "forgotPassword": "Zapomenuté heslo",
+  "@forgotPassword": {
+    "description": "Forgot password link label"
+  },
+  "forgotRecoveryKey": "Zapomněli jste obnovovací klíč?",
+  "free10GB": "10GB zdarma na <bold-green>ente</bold-green> Fotografie",
+  "freeStorageOffer": "10% sleva na <bold-green>ente</bold-green> photos",
+  "freeStorageOfferDescription": "Použijte kód \"AUTH\" pro získání 10% slevy na první rok",
+  "freeTrial": "Bezplatná zkušební verze",
+  "freeUpAmount": "Uvolnit {sizeInMBorGB}",
+  "@freeUpAmount": {
+    "placeholders": {
+      "sizeInMBorGB": {}
+    }
+  },
+  "freeUpDeviceSpace": "Uvolnit místo na zařízení",
+  "freeUpSpace": "Uvolnit místo",
+  "gallery": "Galerie",
+  "galleryMemoryLimitInfo": "Až 1000 vzpomínek zobrazených v galerii",
+  "general": "Obecné",
+  "generatingEncryptionKeys": "Generování šifrovacích klíčů...",
+  "@generatingEncryptionKeys": {
+    "description": "Generating encryption keys message"
+  },
+  "generatingEncryptionKeysTitle": "Generování šifrovacích klíčů...",
+  "@generatingEncryptionKeysTitle": {
+    "description": "Generating encryption keys title"
+  },
+  "getInTouch": "Kontaktujte nás",
+  "getStarted": "Pojďme na to",
+  "gettingReady": "Připravuji",
+  "giveUsAStarOnGithub": "Dejte nám hvězdu na Githubu",
+  "goldenHourPortraits": "Obličeje zlaté hodiny",
+  "googlePlayId": "Google Play ID",
+  "grantFullAccessPrompt": "Povolte prosím přístup ke všem fotografiím v aplikaci Nastavení",
+  "grantGalleryPermissionDesc": "Udělte oprávnění k přístupu a organizaci fotek s rozpoznáváním obličeje. Všechno zpracování se děje na Vašem zařízení.",
+  "grantPermission": "Udělit oprávnění",
+  "grantPermissionDesc": "Povolte prosím aplikaci Ente přístup do Vaší knihovny, abychom ji mohli zorganizovat s rozpoznáváním obličeje. Veškeré zpracování se děje na Vašem zařízení.",
+  "greenery": "Zelený život",
+  "groupBy": "Seskupit podle",
+  "groupByDay": "Den",
+  "groupByMonth": "Měsíc",
+  "groupByWeek": "Týden",
+  "groupByYear": "Rok",
+  "groupSelfies": "My všichni",
+  "guestView": "Zobrazení pro hosty",
+  "guestViewEnablePreSteps": "Chcete-li povolit zobrazení pro hosty, nastavte v nastavení systému přístupový kód zařízení nebo zámek obrazovky.",
+  "happyBirthday": "Všechno nejlepší k narozeninám! 🥳",
+  "hearUsWhereOptionalTitle": "Jak jste se dozvěděli o Ente? (volitelné)",
+  "@hearUsWhereOptionalTitle": {
+    "description": "Title asking how user heard about Ente"
+  },
+  "hearUsWhereTitle": "Jak jste se dozvěděli o Ente?",
+  "help": "Nápověda",
+  "helpAndSupport": "Nápověda a podpora",
+  "hidden": "Skryté",
+  "hide": "Skrýt",
+  "hideContent": "Skrýt obsah",
+  "@hideContent": {
+    "description": "Hide content setting title"
+  },
+  "hideContentDescriptionAndroid": "Skryje obsah aplikace v přepínači aplikací a zakáže pořizování snímků obrazovky",
+  "@hideContentDescriptionAndroid": {
+    "description": "Description of hide content feature on Android"
+  },
+  "hideFromMemories": "Skrýt ze vzpomínek",
+  "hideSharedItemsFromHomeGallery": "Skrýt sdílené položky z úvodní galerie",
+  "hiding": "Skrývání...",
+  "hikingWithThem": "Turistika s {name}",
+  "@hikingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "hintForDesktop": "Klepněte pravým tlačítkem myši na kód pro úpravu nebo odstranění.",
+  "hintForMobile": "Dlouze podržte kód pro úpravu nebo odstranění.",
+  "historicSites": "Ozvěny historie",
+  "hoorayyyy": "Huráááá!",
+  "hostedAtOsmFrance": "Hostováno na OSM France",
+  "howItWorks": "Jak to funguje",
+  "@howItWorks": {
+    "description": "How it works button label"
+  },
+  "howToViewShareeVerificationID": "Požádejte je, aby dlouze stiskli svou e-mailovou adresu na obrazovce nastavení a ověřili, zda se ID na obou zařízeních shodují.",
+  "ignore": "Ignorovat",
+  "ignored": "ignorováno",
+  "ignorePerson": "Ignorovat osobu",
+  "imageNotAnalyzed": "Obrázek nebyl analyzován",
+  "immediately": "Okamžitě",
+  "@immediately": {
+    "description": "Immediately option for auto lock timing"
+  },
+  "import2FasGuide": "Použijte možnost \"Settings->Backup -Export\" v aplikaci 2FAS.\n\nPokud je Vaše záloha šifrovaná, budete muset zadat heslo pro její odemčení",
+  "importAccountPageTitle": "Zadejte podrobnosti účtu",
+  "importAegisGuide": "Použijte možnost \"Export the vault\" v nastavení aplikace Aegis.\n\nPokud je Váš trezor šifrován, budete muset zadat heslo pro dešifrování trezoru.",
+  "importAndOTPGuide": "Exportujte svou zálohu z andOTP pomocí možnosti \"Záloha\" v nastavení.\n\nPokud je vaše záloha zašifrována, budete muset zadat heslo pro zálohu, abyste ji dešifrovali.",
+  "important": "Důležité",
+  "importantNotSupportedForSharedFiles": "Funkce „Důležité“ není u sdílených souborů podporována",
+  "importBitwardenGuide": "Použijte možnost \"Export vault\" v Bitwarden Tools a importujte nešifrovaný soubor JSON.",
+  "importCodeDelimiterInfo": "Kódy mohou být odděleny čárkou nebo novým řádkem",
+  "importCodes": "Importovat kódy",
+  "importEnteEncGuide": "Vyberte šifrovaný JSON soubor exportovaný z Ente",
+  "importEnterSetupKey": "Zadejte instalační klíč",
+  "importFailureDesc": "Nelze analyzovat vybraný soubor.",
+  "importFromGallery": "Importovat z galerie",
+  "importInstruction": "Vyberte, prosím, soubor obsahující seznam Vašich kódů v následujícím formátu",
+  "importLabel": "Importovat",
+  "importLastpassGuide": "V nastavení aplikace Lastpass Authenticator vyberte možnost \"Transfer accounts\" a poté \"Export accounts to file\". Vygenerovaný soubor JSON následně nahrajte sem.",
+  "importProtonAuthGuide": "Použijte možnost \"Export\" v nastavení Proton Authenticator pro export Vašich kódů.\n\nPokud je Váš export chráněný heslem, budete muset zadat heslo pro jeho dešifrování.",
+  "importRaivoGuide": "Použijte možnost \"Export OTPs to Zip archive\" v nastavení aplikace Raivo.\n\nExtrahujte zip soubor a importujte soubor JSON.",
+  "importSelectAppExport": "Vybrat soubor exportovaný z {appName}",
+  "@importSelectAppExport": {
+    "placeholders": {
+      "appName": {}
+    }
+  },
+  "importSelectJsonFile": "Vybrat soubor JSON",
+  "importSuccessDesc": "Importovali jste {count} kódů!",
+  "@importSuccessDesc": {
+    "placeholders": {
+      "count": {
+        "description": "The number of codes imported",
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "importSuccessTitle": "Paráda!",
+  "importTypeEnteEncrypted": "Šifrovaný export z Ente",
+  "incorrectCode": "Nesprávný kód",
+  "@incorrectCode": {
+    "description": "Error message when code is incorrect"
+  },
+  "incorrectDetails": "Nesprávné podrobnosti",
+  "incorrectPasswordTitle": "Nesprávné heslo",
+  "@incorrectPasswordTitle": {
+    "description": "Title for incorrect password error"
   },
   "incorrectRecoveryKey": "Nesprávný obnovovací klíč",
   "@incorrectRecoveryKey": {
     "description": "Error message when recovery key is incorrect"
   },
-  "theRecoveryKeyYouEnteredIsIncorrect": "Vámi zadaný obnovovací klíč je nesprávný",
-  "@theRecoveryKeyYouEnteredIsIncorrect": {
-    "description": "Detailed error message when recovery key is incorrect"
+  "incorrectRecoveryKeyBody": "Vámi zadaný obnovovací klíč je nesprávný",
+  "incorrectRecoveryKeyTitle": "Nesprávný obnovovací klíč",
+  "indexingPausedStatusDescription": "Zpracovávání je pozastaveno. Automaticky se obnoví, jakmile bude zařízení připraveno. Zařízení je považováno za připravené, pokud jsou úroveň nabití baterie, stav baterie a teplotní stav v normálním rozmezí.",
+  "info": "Informace",
+  "informationDescription": "Ukládejte informace a sdílejte je se svými blízkými.",
+  "initialBackupCreated": "Počáteční záloha byla vytvořena!",
+  "insecureDevice": "Nezabezpečené zařízení",
+  "@insecureDevice": {
+    "description": "Insecure device warning title"
   },
-  "twofactorAuthenticationSuccessfullyReset": "Dvoufázové ověření bylo úspěšně obnoveno",
-  "@twofactorAuthenticationSuccessfullyReset": {
-    "description": "Message when two-factor authentication is successfully reset"
+  "invalidEmailAddress": "Neplatná e-mailová adresa",
+  "invalidEmailMessage": "Prosím, zadejte platnou e-mailovou adresu.",
+  "@invalidEmailMessage": {
+    "description": "Message for invalid email error dialog"
   },
-  "yourVerificationCodeHasExpired": "Váš ověřovací kód vypršel",
-  "@yourVerificationCodeHasExpired": {
-    "description": "Error message when verification code has expired"
+  "invalidEmailTitle": "Neplatná e-mailová adresa",
+  "@invalidEmailTitle": {
+    "description": "Title for invalid email error dialog"
   },
-  "incorrectCode": "Nesprávný kód",
-  "@incorrectCode": {
-    "description": "Error message when code is incorrect"
+  "invalidEndpoint": "Neplatný koncový bod",
+  "@invalidEndpoint": {
+    "description": "Error message when endpoint is invalid"
   },
+  "invalidKey": "Neplatný klíč",
+  "invalidProtonExportMessage": "Vybraný soubor není platný export Proton Authenticator.",
+  "invalidProtonExportTitle": "Neplatný Proton export",
+  "invalidQRCode": "Neplatný QR kód",
+  "invalidRecoveryKey": "Zadaný obnovovací klíč není platný. Ujistěte se, že obsahuje 24 slov, a zkontrolujte pravopis každého z nich.\n\nPokud jste zadali starší obnovovací kód, ujistěte se, že má 64 znaků, a zkontrolujte každý z nich.",
+  "invalidReferralCode": "Neplatný kód",
+  "invite": "Pozvat",
+  "inviteLimitReached": "Přidali jste 5 pozvánek. Pro přidání další jednu odeberte",
+  "inviteMembers": "Pozvat členy",
+  "inviteResent": "Pozvánka znovu odeslána",
+  "inviteToEnte": "Pozvat do Ente",
+  "ok": "OK",
+  "@ok": {
+    "description": "Generic OK button label"
+  },
+  "iosOnMyDeviceNotSupported": "Složka \"Na mém iPhone\" nelze použít přímo. Prosím, vyberte nebo vytvořte složku uvnitř ní.",
+  "itemCount": "{count, plural, one{{count} položka} few{{count} položky} other{{count} položek}}",
+  "@itemCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "items": "{count} položek",
+  "@items": {
+    "description": "Number of items in a collection",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "itemsShowTheNumberOfDaysRemainingBeforePermanentDeletion": "Položky zobrazují počet dní zbývajících do trvalého smazání",
+  "itemsStored": "Uložené položky",
+  "itemsWillBeRemovedFromAlbum": "Vybrané položky budou odstraněny z tohoto alba",
+  "itLooksLikeSomethingWentWrongPleaseRetryAfterSome": "Zdá se, že došlo k chybě. Zkuste to prosím znovu později. Pokud chyba přetrvává, kontaktujte prosím náš tým podpory.",
+  "@itLooksLikeSomethingWentWrongPleaseRetryAfterSome": {
+    "description": "Generic error message for temporary issues"
+  },
+  "iUnderStand": "Rozumím",
+  "@iUnderStand": {
+    "description": "Text for the button to confirm the user understands the warning"
+  },
+  "join": "Připojit se",
+  "joinAlbum": "Připojit se k albu",
+  "joinAlbumConfirmationDialogBody": "Připojením se k albu bude Váš e-mail viditelný pro jeho účastníky.",
+  "joinAlbumSubtext": "pro prohlížení a přidání Vašich fotografií",
+  "joinAlbumSubtextViewer": "pro přidání tohoto do sdílených alb",
+  "keepOffline": "Ponechat lokálně",
+  "kiloMeterUnit": "km",
+  "lakeside": "Jezerní klid",
+  "language": "Jazyk",
+  "lastMonth": "Minulý měsíc",
+  "lastUpdated": "Naposledy aktualizováno",
+  "lastWeek": "Minulý týden",
+  "lastYearsTrip": "Loňský výlet",
+  "layout": "Rozvržení",
+  "layoutGrouped": "Seskupeno",
+  "layoutMasonry": "Zednictví",
+  "layoutTrip": "Výlet",
+  "leave": "Odejít",
+  "leaveAlbum": "Opustit album",
+  "leaveCollection": "Opustit kolekci",
+  "leaveCollectionSuccessfully": "Úspěšně jste opustili kolekci",
+  "leaveFamily": "Odejít z rodiny",
+  "leaveFamilyPlan": "Opustit rodinný plán",
+  "@leaveFamilyPlan": {
+    "description": "Button label for leaving family plan",
+    "type": "text"
+  },
+  "leaveSharedAlbum": "Opustit sdílené album?",
+  "left": "Doleva",
+  "legacy": "Dědictví",
+  "legacyAccounts": "Účty pro dědictví",
+  "legacyInvite": "{email} Vás pozval, abyste se stali důvěryhodným kontaktem",
+  "@legacyInvite": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "family@example.com"
+      }
+    }
+  },
+  "legacyPageDesc": "Dědictví umožňuje důvěryhodným kontaktům přístup k Vašemu účtu v době Vaší nepřítomnosti.",
+  "legacyPageDesc2": "Důvěryhodné kontakty mohou zahájit obnovení účtu a pokud nebude do 30 dnů zablokováno, mohou resetovat Vaše heslo a získat přístup k Vašemu účtu.",
+  "letsTryThatAgain": "Zkusme to znovu",
+  "lightTheme": "Světlý",
+  "like": "Líbí se",
+  "likeAll": "Dát líbí se všem",
+  "@likeAll": {
+    "description": "Button to like in all shared albums"
+  },
+  "likedAComment": "se libí komentář",
+  "@likedAComment": {
+    "description": "Social action text shown after a person's name, for example 'John liked a comment'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedAPhoto": "líbí se fotografie",
+  "@likedAPhoto": {
+    "description": "Social action text shown after a person's name, for example 'John liked a photo'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedAReply": "se líbí odpověď",
+  "@likedAReply": {
+    "description": "Social action text shown after a person's name, for example 'John liked a reply'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedYourComment": "se libí Váš komentář",
+  "@likedYourComment": {
+    "description": "Social action text shown after a person's name, for example 'John liked your comment'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedYourPhoto": "líbí se Vaše fotografie",
+  "@likedYourPhoto": {
+    "description": "Social notification action text shown after a person's name, for example 'John liked your photo'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedYourReply": "se líbí Vaše odpověď",
+  "@likedYourReply": {
+    "description": "Social action text shown after a person's name, for example 'John liked your reply'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedYourVideo": "se líbí Vaše video",
+  "@likedYourVideo": {
+    "description": "Social notification action text shown after a person's name, for example 'John liked your video'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "linkCopiedToClipboard": "Odkaz zkopírován do schránky",
+  "linkDeviceLimit": "Limit zařízení",
+  "linkEnabled": "Povoleno",
+  "linkExpired": "Vypršel",
+  "linkExpiresOn": "Platnost odkazu vyprší {expiryTime}",
+  "@linkExpiresOn": {
+    "placeholders": {
+      "expiryTime": {}
+    }
+  },
+  "linkExpiry": "Platnost odkazu",
+  "linkHasExpired": "Platnost odkazu vypršela",
+  "linkLabel": "Odkaz",
+  "linkNeverExpires": "Nikdy",
+  "linkRequestLimitExceeded": "Toto album bylo zobrazeno na příliš mnoha zařízeních",
+  "livePhotos": "Živé fotky",
+  "loadingExifData": "Načítání dat EXIF...",
+  "loadingGallery": "Načítání galerie...",
+  "loadingModel": "Stahování modelů...",
+  "loadingYourPhotos": "Načítání Vašich fotografií...",
+  "loadMessage1": "Své předplatné můžete sdílet se svou rodinou",
+  "loadMessage2": "Dosud jsme uchovali více než {memoriesCountInMillions} milionů vzpomínek",
+  "@loadMessage2": {
+    "placeholders": {
+      "memoriesCountInMillions": {
+        "type": "int"
+      }
+    }
+  },
+  "loadMessage3": "Vaše data uchováváme ve 3 kopiích, z nichž jedna je uložena v podzemním protiatomovém krytu",
+  "loadMessage4": "Všechny naše aplikace jsou open source",
+  "loadMessage5": "Náš zdrojový kód a kryptografie byly podrobeny externímu auditu",
+  "loadMessage6": "Můžete sdílet odkazy na svá alba se svými blízkými",
+  "loadMessage7": "Naše mobilní aplikace běží na pozadí, šifruje a zálohuje všechny nové fotografie, které pořídíte",
+  "loadMessage8": "{webUrl} má šikovný nástroj pro nahrávání souborů",
+  "@loadMessage8": {
+    "description": "Loading screen message about the web uploader.",
+    "placeholders": {
+      "webUrl": {
+        "type": "String",
+        "example": "photos.ente.com"
+      }
+    }
+  },
+  "loadMessage9": "K bezpečnému šifrování Vašich dat používáme Xchacha20Poly1305",
+  "localBackupDailyManualCopy": "Vytvoří jednu lokální zálohu za den, když otevřete aplikaci. Použijte \"Zálohovat nyní\" pro manuální zálohování. Je uchováváno až 5 souborů zálohy.",
+  "localBackupSidebarTitle": "Místní záloha",
+  "localGallery": "Místní galerie",
+  "localIndexing": "Lokální zpracování",
+  "localSyncErrorMessage": "Zdá se, že došlo k nějaké chybě, protože synchronizace místních fotografií trvá déle, než se očekávalo. Obraťte se prosím na náš tým podpory",
+  "location": "Poloha",
+  "locationName": "Název místa",
+  "locationPickerTip": "Můžete také přidat polohu zaměřenou na fotografii z informační obrazovky fotografie",
+  "@locationPickerTip": {
+    "description": "Helper tip text shown in the location picker that refers to the photo info screen."
+  },
+  "locations": "Lokality",
+  "locationTagFeatureDescription": "Značka polohy seskupuje všechny fotografie, které byly pořízeny v určitém okruhu od fotografie",
+  "locationUpdatedAndBackupCreated": "Umístění bylo aktualizováno a byla vytvořena počáteční záloha!",
+  "lockButtonLabel": "Uzamknout",
+  "loggingOut": "Odhlašování...",
+  "@loggingOut": {
+    "description": "Message shown while logging out"
+  },
+  "logInLabel": "Přihlásit se",
+  "@logInLabel": {
+    "description": "Log in button label"
+  },
+  "loginSessionExpired": "Relace vypršela",
+  "@loginSessionExpired": {
+    "description": "Login session expired title"
+  },
+  "loginSessionExpiredDetails": "Vaše relace vypršela. Přihlaste se prosím znovu.",
+  "@loginSessionExpiredDetails": {
+    "description": "Login session expired details"
+  },
+  "loginTerms": "Kliknutím na přihlášení souhlasím s <u-terms>podmínkami služby</u-terms> a <u-policy>zásadami ochrany osobních údajů</u-policy>",
+  "@loginTerms": {
+    "description": "Terms agreement text for login"
+  },
+  "loginToEnte": "Přihlásit se do Ente",
+  "loginToExistingAccount": "Přihlásit se k existujícímu účtu",
+  "loginWithAuthAccount": "Přihlásit se pomocí účtu Auth",
+  "logout": "Odhlásit se",
+  "logs": "Protokoly",
+  "logsDialogBody": "Tímto se odešlou záznamy, které nám pomohou vyřešit Váš problém. Upozorňujeme, že budou zahrnuty názvy souborů, aby bylo možné sledovat problémy s konkrétními soubory.",
+  "@logsDialogBody": {
+    "description": "Body text for the logs dialog explaining what will be sent"
+  },
+  "logsDialogBodyLocker": "Tím se odešlou protokoly, které nám pomohou vyřešit Váš problém.",
+  "@logsDialogBodyLocker": {
+    "description": "Dialog body text for sending logs in Locker app (without file name warning)"
+  },
+  "logsNotCopiedDownloadNote": "Protokoly nejsou zkopírovány. Exportujte protokoly a připojte je ke svému e-mailu.",
+  "longPressAnEmailToVerifyEndToEndEncryption": "Dlouhým stisknutím e-mailu ověříte koncové šifrování.",
+  "lookBackOnYourMemories": "Ohlédněte se za svými vzpomínkami 🌄",
+  "lookingForVisualSimilarities": "Hledání vizuálních podobností...",
+  "loopVideoOff": "Povolit smyčku",
+  "loopVideoOn": "Vypnout smyčku",
+  "lostDevice": "Ztratili jste zařízení?",
+  "lostDeviceTitle": "Ztratili jste zařízení?",
+  "@lostDeviceTitle": {
+    "description": "Lost device title"
+  },
+  "machineLearning": "Strojové učení",
+  "magic": "Magie",
+  "@magic": {
+    "description": "Section header for magic search results"
+  },
+  "manageDeviceStorage": "Spravovat mezipaměť zařízení",
+  "manageFamily": "Spravovat rodinu",
+  "manageLink": "Spravovat odkaz",
+  "managePaymentMethod": "Spravovat způsob platby",
+  "manageSubscription": "Spravovat předplatné",
+  "manualSort": "Vlastní",
+  "map": "Mapa",
+  "@map": {
+    "description": "Label for the map view"
+  },
+  "maps": "Mapy",
+  "mapsPrivacyNotice": "Přibližné souřadnice budou odeslány třetím stranám, jako je OpenStreetMap, aby se zobrazila mapa a poloha.",
+  "markingAsImportant": "Označuji jako důležité...",
+  "me": "Já",
+  "members": "Členové",
+  "memberStorageUsed": "{amount} použito",
+  "@memberStorageUsed": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "20 GB"
+      }
+    }
+  },
+  "memories": "Vzpomínky",
+  "memoriesWidgetDesc": "Vyberte typ vzpomínek, které chcete zobrazit na své domovské obrazovce.",
+  "memoryCount": "{count, plural, =0{žádné vzpomínky} one{{formattedCount} vzpomínka} few{{formattedCount} vzpomínky} other{{formattedCount} vzpomínek}}",
+  "@memoryCount": {
+    "description": "The text to display the number of memories",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "1",
+        "type": "int"
+      },
+      "formattedCount": {
+        "type": "String",
+        "example": "11.513, 11,511"
+      }
+    }
+  },
+  "memoryShareLinkDescription": "Tento odkaz automaticky vyprší za 7 dní.",
+  "merchandise": "E-shop",
+  "merge": "Sloučit",
+  "mergedPhotos": "Sloučené fotografie",
+  "mergeWithExisting": "Sloučit s existujícím",
+  "mergeWithPersonDescription": "Všechny fotografie z obou skupin obličejů budou sloučeny pod {name}.",
+  "@mergeWithPersonDescription": {
+    "description": "Description for confirming a merge with an existing person.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Jamie Long"
+      }
+    }
+  },
+  "mergeWithPersonTitle": "Sloučit s {name}?",
+  "@mergeWithPersonTitle": {
+    "description": "Title for confirming a merge with an existing person.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Jamie Long"
+      }
+    }
+  },
+  "message": "Zpráva",
+  "minimizeAppOnCopy": "Minimalizovat aplikaci po zkopírování",
+  "minimizeToTrayOnClose": "Minimalizovat do lišty při zavření",
+  "mixedGrouping": "Smíšené seskupení?",
+  "mlConsent": "Povolit strojové učení",
+  "mlConsentConfirmation": "Rozumím a chci povolit strojové učení",
+  "mlConsentDescription": "Pokud povolíte strojové učení, Ente bude extrahovat informace, jako je geometrie obličeje, ze souborů, včetně těch, které s Vámi byly sdíleny.\n\nToto se bude dít na Vašem zařízení a veškeré generované biometrické informace budou koncově šifrovány.",
+  "mlIndexingDescription": "Vezměte prosím na vědomí, že strojové učení bude mít za následek vyšší využití sítě a baterie, dokud nebudou zpracovány všechny položky. Pro rychlejší zpracování zvažte použití desktopové aplikace a všechny výsledky budou synchronizovány automaticky.",
+  "mlProgressBannerDescription": "Vaše fotografie se zpracovávají v zařízení za účelem detekce obličejů, objektů a dalších prvků.",
+  "mlProgressBannerStatus": "{indexed} z {total} fotografií zpracováno",
+  "@mlProgressBannerStatus": {
+    "placeholders": {
+      "indexed": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "mlProgressBannerTitle": "Vydržte!",
+  "moderateStrength": "Střední",
+  "@moderateStrength": {
+    "description": "Moderate password strength label"
+  },
+  "modifyYourQueryOrTrySearchingFor": "Upravte svůj dotaz nebo zkuste vyhledat",
+  "moments": "Momenty",
+  "month": "měsíc",
+  "monthly": "Měsíčně",
+  "@monthly": {
+    "description": "The text to display for monthly plans",
+    "type": "text"
+  },
+  "moon": "V měsíčním svitu",
+  "moreDetails": "Další podrobnosti",
+  "mostFrequentlyUsed": "Často používané",
+  "mostRecent": "Nejnovější",
+  "mostRecentlyUsed": "Naposledy použité",
+  "mostRelevant": "Nejrelevantnější",
+  "mountains": "Přes kopce",
+  "movedSuccessfullyTo": "Úspěšně přesunuto do {albumName}",
+  "@movedSuccessfullyTo": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
+  "movedToTrash": "Přesunuto do koše",
+  "moveMultipleToTrashMessage": "Opravdu chcete přesunout {count} položku(y) do koše?",
+  "@moveMultipleToTrashMessage": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "moveSelectedPhotosToOneDate": "Přesunout vybrané fotografie do jednoho data",
+  "moveToAlbum": "Přesunout do alba",
+  "moveToHiddenAlbum": "Přesunout do skrytého alba",
+  "movingFilesToAlbum": "Přesouvání souborů do alba...",
+  "name": "Název",
+  "networkConnectionRefusedErr": "Nelze se připojit k Ente, zkuste to prosím znovu později. Pokud chyba přetrvává, kontaktujte prosím podporu.",
+  "@networkConnectionRefusedErr": {
+    "description": "Error message shown when the app cannot connect to Ente due to connection refused"
+  },
+  "networkHostLookUpErr": "Nelze se připojit k Ente. Zkontrolujte prosím nastavení sítě a pokud chyba přetrvává, kontaktujte podporu.",
+  "@networkHostLookUpErr": {
+    "description": "Error message shown when the app cannot connect to Ente due to network host lookup failure"
+  },
+  "never": "Nikdy",
+  "newAlbum": "Nové album",
+  "newCollection": "Nová kolekce",
+  "newest": "Nejnovější",
+  "newLocation": "Nová lokace",
+  "newPhotosEmoji": " nové 📸",
+  "newRange": "Nový rozsah",
+  "next": "Další",
+  "@next": {
+    "description": "Next button label"
+  },
+  "nextTotpTitle": "další",
+  "nightLights": "Neonové noci",
+  "no": "Ne",
+  "noChangesWereMade": "Nebyly provedeny žádné změny",
+  "noCollections": "Žádné kolekce",
+  "noDefaultBackupFolder": "Nebylo možné vytvořit výchozí složku pro zálohy.",
+  "noDeleteSuggestion": "Žádné návrhy na odstranění",
+  "noDeviceFound": "Nebylo nalezeno žádné zařízení",
+  "noDeviceLimit": "Žádné",
+  "@noDeviceLimit": {
+    "description": "Text to indicate that there is limit on number of devices"
+  },
+  "noDeviceThatCanBeDeleted": "Na tomto zařízení nemáte žádné soubory, které by mohly být odstraněny",
+  "noDuplicates": "✨ Žádné duplikáty",
+  "noEmailAppBody": "Zkopírujte svou zprávu a pošlete ji na {email} z jakékoli e-mailové služby.",
+  "@noEmailAppBody": {
+    "description": "No-mail-app fallback subtitle with the target email address",
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
+  },
+  "noEmailAppFound": "Nebyla nalezena žádná e-mailová aplikace",
+  "noExifData": "Žádná data EXIF",
+  "noFacesFound": "Nebyly nalezeny žádné obličeje",
+  "noFilesFound": "Nejsou zde žádné položky",
+  "noHiddenFilesOnDevice": "Na zařízení nejsou žádné skryté soubory",
+  "noImagesWithLocation": "Žádné obrázky s polohou",
+  "noInternetConnection": "Žádné připojení k internetu",
+  "@noInternetConnection": {
+    "description": "No internet connection error message"
+  },
+  "noItemsMatchSelectedFilters": "Žádné položky neodpovídají vybraným filtrům",
+  "noLikesYet": "Zatím žádné líbí se",
+  "@noLikesYet": {
+    "description": "Empty state when no likes exist"
+  },
+  "noLimit": "Žádný limit",
+  "noLimitSet": "Limit není nastaven",
+  "noLocation": "Žádná poloha",
+  "@noLocation": {
+    "description": "Search result label for files owned by the user with missing location metadata"
+  },
+  "noLocationTag": "Žádný štítek polohy",
+  "@noLocationTag": {
+    "description": "Search result label for files that do not have a manual location tag"
+  },
+  "noPaymentAppFound": "Nebyla nalezena žádná platební aplikace",
+  "noPhotosFoundHere": "Zde nebyly nalezeny žádné fotografie",
+  "noRecoveryKeyNoDecryption": "Vzhledem k povaze našeho protokolu koncového šifrování nemohou být Vaše data dešifrována bez Vašeho hesla nebo obnovovacího klíče",
+  "@noRecoveryKeyNoDecryption": {
+    "description": "Explanation that data cannot be decrypted without password or recovery key"
+  },
+  "noRecoveryKeyTitle": "Nemáte obnovovací klíč?",
+  "@noRecoveryKeyTitle": {
+    "description": "No recovery key title"
+  },
+  "noResult": "Žádné výsledky",
+  "noResultsFound": "Nebyly nalezeny žádné výsledky",
+  "noSimilarImagesFound": "Nebyly nalezeny žádné podobné obrázky",
+  "noSuggestionsForPerson": "Žádné návrhy pro {personName}",
+  "@noSuggestionsForPerson": {
+    "placeholders": {
+      "personName": {
+        "type": "String",
+        "example": "Alice"
+      }
+    }
+  },
+  "noSystemLockFound": "Zámek systému nenalezen",
+  "@noSystemLockFound": {
+    "description": "Error when no system lock is found"
+  },
+  "note": "Poznámka",
+  "noteContent": "Obsah",
+  "noteContentHint": "Zapište si důležité myšlenky nebo pokyny",
+  "noteName": "Název",
+  "noteNameHint": "Název poznámky",
+  "notes": "Poznámky",
+  "notesLengthLimit": "Poznámky mohou být maximálně {count} znaků dlouhé",
+  "@notesLengthLimit": {
+    "description": "Text to indicate the maximum number of characters allowed for notes",
+    "placeholders": {
+      "count": {
+        "description": "The maximum number of characters allowed for notes",
+        "type": "int",
+        "example": "100"
+      }
+    }
+  },
+  "nothingToSeeHere": "Tady není nic k vidění",
+  "nothingToTidyUpHere": "Tady není co uklízet",
+  "notifications": "Oznámení",
+  "notPersonLabel": "Není to {name}?",
+  "@notPersonLabel": {
+    "description": "Label to indicate that the person in the photo is not the person whose name is mentioned",
+    "placeholders": {
+      "name": {
+        "content": "{name}",
+        "type": "String"
+      }
+    }
+  },
+  "notSupportedForHOTP": "Není podporováno pro HOTP",
+  "notThisPerson": "Není to tato osoba?",
+  "ocrGenericDetectError": "Nebylo možné zjistit text v obrázku",
+  "ocrImageDecodeFailedError": "Nelze načíst obrázek",
+  "ocrImageNotFoundError": "Obrázek nebyl nalezen",
+  "ocrModelsNetworkRequiredError": "Při prvním použití je vyžadováno připojení k síti pro stahování modelů OCR",
+  "ocrModelsPrepareFailed": "Nebylo možné připravit OCR modely",
+  "ocrNoTextDetected": "Nebyl nalezen žádný text",
+  "of_": "z",
+  "offlineEnableBackupTagLabel": "10 GB ZDARMA!",
+  "offlineFacesBannerSubtitle": "Zaregistrujte se, abyste mohli označovat lidi a snadno je později najít.",
+  "offlineFacesBannerTitle": "Chcete tyto tváře uložit?",
+  "offlineHomeSignupBannerAction": "Zálohovat nyní",
+  "offlineHomeSignupBannerDescription": "Šifrované zálohy na 3 místech, aby byly Vaše vzpomínky v bezpečí.",
+  "offlineHomeSignupBannerTitle": "Chraňte si své vzpomínky navždy",
+  "offlineModeWarning": "Rozhodli jste se pokračovat bez zálohování. Provádějte prosím manuální zálohy a ujistěte se, že Vaše kódy jsou v bezpečí.",
+  "offlineNameFaceBannerSubtitle": "Zaregistrujte se, abyste je mohli označit a později snadno najít jejich fotografie.",
+  "offlineNameFaceBannerTitle": "Dejte této tváři jméno",
+  "offlineSettingsBannerDesc": "Šifrování s nulovou znalostí znamená, že vaše vzpomínky zůstanou vaše.",
+  "offlineSettingsBannerTitle": "Vaše fotografie nemůžeme vidět. Nikdy.",
+  "oneLineAboutTheIssue": "Jeden řádek týkající se problému",
+  "onEnte": "Na <branding>ente</branding>",
+  "@onEnte": {
+    "description": "The text displayed above albums backed up to Ente",
+    "type": "text"
+  },
+  "onlyFamilyAdminCanChangeCode": "Pro změnu kódu prosím kontaktujte {familyAdminEmail}.",
+  "@onlyFamilyAdminCanChangeCode": {
+    "placeholders": {
+      "familyAdminEmail": {}
+    }
+  },
+  "onlyThem": "Pouze oni",
+  "onlyUploadedFilesCanBeAddedToPerson": "K osobě mohou být přidány pouze nahrané soubory",
+  "@onlyUploadedFilesCanBeAddedToPerson": {
+    "description": "Shown when user tries to manually tag files that are not uploaded yet."
+  },
+  "onTheRoad": "Zase na cestách",
+  "onThisDay": "V tento den",
+  "onThisDayMemories": "Vzpomínky v tento den",
+  "oops": "Jejda",
+  "@oops": {
+    "description": "Oops error title"
+  },
+  "oopsCouldNotSaveEdits": "Jejda, nelze uložit úpravy",
+  "oopsSomethingWentWrong": "Jejda, něco se pokazilo",
+  "openAlbumInBrowser": "Otevřít album v prohlížeči",
+  "openAlbumInBrowserTitle": "K přidání fotografií do tohoto alba použijte prosím webovou aplikaci",
+  "openFile": "Otevřít soubor",
+  "openLink": "Otevřít odkaz",
+  "openSettings": "Otevřít nastavení",
+  "openstreetmapContributors": "Přispěvatelé OpenStreetMap",
+  "optionalAsShortAsYouLike": "Volitelné, tak krátké, jak chcete...",
+  "orRemoveYourself": "Nebo se odstraňte jako důvěryhodný kontakt uživatele {email}",
+  "@orRemoveYourself": {
+    "description": "Text shown before remove contact button in ready state",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "otherDetectedFaces": "Další detekované obličeje",
+  "pair": "Spárovat",
+  "partyWithThem": "Párty s {name}",
+  "@partyWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "passkey": "Přístupový klíč",
+  "password": "Heslo",
+  "@password": {
+    "description": "Password field label"
+  },
+  "passwordChangedSuccessfully": "Heslo úspěšně změněno",
+  "@passwordChangedSuccessfully": {
+    "description": "Password changed successfully message"
+  },
+  "passwordEmptyError": "Heslo nemůže být prázdné",
+  "passwordForDecryptingExport": "Heslo pro dešifrování exportu",
+  "passwordHint": "Heslo",
+  "passwordLock": "Zámek heslem",
+  "passwordsDontMatch": "Hesla se neshodují",
+  "passwordsMatch": "Hesla se shodují",
+  "passwordStrength": "Síla hesla: {passwordStrengthValue}",
+  "@passwordStrength": {
+    "description": "Text to indicate the password strength",
+    "placeholders": {
+      "passwordStrengthValue": {
+        "description": "The strength of the password as a string",
+        "type": "String",
+        "example": "Weak or Moderate or Strong"
+      }
+    }
+  },
+  "passwordToEncryptExport": "Heslo pro zašifrování exportu",
+  "passwordTooShort": "Heslo musí být dlouhé alespoň 8 znaků.",
+  "pastYearsMemories": "Vzpomínky na minulé roky",
+  "pay": "Zaplatit",
+  "paymentDetails": "Platební údaje",
+  "paymentFailed": "Platba se nezdařila",
+  "paymentFailedMessage": "Vaše platba se bohužel nezdařila. Kontaktujte prosím podporu a my Vám pomůžeme!",
+  "paymentFailedTalkToProvider": "Pokud Vám byla účtována platba, obraťte se prosím na podporu {providerName}",
+  "@paymentFailedTalkToProvider": {
+    "description": "The text to display when the payment failed",
+    "type": "text",
+    "placeholders": {
+      "providerName": {
+        "example": "AppStore|PlayStore",
+        "type": "String"
+      }
+    }
+  },
+  "pending": "Nevyřízeno",
+  "pendingSync": "Čeká na synchronizaci",
+  "pendingSyncs": "Varování",
+  "pendingSyncsWarningBody": "Některé z Vašich kódů nebyly zálohovány.\n\nProsím, ujistěte se, že máte zálohu těchto kódů před odhlášením.",
+  "people": "Lidé",
+  "peopleAutoAddDesc": "Automaticky přidávat fotky vybraných lidí do tohoto alba",
+  "@peopleAutoAddDesc": {
+    "description": "The message the copy should convey is that photos or videos containing the selected people's faces will be automatically added to this album"
+  },
+  "peopleWidgetDesc": "Vyberte osoby, které chcete zobrazit na své domovské obrazovce.",
+  "period": "Období",
+  "permDeleteWarning": "Veškeré položky v koši budou trvale smazány\n\nTuto akci nelze vrátit zpět",
+  "personalNote": "Poznámka",
+  "personalNoteDescription": "Zapište si myšlenky a pokyny.",
+  "personIsAge": "{name} má {age} let!",
+  "@personIsAge": {
+    "placeholders": {
+      "age": {},
+      "name": {}
+    }
+  },
+  "personTurningAge": "{name} brzy oslaví {age} let",
+  "@personTurningAge": {
+    "placeholders": {
+      "age": {},
+      "name": {}
+    }
+  },
+  "pets": "Chlupatí společníci",
+  "photoGridSize": "Velikost mřížky fotografií",
+  "photos": "Fotografie",
+  "photosAddedByYouWillBeRemovedFromTheAlbum": "Fotografie, které jste přidali, budou z alba odstraněny",
+  "photosKeepRelativeTimeDifference": "Fotografie zachovávají relativní časový rozdíl",
+  "photosSharedByWillAppearHere": "Zde se objeví fotografie sdílené {email}.",
+  "@photosSharedByWillAppearHere": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "a@test.test"
+      }
+    }
+  },
+  "physicalRecords": "Věc",
+  "physicalRecordsDescription": "Ukládejte polohy předmětů v reálném světě.",
+  "pickCenterPoint": "Vyberte středový bod",
+  "picnicDays": "Piknikové vzpomínky",
+  "pin": "Připnout",
+  "pinLock": "Uzamčení na PIN",
+  "@pinLock": {
+    "description": "PIN lock option title"
+  },
+  "pinnedCodeMessage": "{code} byl připnut",
+  "@pinnedCodeMessage": {
+    "placeholders": {
+      "code": {}
+    }
+  },
+  "pinnedCount": "{count, plural, few{Připnuty {count} položky} many{Připnuto {count} položky} one{Připnuta {count} položka} other{Připnuto {count} položek}}",
+  "@pinnedCount": {
+    "description": "Text to show number of items pinned",
+    "placeholders": {
+      "count": {
+        "description": "Number of items pinned",
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "pinPerson": "Připnout osobu",
+  "pinText": "Připnout",
+  "plainHTML": "Prosté HTML",
+  "plainText": "Prostý text",
+  "plansStartAt": "Tarify začínají na {price}/měsíc",
+  "@plansStartAt": {
+    "placeholders": {
+      "price": {
+        "type": "String",
+        "example": "$1.99"
+      }
+    }
+  },
+  "playfulKids": "Hravé děti",
+  "playOriginal": "Přehrát původní",
+  "playstoreSubscription": "Předplatné PlayStore",
+  "playStream": "Přehrát stream",
+  "pleaseCheckPasswordAndTryAgain": "Zkontrolujte prosím své heslo a zkuste to znovu.",
+  "pleaseCheckYourInternetConnectionAndTryAgain": "Zkontrolujte prosím připojení k internetu a zkuste to znovu.",
+  "@pleaseCheckYourInternetConnectionAndTryAgain": {
+    "description": "Message asking user to check internet connection"
+  },
+  "pleaseContactSupportAndWeWillBeHappyToHelp": "Kontaktujte nás na adrese support@ente.com a rádi Vám pomůžeme!",
+  "pleaseContactSupportIfTheProblemPersists": "Pokud problém přetrvává, kontaktujte prosím podporu",
+  "pleaseEmailUsAt": "Prosím, pošlete nám e-mail na adresu {toEmail}",
+  "@pleaseEmailUsAt": {
+    "placeholders": {
+      "toEmail": {}
+    }
+  },
+  "pleaseEnterADescription": "Zadejte prosím popis",
+  "pleaseEnterASubject": "Zadejte prosím předmět",
+  "pleaseGrantPermissions": "Prosím, udělte oprávnění",
+  "pleaseNamePersonInPeopleSectionFirst": "Nejprve prosím pojmenujte osobu v sekci Lidé",
+  "@pleaseNamePersonInPeopleSectionFirst": {
+    "description": "Shown when manual tagging requires at least one named person."
+  },
+  "pleaseSelectQuickLinksToRemove": "Vyberte rychlé odkazy, které chcete odstranit",
+  "pleaseSendTheLogsTo": "Záznamy prosím zašlete na adresu \n{toEmail}",
+  "@pleaseSendTheLogsTo": {
+    "description": "Message asking user to send logs to email address",
+    "placeholders": {
+      "toEmail": {
+        "type": "String",
+        "description": "Email address to send logs to"
+      }
+    }
+  },
+  "pleaseTryAgain": "Zkuste to prosím znovu",
+  "@pleaseTryAgain": {
+    "description": "Message asking user to try again"
+  },
+  "pleaseVerifyDetails": "Ověřte prosím podrobnosti a zkuste to znovu",
+  "pleaseVerifyTheCodeYouHaveEntered": "Zkontrolujte prosím kód, který jste zadali",
+  "pleaseWait": "Čekejte prosím...",
+  "@pleaseWait": {
+    "description": "Please wait message"
+  },
+  "pleaseWaitDeletingAlbum": "Čekejte prosím, mazání alba",
+  "pleaseWaitForSometimeBeforeRetrying": "Počkejte prosím chvíli a zkuste to znovu",
+  "pleaseWaitThisWillTakeAWhile": "Počkejte prosím, bude to chvíli trvat.",
+  "poolDays": "Bazénové dny",
+  "posingWithThem": "Pózování s {name}",
+  "@posingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "preparingLogs": "Příprava záznamů...",
+  "preserveMore": "Zachovat více",
+  "pressAndHoldToPlayVideoDetailed": "Stiskněte a podržte prst na obrázku aby se spustilo přehrávání videa",
+  "preview": "Náhled",
+  "previous": "Předchozí",
+  "privacy": "Soukromí",
+  "privacyPolicyTitle": "Zásady ochrany osobních údajů",
+  "@privacyPolicyTitle": {
+    "description": "Privacy policy title"
+  },
+  "privateSpaceForEveryMember": "Soukromý prostor pro každého člena",
+  "proceed": "Pokračovat",
+  "processed": "Zpracováno",
+  "processingImport": "Zpracovávání {folderName}...",
+  "@processingImport": {
+    "placeholders": {
+      "folderName": {}
+    }
+  },
+  "publicLinkEnabled": "Veřejný odkaz povolen",
+  "qr": "QR",
+  "qrCode": "QR kód",
+  "questionmark": "?",
+  "queued": "Ve frontě",
+  "radius": "Rádius",
+  "rainyDays": "Pocit deštivého dne",
+  "raiseTicket": "Vytvořit ticket",
+  "@raiseTicket": {
+    "description": "Button text for raising a support tickets in case of unhandled errors during backup",
+    "type": "text"
+  },
+  "rateUs": "Ohodnoťte nás",
+  "rateUsOnStore": "Ohodnoťte nás na {storeName}",
+  "@rateUsOnStore": {
+    "placeholders": {
+      "storeName": {}
+    }
+  },
+  "rawCodeData": "Zdrojová data kódu",
+  "readyToBackupSubtitle": "Vaše fotografie se budou synchronizovat na pozadí. První záloha může chvíli trvat.",
+  "readyToBackupTitle": "Připraveno k zálohování",
+  "reassignedToName": "Přeřadili jsme Vás k {name}",
+  "@reassignedToName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reassigningLoading": "Přeřazování...",
+  "reassignMe": "Znovu přiřadit \"Já\"",
+  "recent": "Nedávné",
+  "recordLocation": "Poloha",
+  "recordLocationHint": "Kde je tato položka uložena?",
+  "recordNameHint": "Název skutečného předmětu",
+  "recordNotes": "Poznámky",
+  "recordNotesHint": "Doplňující informace o položce",
+  "recordSavedSuccessfully": "Záznam byl úspěšně uložen",
+  "recover": "Obnovit",
+  "@recover": {
+    "description": "Recover button label"
+  },
+  "recoverAccount": "Obnovit účet",
+  "@recoverAccount": {
+    "description": "Recover account button label"
+  },
+  "recoverAccountAfter": "Účet {email} můžete obnovit po uplynutí {time}.",
+  "@recoverAccountAfter": {
+    "description": "Message when recovery is waiting",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "recoverAccountDesc": "Účet {email} můžete obnovit do {days} dnů od zahájení procesu obnovy.",
+  "@recoverAccountDesc": {
+    "description": "Description for recover account page when recovery not started",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "recoveryInitiated": "Obnovení zahájeno",
+  "recoveryInitiatedDesc": "K účtu budete mít přístup po {days} dnech. Oznámení bude zasláno na adresu {email}.",
+  "@recoveryInitiatedDesc": {
+    "placeholders": {
+      "days": {
+        "type": "int",
+        "example": "30"
+      },
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      }
+    }
+  },
+  "recoveryKey": "Obnovovací klíč",
+  "@recoveryKey": {
+    "description": "Recovery key label"
+  },
+  "recoveryKeyCopiedToClipboard": "Obnovovací klíč byl zkopírován do schránky",
+  "@recoveryKeyCopiedToClipboard": {
+    "description": "Recovery key copied message"
+  },
+  "recoveryKeyOnForgotPassword": "Pokud zapomenete své heslo, jediný způsob jak obnovit Vaše data je pomocí tohoto klíče.",
+  "@recoveryKeyOnForgotPassword": {
+    "description": "Recovery key importance explanation"
+  },
+  "recoveryKeySaved": "Obnovovací klíč uložen do složky Stažené soubory!",
+  "@recoveryKeySaved": {
+    "description": "Recovery key saved confirmation message"
+  },
+  "recoveryKeySaveDescription": "Tento 24slovný klíč neuchováváme, uschovejte si jej prosím na bezpečném místě.",
+  "@recoveryKeySaveDescription": {
+    "description": "Recovery key save description"
+  },
+  "recoveryKeySaveShortDescription": "Prosím uložte si tento klíč na bezpečném místě.",
+  "recoveryKeySuccessBody": "Skvělé! Váš obnovovací klíč je platný. Děkujeme Vám za ověření.\n\nNezapomeňte mít Váš obnovovací klíč bezpečně zálohován.",
+  "recoveryKeyVerified": "Obnovovací klíč byl ověřen",
+  "recoveryKeyVerifyReason": "Váš obnovovací klíč je jediný způsob, jak obnovit Vaše fotografie, pokud zapomenete heslo. Obnovovací klíč najdete v Nastavení > Účet.\n\nZadejte zde svůj obnovovací klíč, abyste ověřili, že jste jej správně uložili.",
+  "recoveryReady": "Nyní můžete obnovit účet pro {email} nastavením nového hesla.",
+  "@recoveryReady": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      }
+    }
+  },
+  "recoverySuccessful": "Úspěšně obnoveno!",
+  "recoveryWarning": "Důvěryhodný kontakt se snaží získat přístup k Vašemu účtu",
+  "recoveryWarningBody": "{email} se pokouší obnovit Váš účet.",
+  "@recoveryWarningBody": {
+    "placeholders": {
+      "email": {}
+    }
+  },
+  "recreatePasswordBody": "Aktuální zařízení není dostatečně výkonné aby ověřilo Vaše heslo, ale můžeme ho znovu vygenerovat tak, aby fungovalo na všech zařízeních.\n\nPřihlaste se pomocí svého obnovovacího klíče a znovu vygenerujte heslo (pokud chcete, můžete použít stejné heslo).",
+  "@recreatePasswordBody": {
+    "description": "Body text for recreate password dialog"
+  },
+  "recreatePasswordTitle": "Znovu vytvořit heslo",
+  "@recreatePasswordTitle": {
+    "description": "Title for recreate password dialog"
+  },
+  "recreateStream": "Obnovit stream",
+  "redo": "Opakovat akci",
+  "reEnterPassword": "Zadejte heslo znovu",
+  "@reEnterPassword": {
+    "description": "Re-enter password prompt"
+  },
+  "reEnterPin": "Zadejte PIN znovu",
+  "@reEnterPin": {
+    "description": "Re-enter PIN prompt"
+  },
+  "referralCodeHint": "Tento kód můžete upravit až 3 krát",
+  "referrals": "Doporučení",
+  "referralsAreCurrentlyPaused": "Doporučení jsou momentálně pozastavena",
+  "referralStats": "Statistiky doporučení",
+  "referralStorageForBoth": "{storageAmountInGB} GB pro ně + {storageAmountInGB} GB pro Vás když zvýší svůj tarif.",
+  "@referralStorageForBoth": {
+    "placeholders": {
+      "storageAmountInGB": {}
+    }
+  },
+  "referralStorageInfo": "Doporučení od placených uživatelů získávají bonusové úložiště.\n\nÚložiště můžete použít až do limitu svého plánu. Navyšte svůj plán pro použití zbytku svého získaného úložiště.",
+  "rejectRecovery": "Odmítnout obnovu",
+  "rejectSuggestions": "Odmítnout návrhy",
+  "related": "Související",
+  "remindToEmptyDeviceTrash": "Vyprázdněte také složku \"Nedávno smazané\" z \"Nastavení\" -> \"Úložiště\" abyste uvolnili místo",
+  "remindToEmptyEnteTrash": "Vyprázdněte také \"Koš\", abyste získali uvolněné místo",
+  "remoteImages": "Vzdálené obrázky",
+  "remoteThumbnails": "Vzdálené miniatury",
+  "remoteVideos": "Vzdálená videa",
+  "remove": "Odstranit",
+  "removeAccess": "Odebrat přístup",
+  "removeCollectionParticipantBody": "{userEmail} bude odebrán z této sdílené kolekce\n\nVšechny položky přidané touto osobou budou také odebrány z kolekce",
+  "@removeCollectionParticipantBody": {
+    "placeholders": {
+      "userEmail": {}
+    }
+  },
+  "removeContact": "Odstranit kontakt",
+  "@removeContact": {
+    "description": "Button label to remove a trusted contact"
+  },
+  "removeContactDesc": "Pokud tento kontakt smažete, budete muset odeslat novou pozvánku a kontakt ji bude muset znovu přijmout.",
+  "@removeContactDesc": {
+    "description": "Description for remove contact confirmation dialog"
+  },
+  "removeFromAlbum": "Odstranit z alba",
+  "removeFromAlbumTitle": "Odstranit z alba?",
+  "removeFromFamily": "Odebrat z rodiny",
+  "removeFromFavorite": "Odebrat z oblíbených",
+  "removeLink": "Odstranit odkaz",
+  "removeMemberConfirmBody": "{email} ztratí přístup ke sdílenému úložišti.",
+  "@removeMemberConfirmBody": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "member@example.com"
+      }
+    }
+  },
+  "removeMemberConfirmTitle": "Odebrat člena?",
+  "removeParticipant": "Odebrat účastníka",
+  "@removeParticipant": {
+    "description": "menuSectionTitle for removing a participant"
+  },
+  "removePersonLabel": "Odebrat označení osoby",
+  "removePersonTag": "Odebrat štítek osoby",
+  "removePublicLink": "Odstranit veřejný odkaz",
+  "removePublicLinkConfirmation": "Toto odstraní veřejný odkaz pro přístup k \"{collectionName}\".",
+  "@removePublicLinkConfirmation": {
+    "description": "Confirmation message when removing public link",
+    "placeholders": {
+      "collectionName": {
+        "type": "String",
+        "example": "My Collection"
+      }
+    }
+  },
+  "removePublicLinks": "Odebrat veřejné odkazy",
+  "removeShareItemsWarning": "Vybrané fotky nebudou přístupné žádnému divákovi tohoto alba s výjimkou vlastníků fotografií.",
+  "removeWithQuestionMark": "Odstranit?",
+  "removeYourselfDesc": "Pokud se odstraníte jako důvěryhodný kontakt, ztratíte přístup k účtu {email} po uplynutí doby neaktivity.",
+  "@removeYourselfDesc": {
+    "description": "Description for remove yourself as trusted contact confirmation dialog",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "removingFromFavorites": "Odstraňování z oblíbených...",
+  "removingFromImportant": "Odstraňuji z důležitých...",
+  "rename": "Přejmenovat",
+  "renameAlbum": "Přejmenovat album",
+  "renameCollection": "Přejmenovat kolekci",
+  "renameFile": "Přejmenovat soubor",
+  "renewsOn": "Předplatné se obnoví {endDate}",
+  "@renewsOn": {
+    "placeholders": {
+      "endDate": {}
+    }
+  },
+  "renewSubscription": "Obnovit předplatné",
+  "repliedToAComment": "odpověděl(a) na komentář",
+  "@repliedToAComment": {
+    "description": "Social notification action text shown after a person's name, for example 'John replied to a comment'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "repliedToYourComment": "odpověděl(a) na Váš komentář",
+  "@repliedToYourComment": {
+    "description": "Social notification action text shown after a person's name, for example 'John replied to your comment'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "reply": "Odpověď",
+  "@reply": {
+    "description": "Reply action button label"
+  },
+  "replyingTo": "Odpovídáte {name}",
+  "@replyingTo": {
+    "description": "Label when replying to someone's comment",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "replyingToYou": "Odpovídá Vám",
+  "@replyingToYou": {
+    "description": "Label when replying to own comment"
+  },
+  "reportABug": "Nahlásit chybu",
+  "@reportABug": {
+    "description": "Label for reporting a bug"
+  },
+  "reportAnIssue": "Nahlásit problém",
+  "requestAFeature": "Žádost o funkci",
+  "resendCode": "Odeslat kód znovu",
+  "resendInvite": "Znovu zaslat pozvánku",
+  "reset": "Obnovit",
+  "resetIgnoredFiles": "Resetovat ignorované soubory",
+  "resetPasswordTitle": "Obnovit heslo",
+  "@resetPasswordTitle": {
+    "description": "Reset password title"
+  },
+  "resetToDefault": "Obnovit výchozí",
+  "@resetToDefault": {
+    "description": "Button text to reset cover photo to default"
+  },
+  "restore": "Obnovit",
+  "@restore": {
+    "description": "Display text for an action which triggers a restore of item from trash",
+    "type": "text"
+  },
+  "restoreToAlbum": "Obnovit do alba",
+  "restoringFiles": "Obnovuji soubory...",
+  "restoringItems": "Obnovuji...",
+  "resumableUploads": "Obnovitelné nahrávání",
+  "retry": "Znovu",
+  "review": "Zkontrolovat",
+  "reviewSuggestions": "Zkontrolovat návrhy",
+  "revoke": "Odvolat",
+  "revokeInvite": "Zrušit pozvánku",
+  "@revokeInvite": {
+    "description": "Button label to revoke a pending trusted contact invite"
+  },
+  "revokeInviteConfirmBody": "Pozvánka pro {email} bude zrušena.",
+  "@revokeInviteConfirmBody": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "member@example.com"
+      }
+    }
+  },
+  "revokeInviteConfirmTitle": "Zrušit pozvánku?",
+  "right": "Doprava",
+  "ritualAddedToAlbum": "Přidáno do alba",
+  "ritualAddedToAlbumWithName": "Přidáno do {albumName}",
+  "@ritualAddedToAlbumWithName": {
+    "placeholders": {
+      "albumName": {
+        "type": "String",
+        "description": "The target album name"
+      }
+    }
+  },
+  "ritualAddToAlbumFailure": "Nelze přidat fotografie do alba: {error}",
+  "@ritualAddToAlbumFailure": {
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "description": "Error message for album add failure"
+      }
+    }
+  },
+  "ritualAddTooltip": "Přidat rituál",
+  "ritualAlbumMissing": "Album rituálu chybí. Upravte rituál pro nastavení alba.",
+  "ritualAlbumNotSet": "Album není nastaveno",
+  "ritualAlbumSelectionPlaceholder": "Vybrat album",
+  "ritualBackToList": "Zpět na rituály",
+  "ritualCameraNotFound": "Na tomto zařízení nebyl nalezen žádný fotoaparát.",
+  "ritualCaptureAtLeastOne": "Nejdříve pořiďte alespoň jednu fotografii.",
+  "ritualCaptureError": "Nelze pořídit fotografii. Zkuste to prosím znovu.",
+  "ritualChooseAlbumLabel": "Vybrat album",
+  "ritualChooseDaysLabel": "Vybrat dny pro rituál",
+  "ritualCreateAction": "Vytvořit rituál",
+  "ritualCreateNewTitle": "Vytvořit nový rituál",
+  "ritualCreateYourOwn": "Vytvořte si vlastní rituál",
+  "ritualCustomKeyboardLabel": "Vlastní (klávesnice)",
+  "ritualDefaultCameraTitle": "Pořídit fotografii",
+  "ritualEdit": "Upravit rituál",
+  "ritualEditorLabel": "Editor rituálů",
+  "ritualEmojiKeyboardHint": "Stisknutím otevřete emoji klávesnici",
+  "ritualEmojiUseAction": "Použít",
+  "ritualEnterDescription": "Zadejte prosím popis",
+  "ritualEnterPrompt": "Zadejte svůj rituál",
+  "ritualGetDailyReminders": "Dostávat denní upomínky",
+  "ritualNoAlbumsYet": "Zatím žádná alba",
+  "ritualNoMatchingAlbums": "Žádná odpovídající alba",
+  "ritualNoPhotosYet": "Zatím žádné fotografie",
+  "ritualNotificationMessage": "Vyfotit nyní",
+  "ritualNotificationsOffHint": "Upozornění jsou vypnuta. Klepnutím na den je zapněte.",
+  "ritualOpenCameraTooltip": "Otevřít fotoaparát rituálu",
+  "ritualPhotoLimit": "Můžete přidat až {maxPhotos, plural, one{# fotografii.} few{# fotografie.} many{# fotografií.} other{# fotografií.}}",
+  "@ritualPhotoLimit": {
+    "placeholders": {
+      "maxPhotos": {
+        "type": "int",
+        "description": "Maximum number of photos allowed"
+      }
+    }
+  },
+  "ritualPickEmojiTitle": "Vyberte emoji",
+  "ritualSearchEmpty": "Vytvořte rituál, abyste udrželi svůj návyk s fotografiemi v chodu.",
+  "ritualSelectAlbumTitle": "Vybrat album",
+  "ritualSendReminderLabel": "Poslat upomínku",
+  "ritualSetAlbumToLaunchCamera": "Nastavte album pro tento rituál pro spuštění fotoaparátu.",
+  "ritualShareUnavailable": "Momentálně nelze sdílet. Zkuste to prosím znovu.",
+  "ritualsTitle": "Rituály",
+  "ritualUntitled": "Rituál bez názvu",
+  "ritualUpdate": "Aktualizovat rituál",
+  "riverCruises": "Výhledy z plavby po řece",
+  "roadtripWithThem": "Výlet autem s {name}",
+  "@roadtripWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "rotate": "Otočit",
+  "sameperson": "Stejná osoba?",
+  "save": "Uložit",
+  "@save": {
+    "description": "Label for save button"
+  },
+  "saveAsAnotherPerson": "Uložit jako jinou osobu",
+  "saveChangesBeforeLeavingQuestion": "Uložit změny před odchodem?",
+  "saveCode": "Uložit kód",
+  "saveCollage": "Uložit koláž",
+  "saveContact": "Uložit kontakt",
+  "saveCopy": "Uložit kopii",
+  "saveKey": "Uložit klíč",
+  "@saveKey": {
+    "description": "Save key button label"
+  },
+  "saveOnlyDescription": "Chcete toto uložit do paměti zařízení (ve výchozím nastavení do složky Stažené soubory)?",
+  "@saveOnlyDescription": {
+    "description": "Description text asking user if they want to save to storage (for platforms that don't support sharing)"
+  },
+  "saveOrSendDescription": "Chcete toto uložit do paměti zařízení (ve výchozím nastavení do složky Stažené soubory), nebo odeslat do jiných aplikací?",
+  "@saveOrSendDescription": {
+    "description": "Description text asking user if they want to save to storage or share with other apps"
+  },
+  "savePerson": "Uložit osobu",
+  "saveToLocker": "Uložit do Locker",
+  "saveYourRecoveryKeyIfYouHaventAlready": "Uložte si svůj obnovovací klíč, pokud jste tak ještě neučinili",
+  "saving": "Ukládání...",
+  "savingEdits": "Ukládání úprav...",
+  "savingOffline": "Ukládání lokálně...",
+  "scan": "Skenovat",
+  "scanACode": "Skenovat kód",
+  "scanCode": "Naskenovat kód",
+  "scanThisBarcodeWithnyourAuthenticatorApp": "Naskenujte tento QR kód \ns vaší ověřovací aplikací",
+  "scheduleShare": "Naplánovat sdílení",
+  "searchAlbumsEmptySection": "Alba",
+  "searchAndDiscovery": "Hledat a objevovat",
+  "searchAndDiscoveryDesc": "Obličeje, místa, popisy a další",
+  "searchByAlbumNameHint": "Název alba",
+  "searchDiscoverEmptySection": "Obrázky se zde zobrazí po dokončení zpracování a synchronizace",
+  "searchEmptyDescription": "Zkuste vyhledat něco jiného.",
+  "searchEmptyTitle": "Nebyly nalezeny žádné výsledky",
+  "searchEverywhereSubtitle": "Hledat ve všech kolekcích a souborech.",
+  "searchEverywhereTitle": "Hledat \"{query}\" všude",
+  "@searchEverywhereTitle": {
+    "description": "CTA title prompting the user to search globally",
+    "placeholders": {
+      "query": {
+        "type": "String",
+        "example": "passport"
+      }
+    }
+  },
+  "searchFileTypesAndNamesEmptySection": "Typy a názvy souborů",
+  "searchHint": "Hledat...",
+  "searchHint1": "Rychlé vyhledávání přímo v zařízení",
+  "searchHint2": "Data fotografií, popisy",
+  "searchHint3": "Alba, názvy souborů a typy",
+  "searchHint4": "Poloha",
+  "searchHint5": "Již brzy: Vyhledávání obličejů a magické vyhledávání ✨",
+  "searchLocationEmptySection": "Seskupte fotografie pořízené v určitém okruhu od fotografie",
+  "searchPeopleEmptySection": "Pozvěte lidi a uvidíte všechny fotografie, které zde sdíleli",
+  "searchPersonsEmptySection": "Lidé se zde zobrazí po dokončení zpracování a synchronizace",
+  "searchResultCameraMake": "Značka kamery",
+  "@searchResultCameraMake": {
+    "description": "Search result subtitle label for camera make matches"
+  },
+  "searchResultCameraModel": "Model kamery",
+  "@searchResultCameraModel": {
+    "description": "Search result subtitle label for camera model matches"
+  },
+  "searchResultCount": "{count, plural, one{Nalezen {count} výsledek} few{Nalezeny {count} výsledky} other{Nalezeno {count} výsledků}}",
+  "@searchResultCount": {
+    "description": "Text to tell user how many results were found for their search query",
+    "placeholders": {
+      "count": {
+        "example": "1|2|3",
+        "type": "int"
+      }
+    }
+  },
+  "searchResultDescription": "Popisek",
+  "@searchResultDescription": {
+    "description": "Search result subtitle label for description matches"
+  },
+  "searchResultFileExtension": "Koncovka souboru",
+  "@searchResultFileExtension": {
+    "description": "Search result subtitle label for file extension matches"
+  },
+  "searchResultFileName": "Název souboru",
+  "@searchResultFileName": {
+    "description": "Search result subtitle label for file name matches"
+  },
+  "searchResultPerson": "Osoba",
+  "@searchResultPerson": {
+    "description": "Search result subtitle label for person results"
+  },
+  "searchResultType": "Typ",
+  "@searchResultType": {
+    "description": "Search result subtitle label for file type matches"
+  },
+  "searchResultUploadedBy": "Nahráno uživatelem",
+  "@searchResultUploadedBy": {
+    "description": "Search result subtitle label for uploader results"
+  },
+  "searchSectionsLengthMismatch": "Nesoulad délky sekcí: {snapshotLength} != {searchLength}",
+  "@searchSectionsLengthMismatch": {
+    "description": "Appears in search tab page",
+    "placeholders": {
+      "searchLength": {
+        "type": "int",
+        "example": "2"
+      },
+      "snapshotLength": {
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "searchSettings": "Nastavení vyhledávání",
+  "secret": "Tajný klíč",
+  "secretCanNotBeEmpty": "Tajný klíč nemůže být prázdný",
+  "security": "Zabezpečení",
+  "seeAllCollections": "Zobrazit všechny kolekce",
+  "seePublicAlbumLinksInApp": "Zobrazit odkazy na veřejná alba v aplikaci",
+  "selectAlbumsToBackUpToEnte": "Vyberte alba pro zálohování do Ente",
+  "selectAlbumToLikePhoto": "Vyberte album pro označení fotografie jako líbí se",
+  "@selectAlbumToLikePhoto": {
+    "description": "Instruction for liking photo"
+  },
+  "selectAlbumToLikeVideo": "Vyberte album pro označení videa jako líbí se",
+  "@selectAlbumToLikeVideo": {
+    "description": "Instruction for liking video"
+  },
+  "selectAll": "Vybrat vše",
+  "selectAllShort": "Vše",
+  "@selectAllShort": {
+    "description": "Text that appears in bottom right when you start to select multiple photos. When clicked, it selects all photos."
+  },
+  "selectALocation": "Vybrat polohu",
+  "selectALocationFirst": "Nejprve vyberte polohu",
+  "selectBackupFolder": "Vybrat složku se zálohou",
+  "selectCoverPhoto": "Vyberte úvodní fotografii",
+  "selectDate": "Vybrat datum",
+  "selected": "vybrané",
+  "selectedAlbums": "Vybráno: {count}",
+  "@selectedAlbums": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "selectedCount": "{count, plural, few{{count} vybráno} many{{count} vybráno} one{{count} vybráno} other{{count} vybráno}}",
+  "@selectedCount": {
+    "description": "Number of items selected",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "selectedFilesAreNotOnEnte": "Vybrané soubory nejsou na Ente",
+  "selectedItemsWillBeRemovedFromThisPerson": "Vybrané položky budou z této osoby odebrány, ale nebudou smazány z Vaší knihovny.",
+  "selectedPhotos": "Vybráno: {count}",
+  "@selectedPhotos": {
+    "description": "Display the number of selected photos",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "5",
+        "type": "int"
+      }
+    }
+  },
+  "selectedPhotosWithYours": "Vybráno: {count} ({yourCount} Vašich)",
+  "@selectedPhotosWithYours": {
+    "description": "Display the number of selected photos, including the number of selected photos owned by the user",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "12",
+        "type": "int"
+      },
+      "yourCount": {
+        "example": "2",
+        "type": "int"
+      }
+    }
+  },
+  "selectExportFormat": "Vyberte formát exportu",
+  "selectFile": "Vybrat soubor",
+  "selectFolder": "Vybrat složku",
+  "selectFolders": "Vybrat složky",
+  "selectFolderToContinue": "Pro pokračování vyberte složku",
+  "selectItemsToAdd": "Vyberte položky, které chcete přidat",
+  "selectLanguage": "Vybrat jazyk",
+  "selectMailApp": "Vyberte e-mailovou aplikaci",
+  "selectMorePhotos": "Vybrat více fotografií",
+  "selectOneDateAndTime": "Vyberte jedno datum a čas",
+  "selectOneDateAndTimeForAll": "Vyberte jedno datum a čas pro všechny",
+  "selectStartOfRange": "Vyberte začátek rozsahu",
+  "selectTime": "Vybrat čas",
+  "selectYourFace": "Vyberte svůj obličej",
+  "selfiesWithThem": "Selfie s {name}",
+  "@selfiesWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "send": "Odeslat",
+  "@send": {
+    "description": "Label for send button"
+  },
+  "sendInvite": "Odeslat pozvánku",
+  "sendLink": "Odeslat odkaz",
+  "sendLogsDescription": "Tímto se odešlou záznamy, které nám pomohou vyladit Váš problém. I když přijímáme opatření abychom zajistili, že citlivé informace nebudou zaznamenány, doporučujeme Vám si tyto protokoly před sdílením prohlédnout.",
+  "sendQrCode": "Odeslat QR kód",
+  "serverEndpoint": "Koncový bod serveru",
+  "@serverEndpoint": {
+    "description": "Label for server endpoint setting"
+  },
+  "sessionExpired": "Relace vypršela",
+  "@sessionExpired": {
+    "description": "Error message when session has expired"
+  },
+  "sessionIdMismatch": "Neshoda ID relace",
+  "@sessionIdMismatch": {
+    "description": "In passkey page, deeplink is ignored because of session ID mismatch."
+  },
+  "setAContactPhoto": "Nastavit fotografii kontaktu",
+  "setAPassword": "Nastavit heslo",
+  "setAs": "Nastavit jako",
+  "setBackupFolder": "Nastavit složku zálohy",
+  "setBackupPassword": "Nastavit heslo pro zálohu",
+  "setCover": "Nastavit úvodní fotku",
+  "@setCover": {
+    "description": "Text to set cover photo for an album"
+  },
+  "setLabel": "Nastavit",
+  "@setLabel": {
+    "description": "Label of confirm button to add a new custom radius to the radius selector of a location tag"
+  },
+  "setNewPassword": "Nastavit nové heslo",
+  "@setNewPassword": {
+    "description": "Set new password title"
+  },
+  "setNewPin": "Nastavit nový PIN",
+  "@setNewPin": {
+    "description": "Set new PIN title"
+  },
+  "setPasswordTitle": "Nastavit heslo",
+  "@setPasswordTitle": {
+    "description": "Set password title"
+  },
+  "setRadius": "Nastavit poloměr",
+  "settings": "Nastavení",
+  "setupComplete": "Nastavení dokončeno",
+  "setupFirstAccount": "Nastavte svůj první\núčet",
+  "share": "Sdílet",
+  "shareALink": "Sdílet odkaz",
+  "shareCodes": "Sdílet kódy",
+  "shareCodesDuration": "Vyberte dobu, po kterou chcete kódy sdílet.",
+  "shareCollection": "Sdílet kolekci",
+  "sharedAlbumWithYou": "sdílel(a) s Vámi {albumName}",
+  "@sharedAlbumWithYou": {
+    "description": "Social notification action text shown after a person's name, for example 'John shared Recents with you'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      }
+    }
+  },
+  "sharedPhotoNotifications": "Nové sdílené fotografie a alba",
+  "sharedWith": "Sdíleno s",
+  "shareKey": "Sdílet klíč",
+  "shareLink": "Sdílet odkaz",
+  "shareNotSupportedForSharedFiles": "Sdílení není u sdílených souborů podporováno",
+  "shareStorageWith5Members": "Sdílejte úložiště s 5 členy",
+  "shareTextRecommendUsingEnteForFamily": "Stáhněte si Ente, abych Vás mohl přidat do svého rodinného plánu\n\nhttps://ente.com",
+  "shareTextRecommendUsingEnteForPhotos": "Stáhněte si aplikaci Ente, abychom mohli snadno sdílet fotografie a videa v originální kvalitě\n\nhttps://ente.com",
+  "shareThisLink": "Tento odkaz umožňuje každému, kdo jej obdrží, přístup k vašemu obsahu. Přístup můžete kdykoli zrušit smazáním odkazu.",
+  "shareWithNonenteUsers": "Sdílet s jinými uživateli",
+  "shareYourSubscription": "Sdílejte své předplatné se svými blízkými",
+  "sharing": "Sdílení...",
+  "sharingAndCollaboration": "Sdílení a spolupráce",
+  "sharingAndCollaborationDesc": "Alba, odkazy a rodinné tarify",
+  "shiftDatesAndTime": "Posunout datum a čas",
+  "shouldHideCode": "Skrýt kódy",
+  "shouldRemoveFilesSmartAlbumsDesc": "Mají být soubory související s osobou, které byly dříve vybrány v chytrých albech, odstraněny?",
+  "showIgnored": "Zobrazit ignorované",
+  "showInMemories": "Zobrazit ve vzpomínkách",
+  "showLargeIcons": "Zobrazit velké ikony",
+  "showLessFaces": "Zobrazit méně tváří",
+  "showMemories": "Zobrazit vzpomínky",
+  "showMoreFaces": "Zobrazit více obličejů",
+  "showPerson": "Zobrazit osobu",
+  "showQRAuthMessage": "Pro zobrazení QR kódu se ověřte",
+  "showTextOnWidget": "Zobrazit text na widgetu",
+  "sigInBackupReminder": "Ente bude automaticky zálohovat kódy po přihlášení.\n\nStále však doporučujeme exportovat kódy jako extra zálohu.",
+  "signInToBackup": "Pro zálohování Vašich kódů se přihlaste",
+  "signOutFromOtherDevices": "Odhlásit se z jiných zařízení",
+  "@signOutFromOtherDevices": {
+    "description": "Sign out from other devices title"
+  },
+  "signOutOtherBody": "Pokud se domníváte, že někdo zná Vaše heslo, můžete vynutit odhlášení ze všech ostatních zařízení, která používají Váš účet.",
+  "@signOutOtherBody": {
+    "description": "Sign out other devices explanation"
+  },
+  "signUp": "Zaregistrovat se",
+  "similar": "Podobné",
+  "similarImages": "Podobné obrázky",
+  "similarImagesCount": "{count} podobných obrázků",
+  "@similarImagesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "singIn": "Přihlásit se",
+  "skip": "Přeskočit",
+  "smartMemories": "Chytré vzpomínky",
+  "snowAdventures": "Zimní dobrodružství",
+  "socialNotifications": "Líbí se a komentáře",
+  "someoneSharingAlbumsWithYouShouldSeeTheSameId": "Osoba, která s Vámi sdílí alba, by měla na svém zařízení vidět stejné ID.",
+  "somethingWentWrong": "Něco se pokazilo",
+  "somethingWentWrongMessage": "Něco se pokazilo. Zkuste to prosím znovu",
+  "somethingWentWrongParsingCode": "Nebyli jsme schopní zpracovat {x} kódy.",
+  "@somethingWentWrongParsingCode": {
+    "placeholders": {
+      "x": {}
+    }
+  },
+  "somethingWentWrongPleaseTryAgain": "Něco se pokazilo. Zkuste to prosím znovu",
+  "@somethingWentWrongPleaseTryAgain": {
+    "description": "Generic error message"
+  },
+  "sorry": "Omlouváme se",
+  "sorryBackupFailedDesc": "Omlouváme se, tento soubor nelze právě teď zálohovat. Zkusíme to znovu později.",
+  "sorryCouldNotAddToFavorites": "Omlouváme se, nelze přidat k oblíbeným!",
+  "sorryCouldNotRemoveFromFavorites": "Omlouváme se, nelze odebrat z oblíbených!",
   "sorryTheCodeYouveEnteredIsIncorrect": "Omlouváme se, zadaný kód je nesprávný",
   "@sorryTheCodeYouveEnteredIsIncorrect": {
     "description": "Detailed error message when code is incorrect"
   },
-  "developerSettings": "Nastavení pro vývojáře",
-  "@developerSettings": {
-    "description": "Label for developerSettings"
+  "sorryWeHadToPauseYourBackups": "Omlouváme se, museli jsme pozastavit Vaše zálohy",
+  "sort": "Seřadit",
+  "sortAlbumsBy": "Seřadit podle",
+  "sortAToZ": "A-Z",
+  "sortNewestFirst": "Od nejnovějších",
+  "sortOldestFirst": "Od nejstarších",
+  "sortZToA": "Z-A",
+  "sportsAction": "Jdeme na to",
+  "sportsWithThem": "Sporty s {name}",
+  "@sportsWithThem": {
+    "placeholders": {
+      "name": {}
+    }
   },
-  "serverEndpoint": "Koncový bod serveru",
-  "@serverEndpoint": {
-    "description": "Label for serverEndpoint"
+  "spotlightOnThem": "Nejdůležitější události s {name}",
+  "@spotlightOnThem": {
+    "placeholders": {
+      "name": {}
+    }
   },
-  "invalidEndpoint": "Neplatný koncový bod",
-  "@invalidEndpoint": {
-    "description": "Label for invalidEndpoint"
+  "spotlightOnYourself": "Vaše nejdůležitější události",
+  "stargazing": "Pod hvězdami",
+  "startBackup": "Spustit zálohování",
+  "startRecovery": "Zahájit obnovení",
+  "startRecoveryDesc": "Opravdu chcete zahájit obnovení účtu {email}?",
+  "@startRecoveryDesc": {
+    "description": "Description for start recovery confirmation dialog",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
   },
-  "invalidEndpointMessage": "Zadaný koncový bod je neplatný. Zadejte prosím platný koncový bod a zkuste to znovu.",
-  "@invalidEndpointMessage": {
-    "description": "Label for invalidEndpointMessage"
+  "status": "Stav",
+  "sticker": "Nálepka",
+  "stopCastingBody": "Chcete přestat odesílat?",
+  "stopCastingTitle": "Zastavit přenos",
+  "storage": "Úložiště",
+  "storageAndPlans": "Úložiště a tarify",
+  "storageAndPlansDesc": "Tarify, vyúčtování a využití úložiště",
+  "storageBreakupFamily": "Rodina",
+  "storageBreakupYou": "Vy",
+  "@storageBreakupYou": {
+    "description": "Label to indicate how much storage you are using when you are part of a family plan"
   },
-  "endpointUpdatedMessage": "Koncový bod byl úspěšně aktualizován",
-  "@endpointUpdatedMessage": {
-    "description": "Label for endpointUpdatedMessage"
-  }
+  "storageClaimed": "{storageAmountInGB} GB získáno!",
+  "@storageClaimed": {
+    "placeholders": {
+      "storageAmountInGB": {}
+    }
+  },
+  "storageLimit": "Kapacita úložiště",
+  "storageLimitExceeded": "Překročen limit úložiště",
+  "storageLimitExplanation": "Nastavte maximální kapacitu úložišťě, kterou může tento člen použít. Po dosažení limitu nebudou moci nahrávat další.",
+  "storageUsedOfTotal": "{used} z {total} použito",
+  "@storageUsedOfTotal": {
+    "placeholders": {
+      "total": {
+        "type": "String",
+        "example": "200 GB"
+      },
+      "used": {
+        "type": "String",
+        "example": "67 GB"
+      }
+    }
+  },
+  "streamDetails": "Podrobnosti o streamu",
+  "streetArt": "Příběhy pouličního umění",
+  "streetFood": "Kousky pouličního jídla",
+  "strongPassword": "Silné heslo",
+  "strongStrength": "Silné",
+  "@strongStrength": {
+    "description": "Strong password strength label"
+  },
+  "subject": "Předmět",
+  "submit": "Odeslat",
+  "subscribe": "Odebírat",
+  "subscribeToChangeLinkSetting": "Pro změnu nastavení odkazu potřebujete placené předplatné.",
+  "subscribeToEnableSharing": "K povolení sdílení potřebujete aktivní placené předplatné.",
+  "subscription": "Předplatné",
+  "subscriptionRequiredForSharing": "Pro sdílení odkazu potřebujete placené předplatné",
+  "subWillBeCancelledOn": "Vaše předplatné bude zrušeno dne {endDate}",
+  "@subWillBeCancelledOn": {
+    "placeholders": {
+      "endDate": {}
+    }
+  },
+  "success": "Úspěch",
+  "successfullyArchived": "Úspěšně archivováno",
+  "successfullyHid": "Úspěšně skryto",
+  "successfullyUnarchived": "Úspěšně odebráno z archivu",
+  "successfullyUnhid": "Úspěšně odkryto",
+  "suggestDeletion": "Navrhnout odstranění",
+  "suggestDeletionDescription": "Vybrané fotografie budou z tohoto alba odebrány. Vlastníci fotografií také obdrží návrh na kontrolu a odstranění fotografií.",
+  "suggestFeatures": "Navrhnout funkce",
+  "suggestions": "Doporučení",
+  "sunrise": "Na obzoru",
+  "support": "Podpora",
+  "supportEnte": "Podpořte <bold-green>ente</bold-green>",
+  "syncProgress": "{completed}/{total} vzpomínek zachováno",
+  "@syncProgress": {
+    "description": "Text to tell user how many memories have been preserved",
+    "placeholders": {
+      "completed": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "syncStopped": "Synchronizace zastavena",
+  "systemTheme": "Systém",
+  "tag": "Štítek",
+  "tags": "Štítky",
+  "tapToCopy": "klepnutím zkopírovat",
+  "tapToUpload": "Klepnutím nahrajte",
+  "@tapToUpload": {
+    "description": "Shown in upload icon widet, inside a tooltip."
+  },
+  "tapToUploadIsIgnoredDue": "Klepnutím nahrajte, nahrávání je momentálně ignorováno z důvodu {ignoreReason}",
+  "@tapToUploadIsIgnoredDue": {
+    "description": "Shown in upload icon widet, inside a tooltip.",
+    "placeholders": {
+      "ignoreReason": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
+  },
+  "tellUsWhatYouThink": "Sdělte nám svůj názor",
+  "tempErrorContactSupportIfPersists": "Zdá se, že došlo k chybě. Zkuste to prosím znovu později. Pokud chyba přetrvává, kontaktujte prosím náš tým podpory.",
+  "terminate": "Ukončit",
+  "@terminate": {
+    "description": "Terminate button label"
+  },
+  "terminateSession": "Ukončit relaci?",
+  "@terminateSession": {
+    "description": "Title for terminate session dialog"
+  },
+  "thankYou": "Děkujeme",
+  "thankYouForSubscribing": "Děkujeme za aktivaci předplatného!",
+  "theLinkYouAreTryingToAccessHasExpired": "Odkaz, na který se pokoušíte přistoupit, vypršel.",
+  "theme": "Motiv",
+  "thePersonGroupsWillNotBeDisplayed": "Skupiny osob se již nebudou zobrazovat v sekci „Lidé“. Fotografie zůstanou beze změny.",
+  "thePersonWillNotBeDisplayed": "Tato osoba již nebude zobrazena v sekci „Lidé“. Fotografie zůstanou beze změny.",
+  "theRecoveryKeyYouEnteredIsIncorrect": "Vámi zadaný obnovovací klíč je nesprávný",
+  "@theRecoveryKeyYouEnteredIsIncorrect": {
+    "description": "Detailed error message when recovery key is incorrect"
+  },
+  "theseItemsWillBeDeletedFromYourDevice": "Tyto položky budou z Vašeho zařízení odstraněny.",
+  "thisCanBeUsedToRecoverYourAccountIfYou": "Toto lze použít k obnovení účtu, pokud ztratíte svůj přístup k ověřovací aplikaci",
+  "thisDevice": "Toto zařízení",
+  "@thisDevice": {
+    "description": "Label for current device"
+  },
+  "thisEmailIsAlreadyInUse": "Tato e-mailová adresa je již používána",
+  "@thisEmailIsAlreadyInUse": {
+    "description": "Error message when email is already in use"
+  },
+  "thisImageHasNoExifData": "Tento obrázek nemá žádná data EXIF",
+  "thisIsMeExclamation": "To jsem já!",
+  "thisIsPersonVerificationId": "Toto je ověřovací ID pro {email}",
+  "@thisIsPersonVerificationId": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@ente.com"
+      }
+    }
+  },
+  "thisIsYourVerificationId": "Toto je Vaše ověřovací ID",
+  "thisMonth": "Tento měsíc",
+  "thisWeek": "Tento týden",
+  "thisWeekThroughTheYears": "Tento týden v průběhu let",
+  "thisWillLogYouOutOfTheFollowingDevice": "Toto Vás odhlásí z následujícího zařízení:",
+  "@thisWillLogYouOutOfTheFollowingDevice": {
+    "description": "Warning message for logging out of another device"
+  },
+  "thisWillLogYouOutOfThisDevice": "Toto Vás odhlásí z tohoto zařízení!",
+  "@thisWillLogYouOutOfThisDevice": {
+    "description": "Warning message for logging out of current device"
+  },
+  "thisWillMakeTheDateAndTimeOfAllSelected": "Tímto se datum a čas všech vybraných fotografií sjednotí.",
+  "thisYear": "Tento rok",
+  "throughTheYears": "{dateFormat} v průběhu let",
+  "@throughTheYears": {
+    "placeholders": {
+      "dateFormat": {}
+    }
+  },
+  "throwbackWithThem": "Ohlédnutí za minulostí s {name}",
+  "@throwbackWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "title": "Název",
+  "todaysLogs": "Dnešní záznamy",
+  "toEnableAppLockPleaseSetupDevicePasscodeOrScreen": "Chcete-li povolit zámek aplikace, nastavte v nastavení systému přístupový kód zařízení nebo zámek obrazovky.",
+  "tooManyIncorrectAttempts": "Příliš mnoho neúspěšných pokusů",
+  "@tooManyIncorrectAttempts": {
+    "description": "Message shown when too many incorrect attempts are made"
+  },
+  "totalSize": "Celková velikost",
+  "trash": "Koš",
+  "trashClearedSuccessfully": "Koš byl úspěšně vyprázdněn",
+  "trashCode": "Přesunout kód do koše?",
+  "trashCodeMessage": "Opravdu chcete přesunout kód pro {account} do koše?",
+  "@trashCodeMessage": {
+    "placeholders": {
+      "account": {}
+    }
+  },
+  "trashIsEmpty": "Koš je prázdný",
+  "trim": "Oříznout",
+  "tripInYear": "Cesta v roce {year}",
+  "@tripInYear": {
+    "placeholders": {
+      "year": {}
+    }
+  },
+  "tripToLocation": "Výlet do {location}",
+  "@tripToLocation": {
+    "placeholders": {
+      "location": {}
+    }
+  },
+  "tropicalParadise": "Tropické úniky",
+  "troubleshooting": "Řešení problémů",
+  "troubleshootingDesc": "Běžné problémy a jejich řešení",
+  "trustedContactAccepted": "Přidali jste {email} jako důvěryhodný kontakt. Přijali vaše pozvání.",
+  "@trustedContactAccepted": {
+    "description": "Description shown when a trusted contact has accepted the invite",
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@example.com"
+      }
+    }
+  },
+  "trustedContactInvitePending": "Pozvali jste {email} jako důvěryhodný kontakt. Vaše pozvání zatím nepřijali.",
+  "@trustedContactInvitePending": {
+    "description": "Description shown when a trusted contact invite is pending",
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@example.com"
+      }
+    }
+  },
+  "trustedContacts": "Důvěryhodné kontakty",
+  "tryAgain": "Zkusit znovu",
+  "@tryAgain": {
+    "description": "Try again button label"
+  },
+  "twofactor": "Dvoufázové ověření",
+  "twofactorAuthenticationHasBeenDisabled": "Dvoufázové ověřování bylo deaktivováno",
+  "twofactorAuthenticationSuccessfullyReset": "Dvoufázové ověření bylo úspěšně obnoveno",
+  "@twofactorAuthenticationSuccessfullyReset": {
+    "description": "Message when two-factor authentication is successfully reset"
+  },
+  "twofactorSetup": "Nastavení dvoufázového ověřování",
+  "twoFAVerification": "2FA ověření",
+  "type": "Typ",
+  "typeOfGallerGallerytypeIsNotSupportedForRename": "Typ galerie {galleryType} není podporován pro přejmenování",
+  "@typeOfGallerGallerytypeIsNotSupportedForRename": {
+    "placeholders": {
+      "galleryType": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
+  },
+  "unableToCheckForUpdatesRightNow": "Momentálně nelze ověřit aktualizace",
+  "unarchive": "Odebrat z archivu",
+  "@unarchive": {
+    "description": "Action of 'Unarchiving' an element"
+  },
+  "unarchiveAlbum": "Odebrat album z archivu",
+  "unarchiving": "Odebírání z archivu...",
+  "uncategorized": "Nezařazené",
+  "undo": "Vrátit zpět",
+  "unhide": "Odkrýt",
+  "unhideToAlbum": "Odkrýt do alba",
+  "unhiding": "Odkrývání...",
+  "unhidingFilesToAlbum": "Odkrývám soubory do alba",
+  "unimportant": "Nedůležité",
+  "unlock": "Odemknout",
+  "@unlock": {
+    "description": "Short action label used as the system authentication reason when unlocking the app"
+  },
+  "unnamedCollection": "Nepojmenovaná kolekce",
+  "unnamedPeopleDoingSomethingTogether": "Dělat to společně",
+  "unnamedPeopleSpotlight": "Známá tvář",
+  "unnamedPeopleThrowbackTogether": "Ohlédnutí za minulostí",
+  "unnamedPeopleYouAndThem": "Vy dva",
+  "unpin": "Odepnout",
+  "unpinnedCodeMessage": "{code} byl odepnut",
+  "@unpinnedCodeMessage": {
+    "placeholders": {
+      "code": {}
+    }
+  },
+  "unpinnedCount": "{count, plural, few{Odepnuly se {count} položky} many{Odepnul se {count} položky} one{Odepnula se {count} položka} other{Odepnulo se {count} položek}}",
+  "@unpinnedCount": {
+    "description": "Text to show number of items unpinned",
+    "placeholders": {
+      "count": {
+        "description": "Number of items unpinned",
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "unpinPerson": "Odepnout osobu",
+  "unpinText": "Odepnout",
+  "unsavedNoteChangesDescription": "V této poznámce máte neuložené změny. Pokud se nyní vrátíte zpět, budou ztraceny.",
+  "unsavedNoteChangesTitle": "Zahodit změny?",
+  "unselectAll": "Zrušit výběr",
+  "untitled": "Bez názvu",
+  "updateAvailable": "Je k dispozici aktualizace",
+  "updateBackupPassword": "Aktualizovat heslo pro zálohu",
+  "updated": "Aktualizováno",
+  "updateSettings": "Aktualizovat nastavení",
+  "updateTime": "Čas aktualizace",
+  "@updateTime": {
+    "description": "Button label to update the recovery time for a trusted contact"
+  },
+  "updatingFolderSelection": "Aktualizuji výběr složek...",
+  "upgrade": "Vylepšit",
+  "uploadedFilesProgress": "Nahráno {completed}/{total} položek...",
+  "@uploadedFilesProgress": {
+    "description": "Progress message showing uploaded items",
+    "placeholders": {
+      "completed": {
+        "type": "int",
+        "example": "3"
+      },
+      "total": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "uploadError": "Chyba nahrávání",
+  "uploadFileCountLimitErrorBody": "Dosáhli jste limitu souborů. Pro více úložiště přejděte na placený tarif.",
+  "@uploadFileCountLimitErrorBody": {
+    "description": "Body shown when uploads fail because the locker already has the maximum file count"
+  },
+  "uploadFileCountLimitErrorTitle": "Dosažen limit souborů",
+  "@uploadFileCountLimitErrorTitle": {
+    "description": "Title shown when uploads fail because the locker already has the maximum file count"
+  },
+  "uploadFileCountLimitErrorToast": "Akce se nezdařila. Dosáhli jste limitu souborů.",
+  "@uploadFileCountLimitErrorToast": {
+    "description": "Toast shown when info items fail to save due to hitting the file count limit"
+  },
+  "uploadFiles": "Nahrát položky",
+  "uploadFileTooLargeErrorBody": "Tento soubor přesahuje maximální povolenou velikost pro nahrání, která činí 10GB.",
+  "@uploadFileTooLargeErrorBody": {
+    "description": "Body shown when uploads fail because the file exceeds the supported size"
+  },
+  "uploadFileTooLargeErrorTitle": "Soubor je příliš velký",
+  "@uploadFileTooLargeErrorTitle": {
+    "description": "Title shown when uploads fail because the file exceeds the supported size"
+  },
+  "uploadingFilesToAlbum": "Nahrávání souborů do alba...",
+  "uploadingMultipleMemories": "Zachovávání {count} vzpomínek...",
+  "@uploadingMultipleMemories": {
+    "description": "Text to tell user how many memories are being preserved",
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "uploadingSingleMemory": "Zachovávání 1 vzpomínky...",
+  "uploadIsIgnoredDueToIgnorereason": "Nahrání bylo ignorováno z důvodu {ignoreReason}",
+  "@uploadIsIgnoredDueToIgnorereason": {
+    "placeholders": {
+      "ignoreReason": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
+  },
+  "uploadStorageLimitErrorBody": "Došlo Vám místo v úložišti. Uvolněte místo pro pokračování v nahrávání.",
+  "@uploadStorageLimitErrorBody": {
+    "description": "Body shown when uploads fail due to running out of storage"
+  },
+  "uploadStorageLimitErrorTitle": "Limit úložiště dosažen",
+  "@uploadStorageLimitErrorTitle": {
+    "description": "Title shown when uploads fail due to running out of storage"
+  },
+  "uploadSubscriptionExpiredErrorBody": "Vaše předplatné Ente Photos vypršelo. Obnovte své předplatné, abyste mohli pokračovat v nahrávání.",
+  "@uploadSubscriptionExpiredErrorBody": {
+    "description": "Body shown when uploads fail because the Photos subscription is expired"
+  },
+  "uploadSubscriptionExpiredErrorTitle": "Předplatné vypršelo",
+  "@uploadSubscriptionExpiredErrorTitle": {
+    "description": "Title shown when uploads fail because the Photos subscription is expired"
+  },
+  "usable": "použitelné",
+  "usageFamily": "Rodina",
+  "usageYou": "Vy",
+  "useAsCover": "Použít jako úvodní fotku",
+  "usedSpace": "Využité místo",
+  "usedYourCode": "použil Váš kód",
+  "useOffline": "Použít bez zálohování",
+  "useRecoveryKey": "Použít obnovovací klíč",
+  "@useRecoveryKey": {
+    "description": "Use recovery key button label"
+  },
+  "username": "Uživatelské jméno",
+  "usernameHint": "Přihlašovací ID nebo email",
+  "useSelectedPhoto": "Použít vybranou fotografii",
+  "usingStorage": "Používá se {amount}",
+  "@usingStorage": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "20 GB"
+      }
+    }
+  },
+  "validTill": "Platné do {endDate}",
+  "@validTill": {
+    "placeholders": {
+      "endDate": {}
+    }
+  },
+  "verificationFailedPleaseTryAgain": "Ověření se nezdařilo, zkuste to prosím znovu",
+  "@verificationFailedPleaseTryAgain": {
+    "description": "Verification failed error message"
+  },
+  "verify": "Ověřit",
+  "@verify": {
+    "description": "Verify button label"
+  },
+  "verifyEmail": "Ověřit e-mail",
+  "@verifyEmail": {
+    "description": "Verify email title"
+  },
+  "verifyIDLabel": "Ověřit",
+  "verifying": "Ověřování...",
+  "verifyingRecoveryKey": "Ověřování obnovovacího klíče...",
+  "verifyPassword": "Ověřit heslo",
+  "@verifyPassword": {
+    "description": "Verify password button label"
+  },
+  "videoAlreadyInQueue": "Video soubor již je ve frontě",
+  "videoExportFailed": "Vytvoření videa se nezdařilo. Zkuste to prosím znovu.",
+  "videoExportSuccess": "Video bylo úspěšně vytvořeno v {path}",
+  "@videoExportSuccess": {
+    "description": "Toast shown when a video export completes, mentioning the filesystem path.",
+    "placeholders": {
+      "path": {
+        "description": "File path where the exported video was written",
+        "type": "String",
+        "example": "/tmp/ente_export.mp4"
+      }
+    }
+  },
+  "videoInfo": "Informace o videu",
+  "videoPreviewAlreadyExists": "Náhled videa již existuje",
+  "videos": "Videa",
+  "videoStreaming": "Videa pro streamování",
+  "videoStreamingDescriptionLine1": "Přehrávejte videa okamžitě na jakémkoli zařízení.",
+  "videoStreamingDescriptionLine2": "Povolte pro zpracování video streamů na tomto zařízení.",
+  "videoStreamingNote": "Na tomto zařízení se zpracovávají pouze videa z posledních 60 dnů, která jsou kratší než 1 minuta. U starších/delších videí povolte streamování v desktopové aplikaci.",
+  "viewActiveSessions": "Zobrazit aktivní relace",
+  "viewAddOnButton": "Zobrazit doplňky",
+  "viewAllExifData": "Zobrazit všechna data EXIF",
+  "viewAllHelpTopics": "Zobrazit všechna témata nápovědy",
+  "viewer": "Divák",
+  "viewLargeFiles": "Velké soubory",
+  "viewLogs": "Zobrazit záznamy",
+  "@viewLogs": {
+    "description": "Button to view logs"
+  },
+  "viewLogsAction": "Zobrazit záznamy",
+  "viewPersonToUnlink": "Zobraz {name} pro zrušení propojení",
+  "@viewPersonToUnlink": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "viewPlans": "Zobrazit tarify",
+  "viewRawCodes": "Zobrazit zdrojové kódy",
+  "viewRecoveryKey": "Zobrazit obnovovací klíč",
+  "vintageVibes": "Archivní pocit",
+  "visitWebToManage": "Pro správu předplatného navštivte prosím {webUrl}",
+  "@visitWebToManage": {
+    "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",
+    "placeholders": {
+      "webUrl": {
+        "type": "String",
+        "example": "photos.ente.com"
+      }
+    }
+  },
+  "waitingForVerification": "Čekání na ověření...",
+  "@waitingForVerification": {
+    "description": "Waiting for verification message"
+  },
+  "waitingForWifi": "Čekání na WiFi...",
+  "warning": "Varování",
+  "waterfalls": "Honba za vodopády",
+  "weakStrength": "Slabé",
+  "@weakStrength": {
+    "description": "Weak password strength label"
+  },
+  "weAreOpenSource": "Jsme open source!",
+  "weddingMoments": "Záře svatebního dne",
+  "weDontSupportEditingPhotosAndAlbumsThatYouDont": "Zatím nepodporujeme úpravy fotografií a alb, která nevlastníte",
+  "weHaveSentCodeTo": "Poslali jsme Vám kód na {email}",
+  "@weHaveSentCodeTo": {
+    "description": "Text to indicate that we have sent a verification code to the user's email",
+    "placeholders": {
+      "email": {
+        "description": "The email address of the user",
+        "type": "String",
+        "example": "example@ente.com"
+      }
+    }
+  },
+  "whatsNew": "Co je nového",
+  "widgets": "Widgety",
+  "wildlife": "Do divočiny",
+  "wishThemAHappyBirthday": "Popřejte {name} všechno nejlepší k narozeninám! 🎉",
+  "@wishThemAHappyBirthday": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "yearly": "Ročně",
+  "@yearly": {
+    "description": "The text to display for yearly plans",
+    "type": "text"
+  },
+  "yearsAgo": "{count, plural, one{Před {count} rokem} other{Před {count} lety}}",
+  "@yearsAgo": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "yearShort": "rok",
+  "@yearShort": {
+    "description": "Appears in pricing page (/yr)"
+  },
+  "yes": "Ano",
+  "yesCancel": "Ano, zrušit",
+  "yesDelete": "Ano, smazat",
+  "yesDiscardChanges": "Ano, zahodit změny",
+  "yesIgnore": "Ano, ignorovat",
+  "yesLogout": "Ano, odhlásit se",
+  "@yesLogout": {
+    "description": "Confirmation button for logout"
+  },
+  "yesRemove": "Ano, odstranit",
+  "yesRenew": "Ano, obnovit",
+  "yesResetPerson": "Ano, zapomenout osobu",
+  "yesShowPeople": "Ano, ukázat osoby",
+  "yesShowPerson": "Ano, ukázat osobu",
+  "you": "Vy",
+  "youAndThem": "Vy a {name}",
+  "@youAndThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "youAreOnTheLatestVersion": "Máte nejnovější verzi",
+  "youCannotDowngradeToThisPlan": "Na tento nižší plán nelze přejít",
+  "youCannotShareWithYourself": "Nemůžete sdílet se sebou",
+  "youHaveNoFileSuggestedForDeletion": "Nemáte žádné soubory navržené k odstranění",
+  "youHaveSuccessfullyFreedUp": "Úspěšně jste uvolnili {storageSaved}!",
+  "@youHaveSuccessfullyFreedUp": {
+    "description": "The text to display when the user has successfully freed up storage",
+    "type": "text",
+    "placeholders": {
+      "storageSaved": {
+        "example": "1.2 GB",
+        "type": "String"
+      }
+    }
+  },
+  "yourMap": "Vaše mapa",
+  "yourPhotosLookUnique": "Vaše fotografie vypadají jedinečně",
+  "yourPlanSupportsFamily": "Váš plán již podporuje rodinu",
+  "yourPlanWasSuccessfullyDowngraded": "Váš plán byl úspěšně změněn na nižší",
+  "yourPlanWasSuccessfullyUpgraded": "Váš plán byl úspěšně změněn na vyšší",
+  "yourPurchaseWasSuccessful": "Váš nákup byl úspěšný",
+  "yourSubscriptionHasExpired": "Vaše předplatné vypršelo",
+  "yourSubscriptionWasUpdatedSuccessfully": "Vaše předplatné bylo úspěšně aktualizováno",
+  "yourTrashIsEmpty": "Váš koš je prázdný",
+  "yourVerificationCodeHasExpired": "Váš ověřovací kód vypršel",
+  "@yourVerificationCodeHasExpired": {
+    "description": "Error message when verification code has expired"
+  },
+  "youveNoDuplicateCodesThatCanBeCleared": "Nemáte žádné duplicitní kódy k odstranění",
+  "youveNoDuplicateFilesThatCanBeCleared": "Nemáte žádné duplicitní soubory, které by mohly být odstraněny",
+  "youveNoFilesInThisAlbumThatCanBeDeleted": "V tomto albu nemáte žádné soubory, které by mohly být odstraněny",
+  "zoomOutToSeePhotos": "Oddalte pro zobrazení fotografií"
 }

@@ -2,35 +2,73 @@ package api
 
 import (
 	"context"
-	"github.com/ente-io/cli/utils/constants"
-	"github.com/spf13/viper"
+	"fmt"
+	"net/http"
 	"strconv"
-	"strings"
+
+	"github.com/ente/cli/utils/constants"
+	"github.com/spf13/viper"
 )
 
-var (
-	downloadHost = "https://files.ente.io/?fileID="
-)
+const downloadHost = "https://files.ente.com/?fileID="
 
-func downloadUrl(fileID int64) string {
+type fileURLResponse struct {
+	URL string `json:"url"`
+}
+
+func useDownloadProxy() bool {
 	apiEndpoint := viper.GetString("endpoint.api")
-	if apiEndpoint == "" || strings.Compare(apiEndpoint, constants.EnteApiUrl) == 0 {
-		return downloadHost + strconv.FormatInt(fileID, 10)
+	return apiEndpoint == "" || apiEndpoint == constants.EnteApiUrl
+}
+
+func (c *Client) getFileURL(ctx context.Context, fileID int64) (string, error) {
+	result := fileURLResponse{}
+	r, err := c.restClient.R().
+		SetContext(ctx).
+		SetResult(&result).
+		Get(fmt.Sprintf("/files/download/v3/%d", fileID))
+	if err != nil {
+		return "", err
 	}
-	return apiEndpoint + "/files/download/" + strconv.FormatInt(fileID, 10)
+	if r.IsError() {
+		message := r.String()
+		if r.StatusCode() == http.StatusNotFound {
+			message = "file URL endpoint not found; please upgrade your Ente server and try again"
+		}
+		return "", &ApiError{
+			StatusCode: r.StatusCode(),
+			Message:    message,
+		}
+	}
+	return result.URL, nil
 }
 
 func (c *Client) DownloadFile(ctx context.Context, fileID int64, absolutePath string) error {
 	req := c.downloadClient.R().
 		SetContext(ctx).
 		SetOutput(absolutePath)
-	attachToken(req)
-	r, err := req.Get(downloadUrl(fileID))
+
+	var downloadURL string
+	if useDownloadProxy() {
+		downloadURL = downloadHost + strconv.FormatInt(fileID, 10)
+		attachToken(req)
+	} else {
+		var err error
+		downloadURL, err = c.getFileURL(ctx, fileID)
+		if err != nil {
+			return err
+		}
+	}
+
+	r, err := req.Get(downloadURL)
+	if err != nil {
+		return err
+	}
 	if r.IsError() {
 		return &ApiError{
 			StatusCode: r.StatusCode(),
 			Message:    r.String(),
 		}
 	}
-	return err
+	return nil
 }

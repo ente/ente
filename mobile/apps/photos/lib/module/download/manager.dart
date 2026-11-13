@@ -4,9 +4,11 @@ import "dart:io";
 import "package:dio/dio.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/configuration.dart";
+import "package:photos/core/network/network.dart";
 
 import "package:photos/module/download/file_url.dart";
 import "package:photos/module/download/task.dart";
+import "package:photos/utils/device_storage_error.dart";
 
 class DownloadManager {
   final _logger = Logger('DownloadManager');
@@ -14,13 +16,13 @@ class DownloadManager {
   static const String noConnectionError = 'NO_CONNECTION';
   static const String notEnoughStorageError = 'NOT_ENOUGH_STORAGE';
   static const String unavailableError = 'UNAVAILABLE';
+  static const String applePhotosUnsupportedResourceError =
+      'APPLE_PHOTOS_UNSUPPORTED_RESOURCE';
 
   final Dio _dio;
 
-  // In-memory storage for download tasks
   final Map<int, DownloadTask> _tasks = {};
 
-  // Active downloads with their completers and streams
   final Map<int, Completer<DownloadResult>> _completers = {};
   final Map<int, StreamController<DownloadTask>> _streams = {};
   final Map<int, CancelToken> _cancelTokens = {};
@@ -28,7 +30,6 @@ class DownloadManager {
 
   DownloadManager(this._dio);
 
-  /// Subscribe to download progress updates for a specific file ID
   Stream<DownloadTask> watchDownload(int fileId) {
     _streams[fileId] ??= StreamController<DownloadTask>.broadcast();
     return _streams[fileId]!.stream;
@@ -40,15 +41,12 @@ class DownloadManager {
     return size > downloadChunkSize;
   }
 
-  /// Start download and return a Future that completes when download finishes
-  /// If download was paused, calling this again will resume it
   Future<DownloadResult> download(
     int fileId,
     String filename,
     int totalBytes,
   ) async {
     _downloadStartTimes[fileId] = DateTime.now().microsecondsSinceEpoch;
-    // If already downloading, return existing future
     if (_completers.containsKey(fileId)) {
       return _completers[fileId]!.future;
     }
@@ -56,24 +54,16 @@ class DownloadManager {
     final completer = Completer<DownloadResult>();
     _completers[fileId] = completer;
 
-    // Get or create task
     final existingTask = _tasks[fileId];
-    final task = existingTask ??
-        DownloadTask(
-          id: fileId,
-          filename: filename,
-          totalBytes: totalBytes,
-        );
+    final task =
+        existingTask ??
+        DownloadTask(id: fileId, filename: filename, totalBytes: totalBytes);
 
-    // Store task in memory
     _tasks[fileId] = task;
 
-    // Don't restart if already completed
     if (task.isCompleted) {
-      // ensure that the file exists
       final filePath = task.filePath;
       if (filePath == null || !(await File(filePath).exists())) {
-        // If the file doesn't exist, mark the task as error
         _logger.warning(
           'File not found for ${task.filename} (${task.bytesDownloaded}/${task.totalBytes} bytes)',
         );
@@ -99,11 +89,9 @@ class DownloadManager {
     return completer.future;
   }
 
-  /// Pause download
   Future<void> pause(int fileId) async {
-    // ignore cancel if download started less than 1 second ago,
-    // this is to avoid cancellination due to different type of video players, where dispose is called
-    // little later after other video player operations
+    // Video player disposal can issue a late pause, so ignore pauses during
+    // the first second.
     final startTime = _downloadStartTimes[fileId];
     if (startTime == null ||
         DateTime.now().microsecondsSinceEpoch - startTime < 1e6) {
@@ -120,7 +108,6 @@ class DownloadManager {
       _updateTask(task.copyWith(status: DownloadStatus.paused));
     }
 
-    // Clean up streams if no listeners
     final stream = _streams[fileId];
     if (stream != null && !stream.hasListener) {
       await stream.close();
@@ -128,7 +115,6 @@ class DownloadManager {
     }
   }
 
-  /// Cancel and delete download
   Future<void> cancel(int fileId) async {
     final token = _cancelTokens[fileId];
     if (token != null && !token.isCancelled) {
@@ -144,10 +130,8 @@ class DownloadManager {
     _cleanup(fileId);
   }
 
-  /// Get current download status
   Future<DownloadTask?> getDownload(int fileId) async => _tasks[fileId];
 
-  /// Get all downloads
   Future<List<DownloadTask>> getAllDownloads() async => _tasks.values.toList();
 
   Future<void> _startDownload(
@@ -161,10 +145,8 @@ class DownloadManager {
       final cancelToken = CancelToken();
       _cancelTokens[task.id] = cancelToken;
 
-      final directory = Configuration.instance.getTempDirectory();
-      final basePath = '$directory${task.id}.encrypted';
+      final basePath = encryptedFilePath(task.id);
 
-      // check if base file already exists and is of correct size
       final baseFile = File(basePath);
       if (await baseFile.exists()) {
         final existingSize = await baseFile.length();
@@ -185,14 +167,16 @@ class DownloadManager {
             'Existing file size mismatch for ${task.filename}: '
             'expected ${task.totalBytes}, but got $existingSize',
           );
-          await baseFile.delete(); // Remove corrupted file
+          await baseFile.delete();
         }
       }
 
-      // Check existing chunks and calculate progress
       final totalChunks = (task.totalBytes / downloadChunkSize).ceil();
-      final existingChunks =
-          await _validateExistingChunks(basePath, task.totalBytes, totalChunks);
+      final existingChunks = await _validateExistingChunks(
+        basePath,
+        task.totalBytes,
+        totalChunks,
+      );
 
       task = task.copyWith(
         bytesDownloaded: _calculateDownloadedBytes(
@@ -206,6 +190,7 @@ class DownloadManager {
       _logger.info(
         'Resuming download for ${task.filename} (${task.bytesDownloaded}/${task.totalBytes} bytes)',
       );
+      String? downloadUrl;
       for (int i = 0; i < totalChunks; i++) {
         if (existingChunks[i]) {
           continue;
@@ -214,7 +199,15 @@ class DownloadManager {
           _logger.info('Download cancelled for ${task.filename}');
           break;
         }
-        await _downloadChunk(task, basePath, i, totalChunks, cancelToken);
+        downloadUrl ??= await _resolveDownloadUrl(task.id, cancelToken);
+        await _downloadChunk(
+          task,
+          basePath,
+          i,
+          totalChunks,
+          cancelToken,
+          downloadUrl,
+        );
         existingChunks[i] = true;
       }
 
@@ -231,7 +224,6 @@ class DownloadManager {
     } catch (e) {
       if (e is DioException && e.type == DioExceptionType.cancel) {
         _logger.info('Download cancelled for ${task.filename}');
-        // Complete future with current task state (paused or cancelled)
         final currentTask = _tasks[task.id];
         if (currentTask != null && !completer.isCompleted) {
           completer.complete(DownloadResult(currentTask, false));
@@ -240,10 +232,10 @@ class DownloadManager {
       }
       _logger.warning('Error downloading ${task.filename}', e);
       final isNetworkError = _isNetworkError(e);
-      final isStorageError = _isStorageError(e);
+      final isDeviceStorageFull = isDeviceStorageFullError(e);
       final String errorCode = _getErrorCode(e);
       task = task.copyWith(
-        status: isNetworkError || isStorageError
+        status: isNetworkError || isDeviceStorageFull
             ? DownloadStatus.paused
             : DownloadStatus.error,
         error: errorCode,
@@ -257,7 +249,10 @@ class DownloadManager {
     }
   }
 
-  String _getChunkPath(String basePath, int part) {
+  static String encryptedFilePath(int fileId) =>
+      '${Configuration.instance.getTempDirectory()}$fileId.encrypted';
+
+  static String chunkFilePath(String basePath, int part) {
     return '$basePath.${part}_part';
   }
 
@@ -269,7 +264,7 @@ class DownloadManager {
     final existingChunks = List.filled(totalChunks, false);
 
     for (int i = 0; i < totalChunks; i++) {
-      final chunkFile = File(_getChunkPath(basePath, i + 1));
+      final chunkFile = File(chunkFilePath(basePath, i + 1));
       if (!await chunkFile.exists()) continue;
 
       final expectedSize = i == totalChunks - 1
@@ -286,7 +281,11 @@ class DownloadManager {
           'but got $actualSize bytes',
         );
         existingChunks[i] = false;
-        // await chunkFile.delete(); // Remove corrupted chunk
+        try {
+          await chunkFile.delete();
+        } catch (e) {
+          _logger.warning('Failed to delete corrupted chunk ${i + 1}', e);
+        }
       }
     }
 
@@ -315,23 +314,19 @@ class DownloadManager {
     int chunkIndex,
     int totalChunks,
     CancelToken cancelToken,
+    String downloadUrl,
   ) async {
-    final chunkPath = _getChunkPath(basePath, chunkIndex + 1);
+    final chunkPath = chunkFilePath(basePath, chunkIndex + 1);
     final startByte = chunkIndex * downloadChunkSize;
     final endByte = chunkIndex == totalChunks - 1
         ? task.totalBytes - 1
         : (startByte + downloadChunkSize) - 1;
     _logger.info('Downloading chunk ${chunkIndex + 1}/$totalChunks');
     await _dio.download(
-      FileUrl.getUrl(task.id, FileUrlType.directDownload),
+      downloadUrl,
       chunkPath,
-      queryParameters: {
-        "token": Configuration.instance.getToken(),
-      },
       options: Options(
-        headers: {
-          "Range": "bytes=$startByte-$endByte",
-        },
+        headers: {HttpHeaders.rangeHeader: "bytes=$startByte-$endByte"},
       ),
       cancelToken: cancelToken,
       onReceiveProgress: (received, total) async {
@@ -341,7 +336,6 @@ class DownloadManager {
         _notifyProgress(updatedTask);
       },
     );
-    // Update progress after chunk completion
     final chunkFileSize = await File(chunkPath).length();
     task = task.copyWith(
       bytesDownloaded: (chunkIndex) * downloadChunkSize + chunkFileSize,
@@ -349,12 +343,51 @@ class DownloadManager {
     _updateTask(task);
   }
 
+  Future<String> _resolveDownloadUrl(
+    int fileID,
+    CancelToken cancelToken,
+  ) async {
+    final signedUrl = await FileUrl.tryGetV3Url(
+      NetworkClient.instance.enteDio,
+      fileID,
+      FileUrlType.directDownload,
+      headers: {"X-Auth-Token": Configuration.instance.getToken()},
+      cancelToken: cancelToken,
+    );
+    if (signedUrl != null) {
+      return signedUrl;
+    }
+
+    final response = await _dio.get<void>(
+      FileUrl.getLegacyUrl(fileID, FileUrlType.directDownload),
+      options: Options(
+        followRedirects: false,
+        receiveDataWhenStatusError: false,
+        headers: {"X-Auth-Token": Configuration.instance.getToken()},
+        validateStatus: (status) {
+          return status != null &&
+              status >= HttpStatus.multipleChoices &&
+              status < HttpStatus.badRequest;
+        },
+      ),
+      cancelToken: cancelToken,
+    );
+    final location = response.headers.value(HttpHeaders.locationHeader);
+    if (location == null || location.isEmpty) {
+      throw StateError(
+        'Missing redirect location for file $fileID '
+        '(status ${response.statusCode})',
+      );
+    }
+    return location;
+  }
+
   Future<String> _combineChunks(String basePath, int totalChunks) async {
     final finalFile = File(basePath);
     final sink = finalFile.openWrite();
     try {
       for (int i = 1; i <= totalChunks; i++) {
-        final chunkFile = File(_getChunkPath(basePath, i));
+        final chunkFile = File(chunkFilePath(basePath, i));
         await sink.addStream(chunkFile.openRead());
         await chunkFile.delete();
       }
@@ -366,15 +399,13 @@ class DownloadManager {
 
   Future<void> _deleteFiles(DownloadTask task) async {
     try {
-      final directory = Configuration.instance.getTempDirectory();
-      final basePath = '$directory${task.id}.encrypted';
+      final basePath = encryptedFilePath(task.id);
       final finalFile = File(basePath);
       if (await finalFile.exists()) await finalFile.delete();
 
-      // Delete chunk files
       final totalChunks = (task.totalBytes / downloadChunkSize).ceil();
       for (int i = 1; i <= totalChunks; i++) {
-        final chunkFile = File(_getChunkPath(basePath, i));
+        final chunkFile = File(chunkFilePath(basePath, i));
         if (await chunkFile.exists()) await chunkFile.delete();
       }
     } catch (e) {
@@ -443,19 +474,8 @@ class DownloadManager {
     return false;
   }
 
-  bool _isStorageError(Object error) {
-    if (error is FileSystemException) {
-      final code = error.osError?.errorCode;
-      return code == 28 || code == 112;
-    }
-    if (error is DioException && error.error != null) {
-      return _isStorageError(error.error!);
-    }
-    return false;
-  }
-
   String _getErrorCode(Object error) {
-    if (_isStorageError(error)) {
+    if (isDeviceStorageFullError(error)) {
       return notEnoughStorageError;
     }
     if (_isNetworkError(error)) {

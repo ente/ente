@@ -1,7 +1,3 @@
-//
-//  EntePeopleWidget.swift
-//  EntePeopleWidget
-
 import SwiftUI
 import UIKit
 import WidgetKit
@@ -12,24 +8,30 @@ struct Provider: TimelineProvider {
     let minutes = 15
     let data = UserDefaults(suiteName: widgetGroupId)
 
+    private func shouldHideTitle() -> Bool {
+        let hideFlags = data?.integer(forKey: "widgetHideTitleFlags") ?? 0
+        return (hideFlags & (1 << 2)) != 0
+    }
+
     func placeholder(in _: Context) -> FileEntry {
-        FileEntry(
+        let hideTitle = shouldHideTitle()
+        return FileEntry(
             date: Date(), index: nil, imageData: nil, title: "Title", subTitle: "Sub Title",
-            generatedId: nil, mainKey: nil)
+            generatedId: nil, mainKey: nil, hideTitle: hideTitle)
     }
 
     func getSnapshot(in _: Context, completion: @escaping (FileEntry) -> Void) {
+        let hideTitle = shouldHideTitle()
         let entry = FileEntry(
             date: Date(), index: -2, imageData: nil, title: "Jane Fonda",
             subTitle: "Sep 23, 2021",
-            generatedId: nil, mainKey: nil)
+            generatedId: nil, mainKey: nil, hideTitle: hideTitle)
         completion(entry)
     }
 
     func getTimeline(in _: Context, completion: @escaping (Timeline<Entry>) -> Void) {
         var entries: [FileEntry] = []
 
-        // Generate a timeline consisting of five entries an hour apart, starting from the current date.
         let currentDate = Calendar.current.nextDate(
             after: Date(), matching: DateComponents(second: 0), matchingPolicy: .nextTime,
             direction: .backward
@@ -37,6 +39,8 @@ struct Provider: TimelineProvider {
 
         var totalPeople =
             data?.integer(forKey: "totalPeople")
+
+        let hideTitle = shouldHideTitle()
 
         if totalPeople != nil && totalPeople! > 0 {
             let count = totalPeople! > 5 ? 5 : totalPeople
@@ -56,13 +60,14 @@ struct Provider: TimelineProvider {
 
                 let entry = FileEntry(
                     date: entryDate, index: randomInt, imageData: imageData, title: title,
-                    subTitle: subTitle, generatedId: generatedId, mainKey: mainKey)
+                    subTitle: subTitle, generatedId: generatedId, mainKey: mainKey,
+                    hideTitle: hideTitle)
                 entries.append(entry)
             }
         } else {
             let entry = FileEntry(
                 date: Date(), index: -1, imageData: nil, title: nil, subTitle: nil,
-                generatedId: nil, mainKey: nil
+                generatedId: nil, mainKey: nil, hideTitle: hideTitle
             )
             entries.append(entry)
         }
@@ -71,9 +76,6 @@ struct Provider: TimelineProvider {
         completion(timeline)
     }
 
-    //    func relevances() async -> WidgetRelevances<Void> {
-    //        // Generate a list containing the contexts this widget is relevant in.
-    //    }
 }
 
 struct FileEntry: TimelineEntry {
@@ -84,6 +86,7 @@ struct FileEntry: TimelineEntry {
     let subTitle: String?
     var generatedId: Int?
     var mainKey: String?
+    var hideTitle: Bool = false
 }
 
 struct EntePeopleWidgetEntryView: View {
@@ -102,31 +105,40 @@ struct EntePeopleWidgetEntryView: View {
                         .aspectRatio(contentMode: .fill)
                         .frame(width: geometry.size.width, height: geometry.size.height)
                         .overlay(
-                            LinearGradient(
-                                gradient: Gradient(colors: [Color.black.opacity(0.7), Color.clear]),
-                                startPoint: .bottom,
-                                endPoint: .top
-                            )
-
-                            .frame(height: geometry.size.height * 0.4)
-                            .frame(maxHeight: .infinity, alignment: .bottom)
-                            .backwardWidgetAccentable(true)
+                            Group {
+                                if !entry.hideTitle {
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            Color.black.opacity(0.7), Color.clear,
+                                        ]),
+                                        startPoint: .bottom,
+                                        endPoint: .top
+                                    )
+                                    .frame(height: geometry.size.height * 0.4)
+                                    .frame(maxHeight: .infinity, alignment: .bottom)
+                                    .backwardWidgetAccentable(true)
+                                }
+                            }
                         )
                         .overlay(
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(entry.title ?? "").font(
-                                    .custom("Inter", size: 14, relativeTo: .caption)
-                                )  // Custom with fallback
-                                .bold()
-                                .foregroundStyle(.white)
-                                .shadow(radius: 20)
-                                Text(entry.subTitle ?? "")
-                                    .font(.custom("Inter", size: 12, relativeTo: .caption2))
-                                    .foregroundStyle(.white)
-                                    .shadow(radius: 20)
-                            }
-                            .padding(.leading, geometry.size.width * 0.05)
-                            .padding(.bottom, geometry.size.height * 0.05),
+                            Group {
+                                if !entry.hideTitle {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(entry.title ?? "").font(
+                                            .custom("Inter", size: 14, relativeTo: .caption)
+                                        )
+                                        .bold()
+                                        .foregroundStyle(.white)
+                                        .shadow(radius: 20)
+                                        Text(entry.subTitle ?? "")
+                                            .font(.custom("Inter", size: 12, relativeTo: .caption2))
+                                            .foregroundStyle(.white)
+                                            .shadow(radius: 20)
+                                    }
+                                    .padding(.leading, geometry.size.width * 0.05)
+                                    .padding(.bottom, geometry.size.height * 0.05)
+                                }
+                            },
                             alignment: .bottomLeading
                         )
                 } else if entry.index == -2 {
@@ -137,38 +149,48 @@ struct EntePeopleWidgetEntryView: View {
                             .aspectRatio(contentMode: .fill)
                             .frame(width: geometry.size.width, height: geometry.size.height)
                             .overlay(
-                                LinearGradient(
-                                    gradient: Gradient(colors: [
-                                        Color.black.opacity(0.7), Color.clear,
-                                    ]),
-                                    startPoint: .bottom,
-                                    endPoint: .top
-                                )
-
-                                .frame(height: geometry.size.height * 0.4)
-                                .frame(maxHeight: .infinity, alignment: .bottom)
-                                .backwardWidgetAccentable(true)
+                                Group {
+                                    if !entry.hideTitle {
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [
+                                                Color.black.opacity(0.7), Color.clear,
+                                            ]),
+                                            startPoint: .bottom,
+                                            endPoint: .top
+                                        )
+                                        .frame(height: geometry.size.height * 0.4)
+                                        .frame(maxHeight: .infinity, alignment: .bottom)
+                                        .backwardWidgetAccentable(true)
+                                    }
+                                }
                             )
                             .overlay(
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(entry.title ?? "").font(
-                                        .custom("Inter", size: 14, relativeTo: .caption)
-                                    )  // Custom with fallback
-                                    .bold()
-                                    .foregroundStyle(.white)
-                                    .shadow(radius: 20)
-                                    Text(entry.subTitle ?? "")
-                                        .font(.custom("Inter", size: 12, relativeTo: .caption2))
-                                        .foregroundStyle(.white)
-                                        .shadow(radius: 20)
-                                }
-                                .padding(.leading, geometry.size.width * 0.05)
-                                .padding(.bottom, geometry.size.height * 0.05),
+                                Group {
+                                    if !entry.hideTitle {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(entry.title ?? "").font(
+                                                .custom("Inter", size: 14, relativeTo: .caption)
+                                            )
+                                            .bold()
+                                            .foregroundStyle(.white)
+                                            .shadow(radius: 20)
+                                            Text(entry.subTitle ?? "")
+                                                .font(
+                                                    .custom(
+                                                        "Inter", size: 12, relativeTo: .caption2)
+                                                )
+                                                .foregroundStyle(.white)
+                                                .shadow(radius: 20)
+                                        }
+                                        .padding(.leading, geometry.size.width * 0.05)
+                                        .padding(.bottom, geometry.size.height * 0.05)
+                                    }
+                                },
                                 alignment: .bottomLeading
                             )
                     }
                 } else if let uiImage = UIImage(named: "PeopleWidgetDefault") {
-                    VStack(spacing: 8) {
+                    VStack(spacing: 4) {
                         Spacer()
                         Image(uiImage: uiImage)
                             .resizable()
@@ -176,9 +198,16 @@ struct EntePeopleWidgetEntryView: View {
                             .aspectRatio(contentMode: .fit)
                             .padding(8)
 
-                        Text("Go to Settings -> Widgets to customise the widget")
-                            .font(.custom("Inter", size: 12, relativeTo: .caption))
-                            .foregroundStyle(.white)  // Tint-aware color
+                        Text("People")
+                            .font(.custom("Inter", size: 14, relativeTo: .caption))
+                            .bold()
+                            .foregroundStyle(.white)
+                            .multilineTextAlignment(.center)
+                            .backwardWidgetAccentable(true)
+
+                        Text("Click to customise")
+                            .font(.custom("Inter", size: 12, relativeTo: .caption2))
+                            .foregroundStyle(.white)
                             .multilineTextAlignment(.center)
                             .padding(.bottom, 12)
                             .padding(.horizontal, 8)
@@ -194,8 +223,9 @@ struct EntePeopleWidgetEntryView: View {
             .edgesIgnoringSafeArea(.all)
             .widgetURL(
                 URL(
-                    string:
-                        "peoplewidget://message?generatedId=\(entry.generatedId != nil ? String(entry.generatedId!) : "nan")&mainKey=\(entry.mainKey != nil ? entry.mainKey! : "nan")&homeWidget"
+                    string: entry.generatedId != nil
+                        ? "peoplewidget://message?generatedId=\(entry.generatedId!)&mainKey=\(entry.mainKey ?? "")&homeWidget"
+                        : "peoplewidget://configure?homeWidget"
                 )
             )
         }

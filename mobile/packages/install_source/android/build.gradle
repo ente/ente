@@ -1,0 +1,43 @@
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+}
+
+group 'io.ente.install_source'
+version '1.0'
+
+android {
+    namespace 'io.ente.install_source'
+
+    sourceSets {
+        main.java.srcDirs += 'src/main/kotlin'
+        playstore.java.srcDirs += 'src/playstore/kotlin'
+        fdroid.java.srcDirs += 'src/noReferrer/kotlin'
+        independent.java.srcDirs += 'src/noReferrer/kotlin'
+        dev.java.srcDirs += 'src/noReferrer/kotlin'
+    }
+
+    flavorDimensions "default"
+    productFlavors {
+        independent {
+            dimension "default"
+        }
+        dev {
+            dimension "default"
+        }
+        playstore {
+            dimension "default"
+        }
+        fdroid {
+            dimension "default"
+        }
+    }
+
+    defaultConfig {
+        minSdkVersion 21
+    }
+}
+
+dependencies {
+    playstoreImplementation 'com.android.installreferrer:installreferrer:2.2'
+}

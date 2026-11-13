@@ -1,0 +1,74 @@
+{
+  "items": [
+    {
+      "rawData": "otpauth://totp/GitHub:octocat@github.demo?secret=JBSWY3DPEHPK3PXP&issuer=GitHub&algorithm=SHA1&digits=6&period=30",
+      "display": {
+        "pinned": true,
+        "trashed": false,
+        "lastUsedAt": 1720000000,
+        "tapCount": 12,
+        "tags": ["Work", "Admin"],
+        "note": "Primary admin account. Keep recovery contacts current.",
+        "position": 0,
+        "iconSrc": "",
+        "iconID": ""
+      }
+    },
+    {
+      "rawData": "otpauth://totp/Dropbox:archive.bot@dropbox.demo?secret=KRSXG5DSNFXGOIDB&issuer=Dropbox&algorithm=SHA1&digits=6&period=30",
+      "display": {
+        "pinned": false,
+        "trashed": true,
+        "lastUsedAt": 0,
+        "tapCount": 0,
+        "tags": ["Time capsule", "Archived"],
+        "note": "Intentionally kept in trash for restore testing.",
+        "position": 4,
+        "iconSrc": "",
+        "iconID": ""
+      }
+    },
+    {
+      "rawData": "otpauth://totp/Stripe:treasury%2Bauth@stripe.demo?secret=MFRGGZDFMZTWQ2LK&issuer=Stripe&algorithm=SHA256&digits=8&period=45",
+      "display": {
+        "pinned": false,
+        "trashed": false,
+        "lastUsedAt": 1710000000,
+        "tapCount": 5,
+        "tags": ["Money moves", "Finance"],
+        "note": "Eight-digit SHA-256 code for the demo treasury.",
+        "position": 1,
+        "iconSrc": "",
+        "iconID": ""
+      }
+    },
+    {
+      "rawData": "otpauth://steam/Steam:speedrunner@steam.demo?secret=ONSWG4TFOQXG64RA&issuer=Steam",
+      "display": {
+        "pinned": true,
+        "trashed": false,
+        "lastUsedAt": 1700000000,
+        "tapCount": 20,
+        "tags": ["Game night"],
+        "note": "Steam-compatible five-character code.",
+        "position": 2,
+        "iconSrc": "",
+        "iconID": ""
+      }
+    },
+    {
+      "rawData": "otpauth://hotp/Yubico:lab-key-42@yubico.demo?secret=ORSXG5AAMFZGK3TH&issuer=Yubico&algorithm=SHA512&digits=6&counter=42",
+      "display": {
+        "pinned": false,
+        "trashed": false,
+        "lastUsedAt": 0,
+        "tapCount": 0,
+        "tags": ["Hardware keys", "Lab"],
+        "note": "HOTP fixture for counter advancement.",
+        "position": 3,
+        "iconSrc": "",
+        "iconID": ""
+      }
+    }
+  ]
+}

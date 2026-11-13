@@ -1,18 +1,11 @@
 class UnauthorizedError extends Error {}
 
-class PassKeySessionNotVerifiedError extends Error {}
-
-class PassKeySessionExpiredError extends Error {}
-
-class SrpSetupNotCompleteError extends Error {}
-
 class StorageLimitExceededError extends Error {}
 
 class NoActiveSubscriptionError extends Error {}
 
 class FileLimitReachedError extends Error {}
 
-// error when file size + current usage >= storage plan limit + buffer
 class FileTooLargeForPlanError extends Error {}
 
 class WiFiUnavailableError extends Error {}

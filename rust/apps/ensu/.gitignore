@@ -1,5 +1,3 @@
-node_modules
-src-tauri/target
-src-tauri/gen
+src-tauri/gen/
 src-tauri/tauri.conf.dev.json
-.DS_Store
+src-tauri/onnxruntime/

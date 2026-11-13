@@ -1,61 +1,268 @@
 {
-  "networkHostLookUpErr": "Δεν είναι δυνατή η σύνδεση με το Ente, ελέγξτε τις ρυθμίσεις του δικτύου σας και επικοινωνήστε με την υποστήριξη αν το σφάλμα παραμένει.",
-  "@networkHostLookUpErr": {
-    "description": "Error message shown when the app cannot connect to Ente due to network host lookup failure"
-  },
-  "networkConnectionRefusedErr": "Δεν είναι δυνατή η σύνδεση με το Ente, παρακαλώ προσπαθήστε ξανά μετά από λίγο. Εάν το σφάλμα παραμένει, παρακαλούμε επικοινωνήστε με την υποστήριξη.",
-  "@networkConnectionRefusedErr": {
-    "description": "Error message shown when the app cannot connect to Ente due to connection refused"
-  },
-  "itLooksLikeSomethingWentWrongPleaseRetryAfterSome": "Φαίνεται ότι κάτι πήγε στραβά. Παρακαλώ προσπαθήστε ξανά μετά από λίγο. Αν το σφάλμα παραμένει, παρακαλούμε επικοινωνήστε με την ομάδα υποστήριξης μας.",
-  "@itLooksLikeSomethingWentWrongPleaseRetryAfterSome": {
-    "description": "Generic error message for temporary issues"
-  },
-  "error": "Σφάλμα",
-  "@error": {
-    "description": "Generic error title"
-  },
-  "ok": "Οκ",
-  "@ok": {
-    "description": "Generic OK button label"
-  },
-  "faq": "Συχνές Ερωτήσεις",
-  "@faq": {
-    "description": "FAQ link label"
-  },
-  "contactSupport": "Επικοινωνήστε με την υποστήριξη",
-  "@contactSupport": {
-    "description": "Contact support button label"
-  },
-  "emailYourLogs": "Στείλτε με email τα αρχεία καταγραφής σας",
-  "@emailYourLogs": {
-    "description": "Title for emailing logs dialog"
-  },
-  "pleaseSendTheLogsTo": "Παρακαλώ στείλτε τα αρχεία καταγραφής σας στο \n{toEmail}",
-  "@pleaseSendTheLogsTo": {
-    "description": "Message asking user to send logs to email address",
+  "account": "Λογαριασμός",
+  "accountCredentials": "Μυστικό",
+  "accountCredentialsDescription": "Διατηρήστε διαπιστευτήρια λογαριασμών.",
+  "accountOwnerPersonAppbarTitle": "{title} (Εγώ)",
+  "@accountOwnerPersonAppbarTitle": {
+    "description": "Title of appbar for account owner person",
     "placeholders": {
-      "toEmail": {
-        "type": "String",
-        "description": "Email address to send logs to"
+      "title": {
+        "type": "String"
       }
     }
   },
-  "copyEmailAddress": "Αντιγραφή διεύθυνσης email",
-  "@copyEmailAddress": {
-    "description": "Button to copy email address to clipboard"
+  "activeSessions": "Ενεργές συνεδρίες",
+  "@activeSessions": {
+    "description": "Title for active sessions page"
   },
-  "exportLogs": "Εξαγωγή αρχείων καταγραφής",
-  "@exportLogs": {
-    "description": "Button to export logs"
+  "add": "Προσθήκη",
+  "addCode": "Προσθήκη κωδικού",
+  "addEmail": "Προσθήκη email",
+  "addingToFavorites": "Προσθήκη στα αγαπημένα...",
+  "addLocation": "Προσθήκη τοποθεσίας",
+  "addLocationButton": "Προσθήκη",
+  "addMore": "Προσθήκη περισσότερων",
+  "addName": "Προσθήκη ονόματος",
+  "addNew": "Προσθήκη νέου",
+  "@addNew": {
+    "description": "Text to add a new item (location tag, album, caption etc)"
   },
+  "addNewEmail": "Προσθήκη νέου email",
+  "addToAlbum": "Πρσθήκη σε άλμπουμ",
+  "addToCollection": "Προσθήκη σε συλλογή",
+  "addToEnte": "Προσθήκη στο Ente",
+  "addYourPhotosNow": "Προσθέστε τις φωτογραφίες σας τώρα",
+  "advanced": "Για προχωρημένους",
+  "after1Day": "Μετά από 1 ημέρα",
+  "after1Hour": "Μετά από 1 ώρα",
+  "after1Month": "Μετά από 1 μήνα",
+  "after1Week": "Μετά από 1 εβδομάδα",
+  "after1Year": "Μετά από 1 χρόνο",
+  "albums": "Άλμπουμ",
+  "albumTitle": "Τίτλος άλμπουμ",
+  "algorithm": "Αλγόριθμος",
+  "all": "Όλα",
+  "allFilesAlreadyMarkedAsImportant": "Όλα τα στοιχεία είναι ήδη σημαντικά",
+  "allMemoriesPreserved": "Όλες σας οι μνήμες έχουν διατηρηθεί",
+  "allowDownloads": "Να επιτρέπονται οι λήψεις",
+  "allowPermBody": "Παρακαλούμε επιτρέψτε την πρόσβαση στις φωτογραφίες σας από τις Ρυθμίσεις, ώστε το Ente να μπορεί να εμφανίζει και να δημιουργεί αντίγραφα ασφαλείας της βιβλιοθήκης σας.",
+  "allowPermTitle": "Να επιτρέπεται η πρόσβαση στις φωτογραφίες",
+  "allPersonGroupingWillReset": "Οι ομαδοποιήσεις προσώπου θα επαναφερθούν και θα χάσετε όλες τις προτάσεις σχετικά με αυτό το άτομο",
+  "androidBiometricHint": "Επαλήθευση ταυτότητας",
+  "@androidBiometricHint": {
+    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
+  },
+  "androidCancelButton": "Ακύρωση",
+  "@androidCancelButton": {
+    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
+  },
+  "androidSignInTitle": "Απαιτείται έλεγχος ταυτότητας",
+  "@androidSignInTitle": {
+    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
+  },
+  "aNewVersionOfEnteIsAvailable": "Μια νέα έκδοση του Ente είναι διαθέσιμη.",
+  "appLock": "Κλείδωμα εφαρμογής",
+  "@appLock": {
+    "description": "App lock setting title"
+  },
+  "appLockDescription": "Επιλέξτε ανάμεσα στην προεπιλεγμένη οθόνη κλειδώματος της συσκευής σας και σε μια προσαρμοσμένη οθόνη κλειδώματος με ένα PIN ή έναν κωδικό πρόσβασης.",
+  "@appLockDescription": {
+    "description": "Description of app lock feature"
+  },
+  "appLockNotEnabled": "Το κλείδωμα εφαρμογής δεν είναι ενεργοποιημένο",
+  "appLockNotEnabledDescription": "Παρακαλώ ενεργοποιήστε το κλείδωμα εφαρμογής μέσω της επιλογής Ασφάλεια > Κλείδωμα εφαρμογής",
+  "appLockOfflineModeWarning": "Έχετε επιλέξει να προχωρήσετε χωρίς αντίγραφα ασφαλείας. Αν ξεχάσετε τον κωδικό της εφαρμογής, θα κλειδωθείτε από την πρόσβαση στα δεδομένα σας.",
+  "apply": "Εφαρμογή",
+  "applyCodeTitle": "Εφαρμογή κωδικού",
+  "archive": "Αρχειοθέτηση",
+  "@archive": {
+    "description": "Action of 'Archiving' an element"
+  },
+  "areYouSure": "Είστε σίγουροι;",
+  "@areYouSure": {
+    "description": "Confirmation dialog title"
+  },
+  "areYouSureThatYouWantToLeaveTheFamily": "Θέλετε σίγουρα να αποχωρήσετε από το οικογενειακό πρόγραμμα;",
+  "areYouSureYouWantToExit": "Θέλετε σίγουρα να σταματήσετε;",
+  "areYouSureYouWantToResetThisPerson": "Θέλετε σίγουρα να επαναφέρετε αυτό το άτομο;",
+  "authenticateGeneric": "Παρακαλώ πιστοποιήστε την ταυτότητά σας",
+  "authenticating": "Ταυτοποίηση...",
+  "authenticationFailedPleaseTryAgain": "Αποτυχία ελέγχου ταυτότητας, παρακαλώ προσπαθήστε ξανά",
+  "@authenticationFailedPleaseTryAgain": {
+    "description": "Error message when authentication fails"
+  },
+  "authenticationSuccessful": "Επιτυχής έλεγχος ταυτότητας!",
+  "@authenticationSuccessful": {
+    "description": "Success message when authentication is successful"
+  },
+  "authToChangeYourPassword": "Παρακαλώ πραγματοποιήστε έλεγχο ταυτότητας για να αλλάξετε τον κωδικό πρόσβασής σας",
+  "authToConfigureTwofactorAuthentication": "Παρακαλούμε επαληθεύστε την ταυτότητά σας για να ρυθμίσετε τον έλεγχο ταυτότητας δύο παραγόντων",
+  "authToExportCodes": "Παρακαλώ πραγματοποιήστε έλεγχο ταυτότητας για να εξάγετε τους κωδικού σας",
+  "authToInitiateSignIn": "Παρακαλώ πραγματοποιήστε έλεγχο ταυτότητας για να ξεκινήσετε την είσοδο για δημιουργία αντιγράφου ασφαλείας.",
+  "authToManageLegacy": "Παρακαλώ πραγματοποιήστε έλεγχο ταυτότητας για να διαχειριστείτε τις έμπιστες επαφές σας",
+  "authToViewPasskey": "Παρακαλούμε πραγματοποιήστε έλεγχο ταυτότητας για να δείτε το κλειδί πρόσβασης",
+  "authToViewPasskeyGeneric": "Παρακαλώ πιστοποιηθείτε για να δείτε το κλειδί πρόσβασης",
+  "authToViewSecrets": "Παρακαλώ πραγματοποιήστε έλεγχο ταυτότητας για να δείτε τα μυστικά σας",
+  "@authToViewSecrets": {
+    "description": "Message prompting authentication to view secrets"
+  },
+  "authToViewTrashedFiles": "Παρακαλώ πραγματοποιήστε έλεγχο ταυτότητας για να δείτε τον κάδο απορριμμάτων σας",
+  "authToViewYourHiddenFiles": "Παρακαλώ πραγματοποιήστε έλεγχο ταυτότητας για να δείτε τα κρυμμένα αρχεία σας",
+  "authToViewYourMemories": "Παρακαλώ πραγματοποιήστε έλεγχο ταυτότητας για να δείτε τις αναμνήσεις σας",
+  "autoLock": "Αυτόματο κλείδωμα",
+  "@autoLock": {
+    "description": "Auto lock setting title"
+  },
+  "autoLockFeatureDescription": "Χρόνος μετά τον οποίο η εφαρμογή κλειδώνει μετά την τοποθέτηση στο παρασκήνιο",
+  "@autoLockFeatureDescription": {
+    "description": "Description of auto lock feature"
+  },
+  "backedUpFolders": "Φάκελοι με αντίγραφο ασφαλείας",
+  "backupFailed": "Η δημιουργία αντιγράφου ασφαλείας απέτυχε",
+  "backupOverMobileData": "Αντίγραφα ασφαλείας μέσω δεδομένων κινητής τηλεφωνίας",
+  "backupSettings": "Ρυθμίσεις αντιγράφων ασφαλείας",
+  "backupStatus": "Κατάσταση αντιγράφων ασφαλείας",
+  "backupStatusDescription": "Αντικείμενα που έχουν αποθηκευτεί θα εμφανιστούν εδώ",
+  "backupVideos": "Αντίγραφα ασφαλείας βίντεο",
+  "bothIssuerAndAccountCanNotBeEmpty": "Ο εκδότης και ο λογαριασμός δεν μπορούν να είναι κενοί",
   "cancel": "Ακύρωση",
   "@cancel": {
     "description": "Cancel button label"
   },
-  "reportABug": "Αναφορά Σφάλματος",
-  "@reportABug": {
-    "description": "Label for reporting a bug"
+  "cancelRecovery": "Ακύρωση ανάκτησης",
+  "cannotAddMoreFilesAfterBecomingViewer": "Ο/Η {name} δεν θα μπορεί πλέον να προσθέτει στοιχεία στη συλλογή αφού γίνει θεατής.",
+  "@cannotAddMoreFilesAfterBecomingViewer": {
+    "description": "Warning message when changing a collaborator to viewer",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "John"
+      }
+    }
+  },
+  "cannotDeleteSharedFiles": "Δεν είναι δυνατή η διαγραφή κοινόχρηστων αρχείων",
+  "canOnlyCreateLinkForFilesOwnedByYou": "Μπορείτε να δημιουργήσετε σύνδεσμο μόνο για αρχεία που ανήκουν σε εσάς",
+  "canOnlyRemoveFilesOwnedByYou": "Μπορείτε να αφαιρέσετε μόνο αρχεία που ανήκουν σε εσάς",
+  "centerPoint": "Κεντρικό σημείο",
+  "changeLocationOfSelectedItems": "Αλλαγή τοποθεσίας των επιλεγμένων στοιχείων;",
+  "changePassword": "Αλλαγή κωδικού πρόσβασής",
+  "changePasswordTitle": "Αλλαγή κωδικού πρόσβασής",
+  "@changePasswordTitle": {
+    "description": "Change password title"
+  },
+  "changePermissions": "Αλλαγή δικαιωμάτων",
+  "checkForUpdates": "Έλεγχος για ενημερώσεις",
+  "checking": "Έλεγχος...",
+  "checkStatus": "Έλεγχος κατάστασης",
+  "@checkStatus": {
+    "description": "Check status button label"
+  },
+  "chooseFromAnExistingContact": "Επιλέξτε από υπάρχουσα επαφή",
+  "cleanUncategorized": "Καθαρισμός μη κατηγοριοποιημένων",
+  "cleanUncategorizedDescription": "Αφαίρεση από το Χωρίς Κατηγορία όλων των αρχείων που υπάρχουν σε άλλα άλμπουμ",
+  "clearAllFilters": "Εκκαθάριση όλων των φίλτρων",
+  "clearingTrash": "Εκκαθάριση κάδου...",
+  "close": "Κλείσιμο",
+  "codeAppliedPageTitle": "Ο κωδικός εφαρμόστηκε",
+  "codeChangeLimitReached": "Λυπούμαστε, έχετε συμπληρώσει το όριο των αλλαγών κωδικού.",
+  "codeCopiedToClipboard": "Ο κωδικός αντιγράφηκε στο πρόχειρο",
+  "codeIssuerHint": "Εκδότης",
+  "collaborator": "Συνεργάτης",
+  "collageLayout": "Διάταξη",
+  "collageSaved": "Το κολάζ αποθηκεύτηκε στη συλλογή",
+  "collectionCannotBeDeleted": "Αυτή η συλλογή δεν μπορεί να διαγραφεί",
+  "collectionCannotBeEdited": "Αυτή η συλλογή δεν μπορεί να επεξεργαστεί",
+  "collectionCannotBeShared": "Αυτή η συλλογή δεν μπορεί να κοινοποιηθεί",
+  "collectionDeletedSuccessfully": "Η συλλογή διαγράφηκε επιτυχώς",
+  "collectionEmptyStateSubtitle": "Δεν υπάρχουν στοιχεία σε αυτή τη συλλογή",
+  "collectionLabel": "Συλλογή",
+  "collectionRenamedSuccessfully": "Η συλλογή μετονομάστηκε επιτυχώς",
+  "collections": "Συλλογές",
+  "color": "Χρώμα",
+  "compactMode": "Συμπαγής λειτουργία",
+  "confirm": "Επιβεβαίωση",
+  "@confirm": {
+    "description": "Confirm button label"
+  },
+  "confirm2FADisable": "Θέλετε σίγουρα να απενεργοποιήσετε την ταυτοποίηση δύο παραγόντων;",
+  "confirmAddingTrustedContact": "Πρόκειται να προσθέτε το {email} ως έμπιστη επαφή. Θα μπορούν να ανακτήσουν το λογαριασμό σας αν απουσιάσετε για {numOfDays} ημέρες.",
+  "@confirmAddingTrustedContact": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      },
+      "numOfDays": {
+        "type": "int",
+        "example": "30"
+      }
+    }
+  },
+  "confirmPassword": "Επιβεβαίωση κωδικού πρόσβασης",
+  "@confirmPassword": {
+    "description": "Confirm password field label"
+  },
+  "confirmRecoveryKey": "Επιβεβαίωση κλειδιού ανάκτησης",
+  "confirmUpdatingkey": "Είστε σίγουροι ότι θέλετε να ενημερώσετε το μυστικό κλειδί;",
+  "confirmYourRecoveryKey": "Επιβεβαίωση κλειδιού ανάκτησης",
+  "contactDetails": "Στοιχεία επαφής",
+  "contactDetailsHint": "Τηλέφωνο, email ή άλλα στοιχεία επικοινωνίας",
+  "contactName": "Όνομα επαφής",
+  "contactNameHint": "Πλήρες όνομα της επαφής έκτακτης ανάγκης",
+  "contactNotes": "Μήνυμα για την επαφή",
+  "contactNotesHint": "Σημαντικές πληροφορίες για κοινοποίηση σε αυτό το άτομο όταν επικοινωνήσουν μαζί του",
+  "contacts": "Επαφές",
+  "contactSupport": "Επικοινωνήστε με την υποστήριξη",
+  "@contactSupport": {
+    "description": "Contact support button label"
+  },
+  "continueLabel": "Συνέχεια",
+  "@continueLabel": {
+    "description": "Continue button label"
+  },
+  "copied": "Αντιγράφηκε",
+  "copiedNextToClipboard": "Αντιγράφηκε ο επόμενος κωδικός στο πρόχειρο",
+  "copiedToClipboard": "Αντιγράφηκε στο πρόχειρο",
+  "copyEmailAddress": "Αντιγραφή διεύθυνσης email",
+  "@copyEmailAddress": {
+    "description": "Button to copy email address to clipboard"
+  },
+  "copyLink": "Αντιγραφή συνδέσμου",
+  "copypasteThisCodentoYourAuthenticatorApp": "Αντιγράψτε αυτόν τον κωδικό \nστην εφαρμογή αυθεντικοποίησης",
+  "couldNotBackUpTryLater": "Δεν ήταν δυνατή η δημιουργία αντιγράφων ασφαλείας.\nΘα προσπαθήσουμε ξανά αργότερα.",
+  "couldNotOpenFile": "Δεν ήταν δυνατό το άνοιγμα του στοιχείου: {error}",
+  "@couldNotOpenFile": {
+    "description": "Error message when item cannot be opened",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Permission denied"
+      }
+    }
+  },
+  "couldNotUpdateSubscription": "Αδυναμία ενημέρωσης συνδρομής",
+  "count": "Αριθμός",
+  "crashAndErrorReporting": "Αναφορά κατάρρευσης & σφάλματος",
+  "create": "Δημιουργία",
+  "createAccount": "Δημιουργία λογαριασμού",
+  "@createAccount": {
+    "description": "Create account button label"
+  },
+  "createAlbumActionHint": "Πατήστε παρατεταμένα για να επιλέξετε φωτογραφίες και κάντε κλικ στο + για να δημιουργήσετε ένα άλμπουμ",
+  "createCollaborativeLink": "Δημιουργία συνεργατικού συνδέσμου",
+  "createCollage": "Δημιουργία κολάζ",
+  "createCollection": "Δημιουργία συλλογής",
+  "createNewTag": "Δημιουργία νέας ετικέτας",
+  "createPublicLink": "Δημιουργία δημόσιου συνδέσμου",
+  "creatingLink": "Δημιουργία συνδέσμου...",
+  "credentialName": "Λογαριασμός",
+  "credentialNameHint": "Όνομα της υπηρεσίας",
+  "credentialNotes": "Πρόσθετες σημειώσεις",
+  "credentialNotesHint": "Μέθοδοι ανάκτησης, ερωτήσεις ασφαλείας, ...",
+  "criticalUpdateAvailable": "Διαθέσιμη κρίσιμη ενημέρωση",
+  "custom": "Προσαρμοσμένο",
+  "@custom": {
+    "description": "Label for setting custom value for link expiry"
   },
   "customEndpoint": "Συνδεδεμένο στο {endpoint}",
   "@customEndpoint": {
@@ -67,469 +274,399 @@
       }
     }
   },
-  "save": "Αποθήκευση",
-  "@save": {
-    "description": "Label for save button"
-  },
-  "send": "Αποστολή",
-  "@send": {
-    "description": "Label for send button"
-  },
-  "saveOrSendDescription": "Θέλετε να το αποθηκεύσετε στον αποθηκευτικό σας χώρο (φάκελος Λήψεις από προεπιλογή) ή να το στείλετε σε άλλες εφαρμογές;",
-  "@saveOrSendDescription": {
-    "description": "Description text asking user if they want to save to storage or share with other apps"
-  },
-  "saveOnlyDescription": "Θέλετε να το αποθηκεύσετε στον αποθηκευτικό σας χώρο (φάκελος Λήψεις από προεπιλογή);",
-  "@saveOnlyDescription": {
-    "description": "Description text asking user if they want to save to storage (for platforms that don't support sharing)"
-  },
-  "email": "Email",
-  "@email": {
-    "description": "Email field label"
-  },
-  "verify": "Επαλήθευση",
-  "@verify": {
-    "description": "Verify button label"
-  },
-  "invalidEmailTitle": "Μη έγκυρη διεύθυνση email",
-  "@invalidEmailTitle": {
-    "description": "Title for invalid email error dialog"
-  },
-  "invalidEmailMessage": "Παρακαλούμε εισάγετε μια έγκυρη διεύθυνση email.",
-  "@invalidEmailMessage": {
-    "description": "Message for invalid email error dialog"
-  },
-  "pleaseWait": "Παρακαλώ περιμένετε…",
-  "@pleaseWait": {
-    "description": "Please wait message"
-  },
-  "verifyPassword": "Επαλήθευση κωδικού πρόσβασης",
-  "@verifyPassword": {
-    "description": "Verify password button label"
-  },
-  "incorrectPasswordTitle": "Λάθος κωδικός πρόσβασης",
-  "@incorrectPasswordTitle": {
-    "description": "Title for incorrect password error"
-  },
-  "pleaseTryAgain": "Παρακαλώ δοκιμάστε ξανά",
-  "@pleaseTryAgain": {
-    "description": "Message asking user to try again"
-  },
-  "enterPassword": "Εισάγετε κωδικό πρόσβασης",
-  "@enterPassword": {
-    "description": "Enter password field label"
-  },
-  "enterYourPasswordHint": "Εισάγετε τον κωδικό πρόσβασης σας",
-  "@enterYourPasswordHint": {
-    "description": "Hint for password field"
-  },
-  "activeSessions": "Ενεργές συνεδρίες",
-  "@activeSessions": {
-    "description": "Title for active sessions page"
-  },
-  "oops": "Ουπς",
-  "@oops": {
-    "description": "Oops error title"
-  },
-  "somethingWentWrongPleaseTryAgain": "Κάτι πήγε στραβά, παρακαλώ προσπαθήστε ξανά",
-  "@somethingWentWrongPleaseTryAgain": {
-    "description": "Generic error message"
-  },
-  "thisWillLogYouOutOfThisDevice": "Αυτό θα σας αποσυνδέσει από αυτή τη συσκευή!",
-  "@thisWillLogYouOutOfThisDevice": {
-    "description": "Warning message for logging out of current device"
-  },
-  "thisWillLogYouOutOfTheFollowingDevice": "Αυτό θα σας αποσυνδέσει από την ακόλουθη συσκευή:",
-  "@thisWillLogYouOutOfTheFollowingDevice": {
-    "description": "Warning message for logging out of another device"
-  },
-  "terminateSession": "Τερματισμός συνεδρίας;",
-  "@terminateSession": {
-    "description": "Title for terminate session dialog"
-  },
-  "terminate": "Τερματισμός",
-  "@terminate": {
-    "description": "Terminate button label"
-  },
-  "thisDevice": "Αυτή η συσκευή",
-  "@thisDevice": {
-    "description": "Label for current device"
-  },
-  "createAccount": "Δημιουργία λογαριασμού",
-  "@createAccount": {
-    "description": "Create account button label"
-  },
-  "weakStrength": "Αδύναμος",
-  "@weakStrength": {
-    "description": "Weak password strength label"
-  },
-  "moderateStrength": "Μέτριος",
-  "@moderateStrength": {
-    "description": "Moderate password strength label"
-  },
-  "strongStrength": "Δυνατός",
-  "@strongStrength": {
-    "description": "Strong password strength label"
+  "darkTheme": "Σκοτεινό",
+  "data": "Δεδομένα",
+  "dayToday": "Σήμερα",
+  "dayYesterday": "Χθες",
+  "decrypting": "Αποκρυπτογράφηση...",
+  "decryptingVideo": "Αποκρυπτογράφηση βίντεο...",
+  "deduplicateCodes": "Διπλότυποι κωδικοί",
+  "deduplicateFiles": "Διαγραφή διπλότυπων αρχείων",
+  "delete": "Διαγραφή",
+  "@delete": {
+    "description": "Delete button label"
   },
   "deleteAccount": "Διαγραφή λογαριασμού",
   "@deleteAccount": {
     "description": "Delete account button label"
   },
-  "deleteAccountQuery": "Λυπόμαστε που σας βλέπουμε να φεύγετε. Αντιμετωπίζετε κάποιο πρόβλημα;",
-  "@deleteAccountQuery": {
-    "description": "Message asking user why they want to delete account"
-  },
-  "yesSendFeedbackAction": "Ναι, αποστολή σχολίων",
-  "@yesSendFeedbackAction": {
-    "description": "Button to confirm sending feedback"
-  },
-  "noDeleteAccountAction": "Όχι, διαγραφή λογαριασμού",
-  "@noDeleteAccountAction": {
-    "description": "Button to proceed with account deletion"
-  },
-  "initiateAccountDeleteTitle": "Παρακαλώ πραγματοποιήστε έλεγχο ταυτότητας για να ξεκινήσετε τη διαγραφή λογαριασμού",
-  "@initiateAccountDeleteTitle": {
-    "description": "Title for authentication dialog before account deletion"
-  },
-  "confirmAccountDeleteTitle": "Επιβεβαίωση διαγραφής λογαριασμού",
-  "@confirmAccountDeleteTitle": {
-    "description": "Title for account deletion confirmation dialog"
-  },
-  "confirmAccountDeleteMessage": "Αυτός ο λογαριασμός είναι συνδεδεμένος με άλλες εφαρμογές Ente, εάν χρησιμοποιείτε κάποια.\n\nΤα δεδομένα σας, σε όλες τις εφαρμογές Ente, θα προγραμματιστούν για διαγραφή και ο λογαριασμός σας θα διαγραφεί οριστικά.",
-  "@confirmAccountDeleteMessage": {
-    "description": "Message warning about account deletion consequences"
-  },
-  "delete": "Διαγραφή",
-  "@delete": {
-    "description": "Delete button label"
-  },
-  "createNewAccount": "Δημιουργία νέου λογαριασμού",
-  "@createNewAccount": {
-    "description": "Create new account button label"
-  },
-  "password": "Κωδικόs πρόσβασης",
-  "@password": {
-    "description": "Password field label"
-  },
-  "confirmPassword": "Επιβεβαίωση κωδικού πρόσβασης",
-  "@confirmPassword": {
-    "description": "Confirm password field label"
-  },
-  "passwordStrength": "Ισχύς κωδικού πρόσβασης: {passwordStrengthValue}",
-  "@passwordStrength": {
-    "description": "Text to indicate the password strength",
+  "deleteAlbum": "Διαγραφή άλμπουμ",
+  "deleteAlbumDialog": "Να διαγραφούν επίσης οι φωτογραφίες (και τα βίντεο) αυτού του άλμπουμ από <bold>όλα τα άλλα</bold> άλμπουμ στα οποία βρίσκονται;",
+  "deleteAlbumsDialogBody": "Αυτό θα διαγράψει όλα τα κενά άλμπουμ. Χρήσιμο όταν θέλετε να μειώσετε την ακαταστασία στη λίστα των άλμπουμ σας.",
+  "deleteCodeAuthMessage": "Πραγματοποιήστε έλεγχο ταυτότητας για να διαγράψετε τον κωδικό",
+  "deleteCodeMessage": "Είστε σίγουροι ότι θέλετε να διαγράψετε αυτόν τον κωδικό; Αυτή η ενέργεια δεν είναι αναστρέψιμη.",
+  "deleteCodeTitle": "Διαγραφή κωδικού;",
+  "deleteCollectionDialogBody": "Η \"{collectionName}\" θα διαγραφεί οριστικά.",
+  "@deleteCollectionDialogBody": {
+    "description": "Confirmation message body for deleting a single collection",
     "placeholders": {
-      "passwordStrengthValue": {
-        "description": "The strength of the password as a string",
+      "collectionName": {
         "type": "String",
-        "example": "Weak or Moderate or Strong"
+        "example": "My Documents"
       }
     }
   },
-  "hearUsWhereTitle": "Πώς ακούσατε για το Ente; (προαιρετικό)",
-  "@hearUsWhereTitle": {
-    "description": "Title asking how user heard about Ente"
+  "deleteCollectionFromEverywhere": "Διαγραφή στοιχείων και από παντού",
+  "@deleteCollectionFromEverywhere": {
+    "description": "Checkbox label asking whether to delete collection items everywhere"
   },
-  "hearUsExplanation": "Δεν παρακολουθούμε εγκαταστάσεις εφαρμογών. Θα βοηθούσε αν μας είπατε πού μας βρήκατε!",
-  "@hearUsExplanation": {
-    "description": "Explanation for asking how user heard about Ente"
-  },
-  "signUpTerms": "Συμφωνώ με τους <u-terms>όρους χρήσης</u-terms> και την <u-policy>πολιτική απορρήτου</u-policy>",
-  "@signUpTerms": {
-    "description": "Terms agreement text for sign up"
-  },
-  "termsOfServicesTitle": "Όροι",
-  "@termsOfServicesTitle": {
-    "description": "Terms of service title"
-  },
-  "privacyPolicyTitle": "Πολιτική Απορρήτου",
-  "@privacyPolicyTitle": {
-    "description": "Privacy policy title"
-  },
-  "ackPasswordLostWarning": "Καταλαβαίνω ότι αν χάσω τον κωδικό μου μπορεί να χάσω τα δεδομένα μου αφού τα δεδομένα μου είναι από <underline>άκρο-σε-άκρο κρυπτογραφημένα</underline>.",
-  "@ackPasswordLostWarning": {
-    "description": "Warning about password loss"
-  },
-  "encryption": "Kρυπτογράφηση",
-  "@encryption": {
-    "description": "Encryption label"
-  },
-  "logInLabel": "Σύνδεση",
-  "@logInLabel": {
-    "description": "Log in button label"
-  },
-  "welcomeBack": "Καλωσορίσατε και πάλι!",
-  "@welcomeBack": {
-    "description": "Welcome back message"
-  },
-  "loginTerms": "Κάνοντας κλικ στη σύνδεση, συμφωνώ με τους <u-terms>όρους χρήσης</u-terms> και την <u-policy>πολιτική απορρήτου</u-policy>",
-  "@loginTerms": {
-    "description": "Terms agreement text for login"
-  },
-  "noInternetConnection": "Χωρίς σύνδεση στο διαδίκτυο",
-  "@noInternetConnection": {
-    "description": "No internet connection error message"
-  },
-  "pleaseCheckYourInternetConnectionAndTryAgain": "Παρακαλούμε ελέγξτε τη σύνδεσή σας στο διαδίκτυο και προσπαθήστε ξανά.",
-  "@pleaseCheckYourInternetConnectionAndTryAgain": {
-    "description": "Message asking user to check internet connection"
-  },
-  "verificationFailedPleaseTryAgain": "Η επαλήθευση απέτυχε, παρακαλώ προσπαθήστε ξανά",
-  "@verificationFailedPleaseTryAgain": {
-    "description": "Verification failed error message"
-  },
-  "recreatePasswordTitle": "Επαναδημιουργία κωδικού πρόσβασης",
-  "@recreatePasswordTitle": {
-    "description": "Title for recreate password dialog"
-  },
-  "recreatePasswordBody": "Η τρέχουσα συσκευή δεν είναι αρκετά ισχυρή για να επαληθεύσει τον κωδικό πρόσβασής σας, αλλά μπορούμε να τον αναδημιουργήσουμε με έναν τρόπο που λειτουργεί με όλες τις συσκευές.\n\nΠαρακαλούμε συνδεθείτε χρησιμοποιώντας το κλειδί ανάκτησης και αναδημιουργήστε τον κωδικό πρόσβασής σας (μπορείτε να χρησιμοποιήσετε ξανά τον ίδιο αν το επιθυμείτε).",
-  "@recreatePasswordBody": {
-    "description": "Body text for recreate password dialog"
-  },
-  "useRecoveryKey": "Χρήση κλειδιού ανάκτησης",
-  "@useRecoveryKey": {
-    "description": "Use recovery key button label"
-  },
-  "forgotPassword": "Ξέχασα τον κωδικό πρόσβασης σας",
-  "@forgotPassword": {
-    "description": "Forgot password link label"
-  },
-  "changeEmail": "Αλλαγή email",
-  "@changeEmail": {
-    "description": "Change email button label"
-  },
-  "verifyEmail": "Επαλήθευση email",
-  "@verifyEmail": {
-    "description": "Verify email title"
-  },
-  "weHaveSendEmailTo": "Έχουμε στείλει ένα μήνυμα στο <green>{email}</green>",
-  "@weHaveSendEmailTo": {
-    "description": "Text to indicate that we have sent a mail to the user",
+  "deleteDuplicates": "Διαγραφή διπλότυπων",
+  "deleteEmptyAlbums": "Διαγραφή κενών άλμπουμ",
+  "deleteEmptyAlbumsWithQuestionMark": "Διαγραφή κενών άλμπουμ;",
+  "deleteFromBoth": "Διαγραφή και από τα δύο",
+  "deleteFromDevice": "Διαγραφή από τη συσκευή",
+  "deleteFromEnte": "Διαγραφή από το Ente",
+  "deleteLink": "Διαγραφή συνδέσμου",
+  "deleteLinkQuestion": "Διαγραφή συνδέσμου;",
+  "deleteLocation": "Διαγραφή τοποθεσίας",
+  "deletePhotos": "Διαγραφή φωτογραφιών",
+  "deleteProgress": "Διαγραφή {currentlyDeleting} / {totalCount}",
+  "@deleteProgress": {
     "placeholders": {
-      "email": {
-        "description": "The email address of the user",
-        "type": "String",
-        "example": "example@ente.io"
-      }
+      "currentlyDeleting": {},
+      "totalCount": {}
     }
   },
-  "toResetVerifyEmail": "Για να επαναφέρετε τον κωδικό πρόσβασής σας, επαληθεύστε πρώτα το email σας.",
-  "@toResetVerifyEmail": {
-    "description": "Message asking user to verify email before password reset"
+  "deleteSharedAlbum": "Διαγραφή κοινόχρηστου άλμπουμ;",
+  "deleteSharedAlbumDialogBody": "Το άλμπουμ θα διαγραφεί για όλους\n\nΘα χάσετε πρόσβαση σε κοινόχρηστες φωτογραφίες σε αυτό το άλμπουμ που ανήκουν σε άλλους",
+  "deleteShareLinkConfirmation": "Τα άτομα με αυτόν τον σύνδεσμο δεν θα έχουν πλέον πρόσβαση στο στοιχείο.",
+  "deleteTagMessage": "Είστε σίγουροι ότι θέλετε να διαγράψετε αυτή την ετικέτα; Αυτή η ενέργεια είναι μη αναστρέψιμη.",
+  "deleteTagTitle": "Διαγραφή ετικέτας;",
+  "deletingFile": "Διαγραφή στοιχείου...",
+  "deletingShareLink": "Διαγραφή συνδέσμου...",
+  "deselectAll": "Αποεπιλογή όλων",
+  "details": "Λεπτομέρειες",
+  "developerSettings": "Ρυθμίσεις προγραμματιστή",
+  "@developerSettings": {
+    "description": "Label for developer settings"
   },
-  "checkInboxAndSpamFolder": "Παρακαλώ ελέγξτε τα εισερχόμενά σας (και τα ανεπιθύμητα) για να ολοκληρώσετε την επαλήθευση",
-  "@checkInboxAndSpamFolder": {
-    "description": "Message asking user to check inbox and spam folder"
-  },
-  "tapToEnterCode": "Πατήστε για να εισάγετε τον κωδικό",
-  "@tapToEnterCode": {
-    "description": "Hint for entering verification code"
-  },
-  "sendEmail": "Αποστολή email",
-  "resendEmail": "Επανάληψη αποστολής email",
-  "@resendEmail": {
-    "description": "Resend email button label"
-  },
-  "passKeyPendingVerification": "Η επαλήθευση εξακολουθεί να εκκρεμεί",
-  "@passKeyPendingVerification": {
-    "description": "Message when passkey verification is pending"
-  },
-  "loginSessionExpired": "Η συνεδρία έληξε",
-  "@loginSessionExpired": {
-    "description": "Login session expired title"
-  },
-  "loginSessionExpiredDetails": "Η συνεδρία σας έληξε. Παρακαλώ συνδεθείτε ξανά.",
-  "@loginSessionExpiredDetails": {
-    "description": "Login session expired details"
-  },
-  "passkeyAuthTitle": "Επιβεβαίωση κλειδιού πρόσβασης",
-  "@passkeyAuthTitle": {
-    "description": "Passkey authentication title"
-  },
-  "waitingForVerification": "Αναμονή για επαλήθευση...",
-  "@waitingForVerification": {
-    "description": "Waiting for verification message"
-  },
-  "tryAgain": "Προσπαθήστε ξανά",
-  "@tryAgain": {
-    "description": "Try again button label"
-  },
-  "checkStatus": "Έλεγχος κατάστασης",
-  "@checkStatus": {
-    "description": "Check status button label"
-  },
-  "loginWithTOTP": "Είσοδος με TOTP",
-  "@loginWithTOTP": {
-    "description": "Login with TOTP button label"
-  },
-  "recoverAccount": "Ανάκτηση λογαριασμού",
-  "@recoverAccount": {
-    "description": "Recover account button label"
-  },
-  "setPasswordTitle": "Ορισμός κωδικού πρόσβασης",
-  "@setPasswordTitle": {
-    "description": "Set password title"
-  },
-  "changePasswordTitle": "Αλλαγή κωδικού πρόσβασής",
-  "@changePasswordTitle": {
-    "description": "Change password title"
-  },
-  "resetPasswordTitle": "Επαναφορά κωδικού πρόσβασης",
-  "@resetPasswordTitle": {
-    "description": "Reset password title"
-  },
-  "encryptionKeys": "Κλειδιά κρυπτογράφησης",
-  "@encryptionKeys": {
-    "description": "Encryption keys title"
-  },
-  "enterPasswordToEncrypt": "Εισάγετε έναν κωδικό πρόσβασης που μπορούμε να χρησιμοποιήσουμε για την κρυπτογράφηση των δεδομένων σας",
-  "@enterPasswordToEncrypt": {
-    "description": "Prompt to enter password for encryption"
-  },
-  "enterNewPasswordToEncrypt": "Εισάγετε ένα νέο κωδικό πρόσβασης που μπορούμε να χρησιμοποιήσουμε για να κρυπτογραφήσουμε τα δεδομένα σας",
-  "@enterNewPasswordToEncrypt": {
-    "description": "Prompt to enter new password for encryption"
-  },
-  "passwordWarning": "Δεν αποθηκεύουμε αυτόν τον κωδικό πρόσβασης, οπότε αν τον ξεχάσετε <underline>δεν μπορούμε να αποκρυπτογραφήσουμε τα δεδομένα σας</underline>",
-  "@passwordWarning": {
-    "description": "Warning about password storage"
-  },
-  "howItWorks": "Πώς λειτουργεί",
-  "@howItWorks": {
-    "description": "How it works button label"
-  },
-  "generatingEncryptionKeys": "Δημιουργία κλειδιών κρυπτογράφησης...",
-  "@generatingEncryptionKeys": {
-    "description": "Generating encryption keys message"
-  },
-  "passwordChangedSuccessfully": "Ο κωδικός πρόσβασης άλλαξε επιτυχώς",
-  "@passwordChangedSuccessfully": {
-    "description": "Password changed successfully message"
-  },
-  "signOutFromOtherDevices": "Αποσύνδεση από άλλες συσκευές",
-  "@signOutFromOtherDevices": {
-    "description": "Sign out from other devices title"
-  },
-  "signOutOtherBody": "Αν νομίζετε ότι κάποιος μπορεί να γνωρίζει τον κωδικό πρόσβασής σας, μπορείτε να αναγκάσετε όλες τις άλλες συσκευές που χρησιμοποιούν το λογαριασμό σας να αποσυνδεθούν.",
-  "@signOutOtherBody": {
-    "description": "Sign out other devices explanation"
-  },
-  "signOutOtherDevices": "Αποσύνδεση άλλων συσκευών",
-  "@signOutOtherDevices": {
-    "description": "Sign out other devices button label"
-  },
-  "doNotSignOut": "Μην αποσυνδεθείτε",
-  "@doNotSignOut": {
-    "description": "Do not sign out button label"
-  },
-  "generatingEncryptionKeysTitle": "Δημιουργία κλειδιών κρυπτογράφησης…",
-  "@generatingEncryptionKeysTitle": {
-    "description": "Generating encryption keys title"
-  },
-  "continueLabel": "Συνέχεια",
-  "@continueLabel": {
-    "description": "Continue button label"
-  },
-  "insecureDevice": "Μη ασφαλής συσκευή",
-  "@insecureDevice": {
-    "description": "Insecure device warning title"
-  },
-  "sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": "Συγγνώμη, δεν μπορέσαμε να δημιουργήσουμε ασφαλή κλειδιά σε αυτήν τη συσκευή.\n\nπαρακαλώ εγγραφείτε από μια διαφορετική συσκευή.",
-  "@sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": {
-    "description": "Error message for insecure device"
-  },
-  "recoveryKeyCopiedToClipboard": "Το κλειδί ανάκτησης αντιγράφηκε στο πρόχειρο",
-  "@recoveryKeyCopiedToClipboard": {
-    "description": "Recovery key copied message"
-  },
-  "recoveryKey": "Κλειδί ανάκτησης",
-  "@recoveryKey": {
-    "description": "Recovery key label"
-  },
-  "recoveryKeyOnForgotPassword": "Εάν ξεχάσετε τον κωδικό πρόσβασής σας, ο μόνος τρόπος για να ανακτήσετε τα δεδομένα σας είναι με αυτό το κλειδί.",
-  "@recoveryKeyOnForgotPassword": {
-    "description": "Recovery key importance explanation"
-  },
-  "recoveryKeySaveDescription": "Δεν αποθηκεύουμε αυτό το κλειδί, παρακαλώ αποθηκεύστε αυτό το κλειδί 24 λέξεων σε μια ασφαλή τοποθεσία.",
-  "@recoveryKeySaveDescription": {
-    "description": "Recovery key save description"
-  },
-  "doThisLater": "Κάντε το αργότερα",
-  "@doThisLater": {
-    "description": "Do this later button label"
-  },
-  "saveKey": "Αποθήκευση κλειδιού",
-  "@saveKey": {
-    "description": "Save key button label"
-  },
-  "recoveryKeySaved": "Το κλειδί ανάκτησης αποθηκεύτηκε στο φάκελο Λήψεις!",
-  "@recoveryKeySaved": {
-    "description": "Recovery key saved confirmation message"
-  },
-  "noRecoveryKeyTitle": "Χωρίς κλειδί ανάκτησης;",
-  "@noRecoveryKeyTitle": {
-    "description": "No recovery key title"
-  },
-  "twoFactorAuthTitle": "Αυθεντικοποίηση δύο παραγόντων",
-  "@twoFactorAuthTitle": {
-    "description": "Two-factor authentication title"
-  },
-  "enterCodeHint": "Εισάγετε τον 6ψήφιο κωδικό από \nτην εφαρμογή αυθεντικοποίησης",
-  "@enterCodeHint": {
-    "description": "Hint for entering 2FA code"
-  },
-  "lostDeviceTitle": "Χαμένη συσκευή;",
-  "@lostDeviceTitle": {
-    "description": "Lost device title"
-  },
-  "enterRecoveryKeyHint": "Εισάγετε το κλειδί ανάκτησης σας",
-  "@enterRecoveryKeyHint": {
-    "description": "Hint for entering recovery key"
-  },
-  "recover": "Ανάκτηση",
-  "@recover": {
-    "description": "Recover button label"
-  },
-  "loggingOut": "Αποσύνδεση…",
-  "@loggingOut": {
-    "description": "Message shown while logging out"
-  },
-  "immediately": "Άμεσα",
-  "@immediately": {
-    "description": "Immediately option for auto lock timing"
-  },
-  "appLock": "Κλείδωμα εφαρμογής",
-  "@appLock": {
-    "description": "App lock setting title"
-  },
-  "autoLock": "Αυτόματο κλείδωμα",
-  "@autoLock": {
-    "description": "Auto lock setting title"
-  },
-  "noSystemLockFound": "Δεν βρέθηκε κλείδωμα συστήματος",
-  "@noSystemLockFound": {
-    "description": "Error when no system lock is found"
+  "developerSettingsWarning": "Είστε σίγουροι ότι θέλετε να τροποποιήσετε τις ρυθμίσεις προγραμματιστή;",
+  "deviceLock": "Κλείδωμα συσκευής",
+  "@deviceLock": {
+    "description": "Device lock option title"
   },
   "deviceLockEnablePreSteps": "Για να ενεργοποιήσετε το κλείδωμα της συσκευής, παρακαλώ ρυθμίστε τον κωδικό πρόσβασης της συσκευής ή το κλείδωμα οθόνης στις ρυθμίσεις του συστήματός σας.",
   "@deviceLockEnablePreSteps": {
     "description": "Instructions for enabling device lock"
   },
-  "appLockDescription": "Επιλέξτε ανάμεσα στην προεπιλεγμένη οθόνη κλειδώματος της συσκευής σας και σε μια προσαρμοσμένη οθόνη κλειδώματος με ένα PIN ή έναν κωδικό πρόσβασης.",
-  "@appLockDescription": {
-    "description": "Description of app lock feature"
+  "deviceNotFound": "Η συσκευή δε βρέθηκε",
+  "digits": "Ψηφία",
+  "disableDownloadWarningTitle": "Σημείωση",
+  "disableLinkMessage": "Αυτό θα διαγράψει τον δημόσιο σύνδεσμο για πρόσβαση στο \"{albumName}\".",
+  "@disableLinkMessage": {
+    "placeholders": {
+      "albumName": {}
+    }
   },
-  "deviceLock": "Κλείδωμα συσκευής",
-  "@deviceLock": {
-    "description": "Device lock option title"
+  "disableTwofactor": "Απενεργοποίηση ταυτοποίησης δύο παραγόντων",
+  "disablingTwofactorAuthentication": "Απενεργοποίηση ελέγχου ταυτότητας δύο παραγόντων...",
+  "discardChanges": "Απόρριψη",
+  "discover": "Ανακαλύψτε",
+  "@discover": {
+    "description": "The text to display for the discover section under which we show receipts, screenshots, sunsets, greenery, etc."
   },
-  "pinLock": "Κλείδωμα καρφιτσωμάτων",
-  "@pinLock": {
-    "description": "PIN lock option title"
+  "discover_babies": "Μωρά",
+  "discover_celebrations": "Γιορτές",
+  "discover_food": "Φαγητό",
+  "discover_greenery": "Πράσινο",
+  "discover_hills": "Λόφοι",
+  "discover_identity": "Ταυτότητα",
+  "discover_notes": "Σημειώσεις",
+  "discover_pets": "Κατοικίδια",
+  "discover_receipts": "Αποδείξεις",
+  "discover_screenshots": "Στιγμιότυπα οθόνης",
+  "discover_sunset": "Ηλιοβασιλέματα",
+  "discover_visiting_cards": "Επαγγελματικές κάρτες",
+  "discover_wallpapers": "Ταπετσαρίες",
+  "distanceInKMUnit": "χλμ",
+  "@distanceInKMUnit": {
+    "description": "Unit for distance in km"
   },
-  "autoLockFeatureDescription": "Χρόνος μετά τον οποίο η εφαρμογή κλειδώνει μετά την τοποθέτηση στο παρασκήνιο",
-  "@autoLockFeatureDescription": {
-    "description": "Description of auto lock feature"
+  "documentsHint": "Έγγραφα",
+  "done": "Ολοκληρώθηκε",
+  "doNotSignOut": "Μην αποσυνδεθείτε",
+  "@doNotSignOut": {
+    "description": "Do not sign out button label"
   },
+  "dontHaveAnAccount": "Δεν έχετε λογαριασμό;",
+  "dontSave": "Να μην αποθηκευτεί",
+  "doubleTapToViewHiddenCode": "Μπορείτε να πατήσετε δύο φορές σε μια καταχώρηση για να δείτε τον κωδικό",
+  "download": "Λήψη",
+  "downloadFailed": "Η λήψη απέτυχε",
+  "downloading": "Λήψη...",
+  "downloadingProgress": "Λήψη... {percentage}%",
+  "@downloadingProgress": {
+    "description": "Download progress message",
+    "placeholders": {
+      "percentage": {
+        "type": "int",
+        "example": "75"
+      }
+    }
+  },
+  "downloadUpdate": "Λήψη",
+  "doYouWantToDiscardTheEditsYouHaveMade": "Θέλετε να απορρίψετε τις αλλαγές που έχετε κάνει;",
+  "dropSupportEmail": "Παρακαλώ αφήστε ένα μήνυμα ηλ. ταχυδρομείου στο {supportEmail} από την καταχωρημένη διεύθυνσή σας",
+  "@dropSupportEmail": {
+    "placeholders": {
+      "supportEmail": {
+        "description": "The support email address",
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
+  },
+  "duplicateCodes": "Διπλότυποι κωδικοί",
+  "duplicateFileCountWithStorageSaved": "Έχετε εκκαθαρίσει {count, plural, one{{count} διπλότυπο αρχείο} other{{count} διπλότυπα αρχεία}}, εξοικονομώντας ({storageSaved}!)",
+  "@duplicateFileCountWithStorageSaved": {
+    "description": "The text to display when the user has successfully cleaned up duplicate files",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "1",
+        "type": "int"
+      },
+      "storageSaved": {
+        "example": "1.2 GB",
+        "type": "String"
+      }
+    }
+  },
+  "duplicateItemsGroup": "{count} αρχεία, {formattedSize} το καθένα",
+  "@duplicateItemsGroup": {
+    "description": "Display the number of duplicate files and their size",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "12",
+        "type": "int"
+      },
+      "formattedSize": {
+        "example": "2.3 MB",
+        "type": "String"
+      }
+    }
+  },
+  "edit": "Επεξεργασία",
+  "editCodeAuthMessage": "Πραγματοποιήστε έλεγχο ταυτότητας για να επεξεργαστείτε τον κωδικό",
+  "editItem": "Επεξεργασία στοιχείου",
+  "editLocation": "Επεξεργασία τοποθεσίας",
+  "editOrder": "Επεξεργασία σειράς",
+  "editSecret": "Επεξεργασία μυστικού",
+  "@editSecret": {
+    "description": "Title shown when editing an existing secret"
+  },
+  "editsSaved": "Οι αλλαγές αποθηκεύτηκαν",
+  "editsToLocationWillOnlyBeSeenWithinEnte": "Οι αλλαγές στην τοποθεσία θα εμφανίζονται μόνο μέσα στο Ente",
+  "editTag": "Επεξεργασία ετικέτας",
+  "eligible": "επιλέξιμο",
+  "emailChangedTo": "Το email άλλαξε σε {newEmail}",
+  "@emailChangedTo": {
+    "description": "Message when email has been changed",
+    "placeholders": {
+      "newEmail": {
+        "description": "The new email address",
+        "type": "String",
+        "example": "new@example.com"
+      }
+    }
+  },
+  "emailHint": "Εισάγετε την διεύθυνση ηλ. ταχυδρομείου σας",
+  "emailNoEnteAccount": "Το {email} δεν έχει λογαριασμό Ente.\n\nΣτείλτε τους πρόσκληση για να μοιραστείτε στοιχεία.",
+  "@emailNoEnteAccount": {
+    "placeholders": {
+      "email": {}
+    }
+  },
+  "emailNoEnteAccountPhotos": "Η διεύθυνση {email} δεν αντιστοιχεί σε λογαριασμό Ente.\n\nΣτείλτε μια πρόσκληση για να μοιραστείτε φωτογραφίες.",
+  "@emailNoEnteAccountPhotos": {
+    "placeholders": {
+      "email": {}
+    }
+  },
+  "emailUsMessage": "Παρακαλούμε στείλτε μας email στο {email}",
+  "@emailUsMessage": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "emailVerificationEnableWarning": "Για να αποφύγετε να κλειδωθείτε έξω από τον λογαριασμό σας, φροντίστε να αποθηκεύσετε ένα αντίγραφο του 2FA του email σας εκτός του Ente Auth πριν ενεργοποιήσετε την επαλήθευση email.",
+  "emailVerificationToggle": "Επαλήθευση email",
+  "emailYourLogs": "Στείλτε με email τα αρχεία καταγραφής σας",
+  "@emailYourLogs": {
+    "description": "Title for emailing logs dialog"
+  },
+  "emergencyContact": "Επαφή έκτακτης ανάγκης",
+  "emptyTrash": "Εκκαθάριση κάδου",
+  "emptyTrashConfirmation": "Είστε σίγουροι ότι θέλετε να διαγράψετε οριστικά όλα τα στοιχεία στον κάδο; Αυτή η ενέργεια δεν μπορεί να αναιρεθεί.",
+  "emptyTrashQuestion": "Άδειασμα κάδου;",
+  "encrypted": "Κρυπτογραφημένο",
+  "encryptionKeys": "Κλειδιά κρυπτογράφησης",
+  "@encryptionKeys": {
+    "description": "Encryption keys title"
+  },
+  "endpointUpdatedMessage": "Το τερματκό σημείο ενημερώθηκε επιτυχώς",
+  "@endpointUpdatedMessage": {
+    "description": "Success message when endpoint is updated"
+  },
+  "enterAlbumName": "Εισάγετε όνομα άλμπουμ",
+  "enterCode": "Εισαγωγή κωδικού",
+  "enterCodeDescription": "Εισάγετε τον κωδικό που παρέχεται από το φίλο σας για να κερδίσετε δωρεάν αποθήκευση και για τους δύο σας",
+  "enterCodeHint": "Εισάγετε τον 6ψήφιο κωδικό από \nτην εφαρμογή αυθεντικοποίησης",
+  "@enterCodeHint": {
+    "description": "Hint for entering 2FA code"
+  },
+  "enterCollectionName": "Εισαγάγετε όνομα συλλογής",
+  "enterDetailsManually": "Χειροκίνητη εισαγωγή στοιχείων",
+  "enterEmail": "Εισάγετε ηλεκτρονική διεύθυνση",
+  "enterNameOrEmailToShareWith": "Εισαγάγετε όνομα ή email για κοινοποίηση",
+  "enterNewEmailHint": "Εισάγετε την διεύθυνση ηλ. ταχυδρομείου σας",
+  "@enterNewEmailHint": {
+    "description": "Hint text for entering new email address"
+  },
+  "enterNewPasswordToEncrypt": "Εισάγετε ένα νέο κωδικό πρόσβασης που μπορούμε να χρησιμοποιήσουμε για να κρυπτογραφήσουμε τα δεδομένα σας",
+  "@enterNewPasswordToEncrypt": {
+    "description": "Prompt to enter new password for encryption"
+  },
+  "enterNewTitle": "Εισαγάγετε νέο τίτλο",
+  "enterPassword": "Εισάγετε κωδικό πρόσβασης",
+  "@enterPassword": {
+    "description": "Enter password field label"
+  },
+  "enterPasswordToEncrypt": "Εισάγετε έναν κωδικό πρόσβασης που μπορούμε να χρησιμοποιήσουμε για την κρυπτογράφηση των δεδομένων σας",
+  "@enterPasswordToEncrypt": {
+    "description": "Prompt to enter password for encryption"
+  },
+  "enterRecoveryKeyHint": "Εισάγετε το κλειδί ανάκτησης σας",
+  "@enterRecoveryKeyHint": {
+    "description": "Hint for entering recovery key"
+  },
+  "enterReferralCode": "Εισάγετε τον προωθητικό κωδικό",
+  "enterThe6digitCodeFromnyourAuthenticatorApp": "Εισάγετε τον 6ψήφιο κωδικό από \nτην εφαρμογή αυθεντικοποίησης",
+  "enterValidEmail": "Παρακαλώ εισάγετε μια έγκυρη διεύθυνση ηλεκτρονικού ταχυδρομείου.",
+  "enterYourNewEmailAddress": "Εισάγετε την διεύθυνση ηλ. ταχυδρομείου σας",
+  "enterYourPassword": "Εισάγετε τον κωδικό πρόσβασής σας",
+  "enterYourPasswordHint": "Εισάγετε τον κωδικό πρόσβασης σας",
+  "@enterYourPasswordHint": {
+    "description": "Hint for password field"
+  },
+  "enterYourRecoveryKey": "Εισάγετε το κλειδί ανάκτησής σας",
+  "error": "Σφάλμα",
+  "@error": {
+    "description": "Generic error title"
+  },
+  "errorOpeningFile": "Σφάλμα κατά το άνοιγμα του στοιχείου",
+  "exif": "EXIF",
+  "expiredLinkInfo": "Αυτός ο σύνδεσμος έχει λήξει. Επιλέξτε νέα ώρα λήξης ή απενεργοποιήστε τη λήξη συνδέσμου.",
+  "export": "Εξαγωγή",
+  "exportCodes": "Εξαγωγή κωδικών",
+  "exportDialogDesc": "Οι κρυπτογραφημένες εξαγωγές θα προστατεύονται από έναν κωδικό πρόσβασης της επιλογής σας.",
+  "exportLogs": "Εξαγωγή αρχείων καταγραφής",
+  "@exportLogs": {
+    "description": "Button to export logs"
+  },
+  "exportWarningDesc": "Το εξαγόμενο αρχείο περιέχει ευαίσθητες πληροφορίες. Παρακαλώ αποθηκεύστε το με ασφάλεια.",
+  "exportYourData": "Εξαγωγή των δεδομένων σας",
+  "extraPhotosFound": "Βρέθηκαν επιπλέον φωτογραφίες",
+  "failedToApplyCode": "Αποτυχία εφαρμογής κωδικού",
+  "failedToDownloadOrDecrypt": "Αποτυχία λήψης στοιχείου",
+  "failedToFetchOriginalForEdit": "Αποτυχία ανάκτησης του αρχικού για επεξεργασία",
+  "failedToFetchReferralDetails": "Δεν είναι δυνατή η λήψη λεπτομερειών σχετικά με τον προώθησης. Παρακαλώ προσπαθήστε ξανά αργότερα.",
+  "failedToLoadAlbums": "Αποτυχία φόρτωσης άλμπουμ",
+  "failedToLoadCollections": "Αποτυχία φόρτωσης συλλογών: {error}",
+  "@failedToLoadCollections": {
+    "description": "Error message when loading collections fails",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Network error"
+      }
+    }
+  },
+  "failedToUpdateFile": "Αποτυχία ενημέρωσης στοιχείου: {error}",
+  "@failedToUpdateFile": {
+    "description": "Error message when item update fails",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Network error"
+      }
+    }
+  },
+  "failedToVerifyPaymentStatus": "Αποτυχία επαλήθευσης κατάστασης πληρωμής",
+  "faq": "Συχνές Ερωτήσεις",
+  "@faq": {
+    "description": "FAQ link label"
+  },
+  "favorite": "Σήμανση ως αγαπημένο",
+  "featurePassAutomatically": "Μεταβιβάστε τα αυτόματα σε περιπτώσεις έκτακτης ανάγκης",
+  "featureSaveImportant": "Αποθηκεύστε σημαντικά έγγραφα και διαπιστευτήρια",
+  "featureShareAnytime": "Μοιραστείτε τα οποιαδήποτε στιγμή",
+  "fieldCopiedToClipboard": "Το {fieldName} αντιγράφηκε στο πρόχειρο",
+  "@fieldCopiedToClipboard": {
+    "description": "Message when a field is copied to clipboard",
+    "placeholders": {
+      "fieldName": {
+        "type": "String",
+        "example": "Password"
+      }
+    }
+  },
+  "fileDeletedSuccessfully": "Το στοιχείο διαγράφηκε επιτυχώς",
+  "fileInfoAddDescHint": "Προσθήκη περιγραφής...",
+  "fileMarkedAsImportant": "Το στοιχείο σημάνθηκε ως σημαντικό",
+  "fileRemovedFromImportant": "Το στοιχείο αφαιρέθηκε από τα σημαντικά",
+  "filesAddedByYouWillBeRemovedFromTheCollection": "Τα στοιχεία που προστέθηκαν από εσάς θα αφαιρεθούν από τη συλλογή",
+  "fileSavedToGallery": "Το αρχείο αποθηκεύτηκε στη συλλογή",
+  "filesSavedToGallery": "Τα αρχεία αποθηκεύτηκαν στη συλλογή",
+  "fileUpdatedSuccessfully": "Το στοιχείο ενημερώθηκε επιτυχώς!",
+  "filters": "Φίλτρα",
+  "findThemQuickly": "Βρείτε τους γρήγορα",
+  "@findThemQuickly": {
+    "description": "Subtitle to indicate that the user can find people quickly by name"
+  },
+  "flip": "Αντιστροφή",
+  "focusOnSearchBar": "Εστίαση στην αναζήτηση κατά την εκκίνηση εφαρμογής",
+  "forgotPassword": "Ξέχασα τον κωδικό πρόσβασης",
+  "@forgotPassword": {
+    "description": "Forgot password link label"
+  },
+  "freeStorageOffer": "10% έκπτωση στο <bold-green>ente</bold-green> photos",
+  "freeStorageOfferDescription": "Χρησιμοποιήστε τον κωδικό \"AUTH\" για να λάβετε 10% έκπτωση για τον πρώτο χρόνο",
+  "freeTrial": "Δωρεάν δοκιμή",
+  "freeUpAmount": "Εξοικονόμηση {sizeInMBorGB}",
+  "@freeUpAmount": {
+    "placeholders": {
+      "sizeInMBorGB": {}
+    }
+  },
+  "freeUpSpace": "Ελευθερώστε χώρο",
+  "gallery": "Συλλογή",
+  "galleryMemoryLimitInfo": "Έως και 1000 μνήμες εμφανίζονται στη συλλογή",
+  "general": "Γενικά",
+  "generatingEncryptionKeys": "Δημιουργία κλειδιών κρυπτογράφησης...",
+  "@generatingEncryptionKeys": {
+    "description": "Generating encryption keys message"
+  },
+  "generatingEncryptionKeysTitle": "Δημιουργία κλειδιών κρυπτογράφησης…",
+  "@generatingEncryptionKeysTitle": {
+    "description": "Generating encryption keys title"
+  },
+  "getStarted": "Ξεκινήστε",
+  "giveUsAStarOnGithub": "Δώστε μας ένα αστέρι στο GitHub",
+  "grantFullAccessPrompt": "Παρακαλούμε επιτρέψτε την πρόσβαση σε όλες τις φωτογραφίες από τις Ρυθμίσεις της συσκευής σας",
+  "grantPermission": "Παραχώρηση δικαιωμάτων",
+  "guestView": "Προβολή επισκέπτη",
+  "guestViewEnablePreSteps": "Για να ενεργοποιήσετε την προβολή επισκέπτη, παρακαλώ ρυθμίστε τον κωδικό πρόσβασης της συσκευής ή το κλείδωμα οθόνης στις ρυθμίσεις συστήματος.",
+  "hearUsWhereOptionalTitle": "Πώς ακούσατε για το Ente; (προαιρετικό)",
+  "@hearUsWhereOptionalTitle": {
+    "description": "Title asking how user heard about Ente"
+  },
+  "help": "Βοήθεια",
+  "hidden": "Κρυφά",
+  "hide": "Απόκρυψη",
   "hideContent": "Απόκρυψη περιεχομένου",
   "@hideContent": {
     "description": "Hide content setting title"
@@ -542,45 +679,543 @@
   "@hideContentDescriptioniOS": {
     "description": "Description of hide content feature on iOS"
   },
-  "tooManyIncorrectAttempts": "Πάρα πολλές εσφαλμένες προσπάθειες",
-  "@tooManyIncorrectAttempts": {
-    "description": "Message shown when too many incorrect attempts are made"
+  "hideSharedItemsFromHomeGallery": "Απόκρυψη κοινόχρηστων αντικειμένων από την αρχική συλλογή",
+  "hintForDesktop": "Κάντε δεξί κλικ σε έναν κωδικό για να τον τροποποιήσετε ή να τον διαγράψετε.",
+  "hintForMobile": "Πατήστε παρατεταμένα σε έναν κωδικό για να τον τροποποιήσετε ή να τον διαγράψετε.",
+  "howItWorks": "Πώς λειτουργεί",
+  "@howItWorks": {
+    "description": "How it works button label"
   },
-  "tapToUnlock": "Πατήστε για ξεκλείδωμα",
-  "@tapToUnlock": {
-    "description": "Message prompting user to tap to unlock"
+  "howToViewShareeVerificationID": "Παρακαλώ ζητήστε από τον άλλο χρήστη να πιέσει παρατεταμένα τη διεύθυνση ηλεκτρονικού ταχυδρομείου του στην οθόνη ρυθμίσεων και βεβαιωθείτε ότι οι κωδικοί και στις δύο συσκευές ταιριάζουν.",
+  "ignore": "Παράβλεψη",
+  "import2FasGuide": "Χρησιμοποιήστε την επιλογή \"Ρυθμίσεις->Δημιουργία αντιγράφων ασφαλείας - Εξαγωγή\" στο 2FAS.\n\nΑν το αντίγραφο ασφαλείας είναι κρυπτογραφημένο, θα πρέπει να εισάγετε τον κωδικό πρόσβασης για να αποκρυπτογραφήσετε το αντίγραφο ασφαλείας",
+  "importAccountPageTitle": "Εισαγωγή στοιχείων λογαριασμού",
+  "importAegisGuide": "Χρησιμοποιήστε την επιλογή \"Εξαγωγή θησαυ/κίου\" στις Ρυθμίσεις του Aegis.\n\nΑν το θησαυ/κιό σας είναι κρυπτογραφημένο, θα πρέπει να εισάγετε τον κωδικό πρόσβασης θησαυ/κίου για να αποκρυπτογραφήσετε το θησαυ/κιο.",
+  "important": "Σημαντικό",
+  "importBitwardenGuide": "Χρησιμοποιήστε την επιλογή \"Εξαγωγή θησαυ/κίου\" μέσα στα Εργαλεία Bitwarden και εισάγετε το μη κρυπτογραφημένο αρχείο JSON.",
+  "importCodeDelimiterInfo": "Οι κωδικοί μπορούν να διαχωριστούν με κόμμα ή με μία νέα γραμμή",
+  "importCodes": "Εισαγωγή κωδικών",
+  "importEnteEncGuide": "Επιλέξτε το κρυπτογραφημένο αρχείο JSON που εξήχθη από το Ente",
+  "importEnterSetupKey": "Εισάγετε ένα κλειδί ρύθμισης",
+  "importFailureDesc": "Αδυναμία ανάλυσης του επιλεγμένου αρχείου.",
+  "importInstruction": "Παρακαλώ επιλέξτε ένα αρχείο που περιέχει μια λίστα των κωδικών σας με τον ακόλουθο τύπο",
+  "importLabel": "Εισαγωγή",
+  "importLastpassGuide": "Χρησιμοποιήστε την επιλογή \"Μεταφορά λογαριασμών\" στις ρυθμίσεις Lastpass Authenticator και πατήστε \"Εξαγωγή λογαριασμών σε αρχείο\". Εισαγάγετε το κατεβασμένο JSON.",
+  "importRaivoGuide": "Χρησιμοποιήστε την επιλογή \"Export OTPs to Zip archive\" στις Ρυθμίσεις του Raivo.\n\nΕξάγετε το αρχείο zip και εισάγετε το αρχείο JSON.",
+  "importSelectAppExport": "Επιλογή αρχείου εξαγωγής {appName}",
+  "@importSelectAppExport": {
+    "placeholders": {
+      "appName": {}
+    }
   },
-  "areYouSureYouWantToLogout": "Είστε σίγουροι ότι θέλετε να αποσυνδεθείτε;",
-  "@areYouSureYouWantToLogout": {
-    "description": "Confirmation message before logout"
+  "importSelectJsonFile": "Επιλογή αρχείου JSON",
+  "importSuccessDesc": "Έχετε εισάγει {count} κωδικούς!",
+  "@importSuccessDesc": {
+    "placeholders": {
+      "count": {
+        "description": "The number of codes imported",
+        "type": "int",
+        "example": "1"
+      }
+    }
   },
-  "yesLogout": "Ναι, αποσύνδεση",
-  "@yesLogout": {
-    "description": "Confirmation button for logout"
+  "importSuccessTitle": "Ζήτω!",
+  "importTypeEnteEncrypted": "Κρυπτογραφημένη Ente εξαγωγή",
+  "incorrectCode": "Εσφαλμένος κωδικός",
+  "@incorrectCode": {
+    "description": "Error message when code is incorrect"
   },
-  "authToViewSecrets": "Παρακαλώ πραγματοποιήστε έλεγχο ταυτότητας για να δείτε τα μυστικά σας",
-  "@authToViewSecrets": {
-    "description": "Message prompting authentication to view secrets"
+  "incorrectDetails": "Λανθασμένα στοιχεία",
+  "incorrectPasswordTitle": "Λάθος κωδικός πρόσβασης",
+  "@incorrectPasswordTitle": {
+    "description": "Title for incorrect password error"
   },
+  "incorrectRecoveryKey": "Εσφαλμένο κλειδί ανάκτησης",
+  "@incorrectRecoveryKey": {
+    "description": "Error message when recovery key is incorrect"
+  },
+  "incorrectRecoveryKeyBody": "Το κλειδί ανάκτησης που εισάγατε είναι εσφαλμένο",
+  "incorrectRecoveryKeyTitle": "Εσφαλμένο κλειδί ανάκτησης",
+  "informationDescription": "Αποθηκεύστε και μοιραστείτε πληροφορίες με αγαπημένα πρόσωπα.",
+  "insecureDevice": "Μη ασφαλής συσκευή",
+  "@insecureDevice": {
+    "description": "Insecure device warning title"
+  },
+  "invalidEmailAddress": "Μη έγκυρη διεύθυνση email",
+  "invalidEmailMessage": "Παρακαλούμε εισάγετε μια έγκυρη διεύθυνση email.",
+  "@invalidEmailMessage": {
+    "description": "Message for invalid email error dialog"
+  },
+  "invalidEmailTitle": "Μη έγκυρη διεύθυνση email",
+  "@invalidEmailTitle": {
+    "description": "Title for invalid email error dialog"
+  },
+  "invalidEndpoint": "Μη έγκυρο τερματικό σημείο",
+  "@invalidEndpoint": {
+    "description": "Error message when endpoint is invalid"
+  },
+  "invalidEndpointMessage": "Λυπούμαστε, το τερματικό σημείο που εισάγατε δεν είναι έγκυρο. Παρακαλώ εισάγετε ένα έγκυρο τερματικό σημείο και προσπαθήστε ξανά.",
+  "@invalidEndpointMessage": {
+    "description": "Detailed error message when endpoint is invalid"
+  },
+  "invalidKey": "Μη έγκυρο κλειδί",
+  "invalidQRCode": "Μη έγκυρος κωδικός QR",
+  "invite": "Πρόσκληση",
+  "inviteToEnte": "Προσκαλέστε στο Ente",
+  "ok": "ΟΚ",
+  "@ok": {
+    "description": "Generic OK button label"
+  },
+  "itemCount": "{count, plural, one{{count} αντικείμενο} other{{count} αντικείμενα}}",
+  "@itemCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "items": "{count} στοιχεία",
+  "@items": {
+    "description": "Number of items in a collection",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "itemsWillBeRemovedFromAlbum": "Τα επιλεγμένα αντικείμενα θα αφαιρεθούν από αυτό το άλμπουμ",
+  "itLooksLikeSomethingWentWrongPleaseRetryAfterSome": "Φαίνεται ότι κάτι πήγε στραβά. Παρακαλώ προσπαθήστε ξανά μετά από λίγο. Αν το σφάλμα παραμένει, παρακαλούμε επικοινωνήστε με την ομάδα υποστήριξης μας.",
+  "@itLooksLikeSomethingWentWrongPleaseRetryAfterSome": {
+    "description": "Generic error message for temporary issues"
+  },
+  "iUnderStand": "Καταλαβαίνω",
+  "@iUnderStand": {
+    "description": "Text for the button to confirm the user understands the warning"
+  },
+  "join": "Συμμετοχή",
+  "joinAlbum": "Συμμετοχή στο άλμπουμ",
+  "joinAlbumSubtext": "για προβολή και προσθήκη φωτογραφιών",
+  "joinAlbumSubtextViewer": "για προσθήκη σε κοινόχρηστα άλμπουμ",
+  "kiloMeterUnit": "χλμ",
+  "language": "Γλώσσα",
+  "lastUpdated": "Τελευταία ενημέρωση",
+  "leave": "Αποχώρηση",
+  "leaveCollection": "Αποχώρηση από συλλογή",
+  "legacy": "Κληρονομιά",
+  "legacyAccounts": "Κληρονομιά λογαριασμού",
+  "legacyInvite": "Ο λογαριασμός {email} σας προσκάλεσε ως έμπιστη επαφή του",
+  "@legacyInvite": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "family@example.com"
+      }
+    }
+  },
+  "legacyPageDesc2": "Οι αξιόπιστες επαφές μπορούν να ξεκινήσουν ανάκτηση του λογαριασμού και, αν δεν αποκλειστούν εντός 30 ημερών, να επαναφέρουν τον κωδικό πρόσβασής σας και να αποκτήσουν πρόσβαση στο λογαριασμό σας.",
+  "lightTheme": "Φωτεινό",
+  "linkCopiedToClipboard": "Ο σύνδεσμος αντιγράφηκε στο πρόχειρο",
+  "linkDeletedSuccessfully": "Ο σύνδεσμος διαγράφηκε επιτυχώς",
+  "linkDeviceLimit": "Όριο συσκευών",
+  "linkEnabled": "Ενεργοποιημένο",
+  "linkExpired": "Έληξε",
+  "linkExpiresOn": "Ο σύνδεσμος θα λήξει στις {expiryTime}",
+  "@linkExpiresOn": {
+    "placeholders": {
+      "expiryTime": {}
+    }
+  },
+  "linkExpiry": "Λήξη συνδέσμου",
+  "linkHasExpired": "Ο σύνδεσμος έληξε",
+  "linkNeverExpires": "Ποτέ",
+  "loadingModel": "Γίνεται λήψη μοντέλων...",
+  "loadingYourPhotos": "Φόρτωση των φωτογραφιών σας...",
+  "loadMessage4": "Όλες οι εφαρμογές μας είναι ανοιχτού κώδικα",
+  "loadMessage5": "Ο πηγαίος κώδικας και η κρυπτογράφησή μας έχουν ελεγχθεί από ανεξάρτητους αξιολογητές",
+  "loadMessage6": "Μπορείτε να μοιραστείτε συνδέσμους προς τα άλμπουμ σας με τους αγαπημένους σας",
+  "loadMessage7": "Οι εφαρμογές μας για κινητά τρέχουν στο παρασκήνιο για κρυπτογράφηση και δημιουργία αντιγράφων ασφαλείας τυχόν νέων φωτογραφιών σας",
+  "loadMessage8": "Το {webUrl} διαθέτει ένα εξαιρετικό μενού μεταφόρτωσης",
+  "@loadMessage8": {
+    "description": "Loading screen message about the web uploader.",
+    "placeholders": {
+      "webUrl": {
+        "type": "String",
+        "example": "photos.ente.com"
+      }
+    }
+  },
+  "loadMessage9": "Χρησιμοποιούμε το Xchacha20Poly1305 για την ασφαλή κρυπτογράφηση των δεδομένων σας",
+  "localSyncErrorMessage": "Φαίνεται ότι κάτι πήγε στραβά καθώς ο τοπικός συγχρονισμός φωτογραφιών παίρνει περισσότερο χρόνο από το αναμενόμενο. Επικοινωνήστε με την ομάδα υποστήριξης",
+  "location": "Τοποθεσία",
+  "locationName": "Όνομα τοποθεσίας",
+  "locationPickerTip": "Μπορείτε επίσης να προσθέσετε μια τοποθεσία στο κέντρο μιας φωτογραφίας από την οθόνη πληροφοριών της φωτογραφίας",
+  "@locationPickerTip": {
+    "description": "Helper tip text shown in the location picker that refers to the photo info screen."
+  },
+  "locations": "Τοποθεσίες",
+  "locationTagFeatureDescription": "Μια ετικέτα τοποθεσίας ομαδοποιεί όλες τις φωτογραφίες που τραβήχθηκαν σε κάποια ακτίνα από μία φωτογραφία",
+  "lockButtonLabel": "Κλείδωμα",
+  "logInLabel": "Σύνδεση",
+  "@logInLabel": {
+    "description": "Log in button label"
+  },
+  "loginSessionExpired": "Η συνεδρία έληξε",
+  "@loginSessionExpired": {
+    "description": "Login session expired title"
+  },
+  "loginSessionExpiredDetails": "Η συνεδρία σας έληξε. Παρακαλώ συνδεθείτε ξανά.",
+  "@loginSessionExpiredDetails": {
+    "description": "Login session expired details"
+  },
+  "loginTerms": "Κάνοντας κλικ στη σύνδεση, συμφωνώ με τους <u-terms>όρους χρήσης</u-terms> και την <u-policy>πολιτική απορρήτου</u-policy>",
+  "@loginTerms": {
+    "description": "Terms agreement text for login"
+  },
+  "logsDialogBodyLocker": "Αυτό θα στείλει αρχεία καταγραφής για να μας βοηθήσει να διορθώσουμε το πρόβλημά σας.",
+  "@logsDialogBodyLocker": {
+    "description": "Dialog body text for sending logs in Locker app (without file name warning)"
+  },
+  "longPressAnEmailToVerifyEndToEndEncryption": "Πατήστε παρατεταμένα ένα email για να επιβεβαιώσετε την κρυπτογράφηση από άκρη σε άκρη.",
+  "lostDevice": "Χαμένη συσκευή;",
+  "lostDeviceTitle": "Χαμένη συσκευή;",
+  "@lostDeviceTitle": {
+    "description": "Lost device title"
+  },
+  "machineLearning": "Μηχανική μάθηση",
+  "manageDeviceStorage": "Διαχείριση προσωρινής μνήμης συσκευής",
+  "manageLink": "Διαχείριση συνδέσμου",
+  "manageSubscription": "Διαχειριστείτε τη συνδρομή σας",
+  "manualSort": "Προσαρμοσμένο",
+  "markingAsImportant": "Σήμανση ως σημαντικό...",
+  "me": "Εγώ",
+  "memoryCount": "{count, plural, =0{δεν υπάρχουν αναμνήσεις} one{{formattedCount} ανάμνηση} other{{formattedCount} αναμνήσεις}}",
+  "@memoryCount": {
+    "description": "The text to display the number of memories",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "1",
+        "type": "int"
+      },
+      "formattedCount": {
+        "type": "String",
+        "example": "11.513, 11,511"
+      }
+    }
+  },
+  "mergeWithExisting": "Συγχώνευση με υπάρχον",
+  "minimizeAppOnCopy": "Ελαχιστοποίηση εφαρμογής κατά την αντιγραφή",
+  "mlConsent": "Ενεργοποίηση μηχανικής μάθησης",
+  "mlConsentConfirmation": "Καταλαβαίνω και επιθυμώ να ενεργοποιήσω τη μηχανική μάθηση",
+  "mlConsentDescription": "Αν ενεργοποιήσετε τη μηχανική μάθηση, το Ente θα εξάγει από τα αρχεία, συμπεριλαμβανομένων εκείνων που έχουν διαμοιραστεί άλλοι με εσάς, πληροφορίες όπως χαρακτηριστικά προσώπων.\n\nΑυτό θα συμβαίνει στη συσκευή σας και κάθε βιομετρική πληροφορία που δημιουργείται θα είναι κρυπρογραφημένη από άκρο σε άκρο.",
+  "moderateStrength": "Μέτριος",
+  "@moderateStrength": {
+    "description": "Moderate password strength label"
+  },
+  "moments": "Στιγμές",
+  "mostFrequentlyUsed": "Συχνά χρησιμοποιούμενο",
+  "mostRecent": "Πιο πρόσφατα",
+  "mostRecentlyUsed": "Πρόσφατα χρησιμοποιούμενο",
+  "mostRelevant": "Πιο σχετικά",
+  "movedToTrash": "Μετακίνηση στον κάδο",
+  "moveToAlbum": "Μετακίνηση σε άλμπουμ",
+  "name": "Όνομα",
+  "networkConnectionRefusedErr": "Δεν είναι δυνατή η σύνδεση με το Ente, παρακαλώ προσπαθήστε ξανά μετά από λίγο. Εάν το σφάλμα παραμένει, παρακαλούμε επικοινωνήστε με την υποστήριξη.",
+  "@networkConnectionRefusedErr": {
+    "description": "Error message shown when the app cannot connect to Ente due to connection refused"
+  },
+  "networkHostLookUpErr": "Δεν είναι δυνατή η σύνδεση με το Ente, ελέγξτε τις ρυθμίσεις του δικτύου σας και επικοινωνήστε με την υποστήριξη αν το σφάλμα παραμένει.",
+  "@networkHostLookUpErr": {
+    "description": "Error message shown when the app cannot connect to Ente due to network host lookup failure"
+  },
+  "never": "Ποτέ",
+  "newAlbum": "Νέο άλμπουμ",
+  "newCollection": "Νέα συλλογή",
+  "newest": "Νεότερα",
   "next": "Επόμενο",
   "@next": {
     "description": "Next button label"
   },
-  "setNewPassword": "Ορίστε νέο κωδικό πρόσβασης",
-  "@setNewPassword": {
-    "description": "Set new password title"
+  "nextTotpTitle": "επόμενο",
+  "no": "Όχι",
+  "noChangesWereMade": "Δεν έγιναν αλλαγές",
+  "noCollections": "Καμία συλλογή",
+  "noDeviceLimit": "Κανένα",
+  "@noDeviceLimit": {
+    "description": "Text to indicate that there is limit on number of devices"
   },
-  "enterPin": "Εισαγωγή PIN",
-  "@enterPin": {
-    "description": "Enter PIN prompt"
+  "noDuplicates": "✨ Δεν υπάρχουν διπλότυπα",
+  "noExifData": "Χωρίς δεδομένα EXIF",
+  "noFilesFound": "Δεν υπάρχουν στοιχεία εδώ",
+  "noInternetConnection": "Χωρίς σύνδεση στο διαδίκτυο",
+  "@noInternetConnection": {
+    "description": "No internet connection error message"
   },
-  "setNewPin": "Ορίστε νέο PIN",
-  "@setNewPin": {
-    "description": "Set new PIN title"
+  "noItemsMatchSelectedFilters": "Κανένα στοιχείο δεν ταιριάζει με τα επιλεγμένα φίλτρα",
+  "noRecoveryKeyNoDecryption": "Λόγω της φύσης του πρωτοκόλλου κρυπτογράφησης από άκρο σε άκρο, τα δεδομένα σας δεν μπορούν να αποκρυπτογραφηθούν χωρίς τον κωδικό πρόσβασης ή το κλειδί ανάκτησης",
+  "@noRecoveryKeyNoDecryption": {
+    "description": "Explanation that data cannot be decrypted without password or recovery key"
   },
-  "confirm": "Επιβεβαίωση",
-  "@confirm": {
-    "description": "Confirm button label"
+  "noRecoveryKeyTitle": "Χωρίς κλειδί ανάκτησης;",
+  "@noRecoveryKeyTitle": {
+    "description": "No recovery key title"
+  },
+  "noResult": "Κανένα αποτέλεσμα",
+  "noSystemLockFound": "Δεν βρέθηκε κλείδωμα συστήματος",
+  "@noSystemLockFound": {
+    "description": "Error when no system lock is found"
+  },
+  "note": "Σημείωση",
+  "noteContent": "Περιεχόμενο",
+  "noteContentHint": "Καταγράψτε σημαντικές σκέψεις ή οδηγίες",
+  "noteName": "Τίτλος",
+  "noteNameHint": "Τίτλος σημείωσης",
+  "notes": "Σημειώσεις",
+  "notesLengthLimit": "Οι σημειώσεις μπορούν να είναι το πολύ {count} χαρακτήρες",
+  "@notesLengthLimit": {
+    "description": "Text to indicate the maximum number of characters allowed for notes",
+    "placeholders": {
+      "count": {
+        "description": "The maximum number of characters allowed for notes",
+        "type": "int",
+        "example": "100"
+      }
+    }
+  },
+  "nothingToSeeHere": "Τίποτα εδώ",
+  "notifications": "Ειδοποιήσεις",
+  "ocrGenericDetectError": "Δεν εντοπίστηκε κειμένο στην εικόνα",
+  "ocrImageDecodeFailedError": "Δεν ήταν δυνατή η ανάγνωση αρχείου εικόνας",
+  "ocrImageNotFoundError": "Δεν βρέθηκε αρχείο εικόνας",
+  "ocrModelsNetworkRequiredError": "Απαιτείται σύνδεση δικτύου για λήψη μοντέλων OCR κατά την πρώτη χρήση",
+  "ocrModelsPrepareFailed": "Δεν ήταν δυνατή η προετοιμασία μοντέλων OCR",
+  "ocrNoTextDetected": "Δεν ανιχνεύθηκε κείμενο",
+  "offlineModeWarning": "Επιλέξατε να προχωρήσετε χωρίς αντίγραφα ασφαλείας. Παρακαλώ κάντε χειροκίνητα αντίγραφα ασφαλείας για να βεβαιωθείτε ότι οι κωδικοί σας είναι ασφαλείς.",
+  "onEnte": "Στο <branding>ente</branding>",
+  "@onEnte": {
+    "description": "The text displayed above albums backed up to Ente",
+    "type": "text"
+  },
+  "onlyFamilyAdminCanChangeCode": "Παρακαλούμε επικοινωνήστε με το {familyAdminEmail} για να αλλάξετε τον κωδικό σας.",
+  "@onlyFamilyAdminCanChangeCode": {
+    "placeholders": {
+      "familyAdminEmail": {}
+    }
+  },
+  "oops": "Ουπς",
+  "@oops": {
+    "description": "Oops error title"
+  },
+  "oopsCouldNotSaveEdits": "Ωχ, δεν ήταν δυνατή η αποθήκευση των αλλαγών",
+  "oopsSomethingWentWrong": "Ωχ, κάτι πήγε στραβά",
+  "openstreetmapContributors": "Συντελεστές του OpenStreetMap",
+  "pair": "Σύζευξη",
+  "passkey": "Κλειδί πρόσβασης",
+  "passkeyAuthTitle": "Επιβεβαίωση κλειδιού πρόσβασης",
+  "@passkeyAuthTitle": {
+    "description": "Passkey authentication title"
+  },
+  "passKeyPendingVerification": "Η επαλήθευση εξακολουθεί να εκκρεμεί",
+  "@passKeyPendingVerification": {
+    "description": "Message when passkey verification is pending"
+  },
+  "passwordChangedSuccessfully": "Ο κωδικός πρόσβασης άλλαξε επιτυχώς",
+  "@passwordChangedSuccessfully": {
+    "description": "Password changed successfully message"
+  },
+  "passwordEmptyError": "Ο κωδικός πρόσβασης δεν μπορεί να είναι κενός",
+  "passwordForDecryptingExport": "Κωδικός πρόσβασης για αποκρυπτογράφηση εξαγωγής",
+  "passwordHint": "Κωδικός πρόσβασης",
+  "passwordLock": "Κλείδωμα με κωδικό",
+  "passwordStrength": "Ισχύς κωδικού πρόσβασης: {passwordStrengthValue}",
+  "@passwordStrength": {
+    "description": "Text to indicate the password strength",
+    "placeholders": {
+      "passwordStrengthValue": {
+        "description": "The strength of the password as a string",
+        "type": "String",
+        "example": "Weak or Moderate or Strong"
+      }
+    }
+  },
+  "passwordToEncryptExport": "Κωδικός πρόσβασης για κρυπτογράφηση εξαγωγής",
+  "passwordWarning": "Δεν αποθηκεύουμε αυτόν τον κωδικό πρόσβασης, οπότε αν τον ξεχάσετε <underline>δεν μπορούμε να αποκρυπτογραφήσουμε τα δεδομένα σας</underline>",
+  "@passwordWarning": {
+    "description": "Warning about password storage"
+  },
+  "paymentFailed": "Η πληρωμή απέτυχε",
+  "paymentFailedMessage": "Δυστυχώς η πληρωμή σας απέτυχε. Επικοινωνήστε με την υποστήριξη και θα σας βοηθήσουμε!",
+  "paymentFailedTalkToProvider": "Παρακαλούμε επικοινωνήστε με την υποστήριξη του {providerName} εάν έχετε χρεωθεί",
+  "@paymentFailedTalkToProvider": {
+    "description": "The text to display when the payment failed",
+    "type": "text",
+    "placeholders": {
+      "providerName": {
+        "example": "AppStore|PlayStore",
+        "type": "String"
+      }
+    }
+  },
+  "pendingSyncs": "Προσοχή",
+  "pendingSyncsWarningBody": "Δεν έχουν γίνει αντίγραφα ασφαλείας για μερικούς από τους κωδικούς σας.\n\nΠαρακαλώ βεβαιωθείτε ότι έχετε ένα αντίγραφο ασφαλείας για αυτούς τους κωδικούς πριν αποσυνδεθείτε.",
+  "people": "Άνθρωποι",
+  "period": "Περίοδος",
+  "permanentlyDelete": "Οριστική διαγραφή",
+  "permDeleteWarning": "Όλα τα αντικείμενα στον κάδο απορριμμάτων θα διαγραφούν οριστικά\n\nΑυτή η ενέργεια δεν μπορεί να αναιρεθεί",
+  "personalNote": "Σημείωση",
+  "personalNoteDescription": "Καταγράψτε σκέψεις και οδηγίες.",
+  "photoGridSize": "Μέγεθος πλέγματος φωτογραφιών",
+  "physicalRecords": "Αντικείμενο",
+  "physicalRecordsDescription": "Αποθηκεύστε τοποθεσίες πραγματικών αντικειμένων.",
+  "pickCenterPoint": "Διαλέξτε κεντρικό σημείο",
+  "pinLock": "Κλείδωμα καρφιτσωμάτων",
+  "@pinLock": {
+    "description": "PIN lock option title"
+  },
+  "pinnedCodeMessage": "{code} έχει καρφιτσωθεί",
+  "@pinnedCodeMessage": {
+    "placeholders": {
+      "code": {}
+    }
+  },
+  "pinText": "Καρφίτσωμα",
+  "plainHTML": "Απλό HTML",
+  "plainText": "Απλό κείμενο",
+  "pleaseCheckYourInternetConnectionAndTryAgain": "Παρακαλούμε ελέγξτε τη σύνδεσή σας στο διαδίκτυο και προσπαθήστε ξανά.",
+  "@pleaseCheckYourInternetConnectionAndTryAgain": {
+    "description": "Message asking user to check internet connection"
+  },
+  "pleaseContactSupportIfTheProblemPersists": "Επικοινωνήστε με την υποστήριξη πελατών εάν το πρόβλημα επιμένει",
+  "pleaseGrantPermissions": "Παρακαλούμε παραχωρήστε τα δικαιώματα",
+  "pleaseLoginAgain": "Παρακαλούμε συνδεθείτε ξανά",
+  "pleaseSelectQuickLinksToRemove": "Παρακαλώ επιλέξτε γρήγορους συνδέσμους για αφαίρεση",
+  "pleaseSendTheLogsTo": "Παρακαλώ στείλτε τα αρχεία καταγραφής σας στο \n{toEmail}",
+  "@pleaseSendTheLogsTo": {
+    "description": "Message asking user to send logs to email address",
+    "placeholders": {
+      "toEmail": {
+        "type": "String",
+        "description": "Email address to send logs to"
+      }
+    }
+  },
+  "pleaseVerifyDetails": "Παρακαλούμε επιβεβαιώστε τα στοιχεία σας και προσπαθήστε ξανά",
+  "pleaseVerifyTheCodeYouHaveEntered": "Παρακαλούμε επαληθεύστε τον κωδικό που εισάγατε",
+  "pleaseWaitForSometimeBeforeRetrying": "Παρακαλούμε περιμένετε για λίγο πριν ξαναπροσπαθήσετε",
+  "preparingLogs": "Προετοιμασία αρχείων καταγραφής…",
+  "preserveMore": "Διατήρηση περισσότερων",
+  "pressAndHoldToPlayVideoDetailed": "Πατήστε παρατεταμένα στην εικόνα για αναπαραγωγή βίντεο",
+  "previous": "Προηγούμενο",
+  "privacy": "Ιδιωτικότητα",
+  "privacyPolicyTitle": "Πολιτική Απορρήτου",
+  "@privacyPolicyTitle": {
+    "description": "Privacy policy title"
+  },
+  "proceed": "Συνέχεια",
+  "processed": "Έγινε επεξεργασία",
+  "processingImport": "Σε επεξεργασία {folderName}...",
+  "@processingImport": {
+    "placeholders": {
+      "folderName": {}
+    }
+  },
+  "publicLinkEnabled": "Ο δημόσιος σύνδεσμος ενεργοποιήθηκε",
+  "radius": "Ακτίνα",
+  "raiseTicket": "Δημιουργία αιτήματος εξυπηρέτησης",
+  "@raiseTicket": {
+    "description": "Button text for raising a support tickets in case of unhandled errors during backup",
+    "type": "text"
+  },
+  "rateUs": "Αξιολογήστε μας",
+  "rateUsOnStore": "Αξιολογήστε μας στο {storeName}",
+  "@rateUsOnStore": {
+    "placeholders": {
+      "storeName": {}
+    }
+  },
+  "rawCodeData": "Δεδομένα ακατέργαστων κωδικών",
+  "reassignedToName": "Σας ανατέθηκε το {name}",
+  "@reassignedToName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reassigningLoading": "Επαναπροσδιορισμός...",
+  "reassignMe": "Αλλαγή \"Εγώ\"",
+  "recordLocation": "Τοποθεσία",
+  "recordLocationHint": "Πού φυλάσσεται αυτό το αντικείμενο;",
+  "recordNameHint": "Όνομα του πραγματικού αντικειμένου",
+  "recordNotes": "Σημειώσεις",
+  "recordNotesHint": "Πρόσθετες πληροφορίες για το αντικείμενο",
+  "recordSavedSuccessfully": "Η εγγραφή αποθηκεύτηκε επιτυχώς",
+  "recover": "Ανάκτηση",
+  "@recover": {
+    "description": "Recover button label"
+  },
+  "recoverAccount": "Ανάκτηση λογαριασμού",
+  "@recoverAccount": {
+    "description": "Recover account button label"
+  },
+  "recoveryInitiated": "Η ανάκτηση ξεκίνησε",
+  "recoveryInitiatedDesc": "Θα μπορείτε να έχετε πρόσβαση στο λογαριασμό μετά από {days} ημέρες. Θα σταλεί ειδοποίηση στο {email}.",
+  "@recoveryInitiatedDesc": {
+    "placeholders": {
+      "days": {
+        "type": "int",
+        "example": "30"
+      },
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      }
+    }
+  },
+  "recoveryKey": "Κλειδί ανάκτησης",
+  "@recoveryKey": {
+    "description": "Recovery key label"
+  },
+  "recoveryKeyCopiedToClipboard": "Το κλειδί ανάκτησης αντιγράφηκε στο πρόχειρο",
+  "@recoveryKeyCopiedToClipboard": {
+    "description": "Recovery key copied message"
+  },
+  "recoveryKeyOnForgotPassword": "Εάν ξεχάσετε τον κωδικό πρόσβασής σας, ο μόνος τρόπος για να ανακτήσετε τα δεδομένα σας είναι με αυτό το κλειδί.",
+  "@recoveryKeyOnForgotPassword": {
+    "description": "Recovery key importance explanation"
+  },
+  "recoveryKeySaved": "Το κλειδί ανάκτησης αποθηκεύτηκε στο φάκελο Λήψεις!",
+  "@recoveryKeySaved": {
+    "description": "Recovery key saved confirmation message"
+  },
+  "recoveryKeySaveDescription": "Δεν αποθηκεύουμε αυτό το κλειδί, παρακαλώ αποθηκεύστε αυτό το κλειδί 24 λέξεων σε μια ασφαλή τοποθεσία.",
+  "@recoveryKeySaveDescription": {
+    "description": "Recovery key save description"
+  },
+  "recoveryKeyVerified": "Το κλειδί ανάκτησης επαληθεύτηκε",
+  "recoveryReady": "Τώρα μπορείτε να ανακτήσετε το λογαριασμό του {email} ορίζοντας έναν νέο κωδικό πρόσβασης.",
+  "@recoveryReady": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      }
+    }
+  },
+  "recoverySuccessful": "Η ανάκτηση ήταν επιτυχής!",
+  "recoveryWarning": "Μια έμπιστη επαφή προσπαθεί να αποκτήσει πρόσβαση στο λογαριασμό σας",
+  "recoveryWarningBody": "Το {email} προσπαθεί να ανακτήσει το λογαριασμό σας.",
+  "@recoveryWarningBody": {
+    "placeholders": {
+      "email": {}
+    }
+  },
+  "recreatePasswordBody": "Η τρέχουσα συσκευή δεν είναι αρκετά ισχυρή για να επαληθεύσει τον κωδικό πρόσβασής σας, αλλά μπορούμε να τον αναδημιουργήσουμε με έναν τρόπο που λειτουργεί με όλες τις συσκευές.\n\nΠαρακαλούμε συνδεθείτε χρησιμοποιώντας το κλειδί ανάκτησης και αναδημιουργήστε τον κωδικό πρόσβασής σας (μπορείτε να χρησιμοποιήσετε ξανά τον ίδιο αν το επιθυμείτε).",
+  "@recreatePasswordBody": {
+    "description": "Body text for recreate password dialog"
+  },
+  "recreatePasswordTitle": "Επαναδημιουργία κωδικού πρόσβασης",
+  "@recreatePasswordTitle": {
+    "description": "Title for recreate password dialog"
   },
   "reEnterPassword": "Πληκτρολογήστε ξανά τον κωδικό πρόσβασης",
   "@reEnterPassword": {
@@ -590,123 +1225,503 @@
   "@reEnterPin": {
     "description": "Re-enter PIN prompt"
   },
-  "androidBiometricHint": "Επαλήθευση ταυτότητας",
-  "@androidBiometricHint": {
-    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricNotRecognized": "Δεν αναγνωρίζεται. Δοκιμάστε ξανά.",
-  "@androidBiometricNotRecognized": {
-    "description": "Message to let the user know that authentication was failed. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricSuccess": "Επιτυχία",
-  "@androidBiometricSuccess": {
-    "description": "Message to let the user know that authentication was successful. It is used on Android side. Maximum 60 characters."
-  },
-  "androidCancelButton": "Ακύρωση",
-  "@androidCancelButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
-  },
-  "androidSignInTitle": "Απαιτείται έλεγχος ταυτότητας",
-  "@androidSignInTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricRequiredTitle": "Απαιτούνται βιομετρικά",
-  "@androidBiometricRequiredTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user has not set up biometric authentication on their device. It is used on Android side. Maximum 60 characters."
-  },
-  "androidDeviceCredentialsRequiredTitle": "Απαιτούνται στοιχεία συσκευής",
-  "@androidDeviceCredentialsRequiredTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user has not set up credentials authentication on their device. It is used on Android side. Maximum 60 characters."
-  },
-  "androidDeviceCredentialsSetupDescription": "Απαιτούνται στοιχεία συσκευής",
-  "@androidDeviceCredentialsSetupDescription": {
-    "description": "Message advising the user to go to the settings and configure device credentials on their device. It shows in a dialog on Android side."
-  },
-  "goToSettings": "Μετάβαση στις ρυθμίσεις",
-  "@goToSettings": {
-    "description": "Message showed on a button that the user can click to go to settings pages from the current dialog. It is used on both Android and iOS side. Maximum 30 characters."
-  },
-  "androidGoToSettingsDescription": "Η βιομετρική πιστοποίηση δεν έχει ρυθμιστεί στη συσκευή σας. Μεταβείτε στις 'Ρυθμίσεις > Ασφάλεια' για να προσθέσετε βιομετρική ταυτοποίηση.",
-  "@androidGoToSettingsDescription": {
-    "description": "Message advising the user to go to the settings and configure biometric on their device. It shows in a dialog on Android side."
-  },
-  "iOSLockOut": "Η βιομετρική ταυτοποίηση είναι απενεργοποιημένη. Παρακαλώ κλειδώστε και ξεκλειδώστε την οθόνη σας για να την ενεργοποιήσετε.",
-  "@iOSLockOut": {
-    "description": "Message advising the user to re-enable biometrics on their device. It shows in a dialog on iOS side."
-  },
-  "iOSOkButton": "ΟΚ",
-  "@iOSOkButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on iOS side. Maximum 30 characters."
-  },
-  "thisEmailIsAlreadyInUse": "Αυτό το email είναι ήδη σε χρήση",
-  "@thisEmailIsAlreadyInUse": {
-    "description": "Error message when email is already in use"
-  },
-  "emailChangedTo": "Το email άλλαξε σε {newEmail}",
-  "@emailChangedTo": {
-    "description": "Message when email has been changed",
+  "referrals": "Συστάσεις",
+  "referralsAreCurrentlyPaused": "Οι παραπομπές είναι σε παύση αυτή τη στιγμή",
+  "rejectRecovery": "Απόρριψη ανάκτησης",
+  "remindToEmptyDeviceTrash": "Αδειάστε επίσης τα \"Πρόσφατα Διαγραμμένα\" από τις \"Ρυθμίσεις\" -> \"Χώρος αποθήκευσης\" για να ανακτήσετε τον ελεύθερο χώρο",
+  "remindToEmptyEnteTrash": "Αδειάστε επίσης τον \"Κάδο απορριμμάτων\" για να ανακτήσετε τον ελεύθερο χώρο",
+  "remove": "Αφαίρεση",
+  "removeAccess": "Αφαίρεση πρόσβασης",
+  "removeCollectionParticipantBody": "Ο/Η {userEmail} θα αφαιρεθεί από αυτή την κοινή συλλογή\n\nΤα στοιχεία που προστέθηκαν από αυτόν/αυτήν θα αφαιρεθούν επίσης από τη συλλογή",
+  "@removeCollectionParticipantBody": {
     "placeholders": {
-      "newEmail": {
-        "description": "The new email address",
+      "userEmail": {}
+    }
+  },
+  "removeFromAlbum": "Αφαίρεση από το άλμπουμ",
+  "removeFromAlbumTitle": "Αφαίρεση από το άλμπουμ;",
+  "removeFromFavorite": "Αφαίρεση από τα αγαπημένα",
+  "removeLink": "Αφαίρεση συνδέσμου",
+  "removeParticipant": "Αφαίρεση συμμετέχοντα",
+  "@removeParticipant": {
+    "description": "menuSectionTitle for removing a participant"
+  },
+  "removePublicLink": "Αφαίρεση δημόσιου συνδέσμου",
+  "removePublicLinks": "Αφαίρεση δημόσιων συνδέσμων",
+  "removeWithQuestionMark": "Αφαίρεση;",
+  "removingFromFavorites": "Αφαίρεση από τα αγαπημένα...",
+  "removingFromImportant": "Αφαίρεση από τα σημαντικά...",
+  "renameCollection": "Μετονομασία συλλογής",
+  "reportABug": "Αναφορά Σφάλματος",
+  "@reportABug": {
+    "description": "Label for reporting a bug"
+  },
+  "resetPasswordTitle": "Επαναφορά κωδικού πρόσβασης",
+  "@resetPasswordTitle": {
+    "description": "Reset password title"
+  },
+  "resetToDefault": "Επαναφορά προεπιλογών",
+  "@resetToDefault": {
+    "description": "Button text to reset cover photo to default"
+  },
+  "restore": "Επαναφορά",
+  "@restore": {
+    "description": "Display text for an action which triggers a restore of item from trash",
+    "type": "text"
+  },
+  "restoreToAlbum": "Επαναφορά στο άλμπουμ",
+  "restoringItems": "Επαναφορά...",
+  "retry": "Προσπάθησε ξανά",
+  "ritualAlbumSelectionPlaceholder": "Επιλογή άλμπουμ",
+  "ritualSelectAlbumTitle": "Επιλογή άλμπουμ",
+  "save": "Αποθήκευση",
+  "@save": {
+    "description": "Label for save button"
+  },
+  "saveChangesBeforeLeavingQuestion": "Αποθήκευση αλλαγών πριν την αποχώρηση;",
+  "saveCollage": "Αποθήκευση κολάζ",
+  "saveCopy": "Αποθήκευση αντιγράφου",
+  "saveKey": "Αποθήκευση κλειδιού",
+  "@saveKey": {
+    "description": "Save key button label"
+  },
+  "saveOnlyDescription": "Θέλετε να το αποθηκεύσετε στον αποθηκευτικό σας χώρο (φάκελος Λήψεις από προεπιλογή);",
+  "@saveOnlyDescription": {
+    "description": "Description text asking user if they want to save to storage (for platforms that don't support sharing)"
+  },
+  "saveOrSendDescription": "Θέλετε να το αποθηκεύσετε στον αποθηκευτικό σας χώρο (φάκελος Λήψεις από προεπιλογή) ή να το στείλετε σε άλλες εφαρμογές;",
+  "@saveOrSendDescription": {
+    "description": "Description text asking user if they want to save to storage or share with other apps"
+  },
+  "saveToLocker": "Αποθήκευση στο Locker",
+  "saveYourRecoveryKeyIfYouHaventAlready": "Αποθηκεύστε το κλειδί ανάκτησης αν δεν το έχετε ήδη κάνει",
+  "saving": "Αποθήκευση...",
+  "scan": "Σάρωση",
+  "scanACode": "Σάρωση κωδικού",
+  "scanAQrCode": "Σαρώστε έναν κωδικό QR",
+  "scanCode": "Σάρωση κωδικού",
+  "scanThisBarcodeWithnyourAuthenticatorApp": "Σαρώστε αυτό το barcode\nμε την εφαρμογή αυθεντικοποίησης",
+  "scheduleShare": "Προγραμματισμός κοινοποίησης",
+  "search": "Αναζήτηση",
+  "searchAlbumsEmptySection": "Άλμπουμ",
+  "searchByAlbumNameHint": "Όνομα άλμπουμ",
+  "searchEmptyDescription": "Δοκιμάστε να αναζητήσετε κάτι άλλο.",
+  "searchEmptyTitle": "Δεν βρέθηκαν αποτελέσματα",
+  "searchEverywhereSubtitle": "Αναζήτηση σε όλες τις συλλογές και τα αρχεία.",
+  "searchEverywhereTitle": "Αναζήτηση παντού για \"{query}\"",
+  "@searchEverywhereTitle": {
+    "description": "CTA title prompting the user to search globally",
+    "placeholders": {
+      "query": {
         "type": "String",
-        "example": "new@example.com"
+        "example": "passport"
       }
     }
   },
-  "authenticationFailedPleaseTryAgain": "Αποτυχία ελέγχου ταυτότητας, παρακαλώ προσπαθήστε ξανά",
-  "@authenticationFailedPleaseTryAgain": {
-    "description": "Error message when authentication fails"
+  "searchFileTypesAndNamesEmptySection": "Τύποι και ονόματα αρχείων",
+  "searchHint": "Αναζήτηση...",
+  "searchLocationEmptySection": "Ομαδοποίηση φωτογραφιών που τραβήχθηκαν σε συγκεκριμένη ακτίνα από μία φωτογραφία",
+  "searchPeopleEmptySection": "Προσκαλέστε ανθρώπους και δείτε όλες τις φωτογραφίες που θα μοιραστούν εδώ",
+  "searchResultCount": "{count, plural, one{{count} αποτέλεσμα} other{{count} αποτελέσματα}}",
+  "@searchResultCount": {
+    "description": "Text to tell user how many results were found for their search query",
+    "placeholders": {
+      "count": {
+        "example": "1|2|3",
+        "type": "int"
+      }
+    }
   },
-  "authenticationSuccessful": "Επιτυχής έλεγχος ταυτότητας!",
-  "@authenticationSuccessful": {
-    "description": "Success message when authentication is successful"
+  "secret": "Μυστικό",
+  "secretCanNotBeEmpty": "Το μυστικό δεν μπορεί να είναι κενό",
+  "security": "Ασφάλεια",
+  "seeAllCollections": "Δείτε όλες τις συλλογές",
+  "selectAll": "Επιλογή όλων",
+  "selectALocation": "Επιλογή τοποθεσίας",
+  "selectALocationFirst": "Επιλέξτε πρώτα μια τοποθεσία",
+  "selectDate": "Επιλογή ημερομηνίας",
+  "selectedPhotos": "{count, plural, one{{count} επιλεγμένο} other{{count} επιλεγμένα}}",
+  "@selectedPhotos": {
+    "description": "Display the number of selected photos",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "5",
+        "type": "int"
+      }
+    }
+  },
+  "selectedPhotosWithYours": "{count, plural, one{{count} επιλεγμένο} other{{count} επιλεγμένα}} ({yourCount, plural, one{{yourCount} δικό σας} other{{yourCount} δικά σας}})",
+  "@selectedPhotosWithYours": {
+    "description": "Display the number of selected photos, including the number of selected photos owned by the user",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "12",
+        "type": "int"
+      },
+      "yourCount": {
+        "example": "2",
+        "type": "int"
+      }
+    }
+  },
+  "selectExportFormat": "Επιλέξτε τύπο εξαγωγής",
+  "selectFile": "Επιλέξτε αρχείο",
+  "selectMorePhotos": "Επιλογή περισσότερων φωτογραφιών",
+  "selectTime": "Επιλογή ώρας",
+  "selectYourFace": "Επιλέξτε το πρόσωπό σας",
+  "send": "Αποστολή",
+  "@send": {
+    "description": "Label for send button"
+  },
+  "sendInvite": "Αποστολή πρόσκλησης",
+  "sendLink": "Αποστολή συνδέσμου",
+  "sendLogsDescription": "Αυτό θα στείλει αρχεία καταγραφής για να μας βοηθήσει να εντοπίσουμε το πρόβλημά σας. Παρόλο που λαμβάνουμε προφυλάξεις για να διασφαλίσουμε ότι δεν καταγράφονται ευαίσθητες πληροφορίες, σας ενθαρρύνουμε να δείτε αυτά τα αρχεία καταγραφής πριν τα μοιραστείτε.",
+  "serverEndpoint": "Τερματικό σημείο διακομιστή",
+  "@serverEndpoint": {
+    "description": "Label for server endpoint setting"
   },
   "sessionExpired": "Η συνεδρία έληξε",
   "@sessionExpired": {
     "description": "Error message when session has expired"
   },
-  "incorrectRecoveryKey": "Εσφαλμένο κλειδί ανάκτησης",
-  "@incorrectRecoveryKey": {
-    "description": "Error message when recovery key is incorrect"
+  "setAPassword": "Ορισμός κωδικού",
+  "setAs": "Ορισμός ως",
+  "setLabel": "Ορισμός",
+  "@setLabel": {
+    "description": "Label of confirm button to add a new custom radius to the radius selector of a location tag"
   },
-  "theRecoveryKeyYouEnteredIsIncorrect": "Το κλειδί ανάκτησης που εισάγατε είναι εσφαλμένο",
-  "@theRecoveryKeyYouEnteredIsIncorrect": {
-    "description": "Detailed error message when recovery key is incorrect"
+  "setNewPassword": "Ορίστε νέο κωδικό πρόσβασης",
+  "@setNewPassword": {
+    "description": "Set new password title"
   },
-  "twofactorAuthenticationSuccessfullyReset": "Η αυθεντικοποίηση δύο παραγόντων επαναφέρθηκε επιτυχώς",
-  "@twofactorAuthenticationSuccessfullyReset": {
-    "description": "Message when two-factor authentication is successfully reset"
+  "setNewPin": "Ορίστε νέο PIN",
+  "@setNewPin": {
+    "description": "Set new PIN title"
   },
-  "yourVerificationCodeHasExpired": "Ο κωδικός επαλήθευσης σας έχει λήξει",
-  "@yourVerificationCodeHasExpired": {
-    "description": "Error message when verification code has expired"
+  "setPasswordTitle": "Ορισμός κωδικού πρόσβασης",
+  "@setPasswordTitle": {
+    "description": "Set password title"
   },
-  "incorrectCode": "Εσφαλμένος κωδικός",
-  "@incorrectCode": {
-    "description": "Error message when code is incorrect"
+  "setRadius": "Ορισμός ακτίνας",
+  "settings": "Ρυθμίσεις",
+  "setupComplete": "Η εγκατάσταση ολοκληρώθηκε",
+  "share": "Κοινοποίηση",
+  "shareALink": "Μοιραστείτε έναν σύνδεσμο",
+  "shareCodes": "Κοινοποίηση κωδικών",
+  "shareCodesDuration": "Επιλέξτε τη διάρκεια για την οποία θέλετε να μοιραστείτε τους κωδικούς.",
+  "sharedWith": "Κοινοποιήθηκε με",
+  "shareLink": "Μοιραστείτε έναν σύνδεσμο",
+  "shareThisLink": "Αυτός ο σύνδεσμος επιτρέπει σε οποιονδήποτε τον λάβει να έχει πρόσβαση στο στοιχείο σας. Μπορείτε να αφαιρέσετε την πρόσβαση ανά πάσα στιγμή διαγράφοντας τον σύνδεσμο.",
+  "sharing": "Κοινή χρήση...",
+  "shouldHideCode": "Απόκρυψη κωδικών",
+  "showLargeIcons": "Εμφάνιση μεγάλων εικονιδίων",
+  "showMemories": "Εμφάνιση αναμνήσεων",
+  "showPerson": "Εμφάνιση προσώπου",
+  "showQRAuthMessage": "Πραγματοποιήστε έλεγχο ταυτότητας για να δείτε τον κωδικό QR",
+  "signInToBackup": "Συνδεθείτε για να δημιουργήσετε αντίγραφα ασφαλείας των κωδικών σας",
+  "signOutFromOtherDevices": "Αποσύνδεση από άλλες συσκευές",
+  "@signOutFromOtherDevices": {
+    "description": "Sign out from other devices title"
   },
+  "signOutOtherBody": "Αν νομίζετε ότι κάποιος μπορεί να γνωρίζει τον κωδικό πρόσβασής σας, μπορείτε να αναγκάσετε όλες τις άλλες συσκευές που χρησιμοποιούν το λογαριασμό σας να αποσυνδεθούν.",
+  "@signOutOtherBody": {
+    "description": "Sign out other devices explanation"
+  },
+  "signOutOtherDevices": "Αποσύνδεση άλλων συσκευών",
+  "@signOutOtherDevices": {
+    "description": "Sign out other devices button label"
+  },
+  "signUp": "Εγγραφή",
+  "signUpTerms": "Συμφωνώ με τους <u-terms>όρους χρήσης</u-terms> και την <u-policy>πολιτική απορρήτου</u-policy>",
+  "@signUpTerms": {
+    "description": "Terms agreement text for sign up"
+  },
+  "singIn": "Σύνδεση",
+  "skip": "Παράλειψη",
+  "someoneSharingAlbumsWithYouShouldSeeTheSameId": "Κάποιος που μοιράζεται άλμπουμ με εσάς θα πρέπει να δει τον ίδιο κωδικό στη συσκευή του.",
+  "somethingWentWrong": "Κάτι πήγε στραβά",
+  "somethingWentWrongMessage": "Κάτι πήγε στραβά, παρακαλώ προσπαθήστε ξανά",
+  "somethingWentWrongParsingCode": "Δεν μπορέσαμε να αναλύσουμε τους {x} κώδικες.",
+  "@somethingWentWrongParsingCode": {
+    "placeholders": {
+      "x": {}
+    }
+  },
+  "somethingWentWrongPleaseTryAgain": "Κάτι πήγε στραβά, παρακαλώ προσπαθήστε ξανά",
+  "@somethingWentWrongPleaseTryAgain": {
+    "description": "Generic error message"
+  },
+  "sorry": "Συγνώμη",
+  "sorryBackupFailedDesc": "Λυπούμαστε, δεν ήταν δυνατή η δημιουργία αντιγράφων ασφαλείας αυτού του αρχείου αυτή τη στιγμή, θα προσπαθήσουμε ξανά αργότερα.",
+  "sorryCouldNotAddToFavorites": "Συγγνώμη, δεν ήταν δυνατή η προσθήκη στα αγαπημένα!",
+  "sorryCouldNotRemoveFromFavorites": "Συγγνώμη, δεν ήταν δυνατή η αφαίρεση από τα αγαπημένα!",
   "sorryTheCodeYouveEnteredIsIncorrect": "Λυπούμαστε, ο κωδικός που εισαγάγατε είναι εσφαλμένος",
   "@sorryTheCodeYouveEnteredIsIncorrect": {
     "description": "Detailed error message when code is incorrect"
   },
-  "developerSettings": "Ρυθμίσεις προγραμματιστή",
-  "@developerSettings": {
-    "description": "Label for developerSettings"
+  "sort": "Ταξινόμηση",
+  "startBackup": "Ξεκινήστε τη δημιουργία αντιγράφων ασφαλείας",
+  "startRecovery": "Έναρξη ανάκτησης",
+  "status": "Κατάσταση",
+  "storage": "Αποθηκευτικός χώρος",
+  "storageBreakupFamily": "Οικογένεια",
+  "storageBreakupYou": "Εσείς",
+  "@storageBreakupYou": {
+    "description": "Label to indicate how much storage you are using when you are part of a family plan"
   },
-  "serverEndpoint": "Τερματικό σημείο διακομιστή",
-  "@serverEndpoint": {
-    "description": "Label for serverEndpoint"
+  "storageLimitExceeded": "Υπέρβαση ορίου αποθήκευσης",
+  "strongStrength": "Δυνατός",
+  "@strongStrength": {
+    "description": "Strong password strength label"
   },
-  "invalidEndpoint": "Μη έγκυρο τερματικό σημείο",
-  "@invalidEndpoint": {
-    "description": "Label for invalidEndpoint"
+  "subscribe": "Εγγραφείτε",
+  "subscribeToEnableSharing": "Χρειάζεστε μια ενεργή συνδρομή επί πληρωμή για να ενεργοποιήσετε την κοινή χρήση.",
+  "subscriptionRequiredForSharing": "Χρειάζεστε συνδρομή επί πληρωμή για να κοινοποιήσετε συνδέσμους",
+  "success": "Επιτυχία",
+  "suggestFeatures": "Προτείνετε λειτουργίες",
+  "support": "Υποστήριξη",
+  "tag": "Ετικέτα",
+  "tags": "Ετικέτες",
+  "tapToCopy": "πατήστε για αντιγραφή",
+  "tapToUnlock": "Πατήστε για ξεκλείδωμα",
+  "@tapToUnlock": {
+    "description": "Message prompting user to tap to unlock"
   },
-  "invalidEndpointMessage": "Λυπούμαστε, το τερματικό σημείο που εισάγατε δεν είναι έγκυρο. Παρακαλώ εισάγετε ένα έγκυρο τερματικό σημείο και προσπαθήστε ξανά.",
-  "@invalidEndpointMessage": {
-    "description": "Label for invalidEndpointMessage"
+  "tempErrorContactSupportIfPersists": "Φαίνεται ότι κάτι πήγε στραβά. Παρακαλώ προσπαθήστε ξανά μετά από κάποιο χρονικό διάστημα. Αν το σφάλμα παραμένει, παρακαλούμε επικοινωνήστε με την ομάδα υποστήριξης μας.",
+  "terminate": "Τερματισμός",
+  "@terminate": {
+    "description": "Terminate button label"
   },
-  "endpointUpdatedMessage": "Το τερματκό σημείο ενημερώθηκε επιτυχώς",
-  "@endpointUpdatedMessage": {
-    "description": "Label for endpointUpdatedMessage"
-  }
+  "terminateSession": "Τερματισμός συνεδρίας;",
+  "@terminateSession": {
+    "description": "Title for terminate session dialog"
+  },
+  "termsOfServicesTitle": "Όροι",
+  "@termsOfServicesTitle": {
+    "description": "Terms of service title"
+  },
+  "thankYou": "Ευχαριστούμε",
+  "theme": "Θέμα",
+  "theRecoveryKeyYouEnteredIsIncorrect": "Το κλειδί ανάκτησης που εισάγατε είναι εσφαλμένο",
+  "@theRecoveryKeyYouEnteredIsIncorrect": {
+    "description": "Detailed error message when recovery key is incorrect"
+  },
+  "thisCanBeUsedToRecoverYourAccountIfYou": "Αυτό μπορεί να χρησιμοποιηθεί για να ανακτήσετε το λογαριασμό σας αν χάσετε τον δεύτερο σας παράγοντα",
+  "thisDevice": "Αυτή η συσκευή",
+  "@thisDevice": {
+    "description": "Label for current device"
+  },
+  "thisImageHasNoExifData": "Αυτή η εικόνα δεν έχει δεδομένα exif",
+  "thisIsMeExclamation": "Είμαι εγώ!",
+  "thisIsPersonVerificationId": "Αυτός είναι ο κωδικός επαλήθευσης του {email}",
+  "@thisIsPersonVerificationId": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@ente.com"
+      }
+    }
+  },
+  "thisIsYourVerificationId": "Αυτός είναι ο κωδικός επαλήθευσής σας",
+  "thisWillLogYouOutOfTheFollowingDevice": "Αυτό θα σας αποσυνδέσει από την ακόλουθη συσκευή:",
+  "@thisWillLogYouOutOfTheFollowingDevice": {
+    "description": "Warning message for logging out of another device"
+  },
+  "thisWillLogYouOutOfThisDevice": "Αυτό θα σας αποσυνδέσει από αυτή τη συσκευή!",
+  "@thisWillLogYouOutOfThisDevice": {
+    "description": "Warning message for logging out of current device"
+  },
+  "title": "Τίτλος",
+  "toEnableAppLockPleaseSetupDevicePasscodeOrScreen": "Για να ενεργοποιήσετε το κλείδωμα εφαρμογής, παρακαλώ ορίστε τον κωδικό πρόσβασης της συσκευής ή το κλείδωμα οθόνης στις ρυθμίσεις του συστήματος σας.",
+  "tooManyIncorrectAttempts": "Πάρα πολλές εσφαλμένες προσπάθειες",
+  "@tooManyIncorrectAttempts": {
+    "description": "Message shown when too many incorrect attempts are made"
+  },
+  "toResetVerifyEmail": "Για να επαναφέρετε τον κωδικό πρόσβασής σας, επαληθεύστε πρώτα το email σας.",
+  "@toResetVerifyEmail": {
+    "description": "Message asking user to verify email before password reset"
+  },
+  "totalSize": "Συνολικό μέγεθος",
+  "trashClearedSuccessfully": "Ο κάδος εκκαθαρίστηκε επιτυχώς",
+  "trashCode": "Διαγραφή κώδικα;",
+  "trashCodeMessage": "Είστε σίγουροι ότι θέλετε να διαγράψετε τον κώδικα για το {account} σας;",
+  "@trashCodeMessage": {
+    "placeholders": {
+      "account": {}
+    }
+  },
+  "trashIsEmpty": "Ο κάδος είναι άδειος",
+  "trustedContacts": "Έμπιστες επαφές",
+  "tryAgain": "Προσπαθήστε ξανά",
+  "@tryAgain": {
+    "description": "Try again button label"
+  },
+  "twofactor": "Δύο παράγοντες",
+  "twofactorAuthenticationHasBeenDisabled": "Ο έλεγχος ταυτότητας δύο παραγόντων έχει απενεργοποιηθεί",
+  "twofactorAuthenticationSuccessfullyReset": "Η αυθεντικοποίηση δύο παραγόντων επαναφέρθηκε επιτυχώς",
+  "@twofactorAuthenticationSuccessfullyReset": {
+    "description": "Message when two-factor authentication is successfully reset"
+  },
+  "twoFactorAuthTitle": "Αυθεντικοποίηση δύο παραγόντων",
+  "@twoFactorAuthTitle": {
+    "description": "Two-factor authentication title"
+  },
+  "twofactorSetup": "Ρύθμιση δύο παραγόντων",
+  "type": "Τύπος",
+  "unarchive": "Κατάργηση αρχειοθέτησης",
+  "@unarchive": {
+    "description": "Action of 'Unarchiving' an element"
+  },
+  "uncategorized": "Χωρίς Κατηγορία",
+  "unhide": "Επανεμφάνιση",
+  "unhideToAlbum": "Επανεμφάνιση στο άλμπουμ",
+  "unimportant": "Μη σημαντικό",
+  "unlock": "Ξεκλείδωμα",
+  "@unlock": {
+    "description": "Short action label used as the system authentication reason when unlocking the app"
+  },
+  "unnamedCollection": "Ανώνυμη συλλογή",
+  "unpinnedCodeMessage": "Το {code} έχει ξεκαρφιτσωθεί",
+  "@unpinnedCodeMessage": {
+    "placeholders": {
+      "code": {}
+    }
+  },
+  "unpinText": "Ξεκαρφίτσωμα",
+  "unsavedNoteChangesDescription": "Έχετε μη αποθηκευμένες αλλαγές σε αυτή τη σημείωση. Αν επιστρέψετε τώρα, θα χαθούν.",
+  "unsavedNoteChangesTitle": "Απόρριψη αλλαγών;",
+  "unselectAll": "Αποεπιλογή όλων",
+  "untitled": "Χωρίς τίτλο",
+  "updateAvailable": "Διαθέσιμη ενημέρωση",
+  "updatingFolderSelection": "Ενημέρωση επιλογής φακέλων...",
+  "upgrade": "Αναβάθμιση",
+  "uploadedFilesProgress": "Ανεβάστηκαν {completed}/{total} στοιχεία...",
+  "@uploadedFilesProgress": {
+    "description": "Progress message showing uploaded items",
+    "placeholders": {
+      "completed": {
+        "type": "int",
+        "example": "3"
+      },
+      "total": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "uploadError": "Σφάλμα ανεβάσματος",
+  "uploadFileCountLimitErrorBody": "Έχετε φτάσει το όριο αρχείων. Αναβαθμίστε σε πληρωμένο πλάνο για περισσότερο χώρο.",
+  "@uploadFileCountLimitErrorBody": {
+    "description": "Body shown when uploads fail because the locker already has the maximum file count"
+  },
+  "uploadFileCountLimitErrorTitle": "Το όριο αρχείων επιτεύχθηκε",
+  "@uploadFileCountLimitErrorTitle": {
+    "description": "Title shown when uploads fail because the locker already has the maximum file count"
+  },
+  "uploadFileCountLimitErrorToast": "Η ενέργεια απέτυχε. Έχετε φτάσει το όριο αρχείων.",
+  "@uploadFileCountLimitErrorToast": {
+    "description": "Toast shown when info items fail to save due to hitting the file count limit"
+  },
+  "uploadFiles": "Ανέβασμα στοιχείων",
+  "uploadFileTooLargeErrorBody": "Αυτό το αρχείο είναι μεγαλύτερο από το μέγιστο υποστηριζόμενο μέγεθος ανεβάσματος των 10GB.",
+  "@uploadFileTooLargeErrorBody": {
+    "description": "Body shown when uploads fail because the file exceeds the supported size"
+  },
+  "uploadFileTooLargeErrorTitle": "Το αρχείο είναι πολύ μεγάλο",
+  "@uploadFileTooLargeErrorTitle": {
+    "description": "Title shown when uploads fail because the file exceeds the supported size"
+  },
+  "uploadStorageLimitErrorBody": "Ο αποθηκευτικός σας χώρος εξαντλήθηκε. Ελευθερώστε χώρο για να συνεχίσετε το ανέβασμα.",
+  "@uploadStorageLimitErrorBody": {
+    "description": "Body shown when uploads fail due to running out of storage"
+  },
+  "uploadStorageLimitErrorTitle": "Το όριο αποθήκευσης επιτεύχθηκε",
+  "@uploadStorageLimitErrorTitle": {
+    "description": "Title shown when uploads fail due to running out of storage"
+  },
+  "usedSpace": "Χώρος που χρησιμοποιείται",
+  "useOffline": "Χρήση χωρίς αντίγραφα ασφαλείας",
+  "useRecoveryKey": "Χρήση κλειδιού ανάκτησης",
+  "@useRecoveryKey": {
+    "description": "Use recovery key button label"
+  },
+  "username": "Όνομα χρήστη",
+  "usernameHint": "Αναγνωριστικό σύνδεσης ή email",
+  "useSelectedPhoto": "Χρήση επιλεγμένης φωτογραφίας",
+  "verificationFailedPleaseTryAgain": "Η επαλήθευση απέτυχε, παρακαλώ προσπαθήστε ξανά",
+  "@verificationFailedPleaseTryAgain": {
+    "description": "Verification failed error message"
+  },
+  "verify": "Επαλήθευση",
+  "@verify": {
+    "description": "Verify button label"
+  },
+  "verifyEmail": "Επαλήθευση email",
+  "@verifyEmail": {
+    "description": "Verify email title"
+  },
+  "verifyIDLabel": "Επαλήθευση",
+  "verifying": "Γίνεται επιβεβαίωση...",
+  "verifyingRecoveryKey": "Επαλήθευση κλειδιού ανάκτησης...",
+  "verifyPassword": "Επαλήθευση κωδικού πρόσβασης",
+  "@verifyPassword": {
+    "description": "Verify password button label"
+  },
+  "videoInfo": "Πληροφορίες βίντεο",
+  "videoStreaming": "Βίντεο με υποστήριξη μετάδοσης",
+  "viewActiveSessions": "Προβολή ενεργών συνεδριών",
+  "viewer": "Θεατής",
+  "viewLogsAction": "Προβολή αρχείων καταγραφής",
+  "viewRawCodes": "Προβολή ακατέργαστων κωδικών",
+  "viewRecoveryKey": "Προβολή κλειδιού ανάκτησης",
+  "waitingForVerification": "Αναμονή για επαλήθευση...",
+  "@waitingForVerification": {
+    "description": "Waiting for verification message"
+  },
+  "waitingForWifi": "Αναμονή για WiFi...",
+  "warning": "Προσοχή",
+  "weakStrength": "Αδύναμος",
+  "@weakStrength": {
+    "description": "Weak password strength label"
+  },
+  "weDontSupportEditingPhotosAndAlbumsThatYouDont": "Δεν υποστηρίζουμε την επεξεργασία φωτογραφιών και άλμπουμ που δεν σας ανήκουν ακόμα",
+  "yearsAgo": "{count, plural, one{{count} έτος πριν} other{{count} έτη πριν}}",
+  "@yearsAgo": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "yes": "Ναι",
+  "yesConvertToViewer": "Ναι, μετατροπή σε θεατή",
+  "yesDelete": "Ναι, διαγραφή",
+  "yesDiscardChanges": "Ναι, απόρριψη αλλαγών",
+  "yesLogout": "Ναι, αποσύνδεση",
+  "@yesLogout": {
+    "description": "Confirmation button for logout"
+  },
+  "yesRemove": "Ναι, αφαίρεση",
+  "you": "Εσείς",
+  "youAreOnTheLatestVersion": "Είστε στην πιο πρόσφατη έκδοση",
+  "youCannotShareWithYourself": "Δεν μπορείτε να κοινοποιήσετε στον εαυτό σας",
+  "youHaveSuccessfullyFreedUp": "Έχετε ανακτήσει με επιτυχία {storageSaved}!",
+  "@youHaveSuccessfullyFreedUp": {
+    "description": "The text to display when the user has successfully freed up storage",
+    "type": "text",
+    "placeholders": {
+      "storageSaved": {
+        "example": "1.2 GB",
+        "type": "String"
+      }
+    }
+  },
+  "yourSubscriptionHasExpired": "Η συνδρομή σας έχει λήξει",
+  "yourTrashIsEmpty": "Ο κάδος σας είναι άδειος",
+  "yourVerificationCodeHasExpired": "Ο κωδικός επαλήθευσής σας έχει λήξει",
+  "@yourVerificationCodeHasExpired": {
+    "description": "Error message when verification code has expired"
+  },
+  "youveNoDuplicateCodesThatCanBeCleared": "Δεν υπάρχουν διπλότυπα αρχεία που μπορούν να εκκαθαριστούν",
+  "youveNoDuplicateFilesThatCanBeCleared": "Δεν υπάρχουν διπλότυπα αρχεία που μπορούν να εκκαθαριστούν"
 }

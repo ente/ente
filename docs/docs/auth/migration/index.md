@@ -6,6 +6,7 @@ description: Guides for migrating your existing 2FA tokens into or out of Ente A
 # Migrating to/from Ente Auth
 
 - [Migrating from Authy](authy/)
+- [Migrating from Microsoft Authenticator](microsoft-authenticator/)
 - [Importing codes from Steam](steam/)
 - [Migrating from other apps](import)
 - [Exporting your data out of Ente Auth](export)

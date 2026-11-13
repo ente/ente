@@ -6,9 +6,9 @@ Pod::Spec.new do |s|
 Cross-platform directory utilities providing security-scoped bookmark support on macOS
 for persistent file access to user-selected directories outside the app sandbox.
                        DESC
-  s.homepage         = 'https://github.com/ente-io/ente'
+  s.homepage         = 'https://github.com/ente/ente'
   s.license          = { :file => '../LICENSE' }
-  s.author           = { 'Ente' => 'support@ente.io' }
+  s.author           = { 'Ente' => 'support@ente.com' }
   s.source           = { :path => '.' }
   s.source_files = 'Classes/**/*'
   s.dependency 'FlutterMacOS'

@@ -1,22 +1,22 @@
 import 'package:ente_accounts/ente_accounts.dart';
+import 'package:ente_accounts/widgets/account_app_bar_logo.dart';
 import 'package:ente_strings/ente_strings.dart';
 import 'package:ente_ui/components/buttons/dynamic_fab.dart';
 import 'package:ente_ui/theme/ente_theme.dart';
 import 'package:ente_utils/email_util.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 class TwoFactorRecoveryPage extends StatefulWidget {
+  final AccountsClient client;
   final String sessionID;
-  final String encryptedSecret;
-  final String secretDecryptionNonce;
+  final TwoFactorRecoveryResponse recoveryResponse;
   final TwoFactorType type;
 
   const TwoFactorRecoveryPage(
+    this.client,
     this.type,
     this.sessionID,
-    this.encryptedSecret,
-    this.secretDecryptionNonce, {
+    this.recoveryResponse, {
     super.key,
   });
 
@@ -30,11 +30,11 @@ class _TwoFactorRecoveryPageState extends State<TwoFactorRecoveryPage> {
   Future<void> _onRecover() async {
     await UserService.instance.removeTwoFactor(
       context,
+      widget.client,
       widget.type,
       widget.sessionID,
       _recoveryKey.text,
-      widget.encryptedSecret,
-      widget.secretDecryptionNonce,
+      widget.recoveryResponse,
     );
   }
 
@@ -59,16 +59,10 @@ class _TwoFactorRecoveryPageState extends State<TwoFactorRecoveryPage> {
         scrolledUnderElevation: 0,
         backgroundColor: colorScheme.backgroundBase,
         centerTitle: true,
-        title: SvgPicture.asset(
-          'assets/svg/app-logo.svg',
-          colorFilter: ColorFilter.mode(
-            colorScheme.primary700,
-            BlendMode.srcIn,
-          ),
-        ),
+        title: const AccountAppBarLogo(),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          color: colorScheme.primary700,
+          color: getAccountAppBarColor(context),
           onPressed: () {
             Navigator.of(context).pop();
           },
@@ -145,10 +139,7 @@ class _TwoFactorRecoveryPageState extends State<TwoFactorRecoveryPage> {
                         GestureDetector(
                           behavior: HitTestBehavior.translucent,
                           onTap: () async {
-                            await sendEmail(
-                              context,
-                              to: "support@ente.io",
-                            );
+                            await sendEmail(context, to: "support@ente.com");
                           },
                           child: Text(
                             context.strings.noRecoveryKeyTitle,

@@ -1,0 +1,1 @@
+- Add volume slider to web video player controls (@mohdsultan18)

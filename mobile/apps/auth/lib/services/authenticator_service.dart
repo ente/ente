@@ -21,10 +21,7 @@ import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-enum AccountMode {
-  online,
-  offline,
-}
+enum AccountMode { online, offline }
 
 extension on AccountMode {
   bool get isOnline => this == AccountMode.online;
@@ -68,8 +65,9 @@ class AuthenticatorService {
   }
 
   Future<List<EntityResult>> getEntities(AccountMode mode) async {
-    final List<LocalAuthEntity> result =
-        mode.isOnline ? await _db.getAll() : await _offlineDb.getAll();
+    final List<LocalAuthEntity> result = mode.isOnline
+        ? await _db.getAll()
+        : await _offlineDb.getAll();
     final List<EntityResult> entities = [];
     if (result.isEmpty) {
       return entities;
@@ -88,6 +86,7 @@ class AuthenticatorService {
             e.generatedID,
             utf8.decode(decryptedValue),
             hasSynced,
+            e.createdAt,
           ),
         );
       } catch (e, s) {
@@ -107,8 +106,9 @@ class AuthenticatorService {
       utf8.encode(plainText),
       key,
     );
-    String encryptedData =
-        CryptoUtil.bin2base64(encryptedKeyData.encryptedData!);
+    String encryptedData = CryptoUtil.bin2base64(
+      encryptedKeyData.encryptedData!,
+    );
     String header = CryptoUtil.bin2base64(encryptedKeyData.header!);
     final insertedID = accountMode.isOnline
         ? await _db.insert(encryptedData, header)
@@ -130,8 +130,9 @@ class AuthenticatorService {
       utf8.encode(plainText),
       key,
     );
-    String encryptedData =
-        CryptoUtil.bin2base64(encryptedKeyData.encryptedData!);
+    String encryptedData = CryptoUtil.bin2base64(
+      encryptedKeyData.encryptedData!,
+    );
     String header = CryptoUtil.bin2base64(encryptedKeyData.header!);
     final int affectedRows = accountMode.isOnline
         ? await _db.updateEntry(generatedID, encryptedData, header)
@@ -234,18 +235,23 @@ class AuthenticatorService {
     const int fetchLimit = 500;
     late final List<AuthEntity> result;
     late final int? epochTimeInMicroseconds;
-    (result, epochTimeInMicroseconds) =
-        await _gateway.getDiff(lastSyncTime, limit: fetchLimit);
-    PreferenceService.instance
-        .computeAndStoreTimeOffset(epochTimeInMicroseconds);
+    (result, epochTimeInMicroseconds) = await _gateway.getDiff(
+      lastSyncTime,
+      limit: fetchLimit,
+    );
+    PreferenceService.instance.computeAndStoreTimeOffset(
+      epochTimeInMicroseconds,
+    );
 
     _logger.info("${result.length} entries fetched from remote");
     if (result.isEmpty) {
       return;
     }
     final maxSyncTime = result.map((e) => e.updatedAt).reduce(max);
-    List<String> deletedIDs =
-        result.where((element) => element.isDeleted).map((e) => e.id).toList();
+    List<String> deletedIDs = result
+        .where((element) => element.isDeleted)
+        .map((e) => e.id)
+        .toList();
     _logger.info("${deletedIDs.length} entries deleted");
     result.removeWhere((element) => element.isDeleted);
     await _db.insertOrReplace(result);
@@ -266,19 +272,16 @@ class AuthenticatorService {
     final List<LocalAuthEntity> pendingUpdate = result
         .where((element) => element.shouldSync || element.id == null)
         .toList();
-    _logger.info(
-      "${pendingUpdate.length} entries to be updated at remote",
-    );
+    _logger.info("${pendingUpdate.length} entries to be updated at remote");
     for (LocalAuthEntity entity in pendingUpdate) {
       if (entity.id == null) {
         _logger.info("Adding new entry");
-        final authEntity =
-            await _gateway.createEntity(entity.encryptedData, entity.header);
+        final authEntity = await _gateway.createEntity(
+          entity.encryptedData,
+          entity.header,
+        );
         await _db.updateLocalEntity(
-          entity.copyWith(
-            id: authEntity.id,
-            shouldSync: false,
-          ),
+          entity.copyWith(id: authEntity.id, shouldSync: false),
         );
       } else {
         _logger.info("Updating entry");

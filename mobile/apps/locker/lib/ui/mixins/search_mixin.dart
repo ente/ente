@@ -1,11 +1,6 @@
-import 'dart:async';
-
-import 'package:ente_ui/theme/ente_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:locker/extensions/collection_extension.dart';
-import 'package:locker/l10n/l10n.dart';
-import 'package:locker/services/collections/collections_service.dart';
 import 'package:locker/services/collections/models/collection.dart';
 import 'package:locker/services/files/sync/models/file.dart';
 
@@ -24,13 +19,12 @@ class CollectionSearchResult {
 mixin SearchMixin<T extends StatefulWidget> on State<T> {
   String _searchQuery = '';
   bool _isSearchActive = false;
-  bool _isSearching = false;
-  Timer? _searchDebounceTimer;
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
 
   List<Collection> get allCollections;
   List<EnteFile> get allFiles;
+  Map<int, List<EnteFile>> get filesByCollection;
 
   void onSearchResultsChanged(
     List<Collection> collections,
@@ -43,102 +37,7 @@ mixin SearchMixin<T extends StatefulWidget> on State<T> {
   void dispose() {
     _searchController.dispose();
     _searchFocusNode.dispose();
-    _searchDebounceTimer?.cancel();
     super.dispose();
-  }
-
-  Widget buildSearchAction() {
-    if (_isSearchActive) {
-      return Flexible(
-        child: Container(
-          margin: const EdgeInsets.fromLTRB(8.0, 8.0, 8.0, 8.0),
-          constraints: const BoxConstraints(
-            minWidth: 200,
-            maxWidth: double.infinity,
-          ),
-          child: TextField(
-            controller: _searchController,
-            focusNode: _searchFocusNode,
-            autofocus: true,
-            onChanged: _onSearchChanged,
-            decoration: InputDecoration(
-              hintText: context.l10n.searchHint,
-              hintStyle: TextStyle(
-                color: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
-                    ?.color
-                    ?.withValues(alpha: 0.6),
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(20.0),
-                borderSide: BorderSide.none,
-              ),
-              filled: true,
-              fillColor: getEnteColorScheme(context).backdropBase,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16.0,
-                vertical: 8.0,
-              ),
-              prefixIcon: _isSearching
-                  ? Container(
-                      width: 20,
-                      height: 20,
-                      padding: const EdgeInsets.all(8.0),
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.color
-                                  ?.withValues(alpha: 0.6) ??
-                              Colors.grey,
-                        ),
-                      ),
-                    )
-                  : Icon(
-                      Icons.search,
-                      size: 20,
-                      color: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.color
-                          ?.withValues(alpha: 0.6),
-                    ),
-            ),
-            style: TextStyle(
-              fontSize: 14,
-              color: Theme.of(context).textTheme.bodyMedium?.color,
-            ),
-          ),
-        ),
-      );
-    } else {
-      return IconButton(
-        icon: const Icon(Icons.search),
-        onPressed: _activateSearch,
-      );
-    }
-  }
-
-  List<Widget> buildSearchActions() {
-    if (_isSearchActive) {
-      return [
-        IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: _deactivateSearch,
-        ),
-      ];
-    }
-    return [];
-  }
-
-  Widget? buildSearchLeading({Widget? defaultLeading}) {
-    if (_isSearchActive) {
-      return null;
-    }
-    return defaultLeading;
   }
 
   void _activateSearch() {
@@ -158,7 +57,7 @@ mixin SearchMixin<T extends StatefulWidget> on State<T> {
     });
     _searchController.clear();
     onSearchStateChanged(false);
-    unawaited(_performSearch(''));
+    _performSearch('');
   }
 
   void _clearSearch() {
@@ -167,35 +66,18 @@ mixin SearchMixin<T extends StatefulWidget> on State<T> {
   }
 
   void _onSearchChanged(String query) {
-    _searchDebounceTimer?.cancel();
-
-    if (query.isEmpty && _searchQuery.isNotEmpty) {
-      setState(() {
-        _searchQuery = query;
-      });
-      unawaited(_performSearch(query));
-      return;
-    }
-
-    _searchDebounceTimer = Timer(const Duration(milliseconds: 300), () {
-      if (mounted) {
-        setState(() {
-          _searchQuery = query;
-        });
-        unawaited(_performSearch(query));
-      }
+    if (!mounted) return;
+    setState(() {
+      _searchQuery = query;
     });
+    _performSearch(query);
   }
 
-  Future<void> _performSearch(String query) async {
+  void _performSearch(String query) {
     if (!mounted) return;
 
-    setState(() {
-      _isSearching = true;
-    });
-
     try {
-      final normalizedQuery = query.trim();
+      final normalizedQuery = query.trim().toLowerCase();
       if (normalizedQuery.isEmpty) {
         if (mounted) {
           onSearchResultsChanged(allCollections, allFiles);
@@ -205,21 +87,23 @@ mixin SearchMixin<T extends StatefulWidget> on State<T> {
 
       final List<Collection> filteredCollections = [];
       final List<EnteFile> collectionFiles = [];
+      final Set<String> addedFileIds = {};
 
       for (final collection in allCollections) {
         if (!mounted) return;
-        final searchResult =
-            await _searchInCollection(collection, normalizedQuery);
+        final searchResult = _searchInCollection(collection, normalizedQuery);
         if (searchResult.matches) {
           filteredCollections.add(collection);
           if (searchResult.nameMatches) {
-            collectionFiles.addAll(searchResult.files);
+            collectionFiles.addAll(
+              searchResult.files.where(
+                (file) => addedFileIds.add(file.uploadedFileID.toString()),
+              ),
+            );
           }
         }
       }
 
-      final Set<String> addedFileIds =
-          collectionFiles.map((f) => f.uploadedFileID.toString()).toSet();
       final filteredFiles = allFiles.where((file) {
         if (addedFileIds.contains(file.uploadedFileID.toString())) {
           return false;
@@ -240,22 +124,15 @@ mixin SearchMixin<T extends StatefulWidget> on State<T> {
       if (mounted) {
         onSearchResultsChanged(allCollections, allFiles);
       }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isSearching = false;
-        });
-      }
     }
   }
 
-  Future<CollectionSearchResult> _searchInCollection(
+  CollectionSearchResult _searchInCollection(
     Collection collection,
     String query,
-  ) async {
+  ) {
     try {
-      final files =
-          await CollectionService.instance.getFilesInCollection(collection);
+      final files = filesByCollection[collection.id] ?? const <EnteFile>[];
       final collectionNameMatches = _containsQuery(
         collection.displayName ?? '',
         query,
@@ -289,23 +166,11 @@ mixin SearchMixin<T extends StatefulWidget> on State<T> {
         _containsQuery(file.pubMagicMetadata.uploaderName ?? '', query);
   }
 
-  bool _containsQuery(String text, String query) {
-    if (text.isEmpty) return false;
-    final lowerText = text.toLowerCase();
-    final lowerQuery = query.trim().toLowerCase();
-    if (lowerQuery.isEmpty) return false;
+  bool _containsQuery(String text, String query) =>
+      text.toLowerCase().contains(query);
 
-    if (lowerText.contains(lowerQuery)) {
-      return true;
-    }
-    final words = lowerText.split(RegExp(r'[\s\-_\.]+'));
-    return words.any((word) => word.startsWith(lowerQuery));
-  }
-
-  /// Handle keyboard shortcuts
   bool handleKeyEvent(KeyEvent event) {
     if (event is KeyDownEvent) {
-      // Clear search or close search on ESC
       if (event.logicalKey == LogicalKeyboardKey.escape) {
         if (_isSearchActive) {
           if (_searchQuery.isNotEmpty) {
@@ -315,9 +180,7 @@ mixin SearchMixin<T extends StatefulWidget> on State<T> {
           }
           return true;
         }
-      }
-      // Activate search on Ctrl+F (Cmd+F on Mac)
-      else if (event.logicalKey == LogicalKeyboardKey.keyF &&
+      } else if (event.logicalKey == LogicalKeyboardKey.keyF &&
           (HardwareKeyboard.instance.isMetaPressed ||
               HardwareKeyboard.instance.isControlPressed)) {
         if (!_isSearchActive) {
@@ -331,10 +194,13 @@ mixin SearchMixin<T extends StatefulWidget> on State<T> {
 
   String get searchQuery => _searchQuery;
   bool get isSearchActive => _isSearchActive;
-  bool get isSearching => _isSearching;
   TextEditingController get searchController => _searchController;
+  FocusNode get searchFocusNode => _searchFocusNode;
 
-  /// Programmatically activate search with a specific query
+  void updateSearchQuery(String query) => _onSearchChanged(query);
+
+  void refreshSearch() => _performSearch(_searchQuery);
+
   void activateSearchWithQuery(String query) {
     setState(() {
       _isSearchActive = true;
@@ -342,15 +208,13 @@ mixin SearchMixin<T extends StatefulWidget> on State<T> {
     });
     _searchController.text = query;
     onSearchStateChanged(true);
-    unawaited(_performSearch(query));
+    _performSearch(query);
 
-    // Focus the search field after the widget is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _searchFocusNode.requestFocus();
     });
   }
 
-  /// Programmatically dismiss the search UI and reset state
   void dismissSearch() {
     if (_isSearchActive) {
       _deactivateSearch();

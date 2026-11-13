@@ -1,10 +1,14 @@
 ---
-title: This Page Has Moved
-description: This content has been reorganized
+title: Installing Ente Photos
+description: Installation guides for Ente Photos on all platforms
 search: false
+head:
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
-# This Page Has Moved
+# Installing Ente Photos
 
 The content from **Installing Ente Photos** has been reorganized. You can find it in the following locations:
 

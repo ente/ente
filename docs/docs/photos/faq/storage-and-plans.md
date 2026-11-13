@@ -17,6 +17,8 @@ We decided to leave out the **i** from **GiBs** to reduce noise on our interface
 
 This means that the same file appears to take up less "storage" on Ente compared to providers using GB (base-1000) calculation.
 
+Storage usage in the mobile app is rounded for display, so a small upload may not visibly change the total. To check pending uploads, see [Backup status](/photos/faq/backup-and-sync#check-backup-status).
+
 ### How does Ente deduplicate photos? {#deduplication}
 
 Ente automatically detects and handles duplicate files during backup to save storage space:
@@ -62,9 +64,27 @@ Ente provides several tools to help you optimize both your device storage and cl
 
 Learn more in the [Storage optimization guide](/photos/features/albums-and-organization/storage-optimization).
 
+### Why is "Free up device space" taking so long? {#free-up-space-slow}
+
+Freeing up a very large number of files at once can take longer than expected.
+
+When you have a large library, free up space album by album instead. Open **On device**, open an album, tap the three-dot menu, and select **Free up device space**.
+
+Smaller batches usually work more reliably.
+
+### Can I free up space for one device folder only? {#free-up-one-folder}
+
+Yes. Free up space album by album instead of clearing everything at once.
+
+1. Open **On device** (device albums).
+2. Open the folder or album you want to clear from the device.
+3. Tap the three-dot menu and select **Free up device space**.
+
+That removes local copies for photos already backed up in that device album, without requiring a separate multi-folder picker. See also [Why is "Free up device space" taking so long?](#free-up-space-slow).
+
 ### Do items in trash count against my storage? {#trash-storage-count}
 
-Yes, items in trash are included in your storage quota calculation. To free up storage space, you can:
+Items in Ente Trash count toward your Ente storage quota. Photos in Android's system trash use storage on your device. To free up Ente storage, you can:
 
 - Manually empty your trash
 - Permanently delete specific items
@@ -76,9 +96,9 @@ Learn more in [Albums and Organization FAQ](/photos/faq/albums-and-organization#
 
 ### I deleted photos from Ente, but my storage didn’t decrease. Why?
 
-Deleted photos are moved to Trash first, and items in Trash still count toward your storage.
+Photos deleted from your Ente account move to Trash first, where they still count toward your storage quota.
 
-To free up space immediately, empty Trash from the app. Trash will also be cleared automatically after 30 days.
+To free up space immediately, empty Trash from the app. If both trash tabs are shown, select **Ente**. Emptying **Device** only frees storage on your device. Photos in Ente Trash are permanently deleted after 30 days.
 
 ### What happens if I exceed my storage limit? {#exceed-storage}
 
@@ -95,7 +115,7 @@ To continue backing up:
 
 ### What plans does Ente offer? {#available-plans}
 
-See our [website](https://ente.io#pricing) for the complete list of supported plans and pricing.
+See our [website](https://ente.com#pricing) for the complete list of supported plans and pricing.
 
 We offer:
 
@@ -112,6 +132,24 @@ No. We keep a single price globally because our infrastructure and payment costs
 
 Yes, we offer 10 GB of storage for free, forever.
 
+### Does Ente offer a lifetime plan? {#lifetime-plan}
+
+We don't offer lifetime plans. Storage, bandwidth and infrastructure all have recurring costs, so a one-time payment model isn't currently sustainable.
+
+Ente offers monthly and annual plans, and annual plans cost less than paying monthly. You also get 10 GB of storage for free, forever.
+
+See our [website](https://ente.com#pricing) for current plans and prices.
+
+### What happens if my free account becomes inactive? {#inactive-free-account}
+
+If a free account has no active paid subscription and remains inactive for 12 consecutive months, we will notify you at your registered email address multiple times before deleting the account.
+
+If you have configured Legacy with trusted contacts, we will notify those trusted contacts as well, so they have a chance to recover the account if needed.
+
+Visitors opening or viewing your public albums do not count as you using your account. Do not rely on public-link views to keep a free account active.
+
+To keep the account and its data, simply sign in before the date mentioned in the emails.
+
 ### What are the limitations of the free plan? {#free-plan-limits}
 
 On the free plan, you cannot:
@@ -125,7 +163,7 @@ All other features work on the free plan, including:
 - Map view
 - Machine learning (face recognition, magic search)
 - Creating /receiving shared albums
-- Public links (device limit of 5)
+- Public links (device limit of 10)
 - Background sync
 
 ### Is there an x GB plan? {#specific-plan-size}
@@ -136,13 +174,21 @@ To keep things fair, our plans don't increase linearly, and the tiers are such t
 
 In addition, we also offer [family plans](/photos/features/account/family-plans) so that you can gain more value out of a single subscription.
 
-If you need a custom plan, please contact [support@ente.io](mailto:support@ente.io).
+If you have any queries regarding pricing or require a plan above 2TB, please contact [support@ente.com](mailto:support@ente.com).
+
+### Does my free plan storage stack on top of a paid plan? {#free-storage-stacking}
+
+No. The free plan's 10 GB is replaced, not added to, when you upgrade. Your paid plan's allowance, plus any bonuses included with that plan, becomes your total.
+
+For example, the Starter plan is 50 GB plus a 10 GB bonus (referral code from a friend), which gives 60 GB total. The free plan's 10 GB does not stack on top.
+
+Referral storage is separate and adds on top of your plan, up to the [referral cap](#referral-storage-limit).
 
 ## Family Plans
 
 ### Does Ente have Family Plans? {#family-plans-faq}
 
-Yes we do! Please check out our announcement post [here](https://ente.io/blog/family-plans).
+Yes we do! Please check out our announcement post [here](https://ente.com/blog/family-plans).
 
 In brief:
 
@@ -155,6 +201,30 @@ Note that family plans are meant as a way to share storage. For sharing photos, 
 
 Learn more in the [Family plans guide](/photos/features/account/family-plans).
 
+### Where do I manage my family plan? {#manage-family-plan}
+
+The path depends on the app:
+
+- **Mobile (Android and iOS):** Open `Settings > Family`.
+- **Web and desktop:** Open `Settings > Account > Manage subscription`, then select **Manage family**. You can also open your subscription from the storage card at the top of Settings. There is no separate **Family** item in web or desktop Settings.
+
+On mobile, **Family** appears only when you are signed in to an Ente account. It is not shown in gallery mode. If you use the free plan and are not in a family, this page shows an overview with **View plans**. On web and desktop, **Manage family** appears after you subscribe to a paid plan.
+
+If you manage the family plan, you can see shared storage and members. From there, you can invite people, resend or revoke pending invitations, set storage limits, and remove members.
+
+If you are a member, you cannot manage invitations, members, or storage limits. On mobile, `Settings > Family` shows family storage and active members. Use the top-right menu there to **Leave family plan**. On web and desktop, open **Manage subscription** or the storage card to see the managing account and **Leave family plan**.
+
+Each member's photos stay private unless they choose to share them.
+
+### Where do I manage Family in the apps? {#where-is-family}
+
+The Family entry is not in the same place on every platform.
+
+- **Mobile (Android and iOS):** Open `Settings > Family`. This item appears when you are signed in. It is not shown in gallery mode.
+- **Web and desktop:** There is no separate **Family** row in Settings. Open `Settings > Account > Manage subscription`, then **Manage family**. You can also open your subscription from the storage card at the top of Settings.
+
+For invites, limits, and leaving a family, see [Where do I manage my family plan?](#manage-family-plan).
+
 ### How many family members can I add to my plan? {#family-members-limit}
 
 You can invite up to 5 family members to your plan. Including yourself, a total of 6 people can share a single subscription while paying only once.
@@ -165,7 +235,7 @@ No. Storage from different accounts does not stack.
 
 When you create a family and add members, everyone in the family shares the storage of the admin's subscription.
 
-(Example: If you have a 1 TB plan and add someone with a 200 GB plan, your family will still have 1 TB total shared storage. Their 200 GB does not combine with yours. Once they join your family, their own individual subscription becomes redundant— they will use the shared family storage instead.)
+(Example: If you have a 1 TB plan and add someone with a 200 GB plan, your family will still have 1 TB total shared storage. Their 200 GB does not combine with yours. Once they join your family, their own individual subscription becomes redundant - they will use the shared family storage instead.)
 
 Family plans are designed to allow multiple people to use a single subscription, not to combine multiple plans into a larger pool.
 
@@ -177,7 +247,7 @@ No. Each family member gets their own private space, and members cannot see each
 
 Yes! As the family plan admin, you can set storage limits for each member:
 
-1. Open Subscription > Manage family
+1. Open [family settings](#manage-family-plan)
 2. Find the member you want to limit
 3. Click the edit icon
 4. Set the storage limit (e.g., 10 GB)
@@ -191,11 +261,11 @@ If a family member accepted your invitation but their account shows 0 GB of avai
 
 **Solution 1: Check if they actually accepted the invite**
 
-Open `Settings > Family plans`, check the "Members" list, and confirm their status shows "Active" (not "Invited" or "Pending"). If still showing as "Invited", ask them to check their email and accept the invitation.
+Open [family settings](#manage-family-plan), check the "Members" list, and confirm their status shows "Active" (not "Invited" or "Pending"). If still showing as "Invited", ask them to check their email and accept the invitation.
 
 **Solution 2: Check if you've set a storage limit**
 
-Open `Settings > Family plans`, find the member in the list, click the edit icon next to their name, and check if a storage limit is set to 0 GB or a very low amount. Either increase the limit or click "Remove Limit" to give them unlimited access to the family plan storage.
+Open [family settings](#manage-family-plan), find the member in the list, select the edit option, and check if a storage limit is set to 0 GB or a very low amount. Either increase the limit or click "Remove Limit" to give them unlimited access to the family plan storage.
 
 **Solution 3: Have the member log out and log back in**
 
@@ -211,7 +281,7 @@ Open `Settings > Family plans`, find the member in the list, click the edit icon
 
 **If the issue persists:**
 
-Contact [support@ente.io](mailto:support@ente.io) with:
+Contact [support@ente.com](mailto:support@ente.com) with:
 
 - Your email address (family plan admin)
 - The family member's email address
@@ -235,7 +305,7 @@ Common reasons and solutions:
 **Problem 3: "Invalid email address" or invitation fails**
 
 - Make sure the email address is correct
-- The person must have an Ente account already (ask them to sign up first at [ente.io](https://ente.io))
+- The person must have an Ente account already (ask them to sign up first at [ente.com](https://ente.com))
 - Free accounts can be invited to family plans
 
 **Problem 4: Family plan not available**
@@ -247,11 +317,23 @@ Common reasons and solutions:
 **Problem 5: Purchased through App Store**
 
 - Family plans may have limited functionality for App Store purchases
-- Consider managing your subscription through [web.ente.io](https://web.ente.io) instead
+- Consider managing your subscription through [photos.ente.com](https://photos.ente.com) instead
+
+### How do I add a family member who already has a paid subscription? {#add-family-member-existing-subscriber}
+
+1. Subscribe to a paid plan on your account if you have not already.
+2. Ask your family member to cancel their existing subscription, then contact [support@ente.com](mailto:support@ente.com) so we can switch their account to the free plan.
+3. Once their account is on the free plan, add them via `Settings > Storage/Subscription > Manage subscription > Manage family`, or via `Settings > Account > Manage subscription`.
+
+> [!NOTE]
+>
+> Each family member gets their own private space. Members cannot see each other's files unless explicitly shared. Family plans are for sharing storage, not for sharing photos automatically.
+>
+> If an account is ever left on the free plan with no active paid subscription and becomes inactive, the [inactive free-account policy](#inactive-free-account) applies. We will notify the account owner, any family plan members, and any Legacy trusted contacts multiple times before any account deletion.
 
 ### How do I remove someone from my family plan? {#remove-family-member}
 
-Open `Settings > Family plans`, find the member you want to remove, click the remove/trash icon next to their name, and confirm the removal.
+Open [family settings](#manage-family-plan), find the member you want to remove, select the remove option, and confirm the removal.
 
 **What happens when you remove someone:**
 
@@ -268,6 +350,18 @@ When you join a family plan, your individual plan (including any referral bonuse
 
 (Example: If you were on the free 10 GB plan with an additional 10 GB from referrals - 20 GB total - and you join a family plan with 200 GB of storage, you will have access to 200 GB of shared family storage, not 220 GB.)
 
+### Can a family admin reset another family member's account? {#family-admin-reset-account}
+
+Ente accounts are end-to-end encrypted, so another family member or admin cannot reset an account or recover its contents directly.
+
+However, users can set up a trusted Legacy contact for emergency access.
+
+**On mobile:**
+
+Open `Settings > Legacy > Add trusted contact`.
+
+Learn more in the [Legacy contact guide](https://ente.com/help/photos/features/account/legacy/#legacy).
+
 ### Are duplicate photos deduplicated across family members? {#family-plan-deduplication}
 
 No. Family plans are a way to share storage, but each family member has their own separate account. Ente cannot deduplicate files across different accounts.
@@ -282,15 +376,38 @@ Yes we do!
 
 We believe that privacy should be made accessible to everyone. In this spirit, we offer **30% off** our subscription plans to students.
 
-To apply for this discount, please verify your enrollment status in a school / college / university by writing to [students@ente.io](mailto:students@ente.io) from the email address assigned to you by your institute.
+To apply for this discount, please verify your enrollment status in a school / college / university by writing to [students@ente.com](mailto:students@ente.com) from the email address assigned to you by your institute.
 
 In case you do not have access to such an email address, please send us proof (such as your institute's identity card) that verifies your identity as a student.
 
+Once we've verified your enrollment, we'll reply with a personal coupon code for 30% off. The code can be used by one person only, so please keep it to yourself. Enter it in the **Apply discount code** field before you complete your purchase. See [how to apply a discount code](#apply-discount-code) for the steps.
+
 Please note that these discounts are valid for a year, after which you may reapply to reclaim the discount.
+
+The discount works on monthly and yearly plans. On a monthly plan, enter the code once at checkout and it applies to each monthly payment for 12 months.
+
+**Already subscribed?**
+
+Contact [students@ente.com](mailto:students@ente.com) before your next renewal invoice is generated so we can review your eligibility and help renew the discount on your existing subscription. Include the email address registered with Ente if it differs from your institute email.
+
+You do not need to cancel, resubscribe, or change your billing interval just to look for a coupon field. If an invoice has already been issued, contact us about the options for your account. An adjustment or refund is not automatic.
+
+### Do existing subscribers get a renewal discount? {#renewal-discount}
+
+No. We don't offer a separate renewal or loyalty discount, so your plan renews at the regular price.
+
+Ways to pay less:
+
+- **Switch to a yearly plan.** A year on a yearly plan costs about two months less than paying monthly. See [Can I switch between monthly and yearly plans?](#switch-billing-cycle)
+- **Students** can get 30% off, including on an existing subscription. See [Does Ente offer discounts to students?](#student-discount)
+
+You can also [refer friends](#earn-storage-referrals) to earn extra storage at the same subscription price.
 
 ## Discount Codes and Referrals
 
 ### How do I apply a discount code to my subscription? {#apply-discount-code}
+
+For renewal of an existing student discount, follow the [student discount instructions](#student-discount) instead of changing your plan to enter a promotional code.
 
 If you have a discount code (e.g., from partnerships like Kagi Friends 25% off), follow these steps carefully:
 
@@ -298,8 +415,8 @@ If you have a discount code (e.g., from partnerships like Kagi Friends 25% off),
 
 **Step-by-step process:**
 
-1. **Do NOT purchase through the iOS/Android App Store** - App Stores don't support discount codes
-2. Go to [web.ente.io](https://web.ente.io) on a desktop or laptop computer
+1. Do not purchase through a mobile app store. Discount codes are only available when you buy on [photos.ente.com](https://photos.ente.com) or the desktop app
+2. Go to [photos.ente.com](https://photos.ente.com) on a desktop or laptop computer
 3. Log in to your Ente account
 4. Open `Settings > Account > Manage subscription`
 5. Click "Buy subscription" or "Change plan"
@@ -313,8 +430,7 @@ If you have a discount code (e.g., from partnerships like Kagi Friends 25% off),
 
 - Discount codes only work for **NEW paying customers** (first-time purchases)
 - Cannot be applied to existing paid subscriptions
-- Cannot be combined with cryptocurrency payments
-- Must purchase from web.ente.io or desktop app, NOT mobile app stores
+- Must purchase from photos.ente.com or desktop app, NOT mobile app stores
 
 **If you already purchased without applying a code:**
 
@@ -324,7 +440,7 @@ Unfortunately, we cannot apply discount codes retroactively. However, you can:
 2. Wait for the subscription period to end
 3. Resubscribe using the discount code
 
-Contact [support@ente.io](mailto:support@ente.io) if you have questions about your specific situation.
+Contact [support@ente.com](mailto:support@ente.com) if you have questions about your specific situation.
 
 ## Referral Program
 
@@ -332,11 +448,11 @@ Contact [support@ente.io](mailto:support@ente.io) if you have questions about yo
 
 Use our [referral program](/photos/features/account/referral-program/):
 
-Open `Settings > Referrals`, share your referral code with friends, and when they upgrade to a paid plan, both you and your friend get 10 GB free.
+Open `Settings > Referrals` and share your referral code with friends. New users get an extra 10 GB immediately after applying your code. You get an extra 10 GB when they upgrade to a paid plan.
 
 ### How much storage can I earn through referrals? {#referral-storage-limit}
 
-For each friend you refer who upgrades to a paid plan, both you and your friend receive **10 GB** of free storage.
+For each friend you refer who upgrades to a paid plan, you receive 10 GB of free storage.
 
 The amount of free storage you can earn is capped to your current plan. This means you can at most **double your storage**. For example, if you're on a 100 GB plan, you can earn another 100 GB (by referring 10 friends), taking your total available storage to 200 GB.
 
@@ -374,7 +490,7 @@ On Web, Desktop and Android, Stripe helps us process payments from all major pre
 
 On iOS, we (have to) use the billing platforms provided by the app store.
 
-Apart from these, we also support PayPal and crypto currencies (more details below).
+Apart from these, we also support PayPal (more details below).
 
 ### Can I pay with PayPal? {#paypal-payment}
 
@@ -382,8 +498,8 @@ We support **annual** subscriptions over PayPal.
 
 **How to purchase with PayPal:**
 
-1. Email **paypal@ente.io** from your registered Ente email address
-2. In your email, mention the [storage plan](https://ente.io#pricing) of your choice (e.g., "100 GB annual plan")
+1. Email **paypal@ente.com** from your registered Ente email address
+2. In your email, mention the [storage plan](https://ente.com#pricing) of your choice (for example, "200 GB annual plan")
 3. We will send you an invoice with a PayPal payment link
 4. Complete the payment through PayPal
 5. Your account will be upgraded once payment is confirmed
@@ -394,36 +510,20 @@ We support **annual** subscriptions over PayPal.
 - You must email from the same email address registered with your Ente account
 - Invoice generation is manual, so expect a response within 1-2 business days
 
-### Does Ente accept crypto payments? {#crypto-payment}
+**Renewing a PayPal plan**
 
-Yes! We support _annual plans_ with crypto payments and accept the following cryptocurrencies:
+PayPal plans are renewed manually. Before your paid period ends, email [paypal@ente.com](mailto:paypal@ente.com) from your registered Ente email address and mention the annual plan you want to renew. We will send the payment instructions for your renewal.
 
-- **Bitcoin** (BTC)
-- **Ethereum** (ETH)
-- **Dogecoin** (DOGE)
+### Why is my card payment being declined? {#card-declined}
 
-**How to purchase with cryptocurrency:**
+Card payments on web, desktop and Android are processed by Stripe. Most declines come from your bank, not from Ente.
 
-1. Email **crypto@ente.io** from your registered Ente email address
-2. In your email, specify:
-    - The [storage plan](https://ente.io#pricing) of your choice
-    - Your preferred cryptocurrency
-3. We will send you an invoice with payment instructions
-4. Complete the payment using your crypto wallet
-5. Your account will be upgraded once the transaction is confirmed
+1. Check your bank's app or website for a blocked or pending payment. Approve it, or allow online and international card payments if your bank blocks them.
+2. Wait a little before trying again. Several failed attempts in a row can cause further attempts to be blocked for a while.
+3. Try again from [photos.ente.com](https://photos.ente.com) in a desktop browser.
+4. Try a different card.
 
-**Important limitations:**
-
-⚠️ **Discount codes CANNOT be combined with cryptocurrency payments**. If you have a discount code, you must pay via credit card through web.ente.io instead.
-
-⚠️ **Privacy note**: Ente does not provide anonymity. What we provide is privacy through end-to-end encryption. [Information we collect](https://ente.io/privacy/#3-what-information-do-we-collect) about you might make your identity deducible. We accept crypto to make Ente more accessible, not to provide anonymity.
-
-**Processing time:**
-
-- Invoice generation: 1-2 business days
-- Payment confirmation: Depends on blockchain confirmation times (varies by cryptocurrency)
-
-For questions about crypto payments, contact [support@ente.io](mailto:support@ente.io).
+If it still fails, you can [pay with PayPal](#paypal-payment) for annual plans, or contact [support@ente.com](mailto:support@ente.com) from your registered email address. Never send your full card number.
 
 ### Does Ente store my card details? {#card-security}
 
@@ -439,60 +539,63 @@ All of this said, if you would still like to pay without sharing your card detai
 
 ### What happens when my subscription expires? {#subscription-expires}
 
-When your subscription expires, you enter a **30-day grace period** before your data is deleted.
+When your paid plan expires, your photos and files are not deleted straight away. You have time to renew or export them.
 
-**Timeline after expiration:**
+**After your plan expires:**
 
-**Day 0 (Expiration day):**
+- ✅ Your existing photos and files stay in your account
+- ✅ You can still view and download them
+- ❌ New backups to Ente Photos and Ente Locker are blocked
+- 📧 If your data is scheduled for deletion, we send warning emails with the deletion date
 
-- ✅ Your data remains accessible
-- ✅ You can still view and download your photos
-- ❌ New uploads are blocked
-- 📧 You receive an email notification
+Not every expired account receives a deletion-date email. If you have not received one, contact [support@ente.com](mailto:support@ente.com) to check your account's status. Do not wait for an email to renew or export your data.
 
-**Days 1-30 (Grace period):**
+**If you receive a deletion-date email:**
 
-- ✅ Your data remains accessible and downloadable
-- ❌ New uploads are blocked
-- 📧 You receive multiple reminder emails
-- ✅ You can renew your subscription at any time to restore full access
+- 📧 You receive reminder emails, including one the day before the deletion date
+- ✅ You can renew at any time to restore full access
 - ✅ You can export your data using the desktop app or CLI
 
-**Day 30+ (After grace period):**
+The date in the email is several months after your plan expires.
 
-- ❌ All your uploaded data is permanently deleted from our servers
-- ❌ Recovery is not possible after deletion
-- 📧 Final notification email sent
+**After the deletion date:**
+
+- ❌ Your Ente Photos and Ente Locker data is scheduled for deletion
+- ❌ Signing in to Ente Photos and Ente Locker is restricted
+- ❌ Recovery is not possible once the data is deleted
+
+This applies to Ente Photos and Ente Locker data. Ente Auth codes stored in the same account are not deleted when a Photos subscription expires.
+
+If you need more time or are having trouble paying, reply to a warning email if you received one, or contact [support@ente.com](mailto:support@ente.com) as soon as possible.
+
+If you are on a family plan, the family members' data and access are affected too.
 
 **To avoid losing your data:**
 
-1. **Renew your subscription** before the grace period ends:
+1. **Renew your subscription** as soon as possible, and before any deletion date you were given:
     - All your data will be immediately accessible again
     - Uploads will resume automatically
     - No data loss
 
-2. **Export your data** during the grace period:
+2. **Export your data** as soon as possible, and before any deletion date you were given:
     - Use the desktop app's export feature
-    - Or use the [CLI tool](https://github.com/ente-io/ente/tree/main/cli#readme) for automated export
+    - Or use the [CLI tool](/cli/photos) for automated export
     - Download all photos to your computer or NAS
     - Learn more in the [Export guide](/photos/migration/export/)
 
-**Can I get my free plan back after subscription expires?**
+**Can I get my free plan back after my subscription expires?**
 
-Yes! If you had data exceeding the free 10 GB limit and your subscription expired:
+Contact [support@ente.com](mailto:support@ente.com) if you want to return to the free plan after a paid subscription expires. Your account may need to be switched back by support even if your usage is already within the free 10 GB allowance. You do not need to delete photos just to meet that allowance if you are already below it.
 
-- Your data enters the 30-day grace period
-- To restore access to your data on the free plan, contact [support@ente.io](mailto:support@ente.io)
-- We can restore your account to the free plan if you're within the grace period
-- You'll need to delete data to get under the 10 GB limit
+If your usage is above the free allowance, contact support about your options. Keep a verified export of anything you want to retain before removing files.
 
-**What about subscriptions purchased through App Stores?**
+**What about subscriptions purchased through app stores?**
 
-If you purchased through iOS App Store or Google Play Store:
+If you have a subscription billed through an app store:
 
 - Manage your subscription through the respective app store
 - Cancellation policies follow the app store's terms
-- The same 30-day grace period applies after expiration
+- The same timeline applies after expiration
 
 ### What happens when I upgrade my plan? {#upgrade-plan}
 
@@ -500,24 +603,26 @@ Your new plan will go into effect immediately, and you only have to pay the diff
 
 **How prorating works for upgrades:**
 
+Prices may change. See our [website](https://ente.com#pricing) for current plans and prices.
+
 When you upgrade, you receive credit for the unused portion of your current plan, which is applied toward the cost of your new plan.
 
 **Example 1: Mid-year upgrade (yearly plans)**
 
-You're 6 months into a 50 GB yearly plan ($20/year) and upgrade to 200 GB yearly ($48/year):
+You're 6 months into a 50 GB yearly plan ($29.88/year) and upgrade to 200 GB yearly ($59.88/year):
 
-1. **Unused balance from old plan**: $20 ÷ 2 = $10 (6 months remaining)
-2. **New plan cost**: $48/year
-3. **Amount you pay now**: $48 - $10 = **$38**
+1. **Unused balance from old plan**: $29.88 ÷ 2 = $14.94 (6 months remaining)
+2. **New plan cost**: $59.88/year
+3. **Amount you pay now**: $59.88 - $14.94 = **$44.94**
 4. **New plan duration**: 1 full year from today
 
 **Example 2: Mid-month upgrade (monthly plans)**
 
-You're 15 days into a 100 GB monthly plan ($2/month) and upgrade to 500 GB monthly ($5/month):
+You're 15 days into a 50 GB monthly plan ($2.99/month) and upgrade to 200 GB monthly ($5.99/month):
 
-1. **Unused balance from old plan**: $2 × (15/30) = $1 (15 days remaining)
-2. **New plan cost**: $5/month
-3. **Amount you pay now**: $5 - $1 = **$4**
+1. **Unused balance from old plan**: $2.99 × (15/30) = $1.50 (15 days remaining)
+2. **New plan cost**: $5.99/month
+3. **Amount you pay now**: $5.99 - $1.50 = **$4.49**
 4. **New plan duration**: 1 full month from today
 
 **Key points:**
@@ -527,35 +632,43 @@ You're 15 days into a 100 GB monthly plan ($2/month) and upgrade to 500 GB month
 - ✅ Your new renewal date starts from the upgrade date
 - ✅ You pay the difference between plans (minus your credit)
 
+**Subscribed through the Apple App Store?**
+
+Plan changes made through the App Store follow Apple's rules. Some changes, such as switching to a plan with a different billing period, start on your next renewal date instead of immediately. The app shows the new plan with the date it starts. You can check the pending change in your Apple subscription settings.
+
+If you'd rather start the new plan now, see [Switching from Apple to direct billing](#update-payment).
+
 ### What happens when I downgrade my plan? {#downgrade-plan}
 
 Your new plan will go into effect immediately. Any extra amount you have paid will be credited to your account. This credit will be discounted from your future invoices.
 
 **How prorating works for downgrades:**
 
+Prices may change. See our [website](https://ente.com#pricing) for current plans and prices.
+
 When you downgrade, you receive credit for the price difference between what you paid and what you would have paid on the lower plan.
 
 **Example 1: Mid-year downgrade (yearly plans)**
 
-You're 6 months into a 200 GB yearly plan ($48/year) and downgrade to 50 GB yearly ($20/year):
+You're 6 months into a 200 GB yearly plan ($59.88/year) and downgrade to 50 GB yearly ($29.88/year):
 
-1. **What you paid for old plan**: $48
-2. **What you would have paid for 6 months of new plan**: $20 ÷ 2 = $10
-3. **What you paid for 6 months of old plan**: $48 ÷ 2 = $24
-4. **Credit to your account**: $24 - $10 = **$14**
+1. **What you paid for old plan**: $59.88
+2. **What you would have paid for 6 months of new plan**: $29.88 ÷ 2 = $14.94
+3. **What you paid for 6 months of old plan**: $59.88 ÷ 2 = $29.94
+4. **Credit to your account**: $29.94 - $14.94 = **$15.00**
 5. **When credit is used**: Applied to your next renewal in 6 months
-6. **Next invoice (in 6 months)**: $20 - $14 = **$6**
+6. **Next invoice (in 6 months)**: $29.88 - $15.00 = **$14.88**
 
 **Example 2: Mid-month downgrade (monthly plans)**
 
-You're 10 days into a 500 GB monthly plan ($5/month) and downgrade to 100 GB monthly ($2/month):
+You're 10 days into a 200 GB monthly plan ($5.99/month) and downgrade to 50 GB monthly ($2.99/month):
 
-1. **What you paid for old plan**: $5
-2. **What you would have paid for 10 days of new plan**: $2 × (10/30) = $0.67
-3. **What you paid for 10 days of old plan**: $5 × (10/30) = $1.67
-4. **Credit to your account**: $1.67 - $0.67 = **$1**
+1. **What you paid for old plan**: $5.99
+2. **What you would have paid for 10 days of new plan**: $2.99 × (10/30) = $1.00
+3. **What you paid for 10 days of old plan**: $5.99 × (10/30) = $2.00
+4. **Credit to your account**: $2.00 - $1.00 = **$1.00**
 5. **When credit is used**: Applied to your next renewal in 20 days
-6. **Next invoice (in 20 days)**: $2 - $1 = **$1**
+6. **Next invoice (in 20 days)**: $2.99 - $1.00 = **$1.99**
 
 **Key points:**
 
@@ -565,9 +678,11 @@ You're 10 days into a 500 GB monthly plan ($5/month) and downgrade to 100 GB mon
 - ✅ Your renewal date remains the same
 - ⚠️ Make sure you don't exceed your new storage limit
 
+If you downgrade all the way back to the free plan, please also see [what happens when a free account becomes inactive](#inactive-free-account). We will notify you, any family plan members, and any Legacy trusted contacts multiple times before deleting an inactive free account.
+
 **Want a refund instead of credit?**
 
-If you prefer to have your credit refunded to your original payment method instead of storing it for future invoices, contact [support@ente.io](mailto:support@ente.io) and we'll assist you.
+If you prefer to have your credit refunded to your original payment method instead of storing it for future invoices, contact [support@ente.com](mailto:support@ente.com) and we'll assist you.
 
 ### Can I switch between monthly and yearly plans? {#switch-billing-cycle}
 
@@ -591,8 +706,7 @@ The same prorating calculation applies as described above.
 
 ### If I subscribed to a plan with a reference code and a discount, and then need to upgrade/downgrade, what happens to my discount and bonus? {#upgrade-discount-referral}
 
-The referral bonus remains, and the discount stays valid for 12 months even on
-an upgraded/downgraded plan. The amount is prorated.
+The referral bonus remains, and the discount stays valid for 12 months even on an upgraded/downgraded plan. The amount is prorated.
 
 ### How can I update my payment method? {#update-payment}
 
@@ -600,50 +714,86 @@ You can view and manage your payment method via Settings > click on the Storage 
 
 You can also access this via Settings > Account > Manage subscription > Manage payment method.
 
-**Note:** On iOS, the "Manage payment method" option is not available. iOS users must manage their subscriptions and payment methods through the Apple App Store.
+> [!NOTE]
+>
+> On iOS, the "Manage payment method" option is not available. iOS users must manage their subscriptions and payment methods through the Apple App Store.
 
 You will be able to see all of your previous invoices, with details regarding their payment status. In case of failed payments, you will also have an option to retry those charges.
 
-If you would like to change your payment method entirely (e.g., switch between App Store, Play Store, PayPal, or crypto), please contact [support@ente.io](mailto:support@ente.io).
+If you would like to change your payment method entirely (for example, switch between an app store, card, PayPal, or crypto), please contact [support@ente.com](mailto:support@ente.com).
+
+**Switching from Apple to direct billing**
+
+1. Cancel renewal in your Apple subscription settings. Cancelling renewal can leave your current paid period active until the end date shown by Apple.
+2. Contact [support@ente.com](mailto:support@ente.com) about switching the same Ente account to direct billing. Support can check when your account can be moved to the free plan so you can purchase directly.
+3. Once the account is ready, sign in to [photos.ente.com](https://photos.ente.com) with the same Ente email address and buy your plan there. Purchasing again inside the iOS app uses Apple billing and may reactivate that subscription.
+
+Apple decides requests for refunds of App Store purchases. Contacting Ente or cancelling renewal does not guarantee a refund.
+
+### Why did I get an "Ente account on hold" email? {#account-on-hold}
+
+We send this email when we try to renew your subscription but the payment doesn't go through. This usually happens when a card has expired, has insufficient funds, or your bank has flagged the payment.
+
+Your photos and files are safe, but new uploads stop until the renewal is paid.
+
+If your subscription is billed through an app store, update your payment details in that store's subscription settings. Store payments cannot be retried from an Ente invoice.
+
+If you pay Ente directly:
+
+We retry a failed renewal automatically over the next few days. If the problem was temporary, for example your bank blocked the payment and has now unblocked it, you don't need to do anything. You'll see the renewal under `Settings > Account > Manage subscription` once it goes through.
+
+If your card has expired or been replaced:
+
+1. Open `Settings > Account > Manage subscription > Manage payment method` in the app, or on [photos.ente.com](https://photos.ente.com).
+2. Add your new card or update the expired one.
+3. To pay straight away instead of waiting for the next retry, open the unpaid invoice in the invoices list on the same page and retry the payment.
+
+Want to switch to a smaller plan? Pay the current renewal first, then change plans. Any difference is credited to your account. See [What happens when I downgrade my plan?](#downgrade-plan)
+
+If you don't see an unpaid invoice, or want to change your plan at the same time, reply to the email or contact [support@ente.com](mailto:support@ente.com) and we'll help you renew.
+
+If the renewal isn't paid, your plan expires. See [What happens when my subscription expires?](#subscription-expires).
 
 ### How can I cancel my subscription? {#cancel-subscription}
 
-You can cancel your subscription via Settings > click on the Storage (subscription) card at the top > Cancel subscription.
+For a subscription purchased directly from Ente, open `Settings > Storage/Subscription > Cancel subscription`, or `Settings > Account > Manage subscription > Cancel subscription`.
 
-This can also be done via Settings > Account > Manage subscription > Cancel subscription.
+For a subscription billed through an app store, cancel renewal in that store's subscription settings. Check the end date shown by the store; cancelling renewal does not necessarily end the current paid period immediately.
 
-After cancellation, you'll have access to your data for 30 days, after which it will be deleted. Make sure to export your photos before the grace period ends if you want to keep them.
+If you want to switch from Apple to direct billing, follow the [payment-provider transition steps](#update-payment).
+
+Cancelling renewal does not delete your Ente account. Your paid plan continues until its expiry date. See [What happens when my subscription expires?](#subscription-expires) for what happens next. If you want to keep your photos, export them promptly and before any deletion date in a warning email.
+
+If support helps move your account back to the free plan, the [inactive free-account policy](#inactive-free-account) applies if the account is not used for 12 consecutive months. We will notify you, any family plan members, and any Legacy trusted contacts multiple times before any account deletion.
 
 ## Storage
 
 ### How can I earn free storage? {#earn-free-storage}
 
-Use our [referral program](/photos/features/account/referral-program/). When friends sign up using your referral code and subscribe to a paid plan, both you and your friend earn additional free storage.
+Use our [referral program](/photos/features/account/referral-program/). New users get an extra 10 GB immediately after applying a referral code. The referrer gets an extra 10 GB when the new user upgrades to a paid plan.
 
 ## Inactive Account Email
 
-### Why did I receive this email? {#inactive-account-email}
+### Why did I receive this email? {#inactive-account-email-received}
 
-We recently sent an email to accounts that have not shown activity for 12
-months as part of our inactive-account policy.
+We recently sent an email to accounts that have not shown activity for 12 months as part of our inactive-account policy. Free accounts with no active paid subscription are deleted after 12 consecutive months of inactivity.
+
+We send multiple notices to the registered email address so you have time to sign in and keep the account if you still need it. If the account is part of a family plan, we will also reach out to the family plan members multiple times. If you have configured Legacy with trusted contacts, we will notify those trusted contacts multiple times as well. For more details, see [what happens if a free account becomes inactive](#inactive-free-account).
 
 ### I use Ente regularly. Why did I receive this email? {#inactive-but-active}
 
 The email includes the email address associated with the inactive account.
 
-If you are using Ente regularly, check the registered email address shown inside
-the app to confirm which account you are currently using.
+If you are using Ente regularly, check the registered email address shown inside the app to confirm which account you are currently using.
 
-Open `Settings > Account`. The registered email address will appear in a green
-box.
+Open Settings in the Ente app. The registered email address will appear at the very top.
 
 ### What should I do if I received this email? {#inactive-account-action}
 
-Simply sign in to the account mentioned in the email before the date specified.
-This will mark the account as active.
+Sign in to the account named in the email before the date specified. Check the registered email address in the app to make sure you are using the correct account. Signing in marks that account as active.
+
+Visitors viewing your public albums do not replace signing in yourself. For details, see the [inactive free-account policy](#inactive-free-account).
 
 ### I think this email was sent by mistake {#inactive-account-mistake}
 
-Contact support at [support@ente.io](mailto:support@ente.io) and share a
-screenshot of the `Settings > Account` page showing the registered email address
-(green box), so we can verify the account.
+Contact support at [support@ente.com](mailto:support@ente.com) and share a screenshot of the Settings showing the registered email address at the top so we can verify the account.

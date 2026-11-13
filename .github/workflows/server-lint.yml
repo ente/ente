@@ -1,11 +1,7 @@
-name: "Lint (server)"
+name: "Lint (Server)"
 
 on:
-    # Run on every pull request (open or push to it) that changes server/
-    pull_request:
-        paths:
-            - "server/**"
-            - ".github/workflows/server-lint.yml"
+    workflow_call:
 
 permissions:
     contents: read
@@ -17,18 +13,18 @@ jobs:
             run:
                 working-directory: server
         steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
+            - name: Checkout
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
             - name: Setup go
-              uses: actions/setup-go@v5
+              uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
               with:
                   go-version-file: server/go.mod
                   cache-dependency-path: server/go.sum
                   cache: true
 
-            - name: Install dependencies
-              run: sudo apt-get update && sudo apt-get install libsodium-dev
-
             - name: Lint
-              run: "./scripts/lint.sh"
+              run: ./scripts/lint.sh
+
+            - name: Test
+              run: ./scripts/test-with-postgres.sh docker

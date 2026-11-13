@@ -1,48 +1,29 @@
-/** @file Dealing with the JSON metadata sidecar files */
-
 import { ensureElectron } from "ente-base/electron";
 import { nameAndExtension } from "ente-base/file-name";
 import log from "ente-base/log";
-import { type Location } from "ente-base/types";
+import type { Location } from "ente-base/types";
+import {
+    extractRawExif,
+    parseExif,
+    type RawExifTags,
+} from "ente-gallery/services/exif";
 import type {
     UploadItem,
     UploadPathPrefix,
 } from "ente-gallery/services/upload";
 import { readStream } from "ente-gallery/utils/native-stream";
+import type { ParsedMetadataDate } from "ente-media/file-metadata";
 
-/**
- * The data we read from the JSON metadata sidecar files.
- *
- * The metadata JSON file format is similar to the JSON metadata sidecar format
- * produced by Google Takeout. This is so that the user can import their Google
- * Takeouts while preserving the metadata.
- *
- * During export the Ente app also writes out its own metadata in a similar and
- * compatible format so that the user can easily round trip (i.e. export their
- * data out of Ente, and import it back again). This also allows users to reuse
- * existing third party tools for working with the takeout format.
- */
 export interface ParsedMetadataJSON {
     creationTime?: number;
+    creationDate?: ParsedMetadataDate;
     modificationTime?: number;
     location?: Location;
     description?: string;
+    favorited?: true;
+    fromPartnerSharing?: true;
 }
 
-/**
- * Derive a key for the given {@link jsonFileName} that should be used to index
- * into the {@link ParsedMetadataJSON} JSON map.
- *
- * @param pathPrefix The {@link UploadPathPrefix}, if available.
- *
- * @param collectionID The collection to which we're uploading.
- *
- * @param jsonFileName The file name for the JSON file.
- *
- * @returns A key suitable for indexing into the metadata JSON map.
- *
- * @see also {@link matchJSONMetadata}.
- */
 export const metadataJSONMapKeyForJSON = (
     pathPrefix: UploadPathPrefix | undefined,
     collectionID: number,
@@ -54,57 +35,37 @@ export const metadataJSONMapKeyForJSON = (
         jsonFileName.slice(0, -1 * ".json".length),
     );
 
+export const metadataJSONMapKeyForXMP = (
+    pathPrefix: UploadPathPrefix | undefined,
+    collectionID: number,
+    xmpFileName: string,
+) =>
+    makeKey3(
+        pathPrefix,
+        collectionID,
+        `${nameAndExtension(xmpFileName)[0]}.xmp`,
+    );
+
 const makeKey3 = (
     pathPrefix: UploadPathPrefix | undefined,
     collectionID: number,
     fileName: string,
 ) => `${pathPrefix ?? ""}-${collectionID}-${fileName}`;
 
-/**
- * Return the matching entry, if any, from {@link parsedMetadataJSONMap} for the
- * {@link pathPrefix}, {@link collectionID} and {@link fileName} combination.
- *
- * This is the sibling of {@link metadataJSONMapKeyForJSON}, except for deriving
- * the filename key we might have to try a bunch of different variations, so
- * this does not return a single key but instead tries the combinations until it
- * finds an entry in the map, and returns the found entry instead of the key.
- *
- * In brief,
- *
- * - When inserting the metadata entry into {@link parsedMetadataJSONMap}, we
- *   use {@link metadataJSONMapKeyForJSON}.
- *
- * - When reading back the metadata entry from {@link parsedMetadataJSONMap}, we
- *   use {@link matchJSONMetadata}
- */
 export const matchJSONMetadata = (
     pathPrefix: UploadPathPrefix | undefined,
     collectionID: number,
     fileName: string,
     parsedMetadataJSONMap: Map<string, ParsedMetadataJSON>,
-) => {
-    // Break the fileName down into its components.
+): ParsedMetadataJSON | undefined => {
     let [name, extension] = nameAndExtension(fileName);
     if (extension) {
         extension = "." + extension;
     }
 
-    // Save the original name before any modifications for fallback lookups.
     const originalName = name;
 
-    // Trim off a suffix like "(1)" from the name, remembering what we trimmed
-    // since we need to add it back later.
-    //
-    // It needs to be handled separately because of the clipping (see below).
-    // The numbered suffix (if present) is not clipped. It is added at the end
-    // of the clipped ".supplemental-metadata" portion, instead of after the
-    // original filename.
-    //
-    // For example, "IMG_1234(1).jpg" would have a metadata filename of either
-    // "IMG_1234.jpg(1).json" or "IMG_1234.jpg.supplemental-metadata(1).json".
-    // And if the filename is too long, it gets turned into something like
-    // "IMG_1234.jpg.suppl(1).json".
-
+    // Takeout moves a trailing "(n)" after any clipped metadata suffix.
     let numberedSuffix = "";
     const endsWithNumberedSuffixWithBrackets = /\(\d+\)$/.exec(name);
     if (endsWithNumberedSuffixWithBrackets) {
@@ -112,30 +73,21 @@ export const matchJSONMetadata = (
         numberedSuffix = endsWithNumberedSuffixWithBrackets[0];
     }
 
-    // Removes the "-edited" suffix, if present, so that the edited file can be
-    // associated to the original file's metadataJSON file as edited files don't
-    // have their own metadata files.
-
+    // Edited files reuse the original file's sidecar.
     const editedFileSuffix = "-edited";
     if (name.endsWith(editedFileSuffix)) {
         name = name.slice(0, -1 * editedFileSuffix.length);
     }
 
-    // Convenience function to vary only the file name component when
-    // constructing a key. Delegates to `makeKey3`.
     const makeKey = (fn: string) => makeKey3(pathPrefix, collectionID, fn);
 
-    // Derive a key from the collection name, file name and the suffix if any.
     let baseFileName = `${name}${extension}`;
     let key = makeKey(`${baseFileName}${numberedSuffix}`);
 
     let takeoutMetadata = parsedMetadataJSONMap.get(key);
     if (takeoutMetadata) return takeoutMetadata;
 
-    // If the file name is greater than 46 characters, then Google Photos, with
-    // its infinite storage, clips the file name. In such cases we need to use
-    // the clipped file name to get the key.
-
+    // Takeout clips sidecar base names to 46 characters.
     const maxGoogleFileNameLength = 46;
     key = makeKey(
         `${baseFileName.slice(0, maxGoogleFileNameLength)}${numberedSuffix}`,
@@ -144,20 +96,7 @@ export const matchJSONMetadata = (
     takeoutMetadata = parsedMetadataJSONMap.get(key);
     if (takeoutMetadata) return takeoutMetadata;
 
-    // Newer Takeout exports are attaching a ".supplemental-metadata" suffix to
-    // the file name of the metadataJSON file, you know, just to cause havoc,
-    // and then clipping the file name if it's too long (ending up with
-    // filenames "very_long_file_name.jpg.supple.json").
-    //
-    // Note that If the original filename is longer than 46 characters, then the
-    // ".supplemental-metadata" suffix gets completely removed during the
-    // clipping, along with a portion of the original filename (as before).
-    //
-    // For example, if the original filename is 45 characters long, then
-    // everything except for the "." from ".supplemental-metadata" will get
-    // clipped. So the metadata file ends up with a filename like
-    // "filename_that_is_45_chars_long.jpg..json".
-
+    // Newer exports append this suffix, sometimes without clipping.
     const supplSuffix = ".supplemental-metadata";
     baseFileName = `${name}${extension}${supplSuffix}`;
     key = makeKey(
@@ -167,22 +106,71 @@ export const matchJSONMetadata = (
     takeoutMetadata = parsedMetadataJSONMap.get(key);
     if (takeoutMetadata) return takeoutMetadata;
 
-    // Some Google Takeout exports keep the numbered suffix in its original
-    // position instead of moving it to the end. For example, "skytree (2).jpg"
-    // may have metadata in "skytree (2).jpg.supplemental-metadata.json" instead
-    // of "skytree.jpg.supplemental-metadata(2).json". Try that pattern too.
+    // Some exports leave "(n)" before the extension.
     if (numberedSuffix) {
         const originalBaseFileName = `${originalName}${extension}${supplSuffix}`;
         key = makeKey(originalBaseFileName.slice(0, maxGoogleFileNameLength));
         takeoutMetadata = parsedMetadataJSONMap.get(key);
+        if (takeoutMetadata) return takeoutMetadata;
     }
 
-    return takeoutMetadata;
+    // Prefer existing clipped matches before trying untruncated sidecars.
+    key = makeKey(`${baseFileName}${numberedSuffix}`);
+    takeoutMetadata = parsedMetadataJSONMap.get(key);
+    if (takeoutMetadata) return takeoutMetadata;
+
+    if (numberedSuffix) {
+        key = makeKey(`${originalName}${extension}${supplSuffix}`);
+        takeoutMetadata = parsedMetadataJSONMap.get(key);
+        if (takeoutMetadata) return takeoutMetadata;
+    }
+
+    // XMP sidecars use a source-specific suffix.
+    return parsedMetadataJSONMap.get(makeKey(`${originalName}.xmp`));
 };
 
-/**
- * Try to parse the contents of a metadata JSON file from a Google Takeout.
- */
+export const parseXMPSidecarTags = (
+    tags: RawExifTags,
+): ParsedMetadataJSON | undefined => {
+    const { creationDate, description } = parseExif(tags);
+    const parseCoordinate = (
+        value: string | undefined,
+        reference: string | undefined,
+    ) => {
+        const match = /^(\d+(?:\.\d+)?)(?:,(\d+(?:\.\d+)?))?([NSEW])?$/.exec(
+            value ?? "",
+        );
+        if (!match) return undefined;
+
+        const direction = match[3] ?? reference?.trim().toUpperCase();
+        if (!direction || !/^[NSEW]$/.test(direction)) return undefined;
+
+        const coordinate = Number(match[1]) + Number(match[2] ?? 0) / 60;
+        return direction == "S" || direction == "W" ? -coordinate : coordinate;
+    };
+    const latitude = parseCoordinate(
+        tags.xmp?.GPSLatitude?.description,
+        tags.xmp?.GPSLatitudeRef?.description,
+    );
+    const longitude = parseCoordinate(
+        tags.xmp?.GPSLongitude?.description,
+        tags.xmp?.GPSLongitudeRef?.description,
+    );
+    const location =
+        latitude != undefined && longitude != undefined
+            ? { latitude, longitude }
+            : undefined;
+
+    if (!creationDate && !location && !description) return undefined;
+
+    return {
+        creationDate,
+        creationTime: creationDate?.timestamp,
+        location,
+        description,
+    };
+};
+
 export const tryParseTakeoutMetadataJSON = async (
     uploadItem: UploadItem,
 ): Promise<ParsedMetadataJSON | undefined> => {
@@ -190,6 +178,39 @@ export const tryParseTakeoutMetadataJSON = async (
         return parseMetadataJSONText(await uploadItemText(uploadItem));
     } catch (e) {
         log.error("Failed to parse takeout metadata JSON", e);
+        return undefined;
+    }
+};
+
+export const tryParseXMPSidecar = async (
+    uploadItem: UploadItem,
+): Promise<ParsedMetadataJSON | undefined> => {
+    try {
+        const text = normalizeXMPSidecarText(await uploadItemText(uploadItem));
+        return parseXMPSidecarTags(await extractRawExif(new Blob([text])));
+    } catch (e) {
+        log.error("Failed to parse XMP sidecar", e);
+        return undefined;
+    }
+};
+
+const normalizeXMPSidecarText = (text: string) => {
+    const source = text
+        .replace(/^\uFEFF/, "")
+        .trimStart()
+        .replace(/^<\?xml\s+[^>]*\?>\s*/i, "");
+    return source.startsWith("<?xpacket begin")
+        ? source
+        : `<?xpacket begin=""?>\n${source}`;
+};
+
+export const tryParseTakeoutAlbumNameMetadataJSON = async (
+    uploadItem: UploadItem,
+): Promise<string | undefined> => {
+    try {
+        return parseAlbumNameMetadataJSONText(await uploadItemText(uploadItem));
+    } catch (e) {
+        log.error("Failed to parse takeout album metadata JSON", e);
         return undefined;
     }
 };
@@ -209,17 +230,10 @@ const uploadItemText = async (uploadItem: UploadItem) => {
 
 const parseMetadataJSONText = (text: string) => {
     const metadataJSON_ = JSON.parse(text) as unknown;
-    // Ignore non objects.
     if (typeof metadataJSON_ != "object") return undefined;
-    // Ignore null.
     if (!metadataJSON_) return undefined;
-    // Ignore arrays.
     if (Array.isArray(metadataJSON_)) return undefined;
 
-    // At this point, `metadataJSON_` is an `object`, but TypeScript won't let
-    // me index it. The following is the simplest (but unsafe) way I could think
-    // of for convincing TypeScript to allow me to index `metadataJSON` with
-    // `string`s.
     const metadataJSON = metadataJSON_ as Record<string, unknown>;
 
     const parsedMetadataJSON: ParsedMetadataJSON = {};
@@ -236,22 +250,36 @@ const parseMetadataJSONText = (text: string) => {
         parseGTLocation(metadataJSON.geoData) ??
         parseGTLocation(metadataJSON.geoDataExif);
 
-    parsedMetadataJSON.description = parseGTNonEmptyString(
-        metadataJSON.description,
-    );
+    parsedMetadataJSON.description =
+        parseGTNonEmptyString(metadataJSON.description) ??
+        parseGTNonEmptyString(metadataJSON.caption);
+
+    if (metadataJSON.favorited === true) {
+        parsedMetadataJSON.favorited = true;
+    }
+
+    const googlePhotosOrigin = metadataJSON.googlePhotosOrigin;
+    if (
+        googlePhotosOrigin &&
+        typeof googlePhotosOrigin == "object" &&
+        "fromPartnerSharing" in googlePhotosOrigin
+    ) {
+        parsedMetadataJSON.fromPartnerSharing = true;
+    }
 
     return parsedMetadataJSON;
 };
 
-/**
- * Parse a nullish epoch seconds timestamp string from a field in a Google
- * Takeout JSON, converting it into epoch microseconds if it is found.
- *
- * Note that the metadata provided by Google does not include the time zone
- * where the photo was taken, it only has an epoch seconds value. There is an
- * associated formatted date value (e.g. "17 Feb 2021, 03:22:16 UTC") but that
- * seems to be in UTC and doesn't have the time zone either.
- */
+const parseAlbumNameMetadataJSONText = (text: string) => {
+    const metadataJSON_ = JSON.parse(text) as unknown;
+    if (typeof metadataJSON_ != "object") return undefined;
+    if (!metadataJSON_) return undefined;
+    if (Array.isArray(metadataJSON_)) return undefined;
+
+    const metadataJSON = metadataJSON_ as Record<string, unknown>;
+    return parseGTNonEmptyString(metadataJSON.title);
+};
+
 const parseGTTimestamp = (o: unknown): number | undefined => {
     if (o && typeof o == "object" && "timestamp" in o) {
         const ot = o.timestamp;
@@ -259,11 +287,8 @@ const parseGTTimestamp = (o: unknown): number | undefined => {
         if (typeof ot == "string") {
             timestamp = parseInt(ot, 10);
         } else if (typeof ot == "number") {
-            // Ente desktop 1.7.11 and earlier used to write out a number, which
-            // is the correct datatype, but that makes it inconsistent with the
-            // numbers-as-string that Google takeout writes.
-            //
-            // So now we write out strings, and read either.
+            // Google writes strings; Ente desktop 1.7.11 and earlier wrote
+            // numbers.
             timestamp = Math.floor(ot);
         }
         if (timestamp && !Number.isNaN(timestamp)) {
@@ -273,12 +298,6 @@ const parseGTTimestamp = (o: unknown): number | undefined => {
     return undefined;
 };
 
-/**
- * Parse a (latitude, longitude) location pair field in a Google Takeout JSON.
- *
- * Apparently Google puts in (0, 0) to indicate missing data, so this function
- * only returns a parsed result if both components are present and non-zero.
- */
 const parseGTLocation = (o: unknown): Location | undefined => {
     if (
         o &&
@@ -289,14 +308,11 @@ const parseGTLocation = (o: unknown): Location | undefined => {
         typeof o.longitude == "number"
     ) {
         const { latitude, longitude } = o;
+        // Takeout uses (0, 0) for missing locations.
         if (latitude !== 0 || longitude !== 0) return { latitude, longitude };
     }
     return undefined;
 };
 
-/**
- * Parse a string from a field in a Google Takeout JSON, treating empty strings
- * as undefined.
- */
 const parseGTNonEmptyString = (o: unknown): string | undefined =>
     o && typeof o == "string" ? o : undefined;

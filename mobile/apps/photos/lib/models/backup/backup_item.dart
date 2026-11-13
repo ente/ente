@@ -1,5 +1,3 @@
-import "dart:async";
-
 import "package:photos/models/backup/backup_item_status.dart";
 import "package:photos/models/file/file.dart";
 
@@ -7,36 +5,44 @@ class BackupItem {
   final BackupItemStatus status;
   final EnteFile file;
   final int collectionID;
-  final Completer<EnteFile>? completer;
   final Object? error;
+  final int? progressPercent;
 
   BackupItem({
     required this.status,
     required this.file,
     required this.collectionID,
-    required this.completer,
-    this.error,
-  });
-
-  BackupItem copyWith({
-    BackupItemStatus? status,
-    EnteFile? file,
-    int? collectionID,
-    Completer<EnteFile>? completer,
     Object? error,
-  }) {
+    int? progressPercent,
+  }) : error = status == BackupItemStatus.retry ? error : null,
+       progressPercent = status == BackupItemStatus.uploading
+           ? progressPercent
+           : null;
+
+  BackupItem withStatus(BackupItemStatus status, {Object? error}) {
     return BackupItem(
-      status: status ?? this.status,
-      file: file ?? this.file,
-      collectionID: collectionID ?? this.collectionID,
-      completer: completer ?? this.completer,
-      error: error ?? this.error,
+      status: status,
+      file: file,
+      collectionID: collectionID,
+      error: error,
+    );
+  }
+
+  BackupItem withUploadProgress(int progressPercent) {
+    if (status != BackupItemStatus.uploading) {
+      throw StateError("Only an uploading backup can report progress");
+    }
+    return BackupItem(
+      status: status,
+      file: file,
+      collectionID: collectionID,
+      progressPercent: progressPercent,
     );
   }
 
   @override
   String toString() {
-    return 'BackupItem(status: $status, file: $file, collectionID: $collectionID, error: $error)';
+    return 'BackupItem(status: $status, file: $file, collectionID: $collectionID, error: $error, progressPercent: $progressPercent)';
   }
 
   @override
@@ -46,8 +52,8 @@ class BackupItem {
     return other.status == status &&
         other.file == file &&
         other.collectionID == collectionID &&
-        other.completer == completer &&
-        other.error == error;
+        other.error == error &&
+        other.progressPercent == progressPercent;
   }
 
   @override
@@ -55,6 +61,7 @@ class BackupItem {
     return status.hashCode ^
         file.hashCode ^
         collectionID.hashCode ^
-        completer.hashCode;
+        error.hashCode ^
+        progressPercent.hashCode;
   }
 }

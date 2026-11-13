@@ -1,25 +1,22 @@
 import "package:collection/collection.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
+import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/configuration.dart";
-import "package:photos/emergency/emergency_service.dart";
 import "package:photos/emergency/model.dart";
 import "package:photos/emergency/recover_others_account.dart";
-import "package:photos/gateways/users/models/key_attributes.dart";
-import "package:photos/l10n/l10n.dart";
+import "package:photos/services/authenticated_session.dart";
+import "package:photos/services/legacy.dart" as legacy;
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/components/alert_bottom_sheet.dart";
 import "package:photos/ui/components/buttons/button_widget_v2.dart";
 import "package:photos/ui/components/title_bar_title_widget.dart";
 import "package:photos/utils/dialog_util.dart";
 
-// OtherContactPage is used to start recovery process for other user's account
-// Based on the state of the contact & recovery session, it will show
-// different UI
 class OtherContactPage extends StatefulWidget {
-  final EmergencyContact contact;
-  final EmergencyInfo emergencyInfo;
+  final LegacyContactRecord contact;
+  final LegacyInfo emergencyInfo;
 
   const OtherContactPage({
     required this.contact,
@@ -33,10 +30,10 @@ class OtherContactPage extends StatefulWidget {
 
 class _OtherContactPageState extends State<OtherContactPage> {
   late String accountEmail = widget.contact.user.email;
-  RecoverySessions? recoverySession;
+  LegacyRecoverySession? recoverySession;
   String? waitTill;
   final Logger _logger = Logger("_OtherContactPageState");
-  late EmergencyInfo emergencyInfo = widget.emergencyInfo;
+  late LegacyInfo emergencyInfo = widget.emergencyInfo;
 
   @override
   void initState() {
@@ -48,7 +45,7 @@ class _OtherContactPageState extends State<OtherContactPage> {
 
   Future<void> _fetchData() async {
     try {
-      final result = await EmergencyContactService.instance.getInfo();
+      final result = await legacy.info(session: authenticatedSession());
       if (mounted) {
         setState(() {
           recoverySession = result.othersRecoverySession.firstWhereOrNull(
@@ -65,9 +62,7 @@ class _OtherContactPageState extends State<OtherContactPage> {
   Widget build(BuildContext context) {
     if (recoverySession != null) {
       final dateTime = DateTime.now().add(
-        Duration(
-          microseconds: recoverySession!.waitTill,
-        ),
+        Duration(microseconds: recoverySession!.waitTill),
       );
       waitTill = getFormattedTime(dateTime, context: context);
     }
@@ -82,9 +77,7 @@ class _OtherContactPageState extends State<OtherContactPage> {
           onTap: () {
             Navigator.pop(context);
           },
-          child: const Icon(
-            Icons.arrow_back_outlined,
-          ),
+          child: const Icon(Icons.arrow_back_outlined),
         ),
       ),
       backgroundColor: colorScheme.backgroundColour,
@@ -93,30 +86,27 @@ class _OtherContactPageState extends State<OtherContactPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TitleBarTitleWidget(
-              title: context.l10n.recoverAccount,
-            ),
-            Text(
-              accountEmail,
-              style: textTheme.smallMuted,
-            ),
+            TitleBarTitleWidget(title: context.strings.recoverAccount),
+            Text(accountEmail, style: textTheme.smallMuted),
             const SizedBox(height: 12),
             if (recoverySession == null)
               Text(
-                context.l10n.recoverAccountDesc(
+                context.strings.recoverAccountDesc(
                   email: accountEmail,
                   days: widget.contact.recoveryNoticeInDays,
                 ),
                 style: textTheme.smallMuted,
               ),
-            if (recoverySession != null && recoverySession!.status == "READY")
+            if (recoverySession != null &&
+                recoverySession!.status == LegacyRecoveryStatus.ready)
               Text(
-                context.l10n.recoveryReady(email: accountEmail),
+                context.strings.recoveryReady(email: accountEmail),
                 style: textTheme.smallMuted,
               ),
-            if (recoverySession != null && recoverySession!.status == "WAITING")
+            if (recoverySession != null &&
+                recoverySession!.status == LegacyRecoveryStatus.waiting)
               Text(
-                context.l10n.recoverAccountAfter(
+                context.strings.recoverAccountAfter(
                   email: accountEmail,
                   time: waitTill!,
                 ),
@@ -126,7 +116,7 @@ class _OtherContactPageState extends State<OtherContactPage> {
             if (recoverySession == null)
               ButtonWidgetV2(
                 buttonType: ButtonTypeV2.primary,
-                labelText: context.l10n.startRecovery,
+                labelText: context.strings.startRecovery,
                 isDisabled: widget.contact.isPendingInvite(),
                 shouldSurfaceExecutionStates: false,
                 onTap: widget.contact.isPendingInvite()
@@ -134,15 +124,15 @@ class _OtherContactPageState extends State<OtherContactPage> {
                     : () async {
                         final confirmed = await showAlertBottomSheet<bool>(
                           context,
-                          title: context.l10n.startRecovery,
-                          message: context.l10n.startRecoveryDesc(
+                          title: context.strings.startRecovery,
+                          message: context.strings.startRecoveryDesc(
                             email: accountEmail,
                           ),
                           assetPath: "assets/warning-grey.png",
                           buttons: [
                             ButtonWidgetV2(
                               buttonType: ButtonTypeV2.primary,
-                              labelText: context.l10n.startRecovery,
+                              labelText: context.strings.startRecovery,
                               onTap: () async =>
                                   Navigator.of(context).pop(true),
                               shouldSurfaceExecutionStates: false,
@@ -153,15 +143,19 @@ class _OtherContactPageState extends State<OtherContactPage> {
                           return;
                         }
                         try {
-                          await EmergencyContactService.instance.startRecovery(
-                            widget.contact,
+                          await legacy.startRecovery(
+                            session: authenticatedSession(),
+                            userId: widget.contact.user.id,
+                            emergencyContactId:
+                                widget.contact.emergencyContact.id,
                           );
                           if (mounted) {
                             _fetchData().ignore();
+                            if (!context.mounted) return;
                             await showAlertBottomSheet(
                               context,
-                              title: context.l10n.recoveryInitiated,
-                              message: context.l10n.recoveryInitiatedDesc(
+                              title: context.strings.recoveryInitiated,
+                              message: context.strings.recoveryInitiatedDesc(
                                 days: widget.contact.recoveryNoticeInDays,
                                 email: Configuration.instance.getEmail()!,
                               ),
@@ -169,6 +163,7 @@ class _OtherContactPageState extends State<OtherContactPage> {
                             );
                           }
                         } catch (e) {
+                          if (!context.mounted) return;
                           showGenericErrorBottomSheet(
                             context: context,
                             error: e,
@@ -176,42 +171,35 @@ class _OtherContactPageState extends State<OtherContactPage> {
                         }
                       },
               ),
-            if (recoverySession != null && recoverySession!.status == "READY")
+            if (recoverySession != null &&
+                recoverySession!.status == LegacyRecoveryStatus.ready)
               ButtonWidgetV2(
                 buttonType: ButtonTypeV2.primary,
-                labelText: context.l10n.recoverAccount,
+                labelText: context.strings.recoverAccount,
                 shouldSurfaceExecutionStates: false,
                 onTap: () async {
-                  try {
-                    final (String key, KeyAttributes attributes) =
-                        await EmergencyContactService.instance.getRecoveryInfo(
-                      recoverySession!,
-                    );
-                    routeToPage(
-                      context,
-                      RecoverOthersAccount(key, attributes, recoverySession!),
-                    ).ignore();
-                  } catch (e) {
-                    showGenericErrorBottomSheet(context: context, error: e)
-                        .ignore();
-                  }
+                  routeToPage(
+                    context,
+                    RecoverOthersAccount(session: recoverySession!),
+                  ).ignore();
                 },
               ),
-            if (recoverySession != null && recoverySession!.status == "WAITING")
+            if (recoverySession != null &&
+                recoverySession!.status == LegacyRecoveryStatus.waiting)
               ButtonWidgetV2(
                 buttonType: ButtonTypeV2.secondary,
-                labelText: context.l10n.cancelRecovery,
+                labelText: context.strings.cancelRecovery,
                 shouldSurfaceExecutionStates: false,
                 onTap: () async {
                   await _showCancelRecoverySheet();
                 },
               ),
             if (recoverySession != null &&
-                recoverySession!.status == "READY") ...[
+                recoverySession!.status == LegacyRecoveryStatus.ready) ...[
               const SizedBox(height: 20),
               ButtonWidgetV2(
                 buttonType: ButtonTypeV2.tertiaryCritical,
-                labelText: context.l10n.cancelRecovery,
+                labelText: context.strings.cancelRecovery,
                 shouldSurfaceExecutionStates: false,
                 onTap: () async {
                   await _showCancelRecoverySheet();
@@ -219,23 +207,23 @@ class _OtherContactPageState extends State<OtherContactPage> {
               ),
               const SizedBox(height: 24),
               Text(
-                context.l10n.orRemoveYourself(email: accountEmail),
+                context.strings.orRemoveYourself(email: accountEmail),
                 style: textTheme.smallMuted,
               ),
               const SizedBox(height: 12),
               ButtonWidgetV2(
                 buttonType: ButtonTypeV2.tertiaryCritical,
-                labelText: context.l10n.removeContact,
+                labelText: context.strings.removeContact,
                 shouldSurfaceExecutionStates: false,
                 onTap: showRemoveSheet,
               ),
             ],
             if (recoverySession == null ||
-                recoverySession!.status != "READY") ...[
+                recoverySession!.status != LegacyRecoveryStatus.ready) ...[
               const SizedBox(height: 20),
               ButtonWidgetV2(
                 buttonType: ButtonTypeV2.tertiaryCritical,
-                labelText: context.l10n.removeContact,
+                labelText: context.strings.removeContact,
                 shouldSurfaceExecutionStates: false,
                 onTap: showRemoveSheet,
               ),
@@ -249,15 +237,13 @@ class _OtherContactPageState extends State<OtherContactPage> {
   Future<void> _showCancelRecoverySheet() async {
     final confirmed = await showAlertBottomSheet<bool>(
       context,
-      title: context.l10n.cancelRecovery,
-      message: context.l10n.cancelRecoveryDesc(
-        email: accountEmail,
-      ),
+      title: context.strings.cancelRecovery,
+      message: context.strings.cancelRecoveryDesc(email: accountEmail),
       assetPath: "assets/warning-grey.png",
       buttons: [
         ButtonWidgetV2(
           buttonType: ButtonTypeV2.critical,
-          labelText: context.l10n.cancelRecovery,
+          labelText: context.strings.cancelRecovery,
           onTap: () async => Navigator.of(context).pop(true),
           shouldSurfaceExecutionStates: false,
         ),
@@ -265,11 +251,17 @@ class _OtherContactPageState extends State<OtherContactPage> {
     );
     if (confirmed == true) {
       try {
-        await EmergencyContactService.instance.stopRecovery(recoverySession!);
+        await legacy.stopRecovery(
+          session: authenticatedSession(),
+          recoveryId: recoverySession!.id,
+          userId: recoverySession!.user.id,
+          emergencyContactId: recoverySession!.emergencyContact.id,
+        );
         if (mounted) {
           _fetchData().ignore();
         }
       } catch (e) {
+        if (!mounted) return;
         showGenericErrorBottomSheet(context: context, error: e).ignore();
       }
     }
@@ -278,13 +270,13 @@ class _OtherContactPageState extends State<OtherContactPage> {
   Future<void> showRemoveSheet() async {
     final confirmed = await showAlertBottomSheet<bool>(
       context,
-      title: context.l10n.removeContact,
-      message: context.l10n.removeYourselfDesc(email: accountEmail),
+      title: context.strings.removeContact,
+      message: context.strings.removeYourselfDesc(email: accountEmail),
       assetPath: "assets/warning-grey.png",
       buttons: [
         ButtonWidgetV2(
           buttonType: ButtonTypeV2.critical,
-          labelText: context.l10n.removeContact,
+          labelText: context.strings.removeContact,
           onTap: () async => Navigator.of(context).pop(true),
           shouldSurfaceExecutionStates: false,
         ),
@@ -292,14 +284,17 @@ class _OtherContactPageState extends State<OtherContactPage> {
     );
     if (confirmed == true) {
       try {
-        await EmergencyContactService.instance.updateContact(
-          widget.contact,
-          ContactState.contactLeft,
+        await legacy.updateContact(
+          session: authenticatedSession(),
+          userId: widget.contact.user.id,
+          emergencyContactId: widget.contact.emergencyContact.id,
+          state: LegacyContactState.contactLeft,
         );
         if (mounted) {
           Navigator.of(context).pop();
         }
       } catch (e) {
+        if (!mounted) return;
         showGenericErrorBottomSheet(context: context, error: e).ignore();
       }
     }

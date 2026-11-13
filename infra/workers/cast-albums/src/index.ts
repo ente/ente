@@ -1,5 +1,3 @@
-/** Proxy file and thumbnail requests for the cast web app. */
-
 export default {
     async fetch(request: Request) {
         switch (request.method) {
@@ -29,14 +27,18 @@ const handleOPTIONS = (request: Request) => {
 };
 
 const isAllowedOrigin = (origin: string | null) => {
-    const allowed = ["cast.ente.io", "cast.ente.sh", "localhost"];
+    const allowed = [
+        "cast.ente.com",
+        "cast.ente.io",
+        "cast.ente.sh",
+        "localhost",
+    ];
 
     if (!origin) return false;
     try {
         const url = new URL(origin);
         return allowed.includes(url.hostname);
     } catch {
-        // origin is likely an invalid URL
         return false;
     }
 };
@@ -45,32 +47,21 @@ const handleGET = async (request: Request) => {
     const url = new URL(request.url);
 
     const fileID = url.searchParams.get("fileID");
-    if (!fileID) return new Response(null, { status: 400 });
-
-    let castToken = request.headers.get("X-Cast-Access-Token");
-    if (!castToken) {
-        console.warn("Using deprecated castToken query param");
-        castToken = url.searchParams.get("castToken");
-    }
-
-    if (!castToken) {
-        console.error("No cast token provided");
+    if (!fileID || !/^\d+$/.test(fileID))
         return new Response(null, { status: 400 });
+
+    const filePath = url.pathname.startsWith("/download")
+        ? "download"
+        : "thumbnail";
+    const museumURL = `https://api.ente.com/cast/files/${filePath}/v3/${fileID}`;
+    const museumRequest = new Request(museumURL, request);
+    const clientIP = request.headers.get("CF-Connecting-IP") ?? "";
+    museumRequest.headers.set("X-Forwarded-For", clientIP);
+    let response = await fetch(museumRequest);
+    if (response.ok) {
+        const { url } = await response.json<{ url: string }>();
+        response = await fetch(url);
     }
-
-    const pathname = url.pathname;
-    const params = new URLSearchParams({ castToken });
-
-    const headers = {
-        "X-Client-Package": request.headers.get("X-Client-Package") ?? "",
-        "X-Client-Version": request.headers.get("X-Client-Version") ?? "",
-        "User-Agent": request.headers.get("User-Agent") ?? "",
-    };
-
-    let response = await fetch(
-        `https://api.ente.io/cast/files${pathname}${fileID}?${params.toString()}`,
-        { headers },
-    );
 
     if (!response.ok) console.log("Upstream error", response.status);
 

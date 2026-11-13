@@ -1,18 +1,8 @@
 import type { Endpoint } from "comlink";
 import type { MessagePortMain } from "electron";
 
-/**
- * An adaptation of the `nodeEndpoint` function from comlink suitable for use in
- * TypeScript with an Electron utility process.
- *
- * This is an adaption of the following function from comlink:
- * https://github.com/GoogleChromeLabs/comlink/blob/main/src/node-adapter.ts
- *
- * It has been modified (somewhat hackily) to be useful with an Electron
- * MessagePortMain instead of a Node.js worker_thread. Only things that we
- * currently need have been made to work as you can see by the abundant type
- * casts. Caveat emptor.
- */
+// Adapted from Comlink's nodeEndpoint for Electron's MessagePortMain:
+// https://github.com/GoogleChromeLabs/comlink/blob/main/src/node-adapter.ts
 export const messagePortMainEndpoint = (mp: MessagePortMain): Endpoint => {
     type NL = EventListenerOrEventListenerObject;
     type EL = (data: Electron.MessageEvent) => void;

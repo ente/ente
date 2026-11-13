@@ -1,12 +1,7 @@
 import 'package:ente_ui/theme/ente_theme.dart';
 import 'package:flutter/material.dart';
 
-enum DividerType {
-  solid,
-  menu,
-  menuNoIcon,
-  bottomBar,
-}
+enum DividerType { solid, menu, menuNoIcon, bottomBar }
 
 class DividerWidget extends StatelessWidget {
   final DividerType dividerType;
@@ -23,22 +18,20 @@ class DividerWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dividerColor = divColorHasBlur
-        ? getEnteColorScheme(context).blurStrokeFaint
-        : getEnteColorScheme(context).strokeFaint;
+    final colorScheme = getEnteColorScheme(context);
+    final dividerColor = dividerType == DividerType.solid || !divColorHasBlur
+        ? colorScheme.fillMuted
+        : colorScheme.blurStrokeFaint;
 
-    if (dividerType == DividerType.solid) {
-      return Container(
-        color: getEnteColorScheme(context).strokeFaint,
-        width: double.infinity,
-        height: 1,
-      );
-    }
-    if (dividerType == DividerType.bottomBar) {
-      return Container(
-        color: dividerColor,
-        width: double.infinity,
-        height: 1,
+    if (dividerType == DividerType.solid ||
+        dividerType == DividerType.bottomBar) {
+      return Padding(
+        padding: padding ?? EdgeInsets.zero,
+        child: Container(
+          color: dividerColor,
+          width: double.infinity,
+          height: 1,
+        ),
       );
     }
 
@@ -51,8 +44,8 @@ class DividerWidget extends StatelessWidget {
             width: dividerType == DividerType.menu
                 ? 48
                 : dividerType == DividerType.menuNoIcon
-                    ? 16
-                    : 0,
+                ? 16
+                : 0,
             height: 1,
           ),
           Expanded(

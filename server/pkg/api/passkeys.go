@@ -3,10 +3,11 @@ package api
 import (
 	"net/http"
 
-	"github.com/ente-io/museum/pkg/controller"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/museum/pkg/utils/handler"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/controller"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/museum/pkg/utils/handler"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -18,24 +19,29 @@ type PasskeyHandler struct {
 func (h *PasskeyHandler) GetPasskeys(c *gin.Context) {
 	userID := auth.GetUserID(c.Request.Header)
 
-	passkeys, err := h.Controller.GetPasskeys(userID)
+	passkeys, accountsURL, err := h.Controller.GetPasskeysAndAccountsURL(userID)
 	if err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"passkeys": passkeys,
+		"accountsUrl": accountsURL,
+		"passkeys":    passkeys,
 	})
 }
 
 func (h *PasskeyHandler) RenamePasskey(c *gin.Context) {
 	userID := auth.GetUserID(c.Request.Header)
 
-	passkeyID := uuid.MustParse(c.Param("passkeyID"))
+	passkeyID, err := uuid.Parse(c.Param("passkeyID"))
+	if err != nil {
+		handler.Error(c, stacktrace.Propagate(ente.ErrBadRequest, "invalid passkeyID"))
+		return
+	}
 	newName := c.Query("friendlyName")
 
-	err := h.Controller.RenamePasskey(userID, passkeyID, newName)
+	err = h.Controller.RenamePasskey(userID, passkeyID, newName)
 	if err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
@@ -47,9 +53,13 @@ func (h *PasskeyHandler) RenamePasskey(c *gin.Context) {
 func (h *PasskeyHandler) DeletePasskey(c *gin.Context) {
 	userID := auth.GetUserID(c.Request.Header)
 
-	passkeyID := uuid.MustParse(c.Param("passkeyID"))
+	passkeyID, err := uuid.Parse(c.Param("passkeyID"))
+	if err != nil {
+		handler.Error(c, stacktrace.Propagate(ente.ErrBadRequest, "invalid passkeyID"))
+		return
+	}
 
-	err := h.Controller.DeletePasskey(userID, passkeyID)
+	err = h.Controller.DeletePasskey(userID, passkeyID)
 	if err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
@@ -77,9 +87,13 @@ func (h *PasskeyHandler) FinishRegistration(c *gin.Context) {
 	userID := auth.GetUserID(c.Request.Header)
 
 	friendlyName := c.Query("friendlyName")
-	sessionID := uuid.MustParse(c.Query("sessionID"))
+	sessionID, err := uuid.Parse(c.Query("sessionID"))
+	if err != nil {
+		handler.Error(c, stacktrace.Propagate(ente.ErrBadRequest, "invalid sessionID"))
+		return
+	}
 
-	err := h.Controller.FinishRegistration(userID, friendlyName, c.Request, sessionID)
+	err = h.Controller.FinishRegistration(userID, friendlyName, c.Request, sessionID)
 	if err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return

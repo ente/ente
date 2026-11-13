@@ -1,36 +1,34 @@
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import CloseIcon from "@mui/icons-material/Close";
-import Button from "@mui/material/Button";
-import Dialog from "@mui/material/Dialog";
-import DialogActions from "@mui/material/DialogActions";
-import DialogContent from "@mui/material/DialogContent";
-import DialogTitle from "@mui/material/DialogTitle";
-import Grid from "@mui/material/Grid";
-import InputAdornment from "@mui/material/InputAdornment";
-import MenuItem from "@mui/material/MenuItem";
-import Select, { type SelectChangeEvent } from "@mui/material/Select";
-import TextField from "@mui/material/TextField";
+import {
+    Box,
+    Button,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    Grid,
+    InputAdornment,
+    MenuItem,
+    Select,
+    type SelectChangeEvent,
+    TextField,
+} from "@mui/material";
 import React, { useEffect, useState } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { getEmail, getToken } from "../App";
-import { apiOrigin } from "../services/support";
-interface Subscription {
-    productID: string;
-    paymentProvider: string;
-    storage: number;
-    originalTransactionID: string;
-    expiryTime: number;
-    userID: string;
-    attributes: {
-        customerID: string;
-        stripeAccountCountry: string;
-    };
-}
-
-interface UserDataResponse {
-    subscription: Subscription | null;
-}
+import {
+    getSelectedSubscription,
+    updateUserSubscription,
+} from "../services/admin-user";
+import { useInitialStaffSession, useStaffSession } from "../services/session";
+import {
+    bytesToGB,
+    dateFromMicroseconds,
+    dateToMicroseconds,
+    gbToBytes,
+    SUCCESS_COLOR,
+} from "../utils";
 
 interface UpdateSubscriptionProps {
     open: boolean;
@@ -42,15 +40,12 @@ interface FormValues {
     provider: string;
     storage: number;
     transactionId: string;
-    expiryTime: string | Date | null;
-    userId: string;
-    attributes: {
-        customerID: string;
-        stripeAccountCountry: string;
-    };
+    expiryTime: Date | null;
+    userID: number | undefined;
+    attributes: { customerID: string; stripeAccountCountry: string };
 }
 
-const UpdateSubscription: React.FC<UpdateSubscriptionProps> = ({
+export const UpdateSubscription: React.FC<UpdateSubscriptionProps> = ({
     open,
     onClose,
 }) => {
@@ -59,61 +54,39 @@ const UpdateSubscription: React.FC<UpdateSubscriptionProps> = ({
         provider: "",
         storage: 0,
         transactionId: "",
-        expiryTime: "",
-        userId: "",
-        attributes: {
-            customerID: "",
-            stripeAccountCountry: "",
-        },
+        expiryTime: null,
+        userID: undefined,
+        attributes: { customerID: "", stripeAccountCountry: "" },
     });
 
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+    const initialSession = useInitialStaffSession();
+    const session = useStaffSession();
 
     useEffect(() => {
+        if (!open) {
+            return;
+        }
+
         const fetchData = async () => {
             try {
-                const email = getEmail();
-                const token = getToken();
-                const encodedEmail = encodeURIComponent(email);
-                const url = `${apiOrigin}/admin/user?email=${encodedEmail}`;
-                const response = await fetch(url, {
-                    headers: {
-                        "X-AUTH-TOKEN": token,
-                    },
-                });
-                if (!response.ok) {
-                    throw new Error("Network response was not ok");
-                }
-                const userDataResponse =
-                    (await response.json()) as UserDataResponse;
-
-                if (!userDataResponse.subscription) {
-                    throw new Error("Subscription data not found");
-                }
-
-                const expiryTime = new Date(
-                    userDataResponse.subscription.expiryTime / 1000,
+                const subscription =
+                    await getSelectedSubscription(initialSession);
+                const expiryTime = dateFromMicroseconds(
+                    subscription.expiryTime,
                 );
 
                 setValues({
-                    productId: userDataResponse.subscription.productID || "",
-                    provider:
-                        userDataResponse.subscription.paymentProvider || "",
-                    storage:
-                        userDataResponse.subscription.storage /
-                            (1024 * 1024 * 1024) || 0,
-                    transactionId:
-                        userDataResponse.subscription.originalTransactionID ||
-                        "",
-                    expiryTime: expiryTime,
-                    userId: userDataResponse.subscription.userID || "",
+                    productId: subscription.productID || "",
+                    provider: subscription.paymentProvider || "",
+                    storage: bytesToGB(subscription.storage) || 0,
+                    transactionId: subscription.originalTransactionID || "",
+                    expiryTime,
+                    userID: subscription.userID,
                     attributes: {
-                        customerID:
-                            userDataResponse.subscription.attributes
-                                .customerID || "",
+                        customerID: subscription.attributes.customerID || "",
                         stripeAccountCountry:
-                            userDataResponse.subscription.attributes
-                                .stripeAccountCountry || "",
+                            subscription.attributes.stripeAccountCountry || "",
                     },
                 });
             } catch (error) {
@@ -124,7 +97,7 @@ const UpdateSubscription: React.FC<UpdateSubscriptionProps> = ({
         fetchData().catch((error: unknown) => {
             console.error("Unhandled promise rejection:", error);
         });
-    }, []);
+    }, [initialSession, open]);
 
     const handleCalendarClick = () => {
         setIsDatePickerOpen(true);
@@ -132,147 +105,101 @@ const UpdateSubscription: React.FC<UpdateSubscriptionProps> = ({
 
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = event.target;
-        setValues({
+        setValues((values) => ({
             ...values,
             [name]: name === "storage" ? parseInt(value, 10) : value,
-        });
+        }));
     };
 
     const handleChangeProvider = (event: SelectChangeEvent) => {
-        const { name, value } = event.target;
-
-        if (name) {
-            setValues({
-                ...values,
-                [name]: value,
-            });
-        }
+        setValues((values) => ({ ...values, provider: event.target.value }));
     };
 
     const handleDatePickerChange = (date: Date | null) => {
-        setValues({
-            ...values,
-            expiryTime: date,
-        });
+        setValues((values) => ({ ...values, expiryTime: date }));
         setIsDatePickerOpen(false);
     };
 
-    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (
+        event: React.SyntheticEvent<HTMLFormElement>,
+    ) => {
         event.preventDefault();
-        (async () => {
-            const token = getToken();
-            const url = `${apiOrigin}/admin/user/subscription`;
 
-            let expiryTime = null;
-            if (values.expiryTime instanceof Date) {
-                const utcExpiryTime = new Date(values.expiryTime);
-                expiryTime = utcExpiryTime.getTime() * 1000;
+        try {
+            if (values.userID === undefined) {
+                throw new Error("User ID not found");
+            }
+            if (!values.expiryTime) {
+                throw new Error("Expiry time not found");
             }
 
-            const body = {
-                userId: values.userId,
-                storage: values.storage * (1024 * 1024 * 1024),
-                expiryTime: expiryTime,
-                productId: values.productId,
+            await updateUserSubscription(session, {
+                userID: values.userID,
+                storage: gbToBytes(values.storage),
+                expiryTime: dateToMicroseconds(values.expiryTime),
+                productID: values.productId,
                 paymentProvider: values.provider,
-                transactionId: values.transactionId,
+                transactionID: values.transactionId,
                 attributes: {
                     customerID: values.attributes.customerID,
                     stripeAccountCountry:
                         values.attributes.stripeAccountCountry,
                 },
-            };
-
-            try {
-                const response = await fetch(url, {
-                    method: "PUT",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-AUTH-TOKEN": token,
-                    },
-                    body: JSON.stringify(body),
-                });
-
-                if (!response.ok) {
-                    throw new Error("Network response was not ok");
-                }
-                console.log("Subscription updated successfully");
-                onClose();
-            } catch (error) {
-                if (error instanceof Error) {
-                    alert(`Failed to update subscription: ${error.message}`);
-                } else {
-                    alert("Failed to update subscription");
-                }
+            });
+            onClose();
+        } catch (error) {
+            if (error instanceof Error) {
+                alert(`Failed to update subscription: ${error.message}`);
+            } else {
+                alert("Failed to update subscription");
             }
-        })().catch((error: unknown) => {
-            console.error("Unhandled promise rejection:", error);
-        });
+        }
     };
 
     return (
         <Dialog
             open={open}
             onClose={onClose}
-            BackdropProps={{
-                style: {
-                    backdropFilter: "blur(5px)",
-                    backgroundColor: "rgba(255, 255, 255, 0.8)",
+            slotProps={{
+                backdrop: {
+                    style: {
+                        backdropFilter: "blur(5px)",
+                        backgroundColor: "rgba(255, 255, 255, 0.8)",
+                    },
                 },
             }}
         >
-            <DialogTitle style={{ marginBottom: "20px", marginTop: "20px" }}>
+            <DialogTitle sx={dialogTitleSx}>
                 Update Subscription
-                <Button
-                    onClick={onClose}
-                    style={{ position: "absolute", right: 10, top: 10 }}
-                >
-                    <CloseIcon style={{ color: "black" }} />
+                <Button onClick={onClose} sx={dialogCloseButtonSx}>
+                    <CloseIcon sx={{ color: "black" }} />
                 </Button>
             </DialogTitle>
             <DialogContent>
                 <form onSubmit={handleSubmit}>
                     <Grid container spacing={4}>
-                        <Grid item xs={6}>
-                            <div style={{ marginBottom: "8px" }}>
-                                <label
-                                    htmlFor="productId"
-                                    style={{
-                                        textAlign: "left",
-                                        display: "block",
-                                        marginBottom: "4px",
-                                    }}
-                                >
-                                    Product ID
-                                </label>
-                                <TextField
-                                    id="productId"
-                                    name="productId"
-                                    value={values.productId}
-                                    onChange={handleChange}
-                                    fullWidth
-                                />
-                            </div>
-                        </Grid>
-                        <Grid item xs={6}>
-                            <div style={{ marginBottom: "8px" }}>
-                                <label
+                        <SubscriptionTextField
+                            id="productId"
+                            label="Product ID"
+                            value={values.productId}
+                            onChange={handleChange}
+                        />
+                        <Grid size={6}>
+                            <Box sx={fieldWrapperSx}>
+                                <Box
+                                    component="label"
                                     htmlFor="provider"
-                                    style={{
-                                        textAlign: "left",
-                                        display: "block",
-                                        marginBottom: "4px",
-                                    }}
+                                    sx={fieldLabelSx}
                                 >
                                     Provider
-                                </label>
+                                </Box>
                                 <Select
                                     id="provider"
                                     name="provider"
                                     value={values.provider}
                                     onChange={handleChangeProvider}
                                     fullWidth
-                                    style={{ textAlign: "left" }}
+                                    sx={{ textAlign: "left" }}
                                 >
                                     <MenuItem value="stripe">Stripe</MenuItem>
                                     <MenuItem value="appstore">
@@ -282,63 +209,30 @@ const UpdateSubscription: React.FC<UpdateSubscriptionProps> = ({
                                     <MenuItem value="bitpay">BitPay</MenuItem>
                                     <MenuItem value="None">None</MenuItem>
                                 </Select>
-                            </div>
+                            </Box>
                         </Grid>
-                        <Grid item xs={6}>
-                            <div style={{ marginBottom: "8px" }}>
-                                <label
-                                    htmlFor="storage"
-                                    style={{
-                                        textAlign: "left",
-                                        display: "block",
-                                        marginBottom: "4px",
-                                    }}
-                                >
-                                    Storage (GB)
-                                </label>
-                                <TextField
-                                    id="storage"
-                                    name="storage"
-                                    type="number"
-                                    value={values.storage}
-                                    onChange={handleChange}
-                                    fullWidth
-                                />
-                            </div>
-                        </Grid>
-                        <Grid item xs={6}>
-                            <div style={{ marginBottom: "8px" }}>
-                                <label
-                                    htmlFor="transactionId"
-                                    style={{
-                                        textAlign: "left",
-                                        display: "block",
-                                        marginBottom: "4px",
-                                    }}
-                                >
-                                    Transaction ID
-                                </label>
-                                <TextField
-                                    id="transactionId"
-                                    name="transactionId"
-                                    value={values.transactionId}
-                                    onChange={handleChange}
-                                    fullWidth
-                                />
-                            </div>
-                        </Grid>
-                        <Grid item xs={6}>
-                            <div style={{ marginBottom: "8px" }}>
-                                <label
+                        <SubscriptionTextField
+                            id="storage"
+                            label="Storage (GB)"
+                            type="number"
+                            value={values.storage}
+                            onChange={handleChange}
+                        />
+                        <SubscriptionTextField
+                            id="transactionId"
+                            label="Transaction ID"
+                            value={values.transactionId}
+                            onChange={handleChange}
+                        />
+                        <Grid size={6}>
+                            <Box sx={fieldWrapperSx}>
+                                <Box
+                                    component="label"
                                     htmlFor="expiryTime"
-                                    style={{
-                                        textAlign: "left",
-                                        display: "block",
-                                        marginBottom: "4px",
-                                    }}
+                                    sx={fieldLabelSx}
                                 >
                                     Expiry Time
-                                </label>
+                                </Box>
                                 <TextField
                                     id="expiryTime"
                                     name="expiryTime"
@@ -350,13 +244,15 @@ const UpdateSubscription: React.FC<UpdateSubscriptionProps> = ({
                                             : ""
                                     }
                                     onClick={handleCalendarClick}
-                                    InputProps={{
-                                        endAdornment: (
-                                            <InputAdornment position="end">
-                                                <CalendarTodayIcon />
-                                            </InputAdornment>
-                                        ),
-                                        readOnly: true,
+                                    slotProps={{
+                                        input: {
+                                            endAdornment: (
+                                                <InputAdornment position="end">
+                                                    <CalendarTodayIcon />
+                                                </InputAdornment>
+                                            ),
+                                            readOnly: true,
+                                        },
                                     }}
                                     fullWidth
                                 />
@@ -378,18 +274,11 @@ const UpdateSubscription: React.FC<UpdateSubscriptionProps> = ({
                                         inline
                                     />
                                 )}
-                            </div>
+                            </Box>
                         </Grid>
                     </Grid>
-                    <DialogActions style={{ justifyContent: "center" }}>
-                        <Button
-                            type="submit"
-                            variant="contained"
-                            style={{
-                                backgroundColor: "#00B33C",
-                                color: "white",
-                            }}
-                        >
+                    <DialogActions sx={{ justifyContent: "center" }}>
+                        <Button type="submit" variant="contained" sx={submitSx}>
                             Update
                         </Button>
                     </DialogActions>
@@ -399,4 +288,46 @@ const UpdateSubscription: React.FC<UpdateSubscriptionProps> = ({
     );
 };
 
-export default UpdateSubscription;
+type SubscriptionTextFieldId = "productId" | "storage" | "transactionId";
+
+interface SubscriptionTextFieldProps {
+    id: SubscriptionTextFieldId;
+    label: string;
+    type?: string;
+    value: string | number;
+    onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+}
+
+const SubscriptionTextField = ({
+    id,
+    label,
+    type,
+    value,
+    onChange,
+}: SubscriptionTextFieldProps) => (
+    <Grid size={6}>
+        <Box sx={fieldWrapperSx}>
+            <Box component="label" htmlFor={id} sx={fieldLabelSx}>
+                {label}
+            </Box>
+            <TextField
+                id={id}
+                name={id}
+                type={type}
+                value={value}
+                onChange={onChange}
+                fullWidth
+            />
+        </Box>
+    </Grid>
+);
+
+const dialogTitleSx = { mb: "20px", mt: "20px" };
+
+const dialogCloseButtonSx = { position: "absolute", right: 10, top: 10 };
+
+const fieldWrapperSx = { mb: 1 };
+
+const fieldLabelSx = { display: "block", mb: "4px", textAlign: "left" };
+
+const submitSx = { bgcolor: SUCCESS_COLOR, color: "white" };

@@ -1,7 +1,0 @@
-- Location tags
-
-This release includes a fresh, beautiful, privacy-friendly way to search through your photos by location!
-
-Tag a photo with a location, define a radius, and ente will automatically cluster all photos clicked within that area.
-
-Open a photo, and click on the Info button to get started!

@@ -1,9 +1,9 @@
 package embedding
 
 import (
-	"github.com/ente-io/museum/pkg/controller"
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/museum/pkg/repo/embedding"
+	"github.com/ente/museum/pkg/controller"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/museum/pkg/repo/embedding"
 	"strconv"
 )
 

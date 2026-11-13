@@ -11,70 +11,50 @@ import (
 	"golang.org/x/crypto/nacl/box"
 )
 
-func openSealedBox(sealed []byte, recipientPublicKey *[BoxPublicKeyBytes]byte, recipientPrivateKey *[BoxPublicKeyBytes]byte) ([]byte, error) {
-	if len(sealed) < BoxPublicKeyBytes+16 {
+func TestSealedBoxRoundTrip(t *testing.T) {
+	publicKey, privateKey, err := box.GenerateKey(rand.Reader)
+	require.NoError(t, err)
+
+	message := []byte("test-token-12345")
+	sealedBase64, err := GetEncryptedToken(
+		base64.URLEncoding.EncodeToString(message),
+		base64.StdEncoding.EncodeToString(publicKey[:]),
+	)
+	require.NoError(t, err)
+
+	sealed, err := base64.StdEncoding.DecodeString(sealedBase64)
+	require.NoError(t, err)
+	require.Len(t, sealed, boxPublicKeyBytes+box.Overhead+len(message))
+
+	decrypted, err := openSealedBox(sealed, publicKey, privateKey)
+	require.NoError(t, err)
+	require.Equal(t, message, decrypted)
+}
+
+func openSealedBox(sealed []byte, publicKey, privateKey *[boxPublicKeyBytes]byte) ([]byte, error) {
+	if len(sealed) < boxPublicKeyBytes+box.Overhead {
 		return nil, errors.New("invalid sealed box length")
 	}
 
-	var ephemeralPublicKey [BoxPublicKeyBytes]byte
-	copy(ephemeralPublicKey[:], sealed[:BoxPublicKeyBytes])
+	var ephemeralPublicKey [boxPublicKeyBytes]byte
+	copy(ephemeralPublicKey[:], sealed[:boxPublicKeyBytes])
 
-	nonceInput := make([]byte, BoxPublicKeyBytes*2)
-	copy(nonceInput[:BoxPublicKeyBytes], ephemeralPublicKey[:])
-	copy(nonceInput[BoxPublicKeyBytes:], recipientPublicKey[:])
+	nonceInput := make([]byte, boxPublicKeyBytes*2)
+	copy(nonceInput[:boxPublicKeyBytes], ephemeralPublicKey[:])
+	copy(nonceInput[boxPublicKeyBytes:], publicKey[:])
 
-	hash, err := blake2b.New(SecretBoxNonceBytes, nil)
+	hash, err := blake2b.New(boxNonceBytes, nil)
 	if err != nil {
 		return nil, err
 	}
 	hash.Write(nonceInput)
 
-	var nonce [SecretBoxNonceBytes]byte
+	var nonce [boxNonceBytes]byte
 	copy(nonce[:], hash.Sum(nil))
 
-	decrypted, ok := box.Open(nil, sealed[BoxPublicKeyBytes:], &nonce, &ephemeralPublicKey, recipientPrivateKey)
+	decrypted, ok := box.Open(nil, sealed[boxPublicKeyBytes:], &nonce, &ephemeralPublicKey, privateKey)
 	if !ok {
 		return nil, errors.New("failed to open sealed box")
 	}
 	return decrypted, nil
-}
-
-func TestSealedBoxCompatibility(t *testing.T) {
-	recipientPublicKey, recipientPrivateKey, err := box.GenerateKey(rand.Reader)
-	require.NoError(t, err, "should generate keypair")
-
-	tokenBytes := []byte("test-token-12345")
-	publicKeyBase64 := base64.StdEncoding.EncodeToString(recipientPublicKey[:])
-	tokenBase64 := base64.URLEncoding.EncodeToString(tokenBytes)
-
-	tests := []struct {
-		name      string
-		encryptFn func(token, publicKey string) (string, error)
-	}{
-		{
-			name:      "compat_wrapper",
-			encryptFn: GetEncryptedToken,
-		},
-		{
-			name:      "native",
-			encryptFn: GetEncryptedTokenNative,
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			encrypted, err := tc.encryptFn(tokenBase64, publicKeyBase64)
-			require.NoError(t, err, "sealed-box encryption should succeed")
-
-			encryptedBytes, err := base64.StdEncoding.DecodeString(encrypted)
-			require.NoError(t, err)
-
-			expectedLen := BoxPublicKeyBytes + 16 + len(tokenBytes)
-			require.Equal(t, expectedLen, len(encryptedBytes), "sealed box should have correct length")
-
-			decrypted, err := openSealedBox(encryptedBytes, recipientPublicKey, recipientPrivateKey)
-			require.NoError(t, err, "sealed box should decrypt with recipient keypair")
-			require.Equal(t, tokenBytes, decrypted, "decrypted bytes should match original")
-		})
-	}
 }

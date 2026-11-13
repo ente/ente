@@ -1,6 +1,7 @@
 package cast
 
-// CastRequest ..
+import "github.com/google/uuid"
+
 type CastRequest struct {
 	CollectionID int64  `json:"collectionID" binding:"required"`
 	CastToken    string `json:"castToken" binding:"required"`
@@ -9,10 +10,24 @@ type CastRequest struct {
 }
 
 type RegisterDeviceRequest struct {
-	PublicKey string `json:"publicKey" binding:"required"`
+	PublicKey   string  `json:"publicKey" binding:"required"`
+	PQPublicKey *string `json:"pqPublicKey"`
+}
+
+type DeviceInfo struct {
+	PublicKey   string  `json:"publicKey"`
+	PQPublicKey *string `json:"pqPublicKey,omitempty"`
 }
 
 type AuthContext struct {
 	CollectionID int64
 	UserID       int64
+}
+
+type CastInfo struct {
+	DeviceID     uuid.UUID `json:"deviceID"`
+	CollectionID int64     `json:"collectionID"`
+	DeviceIP     string    `json:"deviceIP"`
+	LastUsedAt   int64     `json:"lastUsedAt"`
+	DeviceName   *string   `json:"deviceName"`
 }

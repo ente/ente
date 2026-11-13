@@ -5,8 +5,7 @@ description: Store private notes and sensitive information with end-to-end encry
 
 # Note
 
-Notes let you store any text securely with end-to-end encryption.
-Use them for sensitive information that doesn't fit into other categories.
+Notes let you store any text securely with end-to-end encryption. Use them for sensitive information that doesn't fit into other categories.
 
 ## Use cases
 
@@ -19,30 +18,35 @@ Use them for sensitive information that doesn't fit into other categories.
 
 ## Creating a note
 
+<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+
+![Note row in Save to Locker menu](https://docs-assets.ente.com/screenshots/locker-note-row-callout.png){width=320px}
+
+![Add Note form on Ente Locker mobile](https://docs-assets.ente.com/screenshots/locker-note-form.png){width=320px}
+
+</div>
+
 1. Open Ente Locker
 2. Tap the **+** button
 3. Select **Note**
-4. Enter a title for your note
-5. Write your note content in the text field
+4. Write your note content in the text field
+5. Add a title if you want. If you leave it blank, Locker generates one from the content
 6. Select one or more collections
 7. Tap **Save**
 
 ## Features
 
-### Rich text content
+### Write freely
 
-Notes support plain text content. Write as much as you need - there's no
-character limit.
+Notes support plain text content. Write as much as you need - there's no character limit.
 
 ### Organization
 
-Add notes to collections to group related content together. For example, create
-a "Work" collection for work-related notes or "Personal" for private entries.
+Add notes to collections to group related content together. For example, create a "Work" collection for work-related notes or "Personal" for private entries.
 
 ### Search
 
-Find notes quickly using the search function. Search matches against the title
-of your notes.
+Find notes quickly using the search function. Search matches against the title of your notes.
 
 ## Editing notes
 
@@ -59,8 +63,7 @@ Share individual notes via public links:
 2. Tap the share button
 3. Tap **Share link**
 
-To share notes with another Ente user, add them to a collection and share the
-collection.
+To share notes with another Ente user, add them to a collection and share the collection.
 
 Learn more about [Sharing](/locker/features/sharing/).
 

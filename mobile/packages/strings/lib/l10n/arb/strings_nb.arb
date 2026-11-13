@@ -1,0 +1,995 @@
+{
+  "wallpaperBoth": "Hjem- og låseskjerm",
+  "about": "Om",
+  "account": "Konto",
+  "activeSessions": "Aktive økter",
+  "@activeSessions": {
+    "description": "Title for active sessions page"
+  },
+  "addCode": "Legg til kode",
+  "addNew": "Legg til ny",
+  "@addNew": {
+    "description": "Text to add a new item (location tag, album, caption etc)"
+  },
+  "addTag": "Legg til merkelapp",
+  "advanced": "Avansert",
+  "algorithm": "Algoritme",
+  "all": "Alle",
+  "allTabEmptyHint": "Ingenting her ennå. Trykk på + for å legge til en kode eller åpne papirkurven for å gjenopprette ett.",
+  "@allTabEmptyHint": {
+    "description": "Shown when the All tab has no active codes but Trash contains codes"
+  },
+  "androidBiometricHint": "Verifiser identitet",
+  "@androidBiometricHint": {
+    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
+  },
+  "androidCancelButton": "Avbryt",
+  "@androidCancelButton": {
+    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
+  },
+  "androidSignInTitle": "Krever autentisering",
+  "@androidSignInTitle": {
+    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
+  },
+  "appIcon": "Appikon",
+  "appLock": "Applås",
+  "@appLock": {
+    "description": "App lock setting title"
+  },
+  "appLockDescription": "Velg mellom enhetens standard låseskjerm og en egendefinert låseskjerm med en PIN-kode eller passord.",
+  "@appLockDescription": {
+    "description": "Description of app lock feature"
+  },
+  "appLockNotEnabled": "Applås ikke i bruk",
+  "appLockNotEnabledDescription": "Ta i bruk applås fra «Sikkerhet» → «Applås»",
+  "appLockOfflineModeWarning": "Du har valgt å fortsette uten sikkerhetskopier. Hvis du glemmer din applås, vil du ikke ha tilgang til dine data.",
+  "areYouSureThatYouWantToLeaveTheFamily": "Er du sikker på at du vil forlate familieabonnementet?",
+  "areYouSureYouWantToLogout": "Er du sikker på at du vil logge ut?",
+  "@areYouSureYouWantToLogout": {
+    "description": "Confirmation message before logout"
+  },
+  "authenticateGeneric": "Autentiser",
+  "authenticationFailedPleaseTryAgain": "Autentisering mislyktes, prøv på nytt",
+  "@authenticationFailedPleaseTryAgain": {
+    "description": "Error message when authentication fails"
+  },
+  "authenticationSuccessful": "Autentisering var vellykket!",
+  "@authenticationSuccessful": {
+    "description": "Success message when authentication is successful"
+  },
+  "authToChangeEmailVerificationSetting": "Autentiser for å endre e-postbekreftelse",
+  "authToChangeLockscreenSetting": "Autentiser for å endre låseskjermen",
+  "authToChangeYourEmail": "Autentiser for å endre din e-postadresse",
+  "authToChangeYourPassword": "Autentiser for å endre ditt passord",
+  "authToExportCodes": "Autentiser for å eksportere kodene",
+  "authToInitiateAccountDeletion": "Lås opp for å slette din konto",
+  "authToInitiateSignIn": "Autentiser for å starte innlogging for sikkerhetskopiering.",
+  "authToSetBackupPassword": "Autentiser for å skrive inn passord for sikkerhetskopi",
+  "authToUpdateBackupPassword": "Autentiser for å oppdatere passord for sikkerhetskopi",
+  "authToViewPasskeyGeneric": "Autentiser for å vise dine passnøkler",
+  "authToViewSecrets": "Autentiser for å vise dine hemmeligheter",
+  "@authToViewSecrets": {
+    "description": "Message prompting authentication to view secrets"
+  },
+  "authToViewYourActiveSessions": "Autentiser for å vise dine aktive økter",
+  "authToViewYourRecoveryKey": "Autentiser for å vise din gjenopprettingsnøkkel",
+  "autoLock": "Automatisk låsing",
+  "@autoLock": {
+    "description": "Auto lock setting title"
+  },
+  "autoLockFeatureDescription": "Tid før appen låses etter at den er lagt i bakgrunnen",
+  "@autoLockFeatureDescription": {
+    "description": "Description of auto lock feature"
+  },
+  "backupCreated": "Sikkerhetskopi opprettet!",
+  "backupFolderLabel": "Mappe for sikkerhetskopi:",
+  "backupLocationChoiceDescription": "Hvor vil du lagre sikkerhetskopiene?",
+  "backupPasswordCleared": "Passord for sikkerhetskopi tømt",
+  "backupPasswordHint": "Din sikkerhetskopi vil krypteres med dette passordet.",
+  "blog": "Blogg",
+  "bothIssuerAndAccountCanNotBeEmpty": "Både utsender og konto kan ikke være tomt",
+  "cancel": "Avbryt",
+  "@cancel": {
+    "description": "Cancel button label"
+  },
+  "changeEmail": "Bytt e-postadresse",
+  "@changeEmail": {
+    "description": "Change email button label"
+  },
+  "changePassword": "Bytt passord",
+  "changePasswordTitle": "Bytt passord",
+  "@changePasswordTitle": {
+    "description": "Change password title"
+  },
+  "checkForUpdates": "Se etter oppdateringer",
+  "checkInboxAndSpamFolder": "Sjekk innboksen din (og søppelpost) for å fullføre verifiseringen",
+  "@checkInboxAndSpamFolder": {
+    "description": "Message asking user to check inbox and spam folder"
+  },
+  "checking": "Sjekker …",
+  "checkStatus": "Kontroller status",
+  "@checkStatus": {
+    "description": "Check status button label"
+  },
+  "chooseBackupLocation": "Velg plassering for sikkerhetskopi",
+  "chooseIcon": "Velg ikon",
+  "clearBackupFolder": "Tøm mappa for sikkerhetskopi",
+  "clearBackupPassword": "Tøm passord for sikkerhetskopi",
+  "close": "Lukk",
+  "codeIssuerHint": "Utsender",
+  "compactMode": "Kompaktmodus",
+  "confirm": "Bekreft",
+  "@confirm": {
+    "description": "Confirm button label"
+  },
+  "confirmPassword": "Bekreft passordet",
+  "@confirmPassword": {
+    "description": "Confirm password field label"
+  },
+  "confirmRecoveryKey": "Bekreft gjenopprettingsnøkkel",
+  "confirmUpdatingkey": "Er du sikker på at du vil oppdatere den hemmelige nøkkelen?",
+  "confirmYourRecoveryKey": "Bekreft din gjenopprettingsnøkkel",
+  "contactSupport": "Ta kontakt med kundestøtte",
+  "@contactSupport": {
+    "description": "Contact support button label"
+  },
+  "continueLabel": "Fortsett",
+  "@continueLabel": {
+    "description": "Continue button label"
+  },
+  "copied": "Kopiert",
+  "copiedNextToClipboard": "Kopierte den neste koden til utklippstavla",
+  "copiedToClipboard": "Kopiert til utklippstavla",
+  "copyEmailAddress": "Kopier e-postadresse",
+  "@copyEmailAddress": {
+    "description": "Button to copy email address to clipboard"
+  },
+  "crashAndErrorReporting": "Krasj- og feilrapportering",
+  "create": "Opprett",
+  "createAccount": "Opprett konto",
+  "@createAccount": {
+    "description": "Create account button label"
+  },
+  "createBackupNow": "Lag sikkerhetskopi nå",
+  "createNewTag": "Lag ny merkelapp",
+  "criticalUpdateAvailable": "Kritisk oppdatering er tilgjengelig",
+  "currentBackupFolder": "Nåværende mappe for sikkerhetskopi:",
+  "customEndpoint": "Koblet til {endpoint}",
+  "@customEndpoint": {
+    "description": "Text showing user is connected to a custom endpoint",
+    "placeholders": {
+      "endpoint": {
+        "type": "String",
+        "description": "URL of the custom endpoint"
+      }
+    }
+  },
+  "customOrder": "Tilpasset rekkefølge",
+  "darkTheme": "Mørkt",
+  "deduplicateCodes": "Fjern duplikatkoder",
+  "delete": "Slett",
+  "@delete": {
+    "description": "Delete button label"
+  },
+  "deleteAccount": "Slett konto",
+  "@deleteAccount": {
+    "description": "Delete account button label"
+  },
+  "deleteCodeAuthMessage": "Autentiser for å slette kode",
+  "deleteCodeMessage": "Er du sikker på at du vil slette denne koden? Kan ikke gjøre om denne handlinga.",
+  "deleteCodeTitle": "Slett koden?",
+  "deleteDuplicates": "Slett duplikater",
+  "deleteTagMessage": "Er du sikker på at du vil slette denne merkelappen? Kan ikke gjøre om denne handlinga.",
+  "deleteTagTitle": "Slett merkelapp?",
+  "deleteUnparseableCodeMessage": "Dette sletter koden permament fra autentisering. Den blir ikke flyttet til papirkurven.",
+  "deleteUnparseableCodeTitle": "Slett utolkbar kode?",
+  "deselectAll": "Fjern all merking",
+  "developerSettings": "Utviklerinnstillinger",
+  "@developerSettings": {
+    "description": "Label for developer settings"
+  },
+  "developerSettingsWarning": "Er du sikker på at du vil endre utviklerinnstillingene?",
+  "deviceLock": "Enhetslås",
+  "@deviceLock": {
+    "description": "Device lock option title"
+  },
+  "deviceLockEnablePreSteps": "For å ta i bruk applås, sett opp passord eller skjermlås for enheten i systeminnstillingene.",
+  "@deviceLockEnablePreSteps": {
+    "description": "Instructions for enabling device lock"
+  },
+  "digits": "Sifre",
+  "done": "Ferdig",
+  "doNotSignOut": "Ikke logg ut",
+  "@doNotSignOut": {
+    "description": "Do not sign out button label"
+  },
+  "doubleTapToViewHiddenCode": "Du kan dobbelttrykke på en oppføring for å vise kode",
+  "downloadUpdate": "Last ned",
+  "duplicateCodes": "Dupliser koder",
+  "edit": "Rediger",
+  "editCodeAuthMessage": "Autentiser for å redigere kode",
+  "editOrder": "Rediger rekkefølge",
+  "editTag": "Rediger merkelapp",
+  "email": "E-post",
+  "@email": {
+    "description": "Email field label"
+  },
+  "emailAlreadyRegistered": "E-postadressen er allerede registrert.",
+  "@emailAlreadyRegistered": {
+    "description": "Error message when email is already registered"
+  },
+  "emailChangedTo": "E-postadressen er endret til {newEmail}",
+  "@emailChangedTo": {
+    "description": "Message when email has been changed",
+    "placeholders": {
+      "newEmail": {
+        "description": "The new email address",
+        "type": "String",
+        "example": "new@example.com"
+      }
+    }
+  },
+  "emailHint": "Skriv inn e-postadresse",
+  "emailNotRegistered": "E-postadressen er ikke registrert.",
+  "@emailNotRegistered": {
+    "description": "Error message when email is not registered"
+  },
+  "emailUsMessage": "Send oss en e-post på {email}",
+  "@emailUsMessage": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "emailVerificationEnableWarning": "For å unngå å bli låst ut av kontoen din, sørg for å lagre en kopi av e-postadressen 2FA utenfor Ente Auth før du tar i bruk e-postbekreftelse.",
+  "emailVerificationToggle": "E-postbekreftelse",
+  "emailYourLogs": "Send loggene med e-post",
+  "@emailYourLogs": {
+    "description": "Title for emailing logs dialog"
+  },
+  "enableAutomaticBackups": "Automatisk sikkerhetskopiering",
+  "enableBackupsIosInstruction": "For å ta i bruk sikkerhetskopi på iOS, velg ei mappe i «Filer» (f.eks. «På min iPhone»).",
+  "encrypted": "Kryptert",
+  "encryptionKeys": "Krypteringsnøkkel",
+  "@encryptionKeys": {
+    "description": "Encryption keys title"
+  },
+  "endpointUpdatedMessage": "Endepunktet ble oppdatert",
+  "@endpointUpdatedMessage": {
+    "description": "Success message when endpoint is updated"
+  },
+  "enterCodeHint": "Skriv inn den 6-sifrede koden fra\ndin autentiseringsapp",
+  "@enterCodeHint": {
+    "description": "Hint for entering 2FA code"
+  },
+  "enterDetailsManually": "Skriv inn opplysningene manuelt",
+  "enterNewEmailHint": "Skriv inn ny e-postadresse",
+  "@enterNewEmailHint": {
+    "description": "Hint text for entering new email address"
+  },
+  "enterNewPasswordToEncrypt": "Skriv inn ett nytt passord vi kan bruke for å kryptere dine data",
+  "@enterNewPasswordToEncrypt": {
+    "description": "Prompt to enter new password for encryption"
+  },
+  "enterPassword": "Skriv inn passord",
+  "@enterPassword": {
+    "description": "Enter password field label"
+  },
+  "enterPasswordToAegisVault": "Skriv inn passord til aegis-hvelvet",
+  "enterPasswordToDecrypt2FASBackup": "Skriv inn passord for å dekryptere 2FA-sikkerhetskopi",
+  "enterPasswordToDecryptAndOTP": "Skriv inn passord for å dekryptere andOTP-sikkerhetskopi",
+  "enterPasswordToEncrypt": "Skriv inn ett passord vi kan bruke for å kryptere dine data",
+  "@enterPasswordToEncrypt": {
+    "description": "Prompt to enter password for encryption"
+  },
+  "enterRecoveryKeyHint": "Skriv inn gjenopprettingsnøkkel",
+  "@enterRecoveryKeyHint": {
+    "description": "Hint for entering recovery key"
+  },
+  "enterYourPasswordHint": "Skriv inn passord",
+  "@enterYourPasswordHint": {
+    "description": "Hint for password field"
+  },
+  "enterYourRecoveryKey": "Skriv inn gjenopprettingsnøkkel",
+  "error": "Feil",
+  "@error": {
+    "description": "Generic error title"
+  },
+  "errorGenericBody": "Det oppstod en uventet feil ved importering.",
+  "errorGenericTitle": "En feil oppstod",
+  "errorInvalidQRCodeBody": "Den skannede QR-koden er ikke en gyldig 2FA-konto.",
+  "errorNoQRCode": "Fant ingen QR-kode",
+  "export": "Eksporter",
+  "exportCodes": "Eksporter koder",
+  "exportDialogDesc": "Krypterte eksporter vil beskyttes med ett passord du velger selv.",
+  "exportLogs": "Eksporter logger",
+  "@exportLogs": {
+    "description": "Button to export logs"
+  },
+  "exportWarningDesc": "Den eksporterte fila inneholder sensitiv informasjon. Lagre dette på en sikker måte.",
+  "failedToDecrypt2FASExport": "Klarte ikke dekryptere 2FA-eksport",
+  "failedToDecryptAegisVault": "Klarte ikke dekryptere aegis-hvelvet",
+  "failedToDecryptAndOTPBackup": "Klarte ikke dekryptere andOTP-sikkerhetskopi",
+  "faq": "Ofte stilte spørsmål",
+  "@faq": {
+    "description": "FAQ link label"
+  },
+  "featureBackupCodes": "Ende til ende-kryptert\nsikkerhetskopier og synkroniser",
+  "featureOpenSource": "Åpen kildekode og\nrevidert av sikkerhetseksperter",
+  "featureSearchEtc": "Søk, merk, del,\nneste kode og mye mer",
+  "focusOnSearchBar": "Fokuser på søk ved oppstart av appen",
+  "forgotPassword": "Glemt passordet",
+  "@forgotPassword": {
+    "description": "Forgot password link label"
+  },
+  "free10GB": "10 GB gratis hos <bold-green>ente</bold-green> bilder",
+  "freeStorageOffer": "10 % avslag på <bold-green>ente</bold-green> bilder",
+  "freeStorageOfferDescription": "Bruk kode «AUTH» for 10 % avslag det første året",
+  "general": "Generelt",
+  "generatingEncryptionKeys": "Genererer krypteringsnøkler …",
+  "@generatingEncryptionKeys": {
+    "description": "Generating encryption keys message"
+  },
+  "generatingEncryptionKeysTitle": "Genererer krypteringsnøkler …",
+  "@generatingEncryptionKeysTitle": {
+    "description": "Generating encryption keys title"
+  },
+  "getStarted": "Kom i gang",
+  "giveUsAStarOnGithub": "Gi oss en stjerne på GitHub",
+  "hearUsWhereOptionalTitle": "Hvordan fikk du høre om Ente? (valgfritt)",
+  "@hearUsWhereOptionalTitle": {
+    "description": "Title asking how user heard about Ente"
+  },
+  "hideContent": "Skjul innhold",
+  "@hideContent": {
+    "description": "Hide content setting title"
+  },
+  "hideContentDescriptionAndroid": "Skjuler appinnhold i appveksleren og slå av skjermbilder",
+  "@hideContentDescriptionAndroid": {
+    "description": "Description of hide content feature on Android"
+  },
+  "hideContentDescriptioniOS": "Skjuler appinnhold i appveksleren",
+  "@hideContentDescriptioniOS": {
+    "description": "Description of hide content feature on iOS"
+  },
+  "hintForDesktop": "Høyreklikk på en kode for å redigere eller fjerne.",
+  "hintForMobile": "Trykk lenge på en kode for å redigere eller fjerne.",
+  "howItWorks": "Slik fungerer det",
+  "@howItWorks": {
+    "description": "How it works button label"
+  },
+  "immediately": "Umiddelbart",
+  "@immediately": {
+    "description": "Immediately option for auto lock timing"
+  },
+  "import2FasGuide": "Bruk «Innstillinger → Sikkerhetskopier → Eksporter»-innstillingen i 2FAS.\n\nHvis din sikkerhetskopi er kryptert, trenger du å skrive inn passordet til sikkerhetskopien for å dekryptere.",
+  "importAccountPageTitle": "Skriv inn kontoopplysninger",
+  "importAegisGuide": "Bruk «Eksporter hvelvet»-innstillingen i Aegis-innstillinger.\n\nHvis ditt hvelv er kryptert, trenger du å skrive inn passordet til hvelvet for å dekryptere.",
+  "importAndOTPGuide": "Eksporter sikkerhetskopien fra andOTP ved bruk av «Sikkerkopier»-innstillingen i «Innstillinger».\n\nHvis sikkerhetskopien er kryptert, må du skrive inn passordet for å dekryptere.",
+  "importBitwardenGuide": "Bruk «Eksporter hvelv»-innstillingen i Bitwarden sine verktøy og importer den ukrypterte JSON-fila.",
+  "importCodeDelimiterInfo": "Kodene kan skilles med et komma eller en ny linje",
+  "importCodes": "Importer koder",
+  "importEnteEncGuide": "Velg den krypterte JSON-fila eksportert fra Ente",
+  "importEnterSetupKey": "Skriv inn en oppsettsnøkkel",
+  "importFailureDesc": "Klarte ikke tolke den valgte fila.",
+  "importFromGallery": "Importer fra galleri",
+  "importGoogleAuthConfirmation": "{codeCount, plural, one{Importer 1 kode fra Google Autentisering?} other{Importer {codeCount} koder fra Google Autentisering?}}",
+  "@importGoogleAuthConfirmation": {
+    "placeholders": {
+      "codeCount": {
+        "description": "The number of Google Authenticator codes to import",
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "importGoogleAuthGuide": "Eksporter kontoene dine med Google Autentisering til en QR-kode ved bruk av «Overfør kontoer»-innstillingen. Deretter skann QR-koden eller importer den fra ett bilde.",
+  "importInstruction": "Velg en fil som inneholder en liste over dine koder i følgende format",
+  "importLabel": "Importer",
+  "importLastpassGuide": "Bruk «Overfør kontoer»-innstillingen i Lastpass Authenticator og trykk «Eksporter kontoer til fil». Importer den nedlastede JSON-fila.",
+  "importOtpAuthGuide": "Eksporter en kryptert sikkerhetskopi fra OTP Auth, deretter velg «.otpauthdb»- eller «otpauthdp»-fila. Enkeltkonto «.otpauth»-eksport støttes også.",
+  "importProtonAuthGuide": "Bruk «Eksporter»-innstillingen i Proton Authenticator for å eksportere kodene.\n\nHvis din eksport er kryptert, trenger du å skrive inn passordet for å dekryptere.",
+  "importRaivoGuide": "Bruk «Eksporter OTP-er til Zip-arkiv»-innstillingen i Raivo's-innstillinger.\nPakk ut zip-fila og importer JSON-fila.",
+  "importSelectAppExport": "Velg {appName} eksportfil",
+  "@importSelectAppExport": {
+    "placeholders": {
+      "appName": {}
+    }
+  },
+  "importSelectJsonFile": "Velg JSON-fil",
+  "importSuccessDesc": "Du har importert {count} koder!",
+  "@importSuccessDesc": {
+    "placeholders": {
+      "count": {
+        "description": "The number of codes imported",
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "importSuccessTitle": "Jippi!",
+  "importTypeEnteEncrypted": "Ente kryptert eksport",
+  "incorrectCode": "Feil kode",
+  "@incorrectCode": {
+    "description": "Error message when code is incorrect"
+  },
+  "incorrectDetails": "Ugyldige opplysninger",
+  "incorrectPasswordTitle": "Feil passord",
+  "@incorrectPasswordTitle": {
+    "description": "Title for incorrect password error"
+  },
+  "incorrectRecoveryKey": "Feil gjenopprettingsnøkkel",
+  "@incorrectRecoveryKey": {
+    "description": "Error message when recovery key is incorrect"
+  },
+  "initialBackupCreated": "Opprinnelig sikkerhetskopi opprettet!",
+  "insecureDevice": "Usikker enhet",
+  "@insecureDevice": {
+    "description": "Insecure device warning title"
+  },
+  "invalidEmailMessage": "Skriv inn en gyldig e-postadresse.",
+  "@invalidEmailMessage": {
+    "description": "Message for invalid email error dialog"
+  },
+  "invalidEmailTitle": "Ugyldig e-postadresse",
+  "@invalidEmailTitle": {
+    "description": "Title for invalid email error dialog"
+  },
+  "invalidEndpoint": "Ugyldig endepunkt",
+  "@invalidEndpoint": {
+    "description": "Error message when endpoint is invalid"
+  },
+  "invalidEndpointMessage": "Beklager, endepunktet du skrev inn er ugyldig. Skriv inn et gyldig endepunkt og prøv på nytt.",
+  "@invalidEndpointMessage": {
+    "description": "Detailed error message when endpoint is invalid"
+  },
+  "invalidKey": "Ugyldig nøkkel",
+  "invalidProtonExportMessage": "Den valgte fila er ikke en gyldig Proton Authenticator eksport.",
+  "invalidProtonExportTitle": "Ugyldig Proton-eksport",
+  "invalidQRCode": "Ugyldig QR-kode",
+  "invalidRecoveryKey": "Gjenopprettingsnøkkelen du har skrevet inn er ikke gyldig. Kontroller at den inneholder 24 tegn og kontroller stavemåten av hvert ord.\n\nHvis du har angitt en eldre gjenopprettingskode, må du kontrollere at den er 64 tegn lang, og kontrollere hvert av dem.",
+  "ok": "OK",
+  "@ok": {
+    "description": "Generic OK button label"
+  },
+  "iosOnMyDeviceNotSupported": "«På min iPhone» kan ikke brukes direkte. Velg eller lag ei mappe i den.",
+  "itLooksLikeSomethingWentWrongPleaseRetryAfterSome": "Det ser ut til at noe gikk galt. Prøv på nytt etter en stund. Hvis feilen vedvarer, ta kontakt med kundestøtte.",
+  "@itLooksLikeSomethingWentWrongPleaseRetryAfterSome": {
+    "description": "Generic error message for temporary issues"
+  },
+  "iUnderStand": "Jeg forstår",
+  "@iUnderStand": {
+    "description": "Text for the button to confirm the user understands the warning"
+  },
+  "language": "Språk",
+  "leaveFamily": "Forlat familie",
+  "lightTheme": "Lyst",
+  "localBackupDailyManualCopy": "Oppretter en lokal sikkerhetskopi per dag du åpner appen. Bruk «Sikkerhetskopier nå» for manuel sikkerhetskopiering. Sikkerhetskopier beholdes inntil 5 filer.",
+  "localBackupSidebarTitle": "Lokal sikkerhetskopi",
+  "locationUpdatedAndBackupCreated": "Plassering oppdatert og opprinnelig sikkerhetskopi opprettet!",
+  "loggingOut": "Logger ut …",
+  "@loggingOut": {
+    "description": "Message shown while logging out"
+  },
+  "logInLabel": "Logg inn",
+  "@logInLabel": {
+    "description": "Log in button label"
+  },
+  "loginSessionExpired": "Økten har utløpt",
+  "@loginSessionExpired": {
+    "description": "Login session expired title"
+  },
+  "loginSessionExpiredDetails": "Økten er utløpt, logg inn på nytt",
+  "@loginSessionExpiredDetails": {
+    "description": "Login session expired details"
+  },
+  "loginTerms": "Ved å trykke på «Logg inn», godtar jeg <u-terms>brukervilkårene</u-terms> og <u-policy>personvernreglene</u-policy>",
+  "@loginTerms": {
+    "description": "Terms agreement text for login"
+  },
+  "loginWithAuthAccount": "Logg inn med din Auth-konto",
+  "loginWithTOTP": "Logg inn med TOTP",
+  "@loginWithTOTP": {
+    "description": "Login with TOTP button label"
+  },
+  "logout": "Logg ut",
+  "lostDeviceTitle": "Mistet enhet?",
+  "@lostDeviceTitle": {
+    "description": "Lost device title"
+  },
+  "manualSort": "Egendefinert",
+  "merchandise": "Varer",
+  "minimizeAppOnCopy": "Minimer appen ved kopiering",
+  "minimizeToTrayOnClose": "Minimer til systemkurven ved lukking",
+  "moderateStrength": "Moderat",
+  "@moderateStrength": {
+    "description": "Moderate password strength label"
+  },
+  "mostFrequentlyUsed": "Ofte brukte",
+  "mostRecentlyUsed": "Nylige brukte",
+  "moveMultipleToTrashMessage": "Er du sikker på at du vil flytte {count} gjenstander til papirkurven?",
+  "@moveMultipleToTrashMessage": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "networkConnectionRefusedErr": "Klarte ikke koble til Ente, prøv igjen etter en stund. Hvis feilen vedvarer, ta kontakt med kundestøtte.",
+  "@networkConnectionRefusedErr": {
+    "description": "Error message shown when the app cannot connect to Ente due to connection refused"
+  },
+  "networkHostLookUpErr": "Klarte ikke koble til Ente, kontroller nettverksinnstillingene og ta kontakt med kundestøtte hvis feilen vedvarer.",
+  "@networkHostLookUpErr": {
+    "description": "Error message shown when the app cannot connect to Ente due to network host lookup failure"
+  },
+  "next": "Neste",
+  "@next": {
+    "description": "Next button label"
+  },
+  "nextTotpTitle": "Neste",
+  "no": "Nei",
+  "noDefaultBackupFolder": "Klarte ikke opprette standard sikkerhetskopi-mappe.",
+  "noDuplicates": "✨ Ingen duplikater",
+  "noInternetConnection": "Ingen nettverkstilkobling",
+  "@noInternetConnection": {
+    "description": "No internet connection error message"
+  },
+  "noRecoveryKeyTitle": "Ingen gjenopprettingsnøkkel?",
+  "@noRecoveryKeyTitle": {
+    "description": "No recovery key title"
+  },
+  "noResult": "Ingen resultater",
+  "noSystemLockFound": "Fant ingen systemlås",
+  "@noSystemLockFound": {
+    "description": "Error when no system lock is found"
+  },
+  "note": "Notat",
+  "notes": "Notater",
+  "notesLengthLimit": "Notater kan inneholde maks. {count} tegn",
+  "@notesLengthLimit": {
+    "description": "Text to indicate the maximum number of characters allowed for notes",
+    "placeholders": {
+      "count": {
+        "description": "The maximum number of characters allowed for notes",
+        "type": "int",
+        "example": "100"
+      }
+    }
+  },
+  "notSupportedForHOTP": "Støttes ikke for HOTP",
+  "offlineModeWarning": "Du har valgt å fortsette uten sikkerhetskopiering. Ta manuelle sikkerhetskopier for å sikre at kodene dine er trygge.",
+  "oops": "Oisann",
+  "@oops": {
+    "description": "Oops error title"
+  },
+  "parsingError": "Feil ved tolking",
+  "passkey": "Tilgangsnøkkel",
+  "passkeyAuthTitle": "Verifisering av tilgangsnøkkel",
+  "@passkeyAuthTitle": {
+    "description": "Passkey authentication title"
+  },
+  "passKeyPendingVerification": "Verifisering pågår fortsatt",
+  "@passKeyPendingVerification": {
+    "description": "Message when passkey verification is pending"
+  },
+  "password": "Passord",
+  "@password": {
+    "description": "Password field label"
+  },
+  "passwordChangedSuccessfully": "Passordet ble endret",
+  "@passwordChangedSuccessfully": {
+    "description": "Password changed successfully message"
+  },
+  "passwordEmptyError": "Passord kan ikke være tomt",
+  "passwordForDecryptingExport": "Passord for å dekryptere eksport",
+  "passwordStrength": "Passordstyrke: {passwordStrengthValue}",
+  "@passwordStrength": {
+    "description": "Text to indicate the password strength",
+    "placeholders": {
+      "passwordStrengthValue": {
+        "description": "The strength of the password as a string",
+        "type": "String",
+        "example": "Weak or Moderate or Strong"
+      }
+    }
+  },
+  "passwordToEncryptExport": "Passord for å kryptere eksport",
+  "passwordTooShort": "Passord må være minst 8 tegn langt.",
+  "passwordWarning": "Vi lagrer ikke dette passordet, så hvis du glemmer det, <underline>kan vi ikke dekryptere dataene dine</underline>",
+  "@passwordWarning": {
+    "description": "Warning about password storage"
+  },
+  "pendingSyncs": "Advarsel",
+  "pendingSyncsWarningBody": "Noen av kodene dine er ikke sikkerhetskopiert.\n\nForsikre deg om at du har en sikkerhetskopi for disse kodene før du logger ut.",
+  "period": "Periode",
+  "pinLock": "PIN-kode lås",
+  "@pinLock": {
+    "description": "PIN lock option title"
+  },
+  "pinnedCodeMessage": "{code} har blitt festet",
+  "@pinnedCodeMessage": {
+    "placeholders": {
+      "code": {}
+    }
+  },
+  "pinnedCount": "{count, plural, one{Fest {count} element} other{Fest {count} elementer}}",
+  "@pinnedCount": {
+    "description": "Text to show number of items pinned",
+    "placeholders": {
+      "count": {
+        "description": "Number of items pinned",
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "pinText": "Fest",
+  "plainHTML": "Bare HTML",
+  "plainText": "Klartekst",
+  "pleaseCheckPasswordAndTryAgain": "Sjekk passordet ditt og prøv igjen.",
+  "pleaseCheckYourInternetConnectionAndTryAgain": "Kontroller Internett-tilkoblingen din og prøv på nytt.",
+  "@pleaseCheckYourInternetConnectionAndTryAgain": {
+    "description": "Message asking user to check internet connection"
+  },
+  "pleaseLoginAgain": "Logg inn på nytt",
+  "pleaseSendTheLogsTo": "Send loggene til \n{toEmail}",
+  "@pleaseSendTheLogsTo": {
+    "description": "Message asking user to send logs to email address",
+    "placeholders": {
+      "toEmail": {
+        "type": "String",
+        "description": "Email address to send logs to"
+      }
+    }
+  },
+  "pleaseTryAgain": "Prøv på nytt",
+  "@pleaseTryAgain": {
+    "description": "Message asking user to try again"
+  },
+  "pleaseVerifyDetails": "Kontroller opplysningene og prøv på nytt",
+  "pleaseWait": "Vent litt …",
+  "@pleaseWait": {
+    "description": "Please wait message"
+  },
+  "preparingLogs": "Forbereder logger …",
+  "privacy": "Personvern",
+  "privacyPolicyTitle": "Personvernserklæring",
+  "@privacyPolicyTitle": {
+    "description": "Privacy policy title"
+  },
+  "qr": "QR",
+  "qrCode": "QR-kode",
+  "rateUsOnStore": "Vurder oss på {storeName}",
+  "@rateUsOnStore": {
+    "placeholders": {
+      "storeName": {}
+    }
+  },
+  "rawCodeData": "Rå kodedata",
+  "recover": "Gjenopprett",
+  "@recover": {
+    "description": "Recover button label"
+  },
+  "recoverAccount": "Gjenopprett konto",
+  "@recoverAccount": {
+    "description": "Recover account button label"
+  },
+  "recoveryKey": "Gjenopprettingsnøkkel",
+  "@recoveryKey": {
+    "description": "Recovery key label"
+  },
+  "recoveryKeyCopiedToClipboard": "Gjenopprettingsnøkkel kopiert til utklippstavla",
+  "@recoveryKeyCopiedToClipboard": {
+    "description": "Recovery key copied message"
+  },
+  "recoveryKeyOnForgotPassword": "Hvis du glemmer passordet ditt, er den eneste måten du kan gjenopprette dataene dine på med denne nøkkelen.",
+  "@recoveryKeyOnForgotPassword": {
+    "description": "Recovery key importance explanation"
+  },
+  "recoveryKeySaved": "Gjenopprettingsnøkkelen er lagret i nedlastingsmappa!",
+  "@recoveryKeySaved": {
+    "description": "Recovery key saved confirmation message"
+  },
+  "recoveryKeySaveDescription": "Vi lagrer ikke denne nøkkelen, lagre denne nøkkelen med 24 tegn på et trygt sted.",
+  "@recoveryKeySaveDescription": {
+    "description": "Recovery key save description"
+  },
+  "recoveryKeySuccessBody": "Flott! Din gjenopprettingsnøkkel er gyldig. Takk for bekreftelsen.\n\nHusk å holde gjenopprettingsnøkkelen din sikkerhetskopiert på trygt vis.",
+  "recoveryKeyVerified": "Gjenopprettingsnøkkel bekreftet",
+  "recoveryKeyVerifyReason": "Gjenopprettingsnøkkelen er den eneste måten å gjenopprette bildene dine på hvis du glemmer passordet ditt. Du finner gjenopprettingsnøkkelen din i «Innstillinger» → «Konto».\n\nSkriv inn gjenopprettingsnøkkelen din her for å bekrefte at du har lagret den riktig.",
+  "recreatePasswordBody": "Den gjeldende enheten er ikke kraftig nok for å bekrefte passordet, men vi kan regenerere den på en måte som fungerer på alle enheter. \n\nLogg inn med gjenopprettingsnøkkelen og regenerer passordet ditt (du kan bruke den samme om igjen om du vil).",
+  "@recreatePasswordBody": {
+    "description": "Body text for recreate password dialog"
+  },
+  "recreatePasswordTitle": "Gjenopprett passord",
+  "@recreatePasswordTitle": {
+    "description": "Title for recreate password dialog"
+  },
+  "reEnterPassword": "Skriv inn passord på nytt",
+  "@reEnterPassword": {
+    "description": "Re-enter password prompt"
+  },
+  "reEnterPin": "Skriv inn PIN-kode på nytt",
+  "@reEnterPin": {
+    "description": "Re-enter PIN prompt"
+  },
+  "reportABug": "Meld fra om en feil",
+  "@reportABug": {
+    "description": "Label for reporting a bug"
+  },
+  "resetPasswordTitle": "Tilbakestill passord",
+  "@resetPasswordTitle": {
+    "description": "Reset password title"
+  },
+  "restore": "Gjenopprett",
+  "@restore": {
+    "description": "Display text for an action which triggers a restore of item from trash",
+    "type": "text"
+  },
+  "save": "Lagre",
+  "@save": {
+    "description": "Label for save button"
+  },
+  "saveKey": "Lagre nøkkel",
+  "@saveKey": {
+    "description": "Save key button label"
+  },
+  "saveOnlyDescription": "Vil du lagre dette til lagringsmappa (Nedlastinger som standard)?",
+  "@saveOnlyDescription": {
+    "description": "Description text asking user if they want to save to storage (for platforms that don't support sharing)"
+  },
+  "saveOrSendDescription": "Vil du lagre dette til lagringsmappa (Nedlastinger som standard) eller sende til andre apper?",
+  "@saveOrSendDescription": {
+    "description": "Description text asking user if they want to save to storage or share with other apps"
+  },
+  "scan": "Skann",
+  "scanACode": "Skann en kode",
+  "scanAQrCode": "Skann en QR-kode",
+  "scannerTorchOff": "Slå av lommelykt",
+  "scannerTorchOn": "Slå på lommelykt",
+  "search": "Søk",
+  "searchHint": "Søk …",
+  "secret": "Hemmelighet",
+  "secretCanNotBeEmpty": "Hemmeligheten kan ikke være tomt",
+  "security": "Sikkerhet",
+  "selectAll": "Merk alle",
+  "selectBackupFolder": "Velg mappe for sikkerhetskopi",
+  "selected": "merket",
+  "selectedCount": "{count, plural, one{{count} merket} other{{count} merket}}",
+  "@selectedCount": {
+    "description": "Number of items selected",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "selectExportFormat": "Velg eksportformat",
+  "selectFile": "Velg fil",
+  "selectFolder": "Velg mappe",
+  "selectFolderToContinue": "Velg en mappe for å fortsette",
+  "selectLanguage": "Velg språk",
+  "sendLogsDescription": "Dette vil sende loggene til oss for hjelp med feilsøking av ditt problem. Selv om vi tar forhåndsregler for å sikre at sensitiv informasjon ikke loggføres, anmoder vi deg til å se gjennom loggene før de sendes.",
+  "serverEndpoint": "Tjenerendepunkt",
+  "@serverEndpoint": {
+    "description": "Label for server endpoint setting"
+  },
+  "sessionExpired": "Økten har utløpt",
+  "@sessionExpired": {
+    "description": "Error message when session has expired"
+  },
+  "setBackupFolder": "Angi mappe for sikkerhetskopi",
+  "setBackupPassword": "Skriv inn passord for sikkerhetskopiering",
+  "setNewPassword": "Skriv inn nytt passord",
+  "@setNewPassword": {
+    "description": "Set new password title"
+  },
+  "setNewPin": "Skriv inn ny PIN-kode",
+  "@setNewPin": {
+    "description": "Set new PIN title"
+  },
+  "setPasswordTitle": "Velg passord",
+  "@setPasswordTitle": {
+    "description": "Set password title"
+  },
+  "settings": "Innstillinger",
+  "setupFirstAccount": "Sett opp din første konto",
+  "share": "Del",
+  "shareCodes": "Del koder",
+  "shareCodesDuration": "Velg varigheten du vil dele koder for.",
+  "shouldHideCode": "Skjul koder",
+  "showLargeIcons": "Vis store ikoner",
+  "showQRAuthMessage": "Autentiser for å vise QR-kode",
+  "sigInBackupReminder": "Ente vil på automatisk vis sikkerhetskopiere kodene etter innlogging.\n\nVi anbefaler fremdeles å eksportere kodene som ekstra beskyttelse.",
+  "signInToBackup": "Logg inn for å sikkerhetskopiere kodene",
+  "signOutFromOtherDevices": "Logg ut fra andre enheter",
+  "@signOutFromOtherDevices": {
+    "description": "Sign out from other devices title"
+  },
+  "signOutOtherBody": "Hvis du tror noen kjenner til ditt passord, kan du tvinge alle andre enheter som bruker kontoen din til å logge ut.",
+  "@signOutOtherBody": {
+    "description": "Sign out other devices explanation"
+  },
+  "signOutOtherDevices": "Logg ut andre enheter",
+  "@signOutOtherDevices": {
+    "description": "Sign out other devices button label"
+  },
+  "signUp": "Registrer deg",
+  "signUpTerms": "Jeg godtar <u-terms>bruksvilkårene</u-terms> og <u-policy>personvernreglene</u-policy>",
+  "@signUpTerms": {
+    "description": "Terms agreement text for sign up"
+  },
+  "singIn": "Logg inn",
+  "somethingWentWrongMessage": "Noe gikk galt, prøv på nytt",
+  "somethingWentWrongParsingCode": "Klarte ikke tolke {x} koder.",
+  "@somethingWentWrongParsingCode": {
+    "placeholders": {
+      "x": {}
+    }
+  },
+  "somethingWentWrongPleaseTryAgain": "Noe gikk galt. Prøv på nytt",
+  "@somethingWentWrongPleaseTryAgain": {
+    "description": "Generic error message"
+  },
+  "sorry": "Beklager",
+  "sorryTheCodeYouveEnteredIsIncorrect": "Beklager, koden du skrev inn er feil",
+  "@sorryTheCodeYouveEnteredIsIncorrect": {
+    "description": "Detailed error message when code is incorrect"
+  },
+  "sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": "Beklager, vi kunne ikke generere sikre nøkler på denne enheten.\n\nRegistrer deg fra en annen enhet.",
+  "@sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": {
+    "description": "Error message for insecure device"
+  },
+  "strongStrength": "Sterkt",
+  "@strongStrength": {
+    "description": "Strong password strength label"
+  },
+  "submit": "Send",
+  "success": "Vellykket",
+  "suggestFeatures": "Foreslå funksjoner",
+  "support": "Brukerstøtte",
+  "supportEnte": "Støtt <bold-green>ente</bold-green>",
+  "tag": "Merkelapp",
+  "tags": "Merkelapper",
+  "tapToUnlock": "Trykk for å låse opp",
+  "@tapToUnlock": {
+    "description": "Message prompting user to tap to unlock"
+  },
+  "tellUsWhatYouThink": "Fortell oss hva du mener",
+  "tempErrorContactSupportIfPersists": "Det ser ut som noe gikk galt. Prøv på nytt etter en stund. Hvis feilen vedvarer, ta kontakt med kundestøtte.",
+  "terminate": "Avslutte",
+  "@terminate": {
+    "description": "Terminate button label"
+  },
+  "terminateSession": "Avslutte økten?",
+  "@terminateSession": {
+    "description": "Title for terminate session dialog"
+  },
+  "termsOfServicesTitle": "Vilkår",
+  "@termsOfServicesTitle": {
+    "description": "Terms of service title"
+  },
+  "theme": "Tema",
+  "theRecoveryKeyYouEnteredIsIncorrect": "Gjennopprettingsnøkkelen du skrev inn er feil",
+  "@theRecoveryKeyYouEnteredIsIncorrect": {
+    "description": "Detailed error message when recovery key is incorrect"
+  },
+  "thisDevice": "Denne enheten",
+  "@thisDevice": {
+    "description": "Label for current device"
+  },
+  "thisEmailIsAlreadyInUse": "Denne e-postadressen er allerede i bruk",
+  "@thisEmailIsAlreadyInUse": {
+    "description": "Error message when email is already in use"
+  },
+  "thisWillLogYouOutOfTheFollowingDevice": "Dette vil logge deg ut av følgende enhet:",
+  "@thisWillLogYouOutOfTheFollowingDevice": {
+    "description": "Warning message for logging out of another device"
+  },
+  "thisWillLogYouOutOfThisDevice": "Dette vil logge deg ut av denne enheten!",
+  "@thisWillLogYouOutOfThisDevice": {
+    "description": "Warning message for logging out of current device"
+  },
+  "todaysLogs": "Dagens logg",
+  "toEnableAppLockPleaseSetupDevicePasscodeOrScreen": "For å ta i bruk applås, sett opp passord eller skjermlås i systeminnstillingene.",
+  "tooManyIncorrectAttempts": "For mange feil forsøk",
+  "@tooManyIncorrectAttempts": {
+    "description": "Message shown when too many incorrect attempts are made"
+  },
+  "toResetVerifyEmail": "For å tilbakestille passordet ditt, bekreft e-posten din først.",
+  "@toResetVerifyEmail": {
+    "description": "Message asking user to verify email before password reset"
+  },
+  "trash": "Papirkurv",
+  "trashCode": "Kast koden?",
+  "trashCodeMessage": "Er du sikker på at du vil kaste koden for {account}?",
+  "@trashCodeMessage": {
+    "placeholders": {
+      "account": {}
+    }
+  },
+  "tryAgain": "Prøv igjen",
+  "@tryAgain": {
+    "description": "Try again button label"
+  },
+  "twofactorAuthenticationSuccessfullyReset": "Tofaktorautentisering ble tilbakestilt",
+  "@twofactorAuthenticationSuccessfullyReset": {
+    "description": "Message when two-factor authentication is successfully reset"
+  },
+  "twoFactorAuthTitle": "Tofaktorautentisering",
+  "@twoFactorAuthTitle": {
+    "description": "Two-factor authentication title"
+  },
+  "unlock": "Lås opp",
+  "@unlock": {
+    "description": "Short action label used as the system authentication reason when unlocking the app"
+  },
+  "unpinnedCodeMessage": "{code} har blitt løsnet",
+  "@unpinnedCodeMessage": {
+    "placeholders": {
+      "code": {}
+    }
+  },
+  "unpinnedCount": "{count, plural, one{{count} ufestet element} other{{count} ufestede elementer}}",
+  "@unpinnedCount": {
+    "description": "Text to show number of items unpinned",
+    "placeholders": {
+      "count": {
+        "description": "Number of items unpinned",
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "unpinText": "Løsne",
+  "updateAvailable": "En oppdatering er tilgjengelig",
+  "updateBackupPassword": "Oppdater passord for sikkerhetskopiering",
+  "useOffline": "Bruk uten sikkerhetskopier",
+  "useRecoveryKey": "Bruk gjenopprettingsnøkkel",
+  "@useRecoveryKey": {
+    "description": "Use recovery key button label"
+  },
+  "verificationFailedPleaseTryAgain": "Bekreftelse mislyktes, prøv på nytt",
+  "@verificationFailedPleaseTryAgain": {
+    "description": "Verification failed error message"
+  },
+  "verify": "Bekreft",
+  "@verify": {
+    "description": "Verify button label"
+  },
+  "verifyEmail": "Bekreft e-postadresse",
+  "@verifyEmail": {
+    "description": "Verify email title"
+  },
+  "verifyingRecoveryKey": "Bekrefter gjenopprettingsnøkkel …",
+  "verifyPassword": "Bekreft passord",
+  "@verifyPassword": {
+    "description": "Verify password button label"
+  },
+  "viewActiveSessions": "Vis aktive økter",
+  "viewLogsAction": "Se logger",
+  "viewRawCodes": "Vis råe koder",
+  "viewRecoveryKey": "Vis gjenopprettingsnøkkel",
+  "waitingForVerification": "Venter på verifisering …",
+  "@waitingForVerification": {
+    "description": "Waiting for verification message"
+  },
+  "warning": "Advarsel",
+  "weakStrength": "Svakt",
+  "@weakStrength": {
+    "description": "Weak password strength label"
+  },
+  "weAreOpenSource": "Vi har åpen kildekode!",
+  "yes": "Ja",
+  "yesLogout": "Ja, logg ut",
+  "@yesLogout": {
+    "description": "Confirmation button for logout"
+  },
+  "youAreOnTheLatestVersion": "Du bruker den nyeste versjonen",
+  "yourVerificationCodeHasExpired": "Bekreftelseskoden er utløpt",
+  "@yourVerificationCodeHasExpired": {
+    "description": "Error message when verification code has expired"
+  },
+  "youveNoDuplicateCodesThatCanBeCleared": "Du har ingen duplikatkoder som kan fjernes"
+}

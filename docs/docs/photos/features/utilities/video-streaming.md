@@ -7,7 +7,9 @@ description: Stream your videos without downloading them first
 
 Video streaming is a beta feature that lets you watch videos without downloading the entire file first. Instead of downloading the full video, Ente generates a streamable version that supports instant playback and seeking.
 
-> **Note**: Video streaming is available in beta on mobile apps starting v0.9.98 and on desktop starting v1.7.13.
+> [!NOTE]
+>
+> Video streaming is available in beta on mobile apps starting v0.9.98 and on desktop starting v1.7.13.
 
 ## How it works
 
@@ -32,6 +34,9 @@ The generated stream is a single encrypted blob (AES encryption) while the playl
 ### On mobile
 
 1. Open `Settings > Streamable videos`
+
+   ![Mobile: home with Settings menu (three bars) highlighted, then Streamable videos, then the Streamable videos page](https://docs-assets.ente.com/screenshots/phone-settings-streamable-path-nc.png){width=560px}
+
 2. Enable the toggle
 
 **What happens next:**
@@ -43,7 +48,21 @@ The generated stream is a single encrypted blob (AES encryption) while the playl
 
 Open the specific video, tap the overflow menu (⋮) in the top-right corner, and select **Create stream**
 
+### Mobile playback controls
+
+While viewing a video on mobile:
+
+- Double-tap the left or right half of the video to seek backward or forward by five seconds. Repeated double-taps continue seeking in the same direction.
+- Press and hold the video to play it at `2x` speed, then release to return to the previous speed.
+- Open the overflow menu (three dots), select **Playback speed**, then choose `0.25x`, `0.5x`, `1x`, `1.5x`, or `2x`.
+
+These controls are available whether Ente plays the original video or a streamable version.
+
+![Mobile: overflow menu (three dots) and Playback speed highlighted, then the Playback speed options on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-video-playback-speed-steps-nc.png){width=560px}
+
 ### On desktop
+
+![Streamable videos toggle highlighted in Preferences on Ente Photos desktop](https://docs-assets.ente.com/screenshots/desktop-streamable-videos-callout.png){width=560px}
 
 1. Open `Settings > Preferences > Streamable videos`
 2. Enable the toggle
@@ -53,6 +72,7 @@ Open the specific video, tap the overflow menu (⋮) in the top-right corner, an
 - New uploads will automatically generate streams
 - All existing previously uploaded videos will be processed
 - Stream generation is CPU intensive and happens in the background
+- The **Streamable videos** section shows the percentage of existing videos processed
 - Click the search bar to see "Processing videos..." status
 - Processed videos sync to mobile automatically
 
@@ -61,6 +81,9 @@ Open the specific video, tap the overflow menu (⋮) in the top-right corner, an
 ### On mobile
 
 - Open `Settings > Backup > Backup status` to see processing status
+
+  ![Mobile: home with Settings menu (three bars) highlighted, then Backup, then Backup status, then the Backup status page](https://docs-assets.ente.com/screenshots/phone-settings-backup-status-path-nc.png){width=560px}
+
 - Processed videos show a green play button
 - Tap processed videos to see a `Play stream` button
 - Click the `Info` icon within a video to see stream details

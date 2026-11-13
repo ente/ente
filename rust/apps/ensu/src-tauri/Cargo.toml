@@ -1,31 +1,41 @@
 [package]
-name = "ensu-tauri"
-version = "0.1.8"
-description = "Ensu Desktop (Tauri)"
-edition = "2021"
+name = "ensu-desktop"
+version = "0.1.23-beta"
+edition.workspace = true
 
 [build-dependencies]
-tauri-build = { version = "2", features = [] }
+tauri-build = { version = "2.7.1", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [] }
-tauri-plugin-dialog = "2"
-tauri-plugin-fs = "2"
-tauri-plugin-shell = "2"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-ente-core = { path = "../../../core", features = ["srp"] }
-ensu-db = { path = "../../../ensu/db" }
-ensu-sync = { path = "../../../ensu/sync" }
-inference_rs = { path = "../../../ensu/inference" }
-uuid = { version = "1", features = ["v4"] }
+ente-assets.workspace = true
+ente-core.workspace = true
+ente-ensu = { workspace = true, features = ["transcription"] }
+ente-ensu-crypto.workspace = true
+keyring = { workspace = true, features = ["apple-native", "windows-native", "linux-native-sync-persistent", "crypto-rust"] }
+log.workspace = true
+notify = "8.2.0"
+serde.workspace = true
+serde_json.workspace = true
+tauri = { version = "2.12.1", features = [] }
+tauri-plugin-dialog = "2.8.1"
+tauri-plugin-fs = "2.6.0"
+tauri-plugin-opener = "2.7.0"
+tauri-plugin-process = "2.4.0"
+tauri-plugin-updater = "2.13.1"
+uuid = { workspace = true, features = ["v4"] }
 
-[profile.release]
-opt-level = 3
-lto = true
-codegen-units = 1
-strip = true
-panic = "abort"
+[target.'cfg(unix)'.dependencies]
+libc = "0.2.189"
+rustix = { version = "1.1.5", features = ["fs"] }
 
-[profile.dev]
-opt-level = 1
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_Storage_FileSystem", "Win32_System_SystemInformation"] }
+
+[target.'cfg(any(windows, target_os = "linux"))'.dependencies]
+tauri-plugin-single-instance = "2.4.5"
+
+[features]
+custom-protocol = ["tauri/custom-protocol"]
+
+[lints]
+workspace = true

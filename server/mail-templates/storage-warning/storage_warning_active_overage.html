@@ -1,0 +1,32 @@
+{{define "content"}}
+<p>Hi,</p>
+
+<p>
+  We're reaching out because your Ente account associated with
+  <strong>{{.AccountEmail}}</strong> is significantly above the storage
+  currently available on the account.
+</p>
+
+<p>
+  Unless you reduce your usage or upgrade your subscription, your data for Ente
+  Photos &amp; Ente Locker will be automatically deleted after
+  {{.AutoDeleteDate}}.
+</p>
+
+{{if .IsFamilyPlan}}
+<p>
+  If you're on a Family plan, your family members' backups and access may also
+  be affected.
+</p>
+{{end}}
+
+<p>
+  To prevent data deletion, please either reduce your usage or upgrade your
+  plan.
+</p>
+
+<p>
+  If you're running into payment issues or need more time, reply to this email
+  and we'll help you figure out the best option.
+</p>
+{{end}}

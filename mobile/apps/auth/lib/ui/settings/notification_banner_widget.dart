@@ -1,15 +1,15 @@
-import 'dart:io';
-
 import 'package:ente_accounts/models/user_details.dart';
 import 'package:ente_accounts/services/user_service.dart';
 import 'package:ente_auth/core/configuration.dart';
-import 'package:ente_auth/l10n/l10n.dart';
 import 'package:ente_auth/services/preference_service.dart';
 import 'package:ente_auth/ui/components/banner_widget.dart';
+import 'package:ente_strings/ente_strings.dart';
 import 'package:flutter/material.dart';
 
 class NotificationBannerWidget extends StatelessWidget {
   const NotificationBannerWidget({super.key});
+
+  static const _showDiscountOffer = false;
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +20,8 @@ class NotificationBannerWidget extends StatelessWidget {
     final differenceInDays = currentTime
         .difference(DateTime.fromMillisecondsSinceEpoch(appInstallTime))
         .inDays;
-    final l10n = context.l10n;
+    final l10n = context.strings;
+    final rateSubText = l10n.rateUs;
 
     if (Configuration.instance.hasConfiguredAccount()) {
       return FutureBuilder<UserDetails>(
@@ -33,47 +34,40 @@ class NotificationBannerWidget extends StatelessWidget {
               return const SizedBox.shrink();
             } else if (differenceInDays >= 4 && differenceInDays <= 7) {
               contents.clear();
-              contents.addAll(
-                [
-                  BannerWidget(
-                    text: l10n.tellUsWhatYouThink,
-                    subText: Platform.isIOS
-                        ? l10n.dropReviewiOS
-                        : l10n.dropReviewAndroid,
-                    type: BannerType.rateUs,
-                  ),
-                  sectionSpacing,
-                  BannerWidget(
-                    text: l10n.supportEnte,
-                    subText: l10n.giveUsAStarOnGithub,
-                    type: BannerType.starUs,
-                  ),
-                ],
-              );
+              contents.addAll([
+                BannerWidget(
+                  text: l10n.tellUsWhatYouThink,
+                  subText: rateSubText,
+                  type: BannerType.rateUs,
+                ),
+                sectionSpacing,
+                BannerWidget(
+                  text: l10n.supportEnte,
+                  subText: l10n.giveUsAStarOnGithub,
+                  type: BannerType.starUs,
+                ),
+              ]);
               return buildWidget(context, contents);
             } else if (differenceInDays >= 7 && differenceInDays <= 30) {
               if (userDetails?.usage == 0) {
                 contents.clear();
-                contents.addAll(
-                  [
-                    BannerWidget(
-                      text: l10n.free10GB,
-                      subText: l10n.loginWithAuthAccount,
-                      type: BannerType.freeStorage,
-                    ),
-                  ],
-                );
-              } else if (userDetails!.usage < 5 * 1024 * 1024 * 1024 ||
-                  userDetails.subscription.productID == 'free') {
-                contents.addAll(
-                  [
-                    BannerWidget(
-                      text: l10n.freeStorageOffer,
-                      subText: l10n.freeStorageOfferDescription,
-                      type: BannerType.discount,
-                    ),
-                  ],
-                );
+                contents.addAll([
+                  BannerWidget(
+                    text: l10n.free10GB,
+                    subText: l10n.loginWithAuthAccount,
+                    type: BannerType.freeStorage,
+                  ),
+                ]);
+              } else if (_showDiscountOffer &&
+                  (userDetails!.usage < 5 * 1024 * 1024 * 1024 ||
+                      userDetails.subscription.productID == 'free')) {
+                contents.addAll([
+                  BannerWidget(
+                    text: l10n.freeStorageOffer,
+                    subText: l10n.freeStorageOfferDescription,
+                    type: BannerType.discount,
+                  ),
+                ]);
               }
               return buildWidget(context, contents);
             }
@@ -84,33 +78,25 @@ class NotificationBannerWidget extends StatelessWidget {
     } else {
       if (differenceInDays >= 4 && differenceInDays <= 7) {
         contents.clear();
-        contents.addAll(
-          [
-            BannerWidget(
-              text: l10n.tellUsWhatYouThink,
-              subText:
-                  Platform.isIOS ? l10n.dropReviewiOS : l10n.dropReviewAndroid,
-              type: BannerType.rateUs,
-            ),
-            sectionSpacing,
-            BannerWidget(
-              text: l10n.supportEnte,
-              subText: l10n.giveUsAStarOnGithub,
-              type: BannerType.starUs,
-            ),
-          ],
-        );
+        contents.addAll([
+          BannerWidget(
+            text: l10n.tellUsWhatYouThink,
+            subText: rateSubText,
+            type: BannerType.rateUs,
+          ),
+          sectionSpacing,
+          BannerWidget(
+            text: l10n.supportEnte,
+            subText: l10n.giveUsAStarOnGithub,
+            type: BannerType.starUs,
+          ),
+        ]);
       }
       return buildWidget(context, contents);
     }
   }
 
-  Widget buildWidget(
-    BuildContext context,
-    List<Widget> contents,
-  ) {
-    return Column(
-      children: contents,
-    );
+  Widget buildWidget(BuildContext context, List<Widget> contents) {
+    return Column(children: contents);
   }
 }

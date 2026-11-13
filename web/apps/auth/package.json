@@ -3,10 +3,14 @@
     "version": "0.0.0",
     "private": true,
     "dependencies": {
+        "@fontsource-variable/outfit": "5.3.0",
+        "@hugeicons/core-free-icons": "4.3.5",
+        "@hugeicons/react": "1.1.10",
+        "@noble/hashes": "2.4.0",
         "ente-accounts": "*",
+        "ente-auth-wasm": "*",
         "ente-base": "*",
-        "jssha": "~3.3.1",
-        "otpauth": "9.2.4"
+        "otpauth": "9.5.2"
     },
     "devDependencies": {
         "ente-build-config": "*"

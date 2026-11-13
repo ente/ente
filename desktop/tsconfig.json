@@ -1,37 +1,31 @@
 {
-    /* TSConfig for a set of vanilla TypeScript files that need to be transpiled
-       into JavaScript that'll then be loaded and run by the main (node) process
-       of our Electron app. */
-
-    /*
-     * Recommended target, lib and other settings for code running in the
-     * version of Node.js bundled with Electron.
-     *
-     * Currently, with Electron 35, this is Node.js 22.14.0.
-     * https://www.electronjs.org/blog/electron-35-0
-     */
-    "extends": "@tsconfig/node22/tsconfig.json",
-
-    /* TSConfig docs: https://aka.ms/tsconfig.json */
     "compilerOptions": {
-        /* Emit the generated JS into `app/` */
+        /* Match Electron's embedded Node.js runtime. */
+        "lib": [
+            "ES2024",
+            "ESNext.Array",
+            "ESNext.Collection",
+            "ESNext.Error",
+            "ESNext.Iterator",
+            "ESNext.Promise"
+        ],
+        "module": "nodenext",
+        "target": "ES2024",
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "moduleResolution": "node16",
+        "types": ["node"],
+
+        "rootDir": "src",
         "outDir": "app",
 
-        /* Require the `type` modifier when importing types */
-        /* We want this, but it causes "ESM syntax is not allowed in a CommonJS
-           module when 'verbatimModuleSyntax' is enabled" currently */
-        /* "verbatimModuleSyntax": true, */
-
         "strict": true,
-        /* Stricter than strict */
         "noImplicitReturns": true,
         "noUnusedParameters": true,
         "noUnusedLocals": true,
         "noFallthroughCasesInSwitch": true,
-        /* e.g. makes array indexing returns undefined */
         "noUncheckedIndexedAccess": true,
         "exactOptionalPropertyTypes": true
     },
-    /* Include all `.ts` files in `src/` */
     "include": ["src"]
 }

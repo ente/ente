@@ -14,10 +14,7 @@ class AuthenticatorGateway {
   Future<void> createKey(String encKey, String header) async {
     await _enteDio.post(
       "/authenticator/key",
-      data: {
-        "encryptedKey": encKey,
-        "header": header,
-      },
+      data: {"encryptedKey": encKey, "header": header},
     );
   }
 
@@ -39,10 +36,7 @@ class AuthenticatorGateway {
   Future<AuthEntity> createEntity(String encryptedData, String header) async {
     final response = await _enteDio.post(
       "/authenticator/entity",
-      data: {
-        "encryptedData": encryptedData,
-        "header": header,
-      },
+      data: {"encryptedData": encryptedData, "header": header},
     );
     return AuthEntity.fromMap(response.data);
   }
@@ -54,23 +48,12 @@ class AuthenticatorGateway {
   ) async {
     await _enteDio.put(
       "/authenticator/entity",
-      data: {
-        "id": id,
-        "encryptedData": encryptedData,
-        "header": header,
-      },
+      data: {"id": id, "encryptedData": encryptedData, "header": header},
     );
   }
 
-  Future<void> deleteEntity(
-    String id,
-  ) async {
-    await _enteDio.delete(
-      "/authenticator/entity",
-      queryParameters: {
-        "id": id,
-      },
-    );
+  Future<void> deleteEntity(String id) async {
+    await _enteDio.delete("/authenticator/entity", queryParameters: {"id": id});
   }
 
   Future<(List<AuthEntity>, int?)> getDiff(
@@ -80,10 +63,7 @@ class AuthenticatorGateway {
     try {
       final response = await _enteDio.get(
         "/authenticator/entity/diff",
-        queryParameters: {
-          "sinceTime": sinceTime,
-          "limit": limit,
-        },
+        queryParameters: {"sinceTime": sinceTime, "limit": limit},
       );
       final List<AuthEntity> authEntities = <AuthEntity>[];
       final diff = response.data["diff"] as List;

@@ -1,16 +1,5 @@
-/**
- * Forward a tunneled request from our clients to our Sentry instance.
- *
- * The client use a Sentry "tunnel" that connects to where this worker listens.
- * Requests to this tunnel endpoint contain the original crash report wrapped in
- * an envelope. This worker extracts the original Sentry request from the
- * envelope, forwards it our Sentry instance, and proxies back the response.
- *
- * It also replaces the replace the DSN in the POST body with the latest one.
- * This allows us to hardcode the DSN in the clients, without needing to update
- * them if the DSN changes on our self-hosted Sentry's side (e.g. if we recreate
- * these projects from scratch in the Sentry instance).
- */
+// Known client DSNs are rewritten to the current Sentry projects.
+// This lets us recreate a project without updating released clients.
 export default {
     async fetch(request: Request) {
         switch (request.method) {
@@ -26,10 +15,10 @@ const handlePOST = async (request: Request) => {
     const originalBody = await request.text();
     const originalDSNString = extractDSN(originalBody);
     const { body, dsn } = mapDSN(originalBody, originalDSNString);
+    if (!isEnteSentryDSN(dsn)) return new Response(null, { status: 400 });
 
     const projectId = parseInt(dsn.pathname?.slice(1)?.split("/")[0] ?? "1");
 
-    // Proxy request to Sentry ingest
     return fetch(`https://${dsn.host}/api/${projectId}/envelope/`, {
         method: "POST",
         headers: {
@@ -39,10 +28,7 @@ const handlePOST = async (request: Request) => {
     });
 };
 
-/** Parse the POST body sent by Sentry client to extract the DSN therein */
 const extractDSN = (body: string) => {
-    // The body consists of 3 lines, each a JSON string. The first line is the
-    // envelope header.
     const [envelopeHeaderString] = body.split("\n", 1);
     if (!envelopeHeaderString) throw new Error(`Missing DSN`);
     const envelopeHeader = JSON.parse(envelopeHeaderString ?? "");
@@ -51,26 +37,16 @@ const extractDSN = (body: string) => {
     return dsn;
 };
 
-/**
- * If {@link originalDSNString} matches one of the known DSNs that we want to
- * map, perform a textual search and replace of the DSN and public_key fields in
- * the body of the request.
- *
- * @returns the (possibly) modified body and DSN.
- */
 const mapDSN = (originalBody: string, originalDSNString: string) => {
     const originalDSN = new URL(originalDSNString);
 
     const dsnString = dsnMappings[originalDSNString];
     if (dsnString === undefined) {
-        // We don't have a mapping for this DSN, return the originals unchanged.
         return { body: originalBody, dsn: originalDSN };
     }
 
     const dsn = new URL(dsnString);
 
-    // Extract the public_key part from the URLs. We need to do two
-    // substitutions, first for the entire DSN, and then for the public key.
     const originalPublicKey = originalDSN.username;
     const publicKey = dsn.username;
 
@@ -81,6 +57,10 @@ const mapDSN = (originalBody: string, originalDSNString: string) => {
 
     return { body, dsn };
 };
+
+const isEnteSentryDSN = (dsn: URL) =>
+    dsn.protocol === "https:" &&
+    (dsn.host === "sentry.ente.com" || dsn.host === "sentry.ente.io");
 
 const dsnMappings: Record<string, string> = {
     // photos-mobile

@@ -1,0 +1,18 @@
+[package]
+name = "ente-ensu-wasm"
+edition.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ente-ensu-crypto.workspace = true
+ente-wasm-lib.workspace = true
+serde.workspace = true
+serde-wasm-bindgen.workspace = true
+thiserror.workspace = true
+tsify.workspace = true
+wasm-bindgen.workspace = true
+
+[lints]
+workspace = true

@@ -1,1 +1,1 @@
-Auth is a FOSS authenticator app that provides end-to-end encrypted backups for your 2FA secrets.
+Free, Cross Platform, Private, Open Source Two Factor Authenticator App

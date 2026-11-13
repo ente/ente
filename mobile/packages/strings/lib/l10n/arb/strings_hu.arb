@@ -1,61 +1,322 @@
 {
-  "networkHostLookUpErr": "Nem lehet csatlakozni az Ente-hez. Kérjük, ellenőrizze a hálózati beállításokat, és ha a hiba továbbra is fennáll, forduljon az ügyfélszolgálathoz.",
-  "@networkHostLookUpErr": {
-    "description": "Error message shown when the app cannot connect to Ente due to network host lookup failure"
+  "bringMemoriesTogether": "Hozd össze az emlékeidet",
+  "@bringMemoriesTogether": {
+    "description": "Title on the Local Gallery photo permission screen"
   },
-  "networkConnectionRefusedErr": "Nem lehet csatlakozni az Ente-hez, próbálja újra egy idő után. Ha a hiba továbbra is fennáll, forduljon az ügyfélszolgálathoz.",
-  "@networkConnectionRefusedErr": {
-    "description": "Error message shown when the app cannot connect to Ente due to connection refused"
+  "createMyAccount": "Fiókom létrehozésa",
+  "@createMyAccount": {
+    "description": "Create account button on the Photos onboarding screen"
   },
-  "itLooksLikeSomethingWentWrongPleaseRetryAfterSome": "Úgy tűnik, valami hiba történt. Kérjük, próbálja újra egy idő után. Ha a hiba továbbra is fennáll, forduljon ügyfélszolgálatunkhoz.",
-  "@itLooksLikeSomethingWentWrongPleaseRetryAfterSome": {
-    "description": "Generic error message for temporary issues"
+  "localGalleryPermissionDesc": "Megadod az engedélyt, hogy hozzáférjen és rendezze a fotóidat arcfelismeréssel, teljes mértékben az eszközödön feldolgozva.",
+  "@localGalleryPermissionDesc": {
+    "description": "Photo permission explanation shown during Local Gallery onboarding"
   },
-  "error": "Hiba",
-  "@error": {
-    "description": "Generic error title"
+  "onboardingOrganizeDesc": "Rendezd a fotóidat és videóidat. Minden emlék, egy helyen.",
+  "@onboardingOrganizeDesc": {
+    "description": "Description on the Photos onboarding screen"
   },
-  "ok": "OK",
-  "@ok": {
-    "description": "Generic OK button label"
+  "wallpaper": "Háttérkép",
+  "setWallpaper": "Háttérkép beállítása",
+  "about": "Rólunk",
+  "account": "Fiók",
+  "accountCredentials": "Titkos kód",
+  "accountCredentialsDescription": "Orizze meg fiokja hitelesito adatait.",
+  "accountSetupIncompleteCreateAccount": "A fiókbeállítás nem teljes. Hozz létre fiókot a folytatáshoz.",
+  "@accountSetupIncompleteCreateAccount": {
+    "description": "Error shown when account exists but signup is incomplete"
   },
-  "faq": "GY. I. K.",
-  "@faq": {
-    "description": "FAQ link label"
+  "activeSessions": "Aktív munkamenetek",
+  "@activeSessions": {
+    "description": "Title for active sessions page"
   },
-  "contactSupport": "Lépj kapcsolatba az Ügyfélszolgálattal",
-  "@contactSupport": {
-    "description": "Contact support button label"
+  "add": "Hozzaadas",
+  "addCode": "Kód hozzáadása",
+  "addEmail": "E-mail hozzadasa",
+  "addFamilyMember": "Családtag hozzáadása",
+  "addingToFavorites": "Hozzáadás a kedvencekhez...",
+  "addMember": "Tag hozzáadása",
+  "addMore": "További hozzáadása",
+  "addNew": "Új hozzáadása",
+  "@addNew": {
+    "description": "Text to add a new item (location tag, album, caption etc)"
   },
-  "emailYourLogs": "E-mailben küldje el naplóit",
-  "@emailYourLogs": {
-    "description": "Title for emailing logs dialog"
+  "addNewEmail": "Uj e-mail hozzadasa",
+  "addTag": "Címke hozzáadása",
+  "addToAlbum": "Hozzáadás albumhoz",
+  "addToCollection": "Hozzadas gyujtemennyhez",
+  "addToEnte": "Hozzáadás az Entéhez",
+  "addUpTo5MembersFree": "Legfeljebb 5 tagot adhatsz hozzá ingyen",
+  "admin": "Adminisztrátor",
+  "after1Day": "1 nap múlva",
+  "albumLayout": "Albumelrendezés",
+  "albums": "Album",
+  "albumsOnEnteEmptyTitle": "Mentsd el az emlékeid",
+  "albumsSharedEmptyTitle": "Emlékeid megosztása",
+  "albumUpdated": "Album módosítva",
+  "algorithm": "Algoritmus",
+  "all": "Összes",
+  "allClear": "✨ Minden tiszta",
+  "allFilesAlreadyMarkedAsImportant": "Minden elem mar meg van jelolve fontoskent",
+  "allowAddingPhotos": "Fotók hozzáadásának engedélyezése",
+  "@allowAddingPhotos": {
+    "description": "Switch button to enable uploading photos to a public link"
   },
-  "pleaseSendTheLogsTo": "Kérjük, küldje el a naplókat erre az e-mail címre\n{toEmail}",
-  "@pleaseSendTheLogsTo": {
-    "description": "Message asking user to send logs to email address",
+  "allowDownloads": "Letöltések engedélyezése",
+  "allowJoiningAlbum": "Csatlakozás engedélyezése az albumhoz",
+  "allowPermTitle": "Fotókhoz való hozzáférés engedélyezése",
+  "allTabEmptyHint": "Még nincs itt semmi. Koppints a + jelre kód hozzáadásához, vagy nyisd meg a Kukát egy visszaállításához.",
+  "@allTabEmptyHint": {
+    "description": "Shown when the All tab has no active codes but Trash contains codes"
+  },
+  "alreadyAdded": "Már hozzáadva",
+  "androidBiometricHint": "Személyazonosság ellenőrzése",
+  "@androidBiometricHint": {
+    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
+  },
+  "androidCancelButton": "Mégse",
+  "@androidCancelButton": {
+    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
+  },
+  "androidSignInTitle": "Hitelesítés szükséges",
+  "@androidSignInTitle": {
+    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
+  },
+  "aNewVersionOfEnteIsAvailable": "Megjelent az Ente új verziója.",
+  "appearance": "Megjelenés",
+  "appIcon": "Alkalmazásikon",
+  "appleId": "Apple ID",
+  "appLock": "Alkalmazás zárolása",
+  "@appLock": {
+    "description": "App lock setting title"
+  },
+  "appLockNotEnabled": "Az alkalmazászár nincs engedélyezve",
+  "appLockNotEnabledDescription": "A passkey megtekintéséhez kérjük, hitelesítsd magad",
+  "appLockOfflineModeWarning": "Úgy döntöttél, hogy biztonsági mentés nélkül folytatod. Ha elfelejted az alkalmazászárat, akkor többé nem férhetsz hozzá adataidhoz.",
+  "apply": "Alkalmaz",
+  "applyCodeTitle": "Kód alkalmazása",
+  "appstoreSubscription": "App Store előfizetés",
+  "archive": "Archívum",
+  "@archive": {
+    "description": "Action of 'Archiving' an element"
+  },
+  "areYouSure": "Biztos benne?",
+  "@areYouSure": {
+    "description": "Confirmation dialog title"
+  },
+  "areYouSureThatYouWantToLeaveTheFamily": "Biztos el akarja hagyni a családot?",
+  "areYouSureYouWantToChangeYourPlan": "Biztosan módosítani szeretné a csomagot?",
+  "areYouSureYouWantToExit": "Biztosan ki szeretnél lépni?",
+  "askAQuestion": "Tegyél fel kérdést",
+  "askCancelReason": "Az előfizetésedet lemondtad. Megosztanád velünk az okát?",
+  "attachLogs": "Napló hozzáadása",
+  "attachLogsHelper": "Segít gyorsabban felfedezni a problémát",
+  "authenticateGeneric": "Kérjük hitelesítsd magad",
+  "authenticationSuccessful": "Sikeres hitelesítés!",
+  "@authenticationSuccessful": {
+    "description": "Success message when authentication is successful"
+  },
+  "authToChangeLockscreenSetting": "A záróképernyő beállításainak módosításához hitelesítsd magad",
+  "authToConfigureTwofactorAuthentication": "A kétlépcsős azonosítás beállításához kérjük, végezd el az azonosítást",
+  "authToExportCodes": "A kódok exportálásához hitelesítsd magad",
+  "authToInitiateAccountDeletion": "Oldd fel, hogy törölhesd a fiókod",
+  "authToInitiateSignIn": "Kérjük, hitelesítse magát a biztonsági mentés megkezdéséhez.",
+  "authToManageLegacy": "Kerem, hitelesitse magat a megbizotto kapcsolatok kezelesehez",
+  "authToSetBackupPassword": "Hitelesíts magad a biztonsági jelszó beállításához",
+  "authToUpdateBackupPassword": "Hitelesíts magad a biztonsági jelszó frissítéséhez",
+  "authToViewPasskeyGeneric": "A jelszó megtekintéséhez kérjük, hitelesítsd magad",
+  "authToViewSecrets": "A titkos kulcsok megtekintéséhez hitelesítse magát",
+  "@authToViewSecrets": {
+    "description": "Message prompting authentication to view secrets"
+  },
+  "authToViewTrashedFiles": "Kérjük, hitelesítse magát a kukába helyezett fájlok megtekintéséhez",
+  "authToViewYourActiveSessions": "Az aktív munkamenetek megtekintéséhez hitelesítsd magad",
+  "authToViewYourHiddenFiles": "Kérjük, hitelesítse magát a rejtett fájlok megtekintéséhez",
+  "authToViewYourRecoveryKey": "A helyreállítási kulcs megtekintéséhez hitelesítse magát",
+  "autoLockFeatureDescription": "Az az idő, amely elteltével az alkalmazás zárolásra kerül, miután a háttérbe került",
+  "@autoLockFeatureDescription": {
+    "description": "Description of auto lock feature"
+  },
+  "backedUpFolders": "Biztonsági másolatban lévő mappák",
+  "backingUpLastSevenDaysPhotos": "Az elmúlt 7 nap fotóinak mentése",
+  "backup": "Biztonsági mentés",
+  "backupAndSync": "Mentés és szinkronizálás",
+  "backupAndSyncDesc": "Automatikus mentés, szinkronizálási állapot és feltöltések",
+  "backupCreated": "Biztonsági mentés létrehozva!",
+  "backupFolderLabel": "Biztonsági mentés mappája:",
+  "backupLocationChoiceDescription": "Hová szeretnéd menteni a biztonsági mentéseket?",
+  "backupOnlyNewPhotos": "Csak az új fotók mentése",
+  "backupOnlyNewPhotosAllFoldersSelected": "Jelenleg minden mappa ki van jelölve mentésre.\n\nFolytathatod így, vagy módosíthatod a kiválasztott mappákat.",
+  "backupOnlyNewPhotosNoFoldersSelectedContinue": "Jelenleg nincs kiválasztva mappa mentésre.\n\nFolytathatod így, vagy módosíthatod a kiválasztott mappákat.",
+  "backupOnlyNewPhotosNoFoldersSelectedRequire": "Jelenleg nincs kiválasztva mappa mentésre.\n\nA folytatáshoz válassz ki mappákat.",
+  "backupOnlyNewPhotosWarningBody": "Jelenleg a(z) {formattedDate} óta készült fotók mentése folyik. A beállítások módosításával minden fotót menthetsz.",
+  "@backupOnlyNewPhotosWarningBody": {
+    "description": "Warning shown when backup-only-new is enabled and user changes folders.",
     "placeholders": {
-      "toEmail": {
+      "formattedDate": {
         "type": "String",
-        "description": "Email address to send logs to"
+        "example": "Jan 5, 2026"
       }
     }
   },
-  "copyEmailAddress": "E-mail cím másolása",
-  "@copyEmailAddress": {
-    "description": "Button to copy email address to clipboard"
-  },
-  "exportLogs": "Naplófájlok exportálása",
-  "@exportLogs": {
-    "description": "Button to export logs"
-  },
+  "backupOverMobileData": "Biztonsági mentés mobil adatkapcsolaton keresztül",
+  "backupPasswordCleared": "Biztonsági mentés jelszava törölve",
+  "backupPasswordHint": "A biztonsági mentésed ezzel a jelszóval lesz titkosítva.",
+  "backupSettings": "Biztonsági mentés beállításai",
+  "backupStatus": "Biztonsági mentés állapota",
+  "backupStatusDescription": "Azok az elemek jelennek meg itt, amelyekről biztonsági másolat készült",
+  "backupToEnte": "Mentés az Entébe",
+  "backupVideos": "Tartalék videók",
+  "bothIssuerAndAccountCanNotBeEmpty": "A kibocsátó és a fiók mezője nem lehet üres",
+  "bringYourFamilyAlong": "Hozd magaddal a családodat",
+  "browseHelpPages": "Súgó böngészése",
   "cancel": "Mégse",
   "@cancel": {
     "description": "Cancel button label"
   },
-  "reportABug": "Hiba bejelentése",
-  "@reportABug": {
-    "description": "Label for reporting a bug"
+  "cancelOtherSubscription": "Kérjük, először mondd le a meglévő előfizetésedet a(z) {paymentProvider} szolgáltatónál",
+  "@cancelOtherSubscription": {
+    "description": "The text to display when the user has an existing subscription from a different payment provider",
+    "type": "text",
+    "placeholders": {
+      "paymentProvider": {
+        "example": "Apple",
+        "type": "String"
+      }
+    }
+  },
+  "cannotAddMoreFilesAfterBecomingViewer": "{name} nem tud tobbe elemeket hozzaadni a gyujtemennyhez, miutan megtekintove valt.",
+  "@cannotAddMoreFilesAfterBecomingViewer": {
+    "description": "Warning message when changing a collaborator to viewer",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "John"
+      }
+    }
+  },
+  "cannotDeleteSharedFiles": "Nem lehet törölni a megosztott fájlokat",
+  "cannotMoveToSharedAlbums": "Nem helyezhető át megosztott albumokba",
+  "cannotMoveToSharedAlbumsMessage": "Az elemeket csak hozzáadni lehet a megosztott albumokhoz, áthelyezni nem. Inkább hozzáadod?",
+  "canNotOpenBody": "Sajnálom, ez az album nem nyitható meg ebben az applikációban.",
+  "canNotOpenTitle": "Album nem nyitható meg",
+  "canOnlyCreateLinkForFilesOwnedByYou": "Csak a saját fájljaidhoz lehet linket létrehozni",
+  "canOnlyRemoveFilesOwnedByYou": "Csak a saját tulajdonú fájlokat távolíthatja el",
+  "changeEmail": "E-mail cím módosítása",
+  "@changeEmail": {
+    "description": "Change email button label"
+  },
+  "changePermissions": "Engedelyek modositasa",
+  "changeYourReferralCode": "Kód módosítása",
+  "checkForUpdates": "Frissítések ellenőrzése",
+  "checking": "Ellenőrzés...",
+  "checkStatus": "Állapot ellenőrzése",
+  "@checkStatus": {
+    "description": "Check status button label"
+  },
+  "chooseBackupLocation": "Válassz egy biztonsági mentési helyet",
+  "chooseFromAnExistingContact": "Valasszon meglevo kapcsolatbol",
+  "chooseIcon": "Válassz ikont",
+  "chooseYourPlan": "Csomag kiválasztása",
+  "claimedByYou": "általad beváltva",
+  "clearAllFilters": "Osszes szuro torlese",
+  "clearBackupFolder": "Biztonsági mentés mappa törlése",
+  "clearBackupPassword": "Biztonsági mentés jelszavának törlése",
+  "clearingTrash": "Kuka uritese...",
+  "close": "Bezárás",
+  "closeFamilyConfirmBody": "Minden tag elveszíti a hozzáférést a megosztott tárhelyhez. Ez nem vonható vissza.",
+  "closeFamilyConfirmTitle": "Megszünteted a családi csomagot?",
+  "closeFamilyPlan": "Családi csomag megszüntetése",
+  "codeAppliedPageTitle": "Kód alkalmazva",
+  "codeChangeLimitReached": "Sajnáljuk, elérted a kódmódosítások maximális számát.",
+  "codeCopiedToClipboard": "A kód a vágólapra másolva",
+  "codeIssuerHint": "Kibocsátó",
+  "collabLinkSectionDescription": "Engedélyezheti másoknak, hogy Ente fiók nélkül adjanak hozzá fotókat",
+  "collaborator": "Együttműködő",
+  "collageLayout": "Elrendezés",
+  "collectionCannotBeDeleted": "Ez a gyujtemeny nem torolheto",
+  "collectionCannotBeEdited": "Ez a gyujtemeny nem szerkesztheto",
+  "collectionCannotBeShared": "Ez a gyujtemeny nem oszthato meg",
+  "collectionDeletedSuccessfully": "Gyujtemeny sikeresen torolve",
+  "collectionEmptyStateSubtitle": "Nincsenek elemek ebben a gyujtemenyben",
+  "collectionLabel": "Gyujtemeny",
+  "collectionRenamedSuccessfully": "Gyujtemeny sikeresen atnevezve",
+  "collections": "Gyujtemenyek",
+  "collectPhotos": "Fotók gyűjtése",
+  "compactMode": "Kompakt mód",
+  "confirm": "Megerősítés",
+  "@confirm": {
+    "description": "Confirm button label"
+  },
+  "confirm2FADisable": "Biztosan ki szeretnéd kapcsolni a kétlépcsős hitelesítést?",
+  "confirmPassword": "Jelszó megerősítése",
+  "@confirmPassword": {
+    "description": "Confirm password field label"
+  },
+  "confirmPlanChange": "Csomagmódosítás megerősítése",
+  "confirmRecoveryKey": "Helyreállítási kulcs megerősítése",
+  "confirmUpdatingkey": "Biztosan frissíteni szeretnéd a titkos kulcsot?",
+  "contactDetails": "Kapcsolati adatok",
+  "contactDetailsHint": "Telefonszam, e-mail vagy egyeb elerhetoseg",
+  "contactName": "Kapcsolat neve",
+  "contactNameHint": "A veszhelyzeti kapcsolat teljes neve",
+  "contactNotes": "Uzenet a kapcsolatnak",
+  "contactNotesHint": "Fontos informaciok, amelyeket meg kell osztani ezzel a szemellyel, amikor felveszik vele a kapcsolatot",
+  "continueInMailApp": "Tovább a levelezőre",
+  "continueLabel": "Folytatás",
+  "@continueLabel": {
+    "description": "Continue button label"
+  },
+  "copied": "Másolva",
+  "copiedNextToClipboard": "A következő kód a vágólapra másolva",
+  "copiedToClipboard": "Vágólapra másolva",
+  "copyEmailAddress": "E-mail cím másolása",
+  "@copyEmailAddress": {
+    "description": "Button to copy email address to clipboard"
+  },
+  "copyEmbedHtml": "Beágyazási HTML másolása",
+  "copyLink": "Hivatkozás másolása",
+  "copypasteThisCodentoYourAuthenticatorApp": "Kód Másolása-Beillesztése a hitelesítő alkalmazásába",
+  "couldNotOpenFile": "Az elem nem nythato meg: {error}",
+  "@couldNotOpenFile": {
+    "description": "Error message when item cannot be opened",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Permission denied"
+      }
+    }
+  },
+  "couldNotUpdateSubscription": "Nem sikerült frissíteni az előfizetést",
+  "crashAndErrorReporting": "Összeomlás és hibajelentés",
+  "create": "Létrehozás",
+  "createAccount": "Fiók létrehozása",
+  "@createAccount": {
+    "description": "Create account button label"
+  },
+  "createAccountTitle": "Fiók létrehozása",
+  "createAlbumActionHint": "Hosszan nyomva tartva kiválaszthatod a fotókat, majd a + jelre kattintva albumot hozhatsz létre",
+  "createBackupNow": "Biztonsági mentés létrehozása most",
+  "createCollection": "Gyujtemeny letrehozasa",
+  "createNewTag": "Új címke létrehozása",
+  "createPublicLink": "Nyilvános hivatkozás létrehozása",
+  "creatingLink": "Link létrehozása...",
+  "credentialName": "Fiók",
+  "credentialNameHint": "A szolgaltatas neve",
+  "credentialNotes": "Tovabbi megjegyzesek",
+  "credentialNotesHint": "Helyreallitasi modszerek, biztonsagi kerdesek, ...",
+  "currentBackupFolder": "Jelenlegi biztonsági mentési mappa:",
+  "currentUsageNote": "Jelenlegi használat: {amount}. A korlát kikapcsolásához állítsd 0-ra.",
+  "@currentUsageNote": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "20 GB"
+      }
+    }
+  },
+  "custom": "Egyéni",
+  "@custom": {
+    "description": "Label for setting custom value for link expiry"
   },
   "customEndpoint": "Csatlakozva a következőhöz: {endpoint}",
   "@customEndpoint": {
@@ -67,592 +328,199 @@
       }
     }
   },
-  "save": "Mentés",
-  "@save": {
-    "description": "Label for save button"
-  },
-  "send": "Küldés",
-  "@send": {
-    "description": "Label for send button"
-  },
-  "saveOrSendDescription": "El szeretné menteni ezt a tárhelyére (alapértelmezés szerint a Letöltések mappába), vagy elküldi más alkalmazásoknak?",
-  "@saveOrSendDescription": {
-    "description": "Description text asking user if they want to save to storage or share with other apps"
-  },
-  "saveOnlyDescription": "El szeretné menteni ezt a tárhelyére (alapértelmezés szerint a Letöltések mappába)?",
-  "@saveOnlyDescription": {
-    "description": "Description text asking user if they want to save to storage (for platforms that don't support sharing)"
-  },
-  "enterNewEmailHint": "Add meg az új e-mail címed",
-  "@enterNewEmailHint": {
-    "description": "Hint text for entering new email address"
-  },
-  "email": "E-mail",
-  "@email": {
-    "description": "Email field label"
-  },
-  "verify": "Hitelesítés",
-  "@verify": {
-    "description": "Verify button label"
-  },
-  "invalidEmailTitle": "Érvénytelen e-mail cím",
-  "@invalidEmailTitle": {
-    "description": "Title for invalid email error dialog"
-  },
-  "invalidEmailMessage": "Kérjük, adjon meg egy érvényes e-mail címet.",
-  "@invalidEmailMessage": {
-    "description": "Message for invalid email error dialog"
-  },
-  "pleaseWait": "Kérem várjon...",
-  "@pleaseWait": {
-    "description": "Please wait message"
-  },
-  "verifyPassword": "Jelszó megerősítése",
-  "@verifyPassword": {
-    "description": "Verify password button label"
-  },
-  "incorrectPasswordTitle": "Érvénytelen jelszó",
-  "@incorrectPasswordTitle": {
-    "description": "Title for incorrect password error"
-  },
-  "pleaseTryAgain": "Kérjük, próbálja meg újra",
-  "@pleaseTryAgain": {
-    "description": "Message asking user to try again"
-  },
-  "enterPassword": "Adja meg a jelszót",
-  "@enterPassword": {
-    "description": "Enter password field label"
-  },
-  "enterYourPasswordHint": "Adja meg a jelszavát",
-  "@enterYourPasswordHint": {
-    "description": "Hint for password field"
-  },
-  "activeSessions": "Aktív munkamenetek",
-  "@activeSessions": {
-    "description": "Title for active sessions page"
-  },
-  "oops": "Hoppá",
-  "@oops": {
-    "description": "Oops error title"
-  },
-  "somethingWentWrongPleaseTryAgain": "Hiba történt. Kérjük, próbálkozz újra",
-  "@somethingWentWrongPleaseTryAgain": {
-    "description": "Generic error message"
-  },
-  "thisWillLogYouOutOfThisDevice": "Ezzel kijelentkezik erről az eszközről!",
-  "@thisWillLogYouOutOfThisDevice": {
-    "description": "Warning message for logging out of current device"
-  },
-  "thisWillLogYouOutOfTheFollowingDevice": "Ezzel kijelentkezik a következő eszközről:",
-  "@thisWillLogYouOutOfTheFollowingDevice": {
-    "description": "Warning message for logging out of another device"
-  },
-  "terminateSession": "Megszakítja a munkamenetet?",
-  "@terminateSession": {
-    "description": "Title for terminate session dialog"
-  },
-  "terminate": "Befejezés",
-  "@terminate": {
-    "description": "Terminate button label"
-  },
-  "thisDevice": "Ez az eszköz",
-  "@thisDevice": {
-    "description": "Label for current device"
-  },
-  "createAccount": "Felhasználó létrehozás",
-  "@createAccount": {
-    "description": "Create account button label"
-  },
-  "weakStrength": "Gyenge",
-  "@weakStrength": {
-    "description": "Weak password strength label"
-  },
-  "moderateStrength": "Mérsékelt",
-  "@moderateStrength": {
-    "description": "Moderate password strength label"
-  },
-  "strongStrength": "Erős",
-  "@strongStrength": {
-    "description": "Strong password strength label"
+  "customOrder": "Egyéni sorrend",
+  "darkTheme": "Sötét",
+  "data": "Adatok",
+  "dayYesterday": "Tegnap",
+  "decrypting": "Dekódolás...",
+  "deduplicateCodes": "Ismétlődő kódok",
+  "delete": "Törlés",
+  "@delete": {
+    "description": "Delete button label"
   },
   "deleteAccount": "Fiók törlése",
   "@deleteAccount": {
     "description": "Delete account button label"
   },
-  "deleteAccountQuery": "Szomorúan tapasztaljuk. Problémába ütköztél?",
-  "@deleteAccountQuery": {
-    "description": "Message asking user why they want to delete account"
-  },
-  "yesSendFeedbackAction": "Igen, visszajelzés küldése",
-  "@yesSendFeedbackAction": {
-    "description": "Button to confirm sending feedback"
-  },
-  "noDeleteAccountAction": "Fiók végleges törlése",
-  "@noDeleteAccountAction": {
-    "description": "Button to proceed with account deletion"
-  },
-  "initiateAccountDeleteTitle": "Kérjük, hitelesítse magát a fiók törlésének kezdeményezéséhez",
-  "@initiateAccountDeleteTitle": {
-    "description": "Title for authentication dialog before account deletion"
-  },
-  "confirmAccountDeleteTitle": "Fiók törlésének megerősítése",
-  "@confirmAccountDeleteTitle": {
-    "description": "Title for account deletion confirmation dialog"
-  },
-  "confirmAccountDeleteMessage": "Ez a fiók össze van kapcsolva más Ente-alkalmazásokkal, ha használ ilyet.\n\nA feltöltött adataid törlését ütemezzük az összes Ente alkalmazásban, és a fiókod véglegesen törlésre kerül.",
-  "@confirmAccountDeleteMessage": {
-    "description": "Message warning about account deletion consequences"
-  },
-  "delete": "Törlés",
-  "@delete": {
-    "description": "Delete button label"
-  },
-  "createNewAccount": "Új fiók létrehozása",
-  "@createNewAccount": {
-    "description": "Create new account button label"
-  },
-  "password": "Jelszó",
-  "@password": {
-    "description": "Password field label"
-  },
-  "confirmPassword": "Jelszó megerősítése",
-  "@confirmPassword": {
-    "description": "Confirm password field label"
-  },
-  "passwordStrength": "Jelszó erőssége: {passwordStrengthValue}",
-  "@passwordStrength": {
-    "description": "Text to indicate the password strength",
+  "deleteAlbum": "Album törlése",
+  "deleteAlbumDialog": "Törli az ebben az albumban található fotókat (és videókat) az <bold>összes</bold> többi albumból is, amelynek részét képezik?",
+  "deleteAlbumQuestion": "Törlöd ezt az albumot?",
+  "deleteAlbumsDialogBody": "Ez törli az összes üres albumot. Hasznos lehet, ha szeretnéd rendezettebbé tenni az albumlistádat.",
+  "deleteCodeAuthMessage": "Hitelesítés a kód törléséhez",
+  "deleteCodeMessage": "Biztos, hogy véglegesen törli a kódot? Ez nem vonható vissza.",
+  "deleteCodeTitle": "Kódok Törlése?",
+  "deleteCollectionDialogBody": "A(z) {collectionName} veglegesen torolve lesz.",
+  "@deleteCollectionDialogBody": {
+    "description": "Confirmation message body for deleting a single collection",
     "placeholders": {
-      "passwordStrengthValue": {
-        "description": "The strength of the password as a string",
+      "collectionName": {
         "type": "String",
-        "example": "Weak or Moderate or Strong"
+        "example": "My Documents"
       }
     }
   },
-  "hearUsWhereTitle": "Honnan hallottál Ente-ről? (opcionális)",
-  "@hearUsWhereTitle": {
-    "description": "Title asking how user heard about Ente"
+  "deleteCollectionFromEverywhere": "Elemek torlese mindenhonnan is",
+  "@deleteCollectionFromEverywhere": {
+    "description": "Checkbox label asking whether to delete collection items everywhere"
   },
-  "hearUsExplanation": "Nem követjük nyomon az alkalmazástelepítéseket. Segítene, ha elmondaná, hol talált ránk!",
-  "@hearUsExplanation": {
-    "description": "Explanation for asking how user heard about Ente"
-  },
-  "signUpTerms": "Elfogadom az <u-terms>szolgáltatási feltételeket</u-terms> és az <u-policy>adatvédelmi irányelveket</u-policy>",
-  "@signUpTerms": {
-    "description": "Terms agreement text for sign up"
-  },
-  "termsOfServicesTitle": "Használati feltételek",
-  "@termsOfServicesTitle": {
-    "description": "Terms of service title"
-  },
-  "privacyPolicyTitle": "Adatvédelmi irányelvek",
-  "@privacyPolicyTitle": {
-    "description": "Privacy policy title"
-  },
-  "ackPasswordLostWarning": "Tudomásul veszem, hogy ha elveszítem a jelszavamat, elveszíthetem az adataimat, mivel adataim <underline>végponttól végpontig titkosítva vannak</underline>.",
-  "@ackPasswordLostWarning": {
-    "description": "Warning about password loss"
-  },
-  "encryption": "Titkosítás",
-  "@encryption": {
-    "description": "Encryption label"
-  },
-  "logInLabel": "Bejelentkezés",
-  "@logInLabel": {
-    "description": "Log in button label"
-  },
-  "welcomeBack": "Köszöntjük ismét!",
-  "@welcomeBack": {
-    "description": "Welcome back message"
-  },
-  "loginTerms": "A bejelentkezés gombra kattintva elfogadom az <u-terms>szolgáltatási feltételeket</u-terms> és az <u-policy>adatvédelmi irányelveket</u-policy>",
-  "@loginTerms": {
-    "description": "Terms agreement text for login"
-  },
-  "noInternetConnection": "Nincs internet kapcsolat",
-  "@noInternetConnection": {
-    "description": "No internet connection error message"
-  },
-  "pleaseCheckYourInternetConnectionAndTryAgain": "Kérjük, ellenőrizze az internetkapcsolatát, és próbálja meg újra.",
-  "@pleaseCheckYourInternetConnectionAndTryAgain": {
-    "description": "Message asking user to check internet connection"
-  },
-  "verificationFailedPleaseTryAgain": "Az ellenőrzés sikertelen, próbálja újra",
-  "@verificationFailedPleaseTryAgain": {
-    "description": "Verification failed error message"
-  },
-  "recreatePasswordTitle": "Új jelszó létrehozása",
-  "@recreatePasswordTitle": {
-    "description": "Title for recreate password dialog"
-  },
-  "recreatePasswordBody": "A jelenlegi eszköz nem elég erős a jelszavának ellenőrzéséhez, de újra tudjuk úgy generálni, hogy az minden eszközzel működjön.\n\nKérjük, jelentkezzen be helyreállítási kulcsával, és állítsa be újra jelszavát (ha szeretné, újra használhatja ugyanazt).",
-  "@recreatePasswordBody": {
-    "description": "Body text for recreate password dialog"
-  },
-  "useRecoveryKey": "Helyreállítási kulcs használata",
-  "@useRecoveryKey": {
-    "description": "Use recovery key button label"
-  },
-  "forgotPassword": "Elfelejtett jelszó",
-  "@forgotPassword": {
-    "description": "Forgot password link label"
-  },
-  "changeEmail": "E-mail cím módosítása",
-  "@changeEmail": {
-    "description": "Change email button label"
-  },
-  "verifyEmail": "E-mail cím megerősítése",
-  "@verifyEmail": {
-    "description": "Verify email title"
-  },
-  "weHaveSendEmailTo": "E-mailt küldtünk a következő címre: <green>{email}</green>",
-  "@weHaveSendEmailTo": {
-    "description": "Text to indicate that we have sent a mail to the user",
+  "deleteDuplicates": "Ismétlődések törlése",
+  "deleteEmptyAlbums": "Üres albumok törlése",
+  "deleteEmptyAlbumsWithQuestionMark": "Törlöd az üres albumokat?",
+  "deleteFromBoth": "Törlés mindkettőből",
+  "deleteFromDevice": "Törlés az eszközről",
+  "deleteFromDeviceQuestion": "Törlöd az eszközről?",
+  "deleteFromEnte": "Törlés az Ente-ből",
+  "deleteItemCount": "{count, plural, one{Törölsz {count} elemet} other{Törölsz {count} elemet}}",
+  "@deleteItemCount": {
     "placeholders": {
-      "email": {
-        "description": "The email address of the user",
-        "type": "String",
-        "example": "example@ente.io"
-      }
+      "count": {}
     }
   },
-  "toResetVerifyEmail": "Jelszava visszaállításához először igazolja e-mail-címét.",
-  "@toResetVerifyEmail": {
-    "description": "Message asking user to verify email before password reset"
+  "deleteLink": "Link törlése",
+  "deleteLinkQuestion": "Törlöd a linket?",
+  "deleteMemoryLinkMessage": "A link törlése után azok, akikkel megosztottad, elveszítik a hozzáférést.",
+  "deletePhotos": "Fotók törlése",
+  "deleteProgress": "Törlés: {currentlyDeleting} / {totalCount}",
+  "@deleteProgress": {
+    "placeholders": {
+      "currentlyDeleting": {},
+      "totalCount": {}
+    }
   },
-  "checkInboxAndSpamFolder": "Kérjük, ellenőrizze beérkező leveleit (és spam mappát) az ellenőrzés befejezéséhez",
-  "@checkInboxAndSpamFolder": {
-    "description": "Message asking user to check inbox and spam folder"
+  "deleteSharedAlbum": "Törli a megosztott albumot?",
+  "deleteSharedAlbumDialogBody": "Az album mindenki számára törlődik.\n\nElveszíti a hozzáférést az albumban található, mások tulajdonában lévő megosztott fotókhoz",
+  "deleteShareLinkConfirmation": "Azok, akiknel megvan ez a link, tobbe nem ferhetnek hozza az elemhez.",
+  "deleteSuggestions": "Javaslatok törlése",
+  "deleteTagMessage": "Biztosan törlöd ezt a címkét? Ez a művelet nem vonható vissza.",
+  "deleteTagTitle": "Címke törlése?",
+  "deleteUnparseableCodeMessage": "Ez véglegesen törli a kódot az Authból. Nem kerül a Kukába.",
+  "deleteUnparseableCodeTitle": "Törlöd a feldolgozhatatlan kódokat?",
+  "deletingFile": "Elem torlese...",
+  "deletingShareLink": "Link torlese...",
+  "description": "Leírás",
+  "deselectAll": "Összes kijelölés megszüntetése",
+  "designedForFamilies": "Családok számára készült",
+  "details": "Részletek",
+  "detailsAboutTheIssue": "Részletek a problémáról",
+  "developerSettings": "Fejlesztői beállítások",
+  "@developerSettings": {
+    "description": "Label for developer settings"
   },
-  "tapToEnterCode": "Koppintson a kód beírásához",
-  "@tapToEnterCode": {
-    "description": "Hint for entering verification code"
+  "developerSettingsWarning": "Biztos vagy benne, hogy módosítani szeretnéd a fejlesztői beállításokat?",
+  "deviceInfo": "Eszköz információ",
+  "digits": "Számjegyek",
+  "disableDownloadWarningBody": "A nézők továbbra is készíthetnek képernyőképeket, vagy menthetnek másolatot a fotóidról külső eszközök segítségével",
+  "disableDownloadWarningTitle": "Kérjük, vedd figyelembe",
+  "disableLinkMessage": "Ez eltávolítja a(z) \"{albumName}\" eléréséhez szükséges nyilvános linket.",
+  "@disableLinkMessage": {
+    "placeholders": {
+      "albumName": {}
+    }
   },
-  "sendEmail": "E-mail küldése",
-  "resendEmail": "E-mail újraküldése",
-  "@resendEmail": {
-    "description": "Resend email button label"
+  "disableTwofactor": "Kétlépcsős azonosítás kikapcsolása",
+  "discardChanges": "Elvetes",
+  "discover": "Felfedezés",
+  "@discover": {
+    "description": "The text to display for the discover section under which we show receipts, screenshots, sunsets, greenery, etc."
   },
-  "passKeyPendingVerification": "Az ellenőrzés még függőben van",
-  "@passKeyPendingVerification": {
-    "description": "Message when passkey verification is pending"
-  },
-  "loginSessionExpired": "Lejárt a munkamenet",
-  "@loginSessionExpired": {
-    "description": "Login session expired title"
-  },
-  "loginSessionExpiredDetails": "A munkameneted lejárt. Kérem lépjen be újra.",
-  "@loginSessionExpiredDetails": {
-    "description": "Login session expired details"
-  },
-  "passkeyAuthTitle": "Álkulcs megerősítése",
-  "@passkeyAuthTitle": {
-    "description": "Passkey authentication title"
-  },
-  "waitingForVerification": "Várakozás az ellenőrzésre...",
-  "@waitingForVerification": {
-    "description": "Waiting for verification message"
-  },
-  "tryAgain": "Próbáld újra",
-  "@tryAgain": {
-    "description": "Try again button label"
-  },
-  "checkStatus": "Állapot ellenőrzése",
-  "@checkStatus": {
-    "description": "Check status button label"
-  },
-  "loginWithTOTP": "Bejelentkezés TOTP-vel",
-  "@loginWithTOTP": {
-    "description": "Login with TOTP button label"
-  },
-  "recoverAccount": "Fiók visszaállítása",
-  "@recoverAccount": {
-    "description": "Recover account button label"
-  },
-  "setPasswordTitle": "Jelszó beállítás",
-  "@setPasswordTitle": {
-    "description": "Set password title"
-  },
-  "changePasswordTitle": "Jelszó módosítás",
-  "@changePasswordTitle": {
-    "description": "Change password title"
-  },
-  "resetPasswordTitle": "Jelszó visszaállítás",
-  "@resetPasswordTitle": {
-    "description": "Reset password title"
-  },
-  "encryptionKeys": "Titkosító kulcsok",
-  "@encryptionKeys": {
-    "description": "Encryption keys title"
-  },
-  "enterPasswordToEncrypt": "Adjon meg egy jelszót, amellyel titkosíthatjuk adatait",
-  "@enterPasswordToEncrypt": {
-    "description": "Prompt to enter password for encryption"
-  },
-  "enterNewPasswordToEncrypt": "Adjon meg egy új jelszót, amellyel titkosíthatjuk adatait",
-  "@enterNewPasswordToEncrypt": {
-    "description": "Prompt to enter new password for encryption"
-  },
-  "passwordWarning": "Ezt a jelszót nem tároljuk, így ha elfelejti, <underline>nem tudjuk visszafejteni adatait</underline>",
-  "@passwordWarning": {
-    "description": "Warning about password storage"
-  },
-  "howItWorks": "Hogyan működik",
-  "@howItWorks": {
-    "description": "How it works button label"
-  },
-  "generatingEncryptionKeys": "Titkosító kulcsok generálása...",
-  "@generatingEncryptionKeys": {
-    "description": "Generating encryption keys message"
-  },
-  "passwordChangedSuccessfully": "A jelszó sikeresen meg lett változtatva",
-  "@passwordChangedSuccessfully": {
-    "description": "Password changed successfully message"
-  },
-  "signOutFromOtherDevices": "Jelentkezzen ki más eszközökről",
-  "@signOutFromOtherDevices": {
-    "description": "Sign out from other devices title"
-  },
-  "signOutOtherBody": "Ha úgy gondolja, hogy valaki ismeri jelszavát, kényszerítheti a fiókját használó összes többi eszközt a kijelentkezésre.",
-  "@signOutOtherBody": {
-    "description": "Sign out other devices explanation"
-  },
-  "signOutOtherDevices": "Jelentkezzen ki a többi eszközről",
-  "@signOutOtherDevices": {
-    "description": "Sign out other devices button label"
-  },
+  "discover_babies": "Babák",
+  "discover_celebrations": "Ünnepségek",
+  "discover_food": "Étel",
+  "discover_greenery": "Lomb",
+  "discover_hills": "Dombok",
+  "discover_identity": "Személyazonosság",
+  "discover_memes": "Mémek",
+  "discover_notes": "Jegyzetek",
+  "discover_pets": "Kisállatok",
+  "discover_qr_codes": "QR-kódok",
+  "discover_receipts": "Nyugták",
+  "discover_screenshots": "Képernyőképek",
+  "discover_selfies": "Szelfik",
+  "discover_sunset": "Napnyugta",
+  "discover_visiting_cards": "Névjegykártyák",
+  "discover_wallpapers": "Háttérképek",
+  "documentsHint": "Dokumentumok",
+  "done": "Kész",
   "doNotSignOut": "Ne jelentkezzen ki",
   "@doNotSignOut": {
     "description": "Do not sign out button label"
   },
-  "generatingEncryptionKeysTitle": "Titkosítási kulcs generálása...",
-  "@generatingEncryptionKeysTitle": {
-    "description": "Generating encryption keys title"
+  "doubleTapToViewHiddenCode": "A kód megtekintéséhez koppints duplán egy bejegyzésre",
+  "downloadFailed": "Letoltes sikertelen",
+  "downloading": "Letöltés...",
+  "downloadingProgress": "Letoltes... {percentage}%",
+  "@downloadingProgress": {
+    "description": "Download progress message",
+    "placeholders": {
+      "percentage": {
+        "type": "int",
+        "example": "75"
+      }
+    }
   },
-  "continueLabel": "Folytatás",
-  "@continueLabel": {
-    "description": "Continue button label"
+  "downloadUpdate": "Letöltés",
+  "dropSupportEmail": "Kérjük küldjön egy e-mailt a fiók regisztrálásakor megadott címről a következőre címre: {supportEmail}",
+  "@dropSupportEmail": {
+    "placeholders": {
+      "supportEmail": {
+        "description": "The support email address",
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
   },
-  "insecureDevice": "Nem biztonságos eszköz",
-  "@insecureDevice": {
-    "description": "Insecure device warning title"
+  "duplicateCodes": "Ismétlődő kódok",
+  "duplicateFileCountWithStorageSaved": "Töröltél {count, plural, one{{count} duplikált fájlt} other{{count} duplikált fájlt}}, így {storageSaved} tárhelyet szabadítottál fel!",
+  "@duplicateFileCountWithStorageSaved": {
+    "description": "The text to display when the user has successfully cleaned up duplicate files",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "1",
+        "type": "int"
+      },
+      "storageSaved": {
+        "example": "1.2 GB",
+        "type": "String"
+      }
+    }
   },
-  "sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": "Sajnáljuk, nem tudtunk biztonságos kulcsokat generálni ezen az eszközön.\n\nkérjük, regisztráljon egy másik eszközről.",
-  "@sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": {
-    "description": "Error message for insecure device"
+  "duplicateItemsGroup": "{count} fájl, {formattedSize} mindegyik",
+  "@duplicateItemsGroup": {
+    "description": "Display the number of duplicate files and their size",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "12",
+        "type": "int"
+      },
+      "formattedSize": {
+        "example": "2.3 MB",
+        "type": "String"
+      }
+    }
   },
-  "recoveryKeyCopiedToClipboard": "A helyreállítási kulcs a vágólapra másolva",
-  "@recoveryKeyCopiedToClipboard": {
-    "description": "Recovery key copied message"
+  "earned": "megszerezve",
+  "earnMoreSpace": "Szerezz több tárhelyet!",
+  "edit": "Szerkesztés",
+  "editCodeAuthMessage": "Hitelesítés a kód szerkesztéséhez",
+  "editItem": "Elem szerkesztese",
+  "editOrder": "Sorrend módosítása",
+  "editSecret": "Titok szerkesztese",
+  "@editSecret": {
+    "description": "Title shown when editing an existing secret"
   },
-  "recoveryKey": "Visszaállítási kulcs",
-  "@recoveryKey": {
-    "description": "Recovery key label"
+  "editStorageLimit": "Tárhelykorlát módosítása",
+  "editTag": "Címke szerkesztése",
+  "eligible": "jogosult",
+  "email": "E-mail",
+  "@email": {
+    "description": "Email field label"
   },
-  "recoveryKeyOnForgotPassword": "Ha elfelejti jelszavát, csak ezzel a kulccsal tudja visszaállítani adatait.",
-  "@recoveryKeyOnForgotPassword": {
-    "description": "Recovery key importance explanation"
-  },
-  "recoveryKeySaveDescription": "Ezt a kulcsot nem tároljuk, kérjük, őrizze meg ezt a 24 szavas kulcsot egy biztonságos helyen.",
-  "@recoveryKeySaveDescription": {
-    "description": "Recovery key save description"
-  },
-  "doThisLater": "Később",
-  "@doThisLater": {
-    "description": "Do this later button label"
-  },
-  "saveKey": "Mentés",
-  "@saveKey": {
-    "description": "Save key button label"
-  },
-  "recoveryKeySaved": "A helyreállítási kulcs a Letöltések mappába mentve!",
-  "@recoveryKeySaved": {
-    "description": "Recovery key saved confirmation message"
-  },
-  "noRecoveryKeyTitle": "Nincs helyreállítási kulcs?",
-  "@noRecoveryKeyTitle": {
-    "description": "No recovery key title"
-  },
-  "twoFactorAuthTitle": "Kétlépcsős hitelesítés (2FA)",
-  "@twoFactorAuthTitle": {
-    "description": "Two-factor authentication title"
-  },
-  "enterCodeHint": "Írja be a 6 számjegyű kódot a hitelesítő alkalmazásból",
-  "@enterCodeHint": {
-    "description": "Hint for entering 2FA code"
-  },
-  "lostDeviceTitle": "Elveszett a készüléked?",
-  "@lostDeviceTitle": {
-    "description": "Lost device title"
-  },
-  "enterRecoveryKeyHint": "Visszaállító kód megadása",
-  "@enterRecoveryKeyHint": {
-    "description": "Hint for entering recovery key"
-  },
-  "recover": "Visszaállít",
-  "@recover": {
-    "description": "Recover button label"
-  },
-  "loggingOut": "Kijelentkezés...",
-  "@loggingOut": {
-    "description": "Message shown while logging out"
-  },
-  "immediately": "Azonnal",
-  "@immediately": {
-    "description": "Immediately option for auto lock timing"
-  },
-  "appLock": "Alkalmazások zárolása",
-  "@appLock": {
-    "description": "App lock setting title"
-  },
-  "autoLock": "Automatikus lezárás",
-  "@autoLock": {
-    "description": "Auto lock setting title"
-  },
-  "noSystemLockFound": "Nem található rendszerzár",
-  "@noSystemLockFound": {
-    "description": "Error when no system lock is found"
-  },
-  "deviceLockEnablePreSteps": "Az eszközzár engedélyezéséhez állítsa be az eszköz jelszavát vagy a zárképernyőt a rendszerbeállításokban.",
-  "@deviceLockEnablePreSteps": {
-    "description": "Instructions for enabling device lock"
-  },
-  "appLockDescription": "Válasszon az eszköz alapértelmezett zárolási képernyője és a PIN-kóddal vagy jelszóval rendelkező egyéni zárolási képernyő között.",
-  "@appLockDescription": {
-    "description": "Description of app lock feature"
-  },
-  "deviceLock": "Eszköz lezárás",
-  "@deviceLock": {
-    "description": "Device lock option title"
-  },
-  "pinLock": "PIN feloldás",
-  "@pinLock": {
-    "description": "PIN lock option title"
-  },
-  "autoLockFeatureDescription": "Az az idő, amely elteltével az alkalmazás zárolásra kerül, miután a háttérbe került",
-  "@autoLockFeatureDescription": {
-    "description": "Description of auto lock feature"
-  },
-  "hideContent": "Tartalom elrejtése",
-  "@hideContent": {
-    "description": "Hide content setting title"
-  },
-  "hideContentDescriptionAndroid": "Elrejti az alkalmazás tartalmát az alkalmazásváltóban, és letiltja a képernyőképeket",
-  "@hideContentDescriptionAndroid": {
-    "description": "Description of hide content feature on Android"
-  },
-  "hideContentDescriptioniOS": "Elrejti az alkalmazás tartalmát az alkalmazásváltóban",
-  "@hideContentDescriptioniOS": {
-    "description": "Description of hide content feature on iOS"
-  },
-  "tooManyIncorrectAttempts": "Túl sok helytelen próbálkozás",
-  "@tooManyIncorrectAttempts": {
-    "description": "Message shown when too many incorrect attempts are made"
-  },
-  "tapToUnlock": "Koppintson a feloldáshoz",
-  "@tapToUnlock": {
-    "description": "Message prompting user to tap to unlock"
-  },
-  "areYouSureYouWantToLogout": "Biztos benne, hogy kijelentkezik?",
-  "@areYouSureYouWantToLogout": {
-    "description": "Confirmation message before logout"
-  },
-  "yesLogout": "Igen, kijelentkezés",
-  "@yesLogout": {
-    "description": "Confirmation button for logout"
-  },
-  "authToViewSecrets": "A titkos kulcsok megtekintéséhez hitelesítse magát",
-  "@authToViewSecrets": {
-    "description": "Message prompting authentication to view secrets"
-  },
-  "next": "Következő",
-  "@next": {
-    "description": "Next button label"
-  },
-  "setNewPassword": "Új jelszó beállítása",
-  "@setNewPassword": {
-    "description": "Set new password title"
-  },
-  "enterPin": "PIN kód megadása",
-  "@enterPin": {
-    "description": "Enter PIN prompt"
-  },
-  "setNewPin": "Új PIN kód beállítása",
-  "@setNewPin": {
-    "description": "Set new PIN title"
-  },
-  "confirm": "Megerősítés",
-  "@confirm": {
-    "description": "Confirm button label"
-  },
-  "reEnterPassword": "Írja be újra a jelszót",
-  "@reEnterPassword": {
-    "description": "Re-enter password prompt"
-  },
-  "reEnterPin": "Írja be újra a PIN-kódot",
-  "@reEnterPin": {
-    "description": "Re-enter PIN prompt"
-  },
-  "androidBiometricHint": "Személyazonosság ellenőrzése",
-  "@androidBiometricHint": {
-    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricNotRecognized": "Nem felismerhető. Próbáld újra.",
-  "@androidBiometricNotRecognized": {
-    "description": "Message to let the user know that authentication was failed. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricSuccess": "Sikeres",
-  "@androidBiometricSuccess": {
-    "description": "Message to let the user know that authentication was successful. It is used on Android side. Maximum 60 characters."
-  },
-  "androidCancelButton": "Mégse",
-  "@androidCancelButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
-  },
-  "androidSignInTitle": "Hitelesítés szükséges",
-  "@androidSignInTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
-  },
-  "androidBiometricRequiredTitle": "Biometria szükséges",
-  "@androidBiometricRequiredTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user has not set up biometric authentication on their device. It is used on Android side. Maximum 60 characters."
-  },
-  "androidDeviceCredentialsRequiredTitle": "Az eszköz hitelesítő adatai szükségesek",
-  "@androidDeviceCredentialsRequiredTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user has not set up credentials authentication on their device. It is used on Android side. Maximum 60 characters."
-  },
-  "androidDeviceCredentialsSetupDescription": "Az eszköz hitelesítő adatai szükségesek",
-  "@androidDeviceCredentialsSetupDescription": {
-    "description": "Message advising the user to go to the settings and configure device credentials on their device. It shows in a dialog on Android side."
-  },
-  "goToSettings": "Beállítások megnyitása",
-  "@goToSettings": {
-    "description": "Message showed on a button that the user can click to go to settings pages from the current dialog. It is used on both Android and iOS side. Maximum 30 characters."
-  },
-  "androidGoToSettingsDescription": "A biometrikus hitelesítés nincs beállítva az eszközön. A biometrikus hitelesítés hozzáadásához lépjen a 'Beállítások > Biztonság' menüpontra.",
-  "@androidGoToSettingsDescription": {
-    "description": "Message advising the user to go to the settings and configure biometric on their device. It shows in a dialog on Android side."
-  },
-  "iOSLockOut": "A biometrikus hitelesítés ki van kapcsolva. Az engedélyezéséhez zárja le és oldja fel a képernyőt.",
-  "@iOSLockOut": {
-    "description": "Message advising the user to re-enable biometrics on their device. It shows in a dialog on iOS side."
-  },
-  "iOSOkButton": "OK",
-  "@iOSOkButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on iOS side. Maximum 30 characters."
-  },
-  "emailAlreadyRegistered": "Ez az e-mai cím már regisztrálva van.",
+  "emailAddress": "Email cím",
+  "emailAlreadyRegistered": "Az email cím már foglalt.",
   "@emailAlreadyRegistered": {
     "description": "Error message when email is already registered"
-  },
-  "emailNotRegistered": "Ez az e-mail cím nincs regisztrálva.",
-  "@emailNotRegistered": {
-    "description": "Error message when email is not registered"
-  },
-  "thisEmailIsAlreadyInUse": "Ez az e-mail már használatban van",
-  "@thisEmailIsAlreadyInUse": {
-    "description": "Error message when email is already in use"
   },
   "emailChangedTo": "Az e-mail cím módosítva erre: {newEmail}",
   "@emailChangedTo": {
@@ -665,60 +533,1233 @@
       }
     }
   },
-  "authenticationFailedPleaseTryAgain": "A hitelesítés sikertelen, próbálja újra",
-  "@authenticationFailedPleaseTryAgain": {
-    "description": "Error message when authentication fails"
+  "emailHint": "Adja meg az e-mail címét",
+  "emailNeedsEnteAccountForFamily": "A(z) {email} nem rendelkezik Ente-fiókkal.\n\nKüldj neki meghívót, és add hozzá a családodhoz, miután létrehozott egy Ente-fiókot.",
+  "@emailNeedsEnteAccountForFamily": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@example.com"
+      }
+    }
   },
-  "authenticationSuccessful": "Sikeres hitelesítés!",
-  "@authenticationSuccessful": {
-    "description": "Success message when authentication is successful"
+  "emailNoEnteAccountPhotos": "{email} címnek nincs Ente fiókja.\n\nKüldjön nekik meghívót fotók megosztására.",
+  "@emailNoEnteAccountPhotos": {
+    "placeholders": {
+      "email": {}
+    }
   },
-  "sessionExpired": "A munkamenet lejárt",
-  "@sessionExpired": {
-    "description": "Error message when session has expired"
+  "emailUsMessage": "Kérjük, írjon nekünk e-mailt a következő címre: {email}",
+  "@emailUsMessage": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
   },
-  "incorrectRecoveryKey": "Helytelen helyreállítási kulcs",
-  "@incorrectRecoveryKey": {
-    "description": "Error message when recovery key is incorrect"
+  "emailVerificationEnableWarning": "Annak elkerülése érdekében, hogy kizárd magát fiókodból, az e-mail-ellenőrzés engedélyezése előtt mindenképpen tárold el az e-mail 2FA másolatát az Ente Auth-on kívül.",
+  "emailVerificationToggle": "E-mail cím ellenőrzése",
+  "emergencyContact": "Veszhelyzeti kapcsolat",
+  "emptyTrash": "Kuka uritese",
+  "emptyTrashConfirmation": "Biztosan veglegesen torolni szeretne az osszes elemet a kukabol? Ez a muvelet nem vonhato vissza.",
+  "enableAutomaticBackups": "Automatikus biztonsági mentések",
+  "enableBackupsIosInstruction": "iOS rendszeren a biztonsági mentések engedélyezéséhez válassz ki egy mappát a Fájlok mappában (például „Az iPhone-omon”).",
+  "enableComment": "Kommentek és reakciók",
+  "encrypted": "Titkosított",
+  "encryptionKeys": "Titkosító kulcsok",
+  "@encryptionKeys": {
+    "description": "Encryption keys title"
   },
-  "theRecoveryKeyYouEnteredIsIncorrect": "A megadott helyreállítási kulcs helytelen",
-  "@theRecoveryKeyYouEnteredIsIncorrect": {
-    "description": "Detailed error message when recovery key is incorrect"
+  "endpointUpdatedMessage": "A végpont sikeresen frissítve",
+  "@endpointUpdatedMessage": {
+    "description": "Success message when endpoint is updated"
   },
-  "twofactorAuthenticationSuccessfullyReset": "A kétfaktoros hitelesítés visszaállítása sikeres",
-  "@twofactorAuthenticationSuccessfullyReset": {
-    "description": "Message when two-factor authentication is successfully reset"
+  "ente": "Ente",
+  "enterAnEmailAddress": "E-mail cím megadása",
+  "enterAValidEmailAddress": "Adjon meg egy érvényes e-mail címet",
+  "enterCode": "Kód beírása",
+  "enterCodeDescription": "Add meg a barátod által megadott kódot, hogy mindkettőtöknek ingyenes tárhelyet igényelhess",
+  "enterCollectionName": "Adja meg a gyujtemeny nevet",
+  "enterDetailsManually": "Adatok megadása manuálisan",
+  "enterEmail": "Email megadása",
+  "enterNameOrEmailToShareWith": "Adjon meg nevet vagy e-mail cimet a megosztashoz",
+  "enterNewEmailHint": "Add meg az új e-mail címed",
+  "@enterNewEmailHint": {
+    "description": "Hint text for entering new email address"
   },
-  "yourVerificationCodeHasExpired": "Ez az ellenőrző kód lejárt",
-  "@yourVerificationCodeHasExpired": {
-    "description": "Error message when verification code has expired"
+  "enterNewTitle": "Adjon meg egy uj cimet",
+  "enterPasswordToAegisVault": "Add meg a jelszót az aegis trezorhoz",
+  "enterPasswordToDecrypt2FASBackup": "Írd be a jelszót a 2FAS biztonsági mentés visszafejtéséhez",
+  "enterPasswordToDecryptAndOTP": "Írd be a jelszót az andOTP biztonsági mentés visszafejtéséhez",
+  "enterRecoveryKeyHint": "Adja meg helyreállítási kulcsát",
+  "@enterRecoveryKeyHint": {
+    "description": "Hint for entering recovery key"
   },
+  "enterReferralCode": "Adja meg az ajánló kódot",
+  "enterThe6digitCodeFromnyourAuthenticatorApp": "Írja be a 6 számjegyű kódot a hitelesítő alkalmazásból",
+  "enterValidEmail": "Kérjük, adjon meg egy érvényes e-mail címet.",
+  "enterYourNewEmailAddress": "Add meg az új email címed",
+  "enterYourPassword": "Adja meg a jelszavát",
+  "errorGenericBody": "Váratlan hiba történt az importálás során.",
+  "errorGenericTitle": "Hiba lépett fel",
+  "errorInvalidQRCodeBody": "A beolvasott QR-kód nem egy érvényes 2FA fiók.",
+  "errorNoQRCode": "Nem található QR-kód",
+  "errorOpeningFile": "Hiba az elem megnyitasakor",
+  "expiredLinkInfo": "Ez a link lejárt. Kérjük, válasszon új lejárati időt, vagy tiltsa le a link lejáratát.",
+  "export": "Exportálás",
+  "exportCodes": "Kódok exportálása",
+  "exportDialogDesc": "A titkosított exportálást az általad választott jelszó védi.",
+  "exportLogs": "Naplófájlok exportálása",
+  "@exportLogs": {
+    "description": "Button to export logs"
+  },
+  "exportWarningDesc": "Az exportált fájl bizalmas információkat tartalmaz. Kérjük, tárolod ezt biztonságosan.",
+  "exportYourData": "Adatok exportálása",
+  "failedToApplyCode": "Nem sikerült alkalmazni a kódot",
+  "failedToDecrypt2FASExport": "Nem sikerült visszafejteni a 2FAS exportot",
+  "failedToDecryptAegisVault": "Nem sikerült visszafejteni az aegis-trezort",
+  "failedToDecryptAndOTPBackup": "Nem sikerült visszafejteni az andOTP biztonsági mentést",
+  "failedToDownloadOrDecrypt": "Az elem letoltese sikertelen",
+  "failedToFetchReferralDetails": "Nem sikerült lekérni a hivatkozási adatokat. Kérjük, próbálja meg később.",
+  "failedToInvite": "Nem sikerült meghívni: {email}",
+  "@failedToInvite": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@example.com"
+      }
+    }
+  },
+  "failedToInviteCount": "Nem sikerült meghívni {count} tagot",
+  "@failedToInviteCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "failedToLoadAlbums": "Nem sikerült betölteni az albumokat",
+  "failedToLoadCollections": "Gyujtemenyek betoltese sikertelen: {error}",
+  "@failedToLoadCollections": {
+    "description": "Error message when loading collections fails",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Network error"
+      }
+    }
+  },
+  "failedToUpdateFile": "Elem frissitese sikertelen: {error}",
+  "@failedToUpdateFile": {
+    "description": "Error message when item update fails",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Network error"
+      }
+    }
+  },
+  "failedToVerifyPaymentStatus": "Nem sikerült ellenőrizni a fizetés állapotát",
+  "family": "Család",
+  "favorite": "Kedvenc",
+  "featureBackupCodes": "Végponttól végpontig titkosítva\nbiztonsági mentés és szinkronizálás",
+  "featureOpenSource": "Nyílt forráskódú és\nbiztonsági szakértők által auditált",
+  "featurePassAutomatically": "Adja at oket automatikusan veszhelyzet eseten",
+  "featureSaveImportant": "Mentse el fontos dokumentumait es hitelesito adatait",
+  "featureSearchEtc": "Keresés, Címkék, Megosztás,\nKövetkező kód és még sok más",
+  "featureShareAnytime": "Ossza meg oket barmikor",
+  "feedToEngageWithFamily": "Hírfolyam a családdal való kapcsolattartáshoz",
+  "fieldCopiedToClipboard": "{fieldName} vagolapra masolva",
+  "@fieldCopiedToClipboard": {
+    "description": "Message when a field is copied to clipboard",
+    "placeholders": {
+      "fieldName": {
+        "type": "String",
+        "example": "Password"
+      }
+    }
+  },
+  "fileDeletedSuccessfully": "Elem sikeresen torolve",
+  "fileMarkedAsImportant": "Elem megjelolve fontoskent",
+  "fileRemovedFromImportant": "Elem eltavolitva a fontosbol",
+  "filesAddedByYouWillBeRemovedFromTheCollection": "Az On altal hozzaadott elemek eltavolitasra kerulnek a gyujtemennybol",
+  "fileUpdatedSuccessfully": "Elem sikeresen frissitve!",
+  "filters": "Szurok",
+  "focusOnSearchBar": "A keresésre fókuszálás az alkalmazás indításakor",
+  "forgotPassword": "Elfelejtett jelszó",
+  "@forgotPassword": {
+    "description": "Forgot password link label"
+  },
+  "forgotRecoveryKey": "Elfelejtetted a helyreállítási kulcsot?",
+  "free10GB": "10 GB ingyen <bold-green>ente <bold-green> Photos",
+  "freeStorageOffer": "10% kedvezmény itt <bold-green>ente<bold-green> photos",
+  "freeStorageOfferDescription": "Használd az \"AUTH\" kódot, hogy 10% kedvezményt kapjon az első évben",
+  "freeTrial": "Próbaverzió",
+  "freeUpDeviceSpace": "Szabadítson fel tárhelyet",
+  "general": "Általános",
+  "getStarted": "Kezdjünk bele",
+  "giveUsAStarOnGithub": "Adj nekünk egy csillagot a Githubon",
+  "googlePlayId": "Google Play ID",
+  "hearUsWhereOptionalTitle": "Honnan hallottál Ente-ről? (opcionális)",
+  "@hearUsWhereOptionalTitle": {
+    "description": "Title asking how user heard about Ente"
+  },
+  "help": "Segítség",
+  "helpAndSupport": "Súgó és támogatás",
+  "hidden": "Rejtett",
+  "hide": "Elrejtés",
+  "hideContent": "Tartalom elrejtése",
+  "@hideContent": {
+    "description": "Hide content setting title"
+  },
+  "hideContentDescriptionAndroid": "Elrejti az alkalmazás tartalmát az alkalmazásváltóban, és letiltja a képernyőképeket",
+  "@hideContentDescriptionAndroid": {
+    "description": "Description of hide content feature on Android"
+  },
+  "hideContentDescriptioniOS": "Elrejti az alkalmazás tartalmát az alkalmazásváltóban",
+  "@hideContentDescriptioniOS": {
+    "description": "Description of hide content feature on iOS"
+  },
+  "hintForDesktop": "A szerkesztéshez vagy eltávolításhoz kattintson a jobb egér gombbal a kódra.",
+  "hintForMobile": "Nyomja meg hosszan a kódot a szerkesztéshez vagy eltávolításhoz.",
+  "howItWorks": "Hogyan működik",
+  "@howItWorks": {
+    "description": "How it works button label"
+  },
+  "howToViewShareeVerificationID": "Kérje meg őket, hogy hosszan nyomják meg az e-mail címüket a beállítások képernyőn, és ellenőrizzék, hogy a két eszköz azonosítója megegyezik-e.",
+  "immediately": "Azonnal",
+  "@immediately": {
+    "description": "Immediately option for auto lock timing"
+  },
+  "import2FasGuide": "Használd a \"Beállítások->Biztonsági mentés - Exportálás\" opciót a 2FAS-ban.\n\nHa a biztonsági másolat titkosított, akkor meg kell adni a jelszót a biztonsági másolat visszafejtéséhez",
+  "importAccountPageTitle": "Add meg a fiók adatait",
+  "importAegisGuide": "Használd az Aegis beállításaiban található \"Export the vault\" opciót.\n\nHa a vault titkosított, akkor meg kell adni a vault jelszót a tároló visszafejtéséhez.",
+  "importAndOTPGuide": "Exportáld a biztonsági mentésedet az andOTP-ből a Beállítások „Biztonsági mentés” opciójával.\n\nHa a biztonsági mentés titkosítva van, akkor a visszafejtéshez meg kell adnia a biztonsági mentés jelszavát.",
+  "important": "Fontos",
+  "importBitwardenGuide": "Használd a Bitwarden eszközök \"Export Vault\" opcióját és importáld a titkosítatlan JSON fájlt.",
+  "importCodeDelimiterInfo": "A kódokat vesszővel vagy új sorral lehet elválasztani",
+  "importCodes": "Kódok importálása",
+  "importEnteEncGuide": "Válassza ki az Ente-ből exportált titkosított JSON fájlt",
+  "importEnterSetupKey": "Adj meg egy beállítási kulcsot",
+  "importFailureDesc": "Nem sikerült elemezni a kiválasztott fájlt.",
+  "importFromGallery": "Importálás galériából",
+  "importGoogleAuthConfirmation": "{codeCount, plural, one{Importálsz 1 kódot a Google Authenticatorból?} other{Importálsz {codeCount} kódot a Google Authenticátorból?}}",
+  "@importGoogleAuthConfirmation": {
+    "placeholders": {
+      "codeCount": {
+        "description": "The number of Google Authenticator codes to import",
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "importGoogleAuthGuide": "Exportáld a fiókjaidat a Google Authenticator appból egy QR-kódba a \"Kódok átivtele\" opcióval, majd olvasd le a QR kódot vagy importáld egy képből.",
+  "importInstruction": "Kérjük, válassz egy fájlt, amely tartalmazza a kódok listáját a következő formátumban",
+  "importLabel": "Importálás",
+  "importLastpassGuide": "Használd a Lastpass Authenticator beállításaiban található \"Fiókok átvitele\" opciót, és nyomd meg a \"Fiókok exportálása fájlba\" gombot. Importáld a letöltött JSON-t.",
+  "importProtonAuthGuide": "A kódok exportálásához használd az „Exportálás” opciót a Proton Authenticator beállításaiban.\n\nHa az export jelszóval védett, akkor a visszafejtéshez meg kell adnod a jelszót.",
+  "importRaivoGuide": "Használd az \"OTP-k exportálása tömörített archívumba\" opciót a Raivo beállításaiban.\n\nCsomagold ki a zip fájlt, és importáld a JSON fájlt.",
+  "importSelectAppExport": "Válaszd ki az {appName} exportfájlt",
+  "@importSelectAppExport": {
+    "placeholders": {
+      "appName": {}
+    }
+  },
+  "importSelectJsonFile": "Válassza ki a JSON fájlt",
+  "importSuccessDesc": "{count} kódot importáltál!",
+  "@importSuccessDesc": {
+    "placeholders": {
+      "count": {
+        "description": "The number of codes imported",
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "importSuccessTitle": "Jaj!",
+  "importTypeEnteEncrypted": "Ente titkosított exportálás",
   "incorrectCode": "Helytelen kód",
   "@incorrectCode": {
     "description": "Error message when code is incorrect"
   },
+  "incorrectDetails": "Helytelen adatok",
+  "incorrectRecoveryKey": "Helytelen helyreállítási kulcs",
+  "@incorrectRecoveryKey": {
+    "description": "Error message when recovery key is incorrect"
+  },
+  "incorrectRecoveryKeyBody": "A megadott visszaállítási kulcs hibás",
+  "incorrectRecoveryKeyTitle": "Hibás visszaállítási kulcs",
+  "informationDescription": "Mentsen el es osszon meg informaciokat szeretteivel.",
+  "initialBackupCreated": "Kezdő biztonsági mentés létrehozva!",
+  "insecureDevice": "Nem biztonságos eszköz",
+  "@insecureDevice": {
+    "description": "Insecure device warning title"
+  },
+  "invalidEmailAddress": "Érvénytelen e-mail cím",
+  "invalidEmailTitle": "Érvénytelen e-mail cím",
+  "@invalidEmailTitle": {
+    "description": "Title for invalid email error dialog"
+  },
+  "invalidEndpoint": "Érvénytelen végpont",
+  "@invalidEndpoint": {
+    "description": "Error message when endpoint is invalid"
+  },
+  "invalidEndpointMessage": "Sajnáljuk, a megadott végpont érvénytelen. Adj meg egy érvényes végpontot, és próbáld újra.",
+  "@invalidEndpointMessage": {
+    "description": "Detailed error message when endpoint is invalid"
+  },
+  "invalidKey": "Érvénytelen kulcs",
+  "invalidProtonExportMessage": "A kiválasztott fájl nem érvényes Proton Authenticator export.",
+  "invalidProtonExportTitle": "Érvénytelen Proton export",
+  "invalidQRCode": "Érvénytelen QR-kód",
+  "invalidReferralCode": "Érvénytelen kód",
+  "inviteLimitReached": "5 meghívót már hozzáadtál. Új hozzáadásához törölj egyet",
+  "inviteMembers": "Tag meghívása",
+  "inviteResent": "Meghívó újraküldve",
+  "invitesSentCount": "{count, plural, one{Meghívó elküldve} other{Meghívó elküldve}}",
+  "@invitesSentCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "inviteToEnte": "Meghívás az Ente-re",
+  "ok": "OK",
+  "@ok": {
+    "description": "Generic OK button label"
+  },
+  "iosOnMyDeviceNotSupported": "Az „iPhone-omon” mappa nem használható közvetlenül. Kérjük, válassz ki vagy hozz létre egy mappát benne.",
+  "itemCount": "{count, plural, one{{count} elem} other{{count} elem}}",
+  "@itemCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "items": "{count} elem",
+  "@items": {
+    "description": "Number of items in a collection",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "itemsWillBeRemovedFromAlbum": "A kiválasztott elemek eltávolításra kerülnek ebből az albumból",
+  "iUnderStand": "Megértettem",
+  "@iUnderStand": {
+    "description": "Text for the button to confirm the user understands the warning"
+  },
+  "keepPhotos": "Fotók megtartása",
+  "language": "Nyelv",
+  "lastUpdated": "Utoljára frissítve",
+  "layoutGrouped": "Csoportosított",
+  "layoutMasonry": "Mozaikos elrendezés",
+  "layoutTrip": "Utazás nézet",
+  "leave": "Távozás",
+  "leaveCollection": "Gyujtemeny elhagyasa",
+  "leaveFamily": "Család elhagyása",
+  "legacy": "Orokossag",
+  "lightTheme": "Világos",
+  "limit": "Korlát",
+  "linkCopiedToClipboard": "Hivatkozás vágólapra másolva",
+  "linkDeletedSuccessfully": "A link sikeresen törölve",
+  "linkDeviceLimit": "Készülékkorlát",
+  "linkEnabled": "Engedélyezett",
+  "linkExpired": "Lejárt",
+  "linkExpiresOn": "A hivatkozás lejár {expiryTime}",
+  "@linkExpiresOn": {
+    "placeholders": {
+      "expiryTime": {}
+    }
+  },
+  "linkExpiry": "Link lejárata",
+  "linkHasExpired": "A hivatkozás érvényességi ideje lejárt",
+  "linkNeverExpires": "Soha",
+  "linkRequestLimitExceeded": "Ezt az albumot túl sok eszközön nyitották meg",
+  "loadingModel": "Modellek letöltése...",
+  "localBackupDailyManualCopy": "Naponta egy helyi biztonsági mentést hoz létre az alkalmazás megnyitásakor. Használd a „Biztonsági mentés most” parancsot a manuális biztonsági mentéshez. A biztonsági mentések legfeljebb 5 fájlig őrződnek meg.",
+  "localBackupSidebarTitle": "Helyi biztonsági mentés",
+  "locationPickerTip": "A fotó adatlapján is beállíthatsz egy helyet a fotó alapján",
+  "@locationPickerTip": {
+    "description": "Helper tip text shown in the location picker that refers to the photo info screen."
+  },
+  "locationUpdatedAndBackupCreated": "A hely frissítve és a kezdő biztonsági mentés létrehozva!",
+  "lockButtonLabel": "Zárolás",
+  "loggingOut": "Kijelentkezés...",
+  "@loggingOut": {
+    "description": "Message shown while logging out"
+  },
+  "logInLabel": "Bejelentkezés",
+  "@logInLabel": {
+    "description": "Log in button label"
+  },
+  "loginSessionExpired": "Lejárt a munkamenet",
+  "@loginSessionExpired": {
+    "description": "Login session expired title"
+  },
+  "loginTerms": "A bejelentkezés gombra kattintva elfogadom az <u-terms>szolgáltatási feltételeket</u-terms> és az <u-policy>adatvédelmi irányelveket</u-policy>",
+  "@loginTerms": {
+    "description": "Terms agreement text for login"
+  },
+  "loginWithAuthAccount": "Jelentkezz be Auth fiókoddal",
+  "loginWithTOTP": "Bejelentkezés TOTP-vel",
+  "@loginWithTOTP": {
+    "description": "Login with TOTP button label"
+  },
+  "logout": "Kijelentkezés",
+  "logs": "Naplók",
+  "logsDialogBodyLocker": "Ez naplokat kuld, amelyek segitenek a problema elharitasaban.",
+  "@logsDialogBodyLocker": {
+    "description": "Dialog body text for sending logs in Locker app (without file name warning)"
+  },
+  "logsNotCopiedDownloadNote": "Napló nincsen másolva. Exportáld a naplót és add hozzá az emailhez.",
+  "longPressAnEmailToVerifyEndToEndEncryption": "Hosszan nyomja meg az e-mail cimet a vegpontok kozotti titkositas ellenorzesehez.",
+  "lostDevice": "Elveszett a készüléked?",
+  "machineLearning": "Gépi tanulás",
+  "magic": "Varázslat",
+  "@magic": {
+    "description": "Section header for magic search results"
+  },
+  "manageDeviceStorage": "Eszköz gyorsítótárának kezelése",
+  "manageLink": "Hivatkozás kezelése",
+  "managePaymentMethod": "Fizetési módok kezelése",
+  "manageSubscription": "Előfizetés kezelése",
+  "manualSort": "Egyéni",
+  "markingAsImportant": "Megjeloles fontoskent...",
+  "members": "Tagok",
+  "memberStorageUsed": "{amount} felhasználva",
+  "@memberStorageUsed": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "20 GB"
+      }
+    }
+  },
+  "memoryCount": "{count, plural, =0{nincsenek emlékek} one{{formattedCount} emlék} other{{formattedCount} emlékek}}",
+  "@memoryCount": {
+    "description": "The text to display the number of memories",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "1",
+        "type": "int"
+      },
+      "formattedCount": {
+        "type": "String",
+        "example": "11.513, 11,511"
+      }
+    }
+  },
+  "memoryShareLinkDescription": "Ez a link 7 nap múlva automatikusan lejár.",
+  "message": "Üzenet",
+  "minimizeAppOnCopy": "Alkalmazás kicsinyítése másoláskor",
+  "minimizeToTrayOnClose": "Bezárásra minimalizálás a tálcára",
+  "mlConsent": "Gépi tanulás engedélyezése",
+  "mlConsentConfirmation": "Értem, és szeretném engedélyezni a gépi tanulást",
+  "mlConsentDescription": "Ha engedélyezi a gépi tanulást, az Ente olyan információkat fog kinyerni, mint az arc geometriája, a fájlokból, beleértve azokat is, amelyeket Önnel megosztott.\n\nEz az Ön eszközén fog megtörténni, és minden generált biometrikus információ végponttól végpontig titkosítva lesz.",
+  "mlIndexingDescription": "Fontos: a gépi tanulás a feldolgozás végéig megnövelt adatforgalmat és akkumulátorhasználatot eredményez. Gyorsabb feldolgozáshoz érdemes az asztali alkalmazást használni; az eredmények automatikusan szinkronizálódnak.",
+  "moderateStrength": "Közepes",
+  "@moderateStrength": {
+    "description": "Moderate password strength label"
+  },
+  "monthly": "Havi",
+  "@monthly": {
+    "description": "The text to display for monthly plans",
+    "type": "text"
+  },
+  "moreOptions": "További lehetőségek",
+  "@moreOptions": {
+    "description": "Button label for showing additional delete options."
+  },
+  "mostFrequentlyUsed": "Gyakran használt",
+  "mostRecentlyUsed": "Legutóbb használt",
+  "movedToTrash": "Áthelyezve a kukába",
+  "moveMultipleToTrashMessage": "Biztosan a kukába szeretnéd helyezni a(z) {count} elemet?",
+  "@moveMultipleToTrashMessage": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "moveToAlbum": "Áthelyezés albumba",
+  "name": "Név",
+  "never": "Soha",
+  "newAlbum": "Új album",
+  "newCollection": "Uj gyujtemeny",
+  "newest": "Legújabb",
+  "next": "Következő",
+  "@next": {
+    "description": "Next button label"
+  },
+  "nextTotpTitle": "következő",
+  "no": "Nem",
+  "noChangesWereMade": "Nem tortent valtozas",
+  "noCollections": "Nincsenek gyujtemenyek",
+  "noDefaultBackupFolder": "Nem sikerült létrehozni az alapértelmezett biztonsági mentési mappát.",
+  "noDeleteSuggestion": "Nincs törlési javaslat",
+  "noDeviceLimit": "Egyik sem",
+  "@noDeviceLimit": {
+    "description": "Text to indicate that there is limit on number of devices"
+  },
+  "noDeviceThatCanBeDeleted": "Nincsenek törölhető fájlok ezen az eszközön",
+  "noFilesFound": "Nincsenek elemek",
+  "noInternetConnection": "Nincs internetkapcsolat",
+  "@noInternetConnection": {
+    "description": "No internet connection error message"
+  },
+  "noItemsMatchSelectedFilters": "Egyetlen elem sem felel meg a kivalasztott szuroknek",
+  "noLimit": "Nincs korlát",
+  "noLimitSet": "Nincs korlát beállítva",
+  "noRecoveryKeyNoDecryption": "Az általunk használt végpontok közötti titkosítás miatt, az adatait nem lehet dekódolni a jelszava, vagy visszaállítási kulcsa nélkül",
+  "@noRecoveryKeyNoDecryption": {
+    "description": "Explanation that data cannot be decrypted without password or recovery key"
+  },
+  "noRecoveryKeyTitle": "Nincs helyreállítási kulcs?",
+  "@noRecoveryKeyTitle": {
+    "description": "No recovery key title"
+  },
+  "noResult": "Nincs találat",
+  "noSystemLockFound": "Nem található rendszerzár",
+  "@noSystemLockFound": {
+    "description": "Error when no system lock is found"
+  },
+  "note": "Jegyzet",
+  "noteContent": "Tartalom",
+  "noteContentHint": "Irja le fontos gondolatait vagy utasitasait",
+  "noteName": "Cim",
+  "noteNameHint": "Jegyzet cime",
+  "notes": "Megjegyzések",
+  "notesLengthLimit": "A megjegyzés {count} karakter hosszú lehet",
+  "@notesLengthLimit": {
+    "description": "Text to indicate the maximum number of characters allowed for notes",
+    "placeholders": {
+      "count": {
+        "description": "The maximum number of characters allowed for notes",
+        "type": "int",
+        "example": "100"
+      }
+    }
+  },
+  "nothingToSeeHere": "Itt nincs semmi",
+  "notifications": "Értesítések",
+  "notSupportedForHOTP": "Nem támogatott HOTP esetén",
+  "ocrGenericDetectError": "Nem sikerült szöveget felismerni a képen",
+  "ocrImageDecodeFailedError": "A képfájl nem olvasható",
+  "ocrImageNotFoundError": "A képfájl nem található",
+  "ocrModelsNetworkRequiredError": "Az OCR modellek első letöltéséhez internetkapcsolat szükséges",
+  "ocrModelsPrepareFailed": "Nem sikerült előkészíteni az OCR modelleket",
+  "ocrNoTextDetected": "Nem található szöveg",
+  "offlineModeWarning": "Úgy döntöttél, hogy biztonsági mentés nélkül folytatod. Kérjük, készíts manuális biztonsági másolatot a kódok biztonsága érdekében.",
+  "onboardingDesc": "Mentsd el a képeid és videóid. Minden emléked egyetlen helyen.",
+  "onboardingTitle": "Mindenhez amit nem akarsz elfelejteni",
+  "oneLineAboutTheIssue": "Egy sor a problémáról",
+  "onlyFamilyAdminCanChangeCode": "Kérjük, vegye fel a kapcsolatot a {familyAdminEmail} e-mail címmel a kód módosításához.",
+  "@onlyFamilyAdminCanChangeCode": {
+    "placeholders": {
+      "familyAdminEmail": {}
+    }
+  },
+  "oops": "Hoppá",
+  "@oops": {
+    "description": "Oops error title"
+  },
+  "oopsSomethingWentWrong": "Hoppá, valami hiba történt",
+  "optionalAsShortAsYouLike": "Opcionális, lehet rövid is...",
+  "parsingError": "Feldolgozási hiba",
+  "passkeyAuthTitle": "Passkey hitelesítés",
+  "@passkeyAuthTitle": {
+    "description": "Passkey authentication title"
+  },
+  "passKeyPendingVerification": "Az ellenőrzés még függőben van",
+  "@passKeyPendingVerification": {
+    "description": "Message when passkey verification is pending"
+  },
+  "password": "Jelszó",
+  "@password": {
+    "description": "Password field label"
+  },
+  "passwordEmptyError": "A jelszó nem lehet üres",
+  "passwordForDecryptingExport": "Jelszó az exportálás visszafejtéséhez",
+  "passwordHint": "Jelszó",
+  "passwordLock": "Kóddal történő lezárás",
+  "passwordsDontMatch": "A jelszavak nem egyeznek",
+  "passwordsMatch": "A jelszavak egyeznek",
+  "passwordToEncryptExport": "Jelszó az export titkosításához",
+  "passwordTooShort": "A jelszónak legalább 8 karakterből kell állnia.",
+  "paymentFailed": "Sikertelen fizetés",
+  "paymentFailedMessage": "Sajnos a fizetés nem sikerült. Kérjük, vedd fel a kapcsolatot az ügyfélszolgálattal, és segítünk!",
+  "paymentFailedTalkToProvider": "Ha terhelés történt, fordulj a(z) {providerName} ügyfélszolgálatához",
+  "@paymentFailedTalkToProvider": {
+    "description": "The text to display when the payment failed",
+    "type": "text",
+    "placeholders": {
+      "providerName": {
+        "example": "AppStore|PlayStore",
+        "type": "String"
+      }
+    }
+  },
+  "pending": "Függőben levő",
+  "pendingSyncs": "Figyelmeztetés",
+  "pendingSyncsWarningBody": "Néhány kódról nem készült biztonsági másolat.\n\nKérjük, győződj meg arról, hogy van biztonsági másolata ezekről a kódokról, mielőtt kijelentkezel.",
+  "period": "Időszak",
+  "permanentlyDelete": "Végleges törlés",
+  "personalNote": "Jegyzet",
+  "personalNoteDescription": "Irja le gondolatait es utasitasait.",
+  "photoGridSize": "Rács méret beállítás",
+  "physicalRecords": "Targy",
+  "physicalRecordsDescription": "Mentse el valos targyak helyet.",
+  "pinLock": "PIN zár",
+  "@pinLock": {
+    "description": "PIN lock option title"
+  },
+  "pinnedCodeMessage": "A {code} rögzítve",
+  "@pinnedCodeMessage": {
+    "placeholders": {
+      "code": {}
+    }
+  },
+  "pinnedCount": "{count, plural, one{{count} elem rögzítve} other{{count} elem rögzítve}}",
+  "@pinnedCount": {
+    "description": "Text to show number of items pinned",
+    "placeholders": {
+      "count": {
+        "description": "Number of items pinned",
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "pinText": "Rögzítés",
+  "plainHTML": "Sima HTML kód",
+  "plainText": "Egyszerű szöveg",
+  "plansStartAt": "Csomagok már {price}/hónap",
+  "@plansStartAt": {
+    "placeholders": {
+      "price": {
+        "type": "String",
+        "example": "$1.99"
+      }
+    }
+  },
+  "playstoreSubscription": "Google Play előfizetés",
+  "pleaseCheckPasswordAndTryAgain": "Kérjük, ellenőrizd a jelszavad és próbáld újra.",
+  "pleaseContactSupportAndWeWillBeHappyToHelp": "Lépj kapcsolatba a support@ente.com\n címen, és örömmel segítünk!",
+  "pleaseEnterADescription": "Adjon meg leírást",
+  "pleaseLoginAgain": "Kérjük, jelentkezzen be újra",
+  "pleaseVerifyDetails": "Kérjük ellenőrizze az adatokat és próbálja újra",
+  "pleaseWait": "Kérem várjon...",
+  "@pleaseWait": {
+    "description": "Please wait message"
+  },
+  "pleaseWaitForSometimeBeforeRetrying": "Kérjük, várj egy kicsit az újrapróbálkozás előtt",
+  "preparingLogs": "Naplók előkészítése...",
+  "preview": "Előnézet",
+  "previous": "Elozo",
+  "privacy": "Adatvédelem",
+  "privateSpaceForEveryMember": "Privát tér minden tagnak",
+  "publicLinkEnabled": "Nyilvános hivatkozás engedélyezve",
+  "qr": "QR",
+  "qrCode": "QR-kód",
+  "rateUs": "Értékeljen minket",
+  "rawCodeData": "Nyers kód adatok",
+  "readyToBackupSubtitle": "A fotóid a háttérben szinkronizálódnak. Az első mentés eltarthat egy ideig.",
+  "readyToBackupTitle": "Készen áll a mentésre",
+  "recordLocation": "Hely",
+  "recordLocationHint": "Hol talalhato ez a targy?",
+  "recordNameHint": "A valos targy neve",
+  "recordNotes": "Jegyzetek",
+  "recordNotesHint": "Tovabbi informaciok a targyrol",
+  "recordSavedSuccessfully": "Rekord sikeresen mentve",
+  "recoveryKey": "Visszaállítási kulcs",
+  "@recoveryKey": {
+    "description": "Recovery key label"
+  },
+  "recoveryKeyCopiedToClipboard": "A helyreállítási kulcs a vágólapra másolva",
+  "@recoveryKeyCopiedToClipboard": {
+    "description": "Recovery key copied message"
+  },
+  "recoveryKeySaved": "A helyreállítási kulcs a Letöltések mappába mentve!",
+  "@recoveryKeySaved": {
+    "description": "Recovery key saved confirmation message"
+  },
+  "recoveryKeySaveShortDescription": "Mentsd el ezt a kulcsot biztonságos helyre.",
+  "recoveryKeyVerified": "A helyreállítási kulcs ellenőrizve",
+  "recoverySuccessful": "Sikeres visszaállítás!",
+  "recreatePasswordTitle": "Új jelszó létrehozása",
+  "@recreatePasswordTitle": {
+    "description": "Title for recreate password dialog"
+  },
+  "reEnterPin": "Írja be újra a PIN-kódot",
+  "@reEnterPin": {
+    "description": "Re-enter PIN prompt"
+  },
+  "referralCodeHint": "Ezt a kódot legfeljebb 3 alkalommal módosíthatod",
+  "referrals": "Ajánlások",
+  "referralsAreCurrentlyPaused": "Az ajánlások jelenleg szünetelnek",
+  "referralStats": "Ajánlási statisztikák",
+  "referralStorageForBoth": "{storageAmountInGB} GB nekik + {storageAmountInGB} GB neked, amikor előfizetnek.",
+  "@referralStorageForBoth": {
+    "placeholders": {
+      "storageAmountInGB": {}
+    }
+  },
+  "referralStorageInfo": "A fizetős előfizetők ajánlásai bónusz tárhelyet adnak.\n\nA tárhelyet a csomagod keretéig használhatod. A fennmaradó, megszerzett tárhely használatához válts magasabb csomagra.",
+  "rejectSuggestions": "Javaslat elutasítása",
+  "remindToEmptyDeviceTrash": "A felszabadult hely igényléséhez ürítsd ki a „Nemrég törölt” részt a „Beállítások” -> „Tárhely” menüpontban",
+  "remindToEmptyEnteTrash": "Ürítsd ki a \"Kukát\" is, hogy visszaszerezd a felszabadult helyet",
+  "remove": "Eltávolítás",
+  "removeAccess": "Hozzaferes eltavolitasa",
+  "removeCollectionParticipantBody": "{userEmail} eltavolitasra kerul ebbol a megosztott gyutemenybol\n\nAz altala hozzaadott elemek is eltavolitasra kerulnek a gyujtemennybol",
+  "@removeCollectionParticipantBody": {
+    "placeholders": {
+      "userEmail": {}
+    }
+  },
+  "removeFromAlbum": "Eltávolítás az albumból",
+  "removeFromAlbumTitle": "Eltávolítás az albumból?",
+  "removeFromFamily": "Eltávolítás a családból",
+  "removeFromFavorite": "Eltávolítás a kedvencek közül",
+  "removeLink": "Hivatkozás eltávolítása",
+  "removeMemberConfirmBody": "{email} elveszíti a hozzáférést a megosztott tárhelyhez.",
+  "@removeMemberConfirmBody": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "member@example.com"
+      }
+    }
+  },
+  "removeMemberConfirmTitle": "Felhasználó eltávolítása?",
+  "removeParticipant": "Résztvevő eltávolítása",
+  "@removeParticipant": {
+    "description": "menuSectionTitle for removing a participant"
+  },
+  "removePublicLink": "Nyilvános hivatkozás eltávolítása",
+  "removeShareItemsWarning": "A kijelölt fotók az album nézői számára nem lesznek elérhetők, csak a fotók tulajdonosai férhetnek hozzá.",
+  "removeWithQuestionMark": "Eltávolítás?",
+  "removingFromFavorites": "Eltávolítás a kedvencek közül...",
+  "removingFromImportant": "Eltavolitas a fontosbol...",
+  "renameCollection": "Gyujtemeny atnevezese",
+  "reportAnIssue": "Hiba jelentése",
+  "requestAFeature": "Kérj egy funkciót",
+  "resendCode": "Kód újraküldése",
+  "resendInvite": "Meghívó újraküldése",
+  "restore": "Visszaállítás",
+  "@restore": {
+    "description": "Display text for an action which triggers a restore of item from trash",
+    "type": "text"
+  },
+  "revoke": "Visszavonás",
+  "revokeInviteConfirmBody": "A(z) {email} részére küldött meghívó visszavonásra kerül.",
+  "@revokeInviteConfirmBody": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "member@example.com"
+      }
+    }
+  },
+  "revokeInviteConfirmTitle": "Visszavonod a meghívót?",
+  "save": "Mentés",
+  "@save": {
+    "description": "Label for save button"
+  },
+  "saveCode": "Kód mentése",
+  "saveKey": "Kulcs mentése",
+  "@saveKey": {
+    "description": "Save key button label"
+  },
+  "saveToLocker": "Mentes a Locker-be",
+  "saveYourRecoveryKeyIfYouHaventAlready": "Mentse el visszaállítási kulcsát, ha még nem tette",
+  "scan": "Beolvasás",
+  "scanACode": "Kód beolvasása",
+  "scanAQrCode": "QR kód beolvasása",
+  "scanCode": "Kód beolvasása",
+  "scannerTorchOff": "Zseblámpa kikapcsolása",
+  "scannerTorchOn": "Zseblámpa bekapcsolása",
+  "scanThisBarcodeWithnyourAuthenticatorApp": "Szkennelje be ezt a QR kódot a hitelesítő alkalmazásával",
+  "scheduleShare": "Megosztas utemezese",
+  "search": "Keresés",
+  "searchAndDiscovery": "Keresés és felfedezés",
+  "searchAndDiscoveryDesc": "Arcok, helyszínek, leírások és egyéb",
+  "searchEmptyDescription": "Probaljon mas keresest.",
+  "searchEmptyTitle": "Nincs talalat",
+  "searchEverywhereSubtitle": "Kereses az osszes gyujtemenyben es fajlban.",
+  "searchEverywhereTitle": "Kereses mindenhol: \"{query}\"",
+  "@searchEverywhereTitle": {
+    "description": "CTA title prompting the user to search globally",
+    "placeholders": {
+      "query": {
+        "type": "String",
+        "example": "passport"
+      }
+    }
+  },
+  "searchHint": "Keresés...",
+  "secret": "Titok",
+  "secretCanNotBeEmpty": "A titkos kulcs nem lehet üres",
+  "security": "Biztonság",
+  "seeAllCollections": "Osszes gyujtemeny megtekintese",
+  "selectAlbumsToBackUpToEnte": "Válaszd ki azokat az albumokat, amelyeket az Entébe szeretnél menteni",
+  "selectAll": "Összes kijelölése",
+  "selectBackupFolder": "Biztonsági mentés mappájának kiválasztása",
+  "selectDate": "Datum kivalasztasa",
+  "selected": "kiválasztva",
+  "selectedCount": "{count, plural, one{{count} kiválasztva} other{{count} kiválasztva}}",
+  "@selectedCount": {
+    "description": "Number of items selected",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "selectedFilesBackedUpToEnte": "Ezek az elemek törölve lesznek minden albumból. Visszaállíthatod őket a Lomtárból.",
+  "@selectedFilesBackedUpToEnte": {
+    "description": "Delete confirmation message for selected items that are backed up to Ente."
+  },
+  "selectedFilesSavedOnDeviceOnly": "Az elemek nincsenek elmentve. Véglegesen törlöd őket az eszközről?",
+  "@selectedFilesSavedOnDeviceOnly": {
+    "description": "Delete confirmation message for selected items that exist only on the device."
+  },
+  "selectedPhotos": "{count} kiválasztott",
+  "@selectedPhotos": {
+    "description": "Display the number of selected photos",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "5",
+        "type": "int"
+      }
+    }
+  },
+  "selectedPhotosWithYours": "{count} kiválasztott ({yourCount} a tiéd)",
+  "@selectedPhotosWithYours": {
+    "description": "Display the number of selected photos, including the number of selected photos owned by the user",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "12",
+        "type": "int"
+      },
+      "yourCount": {
+        "example": "2",
+        "type": "int"
+      }
+    }
+  },
+  "selectExportFormat": "Válassz exportálási formátumot",
+  "selectFile": "Fájl kiválasztása",
+  "selectFolder": "Válassz mappát",
+  "selectFolders": "Mappák kiválasztása",
+  "selectFolderToContinue": "Válassz ki egy mappát a folytatáshoz",
+  "selectLanguage": "Nyelv kiválasztása",
+  "selectTime": "Ido kivalasztasa",
+  "send": "Küldés",
+  "@send": {
+    "description": "Label for send button"
+  },
+  "sendCountInvites": "{count, plural, =0{Meghívók küldése} one{{count} meghívó küldése} other{{count} meghívó küldése}}",
+  "@sendCountInvites": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "sendInvite": "Meghívó küldése",
+  "sendLink": "Hivatkozás küldése",
+  "sendLogsDescription": "Naplókat küld, hogy segítsen nekünk a probléma elhárításában. Bár óvintézkedéseket teszünk annak biztosítására, hogy az érzékeny adatok ne kerüljenek naplózásra, javasoljuk, hogy tekintsd meg ezeket a naplókat, mielőtt megosztanád őket.",
+  "sendQrCode": "QR-kód küldése",
+  "serverEndpoint": "Szerver végpont",
+  "@serverEndpoint": {
+    "description": "Label for server endpoint setting"
+  },
+  "setAPassword": "Állítson be egy jelszót",
+  "setAsMyDefaultChoice": "Alapértelmezett beállítás",
+  "@setAsMyDefaultChoice": {
+    "description": "Checkbox label for saving the selected delete action as the default choice."
+  },
+  "setBackupFolder": "Biztonsági mentés mappájának beállítása",
+  "setBackupPassword": "Biztonsági mentés jelszavának beállítása",
+  "setNewPassword": "Új jelszó beállítása",
+  "@setNewPassword": {
+    "description": "Set new password title"
+  },
+  "setNewPin": "Új PIN kód beállítása",
+  "@setNewPin": {
+    "description": "Set new PIN title"
+  },
+  "setPasswordTitle": "Jelszó beállítás",
+  "@setPasswordTitle": {
+    "description": "Set password title"
+  },
+  "settings": "Beállítások",
+  "setupComplete": "Beállítás kész",
+  "setupFirstAccount": "Állítsd be az első fiókodat",
+  "share": "Megosztás",
+  "shareALink": "Hivatkozás megosztása",
+  "shareCodes": "Kódok megosztása",
+  "shareCodesDuration": "Válaszd ki a kódok megosztásának időtartamát.",
+  "sharedPhotoNotifications": "Új megosztott fotók és albumok",
+  "sharedPhotoNotificationsExplanation": "Új fotók és albumok amikben benne vagy vagy meg van osztva veled",
+  "sharedWith": "Megosztva",
+  "shareKey": "Kulcs megosztása",
+  "shareLink": "Link megosztása",
+  "shareMyVerificationID": "Az ente.com-hoz tartozó ellenőrzési azonosítóm: {verificationID}.",
+  "@shareMyVerificationID": {
+    "placeholders": {
+      "verificationID": {}
+    }
+  },
+  "shareStorageWith5Members": "Oszd meg a tárhelyed 5 taggal",
+  "shareTextConfirmOthersVerificationID": "Szia, meg tudod erősíteni, hogy ez a te ente.com-hoz tartozó ellenőrzési azonosítód: {verificationID}",
+  "@shareTextConfirmOthersVerificationID": {
+    "placeholders": {
+      "verificationID": {}
+    }
+  },
+  "shareTextRecommendUsingEnteForFamily": "Töltsd le az Entét, hogy hozzáadhassalak a családi csomagomhoz\n\nhttps://ente.com",
+  "shareTextRecommendUsingEnteForPhotos": "Töltsd le az Ente alkalmazást, hogy könnyen megoszthassuk az eredeti minőségű fotókat és videókat https://ente.com",
+  "shareThisLink": "Ez a link lehetove teszi barkinek, aki megkapja, hogy hozzaferjen az elemehez. Barmikor eltavolithatja a hozzaferest a link torlesevel.",
+  "shareWithNonenteUsers": "Megosztás nem Ente felhasználókkal",
+  "shareYourSubscription": "Oszd meg az előfizetésedet a szeretteiddel",
+  "sharing": "Megosztás...",
+  "sharingAndCollaboration": "Megosztás és együttműködés",
+  "sharingAndCollaborationDesc": "Albumok, linkek és családi csomagok",
+  "shouldHideCode": "Kódok elrejtése",
+  "showLargeIcons": "Nagy ikonok megjelenítése",
+  "showMemories": "Emlékek megjelenítése",
+  "showQRAuthMessage": "Hitelesítés a QR kód megjelenítéséhez",
+  "sigInBackupReminder": "Az Ente automatikusan biztonsági mentést készít a kódokról bejelentkezés után.\n\nTovábbra is javasoljuk, hogy exportáld a kódokat további biztonsági mentésként.",
+  "signInToBackup": "Jelentkezz be a kódok biztonsági mentéséhez",
+  "signOutOtherDevices": "Jelentkezzen ki a többi eszközről",
+  "@signOutOtherDevices": {
+    "description": "Sign out other devices button label"
+  },
+  "signUp": "Bejelentkezés",
+  "signUpTerms": "Elfogadom az <u-terms>szolgáltatási feltételeket</u-terms> és az <u-policy>adatvédelmi irányelveket</u-policy>",
+  "@signUpTerms": {
+    "description": "Terms agreement text for sign up"
+  },
+  "singIn": "Bejelentkezés",
+  "singleFileDeleteFromDevice": "Az elem nincsen elmentve. Véglegesen törlöd az eszközről?",
+  "@singleFileDeleteFromDevice": {
+    "description": "Delete confirmation message for a single item that exists only on the device."
+  },
+  "singleFileInBothLocalAndRemote": "Ez az elem az eszközön és az Ente-ben is elérhető.",
+  "@singleFileInBothLocalAndRemote": {
+    "description": "Delete confirmation message for a single item that exists both on the device and in Ente."
+  },
+  "skip": "Kihagyás",
+  "socialNotifications": "Tetszések és hozzászólások",
+  "someoneSharingAlbumsWithYouShouldSeeTheSameId": "Valaki, aki megoszt Önnel albumokat, ugyanazt az azonosítót fogja látni az eszközén.",
+  "someSelectedFilesBackedUpToEnte": "Ezek az elemek az eszközön és az Ente-n is elérhetőek.",
+  "@someSelectedFilesBackedUpToEnte": {
+    "description": "Delete confirmation message for selected items that exist both on the device and in Ente."
+  },
+  "somethingWentWrong": "Valami hiba történt",
+  "somethingWentWrongMessage": "Hiba történt. Kérjük, próbálkozz újra",
+  "somethingWentWrongParsingCode": "Nem tudtunk elemezni {x} kódot.",
+  "@somethingWentWrongParsingCode": {
+    "placeholders": {
+      "x": {}
+    }
+  },
+  "sorryCouldNotAddToFavorites": "Sajnálom, nem sikerült hozzáadni a kedvencekhez!",
+  "sorryCouldNotRemoveFromFavorites": "Sajnálom, nem sikerült eltávolítani a kedvencek közül!",
   "sorryTheCodeYouveEnteredIsIncorrect": "Sajnáljuk, a megadott kód helytelen",
   "@sorryTheCodeYouveEnteredIsIncorrect": {
     "description": "Detailed error message when code is incorrect"
   },
-  "developerSettings": "Fejlesztői beállítások",
-  "@developerSettings": {
-    "description": "Label for developerSettings"
+  "startBackup": "Mentés elkezdése",
+  "status": "Állapot",
+  "storageAndPlans": "Tárhely és csomagok",
+  "storageAndPlansDesc": "Csomagok, számlázás és tárhelyhasználat",
+  "storageClaimed": "{storageAmountInGB} GB tárhely aktiválva!",
+  "@storageClaimed": {
+    "placeholders": {
+      "storageAmountInGB": {}
+    }
   },
-  "serverEndpoint": "Szerver végpont",
-  "@serverEndpoint": {
-    "description": "Label for serverEndpoint"
+  "storageLimit": "Tárhelykorlát",
+  "storageLimitExplanation": "Állítsd be a tag által használható maximális tárhelyet. A korlát elérése után nem tud több fájlt feltölteni.",
+  "storageUsedOfTotal": "{used} felhasználva {total}",
+  "@storageUsedOfTotal": {
+    "placeholders": {
+      "total": {
+        "type": "String",
+        "example": "200 GB"
+      },
+      "used": {
+        "type": "String",
+        "example": "67 GB"
+      }
+    }
   },
-  "invalidEndpoint": "Érvénytelen végpont",
-  "@invalidEndpoint": {
-    "description": "Label for invalidEndpoint"
+  "strongPassword": "Erős jelszó",
+  "strongStrength": "Erős",
+  "@strongStrength": {
+    "description": "Strong password strength label"
   },
-  "invalidEndpointMessage": "Sajnáljuk, a megadott végpont érvénytelen. Adjon meg egy érvényes végpontot, és próbálja újra.",
-  "@invalidEndpointMessage": {
-    "description": "Label for invalidEndpointMessage"
+  "submit": "Küldés",
+  "subscribe": "Előfizetés",
+  "subscribeToChangeLinkSetting": "A linkbeállítás módosításához fizetős előfizetés szükséges.",
+  "subscribeToEnableSharing": "A megosztás engedélyezéséhez aktív fizetős előfizetésre van szükség.",
+  "subscriptionRequiredForSharing": "Fizetett elofizeteset igenel a linkek megosztasa",
+  "success": "Sikeres",
+  "suggestFeatures": "Funkció ajánlása",
+  "supportEnte": "Támogasd <bold-green>ente <bold-green>",
+  "systemTheme": "Rendszer",
+  "tag": "Címke",
+  "tags": "Címkék",
+  "tapToCopy": "érintse meg a másoláshoz",
+  "tellUsWhatYouThink": "Mondd el, mit gondolsz",
+  "tempErrorContactSupportIfPersists": "Úgy tűnik, valami hiba történt. Kérjük, próbáld újra egy idő után. Ha a hiba továbbra is fennáll, fordulj ügyfélszolgálatunkhoz.",
+  "termsOfServicesTitle": "Használati feltételek",
+  "@termsOfServicesTitle": {
+    "description": "Terms of service title"
   },
-  "endpointUpdatedMessage": "A végpont sikeresen frissítve",
-  "@endpointUpdatedMessage": {
-    "description": "Label for endpointUpdatedMessage"
-  }
+  "thankYou": "Köszönjük",
+  "thankYouForSubscribing": "Köszönjük, hogy előfizettél!",
+  "theme": "Téma",
+  "theRecoveryKeyYouEnteredIsIncorrect": "A megadott helyreállítási kulcs helytelen",
+  "@theRecoveryKeyYouEnteredIsIncorrect": {
+    "description": "Detailed error message when recovery key is incorrect"
+  },
+  "thisCanBeUsedToRecoverYourAccountIfYou": "Ezzel tudja visszaállítani felhasználóját ha elveszítené a kétlépcsős azonosítóját",
+  "thisDevice": "Ez az eszköz",
+  "@thisDevice": {
+    "description": "Label for current device"
+  },
+  "thisEmailIsAlreadyInUse": "Ez az e-mail már használatban van",
+  "@thisEmailIsAlreadyInUse": {
+    "description": "Error message when email is already in use"
+  },
+  "thisIsPersonVerificationId": "Ez {email} ellenőrző azonosítója",
+  "@thisIsPersonVerificationId": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@ente.com"
+      }
+    }
+  },
+  "thisIsYourVerificationId": "Ez az ellenőrző azonosítód",
+  "title": "Cim",
+  "todaysLogs": "Mai naplók",
+  "toEnableAppLockPleaseSetupDevicePasscodeOrScreen": "Az alkalmazászár engedélyezéséhez állíts be eszközjelszót vagy a képernyőzárat a rendszerbeállításokban.",
+  "tooManyIncorrectAttempts": "Túl sok helytelen próbálkozás",
+  "@tooManyIncorrectAttempts": {
+    "description": "Message shown when too many incorrect attempts are made"
+  },
+  "trashClearedSuccessfully": "Kuka sikeresen uriteve",
+  "trashCode": "Törli a kódot?",
+  "trashCodeMessage": "Biztosan törölni szeretné a(z) {account} kódját?",
+  "@trashCodeMessage": {
+    "placeholders": {
+      "account": {}
+    }
+  },
+  "trashIsEmpty": "A kuka ures",
+  "troubleshooting": "Hibaelhárítás",
+  "troubleshootingDesc": "Gyakori problémák és megoldásaik",
+  "twofactor": "Kétlépcsős",
+  "twofactorAuthenticationSuccessfullyReset": "A kétfaktoros hitelesítés visszaállítása sikeres",
+  "@twofactorAuthenticationSuccessfullyReset": {
+    "description": "Message when two-factor authentication is successfully reset"
+  },
+  "twofactorSetup": "Kétlépcsős azonosító beállítás",
+  "twoFAVerification": "Kétlépcsős azonosítás",
+  "type": "Típus",
+  "unarchive": "Archiválás visszavonása",
+  "@unarchive": {
+    "description": "Action of 'Unarchiving' an element"
+  },
+  "uncategorized": "Kategorizálatlan",
+  "uncategorizedItemsWillShowUpHere": "A nem kategorizált elemek itt fognak megjelenni",
+  "unhide": "Felfedés",
+  "unhideToAlbum": "Megjelenítés az albumban",
+  "unimportant": "Nem fontos",
+  "unlock": "Feloldás",
+  "@unlock": {
+    "description": "Short action label used as the system authentication reason when unlocking the app"
+  },
+  "unpinnedCodeMessage": "A {code} rögzítése feloldva",
+  "@unpinnedCodeMessage": {
+    "placeholders": {
+      "code": {}
+    }
+  },
+  "unpinnedCount": "{count, plural, one{{count} elem feloldva} other{{count} elem feloldva}}",
+  "@unpinnedCount": {
+    "description": "Text to show number of items unpinned",
+    "placeholders": {
+      "count": {
+        "description": "Number of items unpinned",
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "unpinText": "Rögzítés feloldása",
+  "unsavedNoteChangesDescription": "Nem mentett valtozasok vannak ebben a jegyzetben. Ha most visszalep, elvesznek.",
+  "unsavedNoteChangesTitle": "Elveti a valtozasokat?",
+  "unselectAll": "Összes kijelölés törlése",
+  "untitled": "Cim nelkul",
+  "updateBackupPassword": "Biztonsági mentés jelszavának frissítése",
+  "updated": "Frissítve",
+  "updateSettings": "Beállítások módosítása",
+  "updatingFolderSelection": "Mappakijelölés frissítése...",
+  "uploadedFilesProgress": "{completed}/{total} elem feltoltve...",
+  "@uploadedFilesProgress": {
+    "description": "Progress message showing uploaded items",
+    "placeholders": {
+      "completed": {
+        "type": "int",
+        "example": "3"
+      },
+      "total": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "uploadError": "Feltoltesi hiba",
+  "uploadFileCountLimitErrorBody": "Elertte a fajllimitet. Frissitsen fizetett csomagra tobb tahelyert.",
+  "@uploadFileCountLimitErrorBody": {
+    "description": "Body shown when uploads fail because the locker already has the maximum file count"
+  },
+  "uploadFileCountLimitErrorTitle": "Fajllimit elerve",
+  "@uploadFileCountLimitErrorTitle": {
+    "description": "Title shown when uploads fail because the locker already has the maximum file count"
+  },
+  "uploadFileCountLimitErrorToast": "A muvelet sikertelen. Elertte a fajllimitet.",
+  "@uploadFileCountLimitErrorToast": {
+    "description": "Toast shown when info items fail to save due to hitting the file count limit"
+  },
+  "uploadFiles": "Elemek feltoltese",
+  "uploadFileTooLargeErrorBody": "Ez a fajl meghaladja a maximalis 10 GB-os feltoltesi merethatart.",
+  "@uploadFileTooLargeErrorBody": {
+    "description": "Body shown when uploads fail because the file exceeds the supported size"
+  },
+  "uploadFileTooLargeErrorTitle": "Tul nagy fajl",
+  "@uploadFileTooLargeErrorTitle": {
+    "description": "Title shown when uploads fail because the file exceeds the supported size"
+  },
+  "uploadStorageLimitErrorBody": "Elfogyott a tarhely. Szabaditson fel helyet a feltoltes folytatasahoz.",
+  "@uploadStorageLimitErrorBody": {
+    "description": "Body shown when uploads fail due to running out of storage"
+  },
+  "uploadStorageLimitErrorTitle": "Tarhelylimit elertve",
+  "@uploadStorageLimitErrorTitle": {
+    "description": "Title shown when uploads fail due to running out of storage"
+  },
+  "usable": "felhasználható",
+  "usedYourCode": "a kódodat használta",
+  "useOffline": "Használd biztonsági mentés nélkül",
+  "username": "Felhasznalonev",
+  "usernameHint": "Bejelentkezesi azonosito vagy e-mail",
+  "usingStorage": "{amount} használatban",
+  "@usingStorage": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "20 GB"
+      }
+    }
+  },
+  "verifyingRecoveryKey": "Helyreállítási kulcs ellenőrzése...",
+  "verifyPassword": "Jelszó megerősítése",
+  "@verifyPassword": {
+    "description": "Verify password button label"
+  },
+  "viewActiveSessions": "Aktív munkamenetek megtekintése",
+  "viewer": "Néző",
+  "viewLargeFiles": "Nagy fájlok",
+  "viewLogsAction": "Naplók megtekintése",
+  "viewPlans": "Csomagok",
+  "viewRawCodes": "Nyers kódok megtekintése",
+  "viewRecoveryKey": "Helyreállítási kulcs megtekintése",
+  "visitWebToManage": "Az előfizetésed kezeléséhez látogass el a {webUrl} oldalra",
+  "@visitWebToManage": {
+    "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",
+    "placeholders": {
+      "webUrl": {
+        "type": "String",
+        "example": "photos.ente.com"
+      }
+    }
+  },
+  "waitingForVerification": "Várakozás az ellenőrzésre...",
+  "@waitingForVerification": {
+    "description": "Waiting for verification message"
+  },
+  "waitingForWifi": "Várakozás a WiFi-re...",
+  "warning": "Figyelmeztetés",
+  "weakStrength": "Gyenge",
+  "@weakStrength": {
+    "description": "Weak password strength label"
+  },
+  "weAreOpenSource": "Nyílt forráskódúak vagyunk!",
+  "weHaveSentCodeTo": "Egy kódot küldtünk a következő címre: {email}",
+  "@weHaveSentCodeTo": {
+    "description": "Text to indicate that we have sent a verification code to the user's email",
+    "placeholders": {
+      "email": {
+        "description": "The email address of the user",
+        "type": "String",
+        "example": "example@ente.com"
+      }
+    }
+  },
+  "yearly": "Éves",
+  "@yearly": {
+    "description": "The text to display for yearly plans",
+    "type": "text"
+  },
+  "yearsAgo": "{count, plural, one{{count} évvel ezelőtt} other{{count} évekkel ezelőtt}}",
+  "@yearsAgo": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "yes": "Igen",
+  "yesConvertToViewer": "Igen, alakítsa nézővé",
+  "yesDelete": "Igen, törlés",
+  "yesRemove": "Igen, eltávolítás",
+  "you": "Te",
+  "youCannotDowngradeToThisPlan": "Erre a csomagra nem válthatsz vissza",
+  "youCannotShareWithYourself": "Nem oszthatod meg magaddal",
+  "youHaveNoFileSuggestedForDeletion": "Nincsenek törlésre javasolt fájljaid",
+  "youHaveSuccessfullyFreedUp": "Sikeresen felszabadítottál {storageSaved} tárhelyet!",
+  "@youHaveSuccessfullyFreedUp": {
+    "description": "The text to display when the user has successfully freed up storage",
+    "type": "text",
+    "placeholders": {
+      "storageSaved": {
+        "example": "1.2 GB",
+        "type": "String"
+      }
+    }
+  },
+  "yourPlanSupportsFamily": "A csomagod már támogatja a családi megosztást",
+  "yourPlanWasSuccessfullyDowngraded": "A csomagodat sikeresen visszaváltottuk",
+  "yourPlanWasSuccessfullyUpgraded": "A csomagod sikeresen frissítve lett",
+  "yourPurchaseWasSuccessful": "A vásárlás sikeres volt",
+  "yourSubscriptionWasUpdatedSuccessfully": "Az előfizetésed sikeresen frissült",
+  "yourTrashIsEmpty": "A kukaja ures",
+  "yourVerificationCodeHasExpired": "Ez az ellenőrző kód lejárt",
+  "@yourVerificationCodeHasExpired": {
+    "description": "Error message when verification code has expired"
+  },
+  "youveNoDuplicateCodesThatCanBeCleared": "Nincsenek törölhető ismétlődő kódok",
+  "youveNoDuplicateFilesThatCanBeCleared": "Nincsenek törölhető duplikált fájljaid"
 }

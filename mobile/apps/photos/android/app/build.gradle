@@ -1,9 +1,15 @@
 plugins {
+    id "com.google.gms.google-services" version "4.4.4" apply false
     id "com.android.application"
     id "kotlin-android"
     id "dev.flutter.flutter-gradle-plugin"
-    id 'org.jetbrains.kotlin.plugin.serialization' version '2.1.10'
+    id 'org.jetbrains.kotlin.plugin.serialization' version '2.2.20'
 }
+
+if (file("google-services.json").exists()) {
+    apply plugin: "com.google.gms.google-services"
+}
+
 def localProperties = new Properties()
 def localPropertiesFile = rootProject.file('local.properties')
 if (localPropertiesFile.exists()) {
@@ -28,25 +34,36 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
+// Ente's custom prebuilt ONNX Runtime AAR is resolved straight from its
+// GitHub release through an Ivy repository; its SHA-256 is pinned in
+// gradle/verification-metadata.xml.
+repositories {
+    exclusiveContent {
+        forRepository {
+            ivy {
+                name = 'enteOnnxRuntimePackaging'
+                url = 'https://github.com/ente/ort-packaging/releases/download'
+                patternLayout {
+                    artifact 'ort-[revision]/[artifact]-[revision].[ext]'
+                }
+                metadataSources { artifact() }
+            }
+        }
+        filter { includeGroup 'io.ente.onnxruntime' }
+    }
+}
+
 android {
     namespace = "io.ente.photos"
-    compileSdk = 36
-    ndkVersion = "28.2.13676358"
 
     compileOptions {
         coreLibraryDesugaringEnabled = true
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
-    }
-
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_1_8
     }
 
     sourceSets {
         main.java.srcDirs += 'src/main/kotlin'
     }
-    
+
     lintOptions {
         disable 'InvalidPackage'
         warningsAsErrors false
@@ -56,13 +73,13 @@ android {
     defaultConfig {
         applicationId = "io.ente.photos"
         minSdk = 26
-        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         multiDexEnabled true
         consumerProguardFiles 'proguard-rules.pro'
         ndk {
+            abiFilters.clear()
             abiFilters "armeabi-v7a", "arm64-v8a"
         }
     }
@@ -75,36 +92,28 @@ android {
            storePassword keystoreProperties['storePassword'] ? keystoreProperties['storePassword'] : System.getenv("SIGNING_STORE_PASSWORD")
        }
     }
-    
+
     flavorDimensions "default"
     productFlavors {
         independent {
             dimension "default"
             applicationIdSuffix ".independent"
-            ndk {
-                abiFilters "arm64-v8a", "armeabi-v7a"
-            }
         }
         dev {
             dimension "default"
             applicationIdSuffix ".dev"
-            ndk {
-                abiFilters "arm64-v8a", "armeabi-v7a"
-            }
         }
         playstore {
             dimension "default"
-            ndk {
-                abiFilters "arm64-v8a", "armeabi-v7a"
-            }
         }
         fdroid {
             dimension "default"
             applicationIdSuffix ".fdroid"
-            ndk {
-                abiFilters "arm64-v8a", "armeabi-v7a"
-            }
         }
+    }
+
+    packagingOptions {
+        pickFirst 'lib/*/libc++_shared.so'
     }
 
     buildTypes {
@@ -118,6 +127,9 @@ android {
         debug {
           applicationIdSuffix '.debug'
           versionNameSuffix "-debug"
+          ndk {
+            abiFilters "x86_64"
+          }
           externalNativeBuild {
             cmake {
               arguments "-DANDROID_PACKAGE_NAME=${android.defaultConfig.applicationId}${applicationIdSuffix}"
@@ -128,6 +140,7 @@ android {
 
     packagingOptions {
         jniLibs {
+            pickFirsts += ['**/libc++_shared.so']
             useLegacyPackaging = false
         }
     }
@@ -158,19 +171,28 @@ flutter {
     source = "../.."
 }
 
-dependencies {  
-    implementation 'io.sentry:sentry-android:2.0.0'
-    implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.21'
+dependencies {
+    implementation 'androidx.exifinterface:exifinterface:1.3.7'
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0'
     implementation 'com.android.support:multidex:1.0.3'
     implementation 'com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava'
-    implementation 'com.microsoft.onnxruntime:onnxruntime-android:1.8.1'
+    // Custom WebGPU/XNNPACK build required by Rust ML, which dynamically
+    // loads libonnxruntime.so.
+    implementation 'io.ente.onnxruntime:onnxruntime-webgpu-android:1.31.0-r1@aar'
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test:runner:1.1.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.1.1'
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 
     constraints {
+        // TODO: Remove this once https://github.com/ABausG/home_widget/issues/417
+        // is closed and the fix is available in a stable home_widget release.
+        implementation("androidx.glance:glance-appwidget") {
+            version {
+                strictly "1.1.1"
+            }
+            because("home_widget requests 1.+, which can resolve to pre-release Glance versions requiring newer Android tooling")
+        }
         implementation("androidx.work:work-runtime:2.8.1") {
             because("Align work-runtime versions")
         }

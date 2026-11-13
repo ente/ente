@@ -1,22 +1,17 @@
 import 'dart:async';
 
 import 'package:email_validator/email_validator.dart';
+import "package:ente_base/models/accounts.dart";
+import "package:ente_components/ente_components.dart";
+import "package:ente_strings/ente_strings.dart";
 import "package:flutter/foundation.dart";
 import 'package:flutter/material.dart';
 import "package:logging/logging.dart";
 import 'package:photos/core/configuration.dart';
-import "package:photos/core/errors.dart";
-import "package:photos/gateways/users/models/srp.dart";
-import "package:photos/generated/l10n.dart";
 import 'package:photos/services/account/user_service.dart';
-import "package:photos/theme/colors.dart";
-import "package:photos/theme/ente_theme.dart";
-import "package:photos/theme/text_style.dart";
 import "package:photos/ui/account/email_entry_page.dart";
 import "package:photos/ui/account/login_pwd_verification_page.dart";
-import "package:photos/ui/components/buttons/button_widget_v2.dart";
-import "package:photos/ui/components/models/text_input_type_v2.dart";
-import "package:photos/ui/components/text_input_widget_v2.dart";
+import "package:photos/ui/account/onboarding_page_scaffold.dart";
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -28,6 +23,7 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   bool _emailIsValid = false;
+  bool _isSubmitting = false;
   bool _showValidationMessage = false;
   String? _email;
   Timer? _validationTimer;
@@ -35,8 +31,8 @@ class _LoginPageState extends State<LoginPage> {
   final Logger _logger = Logger('_LoginPageState');
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
+  void initState() {
+    super.initState();
     if ((_config.getEmail() ?? '').isNotEmpty) {
       _updateEmail(_config.getEmail()!);
     } else if (kDebugMode) {
@@ -60,109 +56,76 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
-    final isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
-      backgroundColor: colorScheme.backgroundColour,
-      appBar: AppBar(
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        backgroundColor: colorScheme.backgroundColour,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          color: colorScheme.content,
-          onPressed: () {
-            Navigator.of(context).pop();
+    return OnboardingPageScaffold(
+      title: context.strings.loginToEnte,
+      illustration: OnboardingIllustration.login,
+      showDeveloperSettingsTapArea: true,
+      body: _getBody(),
+      actions: [
+        TextFieldTapRegion(
+          groupId: _emailController,
+          child: ButtonComponent(
+            key: const ValueKey("logInButton"),
+            label: context.strings.continueLabel,
+            shouldShowSuccessState: false,
+            isDisabled: !_emailIsValid,
+            onTap: _emailIsValid ? _submitLoginEmail : null,
+          ),
+        ),
+        OnboardingAccountPrompt(
+          question: context.strings.dontHaveAnAccount,
+          actionLabel: context.strings.signUp,
+          onTap: () async {
+            FocusScope.of(context).unfocus();
+            await Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const EmailEntryPage()));
           },
         ),
-        title: Text(
-          AppLocalizations.of(context).loginToEnte,
-          style: textTheme.largeBold,
-        ),
-        centerTitle: true,
-      ),
-      body: _getBody(colorScheme, textTheme),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: ButtonWidgetV2(
-          key: const ValueKey("logInButton"),
-          buttonType: ButtonTypeV2.primary,
-          labelText: AppLocalizations.of(context).continueLabel,
-          isDisabled: !_emailIsValid,
-          onTap: _emailIsValid ? _onLoginPressed : null,
-        ),
-      ),
-      bottomNavigationBar:
-          isKeyboardOpen ? null : _getSignUpPrompt(colorScheme, textTheme),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      ],
     );
   }
 
-  Widget _getBody(EnteColorScheme colorScheme, EnteTextTheme textTheme) {
+  Widget _getBody() {
     return AutofillGroup(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 20),
-            TextInputWidgetV2(
-              key: const ValueKey("emailInputField"),
-              label: AppLocalizations.of(context).email,
-              hintText: AppLocalizations.of(context).enterYourEmailAddress,
-              textEditingController: _emailController,
-              keyboardType: TextInputType.emailAddress,
-              autoCorrect: false,
-              autoFocus: true,
-              isRequired: true,
-              onChange: _onEmailChanged,
-              message: _showValidationMessage && !_emailIsValid
-                  ? AppLocalizations.of(context).invalidEmailAddress
-                  : null,
-              messageType: _showValidationMessage && !_emailIsValid
-                  ? TextInputMessageType.alert
-                  : TextInputMessageType.guide,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _getSignUpPrompt(
-    EnteColorScheme colorScheme,
-    EnteTextTheme textTheme,
-  ) {
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              "Don't have an account?",
-              style: textTheme.bodyMuted,
-            ),
-            ButtonWidgetV2(
-              buttonType: ButtonTypeV2.link,
-              labelText: AppLocalizations.of(context).signUp,
-              buttonSize: ButtonSizeV2.small,
-              shouldSurfaceExecutionStates: false,
-              onTap: _goToSignUpPage,
-            ),
-          ],
-        ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextInputComponent(
+            key: const ValueKey("emailInputField"),
+            label: context.strings.email,
+            hintText: context.strings.emailHint,
+            controller: _emailController,
+            groupId: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            autofillHints: const [AutofillHints.email],
+            autocorrect: false,
+            autofocus: true,
+            isRequired: true,
+            onSubmit: (_) => _submitLoginEmail(),
+            onChanged: _onEmailChanged,
+            message: _showValidationMessage
+                ? _emailIsValid
+                      ? context.strings.validEmailAddress
+                      : context.strings.invalidEmailAddress
+                : null,
+            messageType: !_showValidationMessage
+                ? TextInputComponentMessageType.helper
+                : _emailIsValid
+                ? TextInputComponentMessageType.success
+                : TextInputComponentMessageType.alert,
+          ),
+        ],
       ),
     );
   }
 
   void _onEmailChanged(String value) {
+    final trimmed = value.trim();
+    if (trimmed == _email) return;
     _validationTimer?.cancel();
 
-    final trimmed = value.trim();
     final isValid = EmailValidator.validate(trimmed);
 
     setState(() {
@@ -182,47 +145,58 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  Future<void> _onLoginPressed() async {
-    await UserService.instance.setEmail(_email!);
+  Future<void> _submitLoginEmail() async {
+    if (_isSubmitting) return;
+    final trimmed = _emailController.text.trim();
+    final isValid = EmailValidator.validate(trimmed);
+    if (!isValid) {
+      setState(() {
+        _email = trimmed;
+        _emailIsValid = false;
+        _showValidationMessage = true;
+      });
+      return;
+    }
+    _email = trimmed;
+    _isSubmitting = true;
+    try {
+      await _onLoginPressed(trimmed);
+    } finally {
+      _isSubmitting = false;
+    }
+  }
+
+  Future<void> _onLoginPressed(String email) async {
+    await UserService.instance.setEmail(email);
     Configuration.instance.resetVolatilePassword();
     SrpAttributes? attr;
     bool isEmailVerificationEnabled = true;
     try {
-      attr = await UserService.instance.getSrpAttributes(_email!);
-      isEmailVerificationEnabled = attr.isEmailMFAEnabled;
+      attr = await UserService.instance.getSrpAttributes(email);
+      isEmailVerificationEnabled = attr.isEmailMfaEnabled;
     } catch (e) {
-      if (e is! SrpSetupNotCompleteError) {
+      if (e != const AccountsError.srpNotConfigured()) {
         _logger.severe('Error getting SRP attributes', e);
       }
     }
     if (attr != null && !isEmailVerificationEnabled) {
+      if (!mounted) return;
       // ignore: unawaited_futures
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (BuildContext context) {
-            return LoginPasswordVerificationPage(
-              srpAttributes: attr!,
-            );
+            return LoginPasswordVerificationPage(srpAttributes: attr!);
           },
         ),
       );
     } else {
+      if (!mounted) return;
       await UserService.instance.sendOtt(
         context,
-        _email!,
+        email,
         isCreateAccountScreen: false,
         purpose: "login",
       );
     }
-    FocusScope.of(context).unfocus();
-  }
-
-  Future<void> _goToSignUpPage() async {
-    FocusScope.of(context).unfocus();
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const EmailEntryPage(),
-      ),
-    );
   }
 }

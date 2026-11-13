@@ -4,6 +4,7 @@ import 'dart:math';
 
 import 'package:flutter/widgets.dart';
 import 'package:logging/logging.dart';
+import 'package:photo_manager/photo_manager.dart';
 import 'package:photos/core/configuration.dart';
 import 'package:photos/core/errors.dart';
 import 'package:photos/core/event_bus.dart';
@@ -17,36 +18,39 @@ import 'package:photos/events/files_updated_event.dart';
 import 'package:photos/events/force_reload_home_gallery_event.dart';
 import 'package:photos/events/local_photos_updated_event.dart';
 import 'package:photos/events/sync_status_update_event.dart';
+import 'package:photos/extensions/logger_extension.dart';
 import 'package:photos/main.dart' show isProcessBg;
 import 'package:photos/models/device_collection.dart';
 import 'package:photos/models/file/extensions/file_props.dart';
 import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file/file_type.dart';
 import 'package:photos/models/upload_strategy.dart';
+import 'package:photos/module/download/file.dart';
+import 'package:photos/module/upload/service/file_uploader.dart';
+import 'package:photos/module/upload/service/local_file_update_service.dart';
 import 'package:photos/service_locator.dart';
 import 'package:photos/services/app_lifecycle_service.dart';
 import 'package:photos/services/collections_service.dart';
 import 'package:photos/services/hidden_service.dart';
 import 'package:photos/services/ignored_files_service.dart';
 import 'package:photos/services/language_service.dart';
-import 'package:photos/services/local_file_update_service.dart';
 import 'package:photos/services/notification_service.dart';
 import 'package:photos/services/social_notification_coordinator.dart';
 import 'package:photos/services/social_sync_service.dart';
 import 'package:photos/services/sync/diff_fetcher.dart';
+import 'package:photos/services/sync/local_sync_service.dart';
 import 'package:photos/services/sync/sync_service.dart';
-import 'package:photos/utils/file_uploader.dart';
-import 'package:photos/utils/file_util.dart';
 import 'package:photos/utils/network_util.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class RemoteSyncService {
   final _logger = Logger("RemoteSyncService");
-  final _db = FilesDB.instance;
+  final FilesDB _db;
   final FileUploader _uploader = FileUploader.instance;
-  final Configuration _config = Configuration.instance;
-  final CollectionsService _collectionsService = CollectionsService.instance;
+  final Configuration _config;
+  final CollectionsService _collectionsService;
   final DiffFetcher _diffFetcher = DiffFetcher();
+  final PhotoManagerPlugin _photoManagerPlugin = PhotoManagerPlugin();
   final LocalFileUpdateService _localFileUpdateService =
       LocalFileUpdateService.instance;
   int _completedUploads = 0;
@@ -56,19 +60,10 @@ class RemoteSyncService {
   bool _isExistingSyncSilent = false;
   StreamSubscription<LocalPhotosUpdatedEvent>? _localPhotosUpdatedSubscription;
 
-  // _hasCleanupStaleEntry is used to track if we have already cleaned up
-  // statle db entries in this sync session.
   bool _hasCleanupStaleEntry = false;
 
   static const kHasSyncedArchiveKey = "has_synced_archive";
-  /* This setting is used to maintain a list of local IDs for videos that the user has manually
- marked for upload, even if the global video upload setting is currently disabled.
- When the global video upload setting is disabled, we typically ignore all video uploads. However, for videos that have been added to this list, we
- want to still allow them to be uploaded, despite the global setting being disabled.
-
- This allows users to queue up videos for upload, and have them successfully upload
- even if they later toggle the global video upload setting to disabled.
-   */
+  // Disabling video backup must not prevent already queued videos from uploading.
   static const _ignoreBackUpSettingsForIDs_ = "ignoreBackUpSettingsForIDs";
   final String _isFirstRemoteSyncDone = "isFirstRemoteSyncDone";
 
@@ -83,21 +78,37 @@ class RemoteSyncService {
   static final RemoteSyncService instance =
       RemoteSyncService._privateConstructor();
 
-  RemoteSyncService._privateConstructor();
+  RemoteSyncService._privateConstructor()
+    : _db = FilesDB.instance,
+      _config = Configuration.instance,
+      _collectionsService = CollectionsService.instance;
+
+  @visibleForTesting
+  RemoteSyncService.forTesting({
+    required FilesDB filesDB,
+    required Configuration configuration,
+    required CollectionsService collectionsService,
+  }) : _db = filesDB,
+       _config = configuration,
+       _collectionsService = collectionsService;
 
   void init(SharedPreferences preferences) {
     _prefs = preferences;
 
     _localPhotosUpdatedSubscription?.cancel();
-    _localPhotosUpdatedSubscription =
-        Bus.instance.on<LocalPhotosUpdatedEvent>().listen((event) async {
-      if (event.type == EventType.addedOrUpdated) {
-        if (_existingSync == null) {
-          // ignore: unawaited_futures
-          sync();
-        }
-      }
-    });
+    _localPhotosUpdatedSubscription = Bus.instance
+        .on<LocalPhotosUpdatedEvent>()
+        .listen((event) async {
+          if (event.type == EventType.addedOrUpdated) {
+            if (_existingSync == null) {
+              try {
+                await sync();
+              } on DeviceStorageFullError catch (e) {
+                Bus.instance.fire(SyncStatusUpdate(SyncStatus.error, error: e));
+              }
+            }
+          }
+        });
   }
 
   Future<void> sync({bool silently = false}) async {
@@ -105,10 +116,17 @@ class RemoteSyncService {
       _logger.info("Skipping remote sync since account is not configured");
       return;
     }
+    if (Platform.isIOS &&
+        !LocalSyncService.instance.hasCompletedFirstImport() &&
+        permissionService.hasGrantedPermissions()) {
+      _logger.info(
+        "Deferring remote sync until first gallery import completes",
+      );
+      return;
+    }
     if (_existingSync != null) {
       _logger.info("Remote sync already in progress, skipping");
-      // if current sync is silent but request sync is non-silent (demands UI
-      // updates), update the syncSilently flag
+      // A visible request upgrades an in-flight silent sync.
       if (_isExistingSyncSilent && !silently) {
         _isExistingSyncSilent = false;
       }
@@ -125,10 +143,8 @@ class RemoteSyncService {
       final canPrepareUploadsInBackground =
           !isProcessBg || await canUseHighBandwidth();
 
-      // use flag to decide if we should start marking files for upload before
-      // remote-sync is done. This is done to avoid adding existing files to
-      // the same or different collection when user had already uploaded them
-      // before.
+      // First sync must pull the diff before marking uploads, or existing
+      // remote files can be queued again.
       final bool hasSyncedBefore = _prefs.containsKey(_isFirstRemoteSyncDone);
       if (hasSyncedBefore && canPrepareUploadsInBackground) {
         await syncDeviceCollectionFilesForUpload();
@@ -137,7 +153,6 @@ class RemoteSyncService {
       await trashSyncService.syncTrash();
       await _collectionsService.movePendingRemovalActionsToUncategorized();
 
-      // Sync social data immediately after diff sync, before uploads
       if (AppLifecycleService.instance.isForeground) {
         _socialSync().ignore();
       } else {
@@ -151,9 +166,7 @@ class RemoteSyncService {
         }
       }
 
-      if (
-          // We don't need syncFDStatus here if in background
-          !isProcessBg) {
+      if (!isProcessBg) {
         fileDataService.syncFDStatus().ignore();
       }
 
@@ -165,8 +178,9 @@ class RemoteSyncService {
       final hasUploadedFiles = await _uploadFiles(filesToBeUploaded);
       if (filesToBeUploaded.isNotEmpty) {
         _logger.info(
-            "Files ${filesToBeUploaded.length} queued for upload, completed: "
-            "$_completedUploads, ignored $_ignoredUploads");
+          "Files ${filesToBeUploaded.length} queued for upload, completed: "
+          "$_completedUploads, ignored $_ignoredUploads",
+        );
       } else {
         _logger.info("No files to upload for this session");
       }
@@ -178,22 +192,20 @@ class RemoteSyncService {
         final hasMoreFilesToBackup = (await _getFilesToBeUploaded()).isNotEmpty;
         _logger.info("hasMoreFilesToBackup?" + hasMoreFilesToBackup.toString());
         if (hasMoreFilesToBackup) {
-          // Skipping a resync to ensure that files that were ignored in this
-          // session are not processed now
           await sync();
         } else {
           _logger.info("Fire backup completed event");
           Bus.instance.fire(SyncStatusUpdate(SyncStatus.completedBackup));
         }
       } else {
-        // if filesToBeUploaded is empty, clear any stale files in the temp
-        // directory
         if (filesToBeUploaded.isEmpty) {
           await _uploader.removeStaleFiles();
         }
         if (_ignoredUploads > 0) {
-          _logger.info("Ignored $_ignoredUploads files for upload, fire "
-              "backup done");
+          _logger.info(
+            "Ignored $_ignoredUploads files for upload, fire "
+            "backup done",
+          );
           Bus.instance.fire(SyncStatusUpdate(SyncStatus.completedBackup));
         }
         _existingSync?.complete();
@@ -205,12 +217,13 @@ class RemoteSyncService {
       _logger.warning("Error executing remote sync", e, s);
 
       if (flagService.internalUser ||
-          // rethrow whitelisted error so that UI status can be updated correctly.
+          // The outer sync uses these errors to update UI state.
           {
             UnauthorizedError,
             NoActiveSubscriptionError,
             WiFiUnavailableError,
             StorageLimitExceededError,
+            DeviceStorageFullError,
             SyncStopRequestedError,
             NoMediaLocationAccessError,
           }.contains(e.runtimeType)) {
@@ -225,16 +238,27 @@ class RemoteSyncService {
     return _prefs.containsKey(_isFirstRemoteSyncDone);
   }
 
-  Future<bool> whiteListVideoForUpload(EnteFile file) async {
-    if (file.fileType == FileType.video &&
-        !_config.shouldBackupVideos() &&
-        file.localID != null) {
-      final List<String> whitelistedIDs =
-          _prefs.getStringList(_ignoreBackUpSettingsForIDs_) ?? <String>[];
-      whitelistedIDs.add(file.localID!);
-      return _prefs.setStringList(_ignoreBackUpSettingsForIDs_, whitelistedIDs);
-    }
-    return false;
+  Future<bool> whiteListVideoForUpload(EnteFile file) =>
+      whiteListVideosForUpload([file]);
+
+  Future<bool> whiteListVideosForUpload(Iterable<EnteFile> files) async {
+    if (backupSettings.shouldBackupVideos()) return false;
+    final requestedIDs = {
+      for (final file in files)
+        if (file.fileType == FileType.video && file.localID != null)
+          file.localID!,
+    };
+    if (requestedIDs.isEmpty) return false;
+    final existingIDs =
+        _prefs.getStringList(_ignoreBackUpSettingsForIDs_) ?? <String>[];
+    final whitelistedIDs = existingIDs.toSet();
+    final hasNewIDs = requestedIDs.any((id) => !whitelistedIDs.contains(id));
+    if (!hasNewIDs && whitelistedIDs.length == existingIDs.length) return false;
+    whitelistedIDs.addAll(requestedIDs);
+    return _prefs.setStringList(
+      _ignoreBackUpSettingsForIDs_,
+      whitelistedIDs.toList(),
+    );
   }
 
   Future<void> _pullDiff() async {
@@ -244,9 +268,8 @@ class RemoteSyncService {
       Bus.instance.fire(SyncStatusUpdate(SyncStatus.applyingRemoteDiff));
     }
     await _collectionsService.sync();
-    // check and reset user's collection syncTime in past for older clients
+    // Older clients may need collection diffs replayed from feature cutoffs.
     if (isFirstSync) {
-      // not need reset syncTime, mark all flags as done if firstSync
       await _markResetSyncTimeAsDone();
     } else if (_shouldResetSyncTime()) {
       _logger.warning('Resetting syncTime for for the client');
@@ -254,8 +277,8 @@ class RemoteSyncService {
       await _markResetSyncTimeAsDone();
     }
 
-    final idsToRemoteUpdationTimeMap =
-        await _collectionsService.getCollectionIDsToBeSynced();
+    final idsToRemoteUpdationTimeMap = await _collectionsService
+        .getCollectionIDsToBeSynced();
     await _syncUpdatedCollections(idsToRemoteUpdationTimeMap);
     unawaited(_localFileUpdateService.markUpdatedFilesForReUpload());
     unawaited(_notifyNewFiles(idsToRemoteUpdationTimeMap.keys.toList()));
@@ -269,10 +292,7 @@ class RemoteSyncService {
         cid,
         _collectionsService.getCollectionSyncTime(cid),
       );
-      // update syncTime for the collection in sharedPrefs. Note: the
-      // syncTime can change on remote but we might not get a diff for the
-      // collection if there are not changes in the file, but the collection
-      // metadata (name, archive status, sharing etc) has changed.
+      // Collection metadata can advance remote time without a file diff.
       final remoteUpdateTime = idsToRemoteUpdationTimeMap[cid];
       await _collectionsService.setCollectionSyncTime(cid, remoteUpdateTime);
     }
@@ -285,8 +305,10 @@ class RemoteSyncService {
     _logger.info('re-setting all collections syncTime to: $resetSyncTime');
     final collections = _collectionsService.getActiveCollections();
     for (final c in collections) {
-      final int newSyncTime =
-          min(_collectionsService.getCollectionSyncTime(c.id), resetSyncTime);
+      final int newSyncTime = min(
+        _collectionsService.getCollectionSyncTime(c.id),
+        resetSyncTime,
+      );
       await _collectionsService.setCollectionSyncTime(c.id, newSyncTime);
     }
   }
@@ -299,8 +321,10 @@ class RemoteSyncService {
     if (!_isExistingSyncSilent) {
       Bus.instance.fire(SyncStatusUpdate(SyncStatus.applyingRemoteDiff));
     }
-    final diff =
-        await _diffFetcher.getEncryptedFilesDiff(collectionID, sinceTime);
+    final diff = await _diffFetcher.getEncryptedFilesDiff(
+      collectionID,
+      sinceTime,
+    );
     if (diff.deletedFiles.isNotEmpty) {
       await _syncCollectionDiffDelete(diff, collectionID);
     }
@@ -351,12 +375,14 @@ class RemoteSyncService {
 
   Future<void> _syncCollectionDiffDelete(Diff diff, int collectionID) async {
     final fileIDs = diff.deletedFiles.map((f) => f.uploadedFileID!).toList();
-    final localDeleteCount =
-        await _db.deleteFilesFromCollection(collectionID, fileIDs);
+    final collectionFiles = (await _db.getFilesFromIDs(
+      fileIDs,
+    )).where((file) => file.collectionID == collectionID).toList();
+    final localDeleteCount = await _db.deleteFilesFromCollection(
+      collectionID,
+      fileIDs,
+    );
     if (localDeleteCount > 0) {
-      final collectionFiles =
-          (await _db.getFileIDToFileFromIDs(fileIDs)).values.toList();
-      collectionFiles.removeWhere((f) => f.collectionID != collectionID);
       Bus.instance.fire(
         CollectionUpdatedEvent(
           collectionID,
@@ -381,48 +407,67 @@ class RemoteSyncService {
 
     final deviceCollections = await _db.getDeviceCollections();
     deviceCollections.removeWhere((element) => !element.shouldBackup);
-    // Sort by count to ensure that photos in iOS are first inserted in
-    // smallest album marked for backup. This is to ensure that photo is
-    // first attempted to upload in a non-recent album.
+    // On iOS, process smaller albums first so assets are first queued from a
+    // non-recent album.
     deviceCollections.sort((a, b) => a.count.compareTo(b.count));
-    final Map<String, Set<String>> pathIdToLocalIDs =
-        await _db.getDevicePathIDToLocalIDMap();
+    final Map<String, Set<String>> pathIdToLocalIDs = await _db
+        .getDevicePathIDToLocalIDMap();
 
-    // Fetch all newer local IDs once if only-new backup is enabled
     final backNewPhotosOnly = backupPreferenceService.isOnlyNewBackupEnabled;
 
     late final Set<String> newerLocalIDs;
     if (backNewPhotosOnly) {
       final int onlyNewSince = backupPreferenceService.onlyNewSinceEpoch!;
-      // Single DB query for all newer files
       newerLocalIDs = await _db.getAllLocalIDsNewerThan(onlyNewSince);
       _logger.info("Found ${newerLocalIDs.length} newer files");
     }
 
+    var remainingIfMissingFolders = deviceCollections
+        .where((folder) => folder.uploadStrategy == UploadStrategy.ifMissing)
+        .length;
+    Set<String>? claimedLocalIDs;
     bool moreFilesMarkedForBackup = false;
     for (final deviceCollection in deviceCollections) {
       final Set<String> localIDsToSync =
           pathIdToLocalIDs[deviceCollection.id]?.toSet() ?? {};
       if (deviceCollection.uploadStrategy == UploadStrategy.ifMissing) {
-        final Set<String> alreadyClaimedLocalIDs =
+        remainingIfMissingFolders--;
+        final alreadyClaimedLocalIDs =
+            claimedLocalIDs ??
             await _db.getLocalIDsMarkedForOrAlreadyUploaded(ownerID);
+        claimedLocalIDs = remainingIfMissingFolders > 0
+            ? alreadyClaimedLocalIDs
+            : null;
         localIDsToSync.removeAll(alreadyClaimedLocalIDs);
         if (alreadyClaimedLocalIDs.isNotEmpty && !_hasCleanupStaleEntry) {
           try {
-            await _db.removeQueuedLocalFiles(alreadyClaimedLocalIDs, ownerID);
+            final removed = await _db.removeQueuedLocalFiles(
+              alreadyClaimedLocalIDs,
+              ownerID,
+            );
+            if (removed > 0) {
+              // Cleanup can remove the last mapped row for a local ID.
+              claimedLocalIDs = null;
+            }
+            _hasCleanupStaleEntry = true;
           } catch (e, s) {
+            claimedLocalIDs = null;
             _logger.severe("removeQueuedLocalFiles failed", e, s);
           }
         }
       }
 
-      // Filter by only-new using pre-fetched set
       if (backNewPhotosOnly) {
-        // Keep only files that are in newerLocalIDs (removes old files)
         localIDsToSync.retainAll(newerLocalIDs);
       }
 
       if (localIDsToSync.isEmpty) {
+        if (flagService.syncRecoveryDiagnostics) {
+          _logger.info(
+            "[${deviceCollection.name}] upload-prep empty: "
+            "pathID=${deviceCollection.id} mappedFromPath=0",
+          );
+        }
         continue;
       }
       final collectionID = await _getCollectionID(deviceCollection);
@@ -432,18 +477,20 @@ class RemoteSyncService {
       }
 
       moreFilesMarkedForBackup = true;
-      await _db.setCollectionIDForUnMappedLocalFiles(
-        collectionID,
-        localIDsToSync,
-      );
+      final newlyClaimedLocalIDs = await _db
+          .setCollectionIDForUnMappedLocalFiles(
+            collectionID,
+            localIDsToSync,
+            trackClaimsForOwner: claimedLocalIDs == null ? null : ownerID,
+          );
+      claimedLocalIDs?.addAll(newlyClaimedLocalIDs);
 
-      // mark IDs as already synced if corresponding entry is present in
-      // the collection. This can happen when a user has marked a folder
-      // for sync, then un-synced it and again tries to mark if for sync.
-      final Set<String> existingMapping =
-          await _db.getLocalFileIDsForCollection(collectionID);
-      final Set<String> commonElements =
-          localIDsToSync.intersection(existingMapping);
+      // Re-enabling a backup folder must not duplicate its existing rows.
+      final Set<String> existingMapping = await _db
+          .getLocalFileIDsForCollection(collectionID);
+      final Set<String> commonElements = localIDsToSync.intersection(
+        existingMapping,
+      );
       if (commonElements.isNotEmpty) {
         debugPrint(
           "${commonElements.length} files already existing in "
@@ -452,21 +499,31 @@ class RemoteSyncService {
         localIDsToSync.removeAll(commonElements);
       }
 
-      // At this point, the remaining localIDsToSync will need to create
-      // new file entries, where we can store mapping for localID and
-      // corresponding collection ID
       if (localIDsToSync.isNotEmpty) {
         debugPrint(
           'Adding new entries for ${localIDsToSync.length} files'
           ' for ${deviceCollection.name}',
         );
-        final filesWithCollectionID =
-            await _db.getLocalFiles(localIDsToSync.toList());
+        final filesWithCollectionID = await _db.getLocalFiles(
+          localIDsToSync.toList(),
+        );
+        if (deviceCollection.uploadStrategy == UploadStrategy.ifMissing) {
+          final claimedSinceRead = {
+            for (final file in filesWithCollectionID)
+              if (file.collectionID != null &&
+                  file.collectionID != -1 &&
+                  (file.ownerID == null || file.ownerID == ownerID))
+                file.localID!,
+          };
+          localIDsToSync.removeAll(claimedSinceRead);
+          claimedLocalIDs?.addAll(claimedSinceRead);
+        }
         final List<EnteFile> newFilesToInsert = [];
         final Set<String> fileFoundForLocalIDs = {};
         for (var existingFile in filesWithCollectionID) {
           final String localID = existingFile.localID!;
-          if (!fileFoundForLocalIDs.contains(localID)) {
+          if (localIDsToSync.contains(localID) &&
+              !fileFoundForLocalIDs.contains(localID)) {
             existingFile.generatedID = null;
             existingFile.collectionID = collectionID;
             existingFile.uploadedFileID = null;
@@ -476,17 +533,37 @@ class RemoteSyncService {
           }
         }
         await _db.insertMultiple(newFilesToInsert);
+        claimedLocalIDs?.addAll(fileFoundForLocalIDs);
         if (fileFoundForLocalIDs.length != localIDsToSync.length) {
           _logger.warning(
             "mismatch in num of filesToSync ${localIDsToSync.length} to "
             "fileSynced ${fileFoundForLocalIDs.length}",
           );
         }
+        if (flagService.syncRecoveryDiagnostics) {
+          final int mappedCount = localIDsToSync.length;
+          final int postFilterCount = localIDsToSync.length;
+          final int missingFileRows =
+              postFilterCount - fileFoundForLocalIDs.length;
+          if (missingFileRows > 0) {
+            final sample = localIDsToSync
+                .difference(fileFoundForLocalIDs)
+                .take(3);
+            _logger.warning(
+              "[${deviceCollection.name}] upload-prep missing rows: "
+              "pathID=${deviceCollection.id} "
+              "mappedFromPath=$mappedCount "
+              "postFilter=$postFilterCount "
+              "missingFileRows=$missingFileRows "
+              "collectionID=$collectionID "
+              "sample=${sample.toList()}",
+            );
+          }
+        }
       }
     }
     if (moreFilesMarkedForBackup &&
         !backupPreferenceService.hasSelectedAllFoldersForBackup) {
-      // "force reload due to display new files"
       Bus.instance.fire(ForceReloadHomeGalleryEvent("newFilesDisplay"));
     }
     _hasCleanupStaleEntry = true;
@@ -495,13 +572,12 @@ class RemoteSyncService {
   Future<void> updateDeviceFolderSyncStatus(
     Map<String, bool> syncStatusUpdate,
   ) async {
-    final Set<int> oldCollectionIDsForAutoSync =
-        await _db.getDeviceSyncCollectionIDs();
+    final Set<int> oldCollectionIDsForAutoSync = await _db
+        .getDeviceSyncCollectionIDs();
     await _db.updateDevicePathSyncStatus(syncStatusUpdate);
-    final Set<int> newCollectionIDsForAutoSync =
-        await _db.getDeviceSyncCollectionIDs();
+    final Set<int> newCollectionIDsForAutoSync = await _db
+        .getDeviceSyncCollectionIDs();
     SyncService.instance.onDeviceCollectionSet(newCollectionIDsForAutoSync);
-    // remove all collectionIDs which are still marked for backup
     oldCollectionIDsForAutoSync.removeAll(newCollectionIDsForAutoSync);
     await removeFilesQueuedForUpload(oldCollectionIDsForAutoSync.toList());
     if (syncStatusUpdate.values.any((syncStatus) => syncStatus == false)) {
@@ -514,16 +590,10 @@ class RemoteSyncService {
   }
 
   Future<void> removeFilesQueuedForUpload(List<int> collectionIDs) async {
-    /*
-      For each collection, perform following action
-      1) Get List of all files not uploaded yet
-      2) Delete files who localIDs is also present in other collections.
-      3) For Remaining files, set the collectionID as -1
-     */
     _logger.info("Removing files for collections $collectionIDs");
     for (int collectionID in collectionIDs) {
-      final List<EnteFile> pendingUploads =
-          await _db.getPendingUploadForCollection(collectionID);
+      final List<EnteFile> pendingUploads = await _db
+          .getPendingUploadForCollection(collectionID);
       if (pendingUploads.isEmpty) {
         continue;
       } else {
@@ -532,11 +602,8 @@ class RemoteSyncService {
           "${pendingUploads.length}",
         );
       }
-      final Set<String> localIDsInOtherFileEntries =
-          await _db.getLocalIDsPresentInEntries(
-        pendingUploads,
-        collectionID,
-      );
+      final Set<String> localIDsInOtherFileEntries = await _db
+          .getLocalIDsPresentInEntries(pendingUploads, collectionID);
       _logger.info(
         "RemovingFiles $collectionIDs: filesInOtherCollection "
         "${localIDsInOtherFileEntries.length}",
@@ -562,51 +629,45 @@ class RemoteSyncService {
 
   Future<int?> _getCollectionID(DeviceCollection deviceCollection) async {
     if (deviceCollection.hasCollectionID()) {
-      final collection =
-          _collectionsService.getCollectionByID(deviceCollection.collectionID!);
+      final collection = _collectionsService.getCollectionByID(
+        deviceCollection.collectionID!,
+      );
       if (collection != null && !collection.isDeleted) {
         return collection.id;
       }
       if (collection == null) {
-        // ideally, this should never happen because the app keeps a track of
-        // all collections and their IDs. But, if somehow the collection is
-        // deleted, we should fetch it again
         _logger.severe(
           "Collection ${deviceCollection.collectionID} missing "
           "for pathID ${deviceCollection.id}",
         );
+        // Retry next sync. Waiting on a bad mapping would block other paths.
         _collectionsService
             .fetchCollectionByID(deviceCollection.collectionID!)
             .ignore();
-        // return, by next run collection should be available.
-        // we are not waiting on fetch by choice because device might have wrong
-        // mapping which will result in breaking upload for other device path
         return null;
       } else if (collection.isDeleted) {
-        _logger.warning("Collection ${deviceCollection.collectionID} deleted "
-            "for pathID ${deviceCollection.id}, new collection will be created");
+        _logger.warning(
+          "Collection ${deviceCollection.collectionID} deleted "
+          "for pathID ${deviceCollection.id}, new collection will be created",
+        );
       }
     }
-    final collection =
-        await _collectionsService.getOrCreateForPath(deviceCollection.name);
+    final collection = await _collectionsService.getOrCreateForPath(
+      deviceCollection.name,
+    );
     await _db.updateDeviceCollection(deviceCollection.id, collection.id);
     return collection.id;
   }
 
   Future<List<EnteFile>> _getFilesToBeUploaded() async {
-    // Note: "only backup new photos" filtering is applied at the local sync
-    // stage (see _syncDeviceCollectionFilesForUpload) where we filter by
-    // localID before setting collectionID. Files that reach here with a
-    // collectionID but no uploadedFileID either:
-    // 1. Passed the only-new filter during auto-backup sync, OR
-    // 2. Were manually added by the user to a collection
-    // In case 2, we should NOT filter them out - user explicitly chose them.
+    // Only-new filtering happens while auto-backup mappings are created. Do
+    // not apply it here; this queue also includes manually selected files.
     final List<EnteFile> originalFiles = await _db.getFilesPendingForUpload();
     if (originalFiles.isEmpty) {
       return originalFiles;
     }
     final bool shouldRemoveVideos =
-        !_config.shouldBackupVideos() || bgWithoutResumableUpload;
+        !backupSettings.shouldBackupVideos() || bgWithoutResumableUpload;
     final ignoredIDs = await IgnoredFilesService.instance.idToIgnoreReasonMap;
     bool shouldSkipUploadFunc(EnteFile file) {
       return IgnoredFilesService.instance.shouldSkipUpload(ignoredIDs, file);
@@ -632,8 +693,10 @@ class RemoteSyncService {
       filesToBeUploaded.add(file);
     }
     if (skippedVideos > 0 || ignoredForUpload > 0) {
-      _logger.info("Skipped $skippedVideos videos and $ignoredForUpload "
-          "ignored files for upload");
+      _logger.info(
+        "Skipped $skippedVideos videos and $ignoredForUpload "
+        "ignored files for upload",
+      );
     }
     _sortByTime(filesToBeUploaded);
     _logger.info("${filesToBeUploaded.length} new files to be uploaded.");
@@ -657,23 +720,29 @@ class RemoteSyncService {
       );
       await _uploader.verifyMediaLocationAccess();
       await _uploader.checkNetworkForUpload();
-      await _uploader.fetchUploadURLs(toBeUploaded);
+      await _uploader.validateUploadEligibility();
     }
     final List<Future> futures = [];
 
-    for (final file in filesToBeUploaded) {
+    var uploadQueue = filesToBeUploaded;
+    if (Platform.isIOS &&
+        isProcessBg &&
+        flagService.enableBgLocalUploadPriority) {
+      uploadQueue = await _buildBgUploadQueue(filesToBeUploaded);
+    }
+
+    for (final file in uploadQueue) {
       if (shouldThrottleUpload &&
           futures.length >= kMaximumPermissibleUploadsInThrottledMode) {
         break;
       }
-      // prefer existing collection ID for manually uploaded files.
-      // See https://github.com/ente-io/photos-app/pull/187
+      // Keep manually selected files in their chosen collection.
       try {
-        final collectionID = file.collectionID ??
+        final collectionID =
+            file.collectionID ??
             (await _collectionsService.getOrCreateForPath(
               file.deviceFolder ?? 'Unknown Folder',
-            ))
-                .id;
+            )).id;
         _uploadFile(file, collectionID, futures);
       } catch (_) {}
     }
@@ -728,11 +797,14 @@ class RemoteSyncService {
   }
 
   void _uploadFile(EnteFile file, int collectionID, List<Future> futures) {
-    final future = _uploader.upload(file, collectionID).then((uploadedFile) {
-      return _onFileUploaded(uploadedFile);
-    }).onError((error, stackTrace) {
-      return _onFileUploadError(error, stackTrace, file);
-    });
+    final future = _uploader
+        .upload(file, collectionID)
+        .then((uploadedFile) {
+          return _onFileUploaded(uploadedFile);
+        })
+        .onError((error, stackTrace) {
+          return _onFileUploadError(error, stackTrace, file);
+        });
     futures.add(future);
   }
 
@@ -766,11 +838,7 @@ class RemoteSyncService {
     );
   }
 
-  void _onFileUploadError(
-    Object? error,
-    StackTrace stackTrace,
-    EnteFile file,
-  ) {
+  void _onFileUploadError(Object? error, StackTrace stackTrace, EnteFile file) {
     if (error == null) {
       return;
     }
@@ -782,22 +850,8 @@ class RemoteSyncService {
     }
   }
 
-  /* _storeDiff maps each remoteFile to existing
-      entries in files table. When match is found, it compares both file to
-      perform relevant actions like
-      [1] Clear local cache when required (Both Shared and Owned files)
-      [2] Retain localID of remote file based on matching logic [Owned files]
-      [3] Refresh UI if visibility or creationTime has changed [Owned files]
-      [4] Schedule file update if the local file has changed since last time
-      [Owned files]
-    [Important Note: If given uploadedFileID and collectionID is already present
-     in files db, the generateID should already point to existing entry.
-     Known Issues:
-      [K1] Cached entry will not be cleared when if a file was edited and
-      moved to different collection as Vid/Image cache key is uploadedID.
-      [Existing]
-    ]
-   */
+  // Moving an edited file between collections does not invalidate cached media
+  // because the cache is keyed by upload ID.
   Future<void> _storeDiff(List<EnteFile> diff, int collectionID) async {
     int sharedFileNew = 0,
         sharedFileUpdated = 0,
@@ -806,21 +860,16 @@ class RemoteSyncService {
         remoteNewFile = 0;
     final int userID = _config.getUserID()!;
     bool needsGalleryReload = false;
-    // this is required when same file is uploaded twice in the same
-    // collection. Without this check, if both remote files are part of same
-    // diff response, then we end up inserting one entry instead of two
-    // as we update the generatedID for remoteFile to local file's genID
+    // A diff can contain two uploads of one local file. Claim its row only once.
     final Set<int> alreadyClaimedLocalFilesGenID = {};
 
     final List<EnteFile> toBeInserted = [];
     for (EnteFile remoteFile in diff) {
-      // existingFile will be either set to existing collectionID+localID or
-      // to the unclaimed aka not already linked to any uploaded file.
+      // DiffFetcher preserves generatedID for existing uploadedFileID and
+      // collectionID pairs.
       EnteFile? existingFile;
       if (remoteFile.generatedID != null) {
-        // Case [1] Check and clear local cache when uploadedFile already exist
-        // Note: Existing file can be null here if it's replaced by the time we
-        // reach here
+        // The row may have been replaced since the diff was fetched.
         existingFile = await _db.getUploadedFile(
           remoteFile.uploadedFileID!,
           remoteFile.collectionID!,
@@ -832,9 +881,7 @@ class RemoteSyncService {
         }
       }
 
-      /* If file is not owned by the user, no further processing is required
-      as Case [2,3,4] are only relevant to files owned by user
-       */
+      // Local upload matching and update scheduling only apply to owned files.
       if (userID != remoteFile.ownerID) {
         if (existingFile == null) {
           sharedFileNew++;
@@ -847,7 +894,6 @@ class RemoteSyncService {
           remoteFile.localID = existingFile.localID;
         }
         toBeInserted.add(remoteFile);
-        // end processing for file here, move to next file now
         continue;
       }
 
@@ -867,31 +913,23 @@ class RemoteSyncService {
           deviceFolder: remoteFile.deviceFolder ?? '',
         );
         if (localFileEntries.isEmpty) {
-          // set remote file's localID as null because corresponding local file
-          // does not exist [Case 2, do not retain localID of the remote file]
+          // Do not retain a remote localID without a matching local file.
           remoteFile.localID = null;
         } else {
-          // case 4: Check and schedule the file for update
           final int maxModificationTime = localFileEntries
-              .map(
-                (e) => e.modificationTime ?? 0,
-              )
+              .map((e) => e.modificationTime ?? 0)
               .reduce(max);
 
-          /* Note: In case of iOS, we will miss any asset modification in
-            between of two installation. This is done to avoid fetching assets
-            from iCloud when modification time could have changed for number of
-            reasons. To fix this, we need to identify a way to store version
-            for the adjustments or just if the asset has been modified ever.
-            https://stackoverflow.com/a/50093266/546896
-            */
+          // Do not use modification time to detect iOS edits. It can change for
+          // other reasons, and detecting adjustments can fetch the asset from
+          // iCloud. Edits made between installs can therefore be missed.
+          // https://stackoverflow.com/a/50093266/546896
           if (maxModificationTime > remoteFile.modificationTime! &&
               Platform.isAndroid) {
             localButUpdatedOnDevice++;
-            await FileUpdationDB.instance.insertMultiple(
-              [remoteFile.localID!],
-              FileUpdationDB.modificationTimeUpdated,
-            );
+            await FileUpdationDB.instance.insertMultiple([
+              remoteFile.localID!,
+            ], FileUpdationDB.modificationTimeUpdated);
           }
 
           localFileEntries.removeWhere(
@@ -901,8 +939,6 @@ class RemoteSyncService {
           );
 
           if (localFileEntries.isNotEmpty) {
-            // file uploaded from same device, replace the local file row by
-            // setting the generated ID of remoteFile to localFile generatedID
             existingFile = localFileEntries.first;
             localUploadedFromDevice++;
             alreadyClaimedLocalFilesGenID.add(existingFile.generatedID!);
@@ -935,7 +971,6 @@ class RemoteSyncService {
           " remoteFiles seen first time",
     );
     if (needsGalleryReload) {
-      // 'force reload home gallery'
       Bus.instance.fire(ForceReloadHomeGalleryEvent("remoteSync"));
     }
   }
@@ -965,8 +1000,6 @@ class RemoteSyncService {
     return false;
   }
 
-  // return true if the client needs to re-sync the collections from previous
-  // version
   bool _shouldResetSyncTime() {
     return !_prefs.containsKey(kHasSyncedEditTime) ||
         !_prefs.containsKey(kHasSyncedArchiveKey);
@@ -975,15 +1008,13 @@ class RemoteSyncService {
   Future<void> _markResetSyncTimeAsDone() async {
     await _prefs.setBool(kHasSyncedArchiveKey, true);
     await _prefs.setBool(kHasSyncedEditTime, true);
-    // Check to avoid regression because of change or additions of keys
     if (_shouldResetSyncTime()) {
       throw Exception("_shouldResetSyncTime should return false now");
     }
   }
 
   int _getSinceTimeForReSync() {
-    // re-sync from archive feature time if the client still hasn't synced
-    // since the feature release.
+    // Replay from the oldest feature whose migration has not completed.
     if (!_prefs.containsKey(kHasSyncedArchiveKey)) {
       return kArchiveFeatureReleaseTime;
     }
@@ -995,34 +1026,96 @@ class RemoteSyncService {
   }
 
   bool get bgWithoutResumableUpload {
-    // if multiple part is enabled, then we are not throttling uploads in bg
     return !(flagService.enableMobMultiPart &&
             localSettings.userEnabledMultiplePart) &&
         !AppLifecycleService.instance.isForeground;
   }
 
-  // _sortByTime sort by creation time (desc).
-  // This is done to upload most recent photo first.
   void _sortByTime(List<EnteFile> file) {
     file.sort((first, second) {
-      // 1. fileType: move videos to end when in bg
       if (!AppLifecycleService.instance.isForeground &&
           first.fileType != second.fileType) {
         if (first.fileType == FileType.video) return 1;
         if (second.fileType == FileType.video) return -1;
       }
 
-      // 2. creationTime descending
       return second.creationTime!.compareTo(first.creationTime!);
     });
+  }
+
+  Future<List<EnteFile>> _buildBgUploadQueue(List<EnteFile> files) async {
+    const maxChecksPerSlot = kMaximumPermissibleUploadsInThrottledMode;
+    const slots = kMaximumPermissibleUploadsInThrottledMode;
+    final Set<int> picked = {};
+    final Set<int> knownICloud = {};
+    final List<EnteFile> queue = [];
+
+    for (int slot = 0; slot < slots && picked.length < files.length; slot++) {
+      int checks = 0;
+      int? fallback;
+      bool found = false;
+
+      for (int i = 0; i < files.length; i++) {
+        if (picked.contains(i)) continue;
+
+        fallback ??= i;
+
+        if (knownICloud.contains(i)) continue;
+
+        if (checks >= maxChecksPerSlot) break;
+        checks++;
+
+        if (await _isOriginLocallyAvailable(files[i])) {
+          queue.add(files[i]);
+          picked.add(i);
+          found = true;
+          break;
+        } else {
+          knownICloud.add(i);
+        }
+      }
+
+      if (!found && fallback != null) {
+        queue.add(files[fallback]);
+        picked.add(fallback);
+      }
+    }
+
+    _logger.internalInfo(
+      "Built bg upload queue: ${queue.length} files, "
+      "${knownICloud.length} iCloud-only skipped",
+    );
+    return queue;
+  }
+
+  Future<bool> _isOriginLocallyAvailable(EnteFile file) async {
+    try {
+      if (file.localID == null) {
+        return false;
+      }
+      return await _photoManagerPlugin.isLocallyAvailable(
+        file.localID!,
+        isOrigin: true,
+        subtype: file.fileType == FileType.livePhoto
+            ? (file.fileSubType ?? 0)
+            : 0,
+      );
+    } catch (e, s) {
+      _logger.warning(
+        "Failed to determine local availability for ${file.tag}",
+        e,
+        s,
+      );
+      return false;
+    }
   }
 
   bool _shouldShowSharedPhotosAndAlbumsNotification(int collectionID) {
     // TODO: Add option to opt out of notifications for a specific collection
     // Screen: https://www.figma.com/file/SYtMyLBs5SAOkTbfMMzhqt/ente-Visual-Design?type=design&node-id=7689-52943&t=IyWOfh0Gsb0p7yVC-4
     final isForeground = AppLifecycleService.instance.isForeground;
-    final bool shouldShowSharedPhotosAndAlbumsNotification = NotificationService
-            .instance
+    final bool shouldShowSharedPhotosAndAlbumsNotification =
+        NotificationService.instance
             .shouldShowNotificationsForSharedPhotosAndAlbums() &&
         isFirstRemoteSyncDone() &&
         !isForeground;
@@ -1040,8 +1133,10 @@ class RemoteSyncService {
       if (!_shouldShowSharedPhotosAndAlbumsNotification(collectionID)) {
         continue;
       }
-      final files =
-          await _db.getNewFilesInCollection(collectionID, appOpenTime);
+      final files = await _db.getNewFilesInCollection(
+        collectionID,
+        appOpenTime,
+      );
       final Set<int> collectedFileIDs = {};
       for (final file in files) {
         if (file.isUploaded && file.isCollect && file.uploadedFileID != null) {
@@ -1088,15 +1183,10 @@ class RemoteSyncService {
         id: id,
       );
     } catch (e, stackTrace) {
-      _logger.severe(
-        "Failed to show notification ($context)",
-        e,
-        stackTrace,
-      );
+      _logger.severe("Failed to show notification ($context)", e, stackTrace);
     }
   }
 
-  /// Syncs social data and triggers notifications if needed.
   Future<void> _socialSync() async {
     try {
       _logger.info("Starting social sync");

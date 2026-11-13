@@ -1,8 +1,0 @@
-[bindings.swift]
-link_frameworks = ["Accelerate", "Metal", "MetalKit", "Foundation"]
-
-[bindings.kotlin]
-package_name = "io.ente.labs.inference_rs"
-cdylib_name = "inference_rs_uniffi"
-android = true
-kotlin_target_version = "1.9.0"

@@ -7,6 +7,10 @@ class GradientButton extends StatelessWidget {
   final IconData? icon;
   final double paddingValue;
   final Color? backgroundColor;
+  final Color? textColor;
+  final Color? disabledTextColor;
+  final double height;
+  final TextStyle? textStyle;
 
   const GradientButton({
     super.key,
@@ -15,23 +19,30 @@ class GradientButton extends StatelessWidget {
     this.icon,
     this.paddingValue = 6.0,
     this.backgroundColor,
+    this.textColor,
+    this.disabledTextColor,
+    this.height = 56,
+    this.textStyle,
   });
 
   static const TextStyle _textStyle = TextStyle(
     color: Colors.white,
     fontWeight: FontWeight.w600,
     fontFamily: 'Inter-SemiBold',
-    fontSize: 18,
+    fontSize: 18.0,
   );
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = getEnteColorScheme(context);
     final bool isEnabled = onTap != null;
-    final Color effectiveBackgroundColor = backgroundColor ??
+    final Color effectiveBackgroundColor =
+        backgroundColor ??
         (isEnabled ? colorScheme.primary700 : colorScheme.fillFaint);
-    final TextStyle effectiveTextStyle = _textStyle.copyWith(
-      color: isEnabled ? Colors.white : colorScheme.textMuted,
+    final TextStyle effectiveTextStyle = (textStyle ?? _textStyle).copyWith(
+      color: isEnabled
+          ? (textColor ?? Colors.white)
+          : (disabledTextColor ?? colorScheme.textMuted),
     );
 
     final Widget textWidget = Text(text, style: effectiveTextStyle);
@@ -44,7 +55,9 @@ class GradientButton extends StatelessWidget {
             children: [
               Icon(
                 icon,
-                color: isEnabled ? Colors.white : colorScheme.textMuted,
+                color: isEnabled
+                    ? (textColor ?? Colors.white)
+                    : (disabledTextColor ?? colorScheme.textMuted),
               ),
               Padding(padding: EdgeInsets.symmetric(horizontal: paddingValue)),
               if (text.isNotEmpty) textWidget,
@@ -61,7 +74,7 @@ class GradientButton extends StatelessWidget {
           splashColor: isEnabled ? null : Colors.transparent,
           highlightColor: isEnabled ? null : Colors.transparent,
           child: SizedBox(
-            height: 56,
+            height: height,
             child: Center(child: content),
           ),
         ),

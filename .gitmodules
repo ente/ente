@@ -1,7 +1,3 @@
-[submodule "auth/thirdparty/sentry-dart"]
-	path = auth/thirdparty/sentry-dart
-	url = https://github.com/ente-io/sentry-dart.git
-	branch = sentry_flutter_ente
 [submodule "auth/assets/simple-icons"]
 	path = mobile/apps/auth/assets/simple-icons
 	url = https://github.com/simple-icons/simple-icons.git

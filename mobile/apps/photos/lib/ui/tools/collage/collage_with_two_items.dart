@@ -7,11 +7,7 @@ import "package:photos/ui/tools/collage/collage_item_widget.dart";
 import "package:photos/ui/tools/collage/collage_swap_mixin.dart";
 import "package:widgets_to_image/widgets_to_image.dart";
 
-enum Variant {
-  first,
-  second,
-  third,
-}
+enum Variant { first, second, third }
 
 class CollageWithTwoItems extends StatefulWidget {
   const CollageWithTwoItems(
@@ -38,10 +34,7 @@ class _CollageWithTwoItemsState extends State<CollageWithTwoItems>
   @override
   void initState() {
     super.initState();
-    initCollageFiles([
-      widget.first,
-      widget.second,
-    ]);
+    initCollageFiles([widget.first, widget.second]);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       widget.onControllerReady?.call(_widgetsToImageController);
       widget.onSelectionClearSetter?.call(clearSwapSelection);
@@ -87,9 +80,7 @@ class _CollageWithTwoItemsState extends State<CollageWithTwoItems>
     return Row(
       children: [
         CollageLayoutIconButton(
-          child: FirstVariantIcon(
-            isActive: _variant == Variant.first,
-          ),
+          child: FirstVariantIcon(isActive: _variant == Variant.first),
           onTap: () {
             setState(() {
               _variant = Variant.first;
@@ -97,9 +88,7 @@ class _CollageWithTwoItemsState extends State<CollageWithTwoItems>
           },
         ),
         CollageLayoutIconButton(
-          child: SecondVariantIcon(
-            isActive: _variant == Variant.second,
-          ),
+          child: SecondVariantIcon(isActive: _variant == Variant.second),
           onTap: () {
             setState(() {
               _variant = Variant.second;
@@ -107,9 +96,7 @@ class _CollageWithTwoItemsState extends State<CollageWithTwoItems>
           },
         ),
         CollageLayoutIconButton(
-          child: ThirdVariantIcon(
-            isActive: _variant == Variant.third,
-          ),
+          child: ThirdVariantIcon(isActive: _variant == Variant.third),
           onTap: () {
             setState(() {
               _variant = Variant.third;
@@ -123,20 +110,11 @@ class _CollageWithTwoItemsState extends State<CollageWithTwoItems>
   Widget _getCollage() {
     switch (_variant) {
       case Variant.first:
-        return FirstVariant(
-          _collageItem(0),
-          _collageItem(1),
-        );
+        return FirstVariant(_collageItem(0), _collageItem(1));
       case Variant.second:
-        return SecondVariant(
-          _collageItem(0),
-          _collageItem(1),
-        );
+        return SecondVariant(_collageItem(0), _collageItem(1));
       case Variant.third:
-        return ThirdVariant(
-          _collageItem(0),
-          _collageItem(1),
-        );
+        return ThirdVariant(_collageItem(0), _collageItem(1));
     }
   }
 
@@ -281,10 +259,7 @@ class ThirdVariant extends StatelessWidget {
 }
 
 class FirstVariantIcon extends StatelessWidget {
-  const FirstVariantIcon({
-    super.key,
-    this.isActive = false,
-  });
+  const FirstVariantIcon({super.key, this.isActive = false});
 
   final bool isActive;
 
@@ -303,10 +278,7 @@ class FirstVariantIcon extends StatelessWidget {
 }
 
 class ThirdVariantIcon extends StatelessWidget {
-  const ThirdVariantIcon({
-    super.key,
-    this.isActive = false,
-  });
+  const ThirdVariantIcon({super.key, this.isActive = false});
   final bool isActive;
 
   @override
@@ -325,10 +297,7 @@ class ThirdVariantIcon extends StatelessWidget {
 }
 
 class SecondVariantIcon extends StatelessWidget {
-  const SecondVariantIcon({
-    super.key,
-    this.isActive = false,
-  });
+  const SecondVariantIcon({super.key, this.isActive = false});
   final bool isActive;
 
   @override

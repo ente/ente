@@ -1,0 +1,25 @@
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+}
+
+group 'io.ente.qr_scanner'
+version '1.0'
+
+ext.camerax_version = '1.6.1'
+
+android {
+    namespace 'io.ente.qr_scanner'
+
+    defaultConfig {
+        minSdkVersion 21
+    }
+}
+
+dependencies {
+    implementation "androidx.camera:camera-core:$camerax_version"
+    implementation "androidx.camera:camera-camera2:$camerax_version"
+    implementation "androidx.camera:camera-lifecycle:$camerax_version"
+    implementation "androidx.camera:camera-view:$camerax_version"
+    implementation 'com.github.markusfisch:zxing-cpp:v3.0.2.1'
+}

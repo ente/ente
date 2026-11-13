@@ -1,208 +1,355 @@
 {
-  "error": "Virhe",
-  "@error": {
-    "description": "Generic error title"
+  "bringMemoriesTogether": "Yhdistä muistosi",
+  "@bringMemoriesTogether": {
+    "description": "Title on the Local Gallery photo permission screen"
   },
-  "ok": "Selvä",
-  "@ok": {
-    "description": "Generic OK button label"
+  "createMyAccount": "Luo tilini",
+  "@createMyAccount": {
+    "description": "Create account button on the Photos onboarding screen"
   },
-  "faq": "Usein kysyttyä",
-  "@faq": {
-    "description": "FAQ link label"
+  "localGalleryPermissionDesc": "Anna lupa käyttää ja organisoida kuvasi kasvojentunnistuksella, prosessoidaan täysin laitteellasi.",
+  "@localGalleryPermissionDesc": {
+    "description": "Photo permission explanation shown during Local Gallery onboarding"
   },
-  "contactSupport": "Ota yhteyttä käyttötukeen",
-  "@contactSupport": {
-    "description": "Contact support button label"
+  "onboardingOrganizeDesc": "Organisoi kuvasi ja videosi. Jokainen muistosi, yhdessä paikassa.",
+  "@onboardingOrganizeDesc": {
+    "description": "Description on the Photos onboarding screen"
   },
+  "wallpaper": "Taustakuva",
+  "setWallpaper": "Aseta taustakuva",
+  "wallpaperHome": "Aloitusnäyttö",
+  "wallpaperLock": "Lukitusnäyttö",
+  "wallpaperBoth": "Aloitus- ja lukitusnäytöt",
+  "wallpaperSet": "Taustakuva asetettu",
+  "wallpaperFailed": "Ei voitu asettaa taustakuvaa",
+  "wallpaperUnavailable": "Taustakuvamuutoksia ei sallita tällä laitteella",
+  "about": "Tietoa",
+  "acceptTrustInvite": "Hyväksy kutsu",
+  "account": "Tili",
+  "accountCredentials": "Salaisuus",
+  "accountCredentialsDescription": "Säilytä tilin kirjautumistiedot.",
+  "accountIsAlreadyConfigured": "Tili on jo konfiguroitu.",
+  "accountOwnerPersonAppbarTitle": "{title} (Minä)",
+  "@accountOwnerPersonAppbarTitle": {
+    "description": "Title of appbar for account owner person",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "accountRecovery": "Tilin palautus",
+  "accountSetupIncompleteCreateAccount": "Tilin luonti kesken. Luo tili viimeistelläksesi käyttöönoton.",
+  "@accountSetupIncompleteCreateAccount": {
+    "description": "Error shown when account exists but signup is incomplete"
+  },
+  "actionNotSupportedForSharedFiles": "{count, plural, one{Toimintoa ei tueta {count} jaetulle tiedostolle} other{Toimintoa ei tueta {count} jaetuille tiedostoille}}",
+  "@actionNotSupportedForSharedFiles": {
+    "description": "Message when action is not supported for shared files",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "actionNotSupportedOnFavouritesAlbum": "Toimintoa ei tueta Suosikit albumilla",
+  "activeLinksWillShowUpHere": "Aktiiviset linkit näkyvät täällä",
+  "activeSessions": "Aktiiviset istunnot",
+  "@activeSessions": {
+    "description": "Title for active sessions page"
+  },
+  "add": "Lisää",
+  "addAlbumWidgetPrompt": "Lisää albumin widget aloitusnäyttöösi muokataksesi sitä tästä.",
+  "addANameAndPhoto": "Lisää nimi ja kuva",
+  "addAnyway": "Lisää silti",
+  "addCode": "Lisää koodi",
+  "addedAMemoryTo": "lisätty muisto {albumName}:iin",
+  "@addedAMemoryTo": {
+    "description": "Social notification action text shown after a person's name, for example 'John added a memory to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      }
+    }
+  },
+  "addedBy": "Lisäsi {emailOrName}",
+  "@addedBy": {
+    "placeholders": {
+      "emailOrName": {}
+    }
+  },
+  "addedFilesToPerson": "{count, plural, one{Lisätty {count} tiedosto {personName}:lle} other{Lisätty {count} tiedostoa {personName}:lle}}",
+  "@addedFilesToPerson": {
+    "description": "Toast shown after manually tagging one or more files to a person.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      },
+      "personName": {
+        "type": "String",
+        "example": "Alex"
+      }
+    }
+  },
+  "addedNMemoriesTo": "lisätty {count} muistoa {albumName}:iin",
+  "@addedNMemoriesTo": {
+    "description": "Social notification action text shown after a person's name, for example 'John added 4 memories to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "all": "Kaikki",
+  "allTabEmptyHint": "Vielä tyhjää. Paina + lisääksesi koodin tai avaa Roskakori palauttaaksesi sellaisen.",
+  "@allTabEmptyHint": {
+    "description": "Shown when the All tab has no active codes but Trash contains codes"
+  },
+  "androidCancelButton": "Peruuta",
+  "@androidCancelButton": {
+    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
+  },
+  "blog": "Blogi",
   "cancel": "Keskeytä",
   "@cancel": {
     "description": "Cancel button label"
   },
-  "reportABug": "Ilmoita virhetoiminnosta",
-  "@reportABug": {
-    "description": "Label for reporting a bug"
-  },
-  "save": "Tallenna",
-  "@save": {
-    "description": "Label for save button"
-  },
-  "send": "Lähetä",
-  "@send": {
-    "description": "Label for send button"
-  },
-  "email": "Sähköposti",
-  "@email": {
-    "description": "Email field label"
-  },
-  "verify": "Vahvista",
-  "@verify": {
-    "description": "Verify button label"
-  },
-  "invalidEmailTitle": "Epäkelpo sähköpostiosoite",
-  "@invalidEmailTitle": {
-    "description": "Title for invalid email error dialog"
-  },
-  "invalidEmailMessage": "Syötä kelpoisa sähköpostiosoite.",
-  "@invalidEmailMessage": {
-    "description": "Message for invalid email error dialog"
-  },
-  "pleaseWait": "Odota hetki...",
-  "@pleaseWait": {
-    "description": "Please wait message"
-  },
-  "verifyPassword": "Vahvista salasana",
-  "@verifyPassword": {
-    "description": "Verify password button label"
-  },
-  "incorrectPasswordTitle": "Salasana on väärin",
-  "@incorrectPasswordTitle": {
-    "description": "Title for incorrect password error"
-  },
-  "pleaseTryAgain": "Yritä uudestaan",
-  "@pleaseTryAgain": {
-    "description": "Message asking user to try again"
-  },
-  "enterPassword": "Syötä salasana",
-  "@enterPassword": {
-    "description": "Enter password field label"
-  },
-  "enterYourPasswordHint": "Syötä salasanasi",
-  "@enterYourPasswordHint": {
-    "description": "Hint for password field"
-  },
-  "oops": "Hupsista",
-  "@oops": {
-    "description": "Oops error title"
-  },
-  "createAccount": "Luo tili",
-  "@createAccount": {
-    "description": "Create account button label"
-  },
-  "weakStrength": "Heikko salasana",
-  "@weakStrength": {
-    "description": "Weak password strength label"
-  },
-  "moderateStrength": "Kohtalainen salasana",
-  "@moderateStrength": {
-    "description": "Moderate password strength label"
-  },
-  "strongStrength": "Vahva salasana",
-  "@strongStrength": {
-    "description": "Strong password strength label"
-  },
-  "deleteAccount": "Poista tili",
-  "@deleteAccount": {
-    "description": "Delete account button label"
-  },
-  "deleteAccountQuery": "Olemme pahoillamme että lähdet keskuudestamme. Kohtasitko käytössä jonkin ongelman?",
-  "@deleteAccountQuery": {
-    "description": "Message asking user why they want to delete account"
-  },
-  "yesSendFeedbackAction": "Kyllä, lähetä palautetta",
-  "@yesSendFeedbackAction": {
-    "description": "Button to confirm sending feedback"
-  },
-  "noDeleteAccountAction": "En, poista tili",
-  "@noDeleteAccountAction": {
-    "description": "Button to proceed with account deletion"
-  },
-  "initiateAccountDeleteTitle": "Ole hyvä ja tee todennus käynnistääksesi tilisi poistoprosessin",
-  "@initiateAccountDeleteTitle": {
-    "description": "Title for authentication dialog before account deletion"
-  },
-  "delete": "Poista",
-  "@delete": {
-    "description": "Delete button label"
-  },
-  "createNewAccount": "Luo uusi tili",
-  "@createNewAccount": {
-    "description": "Create new account button label"
-  },
-  "password": "Salasana",
-  "@password": {
-    "description": "Password field label"
-  },
-  "confirmPassword": "Vahvista salasana",
-  "@confirmPassword": {
-    "description": "Confirm password field label"
-  },
-  "encryption": "Salaus",
-  "@encryption": {
-    "description": "Encryption label"
-  },
-  "logInLabel": "Kirjaudu sisään",
-  "@logInLabel": {
-    "description": "Log in button label"
-  },
-  "welcomeBack": "Tervetuloa takaisin!",
-  "@welcomeBack": {
-    "description": "Welcome back message"
-  },
-  "useRecoveryKey": "Käytä palautusavainta",
-  "@useRecoveryKey": {
-    "description": "Use recovery key button label"
-  },
-  "forgotPassword": "Olen unohtanut salasanani",
-  "@forgotPassword": {
-    "description": "Forgot password link label"
-  },
-  "changeEmail": "vaihda sähköpostiosoitteesi",
+  "changeEmail": "Vaihda sähköpostiosoite",
   "@changeEmail": {
     "description": "Change email button label"
   },
-  "verifyEmail": "Vahvista sähköpostiosoite",
-  "@verifyEmail": {
-    "description": "Verify email title"
-  },
-  "sendEmail": "Lähetä sähköpostia",
-  "passkeyAuthTitle": "Avainkoodin vahvistus",
-  "@passkeyAuthTitle": {
-    "description": "Passkey authentication title"
-  },
-  "recoverAccount": "Palauta tilisi",
-  "@recoverAccount": {
-    "description": "Recover account button label"
-  },
-  "setPasswordTitle": "Luo salasana",
-  "@setPasswordTitle": {
-    "description": "Set password title"
-  },
+  "changePassword": "Vaihda salasana",
   "changePasswordTitle": "Vaihda salasana",
   "@changePasswordTitle": {
     "description": "Change password title"
   },
-  "resetPasswordTitle": "Nollaa salasana",
-  "@resetPasswordTitle": {
-    "description": "Reset password title"
+  "checkForUpdates": "Tarkista päivitykset",
+  "close": "Sulje",
+  "codeIssuerHint": "Myöntäjä",
+  "confirmPassword": "Vahvista salasana",
+  "@confirmPassword": {
+    "description": "Confirm password field label"
   },
-  "encryptionKeys": "Salausavaimet",
-  "@encryptionKeys": {
-    "description": "Encryption keys title"
-  },
-  "generatingEncryptionKeys": "Luodaan salausavaimia...",
-  "@generatingEncryptionKeys": {
-    "description": "Generating encryption keys message"
-  },
-  "passwordChangedSuccessfully": "Salasana vaihdettu onnistuneesti",
-  "@passwordChangedSuccessfully": {
-    "description": "Password changed successfully message"
-  },
-  "generatingEncryptionKeysTitle": "Luodaan salausavaimia...",
-  "@generatingEncryptionKeysTitle": {
-    "description": "Generating encryption keys title"
+  "contactSupport": "Ota yhteyttä tukeen",
+  "@contactSupport": {
+    "description": "Contact support button label"
   },
   "continueLabel": "Jatka",
   "@continueLabel": {
     "description": "Continue button label"
   },
-  "recoveryKeyCopiedToClipboard": "Palautusavain kopioitu leikepöydälle",
-  "@recoveryKeyCopiedToClipboard": {
-    "description": "Recovery key copied message"
+  "copied": "Kopioitu",
+  "copiedNextToClipboard": "Seuraava koodi kopioitu leikepöydälle",
+  "copiedToClipboard": "Kopioitu leikepöydälle",
+  "crashAndErrorReporting": "Kaatumis- ja virheraportointi",
+  "createAccount": "Luo tili",
+  "@createAccount": {
+    "description": "Create account button label"
+  },
+  "credentialName": "Tili",
+  "data": "Tiedot",
+  "delete": "Poista",
+  "@delete": {
+    "description": "Delete button label"
+  },
+  "deleteAccount": "Poista tili",
+  "@deleteAccount": {
+    "description": "Delete account button label"
+  },
+  "deleteCodeAuthMessage": "Autentikoidu poistaaksesi koodin",
+  "deleteCodeMessage": "Haluatko varmasti poistaa tämän koodin? Toimintoa ei voi peruuttaa.",
+  "deleteCodeTitle": "Poista koodi?",
+  "downloadUpdate": "Lataa",
+  "edit": "Muokkaa",
+  "editCodeAuthMessage": "Autentikoidu muokataksesi koodia",
+  "email": "Sähköposti",
+  "@email": {
+    "description": "Email field label"
+  },
+  "emailAlreadyRegistered": "Sähköposti on jo rekisteröity.",
+  "@emailAlreadyRegistered": {
+    "description": "Error message when email is already registered"
+  },
+  "emailHint": "Syötä sähköpostiosoitteesi",
+  "emailNotRegistered": "Sähköposti ei ole rekisteröity.",
+  "@emailNotRegistered": {
+    "description": "Error message when email is not registered"
+  },
+  "emailUsMessage": "Lähetä meille sähköpostia osoitteeseen {email}",
+  "@emailUsMessage": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "emailVerificationToggle": "Sähköpostivahvistus",
+  "encryptionKeys": "Salausavaimet",
+  "@encryptionKeys": {
+    "description": "Encryption keys title"
+  },
+  "enterCodeHint": "Syötä 6-merkkinen koodi varmennussovelluksestasi",
+  "@enterCodeHint": {
+    "description": "Hint for entering 2FA code"
+  },
+  "enterDetailsManually": "Syötä tiedot manuaalisesti",
+  "enterPassword": "Syötä salasana",
+  "@enterPassword": {
+    "description": "Enter password field label"
+  },
+  "enterRecoveryKeyHint": "Syötä palautusavaimesi",
+  "@enterRecoveryKeyHint": {
+    "description": "Hint for entering recovery key"
+  },
+  "enterValidEmail": "Syötä kelpoisa sähköpostiosoite.",
+  "enterYourPassword": "Syötä salasanasi",
+  "enterYourPasswordHint": "Syötä salasanasi",
+  "@enterYourPasswordHint": {
+    "description": "Hint for password field"
+  },
+  "error": "Virhe",
+  "@error": {
+    "description": "Generic error title"
+  },
+  "exportCodes": "Vie koodit",
+  "exportLogs": "Vie lokikirjaukset",
+  "@exportLogs": {
+    "description": "Button to export logs"
+  },
+  "faq": "Usein kysyttyä",
+  "@faq": {
+    "description": "FAQ link label"
+  },
+  "featureBackupCodes": "Päästä päähän salattu varmuuskopiointi ja synkronointi",
+  "featureOpenSource": "Avoin lähdekoodi ja tietoturva-asiantuntijoiden tarkastama",
+  "forgotPassword": "Olen unohtanut salasanani",
+  "@forgotPassword": {
+    "description": "Forgot password link label"
+  },
+  "general": "Yleiset",
+  "generatingEncryptionKeys": "Luodaan salausavaimia...",
+  "@generatingEncryptionKeys": {
+    "description": "Generating encryption keys message"
+  },
+  "generatingEncryptionKeysTitle": "Luodaan salausavaimia...",
+  "@generatingEncryptionKeysTitle": {
+    "description": "Generating encryption keys title"
+  },
+  "getStarted": "Aloitetaan",
+  "importAccountPageTitle": "Syötä tilin tiedot",
+  "importCodes": "Tuo koodit",
+  "importEnterSetupKey": "Syötä asetusavain",
+  "importLabel": "Tuo",
+  "importSelectJsonFile": "Valitse JSON-tiedosto",
+  "importTypeEnteEncrypted": "Ente salattu vienti",
+  "incorrectDetails": "Virheelliset tiedot",
+  "incorrectPasswordTitle": "Salasana on väärin",
+  "@incorrectPasswordTitle": {
+    "description": "Title for incorrect password error"
+  },
+  "invalidEmailAddress": "Epäkelpo sähköpostiosoite",
+  "invalidEmailMessage": "Syötä kelpoisa sähköpostiosoite.",
+  "@invalidEmailMessage": {
+    "description": "Message for invalid email error dialog"
+  },
+  "invalidEmailTitle": "Epäkelpo sähköpostiosoite",
+  "@invalidEmailTitle": {
+    "description": "Title for invalid email error dialog"
+  },
+  "invalidQRCode": "Virheellinen QR-koodi",
+  "ok": "Selvä",
+  "@ok": {
+    "description": "Generic OK button label"
+  },
+  "language": "Kieli",
+  "leaveFamily": "Poistu perheestä",
+  "loggingOut": "Kirjaudutaan ulos...",
+  "@loggingOut": {
+    "description": "Message shown while logging out"
+  },
+  "logInLabel": "Kirjaudu sisään",
+  "@logInLabel": {
+    "description": "Log in button label"
+  },
+  "logout": "Kirjaudu ulos",
+  "lostDeviceTitle": "Kadonnut laite?",
+  "@lostDeviceTitle": {
+    "description": "Lost device title"
+  },
+  "moderateStrength": "Kohtalainen salasana",
+  "@moderateStrength": {
+    "description": "Moderate password strength label"
+  },
+  "nextTotpTitle": "seuraava",
+  "no": "Ei",
+  "noRecoveryKeyTitle": "Ei palautusavainta?",
+  "@noRecoveryKeyTitle": {
+    "description": "No recovery key title"
+  },
+  "noResult": "Ei tuloksia",
+  "notes": "Muistiinpanot",
+  "oops": "Hupsista",
+  "@oops": {
+    "description": "Oops error title"
+  },
+  "passkeyAuthTitle": "Avainkoodin vahvistus",
+  "@passkeyAuthTitle": {
+    "description": "Passkey authentication title"
+  },
+  "password": "Salasana",
+  "@password": {
+    "description": "Password field label"
+  },
+  "passwordChangedSuccessfully": "Salasana vaihdettu onnistuneesti",
+  "@passwordChangedSuccessfully": {
+    "description": "Password changed successfully message"
+  },
+  "passwordEmptyError": "Salasana ei voi olla tyhjä",
+  "passwordForDecryptingExport": "Salasana salauksen purkamiseksi",
+  "passwordHint": "Salasana",
+  "passwordTooShort": "Salasanan täytyy olla ainakin 8 merkkiä pitkä.",
+  "plainText": "Pelkkä teksti",
+  "pleaseLoginAgain": "Sisäänkirjaudu uudestaan",
+  "pleaseTryAgain": "Yritä uudestaan",
+  "@pleaseTryAgain": {
+    "description": "Message asking user to try again"
+  },
+  "pleaseVerifyDetails": "Vahvista tietosi ja yritä uudelleen",
+  "pleaseWait": "Odota hetki...",
+  "@pleaseWait": {
+    "description": "Please wait message"
+  },
+  "preparingLogs": "Valmistellaan lokikirjaukset...",
+  "privacy": "Yksityisyys",
+  "qr": "QR",
+  "qrCode": "QR-koodi",
+  "rateUsOnStore": "Anna meille arvostelu {storeName}:ssa",
+  "@rateUsOnStore": {
+    "placeholders": {
+      "storeName": {}
+    }
+  },
+  "recordNotes": "Muistiinpanot",
+  "recover": "Palauta",
+  "@recover": {
+    "description": "Recover button label"
+  },
+  "recoverAccount": "Palauta tilisi",
+  "@recoverAccount": {
+    "description": "Recover account button label"
   },
   "recoveryKey": "Palautusavain",
   "@recoveryKey": {
     "description": "Recovery key label"
+  },
+  "recoveryKeyCopiedToClipboard": "Palautusavain kopioitu leikepöydälle",
+  "@recoveryKeyCopiedToClipboard": {
+    "description": "Recovery key copied message"
   },
   "recoveryKeyOnForgotPassword": "Jos unohdat salasanasi, ainoa tapa palauttaa tietosi on tällä avaimella.",
   "@recoveryKeyOnForgotPassword": {
@@ -212,60 +359,110 @@
   "@recoveryKeySaveDescription": {
     "description": "Recovery key save description"
   },
-  "doThisLater": "Tee tämä myöhemmin",
-  "@doThisLater": {
-    "description": "Do this later button label"
+  "recreatePasswordTitle": "Luo salasana uudelleen",
+  "@recreatePasswordTitle": {
+    "description": "Title for recreate password dialog"
+  },
+  "reportABug": "Ilmoita virhetoiminnosta",
+  "@reportABug": {
+    "description": "Label for reporting a bug"
+  },
+  "resetPasswordTitle": "Nollaa salasana",
+  "@resetPasswordTitle": {
+    "description": "Reset password title"
+  },
+  "restore": "Palauta",
+  "@restore": {
+    "description": "Display text for an action which triggers a restore of item from trash",
+    "type": "text"
+  },
+  "save": "Tallenna",
+  "@save": {
+    "description": "Label for save button"
   },
   "saveKey": "Tallenna avain",
   "@saveKey": {
     "description": "Save key button label"
   },
-  "noRecoveryKeyTitle": "Ei palautusavainta?",
-  "@noRecoveryKeyTitle": {
-    "description": "No recovery key title"
+  "scan": "Lue",
+  "scanACode": "Lue koodi",
+  "scanAQrCode": "Lue QR-koodi",
+  "search": "Etsi",
+  "searchHint": "Etsi...",
+  "secret": "Salaisuus",
+  "secretCanNotBeEmpty": "Salaisuus ei voi olla tyhjä",
+  "security": "Turvallisuus",
+  "selectFile": "Valitse tiedosto",
+  "selectLanguage": "Valitse kieli",
+  "send": "Lähetä",
+  "@send": {
+    "description": "Label for send button"
+  },
+  "sendLogsDescription": "Tämä toiminto lähettää lokin kirjaukset eteenpäin jotta saisimme apua ongelmasi ratkaisemiseen. Vaikkakin käytäntömme on olla kirjaamatta mitään arkaluontoista tietoa, suosittelemme että tarkistat nämä tiedot ennen niiden jakamista.",
+  "sessionExpired": "Istunto on vanheutunut",
+  "@sessionExpired": {
+    "description": "Error message when session has expired"
+  },
+  "setPasswordTitle": "Luo salasana",
+  "@setPasswordTitle": {
+    "description": "Set password title"
+  },
+  "settings": "Asetukset",
+  "setupFirstAccount": "Luo ensimmäinen tilisi",
+  "share": "Jaa",
+  "shouldHideCode": "Piilota koodit",
+  "showQRAuthMessage": "Autentikoidu näyttääksesi QR-koodin",
+  "singIn": "Kirjaudu sisään",
+  "somethingWentWrongMessage": "Jokin meni pieleen, yritä uudelleen",
+  "strongStrength": "Vahva salasana",
+  "@strongStrength": {
+    "description": "Strong password strength label"
+  },
+  "suggestFeatures": "Ehdota parannuksia",
+  "support": "Tuki",
+  "trash": "Roskakori",
+  "trashCode": "Laita koodi roskakoriin?",
+  "trashCodeMessage": "Oletko varma että haluat laittaa käyttäjän {account} koodin roskakoriin?",
+  "@trashCodeMessage": {
+    "placeholders": {
+      "account": {}
+    }
   },
   "twoFactorAuthTitle": "Kaksivaiheinen vahvistus",
   "@twoFactorAuthTitle": {
     "description": "Two-factor authentication title"
   },
-  "enterCodeHint": "Syötä 6-merkkinen koodi varmennussovelluksestasi",
-  "@enterCodeHint": {
-    "description": "Hint for entering 2FA code"
+  "unlock": "Avaa lukitus",
+  "@unlock": {
+    "description": "Short action label used as the system authentication reason when unlocking the app"
   },
-  "lostDeviceTitle": "Kadonnut laite?",
-  "@lostDeviceTitle": {
-    "description": "Lost device title"
+  "updateAvailable": "Päivitys saatavilla",
+  "useRecoveryKey": "Käytä palautusavainta",
+  "@useRecoveryKey": {
+    "description": "Use recovery key button label"
   },
-  "enterRecoveryKeyHint": "Syötä palautusavaimesi",
-  "@enterRecoveryKeyHint": {
-    "description": "Hint for entering recovery key"
+  "verify": "Vahvista",
+  "@verify": {
+    "description": "Verify button label"
   },
-  "recover": "Palauta",
-  "@recover": {
-    "description": "Recover button label"
+  "verifyEmail": "Vahvista sähköpostiosoite",
+  "@verifyEmail": {
+    "description": "Verify email title"
   },
-  "loggingOut": "Kirjaudutaan ulos...",
-  "@loggingOut": {
-    "description": "Message shown while logging out"
+  "verifyPassword": "Vahvista salasana",
+  "@verifyPassword": {
+    "description": "Verify password button label"
   },
+  "viewLogsAction": "Näytä lokikirjaukset",
+  "warning": "Varoitus",
+  "weakStrength": "Heikko salasana",
+  "@weakStrength": {
+    "description": "Weak password strength label"
+  },
+  "weAreOpenSource": "Olemme avoimen lähdekoodin ohjelma!",
+  "yes": "Kyllä",
   "yesLogout": "Kyllä, kirjaudu ulos",
   "@yesLogout": {
     "description": "Confirmation button for logout"
-  },
-  "androidBiometricSuccess": "Kirjautuminen onnistui",
-  "@androidBiometricSuccess": {
-    "description": "Message to let the user know that authentication was successful. It is used on Android side. Maximum 60 characters."
-  },
-  "androidCancelButton": "Peruuta",
-  "@androidCancelButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
-  },
-  "goToSettings": "Mene asetuksiin",
-  "@goToSettings": {
-    "description": "Message showed on a button that the user can click to go to settings pages from the current dialog. It is used on both Android and iOS side. Maximum 30 characters."
-  },
-  "sessionExpired": "Istunto on vanheutunut",
-  "@sessionExpired": {
-    "description": "Error message when session has expired"
   }
 }

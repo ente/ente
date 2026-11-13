@@ -1,9 +1,9 @@
 name: ente_strings
 description: A Flutter package containing shared localization strings for ente apps
-version: 1.0.0
 
+resolution: workspace
 environment:
-  sdk: ">=3.0.0 <4.0.0"
+  sdk: ">=3.10.0 <4.0.0"
   flutter: ">=1.17.0"
 
 dependencies:
@@ -11,10 +11,10 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
-  intl: any
+  intl: 0.20.3
 
 dev_dependencies:
-  flutter_lints: ^5.0.0
+  flutter_lints: 6.0.0
   flutter_test:
     sdk: flutter
 

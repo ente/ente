@@ -25,7 +25,6 @@ extension FutureErrorHandling<T> on Future<T> {
         throw PartialReadException(msg);
       }
       if (msg.contains(kVerificationErrorTag)) {
-        // Extract the actual message after the tag
         final parts = msg.split(kVerificationErrorTag + ':');
         final errorMessage = parts.length > 1 ? parts[1].trim() : msg;
         throw VerificationError(errorMessage);
@@ -40,7 +39,6 @@ const kStreamPullError = 'crypto_secretstream_xchacha20poly1305_pull';
 const kVerificationErrorTag = 'VerificationError';
 const kBitFlipErrorTag = 'BitFlipDetected';
 
-// Exception counterpart for upstream handling via catchError chains
 class PartialReadException implements Exception {
   final String message;
   PartialReadException(this.message);

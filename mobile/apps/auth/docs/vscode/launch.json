@@ -33,14 +33,14 @@
             "request": "launch",
             "type": "dart",
             "program": "mobile/apps/auth/lib/main.dart",
-            "args": ["--target", "lib/main.dart"]
+            "args": []
         },
         {
             "name": "Auth Android Prod",
             "request": "launch",
             "type": "dart",
             "program": "mobile/apps/auth/lib/main.dart",
-            "args": ["--target", "lib/main.dart", "--flavor", "independent"]
+            "args": ["--flavor", "independent"]
         }
     ]
 }

@@ -1,0 +1,2 @@
+otpauth://totp/GitHub:release.bot@github.demo?secret=JBSWY3DPEHPK3PXP&issuer=GitHub&algorithm=SHA1&digits=6&period=30
+otpauth://hotp/Yubico:lab-counter@yubico.demo?secret=ASKZNWOU6SVYAMVS&issuer=Yubico&algorithm=SHA1&digits=6&counter=1

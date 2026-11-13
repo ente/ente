@@ -94,9 +94,11 @@
     width: 24px !important;
   }
 </style>
+{{block "legacy_styles" .}}{{end}}
 
 <body>
 <div class="gutter" style="padding: 4px">&nbsp;</div>
+{{block "legacy_card" .}}
 <div class="wrap" style=" background-color: rgb(255, 255, 255); padding: 2px
     30px 30px 30px; max-width: 525px; margin: 0 auto; border-radius: 5px;
     font-size: 16px; " >
@@ -104,31 +106,32 @@
     {{block "content" .}} Default Content {{end}}
   </main>
 </div>
+{{end}}
 <br />
 <div class="footer" style="text-align: center; font-size: 12px; color:
     rgb(136, 136, 136)" >
   <div>
-    <a href="https://ente.io" target="_blank" ><img
-            src="https://email-assets.ente.io/ente-green.png" style="width: 100px;
+    <a href="https://ente.com" target="_blank" ><img
+            src="https://email-assets.ente.com/ente-2026-green.png" style="width: 100px;
         padding: 24px" title="Ente" alt="Ente" /></a>
   </div>
   <div>
     <a href="https://fosstodon.org/@ente" target="_blank" ><img
-            src="https://email-assets.ente.io/mastodon-icon.png"
+            src="https://email-assets.ente.com/mastodon-icon.png"
             class="footer-icons" style="width: 24px; padding: 4px" title="Mastodon"
             alt="Mastodon" /></a>
     <a href="https://twitter.com/enteio" target="_blank" ><img
-            src="https://email-assets.ente.io/twitter-icon.png" class="footer-icons"
+            src="https://email-assets.ente.com/twitter-icon.png" class="footer-icons"
             style="width: 24px; padding: 4px" title="Twitter" alt="Twitter" /></a>
-    <a href="https://discord.ente.io" target="_blank" ><img
-            src="https://email-assets.ente.io/discord-icon.png" class="footer-icons"
+    <a href="https://ente.com/discord" target="_blank" ><img
+            src="https://email-assets.ente.com/discord-icon.png" class="footer-icons"
             style="width: 24px; padding: 4px" title="Discord" alt="Discord" /></a>
-    <a href="https://github.com/ente-io" target="_blank" ><img
-            src="https://email-assets.ente.io/github-icon.png" class="footer-icons"
+    <a href="https://github.com/ente" target="_blank" ><img
+            src="https://email-assets.ente.com/github-icon.png" class="footer-icons"
             style="width: 24px; padding: 4px" title="GitHub" alt="GitHub" /></a>
 
     <a href="https://www.youtube.com/@entestudio" target="_blank" ><img
-            src="https://email-assets.ente.io/youtube-icon.png" class="footer-icons"
+            src="https://email-assets.ente.com/youtube-icon.png" class="footer-icons"
             style="width: 24px; padding: 4px" title="YouTube" alt="YouTube" /></a>
   </div>
   <p>
@@ -141,3 +144,32 @@
 </html>
 {{end}}
 
+{{define "legacy_kit_styles"}}
+<style>
+  body {
+    background-color: #ffffff;
+    color: #161616;
+  }
+
+  a {
+    color: #087d2c;
+  }
+</style>
+{{end}}
+
+{{define "legacy_kit_card"}}
+<div
+  class="wrap"
+  style="
+    background-color: #fcfcfc;
+    border: 1px solid #f0f0f0;
+    padding: 2px 30px 30px;
+    max-width: 525px;
+    margin: 0 auto;
+    border-radius: 36px;
+    font-size: 16px;
+  "
+>
+  <main>{{template "content" .}}</main>
+</div>
+{{end}}

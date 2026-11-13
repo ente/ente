@@ -1,0 +1,63 @@
+[package]
+name = "ente-ensu"
+edition.workspace = true
+
+[dependencies]
+ente-assets.workspace = true
+ente-core.workspace = true
+ente-ensu-crypto.workspace = true
+ente-image.workspace = true
+ort = { workspace = true, features = ["std", "api-31", "tracing"], optional = true }
+regex.workspace = true
+rubato = { version = "5.0.0", optional = true }
+rusqlite = { workspace = true, default-features = true, optional = true }
+self_cell = "1.3.0"
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+url.workspace = true
+uuid = { workspace = true, features = ["v4", "rng-getrandom"] }
+zeroize.workspace = true
+zstd = "0.14.3"
+
+[dev-dependencies]
+tempfile.workspace = true
+
+# Keep `mtmd` on every platform for multimodal support.
+# macOS disables OpenMP because Apple's clang lacks libomp. llama.cpp uses its
+# own thread pool, Accelerate, and Metal on arm64 instead.
+[target.'cfg(target_os = "macos")'.dependencies]
+llama-cpp-2 = { version = "=0.1.158", default-features = false, features = ["mtmd"] }
+
+# Linux Vulkan needs a system Vulkan loader, glslc, and SPIRV-Headers.
+[target.'cfg(target_os = "linux")'.dependencies]
+llama-cpp-2 = { version = "=0.1.158", features = ["mtmd", "vulkan"] }
+
+# Other platforms stay on CPU. Android keeps the shared C++ runtime; Windows
+# avoids Vulkan's VULKAN_SDK requirement.
+[target.'cfg(all(not(target_os = "macos"), not(target_os = "linux"), not(target_os = "ios"), not(all(target_os = "android", target_arch = "aarch64"))))'.dependencies]
+llama-cpp-2 = { version = "=0.1.158", features = ["mtmd"] }
+
+[target.'cfg(all(target_os = "android", target_arch = "aarch64"))'.dependencies]
+llama-cpp-2 = { version = "=0.1.158", features = ["dynamic-backends", "mtmd"] }
+
+[target.'cfg(not(target_os = "ios"))'.dependencies]
+ort = { workspace = true, features = ["load-dynamic"], optional = true }
+
+# The iOS app links Ente's custom ONNX Runtime XCFramework via SPM, so ort-sys
+# must not download/link pyke's binaries.
+[target.'cfg(target_os = "ios")'.dependencies]
+llama-cpp-2 = { version = "=0.1.158", default-features = false, features = ["metal", "mtmd"] }
+ort-sys = { workspace = true, features = ["disable-linking"], optional = true }
+
+[features]
+default = ["sqlite"]
+sqlite = ["dep:rusqlite"]
+transcription = [
+    "dep:ort",
+    "dep:ort-sys",
+    "dep:rubato",
+]
+
+[lints]
+workspace = true

@@ -1,10 +1,10 @@
 import "dart:async";
 
+import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:flutter_map/flutter_map.dart";
 import "package:latlong2/latlong.dart";
 import "package:logging/logging.dart";
-import "package:photos/generated/l10n.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/location/location.dart";
 import "package:photos/service_locator.dart";
@@ -49,8 +49,9 @@ class _UpdateLocationDataWidgetState extends State<UpdateLocationDataWidget> {
         FlutterMap(
           mapController: _mapController,
           options: MapOptions(
-            interactionOptions:
-                const InteractionOptions(enableMultiFingerGestureRace: true),
+            interactionOptions: const InteractionOptions(
+              enableMultiFingerGestureRace: true,
+            ),
             backgroundColor: const Color.fromARGB(255, 246, 246, 246),
             initialZoom: 3,
             maxZoom: 18.0,
@@ -77,18 +78,12 @@ class _UpdateLocationDataWidgetState extends State<UpdateLocationDataWidget> {
               }
             },
           ),
-          children: const [
-            OSMTileLayer(),
-            OSMTileAttributes(),
-          ],
+          children: const [OSMTileLayer(), OSMTileAttributes()],
         ),
         Positioned(
           top: 20,
           child: Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 10,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
               color: getEnteColorScheme(context).backgroundElevated,
@@ -110,15 +105,9 @@ class _UpdateLocationDataWidgetState extends State<UpdateLocationDataWidget> {
                         ),
                         child: Column(
                           children: [
-                            Text(
-                              locationInDMS[0],
-                              style: textTheme.mini,
-                            ),
+                            Text(locationInDMS[0], style: textTheme.mini),
                             const SizedBox(height: 8),
-                            Text(
-                              locationInDMS[1],
-                              style: textTheme.mini,
-                            ),
+                            Text(locationInDMS[1], style: textTheme.mini),
                           ],
                         ),
                       )
@@ -162,7 +151,7 @@ class _UpdateLocationDataWidgetState extends State<UpdateLocationDataWidget> {
                   if (selectedLocation.value == null) {
                     showShortToast(
                       context,
-                      AppLocalizations.of(context).selectALocationFirst,
+                      context.strings.selectALocationFirst,
                     );
                     return;
                   }
@@ -171,6 +160,7 @@ class _UpdateLocationDataWidgetState extends State<UpdateLocationDataWidget> {
                     selectedLocation.value!,
                     context,
                   );
+                  if (!context.mounted) return;
                   Navigator.of(context).pop();
                 },
                 heroTag: 'add-location',
@@ -261,27 +251,19 @@ class _UpdateLocationInfoState extends State<UpdateLocationInfo> {
           ? CrossFadeState.showFirst
           : CrossFadeState.showSecond,
       firstChild: Text(
-        AppLocalizations.of(context).selectALocation,
+        context.strings.selectALocation,
         style: getEnteTextTheme(context).mini,
       ),
       secondChild: Text(
-        AppLocalizations.of(context).editsToLocationWillOnlyBeSeenWithinEnte,
+        context.strings.editsToLocationWillOnlyBeSeenWithinEnte,
         style: getEnteTextTheme(context).mini,
       ),
       layoutBuilder: (topChild, topChildKey, bottomChild, bottomChildKey) {
         return Stack(
           alignment: Alignment.center,
           children: [
-            Positioned(
-              top: 0,
-              key: bottomChildKey,
-              child: bottomChild,
-              // top: 0,
-            ),
-            Positioned(
-              key: topChildKey,
-              child: topChild,
-            ),
+            Positioned(top: 0, key: bottomChildKey, child: bottomChild),
+            Positioned(key: topChildKey, child: topChild),
           ],
         );
       },

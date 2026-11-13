@@ -1,13 +1,26 @@
-import "package:system_info_plus/system_info_plus.dart";
+import "package:ente_photos_platform/ente_photos_platform.dart";
 
-/// The total amount of RAM in the device in MB
+// Total device RAM in MB.
 int? deviceTotalRAM;
 
 bool get enoughRamForLocalIndexing =>
     deviceTotalRAM == null || deviceTotalRAM! >= 5 * 1024;
 
-/// Return the total amount of RAM in the device in MB
+bool get hasLessThan5GBRAM =>
+    deviceTotalRAM != null && deviceTotalRAM! < 5 * 1024;
+
+bool get enoughRamForLocalGalleryLocalIndexing =>
+    deviceTotalRAM == null || deviceTotalRAM! > 3 * 1024;
+
 Future<int?> checkDeviceTotalRAM() async {
-  deviceTotalRAM ??= await SystemInfoPlus.physicalMemory; // returns in MB
+  if (deviceTotalRAM != null) return deviceTotalRAM;
+  try {
+    final memory = await DeviceHealthClient.instance.getMemorySnapshot();
+    if (memory.status == DeviceSignalStatus.available) {
+      deviceTotalRAM = memory.totalBytes! ~/ (1024 * 1024);
+    }
+  } catch (_) {
+    return null;
+  }
   return deviceTotalRAM;
 }

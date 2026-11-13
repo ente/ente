@@ -1,10 +1,16 @@
+import type { SelectionContext } from "@/components/gallery";
+import type { FileOp } from "@/components/SelectedFileOptions";
+import { downloadAndSaveFiles } from "@/services/save";
+import { isSameDay } from "ente-base/date";
+import { formattedDate } from "ente-base/i18n-date";
 import type { AddSaveGroup } from "ente-gallery/components/utils/save-groups";
-import { downloadAndSaveFiles } from "ente-gallery/services/save";
 import type { EnteFile } from "ente-media/file";
-import { fileFileName, ItemVisibility } from "ente-media/file-metadata";
+import {
+    fileCreationPhotoDate,
+    fileFileName,
+    ItemVisibility,
+} from "ente-media/file-metadata";
 import { FileType } from "ente-media/file-type";
-import { type SelectionContext } from "ente-new/photos/components/gallery";
-import { type FileOp } from "ente-new/photos/components/SelectedFileOptions";
 import {
     addToFavoritesCollection,
     deleteFromTrash,
@@ -20,11 +26,7 @@ export interface SelectedState {
     ownCount: number;
     count: number;
     collectionID: number | undefined;
-    /**
-     * The context in which the selection was made. Only set by newer code if
-     * there is an active selection (older code continues to rely on the
-     * {@link collectionID} logic).
-     */
+    // New selection code sets context; legacy callers still use collectionID.
     context: SelectionContext | undefined;
 }
 export type SetSelectedState = React.Dispatch<
@@ -44,6 +46,31 @@ export function getSelectedFiles(
 
     return files.filter((file) => selectedFilesIDs.has(file.id));
 }
+
+export const fileTimelineDateString = (file: EnteFile) => {
+    const date = fileCreationPhotoDate(file);
+    return isSameDay(date, new Date())
+        ? t("today")
+        : isSameDay(date, new Date(Date.now() - 24 * 60 * 60 * 1000))
+          ? t("yesterday")
+          : formattedDate(date);
+};
+
+export const selectedFavoriteCount = (
+    selected: SelectedState,
+    favoriteFileIDs: Set<number> | undefined,
+) => {
+    if (!favoriteFileIDs || selected.count == 0) return 0;
+    let count = 0;
+    for (const [key, value] of Object.entries(selected)) {
+        if (typeof value === "boolean" && value) {
+            if (favoriteFileIDs.has(Number(key))) {
+                count += 1;
+            }
+        }
+    }
+    return count;
+};
 
 export const performFileOp = async (
     op: FileOp,

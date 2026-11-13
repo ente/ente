@@ -1,28 +1,26 @@
 import "dart:async";
 
+import "package:ente_components/ente_components.dart";
+import "package:ente_strings/ente_strings.dart";
+import "package:ente_ui/components/loading_widget.dart";
 import "package:flutter/material.dart";
+import "package:hugeicons/hugeicons.dart";
+import "package:logging/logging.dart";
 import "package:photos/core/event_bus.dart";
+import "package:photos/db/files_db.dart";
+import "package:photos/db/ml/db.dart";
 import "package:photos/events/notification_event.dart";
-import "package:photos/generated/l10n.dart";
+import "package:photos/events/tab_changed_event.dart";
+import "package:photos/models/home_tab.dart";
 import "package:photos/service_locator.dart";
-import "package:photos/services/machine_learning/face_ml/face_detection/face_detection_service.dart";
-import "package:photos/services/machine_learning/face_ml/face_embedding/face_embedding_service.dart";
 import "package:photos/services/machine_learning/ml_indexing_isolate.dart";
+import "package:photos/services/machine_learning/ml_model_download_service.dart";
+import "package:photos/services/machine_learning/ml_run_control.dart";
 import "package:photos/services/machine_learning/ml_service.dart";
-import "package:photos/services/machine_learning/semantic_search/clip/clip_image_encoder.dart";
-import "package:photos/services/machine_learning/semantic_search/clip/clip_text_encoder.dart";
-import 'package:photos/services/machine_learning/semantic_search/semantic_search_service.dart';
-import "package:photos/services/remote_assets_service.dart";
 import "package:photos/services/wake_lock_service.dart";
-import "package:photos/theme/ente_theme.dart";
-import "package:photos/ui/common/loading_widget.dart";
-import "package:photos/ui/common/web_page.dart";
-import "package:photos/ui/components/buttons/button_widget_v2.dart";
-import "package:photos/ui/components/menu_item_widget/menu_item_widget_new.dart";
-import "package:photos/ui/components/menu_section_description_widget.dart";
-import "package:photos/ui/components/menu_section_title.dart";
-import "package:photos/ui/components/toggle_switch_widget.dart";
+import "package:photos/ui/settings/ml/ml_consent_sheet.dart";
 import "package:photos/ui/settings/ml/ml_user_dev_screen.dart";
+import "package:photos/utils/email_util.dart";
 import "package:photos/utils/ml_util.dart";
 import "package:photos/utils/network_util.dart";
 
@@ -36,21 +34,26 @@ class MachineLearningSettingsPage extends StatefulWidget {
 
 class _MachineLearningSettingsPageState
     extends State<MachineLearningSettingsPage> {
+  static final _logger = Logger("MachineLearningSettingsPage");
   Timer? _timer;
   int _titleTapCount = 0;
   Timer? _advancedOptionsTimer;
   bool _hasAcknowledgedMLConsent = false;
-  bool _hasHandledDisabledExit = false;
+  bool _isEnabling = false;
+  bool _mlDecryptionRecordsReady = false;
 
   @override
   void initState() {
     super.initState();
-    EnteWakeLockService.instance.updateWakeLock(
+    unawaited(_pruneMlDecryptionRecords());
+    wakeLockService.updateWakeLock(
       enable: true,
       wakeLockFor: WakeLockFor.machineLearningSettingsScreen,
     );
     computeController.forceOverrideML(turnOn: true);
-    if (!MLIndexingIsolate.instance.areModelsDownloaded) {
+    if (!MLModelDownloadService.instance.areModelsDownloaded(
+      onlyIndexingModels: false,
+    )) {
       _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
         if (mounted) {
           setState(() {});
@@ -62,10 +65,44 @@ class _MachineLearningSettingsPageState
     });
   }
 
+  Future<void> _pruneMlDecryptionRecords() async {
+    final recordedFileIDs = mlDecryptionRecordStore.fileIDs;
+    try {
+      final staleFileIDs = <int>{};
+      if (recordedFileIDs.isNotEmpty) {
+        await MLDataDB.instance.pruneResolvedFaceErrorResults(recordedFileIDs);
+        final existingFiles = await FilesDB.instance.getFileIDToFileFromIDs(
+          recordedFileIDs,
+        );
+        final errorResultFileIDs = await MLDataDB.instance
+            .getFileIDsWithErrorResults(recordedFileIDs);
+        staleFileIDs.addAll(
+          recordedFileIDs.where(
+            (fileID) =>
+                !existingFiles.containsKey(fileID) ||
+                !errorResultFileIDs.contains(fileID),
+          ),
+        );
+      }
+      await mlDecryptionRecordStore.removeAll(staleFileIDs);
+    } catch (error, stackTrace) {
+      _logger.warning(
+        "Failed to prune ML decryption records",
+        error,
+        stackTrace,
+      );
+    } finally {
+      mlDecryptionRecordStore.logFileIDs();
+      if (mounted) {
+        setState(() => _mlDecryptionRecordsReady = true);
+      }
+    }
+  }
+
   @override
   void dispose() {
     super.dispose();
-    EnteWakeLockService.instance.updateWakeLock(
+    wakeLockService.updateWakeLock(
       enable: false,
       wakeLockFor: WakeLockFor.machineLearningSettingsScreen,
     );
@@ -78,7 +115,7 @@ class _MachineLearningSettingsPageState
   Widget build(BuildContext context) {
     final hasEnabled = hasGrantedMLConsent;
 
-    if (!hasEnabled) {
+    if (!hasEnabled || _isEnabling) {
       return _buildDisabledMLScreen(context);
     }
 
@@ -86,253 +123,137 @@ class _MachineLearningSettingsPageState
   }
 
   Widget _buildEnabledMLScreen(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
+    final colors = context.componentColors;
 
-    return Scaffold(
-      appBar: AppBar(
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        backgroundColor: colorScheme.backgroundColour,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: colorScheme.strokeBase),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-        ),
-      ),
-      backgroundColor: colorScheme.backgroundColour,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  setState(() {
-                    _titleTapCount++;
-                    if (_titleTapCount >= 7) {
-                      _titleTapCount = 0;
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (BuildContext context) {
-                            return const MLUserDeveloperOptions(
-                              mlIsEnabled: true,
-                            );
-                          },
-                        ),
-                      ).ignore();
-                    }
-                  });
-                },
-                child: Text(
-                  AppLocalizations.of(context).machineLearning,
-                  style: textTheme.h3Bold,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                AppLocalizations.of(context).mlIndexingDescription,
-                textAlign: TextAlign.left,
-                style: textTheme.small.copyWith(
-                  color: colorScheme.textMuted,
-                ),
-              ),
-              const SizedBox(height: 20),
-              _getMlSettings(context),
-              const SizedBox(height: 16),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDisabledMLScreen(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
-
-    return Scaffold(
-      backgroundColor: colorScheme.backgroundColour,
-      appBar: AppBar(
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        backgroundColor: colorScheme.backgroundColour,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: colorScheme.strokeBase),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-        ),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                AppLocalizations.of(context).mlConsent,
-                style: textTheme.h3Bold,
-              ),
-              const SizedBox(height: 12),
-              _buildDisabledMLDescription(context),
-              const SizedBox(height: 20),
-              Center(
-                child: Image.asset(
-                  "assets/ducky_ml.png",
-                  height: 150,
-                  fit: BoxFit.contain,
-                ),
-              ),
-              const SizedBox(height: 18),
-              _buildDisabledConsentAckRow(context),
-              const SizedBox(height: 20),
-              ButtonWidgetV2(
-                buttonType: ButtonTypeV2.primary,
-                labelText: AppLocalizations.of(context).mlConsent,
-                isDisabled: !_hasAcknowledgedMLConsent,
-                onTap: () async {
-                  if (!_hasAcknowledgedMLConsent) return;
-                  await toggleMlConsent();
-                },
-              ),
-              const SizedBox(height: 12),
-              ButtonWidgetV2(
-                buttonType: ButtonTypeV2.secondary,
-                labelText: AppLocalizations.of(context).cancel,
-                onTap: () async {
-                  await _handleDisabledScreenExit();
-                  if (context.mounted) {
-                    Navigator.of(context).pop();
-                  }
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _handleDisabledScreenExit() async {
-    if (_hasHandledDisabledExit || hasGrantedMLConsent) {
-      return;
-    }
-    _hasHandledDisabledExit = true;
-    await localSettings.setHasSeenMLEnablingBanner();
-    Bus.instance.fire(NotificationEvent());
-  }
-
-  Future<void> toggleMlConsent() async {
-    final oldMlConsent = hasGrantedMLConsent;
-    final mlConsent = !oldMlConsent;
-    await setMLConsent(mlConsent);
-    Bus.instance.fire(NotificationEvent());
-    if (!mlConsent) {
-      MLService.instance.pauseIndexingAndClustering();
-      unawaited(
-        MLIndexingIsolate.instance.cleanupLocalIndexingModels(),
-      );
-    } else {
-      await MLService.instance.init();
-      await SemanticSearchService.instance.init();
-      unawaited(MLService.instance.runAllML(force: true));
-    }
-    if (mounted) {
-      setState(() {});
-    }
-  }
-
-  Widget _buildDisabledMLDescription(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return SettingsPageScaffold(
+      title: context.strings.machineLearning,
+      onTitleTap: _handleEnabledTitleTap,
       children: [
         Text(
-          AppLocalizations.of(context).mlConsentDescription,
+          context.strings.mlIndexingDescription,
           textAlign: TextAlign.left,
-          style: textTheme.small.copyWith(color: colorScheme.textMuted),
+          style: TextStyles.mini.copyWith(color: colors.textLight),
         ),
-        const SizedBox(height: 6),
-        GestureDetector(
-          onTap: () async => _openMLPrivacyPolicy(context),
-          child: Text(
-            AppLocalizations.of(context).mlConsentPrivacy,
-            textAlign: TextAlign.left,
-            style: textTheme.small.copyWith(
-              color: colorScheme.textMuted,
-              decoration: TextDecoration.underline,
-              decorationColor: colorScheme.textMuted,
-            ),
-          ),
-        ),
+        const SizedBox(height: 20),
+        _getMlSettings(context),
+        const SizedBox(height: 16),
       ],
     );
   }
 
-  Widget _buildDisabledConsentAckRow(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final accentColor = colorScheme.greenBase;
-
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () {
-        setState(() {
-          _hasAcknowledgedMLConsent = !_hasAcknowledgedMLConsent;
-        });
-      },
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            width: 18,
-            height: 18,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: accentColor),
-              color:
-                  _hasAcknowledgedMLConsent ? accentColor : Colors.transparent,
+  Widget _buildDisabledMLScreen(BuildContext context) {
+    return PopScope(
+      canPop: !_isEnabling,
+      child: SettingsPageScaffold(
+        title: context.strings.machineLearning,
+        bottomNavigationBar: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ButtonComponent(
+                  label: context.strings.mlConsent,
+                  isDisabled: !_hasAcknowledgedMLConsent,
+                  onTap: _enableAndOpenSearch,
+                ),
+                const SizedBox(height: Spacing.md),
+                MLConsentCancelLink(
+                  onTap: _isEnabling ? null : _declineAndClose,
+                ),
+              ],
             ),
-            alignment: Alignment.center,
-            child: _hasAcknowledgedMLConsent
-                ? Icon(
-                    Icons.check,
-                    size: 14,
-                    color: colorScheme.contentReverse,
-                  )
-                : null,
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              AppLocalizations.of(context).mlConsentConfirmation,
-              style: getEnteTextTheme(context).small.copyWith(
-                    color: colorScheme.textMuted,
-                  ),
+        ),
+        children: [
+          const MLConsentDescription(),
+          const SizedBox(height: 20),
+          Center(
+            child: Image.asset(
+              "assets/ducky_ml.png",
+              height: 150,
+              fit: BoxFit.contain,
             ),
+          ),
+          const SizedBox(height: 20),
+          MLConsentAcknowledgement(
+            selected: _hasAcknowledgedMLConsent,
+            onChanged: () {
+              if (_isEnabling) return;
+              setState(() {
+                _hasAcknowledgedMLConsent = !_hasAcknowledgedMLConsent;
+              });
+            },
           ),
         ],
       ),
     );
   }
 
-  Future<void> _openMLPrivacyPolicy(BuildContext context) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (BuildContext context) {
-          return WebPage(
-            AppLocalizations.of(context).privacyPolicyTitle,
-            "https://ente.io/privacy",
-          );
-        },
-      ),
+  void _handleEnabledTitleTap() {
+    var shouldOpenDeveloperOptions = false;
+    setState(() {
+      _titleTapCount++;
+      if (_titleTapCount >= 7) {
+        _titleTapCount = 0;
+        shouldOpenDeveloperOptions = true;
+      }
+    });
+
+    if (!shouldOpenDeveloperOptions) {
+      return;
+    }
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute(
+            builder: (BuildContext context) {
+              return const MLUserDeveloperOptions(mlIsEnabled: true);
+            },
+          ),
+        )
+        .ignore();
+  }
+
+  Future<void> _enableAndOpenSearch() async {
+    setState(() => _isEnabling = true);
+    try {
+      await enableMLConsent();
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isEnabling = false);
+      }
+      rethrow;
+    }
+    if (!mounted) return;
+    Navigator.of(
+      context,
+    ).popUntil((route) => route.isFirst && !route.willHandlePopInternally);
+    Bus.instance.fire(
+      TabChangedEvent(searchTabIndex, TabChangedEventSource.mlConsent),
     );
+  }
+
+  void _declineAndClose() {
+    unawaited(markMLConsentPromptSeen());
+    Navigator.of(context).pop();
+  }
+
+  Future<void> _disableMl() async {
+    final wasMlEnabled = localSettings.isMLLocalIndexingEnabled;
+    await setMLConsent(false);
+    // Queue a memories cache refresh so People/Clip memories disappear on the
+    // next scheduled recompute. We intentionally only queue here — the actual
+    // recompute will be picked up by the next updateCache invocation.
+    memoriesCacheService.queueUpdateCache();
+    Bus.instance.fire(NotificationEvent());
+    MLService.instance.stopActiveRun(MlStopReason.manual);
+    unawaited(MLIndexingIsolate.instance.cleanupLocalIndexingModels());
+    if (wasMlEnabled) {
+      await memoriesCacheService.purgeMlOnlyMemoriesFromCache();
+    }
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Widget _getMlSettings(BuildContext context) {
@@ -342,29 +263,43 @@ class _MachineLearningSettingsPageState
     }
     return Column(
       children: [
-        MenuItemWidgetNew(
-          title: AppLocalizations.of(context).enabled,
-          trailingWidget: ToggleSwitchWidget(
+        MenuComponent(
+          title: context.strings.enabled,
+          leading: const HugeIcon(
+            icon: HugeIcons.strokeRoundedToggleOn,
+            size: IconSizes.small,
+          ),
+          trailing: ToggleSwitchComponent.async(
             value: () => hasEnabled,
-            onChanged: () async {
-              await toggleMlConsent();
-            },
+            onChanged: _disableMl,
           ),
         ),
         const SizedBox(height: 8),
-        MenuItemWidgetNew(
-          title: AppLocalizations.of(context).localIndexing,
-          trailingWidget: ToggleSwitchWidget(
+        MenuComponent(
+          title: context.strings.localIndexing,
+          leading: const HugeIcon(
+            icon: HugeIcons.strokeRoundedCpu,
+            size: IconSizes.small,
+          ),
+          trailing: ToggleSwitchComponent.async(
             value: () => localSettings.isMLLocalIndexingEnabled,
             onChanged: () async {
+              final oldMlEnabled =
+                  hasGrantedMLConsent && localSettings.isMLLocalIndexingEnabled;
               final localIndexing = await localSettings.toggleLocalMLIndexing();
+              final newMlEnabled = hasGrantedMLConsent && localIndexing;
+              memoriesCacheService.queueUpdateCache();
+              Bus.instance.fire(NotificationEvent());
               if (localIndexing) {
                 unawaited(MLService.instance.runAllML(force: true));
               } else {
-                MLService.instance.pauseIndexingAndClustering();
+                MLService.instance.stopActiveRun(MlStopReason.manual);
                 unawaited(
                   MLIndexingIsolate.instance.cleanupLocalIndexingModels(),
                 );
+                if (oldMlEnabled && !newMlEnabled) {
+                  await memoriesCacheService.purgeMlOnlyMemoriesFromCache();
+                }
               }
 
               if (mounted) {
@@ -373,12 +308,12 @@ class _MachineLearningSettingsPageState
             },
           ),
         ),
-        const SizedBox(
-          height: 12,
-        ),
-        MLIndexingIsolate.instance.areModelsDownloaded ||
+        const SizedBox(height: 12),
+        MLModelDownloadService.instance.areModelsDownloaded(
+                  onlyIndexingModels: true,
+                ) ||
                 !localSettings.isMLLocalIndexingEnabled
-            ? const MLStatusWidget()
+            ? MLStatusWidget(showDecryptionWarning: _mlDecryptionRecordsReady)
             : const ModelLoadingState(),
       ],
     );
@@ -386,9 +321,7 @@ class _MachineLearningSettingsPageState
 }
 
 class ModelLoadingState extends StatefulWidget {
-  const ModelLoadingState({
-    super.key,
-  });
+  const ModelLoadingState({super.key});
 
   @override
   State<ModelLoadingState> createState() => _ModelLoadingStateState();
@@ -401,17 +334,18 @@ class _ModelLoadingStateState extends State<ModelLoadingState> {
 
   @override
   void initState() {
-    _progressStream =
-        RemoteAssetsService.instance.progressStream.listen((event) {
-      final String url = event.$1;
+    _progressStream = MLModelDownloadService.instance.progressStream.listen((
+      event,
+    ) {
+      final String model = event.$1;
       String title = "";
-      if (url.contains(ClipImageEncoder.kRemoteBucketModelPath)) {
+      if (model == "clip-image") {
         title = "Image Model";
-      } else if (url.contains(ClipTextEncoder.kRemoteBucketModelPath)) {
+      } else if (model == "clip-text") {
         title = "Text Model";
-      } else if (url.contains(FaceDetectionService.kRemoteBucketModelPath)) {
+      } else if (model == "face-detection") {
         title = "Face Detection Model";
-      } else if (url.contains(FaceEmbeddingService.kRemoteBucketModelPath)) {
+      } else if (model == "face-embedding") {
         title = "Face Embedding Model";
       }
       if (title.isNotEmpty) {
@@ -434,46 +368,60 @@ class _ModelLoadingStateState extends State<ModelLoadingState> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
+    final colors = context.componentColors;
     return Column(
       children: [
-        MenuSectionTitle(title: AppLocalizations.of(context).status),
+        Padding(
+          padding: const EdgeInsets.only(left: Spacing.sm, top: 6, bottom: 6),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              context.strings.status.toUpperCase(),
+              style: TextStyles.mini.copyWith(color: colors.textLight),
+            ),
+          ),
+        ),
         const SizedBox(height: 8),
         FutureBuilder(
-          future: canUseHighBandwidth().then((v) => isOfflineMode || v),
+          future: canUseHighBandwidth().then((v) => isLocalGalleryMode || v),
           builder: (context, snapshot) {
             String title = "";
+            List<List<dynamic>> leadingIcon = HugeIcons.strokeRoundedLoading03;
             if (snapshot.hasData) {
               if (snapshot.data!) {
-                MLIndexingIsolate.instance.triggerModelsDownload();
-                title = AppLocalizations.of(context).checkingModels;
+                MLModelDownloadService.instance.triggerModelsDownload(
+                  onlyIndexingModels: false,
+                );
+                title = context.strings.checkingModels;
+                leadingIcon = HugeIcons.strokeRoundedCloudDownload;
               } else {
-                title = AppLocalizations.of(context).waitingForWifi;
+                title = context.strings.waitingForWifi;
+                leadingIcon = HugeIcons.strokeRoundedWifi02;
               }
             }
-            return MenuItemWidgetNew(
+            return MenuComponent(
               title: title,
-              trailingWidget: EnteLoadingWidget(
-                size: 12,
-                color: colorScheme.fillMuted,
-              ),
-              isGestureDetectorDisabled: true,
+              leading: HugeIcon(icon: leadingIcon, size: IconSizes.small),
+              trailing: EnteLoadingWidget(size: 12, color: colors.fillDark),
             );
           },
         ),
-        // show the progress map if in debug mode
         ..._progressMap.entries.map((entry) {
           return Padding(
             padding: const EdgeInsets.only(top: 8),
-            child: MenuItemWidgetNew(
+            child: MenuComponent(
               key: ValueKey(entry.value),
               title: entry.key,
-              trailingWidget: Text(
-                '${(entry.value.$1 * 100) ~/ entry.value.$2}%',
-                style: textTheme.small.copyWith(color: colorScheme.textMuted),
+              leading: const HugeIcon(
+                icon: HugeIcons.strokeRoundedCloudDownload,
+                size: IconSizes.small,
               ),
-              isGestureDetectorDisabled: true,
+              trailing: Text(
+                entry.value.$2 > 0
+                    ? '${(entry.value.$1 * 100) ~/ entry.value.$2}%'
+                    : '0%',
+                style: TextStyles.mini.copyWith(color: colors.textLight),
+              ),
             ),
           );
         }),
@@ -483,9 +431,9 @@ class _ModelLoadingStateState extends State<ModelLoadingState> {
 }
 
 class MLStatusWidget extends StatefulWidget {
-  const MLStatusWidget({
-    super.key,
-  });
+  final bool showDecryptionWarning;
+
+  const MLStatusWidget({required this.showDecryptionWarning, super.key});
 
   @override
   State<MLStatusWidget> createState() => MLStatusWidgetState();
@@ -494,6 +442,7 @@ class MLStatusWidget extends StatefulWidget {
 class MLStatusWidgetState extends State<MLStatusWidget> {
   Timer? _timer;
   bool _isDeviceHealthy = computeController.isDeviceHealthy;
+
   @override
   void initState() {
     super.initState();
@@ -517,15 +466,26 @@ class MLStatusWidgetState extends State<MLStatusWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.componentColors;
+    final decryptionIssueCount = widget.showDecryptionWarning
+        ? mlDecryptionRecordStore.count
+        : 0;
     return Column(
       children: [
-        MenuSectionTitle(title: AppLocalizations.of(context).status),
+        Padding(
+          padding: const EdgeInsets.only(left: Spacing.sm, top: 6, bottom: 6),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              context.strings.status.toUpperCase(),
+              style: TextStyles.mini.copyWith(color: colors.textLight),
+            ),
+          ),
+        ),
         const SizedBox(height: 8),
         FutureBuilder(
           future: _getIndexStatus(),
           builder: (context, snapshot) {
-            final colorScheme = getEnteColorScheme(context);
-            final textTheme = getEnteTextTheme(context);
             if (snapshot.hasData) {
               final int indexedFiles = snapshot.data!.indexedItems;
               final int pendingFiles = snapshot.data!.pendingItems;
@@ -533,49 +493,56 @@ class MLStatusWidgetState extends State<MLStatusWidget> {
               final bool hasWifi = snapshot.data!.hasWifiEnabled!;
 
               if (!_isDeviceHealthy && pendingFiles > 0) {
-                return MenuSectionDescriptionWidget(
-                  content: AppLocalizations.of(context)
-                      .indexingPausedStatusDescription,
+                return Text(
+                  context.strings.indexingPausedStatusDescription,
+                  style: TextStyles.mini.copyWith(color: colors.textLight),
                 );
               }
 
               return Column(
                 children: [
-                  MenuItemWidgetNew(
+                  MenuComponent(
                     key: ValueKey("pending_items_$pendingFiles"),
-                    title: AppLocalizations.of(context).processed,
-                    trailingWidget: Text(
+                    title: context.strings.processed,
+                    leading: const HugeIcon(
+                      icon: HugeIcons.strokeRoundedClock01,
+                      size: IconSizes.small,
+                    ),
+                    trailing: Text(
                       total < 1
                           ? 'NA'
                           : pendingFiles == 0
-                              ? '100%'
-                              : '${(indexedFiles * 100.0 / total * 1.0).toStringAsFixed(2)}%',
-                      style: textTheme.small.copyWith(
-                        color: colorScheme.textMuted,
-                      ),
+                          ? '100%'
+                          : '${(indexedFiles * 100.0 / total * 1.0).toStringAsFixed(2)}%',
+                      style: TextStyles.mini.copyWith(color: colors.textLight),
                     ),
-                    isGestureDetectorDisabled: true,
                   ),
                   if (MLService.instance.showClusteringIsHappening)
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
-                      child: MenuItemWidgetNew(
-                        title: AppLocalizations.of(context).clusteringProgress,
-                        trailingWidget: Text(
-                          AppLocalizations.of(context).currentlyRunning,
-                          style: textTheme.small.copyWith(
-                            color: colorScheme.textMuted,
+                      child: MenuComponent(
+                        title: context.strings.clusteringProgress,
+                        leading: const HugeIcon(
+                          icon: HugeIcons.strokeRoundedSparkles,
+                          size: IconSizes.small,
+                        ),
+                        trailing: Text(
+                          context.strings.currentlyRunning,
+                          style: TextStyles.mini.copyWith(
+                            color: colors.textLight,
                           ),
                         ),
-                        isGestureDetectorDisabled: true,
                       ),
                     )
                   else if (!hasWifi && pendingFiles > 0)
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
-                      child: MenuItemWidgetNew(
-                        title: AppLocalizations.of(context).waitingForWifi,
-                        isGestureDetectorDisabled: true,
+                      child: MenuComponent(
+                        title: context.strings.waitingForWifi,
+                        leading: const HugeIcon(
+                          icon: HugeIcons.strokeRoundedWifi02,
+                          size: IconSizes.small,
+                        ),
                       ),
                     ),
                 ],
@@ -584,7 +551,113 @@ class MLStatusWidgetState extends State<MLStatusWidget> {
             return const EnteLoadingWidget();
           },
         ),
+        if (decryptionIssueCount > 0) ...[
+          const SizedBox(height: 8),
+          _MLProcessingIssuesBlurb(itemCount: decryptionIssueCount),
+        ],
       ],
+    );
+  }
+}
+
+class _MLProcessingIssuesBlurb extends StatelessWidget {
+  final int itemCount;
+
+  const _MLProcessingIssuesBlurb({required this.itemCount});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.componentColors;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colors.fillLight,
+        borderRadius: BorderRadius.circular(Radii.button),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.only(
+          left: Spacing.lg,
+          top: Spacing.lg,
+          right: Spacing.lg,
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: colors.cautionLight,
+                shape: BoxShape.circle,
+              ),
+              child: SizedBox.square(
+                dimension: 32,
+                child: Center(
+                  child: HugeIcon(
+                    icon: HugeIcons.strokeRoundedAlert02,
+                    size: IconSizes.small,
+                    color: colors.caution,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: Spacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    context.strings.mlCouldNotProcessItems(count: itemCount),
+                    style: TextStyles.bodyBold.copyWith(color: colors.textBase),
+                  ),
+                  const SizedBox(height: Spacing.sm),
+                  Text(
+                    context.strings.mlProcessingIssueReachOut,
+                    style: TextStyles.mini.copyWith(color: colors.textLight),
+                  ),
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      mlDecryptionRecordStore.logFileIDs();
+                      sendLogs(
+                        context,
+                        context.strings.contactUs,
+                        "support@ente.com",
+                        postShare: () {},
+                        subject: "Machine learning processing issue",
+                        body: context.strings.mlItemsCouldNotBeProcessed(
+                          count: itemCount,
+                        ),
+                      );
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.only(
+                        top: Spacing.sm,
+                        bottom: Spacing.lg,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            context.strings.contactUs,
+                            style: TextStyles.bodyBold.copyWith(
+                              color: colors.primary,
+                            ),
+                          ),
+                          const SizedBox(width: Spacing.xs),
+                          HugeIcon(
+                            icon: HugeIcons.strokeRoundedArrowRight01,
+                            color: colors.primary,
+                            size: 16,
+                            strokeWidth: 1.6,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

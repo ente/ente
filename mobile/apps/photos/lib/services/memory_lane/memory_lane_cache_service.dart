@@ -60,9 +60,26 @@ class MemoryLaneCacheService {
     return cache[personId];
   }
 
-  Future<MemoryLaneComputeLogEntry?> getComputeLogEntry(
-    String personId,
-  ) async {
+  Future<MemoryLaneSchedule?> getCurrentMemoriesStripSchedule() async {
+    final cache = await getCache();
+    final nowMicros = DateTime.now().microsecondsSinceEpoch;
+    for (final entry in cache.memoriesStripSchedule.entries) {
+      final timeline = cache.timelines[entry.key];
+      final endShowingAt =
+          entry.value.beginShowingAt +
+          MemoryLaneSchedule.displayDuration.inMicroseconds;
+      if (entry.value.beginShowingAt <= nowMicros &&
+          nowMicros < endShowingAt &&
+          timeline != null &&
+          timeline.isEligible &&
+          timeline.entries.isNotEmpty) {
+        return entry.value;
+      }
+    }
+    return null;
+  }
+
+  Future<MemoryLaneComputeLogEntry?> getComputeLogEntry(String personId) async {
     final cache = await getCache();
     return cache.computeLog[personId];
   }
@@ -72,24 +89,77 @@ class MemoryLaneCacheService {
     return Map<String, MemoryLaneComputeLogEntry>.from(cache.computeLog);
   }
 
-  Future<void> upsertTimeline(MemoryLanePersonTimeline timeline) async {
+  Future<void> updateMemoriesStripSchedule(
+    Set<String> invalid,
+    MemoryLaneSchedule? schedule,
+  ) async {
+    if (invalid.isEmpty && schedule == null) {
+      return;
+    }
     await _ensureInitialized();
     await _lock.synchronized(() async {
       final currentCache = await _loadCacheUnsafe();
-      final updatedCache = currentCache.copyWithTimeline(timeline);
+      var updatedCache = currentCache.copyWithoutMemoriesStripScheduleEntries(
+        invalid,
+      );
+      if (schedule != null) {
+        updatedCache = updatedCache.copyWithMemoriesStripScheduleEntry(
+          schedule.personID,
+          schedule,
+        );
+      }
       _cache = updatedCache;
       await _writeCacheUnsafe();
     });
   }
 
-  Future<void> upsertComputeLogEntry(
-    MemoryLaneComputeLogEntry entry,
-  ) async {
+  Future<void> markScheduleCompletelySeen(MemoryLaneSchedule schedule) async {
     await _ensureInitialized();
     await _lock.synchronized(() async {
       final currentCache = await _loadCacheUnsafe();
-      final updatedCache = currentCache.copyWithComputeLogEntry(entry);
-      _cache = updatedCache;
+      final current = currentCache.memoriesStripSchedule[schedule.personID];
+      if (current == null ||
+          current.beginShowingAt != schedule.beginShowingAt ||
+          current.isCluster != schedule.isCluster) {
+        return;
+      }
+      _cache = currentCache.copyWithMemoriesStripScheduleEntry(
+        current.personID,
+        MemoryLaneSchedule(
+          personID: current.personID,
+          isCluster: current.isCluster,
+          beginShowingAt: current.beginShowingAt,
+          lastCompletelySeenAt: DateTime.now().microsecondsSinceEpoch,
+        ),
+      );
+      await _writeCacheUnsafe();
+    });
+  }
+
+  Future<void> removeMemoriesStripSchedule(String personId) async {
+    await _ensureInitialized();
+    await _lock.synchronized(() async {
+      final currentCache = await _loadCacheUnsafe();
+      if (!currentCache.memoriesStripSchedule.containsKey(personId)) {
+        return;
+      }
+      _cache = currentCache.copyWithoutMemoriesStripScheduleEntries({personId});
+      await _writeCacheUnsafe();
+    });
+  }
+
+  Future<void> upsertTimelineAndLog(
+    MemoryLanePersonTimeline timeline,
+    MemoryLaneComputeLogEntry log,
+    bool Function() isCurrent,
+  ) async {
+    await _ensureInitialized();
+    await _lock.synchronized(() async {
+      if (!isCurrent()) return false;
+      final currentCache = await _loadCacheUnsafe();
+      _cache = currentCache
+          .copyWithTimeline(timeline)
+          .copyWithComputeLogEntry(log);
       await _writeCacheUnsafe();
     });
   }
@@ -127,16 +197,17 @@ class MemoryLaneCacheService {
     });
   }
 
-  Future<void> removeTimeline(String personId) async {
+  Future<bool> removeTimeline(String personId) async {
     await _ensureInitialized();
-    await _lock.synchronized(() async {
+    return await _lock.synchronized(() async {
       final currentCache = await _loadCacheUnsafe();
       if (!currentCache.timelines.containsKey(personId)) {
-        return;
+        return false;
       }
       final updatedCache = currentCache.copyWithoutPerson(personId);
       _cache = updatedCache;
       await _writeCacheUnsafe();
+      return true;
     });
   }
 

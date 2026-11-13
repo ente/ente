@@ -44,34 +44,24 @@
                 <data android:mimeType="image/*" />
                 <data android:mimeType="video/*" />
             </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.PICK" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="image/*" />
-                <data android:mimeType="video/*" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.GET_CONTENT" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.OPENABLE" />
-                <data android:mimeType="image/*" />
-                <data android:mimeType="video/*" />
-            </intent-filter>
 
-            <!-- App Link --> 
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data 
-                    android:scheme="https" 
+                <data
+                    android:scheme="https"
                     android:host="albums.ente.io"/>
             </intent-filter>
-            
-            <!-- file provider to share files having a file:// URI -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="albums.ente.com"/>
+            </intent-filter>
 
-            <!--Filter
-            to support sharing images into our app-->
             <intent-filter android:label="@string/backup">
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -97,6 +87,70 @@
             </intent-filter>
 
         </activity>
+
+        <activity android:name=".MediaPickerActivity"
+            android:theme="@style/LaunchTheme"
+            android:exported="true"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.PICK" />
+                <action android:name="android.intent.action.GET_CONTENT" />
+                <action android:name="android.provider.action.PICK_IMAGES" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.OPENABLE" />
+                <data android:mimeType="image/*" />
+                <data android:mimeType="video/*" />
+                <data android:mimeType="vnd.android.cursor.dir/image" />
+                <data android:mimeType="vnd.android.cursor.dir/video" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.PICK" />
+                <action android:name="android.intent.action.GET_CONTENT" />
+                <action android:name="android.provider.action.PICK_IMAGES" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.OPENABLE" />
+                <data android:mimeType="image/*" />
+                <data android:mimeType="video/*" />
+                <data android:mimeType="vnd.android.cursor.dir/image" />
+                <data android:mimeType="vnd.android.cursor.dir/video" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+            </intent-filter>
+        </activity>
+
+        <activity android:name=".MediaReviewActivity"
+            android:theme="@android:style/Theme.NoDisplay"
+            android:exported="true"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.provider.action.REVIEW" />
+                <action android:name="com.android.camera.action.REVIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+                <data android:mimeType="video/*" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.provider.action.REVIEW" />
+                <action android:name="com.android.camera.action.REVIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+                <data android:mimeType="video/*" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.provider.action.REVIEW" />
+                <action android:name="com.android.camera.action.REVIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+            </intent-filter>
+        </activity>
+
         <activity-alias
             android:name="${applicationId}.IconGreen"
             android:icon="@mipmap/icon_green"
@@ -106,6 +160,7 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
+                <category android:name="android.intent.category.APP_GALLERY"/>
             </intent-filter>
         </activity-alias>
         <activity-alias
@@ -117,6 +172,7 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
+                <category android:name="android.intent.category.APP_GALLERY"/>
             </intent-filter>
         </activity-alias>
         <activity-alias
@@ -128,6 +184,7 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
+                <category android:name="android.intent.category.APP_GALLERY"/>
             </intent-filter>
         </activity-alias>
         <activity-alias
@@ -139,6 +196,7 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
+                <category android:name="android.intent.category.APP_GALLERY"/>
             </intent-filter>
         </activity-alias>
         <activity-alias
@@ -150,6 +208,7 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
+                <category android:name="android.intent.category.APP_GALLERY"/>
             </intent-filter>
         </activity-alias>
 
@@ -184,8 +243,8 @@
             <meta-data android:name="android.appwidget.provider"
                 android:resource="@xml/people_widget" />
         </receiver>
-        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />  <!-- Needed for scheduling notifications -->
-        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">    <!-- Needed for scheduling notifications -->
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
             <intent-filter>
             <action android:name="android.intent.action.BOOT_COMPLETED"/>
             <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
@@ -195,21 +254,11 @@
         </receiver>
     </application>
 
-    <!-- Android 11: https://developer.android.com/preview/privacy/package-visibility -->
-    <!-- https://developer.android.com/training/package-visibility/use-cases -->
-    <queries>
-        <intent>
-            <action android:name="android.intent.action.SENDTO" />
-            <data android:scheme="mailto" />
-        </intent>
-    </queries>
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.MANAGE_MEDIA" />
     <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION" />
-    <uses-permission
-        android:name="android.permission.READ_MEDIA_IMAGES" /> <!-- If you want to read images-->
-    <uses-permission
-        android:name="android.permission.READ_MEDIA_VIDEO" /> <!-- If you want to read videos-->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
@@ -221,6 +270,6 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="com.android.vending.BILLING" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>   <!-- Needed for scheduling notifications -->
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/> <!-- Needed for scheduling notifications -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
 </manifest>

@@ -2,17 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:photos/theme/ente_theme.dart';
 
 class TitleBarTitleWidget extends StatelessWidget {
+  static const _trailingActionSize = 38.0;
+
   final String? title;
   final bool isTitleH2;
   final IconData? icon;
   final VoidCallback? onTap;
   final String? heroTag;
+  final List<Widget>? trailingWidgets;
   const TitleBarTitleWidget({
     this.title,
     this.isTitleH2 = false,
     this.icon,
     this.onTap,
     this.heroTag,
+    this.trailingWidgets,
     super.key,
   });
 
@@ -53,6 +57,35 @@ class TitleBarTitleWidget extends StatelessWidget {
           maxLines: 1,
         );
       }
+
+      if (trailingWidgets != null && trailingWidgets!.isNotEmpty) {
+        return Row(
+          children: <Widget>[
+            Expanded(
+              child: GestureDetector(
+                onTap: onTap,
+                child: heroTag != null
+                    ? Hero(tag: heroTag!, child: widget)
+                    : widget,
+              ),
+            ),
+            ConstrainedBox(
+              constraints: const BoxConstraints(
+                minWidth: _trailingActionSize,
+                minHeight: _trailingActionSize,
+              ),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: trailingWidgets!,
+                ),
+              ),
+            ),
+          ],
+        );
+      }
+
       return GestureDetector(
         onTap: onTap,
         child: heroTag != null ? Hero(tag: heroTag!, child: widget) : widget,

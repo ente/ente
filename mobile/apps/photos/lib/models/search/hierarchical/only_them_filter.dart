@@ -1,4 +1,4 @@
-import "package:flutter/material.dart";
+import "package:hugeicons/hugeicons.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/search/hierarchical/face_filter.dart";
 import "package:photos/models/search/hierarchical/hierarchical_search_filter.dart";
@@ -6,9 +6,6 @@ import "package:photos/models/search/hierarchical/hierarchical_search_filter.dar
 class OnlyThemFilter extends HierarchicalSearchFilter {
   final List<FaceFilter> faceFilters;
   final int occurrence;
-
-  /// Workaround to avoid passing context to the filter to avoid making context
-  /// a long lived object.
   final String onlyThemString;
 
   OnlyThemFilter({
@@ -29,8 +26,8 @@ class OnlyThemFilter extends HierarchicalSearchFilter {
   }
 
   @override
-  IconData? icon() {
-    return Icons.face;
+  SearchFilterIcon icon() {
+    return HugeIcons.strokeRoundedUserMultiple;
   }
 
   @override

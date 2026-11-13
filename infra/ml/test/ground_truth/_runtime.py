@@ -24,7 +24,7 @@ except Exception:
     pass
 
 
-DEFAULT_MODEL_BASE_URL: Final[str] = "https://models.ente.io/"
+DEFAULT_MODEL_BASE_URL: Final[str] = "https://models.ente.com/"
 DEFAULT_PADDING_RGB: Final[tuple[int, int, int]] = (114, 114, 114)
 ALLOW_OPENCV_FALLBACK_ENV: Final[str] = "ML_PARITY_ALLOW_OPENCV_DECODE_FALLBACK"
 EXIF_ORIENTATION_TAG: Final[int] = 274

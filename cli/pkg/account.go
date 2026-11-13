@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/ente-io/cli/internal"
-	"github.com/ente-io/cli/internal/api"
-	"github.com/ente-io/cli/pkg/model"
-	"github.com/ente-io/cli/utils/encoding"
+	"github.com/ente/cli/internal"
+	"github.com/ente/cli/internal/api"
+	"github.com/ente/cli/pkg/model"
+	"github.com/ente/cli/utils/encoding"
 	"log"
 
 	bolt "go.etcd.io/bbolt"
@@ -37,8 +37,7 @@ func (c *ClICtrl) AddAccount(cxt context.Context) {
 
 	srpAttr, flowErr := c.Client.GetSRPAttributes(cxt, email)
 	if flowErr != nil {
-		// if flowErr type is ApiError and status code is 404, then set verifyEmail to true and continue
-		// else return
+		// A 404 starts email verification; other errors end the login.
 		if apiErr, ok := flowErr.(*api.ApiError); ok && apiErr.StatusCode == 404 {
 			verifyEmail = true
 		} else {
@@ -82,7 +81,6 @@ func (c *ClICtrl) AddAccount(cxt context.Context) {
 }
 
 func (c *ClICtrl) storeAccount(_ context.Context, email string, userID int64, app api.App, secretInfo *model.AccSecretInfo, exportDir string) error {
-	// get password
 	err := c.DB.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists([]byte(AccBucket))
 		if err != nil {

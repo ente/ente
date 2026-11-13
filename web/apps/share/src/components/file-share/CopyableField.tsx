@@ -1,6 +1,11 @@
+import {
+    Copy01Icon,
+    ViewIcon,
+    ViewOffSlashIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import CheckIcon from "@mui/icons-material/Check";
 import { Box, IconButton, Typography } from "@mui/material";
-import { Copy01Icon, ViewIcon, ViewOffSlashIcon } from "hugeicons-react";
 import React, { useState } from "react";
 
 interface CopyableFieldProps {
@@ -87,9 +92,12 @@ export const CopyableField: React.FC<CopyableFieldProps> = ({
                             }}
                         >
                             {showValue ? (
-                                <ViewOffSlashIcon size={18} />
+                                <HugeiconsIcon
+                                    icon={ViewOffSlashIcon}
+                                    size={18}
+                                />
                             ) : (
-                                <ViewIcon size={18} />
+                                <HugeiconsIcon icon={ViewIcon} size={18} />
                             )}
                         </IconButton>
                     )}
@@ -113,7 +121,7 @@ export const CopyableField: React.FC<CopyableFieldProps> = ({
                                 "&:hover": { bgcolor: "fill.faintHover" },
                             }}
                         >
-                            <Copy01Icon size={16} />
+                            <HugeiconsIcon icon={Copy01Icon} size={16} />
                         </IconButton>
                     )}
                 </Box>

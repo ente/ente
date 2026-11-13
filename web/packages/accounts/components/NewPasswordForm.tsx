@@ -1,59 +1,64 @@
 import { Input, TextField, Typography } from "@mui/material";
-import { isWeakPassword } from "ente-accounts/utils/password";
+import {
+    estimatePasswordStrength,
+    type PasswordStrength,
+} from "ente-accounts/utils/password";
 import { LoadingButton } from "ente-base/components/mui/LoadingButton";
 import { ShowHidePasswordInputAdornment } from "ente-base/components/mui/PasswordInputAdornment";
 import log from "ente-base/log";
 import { useFormik } from "formik";
 import { t } from "i18next";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState, type ComponentType } from "react";
 import { Trans } from "react-i18next";
 import { PasswordStrengthHint } from "./PasswordStrength";
 
 export interface NewPasswordFormProps {
-    /**
-     * The email of the user whose password we are setting.
-     *
-     * This is used to show a hidden input field of type email (and the provided
-     * value) to aid password managers to detect and save the new password,
-     * associating it with the user's email.
-     */
     userEmail: string;
-    /**
-     * The title of the form's submit button.
-     */
     submitButtonTitle: string;
-    /**
-     * Submission handler. A callback invoked when the submit button is pressed.
-     *
-     * @param password The new password entered by the user. The form will first
-     * check that both of the passwords entered by the user match, and that the
-     * password is not too weak.
-     *
-     * @param setPasswordsFieldError A function that can be called to show an
-     * error message below the password fields.
-     */
+    presentation?: ComponentType<NewPasswordPresentationProps>;
+    onBack?: () => void;
     onSubmit: (
         password: string,
         setPasswordsFieldError: (message: string) => void,
     ) => Promise<void>;
 }
 
-/**
- * A form showing two password input fields, a password strength indicator, and
- * a submit button.
- *
- * This form can be used both for the initial setup of the password, and for
- * later changing it.
- */
+export interface NewPasswordPresentationProps {
+    userEmail: string;
+    password: string;
+    confirmPassword: string;
+    passwordError: string | undefined;
+    confirmPasswordError: string | undefined;
+    passwordStrength: PasswordStrength;
+    isSubmitting: boolean;
+    isSubmitDisabled: boolean;
+    submitButtonTitle: string;
+    onBack: (() => void) | undefined;
+    onPasswordChange: React.ChangeEventHandler<
+        HTMLInputElement | HTMLTextAreaElement
+    >;
+    onConfirmPasswordChange: React.ChangeEventHandler<
+        HTMLInputElement | HTMLTextAreaElement
+    >;
+    onSubmit: React.SubmitEventHandler<HTMLFormElement>;
+}
+
 export const NewPasswordForm: React.FC<NewPasswordFormProps> = ({
     userEmail,
     submitButtonTitle,
+    presentation: Presentation,
+    onBack,
     onSubmit,
 }) => {
     const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     const handleToggleShowHidePassword = useCallback(
         () => setShowPassword((show) => !show),
+        [],
+    );
+    const handleToggleShowHideConfirmPassword = useCallback(
+        () => setShowConfirmPassword((show) => !show),
         [],
     );
 
@@ -82,12 +87,39 @@ export const NewPasswordForm: React.FC<NewPasswordFormProps> = ({
         },
     });
 
+    const passwordStrength = useMemo(
+        () => estimatePasswordStrength(formik.values.password),
+        [formik.values.password],
+    );
+
+    if (Presentation) {
+        return (
+            <Presentation
+                userEmail={userEmail}
+                password={formik.values.password}
+                confirmPassword={formik.values.confirmPassword}
+                passwordError={formik.errors.password}
+                confirmPasswordError={formik.errors.confirmPassword}
+                passwordStrength={passwordStrength}
+                isSubmitting={formik.isSubmitting}
+                isSubmitDisabled={passwordStrength == "weak"}
+                submitButtonTitle={submitButtonTitle}
+                onBack={onBack}
+                onPasswordChange={formik.handleChange}
+                onConfirmPasswordChange={formik.handleChange}
+                onSubmit={formik.handleSubmit}
+            />
+        );
+    }
+
     return (
         <form onSubmit={formik.handleSubmit}>
             <Typography variant="small" sx={{ mb: 2, color: "text.muted" }}>
                 {t("pick_password_hint")}
             </Typography>
 
+            {/* This hidden email input helps password managers associate the
+                new password with the user's email. */}
             <Input
                 sx={{ display: "none" }}
                 name="email"
@@ -119,17 +151,29 @@ export const NewPasswordForm: React.FC<NewPasswordFormProps> = ({
             <TextField
                 name="confirmPassword"
                 autoComplete="new-password"
-                type="password"
+                type={showConfirmPassword ? "text" : "password"}
                 label={t("confirm_password")}
                 value={formik.values.confirmPassword}
                 onChange={formik.handleChange}
                 error={!!formik.errors.confirmPassword}
-                // See: [Note: Use space as default TextField helperText]
                 helperText={formik.errors.confirmPassword ?? " "}
                 disabled={formik.isSubmitting}
                 fullWidth
+                slotProps={{
+                    input: {
+                        endAdornment: (
+                            <ShowHidePasswordInputAdornment
+                                showPassword={showConfirmPassword}
+                                onToggle={handleToggleShowHideConfirmPassword}
+                            />
+                        ),
+                    },
+                }}
             />
-            <PasswordStrengthHint password={formik.values.password} />
+            <PasswordStrengthHint
+                password={formik.values.password}
+                strength={passwordStrength}
+            />
 
             <Typography
                 variant="small"
@@ -142,7 +186,7 @@ export const NewPasswordForm: React.FC<NewPasswordFormProps> = ({
                 color="accent"
                 type="submit"
                 loading={formik.isSubmitting}
-                disabled={isWeakPassword(formik.values.password)}
+                disabled={passwordStrength == "weak"}
                 fullWidth
             >
                 {submitButtonTitle}

@@ -20,7 +20,7 @@
 			<string>es</string>
 		</array>
 		<key>CFBundleName</key>
-		<string>Auth</string>
+		<string>$(PRODUCT_NAME)</string>
 		<key>CFBundlePackageType</key>
 		<string>APPL</string>
 		<key>CFBundleShortVersionString</key>
@@ -48,7 +48,7 @@
 		<key>LSRequiresIPhoneOS</key>
 		<true/>
 		<key>MinimumOSVersion</key>
-		<string>13.0</string>
+		<string>15.0</string>
 		<key>NSCameraUsageDescription</key>
 		<string>This app needs camera access to scan QR codes</string>
 		<key>NSFaceIDUsageDescription</key>

@@ -1,0 +1,1 @@
+- Added filename sorting within albums.

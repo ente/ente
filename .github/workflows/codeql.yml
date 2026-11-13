@@ -1,29 +1,22 @@
-# The only reason we're making a custom CodeQL configuration is because the
-# default setup does not have an option to run daily / weekly instead of per
-# push, which is too slow.
-#
-# In the future, it might become faster. Then just delete this file, and revert
-# to the default configuration.
-#
-# References:
-# https://docs.github.com/en/code-security/code-scanning/creating-an-advanced-setup-for-code-scanning/
+# This custom workflow runs nightly because per-push CodeQL is too slow.
 
 name: "CodeQL"
 
 on:
-    workflow_dispatch: # Allow running manually
+    workflow_dispatch:
     schedule:
-        - cron: "22 1 * * 1"
+        - cron: "22 17 * * *"
 
 jobs:
     analyze:
         name: Analyze (${{ matrix.language }})
         runs-on: 'ubuntu-latest'
+        env:
+            CODEQL_EXTRACTOR_RUST_OPTION_CARGO_CFG_OVERRIDES: "-test"
         permissions:
             contents: read
-            # Required for all workflows.
             security-events: write
-            # Required to fetch internal or private CodeQL packs.
+            # Fetch private CodeQL packs.
             packages: read
 
         strategy:
@@ -36,18 +29,23 @@ jobs:
                       build-mode: autobuild
                     - language: javascript-typescript
                       build-mode: none
+                    - language: rust
+                      build-mode: none
 
         steps:
-            - name: Checkout repository
-              uses: actions/checkout@v4
+            - name: Checkout
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
             - name: Initialize CodeQL
-              uses: github/codeql-action/init@v3
+              uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
               with:
                   languages: ${{ matrix.language }}
                   build-mode: ${{ matrix.build-mode }}
+                  config: |
+                      paths-ignore:
+                          - rust/**/tests/**
 
             - name: Perform CodeQL Analysis
-              uses: github/codeql-action/analyze@v3
+              uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
               with:
                   category: "/language:${{matrix.language}}"

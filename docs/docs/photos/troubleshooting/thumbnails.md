@@ -1,10 +1,14 @@
 ---
-title: This Page Has Moved
-description: This content has been reorganized
+title: Missing Thumbnails
+description: Fix missing or incorrect photo thumbnails in Ente Photos
 search: false
+head:
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
-# This Page Has Moved
+# Missing Thumbnails
 
 The content from **Missing Thumbnails** has been reorganized. You can find it in the following locations:
 

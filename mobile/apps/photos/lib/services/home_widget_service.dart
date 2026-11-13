@@ -8,46 +8,44 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path_provider_foundation/path_provider_foundation.dart';
 import 'package:photos/core/constants.dart';
 import 'package:photos/models/file/file.dart';
+import 'package:photos/module/download/thumbnail.dart';
+import 'package:photos/service_locator.dart';
 import 'package:photos/services/album_home_widget_service.dart';
+import 'package:photos/services/app_navigation_service.dart';
+import 'package:photos/services/memories/smart_memories_service.dart';
 import 'package:photos/services/memory_home_widget_service.dart';
 import 'package:photos/services/people_home_widget_service.dart';
-import 'package:photos/services/smart_memories_service.dart';
-import 'package:photos/utils/thumbnail_util.dart';
+import 'package:photos/ui/settings/ml/ml_consent_sheet.dart';
+import 'package:photos/ui/settings/widgets/albums_widget_settings.dart';
+import 'package:photos/ui/settings/widgets/memories_widget_settings.dart';
+import 'package:photos/ui/settings/widgets/people_widget_settings.dart';
 import 'package:synchronized/synchronized.dart';
 
 enum WidgetStatus {
-  // notSynced means the widget is not initialized or has no data
   notSynced,
-  // partially synced means some images were synced but not all
-  // this can happen if some widgets were not installed but we did a sync regardless
-  // or if the sync fails midway
+  // Some data was cached before the sync stopped or without a widget installed.
   syncedPartially,
-  // we purposefully set widget to empty, widget had data
+  // A widget that previously had data was deliberately cleared.
   syncedEmpty,
-  // all widgets were synced successfully
   syncedAll,
 }
 
-/// Service to manage home screen widgets across the application
-/// Handles widget initialization, updates, and interaction with platform-specific widget APIs
 class HomeWidgetService {
-  // Constants
   static const double THUMBNAIL_SIZE = 512.0;
   static const String WIDGET_DIRECTORY = 'home_widget';
   static const int WIDGET_IMAGE_LIMIT_V1 = 50;
   static const int WIDGET_IMAGE_LIMIT_MINIMAL = 5;
 
-  // URI schemes for different widget types
   static const String MEMORY_WIDGET_SCHEME = 'memorywidget';
   static const String PEOPLE_WIDGET_SCHEME = 'peoplewidget';
   static const String ALBUM_WIDGET_SCHEME = 'albumwidget';
 
-  // Query parameter keys
   static const String GENERATED_ID_PARAM = 'generatedId';
   static const String MAIN_KEY_PARAM = 'mainKey';
 
-  // Widget data keys
   static const String DATA_SUFFIX = '_data';
+  static const String UPLOADED_FILE_ID_KEY = 'uploadedFileID';
+  static const String WIDGET_HIDE_TITLE_FLAGS_KEY = 'widgetHideTitleFlags';
 
   static final HomeWidgetService instance =
       HomeWidgetService._privateConstructor();
@@ -60,12 +58,10 @@ class HomeWidgetService {
   Future<void> setAppGroup({String id = iOSGroupIDMemory}) async {
     if (!Platform.isIOS || _isAppGroupSet) return;
     _logger.info("Setting app group id");
-    await hw.HomeWidget.setAppGroupId(id).catchError(
-      (error) {
-        _logger.severe("Failed to set app group ID: $error");
-        return null;
-      },
-    );
+    await hw.HomeWidget.setAppGroupId(id).catchError((error) {
+      _logger.severe("Failed to set app group ID: $error");
+      return null;
+    });
     _isAppGroupSet = true;
   }
 
@@ -104,9 +100,16 @@ class HomeWidgetService {
     EnteFile file,
     String key,
     String title,
-    String? mainKey,
-  ) async {
-    final result = await _captureFileLegacy(file, key, title, mainKey);
+    String? mainKey, {
+    int? uploadedFileID,
+  }) async {
+    final result = await _captureFileLegacy(
+      file,
+      key,
+      title,
+      mainKey,
+      uploadedFileID,
+    );
     if (!result) {
       _logger.warning("Failed to capture file ${file.displayName}");
       return null;
@@ -115,10 +118,7 @@ class HomeWidgetService {
     return const Size(THUMBNAIL_SIZE, THUMBNAIL_SIZE);
   }
 
-  Future<int> countHomeWidgets(
-    String androidClass,
-    String iOSClass,
-  ) async {
+  Future<int> countHomeWidgets(String androidClass, String iOSClass) async {
     final installedWidgets = await getInstalledWidgets();
     final relevantWidgets = installedWidgets
         .where(
@@ -140,19 +140,17 @@ class HomeWidgetService {
     String key,
     String title,
     String? mainKey,
+    int? uploadedFileID,
   ) async {
     try {
-      // Get thumbnail data
       final thumbnail = await getThumbnail(file);
       if (thumbnail == null) {
         _logger.warning("Failed to get thumbnail for file ${file.displayName}");
         return false;
       }
 
-      // Get appropriate directory for widget assets
       final String widgetDirectory = await _getWidgetStorageDirectory();
 
-      // Save thumbnail to file
       final String thumbnailPath =
           '$widgetDirectory/$WIDGET_DIRECTORY/$key.png';
       final File thumbnailFile = File(thumbnailPath);
@@ -164,20 +162,18 @@ class HomeWidgetService {
       await thumbnailFile.writeAsBytes(thumbnail);
       await setData(key, thumbnailPath);
 
-      // Format date for display
       final subText = await SmartMemoriesService.getDateFormattedLocale(
         creationTime: file.creationTime!,
       );
 
-      // Create metadata
       final Map<String, dynamic> metadata = {
         "title": title,
         "subText": subText,
         "generatedId": file.generatedID!,
-        if (mainKey != null) "mainKey": mainKey,
+        "mainKey": ?mainKey,
+        UPLOADED_FILE_ID_KEY: ?uploadedFileID,
       };
 
-      // Save metadata in platform-specific format
       await _saveWidgetMetadata(key, metadata);
 
       return true;
@@ -193,18 +189,14 @@ class HomeWidgetService {
   ) async {
     final String dataKey = key + DATA_SUFFIX;
 
+    // iOS stores maps directly; Android expects a JSON string.
     if (Platform.isIOS) {
-      // iOS can store the map directly
       await hw.HomeWidget.saveWidgetData<Map<String, dynamic>>(
         dataKey,
         metadata,
       );
     } else {
-      // Android needs the data as a JSON string
-      await hw.HomeWidget.saveWidgetData<String>(
-        dataKey,
-        jsonEncode(metadata),
-      );
+      await hw.HomeWidget.saveWidgetData<String>(dataKey, jsonEncode(metadata));
     }
   }
 
@@ -228,6 +220,7 @@ class HomeWidgetService {
       AlbumHomeWidgetService.instance.clearWidget(),
       PeopleHomeWidgetService.instance.clearWidget(),
       MemoryHomeWidgetService.instance.clearWidget(),
+      hw.HomeWidget.saveWidgetData<int?>(WIDGET_HIDE_TITLE_FLAGS_KEY, null),
     ]);
 
     try {
@@ -242,56 +235,87 @@ class HomeWidgetService {
     }
   }
 
-  /// Handle app launch from a widget
-  Future<void> onLaunchFromWidget(Uri? uri, BuildContext context) async {
+  Future<void> onLaunchFromWidget(Uri? uri) async {
+    if (AppNavigationService.instance.isGuestViewActive) {
+      _logger.info("Ignoring widget launch because Guest View is active");
+      return;
+    }
+
     if (uri == null) {
       _logger.warning("Widget launch failed: URI is null");
       return;
     }
 
-    final generatedId =
-        int.tryParse(uri.queryParameters[GENERATED_ID_PARAM] ?? "");
-    if (generatedId == null) {
-      _logger.warning("Widget launch failed: Invalid or missing generated ID");
-      return;
-    }
+    _logger.info("Handling widget launch with URI: $uri");
 
-    // Route to appropriate handler based on widget scheme
+    final generatedId = int.tryParse(
+      uri.queryParameters[GENERATED_ID_PARAM] ?? "",
+    );
+
+    final bool isConfigureRoute =
+        uri.host == 'configure' || generatedId == null;
+
     switch (uri.scheme) {
       case MEMORY_WIDGET_SCHEME:
-        _logger.info("Launching app from memory widget");
-        await MemoryHomeWidgetService.instance.onLaunchFromWidget(
-          generatedId,
-          context,
-        );
+        if (isConfigureRoute) {
+          _logger.info("Navigating to Memories widget customization screen");
+          await AppNavigationService.instance.pushPage(
+            const MemoriesWidgetSettings(),
+          );
+        } else {
+          await MemoryHomeWidgetService.instance.onLaunchFromWidget(
+            generatedId,
+          );
+        }
         break;
 
       case PEOPLE_WIDGET_SCHEME:
-        _logger.info("Launching app from people widget");
-        final personId = uri.queryParameters[MAIN_KEY_PARAM] ?? "";
-        await PeopleHomeWidgetService.instance.onLaunchFromWidget(
-          generatedId,
-          personId,
-          context,
-        );
+        if (isConfigureRoute) {
+          _logger.info("Navigating to People widget customization screen");
+          if (!hasGrantedMLConsent) {
+            final navigator = await AppNavigationService.instance
+                .waitForNavigator();
+            if (AppNavigationService.instance.isGuestViewActive ||
+                navigator == null ||
+                !navigator.mounted ||
+                !await showMLConsentSheet(navigator.context)) {
+              break;
+            }
+          }
+          await AppNavigationService.instance.pushPage(
+            const PeopleWidgetSettings(),
+          );
+        } else {
+          final personId = uri.queryParameters[MAIN_KEY_PARAM] ?? "";
+          await PeopleHomeWidgetService.instance.onLaunchFromWidget(
+            generatedId,
+            personId,
+          );
+        }
         break;
 
       case ALBUM_WIDGET_SCHEME:
-        _logger.info("Launching app from album widget");
-        final collectionId =
-            int.tryParse(uri.queryParameters[MAIN_KEY_PARAM] ?? "");
-        if (collectionId == null) {
-          _logger.warning(
-            "Album widget launch failed: Invalid or missing collection ID",
+        if (isConfigureRoute) {
+          _logger.info("Navigating to Album widget customization screen");
+          await AppNavigationService.instance.pushPage(
+            const AlbumsWidgetSettings(),
           );
-          return;
-        }
+        } else {
+          final collectionId = int.tryParse(
+            uri.queryParameters[MAIN_KEY_PARAM] ?? "",
+          );
+          if (collectionId == null) {
+            _logger.warning(
+              "Album widget launch failed: Invalid or missing collection ID",
+            );
+            return;
+          }
 
-        await AlbumHomeWidgetService.instance.onLaunchFromWidget(
-          generatedId,
-          collectionId,
-          context,
-        );
+          await AlbumHomeWidgetService.instance.onLaunchFromWidget(
+            generatedId,
+            collectionId,
+          );
+        }
         break;
 
       default:

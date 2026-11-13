@@ -26,18 +26,13 @@ class Network {
     final version = packageInfo.version;
     String packageName = packageInfo.packageName;
 
-    // Fix package name for auth app on Windows/Linux only
-    // On Linux, packageInfo returns "ente_auth" from pubspec.yaml (via version.json)
-    // On Windows, packageInfo returns "Ente Auth" from Runner.rc InternalName field
-    // We need to normalize both to "io.ente.auth" to match Android/iOS/macOS
+    // Linux reports ente_auth; Windows reports Ente Auth.
     if (Platform.isWindows || Platform.isLinux) {
       if (packageName == 'ente_auth' || packageName == 'Ente Auth') {
         packageName = 'io.ente.auth';
       }
     }
 
-    // Validate package name for production endpoint
-    // This ensures we catch any edge cases where the package name is still incorrect
     if (configuration.isEnteProduction()) {
       if (!packageName.startsWith('io.ente.')) {
         throw Exception(
@@ -55,8 +50,9 @@ class Network {
       BaseOptions(
         connectTimeout: Duration(milliseconds: kConnectTimeout),
         headers: {
-          HttpHeaders.userAgentHeader:
-              isMobile ? ua! : Platform.operatingSystem,
+          HttpHeaders.userAgentHeader: isMobile
+              ? ua!
+              : Platform.operatingSystem,
           'X-Client-Version': version,
           'X-Client-Package': packageName,
         },
@@ -109,8 +105,10 @@ class Network {
 class RequestIdInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    options.headers
-        .putIfAbsent("x-request-id", () => const Uuid().v4().toString());
+    options.headers.putIfAbsent(
+      "x-request-id",
+      () => const Uuid().v4().toString(),
+    );
     return super.onRequest(options, handler);
   }
 }
@@ -128,8 +126,10 @@ class EnteRequestInterceptor extends Interceptor {
         "interceptor should only be used for API endpoint",
       );
     }
-    options.headers
-        .putIfAbsent("x-request-id", () => const Uuid().v4().toString());
+    options.headers.putIfAbsent(
+      "x-request-id",
+      () => const Uuid().v4().toString(),
+    );
     final String? tokenValue = configuration.getToken();
     if (tokenValue != null) {
       options.headers.putIfAbsent("X-Auth-Token", () => tokenValue);

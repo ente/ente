@@ -1,0 +1,19 @@
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+}
+
+group 'io.ente.photos.platform'
+version '1.0'
+
+android {
+    namespace 'io.ente.photos.platform'
+
+    defaultConfig {
+        minSdkVersion 23
+    }
+}
+
+dependencies {
+    implementation 'androidx.exifinterface:exifinterface:1.3.7'
+}

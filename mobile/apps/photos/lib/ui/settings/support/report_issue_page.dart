@@ -1,11 +1,10 @@
+import "package:ente_components/ente_components.dart";
+import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
+import "package:flutter/services.dart";
+import "package:hugeicons/hugeicons.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/constants.dart";
-import "package:photos/generated/l10n.dart";
-import "package:photos/theme/ente_theme.dart";
-import "package:photos/ui/components/buttons/button_widget_v2.dart";
-import "package:photos/ui/components/text_input_widget_v2.dart";
-import "package:photos/ui/components/toggle_switch_widget.dart";
 import "package:photos/ui/notification/toast.dart";
 import "package:photos/ui/settings/support/no_mail_app_sheet.dart";
 import "package:photos/utils/email_util.dart";
@@ -33,124 +32,116 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final l10n = context.strings;
+    final colors = context.componentColors;
+    final subjectHasText = _subjectController.text.isNotEmpty;
+    final descriptionHasText = _descriptionController.text.isNotEmpty;
 
-    final pageBackgroundColor =
-        isDarkMode ? const Color(0xFF161616) : const Color(0xFFFAFAFA);
+    Widget copyIcon() => HugeIcon(
+      icon: HugeIcons.strokeRoundedCopy01,
+      size: IconSizes.small,
+      color: colors.textLighter,
+      strokeWidth: 1.6,
+    );
 
-    return Scaffold(
-      backgroundColor: pageBackgroundColor,
-      body: SafeArea(
+    return SettingsPageScaffold(
+      title: l10n.reportAnIssue,
+      bottomNavigationBar: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              const SizedBox(height: 24),
-              GestureDetector(
-                onTap: () => Navigator.of(context).pop(),
-                child: Icon(
-                  Icons.arrow_back,
-                  color: colorScheme.strokeBase,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                l10n.reportAnIssue,
-                style: textTheme.h3Bold,
-              ),
-              const SizedBox(height: 24),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      TextInputWidgetV2(
-                        label: l10n.subject,
-                        hintText: l10n.oneLineAboutTheIssue,
-                        textEditingController: _subjectController,
-                        textCapitalization: TextCapitalization.sentences,
-                        isClearable: true,
-                        maxLines: 1,
-                      ),
-                      const SizedBox(height: 16),
-                      TextInputWidgetV2(
-                        label: l10n.description,
-                        hintText: l10n.detailsAboutTheIssue,
-                        textEditingController: _descriptionController,
-                        textCapitalization: TextCapitalization.sentences,
-                        maxLines: 6,
-                        minLines: 6,
-                      ),
-                      const SizedBox(height: 16),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: colorScheme.fill,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    l10n.attachLogs,
-                                    style: textTheme.small,
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    l10n.attachLogsHelper,
-                                    style: textTheme.miniMuted,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            ToggleSwitchWidget(
-                              value: () => _attachLogs,
-                              onChanged: () async {
-                                setState(() {
-                                  _attachLogs = !_attachLogs;
-                                });
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        l10n.deviceInfoNote,
-                        style: textTheme.miniMuted,
-                      ),
-                      const SizedBox(height: 24),
-                      ButtonWidgetV2(
-                        buttonType: ButtonTypeV2.primary,
-                        labelText: l10n.send,
-                        isDisabled: _isSending,
-                        shouldSurfaceExecutionStates: false,
-                        onTap: _onSend,
-                      ),
-                    ],
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Flexible(
+                    child: Text(
+                      l10n.sendToEmail(email: supportEmail),
+                      textAlign: TextAlign.center,
+                      style: TextStyles.mini.copyWith(color: colors.textLight),
+                    ),
                   ),
-                ),
+                  IconButtonComponent(
+                    icon: const HugeIcon(icon: HugeIcons.strokeRoundedCopy01),
+                    variant: IconButtonComponentVariant.unfilled,
+                    shouldSurfaceExecutionStates: false,
+                    tooltip: l10n.copyEmailAddress,
+                    size: 32,
+                    iconSize: IconSizes.small,
+                    onTap: () => _copyToClipboard(supportEmail),
+                  ),
+                ],
+              ),
+              const SizedBox(height: Spacing.md),
+              ButtonComponent(
+                label: l10n.continueInMailApp,
+                isDisabled: _isSending,
+                shouldSurfaceExecutionStates: false,
+                onTap: _onSend,
               ),
             ],
           ),
         ),
       ),
+      children: [
+        TextInputComponent(
+          label: l10n.subject,
+          hintText: l10n.oneLineAboutTheIssue,
+          controller: _subjectController,
+          textCapitalization: TextCapitalization.sentences,
+          maxLines: 1,
+          onChanged: (_) => setState(() {}),
+          suffix: subjectHasText ? copyIcon() : null,
+          onSuffixTap: subjectHasText
+              ? () => _copyToClipboard(_subjectController.text)
+              : null,
+        ),
+        const SizedBox(height: 16),
+        TextInputComponent(
+          label: l10n.description,
+          hintText: l10n.detailsAboutTheIssue,
+          controller: _descriptionController,
+          textCapitalization: TextCapitalization.sentences,
+          maxLines: 6,
+          minLines: 6,
+          onChanged: (_) => setState(() {}),
+          suffix: descriptionHasText ? copyIcon() : null,
+          onSuffixTap: descriptionHasText
+              ? () => _copyToClipboard(_descriptionController.text)
+              : null,
+        ),
+        const SizedBox(height: 16),
+        MenuComponent(
+          title: l10n.attachLogs,
+          subtitle: l10n.attachLogsHelper,
+          subtitleMaxLines: 2,
+          trailing: ToggleSwitchComponent(
+            selected: _attachLogs,
+            onChanged: (_) {
+              setState(() {
+                _attachLogs = !_attachLogs;
+              });
+            },
+          ),
+        ),
+        const SizedBox(height: 8),
+      ],
     );
+  }
+
+  Future<void> _copyToClipboard(String text) async {
+    await Clipboard.setData(ClipboardData(text: text));
+    if (mounted) {
+      showShortToast(context, context.strings.copied);
+    }
   }
 
   Future<void> _onSend() async {
     if (_isSending) {
       return;
     }
-    final l10n = AppLocalizations.of(context);
+    final l10n = context.strings;
     final subject = _subjectController.text.trim();
     final description = _descriptionController.text.trim();
     if (subject.isEmpty) {
@@ -178,24 +169,41 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
       );
 
       if (_attachLogs) {
-        logsZipFilePath = await getZippedLogsFile(context);
+        if (!mounted) return;
+        logsZipFilePath = await getZippedLogsFile(
+          context,
+          reportText: buildSupportReportText(
+            to: recipientEmail,
+            subject: subject,
+            body: body,
+          ),
+        );
         logsLabel = l10n.export;
       }
 
-      final didOpenComposer = _attachLogs
-          ? await sendLogsWithSubjectAndBody(
-              context,
-              toEmail: recipientEmail,
-              subject: subject,
-              body: body,
-              zipFilePath: logsZipFilePath,
-            )
-          : await sendComposedEmail(
-              context,
-              to: recipientEmail,
-              subject: subject,
-              body: body,
-            );
+      late final bool didOpenComposer;
+      if (_attachLogs) {
+        if (!mounted) return;
+        didOpenComposer = await sendLogsWithSubjectAndBody(
+          context,
+          toEmail: recipientEmail,
+          subject: subject,
+          body: body,
+          zipFilePath: logsZipFilePath,
+        );
+      } else {
+        if (!mounted) return;
+        didOpenComposer = await sendComposedEmail(
+          to: recipientEmail,
+          subject: subject,
+          body: body,
+        );
+      }
+
+      if (didOpenComposer && mounted) {
+        Navigator.of(context).pop();
+        return;
+      }
 
       if (!didOpenComposer && mounted) {
         await showNoMailAppSheet(

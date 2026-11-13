@@ -1,50 +1,37 @@
 import 'dart:math' as math;
-
-import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
-import "package:photos/models/gallery/fixed_extent_section_layout.dart";
+import "package:photos/models/gallery/section_layout.dart";
 
 // Based on code from https://github.com/deckerst/aves
 // Copyright (c) 2020-2023 Thibault Deckers and contributors
 // Licensed under BSD-3-Clause License
 
-// Using a Single SliverVariedExtentList or Using a combination where there are
-// multiple sliver delegate builders in a CustomScrollView doesn't scale.
-
-// With using a Single SliverKnownExtentList with each section being either a
-// group header or a row of grid, the problem is that scrolling becomes janky
-// the deeper the list is scrolled if the list is large enough.
-
-// With using multiple slivers (and hence multiple SliverChildBuilderDelegates)
-// in CustomScrollView, the deep scrolling issue exists and the first child
-// of every builderDelegate is always initialized, even if it's not in viewport
-// or in cacheExtent.
+// Flutter's standard slivers become janky deep in large galleries. Using one
+// sliver per section also builds every section's first child, even off-screen.
+//
+// This custom sliver uses precomputed section sizes to jump to visible rows.
 
 // https://github.com/flutter/flutter/issues/168442
 // https://github.com/flutter/flutter/issues/95028
 
-// A custom implementation of SliverMultiBoxAdaptorWidget
-// adapted from SliverFixedExtentBoxAdaptor. Optimizations in layout solves
-// the deep scrolling issue.
-
 class SectionedListSliver<T> extends StatelessWidget {
-  final List<FixedExtentSectionLayout> sectionLayouts;
+  final List<SectionLayout> sectionLayouts;
   const SectionedListSliver({super.key, required this.sectionLayouts});
 
   @override
   Widget build(BuildContext context) {
-    final childCount =
-        sectionLayouts.isEmpty ? 0 : sectionLayouts.last.lastIndex + 1;
+    final childCount = sectionLayouts.isEmpty
+        ? 0
+        : sectionLayouts.last.lastIndex + 1;
     return _SliverKnownExtentList(
       sectionLayouts: sectionLayouts,
       delegate: SliverChildBuilderDelegate(
         (context, index) {
           if (index >= childCount) return null;
-          final sectionLayout = sectionLayouts
-              .firstWhereOrNull((section) => section.hasChild(index));
+          final sectionLayout = sectionLayouts.sectionForIndex(index);
           return sectionLayout?.builder(context, index) ?? const SizedBox();
         },
         childCount: childCount,
@@ -56,7 +43,7 @@ class SectionedListSliver<T> extends StatelessWidget {
 }
 
 class _SliverKnownExtentList extends SliverMultiBoxAdaptorWidget {
-  final List<FixedExtentSectionLayout> sectionLayouts;
+  final List<SectionLayout> sectionLayouts;
 
   const _SliverKnownExtentList({
     required super.delegate,
@@ -82,11 +69,11 @@ class _SliverKnownExtentList extends SliverMultiBoxAdaptorWidget {
 }
 
 class _RenderSliverKnownExtentBoxAdaptor extends RenderSliverMultiBoxAdaptor {
-  List<FixedExtentSectionLayout> _sectionLayouts;
+  List<SectionLayout> _sectionLayouts;
 
-  List<FixedExtentSectionLayout> get sectionLayouts => _sectionLayouts;
+  List<SectionLayout> get sectionLayouts => _sectionLayouts;
 
-  set sectionLayouts(List<FixedExtentSectionLayout> value) {
+  set sectionLayouts(List<SectionLayout> value) {
     if (_sectionLayouts == value) return;
     _sectionLayouts = value;
     markNeedsLayout();
@@ -94,17 +81,14 @@ class _RenderSliverKnownExtentBoxAdaptor extends RenderSliverMultiBoxAdaptor {
 
   _RenderSliverKnownExtentBoxAdaptor({
     required super.childManager,
-    required List<FixedExtentSectionLayout> sectionLayouts,
+    required List<SectionLayout> sectionLayouts,
   }) : _sectionLayouts = sectionLayouts;
 
-  FixedExtentSectionLayout? sectionAtIndex(int index) =>
-      sectionLayouts.firstWhereOrNull((section) => section.hasChild(index));
+  SectionLayout? sectionAtIndex(int index) =>
+      sectionLayouts.sectionForIndex(index);
 
-  FixedExtentSectionLayout? sectionAtOffset(double scrollOffset) =>
-      sectionLayouts.firstWhereOrNull(
-        (section) => section.hasChildAtOffset(scrollOffset),
-      ) ??
-      sectionLayouts.lastOrNull;
+  SectionLayout? sectionAtOffset(double scrollOffset) =>
+      sectionLayouts.sectionForOffset(scrollOffset);
 
   double indexToLayoutOffset(int index) {
     return (sectionAtIndex(index) ?? sectionLayouts.lastOrNull)
@@ -113,14 +97,16 @@ class _RenderSliverKnownExtentBoxAdaptor extends RenderSliverMultiBoxAdaptor {
   }
 
   int getMinChildIndexForScrollOffset(double scrollOffset) {
-    return sectionAtOffset(scrollOffset)
-            ?.getMinChildIndexForScrollOffset(scrollOffset) ??
+    return sectionAtOffset(
+          scrollOffset,
+        )?.getMinChildIndexForScrollOffset(scrollOffset) ??
         0;
   }
 
   int getMaxChildIndexForScrollOffset(double scrollOffset) {
-    return sectionAtOffset(scrollOffset)
-            ?.getMaxChildIndexForScrollOffset(scrollOffset) ??
+    return sectionAtOffset(
+          scrollOffset,
+        )?.getMaxChildIndexForScrollOffset(scrollOffset) ??
         0;
   }
 
@@ -131,8 +117,7 @@ class _RenderSliverKnownExtentBoxAdaptor extends RenderSliverMultiBoxAdaptor {
     double? leadingScrollOffset,
     double? trailingScrollOffset,
   }) {
-    // default implementation is an estimation via `childManager.estimateMaxScrollOffset()`
-    // but we have the accurate offset via pre-computed section layouts
+    // Section sizes give us the exact scroll extent; do not estimate it.
     return _sectionLayouts.last.maxOffset;
   }
 
@@ -177,17 +162,13 @@ class _RenderSliverKnownExtentBoxAdaptor extends RenderSliverMultiBoxAdaptor {
         index: firstIndex,
         layoutOffset: indexToLayoutOffset(firstIndex),
       )) {
-        // There are either no children, or we are past the end of all our children.
         double max;
         if (firstIndex <= 0) {
           max = 0.0;
         } else {
           max = computeMaxScrollOffset(constraints);
         }
-        geometry = SliverGeometry(
-          scrollExtent: max,
-          maxPaintExtent: max,
-        );
+        geometry = SliverGeometry(scrollExtent: max, maxPaintExtent: max);
         childManager.didFinishLayout();
         return;
       }
@@ -223,9 +204,11 @@ class _RenderSliverKnownExtentBoxAdaptor extends RenderSliverMultiBoxAdaptor {
     }
 
     var estimatedMaxScrollOffset = double.infinity;
-    for (var index = indexOf(trailingChildWithLayout!) + 1;
-        targetLastIndex == null || index <= targetLastIndex;
-        ++index) {
+    for (
+      var index = indexOf(trailingChildWithLayout!) + 1;
+      targetLastIndex == null || index <= targetLastIndex;
+      ++index
+    ) {
       var child = childAfter(trailingChildWithLayout!);
       if (child == null || indexOf(child) != index) {
         child = insertAndLayoutChild(
@@ -233,7 +216,6 @@ class _RenderSliverKnownExtentBoxAdaptor extends RenderSliverMultiBoxAdaptor {
           after: trailingChildWithLayout,
         );
         if (child == null) {
-          // We have run out of children.
           final layout = sectionAtIndex(index) ?? sectionLayouts.last;
           estimatedMaxScrollOffset = layout.maxOffset;
           break;
@@ -245,8 +227,9 @@ class _RenderSliverKnownExtentBoxAdaptor extends RenderSliverMultiBoxAdaptor {
       final childParentData =
           child.parentData as SliverMultiBoxAdaptorParentData;
       assert(childParentData.index == index);
-      childParentData.layoutOffset =
-          indexToLayoutOffset(childParentData.index!);
+      childParentData.layoutOffset = indexToLayoutOffset(
+        childParentData.index!,
+      );
     }
 
     final lastIndex = indexOf(lastChild!);
@@ -296,7 +279,8 @@ class _RenderSliverKnownExtentBoxAdaptor extends RenderSliverMultiBoxAdaptor {
       cacheExtent: cacheExtent,
       maxPaintExtent: estimatedMaxScrollOffset,
       // Conservative to avoid flickering away the clip during scroll.
-      hasVisualOverflow: (targetLastIndexForPaint != null &&
+      hasVisualOverflow:
+          (targetLastIndexForPaint != null &&
               lastIndex >= targetLastIndexForPaint) ||
           constraints.scrollOffset > 0.0,
     );

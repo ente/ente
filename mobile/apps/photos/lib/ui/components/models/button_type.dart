@@ -50,7 +50,6 @@ enum ButtonType {
     return Colors.transparent;
   }
 
-  //Returning null to fallback to default color
   Color? pressedButtonColor(EnteColorScheme colorScheme) {
     if (isPrimary) {
       return colorScheme.primary700;
@@ -67,7 +66,6 @@ enum ButtonType {
     return null;
   }
 
-  //Returning null to fallback to default color
   Color? disabledButtonColor(
     EnteColorScheme colorScheme,
     ButtonSize buttonSize,
@@ -91,7 +89,6 @@ enum ButtonType {
     return Colors.transparent;
   }
 
-  //Returning null to fallback to default color
   Color? pressedBorderColor({
     required EnteColorScheme colorScheme,
     required ButtonSize buttonSize,
@@ -102,7 +99,6 @@ enum ButtonType {
     return null;
   }
 
-  //Returning null to fallback to default color
   Color? disabledBorderColor(
     EnteColorScheme colorScheme,
     ButtonSize buttonSize,
@@ -126,11 +122,9 @@ enum ButtonType {
     if (this == ButtonType.tertiaryCritical) {
       return colorScheme.warning500;
     }
-    //fallback
     return colorScheme.strokeBase;
   }
 
-  //Returning null to fallback to default color
   Color? pressedIconColor(EnteColorScheme colorScheme, ButtonSize buttonSize) {
     if (this == ButtonType.tertiaryCritical) {
       return colorScheme.warning700;
@@ -141,7 +135,6 @@ enum ButtonType {
     return null;
   }
 
-  //Returning null to fallback to default color
   Color? disabledIconColor(EnteColorScheme colorScheme, ButtonSize buttonSize) {
     if (isPrimary ||
         isSecondary ||
@@ -168,11 +161,9 @@ enum ButtonType {
     if (this == ButtonType.tertiaryCritical) {
       return textTheme.bodyBold.copyWith(color: warning500);
     }
-    //fallback
     return textTheme.bodyBold;
   }
 
-  //Returning null to fallback to default color
   TextStyle? pressedLabelStyle(
     EnteTextTheme textTheme,
     EnteColorScheme colorScheme,
@@ -187,7 +178,6 @@ enum ButtonType {
     return null;
   }
 
-  //Returning null to fallback to default color
   TextStyle? disabledLabelStyle(
     EnteTextTheme textTheme,
     EnteColorScheme colorScheme,
@@ -195,7 +185,6 @@ enum ButtonType {
     return textTheme.bodyBold.copyWith(color: colorScheme.textFaint);
   }
 
-  //Returning null to fallback to default color
   Color? checkIconColor(EnteColorScheme colorScheme) {
     if (isSecondary) {
       return colorScheme.primary500;

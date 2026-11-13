@@ -1,331 +1,2402 @@
 {
-  "error": "Памылка",
-  "@error": {
-    "description": "Generic error title"
+  "about": "Аб праграме",
+  "acceptTrustInvite": "Прыняць запрашэнне",
+  "account": "Уліковы запіс",
+  "accountIsAlreadyConfigured": "Уліковы запіс ужо сканфігурыраваны.",
+  "accountOwnerPersonAppbarTitle": "{title} (Я)",
+  "@accountOwnerPersonAppbarTitle": {
+    "description": "Title of appbar for account owner person",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
   },
-  "ok": "OK",
-  "@ok": {
-    "description": "Generic OK button label"
-  },
-  "faq": "Частыя пытанні",
-  "@faq": {
-    "description": "FAQ link label"
-  },
-  "contactSupport": "Звярнуцца ў службу падтрымкі",
-  "@contactSupport": {
-    "description": "Contact support button label"
-  },
-  "emailYourLogs": "Адправіць журналы",
-  "@emailYourLogs": {
-    "description": "Title for emailing logs dialog"
-  },
-  "exportLogs": "Экспартаваць журналы",
-  "@exportLogs": {
-    "description": "Button to export logs"
-  },
-  "cancel": "Скасаваць",
-  "@cancel": {
-    "description": "Cancel button label"
-  },
-  "reportABug": "Паведаміць аб памылцы",
-  "@reportABug": {
-    "description": "Label for reporting a bug"
-  },
-  "save": "Захаваць",
-  "@save": {
-    "description": "Label for save button"
-  },
-  "send": "Адправіць",
-  "@send": {
-    "description": "Label for send button"
-  },
-  "email": "Электронная пошта",
-  "@email": {
-    "description": "Email field label"
-  },
-  "verify": "Праверыць",
-  "@verify": {
-    "description": "Verify button label"
-  },
-  "pleaseWait": "Пачакайце...",
-  "@pleaseWait": {
-    "description": "Please wait message"
-  },
-  "verifyPassword": "Праверыць пароль",
-  "@verifyPassword": {
-    "description": "Verify password button label"
-  },
-  "incorrectPasswordTitle": "Няправільны пароль",
-  "@incorrectPasswordTitle": {
-    "description": "Title for incorrect password error"
-  },
-  "pleaseTryAgain": "Калі ласка, паспрабуйце яшчэ раз",
-  "@pleaseTryAgain": {
-    "description": "Message asking user to try again"
-  },
-  "enterPassword": "Увядзіце пароль",
-  "@enterPassword": {
-    "description": "Enter password field label"
-  },
-  "enterYourPasswordHint": "Увядзіце ваш пароль",
-  "@enterYourPasswordHint": {
-    "description": "Hint for password field"
-  },
+  "actionNotSupportedOnFavouritesAlbum": "Дзеянне не падтрымліваецца ў альбоме «Абранае»",
   "activeSessions": "Актыўныя сеансы",
   "@activeSessions": {
     "description": "Title for active sessions page"
   },
-  "oops": "Вой",
-  "@oops": {
-    "description": "Oops error title"
+  "add": "Дадаць",
+  "addCode": "Дадаць код",
+  "addedBy": "Дададзена {emailOrName}",
+  "@addedBy": {
+    "placeholders": {
+      "emailOrName": {}
+    }
   },
-  "terminate": "Перарваць",
-  "@terminate": {
-    "description": "Terminate button label"
+  "addedSuccessfullyTo": "Паспяхова дададзена ў {albumName}",
+  "@addedSuccessfullyTo": {
+    "placeholders": {
+      "albumName": {}
+    }
   },
-  "thisDevice": "Гэта прылада",
-  "@thisDevice": {
-    "description": "Label for current device"
+  "addedToQueue": "Дададзена ў чаргу",
+  "addFiles": "Дадаць файлы",
+  "addFromDevice": "Дадаць з прылады",
+  "addingPhotos": "Дадаванне фатаграфій",
+  "addingToFavorites": "Дадаванне ў абранае...",
+  "addLocation": "Дадаць месцазнаходжанне",
+  "addLocationButton": "Дадаць",
+  "addMore": "Дадаць яшчэ",
+  "addName": "Дадаць імя",
+  "addNew": "Дадаць новы",
+  "@addNew": {
+    "description": "Text to add a new item (location tag, album, caption etc)"
   },
-  "createAccount": "Стварыць уліковы запіс",
-  "@createAccount": {
-    "description": "Create account button label"
+  "addOnPageSubtitle": "Падрабязнасці дадаткаў",
+  "addOns": "Дадаткі",
+  "addOnValidTill": "Ваш дадатак у {storageAmount} дзейнічае да {endDate}",
+  "@addOnValidTill": {
+    "placeholders": {
+      "endDate": {},
+      "storageAmount": {}
+    }
   },
-  "weakStrength": "Ненадзейны",
-  "@weakStrength": {
-    "description": "Weak password strength label"
+  "addPhotos": "Дадаць фатаграфіі",
+  "addSelected": "Дадаць выбраныя",
+  "addTag": "Дадаць тэг",
+  "addToAlbum": "Дадаць у альбом",
+  "addToEnte": "Дадаць у Ente",
+  "addToHiddenAlbum": "Дадаць у схаваны альбом",
+  "addYourPhotosNow": "Дадайце свае фатаграфіі",
+  "adjust": "Рэгуляваць",
+  "admiringThem": "Любуючыся {name}",
+  "@admiringThem": {
+    "placeholders": {
+      "name": {}
+    }
   },
-  "moderateStrength": "Умераная",
-  "@moderateStrength": {
-    "description": "Moderate password strength label"
+  "aerialViews": "Паветраная перспектыва",
+  "after1Day": "Праз 1 дзень",
+  "after1Hour": "Праз 1 гадзіну",
+  "after1Month": "Праз 1 месяц",
+  "after1Week": "Праз 1 тыдзень",
+  "after1Year": "Праз 1 год",
+  "albumLayout": "Макет альбома",
+  "albums": "Альбомы",
+  "albumTitle": "Назва альбома",
+  "albumUpdated": "Альбом абноўлены",
+  "algorithm": "Алгарытм",
+  "align": "Выраўноўванне",
+  "all": "Усе",
+  "allClear": "✨ Усё лаканічна",
+  "allMemoriesPreserved": "Усе ўспаміны захаваны",
+  "allow": "Дазволіць",
+  "allowAddingPhotos": "Дазволіць дадаваць фатаграфіі",
+  "@allowAddingPhotos": {
+    "description": "Switch button to enable uploading photos to a public link"
   },
-  "strongStrength": "Надзейны",
-  "@strongStrength": {
-    "description": "Strong password strength label"
+  "allowAppToOpenSharedAlbumLinks": "Дазволіць праграме адкрываць спасылкі на агульныя альбомы",
+  "allowDownloads": "Дазволіць спампоўванні",
+  "allowJoiningAlbum": "Дазволіць далучэнне да альбома",
+  "allowPermBody": "Дазвольце доступ да сваіх фатаграфій з налад, каб Ente мог адлюстраваць і зарэзерваваць вашу бібліятэку.",
+  "allowPermTitle": "Дазволіць доступ да фатаграфій",
+  "allPersonGroupingWillReset": "Усе групы для гэтай асобы будуць скінуты, а вы згубіце ўсе прапановы, якія зроблены для яе",
+  "allTabEmptyHint": "Пакуль тут нічога няма. Націсніце +, каб дадаць код або адкрыйце сметніцу для аднаўлення.",
+  "@allTabEmptyHint": {
+    "description": "Shown when the All tab has no active codes but Trash contains codes"
   },
-  "deleteAccount": "Выдаліць уліковы запіс",
-  "@deleteAccount": {
-    "description": "Delete account button label"
+  "allWillShiftRangeBasedOnFirst": "Гэта першае ў групе. Іншыя выбраныя фатаграфіі будуць аўтаматычна зрушаныя ў залежнасці ад гэтай новай даты",
+  "almostDone": "Амаль гатова...",
+  "analysis": "Аналіз",
+  "analyzingPhotosLocally": "Аналіз вашых фатаграфій лакальна...",
+  "androidCancelButton": "Скасаваць",
+  "@androidCancelButton": {
+    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
   },
-  "noDeleteAccountAction": "Не, выдаліць уліковы запіс",
-  "@noDeleteAccountAction": {
-    "description": "Button to proceed with account deletion"
+  "androidSignInTitle": "Патрабуецца аўтэнтыфікацыя",
+  "@androidSignInTitle": {
+    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
   },
-  "delete": "Выдаліць",
-  "@delete": {
-    "description": "Delete button label"
+  "aNewVersionOfEnteIsAvailable": "Даступна новая версія Ente.",
+  "appIcon": "Значок праграмы",
+  "appleId": "Ідэнтыфікатар Apple",
+  "appLock": "Блакіроўка праграмы",
+  "@appLock": {
+    "description": "App lock setting title"
   },
-  "createNewAccount": "Стварыць новы ўліковы запіс",
-  "@createNewAccount": {
-    "description": "Create new account button label"
+  "appLockDescription": "Выберыце паміж прадвызначаным экранам блакіравання сваёй прылады і карыстальніцкім экранам блакіравання з PIN-кодам або паролем.",
+  "@appLockDescription": {
+    "description": "Description of app lock feature"
   },
-  "password": "Пароль",
-  "@password": {
-    "description": "Password field label"
+  "appLockNotEnabled": "Блакіроўка праграмы не ўключана",
+  "appLockNotEnabledDescription": "Уключыце блакіроўку праграмы ў раздзеле «Бяспека» -> «Блакіроўка праграмы»",
+  "appLockOfflineModeWarning": "Вы выбралі працягваць працу без рэзервовых копій. Калі вы забудзеце свой пароль, то доступ да вашых даных будзе заблакіраваны.",
+  "apply": "Ужыць",
+  "applyCodeTitle": "Ужыць код",
+  "appstoreSubscription": "Падпіска AppStore",
+  "architecture": "Дызайн значкоў",
+  "archive": "Архіў",
+  "@archive": {
+    "description": "Action of 'Archiving' an element"
+  },
+  "archiveAlbum": "Архіваваць альбом",
+  "archiving": "Дадаванне ў архіў...",
+  "areThey": "Яны ",
+  "areYouSureDeleteFiles": "Вы сапраўды хочаце выдаліць гэтыя файлы?",
+  "areYouSureRemoveThisFaceFromPerson": "Вы сапраўды хочаце выдаліць твар з гэтай асобы?",
+  "areYouSureRemoveThisPersonTag": "Вы ўпэўненыя, што хочаце выдаліць гэты тэг чалавека?",
+  "areYouSureThatYouWantToLeaveTheFamily": "Вы сапраўды хочаце выйсці з сямейнага тарыфнага плана?",
+  "areYouSureYouWantToCancel": "Вы сапраўды хочаце скасаваць?",
+  "areYouSureYouWantToChangeYourPlan": "Вы сапраўды хочаце змяніць свой тарыфны план?",
+  "areYouSureYouWantToExit": "Вы сапраўды хочаце выйсці?",
+  "areYouSureYouWantToIgnoreThesePersons": "Вы сапраўды хочаце ігнараваць гэтых асоб?",
+  "areYouSureYouWantToIgnoreThisPerson": "Вы сапраўды хочаце ігнараваць гэту асобу?",
+  "areYouSureYouWantToLogout": "Вы сапраўды хочаце выйсці?",
+  "@areYouSureYouWantToLogout": {
+    "description": "Confirmation message before logout"
+  },
+  "areYouSureYouWantToRenew": "Вы сапраўды хочаце падоўжыць?",
+  "areYouSureYouWantToResetThisPerson": "Вы сапраўды хочаце скінуць даныя гэтай асобы?",
+  "artisticPortraits": "Майстэрскі партрэт",
+  "askCancelReason": "Ваша падпіска была скасавана. Можа быць вы хочаце распавесці нам прычыну?",
+  "authenticateGeneric": "Прайдзіце аўтэнтыфікацыю",
+  "authenticating": "Аўтэнтыфікацыя...",
+  "authenticationFailedPleaseTryAgain": "Збой аўтэнтыфікацыі. Паспрабуйце яшчэ раз",
+  "@authenticationFailedPleaseTryAgain": {
+    "description": "Error message when authentication fails"
+  },
+  "authenticationSuccessful": "Аўтэнтыфікацыя паспяхова пройдзена!",
+  "@authenticationSuccessful": {
+    "description": "Success message when authentication is successful"
+  },
+  "authToChangeLockscreenSetting": "Прайдзіце аўтэнтыфікацыю, каб змяніць налады блакіроўкі экрана",
+  "authToConfigureTwofactorAuthentication": "Прайдзіце аўтэнтыфікацыю, каб сканфігурыраваць двухфактарную аўтэнтыфікацыю",
+  "authToExportCodes": "Прайдзіце аўтэнтыфікацыю, каб экспартаваць свае коды",
+  "authToInitiateAccountDeletion": "Разблакіруйце, каб выдаліць ваш уліковы запіс",
+  "authToInitiateSignIn": "Прайдзіце аўтэнтыфікацыю, каб пачаць уваход для рэзервовай копіі.",
+  "authToManageLegacy": "Прайдзіце аўтэнтыфікацыю, каб кіраваць сваімі даверанымі кантактамі",
+  "authToSetBackupPassword": "Прайдзіце аўтэнтыфікацыю, каб задаць пароль рэзервовага капіравання",
+  "authToUpdateBackupPassword": "Прайдзіце аўтэнтыфікацыю, каб абнавіць пароль рэзервовага капіравання",
+  "authToViewPasskey": "Прайдзіце аўтэнтыфікацыю, каб паглядзець свой код доступу",
+  "authToViewPasskeyGeneric": "Прайдзіце аўтэнтыфікацыю, каб паглядзець ключ доступу",
+  "authToViewSecrets": "Прайдзіце аўтэнтыфікацыю, каб паглядзець свае сакрэты",
+  "@authToViewSecrets": {
+    "description": "Message prompting authentication to view secrets"
+  },
+  "authToViewTrashedFiles": "Прайдзіце аўтэнтыфікацыю, каб паглядзець выдаленыя файлы",
+  "authToViewYourActiveSessions": "Прайдзіце аўтэнтыфікацыю, каб паглядзець свае актыўныя сеансы",
+  "authToViewYourHiddenFiles": "Прайдзіце аўтэнтыфікацыю, каб паглядзець схаваныя файлы",
+  "authToViewYourMemories": "Прайдзіце аўтэнтыфікацыю, каб паглядзець свае ўспаміны",
+  "authToViewYourRecoveryKey": "Прайдзіце аўтэнтыфікацыю, каб паглядзець свае ключы аднаўлення",
+  "autoAddPeople": "Аўтададаванне людзей",
+  "autoAddToAlbum": "Аўтададаванне альбома",
+  "autoCastDialogBody": "Паглядзець даступныя прылады Cast можна тут.",
+  "autoCastiOSPermission": "Пераканайцеся, што для праграмы Ente Photos уключаны дазволы лакальнай сеткі ў наладах.",
+  "autoLock": "Аўтаблакіроўка",
+  "@autoLock": {
+    "description": "Auto lock setting title"
+  },
+  "autoLockFeatureDescription": "Час, праз які праграма будзе заблакіравана пасля пераходу ў фонавы рэжым",
+  "@autoLockFeatureDescription": {
+    "description": "Description of auto lock feature"
+  },
+  "automaticallyAnalyzeAndSplitGrouping": "Сістэма аўтаматычна прааналізуе групу для вызначэння, ці ёсць у ёй некалькі людзей, і зноў раздзеліць іх. Гэта можа заняць некалькі секунд.",
+  "autoPair": "Аўтаспалучэнне",
+  "autumnColors": "Восеньскае хараство",
+  "backedUpFolders": "Папкі з рэзервовым капіяваннем",
+  "background": "Фон",
+  "backgroundWithThem": "Прыгожыя краявіды з {name}",
+  "@backgroundWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "backup": "Рэзервовая копія",
+  "backupCreated": "Рэзервовая копія створана!",
+  "backupFailed": "Збой рэзервовага капіявання",
+  "backupFile": "Файл рэзервовай копіі",
+  "backupFolderLabel": "Папка з рэзервовымі копіямі:",
+  "backupLocationChoiceDescription": "Дзе вы хочаце захоўваць свае рэзервовыя копіі?",
+  "backupOverMobileData": "Рэзервовая копія праз мабільныя даныя",
+  "backupPasswordCleared": "Пароль рэзервовага капіравання ачышчаны",
+  "backupPasswordHint": "Ваша рэзервовая копія будзе зашыфравана гэтым паролем.",
+  "backupSettings": "Налады рэзервовага капіявання",
+  "backupStatus": "Статус рэзервовага капіявання",
+  "backupStatusDescription": "Элементы, якія былі захаваны ў рэзервовай копіі, з'явяцца тут",
+  "backupVideos": "Рэзервовае капіяванне відэа",
+  "beach": "Пясок і мора",
+  "birthday": "Дзень нараджэння",
+  "birthdays": "Дні нараджэння",
+  "blog": "Блог",
+  "bothIssuerAndAccountCanNotBeEmpty": "І выдавец, і ўліковы запіс не могуць быць пустымі",
+  "brushColor": "Колер пэндзля",
+  "cachedData": "Даныя ў кэшы",
+  "calculating": "Падлік...",
+  "cancel": "Скасаваць",
+  "@cancel": {
+    "description": "Cancel button label"
+  },
+  "cancelOtherSubscription": "Першапачаткова скасуйце сваю існуючую падпіску ад {paymentProvider}",
+  "@cancelOtherSubscription": {
+    "description": "The text to display when the user has an existing subscription from a different payment provider",
+    "type": "text",
+    "placeholders": {
+      "paymentProvider": {
+        "example": "Apple",
+        "type": "String"
+      }
+    }
+  },
+  "cancelRecovery": "Скасаваць аднаўленне",
+  "cancelSubscription": "Скасаваць падпіску",
+  "cannotDeleteSharedFiles": "Немагчыма выдаліць абагуленыя файлы",
+  "canNotOpenBody": "Прабачце, але гэты альбом немагчыма адкрыць у праграме.",
+  "canNotOpenTitle": "Немагчыма адкрыць гэты альбом",
+  "canOnlyCreateLinkForFilesOwnedByYou": "Можна стварыць спасылку толькі для вашых уласных файлаў",
+  "canOnlyRemoveFilesOwnedByYou": "Можна выдаляць толькі файлы, якія належаць вам",
+  "castAlbum": "Вяшчаць альбом",
+  "castIPMismatchBody": "Пераканайцеся, што вы знаходзіцеся ў адной сетцы з тэлевізарам.",
+  "castIPMismatchTitle": "Не ўдалося вяшчаць альбом",
+  "centerPoint": "Цэнтральны пункт",
+  "changeLocationOfSelectedItems": "Змяніць месцазнаходжанне выбраных элементаў?",
+  "changePassword": "Змяніць пароль",
+  "changePasswordTitle": "Змяніць пароль",
+  "@changePasswordTitle": {
+    "description": "Change password title"
+  },
+  "checking": "Праверка...",
+  "checkingModels": "Праверка мадэляў...",
+  "checkStatus": "Праверыць статус",
+  "@checkStatus": {
+    "description": "Check status button label"
+  },
+  "chooseBackupLocation": "Выбраць размяшчэнне рэзервовай копіі",
+  "chooseIcon": "Выбраць значок",
+  "city": "У горадзе",
+  "citySunsets": "Заход сонца ў горадзе",
+  "cleanedUpSimilarImages": "Вы вызвалілі {size} прасторы",
+  "@cleanedUpSimilarImages": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "cleanUncategorized": "Ачысціць «Без катэгорыі»",
+  "cleanUncategorizedDescription": "Выдаліць у раздзеле «Без катэгорыі» ўсе файлы, якія прысутнічаюць у іншых альбомах",
+  "clearBackupFolder": "Ачысціць папку з рэзервовымі копіямі",
+  "clearBackupPassword": "Ачысціць рэзервовы пароль",
+  "clearCaches": "Ачысціць кэш",
+  "clearSelection": "Ачысціць выбраныя",
+  "clickToInstallOurBestVersionYet": "Націсніце, каб усталяваць нашу лепшую версію",
+  "close": "Закрыць",
+  "closeBy": "Закрыць",
+  "@closeBy": {
+    "description": "Appears in the similar images page, to indicate that the images are close in terms of appearance"
+  },
+  "clusteringProgress": "Выкананне кластэрызацыі",
+  "coastalCliffs": "Скалы ля мора",
+  "codeAppliedPageTitle": "Код ужыты",
+  "codeChangeLimitReached": "На жаль, вы дасягнулі абмежавання па колькасці змяненняў кода.",
+  "codeCopiedToClipboard": "Код скапіяваны ў буфер абмену",
+  "codeIssuerHint": "Выдавец",
+  "collaborator": "Суаўтар",
+  "collageLayout": "Макет",
+  "collageSaved": "Калаж захаваны ў галерэі",
+  "collectPhotos": "Збор фатаграфій",
+  "color": "Колер",
+  "colorfulMarkets": "Яркі рынак",
+  "compactMode": "Кампактны рэжым",
+  "comparingImageDetails": "Параўнанне падрабязнасцяў відарыса...",
+  "confirm": "Пацвердзіць",
+  "@confirm": {
+    "description": "Confirm button label"
+  },
+  "confirm2FADisable": "Вы сапраўды хочаце адключыць двухфактарную аўтэнтыфікацыю?",
+  "confirmAddingTrustedContact": "Вы збіраеце дадаць {email} у якасці даверанага кантакту. У гэтага карыстальніка будзе магчымасць аднавіць ваш уліковы запіс, калі вы будзеце адсутнічаць {numOfDays} дні/дзён.",
+  "@confirmAddingTrustedContact": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      },
+      "numOfDays": {
+        "type": "int",
+        "example": "30"
+      }
+    }
   },
   "confirmPassword": "Пацвердзіць пароль",
   "@confirmPassword": {
     "description": "Confirm password field label"
   },
-  "termsOfServicesTitle": "Умовы",
-  "@termsOfServicesTitle": {
-    "description": "Terms of service title"
+  "confirmPlanChange": "Пацвердзіць змяненне тарыфнага плана",
+  "confirmRecoveryKey": "Пацвердзіце ключ аднаўлення",
+  "confirmUpdatingkey": "Вы сапраўды хочаце абнавіць сакрэтны ключ?",
+  "confirmYourRecoveryKey": "Пацвердзіце свой ключ аднаўлення",
+  "connectToDevice": "Падключыцца да прылады",
+  "contacts": "Кантакты",
+  "continueLabel": "Працягнуць",
+  "@continueLabel": {
+    "description": "Continue button label"
   },
-  "privacyPolicyTitle": "Палітыка прыватнасці",
-  "@privacyPolicyTitle": {
-    "description": "Privacy policy title"
+  "convertToAlbum": "Пераўтварыць у альбом",
+  "copied": "Скапіявана",
+  "copiedNextToClipboard": "Скапіяваць наступны код у буфер абмену",
+  "copiedToClipboard": "Скапіявана ў буфер абмену",
+  "copyEmailAddress": "Скапіяваць адрас электроннай пошты",
+  "@copyEmailAddress": {
+    "description": "Button to copy email address to clipboard"
   },
-  "encryption": "Шыфраванне",
-  "@encryption": {
-    "description": "Encryption label"
+  "copyEmbedHtml": "Скапіяваць убудаваны HTML",
+  "copyLink": "Скапіяваць спасылку",
+  "copypasteThisCodentoYourAuthenticatorApp": "Скапіюйце і ўстаўце гэты код\nу сваю праграму аўтэнтыфікацыі",
+  "couldNotBackUpTryLater": "Не ўдалося зарэзерваваць вашы даныя.\nПаўторная спроба будзе зроблена пазней.",
+  "couldNotFreeUpSpace": "Не ўдалося вызваліць месца",
+  "couldNotUpdateSubscription": "Не ўдалося абнавіць падпіску",
+  "count": "Колькасць",
+  "cozyCafes": "Утульны куток у кавярні",
+  "crashAndErrorReporting": "Справаздачы аб збоях і памылках",
+  "crashReporting": "Справаздачы аб збоях",
+  "create": "Стварыць",
+  "createAccount": "Стварыць уліковы запіс",
+  "@createAccount": {
+    "description": "Create account button label"
   },
-  "logInLabel": "Увайсці",
-  "@logInLabel": {
-    "description": "Log in button label"
+  "createAccountTitle": "Стварыць уліковы запіс",
+  "createAlbumActionHint": "Доўга ўтрымлівайце, каб выбраць фатаграфію, і націсніце «+», каб стварыць альбом",
+  "createBackupNow": "Стварыць рэзервовую копію",
+  "createCollaborativeLink": "Стварыць сумесную спасылку",
+  "createCollage": "Стварыць калаж",
+  "createNewTag": "Стварыць новы тэг",
+  "createPublicLink": "Стварыць публічную спасылку",
+  "createStream": "Уключыць перадачу плынню",
+  "creatingLink": "Стварэнне спасылкі...",
+  "creatingStream": "Стварэнне плыні",
+  "crop": "Абрэзаць",
+  "curatedMemories": "Абраныя ўспаміны",
+  "currentBackupFolder": "Бягучая папка з рэзервовымі копіямі:",
+  "currentlyRunning": "цяпер выконваецца",
+  "custom": "Карыстальніцкія",
+  "@custom": {
+    "description": "Label for setting custom value for link expiry"
   },
-  "welcomeBack": "З вяртаннем!",
-  "@welcomeBack": {
-    "description": "Welcome back message"
+  "customEndpoint": "Падключана да {endpoint}",
+  "@customEndpoint": {
+    "description": "Text showing user is connected to a custom endpoint",
+    "placeholders": {
+      "endpoint": {
+        "type": "String",
+        "description": "URL of the custom endpoint"
+      }
+    }
   },
-  "useRecoveryKey": "Выкарыстоўваць ключ аднаўлення",
-  "@useRecoveryKey": {
-    "description": "Use recovery key button label"
+  "customOrder": "Уласны парадак",
+  "darkTheme": "Цёмная",
+  "data": "Даныя",
+  "day": "Дзень",
+  "dayToday": "Сёння",
+  "dayYesterday": "Учора",
+  "declineTrustInvite": "Адхіліць запрашэнне",
+  "decrypting": "Расшыфроўка...",
+  "decryptingVideo": "Расшыфроўка відэа...",
+  "deduplicateCodes": "Дубліраваныя коды",
+  "deduplicateFiles": "Дубліраваныя файлы",
+  "delete": "Выдаліць",
+  "@delete": {
+    "description": "Delete button label"
   },
-  "forgotPassword": "Забылі пароль",
-  "@forgotPassword": {
-    "description": "Forgot password link label"
+  "deleteAccount": "Выдаліць уліковы запіс",
+  "@deleteAccount": {
+    "description": "Delete account button label"
   },
-  "changeEmail": "Змяніць адрас электроннай пошты",
-  "@changeEmail": {
-    "description": "Change email button label"
+  "deleteAlbum": "Выдаліць альбом",
+  "deleteAlbumDialog": "Таксама выдаліць фатаграфіі (і відэа), якое знаходзіцца ў гэтым альбоме з <bold>усіх</bold> іншых альбомаў, часткай якіх яны з'яўляюцца?",
+  "deleteAlbumsDialogBody": "Гэта дзеянне прывядзе да выдалення ўсіх пустых альбомаў. Гэта карысна ў выпадку, калі вы хочаце навесці парадак у сваім спісе альбомаў.",
+  "deleteAll": "Выдаліць усе",
+  "deleteCodeAuthMessage": "Прайдзіце аўтэнтыфікацыю, каб выдаліць код",
+  "deleteCodeMessage": "Вы сапраўды хочаце выдаліць гэты код? Гэта дзеянне з'яўляецца незваротным.",
+  "deleteCodeTitle": "Выдаліць код?",
+  "deleteDuplicates": "Выдаліць дублікаты",
+  "deleteEmptyAlbums": "Выдаліць пустыя альбомы",
+  "deleteEmptyAlbumsWithQuestionMark": "Выдаліць пустыя альбомы?",
+  "deleteFiles": "Выдаліць файлы",
+  "deleteFromBoth": "Выдаліць і ў Ente, і на вашай прыладзе",
+  "deleteFromDevice": "Выдаліць з прылады",
+  "deleteFromEnte": "Выдаліць з Ente",
+  "deleteLocation": "Выдаліць месцазнаходжанне",
+  "deleteMultipleAlbumDialog": "Таксама выдаліць фатаграфіі (разам з відэа), якія знаходзяцца ў гэтых {count} альбомах, з <bold>усіх</bold> іншых альбомаў, часткай якіх яны з'яўляюцца?",
+  "@deleteMultipleAlbumDialog": {
+    "placeholders": {
+      "count": {}
+    }
   },
-  "verifyEmail": "Праверыць электронную пошту",
-  "@verifyEmail": {
-    "description": "Verify email title"
+  "deletePhotos": "Выдаліць фатаграфіі",
+  "deletePhotosWithSize": "Выдаліць фатаграфій: {count} ({size})",
+  "@deletePhotosWithSize": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
   },
-  "sendEmail": "Адправіць ліст",
-  "resendEmail": "Адправіць ліст яшчэ раз",
-  "@resendEmail": {
-    "description": "Resend email button label"
+  "deleteProgress": "Выдаленне {currentlyDeleting} / {totalCount}",
+  "@deleteProgress": {
+    "placeholders": {
+      "currentlyDeleting": {},
+      "totalCount": {}
+    }
   },
-  "loginSessionExpired": "Сеанс завяршыўся",
-  "@loginSessionExpired": {
-    "description": "Login session expired title"
+  "deleteSharedAlbum": "Выдаліць абагулены альбом?",
+  "deleteSharedAlbumDialogBody": "Альбом будзе выдалены для ўсіх\n\nВы згубіце доступ да агульных фатаграфій у гэтым альбоме, якія належаць іншым удзельнікам",
+  "deleteTagMessage": "Вы сапраўды хочаце выдаліць гэты тэг? Гэта дзеянне з'яўляецца незваротным.",
+  "deleteTagTitle": "Выдаліць тэг?",
+  "deleteUnparseableCodeMessage": "Гэта назаўсёды выдаліць гэты код з Auth. Ён не будзе перамешчаны ў сметніцу.",
+  "deleteUnparseableCodeTitle": "Выдаліць код, які нельга прааналізаваць?",
+  "deleteWithCount": "Выдаліць ({count})",
+  "@deleteWithCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
-  "tryAgain": "Паспрабуйце яшчэ раз",
-  "@tryAgain": {
-    "description": "Try again button label"
+  "deletingDash": "Выдаленне - ",
+  "deselectAll": "Зняць выбар з усіх",
+  "desertDreams": "Мара пустыні",
+  "details": "Падрабязнасці",
+  "developerSettings": "Налады распрацоўшчыка",
+  "@developerSettings": {
+    "description": "Label for developer settings"
   },
-  "checkStatus": "Праверыць статус",
-  "@checkStatus": {
-    "description": "Check status button label"
+  "developerSettingsWarning": "Вы сапраўды хочаце змяніць налады распрацоўшчыка?",
+  "deviceLock": "Блакіроўка прылады",
+  "@deviceLock": {
+    "description": "Device lock option title"
   },
-  "loginWithTOTP": "Увайсці з TOTP",
-  "@loginWithTOTP": {
-    "description": "Login with TOTP button label"
+  "deviceLockEnablePreSteps": "Наладзьце код доступу да прылады або блакіроўку экрана ў наладах вашай сістэме, каб уключыць блакіроўку прылады.",
+  "@deviceLockEnablePreSteps": {
+    "description": "Instructions for enabling device lock"
   },
-  "recoverAccount": "Аднавіць уліковы запіс",
-  "@recoverAccount": {
-    "description": "Recover account button label"
+  "deviceNotFound": "Прылада не знойдзена",
+  "didYouKnow": "Ці ведалі вы што?",
+  "digits": "Лічбы",
+  "disableDownloadWarningBody": "Улічвайце, што гледачы ўсё яшчэ могуць рабіць здымкі экрана або захоўваць копію вашых фатаграфій пры дапамозе знешніх інструментаў",
+  "disableDownloadWarningTitle": "Звярніце ўвагу",
+  "disableLinkMessage": "Гэта дзеянне прывядзе да выдалення публічнай спасылкі для доступу да «{albumName}».",
+  "@disableLinkMessage": {
+    "placeholders": {
+      "albumName": {}
+    }
   },
-  "setPasswordTitle": "Задаць пароль",
-  "@setPasswordTitle": {
-    "description": "Set password title"
+  "disableTwofactor": "Адключыць двухфактарную аўтэнтыфікацыю",
+  "disablingTwofactorAuthentication": "Адключэнне двухфактарнай аўтэнтыфікацыі...",
+  "discover": "Даведацца",
+  "@discover": {
+    "description": "The text to display for the discover section under which we show receipts, screenshots, sunsets, greenery, etc."
   },
-  "changePasswordTitle": "Змяніць пароль",
-  "@changePasswordTitle": {
-    "description": "Change password title"
+  "discover_babies": "Немаўляты",
+  "discover_celebrations": "Святы",
+  "discover_food": "Ежа",
+  "discover_greenery": "Зеляніна",
+  "discover_hills": "Узгоркі",
+  "discover_identity": "Ідэнтычнасць",
+  "discover_memes": "Мемы",
+  "discover_notes": "Нататкі",
+  "discover_pets": "Домашнія жывёлы",
+  "discover_receipts": "Чэкі",
+  "discover_screenshots": "Здымкі экрана",
+  "discover_selfies": "Сэлфi",
+  "discover_sunset": "Захад сонца",
+  "discover_visiting_cards": "Візітныя карткі",
+  "discover_wallpapers": "Шпалеры",
+  "dismiss": "Адхіліць",
+  "distanceInKMUnit": "км",
+  "@distanceInKMUnit": {
+    "description": "Unit for distance in km"
   },
-  "resetPasswordTitle": "Скінуць пароль",
-  "@resetPasswordTitle": {
-    "description": "Reset password title"
+  "doesGroupContainMultiplePeople": "Ці змяшчае гэта група некалькі людзей?",
+  "done": "Гатова",
+  "doNotSignOut": "Не выходзіць",
+  "@doNotSignOut": {
+    "description": "Do not sign out button label"
   },
+  "dontSave": "Не захоўваць",
+  "doubleTapToViewHiddenCode": "Можна двойчы націснуць на запіс, каб паглядзець код",
+  "download": "Спампаваць",
+  "downloadFailed": "Збой спампоўвання",
+  "downloading": "Спампоўванне...",
+  "downloadUpdate": "Спампаваць",
+  "doYouWantToDiscardTheEditsYouHaveMade": "Вы сапраўды хочаце адхіліць зробленыя рэдагаванні?",
+  "draw": "Намаляваць",
+  "dropSupportEmail": "Адпраўце ліст на паштовы адрас {supportEmail} з вашага зарэгістраванага адраса электроннай пошты",
+  "@dropSupportEmail": {
+    "placeholders": {
+      "supportEmail": {
+        "description": "The support email address",
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
+  },
+  "duplicateCodes": "Дублікаты кодаў",
+  "duplicateFileCountWithStorageSaved": "Вы выдалілі {count, plural, one{{count} дублікат} few{{count} дубліката} other{{count} дублікатаў}}, вызваліўшы ({storageSaved}!)",
+  "@duplicateFileCountWithStorageSaved": {
+    "description": "The text to display when the user has successfully cleaned up duplicate files",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "1",
+        "type": "int"
+      },
+      "storageSaved": {
+        "example": "1.2 GB",
+        "type": "String"
+      }
+    }
+  },
+  "duplicateItemsGroup": "Файлаў: {count}; кожны з іх па {formattedSize}",
+  "@duplicateItemsGroup": {
+    "description": "Display the number of duplicate files and their size",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "12",
+        "type": "int"
+      },
+      "formattedSize": {
+        "example": "2.3 MB",
+        "type": "String"
+      }
+    }
+  },
+  "edit": "Рэдагаваць",
+  "editAutoAddPeople": "Рэдагаваць аўтаматычнае дадаванне людзей",
+  "editCodeAuthMessage": "Прайдзіце аўтэнтыфікацыю, каб рэдагаваць код",
+  "editEmailAlreadyLinked": "Гэта электронная пошта ўжо звязана з {name}.",
+  "@editEmailAlreadyLinked": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "editLocation": "Змяніць месцазнаходжанне",
+  "editOrder": "Рэдагаваць заказ",
+  "editPerson": "Рэдагаваць асобу",
+  "editsSaved": "Рэдагаванні захаваны",
+  "editsToLocationWillOnlyBeSeenWithinEnte": "Рэдагаванні месцазнаходжання будзе бачна толькі ў Ente",
+  "editTag": "Рэдагаваць тэг",
+  "editTime": "Рэдагаваць час",
+  "eligible": "прыдатны",
+  "email": "Электронная пошта",
+  "@email": {
+    "description": "Email field label"
+  },
+  "emailAlreadyRegistered": "Электронная пошта ўжо зарэгістравана.",
+  "@emailAlreadyRegistered": {
+    "description": "Error message when email is already registered"
+  },
+  "emailChangedTo": "Электронная пошта зменена на {newEmail}",
+  "@emailChangedTo": {
+    "description": "Message when email has been changed",
+    "placeholders": {
+      "newEmail": {
+        "description": "The new email address",
+        "type": "String",
+        "example": "new@example.com"
+      }
+    }
+  },
+  "emailHint": "Увядзіце свой адрас электроннай пошты",
+  "emailNoEnteAccountPhotos": "У {email} адсутнічае ўліковы запіс Ente.\n\nАдпраўце запрашэнне карыстальніку, каб абагуліць фатаграфіі.",
+  "@emailNoEnteAccountPhotos": {
+    "placeholders": {
+      "email": {}
+    }
+  },
+  "emailNotRegistered": "Электронная пошта не зарэгістравана.",
+  "@emailNotRegistered": {
+    "description": "Error message when email is not registered"
+  },
+  "emailUsMessage": "Адпраўце нам ліст на {email}",
+  "@emailUsMessage": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "emailVerificationEnableWarning": "Пераканайцеся, што ў вас захавана копія 2ФА ад вашай электроннай пошты па-за межамі праграмы Ente Auth перад тым, як уключаць спраўджанне электроннай пошты. Гэта дазволіць пазбегнуць блакіроўкі вашага ўліковага запісу.",
+  "emailYourLogs": "Адправіць журналы",
+  "@emailYourLogs": {
+    "description": "Title for emailing logs dialog"
+  },
+  "embracingThem": "Абдымаючы {name}",
+  "@embracingThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "empty": "Ачысціць",
+  "emptyTrashQuestion": "Ачысціць сметніцу?",
+  "enable": "Уключыць",
+  "enableAutomaticBackups": "Аўтаматычнае рэзервовае капіяванне",
+  "enableBackupsIosInstruction": "Каб уключыць рэзервовае капіраванне на iOS, выберыце папку ў Files (напрыклад, «On My iPhone»).",
+  "enabled": "Уключана",
+  "enableMaps": "Уключыць карты",
+  "encrypted": "Зашыфравана",
+  "encryptingBackup": "Шыфраванне рэзервовай копіі...",
   "encryptionKeys": "Ключы шыфравання",
   "@encryptionKeys": {
     "description": "Encryption keys title"
   },
-  "howItWorks": "Як гэта працуе",
-  "@howItWorks": {
-    "description": "How it works button label"
+  "endpointUpdatedMessage": "Канцавы пункт паспяхова абноўлены",
+  "@endpointUpdatedMessage": {
+    "description": "Success message when endpoint is updated"
   },
-  "doNotSignOut": "Не выходзіць",
-  "@doNotSignOut": {
-    "description": "Do not sign out button label"
+  "enterAlbumName": "Увядзіце назву альбома",
+  "enterCode": "Увядзіце код",
+  "enterCodeDescription": "Увядзіце код, атрыманы ад вашага сябра, каб вы абодва змаглі атрымаць бясплатнае сховішча",
+  "enterCodeHint": "Увядзіце шасцізначны код з\nпраграмы аўтэнтыфікацыі",
+  "@enterCodeHint": {
+    "description": "Hint for entering 2FA code"
+  },
+  "enterDetailsManually": "Увядзіце падрабязнасці ўручную",
+  "enterEmail": "Увядзіце электронную пошту",
+  "enterFileName": "Увядзіце назву файла",
+  "enterName": "Увядзіце імя",
+  "enterNewEmailHint": "Увядзіце свой новы адрас электроннай пошты",
+  "@enterNewEmailHint": {
+    "description": "Hint text for entering new email address"
+  },
+  "enterPassword": "Увядзіце пароль",
+  "@enterPassword": {
+    "description": "Enter password field label"
+  },
+  "enterPasswordToAegisVault": "Увядзіце пароль сховішча aegis",
+  "enterPasswordToDecrypt2FASBackup": "Увядзіце пароль, каб расшыфраваць рэзервовую копію 2ФА",
+  "enterPasswordToDecryptAndOTP": "Увядзіце пароль, каб расшыфраваць рэзервовую копію andOTP",
+  "enterRecoveryKeyHint": "Увядзіце свой ключ аднаўлення",
+  "@enterRecoveryKeyHint": {
+    "description": "Hint for entering recovery key"
+  },
+  "enterReferralCode": "Увядзіце рэферальны код",
+  "enterThe6digitCodeFromnyourAuthenticatorApp": "Увядзіце шасцізначны код з\nпраграмы аўтэнтыфікацыі",
+  "enterValidEmail": "Увядзіце сапраўдны адрас электроннай пошты.",
+  "enterYourNewEmailAddress": "Увядзіце свой новы адрас электроннай пошты",
+  "enterYourPassword": "Увядзіце свой пароль",
+  "enterYourRecoveryKey": "Увядзіце свой ключ аднаўлення",
+  "error": "Памылка",
+  "@error": {
+    "description": "Generic error title"
+  },
+  "errorGenericBody": "Адбылася нечаканая памылка пры імпартаванні.",
+  "errorGenericTitle": "Адбылася памылка",
+  "errorInvalidQRCodeBody": "Адсканіраваны QR-код не з'яўляецца сапраўдным уліковым запісам 2ФА.",
+  "errorNoQRCode": "QR-код не знойдзены",
+  "exif": "EXIF",
+  "expiredLinkInfo": "Гэта спасылка пратэрмінавана. Выберыце новы час тэрміну дзеяння або адключыце тэрмін дзеяння для спасылкі.",
+  "export": "Экспартаваць",
+  "exportCodes": "Экспартаваць коды",
+  "exportDialogDesc": "Зашыфраванае экспартаванне будзе абаронена паролем, які вы выберыце.",
+  "exportLogs": "Экспартаваць журналы",
+  "@exportLogs": {
+    "description": "Button to export logs"
+  },
+  "exportWarningDesc": "Экспартаваны файл змяшчае канфідэнцыяльныя звесткі. Захоўвайце яго ў надзейным месцы.",
+  "exportYourData": "Экспартаваць даныя",
+  "extraPhotosFound": "Знойдзены дадатковыя фатаграфіі",
+  "faceNotClusteredYet": "Твар пакуль не кластэрызаваны. Паспрабуйце яшчэ раз пазней",
+  "facesTimelineAppBarTitle": "Алея ўспамінаў",
+  "@facesTimelineAppBarTitle": {
+    "description": "Faces timeline page title shown in the app bar"
+  },
+  "facesTimelineCaptionYearsAgo": "{count, plural, one{# гадоў таму} other{# гадоў таму}}",
+  "@facesTimelineCaptionYearsAgo": {
+    "description": "Caption for frames when birthdate is unknown, expressing time difference",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "Years ago"
+      }
+    }
+  },
+  "facesTimelineCaptionYearsOld": "{name} быў {count, plural, one{{count} год} other{{count} год}}",
+  "@facesTimelineCaptionYearsOld": {
+    "description": "Caption for frames when birthdate is known, describing the person's age",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "Number of years old"
+      },
+      "name": {
+        "type": "String",
+        "description": "Person's name"
+      }
+    }
+  },
+  "facesTimelinePlaybackPause": "Прыпыніць",
+  "@facesTimelinePlaybackPause": {
+    "description": "Tooltip or semantics label for the pause button"
+  },
+  "facesTimelinePlaybackPlay": "Прайграць",
+  "@facesTimelinePlaybackPlay": {
+    "description": "Tooltip or semantics label for the play button"
+  },
+  "facesTimelineUnavailable": "Храналогія твараў рыхтуецца...",
+  "@facesTimelineUnavailable": {
+    "description": "Fallback message when the Memory Lane cannot be displayed yet"
+  },
+  "faceThumbnailGenerationFailed": "Немагчыма згенерыраваць мініяцюру твару",
+  "failedToApplyCode": "Не ўдалося ўжыць код",
+  "failedToCancel": "Не ўдалося скасаваць",
+  "failedToDecrypt2FASExport": "Не ўдалося расшыфраваць экспарт 2ФА",
+  "failedToDecryptAegisVault": "Не ўдалося расшыфраваць сховішча aegis",
+  "failedToDecryptAndOTPBackup": "Не ўдалося расшыфраваць рэзервовую копію andOTP",
+  "failedToDownloadVideo": "Не ўдалося спампаваць відэа",
+  "failedToFetchActiveSessions": "Не ўдалося атрымаць актыўны сеанс",
+  "@failedToFetchActiveSessions": {
+    "description": "In session page, warn user (in toast) that active sessions could not be fetched."
+  },
+  "failedToFetchOriginalForEdit": "Не ўдалося атрымаць арыгінал для рэдагавання",
+  "failedToFetchReferralDetails": "Немагчыма атрымаць падрабязнасці аб рэфералах. Паспрабуйце яшчэ раз пазней.",
+  "failedToLoadAlbums": "Не ўдалося загрузіць альбомы",
+  "failedToRefreshStripeSubscription": "Не ўдалося абнавіць падпіску",
+  "failedToRenew": "Не ўдалося падоўжыць",
+  "failedToVerifyPaymentStatus": "Не ўдалося спраўдзіць плацежны статус",
+  "familyMoments": "Час сям'і",
+  "faq": "Частыя пытанні",
+  "@faq": {
+    "description": "FAQ link label"
+  },
+  "faqs": "Частыя пытанні",
+  "favorite": "Абраныя",
+  "feastingWithThem": "Застолле з {name}",
+  "@feastingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "featureBackupCodes": "Скразное шыфраванне \nрэзервовае капіяванне і сінхранізацыя",
+  "featureOpenSource": "Адкрыты зыходны код і\nправерана экспертамі па бяспецы",
+  "featureSearchEtc": "Пошук, тэгі, абагульванне,\nнаступны код і іншае",
+  "festivities": "Святочны настрой",
+  "fileAnalysisFailed": "Немагчыма прааналізаваць файл",
+  "fileInfoAddDescHint": "Дадаць апісанне...",
+  "fileNotUploadedYet": "Файл пакуль не запампаваны",
+  "fileSavedToGallery": "Файл захаваны ў галерэю",
+  "filesDeleted": "Файлы выдалены",
+  "filesSavedToGallery": "Файлы захаваны ў галерэю",
+  "fileTypes": "Тыпы файлаў",
+  "filter": "Фільтр",
+  "findingSimilarImages": "Знайсці падобныя відарысы...",
+  "findSimilarImages": "Знайсці падобныя відарысы",
+  "findThemQuickly": "Знаходзьце іх хутка",
+  "@findThemQuickly": {
+    "description": "Subtitle to indicate that the user can find people quickly by name"
+  },
+  "fireworks": "Фінал з феерверкам",
+  "flip": "Перавярнуць",
+  "flowers": "Квітнеючая прыгажосць",
+  "focusOnSearchBar": "Сфакусіравацца на пошуку пры запуску праграмы",
+  "font": "Шрыфт",
+  "food": "Кулінарнае задавальненне",
+  "forestTrails": "Прагулка па лесе",
+  "forgotPassword": "Нагадаць пароль",
+  "@forgotPassword": {
+    "description": "Forgot password link label"
+  },
+  "free10GB": "10 ГБ бясплатнай прасторы на <bold-green>ente</bold-green> Photos",
+  "freeStorageOffer": "Скідка ў памеры 10% на <bold-green>ente</bold-green> Photos",
+  "freeStorageOfferDescription": "Выкарыстоўвайце код «AUTH», каб атрымаць скідку ў памеры 10% за першы год",
+  "freeTrial": "Бясплатная пробны перыяд",
+  "freeUpAmount": "Вызваліць {sizeInMBorGB}",
+  "@freeUpAmount": {
+    "placeholders": {
+      "sizeInMBorGB": {}
+    }
+  },
+  "freeUpDeviceSpace": "Вызваленне прасторы на прыладзе",
+  "freeUpSpace": "Вызваліць прастору",
+  "gallery": "Галерэя",
+  "galleryMemoryLimitInfo": "У галерэі паказваецца да 1000 успамінаў",
+  "generatingEncryptionKeys": "Генерацыя ключоў шыфравання...",
+  "@generatingEncryptionKeys": {
+    "description": "Generating encryption keys message"
   },
   "generatingEncryptionKeysTitle": "Генерацыя ключоў шыфравання...",
   "@generatingEncryptionKeysTitle": {
     "description": "Generating encryption keys title"
   },
-  "continueLabel": "Працягнуць",
-  "@continueLabel": {
-    "description": "Continue button label"
+  "getStarted": "Пачаць",
+  "gettingReady": "Ідзе падрыхтоўка",
+  "giveUsAStarOnGithub": "Адзначце нас зоркай на GitHub",
+  "googlePlayId": "Ідэнтыфікатар Google Play",
+  "grantFullAccessPrompt": "Дазвольце доступ да ўсіх фатаграфій у наладах праграмы",
+  "grantPermission": "Даць дазволы",
+  "greenery": "Зялёнае жыццё",
+  "groupBy": "Групаваць па",
+  "groupByDay": "Дзень",
+  "guestView": "Гасцявы прагляд",
+  "guestViewEnablePreSteps": "Наладзьце код доступу або блакіроўку экрана ў сістэмных наладах вашай прылады, каб уключыць гасцявы ўваход.",
+  "happyBirthday": "З днём нараджэння! 🥳",
+  "hearUsWhereOptionalTitle": "Адкуль вы пачулі пра Ente? (неабавязкова)",
+  "@hearUsWhereOptionalTitle": {
+    "description": "Title asking how user heard about Ente"
   },
+  "help": "Даведка",
+  "hidden": "Схаваныя",
+  "hide": "Схаваць",
+  "hideContent": "Схаваць змесціва",
+  "@hideContent": {
+    "description": "Hide content setting title"
+  },
+  "hideContentDescriptionAndroid": "Схаваць змесціва праграмы ў пераключальніку праграм і адключыць здымкі экрана",
+  "@hideContentDescriptionAndroid": {
+    "description": "Description of hide content feature on Android"
+  },
+  "hideContentDescriptioniOS": "Схаваць змесціва праграмы ў пераключальніку праграм",
+  "@hideContentDescriptioniOS": {
+    "description": "Description of hide content feature on iOS"
+  },
+  "hideFromMemories": "Схаваць ад успамінаў",
+  "hideSharedItemsFromHomeGallery": "Схаваць абагуленыя элементы з асноўнай галерэі",
+  "hiding": "Хаванне...",
+  "hikingWithThem": "Паход з {name}",
+  "@hikingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "hintForDesktop": "Правы націск на код для рэдагавання або выдалення.",
+  "hintForMobile": "Доўгі націск на код для рэдагавання або выдалення.",
+  "historicSites": "Адгалоскі гісторыі",
+  "hoorayyyy": "Ураааа!",
+  "hostedAtOsmFrance": "Размешчана на OSM France",
+  "howItWorks": "Як гэта працуе",
+  "@howItWorks": {
+    "description": "How it works button label"
+  },
+  "howToViewShareeVerificationID": "Папрасіце іх доўга ўтрымліваць палец на сваім паштовым адрасе на экране наладаў і пераканайцеся, што ідэнтыфікатары на абодвух прыладах супадаюць.",
+  "ignore": "Ігнараваць",
+  "ignored": "ігнаруецца",
+  "ignorePerson": "Ігнараваць асобу",
+  "imageNotAnalyzed": "Відарыс не прааналізаваны",
+  "immediately": "Неадкладна",
+  "@immediately": {
+    "description": "Immediately option for auto lock timing"
+  },
+  "import2FasGuide": "Скарыстайцеся параметрам «Налады -> Рэзервовае капіяванне -> Экспартаванне» ў наладах 2FAS.\n\nКалі ваша рэзервовая копія абаронена паролем, для расшыфроўкі вам спатрэбіцца яго ўвесці",
+  "importAccountPageTitle": "Увядзіце падрабязнасці ўліковага запісу",
+  "importAegisGuide": "Скарыстайцеся параметрам «Экспартаваць сховішча» ў наладах Aegis.\n\nКалі ваша сховішча абаронены паролем, для расшыфроўкі вам спатрэбіцца яго ўвесці.",
+  "importAndOTPGuide": "Экспартуйце вашу рэзервовую копію з andOTP праз функцыю «Рэзервовае капіраванне» ў наладах.\n\nКалі ваша рэзервовая копія абаронена паролем, для расшыфроўкі вам спатрэбіцца яго ўвесці.",
+  "importBitwardenGuide": "Скарыстайцеся параметрам «Экспартаваць сховішча» ў Bitwarden Tools і імпартуйце файл JSON.",
+  "importCodeDelimiterInfo": "Коды могуць быць адасоблены коскамі або новым радком",
+  "importCodes": "Імпартаваць коды",
+  "importEnteEncGuide": "Выберыце зашыфраваны файл JSON, які экспартаваны з Ente",
+  "importEnterSetupKey": "Увядзіце ключ наладжвання",
+  "importFailureDesc": "Не ўдалося прааналізаваць выбраны файл.",
+  "importFromGallery": "Імпартаваць з галерэі",
+  "importGoogleAuthConfirmation": "{codeCount, plural, one{Імпартаваць {codeCount} код з Google Authenticator?} few{Імпартаваць {codeCount} кода з Google Authenticator?} other{Імпартаваць {codeCount} кодаў з Google Authenticator?}}",
+  "@importGoogleAuthConfirmation": {
+    "placeholders": {
+      "codeCount": {
+        "description": "The number of Google Authenticator codes to import",
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "importGoogleAuthGuide": "Экспартуйце вашы ўліковыя запісы з Google Authenticator у QR-код праз опцыю «Перадаць уліковыя запісы». Затым, адскануйце QR-код, або імпартуйце яго з відарысу.",
+  "importInstruction": "Выберыце файл, які змяшчае спіс вашых кодаў у наступным фармаце",
+  "importLabel": "Імпарт",
+  "importLastpassGuide": "Скарыстайцеся параметрам «Перанесці ўліковыя запісы» ў наладах Lastpass Authenticator і націсніце «Экспартаваць уліковыя запісы ў файл», а потым імпартуйце спампаваны файл JSON.",
+  "importProtonAuthGuide": "Скарыстайцеся функцыяй «Экспарт» у наладах Proton Authenticator, каб экспартаваць вашы коды.\n\nКалі ваш экспарт абаронены паролем, для расшыфроўкі вам спатрэбіцца яго ўвесці.",
+  "importRaivoGuide": "Скарыстайцеся параметрам «Экспартаваць OTP у архіў ZIP» у наладах Raivo.\n\nВыньце файл ZIP і імпартуйце файл JSON.",
+  "importSelectAppExport": "Выбраць файл экспартавання {appName}",
+  "@importSelectAppExport": {
+    "placeholders": {
+      "appName": {}
+    }
+  },
+  "importSelectJsonFile": "Выбраць файл JSON",
+  "importSuccessDesc": "Коды паспяхова імпартаваны (колькасць: {count})!",
+  "@importSuccessDesc": {
+    "placeholders": {
+      "count": {
+        "description": "The number of codes imported",
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "importSuccessTitle": "Ура!",
+  "importTypeEnteEncrypted": "Шыфраванне экспартавання з Ente",
+  "incorrectCode": "Няправільны код",
+  "@incorrectCode": {
+    "description": "Error message when code is incorrect"
+  },
+  "incorrectDetails": "Няправільныя падрабязнасці",
+  "incorrectPasswordTitle": "Няправільны пароль",
+  "@incorrectPasswordTitle": {
+    "description": "Title for incorrect password error"
+  },
+  "incorrectRecoveryKey": "Няправільны ключ аднаўлення",
+  "@incorrectRecoveryKey": {
+    "description": "Error message when recovery key is incorrect"
+  },
+  "incorrectRecoveryKeyBody": "Вы ўвялі памылковы ключ аднаўлення",
+  "incorrectRecoveryKeyTitle": "Няправільны ключ аднаўлення",
+  "info": "Інфармацыя",
+  "initialBackupCreated": "Пачатковая рэзервовая копія створана!",
   "insecureDevice": "Небяспечная прылада",
   "@insecureDevice": {
     "description": "Insecure device warning title"
+  },
+  "invalidEmailAddress": "Памылковы адрас электроннай пошты",
+  "invalidEmailMessage": "Увядзіце сапраўдны адрас электронная пошты.",
+  "@invalidEmailMessage": {
+    "description": "Message for invalid email error dialog"
+  },
+  "invalidEmailTitle": "Памылковы адрас электроннай пошты",
+  "@invalidEmailTitle": {
+    "description": "Title for invalid email error dialog"
+  },
+  "invalidEndpoint": "Памылковы канцавы пункт",
+  "@invalidEndpoint": {
+    "description": "Error message when endpoint is invalid"
+  },
+  "invalidKey": "Памылковы ключ",
+  "invalidProtonExportMessage": "Выбраны файл не з'яўляецца сапраўдным экспартам Proton Authenticator.",
+  "invalidProtonExportTitle": "Несапраўдны экспарт Proton",
+  "invalidQRCode": "Памылковы QR-код",
+  "invalidRecoveryKey": "Уведзены ключ аднаўлення з'яўляецца несапраўдным. Пераканайцеся, што ён змяшчае 24 словы і ўсе словы напісаны слушна.\nКалі ўведзены стары код аднаўлення, то варта пераканацца, што яго даўжыня складае 64 сімвалы і ўсе сімвалы напісаны слушна.",
+  "invite": "Запрасіць",
+  "inviteToEnte": "Запрасіць у Ente",
+  "ok": "OK",
+  "@ok": {
+    "description": "Generic OK button label"
+  },
+  "iosOnMyDeviceNotSupported": "Нельга напрамую скарыстацца «On My iPhone». Выберыце або стварыце папку ўнутры.",
+  "itemCount": "{count, plural, one{{count} элемент} few{{count} элементы} other{{count} элементаў}}",
+  "@itemCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "itemsShowTheNumberOfDaysRemainingBeforePermanentDeletion": "На элементах паказваецца колькасць дзён, якая засталася да іх незваротнага выдалення",
+  "itemsWillBeRemovedFromAlbum": "Выбраныя элементы будуць выдалены з гэтага альбома",
+  "iUnderStand": "Ясна",
+  "@iUnderStand": {
+    "description": "Text for the button to confirm the user understands the warning"
+  },
+  "join": "Далучыцца",
+  "joinAlbum": "Далучыцца да альбома",
+  "joinAlbumConfirmationDialogBody": "Іншыя ўдзельнікі змогуць убачыць вашу электронную пошту, калі вы далучыцеся да альбома.",
+  "joinAlbumSubtext": "каб праглядаць і дадаваць свае фатаграфіі",
+  "joinAlbumSubtextViewer": "каб дадаць яе ў абагуленыя альбомы",
+  "kiloMeterUnit": "км",
+  "lakeside": "Цішыня ў возера",
+  "language": "Мова",
+  "lastUpdated": "Апошнія абноўленыя",
+  "lastWeek": "На мінулым тыдні",
+  "lastYearsTrip": "Леташняе падарожжа",
+  "layout": "Макет",
+  "layoutGrouped": "Згрупавана",
+  "layoutTrip": "Падарожжа",
+  "leave": "Выйсці",
+  "leaveAlbum": "Выйсці з альбома",
+  "leaveSharedAlbum": "Выйсці з абагуленага альбома?",
+  "left": "Улева",
+  "legacy": "Спадчына",
+  "legacyAccounts": "Уліковыя запісы «Спадчына»",
+  "legacyInvite": "{email} запрасіў вас стаць давераным кантактам",
+  "@legacyInvite": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "family@example.com"
+      }
+    }
+  },
+  "legacyPageDesc": "Функцыя «Спадчына» дазваляе давераным кантактам атрымаць доступ да вашага ўліковага запісу пры вашай адсутнасці.",
+  "legacyPageDesc2": "Давераныя кантакты могуць ініцыяваць аднаўленне ўліковага запісу, і калі яно не будзе заблакіравана цягам 30 дзён, то яны змогуць скінуць пароль і атрымаць доступ да яго.",
+  "lightTheme": "Светлая",
+  "linkCopiedToClipboard": "Спасылка скапіявана ў буфер абмену",
+  "linkDeviceLimit": "Абмежаванне па прыладах",
+  "linkEnabled": "Уключана",
+  "linkExpired": "Пратэрмінавана",
+  "linkExpiresOn": "Спасылка міне {expiryTime}",
+  "@linkExpiresOn": {
+    "placeholders": {
+      "expiryTime": {}
+    }
+  },
+  "linkExpiry": "Спасылка пратэрмінавана",
+  "linkHasExpired": "Спасылка пратэрмінавана",
+  "linkNeverExpires": "Ніколі",
+  "loadingExifData": "Загрузка даных EXIF...",
+  "loadingGallery": "Загрузка галерэі...",
+  "loadingModel": "Спампоўванне мадэляў...",
+  "loadingYourPhotos": "Загрузка вашых фатаграфій...",
+  "loadMessage1": "У вас ёсць магчымасць абагуліць падпіску з вашай сям'ёй",
+  "loadMessage3": "У нас захоўваецца 3 копіі вашых даных і адна з іх захоўваецца ў бамбасховішчы",
+  "loadMessage4": "Усе нашы праграмы маюць адкрыты зыходны код",
+  "loadMessage5": "Наш зыходны код і крыптаграфія правераны незалежнымі экспертамі",
+  "loadMessage6": "Вы можаце абагуляць спасылкі на свае альбомы з блізкімі людзьмі",
+  "loadMessage7": "Нашы мабільныя праграмы працуюць у фонавым рэжыме, каб шыфраваць і рэзерваваць усе новыя фатаграфіі, якія вы здымаеце",
+  "loadMessage8": "{webUrl} мае зручны інструмент для запампоўвання файлаў",
+  "@loadMessage8": {
+    "description": "Loading screen message about the web uploader.",
+    "placeholders": {
+      "webUrl": {
+        "type": "String",
+        "example": "photos.ente.com"
+      }
+    }
+  },
+  "loadMessage9": "Мы выкарыстоўваем Xchacha20Poly1305 для бяспечнага шыфравання вашых даных",
+  "localBackupDailyManualCopy": "Ствараць адну лакальную рэзервовую копію ў дзень пры адкрыцці праграмы. Выкарыстоўвайце \"Зарэзерваваць\", каб запусціць стварэнне рэзервовай копіі ўручную. Захоўваецца да 5 файлаў з рэзервовымі копіямі.",
+  "localBackupSidebarTitle": "Лакальная рэзервовая копія",
+  "localGallery": "Лакальная галерэя",
+  "localSyncErrorMessage": "Здаецца, што нешта пайшло не так. Паколькі лакальная сінхранізацыя фатаграфій займае больш часу, чым чакалася. Звяжыцеся з нашай службай падтрымкі",
+  "location": "Месцазнаходжанне",
+  "locationName": "Назва месцазнаходжання",
+  "locationPickerTip": "Вы таксама можаце дадаць месцазнаходжанне ў цэнтры фатаграфіі з экрана інфармацыі пра фота",
+  "@locationPickerTip": {
+    "description": "Helper tip text shown in the location picker that refers to the photo info screen."
+  },
+  "locations": "Месцазнаходжанні",
+  "locationTagFeatureDescription": "Тэг месцазнаходжання групуе ўсе фатаграфіі, якія зроблены ў пэўным радыусе ад фатаграфіі",
+  "locationUpdatedAndBackupCreated": "Размяшчэнне абноўлена і пачатковая рэзервовая копія створана!",
+  "lockButtonLabel": "Заблакіраваць",
+  "loggingOut": "Выхад...",
+  "@loggingOut": {
+    "description": "Message shown while logging out"
+  },
+  "logInLabel": "Увайсці",
+  "@logInLabel": {
+    "description": "Log in button label"
+  },
+  "loginSessionExpired": "Сеанс завяршыўся",
+  "@loginSessionExpired": {
+    "description": "Login session expired title"
+  },
+  "loginSessionExpiredDetails": "Ваш сеанс завяршыўся. Увайдзіце яшчэ раз.",
+  "@loginSessionExpiredDetails": {
+    "description": "Login session expired details"
+  },
+  "loginWithAuthAccount": "Увайсці з дапамогай уліковага запісу Auth",
+  "loginWithTOTP": "Увайсці з TOTP",
+  "@loginWithTOTP": {
+    "description": "Login with TOTP button label"
+  },
+  "logout": "Выйсці",
+  "logsDialogBody": "Гэта дзеянне прывядзе да адпраўкі журналаў, якія дапамогуць нам адладзіць вашу праблему. Звярніце ўвагу, што назвы файлаў будуць уключаны для адсочвання праблем з канкрэтнымі файламі.",
+  "@logsDialogBody": {
+    "description": "Body text for the logs dialog explaining what will be sent"
+  },
+  "longPressAnEmailToVerifyEndToEndEncryption": "Доўга ўтрымлівайце паштовы адрас, каб спраўдзіць скразное шыфраванне.",
+  "lookBackOnYourMemories": "Азіраючыся на вашы ўспаміны",
+  "lookingForVisualSimilarities": "Пошук па візуальным падабенстве...",
+  "loopVideoOff": "Уключыць цыкл",
+  "loopVideoOn": "Адключыць цыкл",
+  "lostDevice": "Згубілі прыладу?",
+  "lostDeviceTitle": "Згубілі прыладу?",
+  "@lostDeviceTitle": {
+    "description": "Lost device title"
+  },
+  "machineLearning": "Машыннае навучанне",
+  "manageDeviceStorage": "Кіраваць кэшам прылады",
+  "manageFamily": "Кіраванне сям'ёй",
+  "manageLink": "Кіраваць спасылкай",
+  "manageSubscription": "Кіраваць падпіскай",
+  "manualSort": "Карыстальніцкае",
+  "map": "Карта",
+  "@map": {
+    "description": "Label for the map view"
+  },
+  "maps": "Карты",
+  "mapsPrivacyNotice": "Прыблізныя каардынаты будуць адпраўлены з улікам прыватнасці трэціх асоб, такіх як OpenStreetMap, каб паказаць карту і месцазнаходжанне.",
+  "me": "Я",
+  "memories": "Успаміны",
+  "memoryCount": "{count, plural, =0{няма ўспамінаў} one{{formattedCount} успамін} few{{formattedCount} успаміны} many{{formattedCount} успамінаў} other{{formattedCount} успамінаў}}",
+  "@memoryCount": {
+    "description": "The text to display the number of memories",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "1",
+        "type": "int"
+      },
+      "formattedCount": {
+        "type": "String",
+        "example": "11.513, 11,511"
+      }
+    }
+  },
+  "merchandise": "Тавары",
+  "merge": "Аб'яднаць",
+  "mergedPhotos": "Аб'яднаныя фатаграфіі",
+  "mergeWithExisting": "Аб'яднаць з існуючым",
+  "minimizeAppOnCopy": "Згортваць праграму пры капіяванні",
+  "minimizeToTrayOnClose": "Згарнуць у латок пры закрыцці",
+  "mixedGrouping": "Змешаная група?",
+  "mlConsent": "Уключана машыннае навучанне",
+  "mlConsentConfirmation": "Я разумею і хачу ўключыць машыннае навучанне",
+  "mlConsentDescription": "Ente будзе вымаць такую ​​інфармацыю з файлаў (таксама з файлаў, якія абагулілі з вамі), як геаметрыя твару.\nДадзены працэс адбываецца на вашай прыладзе, і любая згенерыраваная біяметрычная інфармацыя будзе абаронена скразным шыфраваннем.",
+  "modifyYourQueryOrTrySearchingFor": "Змяніце свой запыт або паспрабуйце шукаць",
+  "moments": "Моманты",
+  "month": "месяц",
+  "monthly": "Штомесячна",
+  "@monthly": {
+    "description": "The text to display for monthly plans",
+    "type": "text"
+  },
+  "moon": "Пад святлом месяца",
+  "moreDetails": "Падрабязней",
+  "mostFrequentlyUsed": "Часта выкарыстоўваемыя",
+  "mostRecent": "Самыя апошнія",
+  "mostRecentlyUsed": "Нядаўна выкарыстаныя",
+  "mostRelevant": "Самыя актуальныя",
+  "mountains": "Праз узвышшы",
+  "movedSuccessfullyTo": "Паспяхова перамешчана ў {albumName}",
+  "@movedSuccessfullyTo": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
+  "movedToTrash": "Перамешчана ў сметніцу",
+  "moveMultipleToTrashMessage": "Наступная колькасць элементаў будзе выдалена: {count}. Працягнуць?",
+  "@moveMultipleToTrashMessage": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "moveSelectedPhotosToOneDate": "Перамясціць выбраныя фатаграфіі ў адну дату",
+  "moveToAlbum": "Перамясціць у альбом",
+  "moveToHiddenAlbum": "Перамясціць у схаваны альбом",
+  "movingFilesToAlbum": "Перамяшчэнне файлаў у альбом...",
+  "name": "Назва",
+  "networkConnectionRefusedErr": "Немагчыма падключыцца да Ente. Паспрабуйце яшчэ раз праз некаторы час. Звярніцеся ў службу падтрымкі кліентаў, калі праблема застанецца.",
+  "@networkConnectionRefusedErr": {
+    "description": "Error message shown when the app cannot connect to Ente due to connection refused"
+  },
+  "networkHostLookUpErr": "Немагчыма падключыцца да сервера Ente. Праверце свае сеткавыя налады. Звярніцеся ў службу падтрымкі кліентаў, калі праблема застанецца.",
+  "@networkHostLookUpErr": {
+    "description": "Error message shown when the app cannot connect to Ente due to network host lookup failure"
+  },
+  "never": "Ніколі",
+  "newAlbum": "Новы альбом",
+  "newest": "Самыя новыя",
+  "newLocation": "Новае месцазнаходжанне",
+  "newPhotosEmoji": " новая 📸",
+  "newRange": "Новы дыяпазон",
+  "next": "Далей",
+  "@next": {
+    "description": "Next button label"
+  },
+  "nextTotpTitle": "далей",
+  "nightLights": "Неонавая ноч",
+  "no": "Не",
+  "noDefaultBackupFolder": "Не ўдалося стварыць прадвызначаную папку для рэзервовых копій.",
+  "noDeviceFound": "Ніводнай прылады не знойдзена",
+  "noDeviceLimit": "Адсутнічае",
+  "@noDeviceLimit": {
+    "description": "Text to indicate that there is limit on number of devices"
+  },
+  "noDeviceThatCanBeDeleted": "На гэтай прыладзе няма файлаў для выдалення",
+  "noExifData": "Даныя EXIF адсутнічаюць",
+  "noFacesFound": "Твар не знойдзены",
+  "noImagesWithLocation": "Відарысы з месцазнаходжаннем адсутнічаюць",
+  "noInternetConnection": "Адсутнічае падключэнне да інтэрнэту",
+  "@noInternetConnection": {
+    "description": "No internet connection error message"
+  },
+  "noPhotosFoundHere": "Тут фатаграфій не знойдзена",
+  "noRecoveryKeyNoDecryption": "З прычыны архітэктуры нашага пратакола скразнога шыфравання немагчыма расшыфраваць вашы даныя без пароля або ключа аднаўлення",
+  "@noRecoveryKeyNoDecryption": {
+    "description": "Explanation that data cannot be decrypted without password or recovery key"
+  },
+  "noRecoveryKeyTitle": "Няма ключа аднаўлення?",
+  "@noRecoveryKeyTitle": {
+    "description": "No recovery key title"
+  },
+  "noResult": "Няма вынікаў",
+  "noResultsFound": "Нічога не знойдзена",
+  "noSimilarImagesFound": "Падобныя відарысы не знойдзены",
+  "noSuggestionsForPerson": "Адсутнічаюць прапановы для {personName}",
+  "@noSuggestionsForPerson": {
+    "placeholders": {
+      "personName": {
+        "type": "String",
+        "example": "Alice"
+      }
+    }
+  },
+  "noSystemLockFound": "Сістэмная блакіроўка не знойдзена",
+  "@noSystemLockFound": {
+    "description": "Error when no system lock is found"
+  },
+  "note": "Нататка",
+  "notes": "Нататкі",
+  "notesLengthLimit": "Максімальная колькасць сімвалаў у нататках не больш за {count}",
+  "@notesLengthLimit": {
+    "description": "Text to indicate the maximum number of characters allowed for notes",
+    "placeholders": {
+      "count": {
+        "description": "The maximum number of characters allowed for notes",
+        "type": "int",
+        "example": "100"
+      }
+    }
+  },
+  "nothingToSeeHere": "Тут нічога няма",
+  "nothingToTidyUpHere": "Адсутнічаюць элементы для ўпарадкавання",
+  "notifications": "Апавяшчэнні",
+  "notPersonLabel": "Не {name}?",
+  "@notPersonLabel": {
+    "description": "Label to indicate that the person in the photo is not the person whose name is mentioned",
+    "placeholders": {
+      "name": {
+        "content": "{name}",
+        "type": "String"
+      }
+    }
+  },
+  "notSupportedForHOTP": "Не падтрымліваецца на HOTP",
+  "notThisPerson": "Не гэта асоба?",
+  "ocrGenericDetectError": "Не ўдалося выявіць тэкст у відарысе",
+  "ocrImageDecodeFailedError": "Не ўдалося прачытаць файл відарыса",
+  "ocrImageNotFoundError": "Файл відарыса не знойдзены",
+  "ocrModelsNetworkRequiredError": "Для спампоўвання мадэляў аптычнага распазнавання пры першым выкарыстанні патрабуецца падключэнне да сеткі",
+  "ocrModelsPrepareFailed": "Не ўдалося падрыхтаваць мадэлі аптычнага распазнавання",
+  "ocrNoTextDetected": "Тэкст не выяўлены",
+  "offlineModeWarning": "Вы выбралі працягнуць без рэзервовых копій. Зрабіце рэзервовую копію кодаў уручную, каб не згубіць доступ да іх.",
+  "onEnte": "У <branding>Ente</branding>",
+  "@onEnte": {
+    "description": "The text displayed above albums backed up to Ente",
+    "type": "text"
+  },
+  "onlyFamilyAdminCanChangeCode": "Адпраўце ліст на паштовы адрас {familyAdminEmail}, каб змяніць код.",
+  "@onlyFamilyAdminCanChangeCode": {
+    "placeholders": {
+      "familyAdminEmail": {}
+    }
+  },
+  "onlyThem": "Толькі яны",
+  "onTheRoad": "Зноў у дарозе",
+  "onThisDay": "У гэты дзень",
+  "onThisDayMemories": "Успаміны ў гэты дзень",
+  "oops": "Вой",
+  "@oops": {
+    "description": "Oops error title"
+  },
+  "oopsCouldNotSaveEdits": "Вой! Не ўдалося захаваць рэдагаванні",
+  "oopsSomethingWentWrong": "Вой! Нешта пайшло не так",
+  "openAlbumInBrowser": "Адкрыць альбом у браўзеры",
+  "openAlbumInBrowserTitle": "Скарыстайцеся вэб-праграмай, каб дадаць фатаграфіі ў гэты альбом",
+  "openFile": "Адкрыць файл",
+  "openstreetmapContributors": "Удзельнікі OpenStreetMap",
+  "optionalAsShortAsYouLike": "Неабавязкова і так коратка, як вы захочаце...",
+  "otherDetectedFaces": "Іншыя выяўленыя твары",
+  "pair": "Спалучыць",
+  "panorama": "Панарама",
+  "parsingError": "Памылка аналіза",
+  "partyWithThem": "Вечарына з {name}",
+  "@partyWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "passkey": "Ключ доступу",
+  "passkeyAuthTitle": "Спраўджанне ключа доступу",
+  "@passkeyAuthTitle": {
+    "description": "Passkey authentication title"
+  },
+  "passKeyPendingVerification": "Спраўджанне пакуль яшчэ не завершана",
+  "@passKeyPendingVerification": {
+    "description": "Message when passkey verification is pending"
+  },
+  "password": "Пароль",
+  "@password": {
+    "description": "Password field label"
+  },
+  "passwordChangedSuccessfully": "Пароль паспяхова зменены",
+  "@passwordChangedSuccessfully": {
+    "description": "Password changed successfully message"
+  },
+  "passwordEmptyError": "Пароль не можа быць пустым",
+  "passwordForDecryptingExport": "Пароль для дэшыфроўкі экспарту",
+  "passwordLock": "Блакіраванне паролем",
+  "passwordStrength": "Надзейнасць пароля: {passwordStrengthValue}",
+  "@passwordStrength": {
+    "description": "Text to indicate the password strength",
+    "placeholders": {
+      "passwordStrengthValue": {
+        "description": "The strength of the password as a string",
+        "type": "String",
+        "example": "Weak or Moderate or Strong"
+      }
+    }
+  },
+  "passwordToEncryptExport": "Пароль для шыфроўкі экспарту",
+  "passwordTooShort": "Даўжыня пароля павінна быць прынамсі 8 сімвалаў.",
+  "pastYearsMemories": "Успаміны мінулых гадоў",
+  "paymentDetails": "Падрабязнасці плацяжу",
+  "paymentFailed": "Збой плацяжу",
+  "paymentFailedMessage": "На жаль, адбыўся збой вашага плацяжу. Звярніцеся ў службу падтрымкі, каб мы маглі дапамагчы вам!",
+  "paymentFailedTalkToProvider": "Звярніцеся ў падтрымку {providerName}, калі з вас спагналі грашовыя сродкі",
+  "@paymentFailedTalkToProvider": {
+    "description": "The text to display when the payment failed",
+    "type": "text",
+    "placeholders": {
+      "providerName": {
+        "example": "AppStore|PlayStore",
+        "type": "String"
+      }
+    }
+  },
+  "pendingSync": "Чаканне сінхранізацыі",
+  "pendingSyncs": "Папярэджанне",
+  "pendingSyncsWarningBody": "Не ўдалося стварыць рэзервовую копію некаторых вашых кодаў.\n\nПераканайцеся, што ў вас ёсць іх рэзервовая копія перад выхадам з сістэмы.",
+  "people": "Людзі",
+  "peopleAutoAddDesc": "Аўтададаваць фатаграфіі выбраных людзей у гэты альбом",
+  "@peopleAutoAddDesc": {
+    "description": "The message the copy should convey is that photos or videos containing the selected people's faces will be automatically added to this album"
+  },
+  "period": "Перыяд",
+  "permanentlyDelete": "Выдаліць незваротна",
+  "permDeleteWarning": "Усе элементы будуць незваротна выдалены\n\nГэта дзеянне немагчыма будзе адрабіць",
+  "personIsAge": "{name} споўнілася {age}!",
+  "@personIsAge": {
+    "placeholders": {
+      "age": {},
+      "name": {}
+    }
+  },
+  "personTurningAge": "{name} неўзабаве споўніцца {age}",
+  "@personTurningAge": {
+    "placeholders": {
+      "age": {},
+      "name": {}
+    }
+  },
+  "pets": "Пухнатыя спадарожнікі",
+  "photoGridSize": "Памер сеткі фатаграфій",
+  "photos": "Фатаграфіі",
+  "photosAddedByYouWillBeRemovedFromTheAlbum": "Дададзеныя вамі фатаграфіі будуць выдалены з альбома",
+  "photosKeepRelativeTimeDifference": "Фатаграфіі захоўваюць адносную розніцу ў часе",
+  "pickCenterPoint": "Выберыце цэнтральны пункт",
+  "pin": "Замацаваць",
+  "pinLock": "Блакіроўка PIN'ам",
+  "@pinLock": {
+    "description": "PIN lock option title"
+  },
+  "pinnedCodeMessage": "{code} быў замацаваны",
+  "@pinnedCodeMessage": {
+    "placeholders": {
+      "code": {}
+    }
+  },
+  "pinnedCount": "{count, plural, one{{count} элемент замацаваны} few{{count} элемента замацавана} other{{count} элементаў замацавана}}",
+  "@pinnedCount": {
+    "description": "Text to show number of items pinned",
+    "placeholders": {
+      "count": {
+        "description": "Number of items pinned",
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "pinPerson": "Замацаваць асобу",
+  "pinText": "Замацаваць",
+  "plainHTML": "Звычайны HTML",
+  "plainText": "Звычайны тэкст",
+  "playfulKids": "Гарэзлівыя дзеці",
+  "playOriginal": "Узнавіць арыгінал",
+  "playstoreSubscription": "Падпіска PlayStore",
+  "playStream": "Узнавіць плынь",
+  "pleaseCheckPasswordAndTryAgain": "Праверце пароль і паспрабуйце яшчэ раз.",
+  "pleaseCheckYourInternetConnectionAndTryAgain": "Праверце злучэнне з інтэрнэтам і паспрабуйце яшчэ раз.",
+  "@pleaseCheckYourInternetConnectionAndTryAgain": {
+    "description": "Message asking user to check internet connection"
+  },
+  "pleaseContactSupportIfTheProblemPersists": "Звяжыцеся са службай падтрымкі, калі праблема застанецца",
+  "pleaseEmailUsAt": "Адпраўце ліст на паштовы адрас {toEmail}",
+  "@pleaseEmailUsAt": {
+    "placeholders": {
+      "toEmail": {}
+    }
+  },
+  "pleaseGrantPermissions": "Дайце дазволы",
+  "pleaseLoginAgain": "Аўтарызуйцеся яшчэ раз",
+  "pleaseSelectQuickLinksToRemove": "Выберыце хуткія спасылкі для выдалення",
+  "pleaseSendTheLogsTo": "Адпраўце журналы на \n{toEmail}",
+  "@pleaseSendTheLogsTo": {
+    "description": "Message asking user to send logs to email address",
+    "placeholders": {
+      "toEmail": {
+        "type": "String",
+        "description": "Email address to send logs to"
+      }
+    }
+  },
+  "pleaseTryAgain": "Паспрабуйце яшчэ раз",
+  "@pleaseTryAgain": {
+    "description": "Message asking user to try again"
+  },
+  "pleaseVerifyDetails": "Спраўдзіце падрабязнасці і паспрабуйце яшчэ раз",
+  "pleaseVerifyTheCodeYouHaveEntered": "Спраўдзіце ўведзены вамі код",
+  "pleaseWait": "Пачакайце...",
+  "@pleaseWait": {
+    "description": "Please wait message"
+  },
+  "pleaseWaitDeletingAlbum": "Выдаленне альбома. Пачакайце...",
+  "pleaseWaitForSometimeBeforeRetrying": "Пачакайце крыху перад паўторнай спробай",
+  "pleaseWaitThisWillTakeAWhile": "Гэта зойме пэўны час. Пачакайце...",
+  "posingWithThem": "Пазіруючы з {name}",
+  "@posingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "preparingLogs": "Падрыхтоўка журналаў...",
+  "preserveMore": "Захаваць больш",
+  "pressAndHoldToPlayVideoDetailed": "Націсніце і ўтрымлівайце на відарысе, каб узнавіць відэа",
+  "preview": "Перадпрагляд",
+  "previous": "Папярэдні",
+  "privacy": "Прыватнасць",
+  "privacyPolicyTitle": "Палітыка прыватнасці",
+  "@privacyPolicyTitle": {
+    "description": "Privacy policy title"
+  },
+  "proceed": "Працягнуць",
+  "processed": "Апрацавана",
+  "processingImport": "Апрацоўка {folderName}...",
+  "@processingImport": {
+    "placeholders": {
+      "folderName": {}
+    }
+  },
+  "publicLinkEnabled": "Публічная спасылка ўключана",
+  "qr": "QR",
+  "qrCode": "QR-код",
+  "questionmark": "?",
+  "queued": "У чарзе",
+  "radius": "Радыус",
+  "rainyDays": "Адчуванне дажджлівага дня",
+  "raiseTicket": "Падаць запыт",
+  "@raiseTicket": {
+    "description": "Button text for raising a support tickets in case of unhandled errors during backup",
+    "type": "text"
+  },
+  "rateUs": "Ацаніце нас",
+  "rateUsOnStore": "Ацаніць нас у {storeName}",
+  "@rateUsOnStore": {
+    "placeholders": {
+      "storeName": {}
+    }
+  },
+  "rawCodeData": "Неапрацаваныя даныя кода",
+  "reassignedToName": "Вы пераназначаны на {name}",
+  "@reassignedToName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reassigningLoading": "Пераназначэнне...",
+  "reassignMe": "Пераназначыць «Мяне»",
+  "recover": "Аднавіць",
+  "@recover": {
+    "description": "Recover button label"
+  },
+  "recoverAccount": "Аднавіць уліковы запіс",
+  "@recoverAccount": {
+    "description": "Recover account button label"
+  },
+  "recoveryInitiated": "Ініцыявана аднаўленне",
+  "recoveryInitiatedDesc": "Вы зможаце атрымаць доступ да ўліковага запісу праз {days} дні/дзён. Апавяшчэнне будзе адпраўлена на {email}.",
+  "@recoveryInitiatedDesc": {
+    "placeholders": {
+      "days": {
+        "type": "int",
+        "example": "30"
+      },
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      }
+    }
   },
   "recoveryKey": "Ключ аднаўлення",
   "@recoveryKey": {
     "description": "Recovery key label"
   },
-  "doThisLater": "Зрабіць гэта пазней",
-  "@doThisLater": {
-    "description": "Do this later button label"
+  "recoveryKeyCopiedToClipboard": "Ключ аднаўлення скапіяваны ў буфер абмену",
+  "@recoveryKeyCopiedToClipboard": {
+    "description": "Recovery key copied message"
   },
-  "saveKey": "Захаваць ключ",
-  "@saveKey": {
-    "description": "Save key button label"
+  "recoveryKeyOnForgotPassword": "Адзіным спосабам аднавіць вашы даныя з'яўляецца гэты ключ, калі вы забылі свой пароль.",
+  "@recoveryKeyOnForgotPassword": {
+    "description": "Recovery key importance explanation"
   },
-  "lostDeviceTitle": "Згубілі прыладу?",
-  "@lostDeviceTitle": {
-    "description": "Lost device title"
+  "recoveryKeySaved": "Ключ аднаўлення захаваны ў папцы «Спампоўкі»!",
+  "@recoveryKeySaved": {
+    "description": "Recovery key saved confirmation message"
   },
-  "recover": "Аднавіць",
-  "@recover": {
-    "description": "Recover button label"
+  "recoveryKeySaveDescription": "Захавайце гэты ключ, які складаецца з 24 слоў, у надзейным месцы. Ён не захоўваецца на нашым серверы.",
+  "@recoveryKeySaveDescription": {
+    "description": "Recovery key save description"
   },
-  "loggingOut": "Выхад...",
-  "@loggingOut": {
-    "description": "Message shown while logging out"
+  "recoveryKeySuccessBody": "Усё ў парадку! Ваш ключ аднаўлення з'яўляецца сапраўдным.\n\nНе забывайце захоўваць свой ключ аднаўлення ў надзейным месцы.",
+  "recoveryKeyVerified": "Ключ аднаўлення спраўджаны",
+  "recoveryKeyVerifyReason": "Ключ аднаўлення - гэта адзіны спосаб аднавіць вашы фатаграфіі, калі вы забылі пароль. Вы можаце знайсці ключ аднаўлення ў раздзеле «Налады -> Уліковы запіс».\n\nУвядзіце свой ключ аднаўлення тут, каб пераканацца, што ён захаваны слушна.",
+  "recoveryReady": "Цяпер вы можаце аднавіць уліковы запіс {email}, задаўшы новы пароль.",
+  "@recoveryReady": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      }
+    }
   },
-  "immediately": "Адразу",
-  "@immediately": {
-    "description": "Immediately option for auto lock timing"
+  "recoverySuccessful": "Паспяхова адноўлена!",
+  "recoveryWarning": "Давераны кантакт спрабуе атрымаць доступ да вашага ўліковага запісу",
+  "recoveryWarningBody": "{email} спрабуе аднавіць ваш уліковы запіс.",
+  "@recoveryWarningBody": {
+    "placeholders": {
+      "email": {}
+    }
   },
-  "appLock": "Блакіроўка праграмы",
-  "@appLock": {
-    "description": "App lock setting title"
+  "recreatePasswordTitle": "Стварыць пароль паўторна",
+  "@recreatePasswordTitle": {
+    "description": "Title for recreate password dialog"
   },
-  "autoLock": "Аўтаблакіроўка",
-  "@autoLock": {
-    "description": "Auto lock setting title"
-  },
-  "deviceLock": "Блакіроўка прылады",
-  "@deviceLock": {
-    "description": "Device lock option title"
-  },
-  "pinLock": "Блакіроўка PIN'ам",
-  "@pinLock": {
-    "description": "PIN lock option title"
-  },
-  "hideContent": "Схаваць змест",
-  "@hideContent": {
-    "description": "Hide content setting title"
-  },
-  "tapToUnlock": "Націсніце для разблакіроўкі",
-  "@tapToUnlock": {
-    "description": "Message prompting user to tap to unlock"
-  },
-  "yesLogout": "Так, выйсці",
-  "@yesLogout": {
-    "description": "Confirmation button for logout"
-  },
-  "next": "Далей",
-  "@next": {
-    "description": "Next button label"
-  },
-  "enterPin": "Увядзіце PIN-код",
-  "@enterPin": {
-    "description": "Enter PIN prompt"
-  },
-  "setNewPin": "Задаць новы PIN",
-  "@setNewPin": {
-    "description": "Set new PIN title"
-  },
-  "confirm": "Пацвердзіць",
-  "@confirm": {
-    "description": "Confirm button label"
+  "recreateStream": "Стварыць трансляцыю паўторна",
+  "redo": "Узнавіць",
+  "reEnterPassword": "Увядзіце пароль яшчэ раз",
+  "@reEnterPassword": {
+    "description": "Re-enter password prompt"
   },
   "reEnterPin": "Увядзіце PIN-код яшчэ раз",
   "@reEnterPin": {
     "description": "Re-enter PIN prompt"
   },
-  "androidBiometricHint": "Праверыць ідэнтыфікацыю",
-  "@androidBiometricHint": {
-    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
+  "referrals": "Рэфералы",
+  "referralsAreCurrentlyPaused": "Рэфералы ў цяперашні момант прыпынены",
+  "rejectRecovery": "Адхіліць аднаўленне",
+  "related": "Звязаныя",
+  "remindToEmptyDeviceTrash": "Таксама ачысціце «Нядаўна выдаленыя» з меню «Налады» -> «Сховішча», каб вызваліць месца",
+  "remindToEmptyEnteTrash": "Таксама ачысціце сметніцу, каб вызваліць месца",
+  "remoteImages": "Аддаленыя відарысы",
+  "remoteThumbnails": "Аддаленыя мініяцюры",
+  "remoteVideos": "Аддаленыя відэа",
+  "remove": "Выдаліць",
+  "removeFromAlbum": "Выдаліць з альбома",
+  "removeFromAlbumTitle": "Выдаліць з альбома?",
+  "removeFromFavorite": "Выдаліць з абранага",
+  "removeLink": "Выдаліць спасылку",
+  "removeParticipant": "Выдаліць удзельніка",
+  "@removeParticipant": {
+    "description": "menuSectionTitle for removing a participant"
   },
-  "androidBiometricSuccess": "Паспяхова",
-  "@androidBiometricSuccess": {
-    "description": "Message to let the user know that authentication was successful. It is used on Android side. Maximum 60 characters."
+  "removePersonLabel": "Выдаліць метку асобы",
+  "removePersonTag": "Выдаліць тэг асобы",
+  "removePublicLink": "Выдаліць публічную спасылку",
+  "removePublicLinks": "Выдаліць публічныя спасылкі",
+  "removeShareItemsWarning": "Выбраныя фатаграфіі не будуць даступныя нікому з гледачоў гэтага альбома, акрамя іх уладальнікаў.",
+  "removeWithQuestionMark": "Выдаліць?",
+  "removingFromFavorites": "Выдаленне з абраных...",
+  "rename": "Перайменаваць",
+  "renameAlbum": "Перайменаваць альбом",
+  "renameFile": "Перайменаваць файл",
+  "renewsOn": "Наступнае падаўжэнне падпіскі адбудзецца {endDate}",
+  "@renewsOn": {
+    "placeholders": {
+      "endDate": {}
+    }
   },
-  "androidCancelButton": "Скасаваць",
-  "@androidCancelButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
+  "renewSubscription": "Падоўжыць падпіску",
+  "reportABug": "Паведаміць аб памылцы",
+  "@reportABug": {
+    "description": "Label for reporting a bug"
   },
-  "goToSettings": "Перайсці ў налады",
-  "@goToSettings": {
-    "description": "Message showed on a button that the user can click to go to settings pages from the current dialog. It is used on both Android and iOS side. Maximum 30 characters."
+  "reset": "Скінуць",
+  "resetIgnoredFiles": "Скінуць ігнараваныя файлы",
+  "resetPasswordTitle": "Скінуць пароль",
+  "@resetPasswordTitle": {
+    "description": "Reset password title"
   },
-  "iOSOkButton": "OK",
-  "@iOSOkButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on iOS side. Maximum 30 characters."
+  "resetToDefault": "Скінуць да прадвызначаных",
+  "@resetToDefault": {
+    "description": "Button text to reset cover photo to default"
+  },
+  "restore": "Аднавіць",
+  "@restore": {
+    "description": "Display text for an action which triggers a restore of item from trash",
+    "type": "text"
+  },
+  "restoreToAlbum": "Аднавіць у альбом",
+  "restoringFiles": "Аднаўленне файлаў...",
+  "resumableUploads": "Запампоўванні з магчымасцю ўзнаўлення",
+  "retry": "Паўтарыць",
+  "review": "Ацаніць",
+  "reviewSuggestions": "Паглядзець прапановы",
+  "right": "Управа",
+  "ritualAddedToAlbum": "Дададзена ў альбом",
+  "ritualAddedToAlbumWithName": "Дададзена ў {albumName}",
+  "@ritualAddedToAlbumWithName": {
+    "placeholders": {
+      "albumName": {
+        "type": "String",
+        "description": "The target album name"
+      }
+    }
+  },
+  "ritualAddToAlbumFailure": "Не атрымалася дадаць фатаграфію ў альбом: {error}",
+  "@ritualAddToAlbumFailure": {
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "description": "Error message for album add failure"
+      }
+    }
+  },
+  "ritualAddTooltip": "Дадаць рытуал",
+  "ritualAlbumLabel": "Альбом",
+  "ritualAlbumMissing": "Адсутнічае альбом рытуалаў. Адрэдагуйце рытуал, каб усталяваць альбом.",
+  "ritualAlbumNotSet": "Альбом не ўсталяваны",
+  "ritualAlbumSelectionPlaceholder": "Выбраць альбом",
+  "ritualBackToList": "Вернуцца да рытуалаў",
+  "ritualCameraNotFound": "На гэтай прыладзе камера не знойдзена.",
+  "ritualCaptureAtLeastOne": "Спачатку зрабіце хаця б адну фатаграфію.",
+  "ritualCaptureError": "Не атрымалася зрабіць фатаграфію. Паўтарыце спробу.",
+  "ritualCreateYourOwn": "Стварыце свой уласны рытуал",
+  "ritualDefaultCameraTitle": "Зрабіць фота",
+  "ritualEdit": "Рэдагаваць рытуал",
+  "ritualEditorLabel": "Рэдактар ​​рытуалаў",
+  "ritualEnterDescription": "Калі ласка, увядзіце апісанне",
+  "ritualEnterPrompt": "Увядзіце свой рытуал",
+  "ritualGetDailyReminders": "Атрымлівайце штодзённыя напаміны",
+  "ritualNoPhotosYet": "Фатаграфій пакуль няма",
+  "ritualNotificationMessage": "Сфатаграфуйце зараз",
+  "ritualNotificationsOffHint": "Апавяшчэнні выключаны. Націсніце на дзень, каб уключыць іх.",
+  "ritualOpenCameraTooltip": "Адкрыць рытуальную камеру",
+  "ritualPhotoLimit": "Вы можаце дадаць да {maxPhotos, plural, one{# photo.} other{# photos.}}",
+  "@ritualPhotoLimit": {
+    "placeholders": {
+      "maxPhotos": {
+        "type": "int",
+        "description": "Maximum number of photos allowed"
+      }
+    }
+  },
+  "ritualSelectAlbumTitle": "Выбраць альбом",
+  "ritualSetAlbumToLaunchCamera": "Усталюйце альбом для гэтага рытуалу, каб запусціць камеру.",
+  "ritualShareUnavailable": "Немагчыма абагуліць зараз. Калі ласка, паспрабуйце яшчэ раз.",
+  "ritualsTitle": "Рытуалы",
+  "ritualUntitled": "Рытуал без назвы",
+  "riverCruises": "Від на раку",
+  "roadtripWithThem": "Падарожжа з {name}",
+  "@roadtripWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "rotate": "Павярнуць",
+  "sameperson": "Тая ж асоба?",
+  "save": "Захаваць",
+  "@save": {
+    "description": "Label for save button"
+  },
+  "saveAsAnotherPerson": "Захаваць як іншую асобу",
+  "saveChangesBeforeLeavingQuestion": "Захаваць змяненні перад выхадам?",
+  "saveCollage": "Захаваць калаж",
+  "saveCopy": "Захаваць копію",
+  "saveKey": "Захаваць ключ",
+  "@saveKey": {
+    "description": "Save key button label"
+  },
+  "saveOnlyDescription": "Вы сапраўды хочаце захаваць гэта ў сваім сховішчы (прадвызначана папка са спампоўкамі)?",
+  "@saveOnlyDescription": {
+    "description": "Description text asking user if they want to save to storage (for platforms that don't support sharing)"
+  },
+  "saveOrSendDescription": "Вы сапраўды хочаце захаваць гэта ў сваім сховішчы (прадвызначана папка са спампоўкамі) або адправіць у іншыя праграмы?",
+  "@saveOrSendDescription": {
+    "description": "Description text asking user if they want to save to storage or share with other apps"
+  },
+  "savePerson": "Захаваць асобу",
+  "saveYourRecoveryKeyIfYouHaventAlready": "Захавайце свой ключ аднаўлення, калі не рабілі гэта раней",
+  "saving": "Захаванне...",
+  "savingEdits": "Захаванне рэдагаванняў...",
+  "scan": "Сканіраваць",
+  "scanACode": "Сканіраваць код",
+  "scanCode": "Сканіраваць код",
+  "scannerTorchOff": "Выключыць ліхтарык",
+  "scannerTorchOn": "Уключыць ліхтарык",
+  "scanThisBarcodeWithnyourAuthenticatorApp": "Сканіруйце гэты штрых-код з\nдапамогай праграмы аўтэнтыфікацыі",
+  "search": "Пошук",
+  "searchAlbumsEmptySection": "Альбомы",
+  "searchByAlbumNameHint": "Назва альбома",
+  "searchDiscoverEmptySection": "Відарысы будуць паказаны тут пасля завяршэння апрацоўкі і сінхранізацыі",
+  "searchFileTypesAndNamesEmptySection": "Тыпы файлаў і назвы",
+  "searchHint": "Пошук...",
+  "searchHint1": "Хуткі пошук на прыладзе",
+  "searchHint2": "Даты фатаграфій і іх апісанне",
+  "searchHint3": "Альбомы, назвы і тыпы файлаў",
+  "searchHint4": "Месцазнаходжанне",
+  "searchHint5": "Неўзабаве чакаецца: твары і магічны пошук ✨",
+  "searchLocationEmptySection": "Групуйце фатаграфіі, якія зроблены ў пэўным радыусе ад фатаграфіі",
+  "searchPeopleEmptySection": "Запрашайце людзей, і вы ўбачыце ўсе фатаграфіі, якія яны абагулілі",
+  "searchPersonsEmptySection": "Людзі будуць паказаны тут пасля завяршэння апрацоўкі і сінхранізацыі",
+  "searchResultCount": "{count, plural, one{Знойдзены {count} вынік} few{Знойдзены {count} вынікі} many{Знойдзены {count} вынікаў} other{Знойдзены {count} вынікаў}}",
+  "@searchResultCount": {
+    "description": "Text to tell user how many results were found for their search query",
+    "placeholders": {
+      "count": {
+        "example": "1|2|3",
+        "type": "int"
+      }
+    }
+  },
+  "searchSectionsLengthMismatch": "Неадпаведнасць даўжыні раздзелаў: {snapshotLength} != {searchLength}",
+  "@searchSectionsLengthMismatch": {
+    "description": "Appears in search tab page",
+    "placeholders": {
+      "searchLength": {
+        "type": "int",
+        "example": "2"
+      },
+      "snapshotLength": {
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "secret": "Сакрэт",
+  "secretCanNotBeEmpty": "Сакрэт не можа быць пустым",
+  "security": "Бяспека",
+  "seePublicAlbumLinksInApp": "Праглядаць публічныя спасылкі на альбомы ў праграме",
+  "selectAll": "Выбраць усе",
+  "selectAllShort": "Усе",
+  "@selectAllShort": {
+    "description": "Text that appears in bottom right when you start to select multiple photos. When clicked, it selects all photos."
+  },
+  "selectALocation": "Выбраць месцазнаходжанне",
+  "selectALocationFirst": "Спачатку выберыце месцазнаходжанне",
+  "selectBackupFolder": "Выберыце папку для рэзервовага капіявання",
+  "selectCoverPhoto": "Выберыце фатаграфію вокладкі",
+  "selectDate": "Выбраць дату",
+  "selected": "выбраныя",
+  "selectedAlbums": "Выбрана: {count}",
+  "@selectedAlbums": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "selectedCount": "{count, plural, one{{count} выбраны} other{{count} выбрана}}",
+  "@selectedCount": {
+    "description": "Number of items selected",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "selectedFilesAreNotOnEnte": "Выбраныя файлы адсутнічаюць у Ente",
+  "selectedItemsWillBeRemovedFromThisPerson": "Выбраныя элементы будуць выдалены ў гэтай асобы, але не выдалены з вашай бібліятэкі.",
+  "selectedPhotos": "Выбрана: {count}",
+  "@selectedPhotos": {
+    "description": "Display the number of selected photos",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "5",
+        "type": "int"
+      }
+    }
+  },
+  "selectedPhotosWithYours": "Выбрана: {count} ({yourCount} вашы)",
+  "@selectedPhotosWithYours": {
+    "description": "Display the number of selected photos, including the number of selected photos owned by the user",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "12",
+        "type": "int"
+      },
+      "yourCount": {
+        "example": "2",
+        "type": "int"
+      }
+    }
+  },
+  "selectExportFormat": "Выбраць фармат экспартавання",
+  "selectFile": "Выбраць файл",
+  "selectFolder": "Выбраць папку",
+  "selectFolderToContinue": "Выберыце папку, каб працягнуць",
+  "selectItemsToAdd": "Выберыце элементы, каб дадаць іх",
+  "selectLanguage": "Выберыце мову",
+  "selectMailApp": "Выберыце паштовую праграму",
+  "selectMorePhotos": "Выберыце больш фатаграфій",
+  "selectOneDateAndTime": "Выберыце адну дату і час",
+  "selectOneDateAndTimeForAll": "Выберыце адну дату і час для ўсіх",
+  "selectStartOfRange": "Выберыце пачатак дыяпазону",
+  "selectTime": "Выбраць час",
+  "selectYourFace": "Выберыце свой твар",
+  "selfiesWithThem": "Сэлфі з {name}",
+  "@selfiesWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "send": "Адправіць",
+  "@send": {
+    "description": "Label for send button"
+  },
+  "sendInvite": "Адправіць запрашэнне",
+  "sendLink": "Адправіць спасылку",
+  "sendLogsDescription": "Гэта абагуліць усе журналы, каб дапамагчы нам адладзіць вашу праблему. Хоць мы і прымаем захады, каб канфідэнцыяльныя звесткі не рэгістраваліся, але рэкамендуецца прагледзець гэтыя журналы перад адпраўкай.",
+  "sendQrCode": "Адправіць QR-код",
+  "serverEndpoint": "Канцавы пункт сервера",
+  "@serverEndpoint": {
+    "description": "Label for server endpoint setting"
   },
   "sessionExpired": "Сеанс завяршыўся",
   "@sessionExpired": {
     "description": "Error message when session has expired"
   },
-  "incorrectCode": "Няправільны код",
-  "@incorrectCode": {
-    "description": "Error message when code is incorrect"
-  }
+  "sessionIdMismatch": "Неадпаведнасць ідэнтыфікатара сеанса",
+  "@sessionIdMismatch": {
+    "description": "In passkey page, deeplink is ignored because of session ID mismatch."
+  },
+  "setAPassword": "Задаць пароль",
+  "setAs": "Задаць як",
+  "setBackupFolder": "Задаць папку з рэзервовымі копіямі",
+  "setBackupPassword": "Задаць рэзервовы пароль",
+  "setCover": "Задаць вокладку",
+  "@setCover": {
+    "description": "Text to set cover photo for an album"
+  },
+  "setLabel": "Задаць",
+  "@setLabel": {
+    "description": "Label of confirm button to add a new custom radius to the radius selector of a location tag"
+  },
+  "setNewPassword": "Задаць новы пароль",
+  "@setNewPassword": {
+    "description": "Set new password title"
+  },
+  "setNewPin": "Задаць новы PIN",
+  "@setNewPin": {
+    "description": "Set new PIN title"
+  },
+  "setPasswordTitle": "Задаць пароль",
+  "@setPasswordTitle": {
+    "description": "Set password title"
+  },
+  "setRadius": "Задаць радыус",
+  "settings": "Налады",
+  "setupComplete": "Наладжванне завершана",
+  "setupFirstAccount": "Наладзьце свой першы\nўліковы запіс",
+  "share": "Абагуліць",
+  "shareALink": "Абагуліць спасылку",
+  "shareCodes": "Абагуліць коды",
+  "shareCodesDuration": "Выберыце працягласць, на якую вы хочаце абагуліць коды.",
+  "shareLink": "Абагуліць спасылку",
+  "shareWithNonenteUsers": "Абагуліць з карыстальнікамі, якія не карыстаюцца Ente",
+  "sharing": "Абагульванне...",
+  "shiftDatesAndTime": "Перанос даты і часу",
+  "shouldHideCode": "Схаваць коды",
+  "shouldRemoveFilesSmartAlbumsDesc": "Ці варта выдаляць файлы, звязаны з чалавекам, які раней быў выбраны ў інтэлектуальных альбомах?",
+  "showInMemories": "Паказаць ва ўспамінах",
+  "showLargeIcons": "Паказваць вялікія значкі",
+  "showMemories": "Паказаць успаміны",
+  "showMoreFaces": "Паказаць больш твараў",
+  "showPerson": "Паказаць асобу",
+  "showQRAuthMessage": "Прайдзіце аўтэнтыфікацыю, каб паказаць QR-код",
+  "sigInBackupReminder": "Ente будзе аўтаматычна рэзерваваць коды пасля ўваходу.\n\nНастойліва рэкамендуецца экспартаваць коды ў якасці дадатковага рэзервовага капіявання.",
+  "signInToBackup": "Увайсці для рэзервовага капіявання кодаў",
+  "signOutFromOtherDevices": "Выйсці з іншых прылад",
+  "@signOutFromOtherDevices": {
+    "description": "Sign out from other devices title"
+  },
+  "signOutOtherBody": "Вы можаце прымусова закрыць сеанс на ўсіх прыладах, калі думаеце, што ваш пароль скампраметаваны.",
+  "@signOutOtherBody": {
+    "description": "Sign out other devices explanation"
+  },
+  "signOutOtherDevices": "Выйсці на іншых прыладах",
+  "@signOutOtherDevices": {
+    "description": "Sign out other devices button label"
+  },
+  "signUp": "Зарэгістравацца",
+  "signUpTerms": "Я пагаджаюся з <u-terms>умовамі абслугоўвання</u-terms> і <u-policy>палітыкай прыватнасці</u-policy>",
+  "@signUpTerms": {
+    "description": "Terms agreement text for sign up"
+  },
+  "similar": "Падобныя",
+  "similarImages": "Падобныя відарысы",
+  "similarImagesCount": "Падобных відарысаў ({count})",
+  "@similarImagesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "singIn": "Увайсці",
+  "skip": "Прапусціць",
+  "smartMemories": "Інтэлектуальныя ўспаміны",
+  "snowAdventures": "Зімовыя прыгоды",
+  "someoneSharingAlbumsWithYouShouldSeeTheSameId": "Вы і той, хто абагуліў альбом з вамі, павінны бачыць аднолькавы ідэнтыфікатар на сваіх прыладах.",
+  "somethingWentWrong": "Нешта пайшло не так",
+  "somethingWentWrongMessage": "Нешта пайшло не так. Паспрабуйце яшчэ раз",
+  "somethingWentWrongParsingCode": "Немагчыма прааналізаваць коды (колькасць: {x}).",
+  "@somethingWentWrongParsingCode": {
+    "placeholders": {
+      "x": {}
+    }
+  },
+  "somethingWentWrongPleaseTryAgain": "Нешта пайшло не так. Паспрабуйце яшчэ раз",
+  "@somethingWentWrongPleaseTryAgain": {
+    "description": "Generic error message"
+  },
+  "sorry": "Прабачце",
+  "sorryBackupFailedDesc": "Немагчыма зрабіць рэзервовую копію гэтага файла ў цяперашні час. Паўторная спроба будзе зроблена пазней.",
+  "sorryCouldNotAddToFavorites": "Немагчыма дадаць у абраныя!",
+  "sorryCouldNotRemoveFromFavorites": "Немагчыма выдаліць з абраных!",
+  "sorryTheCodeYouveEnteredIsIncorrect": "Уведзены вамі код з'яўляецца няправільным",
+  "@sorryTheCodeYouveEnteredIsIncorrect": {
+    "description": "Detailed error message when code is incorrect"
+  },
+  "sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": "Немагчыма згенерыраваць ключы бяспекі на гэтай прыладзе.\n\nЗарэгіструйцеся з іншай прылады.",
+  "@sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": {
+    "description": "Error message for insecure device"
+  },
+  "sorryWeHadToPauseYourBackups": "Прабачце, але давялося прыпыніць ваша рэзервовае капіяванне",
+  "sort": "Сартаваць",
+  "sortAlbumsBy": "Сартаваць па",
+  "sortNewestFirst": "Спачатку самыя новыя",
+  "sortOldestFirst": "Спачатку самыя старыя",
+  "sportsAction": "Гульня",
+  "sportsWithThem": "Спорт з {name}",
+  "@sportsWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "spotlightOnThem": "У цэнтры ўвагі {name}",
+  "@spotlightOnThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "spotlightOnYourself": "Вы ў цэнтры ўвагі",
+  "stargazing": "Пад зоркамі",
+  "startBackup": "Пачаць рэзервовае капіяванне",
+  "startRecovery": "Пачаць аднаўленне",
+  "status": "Стан",
+  "sticker": "Стыкер",
+  "stopCastingBody": "Вы сапраўды хочаце спыніць вяшчанне?",
+  "stopCastingTitle": "Спыніць вяшчанне",
+  "storage": "Сховішча",
+  "storageBreakupFamily": "Сямейны",
+  "storageBreakupYou": "Вы",
+  "@storageBreakupYou": {
+    "description": "Label to indicate how much storage you are using when you are part of a family plan"
+  },
+  "storageLimitExceeded": "Перавышана абмежаванне аб'ёму сховішча",
+  "streamDetails": "Падрабязнасці плыні",
+  "streetArt": "Гісторыі вулічнага мастацтва",
+  "streetFood": "Вулічна ежа",
+  "strongStrength": "Надзейны",
+  "@strongStrength": {
+    "description": "Strong password strength label"
+  },
+  "submit": "Пацвердзіць",
+  "subscribe": "Падпісацца",
+  "subscribeToChangeLinkSetting": "Каб змяніць гэты параметр спасылкі, вам патрэбна платная падпіска.",
+  "subscribeToEnableSharing": "У вас павінна быць актыўная платная падпіска, каб уключыць абагульванне.",
+  "subscription": "Падпіска",
+  "subWillBeCancelledOn": "Ваша падпіска будзе скасавана {endDate}",
+  "@subWillBeCancelledOn": {
+    "placeholders": {
+      "endDate": {}
+    }
+  },
+  "successfullyArchived": "Паспяхова дададзена ў архіў",
+  "successfullyHid": "Паспяхова схавана",
+  "successfullyUnarchived": "Паспяхова вынята з архіва",
+  "successfullyUnhid": "Паспяхова паказана",
+  "suggestFeatures": "Прапанаваць функцыю",
+  "sunrise": "На гарызонце",
+  "support": "Падтрымка",
+  "supportEnte": "Падтрымка <bold-green>ente</bold-green>",
+  "syncing": "Сінхранізацыя...",
+  "syncProgress": "{completed}/{total} успамінаў захавана",
+  "@syncProgress": {
+    "description": "Text to tell user how many memories have been preserved",
+    "placeholders": {
+      "completed": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "syncStopped": "Сінхранізацыя спынена",
+  "tag": "Тэг",
+  "tags": "Тэгі",
+  "tapToCopy": "націсніце, каб скапіяваць",
+  "tapToUpload": "Націсніце запампаваць",
+  "@tapToUpload": {
+    "description": "Shown in upload icon widet, inside a tooltip."
+  },
+  "tapToUploadIsIgnoredDue": "Націсніце запампаваць. Запампоўванне ігнаруецца з прычыны {ignoreReason}",
+  "@tapToUploadIsIgnoredDue": {
+    "description": "Shown in upload icon widet, inside a tooltip.",
+    "placeholders": {
+      "ignoreReason": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
+  },
+  "tellUsWhatYouThink": "Раскажыце, што вы думаеце",
+  "terminate": "Перарваць",
+  "@terminate": {
+    "description": "Terminate button label"
+  },
+  "terminateSession": "Перарваць сеанс?",
+  "@terminateSession": {
+    "description": "Title for terminate session dialog"
+  },
+  "termsOfServicesTitle": "Умовы",
+  "@termsOfServicesTitle": {
+    "description": "Terms of service title"
+  },
+  "thankYou": "Дзякуй",
+  "thankYouForSubscribing": "Дзякуем за падпіску!",
+  "theLinkYouAreTryingToAccessHasExpired": "Тэрмін дзеяння спасылкі, да якой вы спрабавалі атрымаць доступ, пратэрмінаваны.",
+  "thePersonGroupsWillNotBeDisplayed": "Групы асоб больш не будуць паказвацца ў раздзеле людзей. Фатаграфіі застануцца некранутымі.",
+  "thePersonWillNotBeDisplayed": "Асобы больш не будуць паказвацца ў раздзеле людзей. Фатаграфіі застануцца некранутымі.",
+  "theRecoveryKeyYouEnteredIsIncorrect": "Вы ўвялі памылковы ключ аднаўлення",
+  "@theRecoveryKeyYouEnteredIsIncorrect": {
+    "description": "Detailed error message when recovery key is incorrect"
+  },
+  "theseItemsWillBeDeletedFromYourDevice": "Гэтыя элементы будуць выдалены з усіх вашых прылад.",
+  "thisCanBeUsedToRecoverYourAccountIfYou": "Ён можа быць выкарыстаны для аднаўлення вашага ўліковага запісу, калі страчаны другі фактар аўтэнтыфікацыі",
+  "thisDevice": "Гэта прылада",
+  "@thisDevice": {
+    "description": "Label for current device"
+  },
+  "thisEmailIsAlreadyInUse": "Гэта электронная пошта ўжо выкарыстоўваецца",
+  "@thisEmailIsAlreadyInUse": {
+    "description": "Error message when email is already in use"
+  },
+  "thisImageHasNoExifData": "Гэты відарыс не змяшчае даных EXIF",
+  "thisIsMeExclamation": "Гэта я!",
+  "thisIsPersonVerificationId": "Гэта ідэнтыфікатар спраўджання {email}",
+  "@thisIsPersonVerificationId": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@ente.com"
+      }
+    }
+  },
+  "thisIsYourVerificationId": "Гэта ваш ідэнтыфікатар спраўджання",
+  "thisMonth": "У гэтым месяцы",
+  "thisWeek": "На гэтым тыдні",
+  "thisWeekThroughTheYears": "Гэты тыдзень праз гады",
+  "thisWillLogYouOutOfThisDevice": "Гэта дзеянне завершыць сеанс на вашай прыладзе!",
+  "@thisWillLogYouOutOfThisDevice": {
+    "description": "Warning message for logging out of current device"
+  },
+  "thisWillMakeTheDateAndTimeOfAllSelected": "Гэта зробіць дату і час усіх выбраных фатаграфій аднолькавымі.",
+  "thisYear": "У гэтым тыдні",
+  "throughTheYears": "{dateFormat} праз гады",
+  "@throughTheYears": {
+    "placeholders": {
+      "dateFormat": {}
+    }
+  },
+  "todaysLogs": "Сённяшнія журналы",
+  "toEnableAppLockPleaseSetupDevicePasscodeOrScreen": "Наладзьце код доступу да прылады або блакіроўку экрана ў наладах вашай сістэме, каб уключыць блакіроўку праграмы.",
+  "tooManyIncorrectAttempts": "Занадта шмат няўдалых спроб",
+  "@tooManyIncorrectAttempts": {
+    "description": "Message shown when too many incorrect attempts are made"
+  },
+  "totalSize": "Агульны памер",
+  "trash": "Сметніца",
+  "trashCode": "Выдаліць код?",
+  "trashCodeMessage": "Вы сапраўды хочаце выдаліць код для {account}?",
+  "@trashCodeMessage": {
+    "placeholders": {
+      "account": {}
+    }
+  },
+  "trim": "Скараціць",
+  "tripInYear": "Падарожжа ў {year}",
+  "@tripInYear": {
+    "placeholders": {
+      "year": {}
+    }
+  },
+  "tripToLocation": "Падарожжа ў {location}",
+  "@tripToLocation": {
+    "placeholders": {
+      "location": {}
+    }
+  },
+  "tropicalParadise": "Трапічныя ўцёкі",
+  "trustedContacts": "Давераныя кантакты",
+  "tryAgain": "Паспрабуйце яшчэ раз",
+  "@tryAgain": {
+    "description": "Try again button label"
+  },
+  "twofactor": "Двухфактарная аўтэнтыфікацыя",
+  "twofactorAuthenticationHasBeenDisabled": "Двухфактарная аўтэнтыфікацыя была адключана",
+  "twofactorAuthenticationSuccessfullyReset": "Двухфактарная аўтэнтыфікацыя паспяхова скінута",
+  "@twofactorAuthenticationSuccessfullyReset": {
+    "description": "Message when two-factor authentication is successfully reset"
+  },
+  "twoFactorAuthTitle": "Двухфактарная аўтэнтыфікацыя",
+  "@twoFactorAuthTitle": {
+    "description": "Two-factor authentication title"
+  },
+  "twofactorSetup": "Наладжванне двухфактарнай аўтэнтыфікацыі",
+  "type": "Тып",
+  "typeOfGallerGallerytypeIsNotSupportedForRename": "Тып галерэі {galleryType} не падтрымлівае перайменаванне",
+  "@typeOfGallerGallerytypeIsNotSupportedForRename": {
+    "placeholders": {
+      "galleryType": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
+  },
+  "unarchive": "Вывесці з архіва",
+  "@unarchive": {
+    "description": "Action of 'Unarchiving' an element"
+  },
+  "unarchiveAlbum": "Вывесці альбом з архіва",
+  "unarchiving": "Выманне з архіва...",
+  "uncategorized": "Без катэгорыі",
+  "undo": "Адрабіць",
+  "unhide": "Паказаць",
+  "unhideToAlbum": "Паказаць альбом",
+  "unhiding": "Паказ...",
+  "unhidingFilesToAlbum": "Паказ файлаў у альбоме",
+  "unlock": "Разблакіраваць",
+  "@unlock": {
+    "description": "Short action label used as the system authentication reason when unlocking the app"
+  },
+  "unpin": "Адмацаваць",
+  "unpinnedCodeMessage": "{code} быў адмацаваны",
+  "@unpinnedCodeMessage": {
+    "placeholders": {
+      "code": {}
+    }
+  },
+  "unpinnedCount": "{count, plural, one{{count} элемент адмацаваны} few{{count} элемента адмацавана} other{{count} элементаў адмацавана}}",
+  "@unpinnedCount": {
+    "description": "Text to show number of items unpinned",
+    "placeholders": {
+      "count": {
+        "description": "Number of items unpinned",
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "unpinPerson": "Адмацаваць асобу",
+  "unpinText": "Адмацаваць",
+  "unselectAll": "Скасаваць выбар усіх",
+  "updateAvailable": "Даступна абнаўленне",
+  "updateBackupPassword": "Абнавіць рэзервовы пароль",
+  "updatingFolderSelection": "Абнаўленне выбару папкі...",
+  "upgrade": "Палепшыць",
+  "uploadingFilesToAlbum": "Запампоўванне файлаў у альбом...",
+  "uploadingMultipleMemories": "Захавана ўспамінаў: {count}...",
+  "@uploadingMultipleMemories": {
+    "description": "Text to tell user how many memories are being preserved",
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "uploadingSingleMemory": "Захаваны 1 успамін...",
+  "uploadIsIgnoredDueToIgnorereason": "Запампоўванне праігнаравана з прычыны {ignoreReason}",
+  "@uploadIsIgnoredDueToIgnorereason": {
+    "placeholders": {
+      "ignoreReason": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
+  },
+  "useAsCover": "Выкарыстоўваць як вокладку",
+  "usedSpace": "Выкарыстаная прастора",
+  "useOffline": "Выкарыстоўваць без рэзервовых копій",
+  "useRecoveryKey": "Выкарыстоўваць ключ аднаўлення",
+  "@useRecoveryKey": {
+    "description": "Use recovery key button label"
+  },
+  "useSelectedPhoto": "Выкарыстоўвайце выбраную фатаграфію",
+  "validTill": "Дзейнічае да {endDate}",
+  "@validTill": {
+    "placeholders": {
+      "endDate": {}
+    }
+  },
+  "verificationFailedPleaseTryAgain": "Збой спраўджання. Паспрабуйце яшчэ раз",
+  "@verificationFailedPleaseTryAgain": {
+    "description": "Verification failed error message"
+  },
+  "verify": "Спраўдзіць",
+  "@verify": {
+    "description": "Verify button label"
+  },
+  "verifyEmail": "Спраўдзіць электронную пошту",
+  "@verifyEmail": {
+    "description": "Verify email title"
+  },
+  "verifyIDLabel": "Спраўдзіць",
+  "verifying": "Спраўджанне...",
+  "verifyingRecoveryKey": "Спраўджанне ключа аднаўлення...",
+  "videoAlreadyInQueue": "Файл відэа ўжо знаходзіцца ў чарзе",
+  "videoExportFailed": "Не атрымалася стварыць відэа. Паўтарыце спробу.",
+  "videoExportSuccess": "Відэа паспяхова створана на {path}",
+  "@videoExportSuccess": {
+    "description": "Toast shown when a video export completes, mentioning the filesystem path.",
+    "placeholders": {
+      "path": {
+        "description": "File path where the exported video was written",
+        "type": "String",
+        "example": "/tmp/ente_export.mp4"
+      }
+    }
+  },
+  "videoInfo": "Інфармацыя аб відэа",
+  "videoPreviewAlreadyExists": "Прадпрагляд відэа ўжо існуе",
+  "videos": "Відэа",
+  "videoStreaming": "Перадача відэа плынню",
+  "videoStreamingDescriptionLine1": "Імгненнае ўзнаўленне відэа на любой прыладзе.",
+  "videoStreamingDescriptionLine2": "Уключыць апрацоўку відэаплыняў на гэтай прыладзе.",
+  "videoStreamingNote": "Гэта прылада можа апрацоўваць відэа, якія зняты не пазней за 60 дзён таму і працягласцю не больш за 1 хвіліну. Для больш старых або больш доўгіх відэа ўключыце перадачу плынню ў праграме для камп'ютара.",
+  "viewActiveSessions": "Паглядзець актыўныя сеансы",
+  "viewAddOnButton": "Паглядзець дадаткі",
+  "viewAllExifData": "Паглядзець усе даныя EXIF",
+  "viewer": "Праглядальнік",
+  "viewLargeFiles": "Вялікія файлы",
+  "viewLogs": "Паглядзець журналы",
+  "@viewLogs": {
+    "description": "Button to view logs"
+  },
+  "viewLogsAction": "Паглядзець журналы",
+  "viewPersonToUnlink": "Паглядзець {name}, каб скасаваць прывязку",
+  "@viewPersonToUnlink": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "viewRawCodes": "Паглядзець неапрацаваныя коды",
+  "viewRecoveryKey": "Прагледзець ключ аднаўлення",
+  "vintageVibes": "Вінтажны сталь",
+  "visitWebToManage": "Наведайце {webUrl}, каб кіраваць сваёй падпіскай",
+  "@visitWebToManage": {
+    "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",
+    "placeholders": {
+      "webUrl": {
+        "type": "String",
+        "example": "photos.ente.com"
+      }
+    }
+  },
+  "waitingForVerification": "Чаканне спраўджання...",
+  "@waitingForVerification": {
+    "description": "Waiting for verification message"
+  },
+  "waitingForWifi": "Чаканне Wi-Fi...",
+  "warning": "Папярэджанне",
+  "waterfalls": "Пагоня за вадаспадамі",
+  "weakStrength": "Ненадзейны",
+  "@weakStrength": {
+    "description": "Weak password strength label"
+  },
+  "weDontSupportEditingPhotosAndAlbumsThatYouDont": "Мы не падтрымліваем рэдагаванне фатаграфій і альбомаў, якімі вы пакуль не валодаеце",
+  "whatsNew": "Што новага",
+  "widgets": "Віджэты",
+  "wildlife": "У дзікай прыродзе",
+  "wishThemAHappyBirthday": "Віншуем з днём нараджэння, {name}! 🎉",
+  "@wishThemAHappyBirthday": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "yearly": "Штогод",
+  "@yearly": {
+    "description": "The text to display for yearly plans",
+    "type": "text"
+  },
+  "yearsAgo": "{count, plural, one{{count} год таму} few{{count} гады таму} other{{count} гадоў таму}}",
+  "@yearsAgo": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "yearShort": "год",
+  "@yearShort": {
+    "description": "Appears in pricing page (/yr)"
+  },
+  "yes": "Так",
+  "yesCancel": "Так, скасаваць",
+  "yesConvertToViewer": "Так, перавесці ў гледача",
+  "yesDelete": "Так, выдаліць",
+  "yesDiscardChanges": "Так, адхіліць змены",
+  "yesIgnore": "Так, ігнараваць",
+  "yesLogout": "Так, выйсці",
+  "@yesLogout": {
+    "description": "Confirmation button for logout"
+  },
+  "yesRemove": "Так, выдаліць",
+  "yesRenew": "Так, падоўжыць",
+  "yesResetPerson": "Так, скінуць асобу",
+  "you": "Вы",
+  "youAndThem": "Вы і {name}",
+  "@youAndThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "youAreOnTheLatestVersion": "У вас апошняя версія праграмы",
+  "youCannotDowngradeToThisPlan": "Вы не можаце панізіць да гэтага тарыфнага плана",
+  "youCannotShareWithYourself": "Нельга абагуліць файлы з самім сабою",
+  "youHaveSuccessfullyFreedUp": "Вы вызвалілі {storageSaved}!",
+  "@youHaveSuccessfullyFreedUp": {
+    "description": "The text to display when the user has successfully freed up storage",
+    "type": "text",
+    "placeholders": {
+      "storageSaved": {
+        "example": "1.2 GB",
+        "type": "String"
+      }
+    }
+  },
+  "yourMap": "Ваша карта",
+  "yourPhotosLookUnique": "Вашы фатаграфіі выглядаюць унікальнымі",
+  "yourPlanWasSuccessfullyDowngraded": "Ваш тарыфны план паспяхова паніжаны",
+  "yourPlanWasSuccessfullyUpgraded": "Ваш тарыфны план паспяхова палепшаны",
+  "yourPurchaseWasSuccessful": "Вы паспяхова здзейснілі куплю",
+  "yourSubscriptionHasExpired": "Тэрмін дзеяння вашай падпіскі завяршыўся",
+  "yourSubscriptionWasUpdatedSuccessfully": "Ваша падпіска была паспяхова абноўлена",
+  "yourVerificationCodeHasExpired": "Ваш код спраўджання пратэрмінаваны",
+  "@yourVerificationCodeHasExpired": {
+    "description": "Error message when verification code has expired"
+  },
+  "youveNoDuplicateCodesThatCanBeCleared": "У вас адсутнічаць дубліраваныя коды, які можна ачысціць",
+  "youveNoDuplicateFilesThatCanBeCleared": "У вас няма дубліраваных файлаў, якія можна ачысціць",
+  "youveNoFilesInThisAlbumThatCanBeDeleted": "У гэтым альбоме адсутнічаюць файлы, якія можна выдаліць",
+  "zoomOutToSeePhotos": "Паменшыць маштаб, каб убачыць фатаграфіі"
 }

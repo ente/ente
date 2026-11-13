@@ -1,11 +1,12 @@
+import "package:ente_components/ente_components.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/material.dart";
+import "package:hugeicons/hugeicons.dart";
 import "package:intl/intl.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/pause_video_event.dart";
 import "package:photos/models/file/extensions/file_props.dart";
 import 'package:photos/models/file/file.dart';
-import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/components/info_item_widget.dart";
 import "package:photos/ui/viewer/date/edit_date_sheet.dart";
 import "package:photos/ui/viewer/gallery/jump_to_date_gallery.dart";
@@ -22,7 +23,13 @@ class CreationTimeItem extends StatefulWidget {
 class _CreationTimeItemState extends State<CreationTimeItem> {
   @override
   Widget build(BuildContext context) {
+    final colors = context.componentColors;
     final dateTime = _dateTimeForDisplay(widget.file);
+    final canEdit =
+        (widget.file.ownerID == null ||
+            widget.file.ownerID == widget.currentUserID) &&
+        widget.file.uploadedFileID != null &&
+        !widget.file.isTrash;
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onTap: () {
@@ -31,33 +38,30 @@ class _CreationTimeItemState extends State<CreationTimeItem> {
       },
       child: InfoItemWidget(
         key: const ValueKey("Creation time"),
-        leadingIcon: Icons.calendar_today_outlined,
-        title: DateFormat.yMMMEd(Localizations.localeOf(context).languageCode)
-            .format(dateTime),
+        leadingIconWidget: HugeIcon(
+          icon: HugeIcons.strokeRoundedCalendar04,
+          size: IconSizes.small,
+          color: colors.textLight,
+        ),
+        title: DateFormat.yMMMEd(
+          Localizations.localeOf(context).languageCode,
+        ).format(dateTime),
         subtitleSection: Future.value([
           Text(
             getTimeIn12hrFormat(dateTime),
-            style: getEnteTextTheme(context).miniMuted,
+            style: TextStyles.mini.copyWith(color: colors.textLight),
           ),
         ]),
-        editOnTap: ((widget.file.ownerID == null ||
-                    widget.file.ownerID == widget.currentUserID) &&
-                widget.file.uploadedFileID != null &&
-                !widget.file.isTrash)
-            ? () {
-                _showDateTimePicker(widget.file);
-              }
-            : null,
+        editOnTap: canEdit ? () => _showDateTimePicker(widget.file) : null,
+        useMenuStyle: true,
       ),
     );
   }
 
   void _showDateTimePicker(EnteFile file) async {
-    final DateTime? newDate = await showEditDateSheet(
-      context,
-      [file],
-      showHeader: false,
-    );
+    final DateTime? newDate = await showEditDateSheet(context, [
+      file,
+    ], showHeader: false);
     if (newDate != null) {
       widget.file.creationTime = newDate.microsecondsSinceEpoch;
       setState(() {});
@@ -67,8 +71,10 @@ class _CreationTimeItemState extends State<CreationTimeItem> {
   DateTime _dateTimeForDisplay(EnteFile file) {
     final editedTime = file.pubMagicMetadata?.editedTime;
     if (editedTime != null && editedTime != 0) {
-      return DateTime.fromMicrosecondsSinceEpoch(editedTime, isUtc: true)
-          .toLocal();
+      return DateTime.fromMicrosecondsSinceEpoch(
+        editedTime,
+        isUtc: true,
+      ).toLocal();
     }
 
     final dateTime = file.pubMagicMetadata?.dateTime;

@@ -5,31 +5,34 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/ente-io/museum/ente/base"
+
+	"github.com/ente/museum/ente/base"
 	"github.com/lib/pq"
 	"github.com/spf13/viper"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/stacktrace"
 )
 
-// FileLinkRepository defines the methods for inserting, updating and
-// retrieving entities related to public file
 type FileLinkRepository struct {
+	Cache      *LinkCache
 	DB         *sql.DB
 	photoHost  string
 	lockerHost string
 }
 
-// NewFileLinkRepo ..
+type fileLinkUpdater interface {
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+}
+
 func NewFileLinkRepo(db *sql.DB) *FileLinkRepository {
 	albumHost := viper.GetString("apps.public-albums")
 	if albumHost == "" {
-		albumHost = "https://albums.ente.io"
+		albumHost = "https://albums.ente.com"
 	}
 	lockerHost := viper.GetString("apps.public-locker")
 	if lockerHost == "" {
-		lockerHost = "https://share.ente.io"
+		lockerHost = "https://share.ente.com"
 	}
 	return &FileLinkRepository{
 		DB:         db,
@@ -82,8 +85,14 @@ func (pcr *FileLinkRepository) Insert(
 		req.EncryptedShareKey,
 	)
 	if err != nil {
-		if err.Error() == "pq: duplicate key value violates unique constraint \"public_active_file_link_unique_idx\"" {
-			return nil, ente.ErrActiveLinkAlreadyExists
+		var pgErr *pq.Error
+		if errors.As(err, &pgErr) && pgErr.Code.Name() == "unique_violation" {
+			switch pgErr.Constraint {
+			case "public_file_token_unique_idx", "public_file_token_unconditional_unique_idx":
+				return nil, ente.ErrAccessTokenInUse
+			case "public_active_file_link_unique_idx":
+				return nil, ente.ErrActiveLinkAlreadyExists
+			}
 		}
 		return nil, stacktrace.Propagate(err, "failed to insert")
 	}
@@ -95,7 +104,6 @@ func (pcr *FileLinkRepository) Insert(
 	return id, nil
 }
 
-// UpdateLinkSecretIfEmpty updates link key metadata if it hasn't been set already.
 func (pcr *FileLinkRepository) UpdateLinkSecretIfEmpty(
 	ctx context.Context,
 	linkID string,
@@ -129,8 +137,7 @@ func (pcr *FileLinkRepository) UpdateLinkSecretIfEmpty(
 	return stacktrace.Propagate(err, "failed to update link secret metadata")
 }
 
-// GetActiveFileUrlToken will return ente.CollectionLinkRow for given collection ID
-// Note: The token could be expired or deviceLimit is already reached
+// "Active" only means not disabled; the link may be expired or over its limit.
 func (pcr *FileLinkRepository) GetActiveFileUrlToken(ctx context.Context, fileID int64) (*ente.FileLinkRow, error) {
 	row := pcr.DB.QueryRowContext(ctx, `SELECT id, file_id, owner_id, access_token, valid_till, device_limit, 
        is_disabled, pw_hash, pw_nonce, mem_limit, ops_limit, enable_download,
@@ -178,40 +185,101 @@ func (pcr *FileLinkRepository) GetFileUrls(ctx context.Context, userID int64, si
 }
 
 func (pcr *FileLinkRepository) DisableLinkForFiles(ctx context.Context, fileIDs []int64) error {
-	if len(fileIDs) == 0 {
-		return nil
-	}
-	query := `UPDATE public_file_tokens SET is_disabled = TRUE WHERE file_id = ANY($1)`
-	_, err := pcr.DB.ExecContext(ctx, query, pq.Array(fileIDs))
+	accessTokens, err := disableLinkForFiles(ctx, pcr.DB, fileIDs)
 	if err != nil {
-		return stacktrace.Propagate(err, "failed to disable public file links")
+		return err
 	}
+	pcr.Cache.Invalidate(accessTokens...)
 	return nil
 }
 
-// DisableLinksForUser will disable all public file links for the given user
+func (pcr *FileLinkRepository) DisableLinkForFilesTx(ctx context.Context, tx *sql.Tx, fileIDs []int64) ([]string, error) {
+	return disableLinkForFiles(ctx, tx, fileIDs)
+}
+
+func disableLinkForFiles(ctx context.Context, updater fileLinkUpdater, fileIDs []int64) ([]string, error) {
+	if len(fileIDs) == 0 {
+		return nil, nil
+	}
+	rows, err := updater.QueryContext(ctx, `UPDATE public_file_tokens SET is_disabled = TRUE
+		WHERE file_id = ANY($1) AND is_disabled IS FALSE RETURNING access_token`, pq.Array(fileIDs))
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to disable public file links")
+	}
+	return scanAccessTokens(rows)
+}
+
 func (pcr *FileLinkRepository) DisableLinksForUser(ctx context.Context, userID int64) error {
-	_, err := pcr.DB.ExecContext(ctx, `UPDATE public_file_tokens SET is_disabled = TRUE WHERE owner_id = $1`, userID)
+	rows, err := pcr.DB.QueryContext(ctx, `UPDATE public_file_tokens SET is_disabled = TRUE
+		WHERE owner_id = $1 RETURNING access_token`, userID)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to disable public file link")
 	}
+	accessTokens, err := scanAccessTokens(rows)
+	if err != nil {
+		return err
+	}
+	pcr.Cache.Invalidate(accessTokens...)
 	return nil
 }
 
+func scanAccessTokens(rows *sql.Rows) ([]string, error) {
+	defer rows.Close()
+	var accessTokens []string
+	for rows.Next() {
+		var accessToken string
+		if err := rows.Scan(&accessToken); err != nil {
+			return nil, stacktrace.Propagate(err, "failed to read disabled public file link")
+		}
+		accessTokens = append(accessTokens, accessToken)
+	}
+	return accessTokens, stacktrace.Propagate(rows.Err(), "failed to read disabled public file links")
+}
+
 func (pcr *FileLinkRepository) GetFileUrlRowByToken(ctx context.Context, accessToken string) (*ente.FileLinkRow, error) {
+	result, err := pcr.getActiveFileUrlRowByToken(ctx, accessToken)
+	if err == nil {
+		return result, nil
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return nil, stacktrace.Propagate(err, "failed to get active public file url summary by token")
+	}
+	result, err = pcr.getDisabledFileUrlRowByToken(ctx, accessToken)
+	if err == nil {
+		return result, nil
+	}
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ente.ErrNotFound
+	}
+	return nil, stacktrace.Propagate(err, "failed to get disabled public file url summary by token")
+}
+
+func (pcr *FileLinkRepository) getActiveFileUrlRowByToken(ctx context.Context, accessToken string) (*ente.FileLinkRow, error) {
 	row := pcr.DB.QueryRowContext(ctx,
 		`SELECT id, file_id, owner_id, is_disabled, valid_till, device_limit, enable_download, pw_hash, pw_nonce, mem_limit, ops_limit,
        created_at, updated_at, encrypted_file_key, encrypted_file_key_nonce, kdf_nonce, kdf_mem_limit, kdf_ops_limit, encrypted_share_key
 		from public_file_tokens
-		where access_token = $1
+		where access_token = $1 and is_disabled = FALSE
 `, accessToken)
+	return scanFileLinkRow(row)
+}
+
+func (pcr *FileLinkRepository) getDisabledFileUrlRowByToken(ctx context.Context, accessToken string) (*ente.FileLinkRow, error) {
+	row := pcr.DB.QueryRowContext(ctx,
+		`SELECT id, file_id, owner_id, is_disabled, valid_till, device_limit, enable_download, pw_hash, pw_nonce, mem_limit, ops_limit,
+       created_at, updated_at, encrypted_file_key, encrypted_file_key_nonce, kdf_nonce, kdf_mem_limit, kdf_ops_limit, encrypted_share_key
+		from public_file_tokens
+		where access_token = $1 and is_disabled = TRUE
+		limit 1
+`, accessToken)
+	return scanFileLinkRow(row)
+}
+
+func scanFileLinkRow(row interface{ Scan(dest ...any) error }) (*ente.FileLinkRow, error) {
 	var result = ente.FileLinkRow{}
 	err := row.Scan(&result.LinkID, &result.FileID, &result.OwnerID, &result.IsDisabled, &result.ValidTill, &result.DeviceLimit, &result.EnableDownload, &result.PassHash, &result.Nonce, &result.MemLimit, &result.OpsLimit, &result.CreatedAt, &result.UpdatedAt, &result.EncryptedFileKey, &result.EncryptedFileKeyNonce, &result.KdfNonce, &result.KdfMemLimit, &result.KdfOpsLimit, &result.EncryptedShareKey)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ente.ErrNotFound
-		}
-		return nil, stacktrace.Propagate(err, "failed to get public file url summary by token")
+		return nil, err
 	}
 	return &result, nil
 }
@@ -233,13 +301,16 @@ func (pcr *FileLinkRepository) GetFileUrlRowByFileID(ctx context.Context, fileID
 	return &result, nil
 }
 
-// UpdateLink will update the row for corresponding public file token
 func (pcr *FileLinkRepository) UpdateLink(ctx context.Context, pct ente.FileLinkRow) error {
 	_, err := pcr.DB.ExecContext(ctx, `UPDATE public_file_tokens SET valid_till = $1, device_limit = $2, 
                                     pw_hash = $3, pw_nonce = $4, mem_limit = $5, ops_limit = $6, enable_download = $7  
                                 where id = $8`,
 		pct.ValidTill, pct.DeviceLimit, pct.PassHash, pct.Nonce, pct.MemLimit, pct.OpsLimit, pct.EnableDownload, pct.LinkID)
-	return stacktrace.Propagate(err, "failed to update public file token")
+	if err != nil {
+		return stacktrace.Propagate(err, "failed to update public file token")
+	}
+	pcr.Cache.Invalidate(pct.Token)
+	return nil
 }
 
 func (pcr *FileLinkRepository) GetUniqueAccessCount(ctx context.Context, linkId string) (int64, error) {
@@ -260,7 +331,6 @@ func (pcr *FileLinkRepository) RecordAccessHistory(ctx context.Context, shareID 
 	return stacktrace.Propagate(err, "failed to record access history")
 }
 
-// AccessedInPast returns true if the given ip, ua agent combination has accessed the url in the past
 func (pcr *FileLinkRepository) AccessedInPast(ctx context.Context, shareID string, ip string, ua string) (bool, error) {
 	row := pcr.DB.QueryRowContext(ctx, `select id from public_file_tokens_access_history where id =$1 and ip = $2 and user_agent = $3`,
 		shareID, ip, ua)
@@ -272,7 +342,6 @@ func (pcr *FileLinkRepository) AccessedInPast(ctx context.Context, shareID strin
 	return true, stacktrace.Propagate(err, "failed to record access history")
 }
 
-// CleanupAccessHistory public_file_tokens_access_history where public_collection_tokens is disabled and the last updated time is older than 30 days
 func (pcr *FileLinkRepository) CleanupAccessHistory(ctx context.Context) error {
 	_, err := pcr.DB.ExecContext(ctx, `DELETE FROM public_file_tokens_access_history WHERE id IN (SELECT id FROM public_file_tokens WHERE is_disabled = TRUE AND updated_at < (now_utc_micro_seconds() - (24::BIGINT * 30 * 60 * 60 * 1000 * 1000)))`)
 	if err != nil {

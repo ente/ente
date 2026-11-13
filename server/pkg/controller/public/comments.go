@@ -6,20 +6,19 @@ import (
 	"errors"
 	"sort"
 
-	"github.com/ente-io/museum/ente"
-	socialentity "github.com/ente-io/museum/ente/social"
-	socialcontroller "github.com/ente-io/museum/pkg/controller/social"
-	"github.com/ente-io/museum/pkg/repo"
-	socialrepo "github.com/ente-io/museum/pkg/repo/social"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	emailUtil "github.com/ente-io/museum/pkg/utils/email"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	socialentity "github.com/ente/museum/ente/social"
+	socialcontroller "github.com/ente/museum/pkg/controller/social"
+	"github.com/ente/museum/pkg/repo"
+	socialrepo "github.com/ente/museum/pkg/repo/social"
+	"github.com/ente/museum/pkg/utils/auth"
+	emailUtil "github.com/ente/museum/pkg/utils/email"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 )
 
 const maxCommentPayloadSize = 20 * 1024
 
-// CommentsController handles comments exposed via public collection links.
 type CommentsController struct {
 	CommentCtrl   *socialcontroller.CommentsController
 	CommentsRepo  *socialrepo.CommentsRepository
@@ -30,7 +29,6 @@ type CommentsController struct {
 	JwtSecret     []byte
 }
 
-// CommentRequest models incoming payload for creating a comment.
 type CommentRequest struct {
 	ID              string  `json:"id"`
 	FileID          *int64  `json:"fileID"`
@@ -112,10 +110,11 @@ func (c *CommentsController) UpdateComment(ctx *gin.Context, collectionID int64,
 		return err
 	}
 	updateReq := socialcontroller.UpdateCommentRequest{
-		Actor:     actor,
-		CommentID: commentID,
-		Cipher:    req.Cipher,
-		Nonce:     req.Nonce,
+		Actor:        actor,
+		CommentID:    commentID,
+		CollectionID: collectionID,
+		Cipher:       req.Cipher,
+		Nonce:        req.Nonce,
 	}
 	return c.CommentCtrl.UpdatePayload(ctx, updateReq)
 }
@@ -214,7 +213,8 @@ func (c *CommentsController) resolveModeratorActor(ctx *gin.Context) (*socialcon
 		return nil, nil
 	}
 	app := auth.GetApp(ctx)
-	userID, expired, err := c.UserAuthRepo.GetUserIDWithToken(token, app)
+	tokenHash := auth.HashToken(token)
+	userID, expired, err := c.UserAuthRepo.GetUserIDWithTokenHash(tokenHash[:], app)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ente.ErrAuthenticationRequired

@@ -1,6 +1,6 @@
-/**
- * List used by {@link needsJPEGConversion}.
- */
+// Image extensions that the browser is unlikely to be able to render, but
+// which our desktop app should be able to convert to JPEG. Both conditions
+// must hold for an extension to be in this list.
 const needsJPEGConversionExtensions = [
     "arw",
     "cr2",
@@ -9,26 +9,20 @@ const needsJPEGConversionExtensions = [
     "heic",
     "jp2",
     "nef",
+    "nrw",
+    "orf",
+    "pef",
     "psd",
+    "raf",
     "rw2",
+    "srw",
     "tif",
     "tiff",
 ];
 
-/**
- * Return `true` if {@link extension} is from amongst a known set of image file
- * extensions that (a) we know that the browser is unlikely to support, and (b)
- * which we should be able to convert to JPEG when running in our desktop app.
- *
- * These two are independent constraints, but we only return true if we satisfy
- * both of them instead of having two disjoint lists.
- */
 export const needsJPEGConversion = (extension: string) =>
     needsJPEGConversionExtensions.includes(extension.toLowerCase());
 
-/**
- * Return `true` if {@link extension} in for an HEIC-like file.
- */
 export const isHEICExtension = (extension: string) => {
     const ext = extension.toLowerCase();
     return ext == "heic" || ext == "heif";

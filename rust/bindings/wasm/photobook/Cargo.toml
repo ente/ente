@@ -1,0 +1,14 @@
+[package]
+name = "ente-photobook-wasm"
+edition.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ente-photobook.workspace = true
+ente-wasm-lib.workspace = true
+wasm-bindgen.workspace = true
+
+[lints]
+workspace = true

@@ -1,0 +1,16 @@
+[package]
+name = "ente-test-support"
+edition.workspace = true
+description = "Runs a local Museum backed by a temporary Postgres for integration tests"
+publish = false
+
+[dependencies]
+dirs.workspace = true
+ente-accounts.workspace = true
+ente-core.workspace = true
+postgresql_embedded = { version = "0.22.0", default-features = false, features = ["blocking", "tls-rustls-aws-lc-rs", "theseus"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "process", "signal", "time", "macros"] }
+uuid = { workspace = true, features = ["v4"] }
+
+[lints]
+workspace = true

@@ -1,27 +1,3 @@
-// The config package contains functions for configuring Viper.
-//
-// # Configuration
-//
-// We use the Viper package to read in configuration from YAML files. In
-// addition, we also read in values from the OS environment. These values
-// override the ones in the config files.
-//
-// The names of the OS environment variables should be
-//
-//   - prefixed with 'ENTE_',
-//
-//   - uppercased versions of the config file variable names,
-//
-//   - dashes are replaced with '_',
-//
-//   - for nested config variables, dots should be replaced with '_'.
-//
-// For example, the environment variable corresponding to
-//
-//	foo:
-//	    bar-baz: quux
-//
-// would be `ENTE_FOO_BAR_BAZ`.
 package config
 
 import (
@@ -30,19 +6,13 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/stacktrace"
 	"github.com/spf13/viper"
 )
 
 func ConfigureViper(environment string) error {
-	// Ask Viper to read in values from the environment. These values will
-	// override the values specified in the config files.
 	viper.AutomaticEnv()
-	// Set the prefix for the environment variables that Viper will look for.
 	viper.SetEnvPrefix("ENTE")
-	// Ask Viper to look for underscores (instead of dots) for nested configs.
-	// Also replace "-" with underscores since "-" cannot be used in environment
-	// variable names.
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
 
 	viper.SetConfigFile("configurations/" + environment + ".yaml")
@@ -122,13 +92,6 @@ func IsLocalEnvironment() bool {
 	return evn == "" || evn == "local"
 }
 
-// CredentialFilePath returns the path to an existing file in the credentials
-// directory.
-//
-// This file must exist if we're running in a non-local configuration.
-//
-// By default, it search in the credentials/ directory, but that can be
-// customized using the "credentials-dir" config option.
 func CredentialFilePath(name string) (string, error) {
 	credentialsDir := viper.GetString("credentials-dir")
 	if credentialsDir == "" {
@@ -139,13 +102,6 @@ func CredentialFilePath(name string) (string, error) {
 	return productionFilePath(path)
 }
 
-// BillingConfigFilePath returns the path to an existing file in the
-// billing directory.
-//
-// This file must exist if we're running in a non-local configuration.
-//
-// By default, it search in the data/billing directory, but that can be
-// customized using the "billing-config-dir" config option.
 func BillingConfigFilePath(name string) (string, error) {
 	billingConfigDir := viper.GetString("billing-config-dir")
 	if billingConfigDir == "" {
@@ -164,8 +120,6 @@ func productionFilePath(path string) (string, error) {
 	if pathExists {
 		return path, nil
 	}
-	// The path must exist if we're running in production (or more precisely, in
-	// any non-local environment).
 	if IsLocalEnvironment() {
 		return "", nil
 	}

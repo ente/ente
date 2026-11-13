@@ -1,69 +1,63 @@
 import "package:ente_qr/ente_qr.dart";
-import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/ui/viewer/file/qr_code_content_sheet.dart";
-import "package:url_launcher/url_launcher.dart";
 
 class QrCodeHighlightOverlay extends StatelessWidget {
   final List<QrDetection> detections;
   final EnteFile file;
-  final ValueListenable<bool> enableFullScreenNotifier;
 
   const QrCodeHighlightOverlay({
     required this.detections,
     required this.file,
-    required this.enableFullScreenNotifier,
     super.key,
   });
 
   @override
   Widget build(BuildContext context) {
-    if (detections.isEmpty || !file.hasDimensions) {
+    if (detections.isEmpty) {
       return const SizedBox.shrink();
     }
 
-    return ValueListenableBuilder<bool>(
-      valueListenable: enableFullScreenNotifier,
-      builder: (context, isFullScreen, _) {
-        if (isFullScreen) {
-          return const SizedBox.shrink();
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final screenWidth = constraints.maxWidth;
+        final screenHeight = constraints.maxHeight;
+
+        double displayWidth;
+        double displayHeight;
+        if (file.hasDimensions) {
+          final imageAspect = file.width / file.height;
+          final screenAspect = screenWidth / screenHeight;
+          if (imageAspect > screenAspect) {
+            displayWidth = screenWidth;
+            displayHeight = screenWidth / imageAspect;
+          } else {
+            displayHeight = screenHeight;
+            displayWidth = screenHeight * imageAspect;
+          }
+        } else {
+          displayWidth = screenWidth;
+          displayHeight = screenHeight;
         }
 
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            final screenWidth = constraints.maxWidth;
-            final screenHeight = constraints.maxHeight;
-            final imageAspect = file.width / file.height;
-            final screenAspect = screenWidth / screenHeight;
+        final offsetX = (screenWidth - displayWidth) / 2;
+        final offsetY = (screenHeight - displayHeight) / 2;
 
-            double displayWidth;
-            double displayHeight;
-            if (imageAspect > screenAspect) {
-              displayWidth = screenWidth;
-              displayHeight = screenWidth / imageAspect;
-            } else {
-              displayHeight = screenHeight;
-              displayWidth = screenHeight * imageAspect;
-            }
-
-            final offsetX = (screenWidth - displayWidth) / 2;
-            final offsetY = (screenHeight - displayHeight) / 2;
-
-            return Stack(
-              children: [
-                for (final detection in detections)
-                  _QrTapRegion(
-                    detection: detection,
-                    offsetX: offsetX,
-                    offsetY: offsetY,
-                    displayWidth: displayWidth,
-                    displayHeight: displayHeight,
-                  ),
-              ],
-            );
-          },
+        return SizedBox.expand(
+          child: Stack(
+            children: [
+              for (final detection in detections)
+                _QrTapRegion(
+                  detection: detection,
+                  offsetX: offsetX,
+                  offsetY: offsetY,
+                  displayWidth: displayWidth,
+                  displayHeight: displayHeight,
+                ),
+            ],
+          ),
         );
       },
     );
@@ -92,32 +86,8 @@ class _QrTapRegion extends StatefulWidget {
 class _QrTapRegionState extends State<_QrTapRegion> {
   Future<void> _onLongPress() async {
     await HapticFeedback.lightImpact();
-    final uri = Uri.tryParse(widget.detection.content);
-    final isUpi = uri != null && uri.scheme == "upi";
-    if (isUpi) {
-      try {
-        final launched =
-            await launchUrl(uri, mode: LaunchMode.externalApplication);
-        if (!launched && mounted) {
-          await showQrCodeContentSheet(
-            context,
-            detections: [widget.detection],
-          );
-        }
-      } catch (_) {
-        if (mounted) {
-          await showQrCodeContentSheet(
-            context,
-            detections: [widget.detection],
-          );
-        }
-      }
-    } else {
-      await showQrCodeContentSheet(
-        context,
-        detections: [widget.detection],
-      );
-    }
+    if (!mounted) return;
+    await showQrCodeContentSheet(context, detections: [widget.detection]);
   }
 
   @override
@@ -127,9 +97,11 @@ class _QrTapRegionState extends State<_QrTapRegion> {
     const double minTapTarget = 48.0;
     final screenW = rawW < minTapTarget ? minTapTarget : rawW;
     final screenH = rawH < minTapTarget ? minTapTarget : rawH;
-    final centerX = widget.offsetX +
+    final centerX =
+        widget.offsetX +
         (widget.detection.x + widget.detection.width / 2) * widget.displayWidth;
-    final centerY = widget.offsetY +
+    final centerY =
+        widget.offsetY +
         (widget.detection.y + widget.detection.height / 2) *
             widget.displayHeight;
 
@@ -139,8 +111,7 @@ class _QrTapRegionState extends State<_QrTapRegion> {
       width: screenW,
       height: screenH,
       child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () {},
+        behavior: HitTestBehavior.translucent,
         onLongPress: _onLongPress,
         child: const SizedBox.expand(),
       ),

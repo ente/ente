@@ -1,21 +1,21 @@
 package social
 
 import (
-	"github.com/ente-io/museum/ente"
-	socialentity "github.com/ente-io/museum/ente/social"
-	"github.com/ente-io/museum/pkg/controller/access"
-	socialrepo "github.com/ente-io/museum/pkg/repo/social"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	socialentity "github.com/ente/museum/ente/social"
+	"github.com/ente/museum/pkg/controller/access"
+	"github.com/ente/museum/pkg/repo"
+	socialrepo "github.com/ente/museum/pkg/repo/social"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 )
 
-// CommentsController wires comment-specific business logic.
 type CommentsController struct {
-	Repo       *socialrepo.CommentsRepository
-	AccessCtrl access.Controller
+	Repo           *socialrepo.CommentsRepository
+	CollectionRepo *repo.CollectionRepository
+	AccessCtrl     access.Controller
 }
 
-// CreateCommentRequest encapsulates parameters for adding a comment.
 type CreateCommentRequest struct {
 	Actor           Actor
 	CollectionID    int64
@@ -27,7 +27,6 @@ type CreateCommentRequest struct {
 	RequireAccess   bool
 }
 
-// CommentDiffRequest describes the paging request for a collection's comments.
 type CommentDiffRequest struct {
 	Actor         Actor
 	CollectionID  int64
@@ -37,23 +36,21 @@ type CommentDiffRequest struct {
 	RequireAccess bool
 }
 
-// UpdateCommentRequest holds the information needed to edit a comment.
 type UpdateCommentRequest struct {
 	Actor         Actor
 	CommentID     string
+	CollectionID  int64
 	Cipher        string
 	Nonce         string
 	RequireAccess bool
 }
 
-// DeleteCommentRequest defines the delete operation parameters.
 type DeleteCommentRequest struct {
 	Actor         Actor
 	CommentID     string
 	RequireAccess bool
 }
 
-// Create inserts a new comment; returns the supplied ID on success.
 func (c *CommentsController) Create(ctx *gin.Context, req CreateCommentRequest) (string, error) {
 	var err error
 	req.ID, err = NormalizeCommentID(req.ID)
@@ -80,6 +77,11 @@ func (c *CommentsController) Create(ctx *gin.Context, req CreateCommentRequest) 
 			ActorUserID:  userID,
 		}); err != nil {
 			return "", stacktrace.Propagate(err, "")
+		}
+	}
+	if req.FileID != nil {
+		if err := validateFileInCollection(ctx, c.CollectionRepo, req.CollectionID, *req.FileID); err != nil {
+			return "", err
 		}
 	}
 
@@ -125,7 +127,6 @@ func (c *CommentsController) Create(ctx *gin.Context, req CreateCommentRequest) 
 	return comment.ID, nil
 }
 
-// Diff returns a window of comments for the requested collection.
 func (c *CommentsController) Diff(ctx *gin.Context, req CommentDiffRequest) ([]socialentity.Comment, bool, error) {
 	userID, hasUserID := req.Actor.UserIDValue()
 	if req.RequireAccess {
@@ -142,7 +143,6 @@ func (c *CommentsController) Diff(ctx *gin.Context, req CommentDiffRequest) ([]s
 	return c.Repo.GetDiff(ctx, req.CollectionID, req.Since, req.Limit, req.FileID)
 }
 
-// UpdatePayload edits the encrypted payload of a comment.
 func (c *CommentsController) UpdatePayload(ctx *gin.Context, req UpdateCommentRequest) error {
 	if len(req.Cipher) == 0 || len(req.Nonce) == 0 {
 		return ente.ErrBadRequest
@@ -162,10 +162,22 @@ func (c *CommentsController) UpdatePayload(ctx *gin.Context, req UpdateCommentRe
 	} else if !hasUserID || comment.UserID != userID {
 		return stacktrace.Propagate(ente.ErrPermissionDenied, "")
 	}
-	return c.Repo.UpdateCipher(ctx, req.CommentID, req.Cipher, req.Nonce)
+	if req.RequireAccess {
+		if !hasUserID || userID <= 0 {
+			return ente.ErrAuthenticationRequired
+		}
+		if _, err := c.AccessCtrl.GetCollection(ctx, &access.GetCollectionParams{
+			CollectionID: comment.CollectionID,
+			ActorUserID:  userID,
+		}); err != nil {
+			return stacktrace.Propagate(err, "")
+		}
+	} else if comment.CollectionID != req.CollectionID {
+		return stacktrace.Propagate(ente.ErrPermissionDenied, "")
+	}
+	return c.Repo.UpdateCipher(ctx, req.CommentID, comment.CollectionID, req.Cipher, req.Nonce)
 }
 
-// Delete removes a comment if the actor is allowed to do so.
 func (c *CommentsController) Delete(ctx *gin.Context, req DeleteCommentRequest) error {
 	userID, hasUserID := req.Actor.UserIDValue()
 	comment, err := c.Repo.GetByID(ctx, req.CommentID)

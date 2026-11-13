@@ -1,0 +1,105 @@
+{
+  "account": "Akaun",
+  "all": "Semua",
+  "bothIssuerAndAccountCanNotBeEmpty": "Kedua-dua pengeluar dan akaun tidak boleh kosong",
+  "codeIssuerHint": "Pengeluar",
+  "contactSupport": "Hubungi sokongan",
+  "@contactSupport": {
+    "description": "Contact support button label"
+  },
+  "crashAndErrorReporting": "Pelaporan ranap dan ralat",
+  "deleteCodeMessage": "Adakah anda pasti mahu memadamkan kod ini? Tindakan ini tidak dapat dipulihkan.",
+  "deleteCodeTitle": "Padam kod?",
+  "emailUsMessage": "Sila e-mel kami di {email}",
+  "@emailUsMessage": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "exportLogs": "Eksport log",
+  "@exportLogs": {
+    "description": "Button to export logs"
+  },
+  "generatingEncryptionKeysTitle": "Menjana kunci penyulitan...",
+  "@generatingEncryptionKeysTitle": {
+    "description": "Generating encryption keys title"
+  },
+  "getStarted": "Mulakan",
+  "importAccountPageTitle": "Masukkan butiran akaun",
+  "importEnterSetupKey": "Masukkan kunci persediaan",
+  "incorrectDetails": "Butiran tidak betul",
+  "loggingOut": "Log keluar...",
+  "@loggingOut": {
+    "description": "Message shown while logging out"
+  },
+  "merchandise": "Barang dagangan",
+  "nextTotpTitle": "seterusnya",
+  "notes": "Nota",
+  "notesLengthLimit": "Nota boleh mengandungi paling banyak {count} aksara",
+  "@notesLengthLimit": {
+    "description": "Text to indicate the maximum number of characters allowed for notes",
+    "placeholders": {
+      "count": {
+        "description": "The maximum number of characters allowed for notes",
+        "type": "int",
+        "example": "100"
+      }
+    }
+  },
+  "pleaseLoginAgain": "Sila log masuk semula",
+  "pleaseVerifyDetails": "Sila sahkan butiran dan cuba lagi",
+  "pleaseWait": "Sila tunggu...",
+  "@pleaseWait": {
+    "description": "Please wait message"
+  },
+  "preparingLogs": "Menyediakan log...",
+  "rateUsOnStore": "Nilaikan kami di {storeName}",
+  "@rateUsOnStore": {
+    "placeholders": {
+      "storeName": {}
+    }
+  },
+  "recoveryKey": "Kunci pemulihan",
+  "@recoveryKey": {
+    "description": "Recovery key label"
+  },
+  "recreatePasswordTitle": "Cipta semula kata laluan",
+  "@recreatePasswordTitle": {
+    "description": "Title for recreate password dialog"
+  },
+  "reportABug": "Laporkan pepijat",
+  "@reportABug": {
+    "description": "Label for reporting a bug"
+  },
+  "save": "Simpan",
+  "@save": {
+    "description": "Label for save button"
+  },
+  "scanAQrCode": "Imbas kod QR",
+  "secret": "Rahsia",
+  "secretCanNotBeEmpty": "Rahsia tidak boleh kosong",
+  "sendLogsDescription": "Ini akan menghantar merentas log untuk membantu kami nyahpepijat isu anda. Walaupun kami mengambil langkah berjaga-jaga untuk memastikan maklumat sensitif tidak dilog, kami menggalakkan anda melihat log ini sebelum berkongsinya.",
+  "sessionExpired": "Sesi tamat tempoh",
+  "@sessionExpired": {
+    "description": "Error message when session has expired"
+  },
+  "trash": "Padam",
+  "trashCode": "Padamkan kod?",
+  "trashCodeMessage": "Adakah anda pasti mahu memadamkan kod untuk {account}?",
+  "@trashCodeMessage": {
+    "placeholders": {
+      "account": {}
+    }
+  },
+  "unlock": "Buka kunci",
+  "@unlock": {
+    "description": "Short action label used as the system authentication reason when unlocking the app"
+  },
+  "verifyPassword": "Sahkan kata laluan",
+  "@verifyPassword": {
+    "description": "Verify password button label"
+  },
+  "viewLogsAction": "Lihat log"
+}

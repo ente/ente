@@ -16,10 +16,12 @@ class CommentLikeCountCapsule extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = getEnteColorScheme(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final background =
-        isDark ? const Color(0xFF212121) : const Color(0xFFF0F0F0);
-    final textColor =
-        isDark ? const Color(0xFFFFFFFF) : const Color(0xFF131313);
+    final background = isDark
+        ? const Color(0xFF212121)
+        : const Color(0xFFF0F0F0);
+    final textColor = isDark
+        ? const Color(0xFFFFFFFF)
+        : const Color(0xFF131313);
 
     return GestureDetector(
       onTap: onTap,

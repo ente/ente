@@ -1,8 +1,9 @@
 name = "files"
 main = "src/index.ts"
-compatibility_date = "2025-06-03"
+compatibility_date = "2026-04-23"
 
 routes = [
+    { pattern = "files.ente.com", custom_domain = true },
     { pattern = "files.ente.io", custom_domain = true }
 ]
 

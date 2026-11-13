@@ -1,19 +1,11 @@
-import jsSHA from "jssha";
+import { hmac } from "@noble/hashes/hmac.js";
+import { sha1 } from "@noble/hashes/legacy.js";
 import { Secret } from "otpauth";
 
-/**
- * Steam OTPs.
- *
- * Steam's algorithm is a custom variant of TOTP that uses a 26-character
- * alphabet instead of digits.
- *
- * A Dart implementation of the algorithm can be found in
- * https://github.com/elliotwutingfeng/steam_totp/blob/main/lib/src/steam_totp_base.dart
- * (MIT license), and we use that as a reference. Our implementation is written
- * in the style of the other TOTP/HOTP classes that are provided by the otpauth
- * JS library that we use for the normal TOTP/HOTP generation
- * https://github.com/hectorm/otpauth/blob/master/src/hotp.js (MIT license).
- */
+// Steam's OTP algorithm is a custom variant of TOTP: SHA-1, a 30 second
+// period, and the HOTP integer mapped into a 26-character alphabet instead of
+// digits. Reference implementation (MIT license):
+// https://github.com/elliotwutingfeng/steam_totp/blob/main/lib/src/steam_totp_base.dart
 export class Steam {
     secret: Secret;
     period: number;
@@ -24,13 +16,10 @@ export class Steam {
     }
 
     generate({ timestamp }: { timestamp: number } = { timestamp: Date.now() }) {
-        // Same as regular TOTP.
         const counter = Math.floor(timestamp / 1000 / this.period);
 
-        // Same as regular HOTP, but algorithm is fixed to SHA-1.
-        const digest = sha1HMACDigest(this.secret.buffer, uintToArray(counter));
+        const digest = hmac(sha1, this.secret.bytes, uintToArray(counter));
 
-        // Same calculation as regular HOTP.
         const offset = digest[digest.length - 1]! & 15;
         let otp =
             ((digest[offset]! & 127) << 24) |
@@ -38,8 +27,6 @@ export class Steam {
             ((digest[offset + 2]! & 255) << 8) |
             (digest[offset + 3]! & 255);
 
-        // However, instead of using this as the OTP, use it to index into
-        // the steam OTP alphabet.
         const alphabet = "23456789BCDFGHJKMNPQRTVWXY";
         const N = alphabet.length;
         const steamOTP = [];
@@ -51,8 +38,6 @@ export class Steam {
     }
 }
 
-// Equivalent to
-// https://github.com/hectorm/otpauth/blob/master/src/utils/encoding/uint.js
 const uintToArray = (n: number): Uint8Array => {
     const result = new Uint8Array(8);
     for (let i = 7; i >= 0; i--) {
@@ -60,15 +45,4 @@ const uintToArray = (n: number): Uint8Array => {
         n >>= 8;
     }
     return result;
-};
-
-// We don't necessarily need a dependency on `jssha`, we could use SubtleCrypto
-// here too. However, SubtleCrypto has an async interface, and we already have a
-// transitive dependency on `jssha` via `otpauth`, so just using it here doesn't
-// increase our bundle size any further.
-const sha1HMACDigest = (key: ArrayBuffer, message: Uint8Array) => {
-    const hmac = new jsSHA("SHA-1", "UINT8ARRAY");
-    hmac.setHMACKey(key, "ARRAYBUFFER");
-    hmac.update(message);
-    return hmac.getHMAC("UINT8ARRAY");
 };

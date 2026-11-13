@@ -1,39 +1,52 @@
-name: "Sync Crowdin translations (mobile/photos)"
+name: "Sync Crowdin (Mobile)"
 
 on:
     schedule:
-        # Run Mondays at ~6:30 AM IST
-        # See: [Note: Run workflow on specific days of the week]
-        - cron: "40 0 * * 1"
-    # Also allow manually running the workflow.
+        # Mondays at ~6:20 AM IST
+        - cron: "50 0 * * 1"
     workflow_dispatch:
 
 permissions:
-    contents: write
-    pull-requests: write
+    contents: read
 
 jobs:
     synchronize-with-crowdin:
+        name: "Sync mobile strings with Crowdin"
         runs-on: ubuntu-latest
+        environment:
+            name: crowdin-sync
+            deployment: false
 
         steps:
             - name: Checkout
-              uses: actions/checkout@v4
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+
+            - name: Mint App token
+              id: app_token
+              uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+              with:
+                  client-id: ${{ secrets.ENTE_CI_GH_CLIENT_ID }}
+                  private-key: ${{ secrets.ENTE_CI_GH_APP_PRIVATE_KEY }}
+                  repositories: ente
+                  permission-contents: write
+                  permission-pull-requests: write
 
             - name: Crowdin's action
-              uses: crowdin/github-action@v2
+              uses: crowdin/github-action@959dc74ac104447731cba99a016f85d0ae719788 # v3.5.0
               with:
-                  base_path: "mobile/apps/photos/"
-                  config: "mobile/apps/photos/crowdin.yml"
+                  config: mobile/packages/strings/crowdin.yml
                   upload_sources: true
                   upload_translations: false
                   download_translations: true
                   localization_branch_name: translations/mobile
                   create_pull_request: true
-                  pull_request_title: "[mobile/photos] New translations"
+                  skip_untranslated_strings: true
+                  pull_request_title: "[mobile] New translations"
                   pull_request_body: "New translations from [Crowdin](https://crowdin.com/project/ente-photos-app)"
                   pull_request_base_branch_name: "main"
                   project_id: 574741
               env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  GITHUB_TOKEN: ${{ steps.app_token.outputs.token }}
                   CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}

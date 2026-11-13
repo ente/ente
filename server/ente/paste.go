@@ -7,12 +7,14 @@ import (
 )
 
 const (
-	pasteKdfSaltBytes             = 16
-	pasteKdfNonceMaxLength        = 64
-	pasteKdfMemLimitInteractive   = 64 * 1024 * 1024
-	pasteKdfOpsLimitInteractive   = 2
-	pasteDecryptionHeaderMaxLength = 128
-	pasteEncryptedPasteKeyMaxLength = 256
+	pasteKdfSaltBytes                    = 16
+	pasteKdfNonceMaxLength               = 64
+	pasteKdfMemLimitInteractive          = 64 * 1024 * 1024
+	pasteKdfOpsLimitInteractive          = 2
+	pasteKdfMemLimitModerate             = 256 * 1024 * 1024
+	pasteKdfOpsLimitModerate             = 3
+	pasteDecryptionHeaderMaxLength       = 128
+	pasteEncryptedPasteKeyMaxLength      = 256
 	pasteEncryptedPasteKeyNonceMaxLength = 128
 )
 
@@ -52,11 +54,15 @@ func (r *CreatePasteRequest) Validate(maxCiphertextBytes int) error {
 	if err != nil || len(kdfNonce) != pasteKdfSaltBytes {
 		return NewBadRequestWithMessage("invalid key derivation parameters")
 	}
-	if r.KdfMemLimit != pasteKdfMemLimitInteractive ||
-		r.KdfOpsLimit != pasteKdfOpsLimitInteractive {
+	if !validPasteKdfCostParams(r.KdfMemLimit, r.KdfOpsLimit) {
 		return NewBadRequestWithMessage("invalid key derivation parameters")
 	}
 	return nil
+}
+
+func validPasteKdfCostParams(memLimit, opsLimit int64) bool {
+	return (memLimit == pasteKdfMemLimitInteractive && opsLimit == pasteKdfOpsLimitInteractive) ||
+		(memLimit == pasteKdfMemLimitModerate && opsLimit == pasteKdfOpsLimitModerate)
 }
 
 type CreatePasteResponse struct {

@@ -1,5 +1,8 @@
+import "dart:async";
+
 import 'package:logging/logging.dart';
 import 'package:media_extension/media_extension_action_types.dart';
+import "package:photos/db/ml/db.dart";
 import "package:shared_preferences/shared_preferences.dart";
 
 class AppLifecycleService {
@@ -8,8 +11,9 @@ class AppLifecycleService {
   final _logger = Logger("AppLifecycleService");
 
   bool isForeground = false;
-  MediaExtentionAction mediaExtensionAction =
-      MediaExtentionAction(action: IntentAction.main);
+  MediaExtentionAction mediaExtensionAction = MediaExtentionAction(
+    action: IntentAction.main,
+  );
   late SharedPreferences _preferences;
 
   static final AppLifecycleService instance =
@@ -42,6 +46,7 @@ class AppLifecycleService {
       _logger.info("App already in background, skipping open time update");
     }
     isForeground = false;
+    unawaited(MLDataDB.releaseVectorIndexes());
   }
 
   int getLastAppOpenTime() {

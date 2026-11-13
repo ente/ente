@@ -1,0 +1,537 @@
+{
+  "accountSetupIncompleteCreateAccount": "Kontuaren kudeaketa ez da bukatu. Egun kontu berria kudeaketa bukatzeko.",
+  "@accountSetupIncompleteCreateAccount": {
+    "description": "Error shown when account exists but signup is incomplete"
+  },
+  "activeSessions": "Saio aktiboak",
+  "@activeSessions": {
+    "description": "Title for active sessions page"
+  },
+  "addingToFavorites": "Gogokoetan gehitzen...",
+  "addMore": "Gehitu gehiago",
+  "advanced": "Aurreratuak",
+  "after1Day": "Egun bat barru",
+  "after1Hour": "Ordubete barru",
+  "after1Month": "Hilabete bat barru",
+  "after1Week": "Astebete barru",
+  "after1Year": "Urtebete barru",
+  "albums": "Albumak",
+  "albumUpdated": "Albuma eguneratuta",
+  "allowAddingPhotos": "Utzi argazkiak gehitzen",
+  "@allowAddingPhotos": {
+    "description": "Switch button to enable uploading photos to a public link"
+  },
+  "allowDownloads": "Baimendu jaitsierak",
+  "apply": "Aplikatu",
+  "applyCodeTitle": "Aplikatu kodea",
+  "archive": "Artxiboa",
+  "@archive": {
+    "description": "Action of 'Archiving' an element"
+  },
+  "authToChangeEmailVerificationSetting": "Mesedez, autentifikatu emailaren egiaztatzea aldatzeko",
+  "authToChangeLockscreenSetting": "Mesedez, autentifikatu pantaila blokeatzeko ezarpenak aldatzeko",
+  "authToChangeYourEmail": "Mesedez, autentifikatu zure emaila aldatzeko",
+  "authToChangeYourPassword": "Mesedez, autentifikatu zure pasahitza aldatzeko",
+  "authToConfigureTwofactorAuthentication": "Mesedez, autentifikatu faktore biko autentifikazioa konfiguratzeko",
+  "authToViewTrashedFiles": "Mesedez, autentifikatu paperontzira botatako zure fitxategiak ikusteko",
+  "authToViewYourActiveSessions": "Mesedez, autentifikatu indarrean dauden zure saioak ikusteko",
+  "authToViewYourHiddenFiles": "Mesedez, autentifikatu zure ezkutatutako fitxategiak ikusteko",
+  "authToViewYourRecoveryKey": "Mesedez, autentifikatu zure berreskuratze giltza ikusteko",
+  "cancel": "Utzi",
+  "@cancel": {
+    "description": "Cancel button label"
+  },
+  "canNotOpenBody": "Sentitzen dugu, album hau ezin da aplikazioan ireki.",
+  "canNotOpenTitle": "Ezin dut album hau ireki",
+  "canOnlyRemoveFilesOwnedByYou": "Zure fitxategiak baino ezin duzu ezabatu",
+  "changeEmail": "Aldatu e-maila",
+  "@changeEmail": {
+    "description": "Change email button label"
+  },
+  "changePasswordTitle": "Aldatu pasahitza",
+  "@changePasswordTitle": {
+    "description": "Change password title"
+  },
+  "checkInboxAndSpamFolder": "Mesedez, aztertu zure inbox (eta spam) karpetak egiaztatzea osotzeko",
+  "@checkInboxAndSpamFolder": {
+    "description": "Message asking user to check inbox and spam folder"
+  },
+  "codeAppliedPageTitle": "Kodea aplikatuta",
+  "codeChangeLimitReached": "Sentitzen dugu, zure kode aldaketa muga gainditu duzu.",
+  "codeCopiedToClipboard": "Kodea arbelean kopiatuta",
+  "collaborator": "Laguntzailea",
+  "collectPhotos": "Bildu argazkiak",
+  "confirm": "Baieztatu",
+  "@confirm": {
+    "description": "Confirm button label"
+  },
+  "confirm2FADisable": "Seguru zaude faktore biko autentifikazioa deuseztatu nahi duzula?",
+  "confirmPassword": "Egiaztatu pasahitza",
+  "@confirmPassword": {
+    "description": "Confirm password field label"
+  },
+  "confirmRecoveryKey": "Egiaztatu berreskuratze kodea",
+  "confirmYourRecoveryKey": "Egiaztatu zure berreskuratze giltza",
+  "contactSupport": "Kontaktatu laguntza",
+  "@contactSupport": {
+    "description": "Contact support button label"
+  },
+  "continueLabel": "Jarraitu",
+  "@continueLabel": {
+    "description": "Continue button label"
+  },
+  "copyLink": "Kopiatu esteka",
+  "copypasteThisCodentoYourAuthenticatorApp": "Kopiatu eta itsatsi kode hau zure autentifikazio aplikaziora",
+  "createAccount": "Sortu kontua",
+  "@createAccount": {
+    "description": "Create account button label"
+  },
+  "createAlbumActionHint": "Luze klikatu argazkiak hautatzeko eta klikatu + albuma sortzeko",
+  "createPublicLink": "Sortu esteka publikoa",
+  "creatingLink": "Esteka sortzen...",
+  "custom": "Aukeran",
+  "@custom": {
+    "description": "Label for setting custom value for link expiry"
+  },
+  "decrypting": "Deszifratzen...",
+  "deleteAccount": "Ezabatu zure kontua",
+  "@deleteAccount": {
+    "description": "Delete account button label"
+  },
+  "deleteAlbum": "Ezabatu albuma",
+  "deleteAlbumDialog": "Ezabatu nahi dituzu album honetan dauden argazkiak (eta bideoak) parte diren beste album <bold>guztietatik</bold> ere?",
+  "deleteFromBoth": "Ezabatu bietatik",
+  "deleteFromDevice": "Ezabatu gailutik",
+  "deleteFromEnte": "Ezabatu Ente-tik",
+  "deletePhotos": "Ezabatu argazkiak",
+  "deleteSharedAlbum": "Partekatutako albuma ezabatu?",
+  "deleteSharedAlbumDialogBody": "Albuma guztiontzat ezabatuko da \n\nAlbum honetan dauden beste pertsonek partekatutako argazkiak ezin izango dituzu eskuratu",
+  "details": "Detaileak",
+  "disableDownloadWarningBody": "Ikusleek pantaila-irudiak atera ahal dituzte, edo kanpoko tresnen bidez zure argazkien kopiak gorde",
+  "disableDownloadWarningTitle": "Mesedez, ohartu",
+  "disableLinkMessage": "Honen bidez {albumName} eskuratzeko esteka publikoa ezabatuko da.",
+  "@disableLinkMessage": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
+  "discover": "Aurkitu",
+  "@discover": {
+    "description": "The text to display for the discover section under which we show receipts, screenshots, sunsets, greenery, etc."
+  },
+  "discover_babies": "Umeak",
+  "discover_celebrations": "Ospakizunak",
+  "discover_food": "Janaria",
+  "discover_greenery": "Hostoa",
+  "discover_hills": "Muinoak",
+  "discover_identity": "Nortasuna",
+  "discover_memes": "Memeak",
+  "discover_notes": "Oharrak",
+  "discover_pets": "Etxe-animaliak",
+  "discover_receipts": "Ordainagiriak",
+  "discover_screenshots": "Pantaila argazkiak",
+  "discover_selfies": "Selfiak",
+  "discover_sunset": "Eguzki-sartzea",
+  "discover_visiting_cards": "Bisita txartelak",
+  "discover_wallpapers": "Horma-paperak",
+  "done": "Eginda",
+  "dropSupportEmail": "Mesedez, bidali e-maila {supportEmail}-era zure erregistratutako e-mail helbidetik",
+  "@dropSupportEmail": {
+    "placeholders": {
+      "supportEmail": {
+        "description": "The support email address",
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
+  },
+  "eligible": "aukerakoak",
+  "email": "E-maila",
+  "@email": {
+    "description": "Email field label"
+  },
+  "emailAlreadyRegistered": "Helbide hau badago erregistratuta lehendik.",
+  "@emailAlreadyRegistered": {
+    "description": "Error message when email is already registered"
+  },
+  "emailHint": "Sartu zure e-posta helbidea",
+  "emailNoEnteAccountPhotos": "{email}-(e)k ez du Ente konturik. \n\nBidali gonbidapena argazkiak partekatzeko.",
+  "@emailNoEnteAccountPhotos": {
+    "placeholders": {
+      "email": {}
+    }
+  },
+  "emailNotRegistered": "Helbide hau ez dago erregistratuta.",
+  "@emailNotRegistered": {
+    "description": "Error message when email is not registered"
+  },
+  "encryptionKeys": "Zifratze giltzak",
+  "@encryptionKeys": {
+    "description": "Encryption keys title"
+  },
+  "enterCode": "Sartu kodea",
+  "enterCodeDescription": "Sartu zure lagunak emandako kodea, biontzat debaldeko biltegiratzea lortzeko",
+  "enterEmail": "Sartu e-maila",
+  "enterNewPasswordToEncrypt": "Sartu pasahitz berri bat, zure data zifratu ahal izateko",
+  "@enterNewPasswordToEncrypt": {
+    "description": "Prompt to enter new password for encryption"
+  },
+  "enterPassword": "Sartu pasahitza",
+  "@enterPassword": {
+    "description": "Enter password field label"
+  },
+  "enterPasswordToEncrypt": "Sartu pasahitz bat, zure data deszifratu ahal izateko",
+  "@enterPasswordToEncrypt": {
+    "description": "Prompt to enter password for encryption"
+  },
+  "enterReferralCode": "Sartu erreferentzia kodea",
+  "enterThe6digitCodeFromnyourAuthenticatorApp": "Sartu 6 digituko kodea zure autentifikazio aplikaziotik",
+  "enterValidEmail": "Mesedez, sartu zuzena den helbidea.",
+  "enterYourNewEmailAddress": "Sartu zure e-posta helbide berria",
+  "enterYourPassword": "Sartu zure pasahitza",
+  "enterYourRecoveryKey": "Sartu zure berreskuratze giltza",
+  "expiredLinkInfo": "Esteka hau iraungi da. Mesedez, aukeratu beste epemuga bat edo deuseztatu estekaren epemuga.",
+  "failedToApplyCode": "Akatsa kodea aplikatzean",
+  "failedToFetchReferralDetails": "Ezin dugu zure erreferentziaren detailerik lortu. Mesedez, saiatu berriro geroago.",
+  "failedToLoadAlbums": "Errorea albumak kargatzen",
+  "faq": "FAQ",
+  "@faq": {
+    "description": "FAQ link label"
+  },
+  "forgotPassword": "Ahaztu pasahitza",
+  "@forgotPassword": {
+    "description": "Forgot password link label"
+  },
+  "generatingEncryptionKeys": "Zifratze giltzak sortzen...",
+  "@generatingEncryptionKeys": {
+    "description": "Generating encryption keys message"
+  },
+  "help": "Laguntza",
+  "hidden": "Ezkutatuta",
+  "howItWorks": "Nola funtzionatzen duen",
+  "@howItWorks": {
+    "description": "How it works button label"
+  },
+  "howToViewShareeVerificationID": "Mesedez, eska iezaiozu ezarpenen landutako bere e-mail helbidean luze klikatzeko, eta egiaztatu gailu bietako IDak bat direla.",
+  "incorrectPasswordTitle": "Pasahitz okerra",
+  "@incorrectPasswordTitle": {
+    "description": "Title for incorrect password error"
+  },
+  "incorrectRecoveryKeyBody": "Sartu duzun berreskuratze giltza ez da zuzena",
+  "incorrectRecoveryKeyTitle": "Berreskuratze giltza ez da zuzena",
+  "insecureDevice": "Gailua ez da segurua",
+  "@insecureDevice": {
+    "description": "Insecure device warning title"
+  },
+  "invalidEmailAddress": "Helbide hau ez da zuzena",
+  "invalidKey": "Kode okerra",
+  "invalidRecoveryKey": "Sartu duzun berreskuratze kodea ez da zuzena. Mesedez, ziurtatu 24 hitz duela, eta egiaztatu hitz bakoitzaren idazkera. \n\nBerreskuratze kode zaharren bat sartu baduzu, ziurtatu 64 karaktere duela, eta egiaztatu horietako bakoitza.",
+  "inviteToEnte": "Gonbidatu Ente-ra",
+  "ok": "Ondo",
+  "@ok": {
+    "description": "Generic OK button label"
+  },
+  "itemsWillBeRemovedFromAlbum": "Hautatutako elementuak album honetatik kenduko dira",
+  "linkDeviceLimit": "Gailu muga",
+  "linkEnabled": "Indarrean",
+  "linkExpired": "Iraungita",
+  "linkExpiresOn": "Esteka epe honetan iraungiko da: {expiryTime}",
+  "@linkExpiresOn": {
+    "placeholders": {
+      "expiryTime": {}
+    }
+  },
+  "linkExpiry": "Estekaren epemuga",
+  "linkHasExpired": "Esteka iraungi da",
+  "linkNeverExpires": "Inoiz ez",
+  "lockButtonLabel": "Blokeatu",
+  "logInLabel": "Sartu",
+  "@logInLabel": {
+    "description": "Log in button label"
+  },
+  "loginTerms": "Sartzeko klikatuz, <u-terms>zerbitzu baldintzak</u-terms> eta <u-policy>pribatutasun politikak</u-policy> onartzen ditut",
+  "@loginTerms": {
+    "description": "Terms agreement text for login"
+  },
+  "lostDevice": "Gailua galdu duzu?",
+  "machineLearning": "Ikasketa automatikoa",
+  "manageDeviceStorage": "Kudeatu gailuaren katxea",
+  "manageLink": "Kudeatu esteka",
+  "memoryCount": "{count, plural,=0{oroitzapenik ez}one{oroitzapen {formattedCount}} other{{formattedCount} oroitzapen}}",
+  "@memoryCount": {
+    "description": "The text to display the number of memories",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "1",
+        "type": "int"
+      },
+      "formattedCount": {
+        "type": "String",
+        "example": "11.513, 11,511"
+      }
+    }
+  },
+  "mlConsent": "Aktibatu ikasketa automatikoa",
+  "mlConsentConfirmation": "Ulertzen dut, eta ikasketa automatikoa aktibatu nahi dut",
+  "mlConsentDescription": "Ikasketa automatikoa aktibatuz gero, Ente-k fitxategietatik informazioa aterako du (ad. argazkien geometria), zurekin partekatutako argazkietatik ere.\n\nHau zure gailuan gertatuko da, eta sortutako informazio biometrikoa puntutik puntura zifratuta egongo da.",
+  "moderateStrength": "Ertaina",
+  "@moderateStrength": {
+    "description": "Moderate password strength label"
+  },
+  "movedToTrash": "Zarama mugituta",
+  "never": "Inoiz ez",
+  "newAlbum": "Album berria",
+  "noDeviceLimit": "Bat ere ez",
+  "@noDeviceLimit": {
+    "description": "Text to indicate that there is limit on number of devices"
+  },
+  "noRecoveryKeyNoDecryption": "Gure puntutik-puntura zifratze protokoloa dela eta, zure data ezin da deszifratu zure pasahitza edo berreskuratze giltzarik gabe",
+  "@noRecoveryKeyNoDecryption": {
+    "description": "Explanation that data cannot be decrypted without password or recovery key"
+  },
+  "onlyFamilyAdminCanChangeCode": "Mesedez, jarri harremanetan {familyAdminEmail}-(r)ekin zure kodea aldatzeko.",
+  "@onlyFamilyAdminCanChangeCode": {
+    "placeholders": {
+      "familyAdminEmail": {}
+    }
+  },
+  "oops": "Ai!",
+  "@oops": {
+    "description": "Oops error title"
+  },
+  "oopsSomethingWentWrong": "Oops, zerbait txarto joan da",
+  "password": "Pasahitza",
+  "@password": {
+    "description": "Password field label"
+  },
+  "passwordChangedSuccessfully": "Pasahitza zuzenki aldatuta",
+  "@passwordChangedSuccessfully": {
+    "description": "Password changed successfully message"
+  },
+  "passwordLock": "Pasahitza blokeoa",
+  "passwordStrength": "Pasahitzaren indarra: {passwordStrengthValue}",
+  "@passwordStrength": {
+    "description": "Text to indicate the password strength",
+    "placeholders": {
+      "passwordStrengthValue": {
+        "description": "The strength of the password as a string",
+        "type": "String",
+        "example": "Weak or Moderate or Strong"
+      }
+    }
+  },
+  "passwordWarning": "Ezin dugu zure pasahitza gorde, beraz, ahazten baduzu, <underline>ezin dugu zure data deszifratu</underline>",
+  "@passwordWarning": {
+    "description": "Warning about password storage"
+  },
+  "photoGridSize": "Argazki sarearen tamaina",
+  "pleaseTryAgain": "Saiatu berriro, mesedez",
+  "@pleaseTryAgain": {
+    "description": "Message asking user to try again"
+  },
+  "pleaseWait": "Mesedez, itxaron...",
+  "@pleaseWait": {
+    "description": "Please wait message"
+  },
+  "privacyPolicyTitle": "Pribatutasun Politikak",
+  "@privacyPolicyTitle": {
+    "description": "Privacy policy title"
+  },
+  "publicLinkEnabled": "Esteka publikoa indarrean",
+  "recover": "Berreskuratu",
+  "@recover": {
+    "description": "Recover button label"
+  },
+  "recoverAccount": "Berreskuratu kontua",
+  "@recoverAccount": {
+    "description": "Recover account button label"
+  },
+  "recoveryKey": "Berreskuratze giltza",
+  "@recoveryKey": {
+    "description": "Recovery key label"
+  },
+  "recoveryKeyCopiedToClipboard": "Berreskuratze giltza arbelean kopiatu da",
+  "@recoveryKeyCopiedToClipboard": {
+    "description": "Recovery key copied message"
+  },
+  "recoveryKeyOnForgotPassword": "Zure pasahitza ahazten baduzu, zure datuak berreskuratzeko modu bakarra gailu honen bidez izango da.",
+  "@recoveryKeyOnForgotPassword": {
+    "description": "Recovery key importance explanation"
+  },
+  "recoveryKeySuccessBody": "Primeran! Zure berreskuratze giltza zuzena da. Eskerrik asko egiaztatzeagatik.\n\nMesedez, gogoratu zure berreskuratze giltza leku seguruan gordetzea.",
+  "recoveryKeyVerified": "Berreskuratze giltza egiaztatuta",
+  "recoveryKeyVerifyReason": "Pasahitza ahazten baduzu, zure berreskuratze giltza argazkiak berreskuratzeko modu bakarra da. Berreskuratze giltza hemen aurkitu ahal duzu Ezarpenak > Kontua.\n\nMesedez sartu hemen zure berreskuratze giltza ondo gorde duzula egiaztatzeko.",
+  "recoverySuccessful": "Berreskurapen arrakastatsua!",
+  "recreatePasswordBody": "Gailu hau ez da zure pasahitza egiaztatzeko bezain indartsua, baina gailu guztietan funtzionatzen duen modu batean birsortu ahal dugu. \n\nMesedez sartu zure berreskuratze giltza erabiliz eta birsortu zure pasahitza (aurreko berbera erabili ahal duzu nahi izanez gero).",
+  "@recreatePasswordBody": {
+    "description": "Body text for recreate password dialog"
+  },
+  "recreatePasswordTitle": "Berrezarri pasahitza",
+  "@recreatePasswordTitle": {
+    "description": "Title for recreate password dialog"
+  },
+  "referralsAreCurrentlyPaused": "Erreferentziak momentuz geldituta daude",
+  "remove": "Kendu",
+  "removeFromAlbum": "Kendu albumetik",
+  "removeFromAlbumTitle": "Albumetik kendu?",
+  "removeLink": "Ezabatu esteka",
+  "removeParticipant": "Kendu parte hartzailea",
+  "@removeParticipant": {
+    "description": "menuSectionTitle for removing a participant"
+  },
+  "removePublicLink": "Ezabatu esteka publikoa",
+  "removeWithQuestionMark": "Ezabatuko?",
+  "removingFromFavorites": "Gogokoetatik kentzen...",
+  "resetPasswordTitle": "Berrezarri pasahitza",
+  "@resetPasswordTitle": {
+    "description": "Reset password title"
+  },
+  "saveKey": "Gorde giltza",
+  "@saveKey": {
+    "description": "Save key button label"
+  },
+  "saveYourRecoveryKeyIfYouHaventAlready": "Gorde zure berreskuratze giltza ez baduzu oraindik egin",
+  "scanCode": "Eskaneatu kodea",
+  "scanThisBarcodeWithnyourAuthenticatorApp": "Eskaneatu barra kode hau zure autentifikazio aplikazioaz",
+  "selectedPhotos": "{count} hautatuta",
+  "@selectedPhotos": {
+    "description": "Display the number of selected photos",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "5",
+        "type": "int"
+      }
+    }
+  },
+  "selectedPhotosWithYours": "{count} hautatuta ({yourCount} zureak)",
+  "@selectedPhotosWithYours": {
+    "description": "Display the number of selected photos, including the number of selected photos owned by the user",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "12",
+        "type": "int"
+      },
+      "yourCount": {
+        "example": "2",
+        "type": "int"
+      }
+    }
+  },
+  "sendInvite": "Bidali gonbidapena",
+  "sendLink": "Bidali esteka",
+  "setAPassword": "Ezarri pasahitza",
+  "setPasswordTitle": "Ezarri pasahitza",
+  "@setPasswordTitle": {
+    "description": "Set password title"
+  },
+  "setupComplete": "Prestaketa burututa",
+  "shareALink": "Partekatu esteka",
+  "shareWithNonenteUsers": "Partekatu Ente erabiltzen ez dutenekin",
+  "sharing": "Partekatzen...",
+  "signUpTerms": "<u-terms>Zerbitzu baldintzak</u-terms> eta <u-policy>pribatutasun politikak</u-policy> onartzen ditut",
+  "@signUpTerms": {
+    "description": "Terms agreement text for sign up"
+  },
+  "someoneSharingAlbumsWithYouShouldSeeTheSameId": "Zurekin albumak partekatzen dituen norbaitek ID berbera ikusi beharko luke bere gailuan.",
+  "somethingWentWrong": "Zerbait oker joan da",
+  "somethingWentWrongPleaseTryAgain": "Zerbait ez da ondo joan, mesedez, saiatu berriro",
+  "@somethingWentWrongPleaseTryAgain": {
+    "description": "Generic error message"
+  },
+  "sorry": "Barkatu",
+  "sorryCouldNotAddToFavorites": "Sentitzen dut, ezin izan dugu zure gogokoetan gehitu!",
+  "sorryCouldNotRemoveFromFavorites": "Sentitzen dugu, ezin izan dugu zure gogokoetatik kendu!",
+  "sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": "Tamalez, ezin dugu giltza segururik sortu gailu honetan. \n\nMesedez, eman izena beste gailu batetik.",
+  "@sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": {
+    "description": "Error message for insecure device"
+  },
+  "strongStrength": "Gogorra",
+  "@strongStrength": {
+    "description": "Strong password strength label"
+  },
+  "subscribe": "Harpidetu",
+  "subscribeToEnableSharing": "Ordainpeko harpidetza behar duzu partekatzea aktibatzeko.",
+  "tapToCopy": "jo kopiatzeko",
+  "terminate": "Bukatu",
+  "@terminate": {
+    "description": "Terminate button label"
+  },
+  "terminateSession": "Saioa bukatu?",
+  "@terminateSession": {
+    "description": "Title for terminate session dialog"
+  },
+  "termsOfServicesTitle": "Baldintzak",
+  "@termsOfServicesTitle": {
+    "description": "Terms of service title"
+  },
+  "thisCanBeUsedToRecoverYourAccountIfYou": "Hau zure kontua berreskuratzeko erabili ahal duzu, zure bigarren faktorea ahaztuz gero",
+  "thisDevice": "Gailu hau",
+  "@thisDevice": {
+    "description": "Label for current device"
+  },
+  "thisIsPersonVerificationId": "Hau da {email}-(r)en Egiaztatze IDa",
+  "@thisIsPersonVerificationId": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@ente.com"
+      }
+    }
+  },
+  "thisIsYourVerificationId": "Hau da zure Egiaztatze IDa",
+  "thisWillLogYouOutOfTheFollowingDevice": "Hau egiteak hurrengo gailutik aterako zaitu:",
+  "@thisWillLogYouOutOfTheFollowingDevice": {
+    "description": "Warning message for logging out of another device"
+  },
+  "thisWillLogYouOutOfThisDevice": "Hau egiteak gailu honetatik aterako zaitu!",
+  "@thisWillLogYouOutOfThisDevice": {
+    "description": "Warning message for logging out of current device"
+  },
+  "toResetVerifyEmail": "Zure pasahitza berrezartzeko, mesedez egiaztatu zure e-maila lehenengoz.",
+  "@toResetVerifyEmail": {
+    "description": "Message asking user to verify email before password reset"
+  },
+  "trash": "Zarama",
+  "tryAgain": "Saiatu berriro",
+  "@tryAgain": {
+    "description": "Try again button label"
+  },
+  "twofactorAuthenticationHasBeenDisabled": "Faktore biko autentifikazioa deuseztatua izan da",
+  "twoFactorAuthTitle": "Faktore biko autentifikazioa",
+  "@twoFactorAuthTitle": {
+    "description": "Two-factor authentication title"
+  },
+  "twofactorSetup": "Faktore biko ezarpena",
+  "uncategorized": "Kategori gabekoa",
+  "useRecoveryKey": "Erabili berreskuratze giltza",
+  "@useRecoveryKey": {
+    "description": "Use recovery key button label"
+  },
+  "verify": "Egiaztatu",
+  "@verify": {
+    "description": "Verify button label"
+  },
+  "verifyEmail": "Egiaztatu e-maila",
+  "@verifyEmail": {
+    "description": "Verify email title"
+  },
+  "verifyingRecoveryKey": "Berreskuratze giltza egiaztatuz...",
+  "verifyPassword": "Egiaztatu pasahitza",
+  "@verifyPassword": {
+    "description": "Verify password button label"
+  },
+  "viewer": "Ikuslea",
+  "viewRecoveryKey": "Ikusi berreskuratze kodea",
+  "weakStrength": "Ahula",
+  "@weakStrength": {
+    "description": "Weak password strength label"
+  },
+  "yesConvertToViewer": "Bai, egin ikusle",
+  "yesDelete": "Bai, ezabatu",
+  "yesRemove": "Bai, ezabatu",
+  "you": "Zu",
+  "youCannotShareWithYourself": "Ezin duzu zeure buruarekin partekatu"
+}

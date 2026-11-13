@@ -8,12 +8,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ente-io/museum/ente"
-	entebase "github.com/ente-io/museum/ente/base"
-	enteJWT "github.com/ente-io/museum/ente/jwt"
-	"github.com/ente-io/museum/pkg/repo/public"
-	timeUtil "github.com/ente-io/museum/pkg/utils/time"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	entebase "github.com/ente/museum/ente/base"
+	enteJWT "github.com/ente/museum/ente/jwt"
+	"github.com/ente/museum/pkg/repo/public"
+	timeUtil "github.com/ente/museum/pkg/utils/time"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/lithammer/shortuuid/v3"
@@ -23,10 +23,10 @@ const (
 	pasteAccessTokenLength = 10
 	// For 4k input, worst case is 32040 bytes after JSON escaping (up to 6x),
 	// secretstream overhead (+17), and base64 encoding. Keep a small margin.
-	maxCiphertextBytes     = 32256
-	pasteTTL               = 24 * time.Hour
-	guardTTL               = 2 * time.Minute
-	guardCookieName        = "paste_guard"
+	maxCiphertextBytes = 32256
+	pasteTTL           = 24 * time.Hour
+	guardTTL           = 2 * time.Minute
+	guardCookieName    = "paste_guard"
 )
 
 type PasteController struct {
@@ -44,7 +44,7 @@ func (c *PasteController) Create(
 	}
 
 	expiresAt := timeUtil.Microseconds() + pasteTTL.Microseconds()
-	for attempt := 0; attempt < 5; attempt++ {
+	for range 5 {
 		accessToken := strings.ToUpper(shortuuid.New()[0:pasteAccessTokenLength])
 		idPtr, err := entebase.NewID("ppt")
 		if err != nil {

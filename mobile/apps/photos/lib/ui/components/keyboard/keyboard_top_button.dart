@@ -1,5 +1,5 @@
+import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/cupertino.dart';
-import "package:photos/generated/l10n.dart";
 import "package:photos/theme/effects.dart";
 import 'package:photos/theme/ente_theme.dart';
 
@@ -36,7 +36,7 @@ class KeyboardTopButton extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
               onPressed: onCancelTap,
               child: Text(
-                cancelText ?? AppLocalizations.of(context).cancel,
+                cancelText ?? context.strings.cancel,
                 style: enteTheme.smallBold,
               ),
             ),
@@ -44,7 +44,7 @@ class KeyboardTopButton extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
               onPressed: onDoneTap,
               child: Text(
-                doneText ?? AppLocalizations.of(context).done,
+                doneText ?? context.strings.done,
                 style: enteTheme.smallBold,
               ),
             ),

@@ -2,11 +2,11 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:ente_crypto/ente_crypto.dart';
+import 'package:ente_strings/ente_strings.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'package:photos/core/configuration.dart';
 import 'package:photos/db/files_db.dart';
-import 'package:photos/generated/l10n.dart';
 import 'package:photos/models/file/extensions/file_props.dart';
 import 'package:photos/models/file/file.dart';
 import "package:photos/models/metadata/file_magic.dart";
@@ -26,8 +26,12 @@ class DiffFetcher {
     try {
       bool hasMore = false;
       final sharedFiles = <EnteFile>[];
-      final headers =
-          CollectionsService.instance.publicCollectionHeaders(collectionID);
+      final headers = CollectionsService.instance.publicCollectionHeaders(
+        collectionID,
+      );
+      final collectionKey = CollectionsService.instance.getPublicCollectionKey(
+        collectionID,
+      );
       int sinceTime = 0;
 
       do {
@@ -60,14 +64,15 @@ class DiffFetcher {
           if (item["info"] != null) {
             file.fileSize = item["info"]["fileSize"];
           }
-          final fileKey = getFileKey(file);
+          final fileKey = getFileKeyWithCollectionKey(file, collectionKey);
           final encodedMetadata = await CryptoUtil.decryptChaCha(
             CryptoUtil.base642bin(item["metadata"]["encryptedData"]),
             fileKey,
             CryptoUtil.base642bin(file.metadataDecryptionHeader!),
           );
-          final Map<String, dynamic> metadata =
-              jsonDecode(utf8.decode(encodedMetadata));
+          final Map<String, dynamic> metadata = jsonDecode(
+            utf8.decode(encodedMetadata),
+          );
           file.applyMetadata(metadata);
           if (item['pubMagicMetadata'] != null) {
             final utfEncodedMmd = await CryptoUtil.decryptChaCha(
@@ -77,11 +82,12 @@ class DiffFetcher {
             );
             file.pubMmdEncodedJson = utf8.decode(utfEncodedMmd);
             file.pubMmdVersion = item['pubMagicMetadata']['version'];
-            file.pubMagicMetadata =
-                PubMagicMetadata.fromEncodedJson(file.pubMmdEncodedJson!);
+            file.pubMagicMetadata = PubMagicMetadata.fromEncodedJson(
+              file.pubMmdEncodedJson!,
+            );
           }
 
-          // To avoid local file to be used as thumbnail or full file.
+          // Do not use local media for public collection files.
           file.localID = null;
 
           sharedFiles.add(file);
@@ -97,11 +103,13 @@ class DiffFetcher {
       return sharedFiles;
     } catch (e, s) {
       _logger.severe("Failed to decrypt collection ", e, s);
-      await showErrorDialog(
-        context,
-        AppLocalizations.of(context).somethingWentWrong,
-        e.toString(),
-      );
+      if (context.mounted) {
+        await showErrorDialog(
+          context,
+          context.strings.somethingWentWrong,
+          e.toString(),
+        );
+      }
       rethrow;
     }
   }
@@ -119,8 +127,9 @@ class DiffFetcher {
       final currentUserID = Configuration.instance.getUserID();
       late Set<int> existingUploadIDs;
       if (diff.isNotEmpty) {
-        existingUploadIDs =
-            await FilesDB.instance.getUploadedFileIDs(collectionID);
+        existingUploadIDs = await FilesDB.instance.getUploadedFileIDs(
+          collectionID,
+        );
       }
       final deletedFiles = <EnteFile>[];
       final updatedFiles = <EnteFile>[];
@@ -133,6 +142,7 @@ class DiffFetcher {
         file.collectionID = item["collectionID"];
         file.updationTime = item["updationTime"];
         latestUpdatedAtTime = max(latestUpdatedAtTime, file.updationTime!);
+
         if (item["isDeleted"]) {
           if (existingUploadIDs.contains(file.uploadedFileID)) {
             deletedFiles.add(file);
@@ -140,8 +150,10 @@ class DiffFetcher {
           continue;
         }
         if (existingUploadIDs.contains(file.uploadedFileID)) {
-          final existingFile = await FilesDB.instance
-              .getUploadedFile(file.uploadedFileID!, file.collectionID!);
+          final existingFile = await FilesDB.instance.getUploadedFile(
+            file.uploadedFileID!,
+            file.collectionID!,
+          );
           if (existingFile != null) {
             file.generatedID = existingFile.generatedID;
           }
@@ -162,8 +174,9 @@ class DiffFetcher {
           fileKey,
           CryptoUtil.base642bin(file.metadataDecryptionHeader!),
         );
-        final Map<String, dynamic> metadata =
-            jsonDecode(utf8.decode(encodedMetadata));
+        final Map<String, dynamic> metadata = jsonDecode(
+          utf8.decode(encodedMetadata),
+        );
         file.applyMetadata(metadata);
         if (item['magicMetadata'] != null) {
           final utfEncodedMmd = await CryptoUtil.decryptChaCha(
@@ -173,8 +186,9 @@ class DiffFetcher {
           );
           file.mMdEncodedJson = utf8.decode(utfEncodedMmd);
           file.mMdVersion = item['magicMetadata']['version'];
-          file.magicMetadata =
-              MagicMetadata.fromEncodedJson(file.mMdEncodedJson!);
+          file.magicMetadata = MagicMetadata.fromEncodedJson(
+            file.mMdEncodedJson!,
+          );
         }
         if (item['pubMagicMetadata'] != null) {
           final utfEncodedMmd = await CryptoUtil.decryptChaCha(
@@ -184,13 +198,15 @@ class DiffFetcher {
           );
           file.pubMmdEncodedJson = utf8.decode(utfEncodedMmd);
           file.pubMmdVersion = item['pubMagicMetadata']['version'];
-          file.pubMagicMetadata =
-              PubMagicMetadata.fromEncodedJson(file.pubMmdEncodedJson!);
+          file.pubMagicMetadata = PubMagicMetadata.fromEncodedJson(
+            file.pubMmdEncodedJson!,
+          );
         }
         if (collectionAddedAt != null && collectionAddedAt > 0) {
           final isShared =
               currentUserID != null && file.ownerID != currentUserID;
-          final isOwnCollect = currentUserID != null &&
+          final isOwnCollect =
+              currentUserID != null &&
               file.ownerID == currentUserID &&
               file.isCollect;
           if (isShared) {
@@ -225,11 +241,13 @@ class DiffFetcher {
         );
       }
 
-      _logger.info('[Collection-$collectionID] parsed ${diff.length} '
-          'diff items ( ${updatedFiles.length} updated) in ${DateTime.now().difference(startTime).inMilliseconds}ms');
+      _logger.info(
+        '[Collection-$collectionID] parsed ${diff.length} '
+        'diff items ( ${updatedFiles.length} updated) in ${DateTime.now().difference(startTime).inMilliseconds}ms',
+      );
       return Diff(updatedFiles, deletedFiles, hasMore, latestUpdatedAtTime);
     } catch (e, s) {
-      _logger.severe(e, s);
+      _logger.severe("Failed to parse collection diff", e, s);
       rethrow;
     }
   }
@@ -238,7 +256,7 @@ class DiffFetcher {
     required int collectionID,
     required int currentUserID,
     required Map<int, List<_OwnCollectCandidate>>
-        ownCollectCandidatesByUploadID,
+    ownCollectCandidatesByUploadID,
   }) async {
     if (ownCollectCandidatesByUploadID.isEmpty) {
       return;
@@ -252,11 +270,11 @@ class DiffFetcher {
       incomingMinByUploadID[entry.key] = minIncoming;
     }
 
-    final dbMinByUploadID =
-        await FilesDB.instance.getMinPositiveAddedTimeForUploadedFiles(
-      incomingMinByUploadID.keys.toSet(),
-      currentUserID,
-    );
+    final dbEarliestByUploadID = await FilesDB.instance
+        .getEarliestPositiveAddedTimeRowsForUploadedFiles(
+          incomingMinByUploadID.keys.toSet(),
+          currentUserID,
+        );
 
     var collectCandidatesCount = 0;
     var keptIncomingCount = 0;
@@ -268,17 +286,26 @@ class DiffFetcher {
       final candidates = entry.value;
       collectCandidatesCount += candidates.length;
       final incomingMin = incomingMinByUploadID[uploadedFileID]!;
-      final dbMin = dbMinByUploadID[uploadedFileID];
+      final dbEarliest = dbEarliestByUploadID[uploadedFileID];
 
-      if (dbMin != null && dbMin <= incomingMin) {
+      if (dbEarliest != null && dbEarliest.addedTime <= incomingMin) {
+        var keptForUploadID = false;
         for (final candidate in candidates) {
-          candidate.file.addedTime = -1;
+          if (dbEarliest.collectionID == collectionID &&
+              !keptForUploadID &&
+              candidate.collectionAddedAt == incomingMin) {
+            candidate.file.addedTime = dbEarliest.addedTime;
+            keptForUploadID = true;
+            keptIncomingCount++;
+          } else {
+            candidate.file.addedTime = -1;
+            suppressedIncomingCount++;
+          }
         }
-        suppressedIncomingCount += candidates.length;
         continue;
       }
 
-      if (dbMin != null && dbMin > incomingMin) {
+      if (dbEarliest != null && dbEarliest.addedTime > incomingMin) {
         uploadsToReset.add(uploadedFileID);
       }
 

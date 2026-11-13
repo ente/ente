@@ -18,7 +18,6 @@
     --docsearch-hit-active-color: #191919;
 }
 
-/* Increase H3 spacing for better readability, especially in FAQ pages */
 .vp-doc h3 {
     margin-top: 48px;
 }

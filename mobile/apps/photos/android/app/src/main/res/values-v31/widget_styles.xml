@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="HomeWidgetContainer">
+        <item name="android:background">@drawable/widget_background</item>
+        <item name="android:clipToOutline">true</item>
+    </style>
+</resources>

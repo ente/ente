@@ -1,27 +1,26 @@
-import "dart:async" show Timer, unawaited;
+import "dart:async" show unawaited;
 
 import "package:flutter/foundation.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/cache/lru_map.dart";
-import "package:photos/core/event_bus.dart";
 import "package:photos/db/files_db.dart";
+import "package:photos/db/ml/base.dart";
 import "package:photos/db/ml/clip_vector_db.dart";
 import "package:photos/db/ml/db.dart";
+import "package:photos/db/ml/rust_db.dart";
 import "package:photos/db/offline_files_db.dart";
-import 'package:photos/events/embedding_updated_event.dart';
 import "package:photos/models/file/file.dart";
 import "package:photos/models/ml/clip.dart";
-import "package:photos/models/ml/face/dimension.dart";
 import "package:photos/models/ml/ml_versions.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
 import "package:photos/services/machine_learning/ml_computer.dart";
 import "package:photos/services/machine_learning/ml_result.dart";
-import "package:photos/services/machine_learning/semantic_search/clip/clip_image_encoder.dart";
+import "package:photos/services/machine_learning/semantic_search/clip_similarity_scan.dart";
 import "package:photos/services/machine_learning/semantic_search/query_result.dart";
 import "package:photos/services/search_service.dart";
+import "package:photos/src/rust/api/ml_db_api.dart" as rust;
 import "package:shared_preferences/shared_preferences.dart";
-import "package:synchronized/synchronized.dart";
 
 class SemanticSearchService {
   static final _logger = Logger("SemanticSearchService");
@@ -32,47 +31,30 @@ class SemanticSearchService {
 
   final LRUMap<String, List<double>> _queryEmbeddingCache = LRUMap(20);
   static const kMinimumSimilarityThreshold = 0.175;
-  MLDataDB get _mlDataDB =>
-      isOfflineMode ? MLDataDB.offlineInstance : MLDataDB.instance;
-  ClipVectorDB get _vectorDB =>
-      isOfflineMode ? ClipVectorDB.offlineInstance : ClipVectorDB.instance;
+  IMLDataDB<int> get _mlDataDB =>
+      isLocalGalleryMode ? MLDataDB.localGalleryInstance : MLDataDB.instance;
+  ClipVectorDB get _vectorDB => isLocalGalleryMode
+      ? ClipVectorDB.localGalleryInstance
+      : ClipVectorDB.instance;
 
-  bool _hasInitialized = false;
   bool _textModelIsLoaded = false;
 
-  final _cacheLock = Lock();
-  bool _imageEmbeddingsAreCached = false;
-  bool? _cachedEmbeddingsOffline;
-  Timer? _embeddingsCacheTimer;
-  final Duration _embeddingsCacheDuration = const Duration(seconds: 60);
+  static const Duration _vectorDbMigrationDelay = Duration(seconds: 10);
   Future<void>? _prepareVectorDbFuture;
 
   Future<(String, List<EnteFile>)>? _searchScreenRequest;
   String? _latestPendingQuery;
 
   Future<void> init() async {
-    if (_hasInitialized) {
-      _logger.info("Initialized already");
-      return;
-    }
-    final hasGivenConsent = hasGrantedMLConsent;
-    if (!hasGivenConsent) return;
+    if (!hasGrantedMLConsent) return;
 
-    _logger.info("init called");
-    _hasInitialized = true;
+    _scheduleWarmup(delayTextModelLoad: true);
+  }
 
-    Bus.instance.on<EmbeddingUpdatedEvent>().listen((event) {
-      if (_imageEmbeddingsAreCached) {
-        MLComputer.instance.clearImageEmbeddingsCache();
-        _imageEmbeddingsAreCached = false;
-      }
-    });
+  Future<void> prepareForInteractiveSearch() async {
+    if (!hasGrantedMLConsent) return;
 
-    if (flagService.usearchForSearch) {
-      unawaited(_prepareVectorDbForSearch());
-    }
-
-    unawaited(_loadTextModel(delay: true));
+    _scheduleWarmup(delayTextModelLoad: false);
   }
 
   bool isMagicSearchEnabledAndReady() {
@@ -84,15 +66,30 @@ class SemanticSearchService {
     return _prepareVectorDbFuture!;
   }
 
+  void _scheduleWarmup({required bool delayTextModelLoad}) {
+    if (flagService.usearchForSearch) {
+      unawaited(_prepareVectorDbForSearch());
+    }
+
+    if (_textModelIsLoaded) {
+      return;
+    }
+
+    unawaited(_loadTextModel(delay: delayTextModelLoad));
+  }
+
   Future<void> _prepareVectorDbForSearchInternal() async {
     try {
       if (!flagService.usearchForSearch) return;
       if (!flagService.hasGrantedMLConsent) return;
-      if (!await _vectorDB.checkIfMigrationDone()) {
+      if (!await _vectorDB.isReady()) {
+        await Future.delayed(_vectorDbMigrationDelay);
+        if (!flagService.usearchForSearch) return;
+        if (!flagService.hasGrantedMLConsent) return;
         await _mlDataDB.checkMigrateFillClipVectorDB();
       }
-      if (await _vectorDB.checkIfMigrationDone()) {
-        await _vectorDB.warmupApproxSearch();
+      if (await _vectorDB.isReady()) {
+        await _vectorDB.warmup();
       }
     } catch (e, s) {
       _logger.severe("Failed to prepare VectorDB for search", e, s);
@@ -101,8 +98,8 @@ class SemanticSearchService {
     }
   }
 
-  // searchScreenQuery should only be used for the user initiate query on the search screen.
-  // If there are multiple call tho this method, then for all the calls, the result will be the same as the last query.
+  // Use only for interactive search. Concurrent calls all resolve with the
+  // latest query's results.
   Future<(String, List<EnteFile>)> searchScreenQuery(String query) async {
     if (!isMagicSearchEnabledAndReady()) {
       if (flagService.internalUser) {
@@ -112,26 +109,30 @@ class SemanticSearchService {
       }
       return (query, <EnteFile>[]);
     }
-    // If there's an ongoing request, just update the last query and return its future.
     if (_searchScreenRequest != null) {
       _latestPendingQuery = query;
       return _searchScreenRequest!;
-    } else {
-      // No ongoing request, start a new search.
-      _searchScreenRequest = getMatchingFiles(query).then((result) {
-        // Search completed, reset the ongoing request.
-        _searchScreenRequest = null;
-        // If there was a new query during the last search, start a new search with the last query.
-        if (_latestPendingQuery != null) {
-          final String newQuery = _latestPendingQuery!;
-          _latestPendingQuery = null; // Reset last query.
-          // Recursively call search with the latest query.
-          return searchScreenQuery(newQuery);
-        }
-        return (query, result);
-      });
-      return _searchScreenRequest!;
     }
+    _searchScreenRequest = _runSearchScreenQuery(query);
+    return _searchScreenRequest!;
+  }
+
+  Future<(String, List<EnteFile>)> _runSearchScreenQuery(String query) async {
+    try {
+      final result = await getMatchingFiles(query);
+      if (_latestPendingQuery == null) {
+        return (query, result);
+      }
+    } catch (_) {
+      if (_latestPendingQuery == null) {
+        rethrow;
+      }
+    } finally {
+      _searchScreenRequest = null;
+    }
+    final newQuery = _latestPendingQuery!;
+    _latestPendingQuery = null;
+    return searchScreenQuery(newQuery);
   }
 
   Future<void> clearIndexes() async {
@@ -141,43 +142,16 @@ class SemanticSearchService {
     _logger.info("Indexes cleared");
   }
 
-  Future<void> _cacheClipVectors() async {
-    return _cacheLock.synchronized(() async {
-      _resetInactivityTimer();
-      if (_imageEmbeddingsAreCached) {
-        if (_cachedEmbeddingsOffline != isOfflineMode) {
-          await MLComputer.instance.clearImageEmbeddingsCache();
-          _imageEmbeddingsAreCached = false;
-          _cachedEmbeddingsOffline = null;
-        } else {
-          return;
-        }
-      }
-      if (_imageEmbeddingsAreCached) {
-        return;
-      }
-      final now = DateTime.now();
-      final imageEmbeddings = await _mlDataDB.getAllClipVectors();
-      _logger.info(
-        "read all ${imageEmbeddings.length} embeddings from DB in ${DateTime.now().difference(now).inMilliseconds} ms",
-      );
-      await MLComputer.instance.cacheImageEmbeddings(imageEmbeddings);
-      _imageEmbeddingsAreCached = true;
-      _cachedEmbeddingsOffline = isOfflineMode;
-      return;
-    });
-  }
-
   Future<List<EnteFile>> getMatchingFiles(
     String query, {
     double? similarityThreshold,
   }) async {
     bool showThreshold = false;
-    // if the query starts with 0.xxx, the split the query to get score threshold and actual query
     if (query.startsWith(RegExp(r"0\.\d+"))) {
       final parts = query.split(" ");
-      if (parts.length > 1) {
-        similarityThreshold = double.parse(parts[0]);
+      final threshold = double.tryParse(parts[0]);
+      if (parts.length > 1 && threshold != null) {
+        similarityThreshold = threshold;
         query = parts.sublist(1).join(" ");
         showThreshold = true;
       }
@@ -191,32 +165,25 @@ class SemanticSearchService {
       minimumSimilarityMap: {query: minimumSimilarity},
     );
     final queryResults = similarityResults[query] ?? <QueryResult>[];
-    // Uncomment if needed for debugging: print query for top ten scores
-    // if (kDebugMode) {
-    //   for (int i = 0; i < min(10, queryResults.length); i++) {
-    //     final result = queryResults[i];
-    //     dev.log("Query: $query, Score: ${result.score}, index $i");
-    //   }
-    // }
-
     final Map<int, double> fileIDToScoreMap = {};
     for (final result in queryResults) {
       fileIDToScoreMap[result.id] = result.score;
     }
 
-    if (isOfflineMode) {
-      return _getOfflineMatchingFiles(
+    if (isLocalGalleryMode) {
+      return _getLocalGalleryMatchingFiles(
         queryResults,
         fileIDToScoreMap,
         showThreshold,
       );
     }
 
-    final filesMap = await FilesDB.instance
-        .getFileIDToFileFromIDs(queryResults.map((e) => e.id).toList());
+    final filesMap = await FilesDB.instance.getFileIDToFileFromIDs(
+      queryResults.map((e) => e.id).toList(),
+    );
 
-    final ignoredCollections =
-        CollectionsService.instance.getHiddenCollectionIds();
+    final ignoredCollections = CollectionsService.instance
+        .getHiddenCollectionIds();
 
     final deletedEntries = <int>[];
     final results = <EnteFile>[];
@@ -245,7 +212,7 @@ class SemanticSearchService {
     return results;
   }
 
-  Future<List<EnteFile>> _getOfflineMatchingFiles(
+  Future<List<EnteFile>> _getLocalGalleryMatchingFiles(
     List<QueryResult> queryResults,
     Map<int, double> fileIDToScoreMap,
     bool showThreshold,
@@ -254,8 +221,8 @@ class SemanticSearchService {
       queryResults.map((e) => e.id),
     );
     final allFiles = await SearchService.instance.getAllFilesForSearch();
-    final ignoredCollections =
-        CollectionsService.instance.getHiddenCollectionIds();
+    final ignoredCollections = CollectionsService.instance
+        .getHiddenCollectionIds();
     final localIdToFile = <String, EnteFile>{};
     for (final file in allFiles) {
       final localId = file.localID;
@@ -287,22 +254,23 @@ class SemanticSearchService {
     return results;
   }
 
-  /// Get matching file IDs for common repeated queries like smart memories and magic cache.
-  /// WARNING: Use this method carefully - it uses persistent caching which is only
-  /// beneficial for queries that are repeated across app sessions.
-  /// For regular user searches, use getMatchingFiles instead.
+  // The persistent cache is only useful for queries repeated across app
+  // sessions. Use getMatchingFiles for user searches.
   Future<Map<String, List<int>>> getMatchingFileIDsForCommonQueries(
     Map<String, double> queryToScore,
   ) async {
+    if (MLDataDB.isRustBackend) {
+      return _getStoreMatchingFileIDsForCommonQueries(queryToScore);
+    }
     final textEmbeddings = <String, List<double>>{};
     final minimumSimilarityMap = <String, double>{};
 
     for (final entry in queryToScore.entries) {
       final query = entry.key;
       final score = entry.value;
-      // Use cache service instead of _getTextEmbedding
-      final textEmbedding =
-          await textEmbeddingsCacheService.getEmbedding(query);
+      final textEmbedding = await textEmbeddingsCacheService.getEmbedding(
+        query,
+      );
       textEmbeddings[query] = textEmbedding;
       minimumSimilarityMap[query] = score;
     }
@@ -324,6 +292,28 @@ class SemanticSearchService {
       result[query] = fileIDs;
     }
     return result;
+  }
+
+  Future<Map<String, List<int>>> _getStoreMatchingFileIDsForCommonQueries(
+    Map<String, double> queryToScore,
+  ) async {
+    final mlDataDB = isLocalGalleryMode
+        ? RustMLDataDB.localGalleryInstance
+        : RustMLDataDB.instance;
+    final queries = queryToScore.keys.toList(growable: false);
+    final matches = await (await mlDataDB.store).discoverMatches(
+      queries: [
+        for (final query in queries)
+          rust.DiscoverQuery(
+            query: query,
+            minimumSimilarity: queryToScore[query]!,
+          ),
+      ],
+    );
+    return {
+      for (final (index, query) in queries.indexed)
+        query: matches[index].inner.toList(),
+    };
   }
 
   Future<void> _loadTextModel({bool delay = false}) async {
@@ -368,13 +358,6 @@ class SemanticSearchService {
     required Map<String, double> minimumSimilarityMap,
     int? maxResults,
   }) async {
-    // Uncomment if needed for debugging: print query embeddings
-    // if (kDebugMode) {
-    //   for (final queryText in textQueryToEmbeddingMap.keys) {
-    //     final embedding = textQueryToEmbeddingMap[queryText]!;
-    //     dev.log("CLIPTEXT Query: $queryText, embedding: $embedding");
-    //   }
-    // }
     if (await _canUseVectorDbForSearch()) {
       final startTime = DateTime.now();
       try {
@@ -394,23 +377,20 @@ class SemanticSearchService {
         return queryResults;
       } catch (e, s) {
         _logger.severe(
-          "VectorDB similarity search failed, falling back to in-memory dot-product",
+          "VectorDB similarity search failed, falling back to a full scan",
           e,
           s,
         );
       }
     }
 
-    await _cacheClipVectors();
     final startTime = DateTime.now();
-    final Map<String, List<QueryResult>> queryResults =
-        await MLComputer.instance.computeBulkSimilarities(
-      textQueryToEmbeddingMap,
-      minimumSimilarityMap,
-    );
+    final Map<String, List<QueryResult>> queryResults = await ClipSimilarityScan
+        .instance
+        .computeSimilarities(textQueryToEmbeddingMap, minimumSimilarityMap);
     final endTime = DateTime.now();
     _logger.info(
-      "computingSimilarities (dot-product) took for ${textQueryToEmbeddingMap.length} queries " +
+      "computingSimilarities (full scan) took for ${textQueryToEmbeddingMap.length} queries " +
           (endTime.millisecondsSinceEpoch - startTime.millisecondsSinceEpoch)
               .toString() +
           "ms",
@@ -429,7 +409,7 @@ class SemanticSearchService {
       final query = entry.key;
       final minimumSimilarity = minimumSimilarityMap[query]!;
       final textEmbedding = entry.value;
-      final results = await _vectorDB.searchApproxSimilaritiesWithinThreshold(
+      final results = await _vectorDB.searchSimilaritiesWithinThreshold(
         textEmbedding,
         minimumSimilarity,
       );
@@ -445,41 +425,10 @@ class SemanticSearchService {
   Future<bool> _canUseVectorDbForSearch() async {
     if (!flagService.usearchForSearch) return false;
     if (!flagService.hasGrantedMLConsent) return false;
-    if (await _vectorDB.checkIfMigrationDone()) return true;
+    if (await _vectorDB.isReady()) return true;
     // Keep interactive search responsive: prepare/migrate in the background and
-    // immediately fall back to in-memory similarity search for this request.
+    // immediately fall back to a full similarity scan for this request.
     unawaited(_prepareVectorDbForSearch());
     return false;
-  }
-
-  void _resetInactivityTimer() {
-    _embeddingsCacheTimer?.cancel();
-    _embeddingsCacheTimer = Timer(_embeddingsCacheDuration, () {
-      _logger.info(
-        'Embeddings cache is unused for ${_embeddingsCacheDuration.inSeconds} seconds. Removing cache.',
-      );
-      if (_imageEmbeddingsAreCached) {
-        MLComputer.instance.clearImageEmbeddingsCache();
-        _imageEmbeddingsAreCached = false;
-      }
-    });
-  }
-
-  static Future<ClipResult> runClipImage(
-    int enteFileID,
-    Dimensions dimensions,
-    Uint8List rawRgbaBytes,
-    int clipImageAddress,
-  ) async {
-    final embedding = await ClipImageEncoder.predict(
-      dimensions,
-      rawRgbaBytes,
-      clipImageAddress,
-      enteFileID,
-    );
-
-    final clipResult = ClipResult(fileID: enteFileID, embedding: embedding);
-
-    return clipResult;
   }
 }

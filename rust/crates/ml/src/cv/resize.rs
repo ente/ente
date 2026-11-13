@@ -1,0 +1,73 @@
+// Sampling without low-pass filtering; downstream calibration depends on that.
+
+use fast_image_resize::{
+    FilterType, PixelType, ResizeAlg, ResizeOptions, Resizer,
+    images::{Image as FirImage, ImageRef as FirImageRef},
+};
+
+use crate::cv::OpResult;
+use crate::cv::image::ImageU8;
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub(crate) enum Interp {
+    Bilinear,
+    Area,
+}
+
+impl Interp {
+    fn alg(self, upscaling: bool) -> ResizeAlg {
+        match self {
+            Interp::Bilinear => ResizeAlg::Interpolation(FilterType::Bilinear),
+            Interp::Area if upscaling => ResizeAlg::Interpolation(FilterType::Bilinear),
+            Interp::Area => ResizeAlg::Convolution(FilterType::Box),
+        }
+    }
+}
+
+fn pixel_type(channels: i32) -> OpResult<PixelType> {
+    Ok(match channels {
+        1 => PixelType::U8,
+        3 => PixelType::U8x3,
+        n => return Err(format!("resize: unsupported {n}-channel u8 image")),
+    })
+}
+
+fn run(
+    src_bytes: &[u8],
+    src_size: (i32, i32),
+    pixel_type: PixelType,
+    width: i32,
+    height: i32,
+    alg: ResizeAlg,
+) -> OpResult<Vec<u8>> {
+    if width <= 0 || height <= 0 {
+        return Err(format!("resize: invalid destination size {width}x{height}"));
+    }
+    let src = FirImageRef::new(src_size.0 as u32, src_size.1 as u32, src_bytes, pixel_type)
+        .map_err(|e| format!("resize: bad source: {e}"))?;
+    let mut dst = FirImage::new(width as u32, height as u32, pixel_type);
+    Resizer::new()
+        .resize(&src, &mut dst, Some(&ResizeOptions::new().resize_alg(alg)))
+        .map_err(|e| format!("resize failed: {e}"))?;
+    Ok(dst.into_vec())
+}
+
+pub(crate) fn resize_u8(
+    src: &ImageU8,
+    width: i32,
+    height: i32,
+    interp: Interp,
+) -> OpResult<ImageU8> {
+    if width == src.width && height == src.height {
+        return Ok(src.clone());
+    }
+    let data = run(
+        &src.data,
+        (src.width, src.height),
+        pixel_type(src.channels)?,
+        width,
+        height,
+        interp.alg(width >= src.width && height >= src.height),
+    )?;
+    ImageU8::new(width, height, src.channels, data)
+}

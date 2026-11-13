@@ -1,6 +1,5 @@
 package social
 
-// Comment represents an encrypted comment or reply stored in the database.
 type Comment struct {
 	ID              string  `json:"id"`
 	CollectionID    int64   `json:"collectionID"`

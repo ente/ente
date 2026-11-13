@@ -18,10 +18,11 @@ class Code {
   final Algorithm algorithm;
   final Type type;
 
-  /// otpauth url in the code
+  // Original otpauth URL.
   final String rawData;
   final int counter;
   bool? hasSynced;
+  int? createdAt;
 
   final CodeDisplay display;
 
@@ -33,18 +34,7 @@ class Code {
   final Object? err;
   bool get hasError => err != null;
 
-  /// Stable identifier for UI selection state and other transient UI features.
-  ///
-  /// This key ensures selection consistency across sync operations and local changes:
-  /// - Uses [generatedID] when available (after code is persisted to database)
-  /// - Falls back to [rawData] for unpersisted codes (before first save)
-  ///
-  /// The fallback strategy ensures that:
-  /// 1. Selections survive the transition from local-only to synced codes
-  /// 2. Each persisted code has a unique, stable identifier
-  /// 3. UI state reconciliation can map old keys to new keys during sync
-  ///
-  /// See [CodeDisplayStore.reconcileSelections] for selection state management.
+  // Unsaved codes use rawData until the first save assigns generatedID.
   String get selectionKey => generatedID?.toString() ?? rawData;
 
   String get issuerAccount =>
@@ -117,7 +107,7 @@ class Code {
       "&period=$updatePeriod&secret=$updatedSecret${updatedType == Type.hotp ? "&counter=$updatedCounter" : ""}",
       generatedID: generatedID,
       display: updatedDisplay,
-    );
+    )..createdAt = createdAt;
   }
 
   static Code fromAccountAndSecret(
@@ -146,7 +136,10 @@ class Code {
   }
 
   static Code fromOTPAuthUrl(String rawData, {CodeDisplay? display}) {
-    Uri uri = Uri.parse(rawData);
+    final uri = Uri.tryParse(rawData);
+    if (uri == null) {
+      throw const FormatException('OTP URL is malformed');
+    }
     final issuer = _getIssuer(uri);
     final account = _getAccount(uri, issuer);
 
@@ -161,19 +154,20 @@ class Code {
         _getType(uri),
         _getCounter(uri),
         rawData,
-        display: CodeDisplay.fromUri(uri) ?? CodeDisplay(),
+        display: display ?? CodeDisplay.fromUri(uri) ?? CodeDisplay(),
       );
       return code;
     } catch (e) {
-      // if account name contains # without encoding,
-      // rest of the url are treated as url fragment
+      // Retry after encoding an unescaped # in the account name.
       if (rawData.contains("#")) {
-        return Code.fromOTPAuthUrl(rawData.replaceAll("#", '%23'));
-      } else {
-        Logger("Code").warning(
-          'Error while parsing code for issuer $issuer, $account',
-          e,
+        return Code.fromOTPAuthUrl(
+          rawData.replaceAll("#", '%23'),
+          display: display,
         );
+      } else {
+        Logger(
+          "Code",
+        ).warning('Error while parsing code for issuer $issuer, $account', e);
         rethrow;
       }
     }
@@ -185,17 +179,13 @@ class Code {
       if (path.startsWith("/")) {
         path = path.substring(1, path.length);
       }
-      // Parse account name from documented auth URI
-      // otpauth://totp/ACCOUNT?secret=SUPERSECRET&issuer=SERVICE
       if (uri.queryParameters.containsKey("issuer") && !path.contains(":")) {
         return path;
       }
-      // handle case where issuer name contains colon
       if (path.startsWith('$issuer:')) {
         return path.substring(issuer.length + 1);
       }
-      return path
-          .substring(path.indexOf(':') + 1); // return data after first colon
+      return path.substring(path.indexOf(':') + 1);
     } catch (e, s) {
       Logger('_getAccount').severe('Error while parsing account', e, s);
       return "";
@@ -224,7 +214,7 @@ class Code {
       if (uri.queryParameters.containsKey("issuer")) {
         String issuerName = uri.queryParameters['issuer']!;
         // Handle issuer name with period
-        // See https://github.com/ente-io/ente/pull/77
+        // See https://github.com/ente/ente/pull/77
         if (issuerName.contains("period=")) {
           return issuerName.substring(0, issuerName.indexOf("period="));
         }
@@ -270,15 +260,16 @@ class Code {
 
   static Algorithm _getAlgorithm(Uri uri) {
     try {
-      final algorithm =
-          uri.queryParameters['algorithm'].toString().toLowerCase();
+      final algorithm = uri.queryParameters['algorithm']
+          .toString()
+          .toLowerCase();
       if (algorithm == "sha256" || "algorithm.sha256" == algorithm) {
         return Algorithm.sha256;
       } else if (algorithm == "sha512" || "algorithm.sha512" == algorithm) {
         return Algorithm.sha512;
       }
     } catch (e) {
-      // nothing
+      // Fall back to SHA-1.
     }
     return Algorithm.sha1;
   }
@@ -328,10 +319,8 @@ enum Type {
   steam;
 
   bool get isTOTPCompatible => this == totp || this == steam;
+
+  bool get canShareCodes => this == totp || this == steam;
 }
 
-enum Algorithm {
-  sha1,
-  sha256,
-  sha512,
-}
+enum Algorithm { sha1, sha256, sha512 }

@@ -1,0 +1,16 @@
+name: "Dependency review"
+
+on:
+    workflow_call:
+
+permissions:
+    contents: read
+
+jobs:
+    dependency-review:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Dependency review
+              uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+              with:
+                  fail-on-scopes: runtime, development, unknown

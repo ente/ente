@@ -1,25 +1,26 @@
 import "dart:async";
 import "dart:io";
 import "dart:math";
-import 'dart:ui' as ui show Image;
+import 'dart:ui' as ui show Image, ImageByteFormat;
 
+import "package:ente_components/ente_components.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
+import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
 import "package:flutter/services.dart";
 import "package:flutter_image_compress/flutter_image_compress.dart";
-import "package:flutter_svg/svg.dart";
+import 'package:image/image.dart' as img;
 import "package:logging/logging.dart";
 import 'package:path/path.dart' as path;
 import "package:photo_manager/photo_manager.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/db/files_db.dart";
-import "package:photos/ente_theme_data.dart";
 import "package:photos/events/local_photos_updated_event.dart";
-import "package:photos/generated/l10n.dart";
 import 'package:photos/models/file/file.dart' as ente;
 import "package:photos/models/location/location.dart";
+import "package:photos/module/metadata/local_file.dart";
 import "package:photos/services/sync/sync_service.dart";
-import "package:photos/theme/ente_theme.dart";
+import "package:photos/ui/common/photo_library_add_permission.dart";
 import "package:photos/ui/components/action_sheet_widget.dart";
 import "package:photos/ui/components/buttons/button_widget.dart";
 import "package:photos/ui/components/models/button_type.dart";
@@ -28,12 +29,15 @@ import "package:photos/ui/tools/editor/image_editor/image_editor_app_bar.dart";
 import "package:photos/ui/tools/editor/image_editor/image_editor_constants.dart";
 import "package:photos/ui/tools/editor/image_editor/image_editor_crop_rotate.dart";
 import "package:photos/ui/tools/editor/image_editor/image_editor_filter_bar.dart";
+import "package:photos/ui/tools/editor/image_editor/image_editor_layer_selection.dart";
 import "package:photos/ui/tools/editor/image_editor/image_editor_main_bottom_bar.dart";
 import "package:photos/ui/tools/editor/image_editor/image_editor_paint_bar.dart";
 import "package:photos/ui/tools/editor/image_editor/image_editor_text_bar.dart";
 import "package:photos/ui/tools/editor/image_editor/image_editor_tune_bar.dart";
 import "package:photos/ui/viewer/file/detail_page.dart";
 import "package:photos/utils/dialog_util.dart";
+import "package:photos/utils/image_util.dart";
+import "package:photos/utils/lossless_edits.dart";
 import 'package:pro_image_editor/pro_image_editor.dart';
 
 class ImageEditorPage extends StatefulWidget {
@@ -55,40 +59,70 @@ class ImageEditorPage extends StatefulWidget {
 class _ImageEditorPageState extends State<ImageEditorPage> {
   final _mainEditorBarKey = GlobalKey<ImageEditorMainBottomBarState>();
   final editorKey = GlobalKey<ProImageEditorState>();
+  final _imageReady = Completer<void>();
+  late final _layerDoubleTap = ImageEditorLayerDoubleTap(
+    () => editorKey.currentState,
+  );
+  final _layerScaleRotate = ImageEditorLayerScaleRotate();
+  SubEditor? _activeSubEditor;
   final _logger = Logger("ImageEditor");
 
-  Future<void> saveImage(Uint8List? bytes) async {
-    if (bytes == null) return;
-
-    final dialog =
-        createProgressDialog(context, AppLocalizations.of(context).saving);
-    await dialog.show();
-
-    debugPrint("Image saved with size: ${bytes.length} bytes");
-    final DateTime start = DateTime.now();
-
+  Future<Uint8List> compressImage(Uint8List bytes) async {
     final ui.Image decodedResult = await decodeImageFromList(bytes);
-    final result = await FlutterImageCompress.compressWithList(
+    var result = await FlutterImageCompress.compressWithList(
       bytes,
       minWidth: decodedResult.width,
       minHeight: decodedResult.height,
+      quality: 95,
+      format: CompressFormat.jpeg,
     );
-    _logger.info('Size after compression = ${result.length}');
-    final Duration diff = DateTime.now().difference(start);
-    _logger.info('image_editor time : $diff');
+    try {
+      final image = img.decodePng(bytes);
+      if (image != null) {
+        await copyEXIF(widget.originalFile, image, copyRenderingFields: false);
+        result = img.encodeJpg(image, quality: 95);
+      }
+    } catch (e, s) {
+      _logger.warning("Image Editor: copyEXIF failed", e, s);
+    }
+    return result;
+  }
+
+  Future<void> saveImage(ProImageEditorState editorState) async {
+    if (!await ensurePhotoLibraryAddPermission(context)) return;
+    if (!mounted) return;
+
+    final l10n = context.strings;
+    final dialog = createProgressDialog(context, l10n.saving);
+    await dialog.show();
+
+    bool hasStoppedChangeNotify = false;
 
     try {
+      final losslessTransform = getLosslessTransform(editorState);
+      final losslessBytes = losslessTransform == null
+          ? null
+          : await tryTransformFileLossless(
+              widget.originalFile,
+              losslessTransform,
+            );
+      final bytes =
+          losslessBytes ??
+          await compressImage(await editorState.captureEditorImage());
+
       final fileName =
           path.basenameWithoutExtension(widget.originalFile.title!) +
-              "_edited_" +
-              DateTime.now().microsecondsSinceEpoch.toString() +
-              ".JPEG";
-      //Disabling notifications for assets changing to insert the file into
-      //files db before triggering a sync.
+          "_edited_" +
+          DateTime.now().microsecondsSinceEpoch.toString() +
+          ".JPEG";
+      // Insert into FilesDB before asset-change notifications resume.
       await PhotoManager.stopChangeNotify();
-      final AssetEntity newAsset =
-          await (PhotoManager.editor.saveImage(result, filename: fileName));
-      final newFile = await ente.EnteFile.fromAsset(
+      hasStoppedChangeNotify = true;
+      final AssetEntity newAsset = await (PhotoManager.editor.saveImage(
+        bytes,
+        filename: fileName,
+      ));
+      final newFile = fileFromAsset(
         widget.originalFile.deviceFolder ?? '',
         newAsset,
       );
@@ -101,28 +135,41 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
         if (assetEntity != null) {
           final latLong = await assetEntity.latlngAsync();
           newFile.location = Location(
-            latitude: latLong.latitude,
-            longitude: latLong.longitude,
+            latitude: latLong?.latitude,
+            longitude: latLong?.longitude,
           );
         }
       }
       newFile.generatedID = await FilesDB.instance.insertAndGetId(newFile);
       Bus.instance.fire(LocalPhotosUpdatedEvent([newFile], source: "editSave"));
       unawaited(SyncService.instance.sync());
-      showShortToast(context, AppLocalizations.of(context).editsSaved);
+      if (!mounted) {
+        await dialog.hide();
+        return;
+      }
+      showShortToast(context, l10n.editsSaved);
       _logger.info("Original file " + widget.originalFile.toString());
       _logger.info("Saved edits to file " + newFile.toString());
-      final files = widget.detailPageConfig.files;
+      final files = List<ente.EnteFile>.of(widget.detailPageConfig.files);
 
-      // the index could be -1 if the files fetched doesn't contain the newly
-      // edited files
-      int selectionIndex =
-          files.indexWhere((file) => file.generatedID == newFile.generatedID);
+      int selectionIndex = files.indexWhere(
+        (file) => file.generatedID == newFile.generatedID,
+      );
       if (selectionIndex == -1) {
-        files.add(newFile);
-        selectionIndex = files.length - 1;
+        final fallbackIndex = min(
+          max(widget.detailPageConfig.selectedIndex, 0),
+          files.length,
+        );
+        final originalIndex = widget.originalFile.generatedID == null
+            ? -1
+            : files.indexWhere(
+                (file) => file.generatedID == widget.originalFile.generatedID,
+              );
+        selectionIndex = originalIndex == -1 ? fallbackIndex : originalIndex;
+        files.insert(selectionIndex, newFile);
       }
       await dialog.hide();
+      if (!mounted) return;
       replacePage(
         context,
         DetailPage(
@@ -134,19 +181,25 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
       );
     } catch (e, s) {
       await dialog.hide();
-      showToast(context, AppLocalizations.of(context).oopsCouldNotSaveEdits);
-      _logger.severe(e, s);
+      if (mounted) {
+        showToast(context, l10n.oopsCouldNotSaveEdits);
+      }
+      _logger.severe("Failed to save image edits", e, s);
     } finally {
-      await PhotoManager.startChangeNotify();
+      if (hasStoppedChangeNotify) {
+        await PhotoManager.startChangeNotify();
+      }
     }
   }
 
-  Future<void> _showExitConfirmationDialog(BuildContext context) async {
+  Future<bool> _confirmDiscardEdits(BuildContext context) async {
+    final l10n = context.strings;
     final actionResult = await showActionSheet(
       context: context,
+      title: l10n.discardEditsQuestion,
       buttons: [
         ButtonWidget(
-          labelText: AppLocalizations.of(context).yesDiscardChanges,
+          labelText: l10n.yesDiscardChanges,
           buttonType: ButtonType.critical,
           buttonSize: ButtonSize.large,
           shouldStickToDarkTheme: true,
@@ -154,7 +207,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
           isInAlert: true,
         ),
         ButtonWidget(
-          labelText: AppLocalizations.of(context).no,
+          labelText: l10n.no,
           buttonType: ButtonType.secondary,
           buttonSize: ButtonSize.large,
           buttonAction: ButtonAction.second,
@@ -162,20 +215,48 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
           isInAlert: true,
         ),
       ],
-      body: AppLocalizations.of(context).doYouWantToDiscardTheEditsYouHaveMade,
+      body: l10n.doYouWantToDiscardTheEditsYouHaveMade,
       actionSheetType: ActionSheetType.defaultActionSheet,
     );
-    if (actionResult?.action != null &&
-        actionResult!.action == ButtonAction.first) {
+    return actionResult?.action == ButtonAction.first;
+  }
+
+  Future<void> _showExitConfirmationDialog(BuildContext context) async {
+    if (await _confirmDiscardEdits(context) && context.mounted) {
       replacePage(context, DetailPage(widget.detailPageConfig));
+    }
+  }
+
+  Future<void> _showSubEditorDiscardDialog(BuildContext context) async {
+    if (await _confirmDiscardEdits(context) && context.mounted) {
+      Navigator.of(context).pop();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final isLightMode = Theme.of(context).brightness == Brightness.light;
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
+    final colors = context.componentColors;
+    final actionTextStyle = TextStyles.large.copyWith(color: colors.textBase);
+    final editorUiOverlayStyle =
+        (isLightMode ? SystemUiOverlayStyle.dark : SystemUiOverlayStyle.light)
+            .copyWith(
+              systemNavigationBarContrastEnforced: true,
+              systemNavigationBarColor: Colors.transparent,
+              systemNavigationBarIconBrightness: isLightMode
+                  ? Brightness.dark
+                  : Brightness.light,
+            );
+    final tuneI18n = I18nTuneEditor(
+      brightness: context.strings.imageEditorBrightness,
+      contrast: context.strings.imageEditorContrast,
+      saturation: context.strings.imageEditorSaturation,
+      exposure: context.strings.imageEditorExposure,
+      hue: context.strings.imageEditorHue,
+      temperature: context.strings.imageEditorTemperature,
+      tint: context.strings.imageEditorTint,
+      fade: context.strings.imageEditorFade,
+    );
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -186,398 +267,334 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
       child: Scaffold(
         extendBodyBehindAppBar: true,
         resizeToAvoidBottomInset: false,
-        backgroundColor: colorScheme.backgroundBase,
-        body: ProImageEditor.file(
-          key: editorKey,
-          widget.file,
-          callbacks: ProImageEditorCallbacks(
-            onCloseEditor: (_) {
-              editorKey.currentState?.isPopScopeDisabled = true;
-              _showExitConfirmationDialog(context);
-            },
-            mainEditorCallbacks: MainEditorCallbacks(
-              onStartCloseSubEditor: (value) {
-                _mainEditorBarKey.currentState?.setState(() {});
+        backgroundColor: colors.backgroundBase,
+        body: Listener(
+          onPointerDown: _layerDoubleTap.onPointerDown,
+          onPointerMove: _layerDoubleTap.onPointerMove,
+          onPointerUp: _layerDoubleTap.onPointerUp,
+          onPointerCancel: _layerDoubleTap.onPointerCancel,
+          child: ProImageEditor.file(
+            key: editorKey,
+            widget.file,
+            callbacks: ProImageEditorCallbacks(
+              onCloseEditor: (mode) {
+                if (mode != EditorMode.main) {
+                  _showSubEditorDiscardDialog(context);
+                  return;
+                }
+                editorKey.currentState?.isPopScopeDisabled = true;
+                _showExitConfirmationDialog(context);
               },
-              onPopInvoked: (didPop, result) {
-                editorKey.currentState?.isPopScopeDisabled = false;
-              },
-            ),
-          ),
-          configs: ProImageEditorConfigs(
-            imageGeneration: const ImageGenerationConfigs(
-              jpegQuality: 100,
-              enableIsolateGeneration: true,
-              pngLevel: 0,
-            ),
-            layerInteraction: const LayerInteractionConfigs(
-              hideToolbarOnInteraction: false,
-            ),
-            theme: ThemeData(
-              scaffoldBackgroundColor: colorScheme.backgroundBase,
-              appBarTheme: AppBarTheme(
-                titleTextStyle: textTheme.body,
-                backgroundColor: colorScheme.backgroundBase,
+              mainEditorCallbacks: MainEditorCallbacks(
+                onImageDecoded: () {
+                  if (!_imageReady.isCompleted) _imageReady.complete();
+                },
+                onOpenSubEditor: (editor) => _activeSubEditor = editor,
+                onLayerTapDown: _layerDoubleTap.onLayerDown,
+                onLayerTapUp: _layerDoubleTap.onLayerUp,
+                onScaleStart: _layerScaleRotate.onScaleStart,
+                onCreateTextLayer: () =>
+                    imageEditorCreateTextLayer(() => editorKey.currentState),
+                onEndCloseSubEditor: (editor) {
+                  if (editor == SubEditor.paint) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      editorKey.currentState?.unselectAllLayers();
+                    });
+                  }
+                },
+                onStartCloseSubEditor: (value) {
+                  _mainEditorBarKey.currentState?.setState(() {});
+                },
+                onPopInvoked: (didPop, result) {
+                  editorKey.currentState?.isPopScopeDisabled = false;
+                },
               ),
-              bottomAppBarTheme: BottomAppBarTheme(
-                color: colorScheme.backgroundBase,
-              ),
-              brightness: isLightMode ? Brightness.light : Brightness.dark,
             ),
-            mainEditor: MainEditorConfigs(
-              enableZoom: true,
-              style: MainEditorStyle(
-                uiOverlayStyle: SystemUiOverlayStyle(
-                  systemNavigationBarContrastEnforced: true,
-                  systemNavigationBarColor: Colors.transparent,
-                  statusBarBrightness:
-                      isLightMode ? Brightness.dark : Brightness.light,
-                  statusBarIconBrightness:
-                      isLightMode ? Brightness.dark : Brightness.light,
+            configs: ProImageEditorConfigs(
+              i18n: I18n(
+                textEditor: I18nTextEditor(
+                  inputHintText: context.strings.imageEditorEnterText,
+                  bottomNavigationBarText: context.strings.imageEditorText,
+                  back: context.strings.cancel,
+                  done: context.strings.done,
+                  textAlign: context.strings.align,
+                  backgroundMode: context.strings.background,
                 ),
-                appBarBackground: colorScheme.backgroundBase,
-                background: colorScheme.backgroundBase,
-                bottomBarBackground: colorScheme.backgroundBase,
+                tuneEditor: tuneI18n,
               ),
-              widgets: MainEditorWidgets(
-                removeLayerArea: (
-                  removeAreaKey,
-                  __,
-                  rebuildStream,
-                  isLayerBeingTransformed,
-                ) {
-                  return Align(
-                    alignment: Alignment.bottomCenter,
-                    child: StreamBuilder(
-                      stream: rebuildStream,
-                      builder: (context, snapshot) {
-                        final isHovered = editorKey.currentState!
-                            .layerInteractionManager.hoverRemoveBtn;
-
-                        return AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 150),
-                          child: isLayerBeingTransformed
-                              ? Container(
-                                  key: removeAreaKey,
-                                  height: 56,
-                                  width: 56,
-                                  margin: const EdgeInsets.only(bottom: 24),
-                                  decoration: BoxDecoration(
-                                    color: isHovered
-                                        ? colorScheme.warning400
-                                            .withValues(alpha: 0.8)
-                                        : Colors.white,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  padding: const EdgeInsets.all(12),
-                                  child: Center(
-                                    child: SvgPicture.asset(
-                                      "assets/image-editor/image-editor-delete.svg",
-                                      colorFilter: ColorFilter.mode(
-                                        isHovered
-                                            ? Colors.white
-                                            : colorScheme.warning400
-                                                .withValues(alpha: 0.8),
-                                        BlendMode.srcIn,
-                                      ),
-                                    ),
-                                  ),
-                                )
-                              : SizedBox.shrink(
-                                  // When hidden, key still needed for hit
-                                  // detection to work (returns empty bounds)
-                                  key: removeAreaKey,
-                                ),
-                        );
-                      },
-                    ),
-                  );
-                },
-                appBar: (editor, rebuildStream) {
-                  return ReactiveAppbar(
-                    builder: (context) {
-                      return ImageEditorAppBar(
-                        enableRedo: editor.canRedo,
-                        enableUndo: editor.canUndo,
-                        key: const Key('image_editor_app_bar'),
-                        redo: () => editor.redoAction(),
-                        undo: () => editor.undoAction(),
-                        configs: editor.configs,
-                        done: () async {
-                          final Uint8List bytes = await editorKey.currentState!
-                              .captureEditorImage();
-                          await saveImage(bytes);
-                        },
-                        close: () {
-                          _showExitConfirmationDialog(context);
-                        },
-                        isMainEditor: true,
-                      );
-                    },
-                    stream: rebuildStream,
-                  );
-                },
-                bottomBar: (editor, rebuildStream, key) => ReactiveWidget(
-                  key: key,
-                  builder: (context) {
-                    return ImageEditorMainBottomBar(
-                      key: _mainEditorBarKey,
-                      editor: editor,
-                      configs: editor.configs,
-                      callbacks: editor.callbacks,
-                    );
-                  },
-                  stream: rebuildStream,
+              imageGeneration: const ImageGenerationConfigs(
+                jpegQuality: 100,
+                enableIsolateGeneration: true,
+                captureImageByteFormat: ui.ImageByteFormat.rawStraightRgba,
+                outputFormat: OutputFormat.png,
+                pngLevel: 0,
+              ),
+              layerInteraction: imageEditorLayerInteractionConfigs(
+                context,
+                () => editorKey.currentState,
+                _layerScaleRotate,
+              ),
+              theme: ThemeData(
+                scaffoldBackgroundColor: colors.backgroundBase,
+                appBarTheme: AppBarTheme(
+                  titleTextStyle: actionTextStyle,
+                  backgroundColor: colors.backgroundBase,
                 ),
-              ),
-            ),
-            paintEditor: PaintEditorConfigs(
-              enabled: true,
-              style: PaintEditorStyle(
-                initialColor: const Color(0xFF00FFFF),
-                background: colorScheme.backgroundBase,
-              ),
-              widgets: PaintEditorWidgets(
-                appBar: (editor, rebuildStream) {
-                  return ReactiveAppbar(
-                    builder: (context) {
-                      return ImageEditorAppBar(
-                        enableRedo: editor.canRedo,
-                        enableUndo: editor.canUndo,
-                        key: const Key('image_editor_app_bar'),
-                        redo: () => editor.redoAction(),
-                        undo: () => editor.undoAction(),
-                        configs: editor.configs,
-                        done: () => editor.done(),
-                        close: () => editor.close(),
-                      );
-                    },
-                    stream: rebuildStream,
-                  );
-                },
-                colorPicker:
-                    (paintEditor, rebuildStream, currentColor, setColor) =>
-                        null,
-                bottomBar: (editorState, rebuildStream) {
-                  return ReactiveWidget(
-                    builder: (context) {
-                      return ImageEditorPaintBar(
-                        configs: editorState.configs,
-                        callbacks: editorState.callbacks,
-                        editor: editorState,
-                        i18nColor: 'Color',
-                      );
-                    },
-                    stream: rebuildStream,
-                  );
-                },
-              ),
-            ),
-            textEditor: TextEditorConfigs(
-              enabled: false,
-              showBackgroundModeButton: true,
-              showTextAlignButton: true,
-              style: const TextEditorStyle(
-                background: Colors.transparent,
-                textFieldMargin: EdgeInsets.only(top: kToolbarHeight),
-              ),
-              widgets: TextEditorWidgets(
-                appBar: (textEditor, rebuildStream) => ReactiveAppbar(
-                  builder: (context) {
-                    return ImageEditorAppBar(
-                      key: const Key('image_editor_app_bar'),
-                      configs: textEditor.configs,
-                      done: () => textEditor.done(),
-                      close: () => textEditor.close(),
-                    );
-                  },
-                  stream: rebuildStream,
+                bottomAppBarTheme: BottomAppBarThemeData(
+                  color: colors.backgroundBase,
                 ),
-                bodyItems: (editor, rebuildStream) {
-                  return [
-                    ReactiveWidget(
+                brightness: isLightMode ? Brightness.light : Brightness.dark,
+              ),
+              mainEditor: MainEditorConfigs(
+                enableZoom: true,
+                tools: const [
+                  SubEditorMode.cropRotate,
+                  SubEditorMode.filter,
+                  SubEditorMode.tune,
+                  SubEditorMode.paint,
+                  SubEditorMode.text,
+                  SubEditorMode.emoji,
+                ],
+                style: MainEditorStyle(
+                  subEditorPage: imageEditorSubEditorPageStyle(
+                    () => _activeSubEditor,
+                  ),
+                  uiOverlayStyle: editorUiOverlayStyle,
+                  appBarBackground: colors.backgroundBase,
+                  background: colors.backgroundBase,
+                  bottomBarBackground: colors.backgroundBase,
+                ),
+                widgets: MainEditorWidgets(
+                  removeLayerArea: (removeAreaKey, _, _, _) =>
+                      SizedBox.shrink(key: removeAreaKey),
+                  appBar: (editor, rebuildStream) {
+                    return ReactiveAppbar(
                       builder: (context) {
-                        return Positioned.fill(
-                          child: GestureDetector(
-                            onTap: () {},
-                            child: Container(
-                              color: Colors.transparent,
-                            ),
-                          ),
+                        return ImageEditorAppBar(
+                          enableRedo: editor.canRedo,
+                          enableUndo: editor.canUndo,
+                          key: const Key('image_editor_app_bar'),
+                          redo: () => editor.redoAction(),
+                          undo: () => editor.undoAction(),
+                          configs: editor.configs,
+                          done: () async {
+                            await saveImage(editorKey.currentState!);
+                          },
+                          close: () {
+                            _showExitConfirmationDialog(context);
+                          },
+                          isMainEditor: true,
                         );
                       },
                       stream: rebuildStream,
-                    ),
-                  ];
-                },
-                colorPicker:
-                    (textEditor, rebuildStream, currentColor, setColor) => null,
-                bottomBar: (editorState, rebuildStream) {
-                  return ReactiveWidget(
+                    );
+                  },
+                  bottomBar: (editor, rebuildStream, key) => ReactiveWidget(
+                    key: key,
                     builder: (context) {
-                      return ImageEditorTextBar(
-                        configs: editorState.configs,
-                        callbacks: editorState.callbacks,
-                        editor: editorState,
-                      );
-                    },
-                    stream: rebuildStream,
-                  );
-                },
-              ),
-            ),
-            cropRotateEditor: CropRotateEditorConfigs(
-              showAspectRatioButton: true,
-              showFlipButton: true,
-              showRotateButton: true,
-              enabled: true,
-              style: CropRotateEditorStyle(
-                background: colorScheme.backgroundBase,
-                cropCornerColor:
-                    Theme.of(context).colorScheme.imageEditorPrimaryColor,
-              ),
-              widgets: CropRotateEditorWidgets(
-                appBar: (editor, rebuildStream) {
-                  return ReactiveAppbar(
-                    builder: (context) {
-                      return ImageEditorAppBar(
-                        key: const Key('image_editor_app_bar'),
+                      return ImageEditorMainBottomBar(
+                        key: _mainEditorBarKey,
+                        editor: editor,
+                        imageReady: _imageReady.future,
                         configs: editor.configs,
-                        done: () => editor.done(),
-                        close: () => editor.close(),
-                        enableRedo: editor.canRedo,
-                        enableUndo: editor.canUndo,
-                        redo: () => editor.redoAction(),
-                        undo: () => editor.undoAction(),
+                        callbacks: editor.callbacks,
                       );
                     },
                     stream: rebuildStream,
-                  );
-                },
-                bottomBar: (cropRotateEditor, rebuildStream) => ReactiveWidget(
-                  stream: rebuildStream,
-                  builder: (_) => ImageEditorCropRotateBar(
-                    configs: cropRotateEditor.configs,
-                    callbacks: cropRotateEditor.callbacks,
-                    editor: cropRotateEditor,
                   ),
                 ),
               ),
-            ),
-            filterEditor: FilterEditorConfigs(
-              enabled: true,
-              fadeInUpDuration: fadeInDuration,
-              fadeInUpStaggerDelayDuration: fadeInDelay,
-              filterList: filterList,
-              style: FilterEditorStyle(
-                background: colorScheme.backgroundBase,
-              ),
-              widgets: FilterEditorWidgets(
-                slider: (
-                  editorState,
-                  rebuildStream,
-                  value,
-                  onChanged,
-                  onChangeEnd,
-                ) =>
-                    ReactiveWidget(
-                  builder: (context) {
-                    return const SizedBox.shrink();
+              paintEditor: PaintEditorConfigs(
+                style: PaintEditorStyle(
+                  initialColor: const Color(0xFF00FFFF),
+                  background: colors.backgroundBase,
+                  uiOverlayStyle: editorUiOverlayStyle,
+                ),
+                widgets: PaintEditorWidgets(
+                  appBar: (editor, rebuildStream) {
+                    return ReactiveAppbar(
+                      builder: (context) {
+                        return ImageEditorAppBar(
+                          enableRedo: editor.canRedo,
+                          enableUndo: editor.canUndo,
+                          key: const Key('image_editor_app_bar'),
+                          redo: () => editor.redoAction(),
+                          undo: () => editor.undoAction(),
+                          configs: editor.configs,
+                          done: () => editor.done(),
+                          close: () => editor.close(),
+                        );
+                      },
+                      stream: rebuildStream,
+                    );
                   },
-                  stream: rebuildStream,
+                  colorPicker:
+                      (paintEditor, rebuildStream, currentColor, setColor) =>
+                          null,
+                  bottomBar: (editorState, rebuildStream) {
+                    return ReactiveWidget(
+                      builder: (context) {
+                        return ImageEditorPaintBar(
+                          configs: editorState.configs,
+                          callbacks: editorState.callbacks,
+                          editor: editorState,
+                          i18nColor: 'Color',
+                        );
+                      },
+                      stream: rebuildStream,
+                    );
+                  },
                 ),
-                filterButton: (
-                  filter,
-                  isSelected,
-                  scaleFactor,
-                  onSelectFilter,
-                  editorImage,
-                  filterKey,
-                ) {
-                  return ImageEditorFilterBar(
-                    filterModel: filter,
-                    isSelected: isSelected,
-                    onSelectFilter: () {
-                      onSelectFilter.call();
-                      editorKey.currentState?.setState(() {});
-                    },
-                    editorImage: editorImage,
-                    filterKey: filterKey,
-                  );
-                },
-                appBar: (editor, rebuildStream) {
-                  return ReactiveAppbar(
-                    builder: (context) {
-                      return ImageEditorAppBar(
-                        key: const Key('image_editor_app_bar'),
-                        configs: editor.configs,
-                        done: () => editor.done(),
-                        close: () => editor.close(),
-                      );
-                    },
-                    stream: rebuildStream,
-                  );
-                },
               ),
-            ),
-            tuneEditor: TuneEditorConfigs(
-              enabled: true,
-              style: TuneEditorStyle(
-                background: colorScheme.backgroundBase,
-              ),
-              widgets: TuneEditorWidgets(
-                appBar: (editor, rebuildStream) {
-                  return ReactiveAppbar(
-                    builder: (context) {
-                      return ImageEditorAppBar(
-                        enableRedo: editor.canRedo,
-                        enableUndo: editor.canUndo,
-                        key: const Key('image_editor_app_bar'),
-                        redo: () => editor.redo(),
-                        undo: () => editor.undo(),
-                        configs: editor.configs,
-                        done: () => editor.done(),
-                        close: () => editor.close(),
-                      );
-                    },
-                    stream: rebuildStream,
-                  );
-                },
-                bottomBar: (editorState, rebuildStream) {
-                  return ReactiveWidget(
-                    builder: (context) {
-                      return ImageEditorTuneBar(
-                        configs: editorState.configs,
-                        callbacks: editorState.callbacks,
-                        editor: editorState,
-                      );
-                    },
-                    stream: rebuildStream,
-                  );
-                },
-              ),
-            ),
-            blurEditor: const BlurEditorConfigs(
-              enabled: false,
-            ),
-            emojiEditor: EmojiEditorConfigs(
-              enabled: true,
-              checkPlatformCompatibility: true,
-              style: EmojiEditorStyle(
-                bottomActionBarConfig: BottomActionBarConfig(
-                  showSearchViewButton: true,
-                  buttonColor: colorScheme.backgroundBase,
-                  buttonIconColor: colorScheme.tabIcon,
-                  backgroundColor: colorScheme.backgroundBase,
+              textEditor: imageEditorTextConfigs(context),
+              cropRotateEditor: CropRotateEditorConfigs(
+                rotateDirection: RotateDirection.right,
+                style: CropRotateEditorStyle(
+                  background: colors.backgroundBase,
+                  cropCornerColor: colors.primary,
+                  uiOverlayStyle: editorUiOverlayStyle,
                 ),
-                backgroundColor: colorScheme.backgroundBase,
+                widgets: CropRotateEditorWidgets(
+                  appBar: (editor, rebuildStream) {
+                    return ReactiveAppbar(
+                      builder: (context) {
+                        return ImageEditorAppBar(
+                          key: const Key('image_editor_app_bar'),
+                          configs: editor.configs,
+                          done: () => editor.done(),
+                          close: () => editor.close(),
+                          enableRedo: editor.canRedo,
+                          enableUndo: editor.canUndo,
+                          redo: () => editor.redoAction(),
+                          undo: () => editor.undoAction(),
+                        );
+                      },
+                      stream: rebuildStream,
+                    );
+                  },
+                  bottomBar: (cropRotateEditor, rebuildStream) =>
+                      ReactiveWidget(
+                        stream: rebuildStream,
+                        builder: (_) => ImageEditorCropRotateBar(
+                          configs: cropRotateEditor.configs,
+                          callbacks: cropRotateEditor.callbacks,
+                          editor: cropRotateEditor,
+                        ),
+                      ),
+                ),
               ),
-            ),
-            stickerEditor: StickerEditorConfigs(
-              enabled: false,
-              builder: (setLayer, scrollController) {
-                return const SizedBox.shrink();
-              },
+              filterEditor: FilterEditorConfigs(
+                fadeInUpDuration: fadeInDuration,
+                fadeInUpStaggerDelayDuration: fadeInDelay,
+                filterList: filterList,
+                style: FilterEditorStyle(
+                  background: colors.backgroundBase,
+                  uiOverlayStyle: editorUiOverlayStyle,
+                ),
+                widgets: FilterEditorWidgets(
+                  slider:
+                      (
+                        editorState,
+                        rebuildStream,
+                        value,
+                        onChanged,
+                        onChangeEnd,
+                      ) => ReactiveWidget(
+                        builder: (context) {
+                          return const SizedBox.shrink();
+                        },
+                        stream: rebuildStream,
+                      ),
+                  filterButton:
+                      (
+                        filter,
+                        isSelected,
+                        scaleFactor,
+                        onSelectFilter,
+                        editorImage,
+                        filterKey,
+                      ) {
+                        return ImageEditorFilterBar(
+                          filterModel: filter,
+                          isSelected: isSelected,
+                          onSelectFilter: () {
+                            onSelectFilter.call();
+                            editorKey.currentState?.setState(() {});
+                          },
+                          editorImage: editorImage,
+                          filterKey: filterKey,
+                        );
+                      },
+                  appBar: (editor, rebuildStream) {
+                    return ReactiveAppbar(
+                      builder: (context) {
+                        return ImageEditorAppBar(
+                          key: const Key('image_editor_app_bar'),
+                          configs: editor.configs,
+                          done: () => editor.done(),
+                          close: () => editor.close(),
+                        );
+                      },
+                      stream: rebuildStream,
+                    );
+                  },
+                ),
+              ),
+              tuneEditor: TuneEditorConfigs(
+                style: TuneEditorStyle(
+                  background: colors.backgroundBase,
+                  uiOverlayStyle: editorUiOverlayStyle,
+                ),
+                widgets: TuneEditorWidgets(
+                  appBar: (editor, rebuildStream) {
+                    return ReactiveAppbar(
+                      builder: (context) {
+                        return ImageEditorAppBar(
+                          enableRedo: editor.canRedo,
+                          enableUndo: editor.canUndo,
+                          key: const Key('image_editor_app_bar'),
+                          redo: () => editor.redo(),
+                          undo: () => editor.undo(),
+                          configs: editor.configs,
+                          done: () => editor.done(),
+                          close: () => editor.close(),
+                        );
+                      },
+                      stream: rebuildStream,
+                    );
+                  },
+                  bottomBar: (editorState, rebuildStream) {
+                    return ReactiveWidget(
+                      builder: (context) {
+                        return ImageEditorTuneBar(
+                          configs: editorState.configs,
+                          callbacks: editorState.callbacks,
+                          editor: editorState,
+                        );
+                      },
+                      stream: rebuildStream,
+                    );
+                  },
+                ),
+              ),
+              blurEditor: const BlurEditorConfigs(),
+              emojiEditor: EmojiEditorConfigs(
+                checkPlatformCompatibility: true,
+                style: EmojiEditorStyle(
+                  bottomActionBarConfig: BottomActionBarConfig(
+                    showSearchViewButton: true,
+                    buttonColor: colors.backgroundBase,
+                    buttonIconColor: colors.iconColor,
+                    backgroundColor: colors.backgroundBase,
+                  ),
+                  backgroundColor: colors.backgroundBase,
+                ),
+              ),
+              stickerEditor: StickerEditorConfigs(
+                builder: (setLayer, scrollController) {
+                  return const SizedBox.shrink();
+                },
+              ),
             ),
           ),
         ),

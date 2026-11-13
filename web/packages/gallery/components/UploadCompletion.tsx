@@ -1,0 +1,310 @@
+import CloseIcon from "@mui/icons-material/Close";
+import {
+    Box,
+    Button,
+    Dialog,
+    IconButton,
+    Stack,
+    Typography,
+    type DialogProps,
+    type Theme,
+} from "@mui/material";
+import type { PreUploadSkippedFile } from "ente-base/types/ipc";
+import { SlideUpTransition } from "ente-new/photos/components/mui/SlideUpTransition";
+import { t } from "i18next";
+import {
+    finishedStatKinds,
+    uploadCompletionCounts,
+    uploadStatColors,
+    type SegregatedFinishedUploads,
+} from "./upload-progress-stats";
+import {
+    uploadSheetMediaQuery,
+    uploadSheetPaperSx,
+    useIsUploadSheet,
+} from "./upload-progress/bottom-sheet";
+
+export function UploadCompletion({
+    open,
+    onClose,
+    onReviewFailed,
+    finishedUploads,
+    preUploadSkippedFiles = [],
+}: {
+    open: boolean;
+    onClose: () => void;
+    onReviewFailed: () => void;
+    finishedUploads: SegregatedFinishedUploads;
+    preUploadSkippedFiles?: PreUploadSkippedFile[];
+}) {
+    const counts = uploadCompletionCounts(
+        finishedUploads,
+        preUploadSkippedFiles,
+    );
+    const hasFailedUploads = counts.failed > 0;
+    const hasReviewableUploads = hasFailedUploads || counts.skipped > 0;
+    const hasPartialFailure = hasFailedUploads && counts.completed > 0;
+    const isSheet = useIsUploadSheet();
+
+    const handleClose: DialogProps["onClose"] = (_, reason) => {
+        if (reason != "backdropClick" || isSheet) onClose();
+    };
+
+    if (!open) {
+        return null;
+    }
+
+    return (
+        <Dialog
+            open
+            onClose={handleClose}
+            maxWidth={false}
+            aria-labelledby="upload-completion-title"
+            slots={isSheet ? { transition: SlideUpTransition } : undefined}
+            slotProps={{
+                paper: { sx: [completionDialogPaperSx, uploadSheetPaperSx] },
+            }}
+        >
+            <Stack sx={completionDialogContentSx}>
+                <Stack direction="row" sx={{ justifyContent: "flex-end" }}>
+                    <IconButton
+                        aria-label={t("close")}
+                        onClick={onClose}
+                        sx={completionCloseButtonSx}
+                    >
+                        <CloseIcon sx={{ fontSize: 18 }} />
+                    </IconButton>
+                </Stack>
+                <Stack sx={completionBodySx}>
+                    <Box
+                        component="img"
+                        alt=""
+                        src={
+                            hasFailedUploads
+                                ? "/images/warning-red.png"
+                                : "/images/upload-complete-duck.svg"
+                        }
+                        sx={[
+                            completionIllustrationSx,
+                            hasFailedUploads && {
+                                width: 68,
+                                height: 68,
+                                objectFit: "contain",
+                            },
+                        ]}
+                    />
+                    <Stack sx={{ gap: "6px", alignItems: "center" }}>
+                        <Typography
+                            id="upload-completion-title"
+                            component="h2"
+                            sx={[
+                                completionTitleSx,
+                                hasFailedUploads && { color: "critical.main" },
+                            ]}
+                        >
+                            {t(
+                                hasFailedUploads
+                                    ? hasPartialFailure
+                                        ? "upload_completion_partial_failure_title"
+                                        : "upload_completion_failed_title"
+                                    : "upload_completion_title",
+                            )}
+                        </Typography>
+                        <Typography sx={completionSubtitleSx}>
+                            {t(
+                                hasFailedUploads
+                                    ? hasPartialFailure
+                                        ? "upload_completion_partial_failure_subtitle"
+                                        : "upload_completion_failed_subtitle"
+                                    : "upload_completion_subtitle",
+                            )}
+                        </Typography>
+                    </Stack>
+                </Stack>
+                <Box sx={completionStatsGridSx}>
+                    {finishedStatKinds.map((kind) => (
+                        <Stack key={kind} sx={completionStatSx}>
+                            <Stack
+                                direction="row"
+                                sx={{ alignItems: "center", gap: 0.5 }}
+                            >
+                                <Box
+                                    sx={{
+                                        ...completionStatDotSx,
+                                        backgroundColor: uploadStatColors[kind],
+                                    }}
+                                />
+                                <Typography sx={completionStatLabelSx}>
+                                    {t(completionStatLabelKeys[kind])}
+                                </Typography>
+                            </Stack>
+                            <Typography sx={completionStatValueSx}>
+                                {counts[kind].toLocaleString()}
+                            </Typography>
+                        </Stack>
+                    ))}
+                </Box>
+                <Stack sx={{ gap: 1.5 }}>
+                    {hasReviewableUploads ? (
+                        <Button
+                            fullWidth
+                            onClick={onReviewFailed}
+                            sx={
+                                hasFailedUploads
+                                    ? failedReviewButtonSx
+                                    : primaryButtonSx
+                            }
+                        >
+                            {t("review_items")}
+                        </Button>
+                    ) : null}
+                    <Button
+                        fullWidth
+                        onClick={onClose}
+                        sx={
+                            hasReviewableUploads
+                                ? secondaryButtonSx
+                                : primaryButtonSx
+                        }
+                    >
+                        {t("close")}
+                    </Button>
+                </Stack>
+            </Stack>
+        </Dialog>
+    );
+}
+
+const completionStatLabelKeys = {
+    completed: "upload_stat_completed",
+    skipped: "upload_stat_skipped",
+    failed: "upload_stat_failed",
+} as const;
+
+const completionDialogPaperSx = (theme: Theme) => ({
+    width: "min(488px, calc(100svw - 32px))",
+    borderRadius: "20px",
+    border: "1px solid #e0e0e0",
+    backgroundColor: "#f4f4f4",
+    backgroundImage: "none",
+    boxShadow: "none",
+    overflow: "hidden",
+    ...theme.applyStyles("dark", {
+        borderColor: "rgba(255 255 255 / 0.12)",
+        backgroundColor: "#1b1b1b",
+    }),
+});
+
+const completionDialogContentSx = {
+    p: "20px",
+    gap: 3,
+    color: "text.base",
+    [uploadSheetMediaQuery]: {
+        p: "12px 16px",
+        pb: "calc(20px + env(safe-area-inset-bottom, 0px))",
+        overflowY: "auto",
+    },
+};
+
+const completionCloseButtonSx = (theme: Theme) => ({
+    width: 38,
+    height: 38,
+    p: 0,
+    color: "text.base",
+    backgroundColor: "background.paper",
+    "&:hover": { backgroundColor: "fill.faintHover" },
+    ...theme.applyStyles("dark", {
+        backgroundColor: "rgba(255 255 255 / 0.12)",
+    }),
+});
+
+const completionBodySx = { alignItems: "center", gap: 3, textAlign: "center" };
+
+const completionIllustrationSx = { width: 138, height: 154, maxWidth: "100%" };
+
+const completionTitleSx = { fontSize: 24, lineHeight: "32px", fontWeight: 600 };
+
+const completionSubtitleSx = {
+    color: "text.muted",
+    fontSize: 14,
+    lineHeight: "20px",
+    fontWeight: 500,
+};
+
+const completionStatsGridSx = {
+    display: "grid",
+    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+    gap: "10px",
+};
+
+const completionStatSx = (theme: Theme) => ({
+    minWidth: 0,
+    minHeight: 64,
+    p: "12px 20px",
+    pl: "24px",
+    gap: "4px",
+    borderRadius: "16px",
+    backgroundColor: "background.paper",
+    [uploadSheetMediaQuery]: { px: 1, pl: 2 },
+    ...theme.applyStyles("dark", { backgroundColor: "#282828" }),
+});
+
+const completionStatDotSx = {
+    width: 6,
+    height: 6,
+    borderRadius: "50%",
+    flexShrink: 0,
+};
+
+const completionStatLabelSx = {
+    minWidth: 0,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    color: "text.muted",
+    fontSize: 12,
+    lineHeight: "16px",
+    fontWeight: 500,
+};
+
+const completionStatValueSx = {
+    fontSize: 16,
+    lineHeight: "20px",
+    fontWeight: 600,
+};
+
+const baseButtonSx = {
+    height: 52,
+    borderRadius: "20px",
+    boxShadow: "none",
+    textTransform: "none",
+    fontSize: 14,
+    lineHeight: "20px",
+    fontWeight: 500,
+    "&:hover": { boxShadow: "none" },
+};
+
+const primaryButtonSx = {
+    ...baseButtonSx,
+    color: "#fff",
+    backgroundColor: uploadStatColors.completed,
+    "&:hover": { backgroundColor: "#07ad21", boxShadow: "none" },
+};
+
+const failedReviewButtonSx = {
+    ...baseButtonSx,
+    color: "critical.contrastText",
+    backgroundColor: "critical.main",
+    "&:hover": { backgroundColor: "critical.dark", boxShadow: "none" },
+};
+
+const secondaryButtonSx = (theme: Theme) => ({
+    ...baseButtonSx,
+    color: "text.base",
+    backgroundColor: "#eaeaea",
+    "&:hover": { backgroundColor: "#dedede", boxShadow: "none" },
+    ...theme.applyStyles("dark", {
+        backgroundColor: "rgba(255 255 255 / 0.12)",
+        "&:hover": { backgroundColor: "rgba(255 255 255 / 0.18)" },
+    }),
+});

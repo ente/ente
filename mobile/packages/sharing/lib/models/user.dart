@@ -1,21 +1,11 @@
 import "dart:convert";
 
 class User {
-  int? id;
+  final int id;
   String email;
-  @Deprecated(
-    "Use displayName() extension method instead. Note: Some early users have"
-    " value in name field.",
-  )
-  String? name;
   String? role;
 
-  User({
-    this.id,
-    required this.email,
-    this.name,
-    this.role,
-  });
+  User({required this.id, required this.email, this.role});
 
   bool get isViewer => role == null || role?.toUpperCase() == 'VIEWER';
 
@@ -25,17 +15,13 @@ class User {
   bool get isAdmin => role != null && role?.toUpperCase() == 'ADMIN';
 
   Map<String, dynamic> toMap() {
-    // ignore: deprecated_member_use_from_same_package
-    return {'id': id, 'email': email, 'name': name, "role": role};
+    return {'id': id, 'email': email, "role": role};
   }
 
-  static fromMap(Map<String, dynamic>? map) {
-    if (map == null) return null;
-
+  static User fromMap(Map<String, dynamic> map) {
     return User(
-      id: map['id'],
-      email: map['email'],
-      name: map['name'],
+      id: map['id'] as int,
+      email: map['email'] as String,
       role: map['role'] ?? 'VIEWER',
     );
   }
@@ -43,4 +29,14 @@ class User {
   String toJson() => json.encode(toMap());
 
   factory User.fromJson(String source) => User.fromMap(json.decode(source));
+}
+
+class UserSuggestion {
+  const UserSuggestion(this.email, {this.userID});
+
+  factory UserSuggestion.fromUser(User user) =>
+      UserSuggestion(user.email, userID: user.id);
+
+  final int? userID;
+  final String email;
 }

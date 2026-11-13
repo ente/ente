@@ -1,5 +1,3 @@
-/** Ping api.ente.io every minute and yell if it doesn't pong. */
-
 export default {
     async scheduled(_, env: Env, ctx: ExecutionContext) {
         ctx.waitUntil(ping(env, ctx));
@@ -19,7 +17,7 @@ const ping = async (env: Env, ctx: ExecutionContext) => {
         let timeout = setTimeout(() => {
             ctx.waitUntil(notify("Ping timed out"));
         }, 5000);
-        const res = await fetch("https://api.ente.io/ping", {
+        const res = await fetch("https://api.ente.com/ping", {
             headers: {
                 "User-Agent": "health-check",
             },

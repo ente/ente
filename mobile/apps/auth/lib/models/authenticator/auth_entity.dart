@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 @immutable
 class AuthEntity {
   final String id;
-  // encryptedData will be null for diff items when item is deleted
+  // Null for deleted diff entries.
   final String? encryptedData;
   final String? header;
   final bool isDeleted;

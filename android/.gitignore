@@ -1,0 +1,11 @@
+*.class
+*.log
+.cxx/
+.gradle/
+.kotlin/
+.settings/
+build/
+local.properties
+key.properties
+*.keystore
+*.jks

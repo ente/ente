@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/stacktrace"
 	"golang.org/x/net/idna"
 )
 
@@ -31,8 +31,7 @@ type AdminUpdateKeyValueRequest struct {
 }
 
 type FeatureFlagResponse struct {
-	EnableStripe bool `json:"enableStripe"`
-	// If true, the mobile client will stop using CF worker to download files
+	EnableStripe        bool    `json:"enableStripe"`
 	DisableCFWorker     bool    `json:"disableCFWorker"`
 	MapEnabled          bool    `json:"mapEnabled"`
 	FaceSearchEnabled   bool    `json:"faceSearchEnabled"`
@@ -49,14 +48,17 @@ type FeatureFlagResponse struct {
 }
 
 const (
-	// UploadV2 marks availability of the upload v2 APIs in the binary.
-	UploadV2 int64 = 1 << 0
-	// Comments marks availability of the comments feature.
-	Comments int64 = 1 << 1
-	// BackupOptions gates new backup-related features.
-	BackupOptions int64 = 1 << 2
-	// VideoStreaming gates video streaming feature.
+	UploadV2       int64 = 1 << 0
+	Comments       int64 = 1 << 1
+	BackupOptions  int64 = 1 << 2
 	VideoStreaming int64 = 1 << 3
+	// 1 << 4 previously gated CastSessionsV2 for released clients. Reuse it
+	// only when those clients no longer need to be isolated from a new flag.
+	// CastSessionsV2 gates cast sessions v2 support.
+	CastSessionsV2             int64 = 1 << 5
+	DeferredMultipartChecksums int64 = 1 << 6
+	LibrarySharing             int64 = 1 << 7
+	PreviewUploadV2            int64 = 1 << 8
 )
 
 type FlagKey string
@@ -90,7 +92,6 @@ func (k FlagKey) String() string {
 	return string(k)
 }
 
-// UserEditable returns true if the key is user editable
 func (k FlagKey) UserEditable() bool {
 	switch k {
 	case RecoveryKeyVerified, MapEnabled, FaceSearchEnabled, PassKeyEnabled, CustomDomain:
@@ -126,7 +127,7 @@ func (k FlagKey) IsBoolType() bool {
 	case CustomDomain:
 		return false
 	default:
-		return false // Explicitly handle unexpected cases
+		return false
 	}
 }
 
@@ -148,16 +149,16 @@ func (k FlagKey) IsValidValue(value string) error {
 
 var domainRegex = regexp.MustCompile(`^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$`)
 
+func ValidatePublicCustomDomain(value string) error {
+	return isValidDomainWithoutScheme(value)
+}
+
 const customDomainFamilyPrefix = "_"
 
-// BuildFamilyCustomDomainPointer builds a member-scoped custom domain pointer
-// to keep the custom domain unique across family members.
 func BuildFamilyCustomDomainPointer(memberID int64, domain string) string {
 	return fmt.Sprintf("%s%d:%s", customDomainFamilyPrefix, memberID, domain)
 }
 
-// ParseFamilyCustomDomainPointer parses a custom domain pointer of the form _<userID>:<domain>.
-// Returns (userID, domain, isPointer, error).
 func ParseFamilyCustomDomainPointer(value string) (int64, string, bool, error) {
 	if !strings.HasPrefix(value, customDomainFamilyPrefix) {
 		return 0, "", false, nil
@@ -178,7 +179,6 @@ func ParseFamilyCustomDomainPointer(value string) (int64, string, bool, error) {
 	return memberID, domain, true, nil
 }
 
-// ResolveCustomDomainValue returns the effective domain for a custom domain value.
 func ResolveCustomDomainValue(value string) (string, error) {
 	if value == "" {
 		return "", nil
@@ -193,6 +193,11 @@ func ResolveCustomDomainValue(value string) (string, error) {
 	return value, nil
 }
 
+func CanonicalDomain(domain string) (string, error) {
+	asciiDomain, err := idna.Lookup.ToASCII(domain)
+	return strings.ToLower(asciiDomain), err
+}
+
 func isValidDomainWithoutScheme(input string) error {
 	trimmed := strings.TrimSpace(input)
 	if trimmed != input {
@@ -205,13 +210,11 @@ func isValidDomainWithoutScheme(input string) error {
 		return NewBadRequestWithMessage("domain should not contain scheme (e.g., http:// or https://)")
 	}
 
-	// Convert IDN to ASCII (Punycode) for validation
-	asciiDomain, err := idna.ToASCII(trimmed)
+	asciiDomain, err := CanonicalDomain(trimmed)
 	if err != nil {
 		return NewBadRequestWithMessage(fmt.Sprintf("invalid idn domain format: %s", trimmed))
 	}
 
-	// Validate the ASCII version
 	if !domainRegex.MatchString(asciiDomain) {
 		return NewBadRequestWithMessage(fmt.Sprintf("invalid domain format: %s", trimmed))
 	}

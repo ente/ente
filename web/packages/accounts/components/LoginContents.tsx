@@ -1,5 +1,4 @@
-import { Input, Stack, TextField, Typography } from "@mui/material";
-import { AccountsPageFooter } from "ente-accounts/components/layouts/centered-paper";
+import { LoginForm } from "ente-accounts/components/auth/LoginForm";
 import {
     replaceSavedLocalUser,
     saveSRPAttributes,
@@ -7,35 +6,35 @@ import {
 import { getSRPAttributes } from "ente-accounts/services/srp";
 import { sendOTT } from "ente-accounts/services/user";
 import { appName } from "ente-base/app";
-import { LinkButton } from "ente-base/components/LinkButton";
-import { LoadingButton } from "ente-base/components/mui/LoadingButton";
-import { HTTPError } from "ente-base/http";
+import { isNamedError } from "ente-base/error";
+import { JOIN_ALBUM_CONTEXT_KEY } from "ente-base/join-album";
 import log from "ente-base/log";
-import { JOIN_ALBUM_CONTEXT_KEY } from "ente-new/albums/services/join-album";
 import { useFormik } from "formik";
 import { t } from "i18next";
 import { useRouter } from "next/router";
 import React, { useCallback, useEffect, useState } from "react";
 import { z } from "zod";
-import { AccountsPageTitleWithCaption } from "./LoginComponents";
 
 interface LoginContentsProps {
-    /**
-     * Reactive value of {@link customAPIHost}.
-     */
     host: string | undefined;
-    /**
-     * Called when the user clicks the signup option instead.
-     */
     onSignUp: () => void;
 }
 
-/**
- * A contents of the "login" form.
- *
- * It is used both on the "/login" page, and as the embedded login form on the
- * "/" page where the user can toggle between the signup and login forms inline.
- */
+export interface LoginPresentationProps {
+    email: string;
+    emailError: string | undefined;
+    host: string | undefined;
+    isSubmitting: boolean;
+    isJoinAlbumContext: boolean;
+    isEnsu: boolean;
+    onEmailChange: React.ChangeEventHandler<
+        HTMLInputElement | HTMLTextAreaElement
+    >;
+    onSubmit: React.SubmitEventHandler<HTMLFormElement>;
+    onSignUp: () => void;
+    onCancel: () => void;
+}
+
 export const LoginContents: React.FC<LoginContentsProps> = ({
     onSignUp,
     host,
@@ -45,43 +44,15 @@ export const LoginContents: React.FC<LoginContentsProps> = ({
     const isEnsu = appName === "ensu";
 
     useEffect(() => {
-        // Check if we're in a join album context
         const joinAlbumContext = sessionStorage.getItem(JOIN_ALBUM_CONTEXT_KEY);
         setIsJoinAlbumContext(!!joinAlbumContext);
     }, []);
 
     const loginUser = useCallback(
-        async (email: string, setFieldError: (message: string) => void) => {
+        async (email: string) => {
             const srpAttributes = await getSRPAttributes(email);
             if (!srpAttributes || srpAttributes.isEmailMFAEnabled) {
-                try {
-                    await sendOTT(email, "login");
-                } catch (e) {
-                    if (e instanceof HTTPError && e.res.status === 404) {
-                        let errorCode: string | undefined;
-                        try {
-                            errorCode = z
-                                .object({ code: z.string() })
-                                .parse(await e.res.json()).code;
-                        } catch (parseErr) {
-                            log.warn(
-                                "Ignoring error when parsing error payload",
-                                parseErr,
-                            );
-                        }
-                        if (errorCode === "USER_NOT_REGISTERED") {
-                            setFieldError(t("email_not_registered"));
-                            return;
-                        }
-                        if (errorCode === "USER_SIGNUP_INCOMPLETE") {
-                            setFieldError(
-                                t("account_setup_incomplete_create_account"),
-                            );
-                            return;
-                        }
-                    }
-                    throw e;
-                }
+                await sendOTT(email, "login");
                 replaceSavedLocalUser({ email });
                 void router.push("/verify");
             } else {
@@ -110,64 +81,38 @@ export const LoginContents: React.FC<LoginContentsProps> = ({
             }
 
             try {
-                await loginUser(email, setEmailFieldError);
+                await loginUser(email);
             } catch (e) {
-                log.error("Failed to login", e);
-                setEmailFieldError(t("generic_error"));
+                if (isNamedError(e, "not_registered")) {
+                    setEmailFieldError(t("email_not_registered"));
+                } else if (isNamedError(e, "signup_incomplete")) {
+                    setEmailFieldError(
+                        t("account_setup_incomplete_create_account"),
+                    );
+                } else {
+                    log.error("Failed to login", e);
+                    setEmailFieldError(t("generic_error"));
+                }
             }
         },
     });
 
+    function handleCancel() {
+        void router.push("/chat");
+    }
+
     return (
-        <>
-            <AccountsPageTitleWithCaption>
-                {isJoinAlbumContext ? t("login_to_join_album") : t("login")}
-            </AccountsPageTitleWithCaption>
-            <form onSubmit={formik.handleSubmit}>
-                <TextField
-                    name="email"
-                    value={formik.values.email}
-                    onChange={formik.handleChange}
-                    type="email"
-                    autoComplete="username"
-                    label={t("enter_email")}
-                    fullWidth
-                    autoFocus
-                    margin="normal"
-                    disabled={formik.isSubmitting}
-                    error={!!formik.errors.email}
-                    // See: [Note: Use space as default TextField helperText]
-                    helperText={formik.errors.email ?? " "}
-                />
-                <Input sx={{ display: "none" }} type="password" value="" />
-                <LoadingButton
-                    fullWidth
-                    type="submit"
-                    loading={formik.isSubmitting}
-                    color="accent"
-                >
-                    {t("login")}
-                </LoadingButton>
-            </form>
-            <AccountsPageFooter>
-                <Stack sx={{ gap: 3, textAlign: "center" }}>
-                    {isEnsu ? (
-                        <LinkButton onClick={() => void router.push("/chat")}>
-                            {t("cancel")}
-                        </LinkButton>
-                    ) : (
-                        <LinkButton onClick={onSignUp}>
-                            {t("no_account")}
-                        </LinkButton>
-                    )}
-                    <Typography
-                        variant="mini"
-                        sx={{ color: "text.faint", minHeight: "16px" }}
-                    >
-                        {host ?? "" /* prevent layout shift with a minHeight */}
-                    </Typography>
-                </Stack>
-            </AccountsPageFooter>
-        </>
+        <LoginForm
+            email={formik.values.email}
+            emailError={formik.errors.email}
+            host={host}
+            isSubmitting={formik.isSubmitting}
+            isJoinAlbumContext={isJoinAlbumContext}
+            isEnsu={isEnsu}
+            onEmailChange={formik.handleChange}
+            onSubmit={formik.handleSubmit}
+            onSignUp={onSignUp}
+            onCancel={handleCancel}
+        />
     );
 };

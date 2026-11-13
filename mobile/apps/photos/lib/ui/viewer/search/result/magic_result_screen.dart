@@ -12,12 +12,11 @@ import 'package:photos/models/file_load_result.dart';
 import 'package:photos/models/gallery_type.dart';
 import "package:photos/models/search/hierarchical/magic_filter.dart";
 import 'package:photos/models/selected_files.dart';
-import "package:photos/service_locator.dart" show isOfflineMode;
+import "package:photos/service_locator.dart" show isLocalGalleryMode;
 import 'package:photos/ui/viewer/actions/file_selection_overlay_bar.dart';
 import 'package:photos/ui/viewer/gallery/gallery.dart';
 import 'package:photos/ui/viewer/gallery/gallery_app_bar_widget.dart';
 import "package:photos/ui/viewer/gallery/hierarchical_search_gallery.dart";
-import "package:photos/ui/viewer/gallery/state/boundary_reporter_mixin.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_boundaries_provider.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
 import "package:photos/ui/viewer/gallery/state/inherited_search_filter_data.dart";
@@ -25,8 +24,7 @@ import "package:photos/ui/viewer/gallery/state/search_filter_data_provider.dart"
 import "package:photos/ui/viewer/gallery/state/selection_state.dart";
 
 class MagicResultScreen extends StatefulWidget {
-  ///This widget expects [files] to be sorted by most relelvant first to the
-  ///magic search query.
+  // Files must be ordered from most to least relevant.
   final List<EnteFile> files;
   final String name;
   final String heroTag;
@@ -53,45 +51,53 @@ class MagicResultScreen extends StatefulWidget {
 
 class _MagicResultScreenState extends State<MagicResultScreen> {
   final _selectedFiles = SelectedFiles();
+  final _coverAppBarKey = GlobalKey();
   late final List<EnteFile> files;
+  late final String? _coverHeroTag;
   late final StreamSubscription<LocalPhotosUpdatedEvent> _filesUpdatedEvent;
   late final StreamSubscription<MagicSortChangeEvent> _magicSortChangeEvent;
   late final Logger _logger = Logger("_MagicResultScreenState");
   late Map<int, int> fileIDToRelevantPos;
   Map<String, int> _localIdToIntId = const {};
+  Future<void>? _localIdsLoaded;
   bool _enableGrouping = false;
   late final SearchFilterDataProvider _searchFilterDataProvider;
 
   @override
   void initState() {
     super.initState();
-    files = widget.files;
+    files = List.of(widget.files);
+    _coverHeroTag = files.isEmpty ? null : widget.heroTag + files.first.tag;
     _enableGrouping = widget.enableGrouping;
     fileIDToRelevantPos = getFileIDToRelevantPos();
-    if (isOfflineMode) {
-      _loadLocalIntIds();
+    if (isLocalGalleryMode) {
+      _localIdsLoaded = _loadLocalIntIds();
     }
-    _filesUpdatedEvent =
-        Bus.instance.on<LocalPhotosUpdatedEvent>().listen((event) {
+    _filesUpdatedEvent = Bus.instance.on<LocalPhotosUpdatedEvent>().listen((
+      event,
+    ) {
       if (event.type == EventType.deletedFromDevice ||
           event.type == EventType.deletedFromEverywhere ||
           event.type == EventType.deletedFromRemote ||
           event.type == EventType.hide) {
-        for (var updatedFile in event.updatedFiles) {
-          files.remove(updatedFile);
+        if (event.updatedFiles.isNotEmpty) {
+          final updatedFiles = event.updatedFiles.toSet();
+          files.removeWhere(updatedFiles.contains);
+          widget.files.removeWhere(updatedFiles.contains);
         }
         setState(() {});
       }
     });
 
-    _magicSortChangeEvent =
-        Bus.instance.on<MagicSortChangeEvent>().listen((event) {
+    _magicSortChangeEvent = Bus.instance.on<MagicSortChangeEvent>().listen((
+      event,
+    ) async {
+      await _localIdsLoaded;
+      if (!mounted) return;
       if (event.sortType == MagicSortType.mostRelevant) {
         if (_enableGrouping) {
           if (fileIDToRelevantPos.isNotEmpty) {
-            files.sort(
-              (a, b) => _posForFile(a) - _posForFile(b),
-            );
+            files.sort((a, b) => _posForFile(a) - _posForFile(b));
           } else {
             _logger.warning(
               "fileIdToPosMap is empty, cannot sort by most relevant.",
@@ -149,9 +155,7 @@ class _MagicResultScreenState extends State<MagicResultScreen> {
       }
       return map;
     } else {
-      _logger.warning(
-        "fileIdToPosMap is empty, cannot sort by most relevant.",
-      );
+      _logger.warning("fileIdToPosMap is empty, cannot sort by most relevant.");
       return <int, int>{};
     }
   }
@@ -163,7 +167,7 @@ class _MagicResultScreenState extends State<MagicResultScreen> {
   }
 
   int? _fileIdForSort(EnteFile file) {
-    if (isOfflineMode) {
+    if (isLocalGalleryMode) {
       final localId = file.localID;
       if (localId == null || localId.isEmpty) return null;
       return _localIdToIntId[localId];
@@ -180,8 +184,21 @@ class _MagicResultScreenState extends State<MagicResultScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final appBar = GalleryAppBarWidget.sliverConfig(
+      MagicResultScreen.appBarType,
+      widget.name,
+      _selectedFiles,
+      coverAppBarKey: _coverAppBarKey,
+      cover: files.firstOrNull,
+      coverHeroTag: _coverHeroTag,
+      files: files,
+      magicSortType: _enableGrouping
+          ? MagicSortType.mostRecent
+          : MagicSortType.mostRelevant,
+    );
     final gallery = Gallery(
       key: ValueKey(_enableGrouping),
+      appBar: appBar,
       asyncLoader: (creationStartTime, creationEndTime, {limit, asc}) {
         final result = files
             .where(
@@ -191,10 +208,7 @@ class _MagicResultScreenState extends State<MagicResultScreen> {
             )
             .toList();
         return Future.value(
-          FileLoadResult(
-            result,
-            result.length < files.length,
-          ),
+          FileLoadResult(result, result.length < files.length),
         );
       },
       reloadEvent: Bus.instance.on<LocalPhotosUpdatedEvent>(),
@@ -203,7 +217,7 @@ class _MagicResultScreenState extends State<MagicResultScreen> {
         EventType.deletedFromEverywhere,
         EventType.hide,
       },
-      tagPrefix: widget.heroTag,
+      tagPrefix: "${widget.heroTag}_files",
       selectedFiles: _selectedFiles,
       enableFileGrouping: _enableGrouping,
       initialFiles: files.isNotEmpty ? [files.first] : const [],
@@ -213,22 +227,6 @@ class _MagicResultScreenState extends State<MagicResultScreen> {
         child: InheritedSearchFilterDataWrapper(
           searchFilterDataProvider: _searchFilterDataProvider,
           child: Scaffold(
-            appBar: PreferredSize(
-              preferredSize: const Size.fromHeight(90.0),
-              child: _enableGrouping
-                  ? GalleryAppBarWidget(
-                      MagicResultScreen.appBarType,
-                      widget.name,
-                      _selectedFiles,
-                    )
-                  : _AppBarWithBoundary(
-                      child: GalleryAppBarWidget(
-                        MagicResultScreen.appBarType,
-                        widget.name,
-                        _selectedFiles,
-                      ),
-                    ),
-            ),
             body: SelectionState(
               selectedFiles: _selectedFiles,
               child: Stack(
@@ -237,21 +235,17 @@ class _MagicResultScreenState extends State<MagicResultScreen> {
                   Builder(
                     builder: (context) {
                       return ValueListenableBuilder(
-                        valueListenable: InheritedSearchFilterData.of(context)
-                            .searchFilterDataProvider!
-                            .isSearchingNotifier,
+                        valueListenable: InheritedSearchFilterData.of(
+                          context,
+                        ).searchFilterDataProvider!.isSearchingNotifier,
                         builder: (context, value, _) {
                           return value
                               ? HierarchicalSearchGallery(
-                                  tagPrefix: widget.heroTag,
+                                  tagPrefix: "${widget.heroTag}_files",
                                   selectedFiles: _selectedFiles,
+                                  appBar: appBar,
                                 )
-                              : AnimatedSwitcher(
-                                  duration: const Duration(milliseconds: 250),
-                                  switchInCurve: Curves.easeInOutQuad,
-                                  switchOutCurve: Curves.easeInOutQuad,
-                                  child: gallery,
-                                );
+                              : gallery;
                         },
                       );
                     },
@@ -266,28 +260,6 @@ class _MagicResultScreenState extends State<MagicResultScreen> {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// Wrapper widget that reports the app bar as top boundary for auto-scroll
-/// when file grouping is disabled
-class _AppBarWithBoundary extends StatefulWidget {
-  final Widget child;
-
-  const _AppBarWithBoundary({required this.child});
-
-  @override
-  State<_AppBarWithBoundary> createState() => _AppBarWithBoundaryState();
-}
-
-class _AppBarWithBoundaryState extends State<_AppBarWithBoundary>
-    with BoundaryReporter {
-  @override
-  Widget build(BuildContext context) {
-    return boundaryWidget(
-      position: BoundaryPosition.top,
-      child: widget.child,
     );
   }
 }

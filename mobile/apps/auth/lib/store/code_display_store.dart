@@ -1,9 +1,8 @@
-import 'package:ente_auth/l10n/l10n.dart';
 import 'package:ente_auth/models/code.dart';
-import 'package:ente_auth/onboarding/view/common/edit_tag.dart';
 import 'package:ente_auth/services/authenticator_service.dart';
 import 'package:ente_auth/store/code_store.dart';
 import 'package:ente_auth/utils/dialog_util.dart';
+import 'package:ente_strings/ente_strings.dart';
 import 'package:flutter/material.dart';
 
 class CodeDisplayStore {
@@ -17,7 +16,6 @@ class CodeDisplayStore {
   final ValueNotifier<bool> isSelectionModeActive = ValueNotifier(false);
   final ValueNotifier<Set<String>> selectedCodeIds = ValueNotifier(<String>{});
 
-  // toggles the selection status of a code
   void toggleSelection(String codeId) {
     final newSelection = Set<String>.from(selectedCodeIds.value);
 
@@ -27,48 +25,22 @@ class CodeDisplayStore {
       newSelection.add(codeId);
     }
 
-    selectedCodeIds.value =
-        newSelection; //if we selected atleast one code, then we're in selection mode.. else: exit selection mode
+    selectedCodeIds.value = newSelection;
     isSelectionModeActive.value = newSelection.isNotEmpty;
   }
 
-  //method to clear the entire selection
   void clearSelection() {
     selectedCodeIds.value = <String>{};
     isSelectionModeActive.value = false;
   }
 
-  /// Reconciles current selections with the provided list of codes.
-  ///
-  /// This ensures selection state remains valid when:
-  /// - Codes transition from local to synced (rawData → generatedID)
-  /// - Codes are deleted or removed from the list
-  /// - Codes are marked with errors and become invalid for selection
-  ///
-  /// **How it works:**
-  /// 1. Builds a set of valid selection keys from non-error codes
-  /// 2. Creates a remapping table for old keys (rawData, old generatedID) → new keys
-  /// 3. Updates current selection by keeping valid keys and remapping changed keys
-  /// 4. Removes selections for codes that no longer exist or have errors
-  ///
-  /// **Performance:** O(n + m) where n = number of codes, m = number of selected items
-  ///
-  /// **Example scenario:**
-  /// ```dart
-  /// // User selects code with rawData="abc123" (not yet synced)
-  /// selectedCodeIds = {"abc123"}
-  ///
-  /// // After sync, code gets generatedID=42
-  /// // reconcileSelections maps "abc123" → "42"
-  /// selectedCodeIds = {"42"}  // Selection preserved!
-  /// ```
+  // Preserve selections when rawData keys are replaced by generated IDs.
   void reconcileSelections(Iterable<Code> codes) {
     final currentSelection = selectedCodeIds.value;
     if (currentSelection.isEmpty) {
       return;
     }
 
-    // Build lookup structures in a single pass - O(n)
     final validKeys = <String>{};
     final keyRemapping = <String, String>{};
 
@@ -80,7 +52,6 @@ class CodeDisplayStore {
       final key = code.selectionKey;
       validKeys.add(key);
 
-      // Map old keys to current key to handle transitions
       keyRemapping[code.rawData] = key;
       final generatedID = code.generatedID;
       if (generatedID != null) {
@@ -88,7 +59,6 @@ class CodeDisplayStore {
       }
     }
 
-    // Update selection in one pass - O(m)
     final updatedSelection = currentSelection
         .map(
           (oldKey) =>
@@ -97,7 +67,6 @@ class CodeDisplayStore {
         .whereType<String>()
         .toSet();
 
-    // Only update if selection changed
     if (updatedSelection != currentSelection) {
       selectedCodeIds.value = updatedSelection;
       isSelectionModeActive.value = updatedSelection.isNotEmpty;
@@ -112,7 +81,8 @@ class CodeDisplayStore {
     AccountMode? accountMode,
     List<Code>? allCodes,
   }) async {
-    final codes = allCodes ??
+    final codes =
+        allCodes ??
         await _codeStore.getAllCodes(
           accountMode: accountMode,
           sortCodes: false,
@@ -128,7 +98,7 @@ class CodeDisplayStore {
 
   Future<void> showDeleteTagDialog(BuildContext context, String tag) async {
     FocusScope.of(context).requestFocus();
-    final l10n = context.l10n;
+    final l10n = context.strings;
 
     await showChoiceActionSheet(
       context,
@@ -137,7 +107,6 @@ class CodeDisplayStore {
       firstButtonLabel: l10n.delete,
       isCritical: true,
       firstButtonOnTap: () async {
-        // traverse through all the codes and edit this tag's value
         final relevantCodes = await _getCodesByTag(tag);
 
         final tasks = <Future<AddResult>>[];
@@ -147,9 +116,7 @@ class CodeDisplayStore {
           tags.remove(tag);
           tasks.add(
             _codeStore.addCode(
-              code.copyWith(
-                display: code.display.copyWith(tags: tags),
-              ),
+              code.copyWith(display: code.display.copyWith(tags: tags)),
               shouldSync: false,
             ),
           );
@@ -166,13 +133,18 @@ class CodeDisplayStore {
   }
 
   Future<void> showEditDialog(BuildContext context, String tag) async {
-    await showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return EditTagDialog(tag: tag);
+    await showTextInputDialog(
+      context,
+      title: context.strings.editTag,
+      label: context.strings.tag,
+      initialValue: tag,
+      submitButtonLabel: context.strings.save,
+      maxLength: 100,
+      onSubmit: (value) async {
+        final updatedTag = value.trim();
+        if (updatedTag.isEmpty || updatedTag == tag) return;
+        await editTag(tag, updatedTag);
       },
-      barrierColor: Colors.black.withValues(alpha: 0.85),
-      barrierDismissible: false,
     );
   }
 
@@ -186,7 +158,6 @@ class CodeDisplayStore {
   }
 
   Future<void> editTag(String previousTag, String updatedTag) async {
-    // traverse through all the codes and edit this tag's value
     final relevantCodes = await _getCodesByTag(previousTag);
 
     final tasks = <Future<AddResult>>[];
@@ -197,9 +168,7 @@ class CodeDisplayStore {
       tags.add(updatedTag);
       tasks.add(
         CodeStore.instance.addCode(
-          code.copyWith(
-            display: code.display.copyWith(tags: tags),
-          ),
+          code.copyWith(display: code.display.copyWith(tags: tags)),
           shouldSync: false,
         ),
       );

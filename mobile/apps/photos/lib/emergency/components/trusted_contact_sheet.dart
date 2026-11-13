@@ -1,14 +1,14 @@
+import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:photos/emergency/components/recovery_date_selector.dart";
 import "package:photos/emergency/model.dart";
-import "package:photos/generated/l10n.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/components/base_bottom_sheet.dart";
 import "package:photos/ui/components/buttons/button_widget_v2.dart";
 
 Future<TrustedContactResult?> showTrustedContactSheet(
   BuildContext context, {
-  required EmergencyContact contact,
+  required LegacyContactRecord contact,
 }) {
   return showBaseBottomSheet<TrustedContactResult>(
     context,
@@ -20,28 +20,19 @@ Future<TrustedContactResult?> showTrustedContactSheet(
   );
 }
 
-enum TrustedContactAction {
-  revoke,
-  updateTime,
-}
+enum TrustedContactAction { revoke, updateTime }
 
 class TrustedContactResult {
   final TrustedContactAction action;
   final int? selectedDays;
 
-  const TrustedContactResult({
-    required this.action,
-    this.selectedDays,
-  });
+  const TrustedContactResult({required this.action, this.selectedDays});
 }
 
 class TrustedContactSheet extends StatefulWidget {
-  final EmergencyContact contact;
+  final LegacyContactRecord contact;
 
-  const TrustedContactSheet({
-    required this.contact,
-    super.key,
-  });
+  const TrustedContactSheet({required this.contact, super.key});
 
   @override
   State<TrustedContactSheet> createState() => _TrustedContactSheetState();
@@ -64,7 +55,7 @@ class _TrustedContactSheetState extends State<TrustedContactSheet> {
   Widget build(BuildContext context) {
     final colorScheme = getEnteColorScheme(context);
     final textTheme = getEnteTextTheme(context);
-    final l10n = AppLocalizations.of(context);
+    final l10n = context.strings;
 
     final isPending = widget.contact.isPendingInvite();
     final email = widget.contact.emergencyContact.email;
@@ -113,9 +104,7 @@ class _TrustedContactSheetState extends State<TrustedContactSheet> {
             labelText: removeLabel,
             onTap: () async {
               Navigator.of(context).pop(
-                const TrustedContactResult(
-                  action: TrustedContactAction.revoke,
-                ),
+                const TrustedContactResult(action: TrustedContactAction.revoke),
               );
             },
             shouldSurfaceExecutionStates: false,

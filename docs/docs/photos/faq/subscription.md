@@ -1,10 +1,14 @@
 ---
-title: This Page Has Moved
-description: This content has been reorganized
+title: Subscription FAQ
+description: FAQ about Ente Photos plans, pricing, and payment options
 search: false
+head:
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
-# This Page Has Moved
+# Subscription FAQ
 
 The content from **Subscription FAQ** has been reorganized. You can find it in the following locations:
 
@@ -17,9 +21,8 @@ The content from **Subscription FAQ** has been reorganized. You can find it in t
 
 ## Payment Options
 
-- [What payment methods does Ente support?](/photos/faq/storage-and-plans) - Credit cards via Stripe, PayPal, crypto
+- [What payment methods does Ente support?](/photos/faq/storage-and-plans) - Credit cards via Stripe, PayPal
 - [PayPal payments](/photos/faq/storage-and-plans#paypal-payment) - How to pay with PayPal
-- [Crypto payments](/photos/faq/storage-and-plans#crypto-payment) - Bitcoin, Ethereum, Dogecoin
 - [Does Ente store my card details?](/photos/faq/storage-and-plans) - Payment security via Stripe
 
 ## Discounts

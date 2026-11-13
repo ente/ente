@@ -1,7 +1,0 @@
-app_identifier(ENV["PHOTOS_APP_BUNDLE_ID"])
-apple_id(ENV["PHOTOS_APPLE_ID"])
-team_id(ENV["PHOTOS_TEAM_ID"])
-api_key(ENV["PHOTOS_CONNECT_KEY"])
-
-json_key_file(ENV["PHOTOS_PLAYSTORE_JSON_KEY_PATH"])
-package_name(ENV["PHOTOS_PKG_NAME"])

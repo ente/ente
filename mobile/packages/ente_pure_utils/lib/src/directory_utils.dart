@@ -12,12 +12,7 @@ class DirectoryUtils {
 
     directoryPath ??= (await getApplicationSupportDirectory()).path;
 
-    return p.joinAll(
-      [
-        directoryPath,
-        ".$databaseName",
-      ],
-    );
+    return p.joinAll([directoryPath, ".$databaseName"]);
   }
 
   static Future<Directory> getDirectoryForInit() async {

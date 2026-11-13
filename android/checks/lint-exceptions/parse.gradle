@@ -1,0 +1,132 @@
+initscript {
+    dependencies {
+        classpath fileTree(dir: new File(gradle.gradleHomeDir, 'lib'), includes: [
+            'kotlin-compiler-embeddable-*.jar', 'trove4j-*.jar', 'kotlinx-coroutines-*.jar'
+        ])
+    }
+}
+
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
+import javax.xml.stream.XMLInputFactory
+import javax.xml.stream.XMLStreamConstants
+import org.jetbrains.kotlin.cli.jvm.compiler.EnvironmentConfigFiles
+import org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment
+import org.jetbrains.kotlin.com.intellij.lang.java.JavaLanguage
+import org.jetbrains.kotlin.com.intellij.openapi.util.Disposer
+import org.jetbrains.kotlin.com.intellij.psi.*
+import org.jetbrains.kotlin.com.intellij.psi.util.PsiTreeUtil
+import org.jetbrains.kotlin.config.CompilerConfiguration
+import org.jetbrains.kotlin.psi.*
+
+List literalRules(expression) {
+    if (expression instanceof KtStringTemplateExpression) {
+        def literal = expression.entries.every {
+            it instanceof KtLiteralStringTemplateEntry || it instanceof KtEscapeStringTemplateEntry
+        }
+        if (!literal) return [null]
+        return [expression.entries.collect {
+            it instanceof KtEscapeStringTemplateEntry ? it.unescapedValue : it.text
+        }.join('')]
+    }
+    if (expression instanceof KtCollectionLiteralExpression) {
+        return expression.innerExpressions.collectMany { literalRules(it) }
+    }
+    if (expression instanceof KtCallExpression && expression.calleeExpression.text == 'arrayOf') {
+        return expression.valueArguments.collectMany { literalRules(it.argumentExpression) }
+    }
+    if (expression instanceof PsiLiteralExpression && expression.value instanceof String) {
+        return [expression.value]
+    }
+    if (expression instanceof PsiArrayInitializerMemberValue) {
+        return expression.initializers.collectMany { literalRules(it) }
+    }
+    return [null]
+}
+
+gradle.rootProject { project ->
+    project.tasks.register('parseLintSuppressions') {
+        doLast {
+            def inputs = new JsonSlurper().parse(project.file('sources.json'))
+            def records = []
+            def disposable = Disposer.newDisposable()
+            try {
+                def environment = KotlinCoreEnvironment.createForProduction(
+                    disposable, new CompilerConfiguration(), EnvironmentConfigFiles.JVM_CONFIG_FILES
+                )
+                def kotlin = new KtPsiFactory(environment.project)
+                for (input in inputs) {
+                    def record = { offset, rules, error = null ->
+                        records.add([
+                            path: input.path,
+                            line: input.source.substring(0, offset).count('\n') + 1,
+                            rules: rules, error: error
+                        ])
+                    }
+                    if (input.path.endsWith('.xml')) {
+                        def factory = XMLInputFactory.newFactory()
+                        factory.setProperty(XMLInputFactory.SUPPORT_DTD, false)
+                        factory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false)
+                        def reader = factory.createXMLStreamReader(new StringReader(input.source))
+                        while (reader.hasNext()) {
+                            if (reader.next() != XMLStreamConstants.START_ELEMENT) continue
+                            def rules = reader.getAttributeValue(
+                                'http://schemas.android.com/tools', 'ignore'
+                            )
+                            if (rules != null) records.add([
+                                path: input.path, line: reader.location.lineNumber,
+                                rules: rules.split(',').collect { it.trim() }
+                            ])
+                        }
+                        reader.close()
+                        continue
+                    }
+                    def file = input.path.endsWith('.java')
+                        ? PsiFileFactory.getInstance(environment.project).createFileFromText(
+                            input.path, JavaLanguage.INSTANCE, input.source
+                        )
+                        : kotlin.createFile(input.path, input.source)
+                    def names = ['Suppress', 'SuppressLint', 'SuppressWarnings'] as Set
+                    if (file instanceof KtFile) {
+                        file.importDirectives.each {
+                            if (it.aliasName && it.importedFqName?.shortName()?.asString() in names) {
+                                names.add(it.aliasName)
+                            }
+                        }
+                        PsiTreeUtil.collectElementsOfType(file, KtTypeAlias).each { alias ->
+                            if (PsiTreeUtil.collectElementsOfType(alias, KtUserType).any { it.referencedName in names }) {
+                                record(alias.textOffset, [],
+                                    'Use suppression annotations directly instead of type aliases')
+                            }
+                        }
+                        PsiTreeUtil.collectElementsOfType(file, KtAnnotationEntry).each { annotation ->
+                            if (annotation.shortName?.asString() in names) {
+                                record(annotation.textOffset, annotation.valueArguments.collectMany {
+                                    literalRules(it.argumentExpression)
+                                })
+                            }
+                        }
+                    } else {
+                        PsiTreeUtil.collectElementsOfType(file, PsiAnnotation).each { annotation ->
+                            if (annotation.nameReferenceElement?.referenceName in names) {
+                                record(annotation.textOffset, annotation.parameterList.attributes.collectMany {
+                                    literalRules(it.value)
+                                })
+                            }
+                        }
+                    }
+                    SyntaxTraverser.psiTraverser(file).filter(PsiComment).each { comment ->
+                        def match = comment.text =~ /\bnoinspection\b([^\r\n]*)/
+                        if (match.find()) {
+                            record(comment.textOffset,
+                                match.group(1).split('\\*/')[0].trim().split(/[\s,]+/).findAll { it })
+                        }
+                    }
+                }
+            } finally {
+                Disposer.dispose(disposable)
+            }
+            project.file('suppressions.json').text = JsonOutput.toJson(records)
+        }
+    }
+}

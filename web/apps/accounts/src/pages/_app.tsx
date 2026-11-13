@@ -23,10 +23,8 @@ const App: React.FC<AppProps> = ({ Component, pageProps }) => {
     const isI18nReady = useSetupI18n();
     const { showMiniDialog, miniDialogProps } = useAttributedMiniDialog();
 
-    // No code in the accounts app is currently expected to reach a code path
-    // where they would need to "logout". Also, the accounts app doesn't store
-    // any user specific persistent state that'd need to be cleared, so there
-    // really isn't anything to do here even if we needed to.
+    // No code in the accounts app is expected to reach a logout code path,
+    // and there is no user specific persistent state to clear anyway.
     const logout = assertionFailed;
 
     const baseContext = useMemo(

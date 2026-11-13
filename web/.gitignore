@@ -1,29 +1,17 @@
-# Node
-node_modules/
-
-# macOS
-.DS_Store
-
-# Editors
-.vscode/
-
-# Local env files
 .env*.local
 
-# tsc
 *.tsbuildinfo
 
-# Vite
 dist
 
-# Next.js
 .next/
+.next-dev/
 .next-desktop/
 out/
 next-env.d.ts
 
-# Static export outputs
-apps/ensu/next/
+packages/wasm/*/pkg/
 
-packages/wasm/pkg/
-packages/wasm/target/
+/e2e/playwright-report/
+/e2e/test-results/
+/e2e/.auth/

@@ -4,7 +4,6 @@ import "package:photos/models/file/file.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 
-/// Holds collection info with comment count for the collection selector
 class CollectionCommentInfo {
   final Collection collection;
   final int commentCount;
@@ -17,7 +16,6 @@ class CollectionCommentInfo {
   });
 }
 
-/// Holds collection info with like count for the likes bottom sheet
 class CollectionLikeInfo {
   final Collection collection;
   final int likeCount;
@@ -63,10 +61,12 @@ class _CollectionSelectorWidgetState extends State<CollectionSelectorWidget> {
     final textTheme = getEnteTextTheme(context);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    final containerColor =
-        isDarkMode ? const Color(0xFF212121) : const Color(0xFFF0F0F0);
-    final borderColor =
-        isDarkMode ? const Color(0x14FFFFFF) : const Color(0x14000000);
+    final containerColor = isDarkMode
+        ? const Color(0xFF212121)
+        : const Color(0xFFF0F0F0);
+    final borderColor = isDarkMode
+        ? const Color(0x14FFFFFF)
+        : const Color(0x14000000);
 
     return GestureDetector(
       onTap: () => _showCollectionMenu(context, containerColor, borderColor),
@@ -201,7 +201,7 @@ class _ThumbnailWithBadge extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
               decoration: BoxDecoration(
-                color: colorScheme.backgroundBase,
+                color: colorScheme.backgroundColour,
                 borderRadius: const BorderRadius.all(Radius.circular(16)),
               ),
               child: Text(
@@ -255,10 +255,12 @@ class _LikesCollectionSelectorWidgetState
     final textTheme = getEnteTextTheme(context);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    final containerColor =
-        isDarkMode ? const Color(0xFF212121) : const Color(0xFFF0F0F0);
-    final borderColor =
-        isDarkMode ? const Color(0x14FFFFFF) : const Color(0x14000000);
+    final containerColor = isDarkMode
+        ? const Color(0xFF212121)
+        : const Color(0xFFF0F0F0);
+    final borderColor = isDarkMode
+        ? const Color(0x14FFFFFF)
+        : const Color(0x14000000);
 
     return GestureDetector(
       onTap: () => _showCollectionMenu(context, containerColor, borderColor),

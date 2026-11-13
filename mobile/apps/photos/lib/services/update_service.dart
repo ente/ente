@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
@@ -7,14 +8,16 @@ import 'package:photos/core/constants.dart';
 import 'package:photos/core/network/network.dart';
 import "package:photos/services/language_service.dart";
 import 'package:photos/services/notification_service.dart';
+import 'package:photos/ui/notification/update/change_log_strings.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tuple/tuple.dart';
-import 'package:url_launcher/url_launcher_string.dart';
+
+enum ChangeLogAction { skip, consumeWithoutShowing, show }
 
 class UpdateService {
   static const kUpdateAvailableShownTimeKey = "update_available_shown_time_key";
+  static const _updateNotificationsEnabledKey = "update_notifications_enabled";
   static const changeLogVersionKey = "update_change_log_key";
-  static const currentChangeLogVersion = 47;
+  static const currentChangeLogVersion = 62;
 
   LatestVersionInfo? _latestVersion;
   final _logger = Logger("UpdateService");
@@ -22,26 +25,49 @@ class UpdateService {
   final SharedPreferences _prefs;
 
   UpdateService(SharedPreferences prefs, PackageInfo packageInfo)
-      : _prefs = prefs,
-        _packageInfo = packageInfo {
+    : _prefs = prefs,
+      _packageInfo = packageInfo {
     debugPrint("UpdateService constructor");
   }
 
-  Future<bool> showChangeLog() async {
-    // fetch the change log version which was last shown to user.
-    final lastShownAtVersion = _prefs.getInt(changeLogVersionKey) ?? 0;
+  Future<bool> shouldShowChangeLog() async {
+    final lastShownAtVersion = _prefs.getInt(changeLogVersionKey);
+    if (lastShownAtVersion == null) {
+      // Fresh installs have no earlier version whose changelog should be shown.
+      await hideChangeLog();
+      return false;
+    }
     return lastShownAtVersion < currentChangeLogVersion;
+  }
+
+  Future<ChangeLogAction> getChangeLogAction({
+    required Locale locale,
+    required bool isLocalGallery,
+    required bool isSignedIn,
+  }) async {
+    if (!await shouldShowChangeLog()) {
+      return ChangeLogAction.skip;
+    }
+
+    if (!(isLocalGallery || isSignedIn)) {
+      return ChangeLogAction.skip;
+    }
+
+    return ChangeLogStrings.hasContentForLocale(
+          locale,
+          isLocalGallery: isLocalGallery,
+          isAndroid: Platform.isAndroid,
+        )
+        ? ChangeLogAction.show
+        : ChangeLogAction.consumeWithoutShowing;
   }
 
   Future<bool> hideChangeLog() async {
     return _prefs.setInt(changeLogVersionKey, currentChangeLogVersion);
   }
 
-  Future<bool> resetChangeLog() async {
-    return _prefs.remove(changeLogVersionKey);
-  }
-
   Future<bool> shouldUpdate() async {
+    _latestVersion = null;
     if (!isIndependent()) {
       return false;
     }
@@ -72,10 +98,23 @@ class UpdateService {
     return _latestVersion;
   }
 
+  bool get updateNotificationsEnabled =>
+      _prefs.getBool(_updateNotificationsEnabledKey) ?? true;
+
+  Future<void> setUpdateNotificationsEnabled(bool enabled) async {
+    await _prefs.setBool(_updateNotificationsEnabledKey, enabled);
+  }
+
   Future<bool> shouldShowUpdateNotification() async {
     final shouldUpdate = await this.shouldUpdate();
 
-    if (!shouldUpdate) {
+    if (!shouldUpdate || _latestVersion == null) {
+      return false;
+    }
+    if (shouldForceUpdate(_latestVersion!)) {
+      return true;
+    }
+    if (!updateNotificationsEnabled) {
       return false;
     }
 
@@ -84,9 +123,9 @@ class UpdateService {
     final now = DateTime.now().microsecondsSinceEpoch;
     final hasBeenThresholdDaysSinceLastNotification =
         (now - lastNotificationShownTime) >
-            ((_latestVersion!.shouldNotify ? 1 : 3) * microSecondsInDay);
+        ((_latestVersion!.shouldNotify ? 1 : 3) * microSecondsInDay);
 
-    return shouldUpdate && hasBeenThresholdDaysSinceLastNotification;
+    return hasBeenThresholdDaysSinceLastNotification;
   }
 
   Future<void> showUpdateNotification() async {
@@ -111,9 +150,9 @@ class UpdateService {
   }
 
   Future<LatestVersionInfo> _getLatestVersionInfo() async {
-    final response = await NetworkClient.instance
-        .getDio()
-        .get("https://ente.io/release-info/independent.json");
+    final response = await NetworkClient.instance.getDio().get(
+      "https://ente.com/release-info/independent.json",
+    );
     return LatestVersionInfo.fromMap(response.data["latestVersion"]);
   }
 
@@ -147,43 +186,6 @@ class UpdateService {
       return false;
     }
     return !isIndependentFlavor() && !isFDroidFlavor();
-  }
-
-  // getRateDetails returns details about the place
-  Tuple2<String, String> getRateDetails() {
-    if (isFDroidFlavor() || isIndependentFlavor()) {
-      return const Tuple2(
-        "AlternativeTo",
-        "https://alternativeto.net/software/ente/about/",
-      );
-    }
-    return Platform.isAndroid
-        ? const Tuple2(
-            "Google Play",
-            "https://play.google.com/store/apps/details?id=io.ente.photos",
-          )
-        : const Tuple2(
-            "App Store",
-            "https://apps.apple.com/in/app/ente-photos/id1542026904",
-          );
-  }
-
-  Future<void> launchReviewUrl() async {
-    // TODO: Replace with https://pub.dev/packages/in_app_review
-    final String url = getRateDetails().item2;
-    try {
-      await launchUrlString(url, mode: LaunchMode.externalApplication);
-    } catch (e) {
-      _logger.severe("Failed top open launch url $url", e);
-      // Fall back if we fail to open play-store market app on android
-      if (Platform.isAndroid && url.startsWith("market://")) {
-        launchUrlString(
-          "https://play.google.com/store/apps/details?id=io"
-          ".ente.photos",
-          mode: LaunchMode.externalApplication,
-        ).ignore();
-      }
-    }
   }
 }
 

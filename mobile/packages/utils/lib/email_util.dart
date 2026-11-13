@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:archive/archive_io.dart';
 import 'package:ente_configuration/base_configuration.dart';
 import 'package:ente_logging/logging.dart';
+import 'package:ente_mail/ente_mail.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart' as pure_utils;
 import 'package:ente_strings/extensions.dart';
 import 'package:ente_ui/components/base_bottom_sheet.dart';
@@ -18,7 +19,6 @@ import 'package:ente_utils/share_utils.dart';
 import "package:file_saver/file_saver.dart";
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_email_sender/flutter_email_sender.dart';
 import "package:intl/intl.dart";
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
@@ -26,6 +26,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 final Logger _logger = Logger('email_util');
+const MailComposer _mailComposer = MailComposer();
 
 bool isValidEmail(String? email) {
   if (email == null) {
@@ -62,22 +63,15 @@ Future<void> sendLogs(
           }
         },
       ),
-      //isInAlert is false here as we don't want to the dialog to dismiss
-      //on pressing this button
       ButtonWidget(
         buttonType: ButtonType.secondary,
         labelText: context.strings.viewLogs,
         buttonAction: ButtonAction.second,
         onTap: () async {
-          // ignore: unawaited_futures
-          showDialog(
-            useRootNavigator: false,
-            context: context,
-            builder: (BuildContext context) {
-              return LogFileViewer(SuperLogging.logFile!);
-            },
-            barrierColor: Colors.black87,
-            barrierDismissible: false,
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => LogFileViewer(SuperLogging.logFile!),
+            ),
           );
         },
       ),
@@ -87,7 +81,7 @@ Future<void> sendLogs(
         buttonAction: ButtonAction.third,
         onTap: () async {
           final zipFilePath = await getZippedLogsFile();
-          await exportLogs(context, zipFilePath);
+          await exportLogs(null, zipFilePath);
         },
       ),
       ButtonWidget(
@@ -107,20 +101,20 @@ Future<void> _sendLogs(
   String? body,
 ) async {
   final String zipFilePath = await getZippedLogsFile();
-  final Email email = Email(
-    recipients: [toEmail],
-    subject: subject ?? '',
-    body: body ?? '',
-    attachmentPaths: [zipFilePath],
-    isHTML: false,
-  );
   try {
-    await FlutterEmailSender.send(email);
+    final launched = await _launchEmail(
+      to: toEmail,
+      subject: subject ?? '',
+      body: body ?? '',
+      attachmentPath: zipFilePath,
+    );
+    if (launched) return;
   } catch (e, s) {
     _logger.severe('email sender failed', e, s);
-    Navigator.of(context).pop();
-    await shareLogs(context, toEmail, zipFilePath);
   }
+  if (!context.mounted) return;
+  Navigator.of(context).pop();
+  await shareLogs(context, toEmail, zipFilePath);
 }
 
 Future<void> shareLogs(
@@ -131,7 +125,7 @@ Future<void> shareLogs(
   final result = await showDialogWidget(
     context: context,
     title: context.strings.emailYourLogs,
-    body: context.strings.pleaseSendTheLogsTo(toEmail),
+    body: context.strings.pleaseSendTheLogsTo(toEmail: toEmail),
     buttons: [
       ButtonWidget(
         buttonType: ButtonType.neutral,
@@ -158,29 +152,20 @@ Future<void> shareLogs(
     ],
   );
   if (result?.action != null && result!.action == ButtonAction.second) {
-    await exportLogs(context, zipFilePath);
+    await exportLogs(null, zipFilePath);
   }
 }
 
-Future<void> openSupportPage(
-  String? subject,
-  String? body,
-) async {
-  const url = "https://github.com/ente-io/ente/discussions/new?category=q-a";
+Future<void> openSupportPage(String? subject, String? body) async {
+  const url = "https://github.com/ente/ente/discussions/new?category=q-a";
   if (subject != null && body != null) {
-    await launchUrl(
-      Uri.parse(
-        "$url&title=$subject&body=$body",
-      ),
-    );
+    await launchUrl(Uri.parse("$url&title=$subject&body=$body"));
   } else {
     await launchUrl(Uri.parse(url));
   }
 }
 
-Future<String> getZippedLogsFile({
-  String logsSubPath = "logs",
-}) async {
+Future<String> getZippedLogsFile({String logsSubPath = "logs"}) async {
   final logsPath = (await getApplicationSupportDirectory()).path;
   final logsDirectory = Directory("$logsPath/$logsSubPath");
   final tempPath = (await pure_utils.DirectoryUtils.getTempsDir()).path;
@@ -193,49 +178,22 @@ Future<String> getZippedLogsFile({
 }
 
 Future<void> exportLogs(
-  BuildContext context,
+  BuildContext? context,
   String zipFilePath, [
   bool isSharing = false,
 ]) async {
   if (!isSharing) {
     final DateTime now = DateTime.now().toUtc();
-    final String shortMonthName = DateFormat('MMM').format(now); // Short month
+    final String shortMonthName = DateFormat('MMM').format(now);
     final String logFileName =
         'ente-logs-${now.year}-$shortMonthName-${now.day}-${now.hour}-${now.minute}';
 
     final bytes = await File(zipFilePath).readAsBytes();
-    await FileSaverUtil.saveFile(
-      logFileName,
-      'zip',
-      bytes,
-      MimeType.zip,
-    );
+    await FileSaverUtil.saveFile(logFileName, 'zip', bytes, MimeType.zip);
   } else {
-    await shareFiles(
-      [XFile(zipFilePath, mimeType: 'application/zip')],
-      context: context,
-    );
-  }
-}
-
-Future<void> sendLogsViaEmail(
-  String toEmail,
-  String? subject,
-  String? body,
-) async {
-  final String zipFilePath = await getZippedLogsFile();
-  final Email email = Email(
-    recipients: [toEmail],
-    subject: subject ?? '',
-    body: body ?? '',
-    attachmentPaths: [zipFilePath],
-    isHTML: false,
-  );
-  try {
-    await FlutterEmailSender.send(email);
-  } catch (e, s) {
-    _logger.severe('email sender failed', e, s);
-    rethrow;
+    await shareFiles([
+      XFile(zipFilePath, mimeType: 'application/zip'),
+    ], context: context);
   }
 }
 
@@ -251,27 +209,39 @@ Future<void> sendEmail(
     final String subject0 = subject ?? '[Support]';
     final String body0 = (body ?? '') + clientDebugInfo;
 
-    if (Platform.isAndroid) {
-      // Special handling due to issue in proton mail android client
-      // https://github.com/ente-io/frame/pull/253
-      final Uri params = Uri(
-        scheme: 'mailto',
-        path: to,
-        query: 'subject=$subject0&body=$body0',
-      );
-      if (await canLaunchUrl(params)) {
-        await launchUrl(params);
-      } else {
-        // this will trigger _showNoMailAppsDialog
-        throw Exception('Could not launch ${params.toString()}');
-      }
-    } else {
+    final launched = await _launchEmail(to: to, subject: subject0, body: body0);
+    if (!launched && context.mounted) {
       _showNoMailAppsDialog(context, to);
     }
   } catch (e) {
     _logger.severe("Failed to send email to $to", e);
-    _showNoMailAppsDialog(context, to);
+    if (context.mounted) {
+      _showNoMailAppsDialog(context, to);
+    }
   }
+}
+
+Future<bool> _launchEmail({
+  required String to,
+  required String subject,
+  required String body,
+  String? attachmentPath,
+}) async {
+  final result = await _mailComposer.compose(
+    MailDraft(
+      recipient: to,
+      subject: subject,
+      body: body,
+      attachment: attachmentPath == null
+          ? null
+          : MailAttachment(path: attachmentPath, mimeType: 'application/zip'),
+    ),
+  );
+  if (result is MailUnavailable) {
+    _logger.warning('Mail composer unavailable: ${result.reason.name}');
+    return false;
+  }
+  return true;
 }
 
 Future<String> _clientInfo(BaseConfiguration? configuration) async {
@@ -307,8 +277,12 @@ void _showNoMailAppsDialog(BuildContext context, String toEmail) {
               text: 'Copy Email Address',
               onTap: () async {
                 await Clipboard.setData(ClipboardData(text: toEmail));
-                Navigator.of(bottomSheetContext).pop();
-                showShortToast(context, 'Email address copied');
+                if (bottomSheetContext.mounted) {
+                  Navigator.of(bottomSheetContext).pop();
+                }
+                if (context.mounted) {
+                  showShortToast(context, 'Email address copied');
+                }
               },
             ),
           ],

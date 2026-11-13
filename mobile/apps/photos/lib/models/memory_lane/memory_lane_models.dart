@@ -1,27 +1,5 @@
 import "dart:convert";
 
-enum MemoryLaneStatus { ready, ineligible }
-
-MemoryLaneStatus memoryLaneStatusFromString(String value) {
-  switch (value) {
-    case "ready":
-      return MemoryLaneStatus.ready;
-    case "ineligible":
-      return MemoryLaneStatus.ineligible;
-    default:
-      throw ArgumentError.value(value, "value", "Unsupported timeline status");
-  }
-}
-
-String memoryLaneStatusToString(MemoryLaneStatus status) {
-  switch (status) {
-    case MemoryLaneStatus.ready:
-      return "ready";
-    case MemoryLaneStatus.ineligible:
-      return "ineligible";
-  }
-}
-
 class MemoryLaneEntry {
   final String faceId;
   final int fileId;
@@ -36,11 +14,11 @@ class MemoryLaneEntry {
   });
 
   Map<String, dynamic> toJson() => {
-        "faceId": faceId,
-        "fileId": fileId,
-        "creationTime": creationTimeMicros,
-        "year": year,
-      };
+    "faceId": faceId,
+    "fileId": fileId,
+    "creationTime": creationTimeMicros,
+    "year": year,
+  };
 
   factory MemoryLaneEntry.fromJson(Map<String, dynamic> json) {
     return MemoryLaneEntry(
@@ -54,79 +32,85 @@ class MemoryLaneEntry {
 
 class MemoryLanePersonTimeline {
   final String personId;
-  final MemoryLaneStatus status;
+  late final bool isCluster;
+  final bool isEligible;
   final int updatedAtMicros;
   final List<MemoryLaneEntry> entries;
 
-  const MemoryLanePersonTimeline({
+  MemoryLanePersonTimeline({
     required this.personId,
-    required this.status,
+    required this.isEligible,
     required this.updatedAtMicros,
     required this.entries,
+    this.isCluster = false,
   });
 
-  bool get isReady => status == MemoryLaneStatus.ready;
-
   Map<String, dynamic> toJson() => {
-        "personId": personId,
-        "status": memoryLaneStatusToString(status),
-        "updatedAt": updatedAtMicros,
-        "entries": entries.map((entry) => entry.toJson()).toList(),
-      };
+    "personId": personId,
+    "status": isEligible ? "ready" : "ineligible",
+    "updatedAt": updatedAtMicros,
+    "entries": entries.map((entry) => entry.toJson()).toList(),
+    "isCluster": isCluster,
+  };
 
   factory MemoryLanePersonTimeline.fromJson(Map<String, dynamic> json) {
     final Iterable entriesJson = json["entries"] as Iterable? ?? [];
     return MemoryLanePersonTimeline(
       personId: json["personId"] as String,
-      status: memoryLaneStatusFromString(json["status"] as String),
+      isEligible: json["status"] == "ready",
       updatedAtMicros: json["updatedAt"] as int,
       entries: entriesJson
           .map(
             (entry) => MemoryLaneEntry.fromJson(entry as Map<String, dynamic>),
           )
           .toList(growable: false),
+      isCluster: json['isCluster'] as bool? ?? false,
     );
   }
 
   MemoryLanePersonTimeline copyWith({
-    MemoryLaneStatus? status,
+    bool? isEligible,
     int? updatedAtMicros,
     List<MemoryLaneEntry>? entries,
   }) {
     return MemoryLanePersonTimeline(
       personId: personId,
-      status: status ?? this.status,
+      isEligible: isEligible ?? this.isEligible,
       updatedAtMicros: updatedAtMicros ?? this.updatedAtMicros,
       entries: entries ?? this.entries,
+      isCluster: isCluster,
     );
   }
 }
 
 class MemoryLaneComputeLogEntry {
   final String personId;
+  late final bool isCluster;
   final String? name;
   final String? birthDate;
   final int faceCount;
   final int lastComputedMicros;
   final int logicVersion;
 
-  const MemoryLaneComputeLogEntry({
+  MemoryLaneComputeLogEntry({
     required this.personId,
     required this.faceCount,
     required this.lastComputedMicros,
     required this.logicVersion,
     this.name,
     this.birthDate,
+    this.isCluster = false,
   });
 
   Map<String, dynamic> toJson() => {
-        "personId": personId,
-        "name": name,
-        "birthDate": birthDate,
-        "faceCount": faceCount,
-        "lastComputed": lastComputedMicros,
-        "logicVersion": logicVersion,
-      };
+    "personId": personId,
+    "name": name,
+    "birthDate": birthDate,
+    "faceCount": faceCount,
+    "lastComputed": lastComputedMicros,
+    "logicVersion": logicVersion,
+    "isCluster": isCluster,
+  };
 
   factory MemoryLaneComputeLogEntry.fromJson(Map<String, dynamic> json) {
     return MemoryLaneComputeLogEntry(
@@ -136,6 +120,7 @@ class MemoryLaneComputeLogEntry {
       faceCount: json["faceCount"] as int? ?? 0,
       lastComputedMicros: json["lastComputed"] as int? ?? 0,
       logicVersion: json["logicVersion"] as int? ?? 0,
+      isCluster: json["isCluster"] as bool? ?? false,
     );
   }
 
@@ -153,6 +138,39 @@ class MemoryLaneComputeLogEntry {
       faceCount: faceCount ?? this.faceCount,
       lastComputedMicros: lastComputedMicros ?? this.lastComputedMicros,
       logicVersion: logicVersion ?? this.logicVersion,
+      isCluster: isCluster,
+    );
+  }
+}
+
+class MemoryLaneSchedule {
+  static const displayDuration = Duration(days: 3);
+
+  final String personID;
+  final bool isCluster;
+  final int beginShowingAt;
+  final int? lastCompletelySeenAt;
+
+  const MemoryLaneSchedule({
+    required this.personID,
+    required this.isCluster,
+    required this.beginShowingAt,
+    this.lastCompletelySeenAt,
+  });
+
+  Map<String, dynamic> toJson() => {
+    "personID": personID,
+    "isCluster": isCluster,
+    "beginShowingAt": beginShowingAt,
+    "lastCompletelySeenAt": lastCompletelySeenAt,
+  };
+
+  factory MemoryLaneSchedule.fromJson(Map<String, dynamic> json) {
+    return MemoryLaneSchedule(
+      personID: json["personID"] as String,
+      isCluster: json["isCluster"] as bool? ?? false,
+      beginShowingAt: json["beginShowingAt"] as int,
+      lastCompletelySeenAt: json["lastCompletelySeenAt"] as int?,
     );
   }
 }
@@ -165,28 +183,32 @@ class MemoryLaneCachePayload {
   final Map<String, MemoryLanePersonTimeline> timelines;
   final int computeLogVersion;
   final Map<String, MemoryLaneComputeLogEntry> computeLog;
+  final Map<String, MemoryLaneSchedule> memoriesStripSchedule;
 
   const MemoryLaneCachePayload({
     required this.version,
     required this.timelines,
     required this.computeLogVersion,
     required this.computeLog,
+    required this.memoriesStripSchedule,
   });
 
   MemoryLaneCachePayload.empty()
-      : version = currentVersion,
-        timelines = {},
-        computeLogVersion = currentComputeLogVersion,
-        computeLog = {};
+    : version = currentVersion,
+      timelines = {},
+      computeLogVersion = currentComputeLogVersion,
+      computeLog = {},
+      memoriesStripSchedule = {};
 
   Map<String, dynamic> toJson() => {
-        "version": version,
-        "people": timelines.map((key, value) => MapEntry(key, value.toJson())),
-        "computeLogVersion": computeLogVersion,
-        "computeLog": computeLog.map(
-          (key, value) => MapEntry(key, value.toJson()),
-        ),
-      };
+    "version": version,
+    "people": timelines.map((key, value) => MapEntry(key, value.toJson())),
+    "computeLogVersion": computeLogVersion,
+    "computeLog": computeLog.map((key, value) => MapEntry(key, value.toJson())),
+    "memoriesStripSchedule": memoriesStripSchedule.map(
+      (key, value) => MapEntry(key, value.toJson()),
+    ),
+  };
 
   String toEncodedJson() => jsonEncode(toJson());
 
@@ -194,30 +216,35 @@ class MemoryLaneCachePayload {
 
   Iterable<MemoryLanePersonTimeline> get allTimelines => timelines.values;
 
-  MemoryLaneCachePayload copyWithTimeline(
-    MemoryLanePersonTimeline timeline,
-  ) {
-    final updatedTimelines =
-        Map<String, MemoryLanePersonTimeline>.from(timelines);
+  MemoryLaneCachePayload copyWithTimeline(MemoryLanePersonTimeline timeline) {
+    final updatedTimelines = Map<String, MemoryLanePersonTimeline>.from(
+      timelines,
+    );
     updatedTimelines[timeline.personId] = timeline;
     return MemoryLaneCachePayload(
       version: version,
       timelines: updatedTimelines,
       computeLogVersion: computeLogVersion,
       computeLog: computeLog,
+      memoriesStripSchedule: memoriesStripSchedule,
     );
   }
 
   MemoryLaneCachePayload copyWithoutPerson(String personId) {
-    final updatedTimelines =
-        Map<String, MemoryLanePersonTimeline>.from(timelines)..remove(personId);
+    final updatedTimelines = Map<String, MemoryLanePersonTimeline>.from(
+      timelines,
+    )..remove(personId);
     final updatedLog = Map<String, MemoryLaneComputeLogEntry>.from(computeLog)
       ..remove(personId);
+    final updatedMemoriesStripSchedule = Map<String, MemoryLaneSchedule>.from(
+      memoriesStripSchedule,
+    )..remove(personId);
     return MemoryLaneCachePayload(
       version: version,
       timelines: updatedTimelines,
       computeLogVersion: computeLogVersion,
       computeLog: updatedLog,
+      memoriesStripSchedule: updatedMemoriesStripSchedule,
     );
   }
 
@@ -231,6 +258,39 @@ class MemoryLaneCachePayload {
       timelines: timelines,
       computeLogVersion: computeLogVersion,
       computeLog: updatedLog,
+      memoriesStripSchedule: memoriesStripSchedule,
+    );
+  }
+
+  MemoryLaneCachePayload copyWithMemoriesStripScheduleEntry(
+    String timelineKey,
+    MemoryLaneSchedule entry,
+  ) {
+    final updatedMemoriesStripSchedule = Map<String, MemoryLaneSchedule>.from(
+      memoriesStripSchedule,
+    );
+    updatedMemoriesStripSchedule[timelineKey] = entry;
+    return MemoryLaneCachePayload(
+      version: version,
+      timelines: timelines,
+      computeLogVersion: computeLogVersion,
+      computeLog: computeLog,
+      memoriesStripSchedule: updatedMemoriesStripSchedule,
+    );
+  }
+
+  MemoryLaneCachePayload copyWithoutMemoriesStripScheduleEntries(
+    Set<String> timelineKeys,
+  ) {
+    final updatedMemoriesStripSchedule = Map<String, MemoryLaneSchedule>.from(
+      memoriesStripSchedule,
+    )..removeWhere((key, _) => timelineKeys.contains(key));
+    return MemoryLaneCachePayload(
+      version: version,
+      timelines: timelines,
+      computeLogVersion: computeLogVersion,
+      computeLog: computeLog,
+      memoriesStripSchedule: updatedMemoriesStripSchedule,
     );
   }
 
@@ -243,6 +303,7 @@ class MemoryLaneCachePayload {
       timelines: timelines,
       computeLogVersion: logVersion,
       computeLog: entries,
+      memoriesStripSchedule: memoriesStripSchedule,
     );
   }
 
@@ -264,11 +325,20 @@ class MemoryLaneCachePayload {
         Map<String, dynamic>.from(entry.value as Map),
       );
     }
+    final memoriesStripScheduleJson =
+        json["memoriesStripSchedule"] as Map<String, dynamic>? ?? {};
+    final memoriesStripSchedule = <String, MemoryLaneSchedule>{};
+    for (final entry in memoriesStripScheduleJson.entries) {
+      memoriesStripSchedule[entry.key] = MemoryLaneSchedule.fromJson(
+        Map<String, dynamic>.from(entry.value as Map),
+      );
+    }
     return MemoryLaneCachePayload(
       version: jsonVersion,
       timelines: timelines,
       computeLogVersion: computeLogVersion,
       computeLog: computeLog,
+      memoriesStripSchedule: memoriesStripSchedule,
     );
   }
 }

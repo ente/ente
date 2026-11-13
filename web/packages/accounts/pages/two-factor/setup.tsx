@@ -1,4 +1,5 @@
 import { Paper, Stack, styled, Typography } from "@mui/material";
+import { useAuthPageConfig } from "ente-accounts/components/auth/AuthPageProvider";
 import { CodeBlock } from "ente-accounts/components/CodeBlock";
 import { Verify2FACodeForm } from "ente-accounts/components/Verify2FACodeForm";
 import { appHomeRoute } from "ente-accounts/services/redirect";
@@ -18,6 +19,7 @@ import { useRouter } from "next/router";
 import React, { useEffect, useState } from "react";
 
 const Page: React.FC = () => {
+    const { recoveryKeyMnemonic } = useAuthPageConfig();
     const [twoFactorSecret, setTwoFactorSecret] = useState<
         TwoFactorSecret | undefined
     >();
@@ -29,7 +31,13 @@ const Page: React.FC = () => {
     }, []);
 
     const handleSubmit = async (otp: string) => {
-        await setupTwoFactorFinish(twoFactorSecret!.secretCode, otp);
+        if (!recoveryKeyMnemonic)
+            throw new Error("Recovery key is not available");
+        await setupTwoFactorFinish(
+            twoFactorSecret!.secretCode,
+            await recoveryKeyMnemonic(),
+            otp,
+        );
         await router.push(appHomeRoute);
     };
 
@@ -82,7 +90,7 @@ const ContentsPaper = styled(Paper)(({ theme }) => ({
     marginBlock: theme.spacing(2),
     padding: theme.spacing(5, 3),
     [theme.breakpoints.up("sm")]: { padding: theme.spacing(5) },
-    // Wide enough to fit the QR code secret in one line under default settings.
+    // This width fits the QR code secret in one line under default settings.
     width: "min(440px, 85vw)",
     minHeight: "375px",
     display: "flex",

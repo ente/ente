@@ -2,7 +2,6 @@
 
 import config from "./eslintrc-react.mjs";
 
-// A base config for Next.js apps.
 export default [
     ...config,
     {

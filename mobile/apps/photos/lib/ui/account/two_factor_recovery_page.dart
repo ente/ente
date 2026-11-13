@@ -1,25 +1,21 @@
+import "package:ente_base/models/accounts.dart";
+import "package:ente_components/ente_components.dart";
+import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
-import "package:photos/generated/l10n.dart";
-import "package:photos/models/account/two_factor.dart";
 import 'package:photos/services/account/user_service.dart';
-import "package:photos/theme/colors.dart";
-import "package:photos/theme/ente_theme.dart";
-import "package:photos/theme/text_style.dart";
 import "package:photos/ui/components/alert_bottom_sheet.dart";
-import "package:photos/ui/components/buttons/button_widget_v2.dart";
-import "package:photos/ui/components/text_input_widget_v2.dart";
 
 class TwoFactorRecoveryPage extends StatefulWidget {
+  final AccountsClient client;
   final String sessionID;
-  final String encryptedSecret;
-  final String secretDecryptionNonce;
+  final TwoFactorRecoveryResponse recoveryResponse;
   final TwoFactorType type;
 
   const TwoFactorRecoveryPage(
+    this.client,
     this.type,
     this.sessionID,
-    this.encryptedSecret,
-    this.secretDecryptionNonce, {
+    this.recoveryResponse, {
     super.key,
   });
 
@@ -39,48 +35,46 @@ class _TwoFactorRecoveryPageState extends State<TwoFactorRecoveryPage> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
+    final colors = context.componentColors;
     final isFormValid = _recoveryKey.isNotEmpty;
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      backgroundColor: colorScheme.backgroundColour,
+      backgroundColor: colors.backgroundBase,
       appBar: AppBar(
         elevation: 0,
         scrolledUnderElevation: 0,
-        backgroundColor: colorScheme.backgroundColour,
+        backgroundColor: colors.backgroundBase,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          color: colorScheme.content,
+          color: colors.iconColor,
           onPressed: () {
             Navigator.of(context).pop();
           },
         ),
         title: Text(
-          AppLocalizations.of(context).recoverAccount,
-          style: textTheme.largeBold,
+          context.strings.recoverAccount,
+          style: TextStyles.large.copyWith(color: colors.textBase),
         ),
         centerTitle: true,
       ),
-      body: _getBody(colorScheme, textTheme),
+      body: _getBody(),
       floatingActionButton: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: ButtonWidgetV2(
+        child: ButtonComponent(
           key: const ValueKey("recover2FAButton"),
-          buttonType: ButtonTypeV2.primary,
-          labelText: AppLocalizations.of(context).recover,
+          label: context.strings.recover,
           isDisabled: !isFormValid,
           onTap: isFormValid
               ? () async {
                   FocusScope.of(context).unfocus();
                   await UserService.instance.removeTwoFactor(
                     context,
+                    widget.client,
                     widget.type,
                     widget.sessionID,
                     _recoveryKeyController.text,
-                    widget.encryptedSecret,
-                    widget.secretDecryptionNonce,
+                    widget.recoveryResponse,
                   );
                 }
               : null,
@@ -90,21 +84,22 @@ class _TwoFactorRecoveryPageState extends State<TwoFactorRecoveryPage> {
     );
   }
 
-  Widget _getBody(EnteColorScheme colorScheme, EnteTextTheme textTheme) {
+  Widget _getBody() {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Column(
           children: [
             const SizedBox(height: 24),
-            TextInputWidgetV2(
-              label: AppLocalizations.of(context).recoveryKey,
-              hintText: AppLocalizations.of(context).enterYourRecoveryKey,
-              textEditingController: _recoveryKeyController,
-              autoCorrect: false,
+            TextInputComponent(
+              label: context.strings.recoveryKey,
+              hintText: context.strings.enterYourRecoveryKey,
+              controller: _recoveryKeyController,
+              autocorrect: false,
               keyboardType: TextInputType.multiline,
               minLines: 4,
-              onChange: (value) {
+              maxLines: null,
+              onChanged: (value) {
                 final hasKey = value.isNotEmpty;
                 if ((_recoveryKey.isNotEmpty) != hasKey) {
                   setState(() {
@@ -118,19 +113,20 @@ class _TwoFactorRecoveryPageState extends State<TwoFactorRecoveryPage> {
             const SizedBox(height: 12),
             Align(
               alignment: Alignment.centerRight,
-              child: ButtonWidgetV2(
-                buttonType: ButtonTypeV2.link,
-                labelText: AppLocalizations.of(context).noRecoveryKey,
-                buttonSize: ButtonSizeV2.small,
+              child: ButtonComponent(
+                label: context.strings.forgotRecoveryKey,
+                variant: ButtonComponentVariant.link,
+                size: ButtonComponentSize.small,
+                shouldSurfaceExecutionStates: false,
                 onTap: () async {
                   // ignore: unawaited_futures
                   showAlertBottomSheet(
                     context,
-                    title: AppLocalizations.of(context).contactSupport,
-                    message: AppLocalizations.of(context).dropSupportEmail(
-                      supportEmail: "support@ente.io",
+                    title: context.strings.contactSupport,
+                    message: context.strings.dropSupportEmail(
+                      supportEmail: "support@ente.com",
                     ),
-                    assetPath: 'assets/warning-green.png',
+                    assetPath: 'assets/warning-grey.png',
                   );
                 },
               ),

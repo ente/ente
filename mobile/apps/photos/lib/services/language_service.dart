@@ -1,10 +1,10 @@
-import "package:photos/generated/l10n.dart";
-import "package:photos/l10n/l10n.dart";
+import "package:ente_strings/ente_strings.dart";
+import "package:photos/locale.dart";
 
 class LanguageService {
-  static Future<AppLocalizations> get locals async {
+  static Future<StringsLocalizations> get locals async {
     final local = await getLocale();
-    final s = lookupAppLocalizations(local!);
+    final s = lookupStringsLocalizations(local!);
     return s;
   }
 }

@@ -1,4 +1,4 @@
-import "package:flutter/material.dart";
+import "package:hugeicons/hugeicons.dart";
 import "package:photos/models/file/extensions/file_props.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/search/hierarchical/hierarchical_search_filter.dart";
@@ -38,7 +38,7 @@ class CameraFilter extends HierarchicalSearchFilter {
   }
 
   @override
-  IconData? icon() {
-    return Icons.photo_camera_outlined;
+  SearchFilterIcon icon() {
+    return HugeIcons.strokeRoundedCamera01;
   }
 }

@@ -1,29 +1,29 @@
+import { PairingCode } from "@/components/PairingCode";
+import {
+    clearCastData,
+    readCastData,
+    storeCastData,
+} from "@/services/cast-data";
+import { getCastPayload, register, type Registration } from "@/services/pair";
 import { Box, Stack, styled, Typography } from "@mui/material";
-import { PairingCode } from "components/PairingCode";
 import { EnteLogo } from "ente-base/components/EnteLogo";
 import { ActivityIndicator } from "ente-base/components/mui/ActivityIndicator";
 import log from "ente-base/log";
 import { useRouter } from "next/router";
 import React, { useEffect, useState } from "react";
-import { readCastData, storeCastData } from "services/cast-data";
-import { getCastPayload, register } from "services/pair";
 import { advertiseOnChromecast } from "../services/chromecast-receiver";
 
 const Page: React.FC = () => {
-    const [publicKey, setPublicKey] = useState<string | undefined>();
-    const [privateKey, setPrivateKey] = useState<string | undefined>();
-    const [pairingCode, setPairingCode] = useState<string | undefined>();
+    const [registration, setRegistration] = useState<Registration>();
+    const pairingCode = registration?.pairingCode;
 
     const router = useRouter();
 
     useEffect(() => {
         if (!pairingCode) {
-            void register().then((r) => {
-                setPublicKey(r.publicKey);
-                setPrivateKey(r.privateKey);
-                setPairingCode(r.pairingCode);
-            });
+            void register().then(setRegistration);
         } else {
+            clearCastData();
             advertiseOnChromecast(
                 () => pairingCode,
                 () => readCastData()?.collectionID,
@@ -32,35 +32,24 @@ const Page: React.FC = () => {
     }, [pairingCode]);
 
     useEffect(() => {
-        if (!publicKey || !privateKey || !pairingCode) return;
+        if (!registration) return;
 
         const pollTick = async () => {
             try {
-                const data = await getCastPayload({
-                    publicKey,
-                    privateKey,
-                    pairingCode,
-                });
-                if (!data) {
-                    // No one has connected yet.
-                    return;
-                }
+                const data = await getCastPayload(registration);
+                if (!data) return;
 
                 storeCastData(data);
                 await router.push("/slideshow");
             } catch (e) {
-                // The pairing code becomes invalid after an hour, which will cause
-                // `getCastData` to fail. There might be other reasons this might
-                // fail too, but in all such cases, it is a reasonable idea to start
-                // again from the beginning.
                 log.warn("Failed to get cast data", e);
-                setPairingCode(undefined);
+                setRegistration(undefined);
             }
         };
 
         const interval = setInterval(pollTick, 2000);
         return () => clearInterval(interval);
-    }, [publicKey, privateKey, pairingCode, router]);
+    }, [registration, router]);
 
     return (
         <Container>
@@ -71,8 +60,8 @@ const Page: React.FC = () => {
             {pairingCode ? <PairingCode code={pairingCode} /> : <Spinner />}
             <Typography variant="h6" sx={{ fontWeight: "regular", mt: 3 }}>
                 Visit{" "}
-                <a href="https://ente.io/cast" target="_blank" rel="noopener">
-                    ente.io/cast
+                <a href="https://ente.com/cast" target="_blank" rel="noopener">
+                    ente.com/cast
                 </a>{" "}
                 for help
             </Typography>
@@ -83,6 +72,8 @@ const Page: React.FC = () => {
 export default Page;
 
 const Container = styled(Stack)`
+    /* Chrome 92 does not support svh. */
+    height: 100vh;
     height: 100svh;
     justify-content: center;
     align-items: center;

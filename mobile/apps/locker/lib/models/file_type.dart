@@ -1,10 +1,4 @@
-enum FileType {
-  image,
-  video,
-  livePhoto,
-  other,
-  info, // New type for information files
-}
+enum FileType { image, video, livePhoto, other, info }
 
 int getInt(FileType fileType) {
   switch (fileType) {
@@ -35,20 +29,5 @@ FileType getFileType(int fileType) {
       return FileType.info;
     default:
       return FileType.other;
-  }
-}
-
-String getHumanReadableString(FileType fileType) {
-  switch (fileType) {
-    case FileType.image:
-      return 'Images';
-    case FileType.video:
-      return 'Videos';
-    case FileType.livePhoto:
-      return 'Live Photos';
-    case FileType.other:
-      return 'Other Files';
-    case FileType.info:
-      return 'Information';
   }
 }

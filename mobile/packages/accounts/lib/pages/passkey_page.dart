@@ -1,24 +1,26 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:app_links/app_links.dart';
 import 'package:ente_accounts/ente_accounts.dart';
-import 'package:ente_accounts/models/errors.dart';
+import 'package:ente_accounts/widgets/account_app_bar_logo.dart';
+import 'package:ente_components/ente_components.dart';
 import 'package:ente_configuration/base_configuration.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:ente_strings/ente_strings.dart';
 import 'package:ente_ui/components/alert_bottom_sheet.dart';
-import 'package:ente_ui/components/buttons/gradient_button.dart';
 import 'package:ente_ui/theme/ente_theme.dart';
 import 'package:ente_ui/utils/dialog_util.dart';
 import 'package:ente_ui/utils/toast_util.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:logging/logging.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 class PasskeyPage extends StatefulWidget {
   final BaseConfiguration config;
   final String sessionID;
+  final Uint8List? keyEncryptionKey;
   final String totp2FASessionID;
   final String accountsUrl;
   final String redirectUrl;
@@ -31,6 +33,7 @@ class PasskeyPage extends StatefulWidget {
     required this.accountsUrl,
     required this.redirectUrl,
     required this.clientPackage,
+    this.keyEncryptionKey,
     super.key,
   });
 
@@ -64,37 +67,50 @@ class _PasskeyPageState extends State<PasskeyPage> {
   }
 
   Future<void> checkStatus() async {
-    late dynamic response;
+    Map<String, dynamic>? response;
     try {
-      response = await UserService.instance
-          .getTokenForPasskeySession(widget.sessionID);
-    } on PassKeySessionNotVerifiedError {
-      showToast(context, context.strings.passKeyPendingVerification);
-      return;
-    } on PassKeySessionExpiredError {
+      response = await UserService.instance.getTokenForPasskeySession(
+        widget.sessionID,
+      );
+    } on AccountsError_SessionExpired {
+      if (!mounted) {
+        return;
+      }
       await showAlertBottomSheet(
         context,
         title: context.strings.loginSessionExpired,
         message: context.strings.loginSessionExpiredDetails,
         assetPath: 'assets/warning-grey.png',
       );
-      Navigator.of(context).pop();
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
       return;
     } catch (e, s) {
       _logger.severe("failed to check status", e, s);
-      showGenericErrorDialog(context: context, error: e).ignore();
+      if (mounted) {
+        showGenericErrorDialog(context: context, error: e).ignore();
+      }
       return;
     }
-    await UserService.instance.onPassKeyVerified(context, response);
+    if (response == null) {
+      if (mounted) {
+        showToast(context, context.strings.passKeyPendingVerification);
+      }
+      return;
+    }
+    await UserService.instance.onPassKeyVerified(
+      mounted ? context : null,
+      response,
+      keyEncryptionKey: widget.keyEncryptionKey,
+    );
   }
 
   Future<void> _handleDeeplink(String? link) async {
     if (!context.mounted ||
         widget.config.hasConfiguredAccount() ||
         link == null) {
-      _logger.warning(
-        'ignored deeplink: contextMounted ${context.mounted}',
-      );
+      _logger.warning('ignored deeplink: contextMounted ${context.mounted}');
       return;
     }
     try {
@@ -119,19 +135,26 @@ class _PasskeyPageState extends State<PasskeyPage> {
         }
         final res = utf8.decode(base64.decode(base64String));
         final json = jsonDecode(res) as Map<String, dynamic>;
-        await UserService.instance.onPassKeyVerified(context, json);
+        await UserService.instance.onPassKeyVerified(
+          mounted ? context : null,
+          json,
+          keyEncryptionKey: widget.keyEncryptionKey,
+        );
       } else {
-        _logger.info('ignored deeplink: $link mounted $mounted');
+        _logger.info(
+          'ignored deeplink: ${baseUrlForLogging(link)} mounted $mounted',
+        );
       }
     } catch (e, s) {
       _logger.severe('passKey: failed to handle deeplink', e, s);
-      showGenericErrorDialog(context: context, error: e).ignore();
+      if (mounted) {
+        showGenericErrorDialog(context: context, error: e).ignore();
+      }
     }
   }
 
   Future<bool> _initDeepLinks() async {
     final appLinks = AppLinks();
-    // Attach a listener to the stream
     appLinks.stringLinkStream.listen(
       _handleDeeplink,
       onError: (err) {
@@ -152,16 +175,10 @@ class _PasskeyPageState extends State<PasskeyPage> {
         scrolledUnderElevation: 0,
         backgroundColor: colorScheme.backgroundBase,
         centerTitle: true,
-        title: SvgPicture.asset(
-          'assets/svg/app-logo.svg',
-          colorFilter: ColorFilter.mode(
-            colorScheme.primary700,
-            BlendMode.srcIn,
-          ),
-        ),
+        title: const AccountAppBarLogo(),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          color: colorScheme.primary700,
+          color: getAccountAppBarColor(context),
           onPressed: () {
             Navigator.of(context).pop();
           },
@@ -184,33 +201,33 @@ class _PasskeyPageState extends State<PasskeyPage> {
             const SizedBox(height: 12),
             Text(
               context.strings.passkeyAuthTitle,
-              style: textTheme.h3Bold.copyWith(
-                color: colorScheme.textBase,
-              ),
+              style: textTheme.h3Bold.copyWith(color: colorScheme.textBase),
             ),
             Text(
               context.strings.waitingForVerification,
-              style: textTheme.body.copyWith(
-                color: colorScheme.textMuted,
-              ),
+              style: textTheme.body.copyWith(color: colorScheme.textMuted),
             ),
             const SizedBox(height: 24),
-            GradientButton(
-              text: context.strings.tryAgain,
-              onTap: () => launchPasskey(),
+            ButtonComponent(
+              label: context.strings.tryAgain,
+              onTap: () => unawaited(launchPasskey()),
+              shouldSurfaceExecutionStates: false,
             ),
             const SizedBox(height: 16),
-            GradientButton(
-              text: context.strings.checkStatus,
-              buttonType: GradientButtonType.secondary,
+            ButtonComponent(
+              label: context.strings.checkStatus,
+              variant: ButtonComponentVariant.secondary,
               onTap: () async {
                 try {
                   await checkStatus();
                 } catch (e) {
                   debugPrint('failed to check status %e');
-                  showGenericErrorDialog(context: context, error: e).ignore();
+                  if (mounted) {
+                    showGenericErrorDialog(context: context, error: e).ignore();
+                  }
                 }
               },
+              shouldSurfaceExecutionStates: false,
             ),
             const SizedBox(height: 16),
             Row(
@@ -224,6 +241,7 @@ class _PasskeyPageState extends State<PasskeyPage> {
                             context,
                             TwoFactorAuthenticationPage(
                               widget.totp2FASessionID,
+                              keyEncryptionKey: widget.keyEncryptionKey,
                             ),
                           );
                         },

@@ -1,34 +1,54 @@
-import { Dialog, DialogContent, DialogTitle } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
+import {
+    Dialog,
+    IconButton,
+    Stack,
+    Typography,
+    type SxProps,
+    type Theme,
+} from "@mui/material";
 import type { ModalVisibilityProps } from "ente-base/components/utils/modal";
-import React, { useCallback } from "react";
+import { t } from "i18next";
+import React, { useCallback, useId } from "react";
+import {
+    v2CloseButtonSx,
+    v2HeaderRowSx,
+    v2PaperSx,
+    v2TitleSx,
+} from "./SingleInput.styles";
 import { SingleInputForm, type SingleInputFormProps } from "./SingleInputForm";
 
 type SingleInputDialogProps = ModalVisibilityProps &
-    Omit<SingleInputFormProps, "onCancel"> & {
-        /** Title of the dialog. */
+    Omit<SingleInputFormProps, "onCancel" | "onSubmit"> & {
         title: string;
+        onSubmit: (
+            value: string,
+            setFieldError: (message: string) => void,
+        ) => ReturnType<SingleInputFormProps["onSubmit"]> | Promise<boolean>;
+        description?: string;
+        sx?: SxProps<Theme>;
     };
 
-/**
- * A dialog that can be used to ask for a single text input using a
- * {@link SingleInputForm}.
- *
- * The dialog closes when the promise returned by the {@link onSubmit} callback
- * fulfills.
- *
- * See also: {@link CollectionNamer}, its older sibling.
- */
 export const SingleInputDialog: React.FC<SingleInputDialogProps> = ({
     open,
     onClose,
     onSubmit,
     title,
+    description,
+    inputProps,
+    sx,
     ...rest
 }) => {
+    const titleID = useId();
+    const descriptionID = useId();
     const handleSubmit: SingleInputFormProps["onSubmit"] = useCallback(
         async (value, setFieldError) => {
-            await onSubmit(value, setFieldError);
-            onClose();
+            const submission = { hasError: false };
+            const result = await onSubmit(value, (message) => {
+                submission.hasError = true;
+                setFieldError(message);
+            });
+            if (result !== false && !submission.hasError) onClose();
         },
         [onClose, onSubmit],
     );
@@ -37,18 +57,48 @@ export const SingleInputDialog: React.FC<SingleInputDialogProps> = ({
         <Dialog
             open={open}
             onClose={onClose}
-            maxWidth="xs"
-            fullWidth
-            slotProps={{ paper: { sx: { p: "8px 4px 4px 4px" } } }}
+            maxWidth={false}
+            aria-labelledby={titleID}
+            aria-describedby={description ? descriptionID : undefined}
+            sx={sx}
+            slotProps={{ paper: { sx: v2PaperSx } }}
         >
-            <DialogTitle>{title}</DialogTitle>
-            <DialogContent sx={{ "&&&": { pt: 0 } }}>
+            <Stack sx={{ p: "20px", gap: "20px" }}>
+                <Stack direction="row" sx={v2HeaderRowSx}>
+                    <Typography id={titleID} sx={v2TitleSx}>
+                        {title}
+                    </Typography>
+                    <IconButton
+                        aria-label={t("close")}
+                        onClick={onClose}
+                        sx={v2CloseButtonSx}
+                    >
+                        <CloseIcon sx={{ fontSize: 18 }} />
+                    </IconButton>
+                </Stack>
+                {description && (
+                    <Typography id={descriptionID} sx={{ color: "text.muted" }}>
+                        {description}
+                    </Typography>
+                )}
                 <SingleInputForm
+                    key={open ? "open" : "closed"}
                     onCancel={onClose}
                     onSubmit={handleSubmit}
+                    inputProps={{
+                        ...inputProps,
+                        "aria-describedby":
+                            [
+                                inputProps?.["aria-describedby"],
+                                description ? descriptionID : undefined,
+                            ]
+                                .filter(Boolean)
+                                .join(" ") || undefined,
+                    }}
                     {...rest}
+                    disabled={!open || rest.disabled}
                 />
-            </DialogContent>
+            </Stack>
         </Dialog>
     );
 };

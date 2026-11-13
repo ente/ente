@@ -1,5 +1,5 @@
 [Unit]
-Documentation=https://github.com/ente-io/ente/tree/main/server#readme
+Documentation=https://github.com/ente/ente/tree/main/server#readme
 Requires=docker.service
 After=docker.service
 Requires=nginx.service
@@ -7,7 +7,7 @@ After=nginx.service
 
 [Service]
 Restart=on-failure
-ExecStartPre=docker pull rg.fr-par.scw.cloud/ente/museum-prod
+# ExecStartPre=docker pull rg.fr-par.scw.cloud/ente/museum-prod
 ExecStartPre=-docker stop museum
 ExecStartPre=-docker rm museum
 ExecStart=docker run --name museum \

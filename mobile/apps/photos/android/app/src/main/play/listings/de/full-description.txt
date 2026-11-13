@@ -27,10 +27,10 @@ FEATURES
 - und noch VIELES mehr!
 
 BERECHTIGUNGEN
-Diese können unter folgendem Link überprüft werden: https://github.com/ente-io/ente/blob/f-droid/mobile/android/permissions.md
+Diese können unter folgendem Link überprüft werden: https://github.com/ente/ente/blob/f-droid/mobile/android/permissions.md
 
 PREIS
-Wir bieten keine lebenslang kostenlosen Abonnements an, da es für uns wichtig ist, einen nachhaltigen Service anzubieten. Wir bieten jedoch bezahlbare Abonemments an, welche auch mit der Familie geteilt werden können. Mehr Informationen sind auf ente.io zu finden.
+Wir bieten keine lebenslang kostenlosen Abonnements an, da es für uns wichtig ist, einen nachhaltigen Service anzubieten. Wir bieten jedoch bezahlbare Abonemments an, welche auch mit der Familie geteilt werden können. Mehr Informationen sind auf ente.com zu finden.
 
 SUPPORT
-Wir sind stolz darauf, einen persönlichen Support anzubieten. Falls Sie ein Abonnement besitzen, können Sie sich mit Ihrem Anliegen via E-Mail an team@ente.io wenden und erhalten eine Antwort innerhalb von 24 Stunden.
+Wir sind stolz darauf, einen persönlichen Support anzubieten. Falls Sie ein Abonnement besitzen, können Sie sich mit Ihrem Anliegen via E-Mail an team@ente.com wenden und erhalten eine Antwort innerhalb von 24 Stunden.

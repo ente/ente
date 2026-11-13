@@ -5,93 +5,85 @@ import {
     Drawer,
     IconButton,
     Stack,
-    styled,
     Typography,
     type DrawerProps,
 } from "@mui/material";
-import { isDesktop } from "ente-base/app";
+import { appName } from "ente-base/app";
 import type { ModalVisibilityProps } from "ente-base/components/utils/modal";
-import React from "react";
+import React, { useContext } from "react";
+import {
+    SidebarDrawerDepthContext,
+    SidebarPanelContext,
+} from "./SidebarDrawerContext";
 
-/**
- * A MUI {@link Drawer} with a standard set of styling that we use for our left
- * and right sidebar panels.
- *
- * It is width limited to 375px, and always at full width. It also has a default
- * padding.
- *
- * It also does some trickery with a sticky opaque bar to ensure that the
- * content scrolls below our inline title bar on desktop.
- */
-export const SidebarDrawer: React.FC<DrawerProps> = ({
+type SidebarDrawerProps = DrawerProps & { maxWidth?: string };
+
+export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
     slotProps,
     children,
+    maxWidth = "375px",
     ...rest
-}) => (
-    <Drawer
-        {...rest}
-        slotProps={{
-            ...(slotProps ?? {}),
-            paper: {
+}) => {
+    const container = useContext(SidebarPanelContext);
+    const inShell = !!container;
+    return (
+        <Drawer
+            {...rest}
+            {...(inShell && {
+                variant: "temporary",
+                container,
+                disableEnforceFocus: true,
+                disableScrollLock: true,
                 sx: {
-                    maxWidth: "375px",
-                    width: "100%",
-                    scrollbarWidth: "thin",
-                    // Need to increase specificity to override inherited padding.
-                    "&&": { padding: 0 },
+                    position: "absolute",
+                    inset: 0,
+                    "& > .MuiBackdrop-root": { top: 0 },
                 },
-            },
-        }}
-    >
-        {isDesktop && <AppTitlebarBackdrop />}
-        <Box sx={{ p: 1 }}>{children}</Box>
-    </Drawer>
-);
+            })}
+            slotProps={{
+                ...(slotProps ?? {}),
+                ...(inShell && {
+                    backdrop: {
+                        sx: {
+                            position: "absolute",
+                            backgroundColor: "transparent",
+                        },
+                    },
+                }),
+                paper: {
+                    sx: {
+                        maxWidth: inShell ? "none" : maxWidth,
+                        width: "100%",
+                        ...(inShell && {
+                            position: "absolute",
+                            top: 0,
+                            height: "100%",
+                            boxSizing: "border-box",
+                            bgcolor: "background.paper2",
+                            boxShadow: "none",
+                            border: 0,
+                        }),
+                        ...(appName !== "photos" && { scrollbarWidth: "thin" }),
+                        // Extra specificity overrides inherited padding.
+                        "&&": { padding: 0 },
+                    },
+                },
+            }}
+        >
+            <Box sx={{ p: 1 }}>{children}</Box>
+        </Drawer>
+    );
+};
 
-/**
- * When running on desktop, we adds a sticky opaque bar at the top of the
- * sidebar with a z-index greater than the expected sidebar contents. This
- * ensures that any title bar overlays added by the system (e.g. the traffic
- * lights on macOS) have a opaque-ish background and the sidebar contents scroll
- * underneath them.
- *
- * See: [Note: Customize the desktop title bar]
- */
-const AppTitlebarBackdrop = styled("div")(({ theme }) => ({
-    position: "sticky",
-    top: 0,
-    left: 0,
-    width: "100%",
-    minHeight: "env(titlebar-area-height, 30px)",
-    zIndex: 1,
-    backgroundColor: theme.vars.palette.backdrop.muted,
-    backdropFilter: "blur(12px)",
-}));
-
-/**
- * Common props for a {@link NestedSidebarDrawer} component. In addition to the
- * regular modal visibility controls for opening and closing itself, these also
- * surface an option to close the entire drawer.
- */
 export type NestedSidebarDrawerVisibilityProps = ModalVisibilityProps & {
-    /**
-     * Called when the user wants to close the entire stack of drawers.
-     *
-     * Note that this does not automatically imply onClose. Each step in the
-     * nesting will have to chain their own onCloses to construct a new
-     * `onRootClose` suitable for passing to its children.
-     */
+    // Each nesting level must chain its own onClose into this callback.
     onRootClose: () => void;
 };
 
-/**
- * A variant of {@link SidebarDrawer} for second level, nested drawers that are
- * shown atop an already visible {@link SidebarDrawer}.
- */
 export const NestedSidebarDrawer: React.FC<
-    NestedSidebarDrawerVisibilityProps & DrawerProps
+    NestedSidebarDrawerVisibilityProps & SidebarDrawerProps
 > = ({ onClose, onRootClose, ...rest }) => {
-    // Intercept backdrop taps and repurpose them to close the entire stack.
+    // Backdrop taps close the entire stack.
     const handleClose: DrawerProps["onClose"] = (_, reason) => {
         if (reason == "backdropClick") {
             onClose();
@@ -101,22 +93,11 @@ export const NestedSidebarDrawer: React.FC<
         }
     };
 
-    // MUI doesn't (currently, AFAIK) have support for nested drawers, so we
-    // emulate that by showing a drawer atop another. To make it fit, we need to
-    // modify a few knobs.
-
     return (
         <SidebarDrawer
-            // Disable the transition (otherwise our nested drawer visibly
-            // slides in from the wrong direction).
+            // A stacked drawer would slide in from the wrong direction.
             transitionDuration={0}
-            // Make the backdrop transparent (otherwise we end up with two of
-            // them - one from the original drawer, and one from this nested
-            // one).
-            //
-            // Note that there is an easy way to hide the backdrop (using the
-            // `hideBackdrop` attribute), but that takes away our ability to
-            // intercept backdrop clicks to close it.
+            // Keep the backdrop clickable but invisible over the root backdrop.
             slotProps={{
                 backdrop: { sx: { "&&&": { backgroundColor: "transparent" } } },
             }}
@@ -130,77 +111,119 @@ type SidebarDrawerTitlebarProps = Pick<
     NestedSidebarDrawerVisibilityProps,
     "onClose" | "onRootClose"
 > & {
-    /** Title for the drawer. */
     title: string;
-    /** An optional secondary caption shown below the title. */
     caption?: string;
-    /**
-     * An optional action button shown alongwith the close button at the
-     * trailing edge of the sidebar.
-     */
     actionButton?: React.ReactNode;
+    showRootCloseButton?: boolean;
+    showBackButton?: boolean;
+    titleInline?: boolean;
 };
 
-/**
- * A bar with a title and back / close buttons, suitable for being used in
- * tandem with a {@link NestedSidebarDrawer}.
- */
 export const SidebarDrawerTitlebar: React.FC<SidebarDrawerTitlebarProps> = ({
     title,
     caption,
     onClose,
     onRootClose,
     actionButton,
-}) => (
-    <Stack sx={{ gap: "4px" }}>
-        <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-            <IconButton onClick={onClose} color="primary">
-                <ArrowBackIcon />
-            </IconButton>
-            <Stack direction="row" sx={{ gap: "4px" }}>
-                {actionButton && actionButton}
-                <IconButton onClick={onRootClose} color="secondary">
-                    <CloseIcon />
-                </IconButton>
-            </Stack>
+    showRootCloseButton = true,
+    showBackButton = true,
+    titleInline = false,
+}) => {
+    const titleContent = (
+        <Stack
+            sx={{
+                pl: titleInline ? "8px" : "calc(16px + 0.5rem)",
+                pr: "16px",
+                gap: "4px",
+                ...(titleInline && { flex: 1, minWidth: 0 }),
+            }}
+        >
+            <Typography variant="h3" sx={{ fontSize: "22px" }}>
+                {title}
+            </Typography>
+            {(!titleInline || caption) && (
+                <Typography
+                    variant="small"
+                    sx={{
+                        color: "text.muted",
+                        wordBreak: "break-all",
+                        minHeight: "17px",
+                    }}
+                >
+                    {caption}
+                </Typography>
+            )}
         </Stack>
-        <Stack sx={{ px: "16px", gap: "4px" }}>
-            <Typography variant="h3">{title}</Typography>
-            <Typography
-                variant="small"
+    );
+
+    return (
+        <Stack sx={{ gap: "4px" }}>
+            <Stack
+                direction="row"
                 sx={{
-                    color: "text.muted",
-                    wordBreak: "break-all",
-                    px: "1px",
-                    minHeight: "17px",
+                    justifyContent: showBackButton
+                        ? "space-between"
+                        : "flex-end",
+                    ...(titleInline && { alignItems: "center" }),
                 }}
             >
-                {caption}
-            </Typography>
+                {showBackButton && (
+                    <IconButton
+                        aria-label="Back"
+                        onClick={onClose}
+                        color="primary"
+                        sx={{ ml: "0.5rem" }}
+                    >
+                        <ArrowBackIcon />
+                    </IconButton>
+                )}
+                {titleInline && titleContent}
+                <Stack direction="row" sx={{ gap: "4px" }}>
+                    {actionButton && actionButton}
+                    {showRootCloseButton && (
+                        <IconButton
+                            aria-label="Close"
+                            onClick={onRootClose}
+                            color="secondary"
+                        >
+                            <CloseIcon />
+                        </IconButton>
+                    )}
+                </Stack>
+            </Stack>
+            {!titleInline && titleContent}
         </Stack>
-    </Stack>
-);
+    );
+};
 
-/**
- * A variant of {@link NestedSidebarDrawer} that additionally shows a title.
- *
- * {@link NestedSidebarDrawer} is for second level, nested drawers that are
- * shown atop an already visible {@link SidebarDrawer}. This component combines
- * the {@link NestedSidebarDrawer} with a {@link SidebarDrawerTitlebar} and some
- * standard spacing, so that the caller can just provide the content as the
- * children.
- */
 export const TitledNestedSidebarDrawer: React.FC<
     React.PropsWithChildren<
         NestedSidebarDrawerVisibilityProps &
-            Pick<DrawerProps, "anchor"> &
+            Pick<SidebarDrawerProps, "anchor" | "maxWidth"> &
             SidebarDrawerTitlebarProps
     >
-> = ({ open, onClose, onRootClose, anchor, children, ...rest }) => (
-    <NestedSidebarDrawer {...{ open, onClose, onRootClose, anchor }}>
-        <Stack sx={{ gap: "4px", py: "12px" }}>
-            <SidebarDrawerTitlebar {...{ onClose, onRootClose }} {...rest} />
-            {children}
-        </Stack>
-    </NestedSidebarDrawer>
-);
+> = ({ open, onClose, onRootClose, anchor, maxWidth, children, ...rest }) => {
+    const container = useContext(SidebarPanelContext);
+    const depth = useContext(SidebarDrawerDepthContext);
+    return (
+        <NestedSidebarDrawer
+            {...{ open, onClose, onRootClose, anchor, maxWidth }}
+        >
+            <Stack sx={{ gap: "4px", py: "12px" }}>
+                <SidebarDrawerTitlebar
+                    {...{ onClose, onRootClose }}
+                    {...rest}
+                    showRootCloseButton={
+                        !container && (rest.showRootCloseButton ?? true)
+                    }
+                    showBackButton={
+                        rest.showBackButton ?? (!container || depth > 0)
+                    }
+                />
+                <SidebarDrawerDepthContext.Provider value={depth + 1}>
+                    {children}
+                </SidebarDrawerDepthContext.Provider>
+            </Stack>
+        </NestedSidebarDrawer>
+    );
+};

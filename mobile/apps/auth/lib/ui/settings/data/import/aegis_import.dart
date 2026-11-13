@@ -1,21 +1,14 @@
-import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:convert/convert.dart';
-import 'package:ente_auth/l10n/l10n.dart';
 import 'package:ente_auth/models/code.dart';
 import 'package:ente_auth/models/code_display.dart';
-import 'package:ente_auth/services/authenticator_service.dart';
-import 'package:ente_auth/store/code_store.dart';
-import 'package:ente_auth/ui/components/buttons/button_widget.dart';
-import 'package:ente_auth/ui/components/dialog_widget.dart';
-import 'package:ente_auth/ui/components/models/button_type.dart';
-import 'package:ente_auth/ui/settings/data/import/import_success.dart';
+import 'package:ente_auth/ui/settings/data/import/import_file_cleanup.dart';
+import 'package:ente_auth/ui/settings/data/import/import_flow.dart';
 import 'package:ente_auth/utils/dialog_util.dart';
+import 'package:ente_strings/ente_strings.dart';
 import 'package:ente_ui/components/progress_dialog.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
@@ -25,61 +18,26 @@ import 'package:pointycastle/key_derivators/scrypt.dart';
 import 'package:pointycastle/pointycastle.dart';
 
 Future<void> showAegisImportInstruction(BuildContext context) async {
-  final l10n = context.l10n;
-  final result = await showDialogWidget(
+  final l10n = context.strings;
+  await showFileImportInstruction(
     context: context,
-    title: l10n.importFromApp("Aegis Authenticator"),
+    title: "Aegis Authenticator",
     body: l10n.importAegisGuide,
-    buttons: [
-      ButtonWidget(
-        buttonType: ButtonType.primary,
-        labelText: l10n.importSelectJsonFile,
-        isInAlert: true,
-        buttonSize: ButtonSize.large,
-        buttonAction: ButtonAction.first,
-      ),
-      ButtonWidget(
-        buttonType: ButtonType.secondary,
-        labelText: context.l10n.cancel,
-        buttonSize: ButtonSize.large,
-        isInAlert: true,
-        buttonAction: ButtonAction.second,
-      ),
-    ],
+    actionLabel: l10n.importSelectJsonFile,
+    semanticsIdentifier: 'auth_import_instruction_aegis',
+    onImport: () => _pickAegisJsonFile(context),
   );
-  if (result?.action != null && result!.action != ButtonAction.cancel) {
-    if (result.action == ButtonAction.first) {
-      await _pickAegisJsonFile(context);
-    } else {}
-  }
 }
 
 Future<void> _pickAegisJsonFile(BuildContext context) async {
-  final l10n = context.l10n;
-  FilePickerResult? result = await FilePicker.platform
-      .pickFiles(dialogTitle: l10n.importSelectJsonFile);
-  if (result == null) {
-    return;
-  }
-  final ProgressDialog progressDialog =
-      createProgressDialog(context, l10n.pleaseWait);
-  await progressDialog.show();
-  try {
-    String path = result.files.single.path!;
-    int? count = await _processAegisExportFile(context, path, progressDialog);
-    await progressDialog.hide();
-    if (count != null) {
-      await importSuccessDialog(context, count);
-    }
-  } catch (e, s) {
-    Logger('AegisImport').severe('exception while processing for aegis', e, s);
-    await progressDialog.hide();
-    await showErrorDialog(
-      context,
-      context.l10n.sorry,
-      "${context.l10n.importFailureDescNew}\n Error: ${e.toString()}",
-    );
-  }
+  await pickAndProcessImportFile(
+    context: context,
+    dialogTitle: context.strings.importSelectJsonFile,
+    logger: Logger('AegisImport'),
+    logMessage: 'Exception while processing Aegis import',
+    process: (path, progressDialog) =>
+        _processAegisExportFile(context, path, progressDialog),
+  );
 }
 
 Future<int?> _processAegisExportFile(
@@ -87,41 +45,38 @@ Future<int?> _processAegisExportFile(
   String path,
   final ProgressDialog dialog,
 ) async {
-  File file = File(path);
-
-  final jsonString = await file.readAsString();
+  final jsonString = await readPickedImportFileAsString(path);
   final decodedJson = jsonDecode(jsonString);
   final isEncrypted = decodedJson['header']['slots'] != null;
   Map? aegisDB;
   if (isEncrypted) {
+    if (!context.mounted) return null;
     await dialog.hide();
     String? password;
     try {
-      await showTextInputDialog(
+      if (!context.mounted) return null;
+      password = await promptForImportPassword(
         context,
-        title: context.l10n.enterPasswordToAegisVault,
-        submitButtonLabel: context.l10n.submit,
-        isPasswordInput: true,
-        onSubmit: (value) async {
-          password = value;
-        },
+        title: context.strings.enterPasswordToAegisVault,
       );
       if (password == null) {
         await dialog.hide();
         return null;
       }
       await dialog.show();
-      final content = decryptAegisVault(decodedJson, password: password!);
+      final content = decryptAegisVault(decodedJson, password: password);
       aegisDB = jsonDecode(content);
     } catch (e, s) {
-      Logger("AegisImport")
-          .warning("exception while decrypting aegis vault", e, s);
+      Logger(
+        "AegisImport",
+      ).warning("exception while decrypting aegis vault", e, s);
       await dialog.hide();
       if (password != null) {
+        if (!context.mounted) return null;
         await showErrorDialog(
           context,
-          context.l10n.failedToDecryptAegisVault,
-          context.l10n.pleaseCheckPasswordAndTryAgain,
+          context.strings.failedToDecryptAegisVault,
+          context.strings.pleaseCheckPasswordAndTryAgain,
         );
       }
       return null;
@@ -129,6 +84,10 @@ Future<int?> _processAegisExportFile(
   } else {
     aegisDB = decodedJson['db'];
   }
+  return saveImportedCodes(parseAegisCodes(aegisDB));
+}
+
+List<Code> parseAegisCodes(Map? aegisDB) {
   final Map<String, String> groupIDToName = {};
   try {
     if (aegisDB?['groups'] != null) {
@@ -140,7 +99,7 @@ Future<int?> _processAegisExportFile(
     Logger("AegisImport").warning("Failed to parse groups", e);
   }
 
-  final parsedCodes = [];
+  final parsedCodes = <Code>[];
   for (var item in aegisDB?['entries']) {
     bool isFavorite = item['favorite'] ?? false;
     List<String> tags = [];
@@ -160,36 +119,37 @@ Future<int?> _processAegisExportFile(
         }
       }
     }
-    // Build the OTP URL
-    String otpUrl;
-
-    if (kind.toLowerCase() == 'totp' || kind.toLowerCase() == 'steam') {
-      otpUrl =
-          'otpauth://$kind/$issuer:$account?secret=$secret&issuer=$issuer&algorithm=$algorithm&digits=$digits&period=$timer';
-    } else if (kind.toLowerCase() == 'hotp') {
-      otpUrl =
-          'otpauth://$kind/$issuer:$account?secret=$secret&issuer=$issuer&algorithm=$algorithm&digits=$digits&counter=$counter';
-    } else {
-      throw Exception('Invalid OTP type: $kind');
-    }
-
-    Code code = Code.fromOTPAuthUrl(otpUrl);
-    code = code.copyWith(display: CodeDisplay(pinned: isFavorite, tags: tags));
+    Code code = parseImportOtpCode(
+      item,
+      () => buildImportOtpUri(
+        kind: kind,
+        issuer: issuer,
+        account: account,
+        secret: secret,
+        algorithm: algorithm,
+        digits: digits,
+        period: timer,
+        counter: counter,
+      ),
+    );
+    code = code.copyWith(
+      display: CodeDisplay(
+        pinned: isFavorite,
+        tags: tags,
+        note: item['note'] ?? '',
+      ),
+    );
     parsedCodes.add(code);
   }
 
-  for (final code in parsedCodes) {
-    await CodeStore.instance.addCode(code, shouldSync: false);
-  }
-  unawaited(AuthenticatorService.instance.onlineSync());
-  int count = parsedCodes.length;
-  return count;
+  return parsedCodes;
 }
 
 String decryptAegisVault(dynamic data, {required String password}) {
   final header = data["header"];
-  final slots =
-      (header["slots"] as List).where((slot) => slot["type"] == 1).toList();
+  final slots = (header["slots"] as List)
+      .where((slot) => slot["type"] == 1)
+      .toList();
 
   Uint8List? masterKey;
   for (final slot in slots) {
@@ -199,22 +159,15 @@ String decryptAegisVault(dynamic data, {required String password}) {
     final int p = slot["p"];
     const int derivedKeyLength = 32;
     final script = Scrypt()
-      ..init(
-        ScryptParameters(
-          iterations,
-          r,
-          p,
-          derivedKeyLength,
-          salt,
-        ),
-      );
+      ..init(ScryptParameters(iterations, r, p, derivedKeyLength, salt));
 
     final key = script.process(Uint8List.fromList(utf8.encode(password)));
 
     final params = slot["key_params"];
     final nonce = Uint8List.fromList(hex.decode(params["nonce"]));
-    final encryptedKeyWithTag =
-        Uint8List.fromList(hex.decode(slot["key"]) + hex.decode(params["tag"]));
+    final encryptedKeyWithTag = Uint8List.fromList(
+      hex.decode(slot["key"]) + hex.decode(params["tag"]),
+    );
 
     final cipher = GCMBlockCipher(AESEngine())
       ..init(

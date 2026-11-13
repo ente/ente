@@ -1,5 +1,0 @@
-Initial F-Droid release of Ente Locker - end-to-end encrypted document storage.
-
-- Securely store important documents like IDs, passports, and certificates
-- Organize documents into collections
-- Share collections securely with others

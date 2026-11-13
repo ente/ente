@@ -1,3 +1,4 @@
+import "package:ente_components/theme/text_styles.dart";
 import "package:flutter/material.dart";
 import "package:photos/theme/ente_theme.dart";
 
@@ -40,11 +41,7 @@ class _DeleteRitualConfirmationSheet extends StatelessWidget {
       top: false,
       bottom: false,
       child: Padding(
-        padding: EdgeInsets.only(
-          left: 16,
-          right: 16,
-          bottom: bottomPadding,
-        ),
+        padding: EdgeInsets.only(left: 16, right: 16, bottom: bottomPadding),
         child: Align(
           alignment: Alignment.bottomCenter,
           child: Container(
@@ -79,8 +76,9 @@ class _DeleteRitualConfirmationSheet extends StatelessWidget {
                       Icons.close_rounded,
                       color: colorScheme.textBase,
                     ),
-                    tooltip:
-                        MaterialLocalizations.of(context).closeButtonTooltip,
+                    tooltip: MaterialLocalizations.of(
+                      context,
+                    ).closeButtonTooltip,
                   ),
                 ),
                 Padding(
@@ -106,15 +104,9 @@ class _DeleteRitualConfirmationSheet extends StatelessWidget {
                       Text(
                         "Are you sure?",
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontFamily: "Nunito",
-                          fontStyle: FontStyle.normal,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -0.72,
-                          height: 1.15,
-                          decoration: TextDecoration.none,
-                        ).copyWith(color: colorScheme.textBase),
+                        style: TextStyles.display2.copyWith(
+                          color: colorScheme.textBase,
+                        ),
                         textHeightBehavior: _tightTextHeightBehavior,
                       ),
                       const SizedBox(height: 10),
@@ -142,8 +134,9 @@ class _DeleteRitualConfirmationSheet extends StatelessWidget {
                           onPressed: () => Navigator.of(context).pop(true),
                           child: Text(
                             "Delete ritual",
-                            style: textTheme.bodyBold
-                                .copyWith(color: Colors.white),
+                            style: textTheme.bodyBold.copyWith(
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                       ),

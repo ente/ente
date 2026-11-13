@@ -1,4 +1,5 @@
 import "@fontsource-variable/inter";
+import "@fontsource/gochi-hand";
 import { CssBaseline } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
 import { CustomHead } from "ente-base/components/Head";
@@ -11,7 +12,11 @@ const App: React.FC<AppProps> = ({ Component, pageProps }) => {
     useSetupLogs({ disableDiskLogs: true });
 
     return (
-        <ThemeProvider theme={shareTheme} defaultMode="dark">
+        <ThemeProvider
+            theme={shareTheme}
+            defaultMode="system"
+            storageManager={null}
+        >
             <CustomHead title="Ente Paste" />
             <CssBaseline enableColorScheme />
             <Component {...pageProps} />

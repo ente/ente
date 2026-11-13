@@ -1,5 +1,13 @@
+import { namedError } from "ente-base/error";
 import log from "ente-base/log";
+import { abortable } from "../abortable";
+import {
+    DEFAULT_TAURI_CONTEXT_SIZE,
+    DEFAULT_WEB_CONTEXT_SIZE,
+    resolveGenerationBudget,
+} from "./budget";
 import { createInferenceBackend } from "./inference";
+import { ModelOperationQueue } from "./model-operation-queue";
 import type {
     DownloadProgress,
     GenerateChatRequest,
@@ -9,48 +17,127 @@ import type {
     ModelSettings,
 } from "./types";
 
-const DEFAULT_WEB_CONTEXT_SIZE = 4096;
-const DEFAULT_TAURI_CONTEXT_SIZE = 12000;
-const DEFAULT_GENERATION_MAX_TOKENS = 8_192;
-const OVERFLOW_SAFETY_TOKENS = 256;
-const MIN_GGUF_BYTES = 1024 * 1024; // 1MB
-const MIN_HIGH_RAM_MAC_BYTES = 16 * 1024 * 1024 * 1024;
-
+// These fallback values must stay in sync with rust/crates/ensu/src/config.rs.
 export const DEFAULT_MODEL: ModelInfo = {
-    id: "lfm-2.5-vl-1.6b",
+    id: "lfm-vl-1.6b",
     name: "LFM 2.5 VL 1.6B (Q4_0)",
-    url: "https://huggingface.co/LiquidAI/LFM2.5-VL-1.6B-GGUF/resolve/main/LFM2.5-VL-1.6B-Q4_0.gguf",
+    url: "https://huggingface.co/ente-ai/LFM2.5-VL-1.6B-GGUF/resolve/b2995f54e17fd7ec31e9cb399ade8fedfd51624d/LFM2.5-VL-1.6B-Q4_0.gguf?download=true",
+    sha256: "8186364a4e7c3ad30f6dd3d3b7a4e0074c77dd91eed6cad5d8be9090ce285804",
     mmprojUrl:
-        "https://huggingface.co/LiquidAI/LFM2.5-VL-1.6B-GGUF/resolve/main/mmproj-LFM2.5-VL-1.6b-Q8_0.gguf",
-    description: "Liquid AI multimodal model (text-only on web)",
+        "https://huggingface.co/ente-ai/LFM2.5-VL-1.6B-GGUF/resolve/b2995f54e17fd7ec31e9cb399ade8fedfd51624d/mmproj-LFM2.5-VL-1.6b-Q8_0.gguf",
+    mmprojSha256:
+        "2ce89e610c56f3198ece2b86cf61743a08b9307279c89125eb2412ebb908689d",
     sizeBytes: 695_752_160,
     mmprojSizeBytes: 583_109_888,
     sizeHuman: "~664 MB",
 };
 
-const TAURI_DEFAULT_MODEL: ModelInfo = {
-    id: "qwen-3.5-2b-q80",
-    name: "Qwen 3.5 2B (Q8_0)",
-    url: "https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q8_0.gguf?download=true",
+const DESKTOP_DEFAULT_MODEL: ModelInfo = {
+    id: "gemma-4-e4b-q4km",
+    name: "Gemma 4 E4B (Q4_K_M)",
+    url: "https://huggingface.co/ente-ai/gemma-4-E4B-it-GGUF/resolve/f0089e04ac8494e513619d18b44c829c6b815440/gemma-4-E4B-it-Q4_K_M.gguf?download=true",
+    sha256: "85a896a047553e842f25297ee5b031d64ff30147d9c4af17b1e4b394cd1fab87",
     mmprojUrl:
-        "https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/mmproj-F16.gguf",
-    description: "Qwen multimodal model",
-    sizeBytes: 2_012_012_800,
-    mmprojSizeBytes: 668_227_264,
-    sizeHuman: "2.68 GB",
+        "https://huggingface.co/ente-ai/gemma-4-E4B-it-GGUF/resolve/f0089e04ac8494e513619d18b44c829c6b815440/mmproj-F16.gguf",
+    mmprojSha256:
+        "ddf46c21d7078e95338cfc22306b19b276a29a5ad089023449dd54d4b6170a51",
+    sizeBytes: 4_977_169_088,
+    mmprojSizeBytes: 990_372_800,
+    sizeHuman: "5.97 GB",
 };
 
-const HIGH_RAM_MAC_MODEL: ModelInfo = {
-    id: "qwen-3.5-4b-q4km",
-    name: "Qwen 3.5 4B (Q4_K_M)",
-    url: "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/main/Qwen3.5-4B-Q4_K_M.gguf?download=true",
-    mmprojUrl:
-        "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/main/mmproj-F16.gguf",
-    description: "Qwen multimodal model for higher-memory macOS devices",
-    sizeBytes: 2_740_937_888,
-    mmprojSizeBytes: 672_423_616,
-    sizeHuman: "3.63 GB",
-};
+interface ConfigModelPreset {
+    id: string;
+    title: string;
+    url: string;
+    sha256: string;
+    mmprojUrl?: string | null;
+    mmprojSha256?: string | null;
+}
+
+interface ResolvedModelPolicy {
+    defaultModel: ConfigModelPreset;
+    visibleModels: ConfigModelPreset[];
+    allowedPreferredModels: ConfigModelPreset[];
+}
+
+interface TauriLlmModelDownloadProgress {
+    percent: number;
+    status: string;
+    bytesDownloaded: number;
+    totalBytes?: number;
+}
+
+interface TauriModelStatus {
+    modelPath: string;
+    mmprojPath?: string | null;
+    downloaded: boolean;
+}
+
+export interface ResolvedModelPreset {
+    id: string;
+    name: string;
+}
+
+const FALLBACK_SHARED_MODEL_PRESETS: ModelInfo[] = [
+    {
+        id: "qwen-0.8b",
+        name: "Qwen 3.5 0.8B (Q4_K_M)",
+        url: "https://huggingface.co/ente-ai/Qwen3.5-0.8B-GGUF/resolve/f44fc9bf306e407078288aee9ff7a83b457d260a/Qwen3.5-0.8B-Q4_K_M.gguf?download=true",
+        sha256: "bd258782e35f7f458f8aced1adc053e6e92e89bc735ba3be89d38a06121dc517",
+        mmprojUrl:
+            "https://huggingface.co/ente-ai/Qwen3.5-0.8B-GGUF/resolve/f44fc9bf306e407078288aee9ff7a83b457d260a/mmproj-F16.gguf",
+        mmprojSha256:
+            "56e4c6cfe73b0c82e3e82bc518d7591997e61d81f723fc41a586f4fa69ea2453",
+    },
+    {
+        id: "qwen-2b-q8",
+        name: "Qwen 3.5 2B (Q8_0)",
+        url: "https://huggingface.co/ente-ai/Qwen3.5-2B-GGUF/resolve/4cd5d68754a443dc390533792bf345ad219c0b41/Qwen3.5-2B-Q8_0.gguf?download=true",
+        sha256: "1b04acba824817554f4ce23639bc8495ff70453b8fcb047900c731521021f2c1",
+        mmprojUrl:
+            "https://huggingface.co/ente-ai/Qwen3.5-2B-GGUF/resolve/4cd5d68754a443dc390533792bf345ad219c0b41/mmproj-F16.gguf",
+        mmprojSha256:
+            "7035e9cb8d7c6a9681d07eef9a364783e86ea4cd73faab2eabb4f43a101830c7",
+    },
+    {
+        id: "gemma-4-e2b-q4km",
+        name: "Gemma 4 E2B (Q4_K_M)",
+        url: "https://huggingface.co/ente-ai/gemma-4-E2B-it-GGUF/resolve/d9f70b02c9a2193b7263daee865dfa93276fd99a/gemma-4-E2B-it-Q4_K_M.gguf?download=true",
+        sha256: "740185b21d22ceb83a11c3aa62ad5842ef32c70f6096d756bbee85a1e4ec34b8",
+        mmprojUrl:
+            "https://huggingface.co/ente-ai/gemma-4-E2B-it-GGUF/resolve/d9f70b02c9a2193b7263daee865dfa93276fd99a/mmproj-F16.gguf",
+        mmprojSha256:
+            "140be8d7849741f88c50757d529b84373ee8e27052cc2236855b537f4a8215fa",
+    },
+];
+
+export const FALLBACK_MOBILE_MODEL_PRESETS: ModelInfo[] = [
+    ...FALLBACK_SHARED_MODEL_PRESETS,
+];
+
+export const FALLBACK_DESKTOP_MODEL_PRESETS: ModelInfo[] = [
+    {
+        id: "qwen-4b-q4km",
+        name: "Qwen 3.5 4B (Q4_K_M)",
+        url: "https://huggingface.co/ente-ai/Qwen3.5-4B-GGUF/resolve/9b67f8db9bedc8c10f524ac08193b58fa9b20ac7/Qwen3.5-4B-Q4_K_M.gguf?download=true",
+        sha256: "00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4",
+        mmprojUrl:
+            "https://huggingface.co/ente-ai/Qwen3.5-4B-GGUF/resolve/9b67f8db9bedc8c10f524ac08193b58fa9b20ac7/mmproj-F16.gguf",
+        mmprojSha256:
+            "cd88edcf8d031894960bb0c9c5b9b7e1fea6ebee02b9f7ce925a00d12891f864",
+    },
+    DEFAULT_MODEL,
+    ...FALLBACK_SHARED_MODEL_PRESETS,
+];
+
+const MODEL_INFO_FALLBACKS = [
+    DESKTOP_DEFAULT_MODEL,
+    ...FALLBACK_DESKTOP_MODEL_PRESETS,
+];
+
+const modelMissingError = () =>
+    namedError("model_missing", "Required model assets are not downloaded");
 
 export class LlmProvider {
     private backend = createInferenceBackend({
@@ -63,16 +150,31 @@ export class LlmProvider {
     private currentModelPath?: string;
     private currentMmprojPath?: string;
     private currentContextKey?: string;
+    private loadedContextSize?: number;
     private defaultModel = DEFAULT_MODEL;
+    private modelPolicy?: ResolvedModelPolicy;
 
-    private downloadAbort?: AbortController;
+    private downloadActive = false;
     private progressListeners = new Set<(progress: DownloadProgress) => void>();
     private modelReady = false;
-    private ensureInFlight?: { key: string; promise: Promise<void> };
+    private ensureInFlight?: {
+        key: string;
+        promise: Promise<void>;
+        emitsProgress: boolean;
+    };
+    private modelOperations = new ModelOperationQueue();
+    private generationEpoch = 0;
+
+    private async withExclusiveModelOperation<T>(
+        operation: () => Promise<T>,
+        signal?: AbortSignal,
+    ): Promise<T> {
+        return this.modelOperations.run(operation, signal);
+    }
 
     public async initialize() {
         if (this.initialized) return;
-        await this.backend.initBackend();
+        await this.backend.initBackend?.();
         await this.resolveDefaultModelForDevice();
         this.initialized = true;
     }
@@ -92,6 +194,16 @@ export class LlmProvider {
         return this.defaultModel;
     }
 
+    public getResolvedModelPresets(): ResolvedModelPreset[] | undefined {
+        const policy = this.modelPolicy;
+        if (!policy) {
+            return undefined;
+        }
+        return policy.visibleModels
+            .filter((preset) => preset.id !== policy.defaultModel.id)
+            .map((preset) => ({ id: preset.id, name: preset.title }));
+    }
+
     public getBackendKind() {
         return this.backend.kind;
     }
@@ -100,7 +212,10 @@ export class LlmProvider {
         return this.currentMmprojPath;
     }
 
-    public resolveRuntimeSettings(settings: ModelSettings) {
+    public resolveRuntimeSettings(
+        settings: ModelSettings,
+        useLoadedContext = true,
+    ) {
         const model = this.resolveTargetModel(settings);
         const defaultContextSize =
             this.backend.kind === "tauri"
@@ -112,67 +227,80 @@ export class LlmProvider {
             this.backend.kind === "tauri"
                 ? requestedContextSize
                 : Math.min(requestedContextSize, DEFAULT_WEB_CONTEXT_SIZE);
-        const configuredMaxTokens = settings.maxTokens ?? model.maxTokens;
-        const maxAllowedTokens = Math.max(
-            1,
-            contextSize - OVERFLOW_SAFETY_TOKENS,
-        );
-        const implicitMaxTokens = Math.min(
-            DEFAULT_GENERATION_MAX_TOKENS,
-            Math.max(1, Math.floor(contextSize / 2)),
-        );
-        const maxTokens = configuredMaxTokens ?? implicitMaxTokens;
+        resolveGenerationBudget(contextSize, 1);
+        const loadedContextSize =
+            useLoadedContext &&
+            this.modelReady &&
+            this.currentModel?.id === model.id &&
+            this.currentContextKey === JSON.stringify({ contextSize })
+                ? this.loadedContextSize
+                : undefined;
         return {
             model,
-            contextSize,
-            maxTokens: Math.min(maxTokens, maxAllowedTokens),
+            ...resolveGenerationBudget(loadedContextSize ?? contextSize),
         };
     }
 
     public async checkModelAvailability(settings: ModelSettings) {
         await this.initialize();
-        const { model, contextSize } = this.resolveRuntimeSettings(settings);
+        const { model, contextSize } = this.resolveRuntimeSettings(
+            settings,
+            false,
+        );
         const contextKey = JSON.stringify({ contextSize });
 
-        const modelPath = await this.resolveModelPath(model, settings);
-        const mmprojUrl =
-            this.backend.kind === "tauri"
-                ? this.resolveMmprojUrl(model, settings)
-                : undefined;
-        const mmprojPath =
-            this.backend.kind === "tauri" && mmprojUrl
-                ? await this.resolveAuxModelPath(mmprojUrl, settings)
-                : undefined;
+        if (this.backend.kind !== "tauri") {
+            const modelPath = model.url;
+            return {
+                model,
+                modelPath,
+                mmprojPath: undefined,
+                contextKey,
+                modelAvailable: await this.backend.isModelAvailable(modelPath),
+                mmprojAvailable: undefined,
+            };
+        }
 
-        const modelAvailable = await this.backend.isModelAvailable(modelPath);
-        const mmprojAvailable = mmprojPath
-            ? await this.backend.isModelAvailable(mmprojPath)
-            : undefined;
-
+        const status = await this.modelStatus(model.id);
         return {
             model,
-            modelPath,
-            mmprojPath,
+            modelPath: status.modelPath,
+            mmprojPath: status.mmprojPath ?? undefined,
             contextKey,
-            modelAvailable,
-            mmprojAvailable,
+            modelAvailable: status.downloaded,
+            mmprojAvailable: status.mmprojPath ? status.downloaded : undefined,
         };
     }
 
-    public async ensureModelReady(settings: ModelSettings) {
+    public async estimateMissingModelDownloadSize(settings: ModelSettings) {
         await this.initialize();
-        const { model, contextSize } = this.resolveRuntimeSettings(settings);
+        if (this.backend.kind !== "tauri") return undefined;
+        const { model } = this.resolveRuntimeSettings(settings);
+        const { invoke } = await import("@tauri-apps/api/core");
+        return (
+            (await invoke<number | null>("llm_model_download_size", {
+                modelId: model.id,
+            })) ?? undefined
+        );
+    }
+
+    public async ensureModelReady(
+        settings: ModelSettings,
+        options: { emitProgress?: boolean; downloadIfMissing?: boolean } = {},
+    ) {
+        await this.initialize();
+        const emitProgress = options.emitProgress ?? true;
+        const downloadIfMissing = options.downloadIfMissing ?? false;
+        const { model, contextSize } = this.resolveRuntimeSettings(
+            settings,
+            false,
+        );
         const contextKey = JSON.stringify({ contextSize });
 
-        const modelPath = await this.resolveModelPath(model, settings);
-        const mmprojUrl =
-            this.backend.kind === "tauri"
-                ? this.resolveMmprojUrl(model, settings)
-                : undefined;
-        const mmprojPath =
-            this.backend.kind === "tauri" && mmprojUrl
-                ? await this.resolveAuxModelPath(mmprojUrl, settings)
-                : undefined;
+        const modelId = this.backend.kind === "tauri" ? model.id : undefined;
+        const status = modelId ? await this.modelStatus(modelId) : undefined;
+        const modelPath = status?.modelPath ?? model.url;
+        const mmprojPath = status?.mmprojPath ?? undefined;
 
         const ensureKey = JSON.stringify({
             modelId: model.id,
@@ -183,16 +311,28 @@ export class LlmProvider {
 
         if (this.ensureInFlight) {
             if (this.ensureInFlight.key === ensureKey) {
-                return this.ensureInFlight.promise;
+                const inFlight = this.ensureInFlight;
+                if (emitProgress && !inFlight.emitsProgress) {
+                    inFlight.emitsProgress = true;
+                    this.emitProgress({
+                        percent: 100,
+                        status: "Loading model...",
+                    });
+                    await inFlight.promise;
+                    this.emitProgress({ percent: 100, status: "Ready" });
+                    return;
+                }
+                return inFlight.promise;
             }
             try {
                 await this.ensureInFlight.promise;
             } catch {
-                // ignore errors from previous load
+                // Wait only for settlement; the failure belongs to the
+                // original caller.
             }
         }
 
-        const ensurePromise = (async () => {
+        const ensurePromise = this.withExclusiveModelOperation(async () => {
             log.info("LLM ensureModelReady", {
                 backend: this.backend.kind,
                 modelId: model.id,
@@ -205,11 +345,14 @@ export class LlmProvider {
                 this.currentModel?.id === model.id &&
                 this.currentModelPath === modelPath &&
                 this.currentContextKey === contextKey &&
-                this.currentMmprojPath === mmprojPath
+                this.currentMmprojPath === mmprojPath &&
+                (!status || status.downloaded)
             ) {
                 log.info("LLM model already ready", { modelId: model.id });
                 this.modelReady = true;
-                this.emitProgress({ percent: 100, status: "Ready" });
+                if (emitProgress) {
+                    this.emitProgress({ percent: 100, status: "Ready" });
+                }
                 return;
             }
 
@@ -219,66 +362,29 @@ export class LlmProvider {
             });
             await this.backend.freeContext();
             await this.backend.freeModel();
-            this.currentModel = undefined;
-            this.currentModelPath = undefined;
-            this.currentMmprojPath = undefined;
-            this.currentContextKey = undefined;
+            this.invalidateModelState();
 
-            if (this.backend.kind === "tauri") {
-                const downloads: Array<{
-                    url: string;
-                    path: string;
-                    label: string;
-                }> = [];
-                const installed =
-                    await this.backend.isModelAvailable(modelPath);
-                log.info("LLM model installed", { modelPath, installed });
-                if (!installed) {
-                    downloads.push({
-                        url: model.url,
-                        path: modelPath,
-                        label: "model",
-                    });
+            if (modelId) {
+                const isDownloaded = (await this.modelStatus(modelId))
+                    .downloaded;
+                if (!isDownloaded && !downloadIfMissing) {
+                    throw modelMissingError();
                 }
-                if (mmprojUrl && mmprojPath) {
-                    const mmprojInstalled =
-                        await this.backend.isModelAvailable(mmprojPath);
-                    log.info("LLM mmproj installed", {
-                        mmprojPath,
-                        mmprojInstalled,
-                    });
-                    if (!mmprojInstalled) {
-                        downloads.push({
-                            url: mmprojUrl,
-                            path: mmprojPath,
-                            label: "mmproj",
-                        });
-                    }
-                }
-
-                log.info("LLM download plan", {
-                    downloads: downloads.map((download) => ({
-                        url: download.url,
-                        path: download.path,
-                        label: download.label,
-                    })),
-                });
-
-                if (downloads.length === 1) {
-                    const download = downloads[0];
-                    if (download) {
-                        await this.downloadModel(download.url, download.path);
-                    }
-                } else if (downloads.length > 1) {
-                    await this.downloadModelsCombined(downloads);
+                if (downloadIfMissing && !isDownloaded) {
+                    await this.downloadModelNative(modelId);
                 }
             }
 
-            this.emitProgress({ percent: 100, status: "Loading model..." });
+            if (emitProgress) {
+                this.emitProgress({ percent: 100, status: "Loading model..." });
+            }
             log.info("LLM load model", { modelPath });
             await this.backend.loadModel({ modelPath });
             log.info("LLM create context", { modelPath, contextSize });
-            await this.backend.createContext({ modelPath }, { contextSize });
+            this.loadedContextSize = await this.backend.createContext(
+                { modelPath },
+                { contextSize },
+            );
 
             this.currentModel = model;
             this.currentModelPath = modelPath;
@@ -286,15 +392,21 @@ export class LlmProvider {
             this.currentContextKey = contextKey;
             this.modelReady = true;
             log.info("LLM ready", { modelId: model.id, modelPath });
-            this.emitProgress({ percent: 100, status: "Ready" });
-        })();
+            if (emitProgress) {
+                this.emitProgress({ percent: 100, status: "Ready" });
+            }
+        });
 
-        this.ensureInFlight = { key: ensureKey, promise: ensurePromise };
+        this.ensureInFlight = {
+            key: ensureKey,
+            promise: ensurePromise,
+            emitsProgress: emitProgress,
+        };
 
         try {
             await ensurePromise;
         } finally {
-            if (this.ensureInFlight?.promise === ensurePromise) {
+            if (this.ensureInFlight.promise === ensurePromise) {
                 this.ensureInFlight = undefined;
             }
         }
@@ -304,36 +416,176 @@ export class LlmProvider {
         request: GenerateChatRequest,
         onEvent?: (event: GenerateEvent) => void,
     ): Promise<GenerateSummary> {
-        return this.backend.generateChatStream(request, onEvent);
+        if (this.backend.kind !== "tauri") {
+            return this.backend.generateChatStream(request, onEvent);
+        }
+        const epoch = this.generationEpoch;
+        return this.withExclusiveModelOperation(async () => {
+            if (epoch !== this.generationEpoch) {
+                throw namedError("cancelled", "Generation cancelled");
+            }
+            if (this.loadedContextSize !== undefined) {
+                request = {
+                    ...request,
+                    maxTokens: resolveGenerationBudget(
+                        this.loadedContextSize,
+                        request.maxTokens,
+                    ).maxTokens,
+                };
+            }
+            return this.backend.generateChatStream(request, onEvent);
+        });
+    }
+
+    public async prewarmImageInferenceIfAvailable(settings: ModelSettings) {
+        await this.initialize();
+        if (this.backend.kind !== "tauri") return;
+
+        const availability = await this.checkModelAvailability(settings);
+        if (
+            !availability.modelAvailable ||
+            !availability.mmprojPath ||
+            availability.mmprojAvailable !== true
+        ) {
+            return;
+        }
+
+        await this.ensureModelReady(settings, { emitProgress: false });
+        const mmprojPath = this.currentMmprojPath ?? availability.mmprojPath;
+        if (!mmprojPath || !this.backend.prewarmMultimodalContext) return;
+        await this.backend.prewarmMultimodalContext(mmprojPath);
     }
 
     public cancelGeneration(jobId: number) {
-        this.backend.cancel(jobId);
+        if (jobId <= 0) this.generationEpoch++;
+        return this.backend.cancel(jobId);
     }
 
     public async resetContext(contextSize?: number) {
-        await this.backend.freeContext();
+        return this.withExclusiveModelOperation(async () => {
+            this.modelReady = false;
+            await this.backend.freeContext();
+            this.currentContextKey = undefined;
+            this.loadedContextSize = undefined;
+            if (this.currentModel && this.currentModelPath) {
+                const resolvedContext =
+                    contextSize ??
+                    (this.backend.kind === "tauri"
+                        ? DEFAULT_TAURI_CONTEXT_SIZE
+                        : DEFAULT_WEB_CONTEXT_SIZE);
+                this.loadedContextSize = await this.backend.createContext(
+                    { modelPath: this.currentModelPath },
+                    { contextSize: resolvedContext },
+                );
+                this.currentContextKey = JSON.stringify({
+                    contextSize: resolvedContext,
+                });
+                this.modelReady = true;
+            }
+        });
+    }
+
+    private invalidateModelState() {
+        this.loadedContextSize = undefined;
+        this.currentModel = undefined;
+        this.currentModelPath = undefined;
+        this.currentMmprojPath = undefined;
         this.currentContextKey = undefined;
-        if (this.currentModel && this.currentModelPath) {
-            const resolvedContext =
-                contextSize ??
-                (this.backend.kind === "tauri"
-                    ? DEFAULT_TAURI_CONTEXT_SIZE
-                    : DEFAULT_WEB_CONTEXT_SIZE);
-            await this.backend.createContext(
-                { modelPath: this.currentModelPath },
-                { contextSize: resolvedContext },
+        this.modelReady = false;
+    }
+
+    public async withVoiceInput<T>(
+        operation: () => Promise<T>,
+        signal: AbortSignal,
+    ): Promise<T> {
+        return this.withExclusiveModelOperation(async () => {
+            const { invoke } = await import("@tauri-apps/api/core");
+            const before = await abortable(
+                invoke<number>("llm_model_state_epoch"),
+                signal,
             );
-            this.currentContextKey = JSON.stringify({
-                contextSize: resolvedContext,
-            });
+            try {
+                signal.throwIfAborted();
+                return await operation();
+            } finally {
+                try {
+                    if (
+                        (await invoke<number>("llm_model_state_epoch")) !==
+                        before
+                    ) {
+                        this.invalidateModelState();
+                    }
+                } catch {
+                    this.invalidateModelState();
+                }
+            }
+        }, signal);
+    }
+
+    public async withKnowledgeRetrieval<T>(
+        operation: (retrievalEpoch: number) => Promise<T>,
+        shouldContinue: () => boolean,
+    ) {
+        if (this.backend.kind !== "tauri") {
+            throw new Error(
+                "Knowledge retrieval is only available in the desktop app",
+            );
         }
+        return this.withExclusiveModelOperation(async () => {
+            const { invoke } = await import("@tauri-apps/api/core");
+            const retrievalEpoch = await invoke<number>("llm_retrieval_epoch");
+            if (!shouldContinue()) {
+                throw namedError("cancelled", "Knowledge retrieval cancelled");
+            }
+
+            const modelStateEpoch = await invoke<number>(
+                "llm_model_state_epoch",
+            );
+            const previousModelState = {
+                currentModel: this.currentModel,
+                currentModelPath: this.currentModelPath,
+                currentMmprojPath: this.currentMmprojPath,
+                currentContextKey: this.currentContextKey,
+                loadedContextSize: this.loadedContextSize,
+                modelReady: this.modelReady,
+            };
+            this.invalidateModelState();
+            try {
+                return await operation(retrievalEpoch);
+            } finally {
+                try {
+                    const currentModelStateEpoch = await invoke<number>(
+                        "llm_model_state_epoch",
+                    );
+                    if (currentModelStateEpoch === modelStateEpoch) {
+                        this.currentModel = previousModelState.currentModel;
+                        this.currentModelPath =
+                            previousModelState.currentModelPath;
+                        this.currentMmprojPath =
+                            previousModelState.currentMmprojPath;
+                        this.currentContextKey =
+                            previousModelState.currentContextKey;
+                        this.loadedContextSize =
+                            previousModelState.loadedContextSize;
+                        this.modelReady = previousModelState.modelReady;
+                    }
+                } catch (error) {
+                    log.warn(
+                        "Failed to reconcile model state after knowledge retrieval",
+                        { error },
+                    );
+                }
+            }
+        });
     }
 
     public cancelDownload() {
-        if (this.downloadAbort) {
-            this.downloadAbort.abort("cancelled");
-            this.downloadAbort = undefined;
+        if (this.downloadActive && this.backend.kind === "tauri") {
+            void import("@tauri-apps/api/core").then(({ invoke }) =>
+                invoke("llm_cancel_model_download").catch((error: unknown) => {
+                    log.warn("LLM cancel model download failed", { error });
+                }),
+            );
         }
         this.emitProgress({ percent: -1, status: "Cancelled" });
     }
@@ -353,7 +605,7 @@ export class LlmProvider {
             return;
         }
         const total = event.total ?? 0;
-        const loaded = event.loaded ?? 0;
+        const loaded = event.loaded;
         const percent = total
             ? Math.min(99, Math.round((loaded / total) * 100))
             : 0;
@@ -366,8 +618,8 @@ export class LlmProvider {
     }
 
     private async resolveDefaultModelForDevice() {
-        this.defaultModel =
-            this.backend.kind === "tauri" ? TAURI_DEFAULT_MODEL : DEFAULT_MODEL;
+        this.defaultModel = DEFAULT_MODEL;
+        this.modelPolicy = undefined;
 
         if (this.backend.kind !== "tauri") {
             return;
@@ -383,14 +635,11 @@ export class LlmProvider {
             const platform = info.platform?.toLowerCase();
             const totalMemoryBytes = info.totalMemoryBytes ?? 0;
 
-            const isMacPlatform =
-                platform === "macos" ||
-                platform === "darwin" ||
-                platform === "mac";
-
-            if (isMacPlatform && totalMemoryBytes >= MIN_HIGH_RAM_MAC_BYTES) {
-                this.defaultModel = HIGH_RAM_MAC_MODEL;
-            }
+            this.modelPolicy = await invoke<ResolvedModelPolicy>(
+                "desktop_model_policy",
+                { totalMemoryBytes: info.totalMemoryBytes },
+            );
+            this.defaultModel = this.modelInfo(this.modelPolicy.defaultModel);
 
             log.info("LLM default model resolved", {
                 platform,
@@ -403,495 +652,74 @@ export class LlmProvider {
     }
 
     private resolveTargetModel(settings: ModelSettings): ModelInfo {
-        if (settings.useCustomModel && settings.modelUrl) {
-            return {
-                id: `custom:${settings.modelUrl}`,
-                name: "Custom model",
-                url: settings.modelUrl,
-                mmprojUrl: settings.mmprojUrl,
-            };
+        if (this.modelPolicy) {
+            const preset = settings.modelId
+                ? this.modelPolicy.allowedPreferredModels.find(
+                      (candidate) => candidate.id === settings.modelId,
+                  )
+                : undefined;
+            return preset ? this.modelInfo(preset) : this.defaultModel;
         }
-        return this.defaultModel;
+        return (
+            FALLBACK_DESKTOP_MODEL_PRESETS.find(
+                (preset) => preset.id === settings.modelId,
+            ) ?? this.defaultModel
+        );
     }
 
-    private resolveMmprojUrl(model: ModelInfo, settings: ModelSettings) {
-        const override = settings.mmprojUrl;
-        if (settings.useCustomModel) {
-            return override && override.trim() ? override : undefined;
-        }
-        if (override !== undefined) {
-            return override && override.trim() ? override : undefined;
-        }
-        return model.mmprojUrl;
-    }
-
-    private async resolveModelPath(
-        model: ModelInfo,
-        settings: ModelSettings,
-    ): Promise<string> {
-        if (this.backend.kind !== "tauri") {
-            return model.url;
-        }
-
-        const { appDataDir, join } = await import("@tauri-apps/api/path");
-
-        const baseDir = await appDataDir();
-        const modelsDir = await join(baseDir, "models");
-        const filename = filenameFromUrl(model.url);
-
-        if (settings.useCustomModel && settings.modelUrl) {
-            const hash = await hashUrl(settings.modelUrl);
-            const customDir = await join(modelsDir, "custom");
-            return join(customDir, `${hash}_${filename}`);
-        }
-
-        return join(modelsDir, filename);
-    }
-
-    private async resolveAuxModelPath(
-        url: string,
-        settings: ModelSettings,
-    ): Promise<string> {
-        const { appDataDir, join } = await import("@tauri-apps/api/path");
-
-        const baseDir = await appDataDir();
-        const modelsDir = await join(baseDir, "models");
-        const filename = filenameFromUrl(url);
-
-        if (settings.useCustomModel) {
-            const hash = await hashUrl(url);
-            const customDir = await join(modelsDir, "custom");
-            return join(customDir, `${hash}_${filename}`);
-        }
-
-        return join(modelsDir, filename);
-    }
-
-    private async downloadModelsCombined(
-        downloads: Array<{ url: string; path: string; label: string }>,
-    ) {
-        const totals = new Map<string, number>();
-        const loaded = new Map<string, number>();
-
-        const emitCombined = () => {
-            const totalBytes = Array.from(totals.values()).reduce(
-                (sum, value) => sum + value,
-                0,
-            );
-            const bytesDownloaded = Array.from(loaded.values()).reduce(
-                (sum, value) => sum + value,
-                0,
-            );
-            const percent = totalBytes
-                ? Math.min(99, Math.round((bytesDownloaded / totalBytes) * 100))
-                : 0;
-            this.emitProgress({
-                percent,
-                status: `Downloading models... ${formatBytes(
-                    bytesDownloaded,
-                )} / ${totalBytes ? formatBytes(totalBytes) : "?"}`,
-                bytesDownloaded,
-                totalBytes: totalBytes || undefined,
-            });
+    private modelInfo(preset: ConfigModelPreset): ModelInfo {
+        const fallback = MODEL_INFO_FALLBACKS.find(
+            (candidate) => candidate.id === preset.id,
+        );
+        return {
+            ...fallback,
+            id: preset.id,
+            name: preset.title,
+            url: preset.url,
+            sha256: preset.sha256,
+            mmprojUrl: preset.mmprojUrl ?? undefined,
+            mmprojSha256: preset.mmprojSha256 ?? undefined,
         };
-
-        this.emitProgress({ percent: 0, status: "Preparing downloads..." });
-
-        for (const download of downloads) {
-            const size = await fetchRemoteSize(download.url);
-            if (size !== undefined) {
-                totals.set(download.label, size);
-            }
-            if (!loaded.has(download.label)) {
-                loaded.set(download.label, 0);
-            }
-        }
-
-        emitCombined();
-
-        for (const download of downloads) {
-            const progressHandler = (progress: DownloadProgress) => {
-                if (progress.totalBytes !== undefined) {
-                    totals.set(download.label, progress.totalBytes);
-                }
-                if (progress.bytesDownloaded !== undefined) {
-                    loaded.set(download.label, progress.bytesDownloaded);
-                }
-                emitCombined();
-            };
-
-            await this.downloadModel(
-                download.url,
-                download.path,
-                progressHandler,
-            );
-        }
     }
 
-    private async downloadModel(
-        url: string,
-        destPath: string,
-        onProgress?: (progress: DownloadProgress) => void,
-    ) {
-        const emit = onProgress ?? ((progress) => this.emitProgress(progress));
-        emit({
+    private async modelStatus(modelId: string): Promise<TauriModelStatus> {
+        const { invoke } = await import("@tauri-apps/api/core");
+        return invoke<TauriModelStatus>("llm_model_status", { modelId });
+    }
+
+    private async downloadModelNative(modelId: string) {
+        const [{ invoke }, { listen }] = await Promise.all([
+            import("@tauri-apps/api/core"),
+            import("@tauri-apps/api/event"),
+        ]);
+
+        log.info("LLM native download start", { modelId });
+        this.emitProgress({
             percent: 0,
             status: "Starting download...",
             bytesDownloaded: 0,
             totalBytes: 0,
         });
-
-        const {
-            mkdir: createDir,
-            exists,
-            remove: removeFile,
-            rename: renameFile,
-        } = await import("@tauri-apps/plugin-fs");
-        const { invoke } = await import("@tauri-apps/api/core");
-        const { dirname } = await import("@tauri-apps/api/path");
-
-        log.info("LLM download start", { url, destPath });
-
-        const dir = await dirname(destPath);
-        await createDir(dir, { recursive: true });
-
-        const tmpPath = `${destPath}.tmp`;
-        const maxAttempts = 3;
-        const stallTimeoutMs = 30_000;
-
-        const delay = (ms: number) =>
-            new Promise<void>((resolve) => {
-                window.setTimeout(resolve, ms);
-            });
-
-        for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-            let downloaded = 0;
-            let totalBytes = 0;
-            const controller = new AbortController();
-            this.downloadAbort = controller;
-
-            let stallTimer: number | null = null;
-            const resetStallTimer = () => {
-                if (stallTimer) {
-                    window.clearTimeout(stallTimer);
-                }
-                stallTimer = window.setTimeout(() => {
-                    if (!controller.signal.aborted) {
-                        controller.abort("stall");
-                    }
-                }, stallTimeoutMs);
-            };
-
-            try {
-                if (await exists(tmpPath)) {
-                    try {
-                        const size = await invoke<number | null>(
-                            "fs_file_size",
-                            { path: tmpPath },
-                        );
-                        downloaded = size ?? 0;
-                        if (downloaded > 0) {
-                            const head = await invoke<number[]>(
-                                "fs_read_head",
-                                { path: tmpPath, length: 4 },
-                            );
-                            if (!isGgufHeader(new Uint8Array(head))) {
-                                log.warn(
-                                    "LLM resume header invalid, restarting",
-                                    { tmpPath },
-                                );
-                                await removeFile(tmpPath);
-                                downloaded = 0;
-                            }
-                        }
-                    } catch {
-                        downloaded = 0;
-                    }
-                }
-
-                emit({
-                    percent: 0,
-                    status:
-                        downloaded > 0
-                            ? "Resuming download..."
-                            : "Starting download...",
-                    bytesDownloaded: downloaded,
-                    totalBytes: 0,
+        this.downloadActive = true;
+        const unlisten = await listen<TauriLlmModelDownloadProgress>(
+            "llm-download-progress",
+            (event) => {
+                const progress = event.payload;
+                this.emitProgress({
+                    percent: Math.min(99, progress.percent),
+                    status: progress.status,
+                    bytesDownloaded: progress.bytesDownloaded,
+                    totalBytes: progress.totalBytes,
                 });
+            },
+        );
 
-                if (downloaded > 0) {
-                    log.info("LLM download resume", { destPath, downloaded });
-                }
-
-                resetStallTimer();
-
-                const headers: HeadersInit | undefined = downloaded
-                    ? { Range: `bytes=${downloaded}-` }
-                    : undefined;
-                let res = await fetch(url, {
-                    signal: controller.signal,
-                    headers,
-                });
-                log.info("LLM download response", {
-                    url,
-                    status: res.status,
-                    contentLength: res.headers.get("Content-Length"),
-                    contentRange: res.headers.get("Content-Range"),
-                });
-                if (!res.ok || !res.body) {
-                    throw new Error(`Failed to download model (${res.status})`);
-                }
-
-                if (downloaded > 0 && res.status === 200) {
-                    downloaded = 0;
-                    try {
-                        await removeFile(tmpPath);
-                    } catch {
-                        // ignore missing tmp
-                    }
-                    res = await fetch(url, { signal: controller.signal });
-                    log.info("LLM download restart", {
-                        url,
-                        status: res.status,
-                        contentLength: res.headers.get("Content-Length"),
-                        contentRange: res.headers.get("Content-Range"),
-                    });
-                    if (!res.ok || !res.body) {
-                        throw new Error(
-                            `Failed to download model (${res.status})`,
-                        );
-                    }
-                }
-
-                const contentRangeTotal = parseContentRangeTotal(
-                    res.headers.get("Content-Range"),
-                );
-                const contentLength = Number(
-                    res.headers.get("Content-Length") ?? 0,
-                );
-                totalBytes =
-                    contentRangeTotal ??
-                    (contentLength ? contentLength + downloaded : 0);
-
-                const reader = res.body.getReader();
-                let headerBytes: Uint8Array | null = null;
-                const maxChunkSize = 1024 * 1024;
-                const yieldAfterBytes = 4 * 1024 * 1024;
-                let bytesSinceYield = 0;
-
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    if (!value) continue;
-
-                    resetStallTimer();
-
-                    for (
-                        let offset = 0;
-                        offset < value.length;
-                        offset += maxChunkSize
-                    ) {
-                        const chunk = value.subarray(
-                            offset,
-                            Math.min(offset + maxChunkSize, value.length),
-                        );
-
-                        if (!headerBytes && downloaded === 0) {
-                            headerBytes = chunk.slice(0, 4);
-                        }
-
-                        await invoke("fs_append_bytes", {
-                            path: tmpPath,
-                            bytes: Array.from(chunk),
-                        });
-
-                        downloaded += chunk.length;
-                        bytesSinceYield += chunk.length;
-
-                        const percent = totalBytes
-                            ? Math.min(
-                                  99,
-                                  Math.round((downloaded / totalBytes) * 100),
-                              )
-                            : 0;
-                        emit({
-                            percent,
-                            status: `Downloading... ${formatBytes(downloaded)} / ${
-                                totalBytes ? formatBytes(totalBytes) : "?"
-                            }`,
-                            bytesDownloaded: downloaded,
-                            totalBytes,
-                        });
-
-                        if (bytesSinceYield >= yieldAfterBytes) {
-                            bytesSinceYield = 0;
-                            await delay(0);
-                            resetStallTimer();
-                        }
-                    }
-                }
-
-                if (stallTimer) {
-                    window.clearTimeout(stallTimer);
-                    stallTimer = null;
-                }
-
-                if (headerBytes && !isGgufHeader(headerBytes)) {
-                    await removeFile(tmpPath);
-                    emit({
-                        percent: -1,
-                        status: "Downloaded file is not GGUF",
-                        bytesDownloaded: downloaded,
-                        totalBytes,
-                    });
-                    throw new Error("Downloaded file is not GGUF");
-                }
-
-                if (downloaded < MIN_GGUF_BYTES) {
-                    await removeFile(tmpPath);
-                    emit({
-                        percent: -1,
-                        status: "Downloaded file too small",
-                        bytesDownloaded: downloaded,
-                        totalBytes,
-                    });
-                    throw new Error("Downloaded file too small");
-                }
-
-                try {
-                    await removeFile(destPath);
-                } catch {
-                    // ignore missing dest
-                }
-
-                await renameFile(tmpPath, destPath);
-
-                const finalSize = await invoke<number | null>("fs_file_size", {
-                    path: destPath,
-                });
-                if (finalSize !== null && finalSize !== downloaded) {
-                    await removeFile(destPath);
-                    throw new Error(
-                        `Downloaded file size mismatch (${finalSize} != ${downloaded})`,
-                    );
-                }
-
-                const head = await invoke<number[]>("fs_read_head", {
-                    path: destPath,
-                    length: 4,
-                });
-                if (!isGgufHeader(new Uint8Array(head))) {
-                    await removeFile(destPath);
-                    throw new Error("Downloaded file header is not GGUF");
-                }
-
-                log.info("LLM download complete", {
-                    destPath,
-                    bytesDownloaded: downloaded,
-                    totalBytes,
-                });
-
-                return;
-            } catch (error) {
-                if (stallTimer) {
-                    window.clearTimeout(stallTimer);
-                    stallTimer = null;
-                }
-
-                const aborted = controller.signal.aborted;
-                const reason = controller.signal.reason;
-                if (aborted && reason === "cancelled") {
-                    throw new Error("Download cancelled");
-                }
-
-                if (attempt >= maxAttempts) {
-                    log.error("LLM download failed", { url, destPath, error });
-                    throw error;
-                }
-
-                log.warn("LLM download retry", {
-                    url,
-                    destPath,
-                    attempt,
-                    error,
-                });
-                await delay(1500 * attempt);
-            } finally {
-                if (this.downloadAbort === controller) {
-                    this.downloadAbort = undefined;
-                }
-            }
+        try {
+            await invoke("llm_download_model", { modelId });
+            log.info("LLM native download complete", { modelId });
+        } finally {
+            this.downloadActive = false;
+            unlisten();
         }
     }
 }
-
-const parseContentRangeTotal = (header: string | null) => {
-    if (!header) return undefined;
-    const match = header.match(/\/(\d+)/);
-    if (!match) return undefined;
-    const total = Number(match[1]);
-    return Number.isFinite(total) ? total : undefined;
-};
-
-const fetchRemoteSize = async (url: string): Promise<number | undefined> => {
-    try {
-        const head = await fetch(url, { method: "HEAD" });
-        if (head.ok) {
-            const length = Number(head.headers.get("Content-Length") ?? 0);
-            if (length > 0) return length;
-            const range = parseContentRangeTotal(
-                head.headers.get("Content-Range"),
-            );
-            if (range) return range;
-        }
-    } catch {
-        // ignore head failures
-    }
-
-    try {
-        const res = await fetch(url, { headers: { Range: "bytes=0-0" } });
-        if (!res.ok) return undefined;
-        const range = parseContentRangeTotal(res.headers.get("Content-Range"));
-        if (range) return range;
-        const length = Number(res.headers.get("Content-Length") ?? 0);
-        return length > 0 ? length : undefined;
-    } catch {
-        return undefined;
-    }
-};
-
-const filenameFromUrl = (url: string) => {
-    try {
-        const parsed = new URL(url);
-        const name = parsed.pathname.split("/").pop();
-        return name && name.length ? name : "model.gguf";
-    } catch {
-        return "model.gguf";
-    }
-};
-
-const hashUrl = async (url: string) => {
-    const data = new TextEncoder().encode(url);
-    const digest = await crypto.subtle.digest("SHA-256", data);
-    return Array.from(new Uint8Array(digest))
-        .map((byte) => byte.toString(16).padStart(2, "0"))
-        .join("");
-};
-
-const isGgufHeader = (bytes: Uint8Array) =>
-    bytes.length >= 4 &&
-    bytes[0] === 0x47 &&
-    bytes[1] === 0x47 &&
-    bytes[2] === 0x55 &&
-    bytes[3] === 0x46;
-
-const formatBytes = (bytes: number) => {
-    if (!bytes || bytes <= 0) return "0 B";
-    const units = ["B", "KB", "MB", "GB", "TB"];
-    const idx = Math.min(
-        units.length - 1,
-        Math.floor(Math.log(bytes) / Math.log(1024)),
-    );
-    const value = bytes / Math.pow(1024, idx);
-    return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[idx]}`;
-};

@@ -5,26 +5,25 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ente-io/museum/pkg/controller/usercache"
-	remoteStoreRepo "github.com/ente-io/museum/pkg/repo/remotestore"
-	"github.com/ente-io/museum/pkg/utils/time"
+	"github.com/ente/museum/pkg/controller/usercache"
+	remoteStoreRepo "github.com/ente/museum/pkg/repo/remotestore"
+	"github.com/ente/museum/pkg/utils/time"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/controller"
-	"github.com/ente-io/museum/pkg/repo"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/controller"
+	"github.com/ente/museum/pkg/repo"
 	"github.com/sirupsen/logrus"
 
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/stacktrace"
 )
 
 const (
-	// maxFamilyMemberLimit number of folks who can be part of a family
 	maxFamilyMemberLimit = 6
 )
 
-// Controller exposes functions to interact with family module
 type Controller struct {
 	BillingCtrl     *controller.BillingController
+	UserLookup      controller.UserLookup
 	UserRepo        *repo.UserRepository
 	FamilyRepo      *repo.FamilyRepository
 	UserCacheCtrl   *usercache.Controller
@@ -32,7 +31,6 @@ type Controller struct {
 	RemoteStoreRepo *remoteStoreRepo.Repository
 }
 
-// FetchMembers return list of members who are part of a family plan
 func (c *Controller) FetchMembers(ctx context.Context, userID int64) (ente.FamilyMemberResponse, error) {
 	user, err := c.UserRepo.Get(userID)
 	if err != nil {
@@ -64,10 +62,12 @@ func (c *Controller) FetchMembersForAdminID(ctx context.Context, familyAdminID i
 	var adminSubStorage, adminSubExpiryTime int64
 	for i := 0; i < len(familyMembers); i++ {
 		member := &familyMembers[i]
+		if member.Status == ente.ACCEPTED || member.Status == ente.SELF {
+			member.UserID = &member.MemberUserID
+		}
 		for _, userUsageData := range usersUsageWithSubData {
 			if member.MemberUserID == userUsageData.UserID {
 				member.Email = *userUsageData.Email
-				// return usage only if the member is part of family group
 				if member.Status == ente.ACCEPTED || member.Status == ente.SELF {
 					member.Usage = userUsageData.StorageConsumed
 				}
@@ -91,7 +91,7 @@ func (c *Controller) FetchMembersForAdminID(ctx context.Context, familyAdminID i
 
 	return ente.FamilyMemberResponse{
 		Members:    familyMembers,
-		Storage:    adminSubStorage, // family plan storage
+		Storage:    adminSubStorage,
 		ExpiryTime: adminSubExpiryTime,
 		AdminBonus: adminUsableBonus,
 	}, nil

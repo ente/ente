@@ -1,0 +1,33 @@
+name: "Push sources and translations to Crowdin (Web)"
+
+# This overwrites Crowdin sources and translations from the selected branch.
+# To avoid losing Crowdin changes:
+# 1. Run the normal sync and merge its translation PR.
+# 2. Branch from updated main, then edit and push the strings.
+# 3. Run this workflow on that branch, then merge the edit PR.
+
+on:
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    push-sources-and-translations-to-crowdin:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+            - name: Crowdin push
+              uses: crowdin/github-action@959dc74ac104447731cba99a016f85d0ae719788 # v3.5.0
+              with:
+                  config: "web/crowdin.yml"
+                  upload_sources: true
+                  upload_translations: true
+                  download_translations: false
+                  project_id: 569613
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:ente_base/models/accounts.dart';
 import 'package:ente_base/typedefs.dart';
 import 'package:ente_strings/ente_strings.dart';
 import 'package:ente_ui/components/action_sheet_widget.dart';
@@ -20,7 +21,6 @@ import 'package:flutter/material.dart';
 
 typedef DialogBuilder = DialogWidget Function(BuildContext context);
 
-///Will return null if dismissed by tapping outside
 Future<ButtonResult?> showErrorDialog(
   BuildContext context,
   String title,
@@ -39,11 +39,7 @@ Future<ButtonResult?> showErrorDialog(
         isInAlert: true,
         buttonAction: ButtonAction.first,
         onTap: () async {
-          await sendEmail(
-            context,
-            to: "support@ente.io",
-            body: body,
-          );
+          await sendEmail(context, to: "support@ente.com", body: body);
         },
       ),
       const ButtonWidget(
@@ -65,6 +61,9 @@ String parseErrorForUI(
   try {
     if (error == null) {
       return genericError;
+    }
+    if (error is AccountsError_Network) {
+      return context.strings.networkConnectionRefusedErr;
     }
     if (error is DioException) {
       final DioException dioError = error;
@@ -110,7 +109,6 @@ String parseErrorForUI(
   }
 }
 
-///Will return null if dismissed by tapping outside
 Future<ButtonResult?> showGenericErrorDialog({
   required BuildContext context,
   bool isDismissible = true,
@@ -150,10 +148,10 @@ Future<ButtonResult?> showGenericErrorDialog({
           buttonAction: ButtonAction.third,
           isInAlert: true,
           onTap: () async {
-            PlatformUtil.openWebView(
+            await PlatformUtil.openWebView(
               context,
               context.strings.faq,
-              "https://ente.io/help/auth/troubleshooting/windows-login",
+              "https://ente.com/help/auth/troubleshooting/windows-login",
             );
           },
         ),
@@ -162,7 +160,7 @@ Future<ButtonResult?> showGenericErrorDialog({
         labelText: context.strings.contactSupport,
         buttonAction: ButtonAction.second,
         onTap: () async {
-          await sendLogs(context, "support@ente.io", postShare: () {});
+          await sendLogs(context, "support@ente.com", postShare: () {});
         },
       ),
     ],
@@ -187,7 +185,7 @@ Future<void> showGenericErrorBottomSheet({
       GradientButton(
         text: context.strings.contactSupport,
         onTap: () async {
-          await sendLogs(context, "support@ente.io", postShare: () {});
+          await sendLogs(context, "support@ente.com", postShare: () {});
         },
       ),
     ],
@@ -228,7 +226,6 @@ DialogWidget choiceDialog({
   return DialogWidget(title: title, body: body, buttons: buttons, icon: icon);
 }
 
-///Will return null if dismissed by tapping outside
 Future<ButtonResult?> showChoiceDialog(
   BuildContext context, {
   required String title,
@@ -272,7 +269,6 @@ Future<ButtonResult?> showChoiceDialog(
   );
 }
 
-///Will return null if dismissed by tapping outside
 Future<ButtonResult?> showChoiceActionSheet(
   BuildContext context, {
   required String title,
@@ -339,7 +335,7 @@ ProgressDialog createProgressDialog(
   return dialog;
 }
 
-//Can return ButtonResult? from ButtonWidget or Exception? from TextInputDialog
+// Returns null after submit, ButtonResult on cancel, and Exception on failure.
 Future<dynamic> showTextInputDialog(
   BuildContext context, {
   required String title,

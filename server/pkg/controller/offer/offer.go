@@ -8,23 +8,20 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ente-io/museum/pkg/controller/usercache"
+	"github.com/ente/museum/pkg/controller/usercache"
 
-	"github.com/ente-io/museum/ente"
-	storageBonusEntity "github.com/ente-io/museum/ente/storagebonus"
-	"github.com/ente-io/museum/pkg/controller/discord"
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/museum/pkg/repo/storagebonus"
-	"github.com/ente-io/museum/pkg/utils/array"
-	"github.com/ente-io/museum/pkg/utils/billing"
-	"github.com/ente-io/museum/pkg/utils/config"
-	emailUtil "github.com/ente-io/museum/pkg/utils/email"
-	"github.com/ente-io/museum/pkg/utils/time"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	storageBonusEntity "github.com/ente/museum/ente/storagebonus"
+	"github.com/ente/museum/pkg/controller/discord"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/museum/pkg/repo/storagebonus"
+	"github.com/ente/museum/pkg/utils/config"
+	emailUtil "github.com/ente/museum/pkg/utils/email"
+	"github.com/ente/museum/pkg/utils/time"
+	"github.com/ente/stacktrace"
 	log "github.com/sirupsen/logrus"
 )
 
-// OfferController controls all offer related operations
 type OfferController struct {
 	BlackFridayOffers ente.BlackFridayOfferPerCountry
 	UserRepo          repo.UserRepository
@@ -61,19 +58,6 @@ func NewOfferController(
 	}
 }
 
-func (c *OfferController) GetBlackFridayOffers(countryCode string) []ente.BlackFridayOffer {
-	if array.StringInList(countryCode, billing.CountriesInEU) {
-		countryCode = "EU"
-	}
-
-	if offers, found := c.BlackFridayOffers[countryCode]; found {
-		return offers
-	}
-	// unable to find plans for given country code, return plans for default country
-	defaultCountry := billing.GetDefaultPlanCountry()
-	return c.BlackFridayOffers[defaultCountry]
-}
-
 func (c *OfferController) ApplyOffer(email string, productID string) error {
 	var offerToBeApplied ente.BlackFridayOffer
 	found := false
@@ -86,7 +70,7 @@ func (c *OfferController) ApplyOffer(email string, productID string) error {
 		}
 	}
 	if !found {
-		return stacktrace.Propagate(ente.ErrNotFound, "Could not find an offer for  "+productID)
+		return stacktrace.Propagate(ente.ErrNotFound, "Could not find an offer for  %s", productID)
 	}
 	var validTill int64
 	if offerToBeApplied.PeriodInYears == ente.Period3Years {
@@ -96,10 +80,10 @@ func (c *OfferController) ApplyOffer(email string, productID string) error {
 	} else if offerToBeApplied.PeriodInYears == ente.Period10Years {
 		validTill = time.NDaysFromNow(10 * 365)
 	} else {
-		return stacktrace.Propagate(ente.ErrNotFound, "Could not find a valid time period for  "+productID)
+		return stacktrace.Propagate(ente.ErrNotFound, "Could not find a valid time period for  %s", productID)
 	}
 
-	userID, err := c.UserRepo.GetUserIDWithEmail(email)
+	userID, err := c.UserRepo.GetUserIDWithEmailUnrestricted(email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			log.Error("Product purchased with unknown email: " + email)
@@ -116,7 +100,7 @@ func (c *OfferController) ApplyOffer(email string, productID string) error {
 		return stacktrace.Propagate(err, "")
 	}
 	go c.UserCacheCtrl.GetActiveStorageBonus(context.Background(), userID)
-	go emailUtil.SendTemplatedEmail([]string{email}, "Ente", "team@ente.io",
+	go emailUtil.SendTemplatedEmail([]string{email}, "Ente", "team@ente.com",
 		ente.BF2024EmailSubject,
 		ente.BF2024EmailTemplate, map[string]interface{}{
 			"Storage": c.readableStorage(offerToBeApplied.Storage),

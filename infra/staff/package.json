@@ -6,42 +6,35 @@
     "scripts": {
         "build": "tsc && vite build",
         "dev": "vite",
-        "lint": "yarn prettier --check --log-level warn . && yarn eslint . && yarn tsc",
-        "lint-fix": "yarn prettier --write --log-level warn . && yarn eslint --fix . && yarn tsc",
-        "preview": "vite preview"
+        "lint": "prettier --check --log-level warn . && eslint . && tsc",
+        "lint:fix": "prettier --write --log-level warn . && eslint --fix . && tsc"
     },
     "dependencies": {
-        "@date-io/date-fns": "^3.0.0",
-        "@emotion/react": "^11.11.4",
-        "@emotion/styled": "^11.11.5",
-        "@mui/icons-material": "^5.16.0",
-        "@mui/lab": "^5.0.0-alpha.171",
-        "@mui/material": "^5.16.0",
-        "@mui/x-date-pickers": "^7.9.0",
-        "@types/react-datepicker": "^6.2.0",
-        "date-fns": "^3.6.0",
-        "react": "^18",
-        "react-datepicker": "^7.3.0",
-        "react-dom": "^18",
-        "react-toastify": "^10.0.5",
-        "zod": "^3"
+        "@emotion/react": "11.14.0",
+        "@emotion/styled": "11.14.1",
+        "@mui/icons-material": "9.0.1",
+        "@mui/material": "9.0.1",
+        "date-fns": "4.2.0",
+        "react": "19.2.6",
+        "react-datepicker": "9.1.0",
+        "react-dom": "19.2.6",
+        "zod": "4.4.3"
     },
     "devDependencies": {
-        "@rollup/plugin-node-resolve": "^15.2.3",
-        "@types/react": "^18",
-        "@types/react-dom": "^18",
-        "@typescript-eslint/eslint-plugin": "^7",
-        "@typescript-eslint/parser": "^7",
-        "@vitejs/plugin-react": "^4.2",
-        "eslint": "^8",
-        "eslint-plugin-react": "^7.34",
-        "eslint-plugin-react-hooks": "^4.6",
-        "eslint-plugin-react-refresh": "^0.4.7",
-        "prettier": "^3",
-        "prettier-plugin-organize-imports": "^3.2",
-        "prettier-plugin-packagejson": "^2.5",
-        "typescript": "^5",
-        "vite": "^5.2"
+        "@eslint/js": "9.39.4",
+        "@types/react": "19.2.14",
+        "@types/react-dom": "19.2.3",
+        "@vitejs/plugin-react": "6.1.2",
+        "eslint": "9.39.4",
+        "eslint-plugin-react": "7.37.5",
+        "eslint-plugin-react-hooks": "7.1.1",
+        "eslint-plugin-react-refresh": "0.5.2",
+        "prettier": "3.8.3",
+        "prettier-plugin-organize-imports": "4.3.0",
+        "prettier-plugin-packagejson": "3.0.2",
+        "typescript": "6.0.3",
+        "typescript-eslint": "8.59.3",
+        "vite": "8.3.4"
     },
-    "packageManager": "yarn@1.22.22"
+    "packageManager": "npm@11.12.1"
 }

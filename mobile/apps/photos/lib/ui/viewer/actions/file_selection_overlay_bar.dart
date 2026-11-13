@@ -1,18 +1,22 @@
+import "dart:async";
 import "dart:io";
 
+import "package:ente_components/ente_components.dart" as components;
+import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import "package:photos/generated/l10n.dart";
 import 'package:photos/models/collection/collection.dart';
+import "package:photos/models/file/file.dart";
 import 'package:photos/models/gallery_type.dart';
 import "package:photos/models/ml/face/person.dart";
 import "package:photos/models/search/hierarchical/face_filter.dart";
 import "package:photos/models/search/hierarchical/hierarchical_search_filter.dart";
 import "package:photos/models/search/hierarchical/only_them_filter.dart";
 import 'package:photos/models/selected_files.dart';
-import "package:photos/theme/effects.dart";
-import "package:photos/theme/ente_theme.dart";
-import 'package:photos/ui/components/bottom_action_bar/bottom_action_bar_widget.dart';
+import "package:photos/ui/components/bottom_action_bar/action_bar_widget.dart";
+import "package:photos/ui/viewer/actions/file_selection_actions_widget.dart";
+import "package:photos/ui/viewer/actions/large_selection_confirmation.dart";
+import "package:photos/ui/viewer/actions/select_all_status_icon.dart";
 import "package:photos/ui/viewer/gallery/state/boundary_reporter_mixin.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
 import "package:photos/ui/viewer/gallery/state/inherited_search_filter_data.dart";
@@ -20,7 +24,6 @@ import "package:photos/ui/viewer/gallery/state/search_filter_data_provider.dart"
 import "package:photos/ui/viewer/gallery/state/selection_state.dart";
 
 class FileSelectionOverlayBar extends StatefulWidget {
-  static double roughHeight = Platform.isIOS ? 240.0 : 232.0;
   final GalleryType galleryType;
   final SelectedFiles selectedFiles;
   final Collection? collection;
@@ -50,7 +53,7 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar>
   SearchFilterDataProvider? _searchFilterDataProvider;
   bool? _galleryInitialFilterStillApplied;
   bool _wasEmpty = true;
-  static const Duration animationDuration = Duration(milliseconds: 400);
+  static const Duration animationDuration = components.Motion.slow;
 
   @override
   void initState() {
@@ -86,8 +89,9 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final inheritedSearchFilterData =
-        InheritedSearchFilterData.maybeOf(context);
+    final inheritedSearchFilterData = InheritedSearchFilterData.maybeOf(
+      context,
+    );
     if (inheritedSearchFilterData?.isHierarchicalSearchable ?? false) {
       _searchFilterDataProvider =
           inheritedSearchFilterData!.searchFilterDataProvider;
@@ -112,20 +116,16 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar>
     return _galleryType == GalleryType.homepage
         ? _body()
         : PopScope(
-            // iOS pop gesture get's blocked if we do canPop false, so always pop on iOS
+            // canPop=false disables iOS's back gesture.
             canPop: Platform.isIOS,
             onPopInvokedWithResult: (didPop, _) {
-              // for iOS return and don't run anything
               if (didPop) return;
 
-              // Android specific block
-              // if nothing is selected then pop the page
               if (widget.selectedFiles.files.isEmpty) {
                 Navigator.of(context).pop();
                 return;
               }
 
-              // clear all selections if something is selected
               widget.selectedFiles.clearAll();
             },
             child: _body(),
@@ -137,45 +137,53 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar>
       valueListenable: _hasSelectedFilesNotifier,
       builder: (context, value, child) {
         return AnimatedCrossFade(
-          firstCurve: Curves.easeInOutExpo,
-          secondCurve: Curves.easeInOutExpo,
-          sizeCurve: Curves.easeInOutExpo,
+          alignment: Alignment.bottomCenter,
+          firstCurve: Curves.easeOutCubic,
+          secondCurve: Curves.easeOutCubic,
+          sizeCurve: Curves.easeOutCubic,
           crossFadeState: _hasSelectedFilesNotifier.value
               ? CrossFadeState.showFirst
               : CrossFadeState.showSecond,
-          duration: _FileSelectionOverlayBarState.animationDuration,
-          firstChild: boundaryWidget(
-            position: BoundaryPosition.bottom,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(right: 4),
-                  child: SelectAllButton(
-                    backgroundColor: widget.backgroundColor,
+          duration: MediaQuery.disableAnimationsOf(context)
+              ? Duration.zero
+              : animationDuration,
+          firstChild: NotificationListener<DraggableScrollableNotification>(
+            onNotification: (_) {
+              reportBoundary(BoundaryPosition.bottom);
+              return true;
+            },
+            child: boundaryWidget(
+              position: BoundaryPosition.bottom,
+              child: FileSelectionActionsWidget(
+                _galleryType,
+                widget.selectedFiles,
+                collection: widget.collection,
+                person: widget.person,
+                clusterID: widget.clusterID,
+                selectionControls: SafeArea(
+                  top: false,
+                  bottom: false,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: components.Spacing.sm,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Flexible(child: SelectAllButton()),
+                        const SizedBox(width: components.Spacing.sm),
+                        Flexible(
+                          child: ActionBarWidget(
+                            selectedFiles: widget.selectedFiles,
+                            onCancel: widget.selectedFiles.clearAll,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                const SizedBox(height: 8),
-                Container(
-                  decoration: BoxDecoration(
-                    boxShadow: shadowFloatFaintLight,
-                  ),
-                  child: BottomActionBarWidget(
-                    selectedFiles: widget.selectedFiles,
-                    galleryType: _galleryType,
-                    collection: widget.collection,
-                    person: widget.person,
-                    clusterID: widget.clusterID,
-                    onCancel: () {
-                      if (widget.selectedFiles.files.isNotEmpty) {
-                        widget.selectedFiles.clearAll();
-                      }
-                    },
-                    backgroundColor: widget.backgroundColor,
-                  ),
-                ),
-              ],
+                backgroundColor: widget.backgroundColor,
+              ),
             ),
           ),
           secondChild: const SizedBox(width: double.infinity),
@@ -184,18 +192,16 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar>
     );
   }
 
-  _selectedFilesListener() {
+  void _selectedFilesListener() {
     _hasSelectedFilesNotifier.value = widget.selectedFiles.files.isNotEmpty;
   }
 
   void _boundaryUpdateListener() {
-    // Update boundary after animation completes
     Future.delayed(_FileSelectionOverlayBarState.animationDuration, () {
+      if (!mounted) return;
       final isEmpty = widget.selectedFiles.files.isEmpty;
 
-      // Only report boundary on empty ↔ non-empty transitions
       if (_wasEmpty != isEmpty) {
-        // Report boundary - will set to null if widget is not visible
         reportBoundary(BoundaryPosition.bottom);
         _wasEmpty = isEmpty;
       }
@@ -207,12 +213,7 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar>
     _updateGalleryTypeIfRequired();
   }
 
-  /// This method is used to update the GalleryType if the initial filter is
-  /// removed from the applied filters. As long as the inital filter is present
-  /// in the applied filters, the gallery type will remain the same as the type
-  /// initally passed in the widget constructor. Once the inital filter is
-  /// removed, the gallery type will be updated to GalleryType.searchResults
-  /// and never be updated again.
+  // Once the initial filter is removed, this remains a search-results gallery.
   void _updateGalleryTypeIfRequired() {
     if (_galleryInitialFilterStillApplied != null &&
         !_galleryInitialFilterStillApplied!) {
@@ -230,8 +231,9 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar>
       if (initialFilter is FaceFilter) {
         for (HierarchicalSearchFilter filter in appliedFilters) {
           if (filter is OnlyThemFilter) {
-            if (filter.faceFilters
-                .any((faceFilter) => faceFilter.isSameFilter(initialFilter))) {
+            if (filter.faceFilters.any(
+              (faceFilter) => faceFilter.isSameFilter(initialFilter),
+            )) {
               initalFilterIsInAppliedFiters = true;
               break;
             }
@@ -251,88 +253,62 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar>
   }
 }
 
-class SelectAllButton extends StatefulWidget {
-  final Color? backgroundColor;
-  const SelectAllButton({super.key, required this.backgroundColor});
+class SelectAllButton extends StatelessWidget {
+  const SelectAllButton({super.key});
 
-  @override
-  State<SelectAllButton> createState() => _SelectAllButtonState();
-}
-
-class _SelectAllButtonState extends State<SelectAllButton> {
-  bool _allSelected = false;
   @override
   Widget build(BuildContext context) {
     final selectionState = SelectionState.of(context);
-    final allGalleryFiles = GalleryFilesState.of(context).galleryFilesOrNull;
-    if (allGalleryFiles == null) {
-      return const SizedBox.shrink();
-    }
-    assert(
-      selectionState != null,
-      "SelectionState not found in context, SelectionState should be an ancestor of FileSelectionOverlayBar",
-    );
-    final colorScheme = getEnteColorScheme(context);
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.selectionClick();
-        setState(() {
-          if (_allSelected) {
-            selectionState.selectedFiles.clearAll();
-          } else {
-            selectionState.selectedFiles.selectAll(
-              allGalleryFiles.toSet(),
-            );
-          }
-          _allSelected = !_allSelected;
-        });
+    if (selectionState == null) return const SizedBox.shrink();
+    return ListenableBuilder(
+      listenable: selectionState.selectedFiles,
+      builder: (context, _) {
+        final allGalleryFiles = GalleryFilesState.of(
+          context,
+        ).galleryFilesOrNull;
+        if (allGalleryFiles == null) return const SizedBox.shrink();
+        final allSelected =
+            selectionState.selectedFiles.files.length == allGalleryFiles.length;
+        return SelectionControlChip(
+          label: context.strings.selectAllShort,
+          semanticLabel: context.strings.selectAll,
+          isSelected: allSelected,
+          icon: SelectAllStatusIcon(
+            isSelected: allSelected,
+            size: components.IconSizes.small,
+            unselectedColor: components.ComponentTheme.colorsOf(
+              context,
+            ).textLighter,
+          ),
+          onTap: allGalleryFiles.isEmpty
+              ? null
+              : () => _toggleSelectAll(
+                  context,
+                  selectionState.selectedFiles,
+                  allGalleryFiles,
+                  allSelected,
+                ),
+        );
       },
-      child: Padding(
-        padding: const EdgeInsets.only(top: 8),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: widget.backgroundColor ?? colorScheme.backgroundElevated2,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 4,
-                offset: const Offset(0, -1),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                AppLocalizations.of(context).selectAllShort,
-                style: getEnteTextTheme(context).miniMuted,
-              ),
-              const SizedBox(width: 4),
-              ListenableBuilder(
-                listenable: selectionState!.selectedFiles,
-                builder: (context, _) {
-                  if (selectionState.selectedFiles.files.length ==
-                      allGalleryFiles.length) {
-                    _allSelected = true;
-                  } else {
-                    _allSelected = false;
-                  }
-                  return Icon(
-                    _allSelected
-                        ? Icons.check_circle
-                        : Icons.check_circle_outline,
-                    color: _allSelected ? null : colorScheme.strokeMuted,
-                    size: 18,
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
     );
+  }
+
+  Future<void> _toggleSelectAll(
+    BuildContext context,
+    SelectedFiles selectedFiles,
+    List<EnteFile> allGalleryFiles,
+    bool allSelected,
+  ) async {
+    unawaited(HapticFeedback.selectionClick());
+    if (allSelected) {
+      selectedFiles.clearAll();
+      return;
+    }
+    final confirmed = await confirmIfLargeSelection(
+      context,
+      allGalleryFiles.length,
+    );
+    if (!confirmed || !context.mounted) return;
+    selectedFiles.selectAll(allGalleryFiles.toSet());
   }
 }

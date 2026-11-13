@@ -29,8 +29,6 @@ class DeduplicationService {
     }
   }
 
-  // Returns a list of DuplicateFiles, where each DuplicateFiles object contains
-  // a list of files that have the same hash
   Future<List<DuplicateFiles>> _getDuplicateFiles() async {
     Map<int, int> uploadIDToSize = {};
     final bool hasFileSizes = await FilesService.instance.hasMigratedSizes();
@@ -38,11 +36,11 @@ class DeduplicationService {
       final DuplicateFilesResponse dupes = await _fetchDuplicateFileIDs();
       uploadIDToSize = dupes.toUploadIDToSize();
     }
-    final Set<int> allowedCollectionIDs =
-        CollectionsService.instance.nonHiddenOwnedCollections();
+    final Set<int> allowedCollectionIDs = CollectionsService.instance
+        .nonHiddenOwnedCollections();
 
-    final List<EnteFile> allFiles =
-        await SearchService.instance.getAllFilesForSearch();
+    final List<EnteFile> allFiles = await SearchService.instance
+        .getAllFilesForSearch();
     final List<EnteFile> filteredFiles = [];
     for (final file in allFiles) {
       if (!file.isUploaded ||
@@ -66,9 +64,7 @@ class DeduplicationService {
     final Map<String, Set<int>> livePhotoHashToCollectionsSet = {};
     final Set<int> processedFileIds = <int>{};
     for (final file in filteredFiles) {
-      // Note: For live photos, the zipped file size could be different if
-      // the files were uploaded from different devices. So, we dedupe live
-      // photos based on hash only.
+      // Equivalent live photos can have different archive sizes across devices.
       if (file.fileType == FileType.livePhoto) {
         final key = '${file.hash}';
         if (!livePhotoHashToFilesMap.containsKey(key)) {
@@ -106,8 +102,9 @@ class DeduplicationService {
       final List<EnteFile> files = livePhotoHashToFilesMap[key]!;
       final Set<int> collectionIds = livePhotoHashToCollectionsSet[key]!;
       if (files.length > 1 && (files.first.fileSize ?? 0) > 0) {
-        dupesByHash
-            .add(DuplicateFiles(files, files.first.fileSize!, collectionIds));
+        dupesByHash.add(
+          DuplicateFiles(files, files.first.fileSize!, collectionIds),
+        );
       }
     }
     return dupesByHash;

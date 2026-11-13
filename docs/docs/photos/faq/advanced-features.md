@@ -9,69 +9,30 @@ description: Frequently asked questions about CLI, exports, and advanced feature
 
 ### What is the Ente CLI? {#what-is-cli}
 
-The Ente CLI is a command-line tool for advanced users that allows you to:
-
-- Export your entire library or specific albums to local storage
-- Set up automated exports with cron jobs
-- Sync data to NAS or other storage systems
-- Perform bulk operations
-
-The CLI is particularly useful for:
-
-- Regular automated backups to local/NAS storage
-- Server-to-server transfers
-- Power users who prefer command-line tools
-
-For complete details, see the [CLI feature guide](/photos/features/utilities/cli).
+Ente CLI is Ente's client for terminals and agents. Use it to export your Photos library, select albums, download individual files, and schedule backups to a local disk or NAS. Learn more in [Ente CLI](/cli/).
 
 ### How do I install the CLI? {#install-cli-advanced}
 
-Ente's CLI is distributed directly over [GitHub](https://github.com/ente-io/ente/releases?q=tag%3Acli-v0).
-
-Download the appropriate version for your platform and follow the installation instructions in the [CLI README](https://github.com/ente-io/ente/tree/main/cli#readme).
-
-Learn more in the [CLI installation guide](/photos/features/utilities/cli#installation).
+Follow [Install Ente CLI](/cli/install) for downloads and setup on Linux, macOS and Windows. If you already use the previous CLI, follow [Migration](/cli/migration).
 
 ### How do I use the CLI to export my photos? {#cli-export-photos}
 
-The CLI supports incremental exports, which means it will only download new or changed files. Configure the export directory for the account once, then run exports whenever you need:
+Log in, then choose a destination:
 
-```bash
-# Configure where this account should export files
-ente account update --app photos --email you@example.com --dir /path/to/backup
-
-# Export all photos to that directory
-ente export
-
-# Export specific albums
-ente export --albums "Album Name","Another Album"
+```sh
+ente account login --app photos
+ente photos export "$HOME/Pictures/Ente"
 ```
 
-The exports are incremental and will gracefully handle interruptions - you can safely stop and restart without re-downloading everything.
+Run the export command again to pick up changes. Add `--album "Family" --album "Holidays"` to select albums. To continue an export made by the previous CLI, follow [Migration](/cli/migration#take-over-a-photos-export) before running the new command against it.
 
-For complete documentation, see the [CLI feature guide](/photos/features/utilities/cli#basic-usage).
+Learn more in [Photos](/cli/photos).
 
 ### How do I keep NAS and Ente photos synced? {#nas-sync}
 
-The recommended approach is to use the CLI to pull data from Ente to your NAS:
+Run `ente photos export /nas/ente-backup` on a machine with the NAS mounted. [Automation](/cli/automation) shows cron and Task Scheduler setups, including credentials for unattended runs.
 
-1. Install the CLI on your NAS or a machine that can access it
-2. Set up a cron job to run periodic exports
-3. Use the CLI's incremental export feature
-
-Example cron job for daily sync:
-
-```bash
-# Run once to set up the export directory
-/usr/local/bin/ente account update --app photos --email you@example.com --dir /nas/ente-backup
-
-# Cron entry
-0 2 * * * /usr/local/bin/ente export
-```
-
-See the [CLI NAS sync guide](/photos/features/utilities/cli#nas-sync-setup) for detailed setup.
-
-**Note**: Two-way sync is not currently supported. The CLI pulls data from Ente to your local storage.
+Exports pull changes from Ente to your disk. Local edits are not uploaded to Ente.
 
 ### CLI not found after installation {#cli-not-found}
 
@@ -107,8 +68,7 @@ You can use our CLI tool or our desktop app to set up exports of your data to yo
 
 Open `Settings > Export data`, choose a destination folder, and enable "Continuous export" to automatically export new items.
 
-**CLI**:
-Use [Ente's CLI](https://github.com/ente-io/ente/tree/main/cli#export) to export your data in a cron job to a location of your choice. The exports are incremental, and will also gracefully handle interruptions.
+**CLI**: Use [Ente CLI](/cli/automation) to export your data in a cron job to a location of your choice. The exports are incremental, and will also gracefully handle interruptions.
 
 For complete details, see the [Export feature guide](/photos/features/backup-and-sync/export).
 
@@ -203,19 +163,56 @@ While video streaming is in beta, streams do not count against your storage quot
 Video streaming is still in beta. If something isn't working:
 
 - Create a thread in `#feedback` on [Discord](https://discord.com/channels/948937918347608085/1121126215995113552)
-- Contact [support@ente.io](mailto:support@ente.io)
+- Contact [support@ente.com](mailto:support@ente.com)
 
 For crashes or upload failures with streaming enabled, see [Troubleshooting](/photos/faq/troubleshooting#app-crashes-ml-video).
 
+### Why is Streamable videos stuck just below 100%? {#stream-progress-stuck}
+
+If a stream can't be created for a video after a few attempts, Ente stops retrying it automatically. That video still counts as not processed, so the percentage stays just below 100%. The video is still backed up and plays from the original file.
+
+To try again on mobile, first make sure video streaming is enabled. Open the video, tap the overflow menu (⋮) in the top-right corner and select **Create stream**. Keep the app open until it finishes. This option is not available in the desktop viewer.
+
+If you cannot use the mobile app or the same video keeps failing, [send logs](/photos/faq/troubleshooting#sharing-logs) to support and identify an affected video.
+
+### How can I check if a video is being streamed? {#check-streaming-detection}
+
+**On mobile:**
+
+If you see a green "Play Original" button, the streamed version is being used.
+
+**On desktop/web:**
+
+Open the video and click the gear icon in the player. If it shows **Auto**, the video is being streamed.
+
+### Why does my shared video start downloading instead of playing immediately? {#shared-video-downloads-instead-of-playing}
+
+If a video hasn't had a stream generated yet, the browser may start downloading the entire file (or a large portion of it) before playback begins. This can happen with large files like 1–2 GB videos.
+
+To avoid this, ensure video streaming is enabled so that streamable versions are generated for your videos. Learn more in the [Video Streaming feature guide](/photos/features/utilities/video-streaming).
+
 ### How does Cast work? {#how-does-cast-work}
 
-Ente Cast lets you play slideshow albums on Chromecast TVs or any internet-connected large screen. You can pair using auto-pair (Chromium browsers with Chromecast) or PIN pairing (works with any device).
+Ente Cast lets you play slideshow albums on Chromecast TVs or any internet-connected large screen. You can pair using auto-pair (Chromium browsers with Chromecast) or PIN pairing (works with any device). You can also manage multiple active cast sessions and disconnect screens you are no longer using.
 
 For setup instructions, see the [Cast feature guide](/photos/features/utilities/cast/).
 
+### Can I use Ente as a photo frame on a tablet or TV? {#photo-frame}
+
+Yes, in two common ways:
+
+- **Cast to a TV or large screen.** Use [Cast](/photos/features/utilities/cast/) to play an album slideshow on a Chromecast TV or any screen that can open [cast.ente.com](https://cast.ente.com). Pair from the album menu (**Play album on TV** / **Cast album**), then manage or disconnect sessions from the cast controls.
+- **Slideshow on a tablet or computer.** Open an album and start [Slideshow](/photos/faq/albums-and-organization#start-album-slideshow). On a large tablet or desktop this works well as a simple photo frame. You can also start a slideshow from an **On device** album; see [Can I start a slideshow from On device albums or Gallery mode?](/photos/faq/albums-and-organization#album-slideshow-gallery-mode).
+
+### When I scroll through photos on my phone, does Cast show the same photo on the TV? {#cast-phone-scrolling}
+
+No. Cast plays the album you selected as a slideshow on the TV. Scrolling through photos on your phone does not change the photo shown on the TV.
+
+To show photos from another album, start Cast from that album.
+
 ### Can I use Cast without Chromecast? {#cast-without-chromecast}
 
-Yes! Use the "Pair with PIN" option which works with any device. Load [cast.ente.io](https://cast.ente.io) on your large screen device and enter the displayed PIN on your mobile or web device.
+Yes! Use the "Pair with PIN" option which works with any device. Load [cast.ente.com](https://cast.ente.com) on your large screen device and enter the displayed PIN on your mobile or web device.
 
 ### App crashes with video streaming enabled {#app-crashes-video-streaming}
 
@@ -244,7 +241,7 @@ Large video uploads may fail when streaming is enabled, especially on mobile:
 
 ### PIN pairing isn't working for Cast {#cast-pin-not-working}
 
-- Verify that [cast.ente.io](https://cast.ente.io) is loaded on your large screen device
+- Verify that [cast.ente.com](https://cast.ente.com) is loaded on your large screen device
 - Check that both devices have internet connectivity
 - Make sure you're entering the PIN exactly as displayed (case-sensitive)
 - The PIN expires after a short time - refresh for a new PIN if needed
@@ -269,6 +266,18 @@ Notifications are currently only available on mobile apps. See the [Notification
 ### How do I manage notification settings? {#manage-notifications}
 
 Open `Settings > Notifications` to enable or disable specific notification categories. All categories are enabled by default when you grant notification permission.
+
+### How do I stop birthday reminders or Memories for one person? {#birthday-reminders-one-person}
+
+Birthday reminders use the birthday saved for a person in **People**.
+
+1. Open **People** and select the person.
+2. Open the overflow menu, tap **Edit**, clear **Birthday**, and save. This stops their birthday reminders.
+3. To keep the person out of Memories too, open the same menu and tap **Hide from memories**.
+
+### Can Ente remind me before someone's birthday? {#birthday-reminders-early}
+
+No. Birthday reminders are sent on the birthday. Ente does not currently offer a setting for an earlier reminder.
 
 ## Home Widgets
 
@@ -346,9 +355,21 @@ No, home widgets are only available on mobile apps (iOS and Android). Desktop ap
 
 ## Other Advanced Features
 
+### Which keyboard shortcuts can I use in Ente Photos on web and desktop? {#keyboard-shortcuts}
+
+| Shortcut | Action |
+| --- | --- |
+| `Ctrl/Cmd + K` | Focus search |
+| `Ctrl/Cmd + click` | Add photos to a selection |
+| `Shift + click` | Select a range of photos |
+| `Ctrl/Cmd + A` | Select all photos in the current view |
+| `Delete` | Move selected photos to Trash |
+
+On Mac, use `Cmd`. On Windows and Linux, use `Ctrl`. Review your selection before pressing `Delete`.
+
 ### Can I access Ente from multiple browsers? {#multiple-browsers}
 
-Yes! You can access Ente from any browser by going to [web.ente.io](https://web.ente.io) and logging in with your credentials.
+Yes! You can access Ente from any browser by going to [photos.ente.com](https://photos.ente.com) and logging in with your credentials.
 
 Your data syncs across all browsers and devices where you're logged in.
 
@@ -368,8 +389,8 @@ Note that these FAQs are primarily for Ente's cloud service. Self-hosting has ad
 
 You can:
 
-1. **GitHub Issues**: Report bugs or request features on [GitHub](https://github.com/ente-io/ente/issues)
-2. **Discord**: Join our [Discord community](https://ente.io/discord) for discussions
-3. **Email**: Contact [support@ente.io](mailto:support@ente.io)
+1. **GitHub Issues**: Report bugs or request features on [GitHub](https://github.com/ente/ente/issues)
+2. **Discord**: Join our [Discord community](https://ente.com/discord) for discussions
+3. **Email**: Contact [support@ente.com](mailto:support@ente.com)
 
-For security vulnerabilities, please email [security@ente.io](mailto:security@ente.io) directly.
+For security vulnerabilities, please email [security@ente.com](mailto:security@ente.com) directly.

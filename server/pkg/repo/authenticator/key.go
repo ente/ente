@@ -5,19 +5,18 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/ente-io/museum/ente"
-	model "github.com/ente-io/museum/ente/authenticator"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	model "github.com/ente/museum/ente/authenticator"
+	"github.com/ente/stacktrace"
 )
 
-// CreateTotpEntry inserts a new &{totp.CreateTotpEntry} entry
 func (r *Repository) CreateKey(ctx context.Context, userID int64, entry model.CreateKeyRequest) error {
 	_, err := r.DB.ExecContext(ctx, `INSERT into authenticator_key(
                          user_id,
                          encrypted_key,
                          header) VALUES ($1,$2,$3)`,
-		userID,             // $1 user_id
-		entry.EncryptedKey, // $2 encrypted_data
+		userID,
+		entry.EncryptedKey,
 		entry.Header)
 
 	if err != nil {

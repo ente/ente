@@ -3,6 +3,8 @@
     "include": [
         ".",
         "../../packages/base/global-electron.d.ts",
+        "../../packages/base/global-css.d.ts",
+        "../../packages/base/globals.d.ts",
         "../../packages/base/components/utils/mui-theme.d.ts"
     ]
 }

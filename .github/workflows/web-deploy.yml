@@ -1,22 +1,9 @@
-name: "Deploy (web)"
+name: "Deploy (Web)"
 
 on:
     schedule:
-        # [Note: Run workflow every 24 hours]
-        #
-        # Run every weekday at ~8:00 AM IST.
-        #
-        # First field is minute, second is hour of the day. Last is day of week,
-        # 0 being Sunday.
-        #
-        # Add a few minutes of offset to avoid scheduling on exact hourly
-        # boundaries (recommended by GitHub to avoid congestion).
-        #
-        # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#schedule
-        # https://crontab.guru/
-        #
+        # Weekdays at ~8:00 AM IST, offset from the hour to avoid congestion.
         - cron: "25 2 * * 1-5"
-    # Also allow manually running the workflow
     workflow_dispatch:
 
 permissions:
@@ -25,133 +12,130 @@ permissions:
 jobs:
     deploy:
         runs-on: ubuntu-latest
+        environment: production
 
         defaults:
             run:
                 working-directory: web
 
         steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
-              with:
-                  persist-credentials: false
+            - name: Checkout
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-            - name: Setup node and enable yarn caching
-              uses: actions/setup-node@v4
+            - name: Setup node
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
               with:
-                  node-version: 22
-                  cache: "yarn"
-                  cache-dependency-path: "web/yarn.lock"
+                  node-version: 24
+                  cache: "npm"
+                  cache-dependency-path: "web/package-lock.json"
 
             - name: Install dependencies
-              run: yarn install --frozen-lockfile
+              run: npm ci
 
             - name: Audit dependencies
-              run: |
-                  yarn audit --level critical || exit_code=$?
-                  if [[ $exit_code -ge 16 ]]; then
-                      echo "::error::Yarn audit found critical issues"
-                      exit 1
-                  fi
-
-            - name: Build photos
-              run: yarn build:photos
-
-            - name: Publish photos
-              uses: cloudflare/wrangler-action@v3
+              run: npm audit --audit-level critical
+            - name: Deploy photos
+              uses: $/.github/actions/deploy-web-app
               with:
-                  accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-                  apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-                  command: pages deploy --project-name=ente --commit-dirty=true --branch=deploy/photos web/apps/photos/out
+                  app: photos
+                  account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+                  api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
-            - name: Build custom-albums
-              run: yarn build:photos
-              env:
-                  NEXT_PUBLIC_ENTE_ONLY_SERVE_ALBUMS_APP: 1
-
-            - name: Publish custom-albums
-              uses: cloudflare/wrangler-action@v3
+            - name: Deploy albums
+              uses: $/.github/actions/deploy-web-app
               with:
-                  accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-                  apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-                  command: pages deploy --project-name=ente --commit-dirty=true --branch=deploy/custom-albums web/apps/photos/out
+                  app: albums
+                  account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+                  api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
-            - name: Build accounts
-              run: yarn build:accounts
-
-            - name: Publish accounts
-              uses: cloudflare/wrangler-action@v3
+            - name: Deploy accounts
+              uses: $/.github/actions/deploy-web-app
               with:
-                  accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-                  apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-                  command: pages deploy --project-name=ente --commit-dirty=true --branch=deploy/accounts web/apps/accounts/out
+                  app: accounts
+                  account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+                  api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
-            - name: Build auth
-              run: yarn build:auth
-
-            - name: Publish auth
-              uses: cloudflare/wrangler-action@v3
+            - name: Deploy auth
+              uses: $/.github/actions/deploy-web-app
               with:
-                  accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-                  apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-                  command: pages deploy --project-name=ente --commit-dirty=true --branch=deploy/auth web/apps/auth/out
+                  app: auth
+                  account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+                  api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
-            - name: Build cast
-              run: yarn build:cast
-
-            - name: Publish cast
-              uses: cloudflare/wrangler-action@v3
+            - name: Deploy legacy
+              uses: $/.github/actions/deploy-web-app
               with:
-                  accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-                  apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-                  command: pages deploy --project-name=ente --commit-dirty=true --branch=deploy/cast web/apps/cast/out
+                  app: legacy
+                  account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+                  api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
-            - name: Build payments
-              run: yarn build:payments
-
-            - name: Publish payments
-              uses: cloudflare/wrangler-action@v3
+            - name: Deploy cast
+              uses: $/.github/actions/deploy-web-app
               with:
-                  accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-                  apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-                  command: pages deploy --project-name=ente --commit-dirty=true --branch=deploy/payments web/apps/payments/dist
+                  app: cast
+                  account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+                  api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
-            - name: Build public locker
-              run: yarn build:share
-
-            - name: Publish public locker
-              uses: cloudflare/wrangler-action@v3
+            - name: Deploy payments
+              uses: $/.github/actions/deploy-web-app
               with:
-                  accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-                  apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-                  command: pages deploy --project-name=ente --commit-dirty=true --branch=deploy/share web/apps/share/out
+                  app: payments
+                  account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+                  api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+                  output: dist
 
-            - name: Build paste
-              run: yarn build:paste
-
-            - name: Publish paste
-              uses: cloudflare/wrangler-action@v3
+            - name: Deploy locker
+              uses: $/.github/actions/deploy-web-app
               with:
-                  accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-                  apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-                  command: pages deploy --project-name=ente --commit-dirty=true --branch=deploy/paste web/apps/paste/out
+                  app: locker
+                  account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+                  api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
-            - name: Build embed
-              run: yarn build:embed
-
-            - name: Publish embed
-              uses: cloudflare/wrangler-action@v3
+            - name: Deploy share
+              uses: $/.github/actions/deploy-web-app
               with:
-                  accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-                  apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-                  command: pages deploy --project-name=ente --commit-dirty=true --branch=deploy/embed web/apps/embed/out
+                  app: share
+                  account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+                  api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
-            - name: Build ensu
-              run: yarn build:ensu
-
-            - name: Publish ensu
-              uses: cloudflare/wrangler-action@v3
+            - name: Deploy space
+              uses: $/.github/actions/deploy-web-app
               with:
-                  accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-                  apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-                  command: pages deploy --project-name=ente --commit-dirty=true --branch=deploy/ensu web/apps/ensu/out
+                  app: space
+                  account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+                  api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+            - name: Deploy memories
+              uses: $/.github/actions/deploy-web-app
+              with:
+                  app: memories
+                  account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+                  api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+            - name: Deploy paste
+              uses: $/.github/actions/deploy-web-app
+              with:
+                  app: paste
+                  account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+                  api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+            - name: Deploy embed
+              uses: $/.github/actions/deploy-web-app
+              with:
+                  app: embed
+                  account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+                  api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+            - name: Deploy ensu
+              uses: $/.github/actions/deploy-web-app
+              with:
+                  app: ensu
+                  account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+                  api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+            - name: Deploy photobook
+              uses: $/.github/actions/deploy-web-app
+              with:
+                  app: photobook
+                  account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+                  api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}

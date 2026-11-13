@@ -21,6 +21,12 @@ Ente needs access to your photo library to display your photos. On iOS, grant "A
 
 ## Features {#features}
 
+### Can I restore photos I deleted on Android? {#gallery-mode-android-recovery}
+
+On Android 11 and newer, photos and videos deleted from the gallery move to Android's system trash. Open **Albums**, tap the trash icon, select the photos, and tap **Restore**. Each photo shows how many days remain before permanent deletion.
+
+On Android 10 and older, deleting photos from your device is permanent. Learn more about [Android Device Trash](/photos/features/albums-and-organization/deleting#android-device-trash).
+
 ### Does face recognition work without an account? {#offline-face-recognition}
 
 Yes. Face recognition runs entirely on your device in gallery mode. Enable it from the banner on the Search tab or from `Settings > Machine learning`. All processing happens locally -- no data leaves your phone.
@@ -57,7 +63,21 @@ There are three places to sign up:
 
 ### Will I lose my photos or ML data when I sign up? {#data-preserved-on-signup}
 
-No. All your device photos remain on your device, and any ML processing (face recognition, search embeddings) done in gallery mode is preserved. Signing up adds cloud features on top of your existing local experience.
+Your photos stay on your device. Signing up doesn't delete or upload anything until you choose folders to back up.
+
+Face recognition and magic search results from gallery mode are not carried over. Once you're signed in, machine learning runs only on photos backed up to Ente, so People and magic search can look empty until your photos upload and are indexed.
+
+To get them back, choose your folders in `Settings > Backup > Backed up folders` and keep machine learning turned on. See [Will signed-in machine learning include photos I have not backed up?](#signed-in-indexing-scope)
+
+### Why did People disappear after I signed up? {#people-gone-after-signup}
+
+People (face groups) built in gallery mode are not kept after you sign up. See [Will I lose my photos or ML data when I sign up?](#data-preserved-on-signup).
+
+### Will signed-in machine learning include photos I have not backed up? {#signed-in-indexing-scope}
+
+While signed in, face recognition and Magic search index photos backed up to Ente. Local photos that have not been backed up are not automatically included, even if you can see them in the device gallery.
+
+Gallery Mode provides local-photo indexing in the mobile app while signed out. There is currently no combined mode that indexes both an Ente library and unbacked local photos while signed in. See [which photos are indexed](/photos/features/search-and-discovery/machine-learning#which-photos-are-indexed).
 
 ### Can I go back to gallery mode after signing up? {#return-to-offline}
 

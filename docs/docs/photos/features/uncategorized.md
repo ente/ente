@@ -1,10 +1,14 @@
 ---
-title: This Page Has Moved
-description: This content has been reorganized
+title: Uncategorized
+description: Understand the Uncategorized album in Ente Photos
 search: false
+head:
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
-# This Page Has Moved
+# Uncategorized
 
 The **Uncategorized** feature guide has moved to:
 

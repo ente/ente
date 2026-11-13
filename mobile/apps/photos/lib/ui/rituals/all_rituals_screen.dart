@@ -1,10 +1,11 @@
 import "dart:async";
 
+import "package:ente_components/ente_components.dart";
 import "package:ente_icons/ente_icons.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
+import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
-import "package:photos/l10n/l10n.dart";
 import "package:photos/models/rituals/ritual_models.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/theme/ente_theme.dart";
@@ -18,90 +19,92 @@ import "package:photos/ui/rituals/ritual_privacy.dart";
 import "package:photos/ui/rituals/start_new_ritual_card.dart";
 
 class AllRitualsScreen extends StatelessWidget {
-  const AllRitualsScreen({super.key, this.ritual});
-
-  // Legacy param; retained for call sites that pass it.
-  final Ritual? ritual;
+  const AllRitualsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final l10n = context.l10n;
+    final l10n = context.strings;
     final ritualsEnabled = flagService.ritualsFlag;
     if (!ritualsEnabled) {
       return Scaffold(
-        appBar: AppBar(title: Text(l10n.ritualsTitle), centerTitle: false),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Text(
-              "Rituals are currently limited to internal users.",
-              style: Theme.of(context).textTheme.bodyMedium,
-              textAlign: TextAlign.center,
+        body: AppBarComponent(
+          title: l10n.ritualsTitle,
+          slivers: [
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Text(
+                    "Rituals are currently limited to internal users.",
+                    style: Theme.of(context).textTheme.bodyMedium,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
             ),
-          ),
+          ],
         ),
       );
     }
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.ritualsTitle),
-        centerTitle: false,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: IconButton(
-              style: IconButton.styleFrom(
-                backgroundColor: const Color(0xFF1DB954),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+      body: ValueListenableBuilder<RitualsState>(
+        valueListenable: ritualsService.stateNotifier,
+        builder: (context, state, _) {
+          final rituals = state.rituals;
+          final summary = state.summary;
+          return AppBarComponent(
+            title: l10n.ritualsTitle,
+            physics: const BouncingScrollPhysics(),
+            actions: [
+              IconButtonComponent(
+                variant: IconButtonComponentVariant.green,
+                shouldSurfaceExecutionStates: false,
+                icon: const HugeIcon(
+                  icon: HugeIcons.strokeRoundedPlusSign,
+                  size: 24,
+                  color: Colors.white,
                 ),
-                padding: const EdgeInsets.all(8),
-                minimumSize: const Size(40, 40),
+                onTap: () async {
+                  await showRitualEditor(context, ritual: null);
+                },
+                tooltip: l10n.ritualAddTooltip,
               ),
-              icon: const HugeIcon(
-                icon: HugeIcons.strokeRoundedPlusSign,
-                size: 24,
-                color: Colors.white,
+            ],
+            slivers: [
+              SliverSafeArea(
+                top: false,
+                sliver: SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 48),
+                  sliver: rituals.isEmpty
+                      ? SliverToBoxAdapter(
+                          child: StartNewRitualCard(
+                            variant: StartNewRitualCardVariant.wide,
+                            onTap: () async {
+                              await showRitualEditor(context, ritual: null);
+                            },
+                          ),
+                        )
+                      : SliverList(
+                          delegate: SliverChildBuilderDelegate((
+                            context,
+                            index,
+                          ) {
+                            final ritual = rituals[index];
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _RitualOverviewCard(
+                                ritual: ritual,
+                                progress: summary?.ritualProgress[ritual.id],
+                              ),
+                            );
+                          }, childCount: rituals.length),
+                        ),
+                ),
               ),
-              onPressed: () async {
-                await showRitualEditor(context, ritual: null);
-              },
-              tooltip: l10n.ritualAddTooltip,
-            ),
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: ValueListenableBuilder<RitualsState>(
-          valueListenable: ritualsService.stateNotifier,
-          builder: (context, state, _) {
-            final rituals = state.rituals;
-            final summary = state.summary;
-            return ListView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 48),
-              children: [
-                if (rituals.isEmpty)
-                  StartNewRitualCard(
-                    variant: StartNewRitualCardVariant.wide,
-                    onTap: () async {
-                      await showRitualEditor(context, ritual: null);
-                    },
-                  )
-                else
-                  ...rituals.map(
-                    (ritual) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _RitualOverviewCard(
-                        ritual: ritual,
-                        progress: summary?.ritualProgress[ritual.id],
-                      ),
-                    ),
-                  ),
-              ],
-            );
-          },
-        ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -194,7 +197,7 @@ class _RitualOverviewCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     ritual.title.isEmpty
-                        ? context.l10n.ritualUntitled
+                        ? context.strings.ritualUntitled
                         : ritual.title,
                     style: textTheme.bodyBold,
                     maxLines: 1,
@@ -262,8 +265,11 @@ class _RitualOverviewCard extends StatelessWidget {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
-    final dayKey =
-        DateTime(day.year, day.month, day.day).millisecondsSinceEpoch;
+    final dayKey = DateTime(
+      day.year,
+      day.month,
+      day.day,
+    ).millisecondsSinceEpoch;
     final file = progress?.recentFilesByDay[dayKey];
     final count =
         progress?.recentFileCountsByDay[dayKey] ?? (completed ? 1 : 0);
@@ -293,10 +299,10 @@ class _RitualOverviewCard extends StatelessWidget {
     final variant = completed
         ? RitualDayThumbnailVariant.photo
         : (isToday
-            ? RitualDayThumbnailVariant.camera
-            : (showFuturePreview && day.isAfter(today)
-                ? RitualDayThumbnailVariant.future
-                : RitualDayThumbnailVariant.empty));
+              ? RitualDayThumbnailVariant.camera
+              : (showFuturePreview && day.isAfter(today)
+                    ? RitualDayThumbnailVariant.future
+                    : RitualDayThumbnailVariant.empty));
 
     return RitualDayThumbnail(
       day: day,
@@ -333,8 +339,10 @@ class _StreakChip extends StatelessWidget {
         children: [
           Text(
             "$streak",
-            style: textTheme.small
-                .copyWith(color: colorScheme.textMuted, height: 1),
+            style: textTheme.small.copyWith(
+              color: colorScheme.textMuted,
+              height: 1,
+            ),
             textHeightBehavior: _tightTextHeightBehavior,
           ),
           const SizedBox(width: 4),
@@ -361,17 +369,17 @@ class _RitualActionsSheet extends StatelessWidget {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        child: Container(
-          decoration: BoxDecoration(
-            color: colorScheme.backgroundElevated,
+        child: Material(
+          color: colorScheme.backgroundElevated,
+          shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: colorScheme.strokeFaint, width: 0.5),
+            side: BorderSide(color: colorScheme.strokeFaint, width: 0.5),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                title: Text(context.l10n.edit, style: textTheme.body),
+                title: Text(context.strings.edit, style: textTheme.body),
                 leading: HugeIcon(
                   icon: HugeIcons.strokeRoundedPencilEdit01,
                   color: colorScheme.textBase,
@@ -386,7 +394,7 @@ class _RitualActionsSheet extends StatelessWidget {
               ),
               ListTile(
                 title: Text(
-                  context.l10n.delete,
+                  context.strings.delete,
                   style: textTheme.body.copyWith(color: Colors.red),
                 ),
                 leading: const HugeIcon(
@@ -462,8 +470,11 @@ bool _isSameDay(DateTime a, DateTime b) {
   }
 
   final createdAt = ritual.createdAt.toLocal();
-  final createdDayMidnight =
-      DateTime(createdAt.year, createdAt.month, createdAt.day);
+  final createdDayMidnight = DateTime(
+    createdAt.year,
+    createdAt.month,
+    createdAt.day,
+  );
 
   final lookbackCount = count - 1;
   final daysBeforeCreation = _lastScheduledDaysInclusive(
@@ -471,8 +482,9 @@ bool _isSameDay(DateTime a, DateTime b) {
     todayMidnight: createdDayMidnight.subtract(const Duration(days: 1)),
     count: lookbackCount,
   );
-  final hadCompletionsBeforeCreation =
-      daysBeforeCreation.any(progress.hasCompleted);
+  final hadCompletionsBeforeCreation = daysBeforeCreation.any(
+    progress.hasCompleted,
+  );
   if (hadCompletionsBeforeCreation) {
     return (days: pastDays, showFuturePreview: false);
   }

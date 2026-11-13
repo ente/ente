@@ -1,14 +1,18 @@
 package api
 
 import (
+	"bytes"
 	"context"
+	"fmt"
 	"github.com/go-resty/resty/v2"
 	"log"
+	"net/url"
+	"strings"
 	"time"
 )
 
 const (
-	EnteAPIEndpoint = "https://api.ente.io"
+	EnteAPIEndpoint = "https://api.ente.com"
 	TokenHeader     = "X-Auth-Token"
 	TokenQuery      = "token"
 	ClientPkgHeader = "X-Client-Package"
@@ -20,8 +24,7 @@ var (
 var tokenMap map[string]string = make(map[string]string)
 
 type Client struct {
-	restClient *resty.Client
-	// use separate client for downloading files
+	restClient     *resty.Client
 	downloadClient *resty.Client
 }
 
@@ -97,4 +100,18 @@ func attachToken(req *resty.Request) {
 
 func (c *Client) AddToken(id string, token string) {
 	tokenMap[id] = token
+}
+
+func (c *Client) ValidateAuthToken(token []byte) error {
+	endpoint, err := url.Parse(c.restClient.BaseURL)
+	if err != nil {
+		return err
+	}
+	switch strings.ToLower(endpoint.Hostname()) {
+	case "api.ente.com", "api.ente.in", "localhost":
+		if len(token) != len("auth-token")+32 || !bytes.HasPrefix(token, []byte("auth-token")) {
+			return fmt.Errorf("invalid login token")
+		}
+	}
+	return nil
 }

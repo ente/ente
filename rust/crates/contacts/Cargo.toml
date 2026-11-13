@@ -1,0 +1,22 @@
+[package]
+name = "ente-contacts"
+edition.workspace = true
+
+[features]
+museum = []
+
+[dependencies]
+ente-core.workspace = true
+md-5.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+ente-legacy.workspace = true
+ente-test-support.workspace = true
+mockito.workspace = true
+serde_json.workspace = true
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+
+[lints]
+workspace = true

@@ -1,0 +1,20 @@
+only_rules:
+  - unowned_variable_capture
+  - weak_delegate
+  - class_delegate_protocol
+  - discarded_notification_center_observer
+  - unhandled_throwing_task
+  - private_swiftui_state
+  - identical_operands
+  - duplicate_conditions
+  - unused_setter_value
+  - empty_count
+  - blanket_disable_command
+  - superfluous_disable_command
+
+empty_count:
+  only_after_dot: true
+
+excluded:
+  - "apps/*/*/Generated"
+  - .build

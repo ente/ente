@@ -1,5 +1,5 @@
-// Common runtime exceptions that can occur during normal app operation.
-// These are recoverable conditions that should be caught and handled.
+// Expected runtime errors may be logged, but should not be reported as crashes.
+abstract interface class LocallyHandledError {}
 
 class WidgetUnmountedException implements Exception {
   final String? message;

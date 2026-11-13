@@ -1,13 +1,10 @@
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
-/// StatefulWidget that manages gallery boundaries and scroll controller lifecycle
 class GalleryBoundariesProvider extends StatefulWidget {
   final Widget child;
 
-  const GalleryBoundariesProvider({
-    super.key,
-    required this.child,
-  });
+  const GalleryBoundariesProvider({super.key, required this.child});
 
   @override
   State<GalleryBoundariesProvider> createState() =>
@@ -19,23 +16,24 @@ class GalleryBoundariesProvider extends StatefulWidget {
   }
 }
 
-/// State class that manages the lifecycle of boundary notifiers
 class GalleryBoundariesProviderState extends State<GalleryBoundariesProvider> {
-  /// Bottom edge position of the top fixed widget (e.g., AppBar)
+  // Bottom edge of the top fixed widget.
   late final ValueNotifier<double?> topBoundaryNotifier;
 
-  /// Top edge position of the bottom fixed widget (e.g., FileSelectionOverlayBar)
+  // Top edge of the bottom fixed widget.
   late final ValueNotifier<double?> bottomBoundaryNotifier;
 
-  /// Reference to Gallery's ScrollController
-  /// Using ValueNotifier to maintain immutability
+  late final ValueNotifier<double?> selectionSheetMinHeightNotifier;
+
   late final ValueNotifier<ScrollController?> scrollControllerNotifier;
+  ValueListenable<bool>? swipeActiveNotifier;
 
   @override
   void initState() {
     super.initState();
     topBoundaryNotifier = ValueNotifier<double?>(null);
     bottomBoundaryNotifier = ValueNotifier<double?>(null);
+    selectionSheetMinHeightNotifier = ValueNotifier<double?>(null);
     scrollControllerNotifier = ValueNotifier<ScrollController?>(null);
   }
 
@@ -43,36 +41,37 @@ class GalleryBoundariesProviderState extends State<GalleryBoundariesProvider> {
   void dispose() {
     topBoundaryNotifier.dispose();
     bottomBoundaryNotifier.dispose();
+    selectionSheetMinHeightNotifier.dispose();
     scrollControllerNotifier.dispose();
     super.dispose();
   }
 
-  /// Set the scroll controller from Gallery widget
-  void setScrollController(ScrollController? controller) {
+  void setScrollController(
+    ScrollController? controller, {
+    ValueListenable<bool>? swipeActiveNotifier,
+  }) {
+    this.swipeActiveNotifier = swipeActiveNotifier;
     scrollControllerNotifier.value = controller;
   }
 
-  /// Set the top boundary position
   void setTopBoundary(double? boundary) {
     topBoundaryNotifier.value = boundary;
   }
 
-  /// Set the bottom boundary position
   void setBottomBoundary(double? boundary) {
     bottomBoundaryNotifier.value = boundary;
   }
 
+  void setSelectionSheetMinHeight(double? height) {
+    selectionSheetMinHeightNotifier.value = height;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return InheritedGalleryBoundaries(
-      state: this,
-      child: widget.child,
-    );
+    return InheritedGalleryBoundaries(state: this, child: widget.child);
   }
 }
 
-/// Public InheritedWidget to share gallery boundaries and scroll controller
-/// between Gallery and its surrounding widgets for auto-scroll functionality
 class InheritedGalleryBoundaries extends InheritedWidget {
   final GalleryBoundariesProviderState state;
 
@@ -82,30 +81,39 @@ class InheritedGalleryBoundaries extends InheritedWidget {
     required super.child,
   });
 
-  /// Bottom edge position of the top fixed widget (e.g., AppBar)
   ValueNotifier<double?> get topBoundaryNotifier => state.topBoundaryNotifier;
 
-  /// Top edge position of the bottom fixed widget (e.g., FileSelectionOverlayBar)
   ValueNotifier<double?> get bottomBoundaryNotifier =>
       state.bottomBoundaryNotifier;
 
-  /// Reference to Gallery's ScrollController
+  ValueNotifier<double?> get selectionSheetMinHeightNotifier =>
+      state.selectionSheetMinHeightNotifier;
+
   ValueNotifier<ScrollController?> get scrollControllerNotifier =>
       state.scrollControllerNotifier;
 
-  /// Set the scroll controller from Gallery widget
-  void setScrollController(ScrollController? controller) {
-    state.setScrollController(controller);
+  ValueListenable<bool>? get swipeActiveNotifier => state.swipeActiveNotifier;
+
+  void setScrollController(
+    ScrollController? controller, {
+    ValueListenable<bool>? swipeActiveNotifier,
+  }) {
+    state.setScrollController(
+      controller,
+      swipeActiveNotifier: swipeActiveNotifier,
+    );
   }
 
-  /// Set the top boundary position
   void setTopBoundary(double? boundary) {
     state.setTopBoundary(boundary);
   }
 
-  /// Set the bottom boundary position
   void setBottomBoundary(double? boundary) {
     state.setBottomBoundary(boundary);
+  }
+
+  void setSelectionSheetMinHeight(double? height) {
+    state.setSelectionSheetMinHeight(height);
   }
 
   @override

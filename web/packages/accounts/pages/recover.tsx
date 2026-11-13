@@ -1,43 +1,29 @@
-import {
-    AccountsPageContents,
-    AccountsPageFooter,
-    AccountsPageTitle,
-} from "ente-accounts/components/layouts/centered-paper";
+import { useAuthPageConfig } from "ente-accounts/components/auth/AuthPageProvider";
+import { RecoverAccountForm } from "ente-accounts/components/auth/RecoveryForm";
 import {
     savedKeyAttributes,
     savedPartialLocalUser,
+    updateSavedLocalUser,
 } from "ente-accounts/services/accounts-db";
-import { recoveryKeyFromMnemonic } from "ente-accounts/services/recovery-key";
+import { saveMasterKeyInSessionAndSafeStore } from "ente-accounts/services/prelogin-session";
 import { appHomeRoute, stashRedirect } from "ente-accounts/services/redirect";
 import type { KeyAttributes } from "ente-accounts/services/user";
-import {
-    decryptAndStoreTokenIfNeeded,
-    sendOTT,
-} from "ente-accounts/services/user";
-import { LinkButton } from "ente-base/components/LinkButton";
-import {
-    SingleInputForm,
-    type SingleInputFormProps,
-} from "ente-base/components/SingleInputForm";
-import { useBaseContext } from "ente-base/context";
-import { decryptBox } from "ente-base/crypto";
+import { recoverAccount, sendOTT } from "ente-accounts/services/user";
+import type { SingleInputFormProps } from "ente-base/components/SingleInputForm";
 import log from "ente-base/log";
-import {
-    haveMasterKeyInSession,
-    saveMasterKeyInSessionAndSafeStore,
-} from "ente-base/session";
+import { haveMasterKeyInSession } from "ente-base/session-storage";
+import { saveAuthToken } from "ente-base/token";
 import { t } from "i18next";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useState } from "react";
 
-/**
- * A page that allows the user to enter their recovery key to recover their
- * master key if they've forgotten their password.
- *
- * See: [Note: Login pages]
- */
+export interface RecoverAccountPresentationProps {
+    onSubmit: SingleInputFormProps["onSubmit"];
+    onBack: () => void;
+}
+
 const Page: React.FC = () => {
-    const { showMiniDialog } = useBaseContext();
+    const { Shell } = useAuthPageConfig();
 
     const [keyAttributes, setKeyAttributes] = useState<
         KeyAttributes | undefined
@@ -74,17 +60,13 @@ const Page: React.FC = () => {
     const handleSubmit: SingleInputFormProps["onSubmit"] = useCallback(
         async (recoveryKeyMnemonic: string, setFieldError) => {
             try {
-                const keyAttr = keyAttributes!;
-                const masterKey = await decryptBox(
-                    {
-                        encryptedData:
-                            keyAttr.masterKeyEncryptedWithRecoveryKey!,
-                        nonce: keyAttr.masterKeyDecryptionNonce!,
-                    },
-                    await recoveryKeyFromMnemonic(recoveryKeyMnemonic),
+                const { masterKey, token } = await recoverAccount(
+                    keyAttributes!,
+                    recoveryKeyMnemonic,
                 );
                 await saveMasterKeyInSessionAndSafeStore(masterKey);
-                await decryptAndStoreTokenIfNeeded(keyAttr, masterKey);
+                updateSavedLocalUser({ token, encryptedToken: undefined });
+                await saveAuthToken(token);
 
                 void router.push("/change-password?op=reset");
             } catch (e) {
@@ -95,31 +77,10 @@ const Page: React.FC = () => {
         [router, keyAttributes],
     );
 
-    const showNoRecoveryKeyMessage = useCallback(() => {
-        showMiniDialog({
-            title: t("sorry"),
-            message: t("no_recovery_key_message"),
-            continue: { color: "secondary" },
-            cancel: false,
-        });
-    }, [showMiniDialog]);
-
     return (
-        <AccountsPageContents>
-            <AccountsPageTitle>{t("recover_account")}</AccountsPageTitle>
-            <SingleInputForm
-                autoComplete="off"
-                label={t("recovery_key")}
-                submitButtonTitle={t("recover")}
-                onSubmit={handleSubmit}
-            />
-            <AccountsPageFooter>
-                <LinkButton onClick={showNoRecoveryKeyMessage}>
-                    {t("no_recovery_key_title")}
-                </LinkButton>
-                <LinkButton onClick={router.back}>{t("go_back")}</LinkButton>
-            </AccountsPageFooter>
-        </AccountsPageContents>
+        <Shell contentWidth={420}>
+            <RecoverAccountForm onSubmit={handleSubmit} onBack={router.back} />
+        </Shell>
     );
 };
 

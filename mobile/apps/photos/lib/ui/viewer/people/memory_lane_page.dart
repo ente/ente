@@ -1,31 +1,44 @@
 import "dart:async";
 import "dart:math" as math;
-import "dart:typed_data";
 import "dart:ui" as ui;
 
 import "package:collection/collection.dart";
+import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
+import "package:flutter/services.dart";
 import "package:intl/intl.dart";
 import "package:logging/logging.dart";
 import "package:photos/db/files_db.dart";
+import "package:photos/db/ml/base.dart";
 import "package:photos/db/ml/db.dart";
 import "package:photos/ente_theme_data.dart";
-import "package:photos/l10n/l10n.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/memory_lane/memory_lane_models.dart";
-import "package:photos/models/ml/face/face.dart";
+import "package:photos/models/ml/face/face_with_embedding.dart";
 import "package:photos/models/ml/face/person.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/memory_lane/memory_lane_service.dart";
+import "package:photos/services/memory_share_service.dart";
 import "package:photos/theme/colors.dart";
 import "package:photos/theme/effects.dart";
 import "package:photos/theme/ente_theme.dart";
+import "package:photos/ui/notification/toast.dart";
+import "package:photos/utils/dialog_util.dart";
 import "package:photos/utils/face/face_thumbnail_cache.dart";
+import "package:photos/utils/face_crop_util.dart";
+import "package:photos/utils/share_util.dart";
 
 class MemoryLanePage extends StatefulWidget {
-  final PersonEntity person;
+  final String personId;
+  final bool isCluster;
+  final PersonEntity? person;
 
-  const MemoryLanePage({required this.person, super.key});
+  const MemoryLanePage({
+    required this.personId,
+    required this.isCluster,
+    required this.person,
+    super.key,
+  });
 
   @override
   State<MemoryLanePage> createState() => _MemoryLanePageState();
@@ -44,6 +57,23 @@ const LinearGradient _memoryLaneBackgroundGradient = LinearGradient(
   stops: [0.0, 0.3, 0.52, 0.74, 1.0],
 );
 
+@visibleForTesting
+int wholeYearsBetween(DateTime start, DateTime end) {
+  final startDate = DateTime(start.year, start.month, start.day);
+  final endDate = DateTime(end.year, end.month, end.day);
+  if (endDate.isBefore(startDate)) return 0;
+
+  int years = endDate.year - startDate.year;
+  final lastDay = DateTime(endDate.year, startDate.month + 1, 0).day;
+  final anniversary = DateTime(
+    endDate.year,
+    startDate.month,
+    startDate.day.clamp(1, lastDay),
+  );
+  if (endDate.isBefore(anniversary)) years--;
+  return years;
+}
+
 class _MemoryLanePageState extends State<MemoryLanePage>
     with TickerProviderStateMixin {
   static const _frameInterval = Duration(milliseconds: 800);
@@ -54,12 +84,13 @@ class _MemoryLanePageState extends State<MemoryLanePage>
   static const double _cardGapUpdateTolerance = 0.5;
   static const double _controlsHeightUpdateTolerance = 0.5;
   static const double _controlsHeightFallback = 140;
-  // Wait for this many frames (or the available total) before auto-starting playback.
+  // Wait for this many frames, or all available frames, before autoplay.
   static const int _initialFrameTarget = 120;
   static const int _frameBuildConcurrency = 6;
-  static const double _appBarSideWidth = kToolbarHeight;
 
   final Logger _logger = Logger("MemoryLanePage");
+  IMLDataDB<int> get _mlDataDB =>
+      isLocalGalleryMode ? MLDataDB.localGalleryInstance : MLDataDB.instance;
   late final AnimationController _cardTransitionController;
   double _stackProgress = 0;
   late final ValueNotifier<double> _stackProgressNotifier;
@@ -84,23 +115,24 @@ class _MemoryLanePageState extends State<MemoryLanePage>
   final GlobalKey _controlsKey = GlobalKey();
   bool _isScrubbing = false;
   double _sliderValue = 0;
-  double _previousCaptionValue = 0;
-  double _currentCaptionValue = 0;
+  int _previousCaptionValue = 0;
+  int _currentCaptionValue = 0;
   _CaptionType _currentCaptionType = _CaptionType.yearsAgo;
   int _maxCaptionDigits = 1;
-  bool get _featureEnabled => flagService.facesTimeline;
+  bool get _showShareAction =>
+      !widget.isCluster &&
+      MemoryLaneService.instance.isFeatureEnabled &&
+      !isLocalGalleryMode;
 
   @override
   void initState() {
     super.initState();
-    _cardTransitionController = AnimationController(
-      vsync: this,
-      duration: _cardTransitionDuration,
-    )
-      ..addListener(_onCardAnimationTick)
-      ..addStatusListener(_onCardAnimationStatusChanged);
+    _cardTransitionController =
+        AnimationController(vsync: this, duration: _cardTransitionDuration)
+          ..addListener(_onCardAnimationTick)
+          ..addStatusListener(_onCardAnimationStatusChanged);
     _stackProgressNotifier = ValueNotifier<double>(_stackProgress);
-    if (_featureEnabled) {
+    if (MemoryLaneService.instance.isFeatureEnabled) {
       unawaited(_loadFrames());
     } else {
       _timelineUnavailable = true;
@@ -128,8 +160,7 @@ class _MemoryLanePageState extends State<MemoryLanePage>
   }
 
   Future<void> _loadFrames() async {
-    _hasMarkedTimelineSeen =
-        localSettings.hasSeenMemoryLane(widget.person.remoteID);
+    _hasMarkedTimelineSeen = localSettings.hasSeenMemoryLane(widget.personId);
     _playTimer?.cancel();
     if (mounted) {
       setState(() {
@@ -138,12 +169,15 @@ class _MemoryLanePageState extends State<MemoryLanePage>
     }
     try {
       final timeline = await MemoryLaneService.instance.getTimeline(
-        widget.person.remoteID,
+        widget.personId,
+        isCluster: widget.isCluster,
       );
       if (!mounted) {
         return;
       }
-      if (timeline == null || !timeline.isReady || timeline.entries.isEmpty) {
+      if (timeline == null ||
+          !timeline.isEligible ||
+          timeline.entries.isEmpty) {
         setState(() {
           _timelineUnavailable = true;
           _allFramesLoaded = true;
@@ -189,11 +223,14 @@ class _MemoryLanePageState extends State<MemoryLanePage>
         ..value = 0;
 
       int loadedCount = 0;
-      final uniqueFileIds =
-          entries.map((entry) => entry.fileId).toSet().toList();
-      final filesById =
-          await FilesDB.instance.getFileIDToFileFromIDs(uniqueFileIds);
-      final Map<int, Future<List<Face>?>> facesFutures = {};
+      final uniqueFileIds = entries
+          .map((entry) => entry.fileId)
+          .toSet()
+          .toList();
+      final filesById = await MemoryLaneService.instance.getTimelineFiles(
+        uniqueFileIds,
+      );
+      final Map<int, Future<List<FaceWithoutEmbedding>?>> facesFutures = {};
 
       await _buildFramesInParallel(
         entries: entries,
@@ -216,11 +253,7 @@ class _MemoryLanePageState extends State<MemoryLanePage>
       });
       _maybeMarkTimelineSeen();
     } catch (error, stackTrace) {
-      _logger.severe(
-        "Faces timeline failed to load",
-        error,
-        stackTrace,
-      );
+      _logger.severe("Faces timeline failed to load", error, stackTrace);
       if (!mounted) {
         return;
       }
@@ -249,9 +282,7 @@ class _MemoryLanePageState extends State<MemoryLanePage>
       return;
     }
     _hasMarkedTimelineSeen = true;
-    unawaited(
-      localSettings.markMemoryLaneSeen(widget.person.remoteID),
-    );
+    unawaited(localSettings.markMemoryLaneSeen(widget.personId));
   }
 
   void _handleFrameLoaded(_TimelineFrame frame, int loadedCount) {
@@ -282,15 +313,14 @@ class _MemoryLanePageState extends State<MemoryLanePage>
     }
   }
 
-  int _captionDigitCount(double value) {
-    final int rounded = value.round().abs();
-    return math.max(1, rounded.toString().length);
+  int _captionDigitCount(int value) {
+    return math.max(1, value.abs().toString().length);
   }
 
   Future<void> _buildFramesInParallel({
     required List<MemoryLaneEntry> entries,
     required Map<int, EnteFile> filesById,
-    required Map<int, Future<List<Face>?>> facesFutures,
+    required Map<int, Future<List<FaceWithoutEmbedding>?>> facesFutures,
     required void Function(_TimelineFrame builtFrame) onFrameReady,
   }) async {
     final readyFrames = <int, _TimelineFrame?>{};
@@ -327,21 +357,24 @@ class _MemoryLanePageState extends State<MemoryLanePage>
         final entry = entries[index];
         final facesFuture = facesFutures.putIfAbsent(
           entry.fileId,
-          () => MLDataDB.instance.getFacesForGivenFileID(entry.fileId),
+          () => _mlDataDB.getFacesForGivenFileID(entry.fileId),
         );
         _buildFrame(
-          entry,
-          file: filesById[entry.fileId],
-          facesFuture: facesFuture,
-        ).then((built) {
-          readyFrames[index] = built;
-        }).catchError((error, stackTrace) {
-          readyFrames[index] = null;
-        }).whenComplete(() {
-          inFlight -= 1;
-          emitReady();
-          startNext();
-        });
+              entry,
+              file: filesById[entry.fileId],
+              facesFuture: facesFuture,
+            )
+            .then((built) {
+              readyFrames[index] = built;
+            })
+            .catchError((error, stackTrace) {
+              readyFrames[index] = null;
+            })
+            .whenComplete(() {
+              inFlight -= 1;
+              emitReady();
+              startNext();
+            });
       }
       maybeComplete();
     }
@@ -353,23 +386,43 @@ class _MemoryLanePageState extends State<MemoryLanePage>
   Future<_TimelineFrame> _buildFrame(
     MemoryLaneEntry entry, {
     EnteFile? file,
-    Future<List<Face>?>? facesFuture,
+    Future<List<FaceWithoutEmbedding>?>? facesFuture,
   }) async {
     EnteFile? effectiveFile = file;
     effectiveFile ??= await FilesDB.instance.getAnyUploadedFile(entry.fileId);
     MemoryImage? image;
+    double? cropAspectRatio;
     Uint8List? bytes;
     if (effectiveFile != null) {
-      final List<Face>? faces;
+      final List<FaceWithoutEmbedding>? faces;
       if (facesFuture != null) {
         faces = await facesFuture;
       } else {
-        faces = await MLDataDB.instance.getFacesForGivenFileID(entry.fileId);
+        faces = await _mlDataDB.getFacesForGivenFileID(entry.fileId);
       }
-      final Face? face = faces?.firstWhereOrNull(
+      final FaceWithoutEmbedding? face = faces?.firstWhereOrNull(
         (element) => element.faceID == entry.faceId,
       );
       if (face != null) {
+        final paddedFaceCropBox = computePaddedFaceCropBox(face.detection.box);
+        final int detectedImageWidth = face.fileInfo?.imageWidth ?? 0;
+        final int detectedImageHeight = face.fileInfo?.imageHeight ?? 0;
+        final int imageWidth = detectedImageWidth > 0
+            ? detectedImageWidth
+            : effectiveFile.width;
+        final int imageHeight = detectedImageHeight > 0
+            ? detectedImageHeight
+            : effectiveFile.height;
+        if (paddedFaceCropBox.width > 0 && paddedFaceCropBox.height > 0) {
+          if (imageWidth > 0 && imageHeight > 0) {
+            cropAspectRatio =
+                (paddedFaceCropBox.width * imageWidth) /
+                (paddedFaceCropBox.height * imageHeight);
+          } else {
+            cropAspectRatio =
+                paddedFaceCropBox.width / paddedFaceCropBox.height;
+          }
+        }
         try {
           final cropMap = await getCachedFaceCrops(
             effectiveFile,
@@ -393,28 +446,28 @@ class _MemoryLanePageState extends State<MemoryLanePage>
     final creationDate = DateTime.fromMicrosecondsSinceEpoch(
       entry.creationTimeMicros,
     );
-    final captionType = widget.person.data.birthDate != null
+    final birthDateString = widget.person?.data.birthDate;
+    final captionType = birthDateString != null
         ? _CaptionType.age
         : _CaptionType.yearsAgo;
-    double captionValue;
-    if (captionType == _CaptionType.age) {
-      final birthDateString = widget.person.data.birthDate!;
+    int captionValue;
+    if (birthDateString != null) {
       final birthDate = DateTime.tryParse(birthDateString);
       if (birthDate == null) {
-        captionValue = _yearsBetween(creationDate, DateTime.now());
+        captionValue = wholeYearsBetween(creationDate, DateTime.now());
       } else {
-        captionValue = _yearsBetween(birthDate, creationDate);
+        captionValue = wholeYearsBetween(birthDate, creationDate);
       }
     } else {
-      captionValue = _yearsBetween(creationDate, DateTime.now());
+      captionValue = wholeYearsBetween(creationDate, DateTime.now());
     }
-    captionValue = captionValue.clamp(0, double.infinity);
     final timelineFrame = _TimelineFrame(
       entry: entry,
       image: image,
       creationDate: creationDate,
       captionType: captionType,
       captionValue: captionValue,
+      cropAspectRatio: cropAspectRatio,
     );
     return timelineFrame;
   }
@@ -461,9 +514,7 @@ class _MemoryLanePageState extends State<MemoryLanePage>
 
   void _logPlaybackStart(int frameCount) {
     if (_loggedPlaybackStart) return;
-    _logger.info(
-      "playback_start person=${widget.person.remoteID} frames=$frameCount",
-    );
+    _logger.info("playback_start person=${widget.personId} frames=$frameCount");
     _loggedPlaybackStart = true;
   }
 
@@ -544,8 +595,8 @@ class _MemoryLanePageState extends State<MemoryLanePage>
     final distance = (targetProgress - _animationStartProgress).abs();
     final multiplier = distance.clamp(1.0, 4.0);
     _cardTransitionController.duration = Duration(
-      milliseconds:
-          (_cardTransitionDuration.inMilliseconds * multiplier).round(),
+      milliseconds: (_cardTransitionDuration.inMilliseconds * multiplier)
+          .round(),
     );
     _cardTransitionController
       ..reset()
@@ -557,8 +608,8 @@ class _MemoryLanePageState extends State<MemoryLanePage>
 
   @override
   Widget build(BuildContext context) {
-    if (!_featureEnabled) {
-      final l10n = context.l10n;
+    if (!MemoryLaneService.instance.isFeatureEnabled) {
+      final l10n = context.strings;
       final colorScheme = getEnteColorScheme(context);
       final textTheme = getEnteTextTheme(context);
       return Scaffold(
@@ -576,13 +627,11 @@ class _MemoryLanePageState extends State<MemoryLanePage>
       data: darkThemeData,
       child: Builder(
         builder: (context) {
-          final l10n = context.l10n;
+          final l10n = context.strings;
           final title = l10n.facesTimelineAppBarTitle;
           final colorScheme = getEnteColorScheme(context);
           final textTheme = getEnteTextTheme(context);
-          final titleStyle = textTheme.h2Bold.copyWith(
-            letterSpacing: -2,
-          );
+          final titleStyle = textTheme.h3Bold.copyWith(letterSpacing: -2);
           return DecoratedBox(
             decoration: const BoxDecoration(
               gradient: _memoryLaneBackgroundGradient,
@@ -594,29 +643,58 @@ class _MemoryLanePageState extends State<MemoryLanePage>
                 surfaceTintColor: Colors.transparent,
                 elevation: 0,
                 scrolledUnderElevation: 0,
+                centerTitle: false,
                 foregroundColor: colorScheme.textBase,
                 automaticallyImplyLeading: false,
-                title: Row(
-                  children: [
-                    const SizedBox(
-                      width: _appBarSideWidth,
-                      height: kToolbarHeight,
-                      child: BackButton(),
-                    ),
-                    Expanded(
-                      child: Center(
-                        child: Text(
-                          title,
-                          style: titleStyle,
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: _appBarSideWidth),
-                  ],
+                titleSpacing: 24,
+                title: Text(
+                  title,
+                  style: titleStyle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
+                actions: [
+                  Padding(
+                    padding: const EdgeInsets.only(right: 16),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_showShareAction)
+                          _buildAppBarActionButton(
+                            context: context,
+                            icon: Icons.share,
+                            tooltip: l10n.shareLink,
+                            onTap: () async {
+                              _pausePlayback();
+                              final shareLinkData =
+                                  await _getOrCreateMemoryLaneLinkData(context);
+                              if (!context.mounted || shareLinkData == null) {
+                                return;
+                              }
+                              await shareText(
+                                formatMemoryShareText(
+                                  l10n.facesTimelineAppBarTitle,
+                                  shareLinkData.$1,
+                                ),
+                                context: context,
+                              );
+                            },
+                          ),
+                        if (_showShareAction) const SizedBox(width: 12),
+                        _buildAppBarActionButton(
+                          context: context,
+                          icon: Icons.close,
+                          tooltip: MaterialLocalizations.of(
+                            context,
+                          ).closeButtonTooltip,
+                          onTap: () async {
+                            await Navigator.of(context).maybePop();
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
               body: Stack(
                 children: [
@@ -637,8 +715,10 @@ class _MemoryLanePageState extends State<MemoryLanePage>
                         const double topPadding = 12;
                         final double gapToTop = _cardGap + topPadding;
                         const double desiredGap = _controlsDesiredGapToCard;
-                        final double overlap =
-                            math.max(0, gapToTop - desiredGap);
+                        final double overlap = math.max(
+                          0,
+                          gapToTop - desiredGap,
+                        );
                         final double controlsHeight = _controlsHeight > 0
                             ? _controlsHeight
                             : _controlsHeightFallback;
@@ -665,15 +745,18 @@ class _MemoryLanePageState extends State<MemoryLanePage>
                                   child: Stack(
                                     children: [
                                       Positioned.fill(
-                                        child: ValueListenableBuilder<double>(
-                                          valueListenable:
-                                              _stackProgressNotifier,
-                                          builder: (context, stackProgress, _) {
-                                            return _buildFrameView(
-                                              context,
-                                              stackProgress,
-                                            );
-                                          },
+                                        child: RepaintBoundary(
+                                          child: ValueListenableBuilder<double>(
+                                            valueListenable:
+                                                _stackProgressNotifier,
+                                            builder:
+                                                (context, stackProgress, _) {
+                                                  return _buildFrameView(
+                                                    context,
+                                                    stackProgress,
+                                                  );
+                                                },
+                                          ),
                                         ),
                                       ),
                                     ],
@@ -752,14 +835,10 @@ class _MemoryLanePageState extends State<MemoryLanePage>
     }
 
     final futureSlices = slices.where((slice) => slice.distance >= 0).toList()
-      ..sort(
-        (a, b) => b.distance.compareTo(a.distance),
-      );
+      ..sort((a, b) => b.distance.compareTo(a.distance));
     final presentAndPastSlices =
         slices.where((slice) => slice.distance < 0).toList()
-          ..sort(
-            (a, b) => a.distance.compareTo(b.distance),
-          );
+          ..sort((a, b) => a.distance.compareTo(b.distance));
 
     return Center(
       child: FractionallySizedBox(
@@ -767,6 +846,9 @@ class _MemoryLanePageState extends State<MemoryLanePage>
         heightFactor: _frameHeightFactor,
         child: LayoutBuilder(
           builder: (context, constraints) {
+            final cardWidth = constraints.hasBoundedWidth
+                ? constraints.maxWidth
+                : constraints.biggest.width;
             final cardHeight = constraints.hasBoundedHeight
                 ? constraints.maxHeight
                 : constraints.biggest.height;
@@ -787,23 +869,25 @@ class _MemoryLanePageState extends State<MemoryLanePage>
                       distance: 0,
                       isDarkMode: isDark,
                       colorScheme: colorScheme,
+                      cardWidth: cardWidth,
                       cardHeight: cardHeight,
                       blurEnabled: !_isScrubbing,
                     ),
                   ]
                 : orderedSlices
-                    .map(
-                      (slice) => _MemoryLaneCard(
-                        key: ValueKey<int>(slice.index),
-                        frame: _frames[slice.index],
-                        distance: slice.distance,
-                        isDarkMode: isDark,
-                        colorScheme: colorScheme,
-                        cardHeight: cardHeight,
-                        blurEnabled: !_isScrubbing,
-                      ),
-                    )
-                    .toList();
+                      .map(
+                        (slice) => _MemoryLaneCard(
+                          key: ValueKey<int>(slice.index),
+                          frame: _frames[slice.index],
+                          distance: slice.distance,
+                          isDarkMode: isDark,
+                          colorScheme: colorScheme,
+                          cardWidth: cardWidth,
+                          cardHeight: cardHeight,
+                          blurEnabled: !_isScrubbing,
+                        ),
+                      )
+                      .toList();
             return Stack(
               clipBehavior: Clip.none,
               alignment: Alignment.center,
@@ -818,16 +902,14 @@ class _MemoryLanePageState extends State<MemoryLanePage>
   Widget _buildCaption(BuildContext context) {
     final colorScheme = getEnteColorScheme(context);
     final textTheme = getEnteTextTheme(context);
-    final l10n = context.l10n;
+    final l10n = context.strings;
     final captionType = _currentCaptionType;
     final isPlaying = _isPlaying;
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final localeName = l10n.localeName;
     final numberFormat = NumberFormat.decimalPattern(localeName);
-    final int currentRounded =
-        _currentCaptionValue.round().clamp(0, 1000).toInt();
-    final int previousRounded =
-        _previousCaptionValue.round().clamp(0, 1000).toInt();
+    final int currentRounded = _currentCaptionValue.clamp(0, 1000);
+    final int previousRounded = _previousCaptionValue.clamp(0, 1000);
     final TextStyle baseStyle = textTheme.bodyMuted.copyWith(
       color: isDark
           ? colorScheme.textMuted
@@ -850,10 +932,11 @@ class _MemoryLanePageState extends State<MemoryLanePage>
     final double slotWidth = samplePainter.width;
     final double slotHeight = samplePainter.height;
     final String formattedCurrent = numberFormat.format(currentRounded);
+    final person = widget.person;
     String fullText;
-    if (captionType == _CaptionType.age) {
+    if (captionType == _CaptionType.age && person != null) {
       fullText = l10n.facesTimelineCaptionYearsOld(
-        name: widget.person.data.name,
+        name: person.data.name,
         count: currentRounded,
       );
     } else {
@@ -861,18 +944,14 @@ class _MemoryLanePageState extends State<MemoryLanePage>
       if (fullText.contains("#")) {
         fullText = fullText.replaceAll("#", formattedCurrent);
       }
-      final String name = widget.person.data.name;
-      if (name.isNotEmpty) {
-        fullText = "$name $fullText";
+      if (person != null && person.data.name.isNotEmpty) {
+        fullText = "${person.data.name} $fullText";
       }
     }
     final int insertionIndex = fullText.indexOf(formattedCurrent);
     final InlineSpan captionSpan;
     if (insertionIndex == -1) {
-      captionSpan = TextSpan(
-        text: fullText,
-        style: baseStyle,
-      );
+      captionSpan = TextSpan(text: fullText, style: baseStyle);
     } else {
       final String prefix = fullText.substring(0, insertionIndex);
       final String suffix = fullText.substring(
@@ -927,10 +1006,7 @@ class _MemoryLanePageState extends State<MemoryLanePage>
           ),
           const SizedBox(width: 12),
           Flexible(
-            child: RichText(
-              textAlign: TextAlign.center,
-              text: captionSpan,
-            ),
+            child: RichText(textAlign: TextAlign.center, text: captionSpan),
           ),
         ],
       ),
@@ -942,17 +1018,20 @@ class _MemoryLanePageState extends State<MemoryLanePage>
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final frameCount = _frames.length;
     final bool hasMultipleFrames = frameCount > 1;
-    final double maxValue =
-        hasMultipleFrames ? (frameCount - 1).toDouble() : 0.0;
-    final double sliderValue =
-        hasMultipleFrames ? _sliderValue.clamp(0.0, maxValue) : 0.0;
+    final double maxValue = hasMultipleFrames
+        ? (frameCount - 1).toDouble()
+        : 0.0;
+    final double sliderValue = hasMultipleFrames
+        ? _sliderValue.clamp(0.0, maxValue)
+        : 0.0;
     const Color activeTrackColor = Colors.white;
     final Color inactiveTrackColor =
         (isDark ? colorScheme.fillBaseGrey : colorScheme.strokeMuted)
             .withValues(alpha: isDark ? 0.55 : 0.48);
     final bool sliderDiscrete = _allFramesLoaded && _expectedFrameCount > 1;
-    final int? divisions =
-        sliderDiscrete ? (_expectedFrameCount - 1) * 4 : null;
+    final int? divisions = sliderDiscrete
+        ? (_expectedFrameCount - 1) * 4
+        : null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -961,6 +1040,7 @@ class _MemoryLanePageState extends State<MemoryLanePage>
             trackHeight: 4,
             activeTrackColor: activeTrackColor,
             inactiveTrackColor: inactiveTrackColor,
+            tickMarkShape: SliderTickMarkShape.noTickMark,
             thumbColor: Colors.white,
             overlayColor: Colors.transparent,
             trackShape: const RoundedRectSliderTrackShape(),
@@ -999,8 +1079,10 @@ class _MemoryLanePageState extends State<MemoryLanePage>
                 : null,
             onChangeEnd: frameCount > 1
                 ? (value) {
-                    final target =
-                        value.round().clamp(0, frameCount - 1).toInt();
+                    final target = value
+                        .round()
+                        .clamp(0, frameCount - 1)
+                        .toInt();
                     final double targetProgress = target.toDouble();
                     setState(() {
                       _currentIndex = target;
@@ -1015,6 +1097,71 @@ class _MemoryLanePageState extends State<MemoryLanePage>
         ),
       ],
     );
+  }
+
+  Widget _buildAppBarActionButton({
+    required BuildContext context,
+    required IconData icon,
+    required String tooltip,
+    required Future<void> Function() onTap,
+  }) {
+    final colorScheme = getEnteColorScheme(context);
+    return Tooltip(
+      message: tooltip,
+      child: GestureDetector(
+        onTap: () async {
+          await onTap();
+        },
+        child: Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: colorScheme.fillFaint,
+          ),
+          padding: const EdgeInsets.all(8),
+          child: Icon(icon, size: 20, color: colorScheme.textBase),
+        ),
+      ),
+    );
+  }
+
+  Future<(String, int)?> _getOrCreateMemoryLaneLinkData(
+    BuildContext context,
+  ) async {
+    final person = widget.person;
+    if (person == null) return null;
+    final l10n = context.strings;
+    final dialog = createProgressDialog(context, l10n.creatingLink);
+    await dialog.show();
+    try {
+      final timeline = await MemoryLaneService.instance.getTimeline(
+        person.remoteID,
+      );
+      if (timeline == null ||
+          !timeline.isEligible ||
+          timeline.entries.isEmpty) {
+        await dialog.hide();
+        if (context.mounted) {
+          showShortToast(context, l10n.somethingWentWrong);
+        }
+        return null;
+      }
+      final shareLinkData = await MemoryShareService.instance
+          .getOrCreateMemoryLaneLink(
+            entries: timeline.entries,
+            title: l10n.facesTimelineAppBarTitle,
+            personId: person.remoteID,
+            personName: person.data.name,
+            birthDate: person.data.birthDate,
+          );
+      await dialog.hide();
+      return shareLinkData;
+    } catch (e) {
+      await dialog.hide();
+      if (context.mounted) {
+        await showGenericErrorBottomSheet(context: context, error: e);
+      }
+      return null;
+    }
   }
 
   void _togglePlayback() {
@@ -1043,8 +1190,9 @@ class _MemoryLanePageState extends State<MemoryLanePage>
     if (!_cardTransitionController.isAnimating && !_isAnimatingCard) {
       return;
     }
-    final eased =
-        Curves.easeInOutCubic.transform(_cardTransitionController.value);
+    final eased = Curves.easeInOutCubic.transform(
+      _cardTransitionController.value,
+    );
     final progress = ui.lerpDouble(
       _animationStartProgress,
       _targetIndex.toDouble(),
@@ -1088,7 +1236,9 @@ class _TimelineFrame {
   final MemoryImage? image;
   final DateTime creationDate;
   final _CaptionType captionType;
-  final double captionValue;
+  final int captionValue;
+  final double? cropAspectRatio;
+  final Map<int?, ImageProvider<Object>> _resizedImageCache = {};
 
   _TimelineFrame({
     required this.entry,
@@ -1096,26 +1246,40 @@ class _TimelineFrame {
     required this.creationDate,
     required this.captionType,
     required this.captionValue,
+    required this.cropAspectRatio,
   });
+
+  ImageProvider<Object>? resizedImage({int? cacheWidth}) {
+    final baseImage = image;
+    if (baseImage == null) {
+      return null;
+    }
+    return _resizedImageCache.putIfAbsent(cacheWidth, () {
+      // Decode face crops by width only so BoxFit.cover can crop naturally
+      // without forcing the image to the card's aspect ratio.
+      return ResizeImage.resizeIfNeeded(cacheWidth, null, baseImage);
+    });
+  }
 }
 
 class _CardSlice {
   final int index;
   final double distance;
 
-  const _CardSlice({
-    required this.index,
-    required this.distance,
-  });
+  const _CardSlice({required this.index, required this.distance});
 }
 
 class _MemoryLaneCard extends StatelessWidget {
   static const double _cardRadius = 28;
+  // Keep in sync with the maximum value returned by [_calculateScale].
+  static const double _maxCardScale = 1.02;
+  static const double _cacheDecodeSafetyMargin = 1.15;
 
   final _TimelineFrame frame;
   final double distance;
   final bool isDarkMode;
   final EnteColorScheme colorScheme;
+  final double cardWidth;
   final double cardHeight;
   final bool blurEnabled;
 
@@ -1124,6 +1288,7 @@ class _MemoryLaneCard extends StatelessWidget {
     required this.distance,
     required this.isDarkMode,
     required this.colorScheme,
+    required this.cardWidth,
     required this.cardHeight,
     required this.blurEnabled,
     super.key,
@@ -1134,16 +1299,20 @@ class _MemoryLaneCard extends StatelessWidget {
     final scale = _calculateScale(distance);
     final yOffset = _calculateYOffset(distance);
     final opacity = _calculateOpacity(distance);
-    final blurSigma = blurEnabled ? _calculateBlur(distance) : 0.0;
+    final blurSigma = blurEnabled && distance < 3.0
+        ? _calculateBlur(distance)
+        : 0.0;
     final rotation = _calculateRotation(distance);
     final overlayOpacity = _calculateOverlayOpacity(distance);
+    final double dpr = MediaQuery.devicePixelRatioOf(context);
+    final int? imageCacheWidth = _cacheDimensionFor(
+      _coveringDecodeWidth(frame.cropAspectRatio),
+      dpr,
+    );
 
     final cardShadow = _shadowForCard(distance);
-    // Emphasize the active card by delaying the date reveal until the card is
-    // nearly centered; keeps background cards calm while the primary one lifts.
     final double emphasisDistance = distance.abs();
-    final double activation =
-        (1 - (emphasisDistance * 1.8)).clamp(0.0, 1.0); // hide until near front
+    final double activation = (1 - (emphasisDistance * 1.8)).clamp(0.0, 1.0);
     final double emphasis = Curves.easeOutQuad.transform(activation);
     final double dateOpacity = emphasis;
     final double gradientAlpha = 0.6 * emphasis;
@@ -1162,11 +1331,12 @@ class _MemoryLaneCard extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          _buildImage(blurSigma),
+          _buildImage(blurSigma, imageCacheWidth),
           if (overlayOpacity > 0)
             Container(
-              color:
-                  colorScheme.backgroundBase.withValues(alpha: overlayOpacity),
+              color: colorScheme.backgroundColour.withValues(
+                alpha: overlayOpacity,
+              ),
             ),
           if (frame.image == null)
             Center(
@@ -1191,10 +1361,10 @@ class _MemoryLaneCard extends StatelessWidget {
                         begin: Alignment.bottomCenter,
                         end: Alignment.topCenter,
                         colors: [
-                          colorScheme.backgroundBase.withValues(
+                          colorScheme.backgroundColour.withValues(
                             alpha: gradientAlpha,
                           ),
-                          colorScheme.backgroundBase.withValues(alpha: 0.0),
+                          colorScheme.backgroundColour.withValues(alpha: 0.0),
                         ],
                       ),
                     ),
@@ -1205,8 +1375,9 @@ class _MemoryLaneCard extends StatelessWidget {
                       style: textTheme.smallMuted.copyWith(
                         shadows: [
                           Shadow(
-                            color:
-                                Colors.black.withValues(alpha: textShadowAlpha),
+                            color: Colors.black.withValues(
+                              alpha: textShadowAlpha,
+                            ),
                             blurRadius: 12,
                           ),
                         ],
@@ -1221,25 +1392,24 @@ class _MemoryLaneCard extends StatelessWidget {
       ),
     );
 
+    final transform = Matrix4.identity()
+      ..translateByDouble(0.0, yOffset, 0.0, 1.0)
+      ..rotateZ(rotation)
+      ..scaleByDouble(scale, scale, 1.0, 1.0);
+
     return Positioned.fill(
       child: IgnorePointer(
         child: Opacity(
           opacity: opacity,
-          child: Transform.translate(
-            offset: Offset(0, yOffset),
-            child: Transform.rotate(
-              angle: rotation,
-              child: Transform.scale(
-                scale: scale,
-                alignment: Alignment.center,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(_cardRadius),
-                    boxShadow: cardShadow,
-                  ),
-                  child: cardContent,
-                ),
+          child: Transform(
+            alignment: Alignment.center,
+            transform: transform,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(_cardRadius),
+                boxShadow: cardShadow,
               ),
+              child: cardContent,
             ),
           ),
         ),
@@ -1247,28 +1417,46 @@ class _MemoryLaneCard extends StatelessWidget {
     );
   }
 
-  Widget _buildImage(double blurSigma) {
-    final Widget base = frame.image != null
+  Widget _buildImage(double blurSigma, int? cacheWidth) {
+    final resizedImage = frame.resizedImage(cacheWidth: cacheWidth);
+    final Widget base = resizedImage != null
         ? Image(
-            image: frame.image!,
+            image: resizedImage,
             fit: BoxFit.cover,
             width: double.infinity,
             height: double.infinity,
             gaplessPlayback: true,
           )
-        : ColoredBox(
-            color: colorScheme.backgroundElevated2,
-          );
+        : ColoredBox(color: colorScheme.backgroundElevated2);
     if (blurSigma <= 0) {
       return base;
     }
     return ImageFiltered(
-      imageFilter: ui.ImageFilter.blur(
-        sigmaX: blurSigma,
-        sigmaY: blurSigma,
-      ),
+      imageFilter: ui.ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
       child: base,
     );
+  }
+
+  double _coveringDecodeWidth(double? imageAspectRatio) {
+    if (imageAspectRatio == null ||
+        !imageAspectRatio.isFinite ||
+        imageAspectRatio <= 0) {
+      return cardWidth;
+    }
+    return math.max(cardWidth, cardHeight * imageAspectRatio);
+  }
+
+  static int? _cacheDimensionFor(double logicalDimension, double dpr) {
+    if (!logicalDimension.isFinite ||
+        logicalDimension <= 0 ||
+        !dpr.isFinite ||
+        dpr <= 0) {
+      return null;
+    }
+    final int rawCacheDimension =
+        (logicalDimension * dpr * _maxCardScale * _cacheDecodeSafetyMargin)
+            .ceil();
+    return rawCacheDimension > 0 ? rawCacheDimension : null;
   }
 
   List<BoxShadow> _shadowForCard(double distance) {
@@ -1276,8 +1464,9 @@ class _MemoryLaneCard extends StatelessWidget {
     if (distance > 0) {
       return [
         BoxShadow(
-          color: Colors.black
-              .withValues(alpha: math.max(0.0, baseOpacity - distance * 0.12)),
+          color: Colors.black.withValues(
+            alpha: math.max(0.0, baseOpacity - distance * 0.12),
+          ),
           blurRadius: 38,
           offset: const Offset(0, 26),
           spreadRadius: -6,
@@ -1318,15 +1507,10 @@ class _MemoryLaneCard extends StatelessWidget {
     if (distance <= 0) {
       return 0;
     }
-    // Drop blur aggressively once the card is mostly in view so the hero frame
-    // looks sharp as soon as it settles.
     const double clearDistance = 0.15;
     const double blurMultiplier = 10;
     final double effective = math.max(0, distance - clearDistance);
-    return math.min(
-      20,
-      (effective + 0.05) * blurMultiplier,
-    );
+    return math.min(20, (effective + 0.05) * blurMultiplier);
   }
 
   double _calculateRotation(double distance) {
@@ -1334,7 +1518,7 @@ class _MemoryLaneCard extends StatelessWidget {
       return 0;
     }
     final clamped = distance.clamp(0.0, 3.0);
-    const double base = 0.035; // ~2 degrees
+    const double base = 0.035;
     final falloff = math.max(0.2, 1 - clamped * 0.18);
     return base * clamped * falloff;
   }
@@ -1361,17 +1545,11 @@ class _MemoryLaneCard extends StatelessWidget {
     const double reachDistance = 3.0;
     final double normalized = (distance / reachDistance).clamp(0.0, 1.0);
     final double eased = Curves.easeOutCubic.transform(normalized);
-    // Fade the lift overlay much earlier so the card looks settled sooner.
     return overlayMax * eased;
   }
 }
 
 enum _CaptionType { age, yearsAgo }
-
-double _yearsBetween(DateTime start, DateTime end) {
-  final days = end.difference(start).inDays;
-  return days / 365.25;
-}
 
 class _MemoryLaneSliderThumbShape extends SliderComponentShape {
   const _MemoryLaneSliderThumbShape();
@@ -1432,10 +1610,7 @@ class _RollingCounter extends StatelessWidget {
       switchOutCurve: Curves.easeInCubic,
       layoutBuilder: (currentChild, previousChildren) => Stack(
         alignment: Alignment.center,
-        children: [
-          ...previousChildren,
-          if (currentChild != null) currentChild,
-        ],
+        children: [...previousChildren, ?currentChild],
       ),
       transitionBuilder: (child, animation) {
         final bool isCurrent = child.key == currentKey;
@@ -1451,8 +1626,9 @@ class _RollingCounter extends StatelessWidget {
               return const SizedBox.shrink();
             }
             final double progress = isCurrent ? curved.value : 1 - curved.value;
-            final double offsetY =
-                isCurrent ? direction * (1 - progress) : -direction * progress;
+            final double offsetY = isCurrent
+                ? direction * (1 - progress)
+                : -direction * progress;
             return ClipRect(
               child: FractionalTranslation(
                 translation: Offset(0, offsetY),
@@ -1465,10 +1641,7 @@ class _RollingCounter extends StatelessWidget {
       child: Align(
         key: currentKey,
         alignment: Alignment.center,
-        child: Text(
-          numberFormat.format(value),
-          style: textStyle,
-        ),
+        child: Text(numberFormat.format(value), style: textStyle),
       ),
     );
   }

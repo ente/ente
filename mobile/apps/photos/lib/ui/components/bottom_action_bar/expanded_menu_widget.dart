@@ -1,18 +1,15 @@
+import 'package:ente_ui/components/divider_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:photos/ui/components/blur_menu_item_widget.dart';
-import 'package:photos/ui/components/divider_widget.dart';
 
 class ExpandedMenuWidget extends StatelessWidget {
   final List<List<BlurMenuItemWidget>> items;
-  const ExpandedMenuWidget({
-    required this.items,
-    super.key,
-  });
+  const ExpandedMenuWidget({required this.items, super.key});
 
   @override
   Widget build(BuildContext context) {
     final textScaler = MediaQuery.of(context).textScaler;
-    //20 is height of font and 28 is total whitespace (top+bottom)
+    // Each row uses 20 points for text and 28 for vertical spacing.
     var scaledHeight = textScaler.scale(20);
     if (scaledHeight < 20) {
       scaledHeight = 20;
@@ -24,7 +21,6 @@ class ExpandedMenuWidget extends StatelessWidget {
     double combinedHeightOfItems = 0.0;
 
     for (List<BlurMenuItemWidget> group in items) {
-      //no divider if there is only one item in the section/group
       if (group.length != 1) {
         numberOfDividers += (group.length - 1);
       }
@@ -34,7 +30,8 @@ class ExpandedMenuWidget extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       child: SizedBox(
-        height: combinedHeightOfItems +
+        height:
+            combinedHeightOfItems +
             (dividerHeightBetweenItems * numberOfDividers) +
             (whiteSpaceBetweenSections * (items.length - 1.0)),
         child: ListView.separated(
@@ -44,7 +41,8 @@ class ExpandedMenuWidget extends StatelessWidget {
             return ClipRRect(
               borderRadius: const BorderRadius.all(Radius.circular(8)),
               child: SizedBox(
-                height: itemHeight * items[sectionIndex].length +
+                height:
+                    itemHeight * items[sectionIndex].length +
                     (dividerHeightBetweenItems *
                         (items[sectionIndex].length - 1)),
                 child: ListView.separated(

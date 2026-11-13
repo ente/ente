@@ -1,9 +1,17 @@
+import "dart:async";
 import 'dart:io';
 
+import "package:android_intent_plus/android_intent.dart";
+import "package:flutter/services.dart";
+import "package:flutter/widgets.dart";
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import "package:flutter_timezone/flutter_timezone.dart";
 import "package:logging/logging.dart";
-import "package:photos/services/sync/remote_sync_service.dart";
+import "package:package_info_plus/package_info_plus.dart";
+import "package:permission_handler/permission_handler.dart";
+import "package:photos/core/configuration.dart";
+import "package:photos/services/language_service.dart";
+import "package:photos/services/notification_key_service.dart";
 import "package:photos/services/timezone_aliases.dart";
 import "package:shared_preferences/shared_preferences.dart";
 import 'package:timezone/data/latest_10y.dart' as tzdb;
@@ -12,12 +20,12 @@ import "package:timezone/timezone.dart" as tz;
 class NotificationService {
   static final NotificationService instance =
       NotificationService._privateConstructor();
-  static const String keyGrantedNotificationPermission =
-      "notification_permission_granted";
   static const String keyShouldShowNotificationsForSharedPhotos =
       "notifications_enabled_shared_photos";
   static const String keyShouldShowSocialNotifications =
       "notifications_enabled_social";
+  static const String _keyHasAttemptedNotificationPermission =
+      "has_attempted_notification_permission";
 
   NotificationService._privateConstructor();
 
@@ -26,28 +34,62 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
   final _logger = Logger("NotificationService");
   void Function(NotificationResponse notificationResponse)?
-      _onNotificationTapped;
+  _onNotificationTapped;
   bool _pluginInitialized = false;
   bool _launchDetailsHandled = false;
 
   void init(SharedPreferences preferences) {
     _preferences = preferences;
+    unawaited(preferences.remove("notification_permission_granted"));
+    unawaited(_shareNotificationPreferencesWithNSE());
+  }
+
+  Future<void> handlePushNotification(
+    Map<String, dynamic> data, {
+    required Future<void> Function() onSync,
+  }) async {
+    if (!data.containsKey('notificationCiphertext')) {
+      if (data['action'] == 'sync') await onSync();
+      return;
+    }
+    if (!Platform.isAndroid) return;
+    Map<String, dynamic>? event;
+    try {
+      event = await NotificationKeyService.decrypt(data);
+    } catch (_) {
+      _logger.warning('Could not decrypt notification');
+    }
+    if (event == null) {
+      await _preferences.reload();
+      if (!_preferences.containsKey(Configuration.hasSecureTokenKey) &&
+          !_preferences.containsKey(Configuration.tokenKey)) {
+        return;
+      }
+      if (shouldShowNotificationsForSharedPhotosAndAlbums()) {
+        final strings = await LanguageService.locals;
+        await showNotification(
+          strings.entePhotos,
+          strings.notificationNewActivity,
+          id: -1,
+        );
+      }
+      return;
+    }
+    if (event['eventType'] == 'album_shared') {
+      _logger.info('Received encrypted album-share push');
+      await onSync();
+    }
   }
 
   bool timezoneInitialized = false;
 
   Future<void> initialize(
-    void Function(
-      NotificationResponse notificationResponse,
-    ) onNotificationTapped,
+    void Function(NotificationResponse notificationResponse)
+    onNotificationTapped,
   ) async {
     _onNotificationTapped = onNotificationTapped;
     await _ensurePluginInitialized();
     await _handleLaunchDetailsIfNeeded();
-    if (!hasGrantedPermissions() &&
-        RemoteSyncService.instance.isFirstRemoteSyncDone()) {
-      await requestPermissions();
-    }
   }
 
   Future<void> initializeForBackground() async {
@@ -56,7 +98,7 @@ class NotificationService {
 
   Future<void> _ensurePluginInitialized() async {
     if (_pluginInitialized) return;
-    await initTimezones();
+    final pluginInitStopwatch = Stopwatch()..start();
     const androidSettings = AndroidInitializationSettings('notification_icon');
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: false,
@@ -65,13 +107,13 @@ class NotificationService {
       requestCriticalPermission: false,
     );
     const InitializationSettings initializationSettings =
-        InitializationSettings(
-      android: androidSettings,
-      iOS: iosSettings,
-    );
+        InitializationSettings(android: androidSettings, iOS: iosSettings);
     await _notificationsPlugin.initialize(
       initializationSettings,
       onDidReceiveNotificationResponse: _handleNotificationResponse,
+    );
+    _logger.info(
+      "flutter_local_notifications.initialize took ${pluginInitStopwatch.elapsedMilliseconds}ms",
     );
     _pluginInitialized = true;
   }
@@ -88,8 +130,12 @@ class NotificationService {
 
   Future<void> _handleLaunchDetailsIfNeeded() async {
     if (_launchDetailsHandled) return;
-    final launchDetails =
-        await _notificationsPlugin.getNotificationAppLaunchDetails();
+    final launchDetailsStopwatch = Stopwatch()..start();
+    final launchDetails = await _notificationsPlugin
+        .getNotificationAppLaunchDetails();
+    _logger.info(
+      "getNotificationAppLaunchDetails took ${launchDetailsStopwatch.elapsedMilliseconds}ms",
+    );
     if (launchDetails != null &&
         launchDetails.didNotificationLaunchApp &&
         launchDetails.notificationResponse != null) {
@@ -100,11 +146,23 @@ class NotificationService {
 
   Future<void> initTimezones() async {
     if (timezoneInitialized) return;
+    final timezoneInitStopwatch = Stopwatch()..start();
+    final tzdbStopwatch = Stopwatch()..start();
     tzdb.initializeTimeZones();
+    _logger.info(
+      "tz.initializeTimeZones took ${tzdbStopwatch.elapsedMilliseconds}ms",
+    );
+    final localTimezoneStopwatch = Stopwatch()..start();
     final String currentTimeZone = await FlutterTimezone.getLocalTimezone();
+    _logger.info(
+      "FlutterTimezone.getLocalTimezone took ${localTimezoneStopwatch.elapsedMilliseconds}ms",
+    );
     final String resolvedTimeZone = _resolveTimeZoneName(currentTimeZone);
     tz.setLocalLocation(tz.getLocation(resolvedTimeZone));
     timezoneInitialized = true;
+    _logger.info(
+      "Notification timezone init took ${timezoneInitStopwatch.elapsedMilliseconds}ms",
+    );
   }
 
   String _resolveTimeZoneName(String timeZoneName) {
@@ -144,49 +202,94 @@ class NotificationService {
       return caseMatch;
     }
 
-    _logger.warning(
-      'Timezone "$timeZoneName" not found, falling back to UTC.',
-    );
+    _logger.warning('Timezone "$timeZoneName" not found, falling back to UTC.');
     return 'UTC';
   }
 
-  Future<void> requestPermissions() async {
-    bool? result;
-    if (Platform.isIOS) {
-      result = await _notificationsPlugin
-          .resolvePlatformSpecificImplementation<
-              IOSFlutterLocalNotificationsPlugin>()
-          ?.requestPermissions(
-            sound: true,
-            alert: true,
-          );
-    } else {
-      result = await _notificationsPlugin
-          .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>()
-          ?.requestNotificationsPermission();
+  Future<bool> requestPermissions(BuildContext context) async {
+    if (await hasGrantedPermissions()) return true;
+    if (!context.mounted) return false;
+
+    final hasAttemptedPermission =
+        _preferences.getBool(_keyHasAttemptedNotificationPermission) ?? false;
+    if (!hasAttemptedPermission) {
+      await _preferences.setBool(_keyHasAttemptedNotificationPermission, true);
+      if (!context.mounted) return false;
+      return _askPermissions();
     }
-    if (result != null) {
-      await _preferences.setBool(keyGrantedNotificationPermission, result);
+
+    if (!context.mounted) return false;
+    await _openNotificationSettings();
+    const interval = Duration(milliseconds: 500);
+    const maxAttempts = 400;
+    for (var attempt = 0; attempt < maxAttempts; attempt++) {
+      await Future.delayed(interval);
+      if (await hasGrantedPermissions()) return true;
     }
+    return false;
   }
 
-  bool hasGrantedPermissions() {
-    final result = _preferences.getBool(keyGrantedNotificationPermission);
-    return result ?? false;
+  Future<bool> _askPermissions() async {
+    await _ensurePluginInitialized();
+    if (Platform.isIOS) {
+      final impl = _notificationsPlugin
+          .resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin
+          >();
+      return await impl?.requestPermissions(sound: true, alert: true) ?? false;
+    }
+    final impl = _notificationsPlugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+    return await impl?.requestNotificationsPermission() ?? false;
+  }
+
+  Future<void> _openNotificationSettings() async {
+    if (Platform.isIOS) {
+      await openAppSettings();
+      return;
+    }
+    final packageInfo = await PackageInfo.fromPlatform();
+    await AndroidIntent(
+      action: "android.settings.APP_NOTIFICATION_SETTINGS",
+      arguments: {
+        "android.provider.extra.APP_PACKAGE": packageInfo.packageName,
+      },
+    ).launch();
+  }
+
+  Future<bool> hasGrantedPermissions() async {
+    await _ensurePluginInitialized();
+    if (Platform.isIOS) {
+      final impl = _notificationsPlugin
+          .resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin
+          >();
+      return (await impl?.checkPermissions())?.isEnabled ?? false;
+    }
+    final impl = _notificationsPlugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+    return await impl?.areNotificationsEnabled() ?? false;
   }
 
   bool shouldShowNotificationsForSharedPhotosAndAlbums() {
-    final result =
-        _preferences.getBool(keyShouldShowNotificationsForSharedPhotos);
+    final result = _preferences.getBool(
+      keyShouldShowNotificationsForSharedPhotos,
+    );
     return result ?? true;
   }
 
-  Future<void> setShouldShowNotificationsForSharedPhotosAndAlbums(bool value) {
-    return _preferences.setBool(
+  Future<void> setShouldShowNotificationsForSharedPhotosAndAlbums(
+    bool value,
+  ) async {
+    await _preferences.setBool(
       keyShouldShowNotificationsForSharedPhotos,
       value,
     );
+    await _shareNotificationPreferencesWithNSE();
   }
 
   bool shouldShowSocialNotifications() {
@@ -194,11 +297,20 @@ class NotificationService {
     return result ?? true;
   }
 
-  Future<void> setShouldShowSocialNotifications(bool value) {
-    return _preferences.setBool(
-      keyShouldShowSocialNotifications,
-      value,
-    );
+  Future<void> setShouldShowSocialNotifications(bool value) async {
+    await _preferences.setBool(keyShouldShowSocialNotifications, value);
+    await _shareNotificationPreferencesWithNSE();
+  }
+
+  Future<void> _shareNotificationPreferencesWithNSE() async {
+    if (!Platform.isIOS) return;
+    try {
+      await const MethodChannel(
+        'io.ente.frame.notifications',
+      ).invokeMethod<void>('sharePreferences');
+    } on PlatformException catch (e, s) {
+      _logger.warning('Could not share notification preferences', e, s);
+    }
   }
 
   Future<void> showNotification(
@@ -209,6 +321,7 @@ class NotificationService {
     String channelName = "ente",
     String payload = "ente://home",
   }) async {
+    await _ensurePluginInitialized();
     _logger.info(
       "Showing notification with: $title, $message, $channelID, $channelName, $payload",
     );
@@ -222,8 +335,10 @@ class NotificationService {
       showWhen: false,
     );
     final iosSpecs = DarwinNotificationDetails(threadIdentifier: channelID);
-    final platformChannelSpecs =
-        NotificationDetails(android: androidSpecs, iOS: iosSpecs);
+    final platformChannelSpecs = NotificationDetails(
+      android: androidSpecs,
+      iOS: iosSpecs,
+    );
     await _notificationsPlugin.show(
       id ?? channelName.hashCode,
       title,
@@ -233,7 +348,35 @@ class NotificationService {
     );
   }
 
-  Future<void> scheduleNotification(
+  Future<void> showBackgroundDebugNotification(
+    String title,
+    String message,
+  ) async {
+    await _ensurePluginInitialized();
+    const channelID = "io.ente.photos.background.debug";
+    const androidSpecs = AndroidNotificationDetails(
+      channelID,
+      "Background debug",
+      importance: Importance.min,
+      priority: Priority.min,
+      playSound: false,
+      enableVibration: false,
+      icon: 'notification_icon',
+    );
+    const iosSpecs = DarwinNotificationDetails(
+      threadIdentifier: channelID,
+      presentSound: false,
+    );
+    await _notificationsPlugin.show(
+      DateTime.now().microsecondsSinceEpoch.remainder(1 << 31),
+      title,
+      message,
+      const NotificationDetails(android: androidSpecs, iOS: iosSpecs),
+      payload: "ente://home",
+    );
+  }
+
+  Future<bool> scheduleNotification(
     String title, {
     String? message,
     required int id,
@@ -245,24 +388,13 @@ class NotificationService {
     bool logSchedule = true,
   }) async {
     try {
+      await _ensurePluginInitialized();
       if (logSchedule) {
         _logger.info(
           "Scheduling notification with: $title, $message, $channelID, $channelName, $payload",
         );
       }
       await initTimezones();
-      if (!hasGrantedPermissions()) {
-        _logger.warning("Notification permissions not granted");
-        await requestPermissions();
-        if (!hasGrantedPermissions()) {
-          _logger.severe("Failed to get notification permissions");
-          return;
-        }
-      } else {
-        if (logSchedule) {
-          _logger.info("Notification permissions already granted");
-        }
-      }
       final androidSpecs = AndroidNotificationDetails(
         channelID,
         channelName,
@@ -275,8 +407,10 @@ class NotificationService {
         timeoutAfter: timeoutDurationAndroid?.inMilliseconds,
       );
       final iosSpecs = DarwinNotificationDetails(threadIdentifier: channelID);
-      final platformChannelSpecs =
-          NotificationDetails(android: androidSpecs, iOS: iosSpecs);
+      final platformChannelSpecs = NotificationDetails(
+        android: androidSpecs,
+        iOS: iosSpecs,
+      );
       final scheduledDate = tz.TZDateTime.local(
         dateTime.year,
         dateTime.month,
@@ -285,7 +419,6 @@ class NotificationService {
         dateTime.minute,
         dateTime.second,
       );
-      // final tz.TZDateTime scheduledDate = tz.TZDateTime.now(tz.local).add(delay);
       await _notificationsPlugin.zonedSchedule(
         id,
         title,
@@ -300,13 +433,15 @@ class NotificationService {
           "Scheduled notification with: $title, $message, $channelID, $channelName, $payload for $dateTime",
         );
       }
+      return true;
     } catch (e, s) {
-      // For now we're swallowing any exceptions here because we don't want the memories logic to get disturbed
+      // Notification failures must not interrupt memory or ritual updates.
       _logger.severe(
         "Something went wrong while scheduling notification",
         e,
         s,
       );
+      return false;
     }
   }
 
@@ -315,6 +450,7 @@ class NotificationService {
     bool logLines = true,
   }) async {
     try {
+      await _ensurePluginInitialized();
       if (logLines) {
         _logger.info("Clearing all scheduled notifications");
       }
@@ -353,6 +489,7 @@ class NotificationService {
   }
 
   Future<int> pendingNotifications() async {
+    await _ensurePluginInitialized();
     final pending = await _notificationsPlugin.pendingNotificationRequests();
     return pending.length;
   }

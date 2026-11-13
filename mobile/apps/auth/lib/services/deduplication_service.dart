@@ -49,8 +49,5 @@ class DuplicateCodes {
   String hash;
   final List<Code> codes;
 
-  DuplicateCodes(
-    this.hash,
-    this.codes,
-  );
+  DuplicateCodes(this.hash, this.codes);
 }

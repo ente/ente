@@ -1,10 +1,14 @@
 ---
-title: This Page Has Moved
-description: This content has been reorganized
+title: Hidden Photos
+description: Hide sensitive photos with biometric protection in Ente Photos
 search: false
+head:
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
-# This Page Has Moved
+# Hidden Photos
 
 The **Hidden Photos** feature guide has moved to:
 

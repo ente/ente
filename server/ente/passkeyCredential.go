@@ -10,12 +10,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// PasskeyCredential are the actual WebAuthn credentials we will send back to the user during auth for the browser to check if they have an eligible authenticator.
 type PasskeyCredential struct {
 	PasskeyID uuid.UUID `json:"passkeyID"`
 
-	CredentialID string `json:"credentialID"` // string
+	CredentialID string `json:"credentialID"`
 
+	RPID                    string `json:"rpID"`
 	PublicKey               string `json:"publicKey"` // b64 []byte
 	AttestationType         string `json:"attestationType"`
 	AuthenticatorTransports string `json:"authenticatorTransports"` // comma-separated slice of strings
@@ -25,7 +25,6 @@ type PasskeyCredential struct {
 	CreatedAt int64 `json:"createdAt"`
 }
 
-// de-serialization function into a webauthn.Credential
 func (c *PasskeyCredential) WebAuthnCredential() (cred *webauthn.Credential, err error) {
 
 	decodedID, err := base64.StdEncoding.DecodeString(c.CredentialID)
@@ -39,14 +38,12 @@ func (c *PasskeyCredential) WebAuthnCredential() (cred *webauthn.Credential, err
 	}
 
 	transports := []protocol.AuthenticatorTransport{}
-	transportStrings := strings.Split(c.AuthenticatorTransports, ",")
-	for _, t := range transportStrings {
+	for t := range strings.SplitSeq(c.AuthenticatorTransports, ",") {
 		transports = append(transports, protocol.AuthenticatorTransport(string(t)))
 	}
 
 	cred.Transport = transports
 
-	// decode b64 back to []byte
 	publicKeyByte, err := base64.StdEncoding.DecodeString(c.PublicKey)
 	if err != nil {
 		return
@@ -72,7 +69,6 @@ func (c *PasskeyCredential) WebAuthnCredential() (cred *webauthn.Credential, err
 		return
 	}
 
-	// decode the AAGUID base64 back to []byte
 	aaguidByte, err := base64.StdEncoding.DecodeString(
 		authenticatorMap["AAGUID"].(string),
 	)

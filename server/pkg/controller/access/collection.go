@@ -1,21 +1,17 @@
 package access
 
 import (
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 )
 
 type GetCollectionParams struct {
-	CollectionID int64
-	// userID of the user trying to fetch the controller
-	ActorUserID int64
-	// IncludeDeleted defaults to false. If false and user is trying to fetch deletion collection
-	// then the request fails
+	CollectionID   int64
+	ActorUserID    int64
 	IncludeDeleted bool
-
-	// VerifyOwner deafults to false. If the flag is set to true, the method will verify that the actor actually owns the collection
-	VerifyOwner bool
+	VerifyOwner    bool
 	// todo: Add accessType in params for verifying read/write/can-upload/owner types of access
 }
 
@@ -31,7 +27,6 @@ func (c controllerImpl) GetCollection(ctx *gin.Context, req *GetCollectionParams
 		return nil, stacktrace.Propagate(err, "")
 	}
 
-	// Perform permission related access check if user is not the owner of the collection
 	if req.VerifyOwner && req.ActorUserID != collection.Owner.ID {
 		return nil, stacktrace.Propagate(ente.ErrPermissionDenied, "actor doesn't owns the collection")
 	}
@@ -45,6 +40,9 @@ func (c controllerImpl) GetCollection(ctx *gin.Context, req *GetCollectionParams
 		role = roleValue
 	} else {
 		role = ente.OWNER
+	}
+	if app, ok := auth.GetAuthenticatedApp(ctx); ok && collection.App != string(app) {
+		return nil, stacktrace.Propagate(ente.ErrPermissionDenied, "collection app mismatch")
 	}
 
 	if !req.IncludeDeleted && collection.IsDeleted {

@@ -3,36 +3,42 @@ import 'dart:io';
 
 import 'package:adaptive_theme/adaptive_theme.dart';
 import "package:ente_pure_utils/ente_pure_utils.dart";
-import 'package:flutter/foundation.dart';
+import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:home_widget/home_widget.dart' as hw;
 import 'package:logging/logging.dart';
+import "package:media_extension/media_extension.dart";
 import 'package:media_extension/media_extension_action_types.dart';
 import "package:photos/core/event_bus.dart";
 import 'package:photos/ente_theme_data.dart';
 import "package:photos/events/memories_changed_event.dart";
 import "package:photos/events/people_changed_event.dart";
-import "package:photos/generated/l10n.dart";
-import "package:photos/l10n/l10n.dart";
+import "package:photos/locale.dart";
 import "package:photos/service_locator.dart";
 import 'package:photos/services/app_lifecycle_service.dart';
+import "package:photos/services/app_navigation_service.dart";
 import "package:photos/services/home_widget_service.dart";
+import "package:photos/services/machine_learning/ml_run_control.dart";
+import "package:photos/services/machine_learning/ml_service.dart";
 import "package:photos/services/memory_home_widget_service.dart";
 import "package:photos/services/people_home_widget_service.dart";
 import 'package:photos/services/sync/sync_service.dart';
+import "package:photos/ui/picker/external_media_picker_page.dart";
 import 'package:photos/ui/tabs/home_widget.dart';
 import "package:photos/ui/viewer/actions/file_viewer.dart";
-import "package:photos/utils/bg_task_utils.dart";
+import "package:photos/utils/background_tasks.dart";
 import "package:photos/utils/intent_util.dart";
 
 class EnteApp extends StatefulWidget {
   final AdaptiveThemeMode? savedThemeMode;
   final Locale? locale;
+  final MediaExtentionAction? initialMediaExtensionAction;
 
   const EnteApp(
     this.locale,
     this.savedThemeMode, {
+    this.initialMediaExtensionAction,
     super.key,
   });
 
@@ -51,37 +57,52 @@ class _EnteAppState extends State<EnteApp> with WidgetsBindingObserver {
   final _logger = Logger("EnteAppState");
   late StreamSubscription<PeopleChangedEvent> _peopleChangedSubscription;
   late Debouncer _changeCallbackDebouncer;
+  StreamSubscription<MediaExtentionAction>? _intentActionSubscription;
   StreamSubscription<Uri?>? _widgetClickedSubscription;
   bool _didInitWidgetLaunchHandling = false;
+  bool _wasPaused = false;
+  late Future<Widget> _initialAndroidHome;
+  bool get _isPickerLaunch =>
+      widget.initialMediaExtensionAction?.action == IntentAction.pick;
 
   @override
   void initState() {
     _logger.info('init App');
     super.initState();
     locale = widget.locale;
-    setupIntentAction();
+    _initialAndroidHome = _resolveInitialAndroidHome();
+    if (Platform.isAndroid) {
+      _intentActionSubscription = MediaExtension().intentActionStream.listen(
+        (mediaExtentionAction) =>
+            unawaited(_handleAndroidIntentAction(mediaExtentionAction)),
+        onError: (Object error, StackTrace stackTrace) {
+          _logger.warning(
+            "Failed to handle Android intent action",
+            error,
+            stackTrace,
+          );
+        },
+      );
+    }
     WidgetsBinding.instance.addObserver(this);
     setupSubscription();
   }
 
   void setupSubscription() {
-    _memoriesChangedSubscription =
-        Bus.instance.on<MemoriesChangedEvent>().listen(
-      (event) async {
-        await MemoryHomeWidgetService.instance.memoryChanged();
-      },
-    );
+    _memoriesChangedSubscription = Bus.instance
+        .on<MemoriesChangedEvent>()
+        .listen((event) async {
+          await MemoryHomeWidgetService.instance.memoryChanged();
+        });
     _changeCallbackDebouncer = Debouncer(const Duration(milliseconds: 1500));
-    _peopleChangedSubscription = Bus.instance.on<PeopleChangedEvent>().listen(
-      (event) async {
-        _changeCallbackDebouncer.run(
-          () async {
-            unawaited(PeopleHomeWidgetService.instance.checkPeopleChanged());
-            unawaited(smartAlbumsService.syncSmartAlbums());
-          },
-        );
-      },
-    );
+    _peopleChangedSubscription = Bus.instance.on<PeopleChangedEvent>().listen((
+      event,
+    ) async {
+      _changeCallbackDebouncer.run(() async {
+        unawaited(PeopleHomeWidgetService.instance.checkPeopleChanged());
+        unawaited(smartAlbumsService.syncSmartAlbums());
+      });
+    });
   }
 
   @override
@@ -91,93 +112,144 @@ class _EnteAppState extends State<EnteApp> with WidgetsBindingObserver {
       return;
     }
     _didInitWidgetLaunchHandling = true;
+    if (_isPickerLaunch) {
+      return;
+    }
     _checkForWidgetLaunch();
   }
 
   Future<void> _checkForWidgetLaunch() async {
     await HomeWidgetService.instance.setAppGroup();
     await hw.HomeWidget.initiallyLaunchedFromHomeWidget().then(
-      (uri) => HomeWidgetService.instance.onLaunchFromWidget(uri, context),
+      (uri) => HomeWidgetService.instance.onLaunchFromWidget(uri),
     );
     _widgetClickedSubscription = hw.HomeWidget.widgetClicked.listen(
-      (uri) => HomeWidgetService.instance.onLaunchFromWidget(uri, context),
+      (uri) => unawaited(HomeWidgetService.instance.onLaunchFromWidget(uri)),
     );
   }
 
-  setLocale(Locale newLocale) {
+  void setLocale(Locale newLocale) {
     setState(() {
       locale = newLocale;
     });
   }
 
-  void setupIntentAction() async {
-    final mediaExtentionAction = Platform.isAndroid
-        ? await initIntentAction()
-        : MediaExtentionAction(action: IntentAction.main);
-    AppLifecycleService.instance.setMediaExtensionAction(mediaExtentionAction);
-    if (mediaExtentionAction.action == IntentAction.main) {
-      await BgTaskUtils.configureWorkmanager();
+  Future<Widget> _resolveInitialAndroidHome() async {
+    final mediaExtentionAction =
+        widget.initialMediaExtensionAction ??
+        (Platform.isAndroid
+            ? await initIntentAction()
+            : MediaExtentionAction(action: IntentAction.main));
+    final lifecycleAction = _appLifecycleActionFor(mediaExtentionAction);
+    AppLifecycleService.instance.setMediaExtensionAction(lifecycleAction);
+    if (lifecycleAction.action == IntentAction.main) {
+      unawaited(BackgroundTasks.configure().catchError((Object _) {}));
     }
+    if (mediaExtentionAction.action == IntentAction.pick) {
+      return ExternalMediaPickerPage(
+        requestedType: mediaExtentionAction.type,
+        allowMultiple: mediaExtentionAction.allowMultiple,
+      );
+    }
+    if (_shouldOpenFileViewer(mediaExtentionAction)) {
+      return const FileViewer();
+    }
+    return const HomeWidget();
+  }
+
+  bool _shouldOpenFileViewer(MediaExtentionAction mediaExtentionAction) {
+    return mediaExtentionAction.action == IntentAction.view &&
+        (mediaExtentionAction.type == MediaType.image ||
+            mediaExtentionAction.type == MediaType.video);
+  }
+
+  MediaExtentionAction _appLifecycleActionFor(
+    MediaExtentionAction mediaExtentionAction,
+  ) {
+    if (mediaExtentionAction.action == IntentAction.view &&
+        !_shouldOpenFileViewer(mediaExtentionAction)) {
+      return MediaExtentionAction(action: IntentAction.main);
+    }
+    return mediaExtentionAction;
+  }
+
+  Future<void> _handleAndroidIntentAction(
+    MediaExtentionAction mediaExtentionAction,
+  ) async {
+    if (AppNavigationService.instance.isGuestViewActive) return;
+
+    void updateIntentAction() {
+      AppLifecycleService.instance.setMediaExtensionAction(
+        _appLifecycleActionFor(mediaExtentionAction),
+      );
+    }
+
+    if (mediaExtentionAction.action == IntentAction.pick) {
+      await AppNavigationService.instance.pushPage(
+        ExternalMediaPickerPage(
+          requestedType: mediaExtentionAction.type,
+          allowMultiple: mediaExtentionAction.allowMultiple,
+        ),
+        onBeforePush: updateIntentAction,
+      );
+      return;
+    }
+    if (!_shouldOpenFileViewer(mediaExtentionAction)) {
+      updateIntentAction();
+      return;
+    }
+    await AppNavigationService.instance.pushPage(
+      const FileViewer(),
+      onBeforePush: updateIntentAction,
+    );
+  }
+
+  Widget _buildInitialAndroidHome() {
+    return FutureBuilder<Widget>(
+      future: _initialAndroidHome,
+      builder: (context, snapshot) {
+        return snapshot.data ??
+            ColoredBox(color: Theme.of(context).scaffoldBackgroundColor);
+      },
+    );
+  }
+
+  Widget _buildHome() {
+    if (Platform.isAndroid) {
+      return _buildInitialAndroidHome();
+    }
+    return const HomeWidget();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (Platform.isAndroid || kDebugMode) {
-      return Listener(
-        onPointerDown: (event) {
-          computeController.onUserInteraction();
-        },
-        child: AdaptiveTheme(
-          light: lightThemeData,
-          dark: darkThemeData,
-          initial: widget.savedThemeMode ?? AdaptiveThemeMode.system,
-          builder: (lightTheme, dartTheme) => MaterialApp(
-            title: "ente",
-            themeMode: ThemeMode.system,
-            theme: lightTheme,
-            darkTheme: dartTheme,
-            home: AppLifecycleService.instance.mediaExtensionAction.action ==
-                        IntentAction.view &&
-                    (AppLifecycleService.instance.mediaExtensionAction.type ==
-                            MediaType.image ||
-                        AppLifecycleService
-                                .instance.mediaExtensionAction.type ==
-                            MediaType.video)
-                ? const FileViewer()
-                : const HomeWidget(),
-            debugShowCheckedModeBanner: false,
-            builder: EasyLoading.init(),
-            locale: locale,
-            supportedLocales: appSupportedLocales,
-            localeListResolutionCallback: localResolutionCallBack,
-            localizationsDelegates: const [
-              ...AppLocalizations.localizationsDelegates,
-            ],
-          ),
-        ),
-      );
-    } else {
-      return Listener(
-        onPointerDown: (event) {
-          computeController.onUserInteraction();
-        },
-        child: MaterialApp(
+    return Listener(
+      onPointerDown: (event) {
+        computeController.onUserInteraction();
+      },
+      child: AdaptiveTheme(
+        light: lightThemeData,
+        dark: darkThemeData,
+        initial: widget.savedThemeMode ?? AdaptiveThemeMode.system,
+        builder: (lightTheme, dartTheme) => MaterialApp(
+          navigatorKey: AppNavigationService.instance.navigatorKey,
+          navigatorObservers: [AppNavigationService.instance.routeObserver],
           title: "ente",
           themeMode: ThemeMode.system,
-          theme: lightThemeData,
-          darkTheme: darkThemeData,
-          home: const HomeWidget(),
+          theme: lightTheme,
+          darkTheme: dartTheme,
+          home: _buildHome(),
           debugShowCheckedModeBanner: false,
           builder: EasyLoading.init(),
           locale: locale,
           supportedLocales: appSupportedLocales,
           localeListResolutionCallback: localResolutionCallBack,
           localizationsDelegates: const [
-            ...AppLocalizations.localizationsDelegates,
+            ...StringsLocalizations.localizationsDelegates,
           ],
         ),
-      );
-    }
+      ),
+    );
   }
 
   @override
@@ -186,6 +258,7 @@ class _EnteAppState extends State<EnteApp> with WidgetsBindingObserver {
     _memoriesChangedSubscription.cancel();
     _peopleChangedSubscription.cancel();
     _changeCallbackDebouncer.cancelDebounceTimer();
+    _intentActionSubscription?.cancel();
     _widgetClickedSubscription?.cancel();
     super.dispose();
   }
@@ -194,11 +267,51 @@ class _EnteAppState extends State<EnteApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final String stateChangeReason = 'app -> $state';
     if (state == AppLifecycleState.resumed) {
-      AppLifecycleService.instance
-          .onAppInForeground(stateChangeReason + ': sync now');
+      final lastAppOpenTime = AppLifecycleService.instance.getLastAppOpenTime();
+      AppLifecycleService.instance.onAppInForeground(
+        stateChangeReason + ': sync now',
+      );
+      if (_isPickerLaunch) {
+        return;
+      }
+      if (_wasPaused) {
+        _wasPaused = false;
+        unawaited(_reloadCachesUpdatedInBackground(lastAppOpenTime));
+      }
       SyncService.instance.sync();
+      unawaited(BackgroundTasks.configure().catchError((Object _) {}));
+      if (Platform.isIOS) {
+        MLService.instance.triggerML();
+      }
     } else {
       AppLifecycleService.instance.onAppInBackground(stateChangeReason);
+      if (state == AppLifecycleState.paused) {
+        _wasPaused = true;
+      }
+      if (Platform.isIOS && state == AppLifecycleState.paused) {
+        MLService.instance.stopActiveRun(MlStopReason.appPaused);
+      }
     }
+  }
+
+  Future<void> _reloadCachesUpdatedInBackground(
+    int lastAppOpenTimeInMicroseconds,
+  ) async {
+    await ServiceLocator.instance.prefs.reload();
+    unawaited(rewindService.refresh());
+
+    final futures = <Future<void>>[];
+    if (magicCacheService.lastMagicCacheUpdateTimeInMicroseconds >
+        lastAppOpenTimeInMicroseconds) {
+      futures.add(magicCacheService.refreshCache());
+    }
+    if (memoriesCacheService.lastMemoriesCacheUpdateTime >
+        lastAppOpenTimeInMicroseconds) {
+      futures.add(memoriesCacheService.refreshCache());
+    }
+    if (futures.isEmpty) {
+      return;
+    }
+    await Future.wait(futures);
   }
 }

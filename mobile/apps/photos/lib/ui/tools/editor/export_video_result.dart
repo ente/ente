@@ -77,8 +77,9 @@ class _VideoResultPopupState extends State<VideoResultPopup> {
               aspectRatio: _fileDimension.aspectRatio == 0
                   ? 1
                   : _fileDimension.aspectRatio,
-              child:
-                  _isGif ? Image.file(widget.video) : VideoPlayer(_controller!),
+              child: _isGif
+                  ? Image.file(widget.video)
+                  : VideoPlayer(_controller!),
             ),
             Positioned(
               bottom: 0,
@@ -88,9 +89,9 @@ class _VideoResultPopupState extends State<VideoResultPopup> {
                   if (!_isGif)
                     'Video duration':
                         '${((_controller?.value.duration.inMilliseconds ?? 0) / 1000).toStringAsFixed(2)}s',
-                  'Video ratio': Fraction.fromDouble(_fileDimension.aspectRatio)
-                      .reduce()
-                      .toString(),
+                  'Video ratio': Fraction.fromDouble(
+                    _fileDimension.aspectRatio,
+                  ).reduce().toString(),
                   'Video dimension': _fileDimension.toString(),
                   'Video size': _fileMbSize,
                 },
@@ -140,10 +141,9 @@ class _CoverResultPopupState extends State<CoverResultPopup> {
               child: FileDescription(
                 description: {
                   'Cover path': widget.cover.path,
-                  'Cover ratio':
-                      Fraction.fromDouble(_fileDimension?.aspectRatio ?? 0)
-                          .reduce()
-                          .toString(),
+                  'Cover ratio': Fraction.fromDouble(
+                    _fileDimension?.aspectRatio ?? 0,
+                  ).reduce().toString(),
                   'Cover dimension': _fileDimension.toString(),
                   'Cover size': _fileMbSize,
                 },

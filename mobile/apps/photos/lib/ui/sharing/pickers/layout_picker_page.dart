@@ -1,17 +1,14 @@
+import 'package:ente_components/ente_components.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart';
+import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
-import "package:photos/generated/l10n.dart";
+import 'package:hugeicons/hugeicons.dart';
 import 'package:photos/models/collection/collection.dart';
 import 'package:photos/services/collections_service.dart';
-import 'package:photos/theme/ente_theme.dart';
 import 'package:photos/ui/common/web_page.dart';
-import 'package:photos/ui/components/captioned_text_widget.dart';
-import 'package:photos/ui/components/divider_widget.dart';
-import 'package:photos/ui/components/menu_item_widget/menu_item_widget.dart';
-import 'package:photos/ui/components/menu_section_description_widget.dart';
+import 'package:photos/ui/sharing/share_components.dart';
 import 'package:photos/utils/dialog_util.dart';
 import 'package:photos/utils/public_link_layout_util.dart';
-import 'package:photos/utils/separators_util.dart';
 import 'package:tuple/tuple.dart';
 
 class LayoutPickerPage extends StatelessWidget {
@@ -20,69 +17,34 @@ class LayoutPickerPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        elevation: 0,
-        title: Text(
-          AppLocalizations.of(context).albumLayout,
+    return ShareScaffold(
+      title: context.strings.albumLayout,
+      actions: [
+        IconButtonComponent(
+          variant: IconButtonComponentVariant.primary,
+          tooltip: context.strings.preview,
+          shouldSurfaceExecutionStates: false,
+          icon: const HugeIcon(icon: HugeIcons.strokeRoundedView),
+          onTap: () async {
+            await _openPublicAlbumPreview(context);
+          },
         ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 3.0),
-            child: IconButton(
-              icon: const Icon(Icons.visibility),
-              onPressed: () async {
-                await _openPublicAlbumPreview(context);
-              },
-            ),
-          ),
-        ],
-      ),
-      body: CustomScrollView(
-        primary: false,
-        slivers: <Widget>[
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 20,
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      ClipRRect(
-                        borderRadius:
-                            const BorderRadius.all(Radius.circular(8)),
-                        child: ItemsWidget(collection),
-                      ),
-                    ],
-                  ),
-                );
-              },
-              childCount: 1,
-            ),
-          ),
-          const SliverPadding(padding: EdgeInsets.symmetric(vertical: 12)),
-        ],
-      ),
+      ],
+      children: [ItemsWidget(collection)],
     );
   }
 
   Future<void> _openPublicAlbumPreview(BuildContext context) async {
     try {
-      final String publicUrl =
-          CollectionsService.instance.getPublicUrl(collection);
+      final String publicUrl = CollectionsService.instance.getPublicUrl(
+        collection,
+      );
       await routeToPage(
         context,
-        WebPage(
-          AppLocalizations.of(context).preview,
-          publicUrl,
-          canOpenInBrowser: false,
-        ),
+        WebPage(context.strings.preview, publicUrl, canOpenInBrowser: false),
       );
     } catch (e) {
+      if (!context.mounted) return;
       await showGenericErrorDialog(context: context, error: e);
     }
   }
@@ -99,9 +61,9 @@ class ItemsWidget extends StatefulWidget {
 class _ItemsWidgetState extends State<ItemsWidget> {
   late String currentLayout;
   late final List<Tuple2<String, String>> _layoutOptions = [
-    Tuple2(AppLocalizations.of(context).layoutMasonry, "masonry"),
-    Tuple2(AppLocalizations.of(context).layoutTrip, "trip"),
-    Tuple2(AppLocalizations.of(context).layoutGrouped, "grouped"),
+    Tuple2(context.strings.layoutMasonry, "masonry"),
+    Tuple2(context.strings.layoutTrip, "trip"),
+    Tuple2(context.strings.layoutGrouped, "grouped"),
   ];
 
   @override
@@ -114,31 +76,19 @@ class _ItemsWidgetState extends State<ItemsWidget> {
 
   @override
   Widget build(BuildContext context) {
-    List<Widget> items = [];
-    for (Tuple2<String, String> layoutOption in _layoutOptions) {
-      items.add(
+    final items = [
+      for (final layoutOption in _layoutOptions)
         _menuItemForPicker(context, layoutOption),
-      );
-    }
-    items = addSeparators(
-      items,
-      DividerWidget(
-        dividerType: DividerType.menuNoIcon,
-        bgColor: getEnteColorScheme(context).fillFaint,
-      ),
-    );
-
-    if (currentLayout == "trip") {
-      items.add(
-        MenuSectionDescriptionWidget(
-          content: AppLocalizations.of(context).mapsPrivacyNotice,
-        ),
-      );
-    }
+    ];
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
-      children: items,
+      children: [
+        ShareMenuGroup(items: items),
+        if (currentLayout == "trip")
+          ShareSectionDescription(context.strings.mapsPrivacyNotice),
+      ],
     );
   }
 
@@ -146,19 +96,13 @@ class _ItemsWidgetState extends State<ItemsWidget> {
     BuildContext context,
     Tuple2<String, String> layoutOption,
   ) {
-    return MenuItemWidget(
-      menuItemColor: getEnteColorScheme(context).fillFaint,
-      captionedTextWidget: CaptionedTextWidget(
-        title: layoutOption.item1,
-      ),
-      trailingIcon: currentLayout == layoutOption.item2 ? Icons.check : null,
-      trailingIconColor: currentLayout == layoutOption.item2
-          ? getEnteColorScheme(context).primary500
+    return ShareMenuItem(
+      title: layoutOption.item1,
+      trailing: currentLayout == layoutOption.item2
+          ? shareCheck(context)
           : null,
-      alignCaptionedTextToLeft: true,
-      isTopBorderRadiusRemoved: true,
-      isBottomBorderRadiusRemoved: true,
-      alwaysShowSuccessState: true,
+      shouldSurfaceExecutionStates: true,
+      shouldShowSuccessConfirmation: true,
       onTap: () async {
         await updateLayout(layoutOption.item2, context);
       },
@@ -166,10 +110,7 @@ class _ItemsWidgetState extends State<ItemsWidget> {
   }
 
   Future<void> updateLayout(String newLayout, BuildContext context) async {
-    await _updateLayoutSettings(
-      context,
-      {'layout': newLayout},
-    ).then(
+    await _updateLayoutSettings(context, {'layout': newLayout}).then(
       (value) => setState(() {
         currentLayout = newLayout;
       }),
@@ -181,10 +122,14 @@ class _ItemsWidgetState extends State<ItemsWidget> {
     Map<String, dynamic> prop,
   ) async {
     try {
-      await CollectionsService.instance
-          .updatePublicMagicMetadata(widget.collection, prop);
+      await CollectionsService.instance.updatePublicMagicMetadata(
+        widget.collection,
+        prop,
+      );
     } catch (e) {
-      await showGenericErrorDialog(context: context, error: e);
+      if (context.mounted) {
+        await showGenericErrorDialog(context: context, error: e);
+      }
       rethrow;
     }
   }

@@ -5,18 +5,17 @@ import 'package:ente_auth/core/constants.dart';
 import 'package:ente_auth/services/notification_service.dart';
 import 'package:ente_network/network.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart';
+import 'package:flutter/services.dart' show appFlavor;
 import 'package:logging/logging.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tuple/tuple.dart';
-import 'package:url_launcher/url_launcher_string.dart';
 
 class UpdateService {
   UpdateService._privateConstructor();
 
   static final UpdateService instance = UpdateService._privateConstructor();
   static const kUpdateAvailableShownTimeKey = "update_available_shown_time_key";
-  static const String flavor = String.fromEnvironment('app.flavor');
+  static const _updateNotificationsEnabledKey = "update_notifications_enabled";
 
   LatestVersionInfo? _latestVersion;
   final _logger = Logger("UpdateService");
@@ -29,7 +28,8 @@ class UpdateService {
   }
 
   Future<bool> shouldUpdate() async {
-    if (!isIndependent()) {
+    _latestVersion = null;
+    if (!supportsInAppUpdates()) {
       return false;
     }
     try {
@@ -43,7 +43,7 @@ class UpdateService {
   }
 
   bool shouldForceUpdate(LatestVersionInfo? info) {
-    if (!isIndependent()) {
+    if (!supportsInAppUpdates()) {
       return false;
     }
     try {
@@ -59,84 +59,64 @@ class UpdateService {
     return _latestVersion;
   }
 
-  Future<bool> showUpdateNotification() async {
-    if (!isIndependent()) {
+  bool get updateNotificationsEnabled =>
+      _prefs.getBool(_updateNotificationsEnabledKey) ?? true;
+
+  Future<void> setUpdateNotificationsEnabled(bool enabled) async {
+    await _prefs.setBool(_updateNotificationsEnabledKey, enabled);
+  }
+
+  Future<bool> shouldShowUpdatePrompt() async {
+    if (!await shouldUpdate()) {
       return false;
     }
-    final shouldUpdate = await this.shouldUpdate();
+    final isCritical = shouldForceUpdate(_latestVersion);
+    return isCritical || _shouldShowNotification(isCritical: false);
+  }
+
+  Future<void> showUpdateNotification() async {
+    if (!await shouldUpdate()) {
+      return;
+    }
+    final isCritical = shouldForceUpdate(_latestVersion);
+    if (!_shouldShowNotification(isCritical: isCritical)) {
+      _logger.info("Debouncing notification");
+      return;
+    }
+    final now = DateTime.now().microsecondsSinceEpoch;
+    await _prefs.setInt(kUpdateAvailableShownTimeKey, now);
+    if (Platform.isAndroid) {
+      unawaited(
+        NotificationService.instance.showNotification(
+          "Update available",
+          "Click to install our best version yet",
+        ),
+      );
+    }
+  }
+
+  bool _shouldShowNotification({required bool isCritical}) {
+    if (!isCritical && !updateNotificationsEnabled) {
+      return false;
+    }
     final lastNotificationShownTime =
         _prefs.getInt(kUpdateAvailableShownTimeKey) ?? 0;
     final now = DateTime.now().microsecondsSinceEpoch;
     final hasBeen3DaysSinceLastNotification =
         (now - lastNotificationShownTime) > (3 * microSecondsInDay);
-    if (shouldUpdate &&
-        hasBeen3DaysSinceLastNotification &&
-        _latestVersion!.shouldNotify!) {
-      await _prefs.setInt(kUpdateAvailableShownTimeKey, now);
-      if (Platform.isAndroid) {
-        unawaited(
-          NotificationService.instance.showNotification(
-            "Update available",
-            "Click to install our best version yet",
-          ),
-        );
-      }
-      return true;
-    } else {
-      _logger.info("Debouncing notification");
-      return false;
-    }
+    return hasBeen3DaysSinceLastNotification &&
+        (isCritical || _latestVersion!.shouldNotify!);
   }
 
   Future<LatestVersionInfo> _getLatestVersionInfo() async {
-    final response = await Network.instance
-        .getDio()
-        .get("https://ente.io/release-info/auth-independent.json");
+    final response = await Network.instance.getDio().get(
+      "https://ente.com/release-info/auth-independent.json",
+    );
     return LatestVersionInfo.fromMap(response.data["latestVersion"]);
   }
 
-  // getRateDetails returns details about the place
-  Tuple2<String, String> getRateDetails() {
-    // Note: in auth, currently we don't have a way to identify if the
-    // app was installed from play store, f-droid or github based on pkg name
-    if (Platform.isAndroid) {
-      if (flavor == "playstore") {
-        return const Tuple2(
-          "Play Store",
-          "market://details?id=io.ente.auth",
-        );
-      }
-      return const Tuple2(
-        "AlternativeTo",
-        "https://alternativeto.net/software/ente-authenticator/about/",
-      );
-    }
-    return const Tuple2(
-      "App Store",
-      "https://apps.apple.com/in/app/ente-photos/id6444121398",
-    );
-  }
-
-  Future<void> launchReviewUrl() async {
-    final String url = getRateDetails().item2;
-    try {
-      await launchUrlString(url, mode: LaunchMode.externalApplication);
-    } catch (e) {
-      _logger.severe("Failed top open launch url $url", e);
-      // Fall back if we fail to open play-store market app on android
-      if (Platform.isAndroid && url.startsWith("market://")) {
-        launchUrlString(
-          "https://play.google.com/store/apps/details?id=io.ente.auth",
-          mode: LaunchMode.externalApplication,
-        ).ignore();
-      }
-    }
-  }
-
-  bool isIndependent() {
-    return flavor == "independent" ||
-        _packageInfo.packageName.endsWith("independent") ||
-        PlatformDetector.isDesktop();
+  bool supportsInAppUpdates() {
+    return appFlavor == "independent" || PlatformDetector.isDesktop();
   }
 }
 

@@ -1,7 +1,9 @@
 import 'dart:async';
 import "dart:io";
 
+import "package:ente_components/ente_components.dart" show AppBarCollapseSpacer;
 import "package:ente_pure_utils/ente_pure_utils.dart";
+import 'package:ente_ui/components/loading_widget.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import "package:flutter/services.dart";
@@ -11,6 +13,7 @@ import 'package:photos/core/constants.dart';
 import 'package:photos/core/event_bus.dart';
 import 'package:photos/events/event.dart';
 import 'package:photos/events/files_updated_event.dart';
+import "package:photos/events/gallery_layout_changed_event.dart";
 import "package:photos/events/homepage_swipe_to_select_in_progress_event.dart";
 import 'package:photos/events/local_photos_updated_event.dart';
 import 'package:photos/events/tab_changed_event.dart';
@@ -20,14 +23,15 @@ import "package:photos/models/gallery/gallery_groups.dart";
 import "package:photos/models/gallery_type.dart";
 import 'package:photos/models/selected_files.dart';
 import "package:photos/service_locator.dart" show localSettings;
-import "package:photos/theme/ente_theme.dart";
-import 'package:photos/ui/common/loading_widget.dart';
-import "package:photos/ui/viewer/actions/file_selection_overlay_bar.dart";
+import "package:photos/settings/local_settings.dart" show GalleryLayoutType;
 import "package:photos/ui/viewer/gallery/component/gallery_file_widget.dart";
 import "package:photos/ui/viewer/gallery/component/group/group_header_widget.dart";
 import "package:photos/ui/viewer/gallery/component/group/type.dart";
 import "package:photos/ui/viewer/gallery/component/sectioned_sliver_list.dart";
 import 'package:photos/ui/viewer/gallery/empty_state.dart';
+import "package:photos/ui/viewer/gallery/gallery_app_bar_config.dart";
+import "package:photos/ui/viewer/gallery/gallery_app_bar_widget.dart";
+import "package:photos/ui/viewer/gallery/gallery_grid_zoom.dart";
 import "package:photos/ui/viewer/gallery/scrollbar/custom_scroll_bar.dart";
 import "package:photos/ui/viewer/gallery/state/boundary_reporter_mixin.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_boundaries_provider.dart";
@@ -37,17 +41,22 @@ import "package:photos/ui/viewer/gallery/state/inherited_search_filter_data.dart
 import "package:photos/ui/viewer/gallery/swipe_selection_wrapper.dart";
 import "package:photos/ui/viewer/gallery/swipe_to_select_helper.dart";
 import "package:photos/utils/hierarchical_search_util.dart";
-import "package:photos/utils/misc_util.dart";
 import "package:photos/utils/widget_util.dart";
 
-typedef GalleryLoader = Future<FileLoadResult> Function(
-  int creationStartTime,
-  int creationEndTime, {
-  int? limit,
-  bool? asc,
-});
+typedef GalleryLoader =
+    Future<FileLoadResult> Function(
+      int creationStartTime,
+      int creationEndTime, {
+      int? limit,
+      bool? asc,
+    });
+
+typedef _LayoutScrollAnchor = ({EnteFile file, bool inHeader, double progress});
 
 typedef SortAscFn = bool Function();
+
+typedef NewLocalFilesResolver =
+    Future<List<EnteFile>?> Function(LocalPhotosAddedEvent event);
 
 class Gallery extends StatefulWidget {
   final GalleryLoader asyncLoader;
@@ -57,6 +66,7 @@ class Gallery extends StatefulWidget {
   final Set<EventType> removalEventTypes;
   final SelectedFiles? selectedFiles;
   final String tagPrefix;
+  final GalleryAppBarConfig? appBar;
   final Widget? header;
   final Widget? footer;
   final Widget emptyState;
@@ -69,36 +79,34 @@ class Gallery extends StatefulWidget {
   final Duration priorityReloadDebounceTime;
   final GalleryType? galleryType;
   final bool showGallerySettingsCTA;
+  final Widget? groupHeaderAction;
+  final GalleryLayoutType? layoutTypeOverride;
 
-  /// When true, selection will be limited to one item. Tapping on any item
-  /// will select even when no other item is selected.
+  // Return null to force a full reload.
+  final NewLocalFilesResolver? newLocalFilesResolver;
+
+  // Single-selection mode also selects on the first tap.
   final bool limitSelectionToOne;
 
   final bool addHeaderOrFooterEmptyState;
 
-  /// When true, the gallery will be in selection mode. Tapping on any item
-  /// will select it even when no other item is selected. This is only used to
-  /// make selection possible without long pressing. If a gallery has selected
-  /// files, it's not necessary that this will be true.
+  // Enables tap-to-select; it does not indicate whether files are selected.
   final bool inSelectionMode;
+  final bool disableSelection;
   final bool showSelectAll;
-  final bool isScrollablePositionedList;
 
-  // add a Function variable to get sort value in bool
   final SortAscFn? sortAsyncFn;
 
-  /// Pass value to override default group type.
   final GroupType? groupType;
   final bool disablePinnedGroupHeader;
   final bool disableVerticalPaddingForScrollbar;
 
-  /// File to jump to when gallery is loaded. The gallery will scroll to the
-  /// group containing this file.
   final EnteFile? fileToJumpTo;
 
   const Gallery({
     required this.asyncLoader,
     required this.tagPrefix,
+    this.appBar,
     this.selectedFiles,
     this.initialFiles,
     this.reloadEvent,
@@ -115,9 +123,9 @@ class Gallery extends StatefulWidget {
     this.disableScroll = false,
     this.limitSelectionToOne = false,
     this.inSelectionMode = false,
+    this.disableSelection = false,
     this.sortAsyncFn,
     this.showSelectAll = true,
-    this.isScrollablePositionedList = true,
     this.reloadDebounceTime = const Duration(milliseconds: 500),
     this.reloadDebounceExecutionInterval = const Duration(seconds: 2),
     this.priorityReloadDebounceTime = const Duration(milliseconds: 200),
@@ -125,7 +133,10 @@ class Gallery extends StatefulWidget {
     this.galleryType,
     this.disableVerticalPaddingForScrollbar = false,
     this.showGallerySettingsCTA = false,
+    this.groupHeaderAction,
+    this.layoutTypeOverride,
     this.fileToJumpTo,
+    this.newLocalFilesResolver,
     super.key,
   });
 
@@ -135,40 +146,59 @@ class Gallery extends StatefulWidget {
   }
 }
 
-class GalleryState extends State<Gallery> {
+class GalleryState extends State<Gallery> with WidgetsBindingObserver {
   static const int kInitialLoadLimit = 100;
+  static final RegExp _automationIdentifierUnsafeChars = RegExp(
+    r'[^A-Za-z0-9_.-]',
+  );
   late final Debouncer _debouncer;
   late final Debouncer _priorityDebouncer;
   double? groupHeaderExtent;
+  bool _groupHeaderMeasurementScheduled = false;
+  bool _groupHeaderMeasurementInProgress = false;
+  bool _groupHeaderMeasurementRequested = false;
 
   late Logger _logger;
   bool _hasLoadedFiles = false;
   bool _allFilesLoaded = false;
   bool _completedJumpToDate = false;
   StreamSubscription<FilesUpdatedEvent>? _reloadEventSubscription;
+  StreamSubscription<GalleryLayoutChangedEvent>? _layoutChangeSubscription;
   StreamSubscription<TabDoubleTapEvent>? _tabDoubleTapEvent;
   final _forceReloadEventSubscriptions = <StreamSubscription<Event>>[];
   late String _logTag;
   bool _sortOrderAsc = false;
+  int _layoutChangeGeneration = 0;
+  bool _committingGridZoom = false;
+  bool _isGalleryVisible = false;
+  ModalRoute<dynamic>? _layoutPreviewRoute;
+  bool _needsLayoutRefresh = false;
+  int _activeFileLoads = 0;
   List<EnteFile> _allGalleryFiles = [];
   final _scrollController = ScrollController();
   final _headerKey = GlobalKey();
+  final _footerKey = GlobalKey();
   final _headerHeightNotifier = ValueNotifier<double?>(null);
-  final miscUtil = MiscUtil();
+  Timer? _headerHeightRetryTimer;
   final scrollBarInUseNotifier = ValueNotifier<bool>(false);
   late GroupType _groupType;
   final scrollbarBottomPaddingNotifier = ValueNotifier<double>(0);
-  late GalleryGroups galleryGroups;
+  GalleryGroups? galleryGroups;
   List<EnteFile> _allFilesWithDummies = [];
   SwipeToSelectHelper? _swipeHelper;
   final _swipeActiveNotifier = ValueNotifier<bool>(false);
   InheritedSearchFilterData? _inheritedSearchFilterData;
   InheritedGalleryBoundaries? _boundariesProvider;
+  late String _automationScrollIdentifier;
 
   @override
   void initState() {
     super.initState();
-    // end the tag with x to avoid `.` in the end if logger name
+    WidgetsBinding.instance.addObserver(this);
+    _automationScrollIdentifier = _buildAutomationScrollIdentifier(
+      widget.tagPrefix,
+    );
+    // Keep the logger name from ending in a dot.
     _logTag =
         "Gallery_${widget.tagPrefix}${kDebugMode ? "_" + widget.albumName! : ""}_x";
     _logger = Logger(_logTag);
@@ -188,6 +218,13 @@ class GalleryState extends State<Gallery> {
       widget.priorityReloadDebounceTime,
       leading: true,
     );
+    _layoutChangeSubscription = Bus.instance
+        .on<GalleryLayoutChangedEvent>()
+        .listen((_) {
+          if (!mounted || _committingGridZoom) return;
+          _needsLayoutRefresh = true;
+          unawaited(_refreshGalleryLayout());
+        });
     _sortOrderAsc = widget.sortAsyncFn != null ? widget.sortAsyncFn!() : false;
     if (widget.reloadEvent != null) {
       _reloadEventSubscription = widget.reloadEvent!.listen((event) async {
@@ -205,15 +242,20 @@ class GalleryState extends State<Gallery> {
           return;
         }
 
-        final isPriorityEvent = event is LocalPhotosUpdatedEvent &&
+        if (event is LocalPhotosAddedEvent &&
+            await _tryAddNewLocalFiles(event)) {
+          return;
+        }
+
+        final isPriorityEvent =
+            event is LocalPhotosUpdatedEvent &&
             event.hasRecentNewLocalDiscovery;
 
-        final targetDebouncer =
-            isPriorityEvent ? _priorityDebouncer : _debouncer;
+        final targetDebouncer = isPriorityEvent
+            ? _priorityDebouncer
+            : _debouncer;
 
         targetDebouncer.run(() async {
-          // In soft refresh, setState is called for entire gallery only when
-          // number of child change
           _logger.info(
             "${isPriorityEvent ? 'Priority' : 'Soft'} refresh on ${event.reason}",
           );
@@ -228,8 +270,9 @@ class GalleryState extends State<Gallery> {
         });
       });
     }
-    _tabDoubleTapEvent =
-        Bus.instance.on<TabDoubleTapEvent>().listen((event) async {
+    _tabDoubleTapEvent = Bus.instance.on<TabDoubleTapEvent>().listen((
+      event,
+    ) async {
       // todo: Assign ID to Gallery and fire generic event with ID &
       //  target index/date
       if (mounted && event.selectedIndex == 0) {
@@ -246,8 +289,9 @@ class GalleryState extends State<Gallery> {
           event.listen((event) async {
             _debouncer.run(() async {
               _logger.info("Force refresh all files on ${event.reason}");
-              _sortOrderAsc =
-                  widget.sortAsyncFn != null ? widget.sortAsyncFn!() : false;
+              _sortOrderAsc = widget.sortAsyncFn != null
+                  ? widget.sortAsyncFn!()
+                  : false;
               _setGroupType();
               final result = await _loadFiles();
               _setFilesAndReload(result.files);
@@ -260,7 +304,6 @@ class GalleryState extends State<Gallery> {
       _onFilesLoaded(widget.initialFiles!);
     }
 
-    // First load
     _loadFiles(limit: kInitialLoadLimit).then((result) async {
       _setFilesAndReload(result.files);
       if (result.hasMore) {
@@ -272,23 +315,7 @@ class GalleryState extends State<Gallery> {
       }
     });
 
-    if (_groupType.showGroupHeader()) {
-      getIntrinsicSizeOfWidget(
-        GroupHeaderWidget(
-          title: "Dummy title",
-          gridSize: localSettings.getPhotoGridSize(),
-          filesInGroup: const [],
-          selectedFiles: null,
-          showSelectAll: false,
-        ),
-        context,
-      ).then((size) {
-        setState(() {
-          groupHeaderExtent = size.height;
-          _updateGalleryGroups(callSetState: false);
-        });
-      });
-    } else {
+    if (!_groupType.showGroupHeader()) {
       groupHeaderExtent = GalleryGroups.spacing;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
@@ -297,23 +324,10 @@ class GalleryState extends State<Gallery> {
       });
     }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      // To set the initial value of scrollbar bottom padding
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       _selectedFilesListener();
-      try {
-        final headerRenderBox = await miscUtil
-            .getNonNullValueWithRetry(
-              () => _headerKey.currentContext?.findRenderObject(),
-              retryInterval: const Duration(milliseconds: 750),
-              id: "headerRenderBox",
-            )
-            .then((value) => value as RenderBox);
-
-        _headerHeightNotifier.value = headerRenderBox.size.height;
-      } catch (e, s) {
-        _logger.warning("Error getting renderBox offset", e, s);
-      }
-      setState(() {});
+      _measureHeaderHeight();
     });
 
     widget.selectedFiles?.addListener(_selectedFilesListener);
@@ -332,6 +346,11 @@ class GalleryState extends State<Gallery> {
   @override
   void didUpdateWidget(covariant Gallery oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.tagPrefix != widget.tagPrefix) {
+      _automationScrollIdentifier = _buildAutomationScrollIdentifier(
+        widget.tagPrefix,
+      );
+    }
     if (oldWidget.groupType != widget.groupType) {
       _setGroupType();
       if (mounted) {
@@ -343,29 +362,94 @@ class GalleryState extends State<Gallery> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final wasVisible = _isGalleryVisible;
+    _isGalleryVisible = ModalRoute.isCurrentOf(context) ?? true;
+    if (wasVisible && !_isGalleryVisible) {
+      ++_layoutChangeGeneration;
+      if (groupHeaderExtent == null) _needsLayoutRefresh = true;
+    }
     _inheritedSearchFilterData = InheritedSearchFilterData.maybeOf(context);
-    _boundariesProvider = GalleryBoundariesProvider.of(context);
+    final boundaries = GalleryBoundariesProvider.of(context);
+    if (_boundariesProvider != boundaries) {
+      _boundariesProvider?.selectionSheetMinHeightNotifier.removeListener(
+        _selectedFilesListener,
+      );
+      _boundariesProvider = boundaries;
+      _boundariesProvider?.selectionSheetMinHeightNotifier.addListener(
+        _selectedFilesListener,
+      );
+    }
+    _selectedFilesListener();
+    if (_canRefreshGalleryLayout && _needsLayoutRefresh) {
+      unawaited(_refreshGalleryLayout());
+    }
+  }
+
+  bool get _canRefreshGalleryLayout =>
+      _isGalleryVisible || (_layoutPreviewRoute?.isCurrent ?? false);
+
+  void setLayoutPreviewVisibility(ModalRoute<dynamic> route, bool visible) {
+    if (!mounted) return;
+    if (visible) {
+      _layoutPreviewRoute = route;
+    } else if (identical(_layoutPreviewRoute, route)) {
+      _layoutPreviewRoute = null;
+    }
+    if (_canRefreshGalleryLayout && _needsLayoutRefresh) {
+      unawaited(_refreshGalleryLayout());
+    }
+  }
+
+  Future<void> _refreshGalleryLayout() async {
+    if (!mounted || !_canRefreshGalleryLayout || !_needsLayoutRefresh) {
+      return;
+    }
+    final generation = ++_layoutChangeGeneration;
+    final scrollAnchor = _captureLayoutScrollAnchor();
+    _setGroupType();
+    final measuredHeaderExtent = await _measureGroupHeaderExtent();
+    if (!mounted ||
+        !_canRefreshGalleryLayout ||
+        generation != _layoutChangeGeneration) {
+      return;
+    }
+    _needsLayoutRefresh = false;
+    groupHeaderExtent = measuredHeaderExtent ?? groupHeaderExtent;
+    _updateGalleryGroups();
+    _restoreLayoutScrollAnchor(scrollAnchor, generation);
   }
 
   void _updateGalleryGroups({bool callSetState = true}) {
+    if (!_canRefreshGalleryLayout) {
+      _needsLayoutRefresh = true;
+      return;
+    }
     if (groupHeaderExtent == null) return;
-    galleryGroups = GalleryGroups(
+    final widthAvailable = MediaQuery.sizeOf(context).width;
+    // View metrics can be zero during background startup. Skip invalid layouts
+    // without replacing an already displayed gallery.
+    if (!widthAvailable.isFinite || widthAvailable <= 0) {
+      return;
+    }
+    final groups = GalleryGroups(
       allFiles: _allGalleryFiles,
       groupType: _groupType,
       sortOrderAsc: _sortOrderAsc,
-      widthAvailable: MediaQuery.sizeOf(context).width,
+      widthAvailable: widthAvailable,
       selectedFiles: widget.selectedFiles,
       tagPrefix: widget.tagPrefix,
       groupHeaderExtent: groupHeaderExtent!,
       showSelectAll: widget.showSelectAll,
       limitSelectionToOne: widget.limitSelectionToOne,
       showGallerySettingsCTA: widget.showGallerySettingsCTA,
+      groupHeaderAction: widget.groupHeaderAction,
+      layoutTypeOverride: widget.layoutTypeOverride,
+      reuseLayoutFrom: _committingGridZoom ? galleryGroups : null,
     );
+    galleryGroups = groups;
 
-    // Cache the list with dummies
-    _allFilesWithDummies = galleryGroups.allFilesWithDummies;
-
-    // Always update SwipeHelper when cache is updated
+    // Keep dummy cells in the swipe index so it matches the rendered grid.
+    _allFilesWithDummies = groups.allFilesWithDummies;
     _updateSwipeHelper();
 
     if (callSetState) {
@@ -373,30 +457,234 @@ class GalleryState extends State<Gallery> {
     }
   }
 
-  // void _setScrollController({required bool allFilesLoaded}) {
-  //   if (widget.fileToJumpScrollTo != null && allFilesLoaded) {
-  //     final fileOffset =
-  //         galleryGroups.getOffsetOfFile(widget.fileToJumpScrollTo!);
-  //     if (fileOffset == null) {
-  //       _logger.warning(
-  //         "File offset is null, cannot set initial scroll controller",
-  //       );
-  //     }
+  Future<void> _commitGridZoom(int columns, double scrollOffset) async {
+    _committingGridZoom = true;
+    final sourceFiles = _allGalleryFiles;
+    final sourceWidth = galleryGroups?.widthAvailable;
+    final fallbackAnchor = _captureLayoutScrollAnchor();
+    try {
+      if (columns == 2) {
+        await localSettings.setGalleryLayoutType(GalleryLayoutType.justified);
+      } else {
+        await localSettings.setPhotoGridSize(columns);
+        await localSettings.setGalleryLayoutType(GalleryLayoutType.grid);
+      }
+      if (!mounted) return;
+      final generation = ++_layoutChangeGeneration;
+      final measuredHeaderExtent = await _measureGroupHeaderExtent();
+      if (!mounted || generation != _layoutChangeGeneration) return;
+      groupHeaderExtent = measuredHeaderExtent ?? groupHeaderExtent;
+      _updateGalleryGroups();
+      await WidgetsBinding.instance.endOfFrame;
+      if (!mounted) return;
+      if (!identical(sourceFiles, _allGalleryFiles) ||
+          sourceWidth != galleryGroups?.widthAvailable) {
+        _restoreLayoutScrollAnchor(fallbackAnchor, _layoutChangeGeneration);
+      } else if (_scrollController.positions.length == 1) {
+        final position = _scrollController.position;
+        _scrollController.jumpTo(
+          scrollOffset.clamp(
+            position.minScrollExtent,
+            position.maxScrollExtent,
+          ),
+        );
+      }
+      Bus.instance.fire(GalleryLayoutChangedEvent());
+      await WidgetsBinding.instance.endOfFrame;
+    } finally {
+      _committingGridZoom = false;
+    }
+  }
 
-  //     _scrollController?.jumpTo(fileOffset ?? 0);
-  //   } else {
-  //     _scrollController = ScrollController();
-  //   }
-  //   setState(() {});
-  // }
+  _LayoutScrollAnchor? _captureLayoutScrollAnchor() {
+    final groups = galleryGroups;
+    if (groups == null || _scrollController.positions.length != 1) return null;
+    final appBarCollapseExtent =
+        widget.appBar?.resolveGeometry(context).collapseExtent ?? 0;
+    final sectionScrollOffset =
+        _scrollController.offset - appBarCollapseExtent - _headerHeight;
+    if (sectionScrollOffset < 0) return null;
+    final anchorSectionOffset =
+        sectionScrollOffset + _pinnedGroupHeaderExtent(groups);
+    final file = groups.getFileAtScrollOffset(anchorSectionOffset);
+    if (file == null) return null;
+    final geometry = groups.getGeometryOfFile(file);
+    if (geometry == null) return null;
+
+    final inHeader = anchorSectionOffset < geometry.rowOffset;
+    final offset = inHeader
+        ? geometry.rowOffset - anchorSectionOffset
+        : anchorSectionOffset - geometry.rowOffset;
+    final extent = inHeader ? geometry.headerExtent : geometry.rowExtent;
+    final progress = extent > 0 && extent.isFinite
+        ? (offset / extent).clamp(0.0, 1.0).toDouble()
+        : 0.0;
+    return (file: file, inHeader: inHeader, progress: progress);
+  }
+
+  void _restoreLayoutScrollAnchor(_LayoutScrollAnchor? anchor, int generation) {
+    if (anchor == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted ||
+          generation != _layoutChangeGeneration ||
+          _scrollController.positions.length != 1) {
+        return;
+      }
+      final groups = galleryGroups;
+      if (groups == null) return;
+      final geometry = groups.getGeometryOfFile(anchor.file);
+      if (geometry == null) return;
+      final appBarCollapseExtent =
+          widget.appBar?.resolveGeometry(context).collapseExtent ?? 0;
+      final maxRowPenetration = geometry.rowExtent > precisionErrorTolerance
+          ? geometry.rowExtent - precisionErrorTolerance
+          : 0.0;
+      final rowPenetration = (geometry.rowExtent * anchor.progress)
+          .clamp(0.0, maxRowPenetration)
+          .toDouble();
+      final anchorSectionOffset = anchor.inHeader
+          ? geometry.rowOffset - geometry.headerExtent * anchor.progress
+          : geometry.rowOffset + rowPenetration;
+      final sectionOffset =
+          anchorSectionOffset - _pinnedGroupHeaderExtent(groups);
+      final targetOffset =
+          _scrollOffsetForSectionOffset(
+            sectionOffset,
+            appBarCollapseExtent,
+          ).clamp(
+            _scrollController.position.minScrollExtent,
+            _scrollController.position.maxScrollExtent,
+          );
+      _scrollController.jumpTo(targetOffset);
+    });
+  }
+
+  double _pinnedGroupHeaderExtent(GalleryGroups groups) {
+    return groups.groupType.showGroupHeader() &&
+            !widget.disablePinnedGroupHeader
+        ? groups.groupHeaderExtent
+        : 0;
+  }
+
+  void revealFile(EnteFile file) {
+    if (!mounted || _scrollController.positions.length != 1) return;
+    final groups = galleryGroups;
+    final geometry = groups?.getGeometryOfFile(file);
+    if (groups == null || geometry == null) return;
+
+    final position = _scrollController.position;
+    final appBar = widget.appBar?.resolveGeometry(context);
+    final rowTop =
+        (appBar?.maxExtent ?? 0) + _headerHeight + geometry.rowOffset;
+    final topInset =
+        (appBar?.minExtent ?? 0) + _pinnedGroupHeaderExtent(groups);
+    final bottomInset = scrollbarBottomPaddingNotifier.value;
+    final visibleTop = position.pixels + topInset;
+    final visibleBottom =
+        position.pixels + position.viewportDimension - bottomInset;
+    if (rowTop >= visibleTop && rowTop + geometry.rowExtent <= visibleBottom) {
+      return;
+    }
+
+    final targetOffset =
+        rowTop -
+        topInset -
+        (visibleBottom - visibleTop - geometry.rowExtent) / 2;
+    // Jump during pop so the destination hero is laid out in its first frame.
+    _scrollController.jumpTo(
+      targetOffset.clamp(position.minScrollExtent, position.maxScrollExtent),
+    );
+  }
+
+  int get _photoGridSize =>
+      (widget.layoutTypeOverride ?? localSettings.getGalleryLayoutType()) ==
+          GalleryLayoutType.justified
+      ? 2
+      : localSettings.getPhotoGridSize();
+
+  static bool _hasUsableSize(Size size) =>
+      size.width.isFinite &&
+      size.height.isFinite &&
+      size.width > 0 &&
+      size.height > 0;
+
+  void _scheduleGroupHeaderMeasurement() {
+    if (!mounted ||
+        groupHeaderExtent != null ||
+        !_hasUsableSize(MediaQuery.sizeOf(context))) {
+      return;
+    }
+    _groupHeaderMeasurementRequested = true;
+    if (_groupHeaderMeasurementScheduled || _groupHeaderMeasurementInProgress) {
+      return;
+    }
+    _groupHeaderMeasurementScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      _groupHeaderMeasurementScheduled = false;
+      if (!mounted || groupHeaderExtent != null) return;
+      _groupHeaderMeasurementRequested = false;
+      if (!_hasUsableSize(MediaQuery.sizeOf(context))) return;
+      _groupHeaderMeasurementInProgress = true;
+      final generation = _layoutChangeGeneration;
+      try {
+        final extent = await _measureGroupHeaderExtent();
+        if (!mounted ||
+            generation != _layoutChangeGeneration ||
+            groupHeaderExtent != null ||
+            extent == null) {
+          return;
+        }
+        setState(() {
+          groupHeaderExtent = extent;
+          _updateGalleryGroups(callSetState: false);
+        });
+      } finally {
+        _groupHeaderMeasurementInProgress = false;
+        if (mounted && _groupHeaderMeasurementRequested) {
+          _scheduleGroupHeaderMeasurement();
+        }
+      }
+    });
+    WidgetsBinding.instance.ensureVisualUpdate();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _scheduleGroupHeaderMeasurement();
+    }
+  }
+
+  Future<double?> _measureGroupHeaderExtent() async {
+    if (!_groupType.showGroupHeader()) return GalleryGroups.spacing;
+    final overlayBox = Overlay.of(context).context.findRenderObject();
+    if (overlayBox is! RenderBox ||
+        !overlayBox.hasSize ||
+        !_hasUsableSize(overlayBox.size)) {
+      return null;
+    }
+    final size = await getIntrinsicSizeOfWidget(
+      GroupHeaderWidget(
+        title: "Dummy title",
+        gridSize: _photoGridSize,
+        filesInGroup: const [],
+        selectedFiles: null,
+        showSelectAll: false,
+      ),
+      context,
+    );
+    return size.height.isFinite && size.height > 0 ? size.height : null;
+  }
 
   void _selectedFilesListener() {
     final bottomInset = MediaQuery.paddingOf(context).bottom;
     final extra = widget.galleryType == GalleryType.homepage ? 76.0 : 0.0;
-    widget.selectedFiles?.files.isEmpty ?? true
-        ? scrollbarBottomPaddingNotifier.value = bottomInset + extra
-        : scrollbarBottomPaddingNotifier.value =
-            FileSelectionOverlayBar.roughHeight + bottomInset;
+    final minHeight =
+        _boundariesProvider?.selectionSheetMinHeightNotifier.value;
+    scrollbarBottomPaddingNotifier.value =
+        (widget.selectedFiles?.files.isNotEmpty ?? false) && minHeight != null
+        ? minHeight
+        : bottomInset + extra;
   }
 
   void _setGroupType() {
@@ -421,7 +709,6 @@ class GalleryState extends State<Gallery> {
     if (event.source == 'uploadCompleted') {
       final Map<int, EnteFile> genIDToUploadedFiles = {};
       for (int i = 0; i < event.updatedFiles.length; i++) {
-        // matching happens on generatedID and localID
         if (event.updatedFiles[i].generatedID == null) {
           return true;
         }
@@ -440,7 +727,14 @@ class GalleryState extends State<Gallery> {
               updateFile.creationTime ?? 0,
               file.creationTime ?? 0,
             )) {
-          _allGalleryFiles[i] = updateFile;
+          final file = _allGalleryFiles[i];
+          if (widget.selectedFiles != null) {
+            widget.selectedFiles!.mutateFile(file, () {
+              file.applyUploadedData(updateFile);
+            });
+          } else {
+            file.applyUploadedData(updateFile);
+          }
           genIDToUploadedFiles.remove(file.generatedID!);
         }
       }
@@ -449,8 +743,6 @@ class GalleryState extends State<Gallery> {
     return shouldReloadFromDB;
   }
 
-  // Handle event when an local file was already uploaded and we have now
-  // added localID link link to the remote file
   bool _shouldReloadOnFileMissingLocal(FilesUpdatedEvent event) {
     bool shouldReloadFromDB = true;
     if (event.source != 'fileMissingLocal' ||
@@ -462,8 +754,6 @@ class GalleryState extends State<Gallery> {
     }
     final Map<int, EnteFile> genIDToUploadedFiles = {};
     for (int i = 0; i < event.updatedFiles.length; i++) {
-      // the file should have generatedID, localID and should not be uploaded for
-      // following logic to work
       if (event.updatedFiles[i].generatedID == null ||
           event.updatedFiles[i].localID == null ||
           event.updatedFiles[i].isUploaded) {
@@ -506,13 +796,76 @@ class GalleryState extends State<Gallery> {
     return false;
   }
 
+  Future<bool> _tryAddNewLocalFiles(LocalPhotosAddedEvent event) async {
+    final resolver = widget.newLocalFilesResolver;
+    if (resolver == null || !_allFilesLoaded || _activeFileLoads > 0) {
+      return false;
+    }
+
+    List<EnteFile>? resolvedFiles;
+    try {
+      resolvedFiles = await resolver(event);
+    } catch (e, s) {
+      _logger.warning('Failed to resolve new local files', e, s);
+      return false;
+    }
+    if (resolvedFiles == null) return false;
+    if (!mounted) return true;
+    if (_activeFileLoads > 0) return false;
+
+    final visibleLocalIDs = _allGalleryFiles
+        .map((file) => file.localID)
+        .nonNulls
+        .toSet();
+    final filesToAdd =
+        resolvedFiles
+            .where(
+              (file) =>
+                  file.localID != null && visibleLocalIDs.add(file.localID!),
+            )
+            .toList()
+          ..sort(_compareGalleryFiles);
+    if (filesToAdd.isNotEmpty) {
+      _setFilesAndReload(_mergeGalleryFiles(filesToAdd));
+    }
+    _logger.info('Added ${filesToAdd.length} new local files in memory');
+    return true;
+  }
+
+  List<EnteFile> _mergeGalleryFiles(List<EnteFile> filesToAdd) {
+    final merged = <EnteFile>[];
+    var currentIndex = 0;
+    var addedIndex = 0;
+    while (currentIndex < _allGalleryFiles.length &&
+        addedIndex < filesToAdd.length) {
+      if (_compareGalleryFiles(
+            filesToAdd[addedIndex],
+            _allGalleryFiles[currentIndex],
+          ) <
+          0) {
+        merged.add(filesToAdd[addedIndex++]);
+      } else {
+        merged.add(_allGalleryFiles[currentIndex++]);
+      }
+    }
+    merged.addAll(_allGalleryFiles.skip(currentIndex));
+    merged.addAll(filesToAdd.skip(addedIndex));
+    return merged;
+  }
+
+  int _compareGalleryFiles(EnteFile first, EnteFile second) {
+    var result = (first.creationTime ?? 0).compareTo(second.creationTime ?? 0);
+    if (result == 0) {
+      result = (first.modificationTime ?? 0).compareTo(
+        second.modificationTime ?? 0,
+      );
+    }
+    return _sortOrderAsc ? result : -result;
+  }
+
   void _updateSwipeHelper() {
     if (widget.selectedFiles != null && _allFilesWithDummies.isNotEmpty) {
-      // Dispose existing helper if present
       _swipeHelper?.dispose();
-      // Use allFilesWithDummies to match the rendered grid structure.
-      // This allows SwipeHelper to track pointer position through dummy
-      // placeholders while filtering them from selection operations.
       _swipeHelper = SwipeToSelectHelper(
         allFiles: _allFilesWithDummies,
         selectedFiles: widget.selectedFiles!,
@@ -522,6 +875,7 @@ class GalleryState extends State<Gallery> {
 
   Future<FileLoadResult> _loadFiles({int? limit}) async {
     _logger.info("Loading ${limit ?? "all"} files");
+    _activeFileLoads++;
     try {
       final startTime = DateTime.now().microsecondsSinceEpoch;
       final result = await widget.asyncLoader(
@@ -540,13 +894,15 @@ class GalleryState extends State<Gallery> {
             "ms",
       );
 
-      /// To curate filters when a gallery is first opened.
       if (!result.hasMore) {
         if (!mounted) {
           return result;
         }
+        final inheritedSearchFilterData = _inheritedSearchFilterData;
         final searchFilterDataProvider =
-            _inheritedSearchFilterData?.searchFilterDataProvider;
+            inheritedSearchFilterData?.isHierarchicalSearchable == true
+            ? inheritedSearchFilterData!.searchFilterDataProvider
+            : null;
         if (searchFilterDataProvider != null &&
             !searchFilterDataProvider.isSearchingNotifier.value) {
           unawaited(
@@ -559,15 +915,24 @@ class GalleryState extends State<Gallery> {
     } catch (e, s) {
       _logger.severe("failed to load files", e, s);
       rethrow;
+    } finally {
+      _activeFileLoads--;
     }
   }
 
   @override
   void dispose() {
-    // Clear scroll controller reference
-    _boundariesProvider?.setScrollController(null);
+    WidgetsBinding.instance.removeObserver(this);
+    _boundariesProvider?.selectionSheetMinHeightNotifier.removeListener(
+      _selectedFilesListener,
+    );
+    if (_boundariesProvider?.scrollControllerNotifier.value ==
+        _scrollController) {
+      _boundariesProvider?.setScrollController(null);
+    }
 
     _reloadEventSubscription?.cancel();
+    _layoutChangeSubscription?.cancel();
     _tabDoubleTapEvent?.cancel();
     for (final subscription in _forceReloadEventSubscriptions) {
       subscription.cancel();
@@ -576,6 +941,7 @@ class GalleryState extends State<Gallery> {
     _priorityDebouncer.cancelDebounceTimer();
     _scrollController.dispose();
     scrollBarInUseNotifier.dispose();
+    _headerHeightRetryTimer?.cancel();
     _headerHeightNotifier.dispose();
     widget.selectedFiles?.removeListener(_selectedFilesListener);
     scrollbarBottomPaddingNotifier.dispose();
@@ -584,32 +950,92 @@ class GalleryState extends State<Gallery> {
     super.dispose();
   }
 
+  void _measureHeaderHeight() {
+    if (!mounted) return;
+    try {
+      final renderBox = _headerKey.currentContext?.findRenderObject();
+      if (renderBox is! RenderBox || !renderBox.hasSize) {
+        _headerHeightRetryTimer = Timer(
+          const Duration(milliseconds: 750),
+          _measureHeaderHeight,
+        );
+        return;
+      }
+      _headerHeightNotifier.value = renderBox.size.height;
+    } catch (e, s) {
+      _logger.warning("Error getting renderBox offset", e, s);
+    }
+    if (mounted) setState(() {});
+  }
+
+  double get _headerHeight {
+    final cachedHeight = _headerHeightNotifier.value;
+    if (cachedHeight != null) {
+      return cachedHeight;
+    }
+    final renderBox = _headerKey.currentContext?.findRenderObject();
+    return renderBox is RenderBox && renderBox.hasSize
+        ? renderBox.size.height
+        : 0;
+  }
+
+  double _scrollOffsetForSectionOffset(
+    double sectionOffset,
+    double appBarCollapseExtent,
+  ) {
+    return sectionOffset + appBarCollapseExtent + _headerHeight;
+  }
+
+  ScrollPhysics get _scrollPhysics => widget.disableScroll
+      ? const NeverScrollableScrollPhysics()
+      : const BouncingScrollPhysics();
+
+  static String _buildAutomationScrollIdentifier(String tagPrefix) {
+    final safeTagPrefix = tagPrefix.replaceAll(
+      _automationIdentifierUnsafeChars,
+      '_',
+    );
+    return "ente.photos.gallery.$safeTagPrefix.scroll";
+  }
+
   @override
   Widget build(BuildContext context) {
     _logger.info("Building Gallery  ${widget.tagPrefix}");
+    if (!_isGalleryVisible && galleryGroups == null) {
+      return const SizedBox.shrink();
+    }
+    final appBarGeometry = widget.appBar?.resolveGeometry(context);
+    final appBarPinnedHeight = appBarGeometry?.minExtent ?? 0;
+    final appBarCollapseExtent = appBarGeometry?.collapseExtent ?? 0;
 
-    // Share scroll controller with boundaries provider after build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        _boundariesProvider?.setScrollController(_scrollController);
+        _boundariesProvider?.setScrollController(
+          _scrollController,
+          swipeActiveNotifier: _swipeActiveNotifier,
+        );
       }
     });
 
-    // Jump to date logic
     if (widget.fileToJumpTo != null &&
         !_completedJumpToDate &&
         _allFilesLoaded &&
         groupHeaderExtent != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         if (mounted) {
-          final offset = galleryGroups
-              .getOffsetOfGroupContainingFile(widget.fileToJumpTo!);
+          final offset = galleryGroups?.getOffsetOfGroupContainingFile(
+            widget.fileToJumpTo!,
+          );
           if (offset != null) {
-            _logger.info("Jumping to date at offset: $offset");
-            _scrollController.jumpTo(offset - 50);
+            final scrollOffset = _scrollOffsetForSectionOffset(
+              offset,
+              appBarCollapseExtent,
+            );
+            _logger.info("Jumping to date at offset: $scrollOffset");
+            _scrollController.jumpTo(scrollOffset - 50);
             await Future.delayed(16.milliseconds);
             await _scrollController.animateTo(
-              offset,
+              scrollOffset,
               duration: 300.milliseconds,
               curve: Curves.easeOutQuint,
             );
@@ -623,15 +1049,22 @@ class GalleryState extends State<Gallery> {
       });
     }
 
-    final widthAvailable = MediaQuery.sizeOf(context).width;
+    final viewSize = MediaQuery.sizeOf(context);
+    final widthAvailable = viewSize.width;
     final shouldEnableSwipeSelection = widget.limitSelectionToOne == false;
 
     if (groupHeaderExtent == null) {
-      final photoGridSize = localSettings.getPhotoGridSize();
+      _scheduleGroupHeaderMeasurement();
+      final photoGridSize = _photoGridSize;
       final tileHeight =
           (widthAvailable - (photoGridSize - 1) * GalleryGroups.spacing) /
-              photoGridSize;
-      return widget.initialFiles != null && widget.initialFiles!.isNotEmpty
+          photoGridSize;
+      final placeholder =
+          _hasUsableSize(viewSize) &&
+              tileHeight.isFinite &&
+              tileHeight > 0 &&
+              widget.initialFiles != null &&
+              widget.initialFiles!.isNotEmpty
           ? Column(
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
@@ -661,119 +1094,249 @@ class GalleryState extends State<Gallery> {
               ],
             )
           : const SizedBox.shrink();
+      return _GalleryAppBarScrollBody(
+        appBar: widget.appBar,
+        physics: _scrollPhysics,
+        child: placeholder,
+      );
     }
 
     GalleryFilesState.of(context).setGalleryFiles = _allGalleryFiles;
     if (!_hasLoadedFiles) {
-      return widget.loadingWidget;
+      return _GalleryAppBarScrollBody(
+        appBar: widget.appBar,
+        physics: _scrollPhysics,
+        child: widget.loadingWidget,
+      );
     }
 
-    // Check if width changed due to orientation change and update gallery groups
-    if (galleryGroups.widthAvailable != widthAvailable) {
+    if (galleryGroups == null) {
+      _updateGalleryGroups(callSetState: false);
+    }
+    final groups = galleryGroups;
+    if (groups == null) {
+      return _GalleryAppBarScrollBody(
+        appBar: widget.appBar,
+        physics: _scrollPhysics,
+        child: widget.loadingWidget,
+      );
+    }
+
+    if (groups.widthAvailable != widthAvailable) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           _updateGalleryGroups();
         }
       });
     }
+    if (appBarPinnedHeight > 0 &&
+        (!groups.groupType.showGroupHeader() ||
+            widget.disablePinnedGroupHeader)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _boundariesProvider?.setTopBoundary(appBarPinnedHeight);
+        }
+      });
+    }
 
-    return SwipeSelectionWrapper(
-      isEnabled: shouldEnableSwipeSelection,
-      swipeHelper: _swipeHelper,
-      selectedFiles: widget.selectedFiles,
-      swipeActiveNotifier: _swipeActiveNotifier,
+    return GalleryGridZoom(
+      groups: groups,
       scrollController: _scrollController,
-      child: GalleryContextState(
-        sortOrderAsc: _sortOrderAsc,
-        inSelectionMode: widget.inSelectionMode,
-        type: _groupType,
-        galleryType: widget.galleryType,
-        child: _allGalleryFiles.isEmpty
-            ? Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  if (widget.addHeaderOrFooterEmptyState)
-                    widget.header ?? const SizedBox.shrink(),
-                  Expanded(child: widget.emptyState),
-                  if (widget.addHeaderOrFooterEmptyState)
-                    widget.footer ?? const SizedBox.shrink(),
-                ],
-              )
-            : CustomScrollBar(
-                scrollController: _scrollController,
-                galleryGroups: galleryGroups,
-                inUseNotifier: scrollBarInUseNotifier,
-                heighOfViewport: MediaQuery.sizeOf(context).height,
-                topPadding: widget.disableVerticalPaddingForScrollbar
-                    ? 0.0
-                    : groupHeaderExtent!,
-                bottomPadding: widget.disableVerticalPaddingForScrollbar
-                    ? ValueNotifier(0.0)
-                    : scrollbarBottomPaddingNotifier,
-                child: NotificationListener<SizeChangedLayoutNotification>(
-                  onNotification: (notification) {
-                    final renderBox = _headerKey.currentContext
-                        ?.findRenderObject() as RenderBox?;
-                    if (renderBox != null) {
-                      _headerHeightNotifier.value = renderBox.size.height;
-                    } else {
-                      _logger.info(
-                        "Header render box is null, cannot get height",
-                      );
-                    }
-
-                    return true;
-                  },
-                  child: Stack(
-                    clipBehavior: Clip.none,
+      sectionOrigin: () =>
+          appBarPinnedHeight +
+          appBarCollapseExtent +
+          _headerHeight -
+          _scrollController.offset,
+      trailingExtent: () {
+        final box = _footerKey.currentContext?.findRenderObject();
+        return box is RenderBox && box.hasSize ? box.size.height : 0;
+      },
+      appBarHeight: appBarPinnedHeight,
+      minimumScrollRange: (widget.appBar?.extendBodyForCollapse ?? false)
+          ? appBarCollapseExtent
+          : 0,
+      pinHeaders: !widget.disablePinnedGroupHeader,
+      enabled:
+          !widget.disableScroll &&
+          widget.layoutTypeOverride == null &&
+          _allGalleryFiles.isNotEmpty,
+      onCommit: _commitGridZoom,
+      showSelectAll: widget.showSelectAll && !widget.limitSelectionToOne,
+      showGallerySettingsCTA: widget.showGallerySettingsCTA,
+      groupHeaderAction: widget.groupHeaderAction,
+      child: SwipeSelectionWrapper(
+        isEnabled: shouldEnableSwipeSelection && !widget.disableSelection,
+        swipeHelper: _swipeHelper,
+        selectedFiles: widget.selectedFiles,
+        swipeActiveNotifier: _swipeActiveNotifier,
+        scrollController: _scrollController,
+        child: GalleryContextState(
+          sortOrderAsc: _sortOrderAsc,
+          inSelectionMode: widget.inSelectionMode,
+          disableSelection: widget.disableSelection,
+          type: _groupType,
+          galleryType: widget.galleryType,
+          child: groups.allFiles.isEmpty
+              ? _GalleryAppBarScrollBody(
+                  appBar: widget.appBar,
+                  physics: _scrollPhysics,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      ValueListenableBuilder<bool>(
-                        valueListenable: _swipeActiveNotifier,
-                        builder: (context, isSwipeActive, child) {
-                          return CustomScrollView(
-                            physics: widget.disableScroll || isSwipeActive
-                                ? const NeverScrollableScrollPhysics()
-                                : const ExponentialBouncingScrollPhysics(),
-                            controller: _scrollController,
-                            slivers: [
-                              SliverToBoxAdapter(
-                                child: SizeChangedLayoutNotifier(
-                                  child: SizedBox(
-                                    key: _headerKey,
-                                    child: widget.header ??
-                                        const SizedBox.shrink(),
-                                  ),
-                                ),
-                              ),
-                              SectionedListSliver(
-                                sectionLayouts: galleryGroups.groupLayouts,
-                              ),
-                              SliverToBoxAdapter(
-                                child: widget.footer,
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                      galleryGroups.groupType.showGroupHeader() &&
-                              !widget.disablePinnedGroupHeader
-                          ? PinnedGroupHeader(
-                              scrollController: _scrollController,
-                              galleryGroups: galleryGroups,
-                              headerHeightNotifier: _headerHeightNotifier,
-                              selectedFiles: widget.selectedFiles,
-                              showSelectAll: widget.showSelectAll &&
-                                  !widget.limitSelectionToOne,
-                              scrollbarInUseNotifier: scrollBarInUseNotifier,
-                              showGallerySettingsCTA:
-                                  widget.showGallerySettingsCTA,
-                            )
-                          : const SizedBox.shrink(),
+                      if (widget.addHeaderOrFooterEmptyState)
+                        widget.header ?? const SizedBox.shrink(),
+                      Expanded(child: widget.emptyState),
+                      if (widget.addHeaderOrFooterEmptyState)
+                        widget.footer ?? const SizedBox.shrink(),
                     ],
                   ),
+                )
+              : CustomScrollBar(
+                  scrollController: _scrollController,
+                  galleryGroups: groups,
+                  inUseNotifier: scrollBarInUseNotifier,
+                  viewportHeight: MediaQuery.sizeOf(context).height,
+                  topPadding: widget.disableVerticalPaddingForScrollbar
+                      ? 0.0
+                      : appBarPinnedHeight + groupHeaderExtent!,
+                  bottomPadding: widget.disableVerticalPaddingForScrollbar
+                      ? ValueNotifier(0.0)
+                      : scrollbarBottomPaddingNotifier,
+                  child: NotificationListener<SizeChangedLayoutNotification>(
+                    onNotification: (notification) {
+                      final renderBox =
+                          _headerKey.currentContext?.findRenderObject()
+                              as RenderBox?;
+                      if (renderBox != null) {
+                        _headerHeightNotifier.value = renderBox.size.height;
+                      } else {
+                        _logger.info(
+                          "Header render box is null, cannot get height",
+                        );
+                      }
+
+                      return true;
+                    },
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        ValueListenableBuilder<bool>(
+                          valueListenable: _swipeActiveNotifier,
+                          builder: (context, isSwipeActive, child) {
+                            return Semantics(
+                              identifier: _automationScrollIdentifier,
+                              container: true,
+                              child: CustomScrollView(
+                                physics: widget.disableScroll || isSwipeActive
+                                    ? const NeverScrollableScrollPhysics()
+                                    : const BouncingScrollPhysics(),
+                                controller: _scrollController,
+                                slivers: [
+                                  if (widget.appBar != null)
+                                    widget.appBar!.buildSliver(context),
+                                  SliverToBoxAdapter(
+                                    child: SizeChangedLayoutNotifier(
+                                      child: SizedBox(
+                                        key: _headerKey,
+                                        child:
+                                            widget.header ??
+                                            const SizedBox.shrink(),
+                                      ),
+                                    ),
+                                  ),
+                                  SectionedListSliver(
+                                    sectionLayouts: groups.groupLayouts,
+                                  ),
+                                  SliverToBoxAdapter(
+                                    child: ValueListenableBuilder<double>(
+                                      key: _footerKey,
+                                      valueListenable:
+                                          scrollbarBottomPaddingNotifier,
+                                      builder: (context, height, child) =>
+                                          ConstrainedBox(
+                                            constraints: BoxConstraints(
+                                              minHeight:
+                                                  (widget
+                                                          .selectedFiles
+                                                          ?.files
+                                                          .isNotEmpty ??
+                                                      false)
+                                                  ? height
+                                                  : 0,
+                                            ),
+                                            child: child,
+                                          ),
+                                      child: widget.footer,
+                                    ),
+                                  ),
+                                  if (widget.appBar?.extendBodyForCollapse ??
+                                      false)
+                                    AppBarCollapseSpacer(
+                                      collapseExtent: appBarCollapseExtent,
+                                    ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                        groups.groupType.showGroupHeader() &&
+                                !widget.disablePinnedGroupHeader
+                            ? PinnedGroupHeader(
+                                scrollController: _scrollController,
+                                galleryGroups: groups,
+                                headerHeightNotifier: _headerHeightNotifier,
+                                scrollOffsetBase: appBarCollapseExtent,
+                                topOffset: appBarPinnedHeight,
+                                selectedFiles: widget.selectedFiles,
+                                showSelectAll:
+                                    widget.showSelectAll &&
+                                    !widget.limitSelectionToOne,
+                                scrollbarInUseNotifier: scrollBarInUseNotifier,
+                                showGallerySettingsCTA:
+                                    widget.showGallerySettingsCTA,
+                                groupHeaderAction: widget.groupHeaderAction,
+                              )
+                            : const SizedBox.shrink(),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
+        ),
       ),
+    );
+  }
+}
+
+class _GalleryAppBarScrollBody extends StatelessWidget {
+  const _GalleryAppBarScrollBody({
+    required this.appBar,
+    required this.physics,
+    required this.child,
+  });
+
+  final GalleryAppBarConfig? appBar;
+  final ScrollPhysics physics;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final appBarConfig = appBar;
+    if (appBarConfig == null) {
+      return child;
+    }
+
+    return CustomScrollView(
+      physics: physics,
+      slivers: [
+        appBarConfig.buildSliver(context),
+        SliverFillRemaining(hasScrollBody: false, child: child),
+        if (appBarConfig.extendBodyForCollapse)
+          AppBarCollapseSpacer(
+            collapseExtent: appBarConfig
+                .resolveGeometry(context)
+                .collapseExtent,
+          ),
+      ],
     );
   }
 }
@@ -782,10 +1345,13 @@ class PinnedGroupHeader extends StatefulWidget {
   final ScrollController scrollController;
   final GalleryGroups galleryGroups;
   final ValueNotifier<double?> headerHeightNotifier;
+  final double scrollOffsetBase;
+  final double topOffset;
   final SelectedFiles? selectedFiles;
   final bool showSelectAll;
   final ValueNotifier<bool> scrollbarInUseNotifier;
   final bool showGallerySettingsCTA;
+  final Widget? groupHeaderAction;
   static const kScaleDurationInMilliseconds = 200;
   static const kTrailingIconsFadeInDelayMs = 0;
   static const kTrailingIconsFadeInDurationMs = 200;
@@ -794,10 +1360,13 @@ class PinnedGroupHeader extends StatefulWidget {
     required this.scrollController,
     required this.galleryGroups,
     required this.headerHeightNotifier,
+    required this.scrollOffsetBase,
+    required this.topOffset,
     required this.selectedFiles,
     required this.showSelectAll,
     required this.scrollbarInUseNotifier,
     required this.showGallerySettingsCTA,
+    required this.groupHeaderAction,
     super.key,
   });
 
@@ -810,7 +1379,7 @@ class _PinnedGroupHeaderState extends State<PinnedGroupHeader>
   String? currentGroupId;
   final _enlargeHeader = ValueNotifier<bool>(false);
   Timer? _enlargeHeaderTimer;
-  late final ValueNotifier<bool> _atZeroScrollNotifier;
+  InheritedGalleryBoundaries? _boundariesProvider;
   Timer? _timer;
   bool lastInUseState = false;
   bool fadeInTrailingIcons = false;
@@ -819,12 +1388,11 @@ class _PinnedGroupHeaderState extends State<PinnedGroupHeader>
     super.initState();
     widget.scrollbarInUseNotifier.addListener(scrollbarInUseListener);
     widget.scrollController.addListener(_setCurrentGroupID);
-    _atZeroScrollNotifier = ValueNotifier<bool>(
-      widget.scrollController.offset == 0,
-    );
-    widget.scrollController.addListener(
-      _scrollControllerListenerForZeroScrollNotifier,
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _setBaseTopBoundary();
+      }
+    });
     widget.headerHeightNotifier.addListener(_headerHeightNotifierListener);
   }
 
@@ -835,15 +1403,17 @@ class _PinnedGroupHeaderState extends State<PinnedGroupHeader>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _boundariesProvider = GalleryBoundariesProvider.of(context);
+  }
+
+  @override
   void dispose() {
     widget.scrollController.removeListener(_setCurrentGroupID);
     widget.scrollbarInUseNotifier.removeListener(scrollbarInUseListener);
-    _atZeroScrollNotifier.removeListener(
-      _scrollControllerListenerForZeroScrollNotifier,
-    );
     widget.headerHeightNotifier.removeListener(_headerHeightNotifierListener);
     _enlargeHeader.dispose();
-    _atZeroScrollNotifier.dispose();
     _enlargeHeaderTimer?.cancel();
     _timer?.cancel();
     super.dispose();
@@ -851,23 +1421,23 @@ class _PinnedGroupHeaderState extends State<PinnedGroupHeader>
 
   void _setCurrentGroupID() {
     if (widget.headerHeightNotifier.value == null) return;
+    final scrollOffset = _scrollOffset;
+    if (scrollOffset == null) return;
     final normalizedScrollOffset =
-        widget.scrollController.offset - widget.headerHeightNotifier.value!;
+        scrollOffset -
+        widget.scrollOffsetBase -
+        widget.headerHeightNotifier.value!;
     if (normalizedScrollOffset < 0) {
-      // No change in group ID, no need to call setState
+      _setBaseTopBoundary();
       if (currentGroupId == null) return;
       currentGroupId = null;
     } else {
       final groupScrollOffsets = widget.galleryGroups.groupScrollOffsets;
 
-      // Binary search to find the index of the largest scrollOffset in
-      // groupScrollOffsets which is <= scrollPosition
       int low = 0;
       int high = groupScrollOffsets.length - 1;
       int floorIndex = 0;
 
-      // Handle the case where scrollPosition is smaller than the first key.
-      // In this scenario, we associate it with the first heading.
       if (normalizedScrollOffset < groupScrollOffsets.first) {
         return;
       }
@@ -877,24 +1447,20 @@ class _PinnedGroupHeaderState extends State<PinnedGroupHeader>
         final midValue = groupScrollOffsets[mid];
 
         if (midValue <= normalizedScrollOffset) {
-          // This key is less than or equal to the target scrollPosition.
-          // It's a potential floor. Store its index and try searching higher
-          // for a potentially closer floor value.
           floorIndex = mid;
           low = mid + 1;
         } else {
-          // This key is greater than the target scrollPosition.
-          // The floor must be in the lower half.
           high = mid - 1;
         }
       }
       if (currentGroupId ==
-          widget.galleryGroups
+          widget
+              .galleryGroups
               .scrollOffsetToGroupIdMap[groupScrollOffsets[floorIndex]]) {
-        // No change in group ID, no need to call setState
         return;
       }
-      currentGroupId = widget.galleryGroups
+      currentGroupId = widget
+          .galleryGroups
           .scrollOffsetToGroupIdMap[groupScrollOffsets[floorIndex]];
     }
 
@@ -908,8 +1474,17 @@ class _PinnedGroupHeaderState extends State<PinnedGroupHeader>
     }
   }
 
-  void _scrollControllerListenerForZeroScrollNotifier() {
-    _atZeroScrollNotifier.value = widget.scrollController.offset == 0;
+  void _setBaseTopBoundary() {
+    _boundariesProvider?.setTopBoundary(
+      widget.topOffset > 0 ? widget.topOffset : null,
+    );
+  }
+
+  double? get _scrollOffset {
+    if (widget.scrollController.positions.length != 1) {
+      return null;
+    }
+    return widget.scrollController.offset;
   }
 
   void scrollbarInUseListener() {
@@ -924,16 +1499,19 @@ class _PinnedGroupHeaderState extends State<PinnedGroupHeader>
         if (lastInUseState) {
           fadeInTrailingIcons = true;
           Future.delayed(
-              const Duration(
-                milliseconds: PinnedGroupHeader.kTrailingIconsFadeInDelayMs +
-                    PinnedGroupHeader.kTrailingIconsFadeInDurationMs +
-                    100,
-              ), () {
-            if (!mounted) return;
-            setState(() {
-              fadeInTrailingIcons = false;
-            });
-          });
+            const Duration(
+              milliseconds:
+                  PinnedGroupHeader.kTrailingIconsFadeInDelayMs +
+                  PinnedGroupHeader.kTrailingIconsFadeInDurationMs +
+                  100,
+            ),
+            () {
+              if (!mounted) return;
+              setState(() {
+                fadeInTrailingIcons = false;
+              });
+            },
+          );
         }
         lastInUseState = false;
       });
@@ -949,7 +1527,8 @@ class _PinnedGroupHeaderState extends State<PinnedGroupHeader>
 
   @override
   Widget build(BuildContext context) {
-    return currentGroupId != null
+    final backgroundColor = GalleryAppBarWidget.backgroundColor(context);
+    final header = currentGroupId != null
         ? ValueListenableBuilder(
             valueListenable: _enlargeHeader,
             builder: (context, inUse, _) {
@@ -960,58 +1539,92 @@ class _PinnedGroupHeaderState extends State<PinnedGroupHeader>
                   milliseconds: PinnedGroupHeader.kScaleDurationInMilliseconds,
                 ),
                 curve: Curves.easeInOutSine,
-                child: ValueListenableBuilder<bool>(
-                  valueListenable: _atZeroScrollNotifier,
-                  builder: (context, atZeroScroll, child) {
-                    return AnimatedContainer(
-                      duration: const Duration(milliseconds: 250),
-                      curve: Curves.easeOut,
-                      decoration: BoxDecoration(
-                        boxShadow: atZeroScroll
-                            ? []
-                            : [
-                                const BoxShadow(
-                                  color: Color(0x26000000),
-                                  blurRadius: 4,
-                                  offset: Offset(0, 2),
-                                ),
-                              ],
-                      ),
-                      child: child,
-                    );
-                  },
-                  child: ColoredBox(
-                    color: getEnteColorScheme(context).backgroundBase,
-                    child: boundaryWidget(
-                      position: BoundaryPosition.top,
-                      child: GroupHeaderWidget(
-                        title: widget.galleryGroups
-                            .groupIdToGroupDataMap[currentGroupId!]!.groupType
-                            .getTitle(
-                          context,
-                          widget.galleryGroups
-                              .groupIDToFilesMap[currentGroupId]!.first,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Positioned.fill(
+                      // Cover fractional-pixel gaps at the app bar boundary.
+                      top: widget.topOffset > 0
+                          ? -1 / MediaQuery.devicePixelRatioOf(context)
+                          : 0,
+                      child: ColoredBox(color: backgroundColor),
+                    ),
+                    const Positioned.fill(
+                      child: ClipRect(
+                        clipper: _PinnedHeaderBottomShadowClipper(),
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            boxShadow: [
+                              BoxShadow(
+                                color: Color(0x14000000),
+                                blurRadius: 4,
+                                offset: Offset(0, 1),
+                              ),
+                            ],
+                          ),
                         ),
-                        gridSize: localSettings.getPhotoGridSize(),
-                        height: widget.galleryGroups.groupHeaderExtent,
-                        filesInGroup: widget
-                            .galleryGroups.groupIDToFilesMap[currentGroupId!]!,
-                        selectedFiles: widget.selectedFiles,
-                        showSelectAll: widget.showSelectAll,
-                        showGalleryLayoutSettingCTA:
-                            widget.showGallerySettingsCTA,
-                        showTrailingIcons: !inUse,
-                        isPinnedHeader: true,
-                        fadeInTrailingIcons: fadeInTrailingIcons,
                       ),
                     ),
-                  ),
+                    ColoredBox(
+                      color: backgroundColor,
+                      child: boundaryWidget(
+                        position: BoundaryPosition.top,
+                        child: GroupHeaderWidget(
+                          title: widget
+                              .galleryGroups
+                              .groupIdToGroupDataMap[currentGroupId!]!
+                              .groupType
+                              .getTitle(
+                                context,
+                                widget
+                                    .galleryGroups
+                                    .groupIDToFilesMap[currentGroupId]!
+                                    .first,
+                              ),
+                          gridSize: widget.galleryGroups.crossAxisCount,
+                          height: widget.galleryGroups.groupHeaderExtent,
+                          filesInGroup: widget
+                              .galleryGroups
+                              .groupIDToFilesMap[currentGroupId!]!,
+                          selectedFiles: widget.selectedFiles,
+                          showSelectAll: widget.showSelectAll,
+                          showGalleryLayoutSettingCTA:
+                              widget.showGallerySettingsCTA,
+                          action: widget.groupHeaderAction,
+                          showTrailingIcons: !inUse,
+                          isPinnedHeader: true,
+                          fadeInTrailingIcons: fadeInTrailingIcons,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               );
             },
           )
         : const SizedBox.shrink();
+
+    if (widget.topOffset == 0) {
+      return header;
+    }
+
+    return Padding(
+      padding: EdgeInsets.only(top: widget.topOffset),
+      child: header,
+    );
   }
+}
+
+class _PinnedHeaderBottomShadowClipper extends CustomClipper<Rect> {
+  const _PinnedHeaderBottomShadowClipper();
+
+  @override
+  Rect getClip(Size size) {
+    return Rect.fromLTRB(0, size.height, size.width, size.height + 8);
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Rect> oldClipper) => false;
 }
 
 class GalleryIndexUpdatedEvent {
@@ -1019,18 +1632,4 @@ class GalleryIndexUpdatedEvent {
   final int index;
 
   GalleryIndexUpdatedEvent(this.tag, this.index);
-}
-
-/// Custom scroll physics that extends [BouncingScrollPhysics] to provide
-/// exponential bouncing behavior for scrollable widgets.
-///
-/// TODO: Revert this PR https://github.com/ente-io/ente/pull/8401 after Jan 1, 2026.
-/// This was implemented temporarily for the Christmas banner and should be removed afterwards.
-class ExponentialBouncingScrollPhysics extends BouncingScrollPhysics {
-  const ExponentialBouncingScrollPhysics({super.parent});
-
-  @override
-  ExponentialBouncingScrollPhysics applyTo(ScrollPhysics? ancestor) {
-    return ExponentialBouncingScrollPhysics(parent: buildParent(ancestor));
-  }
 }

@@ -1,0 +1,25 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": [
+          "6Z68YJY9Q2.io.ente.frame"
+        ],
+        "components": [
+          {
+            "/": "/",
+            "?": { "t": "*" },
+            "#": "*",
+            "comment": "Matches URLs with no path, any query item 't', and any or no fragment"
+          },
+          {
+            "/": "/??????????",
+            "#": "*",
+            "comment": "Matches URLs with a path token and any or no fragment"
+          }
+        ]
+      }
+    ]
+  }
+}

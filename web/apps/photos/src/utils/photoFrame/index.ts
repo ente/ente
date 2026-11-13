@@ -1,7 +1,7 @@
 // TODO: Audit this file
-import type { SelectionContext } from "ente-new/photos/components/gallery";
-import type { GalleryBarMode } from "ente-new/photos/components/gallery/reducer";
-import type { SelectedState, SetSelectedState } from "utils/file";
+import type { SelectionContext } from "@/components/gallery";
+import type { GalleryBarMode } from "@/components/gallery/reducer";
+import type { SelectedState, SetSelectedState } from "@/utils/file";
 
 // TODO: All this is unnecessarily complex, and needs reworking.
 export const handleSelectCreator =
@@ -9,7 +9,7 @@ export const handleSelectCreator =
         setSelected: SetSelectedState,
         mode: GalleryBarMode | undefined,
         userID: number | undefined,
-        activeCollectionID: number,
+        activeCollectionID: number | undefined,
         activePersonID: string | undefined,
         setRangeStartIndex: (index: number | undefined) => void,
     ) =>
@@ -66,7 +66,7 @@ export const handleSelectCreatorMulti =
         setSelected: SetSelectedState,
         mode: GalleryBarMode | undefined,
         userID: number | undefined,
-        activeCollectionID: number,
+        activeCollectionID: number | undefined,
         activePersonID: string | undefined,
     ) =>
     (files: { id: number; ownerID: number }[]) =>
@@ -114,10 +114,21 @@ export const handleSelectCreatorMulti =
 const createSelectedAndContext = (
     mode: GalleryBarMode | undefined,
 
-    activeCollectionID: number,
+    activeCollectionID: number | undefined,
     activePersonID: string | undefined,
     selected: SelectedState,
 ) => {
+    if (mode == "links") {
+        return {
+            selected: {
+                count: 0,
+                ownCount: 0,
+                collectionID: 0,
+                context: undefined,
+            },
+            newContext: undefined,
+        };
+    }
     if (!mode) {
         // Retain older behavior for non-gallery call sites.
         if (selected.collectionID !== activeCollectionID) {
@@ -129,8 +140,6 @@ const createSelectedAndContext = (
             };
         }
     } else if (!selected.context) {
-        // Gallery will specify a mode, but a fresh selection starts off
-        // without a context, so fill it in with the current context.
         selected = {
             ...selected,
             context:
@@ -139,9 +148,7 @@ const createSelectedAndContext = (
                     : { mode, collectionID: activeCollectionID },
         };
     } else {
-        // Both mode and context are defined.
         if (selected.context.mode != mode) {
-            // Clear selection if mode has changed.
             selected = {
                 ownCount: 0,
                 count: 0,
@@ -154,7 +161,6 @@ const createSelectedAndContext = (
         } else {
             if (selected.context.mode == "people") {
                 if (selected.context.personID != activePersonID) {
-                    // Clear selection if person has changed.
                     selected = {
                         ownCount: 0,
                         count: 0,
@@ -167,7 +173,6 @@ const createSelectedAndContext = (
                 }
             } else {
                 if (selected.context.collectionID != activeCollectionID) {
-                    // Clear selection if collection has changed.
                     selected = {
                         ownCount: 0,
                         count: 0,

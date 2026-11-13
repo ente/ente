@@ -1,18 +1,23 @@
 import { Typography, useTheme } from "@mui/material";
 import { t } from "i18next";
 import React, { useMemo } from "react";
-import { estimatePasswordStrength } from "../utils/password";
+import {
+    estimatePasswordStrength,
+    type PasswordStrength,
+} from "../utils/password";
 
 interface PasswordStrengthHintProps {
     password: string;
+    strength?: PasswordStrength;
 }
 
 export const PasswordStrengthHint: React.FC<PasswordStrengthHintProps> = ({
     password,
+    strength,
 }) => {
     const passwordStrength = useMemo(
-        () => estimatePasswordStrength(password),
-        [password],
+        () => strength ?? estimatePasswordStrength(password),
+        [password, strength],
     );
 
     const theme = useTheme();

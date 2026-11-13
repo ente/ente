@@ -20,7 +20,6 @@ class LocationTagStateProvider extends StatefulWidget {
     this.child, {
     this.centerPoint,
     this.locationTagEntity,
-    // if the locationTagEntity is null, we use the centerPoint and radius
     this.radius,
     super.key,
   });
@@ -35,8 +34,9 @@ class _LocationTagStateProviderState extends State<LocationTagStateProvider> {
 
   late Location? _centerPoint;
   late LocalEntity<LocationTag>? _locationTagEntity;
-  final Debouncer _selectedRadiusDebouncer =
-      Debouncer(const Duration(milliseconds: 300));
+  final Debouncer _selectedRadiusDebouncer = Debouncer(
+    const Duration(milliseconds: 300),
+  );
   late final StreamSubscription _locTagEntityListener;
   late final List<double> _radiusValues;
 
@@ -47,9 +47,6 @@ class _LocationTagStateProviderState extends State<LocationTagStateProvider> {
     assert(_centerPoint != null || _locationTagEntity != null);
     _centerPoint = _locationTagEntity?.item.centerPoint ?? _centerPoint!;
 
-    ///If the location tag has a custom radius value, we add the custom radius
-    ///value to the list of default radius values only for this location tag and
-    ///keep it in the state of this widget.
     _radiusValues = _getRadiusValuesOfLocTag(
       _locationTagEntity?.item.radius ?? widget.radius,
     );
@@ -57,8 +54,9 @@ class _LocationTagStateProviderState extends State<LocationTagStateProvider> {
     _selectedRadius =
         _locationTagEntity?.item.radius ?? widget.radius ?? defaultRadiusValue;
 
-    _locTagEntityListener =
-        Bus.instance.on<LocationTagUpdatedEvent>().listen((event) {
+    _locTagEntityListener = Bus.instance.on<LocationTagUpdatedEvent>().listen((
+      event,
+    ) {
       _locationTagUpdateListener(event);
     });
     super.initState();
@@ -117,9 +115,6 @@ class _LocationTagStateProviderState extends State<LocationTagStateProvider> {
     }
   }
 
-  ///Returns the list of radius values for the location tag entity. If radius of
-  ///the location tag is not present in the default list, it returns the list
-  ///with the custom radius value.
   List<double> _getRadiusValuesOfLocTag(double? radiusOfLocTag) {
     final radiusValues = <double>[...defaultRadiusValues];
     if (radiusOfLocTag != null &&
@@ -145,11 +140,9 @@ class _LocationTagStateProviderState extends State<LocationTagStateProvider> {
   }
 }
 
-///This InheritedWidget's state is used in add & edit location sheets
 class InheritedLocationTagData extends InheritedWidget {
   final double selectedRadius;
   final Location centerPoint;
-  //locationTag is null when we are creating a new location tag in add location sheet
   final LocalEntity<LocationTag>? locationTagEntity;
   final VoidCallbackParamDouble updateSelectedRadius;
   final VoidCallbackParamLocation updateCenterPoint;

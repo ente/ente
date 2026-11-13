@@ -5,11 +5,7 @@ class CollectionFileItem {
   final String encryptedKey;
   final String keyDecryptionNonce;
 
-  CollectionFileItem(
-    this.id,
-    this.encryptedKey,
-    this.keyDecryptionNonce,
-  );
+  CollectionFileItem(this.id, this.encryptedKey, this.keyDecryptionNonce);
 
   CollectionFileItem copyWith({
     int? id,
@@ -31,9 +27,7 @@ class CollectionFileItem {
     };
   }
 
-  static fromMap(Map<String, dynamic>? map) {
-    if (map == null) return null;
-
+  static CollectionFileItem fromMap(Map<String, dynamic> map) {
     return CollectionFileItem(
       map['id'],
       map['encryptedKey'],

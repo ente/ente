@@ -1,0 +1,66 @@
+import Head from "next/head";
+import React from "react";
+import { onboardingDescription } from "screens/OnboardingScreen";
+
+const spacePreviewTitle = "Ente Space";
+const spacePreviewDescription =
+    "A private photo-sharing app for keeping up with friends and family. End-to-end encrypted. No ads. No algorithms.";
+const spaceInvitePreviewTitle = "You're invited to my Space";
+const spaceInvitePreviewDescription =
+    "See the everyday photos I share on Ente Space.";
+const previewImages = {
+    home: "https://ente.space/images/meta.png",
+    invite: "https://ente.space/images/meta.png",
+} as const;
+
+interface SpacePageMetaProps {
+    preview?: keyof typeof previewImages;
+    themeColor: string;
+    title?: string;
+}
+
+export const SpacePageMeta: React.FC<SpacePageMetaProps> = ({
+    preview,
+    themeColor,
+    title,
+}) => {
+    const previewImage = preview && previewImages[preview];
+    const previewTitle =
+        preview == "invite" ? spaceInvitePreviewTitle : spacePreviewTitle;
+    const previewDescription =
+        preview == "invite"
+            ? spaceInvitePreviewDescription
+            : spacePreviewDescription;
+
+    return (
+        <Head>
+            {title && <title>{`${title} · Ente Space`}</title>}
+            <meta name="theme-color" content={themeColor} />
+            <meta name="robots" content="noindex,nofollow" />
+            <meta
+                name="description"
+                content={preview ? previewDescription : onboardingDescription}
+            />
+            {previewImage && (
+                <>
+                    <meta property="og:image" content={previewImage} />
+                    <meta property="og:image:type" content="image/png" />
+                    <meta property="og:image:width" content="1200" />
+                    <meta property="og:image:height" content="630" />
+                    <meta name="twitter:card" content="summary_large_image" />
+                    <meta name="twitter:image" content={previewImage} />
+                    <meta property="og:title" content={previewTitle} />
+                    <meta
+                        property="og:description"
+                        content={previewDescription}
+                    />
+                    <meta name="twitter:title" content={previewTitle} />
+                    <meta
+                        name="twitter:description"
+                        content={previewDescription}
+                    />
+                </>
+            )}
+        </Head>
+    );
+};

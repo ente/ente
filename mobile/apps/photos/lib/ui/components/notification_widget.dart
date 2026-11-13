@@ -6,14 +6,7 @@ import "package:photos/theme/ente_theme.dart";
 import 'package:photos/theme/text_style.dart';
 import 'package:photos/ui/components/buttons/icon_button_widget.dart';
 
-// CreateNotificationType enum
-enum NotificationType {
-  warning,
-  banner,
-  greenBanner,
-  goldenBanner,
-  notice,
-}
+enum NotificationType { warning, banner, greenBanner, goldenBanner, notice }
 
 class NotificationWidget extends StatelessWidget {
   final IconData startIcon;
@@ -97,9 +90,7 @@ class NotificationWidget extends StatelessWidget {
         onTap: onTap,
         child: Container(
           decoration: BoxDecoration(
-            borderRadius: const BorderRadius.all(
-              Radius.circular(8),
-            ),
+            borderRadius: const BorderRadius.all(Radius.circular(8)),
             boxShadow: boxShadow,
             color: backgroundColor,
             gradient: backgroundGradient,
@@ -114,27 +105,22 @@ class NotificationWidget extends StatelessWidget {
               children: [
                 isBlackFriday
                     ? Icon(
-                        startIcon,
-                        size: 36,
-                        color: strokeColorScheme.strokeBase,
-                      )
-                        .animate(
-                          onPlay: (controller) =>
-                              controller.repeat(reverse: true),
-                          delay: 2000.ms,
-                        )
-                        .shake(
-                          duration: 500.ms,
-                          hz: 6,
-                          delay: 1600.ms,
-                        )
-                        .scale(
-                          duration: 500.ms,
-                          begin: const Offset(0.9, 0.9),
-                          end: const Offset(1.1, 1.1),
-                          delay: 1600.ms,
-                          // curve: Curves.easeInOut,
-                        )
+                            startIcon,
+                            size: 36,
+                            color: strokeColorScheme.strokeBase,
+                          )
+                          .animate(
+                            onPlay: (controller) =>
+                                controller.repeat(reverse: true),
+                            delay: 2000.ms,
+                          )
+                          .shake(duration: 500.ms, hz: 6, delay: 1600.ms)
+                          .scale(
+                            duration: 500.ms,
+                            begin: const Offset(0.9, 0.9),
+                            end: const Offset(1.1, 1.1),
+                            delay: 1600.ms,
+                          )
                     : Icon(
                         startIcon,
                         size: 36,
@@ -151,10 +137,7 @@ class NotificationWidget extends StatelessWidget {
                         textAlign: TextAlign.left,
                       ),
                       subText != null
-                          ? Text(
-                              subText!,
-                              style: subTextStyle,
-                            )
+                          ? Text(subText!, style: subTextStyle)
                           : const SizedBox.shrink(),
                     ],
                   ),
@@ -197,13 +180,7 @@ class NotificationTipWidget extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Flexible(
-            flex: 12,
-            child: Text(
-              name,
-              style: textTheme.miniFaint,
-            ),
-          ),
+          Flexible(flex: 12, child: Text(name, style: textTheme.miniFaint)),
           Flexible(
             flex: 2,
             child: Icon(
@@ -229,32 +206,20 @@ class NotificationNoteWidget extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         border: Border.all(color: colorScheme.strokeMuted),
-        color: colorScheme.backgroundBase,
+        color: colorScheme.backgroundColour,
         borderRadius: const BorderRadius.all(Radius.circular(8)),
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.info,
-            color: colorScheme.strokeMuted,
-            size: 36,
-          ),
-          const SizedBox(
-            width: 12,
-          ),
+          Icon(Icons.info, color: colorScheme.strokeMuted, size: 36),
+          const SizedBox(width: 12),
           Flexible(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  "Note",
-                  style: textTheme.miniFaint,
-                ),
+                Text("Note", style: textTheme.miniFaint),
                 const SizedBox(height: 2),
-                Text(
-                  note,
-                  style: textTheme.smallMuted,
-                ),
+                Text(note, style: textTheme.smallMuted),
               ],
             ),
           ),

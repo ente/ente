@@ -9,24 +9,34 @@ Ente provides multiple ways to search and discover your photos. From basic date 
 
 ## Basic Search
 
+![People search on Ente Photos mobile with Emma, Kenji, and James real face thumbnails](https://docs-assets.ente.com/screenshots/phone-search-tab.png){width=320px}
+
 You can quickly access search using the keyboard shortcut:
 
 - **Windows/Linux**: `Ctrl + K`
 - **Mac**: `Cmd + K`
 
-This focuses the search bar from anywhere in the app, letting you start searching immediately.
+Close Settings before using this shortcut. It does not open search while Settings is displayed.
 
-### Date search
+On mobile, open **Search** and scroll to **File types** to find **Photos**, **Videos**, **Live**, and file extensions such as **JPG** or **MP4**. These shortcuts search your library; they do not change an album's contents.
 
-Search for photos by specific dates, months, or years. Simply type a date in the search bar:
+### Date search {#date-search}
 
-- "January 2024" - finds all photos from that month
-- "2023" - finds all photos from that year
-- Specific dates like "July 15, 2024"
+Type a date, month, or year in the search bar **without quotation marks**. For example:
+
+- January 2024
+- 2023
+- July 15, 2024
+
+Then select the matching date suggestion under **Moments** on mobile or **Date** on desktop. This searches by date. Selecting a Magic search suggestion instead searches the visual content of your photos.
+
+![Moments date suggestion row highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-search-date-suggestion-callout.png){width=320px}
 
 ### File name search
 
 Find photos by their original file names. Ente preserves file names from when you uploaded your photos, making it easy to find specific files.
+
+![File name result row highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-search-file-name-callout.png){width=320px}
 
 ### Description search
 
@@ -34,9 +44,19 @@ Search for words in descriptions or captions you've added to photos. This makes 
 
 Learn more about [adding descriptions to photos](/photos/faq/metadata-and-editing#descriptions).
 
+![Description result row highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-search-description-callout.png){width=320px}
+
 ### Album search
 
-Search for albums by name or search within specific albums to narrow down results.
+Search for albums by name or search within specific albums to narrow down results. On mobile, album search also includes archived albums under an **Archive** heading.
+
+When you are adding or moving photos on mobile and no album matches your search, select **Create album** to make one with the name you searched for and continue the action.
+
+![Album result row highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-search-album-callout.png){width=320px}
+
+### Photos without location data
+
+On web and desktop, select **No location** from the search suggestions to find photos and videos you own that do not have GPS coordinates in their metadata. This can help identify items that need a [location added manually](/photos/faq/metadata-and-editing#add-location).
 
 ### Settings search
 
@@ -64,7 +84,11 @@ Create custom location labels to organize and find photos by place. Location tag
 
 Location tags work entirely on your device and are end-to-end encrypted.
 
+![Map view with location pins for photos on Ente Photos web](https://docs-assets.ente.com/screenshots/web-map-view.png){width=720px}
+
 **Learn more:** [Map and location features](/photos/features/search-and-discovery/map-and-location)
+
+![Location tags screen on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-search-locations-section.png){width=320px}
 
 ## AI-Powered Search
 
@@ -82,6 +106,8 @@ Search for photos by the people in them:
 
 All face recognition happens on your device. Your photos and face data are never sent to Ente's servers.
 
+![Named person with populated memories on Ente Photos desktop](https://docs-assets.ente.com/screenshots/desktop-face-named-person.png){width=720px}
+
 **Learn more:** [Face recognition](/photos/features/search-and-discovery/face-recognition)
 
 ### Magic search
@@ -95,6 +121,8 @@ Search for photos using natural language descriptions of their content:
 
 Magic search uses on-device AI (CLIP) to understand the content of your photos. You can type natural language queries like "the red motorcycle next to a fountain" to find specific photos.
 
+![Magic search for dog playing in the snow on Ente Photos mobile and desktop](https://docs-assets.ente.com/screenshots/duo-magic-search-long.png){width=900px}
+
 **Learn more:** [Magic search](/photos/features/search-and-discovery/magic-search)
 
 ### Enabling machine learning
@@ -105,11 +133,15 @@ Both face recognition and magic search require enabling machine learning:
 
 Open `Settings > Machine learning` and enable **Machine learning** and/or **Local indexing**.
 
+![Mobile: home with Settings menu (three bars) highlighted, then Machine learning, then the Machine learning page](https://docs-assets.ente.com/screenshots/phone-settings-ml-path-nc.png){width=560px}
+
 **On desktop:**
 
 Open `Settings > Preferences > Machine learning` and enable **Machine learning** and/or **Local indexing**.
 
 After enabling, the app will download and index your photos locally. This is faster over WiFi and on desktop computers.
+
+![Enable machine learning button highlighted on Ente Photos desktop](https://docs-assets.ente.com/screenshots/desktop-ml-enable-callout.png){width=720px}
 
 **Learn more:** [Machine learning overview](/photos/features/search-and-discovery/machine-learning)
 
@@ -119,6 +151,20 @@ After enabling, the app will download and index your photos locally. This is fas
 
 Ente automatically creates collections of photos from past years on the same date, helping you rediscover memories.
 
+![Home gallery with Memories strip on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-home-populated.png){width=320px}
+
+To share items from a memory on mobile:
+
+1. Open the memory and tap the share action.
+2. Select the photos and videos you want to include. You can use **Select all**, or tap the selected count to clear the selection.
+3. Tap **Share memory** to create a link containing only the selected items. To send the selected original files instead, tap **Share items**.
+
+### Memory Lane
+
+Memory Lane creates a timeline for a person using photos of them from different years. When a person's timeline is ready, Ente shows a **Memory lane** banner on their page so you can open it and, on supported platforms, share it as a public link.
+
+**Learn more:** [Memory Lane](/photos/features/search-and-discovery/memory-lane)
+
 ### People section
 
 Browse all recognized faces and persons in your library. Name persons to organize and find photos of specific people quickly.
@@ -126,6 +172,8 @@ Browse all recognized faces and persons in your library. Name persons to organiz
 ### Places
 
 Explore photos grouped by location clusters, making it easy to browse photos by where they were taken.
+
+![Places screen on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-search-places.png){width=320px}
 
 ## Search Tips
 
@@ -155,11 +203,13 @@ Learn more in [Albums and Organization FAQ](/photos/faq/albums-and-organization#
 
 ### Platform-specific features
 
-- **Web (web.ente.io)**: Basic search (date, file name, description, album) - ML features not available
+- **Web (photos.ente.com)**: Basic search (date, file name, description, album) - ML features not available
 - **Mobile apps**: All search features including ML (face recognition and magic search)
 - **Desktop apps**: All search features including ML (face recognition and magic search)
 
-> **Note**: Machine learning features (face recognition and magic search) only work on mobile and desktop apps, not on web.ente.io.
+> [!NOTE]
+>
+> Machine learning features (face recognition and magic search) only work on mobile and desktop apps, not on photos.ente.com.
 
 ## Privacy and Security
 
@@ -186,5 +236,6 @@ Learn more in [Security and Privacy FAQ](/photos/faq/security-and-privacy).
 - [Machine learning overview](/photos/features/search-and-discovery/machine-learning)
 - [Face recognition guide](/photos/features/search-and-discovery/face-recognition)
 - [Magic search guide](/photos/features/search-and-discovery/magic-search)
+- [Memory Lane](/photos/features/search-and-discovery/memory-lane)
 - [Map and location features](/photos/features/search-and-discovery/map-and-location)
 - [Search and Discovery FAQ](/photos/faq/search-and-discovery)

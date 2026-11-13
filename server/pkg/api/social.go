@@ -4,15 +4,14 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/controller/social"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/museum/pkg/utils/handler"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/controller/social"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/museum/pkg/utils/handler"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 )
 
-// SocialHandler exposes unified diff and counts endpoints.
 type SocialHandler struct {
 	Controller *social.Controller
 }
@@ -82,20 +81,6 @@ func (h *SocialHandler) UnifiedDiff(c *gin.Context) {
 		"hasMoreComments":  hasMoreComments,
 		"hasMoreReactions": hasMoreReactions,
 	})
-}
-
-func (h *SocialHandler) Counts(c *gin.Context) {
-	userID := auth.GetUserID(c.Request.Header)
-	if userID <= 0 {
-		handler.Error(c, ente.ErrAuthenticationRequired)
-		return
-	}
-	counts, err := h.Controller.CountActiveCollections(c, userID)
-	if err != nil {
-		handler.Error(c, stacktrace.Propagate(err, ""))
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"counts": counts})
 }
 
 func (h *SocialHandler) LatestUpdates(c *gin.Context) {

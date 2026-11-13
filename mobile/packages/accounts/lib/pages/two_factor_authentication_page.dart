@@ -1,17 +1,22 @@
 import 'package:ente_accounts/ente_accounts.dart';
+import 'package:ente_accounts/lifecycle_event_handler.dart';
+import 'package:ente_accounts/widgets/account_app_bar_logo.dart';
 import 'package:ente_strings/ente_strings.dart';
 import 'package:ente_ui/components/buttons/dynamic_fab.dart';
-import 'package:ente_ui/lifecycle_event_handler.dart';
 import 'package:ente_ui/theme/ente_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:pinput/pinput.dart';
 
 class TwoFactorAuthenticationPage extends StatefulWidget {
   final String sessionID;
+  final Uint8List? keyEncryptionKey;
 
-  const TwoFactorAuthenticationPage(this.sessionID, {super.key});
+  const TwoFactorAuthenticationPage(
+    this.sessionID, {
+    this.keyEncryptionKey,
+    super.key,
+  });
 
   @override
   State<TwoFactorAuthenticationPage> createState() =>
@@ -68,16 +73,10 @@ class _TwoFactorAuthenticationPageState
         scrolledUnderElevation: 0,
         backgroundColor: colorScheme.backgroundBase,
         centerTitle: true,
-        title: SvgPicture.asset(
-          'assets/svg/app-logo.svg',
-          colorFilter: ColorFilter.mode(
-            colorScheme.primary700,
-            BlendMode.srcIn,
-          ),
-        ),
+        title: const AccountAppBarLogo(),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          color: colorScheme.primary700,
+          color: getAccountAppBarColor(context),
           onPressed: () {
             Navigator.of(context).pop();
           },
@@ -106,10 +105,7 @@ class _TwoFactorAuthenticationPageState
       width: 48,
       decoration: BoxDecoration(
         color: colorScheme.backdropBase,
-        border: Border.all(
-          color: colorScheme.strokeFaint,
-          width: 1.75,
-        ),
+        border: Border.all(color: colorScheme.strokeFaint, width: 1.75),
         borderRadius: BorderRadius.circular(18),
       ),
     );
@@ -117,24 +113,16 @@ class _TwoFactorAuthenticationPageState
     final focusedPinTheme = defaultPinTheme.copyWith(
       decoration: BoxDecoration(
         color: colorScheme.backdropBase,
-        border: Border.all(
-          color: colorScheme.primary700,
-          width: 1.75,
-        ),
+        border: Border.all(color: colorScheme.primary700, width: 1.75),
         borderRadius: BorderRadius.circular(18),
       ),
     );
 
     final submittedPinTheme = defaultPinTheme.copyWith(
-      textStyle: textTheme.h3Bold.copyWith(
-        color: colorScheme.primary700,
-      ),
+      textStyle: textTheme.h3Bold.copyWith(color: colorScheme.primary700),
       decoration: BoxDecoration(
         color: colorScheme.backdropBase,
-        border: Border.all(
-          color: colorScheme.strokeFaint,
-          width: 1.75,
-        ),
+        border: Border.all(color: colorScheme.strokeFaint, width: 1.75),
         borderRadius: BorderRadius.circular(18),
       ),
     );
@@ -155,17 +143,13 @@ class _TwoFactorAuthenticationPageState
               const SizedBox(height: 24),
               Text(
                 context.strings.twoFactorAuthTitle,
-                style: textTheme.body.copyWith(
-                  color: colorScheme.textBase,
-                ),
+                style: textTheme.body.copyWith(color: colorScheme.textBase),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               Text(
                 context.strings.enterCodeHint,
-                style: textTheme.small.copyWith(
-                  color: colorScheme.textMuted,
-                ),
+                style: textTheme.small.copyWith(color: colorScheme.textMuted),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
@@ -220,6 +204,11 @@ class _TwoFactorAuthenticationPageState
   }
 
   Future<void> _verifyTwoFactorCode(String code) async {
-    await UserService.instance.verifyTwoFactor(context, widget.sessionID, code);
+    await UserService.instance.verifyTwoFactor(
+      context,
+      widget.sessionID,
+      code,
+      keyEncryptionKey: widget.keyEncryptionKey,
+    );
   }
 }

@@ -1,5 +1,7 @@
 import "dart:async";
+import "dart:convert";
 import "dart:io";
+import "dart:math";
 
 import "package:computer/computer.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
@@ -15,8 +17,8 @@ import 'package:photos/models/file_load_result.dart';
 import 'package:photos/models/freeable_space_info.dart';
 import 'package:photos/models/location/location.dart';
 import "package:photos/models/metadata/common_keys.dart";
+import "package:photos/models/metadata/file_magic.dart";
 import "package:photos/services/filter/db_filters.dart";
-import 'package:photos/utils/file_uploader_util.dart';
 import 'package:sqlite_async/sqlite_async.dart';
 
 class FilesDB with SqlDbBase {
@@ -28,6 +30,8 @@ class FilesDB with SqlDbBase {
   in background and foreground syncs.
   */
   static const _databaseName = "ente.files.db";
+
+  static const int _maxMaterializationPageSize = 2000;
 
   static final Logger _logger = Logger("FilesDB");
 
@@ -61,21 +65,19 @@ class FilesDB with SqlDbBase {
   static const columnMetadataDecryptionHeader = 'metadata_decryption_header';
   static const columnFileSize = 'file_size';
 
-  // MMD -> Magic Metadata
+  // MMD is magic metadata.
   static const columnMMdEncodedJson = 'mmd_encoded_json';
   static const columnMMdVersion = 'mmd_ver';
 
   static const columnPubMMdEncodedJson = 'pub_mmd_encoded_json';
   static const columnPubMMdVersion = 'pub_mmd_ver';
 
-  // part of magic metadata
-  // Only parse & store selected fields from JSON in separate columns if
-  // we need to write query based on that field
+  // JSON fields become columns only when needed for queries.
   static const columnMMdVisibility = 'mmd_visibility';
 
-//If adding or removing a new column, make sure to update the `_columnNames` list
-//and update `_generateColumnsAndPlaceholdersForInsert` and
-//`_generateUpdateAssignmentsWithPlaceholders`
+  // When columns change, also update _columnNames,
+  // _generateColumnsAndPlaceholdersForInsert, and
+  // _generateUpdateAssignmentsWithPlaceholders.
   static final _migrationScripts = [
     ...createTable(filesTable),
     ...alterDeviceFolderToAllowNULL(),
@@ -90,6 +92,7 @@ class FilesDB with SqlDbBase {
     ...updateIndexes(),
     ...createEntityDataTable(),
     ...addAddedTime(),
+    ...addFileMaterializationOrderIndex(),
   ];
 
   static const List<String> _columnNames = [
@@ -125,32 +128,19 @@ class FilesDB with SqlDbBase {
     columnAddedTime,
   ];
 
-  // make this a singleton class
   FilesDB._privateConstructor();
 
   static final FilesDB instance = FilesDB._privateConstructor();
 
-  // only have a single app-wide reference to the database
-  static Future<SqliteDatabase>? _sqliteAsyncDBFuture;
+  Future<SqliteDatabase> get sqliteAsyncDB => getOrOpenDatabase(
+    () => openMigratedDatabase(
+      _databaseName,
+      _migrationScripts,
+      maxReaders: 5,
+      logPath: (path) => _logger.info("DB path " + path),
+    ),
+  );
 
-  Future<SqliteDatabase> get sqliteAsyncDB async {
-    // lazily instantiate the db the first time it is accessed
-    _sqliteAsyncDBFuture ??= _initSqliteAsyncDatabase();
-    return _sqliteAsyncDBFuture!;
-  }
-
-  // this opens the database (and creates it if it doesn't exist)
-  Future<SqliteDatabase> _initSqliteAsyncDatabase() async {
-    final Directory documentsDirectory =
-        await getApplicationDocumentsDirectory();
-    final String path = join(documentsDirectory.path, _databaseName);
-    _logger.info("DB path " + path);
-    final database = SqliteDatabase(path: path);
-    await migrate(database, _migrationScripts);
-    return database;
-  }
-
-  // SQL code to create the database table
   static List<String> createTable(String tableName) {
     return [
       '''
@@ -193,7 +183,7 @@ class FilesDB with SqlDbBase {
       ''',
       '''
         CREATE INDEX IF NOT EXISTS updation_time_index ON $filesTable($columnUpdationTime);
-      '''
+      ''',
     ];
   }
 
@@ -209,7 +199,7 @@ class FilesDB with SqlDbBase {
         
         ALTER TABLE $tempTable 
         RENAME TO $filesTable;
-    '''
+    ''',
     ];
   }
 
@@ -304,7 +294,7 @@ class FilesDB with SqlDbBase {
       ''',
       '''
         ALTER TABLE $filesTable ADD COLUMN $columnMMdVisibility INTEGER DEFAULT $visibleVisibility;
-      '''
+      ''',
     ];
   }
 
@@ -327,7 +317,7 @@ class FilesDB with SqlDbBase {
       CREATE UNIQUE INDEX IF NOT EXISTS cid_uid ON $filesTable ($columnCollectionID, $columnUploadedFileID)
       WHERE $columnCollectionID is not NULL AND $columnUploadedFileID is not NULL
       AND $columnCollectionID != -1 AND $columnUploadedFileID  != -1;
-      '''
+      ''',
     ];
   }
 
@@ -338,7 +328,7 @@ class FilesDB with SqlDbBase {
       ''',
       '''
         ALTER TABLE $filesTable ADD COLUMN $columnPubMMdVersion INTEGER DEFAULT 0;
-      '''
+      ''',
     ];
   }
 
@@ -382,7 +372,7 @@ class FilesDB with SqlDbBase {
           data TEXT NOT NULL DEFAULT '{}',
           updatedAt INTEGER NOT NULL
       );
-      '''
+      ''',
     ];
   }
 
@@ -412,7 +402,20 @@ class FilesDB with SqlDbBase {
       ''',
       '''
         CREATE INDEX IF NOT EXISTS added_time_index ON $filesTable($columnAddedTime);
+      ''',
+    ];
+  }
+
+  static List<String> addFileMaterializationOrderIndex() {
+    return [
       '''
+        CREATE INDEX IF NOT EXISTS file_materialization_order_index
+        ON $filesTable(
+          $columnCreationTime,
+          $columnModificationTime,
+          $columnGeneratedID
+        );
+      ''',
     ];
   }
 
@@ -431,7 +434,7 @@ class FilesDB with SqlDbBase {
           await getApplicationDocumentsDirectory();
       final String path = join(documentsDirectory.path, _databaseName);
       File(path).deleteSync(recursive: true);
-      _sqliteAsyncDBFuture = null;
+      resetDatabaseFuture();
     }
   }
 
@@ -448,10 +451,10 @@ class FilesDB with SqlDbBase {
     final withIdParams = <List<Object?>>[];
     const withIdColumnNames = _columnNames;
     final withoutIdParams = <List<Object?>>[];
-    final withoutIdColumns =
-        _columnNames.where((column) => column != columnGeneratedID).toList();
+    final withoutIdColumns = _columnNames
+        .where((column) => column != columnGeneratedID)
+        .toList();
 
-    // Sort files into appropriate parameter sets
     for (final file in files) {
       if (file.generatedID == null) {
         withoutIdParams.add(_getParameterSetForFile(file));
@@ -479,7 +482,6 @@ class FilesDB with SqlDbBase {
       }
     }
 
-    // Insert any remaining files
     if (withIdParams.isNotEmpty) {
       await _insertBatch(
         conflictAlgorithm,
@@ -506,8 +508,9 @@ class FilesDB with SqlDbBase {
   Future<void> insert(EnteFile file) async {
     _logger.info("Inserting $file");
     final db = await instance.sqliteAsyncDB;
-    final columnsAndPlaceholders =
-        _generateColumnsAndPlaceholdersForInsert(fileGenId: file.generatedID);
+    final columnsAndPlaceholders = _generateColumnsAndPlaceholdersForInsert(
+      fileGenId: file.generatedID,
+    );
     final values = _getParameterSetForFile(file);
 
     await db.execute(
@@ -519,8 +522,9 @@ class FilesDB with SqlDbBase {
   Future<int> insertAndGetId(EnteFile file) async {
     _logger.info("Inserting $file");
     final db = await instance.sqliteAsyncDB;
-    final columnsAndPlaceholders =
-        _generateColumnsAndPlaceholdersForInsert(fileGenId: file.generatedID);
+    final columnsAndPlaceholders = _generateColumnsAndPlaceholdersForInsert(
+      fileGenId: file.generatedID,
+    );
     final values = _getParameterSetForFile(file);
     return await db.writeTransaction((tx) async {
       await tx.execute(
@@ -548,10 +552,7 @@ class FilesDB with SqlDbBase {
     final db = await instance.sqliteAsyncDB;
     final results = await db.getAll(
       'SELECT * FROM $filesTable WHERE $columnUploadedFileID = ? AND $columnCollectionID = ?',
-      [
-        uploadedID,
-        collectionID,
-      ],
+      [uploadedID, collectionID],
     );
     if (results.isEmpty) {
       return null;
@@ -576,9 +577,7 @@ class FilesDB with SqlDbBase {
     final results = await db.getAll(
       'SELECT $columnUploadedFileID FROM $filesTable'
       ' WHERE $columnCollectionID = ? AND ($columnUploadedFileID IS NOT NULL AND $columnUploadedFileID IS NOT -1)',
-      [
-        collectionID,
-      ],
+      [collectionID],
     );
     final ids = <int>{};
     for (final result in results) {
@@ -587,10 +586,6 @@ class FilesDB with SqlDbBase {
     return ids;
   }
 
-  /// Checks which (fileID, collectionID) pairs exist in the database.
-  ///
-  /// Returns a map keyed by collection ID, with each value containing
-  /// the existing file IDs for that collection.
   Future<Map<int, Set<int>>> getExistingFileIDsByCollection(
     Set<(int fileID, int collectionID)> pairs,
   ) async {
@@ -638,9 +633,7 @@ class FilesDB with SqlDbBase {
     final results = await db.getAll(
       'SELECT $columnUploadedFileID, $columnHash FROM $filesTable'
       ' WHERE $columnCollectionID = ? AND ($columnUploadedFileID IS NOT NULL AND $columnUploadedFileID IS NOT -1)',
-      [
-        collectionID,
-      ],
+      [collectionID],
     );
     final ids = <int>{};
     final hash = <String, int>{};
@@ -655,12 +648,16 @@ class FilesDB with SqlDbBase {
   }
 
   Future<FreeableFileIDs> getFreeableFileIDs({
+    required int ownerID,
     Set<String> excludeLocalIDs = const {},
   }) async {
     final db = await instance.sqliteAsyncDB;
     final results = await db.getAll(
       'SELECT $columnLocalID, $columnUploadedFileID, $columnFileSize FROM $filesTable'
-      ' WHERE $columnLocalID IS NOT NULL AND ($columnUploadedFileID IS NOT NULL AND $columnUploadedFileID IS NOT -1)',
+      ' WHERE $columnLocalID IS NOT NULL AND ($columnOwnerID IS NULL OR $columnOwnerID = ?) '
+      'AND ($columnUploadedFileID IS NOT NULL AND $columnUploadedFileID IS NOT -1) '
+      'AND $columnUpdationTime IS NOT NULL',
+      [ownerID],
     );
     final Set<String> localIDs = <String>{};
     final Set<int> uploadedIDs = <int>{};
@@ -688,52 +685,40 @@ class FilesDB with SqlDbBase {
     DBFilterOptions? filterOptions,
     bool applyOwnerCheck = false,
   }) async {
-    final stopWatch = EnteWatch('getAllPendingOrUploadedFiles')..start();
-    final order = (asc ?? false ? 'ASC' : 'DESC');
-
-    final subQueries = <String>[];
-    late List<Object?>? args;
+    final where = <String>[];
+    final args = <Object?>[startTime, endTime];
     if (applyOwnerCheck) {
-      subQueries.add(
-          'SELECT * FROM $filesTable WHERE $columnCreationTime >= ? AND $columnCreationTime <= ? '
-          'AND ($columnOwnerID IS NULL OR $columnOwnerID = ?) '
-          'AND ($columnCollectionID IS NOT NULL AND $columnCollectionID IS NOT -1)');
-      args = [startTime, endTime, ownerID];
+      where.add(
+        '$columnCreationTime >= ? AND $columnCreationTime <= ? '
+        'AND ($columnOwnerID IS NULL OR $columnOwnerID = ?) '
+        'AND ($columnCollectionID IS NOT NULL AND $columnCollectionID IS NOT -1)',
+      );
+      args.add(ownerID);
     } else {
-      subQueries.add(
-          'SELECT * FROM $filesTable WHERE $columnCreationTime >= ? AND $columnCreationTime <= ? '
-          'AND ($columnCollectionID IS NOT NULL AND $columnCollectionID IS NOT -1)');
-      args = [startTime, endTime];
+      where.add(
+        '$columnCreationTime >= ? AND $columnCreationTime <= ? '
+        'AND ($columnCollectionID IS NOT NULL AND $columnCollectionID IS NOT -1)',
+      );
     }
 
-    subQueries.add(' AND $columnMMdVisibility = ?');
+    where.add('$columnMMdVisibility = ?');
     args.add(visibility);
 
     if (filterOptions?.ignoreSharedItems ?? false) {
-      subQueries.add(' AND $columnOwnerID = ?');
+      where.add('($columnOwnerID IS NULL OR $columnOwnerID = ?)');
       args.add(ownerID);
     }
 
-    subQueries.add(
-      ' ORDER BY $columnCreationTime $order, $columnModificationTime $order',
+    return _loadMaterializedFiles(
+      whereClause: where.join(' AND '),
+      whereArguments: args,
+      order: asc ?? false
+          ? _MaterializedFileOrder.creationThenModificationThenIdAscending
+          : _MaterializedFileOrder.creationThenModificationThenIdDescending,
+      limit: limit,
+      filterOptions: filterOptions,
+      convertPage: _convertPageOnCallerIsolate,
     );
-
-    if (limit != null) {
-      subQueries.add(' LIMIT ?');
-      args.add(limit);
-    }
-
-    final finalQuery = subQueries.join();
-
-    final db = await instance.sqliteAsyncDB;
-    final results = await db.getAll(finalQuery, args);
-    stopWatch.log('queryDone');
-    final files = convertToFiles(results);
-    stopWatch.log('convertDone');
-    final filteredFiles = await applyDBFilters(files, filterOptions);
-    stopWatch.log('filteringDone');
-    stopWatch.stop();
-    return FileLoadResult(filteredFiles, files.length == limit);
   }
 
   Future<FileLoadResult> getAllLocalAndUploadedFiles(
@@ -744,39 +729,29 @@ class FilesDB with SqlDbBase {
     bool? asc,
     required DBFilterOptions filterOptions,
   }) async {
-    final db = await instance.sqliteAsyncDB;
-    final order = (asc ?? false ? 'ASC' : 'DESC');
-    final args = [startTime, endTime, visibleVisibility];
-    final subQueries = <String>[];
-
-    subQueries.add(
-        'SELECT * FROM $filesTable WHERE $columnCreationTime >= ? AND $columnCreationTime <= ?  AND ($columnMMdVisibility IS NULL OR $columnMMdVisibility = ?)'
-        ' AND ($columnLocalID IS NOT NULL OR ($columnCollectionID IS NOT NULL AND $columnCollectionID IS NOT -1))');
+    final args = <Object?>[startTime, endTime, visibleVisibility];
+    final where = <String>[
+      '$columnCreationTime >= ? AND $columnCreationTime <= ?',
+      '($columnMMdVisibility IS NULL OR $columnMMdVisibility = ?)',
+      '($columnLocalID IS NOT NULL OR '
+          '($columnCollectionID IS NOT NULL AND $columnCollectionID IS NOT -1))',
+    ];
 
     if (filterOptions.ignoreSharedItems) {
-      subQueries.add(' AND $columnOwnerID = ?');
+      where.add('($columnOwnerID IS NULL OR $columnOwnerID = ?)');
       args.add(ownerID);
     }
 
-    subQueries.add(
-      ' ORDER BY $columnCreationTime $order, $columnModificationTime $order',
+    return _loadMaterializedFiles(
+      whereClause: where.join(' AND '),
+      whereArguments: args,
+      order: asc ?? false
+          ? _MaterializedFileOrder.creationThenModificationThenIdAscending
+          : _MaterializedFileOrder.creationThenModificationThenIdDescending,
+      limit: limit,
+      filterOptions: filterOptions,
+      convertPage: _convertPageOnCallerIsolate,
     );
-
-    if (limit != null) {
-      subQueries.add(' LIMIT ?');
-      args.add(limit);
-    }
-
-    final finalQuery = subQueries.join();
-
-    final results = await db.getAll(
-      finalQuery,
-      args,
-    );
-    final files = convertToFiles(results);
-    final List<EnteFile> filteredFiles =
-        await applyDBFilters(files, filterOptions);
-    return FileLoadResult(filteredFiles, files.length == limit);
   }
 
   List<EnteFile> deduplicateByLocalID(List<EnteFile> files) {
@@ -813,10 +788,7 @@ class FilesDB with SqlDbBase {
       query += ' LIMIT ?';
       args.add(limit);
     }
-    final results = await db.getAll(
-      query,
-      args,
-    );
+    final results = await db.getAll(query, args);
     final files = convertToFiles(results);
     return FileLoadResult(files, files.length == limit);
   }
@@ -860,10 +832,6 @@ class FilesDB with SqlDbBase {
     return files;
   }
 
-  /// Gets multiple uploaded files by their IDs in a single query.
-  ///
-  /// Returns files in the same order as [fileIDs], with null for missing files.
-  /// More efficient than calling [getUploadedFile] multiple times.
   Future<List<EnteFile?>> getUploadedFilesBatch(
     List<int> fileIDs,
     int collectionID,
@@ -872,7 +840,8 @@ class FilesDB with SqlDbBase {
 
     final db = await instance.sqliteAsyncDB;
     final placeholders = fileIDs.map((_) => '?').join(',');
-    final query = '''
+    final query =
+        '''
       SELECT * FROM $filesTable
       WHERE $columnUploadedFileID IN ($placeholders)
         AND $columnCollectionID = ?
@@ -881,7 +850,6 @@ class FilesDB with SqlDbBase {
     final results = await db.getAll(query, [...fileIDs, collectionID]);
     final files = convertToFiles(results);
 
-    // Build a map for O(1) lookup
     final fileMap = <int, EnteFile>{};
     for (final file in files) {
       if (file.uploadedFileID != null) {
@@ -893,12 +861,6 @@ class FilesDB with SqlDbBase {
     return fileIDs.map((id) => fileMap[id]).toList();
   }
 
-  /// Gets files added by other users to user's collections.
-  ///
-  /// Returns files where owner_id != currentUserID, ordered by added_time DESC.
-  /// Used to populate the feed with shared photo items.
-  /// Hidden collections are filtered downstream in _filterFeedItems.
-  /// Offset is supported for paged fetches while aggregating feed groups.
   Future<List<EnteFile>> getRecentlySharedFiles({
     required int currentUserID,
     int limit = 100,
@@ -920,7 +882,8 @@ class FilesDB with SqlDbBase {
     args.add(limit);
     args.add(offset);
 
-    final query = '''
+    final query =
+        '''
       SELECT * FROM $filesTable
       WHERE ${whereClauses.join('\n        AND ')}
       ORDER BY $columnAddedTime DESC, $columnUploadedFileID DESC
@@ -951,74 +914,33 @@ class FilesDB with SqlDbBase {
         '$columnCreationTime <= ? AND $columnOwnerID = ?';
     final List<Object> whereArgs = [startTime, endTime, userID];
 
-    String query = 'SELECT * FROM $filesTable WHERE $whereClause ORDER BY '
+    String query =
+        'SELECT * FROM $filesTable WHERE $whereClause ORDER BY '
         '$columnCreationTime $order, $columnModificationTime $order';
     if (limit != null) {
       query += ' LIMIT ?';
       whereArgs.add(limit);
     }
-    final results = await db.getAll(
-      query,
-      whereArgs,
-    );
+    final results = await db.getAll(query, whereArgs);
     final files = convertToFiles(results);
-    final dedupeResult =
-        await applyDBFilters(files, DBFilterOptions.dedupeOption);
+    final dedupeResult = await applyDBFilters(
+      files,
+      DBFilterOptions.dedupeOption,
+    );
     _logger.info("Fetched " + dedupeResult.length.toString() + " files");
     return FileLoadResult(files, files.length == limit);
   }
 
-  Future<List<EnteFile>> getFilesCreatedWithinDurations(
-    List<List<int>> durations,
-    Set<int> ignoredCollectionIDs, {
-    int? visibility,
-    String order = 'ASC',
-    bool dedupeUploadID = true,
-  }) async {
-    if (durations.isEmpty) {
-      return <EnteFile>[];
-    }
-    final db = await instance.sqliteAsyncDB;
-    String whereClause = durations
-        .map(
-          (duration) =>
-              "($columnCreationTime >= ${duration[0]} AND $columnCreationTime < ${duration[1]})",
-        )
-        .join(" OR ");
-
-    whereClause = "( $whereClause )";
-    if (visibility != null) {
-      whereClause += ' AND $columnMMdVisibility = $visibility';
-    }
-    final query =
-        'SELECT * FROM $filesTable WHERE $whereClause ORDER BY $columnCreationTime $order';
-    final results = await db.getAll(
-      query,
-    );
-    final files = convertToFiles(results);
-    return applyDBFilters(
-      files,
-      DBFilterOptions(
-        ignoredCollectionIDs: ignoredCollectionIDs,
-        dedupeUploadID: dedupeUploadID,
-      ),
-    );
-  }
-
-  // Files which user added to a collection manually but they are not
-  // uploaded yet or files belonging to a collection which is marked for backup
   Future<List<EnteFile>> getFilesPendingForUpload() async {
     final db = await instance.sqliteAsyncDB;
     final results = await db.getAll(
       'SELECT * FROM $filesTable WHERE ($columnUploadedFileID IS NULL OR '
       '$columnUploadedFileID IS -1) AND $columnCollectionID IS NOT NULL AND '
       '$columnCollectionID IS NOT -1 AND $columnLocalID IS NOT NULL AND '
-      '$columnLocalID IS NOT -1 GROUP BY $columnLocalID '
+      '$columnLocalID IS NOT -1 '
       'ORDER BY $columnCreationTime DESC',
     );
     final files = convertToFiles(results);
-    // future-safe filter just to ensure that the query doesn't end up  returning files
-    // which should not be backed up
     files.removeWhere(
       (e) =>
           e.collectionID == null ||
@@ -1040,19 +962,31 @@ class FilesDB with SqlDbBase {
 
   Future<List<EnteFile>> getUnUploadedLocalFilesPendingOfflineProcessing(
     int processingVersion, {
-    int? limit,
+    required int limit,
+    ({int creationTime, int generatedID})? cursor,
   }) async {
     final db = await instance.sqliteAsyncDB;
     final args = <Object?>[processingVersion];
-    var query = 'SELECT * FROM $filesTable WHERE ($columnUploadedFileID IS '
+    var query =
+        'SELECT * FROM $filesTable WHERE $columnGeneratedID IN ('
+        'SELECT MAX($columnGeneratedID) FROM $filesTable WHERE '
+        '($columnUploadedFileID IS '
         'NULL OR $columnUploadedFileID IS -1) AND $columnLocalID IS NOT NULL '
         'AND $columnLocalID IS NOT -1 AND ($columnMetadataVersion IS NULL OR '
-        '$columnMetadataVersion < ?) GROUP BY $columnLocalID ORDER BY '
-        '$columnCreationTime DESC';
-    if (limit != null) {
-      query += ' LIMIT ?';
-      args.add(limit);
+        '$columnMetadataVersion < ?) GROUP BY $columnLocalID)';
+    if (cursor != null) {
+      query +=
+          ' AND ($columnCreationTime < ? OR ($columnCreationTime = ? AND '
+          '$columnGeneratedID < ?))';
+      args.addAll([
+        cursor.creationTime,
+        cursor.creationTime,
+        cursor.generatedID,
+      ]);
     }
+    query +=
+        ' ORDER BY $columnCreationTime DESC, $columnGeneratedID DESC LIMIT ?';
+    args.add(limit);
     final results = await db.getAll(query, args);
     return convertToFiles(results);
   }
@@ -1120,9 +1054,6 @@ class FilesDB with SqlDbBase {
     return result;
   }
 
-  // remove references for local files which are either already uploaded
-  // or queued for upload but not yet uploaded
-// Remove queued local files that have duplicate uploaded entries with same localID
   Future<int> removeQueuedLocalFiles(Set<String> localIDs, int ownerID) async {
     if (localIDs.isEmpty) {
       _logger.finest("No local IDs provided for removal");
@@ -1141,37 +1072,32 @@ class FilesDB with SqlDbBase {
       final batch = localIDsList.sublist(i, endIndex);
       final placeholders = List.filled(batch.length, '?').join(',');
 
-      // Find localIDs that already have uploaded entries
-      final result = await db.execute(
-        '''
+      final result = await db.execute('''
       SELECT DISTINCT $columnLocalID
       FROM $filesTable
       WHERE 
       $columnOwnerID = $ownerID
       AND $columnLocalID IN ($placeholders)
       AND ($columnUploadedFileID IS NOT NULL AND $columnUploadedFileID != -1)
-    ''',
-        batch,
-      );
+    ''', batch);
 
       if (result.isNotEmpty) {
-        final alreadyUploadedLocalIDs =
-            result.map((row) => row[columnLocalID] as String).toList();
-        final localIdPlaceholder =
-            List.filled(alreadyUploadedLocalIDs.length, '?').join(',');
+        final alreadyUploadedLocalIDs = result
+            .map((row) => row[columnLocalID] as String)
+            .toList();
+        final localIdPlaceholder = List.filled(
+          alreadyUploadedLocalIDs.length,
+          '?',
+        ).join(',');
 
-        // Delete queued entries for localIDs that already have uploaded versions
-        final deleteResult = await db.execute(
-          '''
+        final deleteResult = await db.execute('''
         DELETE FROM $filesTable
         WHERE $columnLocalID IN ($localIdPlaceholder)
         AND ($columnUploadedFileID IS NULL OR $columnUploadedFileID = -1)
-      ''',
-          alreadyUploadedLocalIDs,
-        );
+        RETURNING $columnLocalID
+      ''', alreadyUploadedLocalIDs);
 
-        final removedCount =
-            deleteResult.length; // or however your DB returns affected rows
+        final removedCount = deleteResult.length;
         if (removedCount > 0) {
           _logger.warning(
             "Batch ${(i ~/ batchSize) + 1}: Removed $removedCount queued duplicates",
@@ -1206,22 +1132,32 @@ class FilesDB with SqlDbBase {
     return result;
   }
 
-  // Sets the collectionID for the files with given LocalIDs if the
-  // corresponding file entries are not already mapped to some other collection
-  Future<void> setCollectionIDForUnMappedLocalFiles(
+  Future<Set<String>> setCollectionIDForUnMappedLocalFiles(
     int collectionID,
-    Set<String> localIDs,
-  ) async {
+    Set<String> localIDs, {
+    int? trackClaimsForOwner,
+  }) async {
     final db = await instance.sqliteAsyncDB;
     final inParam = localIDs.map((id) => "'$id'").join(',');
-    await db.execute(
-      '''
+    final returning = trackClaimsForOwner == null
+        ? ''
+        : 'RETURNING $columnLocalID, $columnOwnerID';
+    final rows = await db.execute('''
       UPDATE $filesTable
       SET $columnCollectionID = $collectionID
       WHERE $columnLocalID IN ($inParam) AND ($columnCollectionID IS NULL OR 
-      $columnCollectionID = -1);
-    ''',
-    );
+      $columnCollectionID = -1)
+      $returning;
+    ''');
+    if (trackClaimsForOwner == null || collectionID == -1) {
+      return const {};
+    }
+    return {
+      for (final row in rows)
+        if (row[columnOwnerID] == null ||
+            row[columnOwnerID] == trackClaimsForOwner)
+          row[columnLocalID] as String,
+    };
   }
 
   Future<void> markFilesForReUpload(
@@ -1260,39 +1196,84 @@ class FilesDB with SqlDbBase {
     );
   }
 
-  Future<void> updateOfflineImportMetadataForLocalID(
+  Future<void> refreshModifiedLocalFiles(List<EnteFile> files) async {
+    final db = await instance.sqliteAsyncDB;
+    await db.writeTransaction((tx) async {
+      for (final file in files) {
+        await tx.execute(
+          '''
+          UPDATE $filesTable
+          SET $columnModificationTime = ?,
+              $columnLatitude = NULL,
+              $columnLongitude = NULL,
+              $columnPubMMdEncodedJson = json_patch(COALESCE($columnPubMMdEncodedJson, '{}'), ?),
+              $columnMetadataVersion = -1
+          WHERE $columnLocalID = ? AND $columnModificationTime != ?
+            AND ($columnUploadedFileID IS NULL OR $columnUploadedFileID = -1)
+          ''',
+          [
+            file.modificationTime,
+            jsonEncode({
+              widthKey: file.hasDimensions ? file.width : null,
+              heightKey: file.hasDimensions ? file.height : null,
+              mediaTypeKey: null,
+              motionVideoIndexKey: null,
+            }),
+            file.localID,
+            file.modificationTime,
+          ],
+        );
+      }
+    });
+  }
+
+  Future<bool> updateOfflineImportMetadataForLocalID(
     String localID, {
     required int processingVersion,
+    required int modificationTime,
     int? creationTime,
     Location? location,
     int? fileSize,
+    ({int width, int height})? dimensions,
+    int? mediaType,
+    int? motionVideoIndex,
   }) async {
     final db = await instance.sqliteAsyncDB;
-    await db.execute(
+    final result = await db.execute(
       '''
       UPDATE $filesTable
       SET  $columnCreationTime = COALESCE(?, $columnCreationTime),
             $columnLatitude = COALESCE(?, $columnLatitude),
             $columnLongitude = COALESCE(?, $columnLongitude),
             $columnFileSize = COALESCE(?, $columnFileSize),
+            $columnPubMMdEncodedJson = json_patch(COALESCE($columnPubMMdEncodedJson, '{}'), ?),
             $columnMetadataVersion = ?
-      WHERE $columnLocalID = ? AND ($columnUploadedFileID IS NULL OR $columnUploadedFileID = -1);
+      WHERE $columnLocalID = ? AND $columnModificationTime = ?
+        AND ($columnUploadedFileID IS NULL OR $columnUploadedFileID = -1)
+      RETURNING $columnLocalID;
     ''',
       [
         creationTime,
         location?.latitude,
         location?.longitude,
         fileSize,
+        jsonEncode({
+          if (dimensions != null) ...{
+            widthKey: dimensions.width,
+            heightKey: dimensions.height,
+          },
+          mediaTypeKey: ?mediaType,
+          if (mediaType != null || motionVideoIndex != null)
+            motionVideoIndexKey: motionVideoIndex,
+        }),
         processingVersion,
         localID,
+        modificationTime,
       ],
     );
+    return result.isNotEmpty;
   }
 
-  /*
-    This method should only return localIDs which are not uploaded yet
-    and can be mapped to incoming remote entry
-   */
   Future<List<EnteFile>> getUnlinkedLocalMatchesForRemoteFile(
     int ownerID,
     String localID,
@@ -1303,43 +1284,31 @@ class FilesDB with SqlDbBase {
     final db = await instance.sqliteAsyncDB;
     // on iOS, match using localID and fileType. title can either match or
     // might be null based on how the file was imported
-    String query = '''SELECT * FROM $filesTable WHERE ($columnOwnerID = ?  
+    String query =
+        '''SELECT * FROM $filesTable WHERE ($columnOwnerID = ?
         OR $columnOwnerID IS NULL) AND $columnLocalID = ? 
         AND $columnFileType = ? AND ($columnTitle=? OR $columnTitle IS NULL) ''';
-    List<Object> whereArgs = [
-      ownerID,
-      localID,
-      getInt(fileType),
-      title,
-    ];
+    List<Object> whereArgs = [ownerID, localID, getInt(fileType), title];
     if (Platform.isAndroid) {
-      query = '''SELECT * FROM $filesTable WHERE ($columnOwnerID = ? OR  
+      query =
+          '''SELECT * FROM $filesTable WHERE ($columnOwnerID = ? OR
           $columnOwnerID IS NULL) AND $columnLocalID = ? AND $columnFileType = ? 
           AND $columnTitle=? AND $columnDeviceFolder= ? ''';
-      whereArgs = [
-        ownerID,
-        localID,
-        getInt(fileType),
-        title,
-        deviceFolder,
-      ];
+      whereArgs = [ownerID, localID, getInt(fileType), title, deviceFolder];
     }
 
-    final rows = await db.getAll(
-      query,
-      whereArgs,
-    );
+    final rows = await db.getAll(query, whereArgs);
 
     return convertToFiles(rows);
   }
 
   Future<Map<String, EnteFile>>
-      getUserOwnedFilesWithSameHashForGivenListOfFiles(
+  getUserOwnedFilesWithSameHashForGivenListOfFiles(
     List<EnteFile> files,
     int userID,
   ) async {
     final db = await sqliteAsyncDB;
-    final List<String> hashes = [];
+    final hashes = <String>{};
     for (final file in files) {
       if (file.hash != null && file.hash != '') {
         hashes.add(file.hash!);
@@ -1348,32 +1317,37 @@ class FilesDB with SqlDbBase {
     if (hashes.isEmpty) {
       return {};
     }
-    final inParam = hashes.map((e) => "'$e'").join(',');
-    final rows = await db.getAll('''
-      SELECT * FROM $filesTable WHERE $columnHash IN ($inParam) AND $columnOwnerID = $userID;
-      ''');
-    final matchedFiles = convertToFiles(rows);
+
+    const maxInParams = 900;
+    final hashList = hashes.toList(growable: false);
+    final matchedFiles = <EnteFile>[];
+    for (var i = 0; i < hashList.length; i += maxInParams) {
+      final end = min(i + maxInParams, hashList.length);
+      final chunk = hashList.sublist(i, end);
+      final placeholders = List.filled(chunk.length, '?').join(',');
+      final rows = await db.getAll(
+        '''
+        SELECT * FROM $filesTable
+        WHERE $columnHash IN ($placeholders) AND $columnOwnerID = ?;
+        ''',
+        [...chunk, userID],
+      );
+      matchedFiles.addAll(convertToFiles(rows));
+    }
     return Map.fromIterable(matchedFiles, key: (e) => e.hash);
   }
 
-  Future<List<EnteFile>> getUploadedFilesWithHashes(
-    FileHashData hashData,
+  Future<List<EnteFile>> getUploadedFilesWithHash(
+    String hash,
     FileType fileType,
     int ownerID,
   ) async {
-    String inParam = "'${hashData.fileHash}'";
-    if (fileType == FileType.livePhoto && hashData.zipHash != null) {
-      inParam += ",'${hashData.zipHash}'";
-    }
     final db = await instance.sqliteAsyncDB;
     final rows = await db.getAll(
       'SELECT * FROM $filesTable WHERE ($columnUploadedFileID != NULL OR '
       '$columnUploadedFileID != -1) AND $columnOwnerID = ? AND '
-      '$columnFileType = ? AND $columnHash IN ($inParam)',
-      [
-        ownerID,
-        getInt(fileType),
-      ],
+      '$columnFileType = ? AND $columnHash = ?',
+      [ownerID, getInt(fileType), hash],
     );
     return convertToFiles(rows);
   }
@@ -1393,11 +1367,21 @@ class FilesDB with SqlDbBase {
 
   Future<void> updateUploadedFileAcrossCollections(EnteFile file) async {
     final db = await instance.sqliteAsyncDB;
-    final parameterSet = _getParameterSetForFile(file, omitCollectionId: true)
-      ..add(file.uploadedFileID);
-    final updateAssignments = _generateUpdateAssignmentsWithPlaceholders(
-      fileGenId: file.generatedID,
+    // _id, collection_id and the encrypted key material must not be written
+    // here: the same uploadedFileID can exist as multiple rows (one per
+    // collection), each with its own _id, collection_id and encrypted_key/
+    // key_decryption_nonce (the file key wrapped with that collection's key).
+    // Writing one collection's values across all rows would corrupt the others.
+    final parameterSet = _getParameterSetForFile(
+      file,
       omitCollectionId: true,
+      omitGeneratedId: true,
+      omitKeyMaterial: true,
+    )..add(file.uploadedFileID);
+    final updateAssignments = _generateUpdateAssignmentsWithPlaceholders(
+      fileGenId: null,
+      omitCollectionId: true,
+      omitKeyMaterial: true,
     );
     await db.execute(
       'UPDATE $filesTable '
@@ -1418,10 +1402,9 @@ class FilesDB with SqlDbBase {
   Future<void> deleteByGeneratedID(int genID) async {
     final db = await instance.sqliteAsyncDB;
 
-    await db.execute(
-      'DELETE FROM $filesTable WHERE $columnGeneratedID = ?',
-      [genID],
-    );
+    await db.execute('DELETE FROM $filesTable WHERE $columnGeneratedID = ?', [
+      genID,
+    ]);
   }
 
   Future<void> deleteMultipleUploadedFiles(List<int> uploadedFileIDs) async {
@@ -1449,19 +1432,14 @@ class FilesDB with SqlDbBase {
   Future<void> deleteLocalFile(EnteFile file) async {
     final db = await instance.sqliteAsyncDB;
     if (file.localID != null) {
-      // delete all files with same local ID
-      unawaited(
-        db.execute(
-          'DELETE FROM $filesTable WHERE $columnLocalID = ? AND ($columnUploadedFileID IS NULL OR $columnUploadedFileID = -1)',
-          [file.localID],
-        ),
+      await db.execute(
+        'DELETE FROM $filesTable WHERE $columnLocalID = ? AND ($columnUploadedFileID IS NULL OR $columnUploadedFileID = -1)',
+        [file.localID],
       );
     } else {
-      unawaited(
-        db.execute(
-          'DELETE FROM $filesTable WHERE $columnGeneratedID = ? AND ($columnUploadedFileID IS NULL OR $columnUploadedFileID = -1)',
-          [file.generatedID],
-        ),
+      await db.execute(
+        'DELETE FROM $filesTable WHERE $columnGeneratedID = ? AND ($columnUploadedFileID IS NULL OR $columnUploadedFileID = -1)',
+        [file.generatedID],
       );
     }
   }
@@ -1469,13 +1447,11 @@ class FilesDB with SqlDbBase {
   Future<void> deleteLocalFiles(List<String> localIDs) async {
     final inParam = localIDs.map((id) => "'$id'").join(',');
     final db = await instance.sqliteAsyncDB;
-    await db.execute(
-      '''
+    await db.execute('''
       UPDATE $filesTable
       SET $columnLocalID = NULL
       WHERE $columnLocalID IN ($inParam);
-    ''',
-    );
+    ''');
   }
 
   Future<List<EnteFile>> getLocalFiles(
@@ -1486,13 +1462,15 @@ class FilesDB with SqlDbBase {
     final inParam = localIDs.map((id) => "'$id'").join(',');
     final db = await instance.sqliteAsyncDB;
     if (dedupeByLocalID) {
-      query = '''
+      query =
+          '''
       SELECT * FROM $filesTable
       WHERE $columnLocalID IN ($inParam)
       GROUP BY $columnLocalID;
     ''';
     } else {
-      query = '''
+      query =
+          '''
       SELECT * FROM $filesTable
       WHERE $columnLocalID IN ($inParam);
     ''';
@@ -1501,9 +1479,7 @@ class FilesDB with SqlDbBase {
     return convertToFiles(results);
   }
 
-  Future<Set<String>> getAllLocalIDsNewerThan(
-    int creationTimeThreshold,
-  ) async {
+  Future<Set<String>> getAllLocalIDsNewerThan(int creationTimeThreshold) async {
     final db = await instance.sqliteAsyncDB;
     final rows = await db.getAll(
       '''
@@ -1520,12 +1496,10 @@ class FilesDB with SqlDbBase {
     final inParam = localIDs.map((id) => "'$id'").join(',');
     final db = await instance.sqliteAsyncDB;
     unawaited(
-      db.execute(
-        '''
+      db.execute('''
       DELETE FROM $filesTable
       WHERE ($columnUploadedFileID is NULL OR $columnUploadedFileID = -1 ) AND $columnLocalID IN ($inParam)
-    ''',
-      ),
+    '''),
     );
   }
 
@@ -1556,6 +1530,16 @@ class FilesDB with SqlDbBase {
     return row['COUNT(*)'] as int;
   }
 
+  Future<int> collectionFileCountForOwner(int collectionID, int ownerID) async {
+    final db = await instance.sqliteAsyncDB;
+    final row = await db.get(
+      'SELECT COUNT(*) FROM $filesTable WHERE $columnCollectionID = ? '
+      'AND $columnOwnerID = ? AND $columnUploadedFileID IS NOT -1',
+      [collectionID, ownerID],
+    );
+    return row['COUNT(*)'] as int;
+  }
+
   Future<int> archivedFilesCount(
     int visibility,
     int ownerID,
@@ -1572,12 +1556,9 @@ class FilesDB with SqlDbBase {
 
   Future<void> deleteCollection(int collectionID) async {
     final db = await instance.sqliteAsyncDB;
-    unawaited(
-      db.execute(
-        'DELETE FROM $filesTable WHERE $columnCollectionID = ?',
-        [collectionID],
-      ),
-    );
+    await db.execute('DELETE FROM $filesTable WHERE $columnCollectionID = ?', [
+      collectionID,
+    ]);
   }
 
   Future<void> removeFromCollection(int collectionID, List<int> fileIDs) async {
@@ -1611,14 +1592,12 @@ class FilesDB with SqlDbBase {
         .map((file) => "'${file.localID}'")
         .join(',');
     final db = await instance.sqliteAsyncDB;
-    final rows = await db.getAll(
-      '''
+    final rows = await db.getAll('''
       SELECT $columnLocalID
       FROM $filesTable
       WHERE $columnLocalID IN ($inParam) AND $columnCollectionID != 
       $collectionID AND $columnLocalID IS NOT NULL;
-    ''',
-    );
+    ''');
     final result = <String>{};
     for (final row in rows) {
       result.add(row[columnLocalID] as String);
@@ -1626,13 +1605,10 @@ class FilesDB with SqlDbBase {
     return result;
   }
 
-  // getCollectionLatestFileTime returns map of collectionID to the max
-  // creationTime of the files in the collection.
   Future<Map<int, int>> getCollectionIDToMaxCreationTime() async {
     final enteWatch = EnteWatch("getCollectionIDToMaxCreationTime")..start();
     final db = await instance.sqliteAsyncDB;
-    final rows = await db.getAll(
-      '''
+    final rows = await db.getAll('''
       SELECT $columnCollectionID, MAX($columnCreationTime) AS max_creation_time
       FROM $filesTable
       WHERE 
@@ -1640,8 +1616,7 @@ class FilesDB with SqlDbBase {
        AND $columnUploadedFileID IS NOT NULL AND $columnUploadedFileID IS 
        NOT -1)
       GROUP BY $columnCollectionID;
-    ''',
-    );
+    ''');
     final result = <int, int>{};
     for (final row in rows) {
       result[row[columnCollectionID] as int] = row['max_creation_time'] as int;
@@ -1652,14 +1627,12 @@ class FilesDB with SqlDbBase {
 
   Future<Map<int, int>> getFileIDToCreationTime() async {
     final db = await instance.sqliteAsyncDB;
-    final rows = await db.getAll(
-      '''
+    final rows = await db.getAll('''
       SELECT $columnUploadedFileID, $columnCreationTime
       FROM $filesTable
       WHERE 
       ($columnUploadedFileID IS NOT NULL AND $columnUploadedFileID IS NOT -1);
-    ''',
-    );
+    ''');
     final result = <int, int>{};
     for (final row in rows) {
       result[row[columnUploadedFileID] as int] = row[columnCreationTime] as int;
@@ -1667,8 +1640,6 @@ class FilesDB with SqlDbBase {
     return result;
   }
 
-  // getCollectionFileFirstOrLast returns the first or last uploaded file in
-  // the collection based on the given collectionID and the order.
   Future<EnteFile?> getCollectionFileFirstOrLast(
     int collectionID,
     bool sortAsc,
@@ -1771,9 +1742,7 @@ class FilesDB with SqlDbBase {
     return result;
   }
 
-  Future<Set<int>> getAllCollectionIDsOfFile(
-    int uploadedFileID,
-  ) async {
+  Future<Set<int>> getAllCollectionIDsOfFile(int uploadedFileID) async {
     final db = await instance.sqliteAsyncDB;
     final results = await db.getAll(
       '''
@@ -1789,7 +1758,8 @@ class FilesDB with SqlDbBase {
     return collectionIDsOfFile;
   }
 
-  Future<Map<int, int>> getMinPositiveAddedTimeForUploadedFiles(
+  Future<Map<int, ({int collectionID, int addedTime})>>
+  getEarliestPositiveAddedTimeRowsForUploadedFiles(
     Set<int> uploadedFileIDs,
     int ownerID,
   ) async {
@@ -1798,7 +1768,7 @@ class FilesDB with SqlDbBase {
     }
 
     final db = await instance.sqliteAsyncDB;
-    final result = <int, int>{};
+    final result = <int, ({int collectionID, int addedTime})>{};
     const maxInParams = 900;
     final uploadIDs = uploadedFileIDs.toList(growable: false);
 
@@ -1810,22 +1780,33 @@ class FilesDB with SqlDbBase {
       final inParam = chunk.join(',');
       final rows = await db.getAll(
         '''
-        SELECT $columnUploadedFileID, MIN($columnAddedTime) AS min_added_time
+        SELECT $columnUploadedFileID, $columnCollectionID, $columnAddedTime
         FROM $filesTable
         WHERE $columnOwnerID = ?
         AND $columnUploadedFileID IN ($inParam)
         AND $columnAddedTime > 0
-        GROUP BY $columnUploadedFileID
         ''',
         [ownerID],
       );
       for (final row in rows) {
         final uploadedFileID = row[columnUploadedFileID] as int?;
-        final minAddedTime = row['min_added_time'] as int?;
-        if (uploadedFileID == null || minAddedTime == null) {
+        final collectionID = row[columnCollectionID] as int?;
+        final addedTime = row[columnAddedTime] as int?;
+        if (uploadedFileID == null ||
+            collectionID == null ||
+            addedTime == null) {
           continue;
         }
-        result[uploadedFileID] = minAddedTime;
+        final current = result[uploadedFileID];
+        if (current == null ||
+            addedTime < current.addedTime ||
+            (addedTime == current.addedTime &&
+                collectionID < current.collectionID)) {
+          result[uploadedFileID] = (
+            collectionID: collectionID,
+            addedTime: addedTime,
+          );
+        }
       }
     }
     return result;
@@ -1862,19 +1843,17 @@ class FilesDB with SqlDbBase {
     }
   }
 
-  ///Each collectionIDs in list aren't necessarily unique
+  // Collection IDs may repeat.
   Future<List<int>> getAllCollectionIDsOfFiles(
     List<int> uploadedFileIDs,
   ) async {
     final db = await instance.sqliteAsyncDB;
     final inParam = uploadedFileIDs.join(',');
 
-    final results = await db.getAll(
-      '''
+    final results = await db.getAll('''
       SELECT $columnCollectionID FROM $filesTable
       WHERE $columnUploadedFileID IN ($inParam) AND $columnCollectionID != -1
-    ''',
-    );
+    ''');
     final collectionIDsOfFiles = <int>[];
     for (var result in results) {
       collectionIDsOfFiles.add(result['collection_id'] as int);
@@ -1882,8 +1861,6 @@ class FilesDB with SqlDbBase {
     return collectionIDsOfFiles;
   }
 
-  /// Returns only uploaded file IDs from given collections.
-  /// If [ownerID] is provided, only returns files owned by that user.
   Future<List<int>> getUploadedFileIDsInCollections(
     Set<int> collectionIds, {
     int? ownerID,
@@ -1894,7 +1871,8 @@ class FilesDB with SqlDbBase {
     final db = await instance.sqliteAsyncDB;
     final inParam = collectionIds.join(',');
 
-    String query = '''
+    String query =
+        '''
       SELECT DISTINCT $columnUploadedFileID FROM $filesTable
       WHERE $columnCollectionID IN ($inParam)
       AND $columnUploadedFileID IS NOT NULL
@@ -1911,8 +1889,6 @@ class FilesDB with SqlDbBase {
     return results.map((row) => row[columnUploadedFileID] as int).toList();
   }
 
-  /// Returns only collection IDs that contain any of the given uploaded file
-  /// IDs.
   Future<Set<int>> getCollectionIDsForUploadedFileIDs(
     List<int> uploadedFileIds,
   ) async {
@@ -1921,14 +1897,12 @@ class FilesDB with SqlDbBase {
     }
     final db = await instance.sqliteAsyncDB;
     final inParam = uploadedFileIds.join(',');
-    final results = await db.getAll(
-      '''
+    final results = await db.getAll('''
       SELECT DISTINCT $columnCollectionID FROM $filesTable
       WHERE $columnUploadedFileID IN ($inParam)
       AND $columnCollectionID IS NOT NULL
       AND $columnCollectionID != -1
-    ''',
-    );
+    ''');
     return results.map((row) => row[columnCollectionID] as int).toSet();
   }
 
@@ -1948,7 +1922,6 @@ class FilesDB with SqlDbBase {
     return files;
   }
 
-  // For a given userID, return unique uploadedFileId for the given userID
   Future<List<int>> getUploadIDsWithMissingSize(int userId) async {
     final db = await instance.sqliteAsyncDB;
     final rows = await db.getAll(
@@ -1965,8 +1938,6 @@ class FilesDB with SqlDbBase {
     return result;
   }
 
-  // updateSizeForUploadIDs takes a map of upploadedFileID and fileSize and
-  // update the fileSize for the given uploadedFileID
   Future<void> updateSizeForUploadIDs(
     Map<int, int> uploadedFileIDToSize,
   ) async {
@@ -1977,20 +1948,14 @@ class FilesDB with SqlDbBase {
     final parameterSets = <List<Object?>>[];
 
     for (final uploadedFileID in uploadedFileIDToSize.keys) {
-      parameterSets.add([
-        uploadedFileIDToSize[uploadedFileID],
-        uploadedFileID,
-      ]);
+      parameterSets.add([uploadedFileIDToSize[uploadedFileID], uploadedFileID]);
     }
 
-    await db.executeBatch(
-      '''
+    await db.executeBatch('''
       UPDATE $filesTable
       SET $columnFileSize = ?
       WHERE $columnUploadedFileID = ?;
-    ''',
-      parameterSets,
-    );
+    ''', parameterSets);
   }
 
   Future<List<EnteFile>> getStreamingEligibleVideoFiles({
@@ -2000,7 +1965,8 @@ class FilesDB with SqlDbBase {
   }) async {
     final db = await instance.sqliteAsyncDB;
 
-    String query = '''
+    String query =
+        '''
       SELECT * FROM $filesTable
       WHERE $columnFileType = ?
       AND ($columnUploadedFileID IS NOT NULL AND $columnUploadedFileID != -1)
@@ -2030,23 +1996,116 @@ class FilesDB with SqlDbBase {
     Set<int> collectionsToIgnore, {
     bool dedupeByUploadId = true,
   }) async {
-    final db = await instance.sqliteAsyncDB;
-    final result = await db.getAll(
-      'SELECT * FROM $filesTable ORDER BY $columnCreationTime DESC',
-    );
-    _logger.info("${result.length} rows in filesDB");
-
-    final List<EnteFile> files = await Computer.shared()
-        .compute(convertToFilesForIsolate, param: {"result": result});
-
-    final List<EnteFile> deduplicatedFiles = await applyDBFilters(
-      files,
-      DBFilterOptions(
+    final result = await _loadMaterializedFiles(
+      whereClause: '1 = 1',
+      whereArguments: const [],
+      order: _MaterializedFileOrder.creationThenIdDescending,
+      filterOptions: DBFilterOptions(
         ignoredCollectionIDs: collectionsToIgnore,
         dedupeUploadID: dedupeByUploadId,
       ),
+      convertPage: _convertPageInWorkerIsolate,
     );
-    return deduplicatedFiles;
+    return result.files;
+  }
+
+  Future<List<EnteFile>> _convertPageInWorkerIsolate(
+    List<Map<String, dynamic>> rows,
+  ) {
+    return Computer.shared().compute(
+      _convertFilesDBRowsForIsolate,
+      param: {"result": rows},
+    );
+  }
+
+  Future<List<EnteFile>> _convertPageOnCallerIsolate(
+    List<Map<String, dynamic>> rows,
+  ) async {
+    return convertToFiles(rows);
+  }
+
+  Future<FileLoadResult> _loadMaterializedFiles({
+    required String whereClause,
+    required List<Object?> whereArguments,
+    required _MaterializedFileOrder order,
+    required _FilePageConverter convertPage,
+    DBFilterOptions? filterOptions,
+    int? limit,
+  }) async {
+    final files = <EnteFile>[];
+    final normalizedLimit = limit != null && limit >= 0 ? limit : null;
+    var rawRowCount = 0;
+
+    final database = await sqliteAsyncDB;
+    await database.readTransaction((transaction) async {
+      _FilePageBoundary? pageBoundary;
+      var remaining = normalizedLimit;
+
+      while (remaining == null || remaining > 0) {
+        final requestedRows = remaining == null
+            ? _maxMaterializationPageSize
+            : min(_maxMaterializationPageSize, remaining);
+
+        final rows = await transaction.getAll(
+          _buildMaterializedFileQuery(
+            whereClause: whereClause,
+            order: order,
+            hasPageBoundary: pageBoundary != null,
+          ),
+          <Object?>[
+            ...whereArguments,
+            if (pageBoundary != null) ...pageBoundary.values,
+            requestedRows,
+          ],
+        );
+
+        rawRowCount += rows.length;
+        if (rows.length > requestedRows ||
+            rows.length > _maxMaterializationPageSize) {
+          throw StateError(
+            'FilesDB materialization page exceeded its configured bound',
+          );
+        }
+
+        if (rows.isEmpty) {
+          break;
+        }
+
+        pageBoundary = order.boundaryFrom(rows.last);
+        final convertedPage = await convertPage(rows);
+        files.addAll(convertedPage);
+
+        if (remaining != null) {
+          remaining -= rows.length;
+        }
+        if (rows.length < requestedRows) {
+          break;
+        }
+      }
+    });
+
+    final filteredFiles = await applyDBFilters(files, filterOptions);
+    return FileLoadResult(filteredFiles, limit != null && rawRowCount == limit);
+  }
+
+  String _buildMaterializedFileQuery({
+    required String whereClause,
+    required _MaterializedFileOrder order,
+    required bool hasPageBoundary,
+  }) {
+    final pageBoundaryClause = hasPageBoundary
+        ? ' AND (${order.columns.join(', ')}) ${order.comparison} '
+              '(${List.filled(order.columns.length, '?').join(', ')})'
+        : '';
+    return 'SELECT * FROM $filesTable '
+        'WHERE ($whereClause)$pageBoundaryClause '
+        'ORDER BY ${order.orderByClause} LIMIT ?';
+  }
+
+  Future<bool> hasAnyFile() async {
+    final db = await instance.sqliteAsyncDB;
+    final rows = await db.getAll('SELECT 1 FROM $filesTable LIMIT 1');
+    return rows.isNotEmpty;
   }
 
   Future<FileLoadResult> fetchAllUploadedAndSharedFilesWithLocation(
@@ -2058,7 +2117,8 @@ class FilesDB with SqlDbBase {
   }) async {
     final db = await instance.sqliteAsyncDB;
     final order = (asc ?? false ? 'ASC' : 'DESC');
-    String query = '''
+    String query =
+        '''
       SELECT * FROM $filesTable 
       WHERE $columnLatitude IS NOT NULL AND $columnLongitude IS NOT NULL AND
       ($columnLatitude IS NOT 0 OR $columnLongitude IS NOT 0) AND 
@@ -2075,13 +2135,12 @@ class FilesDB with SqlDbBase {
       args.add(limit);
     }
 
-    final results = await db.getAll(
-      query,
-      args,
-    );
+    final results = await db.getAll(query, args);
     final files = convertToFiles(results);
-    final List<EnteFile> filteredFiles =
-        await applyDBFilters(files, filterOptions);
+    final List<EnteFile> filteredFiles = await applyDBFilters(
+      files,
+      filterOptions,
+    );
     return FileLoadResult(filteredFiles, files.length == limit);
   }
 
@@ -2098,10 +2157,6 @@ class FilesDB with SqlDbBase {
     return ids.length;
   }
 
-  /// Returns hidden files that have local copies on the device.
-  /// Only returns files owned by [ownerID] from the specified
-  /// [hiddenCollectionIds].
-  /// Results are deduplicated by uploadedFileID
   Future<List<EnteFile>> getHiddenFilesWithLocalCopy(
     Set<int> hiddenCollectionIds,
     int ownerID,
@@ -2126,7 +2181,6 @@ class FilesDB with SqlDbBase {
     return convertToFiles(results);
   }
 
-  /// Returns true if there are any hidden files with local copies on the device.
   Future<bool> hasHiddenFilesWithLocalCopy(
     Set<int> hiddenCollectionIds,
     int ownerID,
@@ -2150,9 +2204,6 @@ class FilesDB with SqlDbBase {
     return results.isNotEmpty;
   }
 
-  /// Clears localID for all rows matching any of the given uploadedFileIDs.
-  /// This is used when deleting files from device to ensure all collection
-  /// entries for the same file have their localID cleared.
   Future<void> clearLocalIDsForUploadedFileIDs(
     List<int> uploadedFileIDs,
   ) async {
@@ -2161,19 +2212,17 @@ class FilesDB with SqlDbBase {
     }
     final db = await instance.sqliteAsyncDB;
     final inParam = uploadedFileIDs.join(',');
-    await db.execute(
-      '''
+    await db.execute('''
       UPDATE $filesTable
       SET $columnLocalID = NULL
       WHERE $columnUploadedFileID IN ($inParam)
-      ''',
-    );
+      ''');
   }
 
-  ///Returns "columnName1 = ?, columnName2 = ?, ..."
   String _generateUpdateAssignmentsWithPlaceholders({
     required int? fileGenId,
     bool omitCollectionId = false,
+    bool omitKeyMaterial = false,
   }) {
     final assignments = <String>[];
 
@@ -2182,6 +2231,11 @@ class FilesDB with SqlDbBase {
         continue;
       }
       if (columnName == columnCollectionID && omitCollectionId) {
+        continue;
+      }
+      if (omitKeyMaterial &&
+          (columnName == columnEncryptedKey ||
+              columnName == columnKeyDecryptionNonce)) {
         continue;
       }
       assignments.add("$columnName = ?");
@@ -2212,6 +2266,8 @@ class FilesDB with SqlDbBase {
   List<Object?> _getParameterSetForFile(
     EnteFile file, {
     bool omitCollectionId = false,
+    bool omitGeneratedId = false,
+    bool omitKeyMaterial = false,
   }) {
     final values = <Object?>[];
 
@@ -2230,22 +2286,22 @@ class FilesDB with SqlDbBase {
       }
     }
 
-    if (file.generatedID != null) {
+    if (file.generatedID != null && !omitGeneratedId) {
       values.add(file.generatedID);
     }
     values.addAll([
       file.localID,
       file.uploadedFileID ?? -1,
       file.ownerID,
-      file.collectionID ?? -1,
+      if (!omitCollectionId) file.collectionID ?? -1,
       file.title,
       file.deviceFolder,
       latitude,
       longitude,
       getInt(file.fileType),
       file.modificationTime,
-      file.encryptedKey,
-      file.keyDecryptionNonce,
+      if (!omitKeyMaterial) file.encryptedKey,
+      if (!omitKeyMaterial) file.keyDecryptionNonce,
       file.fileDecryptionHeader,
       file.thumbnailDecryptionHeader,
       file.metadataDecryptionHeader,
@@ -2265,10 +2321,6 @@ class FilesDB with SqlDbBase {
       file.addedTime ?? -1,
     ]);
 
-    if (omitCollectionId) {
-      values.removeAt(3);
-    }
-
     return values;
   }
 
@@ -2280,23 +2332,22 @@ class FilesDB with SqlDbBase {
   ) async {
     final valuesPlaceholders = List.filled(columnNames.length, "?").join(",");
     final columnNamesJoined = columnNames.join(",");
-    await db.executeBatch(
-      '''
+    await db.executeBatch('''
           INSERT OR ${conflictAlgorithm.name.toUpperCase()} INTO $filesTable($columnNamesJoined) VALUES($valuesPlaceholders)
-                                  ''',
-      parameterSets,
-    );
+                                  ''', parameterSets);
   }
 
   EnteFile _getFileFromRow(Map<String, dynamic> row) {
     final file = EnteFile();
     file.generatedID = row[columnGeneratedID];
     file.localID = row[columnLocalID];
-    file.uploadedFileID =
-        row[columnUploadedFileID] == -1 ? null : row[columnUploadedFileID];
+    file.uploadedFileID = row[columnUploadedFileID] == -1
+        ? null
+        : row[columnUploadedFileID];
     file.ownerID = row[columnOwnerID];
-    file.collectionID =
-        row[columnCollectionID] == -1 ? null : row[columnCollectionID];
+    file.collectionID = row[columnCollectionID] == -1
+        ? null
+        : row[columnCollectionID];
     file.title = row[columnTitle];
     file.deviceFolder = row[columnDeviceFolder];
     if (row[columnLatitude] != null && row[columnLongitude] != null) {
@@ -2330,3 +2381,47 @@ class FilesDB with SqlDbBase {
     return file;
   }
 }
+
+typedef _FilePageConverter =
+    Future<List<EnteFile>> Function(List<Map<String, dynamic>> rows);
+
+enum _MaterializedFileOrder {
+  creationThenIdDescending([
+    FilesDB.columnCreationTime,
+    FilesDB.columnGeneratedID,
+  ], false),
+  creationThenModificationThenIdDescending([
+    FilesDB.columnCreationTime,
+    FilesDB.columnModificationTime,
+    FilesDB.columnGeneratedID,
+  ], false),
+  creationThenModificationThenIdAscending([
+    FilesDB.columnCreationTime,
+    FilesDB.columnModificationTime,
+    FilesDB.columnGeneratedID,
+  ], true);
+
+  final List<String> columns;
+  final bool ascending;
+
+  const _MaterializedFileOrder(this.columns, this.ascending);
+
+  String get comparison => ascending ? '>' : '<';
+
+  String get orderByClause => columns
+      .map((column) => '$column ${ascending ? 'ASC' : 'DESC'}')
+      .join(', ');
+
+  _FilePageBoundary boundaryFrom(Map<String, dynamic> row) => _FilePageBoundary(
+    columns.map<Object?>((column) => row[column]).toList(growable: false),
+  );
+}
+
+class _FilePageBoundary {
+  final List<Object?> values;
+
+  const _FilePageBoundary(this.values);
+}
+
+List<EnteFile> _convertFilesDBRowsForIsolate(Map<dynamic, dynamic> arguments) =>
+    FilesDB.instance.convertToFilesForIsolate(arguments);

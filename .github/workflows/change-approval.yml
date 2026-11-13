@@ -1,0 +1,57 @@
+name: Change approval
+
+# Guardrail for accidental policy changes; this workflow remains PR-editable.
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  detect:
+    name: Scan changes
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.scan.outputs.categories != '[]' && 'change-approval' || 'no-approval' }}
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+
+      - name: Scan changes
+        id: scan
+        run: |
+          git fetch --no-tags --depth=1 origin +refs/heads/main:refs/remotes/origin/main
+          git archive origin/main .github/checks/change-approval | tar -x -C "$RUNNER_TEMP"
+          node "$RUNNER_TEMP/.github/checks/change-approval/check.mjs" HEAD^1
+
+      - name: Run workflow security checks
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git show origin/main:.github/checks/workflow-security/check.rb > "$RUNNER_TEMP/workflow-security.rb"
+          ruby "$RUNNER_TEMP/workflow-security.rb"
+          gh extension install github/gh-actions-lock --pin v0.4.1
+          gh actions-lock --verify
+
+      - run: node --test .github/checks/change-approval/test.mjs
+
+  gate:
+    name: Change approval
+    needs: detect
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    permissions: {}
+    environment:
+      name: ${{ needs.detect.result == 'success' && needs.detect.outputs.environment || 'no-approval' }}
+      deployment: false
+    steps:
+      - run: test "$SCAN_RESULT" = success
+        env:
+          SCAN_RESULT: ${{ needs.detect.result }}

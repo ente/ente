@@ -11,28 +11,33 @@
         <p>Auth also comes with Offline mode, tags, icons, pins, import/export and more</p>
     </description>
     <launchable type="desktop-id">enteauth.desktop</launchable>
-    <url type="homepage">https://ente.io/auth</url>
+    <url type="homepage">https://ente.com/auth</url>
+    <url type="vcs-browser">https://github.com/ente/ente</url>
+    <requires>
+        <display_length compare="ge">360</display_length>
+    </requires>
+    <supports>
+        <control>touch</control>
+        <control>pointing</control>
+        <control>keyboard</control>
+    </supports>
     <screenshots>
         <screenshot type="default">
-            <image>https://raw.githubusercontent.com/ente-io/ente/main/.github/assets/auth.png</image>
+            <image>https://raw.githubusercontent.com/ente/ente/main/.github/assets/auth.png</image>
+            <caption>Import codes and access your saved 2FA tokens across devices</caption>
         </screenshot>
     </screenshots>
     <releases>
-        <release version="4.4.3" date="2025-06-21" />
-        <release version="4.4.2" date="2025-06-21" />
-        <release version="4.4.0" date="2025-05-31" />
-        <release version="4.3.8" date="2025-05-20" />
-        <release version="4.2.4" date="2025-01-11" />
-        <release version="4.0.3" date="2024-10-08" />
+        <release version="4.4" date="2026-03-30" />
     </releases>
     <provides>
         <id>enteauth.desktop</id>
     </provides>
     <content_rating type="oars-1.0" />
     <developer id="io.github.ente-io.ente">
-        <name>Ente.io Developers</name>
+        <name>Ente Developers</name>
     </developer>
-    <update_contact>auth@ente.io</update_contact>
+    <update_contact>auth@ente.com</update_contact>
     <branding>
         <color type="primary" scheme_preference="light">#ffffff</color>
         <color type="primary" scheme_preference="dark">#000000</color>

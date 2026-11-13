@@ -2,13 +2,18 @@ package cast
 
 import (
 	"context"
-	"github.com/ente-io/museum/ente/cast"
-	"github.com/ente-io/museum/pkg/controller/access"
-	castRepo "github.com/ente-io/museum/pkg/repo/cast"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/museum/pkg/utils/network"
-	"github.com/ente-io/stacktrace"
+	"encoding/base64"
+
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/ente/cast"
+	"github.com/ente/museum/pkg/controller/access"
+	castRepo "github.com/ente/museum/pkg/repo/cast"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/museum/pkg/utils/network"
+	"github.com/ente/museum/pkg/utils/ua"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
 
@@ -16,6 +21,12 @@ type Controller struct {
 	CastRepo   *castRepo.Repository
 	AccessCtrl access.Controller
 }
+
+const (
+	maxRegisterDeviceUserAgentBytes = 1000
+	maxEncryptedPayloadBytes        = 2 * 1024
+	pqPublicKeyBytes                = 1216
+)
 
 func NewController(castRepo *castRepo.Repository,
 	accessCtrl access.Controller,
@@ -27,30 +38,85 @@ func NewController(castRepo *castRepo.Repository,
 }
 
 func (c *Controller) RegisterDevice(ctx *gin.Context, request *cast.RegisterDeviceRequest) (string, error) {
-	return c.CastRepo.AddCode(ctx, request.PublicKey, network.GetClientIP(ctx))
+	if err := validatePQPublicKey(request.PQPublicKey); err != nil {
+		return "", err
+	}
+	ipAddress := network.GetClientIP(ctx)
+	userAgent := ctx.GetHeader("User-Agent")
+	if len(userAgent) > maxRegisterDeviceUserAgentBytes {
+		return "", ente.NewInternalError("user agent too long")
+	}
+	deviceName, err := ua.GetDeviceType(userAgent)
+	if deviceName == "" || err != nil {
+		logrus.WithFields(logrus.Fields{
+			"userAgent": userAgent,
+			"ip":        ipAddress,
+			"err":       err,
+		}).Warn("RegisterDevice: failed to get device type")
+		deviceName = ipAddress
+	}
+	return c.CastRepo.AddCode(ctx, request.PublicKey, request.PQPublicKey, ipAddress, deviceName)
 }
 
-func (c *Controller) GetPublicKey(ctx *gin.Context, deviceCode string) (string, error) {
-	pubKey, ip, err := c.CastRepo.GetPubKeyAndIp(ctx, deviceCode)
+func validatePQPublicKey(publicKey *string) error {
+	if publicKey == nil {
+		return nil
+	}
+	if len(*publicKey) != base64.StdEncoding.EncodedLen(pqPublicKeyBytes) {
+		return stacktrace.Propagate(ente.ErrBadRequest, "invalid pqPublicKey length")
+	}
+	decoded, err := base64.StdEncoding.Strict().DecodeString(*publicKey)
+	if err != nil || len(decoded) != pqPublicKeyBytes {
+		return stacktrace.Propagate(ente.ErrBadRequest, "invalid pqPublicKey")
+	}
+	return nil
+}
+
+func (c *Controller) GetAllDevices(ctx *gin.Context, userID int64) ([]cast.CastInfo, error) {
+	return c.CastRepo.GetAllDevices(ctx, userID)
+}
+
+func (c *Controller) DeleteDevice(ctx *gin.Context, userID int64, deviceID uuid.UUID) error {
+	return c.CastRepo.RevokeForGivenUserAndDevice(ctx, userID, deviceID)
+}
+
+func (c *Controller) GetDeviceInfo(ctx *gin.Context, deviceCode string) (*cast.DeviceInfo, error) {
+	deviceInfo, ip, err := c.CastRepo.GetDeviceInfoAndIP(ctx, deviceCode)
 	if err != nil {
-		return "", stacktrace.Propagate(err, "")
+		return nil, stacktrace.Propagate(err, "")
 	}
 	if ip != network.GetClientIP(ctx) {
 		logrus.WithFields(logrus.Fields{
 			"deviceCode": deviceCode,
 			"ip":         ip,
 			"clientIP":   network.GetClientIP(ctx),
-		}).Warn("GetPublicKey: IP mismatch")
+		}).Warn("GetDeviceInfo: IP mismatch")
 	}
-	return pubKey, nil
+	return deviceInfo, nil
 }
 
 func (c *Controller) GetEncCastData(ctx context.Context, deviceCode string) (*string, error) {
 	return c.CastRepo.GetEncCastData(ctx, deviceCode)
 }
 
-func (c *Controller) InsertCastData(ctx *gin.Context, request *cast.CastRequest) error {
+func (c *Controller) InsertCastData(ctx *gin.Context, request *cast.CastRequest) (uuid.UUID, error) {
+	if len(request.EncPayload) > maxEncryptedPayloadBytes {
+		return uuid.Nil, stacktrace.Propagate(ente.ErrBadRequest, "encrypted payload too large")
+	}
 	userID := auth.GetUserID(ctx.Request.Header)
+	if _, err := c.AccessCtrl.GetCollection(ctx, &access.GetCollectionParams{
+		CollectionID: request.CollectionID,
+		ActorUserID:  userID,
+	}); err != nil {
+		return uuid.Nil, stacktrace.Propagate(err, "failed to verify cast access")
+	}
+	devices, err := c.CastRepo.GetAllDevices(ctx, userID)
+	if err != nil {
+		return uuid.Nil, stacktrace.Propagate(err, "failed to get existing devices")
+	}
+	if len(devices) >= 50 {
+		return uuid.Nil, stacktrace.NewError("device limit reached")
+	}
 	return c.CastRepo.InsertCastData(ctx, userID, request.DeviceCode, request.CollectionID, request.CastToken, request.EncPayload)
 }
 

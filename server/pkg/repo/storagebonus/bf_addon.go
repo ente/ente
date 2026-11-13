@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/ente/storagebonus"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/ente/storagebonus"
 )
 
 func (r *Repository) InsertAddOnBonus(ctx context.Context, bonusType storagebonus.BonusType, userID int64, validTill int64, storage int64) error {
@@ -31,7 +31,7 @@ func (r *Repository) RemoveAddOnBonus(ctx context.Context, bonusType storagebonu
 	if err != nil {
 		return 0, fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback() // Will be no-op if transaction is committed
+	defer tx.Rollback()
 	res, err := tx.ExecContext(ctx, "DELETE FROM storage_bonus WHERE bonus_id = $1", bonusID)
 	if err != nil {
 		return 0, fmt.Errorf("failed to execute delete query: %w", err)
@@ -51,7 +51,7 @@ func (r *Repository) RemoveAddOnBonus(ctx context.Context, bonusType storagebonu
 		return 0, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	return 1, nil // We know exactly one row was affected at this point
+	return 1, nil
 }
 
 func (r *Repository) UpdateAddOnBonus(ctx context.Context, bonusType storagebonus.BonusType, userID int64, validTill int64, storage int64) error {

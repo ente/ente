@@ -50,19 +50,13 @@ class EndToEndBanner extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     title != null
-                        ? Text(
-                            title!,
-                            style: textTheme.bodyBold,
-                          )
+                        ? Text(title!, style: textTheme.bodyBold)
                         : const SizedBox.shrink(),
                     title != null && caption != null
                         ? const SizedBox(height: 4)
                         : const SizedBox.shrink(),
                     caption != null
-                        ? Text(
-                            caption!,
-                            style: textTheme.miniMuted,
-                          )
+                        ? Text(caption!, style: textTheme.miniMuted)
                         : const SizedBox.shrink(),
                   ],
                 ),

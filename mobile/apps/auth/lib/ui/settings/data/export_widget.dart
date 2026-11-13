@@ -2,18 +2,18 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:ente_auth/core/configuration.dart';
-import 'package:ente_auth/l10n/l10n.dart';
 import 'package:ente_auth/models/export/ente.dart';
 import 'package:ente_auth/store/code_store.dart';
-import 'package:ente_auth/ui/components/buttons/button_widget.dart';
 import 'package:ente_auth/ui/components/dialog_widget.dart';
-import 'package:ente_auth/ui/components/models/button_type.dart';
 import 'package:ente_auth/ui/settings/data/html_export.dart';
 import 'package:ente_auth/utils/dialog_util.dart';
 import 'package:ente_auth/utils/share_utils.dart' as auth_share;
 import 'package:ente_auth/utils/toast_util.dart';
 import 'package:ente_crypto_api/ente_crypto_api.dart';
 import 'package:ente_lock_screen/local_authentication_service.dart';
+import 'package:ente_strings/ente_strings.dart';
+import 'package:ente_ui/components/buttons/button_widget.dart';
+import 'package:ente_ui/components/buttons/models/button_type.dart';
 import 'package:ente_utils/ente_utils.dart';
 import 'package:file_saver/file_saver.dart';
 import 'package:flutter/material.dart';
@@ -23,26 +23,27 @@ import 'package:share_plus/share_plus.dart';
 Future<void> handleExportClick(BuildContext context) async {
   final result = await showDialogWidget(
     context: context,
-    title: context.l10n.selectExportFormat,
-    body: context.l10n.exportDialogDesc,
+    title: context.strings.selectExportFormat,
+    body: context.strings.exportDialogDesc,
+    alwaysShowCloseButton: true,
     buttons: [
       ButtonWidget(
         buttonType: ButtonType.primary,
-        labelText: context.l10n.encrypted,
+        labelText: context.strings.encrypted,
         isInAlert: true,
         buttonSize: ButtonSize.large,
         buttonAction: ButtonAction.first,
       ),
       ButtonWidget(
         buttonType: ButtonType.secondary,
-        labelText: context.l10n.plainText,
+        labelText: context.strings.plainText,
         buttonSize: ButtonSize.large,
         isInAlert: true,
         buttonAction: ButtonAction.second,
       ),
       ButtonWidget(
         buttonType: ButtonType.secondary,
-        labelText: context.l10n.plainHTML,
+        labelText: context.strings.plainHTML,
         buttonSize: ButtonSize.large,
         isInAlert: true,
         buttonAction: ButtonAction.third,
@@ -50,6 +51,7 @@ Future<void> handleExportClick(BuildContext context) async {
     ],
   );
   if (result?.action != null && result!.action != ButtonAction.cancel) {
+    if (!context.mounted) return;
     if (result.action == ButtonAction.first) {
       await _requestForEncryptionPassword(context);
     } else if (result.action == ButtonAction.second) {
@@ -64,7 +66,7 @@ Future<void> _requestForEncryptionPassword(
   BuildContext context, {
   String? password,
 }) async {
-  final l10n = context.l10n;
+  final l10n = context.strings;
   await showTextInputDialog(
     context,
     title: l10n.passwordToEncryptExport,
@@ -74,13 +76,16 @@ Future<void> _requestForEncryptionPassword(
     alwaysShowSuccessState: false,
     onSubmit: (String password) async {
       if (password.isEmpty || password.length < 4) {
+        if (!context.mounted) return;
         showToast(context, "Password must be at least 4 characters long.");
         Future.delayed(const Duration(seconds: 0), () {
+          if (!context.mounted) return;
           _requestForEncryptionPassword(context, password: password);
         });
         return;
       }
       if (password.isNotEmpty) {
+        if (!context.mounted) return;
         try {
           final kekSalt = CryptoUtil.getSaltToDeriveKey();
           final derivedKeyResult = await CryptoUtil.deriveSensitiveKey(
@@ -88,7 +93,6 @@ Future<void> _requestForEncryptionPassword(
             kekSalt,
           );
           String exportPlainText = await _getAuthDataForExport();
-          // Encrypt the key with this derived key
           final encResult = await CryptoUtil.encryptData(
             utf8.encode(exportPlainText),
             derivedKeyResult.key,
@@ -105,9 +109,15 @@ Future<void> _requestForEncryptionPassword(
               salt: CryptoUtil.bin2base64(kekSalt),
             ),
           );
-          // get json value of data
-          await _exportCodes(context, jsonEncode(data.toJson()), "encrypted", "json");
+          if (!context.mounted) return;
+          await _exportCodes(
+            context,
+            jsonEncode(data.toJson()),
+            "encrypted",
+            "json",
+          );
         } catch (e) {
+          if (!context.mounted) return;
           showToast(context, "Error while exporting codes.");
         }
       }
@@ -118,19 +128,22 @@ Future<void> _requestForEncryptionPassword(
 Future<void> _showExportWarningDialog(BuildContext context, String type) async {
   final result = await showChoiceActionSheet(
     context,
-    title: context.l10n.warning,
-    body: context.l10n.exportWarningDesc,
+    title: context.strings.warning,
+    body: context.strings.exportWarningDesc,
     isCritical: true,
-    secondButtonLabel: context.l10n.cancel,
-    firstButtonLabel: context.l10n.iUnderStand,
+    secondButtonLabel: context.strings.cancel,
+    firstButtonLabel: context.strings.iUnderStand,
   );
 
   if (result?.action == ButtonAction.first) {
+    if (!context.mounted) return;
     if (type == "html") {
       final data = await generateHtml(context);
+      if (!context.mounted) return;
       await _exportCodes(context, data, "plainhtml", type);
     } else {
       final data = await _getAuthDataForExport();
+      if (!context.mounted) return;
       await _exportCodes(context, data, "plaintext", type);
     }
   }
@@ -146,15 +159,16 @@ Future<void> _exportCodes(
   String formattedDate = DateFormat('yyyyMMdd-HHmmss').format(now);
   String exportFileName = 'ente-auth-codes-$exportType-$formattedDate';
   final hasAuthenticated = await LocalAuthenticationService.instance
-      .requestLocalAuthentication(context, context.l10n.authToExportCodes);
+      .requestLocalAuthentication(context, context.strings.authToExportCodes);
   if (!hasAuthenticated) {
     return;
   }
-  Future.delayed(
-    const Duration(milliseconds: 1200),
-    () async => await auth_share.shareDialog(
+  if (!context.mounted) return;
+  Future.delayed(const Duration(milliseconds: 1200), () async {
+    if (!context.mounted) return;
+    await auth_share.shareDialog(
       context,
-      context.l10n.exportCodes,
+      context.strings.exportCodes,
       saveAction: () async {
         await FileSaverUtil.saveFile(
           exportFileName,
@@ -171,14 +185,17 @@ Future<void> _exportCodes(
           await codeFile.delete();
         }
         codeFile.writeAsStringSync(fileContent);
+        if (!context.mounted) return;
         final Size size = MediaQuery.of(context).size;
         await SharePlus.instance.share(
           ShareParams(
-            files: <XFile>[
-              XFile(codeFile.path, mimeType: 'text/plain'),
-            ],
-            sharePositionOrigin:
-                Rect.fromLTWH(0, 0, size.width, size.height / 2),
+            files: <XFile>[XFile(codeFile.path, mimeType: 'text/plain')],
+            sharePositionOrigin: Rect.fromLTWH(
+              0,
+              0,
+              size.width,
+              size.height / 2,
+            ),
           ),
         );
         Future.delayed(const Duration(seconds: 30), () async {
@@ -187,8 +204,8 @@ Future<void> _exportCodes(
           }
         });
       },
-    ),
-  );
+    );
+  });
 }
 
 Future<String> _getAuthDataForExport() async {

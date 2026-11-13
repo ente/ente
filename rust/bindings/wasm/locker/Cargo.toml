@@ -1,0 +1,12 @@
+[package]
+name = "ente-locker-wasm"
+edition.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ente-wasm-lib = { workspace = true, features = ["collections", "contacts", "crypto-file", "crypto-seal", "legacy", "locker"] }
+
+[lints]
+workspace = true

@@ -6,7 +6,6 @@ import (
 	"fmt"
 )
 
-// IsInPercentageRollout deterministically decides whether a user belongs to a rollout bucket.
 // nonce should remain constant for a given experiment so the same users stay opted-in.
 func IsInPercentageRollout(userID int64, nonce string, percentage int) bool {
 	switch {

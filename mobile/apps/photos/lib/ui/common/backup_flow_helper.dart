@@ -2,10 +2,10 @@ import "dart:async";
 import "dart:io";
 
 import "package:ente_pure_utils/ente_pure_utils.dart";
+import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:logging/logging.dart";
 import "package:photo_manager/photo_manager.dart";
-import "package:photos/l10n/l10n.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/sync/local_sync_service.dart";
 import "package:photos/ui/home/loading_photos_widget.dart";
@@ -20,19 +20,22 @@ Future<void> handleFullPermissionBackupFlow(BuildContext context) async {
     return;
   }
 
-  await _requestPermissions();
+  final state = await _requestAndStoreGrantedPermissions();
   if (!context.mounted) return;
 
-  if (permissionService.hasGrantedFullPermission()) {
+  final hasFullPermission =
+      state == PermissionState.authorized ||
+      (state == null && permissionService.hasGrantedFullPermission());
+  if (hasFullPermission) {
     unawaited(_navigateToFolderSelection(context, isFirstBackup: false));
   } else if (Platform.isAndroid) {
     await PhotoManager.openSetting();
   } else {
+    final hasLimitedPermission =
+        state == PermissionState.limited ||
+        (state == null && permissionService.hasGrantedLimitedPermissions());
     // ignore: unawaited_futures
-    _showLimitedPermissionSheet(
-      context,
-      hasGrantedLimit: permissionService.hasGrantedLimitedPermissions(),
-    );
+    _showLimitedPermissionSheet(context, hasGrantedLimit: hasLimitedPermission);
   }
 }
 
@@ -71,11 +74,10 @@ Future<bool?> handleFolderSelectionBackupFlow(
 }
 
 bool _shouldRunFirstImportFlow() =>
-    flagService.enableOnlyBackupFuturePhotos &&
     !LocalSyncService.instance.hasCompletedFirstImport();
 
 Future<bool?> _handleFirstImportFlow(BuildContext context) async {
-  final state = await _requestPermissions();
+  final state = await _requestAndStoreGrantedPermissions();
   if (state == null || !context.mounted) return null;
 
   if (!_hasMinimalPermission(state)) {
@@ -83,12 +85,7 @@ Future<bool?> _handleFirstImportFlow(BuildContext context) async {
     return null;
   }
 
-  // Trigger local sync before showing the loading widget.
-  // The skip flag was cleared above, so sync will now proceed with first import.
-  // We use LocalSyncService.sync() directly because:
-  // 1. It has its own _existingSync guard - returns existing future if already running
-  // 2. It's all we need for first import (fires completedFirstGalleryImport event)
-  // 3. Avoids race conditions with SyncService._doSync() calling syncAll()
+  // Start only the local import; SyncService also runs syncAll.
   _logger.info("Triggering local sync for first import from backup flow");
   unawaited(LocalSyncService.instance.sync());
 
@@ -98,10 +95,12 @@ Future<bool?> _handleFirstImportFlow(BuildContext context) async {
   );
 }
 
-Future<PermissionState?> _requestPermissions() async {
+Future<PermissionState?> _requestAndStoreGrantedPermissions() async {
   try {
-    final state = await permissionService.requestPhotoMangerPermissions();
-    await permissionService.onUpdatePermission(state);
+    final state = await permissionService.requestPhotoManagerPermissions();
+    if (_hasMinimalPermission(state)) {
+      await permissionService.onUpdatePermission(state);
+    }
     return state;
   } catch (e, s) {
     _logger.severe("Failed to request permission", e, s);
@@ -116,37 +115,36 @@ Future<bool?> _navigateToFolderSelection(
   BuildContext context, {
   required bool isFirstBackup,
   bool fromOnlyNewPhotosToggle = false,
-}) =>
-    routeToPage<bool>(
-      context,
-      BackupFolderSelectionPage(
-        isFirstBackup: isFirstBackup,
-        fromOnlyNewPhotosToggle: fromOnlyNewPhotosToggle,
-      ),
-    );
+}) => routeToPage<bool>(
+  context,
+  BackupFolderSelectionPage(
+    isFirstBackup: isFirstBackup,
+    fromOnlyNewPhotosToggle: fromOnlyNewPhotosToggle,
+  ),
+);
 
 Future<void> _showPermissionDeniedDialog(BuildContext context) =>
     showChoiceDialog(
       context,
-      title: context.l10n.allowPermTitle,
-      body: context.l10n.allowPermBody,
-      firstButtonLabel: context.l10n.openSettings,
+      title: context.strings.allowPermTitle,
+      body: context.strings.allowPermBody,
+      firstButtonLabel: context.strings.openSettings,
       firstButtonOnTap: () async => PhotoManager.openSetting(),
     );
 
 Future<void> _showLimitedPermissionSheet(
   BuildContext context, {
   required bool hasGrantedLimit,
-}) =>
-    showChoiceActionSheet(
-      context,
-      title: context.l10n.preserveMore,
-      body: context.l10n.grantFullAccessPrompt,
-      firstButtonLabel: context.l10n.openSettings,
-      firstButtonOnTap: () async => PhotoManager.openSetting(),
-      secondButtonLabel:
-          hasGrantedLimit ? context.l10n.selectMorePhotos : context.l10n.cancel,
-      secondButtonOnTap: () async {
-        if (hasGrantedLimit) await PhotoManager.presentLimited();
-      },
-    );
+}) => showChoiceActionSheet(
+  context,
+  title: context.strings.preserveMore,
+  body: context.strings.grantFullAccessPrompt,
+  firstButtonLabel: context.strings.openSettings,
+  firstButtonOnTap: () async => PhotoManager.openSetting(),
+  secondButtonLabel: hasGrantedLimit
+      ? context.strings.selectMorePhotos
+      : context.strings.cancel,
+  secondButtonOnTap: () async {
+    if (hasGrantedLimit) await PhotoManager.presentLimited();
+  },
+);

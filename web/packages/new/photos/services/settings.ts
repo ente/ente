@@ -1,9 +1,3 @@
-/**
- * @file Storage (in-memory, local, remote) and update of various settings.
- */
-
-import { savedPartialLocalUser } from "ente-accounts/services/accounts-db";
-import { isDevBuild } from "ente-base/env";
 import log from "ente-base/log";
 import {
     updateChecksumProtectedUploadsEnabled,
@@ -17,134 +11,40 @@ import {
     updateRemoteValue,
 } from "./remote-store";
 
-/**
- * In-memory flags that tracks various settings.
- *
- * Some of these are local only, some of these are synced with remote.
- *
- * [Note: Remote flag lifecycle]
- *
- * At a high level, this is how the app manages remote flags:
- *
- * 1. On app start, the initial are read from local storage in
- *    {@link initSettings}.
- *
- * 2. During the remote pull, remote flags are fetched and saved in local
- *    storage, and the in-memory state updated to reflect the latest values
- *    ({@link pullSettings}).
- *
- * 3. Updating a value also cause an unconditional fetch and update
- *    ({@link pullSettings}).
- *
- * 4. The individual getter functions for the flags (e.g.
- *    {@link isInternalUser}) return the in-memory values, and so are suitable
- *    for frequent use during UI rendering.
- *
- * 5. Everything gets reset to the default state on {@link logoutSettings}.
- */
 export interface Settings {
-    /**
-     * `true` if the current user is an internal user.
-     */
     isInternalUser: boolean;
-
-    /**
-     * `true` if maps are enabled.
-     */
+    deferredMultipartChecksumsEnabled: boolean;
+    previewUploadV2Enabled: boolean;
     mapEnabled: boolean;
-
-    /**
-     * `true` if the user has saved a preference to disable workers for uploads.
-     *
-     * Unlike {@link shouldDisableCFUploadProxy}, whose value reflects other
-     * factors that are taken into account to determine the effective value of
-     * this setting, this function returns only the saved user preference.
-     */
     cfUploadProxyDisabled: boolean;
-
-    /**
-     * The URL we should ask the user to open should they wish to pair with the
-     * the cast app by manually entering a pairing code.
-     *
-     * Changing this only ever makes sense for self-hosters, who might want to
-     * point to their own self hosted cast app (See `apps.cast` in `local.yaml`
-     * in the museum code).
-     *
-     * Default: "https://cast.ente.io"
-     */
     castURL: string;
-
-    /**
-     * The URL for the embed app used for embedded sharing.
-     *
-     * Changing this only ever makes sense for self-hosters, who might want to
-     * point to their own self hosted embed app (See `apps.embed-albums` in
-     * `local.yaml` in the museum code).
-     *
-     * Default: "https://embed.ente.io"
-     */
     embedURL: string;
-
-    /**
-     * Set to the domain (host, e.g. "photos.example.org") that the user wishes
-     * to use for sharing their public albums.
-     *
-     * An empty string is treated as `undefined`.
-     */
     customDomain?: string;
-
-    /**
-     * The URL we should ask the user to CNAME their {@link customDomain} to
-     * for wiring up their domain to the public albums app.
-     *
-     * See also `apps.custom-domain.cname` in `server/local.yaml`.
-     *
-     * Default: "my.ente.io"
-     */
     customDomainCNAME: string;
 }
 
 const createDefaultSettings = (): Settings => ({
     isInternalUser: false,
+    deferredMultipartChecksumsEnabled: false,
+    previewUploadV2Enabled: false,
     mapEnabled: false,
     cfUploadProxyDisabled: false,
-    castURL: "https://cast.ente.io",
-    embedURL: "https://embed.ente.io",
-    customDomainCNAME: "my.ente.io",
+    castURL: "https://cast.ente.com",
+    embedURL: "https://embed.ente.com",
+    customDomainCNAME: "my.ente.com",
 });
 
-/**
- * Internal in-memory state shared by the functions in this module.
- *
- * This entire object will be reset on logout.
- */
 class SettingsState {
     constructor() {
         this.settingsSnapshot = createDefaultSettings();
     }
 
-    /**
-     * Subscriptions to {@link Settings} updates attached using
-     * {@link settingsSubscribe}.
-     */
     settingsListeners: (() => void)[] = [];
-
-    /**
-     * Snapshot of the {@link Settings} returned by the {@link settingsSnapshot}
-     * function.
-     */
     settingsSnapshot: Settings;
 }
 
-/** State shared by the functions in this module. See {@link SettingsState}. */
 let _state = new SettingsState();
 
-/**
- * Read in the locally persisted settings into memory, but otherwise do not
- * initiate any network requests to fetch the latest values.
- *
- * This assumes that the user is already logged in.
- */
 export const initSettings = () => {
     void updateShouldDisableCFUploadProxy(savedCFProxyDisabled());
     syncSettingsSnapshotWithLocalStorage();
@@ -155,13 +55,8 @@ export const logoutSettings = () => {
     updateChecksumProtectedUploadsEnabled(false);
 };
 
-/**
- * Fetch remote flags from remote and save them in local storage for subsequent
- * lookup. Then use the results to update our in memory state if needed.
- */
 export const pullSettings = async () => {
     const jsonString = await fetchFeatureFlags().then((res) => res.text());
-    // Do a parse as a sanity check before saving the string contents.
     FeatureFlags.parse(JSON.parse(jsonString));
     saveRemoteFeatureFlagsJSONString(jsonString);
     syncSettingsSnapshotWithLocalStorage();
@@ -194,10 +89,19 @@ const FeatureFlags = z.object({
 
 type FeatureFlags = z.infer<typeof FeatureFlags>;
 
+const deferredMultipartChecksumsFlag = 1 << 6;
+const previewUploadV2Flag = 1 << 8;
+
 const syncSettingsSnapshotWithLocalStorage = () => {
     const flags = savedRemoteFeatureFlags();
     const settings = createDefaultSettings();
     settings.isInternalUser = flags?.internalUser || false;
+    settings.deferredMultipartChecksumsEnabled = !!(
+        (flags?.serverApiFlag ?? 0) & deferredMultipartChecksumsFlag
+    );
+    settings.previewUploadV2Enabled = !!(
+        (flags?.serverApiFlag ?? 0) & previewUploadV2Flag
+    );
     settings.mapEnabled = flags?.mapEnabled || false;
     settings.cfUploadProxyDisabled = savedCFProxyDisabled();
     if (flags?.castUrl) settings.castURL = flags.castUrl;
@@ -209,11 +113,6 @@ const syncSettingsSnapshotWithLocalStorage = () => {
     setSettingsSnapshot(settings);
 };
 
-/**
- * A function that can be used to subscribe to updates to {@link Settings}.
- *
- * See: [Note: Snapshots and useSyncExternalStore].
- */
 export const settingsSubscribe = (onChange: () => void): (() => void) => {
     _state.settingsListeners.push(onChange);
     return () => {
@@ -223,11 +122,6 @@ export const settingsSubscribe = (onChange: () => void): (() => void) => {
     };
 };
 
-/**
- * Return the last known, cached {@link Settings}.
- *
- * See also {@link settingsSubscribe}.
- */
 export const settingsSnapshot = () => _state.settingsSnapshot;
 
 const setSettingsSnapshot = (snapshot: Settings) => {
@@ -235,31 +129,11 @@ const setSettingsSnapshot = (snapshot: Settings) => {
     _state.settingsListeners.forEach((l) => l());
 };
 
-/**
- * Return `true` if this is a development build, and the current user (if any)
- * is marked as an "development" user.
- *
- * Emails that end in "@ente.io" are considered as dev users.
- */
-export const isDevBuildAndUser = () => isDevBuild && isDevUserViaEmail();
-
-const isDevUserViaEmail = () =>
-    !!savedPartialLocalUser()?.email?.endsWith("@ente.io");
-
-/**
- * Persist the user's custom domain preference both locally and on remote.
- *
- * Setting the value to a blank string is equivalent to deleting the custom
- * domain value altogether.
- */
 export const updateCustomDomain = async (customDomain: string) => {
     await updateRemoteValue("customDomain", customDomain);
     return pullSettings();
 };
 
-/**
- * Persist the user's map enabled preference both locally and on remote.
- */
 export const updateMapEnabled = async (isEnabled: boolean) => {
     const previousSnapshot = _state.settingsSnapshot;
 
@@ -287,8 +161,7 @@ const savedCFProxyDisabled = () => {
     if (!v) return false;
     if (v == "1") return true;
 
-    // Older versions of the app used to store this flag in a different
-    // format, so see if this is one of those, and if so, migrate it too.
+    // Migrate the legacy { value: boolean } encoding.
     try {
         const value = z
             .object({ value: z.boolean() })
@@ -302,10 +175,6 @@ const savedCFProxyDisabled = () => {
     }
 };
 
-/**
- * Save the user preference for disabling uploads via Cloudflare Workers, also
- * notifying the upload subsystem of the change.
- */
 export const updateCFProxyDisabledPreference = async (value: boolean) => {
     saveCFProxyDisabled(value);
     await updateShouldDisableCFUploadProxy(value);

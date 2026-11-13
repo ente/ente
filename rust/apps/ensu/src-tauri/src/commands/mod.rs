@@ -1,0 +1,27 @@
+pub(crate) mod chat_db;
+mod chat_db_migration;
+mod common;
+pub(crate) mod config;
+pub(crate) mod conversation;
+pub(crate) mod crypto;
+pub(crate) mod followup;
+pub(crate) mod knowledge;
+pub(crate) mod llm;
+pub(crate) mod notes;
+pub(crate) mod secure_storage;
+pub(crate) mod system;
+pub(crate) mod voice;
+
+use tauri::AppHandle;
+
+use crate::logging;
+
+pub fn cleanup_for_exit(app: &AppHandle) {
+    logging::log("App", "cleanup_for_exit start");
+    voice::clear_for_window(app, None);
+    llm::clear_for_exit(app);
+    knowledge::clear_for_exit(app);
+    notes::clear_for_exit(app);
+    chat_db::clear_for_exit(app);
+    logging::log("App", "cleanup_for_exit complete");
+}

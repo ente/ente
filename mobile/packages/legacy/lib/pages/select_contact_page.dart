@@ -1,12 +1,16 @@
 import "package:email_validator/email_validator.dart";
 import "package:ente_accounts/services/user_service.dart";
 import "package:ente_configuration/base_configuration.dart";
+import "package:ente_contacts/contacts.dart";
 import "package:ente_legacy/components/gradient_button.dart";
 import "package:ente_legacy/components/recovery_date_selector.dart";
+import "package:ente_legacy/legacy_api.dart";
 import "package:ente_legacy/models/emergency_models.dart";
-import "package:ente_legacy/services/emergency_service.dart";
+import "package:ente_pure_utils/ente_pure_utils.dart";
+import "package:ente_sharing/components/invite_dialog.dart";
+import "package:ente_sharing/extensions/user_extension.dart";
 import "package:ente_sharing/models/user.dart";
-import "package:ente_sharing/user_avator_widget.dart";
+import "package:ente_sharing/user_avatar_widget.dart";
 import "package:ente_sharing/verify_identity_dialog.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:ente_ui/components/alert_bottom_sheet.dart";
@@ -17,14 +21,15 @@ import "package:ente_ui/components/menu_item_widget_v2.dart";
 import "package:ente_ui/theme/colors.dart";
 import "package:ente_ui/theme/ente_theme.dart";
 import "package:ente_ui/theme/text_style.dart";
+import "package:ente_ui/utils/dialog_util.dart";
 import "package:flutter/material.dart";
 import "package:logging/logging.dart";
 
-/// Shows the add contact bottom sheet and returns true if a contact was added
 Future<bool?> showAddContactSheet(
   BuildContext context, {
-  required EmergencyInfo emergencyInfo,
+  required LegacyInfo emergencyInfo,
   required BaseConfiguration config,
+  required LegacyApi legacy,
 }) {
   return showBaseBottomSheet<bool>(
     context,
@@ -34,17 +39,20 @@ Future<bool?> showAddContactSheet(
     child: AddContactSheet(
       emergencyInfo: emergencyInfo,
       config: config,
+      legacy: legacy,
     ),
   );
 }
 
 class AddContactSheet extends StatefulWidget {
-  final EmergencyInfo emergencyInfo;
+  final LegacyInfo emergencyInfo;
   final BaseConfiguration config;
+  final LegacyApi legacy;
 
   const AddContactSheet({
     required this.emergencyInfo,
     required this.config,
+    required this.legacy,
     super.key,
   });
 
@@ -73,69 +81,74 @@ class _AddContactSheetState extends State<AddContactSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
-    final List<User> suggestedUsers = _getSuggestedUser();
-    final bool canAdd = selectedEmail.isNotEmpty || _emailIsValid;
+    return ValueListenableBuilder<int>(
+      valueListenable: ContactsDisplayService.instance.changes,
+      builder: (context, _, _) {
+        final colorScheme = getEnteColorScheme(context);
+        final textTheme = getEnteTextTheme(context);
+        final List<UserSuggestion> suggestedUsers = _getSuggestedUser();
+        final bool canAdd = selectedEmail.isNotEmpty || _emailIsValid;
 
-    return SingleChildScrollView(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildEmailInputRow(colorScheme),
-          if (suggestedUsers.isNotEmpty) ...[
-            const SizedBox(height: 20),
-            _buildExistingContactsSection(
-              suggestedUsers,
-              colorScheme,
-              textTheme,
-            ),
-          ],
-          const SizedBox(height: 20),
-          Column(
+        return SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                context.strings.chooseARecoveryTime,
-                style: textTheme.bodyMuted,
+              _buildEmailInputRow(colorScheme),
+              if (suggestedUsers.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                _buildExistingContactsSection(
+                  suggestedUsers,
+                  colorScheme,
+                  textTheme,
+                ),
+              ],
+              const SizedBox(height: 20),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    context.strings.chooseARecoveryTime,
+                    style: textTheme.bodyMuted,
+                  ),
+                  const SizedBox(height: 12),
+                  RecoveryDateSelector(
+                    selectedDays: _selectedRecoveryDays,
+                    onDaysChanged: (days) {
+                      setState(() {
+                        _selectedRecoveryDays = days;
+                      });
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              GradientButton(
+                text: context.strings.addTrustedContact,
+                onTap: canAdd ? _onAddContactTap : null,
               ),
               const SizedBox(height: 12),
-              RecoveryDateSelector(
-                selectedDays: _selectedRecoveryDays,
-                onDaysChanged: (days) {
-                  setState(() {
-                    _selectedRecoveryDays = days;
-                  });
-                },
+              Center(
+                child: GestureDetector(
+                  onTap: _onVerifyTap,
+                  child: Text(
+                    context.strings.verifyIDLabel,
+                    style: textTheme.bodyBold.copyWith(
+                      color: canAdd
+                          ? getEnteColorScheme(context).primary700
+                          : getEnteColorScheme(context).textMuted,
+                      decoration: TextDecoration.underline,
+                      decorationColor: canAdd
+                          ? getEnteColorScheme(context).primary700
+                          : getEnteColorScheme(context).textMuted,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
-          GradientButton(
-            text: context.strings.addTrustedContact,
-            onTap: canAdd ? _onAddContactTap : null,
-          ),
-          const SizedBox(height: 12),
-          Center(
-            child: GestureDetector(
-              onTap: _onVerifyTap,
-              child: Text(
-                context.strings.verifyIDLabel,
-                style: textTheme.bodyBold.copyWith(
-                  color: canAdd
-                      ? getEnteColorScheme(context).primary700
-                      : getEnteColorScheme(context).textMuted,
-                  decoration: TextDecoration.underline,
-                  decorationColor: canAdd
-                      ? getEnteColorScheme(context).primary700
-                      : getEnteColorScheme(context).textMuted,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -180,7 +193,7 @@ class _AddContactSheetState extends State<AddContactSheet> {
   }
 
   Widget _buildExistingContactsSection(
-    List<User> suggestedUsers,
+    List<UserSuggestion> suggestedUsers,
     EnteColorScheme colorScheme,
     EnteTextTheme textTheme,
   ) {
@@ -216,23 +229,22 @@ class _AddContactSheetState extends State<AddContactSheet> {
                     final isLast = index == suggestedUsers.length - 1;
                     return MenuItemWidgetV2(
                       captionedTextWidget: CaptionedTextWidgetV2(
-                        title: user.email,
+                        title: user.resolvedDisplayName,
                         textStyle: textTheme.small.copyWith(
                           color: colorScheme.textMuted,
                         ),
                       ),
                       leadingIconSize: 24.0,
-                      leadingIconWidget: UserAvatarWidget(
+                      leadingIconWidget: UserAvatarWidget.suggestion(
                         user,
                         type: AvatarType.mini,
-                        currentUserID: widget.config.getUserID()!,
                         config: widget.config,
-                        thumbnailView: false,
                       ),
                       menuItemColor: colorScheme.fillFaint,
                       pressedColor: colorScheme.fillFaintPressed,
-                      trailingIcon:
-                          (selectedEmail == user.email) ? Icons.check : null,
+                      trailingIcon: (selectedEmail == user.email)
+                          ? Icons.check
+                          : null,
                       trailingIconColor: colorScheme.primary500,
                       surfaceExecutionStates: false,
                       onTap: () async {
@@ -323,6 +335,54 @@ class _AddContactSheetState extends State<AddContactSheet> {
     );
   }
 
+  Future<bool> _addContact(String email, int recoveryNoticeInDays) async {
+    if (!isValidEmail(email)) {
+      if (mounted) {
+        await showAlertBottomSheet(
+          context,
+          title: context.strings.letsTryThatAgain,
+          message: context.strings.enterValidEmailDetailed,
+          assetPath: "assets/warning-blue.png",
+        );
+      }
+      return false;
+    }
+    if (email.trim() == widget.config.getEmail()) {
+      if (mounted) {
+        await showAlertBottomSheet(
+          context,
+          title: context.strings.oops,
+          message: context.strings.youCannotAddYourselfAsLegacyContact,
+          assetPath: "assets/warning-blue.png",
+        );
+      }
+      return false;
+    }
+
+    final dialog = mounted
+        ? createProgressDialog(context, context.strings.pleaseWait)
+        : null;
+    await dialog?.show();
+
+    try {
+      await widget.legacy.addContact(
+        email: email,
+        recoveryNoticeInDays: recoveryNoticeInDays,
+      );
+      await dialog?.hide();
+      return true;
+    } on LegacyError_ContactNotOnEnte {
+      await dialog?.hide();
+      if (mounted) {
+        await showInviteSheet(context, email: email);
+      }
+      return false;
+    } catch (e) {
+      await dialog?.hide();
+      rethrow;
+    }
+  }
+
   Future<void> _onAddContactTap() async {
     final emailToAdd = selectedEmail.isNotEmpty ? selectedEmail : _email;
     final confirmed = await _showAddContactConfirmationSheet(
@@ -331,11 +391,7 @@ class _AddContactSheetState extends State<AddContactSheet> {
     );
     if (confirmed == true) {
       try {
-        final success = await EmergencyContactService.instance.addContact(
-          context,
-          emailToAdd,
-          _selectedRecoveryDays,
-        );
+        final success = await _addContact(emailToAdd, _selectedRecoveryDays);
         if (success && mounted) {
           Navigator.of(context).pop(true);
         }
@@ -363,8 +419,8 @@ class _AddContactSheetState extends State<AddContactSheet> {
       context,
       title: context.strings.warning,
       message: context.strings.confirmAddingTrustedContact(
-        email,
-        recoveryDays,
+        email: email,
+        numOfDays: recoveryDays,
       ),
       assetPath: "assets/warning-blue.png",
       buttons: [
@@ -382,7 +438,7 @@ class _AddContactSheetState extends State<AddContactSheet> {
       await showAlertBottomSheet(
         context,
         title: context.strings.invalidEmailAddress,
-        message: context.strings.enterValidEmail,
+        message: context.strings.enterValidEmailDetailed,
         assetPath: "assets/warning-blue.png",
       );
       return;
@@ -396,40 +452,36 @@ class _AddContactSheetState extends State<AddContactSheet> {
     );
   }
 
-  List<User> _getSuggestedUser() {
-    final List<User> suggestedUsers = [];
-    final Set<String> existingEmails = {};
+  List<UserSuggestion> _getSuggestedUser() {
+    final suggestedUsers = <UserSuggestion>[];
+    final existingEmails = <String>{widget.config.getEmail() ?? ""};
 
-    existingEmails.add(widget.config.getEmail() ?? "");
+    void add(String email, {int? userID}) {
+      if (email.isNotEmpty && existingEmails.add(email)) {
+        suggestedUsers.add(UserSuggestion(email, userID: userID));
+      }
+    }
 
-    // Get suggested users from othersEmergencyContact (people who added you)
     for (final contact in widget.emergencyInfo.othersEmergencyContact) {
-      if (!existingEmails.contains(contact.user.email)) {
-        existingEmails.add(contact.user.email);
-        suggestedUsers.add(contact.user);
-      }
+      add(contact.user.email, userID: contact.user.id);
     }
 
-    final cachedUserDetails = UserService.instance.getCachedUserDetails();
-    if (cachedUserDetails != null &&
-        (cachedUserDetails.familyData?.members?.isNotEmpty ?? false)) {
-      for (final member in cachedUserDetails.familyData!.members!) {
-        if (!existingEmails.contains(member.email)) {
-          existingEmails.add(member.email);
-          suggestedUsers.add(User(email: member.email));
-        }
-      }
+    final familyMembers =
+        UserService.instance.getCachedUserDetails()?.familyData?.members ?? [];
+    for (final member in familyMembers) {
+      add(member.email, userID: member.userID);
     }
 
-    // Filter by search text
     if (_textController.text.trim().isNotEmpty) {
       suggestedUsers.removeWhere(
-        (element) => !element.email
-            .toLowerCase()
-            .contains(_textController.text.trim().toLowerCase()),
+        (element) => !element.matchesResolvedNameOrEmail(_textController.text),
       );
     }
-    suggestedUsers.sort((a, b) => a.email.compareTo(b.email));
+    suggestedUsers.sort(
+      (a, b) => a.resolvedDisplayName.toLowerCase().compareTo(
+        b.resolvedDisplayName.toLowerCase(),
+      ),
+    );
 
     return suggestedUsers;
   }

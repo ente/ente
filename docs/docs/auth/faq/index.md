@@ -5,21 +5,153 @@ description: Frequently asked questions about Ente Auth
 
 # Frequently Asked Questions
 
+### How do I add a code to Ente Auth? {#add-code}
+
+**If a service shows a QR code:**
+
+1. Open Ente Auth.
+2. Tap the + button.
+3. Select "Scan a QR code".
+4. Scan the QR code shown by the service.
+5. Enter the generated code to verify setup.
+
+**If a service shows a setup key:**
+
+1. Open Ente Auth.
+2. Tap the + button.
+3. Choose "Enter details manually".
+4. Enter the account name, issuer, and secret (setup key).
+5. Save and verify the generated code.
+
+### What should I enter in the Secret field when adding a code manually? {#manual-secret-field}
+
+Enter the two-factor setup key provided by the service you are securing. It is not your login password or Ente password.
+
+1. On the service's two-factor setup page, look for **Show setup key** or **Can't scan?**
+2. In Ente Auth, choose **Enter details manually** and enter that setup key in **Secret**.
+3. Save the entry and enter the code Ente Auth generates on the service's setup page to verify it.
+
+Keep the setup key private.
+
+### Why does Ente Auth say "Please verify the details and try again", "Secret can not be empty", or "Digits must be between 1 and 10"? {#manual-entry-errors}
+
+Ente Auth checks the details when you save a code you added with **Enter details manually**. If something is wrong, it shows an **Incorrect details** message and doesn't save the code.
+
+- **Secret can not be empty**: the **Secret** field is blank. Enter the service's setup key in **Secret**.
+- **Please verify the details and try again**: Ente Auth couldn't create a code from what you entered in **Secret**. This happens when the text isn't a valid setup key, for example if you entered a password or a 6-digit code instead. Spaces and lowercase letters in the setup key are fine.
+- **Digits must be between 1 and 10**: the **Digits** value under **Advanced** is outside 1 to 10, for example 0. Set it to the number of digits the service uses, usually 6.
+
+To fix a Secret error:
+
+1. On the service's two-factor setup page, choose **Show setup key** or **Can't scan?**
+2. In Ente Auth, enter that setup key in **Secret**. Don't enter your Ente password, the service's password, or a 6-digit code.
+3. Save the entry, then enter the code Ente Auth shows on the service's setup page to finish setup.
+
+Unless the service tells you otherwise, leave the **Advanced** options at their defaults.
+
+See also [What should I enter in the Secret field when adding a code manually?](#manual-secret-field)
+
+### Why does Ente Auth say "No QR code found in image"? {#qr-code-not-scanning}
+
+If the QR code is sharp and high-resolution but Ente Auth still won't scan it, the most likely cause is that the service is using a QR format Ente Auth doesn't recognise. Some sites embed proprietary or non-standard data instead of the standard `otpauth://` URI that authenticator apps expect.
+
+The easiest workaround is to add the code manually:
+
+1. Open Ente Auth.
+2. Tap the + button.
+3. Choose "Enter details manually".
+4. Enter the account name, issuer, and secret (setup key) shown by the service alongside the QR code.
+
+If the service only offers a QR code and no setup key, check its security settings for an option to "show setup key" or "can't scan?".
+
 ### How secure is Ente Auth?
 
-All codes you backup via Ente is stored with end-to-end encryption. This means
-only you can access your codes. Our apps are open source and our cryptography
-has been externally audited.
+All codes you backup via Ente is stored with end-to-end encryption. This means only you can access your codes. Our apps are open source and our cryptography has been externally audited.
+
+### Where are my 2FA codes stored? {#where-codes-are-stored}
+
+When you use Ente Auth with an account, your codes are encrypted on your device before they sync. Ente's servers store only encrypted copies of your codes and master key. They cannot read your codes or password.
+
+When you sign in, your device uses your password to unlock the master key locally. The key is then protected by your device's secure storage. Keep your recovery key safe so you can regain access if you forget your password.
+
+If you choose **Use without backups**, your codes stay on that device and are not synced to Ente. Make an [encrypted export or local backup](/auth/migration/export) before changing devices or resetting it.
+
+### Do I need my Ente recovery key or a website's backup codes? {#recovery-key-or-backup-codes}
+
+Use the recovery method for the account you are trying to access:
+
+- **Ente recovery key:** The 24-word phrase for your Ente account. If you use the same Ente account in Photos, Auth, and Locker, the recovery key is the same across those apps. Separate Ente accounts have separate recovery keys.
+- **A website's backup or recovery codes:** Codes provided by that website when you set up its two-factor authentication. Ente Auth generates authenticator codes from the setup key you saved; it does not generate the website's separate backup-code list.
+- **Email verification code:** A temporary code sent to your email during a sign-in or verification step. It does not replace your Ente recovery key or another website's backup codes.
+
+If you cannot sign in to another service, use that service's recovery options or contact its support team. If you cannot sign in to Ente, see [account recovery](/photos/faq/security-and-privacy#account-recovery) and [lost second-factor help](/photos/faq/security-and-privacy#two-factor-auth).
+
+Keep your recovery materials somewhere you can reach without signing in to the account they protect. See [Enteception](/auth/faq/enteception/) if you store the second factor for Ente or your email account inside Ente Auth.
+
+### I forgot my Ente Auth password. How do I get back in? {#auth-forgot-password}
+
+On the sign-in screen, enter your email, then tap **Forgot password?** on the password screen. Ente sends a verification code to your email to confirm it's you. This step happens even if email verification is turned off for sign-in. Then enter your 24-word recovery key and set a new password.
+
+If you use the same account in Ente Photos or Locker, it has the same password and recovery key there.
+
+Ente can't reset your password or see your codes. If you've lost both your password and recovery key, check for a signed-in device, an export, or another recovery option before starting over. Without any of these, your codes can't be recovered. If you want to start over with the same email, see [I've lost my password and recovery key. Can I start over with the same email?](/photos/faq/security-and-privacy#start-fresh-same-email). You'll then need to set up 2FA again with each service.
+
+### Can I change my recovery key if it was exposed? {#change-recovery-key}
+
+No. You cannot change or rotate the recovery key for an existing Ente account. Changing your password does not change the recovery key. If you use the same account in Photos, Auth, and Locker, it has the same recovery key in all three apps.
+
+If your recovery key was exposed, keep any device where you are signed in to Ente signed in. Choose the path that fits your account:
+
+**If the account has no data you need to keep:**
+
+1. Check whether you use the same account in Photos, Auth, or Locker, and whether it has a paid subscription or manages a family plan. **Delete account** deletes its data in all three apps, can cancel its subscription, and removes members from its family plan.
+2. If the account has a paid subscription or manages a family plan, [contact support](mailto:support@ente.com) before deleting it so you can plan for the people using its storage.
+3. Open `Settings > Account > Delete account` and follow the prompts.
+4. After deletion is complete, create a new account. You can use the same email address.
+5. Save the new recovery key somewhere private and secure.
+
+**If the account has Auth codes you need to keep:**
+
+1. Keep the current app signed in. Create an [encrypted export](/auth/migration/export#create-encrypted-export) from `Settings > Data > Export` and keep its password safe.
+2. Create a new Ente account with a different email address. Save its recovery key securely.
+3. Sign in to the new account on another trusted device or installation. Open `Settings > Data > Import codes`, choose **Ente Encrypted export**, and select the file.
+4. Check that all your codes are present, work, and have synced before deleting the old account.
+5. If the old account has a paid subscription or manages a family plan, [contact support](mailto:support@ente.com) before deleting it so you can plan for the people using its storage.
+
+**If the account has Photos or Locker data you need to keep:** [Contact support](mailto:support@ente.com) before deleting the account. This applies even if you have no Auth codes. If you also have Auth codes, follow the export steps above, but keep the old account until you have a plan for your Photos or Locker data.
+
+If someone you do not trust may have seen your key, consider resetting two-factor authentication for your most sensitive services.
+
+> [!WARNING]
+>
+> Never send your recovery key, password, export file, or setup keys to support.
 
 ### How can I delete or edit codes?
 
-You can delete or edit a code by long pressing (or right clicking on desktop) on
-that item.
+You can delete or edit a code by long pressing (or right clicking on desktop) on that item.
+
+### How do I copy the current or next code in Ente Auth? {#copy-current-next-code}
+
+Tap a code on mobile, or click it on desktop, to copy the current code. Ente Auth shows **Copied to clipboard**. On Auth web, clicking a code card also copies the current code.
+
+On mobile and desktop, time-based codes show the upcoming code on the right of the card, under **next**. Tap or click it to copy that code instead. Ente Auth shows **Copied next code to clipboard**. This helps when the current code is about to expire. On Auth web, clicking the displayed next code copies the current code.
+
+On desktop, you can move focus to a code with your keyboard, for example with Tab. Press `C` to copy the current code or `N` to copy the next code.
+
+- Counter-based (HOTP) codes do not have a next code to copy. Tapping the arrow under **next** advances the counter and generates a new code.
+- In multi-select mode, tapping a code selects it instead of copying it.
+- With **Hide codes** on, double-tap a code to reveal it. A single tap still copies it.
+- On Android, turn on `Settings > General > Minimize app on copy` if you want Ente Auth to move to the background after copying.
+
+### Is there a public API for qr.ente.com? {#qr-ente-api}
+
+No. There is no documented public API for [qr.ente.com](https://qr.ente.com).
+
+To create QR codes for authenticator setup strings, use an offline QR library or tool on your own device. Do not paste secrets into untrusted online generators.
 
 ### How can I support this project?
 
-You can support the development of this project by subscribing to our Photos app
-at [ente.io](https://ente.io).
+You can support the development of this project by subscribing to our Photos app at [ente.com](https://ente.com).
 
 ### How can I enable FaceID lock in Ente Auth?
 
@@ -27,29 +159,29 @@ You can enable FaceID lock under Settings → Security → Lockscreen.
 
 ### How secure is the lock screen provided by Ente Auth?
 
-Auth's lock screen acts as a barrier to prevent an attacker from accessing the
-contents of the app. It does not introduce a layer of cryptographic security.
+Auth's lock screen acts as a barrier to prevent an attacker from accessing the contents of the app. It does not introduce a layer of cryptographic security.
+
+### Why is Ente Auth blank in Android screenshots or screen mirroring? {#android-screen-capture}
+
+Check **Hide content** on your phone under `Settings > Security > App lock`. When enabled on Android, it blocks screen capture, which can also make Auth appear blank in screen recordings or mirroring tools.
+
+If you need to capture the screen, you can turn **Hide content** off on the phone. Doing so can expose your codes to screenshots, recordings, or anyone viewing the mirrored screen. Only turn it off if you accept that risk, and turn it back on afterwards. Ente support cannot change this setting remotely.
+
+**Hide codes** is a separate display option. Learn more in the [App lock guide](/auth/features/#app-lock).
 
 ### Why do the desktop and mobile apps display different codes?
 
 Please verify that the time on both your mobile and desktop is the same.
 
-The codes depend on time. If the time is the same on both your browser and
-mobile, the codes you see will be the same.
+The codes depend on time. If the time is the same on both your browser and mobile, the codes you see will be the same.
 
-Usually, this discrepancy occurs because the time in your browser might be
-incorrect. In particular, multiple users have reported that Firefox provides
-incorrect time when certain privacy settings are enabled.
+Usually, this discrepancy occurs because the time in your browser might be incorrect. In particular, multiple users have reported that Firefox provides incorrect time when certain privacy settings are enabled.
 
 > [!TIP]
 >
-> Newer Ente Auth clients (upcoming 4.4.0+) will automatically try to correct
-> for incorrect system time, so you should be seeing correct codes even if your
-> system time is out of sync. However, this automatic correction will not work
-> if you're using Ente Auth in offline mode.
+> Newer Ente Auth clients (upcoming 4.4.0+) will automatically try to correct for incorrect system time, so you should be seeing correct codes even if your system time is out of sync. However, this automatic correction will not work if you're using Ente Auth in offline mode.
 >
-> If you've recently changed your system time and the codes are still incorrect,
-> try to refresh / restart the app if needed.
+> If you've recently changed your system time and the codes are still incorrect, try to refresh / restart the app if needed.
 
 ### Why may TOTP verification fail with Google Workspace? {#google-workspace-totp-verification}
 
@@ -59,33 +191,97 @@ That said, many users are able to use Ente Auth with Google Workspace without is
 
 Also ensure that your system time is accurate, as any time drift can cause TOTP codes to be invalid. You can verify your time at https://time.is/
 
-### Can I access my codes on web?
+### Can I access my codes on web? {#can-i-access-my-codes-on-web}
 
-You can access your codes on the web at [auth.ente.io](https://auth.ente.io).
+You can access the codes synced to your Ente account at [auth.ente.com](https://auth.ente.com).
+
+### Why doesn't auth.ente.com recognize my email when I try to log in? {#auth-web-email-not-recognized}
+
+First check the email shown in the settings of a working Ente app. If you changed your account email, use the new address. For a self-hosted account, also check that you are using the correct server.
+
+If the same account works in an app or another browser, try these browser-specific checks:
+
+1. On the login screen, choose **Change email address** and re-enter the account email.
+2. Try [auth.ente.com](https://auth.ente.com) in a private or incognito window. Keep any working session in the original window or another app.
+3. If the private window works but the normal window still fails, clear site data for `auth.ente.com` in the affected browser and try again. This removes that site's saved browser session, so first make sure you can sign in again and have preserved any working access elsewhere.
+
+These checks can also help when only one browser rejects the password. They do not establish that cached site data is the cause of every sign-in failure. If the problem remains, see [verification troubleshooting](#sync-password-recovery-failures).
+
+### Why don't I see my codes after logging in? {#auth-codes-not-showing}
+
+A few common reasons and what to check:
+
+- **Wrong account**: confirm you're signed into the same Ente account everywhere. Open `Settings` and check the registered email at the top, then compare across your devices.
+- **Offline mode**: if you were using Ente Auth in **Use without backups** (offline mode), your codes live only on that one device and aren't synced to the cloud. They won't appear on a new device or on the web until you sign in on the original device and let it sync.
+- **Sync check**: log in once on the web app at [auth.ente.com/login](https://auth.ente.com/login) to confirm whether your codes exist in your account at all. If they show up there, the issue is local to one device — try logging out and back in on that device.
+
+If your codes were created offline and you've since lost access to that device, they cannot be recovered from the server because they were never uploaded.
 
 ### Does Ente Auth require an account?
 
-No, Ente Auth does not require an account. You can choose to use the app without
-backups if you prefer.
+No, Ente Auth does not require an account. You can choose to use the app without backups if you prefer.
+
+### Can I merge two Ente accounts or move my Auth codes to another account? {#merge-accounts}
+
+Separate Ente accounts cannot be merged. Changing an account's email address does not combine it with another account.
+
+You can move Auth codes by exporting and importing them:
+
+1. In the source account, create an [encrypted export](/auth/migration/export#create-encrypted-export). Save the file outside the app and keep the export password safe.
+2. Keep the source app signed in. On another trusted device or installation, sign in to Auth with the Ente account you want to keep. Check the account email before importing.
+3. Open `Settings > Data > Import codes`, choose **Ente Encrypted export**, select the file, and enter the password you chose for the export.
+4. Compare the imported entries with the source. Verify that the codes work for the services you need, and that the destination account has synced and is accessible on your other devices.
+5. Keep the source and encrypted backup until these checks are complete. If you cannot keep a working copy while switching accounts, contact [support@ente.com](mailto:support@ente.com) before signing out or removing data.
+
+This moves Auth codes only. Photos libraries, subscriptions, account history, and Locker data do not merge through this process.
+
+> [!WARNING]
+>
+> **Delete account** deletes that account's Photos, Auth, and Locker data. Do not use it just to stop using Auth or to free an email address before checking what is stored in the account. See [shared-account deletion](/photos/faq/security-and-privacy#shared-account-deletion).
+
+### How can I delete my account? {#auth-delete-account}
+
+> [!IMPORTANT]
+>
+> Deleting a code from Ente Auth, uninstalling Auth, or deleting your Ente account does **not** disable two-factor authentication at the websites or services that use those codes. They will continue asking for their second factor.
+>
+> Before removing your codes, create an [encrypted export](/auth/migration/export) and verify that you can import it, or verify that another authenticator or recovery method works for each service. Keep a working copy until you have checked access to every account you need.
+>
+> If you have already lost the codes, use each service's backup codes, account-recovery process, or support team. Ente cannot disable another service's MFA or recover that service's account for you.
+
+You can delete your account at any time by using the "Delete account" option in the settings. For security reasons, we request you to delete your account on your own instead of contacting support to ask them to delete your account. If you can't sign in on any device and have lost both your password and recovery key, see [starting over with the same email](/photos/faq/security-and-privacy#start-fresh-same-email).
+
+Note that Ente Photos, Ente Auth, and Ente Locker data will be deleted when you delete your account (irrespective of which app you delete it from) since Photos, Auth, and Locker use the same underlying account.
+
+If you want to stop using only one app, see [Will deleting my Ente Auth or Locker account also delete my Photos account?](/photos/faq/security-and-privacy#shared-account-deletion).
+
+To know details of how your data is deleted, including when you delete your account, please see https://ente.com/blog/how-ente-deletes-data/.
+
+### Can Ente Auth be used offline? {#auth-fully-offline}
+
+Yes. Choose **Use without backups** to use Ente Auth offline without an account. Your codes are stored locally and are not synced or backed up to Ente.
+
+Desktop and direct-download Android builds may still contact Ente to check for app updates when launched, including in offline mode. Learn more in [Using offline mode safely](/auth/features/offline-mode).
 
 ### Will I lose my offline codes if I create an account later?
 
-No. When you sign in after using Ente Auth offline, the desktop app migrates any
-remaining offline codes into the newly created account so you keep them.
+No. When you sign in after using Ente Auth offline, Ente Auth moves any remaining offline codes into the newly created account so you keep them.
 
 > [!NOTE]
 >
 > The app will still recommend you to export your codes first before starting the sign in, so you have your own copy in case something unexpected happens during the sign-in.
 
+### How do I start backing up my codes after using Ente Auth without backups? {#enable-backup-later}
+
+Open **Settings** and tap **Sign in to backup your codes** at the top. Ente Auth suggests exporting your codes first, so you have your own copy. Then create an account or sign in. Your offline codes move into the account and sync from then on.
+
 ### Can I use Ente Auth on multiple devices and sync them?
 
-Yes, you can download Ente Auth on multiple devices and sync the codes with
-end-to-end encryption.
+Yes, you can download Ente Auth on multiple devices and sync the codes with end-to-end encryption.
 
 ### Do you support exporting to Google Authenticator format? {#export-google-authenticator}
 
-Yes, you can export your codes as HTML QR codes and then scan them in Google
-Authenticator to import them.
+Yes, you can export your codes as HTML QR codes and then scan them in Google Authenticator to import them.
 
 **To export for Google Authenticator:**
 
@@ -94,28 +290,136 @@ Authenticator to import them.
 3. Acknowledge the security warning (this export is unencrypted)
 4. Save or share the HTML file
 5. Open the HTML file in a browser
-6. Use Google Authenticator's "Scan a QR code" feature to scan each QR code
-   from the HTML page
+6. Use Google Authenticator's "Scan a QR code" feature to scan each QR code from the HTML page
 
-The HTML export generates individual QR codes for each of your codes, making it
-easy to import them into Google Authenticator or other compatible authenticator
-apps.
+The HTML export generates individual QR codes for each of your codes, making it easy to import them into Google Authenticator or other compatible authenticator apps.
 
-> **Note**: This export is unencrypted. Handle the exported HTML file carefully
-> and delete it after importing your codes.
+> [!IMPORTANT]
+>
+> This export is unencrypted. Handle the exported HTML file carefully and delete it after importing your codes.
+
+### What happens to my codes if I can't use Ente Auth? {#backup-outside-ente}
+
+Codes are generated on your device, so Ente Auth keeps working on a signed-in device without internet. To keep a backup that doesn't depend on Ente, [export your codes](/auth/migration/export) and store the file somewhere safe. An encrypted export can be restored in Ente Auth. For another app, check which format it accepts. Some apps can import a plain-text export, while Google Authenticator needs the **Plain HTML** QR-code export described above. These unencrypted exports let anyone with the file generate your codes, so protect them carefully. For time-based codes (TOTP), you can also add the same account to a second authenticator app when you set up 2FA. Counter-based codes (HOTP) can diverge when one app advances its counter.
 
 ### What information about my codes is stored on Ente server?
 
-Due to E2EE, the server doesn't know anything about your codes. Everything is
-encrypted, including the tags, type, account, issuer, notes, pinned or trash
-status, etc.
+Due to E2EE, the server doesn't know anything about your codes. Everything is encrypted, including the tags, type, account, issuer, notes, pinned or trash status, etc.
+
+### Why did only some of my codes import? {#partial-import}
+
+An import may skip entries it cannot read. Check that you selected the [correct import option for the exported file](/auth/migration/import#choose-import-format), then compare the imported entries with your original authenticator and [verify the codes](/auth/migration/import#verify-import).
+
+Keep the original authenticator and export until all the entries you need are present and working. Switching to **Plain text** does not fix every provider-format problem. If entries are still missing, contact [support@ente.com](mailto:support@ente.com) with the app versions, export type, and entry counts. Do not send secret-bearing exports or QR codes.
+
+### Why does Auth say it could not parse the selected file? {#could-not-parse}
+
+Ente Auth could not read that file as an authenticator export.
+
+Common causes:
+
+- **Wrong file.** A recovery key file, a Word document (`.docx`), or an unrelated JSON or CSV file is not an Auth export. Ente Auth imports **authenticator codes** (TOTP and similar). A password-manager export works only if that password manager is listed in `Settings > Data > Import codes` (for example Bitwarden). Vaults from password managers that are not listed, such as Proton Pass, are not supported.
+- **Import option does not match the file.** For example, choosing a plain-text import for an Aegis JSON export, or the wrong provider in `Settings > Data > Import codes`.
+- **Encrypted export without its password.** If the export is password-protected, enter the same password you set when you created it.
+- **Edited or corrupted file.** Do not edit the export before importing.
+- **Screenshot used in the file importer.** A screenshot is not an export file. For a QR code screenshot, use **+** then **Import from gallery** (or scan the QR code). Do not use the file importer meant for export files.
+
+What to do:
+
+1. Open `Settings > Data > Import codes` and choose the [import option that matches your export](/auth/migration/import#choose-import-format).
+2. If you only have QR screenshots, use Import from gallery and select those images, or scan the QR code.
+3. If the export came from a password manager that is not listed in Import codes, export codes from an authenticator app instead, or add the accounts by scanning each service's 2FA setup QR again.
+
+Ente Auth does not promise support for every third-party password-manager export. If a real authenticator export still fails after you pick the matching format, email [support@ente.com](mailto:support@ente.com). Do not send files that contain secrets.
+
+### How do I import from Google Authenticator if it shows several QR codes? {#google-authenticator-multiple-qr}
+
+Google Authenticator splits larger exports across several QR codes.
+
+1. In Google Authenticator, use **Transfer accounts** > **Export accounts** and select the accounts to move.
+2. In Ente Auth, open `Settings > Data > Import codes` and choose **Google Authenticator**.
+3. On mobile, scan the first QR code. Ente Auth shows how many codes it has received, for example **Scan a code (1/3)**. On desktop, choose **Select file** and select an image of the first QR code.
+4. Repeat with each remaining QR code from the same export. On mobile, scan the next code. On desktop, select its image file.
+
+Ente Auth imports the accounts after the last QR code. Import all the codes from the same export. If you start a new export in Google Authenticator, import its codes from the beginning.
+
+QR images contain your authentication secrets. Keep them private and delete them after verifying the import.
+
+If the import still fails, export your accounts in smaller groups and import each group separately, then [check the imported codes](/auth/migration/import#verify-import).
+
+### Why do some Google Authenticator codes fail to import? {#google-authenticator-import-failed}
+
+Google Authenticator exports some codes in a format that other authenticator apps may not be able to read correctly. This can happen especially with Google account entries.
+
+If a code fails to import, re-add it directly from the original service:
+
+1. Open that service's security or 2FA settings.
+2. Remove the existing authenticator setup.
+3. Set it up again.
+4. Scan the new QR code using Ente Auth.
+5. Save the backup or recovery codes provided by the service.
+
+Codes that imported successfully continue working normally.
 
 ### What does it mean when I receive a message saying that my current device isn't powerful enough to verify my password?
 
-This means that the parameters that were used to derive your master-key on your
-original device, are incompatible with your current device (likely because it's
-less powerful).
+This means that the parameters that were used to derive your master-key on your original device, are incompatible with your current device (likely because it's less powerful).
 
-If you recover your account using your current device and reset the password, a
-new key will be generated with different parameters. This new key will be
-equally strong and compatible with both devices.
+If you recover your account using your current device and reset the password, a new key will be generated with different parameters. This new key will be equally strong and compatible with both devices.
+
+### Why do I get verification errors when signing in on a new device, but it works hours later? {#login-fails-low-ram}
+
+When you sign in to Ente Auth, the app performs a deliberately heavy cryptographic step that needs around 1 GB of free RAM on the device. This is part of how we keep your password secure. If a lot of other apps are running in the background, there often isn't enough free memory available and the sign-in fails. After a few hours, the operating system clears out enough background apps to free up that memory, which is why it eventually works.
+
+This is more likely on phones and tablets with 2-3 GB of RAM (older models such as iPhone 7, 8, SE, or older iPads).
+
+Try the following:
+
+1. Restart your device, then open Ente Auth immediately before other apps load.
+2. Close other apps (swipe them away in the app switcher) and try again.
+3. In the meantime, access your codes at [auth.ente.com](https://auth.ente.com) in a browser on another device.
+
+### I can't change my app lock PIN. What do I do? {#cant-change-app-lock-pin}
+
+If you are signed in with backups and the option to change the PIN doesn't appear, tap the back arrow on the app lock screen to log out. You can set up app lock again after signing back in. Your backed-up codes remain in your Ente account.
+
+If you chose **Use without backups**, the logout control is unavailable and your codes are stored only on this device. If you can still unlock the app, export your codes before changing the lock or reinstalling. If you cannot unlock it, your local codes may be inaccessible.
+
+### Why does Ente Auth still ask for my app lock after I reinstall on Linux? {#auth-linux-app-lock-after-uninstall}
+
+On Linux, app lock secrets can remain in your system keyring after you uninstall Ente Auth (including Flatpak uninstall with `--delete-data`). A new install may still expect the old lock.
+
+1. If you chose **Use without backups** and can still open Ente Auth, export your codes first. Your codes are stored only on this device, and the next steps can make them unrecoverable.
+2. Uninstall Ente Auth if it is still installed.
+3. Clear the Auth secure-storage entry from your system secret service. Prefer your distribution's keyring UI (for example Seahorse). If you use `secret-tool`, remove the Auth secure-storage secret for this app. Attribute names can differ between Flatpak and native packages; one reporter used `secret-tool clear account io.ente.auth.secureStorage`, but confirm the attributes on your system before relying on that exact command.
+4. Install Ente Auth again.
+5. Set up app lock from scratch if you want it.
+
+If you still have a working signed-in Auth session on another device, keep it signed in until you confirm the new Linux install works.
+
+If you cannot find the leftover secret, contact [support@ente.com](mailto:support@ente.com) with your distribution and whether you installed Auth as Flatpak or native.
+
+### Ente Auth is asking for a password I don't recognise. Which password is it? {#which-password}
+
+Ente Auth can ask for two different passwords:
+
+- **App lock:** If the screen asks you to unlock the app, it wants the PIN or password you set for app lock under `Settings > Security > App lock`, or your device lock. If you are signed in with backups and have forgotten it, use the logout control at the top left of the lock screen, then sign back in. If you chose **Use without backups**, that control is unavailable and your codes are stored only on this device. See [I can't change my app lock PIN](#cant-change-app-lock-pin).
+- **Ente account password:** If the screen shows your email address and asks for your password, it wants the password of your Ente account. This is the same password you use for Ente Photos or Ente Locker if you use the same account. If you've forgotten it, tap **Forgot password** and enter your [recovery key](/photos/faq/security-and-privacy#use-recovery-key).
+
+If you used Ente Auth without backups, logging out removes the codes from the device. Export them first if you can.
+
+### Codes won't sync, password is rejected, or recovery key keeps failing. Where do I start? {#sync-password-recovery-failures}
+
+A generic verification error can have several causes, including a request timing out while contacting the server. The message alone does not establish that your password is wrong, an email code was missed, your account is locked, or your device is short of memory.
+
+Keep any working app or browser session signed in while you troubleshoot. Before resetting your account or reinstalling the app:
+
+1. Try another trusted connection, such as switching between Wi-Fi and mobile data.
+2. If only one browser fails, follow the [browser checks](#auth-web-email-not-recognized).
+3. If you are entering a recovery key, check its [format and word order](/photos/faq/security-and-privacy#use-recovery-key).
+
+Network filtering can interfere with sign-in and sync. Check whether a DNS blocker, custom Private DNS configuration, or VPN is blocking Ente endpoints such as `*.ente.io`, `*.ente.com`, or `*.backblazeb2.com`. Review its settings or temporarily test without it, then restore your usual protection. On a managed network, ask the administrator for help.
+
+If a password reset failed partway through, the new password may already have been saved even though the app did not receive confirmation. Try signing in with the new password before repeating the reset.
+
+If the problem continues, contact [support@ente.com](mailto:support@ente.com) with the exact error text, Auth version, operating system, and whether another device or connection works. Never include your password, recovery key, or authenticator codes.

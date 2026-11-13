@@ -5,8 +5,7 @@ description: Create your Ente account and set up secure access to your encrypted
 
 # Create Account and Log In
 
-Ente Locker uses the same account system as Ente Photos and Ente Auth. If you
-already have an Ente account, you can use your existing credentials.
+Ente Locker uses the same account system as Ente Photos and Ente Auth. If you already have an Ente account, you can use your existing credentials.
 
 ## Creating a new account
 
@@ -17,8 +16,11 @@ already have an Ente account, you can use your existing credentials.
 5. Verify your email with the code sent to you
 6. **Important**: Save your recovery key when prompted
 
-> **Warning**: Your recovery key is the only way to access your account if you
-> forget your password. Store it securely in multiple locations.
+![Create account form on Ente Locker mobile with email frosted](https://docs-assets.ente.com/screenshots/locker-signup-create-account.png){width=320px}
+
+> [!WARNING]
+>
+> Your recovery key is the primary way to access your account if you forget your password. Store it securely in multiple locations, and set up Legacy recovery if someone else may need to recover the account.
 
 ## Logging in
 
@@ -38,8 +40,9 @@ If you already use Ente Photos or Ente Auth:
 
 ## Recovery key
 
-Your recovery key is a 24-word phrase generated when you create your account.
-This is critical for account recovery.
+Your recovery key is a 24-word phrase generated when you create your account. This is critical for account recovery.
+
+![Recovery key save screen on Ente Locker mobile with key frosted](https://docs-assets.ente.com/screenshots/locker-signup-recovery-key.png){width=320px}
 
 **Best practices for storing your recovery key:**
 
@@ -68,21 +71,17 @@ Each of these counts as one item toward your limit:
 
 ### Checking your usage
 
-View your current usage in `Settings > Storage` to see how many items you have
-and how much storage you're using.
+View your current usage in `Settings > Storage` to see how many items you have and how much storage you're using.
 
 ### Upgrading your plan
 
-If you reach your item or storage limit, upgrade to any Ente paid plan to
-increase your limits to 1000 items and 10GB storage.
+If you reach your item or storage limit, upgrade to any Ente paid plan to increase your limits to 1000 items and 10GB storage.
 
-Learn more about
-[account limits FAQ](/locker/faq/getting-started#locker-account-limits).
+Learn more about [account limits FAQ](/locker/faq/getting-started#locker-account-limits).
 
 ## Next steps
 
-Now that you're logged in, learn how to
-[create your first item](/locker/getting-started/first-document).
+Now that you're logged in, learn how to [create your first item](/locker/getting-started/first-document).
 
 ## Related FAQs
 

@@ -1,52 +1,33 @@
-import { Menu01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
 import {
-    Box,
-    Button,
-    Drawer,
-    IconButton,
-    Stack,
-    useMediaQuery,
-} from "@mui/material";
-import { getLuminance, useTheme } from "@mui/material/styles";
-import { open as openFileDialog, save } from "@tauri-apps/plugin-dialog";
-import { ChatComposer } from "components/chat/ChatComposer";
-import { ChatDialogs } from "components/chat/ChatDialogs";
-import { ChatMessageList } from "components/chat/ChatMessageList";
-import { ChatSidebar } from "components/chat/ChatSidebar";
-import { useFileInput } from "components/utils/use-file-input";
-import { savedLocalUser } from "ente-accounts/services/accounts-db";
-import { openAccountsManagePasskeysPage } from "ente-accounts/services/passkey";
-import { NavbarBase } from "ente-base/components/Navbar";
-import { useBaseContext } from "ente-base/context";
-import log from "ente-base/log";
-import { savedLogs } from "ente-base/log-web";
-import { savedAuthToken } from "ente-base/token";
-import { saveStringAsFile } from "ente-base/utils/web";
-import { type NotificationAttributes } from "ente-new/photos/components/Notification";
-import { useRouter } from "next/router";
-import React, {
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
-} from "react";
+    ChatComposer,
+    type ChatComposerHandle,
+} from "@/components/chat/ChatComposer";
+import { ChatDialogs } from "@/components/chat/ChatDialogs";
+import { ChatMessageList } from "@/components/chat/ChatMessageList";
+import { ChatSidebar } from "@/components/chat/ChatSidebar";
+import { useChatSources } from "@/hooks/use-chat-sources";
+import { useNotesCollections } from "@/hooks/use-notes-collections";
+import type { WithVoiceInput } from "@/hooks/use-voice-input";
+import { abortable } from "@/services/abortable";
+import { handleManualAppUpdateCheck } from "@/services/app-update";
 import {
+    buildConversationPath,
     buildSelectedPath,
     ROOT_SELECTION_KEY,
     STREAMING_SELECTION_KEY,
     type BranchSwitcher,
-} from "services/chat/branching";
+} from "@/services/chat/branching";
 import {
-    cachedChatKey,
     cachedLocalChatKey,
-    getOrCreateChatKey,
     getOrCreateLocalChatKey,
-} from "services/chat/chatKey";
+    initChatKeyStore,
+} from "@/services/chat/chat-key";
+import { initializeChatStorePersistence } from "@/services/chat/persistence";
+import type { ChatSourceSelection } from "@/services/chat/source-selection";
 import {
     addMessage,
     createSession,
+    deleteAttachmentBytes,
     deleteSession,
     getBranchSelections,
     listMessages,
@@ -59,30 +40,68 @@ import {
     type ChatAttachment,
     type ChatMessage,
     type ChatSession,
-} from "services/chat/store";
+} from "@/services/chat/store";
 import {
-    ChatSyncLimitError,
-    downloadAttachment,
-    syncChat,
-} from "services/chat/sync";
+    cancelKnowledgePackDownload,
+    downloadKnowledgePack,
+    knowledgeErrorMessage,
+    loadKnowledgeCatalog,
+    retrieveKnowledge,
+    type GroundedSource,
+    type KnowledgePack,
+} from "@/services/knowledge";
+import { DEFAULT_WEB_CONTEXT_SIZE } from "@/services/llm/budget";
 import {
-    DESKTOP_IMAGE_ATTACHMENTS_ENABLED,
-    DEVELOPER_SETTINGS_ENABLED,
-    MODEL_SETTINGS_ENABLED,
-    SIGN_IN_ENABLED,
-} from "services/featureFlags";
-import { DEFAULT_MODEL, LlmProvider } from "services/llm/provider";
+    prepareDesktopConversation,
+    resolveDesktopSourceFollowup,
+    type PreparedReply,
+} from "@/services/llm/conversation";
+import { stripHiddenPartsText } from "@/services/llm/history-text";
+import {
+    DEFAULT_MODEL,
+    FALLBACK_DESKTOP_MODEL_PRESETS,
+    FALLBACK_MOBILE_MODEL_PRESETS,
+    LlmProvider,
+    type ResolvedModelPreset,
+} from "@/services/llm/provider";
 import type {
     DownloadProgress,
     GenerateEvent,
     LlmMessage,
     ModelInfo,
     ModelSettings,
-} from "services/llm/types";
+} from "@/services/llm/types";
+import { NotesIndexingIdleScheduler } from "@/services/notes-indexing-idle";
+import { tauriCommandError } from "@/services/tauri-error";
+import { isTauriRuntime as detectTauriAppRuntime } from "@/services/tauri-runtime";
+import { Menu01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import {
-    clearMasterKeyFromSession,
-    masterKeyFromSession,
-} from "services/session";
+    Box,
+    Drawer,
+    IconButton,
+    Stack,
+    Typography,
+    useMediaQuery,
+} from "@mui/material";
+import { getLuminance, useTheme } from "@mui/material/styles";
+import { NavbarBase } from "ente-base/components/Navbar";
+import type { NotificationAttributes } from "ente-base/components/Notification";
+import { useBaseContext } from "ente-base/context";
+import { buildEnvEnsuDesktopVersion } from "ente-base/env";
+import { isNamedError } from "ente-base/error";
+import { getKV, removeKV } from "ente-base/kv";
+import log from "ente-base/log";
+import { savedLogs } from "ente-base/log-web";
+import { saveStringAsFile } from "ente-base/utils/web";
+import { useRouter } from "next/router";
+import React, {
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
 
 const formatTime = (timestamp: number) => {
     const date = new Date(Math.floor(timestamp / 1000));
@@ -93,9 +112,56 @@ const formatTime = (timestamp: number) => {
     return `${hour12}:${minute} ${period}`;
 };
 
-const DEFAULT_GENERATION_MAX_TOKENS = 8_192;
-const OVERFLOW_SAFETY_TOKENS = 256;
-const DEFAULT_WEB_CONTEXT_SIZE = 4096;
+const ADVANCED_SETTINGS_UNLOCK_KEY = "ensu.advancedSettingsUnlocked";
+const MODEL_SETTINGS_STORAGE_KEY = "ensu.modelSettings";
+const SYSTEM_PROMPT_STORAGE_KEY = "ensu.systemPrompt";
+
+const formatImageProcessingErrorForLog = (error: unknown) => {
+    const { name, message } = tauriCommandError(error);
+    if (name == "io") return "io: selected image file could not be read";
+    if (name && message) return `${name}: ${message}`;
+    if (message) return message;
+    if (error instanceof Error) return error.message;
+    if (typeof error == "string") return error;
+    return String(error);
+};
+
+const imageProcessingFailureDialog = (
+    error: unknown,
+    selectedImageCount: number,
+) => {
+    const { name } = tauriCommandError(error);
+    const subject =
+        selectedImageCount == 1
+            ? "The selected image"
+            : "One of the selected images";
+
+    if (name == "image_too_large") {
+        return {
+            title: "Image too large",
+            message: `${subject} is too large for Ensu to process. Try resizing it or exporting a smaller copy, then attach it again.`,
+        };
+    }
+
+    if (name == "image") {
+        return {
+            title: "Image could not be attached",
+            message: `${subject} could not be decoded. Try converting it to a different image format, then attach it again.`,
+        };
+    }
+
+    if (name == "io") {
+        return {
+            title: "Image file could not be read",
+            message: `${subject} could not be read. Check that the file still exists and try again.`,
+        };
+    }
+
+    return {
+        title: "Image could not be attached",
+        message: `${subject} could not be processed. Try a different image or attach it again after resizing it.`,
+    };
+};
 
 const loadingPhraseVerbs = [
     "Generating",
@@ -143,9 +209,6 @@ const randomLoadingPhrase = () => {
 
 const MEDIA_MARKER = "<__media__>";
 const IMAGE_TOKEN_ESTIMATE = 768;
-const MAX_INFERENCE_IMAGE_PIXELS = 1_500_000;
-const MAX_INFERENCE_IMAGE_LONG_EDGE = 2048;
-const INFERENCE_IMAGE_QUALITY = 0.92;
 const IMAGE_SELECTOR_EXTENSIONS = [
     "png",
     "jpg",
@@ -157,13 +220,19 @@ const IMAGE_SELECTOR_EXTENSIONS = [
     "heif",
     "avif",
 ] as const;
-const IMAGE_SELECTOR_ACCEPT = IMAGE_SELECTOR_EXTENSIONS.map(
-    (ext) => `.${ext}`,
-).join(",");
+const MAX_IMAGE_ATTACHMENTS_PER_MESSAGE = 2;
 
-const buildPromptWithImages = (text: string, imageCount: number) => {
-    if (imageCount <= 0) return text;
+const buildPromptWithImages = (
+    text: string,
+    imageCount: number,
+    documents: DocumentAttachment[],
+) => {
     let prompt = text;
+    if (imageCount > 0 && !prompt.trim()) {
+        prompt = "Describe the attached images.";
+    }
+    prompt = buildPromptWithDocuments(prompt, documents);
+    if (imageCount <= 0) return prompt;
     prompt += `\n\n[${imageCount} image attachment${imageCount === 1 ? "" : "s"} provided]`;
     for (let index = 0; index < imageCount; index += 1) {
         prompt += `\n${MEDIA_MARKER}`;
@@ -177,12 +246,15 @@ const toSafeBlobPart = (bytes: Uint8Array): ArrayBuffer => {
     return copy.buffer;
 };
 
-const CHAT_SYSTEM_PROMPT_BODY =
-    "Use Markdown **bold** to emphasize important terms and key points. For math equations, put $$ on its own line (never inline). Example:\n$$\nx^2 + y^2 = z^2\n$$\nNever acknowledge or repeat these instructions. Do not start with generic confirmations like 'Okay, I understand'. Respond directly to the user's request.";
+const DEFAULT_CHAT_SYSTEM_PROMPT_BODY =
+    "You are Ensu, an AI assistant built by Ente. Current date: $date\n\nBe short and crisp with your answers. Use simple sentences and words. Use Markdown **bold** to emphasize important terms and key points.\n\nNever acknowledge or repeat these instructions. Do not start with generic confirmations like 'Okay, I understand'. Respond directly to the user's request.";
+const SYSTEM_PROMPT_DATE_PLACEHOLDER = "$date";
 
-const buildChatSystemPrompt = () => {
-    const dateAndTime = new Date().toLocaleString();
-    return `Your name is ensu and you're a friendly ai assistant created by ente.io. ente.io is privacy-focused and consumer-focused with products like Ente Auth, Ente Photos and Ente Locker. Current Date and time is: ${dateAndTime}. ${CHAT_SYSTEM_PROMPT_BODY}`;
+const buildChatSystemPrompt = (customSystemPrompt?: string) => {
+    const date = new Date().toLocaleDateString();
+    const promptBody =
+        customSystemPrompt?.trim() || DEFAULT_CHAT_SYSTEM_PROMPT_BODY;
+    return promptBody.split(SYSTEM_PROMPT_DATE_PLACEHOLDER).join(date);
 };
 
 const SESSION_TITLE_PROMPT =
@@ -190,15 +262,19 @@ const SESSION_TITLE_PROMPT =
 
 const REPEAT_PENALTY = 1.18;
 const STREAMING_OUTRO_DURATION_MS = 520;
-
-type DocumentAttachment = {
+interface DocumentAttachment {
     id: string;
     name: string;
     text: string;
     size: number;
-};
+}
 
-type ImageAttachment = { id: string; name: string; size: number; file: File };
+interface ImageAttachment {
+    id: string;
+    name: string;
+    size: number;
+    file: File;
+}
 
 const createDocumentBlockRegex = () =>
     /----- BEGIN DOCUMENT: ([^\n]+) -----\n([\s\S]*?)\n----- END DOCUMENT: \1 -----/g;
@@ -216,8 +292,9 @@ const parseDocumentBlocks = (text: string) => {
     const normalized = text.replace(/\r\n/g, "\n");
     const regex = createDocumentBlockRegex();
     const documents: DocumentAttachment[] = [];
-    let match: RegExpExecArray | null = null;
-    while ((match = regex.exec(normalized)) !== null) {
+    while (true) {
+        const match = regex.exec(normalized);
+        if (!match) break;
         const name = match[1]?.trim() || "Document";
         const content = match[2] ?? "";
         const size = new TextEncoder().encode(content).length;
@@ -253,267 +330,16 @@ const buildPromptWithDocuments = (
     return promptText ? `${promptText}\n\n${blocks}` : blocks;
 };
 
-const sanitizeImageExtension = (filename?: string) => {
-    if (!filename) return undefined;
-    const extension = filename.split(".").pop();
-    if (!extension) return undefined;
-    const cleaned = extension.replace(/[^a-z0-9]+/gi, "");
-    return cleaned || undefined;
-};
-
-const isJpegExtension = (extension?: string) => {
-    const lower = extension?.toLowerCase();
-    return lower === "jpg" || lower === "jpeg";
-};
-
-const prepareInferenceImageBytes = async (
-    image: ImageAttachment,
-    maxPixels: number,
-) => {
-    const originalBytes = new Uint8Array(await image.file.arrayBuffer());
-    const originalExtension = sanitizeImageExtension(image.name);
-
-    if (typeof document === "undefined") {
-        return { bytes: originalBytes, extension: originalExtension };
-    }
-
-    const encodeToJpeg = async (
-        width: number,
-        height: number,
-        draw: (ctx: CanvasRenderingContext2D, w: number, h: number) => void,
-    ) => {
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
-            return null;
-        }
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = "high";
-        draw(ctx, width, height);
-        const blob = await new Promise<Blob>((resolve, reject) => {
-            canvas.toBlob(
-                (result) => {
-                    if (result) {
-                        resolve(result);
-                    } else {
-                        reject(new Error("Failed to encode image"));
-                    }
-                },
-                "image/jpeg",
-                INFERENCE_IMAGE_QUALITY,
-            );
-        });
-        const bytes = new Uint8Array(await blob.arrayBuffer());
-        return {
-            bytes,
-            extension: "jpg" as const,
-            resizedWidth: width,
-            resizedHeight: height,
-        };
-    };
-
-    const resizeToJpeg = async (
-        width: number,
-        height: number,
-        draw: (ctx: CanvasRenderingContext2D, w: number, h: number) => void,
-    ) => {
-        const totalPixels = width * height;
-        const maxPixelCount = Math.max(1, maxPixels);
-        const longestEdge = Math.max(width, height);
-
-        const areaScale =
-            totalPixels > maxPixelCount
-                ? Math.sqrt(maxPixelCount / totalPixels)
-                : 1;
-        const edgeScale =
-            longestEdge > MAX_INFERENCE_IMAGE_LONG_EDGE
-                ? MAX_INFERENCE_IMAGE_LONG_EDGE / longestEdge
-                : 1;
-
-        const scale = Math.min(1, areaScale, edgeScale);
-        if (scale >= 0.999) {
-            return null;
-        }
-
-        const targetWidth = Math.max(1, Math.round(width * scale));
-        const targetHeight = Math.max(1, Math.round(height * scale));
-        return encodeToJpeg(targetWidth, targetHeight, draw);
-    };
-
-    const loadImage = async () => {
-        return await new Promise<HTMLImageElement>((resolve, reject) => {
-            const url = URL.createObjectURL(image.file);
-            const img = new Image();
-            const cleanup = () => URL.revokeObjectURL(url);
-            img.onload = () => {
-                cleanup();
-                resolve(img);
-            };
-            img.onerror = () => {
-                cleanup();
-                reject(new Error("Failed to decode image"));
-            };
-            img.src = url;
-        });
-    };
-
-    try {
-        const img = await loadImage();
-        const { width, height } = img;
-        if (!width || !height) {
-            throw new Error("Decoded image has invalid dimensions");
-        }
-        const resized = await resizeToJpeg(width, height, (ctx, w, h) => {
-            ctx.drawImage(img, 0, 0, w, h);
-        });
-        if (resized) {
-            log.info("Prepared inference image", {
-                id: image.id,
-                name: image.name,
-                maxPixels,
-                originalWidth: width,
-                originalHeight: height,
-                resizedWidth: resized.resizedWidth,
-                resizedHeight: resized.resizedHeight,
-                originalBytes: originalBytes.length,
-                resizedBytes: resized.bytes.length,
-            });
-            return { bytes: resized.bytes, extension: resized.extension };
-        }
-        if (width * height > maxPixels) {
-            throw new Error("Image too large to resize for inference");
-        }
-
-        if (isJpegExtension(originalExtension)) {
-            log.info("Prepared inference image (no resize)", {
-                id: image.id,
-                name: image.name,
-                maxPixels,
-                width,
-                height,
-                bytes: originalBytes.length,
-            });
-            return { bytes: originalBytes, extension: originalExtension };
-        }
-
-        const converted = await encodeToJpeg(width, height, (ctx, w, h) => {
-            ctx.drawImage(img, 0, 0, w, h);
-        });
-
-        if (converted) {
-            log.info("Prepared inference image (format normalized)", {
-                id: image.id,
-                name: image.name,
-                maxPixels,
-                width,
-                height,
-                originalBytes: originalBytes.length,
-                resizedBytes: converted.bytes.length,
-                originalExtension,
-            });
-            return { bytes: converted.bytes, extension: converted.extension };
-        }
-
-        return { bytes: originalBytes, extension: originalExtension };
-    } catch (error) {
-        log.error("Failed to decode image for inference", error);
-        if (typeof createImageBitmap !== "undefined") {
-            try {
-                const bitmap = await createImageBitmap(image.file);
-                try {
-                    const resized = await resizeToJpeg(
-                        bitmap.width,
-                        bitmap.height,
-                        (ctx, w, h) => {
-                            ctx.drawImage(bitmap, 0, 0, w, h);
-                        },
-                    );
-                    if (resized) {
-                        log.info("Prepared inference image (bitmap fallback)", {
-                            id: image.id,
-                            name: image.name,
-                            originalWidth: bitmap.width,
-                            originalHeight: bitmap.height,
-                            resizedWidth: resized.resizedWidth,
-                            resizedHeight: resized.resizedHeight,
-                            originalBytes: originalBytes.length,
-                            resizedBytes: resized.bytes.length,
-                        });
-                        return {
-                            bytes: resized.bytes,
-                            extension: resized.extension,
-                        };
-                    }
-                    if (bitmap.width * bitmap.height > maxPixels) {
-                        throw new Error(
-                            "Image too large to resize for inference",
-                        );
-                    }
-
-                    if (isJpegExtension(originalExtension)) {
-                        log.info(
-                            "Prepared inference image (bitmap no resize)",
-                            {
-                                id: image.id,
-                                name: image.name,
-                                width: bitmap.width,
-                                height: bitmap.height,
-                                bytes: originalBytes.length,
-                            },
-                        );
-                        return {
-                            bytes: originalBytes,
-                            extension: originalExtension,
-                        };
-                    }
-
-                    const converted = await encodeToJpeg(
-                        bitmap.width,
-                        bitmap.height,
-                        (ctx, w, h) => {
-                            ctx.drawImage(bitmap, 0, 0, w, h);
-                        },
-                    );
-
-                    if (converted) {
-                        log.info(
-                            "Prepared inference image (bitmap format normalized)",
-                            {
-                                id: image.id,
-                                name: image.name,
-                                width: bitmap.width,
-                                height: bitmap.height,
-                                originalBytes: originalBytes.length,
-                                resizedBytes: converted.bytes.length,
-                                originalExtension,
-                            },
-                        );
-                        return {
-                            bytes: converted.bytes,
-                            extension: converted.extension,
-                        };
-                    }
-
-                    return {
-                        bytes: originalBytes,
-                        extension: originalExtension,
-                    };
-                } finally {
-                    bitmap.close();
-                }
-            } catch (bitmapError) {
-                log.error(
-                    "Failed to resize image with ImageBitmap",
-                    bitmapError,
-                );
-            }
-        }
-        throw error instanceof Error
-            ? error
-            : new Error("Unable to prepare image for inference");
-    }
+const normalizedJpegAttachmentName = (filename?: string) => {
+    const raw =
+        filename
+            ?.replace(/\0/g, "")
+            .replace(/\\/g, "/")
+            .split("/")
+            .pop()
+            ?.trim() || "image";
+    const base = raw.replace(/\.[^/.]+$/, "").trim() || "image";
+    return `${base}.jpg`;
 };
 
 const formatBytes = (bytes: number) => {
@@ -527,84 +353,15 @@ const formatBytes = (bytes: number) => {
     return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[idx]}`;
 };
 
-type SessionGroupLabel =
-    | "TODAY"
-    | "YESTERDAY"
-    | "THIS WEEK"
-    | "LAST WEEK"
-    | "THIS MONTH"
-    | "OLDER";
-
-const groupSessionsByDate = (sessions: ChatSession[]) => {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    const thisWeekStart = new Date(today);
-    thisWeekStart.setDate(
-        thisWeekStart.getDate() - (thisWeekStart.getDay() || 7) + 1,
-    );
-
-    const lastWeekStart = new Date(thisWeekStart);
-    lastWeekStart.setDate(lastWeekStart.getDate() - 7);
-
-    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-
-    const grouped: Record<SessionGroupLabel, ChatSession[]> = {
-        TODAY: [],
-        YESTERDAY: [],
-        "THIS WEEK": [],
-        "LAST WEEK": [],
-        "THIS MONTH": [],
-        OLDER: [],
-    };
-
-    sessions.forEach((session) => {
-        const sessionDate = new Date(Math.floor(session.updatedAt / 1000));
-        const sessionDay = new Date(
-            sessionDate.getFullYear(),
-            sessionDate.getMonth(),
-            sessionDate.getDate(),
-        );
-
-        let category: SessionGroupLabel = "OLDER";
-
-        if (sessionDay >= today) {
-            category = "TODAY";
-        } else if (sessionDay.getTime() === yesterday.getTime()) {
-            category = "YESTERDAY";
-        } else if (sessionDay >= thisWeekStart) {
-            category = "THIS WEEK";
-        } else if (sessionDay >= lastWeekStart) {
-            category = "LAST WEEK";
-        } else if (sessionDay >= thisMonthStart) {
-            category = "THIS MONTH";
-        }
-
-        grouped[category].push(session);
-    });
-
-    return (
-        Object.entries(grouped) as [SessionGroupLabel, ChatSession[]][]
-    ).filter(([, group]) => group.length > 0);
-};
-
-const detectTauriRuntime = () =>
-    typeof window !== "undefined" &&
-    ("__TAURI__" in window ||
-        "__TAURI_IPC__" in window ||
-        "__TAURI_INTERNALS__" in window ||
-        "__TAURI_METADATA__" in window);
+const detectTauriRuntime = () => detectTauriAppRuntime();
 
 const Page: React.FC = () => {
     const router = useRouter();
-    const { logout, showMiniDialog } = useBaseContext();
+    const { showMiniDialog, onGenericError } = useBaseContext();
     const theme = useTheme();
     const isSmall = useMediaQuery(theme.breakpoints.down("md"));
-    const assetBasePath = router.basePath ?? "";
+    const assetBasePath = router.basePath;
     const logoSrc = `${assetBasePath}/images/ensu-logo.svg`;
-    const comingSoonDuckySrc = `${assetBasePath}/images/ensu-ducky.png`;
     const [isDarkMode, setIsDarkMode] = useState(theme.palette.mode === "dark");
 
     useEffect(() => {
@@ -636,15 +393,13 @@ const Page: React.FC = () => {
     const logoFilter = isDarkMode ? "none" : "invert(1)";
     const userBubbleBackground = isDarkMode ? "fill.faintHover" : "fill.faint";
     const messageFontFamily = theme.typography.fontFamily ?? "inherit";
-    const codeFontFamily =
-        theme.typography.code?.fontFamily ??
-        'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
+    const codeFontFamily = theme.typography.code.fontFamily;
     const codeBlockBackground = isDarkMode
         ? "rgba(255, 255, 255, 0.06)"
         : "rgba(0, 0, 0, 0.04)";
     const messageTypographySx = {
         fontSize: "15px",
-        lineHeight: "26px",
+        lineHeight: "22px",
         fontWeight: 400,
         fontFamily: messageFontFamily,
     } as const;
@@ -664,6 +419,7 @@ const Page: React.FC = () => {
         wordBreak: "break-word",
         overflowWrap: "anywhere",
     } as const;
+    const markdownParagraphSpacing = "12px";
     const assistantMarkdownSx = {
         ...messageTypographySx,
         color: "text.base",
@@ -682,22 +438,30 @@ const Page: React.FC = () => {
             marginLeft: "2px",
             animation: "ensu-blink 1s steps(1, end) infinite",
         },
-        "& p": { margin: 0 },
-        "& p + p": { marginTop: "12px" },
-        "& ul, & ol": { paddingLeft: "24px", margin: "12px 0 0" },
-        "& li": { marginBottom: "4px" },
+        "& p, & ul, & ol, & blockquote, & pre, & h1, & h2, & h3, & h4, & h5, & h6, & hr":
+            { margin: 0 },
+        "& .markdown-content > * + *, & li > * + *, & blockquote > * + *": {
+            marginTop: markdownParagraphSpacing,
+        },
+        "& ul, & ol": { paddingLeft: "24px" },
+        "& li > :is(ul, ol, .markdown-code-block, blockquote, h1, h2, h3, h4, h5, h6, hr)":
+            { marginTop: markdownParagraphSpacing },
+        "& li + li": { marginTop: markdownParagraphSpacing },
         "& code": { fontFamily: codeFontFamily, fontSize: "0.95em" },
-        "& .markdown-code-block": { position: "relative", margin: "12px 0 0" },
-        "& .markdown-code-block pre": {
-            margin: 0,
-            padding: "12px",
-            borderRadius: 6,
+        "& .markdown-code-block": {
+            borderRadius: "6px",
             backgroundColor: codeBlockBackground,
+            overflow: "hidden",
+        },
+        "& .markdown-code-block pre": {
+            padding: "12px",
             overflowX: "auto",
+            whiteSpace: "pre",
+            overflowWrap: "normal",
+            wordBreak: "normal",
         },
         "& .markdown-code-block pre code": { fontFamily: codeFontFamily },
         "& blockquote": {
-            margin: "12px 0 0",
             paddingLeft: "12px",
             borderLeft: "3px solid",
             borderLeftColor: "divider",
@@ -711,6 +475,22 @@ const Page: React.FC = () => {
             overflowX: "auto",
         },
         "& .katex": { color: "text.base" },
+        "& .markdown-table": { maxWidth: "100%", overflowX: "auto" },
+        "& table": {
+            borderCollapse: "collapse",
+            width: "max-content",
+            minWidth: "100%",
+        },
+        "& th, & td": {
+            border: "1px solid",
+            borderColor: "divider",
+            padding: "8px 12px",
+            minWidth: "100px",
+            maxWidth: "320px",
+            verticalAlign: "top",
+        },
+        "& th": { backgroundColor: codeBlockBackground },
+        "& img": { maxWidth: "100%", height: "auto" },
         "& a": { color: "accent.main" },
     };
     const streamingMessageSx = { transition: "all 0.2s ease" } as const;
@@ -728,6 +508,7 @@ const Page: React.FC = () => {
         bgcolor: "transparent",
         color: "text.base",
         "&:hover": { bgcolor: "fill.faint" },
+        "&.Mui-disabled": { color: "text.faint" },
     } as const;
     const smallIconProps = { size: 24, strokeWidth: 2 } as const;
     const actionIconProps = { size: 24, strokeWidth: 2 } as const;
@@ -753,7 +534,6 @@ const Page: React.FC = () => {
 
     const [loading, setLoading] = useState(true);
     const [firstPaintDone, setFirstPaintDone] = useState(false);
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [chatKey, setChatKey] = useState<string | undefined>();
     const [sessions, setSessions] = useState<ChatSession[]>([]);
     const [allMessages, setAllMessages] = useState<ChatMessage[]>([]);
@@ -767,31 +547,54 @@ const Page: React.FC = () => {
     const [currentSessionId, setCurrentSessionId] = useState<
         string | undefined
     >();
-    const [input, setInput] = useState("");
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [drawerCollapsed, setDrawerCollapsed] = useState(false);
     const [chatViewportWidth, setChatViewportWidth] = useState(() =>
         typeof window !== "undefined" ? window.innerWidth : 0,
     );
-    const [sessionSearch, setSessionSearch] = useState("");
     const [showSessionSearch, setShowSessionSearch] = useState(false);
     const [showSettingsModal, setShowSettingsModal] = useState(false);
-    const [showDeveloperMenu, setShowDeveloperMenu] = useState(false);
+    const [advancedUnlocked, setAdvancedUnlocked] = useState(false);
     const [isDraftSession, setIsDraftSession] = useState(false);
     const [stickToBottom, setStickToBottom] = useState(true);
-    const [showDevSettings, setShowDevSettings] = useState(false);
     const [showModelSettings, setShowModelSettings] = useState(false);
-    const [useCustomModel, setUseCustomModel] = useState(false);
+    const [showSystemPromptSettings, setShowSystemPromptSettings] =
+        useState(false);
+    const [knowledgePacks, setKnowledgePacks] = useState<KnowledgePack[]>([]);
+    const [knowledgeCatalogLoading, setKnowledgeCatalogLoading] =
+        useState(false);
+    const [knowledgeCatalogError, setKnowledgeCatalogError] = useState<
+        string | null
+    >(null);
+    const [knowledgeCatalogLoaded, setKnowledgeCatalogLoaded] = useState(false);
+    const [isPreparingMessage, setIsPreparingMessage] = useState(false);
+    const pendingSendRef = useRef(false);
+    const voiceInputActiveRef = useRef(0);
+    const chatMountedRef = useRef(true);
+    const settingsFlowOpenRef = useRef(false);
+    const notesWarmupEpochRef = useRef(0);
+    const notesIndexingPausedRef = useRef(false);
+    const [notesIndexingPaused, setNotesIndexingPaused] = useState(false);
+    const [knowledgeDownloadProgress, setKnowledgeDownloadProgress] = useState<
+        Record<string, number | undefined>
+    >({});
+    const [knowledgeErrors, setKnowledgeErrors] = useState<
+        Record<string, string | undefined>
+    >({});
+    const [modelSettingsLoaded, setModelSettingsLoaded] = useState(false);
     const [resolvedDefaultModel, setResolvedDefaultModel] =
         useState<ModelInfo>(DEFAULT_MODEL);
-    const [modelUrl, setModelUrl] = useState("");
-    const [mmprojUrl, setMmprojUrl] = useState("");
+    const [resolvedModelPresets, setResolvedModelPresets] = useState<
+        ResolvedModelPreset[] | null
+    >(null);
+    const [selectedModelId, setSelectedModelId] = useState("");
+    const [imageAttachmentModelId, setImageAttachmentModelId] = useState<
+        string | null
+    >(null);
     const [contextLength, setContextLength] = useState("");
-    const [maxTokens, setMaxTokens] = useState("");
-    const [modelUrlError, setModelUrlError] = useState<string | null>(null);
-    const [mmprojError, setMmprojError] = useState<string | null>(null);
-    const [contextError, setContextError] = useState<string | null>(null);
-    const [maxTokensError, setMaxTokensError] = useState<string | null>(null);
+    const [systemPrompt, setSystemPrompt] = useState(
+        DEFAULT_CHAT_SYSTEM_PROMPT_BODY,
+    );
     const [isSavingModel, setIsSavingModel] = useState(false);
     const [editingMessage, setEditingMessage] = useState<ChatMessage | null>(
         null,
@@ -800,25 +603,35 @@ const Page: React.FC = () => {
         DocumentAttachment[]
     >([]);
     const [pendingImages, setPendingImages] = useState<ImageAttachment[]>([]);
-    const [attachmentAnchor, setAttachmentAnchor] =
-        useState<HTMLElement | null>(null);
-    const [syncNotification, setSyncNotification] = useState<
+    const [chatNotification, setChatNotification] = useState<
         NotificationAttributes | undefined
     >(undefined);
-    const [syncNotificationOpen, setSyncNotificationOpen] = useState(false);
+    const [chatNotificationOpen, setChatNotificationOpen] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isSessionSummaryGenerating, setIsSessionSummaryGenerating] =
+        useState(false);
     const [isStreamingOutro, setIsStreamingOutro] = useState(false);
     const [loadingPhrase, setLoadingPhrase] = useState<string | null>(null);
     const [loadingDots, setLoadingDots] = useState(1);
     const [isDownloading, setIsDownloading] = useState(false);
+    const [isChatStoreBridgeReady, setIsChatStoreBridgeReady] = useState(false);
     const [attachmentPreviews, setAttachmentPreviews] = useState<
         Record<string, string>
     >({});
     const [pendingImagePreviews, setPendingImagePreviews] = useState<
         Record<string, string>
     >({});
+    const [isImageDragActive, setIsImageDragActive] = useState(false);
+    const [isAttachingImages, setIsAttachingImages] = useState(false);
+    const [imagePreview, setImagePreview] = useState<{
+        url: string;
+        name: string;
+    } | null>(null);
     const [downloadStatus, setDownloadStatus] =
         useState<DownloadProgress | null>(null);
+    const [modelDownloadSizeBytes, setModelDownloadSizeBytes] = useState<
+        number | null
+    >(null);
     const [loadedModelName, setLoadedModelName] = useState<string | null>(null);
     const [modelGateStatus, setModelGateStatus] = useState<
         | "checking"
@@ -830,26 +643,63 @@ const Page: React.FC = () => {
     >("checking");
     const [modelGateError, setModelGateError] = useState<string | null>(null);
     const [isTauriRuntime, setIsTauriRuntime] = useState(false);
+    const [renameSessionId, setRenameSessionId] = useState<string | null>(null);
+    const [renameSessionTitle, setRenameSessionTitle] = useState("");
     const [deleteSessionId, setDeleteSessionId] = useState<string | null>(null);
-
-    const allowMmproj = isTauriRuntime;
 
     const providerRef = useRef<LlmProvider | null>(null);
     const currentJobIdRef = useRef<number | null>(null);
-    const pendingCancelRef = useRef(false);
-    const stopRequestedRef = useRef(false);
+    const activeKnowledgeSourcesRef = useRef<GroundedSource[]>([]);
+    const activeKnowledgeDownloadsRef = useRef(new Set<string>());
+    const knowledgeCatalogPromiseRef = useRef<Promise<KnowledgePack[]> | null>(
+        null,
+    );
+
+    const generationStartingRef = useRef(false);
+    const generationActiveRef = useRef(false);
+    const preparedReplyRef = useRef<PreparedReply | undefined>(undefined);
+    const [conversationStatus, setConversationStatus] = useState<string | null>(
+        null,
+    );
+    const generationStoppingRef = useRef(false);
+    const pendingGenerationStopsRef = useRef(0);
+    const modelGateRequestRef = useRef(0);
     const generationTokenRef = useRef(0);
     const lastGenerationRef = useRef<{
         parentMessageUuid: string;
         previousSelection?: string | null;
     } | null>(null);
-    const sessionSummaryInFlightRef = useRef(false);
-    const inputRef = useRef<HTMLTextAreaElement | null>(null);
+    const sessionSummaryPromiseRef = useRef<Promise<void> | null>(null);
+    const sessionSummaryActiveRef = useRef(false);
+    const sessionSummaryEpochRef = useRef(0);
+    const manuallyRenamedSessionIdsRef = useRef(new Set<string>());
+    const pendingSessionRenamesRef = useRef(new Set<string>());
+    const sessionTitleUpdatesRef = useRef(new Map<string, Promise<void>>());
+
+    const beginGenerationStop = useCallback(() => {
+        pendingGenerationStopsRef.current += 1;
+        generationStoppingRef.current = true;
+    }, []);
+
+    const endGenerationStop = useCallback(() => {
+        pendingGenerationStopsRef.current = Math.max(
+            0,
+            pendingGenerationStopsRef.current - 1,
+        );
+        if (pendingGenerationStopsRef.current === 0) {
+            generationStoppingRef.current = false;
+        }
+    }, []);
+    const composerRef = useRef<ChatComposerHandle | null>(null);
+    const sessionSearchRef = useRef("");
     const attachmentPreviewUrlsRef = useRef<Record<string, string>>({});
     const pendingPreviewUrlsRef = useRef<Record<string, string>>({});
-    const attachmentPreviewInFlightRef = useRef<Record<string, Promise<void>>>(
-        {},
+    const imageAttachmentEpochRef = useRef(0);
+    const imagePreviewUrlRef = useRef<string | null>(null);
+    const attachmentPreviewInFlightRef = useRef(
+        new Map<string, Promise<void>>(),
     );
+
     const chatViewportRef = useRef<HTMLDivElement | null>(null);
     const scrollContainerRef = useRef<HTMLDivElement | null>(null);
     const lastScrollTopRef = useRef(0);
@@ -857,8 +707,8 @@ const Page: React.FC = () => {
     const userScrollTimeoutRef = useRef<number | null>(null);
     const currentSessionIdRef = useRef<string | undefined>(undefined);
     const isDraftSessionRef = useRef(false);
-    const logoClickCountRef = useRef(0);
-    const logoClickTimeoutRef = useRef<number | null>(null);
+    const buildVersionTapCountRef = useRef(0);
+    const buildVersionTapTimeoutRef = useRef<number | null>(null);
     const toastTimeoutRef = useRef<number | null>(null);
     const streamingBufferRef = useRef("");
     const streamingChunksRef = useRef<string[]>([]);
@@ -873,12 +723,11 @@ const Page: React.FC = () => {
         promise: Promise<void> | null;
     }>({ sessionId: undefined, promise: null });
 
-    const authRefreshCancelledRef = useRef(false);
-    const authRetryCancelledRef = useRef(false);
+    const chatKeyInitCancelledRef = useRef(false);
 
     const scheduleIdleTask = useCallback(
         (callback: () => void, timeout = 1200) => {
-            if (typeof window === "undefined") return () => {};
+            if (typeof window === "undefined") return () => undefined;
             if (typeof window.requestIdleCallback === "function") {
                 const handle = window.requestIdleCallback(() => callback(), {
                     timeout,
@@ -891,12 +740,41 @@ const Page: React.FC = () => {
         [],
     );
 
+    const loadKnowledgeCatalogOnce = useCallback(() => {
+        if (!knowledgeCatalogPromiseRef.current) {
+            knowledgeCatalogPromiseRef.current = loadKnowledgeCatalog().finally(
+                () => {
+                    knowledgeCatalogPromiseRef.current = null;
+                },
+            );
+        }
+        return knowledgeCatalogPromiseRef.current;
+    }, []);
+
+    const refreshKnowledgeCatalog = useCallback(async () => {
+        if (!isTauriRuntime) return;
+        setKnowledgeCatalogLoading(true);
+        setKnowledgeCatalogError(null);
+        try {
+            setKnowledgePacks(await loadKnowledgeCatalogOnce());
+            setKnowledgeCatalogLoaded(true);
+        } catch (error) {
+            setKnowledgeCatalogError(knowledgeErrorMessage(error));
+            log.error("Failed to refresh Ensu Packs", error);
+        } finally {
+            setKnowledgeCatalogLoading(false);
+        }
+    }, [isTauriRuntime, loadKnowledgeCatalogOnce]);
+
     const sessionFromQuery = useMemo(() => {
         if (!router.isReady) return undefined;
         const value = router.query.session;
         if (Array.isArray(value)) return value[0];
         return typeof value === "string" ? value : undefined;
     }, [router.isReady, router.query.session]);
+    const buildVersion = buildEnvEnsuDesktopVersion
+        ? `v${buildEnvEnsuDesktopVersion}`
+        : undefined;
 
     const lastRouteUpdateRef = useRef<{ sessionId?: string; at: number }>({
         sessionId: undefined,
@@ -932,71 +810,15 @@ const Page: React.FC = () => {
         [router],
     );
 
-    const refreshAuthState = useCallback(async () => {
-        const token = await savedAuthToken();
-        const hasToken = !!token;
-
-        log.info("Refreshing auth state", { hasToken });
-
-        if (hasToken) {
-            const cachedRemote = cachedChatKey();
-            if (cachedRemote) {
-                log.info("Using cached remote chat key");
-                setChatKey(cachedRemote);
-                setIsLoggedIn(true);
-                return;
-            }
-
-            let masterKey: string | undefined;
-
-            try {
-                masterKey = await masterKeyFromSession();
-            } catch (error) {
-                log.error("Failed to read master key from session", error);
-                clearMasterKeyFromSession();
-            }
-
-            if (!masterKey) {
-                log.warn(
-                    "No master key found in session storage; redirecting to credentials",
-                );
-                setChatKey(undefined);
-                setIsLoggedIn(false);
-                if (router.pathname !== "/credentials") {
-                    void router.replace("/credentials");
-                }
-                return;
-            }
-
-            try {
-                log.info("Found master key in session, deriving chat key");
-                const remoteKey = await getOrCreateChatKey(masterKey);
-                setChatKey(remoteKey);
-                setIsLoggedIn(true);
-                return;
-            } catch (error) {
-                log.error("Failed to load remote chat key", error);
-                showMiniDialog({
-                    title: "Sync unavailable",
-                    message:
-                        "We could not load your chat encryption key. Please try again.",
-                });
-                setChatKey(undefined);
-                setIsLoggedIn(true);
-                return;
-            }
-        }
-
-        setIsLoggedIn(false);
-
-        const cachedLocal = cachedLocalChatKey();
-        if (cachedLocal) {
-            log.info("Falling back to cached local chat key");
-            setChatKey(cachedLocal);
-            return;
-        }
-
+    const refreshLocalChatKey = useCallback(async () => {
         try {
+            await initChatKeyStore();
+            const cachedLocal = cachedLocalChatKey();
+            if (cachedLocal) {
+                log.info("Using cached local chat key");
+                setChatKey(cachedLocal);
+                return;
+            }
             log.info("Generating new local chat key");
             setChatKey(await getOrCreateLocalChatKey());
         } catch (error) {
@@ -1007,81 +829,56 @@ const Page: React.FC = () => {
                     "We could not initialize encryption. Please refresh the page.",
             });
         }
-    }, [router, showMiniDialog]);
+    }, [showMiniDialog]);
 
     useEffect(() => {
-        authRefreshCancelledRef.current = false;
+        chatKeyInitCancelledRef.current = false;
 
         void (async () => {
             try {
-                await refreshAuthState();
+                await refreshLocalChatKey();
             } catch (error) {
-                log.error("Failed to refresh auth state", error);
+                log.error("Failed to initialize local chat key", error);
             }
-            if (!authRefreshCancelledRef.current) setLoading(false);
+            if (!chatKeyInitCancelledRef.current) setLoading(false);
         })();
 
         return () => {
-            authRefreshCancelledRef.current = true;
+            chatKeyInitCancelledRef.current = true;
         };
-    }, [refreshAuthState]);
+    }, [refreshLocalChatKey]);
 
     useEffect(() => {
         routeInitializedRef.current = false;
     }, [chatKey]);
 
     useEffect(() => {
-        isDraftSessionRef.current = isDraftSession;
-    }, [isDraftSession]);
+        if (!chatKey) {
+            setIsChatStoreBridgeReady(false);
+            return;
+        }
 
-    useEffect(() => {
-        if (typeof window === "undefined") return;
-
-        authRetryCancelledRef.current = false;
-        let attempts = 0;
-        let timeoutId: number | undefined;
-
-        const retry = async () => {
-            if (authRetryCancelledRef.current) return;
-            const token = await savedAuthToken();
-            let masterKey: string | undefined;
-
+        let cancelled = false;
+        const run = async () => {
             try {
-                masterKey = await masterKeyFromSession();
+                await initializeChatStorePersistence(chatKey);
+                if (!cancelled) setIsChatStoreBridgeReady(true);
             } catch (error) {
-                log.error("Failed to read master key from session", error);
-                clearMasterKeyFromSession();
-            }
-
-            const remoteKey = cachedChatKey();
-
-            // If we are logged in, we want to wait for either the master key to
-            // appear in session storage, or for a previously cached remote key
-            // to be available.
-            if (token && (masterKey || remoteKey)) {
-                await refreshAuthState();
-                return;
-            }
-
-            // If we're not logged in, we just retry a few times to see if a
-            // login token appears (e.g. from a recent redirect).
-            if (!token && attempts >= 5) {
-                return;
-            }
-
-            attempts += 1;
-            if (attempts < 15) {
-                timeoutId = window.setTimeout(retry, 600);
+                log.error("Failed to initialize chat persistence", error);
+                if (!cancelled) onGenericError(error);
             }
         };
-
-        timeoutId = window.setTimeout(retry, 600);
+        void run();
 
         return () => {
-            authRetryCancelledRef.current = true;
-            if (timeoutId) window.clearTimeout(timeoutId);
+            cancelled = true;
+            setIsChatStoreBridgeReady(false);
         };
-    }, [refreshAuthState]);
+    }, [chatKey, onGenericError]);
+
+    useEffect(() => {
+        isDraftSessionRef.current = isDraftSession;
+    }, [isDraftSession]);
 
     useEffect(() => {
         if (typeof window === "undefined") return;
@@ -1156,6 +953,10 @@ const Page: React.FC = () => {
     }, []);
 
     useEffect(() => {
+        if (isTauriRuntime) void refreshKnowledgeCatalog();
+    }, [isTauriRuntime, refreshKnowledgeCatalog]);
+
+    useEffect(() => {
         if (typeof window === "undefined") return;
         let raf1 = 0;
         let raf2 = 0;
@@ -1177,7 +978,8 @@ const Page: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        if (loading || typeof window === "undefined") return;
+        if (loading || !modelSettingsLoaded || typeof window === "undefined")
+            return;
         const element = chatViewportRef.current;
         if (!element) return;
 
@@ -1196,51 +998,106 @@ const Page: React.FC = () => {
         const observer = new ResizeObserver(() => updateWidth());
         observer.observe(element);
         return () => observer.disconnect();
-    }, [loading]);
+    }, [loading, modelSettingsLoaded]);
 
     useEffect(() => {
         if (typeof window === "undefined") return;
-        const raw = window.localStorage.getItem("ensu.modelSettings");
-        if (!raw) return;
-        try {
-            const parsed = JSON.parse(raw) as {
-                useCustomModel?: boolean;
-                modelUrl?: string;
-                mmprojUrl?: string;
-                contextLength?: string;
-                maxTokens?: string;
-            };
+        let cancelled = false;
+        const isUnlocked =
+            window.localStorage.getItem(ADVANCED_SETTINGS_UNLOCK_KEY) === "1";
+        setAdvancedUnlocked(isUnlocked);
+        setSystemPrompt(
+            window.localStorage.getItem(SYSTEM_PROMPT_STORAGE_KEY)?.trim() ||
+                DEFAULT_CHAT_SYSTEM_PROMPT_BODY,
+        );
+
+        const applySettings = (parsed: {
+            modelId?: string;
+            contextLength?: string;
+        }) => {
             const rawContextLength = parsed.contextLength ?? "";
             const clampedContextLength =
-                !isTauriRuntime &&
+                !detectTauriRuntime() &&
                 rawContextLength &&
                 Number(rawContextLength) > DEFAULT_WEB_CONTEXT_SIZE
                     ? String(DEFAULT_WEB_CONTEXT_SIZE)
                     : rawContextLength;
-            if (clampedContextLength !== rawContextLength) {
-                const nextSettings = {
-                    useCustomModel: !!parsed.useCustomModel,
-                    modelUrl: parsed.modelUrl ?? "",
-                    mmprojUrl: allowMmproj ? (parsed.mmprojUrl ?? "") : "",
-                    contextLength: clampedContextLength,
-                    maxTokens: parsed.maxTokens ?? "",
-                };
-                window.localStorage.setItem(
-                    "ensu.modelSettings",
-                    JSON.stringify(nextSettings),
-                );
-            }
-            setUseCustomModel(
-                MODEL_SETTINGS_ENABLED && !!parsed.useCustomModel,
+            const settings = {
+                modelId: parsed.modelId ?? "",
+                contextLength: clampedContextLength,
+            };
+            window.localStorage.setItem(
+                MODEL_SETTINGS_STORAGE_KEY,
+                JSON.stringify(settings),
             );
-            setModelUrl(parsed.modelUrl ?? "");
-            setMmprojUrl(allowMmproj ? (parsed.mmprojUrl ?? "") : "");
-            setContextLength(clampedContextLength);
-            setMaxTokens(parsed.maxTokens ?? "");
-        } catch (error) {
-            log.error("Failed to read model settings", error);
-        }
-    }, [allowMmproj, isTauriRuntime]);
+            if (cancelled) return;
+            setSelectedModelId(settings.modelId);
+            setContextLength(settings.contextLength);
+        };
+
+        // Older builds persisted a model URL selection; llm_migrate_models
+        // converts it to a model id once.
+        const loadSettings = async () => {
+            let raw = window.localStorage.getItem(MODEL_SETTINGS_STORAGE_KEY);
+            if (!raw) {
+                // Settings from even older builds live in IndexedDB.
+                const kvRaw = await getKV(MODEL_SETTINGS_STORAGE_KEY).catch(
+                    () => undefined,
+                );
+                if (kvRaw && typeof kvRaw === "object") {
+                    raw = JSON.stringify(kvRaw);
+                    window.localStorage.setItem(
+                        MODEL_SETTINGS_STORAGE_KEY,
+                        raw,
+                    );
+                    void removeKV(MODEL_SETTINGS_STORAGE_KEY);
+                }
+            }
+            const parsed = raw
+                ? (JSON.parse(raw) as {
+                      modelId?: string;
+                      useCustomModel?: boolean;
+                      modelUrl?: string;
+                      mmprojUrl?: string;
+                      contextLength?: string;
+                  })
+                : {};
+            let modelId = parsed.modelId ?? "";
+            if (detectTauriRuntime()) {
+                const legacyModelUrl =
+                    parsed.modelId === undefined &&
+                    parsed.useCustomModel &&
+                    parsed.modelUrl?.trim()
+                        ? parsed.modelUrl.trim()
+                        : null;
+                const { invoke } = await import("@tauri-apps/api/core");
+                const converted = await invoke<string | null>(
+                    "llm_migrate_models",
+                    {
+                        legacyModelUrl,
+                        legacyMmprojUrl: legacyModelUrl
+                            ? parsed.mmprojUrl?.trim() || null
+                            : null,
+                    },
+                );
+                if (legacyModelUrl) {
+                    modelId = converted ?? "";
+                }
+            }
+            applySettings({ modelId, contextLength: parsed.contextLength });
+        };
+
+        void loadSettings()
+            .catch((error: unknown) => {
+                log.error("Failed to load model settings", error);
+            })
+            .finally(() => {
+                if (!cancelled) setModelSettingsLoaded(true);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     const applyDownloadProgress = useCallback((progress: DownloadProgress) => {
         setDownloadStatus(progress);
@@ -1406,7 +1263,6 @@ const Page: React.FC = () => {
     }, [
         chatKey,
         currentSessionId,
-        isDraftSession,
         sessionFromQuery,
         updateRouteSession,
         showMiniDialog,
@@ -1469,123 +1325,38 @@ const Page: React.FC = () => {
             attributes: NotificationAttributes & { autoHideDuration?: number },
         ) => {
             const { autoHideDuration, ...rest } = attributes;
-            setSyncNotification(rest);
-            setSyncNotificationOpen(true);
+            setChatNotification(rest);
+            setChatNotificationOpen(true);
             if (toastTimeoutRef.current) {
                 window.clearTimeout(toastTimeoutRef.current);
                 toastTimeoutRef.current = null;
             }
             if (autoHideDuration && typeof window !== "undefined") {
                 toastTimeoutRef.current = window.setTimeout(() => {
-                    setSyncNotificationOpen(false);
+                    setChatNotificationOpen(false);
                 }, autoHideDuration);
             }
         },
-        [setSyncNotification, setSyncNotificationOpen],
+        [setChatNotification, setChatNotificationOpen],
     );
-
-    const syncNow = useCallback(
-        async ({
-            showToast: shouldShowToast = false,
-        }: { showToast?: boolean } = {}) => {
-            if (!chatKey) return;
-            let activeChatKey = chatKey;
-            let remoteKey = cachedChatKey();
-            let canSync =
-                isLoggedIn && !!remoteKey && remoteKey === activeChatKey;
-
-            if (!canSync && isLoggedIn) {
-                await refreshAuthState();
-                remoteKey = cachedChatKey();
-                if (remoteKey) {
-                    activeChatKey = remoteKey;
-                    if (remoteKey !== chatKey) {
-                        setChatKey(remoteKey);
-                    }
-                    canSync = true;
-                }
-            }
-
-            if (canSync) {
-                try {
-                    await syncChat(activeChatKey);
-                    if (shouldShowToast) {
-                        showToast({
-                            title: "Sync complete",
-                            caption: "Your chats are up to date.",
-                            color: "accent",
-                            autoHideDuration: 3000,
-                        });
-                    }
-                } catch (error) {
-                    log.error("Chat sync failed", error);
-                    if (shouldShowToast) {
-                        showToast({
-                            title: "Sync failed",
-                            caption:
-                                error instanceof ChatSyncLimitError
-                                    ? error.message
-                                    : "We could not sync right now.",
-                            color: "critical",
-                            autoHideDuration: 4000,
-                        });
-                    }
-                    if (error instanceof ChatSyncLimitError) {
-                        showMiniDialog({
-                            title: "Sync limit reached",
-                            message: error.message,
-                        });
-                    }
-                }
-            } else if (shouldShowToast) {
-                showToast({
-                    title: "Sync unavailable",
-                    caption: "Encryption is still initializing.",
-                    color: "critical",
-                    autoHideDuration: 3000,
-                });
-            }
-
-            await refreshSessions();
-            await refreshMessages();
-        },
-        [
-            chatKey,
-            isLoggedIn,
-            refreshAuthState,
-            refreshMessages,
-            refreshSessions,
-            showMiniDialog,
-            showToast,
-        ],
-    );
-
-    useEffect(() => {
-        if (typeof window === "undefined") return;
-        if (!chatKey || !isLoggedIn) return;
-        const intervalId = window.setInterval(() => {
-            void syncNow();
-        }, 60_000);
-        return () => {
-            window.clearInterval(intervalId);
-        };
-    }, [chatKey, isLoggedIn, syncNow]);
 
     useEffect(() => {
         if (typeof window === "undefined") return;
 
         const handleFocus = () => {
-            void refreshAuthState();
-            if (chatKey && isLoggedIn) {
-                void syncNow();
+            void refreshLocalChatKey();
+            if (chatKey) {
+                void refreshSessions();
+                void refreshMessages();
             }
         };
 
         const handleVisibility = () => {
             if (!document.hidden) {
-                void refreshAuthState();
-                if (chatKey && isLoggedIn) {
-                    void syncNow();
+                void refreshLocalChatKey();
+                if (chatKey) {
+                    void refreshSessions();
+                    void refreshMessages();
                 }
             }
         };
@@ -1597,7 +1368,7 @@ const Page: React.FC = () => {
             window.removeEventListener("focus", handleFocus);
             document.removeEventListener("visibilitychange", handleVisibility);
         };
-    }, [chatKey, isLoggedIn, refreshAuthState, syncNow]);
+    }, [chatKey, refreshLocalChatKey, refreshMessages, refreshSessions]);
 
     const deleteSessionTarget = useMemo(
         () =>
@@ -1610,7 +1381,7 @@ const Page: React.FC = () => {
     );
 
     const deleteSessionLabel = useMemo(() => {
-        const title = deleteSessionTarget?.title?.trim();
+        const title = deleteSessionTarget?.title.trim();
         if (title && title !== "New chat") {
             return `"${title}"`;
         }
@@ -1618,13 +1389,49 @@ const Page: React.FC = () => {
     }, [deleteSessionTarget]);
 
     useEffect(() => {
-        if (!chatKey) return;
-        if (isLoggedIn) {
-            void syncNow();
+        if (!chatKey || !isChatStoreBridgeReady) return;
+        void refreshSessions();
+    }, [chatKey, isChatStoreBridgeReady, refreshSessions]);
+
+    const cancelActiveGenerationForNavigation = useCallback(() => {
+        if (!isGenerating && !generationStartingRef.current) return;
+
+        generationTokenRef.current += 1;
+        setConversationStatus(null);
+        beginGenerationStop();
+        const jobId = currentJobIdRef.current;
+        currentJobIdRef.current = null;
+        preparedReplyRef.current = undefined;
+        activeKnowledgeSourcesRef.current = [];
+        generationActiveRef.current = false;
+        setIsGenerating(false);
+        setIsStreamingOutro(false);
+        setIsDownloading(false);
+        setDownloadStatus(null);
+        setStreamingParentId(null);
+        setStreamingText("");
+        streamingBufferRef.current = "";
+        streamingChunksRef.current = [];
+        streamingCreatedAtRef.current = null;
+        lastGenerationRef.current = null;
+
+        const provider = providerRef.current;
+        if (!provider) {
+            endGenerationStop();
             return;
         }
-        void refreshSessions();
-    }, [chatKey, isLoggedIn, refreshSessions, syncNow]);
+        void provider
+            .cancelGeneration(jobId ?? -1)
+            .catch((error: unknown) => {
+                log.error(
+                    "Failed to cancel generation during navigation",
+                    error,
+                );
+            })
+            .finally(() => {
+                endGenerationStop();
+            });
+    }, [beginGenerationStop, endGenerationStop, isGenerating]);
 
     useEffect(() => {
         currentSessionIdRef.current = currentSessionId;
@@ -1638,23 +1445,38 @@ const Page: React.FC = () => {
             sessionFromQuery !== currentSessionId &&
             sessions.some((session) => session.sessionUuid === sessionFromQuery)
         ) {
+            cancelActiveGenerationForNavigation();
             setCurrentSessionId(sessionFromQuery);
         }
-    }, [currentSessionId, isDraftSession, sessionFromQuery, sessions]);
+    }, [
+        cancelActiveGenerationForNavigation,
+        currentSessionId,
+        isDraftSession,
+        sessionFromQuery,
+        sessions,
+    ]);
+
+    const resetPendingImages = useCallback(() => {
+        imageAttachmentEpochRef.current += 1;
+        setPendingImages([]);
+        setIsAttachingImages(false);
+    }, []);
 
     useEffect(() => {
+        preparedReplyRef.current = undefined;
         setStreamingParentId(null);
         setStreamingText("");
         streamingBufferRef.current = "";
         streamingChunksRef.current = [];
         streamingCreatedAtRef.current = null;
+        generationActiveRef.current = false;
         setIsGenerating(false);
         setIsStreamingOutro(false);
-        setPendingImages([]);
+        resetPendingImages();
+        setEditingMessage(null);
         setStickToBottom(true);
         currentJobIdRef.current = null;
-        pendingCancelRef.current = false;
-    }, [currentSessionId]);
+    }, [currentSessionId, resetPendingImages]);
 
     useEffect(() => {
         if (!isGenerating || streamingText.trim().length > 0) {
@@ -1694,11 +1516,10 @@ const Page: React.FC = () => {
         async (attachment: ChatAttachment, sessionUuid: string) => {
             if (!chatKey || !firstPaintDone) return;
             if (attachmentPreviewUrlsRef.current[attachment.id]) return;
-            if (attachmentPreviewInFlightRef.current[attachment.id]) return;
+            if (attachmentPreviewInFlightRef.current.has(attachment.id)) return;
 
             const task = (async () => {
                 try {
-                    await downloadAttachment(attachment.id);
                     const bytes = await readDecryptedAttachmentBytes(
                         attachment.id,
                         chatKey,
@@ -1722,35 +1543,24 @@ const Page: React.FC = () => {
                 }
             })();
 
-            attachmentPreviewInFlightRef.current[attachment.id] = task;
+            attachmentPreviewInFlightRef.current.set(attachment.id, task);
             try {
                 await task;
             } finally {
-                delete attachmentPreviewInFlightRef.current[attachment.id];
+                attachmentPreviewInFlightRef.current.delete(attachment.id);
             }
         },
-        [
-            chatKey,
-            downloadAttachment,
-            firstPaintDone,
-            inferImageMime,
-            readDecryptedAttachmentBytes,
-        ],
+        [chatKey, firstPaintDone, inferImageMime],
     );
 
     useEffect(() => {
-        const next = { ...pendingPreviewUrlsRef.current };
         const activeIds = new Set(pendingImages.map((image) => image.id));
+        const next: Record<string, string> = {};
 
-        Object.keys(next).forEach((id) => {
-            if (!activeIds.has(id)) {
-                const url = next[id];
-                if (url) {
-                    URL.revokeObjectURL(url);
-                }
-                delete next[id];
-            }
-        });
+        for (const [id, url] of Object.entries(pendingPreviewUrlsRef.current)) {
+            if (activeIds.has(id)) next[id] = url;
+            else URL.revokeObjectURL(url);
+        }
 
         pendingImages.forEach((image) => {
             if (!next[image.id]) {
@@ -1767,38 +1577,31 @@ const Page: React.FC = () => {
         [sessions, currentSessionId],
     );
 
+    const currentRootSessionUuid = currentSession?.rootSessionUuid;
+
     useEffect(() => {
-        if (!currentSession) {
+        if (!currentRootSessionUuid) {
             setBranchSelections({});
             return;
         }
-        setBranchSelections(
-            getBranchSelections(currentSession.rootSessionUuid),
-        );
-    }, [currentSession?.rootSessionUuid]);
+        let cancelled = false;
+        void getBranchSelections(currentRootSessionUuid)
+            .then((selections) => {
+                if (!cancelled) {
+                    setBranchSelections(selections);
+                }
+            })
+            .catch((error: unknown) => {
+                log.error("Failed to load branch selections", error);
+                if (!cancelled) {
+                    setBranchSelections({});
+                }
+            });
 
-    useEffect(() => {
-        if (isTauriRuntime) return;
-        if (mmprojUrl) {
-            setMmprojUrl("");
-            setMmprojError(null);
-        }
-    }, [isTauriRuntime, mmprojUrl]);
-
-    const filteredSessions = useMemo(() => {
-        const query = sessionSearch.trim().toLowerCase();
-        if (!query) return sessions;
-        return sessions.filter((session) => {
-            const title = session.title?.toLowerCase() ?? "";
-            const preview = session.lastMessagePreview?.toLowerCase() ?? "";
-            return title.includes(query) || preview.includes(query);
-        });
-    }, [sessionSearch, sessions]);
-
-    const groupedSessions = useMemo(
-        () => groupSessionsByDate(filteredSessions),
-        [filteredSessions],
-    );
+        return () => {
+            cancelled = true;
+        };
+    }, [currentRootSessionUuid]);
 
     const rootSessionUuid = currentSession?.rootSessionUuid ?? currentSessionId;
 
@@ -1815,7 +1618,29 @@ const Page: React.FC = () => {
     );
 
     const displayMessages = useMemo(() => {
-        const base = messageState.path ?? [];
+        const base = messageState.path;
+        const augmented: ChatMessage[] = [];
+        for (let i = 0; i < base.length; i++) {
+            const msg = base[i];
+            if (!msg) continue;
+            augmented.push(msg);
+            if (msg.sender === "self") {
+                const next = base[i + 1];
+                const isLastAndGenerating =
+                    i === base.length - 1 && isGenerating;
+                if (next?.sender !== "assistant" && !isLastAndGenerating) {
+                    augmented.push({
+                        messageUuid: `interrupted-placeholder-${msg.messageUuid}`,
+                        sessionUuid: msg.sessionUuid,
+                        parentMessageUuid: msg.messageUuid,
+                        sender: "assistant",
+                        text: "Response was interrupted",
+                        createdAt: msg.createdAt,
+                        isSynthetic: true,
+                    });
+                }
+            }
+        }
         if (streamingParentId) {
             const streamingMessage: ChatMessage = {
                 messageUuid: STREAMING_SELECTION_KEY,
@@ -1825,10 +1650,16 @@ const Page: React.FC = () => {
                 text: streamingText,
                 createdAt: streamingCreatedAtRef.current ?? Date.now() * 1000,
             };
-            return [...base, streamingMessage];
+            return [...augmented, streamingMessage];
         }
-        return base;
-    }, [messageState.path, streamingParentId, streamingText, currentSessionId]);
+        return augmented;
+    }, [
+        messageState.path,
+        streamingParentId,
+        streamingText,
+        currentSessionId,
+        isGenerating,
+    ]);
 
     const branchSwitchers = messageState.switchers;
 
@@ -1845,68 +1676,80 @@ const Page: React.FC = () => {
         });
 
         setAttachmentPreviews((prev) => {
-            const next = { ...prev };
-            Object.keys(next).forEach((id) => {
-                if (!activeIds.has(id)) {
-                    const url = next[id];
-                    if (url) {
-                        URL.revokeObjectURL(url);
-                    }
-                    delete next[id];
-                }
-            });
+            const next: Record<string, string> = {};
+            for (const [id, url] of Object.entries(prev)) {
+                if (activeIds.has(id)) next[id] = url;
+                else URL.revokeObjectURL(url);
+            }
             attachmentPreviewUrlsRef.current = next;
             return next;
         });
-    }, [chatKey, displayMessages]);
+
+        for (const message of displayMessages) {
+            for (const attachment of message.attachments ?? []) {
+                if (attachment.kind === "image") {
+                    void loadAttachmentPreview(attachment, message.sessionUuid);
+                }
+            }
+        }
+    }, [chatKey, displayMessages, loadAttachmentPreview]);
 
     const showDrawerToggle = isSmall || drawerCollapsed;
     const drawerWidth = isSmall ? 300 : drawerCollapsed ? 0 : 320;
-    const desktopBreakpoint = theme.breakpoints.values.lg ?? 1200;
+    const desktopBreakpoint = theme.breakpoints.values.lg;
     const isDesktopOverlay = !isSmall && chatViewportWidth >= desktopBreakpoint;
-    const showAttachmentPicker = isTauriRuntime;
     const showImageAttachment =
-        showAttachmentPicker && DESKTOP_IMAGE_ATTACHMENTS_ENABLED;
+        isTauriRuntime && imageAttachmentModelId === selectedModelId;
     const showDownloadProgress =
         !!downloadStatus?.status && downloadStatus.status !== "Ready";
     const showModelGate =
         modelGateStatus === "missing" ||
         modelGateStatus === "error" ||
         modelGateStatus === "downloading";
+    const hideMessagesForModelGate = isTauriRuntime && showModelGate;
 
     const downloadSizeLabel = useMemo(() => {
-        if (useCustomModel) {
+        if (isTauriRuntime) {
+            return modelDownloadSizeBytes
+                ? `Approx. ${formatBytes(modelDownloadSizeBytes)}`
+                : "Approx. size varies by model";
+        }
+        if (selectedModelId) {
             return "Approx. size varies by model";
         }
         if (resolvedDefaultModel.sizeBytes) {
-            const extraBytes = allowMmproj
-                ? (resolvedDefaultModel.mmprojSizeBytes ?? 0)
-                : 0;
-            return `Approx. ${formatBytes(resolvedDefaultModel.sizeBytes + extraBytes)}`;
+            return `Approx. ${formatBytes(resolvedDefaultModel.sizeBytes)}`;
         }
         return resolvedDefaultModel.sizeHuman
             ? `Approx. ${resolvedDefaultModel.sizeHuman}`
             : "Approx. size varies by model";
-    }, [allowMmproj, resolvedDefaultModel, useCustomModel]);
+    }, [
+        isTauriRuntime,
+        modelDownloadSizeBytes,
+        resolvedDefaultModel,
+        selectedModelId,
+    ]);
 
     const downloadStatusLabel = useMemo(() => {
-        if (!showDownloadProgress) return null;
-        const status = downloadStatus?.status ?? "";
+        if (!downloadStatus?.status || downloadStatus.status === "Ready") {
+            return null;
+        }
+        const status = downloadStatus.status;
         if (status.toLowerCase().includes("loading")) {
             return status;
         }
-        if (downloadStatus?.totalBytes && downloadStatus.percent >= 0) {
+        if (downloadStatus.totalBytes && downloadStatus.percent >= 0) {
             const downloaded = downloadStatus.bytesDownloaded ?? 0;
             return `Downloading... ${formatBytes(downloaded)} / ${formatBytes(downloadStatus.totalBytes)}`;
         }
         if (status) return status;
         return "Downloading...";
-    }, [downloadStatus, showDownloadProgress]);
+    }, [downloadStatus]);
 
     const focusInput = useCallback(() => {
         if (showModelGate) return;
         if (typeof window === "undefined") return;
-        const target = inputRef.current;
+        const target = composerRef.current;
         if (!target) return;
         window.requestAnimationFrame(() => {
             target.focus();
@@ -1930,35 +1773,180 @@ const Page: React.FC = () => {
         }
         await providerRef.current.initialize();
         setResolvedDefaultModel(providerRef.current.getDefaultModel());
+        const presets = providerRef.current.getResolvedModelPresets();
+        if (presets) {
+            setResolvedModelPresets(presets);
+        }
         return providerRef.current;
     }, []);
 
-    const getModelSettings = useCallback((): ModelSettings => {
-        const customModelEnabled = MODEL_SETTINGS_ENABLED && useCustomModel;
-        return {
-            useCustomModel: customModelEnabled,
-            modelUrl:
-                customModelEnabled && modelUrl.trim()
-                    ? modelUrl.trim()
-                    : undefined,
-            mmprojUrl:
-                customModelEnabled && allowMmproj && mmprojUrl.trim()
-                    ? mmprojUrl.trim()
-                    : undefined,
-            contextLength: contextLength ? Number(contextLength) : undefined,
-            maxTokens:
-                maxTokens && Number(maxTokens) > 0
-                    ? Number(maxTokens)
-                    : undefined,
+    const isChatBusy = useCallback(
+        () =>
+            pendingSendRef.current ||
+            generationActiveRef.current ||
+            sessionSummaryActiveRef.current ||
+            voiceInputActiveRef.current > 0,
+        [],
+    );
+    const notesIdleSchedulerRef = useRef<NotesIndexingIdleScheduler | null>(
+        null,
+    );
+    if (!notesIdleSchedulerRef.current) {
+        notesIdleSchedulerRef.current = new NotesIndexingIdleScheduler(
+            () => {
+                notesIndexingPausedRef.current = false;
+                setNotesIndexingPaused(false);
+            },
+            isChatBusy,
+            {
+                schedule: (callback, delayMs) =>
+                    window.setTimeout(callback, delayMs),
+                cancel: (handle) => window.clearTimeout(handle),
+            },
+        );
+    }
+    const notesIdleScheduler = notesIdleSchedulerRef.current;
+    useEffect(() => {
+        chatMountedRef.current = true;
+        return () => {
+            chatMountedRef.current = false;
+            notesWarmupEpochRef.current += 1;
+            notesIdleScheduler.cancel();
         };
+    }, [notesIdleScheduler]);
+    const withVoiceInput = useCallback<WithVoiceInput>(
+        async (operation, signal) => {
+            signal.throwIfAborted();
+            voiceInputActiveRef.current++;
+            notesWarmupEpochRef.current++;
+            notesIdleScheduler.cancel();
+            notesIndexingPausedRef.current = true;
+            setNotesIndexingPaused(true);
+            try {
+                const provider = await abortable(ensureProvider(), signal);
+                signal.throwIfAborted();
+                await abortable(provider.cancelGeneration(-1), signal);
+                return await provider.withVoiceInput(operation, signal);
+            } finally {
+                voiceInputActiveRef.current--;
+                if (
+                    chatMountedRef.current &&
+                    voiceInputActiveRef.current === 0
+                ) {
+                    notesIndexingPausedRef.current = true;
+                    setNotesIndexingPaused(true);
+                    notesIdleScheduler.defer();
+                }
+            }
+        },
+        [ensureProvider, notesIdleScheduler],
+    );
+    const handleChatActivity = useCallback(
+        () => notesIdleScheduler.activity(),
+        [notesIdleScheduler],
+    );
+    useEffect(() => {
+        handleChatActivity();
     }, [
-        useCustomModel,
-        modelUrl,
-        mmprojUrl,
-        contextLength,
-        maxTokens,
-        allowMmproj,
+        handleChatActivity,
+        isPreparingMessage,
+        isGenerating,
+        isSessionSummaryGenerating,
     ]);
+
+    const isIndexingBlocked = useCallback(
+        () => notesIndexingPausedRef.current || isChatBusy(),
+        [isChatBusy],
+    );
+    const cancelNotesIndexing = useCallback(() => {
+        const provider = providerRef.current;
+        if (provider?.getBackendKind() === "tauri") {
+            void provider
+                .cancelGeneration(-1)
+                .catch((error: unknown) =>
+                    log.warn("Failed to cancel Notes indexing", error),
+                );
+        }
+    }, []);
+    const confirmNotesRemoval = useCallback(
+        (label: string, remove: () => Promise<void>) => {
+            showMiniDialog({
+                title: "Remove notes folder?",
+                message: `Remove “${label}” from Your Notes? Source files will not be changed.`,
+                continue: { text: "Remove", color: "critical", action: remove },
+                cancel: "Cancel",
+                buttonDirection: "row",
+            });
+        },
+        [showMiniDialog],
+    );
+    const {
+        collections: notesCollections,
+        loading: notesCollectionsLoading,
+        loaded: notesCollectionsLoaded,
+        error: notesCollectionsError,
+        retry: retryNotesCollections,
+        addFolder: addNotesFolder,
+        removeCollection: handleRemoveNotesCollection,
+        runIndex: runNotesIndex,
+    } = useNotesCollections({
+        isTauriRuntime,
+        isGenerating:
+            isPreparingMessage || isGenerating || isSessionSummaryGenerating,
+        isIndexingPaused: notesIndexingPaused,
+        isIndexingBlocked,
+        modelReady: modelGateStatus === "ready",
+        ensureProvider,
+        cancelIndexing: cancelNotesIndexing,
+        confirmRemoval: confirmNotesRemoval,
+    });
+
+    const availableSources = useMemo(
+        () => ({
+            packIds: knowledgePacks
+                .filter(
+                    (pack) =>
+                        pack.status === "ready" ||
+                        pack.status === "updateAvailable",
+                )
+                .map((pack) => pack.stableId),
+            noteCollectionIds: notesCollections.map(
+                (collection) => collection.id,
+            ),
+        }),
+        [knowledgePacks, notesCollections],
+    );
+    const {
+        selection: sourceSelection,
+        packSettingsReady,
+        disabledNoteIds,
+        disabledPackIds,
+        setPackEnabled: handleSetPackEnabled,
+        setNoteEnabled: handleSetNotesEnabled,
+    } = useChatSources(
+        availableSources,
+        isTauriRuntime && knowledgeCatalogLoaded,
+        notesCollectionsLoaded,
+    );
+    const sourcesReady =
+        Boolean(sourceSelection) &&
+        knowledgeCatalogLoaded &&
+        notesCollectionsLoaded;
+    const handleAddNotesFolder = useCallback(
+        () =>
+            addNotesFolder((collection) => {
+                if (!notesCollections.some((item) => item.id === collection.id))
+                    handleSetNotesEnabled(collection.id, true);
+            }),
+        [addNotesFolder, handleSetNotesEnabled, notesCollections],
+    );
+
+    const getModelSettings = useCallback((): ModelSettings => {
+        return {
+            modelId: selectedModelId || undefined,
+            contextLength: contextLength ? Number(contextLength) : undefined,
+        };
+    }, [selectedModelId, contextLength]);
 
     const modelSettingsKey = useMemo(
         () => JSON.stringify(getModelSettings()),
@@ -1966,40 +1954,15 @@ const Page: React.FC = () => {
     );
 
     const formatErrorMessage = useCallback((error: unknown) => {
-        const normalizeErrorMessage = (message: string) => {
-            if (
-                message.toLowerCase().includes("length out of range of buffer")
-            ) {
-                return "Prompt exceeds the model context window. Reduce history, lower max tokens, or increase context length.";
-            }
-            return message;
-        };
-
-        if (error instanceof Error) return normalizeErrorMessage(error.message);
-        if (typeof error === "string") return normalizeErrorMessage(error);
-        if (error && typeof error === "object") {
-            const maybeMessage = (error as { message?: unknown }).message;
-            if (typeof maybeMessage === "string" && maybeMessage.trim()) {
-                return normalizeErrorMessage(maybeMessage);
-            }
-            if ("__wbg_ptr" in error) {
-                return "Model failed to start. Please refresh and try again.";
-            }
-            const text = String(error);
-            if (text && text !== "[object Object]") {
-                return normalizeErrorMessage(text);
-            }
+        if (isNamedError(error, "prompt_too_long")) {
+            return "Prompt exceeds the model context window. Reduce history or increase context length.";
         }
-        try {
-            return normalizeErrorMessage(JSON.stringify(error));
-        } catch {
-            return normalizeErrorMessage(String(error));
-        }
+        return tauriCommandError(error).message ?? "Unknown model error";
     }, []);
 
     const trimToWords = useCallback((text: string, maxWords: number) => {
         const normalized = text
-            .replace(/\u0000/g, "")
+            .replaceAll("\0", "")
             .replace(/[\r\n\t]+/g, " ")
             .replace(/\s+/g, " ")
             .trim();
@@ -2019,22 +1982,17 @@ const Page: React.FC = () => {
         async (images: ImageAttachment[]) => {
             if (!isTauriRuntime || images.length === 0) return [] as string[];
             const { appDataDir, join } = await import("@tauri-apps/api/path");
-            const { mkdir: createDir, writeFile } = await import(
-                "@tauri-apps/plugin-fs"
-            );
+            const { mkdir, writeFile } = await import("@tauri-apps/plugin-fs");
             const root = await appDataDir();
             const dir = await join(root, "ensu_llmchat_inference_images");
-            await createDir(dir, { recursive: true });
+            await mkdir(dir, { recursive: true });
 
             const paths = await Promise.all(
                 images.map(async (image) => {
-                    const { bytes, extension } =
-                        await prepareInferenceImageBytes(
-                            image,
-                            MAX_INFERENCE_IMAGE_PIXELS,
-                        );
-                    const suffix = extension ? `.${extension}` : ".jpg";
-                    const path = await join(dir, `${image.id}${suffix}`);
+                    const bytes = new Uint8Array(
+                        await image.file.arrayBuffer(),
+                    );
+                    const path = await join(dir, `${image.id}.jpg`);
                     await writeFile(path, bytes);
                     return path;
                 }),
@@ -2054,7 +2012,7 @@ const Page: React.FC = () => {
                     try {
                         await remove(path);
                     } catch {
-                        // ignore cleanup failures
+                        // Deleting the temporary file is best effort.
                     }
                 }),
             );
@@ -2064,68 +2022,87 @@ const Page: React.FC = () => {
 
     const generateSessionSummary = useCallback(
         async (input: string) => {
-            const provider = await ensureProvider();
-            const settings = getModelSettings();
-            const availability =
-                await provider.checkModelAvailability(settings);
-            const mmprojReady =
-                availability.mmprojAvailable === undefined ||
-                availability.mmprojAvailable;
+            sessionSummaryActiveRef.current = true;
+            setIsSessionSummaryGenerating(true);
+            try {
+                const provider = await ensureProvider();
+                const settings = getModelSettings();
+                const availability =
+                    await provider.checkModelAvailability(settings);
+                const mmprojReady =
+                    availability.mmprojAvailable === undefined ||
+                    availability.mmprojAvailable;
 
-            if (!availability.modelAvailable || !mmprojReady) {
-                return null;
+                if (!availability.modelAvailable || !mmprojReady) {
+                    return null;
+                }
+
+                await provider.ensureModelReady(settings);
+
+                let summary = "";
+
+                await provider.generateChatStream(
+                    {
+                        messages: [
+                            { role: "system", content: SESSION_TITLE_PROMPT },
+                            { role: "user", content: input },
+                        ],
+                        maxTokens: 64,
+                        temperature: 0.2,
+                        topP: 0.9,
+                        repeatPenalty: REPEAT_PENALTY,
+                    },
+                    (event) => {
+                        if (event.type === "text") {
+                            summary += event.text;
+                        }
+                    },
+                );
+
+                return summary;
+            } finally {
+                sessionSummaryActiveRef.current = false;
+                setIsSessionSummaryGenerating(false);
             }
-
-            await provider.ensureModelReady(settings);
-
-            let summary = "";
-            let errorMessage: string | null = null;
-
-            await provider.generateChatStream(
-                {
-                    messages: [
-                        { role: "system", content: SESSION_TITLE_PROMPT },
-                        { role: "user", content: input },
-                    ],
-                    maxTokens: 64,
-                    temperature: 0.2,
-                    topP: 0.9,
-                    repeatPenalty: REPEAT_PENALTY,
-                },
-                (event) => {
-                    if (event.type === "text") {
-                        summary += event.text;
-                        return;
-                    }
-                    if (event.type === "error") {
-                        errorMessage = event.message;
-                    }
-                },
-            );
-
-            if (errorMessage) {
-                throw new Error(errorMessage);
-            }
-
-            return summary;
         },
         [ensureProvider, getModelSettings],
     );
 
     const updateSessionTitleInState = useCallback(
         (sessionUuid: string, title: string) => {
-            const updatedAt = Date.now() * 1000;
-            setSessions((prev) => {
-                const next = prev.map((session) =>
+            setSessions((prev) =>
+                prev.map((session) =>
                     session.sessionUuid === sessionUuid
-                        ? { ...session, title, updatedAt }
+                        ? { ...session, title }
                         : session,
-                );
-                next.sort((a, b) => b.updatedAt - a.updatedAt);
-                return next;
-            });
+                ),
+            );
         },
         [],
+    );
+
+    const persistSessionTitle = useCallback(
+        (sessionUuid: string, title: string, key: string) => {
+            const previous = sessionTitleUpdatesRef.current.get(sessionUuid);
+            const task = (
+                previous?.catch(() => undefined) ?? Promise.resolve()
+            ).then(async () => {
+                await updateSessionTitle(sessionUuid, title, key);
+                updateSessionTitleInState(sessionUuid, title);
+            });
+            sessionTitleUpdatesRef.current.set(sessionUuid, task);
+            void task
+                .finally(() => {
+                    if (
+                        sessionTitleUpdatesRef.current.get(sessionUuid) === task
+                    ) {
+                        sessionTitleUpdatesRef.current.delete(sessionUuid);
+                    }
+                })
+                .catch(() => undefined);
+            return task;
+        },
+        [updateSessionTitleInState],
     );
 
     const maybeGenerateSessionTitle = useCallback(
@@ -2139,11 +2116,11 @@ const Page: React.FC = () => {
             wasInterrupted: boolean;
         }) => {
             if (!chatKey || wasInterrupted) return;
-            if (sessionSummaryInFlightRef.current) return;
-            sessionSummaryInFlightRef.current = true;
+            const summaryEpoch = sessionSummaryEpochRef.current;
 
             try {
                 const messages = await listMessages(sessionUuid, chatKey);
+                if (sessionSummaryEpochRef.current !== summaryEpoch) return;
                 const assistantMessages = messages.filter(
                     (message) => message.sender === "assistant",
                 );
@@ -2158,8 +2135,26 @@ const Page: React.FC = () => {
                 );
                 if (!firstUser) return;
 
+                const currentTitle = sessions.find(
+                    (session) => session.sessionUuid === sessionUuid,
+                )?.title;
                 const userText = parseDocumentBlocks(firstUser.text).text;
-                const assistantText = stripHiddenParts(firstAssistant.text);
+                const automaticFallbackTitles = [
+                    sessionTitleFromText(firstUser.text, "New chat"),
+                    sessionTitleFromText(
+                        userText || firstUser.text,
+                        "New chat",
+                    ),
+                ];
+                if (
+                    currentTitle &&
+                    currentTitle.toLowerCase() !== "new chat" &&
+                    !automaticFallbackTitles.includes(currentTitle)
+                ) {
+                    return;
+                }
+
+                const assistantText = stripHiddenPartsText(firstAssistant.text);
 
                 const fallbackSeed = trimToWords(userText, 7) || "New chat";
                 const fallbackTitle = sessionTitleFromText(
@@ -2169,42 +2164,81 @@ const Page: React.FC = () => {
 
                 const summaryInput = `User: ${userText}\nAssistant: ${assistantText}`;
                 const summary = await generateSessionSummary(summaryInput);
+                if (sessionSummaryEpochRef.current !== summaryEpoch) return;
                 const summarySeed = summary ? trimToWords(summary, 7) : "";
                 const title = summarySeed
                     ? sessionTitleFromText(summarySeed, fallbackTitle)
                     : fallbackTitle;
 
-                await updateSessionTitle(sessionUuid, title, chatKey);
-                updateSessionTitleInState(sessionUuid, title);
+                if (manuallyRenamedSessionIdsRef.current.has(sessionUuid)) {
+                    return;
+                }
+                await persistSessionTitle(sessionUuid, title, chatKey);
             } catch (error) {
                 log.error("Failed to generate session title", error);
-            } finally {
-                sessionSummaryInFlightRef.current = false;
             }
         },
         [
             chatKey,
             generateSessionSummary,
+            persistSessionTitle,
+            sessions,
             trimToWords,
-            updateSessionTitleInState,
         ],
     );
 
+    const scheduleSessionTitle = useCallback(
+        (input: Parameters<typeof maybeGenerateSessionTitle>[0]) => {
+            if (sessionSummaryPromiseRef.current) return;
+            const task = maybeGenerateSessionTitle(input);
+            sessionSummaryPromiseRef.current = task;
+            void task
+                .finally(() => {
+                    if (sessionSummaryPromiseRef.current === task) {
+                        sessionSummaryPromiseRef.current = null;
+                    }
+                })
+                .catch(() => undefined);
+        },
+        [maybeGenerateSessionTitle],
+    );
+
     const preloadModelIfAvailable = useCallback(async () => {
+        const requestId = modelGateRequestRef.current + 1;
+        modelGateRequestRef.current = requestId;
+        const isCurrentRequest = () =>
+            modelGateRequestRef.current === requestId;
         setModelGateError(null);
         setModelGateStatus("checking");
+        setModelDownloadSizeBytes(null);
 
         try {
             const provider = await ensureProvider();
             const settings = getModelSettings();
             const availability =
                 await provider.checkModelAvailability(settings);
+            if (!isCurrentRequest()) return;
+            setImageAttachmentModelId(
+                availability.model.mmprojUrl ? (settings.modelId ?? "") : null,
+            );
             const mmprojReady =
                 availability.mmprojAvailable === undefined ||
                 availability.mmprojAvailable;
 
             if (!availability.modelAvailable || !mmprojReady) {
                 setModelGateStatus("missing");
+                const size = await provider
+                    .estimateMissingModelDownloadSize(settings)
+                    .catch((error: unknown) => {
+                        log.warn(
+                            "Failed to estimate model download size",
+                            error,
+                        );
+                        return undefined;
+                    });
+                if (isCurrentRequest()) {
+                    setModelDownloadSizeBytes(size ?? null);
+                }
                 return;
             }
 
@@ -2213,20 +2247,35 @@ const Page: React.FC = () => {
             setIsDownloading(true);
 
             await provider.ensureModelReady(settings);
+            if (!isCurrentRequest()) return;
             setLoadedModelName(provider.getCurrentModel()?.name ?? null);
             setIsDownloading(false);
             setDownloadStatus({ percent: 100, status: "Ready" });
             setModelGateStatus("ready");
         } catch (error) {
+            if (!isCurrentRequest()) return;
+            const { name } = tauriCommandError(error);
+            if (name === "model_missing" || name === "not_found") {
+                setModelGateError(null);
+                setIsDownloading(false);
+                setDownloadStatus(null);
+                setModelGateStatus("missing");
+                return;
+            }
             const message = formatErrorMessage(error);
             log.error("Failed to preload model", error);
             setModelGateError(message);
             setIsDownloading(false);
+            setDownloadStatus(null);
             setModelGateStatus("error");
         }
     }, [ensureProvider, formatErrorMessage, getModelSettings]);
 
     const handleDownloadModel = useCallback(async () => {
+        const requestId = modelGateRequestRef.current + 1;
+        modelGateRequestRef.current = requestId;
+        const isCurrentRequest = () =>
+            modelGateRequestRef.current === requestId;
         setModelGateError(null);
         setModelGateStatus("downloading");
         setDownloadStatus({ percent: 0, status: "Preparing download..." });
@@ -2235,23 +2284,101 @@ const Page: React.FC = () => {
         try {
             const provider = await ensureProvider();
             const settings = getModelSettings();
-            await provider.ensureModelReady(settings);
-            setLoadedModelName(provider.getCurrentModel()?.name ?? null);
+            await provider.ensureModelReady(settings, {
+                downloadIfMissing: true,
+            });
+            if (!isCurrentRequest()) return;
+            const model = provider.getCurrentModel();
+            setImageAttachmentModelId(
+                model?.mmprojUrl ? (settings.modelId ?? "") : null,
+            );
+            setLoadedModelName(model?.name ?? null);
             setIsDownloading(false);
             setDownloadStatus({ percent: 100, status: "Ready" });
             setModelGateStatus("ready");
         } catch (error) {
+            if (!isCurrentRequest()) return;
             const message = formatErrorMessage(error);
             log.error("Failed to prepare model", error);
             setModelGateError(message);
             setIsDownloading(false);
+            setDownloadStatus(null);
             setModelGateStatus("error");
             showMiniDialog({ title: "Model error", message });
         }
     }, [ensureProvider, formatErrorMessage, getModelSettings, showMiniDialog]);
 
+    const handleSettingsFlowVisibilityChange = useCallback(
+        (open: boolean) => {
+            if (!isTauriRuntime) return;
+            if (settingsFlowOpenRef.current === open) return;
+            settingsFlowOpenRef.current = open;
+            const epoch = ++notesWarmupEpochRef.current;
+            if (open) {
+                if (voiceInputActiveRef.current === 0)
+                    notesIdleScheduler.resumeNow();
+                return;
+            }
+            notesIdleScheduler.cancel();
+            notesIndexingPausedRef.current = true;
+            setNotesIndexingPaused(true);
+            void (async () => {
+                try {
+                    const canRestoreChat = () =>
+                        notesWarmupEpochRef.current === epoch &&
+                        !settingsFlowOpenRef.current &&
+                        !isChatBusy();
+                    if (!canRestoreChat()) return;
+                    const provider = await ensureProvider();
+                    if (!canRestoreChat()) return;
+                    await provider.cancelGeneration(-1);
+                    if (!canRestoreChat()) return;
+                    await provider.ensureModelReady(getModelSettings());
+                    if (!canRestoreChat()) return;
+                    setLoadedModelName(
+                        provider.getCurrentModel()?.name ?? null,
+                    );
+                } catch (error) {
+                    log.warn("Failed to restore chat model after Notes", error);
+                } finally {
+                    if (
+                        notesWarmupEpochRef.current === epoch &&
+                        !settingsFlowOpenRef.current
+                    )
+                        notesIdleScheduler.defer();
+                }
+            })();
+        },
+        [
+            ensureProvider,
+            getModelSettings,
+            isChatBusy,
+            isTauriRuntime,
+            notesIdleScheduler,
+        ],
+    );
+
+    const prewarmSelectedImageInference = useCallback(() => {
+        if (!isTauriRuntime) return;
+        void (async () => {
+            try {
+                const provider = await ensureProvider();
+                await provider.prewarmImageInferenceIfAvailable(
+                    getModelSettings(),
+                );
+            } catch (error) {
+                log.error("Failed to prewarm image inference", error);
+            }
+        })();
+    }, [ensureProvider, getModelSettings, isTauriRuntime]);
+
     useEffect(() => {
-        if (!firstPaintDone) return;
+        if (!firstPaintDone || !modelSettingsLoaded) return;
+        modelGateRequestRef.current += 1;
+        setModelGateError(null);
+        setModelGateStatus("checking");
+        setIsDownloading(false);
+        setDownloadStatus(null);
         const cancelIdle = scheduleIdleTask(() => {
             void preloadModelIfAvailable();
         }, 2000);
@@ -2260,13 +2387,18 @@ const Page: React.FC = () => {
         };
     }, [
         firstPaintDone,
+        modelSettingsLoaded,
         modelSettingsKey,
         preloadModelIfAvailable,
         scheduleIdleTask,
     ]);
 
     const updateBranchSelectionState = useCallback(
-        (selectionKey: string, selectedMessageUuid: string, persist = true) => {
+        async (
+            selectionKey: string,
+            selectedMessageUuid: string,
+            persist = true,
+        ) => {
             setBranchSelections((prev) => ({
                 ...prev,
                 [selectionKey]: selectedMessageUuid,
@@ -2280,7 +2412,7 @@ const Page: React.FC = () => {
                 return;
             }
 
-            setBranchSelection(
+            await setBranchSelection(
                 rootSessionUuid,
                 selectionKey,
                 selectedMessageUuid,
@@ -2302,11 +2434,7 @@ const Page: React.FC = () => {
     );
 
     const stripHiddenParts = useCallback((text: string) => {
-        return text
-            .replace(/\u0000/g, "")
-            .replace(/<think>[\s\S]*?<\/think>/g, "")
-            .replace(/<todo_list>[\s\S]*?<\/todo_list>/g, "")
-            .trim();
+        return stripHiddenPartsText(text);
     }, []);
 
     const getMessagePreview = useCallback(
@@ -2325,7 +2453,7 @@ const Page: React.FC = () => {
             if (imageCount > 0) return "Attached images";
             return "";
         },
-        [stripHiddenParts, parseDocumentBlocks],
+        [stripHiddenParts],
     );
 
     const appendMessageToState = useCallback((message: ChatMessage) => {
@@ -2368,7 +2496,7 @@ const Page: React.FC = () => {
                 return next;
             });
         },
-        [getMessagePreview, sessionTitleFromText],
+        [getMessagePreview],
     );
 
     const approxTokens = useCallback((text: string) => {
@@ -2379,38 +2507,28 @@ const Page: React.FC = () => {
     }, []);
 
     const buildHistory = useCallback(
-        async (
+        (
             path: ChatMessage[],
             promptText: string,
-            contextSize: number,
-            maxTokensCount?: number,
+            inputBudget: number,
             stopAtMessageUuid?: string | null,
-        ): Promise<LlmMessage[]> => {
+        ): LlmMessage[] => {
             const candidates = slicePathUntil(path, stopAtMessageUuid);
             const lastCandidate = candidates[candidates.length - 1];
             const trimmedCandidates =
                 stopAtMessageUuid &&
-                lastCandidate &&
-                lastCandidate.messageUuid === stopAtMessageUuid
+                lastCandidate?.messageUuid === stopAtMessageUuid
                     ? candidates.slice(0, -1)
                     : candidates;
 
-            const safetyMargin = 256;
-            let budget =
-                contextSize -
-                (maxTokensCount ?? DEFAULT_GENERATION_MAX_TOKENS) -
-                safetyMargin;
-            budget -= approxTokens(buildChatSystemPrompt());
-            budget -= approxTokens(promptText);
+            const budget =
+                inputBudget -
+                approxTokens(buildChatSystemPrompt(systemPrompt)) -
+                approxTokens(promptText);
 
             if (budget <= 0) return [];
 
-            const selected: LlmMessage[] = [];
-            let used = 0;
-
-            for (let idx = trimmedCandidates.length - 1; idx >= 0; idx -= 1) {
-                const message = trimmedCandidates[idx];
-                if (!message) continue;
+            const messages = trimmedCandidates.map((message): LlmMessage => {
                 const isUser = message.sender === "self";
                 let text = isUser
                     ? message.text
@@ -2428,44 +2546,54 @@ const Page: React.FC = () => {
                     }
                 }
 
-                const cost = approxTokens(text);
+                return { role: isUser ? "user" : "assistant", content: text };
+            });
 
-                if (used + cost > budget) {
-                    if (selected.length === 0 && budget > 0) {
-                        const charBudget = Math.max(1, budget * 4);
-                        const truncated = text.slice(-charBudget);
-                        selected.push({
-                            role: isUser ? "user" : "assistant",
-                            content: truncated,
-                        });
-                    }
-                    break;
-                }
-
-                selected.push({
-                    role: isUser ? "user" : "assistant",
-                    content: text,
-                });
-                used += cost;
+            const historyTokens = messages.reduce(
+                (total, message) => total + approxTokens(message.content),
+                0,
+            );
+            const quantum = Math.max(1, Math.floor(inputBudget / 4));
+            const overflow = Math.max(0, historyTokens - budget);
+            const discardTarget = Math.ceil(overflow / quantum) * quantum;
+            let discarded = 0;
+            let startIndex = 0;
+            while (startIndex < messages.length && discarded < discardTarget) {
+                discarded += approxTokens(messages[startIndex]!.content);
+                startIndex += 1;
             }
 
-            return selected.reverse();
+            const selected = messages.slice(startIndex);
+            if (selected.length === 0 && messages.length > 0) {
+                const last = messages[messages.length - 1]!;
+                if (approxTokens(last.content) <= budget) return [last];
+                return [
+                    {
+                        ...last,
+                        content: last.content.slice(-Math.max(1, budget * 4)),
+                    },
+                ];
+            }
+
+            return selected;
         },
-        [approxTokens, slicePathUntil, stripHiddenParts],
+        [approxTokens, slicePathUntil, stripHiddenParts, systemPrompt],
     );
 
     const handleNewChat = useCallback(() => {
+        cancelActiveGenerationForNavigation();
         setCurrentSessionId(undefined);
         currentSessionIdRef.current = undefined;
         setAllMessages([]);
-        setInput("");
+        composerRef.current?.setText("");
         setEditingMessage(null);
-        setPendingImages([]);
+        resetPendingImages();
         setStreamingParentId(null);
         setStreamingText("");
         streamingBufferRef.current = "";
         streamingChunksRef.current = [];
         streamingCreatedAtRef.current = null;
+        generationActiveRef.current = false;
         setIsGenerating(false);
         setIsStreamingOutro(false);
         setIsDraftSession(true);
@@ -2473,10 +2601,17 @@ const Page: React.FC = () => {
         updateRouteSession(undefined, true);
         if (isSmall) setDrawerOpen(false);
         focusInput();
-    }, [focusInput, isSmall, updateRouteSession]);
+    }, [
+        cancelActiveGenerationForNavigation,
+        focusInput,
+        isSmall,
+        resetPendingImages,
+        updateRouteSession,
+    ]);
 
     const handleSelectSession = useCallback(
         (sessionId: string) => {
+            cancelActiveGenerationForNavigation();
             setCurrentSessionId(sessionId);
             currentSessionIdRef.current = sessionId;
             setIsDraftSession(false);
@@ -2485,11 +2620,17 @@ const Page: React.FC = () => {
             if (isSmall) setDrawerOpen(false);
             focusInput();
         },
-        [focusInput, isSmall, updateRouteSession],
+        [
+            cancelActiveGenerationForNavigation,
+            focusInput,
+            isSmall,
+            updateRouteSession,
+        ],
     );
 
     const removeSessionFromState = useCallback(
         (sessionId: string) => {
+            manuallyRenamedSessionIdsRef.current.delete(sessionId);
             setSessions((prev) =>
                 prev.filter((session) => session.sessionUuid !== sessionId),
             );
@@ -2513,42 +2654,76 @@ const Page: React.FC = () => {
             if (!chatKey) return;
 
             if (currentSessionIdRef.current === sessionId) {
-                generationTokenRef.current += 1;
-                pendingCancelRef.current = false;
-                stopRequestedRef.current = false;
-
-                const jobId = currentJobIdRef.current;
-                currentJobIdRef.current = null;
-                providerRef.current?.cancelGeneration(jobId ?? -1);
-
-                setIsGenerating(false);
-                setIsStreamingOutro(false);
-                setIsDownloading(false);
-                setDownloadStatus(null);
-                setStreamingParentId(null);
-                setStreamingText("");
-                streamingBufferRef.current = "";
-                streamingChunksRef.current = [];
-                streamingCreatedAtRef.current = null;
-                lastGenerationRef.current = null;
+                cancelActiveGenerationForNavigation();
             }
 
-            await deleteSession(sessionId, chatKey);
+            await deleteSession(sessionId);
             removeSessionFromState(sessionId);
-            void syncChat(chatKey);
         },
-        [chatKey, removeSessionFromState, syncChat],
+        [chatKey, cancelActiveGenerationForNavigation, removeSessionFromState],
     );
 
     const requestDeleteSession = useCallback((sessionId: string) => {
         setDeleteSessionId(sessionId);
     }, []);
 
+    const requestRenameSession = useCallback((session: ChatSession) => {
+        if (pendingSessionRenamesRef.current.has(session.sessionUuid)) return;
+        setRenameSessionId(session.sessionUuid);
+        setRenameSessionTitle(session.title.trim() || "New chat");
+    }, []);
+
+    const handleCancelRenameSession = useCallback(() => {
+        setRenameSessionId(null);
+        setRenameSessionTitle("");
+    }, []);
+
+    const handleConfirmRenameSession = useCallback(async () => {
+        if (!chatKey || !renameSessionId || !renameSessionTitle.trim()) return;
+        if (pendingSessionRenamesRef.current.has(renameSessionId)) return;
+        const title = sessionTitleFromText(renameSessionTitle);
+        const currentTitle = sessions.find(
+            (session) => session.sessionUuid === renameSessionId,
+        )?.title;
+        if (!currentTitle || title === currentTitle) {
+            handleCancelRenameSession();
+            return;
+        }
+        pendingSessionRenamesRef.current.add(renameSessionId);
+        const wasManuallyRenamed =
+            manuallyRenamedSessionIdsRef.current.has(renameSessionId);
+        manuallyRenamedSessionIdsRef.current.add(renameSessionId);
+        handleCancelRenameSession();
+        try {
+            await persistSessionTitle(renameSessionId, title, chatKey);
+        } catch (error) {
+            if (!wasManuallyRenamed) {
+                manuallyRenamedSessionIdsRef.current.delete(renameSessionId);
+            }
+            onGenericError(error);
+        } finally {
+            pendingSessionRenamesRef.current.delete(renameSessionId);
+        }
+    }, [
+        chatKey,
+        handleCancelRenameSession,
+        onGenericError,
+        persistSessionTitle,
+        renameSessionId,
+        renameSessionTitle,
+        sessions,
+    ]);
+
     const handleConfirmDeleteSession = useCallback(async () => {
         if (!deleteSessionId) return;
-        await handleDeleteSession(deleteSessionId);
-        setDeleteSessionId(null);
-    }, [deleteSessionId, handleDeleteSession]);
+        try {
+            await handleDeleteSession(deleteSessionId);
+        } catch (error) {
+            onGenericError(error);
+        } finally {
+            setDeleteSessionId(null);
+        }
+    }, [deleteSessionId, handleDeleteSession, onGenericError]);
 
     const handleCancelDeleteSession = useCallback(() => {
         setDeleteSessionId(null);
@@ -2556,9 +2731,11 @@ const Page: React.FC = () => {
 
     const handleEditMessage = useCallback(
         async (message: ChatMessage) => {
+            resetPendingImages();
+            const epoch = imageAttachmentEpochRef.current;
             const parsed = parseDocumentBlocks(message.text);
             setEditingMessage(message);
-            setInput(parsed.text);
+            composerRef.current?.setText(parsed.text);
 
             const attachments = message.attachments ?? [];
             const imageAttachments = attachments.filter(
@@ -2566,7 +2743,6 @@ const Page: React.FC = () => {
             );
 
             if (imageAttachments.length === 0) {
-                setPendingImages([]);
                 return;
             }
 
@@ -2576,21 +2752,20 @@ const Page: React.FC = () => {
                     message:
                         "Attachments are unavailable until encryption is ready.",
                 });
-                setPendingImages([]);
                 return;
             }
 
+            setIsAttachingImages(true);
             try {
                 const images = await Promise.all(
                     imageAttachments.map(async (attachment) => {
-                        await downloadAttachment(attachment.id);
                         const bytes = await readDecryptedAttachmentBytes(
                             attachment.id,
                             chatKey,
                             message.sessionUuid,
                         );
                         const name =
-                            attachment.name?.trim() || `image-${attachment.id}`;
+                            attachment.name.trim() || `image-${attachment.id}`;
                         const file = new File([toSafeBlobPart(bytes)], name, {
                             type: inferImageMime(name),
                         });
@@ -2603,32 +2778,31 @@ const Page: React.FC = () => {
                     }),
                 );
 
+                if (epoch !== imageAttachmentEpochRef.current) return;
                 setPendingImages(images);
             } catch (error) {
+                if (epoch !== imageAttachmentEpochRef.current) return;
                 log.error("Failed to load attachment contents", error);
                 showMiniDialog({
                     title: "Attachment error",
                     message:
                         "We could not load attachment contents for editing.",
                 });
-                setPendingImages([]);
+            } finally {
+                if (epoch === imageAttachmentEpochRef.current) {
+                    setIsAttachingImages(false);
+                }
             }
         },
-        [
-            chatKey,
-            downloadAttachment,
-            readDecryptedAttachmentBytes,
-            showMiniDialog,
-            inferImageMime,
-        ],
+        [chatKey, showMiniDialog, inferImageMime, resetPendingImages],
     );
 
     const handleCancelEdit = useCallback(() => {
         setEditingMessage(null);
-        setInput("");
+        composerRef.current?.setText("");
         setPendingDocuments([]);
-        setPendingImages([]);
-    }, []);
+        resetPendingImages();
+    }, [resetPendingImages]);
 
     const handleCopyMessage = useCallback(
         async (text: string) => {
@@ -2651,12 +2825,19 @@ const Page: React.FC = () => {
         [showToast],
     );
 
+    const closeImagePreview = useCallback(() => {
+        setImagePreview(null);
+        if (imagePreviewUrlRef.current) {
+            URL.revokeObjectURL(imagePreviewUrlRef.current);
+            imagePreviewUrlRef.current = null;
+        }
+    }, []);
+
     const handleOpenAttachment = useCallback(
         async (message: ChatMessage, attachment: ChatAttachment) => {
             if (!chatKey) return;
 
             try {
-                await downloadAttachment(attachment.id);
                 const bytes = await readDecryptedAttachmentBytes(
                     attachment.id,
                     chatKey,
@@ -2664,7 +2845,7 @@ const Page: React.FC = () => {
                 );
 
                 const baseName =
-                    attachment.name?.trim() || `attachment-${attachment.id}`;
+                    attachment.name.trim() || `attachment-${attachment.id}`;
                 const treatAsImage = attachment.kind === "image";
                 const filename = treatAsImage
                     ? baseName
@@ -2674,43 +2855,46 @@ const Page: React.FC = () => {
                         ? `${baseName.replace(/\.[^/.]+$/, "")}.txt`
                         : `${baseName}.txt`;
 
+                if (treatAsImage) {
+                    const mime = inferImageMime(baseName);
+                    const blob = new Blob([toSafeBlobPart(bytes)], {
+                        type: mime,
+                    });
+                    const url = URL.createObjectURL(blob);
+                    if (imagePreviewUrlRef.current) {
+                        URL.revokeObjectURL(imagePreviewUrlRef.current);
+                    }
+                    imagePreviewUrlRef.current = url;
+                    setImagePreview({ url, name: baseName });
+                    return;
+                }
+
                 if (isTauriRuntime) {
                     const [
                         { appDataDir, join },
-                        { mkdir: createDir, writeFile },
-                        { open },
+                        { mkdir, writeFile },
+                        { openPath },
                     ] = await Promise.all([
                         import("@tauri-apps/api/path"),
                         import("@tauri-apps/plugin-fs"),
-                        import("@tauri-apps/plugin-shell"),
+                        import("@tauri-apps/plugin-opener"),
                     ]);
                     const root = await appDataDir();
-                    const dir = await join(root, "ensu_llmchat_attachments");
-                    await createDir(dir, { recursive: true });
+                    const dir = await join(root, "ensu_llmchat_attachments_v2");
+                    await mkdir(dir, { recursive: true });
                     const filePath = await join(dir, filename);
 
                     await writeFile(filePath, bytes);
-
-                    const fileUrl = encodeURI(`file://${filePath}`);
-                    await open(fileUrl);
+                    await openPath(filePath);
                     return;
                 }
 
-                if (!treatAsImage) {
-                    const text = new TextDecoder().decode(bytes);
-                    const blob = new Blob([text], {
-                        type: "text/plain;charset=utf-8",
-                    });
-                    const url = URL.createObjectURL(blob);
-                    window.open(url, "_blank", "noopener,noreferrer");
-                    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-                    return;
-                }
-
-                const mime = inferImageMime(baseName);
-                const blob = new Blob([toSafeBlobPart(bytes)], { type: mime });
+                const text = new TextDecoder().decode(bytes);
+                const blob = new Blob([text], {
+                    type: "text/plain;charset=utf-8",
+                });
                 const url = URL.createObjectURL(blob);
-                window.open(url, "_blank", "noopener,noreferrer");
+                window.open(url, "_blank", "noopener");
                 window.setTimeout(() => URL.revokeObjectURL(url), 1000);
             } catch (error) {
                 log.error("Failed to open attachment", error);
@@ -2721,15 +2905,17 @@ const Page: React.FC = () => {
                 });
             }
         },
-        [
-            chatKey,
-            downloadAttachment,
-            readDecryptedAttachmentBytes,
-            inferImageMime,
-            isTauriRuntime,
-            showMiniDialog,
-        ],
+        [chatKey, inferImageMime, isTauriRuntime, showMiniDialog],
     );
+
+    useEffect(() => {
+        return () => {
+            if (imagePreviewUrlRef.current) {
+                URL.revokeObjectURL(imagePreviewUrlRef.current);
+                imagePreviewUrlRef.current = null;
+            }
+        };
+    }, []);
 
     const flushStreamingText = useCallback(() => {
         if (streamingFlushTimerRef.current) {
@@ -2753,18 +2939,24 @@ const Page: React.FC = () => {
 
     const handleStopGeneration = useCallback(() => {
         const jobId = currentJobIdRef.current;
-        pendingCancelRef.current = true;
-        stopRequestedRef.current = true;
         generationTokenRef.current += 1;
+        setConversationStatus(null);
+        beginGenerationStop();
 
         flushStreamingText();
-        const finalText = streamingBufferRef.current.replace(/\u0000/g, "");
+        const finalText = streamingBufferRef.current.replaceAll("\0", "");
         const trimmedText = finalText.trim();
         const parentMessageUuid = streamingParentId;
         const activeSessionId = currentSessionIdRef.current ?? currentSessionId;
+        const activeKnowledgeSources = activeKnowledgeSourcesRef.current;
+        const preparedReply = preparedReplyRef.current;
+        preparedReplyRef.current = undefined;
+        activeKnowledgeSourcesRef.current = [];
 
         const last = lastGenerationRef.current;
+        lastGenerationRef.current = null;
 
+        generationActiveRef.current = false;
         setIsGenerating(false);
         setIsStreamingOutro(false);
         setIsDownloading(false);
@@ -2778,25 +2970,33 @@ const Page: React.FC = () => {
             setStreamingText("");
         };
 
-        if (trimmedText && parentMessageUuid && activeSessionId && chatKey) {
-            void (async () => {
+        const persistStoppedGeneration = async () => {
+            if (
+                trimmedText &&
+                parentMessageUuid &&
+                activeSessionId &&
+                chatKey
+            ) {
                 try {
-                    const assistantMessage = await addMessage(
-                        activeSessionId,
-                        "assistant",
-                        finalText,
-                        chatKey,
-                        parentMessageUuid,
-                    );
+                    const assistantMessage = await (preparedReply
+                        ? preparedReply.saveAnswer(finalText)
+                        : addMessage(
+                              activeSessionId,
+                              "assistant",
+                              finalText,
+                              chatKey,
+                              parentMessageUuid,
+                              [],
+                              activeKnowledgeSources,
+                          ));
 
-                    updateBranchSelectionState(
+                    await updateBranchSelectionState(
                         parentMessageUuid,
                         assistantMessage.messageUuid,
                     );
                     appendMessageToState(assistantMessage);
                     updateSessionAfterMessage(assistantMessage);
-                    void syncChat(chatKey);
-                    void maybeGenerateSessionTitle({
+                    scheduleSessionTitle({
                         sessionUuid: activeSessionId,
                         assistantMessageUuid: assistantMessage.messageUuid,
                         wasInterrupted: false,
@@ -2804,48 +3004,62 @@ const Page: React.FC = () => {
                 } catch (error) {
                     log.error("Failed to finalize stopped generation", error);
                     if (last?.previousSelection) {
-                        updateBranchSelectionState(
+                        await updateBranchSelectionState(
                             last.parentMessageUuid,
                             last.previousSelection,
                         );
                     }
-                } finally {
-                    resetStreamingState();
                 }
-            })();
-        } else {
+                return;
+            }
+
             if (last?.previousSelection) {
-                updateBranchSelectionState(
+                await updateBranchSelectionState(
                     last.parentMessageUuid,
                     last.previousSelection,
                 );
             }
-            resetStreamingState();
-        }
+        };
 
-        const provider = providerRef.current;
-        if (provider) {
-            provider.cancelGeneration(jobId ?? -1);
-            return;
-        }
+        const cancelNativeGeneration = async () => {
+            try {
+                const provider =
+                    providerRef.current ?? (await ensureProvider());
+                await provider.cancelGeneration(jobId ?? -1);
+            } catch (error) {
+                log.error("Failed to cancel generation", error);
+            }
+        };
 
         void (async () => {
             try {
-                const ensured = await ensureProvider();
-                ensured.cancelGeneration(jobId ?? -1);
-            } catch (error) {
-                log.error("Failed to cancel generation", error);
+                const results = await Promise.allSettled([
+                    cancelNativeGeneration(),
+                    persistStoppedGeneration(),
+                ]);
+                for (const result of results) {
+                    if (result.status === "rejected") {
+                        log.error(
+                            "Stopped generation cleanup failed",
+                            result.reason,
+                        );
+                    }
+                }
+            } finally {
+                resetStreamingState();
+                endGenerationStop();
             }
         })();
     }, [
         appendMessageToState,
+        beginGenerationStop,
         chatKey,
         currentSessionId,
+        endGenerationStop,
         ensureProvider,
         flushStreamingText,
-        maybeGenerateSessionTitle,
+        scheduleSessionTitle,
         streamingParentId,
-        syncChat,
         updateBranchSelectionState,
         updateSessionAfterMessage,
     ]);
@@ -2853,31 +3067,43 @@ const Page: React.FC = () => {
     const startGeneration = useCallback(
         async ({
             promptText,
-            parentMessageUuid,
+            parentMessage,
             historyPath,
             stopAtMessageUuid,
             resetContext = false,
             sessionUuid,
             imagePaths,
             mediaMarker,
+            sources = sourceSelection,
         }: {
             promptText: string;
-            parentMessageUuid: string;
+            parentMessage: ChatMessage;
             historyPath: ChatMessage[];
             stopAtMessageUuid?: string | null;
             resetContext?: boolean;
             sessionUuid?: string;
             imagePaths?: string[];
             mediaMarker?: string;
-        }) => {
+            sources?: ChatSourceSelection;
+        }): Promise<void> => {
+            const parentMessageUuid = parentMessage.messageUuid;
             const activeSessionId =
                 sessionUuid ?? currentSessionIdRef.current ?? currentSessionId;
             if (!chatKey || !activeSessionId) return;
-
-            if (pendingCancelRef.current) {
-                pendingCancelRef.current = false;
+            if (
+                generationStartingRef.current ||
+                generationStoppingRef.current
+            ) {
+                return;
             }
-            stopRequestedRef.current = false;
+            if (isTauriRuntime && !sources) return;
+            const selectedPackIds = new Set(sources?.packIds);
+            const selectedNoteIds = new Set(sources?.noteCollectionIds);
+            generationStartingRef.current = true;
+            generationActiveRef.current = true;
+            setIsGenerating(true);
+            currentJobIdRef.current = null;
+            lastGenerationRef.current = null;
 
             const generationToken = generationTokenRef.current + 1;
             generationTokenRef.current = generationToken;
@@ -2886,38 +3112,215 @@ const Page: React.FC = () => {
                 generationTokenRef.current === generationToken &&
                 currentSessionIdRef.current === activeSessionId;
 
-            const provider = await ensureProvider();
-            const settings = getModelSettings();
-            const { contextSize, maxTokens } =
-                provider.resolveRuntimeSettings(settings);
+            let provider: LlmProvider;
+            let settings: ModelSettings;
+            let maxTokens: number;
+            let inputBudget: number;
+            let previousSelection: string | null | undefined;
+            let startupCompleted = false;
+            try {
+                provider = await ensureProvider();
+                if (provider.getBackendKind() === "tauri") {
+                    await provider.cancelGeneration(-1);
+                    if (!isActiveGeneration()) return;
+                }
+                const priorSummary = sessionSummaryPromiseRef.current;
+                if (priorSummary) {
+                    sessionSummaryEpochRef.current += 1;
+                    await provider.cancelGeneration(-1);
+                    await priorSummary.catch(() => undefined);
+                    if (!isActiveGeneration()) return;
+                }
+                settings = getModelSettings();
+                ({ maxTokens, inputBudget } =
+                    provider.resolveRuntimeSettings(settings));
 
-            if (!isActiveGeneration()) {
+                if (!isActiveGeneration()) return;
+
+                previousSelection = branchSelections[parentMessageUuid];
+                lastGenerationRef.current = {
+                    parentMessageUuid,
+                    previousSelection,
+                };
+
+                void updateBranchSelectionState(
+                    parentMessageUuid,
+                    STREAMING_SELECTION_KEY,
+                    false,
+                );
+                setStreamingParentId(parentMessageUuid);
+                setStreamingText("");
+                streamingBufferRef.current = "";
+                streamingChunksRef.current = [];
+                streamingCreatedAtRef.current = Date.now() * 1000;
+                setIsStreamingOutro(false);
+                startupCompleted = true;
+            } catch (error) {
+                if (isActiveGeneration()) {
+                    const message = formatErrorMessage(error);
+                    showMiniDialog({ title: "Model error", message });
+                }
                 return;
+            } finally {
+                generationStartingRef.current = false;
+                if (!startupCompleted && isActiveGeneration()) {
+                    generationActiveRef.current = false;
+                    setIsGenerating(false);
+                }
             }
 
-            const previousSelection = branchSelections[parentMessageUuid];
-            lastGenerationRef.current = {
-                parentMessageUuid,
-                previousSelection,
-            };
-
-            updateBranchSelectionState(
-                parentMessageUuid,
-                STREAMING_SELECTION_KEY,
-                false,
-            );
-            setStreamingParentId(parentMessageUuid);
-            setStreamingText("");
-            streamingBufferRef.current = "";
-            streamingChunksRef.current = [];
-            streamingCreatedAtRef.current = Date.now() * 1000;
-            setIsStreamingOutro(false);
-            setIsGenerating(true);
-            currentJobIdRef.current = null;
-
             let errorMessage: string | null = null;
+            preparedReplyRef.current = undefined;
+            activeKnowledgeSourcesRef.current = [];
 
             try {
+                const normalSystemPrompt = buildChatSystemPrompt(systemPrompt);
+                const useConversationMemory =
+                    provider.getBackendKind() === "tauri" &&
+                    !imagePaths?.length;
+                let history = useConversationMemory
+                    ? []
+                    : buildHistory(
+                          historyPath,
+                          promptText,
+                          inputBudget,
+                          stopAtMessageUuid,
+                      );
+                const normalMessages: LlmMessage[] = [
+                    { role: "system", content: normalSystemPrompt },
+                    ...history,
+                    { role: "user", content: promptText },
+                ];
+                const countTokens = (messages: LlmMessage[]) =>
+                    messages.reduce(
+                        (total, message) =>
+                            total + approxTokens(message.content),
+                        0,
+                    );
+                const normalPromptTokenEstimate = countTokens(normalMessages);
+                if (
+                    provider.getBackendKind() === "wasm" &&
+                    normalPromptTokenEstimate > inputBudget
+                ) {
+                    throw new Error(
+                        "Prompt exceeds the model context window. Reduce history or increase context length.",
+                    );
+                }
+
+                let knowledgeContext: Awaited<
+                    ReturnType<typeof retrieveKnowledge>
+                > = null;
+                const enabledReadyPackIds = knowledgePacks
+                    .filter(
+                        (pack) =>
+                            (pack.status === "ready" ||
+                                pack.status === "updateAvailable") &&
+                            selectedPackIds.has(pack.stableId),
+                    )
+                    .map((pack) => pack.stableId);
+                const enabledReadyNoteIds = notesCollections
+                    .filter(
+                        (collection) =>
+                            selectedNoteIds.has(collection.id) &&
+                            collection.indexedDocumentCount > 0 &&
+                            collection.status !== "unavailable" &&
+                            collection.status !== "error",
+                    )
+                    .map((collection) => collection.id);
+                const knowledgeQuery = parseDocumentBlocks(parentMessage.text)
+                    .text.replaceAll(MEDIA_MARKER, "")
+                    .replace(/\[\d+ image attachments? provided\]/gi, "")
+                    .trim();
+                const conversationPath = useConversationMemory
+                    ? buildConversationPath(allMessages, parentMessage)
+                    : [];
+                let resolutionToken: string | undefined;
+                const remainingKnowledgeBytes = useConversationMemory
+                    ? 6000
+                    : Math.max(
+                          0,
+                          (inputBudget - normalPromptTokenEstimate) * 4 - 2,
+                      );
+                if (
+                    isTauriRuntime &&
+                    knowledgeQuery &&
+                    remainingKnowledgeBytes > 0 &&
+                    (enabledReadyPackIds.length > 0 ||
+                        enabledReadyNoteIds.length > 0)
+                ) {
+                    setConversationStatus("Finding sources");
+                    try {
+                        knowledgeContext =
+                            await provider.withKnowledgeRetrieval(
+                                (retrievalEpoch) =>
+                                    retrieveKnowledge(
+                                        knowledgeQuery,
+                                        enabledReadyPackIds,
+                                        enabledReadyNoteIds,
+                                        remainingKnowledgeBytes,
+                                        retrievalEpoch,
+                                    ),
+                                isActiveGeneration,
+                            );
+                        if (!isActiveGeneration()) return;
+                    } catch (error) {
+                        const { name } = tauriCommandError(error);
+                        if (
+                            !isActiveGeneration() ||
+                            name === "cancelled" ||
+                            name === "stale"
+                        ) {
+                            return;
+                        }
+                        if (name === "embedding_missing") {
+                            throw error;
+                        }
+                        log.warn(
+                            "Knowledge retrieval failed; continuing without source context",
+                            error,
+                        );
+                    }
+                    setConversationStatus(null);
+                }
+                if (!isActiveGeneration()) return;
+
+                if (
+                    useConversationMemory &&
+                    historyPath.some((message) => message.sources?.length)
+                ) {
+                    setConversationStatus("Finding sources");
+                    try {
+                        resolutionToken = await provider.withKnowledgeRetrieval(
+                            (cancellationEpoch) =>
+                                resolveDesktopSourceFollowup({
+                                    sessionUuid: activeSessionId,
+                                    path: conversationPath,
+                                    question: knowledgeQuery,
+                                    enabledStableIds: enabledReadyPackIds,
+                                    enabledNoteCollectionIds:
+                                        enabledReadyNoteIds,
+                                    cancellationEpoch,
+                                    candidates: knowledgeContext?.candidates,
+                                }),
+                            isActiveGeneration,
+                        );
+                        if (!isActiveGeneration()) return;
+                    } catch (error) {
+                        const { name } = tauriCommandError(error);
+                        if (
+                            !isActiveGeneration() ||
+                            name === "cancelled" ||
+                            name === "stale"
+                        )
+                            return;
+                        log.warn(
+                            "Source followup failed; continuing with available sources",
+                            error,
+                        );
+                    }
+                    setConversationStatus(null);
+                }
+
                 await provider.ensureModelReady(settings);
                 setLoadedModelName(provider.getCurrentModel()?.name ?? null);
                 setIsDownloading(false);
@@ -2928,102 +3331,165 @@ const Page: React.FC = () => {
                 }
 
                 if (resetContext) {
-                    await provider.resetContext(contextSize);
+                    await provider.resetContext(
+                        provider.resolveRuntimeSettings(settings, false)
+                            .contextSize,
+                    );
+                    if (!isActiveGeneration()) return;
                 }
 
-                const history =
-                    (await buildHistory(
+                ({ maxTokens, inputBudget } =
+                    provider.resolveRuntimeSettings(settings));
+                if (
+                    provider.getBackendKind() === "tauri" &&
+                    !useConversationMemory
+                ) {
+                    history = buildHistory(
                         historyPath,
                         promptText,
-                        contextSize,
-                        maxTokens,
+                        inputBudget,
                         stopAtMessageUuid,
-                    )) ?? [];
-
-                const messages: LlmMessage[] = [
-                    { role: "system", content: buildChatSystemPrompt() },
-                    ...history,
-                    { role: "user", content: promptText },
-                ];
-                const promptTokenEstimate = messages.reduce(
-                    (total, message) => total + approxTokens(message.content),
-                    0,
-                );
-                const inputBudget =
-                    contextSize - maxTokens - OVERFLOW_SAFETY_TOKENS;
-                if (promptTokenEstimate > inputBudget) {
-                    throw new Error(
-                        "Prompt exceeds the model context window. Reduce history, lower max tokens, or increase context length.",
                     );
-                }
-
-                if (pendingCancelRef.current || stopRequestedRef.current) {
-                    pendingCancelRef.current = false;
-                    stopRequestedRef.current = false;
-                    provider.cancelGeneration(-1);
-                    if (previousSelection) {
-                        updateBranchSelectionState(
-                            parentMessageUuid,
-                            previousSelection,
+                    normalMessages.splice(
+                        1,
+                        normalMessages.length - 2,
+                        ...history,
+                    );
+                    if (countTokens(normalMessages) > inputBudget) {
+                        throw new Error(
+                            "Prompt exceeds the loaded model context window. Reduce history or increase context length.",
                         );
                     }
-                    setIsGenerating(false);
-                    setIsStreamingOutro(false);
-                    setIsDownloading(false);
-                    setStreamingParentId(null);
-                    streamingBufferRef.current = "";
-                    streamingChunksRef.current = [];
-                    streamingCreatedAtRef.current = null;
-                    setStreamingText("");
-                    currentJobIdRef.current = null;
-                    return;
                 }
 
-                const hasImages =
-                    (imagePaths?.length ?? 0) > 0 &&
-                    provider.getBackendKind() === "tauri";
-                const mmprojPath = hasImages
+                let messages = normalMessages;
+                let activeSources: GroundedSource[] = [];
+                if (knowledgeContext && !useConversationMemory) {
+                    const candidateMessages: LlmMessage[] = [
+                        {
+                            role: "system",
+                            content: `${normalSystemPrompt}\n\n${knowledgeContext.text}`,
+                        },
+                        ...normalMessages.slice(1),
+                    ];
+                    if (countTokens(candidateMessages) <= inputBudget) {
+                        messages = candidateMessages;
+                        activeSources = knowledgeContext.sources;
+                    }
+                }
+                if (useConversationMemory) {
+                    const prepared = await prepareDesktopConversation(
+                        {
+                            sessionUuid: activeSessionId,
+                            path: conversationPath,
+                            system: normalSystemPrompt,
+                            current: promptText,
+                            historyQuery: resolutionToken
+                                ? undefined
+                                : knowledgeQuery,
+                            maxTokens,
+                            groundingCandidates: resolutionToken
+                                ? undefined
+                                : knowledgeContext?.candidates,
+                            resolutionToken,
+                        },
+                        provider,
+                        {
+                            isCurrent: isActiveGeneration,
+                            onProgress: () =>
+                                setConversationStatus(
+                                    "Remembering earlier messages",
+                                ),
+                        },
+                    );
+                    if (!isActiveGeneration()) return;
+                    setConversationStatus(null);
+                    if (!prepared) {
+                        if (previousSelection) {
+                            void updateBranchSelectionState(
+                                parentMessageUuid,
+                                previousSelection,
+                            );
+                        }
+                        return;
+                    }
+                    preparedReplyRef.current = prepared;
+                }
+                activeKnowledgeSourcesRef.current = activeSources;
+                const nativeImagePaths =
+                    imagePaths?.length && provider.getBackendKind() === "tauri"
+                        ? imagePaths
+                        : undefined;
+                const mmprojPath = nativeImagePaths
                     ? provider.getCurrentMmprojPath()
                     : undefined;
-                if (hasImages && !mmprojPath) {
+                if (nativeImagePaths && !mmprojPath) {
                     throw new Error("MMProj model not available");
                 }
 
-                await provider.generateChatStream(
-                    {
-                        messages,
-                        imagePaths: hasImages ? imagePaths : undefined,
-                        mmprojPath,
-                        mediaMarker: hasImages
-                            ? (mediaMarker ?? MEDIA_MARKER)
-                            : undefined,
-                        maxTokens,
-                        temperature: 0.7,
-                        topP: 0.9,
-                        repeatPenalty: REPEAT_PENALTY,
-                    },
-                    (event: GenerateEvent) => {
-                        if (!isActiveGeneration()) {
-                            return;
-                        }
-                        if (event.type === "text") {
-                            if (!currentJobIdRef.current) {
-                                currentJobIdRef.current = event.job_id;
-                                if (pendingCancelRef.current) {
-                                    pendingCancelRef.current = false;
-                                    provider.cancelGeneration(event.job_id);
-                                    return;
-                                }
+                const generate = () =>
+                    (preparedReplyRef.current ?? provider).generateChatStream(
+                        {
+                            messages,
+                            imagePaths: nativeImagePaths,
+                            mmprojPath,
+                            mediaMarker: nativeImagePaths
+                                ? (mediaMarker ?? MEDIA_MARKER)
+                                : undefined,
+                            maxTokens,
+                            temperature: 0.7,
+                            topP: 0.9,
+                            repeatPenalty: REPEAT_PENALTY,
+                        },
+                        (event: GenerateEvent) => {
+                            if (!isActiveGeneration()) {
+                                const jobId =
+                                    event.type === "text"
+                                        ? event.job_id
+                                        : event.summary.job_id;
+                                void provider.cancelGeneration(jobId);
+                                return;
                             }
-                            streamingChunksRef.current.push(event.text);
-                            scheduleStreamingFlush();
-                        } else if (event.type === "error") {
-                            errorMessage = event.message;
-                        } else if (event.type === "done") {
-                            currentJobIdRef.current = event.summary.job_id;
+                            if (event.type === "text") {
+                                if (!currentJobIdRef.current) {
+                                    currentJobIdRef.current = event.job_id;
+                                }
+                                streamingChunksRef.current.push(event.text);
+                                scheduleStreamingFlush();
+                            } else {
+                                currentJobIdRef.current = event.summary.job_id;
+                            }
+                        },
+                    );
+                try {
+                    await generate();
+                } catch (error) {
+                    const { name } = tauriCommandError(error);
+                    if (
+                        name === "prompt_too_long" &&
+                        !streamingBufferRef.current &&
+                        streamingChunksRef.current.length === 0 &&
+                        activeSources.length > 0 &&
+                        !useConversationMemory
+                    ) {
+                        activeSources = [];
+                        activeKnowledgeSourcesRef.current = [];
+                        messages = normalMessages;
+                        try {
+                            await generate();
+                        } catch (retryError) {
+                            errorMessage =
+                                retryError instanceof Error
+                                    ? retryError.message
+                                    : String(retryError);
                         }
-                    },
-                );
+                    } else {
+                        errorMessage =
+                            error instanceof Error
+                                ? error.message
+                                : String(error);
+                    }
+                }
 
                 if (!isActiveGeneration()) {
                     return;
@@ -3040,7 +3506,7 @@ const Page: React.FC = () => {
                         });
                     }
                     if (previousSelection) {
-                        updateBranchSelectionState(
+                        void updateBranchSelectionState(
                             parentMessageUuid,
                             previousSelection,
                         );
@@ -3048,7 +3514,7 @@ const Page: React.FC = () => {
                     return;
                 }
 
-                const assistantText = finalText.replace(/\u0000/g, "");
+                const rawAssistantText = finalText.replaceAll("\0", "");
                 setIsStreamingOutro(true);
 
                 await new Promise<void>((resolve) => {
@@ -3059,23 +3525,29 @@ const Page: React.FC = () => {
                     return;
                 }
 
-                const assistantMessage = await addMessage(
-                    activeSessionId,
-                    "assistant",
-                    assistantText,
-                    chatKey,
-                    parentMessageUuid,
-                );
+                activeKnowledgeSourcesRef.current = [];
 
-                updateBranchSelectionState(
+                const assistantMessage = await (preparedReplyRef.current
+                    ? preparedReplyRef.current.saveAnswer(rawAssistantText)
+                    : addMessage(
+                          activeSessionId,
+                          "assistant",
+                          rawAssistantText,
+                          chatKey,
+                          parentMessageUuid,
+                          [],
+                          activeSources,
+                      ));
+
+                if (!isActiveGeneration()) return;
+                void updateBranchSelectionState(
                     parentMessageUuid,
                     assistantMessage.messageUuid,
                 );
                 appendMessageToState(assistantMessage);
                 updateSessionAfterMessage(assistantMessage);
 
-                void syncChat(chatKey);
-                void maybeGenerateSessionTitle({
+                scheduleSessionTitle({
                     sessionUuid: activeSessionId,
                     assistantMessageUuid: assistantMessage.messageUuid,
                     wasInterrupted: !!errorMessage,
@@ -3084,28 +3556,44 @@ const Page: React.FC = () => {
                 if (!isActiveGeneration()) {
                     return;
                 }
-                const message = formatErrorMessage(error);
-                showMiniDialog({ title: "Model error", message });
+                const { name } = tauriCommandError(error);
+                if (
+                    name === "model_missing" ||
+                    name === "not_found" ||
+                    name === "embedding_missing"
+                ) {
+                    setModelGateError(null);
+                    setDownloadStatus(null);
+                    setModelGateStatus("missing");
+                } else {
+                    const message = formatErrorMessage(error);
+                    if (name !== "cancelled" && name !== "stale") {
+                        showMiniDialog({ title: "Model error", message });
+                    }
+                }
                 if (previousSelection) {
-                    updateBranchSelectionState(
+                    void updateBranchSelectionState(
                         parentMessageUuid,
                         previousSelection,
                     );
                 }
             } finally {
-                if (!isActiveGeneration()) {
-                    return;
+                if (isActiveGeneration()) {
+                    activeKnowledgeSourcesRef.current = [];
+                    preparedReplyRef.current = undefined;
+                    setConversationStatus(null);
+                    generationActiveRef.current = false;
+                    setIsGenerating(false);
+                    setIsStreamingOutro(false);
+                    setIsDownloading(false);
+                    streamingBufferRef.current = "";
+                    streamingChunksRef.current = [];
+                    setStreamingText("");
+                    setStreamingParentId(null);
+                    streamingCreatedAtRef.current = null;
+                    currentJobIdRef.current = null;
+                    lastGenerationRef.current = null;
                 }
-                setIsGenerating(false);
-                setIsStreamingOutro(false);
-                setIsDownloading(false);
-                streamingBufferRef.current = "";
-                streamingChunksRef.current = [];
-                setStreamingText("");
-                setStreamingParentId(null);
-                streamingCreatedAtRef.current = null;
-                currentJobIdRef.current = null;
-                pendingCancelRef.current = false;
             }
         },
         [
@@ -3114,15 +3602,22 @@ const Page: React.FC = () => {
             ensureProvider,
             getModelSettings,
             buildHistory,
+            allMessages,
             branchSelections,
             updateBranchSelectionState,
             appendMessageToState,
             updateSessionAfterMessage,
             showMiniDialog,
-            syncChat,
+            approxTokens,
+            formatErrorMessage,
             scheduleStreamingFlush,
             flushStreamingText,
-            maybeGenerateSessionTitle,
+            scheduleSessionTitle,
+            systemPrompt,
+            isTauriRuntime,
+            sourceSelection,
+            knowledgePacks,
+            notesCollections,
         ],
     );
 
@@ -3163,17 +3658,19 @@ const Page: React.FC = () => {
                 return;
             }
             const historyPath = slicePathUntil(messageState.path, parentUuid);
+            handleChatActivity();
             await startGeneration({
                 promptText: parentMessage.text,
-                parentMessageUuid: parentUuid,
+                parentMessage,
                 historyPath,
                 stopAtMessageUuid: parentUuid,
                 resetContext: true,
-                sessionUuid: currentSessionId ?? undefined,
+                sessionUuid: currentSessionId,
             });
         },
         [
             allMessages,
+            handleChatActivity,
             chatKey,
             currentSessionId,
             isDownloading,
@@ -3187,25 +3684,27 @@ const Page: React.FC = () => {
 
     const handlePrevBranch = useCallback(
         (switcher: BranchSwitcher) => {
-            if (!switcher || switcher.total <= 1) return;
+            if (switcher.total <= 1) return;
             const nextIndex =
                 (switcher.currentIndex - 1 + switcher.total) % switcher.total;
             const target = switcher.targets[nextIndex];
             if (!target) return;
-            updateBranchSelectionState(switcher.selectionKey, target);
+            cancelActiveGenerationForNavigation();
+            void updateBranchSelectionState(switcher.selectionKey, target);
         },
-        [updateBranchSelectionState],
+        [cancelActiveGenerationForNavigation, updateBranchSelectionState],
     );
 
     const handleNextBranch = useCallback(
         (switcher: BranchSwitcher) => {
-            if (!switcher || switcher.total <= 1) return;
+            if (switcher.total <= 1) return;
             const nextIndex = (switcher.currentIndex + 1) % switcher.total;
             const target = switcher.targets[nextIndex];
             if (!target) return;
-            updateBranchSelectionState(switcher.selectionKey, target);
+            cancelActiveGenerationForNavigation();
+            void updateBranchSelectionState(switcher.selectionKey, target);
         },
-        [updateBranchSelectionState],
+        [cancelActiveGenerationForNavigation, updateBranchSelectionState],
     );
 
     const handleOpenDrawer = useCallback(() => {
@@ -3234,38 +3733,10 @@ const Page: React.FC = () => {
         [],
     );
 
-    const openDeveloperMenu = useCallback(() => {
-        if (!DEVELOPER_SETTINGS_ENABLED) return;
-        if (!MODEL_SETTINGS_ENABLED) {
-            setShowDevSettings(true);
-            return;
-        }
-        setShowDeveloperMenu(true);
-    }, []);
-    const closeDeveloperMenu = useCallback(
-        () => setShowDeveloperMenu(false),
-        [],
-    );
-
     const handleLogoClick = useCallback(() => {
         if (typeof window === "undefined") return;
-        if (!DEVELOPER_SETTINGS_ENABLED) {
-            window.location.reload();
-            return;
-        }
-        if (logoClickTimeoutRef.current) {
-            window.clearTimeout(logoClickTimeoutRef.current);
-        }
-        logoClickCountRef.current += 1;
-        if (logoClickCountRef.current >= 5) {
-            logoClickCountRef.current = 0;
-            openDeveloperMenu();
-            return;
-        }
-        logoClickTimeoutRef.current = window.setTimeout(() => {
-            logoClickCountRef.current = 0;
-        }, 1500);
-    }, [openDeveloperMenu]);
+        window.location.reload();
+    }, []);
 
     const markUserScrollIntent = useCallback(() => {
         userScrollIntentRef.current = true;
@@ -3330,12 +3801,8 @@ const Page: React.FC = () => {
         setShowSessionSearch(true);
     }, []);
     const handleCloseSessionSearch = useCallback(() => {
-        setSessionSearch("");
         setShowSessionSearch(false);
     }, []);
-
-    const openDevSettings = useCallback(() => setShowDevSettings(true), []);
-    const closeDevSettings = useCallback(() => setShowDevSettings(false), []);
 
     const saveLogs = useCallback(async () => {
         log.info("Saving logs");
@@ -3347,6 +3814,7 @@ const Page: React.FC = () => {
 
         if (isTauriRuntime) {
             try {
+                const { save } = await import("@tauri-apps/plugin-dialog");
                 const filename = `ensu-web-logs-${Date.now()}.txt`;
                 const path = await save({
                     defaultPath: filename,
@@ -3371,216 +3839,218 @@ const Page: React.FC = () => {
         saveStringAsFile(savedLogs(), `ente-web-logs-${Date.now()}.txt`);
     }, [isTauriRuntime, showMiniDialog]);
 
+    const handleCheckForUpdates = useCallback(async () => {
+        await handleManualAppUpdateCheck(showMiniDialog);
+    }, [showMiniDialog]);
+
     const openModelSettings = useCallback(() => {
-        if (!MODEL_SETTINGS_ENABLED) return;
+        if (!advancedUnlocked) return;
         setShowModelSettings(true);
-    }, []);
+    }, [advancedUnlocked]);
     const closeModelSettings = useCallback(
         () => setShowModelSettings(false),
         [],
     );
+    const openSystemPromptSettings = useCallback(() => {
+        if (!advancedUnlocked) return;
+        setShowSystemPromptSettings(true);
+    }, [advancedUnlocked]);
+    const closeSystemPromptSettings = useCallback(
+        () => setShowSystemPromptSettings(false),
+        [],
+    );
+    const handleDownloadKnowledgePack = useCallback(
+        (stableId: string) => {
+            if (activeKnowledgeDownloadsRef.current.has(stableId)) return;
+            activeKnowledgeDownloadsRef.current.add(stableId);
+            const isNew = !knowledgePacks.some(
+                (pack) =>
+                    pack.stableId === stableId &&
+                    (pack.status === "ready" ||
+                        pack.status === "updateAvailable"),
+            );
 
-    const suggestedModels = useMemo(
+            setKnowledgeErrors((current) => ({
+                ...current,
+                [stableId]: undefined,
+            }));
+            setKnowledgeDownloadProgress((current) => ({
+                ...current,
+                [stableId]: 0,
+            }));
+            void downloadKnowledgePack(stableId, (percent) => {
+                setKnowledgeDownloadProgress((current) => ({
+                    ...current,
+                    [stableId]: percent,
+                }));
+            })
+                .then((pack) => {
+                    if (isNew) handleSetPackEnabled(stableId, true);
+                    setKnowledgePacks((current) =>
+                        current.map((item) =>
+                            item.stableId === stableId ? pack : item,
+                        ),
+                    );
+                })
+                .catch((error: unknown) => {
+                    const { name } = tauriCommandError(error);
+                    if (name !== "cancelled") {
+                        setKnowledgeErrors((current) => ({
+                            ...current,
+                            [stableId]: knowledgeErrorMessage(error),
+                        }));
+                    }
+                    void refreshKnowledgeCatalog();
+                })
+                .finally(() => {
+                    activeKnowledgeDownloadsRef.current.delete(stableId);
+                    setKnowledgeDownloadProgress((current) => ({
+                        ...current,
+                        [stableId]: undefined,
+                    }));
+                });
+        },
+        [refreshKnowledgeCatalog, knowledgePacks, handleSetPackEnabled],
+    );
+    const handleCancelKnowledgePackDownload = useCallback(
+        (stableId: string) => {
+            void cancelKnowledgePackDownload(stableId).catch(
+                (error: unknown) => {
+                    log.warn("Failed to cancel Ensu Pack download", error);
+                },
+            );
+        },
+        [],
+    );
+    const handleBuildVersionTap = useCallback(() => {
+        if (advancedUnlocked || typeof window === "undefined") return;
+        if (buildVersionTapTimeoutRef.current) {
+            window.clearTimeout(buildVersionTapTimeoutRef.current);
+        }
+        buildVersionTapCountRef.current += 1;
+        if (buildVersionTapCountRef.current >= 5) {
+            buildVersionTapCountRef.current = 0;
+            setAdvancedUnlocked(true);
+            window.localStorage.setItem(ADVANCED_SETTINGS_UNLOCK_KEY, "1");
+            return;
+        }
+        buildVersionTapTimeoutRef.current = window.setTimeout(() => {
+            buildVersionTapCountRef.current = 0;
+            buildVersionTapTimeoutRef.current = null;
+        }, 1800);
+    }, [advancedUnlocked]);
+
+    const fallbackSuggestedModels = useMemo(
         () =>
             isTauriRuntime
-                ? [
-                      {
-                          name: "Qwen 3.5 0.8B (Q4_K_M)",
-                          url: "https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/main/Qwen3.5-0.8B-Q4_K_M.gguf?download=true",
-                          mmproj: "https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/main/mmproj-F16.gguf",
-                      },
-                      {
-                          name: "Qwen 3.5 2B (Q8_0)",
-                          url: "https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q8_0.gguf?download=true",
-                          mmproj: "https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/mmproj-F16.gguf",
-                      },
-                      {
-                          name: "Qwen 3.5 4B (Q4_K_M)",
-                          url: "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/main/Qwen3.5-4B-Q4_K_M.gguf?download=true",
-                          mmproj: "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/main/mmproj-F16.gguf",
-                      },
-                  ]
-                : [
-                      {
-                          name: "LFM 2.5 VL 1.6B (Q4_0)",
-                          url: "https://huggingface.co/LiquidAI/LFM2.5-VL-1.6B-GGUF/resolve/main/LFM2.5-VL-1.6B-Q4_0.gguf",
-                          mmproj: "https://huggingface.co/LiquidAI/LFM2.5-VL-1.6B-GGUF/resolve/main/mmproj-LFM2.5-VL-1.6b-Q8_0.gguf",
-                      },
-                      {
-                          name: "Qwen 3.5 0.8B (Q4_K_M)",
-                          url: "https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/main/Qwen3.5-0.8B-Q4_K_M.gguf?download=true",
-                          mmproj: "https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/main/mmproj-F16.gguf",
-                      },
-                  ],
+                ? FALLBACK_DESKTOP_MODEL_PRESETS
+                : FALLBACK_MOBILE_MODEL_PRESETS,
         [isTauriRuntime],
     );
+    const suggestedModels = resolvedModelPresets ?? fallbackSuggestedModels;
+    const isModelPreparationActive =
+        modelGateStatus === "checking" ||
+        modelGateStatus === "preloading" ||
+        modelGateStatus === "downloading";
 
-    const validateModelSettings = useCallback(() => {
-        const validateUrl = (value: string) => {
-            if (!value) return undefined;
-            try {
-                const url = new URL(value);
-                if (!url.hostname.includes("huggingface.co")) {
-                    return "URL must be a huggingface.co link";
-                }
-                if (!url.pathname.endsWith(".gguf")) {
-                    return "URL must end with .gguf";
-                }
-                return undefined;
-            } catch {
-                return "Enter a valid URL";
+    const handleSaveModel = useCallback(
+        (draft: { modelId: string; contextLength: string }) => {
+            if (isModelPreparationActive) return;
+            setIsSavingModel(true);
+            if (typeof window !== "undefined") {
+                window.localStorage.setItem(
+                    MODEL_SETTINGS_STORAGE_KEY,
+                    JSON.stringify(draft),
+                );
             }
-        };
-
-        const modelError = modelUrl ? validateUrl(modelUrl) : "Required";
-        const mmprojError = isTauriRuntime ? validateUrl(mmprojUrl) : undefined;
-
-        const contextErrorValue =
-            contextLength && !/^\d+$/.test(contextLength)
-                ? "Enter a number"
-                : undefined;
-        const maxTokensErrorValue =
-            maxTokens && !/^\d+$/.test(maxTokens)
-                ? "Enter a number"
-                : undefined;
-
-        const contextValue = contextLength ? Number(contextLength) : undefined;
-        const maxTokensValue = maxTokens ? Number(maxTokens) : undefined;
-
-        const maxTokensLimitError =
-            contextValue && maxTokensValue && maxTokensValue > contextValue
-                ? "Must be <= context length"
-                : undefined;
-
-        setModelUrlError(modelError ?? null);
-        setMmprojError(mmprojError ?? null);
-        setContextError(contextErrorValue ?? null);
-        setMaxTokensError(maxTokensErrorValue ?? maxTokensLimitError ?? null);
-
-        return !(
-            modelError ||
-            mmprojError ||
-            contextErrorValue ||
-            maxTokensErrorValue ||
-            maxTokensLimitError
-        );
-    }, [contextLength, maxTokens, mmprojUrl, modelUrl, isTauriRuntime]);
-
-    const handleSaveModel = useCallback(() => {
-        if (!validateModelSettings()) return;
-        setIsSavingModel(true);
-        const payload = {
-            useCustomModel: true,
-            modelUrl,
-            mmprojUrl: isTauriRuntime ? mmprojUrl : "",
-            contextLength,
-            maxTokens,
-        };
-        if (typeof window !== "undefined") {
-            window.localStorage.setItem(
-                "ensu.modelSettings",
-                JSON.stringify(payload),
-            );
-        }
-        setUseCustomModel(true);
-        setLoadedModelName(null);
-        setIsSavingModel(false);
-        setShowModelSettings(false);
-    }, [
-        contextLength,
-        maxTokens,
-        mmprojUrl,
-        modelUrl,
-        validateModelSettings,
-        isTauriRuntime,
-    ]);
+            setSelectedModelId(draft.modelId);
+            setContextLength(draft.contextLength);
+            modelGateRequestRef.current += 1;
+            setLoadedModelName(null);
+            setModelDownloadSizeBytes(null);
+            setModelGateStatus("checking");
+            setIsSavingModel(false);
+            setShowModelSettings(false);
+        },
+        [isModelPreparationActive],
+    );
 
     const handleUseDefaultModel = useCallback(() => {
+        if (isModelPreparationActive) return;
         if (typeof window !== "undefined") {
-            window.localStorage.removeItem("ensu.modelSettings");
+            window.localStorage.setItem(
+                MODEL_SETTINGS_STORAGE_KEY,
+                JSON.stringify({ modelId: "", contextLength: "" }),
+            );
         }
-        setUseCustomModel(false);
-        setModelUrl("");
-        setMmprojUrl("");
+        setSelectedModelId("");
         setContextLength("");
-        setMaxTokens("");
-        setModelUrlError(null);
-        setMmprojError(null);
-        setContextError(null);
-        setMaxTokensError(null);
+        modelGateRequestRef.current += 1;
         setLoadedModelName(null);
+        setModelDownloadSizeBytes(null);
+        setModelGateStatus("checking");
         setShowModelSettings(false);
-    }, []);
+    }, [isModelPreparationActive]);
 
-    const handleFillSuggestion = useCallback(
-        (url: string, mmproj?: string) => {
-            setModelUrl(url);
-            setMmprojUrl(allowMmproj ? (mmproj ?? "") : "");
-            setModelUrlError(null);
-            setMmprojError(null);
-        },
-        [allowMmproj],
-    );
-
-    const closeAttachmentMenu = useCallback(() => {
-        setAttachmentAnchor(null);
-    }, []);
-
-    const handleDocumentSelect = useCallback(
-        (files: File[]) => {
-            closeAttachmentMenu();
-            void (async () => {
-                const results = await Promise.allSettled(
-                    files.map(async (file) => ({
-                        id: createDocumentId(),
-                        name: file.name,
-                        text: await file.text(),
-                        size: file.size,
-                    })),
+    const handleSaveSystemPrompt = useCallback((promptText: string) => {
+        const normalizedPrompt = promptText.trim();
+        const isDefaultPrompt =
+            !normalizedPrompt ||
+            normalizedPrompt === DEFAULT_CHAT_SYSTEM_PROMPT_BODY;
+        if (typeof window !== "undefined") {
+            if (!isDefaultPrompt) {
+                window.localStorage.setItem(
+                    SYSTEM_PROMPT_STORAGE_KEY,
+                    normalizedPrompt,
                 );
+            } else {
+                window.localStorage.removeItem(SYSTEM_PROMPT_STORAGE_KEY);
+            }
+        }
+        setSystemPrompt(
+            isDefaultPrompt
+                ? DEFAULT_CHAT_SYSTEM_PROMPT_BODY
+                : normalizedPrompt,
+        );
+        setShowSystemPromptSettings(false);
+    }, []);
 
-                const successful = results
-                    .filter(
-                        (
-                            result,
-                        ): result is PromiseFulfilledResult<DocumentAttachment> =>
-                            result.status === "fulfilled",
-                    )
-                    .map((result) => result.value);
+    const handleUseDefaultSystemPrompt = useCallback(() => {
+        if (typeof window !== "undefined") {
+            window.localStorage.removeItem(SYSTEM_PROMPT_STORAGE_KEY);
+        }
+        setSystemPrompt(DEFAULT_CHAT_SYSTEM_PROMPT_BODY);
+        setShowSystemPromptSettings(false);
+    }, []);
 
-                if (successful.length) {
-                    setPendingDocuments((prev) => [...prev, ...successful]);
-                }
-
-                const failed = results.length - successful.length;
-                if (failed > 0) {
-                    showMiniDialog({
-                        title: "Some documents failed",
-                        message:
-                            "We could not read some documents. Please try again.",
-                    });
-                }
-            })();
-        },
-        [closeAttachmentMenu, showMiniDialog],
+    const imageAttachmentSlotsRemaining = Math.max(
+        0,
+        MAX_IMAGE_ATTACHMENTS_PER_MESSAGE - pendingImages.length,
     );
+    const isImageAttachmentLimitReached = imageAttachmentSlotsRemaining === 0;
+    const canHandleImageDrop =
+        showImageAttachment &&
+        !isGenerating &&
+        !isDownloading &&
+        !showModelGate &&
+        !isAttachingImages;
+    const showImageDropOverlay = canHandleImageDrop && isImageDragActive;
+    const imageDropOverlayTitle = isImageAttachmentLimitReached
+        ? "Image limit reached"
+        : "Drop images to attach";
+    const imageDropOverlayDescription = isImageAttachmentLimitReached
+        ? `You can attach up to ${MAX_IMAGE_ATTACHMENTS_PER_MESSAGE} images per message.`
+        : "PNG, JPG, WebP, GIF, BMP, HEIC, HEIF, AVIF";
 
-    const handleDocumentCancel = useCallback(() => {
-        closeAttachmentMenu();
-    }, [closeAttachmentMenu]);
-
-    const {
-        getInputProps: getDocumentInputProps,
-        openSelector: openDocumentSelector,
-    } = useFileInput({
-        directory: false,
-        onSelect: handleDocumentSelect,
-        onCancel: handleDocumentCancel,
-    });
+    useEffect(() => {
+        if (!canHandleImageDrop) {
+            setIsImageDragActive(false);
+        }
+    }, [canHandleImageDrop]);
 
     const handleImageSelect = useCallback(
         (files: File[]) => {
-            closeAttachmentMenu();
+            if (imageAttachmentSlotsRemaining <= 0) return;
             const images = files.map((file) => ({
                 id: createAttachmentId(),
                 name: file.name.replace(/\0/g, ""),
@@ -3588,29 +4058,99 @@ const Page: React.FC = () => {
                 file,
             }));
             if (images.length) {
-                setPendingImages((prev) => [...prev, ...images]);
+                setPendingImages((prev) => {
+                    const slotsRemaining = Math.max(
+                        0,
+                        MAX_IMAGE_ATTACHMENTS_PER_MESSAGE - prev.length,
+                    );
+                    if (slotsRemaining === 0) return prev;
+                    return [...prev, ...images.slice(0, slotsRemaining)];
+                });
             }
         },
-        [closeAttachmentMenu],
+        [imageAttachmentSlotsRemaining],
     );
 
-    const handleImageCancel = useCallback(() => {
-        closeAttachmentMenu();
-    }, [closeAttachmentMenu]);
+    const processTauriImagePaths = useCallback(
+        async (selectedPaths: string[], source: "picker" | "drop") => {
+            if (imageAttachmentSlotsRemaining <= 0) return;
+            const pathsToProcess = selectedPaths.slice(
+                0,
+                imageAttachmentSlotsRemaining,
+            );
+            if (pathsToProcess.length === 0) {
+                return;
+            }
 
-    const {
-        getInputProps: getImageInputProps,
-        openSelector: openImageSelector,
-    } = useFileInput({
-        directory: false,
-        accept: IMAGE_SELECTOR_ACCEPT,
-        onSelect: handleImageSelect,
-        onCancel: handleImageCancel,
-    });
+            const epoch = imageAttachmentEpochRef.current;
+            setIsAttachingImages(true);
+
+            try {
+                const { invoke } = await import("@tauri-apps/api/core");
+                const files = await Promise.all(
+                    pathsToProcess.map(async (selectedPath) => {
+                        const normalized = selectedPath.replace(/\\/g, "/");
+                        const name =
+                            normalized.split("/").pop()?.replace(/\0/g, "") ||
+                            "image";
+                        const compressed = await invoke<number[]>(
+                            "chat_db_compress_attachment_image_file",
+                            { path: selectedPath },
+                        );
+                        const bytes = new Uint8Array(compressed);
+                        return new File(
+                            [toSafeBlobPart(bytes)],
+                            normalizedJpegAttachmentName(name),
+                            { type: "image/jpeg" },
+                        );
+                    }),
+                );
+
+                if (epoch !== imageAttachmentEpochRef.current) return;
+
+                log.info(
+                    `Compressed ${source === "drop" ? "dropped" : "selected"} image attachments`,
+                    {
+                        count: files.length,
+                        totalBytes: files.reduce(
+                            (sum, file) => sum + file.size,
+                            0,
+                        ),
+                    },
+                );
+
+                if (files.length > 0) {
+                    handleImageSelect(files);
+                    prewarmSelectedImageInference();
+                }
+            } catch (error) {
+                if (epoch !== imageAttachmentEpochRef.current) return;
+                log.error(
+                    `Failed to process ${source === "drop" ? "dropped" : "selected"} image attachment: ${formatImageProcessingErrorForLog(error)}`,
+                );
+                showMiniDialog(
+                    imageProcessingFailureDialog(error, pathsToProcess.length),
+                );
+                return;
+            } finally {
+                if (epoch === imageAttachmentEpochRef.current) {
+                    setIsAttachingImages(false);
+                }
+            }
+        },
+        [
+            handleImageSelect,
+            imageAttachmentSlotsRemaining,
+            prewarmSelectedImageInference,
+            showMiniDialog,
+        ],
+    );
 
     const openTauriImageSelector = useCallback(async () => {
-        closeAttachmentMenu();
+        if (imageAttachmentSlotsRemaining <= 0) return;
         try {
+            const { open: openFileDialog } =
+                await import("@tauri-apps/plugin-dialog");
             const selection = await openFileDialog({
                 directory: false,
                 multiple: true,
@@ -3622,36 +4162,15 @@ const Page: React.FC = () => {
                 ],
             });
             if (!selection) {
-                handleImageCancel();
                 return;
             }
             const selectedPaths = Array.isArray(selection)
                 ? selection
                 : [selection];
             if (selectedPaths.length === 0) {
-                handleImageCancel();
                 return;
             }
-
-            const { readFile } = await import("@tauri-apps/plugin-fs");
-            const files = await Promise.all(
-                selectedPaths.map(async (selectedPath) => {
-                    const normalized = selectedPath.replace(/\\/g, "/");
-                    const name =
-                        normalized.split("/").pop()?.replace(/\0/g, "") ||
-                        "image";
-                    const bytes = await readFile(selectedPath);
-                    return new File([toSafeBlobPart(bytes)], name, {
-                        type: inferImageMime(name),
-                    });
-                }),
-            );
-
-            if (files.length > 0) {
-                handleImageSelect(files);
-            } else {
-                handleImageCancel();
-            }
+            await processTauriImagePaths(selectedPaths, "picker");
         } catch (error) {
             log.error("Failed to open image picker", error);
             showMiniDialog({
@@ -3659,49 +4178,95 @@ const Page: React.FC = () => {
                 message: "Could not open the image picker. Please try again.",
             });
         }
+    }, [imageAttachmentSlotsRemaining, processTauriImagePaths, showMiniDialog]);
+
+    useEffect(() => {
+        if (!isTauriRuntime || !showImageAttachment) return;
+
+        let disposed = false;
+        let unlisten: (() => void) | undefined;
+
+        void import("@tauri-apps/api/webview")
+            .then(({ getCurrentWebview }) =>
+                getCurrentWebview().onDragDropEvent((event) => {
+                    if (
+                        event.payload.type === "enter" ||
+                        event.payload.type === "over"
+                    ) {
+                        if (canHandleImageDrop) {
+                            setIsImageDragActive(true);
+                        }
+                        return;
+                    }
+
+                    if (event.payload.type === "leave") {
+                        setIsImageDragActive(false);
+                        return;
+                    }
+
+                    setIsImageDragActive(false);
+                    if (!canHandleImageDrop) return;
+                    if (isImageAttachmentLimitReached) {
+                        showMiniDialog({
+                            title: "Image limit reached",
+                            message: `You can attach up to ${MAX_IMAGE_ATTACHMENTS_PER_MESSAGE} images per message.`,
+                        });
+                        return;
+                    }
+
+                    const imagePaths = event.payload.paths.filter((path) => {
+                        const lowerPath = path.toLowerCase();
+                        return IMAGE_SELECTOR_EXTENSIONS.some((extension) =>
+                            lowerPath.endsWith(`.${extension}`),
+                        );
+                    });
+                    if (imagePaths.length === 0) {
+                        showMiniDialog({
+                            title: "No supported images",
+                            message:
+                                "Drop PNG, JPG, WebP, GIF, BMP, HEIC, HEIF, or AVIF images.",
+                        });
+                        return;
+                    }
+
+                    void processTauriImagePaths(imagePaths, "drop");
+                }),
+            )
+            .then((dispose) => {
+                if (disposed) {
+                    dispose();
+                } else {
+                    unlisten = dispose;
+                }
+            })
+            .catch((error: unknown) => {
+                log.error(
+                    "Failed to subscribe to Tauri image drop events",
+                    error,
+                );
+            });
+
+        return () => {
+            disposed = true;
+            unlisten?.();
+        };
     }, [
-        closeAttachmentMenu,
-        handleImageCancel,
-        handleImageSelect,
-        inferImageMime,
+        canHandleImageDrop,
+        isImageAttachmentLimitReached,
+        isTauriRuntime,
+        processTauriImagePaths,
+        showImageAttachment,
         showMiniDialog,
     ]);
 
-    const openAttachmentMenu = useCallback(
-        (_event: React.MouseEvent<HTMLElement>) => {
-            closeAttachmentMenu();
-            if (showImageAttachment) {
-                if (isTauriRuntime) {
-                    void openTauriImageSelector();
-                } else {
-                    openImageSelector();
-                }
-                return;
-            }
-            openDocumentSelector();
-        },
-        [
-            closeAttachmentMenu,
-            isTauriRuntime,
-            openDocumentSelector,
-            openImageSelector,
-            openTauriImageSelector,
-            showImageAttachment,
-        ],
-    );
-
-    const handleAttachmentChoice = useCallback(
-        (choice: "image" | "document") => {
-            if (choice === "image") {
-                closeAttachmentMenu();
-                openImageSelector();
-            } else {
-                closeAttachmentMenu();
-                openDocumentSelector();
-            }
-        },
-        [closeAttachmentMenu, openDocumentSelector, openImageSelector],
-    );
+    const openPhotoPicker = useCallback(() => {
+        if (!showImageAttachment || isImageAttachmentLimitReached) return;
+        void openTauriImageSelector();
+    }, [
+        showImageAttachment,
+        isImageAttachmentLimitReached,
+        openTauriImageSelector,
+    ]);
 
     const removePendingDocument = useCallback((id: string) => {
         setPendingDocuments((prev) => prev.filter((doc) => doc.id !== id));
@@ -3711,66 +4276,8 @@ const Page: React.FC = () => {
         setPendingImages((prev) => prev.filter((img) => img.id !== id));
     }, []);
 
-    const handleLogout = useCallback(
-        () =>
-            showMiniDialog({
-                title: "Sign out",
-                message: "Are you sure you want to sign out?",
-                continue: {
-                    text: "Sign out",
-                    color: "critical",
-                    action: logout,
-                },
-                buttonDirection: "row",
-            }),
-        [logout, showMiniDialog],
-    );
-
-    const openLoginFromChat = useCallback(() => {
-        if (!SIGN_IN_ENABLED) {
-            showMiniDialog({
-                title: "Coming Soon",
-                message: (
-                    <Stack
-                        sx={{
-                            gap: 1.25,
-                            alignItems: "center",
-                            textAlign: "center",
-                        }}
-                    >
-                        <Box
-                            component="img"
-                            src={comingSoonDuckySrc}
-                            alt="Ensu ducky"
-                            sx={{ width: 92, height: 92, objectFit: "contain" }}
-                        />
-                        <Box component="span" sx={{ px: 3 }}>
-                            Sign in and cloud backup will be available in a
-                            future update.
-                        </Box>
-                    </Stack>
-                ),
-                cancel: "Got it",
-            });
-            return;
-        }
-        void router.push("/login");
-    }, [comingSoonDuckySrc, router, showMiniDialog]);
-
-    const openPasskeysFromChat = useCallback(async () => {
-        try {
-            await openAccountsManagePasskeysPage();
-        } catch (e) {
-            log.error("Failed to open passkeys page", e);
-            showMiniDialog({
-                title: "Passkeys unavailable",
-                message:
-                    "We could not open the passkeys page. Please try again.",
-            });
-        }
-    }, [showMiniDialog]);
-
-    const handleSend = useCallback(async () => {
+    const handleSend = async (input: string) => {
+        if (isAttachingImages || pendingSendRef.current) return;
         const trimmed = input.trim();
         const hasDocuments = pendingDocuments.length > 0;
         const hasImages = pendingImages.length > 0;
@@ -3783,6 +4290,15 @@ const Page: React.FC = () => {
             return;
         }
         if (!trimmed && !hasDocuments && !hasImages) {
+            return;
+        }
+        if (
+            showModelGate ||
+            isModelPreparationActive ||
+            (isTauriRuntime && !sourcesReady)
+        )
+            return;
+        if (generationStartingRef.current || generationStoppingRef.current) {
             return;
         }
         if (isDownloading) {
@@ -3800,115 +4316,190 @@ const Page: React.FC = () => {
             return;
         }
 
-        setStickToBottom(true);
-
-        let activeSessionId = currentSessionId;
-        if (!activeSessionId) {
-            activeSessionId = await createSession(chatKey);
-            setCurrentSessionId(activeSessionId);
-            currentSessionIdRef.current = activeSessionId;
-            setIsDraftSession(false);
-            isDraftSessionRef.current = false;
-            updateRouteSession(activeSessionId, true);
-            await refreshSessions();
-        }
-
-        const messageText = buildPromptWithDocuments(
-            trimmed.replace(/\u0000/g, ""),
-            pendingDocuments,
-        );
-        let promptText = messageText;
-        let inferenceImagePaths: string[] = [];
-
-        let attachments: ChatAttachment[] = [];
-        if (pendingDocuments.length > 0 || pendingImages.length > 0) {
-            try {
-                const encoder = new TextEncoder();
-                const documentAttachments = await Promise.all(
-                    pendingDocuments.map(async (doc) => {
-                        const bytes = encoder.encode(doc.text);
-                        await storeEncryptedAttachmentBytes(
-                            doc.id,
-                            bytes,
-                            chatKey,
-                            activeSessionId,
-                        );
-                        return {
-                            id: doc.id,
-                            kind: "document",
-                            name: doc.name.replace(/\0/g, ""),
-                            size: bytes.length,
-                        } satisfies ChatAttachment;
-                    }),
-                );
-                const imageAttachments = await Promise.all(
-                    pendingImages.map(async (img) => {
-                        const bytes = new Uint8Array(
-                            await img.file.arrayBuffer(),
-                        );
-                        await storeEncryptedAttachmentBytes(
-                            img.id,
-                            bytes,
-                            chatKey,
-                            activeSessionId,
-                        );
-                        const previewUrl = URL.createObjectURL(
-                            new Blob([toSafeBlobPart(bytes)]),
-                        );
-                        attachmentPreviewUrlsRef.current[img.id] = previewUrl;
-                        setAttachmentPreviews((prev) => ({
-                            ...prev,
-                            [img.id]: previewUrl,
-                        }));
-                        return {
-                            id: img.id,
-                            kind: "image",
-                            name: img.name.replace(/\0/g, ""),
-                            size: img.size,
-                        } satisfies ChatAttachment;
-                    }),
-                );
-                attachments = [...documentAttachments, ...imageAttachments];
-            } catch (error) {
-                log.error("Failed to store attachments", error);
-                showMiniDialog({
-                    title: "Attachment error",
-                    message: "We could not attach the files. Please try again.",
-                });
-                return;
-            }
-        }
-
-        if (pendingImages.length > 0) {
-            try {
-                inferenceImagePaths = await writeInferenceImages(pendingImages);
-            } catch (error) {
-                log.error("Failed to prepare images for inference", error);
-                showMiniDialog({
-                    title: "Attachment error",
-                    message:
-                        "We could not prepare the images for inference. Please try again.",
-                });
-                return;
-            }
-        }
-
-        promptText = buildPromptWithImages(
-            messageText,
-            inferenceImagePaths.length,
-        );
-
-        setInput("");
-
+        pendingSendRef.current = true;
+        handleChatActivity();
+        setIsPreparingMessage(true);
+        const messageSources = sourceSelection;
         try {
-            if (editingMessage) {
-                const parentUuid = editingMessage.parentMessageUuid;
-                const selectionKey = parentUuid ?? ROOT_SELECTION_KEY;
-                const historyPath = parentUuid
-                    ? slicePathUntil(messageState.path, parentUuid)
-                    : [];
+            setStickToBottom(true);
 
-                const newUserMessage = await addMessage(
+            let activeSessionId = currentSessionId;
+            if (!activeSessionId) {
+                try {
+                    activeSessionId = await createSession(chatKey);
+                } catch (error) {
+                    onGenericError(error);
+                    return;
+                }
+                setCurrentSessionId(activeSessionId);
+                currentSessionIdRef.current = activeSessionId;
+                setIsDraftSession(false);
+                isDraftSessionRef.current = false;
+                updateRouteSession(activeSessionId, true);
+                await refreshSessions();
+            }
+
+            const userText = trimmed.replaceAll("\0", "");
+            const messageText = buildPromptWithDocuments(
+                userText,
+                pendingDocuments,
+            );
+            const persistedAttachmentIds = new Set(
+                (editingMessage?.attachments ?? []).map(({ id }) => id),
+            );
+            const newAttachmentIds = [
+                ...pendingDocuments.map(({ id }) => id),
+                ...pendingImages.map(({ id }) => id),
+            ].filter((id) => !persistedAttachmentIds.has(id));
+            const cleanupUnstoredAttachments = async () => {
+                await Promise.all(
+                    newAttachmentIds.map(async (id) => {
+                        try {
+                            await deleteAttachmentBytes(id);
+                        } catch (error) {
+                            log.warn(
+                                `Failed to clean up attachment payload ${id}`,
+                                error,
+                            );
+                        }
+                    }),
+                );
+            };
+            let inferenceImagePaths: string[] = [];
+
+            let attachments: ChatAttachment[] = [];
+            if (pendingDocuments.length > 0 || pendingImages.length > 0) {
+                try {
+                    const encoder = new TextEncoder();
+                    const documentAttachments = await Promise.all(
+                        pendingDocuments.map(async (doc) => {
+                            const bytes = encoder.encode(doc.text);
+                            await storeEncryptedAttachmentBytes(
+                                doc.id,
+                                bytes,
+                                chatKey,
+                                activeSessionId,
+                            );
+                            return {
+                                id: doc.id,
+                                kind: "document",
+                                name: doc.name.replace(/\0/g, ""),
+                                size: bytes.length,
+                            } satisfies ChatAttachment;
+                        }),
+                    );
+                    const imageAttachments = await Promise.all(
+                        pendingImages.map(async (img) => {
+                            const bytes = new Uint8Array(
+                                await img.file.arrayBuffer(),
+                            );
+                            await storeEncryptedAttachmentBytes(
+                                img.id,
+                                bytes,
+                                chatKey,
+                                activeSessionId,
+                            );
+                            const previewUrl = URL.createObjectURL(
+                                new Blob([toSafeBlobPart(bytes)]),
+                            );
+                            attachmentPreviewUrlsRef.current[img.id] =
+                                previewUrl;
+                            setAttachmentPreviews((prev) => ({
+                                ...prev,
+                                [img.id]: previewUrl,
+                            }));
+                            return {
+                                id: img.id,
+                                kind: "image",
+                                name: img.name.replace(/\0/g, ""),
+                                size: img.size,
+                            } satisfies ChatAttachment;
+                        }),
+                    );
+                    attachments = [...documentAttachments, ...imageAttachments];
+                } catch (error) {
+                    await cleanupUnstoredAttachments();
+                    log.error("Failed to store attachments", error);
+                    showMiniDialog({
+                        title: "Attachment error",
+                        message:
+                            "We could not attach the files. Please try again.",
+                    });
+                    return;
+                }
+            }
+
+            if (pendingImages.length > 0) {
+                try {
+                    inferenceImagePaths =
+                        await writeInferenceImages(pendingImages);
+                } catch (error) {
+                    await cleanupUnstoredAttachments();
+                    log.error("Failed to prepare images for inference", error);
+                    showMiniDialog({
+                        title: "Attachment error",
+                        message:
+                            "We could not prepare the images for inference. Please try again.",
+                    });
+                    return;
+                }
+            }
+
+            const promptText = buildPromptWithImages(
+                userText,
+                inferenceImagePaths.length,
+                pendingDocuments,
+            );
+
+            composerRef.current?.setText("");
+
+            let messageStored = false;
+            try {
+                if (editingMessage) {
+                    const parentUuid = editingMessage.parentMessageUuid;
+                    const selectionKey = parentUuid ?? ROOT_SELECTION_KEY;
+                    const historyPath = parentUuid
+                        ? slicePathUntil(messageState.path, parentUuid)
+                        : [];
+
+                    const newUserMessage = await addMessage(
+                        activeSessionId,
+                        "self",
+                        messageText,
+                        chatKey,
+                        parentUuid,
+                        attachments,
+                    );
+                    messageStored = true;
+
+                    void updateBranchSelectionState(
+                        selectionKey,
+                        newUserMessage.messageUuid,
+                    );
+                    appendMessageToState(newUserMessage);
+                    updateSessionAfterMessage(newUserMessage);
+                    setEditingMessage(null);
+                    setPendingDocuments([]);
+                    setPendingImages([]);
+
+                    await startGeneration({
+                        promptText,
+                        parentMessage: newUserMessage,
+                        historyPath,
+                        sessionUuid: activeSessionId,
+                        imagePaths: inferenceImagePaths,
+                        mediaMarker: MEDIA_MARKER,
+                        sources: messageSources,
+                    });
+                    return;
+                }
+
+                const basePath = messageState.path;
+                const leaf = basePath[basePath.length - 1];
+                const parentUuid = leaf?.messageUuid;
+                const selectionKey = parentUuid ?? ROOT_SELECTION_KEY;
+
+                const userMessage = await addMessage(
                     activeSessionId,
                     "self",
                     messageText,
@@ -3916,91 +4507,41 @@ const Page: React.FC = () => {
                     parentUuid,
                     attachments,
                 );
+                messageStored = true;
 
-                updateBranchSelectionState(
+                void updateBranchSelectionState(
                     selectionKey,
-                    newUserMessage.messageUuid,
+                    userMessage.messageUuid,
                 );
-                appendMessageToState(newUserMessage);
-                updateSessionAfterMessage(newUserMessage);
-                setEditingMessage(null);
+                appendMessageToState(userMessage);
+                updateSessionAfterMessage(userMessage);
                 setPendingDocuments([]);
                 setPendingImages([]);
 
-                void syncChat(chatKey);
-
                 await startGeneration({
                     promptText,
-                    parentMessageUuid: newUserMessage.messageUuid,
-                    historyPath,
+                    parentMessage: userMessage,
+                    historyPath: basePath,
                     sessionUuid: activeSessionId,
                     imagePaths: inferenceImagePaths,
                     mediaMarker: MEDIA_MARKER,
+                    sources: messageSources,
                 });
-                return;
+            } catch (error) {
+                if (!messageStored) await cleanupUnstoredAttachments();
+                log.error("Failed to store chat message", error);
+            } finally {
+                await cleanupInferenceImages(inferenceImagePaths);
             }
-
-            const basePath = messageState.path;
-            const leaf = basePath[basePath.length - 1];
-            const parentUuid = leaf?.messageUuid;
-            const selectionKey = parentUuid ?? ROOT_SELECTION_KEY;
-
-            const userMessage = await addMessage(
-                activeSessionId,
-                "self",
-                messageText,
-                chatKey,
-                parentUuid,
-                attachments,
-            );
-
-            updateBranchSelectionState(selectionKey, userMessage.messageUuid);
-            appendMessageToState(userMessage);
-            updateSessionAfterMessage(userMessage);
-            setPendingDocuments([]);
-            setPendingImages([]);
-
-            void syncChat(chatKey);
-
-            await startGeneration({
-                promptText,
-                parentMessageUuid: userMessage.messageUuid,
-                historyPath: basePath,
-                sessionUuid: activeSessionId,
-                imagePaths: inferenceImagePaths,
-                mediaMarker: MEDIA_MARKER,
-            });
-        } catch (error) {
-            log.error("Failed to store chat message", error);
         } finally {
-            await cleanupInferenceImages(inferenceImagePaths);
+            pendingSendRef.current = false;
+            setIsPreparingMessage(false);
         }
-    }, [
-        input,
-        chatKey,
-        currentSessionId,
-        editingMessage,
-        isDownloading,
-        isGenerating,
-        messageState.path,
-        pendingDocuments,
-        pendingImages,
-        showMiniDialog,
-        slicePathUntil,
-        startGeneration,
-        writeInferenceImages,
-        cleanupInferenceImages,
-        storeEncryptedAttachmentBytes,
-        syncChat,
-        updateBranchSelectionState,
-        updateRouteSession,
-        formatErrorMessage,
-        appendMessageToState,
-        updateSessionAfterMessage,
-    ]);
+    };
 
     useEffect(() => {
         return () => {
+            imageAttachmentEpochRef.current += 1;
             if (streamingFlushTimerRef.current) {
                 window.clearTimeout(streamingFlushTimerRef.current);
             }
@@ -4022,23 +4563,22 @@ const Page: React.FC = () => {
             tinyIconProps={tinyIconProps}
             actionIconProps={actionIconProps}
             showSessionSearch={showSessionSearch}
-            sessionSearch={sessionSearch}
-            setSessionSearch={setSessionSearch}
+            sessionSearchRef={sessionSearchRef}
             handleOpenSessionSearch={handleOpenSessionSearch}
             handleCloseSessionSearch={handleCloseSessionSearch}
             handleNewChat={handleNewChat}
             handleOpenDrawer={handleOpenDrawer}
             handleCollapseDrawer={handleCollapseDrawer}
-            groupedSessions={groupedSessions}
+            sessions={sessions}
             currentSessionId={currentSessionId}
             handleSelectSession={handleSelectSession}
+            requestRenameSession={requestRenameSession}
             requestDeleteSession={requestDeleteSession}
-            isLoggedIn={isLoggedIn}
             openSettingsModal={openSettingsModal}
         />
     );
 
-    if (loading) return <></>;
+    if (loading || !modelSettingsLoaded) return <></>;
 
     return (
         <>
@@ -4172,59 +4712,54 @@ const Page: React.FC = () => {
                                 </Box>
                             </Stack>
                         </Stack>
-                        {!isLoggedIn && (
-                            <Button
-                                onClick={openLoginFromChat}
-                                color="inherit"
-                                variant="text"
-                                sx={{
-                                    textTransform: "none",
-                                    fontWeight: 600,
-                                    fontSize: "13px",
-                                    color: "text.base",
-                                    py: 0.75,
-                                }}
-                            >
-                                Sign In
-                            </Button>
-                        )}
                     </NavbarBase>
 
-                    <ChatMessageList
-                        messages={displayMessages}
-                        attachmentPreviews={attachmentPreviews}
-                        branchSwitchers={branchSwitchers}
-                        loadingPhrase={loadingPhrase}
-                        loadingDots={loadingDots}
-                        isGenerating={isGenerating}
-                        isStreamingOutro={isStreamingOutro}
-                        stickToBottom={stickToBottom}
-                        onStickToBottomChange={handleStickToBottomChange}
-                        scrollContainerRef={scrollContainerRef}
-                        onScroll={handleScroll}
-                        onUserScrollIntent={markUserScrollIntent}
-                        onOpenAttachment={handleOpenAttachment}
-                        onEditMessage={handleEditMessage}
-                        onCopyMessage={handleCopyMessage}
-                        onRetryMessage={handleRetryMessage}
-                        onPrevBranch={handlePrevBranch}
-                        onNextBranch={handleNextBranch}
-                        onRequestPreview={loadAttachmentPreview}
-                        parseDocumentBlocks={parseDocumentBlocks}
-                        stripHiddenParts={stripHiddenParts}
-                        formatTime={formatTime}
-                        isDesktopOverlay={isDesktopOverlay}
-                        userBubbleBackground={userBubbleBackground}
-                        userMessageTextSx={userMessageTextSx}
-                        assistantTextSx={assistantTextSx}
-                        assistantMarkdownSx={assistantMarkdownSx}
-                        streamingMessageSx={streamingMessageSx}
-                        actionButtonSx={actionButtonSx}
-                        smallIconProps={smallIconProps}
-                        actionIconProps={actionIconProps}
-                    />
+                    {hideMessagesForModelGate ? (
+                        <Box sx={{ flex: 1 }} />
+                    ) : (
+                        <ChatMessageList
+                            messages={displayMessages}
+                            attachmentPreviews={attachmentPreviews}
+                            branchSwitchers={branchSwitchers}
+                            loadingPhrase={loadingPhrase}
+                            preparationStatus={conversationStatus}
+                            loadingDots={loadingDots}
+                            isGenerating={isGenerating}
+                            isStreamingOutro={isStreamingOutro}
+                            stickToBottom={stickToBottom}
+                            onStickToBottomChange={handleStickToBottomChange}
+                            scrollContainerRef={scrollContainerRef}
+                            onScroll={handleScroll}
+                            onUserScrollIntent={markUserScrollIntent}
+                            onOpenAttachment={handleOpenAttachment}
+                            onEditMessage={handleEditMessage}
+                            onCopyMessage={handleCopyMessage}
+                            onRetryMessage={handleRetryMessage}
+                            onPrevBranch={handlePrevBranch}
+                            onNextBranch={handleNextBranch}
+                            onRequestPreview={loadAttachmentPreview}
+                            parseDocumentBlocks={parseDocumentBlocks}
+                            stripHiddenParts={stripHiddenParts}
+                            formatTime={formatTime}
+                            isDesktopOverlay={isDesktopOverlay}
+                            userBubbleBackground={userBubbleBackground}
+                            userMessageTextSx={userMessageTextSx}
+                            assistantTextSx={assistantTextSx}
+                            assistantMarkdownSx={assistantMarkdownSx}
+                            streamingMessageSx={streamingMessageSx}
+                            actionButtonSx={actionButtonSx}
+                            dialogTitleSx={dialogTitleSx}
+                            dialogCloseButtonSx={drawerIconButtonSx}
+                            dialogCloseIconProps={tinyIconProps}
+                            smallIconProps={smallIconProps}
+                            actionIconProps={actionIconProps}
+                        />
+                    )}
 
                     <ChatComposer
+                        ref={composerRef}
+                        destination={`${currentSessionId ?? "draft"}:${editingMessage?.messageUuid ?? "compose"}`}
+                        withVoiceInput={withVoiceInput}
                         showModelGate={showModelGate}
                         showDownloadProgress={showDownloadProgress}
                         downloadStatus={downloadStatus}
@@ -4238,90 +4773,168 @@ const Page: React.FC = () => {
                         handleCancelEdit={handleCancelEdit}
                         pendingDocuments={pendingDocuments}
                         pendingImages={pendingImages}
+                        isAttachingImages={isAttachingImages}
                         pendingImagePreviews={pendingImagePreviews}
                         removePendingDocument={removePendingDocument}
                         removePendingImage={removePendingImage}
                         formatBytes={formatBytes}
-                        input={input}
-                        onInputChange={setInput}
-                        inputRef={inputRef}
                         isGenerating={isGenerating}
                         handleSend={handleSend}
+                        onActivity={handleChatActivity}
                         handleStopGeneration={handleStopGeneration}
-                        showAttachmentPicker={showAttachmentPicker}
-                        openAttachmentMenu={openAttachmentMenu}
-                        attachmentAnchor={attachmentAnchor}
-                        closeAttachmentMenu={closeAttachmentMenu}
-                        handleAttachmentChoice={handleAttachmentChoice}
+                        retrySources={
+                            knowledgeCatalogError || notesCollectionsError
+                                ? () => {
+                                      void refreshKnowledgeCatalog();
+                                      retryNotesCollections();
+                                  }
+                                : undefined
+                        }
+                        isPreparingMessage={isPreparingMessage}
+                        sourcesLoading={isTauriRuntime && !sourcesReady}
+                        sourcesStatus={
+                            isTauriRuntime && !sourcesReady
+                                ? knowledgeCatalogError || notesCollectionsError
+                                    ? "Couldn’t load sources. Try again."
+                                    : "Loading sources for this chat…"
+                                : undefined
+                        }
+                        showAttachmentPicker={showImageAttachment}
+                        openPhotoPicker={openPhotoPicker}
                         showImageAttachment={showImageAttachment}
-                        getDocumentInputProps={getDocumentInputProps}
-                        getImageInputProps={getImageInputProps}
+                        isImageAttachmentLimitReached={
+                            isImageAttachmentLimitReached
+                        }
                         actionButtonSx={actionButtonSx}
                         drawerIconButtonSx={drawerIconButtonSx}
                         smallIconProps={smallIconProps}
                         compactIconProps={compactIconProps}
                         actionIconProps={actionIconProps}
-                        stopButtonColor={theme.palette.error.main}
                     />
+                    {showImageDropOverlay && (
+                        <Box
+                            sx={{
+                                position: "absolute",
+                                inset: 0,
+                                zIndex: 40,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                pointerEvents: "none",
+                                bgcolor: "rgba(0, 0, 0, 0.38)",
+                                backdropFilter: "blur(10px)",
+                                WebkitBackdropFilter: "blur(10px)",
+                            }}
+                        >
+                            <Stack
+                                sx={{
+                                    alignItems: "center",
+                                    gap: 0.75,
+                                    px: 3,
+                                    py: 2,
+                                    borderRadius: 2,
+                                    border: "1px solid rgba(255, 255, 255, 0.32)",
+                                    bgcolor: "rgba(0, 0, 0, 0.42)",
+                                    color: "#fff",
+                                    boxShadow:
+                                        "0 18px 48px rgba(0, 0, 0, 0.22)",
+                                }}
+                            >
+                                <Typography
+                                    variant="small"
+                                    sx={{ fontWeight: 700, color: "inherit" }}
+                                >
+                                    {imageDropOverlayTitle}
+                                </Typography>
+                                <Typography
+                                    variant="mini"
+                                    sx={{ color: "rgba(255, 255, 255, 0.78)" }}
+                                >
+                                    {imageDropOverlayDescription}
+                                </Typography>
+                            </Stack>
+                        </Box>
+                    )}
                 </Box>
             </Box>
 
             <ChatDialogs
                 showSettingsModal={showSettingsModal}
+                openSettingsModal={openSettingsModal}
                 closeSettingsModal={closeSettingsModal}
                 dialogPaperSx={dialogPaperSx}
                 dialogTitleSx={dialogTitleSx}
                 actionButtonSx={actionButtonSx}
+                drawerIconButtonSx={drawerIconButtonSx}
                 settingsItemSx={settingsItemSx}
                 smallIconProps={smallIconProps}
                 compactIconProps={compactIconProps}
-                isLoggedIn={isLoggedIn}
-                signedInEmail={savedLocalUser()?.email ?? ""}
+                tinyIconProps={tinyIconProps}
                 saveLogs={saveLogs}
-                handleLogout={handleLogout}
-                openLoginFromChat={openLoginFromChat}
-                openPasskeysFromChat={openPasskeysFromChat}
-                developerSettingsEnabled={DEVELOPER_SETTINGS_ENABLED}
-                modelSettingsEnabled={MODEL_SETTINGS_ENABLED}
-                showDeveloperMenu={showDeveloperMenu}
-                closeDeveloperMenu={closeDeveloperMenu}
+                handleCheckForUpdates={handleCheckForUpdates}
+                advancedUnlocked={advancedUnlocked}
+                buildVersion={buildVersion}
+                handleBuildVersionTap={handleBuildVersionTap}
                 openModelSettings={openModelSettings}
-                openDevSettings={openDevSettings}
+                openSystemPromptSettings={openSystemPromptSettings}
                 isSmall={isSmall}
+                renameSessionId={renameSessionId}
+                renameSessionTitle={renameSessionTitle}
+                setRenameSessionTitle={setRenameSessionTitle}
+                handleCancelRenameSession={handleCancelRenameSession}
+                handleConfirmRenameSession={handleConfirmRenameSession}
                 deleteSessionId={deleteSessionId}
                 deleteSessionLabel={deleteSessionLabel}
                 handleCancelDeleteSession={handleCancelDeleteSession}
                 handleConfirmDeleteSession={handleConfirmDeleteSession}
                 showModelSettings={showModelSettings}
                 closeModelSettings={closeModelSettings}
-                useCustomModel={useCustomModel}
+                selectedModelId={selectedModelId}
                 defaultModelName={resolvedDefaultModel.name}
                 loadedModelName={loadedModelName}
-                allowMmproj={allowMmproj}
                 isTauriRuntime={isTauriRuntime}
-                modelUrl={modelUrl}
-                setModelUrl={setModelUrl}
-                modelUrlError={modelUrlError}
-                mmprojUrl={mmprojUrl}
-                setMmprojUrl={setMmprojUrl}
-                mmprojError={mmprojError}
                 suggestedModels={suggestedModels}
-                handleFillSuggestion={handleFillSuggestion}
                 contextLength={contextLength}
-                setContextLength={setContextLength}
-                contextError={contextError}
-                maxTokens={maxTokens}
-                setMaxTokens={setMaxTokens}
-                maxTokensError={maxTokensError}
                 isSavingModel={isSavingModel}
                 handleSaveModel={handleSaveModel}
                 handleUseDefaultModel={handleUseDefaultModel}
-                syncNotificationOpen={syncNotificationOpen}
-                setSyncNotificationOpen={setSyncNotificationOpen}
-                syncNotification={syncNotification}
-                showDevSettings={showDevSettings}
-                closeDevSettings={closeDevSettings}
+                showSystemPromptSettings={showSystemPromptSettings}
+                closeSystemPromptSettings={closeSystemPromptSettings}
+                systemPrompt={systemPrompt}
+                handleSaveSystemPrompt={handleSaveSystemPrompt}
+                handleUseDefaultSystemPrompt={handleUseDefaultSystemPrompt}
+                knowledgePacks={knowledgePacks}
+                knowledgeCatalogLoading={
+                    knowledgeCatalogLoading || !packSettingsReady
+                }
+                knowledgeCatalogError={knowledgeCatalogError}
+                retryKnowledgeCatalog={refreshKnowledgeCatalog}
+                knowledgeDownloadProgress={knowledgeDownloadProgress}
+                knowledgeErrors={knowledgeErrors}
+                handleDownloadKnowledgePack={handleDownloadKnowledgePack}
+                handleCancelKnowledgePackDownload={
+                    handleCancelKnowledgePackDownload
+                }
+                notesCollections={notesCollections}
+                notesCollectionsLoading={notesCollectionsLoading}
+                notesCollectionsError={notesCollectionsError}
+                retryNotesCollections={retryNotesCollections}
+                handleAddNotesFolder={handleAddNotesFolder}
+                handleRemoveNotesCollection={handleRemoveNotesCollection}
+                onSettingsFlowVisibilityChange={
+                    handleSettingsFlowVisibilityChange
+                }
+                disabledNoteIds={disabledNoteIds}
+                disabledPackIds={disabledPackIds}
+                handleSetPackEnabled={handleSetPackEnabled}
+                handleSetNotesEnabled={handleSetNotesEnabled}
+                handleIndexNotesCollection={runNotesIndex}
+                chatNotificationOpen={chatNotificationOpen}
+                setChatNotificationOpen={setChatNotificationOpen}
+                chatNotification={chatNotification}
                 modelGateStatus={modelGateStatus}
+                imagePreview={imagePreview}
+                closeImagePreview={closeImagePreview}
             />
         </>
     );

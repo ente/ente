@@ -2,25 +2,19 @@ import { clearBlobCaches } from "ente-base/blob-cache";
 import { clearKVDB } from "ente-base/kv";
 import { clearLocalStorage } from "ente-base/local-storage";
 import log from "ente-base/log";
-import { clearSessionStorage } from "ente-base/session";
+import { clearSessionStorage } from "ente-base/session-storage";
+import { clearAccountsClient } from "./accounts-client";
 import { clearStashedRedirect } from "./redirect";
 import { remoteLogoutIfNeeded } from "./user";
 
-/**
- * Logout sequence common to all apps that rely on the accounts package.
- *
- * [Note: Do not throw during logout]
- *
- * This function is guaranteed to not thrown any errors, and will try to
- * independently complete all the steps in the sequence that can be completed.
- * This allows the user to logout and start again even if somehow their account
- * gets in an unexpected state.
- */
+// This function must not throw. Each step runs independently and ignores
+// errors so that logout completes even from a broken account state.
 export const accountLogout = async () => {
     const ignoreError = (label: string, e: unknown) =>
         log.error(`Ignoring error during logout (${label})`, e);
 
     log.info("logout (account)");
+    clearAccountsClient();
 
     try {
         await remoteLogoutIfNeeded();
@@ -54,14 +48,9 @@ export const accountLogout = async () => {
     }
 };
 
-/**
- * This is a subset of the cleanup of local persistence that has already
- * happened during {@link accountLogout}. However, once the logout sequence is
- * complete, we do these specific steps again to clear any state that might've
- * been persisted meanwhile because of in-flight requests getting completed.
- *
- * Post this, we'll reload the page so that in-flight requests are discarded.
- */
+// Called after the logout sequence completes to again clear state that
+// in-flight requests may have persisted meanwhile. The caller then reloads
+// the page so that remaining in-flight requests are discarded.
 export const logoutClearStateAgain = async () => {
     const ignoreError = (label: string, e: unknown) =>
         log.error(`Ignoring error during logout (${label})`, e);

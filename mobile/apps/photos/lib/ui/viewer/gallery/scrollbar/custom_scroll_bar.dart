@@ -1,4 +1,5 @@
 import "dart:async";
+
 import "package:flutter/material.dart";
 import "package:logging/logging.dart";
 import "package:photos/models/gallery/gallery_groups.dart";
@@ -15,14 +16,14 @@ class CustomScrollBar extends StatefulWidget {
   final ScrollController scrollController;
   final GalleryGroups galleryGroups;
   final ValueNotifier<bool> inUseNotifier;
-  final double heighOfViewport;
+  final double viewportHeight;
   const CustomScrollBar({
     super.key,
     required this.child,
     required this.scrollController,
     required this.galleryGroups,
     required this.inUseNotifier,
-    required this.heighOfViewport,
+    required this.viewportHeight,
     required this.bottomPadding,
     required this.topPadding,
   });
@@ -40,11 +41,8 @@ class _CustomScrollBarState extends State<CustomScrollBar> {
   late bool _showScrollbarDivisions;
   late bool _showThumb;
 
-  // Scrollbar's thumb height is not fixed by default. If the scrollable is short
-  // enough, the scrollbar's height can go above the minimum length.
-  // In our case, we only depend on this value for showing scrollbar divisions,
-  // which we do not show unless scrollable is long enough. So we can safely
-  // assume that the scrollbar's height will always this minimum value.
+  // Divisions only appear in long galleries, where the thumb stays at this
+  // minimum height.
   static const _kScrollbarMinLength = 36.0;
 
   @override
@@ -67,106 +65,101 @@ class _CustomScrollBarState extends State<CustomScrollBar> {
   }
 
   void _init() {
-    _logger.info("Initializing CustomScrollBar2");
-    if (widget.galleryGroups.groupType.showScrollbarDivisions() &&
-        widget.galleryGroups.groupLayouts.last.maxOffset >
-            widget.heighOfViewport * 8) {
-      _showScrollbarDivisions = true;
-    } else {
-      _showScrollbarDivisions = false;
-    }
+    final supportsScrollbarDivisions = widget.galleryGroups.groupType
+        .showScrollbarDivisions();
+    final maxOffset =
+        widget.galleryGroups.groupLayouts.lastOrNull?.maxOffset ?? 0.0;
 
-    if (widget.galleryGroups.groupLayouts.last.maxOffset >
-        widget.heighOfViewport * 3) {
-      _showThumb = true;
-    } else {
-      _showThumb = false;
-    }
+    _showScrollbarDivisions =
+        supportsScrollbarDivisions && maxOffset > widget.viewportHeight * 8;
 
-    if (_showScrollbarDivisions) {
-      getIntrinsicSizeOfWidget(const ScrollBarDivider(title: "Temp"), context)
-          .then((size) {
-        if (mounted) {
-          setState(() {
-            heightOfScrollbarDivider = size.height;
-          });
-        }
+    _showThumb = maxOffset > widget.viewportHeight * 3;
 
-        // Reason for calling _computePositionToTileMap here is, it needs
-        // heightOfScrollbarDivider to be set.
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _computePositionToTitleMap();
+    if (!_showScrollbarDivisions) return;
+
+    getIntrinsicSizeOfWidget(
+      const ScrollBarDivider(title: "Temp"),
+      context,
+    ).then((size) {
+      if (mounted) {
+        setState(() {
+          heightOfScrollbarDivider = size.height;
         });
+      }
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _computePositionToTitleMap();
       });
-    }
+    });
   }
 
-  // Galleries where this scrollbar is used can gave different extents of headers
-  // and footers. These extents are not taken into account while computing
-  // the position of scrollbar divisions since we only show scrollbar divisions
-  // if the scrollable is long enough, where the header and footer extents
-  // are negligible compared to max extent of the scrollable.
+  // Division positions ignore header and footer heights. They are negligible
+  // in the long galleries that show divisions.
   Future<void> _computePositionToTitleMap() async {
     _logger.info("Computing position to title map");
     final result = <({double position, String title})>[];
     heightOfScrollTrack = await _getHeightOfScrollTrack();
+    if (!mounted ||
+        heightOfScrollTrack == null ||
+        heightOfScrollTrack! <= 0 ||
+        heightOfScrollbarDivider == null) {
+      return;
+    }
     final maxScrollExtent = widget.scrollController.position.maxScrollExtent;
+    if (maxScrollExtent <= 0) {
+      return;
+    }
 
     for (final scrollbarDivision in widget.galleryGroups.scrollbarDivisions) {
       final scrollOffsetOfGroup = widget
-          .galleryGroups.groupIdToScrollOffsetMap[scrollbarDivision.groupID]!;
+          .galleryGroups
+          .groupIdToScrollOffsetMap[scrollbarDivision.groupID];
+      if (scrollOffsetOfGroup == null) {
+        continue;
+      }
 
       final groupScrollOffsetToUse = scrollOffsetOfGroup - heightOfScrollTrack!;
       if (groupScrollOffsetToUse < 0) {
         result.add((position: 0, title: scrollbarDivision.title));
       } else {
-        // By default, the exact scroll position of the scrollable isn't tied
-        // to the center or one constant point of it's scrollbar. This point of
-        // the scrollbar moves from top to bottom across it when the scrollable
-        // is scolled from top to bottom.
-
-        // This correction is to ensure that the scrollbar division elements
-        // appear at the same point of the scrollbar everytime and are
-        // accurate in terms of UX (that is, when scrollbar's is dragged to a
-        // particular scrollbar division (start of the division in gallery),
-        // the division element is always at the same point of the scrollbar).
-        // Ideally this point should be the mid of the scrollbar, but it's
-        // slightly off, not sure why. But this is fine enough.
+        // Account for the thumb's height so each label lines up with its
+        // gallery section while dragging.
         final fractionOfGroupScrollOffsetWrtMaxExtent =
             groupScrollOffsetToUse / maxScrollExtent;
         late final double positionCorrection;
 
-        // This value is the distance from the mid of the scrollbar to the mid
-        // of the scrollbar divider element when both pinned to the top, that
-        // is, their top edges are overlapping.
+        // Offset between the thumb and label centers at the top.
         final value = (_kScrollbarMinLength - heightOfScrollbarDivider!) / 2;
 
         if (fractionOfGroupScrollOffsetWrtMaxExtent < 0.5) {
-          positionCorrection = value * fractionOfGroupScrollOffsetWrtMaxExtent -
+          positionCorrection =
+              value * fractionOfGroupScrollOffsetWrtMaxExtent -
               (heightOfScrollbarDivider! *
                   fractionOfGroupScrollOffsetWrtMaxExtent);
         } else {
           positionCorrection =
               -value * fractionOfGroupScrollOffsetWrtMaxExtent -
-                  (heightOfScrollbarDivider! *
-                      fractionOfGroupScrollOffsetWrtMaxExtent);
+              (heightOfScrollbarDivider! *
+                  fractionOfGroupScrollOffsetWrtMaxExtent);
         }
 
         final adaptedPosition =
             heightOfScrollTrack! * fractionOfGroupScrollOffsetWrtMaxExtent +
-                positionCorrection;
+            positionCorrection;
 
-        result.add(
-          (position: adaptedPosition, title: scrollbarDivision.title),
-        );
+        result.add((position: adaptedPosition, title: scrollbarDivision.title));
       }
     }
     final filteredResult = <({double position, String title})>[];
 
-    // Remove first scrollbar division since it doesn't add value in terms of UX
+    if (result.isEmpty) {
+      return;
+    }
+
+    // The first division marks the top and adds no useful landmark.
     result.removeAt(0);
 
-    // Filter out positions that are too close to each other
+    // Keep division labels at least 48 pixels apart.
     if (result.isNotEmpty) {
       filteredResult.add(result.first);
       for (int i = 1; i < result.length; i++) {
@@ -185,11 +178,14 @@ class _CustomScrollBarState extends State<CustomScrollBar> {
   Future<double> _getHeightOfScrollTrack() {
     final renderBox =
         _scrollbarKey.currentContext?.findRenderObject() as RenderBox?;
-    assert(renderBox != null, "RenderBox is null");
-    // Retry for : https://github.com/flutter/flutter/issues/25827
+    if (renderBox == null) {
+      return Future.value(0);
+    }
+    // RenderBox height may initially be zero:
+    // https://github.com/flutter/flutter/issues/25827
     return MiscUtil()
         .getNonZeroDoubleWithRetry(
-          () => renderBox!.size.height,
+          () => renderBox.size.height,
           id: "getHeightOfScrollTrack",
         )
         .then(
@@ -203,26 +199,21 @@ class _CustomScrollBarState extends State<CustomScrollBar> {
       clipBehavior: Clip.none,
       alignment: Alignment.centerLeft,
       children: [
-        // This media query is used to adjust the bottom padding of the scrollbar
-        MediaQuery(
-          data: MediaQuery.of(context).copyWith(
-            padding: EdgeInsets.only(
-              bottom: widget.bottomPadding.value,
-              top: widget.topPadding,
-              right: 3,
-            ),
+        ScrollbarWithUseNotifer(
+          key: _scrollbarKey,
+          controller: widget.scrollController,
+          interactive: true,
+          inUseNotifier: widget.inUseNotifier,
+          minScrollbarLength: _kScrollbarMinLength,
+          showThumb: _showThumb,
+          radius: const Radius.circular(4),
+          thickness: 8,
+          scrollbarPadding: EdgeInsets.only(
+            bottom: widget.bottomPadding.value,
+            top: widget.topPadding,
+            right: 3,
           ),
-          child: ScrollbarWithUseNotifer(
-            key: _scrollbarKey,
-            controller: widget.scrollController,
-            interactive: true,
-            inUseNotifier: widget.inUseNotifier,
-            minScrollbarLength: _kScrollbarMinLength,
-            showThumb: _showThumb,
-            radius: const Radius.circular(4),
-            thickness: 8,
-            child: widget.child,
-          ),
+          child: widget.child,
         ),
         positionToTitleMap == null || heightOfScrollbarDivider == null
             ? const SizedBox.shrink()
@@ -271,10 +262,7 @@ class ScrollBarDivider extends StatelessWidget {
       decoration: BoxDecoration(
         color: colorScheme.backgroundElevated2,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(
-          color: colorScheme.strokeFaint,
-          width: 0.5,
-        ),
+        border: Border.all(color: colorScheme.strokeFaint, width: 0.5),
         // TODO: Remove shadow if scrolling perf
         // is affected.
         boxShadow: [
@@ -285,16 +273,9 @@ class ScrollBarDivider extends StatelessWidget {
           ),
         ],
       ),
-      padding: const EdgeInsets.symmetric(
-        horizontal: 8,
-        vertical: 4,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: Center(
-        child: Text(
-          title,
-          style: textTheme.miniMuted,
-          maxLines: 1,
-        ),
+        child: Text(title, style: textTheme.miniMuted, maxLines: 1),
       ),
     );
   }

@@ -95,8 +95,7 @@ Use consistent format with `>` separator:
 
 ### Emphasis
 
-- **Bold**: UI elements, important warnings, section labels
-    - Example: **On mobile:** or **Important:**
+- **Bold**: UI elements, section labels (e.g. "**On mobile:**")
 - _Italic_: Emphasis, terminology introduction (use sparingly)
 - `Code`: File paths, commands, technical values
 
@@ -106,22 +105,12 @@ Use consistent format with `>` separator:
 - Use `1.` for numbered steps
 - Use sub-bullets for nested information
 
-### Notes and Warnings
-
-Use blockquotes with bold labels:
-
-```markdown
-> **Note**: Additional context here.
-> **Important**: Critical information.
-> **Warning**: Something that could cause data loss.
-```
-
 ### Code Blocks
 
 Always specify language:
 
 ````markdown
-```bash
+```sh
 command here
 ```
 ````
@@ -146,7 +135,7 @@ Always use H3 with mandatory anchor for deep linking:
 
 **Testing for duplicates:**
 
-```bash
+```sh
 # Run this command to check for duplicate anchor IDs:
 grep -rh "{#[a-z0-9-]*}" docs/photos/faq/*.md | sed 's/.*{#\([^}]*\)}.*/\1/' | sort | uniq -d
 ```
@@ -251,10 +240,14 @@ Include when relevant:
 This may take 10-30 minutes for large libraries.
 ```
 
-### Version/Platform Notes
+### Callouts
+
+Use GitHub-style alerts (`> [!NOTE]`, `> [!TIP]`, `> [!IMPORTANT]`, `> [!WARNING]`, `> [!CAUTION]`) for callouts.
 
 ```markdown
-> **Note**: This feature is available on mobile apps starting v0.9.98.
+> [!NOTE]
+>
+> This feature is available on mobile apps starting v0.9.98.
 ```
 
 ## Examples

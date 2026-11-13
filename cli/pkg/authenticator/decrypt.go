@@ -3,8 +3,8 @@ package authenticator
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ente-io/cli/internal"
-	eCrypto "github.com/ente-io/cli/internal/crypto"
+	"github.com/ente/cli/internal"
+	eCrypto "github.com/ente/cli/internal/crypto"
 	"os"
 )
 
@@ -29,7 +29,7 @@ func DecryptExport(inputPath string, outputPath string, password string) error {
 	outputFile, err := internal.ResolvePath(outputPath)
 	if err != nil {
 		return fmt.Errorf("error resolving outputFile path (out): %v", err)
-	} // Implement your decryption logic here
+	}
 
 	data, err := os.ReadFile(exportFile)
 	if err != nil {
@@ -65,7 +65,7 @@ func DecryptExport(inputPath string, outputPath string, password string) error {
 		return nil
 	}
 
-	if err := os.WriteFile(outputFile, decryptedData, 0644); err != nil {
+	if err := os.WriteFile(outputFile, decryptedData, 0600); err != nil {
 		return fmt.Errorf("error writing file: %v", err)
 	}
 

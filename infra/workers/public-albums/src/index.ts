@@ -1,10 +1,8 @@
-/** Proxy requests for files and thumbnails in public albums. */
-
 export default {
     async fetch(request: Request) {
         switch (request.method) {
             case "OPTIONS":
-                return handleOPTIONS(request);
+                return handleOPTIONS();
             case "GET":
                 return handleGET(request);
             default:
@@ -14,10 +12,8 @@ export default {
     },
 } satisfies ExportedHandler;
 
-const handleOPTIONS = (request: Request) => {
-    const origin = request.headers.get("Origin");
-    if (!isAllowedOrigin(origin)) console.warn("Unknown origin", origin);
-    return new Response("", {
+const handleOPTIONS = () =>
+    new Response("", {
         headers: {
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "GET, OPTIONS",
@@ -26,60 +22,26 @@ const handleOPTIONS = (request: Request) => {
             "Access-Control-Max-Age": "86400",
         },
     });
-};
-
-const isAllowedOrigin = (origin: string | null) => {
-    const allowed = ["albums.ente.io", "albums.ente.sh", "localhost"];
-
-    if (!origin) return false;
-    try {
-        const url = new URL(origin);
-        return allowed.includes(url.hostname);
-    } catch {
-        // origin is likely an invalid URL
-        return false;
-    }
-};
 
 const handleGET = async (request: Request) => {
     const url = new URL(request.url);
 
     const fileID = url.searchParams.get("fileID");
-    if (!fileID) return new Response(null, { status: 400 });
+    if (!fileID || !/^\d+$/.test(fileID))
+        return new Response(null, { status: 400 });
 
-    let accessToken = request.headers.get("X-Auth-Access-Token");
-    if (accessToken === undefined) {
-        console.warn("Using deprecated accessToken query param");
-        accessToken = url.searchParams.get("accessToken");
+    const filePath = url.pathname.startsWith("/download")
+        ? "download"
+        : "thumbnail";
+    const museumURL = `https://api.ente.com/public-collection/files/${filePath}/v3/${fileID}`;
+    const museumRequest = new Request(museumURL, request);
+    const clientIP = request.headers.get("CF-Connecting-IP") ?? "";
+    museumRequest.headers.set("X-Forwarded-For", clientIP);
+    let response = await fetch(museumRequest);
+    if (response.ok) {
+        const { url } = await response.json<{ url: string }>();
+        response = await fetch(url);
     }
-
-    if (!accessToken) {
-        console.error("No accessToken provided");
-        // return new Response(null, { status: 400 });
-    }
-
-    let accessTokenJWT = request.headers.get("X-Auth-Access-Token-JWT");
-    if (accessTokenJWT === undefined) {
-        console.warn("Using deprecated accessTokenJWT query param");
-        accessTokenJWT = url.searchParams.get("accessTokenJWT");
-    }
-
-    const pathname = url.pathname;
-
-    const params = new URLSearchParams();
-    if (accessToken) params.set("accessToken", accessToken);
-    if (accessTokenJWT) params.set("accessTokenJWT", accessTokenJWT);
-
-    const headers = {
-        "X-Client-Package": request.headers.get("X-Client-Package") ?? "",
-        "X-Client-Version": request.headers.get("X-Client-Version") ?? "",
-        "User-Agent": request.headers.get("User-Agent") ?? "",
-    };
-
-    let response = await fetch(
-        `https://api.ente.io/public-collection/files${pathname}${fileID}?${params.toString()}`,
-        { headers },
-    );
 
     if (!response.ok) console.log("Upstream error", response.status);
 

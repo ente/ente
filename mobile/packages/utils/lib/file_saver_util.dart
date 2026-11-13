@@ -4,7 +4,7 @@ import 'package:file_saver/file_saver.dart';
 import 'package:flutter/foundation.dart';
 
 class FileSaverUtil {
-  static Future<void> saveFile(
+  static Future<bool> saveFile(
     String fileName,
     String extension,
     Uint8List bytes,
@@ -12,12 +12,13 @@ class FileSaverUtil {
   ) async {
     try {
       if (Platform.isAndroid || Platform.isIOS) {
-        await FileSaver.instance.saveAs(
+        final savedPath = await FileSaver.instance.saveAs(
           name: fileName,
           fileExtension: extension,
           bytes: bytes,
           mimeType: type,
         );
+        return savedPath != null;
       } else {
         await FileSaver.instance.saveFile(
           name: fileName,
@@ -25,7 +26,10 @@ class FileSaverUtil {
           bytes: bytes,
           mimeType: type,
         );
+        return true;
       }
-    } catch (_) {}
+    } catch (_) {
+      return false;
+    }
   }
 }

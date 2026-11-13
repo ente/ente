@@ -40,6 +40,7 @@ class CollageItemWidget extends StatelessWidget {
               ),
               tagPrefix: "collage_",
               shouldCover: true,
+              enableVerticalSwipeActions: false,
             ),
           ),
           if (shouldShowOutline)

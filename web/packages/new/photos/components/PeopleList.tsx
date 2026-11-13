@@ -1,5 +1,6 @@
+import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
-import { Skeleton, styled, Typography } from "@mui/material";
+import { Skeleton, Stack, styled, Typography } from "@mui/material";
 import { useIsSmallWidth } from "ente-base/components/utils/hooks";
 import type { EnteFile } from "ente-media/file";
 import { faceCrop, type AnnotatedFaceID } from "ente-new/photos/services/ml";
@@ -7,6 +8,7 @@ import type {
     Person,
     PreviewableFace,
 } from "ente-new/photos/services/ml/people";
+import { t } from "i18next";
 import React, { useEffect, useState } from "react";
 import { UnstyledButton } from "./UnstyledButton";
 
@@ -15,31 +17,57 @@ export interface SearchPeopleListProps {
     onSelectPerson: (personID: string) => void;
 }
 
-/**
- * Shows a list of {@link Person}s in the empty state of the search bar.
- */
 export const SearchPeopleList: React.FC<SearchPeopleListProps> = ({
     people,
     onSelectPerson,
 }) => {
     const isSmallWidth = useIsSmallWidth();
     return (
-        <SearchPeopleContainer
-            sx={[
-                people.length > 3
-                    ? { justifyContent: "center" }
-                    : { justifyContent: "start" },
-            ]}
-        >
+        <SearchPeopleContainer>
             {people.slice(0, isSmallWidth ? 6 : 7).map((person) => (
                 <SearchPersonButton
                     key={person.id}
                     onClick={() => onSelectPerson(person.id)}
                 >
-                    <FaceCropImageView
-                        faceID={person.displayFaceID}
-                        file={person.displayFaceFile}
-                        placeholderDimension={87}
+                    <SearchPersonAvatar>
+                        <FaceCropImageView
+                            faceID={person.displayFaceID}
+                            file={person.displayFaceFile}
+                            placeholderDimension={40}
+                        />
+                    </SearchPersonAvatar>
+                    <Stack sx={{ flex: 1, minWidth: 0, gap: "4px" }}>
+                        {person.name && (
+                            <Typography
+                                component="span"
+                                sx={{
+                                    fontSize: 14,
+                                    fontWeight: 500,
+                                    overflowWrap: "anywhere",
+                                }}
+                            >
+                                {person.name}
+                            </Typography>
+                        )}
+                        <Typography
+                            component="span"
+                            variant="mini"
+                            sx={{
+                                color: "text.muted",
+                                overflowWrap: "anywhere",
+                            }}
+                        >
+                            {`${t("people")} · ${t("photos_count", {
+                                count: person.fileIDs.length,
+                            })}`}
+                        </Typography>
+                    </Stack>
+                    <ArrowForwardIosIcon
+                        sx={{
+                            fontSize: 12,
+                            color: "text.muted",
+                            flexShrink: 0,
+                        }}
                     />
                 </SearchPersonButton>
             ))}
@@ -49,70 +77,54 @@ export const SearchPeopleList: React.FC<SearchPeopleListProps> = ({
 
 const SearchPeopleContainer = styled("div")`
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 5px;
+    flex-direction: column;
+    gap: 8px;
     margin-block-start: 12px;
     margin-block-end: 15px;
 `;
 
-const SearchPersonButton = styled(UnstyledButton)(
-    ({ theme }) => `
-    width: 87px;
-    height: 87px;
-    border-radius: 50%;
-    overflow: hidden;
-    & > img {
-        width: 100%;
-        height: 100%;
-    }
-    :hover {
-        outline: 1px solid ${theme.vars.palette.stroke.faint};
-        outline-offset: 2px;
-    }
-`,
-);
+const SearchPersonButton = styled(UnstyledButton)(({ theme }) => ({
+    display: "flex",
+    width: "100%",
+    minHeight: 56,
+    alignItems: "center",
+    gap: "12px",
+    padding: "8px 12px 8px 8px",
+    borderRadius: "12px",
+    textAlign: "left",
+    color: theme.vars.palette.text.base,
+    backgroundColor: theme.vars.palette.background.paper,
+    "&:hover": {
+        backgroundColor: `color-mix(in srgb, ${theme.vars.palette.text.base} 8%, ${theme.vars.palette.background.paper})`,
+    },
+    "&:focus-visible": {
+        outline: `2px solid color-mix(in srgb, ${theme.vars.palette.accent.main} 55%, transparent)`,
+        outlineOffset: "-2px",
+    },
+}));
+
+const SearchPersonAvatar = styled("div")({
+    position: "relative",
+    width: 40,
+    height: 40,
+    flexShrink: 0,
+    borderRadius: "50%",
+    overflow: "hidden",
+    "& img": { width: "100%", height: "100%", objectFit: "cover" },
+});
 
 export interface FilePeopleListProps {
-    /**
-     * The {@link EnteFile} whose information we are showing.
-     */
     file: EnteFile;
-    /**
-     * The list of faces in the file that are associated with a person.
-     */
     annotatedFaceIDs: AnnotatedFaceID[];
-    /**
-     * Called when the user selects a face in the list.
-     */
     onSelectFace: (annotatedFaceID: AnnotatedFaceID) => void;
-    /**
-     * People that were manually associated with the file, and should be shown
-     * in addition to detected faces.
-     */
     manuallyAssignedPeople?: Person[];
-    /**
-     * Called when the user selects a person (used for manually assigned people).
-     */
     onSelectPerson?: (personID: string) => void;
-    /**
-     * If set, show an option to manually associate the file with a person.
-     */
     onAddPerson?: () => void;
-    /**
-     * Title/tooltip for the "add person" button (if shown).
-     */
     addPersonTitle?: string;
-    /**
-     * Label shown under the "add person" button (if shown).
-     */
     addPersonLabel?: string;
+    addPersonIcon?: React.ReactNode;
 }
 
-/**
- * Show the list of faces in the given file that are associated with a specific
- * person.
- */
 export const FilePeopleList: React.FC<FilePeopleListProps> = ({
     file,
     annotatedFaceIDs,
@@ -122,8 +134,32 @@ export const FilePeopleList: React.FC<FilePeopleListProps> = ({
     onAddPerson,
     addPersonTitle,
     addPersonLabel,
+    addPersonIcon,
 }) => (
     <FilePeopleList_>
+        {manuallyAssignedPeople
+            ?.toSorted((a, b) => {
+                const an = (a.name ?? "").toLowerCase();
+                const bn = (b.name ?? "").toLowerCase();
+                return an < bn ? -1 : an > bn ? 1 : 0;
+            })
+            .map((person) => (
+                <ManuallyAssignedPersonButton
+                    key={person.id}
+                    onClick={() => onSelectPerson?.(person.id)}
+                >
+                    <FaceCropImageView
+                        faceID={person.displayFaceID}
+                        file={person.displayFaceFile}
+                        placeholderDimension={65}
+                    />
+                    <Typography variant="small" sx={{ color: "text.muted" }}>
+                        {person.type == "cgroup" && person.isHidden
+                            ? `(${t("ignored")})`
+                            : person.name}
+                    </Typography>
+                </ManuallyAssignedPersonButton>
+            ))}
         {annotatedFaceIDs.map((annotatedFaceID) => (
             <AnnotatedFaceButton
                 key={annotatedFaceID.faceID}
@@ -135,24 +171,11 @@ export const FilePeopleList: React.FC<FilePeopleListProps> = ({
                     placeholderDimension={65}
                 />
                 <Typography variant="small" sx={{ color: "text.muted" }}>
-                    {annotatedFaceID.personName}
+                    {annotatedFaceID.isIgnored
+                        ? `(${t("ignored")})`
+                        : annotatedFaceID.personName}
                 </Typography>
             </AnnotatedFaceButton>
-        ))}
-        {manuallyAssignedPeople?.map((person) => (
-            <ManuallyAssignedPersonButton
-                key={person.id}
-                onClick={() => onSelectPerson?.(person.id)}
-            >
-                <FaceCropImageView
-                    faceID={person.displayFaceID}
-                    file={person.displayFaceFile}
-                    placeholderDimension={65}
-                />
-                <Typography variant="small" sx={{ color: "text.muted" }}>
-                    {person.name}
-                </Typography>
-            </ManuallyAssignedPersonButton>
         ))}
         {onAddPerson && (
             <AddPersonButton
@@ -161,7 +184,7 @@ export const FilePeopleList: React.FC<FilePeopleListProps> = ({
                 aria-label={addPersonTitle}
             >
                 <AddPersonAvatar>
-                    <PersonAddIcon />
+                    {addPersonIcon ?? <PersonAddIcon />}
                 </AddPersonAvatar>
                 <Typography variant="small" sx={{ color: "text.muted" }}>
                     {addPersonLabel}
@@ -229,17 +252,9 @@ const AddPersonAvatar = styled("div")(
 );
 
 export interface SuggestionFaceListProps {
-    /**
-     * Faces, each annotated with the corresponding {@link EnteFile}, to show in
-     * the list.
-     */
     faces: PreviewableFace[];
 }
 
-/**
- * Show the sampling of faces from a given cluster that is being offered as a
- * suggestion to the user.
- */
 export const SuggestionFaceList: React.FC<SuggestionFaceListProps> = ({
     faces,
 }) => {
@@ -248,7 +263,7 @@ export const SuggestionFaceList: React.FC<SuggestionFaceListProps> = ({
             {faces.map(({ file, faceID }) => (
                 <SuggestionFace key={faceID}>
                     <FaceCropImageView
-                        placeholderDimension={87}
+                        placeholderDimension={64}
                         {...{ file, faceID }}
                     />
                 </SuggestionFace>
@@ -264,10 +279,14 @@ const SuggestionFaceList_ = styled("div")`
 `;
 
 const SuggestionFace = styled("div")`
-    width: 87px;
-    height: 87px;
-    border-radius: 50%;
+    width: 64px;
+    height: 64px;
+    flex-shrink: 0;
+    border-radius: 12px;
     overflow: hidden;
+    & > .MuiSkeleton-root {
+        border-radius: inherit;
+    }
     & > img {
         width: 100%;
         height: 100%;
@@ -275,19 +294,10 @@ const SuggestionFace = styled("div")`
 `;
 
 type FaceCropImageViewProps = PreviewableFace & {
-    /** Width and height for the placeholder. */
     placeholderDimension: number;
 };
 
-/**
- * An image view showing the face crop for the given face.
- *
- * The image is read from the "face-crops" {@link BlobCache}, regenerating it if
- * needed (which is why also need to pass the associated file).
- *
- * While the image is being fetched or regenerated, or if it doesn't exist, a
- * placeholder is shown.
- */
+// Missing local crops are regenerated from the associated file.
 const FaceCropImageView: React.FC<FaceCropImageViewProps> = ({
     faceID,
     file,

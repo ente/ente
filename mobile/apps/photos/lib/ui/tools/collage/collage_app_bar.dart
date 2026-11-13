@@ -1,5 +1,5 @@
+import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
-import "package:photos/generated/l10n.dart";
 import "package:photos/theme/ente_theme.dart";
 
 class CollageAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -28,15 +28,12 @@ class CollageAppBar extends StatelessWidget implements PreferredSizeWidget {
         children: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text(
-              AppLocalizations.of(context).cancel,
-              style: textTheme.body,
-            ),
+            child: Text(context.strings.cancel, style: textTheme.body),
           ),
           TextButton(
             onPressed: isSaveEnabled ? onSave : null,
             child: Text(
-              AppLocalizations.of(context).saveCollage,
+              context.strings.saveCollage,
               style: textTheme.body.copyWith(
                 color: isSaveEnabled
                     ? colorScheme.primary500

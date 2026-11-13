@@ -6,7 +6,7 @@ import {
     Stack,
     Typography,
 } from "@mui/material";
-import { type MiniDialogAttributes } from "ente-base/components/MiniDialog";
+import type { MiniDialogAttributes } from "ente-base/components/MiniDialog";
 import { SpacedRow } from "ente-base/components/containers";
 import { DialogCloseIconButton } from "ente-base/components/mui/DialogCloseIconButton";
 import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
@@ -16,24 +16,62 @@ import type { ModalVisibilityProps } from "ente-base/components/utils/modal";
 import log from "ente-base/log";
 import { saveStringAsFile } from "ente-base/utils/web";
 import { t } from "i18next";
-import { useCallback, useEffect, useState } from "react";
-import {
-    getUserRecoveryKey,
-    recoveryKeyToMnemonic,
-} from "../services/recovery-key";
+import { useCallback, useEffect, useState, type ComponentType } from "react";
 import { CodeBlock } from "./CodeBlock";
 
 type RecoveryKeyProps = ModalVisibilityProps & {
+    getRecoveryKeyMnemonic: () => Promise<string>;
     showMiniDialog: (attributes: MiniDialogAttributes) => void;
 };
+
+export interface RecoveryKeyPresentationProps {
+    recoveryKey: string | undefined;
+    onClose: () => void;
+    onSave: () => void;
+}
 
 export const RecoveryKey: React.FC<RecoveryKeyProps> = ({
     open,
     onClose,
+    getRecoveryKeyMnemonic,
     showMiniDialog,
 }) => {
-    const [recoveryKey, setRecoveryKey] = useState<string | undefined>();
     const fullScreen = useIsSmallWidth();
+
+    return (
+        <Dialog
+            fullScreen={fullScreen}
+            open={open}
+            onClose={onClose}
+            // MUI hardcodes the dialog maxWidth for "xs" to 444px, even though
+            // the "xs" breakpoint itself is 0.
+            // https://github.com/mui/material-ui/issues/34646
+            maxWidth="xs"
+            fullWidth
+        >
+            <SpacedRow sx={{ p: "8px 4px 8px 0" }}>
+                <DialogTitle variant="h3">{t("recovery_key")}</DialogTitle>
+                <DialogCloseIconButton {...{ onClose }} />
+            </SpacedRow>
+            <RecoveryKeyContents
+                {...{ open, onClose, getRecoveryKeyMnemonic, showMiniDialog }}
+            />
+        </Dialog>
+    );
+};
+
+interface RecoveryKeyContentsProps extends RecoveryKeyProps {
+    presentation?: ComponentType<RecoveryKeyPresentationProps>;
+}
+
+export function RecoveryKeyContents({
+    open,
+    onClose,
+    getRecoveryKeyMnemonic,
+    showMiniDialog,
+    presentation: Presentation,
+}: RecoveryKeyContentsProps): React.JSX.Element {
+    const [recoveryKey, setRecoveryKey] = useState<string | undefined>();
 
     const handleLoadError = useCallback(
         (e: unknown) => {
@@ -49,34 +87,28 @@ export const RecoveryKey: React.FC<RecoveryKeyProps> = ({
     useEffect(() => {
         if (!open) return;
 
-        void getUserRecoveryKeyMnemonic()
+        void getRecoveryKeyMnemonic()
             .then((key) => setRecoveryKey(key))
             .catch(handleLoadError);
-    }, [open, handleLoadError]);
+    }, [open, getRecoveryKeyMnemonic, handleLoadError]);
 
-    const handleSaveClick = () => {
+    function handleSaveClick() {
         saveRecoveryKeyMnemonicAsFile(recoveryKey!);
         onClose();
-    };
+    }
+
+    if (Presentation) {
+        return (
+            <Presentation
+                recoveryKey={recoveryKey}
+                onClose={onClose}
+                onSave={handleSaveClick}
+            />
+        );
+    }
 
     return (
-        <Dialog
-            fullScreen={fullScreen}
-            open={open}
-            onClose={onClose}
-            // [Note: maxWidth "xs" on MUI dialogs]
-            //
-            // While logically the "xs" breakpoint doesn't make sense as a
-            // maxWidth value (since as a breakpoint it's value is 0), in
-            // practice MUI has hardcoded its value to a reasonable 444px.
-            // https://github.com/mui/material-ui/issues/34646.
-            maxWidth="xs"
-            fullWidth
-        >
-            <SpacedRow sx={{ p: "8px 4px 8px 0" }}>
-                <DialogTitle variant="h3">{t("recovery_key")}</DialogTitle>
-                <DialogCloseIconButton {...{ onClose }} />
-            </SpacedRow>
+        <>
             <DialogContent>
                 <Typography sx={{ mb: 3 }}>
                     {t("recovery_key_description")}
@@ -110,12 +142,9 @@ export const RecoveryKey: React.FC<RecoveryKeyProps> = ({
                     {t("save_key")}
                 </FocusVisibleButton>
             </DialogActions>
-        </Dialog>
+        </>
     );
-};
-
-const getUserRecoveryKeyMnemonic = async () =>
-    recoveryKeyToMnemonic(await getUserRecoveryKey());
+}
 
 const saveRecoveryKeyMnemonicAsFile = (key: string) =>
     saveStringAsFile(key, "ente-recovery-key.txt");

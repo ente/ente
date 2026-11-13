@@ -1,8 +1,9 @@
 name = "thumbnails"
 main = "src/index.ts"
-compatibility_date = "2025-06-03"
+compatibility_date = "2026-04-23"
 
 routes = [
+    { pattern = "thumbnails.ente.com", custom_domain = true },
     { pattern = "thumbnails.ente.io", custom_domain = true }
 ]
 

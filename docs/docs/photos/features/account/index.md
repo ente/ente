@@ -9,9 +9,13 @@ Your Ente account is the foundation for securely storing and accessing your phot
 
 ## Using Ente accounts across products
 
-Your Ente account works across both Ente Photos and Ente Auth. You can use the same account for both products, or create separate accounts for each.
+One Ente account works with Ente Photos, Ente Auth, and Ente Locker. You can use one account for all three, or create a separate account for each.
 
-> **Note**: If you use the same account for both Photos and Auth and enable 2FA for your Ente account (stored in Ente Auth), this creates a circular dependency. We recommend either:
+This shared account applies within the same Ente service or server. If you create a new account on an independent self-hosted server, it is separate from your hosted Ente account even when both use the same email address. Keep separate, clearly labeled credentials and recovery keys, and check the server endpoint before signing in or resetting a password. See the [self-hosting setup guide](/self-hosting/installation/post-install/#step-1-creating-first-user).
+
+> [!NOTE]
+>
+> If you use the same account for both Photos and Auth and enable 2FA for your Ente account (stored in Ente Auth), this creates a circular dependency. We recommend either:
 >
 > - Using separate accounts for Auth and Photos for security
 > - Ensuring your recovery key is stored securely (written down on paper) as it can bypass 2FA if you're locked out
@@ -104,7 +108,7 @@ Ente offers **10 GB of storage for free, forever**. The free plan includes:
 - ✅ Map view and location tags
 - ✅ Background sync
 - ✅ Creating /receiving shared albums
-- ✅ Public links ([device limit](https://ente.io/help/photos/features/sharing-and-collaboration/public-links#device-limits) of 5)
+- ✅ Public links ([device limit](https://ente.com/help/photos/features/sharing-and-collaboration/public-links#device-limits) of 10)
 
 **Free plan limitations:**
 
@@ -120,11 +124,11 @@ Paid plans unlock additional features and storage:
 - Family plan capability to share storage with 5 family members
 - Priority support
 
-See the [pricing page](https://ente.io#pricing) for current plans and pricing.
+See the [pricing page](https://ente.com#pricing) for current plans and pricing.
 
 ### Student discounts
 
-Students receive **30% off** subscription plans. Email [students@ente.io](mailto:students@ente.io) from your school email address or provide proof of enrollment.
+Students receive **30% off** subscription plans. Email [students@ente.com](mailto:students@ente.com) from your school email address or provide proof of enrollment.
 
 Discounts are valid for one year and can be renewed.
 
@@ -160,13 +164,7 @@ Ente accepts multiple payment methods:
 **PayPal**:
 
 - Annual plans only
-- Email [paypal@ente.io](mailto:paypal@ente.io) to request an invoice
-
-**Cryptocurrency**:
-
-- Bitcoin (BTC), Ethereum (ETH), Dogecoin (DOGE)
-- Email [crypto@ente.io](mailto:crypto@ente.io) to request an invoice
-- Cannot be combined with discount codes
+- Email [paypal@ente.com](mailto:paypal@ente.com) to request an invoice
 
 **App Store payments**:
 
@@ -179,12 +177,14 @@ Learn more in the [Storage and Plans FAQ](/photos/faq/storage-and-plans#supporte
 
 ## Managing Your Account
 
+![Settings drawer with account email frosted](https://docs-assets.ente.com/screenshots/settings-drawer-frosted.png){width=320px}
+
 ### Multi-device access
 
 Use the same account across all your devices:
 
 - Install Ente on multiple phones, tablets, and computers
-- Use the web app at [web.ente.io](https://web.ente.io)
+- Use the web app at [photos.ente.com](https://photos.ente.com)
 - All devices stay in sync automatically
 - Configure backup separately on each device
 
@@ -210,9 +210,9 @@ You can change the email address associated with your account at any time in Set
 
 **Canceling:**
 
-- 30-day grace period to export your data
-- Data permanently deleted after grace period
-- Can renew anytime during grace period
+- Your paid plan continues until its expiry date
+- If your data is scheduled for deletion, warning emails show the deletion date
+- Renew or export promptly, before any date in a warning email
 
 Learn more in the [Storage and Plans FAQ](/photos/faq/storage-and-plans#upgrade-plan).
 
@@ -252,7 +252,8 @@ Learn more in the [Storage optimization guide](/photos/features/albums-and-organ
 Earn free storage by inviting friends:
 
 - Share your referral code from `Settings > Referrals`
-- When friends upgrade to a paid plan, both of you get **10 GB free**
+- New users get an extra 10 GB immediately after applying your code
+- You get an extra 10 GB when they upgrade to a paid plan
 - Maximum earned storage equals your plan size (double your storage)
 - Earned storage lasts as long as your subscription is active
 
@@ -277,6 +278,7 @@ Learn more in the [Legacy guide](/photos/features/account/legacy/).
 ## Related topics
 
 - [Passkeys](/photos/features/account/passkeys) - Use passkeys for two-factor authentication
+- [App lock](/photos/features/account/app-lock) - Add a lock screen for the Ente Photos app
 - [Family Plans](/photos/features/account/family-plans) - Share storage with family members
 - [Referral Program](/photos/features/account/referral-program/) - Earn free storage by inviting friends
 - [Legacy](/photos/features/account/legacy/) - Designate trusted contacts for account recovery

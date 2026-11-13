@@ -6,7 +6,6 @@ CREATE TABLE IF NOT EXISTS referral_codes
     created_at bigint       NOT NULL DEFAULT now_utc_micro_seconds(),
     PRIMARY KEY (code)
 );
---- Ensure that only one active referral code is allowed per user
 CREATE UNIQUE INDEX ON referral_codes (user_id, is_active) WHERE (referral_codes.is_active = TRUE);
 
 CREATE TABLE IF NOT EXISTS referral_tracking
@@ -17,8 +16,6 @@ CREATE TABLE IF NOT EXISTS referral_tracking
     invitee_on_paid_plan bool            default false,
     created_at           bigint NOT NULL DEFAULT now_utc_micro_seconds()
 );
---- Add unique index on invitor_id and invitee_id column in referral_tracking table to ensure only
--- one entry per invitee is allowed
 CREATE UNIQUE INDEX IF NOT EXISTS referral_tracking_invitee_id_idx ON referral_tracking (invitee_id);
 
 
@@ -41,6 +38,5 @@ CREATE TABLE IF NOT EXISTS storage_bonus
 );
 
 CREATE INDEX IF NOT EXISTS storage_bonus_user_id_idx ON storage_bonus (user_id);
-
 
 

@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
+  <defs>
+    <!-- Filter for soft drop shadow effect under the right overlay loop -->
+    <filter id="drop-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="-3" dy="5" stdDeviation="6" flood-color="#000000" flood-opacity="0.25"/>
+    </filter>
+
+    <!-- Warm Gradient (Orange to Red/Coral) -->
+    <linearGradient id="warm-grad" x1="0%" y1="80%" x2="70%" y2="0%">
+      <stop offset="0%" stop-color="#f2994a" />
+      <stop offset="50%" stop-color="#f25542" />
+      <stop offset="100%" stop-color="#eb3b39" />
+    </linearGradient>
+
+    <!-- Cool Gradient (Light Periwinkle to Royal Blue) -->
+    <linearGradient id="cool-grad" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#a1b5fd" />
+      <stop offset="40%" stop-color="#708bfb" />
+      <stop offset="100%" stop-color="#4d61d1" />
+    </linearGradient>
+
+    <!-- Center Soft Blending Shade -->
+    <radialGradient id="center-shadow" cx="35%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#1e2366" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#1e2366" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <g transform="translate(0, 0)">
+    <!-- Left Loop (Warm Side) -->
+    <path fill="url(#warm-grad)" 
+          d="M 250,190 
+             C 210,120 120,110 90,180 
+             C 50,270 180,360 250,420 
+             C 220,380 180,300 200,230 Z" />
+
+    <!-- Right Overlapping Ribbon (Cool Side with Shadow) -->
+    <path fill="url(#cool-grad)" 
+          filter="url(#drop-shadow)"
+          d="M 175,190 
+             C 250,110 380,100 410,180 
+             C 450,280 320,370 250,420 
+             C 175,350 175,190 175,190 Z" />
+
+    <!-- Shadow Overlay for Depth at the Junction -->
+    <path fill="url(#center-shadow)" 
+          d="M 175,190 
+             C 220,230 250,330 250,420 
+             C 200,350 175,250 175,190 Z" />
+  </g>
+</svg>

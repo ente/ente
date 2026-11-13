@@ -1,115 +1,42 @@
 {
-  "error": "Kļūda",
-  "@error": {
-    "description": "Generic error title"
-  },
-  "ok": "Labi",
-  "@ok": {
-    "description": "Generic OK button label"
+  "account": "Konts",
+  "androidCancelButton": "Atcelt",
+  "@androidCancelButton": {
+    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
   },
   "cancel": "Atcelt",
   "@cancel": {
     "description": "Cancel button label"
   },
-  "save": "Saglabāt",
-  "@save": {
-    "description": "Label for save button"
+  "close": "Aizvērt",
+  "confirmPassword": "Apstiprināt paroli",
+  "@confirmPassword": {
+    "description": "Confirm password field label"
   },
-  "email": "E-pasts",
-  "@email": {
-    "description": "Email field label"
-  },
-  "invalidEmailTitle": "Nederīga e-pasta adrese",
-  "@invalidEmailTitle": {
-    "description": "Title for invalid email error dialog"
-  },
-  "invalidEmailMessage": "Lūdzu ievadiet derīgu e-pasta adresi.",
-  "@invalidEmailMessage": {
-    "description": "Message for invalid email error dialog"
-  },
-  "enterPassword": "Ievadiet paroli",
-  "@enterPassword": {
-    "description": "Enter password field label"
-  },
-  "enterYourPasswordHint": "Ievadiet savu paroli",
-  "@enterYourPasswordHint": {
-    "description": "Hint for password field"
-  },
-  "thisDevice": "Šī ierīce",
-  "@thisDevice": {
-    "description": "Label for current device"
-  },
+  "create": "Izveidot",
   "createAccount": "Izveidot kontu",
   "@createAccount": {
     "description": "Create account button label"
   },
-  "weakStrength": "Vāja",
-  "@weakStrength": {
-    "description": "Weak password strength label"
-  },
-  "moderateStrength": "Vidēji spēcīga",
-  "@moderateStrength": {
-    "description": "Moderate password strength label"
-  },
-  "strongStrength": "Spēcīga",
-  "@strongStrength": {
-    "description": "Strong password strength label"
+  "createNewTag": "Izveidot jaunu birku",
+  "delete": "Dzēst",
+  "@delete": {
+    "description": "Delete button label"
   },
   "deleteAccount": "Dzēst kontu",
   "@deleteAccount": {
     "description": "Delete account button label"
   },
-  "noDeleteAccountAction": "Nē, dzēst kontu",
-  "@noDeleteAccountAction": {
-    "description": "Button to proceed with account deletion"
+  "deleteTagTitle": "Dzēst birku?",
+  "developerSettings": "Izstrādātāja iestatījumi",
+  "@developerSettings": {
+    "description": "Label for developer settings"
   },
-  "confirmAccountDeleteTitle": "Apstiprināt konta dzēšanu",
-  "@confirmAccountDeleteTitle": {
-    "description": "Title for account deletion confirmation dialog"
-  },
-  "delete": "Dzēst",
-  "@delete": {
-    "description": "Delete button label"
-  },
-  "createNewAccount": "Izveidot jaunu kontu",
-  "@createNewAccount": {
-    "description": "Create new account button label"
-  },
-  "password": "Parole",
-  "@password": {
-    "description": "Password field label"
-  },
-  "confirmPassword": "Apstiprināt paroli",
-  "@confirmPassword": {
-    "description": "Confirm password field label"
-  },
-  "encryption": "Šifrēšana",
-  "@encryption": {
-    "description": "Encryption label"
-  },
-  "noInternetConnection": "Nav interneta savienojums",
-  "@noInternetConnection": {
-    "description": "No internet connection error message"
-  },
-  "howItWorks": "Kā tas darbojas",
-  "@howItWorks": {
-    "description": "How it works button label"
-  },
-  "saveKey": "Saglabāt atslēgu",
-  "@saveKey": {
-    "description": "Save key button label"
-  },
-  "hideContent": "Slēpt saturu",
-  "@hideContent": {
-    "description": "Hide content setting title"
-  },
-  "androidCancelButton": "Atcelt",
-  "@androidCancelButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
-  },
-  "thisEmailIsAlreadyInUse": "Šis e-pasts jau tiek izmantots",
-  "@thisEmailIsAlreadyInUse": {
-    "description": "Error message when email is already in use"
+  "downloadUpdate": "Lejupielādēt",
+  "editTag": "Rediģēt birku",
+  "email": "E-pasts",
+  "@email": {
+    "description": "Email field label"
   },
   "emailChangedTo": "E-pasts nomainīts uz {newEmail}",
   "@emailChangedTo": {
@@ -121,5 +48,101 @@
         "example": "new@example.com"
       }
     }
-  }
+  },
+  "emailHint": "Ievadiet savu e-pasta adresi",
+  "encrypted": "Šifrēts",
+  "enterPassword": "Ievadiet paroli",
+  "@enterPassword": {
+    "description": "Enter password field label"
+  },
+  "enterYourPasswordHint": "Ievadiet savu paroli",
+  "@enterYourPasswordHint": {
+    "description": "Hint for password field"
+  },
+  "error": "Kļūda",
+  "@error": {
+    "description": "Generic error title"
+  },
+  "hideContent": "Slēpt saturu",
+  "@hideContent": {
+    "description": "Hide content setting title"
+  },
+  "howItWorks": "Kā tas darbojas",
+  "@howItWorks": {
+    "description": "How it works button label"
+  },
+  "invalidEmailMessage": "Lūdzu ievadiet derīgu e-pasta adresi.",
+  "@invalidEmailMessage": {
+    "description": "Message for invalid email error dialog"
+  },
+  "invalidEmailTitle": "Nederīga e-pasta adrese",
+  "@invalidEmailTitle": {
+    "description": "Title for invalid email error dialog"
+  },
+  "invalidKey": "Nederīga atslēga",
+  "ok": "Labi",
+  "@ok": {
+    "description": "Generic OK button label"
+  },
+  "language": "Valoda",
+  "moderateStrength": "Vidēji spēcīga",
+  "@moderateStrength": {
+    "description": "Moderate password strength label"
+  },
+  "no": "Nē",
+  "noInternetConnection": "Nav interneta savienojums",
+  "@noInternetConnection": {
+    "description": "No internet connection error message"
+  },
+  "notes": "Piezīmes",
+  "password": "Parole",
+  "@password": {
+    "description": "Password field label"
+  },
+  "pinText": "Piespraust",
+  "restore": "Atjaunot",
+  "@restore": {
+    "description": "Display text for an action which triggers a restore of item from trash",
+    "type": "text"
+  },
+  "save": "Saglabāt",
+  "@save": {
+    "description": "Label for save button"
+  },
+  "saveKey": "Saglabāt atslēgu",
+  "@saveKey": {
+    "description": "Save key button label"
+  },
+  "search": "Meklēt",
+  "security": "Drošība",
+  "selectFile": "Atlasīt failu",
+  "selectLanguage": "Atlasīt valodu",
+  "settings": "Iestatījumi",
+  "strongStrength": "Spēcīga",
+  "@strongStrength": {
+    "description": "Strong password strength label"
+  },
+  "support": "Atbalsts",
+  "tag": "Birka",
+  "tags": "Birkas",
+  "thisDevice": "Šī ierīce",
+  "@thisDevice": {
+    "description": "Label for current device"
+  },
+  "thisEmailIsAlreadyInUse": "Šis e-pasts jau tiek izmantots",
+  "@thisEmailIsAlreadyInUse": {
+    "description": "Error message when email is already in use"
+  },
+  "unlock": "Atbloķēt",
+  "@unlock": {
+    "description": "Short action label used as the system authentication reason when unlocking the app"
+  },
+  "unpinText": "Atspraust",
+  "updateAvailable": "Pieejams atjauninājums",
+  "warning": "Brīdinājums",
+  "weakStrength": "Vāja",
+  "@weakStrength": {
+    "description": "Weak password strength label"
+  },
+  "yes": "Jā"
 }

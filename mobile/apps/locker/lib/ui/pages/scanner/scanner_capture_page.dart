@@ -1,0 +1,919 @@
+import 'dart:async';
+import 'dart:io';
+import 'dart:ui' as ui;
+
+import 'package:camera/camera.dart';
+import 'package:ente_components/ente_components.dart';
+import 'package:ente_strings/ente_strings.dart';
+import 'package:ente_ui/utils/toast_util.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:hugeicons/hugeicons.dart';
+import 'package:locker/services/scanner/auto_capture_controller.dart';
+import 'package:locker/services/scanner/quad_stability.dart';
+import 'package:locker/services/scanner/scan_session_controller.dart';
+import 'package:locker/services/scanner/scanner_models.dart';
+import 'package:locker/ui/pages/scanner/capture_flight.dart';
+import 'package:locker/ui/pages/scanner/scan_quad_overlay.dart';
+import 'package:locker/ui/pages/scanner/scanner_capture_widgets.dart';
+import 'package:locker/ui/pages/scanner/scanner_review_page.dart';
+import 'package:logging/logging.dart';
+
+enum _CameraStatus { starting, ready, permissionDenied, error }
+
+class ScannerCapturePage extends StatefulWidget {
+  const ScannerCapturePage({super.key, required this.onUploadFiles});
+
+  final Future<bool> Function(List<File> files) onUploadFiles;
+
+  @override
+  State<ScannerCapturePage> createState() => _ScannerCapturePageState();
+}
+
+class _ScannerCapturePageState extends State<ScannerCapturePage>
+    with WidgetsBindingObserver {
+  final _logger = Logger('ScannerCapturePage');
+  final _session = ScanSessionController();
+  final _stabilizer = QuadStability();
+  final _autoCapture = AutoCaptureController();
+  final _frameClock = Stopwatch()..start();
+  Timer? _quadExpiry;
+  int _analysisGeneration = 0;
+
+  CameraController? _camera;
+  Animation<double>? _routeAnimation;
+  Future<void> _streamOperation = Future<void>.value();
+  bool _closing = false;
+  _CameraStatus _status = _CameraStatus.starting;
+  ScanCaptureRegion? _captureRegion;
+  Size? _liveFrameSize;
+  ScanQuad? _displayQuad;
+  bool _analysisInFlight = false;
+  Duration? _analysisObservedAt;
+  bool _takingPicture = false;
+  bool _torchOn = false;
+  bool _autoMode = true;
+  bool _scannerInitFailed = false;
+  bool _reviewActive = false;
+  bool _leavingAfterSave = false;
+  String? _retakePageId;
+  int? _reviewPageIndex;
+
+  final _previewKey = GlobalKey();
+  final _flightLayerKey = GlobalKey();
+  final _pagesButtonKey = GlobalKey();
+  final List<_PendingCapture> _pending = [];
+  final List<_ActiveFlight> _flights = [];
+  int _captureSeq = 0;
+  ScanQuad? _snapQuad;
+  int _snapId = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _session.addListener(_onSessionChanged);
+    unawaited(_initialize());
+  }
+
+  Future<void> _initialize() async {
+    await SystemChrome.setPreferredOrientations(const [
+      DeviceOrientation.portraitUp,
+    ]);
+    if (!mounted || _closing) return;
+    _routeAnimation = ModalRoute.of(context)?.animation;
+    _routeAnimation?.addStatusListener(_onTransition);
+    unawaited(_initScanner());
+    unawaited(_startCamera());
+  }
+
+  void _onTransition(AnimationStatus status) {
+    if (status != AnimationStatus.completed) {
+      setState(_resetLiveTracking);
+      _autoCapture.reset();
+    }
+    unawaited(_updateImageStream());
+  }
+
+  Future<void> _updateImageStream() {
+    return _streamOperation = _streamOperation
+        .then((_) async {
+          final camera = _camera;
+          if (camera == null) return;
+          final scan =
+              !_closing &&
+              !_reviewActive &&
+              (_routeAnimation == null ||
+                  _routeAnimation!.status == AnimationStatus.completed);
+          try {
+            if (scan && !camera.value.isStreamingImages) {
+              await camera.startImageStream(_onFrame);
+            } else if (!scan && camera.value.isStreamingImages) {
+              await camera.stopImageStream();
+            }
+          } catch (error, stack) {
+            _logger.warning('Image stream unavailable', error, stack);
+            if (camera != _camera || !mounted || _closing) return;
+            try {
+              await _pauseCamera();
+            } finally {
+              if (mounted && !_closing) {
+                setState(() => _status = _CameraStatus.error);
+              }
+            }
+          }
+        })
+        .catchError((Object error, StackTrace stack) {
+          _logger.warning('Failed to release camera', error, stack);
+        });
+  }
+
+  Future<void> _initScanner() async {
+    if (_scannerInitFailed) setState(() => _scannerInitFailed = false);
+    try {
+      await _session.init();
+      if (mounted) setState(() {});
+    } catch (_) {
+      if (mounted) setState(() => _scannerInitFailed = true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _routeAnimation?.removeStatusListener(_onTransition);
+    _quadExpiry?.cancel();
+    _frameClock.stop();
+    WidgetsBinding.instance.removeObserver(this);
+    _session.removeListener(_onSessionChanged);
+    final camera = _camera;
+    _camera = null;
+    if (camera != null) {
+      unawaited(
+        _disposeCamera(camera).catchError((Object error, StackTrace stack) {
+          _logger.warning('Failed to release camera', error, stack);
+        }),
+      );
+    }
+    unawaited(_session.disposeSession());
+    for (final capture in _pending) {
+      capture.spec?.image.dispose();
+    }
+    unawaited(
+      SystemChrome.setPreferredOrientations(const <DeviceOrientation>[]),
+    );
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final camera = _camera;
+    if (state == AppLifecycleState.inactive) {
+      _resetLiveTracking();
+      if (camera != null) {
+        setState(() => _camera = null);
+        unawaited(camera.dispose());
+      }
+      _autoCapture.reset();
+    } else if (state == AppLifecycleState.resumed) {
+      if (!_reviewActive && _camera == null && _status == _CameraStatus.ready) {
+        unawaited(_startCamera());
+      }
+    }
+  }
+
+  void _onSessionChanged() {
+    if (!mounted) return;
+    final error = _session.takeLastError();
+    if (error != null) {
+      showShortToast(context, context.strings.somethingWentWrong);
+    }
+    _reconcilePending(failed: error != null);
+    setState(() {});
+  }
+
+  Future<void> _startCamera() async {
+    _resetLiveTracking();
+    setState(() {
+      _status = _CameraStatus.starting;
+      _captureRegion = null;
+    });
+    _autoCapture.reset();
+    try {
+      final cameras = await availableCameras();
+      if (!mounted || _reviewActive || _closing) return;
+      if (cameras.isEmpty) {
+        setState(() => _status = _CameraStatus.error);
+        return;
+      }
+      final back = cameras.firstWhere(
+        (c) => c.lensDirection == CameraLensDirection.back,
+        orElse: () => cameras.first,
+      );
+      final controller = CameraController(
+        back,
+        ResolutionPreset.max,
+        enableAudio: false,
+        imageFormatGroup: Platform.isIOS
+            ? ImageFormatGroup.bgra8888
+            : ImageFormatGroup.yuv420,
+      );
+      await controller.initialize();
+      var retainedController = false;
+      try {
+        if (!mounted || _reviewActive || _closing) return;
+        await controller.lockCaptureOrientation(DeviceOrientation.portraitUp);
+        if (!mounted || _reviewActive || _closing) return;
+        if (_torchOn) await _applyTorch(controller, true);
+        if (!mounted || _reviewActive || _closing) return;
+        setState(() {
+          _camera = controller;
+          _status = _CameraStatus.ready;
+        });
+        retainedController = true;
+        unawaited(_updateImageStream());
+      } finally {
+        if (!retainedController) {
+          await controller.dispose();
+        }
+      }
+    } on CameraException catch (e) {
+      _logger.warning('Camera unavailable: ${e.code}', e);
+      if (!mounted) return;
+      setState(() {
+        _status = e.code.startsWith('CameraAccessDenied')
+            ? _CameraStatus.permissionDenied
+            : _CameraStatus.error;
+      });
+    } catch (e, s) {
+      _logger.severe('Failed to start camera', e, s);
+      if (mounted) setState(() => _status = _CameraStatus.error);
+    }
+  }
+
+  Future<void> _pauseCamera() async {
+    _resetLiveTracking();
+    final camera = _camera;
+    if (camera == null) return;
+    setState(() {
+      _camera = null;
+      _captureRegion = null;
+    });
+    _autoCapture.reset();
+    await _disposeCamera(camera);
+  }
+
+  Future<void> _disposeCamera(CameraController camera) async {
+    try {
+      if (camera.value.isStreamingImages) {
+        await camera.stopImageStream();
+      }
+    } catch (error, stack) {
+      _logger.warning('Failed to stop image stream', error, stack);
+    } finally {
+      await camera.dispose();
+    }
+  }
+
+  void _onFrame(CameraImage image) {
+    final camera = _camera;
+    if (_closing ||
+        (_routeAnimation != null &&
+            _routeAnimation!.status != AnimationStatus.completed) ||
+        _reviewActive ||
+        camera == null ||
+        _analysisInFlight ||
+        _takingPicture ||
+        !_session.isServiceReady) {
+      return;
+    }
+    _analysisInFlight = true;
+    final observedAt = _frameClock.elapsed;
+    _analysisObservedAt = observedAt;
+    unawaited(_analyze(image, camera, observedAt, _analysisGeneration));
+  }
+
+  Future<void> _analyze(
+    CameraImage image,
+    CameraController camera,
+    Duration observedAt,
+    int generation,
+  ) async {
+    try {
+      final rotation = Platform.isIOS
+          ? 0
+          : camera.description.sensorOrientation;
+      ScanQuad? raw;
+      if (image.planes.length >= 3) {
+        raw = await _session.detectLiveYuv(
+          y: image.planes[0].bytes,
+          u: image.planes[1].bytes,
+          v: image.planes[2].bytes,
+          yRowStride: image.planes[0].bytesPerRow,
+          uvRowStride: image.planes[1].bytesPerRow,
+          uvPixelStride: image.planes[1].bytesPerPixel ?? 1,
+          width: image.width,
+          height: image.height,
+          rotationDegrees: rotation,
+        );
+      } else if (image.planes.isNotEmpty) {
+        raw = await _session.detectLiveBgra(
+          image.planes[0].bytes,
+          image.planes[0].bytesPerRow,
+          image.width,
+          image.height,
+          rotation,
+        );
+      }
+      if (!mounted ||
+          _closing ||
+          camera != _camera ||
+          generation != _analysisGeneration ||
+          _takingPicture) {
+        return;
+      }
+      final now = _frameClock.elapsed;
+      final frameSize = rotation % 180 == 0
+          ? Size(image.width.toDouble(), image.height.toDouble())
+          : Size(image.height.toDouble(), image.width.toDouble());
+      if (_liveFrameSize != null && _liveFrameSize != frameSize) {
+        _stabilizer.reset();
+        _autoCapture.invalidateArming();
+      }
+      _liveFrameSize = frameSize;
+      final sample = _stabilizer.update(
+        raw,
+        observedAt: observedAt,
+        now: now,
+        rotationDegrees: rotation,
+      );
+      _quadExpiry?.cancel();
+      if (sample.displayQuad != null) {
+        final deadline = sample.validUntil!;
+        _quadExpiry = Timer(deadline - now, () => _expireQuad(deadline));
+      }
+      var fire = false;
+      if (_autoMode) {
+        fire = _autoCapture.onFrame(
+          sample.quad,
+          captureBusy: _takingPicture || _session.isProcessing,
+          timestamp: observedAt,
+          resetProgress: sample.resetCapture,
+          documentPresent: raw != null,
+        );
+      }
+      setState(() {
+        _displayQuad = sample.displayQuad;
+        final quad = sample.quad;
+        _captureRegion = quad == null
+            ? null
+            : ScanCaptureRegion(quad: quad, frameSize: frameSize);
+      });
+      if (fire) unawaited(_capture());
+    } catch (_) {
+      if (mounted && generation == _analysisGeneration && camera == _camera) {
+        _resetLiveTracking();
+        _autoCapture.invalidateArming();
+        setState(() {});
+      }
+    } finally {
+      _analysisInFlight = false;
+      _analysisObservedAt = null;
+    }
+  }
+
+  void _expireQuad(Duration deadline) {
+    if (!mounted) return;
+    final observedAt = _analysisObservedAt;
+    if (observedAt != null && observedAt < deadline) {
+      final remaining =
+          observedAt + QuadStability.maximumFreshness - _frameClock.elapsed;
+      if (remaining > Duration.zero) {
+        _quadExpiry = Timer(remaining, () => _expireQuad(deadline));
+        return;
+      }
+    }
+    setState(() {
+      _captureRegion = null;
+      _displayQuad = null;
+    });
+  }
+
+  void _resetLiveTracking() {
+    _analysisGeneration++;
+    _quadExpiry?.cancel();
+    _stabilizer.reset(observedBefore: _frameClock.elapsed);
+    _captureRegion = null;
+    _displayQuad = null;
+    _liveFrameSize = null;
+  }
+
+  Future<void> _capture() async {
+    final camera = _camera;
+    if (camera == null || _takingPicture || _reviewActive) {
+      return;
+    }
+    final retakePageId = _retakePageId;
+    final region = _captureRegion;
+    final quad = region?.quad ?? ScanQuad.fullFrame();
+    _autoCapture.notifyCaptureStarted();
+    unawaited(HapticFeedback.mediumImpact());
+    setState(() {
+      _takingPicture = true;
+      _captureRegion = null;
+      _snapQuad = quad;
+      _snapId++;
+    });
+    _resetLiveTracking();
+    try {
+      final shot = await camera.takePicture();
+      final bytes = await shot.readAsBytes();
+      unawaited(_deleteQuietly(File(shot.path)));
+      if (retakePageId == null) {
+        _onShotTaken(bytes, region);
+      } else {
+        final replacement = await _session.replaceCapture(
+          retakePageId,
+          bytes,
+          region: region,
+        );
+        if (!mounted || replacement == null) return;
+        unawaited(_openReview());
+      }
+    } catch (e, s) {
+      _logger.severe('Capture failed', e, s);
+      if (mounted) {
+        showShortToast(context, context.strings.somethingWentWrong);
+      }
+    } finally {
+      if (mounted) setState(() => _takingPicture = false);
+    }
+  }
+
+  static Future<void> _deleteQuietly(File file) async {
+    try {
+      if (await file.exists()) await file.delete();
+    } catch (_) {}
+  }
+
+  void _onShotTaken(Uint8List bytes, ScanCaptureRegion? region) {
+    final capture = _PendingCapture(_captureSeq++);
+    _pending.add(capture);
+    _session.addCapture(bytes, region: region);
+    unawaited(
+      _launchFlight(capture, bytes, region?.quad ?? ScanQuad.fullFrame()),
+    );
+  }
+
+  Future<void> _launchFlight(
+    _PendingCapture capture,
+    Uint8List bytes,
+    ScanQuad quad,
+  ) async {
+    final spec = await _buildFlightSpec(bytes, quad);
+    if (!mounted || capture.landed) {
+      spec?.image.dispose();
+      return;
+    }
+    if (spec == null) {
+      setState(() {
+        capture.landed = true;
+        _purgeResolved();
+      });
+      return;
+    }
+    capture.spec = spec;
+    setState(() => _flights.add(_ActiveFlight(capture: capture, spec: spec)));
+  }
+
+  Future<CaptureFlightSpec?> _buildFlightSpec(
+    Uint8List bytes,
+    ScanQuad quad,
+  ) async {
+    final layer = _renderBox(_flightLayerKey);
+    final preview = _renderBox(_previewKey);
+    final thumb = _renderBox(_pagesButtonKey);
+    if (layer == null || preview == null || thumb == null) return null;
+    final previewRect =
+        preview.localToGlobal(Offset.zero, ancestor: layer) & preview.size;
+    final thumbRect =
+        thumb.localToGlobal(Offset.zero, ancestor: layer) & thumb.size;
+    final targetWidth =
+        (previewRect.width * MediaQuery.devicePixelRatioOf(context)).round();
+    final ui.Image image;
+    try {
+      final codec = await ui.instantiateImageCodec(
+        bytes,
+        targetWidth: targetWidth,
+      );
+      final frame = await codec.getNextFrame();
+      codec.dispose();
+      image = frame.image;
+    } catch (e, s) {
+      _logger.warning('Failed to decode capture preview', e, s);
+      return null;
+    }
+    return CaptureFlightSpec(
+      image: image,
+      sourceCorners: [
+        for (final corner in quad.corners)
+          previewRect.topLeft +
+              Offset(
+                corner.dx * previewRect.width,
+                corner.dy * previewRect.height,
+              ),
+      ],
+      imageToLayer: coverImageTransform(
+        Size(image.width.toDouble(), image.height.toDouble()),
+        previewRect,
+      ),
+      target: thumbRect,
+      targetRadius: Radii.md,
+      targetBorder: ScannerPagesButton.borderWidth,
+    );
+  }
+
+  static RenderBox? _renderBox(GlobalKey key) {
+    final box = key.currentContext?.findRenderObject();
+    return box is RenderBox && box.hasSize ? box : null;
+  }
+
+  void _onFlightLanded(_ActiveFlight flight) {
+    if (!mounted) return;
+    unawaited(HapticFeedback.selectionClick());
+    setState(() {
+      _flights.remove(flight);
+      flight.capture.landed = true;
+      _purgeResolved();
+    });
+  }
+
+  void _reconcilePending({required bool failed}) {
+    var markFailed = failed;
+    var unresolved = _pending.where((capture) => !capture.resolved).length;
+    while (unresolved > _session.pendingCount) {
+      final oldest = _pending.firstWhere((capture) => !capture.resolved);
+      if (markFailed) {
+        oldest.failed = true;
+        oldest.landed = true;
+        _flights.removeWhere((flight) => flight.capture == oldest);
+        markFailed = false;
+      } else {
+        oldest.pageId = _session.lastPage!.id;
+      }
+      unresolved--;
+    }
+    _purgeResolved();
+  }
+
+  void _purgeResolved() {
+    _PendingCapture? newestSnapshot;
+    for (final capture in _pending) {
+      if (capture.landed && !capture.resolved && capture.spec != null) {
+        newestSnapshot = capture;
+      }
+    }
+    for (final capture in _pending) {
+      if (capture.landed && (capture.resolved || capture != newestSnapshot)) {
+        _releaseSnapshot(capture);
+      }
+    }
+    _pending.removeWhere(
+      (capture) => capture.landed && capture.resolved && capture.spec == null,
+    );
+  }
+
+  static void _releaseSnapshot(_PendingCapture capture) {
+    final image = capture.spec?.image;
+    capture.spec = null;
+    if (image != null) {
+      unawaited(Future<void>.delayed(Motion.slow * 2, image.dispose));
+    }
+  }
+
+  ({int count, Widget? thumbnail, File? heroFile}) _pagesButtonState() {
+    final hiddenPageIds = {
+      for (final capture in _pending)
+        if (capture.processed && !capture.landed) capture.pageId!,
+    };
+    final shownPages = _session.pages
+        .where((page) => !hiddenPageIds.contains(page.id))
+        .toList();
+    final lastPage = shownPages.isEmpty ? null : shownPages.last;
+    final landedUnprocessed = _pending
+        .where((capture) => capture.landed && !capture.resolved)
+        .length;
+    final showingSnapshot = [
+      for (final capture in _pending)
+        if (capture.landed && !capture.failed && capture.spec != null) capture,
+    ];
+    Widget? thumbnail;
+    final heroFile = lastPage?.processedJpeg;
+    if (showingSnapshot.isNotEmpty) {
+      final capture = showingSnapshot.last;
+      thumbnail = CaptureSnapshotThumbnail(
+        key: ValueKey('capture-${capture.id}'),
+        spec: capture.spec!,
+      );
+    } else if (lastPage != null) {
+      thumbnail = ScannerProcessedThumbnail(
+        key: ValueKey(lastPage.processedJpeg.path),
+        page: lastPage,
+      );
+    }
+    return (
+      count: shownPages.length + landedUnprocessed,
+      thumbnail: thumbnail,
+      heroFile: heroFile,
+    );
+  }
+
+  void _toggleAutoMode() {
+    setState(() => _autoMode = !_autoMode);
+    _autoCapture.reset();
+  }
+
+  Future<void> _toggleTorch() async {
+    final camera = _camera;
+    if (camera == null) return;
+    await _applyTorch(camera, !_torchOn);
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _applyTorch(CameraController camera, bool on) async {
+    try {
+      await camera.setFlashMode(on ? FlashMode.torch : FlashMode.off);
+      _torchOn = on;
+    } on CameraException catch (e) {
+      _logger.warning('Torch unavailable: ${e.code}');
+      _torchOn = false;
+    }
+  }
+
+  Future<void> _openReview() async {
+    if (_reviewActive || (_session.pageCount == 0 && !_session.isProcessing)) {
+      return;
+    }
+    final navigator = Navigator.of(context);
+    _reviewActive = true;
+    var retakeRequested = false;
+    bool? saved;
+    try {
+      if (_session.pageCount > 0) {
+        final pages = _session.pages;
+        final index = (_reviewPageIndex ?? pages.length - 1).clamp(
+          0,
+          pages.length - 1,
+        );
+        await precacheImage(FileImage(pages[index].processedJpeg), context);
+        if (!mounted) return;
+      }
+      await _pauseCamera();
+      if (!mounted) return;
+      saved = await navigator.push<bool>(
+        MaterialPageRoute(
+          builder: (_) => ScannerReviewPage(
+            session: _session,
+            onUploadFiles: widget.onUploadFiles,
+            initialPageIndex: _reviewPageIndex,
+            onRetake: (pageId, index) {
+              retakeRequested = true;
+              setState(() {
+                _retakePageId = pageId;
+                _reviewPageIndex = index;
+              });
+            },
+          ),
+        ),
+      );
+    } finally {
+      _reviewActive = false;
+    }
+    if (!mounted) return;
+    if (saved == true) {
+      setState(() => _leavingAfterSave = true);
+      await WidgetsBinding.instance.endOfFrame;
+      if (!mounted) return;
+      navigator.pop(true);
+    } else {
+      setState(() {
+        if (!retakeRequested) _retakePageId = null;
+        for (final capture in _pending) {
+          capture.landed = true;
+          _releaseSnapshot(capture);
+        }
+        _flights.clear();
+        _purgeResolved();
+      });
+      unawaited(_startCamera());
+      if (_retakePageId == null) _reviewPageIndex = null;
+    }
+  }
+
+  Future<void> _closeRetake() async {
+    if (_takingPicture) return;
+    await _openReview();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.componentColors;
+    final pages = _pagesButtonState();
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          PopScope<bool>(
+            canPop: _retakePageId == null || _leavingAfterSave,
+            onPopInvokedWithResult: (didPop, _) {
+              if (didPop) {
+                _closing = true;
+              }
+              if (!didPop && _retakePageId != null && !_leavingAfterSave) {
+                unawaited(_closeRetake());
+              }
+            },
+            child: _buildPreview(colors),
+          ),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(Spacing.lg),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      ScannerChromeButton(
+                        icon: HugeIcons.strokeRoundedCancel01,
+                        onTap: _retakePageId == null
+                            ? () => Navigator.of(context).pop(false)
+                            : _closeRetake,
+                        tooltip: _retakePageId == null
+                            ? context.strings.close
+                            : context.strings.back,
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ScannerChromeButton(
+                            icon: _torchOn
+                                ? HugeIcons.strokeRoundedFlash
+                                : HugeIcons.strokeRoundedFlashOff,
+                            onTap: _camera == null ? null : _toggleTorch,
+                            tooltip: _torchOn
+                                ? context.strings.scannerTorchOff
+                                : context.strings.scannerTorchOn,
+                          ),
+                          const SizedBox(width: Spacing.sm),
+                          ScannerModeToggle(
+                            active: _autoMode,
+                            onTap: _toggleAutoMode,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  ScannerPreparingHint(
+                    visible: !_session.isServiceReady && !_scannerInitFailed,
+                  ),
+                  SizedBox(
+                    height: 88,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        ScannerShutterButton(
+                          enabled:
+                              _status == _CameraStatus.ready &&
+                              !_takingPicture &&
+                              _session.isServiceReady,
+                          onTap: _capture,
+                        ),
+                        if (_retakePageId == null) ...[
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: ScannerPagesButton(
+                              key: _pagesButtonKey,
+                              count: pages.count,
+                              thumbnail: pages.thumbnail,
+                              heroFile: pages.heroFile,
+                              accent: colors.primary,
+                              onTap: _openReview,
+                            ),
+                          ),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: ScannerDoneButton(
+                              visible: pages.count > 0,
+                              accent: colors.primary,
+                              onTap: _openReview,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          IgnorePointer(
+            child: Stack(
+              key: _flightLayerKey,
+              fit: StackFit.expand,
+              children: [
+                for (final flight in _flights)
+                  CaptureFlightCard(
+                    key: ValueKey(flight.capture.id),
+                    spec: flight.spec,
+                    borderColor: colors.specialWhite,
+                    onLanded: () => _onFlightLanded(flight),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPreview(ColorTokens colors) {
+    if (_scannerInitFailed) {
+      return ScannerCameraMessage(
+        message: context.strings.somethingWentWrong,
+        onRetry: _initScanner,
+      );
+    }
+    switch (_status) {
+      case _CameraStatus.starting:
+        return Center(
+          child: CircularProgressIndicator(color: colors.specialWhite),
+        );
+      case _CameraStatus.permissionDenied:
+        return ScannerCameraMessage(
+          message: context.strings.cameraPermissionSettings,
+          onRetry: _startCamera,
+        );
+      case _CameraStatus.error:
+        return ScannerCameraMessage(
+          message: context.strings.somethingWentWrong,
+          onRetry: _startCamera,
+        );
+      case _CameraStatus.ready:
+        final camera = _camera;
+        if (camera == null || !camera.value.isInitialized) {
+          return Center(
+            child: CircularProgressIndicator(color: colors.specialWhite),
+          );
+        }
+        return Center(
+          child: AspectRatio(
+            aspectRatio: 1 / camera.value.aspectRatio,
+            child: ClipRRect(
+              key: _previewKey,
+              borderRadius: BorderRadius.circular(Radii.sheet),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  CameraPreview(camera),
+                  ScanQuadOverlay(
+                    quad: _takingPicture || _flights.isNotEmpty
+                        ? null
+                        : _displayQuad,
+                    color: colors.primary,
+                    armingProgress: _autoMode ? _autoCapture.progress : 0,
+                  ),
+                  CaptureSnapOverlay(
+                    quad: _snapQuad,
+                    snapId: _snapId,
+                    color: colors.primary,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+    }
+  }
+}
+
+class _PendingCapture {
+  _PendingCapture(this.id);
+
+  final int id;
+  CaptureFlightSpec? spec;
+  bool landed = false;
+  String? pageId;
+  bool failed = false;
+
+  bool get processed => pageId != null;
+
+  bool get resolved => processed || failed;
+}
+
+class _ActiveFlight {
+  const _ActiveFlight({required this.capture, required this.spec});
+
+  final _PendingCapture capture;
+  final CaptureFlightSpec spec;
+}

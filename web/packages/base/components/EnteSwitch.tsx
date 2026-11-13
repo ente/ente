@@ -1,9 +1,6 @@
 import { Switch, styled, type SwitchProps } from "@mui/material";
 import React from "react";
 
-/**
- * A custom variant of the MUI {@link Switch}, styled per our designs.
- */
 export const EnteSwitch: React.FC<SwitchProps> = styled((props) => (
     <Switch disableRipple {...props} />
 ))(({ theme }) => ({
@@ -41,13 +38,10 @@ export const EnteSwitch: React.FC<SwitchProps> = styled((props) => (
             duration: 500,
         }),
     },
-    // Use an alternative affordance to indicate focusVisible as the ripple
-    // effect is disabled.
     ".MuiSwitch-switchBase.Mui-focusVisible + .MuiSwitch-track": {
         outline: `2px solid ${theme.vars.palette.stroke.muted}`,
         outlineOffset: "-2px",
     },
-    // Same for when the switch is active.
     ".MuiSwitch-switchBase:active + .MuiSwitch-track": {
         outline: `1px solid ${theme.vars.palette.stroke.faint}`,
         outlineOffset: "-1px",

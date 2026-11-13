@@ -22,25 +22,41 @@ import { z } from "zod";
 import { SlideUpTransition } from "./mui/SlideUpTransition";
 
 interface DevSettingsProps {
-    /** If `true`, then the dialog is shown. */
     open: boolean;
-    /** Called when the dialog wants to be closed. */
+    onClose: () => void;
+    presentation?: React.ComponentType<DevSettingsPresentationProps>;
+}
+
+export interface DevSettingsPresentationProps {
+    open: boolean;
+    onDialogClose: ModalProps["onClose"];
+    value: string;
+    onChange: React.ChangeEventHandler<HTMLInputElement | HTMLTextAreaElement>;
+    onBlur: React.FocusEventHandler<HTMLInputElement | HTMLTextAreaElement>;
+    error?: string;
+    isChecking: boolean;
+    canSave: boolean;
+    onSubmit: React.SubmitEventHandler<HTMLFormElement>;
     onClose: () => void;
 }
 
-/**
- * A dialog allowing the user to set the API origin that the app connects to.
- * See: [Note: Configuring custom server].
- */
-export const DevSettings: React.FC<DevSettingsProps> = ({ open, onClose }) => {
+export const DevSettings: React.FC<DevSettingsProps> = ({
+    open,
+    onClose,
+    presentation,
+}) => {
     const fullScreen = useIsSmallWidth();
 
     const handleDialogClose: ModalProps["onClose"] = (_, reason: string) => {
-        // Don't close on backdrop clicks.
         if (reason != "backdropClick") onClose();
     };
 
-    return (
+    return presentation ? (
+        <Contents
+            {...{ open, onClose, presentation }}
+            onDialogClose={handleDialogClose}
+        />
+    ) : (
         <Dialog
             {...{ open, fullScreen }}
             onClose={handleDialogClose}
@@ -48,64 +64,67 @@ export const DevSettings: React.FC<DevSettingsProps> = ({ open, onClose }) => {
             maxWidth="xs"
             fullWidth
         >
-            <Contents {...{ onClose }} />
+            <Contents {...{ open, onClose }} />
         </Dialog>
     );
 };
 
-type ContentsProps = Pick<DevSettingsProps, "onClose">;
+type ContentsProps = Pick<
+    DevSettingsProps,
+    "open" | "onClose" | "presentation"
+> & { onDialogClose?: ModalProps["onClose"] };
 
 const Contents: React.FC<ContentsProps> = (props) => {
-    // We need two nested components.
-    //
-    // - The initialAPIOrigin cannot be in our parent (the top level
-    //   DevSettings) otherwise it gets preserved across dialog reopens instead
-    //   of being read from storage on opening the dialog.
-    //
-    // - The initialAPIOrigin cannot be in our child (Form) because Formik
-    //   doesn't have supported for async initial values.
+    // This boundary reloads the stored origin on every dialog open.
+    // Form stays separate because Formik cannot await initial values.
     const [initialAPIOrigin, setInitialAPIOrigin] = useState<
         string | undefined
     >();
 
-    useEffect(
-        () =>
-            void getKVS("apiOrigin").then((o) => setInitialAPIOrigin(o ?? "")),
-        [],
-    );
+    useEffect(() => {
+        if (!props.open) {
+            setInitialAPIOrigin(undefined);
+            return;
+        }
 
-    // Even though this is async, this should be instantaneous, we're just
-    // reading the value from the local IndexedDB.
+        let cancelled = false;
+        void getKVS("apiOrigin").then((origin) => {
+            if (!cancelled) setInitialAPIOrigin(origin ?? "");
+        });
+        return () => {
+            cancelled = true;
+        };
+    }, [props.open]);
+
     if (initialAPIOrigin === undefined) return <></>;
 
     return <Form {...{ initialAPIOrigin }} {...props} />;
 };
 
-type FormProps = ContentsProps & {
-    /** The initial value of API origin to prefill in the text input field. */
-    initialAPIOrigin: string;
-};
+type FormProps = ContentsProps & { initialAPIOrigin: string };
 
-const Form: React.FC<FormProps> = ({ initialAPIOrigin, onClose }) => {
+const Form: React.FC<FormProps> = ({
+    open,
+    initialAPIOrigin,
+    onClose,
+    onDialogClose,
+    presentation: Presentation,
+}) => {
     const formik = useFormik({
         initialValues: { apiOrigin: initialAPIOrigin },
         validate: ({ apiOrigin }) => {
-            try {
-                // The expression is not unused, it is used to validate the URL.
-                // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-                apiOrigin && new URL(apiOrigin);
-            } catch {
+            if (apiOrigin && !isValidEndpoint(apiOrigin, !!Presentation)) {
                 return { apiOrigin: "Invalid endpoint" };
             }
             return {};
         },
         onSubmit: async (values, { setSubmitting, setErrors }) => {
+            const apiOrigin = Presentation
+                ? values.apiOrigin.trim()
+                : values.apiOrigin;
             try {
-                await updateAPIOrigin(values.apiOrigin);
+                await updateAPIOrigin(apiOrigin);
             } catch (e) {
-                // The person using this functionality is likely a developer and
-                // might be helped more by the original error instead of a
-                // friendlier but less specific message.
                 setErrors({
                     apiOrigin: e instanceof Error ? e.message : String(e),
                 });
@@ -117,13 +136,33 @@ const Form: React.FC<FormProps> = ({ initialAPIOrigin, onClose }) => {
         },
     });
 
-    // Show validation errors only after the form has been submitted once (the
-    // touched state of apiOrigin gets set too early, perhaps because of the
-    // autoFocus).
-    const hasError =
-        formik.submitCount > 0 &&
+    // Auto-focus marks this field touched before submission.
+    const hasError = Boolean(
+        (Presentation || formik.submitCount > 0) &&
         formik.touched.apiOrigin &&
-        !!formik.errors.apiOrigin;
+        formik.errors.apiOrigin,
+    );
+
+    if (Presentation) {
+        const trimmedValue = formik.values.apiOrigin.trim();
+        const canSave =
+            !formik.isSubmitting &&
+            (!trimmedValue || isValidEndpoint(trimmedValue, true)) &&
+            !(trimmedValue == "" && initialAPIOrigin == "");
+
+        return (
+            <Presentation
+                {...{ open, canSave, onClose }}
+                onDialogClose={onDialogClose}
+                value={formik.values.apiOrigin}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                error={hasError ? String(formik.errors.apiOrigin) : undefined}
+                isChecking={formik.isSubmitting}
+                onSubmit={formik.handleSubmit}
+            />
+        );
+    }
 
     return (
         <form onSubmit={formik.handleSubmit}>
@@ -141,17 +180,13 @@ const Form: React.FC<FormProps> = ({ initialAPIOrigin, onClose }) => {
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
                     error={hasError}
-                    helperText={
-                        hasError
-                            ? formik.errors.apiOrigin
-                            : " " /* always show an empty string to prevent a layout shift */
-                    }
+                    helperText={hasError ? formik.errors.apiOrigin : " "}
                     slotProps={{
                         input: {
                             endAdornment: (
                                 <InputAdornment position="end">
                                     <Link
-                                        href="https://ente.io/help/self-hosting/guides/custom-server/"
+                                        href="https://ente.com/help/self-hosting/installation/post-install/#step-6-configure-apps-to-use-your-server"
                                         target="_blank"
                                         rel="noopener"
                                     >
@@ -190,18 +225,15 @@ const Form: React.FC<FormProps> = ({ initialAPIOrigin, onClose }) => {
     );
 };
 
-/**
- * Save {@link origin} to local storage after verifying it with a ping.
- *
- * The given {@link origin} will be verifying by making an API call to the
- * `/ping` endpoint. If that succeeds, then it will be saved to local storage,
- * and all subsequent API calls will use it as the {@link apiOrigin}.
- *
- * See: [Note: Configuring custom server].
- *
- * @param origin The new API origin to use. Pass an empty string to clear the
- * previously saved API origin (if any).
- */
+const isValidEndpoint = (origin: string, httpOnly: boolean) => {
+    try {
+        const { protocol } = new URL(origin);
+        return !httpOnly || protocol == "http:" || protocol == "https:";
+    } catch {
+        return false;
+    }
+};
+
 const updateAPIOrigin = async (origin: string) => {
     if (!origin) {
         await removeKV("apiOrigin");
@@ -214,7 +246,7 @@ const updateAPIOrigin = async (origin: string) => {
         PingResponse.parse(await res.json());
     } catch (e) {
         log.error("Invalid response", e);
-        throw new Error("Invalid response");
+        throw new Error("Invalid response", { cause: e });
     }
 
     await setKV("apiOrigin", origin);

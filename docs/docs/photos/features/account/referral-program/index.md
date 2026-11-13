@@ -7,20 +7,17 @@ description: Earn free storage by referring Ente Photos to your friends
 
 You can refer your friends to earn free storage on Ente.
 
-For each friend you refer, who upgrades to a paid plan, we will credit **10 GB**
-of free storage. The referred customer will also receive an additional **10 GB**
-with their paid subscription.
-
-That is, if you refer a friend, once your friend upgrades to a paid plan, both
-you and your friend receive an additional 10 GB of storage.
+Your friend gets an extra 10 GB immediately after applying your referral code. You get an extra 10 GB when your friend upgrades to a paid plan.
 
 ## Find your referral code
 
 You can find your referral code under `Settings > Referrals`.
 
+![Mobile: home with Settings menu (three bars) highlighted, then Referrals, then the Get free storage referrals page](https://docs-assets.ente.com/screenshots/phone-settings-referrals-path-nc.png){width=560px}
+
 <div align="center">
 
-![Claim free storage screen](free-storage.png){width=400px}
+![Get free storage / Referrals on Ente Photos mobile and web showing your referral code](https://docs-assets.ente.com/screenshots/duo-referral-claim-storage.png){width=900px}
 
 </div>
 
@@ -28,16 +25,21 @@ You can find your referral code under `Settings > Referrals`.
 
 Referral codes can be applied within `Settings > Referrals > Apply Code`.
 
+As a new user, you get an extra 10 GB as soon as you apply a referral code. No paid subscription is required.
+
 <div align="center">
 
-![Apply referral code screen](referral-code-application.png){width=400px}
+![Apply code dialog on the Referrals screen in Ente Photos web](https://docs-assets.ente.com/screenshots/web-referral-apply-code.png){width=720px}
 
 </div>
 
+![Apply code row highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-referrals-apply-code-callout.png){width=320px}
+
+![Apply code sheet highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-referrals-apply-code-sheet-callout.png){width=320px}
+
 ## Customize your referral code
 
-You can personalize your referral code to make it easier to share. To change your
-code, go to `Settings > Referrals` and tap on your current code.
+You can personalize your referral code to make it easier to share. To change your code, go to `Settings > Referrals` and tap on your current code.
 
 Requirements for custom referral codes:
 
@@ -46,6 +48,8 @@ Requirements for custom referral codes:
 
 Note: You can change your referral code up to **3 times**.
 
+![Current code highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-referrals-edit-code-callout.png){width=320px}
+
 ## Related FAQs
 
 - [How much storage can I earn through referrals?](/photos/faq/storage-and-plans#referral-storage-limit)
@@ -53,4 +57,4 @@ Note: You can change your referral code up to **3 times**.
 - [What happens if I refer more people than my plan allows?](/photos/faq/storage-and-plans#referral-overflow)
 - [What counts as abuse of the referral program?](/photos/faq/storage-and-plans#referral-abuse)
 
-More questions? Drop a mail to [referrals@ente.io](mailto:referrals@ente.io)!
+More questions? Drop a mail to [referrals@ente.com](mailto:referrals@ente.com)!

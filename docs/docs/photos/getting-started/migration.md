@@ -7,7 +7,9 @@ description: Guide to importing your existing photos into Ente Photos
 
 If you have photos stored in other services or on your devices, Ente makes it easy to import them.
 
-> **Note**: This step is **optional**. If you're starting fresh with Ente and don't have existing photos to import, you can skip this step and proceed directly to [set up for daily use](/photos/getting-started/daily-use).
+> [!NOTE]
+>
+> This step is **optional**. If you're starting fresh with Ente and don't have existing photos to import, you can skip this step and proceed directly to [set up for daily use](/photos/getting-started/daily-use).
 
 This guide will help you choose the right migration method for your situation.
 

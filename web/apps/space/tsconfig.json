@@ -1,0 +1,13 @@
+{
+    "extends": "ente-build-config/tsconfig-next.json",
+    "compilerOptions": { "baseUrl": "./src", "ignoreDeprecations": "6.0" },
+    "include": [
+        "src",
+        "tests",
+        "vitest.config.ts",
+        "next-env.d.ts",
+        "../../packages/base/global-electron.d.ts",
+        "../../packages/base/global-css.d.ts",
+        "../../packages/base/components/utils/mui-theme.d.ts"
+    ]
+}

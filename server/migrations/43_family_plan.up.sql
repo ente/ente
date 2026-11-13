@@ -24,10 +24,8 @@ CREATE TABLE IF NOT EXISTS families
 
 CREATE INDEX IF NOT EXISTS fk_families_admin_id ON families (admin_id);
 
---  check to ensure that the member is not part of or is admin of another family group
 CREATE UNIQUE INDEX uidx_one_family_check on families (member_id, status) where status in ('ACCEPTED', 'SELF');
 
--- index to ensure that there's only one entry for admin and member.
 CREATE UNIQUE INDEX uidx_families_member_mapping on families (admin_id, member_id);
 
 ALTER TABLE families
@@ -41,4 +39,3 @@ CREATE TRIGGER update_families_updated_at
     FOR EACH ROW
 EXECUTE PROCEDURE
     trigger_updated_at_microseconds_column();
-

@@ -10,12 +10,8 @@ import 'package:ente_ui/theme/ente_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 
-enum ActionSheetType {
-  defaultActionSheet,
-  iconOnly,
-}
+enum ActionSheetType { defaultActionSheet, iconOnly }
 
-///Returns null if dismissed
 Future<ButtonResult?> showActionSheet({
   required BuildContext context,
   required List<ButtonWidget> buttons,
@@ -116,9 +112,7 @@ class ActionSheetWidget extends StatelessWidget {
                               isCheckIconGreen: isCheckIconGreen,
                             ),
                           ),
-                    ActionButtons(
-                      actionButtons,
-                    ),
+                    ActionButtons(actionButtons),
                   ],
                 ),
               ),
@@ -164,22 +158,22 @@ class ContentContainerWidget extends StatelessWidget {
             ? const SizedBox.shrink()
             : Text(
                 title!,
-                style: textTheme.largeBold
-                    .copyWith(color: textBaseDark), //constant color
+                style: textTheme.largeBold.copyWith(color: textBaseDark),
               ),
         title == null || bodyMissing
             ? const SizedBox.shrink()
             : const SizedBox(height: 19),
         actionSheetType == ActionSheetType.defaultActionSheet
             ? bodyMissing
-                ? const SizedBox.shrink()
-                : (bodyWidget != null
-                    ? bodyWidget!
-                    : Text(
-                        body!,
-                        style: textTheme.body
-                            .copyWith(color: textMutedDark), //constant color
-                      ))
+                  ? const SizedBox.shrink()
+                  : (bodyWidget != null
+                        ? bodyWidget!
+                        : Text(
+                            body!,
+                            style: textTheme.body.copyWith(
+                              color: textMutedDark,
+                            ),
+                          ))
             : Icon(
                 Icons.check_outlined,
                 size: 48,
@@ -193,8 +187,7 @@ class ContentContainerWidget extends StatelessWidget {
                 padding: const EdgeInsets.only(top: 19.0),
                 child: Text(
                   bodyHighlight!,
-                  style: textTheme.body
-                      .copyWith(color: textBaseDark), //constant color
+                  style: textTheme.body.copyWith(color: textBaseDark),
                 ),
               )
             : const SizedBox.shrink(),
@@ -212,9 +205,7 @@ class ActionButtons extends StatelessWidget {
     final actionButtonsWithSeparators = actionButtons;
     return Column(
       children:
-          //Separator height is 8pts in figma. -2pts here as the action
-          //buttons are 2pts extra in height in code compared to figma because
-          //of the border(1pt top + 1pt bottom) of action buttons.
+          // Two 1-point button borders complete the 8-point visual gap.
           addSeparators(actionButtonsWithSeparators, const SizedBox(height: 6)),
     );
   }

@@ -1,15 +1,6 @@
 import { loadStripe } from "@stripe/stripe-js";
 
-/**
- * Communicate with Stripe using their JS SDK, and redirect back to the client.
- *
- * All necessary parameters are obtained by parsing the request parameters.
- *
- * In case of unrecoverable errors, this function will throw. Otherwise it will
- * redirect to the client or to some fallback URL.
- */
 export const parseAndHandleRequest = async () => {
-    // See: [Note: Intercept payments redirection to desktop app]
     if (window.location.pathname == "/desktop-redirect") {
         const desktopRedirectURL = new URL("ente://app/gallery");
         desktopRedirectURL.search = new URL(window.location.href).search;
@@ -19,16 +10,43 @@ export const parseAndHandleRequest = async () => {
 
     try {
         const urlParams = new URLSearchParams(window.location.search);
+        const paymentIntentClientSecret = urlParams.get(
+            "payment_intent_client_secret",
+        );
         const productID = urlParams.get("productID");
         const paymentToken = urlParams.get("paymentToken");
         const action = urlParams.get("action");
         const redirectURL = urlParams.get("redirectURL");
+        const accountCountry = urlParams.get("accountCountry");
+
+        if (paymentIntentClientSecret) {
+            const pendingPaymentContext = getPendingPaymentContext();
+            const clientRedirectURL =
+                redirectURL ?? pendingPaymentContext?.redirectURL ?? null;
+            const clientAccountCountry = isStripeAccountCountry(accountCountry)
+                ? accountCountry
+                : (pendingPaymentContext?.accountCountry ?? null);
+            try {
+                await handlePaymentIntentRedirect(
+                    paymentIntentClientSecret,
+                    clientAccountCountry,
+                    clientRedirectURL,
+                );
+            } catch (error) {
+                console.error(error);
+                clearPendingPaymentContext();
+                if (clientRedirectURL) {
+                    redirectToApp(clientRedirectURL, "fail", "server_error");
+                    return;
+                }
+                throw ensureError(error);
+            }
+            return;
+        }
 
         if (!action && !paymentToken && !productID && !redirectURL) {
-            // Maybe someone attempted to directly open this page in their
-            // browser. Not much we can do, just redirect them to the main site.
             console.log(
-                "None of the required query parameters were supplied, redirecting to the ente.io",
+                "None of the required query parameters were supplied, redirecting to the ente.com",
             );
             redirectHome();
             return;
@@ -50,13 +68,26 @@ export const parseAndHandleRequest = async () => {
         }
     } catch (e) {
         console.error(e);
-        throw e;
+        throw ensureError(e);
     }
 };
 
-const apiOrigin = import.meta.env.VITE_ENTE_ENDPOINT ?? "https://api.ente.io";
+const apiOrigin = import.meta.env.VITE_ENTE_ENDPOINT ?? "https://api.ente.com";
+const paymentIntentPollIntervalMs = 2_000;
+const paymentIntentPollTimeoutMs = 300_000;
+const pendingPaymentContextStorageKey = "ente.payments.pending-context";
+
+type StripeJS = NonNullable<Awaited<ReturnType<typeof loadStripe>>>;
+
+const ensureError = (error: unknown) =>
+    error instanceof Error ? error : new Error(String(error));
 
 type StripeAccountCountry = "US" | "IN";
+
+interface PendingPaymentContext {
+    accountCountry: StripeAccountCountry;
+    redirectURL: string;
+}
 
 const isStripeAccountCountry = (c: unknown): c is StripeAccountCountry =>
     c == "US" || c == "IN";
@@ -76,7 +107,6 @@ const stripePublishableKey = (accountCountry: StripeAccountCountry) => {
     }
 };
 
-/** Return the {@link StripeAccountCountry} for the user. */
 const getUserStripeAccountCountry = async (paymentToken: string) => {
     const url = `${apiOrigin}/billing/stripe-account-country`;
     const res = await fetch(url, { headers: { "X-Auth-Token": paymentToken } });
@@ -89,7 +119,6 @@ const getUserStripeAccountCountry = async (paymentToken: string) => {
     throw new Error(`Unexpected response for ${url}: ${JSON.stringify(json)}`);
 };
 
-/** Load and return the Stripe JS SDK initialized for the given country. */
 const getStripe = async (
     redirectURL: string,
     accountCountry: StripeAccountCountry,
@@ -101,11 +130,10 @@ const getStripe = async (
         return stripe;
     } catch (e) {
         redirectToApp(redirectURL, "fail", "stripe_error");
-        throw e;
+        throw ensureError(e);
     }
 };
 
-/** The flow when the user wants to buy a new subscription. */
 const buySubscription = async (
     productID: string,
     paymentToken: string,
@@ -122,11 +150,10 @@ const buySubscription = async (
         await stripe.redirectToCheckout({ sessionId });
     } catch (e) {
         redirectToApp(redirectURL, "fail", "server_error");
-        throw e;
+        throw ensureError(e);
     }
 };
 
-/** Create a new checkout session on museum and return the sessionID. */
 const createCheckoutSession = async (
     productID: string,
     paymentToken: string,
@@ -158,7 +185,6 @@ const updateSubscription = async (
         );
         switch (status) {
             case "success": {
-                // Subscription was updated successfully, nothing more required
                 redirectToApp(redirectURL, "success");
                 return;
             }
@@ -168,11 +194,21 @@ const updateSubscription = async (
                 return;
 
             case "requires_action": {
-                const { error } = await stripe.confirmCardPayment(clientSecret);
-                if (!error) {
-                    redirectToApp(redirectURL, "success");
-                } else {
-                    console.error("Failed to confirm card payment", error);
+                setPendingPaymentContext({ accountCountry, redirectURL });
+                const result = await stripe.confirmPayment({
+                    clientSecret,
+                    confirmParams: {
+                        return_url: stripeConfirmationReturnURL(
+                            redirectURL,
+                            accountCountry,
+                        ),
+                    },
+                    redirect: "if_required",
+                });
+                if (result.error) {
+                    clearPendingPaymentContext();
+                    const { error } = result;
+                    console.error("Failed to confirm payment", error);
                     if (error.type == "card_error") {
                         redirectToApp(
                             redirectURL,
@@ -191,13 +227,22 @@ const updateSubscription = async (
                     } else {
                         redirectToApp(redirectURL, "fail");
                     }
+                    return;
                 }
+
+                const status = await waitForTerminalPaymentIntentStatus(
+                    stripe,
+                    clientSecret,
+                    result.paymentIntent.status,
+                );
+                clearPendingPaymentContext();
+                redirectForPaymentIntentStatus(redirectURL, status);
                 return;
             }
         }
     } catch (e) {
         redirectToApp(redirectURL, "fail", "server_error");
-        throw e;
+        throw ensureError(e);
     }
 };
 
@@ -211,10 +256,135 @@ interface UpdateStripeSubscriptionResponse {
     clientSecret: string;
 }
 
-/**
- * Make a request to museum to update an existing Stripe subscription with
- * {@link productID} for the user.
- */
+const handlePaymentIntentRedirect = async (
+    clientSecret: string,
+    accountCountry: StripeAccountCountry | null,
+    redirectURL: string | null,
+) => {
+    if (!accountCountry || !redirectURL) {
+        throw new Error(
+            "Required query parameter was not provided for payment confirmation",
+        );
+    }
+
+    const stripe = await getStripe(redirectURL, accountCountry);
+    const result = await stripe.retrievePaymentIntent(clientSecret);
+    if (result.error) throw ensureError(result.error);
+    const status = await waitForTerminalPaymentIntentStatus(
+        stripe,
+        clientSecret,
+        result.paymentIntent.status,
+    );
+    clearPendingPaymentContext();
+    redirectForPaymentIntentStatus(redirectURL, status);
+};
+
+const waitForTerminalPaymentIntentStatus = async (
+    stripe: StripeJS,
+    clientSecret: string,
+    initialStatus: string,
+) => {
+    let status = initialStatus;
+    const deadline = Date.now() + paymentIntentPollTimeoutMs;
+
+    while (status == "processing" && Date.now() < deadline) {
+        await delay(paymentIntentPollIntervalMs);
+        const result = await stripe.retrievePaymentIntent(clientSecret);
+        if (result.error) throw ensureError(result.error);
+        status = result.paymentIntent.status;
+    }
+
+    return status;
+};
+
+const delay = (ms: number) =>
+    new Promise((resolve) => {
+        setTimeout(resolve, ms);
+    });
+
+const stripeConfirmationReturnURL = (
+    redirectURL: string,
+    accountCountry: StripeAccountCountry,
+) => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("paymentToken");
+    url.searchParams.delete("productID");
+    url.searchParams.delete("action");
+    url.searchParams.set("redirectURL", redirectURL);
+    url.searchParams.set("accountCountry", accountCountry);
+    return url.href;
+};
+
+const getPendingPaymentContext = (): PendingPaymentContext | null => {
+    try {
+        const value = sessionStorage.getItem(pendingPaymentContextStorageKey);
+        if (!value) return null;
+        const json: unknown = JSON.parse(value);
+        if (
+            json &&
+            typeof json == "object" &&
+            "accountCountry" in json &&
+            "redirectURL" in json &&
+            isStripeAccountCountry(json.accountCountry) &&
+            typeof json.redirectURL == "string"
+        ) {
+            return {
+                accountCountry: json.accountCountry,
+                redirectURL: json.redirectURL,
+            };
+        }
+    } catch (error) {
+        console.error("Failed to read pending payment context", error);
+    }
+
+    return null;
+};
+
+const setPendingPaymentContext = (context: PendingPaymentContext) => {
+    try {
+        sessionStorage.setItem(
+            pendingPaymentContextStorageKey,
+            JSON.stringify(context),
+        );
+    } catch (error) {
+        console.error("Failed to persist pending payment context", error);
+    }
+};
+
+const clearPendingPaymentContext = () => {
+    try {
+        sessionStorage.removeItem(pendingPaymentContextStorageKey);
+    } catch (error) {
+        console.error("Failed to clear pending payment context", error);
+    }
+};
+
+const redirectForPaymentIntentStatus = (
+    redirectURL: string,
+    status: string,
+) => {
+    switch (status) {
+        case "succeeded":
+            redirectToApp(redirectURL, "success");
+            return;
+        case "processing":
+            redirectToApp(redirectURL, "fail", "server_error");
+            return;
+        case "requires_payment_method":
+            redirectToApp(redirectURL, "fail", "requires_payment_method");
+            return;
+        case "requires_action":
+            redirectToApp(redirectURL, "fail", "authentication_failed");
+            return;
+        case "canceled":
+            redirectToApp(redirectURL, "fail", "canceled");
+            return;
+        default:
+            console.error("Unhandled PaymentIntent status", status);
+            redirectToApp(redirectURL, "fail");
+    }
+};
+
 async function updateStripeSubscription(
     paymentToken: string,
     productID: string,
@@ -248,61 +418,51 @@ async function updateStripeSubscription(
 type RedirectStatus = "success" | "fail";
 
 type FailureReason =
-    /**
-     * Unable to authenticate card or 3DS.
-     *
-     * User should be shown button for fixing card via customer portal.
-     */
     | "authentication_failed"
-    /**
-     * Card declined results in this error.
-     *
-     * Show button to the customer portal.
-     */
     | "requires_payment_method"
-    /**
-     * An error in initializing the Stripe JS SDK.
-     */
     | "stripe_error"
     | "canceled"
     | "server_error";
 
-/**
- * Navigate to {@link redirectURL}, passing the given values as query params.
- *
- * [Note: Redirects do not interrupt script execution]
- *
- * I have been unable to find a documentation / reference source for this, but
- * in practice when I test it with a following snippet
- *
- *     const nonce = Math.random();
- *     console.log("before", nonce);
- *     window.location.href = "http://example.org";
- *     console.log("after", nonce);
- *
- * I observe that the code after the navigation also runs.
- */
+const isEnteHostname = (hostname: string) =>
+    hostname.endsWith(".ente.com") ||
+    hostname.endsWith(".ente.io") ||
+    hostname.endsWith(".ente.sh");
+
+// Assigning window.location.href does not stop script execution; statements
+// after a redirect still run, so callers must return explicitly.
 const redirectToApp = (
     redirectURL: string,
     status: RedirectStatus,
     reason?: FailureReason,
 ) => {
-    // [Note: Intercept payments redirection to desktop app]
-    //
-    // The desktop app passes "<our-origin>/desktop-redirect" as `redirectURL`.
-    // This is just a placeholder, we want to intercept this and instead
-    // redirect to the ente:// scheme protocol handler that is internally being
-    // used by the desktop app.
-    if (new URL(redirectURL).pathname == "/desktop-redirect") {
-        redirectToApp("ente://app/gallery", status, reason);
-        return;
+    let url = new URL(redirectURL);
+    if (url.protocol != "http:" && url.protocol != "https:") {
+        throw new Error("Invalid payment redirect URL");
     }
 
-    let url = `${redirectURL}?status=${status}`;
-    if (reason) url = `${url}&reason=${reason}`;
-    window.location.href = url;
+    const isSameOrigin = url.origin == window.location.origin;
+    const isDevURL =
+        import.meta.env.DEV && url.hostname == window.location.hostname;
+    const isEnteURL =
+        url.protocol == "https:" &&
+        url.port == "" &&
+        isEnteHostname(url.hostname);
+    const isAllowedURL = isSameOrigin || isDevURL || isEnteURL;
+    if (!isAllowedURL) {
+        throw new Error("Invalid payment redirect URL");
+    }
+
+    if (isSameOrigin && url.pathname == "/desktop-redirect") {
+        url = new URL("ente://app/gallery");
+    }
+
+    url.searchParams.set("status", status);
+    if (reason) url.searchParams.set("reason", reason);
+    else url.searchParams.delete("reason");
+    window.location.href = url.href;
 };
 
 const redirectHome = () => {
-    window.location.href = "https://ente.io";
+    window.location.href = "https://ente.com";
 };

@@ -1,16 +1,16 @@
 import "dart:typed_data";
 
 import "package:collection/collection.dart";
+import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:logging/logging.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/db/ml/db.dart";
-import "package:photos/l10n/l10n.dart";
 import "package:photos/models/memory_lane/memory_lane_models.dart";
-import "package:photos/models/ml/face/face.dart";
-import "package:photos/models/ml/face/person.dart";
+import "package:photos/models/ml/face/face_with_embedding.dart";
 import "package:photos/services/memory_lane/memory_lane_service.dart";
 import "package:photos/theme/ente_theme.dart";
+import "package:photos/ui/components/menu_item_widget/menu_item_widget_new.dart";
 import "package:photos/utils/face/face_thumbnail_cache.dart";
 
 class MemoryLaneBanner extends StatelessWidget {
@@ -28,47 +28,26 @@ class MemoryLaneBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
-    final brightness = Theme.of(context).brightness;
-    final Color backgroundColor = brightness == Brightness.dark
-        ? colorScheme.backgroundElevated2
-        : colorScheme.fillBaseGrey;
-    final TextStyle titleStyle = textTheme.body.copyWith(
-      fontFamily: "Inter",
-      fontWeight: FontWeight.w500,
-      fontSize: 16,
-      height: 20 / 16,
-      letterSpacing: -0.32,
-      color:
-          brightness == Brightness.dark ? colorScheme.textBase : Colors.black,
-    );
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        padding: const EdgeInsets.fromLTRB(9, 7, 18, 7),
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          borderRadius: BorderRadius.circular(28),
+    final backgroundColor = colorScheme.fill;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: MenuItemWidgetNew(
+        title: title,
+        titleMaxLines: 1,
+        titleColor: colorScheme.textBase,
+        leadingIconSize: 56,
+
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        leadingIconWidget: _FaceThumbnail(
+          image: thumbnail,
+          backgroundColor: backgroundColor,
         ),
-        child: Row(
-          children: [
-            _FaceThumbnail(
-              image: thumbnail,
-              backgroundColor: backgroundColor,
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Text(
-                title,
-                style: titleStyle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            Icon(Icons.chevron_right, color: colorScheme.textBase),
-          ],
-        ),
+
+        trailingIcon: Icons.chevron_right,
+
+        trailingIconColor: colorScheme.textBase,
+        menuItemColor: backgroundColor,
+        onTap: () async => onTap(),
       ),
     );
   }
@@ -99,10 +78,7 @@ class _FaceThumbnail extends StatelessWidget {
             ),
             clipBehavior: Clip.hardEdge,
             child: image != null
-                ? Image(
-                    image: image!,
-                    fit: BoxFit.cover,
-                  )
+                ? Image(image: image!, fit: BoxFit.cover)
                 : Center(
                     child: Icon(
                       Icons.person_outline,
@@ -230,14 +206,14 @@ class _SparklePainter extends CustomPainter {
 
 class MemoryLaneBannerSection extends StatefulWidget {
   final bool showBanner;
-  final PersonEntity person;
+  final String personId;
   final VoidCallback? onTap;
   final Future<MemoryLanePersonTimeline?> Function(String personId)?
-      loadTimeline;
+  loadTimeline;
 
   const MemoryLaneBannerSection({
     required this.showBanner,
-    required this.person,
+    required this.personId,
     this.onTap,
     this.loadTimeline,
     super.key,
@@ -263,8 +239,7 @@ class _MemoryLaneBannerSectionState extends State<MemoryLaneBannerSection> {
   @override
   void didUpdateWidget(covariant MemoryLaneBannerSection oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final bool personChanged =
-        widget.person.remoteID != oldWidget.person.remoteID;
+    final bool personChanged = widget.personId != oldWidget.personId;
     final bool bannerActivated =
         widget.showBanner && !oldWidget.showBanner && widget.onTap != null;
     final bool tapEnabled =
@@ -288,8 +263,8 @@ class _MemoryLaneBannerSectionState extends State<MemoryLaneBannerSection> {
     try {
       final loader =
           widget.loadTimeline ?? MemoryLaneService.instance.getTimeline;
-      final timeline = await loader(widget.person.remoteID);
-      if (!mounted || timeline == null || !timeline.isReady) {
+      final timeline = await loader(widget.personId);
+      if (!mounted || timeline == null || !timeline.isEligible) {
         _markThumbnailResolved();
         return;
       }
@@ -314,8 +289,7 @@ class _MemoryLaneBannerSectionState extends State<MemoryLaneBannerSection> {
       });
     } catch (error, stackTrace) {
       _logger.warning(
-        "Failed to load Memory Lane banner thumbnail for "
-        "${widget.person.remoteID}",
+        "Failed to load Memory Lane banner thumbnail for ${widget.personId}",
         error,
         stackTrace,
       );
@@ -338,7 +312,7 @@ class _MemoryLaneBannerSectionState extends State<MemoryLaneBannerSection> {
       return null;
     }
     final faces = await MLDataDB.instance.getFacesForGivenFileID(entry.fileId);
-    final Face? face = faces?.firstWhereOrNull(
+    final FaceWithoutEmbedding? face = faces?.firstWhereOrNull(
       (candidate) => candidate.faceID == entry.faceId,
     );
     if (face == null) {
@@ -359,7 +333,7 @@ class _MemoryLaneBannerSectionState extends State<MemoryLaneBannerSection> {
     } catch (error, stackTrace) {
       _logger.warning(
         "Failed to fetch face crop for banner "
-        "person=${widget.person.remoteID} entry=${entry.faceId}",
+        "person=${widget.personId} entry=${entry.faceId}",
         error,
         stackTrace,
       );
@@ -373,7 +347,7 @@ class _MemoryLaneBannerSectionState extends State<MemoryLaneBannerSection> {
       return const SizedBox.shrink();
     }
     return MemoryLaneBanner(
-      title: context.l10n.facesTimelineBannerTitle,
+      title: context.strings.facesTimelineBannerTitle,
       onTap: widget.onTap!,
       thumbnail: _thumbnail,
     );

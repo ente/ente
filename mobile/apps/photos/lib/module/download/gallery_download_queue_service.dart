@@ -13,10 +13,12 @@ import "package:photos/events/gallery_downloads_events.dart";
 import "package:photos/events/user_logged_out_event.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
+import 'package:photos/module/download/decrypt.dart';
+import 'package:photos/module/download/gallery.dart';
 import "package:photos/module/download/manager.dart";
 import "package:photos/module/download/task.dart";
 import "package:photos/service_locator.dart";
-import "package:photos/utils/file_download_util.dart";
+import "package:photos/utils/device_storage_error.dart";
 
 class GalleryDownloadEnqueueResult {
   final int addedCount;
@@ -79,22 +81,22 @@ class GalleryDownloadQueueService {
       .length;
 
   bool get hasPausedDueToNoConnection => _tasks.values.any(
-        (task) =>
-            task.status == DownloadStatus.paused &&
-            task.error == DownloadManager.noConnectionError,
-      );
+    (task) =>
+        task.status == DownloadStatus.paused &&
+        task.error == DownloadManager.noConnectionError,
+  );
 
   bool get hasPausedDueToStorage => _tasks.values.any(
-        (task) =>
-            task.status == DownloadStatus.paused &&
-            task.error == DownloadManager.notEnoughStorageError,
-      );
+    (task) =>
+        task.status == DownloadStatus.paused &&
+        task.error == DownloadManager.notEnoughStorageError,
+  );
 
   bool get hasNonUnavailableErrors => _tasks.values.any(
-        (task) =>
-            task.status == DownloadStatus.error &&
-            task.error != DownloadManager.unavailableError,
-      );
+    (task) =>
+        task.status == DownloadStatus.error &&
+        task.error != DownloadManager.unavailableError,
+  );
 
   bool get isCompletionBannerVisible =>
       _showCompletionBanner &&
@@ -163,8 +165,9 @@ class GalleryDownloadQueueService {
   }
 
   Future<GalleryDownloadEnqueueResult> enqueueFiles(
-    List<EnteFile> files,
-  ) async {
+    List<EnteFile> files, {
+    bool persistToFilesDB = true,
+  }) async {
     await init();
     if (files.isEmpty) {
       return const GalleryDownloadEnqueueResult(
@@ -183,13 +186,19 @@ class GalleryDownloadQueueService {
       if (uploadID == null || fileSize == null || fileSize <= 0) {
         continue;
       }
-      final queuedFile =
-          file.isRemoteFile ? file.copyWith() : file.copyWith(localID: null);
+      final queuedFile = file.isRemoteOnlyFile
+          ? file.copyWith()
+          : (file.copyWith()..localID = null);
       _queuedFilesByID[uploadID] = queuedFile;
-      final sourceFileJson = _serializeQueuedFile(queuedFile);
+      final sourceFileJson = _serializeQueuedFile(
+        queuedFile,
+        persistToFilesDB: persistToFilesDB,
+      );
       if (_tasks.containsKey(uploadID)) {
         final existingTask = _tasks[uploadID];
-        if (existingTask != null && existingTask.sourceFileJson == null) {
+        if (existingTask != null &&
+            persistToFilesDB &&
+            existingTask.sourceFileJson != sourceFileJson) {
           await _updateTask(
             existingTask.copyWith(sourceFileJson: sourceFileJson),
           );
@@ -306,10 +315,7 @@ class GalleryDownloadQueueService {
       }
       if (task.status == DownloadStatus.downloading ||
           task.status == DownloadStatus.paused) {
-        task = task.copyWith(
-          status: DownloadStatus.pending,
-          error: null,
-        );
+        task = task.copyWith(status: DownloadStatus.pending, error: null);
       }
       _tasks[task.id] = task;
       final queuedFile = _deserializeQueuedFile(task.sourceFileJson);
@@ -334,10 +340,12 @@ class GalleryDownloadQueueService {
 
   void _listenToConnectivity() {
     _connectivitySubscription?.cancel();
-    _connectivitySubscription =
-        Connectivity().onConnectivityChanged.listen((results) {
-      final hasConnection =
-          results.any((result) => result != ConnectivityResult.none);
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
+      results,
+    ) {
+      final hasConnection = results.any(
+        (result) => result != ConnectivityResult.none,
+      );
       if (!hasConnection) {
         return;
       }
@@ -396,26 +404,22 @@ class GalleryDownloadQueueService {
   void _startTask(DownloadTask task) {
     _activeDownloads.add(task.id);
     _updateTask(
-      task.copyWith(
-        status: DownloadStatus.downloading,
-        error: null,
-      ),
+      task.copyWith(status: DownloadStatus.downloading, error: null),
     ).ignore();
     _watchSubscriptions[task.id]?.cancel();
-    _watchSubscriptions[task.id] =
-        downloadManager.watchDownload(task.id).listen(
-      (downloadTask) {
-        final existing = _tasks[task.id];
-        if (existing == null) {
-          return;
-        }
-        final updatedTask = existing.copyWith(
-          bytesDownloaded: downloadTask.bytesDownloaded,
-          filePath: downloadTask.filePath,
-        );
-        _updateTask(updatedTask).ignore();
-      },
-    );
+    _watchSubscriptions[task.id] = downloadManager
+        .watchDownload(task.id)
+        .listen((downloadTask) {
+          final existing = _tasks[task.id];
+          if (existing == null) {
+            return;
+          }
+          final updatedTask = existing.copyWith(
+            bytesDownloaded: downloadTask.bytesDownloaded,
+            filePath: downloadTask.filePath,
+          );
+          _updateTask(updatedTask).ignore();
+        });
     _runTask(task.id).ignore();
   }
 
@@ -434,7 +438,7 @@ class GalleryDownloadQueueService {
       }
     } on DownloadNoConnectionError {
       await _setPausedState(fileID, DownloadManager.noConnectionError);
-    } on DownloadNotEnoughStorageError {
+    } on DeviceStorageFullException {
       await _setPausedState(fileID, DownloadManager.notEnoughStorageError);
     } on DownloadUnavailableError {
       await _setErrorState(fileID, DownloadManager.unavailableError);
@@ -455,9 +459,11 @@ class GalleryDownloadQueueService {
 
   Future<void> _downloadAndSaveToGallery(int fileID) async {
     EnteFile? file = _queuedFilesByID[fileID];
+    String? sourceFileJson;
     if (file == null) {
       final task = _tasks[fileID];
       if (task != null) {
+        sourceFileJson = task.sourceFileJson;
         file = _deserializeQueuedFile(task.sourceFileJson);
         if (file != null) {
           _queuedFilesByID[fileID] = file;
@@ -472,11 +478,15 @@ class GalleryDownloadQueueService {
       throw DownloadUnavailableError();
     }
     file.fileSize ??= _tasks[fileID]?.totalBytes;
-    final fileToDownload =
-        file.isRemoteFile ? file.copyWith() : file.copyWith(localID: null);
+    final fileToDownload = file.isRemoteOnlyFile
+        ? file.copyWith()
+        : (file.copyWith()..localID = null);
     await downloadToGallery(
       fileToDownload,
       forceResumableDownload: true,
+      persistToFilesDB: _deserializePersistToFilesDB(
+        sourceFileJson ?? _tasks[fileID]?.sourceFileJson,
+      ),
     );
   }
 
@@ -486,10 +496,7 @@ class GalleryDownloadQueueService {
       return;
     }
     await _updateTask(
-      task.copyWith(
-        status: DownloadStatus.paused,
-        error: reason,
-      ),
+      task.copyWith(status: DownloadStatus.paused, error: reason),
     );
     _isBannerDismissedByUser = false;
     _showCompletionBanner = false;
@@ -501,10 +508,7 @@ class GalleryDownloadQueueService {
       return;
     }
     await _updateTask(
-      task.copyWith(
-        status: DownloadStatus.error,
-        error: reason,
-      ),
+      task.copyWith(status: DownloadStatus.error, error: reason),
     );
     _isBannerDismissedByUser = false;
     _showCompletionBanner = false;
@@ -576,8 +580,8 @@ class GalleryDownloadQueueService {
       if (await file.exists()) {
         await file.delete();
       }
-      final totalChunks =
-          (task.totalBytes / DownloadManager.downloadChunkSize).ceil();
+      final totalChunks = (task.totalBytes / DownloadManager.downloadChunkSize)
+          .ceil();
       for (int i = 1; i <= totalChunks; i++) {
         final chunk = File("$basePath.${i}_part");
         if (await chunk.exists()) {
@@ -593,7 +597,7 @@ class GalleryDownloadQueueService {
     Bus.instance.fire(GalleryDownloadsUpdatedEvent());
   }
 
-  String _serializeQueuedFile(EnteFile file) {
+  String _serializeQueuedFile(EnteFile file, {required bool persistToFilesDB}) {
     return jsonEncode({
       "uploadedFileID": file.uploadedFileID,
       "ownerID": file.ownerID,
@@ -608,7 +612,22 @@ class GalleryDownloadQueueService {
       "fileSize": file.fileSize,
       "pubMmdEncodedJson": file.pubMmdEncodedJson,
       "pubMmdVersion": file.pubMmdVersion,
+      "persistToFilesDB": persistToFilesDB,
     });
+  }
+
+  bool _deserializePersistToFilesDB(String? sourceFileJson) {
+    if (sourceFileJson == null || sourceFileJson.isEmpty) {
+      return true;
+    }
+    try {
+      final Map<String, dynamic> map =
+          jsonDecode(sourceFileJson) as Map<String, dynamic>;
+      return map["persistToFilesDB"] as bool? ?? true;
+    } catch (e, s) {
+      _logger.warning("Failed to deserialize gallery download metadata", e, s);
+      return true;
+    }
   }
 
   EnteFile? _deserializeQueuedFile(String? sourceFileJson) {

@@ -30,19 +30,9 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace "io.ente.auth"
-    compileSdk 36
-    ndkVersion "28.2.13676358"
 
     compileOptions {
-        // Flag to enable support for the new language APIs
         coreLibraryDesugaringEnabled true
-        // Sets Java compatibility to Java 8
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-    }
-
-    kotlinOptions {
-        jvmTarget = '1.8'
     }
 
     sourceSets {
@@ -57,10 +47,7 @@ android {
 
     defaultConfig {
         applicationId "io.ente.auth"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
-        minSdkVersion 22
-        targetSdkVersion 35
+        minSdkVersion 24
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -123,11 +110,24 @@ android {
     }
 }
 
+androidComponents {
+    onVariants(selector().withFlavor("default", "independent")) { variant ->
+        // Compress native libraries for direct APK distribution:
+        // https://developer.android.com/build/releases/agp-4-2-0-release-notes#compress-native-libs-dsl
+        variant.packaging.jniLibs.useLegacyPackaging.set(true)
+    }
+
+    onVariants(selector().withFlavor("default", "fdroid")) { variant ->
+        // Compress native libraries for direct APK distribution:
+        // https://developer.android.com/build/releases/agp-4-2-0-release-notes#compress-native-libs-dsl
+        variant.packaging.jniLibs.useLegacyPackaging.set(true)
+    }
+}
+
 flutter {
     source '../..'
 }
 
 dependencies {
-    // For AGP 7.4+
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

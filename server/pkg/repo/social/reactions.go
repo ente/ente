@@ -5,13 +5,12 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/ente-io/museum/ente"
-	socialentity "github.com/ente-io/museum/ente/social"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	socialentity "github.com/ente/museum/ente/social"
+	"github.com/ente/stacktrace"
 	"github.com/lib/pq"
 )
 
-// ReactionsRepository manages reaction records.
 type ReactionsRepository struct {
 	DB *sql.DB
 }
@@ -70,7 +69,6 @@ func (repo *ReactionsRepository) SoftDeleteByID(ctx context.Context, id string, 
 	return nil
 }
 
-// SoftDeleteByCollectionAndUser removes all reactions created by a user inside a collection.
 func (repo *ReactionsRepository) SoftDeleteByCollectionAndUser(ctx context.Context, collectionID int64, userID int64) error {
 	_, err := repo.DB.ExecContext(ctx, `
         UPDATE reactions
@@ -207,38 +205,6 @@ func (repo *ReactionsRepository) GetDiff(ctx context.Context, collectionID int64
 	return reactions, hasMore, nil
 }
 
-func (repo *ReactionsRepository) CountActiveByCollection(ctx context.Context, collectionIDs []int64) (map[int64]int64, error) {
-	counts := make(map[int64]int64)
-	if len(collectionIDs) == 0 {
-		return counts, nil
-	}
-	rows, err := repo.DB.QueryContext(ctx, `
-        SELECT collection_id, COUNT(*)
-        FROM reactions
-        WHERE collection_id = ANY($1)
-          AND is_deleted = FALSE
-        GROUP BY collection_id
-    `, pq.Array(collectionIDs))
-	if err != nil {
-		return counts, stacktrace.Propagate(err, "")
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var collectionID int64
-		var count int64
-		if err := rows.Scan(&collectionID, &count); err != nil {
-			return counts, stacktrace.Propagate(err, "")
-		}
-		counts[collectionID] = count
-	}
-	if err := rows.Err(); err != nil {
-		return counts, stacktrace.Propagate(err, "")
-	}
-	return counts, nil
-}
-
-// LatestUpdateByCollection returns the most recent updated_at timestamp for each collection.
 func (repo *ReactionsRepository) LatestUpdateByCollection(ctx context.Context, collectionIDs []int64) (map[int64]int64, error) {
 	results := make(map[int64]int64)
 	if len(collectionIDs) == 0 {
@@ -309,4 +275,3 @@ func buildActorKey(userID int64, anonUserID *string) (string, error) {
 	}
 	return fmt.Sprintf("U:%d", userID), nil
 }
-

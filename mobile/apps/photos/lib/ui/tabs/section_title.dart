@@ -1,7 +1,6 @@
+import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
-import "package:photos/generated/l10n.dart";
 import 'package:photos/theme/ente_theme.dart';
-import 'package:photos/theme/text_style.dart';
 import "package:styled_text/styled_text.dart";
 
 class SectionTitle extends StatelessWidget {
@@ -83,20 +82,18 @@ class SectionOptions extends StatelessWidget {
 }
 
 Widget getOnEnteSection(BuildContext context) {
-  final EnteTextTheme textTheme = getEnteTextTheme(context);
+  final textTheme = getEnteTextTheme(context);
+
+  final style = TextStyle(
+    fontWeight: FontWeight.w600,
+    fontFamily: 'Inter',
+    fontSize: 21,
+    color: textTheme.largeBold.color,
+  );
 
   return StyledText(
-    text: AppLocalizations.of(context).onEnte,
-    style: TextStyle(
-      fontWeight: FontWeight.w600,
-      fontFamily: 'Inter',
-      fontSize: 21,
-      color: textTheme.brandSmall.color,
-    ),
-    tags: {
-      'branding': StyledTextTag(
-        style: textTheme.brandSmall,
-      ),
-    },
+    text: context.strings.onEnte,
+    style: style,
+    tags: {'branding': StyledTextTag(style: style)},
   );
 }

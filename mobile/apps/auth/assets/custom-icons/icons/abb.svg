@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   role="img"
+   viewBox="0 0 24 9.1879997"
+   version="1.1"
+   id="svg1"
+   sodipodi:docname="abb.svg"
+   width="24"
+   height="9.1879997"
+   inkscape:version="1.4.4 (dcaf3e7, 2026-05-05)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <defs
+     id="defs1" />
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#999999"
+     borderopacity="1"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="28.583333"
+     inkscape:cx="12.017493"
+     inkscape:cy="4.5830904"
+     inkscape:window-width="1920"
+     inkscape:window-height="1010"
+     inkscape:window-x="3193"
+     inkscape:window-y="-6"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg1" />
+  <title
+     id="title1">ABB</title>
+  <path
+     d="M 13.086,9.188 V 4.761 h 3.035 c 0.25,0.418 0.362,0.947 0.362,1.476 0,1.559 -1.17,2.867 -2.84,2.951 z M 12.807,4.733 V 9.188 H 10.023 V 4.733 Z M 15.954,4.455 H 13.086 V 0 h 0.668 c 1.086,0 1.949,0.863 1.949,1.949 0,0.64 -0.334,1.225 -0.835,1.587 0.417,0.223 0.807,0.529 1.086,0.919 M 12.807,0 V 4.455 H 10.023 V 0 Z m 7.796,9.188 V 4.761 h 3.035 C 23.889,5.179 24,5.708 24,6.237 24,7.796 22.831,9.104 21.16,9.188 Z M 20.325,4.733 V 9.188 H 17.541 V 4.733 Z M 23.471,4.455 H 20.603 V 0 h 0.668 c 1.086,0 1.949,0.863 1.949,1.949 0,0.64 -0.334,1.225 -0.835,1.587 0.418,0.223 0.808,0.529 1.086,0.919 M 20.325,0 V 4.455 H 17.541 V 0 Z M 1.587,4.733 H 4.455 V 7.239 H 2.979 L 2.311,9.188 H 0 Z M 4.455,0 V 4.455 H 1.671 L 3.258,0 Z M 4.733,7.239 V 4.733 H 7.601 L 9.188,9.188 H 6.877 L 6.209,7.239 Z M 7.517,4.455 H 4.733 V 0 H 5.93 Z"
+     id="path1"
+     fill="#ff000f" />
+  <metadata
+     id="metadata1">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:title>ABB</dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+</svg>

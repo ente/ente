@@ -1,62 +1,177 @@
 {
-  "ok": "ശരി",
-  "@ok": {
-    "description": "Generic OK button label"
-  },
+  "account": "അക്കൗണ്ട്",
+  "blog": "ബ്ലോഗ്",
+  "calculating": "കണക്കുകൂട്ടുന്നു...",
   "cancel": "റദ്ദാക്കുക",
   "@cancel": {
     "description": "Cancel button label"
-  },
-  "email": "ഇമെയിൽ",
-  "@email": {
-    "description": "Email field label"
-  },
-  "verify": "പരിശോധിക്കുക",
-  "@verify": {
-    "description": "Verify button label"
-  },
-  "verifyPassword": "പാസ്‌വേഡ് സ്ഥിരീകരിക്കുക",
-  "@verifyPassword": {
-    "description": "Verify password button label"
-  },
-  "incorrectPasswordTitle": "തെറ്റായ പാസ്‌വേഡ്",
-  "@incorrectPasswordTitle": {
-    "description": "Title for incorrect password error"
-  },
-  "createNewAccount": "പുതിയ അക്കൗണ്ട് സൃഷ്ടിക്കുക",
-  "@createNewAccount": {
-    "description": "Create new account button label"
-  },
-  "confirmPassword": "പാസ്വേഡ് സ്ഥിരീകരിക്കുക",
-  "@confirmPassword": {
-    "description": "Confirm password field label"
-  },
-  "welcomeBack": "വീണ്ടും സ്വാഗതം!",
-  "@welcomeBack": {
-    "description": "Welcome back message"
   },
   "changeEmail": "ഇമെയിൽ മാറ്റുക",
   "@changeEmail": {
     "description": "Change email button label"
   },
-  "verifyEmail": "ഇമെയിൽ സ്ഥിരീകരിക്കുക",
-  "@verifyEmail": {
-    "description": "Verify email title"
+  "changePassword": "പാസ്സ്‌വേർഡ് മാറ്റുക",
+  "close": "അടക്കുക",
+  "confirm": "നിജപ്പെടുത്തുക",
+  "@confirm": {
+    "description": "Confirm button label"
   },
-  "twoFactorAuthTitle": "ടു-ഫാക്ടർ ആധികാരികത",
-  "@twoFactorAuthTitle": {
-    "description": "Two-factor authentication title"
+  "continueLabel": "തുടരൂ",
+  "@continueLabel": {
+    "description": "Continue button label"
   },
-  "enterCodeHint": "നിങ്ങളുടെ ഓതന്റിക്കേറ്റർ ആപ്പിൽ നിന്നുള്ള 6 അക്ക കോഡ് നൽകുക",
-  "@enterCodeHint": {
-    "description": "Hint for entering 2FA code"
+  "count": "എണ്ണം",
+  "createAccount": "അക്കൗണ്ട് തുറക്കുക",
+  "@createAccount": {
+    "description": "Create account button label"
+  },
+  "custom": "ഇഷ്‌ടാനുസൃതം",
+  "@custom": {
+    "description": "Label for setting custom value for link expiry"
+  },
+  "darkTheme": "ഇരുണ്ട",
+  "deleteAccount": "അക്കൗണ്ട് ഉപേക്ഷിക്കു",
+  "@deleteAccount": {
+    "description": "Delete account button label"
+  },
+  "email": "ഇമെയിൽ",
+  "@email": {
+    "description": "Email field label"
   },
   "emailAlreadyRegistered": "ഇമെയിൽ ഇതിനകം രജിസ്റ്റർ ചെയ്തിട്ടുണ്ട്.",
   "@emailAlreadyRegistered": {
     "description": "Error message when email is already registered"
   },
+  "emailHint": "നിങ്ങളുടെ ഇമെയിൽ വിലാസം നൽകുക",
   "emailNotRegistered": "ഇമെയിൽ രജിസ്റ്റർ ചെയ്തിട്ടില്ല.",
   "@emailNotRegistered": {
     "description": "Error message when email is not registered"
-  }
+  },
+  "emailVerificationToggle": "ഇമെയിൽ ദൃഢീകരണം",
+  "enterCodeHint": "നിങ്ങളുടെ ഓതന്റിക്കേറ്റർ ആപ്പിൽ നിന്നുള്ള 6 അക്ക കോഡ് നൽകുക",
+  "@enterCodeHint": {
+    "description": "Hint for entering 2FA code"
+  },
+  "enterValidEmail": "സാധുവായ ഒരു ഇമെയിൽ നൽകുക.",
+  "enterYourNewEmailAddress": "നിങ്ങളുടെ ഇമെയിൽ വിലാസം നൽകുക",
+  "faqs": "പതിവുചോദ്യങ്ങൾ",
+  "favorite": "പ്രിയപ്പെട്ടവ",
+  "forgotPassword": "സങ്കേതക്കുറി മറന്നുപോയി",
+  "@forgotPassword": {
+    "description": "Forgot password link label"
+  },
+  "general": "പൊതുവായവ",
+  "hide": "മറയ്ക്കുക",
+  "howItWorks": "പ്രവർത്തന രീതി",
+  "@howItWorks": {
+    "description": "How it works button label"
+  },
+  "ignore": "അവഗണിക്കുക",
+  "invalidEmailAddress": "അസാധുവായ ഇമെയിൽ വിലാസം",
+  "ok": "ശരി",
+  "@ok": {
+    "description": "Generic OK button label"
+  },
+  "language": "ഭാഷ",
+  "lightTheme": "തെളിഞ",
+  "linkExpired": "കാലഹരണപ്പെട്ടു",
+  "moderateStrength": "ഇടത്തരം",
+  "@moderateStrength": {
+    "description": "Moderate password strength label"
+  },
+  "monthly": "പ്രതിമാസം",
+  "@monthly": {
+    "description": "The text to display for monthly plans",
+    "type": "text"
+  },
+  "name": "പേര്",
+  "noDeviceLimit": "ഒന്നുമില്ല",
+  "@noDeviceLimit": {
+    "description": "Text to indicate that there is limit on number of devices"
+  },
+  "nothingToSeeHere": "ഇവിടൊന്നും കാണ്മാനില്ല",
+  "oops": "അയ്യോ",
+  "@oops": {
+    "description": "Oops error title"
+  },
+  "password": "സങ്കേതക്കുറി",
+  "@password": {
+    "description": "Password field label"
+  },
+  "pleaseTryAgain": "ദയവായി വീണ്ടും ശ്രമിക്കുക",
+  "@pleaseTryAgain": {
+    "description": "Message asking user to try again"
+  },
+  "privacy": "സ്വകാര്യത",
+  "privacyPolicyTitle": "സ്വകാര്യതാനയം",
+  "@privacyPolicyTitle": {
+    "description": "Privacy policy title"
+  },
+  "recover": "വീണ്ടെടുക്കുക",
+  "@recover": {
+    "description": "Recover button label"
+  },
+  "recoverySuccessful": "വീണ്ടെടുക്കൽ വിജയകരം!",
+  "recreatePasswordTitle": "സങ്കേതക്കുറി പുനസൃഷ്ടിക്കുക",
+  "@recreatePasswordTitle": {
+    "description": "Title for recreate password dialog"
+  },
+  "retry": "പുനശ്രമിക്കുക",
+  "scan": "സ്കാൻ ചെയ്യുക",
+  "scanACode": "കോഡ് സ്കാൻ ചെയ്യുക",
+  "security": "സുരക്ഷ",
+  "send": "അയക്കുക",
+  "@send": {
+    "description": "Label for send button"
+  },
+  "setupComplete": "സജ്ജീകരണം പൂർത്തിയായി",
+  "share": "പങ്കിടുക",
+  "somethingWentWrongMessage": "എന്തോ കുഴപ്പമുണ്ടായി, ദയവായി വീണ്ടും ശ്രമിക്കുക",
+  "somethingWentWrongPleaseTryAgain": "എന്തോ കുഴപ്പം സംഭവിച്ചു, ദയവായി വീണ്ടും ശ്രമിക്കുക",
+  "@somethingWentWrongPleaseTryAgain": {
+    "description": "Generic error message"
+  },
+  "sorry": "ക്ഷമിക്കുക",
+  "sortAlbumsBy": "ഇപ്രകാരം അടുക്കുക",
+  "strongStrength": "ശക്തം",
+  "@strongStrength": {
+    "description": "Strong password strength label"
+  },
+  "success": "സഫലം",
+  "support": "പിന്തുണ",
+  "termsOfServicesTitle": "നിബന്ധനകൾ",
+  "@termsOfServicesTitle": {
+    "description": "Terms of service title"
+  },
+  "thankYou": "നന്ദി",
+  "thisDevice": "ഈ ഉപകരണം",
+  "@thisDevice": {
+    "description": "Label for current device"
+  },
+  "twoFactorAuthTitle": "ടു-ഫാക്ടർ ആധികാരികത",
+  "@twoFactorAuthTitle": {
+    "description": "Two-factor authentication title"
+  },
+  "unlock": "അൺലോക്ക്",
+  "@unlock": {
+    "description": "Short action label used as the system authentication reason when unlocking the app"
+  },
+  "verifyEmail": "ഇമെയിൽ സ്ഥിരീകരിക്കുക",
+  "@verifyEmail": {
+    "description": "Verify email title"
+  },
+  "verifyPassword": "പാസ്‌വേഡ് സ്ഥിരീകരിക്കുക",
+  "@verifyPassword": {
+    "description": "Verify password button label"
+  },
+  "weakStrength": "ദുർബലം",
+  "@weakStrength": {
+    "description": "Weak password strength label"
+  },
+  "yearly": "പ്രതിവർഷം",
+  "@yearly": {
+    "description": "The text to display for yearly plans",
+    "type": "text"
+  },
+  "yes": "അതെ"
 }

@@ -13,7 +13,6 @@ import "package:ente_ui/theme/effects.dart";
 import 'package:ente_ui/theme/ente_theme.dart';
 import 'package:flutter/material.dart';
 
-///Will return null if dismissed by tapping outside
 Future<ButtonResult?> showDialogWidget({
   required BuildContext context,
   required String title,
@@ -83,11 +82,7 @@ class DialogWidget extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                ContentContainer(
-                  title: title,
-                  body: body,
-                  icon: icon,
-                ),
+                ContentContainer(title: title, body: body, icon: icon),
                 const SizedBox(height: 36),
                 Actions(buttons),
               ],
@@ -120,14 +115,7 @@ class ContentContainer extends StatelessWidget {
       children: [
         icon == null
             ? const SizedBox.shrink()
-            : Row(
-                children: [
-                  Icon(
-                    icon,
-                    size: 32,
-                  ),
-                ],
-              ),
+            : Row(children: [Icon(icon, size: 32)]),
         icon == null ? const SizedBox.shrink() : const SizedBox(height: 19),
         Text(title, style: textTheme.largeBold),
         body != null ? const SizedBox(height: 19) : const SizedBox.shrink(),
@@ -152,11 +140,7 @@ class Actions extends StatelessWidget {
       children: addSeparators(
         buttons,
         const SizedBox(
-          // In figma this white space is of height 8pts. But the Button
-          // component has 1pts of invisible border by default in code. So two
-          // 1pts borders will visually make the whitespace 8pts.
-          // Height of button component in figma = 48, in code = 50 (2pts for
-          // top + bottom border)
+          // Two 1-point button borders complete the 8-point visual gap.
           height: 6,
         ),
       ),
@@ -206,7 +190,7 @@ class TextInputDialog extends StatefulWidget {
 }
 
 class _TextInputDialogState extends State<TextInputDialog> {
-  //the value of this ValueNotifier has no significance
+  // Only changes matter; the boolean value has no meaning.
   final _submitNotifier = ValueNotifier(false);
 
   @override

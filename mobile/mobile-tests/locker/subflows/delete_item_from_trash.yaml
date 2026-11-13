@@ -1,0 +1,21 @@
+appId: io.ente.locker
+env:
+  ITEM_NAME: ${ITEM_NAME || "automatedItem"}
+---
+- swipe:
+    start: 2%, 50%
+    end: 80%, 50%
+    duration: 300
+- tapOn: Trash
+
+- tapOn: ${ITEM_NAME}
+- assertNotVisible: Edit
+- tapOn: Back
+
+- longPressOn: ${ITEM_NAME}
+- tapOn: Delete
+- tapOn: Yes, delete
+- extendedWaitUntil:
+    visible: "1 item deleted permanently"
+    timeout: 10000
+- assertNotVisible: ${ITEM_NAME}

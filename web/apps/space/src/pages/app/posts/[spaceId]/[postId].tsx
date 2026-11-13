@@ -1,0 +1,310 @@
+import { SpaceFileViewer } from "components/FileViewer";
+import { SpacePageMeta } from "components/PageMeta";
+import { SpaceRouteFallback } from "components/RouteFallback";
+import log from "ente-base/log";
+import React from "react";
+import {
+    deleteCurrentPost,
+    loadCurrentSpacePost,
+    loadCurrentSpacePostAssetURL,
+    replyToCurrentPost,
+    setCurrentPostLiked,
+    updateCurrentPostCaption,
+    type SpacePost,
+} from "services/space";
+import { useSpaceAppState } from "state/app-state";
+import { spaceAppBackgroundColor } from "styles/colors";
+import { viewerPhotosFromPost } from "utils/post-photos";
+import { useSpaceRouter } from "utils/route-transitions";
+import { postPhotoIdFromObjectKey, spaceRoutes } from "utils/routes";
+
+const postBackground = "#000000";
+
+const valueFromQuery = (value: string | string[] | undefined) =>
+    Array.isArray(value) ? value[0] : value;
+
+const postIdFromQuery = (value: string | string[] | undefined) => {
+    const postIdText = valueFromQuery(value);
+    if (!postIdText || !/^\d+$/.test(postIdText)) return undefined;
+
+    const postId = Number(postIdText);
+    return Number.isSafeInteger(postId) && postId > 0 ? postId : undefined;
+};
+
+const routeParamsFromPath = () => {
+    if (typeof window == "undefined") return {};
+
+    const match = /^\/app\/posts\/([^/?#]+)\/([^/?#]+)/.exec(
+        window.location.pathname,
+    );
+    if (!match?.[1] || !match[2]) return {};
+
+    try {
+        return {
+            postId: postIdFromQuery(decodeURIComponent(match[2])),
+            spaceId: decodeURIComponent(match[1]),
+        };
+    } catch {
+        return {};
+    }
+};
+
+const viewerPhotoFromPost = (post: SpacePost) => ({
+    alt: `${post.name} post`,
+    avatarUrl: post.avatarUrl,
+    caption: post.caption,
+    commentCount: post.commentCount,
+    friendID: post.friendID,
+    height: post.height,
+    photos: post.photos,
+    imageUrl: post.imageUrl ?? "",
+    likeCount: post.likeCount,
+    name: post.name,
+    postId: post.postId,
+    spaceId: post.spaceId,
+    timestampMs: post.timestampMs,
+    viewerLiked: post.viewerLiked,
+    width: post.width,
+});
+
+const Page: React.FC = () => {
+    const router = useSpaceRouter();
+    const {
+        profile,
+        profileLoadError,
+        profileLoadStatus,
+        setLocalFeedPosts,
+        setPostPublication,
+    } = useSpaceAppState();
+    const pathParams = routeParamsFromPath();
+    const spaceId =
+        valueFromQuery(router.query.spaceId) ?? pathParams.spaceId ?? "";
+    const postId = postIdFromQuery(router.query.postId) ?? pathParams.postId;
+    const targetCommentId = valueFromQuery(router.query.comment);
+    const photoId =
+        valueFromQuery(router.query.photo) ??
+        (typeof window == "undefined"
+            ? undefined
+            : (new URLSearchParams(window.location.search).get("photo") ??
+              undefined));
+    const [post, setPost] = React.useState<SpacePost | null>(null);
+    const [postLoadError, setPostLoadError] = React.useState<string>();
+    const [isPostLoading, setIsPostLoading] = React.useState(false);
+    const postRouteKey = spaceId && postId ? `${spaceId}:${postId}` : "";
+    const isOwnPost = Boolean(post && post.spaceId == profile?.spaceId);
+
+    React.useEffect(() => {
+        if (profileLoadStatus == "ready" && !profile) {
+            void router.replace(spaceRoutes.onboarding);
+        }
+    }, [profile, profileLoadStatus, router]);
+
+    React.useEffect(() => {
+        if (
+            profileLoadStatus != "ready" ||
+            !profile?.spaceId ||
+            !spaceId ||
+            !postId
+        ) {
+            return;
+        }
+
+        const viewerSpaceId = profile.spaceId;
+        let cancelled = false;
+        setPost(null);
+        setPostLoadError(undefined);
+        setIsPostLoading(true);
+
+        void loadCurrentSpacePost(spaceId, postId, viewerSpaceId)
+            .then((nextPost) => {
+                if (cancelled) return;
+                if (!nextPost) {
+                    setPostLoadError("Post unavailable.");
+                    return;
+                }
+                setPost(nextPost);
+            })
+            .catch((error: unknown) => {
+                log.error("Failed to load space post", error);
+                if (!cancelled) setPostLoadError("Post unavailable.");
+            })
+            .finally(() => {
+                if (!cancelled) setIsPostLoading(false);
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [postRouteKey, profile?.spaceId, profileLoadStatus, spaceId, postId]);
+
+    const openOwnerProfile = React.useCallback(() => {
+        const ownerSpaceId = post?.spaceId ?? spaceId;
+        if (ownerSpaceId == profile?.spaceId) {
+            void router.push(spaceRoutes.profile);
+        } else if (post?.username) {
+            void router.push(
+                spaceRoutes.friendPage,
+                spaceRoutes.friend(post.username),
+            );
+        } else {
+            void router.push(spaceRoutes.home);
+        }
+    }, [post?.spaceId, post?.username, profile?.spaceId, router, spaceId]);
+
+    const closePost = React.useCallback(() => {
+        void router.back(spaceRoutes.home);
+    }, [router]);
+
+    if (
+        !router.isReady ||
+        profileLoadStatus != "ready" ||
+        !profile ||
+        !spaceId ||
+        !postId ||
+        isPostLoading ||
+        !post
+    ) {
+        return (
+            <SpaceRouteFallback
+                background={spaceAppBackgroundColor}
+                message={postLoadError || profileLoadError}
+                onBack={closePost}
+            />
+        );
+    }
+    const actorSpaceId = profile.spaceId;
+    if (!actorSpaceId) {
+        return (
+            <SpaceRouteFallback
+                background={spaceAppBackgroundColor}
+                message={postLoadError || profileLoadError}
+                onBack={closePost}
+            />
+        );
+    }
+
+    const photos = viewerPhotosFromPost(viewerPhotoFromPost(post));
+    const photoIndex =
+        photoId === undefined
+            ? 0
+            : photos.findIndex(
+                  (photo) =>
+                      photo.imageAsset &&
+                      postPhotoIdFromObjectKey(photo.imageAsset.objectKey) ==
+                          photoId,
+              );
+    if (photoIndex < 0) {
+        return (
+            <SpaceRouteFallback
+                background={spaceAppBackgroundColor}
+                message="Photo unavailable."
+                onBack={closePost}
+            />
+        );
+    }
+
+    return (
+        <>
+            <SpacePageMeta themeColor={postBackground} />
+            <SpaceFileViewer
+                key={`${post.postId}:${photoId ?? ""}:${targetCommentId ?? ""}`}
+                photo={viewerPhotoFromPost(post)}
+                photos={photos}
+                initialPhotoIndex={photoIndex}
+                commentsOnOpen={router.query.comments == "1"}
+                targetCommentId={targetCommentId}
+                onLoadPhoto={loadCurrentSpacePostAssetURL}
+                postActionMode={isOwnPost ? "likes" : "like-only"}
+                showLikesOnOpen={
+                    isOwnPost && valueFromQuery(router.query.likes) == "1"
+                }
+                onClose={closePost}
+                onOpenProfile={openOwnerProfile}
+                onDeletePost={
+                    isOwnPost
+                        ? async () => {
+                              await deleteCurrentPost(actorSpaceId, postId);
+                              setPostPublication((current) =>
+                                  current?.post.postId == postId
+                                      ? null
+                                      : current,
+                              );
+                              setLocalFeedPosts((currentPosts) =>
+                                  currentPosts.filter(
+                                      (item) =>
+                                          item.status == "pending" ||
+                                          item.status == "failed" ||
+                                          item.post.postId != postId,
+                                  ),
+                              );
+                          }
+                        : undefined
+                }
+                onUpdatePostCaption={
+                    isOwnPost
+                        ? async (nextPostId, caption) => {
+                              await updateCurrentPostCaption(
+                                  actorSpaceId,
+                                  nextPostId,
+                                  caption,
+                              );
+                              const normalizedCaption =
+                                  caption.trim() || undefined;
+                              setPost((current) =>
+                                  current?.postId == nextPostId
+                                      ? {
+                                            ...current,
+                                            caption: normalizedCaption,
+                                        }
+                                      : current,
+                              );
+                              setPostPublication((current) =>
+                                  current?.post.postId == nextPostId
+                                      ? {
+                                            ...current,
+                                            post: {
+                                                ...current.post,
+                                                caption: normalizedCaption,
+                                            },
+                                        }
+                                      : current,
+                              );
+                              setLocalFeedPosts((currentPosts) =>
+                                  currentPosts.map((item) =>
+                                      (item.status == "posted" ||
+                                          item.status == "ready") &&
+                                      item.post.postId == nextPostId
+                                          ? {
+                                                ...item,
+                                                post: {
+                                                    ...item.post,
+                                                    caption: normalizedCaption,
+                                                },
+                                            }
+                                          : item,
+                                  ),
+                              );
+                          }
+                        : undefined
+                }
+                onReplyToPost={
+                    isOwnPost
+                        ? undefined
+                        : (postSpaceId, nextPostId, text, objectKey) =>
+                              replyToCurrentPost(
+                                  actorSpaceId,
+                                  postSpaceId,
+                                  nextPostId,
+                                  text,
+                                  objectKey,
+                              )
+                }
+                onSetPostLiked={async (nextPostId, liked) => {
+                    await setCurrentPostLiked(actorSpaceId, nextPostId, liked);
+                }}
+            />
+        </>
+    );
+};
+
+export default Page;

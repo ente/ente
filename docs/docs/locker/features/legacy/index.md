@@ -1,152 +1,108 @@
 ---
 title: Legacy
-description: Set up digital inheritance so your family can access important information if something happens to you
+description: Set up digital inheritance so your family can recover your Ente account if something happens to you
 ---
 
 # Legacy
 
-Life is unpredictable. Legacy ensures your family can access important documents
-and information if something happens to you - while protecting against
-unauthorized access.
+Life is unpredictable. Legacy helps someone you trust recover your Ente account if you lose access, are incapacitated, or are no longer around.
 
-Use Legacy to ensure your encrypted data can be passed on to loved ones, or as
-an account recovery option if you forget your password and recovery key.
+There are two Legacy options in Ente Locker:
 
-## How Legacy works
+- **Trusted contacts**: Choose another Ente user who can recover your account after a waiting period.
+- **Legacy Kits**: Create 3 physical recovery sheets. Any 2 sheets can start account recovery in a browser, and the helper does not need an Ente account.
 
-Legacy uses a time-delayed recovery process that protects against unauthorized
-access while ensuring your data can be recovered when needed.
+Both options are account-level recovery tools. They are not item sharing, collection sharing, or direct login.
 
-### The recovery process
+## Trusted contacts
 
-1. You designate one or more trusted contacts (must be Ente users)
-2. If needed, a trusted contact initiates account recovery
-3. You receive a notice during the waiting period to block unauthorized recovery
-   attempts
-4. If not blocked, the trusted contact can reset your password and access the
-   account
+Trusted contacts are Ente users who agree to help recover your account. If a trusted contact starts recovery, you are notified and can block the attempt during the waiting period.
 
-The waiting period protects you if someone attempts unauthorized recovery while
-still allowing legitimate access when needed.
+### How trusted contact recovery works
+
+1. Add one or more trusted contacts.
+2. The trusted contact accepts the invite.
+3. If needed, the trusted contact starts account recovery.
+4. Ente notifies you during the waiting period.
+5. If you do not block the attempt, the trusted contact can reset the account password through the recovery flow.
 
 ### Waiting period options
 
-You can customize how long the waiting period lasts:
+Choose how long trusted contact recovery must wait:
 
 - **7 days**
 - **14 days**
 - **30 days** (default)
 
-Choose a shorter period if you want faster recovery, or keep the default 30 days
-for maximum protection against unauthorized access.
+Choose a shorter period if you want faster recovery, or keep the default 30 days for stronger protection against unauthorized recovery attempts.
 
-## Adding trusted contacts
+### Add a trusted contact
 
-Add trusted contacts in the Locker app:
+**On mobile:**
 
-1. Open `Settings > Account > Legacy`
-2. Tap **Add Trusted Contact**
-3. Enter the email address of the person you want to add
-4. The contact must be an existing Ente user
+1. Open Ente Locker.
+2. Open the Locker menu.
+3. Tap **Legacy**.
 
-After you add someone, they must accept your request:
+![Locker menu with Legacy entry highlighted](https://docs-assets.ente.com/screenshots/locker-legacy-drawer-callout.png){width=320px}
 
-1. They receive an email notification
-2. They open `Settings > Account > Legacy` in their Ente app
-3. They tap on your email address under Legacy accounts
-4. They accept the invite
+4. Tap **Add Trusted Contact**.
 
-Once accepted, they can initiate recovery if needed.
+![Legacy home with Add trusted contact](https://docs-assets.ente.com/screenshots/locker-legacy-home-callout.png){width=320px}
 
-## Configuring the waiting period
+5. Enter the email address of the person you want to add.
 
-To change your waiting period:
+![Add trusted contact sheet with email frosted and recovery time](https://docs-assets.ente.com/screenshots/locker-legacy-add-contact-callout.png){width=320px}
 
-1. Open `Settings > Account > Legacy`
-2. Tap on **Waiting period** or the settings icon
-3. Select 7, 14, or 30 days
-4. Confirm your choice
+The contact must already have an Ente account. After you add them, they must accept the invite from the Legacy page in their Ente app.
 
-The new waiting period applies to future recovery attempts.
+### Manage trusted contacts
 
-## Managing Legacy accounts
+Your Legacy page shows:
 
-Your Legacy section shows two categories:
+- **Trusted contacts**: People who can recover your account.
+- **Legacy accounts**: Accounts where you are a trusted contact.
 
-- **Trusted contacts**: People who can recover your account
-- **Legacy accounts**: Accounts where you are a trusted contact
+To remove a trusted contact, open **Legacy**, tap the contact, and select **Remove**.
 
-### As a trusted contact
+## Legacy Kits
 
-If someone has added you as their trusted contact, you have the ability to
-recover their account. This responsibility should be taken seriously:
+Legacy Kits are physical recovery kits for your Ente account. Each kit creates 3 recovery sheets, and any 2 sheets can start recovery. One sheet alone is not enough.
 
-- Only initiate recovery when appropriate (account owner is incapacitated,
-  deceased, or has requested help)
-- The account owner will be notified immediately when you initiate recovery
-- Unauthorized recovery attempts are blocked during the waiting period
+Legacy Kit sheets do not contain your recovery key. They reconstruct a separate kit secret that opens a scoped recovery session. The recovery key is decrypted locally only after enough sheets are combined and the waiting period allows recovery.
 
-### Removing trusted contacts
+Learn more about [Legacy Kits](/locker/features/legacy/legacy-kits).
 
-To remove a trusted contact:
+## Blocking recovery
 
-1. Open `Settings > Account > Legacy`
-2. Tap on the contact you want to remove
-3. Select **Remove**
+If someone starts recovery without your permission:
 
-## Recovery process
+**On mobile:**
 
-### Initiating recovery (as trusted contact)
+1. Open Ente Locker.
+2. Open the Locker menu.
+3. Tap **Legacy**.
+4. Open the recovery warning.
+5. Block the recovery attempt.
 
-1. Open `Settings > Account > Legacy` in the Ente Locker app
-2. Find the account under Legacy accounts
-3. Tap the email address
-4. Initiate recovery
-
-The account owner receives immediate notification and has the full waiting
-period to block the recovery.
-
-### Completing recovery
-
-After the waiting period passes without blocking:
-
-1. Return to `Settings > Account > Legacy`
-2. Tap on the account
-3. Set a new password for the account
-4. Access the recovered account with the new password
-
-### Blocking unauthorized recovery
-
-If a trusted contact initiates recovery without your permission:
-
-1. Open `Settings > Account > Legacy`
-2. You'll see a message that recovery was initiated
-3. Tap to block the recovery
-
-This stops the recovery immediately. Consider removing the trusted contact if
-the attempt was unauthorized.
+Blocking a trusted contact recovery stops that recovery attempt. For Legacy Kits, blocking stops the current active attempt, but the kit can still be used to start another attempt later unless you delete the kit.
 
 ## Important considerations
 
-- **Trusted contacts must be Ente users** with their own accounts
-- **Waiting period is configurable**: Choose 7, 14, or 30 days
-- **Account owner is notified** immediately when recovery begins
-- **Recovery can be blocked** at any time during the waiting period
-- **Legacy applies to your entire Ente account**, including Locker, Photos, and
-  Auth data
+- **Legacy applies to your Ente account**: A completed recovery gives access to the recovered Ente account.
+- **Trusted contacts must be Ente users**: Legacy Kits do not require the helper to have an Ente account.
+- **Recovery can be blocked**: You are notified when recovery starts and can block unauthorized attempts during the waiting period.
+- **This is not sharing**: Use sharing features for day-to-day access to Locker items or collections.
 
 ## Use cases
 
-- **Digital inheritance**: Ensure family members can access your data after
-  death
-- **Account recovery**: Recover access if you lose both password and recovery
-  key
-- **Shared access planning**: Plan for situations where you may be incapacitated
-- **Business continuity**: Ensure business-critical information remains
-  accessible
+- **Digital inheritance**: Help family members recover your account after death.
+- **Emergency account recovery**: Recover access if you lose your password and recovery key.
+- **Incapacity planning**: Make sure important information is recoverable if you cannot respond.
+- **Business continuity**: Keep critical account access recoverable when needed.
 
 ## Related FAQs
 
+- [What is a Legacy Kit?](/locker/faq/legacy#locker-legacy-kit-what-is)
+- [How is a Legacy Kit different from a trusted contact?](/locker/faq/legacy#locker-legacy-kit-vs-trusted-contact)
 - [What happens after the waiting period?](/locker/faq/legacy#locker-legacy-waiting-period)
-- [Can I have multiple trusted contacts?](/locker/faq/legacy#locker-legacy-multiple-contacts)
-- [What data can trusted contacts access?](/locker/faq/legacy#locker-legacy-data-access)

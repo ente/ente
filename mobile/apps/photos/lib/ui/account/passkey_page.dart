@@ -1,28 +1,26 @@
 import "dart:async";
 import 'dart:convert';
+import 'dart:typed_data';
 
 import "package:app_links/app_links.dart";
+import "package:ente_base/models/accounts.dart";
+import "package:ente_components/ente_components.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
+import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'package:photos/core/configuration.dart';
-import "package:photos/core/errors.dart";
-import "package:photos/generated/l10n.dart";
-import "package:photos/l10n/l10n.dart";
-import "package:photos/models/account/two_factor.dart";
 import 'package:photos/services/account/user_service.dart';
-import "package:photos/theme/colors.dart";
-import "package:photos/theme/ente_theme.dart";
-import "package:photos/theme/text_style.dart";
+import "package:photos/ui/account/onboarding_page_scaffold.dart";
 import "package:photos/ui/account/two_factor_authentication_page.dart";
 import "package:photos/ui/components/alert_bottom_sheet.dart";
-import "package:photos/ui/components/buttons/button_widget_v2.dart";
 import "package:photos/ui/notification/toast.dart";
 import "package:photos/utils/dialog_util.dart";
 import 'package:url_launcher/url_launcher_string.dart';
 
 class PasskeyPage extends StatefulWidget {
   final String sessionID;
+  final Uint8List? keyEncryptionKey;
   final String totp2FASessionID;
   final String accountsUrl;
 
@@ -30,6 +28,7 @@ class PasskeyPage extends StatefulWidget {
     this.sessionID, {
     required this.totp2FASessionID,
     required this.accountsUrl,
+    this.keyEncryptionKey,
     super.key,
   });
 
@@ -65,36 +64,46 @@ class _PasskeyPageState extends State<PasskeyPage> {
   }
 
   Future<void> checkStatus() async {
-    late dynamic response;
+    Map<String, dynamic>? response;
     try {
-      response = await UserService.instance
-          .getTokenForPasskeySession(widget.sessionID);
-    } on PassKeySessionNotVerifiedError {
-      showToast(context, context.l10n.passKeyPendingVerification);
-      return;
-    } on PassKeySessionExpiredError {
+      response = await UserService.instance.getTokenForPasskeySession(
+        widget.sessionID,
+      );
+    } on AccountsError_SessionExpired {
+      if (!mounted) return;
       await showAlertBottomSheet(
         context,
-        title: context.l10n.loginSessionExpired,
-        message: context.l10n.loginSessionExpiredDetails,
-        assetPath: 'assets/warning-green.png',
+        title: context.strings.loginSessionExpired,
+        message: context.strings.loginSessionExpiredDetails,
+        assetPath: 'assets/warning-grey.png',
       );
+      if (!mounted) return;
       Navigator.of(context).pop();
       return;
     } catch (e, s) {
       _logger.severe("failed to check status", e, s);
+      if (!mounted) return;
       showGenericErrorBottomSheet(context: context, error: e).ignore();
       return;
     }
-    await UserService.instance.onPassKeyVerified(context, response);
+    if (!mounted) return;
+    if (response == null) {
+      showToast(context, context.strings.passKeyPendingVerification);
+      return;
+    }
+    await UserService.instance.onPassKeyVerified(
+      context,
+      response,
+      keyEncryptionKey: widget.keyEncryptionKey,
+    );
   }
 
   Future<void> _handleDeeplink(Uri? uri) async {
-    if (!context.mounted ||
+    if (!mounted ||
         Configuration.instance.hasConfiguredAccount() ||
         uri == null) {
       _logger.warning(
-        'ignored deeplink: contextMounted ${context.mounted} hasConfiguredAccount ${Configuration.instance.hasConfiguredAccount()}',
+        'ignored deeplink: mounted $mounted hasConfiguredAccount ${Configuration.instance.hasConfiguredAccount()}',
       );
       return;
     }
@@ -103,16 +112,13 @@ class _PasskeyPageState extends State<PasskeyPage> {
       if (mounted && link.toLowerCase().startsWith("ente://passkey")) {
         if (Configuration.instance.isLoggedIn()) {
           _logger.info('ignored deeplink: already configured');
-          showToast(
-            context,
-            AppLocalizations.of(context).accountIsAlreadyConfigured,
-          );
+          showToast(context, context.strings.accountIsAlreadyConfigured);
           return;
         }
         final parsedUri = Uri.parse(link);
         final sessionID = parsedUri.queryParameters['passkeySessionID'];
         if (sessionID != widget.sessionID) {
-          showToast(context, AppLocalizations.of(context).sessionIdMismatch);
+          showToast(context, context.strings.sessionIdMismatch);
           _logger.warning('ignored deeplink: sessionID mismatch');
           return;
         }
@@ -123,19 +129,25 @@ class _PasskeyPageState extends State<PasskeyPage> {
         }
         final res = utf8.decode(base64.decode(base64String));
         final json = jsonDecode(res) as Map<String, dynamic>;
-        await UserService.instance.onPassKeyVerified(context, json);
+        await UserService.instance.onPassKeyVerified(
+          context,
+          json,
+          keyEncryptionKey: widget.keyEncryptionKey,
+        );
       } else {
-        _logger.info('ignored deeplink: $link mounted $mounted');
+        _logger.info(
+          'ignored deeplink: ${baseUrlForLogging(link)} mounted $mounted',
+        );
       }
     } catch (e, s) {
       _logger.severe('passKey: failed to handle deeplink', e, s);
+      if (!mounted) return;
       showGenericErrorBottomSheet(context: context, error: e).ignore();
     }
   }
 
   Future<bool> _initDeepLinks() async {
     final appLinks = AppLinks();
-    // Attach a listener to the stream
     linkStreamSubscription = appLinks.uriLinkStream.listen(
       _handleDeeplink,
       onError: (err) {
@@ -147,100 +159,72 @@ class _PasskeyPageState extends State<PasskeyPage> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
+    final colors = context.componentColors;
 
-    return Scaffold(
-      backgroundColor: colorScheme.backgroundColour,
-      appBar: AppBar(
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        backgroundColor: colorScheme.backgroundColour,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          color: colorScheme.content,
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-        ),
-        title: Text(
-          AppLocalizations.of(context).passkey,
-          style: textTheme.largeBold,
-        ),
-        centerTitle: true,
-      ),
-      body: _getBody(colorScheme, textTheme),
-    );
-  }
-
-  Widget _getBody(EnteColorScheme colorScheme, EnteTextTheme textTheme) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Column(
-          children: [
-            const Spacer(),
-            Text(
-              context.l10n.waitingForVerification,
-              style: textTheme.body.copyWith(color: colorScheme.textMuted),
-              textAlign: TextAlign.center,
-            ),
-            const Spacer(),
-            ButtonWidgetV2(
-              buttonType: ButtonTypeV2.primary,
-              labelText: context.l10n.tryAgain,
-              onTap: () => launchPasskey(),
-            ),
-            const SizedBox(height: 16),
-            ButtonWidgetV2(
-              buttonType: ButtonTypeV2.secondary,
-              labelText: context.l10n.checkStatus,
-              shouldSurfaceExecutionStates: true,
-              onTap: () async {
-                try {
-                  await checkStatus();
-                } catch (e) {
-                  debugPrint('failed to check status $e');
-                  showGenericErrorBottomSheet(context: context, error: e)
-                      .ignore();
-                }
-              },
-            ),
-            if (widget.totp2FASessionID.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              ButtonWidgetV2(
-                buttonType: ButtonTypeV2.link,
-                labelText: context.l10n.loginWithTOTP,
-                buttonSize: ButtonSizeV2.small,
-                onTap: () async {
-                  // ignore: unawaited_futures
-                  routeToPage(
-                    context,
-                    TwoFactorAuthenticationPage(
-                      widget.totp2FASessionID,
-                    ),
-                  );
-                },
-              ),
-            ],
-            const SizedBox(height: 12),
-            ButtonWidgetV2(
-              buttonType: ButtonTypeV2.link,
-              labelText: context.l10n.recoverAccount,
-              buttonSize: ButtonSizeV2.small,
+    return OnboardingPageScaffold(
+      title: context.strings.passkeyAuthTitle,
+      illustration: OnboardingIllustration.key,
+      isBodyCentered: true,
+      body: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            context.strings.waitingForVerification,
+            style: TextStyles.body.copyWith(color: colors.textBase),
+            textAlign: TextAlign.center,
+          ),
+          if (widget.totp2FASessionID.isNotEmpty) ...[
+            const SizedBox(height: Spacing.sm),
+            ButtonComponent(
+              label: context.strings.useTwoFactorInstead,
+              variant: ButtonComponentVariant.link,
+              size: ButtonComponentSize.small,
               onTap: () async {
                 // ignore: unawaited_futures
-                UserService.instance.recoverTwoFactor(
+                routeToPage(
                   context,
-                  widget.sessionID,
-                  TwoFactorType.passkey,
+                  TwoFactorAuthenticationPage(
+                    widget.totp2FASessionID,
+                    keyEncryptionKey: widget.keyEncryptionKey,
+                  ),
                 );
               },
             ),
-            const SizedBox(height: 24),
           ],
-        ),
+        ],
       ),
+      actions: [
+        ButtonComponent(
+          label: context.strings.tryAgain,
+          onTap: () => launchPasskey(),
+        ),
+        ButtonComponent(
+          label: context.strings.checkStatus,
+          variant: ButtonComponentVariant.secondary,
+          shouldSurfaceExecutionStates: true,
+          onTap: () async {
+            try {
+              await checkStatus();
+            } catch (e) {
+              debugPrint('failed to check status $e');
+              if (!context.mounted) return;
+              showGenericErrorBottomSheet(context: context, error: e).ignore();
+            }
+          },
+        ),
+        ButtonComponent(
+          label: context.strings.recoverAccount,
+          variant: ButtonComponentVariant.link,
+          onTap: () async {
+            // ignore: unawaited_futures
+            UserService.instance.recoverTwoFactor(
+              context,
+              widget.sessionID,
+              TwoFactorType.passkey,
+            );
+          },
+        ),
+      ],
     );
   }
 }

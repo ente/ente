@@ -1,0 +1,25 @@
+[package]
+name = "ente-legacy"
+edition.workspace = true
+
+[features]
+museum = []
+
+[dependencies]
+ente-accounts.workspace = true
+ente-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+uuid = { workspace = true, features = ["v4", "js"] }
+
+[dev-dependencies]
+ente-test-support.workspace = true
+hmac.workspace = true
+sha1.workspace = true
+tokio = { workspace = true, features = ["time"] }
+zeroize.workspace = true
+
+[lints]
+workspace = true

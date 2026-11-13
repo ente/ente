@@ -1,0 +1,17 @@
+[package]
+name = "ente-assets"
+edition.workspace = true
+
+[dependencies]
+flate2.workspace = true
+futures-util.workspace = true
+reqwest = { workspace = true, features = ["http2", "system-proxy", "rustls-tls-webpki-roots"] }
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+tar.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["macros", "rt", "sync"] }
+
+[lints]
+workspace = true

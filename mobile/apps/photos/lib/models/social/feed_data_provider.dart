@@ -1,25 +1,28 @@
 import "package:flutter/foundation.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/configuration.dart";
+import "package:photos/core/event_bus.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/db/social_db.dart";
+import "package:photos/events/user_logged_out_event.dart";
 import "package:photos/models/collection/collection.dart";
 import "package:photos/models/file/extensions/file_props.dart";
 import "package:photos/models/file/file.dart";
+import "package:photos/models/file/file_type.dart";
 import "package:photos/models/social/comment.dart";
 import "package:photos/models/social/feed_item.dart";
+import "package:photos/models/social/feed_items_cache.dart";
 import "package:photos/models/social/reaction.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
 import 'package:photos/services/social_notification_coordinator.dart';
 import "package:photos/services/social_sync_service.dart";
 
-/// Provider for feed data.
-///
-/// Aggregates social activity (comments, reactions) into feed items
-/// for display in the activity feed.
 class FeedDataProvider {
-  FeedDataProvider._();
+  FeedDataProvider._() {
+    Bus.instance.on<UserLoggedOutEvent>().listen((_) => _cache.clear());
+  }
+
   static final instance = FeedDataProvider._();
 
   final _logger = Logger('FeedDataProvider');
@@ -30,75 +33,47 @@ class FeedDataProvider {
   static const _kSharedPhotoFetchMaxRows =
       _kSharedPhotoFetchPageSize * _kSharedPhotoFetchMaxPages;
   static const _kSharedCollectionPreviewFileLimit = 30;
-  static const _kFeedItemsCacheTtlMs = 3000;
-  Future<List<FeedItem>>? _inFlightFeedItemsFuture;
-  String? _inFlightFeedItemsKey;
-  List<FeedItem>? _lastFeedItems;
-  String? _lastFeedItemsKey;
-  int? _lastFeedItemsAtMs;
+  final _cache = FeedItemsCache(ttl: const Duration(seconds: 3));
 
-  /// Gets feed items aggregated from local database.
-  ///
-  /// Feed items are sorted by most recent activity.
-  /// Each item represents a unique (type, fileID, commentID) combination.
-  /// Items from hidden collections or associated with deleted files are filtered out.
   Future<List<FeedItem>> getFeedItems({
     int limit = 50,
     bool includeSharedPhotos = true,
     bool verifyFileExistence = true,
-  }) async {
-    final requestKey = '$limit|$includeSharedPhotos|$verifyFileExistence';
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-
-    if (_inFlightFeedItemsFuture != null &&
-        _inFlightFeedItemsKey == requestKey) {
-      return _inFlightFeedItemsFuture!;
-    }
-
-    final lastAtMs = _lastFeedItemsAtMs;
-    if (_lastFeedItems != null &&
-        _lastFeedItemsKey == requestKey &&
-        lastAtMs != null &&
-        (nowMs - lastAtMs) <= _kFeedItemsCacheTtlMs) {
-      return List<FeedItem>.from(_lastFeedItems!);
-    }
-
-    final future = _computeFeedItems(
-      limit: limit,
-      includeSharedPhotos: includeSharedPhotos,
-      verifyFileExistence: verifyFileExistence,
-    );
-    _inFlightFeedItemsFuture = future;
-    _inFlightFeedItemsKey = requestKey;
-
-    try {
-      final items = await future;
-      _lastFeedItems = List<FeedItem>.from(items);
-      _lastFeedItemsKey = requestKey;
-      _lastFeedItemsAtMs = DateTime.now().millisecondsSinceEpoch;
-      return items;
-    } finally {
-      if (identical(_inFlightFeedItemsFuture, future)) {
-        _inFlightFeedItemsFuture = null;
-        _inFlightFeedItemsKey = null;
-      }
-    }
-  }
-
-  Future<List<FeedItem>> _computeFeedItems({
-    required int limit,
-    required bool includeSharedPhotos,
-    required bool verifyFileExistence,
   }) async {
     final userID = Configuration.instance.getUserID();
     if (userID == null) {
       _logger.warning('No user ID found, returning empty feed');
       return [];
     }
+    final requestKey = (
+      userID: userID,
+      limit: limit,
+      includeSharedPhotos: includeSharedPhotos,
+      verifyFileExistence: verifyFileExistence,
+    );
+    final items = await _cache.getOrCompute(
+      requestKey,
+      () => _computeFeedItems(
+        userID: userID,
+        limit: limit,
+        includeSharedPhotos: includeSharedPhotos,
+        verifyFileExistence: verifyFileExistence,
+      ),
+    );
+    if (Configuration.instance.getUserID() != userID) {
+      return [];
+    }
+    return items;
+  }
 
+  Future<List<FeedItem>> _computeFeedItems({
+    required int userID,
+    required int limit,
+    required bool includeSharedPhotos,
+    required bool verifyFileExistence,
+  }) async {
     final feedItems = <FeedItem>[];
 
-    // Fetch all activity types in parallel
     final results = await Future.wait([
       _db.getReactionsOnFiles(excludeUserID: userID, limit: limit),
       _db.getCommentsOnFiles(excludeUserID: userID, limit: limit),
@@ -113,7 +88,6 @@ class FeedDataProvider {
     final commentLikeReactions = results[3] as List<Reaction>;
     final replyLikeReactions = results[4] as List<Reaction>;
 
-    // Collect all fileIDs for batch loading to resolve ownership
     final fileIDs = <int>{};
     for (final r in photoLikeReactions) {
       if (r.fileID != null) fileIDs.add(r.fileID!);
@@ -125,7 +99,6 @@ class FeedDataProvider {
         ? await FilesDB.instance.getFileIDToFileFromIDs(fileIDs.toList())
         : <int, EnteFile>{};
 
-    // Aggregate photo likes by file
     feedItems.addAll(
       _aggregateReactionsByFile(
         photoLikeReactions,
@@ -135,7 +108,6 @@ class FeedDataProvider {
       ),
     );
 
-    // Aggregate comments by file
     feedItems.addAll(
       _aggregateCommentsByFile(
         fileComments,
@@ -144,10 +116,8 @@ class FeedDataProvider {
       ),
     );
 
-    // Aggregate replies by parent comment
     feedItems.addAll(_aggregateRepliesByParent(replies, userID: userID));
 
-    // Aggregate comment likes by comment
     feedItems.addAll(
       await _aggregateReactionsByComment(
         commentLikeReactions,
@@ -156,7 +126,6 @@ class FeedDataProvider {
       ),
     );
 
-    // Aggregate reply likes by reply
     feedItems.addAll(
       await _aggregateReactionsByComment(
         replyLikeReactions,
@@ -165,18 +134,18 @@ class FeedDataProvider {
       ),
     );
 
-    // Aggregate shared photos (files added by others to user's collections)
     if (includeSharedPhotos) {
-      final sharedFeedCutoffTime =
-          kDebugMode ? 0 : localSettings.getOrCreateSharedPhotoFeedCutoffTime();
+      final sharedFeedCutoffTime = kDebugMode
+          ? 0
+          : localSettings.getOrCreateSharedPhotoFeedCutoffTime();
       final sharedCollectionsContext =
           _SharedCollectionsContext.fromCollections(
-        CollectionsService.instance.getCollectionsForUI(
-          includedShared: true,
-          includeCollab: true,
-        ),
-        userID: userID,
-      );
+            CollectionsService.instance.getCollectionsForUI(
+              includedShared: true,
+              includeCollab: true,
+            ),
+            userID: userID,
+          );
 
       final sharedPhotoFeedResult = await _getSharedPhotoFeedResult(
         userID: userID,
@@ -199,15 +168,12 @@ class FeedDataProvider {
       feedItems.addAll(sharedPhotoFeedResult.sharedPhotoFeedItems);
     }
 
-    // Filter out items where the associated file doesn't exist or collection is hidden
     final validItems = verifyFileExistence
         ? await _filterFeedItems(feedItems)
         : _filterHiddenCollectionsOnly(feedItems);
 
-    // Sort by most recent activity
     validItems.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
-    // Limit total results
     if (validItems.length > limit) {
       return validItems.sublist(0, limit);
     }
@@ -215,20 +181,15 @@ class FeedDataProvider {
     return validItems;
   }
 
-  /// Gets a single feed item for preview display.
   Future<FeedItem?> getLatestFeedItem() async {
-    final items = await getFeedItems(
-      limit: 1,
-      verifyFileExistence: false,
-    );
+    final items = await getFeedItems(limit: 1, verifyFileExistence: false);
     return items.isNotEmpty ? items.first : null;
   }
 
-  /// Triggers background sync for all shared collections.
   Future<bool> syncAllSharedCollections() async {
     try {
-      final hasNewData =
-          await SocialSyncService.instance.syncAllSharedCollections();
+      final hasNewData = await SocialSyncService.instance
+          .syncAllSharedCollections();
       await SocialNotificationCoordinator.instance.notifyAfterSocialSync(
         trigger: SocialNotificationTrigger.feedRefresh,
       );
@@ -239,20 +200,17 @@ class FeedDataProvider {
     }
   }
 
-  List<FeedItem> _filterHiddenCollectionsOnly(
-    List<FeedItem> items,
-  ) {
+  List<FeedItem> _filterHiddenCollectionsOnly(List<FeedItem> items) {
     if (items.isEmpty) {
       return items;
     }
-    final hiddenCollectionIds =
-        CollectionsService.instance.getHiddenCollectionIds();
+    final hiddenCollectionIds = CollectionsService.instance
+        .getHiddenCollectionIds();
     return items
         .where((item) => !hiddenCollectionIds.contains(item.collectionID))
         .toList();
   }
 
-  /// Aggregates reactions on files by (collectionID, fileID).
   List<FeedItem> _aggregateReactionsByFile(
     List<Reaction> reactions,
     FeedItemType type, {
@@ -269,10 +227,8 @@ class FeedDataProvider {
 
     return groupedByFile.entries.map((entry) {
       final reactions = entry.value;
-      // Sort by created_at DESC to get most recent first
       reactions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
-      // Dedupe actors by userID, keeping order (most recent first)
       final seenUserIDs = <int>{};
       final uniqueUserIDs = <int>[];
       final uniqueAnonIDs = <String?>[];
@@ -294,11 +250,12 @@ class FeedDataProvider {
         createdAt: reactions.first.createdAt,
         isOwnedByCurrentUser:
             fileID != null && filesByID[fileID]?.ownerID == userID,
+        isVideo:
+            fileID != null && filesByID[fileID]?.fileType == FileType.video,
       );
     }).toList();
   }
 
-  /// Aggregates comments on files by (collectionID, fileID).
   List<FeedItem> _aggregateCommentsByFile(
     List<Comment> comments, {
     required Map<int, EnteFile> filesByID,
@@ -314,10 +271,8 @@ class FeedDataProvider {
 
     return groupedByFile.entries.map((entry) {
       final comments = entry.value;
-      // Sort by created_at DESC to get most recent first
       comments.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
-      // Dedupe actors by userID, keeping order (most recent first)
       final seenUserIDs = <int>{};
       final uniqueUserIDs = <int>[];
       final uniqueAnonIDs = <String?>[];
@@ -340,11 +295,12 @@ class FeedDataProvider {
         createdAt: comments.first.createdAt,
         isOwnedByCurrentUser:
             fileID != null && filesByID[fileID]?.ownerID == userID,
+        isVideo:
+            fileID != null && filesByID[fileID]?.fileType == FileType.video,
       );
     }).toList();
   }
 
-  /// Aggregates replies by parent comment ID.
   List<FeedItem> _aggregateRepliesByParent(
     List<Comment> replies, {
     required int userID,
@@ -359,10 +315,8 @@ class FeedDataProvider {
 
     return groupedByParent.entries.map((entry) {
       final replies = entry.value;
-      // Sort by created_at DESC to get most recent first
       replies.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
-      // Dedupe actors by userID, keeping order (most recent first)
       final seenUserIDs = <int>{};
       final uniqueUserIDs = <int>[];
       final uniqueAnonIDs = <String?>[];
@@ -387,7 +341,6 @@ class FeedDataProvider {
     }).toList();
   }
 
-  /// Aggregates reactions by comment ID.
   Future<List<FeedItem>> _aggregateReactionsByComment(
     List<Reaction> reactions,
     FeedItemType type, {
@@ -412,10 +365,8 @@ class FeedDataProvider {
     return groupedByComment.entries
         .map((entry) {
           final reactions = entry.value;
-          // Sort by created_at DESC to get most recent first
           reactions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
-          // Dedupe actors by userID, keeping order (most recent first)
           final seenUserIDs = <int>{};
           final uniqueUserIDs = <int>[];
           final uniqueAnonIDs = <String?>[];
@@ -448,11 +399,6 @@ class FeedDataProvider {
         .toList();
   }
 
-  /// Gets shared photo feed items.
-  ///
-  /// Groups files added by others into session-like buckets using
-  /// (collectionID, ownerID) + a short addedTime gap.
-  /// Hidden collections are filtered downstream in _filterFeedItems.
   Future<_SharedPhotoFeedResult> _getSharedPhotoFeedResult({
     required int userID,
     int limit = 50,
@@ -460,8 +406,8 @@ class FeedDataProvider {
     required Map<int, int> incomingCollectionSharedAtByID,
     required int sharedFeedCutoffTime,
   }) async {
-    final hiddenCollectionIds =
-        CollectionsService.instance.getHiddenCollectionIds();
+    final hiddenCollectionIds = CollectionsService.instance
+        .getHiddenCollectionIds();
 
     final groupingState = _SharedPhotoGroupingState(
       sessionGapMicros: _kSharedPhotoSessionGapMicros,
@@ -512,7 +458,8 @@ class FeedDataProvider {
         }
       }
 
-      final reachedEnd = pageFiles.length < _kSharedPhotoFetchPageSize ||
+      final reachedEnd =
+          pageFiles.length < _kSharedPhotoFetchPageSize ||
           retainedRows >= _kSharedPhotoFetchMaxRows;
       if (retainedRows == 0) {
         if (reachedEnd) {
@@ -543,7 +490,8 @@ class FeedDataProvider {
 
         // Once we've scanned older than this threshold, unseen rows cannot
         // extend any of the top groups.
-        final topGroupsAreClosed = oldestFetchedAddedTime <
+        final topGroupsAreClosed =
+            oldestFetchedAddedTime <
             (minOldestAddedTime - _kSharedPhotoSessionGapMicros);
         if (topGroupsAreClosed || reachedEnd) {
           return _toSharedPhotoFeedResult(
@@ -623,15 +571,13 @@ class FeedDataProvider {
         .where((collection) => (collection.sharedAt ?? 0) > 0)
         .map((collection) {
           final ownerID = collection.owner.id;
-          if (ownerID == null) {
-            return null;
-          }
           final sharedFileIDs = initialSharedFileIDsByCollection[collection.id];
           return FeedItem(
             type: FeedItemType.sharedCollection,
             collectionID: collection.id,
-            fileID:
-                sharedFileIDs?.isNotEmpty == true ? sharedFileIDs!.first : null,
+            fileID: sharedFileIDs?.isNotEmpty == true
+                ? sharedFileIDs!.first
+                : null,
             actorUserIDs: [ownerID],
             actorAnonIDs: [null],
             createdAt: collection.sharedAt!,
@@ -640,28 +586,15 @@ class FeedDataProvider {
             collectionName: collectionNames[collection.id],
           );
         })
-        .whereType<FeedItem>()
         .toList();
   }
 
-  /// Filters out feed items that should not be displayed.
-  ///
-  /// Removes items where:
-  /// - The associated file no longer exists in FilesDB
-  /// - The collection is hidden
-  ///
-  /// For sharedPhoto items, validates only the representative fileID.
-  /// The underlying shared list comes from live files-table rows.
-  Future<List<FeedItem>> _filterFeedItems(
-    List<FeedItem> items,
-  ) async {
+  Future<List<FeedItem>> _filterFeedItems(List<FeedItem> items) async {
     if (items.isEmpty) return items;
 
-    // Get hidden collection IDs to filter out
-    final hiddenCollectionIds =
-        CollectionsService.instance.getHiddenCollectionIds();
+    final hiddenCollectionIds = CollectionsService.instance
+        .getHiddenCollectionIds();
 
-    // Collect unique (fileID, collectionID) pairs
     final filesToCheck = <(int, int)>{};
     for (final item in items) {
       if (item.fileID != null) {
@@ -670,31 +603,25 @@ class FeedDataProvider {
     }
 
     if (filesToCheck.isEmpty) {
-      // Still filter hidden collections even if no files to check
       return items
           .where((item) => !hiddenCollectionIds.contains(item.collectionID))
           .toList();
     }
 
-    // Check which files exist using batch query (single DB call)
-    final existingFilesByCollection =
-        await FilesDB.instance.getExistingFileIDsByCollection(filesToCheck);
+    final existingFilesByCollection = await FilesDB.instance
+        .getExistingFileIDsByCollection(filesToCheck);
 
-    // Filter and transform items
     final result = <FeedItem>[];
     for (final item in items) {
-      // Exclude hidden collections
       if (hiddenCollectionIds.contains(item.collectionID)) {
         continue;
       }
 
-      // Items without fileID (collection-level activity) are kept
       if (item.fileID == null) {
         result.add(item);
         continue;
       }
 
-      // Exclude items where file no longer exists
       final existingInCollection = existingFilesByCollection[item.collectionID];
       if (existingInCollection?.contains(item.fileID) ?? false) {
         result.add(item);
@@ -782,8 +709,8 @@ class _SharedPhotoGroupBuilder {
     required this.ownerID,
     required this.createdAt,
     required int firstFileID,
-  })  : oldestAddedTime = createdAt,
-        sharedFileIDs = [firstFileID];
+  }) : oldestAddedTime = createdAt,
+       sharedFileIDs = [firstFileID];
 
   void add(int fileID, int addedTime) {
     sharedFileIDs.add(fileID);
@@ -806,9 +733,7 @@ class _SharedPhotoGroupingState {
   final Map<String, _SharedPhotoGroupBuilder> _activeGroups = {};
   final List<_SharedPhotoGroup> _closedGroups = [];
 
-  _SharedPhotoGroupingState({
-    required this.sessionGapMicros,
-  });
+  _SharedPhotoGroupingState({required this.sessionGapMicros});
 
   int get roughGroupCount => _closedGroups.length + _activeGroups.length;
 

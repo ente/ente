@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 106 106">
+  <defs>
+    <linearGradient id="grad1" gradientUnits="userSpaceOnUse" x1="12.78" y1="29.76" x2="91.84" y2="75.41">
+      <stop offset="0" stop-color="#e45268"/>
+      <stop offset="0.14" stop-color="#e65b64"/>
+      <stop offset="0.69" stop-color="#eb7a56"/>
+      <stop offset="1" stop-color="#ed8651"/>
+    </linearGradient>
+    <linearGradient id="grad2" gradientUnits="userSpaceOnUse" x1="7.04" y1="26.29" x2="98.13" y2="78.88">
+      <stop offset="0" stop-color="#ed8651"/>
+      <stop offset="0.14" stop-color="#eb7d55"/>
+      <stop offset="0.69" stop-color="#e65e63"/>
+      <stop offset="1" stop-color="#e45268"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#grad1)" d="M52.31 6.95C27.1 6.95 6.67 27.38 6.67 52.59s20.43 45.64 45.64 45.64 45.64-20.43 45.64-45.64S77.52 6.95 52.31 6.95zm0 84.9C30.63 91.85 13.05 74.27 13.05 52.59S30.63 13.33 52.31 13.33s39.26 17.58 39.26 39.26-17.58 39.26-39.26 39.26z"/>
+  <path fill="url(#grad2)" d="M52.59 0C23.55 0 0 23.54 0 52.58s23.54 52.58 52.59 52.58 52.58-23.54 52.58-52.58S81.63 0 52.59 0zm0 97.81c-24.98 0-45.23-20.25-45.23-45.23S27.61 7.36 52.59 7.36s45.23 20.25 45.23 45.22-20.25 45.23-45.23 45.23z"/>
+</svg>

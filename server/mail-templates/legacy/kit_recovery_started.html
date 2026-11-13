@@ -1,0 +1,22 @@
+{{define "legacy_styles"}}{{template "legacy_kit_styles" .}}{{end}}
+{{define "legacy_card"}}{{template "legacy_kit_card" .}}{{end}}
+
+{{define "content"}}
+<p>Hello,</p>
+
+<p>A Legacy Kit recovery has been initiated for your account.</p>
+
+{{if .BeneficiaryEmail}}
+<p>The recovery was started with beneficiary email <strong>{{.BeneficiaryEmail}}</strong>.</p>
+{{end}}
+
+{{if .IsImmediate}}
+<p>This kit is configured for immediate recovery, so the holder of the required kit parts can change your password right away.</p>
+{{else}}
+<p>After <strong>{{.RecoveryDelay}}</strong>, the holder of the required kit parts will be able to change the password and access your account.</p>
+{{end}}
+
+<p>If you want to block the recovery, please navigate to <strong>Settings &gt; Legacy</strong> in the Ente app.</p>
+
+<p>If you need help, please reply to this email.</p>
+{{end}}

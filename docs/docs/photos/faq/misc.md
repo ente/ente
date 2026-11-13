@@ -1,10 +1,14 @@
 ---
-title: This Page Has Moved
-description: This content has been reorganized
+title: Miscellaneous FAQ
+description: Additional frequently asked questions about Ente Photos
 search: false
+head:
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
-# This Page Has Moved
+# Miscellaneous FAQ
 
 The content from **Miscellaneous FAQ** has been reorganized into topic-specific sections.
 

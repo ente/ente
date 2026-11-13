@@ -4,25 +4,16 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/ente-io/museum/pkg/controller/lock"
-	"github.com/ente-io/museum/pkg/external/wasabi"
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/museum/pkg/utils/file"
-	"github.com/ente-io/museum/pkg/utils/s3config"
-	"github.com/ente-io/museum/pkg/utils/time"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/pkg/controller/lock"
+	"github.com/ente/museum/pkg/external/wasabi"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/museum/pkg/utils/file"
+	"github.com/ente/museum/pkg/utils/s3config"
+	"github.com/ente/museum/pkg/utils/time"
+	"github.com/ente/stacktrace"
 	log "github.com/sirupsen/logrus"
 )
 
-// ObjectController manages various operations specific to object storage,
-// including dealing with the special cases for individual replicas.
-//
-// The user's encrypted data is replicated to three places - 2 hot storage data
-// centers, and 1 cold storage. All three of them provide S3 compatible APIs
-// that we use to add and remove objects. However, there are still some specific
-// (and intentional) differences in the way the three replicas work. e.g.
-// objects stored in Wasabi are also placed under a special compliance mode,
-// which is a Wasabi specific feature.
 type ObjectController struct {
 	S3Config              *s3config.S3Config
 	ObjectRepo            *repo.ObjectRepository
@@ -35,15 +26,9 @@ const (
 	RemoveComplianceHoldsLock = "remove_compliance_holds_lock"
 )
 
-// RemoveComplianceHolds removes the Wasabi compliance hold from objects in
-// Wasabi for files which have been deleted.
-//
-// Removing the compliance hold will allow these files to then be deleted when
-// we subsequently attempt to delete the objects from Wasabi after
-// DeleteObjectQueue delay (x days currently).
+// Wasabi objects cannot be deleted until their compliance hold is removed.
 func (c *ObjectController) RemoveComplianceHolds() {
 	if c.S3Config.WasabiComplianceDC() == "" {
-		// Wasabi compliance is currently disabled in config, nothing to do.
 		return
 	}
 	if c.complianceCronRunning {
@@ -124,9 +109,6 @@ func (c *ObjectController) removeComplianceHold(qItem repo.QueueItem) {
 	}
 }
 
-// DisableObjectConditionalHold disables the Wasabi compliance conditional hold
-// that has been placed on object. This way, we can enable these objects to be
-// cleaned up when the user permanently deletes them.
 func (c *ObjectController) DisableObjectConditionalHold(s3Client *s3.S3, bucket string, objectKey string) error {
 	_, err := wasabi.PutObjectCompliance(s3Client, &wasabi.PutObjectComplianceInput{
 		Bucket: aws.String(bucket),

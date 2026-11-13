@@ -1,0 +1,8 @@
+[bindings.swift]
+link_frameworks = ["Foundation"]
+
+[bindings.kotlin]
+package_name = "io.ente.ensu.bindings"
+cdylib_name = "ensu"
+android = true
+kotlin_target_version = "1.9.0"
