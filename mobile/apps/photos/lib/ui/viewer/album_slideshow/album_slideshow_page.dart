@@ -558,16 +558,14 @@ class _AlbumSlideshowPageState extends State<AlbumSlideshowPage>
         size: 56,
         iconSize: IconSizes.medium,
         onTap: _togglePlayback,
-        icon: ExcludeSemantics(
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 160),
-            child: HugeIcon(
-              key: ValueKey(_isPlaying),
-              icon: _isPlaying
-                  ? HugeIcons.strokeRoundedPause
-                  : HugeIcons.strokeRoundedPlay,
-              size: IconSizes.medium,
-            ),
+        icon: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 160),
+          child: HugeIcon(
+            key: ValueKey(_isPlaying),
+            icon: _isPlaying
+                ? HugeIcons.strokeRoundedPause
+                : HugeIcons.strokeRoundedPlay,
+            size: IconSizes.medium,
           ),
         ),
       ),

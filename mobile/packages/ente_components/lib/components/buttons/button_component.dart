@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:ente_components/models/component_execution_state.dart';
-import 'package:ente_components/src/components/decorative_icon_semantics.dart';
 import 'package:ente_components/theme/colors.dart';
 import 'package:ente_components/theme/icon_sizes.dart';
 import 'package:ente_components/theme/motion.dart';
@@ -278,10 +277,7 @@ class _ButtonComponentState extends State<ButtonComponent>
         if (widget.leading != null) ...[
           IconTheme.merge(
             data: IconThemeData(color: foreground, size: IconSizes.small),
-            child: ExcludeSemantics(
-              excluding: isDecorativeIcon(widget.leading!),
-              child: widget.leading!,
-            ),
+            child: ExcludeSemantics(child: widget.leading!),
           ),
           const SizedBox(width: Spacing.sm),
         ],

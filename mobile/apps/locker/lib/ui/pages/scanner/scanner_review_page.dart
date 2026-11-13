@@ -616,13 +616,11 @@ class _ScannerReviewPageState extends State<ScannerReviewPage>
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       IconButtonComponent(
-                        icon: ExcludeSemantics(
-                          child: Transform.scale(
-                            scale: 1.15,
-                            child: HugeIcon(
-                              icon: HugeIcons.strokeRoundedCameraRotated01,
-                              color: colors.textBase,
-                            ),
+                        icon: Transform.scale(
+                          scale: 1.15,
+                          child: HugeIcon(
+                            icon: HugeIcons.strokeRoundedCameraRotated01,
+                            color: colors.textBase,
                           ),
                         ),
                         onTap: pageCount == 0 || _operationInFlight
@@ -641,13 +639,11 @@ class _ScannerReviewPageState extends State<ScannerReviewPage>
                       ),
                       const SizedBox(width: Spacing.lg),
                       IconButtonComponent(
-                        icon: ExcludeSemantics(
-                          child: Transform.flip(
-                            flipX: true,
-                            child: HugeIcon(
-                              icon: HugeIcons.strokeRoundedRotateClockwise,
-                              color: colors.textBase,
-                            ),
+                        icon: Transform.flip(
+                          flipX: true,
+                          child: HugeIcon(
+                            icon: HugeIcons.strokeRoundedRotateClockwise,
+                            color: colors.textBase,
                           ),
                         ),
                         onTap: pageCount == 0 ? null : _rotate,
