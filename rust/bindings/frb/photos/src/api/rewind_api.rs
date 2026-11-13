@@ -297,6 +297,7 @@ pub struct _Globe {
     pub places: Vec<GlobePlace>,
     pub route: Vec<u32>,
     pub distance_km: u32,
+    pub city_count: u32,
     pub country_count: u32,
 }
 
@@ -315,11 +316,14 @@ pub struct _Mosaic {
     pub file_ids: Vec<i64>,
     pub me_person_id: Option<String>,
     pub me_face_ids: Vec<String>,
+    pub top_person_id: Option<String>,
+    pub top_face_ids: Vec<String>,
 }
 
 #[frb(mirror(Timelapse))]
 pub struct _Timelapse {
     pub person_id: String,
+    pub is_me: bool,
     pub photo_count: u32,
     pub frames: Vec<TimelapseFrame>,
 }

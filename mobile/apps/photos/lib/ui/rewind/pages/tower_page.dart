@@ -310,12 +310,14 @@ class _ClimbState extends State<_Climb> {
                         _EagerDragRecognizer
                       >(
                         _EagerDragRecognizer.new,
-                        (recognizer) => recognizer
-                          ..onUpdate = (details) => setState(
-                            () => _held =
-                                (zoom - details.primaryDelta! / _dragSpan)
-                                    .clamp(0.0, 1.0),
-                          ),
+                        (recognizer) =>
+                            recognizer
+                              ..onUpdate = (details) => setState(
+                                () => _held =
+                                    ((_held ?? zoom) -
+                                            details.primaryDelta! / _dragSpan)
+                                        .clamp(0.0, 1.0),
+                              ),
                       ),
                 },
               ),

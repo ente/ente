@@ -84,9 +84,12 @@ class TourPage extends RewindPage {
     final first = stops.first;
     final last = stops.last;
     final cities = rewindCounted(tour.cityCount, "city", "cities");
+    final printed = tour.cityCount > stops.length
+        ? "The ${stops.length} biggest dates"
+        : "Every date";
     final body =
         "From ${_city(first)} in ${_months[first.month - 1]} to ${_city(last)} "
-        "in ${_months[last.month - 1]}. Every date made the tee.";
+        "in ${_months[last.month - 1]}. $printed made the tee.";
     final stampMs = _rowsStartMs + _rowStepMs * stops.length + 250;
     return RewindShareable(
       child: Stack(

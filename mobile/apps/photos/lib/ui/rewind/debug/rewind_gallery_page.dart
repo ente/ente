@@ -78,7 +78,7 @@ class _RewindGalleryPageState extends State<RewindGalleryPage> {
 
     Future<void> openStory(Future<RewindStory> story) async {
       final ready = await story;
-      if (!context.mounted) return;
+      if (!context.mounted || ready.pages.isEmpty) return;
       await Navigator.of(context).push(RewindStoryView(story: ready).route());
     }
 
@@ -115,7 +115,7 @@ class _RewindGalleryPageState extends State<RewindGalleryPage> {
             ),
         if (rewindService.state.value?.status case rust.RewindStatus_Ready(
           :final report,
-        ))
+        ) when report.tour != null)
           ListTile(
             title: const Text("Tour tee: your library"),
             subtitle: const Text("From the computed Rewind"),

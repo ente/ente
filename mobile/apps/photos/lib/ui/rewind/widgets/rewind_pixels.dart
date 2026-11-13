@@ -4,6 +4,7 @@ import "dart:typed_data";
 import "dart:ui" as ui;
 
 import "package:flutter/widgets.dart";
+import "package:logging/logging.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/module/download/thumbnail.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo.dart";
@@ -20,14 +21,7 @@ typedef RewindTilePainter =
 Future<Uint8List?> rewindThumbnailBytes(EnteFile file) => getThumbnail(file);
 
 class RewindAtlas {
-  RewindAtlas._(
-    this.image,
-    this.tile,
-    this.columns,
-    this.files,
-    this.colors,
-    this.quarters,
-  );
+  RewindAtlas._(this.image, this.tile, this.columns, this.files, this.quarters);
 
   static const _workers = 4;
   static const _batch = 48;
@@ -38,7 +32,6 @@ class RewindAtlas {
   final double tile;
   final int columns;
   final List<EnteFile> files;
-  final List<Color> colors;
   final Float32List quarters;
 
   int get length => files.length;
@@ -124,33 +117,9 @@ class RewindAtlas {
       atlas?.dispose();
       return null;
     }
-    final quarters = await _quarters(atlas, tile, columns, loaded.length);
-    return RewindAtlas._(
-      atlas,
-      tile.toDouble(),
-      columns,
-      [for (final index in loaded) files[index]],
-      [
-        for (var index = 0; index < loaded.length; index++)
-          Color.fromARGB(
-            255,
-            _average(quarters, index, 0),
-            _average(quarters, index, 1),
-            _average(quarters, index, 2),
-          ),
-      ],
-      quarters,
-    );
-  }
-
-  static int _average(Float32List quarters, int index, int channel) {
-    final base = index * 12 + channel;
-    return ((quarters[base] +
-                quarters[base + 3] +
-                quarters[base + 6] +
-                quarters[base + 9]) /
-            4)
-        .round();
+    return RewindAtlas._(atlas, tile.toDouble(), columns, [
+      for (final index in loaded) files[index],
+    ], await _quarters(atlas, tile, columns, loaded.length));
   }
 
   static void paintCover(Canvas canvas, ui.Image image, Rect cell, int index) {
@@ -235,6 +204,8 @@ class RewindAtlas {
 class RewindWarm<T extends Object> {
   RewindWarm(this._load, this._dispose);
 
+  static final _logger = Logger("RewindWarm");
+
   final Future<T?> Function() _load;
   final void Function(T value) _dispose;
   Future<T?>? _pending;
@@ -243,10 +214,18 @@ class RewindWarm<T extends Object> {
   Future<T?> get value => _pending ??= _guarded(_generation);
 
   Future<T?> _guarded(int generation) async {
-    final loaded = await _load();
-    if (generation == _generation) return loaded;
-    if (loaded != null) _dispose(loaded);
-    return null;
+    T? loaded;
+    try {
+      loaded = await _load();
+    } catch (error, stackTrace) {
+      _logger.warning("A Rewind card failed to warm up", error, stackTrace);
+    }
+    if (generation != _generation) {
+      if (loaded != null) _dispose(loaded);
+      return null;
+    }
+    if (loaded == null) _pending = null;
+    return loaded;
   }
 
   void release() {
@@ -277,16 +256,26 @@ class RewindWarmBuilder<T extends Object> extends StatefulWidget {
 
 class _RewindWarmBuilderState<T extends Object>
     extends State<RewindWarmBuilder<T>> {
+  static const _retryAfter = Duration(seconds: 3);
+
   T? _value;
 
   @override
   void initState() {
     super.initState();
-    unawaited(
-      widget.warm.value.then((value) {
-        if (mounted && value != null) setState(() => _value = value);
-      }),
-    );
+    unawaited(_await());
+  }
+
+  Future<void> _await() async {
+    while (mounted) {
+      final value = await widget.warm.value;
+      if (!mounted) return;
+      if (value != null) {
+        setState(() => _value = value);
+        return;
+      }
+      await Future<void>.delayed(_retryAfter);
+    }
   }
 
   @override

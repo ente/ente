@@ -53,7 +53,6 @@ class TimelapsePage extends RewindPage {
 
   static const pageKey = "timelapse";
   static const minimumFrames = 8;
-  static const maximumFrames = 40;
 
   final List<RewindLapseFrame> frames;
   final String? name;
@@ -118,77 +117,79 @@ class TimelapsePage extends RewindPage {
           ),
           Semantics(
             label: "A year of ${who ?? "YOU"}, $span. $body",
-            child: RewindStage(
-              children: [
-                Positioned.fill(
-                  child: RewindLeave(
-                    position: position,
-                    centerY: 320,
-                    child: RewindWarmBuilder<_Reel>(
-                      warm: _reel,
-                      builder: (context, reel) => _Flipbook(
-                        key: ValueKey(reel),
-                        reel: reel,
-                        active: isActive,
+            child: ExcludeSemantics(
+              child: RewindStage(
+                children: [
+                  Positioned.fill(
+                    child: RewindLeave(
+                      position: position,
+                      centerY: 320,
+                      child: RewindWarmBuilder<_Reel>(
+                        warm: _reel,
+                        builder: (context, reel) => _Flipbook(
+                          key: ValueKey(reel),
+                          reel: reel,
+                          active: isActive,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                RewindRevealLayer(
-                  left: 28,
-                  top: 597,
-                  maxWidth: 316,
-                  height: 18,
-                  position: position,
-                  active: isActive,
-                  delayMs: 500,
-                  child: Text(
-                    "A YEAR OF",
-                    style: RewindTextStyles.display(17, height: 1.05),
+                  RewindRevealLayer(
+                    left: 28,
+                    top: 597,
+                    maxWidth: 316,
+                    height: 18,
+                    position: position,
+                    active: isActive,
+                    delayMs: 500,
+                    child: Text(
+                      "A YEAR OF",
+                      style: RewindTextStyles.display(17, height: 1.05),
+                    ),
                   ),
-                ),
-                RewindLayer(
-                  rect: const Rect.fromLTWH(28, 620, 334, 62),
-                  position: position,
-                  child: Align(
-                    alignment: Alignment.topLeft,
-                    child: RewindEntrance(
-                      preset: RewindPreset.slap,
-                      active: isActive,
-                      delayMs: 700,
-                      origin: Alignment.centerLeft,
-                      child: RewindFitWidth(
-                        width: 322,
-                        child: RewindVoice(
-                          you: who ?? "YOU",
-                          me: who ?? "ME",
-                          builder: (text) => RewindOutlinedText(
-                            text,
-                            style: RewindTextStyles.display(
-                              62,
-                              color: RewindColors.yellow,
-                              height: 0.9,
-                              letterSpacing: -1.2,
+                  RewindLayer(
+                    rect: const Rect.fromLTWH(28, 620, 334, 62),
+                    position: position,
+                    child: Align(
+                      alignment: Alignment.topLeft,
+                      child: RewindEntrance(
+                        preset: RewindPreset.slap,
+                        active: isActive,
+                        delayMs: 700,
+                        origin: Alignment.centerLeft,
+                        child: RewindFitWidth(
+                          width: 322,
+                          child: RewindVoice(
+                            you: who ?? "YOU",
+                            me: who ?? "ME",
+                            builder: (text) => RewindOutlinedText(
+                              text,
+                              style: RewindTextStyles.display(
+                                62,
+                                color: RewindColors.yellow,
+                                height: 0.9,
+                                letterSpacing: -1.2,
+                              ),
+                              outline: 3.6,
+                              shadow: const Offset(2.4, 2.9),
                             ),
-                            outline: 3.6,
-                            shadow: const Offset(2.4, 2.9),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
-                RewindRevealLayer(
-                  left: 28,
-                  top: 690,
-                  width: 334,
-                  height: 44,
-                  position: position,
-                  active: isActive,
-                  delayMs: 1000,
-                  child: Text(body, style: RewindTextStyles.body(17)),
-                ),
-              ],
+                  RewindRevealLayer(
+                    left: 28,
+                    top: 690,
+                    width: 334,
+                    height: 44,
+                    position: position,
+                    active: isActive,
+                    delayMs: 1000,
+                    child: Text(body, style: RewindTextStyles.body(17)),
+                  ),
+                ],
+              ),
             ),
           ),
         ],

@@ -103,40 +103,42 @@ class MosaicPage extends RewindPage {
               final label = "$count YOUR PHOTOS";
               return Semantics(
                 label: "$label $title. $body",
-                child: RewindStage(
-                  children: [
-                    Positioned.fromRect(
-                      rect: _Wall.frame.inflate(12),
-                      child: RewindLeave(
-                        position: position,
-                        centerY: _Wall.frame.center.dy,
-                        child: RewindEntrance(
-                          preset: RewindPreset.drop,
-                          active: isActive,
-                          child: _Wall(
-                            key: ValueKey(tiling),
-                            tiling: tiling,
+                child: ExcludeSemantics(
+                  child: RewindStage(
+                    children: [
+                      Positioned.fromRect(
+                        rect: _Wall.frame.inflate(12),
+                        child: RewindLeave(
+                          position: position,
+                          centerY: _Wall.frame.center.dy,
+                          child: RewindEntrance(
+                            preset: RewindPreset.drop,
                             active: isActive,
+                            child: _Wall(
+                              key: ValueKey(tiling),
+                              tiling: tiling,
+                              active: isActive,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    ...rewindCaption(
-                      label: label,
-                      title: title,
-                      body: body,
-                      me: (
-                        label: "$count MY PHOTOS",
-                        title: "MAKE ONE ${who ?? "OF ME"}",
-                        body: "Every tile is a real photo from my year.",
+                      ...rewindCaption(
+                        label: label,
+                        title: title,
+                        body: body,
+                        me: (
+                          label: "$count MY PHOTOS",
+                          title: "MAKE ONE ${who ?? "OF ME"}",
+                          body: "Every tile is a real photo from my year.",
+                        ),
+                        position: position,
+                        active: isActive && tiling != null,
+                        delayMs: _Wall.revealedMs - 500,
+                        top: 600,
+                        titleSize: 44,
                       ),
-                      position: position,
-                      active: isActive && tiling != null,
-                      delayMs: _Wall.revealedMs - 500,
-                      top: 600,
-                      titleSize: 44,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               );
             },
@@ -483,6 +485,8 @@ class _WallState extends State<_Wall> with SingleTickerProviderStateMixin {
   var _grabZoom = 1.0;
   var _grabbed = Offset.zero;
   var _travel = 0.0;
+  var _fingers = 0;
+  var _pinched = false;
 
   @override
   void dispose() {
@@ -534,6 +538,20 @@ class _WallState extends State<_Wall> with SingleTickerProviderStateMixin {
     HapticFeedback.selectionClick();
   }
 
+  void _touch() {
+    _pinched = _fingers > 0;
+    if (!_pinched) _travel = 0;
+    _fingers++;
+  }
+
+  void _lift({required bool tapped}) {
+    _fingers = max(0, _fingers - 1);
+    if (!tapped || _fingers > 0 || _pinched || _travel > 10) return;
+    _zoom < 1.5
+        ? _glideTo(_Wall._dive, _grabbed)
+        : _glideTo(1, const Offset(0.5, 0.5));
+  }
+
   Offset _under(Offset touch, double zoom, Offset focus) => Offset(
     focus.dx + (touch.dx - _Wall.frame.width / 2) / (_Wall.frame.width * zoom),
     focus.dy +
@@ -567,60 +585,58 @@ class _WallState extends State<_Wall> with SingleTickerProviderStateMixin {
                 top: 12,
                 right: 12,
                 bottom: 12,
-                child: RawGestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  gestures: {
-                    _EagerScaleRecognizer:
-                        GestureRecognizerFactoryWithHandlers<
-                          _EagerScaleRecognizer
-                        >(
-                          _EagerScaleRecognizer.new,
-                          (recognizer) => recognizer
-                            ..onStart = (details) {
-                              _glide.stop();
-                              if (!_handsOn) {
-                                _zoom = view.zoom;
-                                _focus = view.focus;
-                                _handsOn = true;
-                              }
-                              _grabZoom = _zoom;
-                              _grabbed = _under(
-                                details.localFocalPoint,
-                                _zoom,
-                                _focus,
-                              );
-                              _travel = 0;
-                            }
-                            ..onUpdate = (details) {
-                              _travel += details.focalPointDelta.distance;
-                              final zoom = (_grabZoom * details.scale).clamp(
-                                1.0,
-                                _Wall._closest,
-                              );
-                              final touch = details.localFocalPoint;
-                              setState(() {
-                                _zoom = zoom;
-                                _focus = _clamped(
-                                  Offset(
-                                    _grabbed.dx -
-                                        (touch.dx - _Wall.frame.width / 2) /
-                                            (_Wall.frame.width * zoom),
-                                    _grabbed.dy -
-                                        (touch.dy - _Wall.frame.height / 2) /
-                                            (_Wall.frame.height * zoom),
-                                  ),
-                                  zoom,
+                child: Listener(
+                  onPointerDown: (_) => _touch(),
+                  onPointerUp: (_) => _lift(tapped: true),
+                  onPointerCancel: (_) => _lift(tapped: false),
+                  child: RawGestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    gestures: {
+                      _EagerScaleRecognizer:
+                          GestureRecognizerFactoryWithHandlers<
+                            _EagerScaleRecognizer
+                          >(
+                            _EagerScaleRecognizer.new,
+                            (recognizer) => recognizer
+                              ..onStart = (details) {
+                                _glide.stop();
+                                if (!_handsOn) {
+                                  _zoom = view.zoom;
+                                  _focus = view.focus;
+                                  _handsOn = true;
+                                }
+                                _grabZoom = _zoom;
+                                _grabbed = _under(
+                                  details.localFocalPoint,
+                                  _zoom,
+                                  _focus,
                                 );
-                              });
-                            }
-                            ..onEnd = (details) {
-                              if (_travel > 10) return;
-                              _zoom < 1.5
-                                  ? _glideTo(_Wall._dive, _grabbed)
-                                  : _glideTo(1, const Offset(0.5, 0.5));
-                            },
-                        ),
-                  },
+                              }
+                              ..onUpdate = (details) {
+                                _travel += details.focalPointDelta.distance;
+                                final zoom = (_grabZoom * details.scale).clamp(
+                                  1.0,
+                                  _Wall._closest,
+                                );
+                                final touch = details.localFocalPoint;
+                                setState(() {
+                                  _zoom = zoom;
+                                  _focus = _clamped(
+                                    Offset(
+                                      _grabbed.dx -
+                                          (touch.dx - _Wall.frame.width / 2) /
+                                              (_Wall.frame.width * zoom),
+                                      _grabbed.dy -
+                                          (touch.dy - _Wall.frame.height / 2) /
+                                              (_Wall.frame.height * zoom),
+                                    ),
+                                    zoom,
+                                  );
+                                });
+                              },
+                          ),
+                    },
+                  ),
                 ),
               ),
           ],

@@ -67,7 +67,6 @@ class WarpPage extends RewindPage {
   });
 
   static const pageKey = "warp";
-  static const panels = 240;
   static const minimumPanels = 48;
 
   final List<EnteFile> photos;
@@ -174,6 +173,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   var _velocity = 0.0;
   var _pace = 0.0;
   var _piloted = false;
+  var _still = false;
   var _dragging = false;
   double? _seek;
   double? _landedMs;
@@ -205,11 +205,10 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   }
 
   void _sync() {
-    if (MediaQuery.disableAnimationsOf(context)) {
-      _ticker.stop();
+    _still = MediaQuery.disableAnimationsOf(context);
+    if (_still && !_piloted) {
       _travelled = _course.length;
       _landedMs ??= _ms - 10000;
-      return;
     }
     if (widget.active && !_ticker.isActive) {
       _last = Duration.zero;
@@ -249,11 +248,12 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
     final length = _course.length;
     if (!_piloted) {
       _flownMs += dt;
-      _travelled =
-          length *
-          Curves.easeInOutCubic.transform(
-            ((_flownMs - _countdownMs) / _flightMs).clamp(0.0, 1.0),
-          );
+      _travelled = _still
+          ? length
+          : length *
+                Curves.easeInOutCubic.transform(
+                  ((_flownMs - _countdownMs) / _flightMs).clamp(0.0, 1.0),
+                );
       return;
     }
     final step = min(dt, 50.0);
@@ -627,7 +627,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
                   ),
                 ),
               ),
-            if (landed && picked == null)
+            if (landed && picked == null && !_still)
               Positioned(
                 left: 236,
                 top: 500,

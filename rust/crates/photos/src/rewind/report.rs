@@ -206,6 +206,7 @@ pub struct Globe {
     pub places: Vec<GlobePlace>,
     pub route: Vec<u32>,
     pub distance_km: u32,
+    pub city_count: u32,
     pub country_count: u32,
 }
 
@@ -224,11 +225,14 @@ pub struct Mosaic {
     pub file_ids: Vec<i64>,
     pub me_person_id: Option<String>,
     pub me_face_ids: Vec<String>,
+    pub top_person_id: Option<String>,
+    pub top_face_ids: Vec<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Timelapse {
     pub person_id: String,
+    pub is_me: bool,
     pub photo_count: u32,
     pub frames: Vec<TimelapseFrame>,
 }
@@ -318,5 +322,9 @@ impl RewindReport {
             || self
                 .badge
                 .is_some_and(|badge| chapters::badge_uses_ml(badge.id))
+            || self.timelapse.is_some()
+            || self.mosaic.as_ref().is_some_and(|mosaic| {
+                mosaic.me_person_id.is_some() || mosaic.top_person_id.is_some()
+            })
     }
 }

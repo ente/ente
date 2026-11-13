@@ -130,13 +130,17 @@ RewindChapter _warp(rust.RewindReport report) =>
 
 RewindChapter _tower(rust.RewindReport report) =>
     RewindChapter([TowerPage.pageKey], (media) async {
-      final prints = report.totals?.files ?? 0;
-      final mosaic = report.mosaic;
-      if (mosaic == null || prints < TowerPage.minimumPrints) return const [];
-      final photos = media.extraPhotos(mosaic.fileIds, TowerPage.tiles);
+      final totals = report.totals;
+      if (totals == null || totals.files < TowerPage.minimumPrints) {
+        return const [];
+      }
+      final photos = media.extraPhotos(
+        report.mosaic?.fileIds ?? totals.fileIds,
+        TowerPage.tiles,
+      );
       return photos.isEmpty
           ? const []
-          : [TowerPage(prints: prints, photos: photos)];
+          : [TowerPage(prints: totals.files, photos: photos)];
     });
 
 RewindChapter _globe(rust.Globe? globe) =>
@@ -165,21 +169,13 @@ RewindChapter _timelapse(rust.RewindReport report) =>
               rightEye: Offset(frame.rightEyeX / 1e5, frame.rightEyeY / 1e5),
             ),
       ];
-      if (frames.length < TimelapsePage.minimumFrames) return const [];
-      const most = TimelapsePage.maximumFrames;
+      final name = lapse.isMe ? null : media.personName(lapse.personId);
+      if (frames.length < TimelapsePage.minimumFrames ||
+          (!lapse.isMe && name == null)) {
+        return const [];
+      }
       return [
-        TimelapsePage(
-          frames: frames.length <= most
-              ? frames
-              : [
-                  for (var frame = 0; frame < most; frame++)
-                    frames[frame * (frames.length - 1) ~/ (most - 1)],
-                ],
-          name: lapse.personId == report.mosaic?.mePersonId
-              ? null
-              : media.personName(lapse.personId),
-          photoCount: lapse.photoCount,
-        ),
+        TimelapsePage(frames: frames, name: name, photoCount: lapse.photoCount),
       ];
     });
 
@@ -196,10 +192,10 @@ RewindChapter _mosaic(rust.RewindReport report) =>
         final id? => await media.person(id, mosaic.meFaceIds),
         null => null,
       };
-      final favourite = switch (report.peopleRace?.people.firstOrNull) {
-        final winner? when me?.crop == null => await media.person(
-          winner.personId,
-          winner.faceIds,
+      final favourite = switch (mosaic.topPersonId) {
+        final id? when me?.crop == null => await media.person(
+          id,
+          mosaic.topFaceIds,
         ),
         _ => null,
       };

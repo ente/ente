@@ -16,7 +16,6 @@ List<Widget> rewindCaption({
   int delayMs = 0,
   double top = 597,
   Color ink = RewindColors.cream,
-  Color titleColor = RewindColors.white,
   double titleSize = 46,
 }) => [
   RewindRevealLayer(
@@ -54,7 +53,7 @@ List<Widget> rewindCaption({
           text,
           style: RewindTextStyles.display(
             titleSize,
-            color: titleColor,
+            color: RewindColors.white,
             height: 0.84,
             letterSpacing: -0.012 * titleSize,
           ).copyWith(wordSpacing: 0.1 * titleSize),

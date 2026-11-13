@@ -21,6 +21,11 @@ pub(in crate::rewind) fn globe(
     ranking: &Ranking<'_>,
 ) -> Option<Globe> {
     let mut stops = stops(cities);
+    let city_count = count(stops.len());
+    let visited: HashSet<&str> = stops
+        .iter()
+        .map(|stop| stop.city.country_code.as_str())
+        .collect();
     stops.truncate(GLOBE_PLACES);
     let place_of: HashMap<usize, u32> = stops
         .iter()
@@ -40,10 +45,6 @@ pub(in crate::rewind) fn globe(
     if route.len() < 2 {
         return None;
     }
-    let visited: HashSet<&str> = stops
-        .iter()
-        .map(|stop| stop.city.country_code.as_str())
-        .collect();
     let rows: Vec<u32> = (0..GLOBE_ROWS).map(dots_in_row).collect();
     let dots: Vec<Coordinate> = rows
         .iter()
@@ -84,6 +85,7 @@ pub(in crate::rewind) fn globe(
             .collect(),
         route,
         distance_km: travelled_km(cities).round() as u32,
+        city_count,
         country_count: count(visited.len()),
     })
 }
@@ -196,6 +198,7 @@ mod tests {
         assert_eq!(globe.route, [0, 1, 0, 2]);
         assert_eq!(globe.places[0].latitude_microdegrees, 52_370_000);
         assert_eq!(globe.places[0].file_ids.len(), 3);
+        assert_eq!(globe.city_count, 3);
         assert_eq!(globe.country_count, 1);
         assert_eq!(globe.rows.len(), 96);
         let dots: u32 = globe.rows.iter().sum();

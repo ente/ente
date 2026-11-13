@@ -83,77 +83,79 @@ class GlobePage extends RewindPage {
           ),
           Semantics(
             label: "Your photos flew ${rewindCount(km)} kilometres. $body",
-            child: RewindStage(
-              children: [
-                Positioned.fill(
-                  child: RewindLeave(
-                    position: position,
-                    centerY: _GlobeView.center.dy,
-                    child: _GlobeView(
-                      world: _world,
-                      globe: globe,
-                      photos: photos,
-                      photo: photo,
-                      active: isActive,
-                    ),
-                  ),
-                ),
-                RewindRevealLayer(
-                  left: 28,
-                  top: 597,
-                  maxWidth: 316,
-                  height: 18,
-                  position: position,
-                  active: isActive,
-                  delayMs: 500,
-                  child: RewindVoice(
-                    you: "YOUR PHOTOS FLEW",
-                    me: "MY PHOTOS FLEW",
-                    builder: (text) => Text(
-                      text,
-                      style: RewindTextStyles.display(17, height: 1.05),
-                    ),
-                  ),
-                ),
-                RewindRevealLayer(
-                  left: 28,
-                  top: 622,
-                  height: 52,
-                  position: position,
-                  active: isActive,
-                  preset: RewindPreset.slap,
-                  delayMs: 700,
-                  origin: Alignment.centerLeft,
-                  child: RewindFitWidth(
-                    width: 322,
-                    child: RewindCountUp(
-                      value: km,
-                      active: isActive,
-                      delayMs: _World.introMs.round(),
-                      durationMs: _world.journeyMs.round(),
-                      builder: (context, text) => RewindOutlinedText(
-                        "$text KM",
-                        style: RewindTextStyles.display(
-                          58,
-                          color: RewindColors.yellow,
-                          height: 0.84,
-                        ),
-                        shadow: const Offset(2.2, 2.6),
+            child: ExcludeSemantics(
+              child: RewindStage(
+                children: [
+                  Positioned.fill(
+                    child: RewindLeave(
+                      position: position,
+                      centerY: _GlobeView.center.dy,
+                      child: _GlobeView(
+                        world: _world,
+                        globe: globe,
+                        photos: photos,
+                        photo: photo,
+                        active: isActive,
                       ),
                     ),
                   ),
-                ),
-                RewindRevealLayer(
-                  left: 28,
-                  top: 688,
-                  width: 334,
-                  height: 44,
-                  position: position,
-                  active: isActive,
-                  delayMs: 1000,
-                  child: Text(body, style: RewindTextStyles.body(17)),
-                ),
-              ],
+                  RewindRevealLayer(
+                    left: 28,
+                    top: 597,
+                    maxWidth: 316,
+                    height: 18,
+                    position: position,
+                    active: isActive,
+                    delayMs: 500,
+                    child: RewindVoice(
+                      you: "YOUR PHOTOS FLEW",
+                      me: "MY PHOTOS FLEW",
+                      builder: (text) => Text(
+                        text,
+                        style: RewindTextStyles.display(17, height: 1.05),
+                      ),
+                    ),
+                  ),
+                  RewindRevealLayer(
+                    left: 28,
+                    top: 622,
+                    height: 52,
+                    position: position,
+                    active: isActive,
+                    preset: RewindPreset.slap,
+                    delayMs: 700,
+                    origin: Alignment.centerLeft,
+                    child: RewindFitWidth(
+                      width: 322,
+                      child: RewindCountUp(
+                        value: km,
+                        active: isActive,
+                        delayMs: _World.introMs.round(),
+                        durationMs: _world.journeyMs.round(),
+                        builder: (context, text) => RewindOutlinedText(
+                          "$text KM",
+                          style: RewindTextStyles.display(
+                            58,
+                            color: RewindColors.yellow,
+                            height: 0.84,
+                          ),
+                          shadow: const Offset(2.2, 2.6),
+                        ),
+                      ),
+                    ),
+                  ),
+                  RewindRevealLayer(
+                    left: 28,
+                    top: 688,
+                    width: 334,
+                    height: 44,
+                    position: position,
+                    active: isActive,
+                    delayMs: 1000,
+                    child: Text(body, style: RewindTextStyles.body(17)),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -791,7 +793,7 @@ class _GlobeViewState extends State<_GlobeView>
               opacity: (_ms / _World.introMs - 0.6).clamp(0.0, 1.0),
               child: _Board(
                 done
-                    ? "${rewindCounted(widget.globe.places.length, "CITY", "CITIES")}"
+                    ? "${rewindCounted(widget.globe.cityCount, "CITY", "CITIES")}"
                           "  ·  "
                           "${rewindCounted(widget.globe.countryCount, "COUNTRY", "COUNTRIES")}"
                     : "${here.name.toUpperCase()}"

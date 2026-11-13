@@ -1,6 +1,7 @@
 use std::collections::{BTreeMap, HashSet};
 
 use super::count;
+use super::people_race::others_by_photos;
 use crate::rewind::input::RewindRequest;
 use crate::rewind::library::{Library, MICROS_PER_DAY, YearFile};
 use crate::rewind::people::{Entity, Eyes, People};
@@ -10,7 +11,6 @@ use crate::rewind::report::{Timelapse, TimelapseFrame};
 const TIMELAPSE_FRAMES: usize = 40;
 const TIMELAPSE_MINIMUM_FRAMES: usize = 10;
 const TIMELAPSE_MINIMUM_MONTHS: usize = 3;
-const TIMELAPSE_CANDIDATES: usize = 3;
 const TIMELAPSE_MINIMUM_SCORE: f64 = 0.75;
 const TIMELAPSE_MINIMUM_EYE_DISTANCE: f64 = 0.06;
 const TIMELAPSE_MAXIMUM_TILT: f64 = 0.45;
@@ -30,27 +30,21 @@ pub(in crate::rewind) fn timelapse(
     people: &People,
     ranking: &Ranking<'_>,
 ) -> Option<Timelapse> {
-    let me = request.me_person_id.as_deref();
-    let mut persons: Vec<(&Entity, usize)> = people
-        .persons()
-        .iter()
-        .map(|person| (person, people.files_of(person, library).len()))
-        .collect();
-    persons.sort_by(|(first, first_photos), (second, second_photos)| {
-        (Some(first.id.as_str()) == me)
-            .cmp(&(Some(second.id.as_str()) == me))
-            .then(second_photos.cmp(first_photos))
-            .then_with(|| first.id.cmp(&second.id))
-    });
-    persons
+    let me = request
+        .me_person_id
+        .as_deref()
+        .and_then(|me| people.persons().iter().find(|person| person.id == me));
+    others_by_photos(request, library, people)
         .into_iter()
-        .take(TIMELAPSE_CANDIDATES)
-        .find_map(|(person, photos)| {
+        .map(|(person, files)| (person, files.len(), false))
+        .chain(me.map(|person| (person, people.files_of(person, library).len(), true)))
+        .find_map(|(person, photos, is_me)| {
             let frames = frames(person, library, people, ranking);
             let months: HashSet<u32> = frames.iter().map(|frame| frame.month).collect();
             (frames.len() >= TIMELAPSE_MINIMUM_FRAMES && months.len() >= TIMELAPSE_MINIMUM_MONTHS)
                 .then(|| Timelapse {
                     person_id: person.id.clone(),
+                    is_me,
                     photo_count: count(photos),
                     frames,
                 })
@@ -172,6 +166,7 @@ mod tests {
         .unwrap();
 
         assert_eq!(lapse.person_id, "kid");
+        assert!(!lapse.is_me);
         assert_eq!(lapse.photo_count, 60);
         assert_eq!(
             lapse.frames[0],
@@ -198,6 +193,50 @@ mod tests {
                 .all(|pair| pair[0].file_id < pair[1].file_id)
         );
         assert!(lapse.frames.len() >= 30);
+    }
+
+    #[test]
+    fn everyone_else_is_tried_in_turn_before_my_own_face() {
+        let (_directory, store) = store();
+        let files = photos_every(1, "2026-01-01T10:00:00", 70, 5);
+        let mut faces: Vec<(FaceRow, &str)> = Vec::new();
+        for file_id in 1..=70 {
+            for distant in ["aunt", "uncle", "cousin"] {
+                faces.push((facing(file_id, distant, 0.02, 0.0), distant));
+            }
+            if file_id <= 65 {
+                faces.push((facing(file_id, "me", 0.1, 0.0), "me"));
+            }
+            if file_id <= 60 {
+                faces.push((facing(file_id, "kid", 0.1, 0.0), "kid"));
+            }
+        }
+        add_faces(&store, &faces);
+        let everyone = ["aunt", "uncle", "cousin", "kid", "me"];
+        for name in everyone {
+            store.db().assign_cluster_to_person(name, name).unwrap();
+        }
+        let mut family = request(files.clone());
+        family.people = everyone.map(person).to_vec();
+        family.me_person_id = Some("me".to_string());
+        let library = Library::of_year(&family).unwrap();
+        let people = People::load(&family, &library, &store).unwrap();
+        let ranking = Ranking::new(Some(&people), None);
+
+        let lapse = timelapse(&family, &library, &people, &ranking).unwrap();
+        assert_eq!(lapse.person_id, "kid");
+        assert!(!lapse.is_me);
+
+        let mut without_kid = request(files);
+        without_kid.people = ["aunt", "uncle", "cousin", "me"].map(person).to_vec();
+        without_kid.me_person_id = Some("me".to_string());
+        let library = Library::of_year(&without_kid).unwrap();
+        let people = People::load(&without_kid, &library, &store).unwrap();
+        let ranking = Ranking::new(Some(&people), None);
+        let mine = timelapse(&without_kid, &library, &people, &ranking).unwrap();
+        assert_eq!(mine.person_id, "me");
+        assert!(mine.is_me);
+        assert_eq!(mine.photo_count, 65);
     }
 
     #[test]

@@ -111,6 +111,7 @@ rust.Globe sampleGlobe(
     places: places,
     route: Uint32List.fromList(route),
     distanceKm: distanceKm,
+    cityCount: places.length,
     countryCount: 3,
   );
 }
