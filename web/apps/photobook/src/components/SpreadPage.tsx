@@ -379,6 +379,11 @@ function SpreadPage({
                     overflow: "hidden",
                     opacity: isDragSource ? 0.4 : 1,
                     transition: "box-shadow 0.15s, opacity 0.15s",
+                    "@media (hover: hover)": {
+                        "&:not(:hover) [data-caption-placeholder]": {
+                            visibility: "hidden",
+                        },
+                    },
                 }}
             >
                 <Stage
@@ -1100,6 +1105,11 @@ function SpreadPage({
                             }}
                         >
                             <span
+                                data-caption-placeholder={
+                                    !isFrontCover && !page[key]
+                                        ? true
+                                        : undefined
+                                }
                                 style={{
                                     color:
                                         page[key] ||
@@ -1180,7 +1190,6 @@ function SpreadPage({
                 pageIndex={pageIndex}
                 totalPages={totalPages}
                 side={pickerSide}
-                photoCount={photoCount}
                 requiredBlank={requiredBlank}
                 onAddPhotos={() => onAddPhotos(page.id)}
                 onInsert={(position) => onInsertPage(pageIndex, position)}

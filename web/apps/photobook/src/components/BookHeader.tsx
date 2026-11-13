@@ -29,7 +29,7 @@ export default function BookHeader({
                 gridTemplateColumns: {
                     xs: "minmax(0, 1fr) minmax(0, max-content)",
                     md: center
-                        ? "minmax(0, 1fr) auto minmax(0, 1fr)"
+                        ? "minmax(0, 1fr) auto minmax(max-content, 1fr)"
                         : "minmax(0, 1fr) auto",
                 },
                 alignItems: "center",

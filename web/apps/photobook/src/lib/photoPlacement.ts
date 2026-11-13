@@ -76,10 +76,34 @@ export function photoDestinationError(
         return "Choose an inside page or the front cover.";
     if (index === 0)
         return count === 1 ? null : "Choose one photo for the front cover.";
-    const spaces = availablePhotoSpaces(pages[index]!);
-    if (count > spaces)
-        return `This page has room for ${spaces} more photo${spaces === 1 ? "" : "s"}. Choose another page or create new pages at the end.`;
     return null;
+}
+
+function addPhotosToPage(page: BookPage, allPhotos: Photo[], added: Photo[]) {
+    const existingSlots = page.slots.filter((slot) => slot.photoId);
+    const existingPhotos = existingSlots.map(
+        (slot) =>
+            allPhotos.find((photo) => photo.id === slot.photoId) ?? {
+                id: slot.photoId!,
+                fileName: "",
+                width: 1,
+                height: 1,
+                dateTaken: 0,
+            },
+    );
+    const photos = [...existingPhotos, ...added];
+    const layoutVariant = chooseBestVariantKey(photos);
+    const slots = applyVariant(
+        layoutVariant,
+        photos.map((photo) => photo.id),
+    );
+    for (const [
+        index,
+        { id, cropX, cropY, cropZoom },
+    ] of existingSlots.entries()) {
+        Object.assign(slots[index]!, { id, cropX, cropY, cropZoom });
+    }
+    return { ...page, slots, layoutVariant };
 }
 
 export function placeImportedPhotos(
@@ -93,72 +117,45 @@ export function placeImportedPhotos(
     if (error) throw new Error(error);
     if (pages.length === 0) return generateAutoLayout(newPhotos);
 
+    const updated = [...pages];
+    let insertAt = pages.length - 1;
+    let remaining = newPhotos;
     if (destination.kind === "page") {
-        const photoMap = new Map(allPhotos.map((photo) => [photo.id, photo]));
-        return pages.map((page, index) => {
-            if (page.id !== destination.pageId) return page;
-            if (index === 0) {
-                const layoutVariant = getVariantsForCount(1, true).some(
-                    (variant) => variant.key === page.layoutVariant,
-                )
-                    ? page.layoutVariant!
-                    : "1-full";
-                return {
-                    ...page,
-                    layoutVariant,
-                    slots: applyVariant(layoutVariant, [newPhotos[0]!.id]),
-                };
-            }
-            const existingSlots = page.slots.filter((slot) => slot.photoId);
-            const ids = [
-                ...existingSlots.map((slot) => slot.photoId!),
-                ...newPhotos.map((photo) => photo.id),
-            ];
-            const photos = ids.map(
-                (id) =>
-                    photoMap.get(id) ?? {
-                        id,
-                        fileName: "",
-                        width: 1,
-                        height: 1,
-                        dateTaken: 0,
-                    },
-            );
-            const layoutVariant = chooseBestVariantKey(photos);
-            const slots = applyVariant(layoutVariant, ids).map((slot) => {
-                const existing = existingSlots.find(
-                    (candidate) => candidate.photoId === slot.photoId,
-                );
-                return existing
-                    ? {
-                          ...slot,
-                          id: existing.id,
-                          cropX: existing.cropX,
-                          cropY: existing.cropY,
-                          cropZoom: existing.cropZoom,
-                      }
-                    : slot;
-            });
-            return { ...page, slots, layoutVariant };
-        });
-    }
-
-    const appended: BookPage[] = [];
-    for (let i = 0; i < newPhotos.length; i += MAX_PAGE_PHOTOS) {
-        const photos = newPhotos.slice(i, i + MAX_PAGE_PHOTOS);
-        const layoutVariant = chooseBestVariantKey(photos);
-        appended.push({
-            ...makeBlankPage(),
-            layoutVariant,
-            slots: applyVariant(
+        const index = pages.findIndex((page) => page.id === destination.pageId);
+        const page = pages[index]!;
+        if (index === 0) {
+            const layoutVariant = getVariantsForCount(1, true).some(
+                (variant) => variant.key === page.layoutVariant,
+            )
+                ? page.layoutVariant!
+                : "1-full";
+            updated[0] = {
+                ...page,
                 layoutVariant,
-                photos.map((photo) => photo.id),
-            ),
-        });
+                slots: applyVariant(layoutVariant, [newPhotos[0]!.id]),
+            };
+            return updated;
+        }
+        const spaces = availablePhotoSpaces(page);
+        if (spaces > 0)
+            updated[index] = addPhotosToPage(
+                page,
+                allPhotos,
+                newPhotos.slice(0, spaces),
+            );
+        remaining = newPhotos.slice(spaces);
+        insertAt = index + 1;
+    }
+    if (remaining.length === 0) return updated;
+
+    const inserted: BookPage[] = [];
+    for (let i = 0; i < remaining.length; i += MAX_PAGE_PHOTOS) {
+        const photos = remaining.slice(i, i + MAX_PAGE_PHOTOS);
+        inserted.push(addPhotosToPage(makeBlankPage(), allPhotos, photos));
     }
     return normalizeBookPages([
-        ...pages.slice(0, -1),
-        ...appended,
-        pages[pages.length - 1]!,
+        ...updated.slice(0, insertAt),
+        ...inserted,
+        ...updated.slice(insertAt),
     ]);
 }

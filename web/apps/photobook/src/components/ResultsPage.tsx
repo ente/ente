@@ -28,6 +28,7 @@ import {
     CircularProgress,
     Dialog,
     LinearProgress,
+    Link,
     Snackbar,
     Typography,
     useMediaQuery,
@@ -57,6 +58,8 @@ import PrintValidationDialog, {
 } from "./PrintValidationDialog";
 import ResetBookButton from "./ResetBookButton";
 
+type BookAction = "download" | "checkout";
+
 function ResultsPage({
     sidebarOpen,
     onToggleSidebar,
@@ -84,7 +87,7 @@ function ResultsPage({
         pdf?: Blob;
         uploaded?: UploadedBook;
     } | null>(null);
-    const [choosingCover, setChoosingCover] = useState(false);
+    const [pendingCoverAction, setPendingCoverAction] = useState<BookAction>();
     const [deliveryBook, setDeliveryBook] = useState<{
         cover: PrintBinding;
         title: string;
@@ -176,7 +179,11 @@ function ResultsPage({
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, [isAtStart, isAtEnd]);
 
-    const continueWithCover = (cover: PrintBinding, title: string) => {
+    const continueWithCover = (
+        action: BookAction,
+        cover: PrintBinding,
+        title: string,
+    ) => {
         const printSelection = getBindingPrintSelection(cover);
         const validationError = getPrintExportError(
             printSelection,
@@ -190,14 +197,16 @@ function ResultsPage({
             });
             return;
         }
-        if (isDevBuild) setDeliveryBook({ cover, title });
+        if (action === "checkout") setDeliveryBook({ cover, title });
         else void downloadPdf(printSelection);
     };
 
-    const requestBook = () => {
+    const requestBook = (action: BookAction) => {
         if (binding)
-            withSpineTitle((title) => continueWithCover(binding, title));
-        else setChoosingCover(true);
+            withSpineTitle((title) =>
+                continueWithCover(action, binding, title),
+            );
+        else setPendingCoverAction(action);
     };
 
     const preparePdf = async (
@@ -379,15 +388,15 @@ function ResultsPage({
     const primaryAction = isDevBuild ? (
         <Button
             variant="contained"
-            endIcon={busy ? undefined : <ArrowRightIcon />}
-            aria-busy={busy}
+            endIcon={checkoutProgress ? undefined : <ArrowRightIcon />}
+            aria-busy={!!checkoutProgress}
             disabled={busy || pages.length === 0}
             sx={{
                 ...(mobile ? editorButtonSx : headerButtonSx),
                 "& .MuiButton-endIcon": { ml: mobile ? "6px" : 0, mr: 0 },
                 ...(busy && { "&.Mui-disabled": { opacity: 1 } }),
             }}
-            onClick={requestBook}
+            onClick={() => requestBook("checkout")}
         >
             Continue
         </Button>
@@ -431,7 +440,7 @@ function ResultsPage({
                 </Box>
             }
             disabled={busy || pages.length === 0}
-            onClick={requestBook}
+            onClick={() => requestBook("download")}
             sx={{
                 ...(mobile ? editorButtonSx : headerButtonSx),
                 ...(mobile && { ml: "auto", gap: busy ? 0.5 : 0 }),
@@ -499,9 +508,45 @@ function ResultsPage({
                     titleDisabled={busy}
                     sidebarOpen={sidebarOpen}
                     onToggleSidebar={onToggleSidebar}
+                    center={
+                        <Typography
+                            component="div"
+                            sx={{
+                                color: toolbarColors.muted,
+                                fontSize: 13,
+                                lineHeight: "20px",
+                                textAlign: "center",
+                                maxWidth: { xs: 210, lg: 400, xl: 720 },
+                            }}
+                        >
+                            Photos look blurry? This is a lower-resolution
+                            preview.{" "}
+                            <Link
+                                component="button"
+                                type="button"
+                                variant="inherit"
+                                underline="always"
+                                disabled={busy || pages.length === 0}
+                                onClick={() => requestBook("download")}
+                                sx={{
+                                    color: toolbarColors.text,
+                                    verticalAlign: "baseline",
+                                    textUnderlineOffset: "3px",
+                                    "&:focus-visible": {
+                                        outline: "2px solid currentColor",
+                                        outlineOffset: 2,
+                                    },
+                                }}
+                            >
+                                {exportProgress === null
+                                    ? "Download the PDF to see the print quality."
+                                    : `Preparing PDF… ${exportProgress}%`}
+                            </Link>
+                        </Typography>
+                    }
                 >
                     {coverControls}
-                    {primaryAction}
+                    {isDevBuild && primaryAction}
                 </BookHeader>
             )}
 
@@ -586,17 +631,17 @@ function ResultsPage({
                     }}
                 />
             )}
-            {choosingCover && (
+            {pendingCoverAction && (
                 <CoverTypeDialog
-                    onClose={() => setChoosingCover(false)}
+                    onClose={() => setPendingCoverAction(undefined)}
                     onContinue={(cover) => {
                         setBook((previous) => ({
                             ...previous,
                             printSelection: getBindingPrintSelection(cover),
                         }));
-                        setChoosingCover(false);
+                        setPendingCoverAction(undefined);
                         withSpineTitle((title) =>
-                            continueWithCover(cover, title),
+                            continueWithCover(pendingCoverAction, cover, title),
                         );
                     }}
                 />
