@@ -163,21 +163,6 @@ pub fn delete_vec_db_files(file_path: String) -> Result<(), RustVecDbError> {
     Ok(vecdb::VecDb::purge(Path::new(&file_path))?)
 }
 
-#[derive(Clone, Copy, Debug)]
-pub enum VecDbOpenCost {
-    Ready,
-    NeedsRebuild,
-    Absent,
-}
-
-pub fn check_open_cost(file_path: String) -> VecDbOpenCost {
-    match vecdb::VecDb::open_cost(Path::new(&file_path)) {
-        vecdb::OpenCost::Ready => VecDbOpenCost::Ready,
-        vecdb::OpenCost::NeedsRebuild => VecDbOpenCost::NeedsRebuild,
-        vecdb::OpenCost::Absent => VecDbOpenCost::Absent,
-    }
-}
-
 #[frb(opaque)]
 pub struct VecDb {
     inner: vecdb::VecDb,
@@ -827,32 +812,6 @@ mod tests {
             Err(RustVecDbError::LengthMismatch { .. })
         ));
         assert_eq!(db.get_index_stats().unwrap().live_count, 3);
-    }
-
-    #[test]
-    fn check_open_cost_mirrors_the_engine_decision() {
-        let dir = TestDir::create();
-        assert!(matches!(
-            check_open_cost(dir.db_path()),
-            VecDbOpenCost::Absent
-        ));
-        let db = VecDb::new(dir.db_path(), DIMS, Some(VecDbStorage::F32)).unwrap();
-        db.add_vector(key("a"), basis(0)).unwrap();
-        assert!(matches!(
-            check_open_cost(dir.db_path()),
-            VecDbOpenCost::Ready
-        ));
-        db.flush().unwrap();
-        drop(db);
-        assert!(matches!(
-            check_open_cost(dir.db_path()),
-            VecDbOpenCost::Ready
-        ));
-        std::fs::remove_file(format!("{}.graph", dir.db_path())).unwrap();
-        assert!(matches!(
-            check_open_cost(dir.db_path()),
-            VecDbOpenCost::NeedsRebuild
-        ));
     }
 
     #[test]

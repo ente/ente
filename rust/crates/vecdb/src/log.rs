@@ -771,10 +771,6 @@ fn encode_header(dims: u32, generation: &[u8; 16], storage: StorageKind) -> [u8;
     bytes
 }
 
-pub(crate) fn header_generation(bytes: &[u8; HEADER_LEN]) -> Result<[u8; 16], VecDbError> {
-    decode_header(bytes).map(|header| header.generation)
-}
-
 #[derive(Debug, PartialEq, Eq)]
 struct Header {
     generation: [u8; 16],

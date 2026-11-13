@@ -191,7 +191,7 @@ fn centroid_batch(summary: &HashMap<String, ClusterSummary>) -> IndexBatch {
 mod tests {
     use std::collections::HashMap;
 
-    use ente_vecdb::{OpenCost, SearchParams, VecDb, VecDbError};
+    use ente_vecdb::{SearchParams, VecDbError};
 
     use crate::db::Connection;
     use crate::ml_db::tests::deny_cluster_summary_inserts_after;
@@ -534,12 +534,7 @@ mod tests {
 
         store.clear_all().unwrap();
         for index in Index::ALL {
-            assert_eq!(
-                VecDb::open_cost(&index_path(&directory, index)),
-                OpenCost::Absent,
-                "{}",
-                index.name()
-            );
+            assert!(!index_path(&directory, index).exists(), "{}", index.name());
         }
         assert_eq!(store.fill_state(Index::Clip).unwrap(), FillState::Stale);
         assert_eq!(
