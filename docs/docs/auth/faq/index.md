@@ -300,7 +300,7 @@ The HTML export generates individual QR codes for each of your codes, making it 
 
 ### What happens to my codes if I can't use Ente Auth? {#backup-outside-ente}
 
-Codes are generated on your device, so Ente Auth keeps working on a signed-in device without internet. To keep a backup that doesn't depend on Ente, [export your codes](/auth/migration/export) and store the file somewhere safe. A plain-text export can be imported into most other authenticator apps, but anyone who has it can generate your codes, so prefer an encrypted export and keep its password safe. You can also add the same account to a second authenticator app when you set up 2FA. Both apps then show the same codes.
+Codes are generated on your device, so Ente Auth keeps working on a signed-in device without internet. To keep a backup that doesn't depend on Ente, [export your codes](/auth/migration/export) and store the file somewhere safe. An encrypted export can be restored in Ente Auth. For another app, check which format it accepts. Some apps can import a plain-text export, while Google Authenticator needs the **Plain HTML** QR-code export described above. These unencrypted exports let anyone with the file generate your codes, so protect them carefully. For time-based codes (TOTP), you can also add the same account to a second authenticator app when you set up 2FA. Counter-based codes (HOTP) can diverge when one app advances its counter.
 
 ### What information about my codes is stored on Ente server?
 

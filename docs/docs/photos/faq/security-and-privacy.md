@@ -166,7 +166,7 @@ The privacy of your account is a function of the strength of your password, plea
 
 ### Why did I get a "New login to your Ente account" email? {#new-login-email}
 
-We send this email when a new sign-in to your Ente account passes our checks, such as the email verification code. It shows when this happened. Some emails also show the app, device and IP address used. The email can arrive before the sign-in finishes in the app. For example, it's sent if the wrong password is entered after the verification code, or if you tapped **Forgot password?** and entered the email code but didn't finish resetting your password with your recovery key. On its own, the email doesn't mean anyone unlocked your account. Your photos, files and Auth codes can only be decrypted with your password or recovery key.
+We send this email when a new sign-in to your Ente account passes our checks, such as the email verification code. It shows when this happened. Some emails also show the app, device and IP address used. The email can arrive before the sign-in finishes in the app. For example, it's sent if the wrong password is entered after the verification code, or if you tapped **Forgot password?** and entered the email code but didn't finish resetting your password with your recovery key. On its own, the email doesn't mean anyone unlocked your account. A fresh sign-in still needs your password or recovery key to decrypt your photos, files and Auth codes.
 
 If it was you, there's nothing to do.
 
