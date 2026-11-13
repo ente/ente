@@ -557,17 +557,25 @@ export const FileList: React.FC<FileListProps> = ({
         };
 
         const handleKeyUp = (e: KeyboardEvent) => {
-            if (e.key == "Shift") {
+            if (e.key == "Shift" || !e.shiftKey) {
                 setIsShiftKeyPressed(false);
             }
         };
 
+        const handleBlur = () => {
+            setIsShiftKeyPressed(false);
+        };
+
         document.addEventListener("keydown", handleKeyDown);
         document.addEventListener("keyup", handleKeyUp);
+        window.addEventListener("blur", handleBlur);
+        document.addEventListener("visibilitychange", handleBlur);
 
         return () => {
             document.removeEventListener("keydown", handleKeyDown);
             document.removeEventListener("keyup", handleKeyUp);
+            window.removeEventListener("blur", handleBlur);
+            document.removeEventListener("visibilitychange", handleBlur);
         };
     }, []);
 
