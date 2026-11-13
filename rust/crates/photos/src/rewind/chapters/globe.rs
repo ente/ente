@@ -1,10 +1,10 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use ente_location::Coordinate;
 
 use super::count;
 use super::places::{City, stays, travelled_km};
-use super::tour::stops;
+use super::tour::{countries, stops};
 use crate::memories::CityLookup;
 use crate::rewind::ranking::{Ranking, Spread};
 use crate::rewind::report::{Globe, GlobePlace};
@@ -22,10 +22,7 @@ pub(in crate::rewind) fn globe(
 ) -> Option<Globe> {
     let mut stops = stops(cities);
     let city_count = count(stops.len());
-    let visited: HashSet<&str> = stops
-        .iter()
-        .map(|stop| stop.city.country_code.as_str())
-        .collect();
+    let visited = countries(cities, &stops);
     stops.truncate(GLOBE_PLACES);
     let place_of: HashMap<usize, u32> = stops
         .iter()
@@ -117,6 +114,7 @@ mod tests {
     use crate::memories::CityLookup;
     use crate::rewind::chapters::places::cities;
     use crate::rewind::chapters::places::tests::Towns;
+    use crate::rewind::chapters::tour::tour;
     use crate::rewind::fixtures::{located, photo, request};
     use crate::rewind::input::RewindFile;
     use crate::rewind::library::Library;
@@ -128,7 +126,13 @@ mod tests {
 
     impl CityLookup for LowCountries {
         fn group_cities(&self, coordinates: &[Coordinate]) -> Vec<CityMatch> {
-            self.0.group_cities(coordinates)
+            let mut groups = self.0.group_cities(coordinates);
+            for group in &mut groups {
+                if group.city.name == "Kranenburg" {
+                    group.city.country_code = CountryCode::from_bytes(*b"DE").unwrap();
+                }
+            }
+            groups
         }
 
         fn urban_centers(&self, coordinates: &[Coordinate]) -> Vec<Option<u32>> {
@@ -145,6 +149,8 @@ mod tests {
                     };
                     let code = if within(50.0, 54.0, 3.0, 8.0) {
                         b"NL"
+                    } else if within(47.0, 55.0, 8.0, 15.0) {
+                        b"DE"
                     } else if within(40.0, 50.0, -5.0, 3.0) {
                         b"FR"
                     } else {
@@ -206,6 +212,42 @@ mod tests {
         let ones = |bytes: &[u8]| bytes.iter().map(|byte| byte.count_ones()).sum::<u32>();
         assert!(ones(&globe.visited) > 0);
         assert!(ones(&globe.land) > ones(&globe.visited));
+    }
+
+    #[test]
+    fn a_neighbour_across_the_border_keeps_its_country() {
+        let lookup = LowCountries(Towns(vec![
+            ("Nijmegen", 51.84, 5.86),
+            ("Kranenburg", 51.79, 6.01),
+            ("Amsterdam", 52.37, 4.90),
+            ("Groningen", 53.22, 6.57),
+        ]));
+        let mut files = visit(1, (51.84, 5.86), "2026-02-01", 9);
+        files.extend(visit(100, (52.37, 4.90), "2026-04-01", 6));
+        files.extend(visit(200, (53.22, 6.57), "2026-05-01", 5));
+        let ones = |bytes: &[u8]| bytes.iter().map(|byte| byte.count_ones()).sum::<u32>();
+        let home_request = request(files.clone());
+        let library = Library::of_year(&home_request).unwrap();
+        let home_cities = cities(&library, &lookup).unwrap();
+        let home = globe(&home_cities, &lookup, &Ranking::new(None, None)).unwrap();
+        assert_eq!(home.country_count, 1);
+
+        files.extend(visit(300, (51.79, 6.01), "2026-03-01", 4));
+        let abroad_request = request(files);
+        let library = Library::of_year(&abroad_request).unwrap();
+        let abroad_cities = cities(&library, &lookup).unwrap();
+        let abroad = globe(&abroad_cities, &lookup, &Ranking::new(None, None)).unwrap();
+
+        let names: Vec<&str> = abroad
+            .places
+            .iter()
+            .map(|place| place.name.as_str())
+            .collect();
+        assert_eq!(names, ["Nijmegen", "Amsterdam", "Groningen"]);
+        assert_eq!((abroad.city_count, abroad.country_count), (3, 2));
+        assert!(ones(&abroad.visited) > ones(&home.visited));
+        let tee = tour(&abroad_cities).unwrap();
+        assert_eq!((tee.city_count, tee.country_count), (3, 2));
     }
 
     #[test]

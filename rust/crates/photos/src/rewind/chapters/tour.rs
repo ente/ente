@@ -59,19 +59,24 @@ pub(super) fn stops<'c, 'l, 'r>(cities: &'c [City<'l, 'r>]) -> Vec<Stop<'c, 'l, 
     stops
 }
 
+pub(super) fn countries<'c>(
+    cities: &'c [City<'_, '_>],
+    stops: &[Stop<'c, '_, '_>],
+) -> HashSet<&'c str> {
+    stops
+        .iter()
+        .flat_map(|stop| &stop.cities)
+        .map(|&city| cities[city].country_code.as_str())
+        .collect()
+}
+
 pub(in crate::rewind) fn tour(cities: &[City<'_, '_>]) -> Option<Tour> {
     let mut stops = stops(cities);
     if stops.len() < TOUR_MINIMUM_STOPS {
         return None;
     }
     let city_count = count(stops.len());
-    let country_count = count(
-        stops
-            .iter()
-            .map(|stop| stop.city.country_code.as_str())
-            .collect::<HashSet<_>>()
-            .len(),
-    );
+    let country_count = count(countries(cities, &stops).len());
     stops.sort_by(|first, second| {
         second
             .photos

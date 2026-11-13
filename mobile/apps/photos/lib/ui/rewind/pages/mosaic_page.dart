@@ -176,6 +176,8 @@ class _Tiling {
     RewindBytes bytes,
     bool Function() isRushed,
   ) async {
+    final target = await _target(subject);
+    if (target == null) return null;
     final atlas = await RewindAtlas.load(
       files,
       tile: 80,
@@ -185,12 +187,8 @@ class _Tiling {
       isRushed: isRushed,
     );
     if (atlas == null) return null;
-    final target = await _target(subject);
-    if (target == null) {
-      atlas.dispose();
-      return null;
-    }
-    final cells = await _assign(atlas.quarters, target);
+    final quarters = await atlas.quarters();
+    final cells = await _assign(quarters, target);
     final cell = _Wall.frame.width / columns;
     final transforms = Float32List(cells.length * 4);
     final sources = Float32List(cells.length * 4);
@@ -209,7 +207,7 @@ class _Tiling {
     }
     return _Tiling(
       atlas,
-      await _develop(atlas, cells, target),
+      await _develop(atlas, quarters, cells, target),
       transforms,
       sources,
     );
@@ -375,6 +373,7 @@ class _Tiling {
 
   static Future<ui.Image> _develop(
     RewindAtlas atlas,
+    Float32List quarters,
     Int32List cells,
     Float32List target,
   ) async {
@@ -393,7 +392,7 @@ class _Tiling {
         for (var channel = 0; channel < 3; channel++) {
           shift[channel] +=
               (target[at + channel] -
-                  atlas.quarters[tile * 12 + quarter * 3 + channel]) /
+                  quarters[tile * 12 + quarter * 3 + channel]) /
               4;
         }
       }

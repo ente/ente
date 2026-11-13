@@ -21,18 +21,18 @@ typedef RewindTilePainter =
 Future<Uint8List?> rewindThumbnailBytes(EnteFile file) => getThumbnail(file);
 
 class RewindAtlas {
-  RewindAtlas._(this.image, this.tile, this.columns, this.files, this.quarters);
+  RewindAtlas._(this.image, this.tile, this.columns, this.files);
 
   static const _workers = 4;
   static const _batch = 48;
   static const _breather = Duration(milliseconds: 24);
   static const _fetchTimeout = Duration(seconds: 8);
+  static const _rushedBudget = Duration(seconds: 6);
 
   final ui.Image image;
   final double tile;
   final int columns;
   final List<EnteFile> files;
-  final Float32List quarters;
 
   int get length => files.length;
 
@@ -53,7 +53,6 @@ class RewindAtlas {
     RewindTilePainter paint = paintCover,
     int minimum = 1,
     Duration budget = const Duration(seconds: 12),
-    Duration rushedBudget = const Duration(seconds: 6),
     bool Function()? isRushed,
   }) async {
     final columns = max(1, sqrt(files.length).ceil());
@@ -63,7 +62,7 @@ class RewindAtlas {
     bool isOver() =>
         clock.elapsed >= budget ||
         (loaded.length >= minimum &&
-            clock.elapsed >= rushedBudget &&
+            clock.elapsed >= _rushedBudget &&
             (isRushed?.call() ?? false));
     for (var start = 0; start < files.length && !isOver(); start += _batch) {
       final end = min(files.length, start + _batch);
@@ -119,7 +118,7 @@ class RewindAtlas {
     }
     return RewindAtlas._(atlas, tile.toDouble(), columns, [
       for (final index in loaded) files[index],
-    ], await _quarters(atlas, tile, columns, loaded.length));
+    ]);
   }
 
   static void paintCover(Canvas canvas, ui.Image image, Rect cell, int index) {
@@ -161,30 +160,26 @@ class RewindAtlas {
     }
   }
 
-  static Future<Float32List> _quarters(
-    ui.Image atlas,
-    int tile,
-    int columns,
-    int count,
-  ) async {
-    final quarters = Float32List(count * 12)..fillRange(0, count * 12, 128);
-    final data = await atlas.toByteData(
+  Future<Float32List> quarters() async {
+    final quarters = Float32List(length * 12)..fillRange(0, length * 12, 128);
+    final data = await image.toByteData(
       format: ui.ImageByteFormat.rawStraightRgba,
     );
     if (data == null) return quarters;
     const step = 2;
-    final half = tile ~/ 2;
-    for (var index = 0; index < count; index++) {
+    final side = tile.round();
+    final half = side ~/ 2;
+    for (var index = 0; index < length; index++) {
       for (var quarter = 0; quarter < 4; quarter++) {
-        final left = (index % columns) * tile + (quarter & 1) * half;
-        final top = (index ~/ columns) * tile + (quarter >> 1) * half;
+        final left = (index % columns) * side + (quarter & 1) * half;
+        final top = (index ~/ columns) * side + (quarter >> 1) * half;
         var red = 0;
         var green = 0;
         var blue = 0;
         var samples = 0;
         for (var y = top; y < top + half; y += step) {
           for (var x = left; x < left + half; x += step) {
-            final offset = (y * atlas.width + x) * 4;
+            final offset = (y * image.width + x) * 4;
             red += data.getUint8(offset);
             green += data.getUint8(offset + 1);
             blue += data.getUint8(offset + 2);

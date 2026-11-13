@@ -84,7 +84,15 @@ class WarpPage extends RewindPage {
     (atlas) => atlas.dispose(),
   );
 
+  static final _wallClock = RegExp(r"^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}");
+
   static DateTime taken(EnteFile file) =>
+      DateTime.tryParse(
+        _wallClock.stringMatch(file.pubMagicMetadata?.dateTime ?? "") ?? "",
+      ) ??
+      _instant(file);
+
+  static DateTime _instant(EnteFile file) =>
       DateTime.fromMicrosecondsSinceEpoch(file.creationTime ?? 0);
 
   static String dated(DateTime day) =>
@@ -92,12 +100,6 @@ class WarpPage extends RewindPage {
 
   @override
   String get key => pageKey;
-
-  @override
-  RewindChrome get chrome => const RewindChrome(
-    foreground: RewindColors.cream,
-    wordmark: RewindColors.white,
-  );
 
   @override
   void warmUp() => _walls.value;
@@ -673,7 +675,9 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   }
 
   String get _ago {
-    final days = DateTime.now().difference(WarpPage.taken(widget.first)).inDays;
+    final days = DateTime.now()
+        .difference(WarpPage._instant(widget.first))
+        .inDays;
     return days < 1
         ? "EARLIER TODAY"
         : "${rewindCounted(days, "DAY", "DAYS")} AGO";

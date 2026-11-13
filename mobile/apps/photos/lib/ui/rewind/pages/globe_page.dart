@@ -203,6 +203,7 @@ class _Visit {
 
   final int place;
   final List<int> stops;
+  final List<int> detours = [];
 }
 
 class _World {
@@ -263,7 +264,7 @@ class _World {
     final pinnedMs = List.filled(places.length, double.infinity);
     double drop(_Visit visit, double from) {
       var at = from;
-      for (final stop in visit.stops) {
+      for (final stop in [...visit.stops, ...visit.detours]) {
         if (pinnedMs[stop].isFinite) continue;
         pinnedMs[stop] = at;
         at += _pinGapMs;
@@ -361,7 +362,7 @@ class _World {
       }
       if (back != null) {
         for (var skipped = at + 1; skipped <= back; skipped++) {
-          flights.last.stops.addAll(visits[skipped].stops);
+          flights.last.detours.addAll(visits[skipped].stops);
         }
         at = back;
         continue;
@@ -457,10 +458,12 @@ class _GlobeViewState extends State<_GlobeView>
     final still = MediaQuery.disableAnimationsOf(context);
     if (still) {
       _ticker.stop();
-      _ms = _world.endMs + 5000;
-      _view = _world.home;
-      _lead = _view;
-      _settle();
+      if (_ms < _world.endMs) {
+        _ms = _world.endMs + 5000;
+        _view = _world.home;
+        _lead = _view;
+        _settle();
+      }
       return;
     }
     if (widget.active && !_ticker.isActive) {

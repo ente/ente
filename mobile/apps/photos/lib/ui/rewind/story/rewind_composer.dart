@@ -35,9 +35,6 @@ import "package:photos/ui/rewind/widgets/rewind_photo_frames.dart";
 class RewindChapter {
   const RewindChapter(this.keys, this.compose);
 
-  RewindChapter.single(String key, RewindPage? Function() page)
-    : this([key], (_) async => [?page()]);
-
   RewindChapter.revealed(
     SetupPage setup,
     String revealKey,
@@ -107,10 +104,9 @@ RewindChapter _totals(rust.Totals? totals) {
   });
 }
 
-RewindChapter _tour(rust.Tour? tour) => RewindChapter.single(
+RewindChapter _tour(rust.Tour? tour) => RewindChapter([
   TourPage.pageKey,
-  () => tour == null ? null : TourPage(tour),
-);
+], (_) async => [if (tour != null) TourPage(tour)]);
 
 RewindChapter _warp(rust.RewindReport report) =>
     RewindChapter([WarpPage.pageKey], (media) async {
