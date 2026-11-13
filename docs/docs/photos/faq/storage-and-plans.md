@@ -392,6 +392,16 @@ Contact [students@ente.com](mailto:students@ente.com) before your next renewal i
 
 You do not need to cancel, resubscribe, or change your billing interval just to look for a coupon field. If an invoice has already been issued, contact us about the options for your account. An adjustment or refund is not automatic.
 
+### Do existing subscribers get a renewal discount? {#renewal-discount}
+
+No. We don't offer a separate renewal or loyalty discount, so your plan renews at the regular price.
+
+Ways to pay less:
+
+- **Switch to a yearly plan.** A year on a yearly plan costs about two months less than paying monthly. See [Can I switch between monthly and yearly plans?](#switch-billing-cycle)
+- **Students** can get 30% off, including on an existing subscription. See [Does Ente offer discounts to students?](#student-discount)
+- **Refer friends** to earn extra storage. See [How can I earn free storage?](#earn-storage-referrals)
+
 ## Discount Codes and Referrals
 
 ### How do I apply a discount code to my subscription? {#apply-discount-code}
@@ -580,7 +590,7 @@ If your usage is above the free allowance, contact support about your options. K
 
 **What about subscriptions purchased through app stores?**
 
-If you have a subscription through the Apple App Store or Google Play:
+If you have a subscription billed through an app store:
 
 - Manage your subscription through the respective app store
 - Cancellation policies follow the app store's terms
@@ -725,7 +735,7 @@ We send this email when we try to renew your subscription but the payment doesn'
 
 Your photos and files are safe, but new uploads stop until the renewal is paid.
 
-If your subscription is through the Apple App Store or Google Play, update your payment details in that store's subscription settings. Store payments cannot be retried from an Ente invoice.
+If your subscription is billed through an app store, update your payment details in that store's subscription settings. Store payments cannot be retried from an Ente invoice.
 
 If you pay Ente directly:
 
@@ -747,7 +757,7 @@ If the renewal isn't paid, your plan expires. See [What happens when my subscrip
 
 For a subscription purchased directly from Ente, open `Settings > Storage/Subscription > Cancel subscription`, or `Settings > Account > Manage subscription > Cancel subscription`.
 
-For a subscription purchased through the Apple App Store or Google Play, cancel renewal in that store's subscription settings. Check the end date shown by the store; cancelling renewal does not necessarily end the current paid period immediately.
+For a subscription billed through an app store, cancel renewal in that store's subscription settings. Check the end date shown by the store; cancelling renewal does not necessarily end the current paid period immediately.
 
 If you want to switch from Apple to direct billing, follow the [payment-provider transition steps](#update-payment).
 

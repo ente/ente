@@ -13,6 +13,8 @@ On mobile, open **Search** and scroll to **File types**. Select **Photos**, **Vi
 
 These shortcuts search your library. They do not change an album's contents.
 
+On web and desktop, type the file extension, for example **.dng** or **.heic**, in search and choose the file name result.
+
 ## Map View
 
 ### Why doesn't the map show all my photos? {#missing-photos}

@@ -59,6 +59,7 @@ Jump to a category:
 - [I'm not receiving the verification code email](/photos/faq/account-creation#verification-code)
 - [What if I lose access to my email address?](/photos/faq/account-creation#lost-email)
 - [I forgot which email address I used for Ente. How do I find it?](/photos/faq/account-creation#forgot-account-email)
+- [Why does Ente say "Account setup incomplete"?](/photos/faq/account-creation#account-setup-incomplete)
 
 ## Albums and Organization
 
@@ -156,6 +157,7 @@ Jump to a category:
 - [How can I check my backup status?](/photos/faq/backup-and-sync#check-backup-status)
 - [Will turning Optimize iPhone Storage back on upload my photos again?](/photos/faq/backup-and-sync#optimize-storage-reupload)
 - [Does Ente backup Live Photos from iPhone?](/photos/faq/backup-and-sync#live-photos-backup)
+- [Why do my Live Photos show up as a separate photo and video?](/photos/faq/backup-and-sync#live-photo-not-paired)
 - [Can I save just the still image from a Live Photo or remove its motion clip?](/photos/faq/backup-and-sync#live-photo-still-only)
 - [Can I pick photos from Ente in other apps?](/photos/faq/backup-and-sync#pick-photos-in-other-apps)
 - [Can I open photos from my camera app in Ente?](/photos/faq/backup-and-sync#open-camera-photos-in-ente)
@@ -265,6 +267,10 @@ Jump to a category:
 ## Search and Discovery
 
 [View complete Search and Discovery FAQ →](/photos/faq/search-and-discovery)
+
+### General Search
+
+- [How do I view only photos, videos or Live Photos?](/photos/faq/search-and-discovery#filter-by-file-type)
 
 ### Map View
 
@@ -403,6 +409,7 @@ Jump to a category:
 ### Student Discounts
 
 - [Does Ente offer discounts to students?](/photos/faq/storage-and-plans#student-discount)
+- [Do existing subscribers get a renewal discount?](/photos/faq/storage-and-plans#renewal-discount)
 
 ### Discount Codes and Referrals
 

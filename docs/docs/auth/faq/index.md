@@ -88,6 +88,14 @@ If you cannot sign in to another service, use that service's recovery options or
 
 Keep your recovery materials somewhere you can reach without signing in to the account they protect. See [Enteception](/auth/faq/enteception/) if you store the second factor for Ente or your email account inside Ente Auth.
 
+### I forgot my Ente Auth password. How do I get back in? {#auth-forgot-password}
+
+On the sign-in screen, enter your email, then tap **Forgot password?** on the password screen. Ente sends a verification code to your email to confirm it's you. This step happens even if email verification is turned off for sign-in. Then enter your 24-word recovery key and set a new password.
+
+If you use the same account in Ente Photos or Locker, it has the same password and recovery key there.
+
+Ente can't reset your password or see your codes. If you've lost both your password and your recovery key, your codes can't be recovered. If you want to start over with the same email, see [I've lost my password and recovery key. Can I start over with the same email?](/photos/faq/security-and-privacy#start-fresh-same-email). You'll then need to set up 2FA again with each service.
+
 ### Can I change my recovery key if it was exposed? {#change-recovery-key}
 
 No. You cannot change or rotate the recovery key for an existing Ente account. Changing your password does not change the recovery key. If you use the same account in Photos, Auth, and Locker, it has the same recovery key in all three apps.
@@ -289,6 +297,10 @@ The HTML export generates individual QR codes for each of your codes, making it 
 > [!IMPORTANT]
 >
 > This export is unencrypted. Handle the exported HTML file carefully and delete it after importing your codes.
+
+### What happens to my codes if I can't use Ente Auth? {#backup-outside-ente}
+
+Codes are generated on your device, so Ente Auth keeps working on a signed-in device without internet. To keep a backup that doesn't depend on Ente, [export your codes](/auth/migration/export) and store the file somewhere safe. A plain-text export can be imported into most other authenticator apps, but anyone who has it can generate your codes, so prefer an encrypted export and keep its password safe. You can also add the same account to a second authenticator app when you set up 2FA. Both apps then show the same codes.
 
 ### What information about my codes is stored on Ente server?
 
