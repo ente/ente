@@ -12,6 +12,7 @@ import "package:photos/models/file/extensions/file_props.dart";
 import 'package:photos/models/file/file.dart';
 import "package:photos/models/file/file_type.dart";
 import 'package:photos/models/ignored_file.dart';
+import "package:photos/models/selected_files.dart";
 import 'package:photos/module/download/decrypt.dart';
 import "package:photos/module/download/file.dart";
 import "package:photos/module/download/manager.dart";
@@ -89,11 +90,13 @@ Future<AssetEntity?> _getExistingAsset(EnteFile file) async {
 Future<List<String?>> linkDownloadsAlreadyOnDevice(
   List<EnteFile> files, {
   required bool persistToFilesDB,
+  SelectedFiles? selectedFiles,
 }) async {
   final assets = await _findAssetsOnDevice(files);
   final folderNames = <String?>[];
   final linkedFiles = <EnteFile>[];
   for (var i = 0; i < files.length; i++) {
+    final file = files[i];
     final asset = assets[i];
     if (asset == null) {
       folderNames.add(null);
@@ -101,10 +104,14 @@ Future<List<String?>> linkDownloadsAlreadyOnDevice(
     }
     final folderName = await _getDeviceFolderName(asset);
     folderNames.add(folderName);
-    if (folderName != null &&
-        persistToFilesDB &&
-        files[i].localID != asset.id) {
-      linkedFiles.add(files[i].copyWith(localID: asset.id));
+    if (folderName != null && persistToFilesDB && file.localID != asset.id) {
+      void link() => file.localID = asset.id;
+      if (selectedFiles == null) {
+        link();
+      } else {
+        selectedFiles.mutateFile(file, link);
+      }
+      linkedFiles.add(file);
     }
   }
   if (linkedFiles.isNotEmpty) {

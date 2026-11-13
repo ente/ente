@@ -1190,6 +1190,7 @@ class _FileSelectionActionsWidgetState
     final existingLocalFolderNames = await linkDownloadsAlreadyOnDevice(
       files,
       persistToFilesDB: persistToFilesDB,
+      selectedFiles: widget.selectedFiles,
     );
     if (!mounted) return;
 
