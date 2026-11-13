@@ -64,15 +64,11 @@ class MosaicPage extends RewindPage {
     _isOnScreen = _isOnScreen || isActive;
     final who = subject == null
         ? "${RewindEdition.year}"
-        : subjectName?.toUpperCase() ?? "YOU";
-    final title = subject != null && subjectName == null
-        ? "MAKE ONE OF YOU"
-        : "MAKE ONE $who";
-    const body = "Every tile is a real photo from your year.";
+        : subjectName?.toUpperCase();
     return Stack(
       fit: StackFit.expand,
       children: [
-        _card(position, isActive, title, body),
+        _card(position, isActive, who),
         RewindWarmBuilder<_Tiling>(
           warm: _tiling,
           builder: (context, tiling) => RewindHint(
@@ -87,7 +83,9 @@ class MosaicPage extends RewindPage {
     );
   }
 
-  Widget _card(double position, bool isActive, String title, String body) {
+  Widget _card(double position, bool isActive, String? who) {
+    final title = "MAKE ONE ${who ?? "OF YOU"}";
+    const body = "Every tile is a real photo from your year.";
     return RewindShareable(
       child: Stack(
         fit: StackFit.expand,
@@ -99,9 +97,10 @@ class MosaicPage extends RewindPage {
           RewindWarmBuilder<_Tiling>(
             warm: _tiling,
             builder: (context, tiling) {
-              final label = tiling == null
-                  ? "GATHERING YOUR PHOTOS"
-                  : "${rewindCount(tiling.atlas.length)} OF YOUR PHOTOS";
+              final count = tiling == null
+                  ? "GATHERING"
+                  : "${rewindCount(tiling.atlas.length)} OF";
+              final label = "$count YOUR PHOTOS";
               return Semantics(
                 label: "$label $title. $body",
                 child: RewindStage(
@@ -126,6 +125,11 @@ class MosaicPage extends RewindPage {
                       label: label,
                       title: title,
                       body: body,
+                      me: (
+                        label: "$count MY PHOTOS",
+                        title: "MAKE ONE ${who ?? "OF ME"}",
+                        body: "Every tile is a real photo from my year.",
+                      ),
                       position: position,
                       active: isActive && tiling != null,
                       delayMs: _Wall.revealedMs - 500,

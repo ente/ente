@@ -106,9 +106,13 @@ class GlobePage extends RewindPage {
                   position: position,
                   active: isActive,
                   delayMs: 500,
-                  child: Text(
-                    "YOUR PHOTOS FLEW",
-                    style: RewindTextStyles.display(17, height: 1.05),
+                  child: RewindVoice(
+                    you: "YOUR PHOTOS FLEW",
+                    me: "MY PHOTOS FLEW",
+                    builder: (text) => Text(
+                      text,
+                      style: RewindTextStyles.display(17, height: 1.05),
+                    ),
                   ),
                 ),
                 RewindRevealLayer(

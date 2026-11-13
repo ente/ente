@@ -80,7 +80,7 @@ class TimelapsePage extends RewindPage {
     double position, {
     required bool isActive,
   }) {
-    final who = name?.toUpperCase() ?? "YOU";
+    final who = name?.toUpperCase();
     final span =
         "${_months[frames.first.month - 1]} TO ${_months[frames.last.month - 1]}";
     final body =
@@ -104,7 +104,7 @@ class TimelapsePage extends RewindPage {
   Widget _card(
     double position,
     bool isActive,
-    String who,
+    String? who,
     String span,
     String body,
   ) {
@@ -117,7 +117,7 @@ class TimelapsePage extends RewindPage {
             pattern: RewindStripes(Color(0xFF9D4EE0)),
           ),
           Semantics(
-            label: "A year of $who, $span. $body",
+            label: "A year of ${who ?? "YOU"}, $span. $body",
             child: RewindStage(
               children: [
                 Positioned.fill(
@@ -159,16 +159,20 @@ class TimelapsePage extends RewindPage {
                       origin: Alignment.centerLeft,
                       child: RewindFitWidth(
                         width: 322,
-                        child: RewindOutlinedText(
-                          who,
-                          style: RewindTextStyles.display(
-                            62,
-                            color: RewindColors.yellow,
-                            height: 0.9,
-                            letterSpacing: -1.2,
+                        child: RewindVoice(
+                          you: who ?? "YOU",
+                          me: who ?? "ME",
+                          builder: (text) => RewindOutlinedText(
+                            text,
+                            style: RewindTextStyles.display(
+                              62,
+                              color: RewindColors.yellow,
+                              height: 0.9,
+                              letterSpacing: -1.2,
+                            ),
+                            outline: 3.6,
+                            shadow: const Offset(2.4, 2.9),
                           ),
-                          outline: 3.6,
-                          shadow: const Offset(2.4, 2.9),
                         ),
                       ),
                     ),

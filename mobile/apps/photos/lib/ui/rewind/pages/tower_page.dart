@@ -126,12 +126,14 @@ class TowerPage extends RewindPage {
   @override
   void release() => _strip.release();
 
-  String get _boast {
+  String _boast({bool firstPerson = false}) {
+    String phrase(_Sight sight) =>
+        firstPerson && sight == _Sight.person ? "my own height" : sight.phrase;
     final metres = _metres;
     final next = _Sight.values.where((sight) => sight.metres > metres);
     if (next.isNotEmpty && metres >= next.first.metres * 0.85) {
       final more = ((next.first.metres - metres) / printMetres).ceil();
-      return "Just ${rewindCount(more)} more to top ${next.first.phrase}.";
+      return "Just ${rewindCount(more)} more to top ${phrase(next.first)}.";
     }
     final passed = _Sight.values.lastWhere(
       (sight) => sight.metres <= metres,
@@ -139,8 +141,8 @@ class TowerPage extends RewindPage {
     );
     final times = metres / passed.metres;
     return times >= 1.95
-        ? "That’s ${times.toStringAsFixed(1)}× ${passed.phrase}."
-        : "Taller than ${passed.phrase}.";
+        ? "That’s ${times.toStringAsFixed(1)}× ${phrase(passed)}."
+        : "Taller than ${phrase(passed)}.";
   }
 
   @override
@@ -149,7 +151,8 @@ class TowerPage extends RewindPage {
     double position, {
     required bool isActive,
   }) {
-    final body = "${rewindCount(prints)} prints at 15 cm each. $_boast";
+    final count = "${rewindCount(prints)} prints at 15 cm each.";
+    final body = "$count ${_boast()}";
     return Semantics(
       label:
           "Every photo printed, end to end, is ${_height(_metres)} tall. "
@@ -159,6 +162,7 @@ class TowerPage extends RewindPage {
           prints: prints,
           metres: _metres,
           body: body,
+          myBody: "$count ${_boast(firstPerson: true)}",
           strip: _strip,
           active: isActive,
           position: position,
@@ -181,6 +185,7 @@ class _Climb extends StatefulWidget {
     required this.prints,
     required this.metres,
     required this.body,
+    required this.myBody,
     required this.strip,
     required this.active,
     required this.position,
@@ -189,6 +194,7 @@ class _Climb extends StatefulWidget {
   final int prints;
   final double metres;
   final String body;
+  final String myBody;
   final RewindWarm<RewindAtlas> strip;
   final bool active;
   final double position;
@@ -270,15 +276,20 @@ class _ClimbState extends State<_Climb> {
                 centerY: 380,
                 child: RewindWarmBuilder<RewindAtlas>(
                   warm: widget.strip,
-                  builder: (context, strip) => CustomPaint(
-                    painter: _Scene(
-                      scale: scale,
-                      metres: metres,
-                      far: _far,
-                      strip: strip,
-                      stackingMs: stacking ? ms : null,
-                      finale: _smooth((zoom - 0.82) / 0.18),
-                      prints: (metres / TowerPage.printMetres).round(),
+                  builder: (context, strip) => RewindVoice(
+                    you: _Sight.person.label,
+                    me: "ME",
+                    builder: (person) => CustomPaint(
+                      painter: _Scene(
+                        scale: scale,
+                        metres: metres,
+                        far: _far,
+                        strip: strip,
+                        stackingMs: stacking ? ms : null,
+                        finale: _smooth((zoom - 0.82) / 0.18),
+                        prints: (metres / TowerPage.printMetres).round(),
+                        person: person,
+                      ),
                     ),
                   ),
                 ),
@@ -359,7 +370,12 @@ class _ClimbState extends State<_Climb> {
                   child: AnimatedOpacity(
                     opacity: arrived ? 1 : 0,
                     duration: const Duration(milliseconds: 320),
-                    child: Text(widget.body, style: RewindTextStyles.body(17)),
+                    child: RewindVoice(
+                      you: widget.body,
+                      me: widget.myBody,
+                      builder: (text) =>
+                          Text(text, style: RewindTextStyles.body(17)),
+                    ),
                   ),
                 ),
               ),
@@ -515,6 +531,7 @@ class _Scene extends CustomPainter {
     required this.stackingMs,
     required this.finale,
     required this.prints,
+    required this.person,
   });
 
   static const ground = 566.0;
@@ -534,6 +551,7 @@ class _Scene extends CustomPainter {
   final double? stackingMs;
   final double finale;
   final int prints;
+  final String person;
 
   static int landed(double ms) => _dropMs.where((at) => ms >= at + 200).length;
 
@@ -1257,7 +1275,7 @@ class _Scene extends CustomPainter {
     if (opacity <= 0.01) return;
     final passed = metres >= sight.metres;
     final name = _text(
-      sight.label,
+      sight == _Sight.person ? person : sight.label,
       RewindTextStyles.display(
         10.5,
         height: 1.1,
@@ -1377,5 +1395,6 @@ class _Scene extends CustomPainter {
       oldDelegate.metres != metres ||
       oldDelegate.strip != strip ||
       oldDelegate.stackingMs != stackingMs ||
-      oldDelegate.finale != finale;
+      oldDelegate.finale != finale ||
+      oldDelegate.person != person;
 }

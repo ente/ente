@@ -483,17 +483,21 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
                       child: Opacity(
                         opacity: 1 - pulled,
                         child: Center(
-                          child: _Counter(
-                            landed
-                                ? "YOU MADE IT BACK"
-                                : walls == null
-                                ? "LOADING THE TAPE"
-                                : _piloted
-                                ? "TIME TRAVEL"
-                                : "REWINDING",
-                            passing == null || landed
-                                ? null
-                                : "${passing.day} ${_months[passing.month - 1]}",
+                          child: RewindVoice(
+                            you: "YOU MADE IT BACK",
+                            me: "I MADE IT BACK",
+                            builder: (madeIt) => _Counter(
+                              landed
+                                  ? madeIt
+                                  : walls == null
+                                  ? "LOADING THE TAPE"
+                                  : _piloted
+                                  ? "TIME TRAVEL"
+                                  : "REWINDING",
+                              passing == null || landed
+                                  ? null
+                                  : "${passing.day} ${_months[passing.month - 1]}",
+                            ),
                           ),
                         ),
                       ),
@@ -534,6 +538,9 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
                                 body:
                                     "Your first photo of the year. Look how "
                                     "far you have come since.",
+                                myBody:
+                                    "My first photo of the year. Look how "
+                                    "far I have come since.",
                               )
                             : const SizedBox(
                                 key: ValueKey("flying"),
@@ -661,6 +668,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
           "A ${_weekdays[day.weekday - 1]} IN ${_monthNames[day.month - 1]}",
       title: "REMEMBER THIS?",
       body: "One moment from your year.",
+      myBody: "One moment from my year.",
     );
   }
 
@@ -677,12 +685,14 @@ class _Caption extends StatelessWidget {
     required this.eyebrow,
     required this.title,
     required this.body,
+    required this.myBody,
     super.key,
   });
 
   final String eyebrow;
   final String title;
   final String body;
+  final String myBody;
 
   @override
   Widget build(BuildContext context) {
@@ -706,7 +716,11 @@ class _Caption extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          Text(body, style: RewindTextStyles.body(17)),
+          RewindVoice(
+            you: body,
+            me: myBody,
+            builder: (text) => Text(text, style: RewindTextStyles.body(17)),
+          ),
         ],
       ),
     );
