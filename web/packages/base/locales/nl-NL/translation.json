@@ -539,6 +539,8 @@
     "photos_count": "{{count, number}} herinneringen",
     "terms_and_conditions": "Ik ga akkoord met de <a>gebruiksvoorwaarden</a> en <b>privacybeleid</b>",
     "people": "Personen",
+    "add_more_people": "",
+    "only_them": "",
     "people_count_one": "",
     "people_count_other": "",
     "people_photo_count_one": "",
