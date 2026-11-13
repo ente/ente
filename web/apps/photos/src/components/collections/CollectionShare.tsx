@@ -25,6 +25,7 @@ import RemoveCircleOutlinedIcon from "@mui/icons-material/RemoveCircleOutlined";
 import WorkspacesIcon from "@mui/icons-material/Workspaces";
 import {
     Box,
+    Button,
     IconButton,
     InputBase,
     Stack,
@@ -86,7 +87,7 @@ import { CollectionSubType, type CollectionUser } from "ente-media/collection";
 import { useSettingsSnapshot } from "ente-new/photos/components/utils/use-snapshot";
 import {
     createPublicURL,
-    getCollectionByID,
+    refreshCollection,
     removePublicLink,
     shareCollection,
     unshareCollection,
@@ -103,6 +104,7 @@ import React, {
     useCallback,
     useContext,
     useEffect,
+    useEffectEvent,
     useMemo,
     useRef,
     useState,
@@ -307,6 +309,11 @@ export const CollectionShare: React.FC<CollectionShareProps> = ({
 
     const [collection, setCollection] = useState(collectionProp);
     const hasFetchedPublicURLs = useRef(false);
+    const [sharingRefresh, setSharingRefresh] = useState<{
+        collectionID: number;
+        status: "loading" | "ready" | "error";
+    }>();
+    const [refreshAttempt, setRefreshAttempt] = useState(0);
 
     // Do not replace fetched public URLs with an older prop snapshot.
     useEffect(() => {
@@ -350,59 +357,73 @@ export const CollectionShare: React.FC<CollectionShareProps> = ({
         collection?.type != "uncategorized" &&
         (isOwner || (isSharedIncoming && hasPublicLink));
 
-    const hasFetchedForSession = useRef(false);
-
     useEffect(() => {
         if (!open) {
-            hasFetchedForSession.current = false;
             hasFetchedPublicURLs.current = false;
+            setSharingRefresh(undefined);
         }
     }, [open]);
 
-    // Fetch once per open; the remote pull can retrigger this effect.
+    const collectionID = collectionProp?.id;
+    const collectionType = collectionProp?.type;
+    const syncDiscoveredPublicLink = useEffectEvent((latest: Collection) => {
+        if (
+            collectionSummary?.type == "sharedIncoming" &&
+            user.id != collectionProp.owner.id &&
+            collectionProp.publicURLs.length == 0 &&
+            latest.publicURLs.length > 0
+        ) {
+            void onRemotePull({ silent: true }).catch((e: unknown) =>
+                log.error("[CollectionShare] Failed to sync public link", e),
+            );
+        }
+    });
     useEffect(() => {
-        const refreshCollection = async () => {
-            const shouldFetch =
-                open &&
-                collection &&
-                collection.type != "uncategorized" &&
-                !isOwner &&
-                isSharedIncoming &&
-                !hasPublicLink &&
-                !hasFetchedForSession.current;
-
-            if (shouldFetch) {
-                hasFetchedForSession.current = true;
-                try {
-                    const latestCollection = await getCollectionByID(
-                        collection.id,
-                    );
-                    if (latestCollection.publicURLs.length > 0) {
-                        hasFetchedPublicURLs.current = true;
-                        setCollection(latestCollection);
-                        await onRemotePull({ silent: true });
-                    }
-                } catch (e) {
-                    log.error(
-                        "[CollectionShare] Failed to refresh collection for non-owner",
-                        e,
-                    );
+        if (
+            !open ||
+            collectionID == undefined ||
+            collectionType == "uncategorized"
+        ) {
+            return;
+        }
+        let cancelled = false;
+        setSharingRefresh({ collectionID, status: "loading" });
+        const refresh = async () => {
+            try {
+                const latestCollection = await refreshCollection(collectionID);
+                if (!cancelled && latestCollection) {
+                    hasFetchedPublicURLs.current =
+                        latestCollection.publicURLs.length > 0;
+                    setCollection(latestCollection);
+                    setSharingRefresh({ collectionID, status: "ready" });
+                    syncDiscoveredPublicLink(latestCollection);
+                } else if (!cancelled) {
+                    setSharingRefresh({ collectionID, status: "error" });
+                }
+            } catch (e) {
+                log.error("[CollectionShare] Failed to refresh collection", e);
+                if (!cancelled) {
+                    setSharingRefresh({ collectionID, status: "error" });
                 }
             }
         };
-        void refreshCollection();
-    }, [
-        open,
-        isOwner,
-        isSharedIncoming,
-        hasPublicLink,
-        collection,
-        onRemotePull,
-    ]);
+        void refresh();
+        return () => {
+            cancelled = true;
+        };
+    }, [open, collectionID, collectionType, refreshAttempt]);
 
     if (!collection || !collectionSummary) {
         return <></>;
     }
+
+    const sharingReady =
+        collectionType == "uncategorized" ||
+        (sharingRefresh?.collectionID == collectionID &&
+            sharingRefresh.status == "ready");
+    const sharingError =
+        sharingRefresh?.collectionID == collectionID &&
+        sharingRefresh.status == "error";
 
     return (
         <SidebarDrawer
@@ -430,7 +451,27 @@ export const CollectionShare: React.FC<CollectionShareProps> = ({
                         gap: "24px",
                     }}
                 >
-                    {showEmailSection ? (
+                    {!sharingReady ? (
+                        <Stack role="status" spacing={1}>
+                            <Typography color="text.muted">
+                                {sharingError
+                                    ? t("generic_error")
+                                    : t("loading")}
+                            </Typography>
+                            {sharingError ? (
+                                <Button
+                                    fullWidth
+                                    color="secondary"
+                                    onClick={() =>
+                                        setRefreshAttempt((v) => v + 1)
+                                    }
+                                >
+                                    {t("retry")}
+                                </Button>
+                            ) : null}
+                        </Stack>
+                    ) : null}
+                    {sharingReady && showEmailSection ? (
                         <EmailShare
                             onRootClose={onClose}
                             {...{
@@ -451,7 +492,7 @@ export const CollectionShare: React.FC<CollectionShareProps> = ({
                             openManageLink={intent == "manage-link"}
                         />
                     ) : null}
-                    {isSharedIncoming ? (
+                    {sharingReady && isSharedIncoming ? (
                         <SharingDetails
                             {...{
                                 user,
