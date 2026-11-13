@@ -84,6 +84,8 @@ On some Android versions, newly downloaded apps activate a mode called "Optimize
 
 On Android versions 15 and later, if an app is in private space and the private space is locked, Android doesn't allow the app to run any background processes. As a result, background sync will not work.
 
+![Unrestricted / Optimize battery usage option highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-android-battery-background-usage-callout.png){width=320px}
+
 ### Desktop
 
 In addition to our mobile apps, the background sync also works on our desktop app through the [watch folders](/photos/features/backup-and-sync/watch-folders) feature.
@@ -125,7 +127,7 @@ This option is available in two places:
 - **During signup/login**: On the permissions screen, you can choose to back up only new photos instead of your full library.
 - **In settings**: Open `Settings > Backup > Backup settings` and toggle on **Backup only new photos**.
 
-![Ente Photos Android Backup settings showing Backup only new photos and related toggles](https://docs-assets.ente.com/screenshots/phone-backup-settings.png){width=320px}
+![Mobile: home with Settings menu (three bars) highlighted, then Backup, then Backup settings, then Backup settings page](https://docs-assets.ente.com/screenshots/phone-settings-backup-backup-settings-path-nc.png){width=560px}
 
 ### What "new photos" means
 
@@ -147,6 +149,8 @@ When you first enable this setting, Ente may prompt you to select which folders 
 ### Disabling backup only new photos
 
 To resume backing up all photos (including your existing library), toggle **Backup only new photos** off. Ente will then include all photos from selected folders in the next sync.
+
+![Backup only new photos toggle highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-backup-only-new-photos-callout.png){width=320px}
 
 ### Use cases
 

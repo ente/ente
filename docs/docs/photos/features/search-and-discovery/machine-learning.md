@@ -42,11 +42,11 @@ You can enable machine learning on either the mobile app or the desktop app.
 
 Open `Settings > Machine learning` and enable **Machine learning** and/or **Local indexing**.
 
+![Mobile: home with Settings menu (three bars) highlighted, then Machine learning, then the Machine learning page](https://docs-assets.ente.com/screenshots/phone-settings-ml-path-nc.png){width=560px}
+
 **On desktop:**
 
 Open `Settings > Preferences > Machine learning` and enable **Machine learning** and/or **Local indexing**.
-
-![Enable machine learning highlighted on Ente Photos mobile left and desktop right](https://docs-assets.ente.com/screenshots/duo-ml-enable-callout.png){width=900px}
 
 > [!NOTE]
 >

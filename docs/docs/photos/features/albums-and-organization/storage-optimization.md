@@ -56,6 +56,8 @@ When you free up space, photos are removed from your device but stay in Ente. To
 
 Ente saves thumbnails and previews on your device so photos and videos open faster. You can review this storage under `Settings > Free up space > Manage device cache`.
 
+![Mobile: home with Settings menu (three bars) highlighted, then Free up space, then Manage device cache, then the Manage device cache page](https://docs-assets.ente.com/screenshots/phone-settings-free-up-manage-device-cache-path-nc.png){width=560px}
+
 Tap **Clear caches** to remove files that Ente can recreate. This does not remove files shown under **Pending sync** because Ente still needs them to finish your backup.
 
 ![Manage device cache screen with Clear caches on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-manage-device-cache.png){width=320px}
@@ -81,6 +83,8 @@ The deduplication tool:
 **On mobile:**
 
 Open `Settings > Free up space > Remove duplicates`, review the duplicates found, and confirm to remove them.
+
+![Mobile: home with Settings menu (three bars) highlighted, then Free up space, then Duplicates, then the Deduplicate files page](https://docs-assets.ente.com/screenshots/phone-settings-free-up-duplicates-path-nc.png){width=560px}
 
 **On desktop:**
 
@@ -167,6 +171,8 @@ The large files feature:
 **On mobile:**
 
 Open `Settings > Free up space > Large files` to see your largest files sorted by size.
+
+![Mobile: home with Settings menu (three bars) highlighted, then Free up space, then Large files, then the Large files page](https://docs-assets.ente.com/screenshots/phone-settings-free-up-large-files-path-nc.png){width=560px}
 
 **On desktop:**
 

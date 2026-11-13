@@ -73,3 +73,5 @@ Once set as default, the camera thumbnail review and other gallery-style intents
 5. Choose **Home screen**, **Lock screen**, or **Home and lock screens**.
 
 This option is available for photos and Live Photos. Ente uses the still image from a Live Photo as the wallpaper.
+
+![Set as row highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-viewer-set-as-callout.png){width=320px}

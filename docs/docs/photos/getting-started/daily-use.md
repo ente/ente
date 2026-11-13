@@ -57,6 +57,8 @@ Machine learning powers search in Ente Photos, allowing you to search for photos
 
 **On mobile:** Open `Settings > Machine learning` and enable "Machine learning" and/or "Local indexing".
 
+![Mobile: home with Settings menu (three bars) highlighted, then Machine learning, then the Machine learning page](https://docs-assets.ente.com/screenshots/phone-settings-ml-path-nc.png){width=560px}
+
 **On desktop:** Open `Settings > Preferences > Machine learning` and enable "Machine learning" and/or "Local indexing".
 
 > [!NOTE]

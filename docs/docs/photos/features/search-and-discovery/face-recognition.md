@@ -27,6 +27,8 @@ Face recognition is part of Ente's machine learning features. You must enable it
 
 Open `Settings > Machine learning`, enable **Machine learning** and/or **Local indexing**, and wait for indexing to complete.
 
+![Mobile: home with Settings menu (three bars) highlighted, then Machine learning, then the Machine learning page](https://docs-assets.ente.com/screenshots/phone-settings-ml-path-nc.png){width=560px}
+
 **On desktop:**
 
 Open `Settings > Preferences > Machine learning`, enable **Machine learning** and/or **Local indexing**, and monitor indexing progress.
@@ -114,6 +116,8 @@ On mobile, open a named person and tap the share button. You can select specific
 
 Only photos you own can be included. Sharing creates an album for the selected photos; it does not share face-recognition data.
 
+![Share icon in person header highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-person-share-callout.png){width=320px}
+
 ## Managing Face Groupings
 
 ### Merging persons
@@ -198,6 +202,8 @@ You can tell the app not to show certain face groupings.
 
 1. Make sure the person is **not named** (if named, tap **Remove person label** first)
 2. Inside the unnamed grouping, tap **Ignore person** from the top right menu
+
+![Ignore person row highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-face-ignore-callout.png){width=320px}
 
 **To undo:**
 

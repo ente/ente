@@ -38,6 +38,8 @@ You can like any photo or video in a shared album:
 2. Tap the heart icon in the bottom bar
 3. Your like is added instantly
 
+![Heart icon in viewer bottom bar highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-viewer-like-callout.png){width=320px}
+
 **On web/desktop:**
 
 1. Open a photo in a shared album
@@ -175,6 +177,8 @@ When disabled, comments and likes and their buttons are hidden from public link 
 This helps you moderate content collected through public links.
 
 ![Comments and reactions toggle highlighted in Manage link on Ente Photos web](https://docs-assets.ente.com/screenshots/web-album-manage-link-comments-callout.png){width=720px}
+
+![Comment and react toggle row highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-link-settings-comments-callout.png){width=320px}
 
 ## Feed - Social activity overview
 

@@ -72,15 +72,17 @@ Receive reminders when it's someone's birthday.
 1. When first installing Ente, allow notifications when prompted
 2. Or go to device `Settings > Apps > Ente > Notifications` and enable
 
-### Customizing notification categories
+![Notifications toggle highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-android-app-notifications-callout.png){width=320px}
 
-![Notification categories with toggles for shared photos likes memories and birthdays on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-notifications-settings.png){width=320px}
+### Customizing notification categories
 
 Open `Settings > Notifications` in the Ente app to:
 
 - Enable or disable specific notification types
 - Turn off all notifications
 - Choose which reminders you want to receive
+
+![Mobile: home with Settings menu (three bars) highlighted, then Notifications, then the Notifications page](https://docs-assets.ente.com/screenshots/phone-settings-notifications-path-nc.png){width=560px}
 
 By default, all notification categories are enabled when you grant notification permission.
 
