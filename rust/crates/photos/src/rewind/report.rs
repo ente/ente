@@ -26,10 +26,11 @@ pub struct RewindReport {
     pub scrapbook: Option<Scrapbook>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Totals {
     pub files: u32,
     pub top_per_mille: Option<u32>,
+    pub file_ids: Vec<i64>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -116,11 +117,13 @@ pub struct Favourites {
     pub file_ids: Vec<i64>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct WeeklyHabit {
     pub weekday: u32,
     pub hour: u32,
     pub percent: u32,
+    pub hour_file_ids: Vec<i64>,
+    pub file_ids: Vec<i64>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -200,7 +203,7 @@ impl RewindReport {
         );
         let ml_people = people.as_ref().filter(|_| ml_chapters);
         Ok(Self {
-            totals: chapters::totals(library),
+            totals: chapters::totals(library, &ranking),
             colour: clip
                 .as_ref()
                 .and_then(|clip| chapters::colour(library, clip, &ranking)),
@@ -212,7 +215,7 @@ impl RewindReport {
             new_faces: ml_people
                 .and_then(|people| chapters::new_faces(request, library, people, &ranking)),
             favourites: chapters::favourites(library, &ranking),
-            weekly_habit: chapters::weekly_habit(library),
+            weekly_habit: chapters::weekly_habit(library, &ranking),
             crowd_favourite: chapters::crowd_favourite(library, &ranking),
             badge: chapters::badge(request, library, ml_people, clip.as_ref()),
             scrapbook: chapters::scrapbook(library, &ranking),

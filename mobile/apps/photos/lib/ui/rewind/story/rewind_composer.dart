@@ -56,6 +56,9 @@ List<RewindChapter> rewindChapters(rust.RewindReport report) => [
 ];
 
 const _quizCities = 6;
+const _podiumPlaces = 3;
+const _stampsPerPlace = 3;
+const _galleryPhotos = 9;
 const _minimumPolaroids = 3;
 const _boothStrips = 3;
 const _newFaceBubbles = 6;
@@ -64,12 +67,15 @@ const _minimumNewFaces = 3;
 
 RewindChapter _totals(rust.Totals? totals) {
   return RewindChapter([PhotosCountPage.pageKey, TopPercentPage.pageKey], (
-    _,
+    media,
   ) async {
     if (totals == null) return const [];
     final top = totals.topPerMille;
     return [
-      PhotosCountPage(totals.files),
+      PhotosCountPage(
+        totals.files,
+        media.glimpses(totals.fileIds, PhotosCountPage.maxPhotos),
+      ),
       if (top != null) TopPercentPage(perMille: top, count: totals.files),
     ];
   });
@@ -89,11 +95,23 @@ RewindChapter _places(rust.Places? places) {
   ) {
     if (places == null) return null;
     final stamps = [
-      for (final city in places.cities.take(_quizCities))
-        (city: city, photo: media.photos(city.fileIds, 1).firstOrNull),
+      for (final (rank, city) in places.cities.take(_quizCities).indexed)
+        _placeStamp(media, city, rank < _podiumPlaces),
     ];
     return stamps.length < 3 ? null : PlacesQuizPage(places, stamps);
   });
+}
+
+PlaceStamp _placeStamp(RewindMedia media, rust.RewindCity city, bool podium) {
+  final picked = media.photos(city.fileIds, podium ? _stampsPerPlace : 1);
+  return (
+    city: city,
+    photo: picked.firstOrNull,
+    extras: picked.skip(1).toList(),
+    gallery: podium
+        ? media.extraPhotos(city.fileIds, _galleryPhotos)
+        : const [],
+  );
 }
 
 RewindChapter _spots(rust.Spots? spots) {
@@ -189,11 +207,20 @@ RewindChapter _favourites(rust.Favourites? favourites) {
 }
 
 RewindChapter _weeklyHabit(rust.WeeklyHabit? habit) {
-  return RewindChapter.revealed(
-    ritualSetupPage,
-    "weekly_habit",
-    (_) => habit == null ? null : WeeklyHabitPage(habit),
-  );
+  return RewindChapter.revealed(ritualSetupPage, "weekly_habit", (media) {
+    if (habit == null) return null;
+    final hourPhotos = media.photos(
+      habit.hourFileIds,
+      WeeklyHabitPage.maxHourPhotos,
+    );
+    return WeeklyHabitPage(
+      habit,
+      hourPhotos,
+      hourPhotos.isEmpty
+          ? const []
+          : media.photos(habit.fileIds, WeeklyHabitPage.maxRingPhotos),
+    );
+  });
 }
 
 RewindChapter _crowdFavourite(rust.CrowdFavourite? crowd) {

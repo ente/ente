@@ -21,12 +21,18 @@ import "package:photos/ui/rewind/widgets/rewind_keyframes.dart";
 import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo_frames.dart";
+import "package:photos/ui/rewind/widgets/rewind_photo_gallery.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
 import "package:photos/ui/rewind/widgets/rewind_swap_in.dart";
 import "package:photos/ui/rewind/widgets/rewind_text.dart";
 import "package:photos/ui/rewind/widgets/rewind_wave.dart";
 
-typedef PlaceStamp = ({rust.RewindCity city, EnteFile? photo});
+typedef PlaceStamp = ({
+  rust.RewindCity city,
+  EnteFile? photo,
+  List<EnteFile> extras,
+  List<EnteFile> gallery,
+});
 
 class PlacesQuizPage extends RewindPage {
   PlacesQuizPage(this.places, this.stamps)
@@ -415,8 +421,19 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
     );
   }
 
-  Widget _stamp(int rank, _Slot slot, Size size, double lift) {
-    final photo = _stamps[rank].photo;
+  bool _opensGallery(int rank) =>
+      _phase == _Phase.done && _stamps[rank].gallery.length > 1;
+
+  Widget _stamp(int rank, _Slot slot, Size size, double lift) =>
+      _stampOf(_stamps[rank].photo, rank, slot, size, lift);
+
+  Widget _stampOf(
+    EnteFile? photo,
+    int rank,
+    _Slot slot,
+    Size size,
+    double lift,
+  ) {
     return SizedBox.fromSize(
       size: size,
       child: RewindStamp(
@@ -425,7 +442,7 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
             : RewindPhoto(
                 photo,
                 placeholder: const Color(0xFFD9D9D9),
-                zoomable: _phase == _Phase.done,
+                zoomable: _phase == _Phase.done && !_opensGallery(rank),
               ),
         label: _stamps[rank].city.name,
         portrait: slot.portrait,
@@ -459,10 +476,29 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
 
   int _rankDelay(int rank) => _rankMs + (2 - rank) * _rankGapMs;
 
+  static const _fans = [
+    (dx: -16.0, dy: 2.0, turn: -13.0),
+    (dx: 15.0, dy: 0.0, turn: 11.0),
+  ];
+
+  EdgeInsets _fanReach(int rank, Size size) {
+    final unit = size.width / 139.6;
+    var side = 0.0;
+    var rise = 0.0;
+    for (final fan in _fans.take(_stamps[rank].extras.length)) {
+      final turn = fan.turn.abs() * pi / 180;
+      side = max(side, size.height * sin(turn) + fan.dx.abs() * unit);
+      rise = max(rise, size.width / 2 * sin(turn) + fan.dy.abs() * unit);
+    }
+    return EdgeInsets.symmetric(horizontal: side, vertical: rise);
+  }
+
   Widget _podiumStamp(int rank, Rect rect, bool revealed) {
     final slot = _Slot.podium[rank];
+    final reach = _fanReach(rank, rect.size);
+    final stamp = Offset(reach.left, reach.top) & rect.size;
     return Positioned.fromRect(
-      rect: rect,
+      rect: reach.inflateRect(rect),
       child: _leave(
         rect.center.dy,
         RewindKeyframes(
@@ -471,12 +507,94 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
           durationMs: 760,
           curve: const Cubic(0.2, 0.9, 0.3, 1.25),
           poses: const [RewindPose(0, scale: 1.14, turn: -4), RewindPose(1)],
-          child: Transform.rotate(
-            angle: slot.turn * pi / 180,
-            child: _stamp(rank, slot, rect.size, 4),
+          child: GestureDetector(
+            onTap: _opensGallery(rank) ? () => _showGallery(rank) : null,
+            child: Transform.rotate(
+              angle: slot.turn * pi / 180,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  for (final (i, photo)
+                      in _stamps[rank].extras.indexed.toList().reversed)
+                    Positioned.fromRect(
+                      rect: stamp,
+                      child: _fannedStamp(
+                        photo,
+                        rank,
+                        i,
+                        slot,
+                        rect.size,
+                        revealed,
+                      ),
+                    ),
+                  Positioned.fromRect(
+                    rect: stamp,
+                    child: _stamp(rank, slot, rect.size, 4),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
+    );
+  }
+
+  void _showGallery(int rank) {
+    final stamp = _stamps[rank];
+    final photo = stamp.photo;
+    const width = 168.0;
+    showRewindPhotoGallery(
+      context,
+      header: Transform.rotate(
+        angle: -3 * pi / 180,
+        child: RewindStamp(
+          photo: photo == null
+              ? const ColoredBox(color: Color(0xFFD9D9D9))
+              : RewindPhoto(
+                  photo,
+                  placeholder: const Color(0xFFD9D9D9),
+                  zoomable: false,
+                ),
+          label: stamp.city.country.isEmpty
+              ? stamp.city.name
+              : stamp.city.country,
+          width: width,
+        ),
+      ),
+      headerSize: const Size(width, width * 93.9 / 139.6),
+      title: stamp.city.name,
+      photos: stamp.gallery,
+    );
+  }
+
+  Widget _fannedStamp(
+    EnteFile photo,
+    int rank,
+    int index,
+    _Slot slot,
+    Size size,
+    bool revealed,
+  ) {
+    final fan = _fans[index % _fans.length];
+    final reach = size.width / 139.6;
+    return RewindKeyframes(
+      active: revealed,
+      delayMs: _rankDelay(rank) + 140 + 110 * index,
+      durationMs: 620,
+      curve: const Cubic(0.2, 0.9, 0.3, 1.35),
+      origin: Alignment.bottomCenter,
+      poses: [
+        const RewindPose(0, scale: 0.96),
+        RewindPose(
+          1,
+          dx: fan.dx * reach,
+          dy: fan.dy * reach,
+          turn: fan.turn,
+          scale: 0.96,
+        ),
+      ],
+      child: _stampOf(photo, rank, slot, size, 3),
     );
   }
 

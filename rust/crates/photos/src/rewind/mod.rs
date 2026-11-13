@@ -154,7 +154,7 @@ mod tests {
 
     fn total_files(state: &RewindState) -> Option<u32> {
         match &state.status {
-            RewindStatus::Ready { report } => report.totals.map(|totals| totals.files),
+            RewindStatus::Ready { report } => report.totals.as_ref().map(|totals| totals.files),
             RewindStatus::WaitingForMl | RewindStatus::NothingToShow => None,
         }
     }
