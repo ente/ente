@@ -42,6 +42,10 @@ void main() {
       tester.getTopLeft(find.text("Add to album")).dy,
       tester.getTopLeft(find.text("Share")).dy,
     );
+    final previewRect = tester.getRect(find.text("Add to album"));
+    final railRect = tester.getRect(rail);
+    expect(previewRect.left, lessThan(railRect.right));
+    expect(previewRect.right, greaterThan(railRect.right));
     await tester.tapAt(const Offset(180, 660));
     expect(tapped, isEmpty);
     await tester.tap(find.text("Share"));
@@ -63,13 +67,13 @@ void main() {
       tester.getCenter(find.bySemanticsLabel("More")),
     );
     await gesture.moveBy(const Offset(0, -20));
-    await gesture.moveBy(const Offset(0, -40));
+    await gesture.moveBy(const Offset(0, -60));
     await tester.pumpAndSettle();
     expect(find.text("Delete"), findsNWidgets(2));
-    expect(
-      tester.getCenter(find.text("Delete").first).dx,
-      closeTo(tester.getCenter(find.text("Delete").last).dx, 0.5),
-    );
+    expect(_paintOpacity(tester, find.text("Delete").first), 1);
+    expect(_paintOpacity(tester, find.text("Delete").last), 0);
+    expect(find.text("Add to album"), findsOneWidget);
+    expect(_paintOpacity(tester, find.text("Add to album")), greaterThan(0));
     await gesture.moveBy(const Offset(0, -320));
     await gesture.up();
     await tester.pumpAndSettle();
@@ -85,7 +89,7 @@ void main() {
     expect(tapped, "Guest view");
     await tester.dragFrom(const Offset(180, 30), const Offset(0, -100));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 120));
+    await tester.pump(const Duration(milliseconds: 360));
     expect(gallery.offset, greaterThan(30));
     expect(controller.size, sheet.minChildSize);
     await tester.pumpAndSettle();
@@ -100,7 +104,7 @@ void main() {
     swipeActive.value = false;
     await tester.tap(find.bySemanticsLabel("More"));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 120));
+    await tester.pump(const Duration(milliseconds: 360));
     expect(controller.size, sheet.maxChildSize);
     await tester.pumpAndSettle();
     await tester.dragFrom(const Offset(180, 100), const Offset(0, -60));
@@ -249,6 +253,12 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 }
+
+double _paintOpacity(WidgetTester tester, Finder label) => tester
+    .widgetList<Opacity>(
+      find.ancestor(of: label, matching: find.byType(Opacity)),
+    )
+    .fold(1.0, (opacity, widget) => opacity * widget.opacity);
 
 Future<void> _pumpSheet(
   WidgetTester tester,

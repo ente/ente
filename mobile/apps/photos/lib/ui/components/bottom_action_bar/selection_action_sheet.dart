@@ -58,17 +58,27 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
   ValueListenable<bool>? _gallerySwipeActive;
   ScrollController? _actionsController;
   double? _minHeight;
+  double? _railStartOffset;
   double _minExtent = 0;
   double _maxExtent = 1;
   bool _isCollapsing = false;
 
-  static const _duration = Motion.quick;
+  static const _duration = Duration(milliseconds: 360);
+
+  double get _reveal =>
+      const Interval(0.15, 1, curve: Curves.easeOutCubic).transform(_expansion);
 
   double get _expansion {
     if (_maxExtent <= _minExtent) return 1;
     if (!_sheetController.isAttached) return 0;
     return ((_sheetController.size - _minExtent) / (_maxExtent - _minExtent))
         .clamp(0.0, 1.0);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _sheetController.addListener(_onSheetChanged);
   }
 
   @override
@@ -157,24 +167,23 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
       await _sheetController.animateTo(
         extent,
         duration: _duration,
-        curve: Curves.easeOutCubic,
+        curve: const Cubic(0.22, 1, 0.36, 1),
       );
     }
   }
 
-  void _rewindRail() {
-    if (!mounted || !_railController.hasClients) return;
-    if (MediaQuery.disableAnimationsOf(context)) {
-      _railController.jumpTo(0);
-    } else {
-      unawaited(
-        _railController.animateTo(
-          0,
-          duration: _duration,
-          curve: Curves.easeOutCubic,
-        ),
-      );
+  void _onSheetChanged() {
+    if (!_sheetController.isAttached ||
+        _sheetController.size <= _minExtent + 0.001) {
+      _railStartOffset = null;
+      return;
     }
+    if (!_railController.hasClients) return;
+    _railStartOffset ??= math.max(0.0, _railController.offset);
+    final offset = _railStartOffset! * (1 - _expansion);
+    _railController.jumpTo(
+      math.min(math.max(0.0, _railController.offset), offset),
+    );
   }
 
   void _reportMinHeight(double? height) {
@@ -361,7 +370,7 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
                     : null,
                 snapAnimationDuration: MediaQuery.disableAnimationsOf(context)
                     ? const Duration(milliseconds: 1)
-                    : null,
+                    : _duration,
                 builder: (context, scrollController) {
                   _actionsController = _minExtent == _maxExtent
                       ? null
@@ -429,27 +438,14 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
                                               _minExtent + 0.001;
                                       final progress = collapsed
                                           ? 0.0
-                                          : (_expansion / 0.3).clamp(0.0, 1.0);
+                                          : _expansion;
                                       final tileWidth =
                                           railTileWidth +
                                           (gridLabelWidth - railTileWidth) *
-                                              const Interval(
-                                                0,
-                                                0.35,
-                                                curve: Curves.easeOutCubic,
-                                              ).transform(progress);
-                                      if (!collapsed &&
-                                          _railController.hasClients &&
-                                          _railController.offset > 0 &&
-                                          !_railController
-                                              .position
-                                              .isScrollingNotifier
-                                              .value) {
-                                        WidgetsBinding.instance
-                                            .addPostFrameCallback(
-                                              (_) => _rewindRail(),
-                                            );
-                                      }
+                                              progress;
+                                      final tiles = collapsed
+                                          ? keyedRailTiles
+                                          : railTiles;
                                       return Stack(
                                         children: [
                                           if (progress < 1)
@@ -471,29 +467,23 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
                                                         width: Spacing.xs,
                                                       ),
                                                   itemBuilder:
-                                                      (
-                                                        context,
-                                                        index,
-                                                      ) => SizedBox(
-                                                        width: tileWidth,
-                                                        child: (collapsed
-                                                            ? keyedRailTiles
-                                                            : railTiles)[index],
-                                                      ),
+                                                      (context, index) =>
+                                                          SizedBox(
+                                                            width: tileWidth,
+                                                            child:
+                                                                collapsed ||
+                                                                    index <
+                                                                        columns
+                                                                ? tiles[index]
+                                                                : null,
+                                                          ),
                                                 ),
                                               ),
                                             ),
                                           if (!collapsed)
                                             IgnorePointer(
                                               ignoring: progress < 1,
-                                              child: Opacity(
-                                                opacity: const Interval(
-                                                  0.35,
-                                                  1,
-                                                  curve: Curves.easeOutCubic,
-                                                ).transform(progress),
-                                                child: gridView,
-                                              ),
+                                              child: gridView,
                                             ),
                                         ],
                                       );
@@ -510,32 +500,56 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
                                             start < grid.length;
                                             start += columns
                                           )
-                                            Row(
-                                              spacing: Spacing.xs,
-                                              children: [
-                                                for (final action
-                                                    in grid
-                                                        .skip(start)
-                                                        .take(columns))
-                                                  Expanded(
-                                                    child: _SheetAction(
-                                                      key: action.key,
-                                                      action: action,
-                                                      height: tileHeight,
+                                            ListenableBuilder(
+                                              listenable: _sheetController,
+                                              builder: (context, child) {
+                                                if (!usesRail) return child!;
+                                                final opacity = start == 0
+                                                    ? (_expansion == 1
+                                                          ? 1.0
+                                                          : 0.0)
+                                                    : _reveal;
+                                                return Opacity(
+                                                  opacity: opacity,
+                                                  child: Transform.translate(
+                                                    offset: Offset(
+                                                      0,
+                                                      start == 0
+                                                          ? 0
+                                                          : Spacing.lg *
+                                                                (1 - opacity),
                                                     ),
+                                                    child: child,
                                                   ),
-                                                for (
-                                                  var i = grid
-                                                      .skip(start)
-                                                      .take(columns)
-                                                      .length;
-                                                  i < columns;
-                                                  i++
-                                                )
-                                                  const Expanded(
-                                                    child: SizedBox.shrink(),
-                                                  ),
-                                              ],
+                                                );
+                                              },
+                                              child: Row(
+                                                spacing: Spacing.xs,
+                                                children: [
+                                                  for (final action
+                                                      in grid
+                                                          .skip(start)
+                                                          .take(columns))
+                                                    Expanded(
+                                                      child: _SheetAction(
+                                                        key: action.key,
+                                                        action: action,
+                                                        height: tileHeight,
+                                                      ),
+                                                    ),
+                                                  for (
+                                                    var i = grid
+                                                        .skip(start)
+                                                        .take(columns)
+                                                        .length;
+                                                    i < columns;
+                                                    i++
+                                                  )
+                                                    const Expanded(
+                                                      child: SizedBox.shrink(),
+                                                    ),
+                                                ],
+                                              ),
                                             ),
                                         ],
                                       ),
@@ -557,10 +571,17 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
                                           child: ExcludeSemantics(
                                             excluding: !enabled,
                                             child: Opacity(
-                                              opacity: usesRail
-                                                  ? _expansion
-                                                  : 1,
-                                              child: child,
+                                              opacity: usesRail ? _reveal : 1,
+                                              child: Transform.translate(
+                                                offset: Offset(
+                                                  0,
+                                                  usesRail
+                                                      ? Spacing.sm *
+                                                            (1 - _reveal)
+                                                      : 0,
+                                                ),
+                                                child: child,
+                                              ),
                                             ),
                                           ),
                                         );

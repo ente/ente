@@ -138,6 +138,7 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar>
       builder: (context, value, child) {
         return AnimatedCrossFade(
           alignment: Alignment.bottomCenter,
+          clipBehavior: Clip.none,
           firstCurve: Curves.easeOutCubic,
           secondCurve: Curves.easeOutCubic,
           sizeCurve: Curves.easeOutCubic,
