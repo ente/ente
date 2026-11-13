@@ -26,6 +26,7 @@ type User struct {
 	FamilyAdminID      *int64 `json:"familyAdminID"`
 	IsTwoFactorEnabled *bool  `json:"isTwoFactorEnabled"`
 	IsEmailMFAEnabled  *bool  `json:"isEmailMFAEnabled"`
+	IsSuspended        bool   `json:"isSuspended"`
 }
 
 type SendOTTRequest struct {

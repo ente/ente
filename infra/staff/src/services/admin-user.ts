@@ -99,6 +99,7 @@ const UserResponse = z.object({
         ID: z.number(),
         email: z.string(),
         creationTime: z.number(),
+        isSuspended: z.boolean().default(false),
     }),
     subscription: Subscription.nullish().transform(nullToUndefined),
     authCodes: z.number().nullish().transform(nullishToZero),
@@ -238,6 +239,20 @@ export const unblockStorageWarningLogin = async (
         },
     );
     await ensureOk(response, "Failed to unblock storage-warning login");
+};
+
+export const setAccountSuspended = async (
+    session: Pick<StaffSession, "token">,
+    userID: number,
+    suspended: boolean,
+) => {
+    const action = suspended ? "suspend" : "unsuspend";
+    const response = await fetch(apiURL(`/admin/user/${action}`), {
+        method: "POST",
+        headers: staffJSONRequestHeaders(session),
+        body: JSON.stringify({ userID }),
+    });
+    await ensureOk(response, `Failed to ${action} account`);
 };
 
 export const getSelectedUser = async (session: StaffSession) => {
