@@ -104,8 +104,7 @@ Future<List<String?>> linkDownloadsAlreadyOnDevice(
     if (folderName != null &&
         persistToFilesDB &&
         files[i].localID != asset.id) {
-      files[i].localID = asset.id;
-      linkedFiles.add(files[i]);
+      linkedFiles.add(files[i].copyWith(localID: asset.id));
     }
   }
   if (linkedFiles.isNotEmpty) {
@@ -197,6 +196,13 @@ Future<void> _downloadToGallery(
   required bool persistToFilesDB,
 }) async {
   try {
+    if (persistToFilesDB) {
+      final existingAsset = (await _findAssetsOnDevice([file])).single;
+      if (existingAsset != null) {
+        await _persistDeviceCopy(file, existingAsset);
+        return;
+      }
+    }
     final FileType type = file.fileType;
     final bool downloadLivePhotoOnDroid =
         type == FileType.livePhoto && Platform.isAndroid;
@@ -222,12 +228,9 @@ Future<void> _downloadToGallery(
         savedResult = null;
       }
       savedAsset = savedResult?.asset;
-      if (savedResult == null && persistToFilesDB) {
-        savedAsset = (await _findAssetsOnDevice([file])).single;
-      }
       try {
         await PhotoManager.stopChangeNotify();
-        if (savedResult == null && savedAsset == null) {
+        if (savedResult == null) {
           if (type == FileType.image) {
             savedAsset = await PhotoManager.editor.saveImageWithPath(
               fileToSave.path,
@@ -273,11 +276,7 @@ Future<void> _downloadToGallery(
           // materialized as true on-device files instead of remote/shared
           // entries in FilesDB.
           if (persistToFilesDB) {
-            file.localID = savedAsset!.id;
-            await FilesDB.instance.insert(file);
-            Bus.instance.fire(
-              LocalPhotosUpdatedEvent([file], source: "download"),
-            );
+            await _persistDeviceCopy(file, savedAsset!);
           }
         } else if (!downloadLivePhotoOnDroid && savedAsset == null) {
           _logger.severe('Failed to save assert of type $type');
@@ -289,6 +288,12 @@ Future<void> _downloadToGallery(
   } finally {
     LocalSyncService.instance.checkAndSync().ignore();
   }
+}
+
+Future<void> _persistDeviceCopy(EnteFile file, AssetEntity asset) async {
+  file.localID = asset.id;
+  await FilesDB.instance.insert(file);
+  Bus.instance.fire(LocalPhotosUpdatedEvent([file], source: "download"));
 }
 
 Future<void> _saveLivePhotoOnDroid(
