@@ -21,6 +21,7 @@ import "package:photos/utils/device_storage_error.dart";
 import "package:photos/utils/gallery_save_title.dart";
 
 final _logger = Logger("file_download_util");
+final _galleryDownloadsInProgress = <int, Future<void>>{};
 
 String getDownloadSkipToastFileName(EnteFile file) {
   final title = (file.title ?? "").trim();
@@ -41,6 +42,14 @@ String _getGallerySaveTitle(EnteFile file, String fallbackPath) {
     return "$title.jpg";
   }
   return title;
+}
+
+DateTime? _captureDate(EnteFile file) {
+  final editedTime = file.pubMagicMetadata?.editedTime ?? 0;
+  final captureTime = editedTime != 0 ? editedTime : file.creationTime ?? 0;
+  return captureTime != 0
+      ? DateTime.fromMicrosecondsSinceEpoch(captureTime)
+      : null;
 }
 
 Future<String?> getExistingLocalFolderNameForDownloadSkipToast(
@@ -79,6 +88,29 @@ Future<void> downloadToGallery(
   EnteFile file, {
   bool forceResumableDownload = false,
   bool persistToFilesDB = true,
+}) {
+  final fileID = file.uploadedFileID;
+  if (fileID == null) {
+    return _downloadToGallery(
+      file,
+      forceResumableDownload: forceResumableDownload,
+      persistToFilesDB: persistToFilesDB,
+    );
+  }
+  return _galleryDownloadsInProgress[fileID] ??=
+      _downloadToGallery(
+        file,
+        forceResumableDownload: forceResumableDownload,
+        persistToFilesDB: persistToFilesDB,
+      ).whenComplete(() {
+        _galleryDownloadsInProgress.remove(fileID);
+      });
+}
+
+Future<void> _downloadToGallery(
+  EnteFile file, {
+  required bool forceResumableDownload,
+  required bool persistToFilesDB,
 }) async {
   try {
     final FileType type = file.fileType;
@@ -107,6 +139,7 @@ Future<void> downloadToGallery(
         savedAsset = await PhotoManager.editor.saveVideo(
           fileToSave,
           title: mediaStoreTitle,
+          creationDate: Platform.isIOS ? _captureDate(file) : null,
         );
       } else if (type == FileType.livePhoto) {
         final File? liveVideoFile = await getFileFromServer(
