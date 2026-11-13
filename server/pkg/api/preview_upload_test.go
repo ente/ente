@@ -92,6 +92,24 @@ func TestPreviewUploadRejectsInvalidMetadata(t *testing.T) {
 	}
 }
 
+func TestPreviewSmallUploadLimit(t *testing.T) {
+	router, db, userID, fileID := setupPreviewUploadTest(t)
+	path, body := previewUploadBody(fileID, ente.PreviewImage, false)
+	for range 1000 {
+		rec := performPreviewUpload(t, router, http.MethodPost, path, userID, body)
+		require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	}
+	rec := performPreviewUpload(t, router, http.MethodPost, path, userID, body)
+	require.Equal(t, http.StatusTooManyRequests, rec.Code, rec.Body.String())
+	require.Contains(t, rec.Body.String(), "SMALL_UPLOAD_LIMIT_REACHED")
+	var count int
+	require.NoError(t, db.QueryRow(`SELECT count(*) FROM temp_objects`).Scan(&count))
+	require.Equal(t, 1000, count)
+	body["contentLength"] = 2048
+	rec = performPreviewUpload(t, router, http.MethodPost, path, userID, body)
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+}
+
 func TestPreviewUploadMetadataAndLegacyCompatibility(t *testing.T) {
 	router, db, userID, fileID := setupPreviewUploadTest(t)
 	for _, tc := range []struct {
@@ -361,6 +379,7 @@ func setupPreviewUploadTest(t *testing.T) (*gin.Engine, *sql.DB, int64, int64) {
 	collections := &repo.CollectionRepository{DB: db}
 	h := &FileHandler{FileDataCtrl: &filedatactrl.Controller{
 		FileRepo: files, CollectionRepo: collections, S3Config: s3Config,
+		UsageCtrl:               &controller.UsageController{BillingCtrl: &controller.BillingController{BillingRepo: &repo.BillingRepository{DB: db}}},
 		AccessCtrl:              access.NewAccessController(collections, files),
 		ObjectCleanupController: &controller.ObjectCleanupController{Repo: &repo.ObjectCleanupRepository{DB: db}},
 	}}

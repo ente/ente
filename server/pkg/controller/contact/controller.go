@@ -30,6 +30,7 @@ import (
 type Controller struct {
 	Repo                    *contactrepo.Repository
 	ObjectCleanupController *basecontroller.ObjectCleanupController
+	UsageCtrl               *basecontroller.UsageController
 	S3Config                *s3config.S3Config
 	downloadManagerCache    map[string]*s3manager.Downloader
 	tempStorage             string
@@ -42,6 +43,7 @@ func New(
 	repo *contactrepo.Repository,
 	objectCleanupController *basecontroller.ObjectCleanupController,
 	s3Config *s3config.S3Config,
+	usageCtrl *basecontroller.UsageController,
 ) *Controller {
 	attachmentDcs := []string{
 		s3Config.GetHotBackblazeDC(),
@@ -61,6 +63,7 @@ func New(
 	ctrl := &Controller{
 		Repo:                    repo,
 		ObjectCleanupController: objectCleanupController,
+		UsageCtrl:               usageCtrl,
 		S3Config:                s3Config,
 		downloadManagerCache:    cache,
 	}
@@ -176,6 +179,9 @@ func (c *Controller) GetAttachmentUploadURL(ctx *gin.Context, attachmentTypeRaw 
 	}
 
 	userID := auth.GetUserID(ctx.Request.Header)
+	if err := c.UsageCtrl.CheckUploadURLRateLimit(userID, &req.ContentLength); err != nil {
+		return nil, err
+	}
 	attachmentID := contactmodel.NewAttachmentID()
 	objectKey := contactmodel.AttachmentObjectKey(userID, attachmentType, attachmentID)
 	dc := c.S3Config.GetAttachmentBucketID(string(attachmentType))
