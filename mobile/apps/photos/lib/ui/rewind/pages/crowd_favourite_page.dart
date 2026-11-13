@@ -3,7 +3,6 @@ import "dart:ui" show lerpDouble;
 
 import "package:flutter/material.dart";
 import "package:photos/models/file/file.dart";
-import "package:photos/src/rust/api/rewind_api.dart" as rust;
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
@@ -12,7 +11,6 @@ import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
 import "package:photos/ui/rewind/widgets/rewind_elapsed.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
-import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo.dart";
 import "package:photos/ui/rewind/widgets/rewind_reveal_layer.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
@@ -22,12 +20,8 @@ const _likeGreen = Color(0xFF08C225);
 const _button = Offset(290.8, 564.8);
 
 class CrowdFavouritePage extends RewindPage {
-  const CrowdFavouritePage(this.photo, this.file);
+  const CrowdFavouritePage(this.file);
 
-  static const _countFromMs = 1500.0;
-  static const _countMs = 1400.0;
-
-  final rust.LikedPhoto photo;
   final EnteFile file;
 
   @override
@@ -39,9 +33,7 @@ class CrowdFavouritePage extends RewindPage {
     double position, {
     required bool isActive,
   }) {
-    final likes = photo.likeCount;
-    final unit = likes == 1 ? "LIKE" : "LIKES";
-    const line = "You took thousands. This one had fans.";
+    const line = "Your most liked photo.";
     return RewindShareable(
       child: Stack(
         fit: StackFit.expand,
@@ -53,9 +45,7 @@ class CrowdFavouritePage extends RewindPage {
             ),
           ),
           Semantics(
-            label:
-                "Crowd favourite: ${rewindCounted(likes, "like", "likes")}. "
-                "$line",
+            label: "Crowd favourite. $line",
             child: ExcludeSemantics(
               child: RewindStage(
                 children: [
@@ -82,23 +72,6 @@ class CrowdFavouritePage extends RewindPage {
                     ),
                   ),
                   RewindRevealLayer(
-                    left: 26,
-                    top: 625,
-                    maxWidth: 338,
-                    height: 23,
-                    position: position,
-                    active: isActive,
-                    delayMs: 1350,
-                    child: Text(
-                      "CROWD FAVOURITE",
-                      style: RewindTextStyles.display(
-                        20,
-                        height: 1.15,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                  ),
-                  RewindRevealLayer(
                     left: 24,
                     top: 649,
                     maxWidth: 340,
@@ -106,28 +79,13 @@ class CrowdFavouritePage extends RewindPage {
                     position: position,
                     active: isActive,
                     preset: RewindPreset.slap,
-                    delayMs: _countFromMs.toInt(),
+                    delayMs: 1500,
                     origin: Alignment.centerLeft,
-                    child: RewindElapsed(
-                      active: isActive,
-                      stillMs: _countFromMs + _countMs,
-                      builder: (context, ms) {
-                        final shown =
-                            (likes *
-                                    rewindProgress(
-                                      ms,
-                                      delayMs: _countFromMs,
-                                      durationMs: _countMs,
-                                      curve: Curves.easeOutCubic,
-                                    ))
-                                .round();
-                        return RewindOutlinedText(
-                          "${rewindCount(shown)} $unit",
-                          style: RewindTextStyles.display(54, height: 1.15),
-                          outline: 1.6,
-                          shadow: const Offset(2, 3),
-                        );
-                      },
+                    child: RewindOutlinedText(
+                      "CROWD FAVOURITE",
+                      style: RewindTextStyles.display(54, height: 1.15),
+                      outline: 1.6,
+                      shadow: const Offset(2, 3),
                     ),
                   ),
                   RewindRevealLayer(
@@ -138,7 +96,12 @@ class CrowdFavouritePage extends RewindPage {
                     position: position,
                     active: isActive,
                     delayMs: 1800,
-                    child: Text(line, style: RewindTextStyles.body(18)),
+                    child: RewindVoice(
+                      you: line,
+                      me: "My most liked photo.",
+                      builder: (text) =>
+                          Text(text, style: RewindTextStyles.body(18)),
+                    ),
                   ),
                 ],
               ),

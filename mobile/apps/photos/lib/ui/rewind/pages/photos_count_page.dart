@@ -152,32 +152,6 @@ class PhotosCountPage extends RewindPage {
                 ),
               ),
               RewindLayer(
-                rect: const Rect.fromLTWH(41, 79, 320.5, 110),
-                position: position,
-                child: RewindEntrance(
-                  preset: RewindPreset.rise,
-                  active: isActive,
-                  delayMs: 150,
-                  child: Transform.rotate(
-                    angle: -3.31 * pi / 180,
-                    child: RewindFitWidth(
-                      width: 316,
-                      alignment: Alignment.center,
-                      child: RewindOutlinedText(
-                        "YOU SAID\n\"ONE MORE PHOTO\"\nA LOT THIS YEAR.",
-                        style: RewindTextStyles.display(
-                          34.638,
-                          color: RewindColors.white,
-                          height: 0.84,
-                        ),
-                        outline: 2,
-                        shadow: const Offset(1.273, 1.528),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              RewindLayer(
                 rect: const Rect.fromLTWH(0, 589, 390, 21),
                 position: position,
                 child: RewindEntrance(
@@ -185,12 +159,16 @@ class PhotosCountPage extends RewindPage {
                   active: isActive,
                   delayMs: 1250,
                   child: Center(
-                    child: Text(
-                      "IN ${RewindEdition.year}, YOU CLICKED",
-                      style: RewindTextStyles.display(
-                        22,
-                        color: RewindColors.ink,
-                        letterSpacing: -0.88,
+                    child: RewindVoice(
+                      you: "IN ${RewindEdition.year}, YOU CLICKED",
+                      me: "IN ${RewindEdition.year}, I CLICKED",
+                      builder: (text) => Text(
+                        text,
+                        style: RewindTextStyles.display(
+                          22,
+                          color: RewindColors.ink,
+                          letterSpacing: -0.88,
+                        ),
                       ),
                     ),
                   ),

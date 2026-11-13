@@ -94,7 +94,7 @@ class FavouritesPage extends RewindPage {
   }) {
     final count = favourites.photoCount;
     final title = rewindCounted(count, "FAVOURITE", "FAVOURITES");
-    const line = "Not that you were counting. We were.";
+    const line = "Memories to be grateful for!";
     return RewindShareable(
       child: Stack(
         fit: StackFit.expand,

@@ -63,7 +63,8 @@ class BusiestDayPage extends RewindPage {
     required bool isActive,
   }) {
     final month = _months[(day.month - 1).clamp(0, 11)];
-    final kicker = "On ${_ordinal(day.day)} $month, you took";
+    final onDay = "On ${_ordinal(day.day)} $month";
+    final kicker = "$onDay, you took";
     final count = rewindCount(day.photoCount);
     const line = "A memorable day indeed!";
     final date = "${day.day} ${month.substring(0, 3)} ${RewindEdition.year}"
@@ -125,12 +126,16 @@ class BusiestDayPage extends RewindPage {
                       position: position,
                       active: isActive,
                       delayMs: 900,
-                      child: Text(
-                        kicker.toUpperCase(),
-                        style: RewindTextStyles.display(
-                          20,
-                          height: 1.15,
-                          letterSpacing: 0.3,
+                      child: RewindVoice(
+                        you: kicker.toUpperCase(),
+                        me: "$onDay, I took".toUpperCase(),
+                        builder: (text) => Text(
+                          text,
+                          style: RewindTextStyles.display(
+                            20,
+                            height: 1.15,
+                            letterSpacing: 0.3,
+                          ),
                         ),
                       ),
                     ),
@@ -143,14 +148,31 @@ class BusiestDayPage extends RewindPage {
                       active: isActive,
                       preset: RewindPreset.slap,
                       delayMs: 1050,
-                      child: RewindOutlinedText(
-                        count,
-                        style: RewindTextStyles.numeral(
-                          104,
-                          color: RewindColors.white,
-                        ),
-                        outline: 3.5,
-                        shadow: const Offset(5, 6),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          RewindOutlinedText(
+                            count,
+                            style: RewindTextStyles.numeral(
+                              104,
+                              color: RewindColors.white,
+                            ),
+                            outline: 3.5,
+                            shadow: const Offset(5, 6),
+                          ),
+                          const SizedBox(width: 12),
+                          RewindOutlinedText(
+                            day.photoCount == 1 ? "PHOTO" : "PHOTOS",
+                            style: RewindTextStyles.display(
+                              44,
+                              color: RewindColors.white,
+                            ),
+                            outline: 2.5,
+                            shadow: const Offset(2.5, 3),
+                          ),
+                        ],
                       ),
                     ),
                     RewindRevealLayer(

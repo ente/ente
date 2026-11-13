@@ -1,3 +1,5 @@
+import "dart:ui" as ui;
+
 import "package:flutter/widgets.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 
@@ -6,6 +8,7 @@ class RewindShareCard {
 
   final boundary = GlobalKey();
   final bool branded;
+  final stillFrame = ValueNotifier<ui.Image?>(null);
 }
 
 abstract interface class RewindNavigator {
