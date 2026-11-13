@@ -237,7 +237,7 @@ class PhotoReviewService {
     final summaries = months.toList()..sort((a, b) => a.key.compareTo(b.key));
     final byYear = groupBy(summaries, (month) => month.key.year);
     final years = [
-      for (final year in byYear.keys.toList()..sort((a, b) => b.compareTo(a)))
+      for (final year in byYear.keys.toList()..sort())
         ReviewYearSummary(year: year, months: byYear[year]!),
     ];
     return ReviewOverview(years: years, bannerMonths: _bannerMonths(summaries));
