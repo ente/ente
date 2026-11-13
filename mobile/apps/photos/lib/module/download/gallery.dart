@@ -90,7 +90,7 @@ Future<void> downloadToGallery(
   bool persistToFilesDB = true,
 }) {
   final fileID = file.uploadedFileID;
-  if (fileID == null) {
+  if (fileID == null || !persistToFilesDB) {
     return _downloadToGallery(
       file,
       forceResumableDownload: forceResumableDownload,
