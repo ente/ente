@@ -904,6 +904,7 @@ func (c *FileController) getPreSignedURLForDC(objectKey string, dc string, objTy
 func (c *FileController) getUploadedObject(ctx context.Context, objectKey string, userID int64, app ente.App) (uploadedObject, error) {
 	object := uploadedObject{}
 	bucketID, err := c.ObjectCleanupRepo.GetFileUploadBucket(ctx, objectKey, userID, app)
+	staged := err == nil
 	if errors.Is(err, sql.ErrNoRows) {
 		bucketID, err = c.ObjectRepo.GetObjectUploadBucket(ctx, objectKey, userID)
 	}
@@ -917,6 +918,9 @@ func (c *FileController) getUploadedObject(ctx context.Context, objectKey string
 		return object, stacktrace.NewError("upload bucket %q is not configured", bucketID)
 	}
 	object.bucket = bucketID
+	if staged {
+		c.S3Config.RecordUploadProgress(bucketID)
+	}
 	s3Client := c.S3Config.GetS3Client(bucketID)
 	bucket := c.S3Config.GetBucket(bucketID)
 	var head *s3.HeadObjectOutput
@@ -1195,12 +1199,12 @@ func (c *FileController) GetMultipartUploadURLWithMetadata(ctx context.Context, 
 	s3Client := c.S3Config.GetS3Client(dc)
 	bucket := c.S3Config.GetBucket(dc)
 	objectKey := strconv.FormatInt(userID, 10) + "/" + uuid.NewString()
-	r, err := s3Client.CreateMultipartUpload(&s3.CreateMultipartUploadInput{
+	r, err := s3Client.CreateMultipartUploadWithContext(ctx, &s3.CreateMultipartUploadInput{
 		Bucket: bucket,
 		Key:    &objectKey,
 	})
 	if err != nil {
-		return ente.MultipartUploadURLs{}, stacktrace.Propagate(err, "")
+		return ente.MultipartUploadURLs{}, stacktrace.Propagate(&s3config.MultipartInitiationError{Err: err}, "")
 	}
 	if err := c.ObjectCleanupCtrl.AddTempObject(ente.TempObject{
 		ObjectKey:     objectKey,

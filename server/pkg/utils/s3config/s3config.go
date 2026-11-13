@@ -21,6 +21,7 @@ type S3Config struct {
 	hotDC                     string
 	secondaryHotDC            string
 	hotStorageFailedOver      atomic.Bool
+	uploadFailover            uploadFailover
 	derivedStorageDC          string
 	s3Configs                 map[string]*aws.Config
 	s3Clients                 map[string]s3.S3

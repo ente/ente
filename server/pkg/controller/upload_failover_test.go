@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -8,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/ente/museum/ente"
 	"github.com/ente/museum/internal/testutil"
 	"github.com/ente/museum/pkg/repo"
@@ -101,5 +105,117 @@ func TestMultipartUploadDuringHotStorageFailover(t *testing.T) {
 				require.Equal(t, secondary, bucket)
 			})
 		}
+	}
+}
+
+func TestUploadFailoverRegistrationProgress(t *testing.T) {
+	for _, primary := range []string{fileBucketB2, fileBucketWasabi} {
+		for _, bucket := range []string{fileBucketB2, fileBucketWasabi} {
+			for _, operation := range []string{"create", "replace", "replace thumbnail", "thumbnail endpoint"} {
+				t.Run(primary+"/"+bucket+"/"+operation, func(t *testing.T) {
+					test := newFileBucketTest(t)
+					initialBucket := primary
+					if operation == "create" {
+						initialBucket = bucket
+					}
+					file := test.newFile(t, initialBucket, initialBucket)
+					if operation != "create" {
+						var err error
+						file, err = test.controller.Create(fileBucketContext(http.MethodPost), file.OwnerID, file, "test", ente.Photos)
+						require.NoError(t, err)
+						if operation == "replace" {
+							file.File.ObjectKey = test.upload(t, bucket, 100)
+						}
+						file.Thumbnail.ObjectKey = test.upload(t, bucket, 10)
+					}
+					test.switchBucket(primary)
+					config := test.controller.S3Config
+					start := time.Now()
+					for i := range 20 {
+						config.RecordUploadActivity(start.Add(time.Duration(i) * 6 * time.Second))
+					}
+					var err error
+					switch operation {
+					case "create":
+						_, err = test.controller.Create(fileBucketContext(http.MethodPost), file.OwnerID, file, "test", ente.Photos)
+					case "thumbnail endpoint":
+						err = test.controller.UpdateThumbnail(fileBucketContext(http.MethodPut), file.ID, file.Thumbnail, ente.Photos)
+					default:
+						_, err = test.controller.Update(t.Context(), file.OwnerID, file, ente.Photos)
+					}
+					require.NoError(t, err)
+					config.RecordUploadActivity(start.Add(2 * time.Minute))
+					require.Equal(t, bucket != primary, config.HasHotStorageFailedOver())
+				})
+			}
+		}
+	}
+}
+
+func TestMultipartUploadFailureClassification(t *testing.T) {
+	test := newFileBucketTest(t)
+	var cancelDuringInitiation atomic.Bool
+	initiationStarted := make(chan struct{})
+	storage := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || !r.URL.Query().Has("uploads") {
+			t.Errorf("unexpected storage request: %s %s", r.Method, r.URL)
+		}
+		if cancelDuringInitiation.Swap(false) {
+			close(initiationStarted)
+			<-r.Context().Done()
+			return
+		}
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_, _ = w.Write([]byte(`<Error><Code>ServiceUnavailable</Code><Message>storage unavailable</Message></Error>`))
+	}))
+	t.Cleanup(storage.Close)
+	viper.Set("s3."+fileBucketB2+".endpoint", storage.URL)
+	test.switchBucket(fileBucketB2)
+	req := ente.MultipartUploadURLRequest{ContentLength: 5, PartLength: 5}
+	for _, tc := range []struct {
+		name      string
+		invalid   bool
+		cancelled bool
+	}{
+		{name: "provider failure"},
+		{name: "validation", invalid: true},
+		{name: "cancelled", cancelled: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := t.Context()
+			if tc.cancelled {
+				var cancel context.CancelFunc
+				ctx, cancel = context.WithCancel(ctx)
+				defer cancel()
+				cancelDuringInitiation.Store(true)
+				go func() {
+					select {
+					case <-initiationStarted:
+						cancel()
+					case <-ctx.Done():
+					}
+				}()
+			}
+			input := req
+			if tc.invalid {
+				input.ContentLength = 0
+			}
+			_, err := test.controller.GetMultipartUploadURLWithMetadata(ctx, 1, input, ente.Photos, "test")
+			require.Error(t, err)
+			var initiationError *s3config.MultipartInitiationError
+			if tc.invalid {
+				require.False(t, errors.As(err, &initiationError))
+			} else if tc.cancelled {
+				require.ErrorAs(t, err, &initiationError)
+				var storageErr awserr.Error
+				require.ErrorAs(t, err, &storageErr)
+				require.Equal(t, request.CanceledErrorCode, storageErr.Code())
+			} else {
+				require.ErrorAs(t, err, &initiationError)
+				var storageErr awserr.RequestFailure
+				require.ErrorAs(t, err, &storageErr)
+				require.Equal(t, http.StatusServiceUnavailable, storageErr.StatusCode())
+			}
+		})
 	}
 }
