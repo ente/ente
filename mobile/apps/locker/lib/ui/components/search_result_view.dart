@@ -1,6 +1,5 @@
 import 'package:ente_components/ente_components.dart';
 import 'package:ente_strings/ente_strings.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:locker/models/selected_collections.dart';
 import 'package:locker/models/selected_files.dart';
@@ -13,15 +12,12 @@ class SearchResultView extends StatelessWidget {
   final List<Collection> collections;
   final List<EnteFile> files;
   final String searchQuery;
-  final VoidCallback? onCollectionTap;
   final bool isHomePage;
   final VoidCallback? onSearchEverywhere;
-  final bool showCollections;
-  final SelectedFiles? selectedFiles;
+  final SelectedFiles selectedFiles;
   final SelectedCollections? selectedCollections;
   final VoidCallback? onFileSelectionStarted;
   final VoidCallback? onCollectionSelectionStarted;
-  final ValueListenable<double> selectionBarHeight;
   final bool selectionEnabled;
   final SearchScope searchScope;
   final ValueChanged<SearchScope>? onScopeChanged;
@@ -31,15 +27,12 @@ class SearchResultView extends StatelessWidget {
     required this.collections,
     required this.files,
     this.searchQuery = '',
-    this.onCollectionTap,
     this.isHomePage = false,
     this.onSearchEverywhere,
-    this.showCollections = true,
-    this.selectedFiles,
+    required this.selectedFiles,
     this.selectedCollections,
     this.onFileSelectionStarted,
     this.onCollectionSelectionStarted,
-    required this.selectionBarHeight,
     this.selectionEnabled = true,
     this.searchScope = SearchScope.all,
     this.onScopeChanged,
@@ -47,8 +40,6 @@ class SearchResultView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayCollections = showCollections ? collections : <Collection>[];
-
     return Padding(
       padding: const EdgeInsets.only(left: 16, right: 16, bottom: Spacing.xxl),
       child: Column(
@@ -81,7 +72,7 @@ class SearchResultView extends StatelessWidget {
             const SizedBox(height: Spacing.lg),
           ],
           if (selectedCollections != null &&
-              ((selectedFiles?.hasSelections ?? false) ||
+              (selectedFiles.hasSelections ||
                   selectedCollections!.hasSelections))
             Padding(
               padding: const EdgeInsets.only(bottom: Spacing.lg),
@@ -92,14 +83,14 @@ class SearchResultView extends StatelessWidget {
                       ? context.strings.collectionCount(
                           count: selectedCollections!.count,
                         )
-                      : context.strings.itemCount(count: selectedFiles!.count),
+                      : context.strings.itemCount(count: selectedFiles.count),
                   style: TextStyles.mini,
                 ),
               ),
             ),
           ItemListView(
             files: files,
-            collections: displayCollections,
+            collections: collections,
             selectedFiles: selectedFiles,
             selectedCollections: selectedCollections,
             onFileSelectionStarted: onFileSelectionStarted,
@@ -123,23 +114,6 @@ class SearchResultView extends StatelessWidget {
               searchQuery: searchQuery,
               onTap: onSearchEverywhere!,
             ),
-          if (selectedFiles != null && selectionEnabled)
-            ListenableBuilder(
-              listenable: Listenable.merge([
-                selectedFiles,
-                selectedCollections,
-                selectionBarHeight,
-              ]),
-              builder: (context, _) => SizedBox(
-                height:
-                    selectedFiles!.hasSelections ||
-                        (selectedCollections?.hasSelections ?? false)
-                    ? selectionBarHeight.value
-                    : MediaQuery.paddingOf(context).bottom,
-              ),
-            )
-          else
-            SizedBox(height: MediaQuery.paddingOf(context).bottom),
         ],
       ),
     );

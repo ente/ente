@@ -108,8 +108,6 @@ mixin SearchMixin<T extends StatefulWidget> on State<T> {
           _containsQuery(file.pubMagicMetadata.editedName ?? '', query) ||
           _containsQuery(file.pubMagicMetadata.uploaderName ?? '', query);
     } catch (_) {
-      // One unreadable record must not hide other matching items.
-      debugPrint('Could not search file ${file.uploadedFileID}');
       return false;
     }
   }

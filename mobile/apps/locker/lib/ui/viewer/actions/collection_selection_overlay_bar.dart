@@ -7,7 +7,6 @@ import "package:locker/models/selected_collections.dart";
 import "package:locker/services/collections/models/collection.dart";
 import "package:locker/services/configuration.dart";
 import "package:locker/ui/components/selection_action_button_widget.dart";
-import 'package:locker/ui/components/selection_bar_size.dart';
 import "package:locker/ui/sharing/share_collection_bottom_sheet.dart";
 import "package:locker/utils/collection_actions.dart";
 import "package:locker/utils/error_sheet.dart";
@@ -16,12 +15,10 @@ import "package:logging/logging.dart";
 class CollectionSelectionOverlayBar extends StatefulWidget {
   final SelectedCollections selectedCollections;
   final List<Collection> collections;
-  final ValueChanged<double>? onHeightChanged;
 
   const CollectionSelectionOverlayBar({
     required this.selectedCollections,
     required this.collections,
-    this.onHeightChanged,
     super.key,
   });
 
@@ -91,134 +88,125 @@ class _CollectionSelectionOverlayBarState
             duration: const Duration(milliseconds: 250),
             opacity: hasSelection ? 1.0 : 0.0,
             curve: Curves.easeInOut,
-            child: SelectionBarSize(
-              onHeightChanged: widget.onHeightChanged,
-              child: hasSelection
-                  ? Container(
-                      decoration: BoxDecoration(
-                        color: colors.backgroundBase,
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(20),
-                          topRight: Radius.circular(20),
-                        ),
-                        border: Border(
-                          top: BorderSide(color: colors.strokeDark),
-                        ),
+            child: hasSelection
+                ? Container(
+                    decoration: BoxDecoration(
+                      color: colors.backgroundBase,
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(20),
+                        topRight: Radius.circular(20),
                       ),
-                      child: Padding(
-                        padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPadding),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Row(
-                              children: [
-                                ListenableBuilder(
-                                  listenable: widget.selectedCollections,
-                                  builder: (context, child) {
-                                    final isAllSelected =
-                                        widget.selectedCollections.count ==
-                                        widget.collections.length;
-                                    final buttonText = isAllSelected
-                                        ? context.strings.deselectAll
-                                        : context.strings.selectAll;
-                                    final iconData = isAllSelected
-                                        ? Icons.remove_circle_outline
-                                        : Icons.check_circle_outline_outlined;
+                      border: Border(top: BorderSide(color: colors.strokeDark)),
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPadding),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            children: [
+                              ListenableBuilder(
+                                listenable: widget.selectedCollections,
+                                builder: (context, child) {
+                                  final isAllSelected =
+                                      widget.selectedCollections.count ==
+                                      widget.collections.length;
+                                  final buttonText = isAllSelected
+                                      ? context.strings.deselectAll
+                                      : context.strings.selectAll;
+                                  final iconData = isAllSelected
+                                      ? Icons.remove_circle_outline
+                                      : Icons.check_circle_outline_outlined;
 
-                                    return InkWell(
-                                      onTap: () {
-                                        if (isAllSelected) {
-                                          widget.selectedCollections.clearAll();
-                                        } else {
-                                          widget.selectedCollections.select(
-                                            widget.collections.toSet(),
-                                          );
-                                        }
-                                      },
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: colors.fillLight,
-                                          borderRadius: BorderRadius.circular(
-                                            50,
-                                          ),
-                                        ),
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12.0,
-                                          vertical: 10.0,
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text(
-                                              buttonText,
-                                              style: TextStyles.body,
-                                            ),
-                                            const SizedBox(width: 6),
-                                            Icon(
-                                              iconData,
-                                              color: colors.textBase,
-                                              size: 20,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                                const Spacer(),
-                                ListenableBuilder(
-                                  listenable: widget.selectedCollections,
-                                  builder: (context, child) {
-                                    final count =
-                                        widget.selectedCollections.count;
-                                    final countText = count == 1
-                                        ? '1 selected'
-                                        : '$count selected';
-
-                                    return InkWell(
-                                      onTap: () {
+                                  return InkWell(
+                                    onTap: () {
+                                      if (isAllSelected) {
                                         widget.selectedCollections.clearAll();
-                                      },
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: colors.fillLight,
-                                          borderRadius: BorderRadius.circular(
-                                            50,
-                                          ),
-                                        ),
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12.0,
-                                          vertical: 10.0,
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text(
-                                              countText,
-                                              style: TextStyles.body,
-                                            ),
-                                            const SizedBox(width: 6),
-                                            Icon(
-                                              Icons.close,
-                                              color: colors.textBase,
-                                              size: 20,
-                                            ),
-                                          ],
-                                        ),
+                                      } else {
+                                        widget.selectedCollections.select(
+                                          widget.collections.toSet(),
+                                        );
+                                      }
+                                    },
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: colors.fillLight,
+                                        borderRadius: BorderRadius.circular(50),
                                       ),
-                                    );
-                                  },
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            _buildPrimaryActionButtons(),
-                          ],
-                        ),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12.0,
+                                        vertical: 10.0,
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            buttonText,
+                                            style: TextStyles.body,
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Icon(
+                                            iconData,
+                                            color: colors.textBase,
+                                            size: 20,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                              const Spacer(),
+                              ListenableBuilder(
+                                listenable: widget.selectedCollections,
+                                builder: (context, child) {
+                                  final count =
+                                      widget.selectedCollections.count;
+                                  final countText = count == 1
+                                      ? '1 selected'
+                                      : '$count selected';
+
+                                  return InkWell(
+                                    onTap: () {
+                                      widget.selectedCollections.clearAll();
+                                    },
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: colors.fillLight,
+                                        borderRadius: BorderRadius.circular(50),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12.0,
+                                        vertical: 10.0,
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            countText,
+                                            style: TextStyles.body,
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Icon(
+                                            Icons.close,
+                                            color: colors.textBase,
+                                            size: 20,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          _buildPrimaryActionButtons(),
+                        ],
                       ),
-                    )
-                  : const SizedBox.shrink(),
-            ),
+                    ),
+                  )
+                : const SizedBox.shrink(),
           ),
         ),
       ),

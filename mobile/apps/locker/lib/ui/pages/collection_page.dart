@@ -53,7 +53,6 @@ class _CollectionPageState extends UploaderPageState<CollectionPage>
   bool isFavorite = false;
 
   final _selectedFiles = SelectedFiles();
-  final _selectionBarHeight = ValueNotifier<double>(0);
   final _scrollController = ScrollController();
   final _keyboardFocusNode = FocusNode();
 
@@ -110,7 +109,6 @@ class _CollectionPageState extends UploaderPageState<CollectionPage>
     _keyboardFocusNode.dispose();
     _scrollController.dispose();
     _selectedFiles.dispose();
-    _selectionBarHeight.dispose();
     super.dispose();
   }
 
@@ -205,6 +203,20 @@ class _CollectionPageState extends UploaderPageState<CollectionPage>
       onKeyEvent: handleKeyEvent,
       child: Scaffold(
         backgroundColor: colors.backgroundBase,
+        bottomNavigationBar: isSearchActive
+            ? SafeArea(
+                top: false,
+                child: UnconstrainedBox(
+                  constrainedAxis: Axis.horizontal,
+                  child: FileSelectionOverlayBar(
+                    files: _displayedFiles,
+                    selectedFiles: _selectedFiles,
+                    collectionViewType: collectionViewType,
+                    scrollController: _scrollController,
+                  ),
+                ),
+              )
+            : null,
         body: Stack(
           alignment: Alignment.bottomCenter,
           children: [
@@ -215,13 +227,13 @@ class _CollectionPageState extends UploaderPageState<CollectionPage>
               controller: _scrollController,
               slivers: _buildSlivers(context),
             ),
-            FileSelectionOverlayBar(
-              files: _displayedFiles,
-              selectedFiles: _selectedFiles,
-              collectionViewType: collectionViewType,
-              scrollController: _scrollController,
-              onHeightChanged: (height) => _selectionBarHeight.value = height,
-            ),
+            if (!isSearchActive)
+              FileSelectionOverlayBar(
+                files: _displayedFiles,
+                selectedFiles: _selectedFiles,
+                collectionViewType: collectionViewType,
+                scrollController: _scrollController,
+              ),
           ],
         ),
       ),
@@ -270,7 +282,6 @@ class _CollectionPageState extends UploaderPageState<CollectionPage>
             searchQuery: searchQuery,
             isHomePage: false,
             selectedFiles: _selectedFiles,
-            selectionBarHeight: _selectionBarHeight,
             selectionEnabled: _isSelectionEnabled,
             onSearchEverywhere: _searchEverywhere,
           ),

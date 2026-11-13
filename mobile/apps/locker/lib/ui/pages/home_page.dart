@@ -163,7 +163,6 @@ class _HomePageState extends UploaderPageState<HomePage>
   final scaffoldKey = GlobalKey<ScaffoldState>();
   final _selectedFiles = SelectedFiles();
   final _selectedCollections = SelectedCollections();
-  final _selectionBarHeight = ValueNotifier<double>(0);
   final _scrollController = ScrollController();
   final _keyboardFocusNode = FocusNode();
   bool _isLoading = true;
@@ -330,7 +329,6 @@ class _HomePageState extends UploaderPageState<HomePage>
     _displayedFilesNotifier.dispose();
     _selectedFiles.dispose();
     _selectedCollections.dispose();
-    _selectionBarHeight.dispose();
     _deepLinkSubscription?.cancel();
     _triggerLogoutSubscription?.cancel();
     _collectionsUpdatedSubscription?.cancel();
@@ -699,6 +697,24 @@ class _HomePageState extends UploaderPageState<HomePage>
                     Bus.instance.fire(OpenedSettingsEvent());
                   }
                 },
+                bottomNavigationBar: isSearchActive
+                    ? SafeArea(
+                        top: false,
+                        child: UnconstrainedBox(
+                          constrainedAxis: Axis.horizontal,
+                          child: searchScope == SearchScope.collections
+                              ? CollectionSelectionOverlayBar(
+                                  selectedCollections: _selectedCollections,
+                                  collections: _filteredCollections,
+                                )
+                              : FileSelectionOverlayBar(
+                                  selectedFiles: _selectedFiles,
+                                  files: _filteredFiles,
+                                  scrollController: _scrollController,
+                                ),
+                        ),
+                      )
+                    : null,
                 body: Stack(
                   children: [
                     GestureDetector(
@@ -714,28 +730,16 @@ class _HomePageState extends UploaderPageState<HomePage>
                       },
                       child: _buildHomeContent(),
                     ),
-                    if (isSearchActive &&
-                        searchScope == SearchScope.collections)
-                      CollectionSelectionOverlayBar(
-                        selectedCollections: _selectedCollections,
-                        collections: _filteredCollections,
-                        onHeightChanged: (height) =>
-                            _selectionBarHeight.value = height,
-                      )
-                    else
+                    if (!isSearchActive)
                       ValueListenableBuilder<List<EnteFile>>(
                         valueListenable: _displayedFilesNotifier,
                         builder: (context, displayedFiles, _) {
                           return FileSelectionOverlayBar(
                             selectedFiles: _selectedFiles,
-                            files: isSearchActive
-                                ? _filteredFiles
-                                : displayedFiles.isNotEmpty
+                            files: displayedFiles.isNotEmpty
                                 ? displayedFiles
                                 : _recentFiles,
                             scrollController: _scrollController,
-                            onHeightChanged: (height) =>
-                                _selectionBarHeight.value = height,
                           );
                         },
                       ),
@@ -819,7 +823,6 @@ class _HomePageState extends UploaderPageState<HomePage>
               _startSearchSelection(SearchScope.items),
           onCollectionSelectionStarted: () =>
               _startSearchSelection(SearchScope.collections),
-          selectionBarHeight: _selectionBarHeight,
           searchScope: searchScope,
           onScopeChanged: updateSearchScope,
         ),
