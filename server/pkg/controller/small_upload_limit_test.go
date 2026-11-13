@@ -55,14 +55,39 @@ func TestSmallUploadLimiterRollingWindow(t *testing.T) {
 
 func TestSmallUploadLimitEntitlements(t *testing.T) {
 	for _, tc := range []struct {
-		name   string
-		paid   bool
-		family bool
+		name           string
+		paid           bool
+		family         bool
+		provider       ente.PaymentProvider
+		subExpiry      time.Duration
+		bonusType      string
+		expiredBonus   bool
+		revokedBonus   bool
+		permanentBonus bool
+		selfHosted     bool
+		allowed        bool
 	}{
 		{name: "free"},
-		{name: "paid", paid: true},
-		{name: "paid family", paid: true, family: true},
+		{name: "paid", paid: true, allowed: true},
+		{name: "paid family", paid: true, family: true, allowed: true},
 		{name: "free family", family: true},
+		{name: "renewal grace", paid: true, subExpiry: -7 * 24 * time.Hour, allowed: true},
+		{name: "appstore grace", paid: true, provider: ente.AppStore, subExpiry: -4 * 24 * time.Hour, allowed: true},
+		{name: "paypal grace", paid: true, provider: ente.Paypal, subExpiry: -4 * 24 * time.Hour, allowed: true},
+		{name: "playstore grace", paid: true, provider: ente.PlayStore, subExpiry: -4 * 24 * time.Hour, allowed: true},
+		{name: "expired appstore grace", paid: true, provider: ente.AppStore, subExpiry: -6 * 24 * time.Hour},
+		{name: "bitpay without grace", paid: true, provider: ente.BitPay, subExpiry: -time.Hour},
+		{name: "expired subscription", paid: true, subExpiry: -30 * 24 * time.Hour},
+		{name: "expired family subscription", paid: true, family: true, subExpiry: -30 * 24 * time.Hour},
+		{name: "active paid bonus", bonusType: "ADD_ON_SUPPORT", allowed: true},
+		{name: "permanent paid bonus", bonusType: "ADD_ON_SUPPORT", permanentBonus: true, allowed: true},
+		{name: "expired paid bonus", bonusType: "ADD_ON_SUPPORT", expiredBonus: true},
+		{name: "revoked paid bonus", bonusType: "ADD_ON_SUPPORT", revokedBonus: true},
+		{name: "active family bonus", family: true, bonusType: "ADD_ON_SUPPORT", allowed: true},
+		{name: "revoked family bonus", family: true, bonusType: "ADD_ON_SUPPORT", revokedBonus: true},
+		{name: "expired plan with active bonus", paid: true, subExpiry: -30 * 24 * time.Hour, bonusType: "ADD_ON_SUPPORT", allowed: true},
+		{name: "referral bonus", bonusType: "REFERRAL"},
+		{name: "self hosted", selfHosted: true, allowed: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			fileController, db, userID := setupPhotoUploadLimitTest(t)
@@ -74,11 +99,34 @@ func TestSmallUploadLimitEntitlements(t *testing.T) {
 				_, err := db.Exec(`UPDATE subscriptions SET product_id = 'photos_yearly' WHERE user_id = $1`, subscriptionUserID)
 				require.NoError(t, err)
 			}
+			if tc.subExpiry != 0 {
+				_, err := db.Exec(`UPDATE subscriptions SET expiry_time = $2 WHERE user_id = $1`, subscriptionUserID, time.Now().Add(tc.subExpiry).UnixMicro())
+				require.NoError(t, err)
+			}
+			if tc.provider != "" {
+				_, err := db.Exec(`UPDATE subscriptions SET payment_provider = $2 WHERE user_id = $1`, subscriptionUserID, tc.provider)
+				require.NoError(t, err)
+			}
+			if tc.bonusType != "" {
+				validTill := time.Now().Add(time.Hour).UnixMicro()
+				if tc.expiredBonus {
+					validTill = time.Now().Add(-time.Hour).UnixMicro()
+				} else if tc.permanentBonus {
+					validTill = 0
+				}
+				_, err := db.Exec(`INSERT INTO storage_bonus(bonus_id, user_id, storage, type, valid_till, is_revoked)
+					VALUES ('small-upload-bonus', $1, $2, $3, $4, $5)`, subscriptionUserID, 1<<30, tc.bonusType, validTill, tc.revokedBonus)
+				require.NoError(t, err)
+			}
+			if tc.selfHosted {
+				_, err := db.Exec(`DELETE FROM users WHERE user_id = 1`)
+				require.NoError(t, err)
+			}
 			c := fileController.UsageCtrl
 			fillSmallUploadLimit(t, &c.smallUploads, userID)
 			length := int64(32)
-			err := c.CanIssueUploadURLs(t.Context(), userID, &length, ente.Photos)
-			if tc.paid {
+			err := c.CheckUploadURLRateLimit(userID, &length)
+			if tc.allowed {
 				require.NoError(t, err)
 			} else {
 				require.ErrorIs(t, err, ente.ErrSmallUploadLimitReached)

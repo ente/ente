@@ -43,7 +43,7 @@ func (l *smallUploadLimiter) allow(userID int64) bool {
 
 func (c *UsageController) CheckUploadURLRateLimit(userID int64, size *int64) error {
 	if size != nil && *size < 2*1024 && !c.smallUploads.allow(userID) {
-		isPaid, err := c.BillingCtrl.BillingRepo.IsUserOnPaidPlan(userID)
+		isPaid, err := c.BillingCtrl.BillingRepo.IsUserOnActivePaidPlan(userID)
 		if err != nil {
 			return stacktrace.Propagate(err, "")
 		}
