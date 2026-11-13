@@ -46,7 +46,7 @@ To prevent people from accidentally locking themselves out this way, email verif
 
 The solutions here are the same as the Ente-in-Ente case.
 
-Even with email verification turned off, resetting a forgotten password always needs a code sent to your email. If your email account's 2FA codes are only in Ente Auth, keep your email provider's backup codes somewhere outside Ente Auth. See [I forgot my Ente Auth password. How do I get back in?](/auth/faq/#auth-forgot-password).
+If you start **Forgot password?** from a signed-out sign-in, Ente emails a verification code even when email verification is turned off for sign-in. A device that is still signed in may offer recovery-key entry from its password re-entry screen without an email code. If your email account's 2FA codes are only in Ente Auth, keep your email provider's backup codes somewhere outside Ente Auth. See [I forgot my Ente Auth password. How do I get back in?](/auth/faq/#auth-forgot-password).
 
 ## TL;DR;
 

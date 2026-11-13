@@ -400,7 +400,8 @@ Ways to pay less:
 
 - **Switch to a yearly plan.** A year on a yearly plan costs about two months less than paying monthly. See [Can I switch between monthly and yearly plans?](#switch-billing-cycle)
 - **Students** can get 30% off, including on an existing subscription. See [Does Ente offer discounts to students?](#student-discount)
-- **Refer friends** to earn extra storage. See [How can I earn free storage?](#earn-storage-referrals)
+
+You can also [refer friends](#earn-storage-referrals) to earn extra storage at the same subscription price.
 
 ## Discount Codes and Referrals
 
