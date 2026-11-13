@@ -991,6 +991,7 @@ class _PeopleSectionAllWidgetState extends State<PeopleSectionAllWidget> {
 
   Widget _buildSearchAction() {
     return IconButtonComponent(
+      tooltip: context.strings.search,
       variant: IconButtonComponentVariant.primary,
       shouldSurfaceExecutionStates: false,
       icon: const HugeIcon(icon: HugeIcons.strokeRoundedSearch01),
@@ -1024,6 +1025,7 @@ class _PeopleSectionAllWidgetState extends State<PeopleSectionAllWidget> {
   Widget _buildSortMenu() {
     return Builder(
       builder: (buttonContext) => IconButtonComponent(
+        tooltip: context.strings.sort,
         variant: IconButtonComponentVariant.primary,
         shouldSurfaceExecutionStates: false,
         icon: const HugeIcon(icon: HugeIcons.strokeRoundedFilterHorizontal),

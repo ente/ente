@@ -200,6 +200,7 @@ class _SettingsBody extends StatelessWidget {
   List<Widget> _buildHeaderActions(BuildContext context) {
     return [
       IconButtonComponent(
+        tooltip: context.strings.search,
         variant: IconButtonComponentVariant.primary,
         shouldSurfaceExecutionStates: false,
         icon: const HugeIcon(icon: HugeIcons.strokeRoundedSearch01),

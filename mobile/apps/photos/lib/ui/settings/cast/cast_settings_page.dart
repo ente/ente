@@ -214,6 +214,7 @@ class _CastSessionItem extends StatelessWidget {
       showChevron: false,
       showOnlyLoadingState: true,
       trailing: IconButtonComponent(
+        tooltip: context.strings.stopCastingTitle,
         icon: const HugeIcon(
           icon: HugeIcons.strokeRoundedCancel01,
           size: IconSizes.small,

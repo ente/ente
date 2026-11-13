@@ -210,6 +210,7 @@ class _AllLinksPageState extends State<AllLinksPage> {
             child: _hasSelection
                 ? IconButtonComponent(
                     key: const ValueKey("delete_links"),
+                    tooltip: context.strings.removePublicLinks,
                     variant: IconButtonComponentVariant.primary,
                     shouldSurfaceExecutionStates: false,
                     icon: HugeIcon(

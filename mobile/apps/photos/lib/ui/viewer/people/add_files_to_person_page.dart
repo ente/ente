@@ -383,6 +383,7 @@ class _AddFilesToPersonPageState extends State<AddFilesToPersonPage> {
                     SizedBox.square(
                       dimension: _titleActionSize,
                       child: IconButtonComponent(
+                        tooltip: context.strings.search,
                         variant: IconButtonComponentVariant.primary,
                         shouldSurfaceExecutionStates: false,
                         icon: const HugeIcon(

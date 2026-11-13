@@ -433,6 +433,7 @@ class _FacesItemWidgetState extends State<FacesItemWidget> {
         children: [
           if (hasSelection) ...[
             IconButtonComponent(
+              tooltip: context.strings.ignore,
               icon: HugeIcon(
                 icon: HugeIcons.strokeRoundedUserBlock01,
                 size: IconSizes.small,
@@ -455,6 +456,7 @@ class _FacesItemWidgetState extends State<FacesItemWidget> {
       );
     } else {
       action = IconButtonComponent(
+        tooltip: context.strings.edit,
         icon: HugeIcon(
           icon: HugeIcons.strokeRoundedEdit03,
           size: IconSizes.small,

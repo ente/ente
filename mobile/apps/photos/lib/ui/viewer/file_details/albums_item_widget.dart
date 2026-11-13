@@ -126,6 +126,7 @@ class _AlbumsItemWidgetState extends State<AlbumsItemWidget> {
         Padding(
           padding: const EdgeInsetsDirectional.only(top: Spacing.sm),
           child: IconButtonComponent(
+            tooltip: context.strings.addToAlbum,
             size: FilterChipComponent.minHeight,
             icon: HugeIcon(
               icon: HugeIcons.strokeRoundedPlusSign,

@@ -48,6 +48,7 @@ class EntePopupMenuButton<T> extends StatelessWidget {
     this.borderRadius = Radii.button,
     this.elevation = 0.0,
     this.itemHorizontalPadding = Spacing.lg,
+    this.enabled = true,
     super.key,
   });
 
@@ -59,24 +60,28 @@ class EntePopupMenuButton<T> extends StatelessWidget {
   final double borderRadius;
   final double elevation;
   final double itemHorizontalPadding;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
     final child = this.child;
+    final onTap = enabled ? () => _showMenu(context) : null;
     if (child == null) {
       return IconButtonComponent(
         variant: IconButtonComponentVariant.primary,
+        tooltip: MaterialLocalizations.of(context).moreButtonTooltip,
         shouldSurfaceExecutionStates: false,
         icon: const HugeIcon(icon: HugeIcons.strokeRoundedMoreVertical),
-        onTap: () => _showMenu(context),
+        onTap: onTap,
       );
     }
 
-    return GestureDetector(
+    final button = GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () => _showMenu(context),
+      onTap: onTap,
       child: child,
     );
+    return Semantics(button: true, enabled: enabled, child: button);
   }
 
   Future<void> _showMenu(BuildContext context) async {

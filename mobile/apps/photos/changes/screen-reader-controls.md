@@ -1,0 +1,1 @@
+- Improved screen reader labels and button announcements for shared controls, search, and photo menus.

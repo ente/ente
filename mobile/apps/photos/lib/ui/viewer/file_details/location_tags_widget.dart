@@ -104,13 +104,11 @@ class _LocationTagsWidgetState extends State<LocationTagsWidget> {
     final locationTags = await locationService.enclosingLocationTags(
       widget.file.location!,
     );
+    if (!mounted) return const [];
+    setState(() {
+      title = context.strings.location;
+    });
     if (locationTags.isEmpty) {
-      if (mounted) {
-        setState(() {
-          title = context.strings.location;
-        });
-      }
-      if (!mounted) return const [];
       return [
         FilterChipComponent(
           label: context.strings.addLocation,
@@ -119,11 +117,6 @@ class _LocationTagsWidgetState extends State<LocationTagsWidget> {
         ),
       ];
     } else {
-      if (mounted) {
-        setState(() {
-          title = context.strings.location;
-        });
-      }
       final result = locationTags
           .map<Widget>(
             (locationTagEntity) => FilterChipComponent(
@@ -142,6 +135,7 @@ class _LocationTagsWidgetState extends State<LocationTagsWidget> {
           .toList();
       result.add(
         IconButtonComponent(
+          tooltip: context.strings.addLocation,
           size: FilterChipComponent.minHeight,
           icon: const HugeIcon(
             icon: HugeIcons.strokeRoundedPlusSign,

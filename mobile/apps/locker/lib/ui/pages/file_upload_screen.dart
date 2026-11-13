@@ -92,6 +92,9 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
                   child: Row(
                     children: [
                       IconButtonComponent(
+                        tooltip: MaterialLocalizations.of(
+                          context,
+                        ).backButtonTooltip,
                         variant: IconButtonComponentVariant.unfilled,
                         shouldSurfaceExecutionStates: false,
                         iconSize: IconSizes.medium,
@@ -162,6 +165,7 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
                                       trailing: Builder(
                                         builder: (anchor) =>
                                             IconButtonComponent(
+                                              tooltip: l10n.more,
                                               variant:
                                                   IconButtonComponentVariant
                                                       .unfilled,

@@ -393,6 +393,7 @@ class _SearchSectionAllPageState extends State<SearchSectionAllPage> {
 
   Widget _buildSearchAction() {
     return IconButtonComponent(
+      tooltip: context.strings.search,
       variant: IconButtonComponentVariant.primary,
       shouldSurfaceExecutionStates: false,
       icon: const HugeIcon(icon: HugeIcons.strokeRoundedSearch01),
