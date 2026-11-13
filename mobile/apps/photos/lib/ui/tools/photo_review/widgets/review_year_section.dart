@@ -2,9 +2,9 @@ import "dart:math" as math;
 
 import "package:ente_components/components/chip_surface.dart";
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:intl/intl.dart" show DateFormat;
 import "package:photos/models/photo_review/photo_review_models.dart";
 import "package:photos/ui/tools/photo_review/widgets/review_month_card.dart";

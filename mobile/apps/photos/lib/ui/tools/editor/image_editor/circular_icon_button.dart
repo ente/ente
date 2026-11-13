@@ -1,7 +1,7 @@
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
 import 'package:flutter/material.dart';
 import "package:flutter_svg/svg.dart";
-import "package:hugeicons/hugeicons.dart";
 
 class CircularIconButton extends StatelessWidget {
   final String label;

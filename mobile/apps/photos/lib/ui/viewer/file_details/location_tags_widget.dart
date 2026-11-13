@@ -2,13 +2,13 @@ import "dart:async";
 import "dart:ui";
 
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:ente_ui/components/loading_widget.dart";
 import "package:flutter/material.dart";
 import "package:flutter_animate/flutter_animate.dart";
 import "package:flutter_map/flutter_map.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:latlong2/latlong.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/location_tag_updated_event.dart";

@@ -1,8 +1,8 @@
 import "dart:io";
 
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
 import "package:flutter/material.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:locker/ui/components/save_to_locker_banner.dart";
 import "package:locker/ui/pages/save_page.dart";
 

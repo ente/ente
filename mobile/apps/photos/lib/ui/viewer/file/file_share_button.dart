@@ -2,10 +2,10 @@ import "dart:async";
 import "dart:io";
 
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/cupertino.dart";
 import "package:flutter/material.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:photos/ui/sharing/share_components.dart";
 
 enum _FileShareAction { file, link }

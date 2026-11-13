@@ -1,4 +1,5 @@
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
 import "package:ente_legacy/models/legacy_kit_models.dart";
 import "package:ente_legacy/services/legacy_kit_pdf_service.dart";
 import "package:ente_strings/ente_strings.dart";
@@ -6,7 +7,6 @@ import "package:ente_ui/utils/toast_util.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_svg/flutter_svg.dart";
-import "package:hugeicons/hugeicons.dart";
 
 const _cardBorder = Color(0xFFE0E0E0);
 const _cardMutedInk = Color(0xFF969696);

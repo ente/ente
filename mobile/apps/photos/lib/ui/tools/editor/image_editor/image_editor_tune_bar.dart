@@ -1,10 +1,10 @@
 import 'dart:math';
 
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
 import 'package:flutter/material.dart';
 import "package:flutter/services.dart";
 import "package:flutter_svg/svg.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:photos/ui/tools/editor/image_editor/image_editor_adjust_slider.dart";
 import "package:photos/ui/tools/editor/image_editor/image_editor_configs_mixin.dart";
 import "package:photos/ui/tools/editor/image_editor/image_editor_constants.dart";

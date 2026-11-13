@@ -1,12 +1,12 @@
 import 'dart:async';
 
+import 'package:ente_components/hugeicons.dart';
 import 'package:ente_components/theme/icon_sizes.dart';
 import 'package:ente_components/theme/radii.dart';
 import 'package:ente_components/theme/spacing.dart';
 import 'package:ente_components/theme/text_styles.dart';
 import 'package:ente_components/theme/theme.dart';
 import 'package:flutter/material.dart';
-import 'package:hugeicons/hugeicons.dart';
 
 class NavigationCardComponent extends StatefulWidget {
   const NavigationCardComponent({
