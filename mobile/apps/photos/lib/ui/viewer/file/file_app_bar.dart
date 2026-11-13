@@ -639,8 +639,12 @@ class FileAppBarState extends State<FileAppBar> {
   }
 
   Future<void> _download(EnteFile file) async {
-    final existingFolderName =
-        await getExistingLocalFolderNameForDownloadSkipToast(file);
+    final persistToFilesDB =
+        widget.galleryType != GalleryType.sharedPublicCollection;
+    final existingFolderNames = await linkDownloadsAlreadyOnDevice([
+      file,
+    ], persistToFilesDB: persistToFilesDB);
+    final existingFolderName = existingFolderNames.single;
     if (existingFolderName != null) {
       if (mounted) {
         final l10n = context.strings;
@@ -663,8 +667,6 @@ class FileAppBarState extends State<FileAppBar> {
     final fileToDownload = !file.isRemoteOnlyFile
         ? (file.copyWith()..localID = null)
         : file;
-    final persistToFilesDB =
-        widget.galleryType != GalleryType.sharedPublicCollection;
     if (flagService.internalUser) {
       try {
         await galleryDownloadQueueService.enqueueFiles([

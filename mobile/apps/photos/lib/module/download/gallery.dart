@@ -47,22 +47,35 @@ String _getGallerySaveTitle(EnteFile file, String fallbackPath) {
   return title;
 }
 
-Future<AssetEntity?> _findAssetOnDevice(EnteFile file) async {
-  final ownAsset = await _getExistingAsset(file);
-  if (ownAsset != null) {
-    return ownAsset;
+Future<List<AssetEntity?>> _findAssetsOnDevice(List<EnteFile> files) async {
+  final assets = await Future.wait(files.map(_getExistingAsset));
+  final missingFileIDs = {
+    for (var i = 0; i < files.length; i++)
+      if (assets[i] == null && files[i].uploadedFileID != null)
+        files[i].uploadedFileID!,
+  };
+  if (missingFileIDs.isEmpty) {
+    return assets;
   }
-  final fileID = file.uploadedFileID;
-  if (fileID == null) {
-    return null;
-  }
-  for (final existingFile in await FilesDB.instance.getFilesFromIDs([fileID])) {
-    final asset = await _getExistingAsset(existingFile);
-    if (asset != null) {
-      return asset;
+  final linkedRowsByFileID = <int, List<EnteFile>>{};
+  final rows = await FilesDB.instance.getFilesFromIDs(missingFileIDs.toList());
+  for (final row in rows) {
+    if (row.localID != null) {
+      linkedRowsByFileID.putIfAbsent(row.uploadedFileID!, () => []).add(row);
     }
   }
-  return null;
+  for (var i = 0; i < files.length; i++) {
+    if (assets[i] != null) {
+      continue;
+    }
+    for (final row in linkedRowsByFileID[files[i].uploadedFileID] ?? []) {
+      assets[i] = await _getExistingAsset(row);
+      if (assets[i] != null) {
+        break;
+      }
+    }
+  }
+  return assets;
 }
 
 Future<AssetEntity?> _getExistingAsset(EnteFile file) async {
@@ -73,13 +86,36 @@ Future<AssetEntity?> _getExistingAsset(EnteFile file) async {
   return asset;
 }
 
-Future<String?> getExistingLocalFolderNameForDownloadSkipToast(
-  EnteFile file,
-) async {
-  final asset = await _findAssetOnDevice(file);
-  if (asset == null) {
-    return null;
+Future<List<String?>> linkDownloadsAlreadyOnDevice(
+  List<EnteFile> files, {
+  required bool persistToFilesDB,
+}) async {
+  final assets = await _findAssetsOnDevice(files);
+  final folderNames = <String?>[];
+  final linkedFiles = <EnteFile>[];
+  for (var i = 0; i < files.length; i++) {
+    final asset = assets[i];
+    if (asset == null) {
+      folderNames.add(null);
+      continue;
+    }
+    final folderName = await _getDeviceFolderName(asset);
+    folderNames.add(folderName);
+    if (folderName != null &&
+        persistToFilesDB &&
+        files[i].localID != asset.id) {
+      files[i].localID = asset.id;
+      linkedFiles.add(files[i]);
+    }
   }
+  if (linkedFiles.isNotEmpty) {
+    await FilesDB.instance.insertMultiple(linkedFiles);
+    Bus.instance.fire(LocalPhotosUpdatedEvent(linkedFiles, source: "download"));
+  }
+  return folderNames;
+}
+
+Future<String?> _getDeviceFolderName(AssetEntity asset) async {
   final folderNames = await FilesDB.instance.getDeviceCollectionNamesForLocalID(
     asset.id,
   );
@@ -187,7 +223,7 @@ Future<void> _downloadToGallery(
       }
       savedAsset = savedResult?.asset;
       if (savedResult == null && persistToFilesDB) {
-        savedAsset = await _findAssetOnDevice(file);
+        savedAsset = (await _findAssetsOnDevice([file])).single;
       }
       try {
         await PhotoManager.stopChangeNotify();

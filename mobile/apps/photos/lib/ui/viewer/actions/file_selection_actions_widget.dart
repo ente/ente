@@ -1186,13 +1186,14 @@ class _FileSelectionActionsWidgetState
     }
 
     final l10n = context.strings;
-    final existingLocalFolderNames = await Future.wait(
-      files.map((file) => getExistingLocalFolderNameForDownloadSkipToast(file)),
+    final persistToFilesDB = widget.type != GalleryType.sharedPublicCollection;
+    final existingLocalFolderNames = await linkDownloadsAlreadyOnDevice(
+      files,
+      persistToFilesDB: persistToFilesDB,
     );
     if (!mounted) return;
 
     final filesToDownload = <EnteFile>[];
-    final queuedFileIDs = <int>{};
     final skippedFiles = <EnteFile>[];
     String? skippedSingleFolderName;
     for (int i = 0; i < files.length; i++) {
@@ -1201,10 +1202,6 @@ class _FileSelectionActionsWidgetState
       if (existingLocalFolderName != null) {
         skippedFiles.add(file);
         skippedSingleFolderName = existingLocalFolderName;
-        continue;
-      }
-      final uploadedFileID = file.uploadedFileID;
-      if (uploadedFileID != null && !queuedFileIDs.add(uploadedFileID)) {
         continue;
       }
       filesToDownload.add(
@@ -1224,7 +1221,7 @@ class _FileSelectionActionsWidgetState
         try {
           final enqueueResult = await galleryDownloadQueueService.enqueueFiles(
             filesToDownload,
-            persistToFilesDB: widget.type != GalleryType.sharedPublicCollection,
+            persistToFilesDB: persistToFilesDB,
           );
           addedToQueueCount = enqueueResult.addedCount;
         } catch (e) {
@@ -1252,8 +1249,7 @@ class _FileSelectionActionsWidgetState
               taskQueue.add(() async {
                 await downloadToGallery(
                   file,
-                  persistToFilesDB:
-                      widget.type != GalleryType.sharedPublicCollection,
+                  persistToFilesDB: persistToFilesDB,
                 );
                 downloadedFiles++;
                 if (didShowDialog) {
