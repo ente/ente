@@ -68,6 +68,9 @@ export const GallerySectionLayout = ({
                         pt: fullBleed
                             ? 0
                             : { xs: `${thumbnailGridPadding}px`, md: "36px" },
+                        ...(!fullBleed && {
+                            '&:has(> [role="toolbar"])': { pt: { md: "20px" } },
+                        }),
                         px: fullBleed ? 0 : { xs: 0, md: "12px" },
                         "--mui-palette-background-default": "#FFFFFF",
                         bgcolor: "background.default",
