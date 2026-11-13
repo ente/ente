@@ -160,6 +160,11 @@ class _UpdateIconWidgetState extends State<UploadIconWidget> {
                               .getUncategorizedCollection())
                           .id;
                   await FilesDB.instance.insert(widget.file);
+                  Bus.instance.fire(
+                    CollectionUpdatedEvent(widget.file.collectionID, [
+                      widget.file,
+                    ], "pendingFilesAdd"),
+                  );
                 }
                 await RemoteSyncService.instance.whiteListVideoForUpload(
                   widget.file,
