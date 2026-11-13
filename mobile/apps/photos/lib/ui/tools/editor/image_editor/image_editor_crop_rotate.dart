@@ -3,6 +3,7 @@ import 'dart:math';
 import "package:ente_components/ente_components.dart";
 import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import "package:flutter_svg/svg.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:photos/ui/tools/editor/image_editor/circular_icon_button.dart";
@@ -12,17 +13,18 @@ import "package:photos/ui/tools/editor/image_editor/image_editor_constants.dart"
 import "package:photos/ui/tools/editor/image_editor/image_editor_tune_bar.dart";
 import 'package:pro_image_editor/core/mixins/converted_configs.dart';
 import 'package:pro_image_editor/features/crop_rotate_editor/providers/tilt_provider.dart';
+import 'package:pro_image_editor/features/crop_rotate_editor/utils/crop_aspect_ratios.dart';
 import 'package:pro_image_editor/pro_image_editor.dart';
 
 enum CropAspectRatioType {
   original(
     label: "Original",
-    ratio: null,
+    ratio: CropAspectRatios.original,
     svg: "assets/image-editor/image-editor-crop-original.svg",
   ),
   free(
     label: "Free",
-    ratio: null,
+    ratio: CropAspectRatios.custom,
     svg: "assets/video-editor/video-crop-free-action.svg",
   ),
   square(
@@ -59,10 +61,37 @@ enum CropAspectRatioType {
 
   final String label;
   final String svg;
-  final double? ratio;
+  final double ratio;
 }
 
 enum _CropControl { none, crop, straighten }
+
+void imageEditorUndoCrop(CropRotateEditorState editor) {
+  if (editor.screenshotHistoryPosition == 1 &&
+      editor.history.first.isNotEmpty) {
+    editor.screenshotHistoryPosition -= 2;
+    editor.redoAction();
+  } else {
+    editor.undoAction();
+  }
+}
+
+bool imageEditorHandleCropUndoKey(
+  KeyEvent event,
+  CropRotateEditorState? editor,
+) {
+  final keyboard = HardwareKeyboard.instance;
+  if (editor == null ||
+      event is! KeyDownEvent ||
+      event.logicalKey != LogicalKeyboardKey.keyZ ||
+      !keyboard.isControlPressed ||
+      keyboard.isShiftPressed ||
+      keyboard.isAltPressed) {
+    return false;
+  }
+  imageEditorUndoCrop(editor);
+  return true;
+}
 
 class ImageEditorCropRotateBar extends StatefulWidget with SimpleConfigsAccess {
   const ImageEditorCropRotateBar({
@@ -86,7 +115,6 @@ class ImageEditorCropRotateBar extends StatefulWidget with SimpleConfigsAccess {
 
 class _ImageEditorCropRotateBarState extends State<ImageEditorCropRotateBar>
     with ImageEditorConvertedConfigs, SimpleConfigsAccessState {
-  CropAspectRatioType selectedAspectRatio = CropAspectRatioType.original;
   _CropControl selectedControl = _CropControl.crop;
   double? _lastStraightenAngle;
   double? _cachedBarHeight;
@@ -157,6 +185,10 @@ class _ImageEditorCropRotateBarState extends State<ImageEditorCropRotateBar>
 
   Widget _buildFunctions(BoxConstraints constraints) {
     final colors = context.componentColors;
+    final activeAspectRatio = widget.editor.activeHistory.isEmpty
+        ? widget.configs.cropRotateEditor.initAspectRatio ??
+              CropAspectRatios.custom
+        : widget.editor.activeAspectRatio;
     final tiltConfigs = widget.configs.cropRotateEditor.tiltConfigs;
     final straightenAngle = TiltProvider.of(context).tiltRotate * 180 / pi;
     final actionWidth = min(90.0, constraints.maxWidth / 4);
@@ -260,21 +292,16 @@ class _ImageEditorCropRotateBarState extends State<ImageEditorCropRotateBar>
                     itemCount: CropAspectRatioType.values.length,
                     itemBuilder: (context, index) {
                       final aspectRatio = CropAspectRatioType.values[index];
-                      final isSelected = selectedAspectRatio == aspectRatio;
+                      final isSelected = activeAspectRatio == aspectRatio.ratio;
                       return Padding(
                         padding: const EdgeInsets.only(left: 6.0, right: 6.0),
                         child: CropAspectChip(
                           label: aspectRatio.label,
                           svg: aspectRatio.svg,
                           isSelected: isSelected,
-                          onTap: () {
-                            setState(() {
-                              selectedAspectRatio = aspectRatio;
-                            });
-                            widget.editor.updateAspectRatio(
-                              aspectRatio.ratio ?? -1,
-                            );
-                          },
+                          onTap: () => widget.editor.updateAspectRatio(
+                            aspectRatio.ratio,
+                          ),
                         ),
                       );
                     },
