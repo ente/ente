@@ -351,7 +351,10 @@ class _Inputs {
         first,
         last,
         RustMemoriesComputer._location(base.location),
-        locationName: _baseName(base),
+        locationName: TripMemory.baseName(
+          base.locationName,
+          isCurrent: base.isCurrent,
+        ),
         capMemories: capMemories,
       ),
       rust.MemoryKind_Clip(field0: final clipType) => ClipMemory(
@@ -455,12 +458,4 @@ class _Inputs {
       kind: TimeMemoryKind.lastMonth,
     ),
   };
-
-  static String _baseName(rust.BaseMemory base) {
-    final status = base.isCurrent ? "current" : "old";
-    final locationName = base.locationName;
-    return locationName == null
-        ? "Base ($status)"
-        : "$locationName (Base, $status)";
-  }
 }

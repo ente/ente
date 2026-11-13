@@ -310,6 +310,13 @@ mod tests {
             .collect()
     }
 
+    fn day_trip(first_id: i64, start: &str, place: (f64, f64)) -> Vec<MemoryFile> {
+        let start = micros(start);
+        (0..16)
+            .map(|index| located_file(first_id + index, start + index * HOUR / 2, place))
+            .collect()
+    }
+
     fn home(place: (f64, f64), away: &[&[MemoryFile]]) -> Vec<MemoryFile> {
         let first = micros("2023-01-01T12:00:00");
         let last = micros("2026-10-25T12:00:00");
@@ -479,10 +486,96 @@ mod tests {
 
     #[test]
     fn the_next_period_counts_trips_shown_in_the_current_one() {
-        let result = compute(&three_trips(), &[NOW, "2026-11-01T09:00:00"], None);
+        let result = compute(
+            &three_trips(),
+            &[NOW, "2026-11-01T09:00:00", "2026-11-08T09:00:00"],
+            None,
+        );
 
         assert_eq!(trip_keys(&result.periods[0]), [ROME_KEY, PARIS_KEY]);
         assert!(trip_keys(&result.periods[1]).is_empty());
+        assert_eq!(trip_keys(&result.periods[2]), [LISBON_KEY]);
+    }
+
+    #[test]
+    fn trips_with_the_same_title_are_not_on_screen_together() {
+        let cities = Cities(vec![("Rome", "Italy", ROME), ("Paris", "France", PARIS)]);
+        let rome = stay(100, "2024-10-26T08:00:00", 24, ROME);
+        let rome_again = stay(300, "2024-11-12T08:00:00", 24, ROME);
+        let paris = stay(1, "2025-03-10T08:00:00", 24, PARIS);
+        let mut files = home(AMSTERDAM, &[&rome, &rome_again, &paris]);
+        files.extend(rome);
+        files.extend(rome_again);
+        files.extend(paris);
+        let mut request = MemoriesRequest {
+            files,
+            ..MemoriesRequest::default()
+        };
+
+        assert_eq!(
+            trip_keys(&compute(&request, &[NOW], Some(&cities)).periods[0]),
+            [ROME_KEY, PARIS_KEY]
+        );
+        assert_eq!(
+            trip_keys(&compute(&request, &[NOW], None).periods[0]),
+            [ROME_KEY, PARIS_KEY]
+        );
+
+        request.cached_trips = vec![CachedTrip {
+            identity_key: format!("trip:{ROME_KEY}"),
+            first_date_to_show: micros(NOW) - 2 * MICROS_PER_DAY,
+            last_date_to_show: micros(NOW) + 8 * MICROS_PER_DAY,
+        }];
+        assert_eq!(
+            trip_keys(&compute(&request, &[NOW], Some(&cities)).periods[0]),
+            [PARIS_KEY]
+        );
+    }
+
+    #[test]
+    fn day_trips_wait_for_their_anniversary_and_longer_trips_come_first_otherwise() {
+        let bordeaux = day_trip(1, "2024-11-01T08:00:00", BORDEAUX);
+        let lyon = day_trip(20, "2025-02-20T08:00:00", LYON);
+        let paris = stay(40, "2025-03-10T08:00:00", 12, PARIS);
+        let lisbon = stay(200, "2023-06-01T08:00:00", 24, LISBON);
+        let request = |trips: &[&[MemoryFile]]| {
+            let mut files = home(AMSTERDAM, trips);
+            files.extend(trips.iter().flat_map(|trip| trip.iter().cloned()));
+            MemoriesRequest {
+                files,
+                ..MemoriesRequest::default()
+            }
+        };
+        let bordeaux_key = "trip_44.84_-0.58_20028_20028";
+
+        assert_eq!(
+            trip_keys(
+                &compute(&request(&[&bordeaux, &lyon, &paris, &lisbon]), &[NOW], None).periods[0]
+            ),
+            [bordeaux_key, LISBON_KEY]
+        );
+        assert_eq!(
+            trip_keys(&compute(&request(&[&bordeaux, &lyon]), &[NOW], None).periods[0]),
+            [bordeaux_key]
+        );
+
+        let mut lyon_only = request(&[&lyon]);
+        lyon_only.local_gallery_mode = true;
+        assert!(trip_keys(&compute(&lyon_only, &[NOW], None).periods[0]).is_empty());
+    }
+
+    #[test]
+    fn trips_away_from_their_anniversary_show_at_most_once_a_year() {
+        let mut request = three_trips();
+        request.shown_trips = vec![
+            shown(Some(PARIS_KEY), PARIS, 150),
+            shown(Some(LISBON_KEY), LISBON, 140),
+        ];
+
+        assert_eq!(
+            trip_keys(&compute(&request, &[NOW], None).periods[0]),
+            [ROME_KEY, LISBON_KEY]
+        );
     }
 
     #[test]

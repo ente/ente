@@ -935,7 +935,6 @@ class TripMemoriesCalculatorV2 {
     required CitySearchIndex citySearchIndex,
   }) async {
     for (final baseLocation in baseLocations) {
-      String name = "Base (${baseLocation.isCurrentBase ? 'current' : 'old'})";
       final files = baseLocation.fileIDs
           .map((fileID) => allFileIdsToFile[fileID]!)
           .toList();
@@ -944,17 +943,16 @@ class TripMemoriesCalculatorV2 {
         citySearchIndex,
         base: true,
       );
-      if (locationName != null) {
-        name =
-            "$locationName (Base, ${baseLocation.isCurrentBase ? 'current' : 'old'})";
-      }
       memoryResults.add(
         TripMemory(
           Memory.fromFiles(files, seenTimes),
           nowInMicroseconds,
           windowEnd,
           baseLocation.location,
-          locationName: name,
+          locationName: TripMemory.baseName(
+            locationName,
+            isCurrent: baseLocation.isCurrentBase,
+          ),
         ),
       );
     }

@@ -16,6 +16,7 @@ use crate::ml_store::Result;
 
 const TRIP_SURFACE_SLOTS: usize = 2;
 const TRIP_SHOW_TIMEOUT_DAYS: i64 = 40 * UPDATE_FREQUENCY_DAYS;
+const EVERGREEN_TRIP_SHOW_TIMEOUT_DAYS: i64 = 3 * TRIP_SHOW_TIMEOUT_DAYS;
 const TRIP_DISPLAY_DAYS: i64 = 10;
 const SEASONAL_TRIP_BAND_DAYS: i64 = 45;
 const MINIMUM_TRIP_AGE_DAYS: i64 = 365;
@@ -31,7 +32,14 @@ struct Candidate<'a, 'p> {
     trip: &'a Trip<'p>,
     last_shown: Option<i64>,
     cooldown_expired: bool,
+    evergreen_cooldown_expired: bool,
     anniversary_distance_days: i64,
+}
+
+#[derive(PartialEq, Eq, Hash)]
+enum Title<'t> {
+    Place(&'t str),
+    Year(i32),
 }
 
 impl<'r> TripHistory<'r> {
@@ -73,15 +81,29 @@ impl<'r> TripHistory<'r> {
             .collect()
     }
 
-    fn last_shown(&self, trip: &Trip, current: &HashSet<&str>) -> Option<i64> {
-        self.shown
+    fn showings(&self, trip: &Trip, current: &HashSet<&str>, now: i64) -> Vec<(i64, i64)> {
+        let logged = self
+            .shown
             .iter()
             .filter(|shown| match &shown.key {
                 Some(key) => is_same_trip(key, trip, current),
                 None => distance_km(trip.location, shown.location) < LEGACY_SHOWN_TRIP_RADIUS_KM,
             })
-            .map(|shown| shown.last_time_shown)
-            .max()
+            .map(|shown| {
+                (
+                    shown.last_time_shown - TRIP_DISPLAY_DAYS * MICROS_PER_DAY,
+                    shown.last_time_shown,
+                )
+            });
+        let ended = self
+            .cached
+            .iter()
+            .filter(|cached| {
+                cached.last_date_to_show <= now
+                    && is_same_trip(trip_key(&cached.identity_key), trip, current)
+            })
+            .map(|cached| (cached.first_date_to_show, cached.last_date_to_show));
+        logged.chain(ended).collect()
     }
 }
 
@@ -181,21 +203,30 @@ fn scheduled<'a, 'p>(
     if slots == 0 || trips.is_empty() {
         return Vec::new();
     }
-    let candidates: Vec<Candidate> = trips
-        .iter()
-        .filter(|trip| {
-            !active
+    let (on_screen, waiting): (Vec<&Trip>, Vec<&Trip>) = trips.iter().copied().partition(|trip| {
+        active
+            .iter()
+            .any(|identity_key| is_same_trip(trip_key(identity_key), trip, current))
+    });
+    let candidates: Vec<Candidate> = waiting
+        .into_iter()
+        .map(|trip| {
+            let showings = history.showings(trip, current, period.now);
+            let last_shown = showings.iter().map(|&(_, end)| end).max();
+            let last_shown_evergreen = showings
                 .iter()
-                .any(|identity_key| is_same_trip(trip_key(identity_key), trip, current))
-        })
-        .map(|&trip| {
-            let last_shown = history.last_shown(trip, current);
+                .filter(|&&(start, _)| is_evergreen_showing(trip, start, period))
+                .map(|&(_, end)| end)
+                .max();
             Candidate {
                 trip,
                 last_shown,
-                cooldown_expired: last_shown.is_none_or(|shown| {
-                    period.now - shown >= TRIP_SHOW_TIMEOUT_DAYS * MICROS_PER_DAY
-                }),
+                cooldown_expired: waited(last_shown, period.now, TRIP_SHOW_TIMEOUT_DAYS),
+                evergreen_cooldown_expired: waited(
+                    last_shown_evergreen,
+                    period.now,
+                    EVERGREEN_TRIP_SHOW_TIMEOUT_DAYS,
+                ),
                 anniversary_distance_days: anniversary_distance_days(trip, period),
             }
         })
@@ -209,20 +240,25 @@ fn scheduled<'a, 'p>(
         })
         .collect();
     seasonal.sort_by_key(|candidate| seasonal_rank(candidate));
-    let mut selected: Vec<&Candidate> = seasonal.into_iter().take(slots).collect();
-
     let mut evergreen: Vec<&Candidate> = candidates
         .iter()
         .filter(|candidate| {
             candidate.cooldown_expired
-                && !selected
-                    .iter()
-                    .any(|chosen| chosen.trip.key == candidate.trip.key)
+                && candidate.evergreen_cooldown_expired
+                && !is_day_trip(candidate.trip)
         })
         .collect();
     evergreen.sort_by_key(|candidate| evergreen_rank(candidate));
-    let remaining = slots - selected.len();
-    selected.extend(evergreen.into_iter().take(remaining));
+    let mut titles: HashSet<Title> = on_screen.into_iter().map(title).collect();
+    let mut selected: Vec<&Candidate> = Vec::new();
+    for candidate in seasonal.into_iter().chain(evergreen) {
+        if selected.len() == slots {
+            break;
+        }
+        if titles.insert(title(candidate.trip)) {
+            selected.push(candidate);
+        }
+    }
 
     if local_gallery_mode && active.is_empty() && selected.is_empty() {
         let mut fallback: Vec<&Candidate> = candidates
@@ -230,8 +266,11 @@ fn scheduled<'a, 'p>(
             .filter(|candidate| candidate.anniversary_distance_days <= SEASONAL_TRIP_BAND_DAYS)
             .collect();
         if fallback.is_empty() {
-            fallback = candidates.iter().collect();
-            fallback.sort_by_key(|candidate| evergreen_rank(candidate));
+            fallback = candidates
+                .iter()
+                .filter(|candidate| !is_day_trip(candidate.trip))
+                .collect();
+            fallback.sort_by_key(|candidate| rotation_rank(candidate));
         } else {
             fallback.sort_by_key(|candidate| seasonal_rank(candidate));
         }
@@ -253,7 +292,19 @@ fn seasonal_rank<'c>(candidate: &'c Candidate) -> (bool, i64, Option<i64>, Rever
     )
 }
 
-fn evergreen_rank<'c>(candidate: &'c Candidate) -> (bool, Option<i64>, i64, Reverse<i64>, &'c str) {
+fn evergreen_rank<'c>(
+    candidate: &'c Candidate,
+) -> (Reverse<i64>, Option<i64>, i64, Reverse<i64>, &'c str) {
+    (
+        Reverse(nights(candidate.trip)),
+        candidate.last_shown,
+        candidate.anniversary_distance_days,
+        Reverse(candidate.trip.average_creation_time()),
+        &candidate.trip.key,
+    )
+}
+
+fn rotation_rank<'c>(candidate: &'c Candidate) -> (bool, Option<i64>, i64, Reverse<i64>, &'c str) {
     (
         !candidate.cooldown_expired,
         candidate.last_shown,
@@ -261,6 +312,33 @@ fn evergreen_rank<'c>(candidate: &'c Candidate) -> (bool, Option<i64>, i64, Reve
         Reverse(candidate.trip.average_creation_time()),
         &candidate.trip.key,
     )
+}
+
+fn waited(last_shown: Option<i64>, now: i64, days: i64) -> bool {
+    last_shown.is_none_or(|shown| now - shown >= days * MICROS_PER_DAY)
+}
+
+fn is_evergreen_showing(trip: &Trip, start: i64, period: Period) -> bool {
+    let showing = Period {
+        now: start,
+        ..period
+    };
+    anniversary_distance_days(trip, showing) > SEASONAL_TRIP_BAND_DAYS
+}
+
+fn nights(trip: &Trip) -> i64 {
+    trip.last.date.days_since_epoch() - trip.first.date.days_since_epoch()
+}
+
+fn is_day_trip(trip: &Trip) -> bool {
+    nights(trip) == 0
+}
+
+fn title<'t>(trip: &'t Trip) -> Title<'t> {
+    match &trip.location_name {
+        Some(name) => Title::Place(name),
+        None => Title::Year(trip.year()),
+    }
 }
 
 fn trip_memory(
