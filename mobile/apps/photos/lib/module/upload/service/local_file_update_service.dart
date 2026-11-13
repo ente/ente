@@ -183,7 +183,8 @@ class LocalFileUpdateService {
         }
         processedIDs.add(file.localID!);
       } catch (e, s) {
-        _logger.severe("Failed to check hash", e, s);
+        _logger.severe("Failed to check hash for ${file.tag}", e, s);
+        processedIDs.add(file.localID!);
       }
     }
     await _fileUpdationDB.deleteByLocalIDs(
