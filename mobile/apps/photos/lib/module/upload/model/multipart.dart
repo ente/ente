@@ -64,13 +64,3 @@ class MultipartUploadURLs {
     );
   }
 }
-
-({DateTime issuedAt, Duration validFor})? presignedURLValidity(String url) {
-  final query = Uri.tryParse(url)?.queryParameters;
-  final issuedAt = DateTime.tryParse(query?["X-Amz-Date"] ?? "");
-  final seconds = int.tryParse(query?["X-Amz-Expires"] ?? "");
-  if (issuedAt == null || !issuedAt.isUtc || seconds == null) {
-    return null;
-  }
-  return (issuedAt: issuedAt, validFor: Duration(seconds: seconds));
-}

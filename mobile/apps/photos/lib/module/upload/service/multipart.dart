@@ -151,30 +151,6 @@ class MultiPartUploader {
     );
   }
 
-  Future<void> _throwIfURLsExpired(
-    MultipartInfo multipartInfo,
-    String localId,
-  ) async {
-    if (multipartInfo.status == MultipartStatus.completed) {
-      return;
-    }
-    final validity = presignedURLValidity(multipartInfo.urls.completeURL);
-    if (validity == null) {
-      return;
-    }
-    final age = DateTime.now().toUtc().difference(validity.issuedAt);
-    if (age < validity.validFor) {
-      return;
-    }
-    await _db.deleteMultipartTrack(localId);
-    throw MultiPartUrlExpiredError(
-      "size=${multipartInfo.encFileSize} "
-      "ageHours=${age.inHours} "
-      "validHours=${validity.validFor.inHours} "
-      "status=${multipartInfo.status.name}",
-    );
-  }
-
   Future<String> putExistingMultipartFile(
     File encryptedFile,
     String localId,
@@ -189,7 +165,6 @@ class MultiPartUploader {
       collectionID,
       encryptedFileName,
     );
-    await _throwIfURLsExpired(multipartInfo, localId);
     await _db.updateLastAttempted(localId, fileHash, collectionID);
 
     Map<int, String> etags = multipartInfo.partETags ?? {};
@@ -215,10 +190,16 @@ class MultiPartUploader {
           await _db.deleteMultipartTrack(localId);
         }
         if (e.response?.statusCode == 403) {
-          _logger.severe(
-            "Multipart upload forbidden or expired ${multipartInfo.urls.objectKey}",
-          );
           await _db.deleteMultipartTrack(localId);
+          Error.throwWithStackTrace(
+            MultiPartError(
+              "HTTP 403 uploading multipart parts: "
+              "sizeBytes=${multipartInfo.encFileSize} "
+              "partCount=${multipartInfo.urls.partsURLs.length} "
+              "resumeStatus=${multipartInfo.status.name}",
+            ),
+            e.stackTrace,
+          );
         }
         rethrow;
       }
@@ -250,10 +231,16 @@ class MultiPartUploader {
           await _db.deleteMultipartTrack(localId);
         }
         if (e.response?.statusCode == 403) {
-          _logger.severe(
-            "Multipart upload forbidden or expired ${multipartInfo.urls.objectKey}",
-          );
           await _db.deleteMultipartTrack(localId);
+          Error.throwWithStackTrace(
+            MultiPartError(
+              "HTTP 403 completing multipart upload: "
+              "sizeBytes=${multipartInfo.encFileSize} "
+              "partCount=${multipartInfo.urls.partsURLs.length} "
+              "resumeStatus=${multipartInfo.status.name}",
+            ),
+            e.stackTrace,
+          );
         }
         rethrow;
       }
