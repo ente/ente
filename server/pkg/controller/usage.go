@@ -75,7 +75,7 @@ func (c *UsageController) canUploadFileWithCache(ctx context.Context, userID int
 		c.mu.Unlock()
 		if ok && canUpload {
 			go func() {
-				_ = c.checkAndUpdateCache(ctx, userID, size, app, checkPhotoFileLimit)
+				_ = c.checkAndUpdateCache(context.Background(), userID, size, app, checkPhotoFileLimit)
 			}()
 			return nil
 		}

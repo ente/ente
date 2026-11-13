@@ -16,9 +16,12 @@ import (
 	"time"
 
 	"github.com/ente/museum/ente"
+	"github.com/ente/museum/ente/cache"
 	"github.com/ente/museum/internal/testutil"
+	"github.com/ente/museum/pkg/controller/usercache"
 	"github.com/ente/museum/pkg/repo"
 	"github.com/ente/museum/pkg/repo/public"
+	storagebonusrepo "github.com/ente/museum/pkg/repo/storagebonus"
 	"github.com/ente/museum/pkg/utils/s3config"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
@@ -36,15 +39,23 @@ func TestFileRegistrationBucketSwitch(t *testing.T) {
 		file      string
 		thumbnail string
 		hot       string
+		failover  bool
 	}{
 		{name: "B2 to Wasabi", file: fileBucketB2, thumbnail: fileBucketB2, hot: fileBucketWasabi},
 		{name: "Wasabi to B2", file: fileBucketWasabi, thumbnail: fileBucketWasabi, hot: fileBucketB2},
 		{name: "mixed buckets", file: fileBucketB2, thumbnail: fileBucketWasabi, hot: fileBucketWasabi},
+		{name: "B2 failover", file: fileBucketB2, thumbnail: fileBucketB2, hot: fileBucketWasabi, failover: true},
+		{name: "Wasabi failover", file: fileBucketWasabi, thumbnail: fileBucketWasabi, hot: fileBucketB2, failover: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			test := newFileBucketTest(t)
 			file := test.newFile(t, tc.file, tc.thumbnail)
-			test.switchBucket(tc.hot)
+			if tc.failover {
+				require.True(t, test.controller.S3Config.FailoverHotStorage())
+				require.Equal(t, tc.hot, test.controller.S3Config.GetHotDataCenter())
+			} else {
+				test.switchBucket(tc.hot)
+			}
 			created, err := test.controller.Create(fileBucketContext(http.MethodPost), file.OwnerID, file, "test", ente.Photos)
 			require.NoError(t, err)
 			test.assertObject(t, created.ID, ente.FILE, file.File.ObjectKey, 100, []string{tc.file})
@@ -402,6 +413,9 @@ func newFileBucketTest(t *testing.T) *fileBucketTest {
 			UsageCtrl: &UsageController{
 				UserRepo: users, UsageRepo: &repo.UsageRepository{DB: db}, UploadResultCache: make(map[int64]bool),
 				BillingCtrl: &BillingController{UserRepo: users, BillingRepo: &repo.BillingRepository{DB: db}},
+				UserCacheCtrl: &usercache.Controller{
+					UserCache: cache.NewUserCache(), StoreBonusRepo: &storagebonusrepo.Repository{DB: db},
+				},
 			},
 		},
 	}

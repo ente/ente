@@ -164,7 +164,7 @@ func (h *FileHandler) GetUploadURLV2(c *gin.Context) {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
-	url, err := h.Controller.GetUploadURLWithMetadata(c, userID, req, enteApp, network.GetClientInfo(c))
+	url, err := h.Controller.GetUploadURLWithMetadata(c.Request.Context(), userID, req, enteApp, network.GetClientInfo(c))
 	if err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
@@ -195,7 +195,7 @@ func (h *FileHandler) GetMultipartUploadURLV2(c *gin.Context) {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
-	upload, err := h.Controller.GetMultipartUploadURLWithMetadata(c, userID, req, enteApp, network.GetClientInfo(c))
+	upload, err := h.Controller.GetMultipartUploadURLWithMetadata(c.Request.Context(), userID, req, enteApp, network.GetClientInfo(c))
 	if err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return

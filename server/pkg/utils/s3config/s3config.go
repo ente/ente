@@ -3,6 +3,7 @@ package s3config
 import (
 	"fmt"
 	"slices"
+	"sync/atomic"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -19,6 +20,8 @@ type S3Config struct {
 	buckets                   map[string]string
 	hotDC                     string
 	secondaryHotDC            string
+	hotStorageFailedOver      atomic.Bool
+	uploadFailover            uploadFailover
 	derivedStorageDC          string
 	s3Configs                 map[string]*aws.Config
 	s3Clients                 map[string]s3.S3
@@ -181,24 +184,40 @@ func (config *S3Config) GetS3Client(dcOrBucketID string) s3.S3 {
 }
 
 func (config *S3Config) GetHotDataCenter() string {
-	return config.hotDC
+	primary, _ := config.GetHotDataCenters()
+	return primary
 }
 
-func (config *S3Config) GetSecondaryHotDataCenter() string {
-	return config.secondaryHotDC
+func (config *S3Config) GetHotDataCenters() (string, string) {
+	if config.hotStorageFailedOver.Load() {
+		return config.secondaryHotDC, config.hotDC
+	}
+	return config.hotDC, config.secondaryHotDC
 }
 
-func (config *S3Config) GetHotBucket() *string {
-	return config.GetBucket(config.hotDC)
+func (config *S3Config) CanFailoverHotStorage() bool {
+	if !((config.hotDC == dcB2EuropeCentral && config.secondaryHotDC == dcWasabiEuropeCentral_v3) ||
+		(config.hotDC == dcWasabiEuropeCentral_v3 && config.secondaryHotDC == dcB2EuropeCentral)) {
+		return false
+	}
+	for _, dc := range []string{config.hotDC, config.secondaryHotDC} {
+		s3Config := config.s3Configs[dc]
+		if config.buckets[dc] == "" || aws.StringValue(s3Config.Endpoint) == "" || aws.StringValue(s3Config.Region) == "" {
+			return false
+		}
+		if _, err := s3Config.Credentials.Get(); err != nil {
+			return false
+		}
+	}
+	return true
 }
 
-func (config *S3Config) GetHotS3Config() *aws.Config {
-	return config.GetS3Config(config.hotDC)
+func (config *S3Config) FailoverHotStorage() bool {
+	return config.CanFailoverHotStorage() && config.hotStorageFailedOver.CompareAndSwap(false, true)
 }
 
-func (config *S3Config) GetHotS3Client() *s3.S3 {
-	s3Client := config.GetS3Client(config.hotDC)
-	return &s3Client
+func (config *S3Config) HasHotStorageFailedOver() bool {
+	return config.hotStorageFailedOver.Load()
 }
 
 func (config *S3Config) GetDerivedStorageDataCenter() string {
