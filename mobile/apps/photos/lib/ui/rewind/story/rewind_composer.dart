@@ -227,7 +227,7 @@ RewindChapter _crowdFavourite(rust.CrowdFavourite? crowd) {
   return RewindChapter.revealed(likesSetupPage, "crowd_favourite", (media) {
     for (final liked in crowd?.photos ?? const <rust.LikedPhoto>[]) {
       final file = media.photo(liked.fileId);
-      if (file != null) return CrowdFavouritePage(liked, file);
+      if (file != null) return CrowdFavouritePage(file);
     }
     return null;
   });

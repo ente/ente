@@ -137,9 +137,13 @@ class TopPercentPage extends RewindPage {
                       active: isActive,
                       delayMs: textDelay,
                       child: Center(
-                        child: Text(
-                          "ACROSS ENTE, YOU’RE IN THE",
-                          style: RewindTextStyles.display(17, height: 1.05),
+                        child: RewindVoice(
+                          you: "ACROSS ENTE, YOU’RE IN THE",
+                          me: "ACROSS ENTE, I’M IN THE",
+                          builder: (text) => Text(
+                            text,
+                            style: RewindTextStyles.display(17, height: 1.05),
+                          ),
                         ),
                       ),
                     ),

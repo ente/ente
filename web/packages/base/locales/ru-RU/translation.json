@@ -539,6 +539,8 @@
     "photos_count": "{{count, number}} воспоминания",
     "terms_and_conditions": "Я согласен с тем, что <a> условия </a> и <b>политика конфиденциальности</b>",
     "people": "Люди",
+    "add_more_people": "",
+    "only_them": "",
     "people_count_one": "",
     "people_count_other": "",
     "people_photo_count_one": "",

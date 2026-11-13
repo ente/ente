@@ -744,9 +744,13 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
         child: _leave(
           110,
           swap(
-            Text(
-              travelled ? "YOUR PHOTOS TRAVELLED" : "YOUR TOP PLACE",
-              style: RewindTextStyles.display(17, letterSpacing: 0.3),
+            RewindVoice(
+              you: travelled ? "YOUR PHOTOS TRAVELLED" : "YOUR TOP PLACE",
+              me: travelled ? "MY PHOTOS TRAVELLED" : "MY TOP PLACE",
+              builder: (text) => Text(
+                text,
+                style: RewindTextStyles.display(17, letterSpacing: 0.3),
+              ),
             ),
           ),
         ),
@@ -808,6 +812,6 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
           "${winner.name} won with $winning.";
     }
     return "${pick.name} had ${rewindCount(pick.photoCount)}. "
-        "${winner.name} ran away with ${rewindCount(winner.photoCount)}.";
+        "${winner.name} won with $winning.";
   }
 }

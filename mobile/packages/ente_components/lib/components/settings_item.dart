@@ -1,12 +1,12 @@
 import 'dart:async';
 
 import 'package:ente_components/components/menu_component.dart';
+import 'package:ente_components/hugeicons.dart';
 import 'package:ente_components/theme/colors.dart';
 import 'package:ente_components/theme/icon_sizes.dart';
 import 'package:ente_components/theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:hugeicons/hugeicons.dart';
 
 class SettingsItem extends StatelessWidget {
   const SettingsItem({

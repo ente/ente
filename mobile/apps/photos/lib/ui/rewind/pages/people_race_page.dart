@@ -257,7 +257,7 @@ class _PeopleRaceState extends State<_PeopleRace>
 
   void _finish() {
     _phase = _Phase.done;
-    _cue = _verdict;
+    _cue = _verdict();
     _cueDetail = "";
     unawaited(
       _pick == 0 ? HapticFeedback.mediumImpact() : HapticFeedback.lightImpact(),
@@ -272,12 +272,12 @@ class _PeopleRaceState extends State<_PeopleRace>
     for (final (rank, runner) in _order.indexed) {
       _lanes[runner].x = _rankLanes[rank];
     }
-    _cue = _verdict;
+    _cue = _verdict();
     _cueDetail = "";
   }
 
-  String get _verdict => switch (_pick) {
-    0 => "YOU CALLED IT!",
+  String _verdict({bool firstPerson = false}) => switch (_pick) {
+    0 => firstPerson ? "I CALLED IT!" : "YOU CALLED IT!",
     1 => "SO CLOSE!",
     _ => "NOT THIS YEAR!",
   };
@@ -365,14 +365,18 @@ class _PeopleRaceState extends State<_PeopleRace>
           child: RewindFitWidth(
             width: 370,
             alignment: Alignment.center,
-            child: Text(
-              _cue,
-              textAlign: TextAlign.center,
-              style: RewindTextStyles.display(
-                20,
-                color: RewindColors.white,
-                height: 1.1,
-                letterSpacing: 0.4,
+            child: RewindVoice(
+              you: _cue,
+              me: _phase == _Phase.done ? _verdict(firstPerson: true) : _cue,
+              builder: (text) => Text(
+                text,
+                textAlign: TextAlign.center,
+                style: RewindTextStyles.display(
+                  20,
+                  color: RewindColors.white,
+                  height: 1.1,
+                  letterSpacing: 0.4,
+                ),
               ),
             ),
           ),
@@ -691,9 +695,13 @@ class _PickTag extends StatelessWidget {
         color: RewindColors.ink,
         borderRadius: BorderRadius.circular(7),
       ),
-      child: Text(
-        "YOUR PICK",
-        style: RewindTextStyles.display(13, height: 1, letterSpacing: 0.3),
+      child: RewindVoice(
+        you: "YOUR PICK",
+        me: "MY PICK",
+        builder: (text) => Text(
+          text,
+          style: RewindTextStyles.display(13, height: 1, letterSpacing: 0.3),
+        ),
       ),
     );
   }

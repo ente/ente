@@ -51,6 +51,7 @@ func TestInsertCastDataReturnsDeviceID(t *testing.T) {
 	t.Cleanup(func() {
 		testutil.ResetTables(t, db)
 	})
+	testutil.InsertUser(t, db, testutil.UserFixture{UserID: 1, Email: "cast@example.com", CreationTime: 1})
 	repository := &Repository{DB: db}
 	deviceID := uuid.New()
 	_, err := db.Exec(

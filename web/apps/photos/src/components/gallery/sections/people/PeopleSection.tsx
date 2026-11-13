@@ -46,6 +46,7 @@ export const PeopleSection = ({
     return (
         <GallerySectionLayout
             presentation={presentation}
+            showFirstLoadStatus={!!activePerson}
             navigation={
                 <PeopleNavigation
                     {...presentation}
@@ -61,13 +62,14 @@ export const PeopleSection = ({
                     key={activePerson.id}
                     {...{ library, operations, navigation, view, activePerson }}
                 />
-            ) : !library.isFirstLoad ? (
+            ) : (
                 <PeopleOverview
                     people={view.visiblePeople}
                     allPeople={view.people}
                     peopleSortBy={preferences.peopleSortBy}
+                    isFirstLoad={library.isFirstLoad}
                 />
-            ) : null}
+            )}
         </GallerySectionLayout>
     );
 };

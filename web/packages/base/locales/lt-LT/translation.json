@@ -539,6 +539,8 @@
     "photos_count": "{{count, number}} prisiminimai (-ų)",
     "terms_and_conditions": "Sutinku su <a>sąlygomis</a> ir <b>privatumo politika</b>",
     "people": "Asmenys",
+    "add_more_people": "",
+    "only_them": "",
     "people_count_one": "",
     "people_count_other": "",
     "people_photo_count_one": "",

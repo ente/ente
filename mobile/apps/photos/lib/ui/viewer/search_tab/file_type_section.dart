@@ -1,11 +1,11 @@
 import "dart:async";
 import "dart:math" as math;
 
+import "package:ente_components/hugeicons.dart";
 import "package:ente_components/theme/text_styles.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/material.dart";
 import "package:flutter_svg/flutter_svg.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:logging/logging.dart";
 import "package:photos/models/file/file_type.dart";
 import "package:photos/models/search/generic_search_result.dart";

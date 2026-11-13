@@ -36,6 +36,16 @@ abstract final class RewindTextStyles {
     leadingDistribution: TextLeadingDistribution.even,
   );
 
+  static TextStyle phonetic(double size, {Color color = RewindColors.cream}) =>
+      TextStyle(
+        inherit: false,
+        fontSize: size,
+        height: 1.3,
+        fontWeight: FontWeight.w500,
+        color: color,
+        leadingDistribution: TextLeadingDistribution.even,
+      );
+
   static TextStyle numeral(double size, {Color color = RewindColors.cream}) =>
       TextStyle(
         inherit: false,

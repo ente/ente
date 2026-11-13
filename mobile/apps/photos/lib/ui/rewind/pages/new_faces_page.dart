@@ -108,7 +108,7 @@ class NewFacesPage extends RewindPage {
   }) {
     final count = newFaces.count;
     final title = count == 1 ? "1 NEW FACE" : "${rewindCount(count)} NEW FACES";
-    const line = "debuted in your frame this year.";
+    const line = "debuted in your gallery this year.";
     final shown = min(faces.length, _bubbles.length);
     final centering =
         _boundsOf(_bubbles).center - _boundsOf(_bubbles.take(shown)).center;
@@ -175,7 +175,12 @@ class NewFacesPage extends RewindPage {
                     position: position,
                     active: isActive,
                     delayMs: 1350,
-                    child: Text(line, style: RewindTextStyles.body(17)),
+                    child: RewindVoice(
+                      you: line,
+                      me: "debuted in my gallery this year.",
+                      builder: (text) =>
+                          Text(text, style: RewindTextStyles.body(17)),
+                    ),
                   ),
                 ],
               ),

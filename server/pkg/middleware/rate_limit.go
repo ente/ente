@@ -306,6 +306,10 @@ func (r *RateLimitMiddleware) getLimiter(reqPath string, reqMethod string) *limi
 	if isAuthenticatedUploadURLPath(reqPath) {
 		return r.limit500ReqPerMin
 	}
+	if reqPath == "/files/data/preview-upload-url" ||
+		reqPath == "/files/data/multipart-preview-upload-url" {
+		return r.limit10ReqPerMin
+	}
 	if isPublicCollectionUploadURLPath(reqPath) {
 		return r.limit250ReqPerMin
 	}

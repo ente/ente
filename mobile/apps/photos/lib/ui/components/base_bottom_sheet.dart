@@ -1,5 +1,5 @@
+import "package:ente_components/hugeicons.dart";
 import "package:flutter/material.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:photos/theme/ente_theme.dart";
 
 Future<T?> showBaseBottomSheet<T>(

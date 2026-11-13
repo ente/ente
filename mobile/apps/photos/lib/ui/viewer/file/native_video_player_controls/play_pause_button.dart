@@ -1,7 +1,7 @@
 import "dart:async";
 
+import "package:ente_components/hugeicons.dart";
 import "package:flutter/material.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:native_video_player/native_video_player.dart";
 import "package:photos/theme/colors.dart";
 

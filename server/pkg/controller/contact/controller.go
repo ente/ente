@@ -187,7 +187,7 @@ func (c *Controller) GetAttachmentUploadURL(ctx *gin.Context, attachmentTypeRaw 
 		ContentLength: aws.Int64(req.ContentLength),
 		ContentMD5:    aws.String(req.ContentMD5),
 	})
-	url, err := putReq.Presign(basecontroller.PreSignedRequestValidityDuration)
+	url, err := putReq.Presign(ente.UploadURLValidity(&req.ContentLength))
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to presign profile picture upload url")
 	}

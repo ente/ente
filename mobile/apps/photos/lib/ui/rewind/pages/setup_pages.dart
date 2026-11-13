@@ -14,15 +14,15 @@ const paletteSetupPage = SetupPage(
   chrome: RewindChrome.dark,
   headlines: [
     SetupHeadline(
-      "YOUR YEAR\nHAD A COLOUR\nPALETTE.",
+      "YOUR YEAR\nHAD A COLOR",
       at: Offset(32, 126),
-      size: 47,
+      size: 56,
       height: 0.84,
       width: 326,
     ),
   ],
   callout: SetupCallout(
-    "AND IT WAS\nVERY YOU.",
+    "IT LOOKS GOOD\nON YOU!",
     center: Offset(178, 422.5),
     delayMs: 600,
     onTop: true,
@@ -65,11 +65,11 @@ const spotsSetupPage = SetupPage(
   ink: RewindColors.ink,
   chrome: RewindChrome.dark,
   headlines: [
-    SetupHeadline("YOU HAVE\nYOUR SPOTS.", at: Offset(24, 140), size: 54),
+    SetupHeadline("SAME SPOTS,\nNEW SHOTS.", at: Offset(24, 140), size: 54),
   ],
   callout: SetupCallout(
-    "WE NOTICED.",
-    center: Offset(215.2, 385.5),
+    "A LITTLE DÉJÀ VIEW!",
+    center: Offset(195, 385.5),
     delayMs: 600,
   ),
   art: SetupArt.ducky(
@@ -137,8 +137,8 @@ const newFacesSetupPage = SetupPage(
     SetupHeadline("THE CAST GOT\nBIGGER", at: Offset(24, 140), size: 39),
   ],
   callout: SetupCallout(
-    "WELCOME TO FAM!",
-    center: Offset(186.6, 334.2),
+    "WELCOME TO THE FAM!",
+    center: Offset(195, 334.2),
     turn: -4.5,
   ),
   art: SetupArt.ducky(
@@ -154,10 +154,14 @@ const favouritesSetupPage = SetupPage(
   pattern: Color(0xFFFF4D9F),
   ink: RewindColors.cream,
   headlines: [
-    SetupHeadline("SOME PHOTOS\nHIT DIFFERENT.", at: Offset(24, 140), size: 48),
+    SetupHeadline(
+      "SOME PHOTOS JUST\nHIT DIFFERENT.",
+      at: Offset(24, 140),
+      size: 48,
+    ),
   ],
   callout: SetupCallout(
-    "AND THEY GOT A STAR!",
+    "THEY DESERVE A STAR!",
     center: Offset(199, 391),
     size: 29.01,
   ),
@@ -204,9 +208,9 @@ const likesSetupPage = SetupPage(
   pattern: Color(0xFF3670EB),
   ink: RewindColors.cream,
   headlines: [
-    SetupHeadline("SOME PHOTOS\nGOT LIKES.", at: Offset(24, 140), size: 48),
+    SetupHeadline("YOUR FEED\nWAS LIT!", at: Offset(24, 140), size: 48),
   ],
-  callout: SetupCallout("ONE GOT A LOT.", center: Offset(188.2, 383.5)),
+  callout: SetupCallout("’SPECIALLY THIS ONE.", center: Offset(188.2, 383.5)),
   art: SetupArt.image(
     RewindAssets.polaroidHugDucky,
     Rect.fromLTWH(46, 434, 296, 328),
@@ -219,11 +223,7 @@ const badgeSetupPage = SetupPage(
   pattern: Color(0xFF11B72A),
   ink: RewindColors.cream,
   headlines: [
-    SetupHeadline(
-      "WE STUDIED\nYOUR CAMERA\nROLL.",
-      at: Offset(24, 140),
-      size: 45,
-    ),
+    SetupHeadline("BASED ON\nYOUR GALLERY…", at: Offset(24, 140), size: 45),
   ],
   callout: SetupCallout(
     "I HAVE A THEORY ABOUT YOU",

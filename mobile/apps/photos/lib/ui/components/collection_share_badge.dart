@@ -1,6 +1,6 @@
+import "package:ente_components/hugeicons.dart";
 import "package:ente_icons/ente_icons.dart";
 import "package:flutter/material.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/viewer/actions/select_all_status_icon.dart";
 

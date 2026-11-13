@@ -1,13 +1,13 @@
 import 'dart:math' as math;
 
 import 'package:ente_components/components/chip_surface.dart';
+import 'package:ente_components/hugeicons.dart';
 import 'package:ente_components/theme/colors.dart';
 import 'package:ente_components/theme/icon_sizes.dart';
 import 'package:ente_components/theme/spacing.dart';
 import 'package:ente_components/theme/text_styles.dart';
 import 'package:ente_components/theme/theme.dart';
 import 'package:flutter/material.dart';
-import 'package:hugeicons/hugeicons.dart';
 
 enum FilterChipComponentState { selected, unselected, disabled }
 

@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:ente_components/components/navigation_card_component.dart';
+import 'package:ente_components/hugeicons.dart';
 import 'package:ente_components/theme/theme.dart';
 import 'package:flutter/material.dart';
-import 'package:hugeicons/hugeicons.dart';
 
 class FamilyCard extends StatelessWidget {
   const FamilyCard({

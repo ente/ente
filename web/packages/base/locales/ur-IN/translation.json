@@ -539,6 +539,8 @@
     "photos_count": "{{count, number}} یادیں",
     "terms_and_conditions": "میں <a>شرائط</a> اور <b>پرائیویسی پالیسی</b> سے متفق ہوں",
     "people": "لوگ",
+    "add_more_people": "",
+    "only_them": "",
     "people_count_one": "",
     "people_count_other": "",
     "people_photo_count_one": "",
