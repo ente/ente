@@ -323,7 +323,7 @@ Live Photos behave differently depending on how you share them:
 
 ### Why do my Live Photos show up as a separate photo and video? {#live-photo-not-paired}
 
-When you upload from a computer, Ente combines a photo and video into one Live Photo only when both files have the same name (apart from the extension), are in the same folder, were created within a day of each other, and are each under 20 MB. Downloads from other services, such as a Google Photos shared album, often rename one of the parts or leave out the video. Those files upload as a separate photo and video. To keep Live Photos intact, back them up from your iPhone with the Ente app.
+When you upload from a computer, Ente uses the photo and video's file names, location, and dates to pair them as one Live Photo. It can also recognise some filename suffixes and Google Takeout metadata. Downloads from other services, such as a Google Photos shared album, may rename one of the parts or leave out the video. If Ente cannot pair the files, they appear as a separate photo and video. To keep Live Photos intact, back them up from your iPhone with the Ente app.
 
 ### Can I save just the still image from a Live Photo or remove its motion clip? {#live-photo-still-only}
 

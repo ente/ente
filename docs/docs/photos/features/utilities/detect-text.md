@@ -35,7 +35,7 @@ Detect Text lets you pull text out of your photos without leaving Ente Photos. R
 
 After copying, the text stays on your clipboard so you can paste it into messages, notes, or other apps.
 
-Detect Text runs only when you touch and hold on text in a photo. It doesn't scan your library in the background, so there's no setting to turn it off.
+Touch and hold on text in a photo to select it. On Live and Motion Photos, Ente may check for text regions when you open the photo. Detect Text doesn't scan your library in the background, and there is no setting to turn it off.
 
 ## Tips
 

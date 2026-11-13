@@ -94,7 +94,7 @@ On the sign-in screen, enter your email, then tap **Forgot password?** on the pa
 
 If you use the same account in Ente Photos or Locker, it has the same password and recovery key there.
 
-Ente can't reset your password or see your codes. If you've lost both your password and your recovery key, your codes can't be recovered. If you want to start over with the same email, see [I've lost my password and recovery key. Can I start over with the same email?](/photos/faq/security-and-privacy#start-fresh-same-email). You'll then need to set up 2FA again with each service.
+Ente can't reset your password or see your codes. If you've lost both your password and recovery key, check for a signed-in device, an export, or another recovery option before starting over. Without any of these, your codes can't be recovered. If you want to start over with the same email, see [I've lost my password and recovery key. Can I start over with the same email?](/photos/faq/security-and-privacy#start-fresh-same-email). You'll then need to set up 2FA again with each service.
 
 ### Can I change my recovery key if it was exposed? {#change-recovery-key}
 
