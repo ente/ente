@@ -860,7 +860,7 @@ class _AlbumsTabState extends State<AlbumsTab>
     final selectedAlbums = widget.selectedAlbums;
     final albumsOptionsButton = Builder(
       builder: (buttonContext) => IconButtonComponent(
-        tooltip: strings.filters,
+        tooltip: strings.sort,
         variant: IconButtonComponentVariant.primary,
         shouldSurfaceExecutionStates: false,
         icon: const HugeIcon(icon: HugeIcons.strokeRoundedFilterHorizontal),

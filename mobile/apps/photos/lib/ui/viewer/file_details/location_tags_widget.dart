@@ -105,13 +105,10 @@ class _LocationTagsWidgetState extends State<LocationTagsWidget> {
       widget.file.location!,
     );
     if (!mounted) return const [];
+    setState(() {
+      title = context.strings.location;
+    });
     if (locationTags.isEmpty) {
-      if (mounted) {
-        setState(() {
-          title = context.strings.location;
-        });
-      }
-      if (!mounted) return const [];
       return [
         FilterChipComponent(
           label: context.strings.addLocation,
@@ -120,11 +117,6 @@ class _LocationTagsWidgetState extends State<LocationTagsWidget> {
         ),
       ];
     } else {
-      if (mounted) {
-        setState(() {
-          title = context.strings.location;
-        });
-      }
       final result = locationTags
           .map<Widget>(
             (locationTagEntity) => FilterChipComponent(

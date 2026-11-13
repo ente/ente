@@ -24,7 +24,7 @@ class GalleryAppBarIconButtonSurface extends StatelessWidget {
           padding: const EdgeInsets.all(Spacing.sm),
           child: IconTheme.merge(
             data: IconThemeData(color: colors.textBase, size: IconSizes.small),
-            child: icon,
+            child: ExcludeSemantics(child: icon),
           ),
         ),
       ),
