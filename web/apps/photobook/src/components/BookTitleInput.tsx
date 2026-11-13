@@ -1,8 +1,9 @@
 import { useBook } from "@/context/book";
+import { getSpineTitle } from "@/lib/printProducts";
 import { headerButtonSx } from "@/theme/buttons";
 import { uiColors } from "@/theme/colors";
 import { Box, useMediaQuery } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MOBILE_QUERY } from "./editorLayout";
 import MobileTextDialog from "./MobileTextDialog";
 
@@ -14,16 +15,13 @@ export default function BookTitleInput({
     const compact = useMediaQuery(MOBILE_QUERY);
     const [editing, setEditing] = useState(false);
     const { book, setBook } = useBook("book", "setBook");
-    const bookTitle =
-        book.title === "Untitled photobook (for spine)"
-            ? ""
-            : (book.title ?? "");
+    const bookTitle = getSpineTitle(book.title);
     const [title, setTitle] = useState(bookTitle);
-    const [focused, setFocused] = useState(false);
+    const editingInline = useRef(false);
 
     useEffect(() => {
-        if (!focused) setTitle(bookTitle);
-    }, [bookTitle, focused]);
+        if (!editingInline.current) setTitle(bookTitle);
+    }, [bookTitle]);
 
     return (
         <>
@@ -38,13 +36,18 @@ export default function BookTitleInput({
                 onClick={compact ? () => setEditing(true) : undefined}
                 onChange={(event) => setTitle(event.target.value)}
                 onFocus={() => {
-                    if (!compact) setFocused(true);
+                    editingInline.current = !compact;
                 }}
                 onBlur={() => {
-                    setFocused(false);
-                    if (title !== bookTitle) {
-                        setBook((previous) => ({ ...previous, title }));
-                    }
+                    if (!editingInline.current) return;
+                    editingInline.current = false;
+                    const nextTitle = getSpineTitle(title);
+                    setTitle(nextTitle);
+                    if (nextTitle !== bookTitle)
+                        setBook((previous) => ({
+                            ...previous,
+                            title: nextTitle,
+                        }));
                 }}
                 onKeyDown={(event) => {
                     if (event.key === "Enter") {

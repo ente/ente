@@ -177,23 +177,23 @@ function bookWithBlankPage(count: number) {
     return pages;
 }
 
-test("hardcover and softcover export the same content without printer-added blanks", async () => {
+test("layflat and softcover export the same content without printer-added blanks", async () => {
     const pages = bookWithBlankPage(24);
     const original = structuredClone(pages);
-    const hardcover = await exportPdfX4Pages(
+    const layflat = await exportPdfX4Pages(
         pages,
-        getBindingPrintSelection("Hardcover"),
+        getBindingPrintSelection("Layflat"),
     );
     const softcover = await exportPdfX4Pages(
         pages,
         getBindingPrintSelection("Softcover"),
     );
     assert.deepEqual(
-        JSON.parse(await hardcover.text()),
+        JSON.parse(await layflat.text()),
         JSON.parse(await softcover.text()),
     );
     assert.equal(
-        (JSON.parse(await hardcover.text()) as { pages: CanvasRecord[] }).pages
+        (JSON.parse(await layflat.text()) as { pages: CanvasRecord[] }).pages
             .length,
         24,
     );
@@ -288,7 +288,7 @@ for (const [format, runExport] of [
     ["PNG", exportPngPagesZip],
 ] as const) {
     test(`${format} rejects invalid product counts before rendering or reporting progress`, async () => {
-        for (const count of [0, 2, 20, 301]) {
+        for (const count of [0, 2, 16, 101]) {
             const before = canvasCount;
             let progressCalls = 0;
             await assert.rejects(
@@ -309,7 +309,7 @@ for (const [format, runExport] of [
     test(`${format} cannot bypass validation with an unknown product or unsupported size`, async () => {
         for (const selection of [
             { productId: "unknown", sizeMm: 210 },
-            { productId: "hardcover-gloss-200", sizeMm: 211 },
+            { productId: "layflat-gloss-190", sizeMm: 211 },
             { productId: "softcover-gloss-150", sizeMm: 211 },
         ] as PrintSelection[]) {
             const before = canvasCount;
@@ -341,22 +341,6 @@ test("softcover requires 24 pages and rejects the former 20-page minimum", async
     const zip = await JSZip.loadAsync(await png.arrayBuffer());
     assert.equal(pdf.pages.length, 24);
     assert.equal(Object.keys(zip.files).length, 24);
-});
-
-test("150 gsm hardcover accepts a 500-page PDF while other hardcover paper rejects it", async () => {
-    const pages = bookWithBlankPage(500);
-    const selection: PrintSelection = {
-        productId: "hardcover-gloss-150",
-        sizeMm: 210,
-    };
-    const result = JSON.parse(
-        await (await exportPdfX4Pages(pages, selection)).text(),
-    ) as { pages: CanvasRecord[] };
-    assert.equal(result.pages.length, 500);
-    await assert.rejects(
-        exportPdfX4Pages(pages, DEFAULT_PRINT_SELECTION),
-        PrintExportValidationError,
-    );
 });
 
 test("PNG dimensions match 210 mm pages at 300 DPI", async () => {

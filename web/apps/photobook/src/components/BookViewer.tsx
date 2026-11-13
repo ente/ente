@@ -216,12 +216,7 @@ const BookViewer = forwardRef<BookViewerHandle, BookViewerProps>(
                     element.dataset.spineEdge =
                         index % 2 === 0 ? "left" : "right";
                 }
-                setPreviewPageDensity(
-                    element,
-                    binding,
-                    index,
-                    flipPages.length,
-                );
+                setPreviewPageDensity(element, binding);
                 if (pageIndex === null)
                     element.setAttribute("aria-label", "Blank page (required)");
                 root.appendChild(element);

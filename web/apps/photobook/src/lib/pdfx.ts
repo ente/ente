@@ -19,20 +19,21 @@ export async function createPdfWriter(size: PdfXPageSize) {
         size.widthMm,
         size.heightMm,
     );
-    const chunks: Uint8Array<ArrayBuffer>[] = [];
+    const chunks: Blob[] = [];
     return {
         async addPage(canvas: HTMLCanvasElement) {
-            const { data } = canvas
+            const { data, width, height } = canvas
                 .getContext("2d")!
                 .getImageData(0, 0, canvas.width, canvas.height);
+            canvas.width = 0;
             const pixels = new Uint8Array(data.buffer);
-            chunks.push(
-                await writer.addPage(pixels, canvas.width, canvas.height),
-            );
+            const chunk = await writer.addPage(pixels, width, height);
+            chunks.push(new Blob([chunk]));
         },
         async finish() {
-            chunks.push(await writer.finish());
-            return new Blob(chunks, { type: "application/pdf" });
+            return new Blob([...chunks, await writer.finish()], {
+                type: "application/pdf",
+            });
         },
         dispose() {
             writer.dispose();

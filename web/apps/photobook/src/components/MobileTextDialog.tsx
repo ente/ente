@@ -22,19 +22,26 @@ import { CloseIcon, TitleIcon } from "./icons";
 export default function MobileTextDialog({
     title,
     description,
+    placeholder,
     value,
     multiline = false,
+    actionLabel = "Save",
+    isValid,
     onSave,
     onClose,
 }: {
     title: string;
     description?: string;
+    placeholder?: string;
     value: string;
     multiline?: boolean;
+    actionLabel?: string;
+    isValid?: (value: string) => boolean;
     onSave: (value: string) => void;
     onClose: () => void;
 }) {
     const [draft, setDraft] = useState(value);
+    const canSave = !isValid || isValid(draft);
     const [viewport, setViewport] = useState<{ height: number; top: number }>();
     useEffect(() => {
         const visualViewport = window.visualViewport;
@@ -53,6 +60,7 @@ export default function MobileTextDialog({
         };
     }, []);
     const save = () => {
+        if (!canSave) return;
         onSave(draft);
         onClose();
     };
@@ -131,6 +139,8 @@ export default function MobileTextDialog({
                     <TextField
                         autoFocus
                         fullWidth
+                        placeholder={placeholder}
+                        required={isValid && !isValid("")}
                         multiline={multiline}
                         minRows={multiline ? 3 : undefined}
                         maxRows={6}
@@ -180,10 +190,11 @@ export default function MobileTextDialog({
                         variant="contained"
                         fullWidth
                         onClick={save}
+                        disabled={!canSave}
                         onMouseDown={(event) => event.preventDefault()}
                         sx={dialogActionSx}
                     >
-                        Save
+                        {actionLabel}
                     </Button>
                 </Box>
             </Box>

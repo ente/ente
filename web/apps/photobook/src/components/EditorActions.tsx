@@ -1,6 +1,8 @@
 import { useBook } from "@/context/book";
+import { useSpineTitlePrompt } from "@/hooks/useSpineTitlePrompt";
 import { normalizeBookPages } from "@/lib/bookPages";
 import {
+    DEFAULT_PRINT_SELECTION,
     getBindingPrintSelection,
     getPrintBinding,
     getPrintExportError,
@@ -121,11 +123,13 @@ export function EditorPreviewButton() {
         "processingPhotos",
     );
     const [validation, setValidation] = useState<PrintValidation | null>(null);
+    const { withSpineTitle, spineTitleDialog } = useSpineTitlePrompt();
 
     const handlePreview = () => {
-        const selection = getBindingPrintSelection(
-            getPrintBinding(book.printSelection),
-        );
+        const binding = getPrintBinding(book.printSelection);
+        const selection = binding
+            ? getBindingPrintSelection(binding)
+            : DEFAULT_PRINT_SELECTION;
         const pageCount = normalizeBookPages(book.pages).length;
         const error = getPrintExportError(selection, pageCount);
         if (error) {
@@ -141,7 +145,7 @@ export function EditorPreviewButton() {
                 variant="contained"
                 aria-label="Preview"
                 startIcon={<PreviewIcon />}
-                onClick={handlePreview}
+                onClick={() => withSpineTitle(handlePreview)}
                 disabled={processingPhotos || book.pages.length === 0}
                 sx={headerButtonSx}
             >
@@ -152,6 +156,7 @@ export function EditorPreviewButton() {
                     Preview
                 </Box>
             </Button>
+            {spineTitleDialog}
             {validation && (
                 <PrintValidationDialog
                     validation={validation}

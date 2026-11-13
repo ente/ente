@@ -1,0 +1,30 @@
+{
+    "$schema": "../node_modules/wrangler/config-schema.json",
+    "name": "photobook-orders",
+    "main": "worker.js",
+    "compatibility_date": "2026-10-01",
+    "workers_dev": false,
+    "preview_urls": false,
+    "routes": [
+        { "pattern": "photobook-orders.ente.com", "custom_domain": true }
+    ],
+    "vars": {
+        "PUBLIC_ORIGIN": "https://photobook-orders.ente.com",
+        "SHOPIFY_SHOP_DOMAIN": "ente-swag.myshopify.com",
+        "SHOPIFY_SOFTCOVER_VARIANT_ID": "71893823586557",
+        "SHOPIFY_LAYFLAT_VARIANT_ID": "71893823619325"
+    },
+    "r2_buckets": [
+        { "binding": "BOOKS", "bucket_name": "photobook-orders", "jurisdiction": "eu" }
+    ],
+    "queues": {
+        "producers": [{ "binding": "EVENTS", "queue": "photobook-orders" }],
+        "consumers": [{
+            "queue": "photobook-orders",
+            "max_batch_size": 1,
+            "max_retries": 24,
+            "dead_letter_queue": "photobook-orders-failed"
+        }]
+    },
+    "observability": { "enabled": true, "logs": { "invocation_logs": false } }
+}
