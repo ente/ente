@@ -461,7 +461,7 @@ class _SummaryCard extends StatelessWidget {
                         vertical: 6,
                       ),
                       child: Text(
-                        "${typeLabelBuilder(entry.key)} ${entry.key == MemoryType.trips ? entry.value.whereType<TripMemory>().where((m) => m.locationName == null || !m.locationName!.toLowerCase().contains("base")).length : entry.value.length}",
+                        "${typeLabelBuilder(entry.key)} ${entry.key == MemoryType.trips ? entry.value.whereType<TripMemory>().where((m) => !m.isBase).length : entry.value.length}",
                         style: textTheme.mini,
                       ),
                     ),

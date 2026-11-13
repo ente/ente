@@ -4,6 +4,10 @@ import "package:photos/models/memories/memory.dart";
 import "package:photos/models/memories/smart_memory.dart";
 
 class TripMemory extends SmartMemory {
+  static final _baseNamePattern = RegExp(
+    r"(^Base \(|\(Base, )(current|old)\)$",
+  );
+
   final Location location;
   final String? tripKey;
 
@@ -23,6 +27,14 @@ class TripMemory extends SmartMemory {
     super.lastCreationTime,
     super.capMemories,
   }) : super(memories, MemoryType.trips, '', firstDateToShow, lastDateToShow);
+
+  static String baseName(String? place, {required bool isCurrent}) {
+    final status = isCurrent ? "current" : "old";
+    return place == null ? "Base ($status)" : "$place (Base, $status)";
+  }
+
+  bool get isBase =>
+      locationName != null && _baseNamePattern.hasMatch(locationName!);
 
   TripMemory copyWith({
     List<Memory>? memories,
@@ -50,7 +62,7 @@ class TripMemory extends SmartMemory {
   String createTitle(StringsLocalizations locals, String languageCode) {
     assert(locationName != null || tripYear != null);
     if (locationName != null) {
-      if (locationName!.toLowerCase().contains("base")) return locationName!;
+      if (isBase) return locationName!;
       return locals.tripToLocation(location: locationName!);
     }
     if (tripYear != null) {

@@ -1150,14 +1150,14 @@ mod tests {
     fn a_day_trip_on_the_day_you_come_back_from_another_trip_is_not_held_back_by_it() {
         let mut files = library(
             vec![
-                stay(1000, "2024-06-10T09:00:00", 12, 240, PARIS),
-                stay(2000, "2024-06-12T14:00:00", 16, 20, GRONINGEN),
+                stay(1000, "2024-10-20T09:00:00", 12, 240, PARIS),
+                stay(2000, "2024-10-22T14:00:00", 16, 20, GRONINGEN),
             ],
             &AMSTERDAM_HOME,
         );
         files.push(located_file(
             900_000,
-            micros("2024-06-12T10:00:00"),
+            micros("2024-10-22T10:00:00"),
             AMSTERDAM,
         ));
         let (paris, groningen) = (trip_key(&files, "Paris"), trip_key(&files, "Groningen"));
