@@ -2,11 +2,11 @@ import 'dart:ui' as ui;
 
 import 'package:adaptive_theme/adaptive_theme.dart';
 import 'package:ente_components/ente_components.dart';
+import 'package:ente_components/hugeicons.dart';
 import 'package:ente_photos_platform/ente_photos_platform.dart';
 import 'package:ente_strings/ente_strings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:hugeicons/hugeicons.dart';
 import 'package:logging/logging.dart';
 import 'package:photos/ente_theme_data.dart';
 import 'package:photos/locale.dart';

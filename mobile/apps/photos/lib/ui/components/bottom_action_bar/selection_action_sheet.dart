@@ -2,11 +2,11 @@ import "dart:async";
 import "dart:math" as math;
 
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/foundation.dart" show ValueListenable;
 import "package:flutter/material.dart";
 import "package:flutter/rendering.dart" show ScrollDirection;
-import "package:hugeicons/hugeicons.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_boundaries_provider.dart";
 
 class SelectionSheetAction {

@@ -2,12 +2,12 @@ import "dart:math" as math;
 import "dart:ui" as ui;
 
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
 import "package:figma_squircle/figma_squircle.dart";
 import "package:flutter/foundation.dart" show ValueListenable;
 import "package:flutter/material.dart";
 import "package:flutter/rendering.dart";
 import "package:flutter/services.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:intl/intl.dart";
 import "package:photos/core/constants.dart";
 import "package:photos/models/collection/collection.dart";

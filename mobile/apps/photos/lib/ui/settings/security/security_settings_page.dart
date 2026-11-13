@@ -2,6 +2,7 @@ import "dart:async";
 import "dart:typed_data";
 
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
 import "package:ente_crypto/ente_crypto.dart";
 import "package:ente_lock_screen/auth_util.dart";
 import "package:ente_lock_screen/local_authentication_service.dart";
@@ -9,7 +10,6 @@ import "package:ente_lock_screen/ui/lock_screen_options.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:local_auth/local_auth.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/configuration.dart";

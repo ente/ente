@@ -2,9 +2,9 @@ import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:ente_components/ente_components.dart';
+import 'package:ente_components/hugeicons.dart';
 import 'package:ente_strings/ente_strings.dart';
 import 'package:flutter/material.dart';
-import 'package:hugeicons/hugeicons.dart';
 import 'package:locker/services/scanner/scanner_models.dart';
 import 'package:locker/ui/pages/scanner/capture_flight.dart';
 import 'package:locker/ui/pages/scanner/delayed_reveal.dart';

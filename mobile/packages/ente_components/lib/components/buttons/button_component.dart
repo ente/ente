@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:ente_components/hugeicons.dart';
 import 'package:ente_components/models/component_execution_state.dart';
 import 'package:ente_components/theme/colors.dart';
 import 'package:ente_components/theme/icon_sizes.dart';
@@ -10,7 +11,6 @@ import 'package:ente_components/theme/text_styles.dart';
 import 'package:ente_components/theme/theme.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:hugeicons/hugeicons.dart';
 
 enum ButtonComponentVariant {
   primary,

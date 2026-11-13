@@ -1,9 +1,9 @@
 import "dart:math" as math;
 
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
 import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
-import "package:hugeicons/hugeicons.dart";
 
 Future<T?> showAlbumActionsSheet<T>(
   BuildContext context,

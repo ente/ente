@@ -1,6 +1,6 @@
 import 'package:ente_components/ente_components.dart';
+import 'package:ente_components/hugeicons.dart';
 import 'package:flutter/material.dart';
-import 'package:hugeicons/hugeicons.dart';
 import 'package:locker/models/info/info_item.dart';
 import 'package:locker/utils/file_icon_utils.dart';
 
