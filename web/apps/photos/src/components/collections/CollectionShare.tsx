@@ -89,6 +89,7 @@ import {
     createPublicURL,
     refreshCollection,
     removePublicLink,
+    savedAllCollections,
     shareCollection,
     unshareCollection,
     updateCollectionLayout,
@@ -308,7 +309,7 @@ export const CollectionShare: React.FC<CollectionShareProps> = ({
     const { showLoadingBar, hideLoadingBar } = usePhotosAppContext();
 
     const [collection, setCollection] = useState(collectionProp);
-    const hasFetchedPublicURLs = useRef(false);
+    const pendingPublicURLCollectionID = useRef<number | undefined>(undefined);
     const [sharingRefresh, setSharingRefresh] = useState<{
         collectionID: number;
         status: "loading" | "ready" | "error";
@@ -317,12 +318,38 @@ export const CollectionShare: React.FC<CollectionShareProps> = ({
 
     // Do not replace fetched public URLs with an older prop snapshot.
     useEffect(() => {
+        let cancelled = false;
         if (
-            !hasFetchedPublicURLs.current ||
+            pendingPublicURLCollectionID.current != collectionProp?.id ||
             collectionProp?.publicURLs?.length > 0
         ) {
+            pendingPublicURLCollectionID.current = undefined;
             setCollection(collectionProp);
+        } else {
+            void savedAllCollections()
+                .then((collections) => {
+                    const saved = collections.find(
+                        (item) => item.id == collectionProp.id,
+                    );
+                    if (
+                        !cancelled &&
+                        pendingPublicURLCollectionID.current ==
+                            collectionProp.id &&
+                        saved
+                    ) {
+                        if (saved.publicURLs.length == 0) {
+                            pendingPublicURLCollectionID.current = undefined;
+                        }
+                        setCollection(saved);
+                    }
+                })
+                .catch((e: unknown) =>
+                    log.error("[CollectionShare] Failed to read collection", e),
+                );
         }
+        return () => {
+            cancelled = true;
+        };
     }, [collectionProp]);
 
     // TODO: Duplicated from CollectionHeader.tsx
@@ -359,7 +386,7 @@ export const CollectionShare: React.FC<CollectionShareProps> = ({
 
     useEffect(() => {
         if (!open) {
-            hasFetchedPublicURLs.current = false;
+            pendingPublicURLCollectionID.current = undefined;
             setSharingRefresh(undefined);
         }
     }, [open]);
@@ -367,11 +394,16 @@ export const CollectionShare: React.FC<CollectionShareProps> = ({
     const collectionID = collectionProp?.id;
     const collectionType = collectionProp?.type;
     const syncDiscoveredPublicLink = useEffectEvent((latest: Collection) => {
-        if (
-            collectionSummary?.type == "sharedIncoming" &&
-            user.id != collectionProp.owner.id &&
+        const discovered =
             collectionProp.publicURLs.length == 0 &&
-            latest.publicURLs.length > 0
+            latest.publicURLs.length > 0;
+        pendingPublicURLCollectionID.current = discovered
+            ? latest.id
+            : undefined;
+        if (
+            discovered &&
+            collectionSummary?.type == "sharedIncoming" &&
+            user.id != collectionProp.owner.id
         ) {
             void onRemotePull({ silent: true }).catch((e: unknown) =>
                 log.error("[CollectionShare] Failed to sync public link", e),
@@ -392,8 +424,6 @@ export const CollectionShare: React.FC<CollectionShareProps> = ({
             try {
                 const latestCollection = await refreshCollection(collectionID);
                 if (!cancelled && latestCollection) {
-                    hasFetchedPublicURLs.current =
-                        latestCollection.publicURLs.length > 0;
                     setCollection(latestCollection);
                     setSharingRefresh({ collectionID, status: "ready" });
                     syncDiscoveredPublicLink(latestCollection);
@@ -494,12 +524,7 @@ export const CollectionShare: React.FC<CollectionShareProps> = ({
                     ) : null}
                     {sharingReady && isSharedIncoming ? (
                         <SharingDetails
-                            {...{
-                                user,
-                                collection,
-                                collectionSummary,
-                                emailByUserID,
-                            }}
+                            {...{ user, collection, emailByUserID }}
                         />
                     ) : null}
                 </Stack>
@@ -568,13 +593,12 @@ const ResolvedEmailText: React.FC<{
 
 type SharingDetailsProps = Pick<
     CollectionShareProps,
-    "user" | "collection" | "emailByUserID" | "collectionSummary"
+    "user" | "collection" | "emailByUserID"
 >;
 
 const SharingDetails: React.FC<SharingDetailsProps> = ({
     user,
     collection,
-    collectionSummary,
     emailByUserID,
 }) => {
     const isOwner = user.id == collection.owner?.id;
@@ -655,7 +679,7 @@ const SharingDetails: React.FC<SharingDetailsProps> = ({
                     </RowButtonGroup>
                 </Stack>
             )}
-            {collectionSummary.attributes.has("sharedIncomingCollaborator") &&
+            {currentSharee?.role == "COLLABORATOR" &&
                 collaborators.length > 0 && (
                     <Stack>
                         <RowButtonGroupTitle icon={<ModeEditIcon />}>
