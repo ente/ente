@@ -794,6 +794,7 @@ class FileUploader {
       if ((isMultipartUpload || hasExistingMultiPart) &&
           isPutOrMultiPartError(e)) {
         await UploadLocksDB.instance.deleteMultipartTrack(lockKey);
+        await deleteFileSystemEntityIfPresent(File(encryptedFilePath));
       }
       rethrow;
     } finally {

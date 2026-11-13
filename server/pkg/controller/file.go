@@ -1085,7 +1085,7 @@ func (c *FileController) getObjectURL(object ente.TempObject) (ente.UploadURL, e
 		ContentMD5:    object.ContentMD5,
 	}
 	r, _ := s3Client.PutObjectRequest(input)
-	url, err := r.Presign(PreSignedRequestValidityDuration)
+	url, err := r.Presign(ente.UploadURLValidity(object.ContentLength))
 	if err != nil {
 		return ente.UploadURL{}, stacktrace.Propagate(err, "")
 	}
@@ -1129,9 +1129,10 @@ func (c *FileController) GetMultipartUploadURLs(ctx context.Context, userID int6
 		return ente.MultipartUploadURLs{}, stacktrace.Propagate(err, "")
 	}
 	multipartUploadURLs := ente.MultipartUploadURLs{ObjectKey: objectKey}
+	validity := ente.MultipartUploadURLValidity
 	urls := make([]string, 0)
 	for i := 0; i < count; i++ {
-		url, err := c.getPartURL(*s3Client, objectKey, int64(i+1), r.UploadId, nil, nil)
+		url, err := c.getPartURL(*s3Client, objectKey, int64(i+1), r.UploadId, nil, nil, validity)
 		if err != nil {
 			return multipartUploadURLs, stacktrace.Propagate(err, "")
 		}
@@ -1143,7 +1144,7 @@ func (c *FileController) GetMultipartUploadURLs(ctx context.Context, userID int6
 		Key:      &objectKey,
 		UploadId: r.UploadId,
 	})
-	url, err := r2.Presign(PreSignedRequestValidityDuration)
+	url, err := r2.Presign(validity)
 	if err != nil {
 		return multipartUploadURLs, stacktrace.Propagate(err, "")
 	}
@@ -1216,6 +1217,7 @@ func (c *FileController) GetMultipartUploadURLWithMetadata(ctx context.Context, 
 		return ente.MultipartUploadURLs{}, stacktrace.Propagate(err, "")
 	}
 	multipartUploadURLs := ente.MultipartUploadURLs{ObjectKey: objectKey}
+	validity := ente.MultipartUploadURLValidity
 	urls := make([]string, 0, partCount)
 	for i := 0; i < partCount; i++ {
 		partNumber := int64(i + 1)
@@ -1224,7 +1226,7 @@ func (c *FileController) GetMultipartUploadURLWithMetadata(ctx context.Context, 
 		if normalizedChecksums != nil {
 			checksum = &normalizedChecksums[i]
 		}
-		url, err := c.getPartURL(*s3Client, objectKey, partNumber, r.UploadId, &length, checksum)
+		url, err := c.getPartURL(*s3Client, objectKey, partNumber, r.UploadId, &length, checksum, validity)
 		if err != nil {
 			return multipartUploadURLs, stacktrace.Propagate(err, "")
 		}
@@ -1236,7 +1238,7 @@ func (c *FileController) GetMultipartUploadURLWithMetadata(ctx context.Context, 
 		Key:      &objectKey,
 		UploadId: r.UploadId,
 	})
-	url, err := r2.Presign(PreSignedRequestValidityDuration)
+	url, err := r2.Presign(validity)
 	if err != nil {
 		return multipartUploadURLs, stacktrace.Propagate(err, "")
 	}
@@ -1244,7 +1246,7 @@ func (c *FileController) GetMultipartUploadURLWithMetadata(ctx context.Context, 
 	return multipartUploadURLs, nil
 }
 
-func (c *FileController) getPartURL(s3Client s3.S3, objectKey string, partNumber int64, uploadID *string, contentLength *int64, contentMD5 *string) (string, error) {
+func (c *FileController) getPartURL(s3Client s3.S3, objectKey string, partNumber int64, uploadID *string, contentLength *int64, contentMD5 *string, validity gTime.Duration) (string, error) {
 	input := &s3.UploadPartInput{
 		Bucket:     c.S3Config.GetHotBucket(),
 		Key:        &objectKey,
@@ -1258,7 +1260,7 @@ func (c *FileController) getPartURL(s3Client s3.S3, objectKey string, partNumber
 		input.ContentMD5 = contentMD5
 	}
 	r, _ := s3Client.UploadPartRequest(input)
-	url, err := r.Presign(PreSignedPartUploadRequestDuration)
+	url, err := r.Presign(validity)
 	if err != nil {
 		return "", stacktrace.Propagate(err, "")
 	}
