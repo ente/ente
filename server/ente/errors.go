@@ -76,6 +76,12 @@ var ErrFamilySizeLimitReached = errors.New("can't invite new member, family alre
 
 var ErrUserDeleted = errors.New("user account has been deleted")
 
+var ErrUserSuspended = &ApiError{
+	Code:           "ACCOUNT_SUSPENDED",
+	Message:        "This account has been suspended",
+	HttpStatusCode: http.StatusForbidden,
+}
+
 var ErrLockUnavailable = errors.New("could not acquire lock")
 
 var ErrActiveLinkAlreadyExists = errors.New("link already exists for this entity")

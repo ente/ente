@@ -330,8 +330,10 @@ export const App: React.FC = () => {
                                 FETCH
                             </Button>
                             <AdHocActions
+                                key={userData?.userID ?? selectedUserEmail}
                                 email={selectedUserEmail}
                                 activeUserID={userData?.userID}
+                                isSuspended={userData?.isSuspended ?? false}
                                 scheduledDeletions={scheduledDeletions}
                                 scheduledDeletionsLoading={
                                     scheduledDeletionsLoading
@@ -341,7 +343,7 @@ export const App: React.FC = () => {
                                 }
                                 disabled={!fetchSuccess || loading}
                                 onOpen={loadScheduledDeletions}
-                                onRecovered={() =>
+                                onAccountChanged={() =>
                                     fetchData(selectedUserEmail, authToken)
                                 }
                             />
@@ -518,9 +520,15 @@ const buildUserDetailsData = (
     return {
         email: userResponse.user.email || userSearchInput,
         userID: userResponse.user.ID,
+        isSuspended: userResponse.user.isSuspended,
         showFileCountInitializer:
             photosFileCount === -1 && lockerFileCount === -1,
         user: [
+            {
+                kind: "text",
+                label: "Account status",
+                value: userResponse.user.isSuspended ? "Suspended" : "Active",
+            },
             {
                 kind: "text",
                 label: "User ID",

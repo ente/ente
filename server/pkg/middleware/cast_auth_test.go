@@ -31,6 +31,7 @@ func TestCastAuthRejectsRevokedToken(t *testing.T) {
 
 	const userID = int64(92001)
 	const collectionID = int64(92002)
+	testutil.InsertUser(t, db, testutil.UserFixture{UserID: userID, Email: "cast-auth@example.com", CreationTime: 1})
 	deviceID := uuid.New()
 	const token = "cast-auth-test-token"
 	_, err := db.Exec(
