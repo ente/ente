@@ -11,6 +11,7 @@ import "package:photos/db/files_db.dart";
 import "package:photos/db/ml/db.dart";
 import "package:photos/db/offline_files_db.dart";
 import "package:photos/events/contacts_changed_event.dart";
+import "package:photos/events/face_data_updated_event.dart";
 import "package:photos/events/people_changed_event.dart";
 import 'package:photos/models/file/file.dart';
 import "package:photos/models/ml/face/face_with_embedding.dart";
@@ -65,9 +66,10 @@ class PersonFaceWidget extends StatefulWidget {
 }
 
 class _PersonFaceWidgetState extends State<PersonFaceWidget>
-    with AutomaticKeepAliveClientMixin {
+    with AutomaticKeepAliveClientMixin, WidgetsBindingObserver {
   Future<Uint8List?>? faceCropFuture;
   int? _faceCropFileId;
+  int? _preferredFaceFileID;
   AvatarIdentity? _personIdentity;
   bool _showingFallback = false;
   bool _faceCropFailed = false;
@@ -76,8 +78,15 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
   int? _linkedContactUserId;
   int _loadGeneration = 0;
   int _faceCropRetryRevision = 0;
+  bool _usingAlternativeFace = false;
+  bool _reloadingFaceData = false;
+  final _faceCropCandidateFileIDs = <int>{};
+  final _faceHydrationAttemptedFileIDs = <int>{};
+  final _unavailableFaceDataFileIDs = <int>{};
+  final _attemptedFaceCropIDs = <String>{};
   StreamSubscription<ContactsChangedEvent>? _contactsChangedSubscription;
   StreamSubscription<PeopleChangedEvent>? _peopleChangedSubscription;
+  StreamSubscription<FaceDataUpdatedEvent>? _faceDataUpdatedSubscription;
 
   bool get isPerson => widget.personId != null;
 
@@ -87,6 +96,7 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _contactsChangedSubscription = Bus.instance
         .on<ContactsChangedEvent>()
         .listen(_onContactsChanged);
@@ -94,9 +104,14 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
       event,
     ) {
       if (mounted && isPerson && event.person?.remoteID == widget.personId) {
-        setState(() => faceCropFuture = _startFaceCropLoad());
+        setState(() {
+          faceCropFuture = _startFaceCropLoad();
+        });
       }
     });
+    _faceDataUpdatedSubscription = Bus.instance
+        .on<FaceDataUpdatedEvent>()
+        .listen(_onFaceDataUpdated);
     faceCropFuture = _startFaceCropLoad();
   }
 
@@ -119,8 +134,10 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _contactsChangedSubscription?.cancel();
     _peopleChangedSubscription?.cancel();
+    _faceDataUpdatedSubscription?.cancel();
     if (_faceCropFileId != null) {
       checkStopTryingToGenerateFaceThumbnails(
         _faceCropFileId!,
@@ -136,6 +153,15 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
     super.dispose();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    _faceCropRetryRevision++;
+    if (_faceCropFailed || _usingAlternativeFace) {
+      unawaited(_reloadAfterFaceDataUpdate());
+    }
+  }
+
   void _onContactsChanged(ContactsChangedEvent event) {
     if (!isPerson || !mounted) {
       return;
@@ -149,6 +175,47 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
       setState(() {
         faceCropFuture = _startFaceCropLoad();
       });
+    }
+  }
+
+  void _onFaceDataUpdated(FaceDataUpdatedEvent event) {
+    if (!mounted ||
+        event.localGallery != isLocalGalleryMode ||
+        !event.fileIDs.any(_faceCropCandidateFileIDs.contains)) {
+      return;
+    }
+    if (_usingAlternativeFace &&
+        !_faceCropFailed &&
+        !event.fileIDs.contains(_preferredFaceFileID)) {
+      return;
+    }
+    _faceCropRetryRevision++;
+    if ((_faceCropFailed || _usingAlternativeFace) && !_reloadingFaceData) {
+      unawaited(_reloadAfterFaceDataUpdate());
+    }
+  }
+
+  Future<void> _reloadAfterFaceDataUpdate() async {
+    if (!mounted || _reloadingFaceData) return;
+    _reloadingFaceData = true;
+    final generation = _loadGeneration;
+    try {
+      await checkRemoveCachedFaceIDForPersonOrClusterId(
+        widget.personId ?? widget.clusterID!,
+      );
+      if (_isCurrentLoad(generation)) {
+        setState(() {
+          faceCropFuture = _startFaceCropLoad(retryRemote: false);
+        });
+      }
+    } catch (e, s) {
+      _logger.warning(
+        "Failed to refresh face thumbnail after face data update",
+        e,
+        s,
+      );
+    } finally {
+      _reloadingFaceData = false;
     }
   }
 
@@ -222,15 +289,22 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
     );
   }
 
-  Future<Uint8List?> _startFaceCropLoad() async {
+  Future<Uint8List?> _startFaceCropLoad({bool retryRemote = true}) async {
     final generation = ++_loadGeneration;
+    if (retryRemote) _unavailableFaceDataFileIDs.clear();
+    _faceCropCandidateFileIDs.clear();
+    _faceHydrationAttemptedFileIDs.clear();
     while (true) {
+      _usingAlternativeFace = false;
+      _preferredFaceFileID = null;
+      _attemptedFaceCropIDs.clear();
       _faceCropFailed = false;
       final retryRevision = _faceCropRetryRevision;
       try {
         final crop = await _loadFaceCrop(generation);
         if (_isCurrentLoad(generation)) _faceCropFailed = crop == null;
-        if (crop != null || !_hasNewFaceCropRetry(generation, retryRevision)) {
+        if (!_hasNewFaceCropRetry(generation, retryRevision) ||
+            (crop != null && !_usingAlternativeFace)) {
           return crop;
         }
       } catch (_) {
@@ -241,10 +315,7 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
   }
 
   bool _hasNewFaceCropRetry(int generation, int retryRevision) =>
-      mounted &&
-      _isCurrentLoad(generation) &&
-      widget.retryKey != null &&
-      _faceCropRetryRevision != retryRevision;
+      _isCurrentLoad(generation) && _faceCropRetryRevision != retryRevision;
 
   Future<Uint8List?> _loadFaceCrop(int generation) async {
     final String personOrClusterId = widget.personId ?? widget.clusterID!;
@@ -257,7 +328,8 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
         _fallbackEverUsed = true;
         _showingFallback = false;
       }
-      return thumbnailCrop;
+      if (thumbnailCrop != null || isLocalGalleryMode) return thumbnailCrop;
+      return _getAlternativeFaceCrop(generation);
     }
 
     final Uint8List? fullCrop = await _getFaceCrop(
@@ -290,6 +362,118 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
     _logger.warning(
       "Thumbnail fallback also unavailable for $personOrClusterId.",
     );
+    return isLocalGalleryMode ? null : _getAlternativeFaceCrop(generation);
+  }
+
+  Future<Uint8List?> _getAlternativeFaceCrop(int generation) async {
+    final retryRevision = _faceCropRetryRevision;
+    final db = MLDataDB.instance;
+    final assigned = isPerson
+        ? await db.getFaceIDsForPerson(widget.personId!)
+        : await db.getFaceIDsForCluster(widget.clusterID!);
+    if (!_isCurrentLoad(generation) || isLocalGalleryMode) return null;
+    _faceCropCandidateFileIDs.addAll(
+      assigned.map((faceID) => getFileIdFromFaceId<int>(faceID)),
+    );
+    final candidates = isPerson
+        ? await db.getFaceIDsForPersonOrderedByScore(
+            widget.personId!,
+            limit: -1,
+          )
+        : await db.getFaceIDsForClusterOrderedByScore(
+            widget.clusterID!,
+            limit: -1,
+          );
+    final hiddenFileIDs = await SearchService.instance.getHiddenFiles().then(
+      (files) => files.map((file) => file.uploadedFileID).toSet(),
+    );
+    final uncached = <String>[];
+    for (final faceID in candidates) {
+      if (!_isCurrentLoad(generation) ||
+          isLocalGalleryMode ||
+          _hasNewFaceCropRetry(generation, retryRevision)) {
+        return null;
+      }
+      if (_attemptedFaceCropIDs.contains(faceID) ||
+          hiddenFileIDs.contains(getFileIdFromFaceId<int>(faceID))) {
+        continue;
+      }
+      final crop = await _tryAlternativeFaceCrop(
+        faceID,
+        generation,
+        allowGeneration: false,
+      );
+      if (crop != null) return crop;
+      uncached.add(faceID);
+    }
+    for (final faceID in uncached) {
+      if (!_isCurrentLoad(generation) ||
+          isLocalGalleryMode ||
+          _hasNewFaceCropRetry(generation, retryRevision)) {
+        return null;
+      }
+      final crop = await _tryAlternativeFaceCrop(
+        faceID,
+        generation,
+        allowGeneration: true,
+      );
+      if (crop != null) return crop;
+    }
+    return null;
+  }
+
+  Future<Uint8List?> _tryAlternativeFaceCrop(
+    String faceID,
+    int generation, {
+    required bool allowGeneration,
+  }) async {
+    final token = Configuration.instance.getToken();
+    final fileID = getFileIdFromFaceId<int>(faceID);
+    final file = await FilesDB.instance.getAnyUploadedFile(fileID);
+    if (file == null) return null;
+    final faces = await MLDataDB.instance.getFacesForGivenFileID(fileID);
+    FaceWithoutEmbedding? face;
+    for (final candidate in faces ?? <FaceWithoutEmbedding>[]) {
+      if (candidate.faceID == faceID) {
+        face = candidate;
+        break;
+      }
+    }
+    if (face == null ||
+        !_isCurrentLoad(generation) ||
+        isLocalGalleryMode ||
+        Configuration.instance.getToken() != token) {
+      return null;
+    }
+    _faceCropFileId = fileID;
+    if (allowGeneration) _attemptedFaceCropIDs.add(faceID);
+    for (final useFullFile in widget.useFullFile ? [true, false] : [false]) {
+      final crops = await getCachedFaceCrops(
+        file,
+        [face],
+        useFullFile: useFullFile,
+        allowGeneration: allowGeneration,
+        useTempCache: false,
+      );
+      if (!_isCurrentLoad(generation) ||
+          isLocalGalleryMode ||
+          Configuration.instance.getToken() != token) {
+        return null;
+      }
+      final crop = crops?[faceID];
+      if (crop == null) continue;
+      await putFaceIdCachedForPersonOrCluster(
+        widget.personId ?? widget.clusterID!,
+        faceID,
+      );
+      if (!_isCurrentLoad(generation)) {
+        return null;
+      }
+      _usingAlternativeFace = true;
+      _showingFallback = widget.useFullFile && !useFullFile;
+      _fallbackEverUsed = _fallbackEverUsed || !useFullFile;
+      return crop;
+    }
     return null;
   }
 
@@ -299,7 +483,9 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
   }) async {
     try {
       final String personOrClusterId = widget.personId ?? widget.clusterID!;
+      final accountToken = Configuration.instance.getToken();
       String? fixedFaceID;
+      Iterable<String>? assignedFaceIDs;
       PersonEntity? personEntity;
       final mlDataDB = isLocalGalleryMode
           ? MLDataDB.localGalleryInstance
@@ -347,13 +533,21 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
         _linkedContactUserId = null;
         _personIdentity = null;
       }
-      final tryInMemoryCachedCrop = checkInMemoryCachedCropForPersonOrClusterID(
+      final cachedFaceID = await checkUsedFaceIDForPersonOrClusterId(
         personOrClusterId,
       );
-      if (tryInMemoryCachedCrop != null) return tryInMemoryCachedCrop;
-      fixedFaceID ??= await checkUsedFaceIDForPersonOrClusterId(
-        personOrClusterId,
-      );
+      if (fixedFaceID == null || fixedFaceID == cachedFaceID) {
+        final cachedCrop = checkInMemoryCachedCropForPersonOrClusterID(
+          personOrClusterId,
+        );
+        if (cachedCrop != null) return cachedCrop;
+      }
+      fixedFaceID ??= cachedFaceID;
+      if (!_isCurrentLoad(generation)) return null;
+      if (fixedFaceID != null && !isLocalGalleryMode) {
+        _preferredFaceFileID = getFileIdFromFaceId<int>(fixedFaceID);
+        _faceCropCandidateFileIDs.add(_preferredFaceFileID!);
+      }
 
       EnteFile? fileForFaceCrop;
       if (isLocalGalleryMode) {
@@ -417,7 +611,7 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
       } else {
         final hiddenFileIDs = await SearchService.instance
             .getHiddenFiles()
-            .then((onValue) => onValue.map((e) => e.uploadedFileID));
+            .then((onValue) => onValue.map((e) => e.uploadedFileID).toSet());
         if (fixedFaceID != null) {
           final fileID = getFileIdFromFaceId<int>(fixedFaceID);
           final fileInDB = await FilesDB.instance.getAnyUploadedFile(fileID);
@@ -440,19 +634,27 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
           }
         }
         if (fileForFaceCrop == null) {
-          final List<String> allFaces = isPerson
+          final scoredFaces = isPerson
               ? await mlDataDB.getFaceIDsForPersonOrderedByScore(
                   widget.personId!,
+                  limit: -1,
                 )
               : await mlDataDB.getFaceIDsForClusterOrderedByScore(
                   widget.clusterID!,
+                  limit: -1,
                 );
+          final assignedFaces = isPerson
+              ? await mlDataDB.getFaceIDsForPerson(widget.personId!)
+              : await mlDataDB.getFaceIDsForCluster(widget.clusterID!);
+          if (!_isCurrentLoad(generation)) return null;
+          assignedFaceIDs = assignedFaces;
+          _faceCropCandidateFileIDs.addAll(
+            assignedFaces.map((faceID) => getFileIdFromFaceId<int>(faceID)),
+          );
+          final allFaces = <String>{...scoredFaces, ...assignedFaces};
           for (final faceID in allFaces) {
             final fileID = getFileIdFromFaceId<int>(faceID);
             if (hiddenFileIDs.contains(fileID)) {
-              _logger.info(
-                "File with ID $fileID is hidden, skipping it for face crop.",
-              );
               continue;
             }
             fileForFaceCrop = await FilesDB.instance.getAnyUploadedFile(fileID);
@@ -493,12 +695,51 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
         );
         return null;
       }
-      final FaceWithoutEmbedding? face = await mlDataDB.getCoverFaceForPerson(
+      if (!_isCurrentLoad(generation)) return null;
+      _faceCropCandidateFileIDs.add(recentFileID);
+      _preferredFaceFileID ??= recentFileID;
+      _faceCropFileId = recentFileID;
+      FaceWithoutEmbedding? face = await mlDataDB.getCoverFaceForPerson(
         recentFileID: recentFileID,
         avatarFaceId: fixedFaceID,
         personID: widget.personId,
         clusterID: widget.clusterID,
       );
+      if (!_isCurrentLoad(generation)) return null;
+      if (face == null && !isLocalGalleryMode) {
+        assignedFaceIDs ??= isPerson
+            ? await mlDataDB.getFaceIDsForPerson(widget.personId!)
+            : await mlDataDB.getFaceIDsForCluster(widget.clusterID!);
+        if (!_isCurrentLoad(generation)) return null;
+        _faceCropCandidateFileIDs.addAll(
+          assignedFaceIDs.map((faceID) => getFileIdFromFaceId<int>(faceID)),
+        );
+        if (!_unavailableFaceDataFileIDs.contains(recentFileID) &&
+            _faceHydrationAttemptedFileIDs.add(recentFileID)) {
+          try {
+            face = await PersonService.instance.getCoverFace(
+              fileID: recentFileID,
+              avatarFaceID: fixedFaceID,
+              personID: widget.personId,
+              clusterID: widget.clusterID,
+            );
+            if (face == null && _isCurrentLoad(generation)) {
+              _unavailableFaceDataFileIDs.add(recentFileID);
+            }
+          } catch (e, s) {
+            _logger.warning(
+              "Failed to restore cover face for $personOrClusterId in file $recentFileID",
+              e,
+              s,
+            );
+          }
+        }
+        if (!_isCurrentLoad(generation) ||
+            Configuration.instance.getToken() != accountToken) {
+          return null;
+        }
+      }
+      if (!_isCurrentLoad(generation)) return null;
       if (face == null) {
         _logger.severe(
           "No cover face for person: ${widget.personId} or cluster ${widget.clusterID} and fileID $recentFileID",
@@ -506,17 +747,29 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
         await checkRemoveCachedFaceIDForPersonOrClusterId(personOrClusterId);
         return null;
       }
+      _attemptedFaceCropIDs.add(face.faceID);
       final cropMap = await getCachedFaceCrops(
         fileForFaceCrop,
         [face],
         useFullFile: useFullFile,
-        personOrClusterID: personOrClusterId,
         useTempCache: false,
       );
       if (_isCurrentLoad(generation)) {
         _faceCropFileId = recentFileID;
       }
       final result = cropMap?[face.faceID];
+      if (result != null) {
+        if (!_isCurrentLoad(generation) ||
+            Configuration.instance.getToken() != accountToken) {
+          return null;
+        }
+        await putFaceIdCachedForPersonOrCluster(personOrClusterId, face.faceID);
+        if (!_isCurrentLoad(generation) ||
+            Configuration.instance.getToken() != accountToken) {
+          return null;
+        }
+        _usingAlternativeFace = recentFileID != _preferredFaceFileID;
+      }
       if (result == null) {
         _logger.severe(
           "Null cover face crop for person: ${widget.personId} or cluster ${widget.clusterID} and fileID $recentFileID",
@@ -534,7 +787,8 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
     }
   }
 
-  bool _isCurrentLoad(int generation) => _loadGeneration == generation;
+  bool _isCurrentLoad(int generation) =>
+      mounted && _loadGeneration == generation;
 
   bool _hasContactLink(PersonEntity personEntity) {
     final userId = personEntity.data.userID;

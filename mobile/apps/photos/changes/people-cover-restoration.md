@@ -1,0 +1,1 @@
+- Restore missing face data when loading or changing a person's cover photo after signing in, refresh unavailable face thumbnails as data arrives, and show an error if a cover update fails.

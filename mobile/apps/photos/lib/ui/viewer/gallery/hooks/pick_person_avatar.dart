@@ -2,6 +2,7 @@ import "package:ente_components/ente_components.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
+import "package:logging/logging.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/people_changed_event.dart";
 import "package:photos/models/file_load_result.dart";
@@ -36,6 +37,7 @@ class PickPersonCoverPhotoWidget extends StatefulWidget {
 
 class _PickPersonCoverPhotoWidgetState
     extends State<PickPersonCoverPhotoWidget> {
+  final _logger = Logger("PickPersonCoverPhoto");
   late final SelectedFiles _selectedFiles;
 
   @override
@@ -51,6 +53,39 @@ class _PickPersonCoverPhotoWidgetState
   }
 
   void _onSelectionChanged() => setState(() {});
+
+  Future<void> _useSelectedPhoto() async {
+    final selectedFile = _selectedFiles.files.first;
+    try {
+      final result = await PersonService.instance.updateAvatar(
+        widget.personEntity,
+        selectedFile,
+      );
+      Bus.instance.fire(
+        PeopleChangedEvent(
+          type: PeopleEventType.saveOrEditPerson,
+          person: result.person,
+        ),
+      );
+      if (!mounted) return;
+      if (result.contactPictureUpdateFailed) {
+        showShortToast(context, "Failed to update contact picture");
+      }
+      Navigator.pop(context, result.person);
+    } catch (e, s) {
+      _logger.warning(
+        "Failed to update cover for person ${widget.personEntity.remoteID} using file ${selectedFile.uploadedFileID}",
+        e,
+        s,
+      );
+      if (mounted) {
+        showShortToast(
+          context,
+          context.strings.somethingWentWrongPleaseTryAgain,
+        );
+      }
+    }
+  }
 
   Future<FileLoadResult> loadPersonFiles() async {
     final sortedFiles = await SearchService.instance.getFilesForPersonID(
@@ -97,29 +132,7 @@ class _PickPersonCoverPhotoWidgetState
               label: l10n.useSelectedPhoto,
               density: ButtonComponentDensity.compact,
               shouldShowSuccessState: false,
-              onTap: hasSelection
-                  ? () async {
-                      final selectedFile = _selectedFiles.files.first;
-                      final result = await PersonService.instance.updateAvatar(
-                        widget.personEntity,
-                        selectedFile,
-                      );
-                      Bus.instance.fire(
-                        PeopleChangedEvent(
-                          type: PeopleEventType.saveOrEditPerson,
-                          person: result.person,
-                        ),
-                      );
-                      if (!context.mounted) return;
-                      if (result.contactPictureUpdateFailed) {
-                        showShortToast(
-                          context,
-                          "Failed to update contact picture",
-                        );
-                      }
-                      Navigator.pop(context, result.person);
-                    }
-                  : null,
+              onTap: hasSelection ? _useSelectedPhoto : null,
             ),
           ),
         ],

@@ -91,6 +91,7 @@ class _FileSelectionActionsWidgetState
   late bool isCollectionOwner;
   // Reuse the link while the selection is unchanged.
   Collection? _cachedCollectionForSharedLink;
+  bool _isUpdatingPersonCover = false;
   final GlobalKey shareButtonKey = GlobalKey();
   final GlobalKey sendLinkButtonKey = GlobalKey();
   final StreamController<double> _progressController =
@@ -960,26 +961,44 @@ class _FileSelectionActionsWidgetState
   }
 
   Future<void> _setPersonCover() async {
+    if (_isUpdatingPersonCover || widget.selectedFiles.files.isEmpty) return;
+    _isUpdatingPersonCover = true;
     final EnteFile file = widget.selectedFiles.files.first;
-    final result = await PersonService.instance.updateAvatar(
-      widget.person!,
-      file,
-    );
-    final updatedPerson = result.person;
-    widget.selectedFiles.clearAll();
-    if (mounted) {
-      setState(() => {});
-      if (result.contactPictureUpdateFailed) {
-        showShortToast(context, "Failed to update contact picture");
+    try {
+      final result = await PersonService.instance.updateAvatar(
+        widget.person!,
+        file,
+      );
+      final updatedPerson = result.person;
+      widget.selectedFiles.clearAll();
+      if (mounted) {
+        setState(() => {});
+        if (result.contactPictureUpdateFailed) {
+          showShortToast(context, "Failed to update contact picture");
+        }
       }
+      Bus.instance.fire(
+        PeopleChangedEvent(
+          type: PeopleEventType.saveOrEditPerson,
+          source: "setPersonCover",
+          person: updatedPerson,
+        ),
+      );
+    } catch (e, s) {
+      _logger.warning(
+        "Failed to update cover for person ${widget.person!.remoteID} using file ${file.uploadedFileID}",
+        e,
+        s,
+      );
+      if (mounted) {
+        showShortToast(
+          context,
+          context.strings.somethingWentWrongPleaseTryAgain,
+        );
+      }
+    } finally {
+      _isUpdatingPersonCover = false;
     }
-    Bus.instance.fire(
-      PeopleChangedEvent(
-        type: PeopleEventType.saveOrEditPerson,
-        source: "setPersonCover",
-        person: updatedPerson,
-      ),
-    );
   }
 
   Future<void> _onNotpersonClicked() async {

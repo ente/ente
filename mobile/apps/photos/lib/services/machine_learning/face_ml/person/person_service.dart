@@ -25,6 +25,7 @@ import "package:photos/settings/local_settings.dart";
 import "package:photos/utils/contact_photo_util.dart";
 import "package:photos/utils/contact_string_util.dart";
 import "package:photos/utils/face/face_thumbnail_cache.dart";
+import "package:photos/utils/ml_util.dart";
 import "package:shared_preferences/shared_preferences.dart";
 
 typedef ManualPersonAssignmentResult = ({
@@ -47,6 +48,7 @@ class PersonService {
   final PhotosContactsService _contactsService;
   final Future<Uint8List?> Function(PersonEntity) _contactPhotoBuilder;
   final int? Function() _currentUserIDProvider;
+  final Future<void> Function(int) _faceDataHydrator;
   final _personsByEmail = <String, PersonEntity>{};
   final _personsByUserId = <int, PersonEntity>{};
   final _autoContactCreationsByUserId =
@@ -59,11 +61,13 @@ class PersonService {
     PhotosContactsService? contactsService,
     Future<Uint8List?> Function(PersonEntity)? contactPhotoBuilder,
     int? Function()? currentUserIDProvider,
+    Future<void> Function(int)? faceDataHydrator,
   }) : _contactsService = contactsService ?? PhotosContactsService.instance,
        _contactPhotoBuilder =
            contactPhotoBuilder ?? buildContactPhotoAttachmentBytesFromPerson,
        _currentUserIDProvider =
-           currentUserIDProvider ?? Configuration.instance.getUserID;
+           currentUserIDProvider ?? Configuration.instance.getUserID,
+       _faceDataHydrator = faceDataHydrator ?? hydrateFaceDataForFile;
 
   static PersonService? _instance;
   static const double kDefaultAutoMergeThreshold = 0.24;
@@ -739,12 +743,38 @@ class PersonService {
     return changed || hasUnappliedChanges;
   }
 
+  Future<FaceWithoutEmbedding?> getCoverFace({
+    required int fileID,
+    String? personID,
+    String? avatarFaceID,
+    String? clusterID,
+  }) async {
+    final token = Configuration.instance.getToken();
+    Future<FaceWithoutEmbedding?> query() => faceMLDataDB.getCoverFaceForPerson(
+      recentFileID: fileID,
+      personID: personID,
+      avatarFaceId: avatarFaceID,
+      clusterID: clusterID,
+    );
+    final face = await query();
+    if (Configuration.instance.getToken() != token) {
+      throw StateError("Account changed while loading the cover face");
+    }
+    if (face != null) return face;
+    await _faceDataHydrator(fileID);
+    if (Configuration.instance.getToken() != token) {
+      throw StateError("Account changed while restoring the cover face");
+    }
+    return query();
+  }
+
   Future<PersonAvatarUpdateResult> updateAvatar(
     PersonEntity p,
     EnteFile file,
   ) async {
-    final FaceWithoutEmbedding? face = await faceMLDataDB.getCoverFaceForPerson(
-      recentFileID: file.uploadedFileID!,
+    final token = Configuration.instance.getToken();
+    final FaceWithoutEmbedding? face = await getCoverFace(
+      fileID: file.uploadedFileID!,
       personID: p.remoteID,
     );
     if (face == null) {
@@ -764,7 +794,13 @@ class PersonService {
     final updatedPerson = person.copyWith(
       data: person.data.copyWith(avatarFaceId: face.faceID),
     );
+    if (Configuration.instance.getToken() != token) {
+      throw StateError("Account changed while updating the cover photo");
+    }
     await updatePerson(updatedPerson);
+    if (Configuration.instance.getToken() != token) {
+      throw StateError("Account changed while updating the cover photo");
+    }
     await putFaceIdCachedForPersonOrCluster(p.remoteID, face.faceID);
     return (
       person: updatedPerson,
