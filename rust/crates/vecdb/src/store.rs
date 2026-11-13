@@ -1,11 +1,10 @@
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
-use std::io::{ErrorKind, Read};
+use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{
-    Arc, LazyLock, Mutex, MutexGuard, PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard,
-    TryLockError, Weak,
+    Arc, LazyLock, Mutex, MutexGuard, PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard, Weak,
 };
 use std::time::{Duration, Instant};
 
@@ -14,9 +13,8 @@ use super::graph::{Graph, search as graph_search, search_stored, uses_graph};
 use super::kernel::{StoredVector, VectorPayload, quantize_for};
 use super::lock::WriterLock;
 use super::log::{
-    HEADER_LEN, Log, LogCheckpoint, LogEntry, LogRecord, add_record_len, header_generation,
-    open_writer_file, remove_if_present, remove_stale_temp_sibling, sync_parent_dir,
-    validate_entry,
+    HEADER_LEN, Log, LogCheckpoint, LogEntry, LogRecord, add_record_len, open_writer_file,
+    remove_if_present, remove_stale_temp_sibling, sync_parent_dir, validate_entry,
 };
 use super::snapshot::{
     LoadedSnapshot, load_snapshot, remove_snapshot, snapshot_path, write_snapshot,
@@ -52,13 +50,6 @@ impl PathSlot {
             .as_ref()
             .is_some_and(|weak| weak.strong_count() > 0)
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum OpenCost {
-    Ready,
-    NeedsRebuild,
-    Absent,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -460,14 +451,6 @@ impl VecDb {
             shared,
             read_only: false,
         })
-    }
-
-    pub fn open_cost(path: &Path) -> OpenCost {
-        let key = registry_key_for(path).unwrap_or_else(|_| path.to_path_buf());
-        if registry_holds_live(&key) {
-            return OpenCost::Ready;
-        }
-        open_cost_from_files(&key)
     }
 
     pub fn open_read_only(
@@ -1083,46 +1066,6 @@ fn search_in_state(
         params,
         allowed_slots,
     ))
-}
-
-fn registry_holds_live(key: &Path) -> bool {
-    let Some(slot) = existing_path_slot(key) else {
-        return false;
-    };
-    match slot.try_lock() {
-        Ok(guard) => guard.holds_live(),
-        Err(TryLockError::Poisoned(poisoned)) => poisoned.into_inner().holds_live(),
-        Err(TryLockError::WouldBlock) => false,
-    }
-}
-
-fn open_cost_from_files(path: &Path) -> OpenCost {
-    let Ok(mut file) = File::open(path) else {
-        return OpenCost::Absent;
-    };
-    let log_len = match file.metadata() {
-        Ok(meta) => meta.len(),
-        Err(_) => return OpenCost::Absent,
-    };
-    if log_len < HEADER_LEN as u64 {
-        return OpenCost::Absent;
-    }
-    let mut header = [0u8; HEADER_LEN];
-    if file.read_exact(&mut header).is_err() {
-        return OpenCost::Absent;
-    }
-    drop(file);
-    let Ok(generation) = header_generation(&header) else {
-        return OpenCost::NeedsRebuild;
-    };
-    let snapshot_present = std::fs::metadata(snapshot_path(path)).is_ok();
-    match load_snapshot(path, generation) {
-        Some(loaded) if loaded.covered_log_offset <= log_len => OpenCost::Ready,
-        Some(_) => OpenCost::NeedsRebuild,
-        None if snapshot_present => OpenCost::NeedsRebuild,
-        None if log_len > HEADER_LEN as u64 => OpenCost::NeedsRebuild,
-        None => OpenCost::Ready,
-    }
 }
 
 fn close_live_instance(shared: &Arc<Shared>) -> Result<(), VecDbError> {
@@ -5957,86 +5900,6 @@ mod tests {
         assert!(fs::symlink_metadata(&alias).is_ok());
     }
 
-    #[test]
-    fn open_cost_reports_ready_for_a_live_instance() {
-        let dir = TempDir::new().unwrap();
-        let path = dir.path().join("db");
-        let db = open_writer(&path);
-        bulk_add(&db, &bulk_entries(0, 5, 980)).unwrap();
-        assert_eq!(VecDb::open_cost(&path), OpenCost::Ready);
-        drop(db);
-        assert_eq!(VecDb::open_cost(&path), OpenCost::NeedsRebuild);
-    }
-
-    #[test]
-    fn open_cost_walks_every_file_branch() {
-        let dir = TempDir::new().unwrap();
-        let path = dir.path().join("db");
-        assert_eq!(VecDb::open_cost(&path), OpenCost::Absent);
-        fs::write(&path, [0x45u8, 0x56, 0x44, 0x42, 0x01]).unwrap();
-        assert_eq!(VecDb::open_cost(&path), OpenCost::Absent);
-        fs::remove_file(&path).unwrap();
-        drop(open_writer(&path));
-        assert_eq!(VecDb::open_cost(&path), OpenCost::Ready);
-        let db = open_writer(&path);
-        bulk_add(&db, &bulk_entries(0, 4, 985)).unwrap();
-        drop(db);
-        assert_eq!(VecDb::open_cost(&path), OpenCost::NeedsRebuild);
-        drop(open_writer(&path));
-        assert!(snapshot_exists(&path));
-        assert_eq!(VecDb::open_cost(&path), OpenCost::Ready);
-        let healthy_snapshot = fs::read(snapshot_path(&path)).unwrap();
-        let mut corrupted = healthy_snapshot.clone();
-        corrupted[20] ^= 0x5A;
-        fs::write(snapshot_path(&path), &corrupted).unwrap();
-        assert_eq!(VecDb::open_cost(&path), OpenCost::NeedsRebuild);
-        fs::remove_file(&path).unwrap();
-        fs::remove_file(snapshot_path(&path)).unwrap();
-        let db = open_writer(&path);
-        db.add("fresh", &seeded_unit_vector(1, DIMS)).unwrap();
-        drop(db);
-        fs::write(snapshot_path(&path), &healthy_snapshot).unwrap();
-        assert_eq!(VecDb::open_cost(&path), OpenCost::NeedsRebuild);
-    }
-
-    #[test]
-    fn open_cost_flags_a_snapshot_covering_beyond_the_log() {
-        let dir = TempDir::new().unwrap();
-        let path = dir.path().join("db");
-        let db = open_writer(&path);
-        db.add("first", &seeded_unit_vector(1, DIMS)).unwrap();
-        let boundary = db.stats().unwrap().log_bytes;
-        db.add("second", &seeded_unit_vector(2, DIMS)).unwrap();
-        db.flush().unwrap();
-        drop(db);
-        assert_eq!(VecDb::open_cost(&path), OpenCost::Ready);
-        let clean = fs::read(&path).unwrap();
-        fs::write(&path, &clean[..boundary as usize]).unwrap();
-        assert_eq!(VecDb::open_cost(&path), OpenCost::NeedsRebuild);
-    }
-
-    #[test]
-    fn open_cost_ignores_the_writer_lock_and_leaves_a_live_writer_undisturbed() {
-        let dir = TempDir::new().unwrap();
-        let path = dir.path().join("db");
-        let db = open_writer(&path);
-        bulk_add(&db, &bulk_entries(0, 3, 990)).unwrap();
-        db.flush().unwrap();
-        drop(db);
-        let held = WriterLock::acquire(&path).unwrap();
-        assert_eq!(VecDb::open_cost(&path), OpenCost::Ready);
-        drop(held);
-        let db = open_writer(&path);
-        let log_before = fs::read(&path).unwrap();
-        let snapshot_before = fs::read(snapshot_path(&path)).unwrap();
-        assert_eq!(VecDb::open_cost(&path), OpenCost::Ready);
-        assert_eq!(fs::read(&path).unwrap(), log_before);
-        assert_eq!(fs::read(snapshot_path(&path)).unwrap(), snapshot_before);
-        db.add("after", &seeded_unit_vector(7, DIMS)).unwrap();
-        assert!(db.contains("after").unwrap());
-        assert_own_nearest(&db, "after", &seeded_unit_vector(7, DIMS));
-    }
-
     fn attr(name: &str, value: AttrValue) -> Attribute {
         Attribute {
             name: name.to_string(),
@@ -6495,7 +6358,7 @@ mod tests {
         drop(read_alias);
         drop(joined);
         drop(i8_db);
-        assert_eq!(VecDb::open_cost(&i8_path), OpenCost::Ready);
+        assert!(snapshot_exists(&i8_path));
         let standalone = VecDb::open_read_only(&i8_path, I8_DIMS, Some(StorageKind::I8)).unwrap();
         assert_eq!(standalone.stats().unwrap().storage, StorageKind::I8);
         assert!(standalone.contains("i").unwrap());

@@ -533,7 +533,7 @@ class MLService {
           return MlRunDisposition.stopped;
         }
       }
-      if (mlDataDB is RustMLDataDB) {
+      if (mlDataDB is RustMLDataDB && mode != MLMode.localGallery) {
         await _buildPendingVectorGraphs(mlDataDB, control);
         if (control.stopRequested) {
           _logRunStopped(control, "after building vector graphs");
