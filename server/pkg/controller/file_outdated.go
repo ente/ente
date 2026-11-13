@@ -253,12 +253,13 @@ func (c *FileController) deleteReadyOutdatedObject(qItem repo.QueueItem) {
 }
 
 func (c *FileController) outdatedObjectCleanupDataCenters() []string {
+	primary, secondary := c.S3Config.GetHotDataCenters()
 	candidates := []string{
 		c.S3Config.GetHotBackblazeDC(),
 		c.S3Config.GetHotWasabiDC(),
 		c.S3Config.GetColdScalewayDC(),
-		c.S3Config.GetHotDataCenter(),
-		c.S3Config.GetSecondaryHotDataCenter(),
+		primary,
+		secondary,
 	}
 	seen := make(map[string]bool)
 	dcs := make([]string, 0, len(candidates))

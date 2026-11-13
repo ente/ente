@@ -547,7 +547,7 @@ func main() {
 	privateAPI := server.Group("/")
 	privateAPI.Use(authMiddleware.TokenAuthMiddleware(nil), rateLimiter.APIRateLimitForUserMiddleware(urlSanitizer))
 	storageAPI := privateAPI.Group("/")
-	storageAPI.Use(middleware.RejectAuthApp())
+	storageAPI.Use(middleware.RejectAuthApp(), middleware.UploadFailover(s3Config))
 
 	adminAPI := server.Group("/admin")
 	adminAPI.Use(

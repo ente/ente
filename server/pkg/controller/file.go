@@ -521,8 +521,8 @@ func (c *FileController) getSignedURLForCollectionObject(ctx *gin.Context, colle
 }
 
 func (c *FileController) getSignedURLFromObjectAndDCs(ctx *gin.Context, s3Object ente.S3ObjectKey, dcs []string, objType ente.ObjectType) (string, error) {
-	primary, secondary := c.S3Config.GetHotDataCenter(), c.S3Config.GetSecondaryHotDataCenter()
-	if isCliRequest(ctx) && secondary == c.S3Config.GetHotWasabiDC() {
+	primary, secondary := c.S3Config.GetHotDataCenters()
+	if isCliRequest(ctx) && secondary == c.S3Config.GetHotWasabiDC() && !c.S3Config.HasHotStorageFailedOver() {
 		primary, secondary = secondary, primary
 	}
 	for _, dc := range []string{primary, secondary} {
@@ -1104,9 +1104,9 @@ func (c *FileController) GetMultipartUploadURLs(ctx context.Context, userID int6
 	if err != nil {
 		return ente.MultipartUploadURLs{}, stacktrace.Propagate(err, "")
 	}
-	s3Client := c.S3Config.GetHotS3Client()
 	dc := c.S3Config.GetHotDataCenter()
-	bucket := c.S3Config.GetHotBucket()
+	s3Client := c.S3Config.GetS3Client(dc)
+	bucket := c.S3Config.GetBucket(dc)
 	objectKey := strconv.FormatInt(userID, 10) + "/" + uuid.NewString()
 	r, err := s3Client.CreateMultipartUpload(&s3.CreateMultipartUploadInput{
 		Bucket: bucket,
@@ -1131,7 +1131,7 @@ func (c *FileController) GetMultipartUploadURLs(ctx context.Context, userID int6
 	multipartUploadURLs := ente.MultipartUploadURLs{ObjectKey: objectKey}
 	urls := make([]string, 0)
 	for i := 0; i < count; i++ {
-		url, err := c.getPartURL(*s3Client, objectKey, int64(i+1), r.UploadId, nil, nil)
+		url, err := c.getPartURL(s3Client, bucket, objectKey, int64(i+1), r.UploadId, nil, nil)
 		if err != nil {
 			return multipartUploadURLs, stacktrace.Propagate(err, "")
 		}
@@ -1139,7 +1139,7 @@ func (c *FileController) GetMultipartUploadURLs(ctx context.Context, userID int6
 	}
 	multipartUploadURLs.PartURLs = urls
 	r2, _ := s3Client.CompleteMultipartUploadRequest(&s3.CompleteMultipartUploadInput{
-		Bucket:   c.S3Config.GetHotBucket(),
+		Bucket:   bucket,
 		Key:      &objectKey,
 		UploadId: r.UploadId,
 	})
@@ -1191,9 +1191,9 @@ func (c *FileController) GetMultipartUploadURLWithMetadata(ctx context.Context, 
 	if err := c.UsageCtrl.CanIssueUploadURLs(ctx, userID, nil, app); err != nil {
 		return ente.MultipartUploadURLs{}, stacktrace.Propagate(err, "")
 	}
-	s3Client := c.S3Config.GetHotS3Client()
 	dc := c.S3Config.GetHotDataCenter()
-	bucket := c.S3Config.GetHotBucket()
+	s3Client := c.S3Config.GetS3Client(dc)
+	bucket := c.S3Config.GetBucket(dc)
 	objectKey := strconv.FormatInt(userID, 10) + "/" + uuid.NewString()
 	r, err := s3Client.CreateMultipartUpload(&s3.CreateMultipartUploadInput{
 		Bucket: bucket,
@@ -1224,7 +1224,7 @@ func (c *FileController) GetMultipartUploadURLWithMetadata(ctx context.Context, 
 		if normalizedChecksums != nil {
 			checksum = &normalizedChecksums[i]
 		}
-		url, err := c.getPartURL(*s3Client, objectKey, partNumber, r.UploadId, &length, checksum)
+		url, err := c.getPartURL(s3Client, bucket, objectKey, partNumber, r.UploadId, &length, checksum)
 		if err != nil {
 			return multipartUploadURLs, stacktrace.Propagate(err, "")
 		}
@@ -1232,7 +1232,7 @@ func (c *FileController) GetMultipartUploadURLWithMetadata(ctx context.Context, 
 	}
 	multipartUploadURLs.PartURLs = urls
 	r2, _ := s3Client.CompleteMultipartUploadRequest(&s3.CompleteMultipartUploadInput{
-		Bucket:   c.S3Config.GetHotBucket(),
+		Bucket:   bucket,
 		Key:      &objectKey,
 		UploadId: r.UploadId,
 	})
@@ -1244,9 +1244,9 @@ func (c *FileController) GetMultipartUploadURLWithMetadata(ctx context.Context, 
 	return multipartUploadURLs, nil
 }
 
-func (c *FileController) getPartURL(s3Client s3.S3, objectKey string, partNumber int64, uploadID *string, contentLength *int64, contentMD5 *string) (string, error) {
+func (c *FileController) getPartURL(s3Client s3.S3, bucket *string, objectKey string, partNumber int64, uploadID *string, contentLength *int64, contentMD5 *string) (string, error) {
 	input := &s3.UploadPartInput{
-		Bucket:     c.S3Config.GetHotBucket(),
+		Bucket:     bucket,
 		Key:        &objectKey,
 		UploadId:   uploadID,
 		PartNumber: &partNumber,

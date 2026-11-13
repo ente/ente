@@ -195,7 +195,8 @@ func (fc *FileCopyController) createCopy(c *gin.Context, fcInternal fileCopyInte
 }
 
 func (fc *FileCopyController) copyBucket(dataCenters []string) (string, error) {
-	for _, dc := range []string{fc.S3Config.GetHotDataCenter(), fc.S3Config.GetSecondaryHotDataCenter()} {
+	primary, secondary := fc.S3Config.GetHotDataCenters()
+	for _, dc := range []string{primary, secondary} {
 		if dc != fc.S3Config.GetHotBackblazeDC() && dc != fc.S3Config.GetHotWasabiDC() {
 			continue
 		}
