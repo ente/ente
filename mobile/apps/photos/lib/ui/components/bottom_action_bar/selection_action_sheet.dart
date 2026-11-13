@@ -59,6 +59,7 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
   ScrollController? _actionsController;
   double? _minHeight;
   double? _railStartOffset;
+  double _railMaxOffset = 0;
   double _minExtent = 0;
   double _maxExtent = 1;
   bool _isCollapsing = false;
@@ -180,7 +181,8 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
     }
     if (!_railController.hasClients) return;
     _railStartOffset ??= math.max(0.0, _railController.offset);
-    final offset = _railStartOffset! * (1 - _expansion);
+    final offset =
+        math.min(_railStartOffset!, _railMaxOffset) * (1 - _expansion);
     _railController.jumpTo(
       math.min(math.max(0.0, _railController.offset), offset),
     );
@@ -278,6 +280,10 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
         final gridLabelWidth =
             (sheetWidth - Spacing.md * 2 - Spacing.xs * (columns - 1)) /
             columns;
+        _railMaxOffset = math.max(
+          0.0,
+          (railTileWidth - gridLabelWidth) * columns,
+        );
         final labelWidth = usesRail
             ? math.min(gridLabelWidth, railTileWidth)
             : gridLabelWidth;

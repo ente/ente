@@ -72,6 +72,8 @@ void main() {
     expect(find.text("Delete"), findsNWidgets(2));
     expect(_paintOpacity(tester, find.text("Delete").first), 1);
     expect(_paintOpacity(tester, find.text("Delete").last), 0);
+    final deleteRect = tester.getRect(find.text("Delete").first);
+    expect(deleteRect.overlaps(tester.getRect(rail)), isTrue);
     expect(
       tester
           .getRect(find.text("Add to album"))
@@ -142,6 +144,7 @@ void main() {
         640.0,
       ),
       (const Size(1366, 1024), const EdgeInsets.all(24), 640.0),
+      (const Size(390, 844), EdgeInsets.zero, 390.0),
       (
         const Size(320, 1024),
         const EdgeInsets.only(top: 24, bottom: 20),
@@ -164,7 +167,7 @@ void main() {
       controller ??= sheet.controller;
       expect(sheet.controller, same(controller));
       if (sheet.controller!.isAttached) {
-        sheet.controller!.jumpTo(sheet.maxChildSize);
+        sheet.controller!.jumpTo(sheet.minChildSize);
       }
       final scrollable = find
           .descendant(
@@ -173,6 +176,26 @@ void main() {
           )
           .first;
       tester.state<ScrollableState>(scrollable).position.jumpTo(0);
+      await tester.pumpAndSettle();
+      final rail = find.byWidgetPredicate(
+        (widget) =>
+            widget is ListView && widget.scrollDirection == Axis.horizontal,
+      );
+      if (sheet.maxChildSize > sheet.minChildSize) {
+        await tester.drag(rail, const Offset(-2000, 0));
+        await tester.pumpAndSettle();
+        sheet.controller!.jumpTo(
+          sheet.minChildSize + (sheet.maxChildSize - sheet.minChildSize) * 0.25,
+        );
+        await tester.pump();
+        final action = find.descendant(of: rail, matching: find.text("Share"));
+        final actionRect = tester.getRect(action);
+        final railRect = tester.getRect(rail);
+        final sheetRect = tester.getRect(find.byType(CustomScrollView));
+        expect(_paintOpacity(tester, action), 1);
+        expect(actionRect.overlaps(railRect.intersect(sheetRect)), isTrue);
+      }
+      sheet.controller!.jumpTo(sheet.maxChildSize);
       await tester.pumpAndSettle();
       final material = find.descendant(
         of: find.byType(SelectionActionSheet),
