@@ -9,7 +9,8 @@ import "package:photos/models/file/file.dart";
 import "package:photos/module/download/thumbnail.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo.dart";
 
-typedef RewindBytes = Future<Uint8List?> Function(EnteFile file);
+typedef RewindBytes =
+    Future<Uint8List?> Function(EnteFile file, {bool cachedOnly});
 
 typedef RewindPhotoBuilder = Widget Function(EnteFile file);
 
@@ -18,7 +19,14 @@ Widget rewindPhoto(EnteFile file) => RewindPhoto(file);
 typedef RewindTilePainter =
     void Function(Canvas canvas, ui.Image image, Rect cell, int index);
 
-Future<Uint8List?> rewindThumbnailBytes(EnteFile file) => getThumbnail(file);
+Future<Uint8List?> rewindThumbnailBytes(
+  EnteFile file, {
+  bool cachedOnly = false,
+}) async {
+  if (!cachedOnly || !file.isRemoteOnlyFile) return getThumbnail(file);
+  final cached = cachedThumbnailPath(file);
+  return await cached.exists() ? cached.readAsBytes() : null;
+}
 
 class RewindAtlas {
   RewindAtlas._(this.image, this.tile, this.columns, this.files);
@@ -64,7 +72,6 @@ class RewindAtlas {
     ui.Image? sheet;
     bool isOver() =>
         clock.elapsed >= budget ||
-        stalls >= _mostStalls ||
         (loaded.length >= minimum &&
             clock.elapsed >= _rushedBudget &&
             (isRushed?.call() ?? false));
@@ -78,7 +85,7 @@ class RewindAtlas {
           final data = await _fetch(
             files[index],
             bytes,
-            stalls > 0 ? _grace : _patience,
+            stalls,
             () => stalls++,
           );
           if (data != null) {
@@ -146,11 +153,15 @@ class RewindAtlas {
   static Future<Uint8List?> _fetch(
     EnteFile file,
     RewindBytes bytes,
-    Duration patience,
+    int stalls,
     void Function() onStall,
   ) async {
+    final cachedOnly = stalls >= _mostStalls;
     try {
-      return await bytes(file).timeout(patience);
+      return await bytes(
+        file,
+        cachedOnly: cachedOnly,
+      ).timeout(stalls > 0 && !cachedOnly ? _grace : _patience);
     } on TimeoutException {
       onStall();
       return null;
