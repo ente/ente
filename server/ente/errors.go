@@ -32,6 +32,12 @@ var ErrBadRequest = errors.New("bad request")
 
 var ErrTooManyBadRequest = errors.New("too many bad request")
 
+var ErrSmallUploadLimitReached = &ApiError{
+	Code:           "SMALL_UPLOAD_LIMIT_REACHED",
+	Message:        "Too many small uploads. Please try again later.",
+	HttpStatusCode: http.StatusTooManyRequests,
+}
+
 var ErrUnexpectedState = errors.New("unexpected state")
 
 var ErrCannotDowngrade = errors.New("usage is greater than selected plan, cannot downgrade")

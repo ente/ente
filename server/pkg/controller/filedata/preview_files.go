@@ -112,6 +112,9 @@ func (c *Controller) previewUploadObject(ctx *gin.Context, fileID int64, objectT
 			return "", ente.TempObject{}, err
 		}
 	}
+	if err := c.UsageCtrl.CheckUploadURLRateLimit(actorUser, contentLength); err != nil {
+		return "", ente.TempObject{}, err
+	}
 	id := filedata.NewUploadID(objectType)
 	return id, ente.TempObject{
 		ObjectKey: filedata.ObjectKey(fileID, actorUser, objectType, &id),

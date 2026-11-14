@@ -63,7 +63,8 @@ func setupContactControllerTest(t *testing.T) (*Controller, *sql.DB, *gin.Contex
 		ObjectCleanupRepo:   objectCleanupRepo,
 		SecretEncryptionKey: testutil.SecretEncryptionKey(),
 	}
-	ctrl := New(contactRepository, objectCleanupCtrl, s3Cfg)
+	usageCtrl := &basecontroller.UsageController{BillingCtrl: &basecontroller.BillingController{BillingRepo: &repo.BillingRepository{DB: db}}}
+	ctrl := New(contactRepository, objectCleanupCtrl, s3Cfg, usageCtrl)
 	ctrl.verifyAttachmentFn = func(bucketID string, objectKey string, expectedSize int64) error {
 		return nil
 	}

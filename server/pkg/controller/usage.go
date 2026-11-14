@@ -25,6 +25,7 @@ type UsageController struct {
 	UploadResultCache map[int64]bool
 
 	uploadURLResultCache map[int64]bool
+	smallUploads         smallUploadLimiter
 }
 
 const softPhotosFileLimit = 50_000
@@ -55,6 +56,9 @@ func GetLockerLimitsForTier(isPaid bool) LockerLimits {
 }
 
 func (c *UsageController) CanIssueUploadURLs(ctx context.Context, userID int64, size *int64, app ente.App) error {
+	if err := c.CheckUploadURLRateLimit(userID, size); err != nil {
+		return err
+	}
 	return c.canUploadFileWithCache(ctx, userID, size, app, app == ente.Photos)
 }
 

@@ -35,7 +35,7 @@ func TestPreviewUploadRateLimits(t *testing.T) {
 		router.ServeHTTP(response, req)
 		return response.Code
 	}
-	for range 5 {
+	for range 10 {
 		require.Equal(t, http.StatusNoContent, request(http.MethodGet, "/files/data/preview-upload-url?fileID=1&type=vid_preview", "1"))
 		require.Equal(t, http.StatusNoContent, request(http.MethodGet, "/files/data/preview-upload-url?fileID=2&type=vid_preview&isMultiPart=true&count=2", "1"))
 	}
@@ -47,7 +47,7 @@ func TestPreviewUploadRateLimits(t *testing.T) {
 	}
 	require.Equal(t, http.StatusTooManyRequests, request(http.MethodPost, "/files/data/multipart-preview-upload-url", "1"))
 	require.Equal(t, http.StatusNoContent, request(http.MethodPost, "/files/data/multipart-preview-upload-url", "2"))
-	for range 10 {
+	for range 20 {
 		require.Equal(t, http.StatusNoContent, request(http.MethodPost, "/files/data/preview-upload-url", "3"))
 	}
 	require.Equal(t, http.StatusTooManyRequests, request(http.MethodPost, "/files/data/preview-upload-url", "3"))
