@@ -6,14 +6,14 @@
     "devDependencies": {
         "@eslint/compat": "2.1.1",
         "@eslint/js": "10.0.1",
-        "eslint": "10.12.0",
+        "eslint": "10.14.0",
         "eslint-plugin-react": "7.37.5",
         "eslint-plugin-react-hooks": "7.1.1",
         "eslint-plugin-react-refresh": "0.5.7",
         "prettier": "3.9.9",
         "prettier-plugin-organize-imports": "4.3.0",
-        "prettier-plugin-packagejson": "3.0.2",
+        "prettier-plugin-packagejson": "3.1.0",
         "typescript": "6.0.3",
-        "typescript-eslint": "8.61.0"
+        "typescript-eslint": "8.70.0"
     }
 }
