@@ -116,7 +116,9 @@ class ParticipantRow extends StatelessWidget {
           ? context.strings.you
           : resolveDisplayName(user),
       titleMaxLines: 1,
-      subtitle: shareableRoleLabel(context, role),
+      subtitle: user.isPending
+          ? "${shareableRoleLabel(context, role)} · ${context.strings.pending}"
+          : shareableRoleLabel(context, role),
       subtitleMaxLines: 1,
       leading: UserAvatarWidget(user, type: AvatarType.medium),
       trailing: trailing,

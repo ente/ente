@@ -4,6 +4,7 @@ import 'package:ente_components/theme/icon_sizes.dart';
 import 'package:ente_components/theme/radii.dart';
 import 'package:ente_components/theme/spacing.dart';
 import 'package:ente_components/theme/theme.dart';
+import 'package:ente_strings/ente_strings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:photos/core/event_bus.dart';
@@ -11,6 +12,7 @@ import 'package:photos/events/tab_changed_event.dart';
 import 'package:photos/models/home_tab.dart';
 import "package:photos/models/selected_albums.dart";
 import 'package:photos/models/selected_files.dart';
+import 'package:photos/services/collections_service.dart';
 import 'package:photos/ui/tabs/nav_bar.dart';
 
 const double homeBottomNavigationBarHeight = 70;
@@ -134,11 +136,18 @@ class _HomeBottomNavigationBarState extends State<HomeBottomNavigationBar> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    _HomeNavBar(
-                      selectedIndex: currentTabIndex,
-                      showFeed: widget.showFeed,
-                      onTabChange: (index) {
-                        _onTabChange(index, mode: "OnPressed");
+                    ListenableBuilder(
+                      listenable: CollectionsService.instance.invitations,
+                      builder: (context, _) {
+                        return _HomeNavBar(
+                          selectedIndex: currentTabIndex,
+                          showFeed: widget.showFeed,
+                          hasUnseenInvitations:
+                              CollectionsService.instance.invitations.hasUnseen,
+                          onTabChange: (index) {
+                            _onTabChange(index, mode: "OnPressed");
+                          },
+                        );
                       },
                     ),
                   ],
@@ -157,6 +166,7 @@ class _HomeNavBar extends StatelessWidget {
     required this.selectedIndex,
     required this.showFeed,
     required this.onTabChange,
+    required this.hasUnseenInvitations,
   });
 
   static const _tabs = [
@@ -189,6 +199,7 @@ class _HomeNavBar extends StatelessWidget {
   final int selectedIndex;
   final bool showFeed;
   final ValueChanged<int> onTabChange;
+  final bool hasUnseenInvitations;
 
   @override
   Widget build(BuildContext context) {
@@ -235,6 +246,7 @@ class _HomeNavBar extends StatelessWidget {
               tab: tab,
               selected: selectedIndex == tabIndex,
               color: colors.iconColor,
+              showUnseenDot: tabIndex == 2 && hasUnseenInvitations,
             ),
           ),
         );
@@ -248,20 +260,43 @@ class _HomeNavIcon extends StatelessWidget {
     required this.tab,
     required this.selected,
     required this.color,
+    required this.showUnseenDot,
   });
 
   final _HomeNavTab tab;
   final bool selected;
   final Color color;
+  final bool showUnseenDot;
 
   @override
   Widget build(BuildContext context) {
     final colorFilter = ColorFilter.mode(color, BlendMode.srcIn);
-    return SvgPicture.asset(
-      selected ? tab.filledAsset : tab.outlineAsset,
-      width: IconSizes.small,
-      height: IconSizes.small,
-      colorFilter: colorFilter,
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        SvgPicture.asset(
+          selected ? tab.filledAsset : tab.outlineAsset,
+          width: IconSizes.small,
+          height: IconSizes.small,
+          colorFilter: colorFilter,
+        ),
+        if (showUnseenDot)
+          Positioned(
+            top: -2,
+            right: -2,
+            child: Semantics(
+              label: context.strings.unseenShareInvitesLabel,
+              child: Container(
+                width: 7,
+                height: 7,
+                decoration: BoxDecoration(
+                  color: context.componentColors.warning,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

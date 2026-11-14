@@ -34,12 +34,15 @@ import "package:photos/gateways/collections/models/public_url.dart";
 import "package:photos/models/api/collection/user.dart";
 import 'package:photos/models/collection/action.dart';
 import 'package:photos/models/collection/collection.dart';
+import 'package:photos/models/collection/collection_invitation.dart';
 import 'package:photos/models/collection/collection_items.dart';
 import 'package:photos/models/file/file.dart';
 import "package:photos/models/files_split.dart";
 import "package:photos/models/metadata/collection_magic.dart";
 import "package:photos/service_locator.dart";
 import 'package:photos/services/app_lifecycle_service.dart';
+import 'package:photos/services/collection_invitations_store.dart';
+import 'package:photos/services/collection_resync_store.dart';
 import "package:photos/services/favorites_service.dart";
 import 'package:photos/services/memory_share_service.dart';
 import 'package:photos/services/sync/local_sync_service.dart';
@@ -49,6 +52,7 @@ import "package:photos/src/rust/api/cast_api.dart";
 import "package:photos/utils/dialog_util.dart";
 import "package:photos/utils/file_key.dart";
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:synchronized/synchronized.dart';
 
 String? _resolvePublicAlbumAccessToken(Uri uri) {
   final tokenFromQuery = uri.queryParameters["t"];
@@ -68,11 +72,14 @@ class CollectionsService {
   static const int _shareBatchSize = 10;
 
   final _logger = Logger("CollectionsService");
+  final invitations = CollectionInvitationsStore();
+  final _metadataLock = Lock();
 
   late CollectionsDB _db;
   late FilesDB _filesDB;
   late Configuration _config;
   late SharedPreferences _prefs;
+  late CollectionResyncStore _resyncRequests;
   StreamSubscription<CollectionUpdatedEvent>? _collectionUpdatedSubscription;
 
   final _localPathToCollectionID = <String, int>{};
@@ -104,6 +111,12 @@ class CollectionsService {
 
   Future<void> init(SharedPreferences preferences) async {
     _prefs = preferences;
+    _resyncRequests = CollectionResyncStore(preferences);
+    await invitations.initialize(
+      preferences,
+      _config.getUserID(),
+      decode: _decodeInvitation,
+    );
     final collections = await _db.getAllCollections();
 
     for (final collection in collections) {
@@ -136,6 +149,27 @@ class CollectionsService {
   FilesDB get filesDB => _filesDB;
 
   Future<void> sync() async {
+    await _metadataLock.synchronized(_syncCollections);
+  }
+
+  Future<List<CollectionInvitation>?> refreshPendingInvitations() =>
+      _metadataLock.synchronized(() async {
+        if (!_config.hasConfiguredAccount()) return null;
+        await _ensureInvitationAccount();
+        final generation = invitations.generation;
+        final response = await collectionsGateway.getAll(
+          sinceTime: _prefs.getInt(_collectionsSyncTimeKey) ?? 0,
+          source: "fg",
+        );
+        _checkInvitationAccount(generation);
+        return invitations.applySnapshot(
+          response['pendingInvitations'],
+          expectedGeneration: generation,
+        );
+      });
+
+  Future<List<CollectionInvitation>?> _syncCollections() async {
+    await _ensureInvitationAccount();
     _logger.info("Syncing collections");
     final EnteWatch watch = EnteWatch("syncCollection")..start();
     final lastCollectionUpdationTime =
@@ -143,9 +177,11 @@ class CollectionsService {
 
     _logger.info("[COLLECTIONS] Starting sync");
 
-    final fetchedCollections = await _fetchCollections(
-      lastCollectionUpdationTime,
-    );
+    final previouslyPending = invitations.pending
+        .map((invitation) => invitation.collectionID)
+        .toSet();
+    final fetched = await _fetchCollections(lastCollectionUpdationTime);
+    final fetchedCollections = fetched.collections;
     _logger.info(
       "[COLLECTIONS] Fetched ${fetchedCollections.length} collections from API",
     );
@@ -153,13 +189,18 @@ class CollectionsService {
 
     if (fetchedCollections.isEmpty) {
       await _ensureUncategorizedCollectionExists();
-      return;
+      return fetched.invitations;
     }
     final updatedCollections = <Collection>[];
     int maxUpdationTime = lastCollectionUpdationTime;
     final ownerID = _config.getUserID();
     bool shouldFireDeleteEvent = false;
     for (final collection in fetchedCollections) {
+      if (!collection.isDeleted &&
+          (_collectionIDToCollections[collection.id]?.isDeleted == true ||
+              previouslyPending.contains(collection.id))) {
+        await requestCollectionResync(collection.id);
+      }
       if (collection.isDeleted) {
         await _filesDB.deleteCollection(collection.id);
         await _cleanupSocialData(collection.id);
@@ -213,9 +254,11 @@ class CollectionsService {
     }
 
     await _ensureUncategorizedCollectionExists();
+    return fetched.invitations;
   }
 
   void clearCache() {
+    unawaited(invitations.clearAccount());
     _localPathToCollectionID.clear();
     _collectionIDToCollections.clear();
     cachedDefaultHiddenCollection = null;
@@ -234,7 +277,8 @@ class CollectionsService {
     for (final MapEntry<int, int> e in idsToRemoveUpdateTimeMap.entries) {
       final int cid = e.key;
       final int remoteUpdateTime = e.value;
-      if (remoteUpdateTime > getCollectionSyncTime(cid)) {
+      if (remoteUpdateTime > getCollectionSyncTime(cid) ||
+          getCollectionResyncGeneration(cid) != null) {
         result[cid] = remoteUpdateTime;
       }
     }
@@ -394,6 +438,15 @@ class CollectionsService {
         ) ??
         0;
   }
+
+  int? getCollectionResyncGeneration(int collectionID) =>
+      _resyncRequests.generation(collectionID);
+
+  Future<void> requestCollectionResync(int collectionID) =>
+      _resyncRequests.request(collectionID);
+
+  Future<void> completeCollectionResync(int collectionID, int generation) =>
+      _resyncRequests.complete(collectionID, generation);
 
   Future<Map<int, int>> getCollectionIDToNewestFileTime() {
     _collectionIDToNewestFileTime ??= _filesDB
@@ -963,12 +1016,7 @@ class CollectionsService {
         source: source,
         collections: items,
       );
-      _cacheBulkShares(
-        results,
-        recipientUserID: recipientUserID,
-        recipientEmail: recipientEmail,
-        roles: roles,
-      );
+      await _cacheBulkShares(results);
       RemoteSyncService.instance.sync(silently: true).ignore();
       return {for (final result in results) result.collectionID: result.status};
     } on DioException catch (e) {
@@ -1001,36 +1049,22 @@ class CollectionsService {
     return {for (final result in results) result.collectionID: result.status};
   }
 
-  void _cacheBulkShares(
-    List<CollectionShareResult> results, {
-    required int recipientUserID,
-    required String recipientEmail,
-    required Map<int, CollectionParticipantRole> roles,
-  }) {
-    final updates = <Collection>[];
-    for (final result in results) {
-      if (result.status != CollectionShareStatus.shared) {
-        continue;
-      }
-      final collection = _collectionIDToCollections[result.collectionID];
-      final role = roles[result.collectionID];
-      if (collection == null || role == null) {
-        continue;
-      }
-      final sharees =
-          collection.sharees
-              .where((user) => user.id != recipientUserID)
-              .toList()
-            ..add(
-              User(
-                id: recipientUserID,
-                email: recipientEmail,
-                role: role.toStringVal(),
-              ),
-            );
-      updates.add(collection.copyWith(sharees: sharees));
-    }
-    _cacheBulkShareUpdates(updates);
+  Future<void> _cacheBulkShares(List<CollectionShareResult> results) async {
+    await Future.wait(
+      results
+          .where((result) => result.status == CollectionShareStatus.shared)
+          .map((result) async {
+            try {
+              await refreshSharees(result.collectionID);
+            } catch (error, stack) {
+              _logger.warning(
+                'Could not refresh shared participants',
+                error,
+                stack,
+              );
+            }
+          }),
+    );
   }
 
   void _cacheBulkUnshares(
@@ -1578,21 +1612,37 @@ class CollectionsService {
     }
   }
 
-  Future<List<Collection>> _fetchCollections(int sinceTime) async {
+  Future<
+    ({List<Collection> collections, List<CollectionInvitation>? invitations})
+  >
+  _fetchCollections(int sinceTime) async {
     try {
+      final generation = invitations.generation;
       final response = await collectionsGateway.getAll(
         sinceTime: sinceTime,
         source: AppLifecycleService.instance.isForeground ? "fg" : "bg",
       );
+      _checkInvitationAccount(generation);
       final List<Collection> collections = [];
       final c = response["collections"];
       for (final collectionData in c) {
         final Collection collection = await _fromRemoteCollection(
           collectionData,
         );
+        _checkInvitationAccount(generation);
         collections.add(collection);
       }
-      return collections;
+      List<CollectionInvitation>? snapshot;
+      try {
+        snapshot = await invitations.applySnapshot(
+          response['pendingInvitations'],
+          expectedGeneration: generation,
+        );
+      } catch (error, stack) {
+        _logger.warning('Could not sync invitation previews', error, stack);
+      }
+      _checkInvitationAccount(generation);
+      return (collections: collections, invitations: snapshot);
     } catch (e, s) {
       _logger.warning("Failed to fetch collections", e, s);
       if (e is DioException && e.response?.statusCode == 401) {
@@ -1830,10 +1880,12 @@ class CollectionsService {
     }
   }
 
-  Future<void> joinPublicCollection(
+  Future<Collection> joinPublicCollection(
     BuildContext context,
     int collectionID,
-  ) async {
+  ) => _metadataLock.synchronized(() async {
+    await _ensureInvitationAccount();
+    final generation = invitations.generation;
     final albumKey = getSharedPublicAlbumKey(collectionID);
     if (albumKey.isEmpty) {
       throw Exception("Collection key not found");
@@ -1845,10 +1897,187 @@ class CollectionsService {
         Configuration.instance.getKeyAttributes()!.publicKey,
       ),
     );
-    await collectionsGateway.joinViaLink(
+    await requestCollectionResync(collectionID);
+    _checkInvitationAccount(generation);
+    final response = await collectionsGateway.joinViaLink(
       collectionID: collectionID,
       encryptedKey: CryptoUtil.bin2base64(encryptedKey),
       headers: publicCollectionHeaders(collectionID),
+    );
+    _checkInvitationAccount(generation);
+    if (response['collection'] is Map) {
+      final acceptedIDs = (response['acceptedCollectionIDs'] as List)
+          .cast<int>();
+      for (final id in acceptedIDs) {
+        await requestCollectionResync(id);
+        _checkInvitationAccount(generation);
+      }
+      final accepted = await _cacheAcceptedCollections(
+        [response['collection']],
+        generation: generation,
+        expectedIDs: {collectionID},
+      );
+      await invitations.removeAccepted(
+        acceptedIDs,
+        expectedGeneration: generation,
+      );
+      _checkInvitationAccount(generation);
+      return accepted.single;
+    }
+    await _syncCollections();
+    return getCollectionByID(collectionID) ??
+        await fetchCollectionByID(collectionID);
+  });
+
+  Future<Collection> acceptInvitations(
+    List<int> collectionIDs, {
+    required int selectedCollectionID,
+  }) async {
+    final selected = await _metadataLock.synchronized(() async {
+      await _ensureInvitationAccount();
+      final generation = invitations.generation;
+      for (final id in collectionIDs) {
+        await requestCollectionResync(id);
+        _checkInvitationAccount(generation);
+      }
+      final response = await collectionsGateway.acceptInvitations(
+        collectionIDs,
+      );
+      _checkInvitationAccount(generation);
+      final acceptedIDs = (response['acceptedCollectionIDs'] as List)
+          .cast<int>();
+      if (!collectionIDs.contains(selectedCollectionID) ||
+          !setEquals(acceptedIDs.toSet(), collectionIDs.toSet())) {
+        throw const FormatException('Incomplete acceptance response');
+      }
+      final accepted = await _cacheAcceptedCollections(
+        response['collections'] as List,
+        generation: generation,
+        expectedIDs: collectionIDs.toSet(),
+      );
+      final selected = accepted.firstWhere(
+        (item) => item.id == selectedCollectionID,
+      );
+      await invitations.removeAccepted(
+        acceptedIDs,
+        expectedGeneration: generation,
+      );
+      _checkInvitationAccount(generation);
+      return selected;
+    });
+    _syncAcceptedAlbum(selected.id);
+    return selected;
+  }
+
+  Future<void> rejectInvitation(int collectionID) =>
+      _metadataLock.synchronized(() async {
+        await _ensureInvitationAccount();
+        final generation = invitations.generation;
+        await collectionsGateway.rejectInvitation(collectionID);
+        _checkInvitationAccount(generation);
+        await invitations.removeAccepted([
+          collectionID,
+        ], expectedGeneration: generation);
+      });
+
+  Future<void> _ensureInvitationAccount() async {
+    if (invitations.accountID != _config.getUserID()) {
+      await invitations.initialize(
+        _prefs,
+        _config.getUserID(),
+        decode: _decodeInvitation,
+      );
+    }
+  }
+
+  void _checkInvitationAccount(int generation) {
+    if (generation != invitations.generation ||
+        invitations.accountID != _config.getUserID() ||
+        !_config.hasConfiguredAccount()) {
+      throw StateError('Account changed during invitation request');
+    }
+  }
+
+  CollectionInvitation _decodeInvitation(Map<String, dynamic> json) {
+    final id = json['collectionID'];
+    final sharedAt = json['sharedAt'];
+    final inviter = User.fromMap(
+      Map<String, dynamic>.from(json['inviter'] as Map),
+    );
+    if (id is! int ||
+        id <= 0 ||
+        sharedAt is! int ||
+        inviter.id <= 0 ||
+        inviter.email.isEmpty) {
+      throw const FormatException('Invalid invitation');
+    }
+    final encryptedName = json['encryptedName'] as String?;
+    String name;
+    if (encryptedName != null && encryptedName.isNotEmpty) {
+      final key = CryptoUtil.openSealSync(
+        CryptoUtil.base642bin(json['encryptedKey'] as String),
+        CryptoUtil.base642bin(_config.getKeyAttributes()!.publicKey),
+        _config.getSecretKey()!,
+      );
+      name = utf8.decode(
+        CryptoUtil.decryptSync(
+          CryptoUtil.base642bin(encryptedName),
+          key,
+          CryptoUtil.base642bin(json['nameDecryptionNonce'] as String),
+        ),
+      );
+    } else {
+      name = json['name'] as String;
+    }
+    return CollectionInvitation(
+      collectionID: id,
+      inviter: inviter,
+      albumName: name,
+      sharedAt: sharedAt,
+    );
+  }
+
+  Future<List<Collection>> _cacheAcceptedCollections(
+    List<dynamic> raw, {
+    required int generation,
+    required Set<int> expectedIDs,
+  }) async {
+    if (!setEquals(
+      raw.map((data) => (data as Map)['id'] as int).toSet(),
+      expectedIDs,
+    )) {
+      throw const FormatException('Incomplete accepted albums');
+    }
+    final accepted = <Collection>[];
+    for (final data in raw) {
+      final collection = await _fromRemoteCollection(
+        Map<String, dynamic>.from(data as Map),
+      );
+      _checkInvitationAccount(generation);
+      if (collection.isDeleted) {
+        throw StateError('Accepted album is unavailable');
+      }
+      accepted.add(collection);
+    }
+    await _updateDB(accepted);
+    _checkInvitationAccount(generation);
+    for (final collection in accepted) {
+      _cacheLocalPathAndCollection(collection);
+    }
+    Bus.instance.fire(
+      CollectionUpdatedEvent(null, <EnteFile>[], 'invitations_accepted'),
+    );
+    Bus.instance.fire(ContactRelationshipsInvalidatedEvent());
+    return accepted;
+  }
+
+  void _syncAcceptedAlbum(int collectionID) {
+    unawaited(
+      RemoteSyncService.instance
+          .syncAcceptedCollection(collectionID)
+          .catchError((Object error, StackTrace stack) {
+            _logger.warning('Could not sync accepted album', error, stack);
+          }),
     );
   }
 
