@@ -675,6 +675,54 @@ func TestCreateContactAllowedForSharedCollectionAccess(t *testing.T) {
 	}
 }
 
+func TestCreateContactRequiresAcceptedSharedCollectionAccess(t *testing.T) {
+	for _, tc := range []struct {
+		name                string
+		actorStatus         string
+		contactStatus       string
+		deletedAlbum        bool
+		independentAccepted bool
+	}{
+		{name: "actor pending", actorStatus: "pending", contactStatus: "accepted"},
+		{name: "contact pending", actorStatus: "accepted", contactStatus: "pending"},
+		{name: "contact rejected", actorStatus: "accepted", contactStatus: "rejected"},
+		{name: "deleted album", actorStatus: "accepted", contactStatus: "accepted", deletedAlbum: true},
+		{name: "independent accepted album", actorStatus: "pending", contactStatus: "accepted", independentAccepted: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl, db, ctx, _ := setupContactControllerTest(t)
+			collectionID := mustInsertSharedCollection(t, db, 300, 1, 76)
+			if _, err := db.Exec(`UPDATE collection_shares
+				SET acceptance_status = CASE WHEN to_user_id = 1 THEN $1 ELSE $2 END
+				WHERE collection_id = $3`, tc.actorStatus, tc.contactStatus, collectionID); err != nil {
+				t.Fatal(err)
+			}
+			if tc.deletedAlbum {
+				if _, err := db.Exec(`UPDATE collections SET is_deleted = TRUE WHERE collection_id = $1`, collectionID); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if tc.independentAccepted {
+				mustInsertSharedCollection(t, db, 1, 76)
+			}
+			_, err := ctrl.Create(ctx, contactmodel.CreateRequest{
+				ContactUserID: 76,
+				EncryptedKey:  []byte("wrapped-key"),
+				EncryptedData: []byte("payload"),
+			})
+			if tc.independentAccepted && err != nil {
+				t.Fatalf("independent accepted membership should allow contact creation: %v", err)
+			}
+			if !tc.independentAccepted {
+				var apiErr *ente.ApiError
+				if !errors.As(err, &apiErr) || apiErr.Code != ente.BadRequest {
+					t.Fatalf("ineligible shared membership: got %v, want contact eligibility error", err)
+				}
+			}
+		})
+	}
+}
+
 func TestTouchContactsForContactUserRefreshesResolvedEmailInDiff(t *testing.T) {
 	ctrl, db, ctx, _ := setupContactControllerTest(t)
 	mustInsertTestUser(t, db, 1)

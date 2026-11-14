@@ -28,7 +28,9 @@ type Collection struct {
 	App                 string               `json:"app"`
 	PublicMagicMetadata *MagicMetadata       `json:"pubMagicMetadata,omitempty"`
 	// Per-sharee settings such as timeline visibility.
-	SharedMagicMetadata *MagicMetadata `json:"sharedMagicMetadata,omitempty"`
+	SharedMagicMetadata *MagicMetadata             `json:"sharedMagicMetadata,omitempty"`
+	AcceptanceStatus    CollectionAcceptanceStatus `json:"acceptanceStatus,omitempty"`
+	InvitedByUserID     *int64                     `json:"invitedByUserID,omitempty"`
 }
 
 func (c *Collection) AllowSharing() bool {
@@ -59,8 +61,10 @@ type CollectionUser struct {
 	ID    int64  `json:"id"`
 	Email string `json:"email"`
 	// Deprecated
-	Name string                    `json:"name"`
-	Role CollectionParticipantRole `json:"role"`
+	Name             string                     `json:"name"`
+	Role             CollectionParticipantRole  `json:"role"`
+	AcceptanceStatus CollectionAcceptanceStatus `json:"acceptanceStatus,omitempty"`
+	InvitedByUserID  *int64                     `json:"invitedByUserID,omitempty"`
 }
 
 type CollectionAttributes struct {

@@ -98,11 +98,59 @@ func (repo *UserRepository) DeleteTx(ctx context.Context, tx *sql.Tx, userID int
 	if !active {
 		return "", nil, ente.ErrUserDeleted
 	}
+	if err := withdrawPendingInvitationsTx(ctx, tx, userID); err != nil {
+		return "", nil, err
+	}
 	revokedTokens, err := markTokensDeleted(tx, `UPDATE tokens SET is_deleted = true WHERE user_id = $1 AND is_deleted = false RETURNING app, token_hash`, userID)
 	if err != nil {
 		return "", nil, err
 	}
 	return emailHash, revokedTokens, deleteUser(ctx, tx, userID)
+}
+
+func withdrawPendingInvitationsTx(ctx context.Context, tx *sql.Tx, inviterID int64) error {
+	// Sharing and acceptance also lock the inviter before locking collections.
+	rows, err := tx.QueryContext(ctx, `SELECT c.collection_id FROM collections c
+		WHERE EXISTS (
+			SELECT 1 FROM collection_shares cs
+			WHERE cs.collection_id = c.collection_id AND cs.invited_by_user_id = $1
+				AND cs.is_deleted = FALSE AND cs.acceptance_status = 'pending'
+		)
+		ORDER BY c.collection_id FOR UPDATE OF c`, inviterID)
+	if err != nil {
+		return stacktrace.Propagate(err, "failed to lock pending invitation collections")
+	}
+	collectionIDs := make([]int64, 0)
+	for rows.Next() {
+		var collectionID int64
+		if err := rows.Scan(&collectionID); err != nil {
+			rows.Close()
+			return stacktrace.Propagate(err, "failed to read pending invitation collection")
+		}
+		collectionIDs = append(collectionIDs, collectionID)
+	}
+	if err := rows.Close(); err != nil {
+		return stacktrace.Propagate(err, "failed to close pending invitation collections")
+	}
+	if err := rows.Err(); err != nil {
+		return stacktrace.Propagate(err, "failed to read pending invitation collections")
+	}
+	if len(collectionIDs) == 0 {
+		return nil
+	}
+	_, err = tx.ExecContext(ctx, `WITH withdrawn AS (
+		UPDATE collection_shares cs
+		SET is_deleted = TRUE, updation_time = GREATEST($3, cs.updation_time + 1, c.updation_time + 1)
+		FROM collections c
+		WHERE cs.collection_id = c.collection_id AND cs.collection_id = ANY($2)
+			AND cs.invited_by_user_id = $1 AND cs.is_deleted = FALSE
+			AND cs.acceptance_status = 'pending'
+		RETURNING cs.collection_id, cs.updation_time
+	)
+	UPDATE collections c SET updation_time = changed.updation_time
+	FROM (SELECT collection_id, MAX(updation_time) AS updation_time FROM withdrawn GROUP BY collection_id) changed
+	WHERE c.collection_id = changed.collection_id`, inviterID, pq.Array(collectionIDs), time.Microseconds())
+	return stacktrace.Propagate(err, "failed to withdraw deleted inviter's pending invitations")
 }
 
 func deleteUser(ctx context.Context, executor userMutationExecutor, userID int64) error {
