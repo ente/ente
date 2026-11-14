@@ -9,7 +9,7 @@ import {
 
 function fixture(binding: PrintBinding = "Softcover") {
     const state = { index: 1, direction: 1, folding: true };
-    const pages = Array.from({ length: 8 }, (_, index) => {
+    const pages = Array.from({ length: 8 }, () => {
         const style = {
             clipPath: "",
             webkitClipPath: "",
@@ -18,7 +18,7 @@ function fixture(binding: PrintBinding = "Softcover") {
             },
         };
         const element = { style, dataset: { density: "" } };
-        setPreviewPageDensity(element, binding, index, 8);
+        setPreviewPageDensity(element, binding);
         return {
             style,
             getDensity() {
@@ -101,12 +101,9 @@ test("closing the back cover mirrors the cutout onto the right page", () => {
     assert.equal(visibleAt(pages[6]!.style.clipPath, 20, 150), true);
 });
 
-test("hard covers retain their normal drawing on both sides", () => {
-    const { book, pages, state } = fixture("Hardcover");
-    assert.deepEqual(
-        pages.map((page) => page.getDensity()),
-        ["hard", "hard", "soft", "soft", "soft", "soft", "hard", "hard"],
-    );
+test("every layflat page turns as a hard sheet", () => {
+    const { book, pages, state } = fixture("Layflat");
+    assert.ok(pages.every((page) => page.getDensity() === "hard"));
     const frontDraw = pages[1]!.simpleDraw;
     const backDraw = pages[6]!.simpleDraw;
     const restore = clipSoftcoverInsidePages(book);

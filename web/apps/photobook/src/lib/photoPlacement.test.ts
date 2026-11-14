@@ -97,7 +97,7 @@ test("end placement appends in selection order before the back cover, independen
     assert.deepEqual(result.at(-1)!.slots, []);
 });
 
-test("invalid or full destinations reject the entire selection without changing the book", () => {
+test("a selection fills the chosen page and inserts overflow before the following pages", () => {
     const pages = makeBook();
     pages[1] = {
         ...pages[1]!,
@@ -107,7 +107,54 @@ test("invalid or full destinations reject the entire selection without changing 
         ),
     };
     const original = structuredClone(pages);
-    for (const pageId of [pages[1].id, pages.at(-1)!.id, "missing-page"]) {
+    const result = placeImportedPhotos(pages, photos, photos.slice(4), {
+        kind: "page",
+        pageId: pages[1].id,
+    });
+    const filled = result.slice(1, 4);
+    assert.deepEqual(
+        filled.map((page) => page.slots.length),
+        [4, 4, 1],
+    );
+    assert.deepEqual(
+        filled.flatMap((page) => page.slots.map((slot) => slot.photoId)),
+        photos.slice(1).map((photo) => photo.id),
+    );
+    assert.equal(result[1]!.id, pages[1].id);
+    assert.strictEqual(result[0], pages[0]);
+    assert.strictEqual(result[4], pages[2]);
+    assert.strictEqual(result[5], pages[3]);
+    assert.deepEqual(pages, original);
+});
+
+test("adding to an already full page starts a new page immediately after it", () => {
+    const pages = makeBook();
+    pages[1] = {
+        ...pages[1]!,
+        slots: applyVariant(
+            "4-grid",
+            photos.slice(1, 5).map((photo) => photo.id),
+        ),
+        layoutVariant: "4-grid",
+    };
+    const result = placeImportedPhotos(pages, photos, [photos[5]!], {
+        kind: "page",
+        pageId: pages[1].id,
+    });
+    assert.strictEqual(result[1], pages[1]);
+    assert.deepEqual(
+        result[2]!.slots.map((slot) => slot.photoId),
+        [photos[5]!.id],
+    );
+    assert.strictEqual(result[3], pages[2]);
+    assert.strictEqual(result.at(-1), pages.at(-1));
+    assert.equal(result.length % 2, 0);
+});
+
+test("invalid destinations reject the entire selection without changing the book", () => {
+    const pages = makeBook();
+    const original = structuredClone(pages);
+    for (const pageId of [pages.at(-1)!.id, "missing-page"]) {
         const destination = { kind: "page" as const, pageId };
         assert.ok(photoDestinationError(pages, destination, 2));
         assert.throws(() =>
