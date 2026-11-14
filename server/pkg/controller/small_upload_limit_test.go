@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"database/sql"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -177,6 +179,86 @@ func TestSmallUploadLimitSizeAndIssuanceScope(t *testing.T) {
 	require.NoError(t, c.CheckUploadURLRateLimit(userID, nil))
 	length := int64(32)
 	require.NoError(t, c.CanUploadFile(t.Context(), userID, &length, ente.Photos))
+}
+
+func TestSmallUploadLimitCachesEntitlements(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		paid bool
+	}{
+		{name: "free"},
+		{name: "paid", paid: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			fileController, db, userID := setupPhotoUploadLimitTest(t)
+			c := fileController.UsageCtrl
+			setPaid := func(paid bool) {
+				productID := ente.FreePlanProductID
+				if paid {
+					productID = "photos_yearly"
+				}
+				_, err := db.Exec(`UPDATE subscriptions SET product_id = $2 WHERE user_id = $1`, userID, productID)
+				require.NoError(t, err)
+			}
+			checkResult := func(paid bool, err error) {
+				if paid {
+					require.NoError(t, err)
+				} else {
+					require.ErrorIs(t, err, ente.ErrSmallUploadLimitReached)
+				}
+			}
+			setPaid(tc.paid)
+			fillSmallUploadLimit(t, &c.smallUploads, userID)
+			length := int64(32)
+			before := time.Now()
+			checkResult(tc.paid, c.CheckUploadURLRateLimit(userID, &length))
+			key := strconv.FormatInt(userID, 10)
+			value, expiry, ok := c.smallUploads.paidStatus.GetWithExpiration(key)
+			require.True(t, ok)
+			require.Equal(t, tc.paid, value)
+			require.False(t, expiry.Before(before.Add(30*time.Second)))
+			require.False(t, expiry.After(time.Now().Add(30*time.Second)))
+
+			setPaid(!tc.paid)
+			closedDB, err := sql.Open("postgres", "")
+			require.NoError(t, err)
+			require.NoError(t, closedDB.Close())
+			c.BillingCtrl.BillingRepo.DB = closedDB
+			results := make(chan error, 20)
+			for range cap(results) {
+				go func() {
+					results <- c.CheckUploadURLRateLimit(userID, &length)
+				}()
+			}
+			for range cap(results) {
+				checkResult(tc.paid, <-results)
+			}
+			_, afterHits, _ := c.smallUploads.paidStatus.GetWithExpiration(key)
+			require.Equal(t, expiry, afterHits)
+			c.BillingCtrl.BillingRepo.DB = db
+
+			c.smallUploads.paidStatus = cache.NewFrom(smallUploadEntitlementTTL, 0, map[string]cache.Item{
+				key: {Object: tc.paid, Expiration: time.Now().Add(-time.Second).UnixNano()},
+			})
+			checkResult(!tc.paid, c.CheckUploadURLRateLimit(userID, &length))
+		})
+	}
+}
+
+func TestSmallUploadLimitDoesNotCacheBillingErrors(t *testing.T) {
+	fileController, db, userID := setupPhotoUploadLimitTest(t)
+	c := fileController.UsageCtrl
+	fillSmallUploadLimit(t, &c.smallUploads, userID)
+	closedDB, err := sql.Open("postgres", "")
+	require.NoError(t, err)
+	require.NoError(t, closedDB.Close())
+	c.BillingCtrl.BillingRepo.DB = closedDB
+	length := int64(32)
+	require.ErrorContains(t, c.CheckUploadURLRateLimit(userID, &length), "database is closed")
+	_, cached := c.smallUploads.paidStatus.Get(strconv.FormatInt(userID, 10))
+	require.False(t, cached)
+	c.BillingCtrl.BillingRepo.DB = db
+	require.ErrorIs(t, c.CheckUploadURLRateLimit(userID, &length), ente.ErrSmallUploadLimitReached)
 }
 
 func TestSmallUploadLimitChecksCachedEligibility(t *testing.T) {

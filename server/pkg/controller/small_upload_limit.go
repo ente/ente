@@ -8,14 +8,18 @@ import (
 	"github.com/ente/museum/ente"
 	"github.com/ente/stacktrace"
 	"github.com/patrickmn/go-cache"
+	"golang.org/x/sync/singleflight"
 )
 
 const smallUploadLimit = 1000
 const smallUploadWindow = 10 * time.Minute
+const smallUploadEntitlementTTL = 30 * time.Second
 
 type smallUploadLimiter struct {
-	mu       sync.Mutex
-	requests *cache.Cache
+	mu                sync.Mutex
+	requests          *cache.Cache
+	paidStatus        *cache.Cache
+	paidStatusLookups singleflight.Group
 }
 
 func (l *smallUploadLimiter) allow(userID int64) bool {
@@ -23,6 +27,7 @@ func (l *smallUploadLimiter) allow(userID int64) bool {
 	defer l.mu.Unlock()
 	if l.requests == nil {
 		l.requests = cache.New(smallUploadWindow, time.Minute)
+		l.paidStatus = cache.New(smallUploadEntitlementTTL, time.Minute)
 	}
 	now := time.Now()
 	key := strconv.FormatInt(userID, 10)
@@ -44,11 +49,21 @@ func (l *smallUploadLimiter) allow(userID int64) bool {
 
 func (c *UsageController) CheckUploadURLRateLimit(userID int64, size *int64) error {
 	if size != nil && *size < 2*1024 && !c.smallUploads.allow(userID) {
-		isPaid, err := c.BillingCtrl.BillingRepo.IsUserOnActivePaidPlan(userID)
+		key := strconv.FormatInt(userID, 10)
+		isPaid, err, _ := c.smallUploads.paidStatusLookups.Do(key, func() (any, error) {
+			if value, ok := c.smallUploads.paidStatus.Get(key); ok {
+				return value, nil
+			}
+			value, err := c.BillingCtrl.BillingRepo.IsUserOnActivePaidPlan(userID)
+			if err == nil {
+				c.smallUploads.paidStatus.Set(key, value, cache.DefaultExpiration)
+			}
+			return value, err
+		})
 		if err != nil {
 			return stacktrace.Propagate(err, "")
 		}
-		if !isPaid {
+		if !isPaid.(bool) {
 			return ente.ErrSmallUploadLimitReached
 		}
 	}
