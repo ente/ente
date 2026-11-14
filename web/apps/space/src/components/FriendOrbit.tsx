@@ -219,7 +219,7 @@ export const FriendOrbit: React.FC<FriendOrbitProps> = ({
         <Box
             component="ul"
             ref={fieldRef}
-            aria-label="Friends and friend requests"
+            aria-label="Friends, friend requests, and suggestions"
             onDragStart={(event) => event.preventDefault()}
             onClickCapture={(event) => {
                 if (!suppressClick.current) return;

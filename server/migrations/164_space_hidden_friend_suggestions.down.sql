@@ -1,0 +1,1 @@
+DROP TABLE space_hidden_friend_suggestions;

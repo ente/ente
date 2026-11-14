@@ -493,10 +493,18 @@ func (r *FriendsRepository) DeleteFriendship(ctx context.Context, actorSpaceID s
 	}
 
 	if _, err := tx.ExecContext(ctx, `
-		DELETE FROM space_friend_shares
-		WHERE (space_id = $1 AND friend_space_id = $2)
-		   OR (space_id = $2 AND friend_space_id = $1)
-	`, targetSpaceID, actorSpaceID); err != nil {
+		WITH removed AS (
+			DELETE FROM space_friend_shares
+			WHERE (space_id = $1 AND friend_space_id = $2)
+			   OR (space_id = $2 AND friend_space_id = $1)
+			RETURNING 1
+		)
+		INSERT INTO space_hidden_friend_suggestions (viewer_space_id, suggested_space_id)
+		SELECT pair.viewer, pair.suggestion
+		FROM (VALUES ($1, $2), ($2, $1)) AS pair(viewer, suggestion)
+		WHERE EXISTS (SELECT 1 FROM removed)
+		ON CONFLICT DO NOTHING
+	`, actorSpaceID, targetSpaceID); err != nil {
 		return stacktrace.Propagate(err, "")
 	}
 	if _, err := tx.ExecContext(ctx, `
@@ -577,6 +585,64 @@ func (r *FriendsRepository) ListFriendsForSpace(ctx context.Context, spaceID str
 		out = append(out, rec)
 	}
 	return out, stacktrace.Propagate(rows.Err(), "")
+}
+
+func (r *FriendsRepository) ListFriendSuggestions(ctx context.Context, viewer *SpaceRecord) ([]SpaceRecord, error) {
+	rows, err := r.DB.QueryContext(ctx, `
+		WITH counts AS (
+			SELECT theirs.friend_space_id AS id, COUNT(*) AS mutuals
+			FROM space_friend_shares mine
+			JOIN spaces mutual ON mutual.space_id = mine.friend_space_id
+			JOIN users mutual_owner ON mutual_owner.user_id = mutual.owner_id AND mutual_owner.encrypted_email IS NOT NULL
+			JOIN space_friend_shares theirs ON theirs.space_id = mine.friend_space_id
+			WHERE mine.space_id = $1
+			GROUP BY theirs.friend_space_id
+			HAVING COUNT(*) >= 2
+		)
+		SELECT candidate.space_id, candidate.space_slug, candidate.public_key
+		FROM counts
+		JOIN spaces candidate ON candidate.space_id = counts.id
+		JOIN users candidate_owner ON candidate_owner.user_id = candidate.owner_id AND candidate_owner.encrypted_email IS NOT NULL
+		WHERE candidate.owner_id <> $2
+		  AND NOT EXISTS (
+			SELECT 1 FROM space_friend_shares
+			WHERE space_id = $1 AND friend_space_id = candidate.space_id
+		  )
+		  AND NOT EXISTS (
+			SELECT 1 FROM space_friend_requests
+			WHERE (requester_space_id = $1 AND target_space_id = candidate.space_id)
+			   OR (requester_space_id = candidate.space_id AND target_space_id = $1)
+		  )
+		  AND NOT EXISTS (
+			SELECT 1 FROM space_hidden_friend_suggestions
+			WHERE viewer_space_id = $1 AND suggested_space_id = candidate.space_id
+		  )
+		ORDER BY counts.mutuals DESC, counts.id
+		LIMIT 3
+	`, viewer.SpaceID, viewer.OwnerID)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "")
+	}
+	defer rows.Close()
+	var suggestions []SpaceRecord
+	for rows.Next() {
+		var candidate SpaceRecord
+		if err := rows.Scan(&candidate.SpaceID, &candidate.SpaceSlug, &candidate.PublicKey); err != nil {
+			return nil, stacktrace.Propagate(err, "")
+		}
+		suggestions = append(suggestions, candidate)
+	}
+	return suggestions, stacktrace.Propagate(rows.Err(), "")
+}
+
+func (r *FriendsRepository) HideFriendSuggestion(ctx context.Context, viewerSpaceID, suggestedSpaceID string) error {
+	_, err := r.DB.ExecContext(ctx, `
+		INSERT INTO space_hidden_friend_suggestions (viewer_space_id, suggested_space_id)
+		SELECT $1, candidate.space_id FROM spaces candidate
+		WHERE candidate.space_id = $2 AND candidate.space_id <> $1
+		ON CONFLICT DO NOTHING
+	`, viewerSpaceID, suggestedSpaceID)
+	return stacktrace.Propagate(err, "")
 }
 
 func (r *FriendsRepository) CountFriendsForSpace(ctx context.Context, spaceID string) (int64, error) {

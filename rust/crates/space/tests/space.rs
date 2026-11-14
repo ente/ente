@@ -104,6 +104,137 @@ fn space_e2e() -> TestResult {
     Museum::run(|museum| tokio::runtime::Runtime::new()?.block_on(run(museum)))
 }
 
+#[test]
+fn friend_suggestions() -> TestResult {
+    Museum::run_async(|endpoint| async move {
+        let mut people = std::collections::HashMap::new();
+        for name in [
+            "viewer", "sam", "lee", "kit", "maya", "alex", "robin", "drew", "jules",
+        ] {
+            let account = auth::create_account(&endpoint, name).await;
+            let ctx = space::open_ctx(&endpoint, &account).await;
+            let slug = format!("{name}_{}", account.user_id);
+            let identity = ctx
+                .create_space(&slug, &space::profile_payload(name, ""))
+                .await?;
+            people.insert(name, (account, ctx, identity));
+        }
+        for (from, to) in [
+            ("viewer", "sam"),
+            ("viewer", "lee"),
+            ("viewer", "kit"),
+            ("sam", "lee"),
+            ("sam", "maya"),
+            ("lee", "maya"),
+            ("kit", "maya"),
+            ("sam", "alex"),
+            ("lee", "alex"),
+            ("sam", "robin"),
+            ("lee", "robin"),
+            ("sam", "drew"),
+            ("lee", "drew"),
+            ("sam", "jules"),
+        ] {
+            let (_, sender, source) = &people[from];
+            let (_, recipient, target) = &people[to];
+            request_and_confirm_friend(
+                sender,
+                &source.space_id,
+                recipient,
+                &target.space_id,
+                &target.space_slug,
+            )
+            .await;
+        }
+        let (_, jules, jules_space) = &people["jules"];
+        assert!(
+            jules
+                .list_friend_suggestions(&jules_space.space_id)
+                .await?
+                .is_empty()
+        );
+        let (mut account, viewer, me) = people.remove("viewer").unwrap();
+        let suggestions = viewer.list_friend_suggestions(&me.space_id).await?;
+        assert_eq!(suggestions.len(), 3);
+        let maya = &people["maya"].2;
+        assert_eq!(suggestions[0].space_id, maya.space_id);
+        let other_candidates = ["alex", "robin", "drew"].map(|name| &people[name].2.space_id);
+        assert!(
+            suggestions[1..]
+                .iter()
+                .all(|s| other_candidates.contains(&&s.space_id))
+        );
+
+        viewer
+            .hide_friend_suggestion(&me.space_id, &maya.space_id)
+            .await?;
+        viewer
+            .hide_friend_suggestion(&me.space_id, &maya.space_id)
+            .await?;
+        account.sign_in(&endpoint).await?;
+        let second_device = space::open_ctx(&endpoint, &account).await;
+        let next = second_device.list_friend_suggestions(&me.space_id).await?;
+        assert_eq!(next.len(), 3);
+        for id in other_candidates {
+            assert!(next.iter().any(|s| &s.space_id == id));
+        }
+        let (_, alex_ctx, alex) = &people["alex"];
+        alex_ctx
+            .hide_friend_suggestion(&alex.space_id, &maya.space_id)
+            .await?;
+        assert!(
+            alex_ctx
+                .list_friend_suggestions(&alex.space_id)
+                .await?
+                .iter()
+                .any(|suggestion| suggestion.space_id == me.space_id)
+        );
+        alex_ctx
+            .request_friend_by_username(&alex.space_id, &me.space_slug)
+            .await?;
+        let outgoing = next
+            .iter()
+            .find(|s| s.space_id == people["robin"].2.space_id)
+            .unwrap();
+        let key = ente_core::b64::decode(&outgoing.public_key)?;
+        assert_eq!(
+            viewer
+                .request_friend(&me.space_id, &outgoing.space_id, &key)
+                .await?
+                .status,
+            "requested"
+        );
+        let remaining = viewer.list_friend_suggestions(&me.space_id).await?;
+        assert_eq!(remaining.len(), 1);
+        assert_eq!(remaining[0].space_id, people["drew"].2.space_id);
+
+        assert_eq!(
+            viewer
+                .request_friend_by_username(&me.space_id, &alex.space_slug)
+                .await?
+                .status,
+            "friend"
+        );
+        viewer
+            .unfriend_by_space(&me.space_id, &alex.space_id)
+            .await?;
+        let after_unfriend = second_device.list_friend_suggestions(&me.space_id).await?;
+        assert_eq!(after_unfriend.len(), 1);
+        assert_eq!(after_unfriend[0].space_id, people["drew"].2.space_id);
+        let alex_suggestions = alex_ctx.list_friend_suggestions(&alex.space_id).await?;
+        assert_eq!(alex_suggestions.len(), 2);
+        for name in ["robin", "drew"] {
+            assert!(
+                alex_suggestions
+                    .iter()
+                    .any(|s| s.space_id == people[name].2.space_id),
+                "expected Alex to still see {name} after unfriending"
+            );
+        }
+        Ok(())
+    })
+}
+
 async fn run(museum: &Museum) -> TestResult {
     let endpoint = museum.endpoint();
     space_comments_suite(museum).await;

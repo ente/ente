@@ -7,7 +7,6 @@ import {
 import log from "ente-base/log";
 import { useBrowserBackClose } from "hooks/use-browser-back-close";
 import React from "react";
-import type { SpaceFriendRequest } from "services/space";
 import {
     spaceControlBackgroundHover,
     spaceDanger,
@@ -15,31 +14,59 @@ import {
     spaceText,
     spaceTextMuted,
 } from "styles/colors";
+import { friendRequestErrorMessage } from "utils/friend-errors";
 
 const green = "#08C225";
 
-interface FriendRequestSheetProps {
-    request: SpaceFriendRequest;
-    onAccept: (requestID: number) => Promise<boolean>;
-    onDelete: (requestID: number) => Promise<void>;
+export interface FriendRequestSheetActions {
+    direction: "sent" | "received" | "suggested";
+    username: string;
+    onPrimary?: () => Promise<boolean>;
+    onSecondary: () => Promise<void>;
+}
+
+interface FriendRequestSheetProps extends FriendRequestSheetActions {
     onClose: () => void;
 }
 
 export const FriendRequestSheet: React.FC<FriendRequestSheetProps> = ({
-    request,
-    onAccept,
-    onDelete,
+    direction,
+    username,
+    onPrimary,
+    onSecondary,
     onClose,
 }) => {
     const [open, setOpen] = React.useState(true);
     const [action, setAction] = React.useState<{
-        type: "accept" | "delete";
+        type: "primary" | "secondary";
         phase: SpaceActionPhase;
     } | null>(null);
-    const [failed, setFailed] = React.useState(false);
+    const [errorMessage, setErrorMessage] = React.useState("");
     const titleID = React.useId();
     const descriptionID = React.useId();
-    const isIncoming = request.direction == "received";
+    const copy = {
+        received: {
+            title: `Be friends with @${username}?`,
+            description: "Share photos, and keep up with each other.",
+            primary: "Accept",
+            secondary: "Decline",
+            done: "Request accepted",
+        },
+        sent: {
+            title: `Waiting for @${username}`,
+            description: "You’ll see their posts once they accept.",
+            primary: "",
+            secondary: "Cancel request",
+            done: "",
+        },
+        suggested: {
+            title: `You might know @${username}`,
+            description: "",
+            primary: "Send friend request",
+            secondary: "Hide suggestion",
+            done: "Request sent",
+        },
+    }[direction];
     const dismiss = () => {
         if (!action) setOpen(false);
     };
@@ -59,32 +86,40 @@ export const FriendRequestSheet: React.FC<FriendRequestSheetProps> = ({
         return () => window.clearTimeout(timeout);
     }, [action?.phase]);
 
-    const updateRequest = async (type: "accept" | "delete") => {
+    const updateRequest = async (type: "primary" | "secondary") => {
         if (action) return;
         setAction({ type, phase: "busy" });
-        setFailed(false);
+        setErrorMessage("");
         try {
-            if (type == "accept") {
-                const accepted = await onAccept(request.requestId);
-                if (accepted) setAction({ type, phase: "done" });
+            if (type == "primary") {
+                if (await onPrimary?.()) setAction({ type, phase: "done" });
                 else setOpen(false);
             } else {
-                await onDelete(request.requestId);
+                await onSecondary();
                 setOpen(false);
             }
         } catch (error) {
             log.error("Failed to update friend request", error);
             setAction(null);
-            setFailed(true);
+            if (direction == "suggested") {
+                setErrorMessage(
+                    type == "primary"
+                        ? friendRequestErrorMessage(error, username)
+                        : "Couldn’t hide the suggestion. Please try again.",
+                );
+            } else {
+                setErrorMessage(
+                    "Couldn’t update the request. Please try again.",
+                );
+            }
         }
     };
 
     const actions = [
-        ...(isIncoming ? [{ type: "accept" as const, label: "Accept" }] : []),
-        {
-            type: "delete" as const,
-            label: isIncoming ? "Decline" : "Cancel request",
-        },
+        ...(onPrimary
+            ? [{ type: "primary" as const, label: copy.primary }]
+            : []),
+        { type: "secondary" as const, label: copy.secondary },
     ];
 
     return (
@@ -93,7 +128,7 @@ export const FriendRequestSheet: React.FC<FriendRequestSheetProps> = ({
             onClose={dismiss}
             maxWidth={false}
             aria-labelledby={titleID}
-            aria-describedby={descriptionID}
+            aria-describedby={copy.description ? descriptionID : undefined}
             sx={{ "--space-dialog-backdrop": "rgba(0 0 0 / 0.64)" }}
             slotProps={{
                 paper: {
@@ -146,27 +181,25 @@ export const FriendRequestSheet: React.FC<FriendRequestSheetProps> = ({
                         textAlign: "center",
                     }}
                 >
-                    {isIncoming
-                        ? `Be friends with @${request.friend.username}?`
-                        : `Waiting for @${request.friend.username}`}
+                    {copy.title}
                 </Box>
-                <Box
-                    id={descriptionID}
-                    sx={{
-                        color: spaceTextMuted,
-                        fontFamily: '"Inter Variable", Inter, sans-serif',
-                        fontSize: 13,
-                        lineHeight: "18px",
-                        mt: "8px",
-                        overflowWrap: "anywhere",
-                        px: "20px",
-                        textAlign: "center",
-                    }}
-                >
-                    {isIncoming
-                        ? "Share photos, and keep up with each other."
-                        : "You’ll see their posts once they accept."}
-                </Box>
+                {copy.description && (
+                    <Box
+                        id={descriptionID}
+                        sx={{
+                            color: spaceTextMuted,
+                            fontFamily: '"Inter Variable", Inter, sans-serif',
+                            fontSize: 13,
+                            lineHeight: "18px",
+                            mt: "8px",
+                            overflowWrap: "anywhere",
+                            px: "20px",
+                            textAlign: "center",
+                        }}
+                    >
+                        {copy.description}
+                    </Box>
+                )}
                 <Box sx={{ display: "grid", gap: "12px", mt: "20px" }}>
                     {actions.map(({ type, label }) => {
                         const phase =
@@ -177,11 +210,9 @@ export const FriendRequestSheet: React.FC<FriendRequestSheetProps> = ({
                                 component="button"
                                 type="button"
                                 className={
-                                    type == "accept" ? "green-bg" : undefined
+                                    type == "primary" ? "green-bg" : undefined
                                 }
-                                aria-label={
-                                    phase == "done" ? "Request accepted" : label
-                                }
+                                aria-label={phase == "done" ? copy.done : label}
                                 aria-busy={phase == "busy"}
                                 aria-live="polite"
                                 disabled={action !== null}
@@ -189,7 +220,7 @@ export const FriendRequestSheet: React.FC<FriendRequestSheetProps> = ({
                                 sx={{
                                     alignItems: "center",
                                     bgcolor:
-                                        type == "accept"
+                                        type == "primary"
                                             ? green
                                             : spaceControlBackgroundHover,
                                     border: 0,
@@ -222,7 +253,7 @@ export const FriendRequestSheet: React.FC<FriendRequestSheetProps> = ({
                         );
                     })}
                 </Box>
-                {failed && (
+                {errorMessage && (
                     <Box
                         role="alert"
                         sx={{
@@ -232,7 +263,7 @@ export const FriendRequestSheet: React.FC<FriendRequestSheetProps> = ({
                             textAlign: "center",
                         }}
                     >
-                        Couldn&apos;t update the request. Please try again.
+                        {errorMessage}
                     </Box>
                 )}
             </Box>

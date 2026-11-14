@@ -68,6 +68,15 @@ func (h *Handlers) FriendRelationship(c *gin.Context, space *spacerepo.SpaceReco
 	respondJSON(c, resp, err)
 }
 
+func (h *Handlers) ListFriendSuggestions(c *gin.Context, space *spacerepo.SpaceRecord) {
+	resp, err := h.Module.Friends.ListSuggestions(c, space)
+	respondJSON(c, resp, err)
+}
+
+func (h *Handlers) HideFriendSuggestion(c *gin.Context, space *spacerepo.SpaceRecord) {
+	respondStatus(c, h.Module.Friends.HideSuggestion(c, space, c.Param("suggestedSpaceID")))
+}
+
 func (h *Handlers) RefreshFriendShares(c *gin.Context, space *spacerepo.SpaceRecord) {
 	var req models.RefreshFriendSharesRequest
 	if !bindJSON(c, &req) {

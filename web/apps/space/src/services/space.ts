@@ -18,6 +18,7 @@ import {
     type SpaceAccountCtxHandle,
     type SpaceActorResponse,
     type SpaceLinkCtxHandle,
+    type SpaceLookupResponse,
 } from "ente-space-wasm";
 import {
     beginCommentCountRequest,
@@ -235,6 +236,8 @@ export interface SpaceFriendRequest {
     friend: FriendProfile;
     requestId: number;
 }
+
+export type SpaceFriendSuggestion = SpaceLookupResponse;
 
 export interface SpaceUnreadStatus {
     messagesUnread: boolean;
@@ -942,6 +945,44 @@ export const loadCurrentFriendRequests = async (
                 requestId: request.requestId,
             })),
         ];
+    } finally {
+        releaseCurrentSpaceContext(ctx);
+    }
+};
+
+export const loadFriendSuggestions = async (spaceId: string) => {
+    const ctx = await ensureCurrentSpaceContext();
+    try {
+        return await ctx.listFriendSuggestions(spaceId);
+    } finally {
+        releaseCurrentSpaceContext(ctx);
+    }
+};
+
+export const hideFriendSuggestion = async (
+    spaceId: string,
+    suggestedSpaceId: string,
+) => {
+    const ctx = await ensureCurrentSpaceContext();
+    try {
+        await ctx.hideFriendSuggestion(spaceId, suggestedSpaceId);
+    } finally {
+        releaseCurrentSpaceContext(ctx);
+    }
+};
+
+export const requestSuggestedFriend = async (
+    spaceId: string,
+    suggestion: SpaceFriendSuggestion,
+) => {
+    const ctx = await ensureCurrentSpaceContext();
+    try {
+        const response = await ctx.requestFriend(
+            spaceId,
+            suggestion.spaceId,
+            suggestion.publicKey,
+        );
+        return response.status == "friend" ? "friend" : "requested";
     } finally {
         releaseCurrentSpaceContext(ctx);
     }

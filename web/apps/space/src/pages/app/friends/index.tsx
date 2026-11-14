@@ -11,11 +11,15 @@ import {
     clearSpaceFriendsCache,
     confirmCurrentFriendRequest,
     deleteCurrentFriendRequest,
+    hideFriendSuggestion,
     loadCurrentFriendAvatarURL,
     loadCurrentFriendRequests,
     loadCurrentSpaceFriends,
+    loadFriendSuggestions,
     requestFriendByUsername,
+    requestSuggestedFriend,
     type SpaceFriendRequest,
+    type SpaceFriendSuggestion,
 } from "services/space";
 import { useSpaceAppState } from "state/app-state";
 import { spaceAppBackgroundColor } from "styles/colors";
@@ -35,6 +39,9 @@ const Page: React.FC = () => {
     const [friendRequests, setFriendRequests] = React.useState<
         SpaceFriendRequest[]
     >([]);
+    const [suggestions, setSuggestions] = React.useState<
+        SpaceFriendSuggestion[]
+    >([]);
     const [isFriendsLoading, setIsFriendsLoading] = React.useState(true);
     const [showFriendRequestCanceledToast, setShowFriendRequestCanceledToast] =
         React.useState(false);
@@ -52,30 +59,41 @@ const Page: React.FC = () => {
     useEffect(() => {
         if (!profile?.spaceId) return;
 
+        let active = true;
         setIsFriendsLoading(true);
         void Promise.allSettled([
             loadCurrentFriendRequests(profile.spaceId),
             loadCurrentSpaceFriends(profile.spaceId),
-        ])
-            .then(([requestsResult, friendsResult]) => {
-                if (requestsResult.status == "fulfilled") {
-                    setFriendRequests(requestsResult.value);
-                } else {
-                    log.error(
-                        "Failed to load space friend requests",
-                        requestsResult.reason,
-                    );
-                }
-                if (friendsResult.status == "fulfilled") {
-                    setFriends(friendsResult.value);
-                } else {
-                    log.error(
-                        "Failed to load space friends",
-                        friendsResult.reason,
-                    );
-                }
-            })
-            .finally(() => setIsFriendsLoading(false));
+            loadFriendSuggestions(profile.spaceId),
+        ]).then(([requestsResult, friendsResult, suggestionsResult]) => {
+            if (!active) return;
+            if (requestsResult.status == "fulfilled") {
+                setFriendRequests(requestsResult.value);
+            } else {
+                log.error(
+                    "Failed to load space friend requests",
+                    requestsResult.reason,
+                );
+            }
+            if (friendsResult.status == "fulfilled") {
+                setFriends(friendsResult.value);
+            } else {
+                log.error("Failed to load space friends", friendsResult.reason);
+            }
+            if (suggestionsResult.status == "fulfilled") {
+                setSuggestions(suggestionsResult.value);
+            } else {
+                setSuggestions([]);
+                log.error(
+                    "Failed to load friend suggestions",
+                    suggestionsResult.reason,
+                );
+            }
+            setIsFriendsLoading(false);
+        });
+        return () => {
+            active = false;
+        };
     }, [profile?.spaceId, setFriends]);
 
     if (profileLoadStatus != "ready" || !profile) {
@@ -94,17 +112,24 @@ const Page: React.FC = () => {
                 <Box inert={Boolean(selectedFriend)}>
                     <FriendsScreen
                         friendRequests={friendRequests}
+                        suggestions={suggestions}
                         friends={friends}
                         isLoading={isFriendsLoading}
                         onBack={() => void router.back(spaceRoutes.home)}
                         onLoadFriendAvatar={loadCurrentFriendAvatarURL}
-                        onAddFriend={async (username) => {
+                        onAddFriend={async (target) => {
                             const actorSpaceId = profile.spaceId;
                             if (!actorSpaceId)
                                 throw new Error("Missing space.");
-                            const status = await requestFriendByUsername({
-                                spaceUsername: username,
-                            });
+                            const status =
+                                typeof target == "string"
+                                    ? await requestFriendByUsername({
+                                          spaceUsername: target,
+                                      })
+                                    : await requestSuggestedFriend(
+                                          actorSpaceId,
+                                          target,
+                                      );
                             try {
                                 if (status == "friend") {
                                     clearSpaceFriendsCache();
@@ -132,7 +157,28 @@ const Page: React.FC = () => {
                                     error,
                                 );
                             }
+                            setSuggestions((current) =>
+                                current.filter((candidate) =>
+                                    typeof target == "string"
+                                        ? candidate.spaceSlug != target
+                                        : candidate.spaceId != target.spaceId,
+                                ),
+                            );
                             return status;
+                        }}
+                        onHideSuggestion={async (suggestedSpaceId) => {
+                            if (!profile.spaceId)
+                                throw new Error("Missing space.");
+                            await hideFriendSuggestion(
+                                profile.spaceId,
+                                suggestedSpaceId,
+                            );
+                            setSuggestions((current) =>
+                                current.filter(
+                                    (candidate) =>
+                                        candidate.spaceId != suggestedSpaceId,
+                                ),
+                            );
                         }}
                         onOpenFriend={(friendID) => {
                             const friend = friends.find(
