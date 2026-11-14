@@ -1,1 +1,1 @@
-- Added Items and Collections search filters with multi-selection for each type. Switching filters clears selection. Matching items appear first, and collections match by name.
+- Added search filters and multi-selection for items and collections.
