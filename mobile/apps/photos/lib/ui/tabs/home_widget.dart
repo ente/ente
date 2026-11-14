@@ -1193,6 +1193,13 @@ class _HomeWidgetState extends State<HomeWidget> {
             );
           },
         ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: MediaQuery.systemGestureInsetsOf(context).bottom,
+          child: const AbsorbPointer(child: SizedBox.expand()),
+        ),
         Align(
           alignment: Alignment.bottomCenter,
           child: ValueListenableBuilder(
