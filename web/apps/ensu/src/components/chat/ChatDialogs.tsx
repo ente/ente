@@ -92,6 +92,12 @@ const compactInlineLinkSx = {
     cursor: "pointer",
 } as const;
 
+const sourceSwitchSx = (theme: Theme) =>
+    theme.applyStyles("light", {
+        "& .MuiSwitch-switchBase.Mui-checked:not(.Mui-disabled) .MuiSwitch-thumb":
+            { outline: "1px solid", outlineColor: "text.base" },
+    });
+
 interface ModelSettingsDraft {
     modelId: string;
     contextLength: string;
@@ -943,6 +949,7 @@ export const ChatDialogs = memo(
                                             </Stack>
                                             <Switch
                                                 color="accent"
+                                                sx={sourceSwitchSx}
                                                 checked={
                                                     !disabledNoteIds.includes(
                                                         collection.id,
@@ -1229,6 +1236,7 @@ export const ChatDialogs = memo(
                                             {installed && !isMutating ? (
                                                 <Switch
                                                     color="accent"
+                                                    sx={sourceSwitchSx}
                                                     checked={enabled}
                                                     disabled={
                                                         knowledgeCatalogLoading
