@@ -140,13 +140,6 @@ enum CastError: Error, LocalizedError {
     }
 }
 
-struct LivePhotoComponents {
-    let imageData: Data?
-    let videoData: Data?
-    let imagePath: URL?
-    let videoPath: URL?
-}
-
 struct CacheMetadata: Codable {
     let fileIDs: [Int]
     let totalBytes: Int

@@ -3,6 +3,9 @@ use ente_core::{b64, id};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+#[cfg(not(target_arch = "wasm32"))]
+pub mod media;
+
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("Invalid base64: {0}")]

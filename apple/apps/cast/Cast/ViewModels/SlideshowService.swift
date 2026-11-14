@@ -3,16 +3,22 @@ import Foundation
 import OSLog
 import SwiftUI
 import UIKit
-import ZIPFoundation
 
 private let logger = Logger(subsystem: "io.ente.cast", category: "Slideshow")
 
 @MainActor
 class RealSlideshowService: ObservableObject {
+    private struct MediaTask {
+        let id: UUID
+        let generation: UUID
+        let file: CastFile
+        let task: Task<CastMedia, Error>
+    }
+
     @Published var currentImageData: Data?
     @Published var currentVideoData: Data?
     @Published var currentVideoURL: URL?
-    @Published var livePhotoVideoData: Data?
+    @Published var livePhotoVideoURL: URL?
     @Published var videoPlayer: AVPlayer?
     @Published var isVideoPlaying: Bool = false
     @Published var videoCurrentTime: Double = 0
@@ -40,8 +46,11 @@ class RealSlideshowService: ObservableObject {
     private var isStopping: Bool = false
 
     private var slideTimer: Timer?
-    private var prefetchCache: [Int: Data] = [:]
-    private var videoTempFiles: [Int: URL] = [:]
+    private var prefetchedFileIDs: Set<Int> = []
+    private var mediaTasks: [Int: MediaTask] = [:]
+    private var prefetchTask: Task<Void, Never>?
+    private var mediaClient: CastMediaClient?
+    private var mediaGeneration = UUID()
     private var videoEndObserver: NSObjectProtocol?
     private let slideshowConfiguration = SlideConfiguration.tvOptimized
     private var slideTimeRemaining: TimeInterval = 0
@@ -56,9 +65,7 @@ class RealSlideshowService: ObservableObject {
     private var didDisplayFirstFile: Bool = false
 
     private var baseURL = APIEndpoint.current
-    // Fixed, valid URL literal.
-    // swift-format-ignore: NeverForceUnwrap
-    private let castDownloadURL = URL(string: "https://cast-albums.ente.com/download/")!
+    private let castDownloadOrigin = "https://cast-albums.ente.com"
 
     private var isHandlingAuthExpiry: Bool = false
 
@@ -145,6 +152,18 @@ class RealSlideshowService: ObservableObject {
         await clearExpiredTokenState()
         baseURL = APIEndpoint.current
         storedCastPayload = castPayload
+        mediaGeneration = UUID()
+        do {
+            mediaClient = try CastMediaClient(
+                apiOrigin: baseURL.absoluteString,
+                directDownloadOrigin: baseURL == APIEndpoint.production
+                    ? castDownloadOrigin : nil,
+                castToken: castPayload.castToken,
+            )
+        } catch {
+            self.error = "Failed to initialize media downloads: \(error.localizedDescription)"
+            return
+        }
         if error != nil {
             error = nil
         }
@@ -178,6 +197,8 @@ class RealSlideshowService: ObservableObject {
     func stop() async {
         ScreenSaverManager.allowScreenSaver()
         removeVideoEndObserver()
+        prefetchTask?.cancel()
+        mediaTasks.values.forEach { $0.task.cancel() }
 
         await MainActor.run {
             isStopping = true
@@ -192,7 +213,7 @@ class RealSlideshowService: ObservableObject {
             currentImageData = nil
             currentVideoData = nil
             currentVideoURL = nil
-            livePhotoVideoData = nil
+            livePhotoVideoURL = nil
             error = nil
         }
 
@@ -206,21 +227,25 @@ class RealSlideshowService: ObservableObject {
     func clearExpiredTokenState() async {
         ScreenSaverManager.allowScreenSaver()
         removeVideoEndObserver()
+        prefetchTask?.cancel()
+        mediaTasks.values.forEach { $0.task.cancel() }
 
         await MainActor.run {
             slideTimer?.invalidate()
             slideTimer = nil
             storedCastPayload = nil
+            mediaClient = nil
+            mediaGeneration = UUID()
             lastUpdateTime = 0
             hasCompletedInitialFetch = false
             allFiles.removeAll()
-            prefetchCache.removeAll()
+            prefetchedFileIDs.removeAll()
             error = nil
             currentFile = nil
             currentImageData = nil
             currentVideoData = nil
             currentVideoURL = nil
-            livePhotoVideoData = nil
+            livePhotoVideoURL = nil
         }
         // Preserve the cache across sessions.
     }
@@ -367,7 +392,8 @@ class RealSlideshowService: ObservableObject {
                         currentFileIndex = 0
                     }
 
-                    prefetchCache.removeValue(forKey: id)
+                    prefetchedFileIDs.remove(id)
+                    mediaTasks[id]?.task.cancel()
                     await removeCachedFileContent(fileID: id)
                 }
             } else {
@@ -386,7 +412,8 @@ class RealSlideshowService: ObservableObject {
                             allFiles[existingIndex] = file
 
                             if oldFile.hash != file.hash, file.hash != nil {
-                                prefetchCache.removeValue(forKey: id)
+                                prefetchedFileIDs.remove(id)
+                                mediaTasks[id]?.task.cancel()
                                 await removeCachedFileContent(fileID: id)
                             }
 
@@ -414,7 +441,7 @@ class RealSlideshowService: ObservableObject {
             currentImageData = nil
             currentVideoData = nil
             currentVideoURL = nil
-            livePhotoVideoData = nil
+            livePhotoVideoURL = nil
             totalSlides = 0
             currentSlideIndex = 0
             currentFileIndex = 0
@@ -466,37 +493,39 @@ class RealSlideshowService: ObservableObject {
         guard currentFileIndex >= 0, currentFileIndex < allFiles.count,
             let payload = storedCastPayload
         else { return }
+        let file = allFiles[currentFileIndex]
 
         await MainActor.run {
             currentSlideIndex = currentFileIndex
             slideLoadingProgress = 0.0
         }
 
-        if let cachedData = prefetchCache[currentFileIndex] {
-            updateCurrentSlide(with: cachedData, file: allFiles[currentFileIndex])
-            await MainActor.run { slideLoadingProgress = 1.0 }
-            return
-        }
-
         do {
-            let file = allFiles[currentFileIndex]
             await MainActor.run { slideLoadingProgress = 0.5 }
 
-            let decryptedData = try await downloadAndDecryptFileContent(
+            let media = try await downloadAndDecryptFileContent(
                 castPayload: payload,
                 file: file,
             )
-            guard storedCastPayload == payload else { return }
+            guard storedCastPayload == payload,
+                allFiles.indices.contains(currentFileIndex),
+                allFiles[currentFileIndex] == file
+            else { return }
 
-            prefetchCache[currentFileIndex] = decryptedData
+            prefetchedFileIDs.insert(file.id)
 
-            updateCurrentSlide(with: decryptedData, file: file)
+            try updateCurrentSlide(with: media, file: file)
             await MainActor.run { slideLoadingProgress = 1.0 }
 
             startPrefetching()
 
+        } catch is CancellationError {
+            return
         } catch {
-            guard storedCastPayload == payload else { return }
+            guard storedCastPayload == payload,
+                allFiles.indices.contains(currentFileIndex),
+                allFiles[currentFileIndex] == file
+            else { return }
             logger.error(
                 "Failed to load slideshow item: \(error.localizedDescription, privacy: .public)")
 
@@ -506,7 +535,10 @@ class RealSlideshowService: ObservableObject {
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 Task {
-                    guard self.storedCastPayload == payload else { return }
+                    guard self.storedCastPayload == payload,
+                        self.allFiles.indices.contains(self.currentFileIndex),
+                        self.allFiles[self.currentFileIndex] == file
+                    else { return }
                     await self.skipToNextSlide()
                 }
             }
@@ -514,77 +546,44 @@ class RealSlideshowService: ObservableObject {
     }
 
     @MainActor
-    private func updateCurrentSlide(with data: Data, file: CastFile) {
+    private func updateCurrentSlide(with media: CastMedia, file: CastFile) throws {
         let wasEmpty = error == "No media files available in this album"
         error = nil
         currentFile = file
 
         if file.isLivePhoto {
-            do {
-                let components = try extractLivePhotoComponents(from: data)
-
-                if let imageData = components.imageData {
-                    currentImageData = imageData
-                } else {
-                    currentImageData = data
-                }
-
-                if let videoData = components.videoData {
-                    livePhotoVideoData = videoData
-                } else {
-                    livePhotoVideoData = nil
-                }
-
-                currentVideoData = nil
-                currentVideoURL = nil
-
-                startSlideTimer()
-
-            } catch {
-                logger.error(
-                    "Failed to extract Live Photo components: \(error.localizedDescription, privacy: .public)"
-                )
-                currentImageData = data
-                currentVideoData = nil
-                currentVideoURL = nil
-                livePhotoVideoData = nil
-                startSlideTimer()
+            guard let imagePath = media.imagePath, let videoPath = media.videoPath else {
+                throw CastError.decryptionError("Live Photo components are missing")
             }
-
-        } else if file.isVideo {
-            currentImageData = nil
-            livePhotoVideoData = nil
-            do {
-                let url: URL
-                if let existing = videoTempFiles[file.id] {
-                    url = existing
-                } else {
-                    let fileExtension =
-                        file.title.components(separatedBy: ".").last?
-                        .lowercased() ?? "mp4"
-                    let tmpURL = FileManager.default.temporaryDirectory
-                        .appendingPathComponent(
-                            "cast_video_\(file.id)_\(UUID().uuidString).\(fileExtension)",
-                        )
-                    try data.write(to: tmpURL, options: .atomic)
-                    videoTempFiles[file.id] = tmpURL
-                    url = tmpURL
-                }
-                currentVideoURL = url
-                currentVideoData = nil
-                prepareVideoPlayer(url: url)
-            } catch {
-                logger.error(
-                    "Failed to save temporary video file: \(error.localizedDescription, privacy: .public)"
-                )
-                currentVideoURL = nil
-            }
-        } else {
+            currentImageData = try Data(
+                contentsOf: URL(fileURLWithPath: imagePath),
+                options: .mappedIfSafe,
+            )
+            livePhotoVideoURL = URL(fileURLWithPath: videoPath)
             currentVideoData = nil
             currentVideoURL = nil
-            livePhotoVideoData = nil
-            // Assign the image last to avoid a black frame.
-            currentImageData = data
+            startSlideTimer()
+        } else if file.isVideo {
+            currentImageData = nil
+            livePhotoVideoURL = nil
+            guard let videoPath = media.videoPath else {
+                throw CastError.decryptionError("Video component is missing")
+            }
+            let url = URL(fileURLWithPath: videoPath)
+            currentVideoURL = url
+            currentVideoData = nil
+            prepareVideoPlayer(url: url)
+        } else {
+            guard let imagePath = media.imagePath else {
+                throw CastError.decryptionError("Image component is missing")
+            }
+            currentVideoData = nil
+            currentVideoURL = nil
+            livePhotoVideoURL = nil
+            currentImageData = try Data(
+                contentsOf: URL(fileURLWithPath: imagePath),
+                options: .mappedIfSafe,
+            )
             startSlideTimer()
         }
         error = nil
@@ -633,14 +632,14 @@ class RealSlideshowService: ObservableObject {
             do {
                 let file = allFiles[currentFileIndex]
 
-                let decryptedData = try await downloadAndDecryptFileContent(
+                let media = try await downloadAndDecryptFileContent(
                     castPayload: payload,
                     file: file,
                 )
                 guard storedCastPayload == payload else { return }
 
-                prefetchCache[currentFileIndex] = decryptedData
-                updateCurrentSlide(with: decryptedData, file: file)
+                prefetchedFileIDs.insert(file.id)
+                try updateCurrentSlide(with: media, file: file)
 
                 await MainActor.run {
                     currentSlideIndex = currentFileIndex
@@ -672,32 +671,39 @@ class RealSlideshowService: ObservableObject {
 
     private func startPrefetching() {
         guard let payload = storedCastPayload else { return }
-        Task {
-            let prefetchCount = min(3, allFiles.count)
+        let previousTask = prefetchTask
+        previousTask?.cancel()
+        let files = allFiles
+        let startIndex = currentFileIndex
+        prefetchTask = Task { [weak self] in
+            _ = await previousTask?.value
+            guard let self, !Task.isCancelled else { return }
+            let prefetchCount = min(slideshowConfiguration.prefetchCount, max(0, files.count - 1))
+            guard slideshowConfiguration.enablePrefetching, prefetchCount > 0 else { return }
             for i in 1...prefetchCount {
+                guard !Task.isCancelled else { return }
                 guard storedCastPayload == payload else { return }
-                let prefetchIndex = (currentFileIndex + i) % allFiles.count
+                let file = files[(startIndex + i) % files.count]
 
-                if prefetchCache[prefetchIndex] != nil {
-                    continue
+                if prefetchedFileIDs.contains(file.id) {
+                    if await fileCache.get(file.id) != nil {
+                        continue
+                    }
+                    prefetchedFileIDs.remove(file.id)
                 }
 
                 do {
-                    let file = allFiles[prefetchIndex]
-                    let data = try await downloadAndDecryptFileContent(
+                    _ = try await downloadAndDecryptFileContent(
                         castPayload: payload,
                         file: file,
                     )
                     guard storedCastPayload == payload else { return }
-                    prefetchCache[prefetchIndex] = data
+                    prefetchedFileIDs.insert(file.id)
 
-                    if prefetchCache.count > 5 {
-                        let oldKeys = Array(
-                            prefetchCache.keys.sorted()
-                                .prefix(prefetchCache.count - 5))
-                        for key in oldKeys {
-                            prefetchCache.removeValue(forKey: key)
-                        }
+                    while prefetchedFileIDs.count > slideshowConfiguration.maxCacheSize {
+                        guard let id = prefetchedFileIDs.first(where: { $0 != currentFile?.id })
+                        else { break }
+                        prefetchedFileIDs.remove(id)
                     }
 
                 } catch {
@@ -705,7 +711,9 @@ class RealSlideshowService: ObservableObject {
                     continue
                 }
 
-                try? await Task.sleep(nanoseconds: 500_000_000)
+                try? await Task.sleep(
+                    nanoseconds: UInt64(slideshowConfiguration.prefetchDelay * 1_000_000_000),
+                )
             }
         }
     }
@@ -854,90 +862,112 @@ class RealSlideshowService: ObservableObject {
         }
     }
 
-    private func downloadEncryptedFile(castPayload: CastPayload, fileID: Int) async throws -> Data {
-        guard storedCastPayload == castPayload else { throw CancellationError() }
-        let isProduction = baseURL.absoluteString == APIEndpoint.production.absoluteString
-        let url =
-            isProduction
-            ? castDownloadURL.appending(queryItems: [
-                URLQueryItem(name: "fileID", value: String(fileID))
-            ])
-            : baseURL.appendingPathComponent("cast/files/download/v3/\(fileID)")
-
-        var request = URLRequest(url: url)
-        request.setValue(castPayload.castToken, forHTTPHeaderField: "X-Cast-Access-Token")
-
-        let data = try await download(request, castPayload: castPayload)
-        guard !isProduction else { return data }
-        let fileURL = try JSONDecoder().decode(FileURL.self, from: data).url
-        return try await download(
-            URLRequest(url: fileURL),
-            castPayload: castPayload,
-        )
-    }
-
-    private func download(
-        _ request: URLRequest, castPayload: CastPayload
-    ) async throws -> Data {
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard storedCastPayload == castPayload else { throw CancellationError() }
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw CastError.networkError("Invalid response")
-        }
-
-        guard httpResponse.statusCode == 200 else {
-            let snippet = (String(data: data, encoding: .utf8) ?? "").prefix(160)
-            if httpResponse.statusCode == 401,
-                request.value(forHTTPHeaderField: "X-Cast-Access-Token") != nil
-            {
-                handleUnauthorizedError()
-                throw CastError.serverError(
-                    401,
-                    "Authentication expired - resetting to pairing mode",
-                )
-            } else {
-                throw CastError.serverError(httpResponse.statusCode, String(snippet))
-            }
-        }
-        return data
-    }
-
-    private struct FileURL: Decodable { let url: URL }
-
     private func downloadAndDecryptFileContent(
         castPayload: CastPayload,
         file: CastFile
-    ) async throws -> Data {
-        let stopping = await MainActor.run { isStopping }
-        if stopping {
+    ) async throws -> CastMedia {
+        if isStopping {
             throw CastError.networkError("Service is stopping")
         }
-
-        if let cachedData = await getCachedFileContent(fileID: file.id) {
-            return cachedData
+        guard let mediaClient else {
+            throw CastError.networkError("Media client is unavailable")
+        }
+        let kind = mediaKind(for: file)
+        let maximumBytes = maximumBytes(for: file)
+        if let directory = await fileCache.get(file.id) {
+            do {
+                return try mediaClient.openCached(
+                    directory: directory.path,
+                    kind: kind,
+                    maximumBytes: maximumBytes,
+                )
+            } catch {
+                await fileCache.remove(file.id)
+            }
+        }
+        while let existing = mediaTasks[file.id] {
+            if existing.generation == mediaGeneration, existing.file == file {
+                return try await existing.task.value
+            }
+            existing.task.cancel()
+            _ = try? await existing.task.value
+            if mediaTasks[file.id]?.id == existing.id {
+                mediaTasks.removeValue(forKey: file.id)
+            }
         }
 
-        let encryptedData = try await downloadEncryptedFile(
-            castPayload: castPayload,
-            fileID: file.id,
+        let reservationBytes = file.isLivePhoto ? maximumBytes * 2 : maximumBytes
+        let taskID = UUID()
+        let generation = mediaGeneration
+        let task = Task<CastMedia, Error> {
+            let reservation = try await fileCache.reserve(
+                file.id,
+                maximumBytes: Int(reservationBytes),
+            )
+            do {
+                let media = try await mediaClient.download(
+                    request: CastMediaDownloadRequest(
+                        fileId: Int64(file.id),
+                        title: file.title,
+                        kind: kind,
+                        encryptedKey: file.encryptedKey,
+                        keyDecryptionNonce: file.keyDecryptionNonce,
+                        collectionKey: castPayload.collectionKey,
+                        decryptionHeader: file.fileDecryptionHeader,
+                        outputDirectory: reservation.directory.path,
+                        maximumBytes: maximumBytes,
+                    ),
+                )
+                try Task.checkCancellation()
+                try await fileCache.commit(
+                    reservation,
+                    maximumEntryBytes: Int(maximumBytes),
+                )
+                return media
+            } catch {
+                await fileCache.cancel(reservation)
+                throw error
+            }
+        }
+        mediaTasks[file.id] = MediaTask(
+            id: taskID,
+            generation: generation,
+            file: file,
+            task: task,
         )
+        defer {
+            if mediaTasks[file.id]?.id == taskID {
+                mediaTasks.removeValue(forKey: file.id)
+            }
+        }
+        do {
+            let media = try await task.value
+            guard storedCastPayload == castPayload else { throw CancellationError() }
+            return media
+        } catch let mediaError as CastMediaError {
+            if case .Unauthorized = mediaError {
+                handleUnauthorizedError()
+            }
+            throw mediaError
+        }
+    }
 
-        let fileKey = try decryptFileKey(
-            encryptedKey: file.encryptedKey,
-            nonce: file.keyDecryptionNonce,
-            collectionKey: castPayload.collectionKey,
+    private func mediaKind(for file: CastFile) -> CastMediaKind {
+        if file.isLivePhoto {
+            .livePhoto
+        } else if file.isVideo {
+            .video
+        } else {
+            .image
+        }
+    }
+
+    private func maximumBytes(for file: CastFile) -> UInt64 {
+        UInt64(
+            file.isLivePhoto || file.isVideo
+                ? slideshowConfiguration.maxVideoSize
+                : slideshowConfiguration.maxImageSize,
         )
-
-        let decryptedData = try decryptFileContent(
-            encryptedData: encryptedData,
-            fileKey: fileKey,
-            decryptionHeader: file.fileDecryptionHeader,
-        )
-        guard storedCastPayload == castPayload else { throw CancellationError() }
-        await cacheFileContent(fileID: file.id, data: decryptedData)
-
-        return decryptedData
     }
 
     private func decryptFileMetadata(
@@ -1030,25 +1060,6 @@ class RealSlideshowService: ObservableObject {
         }
     }
 
-    private func decryptFileContent(
-        encryptedData: Data, fileKey: Data,
-        decryptionHeader: String
-    ) throws -> Data {
-        guard let headerBytes = Data(base64Encoded: decryptionHeader) else {
-            throw CastError.decryptionError("Invalid base64 in file decryption header")
-        }
-
-        do {
-            return try decryptSecretStream(
-                encryptedData: encryptedData,
-                header: headerBytes,
-                key: fileKey,
-            )
-        } catch {
-            throw CastError.decryptionError("file content decryption failed: \(error)")
-        }
-    }
-
     private func parseFileMetadata(data: Data) throws -> FileMetadata {
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             throw CastError.decryptionError("Invalid JSON in decrypted metadata")
@@ -1069,14 +1080,6 @@ class RealSlideshowService: ObservableObject {
         )
     }
 
-    private func getCachedFileContent(fileID: Int) async -> Data? {
-        await fileCache.get(fileID)
-    }
-
-    private func cacheFileContent(fileID: Int, data: Data) async {
-        await fileCache.set(fileID, data: data)
-    }
-
     private func cleanupExpiredCache(validFileIDs: Set<Int>, castPayload: CastPayload) async {
         guard storedCastPayload == castPayload else { return }
 
@@ -1091,112 +1094,13 @@ class RealSlideshowService: ObservableObject {
     }
 
     private func removeCachedFileContent(fileID: Int) async {
+        if currentFile?.id == fileID {
+            livePhotoVideoURL = nil
+        }
         await fileCache.remove(fileID)
     }
 
     func clearCache() async {
         await fileCache.clear()
-    }
-}
-
-func extractZipUsingFoundation(zipURL: URL, to destinationURL: URL) throws {
-    do {
-        try FileManager.default.unzipItem(at: zipURL, to: destinationURL)
-    } catch {
-        throw CastError.decryptionError("ZipFoundation extraction failed: \(error)")
-    }
-}
-
-func extractLivePhotoComponents(from zipData: Data) throws -> LivePhotoComponents {
-    let tempDirectory = FileManager.default.temporaryDirectory
-    let zipURL = tempDirectory.appendingPathComponent("livephoto_\(UUID().uuidString).zip")
-    let extractDirectory =
-        tempDirectory
-        .appendingPathComponent("livephoto_extract_\(UUID().uuidString)")
-
-    defer {
-        try? FileManager.default.removeItem(at: zipURL)
-        try? FileManager.default.removeItem(at: extractDirectory)
-    }
-
-    try zipData.write(to: zipURL)
-    try FileManager.default.createDirectory(at: extractDirectory, withIntermediateDirectories: true)
-
-    var imageData: Data?
-    var videoData: Data?
-    var imagePath: URL?
-    var videoPath: URL?
-
-    do {
-        try extractZipUsingFoundation(zipURL: zipURL, to: extractDirectory)
-
-        // Live Photo zips may nest their assets.
-        let resourceKeys: [URLResourceKey] = [.isDirectoryKey]
-        let enumerator = FileManager.default.enumerator(
-            at: extractDirectory,
-            includingPropertiesForKeys: resourceKeys,
-        )
-
-        func isLikelyImage(_ url: URL) -> Bool {
-            let ext = url.pathExtension.lowercased()
-            return ["jpg", "jpeg", "png", "heic", "heif"].contains(ext)
-        }
-
-        func isLikelyVideo(_ url: URL) -> Bool {
-            let ext = url.pathExtension.lowercased()
-            return ["mov", "mp4", "m4v", "hevc"].contains(ext)
-        }
-
-        while let fileURL = enumerator?.nextObject() as? URL {
-            if (try? fileURL.resourceValues(forKeys: Set(resourceKeys)).isDirectory) == true {
-                continue
-            }
-            if imageData == nil, isLikelyImage(fileURL) {
-                imageData = try Data(contentsOf: fileURL)
-                imagePath = fileURL
-            } else if videoData == nil, isLikelyVideo(fileURL) {
-                videoData = try Data(contentsOf: fileURL)
-                videoPath = fileURL
-            }
-        }
-
-        // Some packages use extensionless or generic asset names.
-        if imageData == nil || videoData == nil {
-            let contents = try FileManager.default.contentsOfDirectory(
-                at: extractDirectory,
-                includingPropertiesForKeys: nil,
-            )
-            if imageData == nil {
-                if let guessImage = contents.first(where: { $0.pathExtension.isEmpty }) {
-                    imageData = try? Data(contentsOf: guessImage)
-                    imagePath = guessImage
-                }
-            }
-            if videoData == nil {
-                if let guessVideo =
-                    contents
-                    .first(where: { ["bin", "dat"].contains($0.pathExtension.lowercased()) })
-                {
-                    videoData = try? Data(contentsOf: guessVideo)
-                    videoPath = guessVideo
-                }
-            }
-        }
-
-        if imageData == nil, videoData == nil {
-            throw
-                CastError
-                .decryptionError("No valid image or video components found in live photo zip")
-        }
-
-        return LivePhotoComponents(
-            imageData: imageData,
-            videoData: videoData,
-            imagePath: imagePath,
-            videoPath: videoPath,
-        )
-
-    } catch {
-        throw CastError.decryptionError("Failed to extract live photo zip: \(error)")
     }
 }

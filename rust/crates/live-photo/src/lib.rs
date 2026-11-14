@@ -6,6 +6,7 @@ use std::{
 
 const EXPANSION_RATIO: u64 = 20;
 const EXPANSION_OVERHEAD: u64 = 16 * 1024 * 1024;
+const MAX_ARCHIVE_ENTRIES: usize = 16;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Component {
@@ -92,6 +93,9 @@ fn extract_with<R: Read + Seek, W: Write>(
         .saturating_mul(EXPANSION_RATIO)
         .saturating_add(EXPANSION_OVERHEAD);
     let mut archive = zip::ZipArchive::new(reader)?;
+    if archive.len() > MAX_ARCHIVE_ENTRIES {
+        return Err(Error::Components);
+    }
     if archive.has_duplicate_names() {
         return Err(Error::Components);
     }
@@ -321,6 +325,31 @@ mod tests {
                 bytes[index..index + b"altered/".len()].copy_from_slice(b"ignored/");
             }
         }
+        let mut opened = 0;
+        let result = extract(Cursor::new(bytes), |_, _| {
+            opened += 1;
+            Ok(std::io::sink())
+        });
+        assert!(matches!(result, Err(Error::Components)));
+        assert_eq!(opened, 0);
+    }
+
+    #[test]
+    fn rejects_excess_entries_before_opening_output() {
+        let mut zip = zip::ZipWriter::new(Cursor::new(Vec::new()));
+        for index in 0..MAX_ARCHIVE_ENTRIES - 1 {
+            zip.add_directory(
+                format!("directory-{index}/"),
+                zip::write::SimpleFileOptions::default(),
+            )
+            .unwrap();
+        }
+        for name in ["image.jpg", "video.mov"] {
+            zip.start_file(name, zip::write::SimpleFileOptions::default())
+                .unwrap();
+            zip.write_all(b"component").unwrap();
+        }
+        let bytes = zip.finish().unwrap().into_inner();
         let mut opened = 0;
         let result = extract(Cursor::new(bytes), |_, _| {
             opened += 1;
