@@ -942,6 +942,7 @@ export const ChatDialogs = memo(
                                                 </Typography>
                                             </Stack>
                                             <Switch
+                                                color="accent"
                                                 checked={
                                                     !disabledNoteIds.includes(
                                                         collection.id,
@@ -1227,6 +1228,7 @@ export const ChatDialogs = memo(
                                             </Stack>
                                             {installed && !isMutating ? (
                                                 <Switch
+                                                    color="accent"
                                                     checked={enabled}
                                                     disabled={
                                                         knowledgeCatalogLoading
