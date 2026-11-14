@@ -6,7 +6,7 @@ workflows:
     '.github/workflows/android-lint.yml':
         - 'actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9'
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
-        - 'actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad'
+        - 'actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78'
         - 'swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0'
     '.github/workflows/app-release.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
@@ -20,7 +20,7 @@ workflows:
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
         - 'actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510'
         - 'actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333'
-        - 'actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad'
+        - 'actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78'
         - 'actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9'
         - 'apple-actions/import-codesign-certs@288b8ec97b82c66b6f2a6baaf7acc8dfbcbe331c'
         - 'azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82'
@@ -44,7 +44,7 @@ workflows:
         - 'actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9'
     '.github/workflows/codeql.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
-        - 'github/codeql-action@9b3254085494b55a0f7c4c2b3d2d52cc712ce370'
+        - 'github/codeql-action@33d7b85da1a04171e211befe2c739303b9a4c066'
     '.github/workflows/codex-review.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
         - 'actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3'
@@ -78,7 +78,7 @@ workflows:
     '.github/workflows/ensu-build.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
         - 'actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510'
-        - 'actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad'
+        - 'actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78'
         - 'actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1'
         - 'android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd'
         - 'apple-actions/import-codesign-certs@288b8ec97b82c66b6f2a6baaf7acc8dfbcbe331c'
@@ -110,21 +110,21 @@ workflows:
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
         - 'actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510'
         - 'actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333'
-        - 'actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad'
+        - 'actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78'
         - 'actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9'
         - 'apple-actions/import-codesign-certs@288b8ec97b82c66b6f2a6baaf7acc8dfbcbe331c'
         - 'ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd'
         - 'r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5'
     '.github/workflows/mobile-crowdin-push-sources-and-translations.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
-        - 'crowdin/github-action@959dc74ac104447731cba99a016f85d0ae719788'
+        - 'crowdin/github-action@d651c77756acbe11a31d77a6fb79d8a239e1e05a'
     '.github/workflows/mobile-crowdin-push-sources.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
-        - 'crowdin/github-action@959dc74ac104447731cba99a016f85d0ae719788'
+        - 'crowdin/github-action@d651c77756acbe11a31d77a6fb79d8a239e1e05a'
     '.github/workflows/mobile-crowdin-sync.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
         - 'actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510'
-        - 'crowdin/github-action@959dc74ac104447731cba99a016f85d0ae719788'
+        - 'crowdin/github-action@d651c77756acbe11a31d77a6fb79d8a239e1e05a'
     '.github/workflows/mobile-lint.yml':
         - 'actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9'
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
@@ -137,7 +137,7 @@ workflows:
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
         - 'actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510'
         - 'actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333'
-        - 'actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad'
+        - 'actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78'
         - 'actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9'
         - 'apple-actions/import-codesign-certs@288b8ec97b82c66b6f2a6baaf7acc8dfbcbe331c'
         - 'ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd'
@@ -187,11 +187,11 @@ workflows:
         - 'swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0'
     '.github/workflows/web-crowdin-push-sources-and-translations.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
-        - 'crowdin/github-action@959dc74ac104447731cba99a016f85d0ae719788'
+        - 'crowdin/github-action@d651c77756acbe11a31d77a6fb79d8a239e1e05a'
     '.github/workflows/web-crowdin-sync.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
         - 'actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510'
-        - 'crowdin/github-action@959dc74ac104447731cba99a016f85d0ae719788'
+        - 'crowdin/github-action@d651c77756acbe11a31d77a6fb79d8a239e1e05a'
     '.github/workflows/web-deploy-2of3.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
         - 'actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1'
@@ -263,9 +263,9 @@ dependencies:
         commit: 'sha1-b7ad1dad31e06c5925ef5d2fc7ad053ef454303e'
         owner_id: 44036562
         repo_id: 192624594
-    'actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad':
-        ref: 'v6.1.0'
-        commit: 'sha1-b843ebf9b913146b38da2eaa7aeddf76074ae1ad'
+    'actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78':
+        ref: 'v6.2.0'
+        commit: 'sha1-77dd5b2ce225ea11469928ac317850245a74ae78'
         owner_id: 44036562
         repo_id: 196057608
     'actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f':
@@ -310,14 +310,14 @@ dependencies:
         commit: 'sha1-953926a2e2182532811c01a25e53647d93bf07c0'
         owner_id: 314135
         repo_id: 213471363
-    'crowdin/github-action@959dc74ac104447731cba99a016f85d0ae719788':
-        ref: 'v3.5.0'
-        commit: 'sha1-959dc74ac104447731cba99a016f85d0ae719788'
+    'crowdin/github-action@d651c77756acbe11a31d77a6fb79d8a239e1e05a':
+        ref: 'v3.6.0'
+        commit: 'sha1-d651c77756acbe11a31d77a6fb79d8a239e1e05a'
         owner_id: 861398
         repo_id: 258521306
-    'github/codeql-action@9b3254085494b55a0f7c4c2b3d2d52cc712ce370':
-        ref: 'v4.39.1'
-        commit: 'sha1-9b3254085494b55a0f7c4c2b3d2d52cc712ce370'
+    'github/codeql-action@33d7b85da1a04171e211befe2c739303b9a4c066':
+        ref: 'v4.39.3'
+        commit: 'sha1-33d7b85da1a04171e211befe2c739303b9a4c066'
         owner_id: 9919
         repo_id: 259445878
     'ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd':
