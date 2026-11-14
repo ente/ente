@@ -12,6 +12,7 @@ const TIMELAPSE_FRAMES: usize = 40;
 const TIMELAPSE_MINIMUM_FRAMES: usize = 10;
 const TIMELAPSE_MINIMUM_MONTHS: usize = 3;
 const TIMELAPSE_MINIMUM_SCORE: f64 = 0.75;
+const TIMELAPSE_BLURRY: f64 = 10.0;
 const TIMELAPSE_MINIMUM_EYE_DISTANCE: f64 = 0.06;
 const TIMELAPSE_MAXIMUM_TILT: f64 = 0.45;
 const TIMELAPSE_MAXIMUM_TURN: f64 = 0.3;
@@ -77,6 +78,7 @@ fn frames(
         let distance = across.0.hypot(across.1);
         let centre = (eyes.left.0 + eyes.right.0) / 2.0;
         if face.score < TIMELAPSE_MINIMUM_SCORE
+            || face.blur <= TIMELAPSE_BLURRY
             || distance < TIMELAPSE_MINIMUM_EYE_DISTANCE
             || across.0 <= 0.0
             || (across.1 / across.0).abs() > TIMELAPSE_MAXIMUM_TILT
@@ -237,6 +239,39 @@ mod tests {
         assert_eq!(mine.person_id, "me");
         assert!(mine.is_me);
         assert_eq!(mine.photo_count, 65);
+    }
+
+    #[test]
+    fn blurry_faces_do_not_make_a_timelapse() {
+        let (_directory, store) = store();
+        let files = photos_every(1, "2026-01-01T10:00:00", 70, 5);
+        let mut faces: Vec<(FaceRow, &str)> = Vec::new();
+        for file_id in 1..=70 {
+            let mut blurry = facing(file_id, "blurry", 0.1, 0.0);
+            blurry.blur = 10.0;
+            faces.push((blurry, "blurry"));
+            if file_id <= 60 {
+                faces.push((facing(file_id, "kid", 0.1, 0.0), "kid"));
+            }
+        }
+        add_faces(&store, &faces);
+        for name in ["blurry", "kid"] {
+            store.db().assign_cluster_to_person(name, name).unwrap();
+        }
+        let mut family = request(files);
+        family.people = ["blurry", "kid"].map(person).to_vec();
+        let library = Library::of_year(&family).unwrap();
+        let people = People::load(&family, &library, &store).unwrap();
+
+        let lapse = timelapse(
+            &family,
+            &library,
+            &people,
+            &Ranking::new(Some(&people), None),
+        )
+        .unwrap();
+
+        assert_eq!(lapse.person_id, "kid");
     }
 
     #[test]

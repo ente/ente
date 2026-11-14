@@ -36,7 +36,8 @@ class RewindAtlas {
   static const _breather = Duration(milliseconds: 24);
   static const _patience = Duration(seconds: 8);
   static const _grace = Duration(milliseconds: 60);
-  static const _mostStalls = 200;
+  static const _mostUnfinished = 200;
+  static final _unfinished = <int>{};
   static const _rushedBudget = Duration(seconds: 6);
 
   final ui.Image image;
@@ -68,7 +69,7 @@ class RewindAtlas {
     final columns = max(1, sqrt(files.length).ceil());
     final clock = Stopwatch()..start();
     final loaded = <int>[];
-    var stalls = 0;
+    var stalled = false;
     ui.Image? sheet;
     bool isOver() =>
         clock.elapsed >= budget ||
@@ -85,8 +86,8 @@ class RewindAtlas {
           final data = await _fetch(
             files[index],
             bytes,
-            stalls,
-            () => stalls++,
+            stalled,
+            () => stalled = true,
           );
           if (data != null) {
             images[index - start] = await _decode(data, decodeSide ?? tile);
@@ -153,17 +154,25 @@ class RewindAtlas {
   static Future<Uint8List?> _fetch(
     EnteFile file,
     RewindBytes bytes,
-    int stalls,
+    bool stalled,
     void Function() onStall,
   ) async {
-    final cachedOnly = stalls >= _mostStalls;
+    final remote = file.isRemoteOnlyFile ? file.uploadedFileID : null;
+    final cachedOnly = _unfinished.length >= _mostUnfinished;
+    final request = bytes(file, cachedOnly: cachedOnly);
+    final hurried = remote != null && stalled && !cachedOnly;
     try {
-      return await bytes(
-        file,
-        cachedOnly: cachedOnly,
-      ).timeout(stalls > 0 && !cachedOnly ? _grace : _patience);
+      return await request.timeout(hurried ? _grace : _patience);
     } on TimeoutException {
-      onStall();
+      if (remote != null && !cachedOnly) {
+        onStall();
+        _unfinished.add(remote);
+        unawaited(
+          request
+              .then<void>((_) {}, onError: (_) {})
+              .whenComplete(() => _unfinished.remove(remote)),
+        );
+      }
       return null;
     } catch (_) {
       return null;
