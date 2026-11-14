@@ -223,6 +223,7 @@ class _World {
   static const _dwellMs = 320.0;
   static const _pinGapMs = 110.0;
   static const _longestJourneyMs = 14000.0;
+  static const _tightestPace = 0.7;
 
   final Float32List land;
   final Uint8List visited;
@@ -260,7 +261,55 @@ class _World {
     final List<int> route = globe.route;
     var visits = _itinerary(route, places, _local);
     if (visits.length < 2) visits = _itinerary(route, places, 0);
+    int landing(_Visit visit) => visit.stops.reduce(
+      (a, b) => globe.places[b].photoCount > globe.places[a].photoCount ? b : a,
+    );
+    var plan = _schedule(visits, places);
+    while (visits.length > 2 &&
+        plan.clock - introMs > _longestJourneyMs / _tightestPace) {
+      _skipSmallest(visits, (visit) => globe.places[landing(visit)].photoCount);
+      plan = _schedule(visits, places);
+    }
+    final pace = min(1.0, _longestJourneyMs / max(1.0, plan.clock - introMs));
+    double paced(double ms) =>
+        ms <= introMs ? ms : introMs + (ms - introMs) * pace;
+    final endMs = paced(plan.clock);
 
+    var sum = (x: 0.0, y: 0.0, z: 0.0);
+    for (final stop in route) {
+      final place = places[stop];
+      sum = (x: sum.x + place.x, y: sum.y + place.y, z: sum.z + place.z);
+    }
+    final length = sqrt(sum.x * sum.x + sum.y * sum.y + sum.z * sum.z);
+    return _World(
+      land: Float32List.fromList(dots),
+      visited: Uint8List.fromList(visited),
+      places: places,
+      legs: [
+        for (final leg in plan.legs)
+          _Leg(
+            leg.from,
+            leg.to,
+            paced(leg.startMs),
+            leg.flightMs * pace,
+            leg.angle,
+          ),
+      ],
+      landings: [for (final visit in visits) landing(visit)],
+      pinnedMs: [
+        for (final ms in plan.pinnedMs) ms.isFinite ? paced(ms) : endMs,
+      ],
+      journeyMs: endMs - introMs,
+      home: length < 1e-6
+          ? places[route.first]
+          : (x: sum.x / length, y: sum.y / length, z: sum.z / length),
+    );
+  }
+
+  static ({List<_Leg> legs, List<double> pinnedMs, double clock}) _schedule(
+    List<_Visit> visits,
+    List<_Vector> places,
+  ) {
     final pinnedMs = List.filled(places.length, double.infinity);
     double drop(_Visit visit, double from) {
       var at = from;
@@ -283,44 +332,27 @@ class _World {
       clock += flightMs;
       clock = max(clock + _dwellMs, drop(visits[visit], clock));
     }
-    final pace = min(1.0, _longestJourneyMs / max(1.0, clock - introMs));
-    double paced(double ms) =>
-        ms <= introMs ? ms : introMs + (ms - introMs) * pace;
-    final endMs = paced(clock);
+    return (legs: legs, pinnedMs: pinnedMs, clock: clock);
+  }
 
-    var sum = (x: 0.0, y: 0.0, z: 0.0);
-    for (final stop in route) {
-      final place = places[stop];
-      sum = (x: sum.x + place.x, y: sum.y + place.y, z: sum.z + place.z);
+  static void _skipSmallest(
+    List<_Visit> visits,
+    int Function(_Visit visit) photos,
+  ) {
+    var smallest = 1;
+    for (var visit = 2; visit < visits.length; visit++) {
+      if (photos(visits[visit]) <= photos(visits[smallest])) smallest = visit;
     }
-    final length = sqrt(sum.x * sum.x + sum.y * sum.y + sum.z * sum.z);
-    return _World(
-      land: Float32List.fromList(dots),
-      visited: Uint8List.fromList(visited),
-      places: places,
-      legs: [
-        for (final leg in legs)
-          _Leg(
-            leg.from,
-            leg.to,
-            paced(leg.startMs),
-            leg.flightMs * pace,
-            leg.angle,
-          ),
-      ],
-      landings: [
-        for (final visit in visits)
-          visit.stops.reduce(
-            (a, b) =>
-                globe.places[b].photoCount > globe.places[a].photoCount ? b : a,
-          ),
-      ],
-      pinnedMs: [for (final ms in pinnedMs) ms.isFinite ? paced(ms) : endMs],
-      journeyMs: endMs - introMs,
-      home: length < 1e-6
-          ? places[route.first]
-          : (x: sum.x / length, y: sum.y / length, z: sum.z / length),
-    );
+    final skipped = visits.removeAt(smallest);
+    final before = visits[smallest - 1];
+    before.detours
+      ..addAll(skipped.stops)
+      ..addAll(skipped.detours);
+    if (smallest < visits.length && visits[smallest].place == before.place) {
+      final again = visits.removeAt(smallest);
+      before.stops.addAll(again.stops);
+      before.detours.addAll(again.detours);
+    }
   }
 
   static List<_Visit> _itinerary(

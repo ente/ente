@@ -28,6 +28,7 @@ class RewindAtlas {
   static const _breather = Duration(milliseconds: 24);
   static const _patience = Duration(seconds: 8);
   static const _grace = Duration(milliseconds: 60);
+  static const _mostStalls = 200;
   static const _rushedBudget = Duration(seconds: 6);
 
   final ui.Image image;
@@ -59,10 +60,11 @@ class RewindAtlas {
     final columns = max(1, sqrt(files.length).ceil());
     final clock = Stopwatch()..start();
     final loaded = <int>[];
-    var stalled = false;
+    var stalls = 0;
     ui.Image? sheet;
     bool isOver() =>
         clock.elapsed >= budget ||
+        stalls >= _mostStalls ||
         (loaded.length >= minimum &&
             clock.elapsed >= _rushedBudget &&
             (isRushed?.call() ?? false));
@@ -76,8 +78,8 @@ class RewindAtlas {
           final data = await _fetch(
             files[index],
             bytes,
-            stalled ? _grace : _patience,
-            () => stalled = true,
+            stalls > 0 ? _grace : _patience,
+            () => stalls++,
           );
           if (data != null) {
             images[index - start] = await _decode(data, decodeSide ?? tile);
@@ -221,6 +223,7 @@ class RewindWarm<T extends Object> {
   final void Function(T value) _dispose;
   Future<T?>? _pending;
   var _generation = 0;
+  var _holders = 0;
 
   Future<T?> get value => _pending ??= _guarded(_generation);
 
@@ -239,7 +242,12 @@ class RewindWarm<T extends Object> {
     return loaded;
   }
 
+  void hold() => _holders++;
+
+  void drop() => _holders--;
+
   void release() {
+    if (_holders > 0) return;
     final pending = _pending;
     _pending = null;
     _generation++;
@@ -267,25 +275,33 @@ class RewindWarmBuilder<T extends Object> extends StatefulWidget {
 
 class _RewindWarmBuilderState<T extends Object>
     extends State<RewindWarmBuilder<T>> {
-  static const _retryAfter = Duration(seconds: 3);
+  static const _retryAfterSeconds = [3, 6, 12, 24, 48];
 
   T? _value;
 
   @override
   void initState() {
     super.initState();
+    widget.warm.hold();
     unawaited(_await());
   }
 
+  @override
+  void dispose() {
+    widget.warm.drop();
+    super.dispose();
+  }
+
   Future<void> _await() async {
-    while (mounted) {
+    for (var attempt = 0; mounted; attempt++) {
       final value = await widget.warm.value;
       if (!mounted) return;
       if (value != null) {
         setState(() => _value = value);
         return;
       }
-      await Future<void>.delayed(_retryAfter);
+      final wait = min(attempt, _retryAfterSeconds.length - 1);
+      await Future<void>.delayed(Duration(seconds: _retryAfterSeconds[wait]));
     }
   }
 
