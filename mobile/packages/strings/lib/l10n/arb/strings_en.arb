@@ -1,5 +1,13 @@
 {
   "allCleanedUp": "All cleaned up!",
+  "collectionCount": "{count, plural, one{{count} collection} other{{count} collections}}",
+  "@collectionCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "bringMemoriesTogether": "Bring your memories together",
   "@bringMemoriesTogether": {
     "description": "Title on the Local Gallery photo permission screen"

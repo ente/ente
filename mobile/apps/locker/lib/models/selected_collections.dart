@@ -27,7 +27,21 @@ class SelectedCollections extends ChangeNotifier {
   }
 
   void clearAll() {
+    if (collections.isEmpty) return;
     collections.clear();
+    notifyListeners();
+  }
+
+  void retainSelection(Iterable<Collection> availableCollections) {
+    if (collections.isEmpty) return;
+    final selected = availableCollections.where(collections.contains).toSet();
+    if (selected.length == collections.length &&
+        selected.every((c) => identical(collections.lookup(c), c))) {
+      return;
+    }
+    collections
+      ..clear()
+      ..addAll(selected);
     notifyListeners();
   }
 

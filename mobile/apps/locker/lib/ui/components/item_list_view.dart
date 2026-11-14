@@ -28,6 +28,11 @@ class ItemListView extends StatefulWidget {
   final ScrollPhysics? physics;
   final ScrollController? scrollController;
   final bool selectionEnabled;
+  final bool filesFirst;
+  final bool showSectionHeaders;
+  final bool reserveSelectionPadding;
+  final VoidCallback? onFileSelectionStarted;
+  final VoidCallback? onCollectionSelectionStarted;
 
   const ItemListView({
     super.key,
@@ -39,6 +44,11 @@ class ItemListView extends StatefulWidget {
     this.physics = const NeverScrollableScrollPhysics(),
     this.scrollController,
     this.selectionEnabled = true,
+    this.filesFirst = false,
+    this.showSectionHeaders = false,
+    this.reserveSelectionPadding = true,
+    this.onFileSelectionStarted,
+    this.onCollectionSelectionStarted,
   });
 
   @override
@@ -58,7 +68,8 @@ class _ItemListViewState extends State<ItemListView> {
   void didUpdateWidget(ItemListView oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.files != oldWidget.files ||
-        widget.collections != oldWidget.collections) {
+        widget.collections != oldWidget.collections ||
+        widget.filesFirst != oldWidget.filesFirst) {
       _updateItems();
     }
   }
@@ -69,17 +80,22 @@ class _ItemListViewState extends State<ItemListView> {
     );
 
     _sortedItems = [
+      if (widget.filesFirst) ...widget.files.map((f) => _FileListItem(f)),
       ...sortedCollections.map((c) => _CollectionListItem(c)),
-      ...widget.files.map((f) => _FileListItem(f)),
+      if (!widget.filesFirst) ...widget.files.map((f) => _FileListItem(f)),
     ];
   }
 
   Future<void> _navigateToCollectionPage(Collection collection) async {
+    if (widget.selectedFiles?.hasSelections ?? false) {
+      widget.selectedFiles!.clearAll();
+    }
     await routeToPage(context, CollectionPage(collection: collection));
   }
 
   void _toggleCollectionSelection(Collection collection) {
     HapticFeedback.lightImpact();
+    widget.onCollectionSelectionStarted?.call();
     widget.selectedCollections!.toggleSelection(collection);
   }
 
@@ -89,6 +105,7 @@ class _ItemListViewState extends State<ItemListView> {
       return;
     }
     HapticFeedback.lightImpact();
+    widget.onFileSelectionStarted?.call();
     widget.selectedFiles!.toggleSelection(file);
   }
 
@@ -105,7 +122,9 @@ class _ItemListViewState extends State<ItemListView> {
     final hasFileSelection =
         widget.selectedFiles != null && widget.selectionEnabled;
     final hasCollectionSelection = widget.selectedCollections != null;
-    final bottomPadding = (hasFileSelection || hasCollectionSelection)
+    final bottomPadding =
+        widget.reserveSelectionPadding &&
+            (hasFileSelection || hasCollectionSelection)
         ? ItemListView._selectionOverlayPadding
         : 0.0;
 
@@ -120,7 +139,51 @@ class _ItemListViewState extends State<ItemListView> {
       physics: widget.physics,
       padding: EdgeInsets.only(bottom: bottomPadding),
       itemCount: _sortedItems.length,
-      itemBuilder: (context, index) => _buildItem(index),
+      itemBuilder: (context, index) {
+        final isCollection = _sortedItems[index].isCollection;
+        final startsSection =
+            index == 0 || _sortedItems[index - 1].isCollection != isCollection;
+        if (!widget.showSectionHeaders || !startsSection) {
+          return _buildItem(index);
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Semantics(
+              container: true,
+              header: true,
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  Spacing.md,
+                  index == 0 ? 0 : Spacing.lg,
+                  Spacing.md,
+                  Spacing.md,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      isCollection
+                          ? context.strings.collections
+                          : context.strings.itemsLabel,
+                      style: TextStyles.mini.copyWith(
+                        color: context.componentColors.textLight,
+                      ),
+                    ),
+                    Text(
+                      '${isCollection ? widget.collections.length : widget.files.length}',
+                      style: TextStyles.mini.copyWith(
+                        color: context.componentColors.textLight,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Semantics(container: true, child: _buildItem(index)),
+          ],
+        );
+      },
     );
   }
 
@@ -155,7 +218,10 @@ class _ItemListViewState extends State<ItemListView> {
       );
     }
 
-    return _createCollectionWidget(collection: collection);
+    return _createCollectionWidget(
+      collection: collection,
+      onTap: _navigateToCollectionPage,
+    );
   }
 
   Widget _buildFileItem(EnteFile file) {
