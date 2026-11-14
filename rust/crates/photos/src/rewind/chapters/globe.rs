@@ -11,7 +11,6 @@ use crate::rewind::report::{Globe, GlobePlace};
 
 const GLOBE_ROWS: usize = 96;
 const GLOBE_PLACES: usize = 40;
-const GLOBE_LEGS: usize = 80;
 const GLOBE_PLACE_PHOTOS: usize = 3;
 const MICRODEGREES: f64 = 1_000_000.0;
 
@@ -38,7 +37,6 @@ pub(in crate::rewind) fn globe(
             route.push(place);
         }
     }
-    route.truncate(GLOBE_LEGS + 1);
     if route.len() < 2 {
         return None;
     }
@@ -248,6 +246,36 @@ mod tests {
         assert!(ones(&abroad.visited) > ones(&home.visited));
         let tee = tour(&abroad_cities).unwrap();
         assert_eq!((tee.city_count, tee.country_count), (3, 2));
+    }
+
+    #[test]
+    fn a_late_journey_survives_many_earlier_round_trips() {
+        let lookup = LowCountries(Towns(vec![
+            ("Amsterdam", 52.37, 4.90),
+            ("Groningen", 53.22, 6.57),
+            ("Utrecht", 52.09, 5.12),
+        ]));
+        let mut files = Vec::new();
+        for trip in 0..90 {
+            let town = if trip % 2 == 0 {
+                (52.37, 4.90)
+            } else {
+                (53.22, 6.57)
+            };
+            let date = format!("2026-{:02}-{:02}", 1 + trip / 28, 1 + trip % 28);
+            files.extend(visit(1 + 10 * trip, town, &date, 2));
+        }
+        files.extend(visit(2000, (52.09, 5.12), "2026-11-01", 4));
+        let commuter = request(files);
+        let library = Library::of_year(&commuter).unwrap();
+        let cities = cities(&library, &lookup).unwrap();
+
+        let globe = globe(&cities, &lookup, &Ranking::new(None, None)).unwrap();
+
+        assert_eq!(globe.route.len(), 91);
+        assert_eq!(globe.route[..4], [0, 1, 0, 1]);
+        assert_eq!(globe.route.last(), Some(&2));
+        assert_eq!(globe.places[2].name, "Utrecht");
     }
 
     #[test]

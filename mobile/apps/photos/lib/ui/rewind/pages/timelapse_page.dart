@@ -85,18 +85,21 @@ class TimelapsePage extends RewindPage {
     final body =
         "${rewindCounted(photoCount, "photo", "photos")} this year, "
         "lined up by the eyes.";
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        _card(position, isActive, who, span, body),
-        RewindHint(
-          "TAP A FACE",
-          centerY: 566,
-          active: isActive,
-          position: position,
-          delayMs: 3400,
-        ),
-      ],
+    return RewindWarmBuilder<_Reel>(
+      warm: _reel,
+      builder: (context, reel) => Stack(
+        fit: StackFit.expand,
+        children: [
+          _card(position, isActive, who, span, body, reel),
+          RewindHint(
+            "TAP A FACE",
+            centerY: 566,
+            active: isActive && reel != null,
+            position: position,
+            delayMs: 3400,
+          ),
+        ],
+      ),
     );
   }
 
@@ -106,8 +109,10 @@ class TimelapsePage extends RewindPage {
     String? who,
     String span,
     String body,
+    _Reel? reel,
   ) {
     return RewindShareable(
+      enabled: reel != null,
       child: Stack(
         fit: StackFit.expand,
         children: [
@@ -124,13 +129,10 @@ class TimelapsePage extends RewindPage {
                     child: RewindLeave(
                       position: position,
                       centerY: 320,
-                      child: RewindWarmBuilder<_Reel>(
-                        warm: _reel,
-                        builder: (context, reel) => _Flipbook(
-                          key: ValueKey(reel),
-                          reel: reel,
-                          active: isActive,
-                        ),
+                      child: _Flipbook(
+                        key: ValueKey(reel),
+                        reel: reel,
+                        active: isActive,
                       ),
                     ),
                   ),

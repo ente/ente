@@ -65,28 +65,33 @@ class MosaicPage extends RewindPage {
     final who = subject == null
         ? "${RewindEdition.year}"
         : subjectName?.toUpperCase();
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        _card(position, isActive, who),
-        RewindWarmBuilder<_Tiling>(
-          warm: _tiling,
-          builder: (context, tiling) => RewindHint(
+    return RewindWarmBuilder<_Tiling>(
+      warm: _tiling,
+      builder: (context, tiling) => Stack(
+        fit: StackFit.expand,
+        children: [
+          _card(position, isActive, who, tiling),
+          RewindHint(
             "TAP OR PINCH TO DIVE IN",
             centerY: 500,
             active: isActive && tiling != null,
             position: position,
             delayMs: _Wall.revealedMs + 300,
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  Widget _card(double position, bool isActive, String? who) {
+  Widget _card(double position, bool isActive, String? who, _Tiling? tiling) {
+    final count = tiling == null
+        ? "GATHERING"
+        : "${rewindCount(tiling.atlas.length)} OF";
+    final label = "$count YOUR PHOTOS";
     final title = "MAKE ONE ${who ?? "OF YOU"}";
     const body = "Every tile is a real photo from your year.";
     return RewindShareable(
+      enabled: tiling != null,
       child: Stack(
         fit: StackFit.expand,
         children: [
@@ -94,54 +99,45 @@ class MosaicPage extends RewindPage {
             color: Color(0xFFFF6727),
             pattern: RewindStripes(Color(0xFFFF7638)),
           ),
-          RewindWarmBuilder<_Tiling>(
-            warm: _tiling,
-            builder: (context, tiling) {
-              final count = tiling == null
-                  ? "GATHERING"
-                  : "${rewindCount(tiling.atlas.length)} OF";
-              final label = "$count YOUR PHOTOS";
-              return Semantics(
-                label: "$label $title. $body",
-                child: ExcludeSemantics(
-                  child: RewindStage(
-                    children: [
-                      Positioned.fromRect(
-                        rect: _Wall.frame.inflate(12),
-                        child: RewindLeave(
-                          position: position,
-                          centerY: _Wall.frame.center.dy,
-                          child: RewindEntrance(
-                            preset: RewindPreset.drop,
-                            active: isActive,
-                            child: _Wall(
-                              key: ValueKey(tiling),
-                              tiling: tiling,
-                              active: isActive,
-                            ),
-                          ),
+          Semantics(
+            label: "$label $title. $body",
+            child: ExcludeSemantics(
+              child: RewindStage(
+                children: [
+                  Positioned.fromRect(
+                    rect: _Wall.frame.inflate(12),
+                    child: RewindLeave(
+                      position: position,
+                      centerY: _Wall.frame.center.dy,
+                      child: RewindEntrance(
+                        preset: RewindPreset.drop,
+                        active: isActive,
+                        child: _Wall(
+                          key: ValueKey(tiling),
+                          tiling: tiling,
+                          active: isActive,
                         ),
                       ),
-                      ...rewindCaption(
-                        label: label,
-                        title: title,
-                        body: body,
-                        me: (
-                          label: "$count MY PHOTOS",
-                          title: "MAKE ONE ${who ?? "OF ME"}",
-                          body: "Every tile is a real photo from my year.",
-                        ),
-                        position: position,
-                        active: isActive && tiling != null,
-                        delayMs: _Wall.revealedMs - 500,
-                        top: 600,
-                        titleSize: 44,
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              );
-            },
+                  ...rewindCaption(
+                    label: label,
+                    title: title,
+                    body: body,
+                    me: (
+                      label: "$count MY PHOTOS",
+                      title: "MAKE ONE ${who ?? "OF ME"}",
+                      body: "Every tile is a real photo from my year.",
+                    ),
+                    position: position,
+                    active: isActive && tiling != null,
+                    delayMs: _Wall.revealedMs - 500,
+                    top: 600,
+                    titleSize: 44,
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),

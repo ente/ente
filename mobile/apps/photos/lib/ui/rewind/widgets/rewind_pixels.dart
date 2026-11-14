@@ -26,7 +26,8 @@ class RewindAtlas {
   static const _workers = 4;
   static const _batch = 48;
   static const _breather = Duration(milliseconds: 24);
-  static const _fetchTimeout = Duration(seconds: 8);
+  static const _patience = Duration(seconds: 8);
+  static const _grace = Duration(milliseconds: 60);
   static const _rushedBudget = Duration(seconds: 6);
 
   final ui.Image image;
@@ -58,6 +59,7 @@ class RewindAtlas {
     final columns = max(1, sqrt(files.length).ceil());
     final clock = Stopwatch()..start();
     final loaded = <int>[];
+    var stalled = false;
     ui.Image? sheet;
     bool isOver() =>
         clock.elapsed >= budget ||
@@ -71,11 +73,15 @@ class RewindAtlas {
       Future<void> worker() async {
         while (next < end && !isOver()) {
           final index = next++;
-          images[index - start] = await _decode(
+          final data = await _fetch(
             files[index],
             bytes,
-            decodeSide ?? tile,
+            stalled ? _grace : _patience,
+            () => stalled = true,
           );
+          if (data != null) {
+            images[index - start] = await _decode(data, decodeSide ?? tile);
+          }
         }
       }
 
@@ -135,14 +141,24 @@ class RewindAtlas {
     );
   }
 
-  static Future<ui.Image?> _decode(
+  static Future<Uint8List?> _fetch(
     EnteFile file,
     RewindBytes bytes,
-    int side,
+    Duration patience,
+    void Function() onStall,
   ) async {
     try {
-      final data = await bytes(file).timeout(_fetchTimeout);
-      if (data == null) return null;
+      return await bytes(file).timeout(patience);
+    } on TimeoutException {
+      onStall();
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<ui.Image?> _decode(Uint8List data, int side) async {
+    try {
       final buffer = await ui.ImmutableBuffer.fromUint8List(data);
       final descriptor = await ui.ImageDescriptor.encoded(buffer);
       final scale = side / min(descriptor.width, descriptor.height);

@@ -379,6 +379,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
       fit: StackFit.expand,
       children: [
         RewindShareable(
+          enabled: walls != null,
           child: Stack(
             fit: StackFit.expand,
             children: [
