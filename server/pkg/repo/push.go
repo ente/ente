@@ -72,7 +72,7 @@ func (repo *PushTokenRepository) GetTokensForAlbumShare(ctx context.Context, use
 	rows, err := repo.DB.QueryContext(ctx, `SELECT p.user_id, p.fcm_token, p.notification_public_key, r.user_id IS NOT NULL FROM push_tokens p
 		JOIN tokens t ON t.token_hash = p.session_token_hash AND t.user_id = p.user_id AND t.is_deleted = false AND t.app = $3
 		LEFT JOIN remote_store r ON r.user_id = p.user_id AND r.key_name = $2 AND r.key_value = 'true'
-		WHERE p.user_id = ANY($1) AND p.platform = 'android'`,
+		WHERE p.user_id = ANY($1) AND (p.platform = 'android' OR (p.platform = 'ios' AND r.user_id IS NOT NULL))`,
 		pq.Array(userIDs), string(ente.IsInternalUser), string(ente.Photos))
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
