@@ -41,6 +41,7 @@ import "package:photos/models/metadata/collection_magic.dart";
 import "package:photos/service_locator.dart";
 import 'package:photos/services/app_lifecycle_service.dart';
 import "package:photos/services/favorites_service.dart";
+import "package:photos/services/ignored_files_service.dart";
 import 'package:photos/services/memory_share_service.dart';
 import 'package:photos/services/sync/local_sync_service.dart';
 import 'package:photos/services/sync/remote_sync_service.dart';
@@ -48,6 +49,7 @@ import "package:photos/settings/local_settings.dart";
 import "package:photos/src/rust/api/cast_api.dart";
 import "package:photos/utils/dialog_util.dart";
 import "package:photos/utils/file_key.dart";
+import "package:photos/utils/file_sort_util.dart";
 import 'package:shared_preferences/shared_preferences.dart';
 
 String? _resolvePublicAlbumAccessToken(Uri uri) {
@@ -476,8 +478,7 @@ class CollectionsService {
   }
 
   Future<EnteFile?> getCover(Collection c) async {
-    final int localSyncTime = getCollectionSyncTime(c.id);
-    final String coverKey = '${c.id}_${localSyncTime}_${c.updationTime}';
+    final coverKey = _coverCacheKey(c);
     if (_coverCache.containsKey(coverKey)) {
       return Future.value(_coverCache[coverKey]!);
     }
@@ -492,10 +493,7 @@ class CollectionsService {
         return Future.value(cover);
       }
     }
-    final coverFile = await filesDB.getCollectionFileFirstOrLast(
-      c.id,
-      c.pubMagicMetadata.asc ?? false,
-    );
+    final coverFile = await getDefaultCover(c);
     if (coverFile != null) {
       _coverCache[coverKey] = coverFile;
       return Future.value(coverFile);
@@ -504,9 +502,32 @@ class CollectionsService {
   }
 
   EnteFile? getCoverCache(Collection c) {
-    final int localSyncTime = getCollectionSyncTime(c.id);
-    final String coverKey = '${c.id}_${localSyncTime}_${c.updationTime}';
-    return _coverCache[coverKey];
+    return _coverCache[_coverCacheKey(c)];
+  }
+
+  String _coverCacheKey(Collection c) {
+    final metadata = c.pubMagicMetadata;
+    return '${c.id}_${getCollectionSyncTime(c.id)}_${c.updationTime}_'
+        '${metadata.fileSortOrder.name}_${metadata.coverID ?? 0}';
+  }
+
+  Future<EnteFile?> getDefaultCover(Collection c) async {
+    final order = c.pubMagicMetadata.fileSortOrder;
+    if (!order.isFilename) {
+      return filesDB.getCollectionFileFirstOrLast(c.id, order.ascending);
+    }
+    final result = await filesDB.getFilesInCollection(
+      c.id,
+      galleryLoadStartTime,
+      galleryLoadEndTime,
+    );
+    final ignoredIDs = await IgnoredFilesService.instance.idToIgnoreReasonMap;
+    result.files.removeWhere(
+      (file) =>
+          file.uploadedFileID == null &&
+          IgnoredFilesService.instance.shouldSkipUpload(ignoredIDs, file),
+    );
+    return firstFileByName(result.files, order);
   }
 
   Future<int> getFileCount(Collection c, {bool useCache = true}) async {

@@ -3,33 +3,37 @@ import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:photos/ente_theme_data.dart";
+import "package:photos/models/file/file_sort_order.dart";
 import "package:photos/ui/viewer/gallery/hooks/album_sort_sheet.dart";
 
 void main() {
   testWidgets("shows the saved order and returns the selected order", (
     tester,
   ) async {
-    for (final ascending in [false, true]) {
-      bool? selected;
+    const labels = ["Newest first", "Oldest first", "A-Z", "Z-A"];
+    for (final order in FileSortOrder.values) {
+      FileSortOrder? selected;
       await _pumpLauncher(
         tester,
-        ascending: ascending,
+        sortOrder: order,
         onSelected: (value) => selected = value,
       );
       await tester.tap(find.text("Sort"));
       await tester.pumpAndSettle();
-      final currentOrder = ascending ? "Oldest first" : "Newest first";
+      final currentOrder = labels[order.index];
       expect(find.text("Sort photos"), findsOneWidget);
       final choices = tester.widgetList<MenuComponent>(
         find.byType(MenuComponent),
       );
+      expect(choices.map((choice) => choice.title), labels);
       expect(
         choices.singleWhere((choice) => choice.trailing != null).title,
         currentOrder,
       );
-      await tester.tap(find.text(ascending ? "Newest first" : "Oldest first"));
+      final next = FileSortOrder.values[(order.index + 1) % labels.length];
+      await tester.tap(find.text(labels[next.index]));
       await tester.pumpAndSettle();
-      expect(selected, !ascending);
+      expect(selected, next);
       expect(find.byType(BottomSheetComponent), findsNothing);
     }
   });
@@ -42,7 +46,7 @@ void main() {
     tester.platformDispatcher.textScaleFactorTestValue = 2;
     addTearDown(tester.view.reset);
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-    bool? selected;
+    FileSortOrder? selected;
     await _pumpLauncher(
       tester,
       dark: true,
@@ -50,19 +54,19 @@ void main() {
     );
     await tester.tap(find.text("Sort"));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text("Oldest first"));
-    await tester.tap(find.text("Oldest first"));
+    await tester.ensureVisible(find.text("Z-A"));
+    await tester.tap(find.text("Z-A"));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
-    expect(selected, isTrue);
+    expect(selected, FileSortOrder.filenameDescending);
   });
 }
 
 Future<void> _pumpLauncher(
   WidgetTester tester, {
-  bool ascending = false,
+  FileSortOrder sortOrder = FileSortOrder.newestFirst,
   bool dark = false,
-  required ValueChanged<bool> onSelected,
+  required ValueChanged<FileSortOrder> onSelected,
 }) {
   return tester.pumpWidget(
     MaterialApp(
@@ -77,7 +81,7 @@ Future<void> _pumpLauncher(
             onPressed: () async {
               final selection = await showAlbumSortSheet(
                 context,
-                ascending: ascending,
+                sortOrder: sortOrder,
               );
               if (selection != null) onSelected(selection);
             },

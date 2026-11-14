@@ -60,12 +60,14 @@ import "package:photos/ui/components/bottom_action_bar/action_bar_widget.dart";
 import "package:photos/ui/components/bottom_action_bar/selection_action_sheet.dart";
 import "package:photos/ui/viewer/actions/album_selection_overlay_bar.dart";
 import "package:photos/ui/viewer/actions/file_selection_overlay_bar.dart";
+import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 import "package:photos/ui/viewer/gallery/collection_page.dart";
 import "package:photos/ui/viewer/gallery/component/album_cover_app_bar.dart";
 import "package:photos/ui/viewer/gallery/component/gallery_file_widget.dart";
 import "package:photos/ui/viewer/gallery/component/group/group_header_widget.dart";
 import "package:photos/ui/viewer/gallery/gallery.dart";
 import "package:photos/ui/viewer/gallery/gallery_app_bar_widget.dart";
+import "package:photos/ui/viewer/gallery/hooks/edit_album_details_sheet.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_boundaries_provider.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
 import "package:photos/ui/viewer/gallery/state/inherited_search_filter_data.dart";
@@ -433,6 +435,12 @@ void main() {
     await _pumpAlbum(tester, collection);
     await _expectCover(tester, cover, count: 100);
     expect(find.text("1 JAN – 10 APR 2026"), findsOneWidget);
+    collection.pubMagicMetadata = CollectionPubMagicMetadata(
+      sortBy: "fileName",
+    );
+    await tester.runAsync(() async {
+      expect(await CollectionsService.instance.getCover(collection), cover);
+    });
     await _disposeAlbum(tester);
   });
 
@@ -554,6 +562,129 @@ void main() {
       await _disposeAlbum(tester);
     },
   );
+
+  testWidgets(
+    "filename-sorted covers follow the gallery unless a cover is set",
+    (tester) async {
+      final firstByName = _file(2)..title = "IMG1.jpg";
+      final lastByName = _file(1)..title = "IMG10.jpg";
+      final customCover = _file(3)..title = "IMG2.jpg";
+      final files = [lastByName, firstByName, customCover];
+      await tester.runAsync(() => FilesDB.instance.insertMultiple(files));
+
+      for (final explicitCover in <EnteFile?>[null, customCover]) {
+        final initialCover = explicitCover ?? firstByName;
+        final collection = _collection()
+          ..pubMagicMetadata = CollectionPubMagicMetadata(
+            asc: true,
+            sortBy: "fileName",
+            coverID: explicitCover?.uploadedFileID,
+          );
+        await tester.runAsync(() async {
+          expect(
+            await CollectionsService.instance.getCover(collection),
+            initialCover,
+          );
+        });
+        await _pumpAlbum(tester, collection);
+        await _expectCover(
+          tester,
+          initialCover,
+          count: 3,
+          firstFile: firstByName,
+        );
+
+        for (final (ascending, firstInGallery) in [
+          (false, lastByName),
+          (true, firstByName),
+        ]) {
+          final expectedCover = explicitCover ?? firstInGallery;
+          collection.pubMagicMetadata = CollectionPubMagicMetadata(
+            asc: ascending,
+            sortBy: "fileName",
+            coverID: explicitCover?.uploadedFileID,
+          );
+          Bus.instance.fire(
+            CollectionMetaEvent(
+              collection.id,
+              CollectionMetaEventType.sortChanged,
+            ),
+          );
+          await tester.runAsync(() async {
+            expect(
+              await CollectionsService.instance.getCover(collection),
+              expectedCover,
+            );
+          });
+          await _expectCover(tester, expectedCover, firstFile: firstInGallery);
+        }
+        if (explicitCover != null) {
+          collection.pubMagicMetadata = CollectionPubMagicMetadata(
+            asc: true,
+            sortBy: "fileName",
+            coverID: 0,
+          );
+          Bus.instance.fire(
+            CollectionUpdatedEvent(collection.id, [], "cover_change"),
+          );
+          await _expectCover(tester, firstByName);
+        }
+        await _disposeAlbum(tester);
+      }
+    },
+  );
+
+  testWidgets("cover editor previews filename defaults before saving", (
+    tester,
+  ) async {
+    final firstByName = _file(2)..title = "IMG1.jpg";
+    final lastByName = _file(1)..title = "IMG10.jpg";
+    final customCover = _file(3)..title = "IMG2.jpg";
+    final files = [lastByName, firstByName, customCover];
+    final collection = _collection()
+      ..pubMagicMetadata = CollectionPubMagicMetadata(
+        asc: true,
+        sortBy: "fileName",
+      );
+    await tester.runAsync(() => FilesDB.instance.insertMultiple(files));
+    await _pumpAlbum(tester, collection);
+    await _expectCover(tester, firstByName, count: 3);
+
+    int? savedCoverID;
+    void openEditor() => unawaited(
+      showEditAlbumDetailsSheet(
+        context: tester.element(find.byType(CollectionPage)),
+        collection: collection,
+        onSave: (update) async => savedCoverID = update.coverID,
+      ),
+    );
+    openEditor();
+    await _expectEditorCover(tester, firstByName);
+    await tester.tap(find.byTooltip("Close"));
+    await tester.pumpAndSettle();
+
+    collection.pubMagicMetadata = CollectionPubMagicMetadata(
+      asc: true,
+      sortBy: "fileName",
+      coverID: customCover.uploadedFileID,
+    );
+    Bus.instance.fire(
+      CollectionUpdatedEvent(collection.id, [], "cover_change"),
+    );
+    await _expectCover(tester, customCover);
+    openEditor();
+    await _expectEditorCover(tester, customCover);
+    await tester.tap(find.byKey(const ValueKey("edit_album_cover")));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    await tester.tap(find.text("Reset to default"));
+    await _expectEditorCover(tester, firstByName);
+    expect(savedCoverID, isNull);
+    await tester.tap(find.byKey(const ValueKey("save_album_details")));
+    await tester.pumpAndSettle();
+    expect(savedCoverID, 0);
+    await _disposeAlbum(tester);
+  });
 
   testWidgets(
     "reuses capture dates across selection and refreshes date edits",
@@ -1188,6 +1319,7 @@ Future<void> _expectCover(
   WidgetTester tester,
   EnteFile? file, {
   int? count,
+  EnteFile? firstFile,
 }) async {
   await tester.runAsync(() async {
     for (var i = 0; i < 100; i++) {
@@ -1198,14 +1330,13 @@ Future<void> _expectCover(
       final hasExpectedCover = file == null
           ? covers.isEmpty
           : covers.singleOrNull?.cover == file;
-      final hasExpectedCount =
-          count == null ||
-          tester
-                  .widget<GalleryFilesState>(find.byType(GalleryFilesState))
-                  .galleryFilesOrNull
-                  ?.length ==
-              count;
-      if (hasExpectedCover && hasExpectedCount) {
+      final galleryFiles = tester
+          .widget<GalleryFilesState>(find.byType(GalleryFilesState))
+          .galleryFilesOrNull;
+      final hasExpectedCount = count == null || galleryFiles?.length == count;
+      final hasExpectedFirstFile =
+          firstFile == null || galleryFiles?.firstOrNull == firstFile;
+      if (hasExpectedCover && hasExpectedCount && hasExpectedFirstFile) {
         await tester.pump(const Duration(seconds: 1));
         return;
       }
@@ -1225,6 +1356,35 @@ Future<void> _expectCover(
       count,
     );
   }
+  if (firstFile != null) {
+    expect(
+      tester
+          .widget<GalleryFilesState>(find.byType(GalleryFilesState))
+          .galleryFiles
+          .firstOrNull,
+      firstFile,
+    );
+  }
+  expect(tester.takeException(), isNull);
+}
+
+Future<void> _expectEditorCover(WidgetTester tester, EnteFile file) async {
+  final thumbnail = find.descendant(
+    of: find.byType(EditAlbumDetailsSheet),
+    matching: find.byType(ThumbnailWidget),
+  );
+  await tester.runAsync(() async {
+    for (var i = 0; i < 100; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+      if (tester.widgetList<ThumbnailWidget>(thumbnail).singleOrNull?.file ==
+          file) {
+        return;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
+  });
+  expect(tester.widget<ThumbnailWidget>(thumbnail).file, file);
+  await tester.pumpAndSettle();
   expect(tester.takeException(), isNull);
 }
 

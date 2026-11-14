@@ -58,10 +58,7 @@ Future<void> showEditAlbumDetailsSheet({
         }
 
         final file = coverID == 0
-            ? await FilesDB.instance.getCollectionFileFirstOrLast(
-                collection.id,
-                collection.pubMagicMetadata.asc ?? false,
-              )
+            ? await CollectionsService.instance.getDefaultCover(collection)
             : await FilesDB.instance.getUploadedFile(coverID, collection.id);
         return AlbumCoverSelection(id: coverID, file: file);
       },
