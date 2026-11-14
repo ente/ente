@@ -82,6 +82,7 @@
         "rust/bindings/frb/**",
         "rust/crates/accounts/**",
         "rust/crates/assets/**",
+        "rust/crates/auth/**",
         "rust/crates/cast/**",
         "rust/crates/collections/**",
         "rust/crates/contacts/**",

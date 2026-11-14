@@ -1,17 +1,15 @@
-import 'dart:convert';
+import 'dart:typed_data';
 
-import 'package:ente_auth/models/code.dart';
-import 'package:ente_auth/models/export/ente.dart';
+import 'package:ente_auth/src/rust/api/import_api.dart' as rust;
 import 'package:ente_auth/ui/settings/data/import/import_file_cleanup.dart';
 import 'package:ente_auth/ui/settings/data/import/import_flow.dart';
 import 'package:ente_auth/ui/settings/data/import/import_success.dart';
+import 'package:ente_auth/ui/settings/data/import/rust_import.dart';
 import 'package:ente_auth/utils/dialog_util.dart';
 import 'package:ente_auth/utils/toast_util.dart';
-import 'package:ente_crypto_api/ente_crypto_api.dart';
 import 'package:ente_strings/ente_strings.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 
@@ -27,10 +25,7 @@ Future<void> showEncryptedImportInstruction(BuildContext context) async {
   );
 }
 
-Future<void> _decryptExportData(
-  BuildContext context,
-  EnteAuthExport enteAuthExport,
-) async {
+Future<void> _decryptExportData(BuildContext context, Uint8List export) async {
   final l10n = context.strings;
   bool shouldRetry = false;
   int? importedCodeCount;
@@ -52,51 +47,36 @@ Future<void> _decryptExportData(
       try {
         if (!context.mounted) return;
         await progressDialog.show();
-        final derivedKey = await CryptoUtil.deriveKey(
-          utf8.encode(password),
-          CryptoUtil.base642bin(enteAuthExport.kdfParams.salt),
-          enteAuthExport.kdfParams.memLimit,
-          enteAuthExport.kdfParams.opsLimit,
+        final parsedCodes = await runRustImportAsync(
+          () async => importCodes(
+            await rust.decryptEnteBackup(input: export, password: password),
+            logger: Logger('EncryptedText'),
+            source: 'Ente Auth backup',
+          ),
         );
-        late final Uint8List decryptedContent;
-        try {
-          decryptedContent = await CryptoUtil.decryptData(
-            CryptoUtil.base642bin(enteAuthExport.encryptedData),
-            derivedKey,
-            CryptoUtil.base642bin(enteAuthExport.encryptionNonce),
-          );
-        } catch (e, s) {
-          Logger("encryptedImport").warning('failed to decrypt', e, s);
-          if (!context.mounted) return;
-          showToast(context, l10n.incorrectPasswordTitle);
-          shouldRetry = true;
-          await progressDialog.hide();
-          return;
-        }
-        String content = utf8.decode(decryptedContent);
-        List<String> splitCodes = content.split("\n");
-        final parsedCodes = <Code>[];
-        for (final code in splitCodes) {
-          try {
-            parsedCodes.add(Code.fromOTPAuthUrl(code));
-          } catch (e) {
-            Logger('EncryptedText').severe("Could not parse code", e);
-          }
-        }
         importedCodeCount = await saveImportedCodes(parsedCodes);
         await progressDialog.hide();
+      } on rust.ImportError_IncorrectPassword catch (e, s) {
+        Logger("encryptedImport").warning('failed to decrypt', e, s);
+        await progressDialog.hide();
+        if (!context.mounted) return;
+        showToast(context, l10n.incorrectPasswordTitle);
+        shouldRetry = true;
       } catch (e, s) {
         await progressDialog.hide();
         if (!context.mounted) return;
         Logger("ExportWidget").severe(e, s);
-        if (!context.mounted) return;
-        showToast(context, "Error while exporting codes.");
+        await showErrorDialog(
+          context,
+          context.strings.sorry,
+          context.strings.importFailureDesc,
+        );
       }
     },
   );
   if (shouldRetry) {
     if (!context.mounted) return;
-    await _decryptExportData(context, enteAuthExport);
+    await _decryptExportData(context, export);
     return;
   }
   if (importedCodeCount != null) {
@@ -113,14 +93,10 @@ Future<void> _pickEnteJsonFile(BuildContext context) async {
 
   try {
     if (!context.mounted) return;
-    final jsonString = await readPickedImportFileAsString(
-      result.files.single.path!,
-    );
-    EnteAuthExport exportedData = EnteAuthExport.fromJson(
-      jsonDecode(jsonString),
-    );
+    final bytes = await readPickedImportFileAsBytes(result.files.single.path!);
+    runRustImport(() => rust.validateEnteBackup(input: bytes));
     if (!context.mounted) return;
-    await _decryptExportData(context, exportedData);
+    await _decryptExportData(context, bytes);
   } catch (e) {
     if (!context.mounted) return;
     await showErrorDialog(

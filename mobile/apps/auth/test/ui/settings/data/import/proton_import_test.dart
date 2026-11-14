@@ -1,33 +1,46 @@
+import 'dart:convert';
+
 import 'package:ente_auth/models/code.dart';
 import 'package:ente_auth/ui/settings/data/import/proton_import_parser.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../../../helpers/rust.dart';
+
 void main() {
-  test('parses Proton Authenticator exports', () {
-    final codes = parseProtonExport({
-      'version': 1,
-      'entries': [
-        {
-          'id': 'totp-id',
-          'content': {
-            'uri':
-                'otpauth://totp/GitHub:alice?secret=JBSWY3DPEHPK3PXP&issuer=GitHub&algorithm=SHA1&digits=6&period=30',
-            'entry_type': 'Totp',
-            'name': 'alice',
+  final skipReason = rustTestSkipReason;
+  if (skipReason != null) {
+    test('Rust import tests', () {}, skip: skipReason);
+    return;
+  }
+  setUpAll(initializeTestRust);
+
+  test('parses Proton Authenticator exports', () async {
+    final codes = await importProtonExport(
+      jsonEncode({
+        'version': 1,
+        'entries': [
+          {
+            'id': 'totp-id',
+            'content': {
+              'uri':
+                  'otpauth://totp/GitHub:alice?secret=JBSWY3DPEHPK3PXP&issuer=GitHub&algorithm=SHA1&digits=6&period=30',
+              'entry_type': 'Totp',
+              'name': 'alice',
+            },
+            'note': 'work account',
           },
-          'note': 'work account',
-        },
-        {
-          'id': 'steam-id',
-          'content': {
-            'uri': 'steam://STEAMSECRET',
-            'entry_type': 'Steam',
-            'name': 'Steam',
+          {
+            'id': 'steam-id',
+            'content': {
+              'uri': 'steam://STEAMSECRET',
+              'entry_type': 'Steam',
+              'name': 'Steam',
+            },
+            'note': 'gaming',
           },
-          'note': 'gaming',
-        },
-      ],
-    });
+        ],
+      }),
+    );
 
     expect(codes, hasLength(2));
 

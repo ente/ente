@@ -1,8 +1,7 @@
-import 'dart:convert';
-
-import 'package:ente_auth/models/code.dart';
+import 'package:ente_auth/src/rust/api/import_api.dart' as rust;
 import 'package:ente_auth/ui/settings/data/import/import_file_cleanup.dart';
 import 'package:ente_auth/ui/settings/data/import/import_flow.dart';
+import 'package:ente_auth/ui/settings/data/import/rust_import.dart';
 import 'package:ente_strings/ente_strings.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -34,21 +33,8 @@ Future<int?> _processLastpassExportFile(
   String path,
 ) async {
   final jsonString = await readPickedImportFileAsString(path);
-  Map<String, dynamic> jsonData = json.decode(jsonString);
-  List<dynamic> accounts = jsonData["accounts"];
-  final parsedCodes = <Code>[];
-  for (var item in accounts) {
-    var algorithm = item['algorithm'];
-    var timer = item['timeStep'];
-    var digits = item['digits'];
-    var issuer = item['issuerName'];
-    var secret = item['secret'];
-    var account = item['userName'];
-
-    String otpUrl =
-        'otpauth://totp/$issuer:$account?secret=$secret&issuer=$issuer&algorithm=$algorithm&digits=$digits&period=$timer';
-    parsedCodes.add(Code.fromOTPAuthUrl(otpUrl));
-  }
-
-  return saveImportedCodes(parsedCodes);
+  final codes = runRustImport(
+    () => importCodes(rust.parseLastpass(export_: jsonString)),
+  );
+  return saveImportedCodes(codes);
 }

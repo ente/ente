@@ -1,11 +1,11 @@
-import 'package:ente_auth/models/code.dart';
+import 'package:ente_auth/src/rust/api/import_api.dart' as rust;
 import 'package:ente_auth/ui/settings/data/import/import_file_cleanup.dart';
 import 'package:ente_auth/ui/settings/data/import/import_flow.dart';
 import 'package:ente_auth/ui/settings/data/import/openauthenticator_import_parser.dart';
+import 'package:ente_auth/ui/settings/data/import/rust_import.dart';
 import 'package:ente_auth/utils/dialog_util.dart';
 import 'package:ente_strings/ente_strings.dart';
 import 'package:ente_ui/components/progress_dialog.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 
@@ -40,9 +40,8 @@ Future<int?> _processBackup(
   String path,
   ProgressDialog dialog,
 ) async {
-  final backup = decodeOpenAuthenticatorBackup(
-    await readPickedImportFileAsString(path),
-  );
+  final backup = await readPickedImportFileAsString(path);
+  runRustImport(() => rust.validateOpenAuthenticator(input: backup));
   while (true) {
     if (!context.mounted) return null;
     final password = await promptForImportPassword(
@@ -53,9 +52,12 @@ Future<int?> _processBackup(
 
     await dialog.show();
     try {
-      final codes = await compute(_decryptBackup, (backup, password));
+      final codes = await importOpenAuthenticatorExport(
+        backup,
+        password: password,
+      );
       return await saveImportedCodes(codes);
-    } on IncorrectOpenAuthenticatorPasswordException {
+    } on rust.ImportError_IncorrectPassword {
       await dialog.hide();
       if (!context.mounted) return null;
       await showErrorDialog(
@@ -66,6 +68,3 @@ Future<int?> _processBackup(
     }
   }
 }
-
-List<Code> _decryptBackup((Map<String, dynamic>, String) params) =>
-    decryptOpenAuthenticatorBackup(params.$1, password: params.$2);
