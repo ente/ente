@@ -1,0 +1,1 @@
+- Fixed the location view hiding photos after its radius was narrowed and then widened again.

@@ -6,7 +6,6 @@ use ente_location::Coordinate;
 use super::{Base, Trip, TripAnalysis};
 use crate::memories::UPDATE_FREQUENCY_DAYS;
 use crate::memories::calendar::{LocalDate, MICROS_PER_DAY};
-use crate::memories::geo::distance_km;
 use crate::memories::input::{CachedTrip, MemoriesRequest, Period, ShownTrip};
 use crate::memories::output::{BaseMemory, Memory, MemoryBoundary, MemoryKind, TripMemory};
 use crate::memories::photo::{Photo, sort_chronologically};
@@ -87,7 +86,7 @@ impl<'r> TripHistory<'r> {
             .iter()
             .filter(|shown| match &shown.key {
                 Some(key) => is_same_trip(key, trip, current),
-                None => distance_km(trip.location, shown.location) < LEGACY_SHOWN_TRIP_RADIUS_KM,
+                None => trip.location.distance_km(shown.location) < LEGACY_SHOWN_TRIP_RADIUS_KM,
             })
             .map(|shown| {
                 (
@@ -428,7 +427,7 @@ fn is_same_trip(key: &str, trip: &Trip, current: &HashSet<&str>) -> bool {
     let overlaps_nearby = first <= trip_last
         && trip_first <= last
         && key_location(key).is_some_and(|location| {
-            distance_km(location, trip.location) < OLDER_KEY_MAX_DISTANCE_KM
+            location.distance_km(trip.location) < OLDER_KEY_MAX_DISTANCE_KM
         });
     !current.contains(key) && (contains || overlaps_nearby)
 }

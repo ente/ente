@@ -51,6 +51,32 @@ pub struct LocationCountryGroup {
     pub coordinate_indices: Vec<u32>,
 }
 
+#[frb(sync)]
+pub fn is_within_radius_km(
+    point: LocationCoordinate,
+    center: LocationCoordinate,
+    radius_km: f64,
+) -> bool {
+    core::Coordinate::from(point).is_within_radius_km(center.into(), radius_km)
+}
+
+#[frb(sync)]
+pub fn indices_within_radius_km(
+    points: Vec<LocationCoordinate>,
+    center: LocationCoordinate,
+    radius_km: f64,
+) -> Vec<u32> {
+    core::indices_within_radius_km(&core_coordinates(points), center.into(), radius_km)
+        .into_iter()
+        .map(|index| index as u32)
+        .collect()
+}
+
+#[frb(sync)]
+pub fn distance_km(from: LocationCoordinate, to: LocationCoordinate) -> f64 {
+    core::Coordinate::from(from).distance_km(to.into())
+}
+
 pub async fn open_location_index(asset_root: String) -> Result<LocationIndex, LocationError> {
     Ok(LocationIndex(
         ente_photos::location::LocationIndex::open(asset_root).await?,
@@ -105,9 +131,12 @@ impl From<core::City> for LocationCity {
     }
 }
 
+impl From<LocationCoordinate> for core::Coordinate {
+    fn from(coordinate: LocationCoordinate) -> Self {
+        Self::new(coordinate.latitude, coordinate.longitude)
+    }
+}
+
 fn core_coordinates(coordinates: Vec<LocationCoordinate>) -> Vec<core::Coordinate> {
-    coordinates
-        .into_iter()
-        .map(|coordinate| core::Coordinate::new(coordinate.latitude, coordinate.longitude))
-        .collect()
+    coordinates.into_iter().map(Into::into).collect()
 }

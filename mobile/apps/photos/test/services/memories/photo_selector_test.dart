@@ -1,5 +1,7 @@
+import "dart:io";
 import "dart:math" show Random;
 
+import "package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:ml_linalg/vector.dart";
 import "package:photos/models/file/file.dart";
@@ -10,6 +12,7 @@ import "package:photos/models/ml/face/detection.dart";
 import "package:photos/models/ml/face/face_with_embedding.dart";
 import "package:photos/models/ml/vector.dart";
 import "package:photos/services/memories/photo_selector.dart";
+import "package:photos/src/rust/frb_generated.dart";
 
 const _embDim = 16;
 
@@ -80,6 +83,14 @@ FaceWithoutEmbedding _face(String faceID, int fileID) {
 }
 
 void main() {
+  setUpAll(() async {
+    final library = Platform.environment["ENTE_PHOTOS_FRB_LIBRARY"] ?? "";
+    if (library.isEmpty) {
+      fail("Set ENTE_PHOTOS_FRB_LIBRARY to the built ente-photos-frb library");
+    }
+    await EntePhotosRust.init(externalLibrary: ExternalLibrary.open(library));
+  });
+
   group('PhotoSelector.bestSelection (single year)', () {
     test(
       'skips no-ML time buckets that cannot satisfy the min-gap filter',

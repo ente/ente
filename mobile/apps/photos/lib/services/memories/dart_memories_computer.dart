@@ -37,6 +37,7 @@ import "package:photos/services/memories/memories_computation_context.dart";
 import "package:photos/services/memories/memories_computer.dart";
 import "package:photos/services/memories/memory_sources.dart";
 import "package:photos/services/memories/photo_selector.dart";
+import "package:photos/utils/rust_isolate_util.dart";
 
 part "../smart_memories_clip_calculator.dart";
 part "memory_file_index.dart";
@@ -634,6 +635,7 @@ class DartMemoriesComputer implements MemoriesComputer {
     Map<String, dynamic> args,
   ) async {
     try {
+      await ensureRustInitialized();
       final computationContext = MemoriesComputationContext.fromIsolateArgs(
         args,
       );
@@ -651,6 +653,7 @@ class DartMemoriesComputer implements MemoriesComputer {
     Map<String, dynamic> args,
   ) async {
     try {
+      await ensureRustInitialized();
       final computationContext = MemoriesComputationContext.fromIsolateArgs(
         args,
       );

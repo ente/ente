@@ -161,14 +161,11 @@ class _LocationGalleryWidgetState extends State<LocationGalleryWidget> {
       await fileLoadResult;
       if (!mounted) return FileLoadResult([], false);
       final stopWatch = Stopwatch()..start();
-      final filesInLocation = allFilesWithLocation;
-      filesInLocation.removeWhere((f) {
-        return !isFileInsideLocationTag(
-          centerPoint,
-          f.location!,
-          selectedRadius,
-        );
-      });
+      final filesInLocation = filesInsideLocationTag(
+        allFilesWithLocation,
+        centerPoint,
+        selectedRadius,
+      );
       dev.log(
         "Time taken to get all files in a location tag: ${stopWatch.elapsedMilliseconds} ms",
       );

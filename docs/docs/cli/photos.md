@@ -137,11 +137,14 @@ ente photos place list
 ente photos place list --countries --album Holidays
 ente photos file list --place lisbon
 ente photos file list --country JP --type video
+ente photos file list --near 48.8566,2.3522 --radius 10
 ```
 
 `place list` shows the cities where your files were taken, with the number of files in each, most first. `--countries` lists countries instead. Places come from each file's location; files without one are not counted. Locations that match no city or country in the dataset are omitted from that list, so city and country totals can differ. Country filters use the groups shown by `place list --countries`, which can differ from a city's country. For example, photos in French Guiana count under France.
 
 `--place` keeps files taken in a city whose name contains the given text. When one of the cities `place list` shows for the same `--album` has exactly that name, only cities with that name match, so `--place nice` leaves out Venice. `--country` takes a two-letter code such as `PT`, or a full English country name, which matches only that country, so `--country niger` leaves out Nigeria; other text matches every country whose name contains it. `UK` also works for the United Kingdom, whose code is `GB`, and an unknown two-letter code is an error. Both ignore case and accent marks, and combine with the other filters. Type letters such as ł or ø as `place list` shows them: `--place wrocław` finds Wrocław, but `--place wroclaw` does not.
+
+`--near LAT,LON` with `--radius KM` keeps files taken within that distance of a point, given in decimal degrees. It uses the same check as location tags in the Ente apps, needs no location data, and leaves out files without a location. Both flags are required together.
 
 The first time you use places, the CLI downloads about 7 MB of location data from Ente (`assets.ente.com`) and keeps it in the CLI home, where all your accounts share it. After that, places work with `--offline`. The location data is adapted from [GeoNames](https://www.geonames.org/) and the European Commission Joint Research Centre's [GHS-UCDB R2024A](https://doi.org/10.2905/1a338be6-7eaf-480c-9664-3a8ade88cbcd), both under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), and from [Natural Earth](https://www.naturalearthdata.com/), which is in the public domain.
 

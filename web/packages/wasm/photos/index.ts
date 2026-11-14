@@ -26,6 +26,29 @@ export const executeDuplicateRemoval = async (
     onProgress: (completed: number, total: number) => void,
 ) => (await wasm()).photosExecuteDuplicateRemoval(session, input, onProgress);
 
+export interface Coordinate {
+    latitude: number;
+    longitude: number;
+}
+
+export type IsWithinRadiusKm = (
+    point: Coordinate,
+    center: Coordinate,
+    radiusKm: number,
+) => boolean;
+
+export const isWithinRadiusKm = async (): Promise<IsWithinRadiusKm> => {
+    const { locationIsWithinRadiusKm } = await wasm();
+    return (point, center, radiusKm) =>
+        locationIsWithinRadiusKm(
+            point.latitude,
+            point.longitude,
+            center.latitude,
+            center.longitude,
+            radiusKm,
+        );
+};
+
 export const createLocationIndex = async (
     cities: Uint8Array,
     urbanCenters: Uint8Array,

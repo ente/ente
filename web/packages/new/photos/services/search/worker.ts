@@ -3,7 +3,6 @@ import * as chrono from "chrono-node";
 import { expose } from "comlink";
 import { HTTPError } from "ente-base/http";
 import { logUnhandledErrorsAndRejectionsInWorker } from "ente-base/log-web";
-import type { Location } from "ente-base/types";
 import type { Collection } from "ente-media/collection";
 import type { EnteFile } from "ente-media/file";
 import {
@@ -13,6 +12,7 @@ import {
     fileFileName,
     fileLocation,
 } from "ente-media/file-metadata";
+import { isWithinRadiusKm, type IsWithinRadiusKm } from "ente-photos-wasm";
 import { nullToUndefined } from "ente-utils/transform";
 import { z } from "zod";
 import type { NamedPerson } from "../ml/people";
@@ -78,14 +78,25 @@ export class SearchWorker {
         );
     }
 
-    filterSearchableFiles(suggestion: SearchSuggestion) {
-        return filterSearchableFiles(this.collectionsAndFiles, suggestion);
+    async filterSearchableFiles(suggestion: SearchSuggestion) {
+        return filterSearchableFiles(
+            this.collectionsAndFiles,
+            suggestion,
+            await radiusCheckIfNeeded([suggestion]),
+        );
     }
 
-    filterSearchableFilesMulti(suggestions: SearchSuggestion[]) {
+    async filterSearchableFilesMulti(suggestions: SearchSuggestion[]) {
         const cf = this.collectionsAndFiles;
+        const isWithinRadius = await radiusCheckIfNeeded(suggestions);
         return suggestions
-            .map((sg) => [filterSearchableFiles(cf, sg), sg] as const)
+            .map(
+                (sg) =>
+                    [
+                        filterSearchableFiles(cf, sg, isWithinRadius),
+                        sg,
+                    ] as const,
+            )
             .filter(([files]) => files.length);
     }
 }
@@ -394,15 +405,21 @@ const noLocationSuggestion = (s: string, label: string): SearchSuggestion[] =>
         ? [{ type: "noLocation", label }]
         : [];
 
+const radiusCheckIfNeeded = (suggestions: SearchSuggestion[]) =>
+    suggestions.some(({ type }) => type == "location" || type == "city")
+        ? isWithinRadiusKm()
+        : undefined;
+
 const filterSearchableFiles = (
     { currentUserID, files, collectionFiles }: SearchCollectionsAndFiles,
     suggestion: SearchSuggestion,
+    isWithinRadius: IsWithinRadiusKm | undefined,
 ) => {
     if (suggestion.type == "sidebarAction") return [];
 
     return sortMatchesIfNeeded(
         (suggestion.type == "collection" ? collectionFiles : files).filter(
-            (f) => isMatchingFile(f, suggestion, currentUserID),
+            (f) => isMatchingFile(f, suggestion, currentUserID, isWithinRadius),
         ),
         suggestion,
     );
@@ -412,6 +429,7 @@ const isMatchingFile = (
     file: EnteFile,
     suggestion: SearchSuggestion,
     currentUserID: number,
+    isWithinRadius: IsWithinRadiusKm | undefined,
 ) => {
     switch (suggestion.type) {
         case "collection":
@@ -441,14 +459,22 @@ const isMatchingFile = (
             const location = fileLocation(file);
             if (!location) return false;
 
-            return isInsideLocationTag(location, suggestion.locationTag);
+            return isWithinRadius!(
+                location,
+                suggestion.locationTag.centerPoint,
+                suggestion.locationTag.radius,
+            );
         }
 
         case "city": {
             const location = fileLocation(file);
             if (!location) return false;
 
-            return isInsideCity(location, suggestion.city);
+            return isWithinRadius!(
+                location,
+                suggestion.city,
+                defaultCityRadius,
+            );
         }
 
         case "clip":
@@ -478,27 +504,6 @@ const isDateComponentsMatch = (
 };
 
 const defaultCityRadius = 10;
-const kmsPerDegree = 111.16;
-
-const isInsideLocationTag = (location: Location, locationTag: LocationTag) =>
-    isWithinRadius(location, locationTag.centerPoint, locationTag.radius);
-
-const isInsideCity = (location: Location, city: City) =>
-    isWithinRadius(location, city, defaultCityRadius);
-
-const isWithinRadius = (
-    location: Location,
-    center: Location,
-    radius: number,
-) => {
-    const a = (radius * radiusScaleFactor(center.latitude)) / kmsPerDegree;
-    const b = radius / kmsPerDegree;
-    const x = center.latitude - location.latitude;
-    const y = center.longitude - location.longitude;
-    return (x * x) / (a * a) + (y * y) / (b * b) <= 1;
-};
-
-const radiusScaleFactor = (lat: number) => 1 / Math.cos(lat * (Math.PI / 180));
 
 const sortMatchesIfNeeded = (
     files: EnteFile[],

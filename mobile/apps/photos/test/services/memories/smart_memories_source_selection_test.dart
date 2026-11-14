@@ -1,3 +1,6 @@
+import "dart:io";
+
+import "package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:ml_linalg/vector.dart";
 import "package:photos/models/file/file.dart";
@@ -12,6 +15,7 @@ import "package:photos/models/ml/face/face_with_embedding.dart";
 import "package:photos/models/ml/vector.dart";
 import "package:photos/services/location_service.dart";
 import "package:photos/services/memories/dart_memories_computer.dart";
+import "package:photos/src/rust/frb_generated.dart";
 import "package:timezone/data/latest.dart" as tzdata;
 import "package:timezone/timezone.dart" as timezone;
 
@@ -40,6 +44,14 @@ Vector _normalizedVector(List<double> values) {
 }
 
 void main() {
+  setUpAll(() async {
+    final library = Platform.environment["ENTE_PHOTOS_FRB_LIBRARY"] ?? "";
+    if (library.isEmpty) {
+      fail("Set ENTE_PHOTOS_FRB_LIBRARY to the built ente-photos-frb library");
+    }
+    await EntePhotosRust.init(externalLibrary: ExternalLibrary.open(library));
+  });
+
   group("smart memories source selection", () {
     test(
       "TripMemoriesCalculatorV2 surfaces a trip from the full source set",

@@ -26,6 +26,7 @@ import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
 import "package:photos/services/contacts/contact_identity_resolver.dart";
 import "package:photos/services/filter/db_filters.dart";
+import "package:photos/services/location_service.dart";
 import "package:photos/services/machine_learning/face_ml/face_filtering/face_filtering_constants.dart";
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
 import "package:photos/services/magic_cache_service.dart";
@@ -170,6 +171,31 @@ Future<List<EnteFile>> getFilteredFiles(
   }
 
   try {
+    final locationFilters = resultsNeverComputedFilters
+        .whereType<LocationFilter>()
+        .toList();
+    if (locationFilters.isNotEmpty) {
+      final uploadedFilesWithLocation = files
+          .where(
+            (file) =>
+                file.uploadedFileID != null &&
+                file.uploadedFileID != -1 &&
+                file.hasLocation,
+          )
+          .toList();
+      for (LocationFilter filter in locationFilters) {
+        filter.matchedUploadedIDs.addAll(
+          filesInsideLocationTag(
+            uploadedFilesWithLocation,
+            filter.locationTag.centerPoint,
+            filter.locationTag.radius,
+          ).map((file) => file.uploadedFileID!),
+        );
+      }
+      resultsNeverComputedFilters.removeWhere(
+        (filter) => filter is LocationFilter,
+      );
+    }
     for (EnteFile file in files) {
       if (file.uploadedFileID == null || file.uploadedFileID == -1) {
         continue;

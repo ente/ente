@@ -682,6 +682,14 @@ fn file_lists_handle_size_and_date_boundaries() {
         (vec!["--before", "2024-06-01"], vec![1, 4, 5]),
         (vec!["--since", "2024-03-10T01:00:00+01:00"], vec![2, 3, 4]),
         (vec!["--no-location"], vec![2, 3, 4, 5]),
+        (vec!["--near", "1,2.5", "--radius", "60"], vec![1]),
+        (vec!["--near", "1,2.5", "--radius", "50"], vec![]),
+        (vec!["--near", "0,0", "--radius", "1"], vec![]),
+        (vec!["--near", "-1,-2.5", "--radius", "60"], vec![]),
+        (
+            vec!["--near", "1,2", "--radius", "1", "--no-location"],
+            vec![],
+        ),
         (vec!["--min-size", "5MB"], vec![2]),
         (vec!["--max-size", "5MB"], vec![1, 2, 4, 5]),
         (vec!["--min-size", "1.1KB"], vec![2, 5]),
@@ -709,8 +717,24 @@ fn file_lists_handle_size_and_date_boundaries() {
     assert!(String::from_utf8_lossy(&output.stderr).contains("Showing first 1"));
     let output = success(home.run(&["--offline", "photos", "file", "view", "1"]));
     assert!(String::from_utf8_lossy(&output.stdout).contains("1.1 KB (1126 bytes)"));
-    let output = home.run(&["--offline", "photos", "file", "list", "--search", "  "]);
-    assert!(failure(&output).contains("supply search text"));
+    for (args, message) in [
+        (vec!["--search", "  "], "supply search text"),
+        (vec!["--near", "1,2"], "--radius <KM>"),
+        (vec!["--radius", "5"], "--near <LAT,LON>"),
+        (vec!["--near", "1 2", "--radius", "5"], "use LAT,LON"),
+        (vec!["--near", "1,", "--radius", "5"], "use LAT,LON"),
+        (vec!["--near", "91,0", "--radius", "5"], "latitude must be"),
+        (vec!["--near", "1,2", "--radius", "0"], "greater than zero"),
+        (
+            vec!["--near", "1,2", "--radius", "inf"],
+            "greater than zero",
+        ),
+    ] {
+        let mut command = vec!["--offline", "photos", "file", "list"];
+        command.extend(args);
+        let output = home.run(&command);
+        assert!(failure(&output).contains(message), "{command:?}");
+    }
 }
 
 pub(super) fn collection(id: i64, name: &str, key: &Key) -> Value {
