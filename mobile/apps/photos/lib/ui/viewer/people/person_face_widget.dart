@@ -24,6 +24,7 @@ import "package:photos/theme/ente_theme.dart";
 import "package:photos/utils/avatar_util.dart";
 import "package:photos/utils/contact_string_util.dart";
 import "package:photos/utils/face/face_thumbnail_cache.dart";
+import "package:photos/utils/face_crop_util.dart";
 
 final _logger = Logger("PersonFaceWidget");
 
@@ -94,7 +95,9 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
       event,
     ) {
       if (mounted && isPerson && event.person?.remoteID == widget.personId) {
-        setState(() => faceCropFuture = _startFaceCropLoad());
+        setState(() {
+          faceCropFuture = _startFaceCropLoad();
+        });
       }
     });
     faceCropFuture = _startFaceCropLoad();
@@ -355,6 +358,7 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
         personOrClusterId,
       );
 
+      var shouldCacheFaceID = true;
       EnteFile? fileForFaceCrop;
       if (isLocalGalleryMode) {
         final allFiles = await SearchService.instance.getAllFilesForSearch();
@@ -447,6 +451,15 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
               : await mlDataDB.getFaceIDsForClusterOrderedByScore(
                   widget.clusterID!,
                 );
+          final scoredFaceIDs = allFaces.toSet();
+          final assignedFaceIDs =
+              (isPerson
+                      ? await mlDataDB.getFaceIDsForPerson(widget.personId!)
+                      : await mlDataDB.getFaceIDsForCluster(widget.clusterID!))
+                  .where((faceID) => tryParseFaceBoxFromFaceID(faceID) != null)
+                  .toList()
+                ..sort();
+          allFaces.addAll(assignedFaceIDs);
           for (final faceID in allFaces) {
             final fileID = getFileIdFromFaceId<int>(faceID);
             if (hiddenFileIDs.contains(fileID)) {
@@ -461,6 +474,7 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
                 "Using file ID $fileID for face crop for person: ${widget.personId} or cluster: ${widget.clusterID}",
               );
               fixedFaceID = faceID;
+              shouldCacheFaceID = scoredFaceIDs.contains(faceID);
               break;
             }
           }
@@ -493,12 +507,19 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
         );
         return null;
       }
-      final FaceWithoutEmbedding? face = await mlDataDB.getCoverFaceForPerson(
-        recentFileID: recentFileID,
-        avatarFaceId: fixedFaceID,
-        personID: widget.personId,
-        clusterID: widget.clusterID,
-      );
+      final FaceWithoutEmbedding? face = isLocalGalleryMode
+          ? await mlDataDB.getCoverFaceForPerson(
+              recentFileID: recentFileID,
+              avatarFaceId: fixedFaceID,
+              personID: widget.personId,
+              clusterID: widget.clusterID,
+            )
+          : await PersonService.instance.getCoverFace(
+              fileID: recentFileID,
+              avatarFaceID: fixedFaceID,
+              personID: widget.personId,
+              clusterID: widget.clusterID,
+            );
       if (face == null) {
         _logger.severe(
           "No cover face for person: ${widget.personId} or cluster ${widget.clusterID} and fileID $recentFileID",
@@ -510,7 +531,7 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
         fileForFaceCrop,
         [face],
         useFullFile: useFullFile,
-        personOrClusterID: personOrClusterId,
+        personOrClusterID: shouldCacheFaceID ? personOrClusterId : null,
         useTempCache: false,
       );
       if (_isCurrentLoad(generation)) {
