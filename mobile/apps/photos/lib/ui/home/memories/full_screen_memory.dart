@@ -41,6 +41,7 @@ import "package:photos/ui/home/memories/memory_video_prefetcher.dart";
 import "package:photos/ui/home/memories/memory_viewer_constants.dart";
 import "package:photos/ui/social/widgets/file_social_overlay.dart";
 import "package:photos/ui/viewer/file/file_widget.dart";
+import "package:photos/ui/viewer/file/zoomable_image.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 import "package:photos/ui/viewer/file_details/favorite_widget.dart";
 import "package:photos/ui/viewer/gallery/jump_to_date_gallery.dart";
@@ -839,6 +840,17 @@ class _FullScreenMemoryState extends State<FullScreenMemory> {
                               return;
                             }
                             onFinalFileLoad(memoryDuration);
+                          },
+                          onFinalImageLoaded: (_) {
+                            final next = safeIndex + 1;
+                            if (next < inheritedData.memories.length) {
+                              unawaited(
+                                preloadFullImage(
+                                  context,
+                                  inheritedData.memories[next].file,
+                                ),
+                              );
+                            }
                           },
                         ),
                       ),

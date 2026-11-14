@@ -50,6 +50,7 @@ import "package:photos/ui/viewer/file/qr_code_detection_helper.dart";
 import "package:photos/ui/viewer/file/qr_code_highlight_overlay.dart";
 import "package:photos/ui/viewer/file/video_control/gallery_video_controls.dart";
 import "package:photos/ui/viewer/file/video_stream_change.dart";
+import "package:photos/ui/viewer/file/zoomable_image.dart";
 import 'package:photos/ui/viewer/gallery/gallery.dart';
 import 'package:photos/utils/dialog_util.dart';
 
@@ -663,6 +664,14 @@ class _BodyState extends State<_Body> {
             _renderedFiles[file.tag] = localFile;
             if (_selectedFile?.tag == file.tag) {
               _evaluateQrIfEligible(file);
+              // Start only after the selected image is fully shown, so the
+              // open animation is never competing with these decodes.
+              if (index > 0) {
+                unawaited(preloadScreenSizedImage(context, _files![index - 1]));
+              }
+              if (index < _files!.length - 1) {
+                unawaited(preloadFullImage(context, _files![index + 1]));
+              }
             }
           },
           onImagePageReadinessRegistration: _shouldShowFilmstrip

@@ -23,6 +23,7 @@ import "package:photos/ui/viewer/file/detail_page.dart";
 import "package:photos/ui/viewer/file/gallery_photo_page_route.dart";
 import "package:photos/ui/viewer/file/hero_image.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
+import "package:photos/ui/viewer/file/zoomable_image.dart";
 import "package:photos/ui/viewer/gallery/component/swipe_selectable_file_widget.dart";
 import "package:photos/ui/viewer/gallery/gallery.dart";
 import "package:photos/ui/viewer/gallery/gallery_thumbnail_snapshot.dart";
@@ -182,6 +183,12 @@ class _GalleryFileWidgetState extends State<GalleryFileWidget> {
         ? KeyedSubtree(key: _heroThumbnailKey, child: thumbnail)
         : thumbnail;
     return GestureDetector(
+      onTapDown:
+          disableSelection ||
+              widget.limitSelectionToOne ||
+              (widget.selectedFiles?.files.isNotEmpty ?? false)
+          ? null
+          : (_) => unawaited(preloadFullImage(context, widget.file)),
       onTap: disableSelection
           ? null
           : () {
