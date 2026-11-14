@@ -5,11 +5,13 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	"maps"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -22,6 +24,7 @@ import (
 	"github.com/ente/museum/pkg/controller/access"
 	filedatactrl "github.com/ente/museum/pkg/controller/filedata"
 	"github.com/ente/museum/pkg/repo"
+	filedatarepo "github.com/ente/museum/pkg/repo/filedata"
 	"github.com/ente/museum/pkg/utils/s3config"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
@@ -33,8 +36,14 @@ import (
 const (
 	previewUploadPath          = "/files/data/preview-upload-url"
 	multipartPreviewUploadPath = "/files/data/multipart-preview-upload-url"
+	videoDataPath              = "/files/video-data"
 	previewChecksum            = "XUFAKrxLKna5cZ2REBfFkg=="
 	previewFinalPartChecksum   = "fXkwN6B2AYZXSwKC8vQ15w=="
+)
+
+const (
+	previewB2Provider     = "b2-eu-cen"
+	previewWasabiProvider = "wasabi-eu-central-2-v3"
 )
 
 func TestPreviewUploadRejectsInvalidMetadata(t *testing.T) {
@@ -276,6 +285,109 @@ func TestPreviewUploadRejectsOversizedVideo(t *testing.T) {
 	}
 }
 
+func TestVideoPreviewRegistrationUsesStagedBucket(t *testing.T) {
+	for _, providerSwitch := range []struct {
+		name     string
+		initial  string
+		switched string
+	}{
+		{name: "wasabi to b2", initial: previewWasabiProvider, switched: previewB2Provider},
+		{name: "b2 to wasabi", initial: previewB2Provider, switched: previewWasabiProvider},
+	} {
+		for _, multipart := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/multipart=%t", providerSwitch.name, multipart), func(t *testing.T) {
+				router, fileDataCtrl, db, userID, fileID, storage := setupPreviewRegistrationTest(t, providerSwitch.initial)
+				path, body := previewUploadBody(fileID, ente.PreviewVideo, multipart)
+				uploadResponse := performPreviewUpload(t, router, http.MethodPost, path, userID, body)
+				require.Equal(t, http.StatusOK, uploadResponse.Code, uploadResponse.Body.String())
+
+				var upload filedata.PreviewUploadUrl
+				require.NoError(t, json.Unmarshal(uploadResponse.Body.Bytes(), &upload))
+				objectKey := filedata.ObjectKey(fileID, userID, ente.PreviewVideo, &upload.ObjectID)
+				objectSize := body["contentLength"].(int64)
+				storage.setHeadSize(objectSize)
+				storage.reset()
+
+				viper.Set("s3.derived-storage", providerSwitch.switched)
+				fileDataCtrl.S3Config = s3config.NewS3Config()
+				registrationBody := previewRegistrationBody(fileID, upload.ObjectID, objectSize)
+				registrationResponse := performPreviewRegistration(t, router, userID, registrationBody)
+				require.Equal(t, http.StatusOK, registrationResponse.Code, registrationResponse.Body.String())
+				assertPreviewRegistrationStorageRequests(t, storage.requestsSnapshot(), providerSwitch.initial, objectKey, fileID, userID, upload.ObjectID)
+
+				var latestBucket, registeredObjectID string
+				var registeredObjectSize, registeredSize, registeredUpdatedAt int64
+				require.NoError(t, db.QueryRow(`SELECT latest_bucket, obj_id, obj_size, size, updated_at
+				FROM file_data WHERE file_id = $1 AND data_type = $2`, fileID, ente.PreviewVideo).
+					Scan(&latestBucket, &registeredObjectID, &registeredObjectSize, &registeredSize, &registeredUpdatedAt))
+				require.Equal(t, providerSwitch.initial, latestBucket)
+				require.Equal(t, upload.ObjectID, registeredObjectID)
+				require.Equal(t, objectSize, registeredObjectSize)
+				require.Greater(t, registeredSize, objectSize)
+				var staged int
+				require.NoError(t, db.QueryRow(`SELECT COUNT(*) FROM temp_objects WHERE object_key = $1`, objectKey).Scan(&staged))
+				require.Zero(t, staged)
+
+				storage.reset()
+				retryResponse := performPreviewRegistration(t, router, userID, registrationBody)
+				require.Equal(t, http.StatusOK, retryResponse.Code, retryResponse.Body.String())
+				require.Empty(t, storage.requestsSnapshot())
+				var retryLatestBucket, retryObjectID string
+				var retryObjectSize, retrySize, retryUpdatedAt int64
+				require.NoError(t, db.QueryRow(`SELECT latest_bucket, obj_id, obj_size, size, updated_at
+				FROM file_data WHERE file_id = $1 AND data_type = $2`, fileID, ente.PreviewVideo).
+					Scan(&retryLatestBucket, &retryObjectID, &retryObjectSize, &retrySize, &retryUpdatedAt))
+				require.Equal(t, latestBucket, retryLatestBucket)
+				require.Equal(t, registeredObjectID, retryObjectID)
+				require.Equal(t, registeredObjectSize, retryObjectSize)
+				require.Equal(t, registeredSize, retrySize)
+				require.Equal(t, registeredUpdatedAt, retryUpdatedAt)
+			})
+		}
+	}
+}
+
+func TestVideoPreviewRegistrationRejectsClaimedUpload(t *testing.T) {
+	router, _, db, userID, fileID, storage := setupPreviewRegistrationTest(t, previewB2Provider)
+	path, body := previewUploadBody(fileID, ente.PreviewVideo, false)
+	uploadResponse := performPreviewUpload(t, router, http.MethodPost, path, userID, body)
+	require.Equal(t, http.StatusOK, uploadResponse.Code, uploadResponse.Body.String())
+	var upload filedata.PreviewUploadUrl
+	require.NoError(t, json.Unmarshal(uploadResponse.Body.Bytes(), &upload))
+	objectKey := filedata.ObjectKey(fileID, userID, ente.PreviewVideo, &upload.ObjectID)
+	_, err := db.Exec(`UPDATE temp_objects SET cleanup_state = 'delete' WHERE object_key = $1`, objectKey)
+	require.NoError(t, err)
+
+	storage.reset()
+	registrationResponse := performPreviewRegistration(t, router, userID, previewRegistrationBody(fileID, upload.ObjectID, 5))
+	require.Equal(t, http.StatusBadRequest, registrationResponse.Code, registrationResponse.Body.String())
+	require.Empty(t, storage.requestsSnapshot())
+	var registered int
+	require.NoError(t, db.QueryRow(`SELECT COUNT(*) FROM file_data WHERE file_id = $1 AND data_type = $2`, fileID, ente.PreviewVideo).Scan(&registered))
+	require.Zero(t, registered)
+}
+
+func TestVideoPreviewRegistrationRejectsInactiveStagedBucket(t *testing.T) {
+	router, fileDataCtrl, db, userID, fileID, storage := setupPreviewRegistrationTest(t, previewB2Provider)
+	path, body := previewUploadBody(fileID, ente.PreviewVideo, false)
+	uploadResponse := performPreviewUpload(t, router, http.MethodPost, path, userID, body)
+	require.Equal(t, http.StatusOK, uploadResponse.Code, uploadResponse.Body.String())
+	var upload filedata.PreviewUploadUrl
+	require.NoError(t, json.Unmarshal(uploadResponse.Body.Bytes(), &upload))
+	objectKey := filedata.ObjectKey(fileID, userID, ente.PreviewVideo, &upload.ObjectID)
+
+	viper.Set("s3."+previewB2Provider+".bucket", "")
+	fileDataCtrl.S3Config = s3config.NewS3Config()
+	storage.reset()
+	registrationResponse := performPreviewRegistration(t, router, userID, previewRegistrationBody(fileID, upload.ObjectID, 5))
+	require.Equal(t, http.StatusInternalServerError, registrationResponse.Code, registrationResponse.Body.String())
+	require.Empty(t, storage.requestsSnapshot())
+
+	var staged int
+	require.NoError(t, db.QueryRow(`SELECT COUNT(*) FROM temp_objects WHERE object_key = $1`, objectKey).Scan(&staged))
+	require.Equal(t, 1, staged)
+}
+
 func previewUploadBody(fileID int64, objectType ente.ObjectType, multipart bool) (string, map[string]any) {
 	body := map[string]any{"fileID": fileID, "type": objectType, "contentLength": int64(5)}
 	if multipart {
@@ -294,6 +406,7 @@ func previewUploadRouter(h *FileHandler) *gin.Engine {
 	router.GET(previewUploadPath, h.GetPreviewUploadURL)
 	router.POST(previewUploadPath, h.GetPreviewUploadURLV2)
 	router.POST(multipartPreviewUploadPath, h.GetMultipartPreviewUploadURL)
+	router.PUT(videoDataPath, h.PutVideoData)
 	return router
 }
 
@@ -307,6 +420,22 @@ func performPreviewUpload(t *testing.T, router *gin.Engine, method, path string,
 	recorder := httptest.NewRecorder()
 	router.ServeHTTP(recorder, req)
 	return recorder
+}
+
+func performPreviewRegistration(t *testing.T, router *gin.Engine, userID int64, body map[string]any) *httptest.ResponseRecorder {
+	t.Helper()
+	return performPreviewUpload(t, router, http.MethodPut, videoDataPath, userID, body)
+}
+
+func previewRegistrationBody(fileID int64, objectID string, objectSize int64) map[string]any {
+	return map[string]any{
+		"fileID":         fileID,
+		"objectID":       objectID,
+		"objectSize":     objectSize,
+		"playlist":       "encrypted-playlist",
+		"playlistHeader": "playlist-header",
+		"version":        1,
+	}
 }
 
 func assertPreviewUploadSignature(t *testing.T, rawURL string, length int64, checksum string) {
@@ -375,4 +504,126 @@ func setupPreviewUploadTest(t *testing.T) (*gin.Engine, *sql.DB, int64, int64) {
 	    VALUES($1, $2, 'key', 'nonce', 1, $3, $3)`, collectionID, fileID, userID)
 	require.NoError(t, err)
 	return previewUploadRouter(h), db, userID, fileID
+}
+
+type previewStorageRequest struct {
+	method string
+	path   string
+}
+
+type previewStorageServer struct {
+	server   *httptest.Server
+	mu       sync.Mutex
+	requests []previewStorageRequest
+	headSize int64
+}
+
+func newPreviewStorageServer(t *testing.T) *previewStorageServer {
+	t.Helper()
+	storage := &previewStorageServer{headSize: 5}
+	storage.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		storage.mu.Lock()
+		storage.requests = append(storage.requests, previewStorageRequest{method: r.Method, path: r.URL.Path})
+		headSize := storage.headSize
+		storage.mu.Unlock()
+
+		switch {
+		case r.Method == http.MethodPost && r.URL.Query().Has("uploads"):
+			_, _ = w.Write([]byte(`<InitiateMultipartUploadResult><UploadId>preview-upload</UploadId></InitiateMultipartUploadResult>`))
+		case r.Method == http.MethodHead:
+			w.Header().Set("Content-Length", strconv.FormatInt(headSize, 10))
+			w.WriteHeader(http.StatusOK)
+		case r.Method == http.MethodPut:
+			_, _ = io.Copy(io.Discard, r.Body)
+			w.Header().Set("ETag", `"preview-etag"`)
+			w.WriteHeader(http.StatusOK)
+		default:
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}
+	}))
+	t.Cleanup(storage.server.Close)
+	return storage
+}
+
+func (s *previewStorageServer) setHeadSize(size int64) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.headSize = size
+}
+
+func (s *previewStorageServer) reset() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.requests = nil
+}
+
+func (s *previewStorageServer) requestsSnapshot() []previewStorageRequest {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]previewStorageRequest(nil), s.requests...)
+}
+
+func setupPreviewRegistrationTest(t *testing.T, initialProvider string) (*gin.Engine, *filedatactrl.Controller, *sql.DB, int64, int64, *previewStorageServer) {
+	t.Helper()
+	db := testutil.RequireTestDB(t)
+	testutil.ResetTables(t, db)
+	_, err := db.Exec(`DELETE FROM file_data`)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		testutil.ResetTables(t, db)
+		_, err := db.Exec(`DELETE FROM file_data`)
+		if err != nil {
+			t.Errorf("failed to reset file_data: %v", err)
+		}
+	})
+	storage := newPreviewStorageServer(t)
+	viper.Reset()
+	t.Cleanup(viper.Reset)
+	for _, provider := range []string{previewB2Provider, previewWasabiProvider} {
+		viper.Set("s3."+provider+".key", "test-key")
+		viper.Set("s3."+provider+".secret", "test-secret")
+		viper.Set("s3."+provider+".endpoint", storage.server.URL)
+		viper.Set("s3."+provider+".region", "us-east-1")
+		viper.Set("s3."+provider+".bucket", provider+"-bucket")
+		viper.Set("s3."+provider+".disable_ssl", true)
+	}
+	viper.Set("s3.derived-storage", initialProvider)
+	viper.Set("s3.use_path_style_urls", true)
+	s3Config := s3config.NewS3Config()
+	cleanupRepo := &repo.ObjectCleanupRepository{DB: db}
+	files := &repo.FileRepository{DB: db}
+	collections := &repo.CollectionRepository{DB: db}
+	fileDataCtrl := &filedatactrl.Controller{
+		Repo:                    &filedatarepo.Repository{DB: db, ObjectCleanupRepo: cleanupRepo},
+		FileRepo:                files,
+		CollectionRepo:          collections,
+		S3Config:                s3Config,
+		AccessCtrl:              access.NewAccessController(collections, files),
+		ObjectCleanupController: &controller.ObjectCleanupController{Repo: cleanupRepo},
+	}
+	h := &FileHandler{FileDataCtrl: fileDataCtrl}
+	userID := testutil.InsertUser(t, db, testutil.UserFixture{Email: "preview-registration@ente.com", CreationTime: 1})
+	var fileID, collectionID int64
+	require.NoError(t, db.QueryRow(`INSERT INTO files(owner_id, file_decryption_header, thumbnail_decryption_header,
+		metadata_decryption_header, encrypted_metadata, updation_time, info)
+		VALUES($1, 'header', 'header', 'header', 'metadata', 1, '{}') RETURNING file_id`, userID).Scan(&fileID))
+	require.NoError(t, db.QueryRow(`INSERT INTO collections(owner_id, encrypted_key, key_decryption_nonce, name, type, attributes, updation_time, app)
+		VALUES($1, 'key', 'nonce', 'Previews', 'album', '{}', 1, 'photos') RETURNING collection_id`, userID).Scan(&collectionID))
+	_, err = db.Exec(`INSERT INTO collection_files(collection_id, file_id, encrypted_key, key_decryption_nonce, updation_time, c_owner_id, f_owner_id)
+		VALUES($1, $2, 'key', 'nonce', 1, $3, $3)`, collectionID, fileID, userID)
+	require.NoError(t, err)
+	return previewUploadRouter(h), fileDataCtrl, db, userID, fileID, storage
+}
+
+func assertPreviewRegistrationStorageRequests(t *testing.T, requests []previewStorageRequest, initialProvider, objectKey string, fileID, userID int64, objectID string) {
+	t.Helper()
+	require.Len(t, requests, 2)
+	bucket := "/" + initialProvider + "-bucket/"
+	fileObjectKey := filedata.ObjectKey(fileID, userID, ente.PreviewVideo, &objectID)
+	metadataObjectKey := filedata.ObjectMetadataKey(fileID, userID, ente.PreviewVideo, &objectID)
+	require.Equal(t, http.MethodHead, requests[0].method)
+	require.Equal(t, bucket+fileObjectKey, requests[0].path)
+	require.Equal(t, http.MethodPut, requests[1].method)
+	require.Equal(t, bucket+metadataObjectKey, requests[1].path)
+	require.Equal(t, objectKey, fileObjectKey)
 }
