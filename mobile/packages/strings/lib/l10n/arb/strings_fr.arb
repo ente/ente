@@ -1,9 +1,17 @@
 {
-  "bringMemoriesTogether": "Rassemblez vos souvenirs",
   "createMyAccount": "Créer mon compte",
-  "localGalleryPermissionDesc": "Autorisez l’accès à vos photos et leur organisation grâce à la reconnaissance faciale. Tout le traitement est effectué sur votre appareil.",
-  "logInLabel": "Se connecter",
-  "onboardingOrganizeDesc": "Organisez vos photos et vidéos. Tous vos souvenirs au même endroit.",
+  "@createMyAccount": {
+    "description": "Create account button on the Photos onboarding screen"
+  },
+  "localGalleryPermissionDesc": "Donnez la permission d'accéder à vos photos et de les organiser avec la reconnaissance faciale, entièrement traitée sur votre appareil.",
+  "@localGalleryPermissionDesc": {
+    "description": "Photo permission explanation shown during Local Gallery onboarding"
+  },
+  "onboardingOrganizeDesc": "Organisez vos photos et vos vidéos. Chaque souvenir, en un seul endroit.",
+  "@onboardingOrganizeDesc": {
+    "description": "Description on the Photos onboarding screen"
+  },
+  "wallpaper": "Fond d'écran",
   "about": "À propos",
   "acceptTrustInvite": "Accepter l'invitation",
   "account": "Compte",
@@ -24,6 +32,7 @@
   "@accountSetupIncompleteCreateAccount": {
     "description": "Error shown when account exists but signup is incomplete"
   },
+  "actionNotSupportedOnFavouritesAlbum": "Action non prise en charge dans l'album des Favoris",
   "activeLinksWillShowUpHere": "Les liens actifs apparaîtront ici",
   "activeSessions": "Sessions actives",
   "@activeSessions": {
@@ -181,7 +190,7 @@
   "albumsOnDevicePermissionCta": "Autoriser l'accès",
   "albumsOnEnteEmptyCta": "Sélectionner les albums à sauvegarder",
   "albumsOnEnteEmptyTitle": "Sauvegardez vos souvenirs",
-  "albumsReceivedEmptyTitle": "Voir les souvenirs partagés avec vous",
+  "albumsReceivedEmptyTitle": "Souvenirs partagés avec vous",
   "albumsSharedEmptyTitle": "Partagez vos souvenirs",
   "albumsWidgetDesc": "Sélectionnez les albums que vous souhaitez voir sur votre écran d'accueil.",
   "albumTitle": "Titre de l'album",
@@ -381,6 +390,7 @@
   "backupFile": "Sauvegarder le fichier",
   "backupFolderLabel": "Dossier de sauvegarde :",
   "backupLocationChoiceDescription": "Où voulez-vous enregistrer vos sauvegardes ?",
+  "backupModeKeepAppOpen": "Garder l'application ouverte",
   "backupOnlyNewPhotos": "Sauvegarder uniquement les nouvelles photos",
   "backupOnlyNewPhotosAllFoldersSelected": "Tous les dossiers sont actuellement sélectionnés pour la sauvegarde.\n\nVous pouvez continuer pour l'instant, ou mettre à jour les dossiers sélectionnés.",
   "backupOnlyNewPhotosNoFoldersSelectedContinue": "Aucun dossier n'est actuellement sélectionné pour la sauvegarde.\n\nVous pouvez continuer pour l'instant, ou mettre à jour les dossiers sélectionnés.",
@@ -407,6 +417,7 @@
   "birthday": "Anniversaire",
   "birthdayJoy": "Joyeux anniversaire",
   "birthdays": "Anniversaires",
+  "blog": "Blog",
   "bothIssuerAndAccountCanNotBeEmpty": "L'émetteur et le compte ne peuvent pas être vides",
   "bringYourFamilyAlong": "Faites venir votre famille",
   "browseHelpPages": "Parcourir les pages d'aide",
@@ -494,6 +505,10 @@
   "@checkStatus": {
     "description": "Check status button label"
   },
+  "chooseAlbumsToBackup": "Sélectionner les albums à sauvegarder",
+  "@chooseAlbumsToBackup": {
+    "description": "Button on the photo permission screen that opens album selection for backup"
+  },
   "chooseARecoveryTime": "Choisir une période de récupération",
   "chooseBackupLocation": "Choisir l'emplacement de la sauvegarde",
   "chooseFromAnExistingContact": "Choisir parmi un contact existant",
@@ -547,6 +562,7 @@
   "collectionCannotBeShared": "Cette collection ne peut pas etre partagee",
   "collectionDeletedSuccessfully": "Collection supprimee avec succes",
   "collectionEmptyStateSubtitle": "Il n'y a aucun element dans cette collection",
+  "collectionLabel": "Collection",
   "collectionRenamedSuccessfully": "Collection renommee avec succes",
   "collections": "Bibliothèque",
   "collectPhotos": "Récupérer les photos",
@@ -616,6 +632,10 @@
       }
     }
   },
+  "confirmDeleteAccountAcrossApps": "Je comprends que cela supprime mes données dans Ente Photos, Ente Auth, et Ente Locker.",
+  "@confirmDeleteAccountAcrossApps": {
+    "description": "Checkbox label for final account deletion confirmation"
+  },
   "confirmPassword": "Confirmer le mot de passe",
   "@confirmPassword": {
     "description": "Confirm password field label"
@@ -624,6 +644,7 @@
   "confirmRecoveryKey": "Confirmer la clé de récupération",
   "confirmUpdatingkey": "Êtes-vous sûr de vouloir mettre à jour la clé secrète ?",
   "confirmYourRecoveryKey": "Confirmer la clé de récupération",
+  "congratulations": "Félicitations !",
   "connectToDevice": "Connexion à l'appareil",
   "contactDetails": "Coordonnees",
   "contactDetailsHint": "Numero de telephone, e-mail ou autres coordonnees",
@@ -631,6 +652,15 @@
   "contactNameHint": "Nom complet du contact d'urgence",
   "contactNotes": "Message pour le contact",
   "contactNotesHint": "Informations importantes a partager avec cette personne lorsqu'elle sera contactee",
+  "contacts": "Contacts",
+  "contactSupport": "Contacter l'assistance",
+  "@contactSupport": {
+    "description": "Contact support button label"
+  },
+  "contactUs": "Nous contacter",
+  "@contactUs": {
+    "description": "Button label for contacting Ente support"
+  },
   "contactToManageSubscription": "Veuillez nous contacter à support@ente.com pour gérer votre abonnement {provider}.",
   "@contactToManageSubscription": {
     "placeholders": {
@@ -648,6 +678,10 @@
   "copiedNextToClipboard": "Code suivant copié dans le presse-papiers",
   "copiedToClipboard": "Copié dans le presse-papiers",
   "copyAllToClipboard": "Copier tout dans le presse-papier",
+  "copyEmailAddress": "Copier l’adresse e-mail",
+  "@copyEmailAddress": {
+    "description": "Button to copy email address to clipboard"
+  },
   "copyEmbedHtml": "Copier le code HTML intégré",
   "copyLink": "Copier le lien",
   "copypasteThisCodentoYourAuthenticatorApp": "Copiez-collez ce code\ndans votre application d'authentification",
@@ -678,6 +712,7 @@
   "couldNotUpdateSubscription": "Impossible de mettre à jour l’abonnement",
   "count": "Total",
   "cozyCafes": "Coins de café confortables",
+  "craftingMemoriesSecondHalf": "souvenirs",
   "crashAndErrorReporting": "Rapport de plantage et d'erreur",
   "crashReporting": "Rapport d'erreur",
   "create": "Créer",
@@ -704,6 +739,7 @@
   "credentialNotesHint": "Methodes de recuperation, questions de securite, ...",
   "criticalUpdateAvailable": "Mise à jour critique disponible",
   "crop": "Rogner",
+  "cropAndRotate": "Rogner et pivoter",
   "curatedMemories": "Souvenirs conservés",
   "currentBackupFolder": "Dossier actuel de la sauvegarde :",
   "currentlyRunning": "en cours d'exécution",
@@ -744,6 +780,10 @@
   "delete": "Supprimer",
   "@delete": {
     "description": "Delete button label"
+  },
+  "deleteAccount": "Supprimer mon compte",
+  "@deleteAccount": {
+    "description": "Delete account button label"
   },
   "deleteAlbum": "Supprimer l'album",
   "deleteAlbumDialog": "Supprimer aussi les photos (et vidéos) présentes dans cet album de <bold>tous</bold> les autres albums dont elles font partie ?",
@@ -789,6 +829,10 @@
   "deleteDuplicates": "Supprimer les doublons",
   "deleteEmptyAlbums": "Supprimer les albums vides",
   "deleteEmptyAlbumsWithQuestionMark": "Supprimer les albums vides ?",
+  "deleteEnteAccount": "Supprimer mon compte Ente",
+  "@deleteEnteAccount": {
+    "description": "Final destructive button label for account deletion"
+  },
   "deleteFiles": "Supprimer les fichiers",
   "deleteFromBoth": "Supprimer des deux",
   "deleteFromDevice": "Supprimer de l'appareil",
@@ -811,6 +855,7 @@
       }
     }
   },
+  "deleteLegacyKitMessage": "Les feuilles partagées ne peuvent plus être utilisées pour la récupération",
   "deleteLink": "Supprimer le lien",
   "deleteLinkQuestion": "Supprimer le lien ?",
   "deleteLocation": "Supprimer la localisation",
@@ -822,6 +867,7 @@
     }
   },
   "deleteMultipleAlbumsQuestion": "Supprimer ces albums ?",
+  "deleteNotSupportedForSharedFiles": "La suppression n'est pas prise en charge pour les fichiers partagés",
   "deleteOnDeviceFiles": "Supprimer sur les fichiers de l'appareil",
   "deletePhotos": "Supprimer les photos",
   "deletePhotosWithSize": "Supprimer {count} photos ({size})",
@@ -842,13 +888,31 @@
       "totalCount": {}
     }
   },
+  "deleteReasonBehaviour": "L'application ou une fonctionnalité ne se comporte pas comme je l'attends",
+  "@deleteReasonBehaviour": {
+    "description": "Account deletion reason option"
+  },
+  "deleteReasonFoundAnotherService": "J'ai trouvé un autre service que je préfère",
+  "@deleteReasonFoundAnotherService": {
+    "description": "Account deletion reason option"
+  },
+  "deleteReasonMissingFeature": "Il manque une fonctionnalité essentielle dont j'ai besoin",
+  "@deleteReasonMissingFeature": {
+    "description": "Account deletion reason option"
+  },
+  "deleteReasonNotListed": "Ma raison n'est pas listée",
+  "@deleteReasonNotListed": {
+    "description": "Account deletion reason option"
+  },
   "deleteSharedAlbum": "Supprimer l'album partagé ?",
   "deleteSharedAlbumDialogBody": "L'album sera supprimé pour tout le monde\n\nVous perdrez l'accès aux photos partagées dans cet album qui sont détenues par d'autres personnes",
   "deleteShareLinkConfirmation": "Les personnes disposant de ce lien ne pourront plus acceder a l'element.",
   "deleteSuggestions": "Supprimer les suggestions",
+  "deleteSuggestionsDesc": "Voir les éléments suggérés pour la suppression",
   "deleteSuggestionSent": "Suggestion de suppression envoyée",
   "deleteTagMessage": "Êtes-vous sûr de vouloir supprimer ce tag ? Cette action est irréversible.",
   "deleteTagTitle": "Supprimer le tag ?",
+  "deleteUnparseableCodeMessage": "Ceci supprimera définitivement ce code d'Auth. Il ne sera pas déplacé dans la corbeille.",
   "deleteWithCount": "Supprimer ({count})",
   "@deleteWithCount": {
     "placeholders": {
@@ -859,7 +923,10 @@
   },
   "deletingDash": "Suppression - ",
   "deletingFile": "Suppression de l'element...",
+  "deletingFiles": "Suppression...",
   "deletingShareLink": "Suppression du lien...",
+  "description": "Description",
+  "deselectAll": "Tout déselectionner",
   "desertDreams": "Rêves désertiques",
   "designedForFamilies": "Conçu pour les familles",
   "details": "Détails",
@@ -870,11 +937,18 @@
   },
   "developerSettingsWarning": "Êtes-vous sûr de vouloir modifier les paramètres du développeur ?",
   "deviceInfo": "Infos sur l'appareil",
+  "deviceLock": "Verrouillage de l'appareil",
+  "@deviceLock": {
+    "description": "Device lock option title"
+  },
   "deviceLockEnablePreSteps": "Pour activer l'écran de verrouillage, veuillez configurer le code d'accès de l'appareil ou le verrouillage de l'écran dans les paramètres de votre système.",
   "@deviceLockEnablePreSteps": {
     "description": "Instructions for enabling device lock"
   },
   "deviceNotFound": "Appareil non trouvé",
+  "devicePickerLimitedAccess": "Affichage des photos autorisées",
+  "devicePickerPermissionHint": "Pour ajouter des photos et des vidéos à cet album, autorisez l'accès dans les paramètres.",
+  "devicePickerSelectionChanged": "Certains éléments sélectionnés sont introuvables. Vérifiez votre sélection et réessayez.",
   "didYouKnow": "Le savais-tu ?",
   "digits": "Chiffres",
   "disableBackup": "Désactiver la sauvegarde",
@@ -905,6 +979,7 @@
   "discover_qr_codes": "QR Codes",
   "discover_receipts": "Recettes",
   "discover_screenshots": "Captures d'écran ",
+  "discover_selfies": "Selfies",
   "discover_sunset": "Coucher du soleil",
   "discover_visiting_cards": "Carte de visite",
   "discover_wallpapers": "Fonds d'écran",
@@ -913,6 +988,7 @@
   "@distanceInKMUnit": {
     "description": "Unit for distance in km"
   },
+  "documentsHint": "Documents",
   "doesGroupContainMultiplePeople": "Ce groupement contient-il plusieurs personnes ?",
   "dog": "Chien",
   "done": "Terminé",
@@ -1113,6 +1189,10 @@
     "description": "Success message when endpoint is updated"
   },
   "ente": "Ente",
+  "enteAuth": "Ente Auth",
+  "@enteAuth": {
+    "description": "Product name"
+  },
   "enterAlbumName": "Saisir un nom d'album",
   "enterAnEmailAddress": "Saisissez une adresse e-mail",
   "enterAValidEmailAddress": "Saisissez une adresse e-mail valide",
@@ -1381,6 +1461,7 @@
   "free10GB": "10 Go gratuits sur <bold-green>Ente</bold-green> Photos",
   "freeStorageOffer": "10% de réduction sur <bold-green>Ente</bold-green> Photos",
   "freeStorageOfferDescription": "Utilisez le code coupon \"AUTH\" pour obtenir 10% de réduction la première année",
+  "free": "Gratuit",
   "freeTrial": "Essai gratuit",
   "freeUpAmount": "Libérer {sizeInMBorGB}",
   "@freeUpAmount": {
@@ -1948,7 +2029,6 @@
   "nextTotpTitle": "suivant",
   "nightLights": "Soirées néon",
   "no": "Non",
-  "noAlbumsOnThisDevice": "Aucun album sur cet appareil",
   "noChangesWereMade": "Aucune modification effectuee",
   "noCollections": "Aucune collection",
   "noDefaultBackupFolder": "Impossible de créer le dossier de sauvegarde par défaut.",
@@ -3095,7 +3175,6 @@
       }
     }
   },
-  "startSnappingYourPhotosWillShowUpHere": "Commencez à prendre des photos, vos photos apparaîtront ici",
   "startWithAddingPhotosOrFamiliarFaces": "Commencez par ajouter\ndes photos ou des visages familiers",
   "status": "État",
   "sticker": "Autocollant",

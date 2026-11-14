@@ -1,8 +1,8 @@
 {
-  "bringMemoriesTogether": "Reúne tus recuerdos",
-  "createMyAccount": "Crear mi cuenta",
-  "localGalleryPermissionDesc": "Concede permiso para acceder y organizar tus fotos mediante reconocimiento facial. Todo el procesamiento se realiza en tu dispositivo.",
-  "onboardingOrganizeDesc": "Organiza tus fotos y vídeos. Todos tus recuerdos en un solo lugar.",
+  "createMyAccount": "Crear una cuenta",
+  "@createMyAccount": {
+    "description": "Create account button on the Photos onboarding screen"
+  },
   "wallpaper": "Fondo de pantalla",
   "setWallpaper": "Establecer fondo de pantalla",
   "wallpaperHome": "Pantalla de inicio",
@@ -50,6 +50,7 @@
   "add": "Añadir",
   "addAlbumWidgetPrompt": "Añadir un widget de álbum a la pantalla de inicio para personalizarlo aquí.",
   "addANameAndPhoto": "Añadir un nombre y una foto",
+  "addAnyway": "Añadir de todas formas",
   "addCode": "Añadir código",
   "addedAMemoryTo": "añadió un recuerdo a {albumName}",
   "@addedAMemoryTo": {
@@ -156,7 +157,6 @@
   "albumsOnDevicePermissionCta": "Permitir acceso",
   "albumsOnEnteEmptyCta": "Selecciona los álbumes que respaldar en Ente",
   "albumsOnEnteEmptyTitle": "Respalda tus recuerdos",
-  "albumsReceivedEmptyTitle": "Ver recuerdos compartidos contigo",
   "albumsWidgetDesc": "Selecciona los álbumes que quieres ver en tu pantalla de inicio.",
   "albumTitle": "Título del álbum",
   "albumUpdated": "Álbum actualizado",
@@ -524,8 +524,19 @@
   "collectionLabel": "Coleccion",
   "collectionRenamedSuccessfully": "Coleccion renombrada correctamente",
   "collections": "Colecciones",
+  "collectionsDeletedSuccessfully": "{count, plural, one{{count} colección eliminada con éxito} other{{count} colecciones eliminadas con éxitos}}",
+  "@collectionsDeletedSuccessfully": {
+    "description": "Success message when collections are deleted",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
   "collectionUpdated": "Colección actualizada",
   "collectPhotos": "Recolectar fotos",
+  "color": "Color",
   "colorfulMarkets": "Mercados vivos",
   "commentedOnAPhoto": "comentó en una foto",
   "@commentedOnAPhoto": {
@@ -548,6 +559,15 @@
     "description": "Placeholder text for comment input field"
   },
   "comments": "Comentarios",
+  "commentsCount": "{count, plural, =0{Sin comentarios} one{{count} comentario} other{{count} comentarios}}",
+  "@commentsCount": {
+    "description": "Number of comments with pluralization",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "compactMode": "Modo compacto",
   "comparingImageDetails": "Comparando detalles de imágenes...",
   "concertNights": "Noches de conciertos",
@@ -581,6 +601,10 @@
         "example": "30"
       }
     }
+  },
+  "confirmDeleteAccountAcrossApps": "Entiendo que esto elimina mis datos en Ente Photos, Ente Auth, y Ente Locker.",
+  "@confirmDeleteAccountAcrossApps": {
+    "description": "Checkbox label for final account deletion confirmation"
   },
   "confirmPassword": "Confirmar contraseña",
   "@confirmPassword": {

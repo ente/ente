@@ -182,7 +182,6 @@
   "albumsOnDevicePermissionCta": "Allow access",
   "albumsOnEnteEmptyCta": "Select albums to backup",
   "albumsOnEnteEmptyTitle": "Back up your memories",
-  "albumsReceivedEmptyTitle": "View memories shared with you",
   "albumsSharedEmptyTitle": "Share your memories",
   "albumsWidgetDesc": "Select the albums you want to see on your home screen.",
   "albumTitle": "Album title",
@@ -2378,7 +2377,6 @@
   },
   "nightLights": "Neon nights",
   "no": "Не",
-  "noAlbumsOnThisDevice": "No albums on this device",
   "noAppToOpenFileDownloadInstead": "No app is available to preview this file. You can download it and open it with another app.",
   "@noAppToOpenFileDownloadInstead": {
     "description": "Message shown when Android cannot find an app to open or preview a file"
@@ -3750,7 +3748,6 @@
       }
     }
   },
-  "startSnappingYourPhotosWillShowUpHere": "Start snapping, your photos will show up here",
   "startWithAddingPhotosOrFamiliarFaces": "Start with adding\nphotos or familiar faces",
   "status": "Status",
   "sticker": "Sticker",

@@ -1,8 +1,21 @@
 {
-  "bringMemoriesTogether": "Соберите свои воспоминания вместе",
+  "allCleanedUp": "Все очищено!",
+  "bringMemoriesTogether": "Соберите воспоминания в одном месте",
+  "@bringMemoriesTogether": {
+    "description": "Title on the Local Gallery photo permission screen"
+  },
   "createMyAccount": "Создать мой аккаунт",
-  "localGalleryPermissionDesc": "Разрешите доступ к фотографиям и их организацию с помощью распознавания лиц. Вся обработка выполняется на вашем устройстве.",
-  "onboardingOrganizeDesc": "Организуйте свои фото и видео. Все воспоминания в одном месте.",
+  "@createMyAccount": {
+    "description": "Create account button on the Photos onboarding screen"
+  },
+  "localGalleryPermissionDesc": "Предоставьте разрешение для доступа и организации ваших фото с использованием распознавания лиц; обработка происходит на вашем устройстве.",
+  "@localGalleryPermissionDesc": {
+    "description": "Photo permission explanation shown during Local Gallery onboarding"
+  },
+  "onboardingOrganizeDesc": "Организуйте ваши фотографии и видео. Все воспоминания в одном месте.",
+  "@onboardingOrganizeDesc": {
+    "description": "Description on the Photos onboarding screen"
+  },
   "wallpaper": "Обои",
   "setWallpaper": "Установить как обои",
   "wallpaperHome": "Домашний экран",
@@ -50,6 +63,7 @@
   "add": "Добавить",
   "addAlbumWidgetPrompt": "Добавьте виджет альбома на главный экран, чтобы настроить его здесь.",
   "addANameAndPhoto": "Добавьте имя и фото",
+  "addAnyway": "Все равно добавить",
   "addCode": "Добавить код",
   "addedAMemoryTo": "добавил(а) воспоминание в {albumName}",
   "@addedAMemoryTo": {
@@ -121,6 +135,7 @@
       "count": {}
     }
   },
+  "addItems": "Добавить элементы",
   "addLocation": "Добавить местоположение",
   "addLocationButton": "Добавить",
   "addMember": "Добавить участника",
@@ -156,6 +171,7 @@
   "addTo": "Добавить в",
   "addToAlbum": "Добавить в альбом",
   "addToCollection": "Добавить в коллекцию",
+  "addToCollections": "Добавить в коллекцию",
   "addToEnte": "Добавить в Ente",
   "addToHiddenAlbum": "Добавить в скрытый альбом",
   "addToPerson": "Добавить нового человека",
@@ -197,9 +213,25 @@
     }
   },
   "albumsOnDevicePermissionCta": "Разрешить доступ",
+  "albumsOnDevicePermissionDescription": "Ваши фотографии будут организованы с помощью распознавания лиц прямо на вашем устройстве.",
+  "@albumsOnDevicePermissionDescription": {
+    "description": "Body of the on-device albums empty state shown before photo access is granted"
+  },
   "albumsOnEnteEmptyCta": "Выберите альбомы для резервного копирования",
+  "albumsOnEnteEmptyDescription": "Получайте к ним доступ на любом устройстве и делитесь ими с близкими.",
+  "@albumsOnEnteEmptyDescription": {
+    "description": "Body of the Ente albums empty state, under the title 'Back up your memories'"
+  },
   "albumsOnEnteEmptyTitle": "Сохраняйте воспоминания",
-  "albumsReceivedEmptyTitle": "Просматривайте воспоминания, которыми с вами поделились",
+  "albumsReceivedEmptyDescription": "Альбомы, которыми с вами поделились, появятся здесь, готовые к просмотру и сохранению.",
+  "@albumsReceivedEmptyDescription": {
+    "description": "Body of the received albums empty state"
+  },
+  "albumsReceivedEmptyTitle": "Воспоминания, которыми поделились с вами",
+  "albumsSharedEmptyDescription": "Близкие смогут просматривать, ставить реакции и оставлять комментарии — без регистрации.",
+  "@albumsSharedEmptyDescription": {
+    "description": "Body of the shared albums and feed empty states, under the title 'Share your memories'"
+  },
   "albumsSharedEmptyTitle": "Делитесь воспоминаниями",
   "albumsWidgetDesc": "Выберите альбомы, которые хотите видеть на главном экране.",
   "albumTitle": "Название альбома",
@@ -407,6 +439,10 @@
   "backupFailed": "Резервное копирование не удалось",
   "backupFile": "Резервное копирование файла",
   "backupFolderLabel": "Папка резервного копирования:",
+  "backupLatestPhotos": "Резервное копирование последних фото",
+  "@backupLatestPhotos": {
+    "description": "Button on the photo permission screen that backs up only recent photos"
+  },
   "backupLocationChoiceDescription": "Где вы хотите сохранить резервные копии?",
   "backupMode": "Режим резервного копирования",
   "backupModeBackingUpItems": "{count, plural, one{Резервное копирование {formattedCount} элемент} other{Резервное копирование {formattedCount} элементов}}",
@@ -567,6 +603,10 @@
   "checkStatus": "Проверить статус",
   "@checkStatus": {
     "description": "Check status button label"
+  },
+  "chooseAlbumsToBackup": "Выберите альбомы для резервного копирования",
+  "@chooseAlbumsToBackup": {
+    "description": "Button on the photo permission screen that opens album selection for backup"
   },
   "chooseARecoveryTime": "Выберите время восстановления",
   "chooseBackupLocation": "Выберите место для резервной копии",
@@ -823,6 +863,7 @@
   "credentialNotesHint": "Методы восстановления, секретные вопросы, ...",
   "criticalUpdateAvailable": "Доступно критическое обновление",
   "crop": "Обрезать",
+  "cropAndRotate": "Кадрировать и вращать",
   "curatedMemories": "Отобранные воспоминания",
   "currentBackupFolder": "Текущая папка резервного копирования:",
   "currentlyRunning": "выполняется",
@@ -1040,6 +1081,9 @@
     "description": "Instructions for enabling device lock"
   },
   "deviceNotFound": "Устройство не найдено",
+  "devicePickerLimitedAccess": "Показываются разрешенные вами фотографии",
+  "devicePickerPermissionHint": "Чтобы добавить фото и видео в этот альбом, разрешите доступ в настройках.",
+  "devicePickerSelectionChanged": "Некоторые выбранные элементы не найдены. Проверьте свой выбор и повторите попытку.",
   "didYouKnow": "Знаете ли вы?",
   "digits": "Цифр",
   "disableBackup": "Отключить резервное копирование",
@@ -1695,7 +1739,7 @@
       "count": {}
     }
   },
-  "freeUpDeviceSpaceDesc": "Удалите с устройства файлы, для которых созданы резервные копии.",
+  "freeUpDeviceSpaceDesc": "Удалите резервные копии.",
   "freeUpDeviceSpaceDescICloud": "Файлы в общих альбомах iCloud нельзя удалить",
   "@freeUpDeviceSpaceDescICloud": {
     "description": "Here 'cleared' means 'deleted' from the device"
@@ -1942,6 +1986,8 @@
       }
     }
   },
+  "itemsLabel": "Элементы",
+  "itemsQueuedForDeletion": "Элементы в очереди на удаление",
   "itemsShowTheNumberOfDaysRemainingBeforePermanentDeletion": "На элементах отображается количество дней, оставшихся до их безвозвратного удаления",
   "itemsStored": "Сохранено элементов",
   "itemsWillBeDeletedFromAllCollections": "{count, plural, one{Этот элемент будет удален из всех коллекций. Вы можете восстановить его из корзины.} other{Эти элементы будут удалены из всех коллекций. Вы можете восстановить их из корзины.}}",
@@ -2453,7 +2499,6 @@
   },
   "nightLights": "Неоновая ночь",
   "no": "Нет",
-  "noAlbumsOnThisDevice": "Нет альбомов на этом устройстве",
   "noAppToOpenFileDownloadInstead": "Нет приложения для предварительного просмотра этого файла. Вы можете скачать его и открыть с помощью другого приложения.",
   "@noAppToOpenFileDownloadInstead": {
     "description": "Message shown when Android cannot find an app to open or preview a file"
@@ -2970,7 +3015,7 @@
   },
   "receiveRemindersOnBirthdays": "Напоминания о днях рождения",
   "recent": "Недавние",
-  "reclaimSpace": "Освободить {sizeInMBorGB}",
+  "reclaimSpace": "Восстановить {sizeInMBorGB}",
   "@reclaimSpace": {
     "description": "Heading that shows how much device storage can be reclaimed",
     "placeholders": {
@@ -3927,7 +3972,6 @@
       }
     }
   },
-  "startSnappingYourPhotosWillShowUpHere": "Начните снимать, и ваши фотографии появятся здесь",
   "startWithAddingPhotosOrFamiliarFaces": "Начните с добавления фотографий или знакомых лиц",
   "status": "Статус",
   "sticker": "Стикер",
@@ -4694,7 +4738,6 @@
   "youAreViewer": "Вы смотрите",
   "youAreCollaborator": "Вы соавтор",
   "youAreAdmin": "Вы админ",
-  "emptyAlbumShareMessage": "Вы еще ни с кем не делились этим альбомом.",
   "addPeople": "Добавить людей",
   "fromYourContacts": "Из ваших контактов",
   "chooseAccess": "Выберите доступ",

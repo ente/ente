@@ -4553,6 +4553,7 @@
   },
   "totalSize": "Total storlek",
   "trash": "Papperskorg",
+  "trashAutoDeleteNotice": "Objekt i papperskorgen raderas permanent efter 30 dagar",
   "restoreOrPermanentlyDeleteItems": "Återställ eller ta bort objekt permanent",
   "trashClearedSuccessfully": "Papperskorgen tömdes",
   "trashCode": "Ta bort kod?",
