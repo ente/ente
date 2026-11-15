@@ -279,6 +279,14 @@ class RewindWarm<T extends Object> {
   }
 }
 
+RewindWarm<List<EnteFile>> rewindLoadedPhotos(
+  List<EnteFile> photos,
+  RewindBytes bytes,
+) => RewindWarm(() async {
+  final loaded = await Future.wait([for (final photo in photos) bytes(photo)]);
+  return loaded.contains(null) ? null : photos;
+}, (_) {});
+
 class RewindWarmBuilder<T extends Object> extends StatefulWidget {
   const RewindWarmBuilder({
     required this.warm,

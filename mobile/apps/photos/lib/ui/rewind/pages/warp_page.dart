@@ -84,6 +84,10 @@ class WarpPage extends RewindPage {
     (atlas) => atlas.dispose(),
   );
 
+  late final RewindWarm<List<EnteFile>> _landing = rewindLoadedPhotos([
+    first,
+  ], bytes);
+
   static final _wallClock = RegExp(r"^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}");
 
   static DateTime taken(EnteFile file) =>
@@ -102,10 +106,16 @@ class WarpPage extends RewindPage {
   String get key => pageKey;
 
   @override
-  void warmUp() => _walls.value;
+  void warmUp() {
+    _walls.value;
+    _landing.value;
+  }
 
   @override
-  void release() => _walls.release();
+  void release() {
+    _walls.release();
+    _landing.release();
+  }
 
   @override
   Widget build(
@@ -115,13 +125,17 @@ class WarpPage extends RewindPage {
   }) {
     return RewindWarmBuilder<RewindAtlas>(
       warm: _walls,
-      builder: (context, walls) => _Flight(
-        key: ValueKey(walls),
-        walls: walls,
-        first: first,
-        photo: photo,
-        active: isActive,
-        position: position,
+      builder: (context, walls) => RewindWarmBuilder<List<EnteFile>>(
+        warm: _landing,
+        builder: (context, landing) => _Flight(
+          key: ValueKey(walls),
+          walls: walls,
+          first: first,
+          firstLoaded: landing != null,
+          photo: photo,
+          active: isActive,
+          position: position,
+        ),
       ),
     );
   }
@@ -131,6 +145,7 @@ class _Flight extends StatefulWidget {
   const _Flight({
     required this.walls,
     required this.first,
+    required this.firstLoaded,
     required this.photo,
     required this.active,
     required this.position,
@@ -139,6 +154,7 @@ class _Flight extends StatefulWidget {
 
   final RewindAtlas? walls;
   final EnteFile first;
+  final bool firstLoaded;
   final RewindPhotoBuilder photo;
   final bool active;
   final double position;
@@ -379,7 +395,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
       fit: StackFit.expand,
       children: [
         RewindShareable(
-          enabled: walls != null,
+          enabled: walls != null && widget.firstLoaded,
           child: Stack(
             fit: StackFit.expand,
             children: [
