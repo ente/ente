@@ -750,11 +750,20 @@ func (c *FileController) VerifyFileOwnership(ctx *gin.Context, ownerID int64, fi
 
 func (c *FileController) validateUpdateMetadataRequest(ctx *gin.Context, req ente.UpdateMultipleMagicMetadataRequest, isPublicMetadata bool) error {
 	userID := auth.GetUserID(ctx.Request.Header)
+	fileIDs := make([]int64, 0, len(req.MetadataList))
 	for _, updateMMdRequest := range req.MetadataList {
-		ownerID, existingMetadata, err := c.FileRepo.GetOwnerAndMagicMetadata(updateMMdRequest.ID, isPublicMetadata)
-		if err != nil {
-			return stacktrace.Propagate(err, "")
+		fileIDs = append(fileIDs, updateMMdRequest.ID)
+	}
+	files, err := c.FileRepo.GetOwnersAndMagicMetadata(ctx, fileIDs, isPublicMetadata)
+	if err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	for _, updateMMdRequest := range req.MetadataList {
+		file, ok := files[updateMMdRequest.ID]
+		if !ok {
+			return stacktrace.Propagate(sql.ErrNoRows, "file %d not found", updateMMdRequest.ID)
 		}
+		ownerID, existingMetadata := file.OwnerID, file.MagicMetadata
 		if ownerID != userID {
 			log.WithFields(log.Fields{
 				"file_id":   updateMMdRequest.ID,

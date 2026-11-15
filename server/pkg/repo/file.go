@@ -540,19 +540,34 @@ func (repo *FileRepository) VerifyFileOwner(ctx context.Context, fileIDs []int64
 	}
 }
 
-func (repo *FileRepository) GetOwnerAndMagicMetadata(fileID int64, publicMetadata bool) (int64, *ente.MagicMetadata, error) {
-	var row *sql.Row
+type FileOwnerAndMagicMetadata struct {
+	OwnerID       int64
+	MagicMetadata *ente.MagicMetadata
+}
+
+// GetOwnersAndMagicMetadata returns the owner and the current magic metadata
+// (or public magic metadata) of the given files, keyed by file ID. Files that
+// do not exist are left out of the map.
+func (repo *FileRepository) GetOwnersAndMagicMetadata(ctx context.Context, fileIDs []int64, publicMetadata bool) (map[int64]FileOwnerAndMagicMetadata, error) {
+	query := `SELECT file_id, owner_id, magic_metadata FROM files WHERE file_id = ANY($1)`
 	if publicMetadata {
-		row = repo.DB.QueryRow(`SELECT owner_id, pub_magic_metadata FROM files WHERE file_id = $1`,
-			fileID)
-	} else {
-		row = repo.DB.QueryRow(`SELECT owner_id, magic_metadata FROM files WHERE file_id = $1`,
-			fileID)
+		query = `SELECT file_id, owner_id, pub_magic_metadata FROM files WHERE file_id = ANY($1)`
 	}
-	var ownerID int64
-	var magicMetadata *ente.MagicMetadata
-	err := row.Scan(&ownerID, &magicMetadata)
-	return ownerID, magicMetadata, stacktrace.Propagate(err, "")
+	rows, err := repo.DB.QueryContext(ctx, query, pq.Array(fileIDs))
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "")
+	}
+	defer rows.Close()
+	result := make(map[int64]FileOwnerAndMagicMetadata, len(fileIDs))
+	for rows.Next() {
+		var fileID int64
+		var file FileOwnerAndMagicMetadata
+		if err := rows.Scan(&fileID, &file.OwnerID, &file.MagicMetadata); err != nil {
+			return nil, stacktrace.Propagate(err, "")
+		}
+		result[fileID] = file
+	}
+	return result, stacktrace.Propagate(rows.Err(), "failed to read file owners and magic metadata")
 }
 
 func (repo *FileRepository) GetSize(userID int64, fileIDs []int64) (int64, error) {
