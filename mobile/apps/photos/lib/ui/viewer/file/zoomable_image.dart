@@ -533,7 +533,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
 
   void _loadScreenSizedPreview(File file) {
     final imageCache = PaintingBinding.instance.imageCache;
-    if (imageCache.statusForKey(FileImage(file)).live) {
+    if (imageCache.statusForKey(FileImage(file)).keepAlive) {
       return;
     }
     if (_photo.hasDimensions) {
