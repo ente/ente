@@ -56,6 +56,7 @@ class _RewindStoryViewState extends State<RewindStoryView> {
       pages: story.pages,
       initialPage: _initialPage,
       initialStop: _initialPage == widget.initialPage ? widget.initialStop : 0,
+      loadVideoMedia: story.loadPhotosOf,
       onSettled: (page, stop) {
         story.preloadFrom(max(0, story.pages.indexOf(page)));
         widget.onSettled?.call(page, stop);

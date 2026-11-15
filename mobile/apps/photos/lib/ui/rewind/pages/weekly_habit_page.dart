@@ -5,6 +5,7 @@ import "package:flutter/material.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
 import "package:photos/ui/rewind/shell/rewind_page.dart";
+import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
@@ -48,6 +49,9 @@ class WeeklyHabitPage extends RewindPage {
   String get key => "weekly_habit";
 
   @override
+  Duration? get reelHold => const Duration(milliseconds: 4400);
+
+  @override
   RewindChrome get chrome => RewindChrome.dark;
 
   @override
@@ -88,7 +92,9 @@ class WeeklyHabitPage extends RewindPage {
                         hour: habit.hour,
                         label: hour,
                         active: isActive,
-                        paused: ModalRoute.of(context)?.isCurrent == false,
+                        paused:
+                            !RewindPageScope.reelOf(context) &&
+                            ModalRoute.of(context)?.isCurrent == false,
                       ),
                     ),
                   ),

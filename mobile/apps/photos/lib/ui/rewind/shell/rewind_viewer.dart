@@ -1,17 +1,17 @@
 import "dart:async";
-import "dart:math";
 
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:logging/logging.dart";
+import "package:photos/ui/rewind/reel/rewind_video_export.dart";
 import "package:photos/ui/rewind/shell/rewind_chrome.dart";
 import "package:photos/ui/rewind/shell/rewind_music.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
+import "package:photos/ui/rewind/shell/rewind_page_stack.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
 import "package:photos/ui/rewind/theme/rewind_motion.dart";
-import "package:photos/ui/rewind/widgets/rewind_stage.dart";
 import "package:photos/utils/share_util.dart";
 
 class RewindViewer extends StatefulWidget {
@@ -20,6 +20,7 @@ class RewindViewer extends StatefulWidget {
     this.initialPage,
     this.initialStop = 0,
     this.onSettled,
+    this.loadVideoMedia,
     super.key,
   });
 
@@ -27,6 +28,7 @@ class RewindViewer extends StatefulWidget {
   final String? initialPage;
   final int initialStop;
   final void Function(RewindPage page, int stop)? onSettled;
+  final Future<void> Function(List<RewindPage> pages)? loadVideoMedia;
 
   Route<void> route() => PageRouteBuilder<void>(
     transitionDuration: const Duration(milliseconds: 260),
@@ -53,12 +55,13 @@ class _RewindViewerState extends State<RewindViewer>
   static const _tapZoneTop = 70 / 844;
   static const _tapZoneBottom = 770 / 844;
 
-  final _starts = <int>[];
-  late final int _steps;
+  late final _starts = RewindPageStack.startsOf(widget.pages);
+  late final _steps = _starts.last + widget.pages.last.stops;
   late final int _initialStep;
   final _music = RewindMusic();
   final _shareCards = <String, RewindShareCard>{};
   final _shareButton = GlobalKey();
+  final _videoButton = GlobalKey();
   ScrollController? _controller;
   double? _height;
   var _settledStep = -1;
@@ -69,12 +72,6 @@ class _RewindViewerState extends State<RewindViewer>
   @override
   void initState() {
     super.initState();
-    var step = 0;
-    for (final page in widget.pages) {
-      _starts.add(step);
-      step += page.stops;
-    }
-    _steps = step;
     final index = widget.pages.indexWhere(
       (page) => page.key == widget.initialPage,
     );
@@ -139,8 +136,11 @@ class _RewindViewerState extends State<RewindViewer>
                           left: 0,
                           right: 0,
                           height: height,
-                          child: _buildVisiblePages(
-                            _resizeStep?.toDouble() ?? offset / height,
+                          child: RewindPageStack(
+                            pages: widget.pages,
+                            starts: _starts,
+                            scroll: _resizeStep?.toDouble() ?? offset / height,
+                            navigator: this,
                           ),
                         ),
                       ],
@@ -187,8 +187,12 @@ class _RewindViewerState extends State<RewindViewer>
         pageCount: widget.pages.length,
         music: _music,
         shareKey: _shareButton,
+        videoKey: _videoButton,
         onClose: () => Navigator.of(context).maybePop(),
         onShare: card == null ? null : () => _share(page, card, layout),
+        onShareVideo: index < widget.pages.length - 1 || page.hasOwnVideoButton
+            ? null
+            : () => shareVideo(shareButtonRect(context, _videoButton)),
       ),
     );
   }
@@ -215,46 +219,6 @@ class _RewindViewerState extends State<RewindViewer>
       });
     }
     return controller;
-  }
-
-  Widget _buildVisiblePages(double scroll) {
-    final activeStep = scroll.round();
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        for (var i = 0; i < widget.pages.length; i++)
-          if (scroll - _starts[i] > -1 &&
-              scroll - _starts[i] < widget.pages[i].stops)
-            _buildPage(
-              widget.pages[i],
-              scroll - _starts[i],
-              isActive:
-                  activeStep >= _starts[i] &&
-                  activeStep < _starts[i] + widget.pages[i].stops,
-            ),
-      ],
-    );
-  }
-
-  Widget _buildPage(
-    RewindPage page,
-    double position, {
-    required bool isActive,
-  }) {
-    final content = RewindPageScope(
-      page: page,
-      navigator: this,
-      child: Builder(
-        builder: (context) => page.build(context, position, isActive: isActive),
-      ),
-    );
-    final entering = !page.pinned && position < 0;
-    return ClipPath(
-      key: ValueKey(page.key),
-      clipper: _WaveClipper(entering ? 1 + position : 1),
-      clipBehavior: entering ? Clip.antiAlias : Clip.none,
-      child: content,
-    );
   }
 
   void _settle(int step) {
@@ -330,6 +294,27 @@ class _RewindViewerState extends State<RewindViewer>
     _refreshChrome();
   }
 
+  @override
+  void shareVideo(Rect? origin) => unawaited(_shareVideo(origin));
+
+  Future<void> _shareVideo(Rect? origin) async {
+    if (_sharing) return;
+    _sharing = true;
+    try {
+      await shareRewindVideo(
+        context,
+        pages: widget.pages,
+        loadMedia: widget.loadVideoMedia,
+        track: _music.track,
+        origin: origin,
+      );
+    } catch (error, stackTrace) {
+      _logger.warning("Failed to share the Rewind video", error, stackTrace);
+    } finally {
+      _sharing = false;
+    }
+  }
+
   void _refreshChrome() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) setState(() {});
@@ -357,36 +342,4 @@ class _RewindViewerState extends State<RewindViewer>
       _sharing = false;
     }
   }
-}
-
-class _WaveClipper extends CustomClipper<Path> {
-  _WaveClipper(this.progress);
-
-  final double progress;
-
-  @override
-  Path getClip(Size size) {
-    final scale = size.width / RewindStage.size.width;
-    final amplitude = 16 * sin(pi * progress) * scale;
-    final height = size.height;
-    final base =
-        height +
-        amplitude +
-        4 * scale -
-        progress * (height + 2 * amplitude + 8 * scale);
-    final path = Path()..moveTo(-10 * scale, height);
-    for (var x = -10.0; x <= RewindStage.size.width + 10; x += 10) {
-      path.lineTo(
-        x * scale,
-        base +
-            amplitude * sin(x / RewindStage.size.width * 3 * pi + 5 * progress),
-      );
-    }
-    return path
-      ..lineTo((RewindStage.size.width + 10) * scale, height)
-      ..close();
-  }
-
-  @override
-  bool shouldReclip(_WaveClipper oldClipper) => oldClipper.progress != progress;
 }

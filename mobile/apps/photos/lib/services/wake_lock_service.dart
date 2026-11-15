@@ -7,6 +7,7 @@ enum WakeLockFor {
   largeBackupStandbyScreen,
   albumSlideshow,
   mlProgressBanner,
+  rewindVideoExport,
 }
 
 class EnteWakeLockService {

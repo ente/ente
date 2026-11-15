@@ -19,6 +19,7 @@ import "package:photos/ui/rewind/widgets/rewind_layer.dart";
 import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo_frames.dart";
+import "package:photos/ui/rewind/widgets/rewind_spread.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
 import "package:photos/ui/rewind/widgets/rewind_text.dart";
 
@@ -38,6 +39,10 @@ class PhotosCountPage extends RewindPage {
 
   @override
   String get key => pageKey;
+
+  @override
+  Duration? get reelHold =>
+      Duration(milliseconds: photos.length < _minimumPhotos ? 2800 : 4200);
 
   @override
   RewindChrome get chrome => const RewindChrome(
@@ -85,9 +90,11 @@ class PhotosCountPage extends RewindPage {
                 child: RewindEntrance(
                   preset: RewindPreset.cloud,
                   active: isActive,
-                  child: Image.file(
-                    RewindAssets.file(RewindAssets.cloudsBack),
-                    fit: BoxFit.fill,
+                  child: RewindSpread(
+                    child: Image.file(
+                      RewindAssets.file(RewindAssets.cloudsBack),
+                      fit: BoxFit.fill,
+                    ),
                   ),
                 ),
               ),
@@ -136,13 +143,15 @@ class PhotosCountPage extends RewindPage {
                     clipBehavior: Clip.none,
                     fit: StackFit.expand,
                     children: [
-                      Image.file(
-                        RewindAssets.file(RewindAssets.cloudsFront),
-                        fit: BoxFit.fill,
+                      RewindSpread(
+                        child: Image.file(
+                          RewindAssets.file(RewindAssets.cloudsFront),
+                          fit: BoxFit.fill,
+                        ),
                       ),
                       Positioned(
-                        left: 0,
-                        right: 0,
+                        left: -RewindStage.size.width,
+                        right: -RewindStage.size.width,
                         top: 332,
                         height: RewindStage.size.height,
                         child: const ColoredBox(color: _cloud),

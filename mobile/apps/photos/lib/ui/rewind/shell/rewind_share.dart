@@ -104,7 +104,7 @@ class RewindVoice extends StatelessWidget {
     final shared =
         context.dependOnInheritedWidgetOfExactType<_FirstPerson>()?.enabled ??
         false;
-    return builder(shared ? me : you);
+    return builder(shared || RewindPageScope.reelOf(context) ? me : you);
   }
 }
 

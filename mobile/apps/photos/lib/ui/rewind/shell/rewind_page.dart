@@ -35,6 +35,10 @@ abstract class RewindPage {
 
   RewindChrome get chrome => RewindChrome.light;
 
+  Duration? get reelHold => const Duration(milliseconds: 2400);
+
+  bool get hasOwnVideoButton => false;
+
   void resetAnswer() {}
 
   Widget build(BuildContext context, double position, {required bool isActive});

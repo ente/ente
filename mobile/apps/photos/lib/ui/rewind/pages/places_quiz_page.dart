@@ -50,6 +50,9 @@ class PlacesQuizPage extends RewindPage {
   String get key => pageKey;
 
   @override
+  Duration? get reelHold => const Duration(milliseconds: 3000);
+
+  @override
   void resetAnswer() {
     _guess = null;
     _played = false;
@@ -134,7 +137,8 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
   static const _crownMs = _rankMs + 3 * _rankGapMs + 700;
   static const _doneMs = _rankMs + 3 * _rankGapMs + 1300;
 
-  late var _phase = widget.page._played ? _Phase.done : _Phase.pick;
+  late final _reel = RewindPageScope.reelOf(context);
+  late var _phase = !_reel && widget.page._played ? _Phase.done : _Phase.pick;
   late final _replayed = _phase == _Phase.done;
   final _timers = <Timer>[];
   Timer? _invite;
@@ -146,18 +150,26 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
 
   List<_Slot> get _board => widget.page._board;
 
-  int? get _guess => widget.page._guess;
+  int? get _guess => _reel ? null : widget.page._guess;
 
   @override
   void initState() {
     super.initState();
-    _syncInvite();
+    _sync();
   }
 
   @override
   void didUpdateWidget(_PlacesQuiz oldWidget) {
     super.didUpdateWidget(oldWidget);
-    _syncInvite();
+    _sync();
+  }
+
+  void _sync() {
+    if (!_reel) {
+      _syncInvite();
+    } else if (widget.isActive && _phase == _Phase.pick) {
+      _phase = _Phase.reveal;
+    }
   }
 
   @override
@@ -255,6 +267,8 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
                 data: MediaQuery.of(context).copyWith(disableAnimations: true),
                 child: podium,
               )
+            else if (_reel)
+              podium
             else ...[
               RewindStage(children: _boardLayers()),
               RewindWaveReveal(

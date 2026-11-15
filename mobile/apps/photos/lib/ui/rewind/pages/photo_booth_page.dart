@@ -42,6 +42,9 @@ class PhotoBoothPage extends RewindPage {
   String get key => pageKey;
 
   @override
+  Duration? get reelHold => const Duration(milliseconds: 3300);
+
+  @override
   Widget build(
     BuildContext context,
     double position, {
@@ -206,6 +209,7 @@ class _BoothState extends State<_Booth> with TickerProviderStateMixin {
   static const _move = Cubic(0.4, 0, 0.3, 1);
   static const _drop = Cubic(0.2, 0.8, 0.3, 1);
 
+  late final _reel = RewindPageScope.reelOf(context);
   late final _strips = _stripsOf(widget.photos);
   late final _controller = AnimationController(
     vsync: this,
@@ -268,7 +272,7 @@ class _BoothState extends State<_Booth> with TickerProviderStateMixin {
     final stop = _printed(_elapsed).stop;
     if (stop > _lastStop) {
       _lastStop = stop;
-      unawaited(HapticFeedback.lightImpact());
+      if (!_reel) unawaited(HapticFeedback.lightImpact());
     }
   }
 

@@ -53,6 +53,17 @@ class RewindStory {
 
   int resumeIndex(String? key) => indexOf(resumeAt(key));
 
+  Future<void> loadPhotosOf(List<RewindPage> shown) async {
+    final photos = {
+      for (final (i, page) in pages.indexed)
+        if (shown.contains(page)) ..._photos[i],
+    };
+    await Future.wait([
+      for (final photo in photos)
+        loadRewindPhoto(photo).then<void>((_) {}, onError: (Object _) {}),
+    ]);
+  }
+
   void preloadFrom(int index) {
     for (var i = index; i < min(pages.length, index + _lookahead); i++) {
       if (_preloaded.add(_photos[i])) _photos[i].forEach(preloadRewindPhoto);

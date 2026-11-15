@@ -203,6 +203,9 @@ class BadgeRevealPage extends RewindPage {
   String get key => "badge";
 
   @override
+  Duration? get reelHold => const Duration(milliseconds: 3400);
+
+  @override
   Widget build(
     BuildContext context,
     double position, {
