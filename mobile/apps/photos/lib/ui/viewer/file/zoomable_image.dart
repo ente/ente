@@ -4,7 +4,6 @@ import 'dart:math';
 import 'dart:typed_data' show Uint8List;
 
 import 'package:ente_ui/components/loading_widget.dart';
-import 'package:flutter/gestures.dart' show DragStartBehavior;
 import 'package:flutter/material.dart';
 import "package:flutter_image_compress/flutter_image_compress.dart";
 import 'package:logging/logging.dart';
@@ -87,6 +86,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
   bool _interactionLocked = false;
   bool _sheetOpen = false;
   bool _ignoreDrag = false;
+  Offset? _downPosition;
   final _imageFrameReady = ValueNotifier(false);
   final _imageZoomController = ImageZoomController();
   late final StreamSubscription<ResetZoomOfPhotoView> _resetZoomSubscription;
@@ -192,7 +192,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
   void _onVerticalDragStart(DragStartDetails details) {
     final size = MediaQuery.sizeOf(context);
     final insets = MediaQuery.systemGestureInsetsOf(context);
-    final p = details.globalPosition;
+    final p = _downPosition ?? details.globalPosition;
     _ignoreDrag =
         p.dy > size.height - insets.bottom ||
         p.dx < insets.left ||
@@ -273,13 +273,17 @@ class _ZoomableImageState extends State<ZoomableImage> {
             !widget.enableVerticalSwipeActions
         ? null
         : _onVerticalDragUpdate;
-    return GestureDetector(
-      dragStartBehavior: DragStartBehavior.down,
-      onVerticalDragStart: verticalDragCallback == null
+    return Listener(
+      onPointerDown: verticalDragCallback == null
           ? null
-          : _onVerticalDragStart,
-      onVerticalDragUpdate: verticalDragCallback,
-      child: content,
+          : (event) => _downPosition = event.position,
+      child: GestureDetector(
+        onVerticalDragStart: verticalDragCallback == null
+            ? null
+            : _onVerticalDragStart,
+        onVerticalDragUpdate: verticalDragCallback,
+        child: content,
+      ),
     );
   }
 

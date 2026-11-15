@@ -453,7 +453,7 @@ class _BodyState extends State<_Body> {
                             MediaQuery.paddingOf(context).bottom,
                             MediaQuery.systemGestureInsetsOf(context).bottom,
                           ) +
-                          (isFullScreen
+                          (isFullScreen || isGuestView
                               ? 0
                               : _galleryBottomBarHeight),
                       child: const AbsorbPointer(child: SizedBox.expand()),
