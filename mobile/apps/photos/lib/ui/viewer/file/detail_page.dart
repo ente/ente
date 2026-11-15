@@ -436,18 +436,29 @@ class _BodyState extends State<_Body> {
           child: Stack(
             children: [
               _buildPageView(),
-              if (widget.config.mode == DetailPageMode.full)
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  height:
-                      max(
-                        MediaQuery.paddingOf(context).bottom,
-                        MediaQuery.systemGestureInsetsOf(context).bottom,
-                      ) +
-                      _galleryBottomBarHeight,
-                  child: const AbsorbPointer(child: SizedBox.expand()),
+              ValueListenableBuilder<bool>(
+                  valueListenable: InheritedDetailPageState.of(
+                    context,
+                  ).enableFullScreenNotifier,
+                  builder: (context, isFullScreen, _) {
+                    if (widget.config.mode != DetailPageMode.full) {
+                      return const SizedBox.shrink();
+                    }
+                    return Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      height:
+                          max(
+                            MediaQuery.paddingOf(context).bottom,
+                            MediaQuery.systemGestureInsetsOf(context).bottom,
+                          ) +
+                          (isFullScreen
+                              ? 0
+                              : _galleryBottomBarHeight),
+                      child: const AbsorbPointer(child: SizedBox.expand()),
+                    );
+                  },
                 ),
               Positioned(
                 left: 0,
