@@ -224,30 +224,34 @@ class _ClimbState extends State<_Climb> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        RewindShareable(
-          child: RewindElapsed(
-            key: ValueKey(_run),
-            active: widget.active,
-            stillMs: 600000,
-            builder: (context, ms) => _scene(ms),
+    return RewindWarmBuilder<RewindAtlas>(
+      warm: widget.strip,
+      builder: (context, strip) => Stack(
+        fit: StackFit.expand,
+        children: [
+          RewindShareable(
+            enabled: strip != null,
+            child: RewindElapsed(
+              key: ValueKey(_run),
+              active: widget.active,
+              stillMs: 600000,
+              builder: (context, ms) => _scene(ms, strip),
+            ),
           ),
-        ),
-        RewindHint(
-          "DRAG TO ZOOM",
-          key: ValueKey(_run),
-          centerY: 540,
-          active: widget.active,
-          position: widget.position,
-          delayMs: (_zoomStartMs + _zoomMs + 900).round(),
-        ),
-      ],
+          RewindHint(
+            "DRAG TO ZOOM",
+            key: ValueKey(_run),
+            centerY: 540,
+            active: widget.active,
+            position: widget.position,
+            delayMs: (_zoomStartMs + _zoomMs + 900).round(),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _scene(double ms) {
+  Widget _scene(double ms, RewindAtlas? strip) {
     final held = _held;
     final zoom = held ?? _zoomed(ms);
     final stacking = held == null && ms < _zoomStartMs;
@@ -274,22 +278,19 @@ class _ClimbState extends State<_Climb> {
               child: RewindLeave(
                 position: widget.position,
                 centerY: 380,
-                child: RewindWarmBuilder<RewindAtlas>(
-                  warm: widget.strip,
-                  builder: (context, strip) => RewindVoice(
-                    you: _Sight.person.label,
-                    me: "ME",
-                    builder: (person) => CustomPaint(
-                      painter: _Scene(
-                        scale: scale,
-                        metres: metres,
-                        far: _far,
-                        strip: strip,
-                        stackingMs: stacking ? ms : null,
-                        finale: _smooth((zoom - 0.82) / 0.18),
-                        prints: (metres / TowerPage.printMetres).round(),
-                        person: person,
-                      ),
+                child: RewindVoice(
+                  you: _Sight.person.label,
+                  me: "ME",
+                  builder: (person) => CustomPaint(
+                    painter: _Scene(
+                      scale: scale,
+                      metres: metres,
+                      far: _far,
+                      strip: strip,
+                      stackingMs: stacking ? ms : null,
+                      finale: _smooth((zoom - 0.82) / 0.18),
+                      prints: (metres / TowerPage.printMetres).round(),
+                      person: person,
                     ),
                   ),
                 ),

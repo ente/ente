@@ -19,7 +19,7 @@ pub(in crate::rewind) fn globe(
     lookup: &dyn CityLookup,
     ranking: &Ranking<'_>,
 ) -> Option<Globe> {
-    let mut stops = stops(cities);
+    let mut stops = stops(cities, ranking);
     let city_count = count(stops.len());
     let visited = countries(cities, &stops);
     stops.truncate(GLOBE_PLACES);
@@ -114,7 +114,7 @@ mod tests {
     use crate::rewind::chapters::places::tests::Towns;
     use crate::rewind::chapters::tour::tour;
     use crate::rewind::fixtures::{located, photo, request};
-    use crate::rewind::input::RewindFile;
+    use crate::rewind::input::{RewindFile, RewindVisibility};
     use crate::rewind::library::Library;
     use crate::rewind::ranking::Ranking;
 
@@ -244,7 +244,7 @@ mod tests {
         assert_eq!(names, ["Nijmegen", "Amsterdam", "Groningen"]);
         assert_eq!((abroad.city_count, abroad.country_count), (3, 2));
         assert!(ones(&abroad.visited) > ones(&home.visited));
-        let tee = tour(&abroad_cities).unwrap();
+        let tee = tour(&abroad_cities, &Ranking::new(None, None)).unwrap();
         assert_eq!((tee.city_count, tee.country_count), (3, 2));
     }
 
@@ -276,6 +276,46 @@ mod tests {
         assert_eq!(globe.route[..4], [0, 1, 0, 1]);
         assert_eq!(globe.route.last(), Some(&2));
         assert_eq!(globe.places[2].name, "Utrecht");
+    }
+
+    #[test]
+    fn a_city_with_only_archived_photos_stays_off_the_globe_and_the_tee() {
+        let lookup = LowCountries(Towns(vec![
+            ("Amsterdam", 52.37, 4.90),
+            ("Groningen", 53.22, 6.57),
+            ("Utrecht", 52.09, 5.12),
+            ("Rotterdam", 51.92, 4.48),
+        ]));
+        let mut files = visit(1, (52.37, 4.90), "2026-02-01", 9);
+        files.extend(visit(100, (53.22, 6.57), "2026-03-01", 5));
+        files.extend(visit(200, (52.09, 5.12), "2026-04-01", 4));
+        files.extend(
+            visit(300, (51.92, 4.48), "2026-05-01", 6)
+                .into_iter()
+                .map(|mut file| {
+                    file.visibility = RewindVisibility::Archived;
+                    file
+                }),
+        );
+        let archive = request(files);
+        let library = Library::of_year(&archive).unwrap();
+        let cities = cities(&library, &lookup).unwrap();
+        let ranking = Ranking::new(None, None);
+
+        let globe = globe(&cities, &lookup, &ranking).unwrap();
+        let tee = tour(&cities, &ranking).unwrap();
+
+        let pinned: Vec<&str> = globe
+            .places
+            .iter()
+            .map(|place| place.name.as_str())
+            .collect();
+        assert_eq!(pinned, ["Amsterdam", "Groningen", "Utrecht"]);
+        assert_eq!(globe.route, [0, 1, 2]);
+        assert_eq!(globe.city_count, 3);
+        let printed: Vec<&str> = tee.stops.iter().map(|stop| stop.city.as_str()).collect();
+        assert_eq!(printed, ["Amsterdam", "Groningen", "Utrecht"]);
+        assert_eq!(tee.city_count, 3);
     }
 
     #[test]

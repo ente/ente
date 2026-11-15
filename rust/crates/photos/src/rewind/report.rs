@@ -299,7 +299,9 @@ impl RewindReport {
             crowd_favourite: chapters::crowd_favourite(library, &ranking),
             badge: chapters::badge(request, library, ml_people, clip.as_ref()),
             scrapbook: chapters::scrapbook(library, &ranking),
-            tour: located_cities.as_deref().and_then(chapters::tour),
+            tour: located_cities
+                .as_deref()
+                .and_then(|cities| chapters::tour(cities, &ranking)),
             globe: located_cities
                 .as_deref()
                 .zip(cities)

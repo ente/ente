@@ -4,6 +4,7 @@ use super::count;
 use super::places::City;
 use crate::rewind::geo::distance_km;
 use crate::rewind::library::YearFile;
+use crate::rewind::ranking::Ranking;
 use crate::rewind::report::{Tour, TourStop};
 
 const TOUR_MINIMUM_STOPS: usize = 3;
@@ -18,9 +19,15 @@ pub(super) struct Stop<'c, 'l, 'r> {
     pub(super) cities: Vec<usize>,
 }
 
-pub(super) fn stops<'c, 'l, 'r>(cities: &'c [City<'l, 'r>]) -> Vec<Stop<'c, 'l, 'r>> {
+pub(super) fn stops<'c, 'l, 'r>(
+    cities: &'c [City<'l, 'r>],
+    ranking: &Ranking<'_>,
+) -> Vec<Stop<'c, 'l, 'r>> {
     let mut stops: Vec<Stop> = Vec::new();
     for (index, city) in cities.iter().enumerate() {
+        if !city.files.iter().any(|file| ranking.is_showable(file)) {
+            continue;
+        }
         let taken: Vec<&YearFile> = city
             .files
             .iter()
@@ -70,8 +77,8 @@ pub(super) fn countries<'c>(
         .collect()
 }
 
-pub(in crate::rewind) fn tour(cities: &[City<'_, '_>]) -> Option<Tour> {
-    let mut stops = stops(cities);
+pub(in crate::rewind) fn tour(cities: &[City<'_, '_>], ranking: &Ranking<'_>) -> Option<Tour> {
+    let mut stops = stops(cities, ranking);
     if stops.len() < TOUR_MINIMUM_STOPS {
         return None;
     }
@@ -108,6 +115,7 @@ mod tests {
     use crate::rewind::fixtures::{located, photo, request};
     use crate::rewind::input::RewindFile;
     use crate::rewind::library::Library;
+    use crate::rewind::ranking::Ranking;
 
     use super::tour;
 
@@ -143,7 +151,7 @@ mod tests {
         let library = Library::of_year(&tour_request).unwrap();
         let cities = cities(&library, &towns()).unwrap();
 
-        let tour = tour(&cities).unwrap();
+        let tour = tour(&cities, &Ranking::new(None, None)).unwrap();
 
         let stops: Vec<(&str, u32, u32, u32)> = tour
             .stops
@@ -178,7 +186,7 @@ mod tests {
         let library = Library::of_year(&tour_request).unwrap();
         let cities = cities(&library, &towns).unwrap();
 
-        let tour = tour(&cities).unwrap();
+        let tour = tour(&cities, &Ranking::new(None, None)).unwrap();
 
         let stops: Vec<(&str, u32, u32, u32)> = tour
             .stops
@@ -203,6 +211,6 @@ mod tests {
         let short = request(files);
         let library = Library::of_year(&short).unwrap();
         let cities = cities(&library, &towns()).unwrap();
-        assert_eq!(tour(&cities), None);
+        assert_eq!(tour(&cities, &Ranking::new(None, None)), None);
     }
 }
