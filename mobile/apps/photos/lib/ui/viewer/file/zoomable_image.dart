@@ -75,6 +75,7 @@ Future<void> preloadFullImage(BuildContext context, EnteFile file) async {
       file.isRemoteOnlyFile ||
       file.isDeviceTrash ||
       (Platform.isIOS && name.endsWith('.gif')) ||
+      !file.hasDimensions ||
       file.width * file.height > maxPixels ||
       file.width * file.height * 4 >
           PaintingBinding.instance.imageCache.maximumSizeBytes ||
@@ -519,9 +520,14 @@ class _ZoomableImageState extends State<ZoomableImage> {
     }
   }
 
-  // Full-res decode of a large photo takes ~0.5-1s. A screen-sized decode is
-  // near-instant and looks identical until the user zooms in.
   void _loadScreenSizedPreview(File file) {
+    if (_photo.hasDimensions) {
+      final screen = MediaQuery.sizeOf(context) *
+          MediaQuery.devicePixelRatioOf(context);
+      if (_photo.width <= screen.width && _photo.height <= screen.height) {
+        return;
+      }
+    }
     final provider = screenSizedImage(context, file);
     var failed = false;
     precacheImage(
