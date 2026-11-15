@@ -4,6 +4,7 @@ import 'dart:math';
 import 'dart:typed_data' show Uint8List;
 
 import 'package:ente_ui/components/loading_widget.dart';
+import 'package:flutter/gestures.dart' show DragStartBehavior;
 import 'package:flutter/material.dart';
 import "package:flutter_image_compress/flutter_image_compress.dart";
 import 'package:logging/logging.dart';
@@ -273,6 +274,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
         ? null
         : _onVerticalDragUpdate;
     return GestureDetector(
+      dragStartBehavior: DragStartBehavior.down,
       onVerticalDragStart: verticalDragCallback == null
           ? null
           : _onVerticalDragStart,
