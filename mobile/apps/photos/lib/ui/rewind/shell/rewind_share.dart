@@ -120,8 +120,11 @@ class RewindVoice extends StatelessWidget {
   final Widget Function(String text) builder;
 
   @override
-  Widget build(BuildContext context) =>
-      builder(RewindShareable.capturing(context) ? me : you);
+  Widget build(BuildContext context) => builder(
+    RewindShareable.capturing(context) || RewindPageScope.reelOf(context)
+        ? me
+        : you,
+  );
 }
 
 class _Capturing extends InheritedWidget {

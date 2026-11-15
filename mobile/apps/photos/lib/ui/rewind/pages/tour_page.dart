@@ -75,6 +75,10 @@ class TourPage extends RewindPage {
   RewindChrome get chrome => RewindChrome.dark;
 
   @override
+  Duration? get reelHold =>
+      Duration(milliseconds: 2350 + _rowStepMs * tour.stops.length);
+
+  @override
   Widget build(
     BuildContext context,
     double position, {

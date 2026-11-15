@@ -35,11 +35,15 @@ abstract class RewindPage {
 
   RewindChrome get chrome => RewindChrome.light;
 
+  Duration? get reelHold => const Duration(milliseconds: 2400);
+
+  bool get hasOwnVideoButton => false;
+
   void resetAnswer() {}
 
   int get warmAhead => 2;
 
-  void warmUp() {}
+  Future<bool> warmUp() async => true;
 
   void release() {}
 

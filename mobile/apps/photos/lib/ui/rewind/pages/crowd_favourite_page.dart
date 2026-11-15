@@ -28,6 +28,9 @@ class CrowdFavouritePage extends RewindPage {
   String get key => "crowd_favourite";
 
   @override
+  Duration? get reelHold => const Duration(milliseconds: 2700);
+
+  @override
   Widget build(
     BuildContext context,
     double position, {

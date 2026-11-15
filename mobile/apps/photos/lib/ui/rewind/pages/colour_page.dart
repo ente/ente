@@ -28,6 +28,9 @@ class ColourPage extends RewindPage {
   String get key => pageKey;
 
   @override
+  Duration? get reelHold => const Duration(milliseconds: 2000);
+
+  @override
   RewindChrome get chrome => RewindChrome(
     foreground: colour.colour.text,
     wordmark: colour.colour.text == RewindColors.ink

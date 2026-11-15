@@ -7,6 +7,7 @@ import "package:flutter/services.dart";
 import "package:flutter_svg/flutter_svg.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
+import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/story/rewind_face.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
@@ -56,6 +57,10 @@ class PhotoBoothPage extends RewindPage {
   String get key => _billings[place].key;
 
   @override
+  Duration? get reelHold =>
+      place == 0 ? const Duration(milliseconds: 3300) : null;
+
+  @override
   Widget build(
     BuildContext context,
     double position, {
@@ -63,7 +68,7 @@ class PhotoBoothPage extends RewindPage {
   }) {
     final name = (person.name ?? "").toUpperCase();
     final billing = _billings[place];
-    final covered = ModalRoute.of(context)?.isCurrent == false;
+    final covered = RewindPageScope.coveredOf(context);
     return RewindShareable(
       child: Stack(
         fit: StackFit.expand,
@@ -244,6 +249,7 @@ class _BoothState extends State<_Booth> with TickerProviderStateMixin {
   static const _move = Cubic(0.4, 0, 0.3, 1);
   static const _drop = Cubic(0.2, 0.8, 0.3, 1);
 
+  late final _reel = RewindPageScope.reelOf(context);
   late final _strips = _stripsOf(widget.photos);
   late final _controller = AnimationController(
     vsync: this,
@@ -342,7 +348,7 @@ class _BoothState extends State<_Booth> with TickerProviderStateMixin {
     final stop = _printed(_elapsed).stop;
     if (stop > _lastStop) {
       _lastStop = stop;
-      if (_buzzes) unawaited(HapticFeedback.lightImpact());
+      if (_buzzes && !_reel) unawaited(HapticFeedback.lightImpact());
     }
     _resumeHang();
   }

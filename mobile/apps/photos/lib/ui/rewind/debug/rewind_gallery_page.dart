@@ -8,6 +8,7 @@ import "package:photos/ui/rewind/pages/cover_page.dart";
 import "package:photos/ui/rewind/pages/setup_pages.dart";
 import "package:photos/ui/rewind/pages/top_percent_page.dart";
 import "package:photos/ui/rewind/pages/tour_page.dart";
+import "package:photos/ui/rewind/reel/rewind_video_export.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_viewer.dart";
 import "package:photos/ui/rewind/story/rewind_composer.dart";
@@ -82,6 +83,22 @@ class _RewindGalleryPageState extends State<RewindGalleryPage> {
       await Navigator.of(context).push(RewindStoryView(story: ready).route());
     }
 
+    Future<void> openVideo(Future<RewindStory> story) async {
+      final ready = await story;
+      if (!context.mounted) return;
+      try {
+        await shareRewindVideo(
+          context,
+          pages: ready.pages,
+          loadMedia: ready.loadPhotosOf,
+        );
+      } finally {
+        for (final page in ready.pages) {
+          page.release();
+        }
+      }
+    }
+
     return ListView(
       children: [
         ListTile(
@@ -150,6 +167,15 @@ class _RewindGalleryPageState extends State<RewindGalleryPage> {
             subtitle: const Text("Sample report, library photos and people"),
             trailing: const Icon(Icons.chevron_right_outlined),
             onTap: () => openStory(
+              RewindStory.prepare(sample.value, media: RewindMedia.sampled),
+            ),
+          ),
+        for (final sample in rewindSampleReports.entries)
+          ListTile(
+            title: Text("${sample.key} video"),
+            subtitle: const Text("Export the reel and open the share sheet"),
+            trailing: const Icon(Icons.movie_outlined),
+            onTap: () => openVideo(
               RewindStory.prepare(sample.value, media: RewindMedia.sampled),
             ),
           ),
