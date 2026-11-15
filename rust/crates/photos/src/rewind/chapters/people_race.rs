@@ -19,20 +19,7 @@ pub(in crate::rewind) fn people_race(
     people: &People,
     ranking: &Ranking<'_>,
 ) -> Option<PeopleRace> {
-    let me = request.me_person_id.as_deref();
-    let mut racers: Vec<(&Entity, Vec<&YearFile>)> = people
-        .persons()
-        .iter()
-        .filter(|person| Some(person.id.as_str()) != me)
-        .map(|person| (person, people.files_of(person, library)))
-        .collect();
-    racers.sort_by(|(first, first_files), (second, second_files)| {
-        second_files
-            .len()
-            .cmp(&first_files.len())
-            .then_with(|| first_photo(first_files).cmp(&first_photo(second_files)))
-            .then_with(|| first.id.cmp(&second.id))
-    });
+    let mut racers = others_by_photos(request, library, people);
     racers.truncate(RACE_PEOPLE);
     if racers.len() < RACE_PEOPLE
         || racers
@@ -57,6 +44,28 @@ pub(in crate::rewind) fn people_race(
             })
             .collect(),
     })
+}
+
+pub(super) fn others_by_photos<'p, 'l, 'r>(
+    request: &RewindRequest,
+    library: &'l Library<'r>,
+    people: &'p People,
+) -> Vec<(&'p Entity, Vec<&'l YearFile<'r>>)> {
+    let me = request.me_person_id.as_deref();
+    let mut others: Vec<(&Entity, Vec<&YearFile>)> = people
+        .persons()
+        .iter()
+        .filter(|person| Some(person.id.as_str()) != me)
+        .map(|person| (person, people.files_of(person, library)))
+        .collect();
+    others.sort_by(|(first, first_files), (second, second_files)| {
+        second_files
+            .len()
+            .cmp(&first_files.len())
+            .then_with(|| first_photo(first_files).cmp(&first_photo(second_files)))
+            .then_with(|| first.id.cmp(&second.id))
+    });
+    others
 }
 
 fn first_photo(files: &[&YearFile<'_>]) -> Option<i64> {

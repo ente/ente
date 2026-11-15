@@ -1,10 +1,11 @@
 use ente_photos::memories::CityLookup;
 use ente_photos::rewind;
 pub use ente_photos::rewind::{
-    Badge, BusiestDay, ColourOfTheYear, CrowdFavourite, Favourites, LikedPhoto, NewFace, NewFaces,
-    PeopleRace, Places, RacePerson, RewindBadge, RewindCity, RewindColour, RewindFile,
-    RewindFileType, RewindLocation, RewindPerson, RewindReport, RewindRequest, RewindState,
-    RewindStatus, RewindVisibility, Scrapbook, Spots, Totals, WeeklyHabit,
+    Badge, BusiestDay, ColourOfTheYear, CrowdFavourite, Favourites, Globe, GlobePlace, LikedPhoto,
+    Mosaic, NewFace, NewFaces, PeopleRace, Places, RacePerson, RewindBadge, RewindCity,
+    RewindColour, RewindFile, RewindFileType, RewindLocation, RewindPerson, RewindReport,
+    RewindRequest, RewindState, RewindStatus, RewindVisibility, Scrapbook, Spots, Timelapse,
+    TimelapseFrame, Totals, Tour, TourStop, Warp, WeeklyHabit,
 };
 use flutter_rust_bridge::frb;
 
@@ -114,6 +115,11 @@ pub struct _RewindReport {
     pub crowd_favourite: Option<CrowdFavourite>,
     pub badge: Option<Badge>,
     pub scrapbook: Option<Scrapbook>,
+    pub tour: Option<Tour>,
+    pub globe: Option<Globe>,
+    pub mosaic: Option<Mosaic>,
+    pub timelapse: Option<Timelapse>,
+    pub warp: Option<Warp>,
 }
 
 #[frb(mirror(Totals))]
@@ -265,6 +271,77 @@ pub enum _RewindBadge {
 #[frb(mirror(Scrapbook))]
 pub struct _Scrapbook {
     pub file_ids: Vec<i64>,
+}
+
+#[frb(mirror(Tour))]
+pub struct _Tour {
+    pub stops: Vec<TourStop>,
+    pub city_count: u32,
+    pub country_count: u32,
+}
+
+#[frb(mirror(TourStop))]
+pub struct _TourStop {
+    pub city: String,
+    pub country_code: String,
+    pub month: u32,
+    pub day: u32,
+    pub photo_count: u32,
+}
+
+#[frb(mirror(Globe))]
+pub struct _Globe {
+    pub rows: Vec<u32>,
+    pub land: Vec<u8>,
+    pub visited: Vec<u8>,
+    pub places: Vec<GlobePlace>,
+    pub route: Vec<u32>,
+    pub distance_km: u32,
+    pub city_count: u32,
+    pub country_count: u32,
+}
+
+#[frb(mirror(GlobePlace))]
+pub struct _GlobePlace {
+    pub name: String,
+    pub country_code: String,
+    pub latitude_microdegrees: i32,
+    pub longitude_microdegrees: i32,
+    pub photo_count: u32,
+    pub file_ids: Vec<i64>,
+}
+
+#[frb(mirror(Mosaic))]
+pub struct _Mosaic {
+    pub file_ids: Vec<i64>,
+    pub me_person_id: Option<String>,
+    pub me_face_ids: Vec<String>,
+    pub top_person_id: Option<String>,
+    pub top_face_ids: Vec<String>,
+}
+
+#[frb(mirror(Timelapse))]
+pub struct _Timelapse {
+    pub person_id: String,
+    pub is_me: bool,
+    pub photo_count: u32,
+    pub frames: Vec<TimelapseFrame>,
+}
+
+#[frb(mirror(Warp))]
+pub struct _Warp {
+    pub file_ids: Vec<i64>,
+}
+
+#[frb(mirror(TimelapseFrame))]
+pub struct _TimelapseFrame {
+    pub file_id: i64,
+    pub month: u32,
+    pub day: u32,
+    pub left_eye_x: u32,
+    pub left_eye_y: u32,
+    pub right_eye_x: u32,
+    pub right_eye_y: u32,
 }
 
 pub fn compute_rewind(
