@@ -37,7 +37,7 @@ final _videos = Expando<File>();
 Future<void> shareRewindVideo(
   BuildContext context, {
   required List<RewindPage> pages,
-  Future<void> Function(List<RewindPage> pages)? loadMedia,
+  Future<bool> Function(List<RewindPage> pages)? loadMedia,
   MemoryMusicTrack? track,
   Rect? origin,
 }) async {
@@ -88,7 +88,7 @@ class RewindVideoExportPage extends StatefulWidget {
 
   final List<RewindPage> pages;
   final RewindVideoFormat format;
-  final Future<void> Function(List<RewindPage> pages)? loadMedia;
+  final Future<bool> Function(List<RewindPage> pages)? loadMedia;
   final MemoryMusicTrack? track;
 
   Route<Object?> route() => PageRouteBuilder<Object?>(
@@ -113,7 +113,6 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
     with WidgetsBindingObserver {
   static final _logger = Logger("RewindVideoExport");
   static const _filePrefix = "ente-rewind-";
-  static const _mediaTimeout = Duration(seconds: 20);
   static const _musicTimeout = Duration(seconds: 10);
   static const _wrapHold = Duration(milliseconds: 900);
   static const _longestCountedFrame = Duration(milliseconds: 500);
@@ -201,7 +200,7 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
       final reel = await _unlessCancelled(_loadReel());
       final directory = Configuration.instance.getTempDirectory();
       await _deleteOldVideos(directory);
-      sink = await RewindVideoSink.open(
+      sink = RewindVideoSink.open(
         output: File(
           "$directory$_filePrefix${DateTime.now().millisecondsSinceEpoch}.mp4",
         ),
@@ -210,6 +209,7 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
         duration: reel.duration,
         music: music,
       );
+      await _unlessCancelled(sink.ready);
       await _render(reel, sink);
       if (mounted) setState(() => _stage = _Stage.finishing);
       final wrap = Future<void>.delayed(_wrapHold);
@@ -268,24 +268,14 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
     final warmed = await Future.wait([
       for (final page in widget.pages) page.warmUp(),
     ]);
-    if (warmed.contains(false)) {
+    final reel = RewindReel.of(widget.pages);
+    final ready =
+        !warmed.contains(false) &&
+        (await widget.loadMedia?.call(reel.pages) ?? true);
+    if (!ready) {
       throw StateError("Some Rewind cards could not load their photos");
     }
-    final reel = RewindReel.of(widget.pages);
-    await _loadMedia(reel.pages);
     return reel;
-  }
-
-  Future<void> _loadMedia(List<RewindPage> pages) async {
-    try {
-      await widget.loadMedia?.call(pages).timeout(_mediaTimeout);
-    } catch (error, stackTrace) {
-      _logger.warning(
-        "Some Rewind video media did not load",
-        error,
-        stackTrace,
-      );
-    }
   }
 
   Future<void> _render(RewindReel reel, RewindVideoSink sink) async {

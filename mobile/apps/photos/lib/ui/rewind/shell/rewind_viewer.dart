@@ -28,7 +28,7 @@ class RewindViewer extends StatefulWidget {
   final String? initialPage;
   final int initialStop;
   final void Function(RewindPage page, int stop)? onSettled;
-  final Future<void> Function(List<RewindPage> pages)? loadVideoMedia;
+  final Future<bool> Function(List<RewindPage> pages)? loadVideoMedia;
 
   Route<void> route() => PageRouteBuilder<void>(
     transitionDuration: const Duration(milliseconds: 260),

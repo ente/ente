@@ -72,12 +72,12 @@ class _RewindPhotoState extends State<RewindPhoto> {
   }
 }
 
-Future<void> loadRewindPhoto(EnteFile file) async {
+Future<bool> loadRewindPhoto(EnteFile file) async {
   if (file.isRemoteOnlyFile) {
     await getThumbnailFromServer(file);
-  } else {
-    await getThumbnailFromLocal(file, size: thumbnailLargeSize);
+    return true;
   }
+  return await getThumbnailFromLocal(file, size: thumbnailLargeSize) != null;
 }
 
 void preloadRewindPhoto(EnteFile file) => loadRewindPhoto(file).ignore();
