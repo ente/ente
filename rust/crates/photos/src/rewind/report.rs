@@ -29,7 +29,7 @@ pub struct RewindReport {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Totals {
     pub files: u32,
-    pub top_per_mille: Option<u32>,
+    pub top_percent: Option<u32>,
     pub file_ids: Vec<i64>,
 }
 

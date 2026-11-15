@@ -11,7 +11,7 @@ class RewindMusic extends ChangeNotifier {
 
   JustAudioMemoryMusicPlayer? _player;
   MemoryMusicTrack? _track;
-  var _muted = false;
+  var _muted = true;
   var _appActive = true;
   var _disposed = false;
 

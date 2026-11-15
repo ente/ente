@@ -22,6 +22,21 @@ class SelectedFiles extends ChangeNotifier {
     notifyListeners();
   }
 
+  void retainSelection(Iterable<EnteFile> visibleFiles) {
+    if (files.isEmpty) return;
+    final selected = visibleFiles
+        .where((file) => file.uploadedFileID != null && files.contains(file))
+        .toSet();
+    if (selected.length == files.length &&
+        selected.every((file) => identical(files.lookup(file), file))) {
+      return;
+    }
+    files
+      ..clear()
+      ..addAll(selected);
+    notifyListeners();
+  }
+
   bool isFileSelected(EnteFile file) {
     final EnteFile? alreadySelected = files.firstWhereOrNull(
       (element) => _isMatch(file, element),
@@ -37,6 +52,7 @@ class SelectedFiles extends ChangeNotifier {
   }
 
   void clearAll({bool fireEvent = true}) {
+    if (files.isEmpty) return;
     files.clear();
     notifyListeners();
   }

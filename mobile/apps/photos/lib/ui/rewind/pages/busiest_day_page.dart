@@ -77,9 +77,7 @@ class BusiestDayPage extends RewindPage {
     final lower = split
         ? [for (var i = 1; i < photos.length; i += 2) photos[i]]
         : [...photos.skip(1), ...photos.take(1)];
-    final covered =
-        !RewindPageScope.reelOf(context) &&
-        ModalRoute.of(context)?.isCurrent == false;
+    final covered = RewindPageScope.coveredOf(context);
     return RewindShareable(
       child: _HoldToPause(
         builder: (context, held) => Stack(

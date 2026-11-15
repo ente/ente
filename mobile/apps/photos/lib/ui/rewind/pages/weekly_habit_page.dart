@@ -92,9 +92,7 @@ class WeeklyHabitPage extends RewindPage {
                         hour: habit.hour,
                         label: hour,
                         active: isActive,
-                        paused:
-                            !RewindPageScope.reelOf(context) &&
-                            ModalRoute.of(context)?.isCurrent == false,
+                        paused: RewindPageScope.coveredOf(context),
                       ),
                     ),
                   ),

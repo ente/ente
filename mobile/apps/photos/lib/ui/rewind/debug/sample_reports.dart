@@ -32,7 +32,7 @@ List<String> _faceIds(int firstFileId, int count) => [
 ];
 
 final _busyYear = rust.RewindReport(
-  totals: rust.Totals(files: 15059, topPerMille: 10, fileIds: _ids(100000, 24)),
+  totals: rust.Totals(files: 15059, topPercent: 1, fileIds: _ids(100000, 24)),
   colour: rust.ColourOfTheYear(
     colour: rust.RewindColour.cherryBomb,
     percent: 19,
@@ -225,7 +225,7 @@ final _sparseYear = rust.RewindReport(
 );
 
 final _topTenYear = rust.RewindReport(
-  totals: rust.Totals(files: 4916, topPerMille: 100, fileIds: _ids(300000, 24)),
+  totals: rust.Totals(files: 4916, topPercent: 10, fileIds: _ids(300000, 24)),
   colour: rust.ColourOfTheYear(
     colour: rust.RewindColour.lemonDrop,
     percent: 17,

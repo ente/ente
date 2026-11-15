@@ -42,6 +42,9 @@ class RewindPageScope extends InheritedWidget {
   static bool reelOf(BuildContext context) =>
       context.getInheritedWidgetOfExactType<RewindPageScope>()?.reel ?? false;
 
+  static bool coveredOf(BuildContext context) =>
+      !reelOf(context) && ModalRoute.of(context)?.isCurrent == false;
+
   static RewindNavigator? navigatorOf(BuildContext context) =>
       maybeOf(context)?.navigator;
 
