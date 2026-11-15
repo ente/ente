@@ -8,6 +8,7 @@ import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
 import "package:photos/ui/rewind/widgets/rewind_keyframes.dart";
 import "package:photos/ui/rewind/widgets/rewind_layer.dart";
 import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
+import "package:photos/ui/rewind/widgets/rewind_spread.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
 import "package:photos/ui/rewind/widgets/rewind_text.dart";
 
@@ -24,6 +25,9 @@ class TopPercentPage extends RewindPage {
 
   @override
   String get key => pageKey;
+
+  @override
+  Duration? get reelHold => const Duration(milliseconds: 2700);
 
   _Crowd get _crowd => percent == 1 ? _Crowd.top1 : _Crowd.wide;
 
@@ -74,9 +78,11 @@ class TopPercentPage extends RewindPage {
                   RewindLayer(
                     rect: crowd.back,
                     position: position,
-                    child: Image.file(
-                      RewindAssets.file(crowd.backAsset),
-                      fit: BoxFit.fill,
+                    child: RewindSpread(
+                      child: Image.file(
+                        RewindAssets.file(crowd.backAsset),
+                        fit: BoxFit.fill,
+                      ),
                     ),
                   ),
                   for (final (i, (asset, rect)) in heroes.indexed)
@@ -106,13 +112,20 @@ class TopPercentPage extends RewindPage {
                   RewindLayer(
                     rect: crowd.front,
                     position: position,
-                    child: Image.file(
-                      RewindAssets.file(crowd.frontAsset),
-                      fit: BoxFit.fill,
+                    child: RewindSpread(
+                      child: Image.file(
+                        RewindAssets.file(crowd.frontAsset),
+                        fit: BoxFit.fill,
+                      ),
                     ),
                   ),
                   Positioned.fromRect(
-                    rect: Rect.fromLTWH(0, crowd.front.bottom - 193, 390, 206),
+                    rect: Rect.fromLTWH(
+                      -RewindStage.size.width,
+                      crowd.front.bottom - 193,
+                      3 * RewindStage.size.width,
+                      206,
+                    ),
                     child: RewindLeave(
                       position: position,
                       centerY: 440,

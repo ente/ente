@@ -2,6 +2,7 @@ import "dart:async";
 
 import "package:flutter/foundation.dart";
 import "package:logging/logging.dart";
+import "package:photos/models/memories/memory_music_track.dart";
 import "package:photos/services/memories/just_audio_memory_music_player.dart";
 import "package:photos/services/memories/memory_music_service.dart";
 
@@ -9,11 +10,14 @@ class RewindMusic extends ChangeNotifier {
   static final _logger = Logger("RewindMusic");
 
   JustAudioMemoryMusicPlayer? _player;
+  MemoryMusicTrack? _track;
   var _muted = true;
   var _appActive = true;
   var _disposed = false;
 
   bool get muted => _muted;
+
+  MemoryMusicTrack? get track => _track;
 
   Future<void> start() async {
     final player = await _loadFirstTrack();
@@ -34,6 +38,7 @@ class RewindMusic extends ChangeNotifier {
       player = JustAudioMemoryMusicPlayer();
       await player.configureAudioSession();
       await player.load(tracks.first);
+      _track = tracks.first;
       return player;
     } catch (error, stackTrace) {
       _logger.warning("Failed to load Rewind music", error, stackTrace);

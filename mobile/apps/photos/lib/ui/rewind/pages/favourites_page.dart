@@ -6,6 +6,7 @@ import "package:flutter_svg/flutter_svg.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
 import "package:photos/ui/rewind/shell/rewind_page.dart";
+import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
@@ -72,6 +73,9 @@ class FavouritesPage extends RewindPage {
   String get key => "favourites";
 
   @override
+  Duration? get reelHold => const Duration(milliseconds: 3100);
+
+  @override
   Widget build(
     BuildContext context,
     double position, {
@@ -79,7 +83,7 @@ class FavouritesPage extends RewindPage {
   }) {
     final count = favourites.photoCount;
     final title = rewindCounted(count, "FAVOURITE", "FAVOURITES");
-    final covered = ModalRoute.of(context)?.isCurrent == false;
+    final covered = RewindPageScope.coveredOf(context);
     final heart = SvgPicture.file(RewindAssets.file(RewindAssets.pinkHeart));
     return RewindShareable(
       shared: _Collage(photos: photos, count: count, title: title),

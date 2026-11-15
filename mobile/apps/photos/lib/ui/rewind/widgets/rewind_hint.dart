@@ -1,4 +1,5 @@
 import "package:flutter/widgets.dart";
+import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_elapsed.dart";
@@ -51,6 +52,7 @@ class RewindHint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (RewindPageScope.reelOf(context)) return const SizedBox.shrink();
     return IgnorePointer(
       child: RewindElapsed(
         active: active,

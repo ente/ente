@@ -5,6 +5,7 @@ import "package:photos/models/file/file.dart";
 import "package:photos/services/rewind/rewind_edition.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
 import "package:photos/ui/rewind/shell/rewind_page.dart";
+import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
 import "package:photos/ui/rewind/theme/rewind_motion.dart";
@@ -76,7 +77,7 @@ class BusiestDayPage extends RewindPage {
     final lower = split
         ? [for (var i = 1; i < photos.length; i += 2) photos[i]]
         : [...photos.skip(1), ...photos.take(1)];
-    final covered = ModalRoute.of(context)?.isCurrent == false;
+    final covered = RewindPageScope.coveredOf(context);
     return RewindShareable(
       child: _HoldToPause(
         builder: (context, held) => Stack(

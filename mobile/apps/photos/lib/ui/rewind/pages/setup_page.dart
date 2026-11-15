@@ -101,6 +101,9 @@ class SetupPage extends RewindPage {
   final SetupArt art;
 
   @override
+  Duration? get reelHold => null;
+
+  @override
   Widget build(
     BuildContext context,
     double position, {

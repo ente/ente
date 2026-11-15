@@ -6,6 +6,7 @@ import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
+import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
@@ -68,7 +69,17 @@ class TimelapsePage extends RewindPage {
   String get key => pageKey;
 
   @override
-  void warmUp() => _reel.value;
+  Duration? get reelHold => Duration(
+    milliseconds:
+        950 +
+        min(
+          _Flipbook._frameMs * (_reel.loaded?.frames.length ?? frames.length),
+          _Flipbook._reelLapMs,
+        ).round(),
+  );
+
+  @override
+  Future<bool> warmUp() async => await _reel.value != null;
 
   @override
   void release() => _reel.release();
@@ -276,6 +287,7 @@ class _Flipbook extends StatefulWidget {
   static const wall = Rect.fromLTWH(27.5, 330, 335, 212);
   static const _startMs = 900.0;
   static const _frameMs = 150.0;
+  static const _reelLapMs = 2200.0;
   static const _restFrames = 10.0;
   static const _dragPerFrame = 9.0;
   static const _handsOffMs = 2400.0;
@@ -332,11 +344,15 @@ class _FlipbookState extends State<_Flipbook> {
 
   int get _count => widget.reel?.frames.length ?? 0;
 
+  double get _frameMs => RewindPageScope.reelOf(context)
+      ? min(_Flipbook._frameMs, _Flipbook._reelLapMs / max(1, _count))
+      : _Flipbook._frameMs;
+
   double _playing(double ms) {
-    final lap = _count + _Flipbook._restFrames;
+    final lap = _count + _Flipbook._restFrames * _Flipbook._frameMs / _frameMs;
     return min(
       _count - 1.0,
-      max(0.0, (ms - _Flipbook._startMs) / _Flipbook._frameMs + _phase) % lap,
+      max(0.0, (ms - _Flipbook._startMs) / _frameMs + _phase) % lap,
     );
   }
 
@@ -344,7 +360,7 @@ class _FlipbookState extends State<_Flipbook> {
     final held = _held;
     if (held == null) return _playing(ms);
     if (ms - _heldAtMs < _Flipbook._handsOffMs) return held;
-    _phase = held - (ms - _Flipbook._startMs) / _Flipbook._frameMs;
+    _phase = held - (ms - _Flipbook._startMs) / _frameMs;
     _held = null;
     return _playing(ms);
   }
@@ -416,6 +432,7 @@ class _FlipbookState extends State<_Flipbook> {
                     reel: reel,
                     grid: grid,
                     current: reel == null ? -1 : at.round(),
+                    frameMs: _frameMs,
                     ms: ms,
                   ),
                 ),
@@ -527,6 +544,7 @@ class _FacesPainter extends CustomPainter {
     required this.reel,
     required this.grid,
     required this.current,
+    required this.frameMs,
     required this.ms,
   });
 
@@ -535,6 +553,7 @@ class _FacesPainter extends CustomPainter {
   final _Reel? reel;
   final _Grid grid;
   final int current;
+  final double frameMs;
   final double ms;
 
   @override
@@ -562,10 +581,7 @@ class _FacesPainter extends CustomPainter {
   void _tile(Canvas canvas, _Reel reel, int index) {
     final slot = grid.tile(index);
     final arrived = Curves.easeOutBack.transform(
-      ((ms - _Flipbook._startMs - index * _Flipbook._frameMs) / 260).clamp(
-        0.0,
-        1.0,
-      ),
+      ((ms - _Flipbook._startMs - index * frameMs) / 260).clamp(0.0, 1.0),
     );
     final round = Radius.circular(slot.width * 0.2);
     if (arrived <= 0) {
