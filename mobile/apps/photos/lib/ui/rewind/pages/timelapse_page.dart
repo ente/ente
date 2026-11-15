@@ -69,20 +69,17 @@ class TimelapsePage extends RewindPage {
   String get key => pageKey;
 
   @override
-  Duration? get reelHold => switch (_reel.loaded) {
-    null => null,
-    final reel => Duration(
-      milliseconds:
-          950 +
-          min(
-            _Flipbook._frameMs * reel.frames.length,
-            _Flipbook._reelLapMs,
-          ).round(),
-    ),
-  };
+  Duration? get reelHold => Duration(
+    milliseconds:
+        950 +
+        min(
+          _Flipbook._frameMs * (_reel.loaded?.frames.length ?? frames.length),
+          _Flipbook._reelLapMs,
+        ).round(),
+  );
 
   @override
-  Future<void> warmUp() => _reel.value;
+  Future<bool> warmUp() async => await _reel.value != null;
 
   @override
   void release() => _reel.release();

@@ -122,11 +122,10 @@ class TowerPage extends RewindPage {
   String get key => pageKey;
 
   @override
-  Duration? get reelHold =>
-      _strip.loaded == null ? null : const Duration(milliseconds: 4200);
+  Duration? get reelHold => const Duration(milliseconds: 4200);
 
   @override
-  Future<void> warmUp() => _strip.value;
+  Future<bool> warmUp() async => await _strip.value != null;
 
   @override
   void release() => _strip.release();

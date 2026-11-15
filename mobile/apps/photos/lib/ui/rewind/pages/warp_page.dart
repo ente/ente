@@ -102,11 +102,10 @@ class WarpPage extends RewindPage {
   String get key => pageKey;
 
   @override
-  Duration? get reelHold =>
-      _walls.loaded == null ? null : const Duration(milliseconds: 4000);
+  Duration? get reelHold => const Duration(milliseconds: 4000);
 
   @override
-  Future<void> warmUp() => _walls.value;
+  Future<bool> warmUp() async => await _walls.value != null;
 
   @override
   void release() => _walls.release();

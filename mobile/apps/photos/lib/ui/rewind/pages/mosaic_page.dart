@@ -51,11 +51,10 @@ class MosaicPage extends RewindPage {
   int get warmAhead => 8;
 
   @override
-  Duration? get reelHold =>
-      _tiling.loaded == null ? null : const Duration(milliseconds: 3400);
+  Duration? get reelHold => const Duration(milliseconds: 3400);
 
   @override
-  Future<void> warmUp() => _tiling.value;
+  Future<bool> warmUp() async => await _tiling.value != null;
 
   @override
   void release() => _tiling.release();
