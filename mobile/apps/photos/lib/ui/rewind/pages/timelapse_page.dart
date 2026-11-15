@@ -69,16 +69,17 @@ class TimelapsePage extends RewindPage {
   String get key => pageKey;
 
   @override
-  Duration? get reelHold => _reel.loaded == null
-      ? null
-      : Duration(
-          milliseconds:
-              950 +
-              min(
-                _Flipbook._frameMs * frames.length,
-                _Flipbook._reelLapMs,
-              ).round(),
-        );
+  Duration? get reelHold => switch (_reel.loaded) {
+    null => null,
+    final reel => Duration(
+      milliseconds:
+          950 +
+          min(
+            _Flipbook._frameMs * reel.frames.length,
+            _Flipbook._reelLapMs,
+          ).round(),
+    ),
+  };
 
   @override
   Future<void> warmUp() => _reel.value;
@@ -434,6 +435,7 @@ class _FlipbookState extends State<_Flipbook> {
                     reel: reel,
                     grid: grid,
                     current: reel == null ? -1 : at.round(),
+                    frameMs: _frameMs,
                     ms: ms,
                   ),
                 ),
@@ -545,6 +547,7 @@ class _FacesPainter extends CustomPainter {
     required this.reel,
     required this.grid,
     required this.current,
+    required this.frameMs,
     required this.ms,
   });
 
@@ -553,6 +556,7 @@ class _FacesPainter extends CustomPainter {
   final _Reel? reel;
   final _Grid grid;
   final int current;
+  final double frameMs;
   final double ms;
 
   @override
@@ -580,10 +584,7 @@ class _FacesPainter extends CustomPainter {
   void _tile(Canvas canvas, _Reel reel, int index) {
     final slot = grid.tile(index);
     final arrived = Curves.easeOutBack.transform(
-      ((ms - _Flipbook._startMs - index * _Flipbook._frameMs) / 260).clamp(
-        0.0,
-        1.0,
-      ),
+      ((ms - _Flipbook._startMs - index * frameMs) / 260).clamp(0.0, 1.0),
     );
     final round = Radius.circular(slot.width * 0.2);
     if (arrived <= 0) {

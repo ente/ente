@@ -265,17 +265,15 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
   }
 
   Future<RewindReel> _loadReel() async {
-    await _loaded(
-      Future.wait([for (final page in widget.pages) page.warmUp()]),
-    );
+    await Future.wait([for (final page in widget.pages) page.warmUp()]);
     final reel = RewindReel.of(widget.pages);
-    await _loaded(widget.loadMedia?.call(reel.pages));
+    await _loadMedia(reel.pages);
     return reel;
   }
 
-  Future<void> _loaded(Future<void>? media) async {
+  Future<void> _loadMedia(List<RewindPage> pages) async {
     try {
-      await media?.timeout(_mediaTimeout);
+      await widget.loadMedia?.call(pages).timeout(_mediaTimeout);
     } catch (error, stackTrace) {
       _logger.warning(
         "Some Rewind video media did not load",
