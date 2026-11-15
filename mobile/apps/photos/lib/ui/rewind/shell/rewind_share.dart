@@ -12,14 +12,20 @@ import "package:share_plus/share_plus.dart";
 class RewindShareable extends StatefulWidget {
   const RewindShareable({
     required this.child,
+    this.shared,
     this.branded = true,
     this.enabled = true,
     super.key,
   });
 
   final Widget child;
+  final Widget? shared;
   final bool branded;
   final bool enabled;
+
+  static bool capturing(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_Capturing>()?.enabled ??
+      false;
 
   @override
   State<RewindShareable> createState() => _RewindShareableState();
@@ -69,12 +75,15 @@ class _RewindShareableState extends State<RewindShareable> {
   Widget build(BuildContext context) {
     return ValueListenableBuilder(
       valueListenable: _card.stillFrame,
-      builder: (context, stillFrame, child) => Stack(
+      builder: (context, stillFrame, _) => Stack(
         fit: StackFit.passthrough,
         children: [
           RepaintBoundary(
             key: _card.boundary,
-            child: _FirstPerson(enabled: stillFrame != null, child: child!),
+            child: _Capturing(
+              enabled: stillFrame != null,
+              child: _layout(capturing: stillFrame != null),
+            ),
           ),
           if (stillFrame != null)
             Positioned.fill(
@@ -82,7 +91,18 @@ class _RewindShareableState extends State<RewindShareable> {
             ),
         ],
       ),
-      child: widget.child,
+    );
+  }
+
+  Widget _layout({required bool capturing}) {
+    final shared = widget.shared;
+    if (shared == null) return widget.child;
+    return Stack(
+      fit: StackFit.passthrough,
+      children: [
+        Offstage(offstage: capturing, child: widget.child),
+        Offstage(offstage: !capturing, child: shared),
+      ],
     );
   }
 }
@@ -100,22 +120,17 @@ class RewindVoice extends StatelessWidget {
   final Widget Function(String text) builder;
 
   @override
-  Widget build(BuildContext context) {
-    final shared =
-        context.dependOnInheritedWidgetOfExactType<_FirstPerson>()?.enabled ??
-        false;
-    return builder(shared ? me : you);
-  }
+  Widget build(BuildContext context) =>
+      builder(RewindShareable.capturing(context) ? me : you);
 }
 
-class _FirstPerson extends InheritedWidget {
-  const _FirstPerson({required this.enabled, required super.child});
+class _Capturing extends InheritedWidget {
+  const _Capturing({required this.enabled, required super.child});
 
   final bool enabled;
 
   @override
-  bool updateShouldNotify(_FirstPerson oldWidget) =>
-      enabled != oldWidget.enabled;
+  bool updateShouldNotify(_Capturing oldWidget) => enabled != oldWidget.enabled;
 }
 
 Future<void> shareRewindCard(

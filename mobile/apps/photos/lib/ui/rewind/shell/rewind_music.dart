@@ -9,7 +9,7 @@ class RewindMusic extends ChangeNotifier {
   static final _logger = Logger("RewindMusic");
 
   JustAudioMemoryMusicPlayer? _player;
-  var _muted = false;
+  var _muted = true;
   var _appActive = true;
   var _disposed = false;
 

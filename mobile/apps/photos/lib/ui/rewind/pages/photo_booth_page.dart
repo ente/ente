@@ -1,13 +1,12 @@
 import "dart:async";
 import "dart:math";
 
-import "package:flutter/gestures.dart" show DragStartBehavior;
+import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_svg/flutter_svg.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
-import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/story/rewind_face.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
@@ -29,17 +28,32 @@ class PhotoBoothPage extends RewindPage {
     required this.count,
     required this.photos,
     this.focus = const {},
+    this.place = 0,
   });
 
-  static const pageKey = "people_booth";
+  static const _billings = [
+    (key: "people_booth", you: "YOUR NO. 1", me: "MY NO. 1"),
+    (
+      key: "people_booth_2",
+      you: "ALWAYS IN THE PICTURE",
+      me: "ALWAYS IN THE PICTURE",
+    ),
+    (
+      key: "people_booth_3",
+      you: "NEVER OUT OF FRAME",
+      me: "NEVER OUT OF FRAME",
+    ),
+  ];
+  static final pageKeys = [for (final billing in _billings) billing.key];
 
   final RewindFace person;
   final int count;
   final List<EnteFile> photos;
   final Map<EnteFile, Alignment> focus;
+  final int place;
 
   @override
-  String get key => pageKey;
+  String get key => _billings[place].key;
 
   @override
   Widget build(
@@ -48,6 +62,8 @@ class PhotoBoothPage extends RewindPage {
     required bool isActive,
   }) {
     final name = (person.name ?? "").toUpperCase();
+    final billing = _billings[place];
+    final covered = ModalRoute.of(context)?.isCurrent == false;
     return RewindShareable(
       child: Stack(
         fit: StackFit.expand,
@@ -62,20 +78,26 @@ class PhotoBoothPage extends RewindPage {
                 child: RewindLeave(
                   position: position,
                   centerY: 330,
-                  child: _Booth(photos: photos, focus: focus, active: isActive),
+                  child: _Booth(
+                    photos: photos,
+                    focus: focus,
+                    active: isActive && !covered,
+                  ),
                 ),
               ),
               RewindLayer(
                 rect: const Rect.fromLTWH(278, 489, 77.8, 76.1),
                 position: position,
-                child: RewindEntrance(
-                  preset: RewindPreset.bubble,
-                  active: isActive,
-                  delayMs: _Booth.printedMs,
-                  child: Transform.rotate(
-                    angle: -7 * pi / 180,
-                    child: SvgPicture.file(
-                      RewindAssets.file(RewindAssets.heartEyesSmiley),
+                child: IgnorePointer(
+                  child: RewindEntrance(
+                    preset: RewindPreset.bubble,
+                    active: isActive,
+                    delayMs: _Booth.printedMs,
+                    child: Transform.rotate(
+                      angle: -7 * pi / 180,
+                      child: SvgPicture.file(
+                        RewindAssets.file(RewindAssets.heartEyesSmiley),
+                      ),
                     ),
                   ),
                 ),
@@ -88,8 +110,8 @@ class PhotoBoothPage extends RewindPage {
                   active: isActive,
                   delayMs: 150,
                   child: RewindVoice(
-                    you: "YOUR NO. 1",
-                    me: "MY NO. 1",
+                    you: billing.you,
+                    me: billing.me,
                     builder: (text) => Text(
                       text,
                       style: RewindTextStyles.display(20, letterSpacing: 0.3),
@@ -193,16 +215,32 @@ class _Booth extends StatefulWidget {
   State<_Booth> createState() => _BoothState();
 }
 
+typedef _Strip = ({
+  int print,
+  List<EnteFile> photos,
+  double offset,
+  double angle,
+});
+
+typedef _Fall = ({_Strip strip, AnimationController drop});
+
 class _BoothState extends State<_Booth> with TickerProviderStateMixin {
   static const _slot = Rect.fromLTWH(58, 96, 274, 46);
   static const _strip = Rect.fromLTWH(83, 118, 224, 451);
+  static const _grabMargin = 12.0;
+  static const _grabBelowStrip = 23.0;
+  static const _repullGraceMs = 1500;
   static const _stops = [116.0, 226.0, 336.0, 451.0];
   static const _swayMs = 1300;
   static const _nudgeStartMs = _Booth.printedMs + _swayMs + 300;
   static const _nudgeMs = 650;
-  static const _tearDistance = 70.0;
-  static const _tearVelocity = 700.0;
+  static const _hangMs = 5000;
+  static const _tugMs = 480;
+  static const _tugDistance = 34.0;
+  static const _tearDistance = 24.0;
+  static const _tearVelocity = 300.0;
   static const _fallDistance = 900.0;
+  static const _fallDuration = Duration(milliseconds: 520);
   static const _move = Cubic(0.4, 0, 0.3, 1);
   static const _drop = Cubic(0.2, 0.8, 0.3, 1);
 
@@ -211,16 +249,23 @@ class _BoothState extends State<_Booth> with TickerProviderStateMixin {
     vsync: this,
     duration: const Duration(milliseconds: _nudgeStartMs + _nudgeMs),
   );
-  late final _pull = AnimationController.unbounded(vsync: this);
-  late final _fall = AnimationController(
+  late final _wait = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 520),
+    duration: const Duration(milliseconds: _hangMs - _tugMs),
   );
+  late final _tugging = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: _tugMs),
+  );
+  late final _pull = AnimationController.unbounded(vsync: this);
+  final _falls = <_Fall>[];
   var _lastStop = -1;
+  var _buzzes = true;
+  var _prints = 0;
   var _shown = 0;
-  var _torn = 0;
-  var _tornFrom = 0.0;
   var _drag = 0.0;
+  var _holding = false;
+  var _still = false;
 
   static List<List<EnteFile>> _stripsOf(List<EnteFile> photos) {
     const frames = RewindBoothStrip.frames;
@@ -241,35 +286,81 @@ class _BoothState extends State<_Booth> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    _controller.addListener(_buzz);
+    _controller.addListener(_onPrinting);
+    _wait.addStatusListener((status) {
+      if (status.isCompleted) _resumeHang();
+    });
+    _tugging.addStatusListener((status) {
+      if (status.isCompleted) _autoTear();
+    });
     if (widget.active) _controller.forward();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _still = MediaQuery.disableAnimationsOf(context);
   }
 
   @override
   void didUpdateWidget(_Booth oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.active && _controller.isDismissed) _controller.forward();
+    if (!widget.active) {
+      _wait.stop();
+      _tugging.stop();
+      if (_holding) {
+        _holding = false;
+        _snapBack();
+      }
+      return;
+    }
+    if (_controller.isDismissed) _controller.forward();
+    _resumeHang();
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _wait.dispose();
+    _tugging.dispose();
     _pull.dispose();
-    _fall.dispose();
+    for (final fall in _falls) {
+      fall.drop.dispose();
+    }
     super.dispose();
   }
 
   double get _elapsed =>
       _controller.value * _controller.duration!.inMilliseconds;
 
-  bool get _reprints => _strips.length > 1;
+  bool get _autoDrops => _strips.length > 1 && !_still;
 
-  void _buzz() {
+  double get _tug =>
+      _tugDistance * Curves.easeInOutCubic.transform(_tugging.value);
+
+  void _onPrinting() {
     final stop = _printed(_elapsed).stop;
     if (stop > _lastStop) {
       _lastStop = stop;
-      unawaited(HapticFeedback.lightImpact());
+      if (_buzzes) unawaited(HapticFeedback.lightImpact());
     }
+    _resumeHang();
+  }
+
+  void _resumeHang() {
+    if (!widget.active || _holding || !_autoDrops) return;
+    if (_elapsed < _Booth.printedMs) return;
+    final step = _wait.isCompleted ? _tugging : _wait;
+    if (!step.isAnimating && !step.isCompleted) unawaited(step.forward());
+  }
+
+  void _resetHang() {
+    _wait.reset();
+    _tugging.reset();
+  }
+
+  void _autoTear() {
+    if (widget.active && !_holding) _tear(byHand: false);
   }
 
   ({double length, int stop}) _printed(double elapsed) {
@@ -286,9 +377,27 @@ class _BoothState extends State<_Booth> with TickerProviderStateMixin {
     return (length: length, stop: moving >= 1 ? index : index - 1);
   }
 
+  bool _canPullAt(Offset position) {
+    if (!_still && _elapsed < _Booth._printStartMs) return false;
+    final hanging = _hanging(_still ? double.infinity : _elapsed);
+    final reach = _justTorn ? max(0.0, hanging.offset) : hanging.offset;
+    return Rect.fromLTRB(
+      _slot.left - _grabMargin,
+      _slot.top - _grabMargin,
+      _slot.right + _grabMargin,
+      _strip.bottom + reach + _grabBelowStrip,
+    ).contains(position);
+  }
+
+  bool get _justTorn =>
+      _prints > 0 && _elapsed < _Booth._printStartMs + _repullGraceMs;
+
   void _startPull(DragStartDetails details) {
+    _holding = true;
     _pull.stop();
-    _drag = _pull.value;
+    _drag = max(0.0, _pull.value) + _tug;
+    _resetHang();
+    _pull.value = _drag;
   }
 
   void _updatePull(DragUpdateDetails details) {
@@ -297,34 +406,47 @@ class _BoothState extends State<_Booth> with TickerProviderStateMixin {
   }
 
   void _endPull(DragEndDetails details) {
+    _holding = false;
     final velocity = details.primaryVelocity ?? 0;
-    if (_drag < 0) {
-      _pull.value = 0;
-      RewindPageScope.navigatorOf(context)?.next();
-    } else if (_pull.value >= _tearDistance || velocity >= _tearVelocity) {
-      _tear();
+    if (_pull.value >= _tearDistance || velocity >= _tearVelocity) {
+      _tear(byHand: true);
     } else {
-      unawaited(
-        _pull.animateTo(
-          0,
-          duration: const Duration(milliseconds: 380),
-          curve: Curves.easeOutBack,
-        ),
-      );
+      _snapBack();
     }
   }
 
-  void _tear() {
-    unawaited(HapticFeedback.mediumImpact());
+  void _cancelPull() {
+    if (!_holding) return;
+    _holding = false;
+    _snapBack();
+  }
+
+  void _snapBack() {
+    unawaited(
+      _pull.animateTo(
+        0,
+        duration: const Duration(milliseconds: 380),
+        curve: Curves.easeOutBack,
+      ),
+    );
+    _resumeHang();
+  }
+
+  void _tear({required bool byHand}) {
+    if (byHand) unawaited(HapticFeedback.mediumImpact());
+    final elapsed = _still ? double.infinity : _elapsed;
+    final torn = _hanging(elapsed);
     setState(() {
-      _torn = _shown;
-      _tornFrom = _pull.value;
+      _prints++;
       _shown = (_shown + 1) % _strips.length;
     });
+    _pull.stop();
     _pull.value = 0;
+    _resetHang();
     _lastStop = -1;
-    if (MediaQuery.disableAnimationsOf(context)) return;
-    unawaited(_fall.forward(from: 0));
+    _buzzes = byHand;
+    if (_still) return;
+    _letFall(torn);
     unawaited(
       _controller.forward(
         from: _Booth._printStartMs / _controller.duration!.inMilliseconds,
@@ -332,87 +454,154 @@ class _BoothState extends State<_Booth> with TickerProviderStateMixin {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final still = MediaQuery.disableAnimationsOf(context);
-    return AnimatedBuilder(
-      animation: Listenable.merge([_controller, _pull, _fall]),
-      builder: (context, _) {
-        final elapsed = still ? double.infinity : _elapsed;
-        final printing =
-            elapsed > _Booth._printStartMs && elapsed < _Booth.printedMs;
-        final jitter = printing
-            ? ((elapsed / 90).floor().isEven ? 0.7 : -0.7)
-            : 0.0;
-        final drop = _drop.transform(((elapsed - 150) / 520).clamp(0.0, 1.0));
-        final slotOffset = Offset(jitter, still ? 0 : _slotDrop(drop));
-        final slotOpacity = still ? 1.0 : (drop / 0.7).clamp(0.0, 1.0);
-        final length = still ? _strip.height : _printed(elapsed).length;
-        final sway = _sway(elapsed - _Booth.printedMs);
-        final pullable =
-            widget.active && _reprints && elapsed >= _Booth.printedMs;
-        final nudge = _reprints ? _nudge(elapsed - _nudgeStartMs) : 0.0;
-        return Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Positioned.fromRect(
-              rect: _slot.shift(slotOffset),
-              child: Opacity(opacity: slotOpacity, child: const _SlotBody()),
-            ),
-            Positioned(
-              left: _strip.left - 20,
-              top: _strip.top,
-              width: _strip.width + 40,
-              height: RewindStage.size.height * 2,
-              child: ClipRect(
-                child: Transform.translate(
-                  offset: Offset(
-                    20,
-                    length - _strip.height + _pull.value + nudge,
-                  ),
-                  child: Transform.rotate(
-                    angle: sway * pi / 180,
-                    alignment: Alignment.topCenter,
-                    child: Align(
-                      alignment: Alignment.topLeft,
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        dragStartBehavior: DragStartBehavior.down,
-                        onVerticalDragStart: pullable ? _startPull : null,
-                        onVerticalDragUpdate: pullable ? _updatePull : null,
-                        onVerticalDragEnd: pullable ? _endPull : null,
-                        child: _printedStrip(_strips[_shown]),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            if (_fall.isAnimating) _falling(),
-            Positioned.fromRect(
-              rect: Rect.fromLTWH(
-                _slot.left,
-                _slot.top,
-                _slot.width,
-                28,
-              ).shift(slotOffset),
-              child: Opacity(opacity: slotOpacity, child: const _SlotLip()),
-            ),
-          ],
-        );
-      },
+  void _letFall(_Strip strip) {
+    final fall = (
+      strip: strip,
+      drop: AnimationController(vsync: this, duration: _fallDuration),
+    );
+    setState(() => _falls.add(fall));
+    unawaited(
+      fall.drop.forward().then((_) {
+        if (!mounted) return;
+        setState(() => _falls.remove(fall));
+        fall.drop.dispose();
+      }),
     );
   }
 
-  Widget _falling() {
-    final t = Curves.easeIn.transform(_fall.value);
+  _Strip _hanging(double elapsed) => (
+    print: _prints,
+    photos: _strips[_shown],
+    offset: _hangingOffset(elapsed),
+    angle: _sway(elapsed - _Booth.printedMs),
+  );
+
+  double _hangingOffset(double elapsed) {
+    final length = _still ? _strip.height : _printed(elapsed).length;
+    final nudge = _nudge(elapsed - _nudgeStartMs);
+    return length - _strip.height + _pull.value + _tug + nudge;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RawGestureDetector(
+      behavior: HitTestBehavior.translucent,
+      gestures: {
+        _PullDownRecognizer:
+            GestureRecognizerFactoryWithHandlers<_PullDownRecognizer>(
+              () =>
+                  _PullDownRecognizer(canPullAt: _canPullAt, debugOwner: this),
+              (recognizer) => recognizer
+                ..gestureSettings = MediaQuery.maybeGestureSettingsOf(context)
+                ..dragStartBehavior = DragStartBehavior.down
+                ..onStart = widget.active ? _startPull : null
+                ..onUpdate = widget.active ? _updatePull : null
+                ..onEnd = widget.active ? _endPull : null
+                ..onCancel = widget.active ? _cancelPull : null,
+            ),
+      },
+      child: AnimatedBuilder(
+        animation: Listenable.merge([
+          _controller,
+          _tugging,
+          _pull,
+          for (final fall in _falls) fall.drop,
+        ]),
+        builder: (context, _) {
+          final capturing = RewindShareable.capturing(context);
+          final still = _still || capturing;
+          final elapsed = still ? double.infinity : _elapsed;
+          final printing =
+              elapsed > _Booth._printStartMs && elapsed < _Booth.printedMs;
+          final jitter = printing
+              ? ((elapsed / 90).floor().isEven ? 0.7 : -0.7)
+              : 0.0;
+          final drop = _drop.transform(((elapsed - 150) / 520).clamp(0.0, 1.0));
+          final slotOffset = Offset(jitter, still ? 0 : _slotDrop(drop));
+          final slotOpacity = still ? 1.0 : (drop / 0.7).clamp(0.0, 1.0);
+          return Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned.fromRect(
+                rect: _slot.shift(slotOffset),
+                child: Opacity(opacity: slotOpacity, child: const _SlotBody()),
+              ),
+              Positioned(
+                left: 0,
+                top: _strip.top,
+                width: RewindStage.size.width,
+                height: RewindStage.size.height * 2,
+                child: ClipRect(
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: capturing
+                        ? _captured()
+                        : [
+                            _positioned(_hanging(elapsed)),
+                            for (final fall in _falls) _falling(fall),
+                          ],
+                  ),
+                ),
+              ),
+              Positioned.fromRect(
+                rect: Rect.fromLTWH(
+                  _slot.left,
+                  _slot.top,
+                  _slot.width,
+                  28,
+                ).shift(slotOffset),
+                child: Opacity(opacity: slotOpacity, child: const _SlotLip()),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  List<Widget> _captured() {
+    final shown = _falls.lastOrNull?.strip.print ?? _prints;
+    final strips = [
+      (print: _prints, photos: _strips[_shown], offset: 0.0, angle: 0.0),
+      for (final fall in _falls)
+        (
+          print: fall.strip.print,
+          photos: fall.strip.photos,
+          offset: 0.0,
+          angle: 0.0,
+        ),
+    ];
+    return [
+      for (final strip in strips)
+        _positioned(strip, visible: strip.print == shown),
+    ];
+  }
+
+  Widget _falling(_Fall fall) {
+    final t = Curves.easeIn.transform(fall.drop.value);
+    return _positioned((
+      print: fall.strip.print,
+      photos: fall.strip.photos,
+      offset: fall.strip.offset + _fallDistance * t,
+      angle: fall.strip.angle + 7 * t,
+    ));
+  }
+
+  Widget _positioned(_Strip strip, {bool visible = true}) {
     return Positioned(
+      key: ValueKey(strip.print),
       left: _strip.left,
-      top: _strip.top + _tornFrom + _fallDistance * t,
-      child: Transform.rotate(
-        angle: 7 * t * pi / 180,
-        alignment: Alignment.topCenter,
-        child: _printedStrip(_strips[_torn]),
+      top: 0,
+      child: Offstage(
+        offstage: !visible,
+        child: Transform.translate(
+          offset: Offset(0, strip.offset),
+          child: Transform.rotate(
+            angle: strip.angle * pi / 180,
+            alignment: Alignment.topCenter,
+            child: _printedStrip(strip.photos),
+          ),
+        ),
       ),
     );
   }
@@ -455,6 +644,24 @@ class _BoothState extends State<_Booth> with TickerProviderStateMixin {
     if (sinceMs <= 0 || sinceMs >= _nudgeMs) return 0;
     return 16 * sin(pi * Curves.easeOut.transform(sinceMs / _nudgeMs));
   }
+}
+
+class _PullDownRecognizer extends VerticalDragGestureRecognizer {
+  _PullDownRecognizer({required this.canPullAt, super.debugOwner});
+
+  static const _claimDistance = 6.0;
+
+  final bool Function(Offset position) canPullAt;
+
+  @override
+  bool isPointerAllowed(PointerEvent event) =>
+      canPullAt(event.localPosition) && super.isPointerAllowed(event);
+
+  @override
+  bool hasSufficientGlobalDistanceToAccept(
+    PointerDeviceKind pointerDeviceKind,
+    double? deviceTouchSlop,
+  ) => globalDistanceMoved > _claimDistance;
 }
 
 class _SlotBody extends StatelessWidget {

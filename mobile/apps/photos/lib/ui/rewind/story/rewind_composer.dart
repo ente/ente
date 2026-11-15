@@ -70,13 +70,13 @@ RewindChapter _totals(rust.Totals? totals) {
     media,
   ) async {
     if (totals == null) return const [];
-    final top = totals.topPerMille;
+    final top = totals.topPercent;
     return [
       PhotosCountPage(
         totals.files,
         media.glimpses(totals.fileIds, PhotosCountPage.maxPhotos),
       ),
-      if (top != null) TopPercentPage(perMille: top, count: totals.files),
+      if (top != null) TopPercentPage(percent: top, count: totals.files),
     ];
   });
 }
@@ -124,7 +124,7 @@ RewindChapter _spots(rust.Spots? spots) {
 
 RewindChapter _peopleRace(rust.PeopleRace? race) {
   return RewindChapter(
-    [peopleSetupPage.key, PeopleRacePage.pageKey, PhotoBoothPage.pageKey],
+    [peopleSetupPage.key, PeopleRacePage.pageKey, ...PhotoBoothPage.pageKeys],
     (media) async {
       if (race == null ||
           race.people.length < 3 ||
@@ -141,24 +141,32 @@ RewindChapter _peopleRace(rust.PeopleRace? race) {
           if (faces[i] case final face?) (face: face, person: person),
       ];
       if (runners.length < 3) return const [];
-      final winner = runners.first;
-      final booth = media.photos(
-        winner.person.fileIds,
-        _boothStrips * RewindBoothStrip.frames,
-      );
-      final hasBooth = booth.length >= RewindBoothStrip.frames;
       return [
         peopleSetupPage,
         PeopleRacePage(runners),
-        if (hasBooth)
-          PhotoBoothPage(
-            person: winner.face,
-            count: winner.person.photoCount,
-            photos: booth,
-            focus: await media.faceFocus(winner.person.personId, booth),
-          ),
+        for (final (place, runner) in runners.indexed)
+          ?await _photoBooth(media, runner, place),
       ];
     },
+  );
+}
+
+Future<PhotoBoothPage?> _photoBooth(
+  RewindMedia media,
+  RaceRunner runner,
+  int place,
+) async {
+  final photos = media.photos(
+    runner.person.fileIds,
+    _boothStrips * RewindBoothStrip.frames,
+  );
+  if (photos.length < RewindBoothStrip.frames) return null;
+  return PhotoBoothPage(
+    person: runner.face,
+    count: runner.person.photoCount,
+    photos: photos,
+    focus: await media.faceFocus(runner.person.personId, photos),
+    place: place,
   );
 }
 
