@@ -323,7 +323,7 @@ class RewindDecoded {
 
   static Future<ui.Image?> _image(EnteFile photo, RewindBytes bytes) async {
     try {
-      final data = await bytes(photo);
+      final data = await bytes(photo).timeout(RewindAtlas._patience);
       if (data == null) return null;
       final codec = await ui.instantiateImageCodec(data);
       final frame = await codec.getNextFrame();
