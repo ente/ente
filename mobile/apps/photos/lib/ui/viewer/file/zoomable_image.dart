@@ -33,6 +33,10 @@ import 'package:photos/utils/image_util.dart';
 import "package:photos/utils/ram_check_util.dart";
 
 // Same size key as ZoomableImage uses, so a preload is an ImageCache hit there.
+//
+// The caller must not call this for images that already fit the screen — the
+// resize target clamps to the original size anyway, so the decode would only
+// duplicate the full-image one under a different cache key.
 ResizeImage screenSizedImage(BuildContext context, File file) {
   final screen =
       MediaQuery.sizeOf(context) * MediaQuery.devicePixelRatioOf(context);
@@ -56,6 +60,13 @@ Future<void> preloadScreenSizedImage(
       (Platform.isAndroid &&
           (name.endsWith('.heic') || name.endsWith('.heif')))) {
     return;
+  }
+  if (file.hasDimensions) {
+    final screen = MediaQuery.sizeOf(context) *
+        MediaQuery.devicePixelRatioOf(context);
+    if (file.width <= screen.width && file.height <= screen.height) {
+      return;
+    }
   }
   final f = await getFile(file);
   if (f == null || !context.mounted) return;
@@ -521,6 +532,10 @@ class _ZoomableImageState extends State<ZoomableImage> {
   }
 
   void _loadScreenSizedPreview(File file) {
+    final imageCache = PaintingBinding.instance.imageCache;
+    if (imageCache.statusForKey(FileImage(file)).live) {
+      return;
+    }
     if (_photo.hasDimensions) {
       final screen = MediaQuery.sizeOf(context) *
           MediaQuery.devicePixelRatioOf(context);
