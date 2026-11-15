@@ -44,8 +44,6 @@ ResizeImage screenSizedImage(BuildContext context, File file) {
   );
 }
 
-// Remote files are skipped: preloading them would start a download. Android
-// HEIC is skipped: ZoomableImage decodes it with Rust, never via FileImage.
 Future<void> preloadScreenSizedImage(
   BuildContext context,
   EnteFile file,
@@ -54,6 +52,7 @@ Future<void> preloadScreenSizedImage(
   if (file.isVideo ||
       file.isRemoteOnlyFile ||
       file.isDeviceTrash ||
+      (Platform.isIOS && name.endsWith('.gif')) ||
       (Platform.isAndroid &&
           (name.endsWith('.heic') || name.endsWith('.heif')))) {
     return;
@@ -67,9 +66,6 @@ Future<void> preloadScreenSizedImage(
   );
 }
 
-// Decodes the original into ImageCache ahead of the viewer, which asks for the
-// same FileImage. Skips what the viewer decodes differently (see
-// _loadWithPlatformDecoder) and images too large to decode at full size.
 Future<void> preloadFullImage(BuildContext context, EnteFile file) async {
   final name = file.displayName.toLowerCase();
   final maxPixels = hasLessThan5GBRAM
@@ -78,9 +74,8 @@ Future<void> preloadFullImage(BuildContext context, EnteFile file) async {
   if (file.isVideo ||
       file.isRemoteOnlyFile ||
       file.isDeviceTrash ||
+      (Platform.isIOS && name.endsWith('.gif')) ||
       file.width * file.height > maxPixels ||
-      // ImageCache drops any image larger than its limit, so decoding it
-      // ahead of time would be wasted.
       file.width * file.height * 4 >
           PaintingBinding.instance.imageCache.maximumSizeBytes ||
       (Platform.isAndroid &&
@@ -528,8 +523,13 @@ class _ZoomableImageState extends State<ZoomableImage> {
   // near-instant and looks identical until the user zooms in.
   void _loadScreenSizedPreview(File file) {
     final provider = screenSizedImage(context, file);
-    precacheImage(provider, context, onError: (_, _) {}).then((_) {
-      if (mounted && !_loadedFinalImage) {
+    var failed = false;
+    precacheImage(
+      provider,
+      context,
+      onError: (_, _) => failed = true,
+    ).then((_) {
+      if (mounted && !failed && !_loadedFinalImage) {
         setState(() {
           _imageProvider = provider;
           _loadedLargeThumbnail = true;

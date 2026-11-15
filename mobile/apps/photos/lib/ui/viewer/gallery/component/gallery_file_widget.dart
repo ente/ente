@@ -186,7 +186,8 @@ class _GalleryFileWidgetState extends State<GalleryFileWidget> {
       onTapDown:
           disableSelection ||
               widget.limitSelectionToOne ||
-              (widget.selectedFiles?.files.isNotEmpty ?? false)
+              (widget.selectedFiles?.files.isNotEmpty ?? false) ||
+              (GalleryContextState.of(context)?.inSelectionMode ?? false)
           ? null
           : (_) => unawaited(preloadFullImage(context, widget.file)),
       onTap: disableSelection

@@ -664,13 +664,18 @@ class _BodyState extends State<_Body> {
             _renderedFiles[file.tag] = localFile;
             if (_selectedFile?.tag == file.tag) {
               _evaluateQrIfEligible(file);
-              // Start only after the selected image is fully shown, so the
-              // open animation is never competing with these decodes.
-              if (index > 0) {
-                unawaited(preloadScreenSizedImage(context, _files![index - 1]));
-              }
-              if (index < _files!.length - 1) {
-                unawaited(preloadFullImage(context, _files![index + 1]));
+              if (index > 0 || index < _files!.length - 1) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (!context.mounted) return;
+                  if (index > 0) {
+                    unawaited(
+                      preloadScreenSizedImage(context, _files![index - 1]),
+                    );
+                  }
+                  if (index < _files!.length - 1) {
+                    unawaited(preloadFullImage(context, _files![index + 1]));
+                  }
+                });
               }
             }
           },
