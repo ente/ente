@@ -421,7 +421,7 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
       } else {
         final hiddenFileIDs = await SearchService.instance
             .getHiddenFiles()
-            .then((onValue) => onValue.map((e) => e.uploadedFileID));
+            .then((onValue) => onValue.map((e) => e.uploadedFileID).toSet());
         if (fixedFaceID != null) {
           final fileID = getFileIdFromFaceId<int>(fixedFaceID);
           final fileInDB = await FilesDB.instance.getAnyUploadedFile(fileID);
@@ -452,31 +452,44 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
                   widget.clusterID!,
                 );
           final scoredFaceIDs = allFaces.toSet();
-          final assignedFaceIDs =
-              (isPerson
-                      ? await mlDataDB.getFaceIDsForPerson(widget.personId!)
-                      : await mlDataDB.getFaceIDsForCluster(widget.clusterID!))
-                  .where((faceID) => tryParseFaceBoxFromFaceID(faceID) != null)
-                  .toList()
-                ..sort();
-          allFaces.addAll(assignedFaceIDs);
-          for (final faceID in allFaces) {
-            final fileID = getFileIdFromFaceId<int>(faceID);
-            if (hiddenFileIDs.contains(fileID)) {
-              _logger.info(
-                "File with ID $fileID is hidden, skipping it for face crop.",
-              );
-              continue;
+          for (final useAssignedFaces in const [false, true]) {
+            if (useAssignedFaces) {
+              final assignedFaceIDs =
+                  (isPerson
+                          ? await mlDataDB.getFaceIDsForPerson(widget.personId!)
+                          : await mlDataDB.getFaceIDsForCluster(
+                              widget.clusterID!,
+                            ))
+                      .where(
+                        (faceID) => tryParseFaceBoxFromFaceID(faceID) != null,
+                      )
+                      .toList()
+                    ..sort();
+              allFaces
+                ..clear()
+                ..addAll(assignedFaceIDs);
             }
-            fileForFaceCrop = await FilesDB.instance.getAnyUploadedFile(fileID);
-            if (fileForFaceCrop != null) {
-              _logger.info(
-                "Using file ID $fileID for face crop for person: ${widget.personId} or cluster: ${widget.clusterID}",
+            for (final faceID in allFaces) {
+              final fileID = getFileIdFromFaceId<int>(faceID);
+              if (hiddenFileIDs.contains(fileID)) {
+                _logger.info(
+                  "File with ID $fileID is hidden, skipping it for face crop.",
+                );
+                continue;
+              }
+              fileForFaceCrop = await FilesDB.instance.getAnyUploadedFile(
+                fileID,
               );
-              fixedFaceID = faceID;
-              shouldCacheFaceID = scoredFaceIDs.contains(faceID);
-              break;
+              if (fileForFaceCrop != null) {
+                _logger.info(
+                  "Using file ID $fileID for face crop for person: ${widget.personId} or cluster: ${widget.clusterID}",
+                );
+                fixedFaceID = faceID;
+                shouldCacheFaceID = scoredFaceIDs.contains(faceID);
+                break;
+              }
             }
+            if (fileForFaceCrop != null) break;
           }
           if (fileForFaceCrop == null) {
             _logger.severe(
