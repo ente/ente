@@ -1,6 +1,7 @@
 import {
     Alert02Icon,
     AlertCircleIcon,
+    ArrowAllDirectionIcon,
     ArrowDown01Icon,
     ArrowLeft01Icon,
     ArrowRight01Icon,
@@ -120,6 +121,9 @@ export const MoreIcon = forwardRef<SVGSVGElement, SvgIconProps>(
 export const DeleteIcon = forwardRef<SVGSVGElement, SvgIconProps>(
     (props, ref) => <AppIcon {...props} ref={ref} icon={Delete02Icon} />,
 );
+export const PanIcon = forwardRef<SVGSVGElement, SvgIconProps>((props, ref) => (
+    <AppIcon {...props} ref={ref} icon={ArrowAllDirectionIcon} />
+));
 export const ZoomInIcon = forwardRef<SVGSVGElement, SvgIconProps>(
     (props, ref) => <AppIcon {...props} ref={ref} icon={SearchAddIcon} />,
 );

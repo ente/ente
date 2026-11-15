@@ -12,12 +12,18 @@ import {
     getTextBlockLayout,
     TEXT_LINE_HEIGHT,
 } from "@/lib/printLayout";
-import type { BookPage, TextBlock } from "@/lib/types";
+import type { BookPage, PhotoSlot, TextBlock } from "@/lib/types";
 import { bookPageShadow, uiColors } from "@/theme/colors";
-import { Box, Button, Typography } from "@mui/material";
+import { Box, Button, IconButton, Typography } from "@mui/material";
 import React, { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Layer, Stage } from "react-konva";
-import { AddPhotosIcon, DeleteIcon, ZoomInIcon, ZoomOutIcon } from "./icons";
+import {
+    AddPhotosIcon,
+    DeleteIcon,
+    PanIcon,
+    ZoomInIcon,
+    ZoomOutIcon,
+} from "./icons";
 import LayoutPicker from "./LayoutPicker";
 import type { CaptionPosition } from "./PageCanvas";
 import PageCanvas from "./PageCanvas";
@@ -26,42 +32,37 @@ import TextToolbar from "./TextToolbar";
 
 function SlotControls({
     pageId,
-    slotId,
     slot,
     pageWidth,
     pageHeight,
+    onPanStart,
 }: {
     pageId: string;
-    slotId: string;
-    slot: {
-        x: number;
-        y: number;
-        width: number;
-        height: number;
-        cropZoom: number;
-    };
+    slot: PhotoSlot;
     pageWidth: number;
     pageHeight: number;
+    onPanStart: (e: React.MouseEvent, slot: PhotoSlot) => void;
 }) {
     const { updateSlot, removeSlot } = useBook("updateSlot", "removeSlot");
+    const [panning, setPanning] = useState(false);
 
     const handleZoomIn = (e: React.MouseEvent) => {
         e.stopPropagation();
-        updateSlot(pageId, slotId, {
+        updateSlot(pageId, slot.id, {
             cropZoom: Math.min(slot.cropZoom + 0.2, 3),
         });
     };
 
     const handleZoomOut = (e: React.MouseEvent) => {
         e.stopPropagation();
-        updateSlot(pageId, slotId, {
+        updateSlot(pageId, slot.id, {
             cropZoom: Math.max(slot.cropZoom - 0.2, 1),
         });
     };
 
     const handleDelete = (e: React.MouseEvent) => {
         e.stopPropagation();
-        removeSlot(pageId, slotId);
+        removeSlot(pageId, slot.id);
     };
 
     const btnSize = Math.max(22, Math.min(28, pageWidth * 0.06));
@@ -80,6 +81,42 @@ function SlotControls({
                 pointerEvents: "none",
             }}
         >
+            {panning && (
+                <div
+                    onMouseDown={(e) => onPanStart(e, slot)}
+                    style={{
+                        position: "absolute",
+                        inset: 0,
+                        cursor: "move",
+                        pointerEvents: "auto",
+                    }}
+                />
+            )}
+            <IconButton
+                data-page-control
+                aria-label="Pan photo"
+                aria-pressed={panning}
+                title={panning ? "Finish panning" : "Pan photo"}
+                onClick={() => setPanning((active) => !active)}
+                sx={{
+                    position: "absolute",
+                    bottom: padding,
+                    left: padding,
+                    width: btnSize,
+                    height: btnSize,
+                    p: 0,
+                    color: "rgba(255,255,255,0.9)",
+                    bgcolor: panning ? "secondary.main" : "rgba(0,0,0,0.45)",
+                    backdropFilter: "blur(8px)",
+                    "&:hover": {
+                        bgcolor: panning
+                            ? "secondary.main"
+                            : "rgba(0,0,0,0.65)",
+                    },
+                }}
+            >
+                <PanIcon sx={{ fontSize: iconSize }} />
+            </IconButton>
             <div
                 data-page-control
                 onClick={handleDelete}
@@ -223,10 +260,9 @@ interface SpreadPageProps {
         pageId: string,
         slotId: string,
     ) => void;
-    onPhotoDrop: (e: React.DragEvent, pageId: string, slotId: string) => void;
+    onPhotoDrop: (e: React.DragEvent, pageId: string, slotId?: string) => void;
     onPhotoDragEnd: () => void;
     onPageDragOver: (e: React.DragEvent, pageId: string) => void;
-    onPageDrop: (e: React.DragEvent, pageId: string) => void;
     pageDragSource: number | null;
     pageDragTarget: number | null;
     pageDragSourceRef: React.RefObject<number | null>;
@@ -265,7 +301,6 @@ function SpreadPage({
     onPhotoDrop,
     onPhotoDragEnd,
     onPageDragOver,
-    onPageDrop,
     pageDragSource,
     pageDragTarget,
     pageDragSourceRef,
@@ -362,8 +397,68 @@ function SpreadPage({
         else setEditingCaption(null);
     }, [photoCount]);
     const hideLayoutPicker = isBackCover;
-    const hasSelectedSlotOnPage =
-        selectedPageId === page.id && selectedSlotId !== null;
+    const selectedSlot =
+        selectedPageId === page.id
+            ? page.slots.find((slot) => slot.id === selectedSlotId)
+            : undefined;
+
+    const handlePanStart = (e: React.MouseEvent, slot: PhotoSlot) => {
+        if (e.button !== 0 || !slot.photoId) return;
+        const photo = getPhoto(slot.photoId);
+        if (!photo) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const origCropX = slot.cropX;
+        const origCropY = slot.cropY;
+        const sw = (slot.width / 100) * pageWidth;
+        const sh = (slot.height / 100) * pageHeight;
+        const imgAspect = photo.width / photo.height;
+        const slotAspect = sw / sh;
+        let drawW: number, drawH: number;
+        if (imgAspect > slotAspect) {
+            drawH = sh * slot.cropZoom;
+            drawW = drawH * imgAspect;
+        } else {
+            drawW = sw * slot.cropZoom;
+            drawH = drawW / imgAspect;
+        }
+        const slackX = sw - drawW;
+        const slackY = sh - drawH;
+        startDrag(
+            (ev) => {
+                const dx = ev.clientX - startX;
+                const dy = ev.clientY - startY;
+                const newCropX =
+                    slackX !== 0
+                        ? Math.max(0, Math.min(1, origCropX + dx / slackX))
+                        : origCropX;
+                const newCropY =
+                    slackY !== 0
+                        ? Math.max(0, Math.min(1, origCropY + dy / slackY))
+                        : origCropY;
+                return {
+                    ...page,
+                    slots: page.slots.map((current) =>
+                        current.id === slot.id
+                            ? { ...current, cropX: newCropX, cropY: newCropY }
+                            : current,
+                    ),
+                };
+            },
+            (next) => {
+                const cropped = next.slots.find(
+                    (current) => current.id === slot.id,
+                )!;
+                if (cropped.cropX !== origCropX || cropped.cropY !== origCropY)
+                    updateSlot(page.id, slot.id, {
+                        cropX: cropped.cropX,
+                        cropY: cropped.cropY,
+                    });
+            },
+        );
+    };
 
     const pageBlock = (
         <Box>
@@ -461,7 +556,7 @@ function SpreadPage({
                         if (pageDragSourceRef.current !== null) {
                             onPageDropOnPage(e, pageIndex);
                         } else {
-                            onPageDrop(e, page.id);
+                            onPhotoDrop(e, page.id);
                         }
                     }}
                     onDragEnd={() => {
@@ -474,7 +569,7 @@ function SpreadPage({
                         zIndex: 1,
                         cursor: isInterior ? "grab" : "default",
                         pointerEvents:
-                            hasSelectedSlotOnPage &&
+                            selectedSlot &&
                             pageDragSource === null &&
                             !dragSourceInfo
                                 ? "none"
@@ -496,159 +591,44 @@ function SpreadPage({
                             }}
                         />
                     )}
-                {page.slots.map((slot) => {
-                    const isSelected =
-                        selectedPageId === page.id &&
-                        selectedSlotId === slot.id;
-                    const canPanCrop =
-                        isSelected && !!slot.photoId && !dragSourceInfo;
-                    return (
-                        <div
-                            key={slot.id}
-                            tabIndex={-1}
-                            draggable={!!slot.photoId && !isSelected}
-                            onDragStart={(e) => {
-                                if (slot.photoId) {
-                                    e.stopPropagation();
-                                    onPhotoDragStart(
-                                        e,
-                                        page.id,
-                                        slot.id,
-                                        slot.photoId,
-                                    );
-                                } else {
-                                    e.preventDefault();
-                                }
-                            }}
-                            onDragOver={(e) =>
-                                onSlotDragOver(e, page.id, slot.id)
+                {page.slots.map((slot) => (
+                    <div
+                        key={slot.id}
+                        tabIndex={-1}
+                        draggable={!!slot.photoId}
+                        onDragStart={(e) => {
+                            if (slot.photoId) {
+                                e.stopPropagation();
+                                onPhotoDragStart(
+                                    e,
+                                    page.id,
+                                    slot.id,
+                                    slot.photoId,
+                                );
+                            } else {
+                                e.preventDefault();
                             }
-                            onDrop={(e) => onPhotoDrop(e, page.id, slot.id)}
-                            onDragEnd={onPhotoDragEnd}
-                            onClick={(event) => {
-                                event.currentTarget.focus({
-                                    preventScroll: true,
-                                });
-                                onSlotClick(page.id, slot.id);
-                            }}
-                            onMouseDown={
-                                canPanCrop
-                                    ? (e) => {
-                                          if (e.button !== 0) return;
-                                          const photo = getPhoto(slot.photoId!);
-                                          if (!photo) return;
-                                          e.preventDefault();
-                                          e.stopPropagation();
-                                          const startX = e.clientX;
-                                          const startY = e.clientY;
-                                          const origCropX = slot.cropX;
-                                          const origCropY = slot.cropY;
-                                          const sw =
-                                              (slot.width / 100) * pageWidth;
-                                          const sh =
-                                              (slot.height / 100) * pageHeight;
-                                          const imgAspect =
-                                              photo.width / photo.height;
-                                          const slotAspect = sw / sh;
-                                          let drawW: number, drawH: number;
-                                          if (imgAspect > slotAspect) {
-                                              drawH = sh * slot.cropZoom;
-                                              drawW = drawH * imgAspect;
-                                          } else {
-                                              drawW = sw * slot.cropZoom;
-                                              drawH = drawW / imgAspect;
-                                          }
-                                          const slackX = sw - drawW;
-                                          const slackY = sh - drawH;
-                                          startDrag(
-                                              (ev) => {
-                                                  const dx =
-                                                      ev.clientX - startX;
-                                                  const dy =
-                                                      ev.clientY - startY;
-                                                  const newCropX =
-                                                      slackX !== 0
-                                                          ? Math.max(
-                                                                0,
-                                                                Math.min(
-                                                                    1,
-                                                                    origCropX +
-                                                                        dx /
-                                                                            slackX,
-                                                                ),
-                                                            )
-                                                          : origCropX;
-                                                  const newCropY =
-                                                      slackY !== 0
-                                                          ? Math.max(
-                                                                0,
-                                                                Math.min(
-                                                                    1,
-                                                                    origCropY +
-                                                                        dy /
-                                                                            slackY,
-                                                                ),
-                                                            )
-                                                          : origCropY;
-                                                  return {
-                                                      ...page,
-                                                      slots: page.slots.map(
-                                                          (current) =>
-                                                              current.id ===
-                                                              slot.id
-                                                                  ? {
-                                                                        ...current,
-                                                                        cropX: newCropX,
-                                                                        cropY: newCropY,
-                                                                    }
-                                                                  : current,
-                                                      ),
-                                                  };
-                                              },
-                                              (next) => {
-                                                  const cropped =
-                                                      next.slots.find(
-                                                          (current) =>
-                                                              current.id ===
-                                                              slot.id,
-                                                      )!;
-                                                  if (
-                                                      cropped.cropX !==
-                                                          origCropX ||
-                                                      cropped.cropY !==
-                                                          origCropY
-                                                  )
-                                                      updateSlot(
-                                                          page.id,
-                                                          slot.id,
-                                                          {
-                                                              cropX: cropped.cropX,
-                                                              cropY: cropped.cropY,
-                                                          },
-                                                      );
-                                              },
-                                          );
-                                      }
-                                    : undefined
-                            }
-                            style={{
-                                position: "absolute",
-                                left: (slot.x / 100) * pageWidth,
-                                top: (slot.y / 100) * pageHeight,
-                                width: (slot.width / 100) * pageWidth,
-                                height: (slot.height / 100) * pageHeight,
-                                cursor: slot.photoId
-                                    ? isSelected
-                                        ? "move"
-                                        : "grab"
-                                    : "default",
-                                pointerEvents:
-                                    pageDragSource !== null ? "none" : "auto",
-                                zIndex: 2,
-                            }}
-                        />
-                    );
-                })}
+                        }}
+                        onDragOver={(e) => onSlotDragOver(e, page.id, slot.id)}
+                        onDrop={(e) => onPhotoDrop(e, page.id, slot.id)}
+                        onDragEnd={onPhotoDragEnd}
+                        onClick={(event) => {
+                            event.currentTarget.focus({ preventScroll: true });
+                            onSlotClick(page.id, slot.id);
+                        }}
+                        style={{
+                            position: "absolute",
+                            left: (slot.x / 100) * pageWidth,
+                            top: (slot.y / 100) * pageHeight,
+                            width: (slot.width / 100) * pageWidth,
+                            height: (slot.height / 100) * pageHeight,
+                            cursor: slot.photoId ? "grab" : "default",
+                            pointerEvents:
+                                pageDragSource !== null ? "none" : "auto",
+                            zIndex: 2,
+                        }}
+                    />
+                ))}
                 {page.textBlocks.map((block) => {
                     const isTextEditing =
                         selectedPageId === page.id &&
@@ -756,22 +736,18 @@ function SpreadPage({
                         />
                     );
                 })}
-                {page.slots.map((slot) => {
-                    const isSelected =
-                        selectedPageId === page.id &&
-                        selectedSlotId === slot.id;
-                    if (!isSelected || !slot.photoId) return null;
-                    return (
+                {selectedSlot?.photoId &&
+                    !dragSourceInfo &&
+                    pageDragSource === null && (
                         <SlotControls
-                            key={`ctrl-${slot.id}`}
+                            key={`${selectedSlot.id}-${selectedSlot.photoId}`}
                             pageId={page.id}
-                            slotId={slot.id}
-                            slot={slot}
+                            slot={selectedSlot}
                             pageWidth={pageWidth}
                             pageHeight={pageHeight}
+                            onPanStart={handlePanStart}
                         />
-                    );
-                })}
+                    )}
                 {selectedPageId === page.id &&
                     editingTextId &&
                     (() => {

@@ -33,6 +33,7 @@ import BookHeader from "./BookHeader";
 import BookSidebar from "./BookSidebar";
 import EditorActions, { EditorPreviewButton } from "./EditorActions";
 import type { PageInsertPosition } from "./PageMenu";
+import PhotoDropDialog from "./PhotoDropDialog";
 import PrinterBlankPage from "./PrinterBlankPage";
 import SpreadPage, { PICKER_WIDTH } from "./SpreadPage";
 import {
@@ -121,8 +122,15 @@ function EditPage({
     const totalPages = pages.length;
     const frontCoverId = pages[0]?.id;
 
+    const clearSelection = useCallback(() => {
+        setSelectedSlotId(null);
+        setSelectedPageId(null);
+        setSelectedTextId(null);
+        setEditingTextId(null);
+    }, []);
+
     const autoScroll = useAutoScroll(containerRef);
-    const photoDrag = usePhotoDrag(containerRef, autoScroll);
+    const photoDrag = usePhotoDrag(containerRef, autoScroll, clearSelection);
     const pageDrag = usePageDrag();
 
     const spreads = useSpreads(pages.length);
@@ -336,13 +344,6 @@ function EditPage({
         setEditingTextId(textId);
         setSelectedTextId(textId);
         setSelectedPageId(pageId);
-    }, []);
-
-    const clearSelection = useCallback(() => {
-        setSelectedSlotId(null);
-        setSelectedPageId(null);
-        setSelectedTextId(null);
-        setEditingTextId(null);
     }, []);
 
     const handleWorkspaceClick = useCallback(
@@ -669,9 +670,6 @@ function EditPage({
                                                     onPageDragOver={
                                                         photoDrag.handlePageDragOver
                                                     }
-                                                    onPageDrop={
-                                                        photoDrag.handlePageDrop
-                                                    }
                                                     pageDragSource={
                                                         pageDrag.pageDragSource
                                                     }
@@ -778,9 +776,6 @@ function EditPage({
                                                     onPageDragOver={
                                                         photoDrag.handlePageDragOver
                                                     }
-                                                    onPageDrop={
-                                                        photoDrag.handlePageDrop
-                                                    }
                                                     pageDragSource={
                                                         pageDrag.pageDragSource
                                                     }
@@ -866,6 +861,10 @@ function EditPage({
                     }
                 />
             )}
+            <PhotoDropDialog
+                open={photoDrag.awaitingDropChoice}
+                onChoose={photoDrag.resolveDrop}
+            />
             <Backdrop
                 open={pagePhotoImportBusy}
                 invisible={!showPhotoImportProgress}

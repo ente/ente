@@ -8,9 +8,12 @@ export interface DragInfo {
     slotId: string;
 }
 
+export type PhotoDropChoice = "add" | "swap" | "cancel";
+
 export function usePhotoDrag(
     containerRef: React.RefObject<HTMLElement | null>,
     autoScroll: ReturnType<typeof useAutoScroll>,
+    clearSelection: () => void,
 ) {
     const { thumbnailUrls, swapPhotos, movePhotoToPage, book } = useBook(
         "thumbnailUrls",
@@ -28,6 +31,10 @@ export function usePhotoDrag(
     const [dragOverPageId, setDragOverPageId] = useState<string | null>(null);
     const dragOverPageRef = useRef<string | null>(null);
     const dragGhostRef = useRef<HTMLCanvasElement>(null);
+    const [pendingDrop, setPendingDrop] = useState<{
+        source: DragInfo;
+        target: DragInfo;
+    } | null>(null);
 
     const handleDragStart = useCallback(
         (
@@ -104,27 +111,27 @@ export function usePhotoDrag(
         [],
     );
 
-    const handleDrop = useCallback(
-        (e: React.DragEvent, toPageId: string, toSlotId: string) => {
-            e.preventDefault();
-            e.stopPropagation();
-            autoScroll.stop();
-            dragOverRef.current = null;
-            setDragOverInfo(null);
-            dragOverPageRef.current = null;
-            setDragOverPageId(null);
-            const source = dragSourceRef.current;
-            if (source) {
-                const { pageId: fromPageId, slotId: fromSlotId } = source;
-                if (fromPageId !== toPageId || fromSlotId !== toSlotId) {
-                    swapPhotos(fromPageId, fromSlotId, toPageId, toSlotId);
-                }
-                dragSourceRef.current = null;
-                setDragSourceInfo(null);
-            }
+    const placePhoto = useCallback(
+        (source: DragInfo, pageId: string, slotId?: string) => {
+            if (slotId)
+                swapPhotos(source.pageId, source.slotId, pageId, slotId);
+            else movePhotoToPage(source.pageId, source.slotId, pageId);
+            clearSelection();
         },
-        [swapPhotos, autoScroll],
+        [swapPhotos, movePhotoToPage, clearSelection],
     );
+
+    const resolveDrop = (choice: PhotoDropChoice) => {
+        if (pendingDrop && choice !== "cancel") {
+            const { source, target } = pendingDrop;
+            placePhoto(
+                source,
+                target.pageId,
+                choice === "swap" ? target.slotId : undefined,
+            );
+        }
+        setPendingDrop(null);
+    };
 
     const handlePageDragOver = useCallback(
         (e: React.DragEvent, pageId: string) => {
@@ -161,37 +168,6 @@ export function usePhotoDrag(
         [],
     );
 
-    const handlePageDrop = useCallback(
-        (e: React.DragEvent, toPageId: string) => {
-            const pages = pagesRef.current;
-            e.preventDefault();
-            autoScroll.stop();
-            dragOverRef.current = null;
-            setDragOverInfo(null);
-            dragOverPageRef.current = null;
-            setDragOverPageId(null);
-            const source = dragSourceRef.current;
-            if (source) {
-                const { pageId: fromPageId, slotId: fromSlotId } = source;
-                if (fromPageId !== toPageId && toPageId !== pages.at(-1)?.id) {
-                    const toPage = pages.find((p) => p.id === toPageId);
-                    if (
-                        toPage &&
-                        availablePhotoSpaces(
-                            toPage,
-                            pages[0]?.id === toPageId,
-                        ) > 0
-                    ) {
-                        movePhotoToPage(fromPageId, fromSlotId, toPageId);
-                    }
-                }
-                dragSourceRef.current = null;
-                setDragSourceInfo(null);
-            }
-        },
-        [movePhotoToPage, autoScroll],
-    );
-
     const handleDragEnd = useCallback(() => {
         autoScroll.stop();
         dragSourceRef.current = null;
@@ -201,6 +177,41 @@ export function usePhotoDrag(
         setDragOverInfo(null);
         setDragOverPageId(null);
     }, [autoScroll]);
+
+    const handleDrop = useCallback(
+        (e: React.DragEvent, pageId: string, slotId?: string) => {
+            e.preventDefault();
+            const source = dragSourceRef.current;
+            handleDragEnd();
+            if (!source) return;
+            if (
+                source.pageId === pageId &&
+                (!slotId || source.slotId === slotId)
+            )
+                return;
+
+            const pages = pagesRef.current;
+            const page = pages.find((p) => p.id === pageId);
+            if (!page || page === pages.at(-1)) return;
+            const isFrontCover = page === pages[0];
+            const slot = page.slots[0];
+            if (
+                !isFrontCover &&
+                source.pageId !== pageId &&
+                page.slots.length === 1 &&
+                slot?.photoId &&
+                slot.x === 0 &&
+                slot.y === 0 &&
+                slot.width === 100 &&
+                slot.height === 100
+            ) {
+                setPendingDrop({ source, target: { pageId, slotId: slot.id } });
+            } else if (slotId || availablePhotoSpaces(page, isFrontCover) > 0) {
+                placePhoto(source, pageId, slotId);
+            }
+        },
+        [handleDragEnd, placePhoto],
+    );
 
     const handleContainerDragOver = useCallback(
         (e: React.DragEvent) => {
@@ -240,7 +251,8 @@ export function usePhotoDrag(
         handleSlotDragOver,
         handleDrop,
         handlePageDragOver,
-        handlePageDrop,
+        awaitingDropChoice: !!pendingDrop,
+        resolveDrop,
         handleDragEnd,
         handleContainerDragOver,
         dragGhostRef,
