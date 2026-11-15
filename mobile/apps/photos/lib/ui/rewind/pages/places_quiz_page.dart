@@ -35,13 +35,14 @@ typedef PlaceStamp = ({
 });
 
 class PlacesQuizPage extends RewindPage {
-  PlacesQuizPage(this.places, this.stamps)
+  PlacesQuizPage(this.places, this.stamps, {required this.showDistance})
     : _board = _shuffledBoard(stamps.map((stamp) => stamp.city.name));
 
   static const pageKey = "places";
 
   final rust.Places places;
   final List<PlaceStamp> stamps;
+  final bool showDistance;
   final List<_Slot> _board;
   int? _guess;
   var _played = false;
@@ -736,7 +737,7 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
 
   List<Widget> _head(bool revealed) {
     final places = widget.page.places;
-    final travelled = places.distanceKm > 0;
+    final travelled = widget.page.showDistance && places.distanceKm > 0;
     final winner = _stamps.first.city;
     Widget swap(Widget child) => RewindKeyframes(
       active: revealed,

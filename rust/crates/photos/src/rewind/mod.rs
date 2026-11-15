@@ -16,9 +16,10 @@ pub use input::{
     RewindFile, RewindFileType, RewindLocation, RewindPerson, RewindRequest, RewindVisibility,
 };
 pub use report::{
-    Badge, BusiestDay, ColourOfTheYear, CrowdFavourite, Favourites, LikedPhoto, NewFace, NewFaces,
-    PeopleRace, Places, RacePerson, RewindBadge, RewindCity, RewindColour, RewindReport, Scrapbook,
-    Spots, Totals, WeeklyHabit,
+    Badge, BusiestDay, ColourOfTheYear, CrowdFavourite, Favourites, Globe, GlobePlace, LikedPhoto,
+    Mosaic, NewFace, NewFaces, PeopleRace, Places, RacePerson, RewindBadge, RewindCity,
+    RewindColour, RewindReport, Scrapbook, Spots, Timelapse, TimelapseFrame, Totals, Tour,
+    TourStop, Warp, WeeklyHabit,
 };
 pub use state::{REWIND_VERSION, RewindState, RewindStatus};
 
@@ -103,7 +104,10 @@ pub fn encode_rewind_request(request: &RewindRequest) -> Result<Vec<u8>> {
 mod tests {
     use tempfile::TempDir;
 
-    use super::fixtures::{BEFORE_NEW_YEAR, NoCities, daily_photos, located, photo, request_at};
+    use super::fixtures::{
+        BEFORE_NEW_YEAR, NoCities, add_clip, add_faces, daily_photos, face_row, located, person,
+        photo, photos_every, request_at, store,
+    };
     use super::{
         REWIND_VERSION, RewindColour, RewindFile, RewindFileType, RewindRequest, RewindState,
         RewindStatus, compute_rewind, decode_rewind_state, encode_rewind_request,
@@ -501,6 +505,49 @@ mod tests {
         let after_fallback =
             compute_rewind(&after_new_year, Some(&store), None, Some(&fallback)).unwrap();
         assert_eq!(colour(&after_fallback), None);
+    }
+
+    #[test]
+    fn a_timelapse_alone_keeps_the_ml_chapters_once_shown() {
+        let (_directory, store) = store();
+        let faces: Vec<(FaceRow, &str)> = (1..=40)
+            .map(|file_id| {
+                let mut face = face_row(&format!("{file_id}_kid"), 0.9, 0.3);
+                face.detection_json = r#"{"box":{"x":0.3,"y":0.2,"width":0.3,"height":0.3},"landmarks":[{"x":0.4,"y":0.3},{"x":0.5,"y":0.3},{"x":0.45,"y":0.36}]}"#.to_string();
+                (face, "kid")
+            })
+            .collect();
+        add_faces(&store, &faces);
+        store.db().assign_cluster_to_person("kid", "kid").unwrap();
+        for file_id in 1..=40 {
+            add_clip(&store, file_id, &[0.5; CLIP_EMBEDDING_DIMENSIONS]);
+        }
+        let timelapse = |state: &RewindState| match &state.status {
+            RewindStatus::Ready { report } => {
+                assert_eq!(report.colour, None);
+                assert_eq!(report.people_race, None);
+                assert_eq!(report.new_faces, None);
+                report
+                    .timelapse
+                    .as_ref()
+                    .map(|lapse| lapse.person_id.clone())
+            }
+            RewindStatus::WaitingForMl | RewindStatus::NothingToShow => None,
+        };
+        let indexed = photos_every(1, "2026-01-01T12:00:00", 40, 7);
+        let mut small = request_at(BEFORE_NEW_YEAR, indexed.clone());
+        small.people = vec![person("kid")];
+        let ready = compute_rewind(&small, Some(&store), None, None).unwrap();
+        assert_eq!(ready.ml_coverage, Some(1.0));
+        assert_eq!(timelapse(&ready).as_deref(), Some("kid"));
+
+        let mut more = indexed;
+        more.extend(daily_photos(101, "2026-11-01T12:00:00", 40));
+        let mut grown = request_at(BEFORE_NEW_YEAR, more);
+        grown.people = vec![person("kid")];
+        let latched = compute_rewind(&grown, Some(&store), None, Some(&ready)).unwrap();
+        assert_eq!(latched.ml_coverage, Some(0.5));
+        assert_eq!(timelapse(&latched).as_deref(), Some("kid"));
     }
 
     #[test]

@@ -89,6 +89,9 @@ class _RewindViewerState extends State<RewindViewer>
     WidgetsBinding.instance.removeObserver(this);
     _music.dispose();
     _controller?.dispose();
+    for (final page in widget.pages) {
+      page.release();
+    }
     super.dispose();
   }
 
@@ -225,6 +228,9 @@ class _RewindViewerState extends State<RewindViewer>
     if (step == _settledStep) return;
     _settledStep = step;
     final index = _pageIndexAt(step);
+    for (final (ahead, page) in widget.pages.skip(index).indexed) {
+      if (ahead <= page.warmAhead) page.warmUp();
+    }
     widget.onSettled?.call(widget.pages[index], step - _starts[index]);
   }
 
