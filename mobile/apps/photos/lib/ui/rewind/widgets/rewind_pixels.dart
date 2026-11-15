@@ -242,10 +242,13 @@ class RewindWarm<T extends Object> {
   final Future<T?> Function() _load;
   final void Function(T value) _dispose;
   Future<T?>? _pending;
+  T? _loaded;
   var _generation = 0;
   var _holders = 0;
 
   Future<T?> get value => _pending ??= _guarded(_generation);
+
+  T? get loaded => _loaded;
 
   Future<T?> _guarded(int generation) async {
     T? loaded;
@@ -259,7 +262,7 @@ class RewindWarm<T extends Object> {
       return null;
     }
     if (loaded == null) _pending = null;
-    return loaded;
+    return _loaded = loaded;
   }
 
   void hold() => _holders++;
@@ -270,6 +273,7 @@ class RewindWarm<T extends Object> {
     if (_holders > 0) return;
     final pending = _pending;
     _pending = null;
+    _loaded = null;
     _generation++;
     unawaited(
       pending?.then((loaded) {
@@ -297,13 +301,13 @@ class _RewindWarmBuilderState<T extends Object>
     extends State<RewindWarmBuilder<T>> {
   static const _retryAfterSeconds = [3, 6, 12, 24, 48];
 
-  T? _value;
+  late T? _value = widget.warm.loaded;
 
   @override
   void initState() {
     super.initState();
     widget.warm.hold();
-    unawaited(_await());
+    if (_value == null) unawaited(_await());
   }
 
   @override

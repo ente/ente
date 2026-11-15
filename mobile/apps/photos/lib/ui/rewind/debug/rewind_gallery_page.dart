@@ -86,11 +86,17 @@ class _RewindGalleryPageState extends State<RewindGalleryPage> {
     Future<void> openVideo(Future<RewindStory> story) async {
       final ready = await story;
       if (!context.mounted) return;
-      await shareRewindVideo(
-        context,
-        pages: ready.pages,
-        loadMedia: ready.loadPhotosOf,
-      );
+      try {
+        await shareRewindVideo(
+          context,
+          pages: ready.pages,
+          loadMedia: ready.loadPhotosOf,
+        );
+      } finally {
+        for (final page in ready.pages) {
+          page.release();
+        }
+      }
     }
 
     return ListView(

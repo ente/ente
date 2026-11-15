@@ -9,6 +9,7 @@ import "package:flutter/services.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
 import "package:photos/ui/rewind/shell/rewind_page.dart";
+import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
@@ -28,6 +29,7 @@ class GlobePage extends RewindPage {
 
   static const pageKey = "globe";
   static const earthKm = 40075;
+  static const _reelJourneyMs = 2800.0;
 
   static const _space = Color(0xFF1C1B66);
   static const _spaceRay = Color(0xFF222174);
@@ -40,6 +42,11 @@ class GlobePage extends RewindPage {
 
   @override
   String get key => pageKey;
+
+  double get _reelJourney => min(_world.journeyMs, _reelJourneyMs);
+
+  @override
+  Duration? get reelHold => Duration(milliseconds: 1450 + _reelJourney.round());
 
   @override
   Widget build(
@@ -55,7 +62,13 @@ class GlobePage extends RewindPage {
     return Stack(
       fit: StackFit.expand,
       children: [
-        _card(position, isActive, km, lap),
+        _card(
+          position,
+          isActive,
+          km,
+          lap,
+          RewindPageScope.reelOf(context) ? _reelJourney : _world.journeyMs,
+        ),
         RewindHint(
           "DRAG TO SPIN",
           centerY: 540,
@@ -67,7 +80,13 @@ class GlobePage extends RewindPage {
     );
   }
 
-  Widget _card(double position, bool isActive, int km, String body) {
+  Widget _card(
+    double position,
+    bool isActive,
+    int km,
+    String body,
+    double journeyMs,
+  ) {
     return RewindShareable(
       child: Stack(
         fit: StackFit.expand,
@@ -131,7 +150,7 @@ class GlobePage extends RewindPage {
                         value: km,
                         active: isActive,
                         delayMs: _World.introMs.round(),
-                        durationMs: _world.journeyMs.round(),
+                        durationMs: journeyMs.round(),
                         builder: (context, text) => RewindOutlinedText(
                           "$text KM",
                           style: RewindTextStyles.display(
@@ -462,6 +481,8 @@ class _GlobeViewState extends State<_GlobeView>
   static const _nearby = 0.035;
   static const _slots = [-128.0, -98.0, -8.0, 28.0, 62.0, 118.0, 152.0, 188.0];
 
+  late final _reel = RewindPageScope.reelOf(context);
+  late final _reelPace = max(1.0, _world.journeyMs / GlobePage._reelJourneyMs);
   late final Ticker _ticker = createTicker(_onTick);
   var _last = Duration.zero;
   var _ms = 0.0;
@@ -552,14 +573,18 @@ class _GlobeViewState extends State<_GlobeView>
   }
 
   void _onTick(Duration elapsed) {
-    final dt = (elapsed - _last).inMicroseconds / 1000;
+    final travelling = _ms >= _World.introMs && _ms < _world.endMs;
+    final dt =
+        (elapsed - _last).inMicroseconds /
+        1000 *
+        (_reel && travelling ? _reelPace : 1);
     _last = elapsed;
     if (dt <= 0) return;
     _ms += dt;
     final ducky = _ducky(_ms);
     final landed = _landedAt(ducky.leg, flying: ducky.flying);
     if (landed != _landed) {
-      if (landed > _landed) HapticFeedback.selectionClick();
+      if (landed > _landed && !_reel) HapticFeedback.selectionClick();
       _landed = landed;
     }
     if (_ms < _handsOnUntil) {

@@ -102,7 +102,11 @@ class WarpPage extends RewindPage {
   String get key => pageKey;
 
   @override
-  void warmUp() => _walls.value;
+  Duration? get reelHold =>
+      _walls.loaded == null ? null : const Duration(milliseconds: 4000);
+
+  @override
+  Future<void> warmUp() => _walls.value;
 
   @override
   void release() => _walls.release();
@@ -148,14 +152,15 @@ class _Flight extends StatefulWidget {
 }
 
 class _FlightState extends State<_Flight> with TickerProviderStateMixin {
-  static const _flightMs = 9500.0;
-  static const _countdownMs = 900.0;
   static const _printWidth = 228.0;
   static const _coastMs = 380.0;
   static const _seekMs = 170.0;
   static const _wheelSpan = 900.0;
   static const _pickedAt = Offset(195, 356);
 
+  late final _reel = RewindPageScope.reelOf(context);
+  late final _flightMs = _reel ? 2800.0 : 9500.0;
+  late final _countdownMs = _reel ? 300.0 : 900.0;
   late final Ticker _ticker = createTicker(_onTick);
   late final AnimationController _pull = AnimationController(
     vsync: this,
@@ -233,14 +238,14 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
     if (_landed) {
       if (_landedMs == null) {
         _landedMs = _ms;
-        HapticFeedback.mediumImpact();
+        if (!_reel) HapticFeedback.mediumImpact();
       }
     } else {
       _landedMs = null;
     }
     final month = _passing?.month;
     if (month != null && month != _gate) {
-      if (_gate != -1 && !_landed) HapticFeedback.selectionClick();
+      if (_gate != -1 && !_landed && !_reel) HapticFeedback.selectionClick();
       _gate = month;
     }
     setState(() {});
@@ -630,7 +635,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
                   ),
                 ),
               ),
-            if (landed && picked == null && !_still)
+            if (landed && picked == null && !_still && !_reel)
               Positioned(
                 left: 236,
                 top: 500,
@@ -658,7 +663,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   double _hint(bool landed, double sinceLanding) {
     double window(double ms, double from, double to) =>
         ((ms - from) / 260).clamp(0.0, 1.0) * ((to - ms) / 420).clamp(0.0, 1.0);
-    if (_picked != null || _hasPicked) return 0;
+    if (_reel || _picked != null || _hasPicked) return 0;
     if (landed) return window(sinceLanding, 900, 7000);
     return _piloted ? 1 : window(_flownMs, 1500, 6200);
   }

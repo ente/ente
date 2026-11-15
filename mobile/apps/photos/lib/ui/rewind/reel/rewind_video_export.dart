@@ -46,7 +46,7 @@ Future<void> shareRewindVideo(
     if (!context.mounted) return;
     final result = await Navigator.of(context).push(
       RewindVideoExportPage(
-        reel: RewindReel.of(pages),
+        pages: pages,
         loadMedia: loadMedia,
         track: track,
       ).route(),
@@ -79,14 +79,14 @@ bool _isOnTop(BuildContext context) {
 
 class RewindVideoExportPage extends StatefulWidget {
   const RewindVideoExportPage({
-    required this.reel,
+    required this.pages,
     this.format = RewindVideoFormat.fullHd,
     this.loadMedia,
     this.track,
     super.key,
   });
 
-  final RewindReel reel;
+  final List<RewindPage> pages;
   final RewindVideoFormat format;
   final Future<void> Function(List<RewindPage> pages)? loadMedia;
   final MemoryMusicTrack? track;
@@ -138,6 +138,7 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
   final _cancellation = Completer<void>();
   var _rendered = Duration.zero;
   RewindFrameStepper? _stepper;
+  RewindReel? _reel;
   var _stage = _Stage.preparing;
 
   @override
@@ -188,7 +189,6 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
   }
 
   Future<File> _export() async {
-    final reel = widget.reel;
     final previews = VideoPreviewService.instance;
     wakeLockService.updateWakeLock(
       enable: true,
@@ -198,7 +198,7 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
     try {
       await previews.pauseForExport();
       final music = await _unlessCancelled(_music());
-      await _unlessCancelled(_loadMedia());
+      final reel = await _unlessCancelled(_loadReel());
       final directory = Configuration.instance.getTempDirectory();
       await _deleteOldVideos(directory);
       sink = await RewindVideoSink.open(
@@ -264,9 +264,18 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
     return tracks.firstOrNull;
   }
 
-  Future<void> _loadMedia() async {
+  Future<RewindReel> _loadReel() async {
+    await _loaded(
+      Future.wait([for (final page in widget.pages) page.warmUp()]),
+    );
+    final reel = RewindReel.of(widget.pages);
+    await _loaded(widget.loadMedia?.call(reel.pages));
+    return reel;
+  }
+
+  Future<void> _loaded(Future<void>? media) async {
     try {
-      await widget.loadMedia?.call(widget.reel.pages).timeout(_mediaTimeout);
+      await media?.timeout(_mediaTimeout);
     } catch (error, stackTrace) {
       _logger.warning(
         "Some Rewind video media did not load",
@@ -279,7 +288,10 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
   Future<void> _render(RewindReel reel, RewindVideoSink sink) async {
     if (!mounted) throw const _Cancelled();
     _throwIfCancelled();
-    setState(() => _stage = _Stage.rendering);
+    setState(() {
+      _reel = reel;
+      _stage = _Stage.rendering;
+    });
     final stepper = _stepper = RewindFrameStepper(RewindReel.frameRate)
       ..install();
     var written = Future<void>.value();
@@ -344,7 +356,7 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
 
   double _progress(int frame) => switch (_stage) {
     _Stage.preparing => 0,
-    _Stage.rendering => frame / widget.reel.frameCount,
+    _Stage.rendering => frame / _reel!.frameCount,
     _Stage.finishing => 1,
   };
 
@@ -365,10 +377,7 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
       return "Keep Ente open, this won’t take long";
     }
     final left =
-        _rendered.inMilliseconds /
-        frame *
-        (widget.reel.frameCount - frame) /
-        1000;
+        _rendered.inMilliseconds / frame * (_reel!.frameCount - frame) / 1000;
     if (left < 5) return "Almost there";
     return "About ${(left / 5).ceil() * 5} seconds left";
   }
@@ -570,7 +579,7 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
                         child: RepaintBoundary(
                           key: _boundary,
                           child: RewindReelView(
-                            reel: widget.reel,
+                            reel: _reel!,
                             time: _time,
                             pixelRatio: widget.format.pixelRatio,
                           ),

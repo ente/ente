@@ -8,6 +8,7 @@ import "package:flutter/services.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/services/rewind/rewind_edition.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
+import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
@@ -50,7 +51,11 @@ class MosaicPage extends RewindPage {
   int get warmAhead => 8;
 
   @override
-  void warmUp() => _tiling.value;
+  Duration? get reelHold =>
+      _tiling.loaded == null ? null : const Duration(milliseconds: 3400);
+
+  @override
+  Future<void> warmUp() => _tiling.value;
 
   @override
   void release() => _tiling.release();
@@ -65,25 +70,32 @@ class MosaicPage extends RewindPage {
     final who = subject == null
         ? "${RewindEdition.year}"
         : subjectName?.toUpperCase();
+    final pace = _Pace.of(context);
     return RewindWarmBuilder<_Tiling>(
       warm: _tiling,
       builder: (context, tiling) => Stack(
         fit: StackFit.expand,
         children: [
-          _card(position, isActive, who, tiling),
+          _card(position, isActive, who, tiling, pace),
           RewindHint(
             "TAP OR PINCH TO DIVE IN",
             centerY: 500,
             active: isActive && tiling != null,
             position: position,
-            delayMs: _Wall.revealedMs + 300,
+            delayMs: pace.revealedMs + 300,
           ),
         ],
       ),
     );
   }
 
-  Widget _card(double position, bool isActive, String? who, _Tiling? tiling) {
+  Widget _card(
+    double position,
+    bool isActive,
+    String? who,
+    _Tiling? tiling,
+    _Pace pace,
+  ) {
     final count = tiling == null
         ? "GATHERING"
         : "${rewindCount(tiling.atlas.length)} OF";
@@ -115,6 +127,7 @@ class MosaicPage extends RewindPage {
                         child: _Wall(
                           key: ValueKey(tiling),
                           tiling: tiling,
+                          pace: pace,
                           active: isActive,
                         ),
                       ),
@@ -131,7 +144,7 @@ class MosaicPage extends RewindPage {
                     ),
                     position: position,
                     active: isActive && tiling != null,
-                    delayMs: _Wall.revealedMs - 500,
+                    delayMs: pace.revealedMs - 500,
                     top: 600,
                     titleSize: 44,
                   ),
@@ -445,19 +458,37 @@ class _EagerScaleRecognizer extends ScaleGestureRecognizer {
   }
 }
 
+enum _Pace {
+  viewer(holdMs: 1500, pullMs: 3800),
+  reel(holdMs: 400, pullMs: 2300);
+
+  const _Pace({required this.holdMs, required this.pullMs});
+
+  final int holdMs;
+  final int pullMs;
+
+  int get revealedMs => holdMs + pullMs;
+
+  static _Pace of(BuildContext context) =>
+      RewindPageScope.reelOf(context) ? reel : viewer;
+}
+
 class _Wall extends StatefulWidget {
-  const _Wall({required this.tiling, required this.active, super.key});
+  const _Wall({
+    required this.tiling,
+    required this.pace,
+    required this.active,
+    super.key,
+  });
 
   static const frame = Rect.fromLTWH(30, 110, 330, 420);
-  static const _holdMs = 1500.0;
-  static const _pullMs = 3800.0;
-  static const revealedMs = 5300;
   static const _opening = 10.0;
   static const _closest = 14.0;
   static const _dive = 8.0;
   static const _eye = Offset(0.42, 0.4);
 
   final _Tiling? tiling;
+  final _Pace pace;
   final bool active;
 
   @override
@@ -499,7 +530,7 @@ class _WallState extends State<_Wall> with SingleTickerProviderStateMixin {
 
   ({double zoom, Offset focus}) _reveal(double ms) {
     final pulled = Curves.easeInOutCubic.transform(
-      ((ms - _Wall._holdMs) / _Wall._pullMs).clamp(0.0, 1.0),
+      ((ms - widget.pace.holdMs) / widget.pace.pullMs).clamp(0.0, 1.0),
     );
     final zoom = exp(log(_Wall._opening) * (1 - pulled));
     final drift = Offset(0.012 * sin(ms / 900), 0.008 * cos(ms / 700));
@@ -560,7 +591,7 @@ class _WallState extends State<_Wall> with SingleTickerProviderStateMixin {
       active: widget.active && tiling != null,
       stillMs: 60000,
       builder: (context, ms) {
-        final revealed = ms >= _Wall.revealedMs;
+        final revealed = ms >= widget.pace.revealedMs;
         final view = _handsOn ? (zoom: _zoom, focus: _focus) : _reveal(ms);
         return Stack(
           children: [

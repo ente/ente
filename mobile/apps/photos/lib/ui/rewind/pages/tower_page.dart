@@ -6,6 +6,7 @@ import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
+import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
@@ -121,7 +122,11 @@ class TowerPage extends RewindPage {
   String get key => pageKey;
 
   @override
-  void warmUp() => _strip.value;
+  Duration? get reelHold =>
+      _strip.loaded == null ? null : const Duration(milliseconds: 4200);
+
+  @override
+  Future<void> warmUp() => _strip.value;
 
   @override
   void release() => _strip.release();
@@ -208,6 +213,7 @@ class _ClimbState extends State<_Climb> {
   static const _zoomStartMs = 1650.0;
   static const _dragSpan = 300.0;
 
+  late final _reel = RewindPageScope.reelOf(context);
   double? _held;
   var _run = 0;
   var _passed = 0;
@@ -216,7 +222,7 @@ class _ClimbState extends State<_Climb> {
 
   double get _far => _Scene.reach / widget.metres;
 
-  double get _zoomMs => 1800 + 1400 * log(_near / _far) / ln10;
+  double get _zoomMs => _reel ? 1900 : 1800 + 1400 * log(_near / _far) / ln10;
 
   double _zoomed(double ms) => Curves.easeInOutSine.transform(
     ((ms - _zoomStartMs) / _zoomMs).clamp(0.0, 1.0),
@@ -264,7 +270,9 @@ class _ClimbState extends State<_Climb> {
         .where((sight) => sight.metres <= metres)
         .length;
     if (passed != _passed) {
-      if (passed > _passed && !stacking) HapticFeedback.selectionClick();
+      if (passed > _passed && !stacking && !_reel) {
+        HapticFeedback.selectionClick();
+      }
       _passed = passed;
     }
     final shown = stacking ? TowerPage.printMetres * _Scene.landed(ms) : metres;

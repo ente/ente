@@ -43,7 +43,7 @@ abstract class RewindPage {
 
   int get warmAhead => 2;
 
-  void warmUp() {}
+  Future<void> warmUp() async {}
 
   void release() {}
 
