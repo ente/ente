@@ -306,6 +306,7 @@ mod tests {
             id,
             creation_time: id,
             local_time: id,
+            has_capture_clock: false,
             date: LocalDate::of_local_time(id),
             collection_id: None,
             location: Some(location),

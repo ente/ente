@@ -8,6 +8,10 @@
   "@createMyAccount": {
     "description": "Create account button on the Photos onboarding screen"
   },
+  "dragToCompare": "Drag to compare",
+  "@dragToCompare": {
+    "description": "Hint under two photos of the same scene taken years apart, shown behind a draggable divider"
+  },
   "localGalleryPermissionDesc": "Grant permission to access and organise your photos with face recognition, processed entirely on your device.",
   "@localGalleryPermissionDesc": {
     "description": "Photo permission explanation shown during Local Gallery onboarding"
@@ -15,6 +19,54 @@
   "onboardingOrganizeDesc": "Organize your photos and videos. Every memory, in one place.",
   "@onboardingOrganizeDesc": {
     "description": "Description on the Photos onboarding screen"
+  },
+  "oneDayInMonth": "One day in {month}",
+  "@oneDayInMonth": {
+    "description": "Title of a memory telling the story of a single day, when the place is unknown",
+    "placeholders": {
+      "month": {
+        "type": "String",
+        "example": "April 2022"
+      }
+    }
+  },
+  "oneDayInPlace": "One day in {place}",
+  "@oneDayInPlace": {
+    "description": "Title of a memory telling the story of a single day spent in a city",
+    "placeholders": {
+      "place": {
+        "type": "String",
+        "example": "Kyoto"
+      }
+    }
+  },
+  "replay": "Replay",
+  "@replay": {
+    "description": "Button that plays a memory again from the start"
+  },
+  "thatWasYear": "That was {year}",
+  "@thatWasYear": {
+    "description": "Closing line of a memory that flips quickly through the photos of one year",
+    "placeholders": {
+      "year": {
+        "type": "int",
+        "example": "2023"
+      }
+    }
+  },
+  "thenAndNow": "Then and now",
+  "@thenAndNow": {
+    "description": "Title of a memory comparing two photos of the same scene taken years apart"
+  },
+  "thenAndNowInPlace": "{place}, then and now",
+  "@thenAndNowInPlace": {
+    "description": "Title of a memory comparing two photos of the same scene in a city, taken years apart",
+    "placeholders": {
+      "place": {
+        "type": "String",
+        "example": "Zandvoort"
+      }
+    }
   },
   "wallpaper": "Wallpaper",
   "setWallpaper": "Set wallpaper",
@@ -805,6 +857,10 @@
   "couldNotLoadLikes": "Could not load likes",
   "@couldNotLoadLikes": {
     "description": "Error when likes fail to load"
+  },
+  "couldNotLoadPhotos": "Could not load these photos",
+  "@couldNotLoadPhotos": {
+    "description": "Shown in a memory when its photos cannot be loaded, next to a retry button"
   },
   "couldNotLoadSelectedPhoto": "Could not load selected photo",
   "@couldNotLoadSelectedPhoto": {
@@ -5079,6 +5135,16 @@
       "name": {}
     }
   },
+  "yearInAFlash": "{year} in a flash",
+  "@yearInAFlash": {
+    "description": "Title of a memory that flips quickly through the photos of one year",
+    "placeholders": {
+      "year": {
+        "type": "int",
+        "example": "2023"
+      }
+    }
+  },
   "yearly": "Yearly",
   "@yearly": {
     "description": "The text to display for yearly plans",
@@ -5093,6 +5159,16 @@
   "year": "year",
   "@year": {
     "description": "Billing period suffix on the pricing page (/year)"
+  },
+  "yearsApart": "{count, plural, one{{count} year apart} other{{count} years apart}}",
+  "@yearsApart": {
+    "description": "How far apart in time two photos of the same scene were taken",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "6"
+      }
+    }
   },
   "yearShort": "yr",
   "@yearShort": {

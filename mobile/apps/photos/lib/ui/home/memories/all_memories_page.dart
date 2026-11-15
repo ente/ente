@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/pause_video_event.dart";
 import "package:photos/models/memories/smart_memory.dart";
+import "package:photos/models/memories/special_memory.dart";
 import "package:photos/models/memory_lane/memory_lane_models.dart";
 import "package:photos/models/ml/face/person.dart";
 import "package:photos/service_locator.dart";
@@ -11,6 +12,10 @@ import "package:photos/theme/colors.dart";
 import "package:photos/ui/home/memories/full_screen_memory.dart";
 import "package:photos/ui/home/memories/memory_cover_util.dart";
 import "package:photos/ui/home/memories/memory_music_session.dart";
+import "package:photos/ui/home/memories/specials/one_day_overlay.dart";
+import "package:photos/ui/home/memories/specials/special_memory_chrome.dart";
+import "package:photos/ui/home/memories/specials/then_and_now_page.dart";
+import "package:photos/ui/home/memories/specials/year_in_a_flash_page.dart";
 import "package:photos/ui/viewer/people/memory_lane_page_v2.dart";
 
 int getMemoryLaneInsertionIndex(List<SmartMemory> memories) {
@@ -119,7 +124,7 @@ class _AllMemoriesPageState extends State<AllMemoriesPage> {
             ? widget.isMemoryLaneSeen
             : localSettings.hasSeenMemoryLane(memoryLane.personId));
     final memories = widget.allMemories
-        .where((memory) => memory.memories.isNotEmpty)
+        .where((memory) => memory.isShowable)
         .toList();
     final memoryLaneIndex = hasSeenMemoryLane
         ? memories.length
@@ -133,10 +138,34 @@ class _AllMemoriesPageState extends State<AllMemoriesPage> {
         MemoryPageWrapper(
           id: smartMemory.id,
           widget: ({onNextMemory, onPreviousMemory}) {
+            final isActive = index == _activePageIndex;
+            final Widget? specialPage = switch (smartMemory) {
+              ThenAndNowMemory() => ThenAndNowPage(
+                memory: smartMemory,
+                isActive: isActive,
+                onNextMemory: onNextMemory,
+                onPreviousMemory: onPreviousMemory,
+              ),
+              YearInAFlashMemory() => YearInAFlashPage(
+                memory: smartMemory,
+                isActive: isActive,
+                onNextMemory: onNextMemory,
+                onPreviousMemory: onPreviousMemory,
+              ),
+              _ => null,
+            };
+            if (specialPage != null) {
+              return SpecialMemoryScaffold(
+                key: ValueKey(smartMemory.id),
+                child: specialPage,
+              );
+            }
             final initialMemoryIndex =
                 widget.isFromWidgetOrNotifications &&
                     index == _pageController.initialPage
                 ? widget.initialFileIndex
+                : smartMemory is OneDayMemory
+                ? 0
                 : getNextMemoryIndex(smartMemory.memories);
             return FullScreenMemoryDataUpdater(
               key: ValueKey(smartMemory.id),
@@ -146,7 +175,10 @@ class _AllMemoriesPageState extends State<AllMemoriesPage> {
                 smartMemory.title,
                 initialMemoryIndex,
                 memoryID: smartMemory.id,
-                isActive: index == _activePageIndex,
+                isActive: isActive,
+                overlay: smartMemory is OneDayMemory
+                    ? OneDayOverlay(smartMemory)
+                    : null,
                 onMediaInteractionLockChanged: (isLocked) {
                   if (index != _activePageIndex ||
                       _isMediaInteractionLocked == isLocked) {

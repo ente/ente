@@ -262,20 +262,33 @@ pub(super) fn first_distinct_and_spaced<'p>(
     Ok(spaced)
 }
 
-fn ranked<'p>(
-    photos: &[&'p Photo],
-    size: usize,
-    spread: Spread,
-    signals: &dyn PhotoSignals,
-) -> Result<Vec<&'p Photo>> {
-    let candidates: Vec<Candidate> = photos
+pub(super) fn best_first<'p>(photos: &[&'p Photo], signals: &dyn PhotoSignals) -> Vec<&'p Photo> {
+    let mut candidates = scored(photos, signals);
+    sort_by_score(&mut candidates);
+    candidates
+        .into_iter()
+        .map(|candidate| candidate.photo)
+        .collect()
+}
+
+fn scored<'p>(photos: &[&'p Photo], signals: &dyn PhotoSignals) -> Vec<Candidate<'p>> {
+    photos
         .iter()
         .map(|&photo| Candidate {
             photo,
             score: f64::from(signals.face_weight(photo.id)) * FACE_WEIGHT_SCORE
                 + signals.nostalgia(photo.id).map_or(0.0, f64::from),
         })
-        .collect();
+        .collect()
+}
+
+fn ranked<'p>(
+    photos: &[&'p Photo],
+    size: usize,
+    spread: Spread,
+    signals: &dyn PhotoSignals,
+) -> Result<Vec<&'p Photo>> {
+    let candidates = scored(photos, signals);
     match spread {
         Spread::None => ranked_flat(candidates, size, signals),
         Spread::OverTime => ranked_over_time(candidates, size, BucketPick::Best, signals),

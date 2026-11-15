@@ -19,6 +19,7 @@ import "package:photos/events/memory_seen_event.dart";
 import "package:photos/events/ml_consent_changed_event.dart";
 import "package:photos/events/people_changed_event.dart";
 import "package:photos/models/memories/smart_memory.dart";
+import "package:photos/models/memories/special_memory.dart";
 import "package:photos/models/memory_lane/memory_lane_models.dart";
 import "package:photos/models/ml/face/person.dart";
 import "package:photos/service_locator.dart";
@@ -33,6 +34,7 @@ import "package:photos/ui/home/memories/memory_card_constants.dart";
 import "package:photos/ui/home/memories/memory_cover_util.dart";
 import "package:photos/ui/home/memories/memory_lane_card.dart";
 import "package:photos/ui/home/memories/memory_video_prefetcher.dart";
+import "package:photos/ui/home/memories/specials/special_memory_card.dart";
 import "package:photos/ui/rewind/entry/rewind_entry.dart";
 import "package:photos/ui/rewind/entry/rewind_memory_tile.dart";
 
@@ -204,7 +206,8 @@ class _MemoriesStripWidgetState extends State<MemoriesStripWidget> {
   }
 
   List<SmartMemory> _sortMemories(List<SmartMemory> memories) {
-    final indexedMemories = memories.indexed.sorted((a, b) {
+    final showable = memories.where((memory) => memory.isShowable).toList();
+    final indexedMemories = showable.indexed.sorted((a, b) {
       final aIsSeen = a.$2.memories.every((item) => item.isSeen());
       final bIsSeen = b.$2.memories.every((item) => item.isSeen());
       if (aIsSeen == bIsSeen) return a.$1.compareTo(b.$1);
@@ -249,12 +252,20 @@ class _MemoriesStripWidgetState extends State<MemoriesStripWidget> {
       for (final memory in memories)
         (onTap) => MemoryCardWrapper(
           id: memory.id,
-          widget: () => MemoryCardWidget(
-            memory: memory,
-            width: _cardWidth,
-            height: cardHeight,
-            onTap: onTap,
-          ),
+          widget: () => switch (memory) {
+            SpecialMemory() => SpecialMemoryCard(
+              memory: memory,
+              width: _cardWidth,
+              height: cardHeight,
+              onTap: onTap,
+            ),
+            _ => MemoryCardWidget(
+              memory: memory,
+              width: _cardWidth,
+              height: cardHeight,
+              onTap: onTap,
+            ),
+          },
         ),
     ];
     final cards = cardBuilders.indexed

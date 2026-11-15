@@ -66,6 +66,35 @@ pub enum MemoryKind {
     Clip(ClipMemoryType),
     Time(TimeMemory),
     Filler { years_ago: i32 },
+    Special(Special),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Special {
+    pub key: String,
+    pub format: SpecialFormat,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum SpecialFormat {
+    ThenAndNow(ThenAndNow),
+    YearInAFlash { year: i32 },
+    OneDay(OneDay),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ThenAndNow {
+    pub location_name: Option<String>,
+    pub then_year: i32,
+    pub now_year: i32,
+    pub years_apart: i32,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct OneDay {
+    pub date: LocalDate,
+    pub location: Coordinate,
+    pub location_name: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

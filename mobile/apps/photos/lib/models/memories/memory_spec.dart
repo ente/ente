@@ -1,3 +1,4 @@
+import "package:logging/logging.dart";
 import "package:photos/models/location/location.dart";
 import "package:photos/models/memories/clip_memory.dart";
 import "package:photos/models/memories/filler_memory.dart";
@@ -5,6 +6,7 @@ import "package:photos/models/memories/memory.dart";
 import "package:photos/models/memories/on_this_day_memory.dart";
 import "package:photos/models/memories/people_memory.dart";
 import "package:photos/models/memories/smart_memory.dart";
+import "package:photos/models/memories/special_memory.dart";
 import "package:photos/models/memories/time_memory.dart";
 import "package:photos/models/memories/trip_memory.dart";
 
@@ -62,6 +64,9 @@ abstract class MemorySpec {
     if (memory is OnThisDayMemory) {
       return const OnThisDayMemorySpec();
     }
+    if (memory is SpecialMemory) {
+      return SpecialMemorySpec(memory.toJson());
+    }
     return null;
   }
 
@@ -81,6 +86,10 @@ abstract class MemorySpec {
         return FillerMemorySpec.fromJson(json);
       case OnThisDayMemorySpec.kindValue:
         return const OnThisDayMemorySpec();
+      case SpecialMemorySpec.kindValue:
+        return SpecialMemorySpec(
+          Map<String, dynamic>.from(json)..remove("kind"),
+        );
       default:
         return null;
     }
@@ -430,5 +439,71 @@ class OnThisDayMemorySpec extends MemorySpec {
   @override
   Map<String, dynamic> toJson() {
     return {"kind": kind};
+  }
+}
+
+class SpecialMemorySpec extends MemorySpec {
+  static const kindValue = "special";
+  static final _logger = Logger("SpecialMemorySpec");
+
+  final Map<String, dynamic> special;
+
+  const SpecialMemorySpec(this.special);
+
+  String? get shownKey => special["shownKey"] as String?;
+
+  bool get needsMl => SpecialMemory.formatNeedsMl(special["format"]);
+
+  @override
+  String get kind => kindValue;
+
+  @override
+  MemoryType get type => MemoryType.special;
+
+  @override
+  SmartMemory toSmartMemory(
+    List<Memory> memories, {
+    required int firstDateToShow,
+    required int lastDateToShow,
+    required String title,
+    required String id,
+  }) {
+    final memory =
+        _special(memories, firstDateToShow, lastDateToShow, id) ??
+        SmartMemory(
+          memories,
+          MemoryType.special,
+          title,
+          firstDateToShow,
+          lastDateToShow,
+          id: id,
+        );
+    memory.title = title;
+    return memory;
+  }
+
+  SpecialMemory? _special(
+    List<Memory> memories,
+    int firstDateToShow,
+    int lastDateToShow,
+    String id,
+  ) {
+    try {
+      return SpecialMemory.fromJson(
+        special,
+        memories,
+        firstDateToShow: firstDateToShow,
+        lastDateToShow: lastDateToShow,
+        id: id,
+      );
+    } catch (e, s) {
+      _logger.warning("Could not read a cached special memory", e, s);
+      return null;
+    }
+  }
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {"kind": kind, ...special};
   }
 }

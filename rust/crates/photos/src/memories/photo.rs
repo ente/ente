@@ -9,6 +9,7 @@ pub(super) struct Photo {
     pub(super) id: i64,
     pub(super) creation_time: i64,
     pub(super) local_time: i64,
+    pub(super) has_capture_clock: bool,
     pub(super) date: LocalDate,
     pub(super) collection_id: Option<i64>,
     pub(super) location: Option<Coordinate>,
@@ -27,15 +28,14 @@ pub(super) fn sort_chronologically(photos: &mut [&Photo]) {
 
 impl Photo {
     fn new(file: &MemoryFile) -> Self {
-        let local_time = file
-            .local_date_time
-            .as_deref()
-            .and_then(wall_clock_micros)
+        let capture_clock = file.local_date_time.as_deref().and_then(wall_clock_micros);
+        let local_time = capture_clock
             .unwrap_or(file.creation_time + i64::from(file.utc_offset_seconds) * MICROS_PER_SECOND);
         Self {
             id: file.id,
             creation_time: file.creation_time,
             local_time,
+            has_capture_clock: capture_clock.is_some(),
             date: LocalDate::of_local_time(local_time),
             collection_id: file.collection_id,
             location: file

@@ -321,6 +321,7 @@ class FullScreenMemory extends StatefulWidget {
   final VoidCallback? onNextMemory;
   final VoidCallback? onPreviousMemory;
   final ValueChanged<bool>? onMediaInteractionLockChanged;
+  final Widget? overlay;
 
   const FullScreenMemory(
     this.title,
@@ -330,6 +331,7 @@ class FullScreenMemory extends StatefulWidget {
     this.onNextMemory,
     this.onPreviousMemory,
     this.onMediaInteractionLockChanged,
+    this.overlay,
     super.key,
   });
 
@@ -850,6 +852,7 @@ class _FullScreenMemoryState extends State<FullScreenMemory> {
             _MemoryViewerScrimsAndCaption(
               socialControlsVisible: _socialControlsVisible,
             ),
+            ?widget.overlay,
             if (memoryAudio != null)
               Positioned(
                 left:

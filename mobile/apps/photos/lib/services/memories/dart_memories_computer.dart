@@ -736,6 +736,7 @@ class DartMemoriesComputer implements MemoriesComputer {
       peopleShownLogs: oldCache.peopleShownLogs,
       clipShownLogs: oldCache.clipShownLogs,
       tripsShownLogs: oldCache.tripsShownLogs,
+      specialShownLogs: oldCache.specialShownLogs,
       baseLocations: oldCache.baseLocations,
     );
   }

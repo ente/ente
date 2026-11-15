@@ -22,9 +22,11 @@ import "package:photos/main.dart" show isIOSBackgroundRefresh;
 import "package:photos/models/file/file.dart";
 import "package:photos/models/memories/memories_cache.dart";
 import "package:photos/models/memories/memory.dart";
+import "package:photos/models/memories/memory_spec.dart";
 import "package:photos/models/memories/people_memory.dart";
 import "package:photos/models/memories/smart_memory.dart";
 import "package:photos/models/memories/smart_memory_constants.dart";
+import "package:photos/models/memories/special_memory.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/app_lifecycle_service.dart";
 import "package:photos/services/app_navigation_service.dart";
@@ -292,7 +294,7 @@ class MemoriesCacheService {
             memory,
             deletedMemoryFileIds,
           );
-          if (memory.memories.isNotEmpty) {
+          if (memory.isShowable) {
             filteredMemories.add(memory);
           }
           cacheChanged = cacheChanged || memoryChanged;
@@ -507,7 +509,8 @@ class MemoriesCacheService {
         final filtered = <SmartMemory>[];
         for (final memory in _cachedMemories!) {
           if (memory.type == MemoryType.people ||
-              memory.type == MemoryType.clip) {
+              memory.type == MemoryType.clip ||
+              (memory is SpecialMemory && memory.needsMl)) {
             if (memory is PeopleMemory) {
               removedPersonIDs.add(memory.personID);
             }
@@ -526,6 +529,8 @@ class MemoriesCacheService {
         final originalToShowLength = cache.toShowMemories.length;
         final activeRemovedPeopleLogs = <PeopleShownLog>[];
         final activeRemovedClipLogs = <ClipShownLog>[];
+        final removedSpecialLogs = <SpecialShownLog>[];
+        final now = DateTime.now().microsecondsSinceEpoch;
 
         for (final memory in cache.toShowMemories) {
           if (memory.type == MemoryType.people) {
@@ -539,17 +544,24 @@ class MemoriesCacheService {
             }
           } else if (memory.type == MemoryType.clip && memory.shouldShowNow()) {
             activeRemovedClipLogs.add(ClipShownLog.fromOldCacheMemory(memory));
+          } else if (_isMlSpecial(memory)) {
+            if (SpecialShownLog.ofStarted(memory, now: now)
+                case final specialLog?) {
+              removedSpecialLogs.add(specialLog);
+            }
           }
         }
 
         cache.toShowMemories.removeWhere(
           (memory) =>
               memory.type == MemoryType.people ||
-              memory.type == MemoryType.clip,
+              memory.type == MemoryType.clip ||
+              _isMlSpecial(memory),
         );
         if (cache.toShowMemories.length != originalToShowLength) {
           cache.peopleShownLogs.addAll(activeRemovedPeopleLogs);
           cache.clipShownLogs.addAll(activeRemovedClipLogs);
+          cache.specialShownLogs.addAll(removedSpecialLogs);
           await writeToJsonFile<MemoriesCache>(
             await _getCachePath(),
             cache,
@@ -570,6 +582,11 @@ class MemoriesCacheService {
         Bus.instance.fire(MemoriesChangedEvent());
       }
     });
+  }
+
+  static bool _isMlSpecial(ToShowMemory memory) {
+    final spec = memory.spec;
+    return spec is SpecialMemorySpec && spec.needsMl;
   }
 
   Future<void> purgePersonFromMemoriesCache(
@@ -845,7 +862,7 @@ class MemoriesCacheService {
               .whereType<Memory>()
               .toList();
           final smartMemory = memory.toSmartMemory(hydratedMemories);
-          if (smartMemory.memories.isNotEmpty) {
+          if (smartMemory.isShowable) {
             memories.add(smartMemory);
             if (memory.hasTypedSpec) {
               typedMemories.add((memory, smartMemory));
@@ -1019,7 +1036,9 @@ class MemoriesCacheService {
         if (tripInsertIdx < 0) {
           tripInsertIdx = nowEntries.indexWhere(
             (e) =>
-                e.type != MemoryType.onThisDay && e.type != MemoryType.people,
+                e.type != MemoryType.onThisDay &&
+                e.type != MemoryType.special &&
+                e.type != MemoryType.people,
           );
           if (tripInsertIdx < 0) {
             tripInsertIdx = nowEntries.length;
@@ -1266,6 +1285,7 @@ class MemoriesCacheService {
           peopleShownLogs: [],
           clipShownLogs: [],
           tripsShownLogs: [],
+          specialShownLogs: [],
           baseLocations: [],
         ),
         mlEnabled: mlReady,
@@ -1279,6 +1299,7 @@ class MemoriesCacheService {
     final List<PeopleShownLog> peopleShownLogs = [];
     final List<ClipShownLog> clipShownLogs = [];
     final List<TripsShownLog> tripsShownLogs = [];
+    final List<SpecialShownLog> specialShownLogs = [];
     final List<ToShowMemory> toShowMemories = [];
     if (oldCache != null) {
       final now = DateTime.now();
@@ -1307,6 +1328,14 @@ class MemoriesCacheService {
           clipShownLogs.add(clipLog);
         }
       }
+      for (final specialLog in oldCache.specialShownLogs) {
+        if (now.difference(
+              DateTime.fromMicrosecondsSinceEpoch(specialLog.lastTimeShown),
+            ) <
+            kSpecialShowTimeout) {
+          specialShownLogs.add(specialLog);
+        }
+      }
       toShowMemories.addAll(
         _activeTripEntriesForTime(
           oldCache.toShowMemories,
@@ -1314,6 +1343,10 @@ class MemoriesCacheService {
         ),
       );
       for (final oldMemory in oldCache.toShowMemories) {
+        if (SpecialShownLog.ofStarted(oldMemory, now: nowMicros)
+            case final specialLog?) {
+          specialShownLogs.add(specialLog);
+        }
         if (oldMemory.isOld) {
           if (oldMemory.type == MemoryType.people) {
             peopleShownLogs.add(PeopleShownLog.fromOldCacheMemory(oldMemory));
@@ -1330,6 +1363,7 @@ class MemoriesCacheService {
       peopleShownLogs: peopleShownLogs,
       clipShownLogs: clipShownLogs,
       tripsShownLogs: tripsShownLogs,
+      specialShownLogs: specialShownLogs,
       baseLocations: [],
     );
   }

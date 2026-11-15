@@ -17,7 +17,7 @@ use super::photo::Photo;
 use super::places::Places;
 
 pub(super) use bases::Base;
-pub(super) use surface::{TripHistory, all_memories, memories};
+pub(super) use surface::{TripHistory, all_memories, memories, photos_on_screen};
 
 const MAX_TEMPORAL_GAP_DAYS: i64 = 15;
 const TRIP_CLUSTER_RADIUS_KM: f64 = 25.0;
@@ -33,6 +33,14 @@ const MERGE_MAX_DISTANCE_KM: f64 = 25.0;
 pub(super) struct TripAnalysis<'p> {
     pub(super) bases: Vec<Base<'p>>,
     trips: Vec<Trip<'p>>,
+}
+
+impl<'p> TripAnalysis<'p> {
+    pub(super) fn trip_members(&self) -> impl Iterator<Item = Located<'p>> {
+        self.trips
+            .iter()
+            .flat_map(|trip| trip.members.iter().copied())
+    }
 }
 
 struct Trip<'p> {

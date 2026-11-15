@@ -30,6 +30,8 @@ pub struct MemoriesRequest {
     pub shown_trips: Vec<ShownTrip>,
     pub cached_trips: Vec<CachedTrip>,
     pub shown_clip_memories: Vec<ShownClipMemory>,
+    pub shown_specials: Vec<ShownSpecial>,
+    pub shows_specials: bool,
     pub surface_all: bool,
     pub local_gallery_mode: bool,
     pub seed: u64,
@@ -59,6 +61,12 @@ pub struct ShownTrip {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ShownClipMemory {
     pub kind: ClipMemoryType,
+    pub last_time_shown: i64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ShownSpecial {
+    pub key: String,
     pub last_time_shown: i64,
 }
 
