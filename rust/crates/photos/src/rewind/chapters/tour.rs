@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use super::count;
-use super::places::City;
+use super::places::{City, mentionable};
 use crate::rewind::geo::distance_km;
 use crate::rewind::library::YearFile;
 use crate::rewind::ranking::Ranking;
@@ -78,6 +78,7 @@ pub(super) fn countries<'c>(
 }
 
 pub(in crate::rewind) fn tour(cities: &[City<'_, '_>], ranking: &Ranking<'_>) -> Option<Tour> {
+    let cities = &mentionable(cities, ranking);
     let mut stops = stops(cities, ranking);
     if stops.len() < TOUR_MINIMUM_STOPS {
         return None;
@@ -113,7 +114,7 @@ mod tests {
     use crate::rewind::chapters::places::cities;
     use crate::rewind::chapters::places::tests::Towns;
     use crate::rewind::fixtures::{located, photo, request};
-    use crate::rewind::input::RewindFile;
+    use crate::rewind::input::{RewindFile, RewindVisibility};
     use crate::rewind::library::Library;
     use crate::rewind::ranking::Ranking;
 
@@ -199,6 +200,42 @@ mod tests {
                 ("Amsterdam", 2, 3, 12),
                 ("Utrecht", 5, 4, 6),
                 ("Rotterdam", 9, 20, 5),
+            ]
+        );
+        assert_eq!(tour.city_count, 3);
+    }
+
+    #[test]
+    fn archived_photos_neither_date_nor_count_towards_a_stop() {
+        let archived = |files: Vec<RewindFile>| {
+            files.into_iter().map(|mut file| {
+                file.visibility = RewindVisibility::Archived;
+                file
+            })
+        };
+        let mut files = visit(1, (52.37, 4.90), "2026-02-11", 5);
+        files.extend(archived(visit(50, (52.37, 4.90), "2026-01-05", 4)));
+        files.extend(visit(100, (52.09, 5.12), "2026-05-04", 6));
+        files.extend(visit(200, (51.92, 4.48), "2026-09-20", 4));
+        files.extend(visit(300, (53.22, 6.57), "2026-03-03", 1));
+        files.extend(archived(visit(350, (53.22, 6.57), "2026-03-04", 2)));
+        let tour_request = request(files);
+        let library = Library::of_year(&tour_request).unwrap();
+        let cities = cities(&library, &towns()).unwrap();
+
+        let tour = tour(&cities, &Ranking::new(None, None)).unwrap();
+
+        let stops: Vec<(&str, u32, u32, u32)> = tour
+            .stops
+            .iter()
+            .map(|stop| (stop.city.as_str(), stop.month, stop.day, stop.photo_count))
+            .collect();
+        assert_eq!(
+            stops,
+            [
+                ("Amsterdam", 2, 11, 5),
+                ("Utrecht", 5, 4, 6),
+                ("Rotterdam", 9, 20, 4),
             ]
         );
         assert_eq!(tour.city_count, 3);
