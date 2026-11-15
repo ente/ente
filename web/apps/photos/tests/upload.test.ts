@@ -31,10 +31,27 @@ const dateCases = [
         "2022-11-06 21:16:33",
     ],
     ["signal-2022-12-17-15-16-04-718.jpg", "2022-12-17 15:16:04"],
+    ["2019_01_01.jpg", "2019-01-01 00:00:00"],
+    ["2019 01 01.jpg", "2019-01-01 00:00:00"],
+    ["2019_01.01.jpg", "2019-01-01 00:00:00"],
+    ["2019edit01copy01.jpg", "2019-01-01 00:00:00"],
+    ["2019_1_1.jpg", "2019-01-01 00:00:00"],
+    ["00002019_1_1.jpg", "2019-01-01 00:00:00"],
 ] as const;
 
 const epochMicrosecondCases = [
     ["20170923_220934000_iOS.jpg", "2017-09-23 22:09:34"],
+    ["IMG - 3613 2024-06-29.heic", "2024-06-29 00:00:00"],
+    ["IMG - 3613 2024.06.29.heic", "2024-06-29 00:00:00"],
+    ["IMG - 3613 2024-06-29 09:50:00.heic", "2024-06-29 09:50:00"],
+    ["IMG - 3613 2024-06-29_09-50-00.heic", "2024-06-29 09:50:00"],
+    ["IMG - 3613 2024-06-29T09.50.00.heic", "2024-06-29 09:50:00"],
+    ["IMG - 3613 2024-06-29 copy 01-02-03.heic", "2024-06-29 00:00:00"],
+    ["2024-06-29 IMG - 3613.heic", "2024-06-29 00:00:00"],
+    ["2024-06-29 09:50:00 IMG - 3613.heic", "2024-06-29 09:50:00"],
+    ["IMG - 36130000 2024-06-29.heic", "2024-06-29 00:00:00"],
+    ["20240631 IMG 3613 2024-06-29.heic", "2024-06-29 00:00:00"],
+    ["IMG - 3613 (2) 2024-06-29.heic", "2024-06-29 00:00:00"],
 ] as const;
 
 const unparseableDateFileNames = [
@@ -42,6 +59,23 @@ const unparseableDateFileNames = [
     "Snapchat-400000000.mp4",
     "Snapchat-900000000.mp4",
     "Snapchat-100-10-20-19-15-12",
+    "IMG - 3613.heic",
+    "IMG - 3613 2024-00-29.heic",
+    "IMG - 3613 2024-13-29.heic",
+    "IMG - 3613 2024-06-31.heic",
+    "IMG - 3613 2023-02-29.heic",
+    "IMG - 3613 12024-06-29.heic",
+    "IMG - 3613 2024-06-290.heic",
+    "IMG - 3613 2024-06-29 and 2024-06-30.heic",
+    "IMG - 3613 20190101 and 2024-06-30.heic",
+    "IMG - 3613 20190101_120000 edited 2024-06-30.heic",
+    "IMG - 3613 2024-06-29 original 20190101.heic",
+    "IMG - 3613 2019_01_01 and 2024-06-30.heic",
+    "IMG - 3613 2019 01 01 and 2024-06-30.heic",
+    "IMG - 3613 2019_01.01 and 2024-06-30.heic",
+    "IMG - 3613 2019edit01copy01 and 2024-06-30.heic",
+    "IMG - 3613 2019_1_1 and 2024-06-30.heic",
+    "IMG - 3613 00002019_1_1 and 2024-06-30.heic",
 ] as const;
 
 const metadataCases = [
@@ -141,6 +175,7 @@ describe("upload filename metadata", () => {
 
     test.each(unparseableDateFileNames)("does not parse %s", (fileName) => {
         expect(parseDateFromDigitGroups(fileName)).toBeUndefined();
+        expect(tryParseEpochMicrosecondsFromFileName(fileName)).toBeUndefined();
     });
 
     test.each(metadataCases)("matches %s to %s", (fileName, jsonFileName) => {

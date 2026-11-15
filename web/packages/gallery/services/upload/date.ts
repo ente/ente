@@ -94,8 +94,42 @@ const parseDateFromFusedDateString = (s: string) =>
     });
 
 export const parseDateFromDigitGroups = (s: string) => {
-    const [year, month, day, hour, minute, second] = s.match(/\d+/g) ?? [];
+    const date = parseDateFromLeadingDigitGroups(s);
+    if (date) return date;
 
+    const matches = [
+        ...s.matchAll(
+            /(?<!\d)\d{4}([-.])\d{2}\1\d{2}(?!\d)(?:[ T_-]\d{2}([:.-])\d{2}\2\d{2}(?!\d))?/g,
+        ),
+    ];
+    if (matches.length != 1) return undefined;
+    const selectedDate = matches[0]!;
+    const groups = [...s.matchAll(/\d+/g)];
+    const hasAnotherDate = groups.some((group, index) => {
+        if (group.index == selectedDate.index) return false;
+        const values = groups.slice(index, index + 6).map((match) => match[0]);
+        return (
+            parseDateFromDigitGroupValues(values) !== undefined ||
+            (group[0].length == 8 &&
+                parseDateFromFusedDateString(group[0]) !== undefined)
+        );
+    });
+    if (hasAnotherDate) return undefined;
+
+    return parseDateFromLeadingDigitGroups(selectedDate[0]);
+};
+
+const parseDateFromLeadingDigitGroups = (s: string) =>
+    parseDateFromDigitGroupValues(s.match(/\d+/g) ?? []);
+
+const parseDateFromDigitGroupValues = ([
+    year,
+    month,
+    day,
+    hour,
+    minute,
+    second,
+]: string[]) => {
     // Also recognize fused YYYYMMDD-HHMMSS dates.
     if (year?.length == 8 && month?.length == 6) {
         return parseDateFromFusedDateString(year + "-" + month);

@@ -1,0 +1,1 @@
+- Fixed filename date detection for photos and videos with a sequence number before the date.

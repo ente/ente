@@ -1,0 +1,1 @@
+- Fixed dates in filenames being missed when they follow a sequence number.

@@ -1,6 +1,8 @@
 import "package:ente_pure_utils/ente_pure_utils.dart";
 
 final _filenameDate = RegExp(r'^[^\d]*(\d{4})([-.]?)(\d{2})\2(\d{2})(?!\d)');
+final _embeddedFilenameDate = RegExp(r'(?<!\d)\d{4}([-.])\d{2}\1\d{2}(?!\d)');
+final _compactFilenameDate = RegExp(r'(?<!\d)\d{8}(?!\d)');
 final _filenameTime = RegExp(
   r'[ T_-](\d{2})([-.:]?)(\d{2})\2(\d{2})'
   r'(?:[.,](\d{1,6})(?!\d))?'
@@ -16,9 +18,45 @@ final _filenameTimeSuffix = RegExp(
 
 DateTime? parseDateTimeFromFileName(
   String fileName, {
-  // Year bounds reduce false dates parsed from filenames.
   int minYear = 1990,
   int? maxYear,
+}) {
+  final parsed = _parseLeadingFilenameDate(
+    fileName,
+    minYear: minYear,
+    maxYear: maxYear,
+  );
+  if (parsed != null) return parsed;
+
+  final matches = _embeddedFilenameDate.allMatches(fileName).toList();
+  if (matches.length != 1) return null;
+  final hasCompactDate = _compactFilenameDate
+      .allMatches(fileName)
+      .any(
+        (match) =>
+            _parseLeadingFilenameDate(
+              match[0]!,
+              minYear: minYear,
+              maxYear: maxYear,
+            ) !=
+            null,
+      );
+  if (hasCompactDate) return null;
+  final date = matches.single;
+  if (!RegExp(r'\d').hasMatch(fileName.substring(0, date.start))) {
+    return null;
+  }
+  return _parseLeadingFilenameDate(
+    fileName.substring(date.start),
+    minYear: minYear,
+    maxYear: maxYear,
+  );
+}
+
+DateTime? _parseLeadingFilenameDate(
+  String fileName, {
+  required int minYear,
+  required int? maxYear,
 }) {
   final date = _filenameDate.matchAsPrefix(fileName);
   if (date == null) return null;
