@@ -44,7 +44,7 @@ class GlobePage extends RewindPage {
 
   late final _World _world = _World.of(globe);
 
-  late final RewindWarm<List<EnteFile>> _pins = rewindLoadedPhotos([
+  late final RewindWarm<RewindDecoded> _pins = RewindDecoded.warm([
     for (final place in _GlobeViewState.docked(_world, globe, photos))
       photos[place]!,
   ], bytes);
@@ -85,7 +85,7 @@ class GlobePage extends RewindPage {
   }
 
   Widget _card(double position, bool isActive, int km, String body) {
-    return RewindWarmBuilder<List<EnteFile>>(
+    return RewindWarmBuilder<RewindDecoded>(
       warm: _pins,
       builder: (context, pins) => RewindShareable(
         enabled: pins != null,
@@ -115,6 +115,7 @@ class GlobePage extends RewindPage {
                           globe: globe,
                           photos: photos,
                           photo: photo,
+                          pins: pins,
                           active: isActive,
                         ),
                       ),
@@ -456,6 +457,7 @@ class _GlobeView extends StatefulWidget {
     required this.globe,
     required this.photos,
     required this.photo,
+    required this.pins,
     required this.active,
   });
 
@@ -466,6 +468,7 @@ class _GlobeView extends StatefulWidget {
   final rust.Globe globe;
   final List<EnteFile?> photos;
   final RewindPhotoBuilder photo;
+  final RewindDecoded? pins;
   final bool active;
 
   @override
@@ -914,7 +917,10 @@ class _GlobeViewState extends State<_GlobeView>
                 padding: const EdgeInsets.all(3),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(6),
-                  child: widget.photo(callout.photo),
+                  child: widget.photo(
+                    callout.photo,
+                    decoded: widget.pins?[callout.photo],
+                  ),
                 ),
               ),
             ),

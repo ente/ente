@@ -1,3 +1,5 @@
+import "dart:ui" as ui;
+
 import "package:flutter/widgets.dart";
 import "package:photos/core/constants.dart";
 import "package:photos/models/file/file.dart";
@@ -11,6 +13,7 @@ class RewindPhoto extends StatefulWidget {
     this.placeholder = const Color(0xFFE4DCCD),
     this.focus = Alignment.center,
     this.zoomable = true,
+    this.decoded,
     super.key,
   });
 
@@ -18,6 +21,7 @@ class RewindPhoto extends StatefulWidget {
   final Color placeholder;
   final Alignment focus;
   final bool zoomable;
+  final ui.Image? decoded;
 
   @override
   State<RewindPhoto> createState() => _RewindPhotoState();
@@ -27,18 +31,25 @@ class _RewindPhotoState extends State<RewindPhoto> {
   var _lifted = false;
   var _zooming = false;
 
-  Widget get _thumbnail => ThumbnailWidget(
-    widget.file,
-    key: ValueKey(widget.file.tag),
-    alignment: widget.focus,
-    rawThumbnail: true,
-    shouldShowSyncStatus: false,
-    shouldShowFavoriteIcon: false,
-    shouldShowVideoOverlayIcon: false,
-    thumbnailSize: thumbnailLargeSize,
-    useRequestedThumbnailSizeForLocalCache: true,
-    placeholderColor: widget.placeholder,
-  );
+  Widget get _thumbnail => switch (widget.decoded) {
+    final decoded? => RawImage(
+      image: decoded,
+      fit: BoxFit.cover,
+      alignment: widget.focus,
+    ),
+    null => ThumbnailWidget(
+      widget.file,
+      key: ValueKey(widget.file.tag),
+      alignment: widget.focus,
+      rawThumbnail: true,
+      shouldShowSyncStatus: false,
+      shouldShowFavoriteIcon: false,
+      shouldShowVideoOverlayIcon: false,
+      thumbnailSize: thumbnailLargeSize,
+      useRequestedThumbnailSizeForLocalCache: true,
+      placeholderColor: widget.placeholder,
+    ),
+  };
 
   @override
   Widget build(BuildContext context) {

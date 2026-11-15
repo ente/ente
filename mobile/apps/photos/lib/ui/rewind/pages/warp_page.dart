@@ -84,7 +84,7 @@ class WarpPage extends RewindPage {
     (atlas) => atlas.dispose(),
   );
 
-  late final RewindWarm<List<EnteFile>> _landing = rewindLoadedPhotos([
+  late final RewindWarm<RewindDecoded> _landing = RewindDecoded.warm([
     first,
   ], bytes);
 
@@ -125,13 +125,13 @@ class WarpPage extends RewindPage {
   }) {
     return RewindWarmBuilder<RewindAtlas>(
       warm: _walls,
-      builder: (context, walls) => RewindWarmBuilder<List<EnteFile>>(
+      builder: (context, walls) => RewindWarmBuilder<RewindDecoded>(
         warm: _landing,
         builder: (context, landing) => _Flight(
           key: ValueKey(walls),
           walls: walls,
           first: first,
-          firstLoaded: landing != null,
+          landing: landing,
           photo: photo,
           active: isActive,
           position: position,
@@ -145,7 +145,7 @@ class _Flight extends StatefulWidget {
   const _Flight({
     required this.walls,
     required this.first,
-    required this.firstLoaded,
+    required this.landing,
     required this.photo,
     required this.active,
     required this.position,
@@ -154,7 +154,7 @@ class _Flight extends StatefulWidget {
 
   final RewindAtlas? walls;
   final EnteFile first;
-  final bool firstLoaded;
+  final RewindDecoded? landing;
   final RewindPhotoBuilder photo;
   final bool active;
   final double position;
@@ -395,7 +395,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
       fit: StackFit.expand,
       children: [
         RewindShareable(
-          enabled: walls != null && widget.firstLoaded,
+          enabled: walls != null && widget.landing != null,
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -443,7 +443,10 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
                                       (0.94 + 0.06 * settle),
                                   child: _Print(
                                     width: _printWidth,
-                                    photo: widget.photo(widget.first),
+                                    photo: widget.photo(
+                                      widget.first,
+                                      decoded: widget.landing?[widget.first],
+                                    ),
                                     caption: WarpPage.dated(
                                       WarpPage.taken(widget.first),
                                     ),

@@ -12,9 +12,11 @@ import "package:photos/ui/rewind/widgets/rewind_photo.dart";
 typedef RewindBytes =
     Future<Uint8List?> Function(EnteFile file, {bool cachedOnly});
 
-typedef RewindPhotoBuilder = Widget Function(EnteFile file);
+typedef RewindPhotoBuilder =
+    Widget Function(EnteFile file, {ui.Image? decoded});
 
-Widget rewindPhoto(EnteFile file) => RewindPhoto(file);
+Widget rewindPhoto(EnteFile file, {ui.Image? decoded}) =>
+    RewindPhoto(file, decoded: decoded);
 
 typedef RewindTilePainter =
     void Function(Canvas canvas, ui.Image image, Rect cell, int index);
@@ -279,13 +281,55 @@ class RewindWarm<T extends Object> {
   }
 }
 
-RewindWarm<List<EnteFile>> rewindLoadedPhotos(
-  List<EnteFile> photos,
-  RewindBytes bytes,
-) => RewindWarm(() async {
-  final loaded = await Future.wait([for (final photo in photos) bytes(photo)]);
-  return loaded.contains(null) ? null : photos;
-}, (_) {});
+class RewindDecoded {
+  RewindDecoded._(this._images);
+
+  final Map<EnteFile, ui.Image> _images;
+
+  ui.Image? operator [](EnteFile photo) => _images[photo];
+
+  void dispose() {
+    for (final image in _images.values) {
+      image.dispose();
+    }
+  }
+
+  static RewindWarm<RewindDecoded> warm(
+    List<EnteFile> photos,
+    RewindBytes bytes,
+  ) => RewindWarm(() => _load(photos, bytes), (decoded) => decoded.dispose());
+
+  static Future<RewindDecoded?> _load(
+    List<EnteFile> photos,
+    RewindBytes bytes,
+  ) async {
+    final images = await Future.wait([
+      for (final photo in photos) _image(photo, bytes),
+    ]);
+    if (images.contains(null)) {
+      for (final image in images) {
+        image?.dispose();
+      }
+      return null;
+    }
+    return RewindDecoded._({
+      for (final (index, photo) in photos.indexed) photo: images[index]!,
+    });
+  }
+
+  static Future<ui.Image?> _image(EnteFile photo, RewindBytes bytes) async {
+    try {
+      final data = await bytes(photo);
+      if (data == null) return null;
+      final codec = await ui.instantiateImageCodec(data);
+      final frame = await codec.getNextFrame();
+      codec.dispose();
+      return frame.image;
+    } catch (_) {
+      return null;
+    }
+  }
+}
 
 class RewindWarmBuilder<T extends Object> extends StatefulWidget {
   const RewindWarmBuilder({
