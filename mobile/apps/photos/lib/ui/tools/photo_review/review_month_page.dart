@@ -1123,6 +1123,8 @@ class _ProgressHeader extends StatelessWidget {
         const SizedBox(height: _gap),
         Text(
           context.strings.reviewProgressCount(reviewed: reviewed, total: total),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: TextStyles.tiny.copyWith(
             height: _lineHeight / TextStyles.tiny.fontSize!,
             color: colors.textLight,
