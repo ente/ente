@@ -56,6 +56,7 @@ class _AlbumSelectionOverlayBarState extends State<AlbumSelectionOverlayBar> {
       valueListenable: _hasSelectedAlbumsNotifier,
       builder: (context, value, child) {
         return AnimatedCrossFade(
+          clipBehavior: Clip.none,
           alignment: Alignment.bottomCenter,
           firstCurve: Curves.easeOutCubic,
           secondCurve: Curves.easeOutCubic,

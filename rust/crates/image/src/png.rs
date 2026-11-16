@@ -3,8 +3,8 @@ use std::io::{BufRead, Seek};
 use image::{DynamicImage, ImageBuffer, metadata::Orientation};
 
 use crate::{
-    BoundedDecodeOptions, BoundedDecodedImage, DecodedImage, Dimensions, ImageError, ImageResult,
-    bounded::{target_dimensions, too_large},
+    BoundedDecodeOptions, BoundedDecodedImage, Dimensions, ImageError, ImageResult,
+    bounded::{MAX_SOURCE_PIXELS, oriented_output, target_dimensions, too_large},
     color_management::IccConverter,
     resample::Downsampler,
 };
@@ -13,7 +13,6 @@ pub(crate) const SIGNATURE: &[u8] = b"\x89PNG\r\n\x1a\n";
 const DECODER_BYTES: usize = 32 * 1024 * 1024;
 const MAX_ROW_BYTES: u64 = 4 * 1024 * 1024;
 const MAX_SOURCE_HEIGHT: u32 = 512 * 1024;
-const MAX_SOURCE_PIXELS: u64 = 256_000_000;
 pub(crate) const ADAM7: [(u32, u32, u32, u32); 7] = [
     (0, 0, 8, 8),
     (4, 0, 8, 8),
@@ -91,32 +90,7 @@ pub(crate) fn decode<R: BufRead + Seek>(
         return Err(ImageError::Decode("PNG contains unexpected rows".into()));
     }
     reader.finish().map_err(png_error)?;
-    let rgb = output.finish();
-    let buffer = image::RgbImage::from_raw(target.width, target.height, rgb)
-        .ok_or_else(|| ImageError::Postprocess("invalid bounded PNG buffer".into()))?;
-    let mut image = DynamicImage::ImageRgb8(buffer);
-    image.apply_orientation(orientation);
-    let image = image.into_rgb8();
-    let original_dimensions = match orientation {
-        Orientation::Rotate90
-        | Orientation::Rotate270
-        | Orientation::Rotate90FlipH
-        | Orientation::Rotate270FlipH => Dimensions {
-            width: source.height,
-            height: source.width,
-        },
-        _ => source,
-    };
-    Ok(BoundedDecodedImage {
-        image: DecodedImage {
-            dimensions: Dimensions {
-                width: image.width(),
-                height: image.height(),
-            },
-            rgb: image.into_raw(),
-        },
-        original_dimensions,
-    })
+    oriented_output(output.finish(), source, target, orientation)
 }
 
 fn row_rgb(
@@ -561,7 +535,7 @@ mod tests {
         for (width, height) in [
             (1, 524_289),
             (1, u32::MAX),
-            (16_000, 16_001),
+            (22_361, 22_361),
             (65_536, 65_536),
         ] {
             for interlaced in [false, true] {
@@ -589,7 +563,7 @@ mod tests {
 
     #[test]
     fn source_dimension_limits_allow_boundary_headers() {
-        for (width, height) in [(1, 524_288), (524_288, 1), (16_000, 16_000)] {
+        for (width, height) in [(1, 524_288), (524_288, 1), (22_360, 22_360)] {
             for interlaced in [false, true] {
                 let mut bytes = Vec::new();
                 ::png::Encoder::with_info(&mut bytes, rgb_info(width, height, interlaced))

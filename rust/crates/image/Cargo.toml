@@ -16,8 +16,10 @@ png = "0.18.1"
 rayon.workspace = true
 thiserror.workspace = true
 tiff = "0.11.3"
+zune-jpeg = { git = "https://github.com/etemesi254/zune-image.git", rev = "2f9086b07cdf5a36621ce18f79d310f99b751de9" }
 
 [dev-dependencies]
+jpeg-encoder.workspace = true
 tempfile.workspace = true
 
 [lints]

@@ -2,6 +2,10 @@ package filedata
 
 import (
 	"context"
+	"database/sql"
+	"errors"
+	"strings"
+
 	"github.com/ente/museum/ente"
 	"github.com/ente/museum/ente/filedata"
 	"github.com/ente/museum/pkg/utils/auth"
@@ -10,7 +14,6 @@ import (
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
-	"strings"
 )
 
 func (c *Controller) InsertVideoPreview(ctx *gin.Context, req *filedata.VidPreviewRequest) error {
@@ -24,9 +27,25 @@ func (c *Controller) InsertVideoPreview(ctx *gin.Context, req *filedata.VidPrevi
 	}
 	fileOwnerID := userID
 
-	bucketID := c.S3Config.GetBucketID(ente.PreviewVideo)
 	fileObjectKey := filedata.ObjectKey(req.FileID, fileOwnerID, ente.PreviewVideo, &req.ObjectID)
 	objectKey := filedata.ObjectMetadataKey(req.FileID, fileOwnerID, ente.PreviewVideo, &req.ObjectID)
+	bucketID, err := c.Repo.ObjectCleanupRepo.GetPreviewUploadBucket(ctx, fileObjectKey, userID, auth.GetApp(ctx))
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			registered, checkErr := c.isRegisteredPreviewRetry(ctx, req, userID)
+			if checkErr != nil {
+				return stacktrace.Propagate(checkErr, "failed to check for a previous preview registration")
+			}
+			if registered {
+				return nil
+			}
+			return stacktrace.Propagate(ente.NewBadRequestWithMessage("staged upload not found"), "")
+		}
+		return stacktrace.Propagate(err, "failed to find staged preview upload")
+	}
+	if !c.S3Config.IsBucketActive(bucketID) {
+		return stacktrace.NewError("upload bucket %q is not configured", bucketID)
+	}
 
 	if sizeErr := c.verifySize(bucketID, fileObjectKey, req.ObjectSize); sizeErr != nil {
 		return stacktrace.Propagate(sizeErr, "failed to validate size")
@@ -80,6 +99,19 @@ func (c *Controller) InsertVideoPreview(ctx *gin.Context, req *filedata.VidPrevi
 		return stacktrace.Propagate(dbInsertErr, "failed to insert or update preview data")
 	}
 	return nil
+}
+
+func (c *Controller) isRegisteredPreviewRetry(ctx *gin.Context, req *filedata.VidPreviewRequest, userID int64) (bool, error) {
+	data, err := c.Repo.GetFilesData(ctx, ente.PreviewVideo, []int64{req.FileID})
+	if err != nil {
+		return false, err
+	}
+	if len(data) != 1 {
+		return false, nil
+	}
+	row := data[0]
+	return !row.IsDeleted && row.UserID == userID && row.ObjectID != nil &&
+		row.ObjectSize != nil && *row.ObjectID == req.ObjectID && *row.ObjectSize == req.ObjectSize, nil
 }
 
 func (c *Controller) checkVideoPreviewSize(ctx context.Context, req *filedata.VidPreviewRequest, userID int64, logger *log.Entry) error {

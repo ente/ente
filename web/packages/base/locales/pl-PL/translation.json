@@ -145,7 +145,7 @@
     "upload_stat_skipped": "Pominięte",
     "upload_stat_failed": "Nieudane",
     "upload_stat_in_progress": "W trakcie",
-    "upload_empty_completed": "Nie ukończono jeszcze przesyłania",
+    "upload_empty_completed": "Nie przesłano jeszcze pomyślnie żadnych plików",
     "upload_empty_skipped": "Brak pominiętych plików",
     "upload_empty_failed": "Brak nieudanych operacji przesyłania.",
     "upload_completion_title": "Przesyłanie zostało zakończone!",

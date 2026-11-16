@@ -20,9 +20,10 @@ import { t } from "i18next";
 import type { ChangeEvent, Dispatch, SetStateAction } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    collectionNamesByUploadItem,
     filterNonEmptyUploadItems,
+    uploadDestinationsByItem,
     uploadQueueItemKey,
+    type UploadDestinationsByFileKey,
 } from "./file-upload-helpers";
 import {
     getRequiredFields,
@@ -88,7 +89,8 @@ export const useCreateItemDialogState = ({
     onUploadProgress,
     onUploadItemComplete,
     onUploadsFinished,
-    onEnsureCollections,
+    onCreateUploadCollection,
+    onRefreshUploadCollections,
     onEnsureUploadLimitState,
     defaultCollectionID,
     initialItems,
@@ -101,32 +103,34 @@ export const useCreateItemDialogState = ({
         () => initialEditCollectionIDs(editItem),
         [editItem],
     );
-    const displayCollections = useMemo(() => {
-        const ownedVisibleCollections = sortLockerCollections(
-            collections,
-        ).filter(
-            (collection) =>
-                currentUserID !== undefined &&
+    const ownedCollections = useMemo(
+        () =>
+            sortLockerCollections(collections).filter((collection) =>
                 isCollectionOwner(collection, currentUserID),
-        );
-
+            ),
+        [collections, currentUserID],
+    );
+    const displayCollections = useMemo(() => {
         if (!isEditMode) {
-            return ownedVisibleCollections.filter(
+            return ownedCollections.filter(
                 (collection) => !isUncategorizedCollection(collection),
             );
         }
 
-        const visibleCollectionIDSet = new Set(
-            ownedVisibleCollections.map((collection) => collection.id),
-        );
+        const ownedIDs = new Set(ownedCollections.map(({ id }) => id));
         const currentEditCollections = collections.filter(
-            (collection) =>
-                editCollectionIDs.includes(collection.id) &&
-                !visibleCollectionIDSet.has(collection.id),
+            ({ id }) => editCollectionIDs.includes(id) && !ownedIDs.has(id),
         );
 
-        return [...ownedVisibleCollections, ...currentEditCollections];
-    }, [collections, currentUserID, editCollectionIDs, isEditMode]);
+        return [...ownedCollections, ...currentEditCollections];
+    }, [collections, editCollectionIDs, isEditMode, ownedCollections]);
+
+    const refreshOwnedCollections = useCallback(async () => {
+        const refreshed = await onRefreshUploadCollections?.();
+        return refreshed?.filter((collection) =>
+            isCollectionOwner(collection, currentUserID),
+        );
+    }, [currentUserID, onRefreshUploadCollections]);
 
     const [selectedOption, setSelectedOption] = useState<CreateOption | null>(
         editItem?.type ?? (initialItems?.length ? "file" : null),
@@ -148,10 +152,8 @@ export const useCreateItemDialogState = ({
     const [selectedUploadItems, setSelectedUploadItems] = useState<
         LockerUploadCandidate[]
     >(filterNonEmptyUploadItems(initialItems ?? []));
-    const [
-        selectedCollectionNamesByFileKey,
-        setSelectedCollectionNamesByFileKey,
-    ] = useState<Record<string, string[]>>({});
+    const [uploadDestinations, setUploadDestinations] =
+        useState<UploadDestinationsByFileKey>({});
     const [customCollectionNames, setCustomCollectionNames] = useState<
         string[]
     >([]);
@@ -165,16 +167,18 @@ export const useCreateItemDialogState = ({
         resetUploadState,
         upload,
     } = useUploadQueue({
-        displayCollections,
+        eligibleCollections: ownedCollections,
         selectedUploadItems,
-        selectedCollectionNamesByFileKey,
+        uploadDestinations,
+        setUploadDestinations,
         userDetails,
         setError,
         setUpgradeCTAType,
         onUploadProgress,
         onUploadItemComplete,
         onUploadsFinished,
-        onEnsureCollections,
+        onCreateUploadCollection,
+        onRefreshUploadCollections: refreshOwnedCollections,
         onEnsureUploadLimitState,
     });
 
@@ -187,9 +191,11 @@ export const useCreateItemDialogState = ({
     const formType =
         isEditMode && selectedOption === "file" ? "file" : selectedType;
     const displayCollectionsRef = useRef(displayCollections);
+    const ownedCollectionsRef = useRef(ownedCollections);
     const defaultCollectionInitializedRef = useRef(false);
 
     displayCollectionsRef.current = displayCollections;
+    ownedCollectionsRef.current = ownedCollections;
 
     const handleCollectionSelectionChange: Dispatch<SetStateAction<number[]>> =
         useCallback((selection) => {
@@ -216,14 +222,11 @@ export const useCreateItemDialogState = ({
         setSelectedOption(
             editItem?.type ?? (initialItems?.length ? "file" : null),
         );
-        const defaultCollectionName =
-            defaultCollectionID !== null && defaultCollectionID !== undefined
-                ? displayCollectionsRef.current.find(
-                      (collection) => collection.id === defaultCollectionID,
-                  )?.name
-                : undefined;
+        const uploadDefaultCollectionID = displayCollectionsRef.current.find(
+            (collection) => collection.id === defaultCollectionID,
+        )?.id;
         defaultCollectionInitializedRef.current =
-            defaultCollectionName !== undefined;
+            uploadDefaultCollectionID !== undefined;
         setSelectedCollectionIDs(
             isEditMode
                 ? normalizeSelectedCollectionIDs(
@@ -248,10 +251,11 @@ export const useCreateItemDialogState = ({
         );
         setSelectedUploadItems(filteredInitialItems);
         setCustomCollectionNames([]);
-        setSelectedCollectionNamesByFileKey(
-            collectionNamesByUploadItem(
+        setUploadDestinations(
+            uploadDestinationsByItem(
                 filteredInitialItems,
-                defaultCollectionName,
+                ownedCollectionsRef.current,
+                uploadDefaultCollectionID,
             ),
         );
         resetUploadState();
@@ -323,7 +327,7 @@ export const useCreateItemDialogState = ({
             setCollectionName("");
             setSelectedUploadItems([]);
             setCustomCollectionNames([]);
-            setSelectedCollectionNamesByFileKey({});
+            setUploadDestinations({});
             resetUploadState();
             setError(null);
             setUpgradeCTAType(null);
@@ -437,12 +441,10 @@ export const useCreateItemDialogState = ({
                 return;
             }
 
-            const defaultCollectionName =
-                selectedCollectionIDs.length > 0
-                    ? displayCollectionsRef.current.find((collection) =>
-                          selectedCollectionIDs.includes(collection.id),
-                      )?.name
-                    : undefined;
+            const uploadDefaultCollectionID =
+                displayCollectionsRef.current.find((collection) =>
+                    selectedCollectionIDs.includes(collection.id),
+                )?.id;
             const items = files.map((file) => ({
                 file,
                 relativePath: file.webkitRelativePath || file.name,
@@ -451,10 +453,11 @@ export const useCreateItemDialogState = ({
             const nonEmptyItems = filterNonEmptyUploadItems(items);
             setSelectedUploadItems(nonEmptyItems);
             setCustomCollectionNames([]);
-            setSelectedCollectionNamesByFileKey(
-                collectionNamesByUploadItem(
+            setUploadDestinations(
+                uploadDestinationsByItem(
                     nonEmptyItems,
-                    defaultCollectionName,
+                    ownedCollectionsRef.current,
+                    uploadDefaultCollectionID,
                 ),
             );
             resetUploadState();
@@ -515,6 +518,7 @@ export const useCreateItemDialogState = ({
         collectionName,
         customCollectionNames,
         displayCollections,
+        ownedCollections,
         error,
         formData,
         formType,
@@ -534,14 +538,14 @@ export const useCreateItemDialogState = ({
         saving,
         savedUploadCount,
         selectedCollectionIDs,
-        selectedCollectionNamesByFileKey,
+        uploadDestinations,
         selectedOption,
         selectedType,
         selectedUploadItems,
         setCustomCollectionNames,
         setCollectionName,
         setSelectedCollectionIDs: handleCollectionSelectionChange,
-        setSelectedCollectionNamesByFileKey,
+        setUploadDestinations,
         setSelectedUploadItems,
         setShowPassword,
         shouldShowDialogErrorCard,

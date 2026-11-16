@@ -2659,6 +2659,7 @@ dependencies = [
  "fast_image_resize",
  "heic_decoder",
  "image",
+ "jpeg-encoder",
  "jxl",
  "kamadak-exif",
  "log",
@@ -2668,6 +2669,7 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.21",
  "tiff",
+ "zune-jpeg 0.5.16-rc3",
 ]
 
 [[package]]
@@ -4996,8 +4998,8 @@ dependencies = [
  "rayon",
  "rgb",
  "tiff",
- "zune-core",
- "zune-jpeg",
+ "zune-core 0.5.1",
+ "zune-jpeg 0.5.15",
 ]
 
 [[package]]
@@ -9689,7 +9691,7 @@ dependencies = [
  "half",
  "quick-error",
  "weezl",
- "zune-jpeg",
+ "zune-jpeg 0.5.15",
 ]
 
 [[package]]
@@ -11832,6 +11834,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cb8a0807f7c01457d0379ba880ba6322660448ddebc890ce29bb64da71fb40f9"
 
 [[package]]
+name = "zune-core"
+version = "0.5.3"
+source = "git+https://github.com/etemesi254/zune-image.git?rev=2f9086b07cdf5a36621ce18f79d310f99b751de9#2f9086b07cdf5a36621ce18f79d310f99b751de9"
+
+[[package]]
 name = "zune-inflate"
 version = "0.2.54"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -11846,7 +11853,15 @@ version = "0.5.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "27bc9d5b815bc103f142aa054f561d9187d191692ec7c2d1e2b4737f8dbd7296"
 dependencies = [
- "zune-core",
+ "zune-core 0.5.1",
+]
+
+[[package]]
+name = "zune-jpeg"
+version = "0.5.16-rc3"
+source = "git+https://github.com/etemesi254/zune-image.git?rev=2f9086b07cdf5a36621ce18f79d310f99b751de9#2f9086b07cdf5a36621ce18f79d310f99b751de9"
+dependencies = [
+ "zune-core 0.5.3",
 ]
 
 [[package]]

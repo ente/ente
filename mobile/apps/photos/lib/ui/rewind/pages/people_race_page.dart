@@ -5,8 +5,10 @@ import "package:flutter/material.dart";
 import "package:flutter/scheduler.dart";
 import "package:flutter/services.dart";
 import "package:flutter_svg/flutter_svg.dart";
+import "package:photos/models/file/file.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
 import "package:photos/ui/rewind/shell/rewind_page.dart";
+import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/story/rewind_face.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
@@ -33,6 +35,12 @@ class PeopleRacePage extends RewindPage {
 
   @override
   String get key => pageKey;
+
+  @override
+  Duration? get reelHold => const Duration(milliseconds: 4500);
+
+  @override
+  List<EnteFile> get reelThumbnails => const [];
 
   @override
   RewindChrome get chrome => const RewindChrome(foreground: RewindColors.cream);
@@ -98,19 +106,20 @@ class _PeopleRaceState extends State<_PeopleRace>
   ];
   static const _base = 690.0;
   static const _rise = 330.0;
-  static const _monthMs = 470.0;
   static const _rampMs = 350.0;
   static const _laneMs = 700.0;
   static const _speed = 0.75;
-  static const _settleFrames = 36;
 
+  late final _reel = RewindPageScope.reelOf(context);
+  late final _monthMs = _reel ? 280.0 : 470.0;
+  late final _settleFrames = _reel ? 18 : 36;
   late final Ticker _ticker = createTicker(_tick);
   late final List<_Lane> _lanes;
   late var _phase = _pick == null ? _Phase.pick : _Phase.done;
   late final _replayed = _phase == _Phase.done;
   late var _order = List.of(widget.page._start);
   late var _cue = _question;
-  var _cueDetail = "Make a guess 👀";
+  late var _cueDetail = _reel ? "" : "Make a guess 👀";
   var _world = 0.0;
   var _speedFactor = 0.0;
   var _lastMs = 0.0;
@@ -119,7 +128,7 @@ class _PeopleRaceState extends State<_PeopleRace>
 
   List<RaceRunner> get _runners => widget.page.runners;
 
-  int? get _pick => widget.page._pick;
+  int? get _pick => _reel ? null : widget.page._pick;
 
   static const _question = "WHO SHOWED UP MOST?";
 
@@ -138,6 +147,19 @@ class _PeopleRaceState extends State<_PeopleRace>
       return _Lane(_startLanes[start], _colors[start]);
     });
     if (_phase == _Phase.done) _finishInstantly();
+    _raceUnprompted();
+  }
+
+  @override
+  void didUpdateWidget(_PeopleRace oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _raceUnprompted();
+  }
+
+  void _raceUnprompted() {
+    if (!_reel || !widget.isActive || _phase != _Phase.pick) return;
+    _phase = _Phase.race;
+    unawaited(_ticker.start());
   }
 
   @override
@@ -175,7 +197,7 @@ class _PeopleRaceState extends State<_PeopleRace>
     final nowMs = elapsed.inMicroseconds / 1000;
     final dt = _lastMs == 0 ? 16.0 : min(50.0, nowMs - _lastMs);
     _lastMs = nowMs;
-    const raceMs = 12 * _monthMs;
+    final raceMs = 12 * _monthMs;
     if (_settling == 0) {
       _speedFactor = min(1, nowMs / _rampMs);
     } else {
@@ -211,7 +233,7 @@ class _PeopleRaceState extends State<_PeopleRace>
             "${_nameOf(passer).toUpperCase()} OVERTAKES "
             "${_nameOf(passed).toUpperCase()}!";
         _cueDetail = "";
-        unawaited(HapticFeedback.selectionClick());
+        if (!_reel) unawaited(HapticFeedback.selectionClick());
       }
       _order = ranked;
     }
@@ -259,6 +281,7 @@ class _PeopleRaceState extends State<_PeopleRace>
     _phase = _Phase.done;
     _cue = _verdict();
     _cueDetail = "";
+    if (_reel) return;
     unawaited(
       _pick == 0 ? HapticFeedback.mediumImpact() : HapticFeedback.lightImpact(),
     );
@@ -276,11 +299,14 @@ class _PeopleRaceState extends State<_PeopleRace>
     _cueDetail = "";
   }
 
-  String _verdict({bool firstPerson = false}) => switch (_pick) {
-    0 => firstPerson ? "I CALLED IT!" : "YOU CALLED IT!",
-    1 => "SO CLOSE!",
-    _ => "NOT THIS YEAR!",
-  };
+  String _verdict({bool firstPerson = false}) {
+    if (_reel) return "${_nameOf(_order.first).toUpperCase()} SHOWED UP MOST!";
+    return switch (_pick) {
+      0 => firstPerson ? "I CALLED IT!" : "YOU CALLED IT!",
+      1 => "SO CLOSE!",
+      _ => "NOT THIS YEAR!",
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -334,7 +360,7 @@ class _PeopleRaceState extends State<_PeopleRace>
                   if (_phase == _Phase.done && !_replayed)
                     Positioned.fill(
                       child: RewindConfetti(
-                        count: _pick == 0 ? 80 : 30,
+                        count: _reel || _pick == 0 ? 80 : 30,
                         active: true,
                       ),
                     ),

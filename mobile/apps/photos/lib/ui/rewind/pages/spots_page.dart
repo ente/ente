@@ -44,6 +44,9 @@ class SpotsPage extends RewindPage {
   String get key => pageKey;
 
   @override
+  Duration? get reelHold => const Duration(milliseconds: 2000);
+
+  @override
   RewindChrome get chrome => RewindChrome.dark;
 
   @override

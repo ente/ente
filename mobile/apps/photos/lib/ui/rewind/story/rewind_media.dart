@@ -95,9 +95,19 @@ class RewindMedia {
 
   EnteFile? photo(int id) => _pick([id], 1).firstOrNull;
 
-  List<EnteFile> extraPhotos(Int64List ids, int slots) => [
-    for (final id in ids.inner.map(_fileId).toSet()) ?_files[id],
-  ].take(slots).toList();
+  List<EnteFile> extraPhotos(
+    Int64List ids,
+    int slots, {
+    bool preloadRemote = false,
+  }) {
+    final files = [
+      for (final id in ids.inner.map(_fileId).toSet()) ?_files[id],
+    ].take(slots).toList();
+    if (preloadRemote) {
+      _handedOut.addAll(files.where((file) => file.isRemoteOnlyFile));
+    }
+    return files;
+  }
 
   List<EnteFile> glimpses(Int64List ids, int slots) {
     final files = extraPhotos(ids, slots);
@@ -124,6 +134,9 @@ class RewindMedia {
     _handedOut.clear();
     return files;
   }
+
+  String? personName(String personId) =>
+      _nameOf(_samples?.person(personId) ?? personId);
 
   Future<RewindFace?> person(String personId, List<String> faceIds) {
     return _faces[personId] ??= _resolve(personId, faceIds, named: true);

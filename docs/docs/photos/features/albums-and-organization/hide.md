@@ -27,10 +27,11 @@ Hiding differs from [Archiving](./archive) in that hidden content won't appear a
 
 ### Hide photo
 
-- Select the photo
-- Tap/click **Hide** from the selection menu
+- Select the photos
+- Pull up the selection menu
+- Tap/click **Hide**
 
-![Hide action highlighted in the bottom bar on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-photo-hide-action-callout.png){width=320px}
+![Mobile: one photo selected with the selection menu pull-up handle highlighted, then Hide highlighted in the pulled-up menu on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-photo-hide-menu-steps.png){width=560px}
 
 ### View hidden photos and albums
 

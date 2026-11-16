@@ -5,6 +5,7 @@ pub mod decode;
 pub mod error;
 mod heif;
 pub mod image_compression;
+mod jpeg;
 mod jxl;
 mod memory_budget;
 mod png;

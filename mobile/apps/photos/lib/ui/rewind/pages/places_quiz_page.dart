@@ -35,19 +35,23 @@ typedef PlaceStamp = ({
 });
 
 class PlacesQuizPage extends RewindPage {
-  PlacesQuizPage(this.places, this.stamps)
+  PlacesQuizPage(this.places, this.stamps, {required this.showDistance})
     : _board = _shuffledBoard(stamps.map((stamp) => stamp.city.name));
 
   static const pageKey = "places";
 
   final rust.Places places;
   final List<PlaceStamp> stamps;
+  final bool showDistance;
   final List<_Slot> _board;
   int? _guess;
   var _played = false;
 
   @override
   String get key => pageKey;
+
+  @override
+  Duration? get reelHold => const Duration(milliseconds: 3000);
 
   @override
   void resetAnswer() {
@@ -134,7 +138,8 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
   static const _crownMs = _rankMs + 3 * _rankGapMs + 700;
   static const _doneMs = _rankMs + 3 * _rankGapMs + 1300;
 
-  late var _phase = widget.page._played ? _Phase.done : _Phase.pick;
+  late final _reel = RewindPageScope.reelOf(context);
+  late var _phase = !_reel && widget.page._played ? _Phase.done : _Phase.pick;
   late final _replayed = _phase == _Phase.done;
   final _timers = <Timer>[];
   Timer? _invite;
@@ -146,18 +151,26 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
 
   List<_Slot> get _board => widget.page._board;
 
-  int? get _guess => widget.page._guess;
+  int? get _guess => _reel ? null : widget.page._guess;
 
   @override
   void initState() {
     super.initState();
-    _syncInvite();
+    _sync();
   }
 
   @override
   void didUpdateWidget(_PlacesQuiz oldWidget) {
     super.didUpdateWidget(oldWidget);
-    _syncInvite();
+    _sync();
+  }
+
+  void _sync() {
+    if (!_reel) {
+      _syncInvite();
+    } else if (widget.isActive && _phase == _Phase.pick) {
+      _phase = _Phase.reveal;
+    }
   }
 
   @override
@@ -255,6 +268,8 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
                 data: MediaQuery.of(context).copyWith(disableAnimations: true),
                 child: podium,
               )
+            else if (_reel)
+              podium
             else ...[
               RewindStage(children: _boardLayers()),
               RewindWaveReveal(
@@ -722,7 +737,7 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
 
   List<Widget> _head(bool revealed) {
     final places = widget.page.places;
-    final travelled = places.distanceKm > 0;
+    final travelled = widget.page.showDistance && places.distanceKm > 0;
     final winner = _stamps.first.city;
     Widget swap(Widget child) => RewindKeyframes(
       active: revealed,
