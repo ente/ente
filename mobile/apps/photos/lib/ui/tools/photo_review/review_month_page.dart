@@ -380,15 +380,6 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
     _ => null,
   };
 
-  void _onBack() {
-    final backAction = _backAction;
-    if (backAction == null) {
-      unawaited(Navigator.of(context).maybePop());
-    } else {
-      backAction();
-    }
-  }
-
   void _openDeck(EnteFile file) {
     final index = _undecided.indexOf(file);
     if (index < 0) return;
@@ -636,7 +627,7 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
     final title = DateFormat.yMMMM(locale).format(widget.monthKey.start);
     final backAction = _backAction;
     return PopScope(
-      canPop: Platform.isIOS || backAction == null,
+      canPop: backAction == null,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) {
           _publishReviewChanged();
@@ -778,7 +769,6 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
     }
     return AppBarComponent(
       title: title,
-      onBack: _onBack,
       physics: const NeverScrollableScrollPhysics(),
       actions: [_buildQueueAction(context)],
       slivers: [SliverFillRemaining(child: body)],
@@ -850,7 +840,6 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
                 builder: (context, isSwipeActive, _) => AppBarComponent(
                   key: const PageStorageKey("review_month_grid"),
                   controller: _gridScrollController,
-                  onBack: _onBack,
                   physics: isSwipeActive
                       ? const NeverScrollableScrollPhysics()
                       : null,
@@ -989,7 +978,6 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
           child: AppBarComponent(
             title: title,
             subtitle: l10n.itemsQueuedForDeletion,
-            onBack: _onBack,
             slivers: [
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(
