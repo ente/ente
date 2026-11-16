@@ -84,6 +84,10 @@ class WarpPage extends RewindPage {
     (atlas) => atlas.dispose(),
   );
 
+  late final RewindWarm<RewindDecoded> _landing = RewindDecoded.warm([
+    first,
+  ], bytes);
+
   static final _wallClock = RegExp(r"^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}");
 
   static DateTime taken(EnteFile file) =>
@@ -105,10 +109,18 @@ class WarpPage extends RewindPage {
   Duration? get reelHold => const Duration(milliseconds: 4000);
 
   @override
-  Future<bool> warmUp() async => await _walls.value != null;
+  Future<bool> warmUp() async {
+    final landing = _landing.value;
+    final walls = await _walls.value;
+    await landing;
+    return walls != null;
+  }
 
   @override
-  void release() => _walls.release();
+  void release() {
+    _walls.release();
+    _landing.release();
+  }
 
   @override
   Widget build(
@@ -118,13 +130,17 @@ class WarpPage extends RewindPage {
   }) {
     return RewindWarmBuilder<RewindAtlas>(
       warm: _walls,
-      builder: (context, walls) => _Flight(
-        key: ValueKey(walls),
-        walls: walls,
-        first: first,
-        photo: photo,
-        active: isActive,
-        position: position,
+      builder: (context, walls) => RewindWarmBuilder<RewindDecoded>(
+        warm: _landing,
+        builder: (context, landing) => _Flight(
+          key: ValueKey(walls),
+          walls: walls,
+          first: first,
+          landing: landing,
+          photo: photo,
+          active: isActive,
+          position: position,
+        ),
       ),
     );
   }
@@ -134,6 +150,7 @@ class _Flight extends StatefulWidget {
   const _Flight({
     required this.walls,
     required this.first,
+    required this.landing,
     required this.photo,
     required this.active,
     required this.position,
@@ -142,6 +159,7 @@ class _Flight extends StatefulWidget {
 
   final RewindAtlas? walls;
   final EnteFile first;
+  final RewindDecoded? landing;
   final RewindPhotoBuilder photo;
   final bool active;
   final double position;
@@ -383,7 +401,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
       fit: StackFit.expand,
       children: [
         RewindShareable(
-          enabled: walls != null,
+          enabled: walls != null && widget.landing != null,
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -431,7 +449,10 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
                                       (0.94 + 0.06 * settle),
                                   child: _Print(
                                     width: _printWidth,
-                                    photo: widget.photo(widget.first),
+                                    photo: widget.photo(
+                                      widget.first,
+                                      decoded: widget.landing?[widget.first],
+                                    ),
                                     caption: WarpPage.dated(
                                       WarpPage.taken(widget.first),
                                     ),

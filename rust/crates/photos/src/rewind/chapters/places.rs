@@ -49,6 +49,35 @@ pub(in crate::rewind) fn cities<'l, 'r>(
         })
         .filter(|city| !city.files.is_empty())
         .collect();
+    largest_first(&mut cities);
+    Some(cities)
+}
+
+pub(super) fn mentionable<'l, 'r>(
+    cities: &[City<'l, 'r>],
+    ranking: &Ranking<'_>,
+) -> Vec<City<'l, 'r>> {
+    let mut cities: Vec<City> = cities
+        .iter()
+        .map(|city| City {
+            name: city.name.clone(),
+            country: city.country.clone(),
+            country_code: city.country_code.clone(),
+            center: city.center,
+            files: city
+                .files
+                .iter()
+                .copied()
+                .filter(|file| ranking.is_mentionable(file))
+                .collect(),
+        })
+        .filter(|city| !city.files.is_empty())
+        .collect();
+    largest_first(&mut cities);
+    cities
+}
+
+fn largest_first(cities: &mut [City<'_, '_>]) {
     cities.sort_by(|first, second| {
         second
             .files
@@ -56,7 +85,6 @@ pub(in crate::rewind) fn cities<'l, 'r>(
             .cmp(&first.files.len())
             .then_with(|| first.name.cmp(&second.name))
     });
-    Some(cities)
 }
 
 pub(in crate::rewind) fn places(cities: &[City<'_, '_>], ranking: &Ranking<'_>) -> Option<Places> {
