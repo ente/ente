@@ -7,6 +7,7 @@ mod history;
 pub mod memory;
 mod model;
 mod template;
+pub mod tools;
 mod worker;
 
 pub use context::*;
@@ -15,6 +16,10 @@ pub use execution::{ExecutionControl, ExecutionParams};
 pub use generate::*;
 pub use history::*;
 pub use model::*;
+pub use tools::{
+    MAX_TOOL_CALLS, ParameterKind, ToolCall, ToolChoice, ToolOutcome, ToolParameter, ToolRequest,
+    ToolSpec, ToolValue,
+};
 
 use llama_cpp_2::llama_backend::LlamaBackend;
 use std::sync::{Mutex, MutexGuard, OnceLock, PoisonError};

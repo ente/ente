@@ -757,6 +757,7 @@ pub(super) fn turn_input(messages: Vec<Message>) -> TurnInput {
         output: None,
         state: None,
         candidates: GroundingCandidates::new(vec![], vec![], MAX_GROUNDING_BYTES).unwrap(),
+        tool_turns: Default::default(),
     }
 }
 
@@ -808,4 +809,37 @@ fn turn_preparation_rejects_changed_current_messages_and_stale_history() {
     ));
     assert_eq!(effects.calls, 0);
     assert!(effects.checkpoints.is_empty());
+}
+
+#[test]
+fn tool_turns_render_as_calls_with_their_reply_as_the_result() {
+    use crate::llm::{ToolCall, ToolValue};
+    let history = vec![
+        message(1, Sender::SelfUser, "Add milk"),
+        message(2, Sender::Other, "Saved “Milk”."),
+        message(3, Sender::SelfUser, "Thanks"),
+    ];
+    let call = ToolCall {
+        name: "save_to_do".into(),
+        arguments: [("title".to_owned(), ToolValue::Text("Milk".into()))].into(),
+    };
+    let mut input = turn_input(history.clone());
+    input.tool_turns.insert(
+        history[1].uuid,
+        crate::conversation::ToolTurnHistory {
+            calls: vec![call.clone()],
+            undone: true,
+        },
+    );
+    let mut effects = Fake::default();
+    let mut turn = prepare_turn(input, &mut effects).unwrap();
+    let messages = turn.preparation.run(&mut effects).unwrap().messages;
+    let roles: Vec<_> = messages.iter().map(|m| m.role.as_str()).collect();
+    assert_eq!(roles, ["system", "user", "assistant", "tool", "user"]);
+    assert_eq!(messages[2].tool_calls, [call]);
+    assert_eq!(messages[2].content, "");
+    assert_eq!(
+        messages[3].content,
+        "Saved “Milk”.\n(The user undid these changes.)"
+    );
 }

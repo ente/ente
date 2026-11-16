@@ -667,6 +667,7 @@ mod tests {
             messages: vec![ChatMessage {
                 role: "user".to_owned(),
                 content: "Describe the color of this image, then count from one to ten.".to_owned(),
+                tool_calls: Vec::new(),
             }],
             image_paths: Some(vec![image.to_str().unwrap().to_owned()]),
             mmproj_path: Some(std::env::var("ENSU_TEST_MMPROJ").unwrap()),

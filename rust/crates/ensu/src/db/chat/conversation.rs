@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 const MESSAGE_COLUMNS: &str =
     "message_uuid, session_uuid, parent_message_uuid, sender, text, attachments, created_at";
-const MESSAGE_QUERY_BATCH_SIZE: usize = 100;
+pub(super) const MESSAGE_QUERY_BATCH_SIZE: usize = 100;
 
 pub struct ConversationSnapshot {
     pub(super) session_uuid: Uuid,

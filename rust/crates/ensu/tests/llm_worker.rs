@@ -43,6 +43,7 @@ fn request() -> ChatRequest {
         messages: vec![ChatMessage {
             role: "user".to_owned(),
             content: "Count from one to five.".to_owned(),
+            tool_calls: Vec::new(),
         }],
         temperature: Some(0.0),
         max_tokens: Some(16),
@@ -251,10 +252,12 @@ fn default_model_reuses_multi_turn_cache_and_reloads() {
     followup.messages.push(ChatMessage {
         role: "assistant".to_owned(),
         content: answer,
+        tool_calls: Vec::new(),
     });
     followup.messages.push(ChatMessage {
         role: "user".to_owned(),
         content: "What comes next?".to_owned(),
+        tool_calls: Vec::new(),
     });
     let (cached, _) = collect(&warm, followup.clone());
     drop(warm);
@@ -376,10 +379,12 @@ fn execution_handoffs_preserve_output_and_followup_cache() {
             chat.messages.push(ChatMessage {
                 role: "assistant".to_owned(),
                 content: actual,
+                tool_calls: Vec::new(),
             });
             chat.messages.push(ChatMessage {
                 role: "user".to_owned(),
                 content: "What comes next?".to_owned(),
+                tool_calls: Vec::new(),
             });
         }
     }

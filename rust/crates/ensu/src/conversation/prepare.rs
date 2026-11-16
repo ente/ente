@@ -63,6 +63,7 @@ pub struct Preparation {
     state: Option<ConversationState>,
     covered: usize,
     grounding: Option<PromptGrounding>,
+    tool_turns: std::collections::HashMap<Uuid, super::ToolTurnHistory>,
 }
 
 struct PendingChunk {
@@ -116,6 +117,7 @@ impl Preparation {
             state,
             covered,
             grounding: None,
+            tool_turns: std::collections::HashMap::new(),
         })
     }
 
@@ -138,6 +140,14 @@ impl Preparation {
         self
     }
 
+    pub(super) fn with_tool_turns(
+        mut self,
+        tool_turns: std::collections::HashMap<Uuid, super::ToolTurnHistory>,
+    ) -> Self {
+        self.tool_turns = tool_turns;
+        self
+    }
+
     fn answer_messages(
         &self,
         memory: Option<&str>,
@@ -148,7 +158,7 @@ impl Preparation {
         if let Some(grounding) = &self.grounding {
             grounding.apply(tail, &mut messages);
         }
-        messages
+        super::expand_tool_turns(messages, tail, &self.tool_turns)
     }
 
     fn result(
@@ -325,12 +335,12 @@ impl Preparation {
             let remaining = &pending.payload[pending.offset..];
             let make_request = |length: usize| {
                 vec![
-                ChatMessage { role: "system".into(), content: summary_instruction(use_retry_instruction || retrying) },
+                ChatMessage { role: "system".into(), content: summary_instruction(use_retry_instruction || retrying), tool_calls: Vec::new() },
                 ChatMessage { role: "user".into(), content: serde_json::json!({
                     "previous_summary": pending.memory.as_deref().unwrap_or(""),
                     "history_fragment": &remaining[..length], "fragment_start_byte": pending.offset,
                     "history_total_bytes": pending.payload.len(), "last_fragment": length == remaining.len()
-                }).to_string() }
+                }).to_string(), tool_calls: Vec::new() }
             ]
             };
             let mut length = remaining.len();

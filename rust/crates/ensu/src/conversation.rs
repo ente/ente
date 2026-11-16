@@ -20,6 +20,51 @@ pub use state::AnswerEvidence;
 pub(crate) use state::{ConversationEnvelope, valid_answer_passages};
 pub use turn::{PreparedTurn, TurnInput, prepare_turn};
 
+/// The tool calls behind an assistant reply, so history can show the model
+/// its own calls with the reply as their result.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ToolTurnHistory {
+    pub calls: Vec<crate::llm::ToolCall>,
+    /// True when the user undid the turn's changes.
+    pub undone: bool,
+}
+
+/// Replaces each assistant reply in `tail` that came from tool calls with an
+/// assistant message carrying the calls and a `tool` message carrying the
+/// reply text. `messages` must start with one system message followed by
+/// one message per entry in `tail`.
+fn expand_tool_turns(
+    messages: Vec<ChatMessage>,
+    tail: &[Message],
+    tool_turns: &std::collections::HashMap<Uuid, ToolTurnHistory>,
+) -> Vec<ChatMessage> {
+    if tool_turns.is_empty() {
+        return messages;
+    }
+    let mut output = Vec::with_capacity(messages.len() + 4);
+    for (index, message) in messages.into_iter().enumerate() {
+        let turn = index
+            .checked_sub(1)
+            .and_then(|i| tail.get(i))
+            .filter(|m| m.sender == Sender::Other)
+            .and_then(|m| tool_turns.get(&m.uuid));
+        match turn {
+            Some(turn) => {
+                let mut call = ChatMessage::new("assistant", "");
+                call.tool_calls = turn.calls.clone();
+                output.push(call);
+                let mut result = message.content;
+                if turn.undone {
+                    result.push_str("\n(The user undid these changes.)");
+                }
+                output.push(ChatMessage::new("tool", result));
+            }
+            None => output.push(message),
+        }
+    }
+    output
+}
+
 #[cfg(test)]
 mod tests;
 
@@ -272,14 +317,17 @@ fn answer_messages(
     let mut result = vec![ChatMessage {
         role: "system".into(),
         content: instruction,
+        tool_calls: Vec::new(),
     }];
     result.extend(tail.iter().map(|m| ChatMessage {
         role: role(m.sender).into(),
         content: history_text(m),
+        tool_calls: Vec::new(),
     }));
     result.push(ChatMessage {
         role: "user".into(),
         content: current.to_owned(),
+        tool_calls: Vec::new(),
     });
     result
 }
@@ -304,11 +352,13 @@ fn summary_messages(memory: Option<&str>, history: &[Message]) -> Vec<ChatMessag
         ChatMessage {
             role: "system".into(),
             content: summary_instruction(false),
+            tool_calls: Vec::new(),
         },
         ChatMessage {
             role: "user".into(),
             content: serde_json::json!({"previous_summary": memory.unwrap_or(""), "history": rows})
                 .to_string(),
+            tool_calls: Vec::new(),
         },
     ]
 }

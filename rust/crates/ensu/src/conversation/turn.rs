@@ -11,6 +11,8 @@ pub struct TurnInput {
     pub output: Option<usize>,
     pub state: Option<ConversationState>,
     pub candidates: GroundingCandidates,
+    /// Tool calls behind assistant replies in `messages`, keyed by reply.
+    pub tool_turns: std::collections::HashMap<Uuid, super::ToolTurnHistory>,
 }
 
 pub struct PreparedTurn {
@@ -104,7 +106,8 @@ pub(super) fn prepare_turn_with_anchor(
         input.state,
     )?
     .with_history_query(input.history_query)
-    .with_grounding(prompt_grounding);
+    .with_grounding(prompt_grounding)
+    .with_tool_turns(input.tool_turns);
     effects.check_current()?;
     Ok(PreparedTurn {
         preparation,

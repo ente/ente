@@ -28,3 +28,18 @@ CREATE TABLE IF NOT EXISTS messages (
 CREATE INDEX IF NOT EXISTS idx_messages_order ON messages(session_uuid, created_at, message_uuid);
 CREATE INDEX IF NOT EXISTS idx_sessions_updated ON sessions(updated_at);
 ";
+
+pub(super) const CREATE_TODO_TABLES: &str = "
+CREATE TABLE IF NOT EXISTS todos (
+  todo_id    TEXT PRIMARY KEY NOT NULL,
+  record     BLOB NOT NULL,
+  created_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS todo_turns (
+  reply_id  TEXT PRIMARY KEY NOT NULL,
+  source_id TEXT UNIQUE NOT NULL,
+  record    BLOB NOT NULL,
+  FOREIGN KEY (reply_id) REFERENCES messages(message_uuid) ON DELETE CASCADE
+);
+";

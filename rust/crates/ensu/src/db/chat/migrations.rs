@@ -3,25 +3,38 @@ use crate::db::{Backend, Error, Result};
 
 use super::schema;
 
-pub const LATEST_VERSION: i64 = 6;
+pub const LATEST_VERSION: i64 = 7;
 
 pub fn migrate<B: Backend>(backend: &B) -> Result<()> {
     match user_version(backend)? {
         0 => {
             backend.execute_batch(schema::CREATE_ALL)?;
+            backend.execute_batch(schema::CREATE_TODO_TABLES)?;
             backend.execute(&format!("PRAGMA user_version = {LATEST_VERSION};"), &[])?;
             Ok(())
         }
         1..=4 => {
             migrate_to_local_schema(backend)?;
-            migrate_conversation_state(backend)
+            migrate_conversation_state(backend)?;
+            migrate_todos(backend)
         }
-        5 => migrate_conversation_state(backend),
+        5 => {
+            migrate_conversation_state(backend)?;
+            migrate_todos(backend)
+        }
+        6 => migrate_todos(backend),
         LATEST_VERSION => Ok(()),
         other => Err(Error::Migration(format!(
             "unsupported schema version {other}"
         ))),
     }
+}
+
+fn migrate_todos<B: Backend>(backend: &B) -> Result<()> {
+    backend.transaction(|tx| {
+        tx.execute_batch(schema::CREATE_TODO_TABLES)?;
+        tx.execute_batch("PRAGMA user_version = 7;")
+    })
 }
 
 fn migrate_conversation_state<B: Backend>(backend: &B) -> Result<()> {
