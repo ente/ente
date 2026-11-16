@@ -11,6 +11,30 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestSpaceFriendSuggestionsRateLimitPerUser(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	rateLimiter := NewRateLimitMiddleware(discord.NewDiscordController(nil, "test", "test"), 1000, 1000, time.Minute)
+	t.Cleanup(rateLimiter.Stop)
+	router := gin.New()
+	router.GET("/spaces/:spaceID/friends/suggestions", rateLimiter.APIRateLimitForUserMiddleware(func(c *gin.Context) string {
+		return c.FullPath()
+	}), func(c *gin.Context) {
+		c.Status(http.StatusNoContent)
+	})
+	request := func(userID, spaceID string) int {
+		req := httptest.NewRequest(http.MethodGet, "/spaces/"+spaceID+"/friends/suggestions", nil)
+		req.Header.Set("X-Auth-User-ID", userID)
+		response := httptest.NewRecorder()
+		router.ServeHTTP(response, req)
+		return response.Code
+	}
+	for range 30 {
+		require.Equal(t, http.StatusNoContent, request("1", "first"))
+	}
+	require.Equal(t, http.StatusTooManyRequests, request("1", "second"))
+	require.Equal(t, http.StatusNoContent, request("2", "second"))
+}
+
 func TestSpacePresignAllowsPhotoBatchesAfterProfileUploads(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	rateLimiter := NewRateLimitMiddleware(discord.NewDiscordController(nil, "test", "test"), 1000, 1000, time.Minute)

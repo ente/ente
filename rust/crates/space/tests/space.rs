@@ -122,7 +122,6 @@ fn friend_suggestions() -> TestResult {
         for (from, to) in [
             ("viewer", "sam"),
             ("viewer", "lee"),
-            ("viewer", "kit"),
             ("sam", "lee"),
             ("sam", "maya"),
             ("lee", "maya"),
@@ -134,6 +133,7 @@ fn friend_suggestions() -> TestResult {
             ("sam", "drew"),
             ("lee", "drew"),
             ("sam", "jules"),
+            ("alex", "jules"),
         ] {
             let (_, sender, source) = &people[from];
             let (_, recipient, target) = &people[to];
@@ -154,6 +154,21 @@ fn friend_suggestions() -> TestResult {
                 .is_empty()
         );
         let (mut account, viewer, me) = people.remove("viewer").unwrap();
+        assert!(
+            viewer
+                .list_friend_suggestions(&me.space_id)
+                .await?
+                .is_empty()
+        );
+        let (_, kit_ctx, kit) = &people["kit"];
+        request_and_confirm_friend(
+            &viewer,
+            &me.space_id,
+            kit_ctx,
+            &kit.space_id,
+            &kit.space_slug,
+        )
+        .await;
         let suggestions = viewer.list_friend_suggestions(&me.space_id).await?;
         assert_eq!(suggestions.len(), 3);
         let maya = &people["maya"].2;

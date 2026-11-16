@@ -47,6 +47,7 @@ type RateLimitMiddleware struct {
 	reset              time.Duration
 	ticker             *time.Ticker
 	limit10ReqPerMin   *limiter.Limiter
+	limit30ReqPerMin   *limiter.Limiter
 	limit60ReqPerMin   *limiter.Limiter
 	limit120ReqPerHour *limiter.Limiter
 	limit200ReqPerMin  *limiter.Limiter
@@ -62,6 +63,7 @@ type RateLimitMiddleware struct {
 func NewRateLimitMiddleware(discordCtrl *discord.DiscordController, limit, thumbnailLimit int64, reset time.Duration) *RateLimitMiddleware {
 	rl := &RateLimitMiddleware{
 		limit10ReqPerMin:   util.NewRateLimiter("10-M"),
+		limit30ReqPerMin:   util.NewRateLimiter("30-M"),
 		limit60ReqPerMin:   util.NewRateLimiter("60-M"),
 		limit120ReqPerHour: util.NewRateLimiter("120-H"),
 		limit200ReqPerMin:  util.NewRateLimiter("200-M"),
@@ -286,6 +288,9 @@ func (r *RateLimitMiddleware) getLimiter(reqPath string, reqMethod string) *limi
 	}
 	if reqPath == "/spaces/:spaceID/conversations" && reqMethod == http.MethodGet {
 		return r.limit60ReqPerMin
+	}
+	if reqPath == "/spaces/:spaceID/friends/suggestions" && reqMethod == http.MethodGet {
+		return r.limit30ReqPerMin
 	}
 	if reqPath == "/spaces/:spaceID/feed" && reqMethod == http.MethodGet {
 		return r.limit60ReqPerMin

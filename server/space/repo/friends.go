@@ -589,13 +589,17 @@ func (r *FriendsRepository) ListFriendsForSpace(ctx context.Context, spaceID str
 
 func (r *FriendsRepository) ListFriendSuggestions(ctx context.Context, viewer *SpaceRecord) ([]SpaceRecord, error) {
 	rows, err := r.DB.QueryContext(ctx, `
-		WITH counts AS (
-			SELECT theirs.friend_space_id AS id, COUNT(*) AS mutuals
+		WITH viewer_friends AS (
+			SELECT mine.friend_space_id
 			FROM space_friend_shares mine
 			JOIN spaces mutual ON mutual.space_id = mine.friend_space_id
 			JOIN users mutual_owner ON mutual_owner.user_id = mutual.owner_id AND mutual_owner.encrypted_email IS NOT NULL
-			JOIN space_friend_shares theirs ON theirs.space_id = mine.friend_space_id
 			WHERE mine.space_id = $1
+		), counts AS (
+			SELECT theirs.friend_space_id AS id, COUNT(*) AS mutuals
+			FROM viewer_friends mine
+			JOIN space_friend_shares theirs ON theirs.space_id = mine.friend_space_id
+			WHERE (SELECT COUNT(*) FROM viewer_friends) >= 3
 			GROUP BY theirs.friend_space_id
 			HAVING COUNT(*) >= 2
 		)
