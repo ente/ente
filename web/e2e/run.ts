@@ -1,7 +1,7 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
-import { apps } from "./apps.ts";
+import { apps, appServersFor } from "./apps.ts";
 
 const args = process.argv.slice(2);
 const { values } = parseArgs({
@@ -18,7 +18,9 @@ if (
     project !== undefined &&
     (typeof project !== "string" || !Object.hasOwn(apps, project))
 ) {
-    throw new Error("Expected --project=photos or --project=locker");
+    throw new Error(
+        `Expected --project to be one of: ${Object.keys(apps).join(", ")}`,
+    );
 }
 const selected = Object.keys(apps).filter(
     (name) => project === undefined || name === project,
@@ -46,7 +48,7 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
 }
 
 const commands: [string, string[]][] = [
-    ...selected.map((name): [string, string[]] => [
+    ...appServersFor(selected).map((name): [string, string[]] => [
         process.execPath,
         [npmCLI, "run", `build:${name}`],
     ]),
