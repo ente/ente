@@ -90,6 +90,9 @@ func Error(c *gin.Context, err error) {
 func requestFailureLogLevel(err error, apiErr *ente.ApiError) *log.Level {
 	if errors.Is(err, ente.ErrStorageLimitExceeded) ||
 		errors.Is(err, ente.ErrNoActiveSubscription) ||
+		errors.Is(err, ente.ErrSmallUploadLimitReached) ||
+		errors.Is(err, ente.ErrTinyUploadLimitReached) ||
+		errors.Is(err, ente.ErrPendingUploadLimitReached) ||
 		(apiErr != nil && apiErr.Code == ente.NotFoundError) {
 		return nil
 	}

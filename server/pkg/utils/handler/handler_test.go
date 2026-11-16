@@ -230,11 +230,13 @@ func TestUploadRateLimitRetryAfter(t *testing.T) {
 	for _, reason := range []*ente.ApiError{ente.ErrSmallUploadLimitReached, ente.ErrTinyUploadLimitReached, ente.ErrPendingUploadLimitReached} {
 		t.Run(string(reason.Code), func(t *testing.T) {
 			recorder, ctx := testContext()
+			hook := testLogHook(t)
 			err := &ente.UploadRateLimitError{Reason: reason, RetryAfter: 1500 * time.Millisecond}
 			Error(ctx, stacktrace.Propagate(err, "upload admission"))
 			require.Equal(t, http.StatusTooManyRequests, recorder.Code)
 			require.Equal(t, "2", recorder.Header().Get("Retry-After"))
 			require.Contains(t, recorder.Body.String(), string(reason.Code))
+			require.Empty(t, hook.AllEntries())
 		})
 	}
 }

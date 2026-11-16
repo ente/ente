@@ -210,6 +210,7 @@ func (c *UsageController) ReserveUploadURLs(ctx context.Context, userID int64, s
 	if count <= 0 || count > pendingUploadLimit {
 		return nil, ente.ErrBadRequest
 	}
+	// Public-link uploads intentionally share the owner's account limits.
 	state := c.uploadLimits.state(userID)
 	state.mu.Lock()
 	defer state.mu.Unlock()
