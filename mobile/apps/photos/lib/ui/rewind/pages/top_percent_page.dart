@@ -1,4 +1,5 @@
 import "package:flutter/material.dart";
+import "package:photos/models/file/file.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
@@ -28,6 +29,9 @@ class TopPercentPage extends RewindPage {
 
   @override
   Duration? get reelHold => const Duration(milliseconds: 2700);
+
+  @override
+  List<EnteFile> get reelThumbnails => const [];
 
   _Crowd get _crowd => percent == 1 ? _Crowd.top1 : _Crowd.wide;
 
