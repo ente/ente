@@ -624,7 +624,6 @@ class RitualsService {
     return false;
   }
 
-  @visibleForTesting
   int currentScheduledStreakFromDayKeys(
     Set<int> dayKeys,
     List<bool> daysOfWeek, {

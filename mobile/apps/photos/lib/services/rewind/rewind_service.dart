@@ -164,12 +164,12 @@ class RewindService {
     }
     if (state.computedAt == _storyComputedAt) return;
     try {
-      final story = await RewindStory.prepare(status.report);
-      if (!identical(_state.value, state)) return;
-      if (story.rituals != RewindRituals.current()) {
-        unawaited(_rebuildStory());
-        return;
+      var story = await RewindStory.prepare(status.report);
+      while (identical(_state.value, state) &&
+          story.rituals != RewindRituals.current()) {
+        story = await RewindStory.prepare(status.report);
       }
+      if (!identical(_state.value, state)) return;
       _setStory(story, state.computedAt);
       story.preloadFrom(
         story.resumeIndex(_progress.completed ? null : _progress.resumePage),

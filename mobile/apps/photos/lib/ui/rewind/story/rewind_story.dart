@@ -18,7 +18,7 @@ class RewindStory {
     rust.RewindReport report, {
     Future<RewindMedia> Function() media = RewindMedia.load,
   }) async {
-    final rituals = RewindRituals.current();
+    final rituals = await RewindRituals.settled();
     return compose(
       rewindChapters(report, rituals),
       await media(),
