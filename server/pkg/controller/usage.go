@@ -20,6 +20,7 @@ type UsageController struct {
 	UserCacheCtrl     *usercache.Controller
 	UsageRepo         *repo.UsageRepository
 	UploadURLRepo     uploadLimitRepository
+	UploadNotifier    uploadActivityNotifier
 	UserRepo          *repo.UserRepository
 	FamilyRepo        *repo.FamilyRepository
 	FileRepo          *repo.FileRepository

@@ -38,6 +38,12 @@ var ErrSmallUploadLimitReached = &ApiError{
 	HttpStatusCode: http.StatusTooManyRequests,
 }
 
+var ErrTinyUploadLimitReached = &ApiError{
+	Code:           "TINY_UPLOAD_LIMIT_REACHED",
+	Message:        "Too many very small uploads. Please try again later.",
+	HttpStatusCode: http.StatusTooManyRequests,
+}
+
 var ErrPendingUploadLimitReached = &ApiError{
 	Code:           "PENDING_UPLOAD_LIMIT_REACHED",
 	Message:        "Too many pending uploads. Please complete existing uploads or try again later.",
