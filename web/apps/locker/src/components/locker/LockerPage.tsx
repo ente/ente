@@ -97,7 +97,7 @@ export const LockerPage: React.FC = () => {
         shareCollectionID,
         setShareCollectionID,
         handleCreateCollection,
-        ensureCollectionsExist,
+        createUploadCollection,
         handleRenameCollection,
         handleDeleteCollection,
         handleConfirmDeleteCollection,
@@ -350,7 +350,8 @@ export const LockerPage: React.FC = () => {
                 onUploadItemComplete={handleUploadItemComplete}
                 onUploadsFinished={handleUploadsFinished}
                 onCreateCollection={handleCreateCollection}
-                onEnsureCollections={ensureCollectionsExist}
+                onCreateUploadCollection={createUploadCollection}
+                onRefreshUploadCollections={refreshData}
                 onEnsureUploadLimitState={ensureUploadLimitState}
                 defaultCollectionID={selectedCollectionID}
                 initialItems={prefilledUploadItems}

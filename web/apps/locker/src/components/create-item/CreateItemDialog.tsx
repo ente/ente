@@ -1,7 +1,10 @@
 import { lockerScrollAreaSx } from "@/components/create-item/create-item-dialog-styles";
 import {
-    addCollectionName,
-    toggleCollectionName,
+    dedupeCollectionNames,
+    toggleUploadDestination,
+    updateUploadDestinations,
+    type UploadDestination,
+    uploadDestinationKey,
     uploadQueueItemKey,
 } from "@/components/create-item/file-upload-helpers";
 import { FileUploadSection } from "@/components/create-item/FileUploadSection";
@@ -16,7 +19,6 @@ import {
 } from "@/components/items/locker-item-icons";
 import { LockerConfirmDialog } from "@/components/ui/LockerConfirmDialog";
 import type { LockerUploadLimitState } from "@/services/locker-limits";
-import type { LockerUploadProgress } from "@/services/uploads";
 import {
     lockerHeaderIconButtonSx,
     lockerPrimaryButtonSx,
@@ -53,6 +55,7 @@ import {
     type CreateOption,
     useCreateItemDialogState,
 } from "./use-create-item-dialog-state";
+import type { LockerUploadCallbacks } from "./use-upload-queue";
 
 const CREATABLE_TYPES: {
     type: CreateOption;
@@ -86,7 +89,7 @@ const CREATABLE_TYPES: {
     },
 ];
 
-interface CreateItemDialogProps {
+interface CreateItemDialogProps extends LockerUploadCallbacks {
     open: boolean;
     onClose: () => void;
     collections: LockerCollection[];
@@ -95,23 +98,7 @@ interface CreateItemDialogProps {
         data: Record<string, unknown>,
         collectionIDs: number[],
     ) => Promise<void>;
-    onUploadProgress?: (
-        file: File,
-        collectionIDs: number[],
-        onProgress: (progress: LockerUploadProgress) => void,
-    ) => Promise<void>;
-    onUploadItemComplete?: () => void;
-    onUploadsFinished?: (
-        uploadedCount: number,
-        selectedFileCount: number,
-    ) => Promise<void>;
     onCreateCollection?: (name: string) => Promise<number>;
-    onEnsureCollections?: (
-        names: string[],
-    ) => Promise<Map<string, number> | Record<string, number>>;
-    onEnsureUploadLimitState?: () => Promise<
-        { userDetails: LockerUploadLimitState } | undefined
-    >;
     defaultCollectionID?: number | null;
     initialItems?: LockerUploadCandidate[];
     editItem?: CreateItemDialogEditItem | null;
@@ -127,7 +114,8 @@ export const CreateItemDialog: React.FC<CreateItemDialogProps> = ({
     onUploadItemComplete,
     onUploadsFinished,
     onCreateCollection,
-    onEnsureCollections,
+    onCreateUploadCollection,
+    onRefreshUploadCollections,
     onEnsureUploadLimitState,
     defaultCollectionID,
     initialItems,
@@ -162,14 +150,14 @@ export const CreateItemDialog: React.FC<CreateItemDialogProps> = ({
         saving,
         savedUploadCount,
         selectedCollectionIDs,
-        selectedCollectionNamesByFileKey,
+        uploadDestinations,
         selectedOption,
         selectedType,
         selectedUploadItems,
         setCustomCollectionNames,
         setCollectionName,
         setSelectedCollectionIDs,
-        setSelectedCollectionNamesByFileKey,
+        setUploadDestinations,
         setSelectedUploadItems,
         setShowPassword,
         shouldShowDialogErrorCard,
@@ -189,13 +177,29 @@ export const CreateItemDialog: React.FC<CreateItemDialogProps> = ({
         onUploadProgress,
         onUploadItemComplete,
         onUploadsFinished,
-        onEnsureCollections,
+        onCreateUploadCollection,
+        onRefreshUploadCollections,
         onEnsureUploadLimitState,
         defaultCollectionID,
         initialItems,
         editItem,
         userDetails,
     });
+
+    const changeUploadDestinations = (
+        fileKey: string | undefined,
+        change: (current: UploadDestination[]) => UploadDestination[],
+    ) => {
+        setUploadDestinations((current) =>
+            updateUploadDestinations(
+                current,
+                fileKey,
+                selectedUploadItems,
+                completedFileKeys,
+                change,
+            ),
+        );
+    };
 
     return (
         <Dialog
@@ -415,9 +419,7 @@ export const CreateItemDialog: React.FC<CreateItemDialogProps> = ({
                             selectedUploadItems={selectedUploadItems}
                             collections={displayCollections}
                             availableCollectionNames={customCollectionNames}
-                            selectedCollectionNamesByFileKey={
-                                selectedCollectionNamesByFileKey
-                            }
+                            uploadDestinations={uploadDestinations}
                             completedFileKeys={completedFileKeys}
                             failedFileKeys={failedFileKeys}
                             uploadingFileKeys={uploadingFileKeys}
@@ -426,46 +428,33 @@ export const CreateItemDialog: React.FC<CreateItemDialogProps> = ({
                             uploading={uploading}
                             canUpload={canUpload}
                             onFileSelect={handleFileSelect}
-                            onToggleCollectionName={(fileKey, name) =>
-                                setSelectedCollectionNamesByFileKey(
-                                    (current) => ({
-                                        ...current,
-                                        [fileKey]: toggleCollectionName(
-                                            current[fileKey] ?? [],
-                                            name,
-                                        ),
-                                    }),
+                            onToggleDestination={(fileKey, destination) =>
+                                changeUploadDestinations(fileKey, (current) =>
+                                    toggleUploadDestination(
+                                        current,
+                                        destination,
+                                        displayCollections,
+                                    ),
                                 )
                             }
                             onAddCollectionName={(fileKey, name) => {
                                 setCustomCollectionNames((current) =>
-                                    addCollectionName(current, name),
+                                    dedupeCollectionNames([...current, name]),
                                 );
-                                setSelectedCollectionNamesByFileKey(
-                                    (current) => ({
-                                        ...current,
-                                        [fileKey]: addCollectionName(
-                                            current[fileKey] ?? [],
-                                            name,
-                                        ),
-                                    }),
+                                const destination: UploadDestination = {
+                                    kind: "new",
+                                    name,
+                                };
+                                changeUploadDestinations(fileKey, (current) =>
+                                    current.some(
+                                        (entry) =>
+                                            uploadDestinationKey(entry) ===
+                                            uploadDestinationKey(destination),
+                                    )
+                                        ? current
+                                        : [...current, destination],
                                 );
                             }}
-                            onAddAvailableCollectionName={(name) =>
-                                setCustomCollectionNames((current) =>
-                                    addCollectionName(current, name),
-                                )
-                            }
-                            onSetCollectionNamesForAllItems={(names) =>
-                                setSelectedCollectionNamesByFileKey(
-                                    Object.fromEntries(
-                                        selectedUploadItems.map((item) => [
-                                            uploadQueueItemKey(item),
-                                            names,
-                                        ]),
-                                    ),
-                                )
-                            }
                             onRenameItem={(fileKey, uploadName) => {
                                 if (uploading || completedFileKeys.has(fileKey))
                                     return;
@@ -485,7 +474,7 @@ export const CreateItemDialog: React.FC<CreateItemDialogProps> = ({
                                             fileKey,
                                     ),
                                 );
-                                setSelectedCollectionNamesByFileKey((current) =>
+                                setUploadDestinations((current) =>
                                     Object.fromEntries(
                                         Object.entries(current).filter(
                                             ([key]) => key !== fileKey,

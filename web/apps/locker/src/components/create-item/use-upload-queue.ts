@@ -15,6 +15,7 @@ import log from "ente-base/log";
 import { t } from "i18next";
 import {
     useCallback,
+    useRef,
     useState,
     type Dispatch,
     type SetStateAction,
@@ -24,7 +25,9 @@ import {
     fileForUpload,
     filterNonEmptyUploadItems,
     normalizeCollectionName,
+    replaceCreatedUploadDestination,
     uploadQueueItemKey,
+    type UploadDestinationsByFileKey,
 } from "./file-upload-helpers";
 
 const MAX_PARALLEL_UPLOADS = 4;
@@ -40,9 +43,8 @@ export interface LockerUploadCallbacks {
         uploadedCount: number,
         selectedFileCount: number,
     ) => Promise<void>;
-    onEnsureCollections?: (
-        names: string[],
-    ) => Promise<Map<string, number> | Record<string, number>>;
+    onCreateUploadCollection?: (name: string) => Promise<number>;
+    onRefreshUploadCollections?: () => Promise<void>;
     onEnsureUploadLimitState?: () => Promise<
         { userDetails: LockerUploadLimitState } | undefined
     >;
@@ -51,7 +53,10 @@ export interface LockerUploadCallbacks {
 interface UseUploadQueueProps extends LockerUploadCallbacks {
     displayCollections: LockerCollection[];
     selectedUploadItems: LockerUploadCandidate[];
-    selectedCollectionNamesByFileKey: Record<string, string[]>;
+    uploadDestinations: UploadDestinationsByFileKey;
+    setUploadDestinations: Dispatch<
+        SetStateAction<UploadDestinationsByFileKey>
+    >;
     userDetails?: LockerUploadLimitState;
     setError: Dispatch<SetStateAction<string | null>>;
     setUpgradeCTAType: Dispatch<SetStateAction<LockerUpgradeCTAType | null>>;
@@ -76,16 +81,19 @@ const emptyUploadState = (): UploadState => ({
 export function useUploadQueue({
     displayCollections,
     selectedUploadItems,
-    selectedCollectionNamesByFileKey,
+    uploadDestinations,
+    setUploadDestinations,
     userDetails,
     setError,
     setUpgradeCTAType,
     onUploadProgress,
     onUploadItemComplete,
     onUploadsFinished,
-    onEnsureCollections,
+    onCreateUploadCollection,
+    onRefreshUploadCollections,
     onEnsureUploadLimitState,
 }: UseUploadQueueProps) {
+    const uploadInFlight = useRef(false);
     const [uploading, setUploading] = useState(false);
     const [completedFileKeys, setCompletedFileKeys] = useState<Set<string>>(
         () => new Set(),
@@ -114,7 +122,11 @@ export function useUploadQueue({
 
     const upload = useCallback(
         async (onComplete: () => void) => {
-            if (selectedUploadItems.length === 0 || !onUploadProgress) {
+            if (
+                uploadInFlight.current ||
+                !selectedUploadItems.length ||
+                !onUploadProgress
+            ) {
                 return;
             }
 
@@ -127,142 +139,186 @@ export function useUploadQueue({
                 return;
             }
 
-            let effectiveUserDetails = userDetails;
-            if (!effectiveUserDetails) {
-                const uploadLimitState = await onEnsureUploadLimitState?.();
-                effectiveUserDetails = uploadLimitState?.userDetails;
-            }
+            uploadInFlight.current = true;
+            setUploading(true);
+            try {
+                let effectiveUserDetails = userDetails;
+                if (!effectiveUserDetails) {
+                    const uploadLimitState = await onEnsureUploadLimitState?.();
+                    effectiveUserDetails = uploadLimitState?.userDetails;
+                }
 
-            if (!effectiveUserDetails) {
-                setError(t("generic_error_retry"));
-                setUpgradeCTAType(null);
-                return;
-            }
+                if (!effectiveUserDetails) {
+                    setError(t("generic_error_retry"));
+                    setUpgradeCTAType(null);
+                    return;
+                }
 
-            const preflightFailure = validateLockerUploadBatch(
-                pendingUploadItems.map(({ file }) => file),
-                effectiveUserDetails,
-            );
-            if (preflightFailure) {
-                const hitsPaidHardCap = exceedsPaidLockerHardLimit(
+                const preflightFailure = validateLockerUploadBatch(
                     pendingUploadItems.map(({ file }) => file),
                     effectiveUserDetails,
                 );
-                const preflightFailureMessage = (
-                    failure: LockerUploadPreflightFailure,
-                ) => {
-                    if (
-                        hitsPaidHardCap &&
-                        (failure.reason === "fileCountLimit" ||
-                            failure.reason === "storageLimit")
-                    ) {
-                        return t("uploadLockerHardCapErrorBody");
-                    }
-                    switch (failure.reason) {
-                        case "fileCountLimit":
-                            return t("uploadFileCountLimitErrorBody");
-                        case "fileTooLarge":
-                            return t("uploadFileTooLargeErrorBody");
-                        case "storageLimit":
-                            return t("uploadStorageLimitErrorBody");
-                    }
-                };
+                if (preflightFailure) {
+                    const hitsPaidHardCap = exceedsPaidLockerHardLimit(
+                        pendingUploadItems.map(({ file }) => file),
+                        effectiveUserDetails,
+                    );
+                    const preflightFailureMessage = (
+                        failure: LockerUploadPreflightFailure,
+                    ) => {
+                        if (
+                            hitsPaidHardCap &&
+                            (failure.reason === "fileCountLimit" ||
+                                failure.reason === "storageLimit")
+                        ) {
+                            return t("uploadLockerHardCapErrorBody");
+                        }
+                        switch (failure.reason) {
+                            case "fileCountLimit":
+                                return t("uploadFileCountLimitErrorBody");
+                            case "fileTooLarge":
+                                return t("uploadFileTooLargeErrorBody");
+                            case "storageLimit":
+                                return t("uploadStorageLimitErrorBody");
+                        }
+                    };
 
-                setError(preflightFailureMessage(preflightFailure));
-                setUpgradeCTAType(
-                    hitsPaidHardCap
-                        ? null
-                        : preflightFailure.reason === "fileCountLimit"
-                          ? "fileCountLimit"
-                          : preflightFailure.reason === "storageLimit"
-                            ? "storageLimit"
-                            : null,
-                );
-                return;
-            }
+                    setError(preflightFailureMessage(preflightFailure));
+                    setUpgradeCTAType(
+                        hitsPaidHardCap
+                            ? null
+                            : preflightFailure.reason === "fileCountLimit"
+                              ? "fileCountLimit"
+                              : preflightFailure.reason === "storageLimit"
+                                ? "storageLimit"
+                                : null,
+                    );
+                    return;
+                }
 
-            setUploading(true);
-            setError(null);
-            setUpgradeCTAType(null);
-            const pendingUploadFileKeys = new Set(
-                pendingUploadItems.map((item) => uploadQueueItemKey(item)),
-            );
-            setFailedFileKeys((current) => {
-                const next = new Set(current);
-                pendingUploadFileKeys.forEach((fileKey) =>
-                    next.delete(fileKey),
+                const destinationsByItem = pendingUploadItems.map((item) => {
+                    const fileKey = uploadQueueItemKey(item);
+                    return {
+                        item,
+                        fileKey,
+                        destinations: uploadDestinations[fileKey] ?? [],
+                    };
+                });
+                const eligibleIDs = new Set(
+                    displayCollections.map(({ id }) => id),
                 );
-                return next;
-            });
-            setUploadingFileKeys((current) => {
-                const next = new Set(current);
-                pendingUploadFileKeys.forEach((fileKey) =>
-                    next.delete(fileKey),
-                );
-                return next;
-            });
-            setUploadProgressByFileKey((current) =>
-                Object.fromEntries(
-                    Object.entries(current).filter(
-                        ([fileKey]) => !pendingUploadFileKeys.has(fileKey),
-                    ),
-                ),
-            );
-            setUploadCapByFileKey((current) =>
-                Object.fromEntries(
-                    Object.entries(current).filter(
-                        ([fileKey]) => !pendingUploadFileKeys.has(fileKey),
-                    ),
-                ),
-            );
-            let uploadedCount = 0;
-            try {
-                const existingNormalizedNameToID = new Map(
-                    displayCollections.map((collection) => [
-                        normalizeCollectionName(collection.name),
-                        collection.id,
-                    ]),
-                );
-                const normalizedNameToIDResult = await onEnsureCollections?.(
-                    dedupeCollectionNames(
-                        Object.values(selectedCollectionNamesByFileKey).flat(),
+                const existingNames = new Set(
+                    displayCollections.map(({ name }) =>
+                        normalizeCollectionName(name),
                     ),
                 );
-                const normalizedNameToID = new Map(existingNormalizedNameToID);
-                if (normalizedNameToIDResult instanceof Map) {
-                    for (const [
-                        name,
-                        id,
-                    ] of normalizedNameToIDResult.entries()) {
-                        normalizedNameToID.set(
-                            normalizeCollectionName(name),
-                            id,
-                        );
-                    }
-                } else {
-                    for (const [name, id] of Object.entries(
-                        normalizedNameToIDResult ?? {},
-                    )) {
-                        normalizedNameToID.set(
-                            normalizeCollectionName(name),
-                            id,
-                        );
+                const newNames: string[] = [];
+
+                for (const { destinations } of destinationsByItem) {
+                    for (const destination of destinations) {
+                        if (destination.kind === "existing") {
+                            if (!eligibleIDs.has(destination.id)) {
+                                setError(t("uploadDestinationUnavailable"));
+                                setUpgradeCTAType(null);
+                                return;
+                            }
+                        } else if (
+                            destination.kind === "ambiguous" ||
+                            existingNames.has(
+                                normalizeCollectionName(destination.name),
+                            )
+                        ) {
+                            setError(
+                                t("uploadDestinationNeedsChoice", {
+                                    name: destination.name,
+                                }),
+                            );
+                            setUpgradeCTAType(null);
+                            return;
+                        } else {
+                            newNames.push(destination.name);
+                        }
                     }
                 }
-                const uploadTargets = pendingUploadItems.map((item) => {
-                    const fileKey = uploadQueueItemKey(item);
-                    const collectionIDs = dedupeCollectionNames(
-                        selectedCollectionNamesByFileKey[fileKey] ?? [],
-                    )
-                        .map((name) =>
-                            normalizedNameToID.get(
-                                normalizeCollectionName(name),
-                            ),
-                        )
-                        .filter((id): id is number => typeof id === "number");
-                    return { item, fileKey, collectionIDs };
-                });
 
+                setError(null);
+                setUpgradeCTAType(null);
+                const pendingUploadFileKeys = new Set(
+                    pendingUploadItems.map((item) => uploadQueueItemKey(item)),
+                );
+                setFailedFileKeys((current) => {
+                    const next = new Set(current);
+                    pendingUploadFileKeys.forEach((fileKey) =>
+                        next.delete(fileKey),
+                    );
+                    return next;
+                });
+                setUploadingFileKeys((current) => {
+                    const next = new Set(current);
+                    pendingUploadFileKeys.forEach((fileKey) =>
+                        next.delete(fileKey),
+                    );
+                    return next;
+                });
+                setUploadProgressByFileKey((current) =>
+                    Object.fromEntries(
+                        Object.entries(current).filter(
+                            ([fileKey]) => !pendingUploadFileKeys.has(fileKey),
+                        ),
+                    ),
+                );
+                setUploadCapByFileKey((current) =>
+                    Object.fromEntries(
+                        Object.entries(current).filter(
+                            ([fileKey]) => !pendingUploadFileKeys.has(fileKey),
+                        ),
+                    ),
+                );
+
+                const createdIDs = new Map<string, number>();
+                try {
+                    for (const name of dedupeCollectionNames(newNames)) {
+                        if (!onCreateUploadCollection)
+                            throw new Error(
+                                "Collection creation is unavailable",
+                            );
+                        const id = await onCreateUploadCollection(name);
+                        createdIDs.set(normalizeCollectionName(name), id);
+                        setUploadDestinations((current) =>
+                            replaceCreatedUploadDestination(current, name, id),
+                        );
+                    }
+                } finally {
+                    if (createdIDs.size > 0)
+                        await onRefreshUploadCollections?.();
+                }
+
+                const uploadTargets = destinationsByItem.map(
+                    ({ item, fileKey, destinations }) => ({
+                        item,
+                        fileKey,
+                        collectionIDs: [
+                            ...new Set(
+                                destinations.map((destination) => {
+                                    if (destination.kind === "existing")
+                                        return destination.id;
+                                    const id = createdIDs.get(
+                                        normalizeCollectionName(
+                                            destination.name,
+                                        ),
+                                    );
+                                    if (id === undefined)
+                                        throw new Error(
+                                            "Upload destination was not resolved",
+                                        );
+                                    return id;
+                                }),
+                            ),
+                        ],
+                    }),
+                );
+
+                let uploadedCount = 0;
                 let nextIndex = 0;
                 const worker = async () => {
                     while (true) {
@@ -360,21 +416,24 @@ export function useUploadQueue({
                 setError(await formatLockerMutationError(error, "uploadFile"));
                 setUpgradeCTAType(await lockerUpgradeCTAType(error));
             } finally {
+                uploadInFlight.current = false;
                 setUploading(false);
             }
         },
         [
             completedFileKeys,
             displayCollections,
-            onEnsureCollections,
+            onCreateUploadCollection,
+            onRefreshUploadCollections,
             onEnsureUploadLimitState,
             onUploadItemComplete,
             onUploadProgress,
             onUploadsFinished,
-            selectedCollectionNamesByFileKey,
+            uploadDestinations,
             selectedUploadItems,
             userDetails,
             setError,
+            setUploadDestinations,
             setUpgradeCTAType,
         ],
     );

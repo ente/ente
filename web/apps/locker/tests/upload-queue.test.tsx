@@ -1,6 +1,14 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, expect, test, vi } from "vitest";
+import {
+    toggleUploadDestination,
+    updateUploadDestinations,
+    uploadDestinationsByItem,
+    uploadQueueItemKey,
+    type UploadDestination,
+} from "../src/components/create-item/file-upload-helpers";
 import { useUploadQueue } from "../src/components/create-item/use-upload-queue";
+import type { LockerCollection } from "../src/types";
 
 vi.mock("../src/services/locker-errors", () => ({
     formatLockerMutationError: () => Promise.resolve("Upload failed"),
@@ -32,7 +40,8 @@ function queueFor(overrides: Partial<Props> = {}) {
         queue = useUploadQueue({
             displayCollections: [],
             selectedUploadItems: files(),
-            selectedCollectionNamesByFileKey: {},
+            uploadDestinations: {},
+            setUploadDestinations: vi.fn(),
             userDetails: allowance,
             setError: error,
             setUpgradeCTAType: vi.fn(),
@@ -107,4 +116,189 @@ test("an oversized file is rejected before it is read or uploaded", async () => 
     await queueFor({ selectedUploadItems: items }).upload(complete);
     expect(upload).not.toHaveBeenCalled();
     expect(finished).not.toHaveBeenCalled();
+});
+
+const collection = (id: number, name: string): LockerCollection => ({
+    id,
+    name,
+    owner: { id: 1 },
+    items: [],
+    sharees: [],
+    type: "folder",
+    isShared: false,
+});
+
+const existing = (id: number): UploadDestination => ({ kind: "existing", id });
+
+test.each([
+    [
+        "identical names",
+        [collection(1, "Documents"), collection(2, "Documents")],
+    ],
+    [
+        "normalized name matches",
+        [collection(1, "Documents"), collection(2, " documents ")],
+    ],
+    [
+        "reordered collections",
+        [collection(2, "Documents"), collection(1, "Documents")],
+    ],
+    [
+        "a renamed collection",
+        [collection(1, "New name"), collection(2, "Documents")],
+    ],
+])(
+    "the selected ID reaches the upload callback with %s",
+    async (_case, displayCollections) => {
+        const items = files().slice(0, 1);
+        const selection = uploadDestinationsByItem(items, [], 1);
+        const create = vi.fn();
+        await queueFor({
+            selectedUploadItems: items,
+            displayCollections,
+            uploadDestinations: selection,
+            onCreateUploadCollection: create,
+        }).upload(complete);
+        expect(upload.mock.calls.map(([, ids]) => ids)).toEqual([[1]]);
+        expect(create).not.toHaveBeenCalled();
+    },
+);
+
+test("batch and per-file choices reach the upload callback by ID", async () => {
+    const items = files();
+    const collections = [collection(1, "First"), collection(2, "Second")];
+    const all = updateUploadDestinations(
+        {},
+        undefined,
+        items,
+        new Set(),
+        () => [existing(1)],
+    );
+    const uploadDestinations = updateUploadDestinations(
+        all,
+        uploadQueueItemKey(items[1]!),
+        items,
+        new Set(),
+        (current) => toggleUploadDestination(current, existing(2), collections),
+    );
+    await queueFor({
+        selectedUploadItems: items,
+        displayCollections: collections,
+        uploadDestinations,
+    }).upload(complete);
+    expect(upload.mock.calls.map(([file, ids]) => [file.name, ids])).toEqual([
+        ["one.txt", [1]],
+        ["two.txt", [1, 2]],
+    ]);
+});
+
+test("folder suggestions select a unique ID or defer to a user choice", async () => {
+    const [first, second] = files();
+    const unique = { ...first!, suggestedCollectionNames: ["Tax"] };
+    const ambiguous = { ...second!, suggestedCollectionNames: ["Documents"] };
+    const items = [unique, ambiguous];
+    const displayCollections = [
+        collection(1, "Tax"),
+        collection(2, "Documents"),
+        collection(3, " documents "),
+    ];
+    const selections = uploadDestinationsByItem(items, displayCollections);
+    const create = vi.fn();
+    const props = {
+        selectedUploadItems: items,
+        displayCollections,
+        onCreateUploadCollection: create,
+    };
+
+    await queueFor({ ...props, uploadDestinations: selections }).upload(
+        complete,
+    );
+    expect(error).toHaveBeenCalledWith("uploadDestinationNeedsChoice");
+    expect(upload).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
+
+    const uploadDestinations = updateUploadDestinations(
+        selections,
+        uploadQueueItemKey(ambiguous),
+        items,
+        new Set(),
+        (current) =>
+            toggleUploadDestination(current, existing(3), displayCollections),
+    );
+    await queueFor({ ...props, uploadDestinations }).upload(complete);
+    expect(upload.mock.calls.map(([, ids]) => ids)).toEqual([[1], [3]]);
+});
+
+test.each([
+    [
+        { kind: "existing", id: 999 } satisfies UploadDestination,
+        "uploadDestinationUnavailable",
+    ],
+    [
+        { kind: "new", name: " existing " } satisfies UploadDestination,
+        "uploadDestinationNeedsChoice",
+    ],
+])(
+    "an invalid destination stops the batch before creation or upload",
+    async (destination, message) => {
+        const [first, second] = files();
+        const create = vi.fn();
+        await queueFor({
+            selectedUploadItems: [first!, second!],
+            displayCollections: [collection(1, "Existing")],
+            uploadDestinations: {
+                [uploadQueueItemKey(first!)]: [{ kind: "new", name: "New" }],
+                [uploadQueueItemKey(second!)]: [destination],
+            },
+            onCreateUploadCollection: create,
+        }).upload(complete);
+        expect(error).toHaveBeenCalledWith(message);
+        expect(upload).not.toHaveBeenCalled();
+        expect(create).not.toHaveBeenCalled();
+    },
+);
+
+test("a retry reuses a successfully created collection after partial failure", async () => {
+    const [first, second] = files();
+    const items = [
+        { ...first!, suggestedCollectionNames: ["New"] },
+        { ...second!, suggestedCollectionNames: [" new ", "Another"] },
+    ];
+    let selections = uploadDestinationsByItem(items, []);
+    const create = vi
+        .fn<NonNullable<Props["onCreateUploadCollection"]>>()
+        .mockResolvedValueOnce(8)
+        .mockRejectedValueOnce(new Error("network"))
+        .mockResolvedValueOnce(9);
+    const refresh = vi.fn().mockResolvedValue(undefined);
+    const setUploadDestinations: Props["setUploadDestinations"] = (update) => {
+        selections = typeof update === "function" ? update(selections) : update;
+    };
+    const props = {
+        selectedUploadItems: items,
+        onCreateUploadCollection: create,
+        onRefreshUploadCollections: refresh,
+        setUploadDestinations,
+    };
+
+    await queueFor({ ...props, uploadDestinations: selections }).upload(
+        complete,
+    );
+    expect(upload).not.toHaveBeenCalled();
+    expect(refresh).toHaveBeenCalledOnce();
+
+    await queueFor({
+        ...props,
+        displayCollections: [collection(8, "New")],
+        uploadDestinations: selections,
+    }).upload(complete);
+    expect(create.mock.calls).toEqual([["New"], ["Another"], ["Another"]]);
+    expect(upload.mock.calls.map(([, ids]) => ids)).toEqual([[8], [8, 9]]);
+});
+
+test("a file without a destination uses the upload service's Uncategorized fallback", async () => {
+    await queueFor({ selectedUploadItems: files().slice(0, 1) }).upload(
+        complete,
+    );
+    expect(upload.mock.calls.map(([, ids]) => ids)).toEqual([[]]);
 });
