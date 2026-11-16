@@ -353,7 +353,7 @@ A photo may appear in both Hidden and a hidden album if you first add it to Hidd
 
 ### How do I archive photos in Ente? {#how-to-archive}
 
-Long press to select the photo(s) you want to archive, then select "Archive" from the bottom menu. To archive an entire album, open the album, tap the three dots menu, and select "Archive album". You can view archived content anytime by going to the "Archive" section (no authentication required).
+Long press to select the photo(s) you want to archive, pull up the selection menu, then tap "Archive". To archive an entire album, open the album, tap the three dots menu, and select "Archive album". You can view archived content anytime by going to the "Archive" section (no authentication required).
 
 ### Can I hide an album's photos from my timeline? {#album-off-timeline}
 
