@@ -74,6 +74,9 @@ if ! command -v fpm &> /dev/null; then
 fi
 
 echo -e "${YELLOW}Building RPM package...${NC}"
+# Shared libraries are required by soname so any distro package providing them
+# satisfies the dependency. The tray plugin links the Ayatana indicator stack;
+# Fedora's legacy libappindicator package only ships GTK2 libappindicator.so.1.
 fpm -s dir -t rpm \
   -n enteauth \
   -v "$VERSION" \
@@ -85,7 +88,10 @@ fpm -s dir -t rpm \
   --category "Application/Utility" \
   --depends sqlite-libs \
   --depends libsecret \
-  --depends libappindicator \
+  --depends 'libcurl.so.4()(64bit)' \
+  --depends 'libayatana-appindicator3.so.1()(64bit)' \
+  --depends 'libayatana-indicator3.so.7()(64bit)' \
+  --depends 'libayatana-ido3-0.4.so.0()(64bit)' \
   --depends polkit \
   -C "$STAGING_DIR" \
   -p "$OUTPUT_DIR/enteauth-VERSION.ARCH.rpm" \
