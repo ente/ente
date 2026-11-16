@@ -71,23 +71,6 @@ class SearchResultView extends StatelessWidget {
             ),
             const SizedBox(height: Spacing.lg),
           ],
-          if (selectedCollections != null &&
-              (selectedFiles.hasSelections ||
-                  selectedCollections!.hasSelections))
-            Padding(
-              padding: const EdgeInsets.only(bottom: Spacing.lg),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  selectedCollections!.hasSelections
-                      ? context.strings.collectionCount(
-                          count: selectedCollections!.count,
-                        )
-                      : context.strings.itemCount(count: selectedFiles.count),
-                  style: TextStyles.mini,
-                ),
-              ),
-            ),
           ItemListView(
             files: files,
             collections: collections,
