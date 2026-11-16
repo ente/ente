@@ -128,13 +128,72 @@ void main() {
   });
 
   test("PUT stops after four failures", () async {
+    for (final finalStatus in [500, 403]) {
+      final fixture = _Fixture();
+      fixture.gateway.uploadURLs.add(UploadURL("url", "key"));
+      final finalError = _dioError(statusCode: finalStatus);
+      fixture.dio.putFailures.addAll([
+        _dioError(statusCode: 500),
+        _dioError(statusCode: 500),
+        _dioError(statusCode: 500),
+        finalError,
+      ]);
+      await expectLater(
+        fixture.transport.uploadSinglePart(file, 4, contentMd5: "md5"),
+        throwsA(same(finalError)),
+      );
+
+      expect(fixture.dio.putPaths, hasLength(4));
+      expect(fixture.gateway.uploadURLRequests, hasLength(1));
+      expect(fixture.delays, _expectedPutRetryDelays);
+    }
+  });
+
+  test(
+    "PUT refreshes a forbidden URL and reuses it for later retries",
+    () async {
+      for (final useProxy in [false, true]) {
+        final fixture = _Fixture()..useProxy = useProxy;
+        fixture.gateway.uploadURLs.addAll([
+          UploadURL("original-url", "original-key"),
+          UploadURL("refreshed-url", "refreshed-key"),
+        ]);
+        fixture.dio.putFailures.addAll([
+          _dioError(statusCode: 403),
+          _dioError(statusCode: 500),
+          _dioError(),
+        ]);
+
+        expect(
+          await fixture.transport.uploadSinglePart(file, 4, contentMd5: "md5"),
+          "refreshed-key",
+        );
+        expect(
+          useProxy
+              ? fixture.dio.headers.map((headers) => headers["UPLOAD-URL"])
+              : fixture.dio.putPaths,
+          ["original-url", "refreshed-url", "refreshed-url", "refreshed-url"],
+        );
+        expect(fixture.gateway.uploadURLRequests, [
+          (contentLength: 4, contentMd5: "md5"),
+          (contentLength: 4, contentMd5: "md5"),
+        ]);
+        expect(fixture.dio.payloads, everyElement([1, 2, 3, 4]));
+        expect(fixture.delays, _expectedPutRetryDelays);
+      }
+    },
+  );
+
+  test("PUT stops if the refreshed URL also returns 403", () async {
     final fixture = _Fixture();
-    fixture.gateway.uploadURLs.add(UploadURL("url", "key"));
-    final finalError = _dioError(statusCode: 500);
+    fixture.gateway.uploadURLs.addAll([
+      UploadURL("original-url", "original-key"),
+      UploadURL("refreshed-url", "refreshed-key"),
+    ]);
+    final finalError = _dioError(statusCode: 403);
     fixture.dio.putFailures.addAll([
-      _dioError(statusCode: 500),
-      _dioError(statusCode: 500),
-      _dioError(statusCode: 500),
+      _dioError(statusCode: 403),
+      _dioError(),
       finalError,
     ]);
     await expectLater(
@@ -142,13 +201,18 @@ void main() {
       throwsA(same(finalError)),
     );
 
-    expect(fixture.dio.putPaths, hasLength(4));
-    expect(fixture.gateway.uploadURLRequests, hasLength(1));
-    expect(fixture.delays, _expectedPutRetryDelays);
+    expect(fixture.dio.putPaths, [
+      "original-url",
+      "refreshed-url",
+      "refreshed-url",
+    ]);
+    expect(fixture.gateway.uploadURLRequests, hasLength(2));
+    expect(fixture.delays, _expectedPutRetryDelays.take(2));
+    expect(fixture.clearedErrors, isEmpty);
   });
 
   test("PUT retries response failures without clearing the queue", () async {
-    for (final statusCode in [402, 403, 413, 426, 429]) {
+    for (final statusCode in [402, 413, 426, 429]) {
       final fixture = _Fixture();
       fixture.gateway.uploadURLs.add(
         UploadURL("url-$statusCode", "key-$statusCode"),
