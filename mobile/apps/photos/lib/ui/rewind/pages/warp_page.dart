@@ -2,6 +2,7 @@ import "dart:math";
 import "dart:typed_data";
 import "dart:ui" as ui;
 
+import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 import "package:flutter/scheduler.dart";
 import "package:flutter/services.dart";
@@ -176,6 +177,14 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   static const _coastMs = 380.0;
   static const _seekMs = 170.0;
   static const _wheelSpan = 900.0;
+  static const _rollSpan = 140.0;
+  static const _rollCoastMs = 520.0;
+  static const _detent = pi / 3;
+  static const _holdFor = Duration(milliseconds: 250);
+  static const _holdSlop = 12.0;
+  static const _brakeMs = 90.0;
+  static const _hintFromMs = 1500.0;
+  static const _hintMs = 2200.0;
   static const _pickedAt = Offset(195, 356);
 
   late final _reel = RewindPageScope.reelOf(context);
@@ -195,6 +204,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   var _last = Duration.zero;
   var _ms = 0.0;
   var _flownMs = 0.0;
+  var _guidedMs = 0.0;
   var _travelled = 0.0;
   var _previous = 0.0;
   var _velocity = 0.0;
@@ -202,6 +212,17 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   var _piloted = false;
   var _still = false;
   var _dragging = false;
+  var _roll = 0.0;
+  var _rollRate = 0.0;
+  var _rollSide = 1.0;
+  var _rolling = false;
+  var _hasRolled = false;
+  var _detents = 0;
+  var _held = false;
+  var _hasHeld = false;
+  var _heldBy = Offset.zero;
+  Axis? _heldAxis;
+  var _brake = 0.0;
   double? _seek;
   double? _landedMs;
   var _gate = -1;
@@ -211,6 +232,13 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
 
   bool get _landed =>
       widget.walls != null && _travelled >= _course.length - 0.01;
+
+  bool get _canHold =>
+      _held ||
+      (!_piloted && !_landed) ||
+      _velocity != 0 ||
+      _seek != null ||
+      _rollRate != 0;
 
   @override
   void didChangeDependencies() {
@@ -250,7 +278,9 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
     _last = elapsed;
     if (dt <= 0) return;
     _ms += dt;
+    _brake += ((_held ? 1 : 0) - _brake) * (1 - exp(-dt / _brakeMs));
     if (widget.walls != null && _picked == null) _fly(dt);
+    _coastRoll(dt);
     final rate = (_travelled - _previous).abs() / dt;
     _previous = _travelled;
     final cruise = 2 * _course.length / _flightMs;
@@ -274,7 +304,8 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   void _fly(double dt) {
     final length = _course.length;
     if (!_piloted) {
-      _flownMs += dt;
+      _guidedMs += dt;
+      _flownMs += dt * (1 - _brake);
       _travelled = _still
           ? length
           : length *
@@ -295,6 +326,19 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
         _velocity = 0;
       }
     }
+  }
+
+  void _coastRoll(double dt) {
+    if (!_rolling && _rollRate != 0) {
+      final step = min(dt, 50.0);
+      _roll += _rollRate * step;
+      _rollRate *= exp(-step / _rollCoastMs);
+      if (_rollRate.abs() < 0.00008) _rollRate = 0;
+    }
+    final detents = (_roll / _detent).round();
+    if (detents == _detents) return;
+    _detents = detents;
+    HapticFeedback.selectionClick();
   }
 
   DateTime? get _passing {
@@ -323,6 +367,79 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
     _velocity = -pixelsPerSecond / span * _course.length / 1000;
   }
 
+  double _sideOf(double x) => x < _Course.vanish.dx ? -1 : 1;
+
+  void _startRoll(double x) {
+    _release();
+    _rolling = true;
+    _rollRate = 0;
+    _rollSide = _sideOf(x);
+  }
+
+  void _rollBy(double dy) {
+    _roll += _rollSide * dy / _rollSpan;
+    _hasRolled = true;
+  }
+
+  void _endRoll(double pixelsPerSecond) {
+    _rolling = false;
+    _rollRate = _still ? 0 : _rollSide * pixelsPerSecond / _rollSpan / 1000;
+  }
+
+  void _listenForHold(LongPressGestureRecognizer recognizer) {
+    recognizer.onLongPressStart = (details) => _hold(details.localPosition.dx);
+    recognizer.onLongPressMoveUpdate = (details) =>
+        _holdMove(details.localOffsetFromOrigin);
+    recognizer.onLongPressEnd = (details) =>
+        _letHoldGo(details.velocity.pixelsPerSecond);
+    recognizer.onLongPressCancel = () => _letHoldGo(Offset.zero);
+  }
+
+  void _hold(double x) {
+    _release();
+    _held = true;
+    _hasHeld = true;
+    _heldBy = Offset.zero;
+    _heldAxis = null;
+    _velocity = 0;
+    _seek = null;
+    _rollRate = 0;
+    _rollSide = _sideOf(x);
+    HapticFeedback.selectionClick();
+  }
+
+  void _holdMove(Offset moved) {
+    final delta = moved - _heldBy;
+    _heldBy = moved;
+    switch (_heldAxis) {
+      case Axis.horizontal:
+        _steer(delta.dx, _wheelSpan);
+      case Axis.vertical:
+        _rollBy(delta.dy);
+      case null:
+        if (moved.distance < _holdSlop) return;
+        if (moved.dx.abs() > moved.dy.abs()) {
+          _heldAxis = Axis.horizontal;
+          _takeOver();
+        } else {
+          _heldAxis = Axis.vertical;
+          _rolling = true;
+        }
+    }
+  }
+
+  void _letHoldGo(Offset pixelsPerSecond) {
+    if (!_held) return;
+    _held = false;
+    switch (_heldAxis) {
+      case Axis.horizontal:
+        _letGo(pixelsPerSecond.dx, _wheelSpan);
+      case Axis.vertical:
+        _endRoll(pixelsPerSecond.dy);
+      case null:
+    }
+  }
+
   void _jump(double x) {
     _release();
     _piloted = true;
@@ -336,6 +453,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
     _release();
     _piloted = false;
     _flownMs = 0;
+    _guidedMs = 0;
     _velocity = 0;
     _seek = null;
     _gate = -1;
@@ -361,7 +479,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
           width: _printWidth,
           height: _printWidth * 1.22,
         ).contains(at);
-    final panel = onFirst ? null : _course.panelAt(at, _travelled);
+    final panel = onFirst ? null : _course.panelAt(at, _travelled, _roll);
     if (panel == null) {
       final navigator = RewindPageScope.navigatorOf(context);
       at.dx < RewindStage.size.width / 3
@@ -371,6 +489,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
     }
     HapticFeedback.lightImpact();
     _velocity = 0;
+    _rollRate = 0;
     _seek = null;
     _piloted = true;
     _hasPicked = true;
@@ -400,6 +519,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
     final picked = _picked;
     final pulled = Curves.easeOutCubic.transform(_pull.value);
     final canPick = walls != null && (_piloted || landed);
+    final hint = _hint(landed, sinceLanding, canPick);
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -420,6 +540,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
                           walls: walls,
                           course: course,
                           travelled: travelled,
+                          roll: _roll,
                           speed: _pace,
                           arrival: arrival,
                           sinceLanding: sinceLanding,
@@ -524,10 +645,13 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
                                   ? "LOADING THE TAPE"
                                   : _piloted
                                   ? "TIME TRAVEL"
+                                  : _held
+                                  ? "PAUSED"
                                   : "REWINDING",
                               passing == null || landed
                                   ? null
                                   : "${passing.day} ${_months[passing.month - 1]}",
+                              paused: _held && !_piloted,
                             ),
                           ),
                         ),
@@ -593,18 +717,37 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
                 right: 0,
                 top: 146,
                 height: 398,
-                child: GestureDetector(
+                child: RawGestureDetector(
                   behavior: HitTestBehavior.translucent,
-                  onHorizontalDragStart: (_) => _takeOver(),
-                  onHorizontalDragUpdate: (details) =>
-                      _steer(details.delta.dx, _wheelSpan),
-                  onHorizontalDragEnd: (details) =>
-                      _letGo(details.velocity.pixelsPerSecond.dx, _wheelSpan),
-                  onHorizontalDragCancel: () => _letGo(0, _wheelSpan),
-                  onTapUp: canPick
-                      ? (details) =>
-                            _tap(details.localPosition + const Offset(0, 146))
-                      : null,
+                  gestures: {
+                    if (_canHold)
+                      LongPressGestureRecognizer:
+                          GestureRecognizerFactoryWithHandlers<
+                            LongPressGestureRecognizer
+                          >(
+                            () =>
+                                LongPressGestureRecognizer(duration: _holdFor),
+                            _listenForHold,
+                          ),
+                  },
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onHorizontalDragStart: (_) => _takeOver(),
+                    onHorizontalDragUpdate: (details) =>
+                        _steer(details.delta.dx, _wheelSpan),
+                    onHorizontalDragEnd: (details) =>
+                        _letGo(details.velocity.pixelsPerSecond.dx, _wheelSpan),
+                    onVerticalDragStart: (details) =>
+                        _startRoll(details.localPosition.dx),
+                    onVerticalDragUpdate: (details) =>
+                        _rollBy(details.delta.dy),
+                    onVerticalDragEnd: (details) =>
+                        _endRoll(details.velocity.pixelsPerSecond.dy),
+                    onTapUp: canPick
+                        ? (details) =>
+                              _tap(details.localPosition + const Offset(0, 146))
+                        : null,
+                  ),
                 ),
               ),
             if (walls != null)
@@ -647,14 +790,8 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
                 top: 150,
                 child: IgnorePointer(
                   child: Opacity(
-                    opacity: _hint(landed, sinceLanding),
-                    child: Center(
-                      child: RewindHintTag(
-                        canPick
-                            ? "TAP A PHOTO TO PULL IT OUT"
-                            : "DRAG TO FLY IT YOURSELF",
-                      ),
-                    ),
+                    opacity: hint.shown,
+                    child: Center(child: RewindHintTag(hint.text)),
                   ),
                 ),
               ),
@@ -683,12 +820,36 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
     );
   }
 
-  double _hint(bool landed, double sinceLanding) {
+  ({String text, double shown}) _hint(
+    bool landed,
+    double sinceLanding,
+    bool canPick,
+  ) {
     double window(double ms, double from, double to) =>
         ((ms - from) / 260).clamp(0.0, 1.0) * ((to - ms) / 420).clamp(0.0, 1.0);
-    if (_reel || _picked != null || _hasPicked) return 0;
-    if (landed) return window(sinceLanding, 900, 7000);
-    return _piloted ? 1 : window(_flownMs, 1500, 6200);
+    final texts = [
+      if (!canPick) "DRAG SIDEWAYS TO FLY IT YOURSELF",
+      if (canPick && !_hasPicked) "TAP A PHOTO TO PULL IT OUT",
+      if (!_hasRolled) "DRAG UP OR DOWN TO SPIN IT",
+      if (!canPick && !_hasHeld) "HOLD TO PAUSE",
+    ];
+    if (_reel || _picked != null || texts.isEmpty) return (text: "", shown: 0);
+    if (!canPick) {
+      final since = _guidedMs - _hintFromMs;
+      final turn = (since / _hintMs).floor().clamp(0, texts.length - 1);
+      return (
+        text: texts[turn],
+        shown: window(since, turn * _hintMs, (turn + 1) * _hintMs),
+      );
+    }
+    final turn = (_ms / _hintMs).floor() % texts.length;
+    final swapping = texts.length == 1
+        ? 1.0
+        : window(_ms % _hintMs, 0, _hintMs);
+    return (
+      text: texts[turn],
+      shown: swapping * (landed ? window(sinceLanding, 900, 7000) : 1),
+    );
   }
 
   Widget _caption(EnteFile file) {
@@ -870,10 +1031,11 @@ class _Rail extends CustomPainter {
 }
 
 class _Counter extends StatelessWidget {
-  const _Counter(this.label, this.date);
+  const _Counter(this.label, this.date, {required this.paused});
 
   final String label;
   final String? date;
+  final bool paused;
 
   @override
   Widget build(BuildContext context) {
@@ -892,8 +1054,8 @@ class _Counter extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (date != null) ...[
-            const Icon(
-              Icons.fast_rewind_rounded,
+            Icon(
+              paused ? Icons.pause_rounded : Icons.fast_rewind_rounded,
               color: RewindColors.cream,
               size: 22,
             ),
@@ -1011,7 +1173,8 @@ class _Course {
     return vanish + lateral * (focal / (along - travelled));
   }
 
-  double twist(int ring, double travelled) => 0.05 * travelled + ring * 0.21;
+  double twist(int ring, double travelled, double roll) =>
+      0.05 * travelled + ring * 0.21 + roll;
 
   ({double near, double far})? stretch(int ring, double travelled) {
     final along = lead + ring * gap;
@@ -1026,10 +1189,11 @@ class _Course {
     int ring,
     int side,
     double travelled,
+    double roll,
     double near,
     double far,
   ) {
-    final turn = twist(ring, travelled);
+    final turn = twist(ring, travelled, roll);
     final from = turn + (side + 0.035) * 2 * pi / sides;
     final to = turn + (side + 0.965) * 2 * pi / sides;
     return [
@@ -1040,12 +1204,19 @@ class _Course {
     ];
   }
 
-  int? panelAt(Offset point, double travelled) {
+  int? panelAt(Offset point, double travelled, double roll) {
     for (var ring = 0; ring < rings; ring++) {
       final stretch = this.stretch(ring, travelled);
       if (stretch == null) continue;
       for (var side = 0; side < sides; side++) {
-        final corners = panel(ring, side, travelled, stretch.near, stretch.far);
+        final corners = panel(
+          ring,
+          side,
+          travelled,
+          roll,
+          stretch.near,
+          stretch.far,
+        );
         var turns = 0;
         for (var corner = 0; corner < 4; corner++) {
           final edge = corners[(corner + 1) % 4] - corners[corner];
@@ -1064,6 +1235,7 @@ class _Tube extends CustomPainter {
     required this.walls,
     required this.course,
     required this.travelled,
+    required this.roll,
     required this.speed,
     required this.arrival,
     required this.sinceLanding,
@@ -1076,6 +1248,7 @@ class _Tube extends CustomPainter {
   final RewindAtlas? walls;
   final _Course course;
   final double travelled;
+  final double roll;
   final double speed;
   final double arrival;
   final double sinceLanding;
@@ -1116,7 +1289,7 @@ class _Tube extends CustomPainter {
       );
       for (var side = 0; side < sides; side++) {
         final source = walls.source(ring * sides + side);
-        final corners = course.panel(ring, side, travelled, near, far);
+        final corners = course.panel(ring, side, travelled, roll, near, far);
         _panel(
           canvas,
           walls.image,
@@ -1141,7 +1314,7 @@ class _Tube extends CustomPainter {
         gates.add((
           earlier,
           far + _Course.gap * 0.035,
-          course.twist(ring, travelled),
+          course.twist(ring, travelled, roll),
         ));
       }
     }
@@ -1331,6 +1504,7 @@ class _Tube extends CustomPainter {
   bool shouldRepaint(_Tube oldDelegate) =>
       oldDelegate.walls != walls ||
       oldDelegate.travelled != travelled ||
+      oldDelegate.roll != roll ||
       oldDelegate.dim != dim ||
       oldDelegate.ms != ms;
 }
