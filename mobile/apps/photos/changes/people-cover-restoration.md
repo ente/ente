@@ -1,0 +1,1 @@
+- Render and change People covers from restored face assignments while ML metadata is still restoring, and show errors for failed cover changes.
