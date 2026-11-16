@@ -82,6 +82,7 @@ class FileUploader {
 
   late MultiPartUploader _multiPartUploader;
   UploadTransport? _uploadTransport;
+  Timer? _rateLimitTimer;
   StreamSubscription<LocalPhotosUpdatedEvent>? _localPhotosUpdatedSubscription;
 
   FileUploader._privateConstructor();
@@ -228,6 +229,9 @@ class FileUploader {
       clearQueue(SyncStopRequestedError());
       return;
     }
+    if (_rateLimitTimer?.isActive ?? false) {
+      return;
+    }
     final pendingItem = _queue.startNext(
       maximumConcurrentUploads: kMaximumConcurrentUploads,
       maximumConcurrentVideoUploads: kMaximumConcurrentVideoUploads,
@@ -275,7 +279,12 @@ class FileUploader {
       }
       _queue.fail(item, e);
       if (e is DioException && e.response?.statusCode == 429) {
-        await Future<void>.delayed(const Duration(seconds: 5));
+        _rateLimitTimer?.cancel();
+        _rateLimitTimer = Timer(const Duration(seconds: 5), () {
+          for (var i = 0; i < kMaximumConcurrentUploads; i++) {
+            _pollQueue();
+          }
+        });
       }
       return null;
     } finally {
