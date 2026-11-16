@@ -71,6 +71,7 @@ export interface Electron {
         writeFileViaBackup: (path: string, contents: string) => Promise<void>;
         isDir: (dirPath: string) => Promise<boolean>;
         statMtime: (path: string) => Promise<number>;
+        statBirthtime?: (path: string) => Promise<number>;
         findFiles: (folderPath: string) => Promise<string[]>;
     };
 

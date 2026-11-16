@@ -37,6 +37,7 @@ import {
     fsRename,
     fsRm,
     fsRmdir,
+    fsStatBirthtime,
     fsStatMtime,
     fsWriteFile,
     fsWriteFileViaBackup,
@@ -215,6 +216,8 @@ export const attachIPCHandlers = () => {
     handle("fsIsDir", (_, dirPath: string) => fsIsDir(dirPath));
 
     handle("fsStatMtime", (_, path: string) => fsStatMtime(path));
+
+    handle("fsStatBirthtime", (_, path: string) => fsStatBirthtime(path));
 
     handle("fsFindFiles", (_, folderPath: string) => fsFindFiles(folderPath));
 

@@ -1,5 +1,29 @@
 import { nameAndExtension } from "ente-base/file-name";
 import log from "ente-base/log";
+import type { UploadItem } from ".";
+
+export const fileSystemCreationTimeOrModified = async (
+    uploadItem: UploadItem,
+    modificationTime: number,
+) => {
+    const statBirthtime = globalThis.electron?.fs.statBirthtime;
+    if (
+        !statBirthtime ||
+        uploadItem instanceof File ||
+        Array.isArray(uploadItem)
+    )
+        return modificationTime;
+
+    const path = typeof uploadItem == "string" ? uploadItem : uploadItem.path;
+    try {
+        const birthtimeMs = await statBirthtime(path);
+        if (Number.isFinite(birthtimeMs) && birthtimeMs > 0)
+            return Math.min(birthtimeMs * 1000, modificationTime);
+    } catch (e) {
+        log.warn("Failed to read file creation time", e);
+    }
+    return modificationTime;
+};
 
 // These heuristics recover dates from screenshots and chat app exports.
 export const tryParseEpochMicrosecondsFromFileName = (
