@@ -5,7 +5,17 @@ import "package:rive/rive.dart" as rive;
 
 final _logger = Logger("RewindRive");
 
-Future<rive.File?> _loadRiveFile(String asset) async {
+final _loadingRiveFiles = <Future<rive.File?>>{};
+
+Future<void> rewindRiveFilesLoaded() => Future.wait(_loadingRiveFiles.toList());
+
+Future<rive.File?> _loadRiveFile(String asset) {
+  final file = _readRiveFile(asset);
+  _loadingRiveFiles.add(file);
+  return file.whenComplete(() => _loadingRiveFiles.remove(file));
+}
+
+Future<rive.File?> _readRiveFile(String asset) async {
   try {
     return await rive.File.path(
       RewindAssets.file(asset).path,

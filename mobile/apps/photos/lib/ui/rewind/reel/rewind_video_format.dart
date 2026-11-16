@@ -8,7 +8,7 @@ class RewindVideoFormat {
   static const fullHd = RewindVideoFormat(
     pixelRatio: 3,
     encoder: [
-      "-c:v",
+      "-c:v:0",
       "libx264",
       "-preset",
       "superfast",
