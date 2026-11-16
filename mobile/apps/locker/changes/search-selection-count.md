@@ -1,0 +1,1 @@
+- Removed item and collection selection counts below the search filters.

@@ -69,6 +69,9 @@ class SimilarFiles {
 }
 
 class SimilarFilesCache {
+  static const currentVersion = 1;
+
+  final int version;
   final List<String> similarFilesJsonStringList;
   final Set<int> allCheckedFileIDs;
   final double distanceThreshold;
@@ -79,6 +82,7 @@ class SimilarFilesCache {
   final int cachedTime;
 
   SimilarFilesCache({
+    this.version = currentVersion,
     required this.similarFilesJsonStringList,
     required this.allCheckedFileIDs,
     required this.distanceThreshold,
@@ -110,6 +114,7 @@ class SimilarFilesCache {
 
   factory SimilarFilesCache.fromJson(Map<String, dynamic> json) {
     return SimilarFilesCache(
+      version: json['version'] as int? ?? 0,
       similarFilesJsonStringList: List<String>.from(
         json['similarFilesJsonStringList'],
       ),
@@ -122,6 +127,7 @@ class SimilarFilesCache {
 
   Map<String, dynamic> toJson() {
     return {
+      'version': version,
       'similarFilesJsonStringList': similarFilesJsonStringList,
       'allCheckedFileIDs': allCheckedFileIDs.toList(),
       'distanceThreshold': distanceThreshold,
