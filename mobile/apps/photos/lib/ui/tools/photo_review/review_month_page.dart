@@ -3,12 +3,12 @@ import "dart:io";
 
 import "package:collection/collection.dart";
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_svg/flutter_svg.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:intl/intl.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/event_bus.dart";
@@ -685,28 +685,30 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
             hasScrollBody: false,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: Spacing.xl),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const _CleanedUpIllustration(),
-                  const SizedBox(height: Spacing.xxl),
-                  Text(
-                    l10n.allCleanedUp,
-                    textAlign: TextAlign.center,
-                    style: TextStyles.display2.copyWith(color: colors.textBase),
-                  ),
-                  const SizedBox(height: Spacing.md),
-                  Text(
-                    summary,
-                    textAlign: TextAlign.center,
-                    style: TextStyles.body.copyWith(color: colors.textLight),
-                  ),
-                  const SizedBox(height: Spacing.xxl),
-                  ButtonComponent(
-                    label: l10n.reviewNextMonth,
-                    onTap: _reviewNextMonth,
-                  ),
-                ],
+              child: _ReviewCompletionAnimation(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      l10n.allCleanedUp,
+                      textAlign: TextAlign.center,
+                      style: TextStyles.display2.copyWith(
+                        color: colors.textBase,
+                      ),
+                    ),
+                    const SizedBox(height: Spacing.md),
+                    Text(
+                      summary,
+                      textAlign: TextAlign.center,
+                      style: TextStyles.body.copyWith(color: colors.textLight),
+                    ),
+                    const SizedBox(height: Spacing.xxl),
+                    ButtonComponent(
+                      label: l10n.reviewNextMonth,
+                      onTap: _reviewNextMonth,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -929,17 +931,68 @@ class _QueuedTile extends StatelessWidget {
   }
 }
 
-class _CleanedUpIllustration extends StatelessWidget {
-  const _CleanedUpIllustration();
+class _ReviewCompletionAnimation extends StatelessWidget {
+  const _ReviewCompletionAnimation({required this.child});
+
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    return FittedBox(
-      child: SvgPicture.asset(
-        "assets/photo_review/all_cleaned_up.svg",
-        width: 335,
-        height: 133.41,
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    final illustration = RepaintBoundary(
+      child: FittedBox(
+        child: SvgPicture.asset(
+          "assets/photo_review/all_cleaned_up.svg",
+          width: 335,
+          height: 133.41,
+        ),
       ),
+    );
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: reduceMotion ? Duration.zero : Motion.slow * 3,
+      child: child,
+      builder: (context, value, child) {
+        final progress = reduceMotion ? 1.0 : value;
+        final entrance = const Interval(
+          0,
+          0.65,
+          curve: Curves.easeOutCubic,
+        ).transform(progress);
+        final scale = const Interval(
+          0,
+          0.7,
+          curve: Curves.easeOutBack,
+        ).transform(progress);
+        final content = const Interval(
+          0.18,
+          1,
+          curve: Curves.easeOutCubic,
+        ).transform(progress);
+        return Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Opacity(
+              opacity: entrance,
+              child: Transform.translate(
+                offset: Offset(0, Spacing.lg * (1 - entrance)),
+                child: Transform.scale(
+                  scale: 0.82 + 0.18 * scale,
+                  child: illustration,
+                ),
+              ),
+            ),
+            const SizedBox(height: Spacing.xxl),
+            Opacity(
+              opacity: content,
+              child: Transform.translate(
+                offset: Offset(0, Spacing.md * (1 - content)),
+                child: child,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

@@ -28,6 +28,9 @@ class ColourPage extends RewindPage {
   String get key => pageKey;
 
   @override
+  Duration? get reelHold => const Duration(milliseconds: 2000);
+
+  @override
   RewindChrome get chrome => RewindChrome(
     foreground: colour.colour.text,
     wordmark: colour.colour.text == RewindColors.ink
@@ -68,13 +71,20 @@ class ColourPage extends RewindPage {
                   preset: RewindPreset.line,
                   active: isActive,
                   delayMs: 800,
-                  child: Text(
-                    "${colour.percent}% of your photos were mostly "
-                    "${look.word}.",
-                    style: RewindTextStyles.body(
-                      19,
-                      height: 1.32,
-                      color: look.text,
+                  child: RewindVoice(
+                    you:
+                        "${colour.percent}% of your photos were mostly "
+                        "${look.word}.",
+                    me:
+                        "${colour.percent}% of my photos were mostly "
+                        "${look.word}.",
+                    builder: (text) => Text(
+                      text,
+                      style: RewindTextStyles.body(
+                        19,
+                        height: 1.32,
+                        color: look.text,
+                      ),
                     ),
                   ),
                 ),

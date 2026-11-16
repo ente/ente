@@ -54,11 +54,14 @@ impl<'a> Ranking<'a> {
         Self { people, vectors }
     }
 
-    pub(super) fn is_showable(&self, file: &YearFile<'_>) -> bool {
+    pub(super) fn is_mentionable(&self, file: &YearFile<'_>) -> bool {
         file.is_eligible()
             && file.file.visibility == RewindVisibility::Visible
-            && file.is_image()
             && !self.people.is_some_and(|people| people.hides(file.id()))
+    }
+
+    pub(super) fn is_showable(&self, file: &YearFile<'_>) -> bool {
+        self.is_mentionable(file) && file.is_image()
     }
 
     pub(super) fn by_quality<'f, 'r>(

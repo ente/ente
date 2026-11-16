@@ -1,12 +1,12 @@
 import "dart:async";
 import "dart:math" as math;
 
+import "package:ente_components/hugeicons.dart";
 import "package:ente_components/theme/text_styles.dart";
 import "package:ente_icons/ente_icons.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:photos/models/rituals/ritual_models.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/theme/ente_theme.dart";

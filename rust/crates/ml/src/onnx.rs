@@ -702,9 +702,12 @@ mod tests {
         assert_eq!(scanner.mode, ExecutionMode::PlatformDefault);
     }
 
+    fn model_in(temp: &tempfile::TempDir) -> std::path::PathBuf {
+        temp.path().join("scanner").join("model.onnx")
+    }
+
     fn first_run_canary(temp: &tempfile::TempDir) -> super::webgpu::ArmedCanary {
-        let model = temp.path().join("model.onnx");
-        super::webgpu::arm_canary(&model.to_string_lossy(), "scanner").unwrap()
+        super::webgpu::arm_canary(&model_in(temp).to_string_lossy(), "scanner").unwrap()
     }
 
     fn has_canary(temp: &tempfile::TempDir) -> bool {
@@ -736,7 +739,7 @@ mod tests {
     #[test]
     fn unused_preloaded_session_does_not_leave_a_crash_canary() {
         let temp = tempfile::tempdir().unwrap();
-        let model = temp.path().join("model.onnx");
+        let model = model_in(&temp);
         let mut session = OnnxSession::new(
             model.to_str().unwrap(),
             "scanner",
@@ -756,7 +759,7 @@ mod tests {
     #[test]
     fn preloaded_session_rearms_canary_only_for_first_inference() {
         let temp = tempfile::tempdir().unwrap();
-        let model = temp.path().join("model.onnx");
+        let model = model_in(&temp);
         let mut session = OnnxSession::new(
             model.to_str().unwrap(),
             "scanner",
@@ -778,7 +781,7 @@ mod tests {
     fn preload_preserves_prior_failures_until_successful_inference() {
         for previous_failures in 1..=2 {
             let temp = tempfile::tempdir().unwrap();
-            let model = temp.path().join("model.onnx");
+            let model = model_in(&temp);
             let mut session = OnnxSession::new(
                 model.to_str().unwrap(),
                 "scanner",
@@ -817,7 +820,7 @@ mod tests {
         let temp = tempfile::tempdir().unwrap();
         let parent = temp.path().join("not-a-directory");
         std::fs::write(&parent, []).unwrap();
-        let model = parent.join("model.onnx");
+        let model = parent.join("scanner").join("model.onnx");
         let mut session = OnnxSession::new(
             model.to_str().unwrap(),
             "scanner",
@@ -835,7 +838,7 @@ mod tests {
     #[test]
     fn unloading_preloaded_session_clears_deferred_canary() {
         let temp = tempfile::tempdir().unwrap();
-        let model = temp.path().join("model.onnx");
+        let model = model_in(&temp);
         let mut session = OnnxSession::new(
             model.to_str().unwrap(),
             "ocr-detection-fixed-v1",

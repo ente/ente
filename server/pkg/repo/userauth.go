@@ -172,10 +172,7 @@ func (repo *UserAuthRepository) ReserveOTTVerificationAttempt(emailHash string, 
 }
 
 func (repo *UserAuthRepository) AddToken(userID int64, app ente.App, token string, ip string, userAgent string) error {
-	tokenHash := auth.HashToken(token)
-	_, err := repo.DB.Exec(`INSERT INTO tokens(user_id, app, token_hash, creation_time, ip, user_agent) VALUES($1, $2, $3, $4, $5, $6)`,
-		userID, app, tokenHash[:], time.Microseconds(), ip, userAgent)
-	return stacktrace.Propagate(err, "")
+	return repo.AddLoginResult(context.Background(), userID, nil, nil, app, token, ip, userAgent, "", "", 0, false)
 }
 
 func (repo *UserAuthRepository) AddLoginResult(ctx context.Context, userID int64, srpAuth *ente.SRPAuthEntity, expectedKeyAttributes *ente.KeyAttributes,
@@ -259,13 +256,23 @@ func (repo *UserAuthRepository) AddTokenForPendingLogin(ctx context.Context, use
 	return stacktrace.Propagate(tx.Commit(), "")
 }
 
-func lockUserForLogin(ctx context.Context, tx *sql.Tx, userID int64, srpAuth *ente.SRPAuthEntity, expectedKeyAttributes *ente.KeyAttributes) error {
-	var active bool
-	if err := tx.QueryRowContext(ctx, `SELECT encrypted_email IS NOT NULL FROM users WHERE user_id = $1 FOR NO KEY UPDATE`, userID).Scan(&active); err != nil {
+func LockUserForSession(ctx context.Context, tx *sql.Tx, userID int64) error {
+	var active, suspended bool
+	if err := tx.QueryRowContext(ctx, `SELECT encrypted_email IS NOT NULL, is_suspended FROM users WHERE user_id = $1 FOR NO KEY UPDATE`, userID).Scan(&active, &suspended); err != nil {
 		return stacktrace.Propagate(err, "")
 	}
 	if !active {
 		return stacktrace.Propagate(ente.ErrUserDeleted, "")
+	}
+	if suspended {
+		return stacktrace.Propagate(ente.ErrUserSuspended, "")
+	}
+	return nil
+}
+
+func lockUserForLogin(ctx context.Context, tx *sql.Tx, userID int64, srpAuth *ente.SRPAuthEntity, expectedKeyAttributes *ente.KeyAttributes) error {
+	if err := LockUserForSession(ctx, tx, userID); err != nil {
+		return err
 	}
 	if srpAuth != nil {
 		var currentSRPUserID uuid.UUID
@@ -298,14 +305,14 @@ func lockUserForLogin(ctx context.Context, tx *sql.Tx, userID int64, srpAuth *en
 func (repo *UserAuthRepository) GetUserIDWithTokenHash(tokenHash []byte, app ente.App) (int64, bool, error) {
 	row := repo.DB.QueryRow(`
 		SELECT 
-			user_id,
+			t.user_id,
 			CASE 
 				WHEN last_used_at IS NOT NULL AND last_used_at < (now_utc_micro_seconds() - (365::BIGINT * 24 * 60 * 60 * 1000 * 1000)) 
 				THEN true 
 				ELSE false 
 			END as is_expired
-		FROM tokens 
-		WHERE token_hash = $1 AND app = $2 AND is_deleted = false`, tokenHash, app)
+		FROM tokens t JOIN users u ON u.user_id = t.user_id
+		WHERE token_hash = $1 AND app = $2 AND is_deleted = false AND u.is_suspended = false`, tokenHash, app)
 	var id int64
 	var isExpired bool
 	err := row.Scan(&id, &isExpired)

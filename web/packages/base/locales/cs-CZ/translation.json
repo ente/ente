@@ -539,6 +539,8 @@
     "photos_count": "{{count, number}} vzpomínek",
     "terms_and_conditions": "Souhlasím s <a>podmínkami služby</a> a <b>zásadami ochrany osobních údajů</b>",
     "people": "Lidé",
+    "add_more_people": "",
+    "only_them": "",
     "people_count_one": "",
     "people_count_other": "",
     "people_photo_count_one": "",

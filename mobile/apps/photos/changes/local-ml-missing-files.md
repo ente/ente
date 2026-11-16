@@ -1,0 +1,1 @@
+- Remove stale references to deleted photos and videos during machine learning in local gallery mode on Android 12 and newer, so missing items stop holding up processing progress.

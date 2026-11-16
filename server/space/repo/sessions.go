@@ -5,12 +5,21 @@ import (
 	"database/sql"
 
 	"github.com/ente/museum/ente"
+	baserepo "github.com/ente/museum/pkg/repo"
 	timeutil "github.com/ente/museum/pkg/utils/time"
 	"github.com/ente/stacktrace"
 )
 
 func (r *SessionsRepository) ExchangeBrowserSession(ctx context.Context, authTokenHash []byte, tokenHash []byte, userID int64, sessionWrapKey string, expiresAt int64) error {
-	result, err := r.DB.ExecContext(ctx, `
+	tx, err := r.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	defer tx.Rollback()
+	if err = baserepo.LockUserForSession(ctx, tx, userID); err != nil {
+		return err
+	}
+	result, err := tx.ExecContext(ctx, `
 		WITH consumed_token AS (
 			UPDATE tokens
 			SET is_deleted = TRUE
@@ -34,22 +43,33 @@ func (r *SessionsRepository) ExchangeBrowserSession(ctx context.Context, authTok
 	if created == 0 {
 		return ente.ErrAuthenticationRequired
 	}
-	return nil
+	return stacktrace.Propagate(tx.Commit(), "")
 }
 
 func (r *SessionsRepository) CreateBrowserSession(ctx context.Context, tokenHash []byte, userID int64, sessionWrapKey string, expiresAt int64) error {
-	_, err := r.DB.ExecContext(ctx, `
+	tx, err := r.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	defer tx.Rollback()
+	if err = baserepo.LockUserForSession(ctx, tx, userID); err != nil {
+		return err
+	}
+	_, err = tx.ExecContext(ctx, `
 		INSERT INTO space_browser_sessions (token_hash, user_id, session_wrap_key, expires_at)
 		VALUES ($1, $2, $3, $4)
 	`, tokenHash, userID, sessionWrapKey, expiresAt)
-	return stacktrace.Propagate(err, "")
+	if err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	return stacktrace.Propagate(tx.Commit(), "")
 }
 
 func (r *SessionsRepository) GetBrowserSession(ctx context.Context, tokenHash []byte) (*SpaceBrowserSessionRecord, error) {
 	row := r.DB.QueryRowContext(ctx, `
 		SELECT s.token_hash, s.user_id, s.session_wrap_key, s.expires_at, s.created_at, s.updated_at, s.last_used_at
 		FROM space_browser_sessions s
-		JOIN users u ON u.user_id = s.user_id AND u.encrypted_email IS NOT NULL
+		JOIN users u ON u.user_id = s.user_id AND u.encrypted_email IS NOT NULL AND u.is_suspended = false
 		WHERE s.token_hash = $1
 	`, tokenHash)
 	rec := &SpaceBrowserSessionRecord{}

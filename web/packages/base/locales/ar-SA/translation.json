@@ -539,6 +539,8 @@
     "photos_count": "{{count, number}} ذكريات",
     "terms_and_conditions": "أوافق على <a>شروط الخدمة</a> و<b>سياسة الخصوصية</b>",
     "people": "الأشخاص",
+    "add_more_people": "",
+    "only_them": "",
     "people_count_one": "",
     "people_count_other": "",
     "people_photo_count_one": "",

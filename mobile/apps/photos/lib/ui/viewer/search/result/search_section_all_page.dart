@@ -3,11 +3,11 @@ import "dart:math" as math;
 
 import "package:collection/collection.dart";
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:ente_ui/components/loading_widget.dart";
 import "package:flutter/material.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:photos/events/event.dart";
 import "package:photos/models/local_entity_data.dart";
 import "package:photos/models/search/album_search_result.dart";
@@ -393,6 +393,7 @@ class _SearchSectionAllPageState extends State<SearchSectionAllPage> {
 
   Widget _buildSearchAction() {
     return IconButtonComponent(
+      tooltip: context.strings.search,
       variant: IconButtonComponentVariant.primary,
       shouldSurfaceExecutionStates: false,
       icon: const HugeIcon(icon: HugeIcons.strokeRoundedSearch01),

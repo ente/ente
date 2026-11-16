@@ -12,6 +12,7 @@ public final class NativeVideoEditorPlugin: NSObject, @preconcurrency FlutterPlu
     private let metadataReader = VideoMetadataReader()
     private lazy var frameExtractor = VideoFrameExtractor(metadataReader: metadataReader)
     private let videoExporter = VideoExportEngine()
+    private let slideshowExporter = SlideshowExportEngine()
 
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(
@@ -45,6 +46,8 @@ public final class NativeVideoEditorPlugin: NSObject, @preconcurrency FlutterPlu
             cancelFrameExtraction(call, result: result)
         case "processVideo":
             processVideo(call, result: result)
+        case "exportSlideshow":
+            exportSlideshow(call, result: result)
         case "cancelProcessing":
             cancelProcessing(result: result)
         default:
@@ -249,6 +252,50 @@ public final class NativeVideoEditorPlugin: NSObject, @preconcurrency FlutterPlu
         exportTask = task
     }
 
+    private func exportSlideshow(
+        _ call: FlutterMethodCall,
+        result: @escaping FlutterResult
+    ) {
+        guard exportTask == nil else {
+            result(flutterError("CONCURRENT_EXPORT", message: "A video export is already active"))
+            return
+        }
+        guard let args = call.arguments as? [String: Any],
+            let outputPath = args["outputPath"] as? String,
+            !outputPath.isEmpty
+        else {
+            result(flutterError("INVALID_ARGS", message: "Invalid arguments"))
+            return
+        }
+        let request: SlideshowExportRequest
+        do {
+            request = try makeSlideshowRequest(args: args, outputPath: outputPath)
+        } catch {
+            result(flutterError(error, defaultCode: "INVALID_ARGS"))
+            return
+        }
+
+        let task = Task { [weak self] in
+            guard let self else { return }
+            let value: Any
+            do {
+                _ = try await slideshowExporter.export(request) { [weak self] progress in
+                    Task { @MainActor [weak self] in
+                        guard let self, !isDetached else { return }
+                        progressEventSink?(progress)
+                    }
+                }
+                value = ["outputPath": outputPath]
+            } catch is CancellationError {
+                value = flutterError("PROCESS_CANCELLED", message: "Export cancelled")
+            } catch {
+                value = flutterError(error, defaultCode: "PROCESS_ERROR")
+            }
+            finishExport(result: result, value: value)
+        }
+        exportTask = task
+    }
+
     private func cancelProcessing(result: @escaping FlutterResult) {
         guard let exportTask else {
             result(nil)
@@ -339,6 +386,78 @@ public final class NativeVideoEditorPlugin: NSObject, @preconcurrency FlutterPlu
             rotateDegrees: int(args["rotateDegrees"]),
             crop: crop,
             speed: double(args["speed"]) ?? 1
+        )
+    }
+
+    private func makeSlideshowRequest(
+        args: [String: Any],
+        outputPath: String
+    ) throws -> SlideshowExportRequest {
+        guard let width = int(args["width"]),
+            let height = int(args["height"]),
+            let frameRate = int(args["frameRate"]),
+            let crossfadeMs = int64(args["crossfadeMs"]),
+            let itemValues = args["items"] as? [[String: Any]]
+        else {
+            throw VideoEditorError.invalidRequest("Invalid slideshow arguments")
+        }
+        let items = try itemValues.map { value -> SlideshowItem in
+            guard let path = value["path"] as? String, !path.isEmpty,
+                let type = value["type"] as? String
+            else {
+                throw VideoEditorError.invalidRequest("Invalid slideshow item")
+            }
+            let url = URL(fileURLWithPath: path)
+            switch type {
+            case "photo":
+                guard let durationMs = int64(value["durationMs"]),
+                    let startScale = double(value["startScale"]),
+                    let endScale = double(value["endScale"]),
+                    let startX = double(value["startX"]),
+                    let startY = double(value["startY"]),
+                    let endX = double(value["endX"]),
+                    let endY = double(value["endY"])
+                else {
+                    throw VideoEditorError.invalidRequest("Invalid slideshow photo")
+                }
+                return .photo(
+                    url: url,
+                    durationMs: durationMs,
+                    motion: try SlideshowMotion(
+                        startScale: startScale,
+                        endScale: endScale,
+                        startOffset: CGPoint(x: startX, y: startY),
+                        endOffset: CGPoint(x: endX, y: endY)
+                    )
+                )
+            case "video":
+                return .video(url: url, isMuted: (value["isMuted"] as? Bool) ?? false)
+            default:
+                throw VideoEditorError.invalidRequest("Invalid slideshow item type")
+            }
+        }
+        var music: SlideshowMusic?
+        if let musicValue = args["music"] as? [String: Any] {
+            guard let path = musicValue["path"] as? String, !path.isEmpty,
+                let fadeInMs = int64(musicValue["fadeInMs"]),
+                let fadeOutMs = int64(musicValue["fadeOutMs"])
+            else {
+                throw VideoEditorError.invalidRequest("Invalid slideshow music")
+            }
+            music = try SlideshowMusic(
+                url: URL(fileURLWithPath: path),
+                fadeInMs: fadeInMs,
+                fadeOutMs: fadeOutMs
+            )
+        }
+        return try SlideshowExportRequest(
+            outputURL: URL(fileURLWithPath: outputPath),
+            width: width,
+            height: height,
+            frameRate: frameRate,
+            crossfadeMs: crossfadeMs,
+            items: items,
+            music: music
         )
     }
 

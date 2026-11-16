@@ -185,7 +185,7 @@ Yes! You can bulk-edit location coordinates:
 **On mobile:**
 
 1. Long press to multi-select the photos you want to edit
-2. Tap "Edit location" from the action bar
+2. Pull up the selection menu, then tap "Edit location"
 3. Choose the correct location on the map
 4. Tap Save
 

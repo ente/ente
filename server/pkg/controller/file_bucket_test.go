@@ -148,9 +148,12 @@ func TestFileRegistrationConflictResetsMixedBucketReplicas(t *testing.T) {
 	for _, tc := range []struct {
 		name              string
 		commitAfterLookup bool
+		prunedCopies      bool
 	}{
 		{name: "committed before lookup"},
 		{name: "committed in separate files after lookup", commitAfterLookup: true},
+		{name: "pruned before lookup", prunedCopies: true},
+		{name: "pruned after lookup", commitAfterLookup: true, prunedCopies: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			test := newFileBucketTest(t)
@@ -176,6 +179,10 @@ func TestFileRegistrationConflictResetsMixedBucketReplicas(t *testing.T) {
 			require.NoError(t, err)
 			_, err = test.db.Exec(`UPDATE object_copies SET b2 = 1, wasabi = 1, scw = CASE WHEN want_scw THEN 1 END`)
 			require.NoError(t, err)
+			if tc.prunedCopies {
+				_, err = test.db.Exec(`DELETE FROM object_copies`)
+				require.NoError(t, err)
+			}
 			file.File.DecryptionHeader = "conflicting-header"
 			test.switchBucket(fileBucketWasabi)
 			if tc.commitAfterLookup {
@@ -191,9 +198,9 @@ func TestFileRegistrationConflictResetsMixedBucketReplicas(t *testing.T) {
 			require.ErrorIs(t, err, ente.ErrFileUploadConflict)
 			require.Eventually(t, func() bool {
 				var reset bool
-				err := test.db.QueryRow(`SELECT bool_and(CASE WHEN object_key = $1
-					THEN b2 = 1 AND wasabi IS NULL AND scw IS NULL
-					ELSE b2 IS NULL AND wasabi = 1 END) FROM object_copies
+				err := test.db.QueryRow(`SELECT COUNT(*) = 2 AND bool_and(CASE WHEN object_key = $1
+						THEN b2 IS NOT NULL AND wasabi IS NULL AND scw IS NULL
+						ELSE b2 IS NULL AND wasabi IS NOT NULL END) FROM object_copies
 					WHERE object_key IN ($1, $2)`, file.File.ObjectKey, file.Thumbnail.ObjectKey).Scan(&reset)
 				return err == nil && reset
 			}, 2*time.Second, 10*time.Millisecond)
@@ -229,7 +236,7 @@ func TestFileRegistrationConflictPreservesStagedPartner(t *testing.T) {
 
 	test.controller.onExistingObjectsReplaced(fileBucketContext(http.MethodPost), file)
 	var reset bool
-	require.NoError(t, test.db.QueryRow(`SELECT b2 IS NULL AND wasabi = 1 AND scw IS NULL FROM object_copies WHERE object_key = $1`, file.File.ObjectKey).Scan(&reset))
+	require.NoError(t, test.db.QueryRow(`SELECT b2 IS NULL AND wasabi IS NOT NULL AND scw IS NULL FROM object_copies WHERE object_key = $1`, file.File.ObjectKey).Scan(&reset))
 	require.True(t, reset)
 	test.storageMutex.Lock()
 	versionLists := make(map[string]int, len(test.versionLists))

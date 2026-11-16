@@ -42,6 +42,10 @@ void main() {
       tester.getTopLeft(find.text("Add to album")).dy,
       tester.getTopLeft(find.text("Share")).dy,
     );
+    final previewRect = tester.getRect(find.text("Add to album"));
+    final railRect = tester.getRect(rail);
+    expect(previewRect.left, lessThan(railRect.right));
+    expect(previewRect.right, greaterThan(railRect.right));
     await tester.tapAt(const Offset(180, 660));
     expect(tapped, isEmpty);
     await tester.tap(find.text("Share"));
@@ -63,18 +67,20 @@ void main() {
       tester.getCenter(find.bySemanticsLabel("More")),
     );
     await gesture.moveBy(const Offset(0, -20));
-    await gesture.moveBy(const Offset(0, -40));
-    await tester.pump();
-    final fades = tester
-        .widgetList<Opacity>(
-          find.ancestor(
-            of: find.text("Download"),
-            matching: find.byType(Opacity),
-          ),
-        )
-        .map((widget) => widget.opacity);
-    expect(fades, isNotEmpty);
-    expect(fades, everyElement(lessThan(1)));
+    await gesture.moveBy(const Offset(0, -60));
+    await tester.pumpAndSettle();
+    expect(find.text("Delete"), findsNWidgets(2));
+    expect(_paintOpacity(tester, find.text("Delete").first), 1);
+    expect(_paintOpacity(tester, find.text("Delete").last), 0);
+    final deleteRect = tester.getRect(find.text("Delete").first);
+    expect(deleteRect.overlaps(tester.getRect(rail)), isTrue);
+    expect(
+      tester
+          .getRect(find.text("Add to album"))
+          .overlaps(tester.getRect(find.byType(CustomScrollView))),
+      isTrue,
+    );
+    expect(_paintOpacity(tester, find.text("Add to album")), greaterThan(0));
     await gesture.moveBy(const Offset(0, -320));
     await gesture.up();
     await tester.pumpAndSettle();
@@ -90,7 +96,7 @@ void main() {
     expect(tapped, "Guest view");
     await tester.dragFrom(const Offset(180, 30), const Offset(0, -100));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 120));
+    await tester.pump(const Duration(milliseconds: 360));
     expect(gallery.offset, greaterThan(30));
     expect(controller.size, sheet.minChildSize);
     await tester.pumpAndSettle();
@@ -105,7 +111,7 @@ void main() {
     swipeActive.value = false;
     await tester.tap(find.bySemanticsLabel("More"));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 120));
+    await tester.pump(const Duration(milliseconds: 360));
     expect(controller.size, sheet.maxChildSize);
     await tester.pumpAndSettle();
     await tester.dragFrom(const Offset(180, 100), const Offset(0, -60));
@@ -138,6 +144,7 @@ void main() {
         640.0,
       ),
       (const Size(1366, 1024), const EdgeInsets.all(24), 640.0),
+      (const Size(390, 844), EdgeInsets.zero, 390.0),
       (
         const Size(320, 1024),
         const EdgeInsets.only(top: 24, bottom: 20),
@@ -160,7 +167,7 @@ void main() {
       controller ??= sheet.controller;
       expect(sheet.controller, same(controller));
       if (sheet.controller!.isAttached) {
-        sheet.controller!.jumpTo(sheet.maxChildSize);
+        sheet.controller!.jumpTo(sheet.minChildSize);
       }
       final scrollable = find
           .descendant(
@@ -169,6 +176,26 @@ void main() {
           )
           .first;
       tester.state<ScrollableState>(scrollable).position.jumpTo(0);
+      await tester.pumpAndSettle();
+      final rail = find.byWidgetPredicate(
+        (widget) =>
+            widget is ListView && widget.scrollDirection == Axis.horizontal,
+      );
+      if (sheet.maxChildSize > sheet.minChildSize) {
+        await tester.drag(rail, const Offset(-2000, 0));
+        await tester.pumpAndSettle();
+        sheet.controller!.jumpTo(
+          sheet.minChildSize + (sheet.maxChildSize - sheet.minChildSize) * 0.25,
+        );
+        await tester.pump();
+        final action = find.descendant(of: rail, matching: find.text("Share"));
+        final actionRect = tester.getRect(action);
+        final railRect = tester.getRect(rail);
+        final sheetRect = tester.getRect(find.byType(CustomScrollView));
+        expect(_paintOpacity(tester, action), 1);
+        expect(actionRect.overlaps(railRect.intersect(sheetRect)), isTrue);
+      }
+      sheet.controller!.jumpTo(sheet.maxChildSize);
       await tester.pumpAndSettle();
       final material = find.descendant(
         of: find.byType(SelectionActionSheet),
@@ -254,6 +281,12 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 }
+
+double _paintOpacity(WidgetTester tester, Finder label) => tester
+    .widgetList<Opacity>(
+      find.ancestor(of: label, matching: find.byType(Opacity)),
+    )
+    .fold(1.0, (opacity, widget) => opacity * widget.opacity);
 
 Future<void> _pumpSheet(
   WidgetTester tester,

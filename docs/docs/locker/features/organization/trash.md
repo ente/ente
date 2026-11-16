@@ -40,9 +40,9 @@ The item is moved to Trash.
 ![Restore action highlighted on Trash selection toolbar on Ente Locker Android](https://docs-assets.ente.com/screenshots/locker-trash-restore-callout.png){width=320px}
 
 1. Open Trash
-2. Tap on the item you want to restore
+2. Select the item you want to restore
 3. Tap **Restore**
-4. The item returns to its original collection
+4. Choose the collection to restore it to. The item moves out of Trash into that collection.
 
 ## Emptying Trash
 

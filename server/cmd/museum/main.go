@@ -990,6 +990,8 @@ func main() {
 	adminAPI.GET("/users", adminHandler.GetUsers)
 	adminAPI.GET("/user", adminHandler.GetUser)
 	adminAPI.GET("/user/scheduled-deletions", adminHandler.GetScheduledDeletions)
+	adminAPI.POST("/user/suspend", adminHandler.SuspendUser)
+	adminAPI.POST("/user/unsuspend", adminHandler.UnsuspendUser)
 	adminAPI.POST("/user/disable-2fa", adminHandler.DisableTwoFactor)
 	adminAPI.POST("/user/update-referral", adminHandler.UpdateReferral)
 	adminAPI.POST("/user/disable-passkeys", adminHandler.RemovePasskeys)

@@ -1,1 +1,0 @@
-- Added Swift Package Manager support to the iOS mail plugin.

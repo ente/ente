@@ -69,6 +69,14 @@
       "slug": "ahrefs"
     },
     {
+      "title": "AIDA",
+      "slug": "aida",
+      "altNames": [
+        "AIDA Cloud",
+        "aidacloud"
+      ]
+    },
+    {
       "title": "Airtable"
     },
     {
@@ -1204,6 +1212,14 @@
     {
       "title": "Hulu",
       "slug": "hulu"
+    },
+    {
+      "title": "Hustix Macro",
+      "slug": "hustix-macro",
+      "altNames": [
+        "Hustix",
+        "hustix-macro"
+      ]
     },
     {
       "title": "Hytale",
@@ -2647,6 +2663,14 @@
       "title": "TorGuard"
     },
     {
+      "title": "Toronto District School Board",
+      "slug": "tdsb",
+      "hex": "009D57",
+      "altNames": [
+        "TDSB"
+      ]
+    },
+    {
       "title": "Toshl Finance",
       "slug": "toshl_finance",
       "altNames": [
@@ -2752,6 +2776,9 @@
     {
       "title": "UCF",
       "slug": "ucf"
+    },
+    {
+      "title": "UFile"
     },
     {
       "title": "unitedhealthgroup",

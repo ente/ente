@@ -68,6 +68,12 @@ class ScrapbookPage extends RewindPage {
   String get key => "scrapbook";
 
   @override
+  Duration? get reelHold => const Duration(milliseconds: 3800);
+
+  @override
+  bool get hasOwnVideoButton => true;
+
+  @override
   RewindChrome get chrome =>
       const RewindChrome(foreground: RewindColors.cream, muteButton: false);
 
@@ -95,7 +101,8 @@ class _ScrapbookState extends State<_Scrapbook> {
   static final _logger = Logger("ScrapbookPage");
 
   final _card = RewindShareCard(branded: false);
-  final _button = GlobalKey();
+  final _imageButton = GlobalKey();
+  final _videoButton = GlobalKey();
   var _sharing = false;
 
   Future<void> _share() async {
@@ -107,13 +114,19 @@ class _ScrapbookState extends State<_Scrapbook> {
         pixelRatio: MediaQuery.devicePixelRatioOf(context),
         wordmark: Rect.zero,
         wordmarkColor: RewindColors.cream,
-        origin: shareButtonRect(context, _button),
+        origin: shareButtonRect(context, _imageButton),
       );
     } catch (error, stackTrace) {
       _logger.warning("Failed to share the scrapbook", error, stackTrace);
     } finally {
       _sharing = false;
     }
+  }
+
+  void _shareVideo() {
+    RewindPageScope.navigatorOf(
+      context,
+    )?.shareVideo(shareButtonRect(context, _videoButton));
   }
 
   @override
@@ -224,34 +237,57 @@ class _ScrapbookState extends State<_Scrapbook> {
             ],
           ),
         ),
-        RewindStage(
-          children: [
-            Positioned(
-              left: 30,
-              top: 760 - lift,
-              width: 330,
-              height: 66,
-              child: RewindElapsed(
-                active: active,
-                stillMs: 2000,
-                builder: (context, ms) => Transform.translate(
-                  offset: Offset(
-                    0,
-                    380 *
-                        (1 -
-                            rewindProgress(
-                              ms,
-                              delayMs: 380,
-                              durationMs: 792,
-                              curve: RewindMotion.soft,
-                            )),
+        if (!RewindPageScope.reelOf(context))
+          RewindStage(
+            children: [
+              Positioned(
+                left: 30,
+                top: 760 - lift,
+                width: 330,
+                height: 66,
+                child: RewindElapsed(
+                  active: active,
+                  stillMs: 2000,
+                  builder: (context, ms) => Transform.translate(
+                    offset: Offset(
+                      0,
+                      380 *
+                          (1 -
+                              rewindProgress(
+                                ms,
+                                delayMs: 380,
+                                durationMs: 792,
+                                curve: RewindMotion.soft,
+                              )),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _ShareButton(
+                            key: _videoButton,
+                            label: "Share video",
+                            color: RewindColors.candyPink,
+                            ink: RewindColors.cream,
+                            onTap: _shareVideo,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _ShareButton(
+                            key: _imageButton,
+                            label: "Share image",
+                            color: RewindColors.cream,
+                            ink: RewindColors.ink,
+                            onTap: _share,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  child: _ShareButton(key: _button, onTap: _share),
                 ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
       ],
     );
   }
@@ -318,10 +354,7 @@ class _Summary extends StatelessWidget {
           Positioned(
             left: 35,
             top: 545,
-            child: _Uploads(
-              files: totals.files,
-              topPerMille: totals.topPerMille,
-            ),
+            child: _Uploads(files: totals.files, topPercent: totals.topPercent),
           ),
         ],
         if (colour != null) ...[
@@ -384,21 +417,19 @@ class _Label extends StatelessWidget {
 }
 
 class _Uploads extends StatelessWidget {
-  const _Uploads({required this.files, required this.topPerMille});
+  const _Uploads({required this.files, required this.topPercent});
 
   final int files;
-  final int? topPerMille;
+  final int? topPercent;
 
   @override
   Widget build(BuildContext context) {
-    final topPerMille = this.topPerMille;
+    final topPercent = this.topPercent;
     return Stack(
       clipBehavior: Clip.none,
       children: [
         ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: topPerMille == null ? 153 : 130,
-          ),
+          constraints: BoxConstraints(maxWidth: topPercent == null ? 153 : 130),
           child: FittedBox(
             fit: BoxFit.scaleDown,
             child: RewindOutlinedText(
@@ -414,17 +445,17 @@ class _Uploads extends StatelessWidget {
             ),
           ),
         ),
-        if (topPerMille != null)
-          Positioned(right: -40.8, top: -29, child: _Seal(topPerMille)),
+        if (topPercent != null)
+          Positioned(right: -40.8, top: -29, child: _Seal(topPercent)),
       ],
     );
   }
 }
 
 class _Seal extends StatelessWidget {
-  const _Seal(this.topPerMille);
+  const _Seal(this.topPercent);
 
-  final int topPerMille;
+  final int topPercent;
 
   @override
   Widget build(BuildContext context) {
@@ -442,7 +473,7 @@ class _Seal extends StatelessWidget {
                 children: [
                   Text("TOP", style: RewindTextStyles.body(8, height: 10 / 8)),
                   Text(
-                    "${rewindTopPercent(topPerMille)}%",
+                    "$topPercent%",
                     style: RewindTextStyles.body(16, height: 18 / 16),
                   ),
                 ],
@@ -580,29 +611,38 @@ class _Ranking extends StatelessWidget {
 }
 
 class _ShareButton extends StatelessWidget {
-  const _ShareButton({required this.onTap, super.key});
+  const _ShareButton({
+    required this.label,
+    required this.color,
+    required this.ink,
+    required this.onTap,
+    super.key,
+  });
 
+  final String label;
+  final Color color;
+  final Color ink;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: "Share your Rewind",
+      label: label,
       child: RewindPressable(
         onTap: onTap,
         pressedScale: 0.97,
         child: Container(
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: RewindColors.candyPink,
+            color: color,
             border: Border.all(color: RewindColors.ink, width: 3),
             borderRadius: BorderRadius.circular(24),
           ),
           child: ExcludeSemantics(
             child: Text(
-              "Share your Rewind",
-              style: RewindTextStyles.body(17, height: 22 / 17),
+              label,
+              style: RewindTextStyles.body(17, color: ink, height: 22 / 17),
             ),
           ),
         ),

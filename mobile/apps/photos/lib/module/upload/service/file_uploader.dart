@@ -794,6 +794,7 @@ class FileUploader {
       if ((isMultipartUpload || hasExistingMultiPart) &&
           isPutOrMultiPartError(e)) {
         await UploadLocksDB.instance.deleteMultipartTrack(lockKey);
+        await deleteFileSystemEntityIfPresent(File(encryptedFilePath));
       }
       rethrow;
     } finally {
@@ -923,6 +924,13 @@ class FileUploader {
       }
       if (deleteEntry) {
         await FilesDB.instance.deleteLocalFile(file);
+        Bus.instance.fire(
+          LocalPhotosUpdatedEvent(
+            [file],
+            type: EventType.deletedFromDevice,
+            source: "invalidFile",
+          ),
+        );
       }
       if (canIgnoreFile) {
         await LocalSyncService.instance.ignoreUpload(file, e);

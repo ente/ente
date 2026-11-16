@@ -1,1 +1,0 @@
-- Added support for importing Open Authenticator backups (@NKjoep).

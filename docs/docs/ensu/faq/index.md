@@ -53,6 +53,14 @@ Completely private. The AI model runs on your device, and your conversations nev
 
 There are no accounts required and no analytics or tracking. This is private by design, not by policy.
 
+### Is Ensu local or cloud? {#ensu-local-or-cloud}
+
+Ensu runs the language model on your device. After the model is downloaded, chat inference does not use an Ente cloud model. Your messages are not sent to Ente for answering.
+
+You can confirm this by using Ensu in airplane mode after the model download finishes. See [How it works](/ensu/how-it-works) and [How private is Ensu?](#privacy).
+
+The model may still invent statements about itself (for example claiming it is cloud based). Treat those model replies as unreliable. Prefer this FAQ and [How it works](/ensu/how-it-works) over what the model says about its own architecture.
+
 ### Can Ente see my conversations? {#can-ente-see-chats}
 
 No. All processing happens locally on your device. Your messages are not sent to any server. Ente has zero access to your conversations.
@@ -86,6 +94,12 @@ The ability to switch between models is not available in the current release, bu
 ### Can I use a different model? {#custom-model}
 
 Not in the current release. Ensu ships with a fixed default model for each platform. The ability to choose or bring your own model is something we might consider for a future update.
+
+### Can Ensu use my graphics card? {#ensu-gpu}
+
+Ensu runs inference on your device. On Linux, chat responses can be GPU-accelerated via Vulkan. On Windows, Ensu currently runs on the CPU, and there is no setting to switch to a GPU.
+
+See [How it works](/ensu/how-it-works).
 
 ## Features
 

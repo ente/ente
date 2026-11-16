@@ -26,6 +26,8 @@ Collaborative albums allow multiple Ente users to contribute photos to the same 
 4. Choose permissions (Viewer, Collaborator, or Admin)
 5. Send the invitation
 
+![Add people email field with jane@ente.com highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/add-person-email-v2.png){width=560px}
+
 ![Share with Ente users in the share panel on Ente Photos web](https://docs-assets.ente.com/screenshots/web-collab-share-ente-users.png){width=720px}
 
 Recipients receive a notification and can access the shared album from their Ente app.
@@ -34,11 +36,9 @@ Recipients receive a notification and can access the shared album from their Ent
 
 Multiple albums can be selected (long press to select), and choosing Share will apply sharing to all selected albums at once.
 
+![Mobile steps 2-4: Share icon, then Add person, then Choose access with Collaborator highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-collab-add-participants-steps-nc.png){width=560px}
+
 ### Permissions explained
-
-![Collaborator role highlighted in the share panel on Ente Photos web](https://docs-assets.ente.com/screenshots/web-collab-role-picker-callout.png){width=720px}
-
-![Owner, collaborators, and viewers breakdown for a shared album on Ente Photos web](https://docs-assets.ente.com/screenshots/web-collab-participants-roles.png){width=720px}
 
 **Viewers can:**
 
@@ -206,6 +206,8 @@ When someone adds a photo via a collect link:
 **View contributors:** Currently, you cannot see who added which photos to a collect link. All collected photos appear in the album without attribution. We're considering adding this feature based on user feedback.
 
 ![Manage public link options on Ente Photos web](https://docs-assets.ente.com/screenshots/web-album-manage-link.png){width=720px}
+
+![Mobile: Share icon, then Create collaborative link, then Link settings with Allow adding photos highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-collect-link-settings-steps-nc.png){width=560px}
 
 ## Comparison
 

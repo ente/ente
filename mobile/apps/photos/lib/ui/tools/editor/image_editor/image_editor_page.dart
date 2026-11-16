@@ -38,6 +38,7 @@ import "package:photos/ui/viewer/file/detail_page.dart";
 import "package:photos/utils/dialog_util.dart";
 import "package:photos/utils/image_util.dart";
 import "package:photos/utils/lossless_edits.dart";
+import 'package:pro_image_editor/features/crop_rotate_editor/utils/crop_aspect_ratios.dart';
 import 'package:pro_image_editor/pro_image_editor.dart';
 
 class ImageEditorPage extends StatefulWidget {
@@ -277,6 +278,12 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
             key: editorKey,
             widget.file,
             callbacks: ProImageEditorCallbacks(
+              cropRotateEditorCallbacks: CropRotateEditorCallbacks(
+                onKeyboardEvent: (event) => imageEditorHandleCropUndoKey(
+                  event,
+                  editorKey.currentState?.cropRotateEditor.currentState,
+                ),
+              ),
               onCloseEditor: (mode) {
                 if (mode != EditorMode.main) {
                   _showSubEditorDiscardDialog(context);
@@ -448,6 +455,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
               ),
               textEditor: imageEditorTextConfigs(context),
               cropRotateEditor: CropRotateEditorConfigs(
+                initAspectRatio: CropAspectRatios.original,
                 rotateDirection: RotateDirection.right,
                 style: CropRotateEditorStyle(
                   background: colors.backgroundBase,
@@ -466,7 +474,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
                           enableRedo: editor.canRedo,
                           enableUndo: editor.canUndo,
                           redo: () => editor.redoAction(),
-                          undo: () => editor.undoAction(),
+                          undo: () => imageEditorUndoCrop(editor),
                         );
                       },
                       stream: rebuildStream,

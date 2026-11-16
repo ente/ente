@@ -2,13 +2,14 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use ente_assets::{
-    Asset, AssetDownloadProgress, AssetFile, AssetStore,
-    download::{CancellationToken, Error as DownloadError},
+    Asset, AssetDownloadProgress, AssetFile, AssetStore, AssetStoreError,
+    download::{CancellationToken, Error as DownloadError, sha256_file},
 };
 
 use super::models::{self, Model, ModelPaths};
 
 const MODELS: &str = "models";
+const DESKTOP_VERIFICATION_RECEIPT: &str = ".photos-model-sha256";
 
 const RETIRED_MODEL_KEYS: &[&str] = &[];
 
@@ -28,6 +29,15 @@ const RETIRED_LEGACY_MODEL_FILES: &[&str] = &[
 pub struct ClipTextPaths {
     pub model: PathBuf,
     pub vocab: PathBuf,
+}
+
+#[derive(Debug, thiserror::Error)]
+#[error("Failed to remove invalid cached model at {}: {source}", .path.display())]
+pub struct DesktopModelMigrationError {
+    pub path: PathBuf,
+    #[source]
+    pub source: AssetStoreError,
+    pub warnings: Vec<String>,
 }
 
 fn model_asset(model: Model) -> Asset {
@@ -211,15 +221,30 @@ fn legacy_mobile_paths(legacy_dir: &Path, name: &str) -> [PathBuf; 2] {
     })
 }
 
-pub fn migrate_desktop_models(store: &AssetStore, legacy_dir: &Path) -> Vec<String> {
+pub fn migrate_desktop_models(
+    store: &AssetStore,
+    legacy_dir: &Path,
+) -> Result<Vec<String>, DesktopModelMigrationError> {
     let mut warnings = Vec::new();
+    for model in Model::ALL {
+        verify_desktop_asset(
+            store,
+            &model_asset(model),
+            model_asset_spec(model).files,
+            &mut warnings,
+        )?;
+    }
     if legacy_dir.exists() {
         for model in Model::ALL {
-            if let Err(error) = migrate_desktop_model(store, legacy_dir, model) {
-                warnings.push(format!(
-                    "Failed to migrate {}: {error}",
-                    model_asset_spec(model).key
-                ));
+            let spec = model_asset_spec(model);
+            if let Err(error) = migrate_desktop_asset(
+                store,
+                legacy_dir,
+                &model_asset(model),
+                spec.files,
+                &mut warnings,
+            ) {
+                warnings.push(format!("Failed to migrate {}: {error}", spec.key));
             }
         }
         for name in RETIRED_LEGACY_MODEL_FILES {
@@ -237,7 +262,7 @@ pub fn migrate_desktop_models(store: &AssetStore, legacy_dir: &Path) -> Vec<Stri
     if let Err(error) = store.remove_keys(&retired_keys) {
         warnings.push(format!("Failed to remove retired model assets: {error}"));
     }
-    warnings
+    Ok(warnings)
 }
 
 fn model_asset_spec(model: Model) -> ModelAssetSpec {
@@ -360,15 +385,77 @@ fn model_key(key: &str) -> Vec<String> {
     vec![MODELS.to_string(), key.to_string()]
 }
 
-fn migrate_desktop_model(
+fn desktop_verification_receipt(files: &[ModelAssetFile]) -> String {
+    let mut receipt = "ente-photos-model-sha256-v1\n".to_string();
+    for file in files {
+        receipt.push_str(&format!("{} {} {}\n", file.name, file.size, file.sha256));
+    }
+    receipt
+}
+
+fn record_desktop_verification_receipt(
+    directory: &Path,
+    files: &[ModelAssetFile],
+    warnings: &mut Vec<String>,
+) {
+    let receipt = directory.join(DESKTOP_VERIFICATION_RECEIPT);
+    let temporary = directory.join(format!("{DESKTOP_VERIFICATION_RECEIPT}.tmp"));
+    let result = fs::write(&temporary, desktop_verification_receipt(files))
+        .and_then(|()| fs::rename(temporary, receipt));
+    if let Err(error) = result {
+        warnings.push(format!(
+            "Failed to record model verification for {}: {error}",
+            directory.display()
+        ));
+    }
+}
+
+fn verify_desktop_asset(
+    store: &AssetStore,
+    asset: &Asset,
+    files: &[ModelAssetFile],
+    warnings: &mut Vec<String>,
+) -> Result<(), DesktopModelMigrationError> {
+    if !store.is_downloaded(asset) {
+        return Ok(());
+    }
+    let directory = store.asset_dir(asset);
+    if fs::read(directory.join(DESKTOP_VERIFICATION_RECEIPT))
+        .is_ok_and(|receipt| receipt == desktop_verification_receipt(files).as_bytes())
+    {
+        return Ok(());
+    }
+    let valid = files.iter().all(|file| {
+        let path = directory.join(file.name);
+        fs::metadata(&path).is_ok_and(|metadata| metadata.len() == file.size)
+            && sha256_file(&path).is_ok_and(|actual| actual.eq_ignore_ascii_case(file.sha256))
+    });
+    if !valid {
+        store
+            .remove(asset)
+            .map_err(|source| DesktopModelMigrationError {
+                path: directory.clone(),
+                source,
+                warnings: std::mem::take(warnings),
+            })?;
+        warnings.push(format!(
+            "Removed invalid cached model at {}",
+            directory.display()
+        ));
+        return Ok(());
+    }
+    record_desktop_verification_receipt(&directory, files, warnings);
+    Ok(())
+}
+
+fn migrate_desktop_asset(
     store: &AssetStore,
     legacy_dir: &Path,
-    model: Model,
+    asset: &Asset,
+    files: &[ModelAssetFile],
+    warnings: &mut Vec<String>,
 ) -> Result<(), String> {
-    let spec = model_asset_spec(model);
-    let asset = model_asset(model);
-    let legacy_files = spec
-        .files
+    let legacy_files = files
         .iter()
         .map(|file| (file, legacy_dir.join(file.name)))
         .collect::<Vec<_>>();
@@ -387,20 +474,30 @@ fn migrate_desktop_model(
     if states.iter().all(Option::is_none) {
         return Ok(());
     }
-    if store.is_downloaded(&asset) || !states.iter().all(|state| *state == Some(true)) {
+    let can_adopt = !store.is_downloaded(asset) && states.iter().all(|state| *state == Some(true));
+    let verified = can_adopt
+        && legacy_files
+            .iter()
+            .try_fold(true, |matches, (file, path)| {
+                sha256_file(path).map(|actual| matches && actual.eq_ignore_ascii_case(file.sha256))
+            })
+            .map_err(|error| error.to_string())?;
+    if !verified {
         return legacy_files
             .iter()
             .try_for_each(|(_, path)| remove_file_if_exists(path))
             .map_err(|error| error.to_string());
     }
 
-    store.remove(&asset).map_err(|error| error.to_string())?;
-    let destination = store.asset_dir(&asset);
+    store.remove(asset).map_err(|error| error.to_string())?;
+    let destination = store.asset_dir(asset);
     fs::create_dir_all(&destination).map_err(|error| error.to_string())?;
     legacy_files
         .iter()
         .try_for_each(|(file, source)| fs::rename(source, destination.join(file.name)))
-        .map_err(|error| error.to_string())
+        .map_err(|error| error.to_string())?;
+    record_desktop_verification_receipt(&destination, files, warnings);
+    Ok(())
 }
 
 fn remove_file_if_exists(path: &Path) -> std::io::Result<()> {
@@ -730,46 +827,231 @@ mod tests {
         }
     }
 
-    #[test]
-    fn migrates_complete_legacy_models_and_prunes_retired_files() {
-        let temp = TempDir::new().unwrap();
-        let legacy = temp.path().join("models");
-        fs::create_dir(&legacy).unwrap();
-        create_legacy_file(&legacy, &model_asset_spec(Model::FaceEmbedding).files[0]);
-        fs::write(legacy.join(RETIRED_LEGACY_MODEL_FILES[0]), b"retired").unwrap();
-        let store = AssetStore::new(temp.path().join("assets"));
+    #[tokio::test]
+    async fn desktop_migration_only_reuses_complete_verified_legacy_pairs() {
+        for bytes in [
+            [Some(b"model".as_slice()), Some(b"vocab".as_slice())],
+            [None, None],
+            [Some(b"model".as_slice()), None],
+            [None, Some(b"vocab".as_slice())],
+            [Some(b"shorter".as_slice()), Some(b"vocab".as_slice())],
+            [Some(b"wrong".as_slice()), Some(b"vocab".as_slice())],
+            [Some(b"model".as_slice()), Some(b"wrong".as_slice())],
+        ] {
+            let temp = TempDir::new().unwrap();
+            let legacy = temp.path().join("models");
+            fs::create_dir(&legacy).unwrap();
+            let store = AssetStore::new(temp.path().join("assets"));
+            let asset = mobile_test_asset();
+            for (file, bytes) in MOBILE_TEST_FILES.iter().zip(bytes) {
+                if let Some(bytes) = bytes {
+                    fs::write(legacy.join(file.name), bytes).unwrap();
+                }
+            }
 
-        assert!(migrate_desktop_models(&store, &legacy).is_empty());
+            let mut warnings = Vec::new();
+            migrate_desktop_asset(&store, &legacy, &asset, MOBILE_TEST_FILES, &mut warnings)
+                .unwrap();
 
-        let asset = model_asset(Model::FaceEmbedding);
-        assert!(store.is_downloaded(&asset));
-        assert_eq!(
-            fs::metadata(model_path(&store, Model::FaceEmbedding))
-                .unwrap()
-                .len(),
-            model_asset_spec(Model::FaceEmbedding).files[0].size
-        );
-        assert!(!legacy.join(RETIRED_LEGACY_MODEL_FILES[0]).exists());
+            assert!(warnings.is_empty());
+            let valid = bytes == [Some(b"model".as_slice()), Some(b"vocab".as_slice())];
+            assert_eq!(store.is_downloaded(&asset), valid);
+            if valid {
+                store
+                    .download(
+                        std::slice::from_ref(&asset),
+                        |_| {},
+                        CancellationToken::default(),
+                    )
+                    .await
+                    .unwrap();
+                assert_desktop_test_pair(&store, &asset);
+            } else {
+                assert!(!store.asset_dir(&asset).exists());
+            }
+            for file in MOBILE_TEST_FILES {
+                assert!(!legacy.join(file.name).exists());
+            }
+        }
     }
 
     #[test]
-    fn rejects_partial_or_wrong_sized_legacy_models() {
+    fn desktop_catalog_migration_rejects_same_size_corruption_and_prunes_retired_files() {
         let temp = TempDir::new().unwrap();
         let legacy = temp.path().join("models");
         fs::create_dir(&legacy).unwrap();
-        create_legacy_file(&legacy, &model_asset_spec(Model::ClipText).files[0]);
-        fs::write(
-            legacy.join(model_asset_spec(Model::FaceDetection).files[0].name),
-            b"truncated",
-        )
-        .unwrap();
+        for model in [Model::FaceEmbedding, Model::ClipText] {
+            for file in model_asset_spec(model).files {
+                create_legacy_file(&legacy, file);
+            }
+        }
+        fs::write(legacy.join(RETIRED_LEGACY_MODEL_FILES[0]), b"retired").unwrap();
         let store = AssetStore::new(temp.path().join("assets"));
 
-        assert!(migrate_desktop_models(&store, &legacy).is_empty());
+        assert!(migrate_desktop_models(&store, &legacy).unwrap().is_empty());
 
         assert!(!store.is_downloaded(&model_asset(Model::ClipText)));
-        assert!(!store.is_downloaded(&model_asset(Model::FaceDetection)));
+        assert!(!store.is_downloaded(&model_asset(Model::FaceEmbedding)));
         assert!(!legacy.exists());
+    }
+
+    #[test]
+    fn desktop_valid_historical_cache_gets_a_catalogue_receipt_and_is_not_rehashed() {
+        let temp = TempDir::new().unwrap();
+        let store = AssetStore::new(temp.path());
+        let asset = mobile_test_asset();
+        write_desktop_test_pair(&store, &asset);
+        let mut warnings = Vec::new();
+
+        verify_desktop_asset(&store, &asset, MOBILE_TEST_FILES, &mut warnings).unwrap();
+
+        let receipt = store.asset_dir(&asset).join(DESKTOP_VERIFICATION_RECEIPT);
+        assert_eq!(
+            fs::read_to_string(&receipt).unwrap(),
+            desktop_verification_receipt(MOBILE_TEST_FILES)
+        );
+        fs::write(
+            store.file_path(&asset, MOBILE_TEST_FILES[0].name).unwrap(),
+            b"wrong",
+        )
+        .unwrap();
+        verify_desktop_asset(&store, &asset, MOBILE_TEST_FILES, &mut warnings).unwrap();
+        assert!(warnings.is_empty());
+        assert!(store.is_downloaded(&asset));
+        fs::remove_file(receipt).unwrap();
+        verify_desktop_asset(&store, &asset, MOBILE_TEST_FILES, &mut warnings).unwrap();
+        assert!(!store.is_downloaded(&asset));
+        assert_eq!(
+            warnings,
+            [format!(
+                "Removed invalid cached model at {}",
+                store.asset_dir(&asset).display()
+            )]
+        );
+        verify_desktop_asset(&store, &asset, MOBILE_TEST_FILES, &mut warnings).unwrap();
+        assert_eq!(warnings.len(), 1);
+    }
+
+    #[test]
+    fn desktop_receipt_write_failure_keeps_verified_bytes_and_retries() {
+        let temp = TempDir::new().unwrap();
+        let store = AssetStore::new(temp.path());
+        let asset = mobile_test_asset();
+        write_desktop_test_pair(&store, &asset);
+        let receipt = store.asset_dir(&asset).join(DESKTOP_VERIFICATION_RECEIPT);
+        fs::create_dir(&receipt).unwrap();
+        let mut warnings = Vec::new();
+
+        verify_desktop_asset(&store, &asset, MOBILE_TEST_FILES, &mut warnings).unwrap();
+
+        assert_eq!(warnings.len(), 1);
+        assert!(warnings[0].starts_with("Failed to record model verification for "));
+        assert!(warnings[0].contains(&store.asset_dir(&asset).to_string_lossy().into_owned()));
+        assert_desktop_test_pair(&store, &asset);
+        fs::remove_dir(&receipt).unwrap();
+        verify_desktop_asset(&store, &asset, MOBILE_TEST_FILES, &mut warnings).unwrap();
+        assert_eq!(warnings.len(), 1);
+        assert_eq!(
+            fs::read_to_string(receipt).unwrap(),
+            desktop_verification_receipt(MOBILE_TEST_FILES)
+        );
+    }
+
+    #[tokio::test]
+    async fn desktop_fatal_migration_error_preserves_warnings_from_earlier_model_removals() {
+        let temp = TempDir::new().unwrap();
+        let store = AssetStore::new(temp.path().join("assets"));
+        let earlier = model_asset(Model::FaceDetection);
+        let earlier_files = model_asset_spec(Model::FaceDetection).files;
+        fs::create_dir_all(store.asset_dir(&earlier)).unwrap();
+        create_legacy_file(&store.asset_dir(&earlier), &earlier_files[0]);
+        let asset = model_asset(Model::FaceEmbedding);
+        let files = model_asset_spec(Model::FaceEmbedding).files;
+        let legacy = temp.path().join("missing-legacy");
+
+        let error = store
+            .download_with_staged_import(
+                std::slice::from_ref(&asset),
+                |_| {},
+                CancellationToken::default(),
+                |_, _| {
+                    fs::create_dir_all(store.asset_dir(&asset)).unwrap();
+                    create_legacy_file(&store.asset_dir(&asset), &files[0]);
+                    let error = migrate_desktop_models(&store, &legacy).unwrap_err();
+                    assert!(!store.is_downloaded(&earlier));
+                    assert!(!store.asset_dir(&earlier).exists());
+                    assert_eq!(
+                        error.warnings,
+                        [format!(
+                            "Removed invalid cached model at {}",
+                            store.asset_dir(&earlier).display()
+                        )]
+                    );
+                    assert_eq!(error.path, store.asset_dir(&asset));
+                    assert!(matches!(&error.source, AssetStoreError::Busy));
+                    Err(DownloadError::Cancelled)
+                },
+            )
+            .await
+            .unwrap_err();
+        assert!(matches!(error, DownloadError::Cancelled));
+
+        assert_eq!(
+            migrate_desktop_models(&store, &legacy).unwrap(),
+            [format!(
+                "Removed invalid cached model at {}",
+                store.asset_dir(&asset).display()
+            )]
+        );
+        assert!(!store.is_downloaded(&asset));
+        assert!(migrate_desktop_models(&store, &legacy).unwrap().is_empty());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn desktop_published_models_cleanup_legacy_duplicates_with_restricted_permissions() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let temp = TempDir::new().unwrap();
+        let store = AssetStore::new(temp.path().join("assets"));
+        let asset = mobile_test_asset();
+        let mut warnings = Vec::new();
+        let legacy = temp.path().join("models");
+        fs::create_dir(&legacy).unwrap();
+        for (file, bytes) in MOBILE_TEST_FILES.iter().zip([b"model", b"vocab"]) {
+            fs::write(legacy.join(file.name), bytes).unwrap();
+        }
+        let duplicate = legacy.join(MOBILE_TEST_FILES[0].name);
+        fs::set_permissions(&duplicate, fs::Permissions::from_mode(0o000)).unwrap();
+        write_desktop_test_pair(&store, &asset);
+        verify_desktop_asset(&store, &asset, MOBILE_TEST_FILES, &mut warnings).unwrap();
+
+        migrate_desktop_asset(&store, &legacy, &asset, MOBILE_TEST_FILES, &mut warnings).unwrap();
+
+        assert!(
+            MOBILE_TEST_FILES
+                .iter()
+                .all(|file| !legacy.join(file.name).exists())
+        );
+        assert!(warnings.is_empty());
+        assert_desktop_test_pair(&store, &asset);
+    }
+
+    fn write_desktop_test_pair(store: &AssetStore, asset: &Asset) {
+        fs::create_dir_all(store.asset_dir(asset)).unwrap();
+        for (file, bytes) in MOBILE_TEST_FILES.iter().zip([b"model", b"vocab"]) {
+            fs::write(store.file_path(asset, file.name).unwrap(), bytes).unwrap();
+        }
+    }
+
+    fn assert_desktop_test_pair(store: &AssetStore, asset: &Asset) {
+        assert!(store.is_downloaded(asset));
+        for (file, bytes) in MOBILE_TEST_FILES.iter().zip([b"model", b"vocab"]) {
+            assert_eq!(
+                fs::read(store.file_path(asset, file.name).unwrap()).unwrap(),
+                bytes
+            );
+        }
     }
 
     fn create_legacy_file(directory: &Path, file: &ModelAssetFile) {

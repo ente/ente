@@ -1,10 +1,10 @@
 import "dart:math" as math;
 
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:ente_ui/components/subscription/plan_card.dart";
 import "package:flutter/material.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:photos/ui/account/onboarding_page_scaffold.dart";
 import "package:photos/ui/payment/subscription_locker_sheet.dart";
 

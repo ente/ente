@@ -37,7 +37,7 @@ Family members keep separate libraries by default. To share the albums you own w
 
 You can share existing albums in one action and enable [library sharing](/photos/features/sharing-and-collaboration/library-sharing) to automatically share new albums as you create them.
 
-![Family members list with face avatars and readable names for James (admin), Dad, Maya, and Mom on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-family-members.png){width=320px}
+![Mobile: home with Settings menu (three bars) highlighted, then Family, then the Family page](https://docs-assets.ente.com/screenshots/phone-settings-family-path-nc.png){width=560px}
 
 ![Library sharing toggle ON on Sharing with Maya with loaded album thumbs on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-library-share-albums.png){width=320px}
 
@@ -49,15 +49,11 @@ In brief,
 
 - For example, once you set a limit of 10GB for a member, their Storage quota for uploading photos will be limited to 10GB.
 
-- Once the invited member accepts the Family invite, you will be able to see an edit icon in the Members List. Click on it to setup a family limit.
+- Once the invited member accepts the Family invite, open the Family screen, tap the member, then tap **Edit storage limit**.
 
-- If the admin has set a limit for any user, that limit value will be prefilled in the input box.
+- Set the limit with the slider, then tap **Save**. Set the slider to 0 for no limit.
 
-- If you want to remove any storage limit from a members account, you can click on the "Remove Limit" and they can upload photos without any limit.
-
-![Set storage limit highlighted on Mom member sheet with frosted email on Ente Photos web Family admin](https://docs-assets.ente.com/screenshots/web-family-member-mom-storage-callout.png){width=720px}
-
-![Set storage limit dialog set to 10 GB with Save highlighted on Ente Photos web; frosted Mom member email visible behind](https://docs-assets.ente.com/screenshots/web-family-storage-limit-edit-callout.png){width=720px}
+![Mobile: Mom in the Family members list, then Edit storage limit, then the Limit card with 10 GB and the slider highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/family-storage-limit-path-v2.png){width=560px}
 
 ## Related FAQs
 

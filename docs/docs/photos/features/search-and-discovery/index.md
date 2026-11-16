@@ -30,9 +30,13 @@ Type a date, month, or year in the search bar **without quotation marks**. For e
 
 Then select the matching date suggestion under **Moments** on mobile or **Date** on desktop. This searches by date. Selecting a Magic search suggestion instead searches the visual content of your photos.
 
+![Moments date suggestion row highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-search-date-suggestion-callout.png){width=320px}
+
 ### File name search
 
 Find photos by their original file names. Ente preserves file names from when you uploaded your photos, making it easy to find specific files.
+
+![File name result row highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-search-file-name-callout.png){width=320px}
 
 ### Description search
 
@@ -40,11 +44,15 @@ Search for words in descriptions or captions you've added to photos. This makes 
 
 Learn more about [adding descriptions to photos](/photos/faq/metadata-and-editing#descriptions).
 
+![Description result row highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-search-description-callout.png){width=320px}
+
 ### Album search
 
 Search for albums by name or search within specific albums to narrow down results. On mobile, album search also includes archived albums under an **Archive** heading.
 
 When you are adding or moving photos on mobile and no album matches your search, select **Create album** to make one with the name you searched for and continue the action.
+
+![Album result row highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-search-album-callout.png){width=320px}
 
 ### Photos without location data
 
@@ -79,6 +87,8 @@ Location tags work entirely on your device and are end-to-end encrypted.
 ![Map view with location pins for photos on Ente Photos web](https://docs-assets.ente.com/screenshots/web-map-view.png){width=720px}
 
 **Learn more:** [Map and location features](/photos/features/search-and-discovery/map-and-location)
+
+![Location tags screen on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-search-locations-section.png){width=320px}
 
 ## AI-Powered Search
 
@@ -123,6 +133,8 @@ Both face recognition and magic search require enabling machine learning:
 
 Open `Settings > Machine learning` and enable **Machine learning** and/or **Local indexing**.
 
+![Mobile: home with Settings menu (three bars) highlighted, then Machine learning, then the Machine learning page](https://docs-assets.ente.com/screenshots/phone-settings-ml-path-nc.png){width=560px}
+
 **On desktop:**
 
 Open `Settings > Preferences > Machine learning` and enable **Machine learning** and/or **Local indexing**.
@@ -160,6 +172,8 @@ Browse all recognized faces and persons in your library. Name persons to organiz
 ### Places
 
 Explore photos grouped by location clusters, making it easy to browse photos by where they were taken.
+
+![Places screen on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-search-places.png){width=320px}
 
 ## Search Tips
 

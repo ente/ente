@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.4.4 - Nov 2026
+
+- Fixed Photos exports and adoption failing when macOS adds hidden metadata files to the destination (@Yovach).
+
 ## v0.4.3 - Nov 2026
 
 - Photos export adoption now keeps its temporary database in the CLI home, respecting `ENTE_CLI_HOME`.

@@ -7,6 +7,7 @@ class LockScreenPinInput extends StatelessWidget {
     required this.title,
     required this.controller,
     required this.useNativeKeyboard,
+    this.allowNonNumeric = false,
     required this.forceErrorState,
     required this.onCompleted,
   });
@@ -14,6 +15,7 @@ class LockScreenPinInput extends StatelessWidget {
   final String title;
   final TextEditingController controller;
   final bool useNativeKeyboard;
+  final bool allowNonNumeric;
   final bool forceErrorState;
   final ValueChanged<String> onCompleted;
 
@@ -35,6 +37,7 @@ class LockScreenPinInput extends StatelessWidget {
               controller: controller,
               autofocus: true,
               useNativeKeyboard: useNativeKeyboard,
+              allowNonNumeric: allowNonNumeric,
               obscureText: true,
               isError: forceErrorState,
               onCompleted: onCompleted,

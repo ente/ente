@@ -1,11 +1,12 @@
 import { defineConfig, devices } from "@playwright/test";
 import { fileURLToPath } from "node:url";
-import { apps } from "./apps.ts";
+import { apps, appServersFor } from "./apps.ts";
 
 const selected = Object.entries(apps).filter(
     ([name]) =>
         !process.env.ENTE_E2E_PROJECT || name === process.env.ENTE_E2E_PROJECT,
 );
+const servers = appServersFor(selected.map(([name]) => name));
 
 export default defineConfig({
     outputDir: "./test-results",
@@ -28,12 +29,17 @@ export default defineConfig({
         name,
         testDir: `../apps/${name}/e2e`,
         use: { baseURL: `http://localhost:${port}` },
+        ...(name === "share" && {
+            metadata: { lockerURL: `http://localhost:${apps.locker.port}` },
+        }),
     })),
-    webServer: selected.map(([name, { port }]) => ({
-        command: `node e2e/serve.ts ${name}`,
-        cwd: fileURLToPath(new URL("..", import.meta.url)),
-        url: `http://localhost:${port}/signup`,
-        reuseExistingServer: false,
-        timeout: 180_000,
-    })),
+    webServer: Object.entries(apps)
+        .filter(([name]) => servers.includes(name))
+        .map(([name, { port, readyPath }]) => ({
+            command: `node e2e/serve.ts ${name}`,
+            cwd: fileURLToPath(new URL("..", import.meta.url)),
+            url: `http://localhost:${port}${readyPath}`,
+            reuseExistingServer: false,
+            timeout: 180_000,
+        })),
 });

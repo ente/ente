@@ -1,0 +1,1 @@
+- Improved screen reader labels and announcements for buttons, menus, and scanner controls.

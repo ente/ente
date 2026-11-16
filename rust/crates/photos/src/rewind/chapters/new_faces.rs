@@ -1,16 +1,18 @@
 use std::cmp::Reverse;
 
 use super::count;
+use super::people_race::by_prominence;
 use crate::rewind::input::RewindRequest;
 use crate::rewind::library::Library;
 use crate::rewind::people::{Entity, People};
-use crate::rewind::ranking::{Ranking, best_faces};
+use crate::rewind::ranking::{Ranking, Spread, best_faces};
 use crate::rewind::report::{NewFace, NewFaces};
 
-const NEW_FACE_MINIMUM_PHOTOS: usize = 20;
+const NEW_FACE_MINIMUM_PHOTOS: usize = 40;
 const NEW_FACES_MINIMUM: usize = 3;
 const NEW_FACES_SHOWN: usize = 12;
 const NEW_FACE_FACES: usize = 3;
+const NEW_FACE_PHOTOS: usize = 9;
 
 pub(in crate::rewind) fn new_faces(
     request: &RewindRequest,
@@ -46,6 +48,11 @@ pub(in crate::rewind) fn new_faces(
                 person_id: is_named.then(|| entity.id.clone()),
                 cluster_id: (!is_named).then(|| entity.id.clone()),
                 face_ids,
+                file_ids: ranking.pick(
+                    by_prominence(entity, people, library),
+                    Spread::Days,
+                    NEW_FACE_PHOTOS,
+                ),
             })
         })
         .take(NEW_FACES_SHOWN)
@@ -68,20 +75,25 @@ mod tests {
     #[test]
     fn people_and_clusters_first_seen_this_year_are_new_named_ones_first() {
         let (_directory, store) = store();
-        let mut files = daily_photos(1, "2026-01-01T10:00:00", 200);
+        let mut files = daily_photos(1, "2026-01-01T10:00:00", 320);
         files.push(photo(500, "2025-06-01T10:00:00"));
         let mut faces_request = request(files);
         faces_request.people = ["ana", "ben", "old", "me", "hidden"].map(person).to_vec();
         faces_request.people[4].is_hidden_from_memories = true;
         faces_request.me_person_id = Some("me".to_string());
-        appear(&store, "ana", Some("ana"), 1..=20);
-        appear(&store, "ben", Some("ben"), 21..=41);
-        appear(&store, "old", Some("old"), [500].into_iter().chain(42..=60));
-        appear(&store, "me", Some("me"), 61..=80);
-        appear(&store, "hidden", Some("hidden"), 81..=100);
-        appear(&store, "stranger", None, 101..=120);
-        appear(&store, "passer-by", None, 121..=139);
-        appear(&store, "deleted-person", Some("gone"), 141..=160);
+        appear(&store, "ana", Some("ana"), 1..=40);
+        appear(&store, "ben", Some("ben"), 41..=81);
+        appear(
+            &store,
+            "old",
+            Some("old"),
+            [500].into_iter().chain(82..=121),
+        );
+        appear(&store, "me", Some("me"), 122..=161);
+        appear(&store, "hidden", Some("hidden"), 162..=201);
+        appear(&store, "stranger", None, 202..=241);
+        appear(&store, "passer-by", None, 242..=280);
+        appear(&store, "deleted-person", Some("gone"), 281..=320);
         let library = Library::of_year(&faces_request).unwrap();
         let people = People::load(&faces_request, &library, &store).unwrap();
         let ranking = Ranking::new(Some(&people), None);
@@ -103,6 +115,8 @@ mod tests {
             ]
         );
         assert_eq!(new.faces[1].face_ids, ["10_ana", "11_ana", "12_ana"]);
+        assert_eq!(new.faces[1].file_ids.len(), 9);
+        assert!(new.faces[1].file_ids.iter().all(|id| (1..=40).contains(id)));
 
         let mut fewer = faces_request.clone();
         fewer.people.retain(|person| person.id != "ben");

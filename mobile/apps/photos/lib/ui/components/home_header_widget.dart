@@ -1,5 +1,5 @@
+import "package:ente_components/hugeicons.dart";
 import 'package:flutter/material.dart';
-import "package:hugeicons/hugeicons.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/ui/common/backup_flow_helper.dart";
 import 'package:photos/ui/components/buttons/icon_button_widget.dart';

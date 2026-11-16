@@ -1,6 +1,6 @@
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
 import "package:flutter/material.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:locker/services/feature_flag_service.dart";
 import "package:locker/ui/settings/widgets/change_log_sheet.dart";
 

@@ -11,6 +11,7 @@ import 'package:photos/core/errors.dart';
 import 'package:photos/core/event_bus.dart';
 import 'package:photos/events/account_configured_event.dart';
 import 'package:photos/events/subscription_purchased_event.dart';
+import 'package:photos/events/sync_finished_event.dart';
 import 'package:photos/events/sync_status_update_event.dart';
 import 'package:photos/events/trigger_logout_event.dart';
 import 'package:photos/main.dart';
@@ -192,6 +193,7 @@ class SyncService {
       _existingSync = null;
       _lastSyncStatusEvent = null;
       _logger.info("Syncing completed");
+      Bus.instance.fire(SyncFinishedEvent());
     }
     return successful;
   }

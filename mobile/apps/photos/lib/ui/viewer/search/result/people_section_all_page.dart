@@ -1,11 +1,11 @@
 import "dart:async";
 
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:ente_ui/components/loading_widget.dart";
 import 'package:flutter/material.dart';
-import "package:hugeicons/hugeicons.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/event.dart";
@@ -991,6 +991,7 @@ class _PeopleSectionAllWidgetState extends State<PeopleSectionAllWidget> {
 
   Widget _buildSearchAction() {
     return IconButtonComponent(
+      tooltip: context.strings.search,
       variant: IconButtonComponentVariant.primary,
       shouldSurfaceExecutionStates: false,
       icon: const HugeIcon(icon: HugeIcons.strokeRoundedSearch01),
@@ -1024,6 +1025,7 @@ class _PeopleSectionAllWidgetState extends State<PeopleSectionAllWidget> {
   Widget _buildSortMenu() {
     return Builder(
       builder: (buttonContext) => IconButtonComponent(
+        tooltip: context.strings.sort,
         variant: IconButtonComponentVariant.primary,
         shouldSurfaceExecutionStates: false,
         icon: const HugeIcon(icon: HugeIcons.strokeRoundedFilterHorizontal),

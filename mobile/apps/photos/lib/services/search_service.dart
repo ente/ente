@@ -1,10 +1,10 @@
 import "dart:async";
 import "dart:math";
 
+import "package:ente_components/hugeicons.dart";
 import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
-import "package:hugeicons/hugeicons.dart";
 import 'package:logging/logging.dart';
 import "package:path_provider/path_provider.dart";
 import "package:photos/core/configuration.dart";
@@ -90,11 +90,11 @@ class SearchService {
         .on<LocalPhotosUpdatedEvent>()
         .listen((event) {
           // Invalidate only; reload on demand.
-          _invalidateFileCaches();
+          invalidateFileCaches();
         });
   }
 
-  void _invalidateFileCaches() {
+  void invalidateFileCaches() {
     _cachedFilesFuture = null;
     _cachedFilesForSearch = null;
     _cachedFilesForHierarchicalSearch = null;
@@ -515,7 +515,7 @@ class SearchService {
   }
 
   void clearCache() {
-    _invalidateFileCaches();
+    invalidateFileCaches();
     unawaited(memoriesCacheService.clearMemoriesCache());
   }
 

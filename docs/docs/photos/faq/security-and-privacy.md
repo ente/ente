@@ -13,6 +13,16 @@ Welcome to Ente Photos' Security and Privacy FAQ. This document provides detaile
 
 No. Your files are encrypted on your device before being uploaded to our servers. The encryption keys are derived from your password using advanced key derivation functions. Since only you know your password, only you can decrypt your files. For technical details, please see our [architecture document](https://ente.com/architecture).
 
+### Why does my photo's info show "ICC Copyright Apple Inc."? {#icc-apple-copyright}
+
+That line is part of the photo's colour profile (ICC profile), which tells apps how to display colours. iPhones and other Apple devices embed this profile when they save a photo. The profile can include a "Copyright Apple Inc." notice, and any year in that notice is when the profile was made, not when your photo was taken.
+
+Ente does not add this notice. It was already in the original file's colour profile. Ente stores your original file as uploaded. **View all Exif data** shows every section in the file, including ones other viewers hide.
+
+Ente Photos is end-to-end encrypted. Ente cannot read your photo contents, and uploading to Ente does not send your photos to Apple.
+
+If something still looks wrong, email [support@ente.com](mailto:support@ente.com).
+
 ### Can Ente see the metadata of my photos and videos? {#can-ente-see-metadata}
 
 No. Just like the photos and videos, all metadata (including exif creation time, location, description etc) is also end-to-end encrypted.
@@ -63,7 +73,7 @@ Before you ask for this:
 
 - If Ente is still signed in on a mobile device, including Ente Auth or Ente Locker, try to [change your password](#change-password) there. If only [photos.ente.com](https://photos.ente.com) or desktop is signed in, keep that session open. **Change password** may require your current password, so save the data you can access and contact support before starting over.
 - Deleting the account permanently deletes its Ente Photos, Ente Auth and Ente Locker data, since they all use the same account. Ente cannot recover this data, because it is end-to-end encrypted.
-- If you subscribed through the App Store or Google Play, cancel the subscription in that store. We can't cancel store subscriptions for you.
+- If you subscribed through the Apple App Store, cancel the subscription in that store. We can't cancel store subscriptions for you.
 
 To request deletion, email [support@ente.com](mailto:support@ente.com) from the email address of your Ente account.
 
@@ -88,6 +98,10 @@ The same Ente account uses the same recovery key in Photos, Auth, and Locker. Se
 
 Your recovery key cannot be changed. If it was exposed, see [what to do next](/auth/faq/#change-recovery-key).
 
+### Can I get a new recovery key? {#new-recovery-key}
+
+No. You cannot change or rotate the recovery key for an existing Ente account. Changing your password does not change the recovery key. If the key was exposed, see [Can I change my recovery key if it was exposed?](/auth/faq/#change-recovery-key).
+
 ### How do I find my recovery key? {#find-recovery-key}
 
 If you previously downloaded your recovery key, search your Downloads folder for `ente-recovery-key.txt` (or search for `recovery-key.txt`). If you saved it elsewhere, check that folder too. Keep the file private.
@@ -95,6 +109,8 @@ If you previously downloaded your recovery key, search your Downloads folder for
 **If you're still logged in to Ente on any device:**
 
 Open `Settings > Account > Recovery key`, enter your password to view your 24-word recovery key, and save it in a secure location. Keep that device signed in while you resolve any access problems.
+
+On the web app or desktop app, open the sidebar and go to `Account > Recovery key`. If your phone will not open the Recovery key screen, sign in at [photos.ente.com](https://photos.ente.com) and get it there.
 
 **If you're logged out of all devices:**
 
@@ -150,7 +166,7 @@ The privacy of your account is a function of the strength of your password, plea
 
 ### Why did I get a "New login to your Ente account" email? {#new-login-email}
 
-We send this email when a new sign-in to your Ente account passes our checks, such as the email verification code. It shows when this happened. Some emails also show the app, device and IP address used. The email can arrive before the sign-in finishes in the app, for example if the wrong password is entered after the verification code.
+We send this email when a new sign-in to your Ente account passes our checks, such as the email verification code. It shows when this happened. Some emails also show the app, device and IP address used. The email can arrive before the sign-in finishes in the app. For example, it's sent if the wrong password is entered after the verification code, or if you tapped **Forgot password?** and entered the email code but didn't finish resetting your password with your recovery key. On its own, the email doesn't mean anyone unlocked your account. A fresh sign-in still needs your password or recovery key to decrypt your photos, files and Auth codes.
 
 If it was you, there's nothing to do.
 
@@ -161,6 +177,8 @@ If you don't recognise it:
 3. Turn on two-factor authentication from `Settings > Security > Two-factor` on mobile, or `Settings > Account` on web and desktop.
 
 Replying to this email reaches Ente support. If you need help signing in, include what you see on screen.
+
+Support can't sign out devices for you. Ente can't access your account, so only you can do this from a signed-in device.
 
 ### Do you support two-factor authentication (2FA)? {#two-factor-auth}
 

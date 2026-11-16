@@ -1,12 +1,12 @@
 import 'dart:io' as io;
 
 import 'package:ente_components/ente_components.dart';
+import 'package:ente_components/hugeicons.dart';
 import 'package:ente_configuration/base_configuration.dart';
 import 'package:ente_strings/ente_strings.dart';
 import 'package:ente_ui/utils/toast_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:hugeicons/hugeicons.dart';
 import 'package:locker/services/configuration.dart';
 import "package:share_plus/share_plus.dart";
 

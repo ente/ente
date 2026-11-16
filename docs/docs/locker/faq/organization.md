@@ -91,9 +91,9 @@ Yes. Items in Trash still count against your storage quota until they are perman
 ### How do I restore a deleted item? {#locker-restore-document}
 
 1. Open Trash from the menu
-2. Find the item you want to restore
-3. Tap on it and select **Restore**
-4. The item returns to its original collection
+2. Select the item you want to restore
+3. Tap **Restore**
+4. Choose the collection to restore it to. The item moves out of Trash into that collection.
 
 ### How do I permanently delete items immediately? {#locker-permanent-delete}
 

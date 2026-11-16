@@ -539,6 +539,8 @@
     "photos_count": "{{count, number}} αναμνήσεις",
     "terms_and_conditions": "Συμφωνώ με τους <a>όρους χρήσης</a> και την <b>πολιτική απορρήτου</b>",
     "people": "Άνθρωποι",
+    "add_more_people": "",
+    "only_them": "",
     "people_count_one": "",
     "people_count_other": "",
     "people_photo_count_one": "",

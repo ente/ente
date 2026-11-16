@@ -160,7 +160,7 @@ func TestPreviewUploadMetadataAndLegacyCompatibility(t *testing.T) {
 					if tc.legacy {
 						require.Equal(t, "host", part.Query().Get("X-Amz-SignedHeaders"))
 					} else {
-						lengths := []int64{5 << 20, 3}
+						lengths := []int64{ente.MinMultipartUploadSize, 3}
 						checksums := []string{previewChecksum, previewFinalPartChecksum}
 						assertPreviewUploadSignature(t, partURL, lengths[i], checksums[i])
 					}
@@ -279,8 +279,8 @@ func TestPreviewUploadRejectsOversizedVideo(t *testing.T) {
 func previewUploadBody(fileID int64, objectType ente.ObjectType, multipart bool) (string, map[string]any) {
 	body := map[string]any{"fileID": fileID, "type": objectType, "contentLength": int64(5)}
 	if multipart {
-		body["contentLength"] = int64(5<<20) + 3
-		body["partLength"] = int64(5 << 20)
+		body["contentLength"] = ente.MinMultipartUploadSize + 3
+		body["partLength"] = ente.MinMultipartUploadSize
 		body["partMd5s"] = []string{previewChecksum, previewFinalPartChecksum}
 		return multipartPreviewUploadPath, body
 	}

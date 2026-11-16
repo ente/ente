@@ -539,6 +539,8 @@
     "photos_count": "{count, number} 個回憶",
     "terms_and_conditions": "我同意 <a>條款</a> 及 <b>私隱政策</b>",
     "people": "",
+    "add_more_people": "",
+    "only_them": "",
     "people_count_one": "",
     "people_count_other": "",
     "people_photo_count_one": "",

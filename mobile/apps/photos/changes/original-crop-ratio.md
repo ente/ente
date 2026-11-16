@@ -1,0 +1,1 @@
+- Fixed Original crop mode to preserve the photo's aspect ratio and keep the selected mode in sync when undoing, redoing, or reopening the crop tool.

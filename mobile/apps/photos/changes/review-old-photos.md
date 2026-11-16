@@ -1,1 +1,1 @@
-- Added gallery cleanup to review photos month by month and choose what to keep or delete.
+- (i) Improve old photo review with faster reopening, oldest-first years, a completion animation, and better scrollbar placement.

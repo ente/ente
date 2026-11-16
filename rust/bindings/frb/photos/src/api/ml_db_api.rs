@@ -281,6 +281,10 @@ impl MlStore {
         Ok(self.inner.release()?)
     }
 
+    pub fn build_pending_graphs(&self, max_vectors: u32) -> Result<u32, MlDbError> {
+        Ok(self.inner.build_pending_graphs(max_vectors as usize)? as u32)
+    }
+
     pub fn fill_state(&self, index: Index) -> Result<FillState, MlDbError> {
         Ok(self.inner.fill_state(index)?)
     }

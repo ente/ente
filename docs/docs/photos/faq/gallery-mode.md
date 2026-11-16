@@ -63,7 +63,15 @@ There are three places to sign up:
 
 ### Will I lose my photos or ML data when I sign up? {#data-preserved-on-signup}
 
-No. All your device photos remain on your device, and any ML processing (face recognition, search embeddings) done in gallery mode is preserved. Signing up adds cloud features on top of your existing local experience.
+Your photos stay on your device. Signing up doesn't delete or upload anything until you choose folders to back up.
+
+Face recognition and magic search results from gallery mode are not carried over. Once you're signed in, machine learning runs only on photos backed up to Ente, so People and magic search can look empty until your photos upload and are indexed.
+
+To get them back, choose your folders in `Settings > Backup > Backed up folders` and keep machine learning turned on. See [Will signed-in machine learning include photos I have not backed up?](#signed-in-indexing-scope)
+
+### Why did People disappear after I signed up? {#people-gone-after-signup}
+
+People (face groups) built in gallery mode are not kept after you sign up. See [Will I lose my photos or ML data when I sign up?](#data-preserved-on-signup).
 
 ### Will signed-in machine learning include photos I have not backed up? {#signed-in-indexing-scope}
 

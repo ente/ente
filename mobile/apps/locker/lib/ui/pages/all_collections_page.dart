@@ -1,10 +1,10 @@
 import 'dart:async';
 
 import 'package:ente_components/ente_components.dart';
+import "package:ente_components/hugeicons.dart";
 import 'package:ente_events/event_bus.dart';
 import 'package:ente_strings/ente_strings.dart';
 import 'package:flutter/material.dart';
-import "package:hugeicons/hugeicons.dart";
 import 'package:locker/events/collections_updated_event.dart';
 import 'package:locker/models/selected_collections.dart';
 import 'package:locker/services/collections/collections_service.dart';
@@ -136,6 +136,7 @@ class _AllCollectionsPageState extends State<AllCollectionsPage> {
             actions: hasCollections
                 ? [
                     IconButtonComponent(
+                      tooltip: context.strings.createCollection,
                       icon: const HugeIcon(icon: HugeIcons.strokeRoundedAdd01),
                       variant: IconButtonComponentVariant.primary,
                       shouldSurfaceExecutionStates: false,

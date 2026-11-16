@@ -55,7 +55,7 @@ class RewindSearchTicket extends StatelessWidget {
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
-                                  "YOUR YEAR.\nFULL VOLUME.",
+                                  "YOUR YEAR\nIN PHOTOS",
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                   style: RewindTextStyles.display(

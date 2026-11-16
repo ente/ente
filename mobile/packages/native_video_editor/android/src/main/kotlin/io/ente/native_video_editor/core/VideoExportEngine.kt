@@ -117,6 +117,44 @@ class VideoExportEngine(
         }
     }
 
+    suspend fun exportSlideshow(
+        request: SlideshowExportRequest,
+        onProgress: ((Float) -> Unit)? = null
+    ): String = withContext(Dispatchers.IO) {
+        val outputFile = File(request.outputPath).canonicalFile
+        require(
+            request.items.all { File(it.path).canonicalFile != outputFile } &&
+                request.music?.let { File(it.path).canonicalFile } != outputFile
+        ) { "Slideshow output must differ from input and music paths" }
+
+        val composer = SlideshowComposer(context, request)
+        try {
+            val composition = composer.compose()
+            withContext(Dispatchers.Main) {
+                export(
+                    composition = composition,
+                    outputPath = outputFile.path,
+                    transcodeVideo = true,
+                    optimizeTrim = false,
+                    maxDurationUs = null,
+                    onProgress = onProgress
+                )
+            }
+            require(outputFile.isFile && outputFile.length() > 0) {
+                "Output file was not created"
+            }
+            request.outputPath
+        } catch (error: CancellationException) {
+            outputFile.delete()
+            throw error
+        } catch (error: Exception) {
+            outputFile.delete()
+            throw VideoProcessingException("Slideshow export failed: ${error.message}", error)
+        } finally {
+            composer.close()
+        }
+    }
+
     private fun buildMediaItem(
         inputFile: File,
         clipRange: VideoClipRangeUs

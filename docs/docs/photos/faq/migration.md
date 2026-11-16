@@ -7,6 +7,36 @@ description: Frequently asked questions about migrating to Ente Photos from othe
 
 ## Importing from Google Photos
 
+### Why didn't Ente bring over all my Google Photos on my phone? {#google-photos-not-imported}
+
+Ente's mobile backup uploads the photos and videos stored on your phone, in the folders you choose. It doesn't connect to your Google Photos account, so photos that are only in Google Photos' cloud, such as photos from an old phone, aren't included.
+
+To bring over your whole Google Photos library, export it with Google Takeout and import it from a computer. See [Can I import Google Takeout on my phone or on the web?](#takeout-desktop-only) and [Import from Google Photos](/photos/migration/from-google-photos/).
+
+To upload individual files from a computer, open [photos.ente.com](https://photos.ente.com) or the desktop app and click **Upload**.
+
+### Can I import Google Takeout on my phone or on the web? {#takeout-desktop-only}
+
+Not on your phone. The mobile apps do not have a Google Takeout importer.
+
+On the web, partly. [photos.ente.com](https://photos.ente.com) can import an **unzipped** Takeout folder. Selecting the Takeout **ZIP files** directly works only in the **Ente desktop app** (Windows, macOS or Linux).
+
+For large libraries, the desktop app is the better choice. Download it from [ente.com/download](https://ente.com/download/), then follow [Import from Google Photos](/photos/migration/from-google-photos/).
+
+### Can I test a Google Takeout import before moving my whole library? {#test-google-takeout-import}
+
+Yes. The free plan includes 10 GB, so you can test a smaller selection that fits within your available storage.
+
+1. In Google Takeout, select Google Photos and choose a few albums to export. Include photos whose dates, locations or Live Photos you want to check.
+2. Download every ZIP part of that export.
+3. Extract all parts into one parent folder. Merge matching album folders and keep the photos with their JSON files.
+4. In the Ente desktop app, choose **Upload > Google takeout** and import the combined folder.
+5. Check the imported dates, albums and media before starting your full migration.
+
+Download all parts of the small export, rather than choosing a few ZIPs from a larger export. Google can place a photo and its JSON metadata in different parts.
+
+Learn more in the [Google Photos migration guide](/photos/migration/from-google-photos/).
+
 ### How much Ente storage do I need when importing my Google Photos Takeout? {#google-takeout-storage}
 
 When importing your Google Photos Takeout into Ente, your storage usage is based on your actual Google Photos library size - not the (much larger) Takeout ZIP size.

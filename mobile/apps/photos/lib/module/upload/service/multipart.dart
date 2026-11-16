@@ -189,6 +189,18 @@ class MultiPartUploader {
           );
           await _db.deleteMultipartTrack(localId);
         }
+        if (e.response?.statusCode == 403) {
+          await _db.deleteMultipartTrack(localId);
+          Error.throwWithStackTrace(
+            MultiPartError(
+              "HTTP 403 uploading multipart parts: "
+              "sizeBytes=${multipartInfo.encFileSize} "
+              "partCount=${multipartInfo.urls.partsURLs.length} "
+              "resumeStatus=${multipartInfo.status.name}",
+            ),
+            e.stackTrace,
+          );
+        }
         rethrow;
       }
     } else {
@@ -217,6 +229,18 @@ class MultiPartUploader {
             "Multipart upload not authorized ${multipartInfo.urls.objectKey}",
           );
           await _db.deleteMultipartTrack(localId);
+        }
+        if (e.response?.statusCode == 403) {
+          await _db.deleteMultipartTrack(localId);
+          Error.throwWithStackTrace(
+            MultiPartError(
+              "HTTP 403 completing multipart upload: "
+              "sizeBytes=${multipartInfo.encFileSize} "
+              "partCount=${multipartInfo.urls.partsURLs.length} "
+              "resumeStatus=${multipartInfo.status.name}",
+            ),
+            e.stackTrace,
+          );
         }
         rethrow;
       }

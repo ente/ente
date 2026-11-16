@@ -2,10 +2,10 @@ import "dart:async";
 import "dart:typed_data";
 
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:ente_ui/components/loading_widget.dart";
 import "package:flutter/material.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/db/ml/db.dart";
@@ -433,6 +433,7 @@ class _FacesItemWidgetState extends State<FacesItemWidget> {
         children: [
           if (hasSelection) ...[
             IconButtonComponent(
+              tooltip: context.strings.ignore,
               icon: HugeIcon(
                 icon: HugeIcons.strokeRoundedUserBlock01,
                 size: IconSizes.small,
@@ -455,6 +456,7 @@ class _FacesItemWidgetState extends State<FacesItemWidget> {
       );
     } else {
       action = IconButtonComponent(
+        tooltip: context.strings.edit,
         icon: HugeIcon(
           icon: HugeIcons.strokeRoundedEdit03,
           size: IconSizes.small,

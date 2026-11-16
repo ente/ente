@@ -87,6 +87,7 @@ const replyInputMinHeight = 48;
 const replyInputPadding = 14;
 const replyInputPaddingLeft = 18;
 const viewerActionDoneDurationMs = 1000;
+const replySentDurationMs = 1500;
 const captionInputMaxHeight = 112;
 const defaultPhotoWidth = 900;
 const defaultPhotoHeight = 680;
@@ -1204,7 +1205,7 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
             setReplyActionPhase(null);
             if (!replyControlsRef.current?.contains(document.activeElement))
                 setIsReplyFocused(false);
-        }, viewerActionDoneDurationMs);
+        }, replySentDurationMs);
 
         return () => window.clearTimeout(timeoutID);
     }, [replyActionPhase, setReplyActionPhase]);

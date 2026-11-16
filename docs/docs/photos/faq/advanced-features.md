@@ -197,6 +197,13 @@ Ente Cast lets you play slideshow albums on Chromecast TVs or any internet-conne
 
 For setup instructions, see the [Cast feature guide](/photos/features/utilities/cast/).
 
+### Can I use Ente as a photo frame on a tablet or TV? {#photo-frame}
+
+Yes, in two common ways:
+
+- **Cast to a TV or large screen.** Use [Cast](/photos/features/utilities/cast/) to play an album slideshow on a Chromecast TV or any screen that can open [cast.ente.com](https://cast.ente.com). Pair from the album menu (**Play album on TV** / **Cast album**), then manage or disconnect sessions from the cast controls.
+- **Slideshow on a tablet or computer.** Open an album and start [Slideshow](/photos/faq/albums-and-organization#start-album-slideshow). On a large tablet or desktop this works well as a simple photo frame. You can also start a slideshow from an **On device** album; see [Can I start a slideshow from On device albums or Gallery mode?](/photos/faq/albums-and-organization#album-slideshow-gallery-mode).
+
 ### When I scroll through photos on my phone, does Cast show the same photo on the TV? {#cast-phone-scrolling}
 
 No. Cast plays the album you selected as a slideshow on the TV. Scrolling through photos on your phone does not change the photo shown on the TV.

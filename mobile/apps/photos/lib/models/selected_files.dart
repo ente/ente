@@ -82,6 +82,8 @@ class SelectedFiles extends ChangeNotifier {
       }
     } else if (first.uploadedFileID != null && second.uploadedFileID != null) {
       return first.uploadedFileID == second.uploadedFileID;
+    } else if (first.localID != null && second.localID != null) {
+      return first.localID == second.localID;
     }
     return false;
   }

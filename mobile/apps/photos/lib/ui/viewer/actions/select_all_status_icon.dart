@@ -1,6 +1,6 @@
 import "package:ente_components/ente_components.dart" as components;
+import "package:ente_components/hugeicons.dart";
 import "package:flutter/material.dart";
-import "package:hugeicons/hugeicons.dart";
 
 class SelectAllStatusIcon extends StatelessWidget {
   static const _tickScale = 14 / 18;

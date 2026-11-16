@@ -227,22 +227,16 @@ func (repo *FileRepository) markObjectAsNeedingReplication(ctx context.Context, 
 }
 
 func (repo *FileRepository) ResetObjectReplication(objectKey string, bucket string, objectType ente.ObjectType) error {
-	var err error
+	var sourceIsB2 bool
 	switch bucket {
 	case repo.S3Config.GetHotBackblazeDC():
-		err = repo.ObjectCopiesRepo.ResetNeedsWasabiReplication(objectKey)
+		sourceIsB2 = true
 	case repo.S3Config.GetHotWasabiDC():
-		err = repo.ObjectCopiesRepo.ResetNeedsB2Replication(objectKey)
+		sourceIsB2 = false
 	default:
 		return stacktrace.NewError("unsupported upload bucket: %s", bucket)
 	}
-	if err != nil {
-		return stacktrace.Propagate(err, "")
-	}
-	if objectType == ente.FILE {
-		return repo.ObjectCopiesRepo.ResetNeedsScalewayReplication(objectKey)
-	}
-	return nil
+	return repo.ObjectCopiesRepo.ResetReplication(objectKey, sourceIsB2, objectType == ente.FILE)
 }
 
 func (repo *FileRepository) Update(file ente.File, fileSize int64, thumbnailSize int64, usageDiff int64, oldObjects []string, stagedObjects []string, app ente.App, buckets FileObjectBuckets) error {
@@ -489,7 +483,7 @@ func (repo *FileRepository) GetOwnerToFileCountMap(ctx context.Context, fileIDs 
 		}
 		result[ownerID] = count
 	}
-	return result, nil
+	return result, stacktrace.Propagate(rows.Err(), "failed to read file owner counts")
 }
 
 func (repo *FileRepository) GetOwnerToFileIDsMap(ctx context.Context, fileIDs []int64) (map[int64][]int64, error) {

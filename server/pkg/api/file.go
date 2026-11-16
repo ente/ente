@@ -8,7 +8,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	gTime "time"
 
 	"github.com/ente/museum/pkg/controller/file_copy"
 	"github.com/ente/museum/pkg/controller/filedata"
@@ -204,15 +203,7 @@ func (h *FileHandler) GetMultipartUploadURLV2(c *gin.Context) {
 }
 
 func (h *FileHandler) RestrictLegacyUploads(c *gin.Context) {
-	user, err := h.Controller.UserRepo.Get(auth.GetUserID(c.Request.Header))
-	if err != nil {
-		handler.Error(c, stacktrace.Propagate(err, ""))
-		return
-	}
-	cutoff := gTime.Date(2026, gTime.April, 1, 0, 0, 0, 0, gTime.UTC).UnixMicro()
-	if user.CreationTime >= cutoff || user.ID%4 != 1 {
-		c.AbortWithStatusJSON(http.StatusGone, gin.H{"error": "This upload API is no longer supported. Please update your app."})
-	}
+	c.AbortWithStatusJSON(http.StatusGone, gin.H{"error": "This upload API is no longer supported. Please update your app."})
 }
 
 func (h *FileHandler) Get(c *gin.Context) {

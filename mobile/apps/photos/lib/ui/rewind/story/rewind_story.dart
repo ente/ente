@@ -12,6 +12,7 @@ class RewindStory {
   RewindStory._(this.pages, this._photos, this._outline);
 
   static const _lookahead = 3;
+  static const _photoPatience = Duration(seconds: 20);
 
   static Future<RewindStory> prepare(
     rust.RewindReport report, {
@@ -49,6 +50,30 @@ class RewindStory {
     if (position < 0) return null;
     final later = _outline.skip(position + 1).toSet();
     return pages.firstWhereOrNull((page) => later.contains(page.key))?.key;
+  }
+
+  int resumeIndex(String? key) => indexOf(resumeAt(key));
+
+  Future<bool> loadPhotosOf(List<RewindPage> shown) async {
+    final cards = {
+      for (final (i, page) in pages.indexed)
+        if (shown.contains(page)) page.reelThumbnails ?? _photos[i],
+    };
+    final loaded = await Future.wait([
+      for (final photos in cards)
+        if (photos.isNotEmpty) _loadsAnyOf(photos),
+    ]);
+    return !loaded.contains(false);
+  }
+
+  static Future<bool> _loadsAnyOf(List<EnteFile> photos) async {
+    final loaded = await Future.wait([
+      for (final photo in photos)
+        loadRewindPhoto(photo)
+            .timeout(_photoPatience)
+            .then((loaded) => loaded, onError: (Object _) => false),
+    ]);
+    return loaded.contains(true);
   }
 
   void preloadFrom(int index) {

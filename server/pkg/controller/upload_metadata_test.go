@@ -58,7 +58,7 @@ func TestPendingUploadMetadata(t *testing.T) {
 					upload, err = controller.GetMultipartUploadURLs(t.Context(), userID, 1, ente.Locker, client)
 				} else {
 					upload, err = controller.GetMultipartUploadURLWithMetadata(t.Context(), userID, ente.MultipartUploadURLRequest{
-						ContentLength: 5, PartLength: 5, PartMD5s: []string{checksum},
+						ContentLength: ente.MinMultipartUploadSize, PartLength: ente.MinMultipartUploadSize, PartMD5s: []string{checksum},
 					}, ente.Locker, client)
 				}
 				require.NoError(t, err)
@@ -92,7 +92,11 @@ func TestPendingUploadMetadata(t *testing.T) {
 			require.Equal(t, tc.multipart, uploadID.Valid)
 			require.Equal(t, !tc.legacy, length.Valid)
 			if length.Valid {
-				require.Equal(t, int64(5), length.Int64)
+				wantLength := int64(5)
+				if tc.multipart {
+					wantLength = ente.MinMultipartUploadSize
+				}
+				require.Equal(t, wantLength, length.Int64)
 			}
 			require.Equal(t, !tc.legacy && !tc.multipart, md5.Valid)
 			if md5.Valid {

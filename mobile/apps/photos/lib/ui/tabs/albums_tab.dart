@@ -2,12 +2,12 @@ import "dart:async";
 import "dart:io";
 
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:ente_ui/components/loading_widget.dart";
 import "package:flutter/material.dart";
 import "package:flutter/rendering.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/core/constants.dart";
 import "package:photos/core/event_bus.dart";
@@ -860,6 +860,7 @@ class _AlbumsTabState extends State<AlbumsTab>
     final selectedAlbums = widget.selectedAlbums;
     final albumsOptionsButton = Builder(
       builder: (buttonContext) => IconButtonComponent(
+        tooltip: strings.sort,
         variant: IconButtonComponentVariant.primary,
         shouldSurfaceExecutionStates: false,
         icon: const HugeIcon(icon: HugeIcons.strokeRoundedFilterHorizontal),
@@ -956,6 +957,7 @@ class _AlbumsTabState extends State<AlbumsTab>
                                 ),
                               ),
                               IconButtonComponent(
+                                tooltip: strings.search,
                                 variant: IconButtonComponentVariant.primary,
                                 shouldSurfaceExecutionStates: false,
                                 icon: const HugeIcon(
@@ -1289,6 +1291,7 @@ class _LocalGalleryTrashButtonState extends State<_LocalGalleryTrashButton> {
               children: [
                 widget.before,
                 IconButtonComponent(
+                  tooltip: context.strings.trash,
                   variant: IconButtonComponentVariant.primary,
                   shouldSurfaceExecutionStates: false,
                   icon: const HugeIcon(icon: HugeIcons.strokeRoundedDelete02),

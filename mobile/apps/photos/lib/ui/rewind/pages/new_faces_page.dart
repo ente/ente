@@ -1,6 +1,7 @@
 import "dart:math";
 
 import "package:flutter/material.dart";
+import "package:photos/models/file/file.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
@@ -11,9 +12,12 @@ import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
 import "package:photos/ui/rewind/widgets/rewind_elapsed.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
 import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
+import "package:photos/ui/rewind/widgets/rewind_photo_gallery.dart";
 import "package:photos/ui/rewind/widgets/rewind_reveal_layer.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
 import "package:photos/ui/rewind/widgets/rewind_text.dart";
+
+typedef NewFaceBubble = ({RewindFace face, List<EnteFile> photos});
 
 typedef _Bubble = ({
   double size,
@@ -77,11 +81,21 @@ const List<_Bubble> _bubbles = [
 
 const _paintOrder = [3, 1, 0, 4, 2, 5];
 
+Rect _boundsOf(Iterable<_Bubble> bubbles) => bubbles
+    .map(
+      (bubble) => Rect.fromCenter(
+        center: bubble.center,
+        width: bubble.size,
+        height: bubble.size,
+      ),
+    )
+    .reduce((bounds, rect) => bounds.expandToInclude(rect));
+
 class NewFacesPage extends RewindPage {
   const NewFacesPage(this.newFaces, this.faces);
 
   final rust.NewFaces newFaces;
-  final List<RewindFace> faces;
+  final List<NewFaceBubble> faces;
 
   @override
   String get key => "new_faces";
@@ -94,8 +108,10 @@ class NewFacesPage extends RewindPage {
   }) {
     final count = newFaces.count;
     final title = count == 1 ? "1 NEW FACE" : "${rewindCount(count)} NEW FACES";
-    const line = "debuted in your frame this year.";
+    const line = "debuted in your gallery this year.";
     final shown = min(faces.length, _bubbles.length);
+    final centering =
+        _boundsOf(_bubbles).center - _boundsOf(_bubbles.take(shown)).center;
     return RewindShareable(
       child: Stack(
         fit: StackFit.expand,
@@ -125,6 +141,7 @@ class NewFacesPage extends RewindPage {
                                   faces[slot],
                                   ms,
                                   isActive,
+                                  centering,
                                 ),
                           ],
                         ),
@@ -158,7 +175,12 @@ class NewFacesPage extends RewindPage {
                     position: position,
                     active: isActive,
                     delayMs: 1350,
-                    child: Text(line, style: RewindTextStyles.body(17)),
+                    child: RewindVoice(
+                      you: line,
+                      me: "debuted in my gallery this year.",
+                      builder: (text) =>
+                          Text(text, style: RewindTextStyles.body(17)),
+                    ),
                   ),
                 ],
               ),
@@ -169,7 +191,13 @@ class NewFacesPage extends RewindPage {
     );
   }
 
-  Widget _placed(_Bubble bubble, RewindFace face, double ms, bool isActive) {
+  Widget _placed(
+    _Bubble bubble,
+    NewFaceBubble face,
+    double ms,
+    bool isActive,
+    Offset centering,
+  ) {
     final since = ms - bubble.delayMs - 700;
     var offset = Offset.zero;
     if (since > 0) {
@@ -180,7 +208,7 @@ class NewFacesPage extends RewindPage {
     }
     return Positioned.fromRect(
       rect: Rect.fromCenter(
-        center: bubble.center,
+        center: bubble.center + centering,
         width: bubble.size,
         height: bubble.size,
       ),
@@ -190,7 +218,7 @@ class NewFacesPage extends RewindPage {
           preset: RewindPreset.bubble,
           active: isActive,
           delayMs: bubble.delayMs,
-          child: _FaceBubble(face),
+          child: _FaceBubble(face.face, photos: face.photos),
         ),
       ),
     );
@@ -198,12 +226,31 @@ class NewFacesPage extends RewindPage {
 }
 
 class _FaceBubble extends StatelessWidget {
-  const _FaceBubble(this.face);
+  const _FaceBubble(this.face, {this.photos = const []});
 
   final RewindFace face;
+  final List<EnteFile> photos;
 
   @override
   Widget build(BuildContext context) {
+    final bubble = _bubble();
+    if (photos.isEmpty) return bubble;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _showPhotos(context),
+      child: bubble,
+    );
+  }
+
+  void _showPhotos(BuildContext context) => showRewindPhotoGallery(
+    context,
+    header: _FaceBubble(face),
+    headerSize: const Size.square(120),
+    title: face.name,
+    photos: photos,
+  );
+
+  Widget _bubble() {
     final crop = face.crop;
     final initial = face.name?.trim().characters.firstOrNull ?? "";
     return CustomPaint(

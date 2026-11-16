@@ -539,6 +539,8 @@
     "photos_count": "{{count, number}} memórias",
     "terms_and_conditions": "Eu concordo com os <u-terms>termos de serviço</u-terms> e <u-policy>política de privacidade</u-policy>",
     "people": "Pessoas",
+    "add_more_people": "",
+    "only_them": "",
     "people_count_one": "",
     "people_count_other": "",
     "people_photo_count_one": "",

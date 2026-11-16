@@ -67,11 +67,20 @@ pub(super) fn located(mut file: RewindFile, latitude: f64, longitude: f64) -> Re
 }
 
 pub(super) fn daily_photos(first_id: i64, first_day: &str, days: i64) -> Vec<RewindFile> {
+    photos_every(first_id, first_day, days, 1)
+}
+
+pub(super) fn photos_every(
+    first_id: i64,
+    first_day: &str,
+    count: i64,
+    days_apart: i64,
+) -> Vec<RewindFile> {
     let start = micros(first_day);
-    (0..days)
-        .map(|day| {
-            let mut file = photo(first_id + day, first_day);
-            file.creation_time = start + day * 86_400_000_000;
+    (0..count)
+        .map(|index| {
+            let mut file = photo(first_id + index, first_day);
+            file.creation_time = start + index * days_apart * 86_400_000_000;
             file
         })
         .collect()

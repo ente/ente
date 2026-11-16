@@ -1,1 +1,0 @@
-- Remember the selected tag when reopening the app.

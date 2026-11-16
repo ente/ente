@@ -22,6 +22,7 @@ class MemoryMusicController extends ChangeNotifier {
   Future<void>? _audioSessionInitialization;
 
   _MemoryMusicPlaybackStatus _status = _MemoryMusicPlaybackStatus.idle;
+  MemoryMusicTrack? _activeTrack;
   String? _activeMemoryID;
   bool _isMuted;
   bool _isDisposed = false;
@@ -40,6 +41,8 @@ class MemoryMusicController extends ChangeNotifier {
        _player = player;
 
   bool get isMuted => _isMuted;
+
+  MemoryMusicTrack? get activeTrack => _activeTrack;
 
   Future<void> activateMemory(
     String memoryID, {
@@ -61,6 +64,7 @@ class MemoryMusicController extends ChangeNotifier {
     final assignedTrack = _assignments[memoryID]!;
     final generation = ++_loadGeneration;
     _status = _MemoryMusicPlaybackStatus.loading;
+    _activeTrack = null;
     await _synchronizePlayback();
     if (!_isCurrentLoad(generation)) return;
 
@@ -154,6 +158,7 @@ class MemoryMusicController extends ChangeNotifier {
     await _player.load(track);
     if (!_isCurrentLoad(generation)) return;
     _status = _MemoryMusicPlaybackStatus.ready;
+    _activeTrack = track;
     await _synchronizePlayback();
   }
 

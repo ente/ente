@@ -1,16 +1,17 @@
 import "dart:async";
 
+import "package:ente_components/hugeicons.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:ente_ui/components/loading_widget.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:flutter_animate/flutter_animate.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/events/collection_updated_event.dart";
 import "package:photos/events/files_updated_event.dart";
+import "package:photos/events/sync_finished_event.dart";
 import 'package:photos/models/file/file.dart';
 import "package:photos/models/ignored_file.dart";
 import "package:photos/services/collections_service.dart";
@@ -33,14 +34,22 @@ class UploadIconWidget extends StatefulWidget {
 class _UpdateIconWidgetState extends State<UploadIconWidget> {
   final Logger _logger = Logger("_UpdateIconWidgetState");
   late StreamSubscription<CollectionUpdatedEvent> _firstImportEvent;
+  late StreamSubscription<SyncFinishedEvent> _syncFinishedEvent;
   late IgnoredFilesService ignoreService;
   bool isUploadedNow = false;
   bool isBeingUploaded = false;
+  bool _isHiddenForSync = false;
+  bool _hasFinishedUploadAnimation = false;
 
   @override
   void initState() {
     super.initState();
     ignoreService = IgnoredFilesService.instance;
+    _syncFinishedEvent = Bus.instance.on<SyncFinishedEvent>().listen((_) {
+      if (mounted && _isHiddenForSync) {
+        setState(() {});
+      }
+    });
     _firstImportEvent = Bus.instance.on<CollectionUpdatedEvent>().listen((
       event,
     ) {
@@ -59,19 +68,21 @@ class _UpdateIconWidgetState extends State<UploadIconWidget> {
   @override
   void dispose() {
     _firstImportEvent.cancel();
+    _syncFinishedEvent.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (SyncService.instance.isSyncInProgress()) {
+    _isHiddenForSync = SyncService.instance.isSyncInProgress();
+    if (_isHiddenForSync) {
       if (!widget.file.isUploaded) {
         _logger.info("sync in progress ${widget.file.displayName}");
       }
       return const SizedBox.shrink();
     }
     if (widget.file.isUploaded || isUploadedNow) {
-      if (isUploadedNow) {
+      if (isUploadedNow && !_hasFinishedUploadAnimation) {
         return SizedBox.square(
           dimension: kMinInteractiveDimension,
           child: Center(
@@ -80,7 +91,15 @@ class _UpdateIconWidgetState extends State<UploadIconWidget> {
                       icon: HugeIcons.strokeRoundedCloudSavingDone01,
                       color: Colors.white,
                     )
-                    .animate()
+                    .animate(
+                      onComplete: (_) {
+                        if (mounted) {
+                          setState(() {
+                            _hasFinishedUploadAnimation = true;
+                          });
+                        }
+                      },
+                    )
                     .fadeIn(duration: 500.ms, curve: Curves.easeInOutCubic)
                     .fadeOut(
                       delay: const Duration(seconds: 3),
@@ -141,6 +160,11 @@ class _UpdateIconWidgetState extends State<UploadIconWidget> {
                               .getUncategorizedCollection())
                           .id;
                   await FilesDB.instance.insert(widget.file);
+                  Bus.instance.fire(
+                    CollectionUpdatedEvent(widget.file.collectionID, [
+                      widget.file,
+                    ], "pendingFilesAdd"),
+                  );
                 }
                 await RemoteSyncService.instance.whiteListVideoForUpload(
                   widget.file,

@@ -2,6 +2,7 @@ import "dart:async";
 import "dart:convert";
 
 import 'package:ente_components/ente_components.dart';
+import "package:ente_components/hugeicons.dart";
 import "package:ente_crypto_api/ente_crypto_api.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
@@ -9,7 +10,6 @@ import "package:ente_ui/utils/toast_util.dart";
 import "package:ente_utils/share_utils.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:locker/services/collections/collections_api_client.dart";
 import "package:locker/services/collections/collections_service.dart";
 import "package:locker/services/collections/models/collection.dart";

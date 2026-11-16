@@ -68,3 +68,18 @@ FaceBox computePaddedFaceCropBox(FaceBox faceBox) {
     height: heightCropSafe,
   );
 }
+
+FaceBox? tryParseFaceBoxFromFaceID(String faceID) {
+  final parts = faceID.split('_');
+  if (parts.length != 5 ||
+      int.tryParse(parts.first) == null ||
+      !parts.skip(1).every(RegExp(r'^\d{5}$').hasMatch)) {
+    return null;
+  }
+  final xMin = int.parse(parts[1]) / 100000.0;
+  final yMin = int.parse(parts[2]) / 100000.0;
+  final xMax = parts[3] == '00000' ? 1.0 : int.parse(parts[3]) / 100000.0;
+  final yMax = parts[4] == '00000' ? 1.0 : int.parse(parts[4]) / 100000.0;
+  if (xMin >= xMax || yMin >= yMax) return null;
+  return FaceBox(x: xMin, y: yMin, width: xMax - xMin, height: yMax - yMin);
+}

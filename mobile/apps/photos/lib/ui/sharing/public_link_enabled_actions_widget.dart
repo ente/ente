@@ -1,9 +1,9 @@
 import 'package:collection/collection.dart';
+import 'package:ente_components/hugeicons.dart';
 import 'package:ente_qr_ui/ente_qr_ui.dart';
 import 'package:ente_strings/ente_strings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:hugeicons/hugeicons.dart';
 import 'package:photos/models/collection/collection.dart';
 import 'package:photos/services/collections_service.dart';
 import 'package:photos/ui/notification/toast.dart';

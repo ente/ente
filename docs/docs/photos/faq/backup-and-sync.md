@@ -13,6 +13,8 @@ Once you select which albums to backup in your mobile app settings, Ente automat
 
 Each selected device folder or album backs up to a corresponding Ente album. Mobile automatic backup does not offer **Uncategorized** as a destination. You can browse local folders under **Albums > Device** and backed-up Ente albums under **Albums > Ente**.
 
+Mobile backup uploads photos stored on your phone. It doesn't import your Google Photos library. If only some of your photos appeared, see [Why didn't Ente bring over all my Google Photos on my phone?](/photos/faq/migration#google-photos-not-imported).
+
 **Key features:**
 
 - Background sync runs automatically
@@ -35,6 +37,35 @@ Open `Settings > Backup > Backed up folders` and select the albums you want to a
 Once configured, new photos added to these albums will automatically sync in the background.
 
 The chooser lists device folders and albums; it is separate from your Ente album list. The count on a folder tile is the total reported for that device folder, not the number waiting to upload. If **Backup only new photos** is enabled, its cutoff still applies even when the tile shows older photos in its total.
+
+### Why does my Android gallery show more photos than Ente? {#android-gallery-missing-photos}
+
+Your gallery may include photos stored only in Google Photos, or photos in folders you haven't selected for backup. Ente also needs permission to access the photos on your phone.
+
+To check a missing photo:
+
+1. Check whether it is stored on your phone. If it is only in Google Photos, download it or [import your library using Google Takeout](/photos/migration/from-google-photos/).
+2. Open your phone's settings and check Ente's photo and video permissions. Allow access to the photos you want to back up.
+3. Open `Settings > Backup > Backed up folders` in Ente and select the folder containing the photo.
+4. Turn off **Backup only new photos** under `Settings > Backup > Backup settings` if you want to include older photos.
+5. Open `Settings > Backup > Backup status` to check for pending uploads or errors.
+
+If a photo stored on your phone still doesn't appear, [contact support](/photos/faq/troubleshooting#sharing-logs) with your app version and the folder it is stored in.
+
+### Can I back up only some photos from a folder, not the whole folder? {#backup-selected-photos}
+
+Automatic backup is per device folder (or album), not per individual photo inside that folder.
+
+1. Open `Settings > Backup > Backed up folders`.
+2. Turn backup on only for the folders you want.
+3. Turn backup off for folders you do not want uploaded.
+
+There is no setting to leave a folder selected for backup while excluding specific files inside it from automatic backup.
+
+Options that still help:
+
+- Use **Backup only new photos** under `Settings > Backup > Backup settings` if you want automatic backup to skip older items in selected folders. See [Can I backup only new photos without uploading my existing library?](#backup-only-new-photos).
+- Upload specific photos manually from the app when you need a one-off selection.
 
 ### Does hiding a folder stop Ente Photos from backing it up? {#hidden-folder-backup}
 
@@ -75,6 +106,16 @@ Learn more in the [Backup only new photos](/photos/features/backup-and-sync/#bac
 
 No. Backup mode progress relates to the current upload session. The counter can restart when a new session begins. A reset alone does not mean your entire library is uploading again. Check [Backup status](#check-backup-status) for pending items.
 
+### Why does Backup mode say "No backup in progress"? {#backup-mode-no-backup}
+
+Backup mode keeps an upload that is already running going. It doesn't start one by itself. "No backup in progress" means Ente isn't uploading right now, even if photos are still waiting.
+
+1. Check `Settings > Backup > Backed up folders` and make sure the folders you want are turned on.
+2. Return to the home screen and wait until the top of the screen shows that photos are uploading. If it says it's waiting for Wi-Fi or for the network, connect to Wi-Fi first.
+3. Then open Backup mode and tap **Start backup mode**. Keep Ente open on screen, with your iPhone plugged in.
+
+If uploads still don't start, email [support@ente.com](mailto:support@ente.com).
+
 ### Can I backup over mobile data or only WiFi? {#mobile-data}
 
 By default, Ente only backs up photos over WiFi to save mobile data and battery. However, you can change this setting:
@@ -101,6 +142,7 @@ If the app is slow or crashes while backing up a large library, temporarily turn
 **On iOS:**
 
 - Open [Backup mode](/photos/features/backup-and-sync/#backup-mode-ios) under `Settings > Backup > Backup settings` and tap **Start backup mode**
+- Backup mode keeps an upload that is already running going. If you see **No backup in progress**, see [Why does Backup mode say "No backup in progress"?](#backup-mode-no-backup)
 - Keep Ente open on screen. Switching apps pauses Backup mode
 - Keep your phone connected to power and stable WiFi until the backup finishes
 
@@ -115,6 +157,21 @@ If the app is slow or crashes while backing up a large library, temporarily turn
 - Desktop uploads are generally faster than mobile
 - Consider doing initial upload from desktop if you have a large library
 
+### Can I back up photos first and videos later? {#backup-photos-before-videos}
+
+Yes. You can temporarily turn off automatic video backup while your photos upload.
+
+**On mobile:**
+
+1. Open `Settings > Backup > Backup settings` and turn off **Backup videos**.
+2. Close Ente completely, then open it again.
+3. Keep Ente open and check `Settings > Backup > Backup status` for pending photos or errors.
+4. Once your photos have finished uploading, turn **Backup videos** back on and let the remaining videos upload.
+
+You can also upload a video manually while automatic video backup is off. Open the video, check its size in the info panel, then tap the upward-facing arrow in the top-right corner (**Upload to Ente**).
+
+Make sure your Ente account has enough space for the remaining uploads. Your phone also needs [temporary space to prepare them](#backup-device-storage).
+
 ### What happens if my backup is interrupted? {#backup-interrupted}
 
 If your backup is interrupted (due to network issues, closing the app, or other reasons), Ente will automatically resume from where it left off the next time you have connectivity. You don't need to restart the entire backup process.
@@ -122,6 +179,8 @@ If your backup is interrupted (due to network issues, closing the app, or other 
 ### Why is Ente using more device storage during backup? {#backup-device-storage}
 
 Ente needs temporary space while preparing and uploading your photos and videos. On iPhone, Ente may first download the full-resolution original from iCloud. Ente also creates an encrypted copy for upload. Encryption protects the file before it leaves your phone.
+
+This uses storage on your device, separate from your Ente storage allowance. Your phone can run out of space during backup even when your Ente account has space available.
 
 Large videos and interrupted uploads can increase this storage. Ente removes the temporary data after an upload finishes. If an upload is interrupted, Ente keeps the data so it can continue instead of starting over.
 
@@ -131,6 +190,8 @@ Try these steps:
 2. If your phone does not have enough space, turn off **Backup videos** under `Settings > Backup > Backup settings` for two days. You can continue using Ente during this time. After two days, close and reopen Ente once. Ente will remove old upload data when it starts. Then turn **Backup videos** back on and use Backup mode to finish the backup.
 3. If **Pending sync** is still large, [share your logs with support](/photos/faq/troubleshooting#sharing-logs). Include a screenshot of the **Manage device cache** screen.
 
+If you want to upload your photos before your videos, see [Can I back up photos first and videos later?](#backup-photos-before-videos). If the app is slow or crashes during a large backup, see the [initial backup tips](#initial-backup-slow).
+
 ### Do deleted photos on my device also delete from Ente? {#deletion-sync}
 
 No. If you delete a photo from your device's native photos app, it will **not** be automatically deleted from Ente. This is by design for two reasons:
@@ -139,6 +200,8 @@ No. If you delete a photo from your device's native photos app, it will **not** 
 2. **Platform restrictions**: iOS and Android don't allow apps to automatically delete photos without manual confirmation
 
 If you want to delete a photo from Ente, you must do it manually within the Ente app.
+
+The same applies to Google Photos or any other gallery or cloud app: deleting there doesn't delete the copy in Ente. Photos with a [slashed cloud icon](#slashed-cloud-icon) aren't backed up yet.
 
 ### Understanding Ente's backup vs. sync paradigm {#backup-vs-sync}
 
@@ -247,6 +310,21 @@ Open `Settings > Backup > Backup status` to see:
 - Check the sync status indicator in the bottom right corner
 - Click to expand and see detailed progress
 
+### How do I check that my photos are backed up before deleting them from iCloud? {#verify-backup-before-icloud-deletion}
+
+Ente's mobile app can show photos stored only on your device, so seeing a photo there doesn't mean it has been backed up.
+
+Before deleting your iCloud copies:
+
+1. Open `Settings > Backup > Backed up folders` and select the albums you want to back up.
+2. To include older photos and videos, open `Settings > Backup > Backup settings`, turn off **Backup only new photos**, and turn on **Backup videos**.
+3. Open `Settings > Backup > Backup status` and wait for pending uploads to finish. Check any errors before continuing.
+4. Open Ente's web or desktop app and check the albums and date ranges you wanted to back up. Open or download important photos, and check that videos and Live Photos play.
+
+Photos with a [slashed cloud icon](#slashed-cloud-icon) aren't backed up yet. Keep their originals until they have uploaded.
+
+Deleting from Apple Photos or iCloud does not delete photos already backed up to Ente. It can remove the Apple copies from other devices using iCloud Photos.
+
 ### How does Ente handle media when Optimize iPhone Storage is enabled? {#optimize-iphone-storage}
 
 When Optimize iPhone Storage is enabled, iOS keeps lower-resolution previews on your device. Ente displays those previews during on-device viewing.
@@ -290,6 +368,10 @@ Live Photos behave differently depending on how you share them:
 - **Using the "Share" option**: Only the still image is shared
 - **Using "Download"**: Downloads the complete Live Photo (image + video)
 - **Using "Share" button to save/download**: Only saves the still image
+
+### Why do my Live Photos show up as a separate photo and video? {#live-photo-not-paired}
+
+When you upload from a computer, Ente uses the photo and video's file names and dates to pair them as one Live Photo. Both parts must be uploaded to the same Ente album. When folder paths are available, they must also match. Ente can recognise some filename suffixes and Google Takeout metadata. Downloads from other services, such as a Google Photos shared album, may rename one of the parts or leave out the video. If Ente cannot pair the files, they appear as a separate photo and video. To keep Live Photos intact, back them up from your iPhone with the Ente app.
 
 ### Can I save just the still image from a Live Photo or remove its motion clip? {#live-photo-still-only}
 
@@ -426,6 +508,7 @@ On supported Android devices, yes. After taking a photo, tapping the preview thu
 A few details to keep in mind:
 
 - This depends on your camera app and device supporting the Android handoff that Ente listens for.
+- The default Pixel Camera and Samsung Camera apps don't hand off to other gallery apps, so their thumbnail opens the phone's default gallery instead of Ente.
 - It is for previewing the image you just tapped from the camera app; it does not make Ente the default gallery everywhere else.
 - On iPhone, the camera app still opens Apple Photos for this flow.
 
@@ -548,6 +631,17 @@ Watch folders allow the Ente desktop app to automatically monitor specific direc
 
 Learn more in the [Watch folders feature guide](/photos/features/backup-and-sync/watch-folders).
 
+### Why does Ente upload photos again after I download or export them on desktop? {#download-into-watched-folder}
+
+Watch folders upload every new file that appears in a watched folder, including files you've just downloaded or exported from Ente. If you save photos from Ente into a folder that Ente is watching, they are uploaded again, which can create duplicates or keep the upload going.
+
+To save your photos to your computer without this:
+
+1. Open `Watch folders` in the desktop app to see which folders Ente is watching.
+2. Use **Export data** and choose a destination outside every watched folder and its subfolders.
+
+Keep the folders you watch for uploads and the folders you export or download into separate. See [Can I do a 2-way sync with exports?](/photos/faq/advanced-features#export-two-way-sync) and [Export your data](/photos/migration/export/).
+
 ### Does Ente keep my phone and PC folders in sync with each other? {#folder-sync-phone-pc}
 
 Ente backs up photos from your phone and computer to Ente's servers, making them available across all your Ente apps. However, Ente is not a two-way folder sync service - it won't automatically mirror a folder on your PC and your phone's local storage with each other.
@@ -607,6 +701,20 @@ To manage your watch folders, click "Watch folders" in the sidebar to see the li
 If you delete a file from a watched folder on your computer, the corresponding file in Ente will be automatically moved to the [Uncategorized](/photos/faq/albums-and-organization#uncategorized) album. It won't be permanently deleted - you can still access it from the Uncategorized section.
 
 If you want to remove it completely from Ente, you'll need to manually delete it from the Uncategorized album.
+
+### Why do photos appear in Uncategorized after I move them between watched folders? {#moved-watched-files-uncategorized}
+
+Ente can treat a move as a file removed from one watched folder and added to another. The photo is removed from the original album and moved to **Uncategorized**, while the destination folder adds it to its album.
+
+The same photo can appear in both albums without using extra storage. To remove the extra Uncategorized entry:
+
+1. Wait for the folder sync to finish.
+2. Check that the photo appears in the destination album you own.
+3. Open **Uncategorized** and select **Clean Uncategorized**.
+
+Use **Clean Uncategorized** instead of **Delete** to remove the extra album entry. If both albums refer to the same photo, deleting it removes it from both.
+
+If the move created separate copies, use the [duplicate-removal tool](#deduplication-desktop).
 
 ### Can I delete photos from my computer after a watch folder uploads them? {#delete-after-watch-folder-upload}
 
@@ -771,6 +879,8 @@ Yes! On desktop, you have two options:
 
 To resume, simply turn connectivity back on or re-enable the albums.
 
+To stop backing up more photos from a folder you selected by mistake, open `Settings > Backup > Backed up folders` and turn it off. An upload already in progress may still finish. Photos already uploaded stay in Ente.
+
 **On desktop:**
 
 - Watch folder syncing will pause if you close the app
@@ -919,8 +1029,8 @@ The differing thumbnails don't affect deduplication. Ente still recognizes the f
 
 ### Which copy does Ente keep during deduplication? {#dedup-which-copy-kept}
 
-When Ente finds the same photo across, say, three albums, it keeps just one underlying copy of the file and replaces the others with symlinks (references) pointing back to that copy. All three albums still show the photo, and you can scroll through any of them and see it there. The only thing that changes is that your storage quota goes down, since Ente is no longer storing three full copies of the same file.
+Ente keeps one stored copy and preserves its album entries. For example, a photo in both Family and Holiday will still appear in both albums after deduplication. Both entries point to the same stored photo, which saves storage space.
 
-Deduplication isn't an album cleanup tool - if your goal is to have a photo appear in only one album instead of three, deduplication won't do that. It only makes storage more efficient while keeping every album looking the same. To remove a photo from a specific album, remove it from that album manually.
+To show the photo in fewer albums, use **Remove from album** where available. Deduplication does not change which albums contain the photo.
 
-If you later export your library, the file shows up in every album folder it belonged to - the symlinks become real copies again in your exported folders.
+If you export your library, Ente creates a copy in each album's folder so every exported album is complete. These exported copies do not mean deduplication failed. See [Why does an export show more files than I have photos?](#export-more-files-than-photos).

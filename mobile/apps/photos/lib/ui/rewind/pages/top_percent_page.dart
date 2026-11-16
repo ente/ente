@@ -1,4 +1,5 @@
 import "package:flutter/material.dart";
+import "package:photos/models/file/file.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
@@ -8,37 +9,37 @@ import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
 import "package:photos/ui/rewind/widgets/rewind_keyframes.dart";
 import "package:photos/ui/rewind/widgets/rewind_layer.dart";
 import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
+import "package:photos/ui/rewind/widgets/rewind_spread.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
 import "package:photos/ui/rewind/widgets/rewind_text.dart";
 
 class TopPercentPage extends RewindPage {
-  const TopPercentPage({required this.perMille, required this.count});
+  const TopPercentPage({required this.percent, required this.count});
 
   static const pageKey = "top_percent";
 
   static const _base = Color(0xFF5666CC);
   static const _night = Color(0xFF1A2A8F);
 
-  final int perMille;
+  final int percent;
   final int count;
 
   @override
   String get key => pageKey;
 
-  _Crowd get _crowd => perMille <= 10 ? _Crowd.top1 : _Crowd.wide;
+  @override
+  Duration? get reelHold => const Duration(milliseconds: 2700);
 
-  List<(String, Rect)> get _heroes => switch (perMille) {
-    <= 10 => const [
+  @override
+  List<EnteFile> get reelThumbnails => const [];
+
+  _Crowd get _crowd => percent == 1 ? _Crowd.top1 : _Crowd.wide;
+
+  List<(String, Rect)> get _heroes => switch (percent) {
+    1 => const [
       (RewindAssets.crowdHeroTop1, Rect.fromLTWH(141, 152, 113, 118)),
     ],
-    <= 100 => const [
-      (RewindAssets.crowdHeroLeft, Rect.fromLTWH(78, 188, 82, 112)),
-      (RewindAssets.crowdHeroMiddle, Rect.fromLTWH(139, 188, 98, 112)),
-      (RewindAssets.crowdHeroRight, Rect.fromLTWH(223, 183, 88, 113)),
-    ],
     _ => const [
-      (RewindAssets.crowdHeroBackLeft, Rect.fromLTWH(111, 138, 99, 110)),
-      (RewindAssets.crowdHeroBackRight, Rect.fromLTWH(190, 138, 93, 112)),
       (RewindAssets.crowdHeroLeft, Rect.fromLTWH(78, 188, 82, 112)),
       (RewindAssets.crowdHeroMiddle, Rect.fromLTWH(139, 188, 98, 112)),
       (RewindAssets.crowdHeroRight, Rect.fromLTWH(223, 183, 88, 113)),
@@ -54,8 +55,7 @@ class TopPercentPage extends RewindPage {
     final crowd = _crowd;
     final heroes = _heroes;
     final textDelay = 950 + 175 * (heroes.length - 1);
-    final label = rewindTopPercent(perMille);
-    final small = label.length > 1;
+    final small = percent >= 10;
     return RewindShareable(
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -82,9 +82,11 @@ class TopPercentPage extends RewindPage {
                   RewindLayer(
                     rect: crowd.back,
                     position: position,
-                    child: Image.file(
-                      RewindAssets.file(crowd.backAsset),
-                      fit: BoxFit.fill,
+                    child: RewindSpread(
+                      child: Image.file(
+                        RewindAssets.file(crowd.backAsset),
+                        fit: BoxFit.fill,
+                      ),
                     ),
                   ),
                   for (final (i, (asset, rect)) in heroes.indexed)
@@ -114,13 +116,20 @@ class TopPercentPage extends RewindPage {
                   RewindLayer(
                     rect: crowd.front,
                     position: position,
-                    child: Image.file(
-                      RewindAssets.file(crowd.frontAsset),
-                      fit: BoxFit.fill,
+                    child: RewindSpread(
+                      child: Image.file(
+                        RewindAssets.file(crowd.frontAsset),
+                        fit: BoxFit.fill,
+                      ),
                     ),
                   ),
                   Positioned.fromRect(
-                    rect: Rect.fromLTWH(0, crowd.front.bottom - 193, 390, 206),
+                    rect: Rect.fromLTWH(
+                      -RewindStage.size.width,
+                      crowd.front.bottom - 193,
+                      3 * RewindStage.size.width,
+                      206,
+                    ),
                     child: RewindLeave(
                       position: position,
                       centerY: 440,
@@ -144,9 +153,13 @@ class TopPercentPage extends RewindPage {
                       active: isActive,
                       delayMs: textDelay,
                       child: Center(
-                        child: Text(
-                          "ACROSS ENTE, YOU’RE IN THE",
-                          style: RewindTextStyles.display(17, height: 1.05),
+                        child: RewindVoice(
+                          you: "ACROSS ENTE, YOU’RE IN THE",
+                          me: "ACROSS ENTE, I’M IN THE",
+                          builder: (text) => Text(
+                            text,
+                            style: RewindTextStyles.display(17, height: 1.05),
+                          ),
                         ),
                       ),
                     ),
@@ -162,7 +175,7 @@ class TopPercentPage extends RewindPage {
                       child: RewindFitWidth(
                         width: 340,
                         child: RewindOutlinedText(
-                          "TOP $label%",
+                          "TOP $percent%",
                           style: RewindTextStyles.display(
                             small ? 85 : 95.144,
                             color: const Color(0xFFFFD525),

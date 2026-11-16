@@ -539,6 +539,8 @@
     "photos_count": "{{count, number}} records",
     "terms_and_conditions": "Accepto els <a>termes</a> i la <b>política de privadesa</b>",
     "people": "Persones",
+    "add_more_people": "",
+    "only_them": "",
     "people_count_one": "",
     "people_count_other": "",
     "people_photo_count_one": "",

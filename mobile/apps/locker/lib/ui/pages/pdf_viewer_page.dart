@@ -2,11 +2,11 @@ import "dart:async";
 import "dart:io";
 
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
 import "package:ente_pdf_renderer/ente_pdf_renderer.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:locker/ui/viewer/pdf_page_layout.dart";
 import "package:logging/logging.dart";
 

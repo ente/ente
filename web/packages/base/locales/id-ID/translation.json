@@ -539,6 +539,8 @@
     "photos_count": "{{count, number}} kenangan",
     "terms_and_conditions": "Saya menyetujui <a>ketentuan</a> dan <b>kebijakan privasi</b> Ente",
     "people": "",
+    "add_more_people": "",
+    "only_them": "",
     "people_count_one": "",
     "people_count_other": "",
     "people_photo_count_one": "",

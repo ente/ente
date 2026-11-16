@@ -94,6 +94,7 @@ test("People keeps a selected small cluster and filters hidden and duplicate fil
         people: [small, named],
         visiblePeople: [named],
         personByFaceID: new Map(),
+        filesWithUnassignedFaces: new Set(),
     };
     const selected = derivePeopleView(
         people,
@@ -152,4 +153,32 @@ test("People keeps a selected small cluster and filters hidden and duplicate fil
         personID: undefined,
         extraVisiblePersonID: undefined,
     });
+});
+
+test("People matches every selected person and Only them excludes extra faces", () => {
+    const primary = { id: "primary", fileIDs: [1, 2, 3, 4, 5] } as Person;
+    const companion = { id: "companion", fileIDs: [1, 2, 3, 4] } as Person;
+    const extra = { id: "extra", fileIDs: [3], isHidden: true } as Person;
+    const people = [primary, companion, extra];
+    const view = {
+        type: "people" as const,
+        activePerson: primary,
+        people,
+        visiblePeople: [primary, companion],
+    };
+    const files = [file(1), file(2), file(3), file(4), file(5), file(1, 11)];
+    const hidden = new Set([2]);
+
+    const matchingIDs = (unassigned?: Set<number>) =>
+        derivePeopleFilteredFiles(
+            files,
+            hidden,
+            view,
+            1,
+            [companion],
+            unassigned,
+        ).map(({ id }) => id);
+
+    expect(matchingIDs()).toEqual([1, 3, 4]);
+    expect(matchingIDs(new Set([4]))).toEqual([1]);
 });

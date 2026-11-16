@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"database/sql"
+	"slices"
 	"testing"
 	"time"
 
@@ -54,6 +55,168 @@ func TestObjectCopiesReplicationQueue(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestObjectCopiesResetReplication(t *testing.T) {
+	for _, tc := range []struct {
+		name         string
+		sourceIsB2   bool
+		wantScaleway bool
+	}{
+		{name: "b2 file", sourceIsB2: true, wantScaleway: true},
+		{name: "wasabi file", wantScaleway: true},
+		{name: "b2 thumbnail", sourceIsB2: true},
+		{name: "wasabi thumbnail"},
+	} {
+		for _, state := range []string{"retained", "pruned"} {
+			t.Run(tc.name+"/"+state, func(t *testing.T) {
+				db := setupFileUsageTest(t)
+				ownerID := testutil.InsertUser(t, db, testutil.UserFixture{UserID: 1, Email: "replication-reset@example.com", CreationTime: 1})
+				fileID := insertObjectTestFile(t, db, ownerID)
+				objectType := ente.THUMBNAIL
+				locations := []string{"wasabi-eu-central-2-v3", "b2-eu-cen"}
+				if tc.sourceIsB2 {
+					locations[0], locations[1] = locations[1], locations[0]
+				}
+				if tc.wantScaleway {
+					objectType = ente.FILE
+					locations = append(locations, "scw-eu-fr-v3")
+				}
+				const objectKey = "replication-reset"
+				insertObjectTestKey(t, db, fileID, objectType, objectKey, 100, locations)
+				_, err := db.Exec(`INSERT INTO object_copies (object_key, b2, wasabi, scw, want_b2, want_wasabi, want_scw, last_attempt)
+					VALUES ($1, 1, 1, CASE WHEN $2 THEN 1 END, true, true, $2, now_utc_micro_seconds())`, objectKey, tc.wantScaleway)
+				require.NoError(t, err)
+				if state == "pruned" {
+					_, err = db.Exec(`DELETE FROM object_copies WHERE object_key = $1`, objectKey)
+					require.NoError(t, err)
+				}
+
+				repository := &ObjectCopiesRepository{DB: db}
+				require.NoError(t, repository.ResetReplication(objectKey, tc.sourceIsB2, tc.wantScaleway))
+				copies, err := repository.GetAndLockUnreplicatedObject(t.Context())
+				require.NoError(t, err)
+				require.Equal(t, objectKey, copies.ObjectKey)
+				require.True(t, copies.WantB2)
+				require.True(t, copies.WantWasabi)
+				require.Equal(t, tc.wantScaleway, copies.WantSCW)
+				require.Nil(t, copies.SCW)
+				source, destination := copies.Wasabi, copies.B2
+				if tc.sourceIsB2 {
+					source, destination = copies.B2, copies.Wasabi
+				}
+				require.NotNil(t, source)
+				require.Positive(t, *source)
+				require.Nil(t, destination)
+			})
+		}
+	}
+}
+
+func TestObjectCopiesPrunesCompletedReplication(t *testing.T) {
+	for _, tc := range []struct {
+		name         string
+		source       string
+		destinations []string
+	}{
+		{name: "b2 original", source: "b2", destinations: []string{"wasabi", "scw"}},
+		{name: "wasabi original", source: "wasabi", destinations: []string{"b2", "scw"}},
+		{name: "wasabi completes last", source: "b2", destinations: []string{"scw", "wasabi"}},
+		{name: "b2 completes last", source: "wasabi", destinations: []string{"scw", "b2"}},
+		{name: "b2 thumbnail", source: "b2", destinations: []string{"wasabi"}},
+		{name: "wasabi thumbnail", source: "wasabi", destinations: []string{"b2"}},
+		{name: "wasabi not required", source: "b2", destinations: []string{"scw"}},
+		{name: "b2 not required", source: "wasabi", destinations: []string{"scw"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			db := setupFileUsageTest(t)
+			ownerID := testutil.InsertUser(t, db, testutil.UserFixture{Email: "replication-prune@example.com", CreationTime: 1})
+			fileID := insertObjectTestFile(t, db, ownerID)
+			const objectKey = "replication-prune"
+			objectType := ente.FILE
+			if !slices.Contains(tc.destinations, "scw") {
+				objectType = ente.THUMBNAIL
+			}
+			source := "b2-eu-cen"
+			if tc.source == "wasabi" {
+				source = "wasabi-eu-central-2-v3"
+			}
+			insertObjectTestKey(t, db, fileID, objectType, objectKey, 100, []string{source})
+			otherFileID := insertObjectTestFile(t, db, ownerID)
+			insertObjectTestKey(t, db, otherFileID, ente.FILE, "other-completed-object", 100,
+				[]string{"b2-eu-cen", "wasabi-eu-central-2-v3", "scw-eu-fr-v3"})
+			_, err := db.Exec(`INSERT INTO object_copies (object_key, b2, wasabi, scw, want_b2, want_wasabi, want_scw)
+				VALUES ('other-completed-object', 1, 1, 1, true, true, true)`)
+			require.NoError(t, err)
+			repository := &ObjectCopiesRepository{DB: db}
+			tx, err := db.BeginTx(t.Context(), nil)
+			require.NoError(t, err)
+			defer tx.Rollback()
+			if tc.source == "b2" {
+				err = repository.CreateNewB2Object(t.Context(), tx, objectKey,
+					slices.Contains(tc.destinations, "wasabi"), slices.Contains(tc.destinations, "scw"))
+			} else {
+				err = repository.CreateNewWasabiObject(t.Context(), tx, objectKey,
+					slices.Contains(tc.destinations, "b2"), slices.Contains(tc.destinations, "scw"))
+			}
+			require.NoError(t, err)
+			require.NoError(t, tx.Commit())
+
+			markReplicated := map[string]func(string) error{
+				"b2": repository.MarkObjectReplicatedB2, "wasabi": repository.MarkObjectReplicatedWasabi,
+				"scw": repository.MarkObjectReplicatedScaleway,
+			}
+			for i, destination := range tc.destinations {
+				var exists bool
+				require.NoError(t, db.QueryRow(`SELECT EXISTS (SELECT 1 FROM object_copies WHERE object_key = $1)`, objectKey).Scan(&exists))
+				require.True(t, exists, "retain the job until every required destination is recorded")
+				require.NoError(t, markReplicated[destination](objectKey))
+				require.NoError(t, db.QueryRow(`SELECT EXISTS (SELECT 1 FROM object_copies WHERE object_key = $1)`, objectKey).Scan(&exists))
+				require.Equal(t, i < len(tc.destinations)-1, exists)
+			}
+			var keys, copies int
+			require.NoError(t, db.QueryRow(`SELECT count(*) FROM object_keys WHERE object_key IN ($1, 'other-completed-object')`, objectKey).Scan(&keys))
+			require.Equal(t, 2, keys)
+			require.NoError(t, db.QueryRow(`SELECT count(*) FROM object_copies WHERE object_key = 'other-completed-object'`).Scan(&copies))
+			require.Equal(t, 1, copies)
+		})
+	}
+}
+
+func TestObjectCopiesPruningFailureRollsBackCompletion(t *testing.T) {
+	db := setupFileUsageTest(t)
+	ownerID := testutil.InsertUser(t, db, testutil.UserFixture{Email: "replication-prune-failure@example.com", CreationTime: 1})
+	fileID := insertObjectTestFile(t, db, ownerID)
+	const objectKey = "replication-prune-failure"
+	insertObjectTestKey(t, db, fileID, ente.FILE, objectKey, 100, []string{"wasabi-eu-central-2-v3", "scw-eu-fr-v3"})
+	_, err := db.Exec(`INSERT INTO object_copies (object_key, wasabi, scw, want_b2, want_wasabi, want_scw)
+		VALUES ($1, 1, 1, true, true, true)`, objectKey)
+	require.NoError(t, err)
+	_, err = db.Exec(`CREATE FUNCTION fail_replication_pruning() RETURNS trigger LANGUAGE plpgsql AS $$
+		BEGIN RAISE EXCEPTION 'replication pruning failed'; END;
+		$$;
+		CREATE TRIGGER fail_replication_pruning BEFORE DELETE ON object_copies
+		FOR EACH ROW EXECUTE FUNCTION fail_replication_pruning()`)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_, err := db.Exec(`DROP TRIGGER IF EXISTS fail_replication_pruning ON object_copies; DROP FUNCTION fail_replication_pruning()`)
+		require.NoError(t, err)
+	})
+	repository := &ObjectCopiesRepository{DB: db}
+	require.ErrorContains(t, repository.MarkObjectReplicatedB2(objectKey), "replication pruning failed")
+	copies, err := repository.GetAndLockUnreplicatedObject(t.Context())
+	require.NoError(t, err)
+	require.Equal(t, objectKey, copies.ObjectKey)
+	require.Nil(t, copies.B2)
+	require.Equal(t, replicationTimestamp(), copies.Wasabi)
+	require.Equal(t, replicationTimestamp(), copies.SCW)
+
+	_, err = db.Exec(`DROP TRIGGER fail_replication_pruning ON object_copies`)
+	require.NoError(t, err)
+	require.NoError(t, repository.MarkObjectReplicatedB2(objectKey))
+	var count int
+	require.NoError(t, db.QueryRow(`SELECT count(*) FROM object_copies WHERE object_key = $1`, objectKey).Scan(&count))
+	require.Zero(t, count)
 }
 
 func TestObjectCopiesReplicationDestinationRotation(t *testing.T) {

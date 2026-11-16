@@ -1,1 +1,0 @@
-- Improved navigation, scrolling, and card interactions when reviewing old photos.

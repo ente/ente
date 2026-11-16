@@ -2,6 +2,7 @@ import "dart:math";
 
 import "package:flutter/material.dart";
 import "package:flutter_svg/flutter_svg.dart";
+import "package:photos/models/file/file.dart";
 import "package:photos/services/rewind/rewind_edition.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
@@ -11,25 +12,41 @@ import "package:photos/ui/rewind/theme/rewind_motion.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
 import "package:photos/ui/rewind/widgets/rewind_count_up.dart";
+import "package:photos/ui/rewind/widgets/rewind_elapsed.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
 import "package:photos/ui/rewind/widgets/rewind_keyframes.dart";
 import "package:photos/ui/rewind/widgets/rewind_layer.dart";
 import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
+import "package:photos/ui/rewind/widgets/rewind_photo.dart";
+import "package:photos/ui/rewind/widgets/rewind_photo_frames.dart";
+import "package:photos/ui/rewind/widgets/rewind_spread.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
 import "package:photos/ui/rewind/widgets/rewind_text.dart";
 
 class PhotosCountPage extends RewindPage {
-  const PhotosCountPage(this.count);
+  const PhotosCountPage(this.count, this.photos);
 
   static const pageKey = "photos_count";
+  static const maxPhotos = 24;
+  static const _minimumPhotos = 8;
 
   static const _ducky = Rect.fromLTWH(90, 191, 210, 234);
   static const _burstPivot = Offset(195, 457);
+  static const _cloud = Color(0xFFFFF4DC);
 
   final int count;
+  final List<EnteFile> photos;
 
   @override
   String get key => pageKey;
+
+  @override
+  Duration? get reelHold =>
+      Duration(milliseconds: photos.length < _minimumPhotos ? 2800 : 4200);
+
+  @override
+  List<EnteFile> get reelThumbnails =>
+      photos.length < _minimumPhotos ? const [] : photos;
 
   @override
   RewindChrome get chrome => const RewindChrome(
@@ -77,12 +94,22 @@ class PhotosCountPage extends RewindPage {
                 child: RewindEntrance(
                   preset: RewindPreset.cloud,
                   active: isActive,
-                  child: Image.file(
-                    RewindAssets.file(RewindAssets.cloudsBack),
-                    fit: BoxFit.fill,
+                  child: RewindSpread(
+                    child: Image.file(
+                      RewindAssets.file(RewindAssets.cloudsBack),
+                      fit: BoxFit.fill,
+                    ),
                   ),
                 ),
               ),
+              if (photos.length >= _minimumPhotos)
+                Positioned.fill(
+                  child: RewindLeave(
+                    position: position,
+                    centerY: 420,
+                    child: _Popcorn(photos: photos, active: isActive),
+                  ),
+                ),
               RewindLayer(
                 rect: _ducky,
                 position: position,
@@ -116,35 +143,24 @@ class PhotosCountPage extends RewindPage {
                   preset: RewindPreset.cloud,
                   active: isActive,
                   delayMs: 90,
-                  child: Image.file(
-                    RewindAssets.file(RewindAssets.cloudsFront),
-                    fit: BoxFit.fill,
-                  ),
-                ),
-              ),
-              RewindLayer(
-                rect: const Rect.fromLTWH(41, 79, 320.5, 110),
-                position: position,
-                child: RewindEntrance(
-                  preset: RewindPreset.rise,
-                  active: isActive,
-                  delayMs: 150,
-                  child: Transform.rotate(
-                    angle: -3.31 * pi / 180,
-                    child: RewindFitWidth(
-                      width: 316,
-                      alignment: Alignment.center,
-                      child: RewindOutlinedText(
-                        "YOU SAID\n\"ONE MORE PHOTO\"\nA LOT THIS YEAR.",
-                        style: RewindTextStyles.display(
-                          34.638,
-                          color: RewindColors.white,
-                          height: 0.84,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    fit: StackFit.expand,
+                    children: [
+                      RewindSpread(
+                        child: Image.file(
+                          RewindAssets.file(RewindAssets.cloudsFront),
+                          fit: BoxFit.fill,
                         ),
-                        outline: 2,
-                        shadow: const Offset(1.273, 1.528),
                       ),
-                    ),
+                      Positioned(
+                        left: -RewindStage.size.width,
+                        right: -RewindStage.size.width,
+                        top: 332,
+                        height: RewindStage.size.height,
+                        child: const ColoredBox(color: _cloud),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -156,12 +172,16 @@ class PhotosCountPage extends RewindPage {
                   active: isActive,
                   delayMs: 1250,
                   child: Center(
-                    child: Text(
-                      "IN ${RewindEdition.year}, YOU CLICKED",
-                      style: RewindTextStyles.display(
-                        22,
-                        color: RewindColors.ink,
-                        letterSpacing: -0.88,
+                    child: RewindVoice(
+                      you: "IN ${RewindEdition.year}, YOU CLICKED",
+                      me: "IN ${RewindEdition.year}, I CLICKED",
+                      builder: (text) => Text(
+                        text,
+                        style: RewindTextStyles.display(
+                          22,
+                          color: RewindColors.ink,
+                          letterSpacing: -0.88,
+                        ),
                       ),
                     ),
                   ),
@@ -279,5 +299,157 @@ class PhotosCountPage extends RewindPage {
         ),
       ),
     );
+  }
+}
+
+class _Popcorn extends StatelessWidget {
+  const _Popcorn({required this.photos, required this.active});
+
+  static const _launchY = 650.0;
+  static const _flightMs = 1750.0;
+  static const _burstFromMs = 1420.0;
+  static const _burstMs = 1400.0;
+  static const _burstCount = 16;
+  static const _belted = 5;
+  static const _firstBelted = _burstCount - _belted;
+  static const _width = 74.0;
+  static const _beltY = 472.0;
+  static const _beltLeft = 54.0;
+  static const _pitch = 78.0;
+  static const _beltSpeed = 0.04;
+  static const _landMs = 280.0;
+
+  static final List<double> _burst = [
+    for (var k = 0; k < _burstCount; k++)
+      _burstFromMs +
+          _burstMs * (1 - pow(1 - k / _burstCount, 1 / 3).toDouble()),
+  ];
+
+  static final _beltFromMs = _burst[_firstBelted] + _flightMs;
+
+  final List<EnteFile> photos;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    final prints = [
+      for (final file in photos)
+        RewindPolaroid(
+          width: _width,
+          photo: RewindPhoto(
+            file,
+            placeholder: const Color(0x1F151515),
+            zoomable: false,
+          ),
+        ),
+    ];
+    return IgnorePointer(
+      child: RewindElapsed(
+        active: active,
+        stillMs: 5200,
+        builder: (context, ms) => Stack(
+          clipBehavior: Clip.none,
+          children: [
+            for (final slot in _beltSlots(ms))
+              _onBelt(prints[(_firstBelted + slot) % prints.length], slot, ms),
+            for (var k = 0; k < _burstCount; k++)
+              if (_burst[k] <= ms && ms < _burst[k] + _flightMs)
+                _flight(prints[k % prints.length], k, ms),
+          ],
+        ),
+      ),
+    );
+  }
+
+  double _beltX(int slot, double ms) =>
+      _beltLeft + slot * _pitch - _beltSpeed * (ms - _beltFromMs);
+
+  Offset _beltAt(int slot, double ms) {
+    final x = _beltX(slot, ms);
+    return Offset(x, _beltY + 4 * sin(x / 128 * 2 * pi));
+  }
+
+  double _beltTilt(double x) => 3.5 * cos(x / 128 * 2 * pi) + 1.5;
+
+  Iterable<int> _beltSlots(double ms) sync* {
+    final first = max(
+      0,
+      ((_beltSpeed * (ms - _beltFromMs) - _beltLeft - _width) / _pitch).ceil(),
+    );
+    for (var slot = first; ; slot++) {
+      if (_beltX(slot, ms) - _width > RewindStage.size.width) return;
+      final landed = slot >= _belted || ms >= _landingMs(slot);
+      if (landed) yield slot;
+    }
+  }
+
+  double _landingMs(int slot) => _burst[_firstBelted + slot] + _flightMs;
+
+  Widget _onBelt(Widget print, int slot, double ms) {
+    final at = _beltAt(slot, ms);
+    final since = slot < _belted ? ms - _landingMs(slot) : _landMs;
+    final squash = since < _landMs ? sin(since / _landMs * pi) : 0.0;
+    return _placed(
+      print,
+      launch: slot + 1000,
+      at: at,
+      turn: _beltTilt(at.dx),
+      sx: 1 + 0.06 * squash,
+      sy: 1 - 0.09 * squash,
+    );
+  }
+
+  Widget _flight(Widget print, int launch, double ms) {
+    final u = (ms - _burst[launch]) / _flightMs;
+    final lane = (launch * 0.381966 + 0.13) % 1;
+    final side = lane < 0.5 ? -1 : 1;
+    final from = Offset(195 + (lane - 0.5) * 140, _launchY);
+    final slot = launch - _firstBelted;
+    final belted = slot >= 0;
+    final to = belted
+        ? _beltAt(slot, _landingMs(slot))
+        : from + Offset(side * (70 + 90 * _unit(launch)), 0);
+    final apex = 195 + 150 * _unit(launch + 7);
+    final mid = (from.dy + to.dy) / 2;
+    final q = belted ? Curves.easeOut.transform(u) : u;
+    final x = from.dx + (to.dx - from.dx) * q;
+    final y = from.dy + (to.dy - from.dy) * u - 4 * (mid - apex) * u * (1 - u);
+    final spin = side * (8 + 50 * _unit(launch + 11)) + (lane - 0.5) * 30;
+    final scale = 0.84 + 0.26 * _unit(launch + 3);
+    return _placed(
+      print,
+      launch: belted ? 1000 + slot : launch,
+      at: Offset(x, y),
+      turn: belted ? spin + (_beltTilt(to.dx) - spin) * u : spin * u,
+      sx: belted ? scale + (1 - scale) * u : scale,
+      sy: belted ? scale + (1 - scale) * u : scale,
+    );
+  }
+
+  Widget _placed(
+    Widget print, {
+    required int launch,
+    required Offset at,
+    required double turn,
+    required double sx,
+    required double sy,
+  }) {
+    return Positioned(
+      key: ValueKey(launch),
+      left: at.dx - _width / 2,
+      top: at.dy - _width * 0.6,
+      child: Transform(
+        alignment: Alignment.bottomCenter,
+        transform: Matrix4.identity()
+          ..rotateZ(turn * pi / 180)
+          ..scaleByDouble(sx, sy, 1, 1),
+        child: print,
+      ),
+    );
+  }
+
+  static double _unit(int n) {
+    final v = sin(n * 12.9898 + 78.233) * 43758.5453;
+    return v - v.floorToDouble();
   }
 }

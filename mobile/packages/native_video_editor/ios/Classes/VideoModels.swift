@@ -190,3 +190,105 @@ public enum VideoEditorError: LocalizedError {
         }
     }
 }
+
+public struct SlideshowMotion: Sendable {
+    public let startScale: Double
+    public let endScale: Double
+    public let startOffset: CGPoint
+    public let endOffset: CGPoint
+
+    public init(
+        startScale: Double,
+        endScale: Double,
+        startOffset: CGPoint,
+        endOffset: CGPoint
+    ) throws {
+        let values = [
+            startScale, endScale,
+            startOffset.x, startOffset.y,
+            endOffset.x, endOffset.y,
+        ]
+        guard values.allSatisfy(\.isFinite), startScale > 0, endScale > 0 else {
+            throw VideoEditorError.invalidRequest("Invalid slideshow motion")
+        }
+        self.startScale = startScale
+        self.endScale = endScale
+        self.startOffset = startOffset
+        self.endOffset = endOffset
+    }
+}
+
+public enum SlideshowItem: Sendable {
+    case photo(url: URL, durationMs: Int64, motion: SlideshowMotion)
+    case video(url: URL, isMuted: Bool)
+
+    public var url: URL {
+        switch self {
+        case .photo(let url, _, _), .video(let url, _):
+            return url
+        }
+    }
+}
+
+public struct SlideshowMusic: Sendable {
+    public let url: URL
+    public let fadeInMs: Int64
+    public let fadeOutMs: Int64
+
+    public init(url: URL, fadeInMs: Int64, fadeOutMs: Int64) throws {
+        guard fadeInMs >= 0, fadeOutMs >= 0 else {
+            throw VideoEditorError.invalidRequest("Invalid slideshow music fades")
+        }
+        self.url = url.standardizedFileURL.resolvingSymlinksInPath()
+        self.fadeInMs = fadeInMs
+        self.fadeOutMs = fadeOutMs
+    }
+}
+
+public struct SlideshowExportRequest: Sendable {
+    public let outputURL: URL
+    public let width: Int
+    public let height: Int
+    public let frameRate: Int
+    public let crossfadeMs: Int64
+    public let items: [SlideshowItem]
+    public let music: SlideshowMusic?
+
+    public init(
+        outputURL: URL,
+        width: Int,
+        height: Int,
+        frameRate: Int,
+        crossfadeMs: Int64,
+        items: [SlideshowItem],
+        music: SlideshowMusic?
+    ) throws {
+        let outputURL = outputURL.standardizedFileURL.resolvingSymlinksInPath()
+        let inputURLs = items.map { $0.url.standardizedFileURL.resolvingSymlinksInPath() }
+        guard !items.isEmpty,
+            width > 0, height > 0, width % 2 == 0, height % 2 == 0,
+            (1...60).contains(frameRate),
+            crossfadeMs >= 0,
+            inputURLs.allSatisfy({ FileManager.default.fileExists(atPath: $0.path) }),
+            !inputURLs.contains(outputURL),
+            music.map({ FileManager.default.fileExists(atPath: $0.url.path) && $0.url != outputURL })
+                ?? true
+        else {
+            throw VideoEditorError.invalidRequest("Invalid slideshow export request")
+        }
+        for item in items {
+            if case .photo(_, let durationMs, _) = item,
+                durationMs <= 0 || crossfadeMs > durationMs
+            {
+                throw VideoEditorError.invalidRequest("Photo durations must exceed the crossfade")
+            }
+        }
+        self.outputURL = outputURL
+        self.width = width
+        self.height = height
+        self.frameRate = frameRate
+        self.crossfadeMs = crossfadeMs
+        self.items = items
+        self.music = music
+    }
+}

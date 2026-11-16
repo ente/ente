@@ -4,6 +4,7 @@ import "dart:math";
 
 import "package:ente_components/ente_components.dart"
     show TextStyles, IconSizes, ThemeContext;
+import "package:ente_components/hugeicons.dart";
 import 'package:ente_lock_screen/local_authentication_service.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:ente_strings/ente_strings.dart";
@@ -12,7 +13,6 @@ import "package:flutter/foundation.dart";
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import "package:flutter_svg/flutter_svg.dart";
-import "package:hugeicons/hugeicons.dart";
 import 'package:logging/logging.dart';
 import 'package:photos/core/configuration.dart';
 import 'package:photos/core/constants.dart';
@@ -875,7 +875,7 @@ class _BodyState extends State<_Body> {
     await dialog.show();
 
     try {
-      final ioFile = await getFile(file);
+      final ioFile = await getFileForEditing(file);
       if (ioFile == null) {
         if (!mounted) return;
         showShortToast(context, context.strings.failedToFetchOriginalForEdit);

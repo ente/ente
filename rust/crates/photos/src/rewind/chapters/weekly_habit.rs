@@ -2,12 +2,18 @@ use std::collections::HashSet;
 
 use super::percent;
 use crate::rewind::library::{Library, YearFile};
+use crate::rewind::ranking::{Ranking, Spread};
 use crate::rewind::report::WeeklyHabit;
 
 const WEEKLY_HABIT_MINIMUM_PHOTOS: usize = 100;
 const WEEKLY_HABIT_MINIMUM_DATES: usize = 8;
+const WEEKLY_HABIT_CANDIDATES: usize = 36;
+const WEEKLY_HABIT_HOUR_PHOTOS: usize = 3;
 
-pub(in crate::rewind) fn weekly_habit(library: &Library<'_>) -> Option<WeeklyHabit> {
+pub(in crate::rewind) fn weekly_habit(
+    library: &Library<'_>,
+    ranking: &Ranking<'_>,
+) -> Option<WeeklyHabit> {
     let taken: Vec<&YearFile> = library.taken().collect();
     if taken.len() < WEEKLY_HABIT_MINIMUM_PHOTOS {
         return None;
@@ -23,10 +29,32 @@ pub(in crate::rewind) fn weekly_habit(library: &Library<'_>) -> Option<WeeklyHab
         return None;
     }
     let hour = most_common(on_weekday.iter().map(|file| file.hour), 0..=23)?;
+    let percent = percent(on_weekday.len(), taken.len());
+    let (at_hour, other_hours): (Vec<&YearFile>, Vec<&YearFile>) =
+        on_weekday.into_iter().partition(|file| file.hour == hour);
+    let ranked = ranking
+        .by_quality(at_hour)
+        .into_iter()
+        .chain(ranking.by_quality(other_hours));
+    let mut hour_file_ids = Vec::new();
+    let mut file_ids = Vec::new();
+    for id in ranking.pick(ranked, Spread::Days, WEEKLY_HABIT_CANDIDATES) {
+        let at_hour = library.get(id).is_some_and(|file| file.hour == hour);
+        if at_hour && hour_file_ids.len() < WEEKLY_HABIT_HOUR_PHOTOS {
+            hour_file_ids.push(id);
+        } else {
+            file_ids.push(id);
+        }
+    }
+    if hour_file_ids.is_empty() {
+        file_ids.clear();
+    }
     Some(WeeklyHabit {
         weekday,
         hour,
-        percent: percent(on_weekday.len(), taken.len()),
+        percent,
+        hour_file_ids,
+        file_ids,
     })
 }
 
@@ -43,8 +71,9 @@ fn most_common(
 #[cfg(test)]
 mod tests {
     use crate::rewind::fixtures::{micros, photo, request};
-    use crate::rewind::input::RewindFile;
+    use crate::rewind::input::{RewindFile, RewindFileType};
     use crate::rewind::library::Library;
+    use crate::rewind::ranking::Ranking;
     use crate::rewind::report::WeeklyHabit;
 
     use super::weekly_habit;
@@ -83,21 +112,67 @@ mod tests {
         let habit_request = request(files);
         let library = Library::of_year(&habit_request).unwrap();
 
+        let habit = weekly_habit(&library, &Ranking::new(None, None)).unwrap();
+
+        assert_eq!((habit.weekday, habit.hour, habit.percent), (7, 18, 73));
+    }
+
+    #[test]
+    fn the_habit_photos_favour_the_habit_hour_on_different_dates() {
+        let mut files = sundays(1, 10, 18, 5);
+        files.extend(sundays(1000, 10, 9, 1));
+        let mut later = sundays(2000, 4, 9, 1);
+        for file in &mut later {
+            file.creation_time += 10 * 7 * 86_400_000_000;
+        }
+        files.extend(later);
+        files.extend(sundays(3000, 40, 12, 1).into_iter().map(|mut file| {
+            file.creation_time += 86_400_000_000;
+            file
+        }));
+        let habit_request = request(files);
+        let library = Library::of_year(&habit_request).unwrap();
+
+        let WeeklyHabit {
+            hour_file_ids,
+            file_ids,
+            ..
+        } = weekly_habit(&library, &Ranking::new(None, None)).unwrap();
+
+        assert_eq!(hour_file_ids, [1, 6, 11]);
         assert_eq!(
-            weekly_habit(&library),
-            Some(WeeklyHabit {
-                weekday: 7,
-                hour: 18,
-                percent: 73,
-            })
+            file_ids[..13],
+            [16, 21, 26, 31, 36, 41, 46, 2000, 2001, 2002, 2003, 2, 7]
         );
+        assert_eq!(file_ids.len(), 33);
+    }
+
+    #[test]
+    fn the_habit_has_no_photos_when_none_from_the_habit_hour_can_be_shown() {
+        let mut files = sundays(1, 10, 18, 5);
+        for file in &mut files {
+            file.file_type = RewindFileType::Video;
+        }
+        files.extend(sundays(1000, 10, 9, 1));
+        files.extend(sundays(3000, 40, 12, 1).into_iter().map(|mut file| {
+            file.creation_time += 86_400_000_000;
+            file
+        }));
+        let habit_request = request(files);
+        let library = Library::of_year(&habit_request).unwrap();
+
+        let habit = weekly_habit(&library, &Ranking::new(None, None)).unwrap();
+
+        assert_eq!((habit.weekday, habit.hour), (7, 18));
+        assert!(habit.hour_file_ids.is_empty());
+        assert!(habit.file_ids.is_empty());
     }
 
     #[test]
     fn few_photos_or_a_weekday_on_few_dates_skip_the_habit() {
         let few = request(sundays(1, 10, 18, 9));
         let library = Library::of_year(&few).unwrap();
-        assert_eq!(weekly_habit(&library), None);
+        assert_eq!(weekly_habit(&library, &Ranking::new(None, None)), None);
 
         let mut burst = sundays(1, 7, 18, 20);
         burst.extend(sundays(1000, 7, 18, 1));
@@ -106,6 +181,6 @@ mod tests {
         }
         let bursty = request(burst);
         let library = Library::of_year(&bursty).unwrap();
-        assert_eq!(weekly_habit(&library), None);
+        assert_eq!(weekly_habit(&library, &Ranking::new(None, None)), None);
     }
 }

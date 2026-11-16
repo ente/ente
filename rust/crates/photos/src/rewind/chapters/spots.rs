@@ -12,6 +12,7 @@ use crate::rewind::report::Spots;
 const SPOT_RADIUS_KM: f64 = 0.3;
 const SPOT_MINIMUM_DAYS: usize = 3;
 const SPOT_MINIMUM_PHOTOS: usize = 5;
+const SPOT_RETURN_GAP_DAYS: i64 = 30;
 const SPOTS: usize = 3;
 const SPOTS_MINIMUM_CANDIDATES: usize = 5;
 const SPOTS_CANDIDATES: usize = 18;
@@ -25,7 +26,11 @@ pub(in crate::rewind) struct Spot<'l, 'r> {
 pub(in crate::rewind) fn spots(library: &Library<'_>, ranking: &Ranking<'_>) -> Option<Spots> {
     let mut spots: Vec<Spot> = spots_of(library)
         .into_iter()
-        .filter(|spot| spot.days >= SPOT_MINIMUM_DAYS && spot.files.len() >= SPOT_MINIMUM_PHOTOS)
+        .filter(|spot| {
+            spot.days >= SPOT_MINIMUM_DAYS
+                && spot.files.len() >= SPOT_MINIMUM_PHOTOS
+                && visited_a_month_apart(spot)
+        })
         .collect();
     if spots.len() < SPOTS {
         return None;
@@ -56,6 +61,14 @@ pub(in crate::rewind) fn spots(library: &Library<'_>, ranking: &Ranking<'_>) -> 
         photo_count: count(spots.iter().map(|spot| spot.files.len()).sum()),
         file_ids,
     })
+}
+
+fn visited_a_month_apart(spot: &Spot) -> bool {
+    let days = spot.files.iter().map(|file| file.day);
+    days.clone()
+        .min()
+        .zip(days.max())
+        .is_some_and(|(first, last)| last - first >= SPOT_RETURN_GAP_DAYS)
 }
 
 pub(in crate::rewind) fn spots_of<'l, 'r>(library: &'l Library<'r>) -> Vec<Spot<'l, 'r>> {
@@ -107,7 +120,7 @@ fn mean(coordinates: impl ExactSizeIterator<Item = Coordinate>) -> Coordinate {
 mod tests {
     use ente_location::Coordinate;
 
-    use crate::rewind::fixtures::{daily_photos, located, request};
+    use crate::rewind::fixtures::{daily_photos, located, photos_every, request};
     use crate::rewind::input::RewindFile;
     use crate::rewind::library::Library;
     use crate::rewind::ranking::Ranking;
@@ -121,7 +134,7 @@ mod tests {
                 .into_iter()
                 .enumerate()
                 .flat_map(|(spot, latitude)| {
-                    daily_photos(spot as i64 * 100 + 1, "2026-01-01T09:00:00", 6)
+                    photos_every(spot as i64 * 100 + 1, "2026-01-01T09:00:00", 6, 10)
                         .into_iter()
                         .enumerate()
                         .map(move |(day, file)| {
@@ -155,7 +168,14 @@ mod tests {
         }
     }
 
-    fn spot(first_id: i64, first_day: &str, days: i64, latitude: f64) -> Vec<RewindFile> {
+    fn spot(first_id: i64, first_day: &str, visits: i64, latitude: f64) -> Vec<RewindFile> {
+        photos_every(first_id, first_day, visits, 10)
+            .into_iter()
+            .map(|file| located(file, latitude, 4.9))
+            .collect()
+    }
+
+    fn holiday(first_id: i64, first_day: &str, days: i64, latitude: f64) -> Vec<RewindFile> {
         daily_photos(first_id, first_day, days)
             .into_iter()
             .map(|file| located(file, latitude, 4.9))
@@ -196,5 +216,35 @@ mod tests {
         let library = Library::of_year(&request).unwrap();
 
         assert_eq!(spots(&library, &Ranking::new(None, None)), None);
+    }
+
+    #[test]
+    fn spots_never_revisited_a_month_later_are_skipped() {
+        let mut files = spot(1, "2026-01-01T09:00:00", 6, 52.0);
+        files.extend(spot(101, "2026-02-01T09:00:00", 5, 52.1));
+        files.extend(spot(201, "2026-03-01T09:00:00", 5, 52.2));
+        files.extend(holiday(301, "2026-07-01T09:00:00", 30, 52.3));
+        let request = request(files);
+        let library = Library::of_year(&request).unwrap();
+
+        let spots = spots(&library, &Ranking::new(None, None)).unwrap();
+
+        assert_eq!(spots.spot_count, 3);
+        assert_eq!(spots.photo_count, 6 + 5 + 5);
+        assert!(spots.file_ids.iter().all(|&id| id < 301));
+    }
+
+    #[test]
+    fn a_spot_revisited_thirty_days_later_counts() {
+        let mut files = spot(1, "2026-01-01T09:00:00", 6, 52.0);
+        files.extend(spot(101, "2026-02-01T09:00:00", 5, 52.1));
+        files.extend(holiday(301, "2026-07-01T09:00:00", 31, 52.3));
+        let request = request(files);
+        let library = Library::of_year(&request).unwrap();
+
+        let spots = spots(&library, &Ranking::new(None, None)).unwrap();
+
+        assert_eq!(spots.spot_count, 3);
+        assert_eq!(spots.photo_count, 6 + 5 + 31);
     }
 }

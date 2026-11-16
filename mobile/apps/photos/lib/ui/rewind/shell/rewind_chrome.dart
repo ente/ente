@@ -44,7 +44,9 @@ class RewindChromeOverlay extends StatelessWidget {
     required this.music,
     required this.onClose,
     required this.shareKey,
+    required this.videoKey,
     this.onShare,
+    this.onShareVideo,
     super.key,
   });
 
@@ -55,12 +57,13 @@ class RewindChromeOverlay extends StatelessWidget {
   final RewindMusic music;
   final VoidCallback onClose;
   final GlobalKey shareKey;
+  final GlobalKey videoKey;
   final VoidCallback? onShare;
+  final VoidCallback? onShareVideo;
 
   @override
   Widget build(BuildContext context) {
     final wordmark = chrome.wordmark;
-    final onShare = this.onShare;
     return Stack(
       children: [
         Positioned(
@@ -116,28 +119,66 @@ class RewindChromeOverlay extends StatelessWidget {
         Positioned(
           right: RewindChromeLayout.sideInset,
           bottom: layout.bottom,
-          child: IgnorePointer(
-            ignoring: onShare == null,
-            child: AnimatedScale(
-              scale: onShare == null ? 0.4 : 1,
-              duration: onShare == null
-                  ? const Duration(milliseconds: 200)
-                  : RewindMotion.pop.duration,
-              curve: onShare == null ? Curves.easeIn : RewindMotion.pop,
-              child: AnimatedOpacity(
-                opacity: onShare == null ? 0 : 1,
-                duration: const Duration(milliseconds: 200),
-                child: RewindRoundButton(
-                  key: shareKey,
-                  glyph: RewindGlyph.share,
-                  label: "Share",
-                  onTap: onShare ?? () {},
-                ),
-              ),
+          child: _PopButton(
+            buttonKey: shareKey,
+            glyph: RewindGlyph.share,
+            label: "Share",
+            onTap: onShare,
+          ),
+        ),
+        Positioned(
+          right: RewindChromeLayout.sideInset,
+          bottom: layout.bottom + RewindChromeLayout.buttonSize + 12,
+          child: ExcludeSemantics(
+            excluding: onShareVideo == null,
+            child: _PopButton(
+              buttonKey: videoKey,
+              glyph: RewindGlyph.video,
+              label: "Share video",
+              onTap: onShareVideo,
             ),
           ),
         ),
       ],
+    );
+  }
+}
+
+class _PopButton extends StatelessWidget {
+  const _PopButton({
+    required this.buttonKey,
+    required this.glyph,
+    required this.label,
+    required this.onTap,
+  });
+
+  final GlobalKey buttonKey;
+  final RewindGlyph glyph;
+  final String label;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final onTap = this.onTap;
+    return IgnorePointer(
+      ignoring: onTap == null,
+      child: AnimatedScale(
+        scale: onTap == null ? 0.4 : 1,
+        duration: onTap == null
+            ? const Duration(milliseconds: 200)
+            : RewindMotion.pop.duration,
+        curve: onTap == null ? Curves.easeIn : RewindMotion.pop,
+        child: AnimatedOpacity(
+          opacity: onTap == null ? 0 : 1,
+          duration: const Duration(milliseconds: 200),
+          child: RewindRoundButton(
+            key: buttonKey,
+            glyph: glyph,
+            label: label,
+            onTap: onTap ?? () {},
+          ),
+        ),
+      ),
     );
   }
 }

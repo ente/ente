@@ -98,6 +98,7 @@ Jump to a category:
 - [How long do deleted items stay in Trash?](/locker/faq/organization#locker-trash-retention)
 - [Can I recover items after 30 days?](/locker/faq/organization#locker-recover-after-30-days)
 - [Does Trash count against my storage?](/locker/faq/organization#locker-trash-storage)
+- [How do I restore a deleted item?](/locker/faq/organization#locker-restore-document)
 
 ### Search
 

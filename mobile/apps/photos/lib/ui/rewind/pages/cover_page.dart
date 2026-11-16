@@ -4,6 +4,7 @@ import "dart:ui" show lerpDouble;
 import "package:flutter/material.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
+import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
 import "package:photos/ui/rewind/theme/rewind_motion.dart";
@@ -27,6 +28,9 @@ class CoverPage extends RewindPage {
 
   @override
   String get key => "cover";
+
+  @override
+  Duration? get reelHold => const Duration(milliseconds: 2600);
 
   @override
   RewindChrome get chrome => const RewindChrome(foreground: RewindColors.cream);
@@ -106,40 +110,45 @@ class CoverPage extends RewindPage {
                   child: RewindFitWidth(
                     width: _tagline.width,
                     alignment: Alignment.center,
-                    child: Text(
-                      "YOUR YEAR. FULL VOLUME.",
-                      style: RewindTextStyles.display(
-                        23.96,
-                        color: RewindColors.white,
-                        height: 0.84,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              layer(
-                Rect.fromCenter(center: _button, width: 320, height: 120),
-                Center(
-                  child: RewindEntrance(
-                    preset: RewindPreset.pop,
-                    active: isActive,
-                    delayMs: 1750,
-                    child: RewindIdleLoop(
-                      idle: RewindIdle.pulse,
-                      active: isActive,
-                      delayMs: 2700,
-                      child: Transform.rotate(
-                        angle: -3.7 * pi / 180,
-                        child: RewindCandyButton(
-                          label: "Tap to start",
-                          onTap: () =>
-                              RewindPageScope.navigatorOf(context)?.next(),
+                    child: RewindVoice(
+                      you: "YOUR YEAR IN PHOTOS",
+                      me: "MY YEAR IN PHOTOS",
+                      builder: (text) => Text(
+                        text,
+                        style: RewindTextStyles.display(
+                          23.96,
+                          color: RewindColors.white,
+                          height: 0.84,
                         ),
                       ),
                     ),
                   ),
                 ),
               ),
+              if (!RewindPageScope.reelOf(context))
+                layer(
+                  Rect.fromCenter(center: _button, width: 320, height: 120),
+                  Center(
+                    child: RewindEntrance(
+                      preset: RewindPreset.pop,
+                      active: isActive,
+                      delayMs: 1750,
+                      child: RewindIdleLoop(
+                        idle: RewindIdle.pulse,
+                        active: isActive,
+                        delayMs: 2700,
+                        child: Transform.rotate(
+                          angle: -3.7 * pi / 180,
+                          child: RewindCandyButton(
+                            label: "Tap to start",
+                            onTap: () =>
+                                RewindPageScope.navigatorOf(context)?.next(),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         ],
