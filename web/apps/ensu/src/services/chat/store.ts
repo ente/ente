@@ -134,7 +134,7 @@ interface NativeAttachment {
     size: number;
 }
 
-interface NativeMessage {
+export interface NativeMessage {
     messageUuid: string;
     sessionUuid: string;
     parentMessageUuid?: string | null;
@@ -144,6 +144,23 @@ interface NativeMessage {
     attachments?: NativeAttachment[];
     sources?: GroundedSource[];
 }
+
+/** Converts a message returned by a native chat command. */
+export const fromNativeMessage = (message: NativeMessage): ChatMessage => ({
+    messageUuid: message.messageUuid,
+    sessionUuid: message.sessionUuid,
+    parentMessageUuid: message.parentMessageUuid ?? undefined,
+    sender: message.sender,
+    text: message.text,
+    createdAt: message.createdAt,
+    attachments: message.attachments?.map((attachment) => ({
+        id: attachment.id,
+        kind: attachment.kind,
+        name: attachment.name,
+        size: attachment.size,
+    })),
+    sources: message.sources,
+});
 
 const nowMicros = () => Date.now() * 1000;
 
@@ -412,21 +429,7 @@ const listMessagesNative = async (
         sessionUuid,
     });
 
-    return messages.map((message) => ({
-        messageUuid: message.messageUuid,
-        sessionUuid: message.sessionUuid,
-        parentMessageUuid: message.parentMessageUuid ?? undefined,
-        sender: message.sender,
-        text: message.text,
-        createdAt: message.createdAt,
-        attachments: message.attachments?.map((attachment) => ({
-            id: attachment.id,
-            kind: attachment.kind,
-            name: attachment.name,
-            size: attachment.size,
-        })),
-        sources: message.sources,
-    }));
+    return messages.map(fromNativeMessage);
 };
 
 const createSessionNative = async () => {
@@ -484,21 +487,7 @@ const addMessageNative = async (
         }
     }
 
-    return {
-        messageUuid: message.messageUuid,
-        sessionUuid: message.sessionUuid,
-        parentMessageUuid: message.parentMessageUuid ?? undefined,
-        sender: message.sender,
-        text: message.text,
-        createdAt: message.createdAt,
-        attachments: message.attachments?.map((attachment) => ({
-            id: attachment.id,
-            kind: attachment.kind,
-            name: attachment.name,
-            size: attachment.size,
-        })),
-        sources: message.sources,
-    };
+    return fromNativeMessage(message);
 };
 
 const deleteSessionNative = async (sessionUuid: string) => {

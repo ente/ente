@@ -141,7 +141,7 @@ class WasmInference implements InferenceBackend {
             throw new Error("WASM backend: model must be loaded first.");
         }
         return this.wllama.formatChat(
-            messages,
+            toWllamaMessages(messages),
             true,
             templateOverride ?? undefined,
         );
@@ -167,7 +167,7 @@ class WasmInference implements InferenceBackend {
         try {
             const addAssistant = request.addAssistant ?? true;
             const prompt = await this.wllama.formatChat(
-                request.messages,
+                toWllamaMessages(request.messages),
                 addAssistant,
                 request.templateOverride ?? undefined,
             );
@@ -728,6 +728,17 @@ const normalizeWllamaError = (error: unknown, fallback: string) => {
     return new Error(typeof error === "string" ? error : fallback);
 };
 
+/**
+ * The WASM backend has no native tool format, so tool turns are flattened
+ * the same way the native layer does it for such models: results become
+ * assistant text and call markup is dropped.
+ */
+const toWllamaMessages = (messages: LlmMessage[]) =>
+    messages.map(({ role, content }) => ({
+        role: role === "tool" ? ("assistant" as const) : role,
+        content,
+    }));
+
 const buildGenerateChatRequest = (request: GenerateChatRequest) => ({
     messages: request.messages,
     template_override: request.templateOverride ?? null,
@@ -745,6 +756,7 @@ const buildGenerateChatRequest = (request: GenerateChatRequest) => ({
     seed: request.seed ?? null,
     stop_sequences: request.stopSequences ?? null,
     grammar: request.grammar ?? null,
+    tools: request.tools ?? null,
 });
 
 const buildSamplingConfig = (request: GenerateChatRequest) => {

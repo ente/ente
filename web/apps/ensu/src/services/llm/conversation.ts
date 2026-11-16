@@ -7,17 +7,22 @@ import {
 } from "../chat/store";
 import type { KnowledgePromptContext } from "../knowledge";
 import type { LlmProvider } from "./provider";
-import type { LlmMessage } from "./types";
+import type { LlmMessage, LlmToolRequest } from "./types";
 
 export interface PreparedReply {
     generateChatStream: LlmProvider["generateChatStream"];
     saveAnswer: (text: string) => Promise<ChatMessage>;
+    /** The preparation token, for saving a To Do receipt instead. */
+    preparationToken: string;
+    /** Set when To Do tools were offered for this turn. */
+    tools?: LlmToolRequest;
 }
 
 interface PreparedConversation {
     preparationToken: string;
     messages: LlmMessage[];
     groundedContext?: KnowledgePromptContext | null;
+    tools?: LlmToolRequest | null;
 }
 
 export const prepareDesktopConversation = async (
@@ -30,6 +35,7 @@ export const prepareDesktopConversation = async (
         groundingCandidates?: unknown;
         maxTokens: number;
         resolutionToken?: string;
+        todoTools?: boolean;
     },
     provider: Pick<LlmProvider, "generateChatStream">,
     callbacks: { isCurrent: () => boolean; onProgress: () => void },
@@ -75,11 +81,14 @@ export const prepareDesktopConversation = async (
                     {
                         ...request,
                         messages: result.messages,
+                        tools: result.tools ?? undefined,
                         preparationToken: answer.token,
                     },
                     onEvent,
                 ),
             saveAnswer: (text) => (saved ??= addPreparedAnswer(answer, text)),
+            preparationToken: answer.token,
+            tools: result.tools ?? undefined,
         };
     } finally {
         unlisten();

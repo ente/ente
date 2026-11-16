@@ -5,6 +5,7 @@ import {
 import { ChatDialogs } from "@/components/chat/ChatDialogs";
 import { ChatMessageList } from "@/components/chat/ChatMessageList";
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
+import { TodoDialog } from "@/components/chat/TodoDialog";
 import { useChatSources } from "@/hooks/use-chat-sources";
 import { useNotesCollections } from "@/hooks/use-notes-collections";
 import type { WithVoiceInput } from "@/hooks/use-voice-input";
@@ -67,6 +68,7 @@ import {
 import type {
     DownloadProgress,
     GenerateEvent,
+    GenerateSummary,
     LlmMessage,
     ModelInfo,
     ModelSettings,
@@ -74,6 +76,12 @@ import type {
 import { NotesIndexingIdleScheduler } from "@/services/notes-indexing-idle";
 import { tauriCommandError } from "@/services/tauri-error";
 import { isTauriRuntime as detectTauriAppRuntime } from "@/services/tauri-runtime";
+import {
+    applyTodoCalls,
+    loadTodoTurnStatuses,
+    undoTodoTurn,
+    type TodoTurnStatus,
+} from "@/services/todos";
 import { Menu01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -537,6 +545,9 @@ const Page: React.FC = () => {
     const [chatKey, setChatKey] = useState<string | undefined>();
     const [sessions, setSessions] = useState<ChatSession[]>([]);
     const [allMessages, setAllMessages] = useState<ChatMessage[]>([]);
+    const [todoTurns, setTodoTurns] = useState<Record<string, TodoTurnStatus>>(
+        {},
+    );
     const [branchSelections, setBranchSelections] = useState<
         Record<string, string>
     >({});
@@ -554,6 +565,7 @@ const Page: React.FC = () => {
     );
     const [showSessionSearch, setShowSessionSearch] = useState(false);
     const [showSettingsModal, setShowSettingsModal] = useState(false);
+    const [showTodos, setShowTodos] = useState(false);
     const [advancedUnlocked, setAdvancedUnlocked] = useState(false);
     const [isDraftSession, setIsDraftSession] = useState(false);
     const [stickToBottom, setStickToBottom] = useState(true);
@@ -2456,6 +2468,50 @@ const Page: React.FC = () => {
         [stripHiddenParts],
     );
 
+    useEffect(() => {
+        if (!isTauriRuntime) return;
+        const replyIds = allMessages
+            .filter(
+                (message) =>
+                    message.sender === "assistant" &&
+                    !(message.messageUuid in todoTurns),
+            )
+            .map((message) => message.messageUuid);
+        if (replyIds.length === 0) return;
+        let current = true;
+        loadTodoTurnStatuses(replyIds)
+            .then((statuses) => {
+                if (!current || Object.keys(statuses).length === 0) return;
+                setTodoTurns((prev) => ({ ...prev, ...statuses }));
+            })
+            .catch((error: unknown) =>
+                log.error("Failed to load To Do turn statuses", error),
+            );
+        return () => {
+            current = false;
+        };
+        // todoTurns is read only to skip replies already known.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [allMessages, isTauriRuntime]);
+
+    const handleUndoTodoTurn = useCallback(
+        async (message: ChatMessage) => {
+            try {
+                await undoTodoTurn(message.messageUuid);
+                setTodoTurns((prev) => ({
+                    ...prev,
+                    [message.messageUuid]: { changed: true, undone: true },
+                }));
+            } catch (error) {
+                showMiniDialog({
+                    title: "Couldn't undo",
+                    message: formatErrorMessage(error),
+                });
+            }
+        },
+        [showMiniDialog, formatErrorMessage],
+    );
+
     const appendMessageToState = useCallback((message: ChatMessage) => {
         setAllMessages((prev) => {
             if (prev.some((item) => item.messageUuid === message.messageUuid)) {
@@ -3392,6 +3448,7 @@ const Page: React.FC = () => {
                                 ? undefined
                                 : knowledgeContext?.candidates,
                             resolutionToken,
+                            todoTools: true,
                         },
                         provider,
                         {
@@ -3461,8 +3518,9 @@ const Page: React.FC = () => {
                             }
                         },
                     );
+                let summary: GenerateSummary | undefined;
                 try {
-                    await generate();
+                    summary = await generate();
                 } catch (error) {
                     const { name } = tauriCommandError(error);
                     if (
@@ -3476,7 +3534,7 @@ const Page: React.FC = () => {
                         activeKnowledgeSourcesRef.current = [];
                         messages = normalMessages;
                         try {
-                            await generate();
+                            summary = await generate();
                         } catch (retryError) {
                             errorMessage =
                                 retryError instanceof Error
@@ -3497,6 +3555,33 @@ const Page: React.FC = () => {
 
                 flushStreamingText();
                 const finalText = streamingBufferRef.current;
+
+                const toolCalls = summary?.tools?.calls ?? [];
+                const preparedReply = preparedReplyRef.current;
+                if (toolCalls.length > 0 && preparedReply && !errorMessage) {
+                    // The model called the To Do tools: the native layer
+                    // applies them and saves its receipt as the reply.
+                    const turn = await applyTodoCalls(
+                        parentMessageUuid,
+                        toolCalls,
+                        preparedReply.preparationToken,
+                    );
+                    if (!isActiveGeneration()) return;
+                    setTodoTurns((prev) => ({
+                        ...prev,
+                        [turn.reply.messageUuid]: {
+                            changed: turn.changed,
+                            undone: false,
+                        },
+                    }));
+                    void updateBranchSelectionState(
+                        parentMessageUuid,
+                        turn.reply.messageUuid,
+                    );
+                    appendMessageToState(turn.reply);
+                    updateSessionAfterMessage(turn.reply);
+                    return;
+                }
 
                 if (!finalText.trim()) {
                     if (errorMessage) {
@@ -3728,6 +3813,16 @@ const Page: React.FC = () => {
     }, [handleCloseDrawer]);
 
     const openSettingsModal = useCallback(() => setShowSettingsModal(true), []);
+    const openTodos = useCallback(() => setShowTodos(true), []);
+    const closeTodos = useCallback(() => setShowTodos(false), []);
+    const showTodoError = useCallback(
+        (error: unknown) =>
+            showMiniDialog({
+                title: "To Do",
+                message: formatErrorMessage(error),
+            }),
+        [showMiniDialog, formatErrorMessage],
+    );
     const closeSettingsModal = useCallback(
         () => setShowSettingsModal(false),
         [],
@@ -4575,6 +4670,7 @@ const Page: React.FC = () => {
             requestRenameSession={requestRenameSession}
             requestDeleteSession={requestDeleteSession}
             openSettingsModal={openSettingsModal}
+            openTodos={isTauriRuntime ? openTodos : undefined}
         />
     );
 
@@ -4735,6 +4831,8 @@ const Page: React.FC = () => {
                             onEditMessage={handleEditMessage}
                             onCopyMessage={handleCopyMessage}
                             onRetryMessage={handleRetryMessage}
+                            todoTurns={todoTurns}
+                            onUndoTodoTurn={handleUndoTodoTurn}
                             onPrevBranch={handlePrevBranch}
                             onNextBranch={handleNextBranch}
                             onRequestPreview={loadAttachmentPreview}
@@ -4858,6 +4956,13 @@ const Page: React.FC = () => {
                 </Box>
             </Box>
 
+            {isTauriRuntime && (
+                <TodoDialog
+                    open={showTodos}
+                    onClose={closeTodos}
+                    onError={showTodoError}
+                />
+            )}
             <ChatDialogs
                 showSettingsModal={showSettingsModal}
                 openSettingsModal={openSettingsModal}

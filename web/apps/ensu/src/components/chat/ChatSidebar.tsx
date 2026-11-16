@@ -54,6 +54,8 @@ export interface ChatSidebarProps {
     requestRenameSession: (session: ChatSession) => void;
     requestDeleteSession: (sessionId: string) => void;
     openSettingsModal: () => void;
+    /** Opens the To Do list; omitted where To Dos are unavailable. */
+    openTodos?: () => void;
 }
 
 export const ChatSidebar = memo(
@@ -124,6 +126,7 @@ const ChatSidebarView = memo(
         requestRenameSession,
         requestDeleteSession,
         openSettingsModal,
+        openTodos,
     }: ChatSidebarViewProps) => (
         <Stack
             sx={{
@@ -413,7 +416,37 @@ const ChatSidebarView = memo(
             </List>
 
             {!drawerCollapsed && (
-                <Stack sx={{ p: 1 }}>
+                <Stack sx={{ p: 1, gap: 1 }}>
+                    {openTodos && (
+                        <ListItemButton
+                            onClick={openTodos}
+                            sx={{
+                                alignItems: "center",
+                                gap: 1,
+                                px: 2,
+                                py: 1.25,
+                                width: "100%",
+                                borderRadius: 2,
+                                border: "1px solid",
+                                borderColor: "divider",
+                                bgcolor: "background.paper",
+                                "&:hover": {
+                                    backgroundColor: "fill.faintHover",
+                                },
+                            }}
+                        >
+                            <Typography
+                                variant="small"
+                                sx={{ flex: 1, fontWeight: 600 }}
+                            >
+                                To Do
+                            </Typography>
+                            <HugeiconsIcon
+                                icon={ArrowRight01Icon}
+                                {...smallIconProps}
+                            />
+                        </ListItemButton>
+                    )}
                     <ListItemButton
                         onClick={openSettingsModal}
                         sx={{
