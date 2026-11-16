@@ -361,7 +361,7 @@ Open the **Archive** section, select the photos and choose **Unarchive**. They r
 
 On mobile, **Unarchive** appears only when you select photos from the Archive section. If you select archived photos while viewing an album, the menu shows **Archive** instead.
 
-To unarchive a whole album, open the album, tap the three dots menu and select **Unarchive album**.
+To unarchive a whole album, open the album, tap the three dots menu and select **Unarchive** (**Unarchive album** on web).
 
 ### Can I hide an album's photos from my timeline? {#album-off-timeline}
 
