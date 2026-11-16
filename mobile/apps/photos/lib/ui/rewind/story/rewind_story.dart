@@ -55,11 +55,14 @@ class RewindStory {
   int resumeIndex(String? key) => indexOf(resumeAt(key));
 
   Future<bool> loadPhotosOf(List<RewindPage> shown) async {
-    final chapters = {
+    final cards = {
       for (final (i, page) in pages.indexed)
-        if (shown.contains(page) && _photos[i].isNotEmpty) _photos[i],
+        if (shown.contains(page)) page.reelThumbnails ?? _photos[i],
     };
-    final loaded = await Future.wait(chapters.map(_loadsAnyOf));
+    final loaded = await Future.wait([
+      for (final photos in cards)
+        if (photos.isNotEmpty) _loadsAnyOf(photos),
+    ]);
     return !loaded.contains(false);
   }
 

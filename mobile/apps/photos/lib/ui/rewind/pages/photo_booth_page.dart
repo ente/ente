@@ -61,6 +61,9 @@ class PhotoBoothPage extends RewindPage {
       place == 0 ? const Duration(milliseconds: 3300) : null;
 
   @override
+  List<EnteFile> get reelThumbnails => photos;
+
+  @override
   Widget build(
     BuildContext context,
     double position, {

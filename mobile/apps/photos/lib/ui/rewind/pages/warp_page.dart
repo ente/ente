@@ -105,6 +105,9 @@ class WarpPage extends RewindPage {
   Duration? get reelHold => const Duration(milliseconds: 4000);
 
   @override
+  List<EnteFile> get reelThumbnails => const [];
+
+  @override
   Future<bool> warmUp() async => await _walls.value != null;
 
   @override
