@@ -553,6 +553,10 @@ To hide them, open `Settings > Appearance > Gallery` and enable **Hide shared it
 
 On mobile, you can also tap the three dots next to the date heading at the top of your home gallery and turn on **Hide shared items from home gallery** there.
 
+You can also toggle this from the gallery's Layout menu: tap the three-dot icon next to any date heading, then switch on **Hide shared items from home gallery**.
+
+![Three-dot icon next to a gallery date heading and Hide shared items from home gallery highlighted in the Layout menu on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-gallery-layout-shared-callout.png){width=560px}
+
 ### Can I remove myself from a shared album? {#leave-shared-album}
 
 Yes, if someone has shared an album with you, you can leave it at any time:
@@ -675,12 +679,7 @@ In case of sharable links, the key to decrypt the album is appended by the clien
 
 ### Can Ente see my shared photos? {#ente-see-shared}
 
-No. Ente has no information about:
-
-- Whether you have shared an album
-- What photos are in shared albums
-- Who you've shared with
-- What's in public links
+No. When you share an album with another Ente account, Ente records which album you shared and who has access.
 
 All sharing happens with end-to-end encryption. Only people you share with (or who have the link) can decrypt and view the content.
 

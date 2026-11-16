@@ -180,31 +180,37 @@ export const useLockerData = ({
 
         const data = await syncLockerState();
 
-        if (!mountedRef.current || requestID !== latestDataRequestRef.current) {
-            return;
-        }
+        if (!mountedRef.current) return;
 
-        setCollections(data.collections);
-        setTrashItems(data.trashItems);
-        setTrashLastUpdatedAt(data.trashLastUpdatedAt);
-        setInitialLoadError(null);
-        void refreshUserDetailsForSyncState(data);
+        if (requestID === latestDataRequestRef.current) {
+            setCollections(data.collections);
+            setTrashItems(data.trashItems);
+            setTrashLastUpdatedAt(data.trashLastUpdatedAt);
+            setInitialLoadError(null);
+            void refreshUserDetailsForSyncState(data);
+        }
+        return data.collections;
     }, [refreshUserDetailsForSyncState]);
 
-    const refreshData = useCallback(async () => {
+    const refreshCollections = useCallback(async () => {
         if (!masterKey) {
             return;
         }
 
         try {
-            await fetchAndStoreLockerData();
+            return await fetchAndStoreLockerData();
         } catch (error) {
             log.error("Failed to refresh locker data", error);
             if (isHTTP401Error(error)) {
                 showMiniDialog(sessionExpiredDialogAttributes(logout));
             }
+            return undefined;
         }
     }, [fetchAndStoreLockerData, logout, masterKey, showMiniDialog]);
+
+    const refreshData = useCallback(async () => {
+        await refreshCollections();
+    }, [refreshCollections]);
 
     useEffect(() => {
         let cancelled = false;
@@ -296,6 +302,7 @@ export const useLockerData = ({
         hasFetched,
         initialLoadError,
         masterKey,
+        refreshCollections,
         refreshData,
         removeCollectionFromState,
         trashItems,

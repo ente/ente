@@ -56,7 +56,10 @@ mod tests {
 
     use super::*;
     use crate::{
-        bounded::{target_dimensions, tests::options},
+        bounded::{
+            target_dimensions,
+            tests::{fixtures_dir, options},
+        },
         decode::decode_image_from_path,
         decode_bounded,
         resample::tests::area_reference,
@@ -73,15 +76,6 @@ mod tests {
         "7765_horizontal_normal.HEIC",
         "7949_mirror_horizontal_rotate_270_cw.HEIC",
     ];
-
-    fn fixtures_dir() -> Option<PathBuf> {
-        if let Some(path) = std::env::var_os("ENTE_TEST_FIXTURES_DIR") {
-            return Some(PathBuf::from(path));
-        }
-        let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-        let repo_root = manifest_dir.parent()?.parent()?.parent()?;
-        Some(repo_root.parent()?.join("test-fixtures"))
-    }
 
     fn heic_fixtures_dir() -> Option<PathBuf> {
         fixtures_dir()

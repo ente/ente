@@ -206,7 +206,7 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
         ),
         format: widget.format,
         frameRate: RewindReel.frameRate,
-        duration: reel.duration,
+        duration: reel.duration + reel.timeOf(1),
         music: music,
       );
       await _unlessCancelled(sink.ready);
@@ -281,26 +281,20 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
   Future<void> _render(RewindReel reel, RewindVideoSink sink) async {
     if (!mounted) throw const _Cancelled();
     _throwIfCancelled();
-    setState(() {
-      _reel = reel;
-      _stage = _Stage.rendering;
-    });
+    setState(() => _reel = reel);
     final stepper = _stepper = RewindFrameStepper(RewindReel.frameRate)
       ..install();
     var written = Future<void>.value();
-    _clock.start();
     try {
+      written = sink.add(await _cover(reel, stepper));
+      if (!mounted) throw const _Cancelled();
+      setState(() => _stage = _Stage.rendering);
+      _clock.start();
       for (var frame = 0; frame < reel.frameCount; frame++) {
         _time.value = reel.timeOf(frame);
         _frameIndex.value = frame;
         await _unlessCancelled(stepper.step());
-        final boundary =
-            _boundary.currentContext!.findRenderObject()!
-                as RenderRepaintBoundary;
-        final image = await boundary.toImage(
-          pixelRatio: widget.format.pixelRatio,
-        );
-        final pixels = _read(image)..ignore();
+        final pixels = _read(await _capture())..ignore();
         final previous = written;
         written = previous.then((_) => pixels).then(sink.add);
         await previous;
@@ -317,6 +311,22 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
       _stepper = null;
       stepper.uninstall();
     }
+  }
+
+  Future<ByteData> _cover(RewindReel reel, RewindFrameStepper stepper) async {
+    for (var frame = 0; frame <= reel.coverFrame; frame++) {
+      _time.value = reel.timeOf(frame);
+      await _unlessCancelled(stepper.step());
+    }
+    await _unlessCancelled(rewindRiveFilesLoaded());
+    await _unlessCancelled(stepper.step());
+    return _read(await _capture());
+  }
+
+  Future<ui.Image> _capture() {
+    final boundary =
+        _boundary.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+    return boundary.toImage(pixelRatio: widget.format.pixelRatio);
   }
 
   Future<ByteData> _read(ui.Image image) async {
@@ -555,8 +565,27 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
             padding: const EdgeInsets.all(8),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(11),
-              child: _stage == _Stage.preparing
-                  ? ColoredBox(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  if (_reel case final reel?)
+                    FittedBox(
+                      fit: BoxFit.cover,
+                      child: SizedBox.fromSize(
+                        size: RewindReel.canvas,
+                        child: RepaintBoundary(
+                          key: _boundary,
+                          child: RewindReelView(
+                            key: ValueKey(_stage == _Stage.preparing),
+                            reel: reel,
+                            time: _time,
+                            pixelRatio: widget.format.pixelRatio,
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (_stage == _Stage.preparing)
+                    ColoredBox(
                       color: RewindColors.green,
                       child: Padding(
                         padding: const EdgeInsets.all(22),
@@ -564,21 +593,9 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
                           RewindAssets.file(RewindAssets.coverLockup),
                         ),
                       ),
-                    )
-                  : FittedBox(
-                      fit: BoxFit.cover,
-                      child: SizedBox.fromSize(
-                        size: RewindReel.canvas,
-                        child: RepaintBoundary(
-                          key: _boundary,
-                          child: RewindReelView(
-                            reel: _reel!,
-                            time: _time,
-                            pixelRatio: widget.format.pixelRatio,
-                          ),
-                        ),
-                      ),
                     ),
+                ],
+              ),
             ),
           ),
         ),
