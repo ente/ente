@@ -1,11 +1,13 @@
 import "dart:math";
 
 import "package:flutter/material.dart";
+import "package:flutter_svg/flutter_svg.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/story/rewind_face.dart";
+import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
@@ -81,6 +83,24 @@ const List<_Bubble> _bubbles = [
 
 const _paintOrder = [3, 1, 0, 4, 2, 5];
 
+const _sparkles = [
+  (
+    asset: RewindAssets.yellowSparkle,
+    rect: Rect.fromLTWH(35, 238, 40, 59),
+    delayMs: 900,
+  ),
+  (
+    asset: RewindAssets.yellowSparkle,
+    rect: Rect.fromLTWH(240, 479, 40, 59),
+    delayMs: 1100,
+  ),
+  (
+    asset: RewindAssets.smallYellowSparkle,
+    rect: Rect.fromLTWH(247, 195, 26, 38),
+    delayMs: 1250,
+  ),
+];
+
 Rect _boundsOf(Iterable<_Bubble> bubbles) => bubbles
     .map(
       (bubble) => Rect.fromCenter(
@@ -117,8 +137,8 @@ class NewFacesPage extends RewindPage {
         fit: StackFit.expand,
         children: [
           const RewindBackdrop(
-            color: Color(0xFF19B331),
-            pattern: RewindStripes(Color(0xFF19BA32)),
+            color: Color(0xFF3C6ED8),
+            pattern: RewindStripes(Color(0xFF3366D3)),
           ),
           Semantics(
             label: "${title.toLowerCase()} $line",
@@ -148,6 +168,26 @@ class NewFacesPage extends RewindPage {
                       ),
                     ),
                   ),
+                  for (final sparkle in _sparkles)
+                    RewindRevealLayer(
+                      left: sparkle.rect.left + centering.dx,
+                      top: sparkle.rect.top + centering.dy,
+                      height: sparkle.rect.height,
+                      position: position,
+                      active: isActive,
+                      preset: RewindPreset.twinkle,
+                      delayMs: sparkle.delayMs,
+                      child: RewindIdleLoop(
+                        idle: RewindIdle.twinkle,
+                        active: isActive,
+                        delayMs: sparkle.delayMs + 700,
+                        child: SvgPicture.file(
+                          RewindAssets.file(sparkle.asset),
+                          width: sparkle.rect.width,
+                          height: sparkle.rect.height,
+                        ),
+                      ),
+                    ),
                   RewindRevealLayer(
                     left: 22,
                     top: 630,

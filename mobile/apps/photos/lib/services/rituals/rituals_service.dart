@@ -327,7 +327,7 @@ class RitualsService {
         ritual.daysOfWeek,
         todayMidnight: todayMidnight,
       );
-      final ritualLongestThisMonth = _longestScheduledStreakInRangeFromDayKeys(
+      final ritualLongestThisMonth = longestScheduledStreakInRange(
         dates,
         ritual.daysOfWeek,
         startDay: monthStart,
@@ -624,7 +624,6 @@ class RitualsService {
     return false;
   }
 
-  @visibleForTesting
   int currentScheduledStreakFromDayKeys(
     Set<int> dayKeys,
     List<bool> daysOfWeek, {
@@ -678,7 +677,7 @@ class RitualsService {
     return longest;
   }
 
-  int _longestScheduledStreakInRangeFromDayKeys(
+  int longestScheduledStreakInRange(
     Set<int> dayKeys,
     List<bool> daysOfWeek, {
     required DateTime startDay,

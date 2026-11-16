@@ -1,6 +1,7 @@
 import "package:flutter/painting.dart";
 import "package:photos/ui/rewind/pages/setup_page.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
+import "package:photos/ui/rewind/story/rewind_rituals.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
@@ -109,8 +110,8 @@ const peopleSetupPage = SetupPage(
 
 const busiestDaySetupPage = SetupPage(
   key: "busiest_day_setup",
-  color: Color(0xFFFF6727),
-  pattern: Color(0xFFFC5D19),
+  color: Color(0xFFF72F33),
+  pattern: Color(0xFFF02525),
   ink: RewindColors.cream,
   headlines: [
     SetupHeadline("ONE DAY,\nTHINGS GOT", at: Offset(24, 140), size: 59),
@@ -130,11 +131,11 @@ const busiestDaySetupPage = SetupPage(
 
 const newFacesSetupPage = SetupPage(
   key: "new_faces_setup",
-  color: Color(0xFF1EB736),
-  pattern: Color(0xFF1DB034),
+  color: Color(0xFF3366D3),
+  pattern: Color(0xFF3B6ED7),
   ink: RewindColors.cream,
   headlines: [
-    SetupHeadline("THE CAST GOT\nBIGGER", at: Offset(24, 140), size: 39),
+    SetupHeadline("THE CAST GOT\nBIGGER", at: Offset(24, 140), size: 49.578),
   ],
   callout: SetupCallout(
     "WELCOME TO THE FAM!",
@@ -201,6 +202,37 @@ const ritualSetupPage = SetupPage(
     delayMs: 830,
   ),
 );
+
+SetupPage ritualStreakSetupPage(RewindRituals rituals) => SetupPage(
+  key: ritualStreakSetupKey,
+  color: const Color(0xFFE86436),
+  pattern: const Color(0xFFF0713F),
+  ink: RewindColors.cream,
+  headlines: [
+    SetupHeadline(
+      switch ((rituals.built, rituals.started)) {
+        (1, 1) => "YOU BUILT\nA NEW\nRITUAL.",
+        (1, _) => "YOU BUILT\nA HABIT.",
+        _ => "YOU BUILT\nRITUALS.",
+      },
+      at: const Offset(24, 140),
+      size: 66,
+    ),
+  ],
+  callout: const SetupCallout(
+    "ONE PHOTO A DAY.",
+    center: Offset(195, 398.5),
+    delayMs: 600,
+  ),
+  art: const SetupArt.ducky(
+    RewindAssets.cameraDucky,
+    Rect.fromLTWH(46.5, 441, 265.3, 334),
+    pivot: Offset(179, 775),
+    delayMs: 780,
+  ),
+);
+
+const ritualStreakSetupKey = "ritual_streak_setup";
 
 const likesSetupPage = SetupPage(
   key: "likes_setup",

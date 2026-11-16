@@ -40,8 +40,8 @@ abstract final class RewindTextStyles {
       TextStyle(
         inherit: false,
         fontSize: size,
-        height: 1.3,
-        fontWeight: FontWeight.w500,
+        height: 20 / 14,
+        fontWeight: FontWeight.w700,
         color: color,
         leadingDistribution: TextLeadingDistribution.even,
       );

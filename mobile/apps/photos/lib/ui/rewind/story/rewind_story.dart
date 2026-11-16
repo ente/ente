@@ -6,10 +6,11 @@ import "package:photos/src/rust/api/rewind_api.dart" as rust;
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/story/rewind_composer.dart";
 import "package:photos/ui/rewind/story/rewind_media.dart";
+import "package:photos/ui/rewind/story/rewind_rituals.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo.dart";
 
 class RewindStory {
-  RewindStory._(this.pages, this._photos, this._outline);
+  RewindStory._(this.pages, this._photos, this._outline, this.rituals);
 
   static const _lookahead = 3;
   static const _photoPatience = Duration(seconds: 20);
@@ -17,12 +18,20 @@ class RewindStory {
   static Future<RewindStory> prepare(
     rust.RewindReport report, {
     Future<RewindMedia> Function() media = RewindMedia.load,
-  }) async => compose(rewindChapters(report), await media());
+  }) async {
+    final rituals = await RewindRituals.settled();
+    return compose(
+      rewindChapters(report, rituals),
+      await media(),
+      rituals: rituals,
+    );
+  }
 
   static Future<RewindStory> compose(
     List<RewindChapter> chapters,
-    RewindMedia media,
-  ) async {
+    RewindMedia media, {
+    RewindRituals? rituals,
+  }) async {
     final pages = <RewindPage>[];
     final photos = <List<EnteFile>>[];
     for (final chapter in chapters) {
@@ -33,10 +42,11 @@ class RewindStory {
     }
     return RewindStory._(pages, photos, [
       for (final chapter in chapters) ...chapter.keys,
-    ]);
+    ], rituals);
   }
 
   final List<RewindPage> pages;
+  final RewindRituals? rituals;
   final List<List<EnteFile>> _photos;
   final List<String> _outline;
   final _preloaded = Set<List<EnteFile>>.identity();

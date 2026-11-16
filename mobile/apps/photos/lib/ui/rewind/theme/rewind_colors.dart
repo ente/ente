@@ -3,6 +3,7 @@ import "package:flutter/painting.dart";
 abstract final class RewindColors {
   static const cream = Color(0xFFFFF3DC);
   static const ink = Color(0xFF151515);
+  static const outline = Color(0xFF1E1E1E);
   static const white = Color(0xFFFFFFFF);
   static const hotPink = Color(0xFFFF2F8E);
   static const candyPink = Color(0xFFE8338C);

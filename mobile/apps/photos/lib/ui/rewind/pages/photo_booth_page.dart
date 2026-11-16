@@ -269,7 +269,6 @@ class _BoothState extends State<_Booth> with TickerProviderStateMixin {
   late final _pull = AnimationController.unbounded(vsync: this);
   final _falls = <_Fall>[];
   var _lastStop = -1;
-  var _buzzes = true;
   var _prints = 0;
   var _shown = 0;
   var _drag = 0.0;
@@ -351,7 +350,7 @@ class _BoothState extends State<_Booth> with TickerProviderStateMixin {
     final stop = _printed(_elapsed).stop;
     if (stop > _lastStop) {
       _lastStop = stop;
-      if (_buzzes && !_reel) unawaited(HapticFeedback.lightImpact());
+      if (!_reel && widget.active) unawaited(HapticFeedback.lightImpact());
     }
     _resumeHang();
   }
@@ -453,7 +452,6 @@ class _BoothState extends State<_Booth> with TickerProviderStateMixin {
     _pull.value = 0;
     _resetHang();
     _lastStop = -1;
-    _buzzes = byHand;
     if (_still) return;
     _letFall(torn);
     unawaited(

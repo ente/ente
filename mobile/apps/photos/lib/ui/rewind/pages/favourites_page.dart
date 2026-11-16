@@ -84,7 +84,6 @@ class FavouritesPage extends RewindPage {
     final count = favourites.photoCount;
     final title = rewindCounted(count, "FAVOURITE", "FAVOURITES");
     final covered = RewindPageScope.coveredOf(context);
-    final heart = SvgPicture.file(RewindAssets.file(RewindAssets.pinkHeart));
     return RewindShareable(
       shared: _Collage(photos: photos, count: count, title: title),
       child: Stack(
@@ -103,8 +102,7 @@ class FavouritesPage extends RewindPage {
                       child: RewindElapsed(
                         active: isActive && !covered,
                         stillMs: _Deck.stillMs,
-                        builder: (context, ms) =>
-                            _Deck(photos: photos, ms: ms, heart: heart),
+                        builder: (context, ms) => _Deck(photos: photos, ms: ms),
                       ),
                     ),
                   ),
@@ -167,13 +165,11 @@ class FavouritesPage extends RewindPage {
 }
 
 class _Deck extends StatelessWidget {
-  const _Deck({required this.photos, required this.ms, required this.heart});
+  const _Deck({required this.photos, required this.ms});
 
   static const stillMs = _firstTurnMs;
-  static const _firstPopMs = 820.0;
   static const _firstTurnMs = 2200.0;
   static const _beatMs = 2100.0;
-  static const _popDelayMs = 260.0;
   static const _turn = RewindMotion.soft;
   static const _entrance = RewindMotion.soft;
   static const _reach = 2.0;
@@ -204,7 +200,6 @@ class _Deck extends StatelessWidget {
 
   final List<EnteFile> photos;
   final double ms;
-  final Widget heart;
 
   bool get _spins => photos.length >= 3;
 
@@ -243,8 +238,6 @@ class _Deck extends StatelessWidget {
 
   Widget _card(int sequence, double slot, double spun) {
     final pose = spun == 0 ? _entering(slot) : _onWheel(slot);
-    final pop = _popMs(sequence);
-    final scale = pose.scale * (pop == null ? 1.0 : _HeartPop.squash(pop));
     final bob = _bobPx * sin(2 * pi * ms / _bobMs + sequence * 1.7);
     return Positioned.fromRect(
       key: ValueKey(sequence),
@@ -259,11 +252,8 @@ class _Deck extends StatelessWidget {
           alignment: Alignment.center,
           transform: Matrix4.identity()
             ..rotateZ(pose.turn * pi / 180)
-            ..scaleByDouble(scale, scale, 1, 1),
-          child: _FavouriteCard(
-            photos[sequence % photos.length],
-            pop: pop == null ? null : _HeartPop(pop, heart: heart),
-          ),
+            ..scaleByDouble(pose.scale, pose.scale, 1, 1),
+          child: _FavouriteCard(photos[sequence % photos.length]),
         ),
       ),
     );
@@ -308,33 +298,18 @@ class _Deck extends StatelessWidget {
     );
     return _lerp(_onWheel(side), offside, slot.abs() - 1);
   }
-
-  double? _popMs(int sequence) {
-    final double start;
-    if (sequence == 0) {
-      start = _firstPopMs;
-    } else if (_spins && sequence > 0) {
-      start = _firstTurnMs + (sequence - 1) * _beatMs + _popDelayMs;
-    } else {
-      return null;
-    }
-    final since = ms - start;
-    return since >= 0 && since <= _HeartPop.durationMs ? since : null;
-  }
 }
 
 class _FavouriteCard extends StatelessWidget {
-  const _FavouriteCard(this.file, {this.pop, this.badged = false});
+  const _FavouriteCard(this.file, {this.badged = false});
 
   static const size = Size(302.042, 380.35);
 
   final EnteFile file;
-  final Widget? pop;
   final bool badged;
 
   @override
   Widget build(BuildContext context) {
-    final pop = this.pop;
     return Stack(
       fit: StackFit.expand,
       clipBehavior: Clip.none,
@@ -357,7 +332,6 @@ class _FavouriteCard extends StatelessWidget {
             child: RewindPhoto(file, placeholder: const Color(0x1F151515)),
           ),
         ),
-        if (pop != null) IgnorePointer(child: pop),
         if (badged)
           Positioned(
             right: -24,
@@ -370,98 +344,6 @@ class _FavouriteCard extends StatelessWidget {
             ),
           ),
       ],
-    );
-  }
-}
-
-class _HeartPop extends StatelessWidget {
-  const _HeartPop(this.ms, {required this.heart});
-
-  static const durationMs = 1150.0;
-  static const _size = 118.0;
-  static const _sparks = 6;
-  static const _sparkStartMs = 80.0;
-  static const _sparkMs = 640.0;
-  static const _sparkTravel = 104.0;
-  static const _fadeStartMs = 700.0;
-  static const _fadeMs = 380.0;
-  static const _squashKeys = [
-    (0.0, 1.0),
-    (90.0, 0.965),
-    (240.0, 1.03),
-    (420.0, 1.0),
-  ];
-
-  final double ms;
-  final Widget heart;
-
-  static double squash(double ms) {
-    for (var i = 1; i < _squashKeys.length; i++) {
-      final (endMs, end) = _squashKeys[i];
-      if (ms > endMs) continue;
-      final (startMs, start) = _squashKeys[i - 1];
-      final t = Curves.easeInOut.transform(
-        ((ms - startMs) / (endMs - startMs)).clamp(0.0, 1.0),
-      );
-      return lerpDouble(start, end, t)!;
-    }
-    return 1;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final grow = rewindProgress(
-      ms,
-      delayMs: 0,
-      durationMs: RewindMotion.pop.duration.inMilliseconds.toDouble(),
-      curve: RewindMotion.pop,
-    );
-    final fade = rewindProgress(
-      ms,
-      delayMs: _fadeStartMs,
-      durationMs: _fadeMs,
-      curve: Curves.easeIn,
-    );
-    final center =
-        _FavouriteCard.size.center(Offset.zero) - Offset(0, 26 * fade);
-    final sparkT = (ms - _sparkStartMs) / _sparkMs;
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        if (sparkT > 0 && sparkT < 1)
-          for (var i = 0; i < _sparks; i++) _spark(i, sparkT, center),
-        Positioned.fromRect(
-          rect: Rect.fromCenter(center: center, width: _size, height: _size),
-          child: Opacity(
-            opacity: 1 - fade,
-            child: Transform.scale(
-              scale: grow * (1 - 0.15 * fade),
-              child: heart,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _spark(int i, double t, Offset from) {
-    final angle = -pi / 2 + 0.35 + i * 2 * pi / _sparks;
-    final travel = _sparkTravel * Curves.easeOutCubic.transform(t);
-    final size = 34 * (1 - 0.35 * t);
-    return Positioned.fromRect(
-      rect: Rect.fromCenter(
-        center:
-            from + Offset(cos(angle), sin(angle)) * travel - Offset(0, 10 * t),
-        width: size,
-        height: size,
-      ),
-      child: Opacity(
-        opacity: 1 - Curves.easeIn.transform(t),
-        child: Transform.rotate(
-          angle: (i.isEven ? 0.5 : -0.5) * t,
-          child: heart,
-        ),
-      ),
     );
   }
 }
