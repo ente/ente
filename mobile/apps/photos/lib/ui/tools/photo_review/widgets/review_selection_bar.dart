@@ -12,8 +12,7 @@ class ReviewSelectionBar extends StatelessWidget {
     required this.allSelected,
     required this.onSelectAll,
     required this.onClear,
-    required this.onMarkAsReviewed,
-    required this.onReviewAgain,
+    required this.actions,
     super.key,
   });
 
@@ -21,25 +20,13 @@ class ReviewSelectionBar extends StatelessWidget {
   final bool allSelected;
   final VoidCallback onSelectAll;
   final VoidCallback onClear;
-  final VoidCallback? onMarkAsReviewed;
-  final VoidCallback? onReviewAgain;
+  final List<SelectionSheetAction> actions;
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.strings;
     return SelectionActionSheet(
-      actions: [
-        SelectionSheetAction(
-          labelText: l10n.markAsReviewed,
-          hugeIcon: HugeIcons.strokeRoundedTickDouble02,
-          onTap: onMarkAsReviewed,
-        ),
-        SelectionSheetAction(
-          labelText: l10n.reviewAgain,
-          hugeIcon: HugeIcons.strokeRoundedReload,
-          onTap: onReviewAgain,
-        ),
-      ],
+      actions: actions,
       selectionControls: SafeArea(
         top: false,
         bottom: false,

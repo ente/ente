@@ -1,6 +1,7 @@
 import "dart:async";
 
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
@@ -13,6 +14,7 @@ import "package:photos/events/photo_review_updated_event.dart";
 import "package:photos/models/photo_review/photo_review_models.dart";
 import "package:photos/services/app_navigation_service.dart";
 import "package:photos/services/photo_review/photo_review_service.dart";
+import "package:photos/ui/components/bottom_action_bar/selection_action_sheet.dart";
 import "package:photos/ui/tools/photo_review/review_month_page.dart";
 import "package:photos/ui/tools/photo_review/widgets/review_banner.dart";
 import "package:photos/ui/tools/photo_review/widgets/review_selection_bar.dart";
@@ -545,8 +547,18 @@ class _ReviewOldPhotosPageState extends State<ReviewOldPhotosPage>
                       });
                     },
                     onClear: _clearSelection,
-                    onMarkAsReviewed: canMarkReviewed ? _markAsReviewed : null,
-                    onReviewAgain: canReviewAgain ? _reviewAgain : null,
+                    actions: [
+                      SelectionSheetAction(
+                        labelText: l10n.markAsReviewed,
+                        hugeIcon: HugeIcons.strokeRoundedTickDouble02,
+                        onTap: canMarkReviewed ? _markAsReviewed : null,
+                      ),
+                      SelectionSheetAction(
+                        labelText: l10n.reviewAgain,
+                        hugeIcon: HugeIcons.strokeRoundedReload,
+                        onTap: canReviewAgain ? _reviewAgain : null,
+                      ),
+                    ],
                   ),
                 ),
               ),
