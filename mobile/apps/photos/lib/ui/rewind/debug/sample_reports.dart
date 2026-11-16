@@ -325,6 +325,14 @@ final _busyYear = rust.RewindReport(
     [0, 1, 0, 2, 0, 3, 0, 4, 5, 6, 7, 0, 8, 0, 9, 0],
     29120,
   ),
+  warp: rust.Warp(fileIds: _ids(102000, 240)),
+  mosaic: rust.Mosaic(
+    fileIds: _ids(102000, 400),
+    mePersonId: "person_me",
+    meFaceIds: _faceIds(102000, 5),
+    topPersonId: "person_maya",
+    topFaceIds: _faceIds(100400, 5),
+  ),
 );
 
 final _sparseYear = rust.RewindReport(

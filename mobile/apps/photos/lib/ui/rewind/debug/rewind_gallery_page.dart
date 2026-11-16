@@ -71,6 +71,12 @@ List<RewindPage> rewindTourPages(rust.RewindReport report) => [
   if (report.tour case final tour?) TourPage(tour),
 ];
 
+Future<RewindStory> _sampleStory(rust.RewindReport report) async =>
+    RewindStory.compose(
+      rewindChapters(report, rewindSampleRituals),
+      await RewindMedia.sampled(),
+    );
+
 RewindChapter _colourChapter(rust.ColourOfTheYear colour) =>
     RewindChapter([ColourPage.pageKey, ArtTwinPage.pageKey], (media) async {
       return [
@@ -218,18 +224,14 @@ class _RewindGalleryPageState extends State<RewindGalleryPage> {
             title: Text(sample.key),
             subtitle: const Text("Sample report, library photos and people"),
             trailing: const Icon(Icons.chevron_right_outlined),
-            onTap: () => openStory(
-              RewindStory.prepare(sample.value, media: RewindMedia.sampled),
-            ),
+            onTap: () => openStory(_sampleStory(sample.value)),
           ),
         for (final sample in rewindSampleReports.entries)
           ListTile(
             title: Text("${sample.key} video"),
             subtitle: const Text("Export the reel and open the share sheet"),
             trailing: const Icon(Icons.movie_outlined),
-            onTap: () => openVideo(
-              RewindStory.prepare(sample.value, media: RewindMedia.sampled),
-            ),
+            onTap: () => openVideo(_sampleStory(sample.value)),
           ),
       ],
     );

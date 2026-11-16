@@ -15,14 +15,11 @@ class RewindStory {
   static const _lookahead = 3;
   static const _photoPatience = Duration(seconds: 20);
 
-  static Future<RewindStory> prepare(
-    rust.RewindReport report, {
-    Future<RewindMedia> Function() media = RewindMedia.load,
-  }) async {
+  static Future<RewindStory> prepare(rust.RewindReport report) async {
     final rituals = await RewindRituals.settled();
     return compose(
       rewindChapters(report, rituals),
-      await media(),
+      await RewindMedia.load(),
       rituals: rituals,
     );
   }
