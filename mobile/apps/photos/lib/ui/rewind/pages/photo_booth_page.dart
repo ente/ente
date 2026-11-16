@@ -347,7 +347,7 @@ class _BoothState extends State<_Booth> with TickerProviderStateMixin {
     final stop = _printed(_elapsed).stop;
     if (stop > _lastStop) {
       _lastStop = stop;
-      if (!_reel) unawaited(HapticFeedback.lightImpact());
+      if (!_reel && widget.active) unawaited(HapticFeedback.lightImpact());
     }
     _resumeHang();
   }

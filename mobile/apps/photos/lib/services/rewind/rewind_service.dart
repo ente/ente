@@ -23,6 +23,7 @@ import "package:photos/services/rewind/rewind_request.dart";
 import "package:photos/services/sync/local_sync_service.dart";
 import "package:photos/services/sync/remote_sync_service.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
+import "package:photos/ui/rewind/story/rewind_rituals.dart";
 import "package:photos/ui/rewind/story/rewind_story.dart";
 import "package:shared_preferences/shared_preferences.dart";
 import "package:synchronized/synchronized.dart";
@@ -36,6 +37,7 @@ class RewindService {
         .on<FilesUpdatedEvent>()
         .where((event) => _visibilityChanges.contains(event.type))
         .listen((_) => _rebuildStory());
+    ritualsService.stateNotifier.addListener(_onRitualsChanged);
   }
 
   final RewindProgress _progress;
@@ -145,6 +147,12 @@ class RewindService {
       _storyComputedAt = null;
       return _buildStory();
     });
+  }
+
+  void _onRitualsChanged() {
+    final story = _story.value;
+    if (story == null || story.rituals == RewindRituals.current()) return;
+    unawaited(_rebuildStory());
   }
 
   Future<void> _buildStory() async {

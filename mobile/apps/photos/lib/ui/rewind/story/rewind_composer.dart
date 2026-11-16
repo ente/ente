@@ -51,7 +51,10 @@ class RewindChapter {
   final Future<List<RewindPage>> Function(RewindMedia media) compose;
 }
 
-List<RewindChapter> rewindChapters(rust.RewindReport report) => [
+List<RewindChapter> rewindChapters(
+  rust.RewindReport report,
+  RewindRituals? rituals,
+) => [
   RewindChapter([const CoverPage().key], (_) async => const [CoverPage()]),
   _warp(report),
   _totals(report.totals),
@@ -68,7 +71,7 @@ List<RewindChapter> rewindChapters(rust.RewindReport report) => [
   _favourites(report.favourites),
   _weeklyHabit(report.weeklyHabit),
   _crowdFavourite(report.crowdFavourite),
-  ritualStreakChapter(RewindRituals.load),
+  ritualStreakChapter(rituals),
   _badge(report.badge),
   _mosaic(report),
   _scrapbook(report),
@@ -376,15 +379,15 @@ RewindChapter _crowdFavourite(rust.CrowdFavourite? crowd) {
   });
 }
 
-RewindChapter ritualStreakChapter(Future<RewindRituals?> Function() load) =>
-    RewindChapter([ritualStreakSetupKey, RitualStreakPage.pageKey], (_) async {
-      final rituals = await load();
-      if (rituals == null) return const [];
-      return [
-        ritualStreakSetupPage(rituals: rituals.built),
-        RitualStreakPage(rituals),
-      ];
-    });
+RewindChapter ritualStreakChapter(RewindRituals? rituals) => RewindChapter(
+  [ritualStreakSetupKey, RitualStreakPage.pageKey],
+  (_) async => [
+    if (rituals != null) ...[
+      ritualStreakSetupPage(rituals: rituals.built),
+      RitualStreakPage(rituals),
+    ],
+  ],
+);
 
 RewindChapter _badge(rust.Badge? badge) {
   return RewindChapter.revealed(

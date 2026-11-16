@@ -100,7 +100,7 @@ class ArtTwinPage extends RewindPage {
   String get key => pageKey;
 
   @override
-  Duration? get reelHold => const Duration(milliseconds: 3000);
+  Duration? get reelHold => const Duration(milliseconds: 4400);
 
   @override
   RewindChrome get chrome => RewindChrome(
@@ -142,17 +142,22 @@ class ArtTwinPage extends RewindPage {
                     position: position,
                     active: isActive,
                     preset: RewindPreset.rise,
-                    child: RewindVoice(
-                      you: "YOUR ART TWIN",
-                      me: "MY ART TWIN",
-                      builder: (text) => Text(
-                        text,
-                        textAlign: TextAlign.center,
-                        style: RewindTextStyles.display(
-                          40,
-                          color: ink,
-                          height: 48 / 40,
-                        ).copyWith(shadows: _titleShadows(ink)),
+                    child: SizedBox(
+                      height: 48,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: RewindVoice(
+                          you: "YOUR ART TWIN",
+                          me: "MY ART TWIN",
+                          builder: (text) => Text(
+                            text,
+                            style: RewindTextStyles.display(
+                              40,
+                              color: ink,
+                              height: 48 / 40,
+                            ).copyWith(shadows: _titleShadows(ink)),
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -164,16 +169,20 @@ class ArtTwinPage extends RewindPage {
                     position: position,
                     active: isActive,
                     delayMs: 200,
-                    child: RewindVoice(
-                      you: "Your photos found their art twin.",
-                      me: "My photos found their art twin.",
-                      builder: (text) => Text(
-                        text,
-                        textAlign: TextAlign.center,
-                        style: RewindTextStyles.body(
-                          17,
-                          color: ink,
-                          height: 1.26,
+                    child: Center(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: RewindVoice(
+                          you: "Your photos found their art twin.",
+                          me: "My photos found their art twin.",
+                          builder: (text) => Text(
+                            text,
+                            style: RewindTextStyles.body(
+                              17,
+                              color: ink,
+                              height: 1.26,
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -223,7 +232,7 @@ class ArtTwinPage extends RewindPage {
 
   List<Shadow>? _titleShadows(Color ink) => ink == RewindColors.ink
       ? null
-      : const [Shadow(color: Color(0xFF1E1E1E), offset: Offset(0, 3))];
+      : const [Shadow(color: RewindColors.outline, offset: Offset(0, 3))];
 }
 
 class _ArtFrame extends StatelessWidget {
@@ -303,16 +312,17 @@ class _ArtFrame extends StatelessWidget {
   double _twinkle(int i) {
     final since = ms - _liftMs - _liftDurationMs * 0.6 - 150 * i;
     if (since <= 0) return 0;
-    final grow = RewindMotion.pop.transform(min(1.0, since / 879));
+    final popMs = RewindMotion.pop.duration.inMilliseconds;
+    final grow = RewindMotion.pop.transform(min(1.0, since / popMs));
     final breathe = 1 - 0.18 * (0.5 - 0.5 * cos(2 * pi * since / 1500));
-    return grow * (since > 879 ? breathe : 1);
+    return grow * (since > popMs ? breathe : 1);
   }
 }
 
 class _FramePainter extends CustomPainter {
   const _FramePainter();
 
-  static const _ink = Color(0xFF1E1E1E);
+  static const _ink = RewindColors.outline;
   static const _gold = Color(0xFFFFCA39);
   static const _deepGold = Color(0xFFF2A516);
   static const _pearlStep = 11.9;
@@ -328,7 +338,7 @@ class _FramePainter extends CustomPainter {
       RewindColors.cream,
       2.5,
     );
-    for (var x = 34.0; x <= 272.5; x += _pearlStep) {
+    for (var x = 34.0; x <= 261; x += _pearlStep) {
       _pearl(canvas, Offset(x, 10));
       _pearl(canvas, Offset(x, 356));
     }
@@ -416,7 +426,7 @@ class _SparklePainter extends CustomPainter {
     canvas.drawPath(
       star,
       Paint()
-        ..color = const Color(0xFF1E1E1E)
+        ..color = RewindColors.outline
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.5
         ..strokeJoin = StrokeJoin.round,
@@ -443,54 +453,56 @@ class _Plaque extends StatelessWidget {
         painter: const _PlatePainter(),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(24, 8.5, 24, 0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _line(
-                painting.title,
-                RewindTextStyles.body(
-                  18,
-                  color: RewindColors.ink,
-                  height: 1.26,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.topCenter,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _line(
+                  painting.title,
+                  RewindTextStyles.body(
+                    18,
+                    color: RewindColors.ink,
+                    height: 1.26,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 1),
-              _line(
-                "Inspired by ${painting.original}",
-                RewindTextStyles.body(
-                  12.5,
-                  color: _muted,
-                  height: 1.26,
-                  weight: FontWeight.w500,
+                const SizedBox(height: 1),
+                _line(
+                  "Inspired by ${painting.original}",
+                  RewindTextStyles.body(
+                    12.5,
+                    color: _muted,
+                    height: 1.26,
+                    weight: FontWeight.w500,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 1),
-              _line(
-                painting.artist,
-                RewindTextStyles.body(
-                  12.5,
-                  color: _muted,
-                  height: 1.26,
-                  weight: FontWeight.w500,
+                const SizedBox(height: 1),
+                _line(
+                  painting.artist,
+                  RewindTextStyles.body(
+                    12.5,
+                    color: _muted,
+                    height: 1.26,
+                    weight: FontWeight.w500,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _line(String text, TextStyle style) => FittedBox(
-    fit: BoxFit.scaleDown,
-    child: Text(text, style: style, maxLines: 1),
-  );
+  Widget _line(String text, TextStyle style) =>
+      Text(text, style: style, maxLines: 1);
 }
 
 class _PlatePainter extends CustomPainter {
   const _PlatePainter();
 
-  static const _ink = Color(0xFF1E1E1E);
+  static const _ink = RewindColors.outline;
 
   @override
   void paint(Canvas canvas, Size size) {

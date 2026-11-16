@@ -25,7 +25,6 @@ final rewindDesignPages = <RewindPage>[
   const CoverPage(),
   ...setupPages,
   ritualStreakSetupPage(rituals: 1),
-  ritualStreakSetupPage(rituals: 3),
 ];
 
 const rewindSampleRituals = RewindRituals(
@@ -190,7 +189,7 @@ class _RewindGalleryPageState extends State<RewindGalleryPage> {
           onTap: () => openStory(
             RewindMedia.sampled().then(
               (media) => RewindStory.compose([
-                ritualStreakChapter(RewindRituals.load),
+                ritualStreakChapter(RewindRituals.current()),
               ], media),
             ),
           ),

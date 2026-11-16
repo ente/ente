@@ -1,12 +1,13 @@
 import "dart:math";
 
 import "package:collection/collection.dart";
-import "package:logging/logging.dart";
+import "package:flutter/foundation.dart";
 import "package:photos/models/rituals/ritual_models.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/rewind/rewind_edition.dart";
 import "package:photos/ui/rituals/ritual_privacy.dart";
 
+@immutable
 class RewindRituals {
   const RewindRituals({
     required this.longestStreak,
@@ -17,8 +18,6 @@ class RewindRituals {
     required this.icons,
   });
 
-  static final _logger = Logger("RewindRituals");
-
   final int longestStreak;
   final int checkIns;
   final int busiestMonth;
@@ -26,28 +25,20 @@ class RewindRituals {
   final int built;
   final List<String> icons;
 
-  static Future<RewindRituals?> load() async {
+  static RewindRituals? current() {
     if (!flagService.ritualsFlag) return null;
-    try {
-      if (ritualsService.stateNotifier.value.summary == null) {
-        await ritualsService.refresh();
-      }
-      final state = ritualsService.stateNotifier.value;
-      final summary = state.summary;
-      if (summary == null) return null;
-      return of(
-        [
-          for (final ritual in state.rituals)
-            if (!isRitualAlbumHidden(ritual)) ritual,
-        ],
-        summary.ritualProgress,
-        year: RewindEdition.year,
-        today: DateTime.now(),
-      );
-    } catch (e, s) {
-      _logger.warning("No ritual streak for Rewind", e, s);
-      return null;
-    }
+    final state = ritualsService.stateNotifier.value;
+    final summary = state.summary;
+    if (summary == null) return null;
+    return of(
+      [
+        for (final ritual in state.rituals)
+          if (!isRitualAlbumHidden(ritual)) ritual,
+      ],
+      summary.ritualProgress,
+      year: RewindEdition.year,
+      today: DateTime.now(),
+    );
   }
 
   static RewindRituals? of(
@@ -105,4 +96,24 @@ class RewindRituals {
       }.toList(),
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      other is RewindRituals &&
+      other.longestStreak == longestStreak &&
+      other.checkIns == checkIns &&
+      other.busiestMonth == busiestMonth &&
+      other.continued == continued &&
+      other.built == built &&
+      listEquals(other.icons, icons);
+
+  @override
+  int get hashCode => Object.hash(
+    longestStreak,
+    checkIns,
+    busiestMonth,
+    continued,
+    built,
+    Object.hashAll(icons),
+  );
 }

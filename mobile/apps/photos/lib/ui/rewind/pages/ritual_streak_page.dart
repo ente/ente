@@ -3,6 +3,8 @@ import "dart:ui" show ImageFilter;
 
 import "package:flutter/material.dart";
 import "package:flutter_svg/flutter_svg.dart";
+import "package:intl/intl.dart";
+import "package:photos/services/rewind/rewind_edition.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/story/rewind_rituals.dart";
@@ -15,21 +17,6 @@ import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
 import "package:photos/ui/rewind/widgets/rewind_reveal_layer.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
 import "package:photos/ui/rewind/widgets/rewind_text.dart";
-
-const _months = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
 
 const _defaultIcons = ["💪", "🎨", "🪴", "👟"];
 
@@ -77,7 +64,6 @@ class RitualStreakPage extends RewindPage {
 
   static const pageKey = "ritual_streak";
 
-  static const _ink = Color(0xFF1E1E1E);
   static const _yellow = Color(0xFFFFE11E);
 
   final RewindRituals rituals;
@@ -95,6 +81,9 @@ class RitualStreakPage extends RewindPage {
     required bool isActive,
   }) {
     final streak = rewindCount(rituals.longestStreak);
+    final month = DateFormat.MMMM(
+      "en_US",
+    ).format(DateTime(RewindEdition.year, rituals.busiestMonth));
     final icons = [
       ...rituals.icons,
       ..._defaultIcons.where((icon) => !rituals.icons.contains(icon)),
@@ -115,10 +104,11 @@ class RitualStreakPage extends RewindPage {
           ),
           Semantics(
             label:
-                "Your longest ritual streak was $streak days. "
-                "${rituals.checkIns} check-ins this year, most in "
-                "${_months[rituals.busiestMonth - 1]}, and "
-                "${rituals.continued} rituals still going.",
+                "Your longest ritual streak: $streak. "
+                "${rewindCounted(rituals.checkIns, "check-in", "check-ins")} "
+                "this year, most in $month. "
+                "${rewindCounted(rituals.continued, "ritual", "rituals")} "
+                "still going.",
             child: ExcludeSemantics(
               child: RewindStage(
                 children: [
@@ -237,7 +227,9 @@ class RitualStreakPage extends RewindPage {
                   _tile(
                     _leftTile,
                     rewindCount(rituals.checkIns),
-                    "Check-ins\nthis year",
+                    rituals.checkIns == 1
+                        ? "Check-in\nthis year"
+                        : "Check-ins\nthis year",
                     position,
                     isActive,
                   ),
@@ -252,7 +244,7 @@ class RitualStreakPage extends RewindPage {
                   ),
                   _tile(
                     _middleTile,
-                    _months[rituals.busiestMonth - 1],
+                    month,
                     "Most active\nmonth",
                     position,
                     isActive,
@@ -320,7 +312,7 @@ class _Streak extends StatelessWidget {
                 color: RewindColors.white,
               ).copyWith(height: 0.92),
               outline: 4,
-              ink: RitualStreakPage._ink,
+              ink: RewindColors.outline,
               shadow: const Offset(5, 7),
             ),
             Positioned(
@@ -399,29 +391,37 @@ class _PaperTile extends StatelessWidget {
       painter: _PaperPainter(curl: curl),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(8, 10, 8, 16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: RewindOutlinedText(
-                value,
-                style: RewindTextStyles.numeral(
-                  38.98,
-                  color: RewindColors.white,
-                ).copyWith(height: 1.1),
-                outline: 1.392,
-                ink: RitualStreakPage._ink,
-                shadow: const Offset(1.856, 1.856),
-              ),
+        child: LayoutBuilder(
+          builder: (context, constraints) => FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: constraints.maxWidth,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: RewindOutlinedText(
+                      value,
+                      style: RewindTextStyles.numeral(
+                        38.98,
+                        color: RewindColors.white,
+                      ).copyWith(height: 1.1),
+                      outline: 1.392,
+                      ink: RewindColors.outline,
+                      shadow: const Offset(1.856, 1.856),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: RewindTextStyles.body(13.92, height: 1),
+                ),
+              ],
             ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: RewindTextStyles.body(13.92, height: 1),
-            ),
-          ],
+          ),
         ),
       ),
     );
