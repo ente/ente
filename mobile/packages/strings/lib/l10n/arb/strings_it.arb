@@ -1,8 +1,4 @@
 {
-  "bringMemoriesTogether": "Riunisci i tuoi ricordi",
-  "createMyAccount": "Crea il mio account",
-  "localGalleryPermissionDesc": "Concedi l’autorizzazione ad accedere e organizzare le tue foto con il riconoscimento facciale. Tutta l’elaborazione avviene sul tuo dispositivo.",
-  "onboardingOrganizeDesc": "Organizza le tue foto e i tuoi video. Tutti i ricordi in un unico posto.",
   "wallpaper": "Sfondo",
   "setWallpaper": "Imposta sfondo",
   "wallpaperHome": "Schermata Home",
@@ -199,7 +195,6 @@
   "albumsOnDevicePermissionCta": "Consenti l'accesso",
   "albumsOnEnteEmptyCta": "Seleziona album da eseguire il backup",
   "albumsOnEnteEmptyTitle": "Esegui il backup dei tuoi ricordi",
-  "albumsReceivedEmptyTitle": "Visualizza i ricordi condivisi con te",
   "albumsSharedEmptyTitle": "Condividi i tuoi ricordi",
   "albumsWidgetDesc": "Seleziona gli album che desideri vedere nella schermata principale.",
   "albumTitle": "Titolo album",
@@ -2291,7 +2286,6 @@
   },
   "nextTotpTitle": "successivo",
   "nightLights": "Notti al neon",
-  "noAlbumsOnThisDevice": "Nessun album su questo dispositivo",
   "noAppToOpenFileDownloadInstead": "Nessuna applicazione è disponibile per visualizzare in anteprima questo file. Puoi scaricarlo e aprirlo in un'altra app.",
   "@noAppToOpenFileDownloadInstead": {
     "description": "Message shown when Android cannot find an app to open or preview a file"
@@ -3555,7 +3549,6 @@
       }
     }
   },
-  "startSnappingYourPhotosWillShowUpHere": "Inizia a scattare, le tue foto appariranno qui",
   "startWithAddingPhotosOrFamiliarFaces": "Inizia con l'aggiunta di\nfoto o facce familiari",
   "status": "Stato",
   "sticker": "Etichetta",
