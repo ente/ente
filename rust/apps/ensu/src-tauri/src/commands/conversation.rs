@@ -99,6 +99,9 @@ pub struct Request {
     preparation_token: String,
     cancellation_epoch: u64,
     resolution_token: Option<String>,
+    /// Offer the model the To Do tools for this turn.
+    #[serde(default)]
+    todo_tools: bool,
 }
 
 #[derive(Serialize)]
@@ -107,6 +110,8 @@ pub struct Response {
     preparation_token: String,
     messages: Vec<llm::ChatMessage>,
     grounded_context: Option<super::knowledge::GroundedPromptContextDto>,
+    /// Tools to send with the generation request, when requested.
+    tools: Option<llm::ToolRequest>,
 }
 
 fn error(message: impl Into<String>) -> ApiError {
@@ -128,6 +133,8 @@ struct NativeEffects<'a> {
     snapshot: &'a mut ConversationSnapshot,
     epoch: Arc<AtomicU64>,
     expected_epoch: u64,
+    /// Counted in every measurement, since generation declares them.
+    tools: Option<llm::ToolRequest>,
 }
 impl Effects for NativeEffects<'_> {
     fn check_current(&mut self) -> Result<(), PrepareError> {
@@ -159,6 +166,7 @@ impl Effects for NativeEffects<'_> {
         self.context
             .measure_text_chat_prompt(&llm::ChatRequest {
                 messages: messages.to_vec(),
+                tools: self.tools.clone(),
                 ..Default::default()
             })
             .map_err(|e| PrepareError::Backend(e.to_string()))
@@ -173,7 +181,13 @@ impl Effects for NativeEffects<'_> {
             "conversation-progress",
             serde_json::json!({"preparationToken": self.token}),
         );
-        let prompt_tokens = self.measure(&messages)?;
+        let prompt_tokens = self
+            .context
+            .measure_text_chat_prompt(&llm::ChatRequest {
+                messages: messages.clone(),
+                ..Default::default()
+            })
+            .map_err(|e| PrepareError::Backend(e.to_string()))?;
         let generation = conversation::summary_request(messages, output, prompt_tokens)?;
         let mut text = String::new();
         let epoch = self.epoch.clone();
@@ -273,6 +287,10 @@ pub async fn conversation_prepare(
                 .map_err(preparation_error)?,
         };
         candidates.validate().map_err(|e| error(e.to_string()))?;
+        let tools = input
+            .todo_tools
+            .then(|| ente_ensu::todo::chat_tools(&input.expected_user_text));
+        let tool_turns = db.tool_history(snapshot.messages()).map_err(ApiError::from)?;
         let turn = conversation::TurnInput {
             session: input.session_uuid,
             messages: snapshot.messages().to_vec(),
@@ -284,6 +302,7 @@ pub async fn conversation_prepare(
             output: Some(input.max_tokens),
             state: snapshot.state().cloned(),
             candidates,
+            tool_turns,
         };
         let mut effects = NativeEffects {
             app,
@@ -294,6 +313,7 @@ pub async fn conversation_prepare(
             snapshot: &mut snapshot,
             epoch,
             expected_epoch,
+            tools: tools.clone(),
         };
         let mut prepared = conversation::prepare_turn(turn, &mut effects)
             .map_err(preparation_error)?;
@@ -313,6 +333,7 @@ pub async fn conversation_prepare(
                 preparation_token: token.clone(),
                 messages: result.messages,
                 grounded_context: grounded.map(Into::into),
+                tools,
             },
             Slot {
                 token,

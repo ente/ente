@@ -552,7 +552,7 @@ fn normalize_sender(sender: &str) -> Result<&'static str, ApiError> {
     }
 }
 
-fn parse_uuid(value: &str) -> Result<Uuid, ApiError> {
+pub(crate) fn parse_uuid(value: &str) -> Result<Uuid, ApiError> {
     Ok(Uuid::parse_str(value).map_err(db::Error::from)?)
 }
 
@@ -603,7 +603,10 @@ where
     operation(db.as_ref()).map_err(ApiError::from)
 }
 
-async fn with_chat_db_async<T, F>(state: &ChatDbState, operation: F) -> Result<T, ApiError>
+pub(crate) async fn with_chat_db_async<T, F>(
+    state: &ChatDbState,
+    operation: F,
+) -> Result<T, ApiError>
 where
     T: Send + 'static,
     F: FnOnce(&ChatDb<SqliteBackend>) -> Result<T, db::Error> + Send + 'static,

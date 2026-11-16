@@ -8,7 +8,7 @@ use thiserror::Error;
 use uuid::Uuid;
 
 use crate::db::{DbAttachmentMeta, DbMessage, EnsuDb, to_message};
-use crate::llm::{LlmChatMessage, LlmContext};
+use crate::llm::{LlmChatMessage, LlmContext, LlmToolRequest};
 use crate::retrieval::GroundedExcerpt;
 
 #[derive(Debug, Error, uniffi::Error)]
@@ -54,12 +54,17 @@ pub struct ConversationRequest {
     pub searched: Vec<GroundedExcerpt>,
     pub followup: Option<Arc<crate::followup::ConversationFollowup>>,
     pub reloaded: Vec<GroundedExcerpt>,
+    /// Offer the model the To Do tools for this turn.
+    #[uniffi(default = false)]
+    pub todo_tools: bool,
 }
 
 #[derive(Debug, Clone, uniffi::Record)]
 pub struct ConversationResult {
     pub messages: Vec<LlmChatMessage>,
     pub max_tokens: u32,
+    /// Tools to pass with the generation request, when requested.
+    pub tools: Option<Arc<LlmToolRequest>>,
 }
 
 #[uniffi::export(foreign)]
@@ -78,6 +83,7 @@ struct PreparedWork {
     result: core::PreparationResult,
     max_tokens: u32,
     grounded: Option<retrieval::GroundedPromptContext>,
+    tools: Option<Arc<LlmToolRequest>>,
 }
 
 #[derive(uniffi::Object)]
@@ -177,6 +183,10 @@ impl ConversationPreparation {
             input.searched.into_iter().map(Into::into).collect(),
             core::MAX_GROUNDING_BYTES,
         )?;
+        let tools = input
+            .todo_tools
+            .then(|| ente_ensu::todo::chat_tools(&input.expected_user_text));
+        let tool_turns = self.db.tool_history(snapshot.messages()).map_err(error)?;
         let input = core::TurnInput {
             session,
             messages: snapshot.messages().to_vec(),
@@ -188,11 +198,13 @@ impl ConversationPreparation {
             output: input.max_tokens.map(|value| value as usize),
             state: snapshot.state().cloned(),
             candidates,
+            tool_turns,
         };
         let mut effects = NativeEffects {
             owner: self,
             snapshot: &mut snapshot,
             callback,
+            tools: tools.as_ref(),
         };
         let mut prepared = self.grounding.prepare_turn(input, &mut effects)?;
         let result = prepared.preparation.run(&mut effects)?;
@@ -202,6 +214,7 @@ impl ConversationPreparation {
             result,
             max_tokens: prepared.budget.output as u32,
             grounded: prepared.grounding.context,
+            tools: tools.map(|tools| Arc::new(LlmToolRequest(tools))),
         })
     }
 }
@@ -238,6 +251,7 @@ impl ConversationPreparation {
                 .map(Into::into)
                 .collect(),
             max_tokens: work.max_tokens,
+            tools: work.tools.clone(),
         })
     }
 
@@ -303,6 +317,8 @@ struct NativeEffects<'a> {
     owner: &'a ConversationPreparation,
     snapshot: &'a mut db::chat::ConversationSnapshot,
     callback: &'a dyn ConversationProgressCallback,
+    /// Counted in every measurement, since generation declares them.
+    tools: Option<&'a llm::ToolRequest>,
 }
 
 impl core::Effects for NativeEffects<'_> {
@@ -339,6 +355,7 @@ impl core::Effects for NativeEffects<'_> {
             .context
             .measure_text_chat_prompt(&llm::ChatRequest {
                 messages: messages.to_vec(),
+                tools: self.tools.cloned(),
                 ..Default::default()
             })
             .map_err(|cause| core::PrepareError::Backend(cause.to_string()))
@@ -352,7 +369,14 @@ impl core::Effects for NativeEffects<'_> {
         self.check_current()?;
         self.callback.on_progress();
         self.check_cancelled()?;
-        let prompt_tokens = self.measure(&messages)?;
+        let prompt_tokens = self
+            .owner
+            .context
+            .measure_text_chat_prompt(&llm::ChatRequest {
+                messages: messages.clone(),
+                ..Default::default()
+            })
+            .map_err(|cause| core::PrepareError::Backend(cause.to_string()))?;
         let generation = core::summary_request(messages, output, prompt_tokens)?;
         let mut text = String::new();
         let result = self
