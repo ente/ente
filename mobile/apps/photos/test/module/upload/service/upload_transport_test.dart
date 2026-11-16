@@ -110,14 +110,9 @@ void main() {
     });
   });
 
-  test("PUT retries four times with a fresh signed URL", () async {
+  test("PUT reuses the signed URL and pauses between attempts", () async {
     final fixture = _Fixture();
-    fixture.gateway.uploadURLs.addAll([
-      UploadURL("url-1", "key-1"),
-      UploadURL("url-2", "key-2"),
-      UploadURL("url-3", "key-3"),
-      UploadURL("url-4", "key-4"),
-    ]);
+    fixture.gateway.uploadURLs.add(UploadURL("url", "key"));
     fixture.dio.putFailures.addAll([_dioError(), _dioError(), _dioError()]);
     final objectKey = await fixture.transport.uploadSinglePart(
       file,
@@ -125,20 +120,16 @@ void main() {
       contentMd5: "md5",
     );
 
-    expect(objectKey, "key-4");
-    expect(fixture.dio.putPaths, ["url-1", "url-2", "url-3", "url-4"]);
-    expect(fixture.gateway.uploadURLRequests, hasLength(4));
+    expect(objectKey, "key");
+    expect(fixture.dio.putPaths, ["url", "url", "url", "url"]);
+    expect(fixture.gateway.uploadURLRequests, hasLength(1));
     expect(fixture.dio.payloads, everyElement([1, 2, 3, 4]));
+    expect(fixture.delays, List.filled(3, const Duration(seconds: 5)));
   });
 
   test("PUT stops after four failures", () async {
     final fixture = _Fixture();
-    fixture.gateway.uploadURLs.addAll(
-      List.generate(
-        4,
-        (index) => UploadURL("url-${index + 1}", "key-${index + 1}"),
-      ),
-    );
+    fixture.gateway.uploadURLs.add(UploadURL("url", "key"));
     final finalError = _dioError(statusCode: 500);
     fixture.dio.putFailures.addAll([
       _dioError(statusCode: 500),
@@ -152,49 +143,25 @@ void main() {
     );
 
     expect(fixture.dio.putPaths, hasLength(4));
-    expect(fixture.gateway.uploadURLRequests, hasLength(4));
+    expect(fixture.gateway.uploadURLRequests, hasLength(1));
+    expect(fixture.delays, List.filled(3, const Duration(seconds: 5)));
   });
 
   test("PUT retries response failures without clearing the queue", () async {
-    for (final statusCode in [402, 413, 426]) {
+    for (final statusCode in [402, 403, 413, 426, 429]) {
       final fixture = _Fixture();
-      fixture.gateway.uploadURLs.addAll([
-        UploadURL("url-$statusCode-1", "key-$statusCode-1"),
-        UploadURL("url-$statusCode-2", "key-$statusCode-2"),
-      ]);
+      fixture.gateway.uploadURLs.add(
+        UploadURL("url-$statusCode", "key-$statusCode"),
+      );
       fixture.dio.putFailures.add(_dioError(statusCode: statusCode));
 
       expect(
         await fixture.transport.uploadSinglePart(file, 4, contentMd5: "md5"),
-        "key-$statusCode-2",
+        "key-$statusCode",
       );
-      expect(fixture.gateway.uploadURLRequests, hasLength(2));
+      expect(fixture.gateway.uploadURLRequests, hasLength(1));
       expect(fixture.clearedErrors, isEmpty);
-    }
-  });
-
-  test("maps a fatal upload URL failure during PUT retry", () async {
-    for (final statusCode in [402, 426]) {
-      final fixture = _Fixture();
-      final retryURLFailure = _dioError(statusCode: statusCode);
-      fixture.gateway.uploadURLs.add(UploadURL("initial", "initial-key"));
-      fixture.dio
-        ..putFailures.add(_dioError(statusCode: 500))
-        ..onPutFailure = () {
-          fixture.gateway.uploadURLFailures.add(retryURLFailure);
-        };
-
-      await expectLater(
-        fixture.transport.uploadSinglePart(file, 4, contentMd5: "md5"),
-        throwsA(
-          statusCode == 402
-              ? isA<NoActiveSubscriptionError>()
-              : isA<StorageLimitExceededError>(),
-        ),
-      );
-
-      expect(fixture.gateway.uploadURLRequests, hasLength(2));
-      expect(fixture.clearedErrors, hasLength(1));
+      expect(fixture.delays, [const Duration(seconds: 5)]);
     }
   });
 
@@ -554,7 +521,6 @@ class _FakeDio extends Fake implements Dio {
   final putPaths = <String>[];
   final payloads = <List<int>>[];
   final headers = <Map<String, dynamic>>[];
-  void Function()? onPutFailure;
 
   @override
   Future<Response<T>> put<T>(
@@ -576,7 +542,6 @@ class _FakeDio extends Fake implements Dio {
     onSendProgress?.call(payload.length, payload.length);
     if (putFailures.isNotEmpty) {
       final error = putFailures.removeFirst();
-      onPutFailure?.call();
       throw error;
     }
     return Response<T>(requestOptions: RequestOptions(path: path));

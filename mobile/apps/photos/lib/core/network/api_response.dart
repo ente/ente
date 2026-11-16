@@ -9,10 +9,16 @@ class ApiResponseInterceptor extends Interceptor {
   final Uri _endpoint;
 
   @override
-  void onError(DioException error, ErrorInterceptorHandler handler) {
+  Future<void> onError(
+    DioException error,
+    ErrorInterceptorHandler handler,
+  ) async {
     if (!_isApiRequest(error.requestOptions)) {
       handler.next(error);
       return;
+    }
+    if (error.response?.statusCode == 429) {
+      await Future<void>.delayed(const Duration(seconds: 5));
     }
 
     final response = error.response;
