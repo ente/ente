@@ -26,19 +26,15 @@ const MAXIMUM_SCORED_PHOTOS: usize = 60;
 
 pub(super) struct Day<'p> {
     date: LocalDate,
+    part: usize,
     members: Vec<Located<'p>>,
 }
 
 impl Day<'_> {
     fn key(&self) -> String {
         let LocalDate { year, month, day } = self.date;
-        let first = self
-            .members
-            .iter()
-            .map(|member| (member.photo.creation_time, member.photo.id))
-            .min()
-            .map_or(0, |(_, id)| id);
-        Format::OneDay.key(format_args!("{year:04}-{month:02}-{day:02}:{first}"))
+        let part = self.part;
+        Format::OneDay.key(format_args!("{year:04}-{month:02}-{day:02}:{part}"))
     }
 
     fn hours(&self) -> usize {
@@ -101,9 +97,18 @@ pub(super) fn travel_days<'p>(trips: &TripAnalysis<'p>) -> Vec<Day<'p>> {
             }
         }
     }
+    let mut parts: BTreeMap<LocalDate, usize> = BTreeMap::new();
     let mut days: Vec<Day> = days
         .into_iter()
-        .map(|((_, date), members)| Day { date, members })
+        .map(|((_, date), members)| {
+            let part = parts.entry(date).or_default();
+            *part += 1;
+            Day {
+                date,
+                part: *part,
+                members,
+            }
+        })
         .filter(Day::is_eventful)
         .collect();
     days.sort_by_key(|day| (Reverse(day.score()), Reverse(day.date)));
@@ -330,8 +335,8 @@ mod tests {
         let lisbon: Vec<i64> = (1300..1310).collect();
 
         assert_eq!(told(&[]), HashSet::from([kyoto.clone(), lisbon.clone()]));
-        assert_eq!(told(&["one-day:2026-04-16:1200"]), HashSet::from([lisbon]));
-        assert_eq!(told(&["one-day:2026-04-16:1300"]), HashSet::from([kyoto]));
+        assert_eq!(told(&["one-day:2026-04-16:1"]), HashSet::from([lisbon]));
+        assert_eq!(told(&["one-day:2026-04-16:2"]), HashSet::from([kyoto]));
     }
 
     #[test]
@@ -428,7 +433,7 @@ mod tests {
         travel.extend(travel_day(2000, "2026-07-01", &FULL_DAY[1..], LISBON));
         let shown = |days_ago: i64| MemoriesRequest {
             shown_specials: vec![ShownSpecial {
-                key: "one-day:2025-04-16:1000".to_owned(),
+                key: "one-day:2025-04-16:1".to_owned(),
                 last_time_shown: micros(NOW) - days_ago * MICROS_PER_DAY,
             }],
             ..request(travel.clone())
@@ -453,6 +458,25 @@ mod tests {
             dates(&everything),
             [LocalDate::new(2025, 4, 16), LocalDate::new(2026, 7, 1)]
         );
+    }
+
+    #[test]
+    fn a_day_keeps_resting_when_its_first_photo_is_deleted() {
+        let travel = travel_day(1000, "2026-04-16", &FULL_DAY, KYOTO);
+        let shown_yesterday = |travel: &[MemoryFile]| MemoriesRequest {
+            shown_specials: vec![ShownSpecial {
+                key: "one-day:2026-04-16:1".to_owned(),
+                last_time_shown: micros(NOW) - MICROS_PER_DAY,
+            }],
+            ..request(travel.to_vec())
+        };
+
+        assert_eq!(
+            dates(&request(travel[1..].to_vec())),
+            [LocalDate::new(2026, 4, 16)]
+        );
+        assert_eq!(dates(&shown_yesterday(&travel)), []);
+        assert_eq!(dates(&shown_yesterday(&travel[1..])), []);
     }
 
     #[test]

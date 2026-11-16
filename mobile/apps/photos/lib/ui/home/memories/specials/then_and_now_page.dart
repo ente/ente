@@ -36,7 +36,7 @@ class ThenAndNowPage extends StatefulWidget {
 }
 
 class _ThenAndNowPageState extends State<ThenAndNowPage>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   static const _showDuration = Duration(seconds: 11);
   static const _fallbackAspectRatio = 3 / 4;
   static const _tallestAspectRatio = 0.68;
@@ -80,6 +80,7 @@ class _ThenAndNowPageState extends State<ThenAndNowPage>
   bool _hasCompared = false;
   bool _isHeld = false;
   bool _isRouteCurrent = true;
+  bool _isAppResumed = true;
   MemoryAudioScope? _memoryAudio;
   late final StreamSubscription<MemoriesChangedEvent> _memoriesChanged;
 
@@ -89,11 +90,17 @@ class _ThenAndNowPageState extends State<ThenAndNowPage>
   bool get _isReady => _nowSize != null && _isThenReady;
 
   bool get _isPlaying =>
-      widget.isActive && _isRouteCurrent && _isReady && !_isHeld;
+      widget.isActive &&
+      _isRouteCurrent &&
+      _isAppResumed &&
+      _isReady &&
+      !_isHeld;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _isAppResumed = _isResumed(WidgetsBinding.instance.lifecycleState);
     _reveal.addListener(() => _split.value = _revealedSplit.value);
     _reveal.addStatusListener((status) {
       if (status == AnimationStatus.completed && mounted) {
@@ -118,6 +125,16 @@ class _ThenAndNowPageState extends State<ThenAndNowPage>
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _isAppResumed = _isResumed(state);
+    _sync();
+  }
+
+  bool _isResumed(AppLifecycleState? state) {
+    return state == null || state == AppLifecycleState.resumed;
+  }
+
+  @override
   void didUpdateWidget(covariant ThenAndNowPage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.isActive == widget.isActive) return;
@@ -134,6 +151,7 @@ class _ThenAndNowPageState extends State<ThenAndNowPage>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _memoriesChanged.cancel();
     _reveal.dispose();
     _snap.dispose();
