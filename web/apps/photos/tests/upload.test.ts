@@ -35,6 +35,11 @@ const dateCases = [
 
 const epochMicrosecondCases = [
     ["20170923_220934000_iOS.jpg", "2017-09-23 22:09:34"],
+    ["IMG - 3613 2024-06-29.heic", "2024-06-29 00:00:00"],
+    ["IMG - 3613 2024.06.29.heic", "2024-06-29 00:00:00"],
+    ["IMG - 3613 2024-06-29 09:50:00.heic", "2024-06-29 09:50:00"],
+    ["IMG - 3613 (2) 2024-06-29_09-50-00.heic", "2024-06-29 09:50:00"],
+    ["20240631 IMG 3613 2024-06-29.heic", "2024-06-29 00:00:00"],
 ] as const;
 
 const unparseableDateFileNames = [
@@ -42,6 +47,19 @@ const unparseableDateFileNames = [
     "Snapchat-400000000.mp4",
     "Snapchat-900000000.mp4",
     "Snapchat-100-10-20-19-15-12",
+    "IMG - 3613.heic",
+    "IMG - 3613 2024-06-31.heic",
+    "IMG - 3613 12024-06-29.heic",
+    "IMG - 3613 20190101 and 2024-06-30.heic",
+    "IMG - 3613 2019_1_1 and 2024-06-30.heic",
+    "IMG - 3613 00002019_000001_01 and 2024-06-30.heic",
+] as const;
+
+const namesAfterSequenceNumbers = [
+    "2024-06-29 09:50:00+05:30.heic",
+    "2024-06-29T9:5:1.heic",
+    "2024-06-29 copy 01-02-03.heic",
+    "2024-06-29 and 2024-06-30.heic",
 ] as const;
 
 const metadataCases = [
@@ -141,7 +159,20 @@ describe("upload filename metadata", () => {
 
     test.each(unparseableDateFileNames)("does not parse %s", (fileName) => {
         expect(parseDateFromDigitGroups(fileName)).toBeUndefined();
+        expect(tryParseEpochMicrosecondsFromFileName(fileName)).toBeUndefined();
     });
+
+    test.each(namesAfterSequenceNumbers)(
+        "parses %s the same after a sequence number",
+        (fileName) => {
+            const epochMicroseconds =
+                tryParseEpochMicrosecondsFromFileName(fileName);
+            expect(epochMicroseconds).toBeDefined();
+            expect(
+                tryParseEpochMicrosecondsFromFileName(`IMG - 3613 ${fileName}`),
+            ).toBe(epochMicroseconds);
+        },
+    );
 
     test.each(metadataCases)("matches %s to %s", (fileName, jsonFileName) => {
         const metadata = { description: fileName };
