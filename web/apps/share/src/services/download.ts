@@ -55,7 +55,6 @@ const decryptFileStream = (
             async transform(chunk, controller) {
                 let offset = 0;
                 while (offset < chunk.length) {
-                    // Keep a full chunk buffered until more bytes arrive or the stream ends.
                     if (buffered === buffer.length) {
                         controller.enqueue(
                             await decryptStreamChunk(buffer, pullState, false),
