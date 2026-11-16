@@ -276,8 +276,14 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
       for (final file in _undecided)
         if (file.uploadedFileID != null) file.uploadedFileID!: file,
     };
+    final byLocalId = {
+      for (final file in _undecided)
+        if (file.localID != null) file.localID!: file,
+    };
     EnteFile? undecidedFile(EnteFile file) =>
-        byGeneratedId[file.generatedID] ?? byUploadedId[file.uploadedFileID];
+        byGeneratedId[file.generatedID] ??
+        byUploadedId[file.uploadedFileID] ??
+        (file.isUploaded ? null : byLocalId[file.localID]);
     final deck = {for (final file in _deck) ?undecidedFile(file)};
     _deck
       ..clear()
