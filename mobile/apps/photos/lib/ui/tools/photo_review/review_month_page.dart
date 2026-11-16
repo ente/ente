@@ -922,7 +922,9 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
             alignment: Alignment.bottomCenter,
             child: AnimatedSlide(
               offset: selectionMode ? Offset.zero : const Offset(0, 1),
-              duration: Motion.slow,
+              duration: MediaQuery.disableAnimationsOf(context)
+                  ? Duration.zero
+                  : Motion.slow,
               curve: Curves.easeOutCubic,
               child: IgnorePointer(
                 ignoring: !selectionMode,
