@@ -529,7 +529,7 @@ class _PlatePainter extends CustomPainter {
         ..strokeJoin = StrokeJoin.round,
     );
     for (final screw in const [Offset(17, 37), Offset(297, 37)]) {
-      canvas.drawCircle(screw, 4.25, Paint()..color = const Color(0xFFFFCA39));
+      canvas.drawCircle(screw, 4.25, Paint()..color = _FramePainter._gold);
       canvas.drawCircle(
         screw,
         4.25,

@@ -15,6 +15,7 @@ class RewindRituals {
     required this.busiestMonth,
     required this.continued,
     required this.built,
+    required this.started,
     required this.icons,
   });
 
@@ -23,6 +24,7 @@ class RewindRituals {
   final int busiestMonth;
   final int continued;
   final int built;
+  final int started;
   final List<String> icons;
 
   static RewindRituals? current() {
@@ -90,6 +92,9 @@ class RewindRituals {
       busiestMonth: busiest + 1,
       continued: continued,
       built: checkInsByRitual.length,
+      started: checkInsByRitual.keys
+          .where((ritual) => ritual.createdAt.year == year)
+          .length,
       icons: {
         for (final entry in ranked)
           if (entry.key.icon.trim().isNotEmpty) entry.key.icon.trim(),
@@ -105,6 +110,7 @@ class RewindRituals {
       other.busiestMonth == busiestMonth &&
       other.continued == continued &&
       other.built == built &&
+      other.started == started &&
       listEquals(other.icons, icons);
 
   @override
@@ -114,6 +120,7 @@ class RewindRituals {
     busiestMonth,
     continued,
     built,
+    started,
     Object.hashAll(icons),
   );
 }

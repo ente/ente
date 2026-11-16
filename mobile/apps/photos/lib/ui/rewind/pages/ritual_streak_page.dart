@@ -125,27 +125,26 @@ class RitualStreakPage extends RewindPage {
                     ),
                   ),
                   for (final (i, spot) in _stickerSpots.indexed)
-                    if (i < icons.length)
-                      Positioned.fromRect(
-                        rect: Rect.fromCenter(
-                          center: spot.center,
-                          width: spot.size,
-                          height: spot.size,
-                        ),
-                        child: RewindLeave(
-                          position: position,
-                          centerY: spot.center.dy,
-                          child: RewindEntrance(
-                            preset: RewindPreset.pop,
-                            active: isActive,
-                            delayMs: spot.delayMs,
-                            child: Transform.rotate(
-                              angle: spot.turn * pi / 180,
-                              child: _EmojiSticker(icons[i], size: spot.size),
-                            ),
+                    Positioned.fromRect(
+                      rect: Rect.fromCenter(
+                        center: spot.center,
+                        width: spot.size,
+                        height: spot.size,
+                      ),
+                      child: RewindLeave(
+                        position: position,
+                        centerY: spot.center.dy,
+                        child: RewindEntrance(
+                          preset: RewindPreset.pop,
+                          active: isActive,
+                          delayMs: spot.delayMs,
+                          child: Transform.rotate(
+                            angle: spot.turn * pi / 180,
+                            child: _EmojiSticker(icons[i], size: spot.size),
                           ),
                         ),
                       ),
+                    ),
                   RewindRevealLayer(
                     left: 24,
                     top: 166,

@@ -383,7 +383,7 @@ RewindChapter ritualStreakChapter(RewindRituals? rituals) => RewindChapter(
   [ritualStreakSetupKey, RitualStreakPage.pageKey],
   (_) async => [
     if (rituals != null) ...[
-      ritualStreakSetupPage(rituals: rituals.built),
+      ritualStreakSetupPage(rituals),
       RitualStreakPage(rituals),
     ],
   ],

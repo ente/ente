@@ -1,6 +1,7 @@
 import "package:flutter/painting.dart";
 import "package:photos/ui/rewind/pages/setup_page.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
+import "package:photos/ui/rewind/story/rewind_rituals.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
@@ -202,14 +203,18 @@ const ritualSetupPage = SetupPage(
   ),
 );
 
-SetupPage ritualStreakSetupPage({required int rituals}) => SetupPage(
+SetupPage ritualStreakSetupPage(RewindRituals rituals) => SetupPage(
   key: ritualStreakSetupKey,
   color: const Color(0xFFE86436),
   pattern: const Color(0xFFF0713F),
   ink: RewindColors.cream,
   headlines: [
     SetupHeadline(
-      rituals == 1 ? "YOU BUILT\nA NEW\nRITUAL." : "YOU BUILT\nRITUALS.",
+      switch ((rituals.built, rituals.started)) {
+        (1, 1) => "YOU BUILT\nA NEW\nRITUAL.",
+        (1, _) => "YOU BUILT\nA HABIT.",
+        _ => "YOU BUILT\nRITUALS.",
+      },
       at: const Offset(24, 140),
       size: 66,
     ),

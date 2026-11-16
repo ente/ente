@@ -166,6 +166,10 @@ class RewindService {
     try {
       final story = await RewindStory.prepare(status.report);
       if (!identical(_state.value, state)) return;
+      if (story.rituals != RewindRituals.current()) {
+        unawaited(_rebuildStory());
+        return;
+      }
       _setStory(story, state.computedAt);
       story.preloadFrom(
         story.resumeIndex(_progress.completed ? null : _progress.resumePage),
