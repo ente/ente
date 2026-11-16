@@ -551,8 +551,6 @@ By default, shared items can appear in your home gallery.
 
 To hide them, open `Settings > Appearance > Gallery` and enable **Hide shared items from home gallery**.
 
-On mobile, you can also tap the three dots next to the date heading at the top of your home gallery and turn on **Hide shared items from home gallery** there.
-
 You can also toggle this from the gallery's Layout menu: tap the three-dot icon next to any date heading, then switch on **Hide shared items from home gallery**.
 
 ![Three-dot icon next to a gallery date heading and Hide shared items from home gallery highlighted in the Layout menu on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-gallery-layout-shared-callout.png){width=560px}
