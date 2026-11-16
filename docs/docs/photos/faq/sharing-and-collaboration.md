@@ -551,6 +551,8 @@ By default, shared items can appear in your home gallery.
 
 To hide them, open `Settings > Appearance > Gallery` and enable **Hide shared items from home gallery**.
 
+On mobile, you can also tap the three dots next to the date heading at the top of your home gallery and turn on **Hide shared items from home gallery** there.
+
 ### Can I remove myself from a shared album? {#leave-shared-album}
 
 Yes, if someone has shared an album with you, you can leave it at any time:

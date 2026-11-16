@@ -103,6 +103,7 @@ Jump to a category:
 - [Do archived photos appear in search results?](/photos/faq/albums-and-organization#archive-search)
 - [How do I hide photos in Ente?](/photos/faq/albums-and-organization#how-to-hide)
 - [How do I archive photos in Ente?](/photos/faq/albums-and-organization#how-to-archive)
+- [How do I unarchive photos or albums?](/photos/faq/albums-and-organization#how-to-unarchive)
 - [Can I hide an album's photos from my timeline?](/photos/faq/albums-and-organization#album-off-timeline)
 
 ### Storage Management
@@ -301,6 +302,7 @@ Jump to a category:
 - [Why is face recognition faster on desktop?](/photos/faq/search-and-discovery#face-recognition-speed)
 - [Can I name the recognized persons?](/photos/faq/search-and-discovery#name-persons)
 - [Why does Machine Learning stay just below 100%?](/photos/faq/search-and-discovery#ml-stuck-below-100)
+- [Why does Machine Learning say processing is paused?](/photos/faq/search-and-discovery#ml-indexing-paused)
 - [Why does my desktop app show different unnamed people than my phone?](/photos/faq/search-and-discovery#unnamed-people-differ)
 
 ### Magic Search
@@ -379,6 +381,7 @@ Jump to a category:
 ### Understanding Storage
 
 - [Why does Ente consume less storage than other providers?](/photos/faq/storage-and-plans#less-storage-usage)
+- [Why does Ente show more storage used than my original files?](/photos/faq/storage-and-plans#storage-includes-thumbnails)
 - [How does Ente deduplicate photos?](/photos/faq/storage-and-plans#deduplication)
 - [Does Ente deduplicate across different albums?](/photos/faq/storage-and-plans#dedup-albums)
 - [How can I optimize my storage usage?](/photos/faq/storage-and-plans#optimize-storage)
