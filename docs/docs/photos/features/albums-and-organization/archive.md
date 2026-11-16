@@ -25,10 +25,11 @@ You can remove a photo (owned by you) or an album from your **home timeline** by
 
 ### Archive Photo
 
-- Long press to select the photo
-- Select **Archive** from the bottom menu
+- Long press to select the photos
+- Pull up the selection menu
+- Tap **Archive**
 
-![Archive action highlighted in the bottom bar on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-photo-archive-action-callout.png){width=320px}
+![Mobile: one photo selected with the selection menu pull-up handle highlighted, then Archive highlighted in the pulled-up menu on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-photo-archive-menu-steps.png){width=560px}
 
 ### View Archived Photos and Albums
 

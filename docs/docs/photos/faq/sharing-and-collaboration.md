@@ -551,6 +551,10 @@ By default, shared items can appear in your home gallery.
 
 To hide them, open `Settings > Appearance > Gallery` and enable **Hide shared items from home gallery**.
 
+You can also toggle this from the gallery's Layout menu: tap the three-dot icon next to any date heading, then switch on **Hide shared items from home gallery**.
+
+![Three-dot icon next to a gallery date heading and Hide shared items from home gallery highlighted in the Layout menu on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-gallery-layout-shared-callout.png){width=560px}
+
 ### Can I remove myself from a shared album? {#leave-shared-album}
 
 Yes, if someone has shared an album with you, you can leave it at any time:
