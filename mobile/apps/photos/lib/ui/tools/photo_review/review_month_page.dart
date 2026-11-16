@@ -15,16 +15,25 @@ import "package:photos/core/event_bus.dart";
 import "package:photos/events/files_updated_event.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/photo_review/photo_review_models.dart";
+import "package:photos/models/selected_files.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/favorites_service.dart";
 import "package:photos/services/photo_review/photo_review_service.dart";
+import "package:photos/ui/common/touch_cross_detector.dart";
+import "package:photos/ui/components/bottom_action_bar/selection_action_sheet.dart";
+import "package:photos/ui/tools/photo_review/widgets/review_grid_tile.dart";
+import "package:photos/ui/tools/photo_review/widgets/review_selection_bar.dart";
 import "package:photos/ui/tools/photo_review/widgets/review_swipe_stack.dart";
 import "package:photos/ui/viewer/file/detail_page.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
+import "package:photos/ui/viewer/gallery/component/swipe_selectable_file_widget.dart";
+import "package:photos/ui/viewer/gallery/state/gallery_boundaries_provider.dart";
+import "package:photos/ui/viewer/gallery/swipe_selection_wrapper.dart";
+import "package:photos/ui/viewer/gallery/swipe_to_select_helper.dart";
 import "package:photos/utils/delete_file_util.dart";
 import "package:photos/utils/dialog_util.dart";
 
-enum _ReviewMonthView { swipe, queue, done }
+enum _ReviewMonthView { grid, swipe, queue, done }
 
 class ReviewMonthPage extends StatefulWidget {
   const ReviewMonthPage({
@@ -51,6 +60,8 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
   static const _actionButtonSpacing = 40.0;
   static const _bottomActionInset = 25.0;
   static const _queueTileExtent = 120.0;
+  static const _gridTileExtent = 100.0;
+  static const _gridSpacing = 2.0;
 
   final _service = PhotoReviewService.instance;
   final _stackController = ReviewSwipeStackController();
@@ -64,6 +75,20 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
   List<EnteFile> _files = [];
   final Map<String, ReviewDecision> _decisions = {};
   final List<EnteFile> _undecided = [];
+  final List<EnteFile> _deck = [];
+  EnteFile? _deckAnchor;
+  final _selection = SelectedFiles();
+  late final _swipeHelper = SwipeToSelectHelper(
+    allFiles: _undecided,
+    selectedFiles: _selection,
+  );
+  final _swipeActiveNotifier = ValueNotifier<bool>(false);
+  bool? _reloadAfterSwipe;
+  int? _gridPointer;
+  final _gridScrollController = ScrollController();
+  final _boundariesKey = GlobalKey<GalleryBoundariesProviderState>();
+  final _selectionBarKey = GlobalKey();
+  double _selectionBarHeight = 0;
   final List<(EnteFile, ReviewSwipeDirection)> _history = [];
   ReviewMonthRecord? _record;
   late Future<void> _lastWrite;
@@ -77,7 +102,8 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
   bool _leaving = false;
   bool _reviewChanged = false;
   bool _reportingWriteFailure = false;
-  _ReviewMonthView _view = _ReviewMonthView.swipe;
+  _ReviewMonthView _view = _ReviewMonthView.grid;
+  _ReviewMonthView _queueOrigin = _ReviewMonthView.grid;
 
   @override
   void initState() {
@@ -87,6 +113,8 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
     _filesSubscription = Bus.instance.on<FilesUpdatedEvent>().listen(
       _onFilesUpdated,
     );
+    _selection.addListener(_onSelectionChanged);
+    _swipeActiveNotifier.addListener(_onSwipeActiveChanged);
     unawaited(_load());
   }
 
@@ -94,6 +122,14 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
   void dispose() {
     _filesSubscription.cancel();
     _reloadDebouncer.cancelDebounceTimer();
+    _swipeHelper.dispose();
+    _selection
+      ..removeListener(_onSelectionChanged)
+      ..dispose();
+    _swipeActiveNotifier
+      ..removeListener(_onSwipeActiveChanged)
+      ..dispose();
+    _gridScrollController.dispose();
     super.dispose();
   }
 
@@ -157,6 +193,10 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
         data = await _service.loadMonth(widget.monthKey);
       } while (!identical(settled, _lastWrite));
       if (!mounted || generation != _loadGeneration) return;
+      if (_swipeActiveNotifier.value) {
+        _reloadAfterSwipe = resetView || (_reloadAfterSwipe ?? false);
+        return;
+      }
       setState(() {
         _files = data.files;
         _decisions
@@ -167,6 +207,7 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
         _loadedFilesRevision = filesRevision;
         _loaded = true;
         _rebuildReviewState();
+        _extendDeck();
         _history
           ..clear()
           ..addAll([
@@ -180,9 +221,11 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
           ]);
         if (resetView ||
             _view == _ReviewMonthView.done ||
+            (_view == _ReviewMonthView.grid && !_canSwipe) ||
             (_view == _ReviewMonthView.queue && _queuedCount == 0) ||
-            (_view == _ReviewMonthView.swipe && !_canSwipe)) {
-          _view = _resolveView();
+            (_view == _ReviewMonthView.swipe &&
+                (_deck.isEmpty || !_canSwipe))) {
+          _settleView();
         }
       });
     } catch (e, s) {
@@ -192,6 +235,13 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
       if (!mounted || generation != _loadGeneration) return;
       Navigator.of(context).pop();
     }
+  }
+
+  void _onSwipeActiveChanged() {
+    final resetView = _reloadAfterSwipe;
+    if (_swipeActiveNotifier.value || resetView == null) return;
+    _reloadAfterSwipe = null;
+    unawaited(_load(resetView: resetView));
   }
 
   void _onFilesUpdated(FilesUpdatedEvent event) {
@@ -218,6 +268,25 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
         _queuedCount++;
       }
     }
+    final byGeneratedId = {
+      for (final file in _undecided)
+        if (file.generatedID != null) file.generatedID!: file,
+    };
+    final byUploadedId = {
+      for (final file in _undecided)
+        if (file.uploadedFileID != null) file.uploadedFileID!: file,
+    };
+    EnteFile? undecidedFile(EnteFile file) =>
+        byGeneratedId[file.generatedID] ?? byUploadedId[file.uploadedFileID];
+    final deck = {for (final file in _deck) ?undecidedFile(file)};
+    _deck
+      ..clear()
+      ..addAll(deck);
+    if (_selection.files.isNotEmpty) {
+      _selection.replaceSelection({
+        for (final file in _selection.files) ?undecidedFile(file),
+      });
+    }
   }
 
   void _setDecision(EnteFile file, ReviewDecision? decision) {
@@ -231,13 +300,57 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
     }
   }
 
+  void _extendDeck() {
+    final anchor = _deckAnchor;
+    if (_deck.isEmpty || anchor == null) return;
+    final loaded = _loadedFile(anchor);
+    if (loaded != null) _deckAnchor = loaded;
+    final anchorTime = anchor.creationTime;
+    final start = loaded != null
+        ? _files.indexOf(loaded)
+        : anchorTime == null
+        ? -1
+        : _files.indexWhere((file) => (file.creationTime ?? 0) <= anchorTime);
+    if (start < 0) return;
+    final undecided = _undecided.toSet();
+    final deck = _deck.toSet();
+    for (final file in _files.skip(start)) {
+      if (undecided.contains(file) && deck.add(file)) _deck.add(file);
+    }
+  }
+
   bool get _canSwipe =>
       _undecided.isNotEmpty && !(_record?.markedReviewed ?? false);
 
   _ReviewMonthView _resolveView() {
-    if (_canSwipe) return _ReviewMonthView.swipe;
+    if (_canSwipe) return _ReviewMonthView.grid;
     if (_queuedCount > 0) return _ReviewMonthView.queue;
     return _ReviewMonthView.done;
+  }
+
+  void _settleView() {
+    final inDeck =
+        _view == _ReviewMonthView.swipe ||
+        (_view == _ReviewMonthView.queue &&
+            _queueOrigin == _ReviewMonthView.swipe);
+    if (inDeck && _deck.isNotEmpty && _canSwipe) {
+      _view = _ReviewMonthView.swipe;
+      return;
+    }
+    _deck.clear();
+    _deckAnchor = null;
+    _queueOrigin = _ReviewMonthView.grid;
+    _view = _resolveView();
+  }
+
+  void _showGrid() {
+    if (_stackController.isSwipingOut) return;
+    setState(() {
+      _deck.clear();
+      _deckAnchor = null;
+      _queueOrigin = _ReviewMonthView.grid;
+      _view = _ReviewMonthView.grid;
+    });
   }
 
   Iterable<EnteFile> get _queued => _files.where(
@@ -246,6 +359,90 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
   );
 
   int get _decidedCount => _files.length - _undecided.length;
+
+  List<EnteFile> get _selectedFiles =>
+      _undecided.where(_selection.files.contains).toList();
+
+  VoidCallback? get _backAction => switch (_view) {
+    _ReviewMonthView.grid when _selection.files.isNotEmpty => _clearSelection,
+    _ReviewMonthView.swipe when _canSwipe => _showGrid,
+    _ReviewMonthView.queue
+        when _queueOrigin == _ReviewMonthView.swipe && _deck.isNotEmpty =>
+      () => setState(() => _view = _ReviewMonthView.swipe),
+    _ReviewMonthView.queue when _canSwipe => _showGrid,
+    _ => null,
+  };
+
+  void _onBack() {
+    final backAction = _backAction;
+    if (backAction == null) {
+      unawaited(Navigator.of(context).maybePop());
+    } else {
+      backAction();
+    }
+  }
+
+  void _openDeck(EnteFile file) {
+    final index = _undecided.indexOf(file);
+    if (index < 0) return;
+    setState(() {
+      _deckAnchor = file;
+      _deck
+        ..clear()
+        ..addAll(_undecided.skip(index));
+      _view = _ReviewMonthView.swipe;
+    });
+  }
+
+  void _openQueue() {
+    if (_stackController.isSwipingOut) return;
+    setState(() {
+      _queueOrigin = _view;
+      _selection.clearAll(fireEvent: false);
+      _view = _ReviewMonthView.queue;
+    });
+  }
+
+  void _onSelectionChanged() {
+    if (mounted) setState(() {});
+  }
+
+  void _toggleSelection(EnteFile file) {
+    unawaited(HapticFeedback.selectionClick());
+    _selection.toggleSelection(file);
+  }
+
+  void _startSwipeSelection(EnteFile file) {
+    final pointer = _gridPointer;
+    if (pointer == null || !TouchCrossDetector.isPointerActive(pointer)) {
+      _toggleSelection(file);
+      return;
+    }
+    _swipeHelper.startSelection(file);
+    _swipeActiveNotifier.value = true;
+  }
+
+  void _clearSelection() => _selection.clearAll(fireEvent: false);
+
+  void _keepSelected() {
+    final files = _selectedFiles;
+    if (files.isEmpty) return;
+    unawaited(HapticFeedback.lightImpact());
+    setState(() {
+      for (final file in files) {
+        _setDecision(file, ReviewDecision.keep);
+        _history.add((file, ReviewSwipeDirection.right));
+      }
+      _selection.clearAll(fireEvent: false);
+      _rebuildReviewState();
+      if (!_canSwipe) _settleView();
+    });
+    _write(
+      "keep selected files",
+      () =>
+          _service.recordDecisions(files, widget.monthKey, ReviewDecision.keep),
+    );
+  }
 
   Future<void> _onSwiped(
     EnteFile swiped,
@@ -256,12 +453,14 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
     setState(() {
       _setDecision(file, direction.decision);
       _undecided.remove(file);
+      _deck.remove(file);
       _history.add((file, direction));
-      if (!_canSwipe) _view = _resolveView();
+      if (_deck.isEmpty) _settleView();
     });
     _write(
       "record decision",
-      () => _service.recordDecision(file, widget.monthKey, direction.decision),
+      () =>
+          _service.recordDecisions([file], widget.monthKey, direction.decision),
     );
   }
 
@@ -276,7 +475,8 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
     unawaited(HapticFeedback.lightImpact());
     setState(() {
       _setDecision(file, null);
-      _undecided.insert(0, file);
+      _rebuildReviewState();
+      _deck.insert(0, file);
       _view = _ReviewMonthView.swipe;
     });
     _stackController.revealFromSide(direction);
@@ -292,10 +492,11 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
     final unmark = record != null && record.markedReviewed;
     setState(() {
       _setDecision(file, null);
-      _undecided.insert(0, file);
+      _rebuildReviewState();
+      if (_queueOrigin == _ReviewMonthView.swipe) _deck.insert(0, file);
       _history.removeWhere((entry) => entry.$1 == file);
       if (unmark) _record = record.copyWith(markedReviewed: false);
-      if (_queuedCount == 0) _view = _resolveView();
+      if (_queuedCount == 0) _settleView();
     });
     _write(
       "return queued file to the deck",
@@ -325,8 +526,7 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
     );
   }
 
-  Future<void> _freeUpSpace() async {
-    final queued = _queued.toList();
+  Future<void> _deleteFiles(List<EnteFile> queued) async {
     if (queued.isEmpty || _deleting) return;
     final hasLocal = queued.any((file) => file.localID != null);
     final hasRemote =
@@ -389,7 +589,9 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
     } finally {
       _deleting = false;
     }
-    if (mounted) await _load(resetView: didDeleteFiles);
+    if (!mounted) return;
+    if (didDeleteFiles) _selection.clearAll(fireEvent: false);
+    await _load(resetView: didDeleteFiles);
   }
 
   Future<void> _reviewNextMonth() async {
@@ -425,19 +627,20 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
     final colors = context.componentColors;
     final locale = Localizations.localeOf(context).toString();
     final title = DateFormat.yMMMM(locale).format(widget.monthKey.start);
-    final canReturnToSwipe = _view == _ReviewMonthView.queue && _canSwipe;
+    final backAction = _backAction;
     return PopScope(
-      canPop: !canReturnToSwipe,
+      canPop: Platform.isIOS || backAction == null,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) {
           _publishReviewChanged();
         } else {
-          setState(() => _view = _ReviewMonthView.swipe);
+          _backAction?.call();
         }
       },
       child: Scaffold(
         backgroundColor: colors.backgroundBase,
         body: switch (_view) {
+          _ReviewMonthView.grid => _buildGridView(context, title),
           _ReviewMonthView.swipe => _buildSwipeView(context, title),
           _ReviewMonthView.queue => _buildQueueView(context, title),
           _ReviewMonthView.done => _buildDoneView(context, title),
@@ -449,7 +652,6 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
   Widget _buildSwipeView(BuildContext context, String title) {
     final colors = context.componentColors;
     final l10n = context.strings;
-    final queuedCount = _queuedCount;
     final padding = MediaQuery.paddingOf(context);
     final landscape =
         MediaQuery.orientationOf(context) == Orientation.landscape;
@@ -508,10 +710,10 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
         const SizedBox(height: 9),
         Expanded(
           child: ReviewSwipeStack(
-            files: _undecided,
+            files: _deck,
             controller: _stackController,
             onSwiped: _onSwiped,
-            onCardTap: (file) => _openViewer(_undecided, file),
+            onCardTap: (file) => _openViewer(_deck, file),
             isFavorite: (file) =>
                 FavoritesService.instance.isFavoriteCache(file),
           ),
@@ -569,35 +771,205 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
     }
     return AppBarComponent(
       title: title,
+      onBack: _onBack,
       physics: const NeverScrollableScrollPhysics(),
-      actions: [
-        Stack(
-          clipBehavior: Clip.none,
-          children: [
-            IconButtonComponent(
-              variant: IconButtonComponentVariant.primary,
-              tooltip: l10n.itemsQueuedForDeletion,
-              shouldSurfaceExecutionStates: false,
-              icon: const HugeIcon(icon: HugeIcons.strokeRoundedDelete01),
-              onTap: queuedCount == 0
-                  ? null
-                  : () => setState(() => _view = _ReviewMonthView.queue),
-            ),
-            if (queuedCount > 0)
-              Positioned(
-                top: -5,
-                right: -5,
-                child: _QueueBadge(count: queuedCount),
-              ),
-          ],
+      actions: [_buildQueueAction(context)],
+      slivers: [SliverFillRemaining(child: body)],
+    );
+  }
+
+  Widget _buildQueueAction(BuildContext context) {
+    final queuedCount = _queuedCount;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        IconButtonComponent(
+          variant: IconButtonComponentVariant.primary,
+          tooltip: context.strings.itemsQueuedForDeletion,
+          shouldSurfaceExecutionStates: false,
+          icon: const HugeIcon(icon: HugeIcons.strokeRoundedDelete01),
+          onTap: queuedCount == 0 ? null : _openQueue,
         ),
-      ],
-      slivers: [
-        SliverFillRemaining(
-          child: !_loaded ? const Center(child: LoadingComponent()) : body,
-        ),
+        if (queuedCount > 0)
+          Positioned(
+            top: -5,
+            right: -5,
+            child: _QueueBadge(count: queuedCount),
+          ),
       ],
     );
+  }
+
+  Widget _buildGridView(BuildContext context, String title) {
+    final colors = context.componentColors;
+    final l10n = context.strings;
+    final files = _undecided;
+    final selectionMode = _selection.files.isNotEmpty;
+    final allSelected =
+        selectionMode && _selection.files.length == files.length;
+    final progressHeight =
+        Spacing.sm + _ProgressHeader.heightOf(context) + Spacing.xxl;
+    final topBoundary = SliverAppBarComponent.resolveGeometry(
+      context,
+      bottomHeight: _loaded ? progressHeight : 0,
+    ).minExtent;
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _measureSelectionBar();
+      final boundaries = _boundariesKey.currentState;
+      if (!mounted || boundaries == null) return;
+      boundaries
+        ..setScrollController(
+          _gridScrollController,
+          swipeActiveNotifier: _swipeActiveNotifier,
+        )
+        ..setTopBoundary(topBoundary)
+        ..setBottomBoundary(screenHeight - _selectionBarHeight);
+    });
+    return GalleryBoundariesProvider(
+      key: _boundariesKey,
+      child: Stack(
+        children: [
+          SwipeSelectionWrapper(
+            isEnabled: _loaded,
+            swipeHelper: _swipeHelper,
+            selectedFiles: _selection,
+            swipeActiveNotifier: _swipeActiveNotifier,
+            scrollController: _gridScrollController,
+            child: Listener(
+              onPointerDown: (event) => _gridPointer = event.pointer,
+              child: ValueListenableBuilder<bool>(
+                valueListenable: _swipeActiveNotifier,
+                builder: (context, isSwipeActive, _) => AppBarComponent(
+                  key: const PageStorageKey("review_month_grid"),
+                  controller: _gridScrollController,
+                  onBack: _onBack,
+                  physics: isSwipeActive
+                      ? const NeverScrollableScrollPhysics()
+                      : null,
+                  title: title,
+                  actions: [_buildQueueAction(context)],
+                  bottom: _loaded
+                      ? PreferredSize(
+                          preferredSize: Size.fromHeight(progressHeight),
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(
+                              Spacing.lg,
+                              Spacing.sm,
+                              Spacing.lg,
+                              Spacing.xxl,
+                            ),
+                            child: _ProgressHeader(
+                              reviewed: _decidedCount,
+                              total: _files.length,
+                            ),
+                          ),
+                        )
+                      : null,
+                  slivers: [
+                    if (!_loaded)
+                      const SliverFillRemaining(
+                        child: Center(child: LoadingComponent()),
+                      )
+                    else
+                      SliverSafeArea(
+                        top: false,
+                        bottom: false,
+                        sliver: SliverPadding(
+                          padding: EdgeInsets.only(
+                            bottom: selectionMode
+                                ? _selectionBarHeight
+                                : MediaQuery.paddingOf(context).bottom,
+                          ),
+                          sliver: SliverGrid(
+                            gridDelegate:
+                                const SliverGridDelegateWithMaxCrossAxisExtent(
+                                  maxCrossAxisExtent: _gridTileExtent,
+                                  mainAxisSpacing: _gridSpacing,
+                                  crossAxisSpacing: _gridSpacing,
+                                ),
+                            delegate: SliverChildBuilderDelegate((
+                              context,
+                              index,
+                            ) {
+                              final file = files[index];
+                              return SwipeSelectableFileWidget(
+                                key: ValueKey(PhotoReviewService.fileKey(file)),
+                                file: file,
+                                selectedFiles: _selection,
+                                child: ReviewGridTile(
+                                  file: file,
+                                  selected: _selection.files.contains(file),
+                                  onTap: selectionMode
+                                      ? () => _toggleSelection(file)
+                                      : () => _openDeck(file),
+                                  onLongPress: () => _startSwipeSelection(file),
+                                ),
+                              );
+                            }, childCount: files.length),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: AnimatedSlide(
+              offset: selectionMode ? Offset.zero : const Offset(0, 1),
+              duration: Motion.slow,
+              curve: Curves.easeOutCubic,
+              child: IgnorePointer(
+                ignoring: !selectionMode,
+                child: ReviewSelectionBar(
+                  key: _selectionBarKey,
+                  selectedCount: _selection.files.length,
+                  allSelected: allSelected,
+                  onSelectAll: () {
+                    unawaited(HapticFeedback.selectionClick());
+                    if (allSelected) {
+                      _clearSelection();
+                    } else {
+                      _selection.selectAll(files.toSet());
+                    }
+                  },
+                  onClear: _clearSelection,
+                  actions: [
+                    SelectionSheetAction(
+                      labelText: l10n.delete,
+                      hugeIcon: HugeIcons.strokeRoundedDelete01,
+                      isCritical: true,
+                      onTap: () => _deleteFiles(_selectedFiles),
+                    ),
+                    SelectionSheetAction(
+                      labelText: l10n.keep,
+                      iconWidget: HugeIcon(
+                        icon: HugeIcons.strokeRoundedCheckmarkCircle02,
+                        size: 22,
+                        strokeWidth: 1.5 * 24 / 22,
+                        color: colors.primary,
+                      ),
+                      onTap: _keepSelected,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _measureSelectionBar() {
+    final box =
+        _selectionBarKey.currentContext?.findRenderObject() as RenderBox?;
+    final height = box?.size.height ?? 0;
+    if (mounted && height != _selectionBarHeight) {
+      setState(() => _selectionBarHeight = height);
+    }
   }
 
   Widget _buildQueueView(BuildContext context, String title) {
@@ -610,9 +982,7 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
           child: AppBarComponent(
             title: title,
             subtitle: l10n.itemsQueuedForDeletion,
-            onBack: _canSwipe
-                ? () => setState(() => _view = _ReviewMonthView.swipe)
-                : null,
+            onBack: _onBack,
             slivers: [
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(
@@ -655,7 +1025,7 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
                 label: l10n.freeUpSpace,
                 shouldSurfaceExecutionStates: false,
                 isDisabled: queued.isEmpty,
-                onTap: _freeUpSpace,
+                onTap: () => _deleteFiles(_queued.toList()),
               ),
             ),
           ),
@@ -721,8 +1091,18 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
 class _ProgressHeader extends StatelessWidget {
   const _ProgressHeader({required this.reviewed, required this.total});
 
+  static const _barHeight = 4.0;
+  static const _gap = 6.0;
+  static const _lineHeight = 13.0;
+
   final int reviewed;
   final int total;
+
+  static double heightOf(BuildContext context) {
+    final fontSize = TextStyles.tiny.fontSize!;
+    final scaledFontSize = MediaQuery.textScalerOf(context).scale(fontSize);
+    return _barHeight + _gap + scaledFontSize * _lineHeight / fontSize;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -734,16 +1114,16 @@ class _ProgressHeader extends StatelessWidget {
           borderRadius: BorderRadius.circular(2),
           child: LinearProgressIndicator(
             value: total == 0 ? 0 : reviewed / total,
-            minHeight: 4,
+            minHeight: _barHeight,
             backgroundColor: colors.fillDark,
             valueColor: AlwaysStoppedAnimation(colors.primary),
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: _gap),
         Text(
           context.strings.reviewProgressCount(reviewed: reviewed, total: total),
           style: TextStyles.tiny.copyWith(
-            height: 13 / 10,
+            height: _lineHeight / TextStyles.tiny.fontSize!,
             color: colors.textLight,
           ),
         ),

@@ -125,14 +125,14 @@ class PhotoReviewService {
     }).months.firstOrNull;
   }
 
-  Future<void> recordDecision(
-    EnteFile file,
+  Future<void> recordDecisions(
+    Iterable<EnteFile> files,
     ReviewMonthKey month,
     ReviewDecision decision,
   ) async {
     final now = _now();
     await _db.saveDecisions(
-      [_recordFor(file, month, decision, now)],
+      [for (final file in files) _recordFor(file, month, decision, now)],
       month.key,
       now,
     );
