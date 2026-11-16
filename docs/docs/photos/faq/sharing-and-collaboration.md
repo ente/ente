@@ -677,12 +677,7 @@ In case of sharable links, the key to decrypt the album is appended by the clien
 
 ### Can Ente see my shared photos? {#ente-see-shared}
 
-No. Ente has no information about:
-
-- Whether you have shared an album
-- What photos are in shared albums
-- Who you've shared with
-- What's in public links
+No. When you share an album with another Ente account, Ente records which album you shared and who has access.
 
 All sharing happens with end-to-end encryption. Only people you share with (or who have the link) can decrypt and view the content.
 
