@@ -3,6 +3,7 @@ import "package:ente_pure_utils/ente_pure_utils.dart";
 final _filenameDate = RegExp(r'^[^\d]*(\d{4})([-.]?)(\d{2})\2(\d{2})(?!\d)');
 final _embeddedFilenameDate = RegExp(r'(?<!\d)\d{4}([-.])\d{2}\1\d{2}(?!\d)');
 final _compactFilenameDate = RegExp(r'(?<!\d)\d{8}(?!\d)');
+final _filenameDigits = RegExp(r'\d+');
 final _filenameTime = RegExp(
   r'[ T_-](\d{2})([-.:]?)(\d{2})\2(\d{2})'
   r'(?:[.,](\d{1,6})(?!\d))?'
@@ -30,6 +31,10 @@ DateTime? parseDateTimeFromFileName(
 
   final matches = _embeddedFilenameDate.allMatches(fileName).toList();
   if (matches.length != 1) return null;
+  final date = matches.single;
+  if (!_filenameDigits.hasMatch(fileName.substring(0, date.start))) {
+    return null;
+  }
   final hasCompactDate = _compactFilenameDate
       .allMatches(fileName)
       .any(
@@ -42,7 +47,6 @@ DateTime? parseDateTimeFromFileName(
             null,
       );
   if (hasCompactDate) return null;
-  final date = matches.single;
   final time = _filenameTime.matchAsPrefix(fileName, date.end);
   var timestampEnd = time?.end ?? date.end;
   if (time != null &&
@@ -52,7 +56,7 @@ DateTime? parseDateTimeFromFileName(
         _filenameCompactOffset.matchAsPrefix(fileName, timestampEnd)?.end ??
         timestampEnd;
   }
-  final digitGroups = RegExp(r'\d+').allMatches(fileName).toList();
+  final digitGroups = _filenameDigits.allMatches(fileName).toList();
   for (var i = 0; i + 2 < digitGroups.length; i++) {
     if (digitGroups[i].start < timestampEnd &&
         digitGroups[i + 2].end > date.start) {
@@ -69,9 +73,6 @@ DateTime? parseDateTimeFromFileName(
         isValidGregorianDate(day: day, month: month, year: year)) {
       return null;
     }
-  }
-  if (!RegExp(r'\d').hasMatch(fileName.substring(0, date.start))) {
-    return null;
   }
   return _parseLeadingFilenameDate(
     fileName.substring(date.start),
