@@ -5,6 +5,7 @@ import "dart:ui" as ui;
 
 import "package:flutter/widgets.dart";
 import "package:logging/logging.dart";
+import "package:photos/core/constants.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/module/download/thumbnail.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo.dart";
@@ -181,11 +182,16 @@ class RewindAtlas {
     }
   }
 
-  static Future<ui.Image?> _decode(Uint8List data, int side) async {
+  static Future<ui.Image?> _decode(
+    Uint8List data,
+    int side, {
+    bool enlarge = true,
+  }) async {
     try {
       final buffer = await ui.ImmutableBuffer.fromUint8List(data);
       final descriptor = await ui.ImageDescriptor.encoded(buffer);
-      final scale = side / min(descriptor.width, descriptor.height);
+      final fit = side / min(descriptor.width, descriptor.height);
+      final scale = enlarge ? fit : min(1.0, fit);
       final codec = await descriptor.instantiateCodec(
         targetWidth: max(1, (descriptor.width * scale).round()),
         targetHeight: max(1, (descriptor.height * scale).round()),
@@ -316,19 +322,23 @@ class RewindDecoded {
       }
       return null;
     }
-    return RewindDecoded._({
-      for (final (index, photo) in photos.indexed) photo: images[index]!,
-    });
+    return RewindDecoded._(
+      Map.identity()..addEntries([
+        for (final (index, photo) in photos.indexed)
+          MapEntry(photo, images[index]!),
+      ]),
+    );
   }
 
   static Future<ui.Image?> _image(EnteFile photo, RewindBytes bytes) async {
     try {
       final data = await bytes(photo).timeout(RewindAtlas._patience);
       if (data == null) return null;
-      final codec = await ui.instantiateImageCodec(data);
-      final frame = await codec.getNextFrame();
-      codec.dispose();
-      return frame.image;
+      return await RewindAtlas._decode(
+        data,
+        thumbnailLargeSize,
+        enlarge: false,
+      );
     } catch (_) {
       return null;
     }
