@@ -7,7 +7,10 @@ import "package:photos/services/ffmpeg_service.dart";
 import "package:photos/ui/rewind/reel/rewind_video_format.dart";
 
 class RewindVideoSink {
-  RewindVideoSink._(this.output, this._pipePath, this._job);
+  RewindVideoSink._(this.output, this._pipePath, this._job) {
+    ready = _open()..ignore();
+    unawaited(_watch());
+  }
 
   static const _fadeIn = Duration(milliseconds: 900);
   static const _fadeOut = Duration(milliseconds: 1500);
@@ -15,24 +18,25 @@ class RewindVideoSink {
   final File output;
   final String _pipePath;
   final FfmpegJob _job;
+  late final Future<void> ready;
   RandomAccessFile? _pipe;
   ffmpeg.Result? _result;
   var _write = Future<void>.value();
   var _closing = false;
 
-  static Future<RewindVideoSink> open({
+  static RewindVideoSink open({
     required File output,
     required RewindVideoFormat format,
     required int frameRate,
     required Duration duration,
     File? music,
-  }) async {
+  }) {
     final pipePath = "${output.path}.frames";
     final pixels = format.pixels;
     ffmpeg.createPipe(pipePath);
     final seconds = duration.inMicroseconds / Duration.microsecondsPerSecond;
     final fadeOutAt = (duration - _fadeOut).inMilliseconds / 1000;
-    final sink = RewindVideoSink._(
+    return RewindVideoSink._(
       output,
       pipePath,
       FfmpegService.instance.start([
@@ -82,9 +86,10 @@ class RewindVideoSink {
         output.path,
       ]),
     );
-    unawaited(sink._watch());
-    sink._pipe = await File(pipePath).open(mode: FileMode.writeOnly);
-    return sink;
+  }
+
+  Future<void> _open() async {
+    _pipe = await File(_pipePath).open(mode: FileMode.writeOnly);
   }
 
   Future<void> _watch() async {
@@ -99,6 +104,7 @@ class RewindVideoSink {
   Future<void> add(ByteData rgba) => _write = _add(rgba);
 
   Future<void> _add(ByteData rgba) async {
+    await ready;
     _throwIfEnded();
     if (_closing) throw StateError("The Rewind video is already closing");
     await _pipe!.writeFrom(
@@ -107,6 +113,7 @@ class RewindVideoSink {
   }
 
   Future<File> finish() async {
+    await ready;
     _throwIfEnded();
     _closing = true;
     await _pipe?.close();
@@ -123,8 +130,9 @@ class RewindVideoSink {
   }
 
   Future<void> abort() async {
-    _closing = true;
     final cancelled = _job.cancel();
+    await ready.then<void>((_) {}, onError: (Object _) {});
+    _closing = true;
     await _write.then<void>((_) {}, onError: (Object _) {});
     await _closePipe();
     await cancelled;

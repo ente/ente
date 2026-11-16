@@ -45,6 +45,10 @@ class PhotosCountPage extends RewindPage {
       Duration(milliseconds: photos.length < _minimumPhotos ? 2800 : 4200);
 
   @override
+  List<EnteFile> get reelThumbnails =>
+      photos.length < _minimumPhotos ? const [] : photos;
+
+  @override
   RewindChrome get chrome => const RewindChrome(
     foreground: RewindColors.cream,
     wordmark: Color(0xFF32302E),
