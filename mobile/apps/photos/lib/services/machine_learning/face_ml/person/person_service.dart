@@ -754,7 +754,23 @@ class PersonService {
       clusterID: clusterID,
     );
     if (face != null) return face;
-    final assignedIDs =
+    Set<String>? assignedIDs;
+    if (avatarFaceID != null &&
+        tryGetFileIdFromFaceId(avatarFaceID) == fileID &&
+        tryParseFaceBoxFromFaceID(avatarFaceID) != null) {
+      final faceClusterID = await faceMLDataDB.getClusterIDForFaceID(
+        avatarFaceID,
+      );
+      final isAssigned =
+          faceClusterID != null &&
+          (personID != null
+              ? (await faceMLDataDB.getPersonClusterIDs(
+                  personID,
+                )).contains(faceClusterID)
+              : faceClusterID == clusterID);
+      if (isAssigned) assignedIDs = {avatarFaceID};
+    }
+    assignedIDs ??=
         (personID != null
                 ? await faceMLDataDB.getFaceIDsForPerson(personID)
                 : await faceMLDataDB.getFaceIDsForCluster(clusterID!))
