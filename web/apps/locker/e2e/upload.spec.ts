@@ -96,3 +96,51 @@ test("uploads from Uncategorized without selecting a destination", async ({
 
     await expect(page.getByText(secondFile, { exact: true })).toBeVisible();
 });
+
+test("a dropped Uncategorized folder uses the existing system collection", async ({
+    signedInPage: page,
+}) => {
+    await openUpload(page);
+    await saveUpload(page);
+
+    await openCollection(page, "Uncategorized");
+    const systemCollectionURL = page.url();
+    await expect(page.getByText(fixture.name, { exact: true })).toBeVisible();
+    await page.goto("/");
+
+    const name = "locker-dropped-file.txt";
+    await page.getByRole("button", { name: "Save to Locker" }).evaluate(
+        (target, { name, content }) => {
+            const file = new File([content], name, { type: "text/plain" });
+            Object.defineProperty(file, "webkitRelativePath", {
+                value: `Uncategorized/${name}`,
+            });
+            const dataTransfer = new DataTransfer();
+            Object.defineProperty(dataTransfer, "files", { value: [file] });
+            target.dispatchEvent(
+                new DragEvent("drop", {
+                    bubbles: true,
+                    cancelable: true,
+                    dataTransfer,
+                }),
+            );
+        },
+        { name, content: fixture.buffer.toString() },
+    );
+    const systemDestination = page
+        .getByRole("dialog")
+        .getByRole("button", {
+            name: "Uncategorized",
+            exact: true,
+            pressed: true,
+        });
+    await expect(systemDestination).toBeVisible();
+    await saveUpload(page);
+
+    await page.goto(systemCollectionURL);
+    await expect(page.getByText(name, { exact: true })).toBeVisible();
+    await page.goto("/collections");
+    await expect(page.getByText("Uncategorized", { exact: true })).toHaveCount(
+        1,
+    );
+});

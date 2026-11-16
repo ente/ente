@@ -103,32 +103,34 @@ export const useCreateItemDialogState = ({
         () => initialEditCollectionIDs(editItem),
         [editItem],
     );
-    const displayCollections = useMemo(() => {
-        const ownedVisibleCollections = sortLockerCollections(
-            collections,
-        ).filter(
-            (collection) =>
-                currentUserID !== undefined &&
+    const ownedCollections = useMemo(
+        () =>
+            sortLockerCollections(collections).filter((collection) =>
                 isCollectionOwner(collection, currentUserID),
-        );
-
+            ),
+        [collections, currentUserID],
+    );
+    const displayCollections = useMemo(() => {
         if (!isEditMode) {
-            return ownedVisibleCollections.filter(
+            return ownedCollections.filter(
                 (collection) => !isUncategorizedCollection(collection),
             );
         }
 
-        const visibleCollectionIDSet = new Set(
-            ownedVisibleCollections.map((collection) => collection.id),
-        );
+        const ownedIDs = new Set(ownedCollections.map(({ id }) => id));
         const currentEditCollections = collections.filter(
-            (collection) =>
-                editCollectionIDs.includes(collection.id) &&
-                !visibleCollectionIDSet.has(collection.id),
+            ({ id }) => editCollectionIDs.includes(id) && !ownedIDs.has(id),
         );
 
-        return [...ownedVisibleCollections, ...currentEditCollections];
-    }, [collections, currentUserID, editCollectionIDs, isEditMode]);
+        return [...ownedCollections, ...currentEditCollections];
+    }, [collections, editCollectionIDs, isEditMode, ownedCollections]);
+
+    const refreshOwnedCollections = useCallback(async () => {
+        const refreshed = await onRefreshUploadCollections?.();
+        return refreshed?.filter((collection) =>
+            isCollectionOwner(collection, currentUserID),
+        );
+    }, [currentUserID, onRefreshUploadCollections]);
 
     const [selectedOption, setSelectedOption] = useState<CreateOption | null>(
         editItem?.type ?? (initialItems?.length ? "file" : null),
@@ -165,7 +167,7 @@ export const useCreateItemDialogState = ({
         resetUploadState,
         upload,
     } = useUploadQueue({
-        displayCollections,
+        eligibleCollections: ownedCollections,
         selectedUploadItems,
         uploadDestinations,
         setUploadDestinations,
@@ -176,7 +178,7 @@ export const useCreateItemDialogState = ({
         onUploadItemComplete,
         onUploadsFinished,
         onCreateUploadCollection,
-        onRefreshUploadCollections,
+        onRefreshUploadCollections: refreshOwnedCollections,
         onEnsureUploadLimitState,
     });
 
@@ -189,9 +191,11 @@ export const useCreateItemDialogState = ({
     const formType =
         isEditMode && selectedOption === "file" ? "file" : selectedType;
     const displayCollectionsRef = useRef(displayCollections);
+    const ownedCollectionsRef = useRef(ownedCollections);
     const defaultCollectionInitializedRef = useRef(false);
 
     displayCollectionsRef.current = displayCollections;
+    ownedCollectionsRef.current = ownedCollections;
 
     const handleCollectionSelectionChange: Dispatch<SetStateAction<number[]>> =
         useCallback((selection) => {
@@ -250,7 +254,7 @@ export const useCreateItemDialogState = ({
         setUploadDestinations(
             uploadDestinationsByItem(
                 filteredInitialItems,
-                displayCollectionsRef.current,
+                ownedCollectionsRef.current,
                 uploadDefaultCollectionID,
             ),
         );
@@ -452,7 +456,7 @@ export const useCreateItemDialogState = ({
             setUploadDestinations(
                 uploadDestinationsByItem(
                     nonEmptyItems,
-                    displayCollectionsRef.current,
+                    ownedCollectionsRef.current,
                     uploadDefaultCollectionID,
                 ),
             );
@@ -514,6 +518,7 @@ export const useCreateItemDialogState = ({
         collectionName,
         customCollectionNames,
         displayCollections,
+        ownedCollections,
         error,
         formData,
         formType,

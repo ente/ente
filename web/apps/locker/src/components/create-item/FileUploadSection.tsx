@@ -5,7 +5,11 @@ import { lockerItemIcon } from "@/components/items/locker-item-icons";
 import { NameInputDialog } from "@/components/ui/NameInputDialog";
 import type { LockerUploadProgress } from "@/services/uploads";
 import { lockerPrimaryButtonSx } from "@/styles/fields";
-import type { LockerCollection, LockerUploadCandidate } from "@/types";
+import {
+    isUncategorizedCollection,
+    type LockerCollection,
+    type LockerUploadCandidate,
+} from "@/types";
 import {
     Cancel01Icon,
     Edit02Icon,
@@ -731,6 +735,20 @@ const UploadDestinationSelector: React.FC<{
     const selectedKeys = new Set(
         selectedDestinations.map(uploadDestinationKey),
     );
+    const suggestions = new Set(suggestedNames.map(normalizeCollectionName));
+    const visibleCollections = collections.filter((collection) => {
+        if (!isUncategorizedCollection(collection)) return true;
+
+        const name = normalizeCollectionName(collection.name);
+        return (
+            suggestions.has(name) ||
+            selectedDestinations.some((destination) =>
+                destination.kind === "existing"
+                    ? destination.id === collection.id
+                    : normalizeCollectionName(destination.name) === name,
+            )
+        );
+    });
     const collectionIDs = new Set(collections.map(({ id }) => id));
     const existingNames = new Set(
         collections.map(({ name }) => normalizeCollectionName(name)),
@@ -740,7 +758,7 @@ const UploadDestinationSelector: React.FC<{
             ? t("uploadDestinationShared", { name: collection.name })
             : collection.name;
     const normalizedLabelCounts = new Map<string, number>();
-    for (const collection of collections) {
+    for (const collection of visibleCollections) {
         const label = normalizeCollectionName(labelForCollection(collection));
         normalizedLabelCounts.set(
             label,
@@ -763,7 +781,7 @@ const UploadDestinationSelector: React.FC<{
             label,
         });
 
-    for (const collection of collections) {
+    for (const collection of visibleCollections) {
         const label = labelForCollection(collection);
         const hasIdenticalLabel =
             (normalizedLabelCounts.get(normalizeCollectionName(label)) ?? 0) >
@@ -812,7 +830,6 @@ const UploadDestinationSelector: React.FC<{
         }
     }
 
-    const suggestions = new Set(suggestedNames.map(normalizeCollectionName));
     const sortedChoices = [...choices.values()].sort(
         (a, b) =>
             Number(suggestions.has(normalizeCollectionName(b.name))) -

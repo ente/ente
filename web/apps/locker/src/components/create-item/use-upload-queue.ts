@@ -44,14 +44,14 @@ export interface LockerUploadCallbacks {
         selectedFileCount: number,
     ) => Promise<void>;
     onCreateUploadCollection?: (name: string) => Promise<number>;
-    onRefreshUploadCollections?: () => Promise<void>;
+    onRefreshUploadCollections?: () => Promise<LockerCollection[] | undefined>;
     onEnsureUploadLimitState?: () => Promise<
         { userDetails: LockerUploadLimitState } | undefined
     >;
 }
 
 interface UseUploadQueueProps extends LockerUploadCallbacks {
-    displayCollections: LockerCollection[];
+    eligibleCollections: LockerCollection[];
     selectedUploadItems: LockerUploadCandidate[];
     uploadDestinations: UploadDestinationsByFileKey;
     setUploadDestinations: Dispatch<
@@ -79,7 +79,7 @@ const emptyUploadState = (): UploadState => ({
 });
 
 export function useUploadQueue({
-    displayCollections,
+    eligibleCollections,
     selectedUploadItems,
     uploadDestinations,
     setUploadDestinations,
@@ -204,11 +204,28 @@ export function useUploadQueue({
                         destinations: uploadDestinations[fileKey] ?? [],
                     };
                 });
-                const eligibleIDs = new Set(
-                    displayCollections.map(({ id }) => id),
+                let collections = eligibleCollections;
+                let eligibleIDs = new Set(collections.map(({ id }) => id));
+                const hasUnsyncedDestination = destinationsByItem.some(
+                    ({ destinations }) =>
+                        destinations.some(
+                            (destination) =>
+                                destination.kind === "existing" &&
+                                !eligibleIDs.has(destination.id),
+                        ),
                 );
+                if (hasUnsyncedDestination && onRefreshUploadCollections) {
+                    const refreshed = await onRefreshUploadCollections();
+                    if (!refreshed) {
+                        setError(t("generic_error_retry"));
+                        setUpgradeCTAType(null);
+                        return;
+                    }
+                    collections = refreshed;
+                    eligibleIDs = new Set(collections.map(({ id }) => id));
+                }
                 const existingNames = new Set(
-                    displayCollections.map(({ name }) =>
+                    collections.map(({ name }) =>
                         normalizeCollectionName(name),
                     ),
                 );
@@ -276,6 +293,7 @@ export function useUploadQueue({
                 );
 
                 const createdIDs = new Map<string, number>();
+                let refreshedCollections: LockerCollection[] | undefined;
                 try {
                     for (const name of dedupeCollectionNames(newNames)) {
                         if (!onCreateUploadCollection)
@@ -289,8 +307,24 @@ export function useUploadQueue({
                         );
                     }
                 } finally {
-                    if (createdIDs.size > 0)
-                        await onRefreshUploadCollections?.();
+                    if (createdIDs.size > 0) {
+                        refreshedCollections =
+                            await onRefreshUploadCollections?.();
+                    }
+                }
+
+                if (createdIDs.size > 0) {
+                    const refreshedIDs = new Set(
+                        refreshedCollections?.map(({ id }) => id),
+                    );
+                    if (
+                        [...createdIDs.values()].some(
+                            (id) => !refreshedIDs.has(id),
+                        )
+                    ) {
+                        setError(t("generic_error_retry"));
+                        return;
+                    }
                 }
 
                 const uploadTargets = destinationsByItem.map(
@@ -422,7 +456,7 @@ export function useUploadQueue({
         },
         [
             completedFileKeys,
-            displayCollections,
+            eligibleCollections,
             onCreateUploadCollection,
             onRefreshUploadCollections,
             onEnsureUploadLimitState,

@@ -57,6 +57,7 @@ export const LockerPage: React.FC = () => {
         hasFetched,
         initialLoadError,
         masterKey,
+        refreshCollections,
         refreshData,
         removeCollectionFromState,
         trashItems,
@@ -351,7 +352,7 @@ export const LockerPage: React.FC = () => {
                 onUploadsFinished={handleUploadsFinished}
                 onCreateCollection={handleCreateCollection}
                 onCreateUploadCollection={createUploadCollection}
-                onRefreshUploadCollections={refreshData}
+                onRefreshUploadCollections={refreshCollections}
                 onEnsureUploadLimitState={ensureUploadLimitState}
                 defaultCollectionID={selectedCollectionID}
                 initialItems={prefilledUploadItems}

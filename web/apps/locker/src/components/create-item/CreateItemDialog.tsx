@@ -130,6 +130,7 @@ export const CreateItemDialog: React.FC<CreateItemDialogProps> = ({
         collectionName,
         customCollectionNames,
         displayCollections,
+        ownedCollections,
         error,
         failedFileKeys,
         formData,
@@ -417,7 +418,7 @@ export const CreateItemDialog: React.FC<CreateItemDialogProps> = ({
                         <FileUploadSection
                             fileInputRef={fileInputRef}
                             selectedUploadItems={selectedUploadItems}
-                            collections={displayCollections}
+                            collections={ownedCollections}
                             availableCollectionNames={customCollectionNames}
                             uploadDestinations={uploadDestinations}
                             completedFileKeys={completedFileKeys}
@@ -433,7 +434,7 @@ export const CreateItemDialog: React.FC<CreateItemDialogProps> = ({
                                     toggleUploadDestination(
                                         current,
                                         destination,
-                                        displayCollections,
+                                        ownedCollections,
                                     ),
                                 )
                             }
