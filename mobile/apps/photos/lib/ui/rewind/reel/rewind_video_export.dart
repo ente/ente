@@ -318,6 +318,8 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
       _time.value = reel.timeOf(frame);
       await _unlessCancelled(stepper.step());
     }
+    await _unlessCancelled(rewindRiveFilesLoaded());
+    await _unlessCancelled(stepper.step());
     return _read(await _capture());
   }
 
