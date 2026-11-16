@@ -97,21 +97,13 @@ class SimilarImagesService {
     w?.log("getFileIDToPersonIDs");
 
     if (forceRefresh) {
-      final result = await _performFullSearch(
+      return _performFullSearch(
         fileIDs,
         allFileIdsToFile,
         fileIDToPersonIDs,
         distanceThreshold,
         exact,
       );
-      await _cacheSimilarFiles(
-        result,
-        fileIDs.toSet(),
-        distanceThreshold,
-        exact,
-        DateTime.now().millisecondsSinceEpoch,
-      );
-      return result;
     }
 
     final SimilarFilesCache? cachedData = await _readCachedSimilarFiles();
@@ -128,7 +120,8 @@ class SimilarImagesService {
       final Set<int> cachedFileIDs = cachedData.allCheckedFileIDs;
       final currentFileIDs = fileIDs.toSet();
 
-      if (cachedData.distanceThreshold != distanceThreshold ||
+      if (cachedData.version != SimilarFilesCache.currentVersion ||
+          cachedData.distanceThreshold != distanceThreshold ||
           cachedData.exact != exact) {
         needsFullRefresh = true;
       }
@@ -177,21 +170,13 @@ class SimilarImagesService {
     }
 
     if (cachedData == null || needsFullRefresh) {
-      final result = await _performFullSearch(
+      return _performFullSearch(
         fileIDs,
         allFileIdsToFile,
         fileIDToPersonIDs,
         distanceThreshold,
         exact,
       );
-      await _cacheSimilarFiles(
-        result,
-        fileIDs.toSet(),
-        distanceThreshold,
-        exact,
-        DateTime.now().millisecondsSinceEpoch,
-      );
-      return result;
     } else {
       return await _performIncrementalUpdate(
         cachedData,
@@ -252,6 +237,34 @@ class SimilarImagesService {
       maxDistance: distanceThreshold,
       exact: exact,
     );
+
+    final groupedFileIDs = existingGroups
+        .expand((group) => group.fileIds)
+        .toSet();
+    for (final entry in newFileMatches.entries) {
+      final newFileID = entry.key;
+      if (!allFileIdsToFile.containsKey(newFileID)) continue;
+      final newFilePersonIDs = fileIDToPersonIDs[newFileID] ?? <String>{};
+      for (final (otherFileID, distance) in entry.value) {
+        if (otherFileID == newFileID) continue;
+        if (distance > distanceThreshold) break;
+        if (cachedFileIDs.contains(otherFileID) &&
+            !groupedFileIDs.contains(otherFileID) &&
+            allFileIdsToFile.containsKey(otherFileID) &&
+            setsAreEqual(
+              newFilePersonIDs,
+              fileIDToPersonIDs[otherFileID] ?? <String>{},
+            )) {
+          return _performFullSearch(
+            currentFileIDs,
+            allFileIdsToFile,
+            fileIDToPersonIDs,
+            distanceThreshold,
+            exact,
+          );
+        }
+      }
+    }
 
     final unassignedNewFiles = <int, List<(int, double)>>{};
     for (final entry in newFileMatches.entries) {
@@ -407,6 +420,13 @@ class SimilarImagesService {
     }
     w?.log("going through files");
 
+    await _cacheSimilarFiles(
+      allSimilarFiles,
+      fileIDs.toSet(),
+      distanceThreshold,
+      exact,
+      DateTime.now().millisecondsSinceEpoch,
+    );
     return allSimilarFiles;
   }
 
