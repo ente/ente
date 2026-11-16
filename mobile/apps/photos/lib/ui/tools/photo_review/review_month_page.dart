@@ -193,7 +193,7 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
         data = await _service.loadMonth(widget.monthKey);
       } while (!identical(settled, _lastWrite));
       if (!mounted || generation != _loadGeneration) return;
-      if (_swipeActiveNotifier.value) {
+      if (_swipeActiveNotifier.value || _swipeHelper.isActive) {
         _reloadAfterSwipe = resetView || (_reloadAfterSwipe ?? false);
         return;
       }
@@ -423,7 +423,6 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
       return;
     }
     _swipeHelper.startSelection(file);
-    _swipeActiveNotifier.value = true;
   }
 
   void _clearSelection() => _selection.clearAll(fireEvent: false);
@@ -841,6 +840,8 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
             scrollController: _gridScrollController,
             child: Listener(
               onPointerDown: (event) => _gridPointer = event.pointer,
+              onPointerUp: (_) => _onSwipeActiveChanged(),
+              onPointerCancel: (_) => _onSwipeActiveChanged(),
               child: ValueListenableBuilder<bool>(
                 valueListenable: _swipeActiveNotifier,
                 builder: (context, isSwipeActive, _) => AppBarComponent(
