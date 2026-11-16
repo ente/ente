@@ -149,6 +149,11 @@ class RewindService {
     });
   }
 
+  Future<void> revalidate() async {
+    if (_story.value?.rituals == RewindRituals.current()) return;
+    await _rebuildStory();
+  }
+
   void _onRitualsChanged() {
     final story = _story.value;
     if (story == null || story.rituals == RewindRituals.current()) return;
@@ -162,7 +167,10 @@ class RewindService {
       _setStory(null, null);
       return;
     }
-    if (state.computedAt == _storyComputedAt) return;
+    if (state.computedAt == _storyComputedAt &&
+        _story.value?.rituals == RewindRituals.current()) {
+      return;
+    }
     try {
       var story = await RewindStory.prepare(status.report);
       while (identical(_state.value, state) &&
