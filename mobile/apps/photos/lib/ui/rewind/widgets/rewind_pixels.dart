@@ -5,6 +5,7 @@ import "dart:ui" as ui;
 
 import "package:flutter/widgets.dart";
 import "package:logging/logging.dart";
+import "package:photos/core/constants.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/module/download/thumbnail.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo.dart";
@@ -12,9 +13,11 @@ import "package:photos/ui/rewind/widgets/rewind_photo.dart";
 typedef RewindBytes =
     Future<Uint8List?> Function(EnteFile file, {bool cachedOnly});
 
-typedef RewindPhotoBuilder = Widget Function(EnteFile file);
+typedef RewindPhotoBuilder =
+    Widget Function(EnteFile file, {ui.Image? decoded});
 
-Widget rewindPhoto(EnteFile file) => RewindPhoto(file);
+Widget rewindPhoto(EnteFile file, {ui.Image? decoded}) =>
+    RewindPhoto(file, decoded: decoded);
 
 typedef RewindTilePainter =
     void Function(Canvas canvas, ui.Image image, Rect cell, int index);
@@ -179,11 +182,16 @@ class RewindAtlas {
     }
   }
 
-  static Future<ui.Image?> _decode(Uint8List data, int side) async {
+  static Future<ui.Image?> _decode(
+    Uint8List data,
+    int side, {
+    bool enlarge = true,
+  }) async {
     try {
       final buffer = await ui.ImmutableBuffer.fromUint8List(data);
       final descriptor = await ui.ImageDescriptor.encoded(buffer);
-      final scale = side / min(descriptor.width, descriptor.height);
+      final fit = side / min(descriptor.width, descriptor.height);
+      final scale = enlarge ? fit : min(1.0, fit);
       final codec = await descriptor.instantiateCodec(
         targetWidth: max(1, (descriptor.width * scale).round()),
         targetHeight: max(1, (descriptor.height * scale).round()),
@@ -280,6 +288,60 @@ class RewindWarm<T extends Object> {
         if (loaded != null) _dispose(loaded);
       }),
     );
+  }
+}
+
+class RewindDecoded {
+  RewindDecoded._(this._images);
+
+  final Map<EnteFile, ui.Image> _images;
+
+  ui.Image? operator [](EnteFile photo) => _images[photo];
+
+  void dispose() {
+    for (final image in _images.values) {
+      image.dispose();
+    }
+  }
+
+  static RewindWarm<RewindDecoded> warm(
+    List<EnteFile> photos,
+    RewindBytes bytes,
+  ) => RewindWarm(() => _load(photos, bytes), (decoded) => decoded.dispose());
+
+  static Future<RewindDecoded?> _load(
+    List<EnteFile> photos,
+    RewindBytes bytes,
+  ) async {
+    final images = await Future.wait([
+      for (final photo in photos) _image(photo, bytes),
+    ]);
+    if (images.contains(null)) {
+      for (final image in images) {
+        image?.dispose();
+      }
+      return null;
+    }
+    return RewindDecoded._(
+      Map.identity()..addEntries([
+        for (final (index, photo) in photos.indexed)
+          MapEntry(photo, images[index]!),
+      ]),
+    );
+  }
+
+  static Future<ui.Image?> _image(EnteFile photo, RewindBytes bytes) async {
+    try {
+      final data = await bytes(photo).timeout(RewindAtlas._patience);
+      if (data == null) return null;
+      return await RewindAtlas._decode(
+        data,
+        thumbnailLargeSize,
+        enlarge: false,
+      );
+    } catch (_) {
+      return null;
+    }
   }
 }
 

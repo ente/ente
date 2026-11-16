@@ -15,6 +15,7 @@ import "package:photos/events/people_changed_event.dart";
 import "package:photos/gateways/entity/models/type.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/local_entity_data.dart";
+import "package:photos/models/ml/face/detection.dart";
 import 'package:photos/models/ml/face/face_with_embedding.dart';
 import "package:photos/models/ml/face/person.dart";
 import "package:photos/service_locator.dart";
@@ -25,6 +26,7 @@ import "package:photos/settings/local_settings.dart";
 import "package:photos/utils/contact_photo_util.dart";
 import "package:photos/utils/contact_string_util.dart";
 import "package:photos/utils/face/face_thumbnail_cache.dart";
+import "package:photos/utils/face_crop_util.dart";
 import "package:shared_preferences/shared_preferences.dart";
 
 typedef ManualPersonAssignmentResult = ({
@@ -739,12 +741,49 @@ class PersonService {
     return changed || hasUnappliedChanges;
   }
 
+  Future<FaceWithoutEmbedding?> getCoverFace({
+    required int fileID,
+    String? personID,
+    String? avatarFaceID,
+    String? clusterID,
+  }) async {
+    final face = await faceMLDataDB.getCoverFaceForPerson(
+      recentFileID: fileID,
+      personID: personID,
+      avatarFaceId: avatarFaceID,
+      clusterID: clusterID,
+    );
+    if (face != null) return face;
+    final assignedIDs =
+        (personID != null
+                ? await faceMLDataDB.getFaceIDsForPerson(personID)
+                : await faceMLDataDB.getFaceIDsForCluster(clusterID!))
+            .toSet();
+    final candidates = [?avatarFaceID, ...assignedIDs];
+    for (final faceID in candidates) {
+      if (!assignedIDs.contains(faceID) ||
+          tryGetFileIdFromFaceId(faceID) != fileID) {
+        continue;
+      }
+      final box = tryParseFaceBoxFromFaceID(faceID);
+      if (box == null) continue;
+      return FaceWithoutEmbedding(
+        faceID,
+        fileID,
+        0,
+        Detection(box: box, landmarks: []),
+        0,
+      );
+    }
+    return null;
+  }
+
   Future<PersonAvatarUpdateResult> updateAvatar(
     PersonEntity p,
     EnteFile file,
   ) async {
-    final FaceWithoutEmbedding? face = await faceMLDataDB.getCoverFaceForPerson(
-      recentFileID: file.uploadedFileID!,
+    final FaceWithoutEmbedding? face = await getCoverFace(
+      fileID: file.uploadedFileID!,
       personID: p.remoteID,
     );
     if (face == null) {

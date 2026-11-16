@@ -4,14 +4,14 @@ import { apps } from "./apps.ts";
 
 const name = process.argv[2];
 if (!name || !Object.hasOwn(apps, name))
-    throw new Error("Expected an app name: photos or locker");
+    throw new Error(`Expected an app name: ${Object.keys(apps).join(", ")}`);
 const app = apps[name as keyof typeof apps];
 
 const server = await preview({
     configFile: false,
     envDir: false,
     root: fileURLToPath(new URL(`../apps/${name}/`, import.meta.url)),
-    appType: "mpa",
+    appType: name === "share" ? "spa" : "mpa",
     build: { outDir: "out" },
     preview: { host: "localhost", port: app.port, strictPort: true },
 });
