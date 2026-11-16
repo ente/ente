@@ -84,8 +84,8 @@ class BusiestDayPage extends RewindPage {
           fit: StackFit.expand,
           children: [
             const RewindBackdrop(
-              color: Color(0xFFF7601F),
-              pattern: RewindStripes(Color(0xFFFF6B2B)),
+              color: Color(0xFFF71F1F),
+              pattern: RewindStripes(Color(0xFFFF2B2F)),
               grain: 0.25,
             ),
             Semantics(
@@ -119,10 +119,8 @@ class BusiestDayPage extends RewindPage {
                         isActive: isActive && !held && !covered,
                       ),
                     ],
-                    RewindRevealLayer(
-                      left: 28,
-                      top: 571,
-                      maxWidth: 334,
+                    _centred(
+                      top: 585,
                       height: 23,
                       position: position,
                       active: isActive,
@@ -134,59 +132,38 @@ class BusiestDayPage extends RewindPage {
                           text,
                           style: RewindTextStyles.display(
                             20,
+                            color: RewindColors.white,
                             height: 1.15,
                             letterSpacing: 0.3,
                           ),
                         ),
                       ),
                     ),
-                    RewindRevealLayer(
-                      left: 28,
-                      top: 607,
-                      maxWidth: 334,
-                      height: 99,
+                    _centred(
+                      top: 608,
+                      height: 119,
                       position: position,
                       active: isActive,
                       preset: RewindPreset.slap,
                       delayMs: 1050,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          RewindOutlinedText(
-                            count,
-                            style: RewindTextStyles.numeral(
-                              104,
-                              color: RewindColors.white,
-                            ),
-                            outline: 3.5,
-                            shadow: const Offset(5, 6),
-                          ),
-                          const SizedBox(width: 12),
-                          RewindOutlinedText(
-                            day.photoCount == 1 ? "PHOTO" : "PHOTOS",
-                            style: RewindTextStyles.display(
-                              44,
-                              color: RewindColors.white,
-                            ),
-                            outline: 2.5,
-                            shadow: const Offset(2.5, 3),
-                          ),
-                        ],
+                      child: _Count(
+                        count: count,
+                        unit: day.photoCount == 1 ? "photo" : "photos",
                       ),
                     ),
-                    RewindRevealLayer(
-                      left: 28,
-                      top: 718,
-                      width: 316,
+                    _centred(
+                      top: 736,
                       height: 25,
                       position: position,
                       active: isActive,
                       delayMs: 1350,
                       child: Text(
                         line,
-                        style: RewindTextStyles.body(19, height: 1.32),
+                        style: RewindTextStyles.body(
+                          19,
+                          height: 1.32,
+                          color: RewindColors.white,
+                        ),
                       ),
                     ),
                   ],
@@ -195,6 +172,76 @@ class BusiestDayPage extends RewindPage {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+Widget _centred({
+  required double top,
+  required double height,
+  required double position,
+  required bool active,
+  required int delayMs,
+  required Widget child,
+  RewindPreset preset = RewindPreset.line,
+}) => RewindRevealLayer(
+  left: 28,
+  top: top,
+  width: 334,
+  height: height,
+  position: position,
+  active: active,
+  preset: preset,
+  delayMs: delayMs,
+  child: Center(
+    child: FittedBox(fit: BoxFit.scaleDown, child: child),
+  ),
+);
+
+class _Count extends StatelessWidget {
+  const _Count({required this.count, required this.unit});
+
+  static const _overhang = 15.0;
+  static const _drop = 19.6;
+  static const _turn = -1.7;
+
+  final String count;
+  final String unit;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: _drop),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(right: _overhang),
+            child: RewindOutlinedText(
+              count,
+              style: RewindTextStyles.numeral(104, color: RewindColors.white),
+              outline: 3.5,
+              shadow: const Offset(5, 6),
+            ),
+          ),
+          Positioned(
+            right: 0,
+            bottom: -_drop,
+            child: Transform.rotate(
+              angle: _turn * pi / 180,
+              child: RewindOutlinedText(
+                unit,
+                style: RewindTextStyles.display(
+                  44.228,
+                  color: const Color(0xFFFDE11A),
+                ),
+                outline: 4,
+                ink: const Color(0xFF0A0A0A),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
