@@ -60,10 +60,24 @@ struct NotesSettingsView: View {
                         } else if collection.status == .indexing || collection.status == .updating {
                             ProgressView().tint(EnsuColor.action)
                         }
-                        if collection.status == .pending {
-                            Text("Indexing will continue when the app and model are ready.")
+                        if collection.status == .updateScheduled {
+                            Text("Changes detected in this folder.")
                                 .font(EnsuTypography.small)
                                 .foregroundStyle(EnsuColor.textMuted)
+                            CompactButton(text: "Update now") {
+                                store.updateNow(collection.id)
+                            }
+                            .accessibilityLabel("Update \(collection.label) now")
+                        } else if collection.status == .pending
+                            || collection.status == .updateRequested
+                        {
+                            Text(
+                                collection.status == .updateRequested
+                                    ? "Update queued. Keep Ensu open."
+                                    : "Indexing will continue when the app and model are ready."
+                            )
+                            .font(EnsuTypography.small)
+                            .foregroundStyle(EnsuColor.textMuted)
                         }
                         if let error = collection.error {
                             Text(error)

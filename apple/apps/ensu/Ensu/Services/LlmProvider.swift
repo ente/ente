@@ -92,6 +92,10 @@ struct EmbeddingAssetInvalidError: LocalizedError {
 }
 
 struct ModelMemoryDeferred: Error {}
+enum EmbeddingUse {
+    case retrieval, automaticIndexing, manualIndexing
+}
+
 struct ModelMemoryUnavailable: LocalizedError {
     var errorDescription: String? { "Not enough free memory. Close other apps and try again." }
 }
@@ -661,19 +665,19 @@ actor LlmProvider {
         queryBytes: Int,
         _ operation: @Sendable (_ embed: @Sendable (String) throws -> [Float]) async throws -> T
     ) async throws -> T {
-        try await withEmbeddingContext(maintenance: false, queryBytes: queryBytes) {
+        try await withEmbeddingContext(for: .retrieval, queryBytes: queryBytes) {
             context in
             try await operation { try context.embed(text: $0) }
         }
     }
 
     func withEmbeddingContext<T: Sendable>(
-        maintenance: Bool = true,
+        for use: EmbeddingUse,
         queryBytes: Int = 0,
         checkCancellation: @Sendable () throws -> Void = {},
         _ operation: @Sendable (LlmContext) async throws -> T
     ) async throws -> T {
-        try await withModelLock(suspendMaintenance: !maintenance) {
+        try await withModelLock(suspendMaintenance: use == .retrieval) {
             try checkCancellation()
             let capability = currentChatDeviceCapability()
             if !capability.isChatSupported {
@@ -683,18 +687,18 @@ actor LlmProvider {
                 throw EmbeddingAssetInvalidError()
             }
 
-            if maintenance && memoryPressureSuppressed {
+            if use == .automaticIndexing && memoryPressureSuppressed {
                 throw ModelMemoryDeferred()
             }
             transcriber.unloadModel()
             loadedContext?.releaseMultimodal()
-            if !canAllocate(.embedding, queryBytes: maintenance ? nil : queryBytes) {
-                if maintenance && chatForeground && loadedModel != nil {
+            if !canAllocate(.embedding, queryBytes: use == .retrieval ? queryBytes : nil) {
+                if use == .automaticIndexing && chatForeground && loadedModel != nil {
                     throw ModelMemoryDeferred()
                 }
                 unloadModel()
                 guard hasRequiredWorkReserve() else {
-                    if maintenance { throw ModelMemoryDeferred() }
+                    if use == .automaticIndexing { throw ModelMemoryDeferred() }
                     throw ModelMemoryUnavailable()
                 }
             }

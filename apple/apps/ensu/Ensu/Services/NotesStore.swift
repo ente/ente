@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 
 enum NotesStatus {
-    case pending, indexing, updating, ready, unavailable, error
+    case pending, updateScheduled, updateRequested, indexing, updating, ready, unavailable, error
 }
 
 struct NoteCollectionState: Identifiable {
@@ -29,11 +29,23 @@ final class NotesStore: ObservableObject, ModelMaintenance {
     private let sourceDefaults: UserDefaults
     private static let disabledDefaultsKey = "ensu.notes.disabledByDefault"
 
+    private enum IndexTrigger {
+        case maintenance, changesDetected, manual
+    }
     private struct Pending {
         let generation: UInt64
         let forced: Set<String>
         let rebuild: Bool
-        let due: Date
+        var due: Date
+        var trigger: IndexTrigger
+
+        var waitingStatus: NotesStatus {
+            switch trigger {
+            case .maintenance: .pending
+            case .changesDetected: .updateScheduled
+            case .manual: .updateRequested
+            }
+        }
     }
     private struct Run {
         let operation: NotesReadOperation
@@ -183,6 +195,17 @@ final class NotesStore: ObservableObject, ModelMaintenance {
         }
     }
 
+    func updateNow(_ id: String) {
+        guard collections.contains(where: { $0.id == id && $0.status == .updateScheduled }),
+            pending[id]?.trigger == .changesDetected
+        else { return }
+
+        pending[id]?.trigger = .manual
+        pending[id]?.due = .distantPast
+        update(id) { $0.status = .updateRequested }
+        pump()
+    }
+
     func retry(_ id: String) {
         guard let collection = collections.first(where: { $0.id == id }),
             collection.status == .error || collection.status == .unavailable
@@ -195,7 +218,7 @@ final class NotesStore: ObservableObject, ModelMaintenance {
             enqueue(id, due: .distantPast)
         }
         update(id) {
-            $0.status = .pending
+            $0.status = pending[id]?.waitingStatus ?? .pending
             $0.error = nil
             $0.progress = nil
         }
@@ -260,7 +283,9 @@ final class NotesStore: ObservableObject, ModelMaintenance {
             } catch is CancellationError {
                 throw CancellationError()
             } catch NotesError.SourceChanged {
-                enqueue(reference.collectionId, forced: [reference.documentId], due: .distantPast)
+                enqueue(
+                    reference.collectionId, forced: [reference.documentId], changesDetected: true,
+                    due: .distantPast)
             } catch {
                 fail(reference.collectionId, error)
             }
@@ -296,16 +321,21 @@ final class NotesStore: ObservableObject, ModelMaintenance {
     }
 
     private func enqueue(
-        _ id: String, forced: Set<String> = [], rebuild: Bool = false, due: Date? = nil
+        _ id: String, forced: Set<String> = [], rebuild: Bool = false,
+        changesDetected: Bool = false,
+        due: Date? = nil
     ) {
         guard collections.contains(where: { $0.id == id }) else { return }
         let old = pending[id]
+        var trigger = old?.trigger ?? .maintenance
+        if trigger == .maintenance && changesDetected { trigger = .changesDetected }
         generation &+= 1
         pending[id] = Pending(
             generation: generation,
             forced: (old?.forced ?? []).union(forced),
             rebuild: rebuild || old?.rebuild == true,
-            due: due ?? old?.due ?? Date().addingTimeInterval(300)
+            due: due ?? old?.due ?? Date().addingTimeInterval(300),
+            trigger: trigger
         )
     }
 
@@ -316,7 +346,10 @@ final class NotesStore: ObservableObject, ModelMaintenance {
         let request =
             embeddingReady
             ? pending.filter { !failed.contains($0.key) && $0.value.due <= Date() }.min {
-                $0.key < $1.key
+                lhs, rhs in
+                let lhsManual = lhs.value.trigger == .manual
+                let rhsManual = rhs.value.trigger == .manual
+                return lhsManual == rhsManual ? lhs.key < rhs.key : lhsManual
             } : nil
         guard
             let id = request?.key
@@ -358,11 +391,8 @@ final class NotesStore: ObservableObject, ModelMaintenance {
             do {
                 try cancellation.check()
                 if let snapshot {
-                    update(id) {
-                        $0.status = hadIndex ? .updating : .indexing
-                        $0.error = nil
-                    }
                     let result = try await modelProvider.withEmbeddingContext(
+                        for: snapshot.trigger == .manual ? .manualIndexing : .automaticIndexing,
                         checkCancellation: cancellation.check
                     ) { context in
                         try await self.provider.index(
@@ -391,19 +421,20 @@ final class NotesStore: ObservableObject, ModelMaintenance {
                         enqueue(
                             id,
                             forced: Set(result.uncheckedDocumentIds).union([changed]),
+                            changesDetected: result.summary.initialComplete,
                             due: same ? Date().addingTimeInterval(300) : nil
                         )
                     }
                     update(id) {
-                        if pending[id] == nil {
-                            $0 = Self.state(record, result.summary)
-                        } else {
-                            $0.status = .pending
+                        if let next = pending[id] {
+                            $0.status = next.waitingStatus
                             $0.documentCount = result.summary.documentCount
                             $0.lastUpdatedAtMs = result.summary.lastUpdatedAtMs
                             $0.indexAvailable =
                                 hadIndex && result.summary.initialComplete
                                 && result.summary.documentCount > 0
+                        } else {
+                            $0 = Self.state(record, result.summary)
                         }
                     }
                 } else {
@@ -414,9 +445,10 @@ final class NotesStore: ObservableObject, ModelMaintenance {
                     if result.changed {
                         enqueue(
                             id, forced: Set(result.forcedDocumentIds),
+                            changesDetected: result.summary.initialComplete,
                             due: result.summary.initialComplete ? nil : .distantPast)
                         update(id) {
-                            $0.status = .pending
+                            $0.status = pending[id]?.waitingStatus ?? .pending
                             $0.error = nil
                         }
                     }
@@ -424,13 +456,14 @@ final class NotesStore: ObservableObject, ModelMaintenance {
             } catch is ModelMemoryDeferred {
                 enqueue(id, due: Date().addingTimeInterval(30))
                 update(id) {
-                    $0.status = .pending; $0.progress = nil
+                    $0.status = pending[id]?.waitingStatus ?? .pending
+                    $0.progress = nil
                 }
             } catch NotesError.Cancelled {
                 if snapshot == nil { scans.insert(id) }
                 let saved = try? await provider.inspect(id)
                 update(id) {
-                    $0.status = .pending
+                    $0.status = pending[id]?.waitingStatus ?? .pending
                     if let saved { $0.lastUpdatedAtMs = saved.lastUpdatedAtMs }
                     $0.indexAvailable =
                         hadIndex && saved?.initialComplete == true
@@ -447,6 +480,12 @@ final class NotesStore: ObservableObject, ModelMaintenance {
             }
         }
         active = Run(operation: operation, task: task)
+        if snapshot != nil {
+            update(id) {
+                $0.status = hadIndex ? .updating : .indexing
+                $0.error = nil
+            }
+        }
     }
 
     private func fail(_ id: String, _ error: Error) {
@@ -461,6 +500,7 @@ final class NotesStore: ObservableObject, ModelMaintenance {
         }
     }
     private static func message(_ error: Error) -> String {
+        if error is ModelMemoryUnavailable { return error.localizedDescription }
         guard let error = error as? NotesError else {
             return "Could not update Your Notes. Please try again."
         }
