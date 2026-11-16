@@ -93,7 +93,8 @@ export function RecoveryKeyContents({
     }, [open, getRecoveryKeyMnemonic, handleLoadError]);
 
     function handleSaveClick() {
-        saveRecoveryKeyMnemonicAsFile(recoveryKey!);
+        if (!recoveryKey) return;
+        saveRecoveryKeyMnemonicAsFile(recoveryKey);
         onClose();
     }
 
@@ -137,6 +138,7 @@ export function RecoveryKeyContents({
                 <FocusVisibleButton
                     color="accent"
                     fullWidth
+                    disabled={!recoveryKey}
                     onClick={handleSaveClick}
                 >
                     {t("save_key")}
