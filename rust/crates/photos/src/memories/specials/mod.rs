@@ -405,7 +405,7 @@ mod tests {
             };
             assert_eq!(
                 (day.as_str(), year.as_str()),
-                ("one-day:2022-07-01", "year-in-a-flash:2023")
+                ("one-day:2022-07-01:2000", "year-in-a-flash:2023")
             );
             assert!(frames.iter().any(is_from_the_kyoto_day));
         }
@@ -417,7 +417,7 @@ mod tests {
         assert!(
             everything
                 .iter()
-                .any(|(key, _)| key == "one-day:2023-04-22")
+                .any(|(key, _)| key == "one-day:2023-04-22:1000")
         );
     }
 

@@ -222,6 +222,7 @@ class SpecialMemoryGestures extends StatelessWidget {
       onPointerCancel: (_) => onHold(false),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
+        onLongPress: () {},
         onTapUp: (details) {
           final onMemory = details.localPosition.dx < screenWidth * 0.2
               ? onPreviousMemory

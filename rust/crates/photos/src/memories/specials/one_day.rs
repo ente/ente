@@ -32,7 +32,13 @@ pub(super) struct Day<'p> {
 impl Day<'_> {
     fn key(&self) -> String {
         let LocalDate { year, month, day } = self.date;
-        Format::OneDay.key(format_args!("{year:04}-{month:02}-{day:02}"))
+        let first = self
+            .members
+            .iter()
+            .map(|member| (member.photo.creation_time, member.photo.id))
+            .min()
+            .map_or(0, |(_, id)| id);
+        Format::OneDay.key(format_args!("{year:04}-{month:02}-{day:02}:{first}"))
     }
 
     fn hours(&self) -> usize {
@@ -283,6 +289,52 @@ mod tests {
     }
 
     #[test]
+    fn two_trips_on_one_date_each_tell_and_rest_their_own_day() {
+        let mut travel = travel_day(1000, "2026-04-14", &FULL_DAY[..8], KYOTO);
+        travel.extend(travel_day(1100, "2026-04-15", &FULL_DAY[..8], KYOTO));
+        travel.extend(travel_day(
+            1200,
+            "2026-04-16",
+            &[4, 5, 6, 7, 8, 9, 10, 10, 10, 10],
+            KYOTO,
+        ));
+        travel.extend(travel_day(1250, "2026-04-16", &[12, 13], HOME));
+        travel.extend(travel_day(
+            1300,
+            "2026-04-16",
+            &[15, 16, 17, 18, 19, 20, 21, 21, 21, 22],
+            LISBON,
+        ));
+        travel.extend(travel_day(1400, "2026-04-17", &FULL_DAY[..8], LISBON));
+        travel.extend(travel_day(1500, "2026-04-18", &FULL_DAY[..8], LISBON));
+        let told = |shown: &[&str]| -> HashSet<Vec<i64>> {
+            (0..20)
+                .flat_map(|seed| {
+                    let request = MemoriesRequest {
+                        seed,
+                        shown_specials: shown
+                            .iter()
+                            .map(|key| ShownSpecial {
+                                key: (*key).to_owned(),
+                                last_time_shown: micros(NOW) - MICROS_PER_DAY,
+                            })
+                            .collect(),
+                        ..request(travel.clone())
+                    };
+                    stories(&request, None)
+                })
+                .map(|(_, memory)| memory.file_ids)
+                .collect()
+        };
+        let kyoto: Vec<i64> = (1200..1210).collect();
+        let lisbon: Vec<i64> = (1300..1310).collect();
+
+        assert_eq!(told(&[]), HashSet::from([kyoto.clone(), lisbon.clone()]));
+        assert_eq!(told(&["one-day:2026-04-16:1200"]), HashSet::from([lisbon]));
+        assert_eq!(told(&["one-day:2026-04-16:1300"]), HashSet::from([kyoto]));
+    }
+
+    #[test]
     fn names_the_city_most_of_the_day_was_spent_in() {
         let travel = travel_day(1000, "2026-04-16", &FULL_DAY, KYOTO);
 
@@ -376,7 +428,7 @@ mod tests {
         travel.extend(travel_day(2000, "2026-07-01", &FULL_DAY[1..], LISBON));
         let shown = |days_ago: i64| MemoriesRequest {
             shown_specials: vec![ShownSpecial {
-                key: "one-day:2025-04-16".to_owned(),
+                key: "one-day:2025-04-16:1000".to_owned(),
                 last_time_shown: micros(NOW) - days_ago * MICROS_PER_DAY,
             }],
             ..request(travel.clone())
