@@ -9,6 +9,7 @@ import (
 
 	"github.com/ente/museum/pkg/controller"
 	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/museum/pkg/utils/rollout"
 	"github.com/spf13/viper"
 	"golang.org/x/net/idna"
 
@@ -26,6 +27,11 @@ type Controller struct {
 	UserRepo    *repo.UserRepository
 	FamilyRepo  *repo.FamilyRepository
 }
+
+const (
+	previewUploadV2RolloutNonce      = "preview-upload-v2"
+	previewUploadV2RolloutPercentage = 10
+)
 
 func (c *Controller) InsertOrUpdate(ctx *gin.Context, request ente.UpdateKeyValueRequest) error {
 	userID := auth.GetUserID(ctx.Request.Header)
@@ -132,7 +138,7 @@ func (c *Controller) GetFeatureFlags(ctx *gin.Context) (*ente.FeatureFlagRespons
 		}
 	}
 
-	if response.InternalUser {
+	if response.InternalUser || rollout.IsInPercentageRollout(userID, previewUploadV2RolloutNonce, previewUploadV2RolloutPercentage) {
 		response.ServerApiFlag |= ente.PreviewUploadV2
 	}
 	return response, nil
