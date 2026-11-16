@@ -57,6 +57,7 @@ export const SingleInputForm: React.FC<SingleInputFormProps> = ({
     const inputID = useId();
     const helperID = useId();
     const [showPassword, setShowPassword] = useState(false);
+    const isPasswordInput = inputType === "password";
 
     const handleToggleShowHidePassword = useCallback(
         () => setShowPassword((show) => !show),
@@ -78,7 +79,9 @@ export const SingleInputForm: React.FC<SingleInputFormProps> = ({
             try {
                 await onSubmit(value, setValueFieldError);
             } catch (e) {
-                log.error(`Failed to submit input ${value}`, e);
+                if (!isPasswordInput) {
+                    log.error("Failed to submit input", e);
+                }
                 setValueFieldError(t("generic_error"));
             }
         },
@@ -130,7 +133,7 @@ export const SingleInputForm: React.FC<SingleInputFormProps> = ({
                     error={!!error}
                     sx={v2InputSx}
                     endAdornment={
-                        inputType == "password" ? (
+                        isPasswordInput ? (
                             <ShowHidePasswordInputAdornment
                                 showPassword={showPassword}
                                 onToggle={handleToggleShowHidePassword}
