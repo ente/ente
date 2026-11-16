@@ -108,6 +108,8 @@ export interface ChatMessageListProps {
     /** To Do changes made by assistant replies, keyed by reply id. */
     todoTurns: Record<string, TodoTurnStatus>;
     onUndoTodoTurn: (message: ChatMessage) => void;
+    /** Makes the changes a reply offered. */
+    onConfirmTodoTurn: (message: ChatMessage) => void;
     onPrevBranch: (switcher: BranchSwitcher) => void;
     onNextBranch: (switcher: BranchSwitcher) => void;
     onRequestPreview: (attachment: ChatAttachment, sessionUuid: string) => void;
@@ -425,6 +427,7 @@ interface MessageRowProps {
     onRetryMessage: (message: ChatMessage) => void;
     todoTurn: TodoTurnStatus | undefined;
     onUndoTodoTurn: (message: ChatMessage) => void;
+    onConfirmTodoTurn: (message: ChatMessage) => void;
     onPrevBranch: (switcher: BranchSwitcher) => void;
     onNextBranch: (switcher: BranchSwitcher) => void;
     attachmentPreviews: Record<string, string>;
@@ -460,6 +463,7 @@ const MessageRow = memo(
         onRetryMessage,
         todoTurn,
         onUndoTodoTurn,
+        onConfirmTodoTurn,
         onPrevBranch,
         onNextBranch,
         attachmentPreviews,
@@ -775,21 +779,37 @@ const MessageRow = memo(
                                 </IconButton>
                                 {todoTurn ? (
                                     // A To Do receipt is a record of changes
-                                    // already made, so it can be undone but
-                                    // not regenerated.
-                                    todoTurn.changed && (
-                                        <Button
-                                            size="small"
-                                            disabled={todoTurn.undone}
-                                            onClick={() =>
-                                                onUndoTodoTurn(message)
-                                            }
-                                        >
-                                            {todoTurn.undone
-                                                ? "Undone"
-                                                : "Undo"}
-                                        </Button>
-                                    )
+                                    // made or offered, so it can be confirmed
+                                    // or undone but not regenerated.
+                                    <>
+                                        {todoTurn.pending &&
+                                            !todoTurn.undone && (
+                                                <Button
+                                                    size="small"
+                                                    variant="contained"
+                                                    onClick={() =>
+                                                        onConfirmTodoTurn(
+                                                            message,
+                                                        )
+                                                    }
+                                                >
+                                                    Confirm
+                                                </Button>
+                                            )}
+                                        {todoTurn.changed && (
+                                            <Button
+                                                size="small"
+                                                disabled={todoTurn.undone}
+                                                onClick={() =>
+                                                    onUndoTodoTurn(message)
+                                                }
+                                            >
+                                                {todoTurn.undone
+                                                    ? "Undone"
+                                                    : "Undo"}
+                                            </Button>
+                                        )}
+                                    </>
                                 ) : (
                                     <IconButton
                                         aria-label="Retry"
@@ -967,6 +987,7 @@ export const ChatMessageList = memo(
         onRetryMessage,
         todoTurns,
         onUndoTodoTurn,
+        onConfirmTodoTurn,
         onPrevBranch,
         onNextBranch,
         onRequestPreview,
@@ -1035,6 +1056,7 @@ export const ChatMessageList = memo(
                         onRetryMessage={onRetryMessage}
                         todoTurn={todoTurns[message.messageUuid]}
                         onUndoTodoTurn={onUndoTodoTurn}
+                        onConfirmTodoTurn={onConfirmTodoTurn}
                         onPrevBranch={onPrevBranch}
                         onNextBranch={onNextBranch}
                         attachmentPreviews={attachmentPreviews}
@@ -1078,6 +1100,7 @@ export const ChatMessageList = memo(
                 onRequestPreview,
                 onRetryMessage,
                 onUndoTodoTurn,
+                onConfirmTodoTurn,
                 todoTurns,
                 parseDocumentBlocks,
                 smallIconProps,

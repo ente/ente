@@ -78,6 +78,7 @@ import { tauriCommandError } from "@/services/tauri-error";
 import { isTauriRuntime as detectTauriAppRuntime } from "@/services/tauri-runtime";
 import {
     applyTodoCalls,
+    confirmTodoTurn,
     loadTodoTurnStatuses,
     undoTodoTurn,
     type TodoTurnStatus,
@@ -2500,11 +2501,37 @@ const Page: React.FC = () => {
                 await undoTodoTurn(message.messageUuid);
                 setTodoTurns((prev) => ({
                     ...prev,
-                    [message.messageUuid]: { changed: true, undone: true },
+                    [message.messageUuid]: {
+                        changed: true,
+                        undone: true,
+                        pending: false,
+                    },
                 }));
             } catch (error) {
                 showMiniDialog({
                     title: "Couldn't undo",
+                    message: formatErrorMessage(error),
+                });
+            }
+        },
+        [showMiniDialog, formatErrorMessage],
+    );
+
+    const handleConfirmTodoTurn = useCallback(
+        async (message: ChatMessage) => {
+            try {
+                await confirmTodoTurn(message.messageUuid);
+                setTodoTurns((prev) => ({
+                    ...prev,
+                    [message.messageUuid]: {
+                        changed: true,
+                        undone: false,
+                        pending: false,
+                    },
+                }));
+            } catch (error) {
+                showMiniDialog({
+                    title: "Couldn't confirm",
                     message: formatErrorMessage(error),
                 });
             }
@@ -3560,10 +3587,13 @@ const Page: React.FC = () => {
                 const preparedReply = preparedReplyRef.current;
                 if (toolCalls.length > 0 && preparedReply && !errorMessage) {
                     // The model called the To Do tools: the native layer
-                    // applies them and saves its receipt as the reply.
+                    // applies them, or offers them for the user to confirm
+                    // when the model was unsure, and saves its receipt as
+                    // the reply.
                     const turn = await applyTodoCalls(
                         parentMessageUuid,
                         toolCalls,
+                        summary?.tools?.call_probability ?? null,
                         preparedReply.preparationToken,
                     );
                     if (!isActiveGeneration()) return;
@@ -3572,6 +3602,7 @@ const Page: React.FC = () => {
                         [turn.reply.messageUuid]: {
                             changed: turn.changed,
                             undone: false,
+                            pending: turn.pending,
                         },
                     }));
                     void updateBranchSelectionState(
@@ -4833,6 +4864,7 @@ const Page: React.FC = () => {
                             onRetryMessage={handleRetryMessage}
                             todoTurns={todoTurns}
                             onUndoTodoTurn={handleUndoTodoTurn}
+                            onConfirmTodoTurn={handleConfirmTodoTurn}
                             onPrevBranch={handlePrevBranch}
                             onNextBranch={handleNextBranch}
                             onRequestPreview={loadAttachmentPreview}

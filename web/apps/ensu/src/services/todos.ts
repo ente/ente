@@ -21,11 +21,14 @@ export interface Todo {
 export interface TodoTurn {
     reply: ChatMessage;
     changed: boolean;
+    /** The reply offers changes the user can make with {@link confirmTodoTurn}. */
+    pending: boolean;
 }
 
 export interface TodoTurnStatus {
     changed: boolean;
     undone: boolean;
+    pending: boolean;
 }
 
 export const listTodos = () => invoke<Todo[]>("todo_list");
@@ -55,17 +58,38 @@ export const deleteTodo = async (todo: Todo) => {
 /**
  * Applies the tool calls a reply produced for the user message `sourceId`
  * and returns the saved receipt, which replaces the prepared answer.
+ * `callProbability` is the model's confidence in the calls: below a
+ * threshold, saves and completions are offered for confirmation instead.
  */
 export const applyTodoCalls = async (
     sourceId: string,
     calls: LlmToolCall[],
+    callProbability: number | null,
     preparationToken?: string,
 ): Promise<TodoTurn> => {
-    const turn = await invoke<{ reply: NativeMessage; changed: boolean }>(
-        "todo_apply_calls",
-        { sourceId, calls, nowMs: Date.now(), preparationToken },
-    );
-    return { reply: fromNativeMessage(turn.reply), changed: turn.changed };
+    const turn = await invoke<{
+        reply: NativeMessage;
+        changed: boolean;
+        pending: boolean;
+    }>("todo_apply_calls", {
+        input: {
+            sourceId,
+            calls,
+            nowMs: Date.now(),
+            callProbability,
+            preparationToken,
+        },
+    });
+    return {
+        reply: fromNativeMessage(turn.reply),
+        changed: turn.changed,
+        pending: turn.pending,
+    };
+};
+
+/** Makes the changes a reply offered. */
+export const confirmTodoTurn = async (replyId: string) => {
+    await invoke("todo_confirm", { replyId });
 };
 
 export const undoTodoTurn = async (replyId: string) => {
