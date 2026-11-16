@@ -15,6 +15,7 @@ import "package:photos/models/memories/memory.dart";
 import "package:photos/models/memories/on_this_day_memory.dart";
 import "package:photos/models/memories/people_memory.dart";
 import "package:photos/models/memories/smart_memory.dart";
+import "package:photos/models/memories/special_memory.dart";
 import "package:photos/models/memories/time_memory.dart";
 import "package:photos/models/memories/trip_memory.dart";
 import "package:photos/models/ml/face/person.dart";
@@ -233,6 +234,11 @@ class RustMemoriesComputer implements MemoriesComputer {
             lastTimeShown: log.lastTimeShown,
           ),
       ],
+      shownSpecials: [
+        for (final log in oldCache?.specialShownLogs ?? <SpecialShownLog>[])
+          rust.ShownSpecial(key: log.key, lastTimeShown: log.lastTimeShown),
+      ],
+      showsSpecials: flagService.newMemories,
       surfaceAll: surfaceAll,
       localGalleryMode: isLocalGalleryMode,
       seed: _seed(),
@@ -375,8 +381,49 @@ class _Inputs {
         first,
         last,
       ),
+      rust.MemoryKind_Special(field0: final special) => _specialMemory(
+        memories,
+        first,
+        last,
+        special,
+      ),
     };
   }
+
+  SpecialMemory _specialMemory(
+    List<Memory> memories,
+    int first,
+    int last,
+    rust.Special special,
+  ) => switch (special.format) {
+    rust.SpecialFormat_ThenAndNow(field0: final pair) => ThenAndNowMemory(
+      memories,
+      first,
+      last,
+      special.key,
+      locationName: pair.locationName,
+      thenYear: pair.thenYear,
+      nowYear: pair.nowYear,
+      yearsApart: pair.yearsApart,
+    ),
+    rust.SpecialFormat_YearInAFlash(:final year) => YearInAFlashMemory(
+      memories,
+      first,
+      last,
+      special.key,
+      year: year,
+    ),
+    rust.SpecialFormat_OneDay(field0: final day) => OneDayMemory(
+      memories,
+      first,
+      last,
+      special.key,
+      date: DateTime(day.date.year, day.date.month, day.date.day),
+      latitude: day.location.latitude,
+      longitude: day.location.longitude,
+      locationName: day.locationName,
+    ),
+  };
 
   static int _resolveBoundary(rust.MemoryBoundary boundary) =>
       switch (boundary) {

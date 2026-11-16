@@ -3,9 +3,9 @@ use ente_photos::memories;
 use ente_photos::memories::CityLookup;
 pub use ente_photos::memories::{
     BaseLocation, BaseMemory, Birthday, CachedTrip, ClipMemoryType, LocalDate, MemoriesRequest,
-    Memory, MemoryBoundary, MemoryFile, MemoryKind, MemoryPerson, PeopleActivity, PeopleMemory,
-    PeopleMemoryType, Period, ShownClipMemory, ShownPerson, ShownTrip, SmartMemories, TimeMemory,
-    TripDetection, TripMemory,
+    Memory, MemoryBoundary, MemoryFile, MemoryKind, MemoryPerson, OneDay, PeopleActivity,
+    PeopleMemory, PeopleMemoryType, Period, ShownClipMemory, ShownPerson, ShownSpecial, ShownTrip,
+    SmartMemories, Special, SpecialFormat, ThenAndNow, TimeMemory, TripDetection, TripMemory,
 };
 use flutter_rust_bridge::frb;
 
@@ -49,6 +49,8 @@ pub struct _MemoriesRequest {
     pub shown_trips: Vec<ShownTrip>,
     pub cached_trips: Vec<CachedTrip>,
     pub shown_clip_memories: Vec<ShownClipMemory>,
+    pub shown_specials: Vec<ShownSpecial>,
+    pub shows_specials: bool,
     pub surface_all: bool,
     pub local_gallery_mode: bool,
     pub seed: u64,
@@ -78,6 +80,12 @@ pub struct _ShownTrip {
 #[frb(mirror(ShownClipMemory))]
 pub struct _ShownClipMemory {
     pub kind: ClipMemoryType,
+    pub last_time_shown: i64,
+}
+
+#[frb(mirror(ShownSpecial))]
+pub struct _ShownSpecial {
+    pub key: String,
     pub last_time_shown: i64,
 }
 
@@ -136,6 +144,35 @@ pub enum _MemoryKind {
     Clip(ClipMemoryType),
     Time(TimeMemory),
     Filler { years_ago: i32 },
+    Special(Special),
+}
+
+#[frb(mirror(Special))]
+pub struct _Special {
+    pub key: String,
+    pub format: SpecialFormat,
+}
+
+#[frb(mirror(SpecialFormat))]
+pub enum _SpecialFormat {
+    ThenAndNow(ThenAndNow),
+    YearInAFlash { year: i32 },
+    OneDay(OneDay),
+}
+
+#[frb(mirror(ThenAndNow))]
+pub struct _ThenAndNow {
+    pub location_name: Option<String>,
+    pub then_year: i32,
+    pub now_year: i32,
+    pub years_apart: i32,
+}
+
+#[frb(mirror(OneDay))]
+pub struct _OneDay {
+    pub date: LocalDate,
+    pub location: Coordinate,
+    pub location_name: Option<String>,
 }
 
 #[frb(mirror(PeopleMemory))]

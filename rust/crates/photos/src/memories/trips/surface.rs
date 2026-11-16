@@ -143,6 +143,25 @@ pub(in crate::memories) fn memories(
         .collect()
 }
 
+pub(in crate::memories) fn photos_on_screen(
+    analysis: &TripAnalysis,
+    history: &TripHistory,
+    period: Period,
+) -> HashSet<i64> {
+    let current: HashSet<&str> = analysis
+        .trips
+        .iter()
+        .map(|trip| trip.key.as_str())
+        .collect();
+    let active = history.active_identity_keys(period.now);
+    analysis
+        .trips
+        .iter()
+        .filter(|trip| is_on_screen(trip, &active, &current))
+        .flat_map(|trip| trip.members.iter().map(|member| member.photo.id))
+        .collect()
+}
+
 pub(in crate::memories) fn all_memories(
     analysis: &TripAnalysis,
     places: &Places,
@@ -203,11 +222,10 @@ fn scheduled<'a, 'p>(
     if slots == 0 || trips.is_empty() {
         return Vec::new();
     }
-    let (on_screen, waiting): (Vec<&Trip>, Vec<&Trip>) = trips.iter().copied().partition(|trip| {
-        active
-            .iter()
-            .any(|identity_key| is_same_trip(trip_key(identity_key), trip, current))
-    });
+    let (on_screen, waiting): (Vec<&Trip>, Vec<&Trip>) = trips
+        .iter()
+        .copied()
+        .partition(|trip| is_on_screen(trip, &active, current));
     let candidates: Vec<Candidate> = waiting
         .into_iter()
         .map(|trip| {
@@ -413,6 +431,12 @@ fn identity_key(trip_key: &str) -> String {
 
 fn trip_key(identity_key: &str) -> &str {
     identity_key.strip_prefix("trip:").unwrap_or(identity_key)
+}
+
+fn is_on_screen(trip: &Trip, active: &[&str], current: &HashSet<&str>) -> bool {
+    active
+        .iter()
+        .any(|identity_key| is_same_trip(trip_key(identity_key), trip, current))
 }
 
 fn is_same_trip(key: &str, trip: &Trip, current: &HashSet<&str>) -> bool {

@@ -89,6 +89,12 @@ impl Places {
         Some(normalized(&self.places[tally.biggest].country)).filter(|country| !country.is_empty())
     }
 
+    pub(super) fn city(&self, photo_id: i64) -> Option<&str> {
+        self.place_of_photo
+            .get(&photo_id)
+            .map(|&place| self.places[place].city.as_str())
+    }
+
     pub(super) fn country_code(&self, photo_id: i64) -> Option<CountryCode> {
         self.place_of_photo
             .get(&photo_id)
