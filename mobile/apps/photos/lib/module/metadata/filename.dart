@@ -43,9 +43,21 @@ DateTime? parseDateTimeFromFileName(
       );
   if (hasCompactDate) return null;
   final date = matches.single;
+  final time = _filenameTime.matchAsPrefix(fileName, date.end);
+  var timestampEnd = time?.end ?? date.end;
+  if (time != null &&
+      time[6] == null &&
+      (fileName[date.end] == ' ' || fileName[date.end] == 'T')) {
+    timestampEnd =
+        _filenameCompactOffset.matchAsPrefix(fileName, timestampEnd)?.end ??
+        timestampEnd;
+  }
   final digitGroups = RegExp(r'\d+').allMatches(fileName).toList();
   for (var i = 0; i + 2 < digitGroups.length; i++) {
-    if (digitGroups[i].start == date.start) continue;
+    if (digitGroups[i].start < timestampEnd &&
+        digitGroups[i + 2].end > date.start) {
+      continue;
+    }
     final year = int.tryParse(digitGroups[i][0]!);
     final month = int.tryParse(digitGroups[i + 1][0]!);
     final day = int.tryParse(digitGroups[i + 2][0]!);

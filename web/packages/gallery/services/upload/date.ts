@@ -97,16 +97,19 @@ export const parseDateFromDigitGroups = (s: string) => {
     const date = parseDateFromLeadingDigitGroups(s);
     if (date) return date;
 
-    const matches = [
-        ...s.matchAll(
-            /(?<!\d)\d{4}([-.])\d{2}\1\d{2}(?!\d)(?:[ T_-]\d{2}([:.-])\d{2}\2\d{2}(?!\d))?/g,
-        ),
-    ];
+    const matches = [...s.matchAll(/(?<!\d)\d{4}([-.])\d{2}\1\d{2}(?!\d)/g)];
     if (matches.length != 1) return undefined;
     const selectedDate = matches[0]!;
+    const time =
+        /^[ T_-]\d{1,2}([:.-])\d{1,2}\1\d{1,2}(?:[.,]\d+)?(?:[zZ]|[+-]\d{2}:?\d{2})?(?!\d)/.exec(
+            s.slice(selectedDate.index + selectedDate[0].length),
+        );
+    const timestamp = selectedDate[0] + (time?.[0] ?? "");
+    const timestampEnd = selectedDate.index + timestamp.length;
     const groups = [...s.matchAll(/\d+/g)];
     const hasAnotherDate = groups.some((group, index) => {
-        if (group.index == selectedDate.index) return false;
+        if (group.index >= selectedDate.index && group.index < timestampEnd)
+            return false;
         const values = groups.slice(index, index + 6).map((match) => match[0]);
         return (
             parseDateFromDigitGroupValues(values) !== undefined ||
@@ -116,7 +119,7 @@ export const parseDateFromDigitGroups = (s: string) => {
     });
     if (hasAnotherDate) return undefined;
 
-    return parseDateFromLeadingDigitGroups(selectedDate[0]);
+    return parseDateFromLeadingDigitGroups(timestamp);
 };
 
 const parseDateFromLeadingDigitGroups = (s: string) =>
