@@ -1,5 +1,5 @@
 import type { LockerUploadProgress } from "@/services/uploads";
-import type { LockerUploadCandidate } from "@/types";
+import type { LockerCollection, LockerUploadCandidate } from "@/types";
 
 export const normalizeCollectionName = (name: string) =>
     name.trim().toLocaleLowerCase();
@@ -17,23 +17,42 @@ export const dedupeCollectionNames = (names: string[]) => {
     });
 };
 
-export const addCollectionName = (names: string[], name: string) =>
-    dedupeCollectionNames([...names, name.trim()]);
+export type UploadDestination =
+    | { kind: "existing"; id: number }
+    | { kind: "new"; name: string }
+    | { kind: "ambiguous"; name: string };
 
-export const toggleCollectionName = (names: string[], name: string) => {
-    const normalizedName = normalizeCollectionName(name);
-    if (!normalizedName) {
-        return names;
+export type UploadDestinationsByFileKey = Record<string, UploadDestination[]>;
+
+export const uploadDestinationKey = (destination: UploadDestination) =>
+    destination.kind === "existing"
+        ? `existing:${destination.id}`
+        : `${destination.kind}:${normalizeCollectionName(destination.name)}`;
+
+export const toggleUploadDestination = (
+    selected: UploadDestination[],
+    destination: UploadDestination,
+    collections: LockerCollection[],
+): UploadDestination[] => {
+    const key = uploadDestinationKey(destination);
+    if (selected.some((candidate) => uploadDestinationKey(candidate) === key)) {
+        return selected.filter(
+            (candidate) => uploadDestinationKey(candidate) !== key,
+        );
     }
+    if (destination.kind !== "existing") return [...selected, destination];
 
-    return names.some(
-        (candidate) => normalizeCollectionName(candidate) === normalizedName,
-    )
-        ? names.filter(
-              (candidate) =>
-                  normalizeCollectionName(candidate) !== normalizedName,
-          )
-        : addCollectionName(names, name);
+    const collection = collections.find(({ id }) => id === destination.id);
+    return [
+        ...selected.filter(
+            (candidate) =>
+                candidate.kind === "existing" ||
+                !collection ||
+                normalizeCollectionName(candidate.name) !==
+                    normalizeCollectionName(collection.name),
+        ),
+        destination,
+    ];
 };
 
 const uploadItemKeySuffixByFile = new WeakMap<File, string>();
@@ -56,18 +75,78 @@ export const uploadItemParentPath = (item: LockerUploadCandidate) => {
     return segments.slice(0, -1).join("/");
 };
 
-export const collectionNamesByUploadItem = (
+export const updateUploadDestinations = (
+    current: UploadDestinationsByFileKey,
+    fileKey: string | undefined,
     items: LockerUploadCandidate[],
-    defaultCollectionName?: string,
-) =>
-    Object.fromEntries(
+    completedFileKeys: ReadonlySet<string>,
+    change: (destinations: UploadDestination[]) => UploadDestination[],
+): UploadDestinationsByFileKey => {
+    const next = { ...current };
+    const keys =
+        fileKey === undefined ? items.map(uploadQueueItemKey) : [fileKey];
+    for (const key of keys) {
+        if (!completedFileKeys.has(key)) {
+            next[key] = change(current[key] ?? []);
+        }
+    }
+    return next;
+};
+
+export const uploadDestinationsByItem = (
+    items: LockerUploadCandidate[],
+    collections: LockerCollection[],
+    defaultCollectionID?: number | null,
+): UploadDestinationsByFileKey => {
+    const destinationsForItem = (
+        item: LockerUploadCandidate,
+    ): UploadDestination[] => {
+        const suggestions = dedupeCollectionNames(
+            item.suggestedCollectionNames,
+        );
+        if (!suggestions.length) {
+            return defaultCollectionID == null
+                ? []
+                : [{ kind: "existing", id: defaultCollectionID }];
+        }
+
+        return suggestions.map((name) => {
+            const matches = collections.filter(
+                (collection) =>
+                    normalizeCollectionName(collection.name) ===
+                    normalizeCollectionName(name),
+            );
+            if (matches.length > 1) return { kind: "ambiguous", name };
+            const match = matches[0];
+            return match
+                ? { kind: "existing", id: match.id }
+                : { kind: "new", name: name.trim() };
+        });
+    };
+
+    return Object.fromEntries(
         items.map((item) => [
             uploadQueueItemKey(item),
-            item.suggestedCollectionNames.length > 0
-                ? dedupeCollectionNames(item.suggestedCollectionNames)
-                : defaultCollectionName
-                  ? [defaultCollectionName]
-                  : [],
+            destinationsForItem(item),
+        ]),
+    );
+};
+
+export const replaceCreatedUploadDestination = (
+    selections: UploadDestinationsByFileKey,
+    name: string,
+    id: number,
+): UploadDestinationsByFileKey =>
+    Object.fromEntries(
+        Object.entries(selections).map(([fileKey, destinations]) => [
+            fileKey,
+            destinations.map((destination) =>
+                destination.kind === "new" &&
+                normalizeCollectionName(destination.name) ===
+                    normalizeCollectionName(name)
+                    ? { kind: "existing", id }
+                    : destination,
+            ),
         ]),
     );
 

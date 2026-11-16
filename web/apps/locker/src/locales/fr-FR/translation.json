@@ -1,4 +1,9 @@
 {
+    "uploadDestinationUnavailable": "Cette collection n’est plus disponible. Choisissez une autre destination ou retirez-la de l’envoi.",
+    "uploadDestinationNeedsChoice": "Choisissez une collection pour « {{name}} » ou retirez la suggestion avant l’envoi.",
+    "uploadDestinationUnavailableLabel": "Collection indisponible (n° {{id}})",
+    "uploadDestinationNeedsChoiceLabel": "{{name}} (choisir une collection)",
+    "uploadDestinationShared": "{{name}} (partagée)",
     "saveToLocker": "Enregistrer dans Locker",
     "saveDocumentsTitle": "Documents",
     "informationDescription": "Enregistre et partage des informations avec tes proches.",
