@@ -274,6 +274,9 @@ class FileUploader {
         return null;
       }
       _queue.fail(item, e);
+      if (e is DioException && e.response?.statusCode == 429) {
+        await Future<void>.delayed(const Duration(seconds: 5));
+      }
       return null;
     } finally {
       _queue.finishAttempt(item);

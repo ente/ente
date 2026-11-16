@@ -124,7 +124,7 @@ void main() {
     expect(fixture.dio.putPaths, ["url", "url", "url", "url"]);
     expect(fixture.gateway.uploadURLRequests, hasLength(1));
     expect(fixture.dio.payloads, everyElement([1, 2, 3, 4]));
-    expect(fixture.delays, List.filled(3, const Duration(seconds: 5)));
+    expect(fixture.delays, _expectedPutRetryDelays);
   });
 
   test("PUT stops after four failures", () async {
@@ -144,7 +144,7 @@ void main() {
 
     expect(fixture.dio.putPaths, hasLength(4));
     expect(fixture.gateway.uploadURLRequests, hasLength(1));
-    expect(fixture.delays, List.filled(3, const Duration(seconds: 5)));
+    expect(fixture.delays, _expectedPutRetryDelays);
   });
 
   test("PUT retries response failures without clearing the queue", () async {
@@ -161,7 +161,7 @@ void main() {
       );
       expect(fixture.gateway.uploadURLRequests, hasLength(1));
       expect(fixture.clearedErrors, isEmpty);
-      expect(fixture.delays, [const Duration(seconds: 5)]);
+      expect(fixture.delays, [const Duration(seconds: 2)]);
     }
   });
 
@@ -496,6 +496,12 @@ const _expectedUpdateRequest = <String, dynamic>{
   "encryptedMetadata": "metadata",
   "metadataDecryptionHeader": "metadata-header",
 };
+
+const _expectedPutRetryDelays = [
+  Duration(seconds: 2),
+  Duration(seconds: 5),
+  Duration(seconds: 10),
+];
 
 class _Fixture {
   _Fixture() {

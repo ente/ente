@@ -48,7 +48,11 @@ class UploadTransport {
 
   static const maximumAttempts = 4;
   static const apiRetryDelay = Duration(seconds: 3);
-  static const putRetryDelay = Duration(seconds: 5);
+  static const _putRetryDelays = [
+    Duration(seconds: 2),
+    Duration(seconds: 5),
+    Duration(seconds: 10),
+  ];
 
   final _logger = Logger("UploadTransport");
   final Dio _dio;
@@ -174,13 +178,14 @@ class UploadTransport {
       } else if (error.message?.startsWith("HttpException: Content size") ??
           false) {
         rethrow;
-      } else if (attempt < maximumAttempts) {
+      } else if (attempt <= _putRetryDelays.length) {
+        final retryDelay = _putRetryDelays[attempt - 1];
         _logger.info(
           "Upload failed for $fileName after sending ${formatBytes(bytesSent)} "
           "of ${formatBytes(fileSize)}, retrying attempt ${attempt + 1} "
-          "in ${putRetryDelay.inSeconds} seconds",
+          "in ${retryDelay.inSeconds} seconds",
         );
-        await _delay(putRetryDelay);
+        await _delay(retryDelay);
         return _putFile(
           uploadURL,
           file,
