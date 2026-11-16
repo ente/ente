@@ -5,7 +5,7 @@ use ente_location::{Coordinate, CountryCode};
 
 use super::{AWAY_MIN_KM, Placed};
 use crate::memories::calendar::LocalDate;
-use crate::memories::geo::{Located, cluster_by_location, distance_km, merge_nearby_clusters};
+use crate::memories::geo::{Located, cluster_by_location, merge_nearby_clusters};
 use crate::memories::input::CityLookup;
 
 const HOME_RADIUS_KM: f64 = 0.6;
@@ -46,7 +46,7 @@ impl Home<'_> {
     }
 
     fn surrounds(&self, location: Coordinate, urban_center: Option<u32>) -> bool {
-        distance_km(self.center, location) < AWAY_MIN_KM
+        self.center.distance_km(location) < AWAY_MIN_KM
             || (self.urban_center.is_some() && self.urban_center == urban_center)
     }
 }
@@ -119,7 +119,7 @@ impl<'p> Homes<'p> {
             .any(|home| home.surrounds(point.member.location, point.urban_center))
             || self.homes.iter().any(|home| {
                 days_outside(&home.regular, day) == 0
-                    && distance_km(home.center, point.member.location) < REGULAR_PLACE_RADIUS_KM
+                    && home.center.distance_km(point.member.location) < REGULAR_PLACE_RADIUS_KM
             })
     }
 
