@@ -21,7 +21,12 @@ import (
 
 const PreSignedRequestValidityDuration = 7 * 24 * stime.Hour
 
-func (c *Controller) getUploadURL(object ente.TempObject) (string, error) {
+func (c *Controller) getUploadURL(ctx context.Context, object ente.TempObject) (string, error) {
+	release, err := c.UsageCtrl.ReserveUploadURLs(ctx, object.UserID, object.ContentLength, 1)
+	if err != nil {
+		return "", err
+	}
+	defer release()
 	s3Client := c.S3Config.GetS3Client(object.BucketId)
 	r, _ := s3Client.PutObjectRequest(&s3.PutObjectInput{
 		Bucket:        c.S3Config.GetBucket(object.BucketId),
@@ -39,7 +44,12 @@ func (c *Controller) getUploadURL(object ente.TempObject) (string, error) {
 	}
 	return url, nil
 }
-func (c *Controller) getMultiPartUploadURL(object ente.TempObject, count int64, partLength int64, partMD5s []string) (*ente.MultipartUploadURLs, error) {
+func (c *Controller) getMultiPartUploadURL(ctx context.Context, object ente.TempObject, count int64, partLength int64, partMD5s []string) (*ente.MultipartUploadURLs, error) {
+	release, err := c.UsageCtrl.ReserveUploadURLs(ctx, object.UserID, object.ContentLength, 1)
+	if err != nil {
+		return nil, err
+	}
+	defer release()
 	s3Client := c.S3Config.GetS3Client(object.BucketId)
 	bucket := c.S3Config.GetBucket(object.BucketId)
 	r, err := s3Client.CreateMultipartUpload(&s3.CreateMultipartUploadInput{

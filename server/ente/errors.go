@@ -38,6 +38,12 @@ var ErrSmallUploadLimitReached = &ApiError{
 	HttpStatusCode: http.StatusTooManyRequests,
 }
 
+var ErrPendingUploadLimitReached = &ApiError{
+	Code:           "PENDING_UPLOAD_LIMIT_REACHED",
+	Message:        "Too many pending uploads. Please complete existing uploads or try again later.",
+	HttpStatusCode: http.StatusTooManyRequests,
+}
+
 var ErrUnexpectedState = errors.New("unexpected state")
 
 var ErrCannotDowngrade = errors.New("usage is greater than selected plan, cannot downgrade")

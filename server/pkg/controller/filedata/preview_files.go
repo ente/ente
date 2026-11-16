@@ -41,7 +41,7 @@ func (c *Controller) PreviewUploadURL(ctx *gin.Context, request filedata.Preview
 		return nil, err
 	}
 	if request.IsMultiPart {
-		multiPartUploadURLs, err2 := c.getMultiPartUploadURL(object, *request.Count, 0, nil)
+		multiPartUploadURLs, err2 := c.getMultiPartUploadURL(ctx.Request.Context(), object, *request.Count, 0, nil)
 		if err2 != nil {
 			return nil, stacktrace.Propagate(err2, "")
 		}
@@ -51,7 +51,7 @@ func (c *Controller) PreviewUploadURL(ctx *gin.Context, request filedata.Preview
 			CompleteURL: &multiPartUploadURLs.CompleteURL,
 		}, nil
 	}
-	url, err := c.getUploadURL(object)
+	url, err := c.getUploadURL(ctx.Request.Context(), object)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
@@ -71,7 +71,7 @@ func (c *Controller) PreviewUploadURLWithMetadata(ctx *gin.Context, request file
 	}
 	object.ContentLength = &request.ContentLength
 	object.ContentMD5 = &request.ContentMD5
-	url, err := c.getUploadURL(object)
+	url, err := c.getUploadURL(ctx.Request.Context(), object)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +87,7 @@ func (c *Controller) MultipartPreviewUploadURLWithMetadata(ctx *gin.Context, req
 		return nil, err
 	}
 	object.ContentLength = &request.ContentLength
-	upload, err := c.getMultiPartUploadURL(object, int64(len(request.PartMD5s)), request.PartLength, request.PartMD5s)
+	upload, err := c.getMultiPartUploadURL(ctx.Request.Context(), object, int64(len(request.PartMD5s)), request.PartLength, request.PartMD5s)
 	if err != nil {
 		return nil, err
 	}
@@ -111,9 +111,6 @@ func (c *Controller) previewUploadObject(ctx *gin.Context, fileID int64, objectT
 		})); err != nil {
 			return "", ente.TempObject{}, err
 		}
-	}
-	if err := c.UsageCtrl.CheckUploadURLRateLimit(actorUser, contentLength); err != nil {
-		return "", ente.TempObject{}, err
 	}
 	id := filedata.NewUploadID(objectType)
 	return id, ente.TempObject{

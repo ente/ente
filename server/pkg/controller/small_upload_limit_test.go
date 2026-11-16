@@ -2,85 +2,14 @@ package controller
 
 import (
 	"database/sql"
-	"strconv"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/ente/museum/ente"
-	"github.com/patrickmn/go-cache"
 	"github.com/stretchr/testify/require"
 )
-
-func TestSmallUploadLimiterConcurrentRequests(t *testing.T) {
-	var limiter smallUploadLimiter
-	var accepted atomic.Int32
-	var wg sync.WaitGroup
-	for range 30 {
-		wg.Go(func() {
-			for range 40 {
-				if limiter.allow(1) {
-					accepted.Add(1)
-				}
-			}
-		})
-	}
-	wg.Wait()
-	require.EqualValues(t, 1000, accepted.Load())
-	require.False(t, limiter.allow(1))
-	require.True(t, limiter.allow(2))
-}
-
-func TestSmallUploadLimiterRollingWindow(t *testing.T) {
-	var limiter smallUploadLimiter
-	fillSmallUploadLimit(t, &limiter, 1)
-	value, ok := limiter.requests.Get("1")
-	require.True(t, ok)
-	requests := value.([]time.Time)
-	for i := range requests {
-		age := 9 * time.Minute
-		if i < 500 {
-			age = 11 * time.Minute
-		}
-		requests[i] = time.Now().Add(-age)
-	}
-	limiter.requests.Set("1", requests, cache.DefaultExpiration)
-	for range 500 {
-		require.True(t, limiter.allow(1))
-	}
-	require.False(t, limiter.allow(1))
-	value, ok = limiter.requests.Get("1")
-	require.True(t, ok)
-	require.Len(t, value.([]time.Time), 1000)
-}
-
-func TestSmallUploadLimiterCountsOverLimitAttempts(t *testing.T) {
-	var limiter smallUploadLimiter
-	fillSmallUploadLimit(t, &limiter, 1)
-	value, _ := limiter.requests.Get("1")
-	requests := value.([]time.Time)
-	for i := range requests {
-		requests[i] = time.Now().Add(-9 * time.Minute)
-	}
-	limiter.requests.Set("1", requests, cache.DefaultExpiration)
-	require.False(t, limiter.allow(1))
-	value, _ = limiter.requests.Get("1")
-	requests = value.([]time.Time)
-	for i := range requests {
-		if requests[i].Before(time.Now().Add(-8 * time.Minute)) {
-			requests[i] = time.Now().Add(-11 * time.Minute)
-		}
-	}
-	limiter.requests.Set("1", requests, cache.DefaultExpiration)
-	accepted := 0
-	for range 1000 {
-		if limiter.allow(1) {
-			accepted++
-		}
-	}
-	require.Equal(t, 999, accepted)
-}
 
 func TestSmallUploadLimitEntitlements(t *testing.T) {
 	for _, tc := range []struct {
@@ -152,9 +81,12 @@ func TestSmallUploadLimitEntitlements(t *testing.T) {
 				require.NoError(t, err)
 			}
 			c := fileController.UsageCtrl
-			fillSmallUploadLimit(t, &c.smallUploads, userID)
+			c.uploadLimits.state(userID).recordSmall(time.Now(), smallUploadShortLimit)
 			length := int64(32)
-			err := c.CheckUploadURLRateLimit(userID, &length)
+			release, err := c.ReserveUploadURLs(t.Context(), userID, &length, 1)
+			if release != nil {
+				release()
+			}
 			if tc.allowed {
 				require.NoError(t, err)
 			} else {
@@ -164,124 +96,135 @@ func TestSmallUploadLimitEntitlements(t *testing.T) {
 	}
 }
 
-func TestSmallUploadLimitSizeAndIssuanceScope(t *testing.T) {
-	fileController, _, userID := setupPhotoUploadLimitTest(t)
-	c := fileController.UsageCtrl
-	fillSmallUploadLimit(t, &c.smallUploads, userID)
-	for _, size := range []int64{1, 2047, 2048, 2049} {
-		err := c.CheckUploadURLRateLimit(userID, &size)
-		if size < 2048 {
+func TestSmallUploadConcurrentAdmission(t *testing.T) {
+	c := newUploadLimitTestController(0)
+	size := int64(32)
+	var accepted atomic.Int32
+	var wg sync.WaitGroup
+	for range 30 {
+		wg.Go(func() {
+			for range 40 {
+				release, err := c.ReserveUploadURLs(t.Context(), 1, &size, 1)
+				if err == nil {
+					accepted.Add(1)
+					release()
+				} else if !isSmallUploadError(err) {
+					t.Errorf("unexpected error: %v", err)
+				}
+			}
+		})
+	}
+	wg.Wait()
+	require.EqualValues(t, 1000, accepted.Load())
+}
+
+func TestSmallUploadRollingBudgets(t *testing.T) {
+	now := time.Date(2026, 11, 16, 1, 0, 0, 0, time.UTC)
+	var state uploadLimitState
+	state.recordSmall(now, 1000)
+	retryAt := state.smallRetryAt(now, 1)
+	require.Equal(t, now.Add(11*time.Minute), retryAt)
+	require.Equal(t, retryAt, state.smallRetryAt(now.Add(time.Minute), 1))
+	require.False(t, state.smallRetryAt(now.Add(10*time.Minute), 1).IsZero())
+	require.True(t, state.smallRetryAt(retryAt, 1).IsZero())
+	for i := 1; i < 10; i++ {
+		state.recordSmall(now.Add(time.Duration(i)*20*time.Minute), 1000)
+	}
+	require.Equal(t, now.Add(24*time.Hour+time.Minute), state.smallRetryAt(now.Add(4*time.Hour), 1))
+	require.True(t, state.smallRetryAt(now.Add(24*time.Hour+time.Minute), 1000).IsZero())
+	require.False(t, state.smallRetryAt(now.Add(24*time.Hour+time.Minute), 1001).IsZero())
+	require.True(t, state.smallRetryAt(now.Add(48*time.Hour), 1000).IsZero())
+	require.Empty(t, state.buckets)
+}
+
+func TestSmallUploadSizeAndIssuanceScope(t *testing.T) {
+	c := newUploadLimitTestController(0)
+	c.uploadLimits.state(1).recordSmall(time.Now(), 1000)
+	for _, size := range []int64{1, 32, 2048, 10239, 10240, 10241, 1000000} {
+		release, err := c.ReserveUploadURLs(t.Context(), 1, &size, 1)
+		if size < 10240 {
 			require.ErrorIs(t, err, ente.ErrSmallUploadLimitReached)
 		} else {
 			require.NoError(t, err)
+			release()
 		}
 	}
-	require.NoError(t, c.CheckUploadURLRateLimit(userID, nil))
+	_, err := c.ReserveUploadURLs(t.Context(), 1, nil, 1)
+	require.ErrorIs(t, err, ente.ErrSmallUploadLimitReached)
+	fc, _, userID := setupPhotoUploadLimitTest(t)
+	state := fc.UsageCtrl.uploadLimits.state(userID)
+	state.recordSmall(time.Now(), 1000)
+	state.blockedUntil = time.Now().Add(time.Hour)
 	length := int64(32)
-	require.NoError(t, c.CanUploadFile(t.Context(), userID, &length, ente.Photos))
+	require.NoError(t, fc.ValidateUploadEligibility(t.Context(), userID, ente.Photos))
+	require.NoError(t, fc.UsageCtrl.CanUploadFile(t.Context(), userID, &length, ente.Photos))
 }
 
-func TestSmallUploadLimitCachesEntitlements(t *testing.T) {
-	for _, tc := range []struct {
-		name string
-		paid bool
-	}{
-		{name: "free"},
-		{name: "paid", paid: true},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			fileController, db, userID := setupPhotoUploadLimitTest(t)
-			c := fileController.UsageCtrl
-			setPaid := func(paid bool) {
-				productID := ente.FreePlanProductID
-				if paid {
-					productID = "photos_yearly"
+func TestSmallUploadEntitlementCacheAndErrors(t *testing.T) {
+	for _, paid := range []bool{false, true} {
+		t.Run(map[bool]string{false: "free", true: "paid"}[paid], func(t *testing.T) {
+			fc, db, userID := setupPhotoUploadLimitTest(t)
+			c := fc.UsageCtrl
+			state := c.uploadLimits.state(userID)
+			state.recordSmall(time.Now(), 1000)
+			setPaid := func(p bool) {
+				product := ente.FreePlanProductID
+				if p {
+					product = "photos_yearly"
 				}
-				_, err := db.Exec(`UPDATE subscriptions SET product_id = $2 WHERE user_id = $1`, userID, productID)
+				_, err := db.Exec(`UPDATE subscriptions SET product_id=$2 WHERE user_id=$1`, userID, product)
 				require.NoError(t, err)
 			}
-			checkResult := func(paid bool, err error) {
-				if paid {
+			check := func(wantPaid bool) {
+				size := int64(32)
+				release, err := c.ReserveUploadURLs(t.Context(), userID, &size, 1)
+				if wantPaid {
 					require.NoError(t, err)
+					release()
 				} else {
 					require.ErrorIs(t, err, ente.ErrSmallUploadLimitReached)
 				}
 			}
-			setPaid(tc.paid)
-			fillSmallUploadLimit(t, &c.smallUploads, userID)
-			length := int64(32)
-			before := time.Now()
-			checkResult(tc.paid, c.CheckUploadURLRateLimit(userID, &length))
-			key := strconv.FormatInt(userID, 10)
-			value, expiry, ok := c.smallUploads.paidStatus.GetWithExpiration(key)
-			require.True(t, ok)
-			require.Equal(t, tc.paid, value)
-			require.False(t, expiry.Before(before.Add(30*time.Second)))
-			require.False(t, expiry.After(time.Now().Add(30*time.Second)))
-
-			setPaid(!tc.paid)
-			closedDB, err := sql.Open("postgres", "")
+			setPaid(paid)
+			closed, err := sql.Open("postgres", "")
 			require.NoError(t, err)
-			require.NoError(t, closedDB.Close())
-			c.BillingCtrl.BillingRepo.DB = closedDB
-			results := make(chan error, 20)
-			for range cap(results) {
-				go func() {
-					results <- c.CheckUploadURLRateLimit(userID, &length)
-				}()
-			}
-			for range cap(results) {
-				checkResult(tc.paid, <-results)
-			}
-			_, afterHits, _ := c.smallUploads.paidStatus.GetWithExpiration(key)
-			require.Equal(t, expiry, afterHits)
+			require.NoError(t, closed.Close())
+			c.BillingCtrl.BillingRepo.DB = closed
+			size := int64(32)
+			_, err = c.ReserveUploadURLs(t.Context(), userID, &size, 1)
+			require.ErrorContains(t, err, "database is closed")
+			require.True(t, state.entitlementExpires.IsZero())
 			c.BillingCtrl.BillingRepo.DB = db
-
-			c.smallUploads.paidStatus = cache.NewFrom(smallUploadEntitlementTTL, 0, map[string]cache.Item{
-				key: {Object: tc.paid, Expiration: time.Now().Add(-time.Second).UnixNano()},
-			})
-			checkResult(!tc.paid, c.CheckUploadURLRateLimit(userID, &length))
+			check(paid)
+			expiry := state.entitlementExpires
+			setPaid(!paid)
+			c.BillingCtrl.BillingRepo.DB = closed
+			check(paid)
+			require.Equal(t, expiry, state.entitlementExpires)
+			c.BillingCtrl.BillingRepo.DB = db
+			state.entitlementExpires = time.Now().Add(-time.Second)
+			check(!paid)
 		})
 	}
 }
 
-func TestSmallUploadLimitDoesNotCacheBillingErrors(t *testing.T) {
-	fileController, db, userID := setupPhotoUploadLimitTest(t)
-	c := fileController.UsageCtrl
-	fillSmallUploadLimit(t, &c.smallUploads, userID)
-	closedDB, err := sql.Open("postgres", "")
-	require.NoError(t, err)
-	require.NoError(t, closedDB.Close())
-	c.BillingCtrl.BillingRepo.DB = closedDB
-	length := int64(32)
-	require.ErrorContains(t, c.CheckUploadURLRateLimit(userID, &length), "database is closed")
-	_, cached := c.smallUploads.paidStatus.Get(strconv.FormatInt(userID, 10))
-	require.False(t, cached)
-	c.BillingCtrl.BillingRepo.DB = db
-	require.ErrorIs(t, c.CheckUploadURLRateLimit(userID, &length), ente.ErrSmallUploadLimitReached)
-}
-
-func TestSmallUploadLimitChecksCachedEligibility(t *testing.T) {
-	fileController, _, userID := setupPhotoUploadLimitTest(t)
-	c := fileController.UsageCtrl
+func TestSmallUploadChecksCachedEligibility(t *testing.T) {
+	fc, _, userID := setupPhotoUploadLimitTest(t)
+	c := fc.UsageCtrl
 	c.uploadURLResultCache = map[int64]bool{userID: true}
-	fillSmallUploadLimit(t, &c.smallUploads, userID)
-	_, err := fileController.GetUploadURLWithMetadata(t.Context(), userID, ente.UploadURLRequest{
+	c.uploadLimits.state(userID).recordSmall(time.Now(), 1000)
+	_, err := fc.GetUploadURLWithMetadata(t.Context(), userID, ente.UploadURLRequest{
 		ContentLength: 32, ContentMD5: "XUFAKrxLKna5cZ2REBfFkg==",
 	}, ente.Photos, "test")
 	require.ErrorIs(t, err, ente.ErrSmallUploadLimitReached)
 }
 
-func TestSmallUploadLimitBelowCapSkipsBilling(t *testing.T) {
-	c := &UsageController{}
-	length := int64(32)
-	require.NoError(t, c.CheckUploadURLRateLimit(1, &length))
-}
-
-func fillSmallUploadLimit(t *testing.T, limiter *smallUploadLimiter, userID int64) {
-	t.Helper()
-	for range 1000 {
-		require.True(t, limiter.allow(userID))
-	}
-	require.False(t, limiter.allow(userID))
+func TestSmallUploadBelowBudgetSkipsBilling(t *testing.T) {
+	c := newUploadLimitTestController(0)
+	c.uploadLimits.state(1).entitlementExpires = time.Time{}
+	size := int64(32)
+	release, err := c.ReserveUploadURLs(t.Context(), 1, &size, 1)
+	require.NoError(t, err)
+	release()
+	require.Equal(t, 1, c.uploadLimits.state(1).buckets[0].count)
 }

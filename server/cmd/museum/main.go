@@ -294,6 +294,7 @@ func main() {
 	)
 
 	usageController := &controller.UsageController{
+		UploadURLRepo:     &repo.UploadURLRepository{DB: db},
 		BillingCtrl:       billingController,
 		StorageBonusCtrl:  storageBonusCtrl,
 		UserCacheCtrl:     userCacheCtrl,

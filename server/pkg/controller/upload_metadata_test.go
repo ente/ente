@@ -31,7 +31,7 @@ func TestPendingUploadMetadata(t *testing.T) {
 	users := &repo.UserRepository{DB: db}
 	controller := &FileController{
 		S3Config: cleanup.S3Config, ObjectCleanupCtrl: cleanup,
-		UsageCtrl: &UsageController{
+		UsageCtrl: &UsageController{UploadURLRepo: &repo.UploadURLRepository{DB: db},
 			UserRepo: users, UsageRepo: &repo.UsageRepository{DB: db},
 			BillingCtrl: &BillingController{UserRepo: users, BillingRepo: &repo.BillingRepository{DB: db}},
 		},

@@ -53,3 +53,26 @@ func TestPreviewUploadRateLimits(t *testing.T) {
 	require.Equal(t, http.StatusTooManyRequests, request(http.MethodPost, "/files/data/preview-upload-url", "3"))
 	require.Equal(t, http.StatusNoContent, request(http.MethodPost, "/files/data/preview-upload-url", "2"))
 }
+
+func TestAuthenticatedUploadRateLimitIs800(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	rateLimiter := NewRateLimitMiddleware(discord.NewDiscordController(nil, "test", "test"), 1000, 1000, time.Minute)
+	t.Cleanup(rateLimiter.Stop)
+	router := gin.New()
+	router.Use(rateLimiter.APIRateLimitForUserMiddleware(func(c *gin.Context) string { return c.FullPath() }))
+	for _, path := range []string{"/files/upload-url", "/files/upload-urls", "/files/multipart-upload-url", "/files/multipart-upload-urls"} {
+		router.POST(path, func(c *gin.Context) { c.Status(http.StatusNoContent) })
+		for i := 0; i < 801; i++ {
+			req := httptest.NewRequest(http.MethodPost, path, nil)
+			req.Header.Set("X-Auth-User-ID", "1")
+			response := httptest.NewRecorder()
+			router.ServeHTTP(response, req)
+			want := http.StatusNoContent
+			if i == 800 {
+				want = http.StatusTooManyRequests
+			}
+			require.Equal(t, want, response.Code)
+		}
+	}
+	require.EqualValues(t, 500, rateLimiter.getLimiter("/custom-domain", http.MethodPost).Rate.Limit)
+}

@@ -179,9 +179,11 @@ func (c *Controller) GetAttachmentUploadURL(ctx *gin.Context, attachmentTypeRaw 
 	}
 
 	userID := auth.GetUserID(ctx.Request.Header)
-	if err := c.UsageCtrl.CheckUploadURLRateLimit(userID, &req.ContentLength); err != nil {
+	release, err := c.UsageCtrl.ReserveUploadURLs(ctx.Request.Context(), userID, &req.ContentLength, 1)
+	if err != nil {
 		return nil, err
 	}
+	defer release()
 	attachmentID := contactmodel.NewAttachmentID()
 	objectKey := contactmodel.AttachmentObjectKey(userID, attachmentType, attachmentID)
 	dc := c.S3Config.GetAttachmentBucketID(string(attachmentType))

@@ -54,6 +54,7 @@ type RateLimitMiddleware struct {
 	limit250ReqPerMin  *limiter.Limiter
 	limit300ReqPerMin  *limiter.Limiter
 	limit500ReqPerMin  *limiter.Limiter
+	limit800ReqPerMin  *limiter.Limiter
 	limit700ReqPerSec  *limiter.Limiter
 	limit10ReqPerHour  *limiter.Limiter
 	limit60ReqPerHour  *limiter.Limiter
@@ -70,6 +71,7 @@ func NewRateLimitMiddleware(discordCtrl *discord.DiscordController, limit, thumb
 		limit250ReqPerMin:  util.NewRateLimiter("250-M"),
 		limit300ReqPerMin:  util.NewRateLimiter("300-M"),
 		limit500ReqPerMin:  util.NewRateLimiter("500-M"),
+		limit800ReqPerMin:  util.NewRateLimiter("800-M"),
 		limit700ReqPerSec:  util.NewRateLimiter("700-S"),
 		limit10ReqPerHour:  util.NewRateLimiter("10-H"),
 		limit60ReqPerHour:  util.NewRateLimiter("60-H"),
@@ -306,7 +308,7 @@ func (r *RateLimitMiddleware) getLimiter(reqPath string, reqMethod string) *limi
 		return r.limit10ReqPerMin
 	}
 	if isAuthenticatedUploadURLPath(reqPath) {
-		return r.limit500ReqPerMin
+		return r.limit800ReqPerMin
 	}
 	if reqPath == "/files/data/preview-upload-url" {
 		return r.limit20ReqPerMin
