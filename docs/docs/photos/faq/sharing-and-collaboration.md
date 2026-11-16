@@ -580,7 +580,17 @@ This creates copies that you fully own, so they remain in your library even if t
 
 ### Why are there duplicate photos in a shared album we both add to? {#shared-album-duplicates}
 
-When two people add photos to a shared album, Ente does not detect or warn about duplicates across the different owners. If you and another member each add the same video or photo (for example, one received it through another sharing method and already had it), both copies appear in the album.
+Ente does not detect duplicates across different owners. If you and another member each add the same photo or video, both copies appear in the album.
+
+Your home gallery can also include photos shared by others. If you select these along with your own photos and add them to an album, Ente can create copies owned by your account. The shared album can then contain both the original and your copy.
+
+To select only photos owned by your account on mobile:
+
+1. Open **Search**, search for the month or year, and open the matching result under **Moments**.
+2. Tap the filter button and choose **You** under **Uploaded by**.
+3. Select the photos you want, then choose **Add to album** and select the shared album.
+
+The **You** filter includes copies you previously saved from other people. It does not remove duplicates already in the album.
 
 Deduplication and the similar-images tool only work within albums you own, not across photos owned by different people in a shared album.
 
