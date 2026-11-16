@@ -17,7 +17,7 @@ Your photos and videos remain encrypted at all times. When you share content, on
 
 If the person you want to share with has an Ente account, you can share an album directly with them by entering their email address. They'll receive a notification and can access the shared album from their Ente app.
 
-![Populated participants list with collaborator Alex on Ente Photos web](https://docs-assets.ente.com/screenshots/web-collab-participants-list.png){width=720px}
+![Add people email field with jane@ente.com highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/add-person-email-v2.png){width=560px}
 
 **To invite someone to Ente**: Send them an invite from the app. Once they create an account, you can share albums with them.
 
