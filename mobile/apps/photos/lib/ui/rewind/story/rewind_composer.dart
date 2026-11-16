@@ -72,8 +72,8 @@ List<RewindChapter> rewindChapters(
   _weeklyHabit(report.weeklyHabit),
   _crowdFavourite(report.crowdFavourite),
   ritualStreakChapter(rituals),
-  _badge(report.badge),
   _mosaic(report),
+  _badge(report.badge),
   _scrapbook(report),
 ];
 
