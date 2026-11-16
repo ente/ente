@@ -74,9 +74,6 @@ if ! command -v fpm &> /dev/null; then
 fi
 
 echo -e "${YELLOW}Building RPM package...${NC}"
-# Shared libraries are required by soname so any distro package providing them
-# satisfies the dependency. The tray plugin links the Ayatana indicator stack;
-# Fedora's legacy libappindicator package only ships GTK2 libappindicator.so.1.
 fpm -s dir -t rpm \
   -n enteauth \
   -v "$VERSION" \
