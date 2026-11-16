@@ -1,3 +1,5 @@
+import "dart:math";
+
 import "package:flutter/foundation.dart";
 import "package:flutter/widgets.dart";
 import "package:photos/ui/rewind/shell/rewind_chrome.dart";
@@ -39,6 +41,11 @@ class RewindReel {
   int get frameCount =>
       (duration.inMicroseconds * frameRate / Duration.microsecondsPerSecond)
           .ceil();
+
+  int get coverFrame => min(
+    frameCount - 1,
+    _holds.first.inMicroseconds * frameRate ~/ Duration.microsecondsPerSecond,
+  );
 
   Duration timeOf(int frame) => Duration(
     microseconds: (frame * Duration.microsecondsPerSecond / frameRate).round(),
