@@ -409,7 +409,7 @@ You do not need to do anything if search works for you. If you want help identif
 
 ### Why does Machine Learning say processing is paused? {#ml-indexing-paused}
 
-On mobile, Ente pauses face recognition and magic search indexing when your phone isn't in an optimum state for heavy work. This happens when the battery is below 20%, when the battery is too hot or reports a health problem, or when the phone itself is running hot. `Settings > Machine learning` then shows that processing is paused.
+On mobile, Ente pauses face recognition and magic search indexing when your phone isn't in an optimum state for heavy work. This happens when the battery is below 20%, when the battery is too hot or reports a health problem, when the phone itself is running hot, or when Ente can't read your battery or temperature status. `Settings > Machine learning` then shows that processing is paused.
 
 Indexing resumes on its own once the phone is ready again. To help it along, charge your phone, let it cool down, and keep Ente open. Files that are already indexed stay searchable while indexing is paused.
 
