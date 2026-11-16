@@ -22,11 +22,14 @@ pub use turn::{PreparedTurn, TurnInput, prepare_turn};
 
 /// The tool calls behind an assistant reply, so history can show the model
 /// its own calls with the reply as their result.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ToolTurnHistory {
     pub calls: Vec<crate::llm::ToolCall>,
     /// True when the user undid the turn's changes.
     pub undone: bool,
+    /// For a reply that offered tasks instead of saving them: whether the
+    /// user added them.
+    pub proposal: Option<bool>,
 }
 
 /// Replaces each assistant reply in `tail` that came from tool calls with an
@@ -54,6 +57,11 @@ fn expand_tool_turns(
                 call.tool_calls = turn.calls.clone();
                 output.push(call);
                 let mut result = message.content;
+                match turn.proposal {
+                    Some(true) => result.push_str("\n(The user added these tasks.)"),
+                    Some(false) => result.push_str("\n(The user hasn't added these tasks.)"),
+                    None => {}
+                }
                 if turn.undone {
                     result.push_str("\n(The user undid these changes.)");
                 }

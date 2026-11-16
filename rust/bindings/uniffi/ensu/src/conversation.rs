@@ -185,7 +185,9 @@ impl ConversationPreparation {
         )?;
         let tools = input
             .todo_tools
-            .then(|| ente_ensu::todo::chat_tools(&input.expected_user_text));
+            .then(|| self.db.todo_chat_tools(&input.expected_user_text))
+            .transpose()
+            .map_err(error)?;
         let tool_turns = self.db.tool_history(snapshot.messages()).map_err(error)?;
         let input = core::TurnInput {
             session,

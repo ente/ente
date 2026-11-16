@@ -74,6 +74,21 @@ pub struct ToolRequest {
     /// With [`ToolChoice::Auto`], the minimum probability of the tool-call
     /// token at the first position for the model to call a tool.
     pub min_call_probability: f32,
+    /// Example exchanges, shown to models whose format needs them to decide
+    /// when to call (see [`Format::declarations`]).
+    #[serde(default)]
+    pub examples: Vec<ToolExample>,
+}
+
+/// A user message and the right response to it: either tool calls, or a
+/// plain reply when `calls` is empty.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ToolExample {
+    pub user: String,
+    #[serde(default)]
+    pub calls: Vec<ToolCall>,
+    #[serde(default)]
+    pub reply: String,
 }
 
 impl ToolRequest {
@@ -207,7 +222,7 @@ pub(crate) fn adapt_messages(
 ) -> Vec<super::ChatMessage> {
     let mut output = Vec::with_capacity(messages.len() + 1);
     if let (Some(format), Some(tools)) = (format, tools) {
-        let declarations = format.declarations(&tools.tools, has_token);
+        let declarations = format.declarations(&tools.tools, &tools.examples, has_token);
         let system = messages
             .first()
             .filter(|message| message.role == "system")

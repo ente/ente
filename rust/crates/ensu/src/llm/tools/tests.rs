@@ -49,7 +49,45 @@ fn request(quote_source: &str) -> ToolRequest {
         quote_source: quote_source.into(),
         max_calls: 3,
         min_call_probability: 0.5,
+        examples: vec![
+            ToolExample {
+                user: "Anything left?".into(),
+                calls: vec![ToolCall {
+                    name: "list_to_dos".into(),
+                    arguments: [("filter".to_owned(), ToolValue::Text("open".into()))].into(),
+                }],
+                reply: String::new(),
+            },
+            ToolExample {
+                user: "Hi".into(),
+                calls: vec![],
+                reply: "Hello!".into(),
+            },
+        ],
     }
+}
+
+#[test]
+fn every_format_gets_the_same_guidance_in_its_own_syntax() {
+    let request = request("x");
+    let guidance = |call: &str, example: &str| {
+        format!(
+            "\nWhen a tool fits the user's request, call it instead of describing it, in this format with nothing else: {call}\n\nExamples:\nUser: Anything left?\nAssistant: {example}\nUser: Hi\nAssistant: Hello!"
+        )
+    };
+    let lfm = Format::Lfm.declarations(&request.tools, &request.examples, &|_| false);
+    assert!(lfm.starts_with("List of tools: [{"));
+    assert!(lfm.ends_with(&guidance(
+        "<|tool_call_start|>[tool_name(parameter=\"value\")]<|tool_call_end|>",
+        "<|tool_call_start|>[list_to_dos(filter=\"open\")]<|tool_call_end|>",
+    )));
+    let gemma = Format::Gemma.declarations(&request.tools, &request.examples, &|_| true);
+    assert!(gemma.ends_with(&guidance(
+        "<|tool_call>call:tool_name{parameter:<|\"|>value<|\"|>}<tool_call|>",
+        "<|tool_call>call:list_to_dos{filter:<|\"|>open<|\"|>}<tool_call|>",
+    )));
+    let qwen = Format::Qwen.declarations(&request.tools, &request.examples, &|_| true);
+    assert!(qwen.contains("\n\nExamples:\nUser: Anything left?\nAssistant: <tool_call>"));
 }
 
 fn calls() -> Vec<ToolCall> {
@@ -126,9 +164,9 @@ fn parsing_rejects_unknown_tools_bad_types_and_missing_arguments() {
 
 #[test]
 fn gemma_declarations_follow_the_model_template() {
-    let declarations = Format::Gemma.declarations(&request("x").tools[1..2], &|_| true);
+    let declarations = Format::Gemma.declarations(&request("x").tools[1..2], &[], &|_| true);
     assert_eq!(
-        declarations,
+        declarations.split('\n').next().unwrap(),
         concat!(
             "<|tool>declaration:list_to_dos{description:<|\"|>List tasks.<|\"|>,parameters:{",
             "properties:{filter:{description:<|\"|>Which tasks.<|\"|>,enum:[<|\"|>open<|\"|>,<|\"|>completed<|\"|>],",

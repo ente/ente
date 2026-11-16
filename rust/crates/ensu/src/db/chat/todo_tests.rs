@@ -22,6 +22,11 @@ fn local_ms(text: &str) -> i64 {
 
 const NOW: &str = "2026-11-12 14:30";
 
+/// Confidence high enough for changes to apply directly.
+const SURE: Option<f32> = Some(1.0);
+/// Confidence in the band where changes are offered for confirmation.
+const UNSURE: Option<f32> = Some(0.6);
+
 fn db() -> ChatDb<SqliteBackend> {
     ChatDb::new(
         SqliteBackend::open_in_memory().unwrap(),
@@ -54,13 +59,17 @@ struct Chat<'a> {
 
 impl Chat<'_> {
     fn send(&mut self, user: &str, calls: &[ToolCall]) -> TodoTurn {
+        self.send_as(user, calls, SURE)
+    }
+
+    fn send_as(&mut self, user: &str, calls: &[ToolCall], confidence: Option<f32>) -> TodoTurn {
         let message = self
             .db
             .insert_message(self.session, "self", user, self.parent, vec![])
             .unwrap();
         let turn = self
             .db
-            .apply_todo_calls(message.uuid, calls, local_ms(NOW))
+            .apply_todo_calls(message.uuid, calls, local_ms(NOW), confidence)
             .unwrap();
         self.parent = Some(turn.reply.uuid);
         turn
@@ -176,13 +185,132 @@ fn chat_calls_save_list_and_complete_tasks_with_one_reply_each() {
         .unwrap()
         .unwrap();
     assert!(
-        db.apply_todo_calls(source.uuid, &[], local_ms(NOW))
+        db.apply_todo_calls(source.uuid, &[], local_ms(NOW), SURE)
             .is_err()
     );
     assert!(
-        db.apply_todo_calls(saved.reply.uuid, &[], local_ms(NOW))
+        db.apply_todo_calls(saved.reply.uuid, &[], local_ms(NOW), SURE)
             .is_err()
     );
+}
+
+#[test]
+fn unsure_calls_offer_changes_and_make_them_once_confirmed() {
+    let db = db();
+    let session = db.create_session("To Do").unwrap();
+    let mut chat = Chat {
+        db: &db,
+        session: session.uuid,
+        parent: None,
+    };
+    db.create_todo("Pay rent", None).unwrap();
+    let turn = chat.send_as(
+        "Buy stamps tomorrow, and I paid the rent",
+        &[
+            call(
+                SAVE_TOOL,
+                &[("title", text("Buy stamps")), ("when", text("tomorrow"))],
+            ),
+            call(COMPLETE_TOOL, &[("task", text("rent"))]),
+        ],
+        UNSURE,
+    );
+    // Both changes are only offered.
+    assert_eq!(
+        turn.reply.text,
+        "Add “Buy stamps”, due Fri 13 Nov 2026, 09:00 to your To Dos? No time was given, so I used 9:00.\nMark “Pay rent” as done?"
+    );
+    assert_eq!(turn.proposed.len(), 2);
+    assert!(turn.changes.is_empty());
+    let list = |db: &ChatDb<SqliteBackend>| {
+        db.list_todos()
+            .unwrap()
+            .into_iter()
+            .map(|todo| (todo.title.clone(), todo.is_open()))
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(list(&db), [("Pay rent".to_owned(), true)]);
+    let state = db.todo_turn_state(turn.reply.uuid).unwrap().unwrap();
+    assert!(state.pending && !state.changed);
+
+    // The model hears the offer is still open.
+    let history = db.tool_history(std::slice::from_ref(&turn.reply)).unwrap();
+    assert_eq!(history[&turn.reply.uuid].proposal, Some(false));
+
+    let made = db.confirm_todo_turn(turn.reply.uuid).unwrap();
+    assert_eq!(made.len(), 2);
+    assert_eq!(
+        list(&db),
+        [
+            ("Pay rent".to_owned(), false),
+            ("Buy stamps".to_owned(), true)
+        ]
+    );
+    let added = made[0].after.clone().unwrap();
+    assert_eq!(added.due_at_ms, Some(local_ms("2026-11-13 09:00")));
+    let state = db.todo_turn_state(turn.reply.uuid).unwrap().unwrap();
+    assert!(!state.pending && state.changed);
+    assert_eq!(
+        db.tool_history(std::slice::from_ref(&turn.reply)).unwrap()[&turn.reply.uuid].proposal,
+        Some(true)
+    );
+    assert!(db.confirm_todo_turn(turn.reply.uuid).is_err());
+
+    // Undo reverts both.
+    db.undo_todo_turn(turn.reply.uuid).unwrap();
+    assert_eq!(list(&db), [("Pay rent".to_owned(), true)]);
+}
+
+#[test]
+fn offers_conflict_with_edits_made_since() {
+    let db = db();
+    let session = db.create_session("To Do").unwrap();
+    let mut chat = Chat {
+        db: &db,
+        session: session.uuid,
+        parent: None,
+    };
+    let rent = db.create_todo("Pay rent", None).unwrap();
+    let turn = chat.send_as(
+        "I paid the rent",
+        &[call(COMPLETE_TOOL, &[("task", text("rent"))])],
+        UNSURE,
+    );
+    db.update_todo(rent.id, rent.version, "Pay the rent", None)
+        .unwrap();
+    assert!(db.confirm_todo_turn(turn.reply.uuid).is_err());
+    assert!(db.list_todos().unwrap()[0].is_open());
+}
+
+#[test]
+fn calls_without_a_confidence_are_offered_and_lists_always_run() {
+    let db = db();
+    let session = db.create_session("To Do").unwrap();
+    let mut chat = Chat {
+        db: &db,
+        session: session.uuid,
+        parent: None,
+    };
+    let saved = chat.send(
+        "Buy stamps",
+        &[call(SAVE_TOOL, &[("title", text("Buy stamps"))])],
+    );
+    // Nothing to confirm on a turn that made its changes.
+    assert!(db.confirm_todo_turn(saved.reply.uuid).is_err());
+    let offered = chat.send_as(
+        "Buy milk",
+        &[call(SAVE_TOOL, &[("title", text("Buy milk"))])],
+        None,
+    );
+    assert_eq!(offered.proposed.len(), 1);
+    assert_eq!(db.list_todos().unwrap().len(), 1);
+    let listed = chat.send_as(
+        "What's on my list?",
+        &[call(LIST_TOOL, &[("filter", text("open"))])],
+        UNSURE,
+    );
+    assert_eq!(listed.reply.text, "1. Buy stamps — no due date");
+    assert!(listed.proposed.is_empty());
 }
 
 #[test]
@@ -206,7 +334,8 @@ fn undo_reverts_a_turn_once_and_refuses_after_later_edits() {
         db.todo_turn_state(turn.reply.uuid).unwrap(),
         Some(TodoTurnState {
             changed: true,
-            undone: false
+            undone: false,
+            pending: false,
         })
     );
     db.undo_todo_turn(turn.reply.uuid).unwrap();

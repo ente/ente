@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use serde_json::{Map, Value, json};
 
-use super::{ParameterKind, ToolCall, ToolRequest, ToolSpec, ToolValue};
+use super::{ParameterKind, ToolCall, ToolExample, ToolRequest, ToolSpec, ToolValue};
 use crate::llm::Error;
 
 /// A chat format with native tool calls.
@@ -49,12 +49,21 @@ impl Format {
         }
     }
 
-    /// Tool declarations appended to the system turn.
+    /// Tool declarations appended to the system turn: the tool list in the
+    /// model's own format, then the same guidance for every model.
     pub(crate) fn declarations(
         self,
         tools: &[ToolSpec],
+        examples: &[ToolExample],
         has_token: &dyn Fn(&str) -> bool,
     ) -> String {
+        let mut text = self.tool_list(tools, has_token);
+        text.push_str(&self.guidance(examples));
+        text
+    }
+
+    /// The tools as the model's chat template lists them.
+    fn tool_list(self, tools: &[ToolSpec], has_token: &dyn Fn(&str) -> bool) -> String {
         match self {
             Self::Gemma => tools
                 .iter()
@@ -86,6 +95,33 @@ impl Format {
                 )
             }
         }
+    }
+
+    /// The same guidance for every model, in its own call syntax: call
+    /// instead of describing a call, and examples of when a tool fits. Small
+    /// models otherwise describe calls in prose and rarely tell when a tool
+    /// fits (the To Do eval's routing for LFM2.5-VL-1.6B goes from 41% to
+    /// 86% with it).
+    fn guidance(self, examples: &[ToolExample]) -> String {
+        let syntax = self.render_calls(&[ToolCall {
+            name: "tool_name".into(),
+            arguments: [("parameter".to_owned(), ToolValue::Text("value".into()))].into(),
+        }]);
+        let mut text = format!(
+            "\nWhen a tool fits the user's request, call it instead of describing it, in this format with nothing else: {syntax}"
+        );
+        if !examples.is_empty() {
+            text.push_str("\n\nExamples:");
+            for example in examples {
+                let response = if example.calls.is_empty() {
+                    example.reply.clone()
+                } else {
+                    self.render_calls(&example.calls)
+                };
+                text.push_str(&format!("\nUser: {}\nAssistant: {response}", example.user));
+            }
+        }
+        text
     }
 
     /// Calls as the model writes them, for history and tests.

@@ -114,6 +114,7 @@ fn main() {
             commands::todo::todo_delete,
             commands::todo::todo_alarms,
             commands::todo::todo_apply_calls,
+            commands::todo::todo_confirm,
             commands::todo::todo_undo,
             commands::todo::todo_turn_status,
             commands::todo::todo_turn_statuses,

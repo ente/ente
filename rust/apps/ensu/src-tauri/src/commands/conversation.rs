@@ -289,7 +289,9 @@ pub async fn conversation_prepare(
         candidates.validate().map_err(|e| error(e.to_string()))?;
         let tools = input
             .todo_tools
-            .then(|| ente_ensu::todo::chat_tools(&input.expected_user_text));
+            .then(|| db.todo_chat_tools(&input.expected_user_text))
+            .transpose()
+            .map_err(ApiError::from)?;
         let tool_turns = db.tool_history(snapshot.messages()).map_err(ApiError::from)?;
         let turn = conversation::TurnInput {
             session: input.session_uuid,

@@ -17,8 +17,8 @@ pub use generate::*;
 pub use history::*;
 pub use model::*;
 pub use tools::{
-    MAX_TOOL_CALLS, ParameterKind, ToolCall, ToolChoice, ToolOutcome, ToolParameter, ToolRequest,
-    ToolSpec, ToolValue,
+    MAX_TOOL_CALLS, ParameterKind, ToolCall, ToolChoice, ToolExample, ToolOutcome, ToolParameter,
+    ToolRequest, ToolSpec, ToolValue,
 };
 
 use llama_cpp_2::llama_backend::LlamaBackend;

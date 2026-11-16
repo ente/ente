@@ -45,12 +45,15 @@ pub struct TodoTurnResult {
     pub reply: DbMessage,
     /// True when the turn changed tasks and can be undone.
     pub changed: bool,
+    /// True when the reply offers changes to make with `confirm_todo_turn`.
+    pub pending: bool,
 }
 
 #[derive(Debug, Clone, Copy, uniffi::Record)]
 pub struct TodoTurnStatus {
     pub changed: bool,
     pub undone: bool,
+    pub pending: bool,
 }
 
 #[uniffi::export]
@@ -114,21 +117,31 @@ impl EnsuDb {
     }
 
     /// Applies a generation's To Do calls for the user message `source_id`
-    /// and saves the reply.
+    /// and saves the reply. `call_probability` is the generation's confidence
+    /// in the calls; below a threshold, changes are offered for confirmation
+    /// with `confirm_todo_turn` instead of made.
     pub fn apply_todo_calls(
         &self,
         source_id: String,
         calls: Vec<LlmToolCall>,
         now_ms: i64,
+        call_probability: Option<f32>,
     ) -> Result<TodoTurnResult, DbError> {
         let calls: Vec<_> = calls.into_iter().map(Into::into).collect();
-        let turn = self
-            .inner
-            .apply_todo_calls(parse(&source_id)?, &calls, now_ms)?;
+        let turn =
+            self.inner
+                .apply_todo_calls(parse(&source_id)?, &calls, now_ms, call_probability)?;
         Ok(TodoTurnResult {
             changed: !turn.changes.is_empty(),
+            pending: !turn.proposed.is_empty(),
             reply: to_message(turn.reply),
         })
+    }
+
+    /// Makes the changes a reply offered.
+    pub fn confirm_todo_turn(&self, reply_id: String) -> Result<(), DbError> {
+        self.inner.confirm_todo_turn(parse(&reply_id)?)?;
+        Ok(())
     }
 
     pub fn undo_todo_turn(&self, reply_id: String) -> Result<(), DbError> {
@@ -143,6 +156,7 @@ impl EnsuDb {
             .map(|state| TodoTurnStatus {
                 changed: state.changed,
                 undone: state.undone,
+                pending: state.pending,
             }))
     }
 }

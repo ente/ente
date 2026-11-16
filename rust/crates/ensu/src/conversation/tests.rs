@@ -829,6 +829,7 @@ fn tool_turns_render_as_calls_with_their_reply_as_the_result() {
         crate::conversation::ToolTurnHistory {
             calls: vec![call.clone()],
             undone: true,
+            proposal: None,
         },
     );
     let mut effects = Fake::default();

@@ -11,7 +11,7 @@ use crate::db::backend::{Backend, BackendTx, RowExt, Value};
 use crate::db::crypto;
 use crate::db::models::{EntityType, Message, Sender};
 use crate::db::{Error, Result};
-use crate::llm::ToolCall;
+use crate::llm::{ToolCall, ToolRequest};
 use crate::todo::{
     self, COMPLETE_TOOL, LIST_LIMIT, LIST_TOOL, ListFilter, SAVE_TOOL, Todo, TodoAlarm, TodoChange,
     timing,
@@ -23,9 +23,13 @@ pub struct TodoTurn {
     /// The assistant reply saved for the turn.
     pub reply: Message,
     pub changes: Vec<TodoChange>,
+    /// Changes the reply offers (new tasks, completions), made only once the
+    /// user confirms them with [`ChatDb::confirm_todo_turn`].
+    pub proposed: Vec<TodoChange>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
 struct TurnRecord {
     source_id: Uuid,
     calls: Vec<ToolCall>,
@@ -33,13 +37,19 @@ struct TurnRecord {
     /// Task ids in the order the reply numbered them.
     shown: Vec<Uuid>,
     undone: bool,
+    /// Changes offered for confirmation instead of made.
+    proposed: Vec<TodoChange>,
+    /// True once the user confirmed the proposed changes.
+    confirmed: bool,
 }
 
-/// A To Do turn's undo state, for showing an Undo control.
+/// A To Do turn's state, for showing its Add or Undo control.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TodoTurnState {
     pub changed: bool,
     pub undone: bool,
+    /// The reply offers tasks the user hasn't added yet.
+    pub pending: bool,
 }
 
 fn conflict() -> Error {
@@ -140,6 +150,15 @@ impl<B: Backend> ChatDb<B> {
 
     pub fn list_todos(&self) -> Result<Vec<Todo>> {
         self.read_todos(&self.backend)
+    }
+
+    /// The To Do tools for a chat turn answering `user_text`, naming the open
+    /// tasks in list order so the model can mark them done.
+    pub fn todo_chat_tools(&self, user_text: &str) -> Result<ToolRequest> {
+        let todos = self.list_todos()?;
+        let open = todo::select_tasks(&todos, ListFilter::Open, None, self.now_ms());
+        let titles: Vec<&str> = open.iter().map(|todo| todo.title.as_str()).collect();
+        Ok(todo::chat_tools(user_text, &titles))
     }
 
     pub fn get_todo(&self, id: Uuid) -> Result<Option<Todo>> {
@@ -265,12 +284,17 @@ impl<B: Backend> ChatDb<B> {
 
     /// Applies the model's calls for the user message `source` and saves the
     /// receipt as the assistant reply, all in one transaction.
+    /// `call_probability` is the model's confidence in the calls; below
+    /// [`todo::DIRECT_CALL_PROBABILITY`], saves and completions are offered
+    /// for confirmation instead of made.
     pub fn apply_todo_calls(
         &self,
         source: Uuid,
         calls: &[ToolCall],
         now_ms: i64,
+        call_probability: Option<f32>,
     ) -> Result<TodoTurn> {
+        let propose = todo::confirm_changes(call_probability);
         let created_at = self.clock.now_us();
         let reply_id = self.uuid_gen.new_uuid();
         self.backend.transaction(|tx| {
@@ -298,15 +322,36 @@ impl<B: Backend> ChatDb<B> {
                     .unwrap_or_default(),
                 None => Vec::new(),
             };
+            let calls = match timing::local_time(now_ms) {
+                Some(now) => todo::refine_calls(calls, &request.text, shown.len(), now),
+                None => calls.to_vec(),
+            };
             let mut todos = self.read_todos(tx)?;
             let mut record = TurnRecord {
                 source_id: source,
-                calls: calls.to_vec(),
+                calls: calls.clone(),
                 ..Default::default()
             };
             let mut lines = Vec::new();
-            for call in calls {
-                let outcome = self.apply_call(call, &mut todos, &shown, now_ms)?;
+            for call in &calls {
+                let mut outcome = self.apply_call(call, &mut todos, &shown, now_ms, propose)?;
+                if propose {
+                    // Offered, not made: put the list back as it was.
+                    for change in std::mem::take(&mut outcome.changes) {
+                        match (&change.before, &change.after) {
+                            (Some(before), _) => {
+                                if let Some(stored) =
+                                    todos.iter_mut().find(|stored| stored.id == before.id)
+                                {
+                                    *stored = before.clone();
+                                }
+                            }
+                            (None, Some(after)) => todos.retain(|stored| stored.id != after.id),
+                            (None, None) => {}
+                        }
+                        record.proposed.push(change);
+                    }
+                }
                 for change in &outcome.changes {
                     match &change.after {
                         Some(after) => self.write_todo(tx, after)?,
@@ -352,7 +397,63 @@ impl<B: Backend> ChatDb<B> {
             Ok(TodoTurn {
                 reply,
                 changes: record.changes,
+                proposed: record.proposed,
             })
+        })
+    }
+
+    /// Makes the changes a reply offered. Undo then works as for changes made
+    /// directly.
+    pub fn confirm_todo_turn(&self, reply: Uuid) -> Result<Vec<TodoChange>> {
+        let now = self.now_ms();
+        self.backend.transaction(|tx| {
+            let mut record = self.read_turn(tx, reply)?.ok_or(Error::NotFound {
+                entity: EntityType::Message,
+                id: reply,
+            })?;
+            if record.proposed.is_empty() {
+                return Err(Error::UnsupportedOperation(
+                    "This reply didn't offer any changes".into(),
+                ));
+            }
+            if record.confirmed {
+                return Err(Error::UnsupportedOperation(
+                    "These changes were already made".into(),
+                ));
+            }
+            let mut changes = Vec::new();
+            for proposed in &record.proposed {
+                let Some(after) = &proposed.after else {
+                    continue;
+                };
+                let current = self.read_todo(tx, after.id)?;
+                // A task edited since the offer, or one that appeared, is a
+                // conflict rather than something to overwrite.
+                if current.as_ref().map(|todo| todo.version)
+                    != proposed.before.as_ref().map(|todo| todo.version)
+                {
+                    return Err(conflict());
+                }
+                let mut todo = after.clone();
+                todo.updated_at_ms = now;
+                match &proposed.before {
+                    None => todo.created_at_ms = now,
+                    Some(_) => {
+                        if todo.completed_at_ms.is_some() {
+                            todo.completed_at_ms = Some(now);
+                        }
+                    }
+                }
+                self.write_todo(tx, &todo)?;
+                changes.push(TodoChange {
+                    before: current,
+                    after: Some(todo),
+                });
+            }
+            record.changes.extend(changes.iter().cloned());
+            record.confirmed = true;
+            self.write_turn(tx, reply, &record)?;
+            Ok(changes)
         })
     }
 
@@ -362,6 +463,7 @@ impl<B: Backend> ChatDb<B> {
         todos: &mut Vec<Todo>,
         shown: &[Uuid],
         now_ms: i64,
+        propose: bool,
     ) -> Result<CallOutcome> {
         let invalid = || Error::UnsupportedOperation(format!("Unknown To Do call {}", call.name));
         match call.name.as_str() {
@@ -397,7 +499,11 @@ impl<B: Backend> ChatDb<B> {
                 let due_text = todo.due_at_ms.map_or_else(String::new, |due| {
                     format!(", due {}", todo::describe_due(due))
                 });
-                let text = format!("Saved “{}”{due_text}.{note}", todo.title);
+                let text = if propose {
+                    format!("Add “{}”{due_text} to your To Dos?{note}", todo.title)
+                } else {
+                    format!("Saved “{}”{due_text}.{note}", todo.title)
+                };
                 todos.push(todo.clone());
                 Ok(CallOutcome {
                     text,
@@ -479,7 +585,11 @@ impl<B: Backend> ChatDb<B> {
                             *stored = after.clone();
                         }
                         Ok(CallOutcome {
-                            text: format!("Marked “{}” as done.", todo.title),
+                            text: if propose {
+                                format!("Mark “{}” as done?", todo.title)
+                            } else {
+                                format!("Marked “{}” as done.", todo.title)
+                            },
                             changes: vec![TodoChange {
                                 before: Some(todo.clone()),
                                 after: Some(after),
@@ -571,6 +681,7 @@ impl<B: Backend> ChatDb<B> {
             .map(|record| TodoTurnState {
                 changed: !record.changes.is_empty(),
                 undone: record.undone,
+                pending: !record.proposed.is_empty() && !record.confirmed,
             }))
     }
 
@@ -598,6 +709,7 @@ impl<B: Backend> ChatDb<B> {
                     ToolTurnHistory {
                         calls: record.calls,
                         undone: record.undone,
+                        proposal: (!record.proposed.is_empty()).then_some(record.confirmed),
                     },
                 );
             }

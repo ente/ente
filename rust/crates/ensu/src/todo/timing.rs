@@ -3,7 +3,8 @@
 //! Unrecognised words make the parse fail rather than guess.
 
 use chrono::{
-    Datelike, Days, Duration, Local, NaiveDate, NaiveDateTime, NaiveTime, TimeZone, Weekday,
+    Datelike, Days, Duration, Local, NaiveDate, NaiveDateTime, NaiveTime, TimeZone, Timelike,
+    Weekday,
 };
 
 /// A resolved deadline in local time.
@@ -35,9 +36,48 @@ struct Parts {
     bare_hour: Option<(u32, u32)>,
     after: Option<Duration>,
     period: Option<u32>,
+    /// "next" before a weekday: that day in the following calendar week.
+    next_week: bool,
 }
 
-fn number_word(word: &str) -> Option<i64> {
+/// When "end of day" and "close of business" fall.
+const END_OF_DAY_HOUR: u32 = 17;
+
+/// "half past 5", "quarter to 5pm": the hour and minute, with whether the
+/// hour was given as am/pm or 24-hour time, and the words used.
+fn past_or_to(words: &[&str]) -> Option<(usize, u32, u32, bool)> {
+    let minutes = match (words.first().copied()?, words.get(1).copied()?) {
+        ("half", "past") => 30,
+        ("quarter", "past") => 15,
+        ("quarter", "to") => -15,
+        _ => return None,
+    };
+    let rest = &words[2..];
+    let (used, hour, explicit) = match clock(rest) {
+        Some((used, time)) if time.minute() == 0 => (used, time.hour(), true),
+        Some(_) => return None,
+        None => {
+            let hour = u32::try_from(number_word(rest.first()?)?).ok()?;
+            ((1..=12).contains(&hour)).then_some((1, hour, false))?
+        }
+    };
+    let (hour, minute) = if minutes < 0 {
+        // "quarter to 1" is 12:45; for 24-hour times, the hour before.
+        let before = if explicit {
+            hour.checked_sub(1)?
+        } else if hour == 1 {
+            12
+        } else {
+            hour - 1
+        };
+        (before, 45)
+    } else {
+        (hour, minutes as u32)
+    };
+    Some((2 + used, hour, minute, explicit))
+}
+
+pub(crate) fn number_word(word: &str) -> Option<i64> {
     Some(match word {
         "a" | "an" | "one" => 1,
         "two" => 2,
@@ -117,9 +157,14 @@ fn clock(words: &[&str]) -> Option<(usize, NaiveTime)> {
             _ => {}
         }
     }
-    let (hour, minute) = match digits.split_once(':') {
+    // "5.30" is only a time when "am" or "pm" makes it one, not a date.
+    let separated = digits
+        .split_once(':')
+        .or_else(|| digits.split_once('.').filter(|_| meridiem.is_some()));
+    let (hour, minute) = match separated {
         Some((h, m)) if m.len() == 2 => (h.parse::<u32>().ok()?, m.parse::<u32>().ok()?),
         Some(_) => return None,
+        None if digits.contains('.') => return None,
         None if digits.len() == 3 || digits.len() == 4 => {
             let (h, m) = digits.split_at(digits.len() - 2);
             // "615" is only a time when "am" or "pm" follows.
@@ -141,8 +186,8 @@ fn clock(words: &[&str]) -> Option<(usize, NaiveTime)> {
 }
 
 const FILLER: &[&str] = &[
-    "at", "on", "by", "the", "this", "next", "of", "around", "about", "before", "until", "till",
-    "due", "for", "coming", "o'clock", "oclock",
+    "at", "on", "by", "the", "this", "of", "around", "about", "before", "until", "till", "due",
+    "for", "coming", "o'clock", "oclock",
 ];
 
 fn parse_parts(quote: &str) -> Option<Parts> {
@@ -167,6 +212,43 @@ fn parse_parts(quote: &str) -> Option<Parts> {
     while i < words.len() {
         let word = words[i];
         let next = words.get(i + 1).copied();
+        if let Some((used, hour, minute, explicit)) = past_or_to(&words[i..]) {
+            if explicit {
+                if parts
+                    .time
+                    .replace(NaiveTime::from_hms_opt(hour, minute, 0)?)
+                    .is_some()
+                {
+                    return None;
+                }
+            } else if parts.bare_hour.replace((hour, minute)).is_some() {
+                return None;
+            }
+            i += used;
+            continue;
+        }
+        // "end of day", "end of the day", "close of business", "EOD", "COB".
+        let end_of_day = match (
+            word,
+            next,
+            words.get(i + 2).copied(),
+            words.get(i + 3).copied(),
+        ) {
+            ("eod" | "cob", ..) => Some(1),
+            ("end", Some("of"), Some("day"), _) | ("close", Some("of"), Some("business"), _) => {
+                Some(3)
+            }
+            ("end", Some("of"), Some("the"), Some("day")) => Some(4),
+            _ => None,
+        };
+        if let Some(used) = end_of_day {
+            let time = NaiveTime::from_hms_opt(END_OF_DAY_HOUR, 0, 0)?;
+            if parts.time.replace(time).is_some() {
+                return None;
+            }
+            i += used;
+            continue;
+        }
         // Relative durations: "in 20 minutes", "2 hours from now", "half an hour".
         let amount = if word == "half" && matches!(next, Some("an" | "a")) {
             Some((30, i + 2, true))
@@ -230,6 +312,10 @@ fn parse_parts(quote: &str) -> Option<Parts> {
                 parts.period = Some(20);
             }
             "tomorrow" | "tmrw" => set_day(&mut parts, Day::Offset(1))?,
+            "next" => parts.next_week = true,
+            "weekend" => set_day(&mut parts, Day::Weekday(Weekday::Sat))?,
+            // Only "next week": "this week" doesn't name a day.
+            "week" if parts.next_week => set_day(&mut parts, Day::Weekday(Weekday::Mon))?,
             "morning" => parts.period = Some(9),
             "afternoon" => parts.period = Some(15),
             "evening" => parts.period = Some(18),
@@ -303,6 +389,69 @@ fn next_weekday(today: NaiveDate, target: Weekday) -> Option<NaiveDate> {
     today.checked_add_days(Days::new(u64::from(if offset == 0 { 7 } else { offset })))
 }
 
+/// Words that only appear in time expressions.
+const TIME_WORDS: &[&str] = &[
+    "someday",
+    "sometime",
+    "soon",
+    "later",
+    "asap",
+    "eventually",
+    "today",
+    "tonight",
+    "tomorrow",
+    "tmrw",
+    "yesterday",
+    "morning",
+    "afternoon",
+    "evening",
+    "night",
+    "noon",
+    "midday",
+    "midnight",
+    "week",
+    "weekend",
+    "weeks",
+    "hour",
+    "hours",
+    "hr",
+    "minute",
+    "minutes",
+    "min",
+    "mins",
+    "day",
+    "days",
+    "month",
+    "months",
+    "year",
+    "eod",
+    "cob",
+    "am",
+    "pm",
+    "a.m",
+    "p.m",
+    "o'clock",
+    "oclock",
+];
+
+/// True when `quote` has any word a deadline is made of (a digit, weekday,
+/// month or time word), whether or not [`parse_deadline`] understands it.
+/// Tells a deadline this parser can't read ("sometime in March") from words
+/// that were never a deadline ("the pharmacy").
+pub fn mentions_time(quote: &str) -> bool {
+    quote
+        .to_lowercase()
+        .split(|c: char| c.is_whitespace() || matches!(c, ',' | ';' | '!' | '?'))
+        .map(|word| word.trim_matches(|c: char| c == '.' || c == '"' || c == '\''))
+        .any(|word| {
+            word.chars().any(|c| c.is_ascii_digit())
+                || weekday(word).is_some()
+                || month(word).is_some()
+                || TIME_WORDS.contains(&word)
+                || word.ends_with("am") && word[..word.len() - 2].parse::<u32>().is_ok()
+        })
+}
+
 /// Resolves `quote` against `now`, both in local time. Returns `None` when the
 /// quote isn't a deadline this parser understands or lies in the past.
 pub fn parse_deadline(quote: &str, now: NaiveDateTime) -> Option<Deadline> {
@@ -320,6 +469,12 @@ pub fn parse_deadline(quote: &str, now: NaiveDateTime) -> Option<Deadline> {
     let date = match parts.day {
         None => None,
         Some(Day::Offset(n)) => Some(today.checked_add_days(Days::new(n))?),
+        Some(Day::Weekday(target)) if parts.next_week => {
+            // The weekday in the calendar week after this one (Monday first).
+            let next_monday = 7 - u64::from(today.weekday().num_days_from_monday());
+            let offset = next_monday + u64::from(target.num_days_from_monday());
+            Some(today.checked_add_days(Days::new(offset))?)
+        }
         Some(Day::Weekday(target)) => Some(next_weekday(today, target)?),
         Some(Day::Date { month, day, year }) => {
             let year_now = today.year();
@@ -448,6 +603,24 @@ mod tests {
             ("half an hour", "2026-11-12 15:00", false),
             ("today", "2026-11-12 15:30", true),
             ("today at 18:45", "2026-11-12 18:45", false),
+            // "next" means the following calendar week; "this" the coming day.
+            ("next Friday", "2026-11-20 09:00", true),
+            ("this Friday", "2026-11-13 09:00", true),
+            ("next Thursday at 3pm", "2026-11-19 15:00", false),
+            ("next week", "2026-11-16 09:00", true),
+            ("this weekend", "2026-11-14 09:00", true),
+            ("next weekend", "2026-11-21 09:00", true),
+            ("end of day", "2026-11-12 17:00", false),
+            ("by end of the day tomorrow", "2026-11-13 17:00", false),
+            ("EOD Friday", "2026-11-13 17:00", false),
+            ("close of business", "2026-11-12 17:00", false),
+            ("6.30pm", "2026-11-12 18:30", false),
+            ("tomorrow at 7.15 am", "2026-11-13 07:15", false),
+            ("half past 5", "2026-11-12 17:30", false),
+            ("quarter past nine tomorrow", "2026-11-13 09:15", false),
+            ("quarter to 1", "2026-11-13 12:45", false),
+            ("half past 8pm", "2026-11-12 20:30", false),
+            ("in the next 20 minutes", "2026-11-12 14:50", false),
         ] {
             assert_eq!(
                 parse_deadline(quote, at(NOW)),
@@ -473,7 +646,13 @@ mod tests {
             "13pm",
             "1230",
             "in 20 minutes tomorrow",
-            "6.30pm",
+            "6.30",
+            "this week",
+            "next month",
+            "half past",
+            "quarter to 15",
+            "end of the week",
+            "next week Friday",
         ] {
             assert_eq!(parse_deadline(quote, at(NOW)), None, "{quote}");
         }
