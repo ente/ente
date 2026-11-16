@@ -535,7 +535,7 @@ mod tests {
         for (width, height) in [
             (1, 524_289),
             (1, u32::MAX),
-            (16_000, 16_001),
+            (22_361, 22_361),
             (65_536, 65_536),
         ] {
             for interlaced in [false, true] {
@@ -563,7 +563,7 @@ mod tests {
 
     #[test]
     fn source_dimension_limits_allow_boundary_headers() {
-        for (width, height) in [(1, 524_288), (524_288, 1), (16_000, 16_000)] {
+        for (width, height) in [(1, 524_288), (524_288, 1), (22_360, 22_360)] {
             for interlaced in [false, true] {
                 let mut bytes = Vec::new();
                 ::png::Encoder::with_info(&mut bytes, rgb_info(width, height, interlaced))

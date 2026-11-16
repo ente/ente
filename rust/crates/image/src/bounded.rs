@@ -8,7 +8,7 @@ use image::{DynamicImage, metadata::Orientation};
 use crate::{DecodedImage, Dimensions, ImageError, ImageResult};
 
 const MAX_SIDE: u32 = 6000;
-pub(crate) const MAX_SOURCE_PIXELS: u64 = 256_000_000;
+pub(crate) const MAX_SOURCE_PIXELS: u64 = 500_000_000;
 
 pub enum ImageInput<'a> {
     Path(&'a str),

@@ -758,7 +758,7 @@ mod tests {
         let bytes = encode(&rgb(16, 16), 16, 16, ExtendedColorType::Rgb8, None, None);
         let directory = tempfile::tempdir().unwrap();
         let path = directory.path().join("image.jpg");
-        let oversized = with_dimensions(&bytes, 16_001, 16_000);
+        let oversized = with_dimensions(&bytes, 22_361, 22_361);
         std::fs::write(&path, &oversized).unwrap();
         for input in [
             ImageInput::Bytes(&oversized),
@@ -769,7 +769,7 @@ mod tests {
                 Err(ImageError::TooLarge(_))
             ));
         }
-        let large = with_dimensions(&bytes, 16_000, 16_000);
+        let large = with_dimensions(&bytes, 22_360, 22_360);
         let small_budget = BoundedDecodeOptions {
             max_memory_bytes: 64 * 1024 * 1024,
             ..BoundedDecodeOptions::default()
