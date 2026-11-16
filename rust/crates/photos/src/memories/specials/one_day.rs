@@ -86,17 +86,18 @@ impl Day<'_> {
 }
 
 pub(super) fn travel_days<'p>(trips: &TripAnalysis<'p>) -> Vec<Day<'p>> {
-    let mut days: BTreeMap<LocalDate, Vec<Located>> = BTreeMap::new();
-    for member in trips.trip_members() {
-        if !member.photo.shared && member.photo.has_capture_clock {
-            days.entry(LocalDate::of_local_time(story_time(member.photo)))
-                .or_default()
-                .push(member);
+    let mut days: BTreeMap<(usize, LocalDate), Vec<Located>> = BTreeMap::new();
+    for (trip, members) in trips.members_by_trip().enumerate() {
+        for member in members {
+            if !member.photo.shared && member.photo.has_capture_clock {
+                let date = LocalDate::of_local_time(story_time(member.photo));
+                days.entry((trip, date)).or_default().push(*member);
+            }
         }
     }
     let mut days: Vec<Day> = days
         .into_iter()
-        .map(|(date, members)| Day { date, members })
+        .map(|((_, date), members)| Day { date, members })
         .filter(Day::is_eventful)
         .collect();
     days.sort_by_key(|day| (Reverse(day.score()), Reverse(day.date)));
@@ -261,6 +262,24 @@ mod tests {
             memory.file_ids,
             (1000..1012).chain([1100, 1101]).collect::<Vec<_>>()
         );
+    }
+
+    #[test]
+    fn a_day_shared_by_two_trips_is_not_told_as_one() {
+        let mut travel = travel_day(1000, "2026-04-14", &FULL_DAY[..8], KYOTO);
+        travel.extend(travel_day(1100, "2026-04-15", &FULL_DAY[..8], KYOTO));
+        travel.extend(travel_day(1200, "2026-04-16", &[5, 5, 6, 6, 7, 7], KYOTO));
+        travel.extend(travel_day(1250, "2026-04-16", &[12, 13], HOME));
+        travel.extend(travel_day(
+            1300,
+            "2026-04-16",
+            &[19, 20, 21, 21, 22, 22],
+            LISBON,
+        ));
+        travel.extend(travel_day(1400, "2026-04-17", &FULL_DAY[..8], LISBON));
+        travel.extend(travel_day(1500, "2026-04-18", &FULL_DAY[..8], LISBON));
+
+        assert_eq!(dates(&request(travel)), []);
     }
 
     #[test]

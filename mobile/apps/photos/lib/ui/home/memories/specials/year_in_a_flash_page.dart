@@ -56,6 +56,7 @@ class _YearInAFlashPageState extends State<YearInAFlashPage>
   late final StreamSubscription<MemoriesChangedEvent> _memoriesChanged;
 
   late final List<Memory> _frames = List.of(widget.memory.memories);
+  final Set<Memory> _preloaded = {};
 
   bool get _isRunning =>
       widget.isActive && _isRouteCurrent && _isAppResumed && !_isHeld;
@@ -67,9 +68,6 @@ class _YearInAFlashPageState extends State<YearInAFlashPage>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _isAppResumed = _isResumed(WidgetsBinding.instance.lifecycleState);
-    for (final frame in _frames) {
-      if (frame.file.isRemoteOnlyFile) preloadThumbnail(frame.file);
-    }
     _memoriesChanged = Bus.instance.on<MemoriesChangedEvent>().listen((_) {
       if (!_dropRemovedFrames()) return;
       setState(() {});
@@ -179,6 +177,7 @@ class _YearInAFlashPageState extends State<YearInAFlashPage>
         _dropRemovedFrames();
         final frame = _nextToLoad;
         if (frame == null) return;
+        _preloadFrom(frame);
         final print = await _decode(_frames[frame]);
         if (!mounted) {
           print?.dispose();
@@ -194,6 +193,15 @@ class _YearInAFlashPageState extends State<YearInAFlashPage>
       }
     } finally {
       _isLoading = false;
+    }
+  }
+
+  void _preloadFrom(int frame) {
+    final window = _frames.skip(frame).take(_bufferedAhead);
+    for (final ahead in window) {
+      if (ahead.file.isRemoteOnlyFile && _preloaded.add(ahead)) {
+        preloadThumbnail(ahead.file);
+      }
     }
   }
 

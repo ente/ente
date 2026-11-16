@@ -36,10 +36,8 @@ pub(super) struct TripAnalysis<'p> {
 }
 
 impl<'p> TripAnalysis<'p> {
-    pub(super) fn trip_members(&self) -> impl Iterator<Item = Located<'p>> {
-        self.trips
-            .iter()
-            .flat_map(|trip| trip.members.iter().copied())
+    pub(super) fn members_by_trip(&self) -> impl Iterator<Item = &[Located<'p>]> {
+        self.trips.iter().map(|trip| trip.members.as_slice())
     }
 }
 
