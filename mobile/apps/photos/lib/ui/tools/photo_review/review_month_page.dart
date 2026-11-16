@@ -314,8 +314,15 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
     if (start < 0) return;
     final undecided = _undecided.toSet();
     final deck = _deck.toSet();
+    final order = {for (final (index, file) in _files.indexed) file: index};
     for (final file in _files.skip(start)) {
-      if (undecided.contains(file) && deck.add(file)) _deck.add(file);
+      if (undecided.contains(file) && deck.add(file)) {
+        final index = order[file]!;
+        _deck.insert(
+          _deck.lastIndexWhere((card) => order[card]! < index) + 1,
+          file,
+        );
+      }
     }
   }
 
