@@ -16,12 +16,13 @@ async function createCollection(page: Page, name: string) {
     await expect(page).toHaveURL(/\/collection\?id=\d+/);
 }
 
-async function openUpload(page: Page) {
-    await page.goto("/");
+async function openUpload(page: Page, name = fixture.name) {
     await page.getByRole("button", { name: "Save to Locker" }).click();
     const dialog = page.getByRole("dialog");
     await dialog.getByRole("button", { name: /^Document\b/ }).click();
-    await dialog.locator('input[type="file"]').setInputFiles(fixture);
+    await dialog
+        .locator('input[type="file"]')
+        .setInputFiles({ ...fixture, name });
     return dialog;
 }
 
@@ -48,6 +49,7 @@ test("uploads a file to the selected collection", async ({
     await createCollection(page, "Selected collection");
     await createCollection(page, "Other collection");
 
+    await page.goto("/");
     const upload = await openUpload(page);
     await upload
         .getByRole("button", { name: "Selected collection", exact: true })
@@ -67,6 +69,7 @@ test("uploads a file to a collection created in the upload dialog", async ({
     signedInPage: page,
 }) => {
     const name = "Created during upload";
+    await page.goto("/");
     const upload = await openUpload(page);
     await upload
         .getByRole("button", { name: "Collection", exact: true })
@@ -77,4 +80,19 @@ test("uploads a file to a collection created in the upload dialog", async ({
 
     await openCollection(page, name);
     await expect(page.getByText(fixture.name, { exact: true })).toBeVisible();
+});
+
+test("uploads from Uncategorized without selecting a destination", async ({
+    signedInPage: page,
+}) => {
+    await openUpload(page);
+    await saveUpload(page);
+
+    await openCollection(page, "Uncategorized");
+    await expect(page.getByText(fixture.name, { exact: true })).toBeVisible();
+    const secondFile = "locker-second-upload.txt";
+    await openUpload(page, secondFile);
+    await saveUpload(page);
+
+    await expect(page.getByText(secondFile, { exact: true })).toBeVisible();
 });

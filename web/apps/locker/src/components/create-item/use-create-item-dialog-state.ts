@@ -218,10 +218,11 @@ export const useCreateItemDialogState = ({
         setSelectedOption(
             editItem?.type ?? (initialItems?.length ? "file" : null),
         );
+        const uploadDefaultCollectionID = displayCollectionsRef.current.find(
+            (collection) => collection.id === defaultCollectionID,
+        )?.id;
         defaultCollectionInitializedRef.current =
-            displayCollectionsRef.current.some(
-                (collection) => collection.id === defaultCollectionID,
-            );
+            uploadDefaultCollectionID !== undefined;
         setSelectedCollectionIDs(
             isEditMode
                 ? normalizeSelectedCollectionIDs(
@@ -250,7 +251,7 @@ export const useCreateItemDialogState = ({
             uploadDestinationsByItem(
                 filteredInitialItems,
                 displayCollectionsRef.current,
-                defaultCollectionID,
+                uploadDefaultCollectionID,
             ),
         );
         resetUploadState();
@@ -436,6 +437,10 @@ export const useCreateItemDialogState = ({
                 return;
             }
 
+            const uploadDefaultCollectionID =
+                displayCollectionsRef.current.find((collection) =>
+                    selectedCollectionIDs.includes(collection.id),
+                )?.id;
             const items = files.map((file) => ({
                 file,
                 relativePath: file.webkitRelativePath || file.name,
@@ -448,14 +453,14 @@ export const useCreateItemDialogState = ({
                 uploadDestinationsByItem(
                     nonEmptyItems,
                     displayCollectionsRef.current,
-                    defaultCollectionID,
+                    uploadDefaultCollectionID,
                 ),
             );
             resetUploadState();
             setError(null);
             setUpgradeCTAType(null);
         },
-        [defaultCollectionID, resetUploadState],
+        [resetUploadState, selectedCollectionIDs],
     );
 
     const handleSave = useCallback(async () => {
