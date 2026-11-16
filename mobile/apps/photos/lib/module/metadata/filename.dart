@@ -43,6 +43,21 @@ DateTime? parseDateTimeFromFileName(
       );
   if (hasCompactDate) return null;
   final date = matches.single;
+  final digitGroups = RegExp(r'\d+').allMatches(fileName).toList();
+  for (var i = 0; i + 2 < digitGroups.length; i++) {
+    if (digitGroups[i].start == date.start) continue;
+    final year = int.tryParse(digitGroups[i][0]!);
+    final month = int.tryParse(digitGroups[i + 1][0]!);
+    final day = int.tryParse(digitGroups[i + 2][0]!);
+    if (year != null &&
+        month != null &&
+        day != null &&
+        year >= minYear &&
+        year <= (maxYear ?? currentYear + 1) &&
+        isValidGregorianDate(day: day, month: month, year: year)) {
+      return null;
+    }
+  }
   if (!RegExp(r'\d').hasMatch(fileName.substring(0, date.start))) {
     return null;
   }
