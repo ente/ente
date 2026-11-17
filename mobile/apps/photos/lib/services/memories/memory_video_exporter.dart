@@ -70,7 +70,7 @@ class MemoryVideoExporter {
   final Future<void> Function() _cancelExport;
   final String Function() _outputDirectory;
   final Random _random;
-  bool _isCancelled = false;
+  Future<void>? _cancellation;
 
   MemoryVideoExporter({
     Future<File?> Function(EnteFile file)? resolveFile,
@@ -144,14 +144,10 @@ class MemoryVideoExporter {
     }
   }
 
-  Future<void> cancel() async {
-    if (_isCancelled) return;
-    _isCancelled = true;
-    await _cancelExport();
-  }
+  Future<void> cancel() => _cancellation ??= _cancelExport();
 
   void _throwIfCancelled() {
-    if (_isCancelled) throw const MemoryVideoExportCancelled();
+    if (_cancellation != null) throw const MemoryVideoExportCancelled();
   }
 
   static String _videoFileName(String? title) {
