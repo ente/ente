@@ -1,26 +1,27 @@
 import { LazyNotification } from "@/app/lazy/global-ui";
 import { getEnteURL } from "@/public-album/access/utils/external-links";
 import { downloadManager } from "@/public-album/download/services/download-manager";
-import { Tick02Icon } from "@hugeicons/core-free-icons";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
+import {
+    Copy01Icon,
+    Download05Icon,
+    FullScreenIcon,
+    InformationCircleIcon,
+    Share08Icon,
+    Tick02Icon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import ErrorOutlinedIcon from "@mui/icons-material/ErrorOutlined";
-import FullscreenOutlinedIcon from "@mui/icons-material/FullscreenOutlined";
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
-import ShareOutlinedIcon from "@mui/icons-material/ShareOutlined";
 import {
     Box,
     Button,
     CircularProgress,
     GlobalStyles,
     IconButton,
-    Menu,
-    MenuItem,
     Stack,
     styled,
-    Typography,
 } from "@mui/material";
+import { ContextMenu, ContextMenuItem } from "ente-base/components/ContextMenu";
 import { EnteLogo } from "ente-base/components/EnteLogo";
 import { ActivityIndicator } from "ente-base/components/mui/ActivityIndicator";
 import { useBaseContext } from "ente-base/context";
@@ -29,11 +30,13 @@ import type { PublicAlbumsCredentials } from "ente-base/http";
 import log from "ente-base/log";
 import type { AddSaveGroup } from "ente-gallery/components/utils/save-groups";
 import { createPSRegisterElementIconHTML } from "ente-gallery/components/viewer/icons";
+import { islandMoreMenuSx } from "ente-gallery/components/viewer/more-menu";
 import type { EnteFile } from "ente-media/file";
 import { fileFileName } from "ente-media/file-metadata";
 import { FileType } from "ente-media/file-type";
 import { t } from "i18next";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { FileViewer } from "./FileViewer";
 
 export interface PublicAlbumSingleFileViewerProps {
@@ -81,12 +84,14 @@ export const PublicAlbumSingleFileViewer: React.FC<
     const { onGenericError } = useBaseContext();
     const [menuAnchorEl, setMenuAnchorEl] = useState<HTMLElement | null>(null);
     const [showCopiedMessage, setShowCopiedMessage] = useState(false);
+    const [topBar, setTopBar] = useState<HTMLElement | null>(null);
     const [isPhotoSwipeUIVisible, setIsPhotoSwipeUIVisible] = useState(true);
     const [isPhotoSwipeContentLoading, setIsPhotoSwipeContentLoading] =
         useState(false);
     const [isPhotoSwipeContentError, setIsPhotoSwipeContentError] =
         useState(false);
     const isLivePhotoFile = file.metadata.fileType === FileType.livePhoto;
+    const isVideoFile = file.metadata.fileType === FileType.video;
     const [livePhotoControls, setLivePhotoControls] =
         useState<LivePhotoControlsState>({
             playAvailable: false,
@@ -105,7 +110,6 @@ export const PublicAlbumSingleFileViewer: React.FC<
     const isViewerPrimed = !needsThumbnailPrime || primedFileID === file.id;
     const viewerFiles = useMemo(() => [viewerFile], [viewerFile]);
     const shouldShowWarningIcon = isPhotoSwipeContentError;
-    const progressHostRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         document.body.classList.add(bodyClassName);
@@ -137,8 +141,6 @@ export const PublicAlbumSingleFileViewer: React.FC<
         let pswpElement: HTMLElement | null = null;
         let preloaderElement: HTMLElement | null = null;
         let errorElement: HTMLElement | null = null;
-        let progressElement: HTMLElement | null = null;
-        let progressParent: HTMLElement | null = null;
 
         const updateVisibility = () => {
             setIsPhotoSwipeUIVisible(
@@ -206,14 +208,14 @@ export const PublicAlbumSingleFileViewer: React.FC<
         };
 
         const bindToPhotoSwipeElement = () => {
-            const next = document.querySelector<HTMLElement>(".pswp");
+            const next = document.querySelector<HTMLElement>(
+                ".pswp-ente-public-album",
+            );
             if (next !== pswpElement) {
-                progressElement?.remove();
-                progressElement = null;
-                progressParent = null;
                 classObserver?.disconnect();
                 classObserver = undefined;
                 pswpElement = next;
+                setTopBar(next?.querySelector(".pswp__top-bar") ?? null);
 
                 if (!pswpElement) {
                     preloaderObserver?.disconnect();
@@ -238,15 +240,6 @@ export const PublicAlbumSingleFileViewer: React.FC<
 
             bindToPreloaderElement();
             bindToErrorElement();
-
-            const progress = pswpElement?.querySelector<HTMLElement>(
-                ".pswp__ente-progress-text",
-            );
-            if (progress && progressHostRef.current) {
-                progressElement = progress;
-                progressParent = progress.parentElement;
-                progressHostRef.current.replaceChildren(progress);
-            }
         };
 
         const treeObserver = new MutationObserver(bindToPhotoSwipeElement);
@@ -258,11 +251,6 @@ export const PublicAlbumSingleFileViewer: React.FC<
             classObserver?.disconnect();
             preloaderObserver?.disconnect();
             errorObserver?.disconnect();
-            if (progressElement) {
-                if (progressParent?.isConnected)
-                    progressParent.append(progressElement);
-                else progressElement.remove();
-            }
         };
     }, []);
 
@@ -526,7 +514,7 @@ export const PublicAlbumSingleFileViewer: React.FC<
     return (
         <>
             <GlobalStyles
-                styles={{
+                styles={(theme) => ({
                     [`body.${bodyClassName} .pswp-ente-public-album .pswp__counter`]:
                         { display: "none !important" },
                     [`body.${bodyClassName} .pswp-ente-public-album .pswp__button--zoom`]:
@@ -549,9 +537,36 @@ export const PublicAlbumSingleFileViewer: React.FC<
                         { display: "none !important" },
                     [`body.${bodyClassName} .pswp-ente-public-album .pswp__error`]:
                         { display: "none !important" },
-                    [`body.${bodyClassName} .pswp-ente-public-album .pswp__ente-progress-text`]:
-                        { margin: 0, "&::before": { content: "none" } },
-                }}
+                    [`body.${bodyClassName} .pswp-ente-public-album .pswp__top-bar`]:
+                        {
+                            top: "calc(env(titlebar-area-height, 0px) * 0.4 + 12px)",
+                            insetInline: 0,
+                            boxSizing: "border-box",
+                            height: "auto",
+                            minHeight: 40,
+                            alignItems: "center",
+                            gap: theme.spacing(1.5),
+                            padding: theme.spacing(0, 0.5, 0, 1.5),
+                            [theme.breakpoints.up("sm")]: {
+                                top: "calc(env(titlebar-area-height, 0px) * 0.4 + 40px)",
+                                paddingInline: theme.spacing(5.5, 4),
+                            },
+                            "& .pswp__status-island": {
+                                marginBlockStart: 0,
+                                paddingInlineStart: 0,
+                            },
+                            "& .pswp__ente-progress-size": { flexShrink: 0 },
+                            "& .pswp__status-buffering": {
+                                minWidth: 0,
+                                flexShrink: 1,
+                                "& > span": {
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                },
+                            },
+                        },
+                })}
             />
             <FileViewer
                 open
@@ -572,274 +587,242 @@ export const PublicAlbumSingleFileViewer: React.FC<
             />
             {isViewerPrimed && (
                 <>
-                    <Box
-                        sx={{
-                            position: "fixed",
-                            top: {
-                                xs: "calc(env(titlebar-area-height, 0px) * 0.4 + 12px)",
-                                sm: "calc(env(titlebar-area-height, 0px) * 0.4 + 40px)",
-                            },
-                            left: 0,
-                            right: 0,
-                            pl: { xs: 1.5, sm: 5.5 },
-                            pr: { xs: 0.5, sm: 4 },
-                            zIndex: (theme) => theme.zIndex.drawer,
-                            pointerEvents: "none",
-                            opacity: topControlsVisible ? 1 : 0,
-                            transform: topControlsVisible
-                                ? "translateY(0)"
-                                : "translateY(-8px)",
-                            transition:
-                                "opacity 220ms ease, transform 220ms ease",
-                        }}
-                    >
-                        <Stack
-                            direction="row"
-                            sx={{
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                                gap: 1.5,
-                                pointerEvents: topControlsVisible
-                                    ? "auto"
-                                    : "none",
-                            }}
-                        >
-                            <Stack
-                                direction="row"
-                                spacing={1.5}
-                                sx={{
-                                    alignItems: "center",
-                                    minWidth: 0,
-                                    flex: 1,
-                                }}
-                            >
-                                <Box
-                                    component="a"
-                                    href="https://ente.com"
-                                    target="_blank"
-                                    rel="noopener"
+                    {topBar &&
+                        createPortal(
+                            <>
+                                <Stack
+                                    direction="row"
+                                    spacing={1.5}
                                     sx={{
-                                        color: "white",
-                                        opacity: 0.85,
-                                        lineHeight: 0,
+                                        order: -1,
+                                        alignItems: "center",
                                         flexShrink: 0,
-                                        "& svg": {
-                                            width: "auto",
-                                            height: { xs: 17, sm: 21 },
-                                        },
-                                        "&:hover": { opacity: 1 },
+                                        visibility: topControlsVisible
+                                            ? "visible"
+                                            : "hidden",
                                     }}
                                 >
-                                    <EnteLogo height={17} />
-                                </Box>
-                                {shouldShowWarningIcon ? (
                                     <Box
+                                        component="a"
+                                        href="https://ente.com"
+                                        target="_blank"
+                                        rel="noopener"
                                         sx={{
-                                            color: "var(--mui-palette-fixed-golden)",
+                                            color: "white",
                                             opacity: 0.85,
                                             lineHeight: 0,
-                                            display: "flex",
-                                            alignItems: "center",
                                             flexShrink: 0,
-                                            transform: "translateY(1px)",
-                                        }}
-                                    >
-                                        <ErrorOutlinedIcon
-                                            aria-hidden="true"
-                                            sx={{
-                                                fontSize: 20,
-                                                display: "block",
-                                            }}
-                                        />
-                                    </Box>
-                                ) : isPhotoSwipeContentLoading ? (
-                                    <Box
-                                        sx={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            flexShrink: 0,
-                                            transform: "translateY(1px)",
-                                        }}
-                                    >
-                                        <CircularProgress
-                                            size={16}
-                                            thickness={5}
-                                            sx={{
-                                                color: "rgb(255 255 255 / 0.85)",
-                                            }}
-                                        />
-                                    </Box>
-                                ) : (
-                                    isLivePhotoFile && (
-                                        <Stack
-                                            direction="row"
-                                            spacing={0.5}
-                                            sx={{ alignItems: "center" }}
-                                        >
-                                            <FileViewerStyleButton
-                                                onClick={
-                                                    handleToggleLivePhotoPlay
-                                                }
-                                                disabled={
-                                                    !livePhotoControls.playAvailable
-                                                }
-                                                aria-label={t("live")}
-                                                className={
-                                                    livePhotoControls.isPlayOff
-                                                        ? "pswp-ente-off"
-                                                        : undefined
-                                                }
-                                            >
-                                                <svg
-                                                    viewBox="0 0 32 32"
-                                                    width="32"
-                                                    height="32"
-                                                    fill="currentColor"
-                                                    aria-hidden="true"
-                                                    dangerouslySetInnerHTML={{
-                                                        __html: liveIconPath,
-                                                    }}
-                                                />
-                                            </FileViewerStyleButton>
-                                            <FileViewerStyleButton
-                                                onClick={
-                                                    handleToggleLivePhotoMute
-                                                }
-                                                disabled={
-                                                    !livePhotoControls.muteAvailable
-                                                }
-                                                aria-label={t("audio")}
-                                                className={
-                                                    livePhotoControls.isMuteOff
-                                                        ? "pswp-ente-off"
-                                                        : undefined
-                                                }
-                                            >
-                                                <svg
-                                                    viewBox="0 0 32 32"
-                                                    width="32"
-                                                    height="32"
-                                                    fill="currentColor"
-                                                    aria-hidden="true"
-                                                    dangerouslySetInnerHTML={{
-                                                        __html: volumeIconPath,
-                                                    }}
-                                                />
-                                            </FileViewerStyleButton>
-                                        </Stack>
-                                    )
-                                )}
-                                <Box
-                                    ref={progressHostRef}
-                                    className="pswp-ente pswp-ente-public-album"
-                                    sx={{
-                                        display: { xs: "none", sm: "block" },
-                                        minWidth: 0,
-                                        flex: 1,
-                                    }}
-                                />
-                            </Stack>
-                            <Stack
-                                direction="row"
-                                spacing={1}
-                                sx={{ alignItems: "center", flexShrink: 0 }}
-                            >
-                                <Button
-                                    variant="contained"
-                                    onClick={handleGetEntePhotos}
-                                    sx={{
-                                        borderRadius: "16px",
-                                        paddingBlock: "11px",
-                                        paddingInline: "20px",
-                                        minHeight: "unset",
-                                        textTransform: "none",
-                                        fontWeight: "medium",
-                                        color: "#fff",
-                                        backgroundColor: "#08C225",
-                                        "&:hover": {
-                                            color: "#fff",
-                                            backgroundColor: "#07A820",
-                                        },
-                                    }}
-                                >
-                                    {t("join_ente")}
-                                </Button>
-                                <IconButton
-                                    onClick={(event) =>
-                                        setMenuAnchorEl(event.currentTarget)
-                                    }
-                                    aria-label={t("more")}
-                                    sx={{
-                                        color: "white",
-                                        width: 40,
-                                        height: 40,
-                                        p: 0.75,
-                                        bgcolor: {
-                                            xs: "transparent",
-                                            sm: "rgba(255, 255, 255, 0.16)",
-                                        },
-                                        "&:hover": {
-                                            bgcolor: {
-                                                xs: "transparent",
-                                                sm: "rgba(255, 255, 255, 0.24)",
+                                            "& svg": {
+                                                width: "auto",
+                                                height: { xs: 17, sm: 21 },
                                             },
-                                        },
+                                            "&:hover": { opacity: 1 },
+                                        }}
+                                    >
+                                        <EnteLogo height={17} />
+                                    </Box>
+                                    {shouldShowWarningIcon ? (
+                                        <Box
+                                            sx={{
+                                                color: "var(--mui-palette-fixed-golden)",
+                                                opacity: 0.85,
+                                                lineHeight: 0,
+                                                display: "flex",
+                                                alignItems: "center",
+                                                flexShrink: 0,
+                                                transform: "translateY(1px)",
+                                            }}
+                                        >
+                                            <ErrorOutlinedIcon
+                                                aria-hidden="true"
+                                                sx={{
+                                                    fontSize: 20,
+                                                    display: "block",
+                                                }}
+                                            />
+                                        </Box>
+                                    ) : isPhotoSwipeContentLoading &&
+                                      !isVideoFile ? (
+                                        <Box
+                                            sx={{
+                                                display: "flex",
+                                                alignItems: "center",
+                                                flexShrink: 0,
+                                                transform: "translateY(1px)",
+                                            }}
+                                        >
+                                            <CircularProgress
+                                                size={16}
+                                                thickness={5}
+                                                sx={{
+                                                    color: "rgb(255 255 255 / 0.85)",
+                                                }}
+                                            />
+                                        </Box>
+                                    ) : (
+                                        isLivePhotoFile && (
+                                            <Stack
+                                                direction="row"
+                                                spacing={0.5}
+                                                sx={{ alignItems: "center" }}
+                                            >
+                                                <FileViewerStyleButton
+                                                    onClick={
+                                                        handleToggleLivePhotoPlay
+                                                    }
+                                                    disabled={
+                                                        !livePhotoControls.playAvailable
+                                                    }
+                                                    aria-label={t("live")}
+                                                    className={
+                                                        livePhotoControls.isPlayOff
+                                                            ? "pswp-ente-off"
+                                                            : undefined
+                                                    }
+                                                >
+                                                    <svg
+                                                        viewBox="0 0 32 32"
+                                                        width="32"
+                                                        height="32"
+                                                        fill="currentColor"
+                                                        aria-hidden="true"
+                                                        dangerouslySetInnerHTML={{
+                                                            __html: liveIconPath,
+                                                        }}
+                                                    />
+                                                </FileViewerStyleButton>
+                                                <FileViewerStyleButton
+                                                    onClick={
+                                                        handleToggleLivePhotoMute
+                                                    }
+                                                    disabled={
+                                                        !livePhotoControls.muteAvailable
+                                                    }
+                                                    aria-label={t("audio")}
+                                                    className={
+                                                        livePhotoControls.isMuteOff
+                                                            ? "pswp-ente-off"
+                                                            : undefined
+                                                    }
+                                                >
+                                                    <svg
+                                                        viewBox="0 0 32 32"
+                                                        width="32"
+                                                        height="32"
+                                                        fill="currentColor"
+                                                        aria-hidden="true"
+                                                        dangerouslySetInnerHTML={{
+                                                            __html: volumeIconPath,
+                                                        }}
+                                                    />
+                                                </FileViewerStyleButton>
+                                            </Stack>
+                                        )
+                                    )}
+                                </Stack>
+                                <Stack
+                                    direction="row"
+                                    spacing={1}
+                                    sx={{
+                                        order: 1,
+                                        alignItems: "center",
+                                        flexShrink: 0,
+                                        marginInlineStart: "auto",
+                                        visibility: topControlsVisible
+                                            ? "visible"
+                                            : "hidden",
                                     }}
                                 >
-                                    <MoreVertIcon />
-                                </IconButton>
-                            </Stack>
-                        </Stack>
-                    </Box>
-                    <MoreMenu
+                                    <Button
+                                        variant="contained"
+                                        onClick={handleGetEntePhotos}
+                                        sx={{
+                                            borderRadius: "16px",
+                                            paddingBlock: "11px",
+                                            paddingInline: "20px",
+                                            minHeight: "unset",
+                                            textTransform: "none",
+                                            fontWeight: "medium",
+                                            color: "#fff",
+                                            backgroundColor: "#08C225",
+                                            "&:hover": {
+                                                color: "#fff",
+                                                backgroundColor: "#07A820",
+                                            },
+                                        }}
+                                    >
+                                        {t("join_ente")}
+                                    </Button>
+                                    <IconButton
+                                        onClick={(event) =>
+                                            setMenuAnchorEl(event.currentTarget)
+                                        }
+                                        aria-label={t("more")}
+                                        aria-haspopup="menu"
+                                        aria-expanded={!!menuAnchorEl}
+                                        sx={{
+                                            color: "white",
+                                            width: 40,
+                                            height: 40,
+                                            p: 0.75,
+                                            "&:hover": {
+                                                bgcolor: "transparent",
+                                                color: "rgba(255, 255, 255, 0.75)",
+                                            },
+                                        }}
+                                    >
+                                        <MoreVertIcon />
+                                    </IconButton>
+                                </Stack>
+                            </>,
+                            topBar,
+                        )}
+                    <ContextMenu
                         open={!!menuAnchorEl}
                         anchorEl={menuAnchorEl}
                         onClose={handleMenuClose}
                         disableAutoFocusItem
-                        slotProps={{ paper: { sx: { mt: "10px" } } }}
+                        slotProps={{ list: { "aria-label": t("more") } }}
+                        sx={islandMoreMenuSx}
                     >
                         {enableDownload && (
-                            <MoreMenuItem
+                            <ContextMenuItem
                                 onClick={() => {
                                     handleMenuClose();
                                     void handleDownload(file);
                                 }}
                             >
-                                <MoreMenuItemTitle>
-                                    {t("download")}
-                                </MoreMenuItemTitle>
-                                <DownloadOutlinedIcon />
-                            </MoreMenuItem>
+                                <HugeiconsIcon
+                                    icon={Download05Icon}
+                                    size={20}
+                                />
+                                {t("download")}
+                            </ContextMenuItem>
                         )}
-                        <MoreMenuItem onClick={handleOpenInfo}>
-                            <MoreMenuItemTitle>{t("info")}</MoreMenuItemTitle>
-                            <InfoOutlinedIcon />
-                        </MoreMenuItem>
-                        <MoreMenuItem onClick={() => void handleShare()}>
-                            <MoreMenuItemTitle>
-                                {t("share_action")}
-                            </MoreMenuItemTitle>
-                            <ShareOutlinedIcon />
-                        </MoreMenuItem>
+                        <ContextMenuItem onClick={handleOpenInfo}>
+                            <HugeiconsIcon
+                                icon={InformationCircleIcon}
+                                size={20}
+                            />
+                            {t("info")}
+                        </ContextMenuItem>
+                        <ContextMenuItem onClick={() => void handleShare()}>
+                            <HugeiconsIcon icon={Share08Icon} size={20} />
+                            {t("share_action")}
+                        </ContextMenuItem>
                         {canCopyAsPNG && (
-                            <MoreMenuItem
+                            <ContextMenuItem
                                 onClick={() => void handleCopyAsPNG()}
                             >
-                                <MoreMenuItemTitle>
-                                    {t("copy_as_png")}
-                                </MoreMenuItemTitle>
-                                <ContentCopyIcon
-                                    sx={{ "&&": { fontSize: "18px" } }}
-                                />
-                            </MoreMenuItem>
+                                <HugeiconsIcon icon={Copy01Icon} size={20} />
+                                {t("copy_as_png")}
+                            </ContextMenuItem>
                         )}
-                        <MoreMenuItem onClick={handleToggleFullscreen}>
-                            <MoreMenuItemTitle>
-                                {t("go_fullscreen")}
-                            </MoreMenuItemTitle>
-                            <FullscreenOutlinedIcon />
-                        </MoreMenuItem>
-                    </MoreMenu>
+                        <ContextMenuItem onClick={handleToggleFullscreen}>
+                            <HugeiconsIcon icon={FullScreenIcon} size={20} />
+                            {t("go_fullscreen")}
+                        </ContextMenuItem>
+                    </ContextMenu>
                 </>
             )}
             {!isViewerPrimed && (
@@ -872,41 +855,6 @@ export const PublicAlbumSingleFileViewer: React.FC<
         </>
     );
 };
-
-const MoreMenu = styled(Menu)(
-    ({ theme }) => `
-    & .MuiPaper-root {
-        background-color: ${theme.vars.palette.fixed.dark.background.paper};
-    }
-    & .MuiList-root {
-        padding-block: 2px;
-    }
-`,
-);
-
-const MoreMenuItem = styled(MenuItem)(
-    ({ theme }) => `
-    min-width: 210px;
-    padding-block: 12px;
-    min-height: auto;
-    gap: 1;
-    justify-content: space-between;
-    align-items: center;
-    color: rgba(255 255 255 / 0.85);
-    &:hover {
-        color: rgba(255 255 255 / 1);
-        background-color: ${theme.vars.palette.fixed.dark.background.paper2}
-    }
-
-    .MuiSvgIcon-root {
-        font-size: 20px;
-    }
-`,
-);
-
-const MoreMenuItemTitle: React.FC<React.PropsWithChildren> = ({ children }) => (
-    <Typography sx={{ fontWeight: "medium" }}>{children}</Typography>
-);
 
 const FileViewerStyleButton = styled("button")`
     width: 44px;

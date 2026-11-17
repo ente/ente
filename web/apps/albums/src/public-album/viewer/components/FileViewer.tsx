@@ -7,19 +7,23 @@ import {
     getPublicSocialDiff,
     getStoredAnonIdentity,
 } from "@/public-album/social/api/public-reaction";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import FullscreenExitOutlinedIcon from "@mui/icons-material/FullscreenExitOutlined";
-import FullscreenOutlinedIcon from "@mui/icons-material/FullscreenOutlined";
+import {
+    Copy01Icon,
+    FullScreenIcon,
+    KeyboardIcon,
+    MinimizeScreenIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import {
     Dialog,
     DialogContent,
     DialogTitle,
-    Menu,
-    MenuItem,
+    Divider,
     styled,
     Typography,
 } from "@mui/material";
 import { SpacedRow } from "ente-base/components/containers";
+import { ContextMenu, ContextMenuItem } from "ente-base/components/ContextMenu";
 import { DialogCloseIconButton } from "ente-base/components/mui/DialogCloseIconButton";
 import { useInterval, useIsSmallWidth } from "ente-base/components/utils/hooks";
 import type { ModalVisibilityProps } from "ente-base/components/utils/modal";
@@ -27,6 +31,7 @@ import { useBaseContext } from "ente-base/context";
 import type { PublicAlbumsCredentials } from "ente-base/http";
 import { formattedListJoin, ut } from "ente-base/i18n";
 import log from "ente-base/log";
+import { islandMoreMenuSx } from "ente-gallery/components/viewer/more-menu";
 import { FileType } from "ente-media/file-type";
 import type { EnteFile } from "ente-media/file.js";
 import { t } from "i18next";
@@ -1282,53 +1287,36 @@ export const FileViewer: React.FC<FileViewerProps> = ({
                 onClose={handleAddNameModalClose}
                 onSubmit={handleAddNameSubmit}
             />
-            <MoreMenu
+            <ContextMenu
                 open={!!moreMenuAnchorEl}
                 onClose={handleMoreMenuCloseIfNeeded}
                 anchorEl={moreMenuAnchorEl}
                 id={moreMenuID}
                 disableAutoFocusItem
                 slotProps={{ list: { "aria-labelledby": moreButtonID } }}
+                sx={islandMoreMenuSx}
             >
                 {canCopyImage() && (
-                    <MoreMenuItem onClick={handleCopyImage}>
-                        <MoreMenuItemTitle>
-                            {t("copy_as_png")}
-                        </MoreMenuItemTitle>
-                        <ContentCopyIcon sx={{ "&&": { fontSize: "18px" } }} />
-                    </MoreMenuItem>
+                    <ContextMenuItem onClick={handleCopyImage}>
+                        <HugeiconsIcon icon={Copy01Icon} size={20} />
+                        {t("copy_as_png")}
+                    </ContextMenuItem>
                 )}
-
-                <MoreMenuItem
-                    onClick={handleToggleFullscreen}
-                    sx={{
-                        ...(canCopyImage()
-                            ? {
-                                  borderTop: 1,
-                                  borderColor: "fixed.dark.divider",
-                                  mt: "2px",
-                                  pt: "14px",
-                              }
-                            : undefined),
-                    }}
-                >
-                    <MoreMenuItemTitle>
-                        {isFullscreen
-                            ? t("exit_fullscreen")
-                            : t("go_fullscreen")}
-                    </MoreMenuItemTitle>
-                    {isFullscreen ? (
-                        <FullscreenExitOutlinedIcon />
-                    ) : (
-                        <FullscreenOutlinedIcon />
-                    )}
-                </MoreMenuItem>
-                <MoreMenuItem onClick={handleShortcuts} sx={{ mt: "2px" }}>
-                    <Typography sx={{ color: "fixed.dark.text.faint" }}>
-                        {t("shortcuts")}
-                    </Typography>
-                </MoreMenuItem>
-            </MoreMenu>
+                <ContextMenuItem onClick={handleToggleFullscreen}>
+                    <HugeiconsIcon
+                        icon={
+                            isFullscreen ? MinimizeScreenIcon : FullScreenIcon
+                        }
+                        size={20}
+                    />
+                    {isFullscreen ? t("exit_fullscreen") : t("go_fullscreen")}
+                </ContextMenuItem>
+                <Divider />
+                <ContextMenuItem onClick={handleShortcuts}>
+                    <HugeiconsIcon icon={KeyboardIcon} size={20} />
+                    {t("shortcuts")}
+                </ContextMenuItem>
+            </ContextMenu>
             <Shortcuts
                 open={openShortcuts}
                 onClose={handleShortcutsClose}
@@ -1337,45 +1325,6 @@ export const FileViewer: React.FC<FileViewerProps> = ({
         </>
     );
 };
-
-const MoreMenu = styled(Menu)(
-    ({ theme }) => `
-    & .MuiPaper-root {
-        background-color: ${theme.vars.palette.fixed.dark.background.paper};
-    }
-    & .MuiList-root {
-        padding-block: 2px;
-    }
-`,
-);
-
-// Override MUI's responsive min-height so menu rows remain 44px.
-const MoreMenuItem = styled(MenuItem)(
-    ({ theme }) => `
-    min-width: 210px;
-
-    padding-block: 12px;
-    min-height: auto;
-
-    gap: 1;
-    justify-content: space-between;
-    align-items: center;
-
-    color: rgba(255 255 255 / 0.85);
-    &:hover {
-        color: rgba(255 255 255 / 1);
-        background-color: ${theme.vars.palette.fixed.dark.background.paper2}
-    }
-
-    .MuiSvgIcon-root {
-        font-size: 20px;
-    }
-`,
-);
-
-const MoreMenuItemTitle: React.FC<React.PropsWithChildren> = ({ children }) => (
-    <Typography sx={{ fontWeight: "medium" }}>{children}</Typography>
-);
 
 type ShortcutsProps = ModalVisibilityProps &
     Pick<FileViewerProps, "disableDownload"> & { haveUser: boolean };

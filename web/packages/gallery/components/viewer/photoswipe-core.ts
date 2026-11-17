@@ -141,7 +141,7 @@ export class FileViewerPhotoSwipe<
         onDownload,
         onMore,
     }: FileViewerPhotoSwipeCoreOptions<T>) {
-        const useIslandLayout = appName == "photos" && !isPublicAlbum;
+        const useIslandLayout = appName == "photos" || isPublicAlbum;
         const pswp = new PhotoSwipe({
             bgOpacity: 1,
             showHideAnimationType: "fade",
@@ -173,11 +173,13 @@ export class FileViewerPhotoSwipe<
             // PhotoSwipe's focus trap conflicts with MUI drawers and fast swipes.
             trapFocus: false,
             index: initialIndex,
-            mainClass: isPublicAlbum
-                ? "pswp-ente pswp-ente-public-album"
-                : useIslandLayout
-                  ? "pswp-ente pswp-ente-island"
-                  : "pswp-ente",
+            mainClass: [
+                "pswp-ente",
+                isPublicAlbum && "pswp-ente-public-album",
+                useIslandLayout && "pswp-ente-island",
+            ]
+                .filter(Boolean)
+                .join(" "),
             ...(useIslandLayout && {
                 paddingFn: islandLayoutPadding,
                 arrowPrevSVG: slideArrowPrevSVG,

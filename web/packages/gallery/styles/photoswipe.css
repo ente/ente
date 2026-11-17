@@ -1154,6 +1154,18 @@ body:has(
     padding-inline-start: 0;
 }
 
+.pswp-ente-public-album .pswp__status-island {
+    margin-inline-end: auto;
+}
+
+/* One-file viewers have no counter to separate from the status. */
+.pswp-ente-public-album.pswp--one-slide
+    .pswp__status-island
+    .pswp__ente-progress-text {
+    border-inline-start: 0;
+    padding-inline-start: 0;
+}
+
 .pswp-ente-island
     .pswp__media-controls
     media-control-bar:has(media-loading-indicator) {
@@ -1265,6 +1277,14 @@ body:has(
     .pswp-ente-island .pswp__status-buffering media-loading-indicator {
         --media-loading-indicator-icon-width: 20px;
         --media-loading-indicator-icon-height: 20px;
+    }
+
+    /* Public albums replace the counter with the Ente logo on small screens. */
+    .pswp-ente-public-album .pswp__status-island {
+        :is(.pswp__ente-progress-text, .pswp__status-buffering) {
+            border-inline-start: 0;
+            padding-inline-start: 0;
+        }
     }
 }
 

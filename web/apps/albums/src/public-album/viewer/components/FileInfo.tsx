@@ -1,31 +1,31 @@
-import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
-import CameraOutlinedIcon from "@mui/icons-material/CameraOutlined";
-import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
-import PhotoOutlinedIcon from "@mui/icons-material/PhotoOutlined";
-import TextSnippetOutlinedIcon from "@mui/icons-material/TextSnippetOutlined";
-import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
 import {
-    Box,
-    Link,
-    Stack,
-    styled,
-    Typography,
-    type DialogProps,
-} from "@mui/material";
+    ArrowLeft01Icon,
+    Calendar04Icon,
+    Camera01Icon,
+    CameraLensIcon,
+    Cancel01Icon,
+    Image01Icon,
+    Location01Icon,
+    Video02Icon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Divider, IconButton, Link, Stack, Typography } from "@mui/material";
 import { LinkButtonUndecorated } from "ente-base/components/LinkButton";
 import { ActivityIndicator } from "ente-base/components/mui/ActivityIndicator";
-import {
-    SidebarDrawer,
-    SidebarDrawerTitlebar,
-} from "ente-base/components/mui/SidebarDrawer";
-import { EllipsizedTypography } from "ente-base/components/Typography";
 import {
     useModalVisibility,
     type ModalVisibilityProps,
 } from "ente-base/components/utils/modal";
 import { formattedDate, formattedTime } from "ente-base/i18n-date";
 import type { Location } from "ente-base/types";
-import { CopyButton } from "ente-gallery/components/FileInfoComponents";
+import {
+    CopyButton,
+    FileInfoHeader,
+    FileInfoSection,
+    FileInfoSidebar,
+    InfoItem,
+    RawExif,
+} from "ente-gallery/components/FileInfoComponents";
 import { tagNumericValue, type RawExifTags } from "ente-gallery/services/exif";
 import { formattedByteSize } from "ente-gallery/utils/units";
 import type { EnteFile } from "ente-media/file";
@@ -75,64 +75,90 @@ export const FileInfo: React.FC<FileInfoProps> = ({
 
     return (
         <FileInfoSidebar {...{ open, onClose }}>
-            <SidebarDrawerTitlebar
-                onClose={onClose}
-                onRootClose={onClose}
-                title={t("info")}
-            />
-            <Stack sx={{ pt: 1, pb: 3, gap: "20px" }}>
-                {caption ? (
-                    <Box sx={{ px: 1 }}>
-                        <Typography
-                            sx={{
-                                whiteSpace: "pre-wrap",
-                                wordBreak: "break-word",
-                            }}
-                        >
-                            {caption}
-                        </Typography>
-                    </Box>
-                ) : (
-                    <Box sx={{ minHeight: 2 }} />
-                )}
-                <CreationTime file={file} />
-                <FileName file={file} annotatedExif={annotatedExif} />
-                {annotatedExif?.takenOnDevice && (
-                    <InfoItem
-                        icon={<CameraOutlinedIcon />}
-                        title={annotatedExif.takenOnDevice}
-                        caption={createMultipartCaption(
-                            annotatedExif.fNumber,
-                            annotatedExif.exposureTime,
-                            annotatedExif.iso,
-                        )}
+            <FileInfoHeader>
+                <IconButton aria-label={t("go_back")} onClick={onClose}>
+                    <HugeiconsIcon
+                        icon={ArrowLeft01Icon}
+                        size={20}
+                        strokeWidth={1.8}
                     />
+                </IconButton>
+                <Typography
+                    component="h2"
+                    variant="h5"
+                    sx={{ flex: 1, lineHeight: "28px" }}
+                >
+                    {t("details")}
+                </Typography>
+                <IconButton aria-label={t("close")} onClick={onClose}>
+                    <HugeiconsIcon icon={Cancel01Icon} size={20} />
+                </IconButton>
+            </FileInfoHeader>
+            <Stack sx={{ pb: 3, gap: 2 }}>
+                {caption && (
+                    <Typography
+                        sx={{
+                            p: "10px 12px",
+                            color: "text.muted",
+                            fontSize: 14,
+                            lineHeight: "20px",
+                            whiteSpace: "pre-wrap",
+                            overflowWrap: "anywhere",
+                        }}
+                    >
+                        {caption}
+                    </Typography>
                 )}
+                <Stack sx={{ gap: "2px" }}>
+                    <CreationTime file={file} />
+                    <FileName file={file} annotatedExif={annotatedExif} />
+                    {annotatedExif?.takenOnDevice && (
+                        <InfoItem
+                            icon={
+                                <HugeiconsIcon icon={Camera01Icon} size={18} />
+                            }
+                            title={annotatedExif.takenOnDevice}
+                            caption={createMultipartCaption(
+                                annotatedExif.fNumber,
+                                annotatedExif.exposureTime,
+                                annotatedExif.iso,
+                            )}
+                        />
+                    )}
+                </Stack>
                 {location && (
-                    <InfoItem
-                        icon={<LocationOnOutlinedIcon />}
-                        title={t("location")}
-                        caption={
-                            <Link
-                                href={openStreetMapLink(location)}
-                                target="_blank"
-                                rel="noopener"
-                                sx={{ fontWeight: "medium" }}
-                            >
-                                {t("view_on_map")}
-                            </Link>
-                        }
-                        trailingButton={
-                            <CopyButton
-                                size="medium"
-                                text={openStreetMapLink(location)}
-                            />
-                        }
-                    />
+                    <FileInfoSection title={t("location")}>
+                        <InfoItem
+                            icon={
+                                <HugeiconsIcon
+                                    icon={Location01Icon}
+                                    size={18}
+                                />
+                            }
+                            captionVariant="small"
+                            caption={
+                                <Link
+                                    href={openStreetMapLink(location)}
+                                    target="_blank"
+                                    rel="noopener"
+                                    sx={{ fontWeight: "medium" }}
+                                >
+                                    {t("view_on_map")}
+                                </Link>
+                            }
+                            trailingButton={
+                                <CopyButton
+                                    size="small"
+                                    text={openStreetMapLink(location)}
+                                />
+                            }
+                        />
+                    </FileInfoSection>
                 )}
+                <Divider sx={{ borderColor: "stroke.faint" }} />
                 <InfoItem
-                    icon={<TextSnippetOutlinedIcon />}
-                    title={t("details")}
+                    icon={<HugeiconsIcon icon={CameraLensIcon} size={18} />}
+                    title={t("exif")}
                     caption={
                         !exif ? (
                             <ActivityIndicator size={12} />
@@ -148,7 +174,13 @@ export const FileInfo: React.FC<FileInfoProps> = ({
                 {uploaderName && (
                     <Typography
                         variant="small"
-                        sx={{ m: 2, textAlign: "right", color: "text.muted" }}
+                        sx={{
+                            fontSize: 12,
+                            lineHeight: "16px",
+                            textAlign: "right",
+                            color: "text.muted",
+                            overflowWrap: "anywhere",
+                        }}
                     >
                         {t("added_by_name", { name: uploaderName })}
                     </Typography>
@@ -156,7 +188,6 @@ export const FileInfo: React.FC<FileInfoProps> = ({
             </Stack>
             <RawExif
                 {...rawExifVisibilityProps}
-                onInfoClose={onClose}
                 tags={exif?.tags}
                 fileName={fileFileName(file)}
             />
@@ -199,77 +230,11 @@ const annotateExif = (
     return annotatedExif;
 };
 
-const FileInfoSidebar = styled(
-    (props: Pick<DialogProps, "open" | "onClose" | "children">) => (
-        <SidebarDrawer
-            {...props}
-            anchor="right"
-            disableRestoreFocus={true}
-            closeAfterTransition={true}
-        />
-    ),
-)(({ theme }) => ({
-    "& .MuiDrawer-paper": { overflowX: "hidden" },
-    ...theme.applyStyles("light", {
-        ".MuiBackdrop-root": {
-            backgroundColor: theme.vars.palette.backdrop.faint,
-        },
-    }),
-}));
-
-interface InfoItemProps {
-    icon: React.ReactNode;
-    title?: string;
-    caption?: React.ReactNode;
-    trailingButton?: React.ReactNode;
-}
-
-const InfoItem: React.FC<React.PropsWithChildren<InfoItemProps>> = ({
-    icon,
-    title,
-    caption,
-    trailingButton,
-    children,
-}) => (
-    <Stack
-        direction="row"
-        sx={{ alignItems: "flex-start", flex: 1, gap: "12px" }}
-    >
-        <InfoItemIconContainer>{icon}</InfoItemIconContainer>
-        {children ? (
-            <Box sx={{ flex: 1, mt: "4px" }}>{children}</Box>
-        ) : (
-            <Stack sx={{ flex: 1, mt: "4px", gap: "4px" }}>
-                <Typography sx={{ wordBreak: "break-all" }}>{title}</Typography>
-                <Typography
-                    variant="small"
-                    {...(typeof caption != "string" && { component: "div" })}
-                    sx={{ color: "text.muted" }}
-                >
-                    {caption}
-                </Typography>
-            </Stack>
-        )}
-        {trailingButton}
-    </Stack>
-);
-
-const InfoItemIconContainer = styled("div")(
-    ({ theme }) => `
-    width: 48px;
-    aspect-ratio: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    color: ${theme.vars.palette.stroke.muted}
-`,
-);
-
 const CreationTime: React.FC<{ file: EnteFile }> = ({ file }) => {
     const date = fileCreationPhotoDate(file);
     return (
         <InfoItem
-            icon={<CalendarTodayIcon />}
+            icon={<HugeiconsIcon icon={Calendar04Icon} size={18} />}
             title={formattedDate(date)}
             caption={formattedTime(date)}
         />
@@ -282,9 +247,9 @@ const FileName: React.FC<{
 }> = ({ file, annotatedExif }) => {
     const icon =
         file.metadata.fileType === FileType.video ? (
-            <VideocamOutlinedIcon />
+            <HugeiconsIcon icon={Video02Icon} size={18} />
         ) : (
-            <PhotoOutlinedIcon />
+            <HugeiconsIcon icon={Image01Icon} size={18} />
         );
     const fileSize = file.info?.fileSize;
 
@@ -315,97 +280,3 @@ const createMultipartCaption = (
 
 const openStreetMapLink = ({ latitude, longitude }: Location) =>
     `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=15/${latitude}/${longitude}`;
-
-interface RawExifProps {
-    open: boolean;
-    onClose: () => void;
-    onInfoClose: () => void;
-    tags: RawExifTags | undefined;
-    fileName: string;
-}
-
-const RawExif: React.FC<RawExifProps> = ({
-    open,
-    onClose,
-    onInfoClose,
-    tags,
-    fileName,
-}) => {
-    if (!tags) return <></>;
-
-    const handleRootClose = () => {
-        onClose();
-        onInfoClose();
-    };
-
-    const items: (readonly [string, string, string, string])[] = Object.entries(
-        tags,
-    )
-        .map(([namespace, namespaceTags]) =>
-            Object.entries(namespaceTags).map(([tagName, tag]) => {
-                const key = `${namespace}:${tagName}`;
-                let description = "<...>";
-                if (typeof tag == "string") {
-                    description = tag;
-                } else if (typeof tag == "number") {
-                    description = `${tag}`;
-                } else if (tag && typeof tag == "object") {
-                    const descriptionField = (tag as Record<string, unknown>)
-                        .description;
-                    if (typeof descriptionField == "string") {
-                        description = descriptionField;
-                    }
-                }
-
-                return [key, namespace, tagName, description] as const;
-            }),
-        )
-        .flat()
-        .filter(([, , , description]) => description);
-
-    return (
-        <FileInfoSidebar open={open} onClose={onClose}>
-            <SidebarDrawerTitlebar
-                onClose={onClose}
-                onRootClose={handleRootClose}
-                title={t("exif")}
-                caption={fileName}
-                showRootCloseButton={false}
-                actionButton={
-                    <CopyButton size="small" text={JSON.stringify(tags)} />
-                }
-            />
-            <Stack sx={{ gap: 2, py: 3, px: 1 }}>
-                {items.map(([key, namespace, tagName, description]) => (
-                    <ExifItem key={key}>
-                        <Stack direction="row" sx={{ gap: 1 }}>
-                            <Typography
-                                variant="small"
-                                sx={{ color: "text.muted" }}
-                            >
-                                {tagName}
-                            </Typography>
-                            <Typography
-                                variant="tiny"
-                                sx={{ color: "text.faint" }}
-                            >
-                                {namespace}
-                            </Typography>
-                        </Stack>
-                        <EllipsizedTypography sx={{ width: "100%" }}>
-                            {description}
-                        </EllipsizedTypography>
-                    </ExifItem>
-                ))}
-            </Stack>
-        </FileInfoSidebar>
-    );
-};
-
-const ExifItem = styled("div")`
-    padding-left: 8px;
-    padding-right: 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-`;
