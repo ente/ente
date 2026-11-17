@@ -1,6 +1,6 @@
 import {
     LocalCollections,
-    LocalEnteFiles,
+    type LocalEnteFiles,
     localForage,
     LocalTimestamp,
     transformFilesIfNeeded,
@@ -51,14 +51,10 @@ export const saveLastPublicCollectionReferralCode = async (
     await localForage.setItem("public-referral-code", referralCode);
 };
 
-const LocalSavedPublicCollectionFilesEntry = z.object({
-    collectionUID: z.string(),
-    files: LocalEnteFiles,
-});
-
-type LocalSavedPublicCollectionFilesEntry = z.infer<
-    typeof LocalSavedPublicCollectionFilesEntry
->;
+interface LocalSavedPublicCollectionFilesEntry {
+    collectionUID: string;
+    files: z.infer<typeof LocalEnteFiles>;
+}
 
 export const savedPublicCollectionFiles = async (
     accessToken: string,
