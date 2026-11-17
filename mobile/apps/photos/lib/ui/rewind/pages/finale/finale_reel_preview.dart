@@ -56,11 +56,12 @@ class _FinaleReelPreviewState extends State<FinaleReelPreview>
 
   Future<void> _load(RewindNavigator? navigator) async {
     if (navigator == null) return;
-    await Future.wait([for (final page in navigator.pages) page.warmUp()]);
+    final warmed = await Future.wait([
+      for (final page in navigator.pages) page.warmUp(),
+    ]);
     final reel = RewindReel.of(navigator.pages);
-    if (reel.pages.isEmpty) return;
-    await navigator.loadVideoMedia(reel.pages);
-    if (!mounted) return;
+    if (warmed.contains(false) || reel.pages.isEmpty) return;
+    if (!await navigator.loadVideoMedia(reel.pages) || !mounted) return;
     setState(() {
       _reel = reel;
       _steps = _stepsOf(reel);
