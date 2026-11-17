@@ -56,6 +56,21 @@ void main() {
       find.descendant(of: rail, matching: find.text("Guest view")),
     );
     expect(tapped, "Guest view");
+    controller.jumpTo(
+      sheet.minChildSize + (sheet.maxChildSize - sheet.minChildSize) * 0.05,
+    );
+    await tester.pump();
+    final guestView = find.descendant(
+      of: rail,
+      matching: find.text("Guest view"),
+    );
+    expect(tester.getRect(guestView).overlaps(tester.getRect(rail)), isTrue);
+    expect(
+      _paintOpacity(tester, guestView),
+      allOf(greaterThan(0), lessThan(1)),
+    );
+    controller.jumpTo(sheet.minChildSize);
+    await tester.pumpAndSettle();
     await tester.drag(rail, const Offset(2000, 0));
     await tester.pumpAndSettle();
     await tester.drag(rail, const Offset(-400, 0));
