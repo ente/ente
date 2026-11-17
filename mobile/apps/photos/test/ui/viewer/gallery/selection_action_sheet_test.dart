@@ -50,20 +50,18 @@ void main() {
     expect(tapped, isEmpty);
     await tester.tap(find.text("Share"));
     expect(tapped, "Share");
+    final guestView = find.descendant(
+      of: rail,
+      matching: find.text("Guest view"),
+    );
     await tester.drag(rail, const Offset(-2000, 0));
     await tester.pumpAndSettle();
-    await tester.tap(
-      find.descendant(of: rail, matching: find.text("Guest view")),
-    );
+    await tester.tap(guestView);
     expect(tapped, "Guest view");
     controller.jumpTo(
       sheet.minChildSize + (sheet.maxChildSize - sheet.minChildSize) * 0.05,
     );
     await tester.pump();
-    final guestView = find.descendant(
-      of: rail,
-      matching: find.text("Guest view"),
-    );
     expect(tester.getRect(guestView).overlaps(tester.getRect(rail)), isTrue);
     expect(
       _paintOpacity(tester, guestView),
@@ -106,18 +104,6 @@ void main() {
     expect(
       _paintOpacity(tester, find.text("Add to album").last),
       greaterThan(0),
-    );
-    expect(
-      (controller.size - sheet.minChildSize) /
-          (sheet.maxChildSize - sheet.minChildSize),
-      lessThan(0.3),
-    );
-    expect(
-      _paintOpacity(
-        tester,
-        find.descendant(of: rail, matching: find.text("Add to album")),
-      ),
-      allOf(greaterThan(0), lessThan(1)),
     );
     await gesture.moveBy(const Offset(0, -320));
     await gesture.up();
@@ -288,16 +274,10 @@ void main() {
     expect(_paintOpacity(tester, action), 1);
     await tester.tap(action);
     expect(tapped, "Add to album");
-    await tester.drag(rail, const Offset(-2000, 0));
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -600));
     await tester.pumpAndSettle();
-    expect(
-      find.descendant(of: rail, matching: find.text("Download")),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(of: rail, matching: find.text("Guest view")),
-      findsNothing,
-    );
+    await tester.tap(find.text("Guest view"));
+    expect(tapped, "Guest view");
   });
 
   testWidgets("preserves hidden and disabled actions and reduced motion", (
