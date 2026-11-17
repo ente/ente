@@ -285,7 +285,7 @@ Jump to a category:
 
 - [How are location tags different from map view?](/photos/faq/search-and-discovery#location-tags-vs-map)
 - [How do I create location tags?](/photos/faq/search-and-discovery#create-location-tags)
-- [How do I see all my saved locations?](/photos/faq/search-and-discovery#all-locations)
+- [How do I see more locations in Search?](/photos/faq/search-and-discovery#all-locations)
 - [Are my location tags encrypted?](/photos/faq/search-and-discovery#location-tags-encryption)
 
 ### Machine Learning and Face Recognition
