@@ -51,7 +51,7 @@ import {
     type UploadResult,
 } from ".";
 import {
-    fileSystemCreationTimeOrModified,
+    earliestFileSystemTime,
     tryParseEpochMicrosecondsFromFileName,
 } from "./date";
 import { computeMd5Base64 } from "./md5";
@@ -900,10 +900,7 @@ const extractImageOrVideoMetadata = async (
     } else {
         creationTime =
             tryParseEpochMicrosecondsFromFileName(fileName) ??
-            (await fileSystemCreationTimeOrModified(
-                uploadItem,
-                modificationTime,
-            ));
+            (await earliestFileSystemTime(uploadItem, modificationTime));
     }
 
     let duration: number | undefined;
