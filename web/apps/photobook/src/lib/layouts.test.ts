@@ -7,10 +7,12 @@ import {
     defaultVariantKeyForCount,
     generateAutoLayout,
     getLayoutMetrics,
+    getMaxAutoLayoutPhotos,
     getMirrorVariant,
     getVariantPreview,
     getVariantsForCount,
 } from "./layouts";
+import { MAX_PRINT_PAGES } from "./printProducts";
 import type { Photo } from "./types";
 
 const photos: Photo[] = Array.from({ length: 12 }, (_, i) => ({
@@ -251,6 +253,17 @@ function makePhotos(count: number): Photo[] {
         dateTaken: i,
     }));
 }
+
+test("the import cutoff fits exactly within the printable page limit", () => {
+    const limit = getMaxAutoLayoutPhotos(MAX_PRINT_PAGES);
+    assert.equal(limit, 223);
+    assert.equal(generateAutoLayout(makePhotos(limit)).length, MAX_PRINT_PAGES);
+    assert.equal(
+        generateAutoLayout(makePhotos(limit + 1)).length,
+        MAX_PRINT_PAGES + 2,
+    );
+    assert.equal(generateAutoLayout(makePhotos(600)).length, 268);
+});
 
 test("auto-layout fills every interior page whenever there are at least two interior photos", () => {
     for (const count of [

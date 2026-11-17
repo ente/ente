@@ -1164,6 +1164,7 @@ function SpreadPage({
                 key={page.id}
                 pageId={page.id}
                 pageIndex={pageIndex}
+                photoCount={photoCount}
                 totalPages={totalPages}
                 side={pickerSide}
                 requiredBlank={requiredBlank}

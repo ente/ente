@@ -1,4 +1,6 @@
 import { useBook } from "@/context/book";
+import { getMaxAutoLayoutPhotos } from "@/lib/layouts";
+import { MAX_PRINT_PAGES } from "@/lib/printProducts";
 import { useRouter } from "next/router";
 import {
     createContext,
@@ -20,6 +22,8 @@ const ACCEPTED_TYPES = [
 ];
 
 type EnteDialogStage = "closed" | "url" | "password";
+type ImportSource = "album" | "files";
+const maxPhotos = getMaxAutoLayoutPhotos(MAX_PRINT_PAGES);
 
 function usePhotoImportSession() {
     const router = useRouter();
@@ -47,6 +51,10 @@ function usePhotoImportSession() {
     const [importing, setImporting] = useState(false);
     const importingRef = useRef(false);
     const retryFilesRef = useRef<File[]>([]);
+    const [oversizedImport, setOversizedImport] = useState<ImportSource | null>(
+        null,
+    );
+    const limitResolverRef = useRef<((useFirst: boolean) => void) | null>(null);
 
     const [enteStage, setEnteStage] = useState<EnteDialogStage>("closed");
     const [enteUrl, setEnteUrl] = useState("");
@@ -99,6 +107,24 @@ function usePhotoImportSession() {
         });
     }, []);
 
+    const selectPhotos = useCallback(
+        async <T>(photos: T[], source: ImportSource) => {
+            if (photos.length <= maxPhotos) return photos;
+            const useFirst = await new Promise<boolean>((resolve) => {
+                limitResolverRef.current = resolve;
+                setOversizedImport(source);
+            });
+            return useFirst ? photos.slice(0, maxPhotos) : null;
+        },
+        [],
+    );
+
+    const resolvePhotoLimit = (useFirst: boolean) => {
+        limitResolverRef.current?.(useFirst);
+        limitResolverRef.current = null;
+        setOversizedImport(null);
+    };
+
     const handleImportEnte = useCallback(async () => {
         const url = enteUrl.trim();
         if (!url) {
@@ -109,8 +135,18 @@ function usePhotoImportSession() {
         retryFilesRef.current = [];
 
         try {
-            await addEntePhotos(url, requestPassword);
-            setEnteUrl("");
+            const { prepareEnteAlbum } = await import("@/lib/ente/import");
+            const { credentials, files } = await prepareEnteAlbum(
+                url,
+                requestPassword,
+            );
+            if (!files.length)
+                throw new Error("This album has no photos we can import.");
+            const selected = await selectPhotos(files, "album");
+            if (selected) {
+                await addEntePhotos(credentials, selected);
+                setEnteUrl("");
+            }
             setImportActive(false);
         } catch (e) {
             const cancelled =
@@ -127,7 +163,7 @@ function usePhotoImportSession() {
             importingRef.current = false;
             setImporting(false);
         }
-    }, [enteUrl, addEntePhotos, requestPassword, beginImport]);
+    }, [enteUrl, addEntePhotos, requestPassword, beginImport, selectPhotos]);
 
     const handleSubmitPassword = useCallback(() => {
         const resolve = passwordResolverRef.current;
@@ -160,9 +196,12 @@ function usePhotoImportSession() {
 
             if (valid.length > 0) {
                 if (!beginImport()) return;
-                retryFilesRef.current = valid;
                 try {
-                    await addPhotos(valid, { replace: true });
+                    const selected = await selectPhotos(valid, "files");
+                    if (selected) {
+                        retryFilesRef.current = selected;
+                        await addPhotos(selected, { replace: true });
+                    }
                     retryFilesRef.current = [];
                     setImportActive(false);
                 } catch (error) {
@@ -177,7 +216,7 @@ function usePhotoImportSession() {
                 }
             }
         },
-        [addPhotos, beginImport],
+        [addPhotos, beginImport, selectPhotos],
     );
 
     const retryImport = useCallback(() => {
@@ -208,12 +247,17 @@ function usePhotoImportSession() {
         () => () => {
             passwordResolverRef.current?.(null);
             passwordResolverRef.current = null;
+            limitResolverRef.current?.(false);
+            limitResolverRef.current = null;
         },
         [],
     );
 
     return {
         fileInputRef,
+        maxPhotos,
+        oversizedImport,
+        resolvePhotoLimit,
         dragOver,
         enteStage,
         enteUrl,
@@ -223,8 +267,10 @@ function usePhotoImportSession() {
         enteError,
         importError,
         processingPhotos,
-        processingProgress,
-        processingMessage,
+        processingProgress: processingPhotos ? processingProgress : 0,
+        processingMessage: processingPhotos
+            ? processingMessage
+            : "Preparing your photos...",
         openEnteDialog,
         closeEnteDialog,
         handleImportEnte,

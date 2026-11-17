@@ -1,3 +1,4 @@
+import PhotoImportControls from "@/components/PhotoImportControls";
 import { BookProvider } from "@/context/BookContext";
 import { PhotoImportProvider } from "@/hooks/usePhotoImport";
 import theme from "@/theme/theme";
@@ -26,6 +27,7 @@ export default function App({ Component, pageProps }: AppProps) {
             <BookProvider>
                 <PhotoImportProvider>
                     <Component {...pageProps} />
+                    <PhotoImportControls />
                 </PhotoImportProvider>
             </BookProvider>
         </ThemeProvider>

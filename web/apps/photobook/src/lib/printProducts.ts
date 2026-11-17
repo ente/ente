@@ -2,13 +2,18 @@ import { BOOK_SIZE_MM } from "./bookFormats";
 import { normalizeBookPages } from "./bookPages";
 import type { BookPage } from "./types";
 
+export const MAX_PRINT_PAGES = 100;
+
+export const canInsertPage = (pageCount: number) =>
+    pageCount >= 2 && pageCount < MAX_PRINT_PAGES;
+
 export const PRINT_PRODUCTS = [
     {
         id: "layflat-gloss-190",
         binding: "Layflat",
         paper: "Gloss · 190 gsm",
         minPages: 24,
-        maxPages: 100,
+        maxPages: MAX_PRINT_PAGES,
         sizesMm: [BOOK_SIZE_MM],
     },
     {
@@ -16,7 +21,7 @@ export const PRINT_PRODUCTS = [
         binding: "Softcover",
         paper: "Gloss · 150 gsm",
         minPages: 24,
-        maxPages: 100,
+        maxPages: MAX_PRINT_PAGES,
         sizesMm: [BOOK_SIZE_MM],
     },
     {
@@ -24,7 +29,7 @@ export const PRINT_PRODUCTS = [
         binding: "Softcover",
         paper: "Mohawk uncoated · 120 gsm",
         minPages: 24,
-        maxPages: 100,
+        maxPages: MAX_PRINT_PAGES,
         sizesMm: [BOOK_SIZE_MM],
     },
 ] as const;

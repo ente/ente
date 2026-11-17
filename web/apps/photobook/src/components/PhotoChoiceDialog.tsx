@@ -1,4 +1,3 @@
-import type { PhotoDropChoice } from "@/hooks/usePhotoDrag";
 import { accentGreen } from "@/theme/buttons";
 import {
     dialogActionSx,
@@ -10,23 +9,32 @@ import {
     dialogTitleSx,
 } from "@/theme/dialogs";
 import { Box, Button, Dialog, IconButton, Typography } from "@mui/material";
+import { useId } from "react";
 import { AddPhotosIcon, CloseIcon } from "./icons";
 
-export default function PhotoDropDialog({
+export default function PhotoChoiceDialog({
     open,
-    onChoose,
+    title,
+    description,
+    primary,
+    secondary,
+    onClose,
 }: {
     open: boolean;
-    onChoose: (choice: PhotoDropChoice) => void;
+    title: string;
+    description: string;
+    primary: { label: string; onClick: () => void };
+    secondary: { label: string; onClick: () => void };
+    onClose: () => void;
 }) {
-    const close = () => onChoose("cancel");
+    const id = useId();
     return (
         <Dialog
             open={open}
-            onClose={close}
+            onClose={onClose}
             maxWidth={false}
-            aria-labelledby="photo-drop-title"
-            aria-describedby="photo-drop-description"
+            aria-labelledby={id + "-title"}
+            aria-describedby={id + "-description"}
             slotProps={{
                 paper: { sx: dialogPaperSx },
                 backdrop: { sx: { bgcolor: "rgba(0,0,0,0.5)" } },
@@ -43,7 +51,7 @@ export default function PhotoDropDialog({
             >
                 <IconButton
                     aria-label="Close"
-                    onClick={close}
+                    onClick={onClose}
                     sx={dialogCloseButtonSx}
                 >
                     <CloseIcon sx={{ fontSize: 20 }} />
@@ -55,35 +63,34 @@ export default function PhotoDropDialog({
                 <Box sx={dialogHeaderSx}>
                     <Typography
                         component="h2"
-                        id="photo-drop-title"
+                        id={id + "-title"}
                         sx={dialogTitleSx}
                     >
-                        Add or swap photos?
+                        {title}
                     </Typography>
                     <Typography
-                        id="photo-drop-description"
+                        id={id + "-description"}
                         sx={dialogDescriptionSx}
                     >
-                        Keep both photos on this page, or swap them between
-                        pages.
+                        {description}
                     </Typography>
                 </Box>
                 <Button
                     variant="contained"
                     fullWidth
                     autoFocus
-                    onClick={() => onChoose("add")}
+                    onClick={primary.onClick}
                     sx={dialogActionSx}
                 >
-                    Add to page
+                    {primary.label}
                 </Button>
                 <Button
                     variant="outlined"
                     fullWidth
-                    onClick={() => onChoose("swap")}
+                    onClick={secondary.onClick}
                     sx={dialogCancelButtonSx}
                 >
-                    Swap photos
+                    {secondary.label}
                 </Button>
             </Box>
         </Dialog>

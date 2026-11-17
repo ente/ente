@@ -3,8 +3,10 @@ import {
     applyVariant,
     chooseBestVariantKey,
     generateAutoLayout,
+    getMaxAutoLayoutPhotos,
     getVariantsForCount,
 } from "./layouts";
+import { MAX_PRINT_PAGES } from "./printProducts";
 import type { BookPage, Photo } from "./types";
 
 export const MAX_PAGE_PHOTOS = 4;
@@ -68,15 +70,23 @@ export function photoDestinationError(
     destination: PhotoDestination,
     count: number,
 ): string | null {
-    if (destination.kind === "end") return null;
-    const index = pages.findIndex((page) => page.id === destination.pageId);
-    if (index < 0)
-        return "That page is no longer available. Choose another page.";
-    if (index === pages.length - 1)
-        return "Choose an inside page or the front cover.";
-    if (index === 0)
-        return count === 1 ? null : "Choose one photo for the front cover.";
-    return null;
+    let capacity = Math.max(0, MAX_PRINT_PAGES - pages.length) * MAX_PAGE_PHOTOS;
+    if (destination.kind === "page") {
+        const index = pages.findIndex((page) => page.id === destination.pageId);
+        if (index < 0)
+            return "That page is no longer available. Choose another page.";
+        if (index === pages.length - 1)
+            return "Choose an inside page or the front cover.";
+        if (index === 0)
+            return count === 1 ? null : "Choose one photo for the front cover.";
+        capacity += availablePhotoSpaces(pages[index]!);
+    } else if (pages.length === 0) {
+        capacity = getMaxAutoLayoutPhotos(MAX_PRINT_PAGES);
+    }
+    if (count <= capacity) return null;
+    if (capacity === 0)
+        return `Your book has reached the ${MAX_PRINT_PAGES}-page limit. Choose a page with room for more photos.`;
+    return `There’s room for ${capacity} more ${capacity === 1 ? "photo" : "photos"} here within the ${MAX_PRINT_PAGES}-page limit.`;
 }
 
 function addPhotosToPage(page: BookPage, allPhotos: Photo[], added: Photo[]) {

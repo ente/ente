@@ -28,7 +28,6 @@ export default function StartPage() {
         importError,
         importing,
         handleImportEnte,
-        handleFiles,
         handleDrop,
         handleDragOver,
         handleDragLeave,
@@ -376,18 +375,6 @@ export default function StartPage() {
                     </Box>
                 </Box>
             </Box>
-            <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
-                multiple
-                style={{ display: "none" }}
-                onChange={(event) => {
-                    if (event.currentTarget.files)
-                        void handleFiles(event.currentTarget.files);
-                    event.currentTarget.value = "";
-                }}
-            />
         </Box>
     );
 }

@@ -165,6 +165,77 @@ test("invalid destinations reject the entire selection without changing the book
     assert.equal(photoDestinationError(pages, { kind: "end" }, 9), null);
 });
 
+test("at the page limit, photos can fill existing slots or replace the front cover", () => {
+    for (const count of [100, 102]) {
+        const pages = Array.from({ length: count }, makeBlankPage);
+        pages[1]!.slots = applyVariant("2-side", [
+            photos[0]!.id,
+            photos[1]!.id,
+        ]);
+        const destination = { kind: "page" as const, pageId: pages[1]!.id };
+        const filled = placeImportedPhotos(
+            pages,
+            photos,
+            photos.slice(2, 4),
+            destination,
+        );
+        assert.equal(filled.length, count);
+        assert.equal(filled[1]!.slots.length, 4);
+        assert.match(
+            photoDestinationError(pages, destination, 3)!,
+            /2 more photos/,
+        );
+        assert.throws(() =>
+            placeImportedPhotos(pages, photos, photos.slice(2, 5), destination),
+        );
+        assert.equal(pages[1]!.slots.length, 2);
+        assert.ok(photoDestinationError(filled, destination, 1));
+        assert.ok(photoDestinationError(pages, { kind: "end" }, 1));
+        assert.equal(
+            photoDestinationError(
+                pages,
+                { kind: "page", pageId: pages[0]!.id },
+                1,
+            ),
+            null,
+        );
+    }
+});
+
+test("overflow fills the remaining pages up to the print limit, including blank padding", () => {
+    const pages = Array.from({ length: 98 }, makeBlankPage);
+    pages[1]!.slots = applyVariant(
+        "3-left1-right2",
+        photos.slice(0, 3).map((photo) => photo.id),
+    );
+    const added = photos.map((photo) => ({ ...photo, id: `new-${photo.id}` }));
+    const allPhotos = [...photos, ...added];
+    const destination = { kind: "page" as const, pageId: pages[1]!.id };
+    for (const count of [2, 9]) {
+        const result = placeImportedPhotos(
+            pages,
+            allPhotos,
+            added.slice(0, count),
+            destination,
+        );
+        assert.equal(result.length, 100);
+        assert.equal(result[1]!.slots.length, 4);
+        assert.equal(result[2]!.slots.length, count === 2 ? 1 : 4);
+        assert.deepEqual(
+            result.flatMap((p) => p.slots.map((slot) => slot.photoId)),
+            allPhotos
+                .slice(0, 3)
+                .concat(added.slice(0, count))
+                .map((photo) => photo.id),
+        );
+    }
+    assert.throws(() =>
+        placeImportedPhotos(pages, allPhotos, added, destination),
+    );
+    assert.equal(photoDestinationError(pages, { kind: "end" }, 8), null);
+    assert.ok(photoDestinationError(pages, { kind: "end" }, 9));
+});
+
 test("empty slots count as available and an empty front cover keeps its full-bleed layout", () => {
     const pages = makeBook();
     pages[0] = { ...pages[0]!, slots: [] };

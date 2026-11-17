@@ -33,7 +33,7 @@ import BookHeader from "./BookHeader";
 import BookSidebar from "./BookSidebar";
 import EditorActions, { EditorPreviewButton } from "./EditorActions";
 import type { PageInsertPosition } from "./PageMenu";
-import PhotoDropDialog from "./PhotoDropDialog";
+import PhotoChoiceDialog from "./PhotoChoiceDialog";
 import PrinterBlankPage from "./PrinterBlankPage";
 import SpreadPage, { PICKER_WIDTH } from "./SpreadPage";
 import {
@@ -861,9 +861,19 @@ function EditPage({
                     }
                 />
             )}
-            <PhotoDropDialog
+            <PhotoChoiceDialog
                 open={photoDrag.awaitingDropChoice}
-                onChoose={photoDrag.resolveDrop}
+                title="Add or swap photos?"
+                description="Keep both photos on this page, or swap them between pages."
+                primary={{
+                    label: "Add to page",
+                    onClick: () => photoDrag.resolveDrop("add"),
+                }}
+                secondary={{
+                    label: "Swap photos",
+                    onClick: () => photoDrag.resolveDrop("swap"),
+                }}
+                onClose={() => photoDrag.resolveDrop("cancel")}
             />
             <Backdrop
                 open={pagePhotoImportBusy}

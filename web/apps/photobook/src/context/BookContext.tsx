@@ -43,6 +43,7 @@ import {
 } from "@/lib/photoPlacement";
 import { PreviewCache } from "@/lib/previewCache";
 import { constrainTextBlock } from "@/lib/printLayout";
+import { canInsertPage } from "@/lib/printProducts";
 import type {
     AppView,
     BookPage,
@@ -62,7 +63,6 @@ import React, {
 } from "react";
 import { BookContext, createBookStore } from "./book";
 
-const MAX_PHOTOS = 650;
 const emptyBook: BookState = { title: "", pages: [], currentSpreadIndex: 0 };
 
 function isPendingEnteOriginal(photo: Photo): boolean {
@@ -351,10 +351,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
     const addPhotos = useCallback(
         async (files: File[], options: AddPhotosOptions = {}) => {
             const replace = options.replace ?? false;
-            const skippedByLimit = replace
-                ? Math.max(0, files.length - MAX_PHOTOS)
-                : 0;
-            if (replace) files = files.slice(0, MAX_PHOTOS);
             const destination = options.destination ?? { kind: "end" as const };
             if (!replace) {
                 const error = photoDestinationError(
@@ -481,16 +477,11 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                     );
                 }
                 const skipped = files.length - newPhotos.length;
-                const notices: string[] = [];
-                if (skipped > 0)
-                    notices.push(
-                        `${skipped} photo${skipped === 1 ? "" : "s"} couldn't be imported.`,
-                    );
-                if (skippedByLimit > 0)
-                    notices.push(
-                        `${skippedByLimit} photo${skippedByLimit === 1 ? " was" : "s were"} skipped because of the ${MAX_PHOTOS}-photo limit.`,
-                    );
-                setImportNotice(notices.join(" ") || null);
+                setImportNotice(
+                    skipped > 0
+                        ? `${skipped} photo${skipped === 1 ? "" : "s"} couldn't be imported.`
+                        : null,
+                );
 
                 const allPhotos = replace
                     ? newPhotos
@@ -712,26 +703,19 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
 
     const addEntePhotos = useCallback(
         async (
-            albumUrl: string,
-            requestPassword: () => Promise<string | null>,
+            credentials: EnteCredentials,
+            files: EnteFileDescriptor[],
         ) => {
             setProcessingPhotos(true);
             progressRef.current = 0;
             setProcessingProgress(0);
             setProcessingMessage("Importing your photos...");
 
-            let preparation;
             let fetchAndDecryptThumbnail: (typeof import("@/lib/ente/import"))["fetchAndDecryptThumbnail"];
             try {
                 const enteImport = await import("@/lib/ente/import");
                 fetchAndDecryptThumbnail = enteImport.fetchAndDecryptThumbnail;
-                preparation = await enteImport.prepareEnteAlbum(
-                    albumUrl,
-                    requestPassword,
-                );
-                if (preparation.files.length === 0)
-                    throw new Error("This album has no photos we can import.");
-
+                setImportNotice(null);
                 thumbnailUrlsRef.current.forEach((url) =>
                     URL.revokeObjectURL(url),
                 );
@@ -746,20 +730,12 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                 throw e;
             }
 
-            const { credentials, files } = preparation;
-            const limited = files.slice(0, MAX_PHOTOS);
-            if (files.length > MAX_PHOTOS) {
-                setImportNotice(
-                    `This album has ${files.length} photos. We imported the first ${MAX_PHOTOS}.`,
-                );
-            }
-
             interface ThumbResult {
                 photo: Photo;
                 thumbUrl: string;
             }
             const thumbResults: (ThumbResult | null)[] = Array.from(
-                { length: limited.length },
+                { length: files.length },
                 () => null,
             );
             let completed = 0;
@@ -775,7 +751,7 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
             };
 
             const processOne = async (index: number) => {
-                const descriptor = limited[index]!;
+                const descriptor = files[index]!;
                 try {
                     const thumbBlob = await fetchAndDecryptThumbnail(
                         credentials,
@@ -833,7 +809,7 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                 } finally {
                     completed++;
                     scheduleProgressUpdate(
-                        Math.round((completed / limited.length) * 100),
+                        Math.round((completed / files.length) * 100),
                     );
                 }
             };
@@ -841,9 +817,9 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
             const THUMB_CONCURRENCY = 6;
             let cursor = 0;
             const workers = Array.from(
-                { length: Math.min(THUMB_CONCURRENCY, limited.length) },
+                { length: Math.min(THUMB_CONCURRENCY, files.length) },
                 async () => {
-                    while (cursor < limited.length) {
+                    while (cursor < files.length) {
                         const i = cursor++;
                         await processOne(i);
                     }
@@ -973,14 +949,12 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
         (afterIndex?: number) => {
             const newPage = makeBlankPage();
             setBook((prev) => {
+                if (!canInsertPage(prev.pages.length)) return prev;
                 const pages = [...prev.pages];
                 const lastIndex = pages.length - 1;
                 const requestedIndex =
                     afterIndex !== undefined ? afterIndex + 1 : lastIndex;
-                const idx =
-                    pages.length > 1
-                        ? Math.max(1, Math.min(requestedIndex, lastIndex))
-                        : pages.length;
+                const idx = Math.max(1, Math.min(requestedIndex, lastIndex));
                 pages.splice(idx, 0, newPage);
                 return { ...prev, pages };
             });

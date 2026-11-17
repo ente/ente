@@ -1,3 +1,5 @@
+import { MAX_PAGE_PHOTOS } from "@/lib/photoPlacement";
+import { canInsertPage } from "@/lib/printProducts";
 import { pageMenuColors, uiColors } from "@/theme/colors";
 import { pageMenuItemSx, pageMenuPaperSx } from "@/theme/menus";
 import { IconButton, Menu, MenuItem } from "@mui/material";
@@ -16,6 +18,7 @@ export type PageInsertPosition = "before" | "after";
 interface PageMenuProps {
     pageId: string;
     pageIndex: number;
+    photoCount: number;
     totalPages: number;
     side: "left" | "right";
     requiredBlank: boolean;
@@ -27,6 +30,7 @@ interface PageMenuProps {
 export default function PageMenu({
     pageId,
     pageIndex,
+    photoCount,
     totalPages,
     side,
     requiredBlank,
@@ -40,6 +44,7 @@ export default function PageMenu({
     const isFrontCover = pageIndex === 0;
     const isBackCover = pageIndex === totalPages - 1;
     const isInterior = !isFrontCover && !isBackCover;
+    const insertDisabled = !canInsertPage(totalPages);
     const label = isFrontCover
         ? "Front cover"
         : isBackCover
@@ -119,6 +124,9 @@ export default function PageMenu({
                     <MenuItem
                         dense
                         disableRipple
+                        disabled={
+                            insertDisabled && photoCount >= MAX_PAGE_PHOTOS
+                        }
                         onClick={() => runAction(onAddPhotos)}
                         sx={pageMenuItemSx}
                     >
@@ -130,6 +138,7 @@ export default function PageMenu({
                     <MenuItem
                         dense
                         disableRipple
+                        disabled={insertDisabled}
                         onClick={() => runAction(() => onInsert("before"))}
                         sx={pageMenuItemSx}
                     >
@@ -141,6 +150,7 @@ export default function PageMenu({
                     <MenuItem
                         dense
                         disableRipple
+                        disabled={insertDisabled}
                         onClick={() => runAction(() => onInsert("after"))}
                         sx={pageMenuItemSx}
                     >

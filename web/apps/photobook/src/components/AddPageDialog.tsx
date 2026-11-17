@@ -1,3 +1,4 @@
+import { canInsertPage } from "@/lib/printProducts";
 import type { BookPage } from "@/lib/types";
 import { accentGreen, accentGreenHover } from "@/theme/buttons";
 import {
@@ -63,7 +64,7 @@ export default function AddPageDialog({
         ),
     );
     const targetPage = pages.at(pageIndex);
-    const canInsert = !disabled && pages.length >= 2 && !!targetPage;
+    const canInsert = !disabled && canInsertPage(pages.length) && !!targetPage;
 
     return (
         <Dialog
@@ -78,7 +79,7 @@ export default function AddPageDialog({
                 transition: {
                     onExited: () => {
                         onClose();
-                        if (insertion)
+                        if (insertion && canInsert)
                             onInsert(insertion.pageIndex, insertion.position);
                     },
                 },

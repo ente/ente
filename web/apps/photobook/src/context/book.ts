@@ -1,3 +1,4 @@
+import type { EnteCredentials, EnteFileDescriptor } from "@/lib/ente/types";
 import type { AddPhotosOptions } from "@/lib/photoPlacement";
 import type {
     AppView,
@@ -31,8 +32,8 @@ export interface BookContextValue {
         options?: AddPhotosOptions,
     ) => Promise<string | undefined>;
     addEntePhotos: (
-        albumUrl: string,
-        requestPassword: () => Promise<string | null>,
+        credentials: EnteCredentials,
+        files: EnteFileDescriptor[],
     ) => Promise<void>;
     processingPhotos: boolean;
     processingProgress: number;

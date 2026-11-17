@@ -2,6 +2,7 @@ import { useBook } from "@/context/book";
 import { useSpineTitlePrompt } from "@/hooks/useSpineTitlePrompt";
 import { normalizeBookPages } from "@/lib/bookPages";
 import {
+    canInsertPage,
     DEFAULT_PRINT_SELECTION,
     getBindingPrintSelection,
     getPrintBinding,
@@ -74,7 +75,7 @@ export default function EditorActions({
             <Button
                 startIcon={<AddPageIcon />}
                 onClick={onAddPage}
-                disabled={processingPhotos || book.pages.length < 2}
+                disabled={processingPhotos || !canInsertPage(book.pages.length)}
                 sx={editorToolbarButtonSx}
             >
                 Add page

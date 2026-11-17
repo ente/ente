@@ -54,12 +54,34 @@ export default function AddPhotosDialog({
         : target === "end"
           ? { kind: "end" }
           : { kind: "page", pageId: target };
-    const validationError =
-        destination && !submitting
-            ? photoDestinationError(pages, destination, photoCount)
-            : null;
     const isCover = target === pages[0]?.id;
-    const newPageCount = Math.ceil(photoCount / MAX_PAGE_PHOTOS);
+    const options = [
+        {
+            value: "end",
+            label:
+                photoCount <= MAX_PAGE_PHOTOS
+                    ? "New page at end"
+                    : "New pages at end",
+            error: photoDestinationError(pages, { kind: "end" }, photoCount),
+        },
+        ...pages
+            .slice(0, -1)
+            .map((page, index) => ({
+                value: page.id,
+                label: index === 0 ? "Front cover" : `Page ${index}`,
+                error: photoDestinationError(
+                    pages,
+                    { kind: "page", pageId: page.id },
+                    photoCount,
+                ),
+            })),
+    ];
+    const validationError =
+        !submitting &&
+        (options.find(({ value }) => value === target)?.error ??
+            (options.every(({ error }) => error)
+                ? "These photos won’t all fit. Choose fewer photos or free up space in your book."
+                : null));
     const loading = busy || submitting;
     const close = () => {
         if (!loading) setOpen(false);
@@ -157,24 +179,13 @@ export default function AddPhotosDialog({
                         sx={dialogSelectSx}
                         MenuProps={dialogSelectMenuProps}
                     >
-                        <MenuItem value="end">
-                            {newPageCount === 1
-                                ? "New page at end"
-                                : "New pages at end"}
-                        </MenuItem>
-                        {pages.slice(0, -1).map((page, index) => (
+                        {options.map(({ value, label, error }) => (
                             <MenuItem
-                                key={page.id}
-                                value={page.id}
-                                disabled={
-                                    !!photoDestinationError(
-                                        pages,
-                                        { kind: "page", pageId: page.id },
-                                        photoCount,
-                                    )
-                                }
+                                key={value}
+                                value={value}
+                                disabled={!!error}
                             >
-                                {index === 0 ? "Front cover" : `Page ${index}`}
+                                {label}
                             </MenuItem>
                         ))}
                     </Select>
