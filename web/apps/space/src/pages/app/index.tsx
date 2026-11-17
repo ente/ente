@@ -308,6 +308,15 @@ const Page: React.FC = () => {
                 onInviteFriendsToastClose={closeInviteFriendsToast}
                 onAddFriend={() => setIsAddFriendOpen(true)}
                 onRetryPost={retryPost}
+                onPostMediaChange={(post) =>
+                    setFeedItems((items) =>
+                        items.map((item) =>
+                            item.postId == post.postId
+                                ? { ...post, batchIndex: item.batchIndex }
+                                : item,
+                        ),
+                    )
+                }
                 onDeletePost={async (postId) => {
                     const spaceId = profile?.spaceId;
                     if (!spaceId) throw new Error("Missing space.");

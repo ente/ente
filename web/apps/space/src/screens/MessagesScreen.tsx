@@ -71,7 +71,7 @@ import {
 import { spaceTouchTargetSize } from "styles/touch-targets";
 import { firstNameFrom } from "utils/display";
 import { clampSpaceMessageText } from "utils/message-limits";
-import { spacePostDeletedEvent } from "utils/post-events";
+import { spacePostMediaChangedEvent } from "utils/post-events";
 import { postQuoteErrorState, postQuoteKey } from "utils/post-quote";
 
 const green = "#08C225";
@@ -1675,14 +1675,14 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({
         invalidatePreviews();
         window.addEventListener("focus", invalidatePreviews);
         window.addEventListener("online", invalidatePreviews);
-        window.addEventListener(spacePostDeletedEvent, invalidatePreviews);
+        window.addEventListener(spacePostMediaChangedEvent, invalidatePreviews);
         document.addEventListener("visibilitychange", onVisibilityChange);
         return () => {
             cancelPreviewLoads();
             window.removeEventListener("focus", invalidatePreviews);
             window.removeEventListener("online", invalidatePreviews);
             window.removeEventListener(
-                spacePostDeletedEvent,
+                spacePostMediaChangedEvent,
                 invalidatePreviews,
             );
             document.removeEventListener(

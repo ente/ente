@@ -26,6 +26,7 @@ import {
     clearSpaceFriendsCache,
     clearSpaceMediaURLCache,
     createCurrentMediaPost,
+    deleteCurrentPostMedia,
     loadCurrentCreatedPost,
     type PreparedSpacePostMedia,
     type SpacePostUploadSession,
@@ -613,9 +614,38 @@ export const SpaceAppStateProvider: React.FC<React.PropsWithChildren> = ({
         void refreshProfile();
     }, [refreshProfile]);
 
+    const deletePostMedia = useCallback<SpaceAppState["deletePostMedia"]>(
+        async (postId, objectKey) => {
+            const spaceId = profile?.spaceId;
+            if (!spaceId) throw new Error("Missing space.");
+            const post = await deleteCurrentPostMedia(
+                spaceId,
+                postId,
+                objectKey,
+            );
+            post.avatarUrl = profile.avatarUrl;
+            setLocalFeedPosts((items) =>
+                items.map((item) =>
+                    (item.status == "posted" || item.status == "ready") &&
+                    item.post.postId == postId
+                        ? { ...item, post }
+                        : item,
+                ),
+            );
+            setPostPublication((current) =>
+                current?.post.postId == postId
+                    ? { ...current, post, previewUrl: "" }
+                    : current,
+            );
+            return post;
+        },
+        [profile],
+    );
+
     const value = useMemo<SpaceAppState>(
         () => ({
             cachedProfileAvatarUrl,
+            deletePostMedia,
             friends,
             isLiveSignupVerification,
             localFeedPosts,
@@ -651,6 +681,7 @@ export const SpaceAppStateProvider: React.FC<React.PropsWithChildren> = ({
         }),
         [
             cachedProfileAvatarUrl,
+            deletePostMedia,
             friends,
             isLiveSignupVerification,
             localFeedPosts,

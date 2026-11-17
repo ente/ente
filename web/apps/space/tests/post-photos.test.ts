@@ -44,6 +44,18 @@ test("a single portrait keeps the feed height limit", () => {
     );
 });
 
+test("a photo after a video cover is displayed as a photo", () => {
+    const video = { durationMs: 1000, url: "blob:video" };
+    const slides = viewerPhotosFromPost({
+        name: "Maya",
+        timestampMs: 1,
+        video,
+        photos: [{ video }, { imageUrl: "blob:photo" }],
+    });
+    expect(slides[0]?.video).toEqual(video);
+    expect(slides[1]?.video).toBeUndefined();
+});
+
 test.each([
     { width: 900, height: 1200 },
     { width: 960, height: 1200 },

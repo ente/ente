@@ -50,7 +50,7 @@ import {
 } from "services/profile";
 import { normalizeSpaceMessageText } from "utils/message-limits";
 import { spaceUnreadStatusChangedEvent } from "utils/navigation";
-import { spacePostDeletedEvent } from "utils/post-events";
+import { spacePostMediaChangedEvent } from "utils/post-events";
 import { postQuoteErrorState, postQuotePhotoIndex } from "utils/post-quote";
 
 export { clearSpaceMediaURLCache } from "services/media-cache";
@@ -1381,7 +1381,7 @@ export const loadCurrentCreatedPost = async (
         const created = await ctx.getPost(spaceId, BigInt(postId), spaceId);
         const imageURLs = await Promise.all(
             created.photos.map(async (photo, index) => {
-                const prepared = media[index]!;
+                const prepared = media[photo.position ?? index]!;
                 if (photo.video && prepared.video)
                     await rememberCachedSpaceVideoBlob(
                         postAssetCacheKey(photo.video.asset),
@@ -1689,8 +1689,30 @@ export const deleteCurrentPost = async (spaceId: string, postId: number) => {
     const ctx = await ensureCurrentSpaceContext();
     try {
         await ctx.deletePost(spaceId, BigInt(postId));
-        window.dispatchEvent(new Event(spacePostDeletedEvent));
+        window.dispatchEvent(new Event(spacePostMediaChangedEvent));
         await removeCachedSpaceFeedPost(spaceId, postId);
+    } finally {
+        releaseCurrentSpaceContext(ctx);
+    }
+};
+
+export const deleteCurrentPostMedia = async (
+    spaceId: string,
+    postId: number,
+    objectKey: string,
+) => {
+    const countRequest = beginCommentCountRequest(spaceId);
+    const ctx = await ensureCurrentSpaceContext();
+    try {
+        const response = await ctx.deletePostMedia(
+            spaceId,
+            BigInt(postId),
+            objectKey,
+        );
+        const post = profilePostFromPost(response, countRequest);
+        await patchCachedSpaceFeedPost(spaceId, postId, post);
+        window.dispatchEvent(new Event(spacePostMediaChangedEvent));
+        return post;
     } finally {
         releaseCurrentSpaceContext(ctx);
     }
