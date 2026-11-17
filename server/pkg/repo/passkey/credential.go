@@ -2,8 +2,6 @@ package passkey
 
 import "github.com/ente/museum/ente"
 
-// Metadata and the credential become visible together, including when either
-// insert fails. An incomplete enrollment must never activate a login factor.
 func (r *Repository) createPasskey(newPasskey *ente.Passkey, credential *ente.PasskeyCredential) error {
 	tx, err := r.DB.Begin()
 	if err != nil {

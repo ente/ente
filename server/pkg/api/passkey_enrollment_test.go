@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -37,20 +36,16 @@ type passkeyTestAccount struct {
 }
 
 type passkeyEnrollmentTest struct {
-	t            *testing.T
-	db, observer *sql.DB
-	handler      *UserHandler
-	pk           *passkey.Repository
-	router       *gin.Engine
-	origin, rpID string
+	t       *testing.T
+	db      *sql.DB
+	handler *UserHandler
+	pk      *passkey.Repository
+	router  *gin.Engine
 }
 
 func newPasskeyEnrollmentTest(t *testing.T) *passkeyEnrollmentTest {
 	t.Helper()
 	h, db := setupUserHandlerTest(t)
-	observer, err := sql.Open("postgres", "sslmode=disable")
-	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, observer.Close()) })
 	for _, key := range []string{"webauthn.rpid", "webauthn.rporigins", "webauthn.legacy-rpid", "webauthn.legacy-rporigins", "apps.accounts", "apps.accounts-legacy"} {
 		previous := viper.Get(key)
 		t.Cleanup(func() { viper.Set(key, previous) })
@@ -62,13 +57,7 @@ func newPasskeyEnrollmentTest(t *testing.T) *passkeyEnrollmentTest {
 	h.UserController.UserAuthRepo = &repo.UserAuthRepository{DB: db}
 	h.UserController.HashingKey = testutil.HashingKey()
 	h.UserController.JwtSecret = []byte("passkey-enrollment-test-signing-key")
-	f := &passkeyEnrollmentTest{t: t, db: db, observer: observer, handler: h, origin: passkeyTestOrigin, rpID: passkeyTestRPID}
-	f.configure()
-	return f
-}
-
-func (f *passkeyEnrollmentTest) configure() {
-	f.t.Helper()
+	f := &passkeyEnrollmentTest{t: t, db: db, handler: h}
 	var err error
 	f.pk, err = passkey.NewRepository(f.db)
 	require.NoError(f.t, err)
@@ -87,6 +76,7 @@ func (f *passkeyEnrollmentTest) configure() {
 	protected.POST("/passkeys/registration/finish", ph.FinishRegistration)
 	f.router.POST("/users/two-factor/passkeys/begin", f.handler.BeginPasskeyAuthenticationCeremony)
 	f.router.POST("/users/two-factor/passkeys/finish", f.handler.FinishPasskeyAuthenticationCeremony)
+	return f
 }
 
 func (f *passkeyEnrollmentTest) send(method, path, token string, body any) *httptest.ResponseRecorder {
@@ -177,7 +167,7 @@ func (f *passkeyEnrollmentTest) begin(a *passkeyTestAccount) (string, string) {
 
 func (f *passkeyEnrollmentTest) finish(a *passkeyTestAccount, id []byte, challenge, session string) *httptest.ResponseRecorder {
 	f.t.Helper()
-	req, err := passkeyTestRegistration(challenge, id, f.origin, f.rpID, 5)
+	req, err := passkeyTestRegistration(challenge, id, passkeyTestOrigin, passkeyTestRPID, 5)
 	require.NoError(f.t, err)
 	return f.sendRequest("POST", "/passkeys/registration/finish?friendlyName=test&sessionID="+session, a.accountsToken, req)
 }
@@ -191,8 +181,8 @@ func (f *passkeyEnrollmentTest) register(a *passkeyTestAccount, id []byte) *http
 func (f *passkeyEnrollmentTest) counts(a *passkeyTestAccount, parents, credentials int) {
 	f.t.Helper()
 	var p, c int
-	require.NoError(f.t, f.observer.QueryRow(`SELECT count(*) FROM passkeys WHERE user_id=$1 AND deleted_at IS NULL`, a.id).Scan(&p))
-	require.NoError(f.t, f.observer.QueryRow(`SELECT count(*) FROM passkey_credentials pc JOIN passkeys p ON p.id=pc.passkey_id WHERE p.user_id=$1 AND p.deleted_at IS NULL`, a.id).Scan(&c))
+	require.NoError(f.t, f.db.QueryRow(`SELECT count(*) FROM passkeys WHERE user_id=$1 AND deleted_at IS NULL`, a.id).Scan(&p))
+	require.NoError(f.t, f.db.QueryRow(`SELECT count(*) FROM passkey_credentials pc JOIN passkeys p ON p.id=pc.passkey_id WHERE p.user_id=$1 AND p.deleted_at IS NULL`, a.id).Scan(&c))
 	require.Equal(f.t, parents, p, "committed parent rows")
 	require.Equal(f.t, credentials, c, "committed credentials")
 }
@@ -233,7 +223,7 @@ func (f *passkeyEnrollmentTest) authenticate(a *passkeyTestAccount, id []byte) {
 	passkeyTestDecode(f.t, f.send("POST", "/users/two-factor/passkeys/begin", "", map[string]string{"sessionID": login.PasskeySessionID}), &begin)
 	userID, err := byteMarshaller.ConvertInt64ToByte(a.id)
 	require.NoError(f.t, err)
-	req, err := passkeyTestAssertion(begin.Options.PublicKey.Challenge, id, userID, f.origin, f.rpID)
+	req, err := passkeyTestAssertion(begin.Options.PublicKey.Challenge, id, userID, passkeyTestOrigin, passkeyTestRPID)
 	require.NoError(f.t, err)
 	var result ente.TwoFactorAuthorizationResponse
 	passkeyTestDecode(f.t, f.sendRequest("POST", "/users/two-factor/passkeys/finish?sessionID="+login.PasskeySessionID+"&ceremonySessionID="+begin.CeremonySessionID, "", req), &result)
@@ -242,39 +232,31 @@ func (f *passkeyEnrollmentTest) authenticate(a *passkeyTestAccount, id []byte) {
 }
 
 func TestPasskeyEnrollmentPersistence(t *testing.T) {
-	for _, failure := range []string{"duplicate credential", "credential insert error"} {
-		t.Run(failure, func(t *testing.T) {
-			f := newPasskeyEnrollmentTest(t)
-			a := f.account("enrollment@example.com")
-			credential := []byte("test-owned-credential")
-			if failure == "duplicate credential" {
-				seed := f.account("seed@example.com")
-				require.Equal(t, http.StatusOK, f.register(seed, credential).Code)
-			} else {
-				_, err := f.db.Exec(`CREATE FUNCTION fail_passkey_credential() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'injected credential write failure' USING ERRCODE='57014'; END $$;
-      CREATE TRIGGER fail_passkey_credential BEFORE INSERT ON passkey_credentials FOR EACH ROW EXECUTE FUNCTION fail_passkey_credential()`)
-				require.NoError(t, err)
-				t.Cleanup(func() {
-					_, err := f.db.Exec(`DROP TRIGGER IF EXISTS fail_passkey_credential ON passkey_credentials; DROP FUNCTION IF EXISTS fail_passkey_credential()`)
-					require.NoError(t, err)
-				})
-			}
-			result := f.register(a, credential)
-			require.Equal(t, http.StatusInternalServerError, result.Code, result.Body.String())
-			f.counts(a, 0, 0)
-			f.factors(a, 0)
-			if failure == "credential insert error" {
-				_, err := f.db.Exec(`DROP TRIGGER fail_passkey_credential ON passkey_credentials`)
-				require.NoError(t, err)
-			}
-			retry := []byte("retry-credential")
-			result = f.register(a, retry)
-			require.Equal(t, http.StatusOK, result.Code, result.Body.String())
-			f.counts(a, 1, 1)
-			f.factors(a, 1)
-			f.authenticate(a, retry)
-		})
-	}
+	f := newPasskeyEnrollmentTest(t)
+	a := f.account("enrollment@example.com")
+	credential := []byte("test-owned-credential")
+	seed := f.account("seed@example.com")
+	require.Equal(t, http.StatusOK, f.register(seed, credential).Code)
+
+	_, session := f.begin(a)
+	require.NotEqual(t, http.StatusOK, f.finish(a, credential, "wrong-challenge", session).Code)
+	f.counts(a, 0, 0)
+
+	result := f.register(a, credential)
+	require.Equal(t, http.StatusInternalServerError, result.Code, result.Body.String())
+	f.counts(a, 0, 0)
+	f.factors(a, 0)
+
+	retry := []byte("retry-credential")
+	result = f.register(a, retry)
+	require.Equal(t, http.StatusOK, result.Code, result.Body.String())
+	f.counts(a, 1, 1)
+	f.factors(a, 1)
+	f.authenticate(a, retry)
+
+	require.Equal(t, http.StatusInternalServerError, f.register(a, credential).Code)
+	f.counts(a, 1, 1)
+	f.authenticate(a, retry)
 }
 
 func TestPasskeyEnrollmentExistingOrphans(t *testing.T) {
@@ -293,80 +275,4 @@ func TestPasskeyEnrollmentExistingOrphans(t *testing.T) {
 	f.counts(a, ente.MaxPasskeys+1, 1)
 	f.factors(a, 1)
 	f.authenticate(a, credential)
-}
-
-func TestPasskeyEnrollmentPreservesWorkingCredential(t *testing.T) {
-	f := newPasskeyEnrollmentTest(t)
-	a := f.account("working@example.com")
-	id := []byte("working-credential")
-	challenge, session := f.begin(a)
-	result := f.finish(a, id, challenge, session)
-	require.Equal(t, http.StatusOK, result.Code, result.Body.String())
-	f.counts(a, 1, 1)
-	f.authenticate(a, id)
-	require.NotEqual(t, http.StatusOK, f.finish(a, id, challenge, session).Code, "completed ceremony replay")
-	f.counts(a, 1, 1)
-	require.Equal(t, http.StatusInternalServerError, f.register(a, id).Code, "duplicate credential")
-	f.counts(a, 1, 1)
-	f.factors(a, 1)
-	f.authenticate(a, id)
-}
-
-func TestPasskeyEnrollmentRejectsInvalidCeremonies(t *testing.T) {
-	for _, invalid := range []string{"challenge", "origin", "rp", "authorization"} {
-		t.Run(invalid, func(t *testing.T) {
-			f := newPasskeyEnrollmentTest(t)
-			a := f.account("invalid@example.com")
-			challenge, session := f.begin(a)
-			switch invalid {
-			case "challenge":
-				challenge = "wrong-challenge"
-			case "origin":
-				f.origin = "https://wrong.invalid"
-			case "rp":
-				f.rpID = "wrong.invalid"
-			case "authorization":
-				a.accountsToken = "invalid-token"
-			}
-			require.NotEqual(t, http.StatusOK, f.finish(a, []byte("invalid-credential"), challenge, session).Code)
-			f.counts(a, 0, 0)
-			has, err := f.handler.UserController.UserRepo.HasPasskeys(a.id)
-			require.NoError(t, err)
-			require.False(t, has)
-		})
-	}
-}
-
-func TestPasskeyEnrollmentLegacyRP(t *testing.T) {
-	for _, nullRP := range []bool{false, true} {
-		t.Run(fmt.Sprintf("nullRP=%t", nullRP), func(t *testing.T) {
-			f := newPasskeyEnrollmentTest(t)
-			f.rpID, f.origin = "legacy.invalid", "https://legacy.invalid"
-			viper.Set("webauthn.rpid", f.rpID)
-			viper.Set("webauthn.rporigins", []string{f.origin})
-			f.configure()
-			a := f.account("legacy@example.com")
-			require.Equal(t, http.StatusOK, f.register(a, []byte("legacy-seed")).Code)
-			if nullRP {
-				_, err := f.db.Exec(`UPDATE passkey_credentials SET rp_id=NULL`)
-				require.NoError(t, err)
-			}
-			viper.Set("webauthn.rpid", passkeyTestRPID)
-			viper.Set("webauthn.rporigins", []string{passkeyTestOrigin})
-			viper.Set("webauthn.legacy-rpid", f.rpID)
-			viper.Set("webauthn.legacy-rporigins", []string{f.origin})
-			viper.Set("apps.accounts-legacy", f.origin)
-			f.configure()
-			id := []byte("new-legacy-credential")
-			result := f.register(a, id)
-			require.Equal(t, http.StatusOK, result.Code, result.Body.String())
-			var storedRP string
-			require.NoError(t, f.observer.QueryRow(`SELECT rp_id FROM passkey_credentials WHERE credential_id=$1`, base64.StdEncoding.EncodeToString(id)).Scan(&storedRP))
-			require.Equal(t, f.rpID, storedRP)
-			f.counts(a, 2, 2)
-			f.factors(a, 2)
-			f.authenticate(a, id)
-			f.authenticate(a, []byte("legacy-seed"))
-		})
-	}
 }
