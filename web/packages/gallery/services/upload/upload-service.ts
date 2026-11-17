@@ -50,7 +50,10 @@ import {
     type UploadPathPrefix,
     type UploadResult,
 } from ".";
-import { tryParseEpochMicrosecondsFromFileName } from "./date";
+import {
+    earliestFileSystemTime,
+    tryParseEpochMicrosecondsFromFileName,
+} from "./date";
 import { computeMd5Base64 } from "./md5";
 import { matchJSONMetadata, type ParsedMetadataJSON } from "./metadata-json";
 import {
@@ -896,7 +899,8 @@ const extractImageOrVideoMetadata = async (
         creationTime = parsedMetadata.creationTime;
     } else {
         creationTime =
-            tryParseEpochMicrosecondsFromFileName(fileName) ?? modificationTime;
+            tryParseEpochMicrosecondsFromFileName(fileName) ??
+            (await earliestFileSystemTime(uploadItem, modificationTime));
     }
 
     let duration: number | undefined;

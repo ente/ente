@@ -1,5 +1,25 @@
+import { ensureElectron } from "ente-base/electron";
 import { nameAndExtension } from "ente-base/file-name";
 import log from "ente-base/log";
+import type { UploadItem } from ".";
+
+export const earliestFileSystemTime = async (
+    uploadItem: UploadItem,
+    modificationTime: number,
+) => {
+    if (uploadItem instanceof File || Array.isArray(uploadItem))
+        return modificationTime;
+
+    const path = typeof uploadItem == "string" ? uploadItem : uploadItem.path;
+    try {
+        const birthtimeMs = await ensureElectron().fs.statBirthtime(path);
+        if (birthtimeMs > 0)
+            return Math.min(birthtimeMs * 1000, modificationTime);
+    } catch (e) {
+        log.warn("Failed to read file creation time", e);
+    }
+    return modificationTime;
+};
 
 // These heuristics recover dates from screenshots and chat app exports.
 export const tryParseEpochMicrosecondsFromFileName = (
