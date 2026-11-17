@@ -143,6 +143,12 @@ class _ReelNavigator implements RewindNavigator {
   const _ReelNavigator();
 
   @override
+  List<RewindPage> get pages => const [];
+
+  @override
+  Future<bool> loadVideoMedia(List<RewindPage> pages) async => true;
+
+  @override
   void next() {}
 
   @override

@@ -1,11 +1,10 @@
 import "dart:math";
 
 import "package:flutter/material.dart";
-import "package:logging/logging.dart";
 import "package:photos/models/file/file.dart";
+import "package:photos/services/rewind/rewind_edition.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
 import "package:photos/ui/rewind/shell/rewind_page.dart";
-import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/story/rewind_colours.dart";
 import "package:photos/ui/rewind/story/rewind_face.dart";
@@ -14,7 +13,6 @@ import "package:photos/ui/rewind/theme/rewind_colors.dart";
 import "package:photos/ui/rewind/theme/rewind_motion.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
-import "package:photos/ui/rewind/widgets/rewind_buttons.dart";
 import "package:photos/ui/rewind/widgets/rewind_elapsed.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
 import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
@@ -23,7 +21,6 @@ import "package:photos/ui/rewind/widgets/rewind_photo_frames.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
 import "package:photos/ui/rewind/widgets/rewind_text.dart";
 import "package:photos/ui/rewind/widgets/rewind_wordmark.dart";
-import "package:photos/utils/share_util.dart";
 
 const _summaryInk = Color(0xFF131313);
 const _summaryGreen = Color(0xFF0EBF29);
@@ -71,11 +68,7 @@ class ScrapbookPage extends RewindPage {
   Duration? get reelHold => const Duration(milliseconds: 3800);
 
   @override
-  bool get hasOwnVideoButton => true;
-
-  @override
-  RewindChrome get chrome =>
-      const RewindChrome(foreground: RewindColors.cream, muteButton: false);
+  RewindChrome get chrome => const RewindChrome(foreground: RewindColors.cream);
 
   @override
   Widget build(
@@ -87,166 +80,89 @@ class ScrapbookPage extends RewindPage {
   }
 }
 
-class _Scrapbook extends StatefulWidget {
+class _Scrapbook extends StatelessWidget {
   const _Scrapbook({required this.page, required this.isActive});
 
   final ScrapbookPage page;
   final bool isActive;
 
   @override
-  State<_Scrapbook> createState() => _ScrapbookState();
-}
-
-class _ScrapbookState extends State<_Scrapbook> {
-  static final _logger = Logger("ScrapbookPage");
-
-  final _card = RewindShareCard(branded: false);
-  final _imageButton = GlobalKey();
-  final _videoButton = GlobalKey();
-  var _sharing = false;
-
-  Future<void> _share() async {
-    if (_sharing) return;
-    _sharing = true;
-    try {
-      await shareRewindCard(
-        _card,
-        pixelRatio: MediaQuery.devicePixelRatioOf(context),
-        wordmark: Rect.zero,
-        wordmarkColor: RewindColors.cream,
-        origin: shareButtonRect(context, _imageButton),
-      );
-    } catch (error, stackTrace) {
-      _logger.warning("Failed to share the scrapbook", error, stackTrace);
-    } finally {
-      _sharing = false;
-    }
-  }
-
-  void _shareVideo() {
-    RewindPageScope.navigatorOf(
-      context,
-    )?.shareVideo(shareButtonRect(context, _videoButton));
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final page = widget.page;
-    final active = widget.isActive;
-    final screen = MediaQuery.sizeOf(context);
-    final inset =
-        MediaQuery.paddingOf(context).bottom / RewindStage.scaleFor(screen);
-    final lift = max(0.0, inset - 18);
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        RepaintBoundary(
-          key: _card.boundary,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              const RewindBackdrop(
-                color: RewindColors.green,
-                pattern: RewindStripes(_summaryGreen),
-              ),
-              RewindStage(
-                children: [
-                  Positioned(
-                    left: 33.2,
-                    top: 48.1,
-                    child: RewindEntrance(
-                      preset: RewindPreset.line,
-                      active: active,
-                      delayMs: 350,
-                      child: const RewindWordmark(
-                        color: RewindColors.cream,
-                        width: 88.8,
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 28,
-                    top: 69.7,
-                    child: RewindEntrance(
-                      preset: RewindPreset.pop,
-                      active: active,
-                      delayMs: 420,
-                      child: Semantics(
-                        label: "Rewind 2026",
-                        child: Image.file(
-                          RewindAssets.file(RewindAssets.compactHeader),
-                          width: 239,
-                          height: 45,
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned.fromRect(
-                    rect: const Rect.fromLTWH(29.73, 137.55, 329.706, 311.172),
-                    child: RewindEntrance(
-                      preset: RewindPreset.pop,
-                      active: active,
-                      delayMs: 150,
-                      child: Transform.rotate(
-                        angle: 0.13 * pi / 180,
-                        child: const CustomPaint(painter: _GraphPaperPainter()),
-                      ),
-                    ),
-                  ),
-                  for (final (index, cutout) in _Cutout.values.indexed)
-                    if (index < page.photos.length)
-                      Positioned.fromRect(
-                        rect: Rect.fromCenter(
-                          center: cutout.center,
-                          width: cutout.size.width,
-                          height: cutout.size.height,
-                        ),
-                        child: RewindEntrance(
-                          preset: RewindPreset.drop,
-                          active: active,
-                          delayMs: 300 + 70 * index,
-                          child: Transform.rotate(
-                            angle: cutout.turn * pi / 180,
-                            child: _photoCutout(cutout, page.photos[index]),
-                          ),
-                        ),
-                      ),
-                  Positioned.fill(
-                    child: RewindElapsed(
-                      active: active,
-                      stillMs: 2000,
-                      builder: (context, ms) => Transform.translate(
-                        offset: Offset(
-                          0,
-                          380 *
-                              (1 -
-                                  rewindProgress(
-                                    ms,
-                                    delayMs: 380,
-                                    durationMs: 792,
-                                    curve: RewindMotion.soft,
-                                  )),
-                        ),
-                        child: _Summary(page: page),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+    return RewindShareable(
+      branded: false,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          const RewindBackdrop(
+            color: RewindColors.green,
+            pattern: RewindStripes(_summaryGreen),
           ),
-        ),
-        if (!RewindPageScope.reelOf(context))
           RewindStage(
             children: [
               Positioned(
-                left: 30,
-                top: 760 - lift,
-                width: 330,
-                height: 66,
+                left: 33.2,
+                top: 48.1,
+                child: RewindEntrance(
+                  preset: RewindPreset.line,
+                  active: isActive,
+                  delayMs: 350,
+                  child: const RewindWordmark(
+                    color: RewindColors.cream,
+                    width: 88.8,
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 28,
+                top: 69.7,
+                child: RewindEntrance(
+                  preset: RewindPreset.pop,
+                  active: isActive,
+                  delayMs: 420,
+                  child: Semantics(
+                    label: "Rewind 2026",
+                    child: Image.file(
+                      RewindAssets.file(RewindAssets.compactHeader),
+                      width: 239,
+                      height: 45,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned.fromRect(
+                rect: const Rect.fromLTWH(29.73, 137.55, 329.706, 311.172),
+                child: RewindEntrance(
+                  preset: RewindPreset.pop,
+                  active: isActive,
+                  delayMs: 150,
+                  child: Transform.rotate(
+                    angle: 0.13 * pi / 180,
+                    child: const CustomPaint(painter: _GraphPaperPainter()),
+                  ),
+                ),
+              ),
+              for (final (index, cutout) in _Cutout.values.indexed)
+                if (index < page.photos.length)
+                  Positioned.fromRect(
+                    rect: Rect.fromCenter(
+                      center: cutout.center,
+                      width: cutout.size.width,
+                      height: cutout.size.height,
+                    ),
+                    child: RewindEntrance(
+                      preset: RewindPreset.drop,
+                      active: isActive,
+                      delayMs: 300 + 70 * index,
+                      child: Transform.rotate(
+                        angle: cutout.turn * pi / 180,
+                        child: _photoCutout(cutout, page.photos[index]),
+                      ),
+                    ),
+                  ),
+              Positioned.fill(
                 child: RewindElapsed(
-                  active: active,
+                  active: isActive,
                   stillMs: 2000,
                   builder: (context, ms) => Transform.translate(
                     offset: Offset(
@@ -260,35 +176,30 @@ class _ScrapbookState extends State<_Scrapbook> {
                                 curve: RewindMotion.soft,
                               )),
                     ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: _ShareButton(
-                            key: _videoButton,
-                            label: "Share video",
-                            color: RewindColors.candyPink,
-                            ink: RewindColors.cream,
-                            onTap: _shareVideo,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: _ShareButton(
-                            key: _imageButton,
-                            label: "Share image",
-                            color: RewindColors.cream,
-                            ink: RewindColors.ink,
-                            onTap: _share,
-                          ),
-                        ),
-                      ],
+                    child: _Summary(page: page),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                top: 762,
+                child: RewindEntrance(
+                  preset: RewindPreset.slap,
+                  active: isActive,
+                  delayMs: 1350,
+                  child: Center(
+                    child: Transform.rotate(
+                      angle: -3 * pi / 180,
+                      child: const _SignOff(),
                     ),
                   ),
                 ),
               ),
             ],
           ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -310,6 +221,41 @@ class _ScrapbookState extends State<_Scrapbook> {
         ],
       ),
       child: photo,
+    );
+  }
+}
+
+class _SignOff extends StatelessWidget {
+  const _SignOff();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(3.7),
+      decoration: BoxDecoration(
+        color: RewindColors.cream,
+        border: Border.all(color: RewindColors.ink, width: 1.9),
+        borderRadius: BorderRadius.circular(9),
+        boxShadow: const [
+          BoxShadow(color: RewindColors.ink, offset: Offset(3, 3.7)),
+        ],
+      ),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(9, 2.5, 9, 3),
+        decoration: BoxDecoration(
+          color: RewindColors.ink,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(
+          "HERE’S TO EVERYTHING\nWORTH KEEPING IN ${RewindEdition.year + 1}.",
+          textAlign: TextAlign.center,
+          style: RewindTextStyles.display(
+            16.3,
+            color: RewindColors.cream,
+            height: 1.05,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -606,47 +552,6 @@ class _Ranking extends StatelessWidget {
             ),
           ),
       ],
-    );
-  }
-}
-
-class _ShareButton extends StatelessWidget {
-  const _ShareButton({
-    required this.label,
-    required this.color,
-    required this.ink,
-    required this.onTap,
-    super.key,
-  });
-
-  final String label;
-  final Color color;
-  final Color ink;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: label,
-      child: RewindPressable(
-        onTap: onTap,
-        pressedScale: 0.97,
-        child: Container(
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: color,
-            border: Border.all(color: RewindColors.ink, width: 3),
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: ExcludeSemantics(
-            child: Text(
-              label,
-              style: RewindTextStyles.body(17, color: ink, height: 22 / 17),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

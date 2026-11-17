@@ -250,6 +250,13 @@ class _RewindViewerState extends State<RewindViewer>
   }
 
   @override
+  List<RewindPage> get pages => widget.pages;
+
+  @override
+  Future<bool> loadVideoMedia(List<RewindPage> pages) async =>
+      await widget.loadVideoMedia?.call(pages) ?? true;
+
+  @override
   void next() {
     final step = _currentStep;
     if (step >= _steps - 1) {
