@@ -109,9 +109,9 @@ mod tests {
         photo, photos_every, request_at, store,
     };
     use super::{
-        REWIND_VERSION, RewindColour, RewindFile, RewindFileType, RewindRequest, RewindState,
-        RewindStatus, compute_rewind, decode_rewind_state, encode_rewind_request,
-        encode_rewind_state,
+        Mosaic, REWIND_VERSION, RewindColour, RewindFile, RewindFileType, RewindReport,
+        RewindRequest, RewindState, RewindStatus, compute_rewind, decode_rewind_state,
+        encode_rewind_request, encode_rewind_state,
     };
     use crate::ml_db::{
         CLIP_EMBEDDING_DIMENSIONS, CLIP_ML_VERSION, ClipEmbedding, FACE_ML_VERSION, FaceRow,
@@ -548,6 +548,23 @@ mod tests {
         let latched = compute_rewind(&grown, Some(&store), None, Some(&ready)).unwrap();
         assert_eq!(latched.ml_coverage, Some(0.5));
         assert_eq!(timelapse(&latched).as_deref(), Some("kid"));
+    }
+
+    #[test]
+    fn an_unnamed_mosaic_face_keeps_the_ml_chapters_once_shown() {
+        let report = RewindReport {
+            mosaic: Some(Mosaic {
+                file_ids: vec![1],
+                me_person_id: None,
+                me_face_ids: Vec::new(),
+                top_person_id: None,
+                top_face_ids: Vec::new(),
+                cluster_id: Some("stranger".to_string()),
+                cluster_face_ids: vec!["1_stranger".to_string()],
+            }),
+            ..RewindReport::default()
+        };
+        assert!(report.shows_ml_chapters());
     }
 
     #[test]

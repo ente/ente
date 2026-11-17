@@ -202,11 +202,22 @@ RewindChapter _mosaic(rust.RewindReport report) =>
         ),
         _ => null,
       };
+      final familiar = switch (mosaic.clusterId) {
+        final id? when me?.crop == null && favourite?.crop == null =>
+          await media.cluster(id, mosaic.clusterFaceIds),
+        _ => null,
+      };
       return [
         MosaicPage(
           files: files,
-          subject: me?.crop ?? favourite?.crop,
-          subjectName: me?.crop == null ? favourite?.name : null,
+          subject: me?.crop ?? favourite?.crop ?? familiar?.crop,
+          subjectName: me?.crop != null
+              ? null
+              : favourite?.crop != null
+              ? favourite?.name
+              : familiar?.crop != null
+              ? MosaicPage.familiarFace
+              : null,
         ),
       ];
     });

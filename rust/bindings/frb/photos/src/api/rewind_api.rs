@@ -318,6 +318,8 @@ pub struct _Mosaic {
     pub me_face_ids: Vec<String>,
     pub top_person_id: Option<String>,
     pub top_face_ids: Vec<String>,
+    pub cluster_id: Option<String>,
+    pub cluster_face_ids: Vec<String>,
 }
 
 #[frb(mirror(Timelapse))]

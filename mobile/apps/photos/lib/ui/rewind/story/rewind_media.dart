@@ -142,8 +142,13 @@ class RewindMedia {
     return _faces[personId] ??= _resolve(personId, faceIds, named: true);
   }
 
-  Future<RewindFace?> cluster(String clusterId, List<String> faceIds) {
-    return _faces[clusterId] ??= _resolve(clusterId, faceIds, named: false);
+  Future<RewindFace?> cluster(String clusterId, List<String> faceIds) async {
+    final cached = _faces[clusterId];
+    final face =
+        await (cached ??
+            (_faces[clusterId] = _resolve(clusterId, faceIds, named: false)));
+    if (cached == null || face?.crop != null) return face;
+    return _faces[clusterId] = _resolve(clusterId, faceIds, named: false);
   }
 
   Future<Map<EnteFile, Alignment>> faceFocus(

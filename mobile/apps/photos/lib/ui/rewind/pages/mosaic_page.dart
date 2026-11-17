@@ -31,6 +31,7 @@ class MosaicPage extends RewindPage {
 
   static const pageKey = "mosaic";
   static const minimumTiles = 120;
+  static const familiarFace = "FAMILIAR FACE";
 
   final List<EnteFile> files;
   final Uint8List? subject;
