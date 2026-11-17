@@ -2,7 +2,6 @@ import "package:flutter/material.dart";
 import "package:flutter/scheduler.dart";
 import "package:photos/ui/rewind/reel/rewind_reel.dart";
 import "package:photos/ui/rewind/reel/rewind_video_export.dart";
-import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
 import "package:photos/ui/rewind/theme/rewind_motion.dart";
@@ -32,13 +31,13 @@ class _FinaleReelPreviewState extends State<FinaleReelPreview>
   final _time = ValueNotifier(Duration.zero);
   RewindReel? _reel;
   Widget? _view;
-  Future<void>? _warming;
+  Future<void>? _loading;
   var _steps = const <(Duration, Duration)>[];
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _warming ??= _warm(RewindPageScope.navigatorOf(context)?.pages ?? const []);
+    _loading ??= _load(RewindPageScope.navigatorOf(context));
     _sync();
   }
 
@@ -55,10 +54,13 @@ class _FinaleReelPreviewState extends State<FinaleReelPreview>
     super.dispose();
   }
 
-  Future<void> _warm(List<RewindPage> pages) async {
-    await Future.wait([for (final page in pages) page.warmUp()]);
-    final reel = RewindReel.of(pages);
-    if (!mounted || reel.pages.isEmpty) return;
+  Future<void> _load(RewindNavigator? navigator) async {
+    if (navigator == null) return;
+    await Future.wait([for (final page in navigator.pages) page.warmUp()]);
+    final reel = RewindReel.of(navigator.pages);
+    if (reel.pages.isEmpty) return;
+    await navigator.loadVideoMedia(reel.pages);
+    if (!mounted) return;
     setState(() {
       _reel = reel;
       _steps = _stepsOf(reel);
