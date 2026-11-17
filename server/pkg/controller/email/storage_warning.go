@@ -388,61 +388,7 @@ func (c *EmailNotificationController) clearRecoveredStorageWarningLoginState(use
 }
 
 func (c *EmailNotificationController) buildStorageWarningSnapshot(ctx context.Context, candidate repo.StorageWarningCandidate, now int64) (storageWarningSnapshot, error) {
-	if candidate.IsFamilyPlan {
-		return c.buildFamilyStorageWarningSnapshot(ctx, candidate.RecipientID, now)
-	}
-	return c.buildIndividualStorageWarningSnapshot(ctx, candidate.RecipientID, now)
-}
-
-func (c *EmailNotificationController) buildFamilyStorageWarningSnapshot(ctx context.Context, adminID int64, now int64) (storageWarningSnapshot, error) {
-	admin, err := c.UserRepo.Get(adminID)
-	if err != nil {
-		return storageWarningSnapshot{}, err
-	}
-	if admin.Email == "" {
-		return storageWarningSnapshot{}, fmt.Errorf("admin email not available")
-	}
-
-	totalUsage, err := c.UsageRepo.StorageForFamilyAdmin(adminID)
-	if err != nil {
-		return storageWarningSnapshot{}, err
-	}
-
-	activeBonuses, err := c.StorageBonusRepo.GetActiveStorageBonuses(ctx, adminID)
-	if err != nil {
-		return storageWarningSnapshot{}, err
-	}
-
-	subscription, err := c.BillingRepo.GetUserSubscription(adminID)
-	var sub *ente.Subscription
-	if err == nil {
-		sub = &subscription
-	} else if !errors.Is(err, sql.ErrNoRows) {
-		return storageWarningSnapshot{}, err
-	}
-
-	metrics := computeStorageWarningMetrics(sub, activeBonuses, totalUsage, now)
-	snapshot := storageWarningSnapshot{
-		RecipientID:          adminID,
-		AccountEmail:         admin.Email,
-		TotalUsage:           totalUsage,
-		BaseStorage:          metrics.BaseStorage,
-		UsableBonus:          metrics.UsableBonus,
-		AllottedStorage:      metrics.AllottedStorage,
-		AvailableStorage:     metrics.AvailableStorage,
-		SubscriptionExpiry:   metrics.SubscriptionExpiry,
-		EffectiveExpiry:      metrics.EffectiveExpiry,
-		ExpiredWarningAnchor: metrics.ExpiredWarningAnchor,
-		EvaluatedAt:          now,
-		CurrentBucket:        metrics.Bucket,
-		Bucket:               metrics.Bucket,
-		IsFamilyPlan:         true,
-	}
-	return c.decorateStorageWarningSnapshot(snapshot, now)
-}
-
-func (c *EmailNotificationController) buildIndividualStorageWarningSnapshot(ctx context.Context, userID int64, now int64) (storageWarningSnapshot, error) {
-	user, err := c.UserRepo.Get(userID)
+	user, err := c.UserRepo.Get(candidate.RecipientID)
 	if err != nil {
 		return storageWarningSnapshot{}, err
 	}
@@ -450,17 +396,25 @@ func (c *EmailNotificationController) buildIndividualStorageWarningSnapshot(ctx 
 		return storageWarningSnapshot{}, fmt.Errorf("user email not available")
 	}
 
-	totalUsage, err := c.UsageRepo.GetUsage(userID)
+	subscriptionUserID := user.ID
+	isFamilyPlan := user.FamilyAdminID != nil
+	var totalUsage int64
+	if isFamilyPlan {
+		subscriptionUserID = *user.FamilyAdminID
+		totalUsage, err = c.UsageRepo.StorageForFamilyAdmin(subscriptionUserID)
+	} else {
+		totalUsage, err = c.UsageRepo.GetUsage(user.ID)
+	}
 	if err != nil {
 		return storageWarningSnapshot{}, err
 	}
 
-	activeBonuses, err := c.StorageBonusRepo.GetActiveStorageBonuses(ctx, userID)
+	activeBonuses, err := c.StorageBonusRepo.GetActiveStorageBonuses(ctx, subscriptionUserID)
 	if err != nil {
 		return storageWarningSnapshot{}, err
 	}
 
-	subscription, err := c.BillingRepo.GetUserSubscription(userID)
+	subscription, err := c.BillingRepo.GetUserSubscription(subscriptionUserID)
 	var sub *ente.Subscription
 	if err == nil {
 		sub = &subscription
@@ -470,7 +424,7 @@ func (c *EmailNotificationController) buildIndividualStorageWarningSnapshot(ctx 
 
 	metrics := computeStorageWarningMetrics(sub, activeBonuses, totalUsage, now)
 	snapshot := storageWarningSnapshot{
-		RecipientID:          userID,
+		RecipientID:          user.ID,
 		AccountEmail:         user.Email,
 		TotalUsage:           totalUsage,
 		BaseStorage:          metrics.BaseStorage,
@@ -483,7 +437,7 @@ func (c *EmailNotificationController) buildIndividualStorageWarningSnapshot(ctx 
 		EvaluatedAt:          now,
 		CurrentBucket:        metrics.Bucket,
 		Bucket:               metrics.Bucket,
-		IsFamilyPlan:         false,
+		IsFamilyPlan:         isFamilyPlan,
 	}
 	return c.decorateStorageWarningSnapshot(snapshot, now)
 }
