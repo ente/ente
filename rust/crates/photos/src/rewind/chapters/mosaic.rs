@@ -42,15 +42,47 @@ pub(in crate::rewind) fn mosaic(
             .into_iter()
             .find_map(|(person, _)| subject(people, person))
     });
+    let cluster = people.and_then(|people| {
+        clusters_by_photos(library, people)
+            .into_iter()
+            .find_map(|cluster| subject(people, cluster))
+    });
     let (me_person_id, me_face_ids) = me.unzip();
     let (top_person_id, top_face_ids) = top.unzip();
+    let (cluster_id, cluster_face_ids) = cluster.unzip();
     Some(Mosaic {
         file_ids: year_photos.to_vec(),
         me_person_id,
         me_face_ids: me_face_ids.unwrap_or_default(),
         top_person_id,
         top_face_ids: top_face_ids.unwrap_or_default(),
+        cluster_id,
+        cluster_face_ids: cluster_face_ids.unwrap_or_default(),
     })
+}
+
+fn clusters_by_photos<'p>(library: &Library<'_>, people: &'p People) -> Vec<&'p Entity> {
+    let mut clusters: Vec<(&Entity, usize, Option<i64>)> = people
+        .clusters()
+        .iter()
+        .map(|cluster| {
+            let files = people.files_of(cluster, library);
+            let first = files.iter().map(|file| file.local_time).min();
+            (cluster, files.len(), first)
+        })
+        .collect();
+    clusters.sort_by(
+        |(first, first_count, first_photo), (second, second_count, second_photo)| {
+            second_count
+                .cmp(first_count)
+                .then_with(|| first_photo.cmp(second_photo))
+                .then_with(|| first.id.cmp(&second.id))
+        },
+    );
+    clusters
+        .into_iter()
+        .map(|(cluster, _, _)| cluster)
+        .collect()
 }
 
 #[cfg(test)]
@@ -68,6 +100,7 @@ mod tests {
         appear(&store, "mine", Some("me"), 10..=14);
         appear(&store, "friends", Some("friend"), 20..=22);
         appear(&store, "sisters", Some("sister"), 30..=37);
+        appear(&store, "strangers", None, 40..=60);
         let mut files = daily_photos(1, "2026-01-01T10:00:00", 200);
         files[199].is_junk = true;
         let mut mosaic_request = request(files);
@@ -91,6 +124,8 @@ mod tests {
         assert_eq!(tiles.me_face_ids.len(), 5);
         assert_eq!(tiles.top_person_id.as_deref(), Some("sister"));
         assert_eq!(tiles.top_face_ids.len(), 5);
+        assert_eq!(tiles.cluster_id.as_deref(), Some("strangers"));
+        assert_eq!(tiles.cluster_face_ids.len(), 5);
 
         let nobody = Ranking::new(None, None);
         let anonymous = mosaic(
@@ -105,6 +140,35 @@ mod tests {
         assert!(anonymous.me_face_ids.is_empty());
         assert_eq!(anonymous.top_person_id, None);
         assert!(anonymous.top_face_ids.is_empty());
+        assert_eq!(anonymous.cluster_id, None);
+        assert!(anonymous.cluster_face_ids.is_empty());
+    }
+
+    #[test]
+    fn without_named_faces_the_biggest_unnamed_cluster_is_the_subject() {
+        let (_directory, store) = store();
+        appear(&store, "small", None, 10..=15);
+        appear(&store, "rookie", None, 40..=49);
+        appear(&store, "veteran", None, 20..=29);
+        let mut mosaic_request = request(daily_photos(1, "2026-01-01T10:00:00", 200));
+        mosaic_request.me_person_id = Some("me".to_string());
+        let library = Library::of_year(&mosaic_request).unwrap();
+        let people = People::load(&mosaic_request, &library, &store).unwrap();
+        let ranking = Ranking::new(Some(&people), None);
+
+        let tiles = mosaic(
+            &mosaic_request,
+            &library,
+            Some(&people),
+            &ranking,
+            &year_photos(&library, &ranking),
+        )
+        .unwrap();
+
+        assert_eq!(tiles.me_person_id, None);
+        assert_eq!(tiles.top_person_id, None);
+        assert_eq!(tiles.cluster_id.as_deref(), Some("veteran"));
+        assert_eq!(tiles.cluster_face_ids.len(), 5);
     }
 
     #[test]

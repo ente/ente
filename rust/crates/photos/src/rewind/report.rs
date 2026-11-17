@@ -227,6 +227,8 @@ pub struct Mosaic {
     pub me_face_ids: Vec<String>,
     pub top_person_id: Option<String>,
     pub top_face_ids: Vec<String>,
+    pub cluster_id: Option<String>,
+    pub cluster_face_ids: Vec<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -326,7 +328,9 @@ impl RewindReport {
                 .is_some_and(|badge| chapters::badge_uses_ml(badge.id))
             || self.timelapse.is_some()
             || self.mosaic.as_ref().is_some_and(|mosaic| {
-                mosaic.me_person_id.is_some() || mosaic.top_person_id.is_some()
+                mosaic.me_person_id.is_some()
+                    || mosaic.top_person_id.is_some()
+                    || mosaic.cluster_id.is_some()
             })
     }
 }

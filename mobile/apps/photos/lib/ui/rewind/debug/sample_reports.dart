@@ -332,6 +332,7 @@ final _busyYear = rust.RewindReport(
     meFaceIds: _faceIds(102000, 5),
     topPersonId: "person_maya",
     topFaceIds: _faceIds(100400, 5),
+    clusterFaceIds: const [],
   ),
 );
 
