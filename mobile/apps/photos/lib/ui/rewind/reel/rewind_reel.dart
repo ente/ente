@@ -26,7 +26,7 @@ class RewindReel {
     return RewindReel._(pages, holds);
   }
 
-  static const frameRate = 30;
+  static const frameRate = 24;
   static const canvas = Size(360, 640);
   static const _turn = RewindMotion.waveDuration;
 

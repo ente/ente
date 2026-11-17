@@ -13,11 +13,14 @@ public final class NativeVideoEditorPlugin: NSObject, @preconcurrency FlutterPlu
     private lazy var frameExtractor = VideoFrameExtractor(metadataReader: metadataReader)
     private let videoExporter = VideoExportEngine()
     private let slideshowExporter = SlideshowExportEngine()
+    private nonisolated let frameStreams = FrameStreamSlot()
+    private var framesChannel: FlutterBasicMessageChannel?
 
     public static func register(with registrar: FlutterPluginRegistrar) {
+        let messenger = registrar.messenger()
         let channel = FlutterMethodChannel(
             name: "native_video_editor",
-            binaryMessenger: registrar.messenger()
+            binaryMessenger: messenger
         )
         let instance = NativeVideoEditorPlugin()
         registrar.addMethodCallDelegate(instance, channel: channel)
@@ -25,9 +28,21 @@ public final class NativeVideoEditorPlugin: NSObject, @preconcurrency FlutterPlu
 
         let progressChannel = FlutterEventChannel(
             name: "native_video_editor/progress",
-            binaryMessenger: registrar.messenger()
+            binaryMessenger: messenger
         )
         progressChannel.setStreamHandler(instance)
+
+        let framesChannel = FlutterBasicMessageChannel(
+            name: "native_video_editor/frames",
+            binaryMessenger: messenger,
+            codec: FlutterBinaryCodec.sharedInstance(),
+            taskQueue: messenger.makeBackgroundTaskQueue?()
+        )
+        let frameStreams = instance.frameStreams
+        framesChannel.setMessageHandler { message, reply in
+            reply(frameStreams.append(message as? Data))
+        }
+        instance.framesChannel = framesChannel
     }
 
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -50,6 +65,12 @@ public final class NativeVideoEditorPlugin: NSObject, @preconcurrency FlutterPlu
             exportSlideshow(call, result: result)
         case "cancelProcessing":
             cancelProcessing(result: result)
+        case "openFrameStream":
+            openFrameStream(call, result: result)
+        case "finishFrameStream":
+            finishFrameStream(result: result)
+        case "cancelFrameStream":
+            cancelFrameStream(result: result)
         default:
             result(FlutterMethodNotImplemented)
         }
@@ -309,6 +330,84 @@ public final class NativeVideoEditorPlugin: NSObject, @preconcurrency FlutterPlu
         exportTask.cancel()
     }
 
+    private func openFrameStream(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+        guard let args = call.arguments as? [String: Any],
+            let outputPath = args["outputPath"] as? String,
+            !outputPath.isEmpty,
+            let width = int(args["width"]),
+            let height = int(args["height"]),
+            let frameRate = int(args["frameRate"]),
+            let bitrate = int(args["bitrate"])
+        else {
+            result(flutterError("INVALID_ARGS", message: "Invalid frame stream arguments"))
+            return
+        }
+        do {
+            let stream = try VideoFrameStream(
+                request: VideoFrameStreamRequest(
+                    outputURL: URL(fileURLWithPath: outputPath),
+                    width: width,
+                    height: height,
+                    frameRate: frameRate,
+                    bitrate: bitrate
+                )
+            )
+            guard frameStreams.open(stream) else {
+                result(
+                    flutterError(
+                        "CONCURRENT_EXPORT", message: "A video frame stream is already open"))
+                return
+            }
+            Task { [weak self] in
+                do {
+                    try await stream.start()
+                    guard let self, !isDetached else { return }
+                    result(nil)
+                } catch {
+                    guard let self else { return }
+                    frameStreams.release(stream)
+                    guard !isDetached else { return }
+                    result(flutterError(error, defaultCode: "PROCESS_ERROR"))
+                }
+            }
+        } catch {
+            result(flutterError(error, defaultCode: "PROCESS_ERROR"))
+        }
+    }
+
+    private func finishFrameStream(result: @escaping FlutterResult) {
+        guard let stream = frameStreams.close() else {
+            result(flutterError("INVALID_ARGS", message: "No video frame stream is open"))
+            return
+        }
+        Task { [weak self] in
+            do {
+                let url = try await stream.finish()
+                guard let self, !isDetached else { return }
+                result(["outputPath": url.path])
+            } catch {
+                guard let self, !isDetached else { return }
+                result(
+                    error is CancellationError
+                        ? flutterError("PROCESS_CANCELLED", message: "Export cancelled")
+                        : flutterError(error, defaultCode: "PROCESS_ERROR")
+                )
+            }
+        }
+    }
+
+    private func cancelFrameStream(result: @escaping FlutterResult) {
+        guard let stream = frameStreams.close() else {
+            result(nil)
+            return
+        }
+        Task { [weak self] in
+            await stream.cancel()
+            guard let self, !isDetached else { return }
+            result(nil)
+        }
+    }
+
     private func finishExport(result: @escaping FlutterResult, value: Any) {
         guard exportTask != nil else { return }
         exportTask = nil
@@ -519,6 +618,60 @@ public final class NativeVideoEditorPlugin: NSObject, @preconcurrency FlutterPlu
         exportTask?.cancel()
         exportTask = nil
         exportCancellationResult = nil
+        framesChannel?.setMessageHandler(nil)
+        framesChannel = nil
+        if let stream = frameStreams.close() {
+            Task { await stream.cancel() }
+        }
+    }
+}
+
+private final class FrameStreamSlot: @unchecked Sendable {
+    private let lock = NSLock()
+    private var stream: VideoFrameStream?
+
+    func open(_ stream: VideoFrameStream) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        guard self.stream == nil else { return false }
+        self.stream = stream
+        return true
+    }
+
+    func close() -> VideoFrameStream? {
+        lock.lock()
+        defer { lock.unlock() }
+        let stream = self.stream
+        self.stream = nil
+        return stream
+    }
+
+    func release(_ stream: VideoFrameStream) {
+        lock.lock()
+        defer { lock.unlock() }
+        if self.stream === stream { self.stream = nil }
+    }
+
+    func append(_ rgba: Data?) -> Data {
+        lock.lock()
+        let stream = self.stream
+        lock.unlock()
+        guard let stream, let rgba else {
+            return failure("No video frame stream is open")
+        }
+        do {
+            try stream.append(rgba: rgba)
+            return Data([1])
+        } catch let error as VideoEditorError {
+            let cause = error.underlyingError.map { ": \($0.localizedDescription)" } ?? ""
+            return failure(error.message + cause)
+        } catch {
+            return failure(error.localizedDescription)
+        }
+    }
+
+    private func failure(_ message: String) -> Data {
+        Data([0]) + Data(message.utf8)
     }
 }
 
