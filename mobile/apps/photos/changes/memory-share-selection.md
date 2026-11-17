@@ -1,2 +1,0 @@
-- Sharing a memory from its last item now selects all items, and the share sheet scrolls to the item you were viewing.
-- (i) Share as video is now the first share option and shows a progress screen with a preview and a cancel button.
