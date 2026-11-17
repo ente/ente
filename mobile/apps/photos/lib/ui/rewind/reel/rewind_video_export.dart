@@ -294,6 +294,7 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
         _time.value = reel.timeOf(frame);
         _frameIndex.value = frame;
         await _unlessCancelled(stepper.step());
+        await _unlessCancelled(rewindRiveFilesLoaded());
         final pixels = _read(await _capture())..ignore();
         final previous = written;
         written = previous.then((_) => pixels).then(sink.add);
