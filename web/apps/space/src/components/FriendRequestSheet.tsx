@@ -47,7 +47,8 @@ export const FriendRequestSheet: React.FC<FriendRequestSheetProps> = ({
     const copy = {
         received: {
             title: `Be friends with @${username}?`,
-            description: "Share photos, and keep up with each other.",
+            description:
+                "You’ll be able to see each other’s posts and friends.",
             primary: "Accept",
             secondary: "Ignore",
             done: "Request accepted",
