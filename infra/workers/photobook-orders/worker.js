@@ -573,7 +573,69 @@ async function printPaidOrder(env, bookId, orderId, address) {
     console.info("Photobook accepted", reference, data.id);
 }
 
+async function deleteAbandonedDraft(env, query, id, cutoff) {
+    const { draftOrder: draft } = await query(`query AbandonedPhotobook($id: ID!) {
+        draftOrder(id: $id) {
+            id createdAt status tags order { id }
+            lineItems(first: 2) { nodes { customAttributes { key value } } }
+        }
+    }`, { id });
+    if (draft?.id !== id || draft.order !== null || !["OPEN", "INVOICE_SENT"].includes(draft.status) ||
+        !draft.tags.includes("ente-photobook") || !(Date.parse(draft.createdAt) <= cutoff)) return;
+    const lines = draft.lineItems.nodes;
+    if (lines.length !== 1) return;
+    const bookId = lines[0].customAttributes.find(attribute => attribute.key === "_book_id")?.value;
+    if (!uuid.test(bookId)) return;
+    const prefix = "orders/" + bookId + "/";
+    const record = await env.BOOKS.get(prefix + "draft.json");
+    if (!record) return;
+    const ticket = await record.json();
+    if (ticket.draftId !== id || ticket.shop !== env.SHOPIFY_SHOP_DOMAIN) return;
+    if (await env.BOOKS.head(prefix + "result.json")) return;
+
+    const { draftOrderDelete } = await query(`mutation DeleteAbandonedPhotobook($id: ID!) {
+        draftOrderDelete(input: { id: $id }) { deletedId userErrors { message } }
+    }`, { id });
+    if (draftOrderDelete.userErrors.length) throw new Error(draftOrderDelete.userErrors.map(e => e.message).join("\n"));
+    if (draftOrderDelete.deletedId !== id) throw new Error("Shopify did not confirm draft deletion.");
+    try {
+        await deleteAbandonedFiles(env, bookId);
+    } catch (error) {
+        await env.EVENTS.send({ type: "deleted-draft", bookId, draftId: id });
+        throw error;
+    }
+}
+
+async function deleteAbandonedFiles(env, bookId) {
+    await env.BOOKS.delete("books/" + bookId + ".pdf");
+    await env.BOOKS.delete("orders/" + bookId + "/draft.json");
+}
+
 export default {
+    async scheduled({ scheduledTime }, env) {
+        const cutoff = scheduledTime - 7 * 24 * 60 * 60 * 1000;
+        const filter = `tag:ente-photobook (status:OPEN OR status:INVOICE_SENT) created_at:<='${new Date(cutoff).toISOString()}'`;
+        const query = await shopifyAdmin(env);
+        let after = null;
+        let failures = 0;
+        do {
+            const { draftOrders } = await query(`query AbandonedPhotobooks($filter: String!, $after: String) {
+                draftOrders(first: 50, query: $filter, after: $after, sortKey: CREATED_AT) {
+                    nodes { id } pageInfo { hasNextPage endCursor }
+                }
+            }`, { filter, after });
+            for (const { id } of draftOrders.nodes) {
+                try {
+                    await deleteAbandonedDraft(env, query, id, cutoff);
+                } catch (error) {
+                    console.error("Photobook draft cleanup failed", id, error.message);
+                    failures++;
+                }
+            }
+            after = draftOrders.pageInfo.hasNextPage ? draftOrders.pageInfo.endCursor : null;
+        } while (after);
+        if (failures) throw new Error("Photobook draft cleanup failed for " + failures + " draft(s).");
+    },
     async fetch(request, env) {
         const url = new URL(request.url);
         const cors = new Headers({ Vary: "Origin", "Cache-Control": "no-store" });
@@ -610,7 +672,13 @@ export default {
             const { type, bookId, orderId, address, reference, event } = message.body;
             try {
                 if (type === "paid") await printPaidOrder(env, bookId, orderId, address);
-                else if (type === "shipment") {
+                else if (type === "deleted-draft") {
+                    const prefix = "orders/" + bookId + "/";
+                    const record = await env.BOOKS.get(prefix + "draft.json");
+                    if (record && (await record.json()).draftId === message.body.draftId && !await env.BOOKS.head(prefix + "result.json")) {
+                        await deleteAbandonedFiles(env, bookId);
+                    }
+                } else if (type === "shipment") {
                     const stored = await env.BOOKS.get("orders/" + bookId + "/result.json");
                     if (!stored) throw new Error("Order receipt pending.");
                     const receipt = await stored.json();

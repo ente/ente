@@ -5,6 +5,7 @@
     "compatibility_date": "2026-10-01",
     "workers_dev": false,
     "preview_urls": false,
+    "triggers": { "crons": ["0 3 * * *"] },
     "routes": [
         { "pattern": "photobook-orders.ente.com", "custom_domain": true }
     ],

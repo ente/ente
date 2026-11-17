@@ -219,3 +219,105 @@ test("delivery check requires a Standard quote for the selected book and disting
     assert.equal((await request("/checkout", "POST", body)).status, 503);
     assert.equal(records.size, 0);
 });
+
+function cleanupFixture(t) {
+    const { env, records, jobs, consume } = fixture(t);
+    const scheduledTime = Date.UTC(2026, 10, 17, 3);
+    const cutoff = "2026-11-10T03:00:00.000Z";
+    const drafts = new Map();
+    const ids = [];
+    const deleted = [];
+    const deleteResponses = new Map();
+    function addDraft(overrides = {}) {
+        const id = "gid://shopify/DraftOrder/" + (ids.length + 1);
+        const bookId = crypto.randomUUID();
+        const draftKey = "orders/" + bookId + "/draft.json";
+        const pdfKey = "books/" + bookId + ".pdf";
+        ids.push(id);
+        drafts.set(id, { id, createdAt: cutoff, status: "OPEN", order: null, tags: ["ente-photobook"],
+            lineItems: { nodes: [{ customAttributes: [{ key: "_book_id", value: bookId }] }] }, ...overrides });
+        records.set(draftKey, { json: async () => ({ shop: env.SHOPIFY_SHOP_DOMAIN, draftId: id }) });
+        records.set(pdfKey, {});
+        return { id, bookId, draftKey, pdfKey };
+    }
+    t.mock.method(globalThis, "fetch", async (url, init) => {
+        if (url.endsWith("/oauth/access_token")) return Response.json({ access_token: "mock" });
+        const { query, variables } = JSON.parse(init.body);
+        if (query.includes("query AbandonedPhotobooks(")) {
+            assert.ok(variables.filter.includes(cutoff));
+            assert.ok(variables.filter.includes("tag:ente-photobook"));
+            const start = ids.indexOf(variables.after) + 1;
+            const page = ids.slice(start).filter(id => drafts.has(id)).slice(0, 2);
+            return Response.json({ data: { draftOrders: {
+                nodes: page.map(id => ({ id })),
+                pageInfo: { hasNextPage: page.length === 2, endCursor: page.at(-1) },
+            } } });
+        }
+        if (query.includes("query AbandonedPhotobook(")) {
+            return Response.json({ data: { draftOrder: drafts.get(variables.id) ?? null } });
+        }
+        assert.match(query, /mutation DeleteAbandonedPhotobook/);
+        if (deleteResponses.has(variables.id)) return Response.json({ data: { draftOrderDelete: deleteResponses.get(variables.id) } });
+        assert.ok(drafts.delete(variables.id));
+        deleted.push(variables.id);
+        return Response.json({ data: { draftOrderDelete: { deletedId: variables.id, userErrors: [] } } });
+    });
+    return { env, records, jobs, consume, deleteResponses, deleted, addDraft, run: () => worker.scheduled({ scheduledTime }, env) };
+}
+
+test("daily cleanup deletes only confirmed unpaid photobook drafts aged seven days across pages", async t => {
+    const { records, deleted, addDraft, run } = cleanupFixture(t);
+    const open = addDraft();
+    const invoiced = addDraft({ status: "INVOICE_SENT" });
+    const keep = [
+        addDraft({ createdAt: "2026-11-10T03:00:00.001Z" }),
+        addDraft({ status: "COMPLETED" }),
+        addDraft({ order: { id: orderId } }),
+        addDraft({ tags: ["merch"] }),
+        addDraft({ order: undefined }),
+    ];
+    const paid = addDraft();
+    records.set("orders/" + paid.bookId + "/result.json", {});
+    const foreign = addDraft();
+    records.set(foreign.draftKey, { json: async () => ({ shop: "elsewhere.myshopify.com", draftId: foreign.id }) });
+    const copied = addDraft();
+    records.set(copied.draftKey, { json: async () => ({ shop: "example.myshopify.com", draftId: foreign.id }) });
+    await run();
+    assert.deepEqual(deleted, [open.id, invoiced.id]);
+    for (const { draftKey, pdfKey } of [open, invoiced]) {
+        assert.ok(!records.has(pdfKey) && !records.has(draftKey));
+    }
+    for (const { draftKey, pdfKey } of [...keep, paid, foreign, copied]) {
+        assert.ok(records.has(pdfKey) && records.has(draftKey));
+    }
+    await run();
+    assert.deepEqual(deleted, [open.id, invoiced.id]);
+});
+
+test("unconfirmed Shopify deletion preserves both files and cleanup continues with the next draft", async t => {
+    const { records, deleteResponses, addDraft, deleted, run } = cleanupFixture(t);
+    const first = addDraft();
+    const second = addDraft();
+    const wrongId = addDraft();
+    deleteResponses.set(first.id, { deletedId: null, userErrors: [{ message: "Draft could not be deleted" }] });
+    deleteResponses.set(wrongId.id, { deletedId: first.id, userErrors: [] });
+    await assert.rejects(run, /cleanup failed for 2/);
+    assert.ok(records.has(first.draftKey) && records.has(first.pdfKey));
+    assert.ok(records.has(wrongId.draftKey) && records.has(wrongId.pdfKey));
+    assert.deepEqual(deleted, [second.id]);
+    assert.ok(!records.has(second.draftKey) && !records.has(second.pdfKey));
+});
+
+test("a bucket failure after Shopify confirms deletion retries only the matching files", async t => {
+    const { env, records, jobs, consume, deleted, addDraft, run } = cleanupFixture(t);
+    const draft = addDraft();
+    t.mock.method(env.BOOKS, "delete").mock.mockImplementationOnce(() => { throw new Error("Bucket unavailable"); }, 1);
+    await assert.rejects(run, /cleanup failed for 1/);
+    assert.deepEqual(deleted, [draft.id]);
+    assert.ok(records.has(draft.draftKey) && !records.has(draft.pdfKey));
+    assert.equal(jobs.length, 1);
+    await consume(jobs[0]);
+    await consume(jobs[0]);
+    assert.ok(!records.has(draft.draftKey) && !records.has(draft.pdfKey));
+    assert.deepEqual(deleted, [draft.id]);
+});

@@ -43,6 +43,8 @@ http.host eq "photobook-orders.ente.com" and (http.request.uri.path in {"/checko
 
 In **Workers & Pages → photobook-orders → Edit code**, paste the entire [worker.js](./worker.js). Configure the private EU R2 bucket as `BOOKS`, add the `photobook-orders` queue as producer binding `EVENTS`, and attach this Worker as its consumer with batch size 1, 24 retries, and dead-letter queue `photobook-orders-failed`. Copy the four text variables from [wrangler.jsonc](./wrangler.jsonc) and add the five secrets listed below. Use the custom domain `photobook-orders.ente.com` and disable the `workers.dev` route and preview URLs so upload requests use the hostname covered by the zone rules. Deploy and configure the Shopify payment webhook below.
 
+Under **Settings → Trigger events**, add a Cron Trigger with `0 3 * * *` for daily draft cleanup at 03:00 UTC. Wrangler configures this trigger automatically when you deploy from the terminal.
+
 ### Deploy from your terminal
 
 Use your existing Wrangler login for Ente’s account. Verify that `photobook-orders.ente.com` is available in the `ente.com` zone. The Worker deployment configures the hostname, DNS, and TLS. Run these commands from the repository root. [Cloudflare Worker custom domains](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/)
@@ -104,7 +106,9 @@ npm run dev:photobook
 
 ## Operations
 
-The invoice contains a book ID and page count. The private PDF stays in R2 until a dispatched fulfillment is recorded. Prodigi gets a signed download URL valid for at most seven days, issued after payment. For an abandoned invoice, delete the open draft in Shopify before removing its PDF from R2. Completed uploads that never reached checkout and abandoned drafts currently need manual cleanup. R2 aborts incomplete multipart uploads using its bucket lifecycle rules. [R2 object lifecycles](https://developers.cloudflare.com/r2/buckets/object-lifecycles/)
+The invoice contains a book ID and page count. After payment, Prodigi gets a signed download URL valid for at most seven days. The Worker removes the paid book's PDF once it records a dispatched fulfillment.
+
+The daily cleanup deletes Ente photobook drafts at least seven days old that are still open or invoiced and have no linked Shopify order. It verifies the saved draft ID and skips books with a Prodigi receipt. Once Shopify confirms deletion, the Worker removes the matching PDF and `draft.json` in the same run. If R2 fails, the existing queue retries those file deletions. Completed uploads that never reached checkout still need manual cleanup. R2 aborts incomplete multipart uploads using its bucket lifecycle rules. [R2 object lifecycles](https://developers.cloudflare.com/r2/buckets/object-lifecycles/)
 
 The Worker queues payment and shipment events before acknowledging their delivery. The queue temporarily holds the delivery address for a paid book. A callback can arrive before tracking becomes visible. Failed work is retried with backoff. Investigate entries in `photobook-orders-failed` if a paid order or shipping notification is missing. Resolve the cause, then resend the message to `photobook-orders` with the original IDs so the print order's idempotency key stays the same. Manage reversals or print problems using the Shopify order and its Prodigi merchant reference.
 
