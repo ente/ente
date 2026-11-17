@@ -1583,7 +1583,7 @@ Future<void> _shareMemory(
       );
       return;
     case MemoryShareSheetAction.shareVideo:
-      await _shareMemoryVideo(context, result.selectedMemories);
+      await _shareMemoryVideo(context, result.selectedMemories, memoryTitle);
     case MemoryShareSheetAction.shareItems:
       await share(context, Memory.filesFromMemories(result.selectedMemories));
   }
@@ -1592,6 +1592,7 @@ Future<void> _shareMemory(
 Future<void> _shareMemoryVideo(
   BuildContext context,
   List<Memory> memories,
+  String memoryTitle,
 ) async {
   final memoryAudio = MemoryAudioScope.maybeOf(context, listen: false);
   final musicTrack = memoryAudio == null || memoryAudio.isMusicMuted
@@ -1604,6 +1605,7 @@ Future<void> _shareMemoryVideo(
       files: Memory.filesFromMemories(memories),
       musicTrack: musicTrack,
       muteVideos: memoryAudio?.isVideoMuted ?? false,
+      title: memoryTitle,
     );
   } catch (e) {
     if (context.mounted) {

@@ -44,6 +44,7 @@ struct SlideshowVideoSource: @unchecked Sendable {
     let audioTrack: AVAssetTrack?
     let orientation: CGImagePropertyOrientation
     let trackStart: CMTime
+    var readRange: CMTimeRange?
 }
 
 struct SlideshowSegment: @unchecked Sendable {
@@ -60,7 +61,7 @@ struct SlideshowSegment: @unchecked Sendable {
     }
 
     var playsVideoAudio: Bool {
-        if case .video(_, let isMuted) = item, !isMuted, video?.audioTrack != nil {
+        if case .video(_, let isMuted, _) = item, !isMuted, video?.audioTrack != nil {
             return true
         }
         return false
@@ -95,11 +96,18 @@ struct SlideshowTimeline: Sendable {
                 segments.append(
                     SlideshowSegment(item: item, start: cursor, duration: duration, video: nil))
                 cursor += duration
-            case .video(let url, _):
-                let source = try await loadVideo(url)
-                let duration = try await source.asset.load(.duration).seconds
+            case .video(let url, _, let maxDurationMs):
+                var source = try await loadVideo(url)
+                var duration = try await source.asset.load(.duration).seconds
                 guard duration.isFinite, duration > 0 else {
                     throw VideoEditorError.composition("Slideshow video has no duration")
+                }
+                if let maxDurationMs, Double(maxDurationMs) / 1000 < duration {
+                    duration = Double(maxDurationMs) / 1000
+                    source.readRange = CMTimeRange(
+                        start: source.trackStart,
+                        duration: CMTime(seconds: duration, preferredTimescale: 600)
+                    )
                 }
                 segments.append(
                     SlideshowSegment(item: item, start: cursor, duration: duration, video: source)
@@ -178,9 +186,7 @@ private final class SlideshowWriterSession: @unchecked Sendable {
         writer = try AVAssetWriter(outputURL: request.outputURL, fileType: .mp4)
         writer.shouldOptimizeForNetworkUse = true
 
-        let bitsPerPixel = 0.12
-        let bitrate = Int(
-            Double(request.width * request.height * request.frameRate) * bitsPerPixel)
+        let bitrate = request.videoBitrate
         videoInput = AVAssetWriterInput(
             mediaType: .video,
             outputSettings: [
@@ -499,6 +505,9 @@ private final class SlideshowFrameProducer: @unchecked Sendable {
                 throw VideoEditorError.composition("Cannot read slideshow video frames")
             }
             reader.add(output)
+            if let readRange = source.readRange {
+                reader.timeRange = readRange
+            }
             guard reader.startReading() else {
                 throw VideoEditorError.composition(
                     "Failed to read slideshow video", reader.error)
