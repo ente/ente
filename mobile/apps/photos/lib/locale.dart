@@ -3,7 +3,6 @@ import "package:shared_preferences/shared_preferences.dart";
 
 // Enable languages once at least 80% of this app's strings are translated.
 const List<Locale> appSupportedLocales = <Locale>[
-  Locale('bg'),
   Locale('ca'),
   Locale('cs'),
   Locale('en'),
