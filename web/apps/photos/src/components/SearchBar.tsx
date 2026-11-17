@@ -110,7 +110,7 @@ export const SearchBar: React.FC<SearchBarProps> = (props) => {
     }, [props.isSettingsOpen]);
 
     const closeButton = isSmallWidth && props.isInSearchMode && (
-        <Tooltip title={t("close")}>
+        <Tooltip title={t("close")} placement="right">
             <IconButton aria-label={t("close")} onClick={clearSearch}>
                 <CloseIcon />
             </IconButton>
@@ -121,7 +121,7 @@ export const SearchBar: React.FC<SearchBarProps> = (props) => {
         <>
             <Stack sx={{ alignItems: "center", gap: "12px" }}>
                 {closeButton}
-                <Tooltip title={`Search (${shortcut})`}>
+                <Tooltip title={`Search (${shortcut})`} placement="right">
                     <FocusVisibleButton
                         color="secondary"
                         aria-label={t("search")}

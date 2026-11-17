@@ -366,7 +366,7 @@ const NormalNavigationRail = ({
                   navigation.overlay?.section !== "search" &&
                   navigation.destination.section === id;
             return (
-                <Tooltip key={id} title={rail.label()}>
+                <Tooltip key={id} title={rail.label()} placement="right">
                     <FocusVisibleButton
                         color="secondary"
                         aria-label={rail.label()}
@@ -402,7 +402,7 @@ const NormalNavigationRail = ({
             );
         })}
         <Box sx={{ flex: 1 }} />
-        <Tooltip title={t("settings")}>
+        <Tooltip title={t("settings")} placement="right">
             <FocusVisibleButton
                 color="secondary"
                 aria-label={t("settings")}
@@ -431,7 +431,7 @@ const NormalNavigationRail = ({
 const HomeButton: React.FC<{ selected: boolean }> = ({ selected }) => {
     const { goHome } = usePhotosNavigation();
     return (
-        <Tooltip title={ut("Home")}>
+        <Tooltip title={ut("Home")} placement="right">
             <FocusVisibleButton
                 color="secondary"
                 aria-label={ut("Home")}
