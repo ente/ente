@@ -131,7 +131,7 @@ final class VideoWriterSession: @unchecked Sendable {
                         return
                     }
                     videoInput.requestMediaDataWhenReady(on: videoQueue) { [self] in
-                        pump(videoInput) {
+                        pump(videoInput, on: videoQueue) {
                             guard let frame = try frames.next() else { return false }
                             guard append({ adaptor.append(frame.buffer, withPresentationTime: frame.time) })
                             else {
@@ -147,7 +147,7 @@ final class VideoWriterSession: @unchecked Sendable {
                     if let audio {
                         audioInput?.requestMediaDataWhenReady(on: audioQueue) { [self] in
                             guard let audioInput else { return }
-                            pump(audioInput) {
+                            pump(audioInput, on: audioQueue) {
                                 guard let sample = try audio.next() else { return false }
                                 guard append({ audioInput.append(sample) }) else {
                                     throw VideoEditorError.export(
@@ -171,11 +171,12 @@ final class VideoWriterSession: @unchecked Sendable {
         return body()
     }
 
-    private func pump(_ input: AVAssetWriterInput, appendNext: () throws -> Bool) {
+    private func pump(
+        _ input: AVAssetWriterInput,
+        on queue: DispatchQueue,
+        appendNext: () throws -> Bool
+    ) {
         while input.isReadyForMoreMediaData {
-            lock.lock()
-            let isRunning = terminalError == nil
-            lock.unlock()
             guard isRunning else { return }
             do {
                 guard try autoreleasepool(invoking: appendNext) else {
@@ -187,6 +188,27 @@ final class VideoWriterSession: @unchecked Sendable {
                 return
             }
         }
+        watchForFailure(input, on: queue)
+    }
+
+    private func watchForFailure(_ input: AVAssetWriterInput, on queue: DispatchQueue) {
+        queue.asyncAfter(deadline: .now() + .milliseconds(250)) { [self] in
+            guard isRunning, !input.isReadyForMoreMediaData else { return }
+            switch writer.status {
+            case .writing:
+                watchForFailure(input, on: queue)
+            case .failed:
+                terminate(with: VideoEditorError.export("Video writer failed", writer.error))
+            default:
+                return
+            }
+        }
+    }
+
+    private var isRunning: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return terminalError == nil
     }
 
     private func finish(_ input: AVAssetWriterInput) {

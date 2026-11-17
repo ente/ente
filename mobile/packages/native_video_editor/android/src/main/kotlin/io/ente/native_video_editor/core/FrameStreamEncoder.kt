@@ -193,20 +193,40 @@ internal class FrameStreamEncoder(private val request: FrameStreamRequest) {
                     track = muxer.addTrack(codec.outputFormat)
                     muxer.start()
                 } else if (index >= 0) {
-                    val buffer = codec.getOutputBuffer(index)
-                    val isConfig = info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG != 0
-                    if (buffer != null && info.size > 0 && !isConfig) {
-                        check(track >= 0) { "Encoder output arrived before its format" }
-                        buffer.position(info.offset)
-                        buffer.limit(info.offset + info.size)
-                        muxer.writeSampleData(track, buffer, info)
+                    try {
+                        writeSample(index, info)
+                    } finally {
+                        codec.releaseOutputBuffer(index, false)
                     }
-                    codec.releaseOutputBuffer(index, false)
                     if (info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) return
                 }
             }
         } catch (error: Throwable) {
             if (failure == null) failure = error
+            discardOutput(info)
+        }
+    }
+
+    private fun writeSample(index: Int, info: MediaCodec.BufferInfo) {
+        val buffer = codec.getOutputBuffer(index)
+        val isConfig = info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG != 0
+        if (buffer != null && info.size > 0 && !isConfig) {
+            check(track >= 0) { "Encoder output arrived before its format" }
+            buffer.position(info.offset)
+            buffer.limit(info.offset + info.size)
+            muxer.writeSampleData(track, buffer, info)
+        }
+    }
+
+    private fun discardOutput(info: MediaCodec.BufferInfo) {
+        runCatching {
+            while (!stopped) {
+                val index = codec.dequeueOutputBuffer(info, TIMEOUT_US)
+                if (index >= 0) {
+                    codec.releaseOutputBuffer(index, false)
+                    if (info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) return
+                }
+            }
         }
     }
 
