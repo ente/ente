@@ -361,7 +361,7 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
         _maxExtent = maxHeight / availableHeight;
         final peekExtent = peekHeight / availableHeight;
         final railTiles = [
-          for (final action in [...grid, ...rows])
+          for (final action in [...grid, if (minHeight < maxHeight) ...rows])
             _SheetAction(action: action, height: railHeight),
         ];
         final keyedRailTiles = [
@@ -497,8 +497,9 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
                                                             ? tiles[index]
                                                             : Opacity(
                                                                 opacity:
-                                                                    1 -
-                                                                    _conceal,
+                                                                    collapsed
+                                                                    ? 1
+                                                                    : 1 - _conceal,
                                                                 child:
                                                                     tiles[index],
                                                               ),

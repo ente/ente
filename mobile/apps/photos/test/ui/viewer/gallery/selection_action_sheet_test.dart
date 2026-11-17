@@ -258,6 +258,48 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets("keeps row actions visible when the sheet cannot expand", (
+    tester,
+  ) async {
+    final gallery = ScrollController();
+    addTearDown(gallery.dispose);
+    var tapped = "";
+    await _pumpSheet(
+      tester,
+      gallery,
+      size: const Size(740, 260),
+      textScale: 2,
+      onTap: (label) => tapped = label,
+    );
+    final sheet = tester.widget<DraggableScrollableSheet>(
+      find.byType(DraggableScrollableSheet),
+    );
+    expect(sheet.maxChildSize, sheet.minChildSize);
+    final rail = find.byWidgetPredicate(
+      (widget) =>
+          widget is ListView && widget.scrollDirection == Axis.horizontal,
+    );
+    await tester.drag(rail, const Offset(-300, 0));
+    await tester.pumpAndSettle();
+    final action = find.descendant(
+      of: rail,
+      matching: find.text("Add to album"),
+    );
+    expect(_paintOpacity(tester, action), 1);
+    await tester.tap(action);
+    expect(tapped, "Add to album");
+    await tester.drag(rail, const Offset(-2000, 0));
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(of: rail, matching: find.text("Download")),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: rail, matching: find.text("Guest view")),
+      findsNothing,
+    );
+  });
+
   testWidgets("preserves hidden and disabled actions and reduced motion", (
     tester,
   ) async {
