@@ -4,6 +4,7 @@ import "package:package_info_plus/package_info_plus.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/db/social_db.dart";
+import "package:photos/models/collection/collection.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
 import "package:photos/models/metadata/common_keys.dart";
@@ -229,6 +230,9 @@ class _Albums {
     final collections = CollectionsService.instance;
     final hidden = collections.getHiddenCollectionIds();
     final archivedOrHidden = collections.archivedOrHiddenCollectionIds();
+    final libraryRecipients = await librarySharingService.recipientUserIDs(
+      userID,
+    );
     return _Albums(
       hidden: hidden,
       archived: archivedOrHidden.difference(hidden),
@@ -239,16 +243,27 @@ class _Albums {
       },
       shared: {
         for (final collection in collections.getActiveCollections())
-          if (!collection.isHidden() &&
-              (collection.hasSharees ||
-                  collection.hasLink ||
-                  !collection.isOwner(userID)))
+          if (_isSharedAlbum(collection, userID, libraryRecipients))
             collection.id,
       },
       favourites:
           (await FavoritesService.instance.getFavoritesCollection())?.id,
     );
   }
+
+  static bool _isSharedAlbum(
+    Collection collection,
+    int userID,
+    Set<int> libraryRecipients,
+  ) =>
+      (collection.type == CollectionType.album ||
+          collection.type == CollectionType.folder) &&
+      !collection.isQuickLinkCollection() &&
+      !collection.isHidden() &&
+      (collection.hasLink ||
+          [collection.owner, ...collection.sharees].any(
+            (user) => user.id != userID && !libraryRecipients.contains(user.id),
+          ));
 
   rust.RewindVisibility visibility(EnteFile file, Set<int> collectionIDs) {
     final fileVisibility = file.magicMetadata.visibility;

@@ -88,6 +88,14 @@ impl<'r> Library<'r> {
         self.year_has_ended
     }
 
+    pub(super) fn complete_months(&self) -> usize {
+        if self.year_has_ended {
+            return 12;
+        }
+        let today = self.start + (self.elapsed_days as i64 - 1) * MICROS_PER_DAY;
+        LocalDate::of_local_time(today).month.unsigned_abs() as usize - 1
+    }
+
     pub(super) fn ml_coverage(&self, store: &MlStore) -> Result<f32> {
         let indexed = store.db().get_fully_indexed_file_ids(false)?;
         let indexable: Vec<i64> = self
