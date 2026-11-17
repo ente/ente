@@ -45,8 +45,9 @@ class RewindProgress extends ChangeNotifier {
   }
 
   Future<void> markDismissed() async {
-    await _prefs.setBool(_dismissedKey, true);
+    final saved = _prefs.setBool(_dismissedKey, true);
     notifyListeners();
+    await saved;
   }
 
   Future<void> markNotificationScheduled() =>
