@@ -65,6 +65,8 @@ class _MemoryShareSelectionSheetState
       .toList(growable: false);
   late final SelectedFiles _selectedFiles;
 
+  bool get _startsOnLastItem => widget.initialIndex == _memories.length - 1;
+
   bool get _hasSelection => _selectedFiles.files.isNotEmpty;
 
   bool get _areAllSelected => _files.every(_selectedFiles.isFileSelected);
@@ -77,7 +79,11 @@ class _MemoryShareSelectionSheetState
   void initState() {
     super.initState();
     _selectedFiles = SelectedFiles()
-      ..selectAll({_memories[widget.initialIndex].file})
+      ..selectAll(
+        _startsOnLastItem
+            ? _files.toSet()
+            : {_memories[widget.initialIndex].file},
+      )
       ..addListener(_onSelectionChanged);
   }
 
@@ -173,6 +179,9 @@ class _MemoryShareSelectionSheetState
         showSelectAll: false,
         disablePinnedGroupHeader: true,
         disableVerticalPaddingForScrollbar: true,
+        fileToReveal: _startsOnLastItem
+            ? null
+            : _memories[widget.initialIndex].file,
         footer: const SizedBox.shrink(),
       ),
     );
@@ -182,6 +191,7 @@ class _MemoryShareSelectionSheetState
     StringsLocalizations l10n, {
     required double maxHeight,
   }) {
+    final canShareVideo = flagService.memoryVideoExportEnabled;
     return [
       _MemoryShareSheetBoundary(
         position: BoundaryPosition.bottom,
@@ -191,24 +201,26 @@ class _MemoryShareSelectionSheetState
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (widget.canShareMemoryLink) ...[
+                if (canShareVideo) ...[
                   _buildAction(
-                    l10n.shareMemory,
-                    MemoryShareSheetAction.shareMemory,
+                    l10n.shareAsVideo,
+                    MemoryShareSheetAction.shareVideo,
                     leading: const HugeIcon(
-                      icon: HugeIcons.strokeRoundedLink02,
+                      icon: HugeIcons.strokeRoundedVideo01,
                       size: IconSizes.small,
                     ),
                   ),
                   const SizedBox(height: Spacing.md),
                 ],
-                if (flagService.memoryVideoExportEnabled) ...[
+                if (widget.canShareMemoryLink) ...[
                   _buildAction(
-                    l10n.shareAsVideo,
-                    MemoryShareSheetAction.shareVideo,
-                    variant: ButtonComponentVariant.secondary,
+                    l10n.shareMemory,
+                    MemoryShareSheetAction.shareMemory,
+                    variant: canShareVideo
+                        ? ButtonComponentVariant.secondary
+                        : ButtonComponentVariant.primary,
                     leading: const HugeIcon(
-                      icon: HugeIcons.strokeRoundedVideo01,
+                      icon: HugeIcons.strokeRoundedLink02,
                       size: IconSizes.small,
                     ),
                   ),
@@ -217,7 +229,7 @@ class _MemoryShareSelectionSheetState
                 _buildAction(
                   l10n.shareItemCount(count: _selectedFiles.files.length),
                   MemoryShareSheetAction.shareItems,
-                  variant: widget.canShareMemoryLink
+                  variant: canShareVideo || widget.canShareMemoryLink
                       ? ButtonComponentVariant.secondary
                       : ButtonComponentVariant.primary,
                 ),

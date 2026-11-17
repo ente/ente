@@ -102,6 +102,7 @@ class Gallery extends StatefulWidget {
   final bool disableVerticalPaddingForScrollbar;
 
   final EnteFile? fileToJumpTo;
+  final EnteFile? fileToReveal;
 
   const Gallery({
     required this.asyncLoader,
@@ -136,6 +137,7 @@ class Gallery extends StatefulWidget {
     this.groupHeaderAction,
     this.layoutTypeOverride,
     this.fileToJumpTo,
+    this.fileToReveal,
     this.newLocalFilesResolver,
     super.key,
   });
@@ -162,6 +164,7 @@ class GalleryState extends State<Gallery> with WidgetsBindingObserver {
   bool _hasLoadedFiles = false;
   bool _allFilesLoaded = false;
   bool _completedJumpToDate = false;
+  bool _revealedFile = false;
   StreamSubscription<FilesUpdatedEvent>? _reloadEventSubscription;
   StreamSubscription<GalleryLayoutChangedEvent>? _layoutChangeSubscription;
   StreamSubscription<TabDoubleTapEvent>? _tabDoubleTapEvent;
@@ -1047,6 +1050,16 @@ class GalleryState extends State<Gallery> with WidgetsBindingObserver {
           }
         }
       });
+    }
+
+    if (widget.fileToReveal != null &&
+        !_revealedFile &&
+        galleryGroups != null &&
+        groupHeaderExtent != null) {
+      _revealedFile = true;
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => revealFile(widget.fileToReveal!),
+      );
     }
 
     final viewSize = MediaQuery.sizeOf(context);
