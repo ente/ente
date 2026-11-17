@@ -334,7 +334,7 @@ class _MemoriesStripWidgetState extends State<MemoriesStripWidget> {
             entry: rewind,
             size: Size(_cardWidth, cardHeight),
             onTap: () => rewind.open(context),
-            onDismiss: rewind.canDismissFromMemories ? rewind.dismiss : null,
+            onDismiss: rewind.dismissed ? null : rewind.dismiss,
           ),
         ),
       );
