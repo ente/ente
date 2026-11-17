@@ -1243,7 +1243,9 @@ class _HomeWidgetState extends State<HomeWidget> {
         _logger.info("Initial link received: host ${initialLink.host}");
         if (!mounted) return false;
         _getCredentials(context, initialLink);
-        return true;
+        if (initialLink.queryParameters["ott"]?.isNotEmpty == true) {
+          return true;
+        }
       } else {
         _logger.info("No initial link received.");
       }
