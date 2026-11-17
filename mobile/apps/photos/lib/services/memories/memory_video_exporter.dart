@@ -45,7 +45,7 @@ class MemoryVideoExporter {
   static const frameWidth = 1080;
   static const frameHeight = 1920;
   static const frameRate = 30;
-  static const photoDuration = Duration(seconds: 3);
+  static const photoDuration = Duration(seconds: 5);
   static const videoClipDuration = Duration(seconds: 8);
   static const videoBitrate = 4500000;
   static const crossfade = Duration(milliseconds: 600);

@@ -76,7 +76,7 @@ void main() {
       SlideshowItemType.photo,
     ]);
     expect(request.items[0].path, "${directory.path}/local-1");
-    expect(request.items[0].duration, const Duration(seconds: 3));
+    expect(request.items[0].duration, const Duration(seconds: 5));
     expect(request.items[1].isMuted, isTrue);
     expect(request.music?.path, "${directory.path}/track-1.mp3");
     expect(request.music?.fadeIn, const Duration(milliseconds: 900));
