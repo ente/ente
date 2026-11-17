@@ -8,7 +8,7 @@ The strings can be translated in the [Ente Mobile Crowdin project](https://crowd
 
 If your language is not listed, [request it on GitHub](https://github.com/ente/ente/issues/new?title=Request+for+New+Language+Translation&body=Language+name%3A+%0AProject%3A+mobile).
 
-Partial translations are welcome; apps generally enable a language after about 90% of their reachable strings are translated.
+Partial translations are welcome; apps generally enable a language once at least 80% of their reachable strings are translated.
 
 ## Add a string
 

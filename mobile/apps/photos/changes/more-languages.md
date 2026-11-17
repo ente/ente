@@ -1,0 +1,1 @@
+- Added Bulgarian, Indonesian, and Swedish language support.

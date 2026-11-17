@@ -1,15 +1,16 @@
 import "package:flutter/widgets.dart";
 import "package:shared_preferences/shared_preferences.dart";
 
-// Add more language to the list only when at least 90% of the strings are
-// translated in the corresponding language.
+// Enable languages once at least 80% of this app's strings are translated.
 const List<Locale> appSupportedLocales = <Locale>[
+  Locale('bg'),
   Locale('ca'),
   Locale('cs'),
   Locale('en'),
   Locale('es'),
   Locale('de'),
   Locale('fr'),
+  Locale('id'),
   Locale('it'),
   Locale('ja'),
   Locale('ko'),
@@ -20,6 +21,7 @@ const List<Locale> appSupportedLocales = <Locale>[
   Locale('pt', 'PT'),
   Locale("ro"),
   Locale("ru"),
+  Locale('sv'),
   Locale("tr"),
   Locale("uk"),
   Locale("vi"),
