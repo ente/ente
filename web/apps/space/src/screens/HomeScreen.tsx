@@ -128,6 +128,7 @@ interface HomeScreenProps {
     onAddFriend: () => void;
     onRetryPost?: (localPostId: string) => Promise<void>;
     onDeletePost?: (postId: number) => Promise<void> | void;
+    onPostMediaChange?: (post: SpacePost) => void;
     onLoadMoreFeedItems?: () => Promise<void> | void;
     onLoadPostAvatar?: SpacePostAvatarURLLoader;
     onLoadPostImage?: SpacePostAssetURLLoader;
@@ -1962,6 +1963,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     onAddFriend,
     onRetryPost,
     onDeletePost,
+    onPostMediaChange,
     onLoadMoreFeedItems,
     onLoadPostAvatar,
     onLoadPostImage,
@@ -2212,7 +2214,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 onSetPostLiked={onSetPostLiked}
                 photos={photos}
                 photoCount={photos.length}
-                photoIndex={feedPhotoIndices[item.postId] ?? 0}
+                photoIndex={Math.min(
+                    feedPhotoIndices[item.postId] ?? 0,
+                    photos.length - 1,
+                )}
                 onPhotoIndexChange={(index) =>
                     setFeedPhotoIndices((current) => ({
                         ...current,
@@ -2797,6 +2802,24 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                             selectedViewer.photo.postId &&
                             onDeletePost
                                 ? deleteSelectedPost
+                                : undefined
+                        }
+                        onPostMediaChange={
+                            selectedPhotoIsOwn && onPostMediaChange
+                                ? (post, index) => {
+                                      onPostMediaChange(post);
+                                      const photos = viewerPhotosFromPost(post);
+                                      setSelectedViewer({
+                                          ...selectedViewer,
+                                          photo: photos[index]!,
+                                          photos,
+                                          photoIndex: index,
+                                      });
+                                      setFeedPhotoIndices((indices) => ({
+                                          ...indices,
+                                          [post.postId]: index,
+                                      }));
+                                  }
                                 : undefined
                         }
                         onSetPostLiked={onSetPostLiked}

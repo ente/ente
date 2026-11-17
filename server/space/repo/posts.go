@@ -17,6 +17,7 @@ const (
 )
 
 var ErrSpacePostLimitReached = errors.New("space post limit reached")
+var ErrLastPostMedia = errors.New("cannot remove the last item in a post")
 
 func (r *PostsRepository) ListLikes(ctx context.Context, postID int64, spaceID string) ([]SpaceActorRecord, error) {
 	rows, err := r.DB.QueryContext(ctx, `
@@ -351,22 +352,67 @@ func (r *PostsRepository) DeletePost(ctx context.Context, postID int64, spaceID 
 		return stacktrace.Propagate(err, "")
 	}
 	rows, err := tx.QueryContext(ctx, `
-		SELECT a.object_key, a.bucket_id, COALESCE(a.size, 1), p.space_id
-		FROM space_post_assets a
-		JOIN space_posts p ON p.post_id = a.post_id
-		WHERE a.post_id = $1
+		SELECT object_key, bucket_id, COALESCE(size, 1)
+		FROM space_post_assets WHERE post_id = $1
 	`, postID)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
+	if err := queuePostAssetCleanup(ctx, tx, rows, spaceID); err != nil {
+		return err
+	}
+	return stacktrace.Propagate(tx.Commit(), "")
+}
+
+func (r *PostsRepository) DeletePostMedia(ctx context.Context, postID int64, spaceID, objectKey string) error {
+	tx, err := r.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	defer tx.Rollback()
+	if err := tx.QueryRowContext(ctx, `
+		SELECT post_id FROM space_posts
+		WHERE post_id = $1 AND space_id = $2 AND is_deleted = FALSE
+		FOR UPDATE
+	`, postID, spaceID).Scan(&postID); err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	var position sql.NullInt64
+	var count int
+	if err := tx.QueryRowContext(ctx, `
+		SELECT MAX(position) FILTER (WHERE object_key = $2), COUNT(*) FILTER (WHERE role = 'preview')
+		FROM space_post_assets WHERE post_id = $1
+	`, postID, objectKey).Scan(&position, &count); err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	if !position.Valid {
+		return nil
+	}
+	if count == 1 {
+		return ErrLastPostMedia
+	}
+	rows, err := tx.QueryContext(ctx, `
+		DELETE FROM space_post_assets WHERE post_id = $1 AND position = $2
+		RETURNING object_key, bucket_id, COALESCE(size, 1)
+	`, postID, position.Int64)
+	if err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	if err := queuePostAssetCleanup(ctx, tx, rows, spaceID); err != nil {
+		return err
+	}
+	return stacktrace.Propagate(tx.Commit(), "")
+}
+
+func queuePostAssetCleanup(ctx context.Context, tx *sql.Tx, rows *sql.Rows, spaceID string) error {
 	var cleanupObjects []SpaceTempObjectRecord
 	for rows.Next() {
 		var rec SpaceTempObjectRecord
-		if err := rows.Scan(&rec.ObjectKey, &rec.BucketID, &rec.ExpectedSize, &rec.SpaceID.String); err != nil {
+		if err := rows.Scan(&rec.ObjectKey, &rec.BucketID, &rec.ExpectedSize); err != nil {
 			rows.Close()
 			return stacktrace.Propagate(err, "")
 		}
-		rec.SpaceID.Valid = rec.SpaceID.String != ""
+		rec.SpaceID = sql.NullString{String: spaceID, Valid: true}
 		rec.Purpose = TempObjectPurposePost
 		cleanupObjects = append(cleanupObjects, rec)
 	}
@@ -379,9 +425,6 @@ func (r *PostsRepository) DeletePost(ctx context.Context, postID int64, spaceID 
 		if err := QueueObjectCleanupTx(ctx, tx, object); err != nil {
 			return err
 		}
-	}
-	if err := tx.Commit(); err != nil {
-		return stacktrace.Propagate(err, "")
 	}
 	return nil
 }

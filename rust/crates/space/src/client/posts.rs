@@ -269,6 +269,14 @@ impl AccountSpaceCtx {
         let post = self
             .get_post_raw(space_id, post_id, viewer_space_id)
             .await?;
+        self.open_single_post(post, viewer_space_id).await
+    }
+
+    async fn open_single_post(
+        &self,
+        post: PostResponse,
+        viewer_space_id: Option<&str>,
+    ) -> Result<Post> {
         let post = self.open_post(post, viewer_space_id).await?;
         Ok(Post {
             content: Ok(post.content?),
@@ -460,6 +468,25 @@ impl AccountSpaceCtx {
         let path = format!("/spaces/{space_id}/posts/{post_id}");
         self.api().delete(&path).send().await?.error_for_status()?;
         Ok(())
+    }
+
+    pub async fn delete_post_media(
+        &self,
+        space_id: &str,
+        post_id: i64,
+        object_key: &str,
+    ) -> Result<Post> {
+        let path = format!("/spaces/{space_id}/posts/{post_id}/media");
+        let post = self
+            .api()
+            .delete(&path)
+            .query(&[("objectKey", object_key)])
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?;
+        self.open_single_post(post, Some(space_id)).await
     }
 
     pub async fn list_post_likes(&self, space_id: &str, post_id: i64) -> Result<Vec<SpaceActor>> {

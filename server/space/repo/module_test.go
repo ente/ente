@@ -1755,6 +1755,44 @@ func TestPostAssetPositionIsUnique(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestDeletePostMedia(t *testing.T) {
+	ctx := context.Background()
+	module := newSpaceTestModule(t)
+	userID := insertSpaceUser(t, module, "post-media@example.com", "public")
+	space, err := testCreateSpace(ctx, module, userID, "post_media", "root", "public", "secret", "nonce", "profile")
+	require.NoError(t, err)
+	postID, err := testCreatePost(ctx, module, userID, space.SpaceID, "key", nil, space.CurrentVersion, nil)
+	require.NoError(t, err)
+	_, err = module.Posts.DB.Exec(`
+		INSERT INTO space_post_assets (post_id, object_key, bucket_id, position, metadata_cipher, role) VALUES
+		($1, 'first', 'bucket', 0, 'metadata', 'preview'),
+		($1, 'poster', 'bucket', 1, 'metadata', 'preview'),
+		($1, 'clip', 'bucket', 1, 'metadata', 'video'),
+		($1, 'last', 'bucket', 2, 'metadata', 'preview')
+	`, postID)
+	require.NoError(t, err)
+	require.NoError(t, module.Posts.DeletePostMedia(ctx, postID, space.SpaceID, "poster"))
+	assets, err := module.Posts.ListAssetsByPostIDs(ctx, []int64{postID})
+	require.NoError(t, err)
+	require.Len(t, assets[postID], 2)
+	require.Equal(t, "first", assets[postID][0].ObjectKey)
+	require.Equal(t, "last", assets[postID][1].ObjectKey)
+	require.Equal(t, int64(2), countSpaceRows(t, module, `
+		SELECT COUNT(*) FROM space_temp_objects WHERE space_id = $1 AND purpose = 'post' AND object_key IN ('poster', 'clip')
+	`, space.SpaceID))
+
+	results := make(chan error, 2)
+	for _, key := range []string{"first", "last"} {
+		go func() { results <- module.Posts.DeletePostMedia(ctx, postID, space.SpaceID, key) }()
+	}
+	first, second := <-results, <-results
+	if first != nil {
+		first, second = second, first
+	}
+	require.NoError(t, first)
+	require.ErrorIs(t, second, ErrLastPostMedia)
+}
+
 func TestUpdateProfileQueuesOldAvatarForCleanup(t *testing.T) {
 	ctx := context.Background()
 	module := newSpaceTestModule(t)

@@ -374,7 +374,7 @@ export const removeCachedSpaceFeedPostsBySpace = (
 export const patchCachedSpaceFeedPost = (
     spaceId: string,
     postId: number,
-    patch: Partial<Pick<SpacePost, "caption" | "viewerLiked" | "commentCount">>,
+    patch: Partial<SpacePost>,
 ) =>
     updateCachedSpaceFeed(spaceId, (snapshot) => ({
         ...snapshot,
