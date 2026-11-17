@@ -10,28 +10,29 @@ use crate::rewind::people::People;
 use crate::rewind::report::{Badge, RewindBadge};
 
 const BADGE_MINIMUM_TAKEN: usize = 50;
-const BADGE_SCORE_CAP: f64 = 3.0;
 
+const CONSISTENCY_CHAMP: Scale = Scale::new(0.5, 0.8);
 const CONSISTENCY_CHAMP_MONTHLY_MINIMUM: usize = 10;
-const UNPAID_PHOTOGRAPHER_ALBUMS: usize = 5;
-const MAIN_CHARACTER_SHARE: f64 = 0.25;
+const UNPAID_PHOTOGRAPHER: Scale = Scale::new(5.0, 20.0);
+const UNPAID_PHOTOGRAPHER_ALBUM_PHOTOS: usize = 5;
+const MAIN_CHARACTER: Scale = Scale::new(0.25, 0.5);
 const MAIN_CHARACTER_MINIMUM: usize = 30;
 const EARLY_BIRD_HOURS: [u32; 4] = [4, 5, 6, 7];
-const EARLY_BIRD_SHARE: f64 = 0.20;
+const EARLY_BIRD: Scale = Scale::new(0.2, 0.4);
 const NIGHT_OWL_HOURS: [u32; 6] = [22, 23, 0, 1, 2, 3];
-const NIGHT_OWL_SHARE: f64 = 0.25;
+const NIGHT_OWL: Scale = Scale::new(0.25, 0.5);
 const WEEKEND_DAYS: [u32; 2] = [6, 7];
-const WEEKEND_STAR_SHARE: f64 = 0.50;
-const SCREENSHOT_COLLECTOR_SHARE: f64 = 0.15;
+const WEEKEND_STAR: Scale = Scale::new(0.5, 0.75);
+const SCREENSHOT_COLLECTOR: Scale = Scale::new(0.15, 0.4);
 const SCREENSHOT_COLLECTOR_MINIMUM: usize = 100;
+const HOBBY_HOPPER: Scale = Scale::new(3.0, 4.0);
 const HOBBY_HOPPER_QUARTER_MINIMUM: usize = 15;
-const HOBBY_HOPPER_DISTINCT_TOPS: usize = 3;
-const INDOOR_KID_SHARE: f64 = 0.65;
+const INDOOR_KID: Scale = Scale::new(0.65, 0.85);
 const INDOOR_KID_MINIMUM_CLASSIFIED: usize = 100;
-const OUT_OF_OFFICE_TRIPS: usize = 4;
+const OUT_OF_OFFICE: Scale = Scale::new(4.0, 12.0);
+const EVENT_HOPPER: Scale = Scale::new(10.0, 30.0);
 const EVENT_HOPPER_PHOTOS_PER_DATE: usize = 3;
-const EVENT_HOPPER_DATES: usize = 10;
-const ALWAYS_ROLLING_SHARE: f64 = 0.15;
+const ALWAYS_ROLLING: Scale = Scale::new(0.15, 0.35);
 const ALWAYS_ROLLING_MINIMUM: usize = 50;
 const LIMITED_EDITION_MAXIMUM_TAKEN: usize = 300;
 const GUEST_STAR_MAXIMUM_DATES: usize = 60;
@@ -46,51 +47,74 @@ const SUBJECT_BADGES: [SubjectBadge; 8] = [
     SubjectBadge {
         id: RewindBadge::SunChaser,
         subject: Subject::GoldenHour,
-        share: 0.06,
+        scale: Scale::new(0.06, 0.18),
         minimum: 30,
     },
     SubjectBadge {
         id: RewindBadge::Pawparazzi,
         subject: Subject::Pets,
-        share: 0.08,
+        scale: Scale::new(0.08, 0.24),
         minimum: 40,
     },
     SubjectBadge {
         id: RewindBadge::Foodie,
         subject: Subject::Food,
-        share: 0.08,
+        scale: Scale::new(0.08, 0.24),
         minimum: 40,
     },
     SubjectBadge {
         id: RewindBadge::PlantParent,
         subject: Subject::Plants,
-        share: 0.06,
+        scale: Scale::new(0.06, 0.18),
         minimum: 30,
     },
     SubjectBadge {
         id: RewindBadge::BuildingBuff,
         subject: Subject::Architecture,
-        share: 0.08,
+        scale: Scale::new(0.08, 0.24),
         minimum: 40,
     },
     SubjectBadge {
         id: RewindBadge::FullThrottle,
         subject: Subject::SportsAction,
-        share: 0.05,
+        scale: Scale::new(0.05, 0.15),
         minimum: 25,
     },
     SubjectBadge {
         id: RewindBadge::FitCheck,
         subject: Subject::Outfits,
-        share: 0.04,
+        scale: Scale::new(0.04, 0.12),
         minimum: 20,
     },
     SubjectBadge {
         id: RewindBadge::ArtLover,
         subject: Subject::Artwork,
-        share: 0.04,
+        scale: Scale::new(0.04, 0.12),
         minimum: 20,
     },
+];
+
+const RAREST_FIRST: [RewindBadge; 20] = [
+    RewindBadge::FitCheck,
+    RewindBadge::ArtLover,
+    RewindBadge::FullThrottle,
+    RewindBadge::SunChaser,
+    RewindBadge::PlantParent,
+    RewindBadge::EarlyBird,
+    RewindBadge::Pawparazzi,
+    RewindBadge::MainCharacter,
+    RewindBadge::HobbyHopper,
+    RewindBadge::BuildingBuff,
+    RewindBadge::Foodie,
+    RewindBadge::EventHopper,
+    RewindBadge::AlwaysRolling,
+    RewindBadge::ConsistencyChamp,
+    RewindBadge::OutOfOffice,
+    RewindBadge::ScreenshotCollector,
+    RewindBadge::IndoorKid,
+    RewindBadge::WeekendStar,
+    RewindBadge::NightOwl,
+    RewindBadge::UnpaidPhotographer,
 ];
 
 const EVENTS: [Subject; 3] = [Subject::Concerts, Subject::Parties, Subject::Festivities];
@@ -105,10 +129,29 @@ const HOBBIES: [&[Subject]; 8] = [
     &[Subject::Artwork],
 ];
 
+struct Scale {
+    qualifies: f64,
+    standout: f64,
+}
+
+impl Scale {
+    const fn new(qualifies: f64, standout: f64) -> Self {
+        Self {
+            qualifies,
+            standout,
+        }
+    }
+
+    fn strength(&self, signal: f64) -> Option<f64> {
+        (signal >= self.qualifies)
+            .then(|| ((signal - self.qualifies) / (self.standout - self.qualifies)).min(1.0))
+    }
+}
+
 struct SubjectBadge {
     id: RewindBadge,
     subject: Subject,
-    share: f64,
+    scale: Scale,
     minimum: usize,
 }
 
@@ -116,6 +159,13 @@ struct Candidate {
     id: RewindBadge,
     score: f64,
     value: Option<u32>,
+}
+
+fn rarity_rank(badge: RewindBadge) -> usize {
+    RAREST_FIRST
+        .iter()
+        .position(|&rarer| rarer == badge)
+        .unwrap_or(RAREST_FIRST.len())
 }
 
 pub(in crate::rewind) fn badge_uses_ml(badge: RewindBadge) -> bool {
@@ -153,20 +203,15 @@ fn specific(
 ) -> Option<Badge> {
     let eligible: Vec<&YearFile> = library.eligible().collect();
     let mut candidates = vec![
-        consistency_champ(taken),
-        unpaid_photographer(&eligible),
+        consistency_champ(library, taken),
+        unpaid_photographer(taken),
         share_of_hours(
             RewindBadge::EarlyBird,
             taken,
             &EARLY_BIRD_HOURS,
-            EARLY_BIRD_SHARE,
+            &EARLY_BIRD,
         ),
-        share_of_hours(
-            RewindBadge::NightOwl,
-            taken,
-            &NIGHT_OWL_HOURS,
-            NIGHT_OWL_SHARE,
-        ),
+        share_of_hours(RewindBadge::NightOwl, taken, &NIGHT_OWL_HOURS, &NIGHT_OWL),
         weekend_star(taken),
         share(
             RewindBadge::ScreenshotCollector,
@@ -175,18 +220,18 @@ fn specific(
                 .filter(|file| file.file.is_screenshot)
                 .count(),
             eligible.len(),
-            SCREENSHOT_COLLECTOR_SHARE,
+            &SCREENSHOT_COLLECTOR,
             SCREENSHOT_COLLECTOR_MINIMUM,
         ),
         out_of_office(library, taken),
         share(
             RewindBadge::AlwaysRolling,
-            eligible
+            taken
                 .iter()
                 .filter(|file| file.file.file_type == RewindFileType::Video)
                 .count(),
-            eligible.len(),
-            ALWAYS_ROLLING_SHARE,
+            taken.len(),
+            &ALWAYS_ROLLING,
             ALWAYS_ROLLING_MINIMUM,
         ),
     ];
@@ -217,7 +262,7 @@ fn specific(
             first
                 .score
                 .total_cmp(&second.score)
-                .then((second.id as usize).cmp(&(first.id as usize)))
+                .then(rarity_rank(second.id).cmp(&rarity_rank(first.id)))
         })
         .map(|candidate| Badge {
             id: candidate.id,
@@ -258,16 +303,17 @@ fn is_bursty(taken: &[&YearFile<'_>]) -> bool {
         && busiest as f64 >= GUEST_STAR_BUSIEST_SHARE * taken.len() as f64
 }
 
-fn scored(id: RewindBadge, signal: f64, threshold: f64, value: Option<u32>) -> Option<Candidate> {
-    let score = (signal / threshold).min(BADGE_SCORE_CAP);
-    (score >= 1.0).then_some(Candidate { id, score, value })
+fn scored(id: RewindBadge, signal: f64, scale: &Scale, value: Option<u32>) -> Option<Candidate> {
+    scale
+        .strength(signal)
+        .map(|score| Candidate { id, score, value })
 }
 
 fn share(
     id: RewindBadge,
     matching: usize,
     base: usize,
-    threshold: f64,
+    scale: &Scale,
     minimum: usize,
 ) -> Option<Candidate> {
     (matching >= minimum && base > 0)
@@ -275,38 +321,50 @@ fn share(
             scored(
                 id,
                 matching as f64 / base as f64,
-                threshold,
+                scale,
                 Some(count(matching)),
             )
         })
         .flatten()
 }
 
-fn consistency_champ(taken: &[&YearFile<'_>]) -> Option<Candidate> {
+fn consistency_champ(library: &Library<'_>, taken: &[&YearFile<'_>]) -> Option<Candidate> {
     let mut per_month = [0usize; 12];
     for file in taken {
         per_month[file.month as usize - 1] += 1;
     }
-    per_month
-        .iter()
-        .all(|&photos| photos >= CONSISTENCY_CHAMP_MONTHLY_MINIMUM)
-        .then_some(Candidate {
-            id: RewindBadge::ConsistencyChamp,
-            score: 1.0,
-            value: Some(12),
+    let mut complete = per_month[..library.complete_months()].to_vec();
+    complete.sort_unstable();
+    let quietest = *complete.first()?;
+    let median = complete[complete.len() / 2];
+    (quietest >= CONSISTENCY_CHAMP_MONTHLY_MINIMUM)
+        .then(|| {
+            scored(
+                RewindBadge::ConsistencyChamp,
+                quietest as f64 / median as f64,
+                &CONSISTENCY_CHAMP,
+                Some(count(complete.len())),
+            )
         })
+        .flatten()
 }
 
-fn unpaid_photographer(eligible: &[&YearFile<'_>]) -> Option<Candidate> {
-    let albums: HashSet<i64> = eligible
-        .iter()
-        .flat_map(|file| file.file.shared_album_ids.iter().copied())
-        .collect();
+fn unpaid_photographer(taken: &[&YearFile<'_>]) -> Option<Candidate> {
+    let mut photos_per_album: HashMap<i64, usize> = HashMap::new();
+    for file in taken {
+        for &album in &file.file.shared_album_ids {
+            *photos_per_album.entry(album).or_default() += 1;
+        }
+    }
+    let albums = photos_per_album
+        .into_values()
+        .filter(|&photos| photos >= UNPAID_PHOTOGRAPHER_ALBUM_PHOTOS)
+        .count();
     scored(
         RewindBadge::UnpaidPhotographer,
-        albums.len() as f64,
-        UNPAID_PHOTOGRAPHER_ALBUMS as f64,
-        Some(count(albums.len())),
+        albums as f64,
+        &UNPAID_PHOTOGRAPHER,
+        Some(count(albums)),
     )
 }
 
@@ -314,13 +372,13 @@ fn share_of_hours(
     id: RewindBadge,
     taken: &[&YearFile<'_>],
     hours: &[u32],
-    threshold: f64,
+    scale: &Scale,
 ) -> Option<Candidate> {
     let matching = taken
         .iter()
         .filter(|file| hours.contains(&file.hour))
         .count();
-    share(id, matching, taken.len(), threshold, 1).map(|candidate| Candidate {
+    share(id, matching, taken.len(), scale, 1).map(|candidate| Candidate {
         value: None,
         ..candidate
     })
@@ -335,7 +393,7 @@ fn weekend_star(taken: &[&YearFile<'_>]) -> Option<Candidate> {
         RewindBadge::WeekendStar,
         weekend,
         taken.len(),
-        WEEKEND_STAR_SHARE,
+        &WEEKEND_STAR,
         1,
     )
     .map(|candidate| Candidate {
@@ -362,7 +420,7 @@ fn main_character(
         RewindBadge::MainCharacter,
         with_me,
         images,
-        MAIN_CHARACTER_SHARE,
+        &MAIN_CHARACTER,
         MAIN_CHARACTER_MINIMUM,
     )
     .map(|candidate| Candidate {
@@ -407,7 +465,7 @@ fn out_of_office(library: &Library<'_>, taken: &[&YearFile<'_>]) -> Option<Candi
     scored(
         RewindBadge::OutOfOffice,
         trips as f64,
-        OUT_OF_OFFICE_TRIPS as f64,
+        &OUT_OF_OFFICE,
         Some(count(trips)),
     )
 }
@@ -424,7 +482,7 @@ fn subject_share(
         badge.id,
         matching,
         classified.len(),
-        badge.share,
+        &badge.scale,
         badge.minimum,
     )
 }
@@ -453,11 +511,12 @@ fn hobby_hopper(classified: &[(&YearFile<'_>, &Similarities)]) -> Option<Candida
                 .filter(|&hobby| counts[hobby] >= HOBBY_HOPPER_QUARTER_MINIMUM)
         })
         .collect();
-    (tops.len() >= HOBBY_HOPPER_DISTINCT_TOPS).then_some(Candidate {
-        id: RewindBadge::HobbyHopper,
-        score: 1.0,
-        value: None,
-    })
+    scored(
+        RewindBadge::HobbyHopper,
+        tops.len() as f64,
+        &HOBBY_HOPPER,
+        None,
+    )
 }
 
 fn indoor_kid(classified: &[(&YearFile<'_>, &Similarities)]) -> Option<Candidate> {
@@ -471,7 +530,7 @@ fn indoor_kid(classified: &[(&YearFile<'_>, &Similarities)]) -> Option<Candidate
         RewindBadge::IndoorKid,
         indoors,
         classified.len(),
-        INDOOR_KID_SHARE,
+        &INDOOR_KID,
         1,
     )
     .filter(|_| classified.len() >= INDOOR_KID_MINIMUM_CLASSIFIED)
@@ -495,7 +554,7 @@ fn event_hopper(classified: &[(&YearFile<'_>, &Similarities)]) -> Option<Candida
     scored(
         RewindBadge::EventHopper,
         dates as f64,
-        EVENT_HOPPER_DATES as f64,
+        &EVENT_HOPPER,
         Some(count(dates)),
     )
 }
@@ -506,15 +565,19 @@ mod tests {
 
     use crate::rewind::clip::Subject;
     use crate::rewind::clip::tests::{clip_of, showing};
-    use crate::rewind::fixtures::{appear, located, micros, person, photo, request, store};
-    use crate::rewind::input::RewindFile;
+    use crate::rewind::fixtures::{
+        appear, daily_photos, located, micros, person, photo, photos_every, request, request_at,
+        store,
+    };
+    use crate::rewind::input::{RewindFile, RewindFileType};
     use crate::rewind::library::Library;
     use crate::rewind::people::People;
     use crate::rewind::report::{Badge, RewindBadge};
 
     use super::{badge, badge_uses_ml};
 
-    const DAY: i64 = 86_400_000_000;
+    const HOUR: i64 = 3_600_000_000;
+    const DAY: i64 = 24 * HOUR;
 
     fn weekday_shots(first_id: i64, dates: i64, per_date: i64) -> Vec<RewindFile> {
         let monday = micros("2026-03-02T12:00:00");
@@ -596,16 +659,19 @@ mod tests {
     }
 
     #[test]
-    fn the_strongest_capped_badge_wins_and_ties_follow_the_badge_order() {
+    fn a_standout_badge_beats_one_that_only_just_qualifies_and_ties_go_to_the_rarer_badge() {
         let mut files = weekday_shots(1, 100, 1);
-        for file in &mut files {
-            file.creation_time += 11 * 3_600_000_000;
+        for (position, file) in files.iter_mut().enumerate() {
+            file.creation_time += 11 * HOUR;
+            file.shared_album_ids = vec![position as i64 / 5];
         }
-        let night_owl = badge_of(with_history(files.clone()));
-        assert_eq!(night_owl, generic(RewindBadge::NightOwl));
+        assert_eq!(
+            badge_of(with_history(files.clone())),
+            generic(RewindBadge::NightOwl)
+        );
 
-        for (album, file) in files.iter_mut().enumerate().take(20) {
-            file.shared_album_ids = vec![album as i64];
+        for file in files.iter_mut().skip(30) {
+            file.creation_time -= 11 * HOUR;
         }
         assert_eq!(
             badge_of(with_history(files)),
@@ -613,6 +679,102 @@ mod tests {
                 id: RewindBadge::UnpaidPhotographer,
                 value: Some(20),
             })
+        );
+    }
+
+    #[test]
+    fn shared_albums_count_once_they_hold_five_of_the_years_own_photos() {
+        let mut files = weekday_shots(1, 100, 1);
+        for (position, file) in files.iter_mut().enumerate() {
+            file.shared_album_ids = vec![position as i64 / 4];
+        }
+        assert_eq!(
+            badge_of(with_history(files.clone())),
+            generic(RewindBadge::LimitedEdition)
+        );
+
+        for (position, file) in files.iter_mut().enumerate() {
+            file.shared_album_ids = vec![position as i64 / 5];
+            file.is_junk = position < 50 && position % 5 == 0;
+        }
+        assert_eq!(
+            badge_of(with_history(files)),
+            Some(Badge {
+                id: RewindBadge::UnpaidPhotographer,
+                value: Some(10),
+            })
+        );
+    }
+
+    #[test]
+    fn always_rolling_counts_recorded_videos_but_not_forwarded_ones() {
+        let mut files = weekday_shots(1, 200, 1);
+        for file in files.iter_mut().take(60) {
+            file.file_type = RewindFileType::Video;
+        }
+        assert_eq!(
+            badge_of(with_history(files.clone())),
+            Some(Badge {
+                id: RewindBadge::AlwaysRolling,
+                value: Some(60),
+            })
+        );
+
+        for file in files.iter_mut().take(30) {
+            file.is_junk = true;
+        }
+        assert_eq!(
+            badge_of(with_history(files)),
+            generic(RewindBadge::LimitedEdition)
+        );
+    }
+
+    #[test]
+    fn consistency_needs_every_ended_month_to_keep_up_with_a_typical_month() {
+        let files = daily_photos(1, "2026-01-01T12:00:00", 334);
+        let mut busy_august = files.clone();
+        busy_august.extend(photos_every(1000, "2026-08-10T12:00:00", 300, 0));
+        assert_eq!(
+            badge_of(with_history(busy_august)),
+            Some(Badge {
+                id: RewindBadge::ConsistencyChamp,
+                value: Some(11),
+            })
+        );
+
+        let quiet = micros("2026-06-11T00:00:00")..micros("2026-07-01T00:00:00");
+        let quiet_june: Vec<RewindFile> = files
+            .into_iter()
+            .filter(|file| !quiet.contains(&file.creation_time))
+            .collect();
+        assert_eq!(
+            badge_of(with_history(quiet_june)),
+            generic(RewindBadge::MixedBag)
+        );
+    }
+
+    #[test]
+    fn consistency_counts_all_twelve_months_after_new_year_and_none_in_january() {
+        let after_new_year = request_at(
+            "2027-01-10T10:00:00",
+            with_history(daily_photos(1, "2026-01-01T12:00:00", 365)),
+        );
+        let library = Library::of_year(&after_new_year).unwrap();
+        assert_eq!(
+            badge(&after_new_year, &library, None, None),
+            Some(Badge {
+                id: RewindBadge::ConsistencyChamp,
+                value: Some(12),
+            })
+        );
+
+        let mut january = daily_photos(1, "2026-01-01T12:00:00", 30);
+        january.extend(daily_photos(100, "2026-01-01T18:00:00", 30));
+        let in_january = request_at("2026-01-31T10:00:00", with_history(january));
+        let library = Library::of_year(&in_january).unwrap();
+        assert_eq!(
+            badge(&in_january, &library, None, None),
+            generic(RewindBadge::LimitedEdition)
         );
     }
 
