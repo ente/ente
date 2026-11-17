@@ -12,6 +12,16 @@ void main() {
     expect(_resolve(const Locale('pt', 'BR')), const Locale('pt', 'PT'));
   });
 
+  test('resolves Chinese device variants to the enabled translation', () {
+    for (final locale in [
+      const Locale('zh'),
+      const Locale('zh', 'TW'),
+      const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hans'),
+    ]) {
+      expect(_resolve(locale), const Locale('zh', 'CN'));
+    }
+  });
+
   test('restores the generic Portuguese selector as pt-PT', () async {
     SharedPreferences.setMockInitialValues({'locale': 'pt'});
 

@@ -64,6 +64,8 @@ String getLocaleDisplayName(Locale locale) {
       return 'Slovenčina';
     case 'sl':
       return 'Slovenščina';
+    case 'sv':
+      return 'Svenska';
     case 'tr':
       return 'Türkçe';
     case 'zh':
