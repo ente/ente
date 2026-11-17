@@ -8,8 +8,8 @@
         "test": "vitest --run"
     },
     "dependencies": {
-        "@mui/icons-material": "9.4.0",
-        "@mui/material": "9.4.0",
+        "@mui/icons-material": "9.5.0",
+        "@mui/material": "9.5.0",
         "ente-accounts": "*",
         "ente-base": "*",
         "ente-utils": "*",
@@ -19,6 +19,6 @@
     "devDependencies": {
         "@types/react": "19.3.0",
         "ente-build-config": "*",
-        "vitest": "5.0.5"
+        "vitest": "5.1.0"
     }
 }
