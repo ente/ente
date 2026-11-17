@@ -83,7 +83,7 @@ class PeopleHomeWidgetService {
     }
 
     await setPeopleLastHash("");
-    await _setTotalPeople(null);
+    await _setTotalPeople(0);
     await updatePeopleStatus(WidgetStatus.syncedEmpty);
     await _refreshWidget(message: "PeopleHomeWidget cleared & updated");
   }
@@ -294,7 +294,7 @@ class PeopleHomeWidgetService {
     _logger.info("Home Widget updated: ${message ?? "standard update"}");
   }
 
-  Future<void> _setTotalPeople(int? total) async {
+  Future<void> _setTotalPeople(int total) async {
     await HomeWidgetService.instance.setData(TOTAL_PEOPLE_KEY, total);
   }
 
