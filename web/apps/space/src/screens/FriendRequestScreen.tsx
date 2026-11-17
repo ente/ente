@@ -38,20 +38,12 @@ export const FriendRequestScreen: React.FC<FriendRequestScreenProps> = ({
     };
 
     return (
-        <Box
-            sx={{
-                bgcolor: spaceAppBackgroundColor,
-                color: spaceText,
-                minHeight: "var(--space-page-height, 100svh)",
-                pt: "env(safe-area-inset-top)",
-            }}
-        >
+        <Box sx={{ bgcolor: spaceAppBackgroundColor, color: spaceText }}>
             <Box
                 sx={{
-                    display: "flex",
-                    flexDirection: "column",
-                    minHeight:
-                        "calc(var(--space-page-height, 100svh) - env(safe-area-inset-top))",
+                    display: "grid",
+                    gridTemplateRows: "1fr auto 1fr",
+                    minHeight: "100dvh",
                     mx: "auto",
                     width: "100%",
                     "@media (min-width: 600px)": { maxWidth: 390 },
@@ -62,9 +54,9 @@ export const FriendRequestScreen: React.FC<FriendRequestScreenProps> = ({
                     sx={{
                         alignItems: "center",
                         display: "grid",
-                        flexShrink: 0,
-                        gridTemplateColumns: "44px 1fr 44px",
+                        gridTemplateColumns: "1fr auto 1fr",
                         height: 68,
+                        mt: "env(safe-area-inset-top)",
                         pl: "max(16px, var(--space-ios-safe-area-left, 0px))",
                         pr: "max(16px, var(--space-ios-safe-area-right, 0px))",
                     }}
@@ -115,7 +107,6 @@ export const FriendRequestScreen: React.FC<FriendRequestScreenProps> = ({
                     sx={{
                         alignItems: "center",
                         display: "flex",
-                        flex: 1,
                         flexDirection: "column",
                         justifyContent: "center",
                         px: 3,

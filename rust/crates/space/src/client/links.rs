@@ -738,6 +738,7 @@ mod tests {
                 space_slug: "alice".to_owned(),
                 version: 1,
                 friends: 0,
+                posts: Some(0),
                 profile: None,
                 avatar: None,
                 cover: None,

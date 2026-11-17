@@ -59,6 +59,11 @@ func (h *Handlers) ListSpaceFriends(c *gin.Context, space *spacerepo.SpaceRecord
 	respondJSON(c, resp, err)
 }
 
+func (h *Handlers) ListProfileFriendUsernames(c *gin.Context, viewer *spacerepo.SpaceRecord) {
+	usernames, err := h.Module.Friends.ListProfileFriendUsernames(c, viewer, c.Param("username"))
+	respondJSON(c, usernames, err)
+}
+
 func (h *Handlers) FriendRelationship(c *gin.Context, space *spacerepo.SpaceRecord) {
 	var req models.FriendRelationshipRequest
 	if !bindQuery(c, &req) {

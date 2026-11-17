@@ -50,6 +50,7 @@ export const SpaceAppLayout = ({ children }: { children: React.ReactNode }) => {
         router.pathname == spaceRoutes.editProfileCover;
     const isProfilePage =
         router.pathname == spaceRoutes.profile ||
+        router.pathname == "/app/profile/friends" ||
         router.pathname == spaceRoutes.friendPage ||
         (router.pathname == spaceRoutes.friends &&
             typeof router.query.friend == "string" &&

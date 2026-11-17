@@ -2,6 +2,7 @@ import { Portal } from "@mui/material";
 import { spaceDefaultProfilePicPath } from "components/AvatarImage";
 import { SpacePageMeta } from "components/PageMeta";
 import { SpaceRouteFallback } from "components/RouteFallback";
+import type { FriendProfile } from "data/friends";
 import log from "ente-base/log";
 import { useBrowserBackClose } from "hooks/use-browser-back-close";
 import React from "react";
@@ -30,6 +31,7 @@ import { spaceRoutes } from "utils/routes";
 interface AuthenticatedFriendProfileProps {
     friendSpaceId: string;
     headerRef?: React.Ref<HTMLDivElement>;
+    initialFriend?: FriendProfile;
     isPreview?: boolean;
     onBack?: () => void;
     showPostLoadingIndicator?: boolean;
@@ -41,6 +43,7 @@ export const AuthenticatedFriendProfile: React.FC<
 > = ({
     friendSpaceId,
     headerRef,
+    initialFriend,
     isPreview = false,
     onBack,
     showPostLoadingIndicator = false,
@@ -58,15 +61,17 @@ export const AuthenticatedFriendProfile: React.FC<
         "avatar" | "cover" | null
     >(null);
     const postItems = React.useMemo(
-        () => profilePostItemsFromPosts(posts),
-        [posts],
+        () => (isPreview ? undefined : profilePostItemsFromPosts(posts)),
+        [isPreview, posts],
     );
-    const cachedFriendProfile = friends.find(
-        (friend) =>
-            friend.spaceId == friendSpaceId ||
-            friend.id == friendSpaceId ||
-            friend.username == username,
-    );
+    const cachedFriendProfile =
+        initialFriend ??
+        friends.find(
+            (friend) =>
+                friend.spaceId == friendSpaceId ||
+                friend.id == friendSpaceId ||
+                friend.username == username,
+        );
     const hadCachedFriendProfileOnMount = React.useRef(
         Boolean(cachedFriendProfile),
     );
@@ -167,7 +172,7 @@ export const AuthenticatedFriendProfile: React.FC<
     }
     if (
         !hadCachedFriendProfileOnMount.current &&
-        (isProfileLoading || isPostsLoading)
+        (isProfileLoading || (!isPreview && isPostsLoading))
     ) {
         return <SpaceRouteFallback background={spaceAppBackgroundColor} />;
     }
@@ -180,6 +185,22 @@ export const AuthenticatedFriendProfile: React.FC<
                 title={`${friendDisplayName}'s profile`}
             />
             <ProfileScreen
+                friendsCount={friendProfile?.friendsCount}
+                postsCount={
+                    friendProfile?.postsCount ??
+                    (isPreview ? undefined : posts.length)
+                }
+                isStatsLoading={
+                    isProfileLoading ||
+                    (!isPreview &&
+                        friendProfile?.postsCount === undefined &&
+                        isPostsLoading)
+                }
+                onOpenFriends={() =>
+                    void router.push(
+                        spaceRoutes.profileFriends(displayedProfile.username),
+                    )
+                }
                 headerRef={headerRef}
                 headerVariant="friend"
                 isPreview={isPreview}

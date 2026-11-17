@@ -813,6 +813,7 @@ pub(super) fn decrypt_space_profile(
         space_slug: profile.space_slug.clone(),
         version: profile.version,
         friends: profile.friends,
+        posts: profile.posts,
         profile: if profile_bytes.is_empty() {
             None
         } else {
@@ -836,6 +837,7 @@ pub(super) fn space_profile_without_payload(
         space_slug: profile.space_slug.clone(),
         version: profile.version,
         friends: profile.friends,
+        posts: profile.posts,
         profile: None,
         avatar: profile.avatar.clone(),
         cover: profile.cover.clone(),

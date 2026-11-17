@@ -53,6 +53,7 @@ pub struct DecryptedSpaceProfile {
     pub space_slug: String,
     pub version: i32,
     pub friends: i64,
+    pub posts: Option<i64>,
     pub profile: Option<SpaceProfile>,
     pub avatar: Option<ProfileAvatarResponse>,
     pub cover: Option<ProfileCoverResponse>,

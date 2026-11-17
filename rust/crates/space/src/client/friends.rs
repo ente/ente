@@ -75,6 +75,25 @@ impl AccountSpaceCtx {
             .await
     }
 
+    pub async fn list_profile_friend_usernames(
+        &self,
+        viewer_space_id: &str,
+        username: &str,
+    ) -> Result<Vec<String>> {
+        let path = format!(
+            "/spaces/{viewer_space_id}/profiles/{}/friends",
+            urlencoding::encode(username)
+        );
+        Ok(self
+            .api()
+            .get(&path)
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?)
+    }
+
     pub async fn list_friend_suggestions(
         &self,
         space_id: &str,

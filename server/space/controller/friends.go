@@ -212,6 +212,10 @@ func (c *FriendsController) ListSuggestions(ctx context.Context, viewer *repo.Sp
 	return suggestions, nil
 }
 
+func (c *FriendsController) ListProfileFriendUsernames(ctx context.Context, viewer *repo.SpaceRecord, username string) ([]string, error) {
+	return c.FriendsRepo.ListProfileFriendUsernames(ctx, viewer.SpaceID, username)
+}
+
 func (c *FriendsController) HideSuggestion(ctx context.Context, viewer *repo.SpaceRecord, suggestedSpaceID string) error {
 	return c.FriendsRepo.HideFriendSuggestion(ctx, viewer.SpaceID, suggestedSpaceID)
 }

@@ -6,6 +6,7 @@
 /app/notifications    /app/notifications    200
 /app/posts/*    /app/posts/[spaceId]/[postId]    200
 /app/profile    /app/profile    200
+/app/profile/friends    /app/profile/friends    200
 /app/profile/cover    /app/profile/cover    200
 /app/profile/cover-edit    /app/profile/cover-edit    200
 /app/profile/photo    /app/profile/photo    200

@@ -226,6 +226,7 @@ func (c *LinksController) Profile(ctx *gin.Context, slug string) (*models.SpaceL
 			Avatar:           toAvatarResponse(space),
 			Cover:            toCoverResponse(space),
 			Friends:          friends,
+			Posts:            posts,
 		},
 	}, nil
 }

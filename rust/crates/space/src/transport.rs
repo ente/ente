@@ -359,6 +359,7 @@ pub struct SpaceProfileResponse {
     pub version: i32,
     #[serde(default)]
     pub friends: i64,
+    pub posts: Option<i64>,
     #[serde(default)]
     pub encrypted_profile: String,
     #[serde(default)]

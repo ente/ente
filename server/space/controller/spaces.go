@@ -16,6 +16,7 @@ import (
 type SpacesController struct {
 	SpacesRepo *repo.SpacesRepository
 	AssetsRepo *repo.AssetsRepository
+	PostsRepo  *repo.PostsRepository
 	auth       authDeps
 }
 
@@ -122,6 +123,10 @@ func (c *SpacesController) GetProfile(ctx *gin.Context, req models.GetSpaceProfi
 			return nil, err
 		}
 	}
+	postsCount, err := c.PostsRepo.CountPosts(ctx, space.SpaceID)
+	if err != nil {
+		return nil, err
+	}
 	if req.Version != nil {
 		if *req.Version <= 0 {
 			return nil, ente.NewBadRequestWithMessage("invalid version")
@@ -138,6 +143,7 @@ func (c *SpacesController) GetProfile(ctx *gin.Context, req models.GetSpaceProfi
 				EncryptedProfile: encodeSpaceField(version.EncryptedProfile),
 				UpdatedAt:        formatMicros(version.CreatedAt),
 				Friends:          friendsCount,
+				Posts:            postsCount,
 			}, nil
 		}
 	}
@@ -150,6 +156,7 @@ func (c *SpacesController) GetProfile(ctx *gin.Context, req models.GetSpaceProfi
 		Avatar:           toAvatarResponse(space),
 		Cover:            toCoverResponse(space),
 		Friends:          friendsCount,
+		Posts:            postsCount,
 	}, nil
 }
 

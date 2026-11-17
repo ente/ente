@@ -6,6 +6,7 @@ export interface FriendProfile {
     avatarUrl?: string | null;
     coverUrl?: string | null;
     friendsCount: number;
+    postsCount?: number;
     fullName: string;
     id: string;
     username: string;

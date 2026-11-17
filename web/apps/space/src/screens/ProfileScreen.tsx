@@ -351,7 +351,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     const viewerPostIDs = new Set(viewerPostItems.map((item) => item.id));
     const postsSharedCount = visiblePostItems.length;
     const displayedPostsCount = postsCount ?? postsSharedCount;
-    const canOpenFriends = isOwnerProfile && Boolean(onOpenFriends);
+    const canOpenFriends = Boolean(onOpenFriends);
     const canOpenProfileCover = Boolean(onOpenProfileCover);
     const canOpenProfilePhoto = Boolean(onOpenProfilePhoto);
     const hasProfilePosts = postsSharedCount > 0;
@@ -1114,10 +1114,108 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                                 </Box>
                             )}
                         </Box>
+                        {(!isFriendProfile || canOpenFriends) &&
+                            (isStatsLoading ? (
+                                <ProfileStatsSkeleton />
+                            ) : (
+                                <Box
+                                    sx={{
+                                        color: profileStatsColor,
+                                        display: "flex",
+                                        gap: "5px",
+                                        alignItems: "baseline",
+                                        flexWrap: "wrap",
+                                        justifyContent: "center",
+                                        fontFamily:
+                                            '"Inter Variable", Inter, sans-serif',
+                                        fontSize: 16,
+                                        fontWeight: 550,
+                                        lineHeight: "20px",
+                                        mt: "2px",
+                                        maxWidth: "100%",
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        whiteSpace: "nowrap",
+                                    }}
+                                >
+                                    {(!isPreview ||
+                                        postsCount !== undefined) && (
+                                        <>
+                                            <Box
+                                                component="span"
+                                                sx={{
+                                                    color: profileStatsValueColor,
+                                                }}
+                                            >
+                                                {displayedPostsCount}
+                                            </Box>
+                                            <Box component="span">
+                                                {displayedPostsCount == 1
+                                                    ? "post"
+                                                    : "posts"}
+                                            </Box>
+                                            <Box component="span">·</Box>
+                                        </>
+                                    )}
+                                    <Box
+                                        component={
+                                            canOpenFriends ? "button" : "span"
+                                        }
+                                        type={
+                                            canOpenFriends
+                                                ? "button"
+                                                : undefined
+                                        }
+                                        aria-label={
+                                            canOpenFriends
+                                                ? "Open friends"
+                                                : undefined
+                                        }
+                                        onClick={
+                                            canOpenFriends
+                                                ? onOpenFriends
+                                                : undefined
+                                        }
+                                        sx={{
+                                            alignItems: "baseline",
+                                            bgcolor: "transparent",
+                                            border: 0,
+                                            color: "inherit",
+                                            cursor: canOpenFriends
+                                                ? "pointer"
+                                                : "default",
+                                            display: "inline-flex",
+                                            gap: "5px",
+                                            font: "inherit",
+                                            lineHeight: "inherit",
+                                            p: 0,
+                                            "&:focus-visible": {
+                                                borderRadius: "6px",
+                                                outline: `2px solid ${green}`,
+                                                outlineOffset: 2,
+                                            },
+                                        }}
+                                    >
+                                        <Box
+                                            component="span"
+                                            sx={{
+                                                color: profileStatsValueColor,
+                                            }}
+                                        >
+                                            {friendsCount}
+                                        </Box>
+                                        <Box component="span">
+                                            {friendsCount == 1
+                                                ? "friend"
+                                                : "friends"}
+                                        </Box>
+                                    </Box>
+                                </Box>
+                            ))}
                         {canManageFriend && (
                             <Box
                                 sx={{
-                                    mt: "20px",
+                                    mt: "26px",
                                     mx: "auto",
                                     width: "100%",
                                     maxWidth: 320,
@@ -1287,97 +1385,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                                 )}
                             </Box>
                         )}
-                        {!isFriendProfile &&
-                            (isStatsLoading ? (
-                                <ProfileStatsSkeleton />
-                            ) : (
-                                <Box
-                                    sx={{
-                                        color: profileStatsColor,
-                                        display: "flex",
-                                        gap: "5px",
-                                        alignItems: "baseline",
-                                        flexWrap: "wrap",
-                                        justifyContent: "center",
-                                        fontFamily:
-                                            '"Inter Variable", Inter, sans-serif',
-                                        fontSize: 16,
-                                        fontWeight: 550,
-                                        lineHeight: "20px",
-                                        mt: "2px",
-                                        maxWidth: "100%",
-                                        overflow: "hidden",
-                                        textOverflow: "ellipsis",
-                                        whiteSpace: "nowrap",
-                                    }}
-                                >
-                                    <Box
-                                        component="span"
-                                        sx={{ color: profileStatsValueColor }}
-                                    >
-                                        {displayedPostsCount}
-                                    </Box>
-                                    <Box component="span">
-                                        {displayedPostsCount == 1
-                                            ? "post"
-                                            : "posts"}
-                                    </Box>
-                                    <Box component="span">·</Box>
-                                    <Box
-                                        component={
-                                            canOpenFriends ? "button" : "span"
-                                        }
-                                        type={
-                                            canOpenFriends
-                                                ? "button"
-                                                : undefined
-                                        }
-                                        aria-label={
-                                            canOpenFriends
-                                                ? "Open friends"
-                                                : undefined
-                                        }
-                                        onClick={
-                                            canOpenFriends
-                                                ? onOpenFriends
-                                                : undefined
-                                        }
-                                        sx={{
-                                            alignItems: "baseline",
-                                            bgcolor: "transparent",
-                                            border: 0,
-                                            color: "inherit",
-                                            cursor: canOpenFriends
-                                                ? "pointer"
-                                                : "default",
-                                            display: "inline-flex",
-                                            gap: "5px",
-                                            font: "inherit",
-                                            lineHeight: "inherit",
-                                            p: 0,
-                                            "&:focus-visible": {
-                                                borderRadius: "6px",
-                                                outline: `2px solid ${green}`,
-                                                outlineOffset: 2,
-                                            },
-                                        }}
-                                    >
-                                        <Box
-                                            component="span"
-                                            sx={{
-                                                color: profileStatsValueColor,
-                                            }}
-                                        >
-                                            {friendsCount}
-                                        </Box>
-                                        <Box component="span">
-                                            {friendsCount == 1
-                                                ? "friend"
-                                                : "friends"}
-                                        </Box>
-                                    </Box>
-                                </Box>
-                            ))}
                         {isPublicProfile && publicNotificationControl && (
                             <Box
                                 sx={{
@@ -1432,7 +1439,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                         <ProfilePostLoadingIndicator
                             coverHeight={profileCoverHeight}
                         />
-                    ) : isPostsLoading ? null : (
+                    ) : isPostsLoading || isPreview ? null : (
                         <Box
                             sx={{
                                 alignItems: "center",

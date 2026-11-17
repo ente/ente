@@ -41,7 +41,7 @@ func TestGetProfileReturnsHistoricalVersion(t *testing.T) {
 	require.Nil(t, resp.Avatar)
 }
 
-func TestGetProfileIncludesFriendsCount(t *testing.T) {
+func TestGetProfileCountsActiveFriendsAndPosts(t *testing.T) {
 	module, repos, userAuthRepo, ctx := setupSpaceAuthControllerTest(t)
 	aliceID := insertSpaceControllerUser(t, repos, "alice-friends@example.com", "alice-public")
 	bobID := insertSpaceControllerUser(t, repos, "bob-friends@example.com", "bob-public")
@@ -54,6 +54,12 @@ func TestGetProfileIncludesFriendsCount(t *testing.T) {
 	ginCtx := newPublicSpaceContext()
 	ginCtx.Request.Header.Set("X-Auth-Token", "alice-friends-token")
 
+	_, err = testCreatePost(ctx, repos, aliceID, aliceSpace.SpaceID, "post-key", nil, aliceSpace.CurrentVersion, nil)
+	require.NoError(t, err)
+	deletedPostID, err := testCreatePost(ctx, repos, aliceID, aliceSpace.SpaceID, "other-post-key", nil, aliceSpace.CurrentVersion, nil)
+	require.NoError(t, err)
+	require.NoError(t, repos.Posts.DeletePost(ctx, deletedPostID, aliceSpace.SpaceID))
+
 	resp, err := module.Spaces.GetProfile(ginCtx, models.GetSpaceProfileRequest{
 		SpaceID: aliceSpace.SpaceID,
 	})
@@ -61,6 +67,16 @@ func TestGetProfileIncludesFriendsCount(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.EqualValues(t, 1, resp.Friends)
+	require.EqualValues(t, 1, resp.Posts)
+
+	_, err = repos.Spaces.DB.ExecContext(ctx, `UPDATE users SET encrypted_email = NULL WHERE user_id = $1`, bobID)
+	require.NoError(t, err)
+	resp, err = module.Spaces.GetProfile(ginCtx, models.GetSpaceProfileRequest{SpaceID: aliceSpace.SpaceID})
+	require.NoError(t, err)
+	visibleFriends, err := repos.Friends.ListProfileFriendUsernames(ctx, aliceSpace.SpaceID, aliceSpace.SpaceSlug)
+	require.NoError(t, err)
+	require.Empty(t, visibleFriends)
+	require.EqualValues(t, len(visibleFriends), resp.Friends)
 }
 
 func TestCreateStoresReferralAttribution(t *testing.T) {

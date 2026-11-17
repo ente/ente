@@ -1,5 +1,6 @@
 export interface FriendOrbitCircle {
     id: string;
+    isSuggestion?: boolean;
     homeX: number;
     homeY: number;
     x: number;
@@ -16,6 +17,7 @@ export interface FriendOrbitBounds {
 }
 
 const circleSizes = [144, 64, 88, 68, 136, 112, 148, 72, 64];
+export const friendOrbitSuggestionGap = 56;
 
 export const createFriendOrbitCircle = (
     id: string,
@@ -73,26 +75,29 @@ export const stepFriendOrbit = (
         const driftY = reducedMotion
             ? 0
             : Math.cos(elapsed * 0.00029 + index * 2.03) * 3.5;
-        const x = circle.homeX + driftX;
-        const y = circle.homeY + driftY;
-        circle.vx =
-            (circle.vx + (x * cos - y * sin - circle.x) * 0.018 * frame) *
-            damping;
-        circle.vy =
-            (circle.vy + (x * sin + y * cos - circle.y) * 0.018 * frame) *
-            damping;
+        const homeX = circle.homeX + driftX;
+        const homeY = circle.homeY + driftY;
+        const x = homeX * cos - homeY * sin;
+        const y = homeX * sin + homeY * cos;
+        circle.vx = (circle.vx + (x - circle.x) * 0.018 * frame) * damping;
+        circle.vy = (circle.vy + (y - circle.y) * 0.018 * frame) * damping;
         circle.x += circle.vx * frame;
         circle.y += circle.vy * frame;
     });
 
-    for (let pass = 0; pass < 7; pass++) {
+    for (let pass = 0; pass < 32; pass++) {
+        let maxPush = 0;
         for (let i = 0; i < circles.length; i++) {
             const first = circles[i]!;
             for (let j = i + 1; j < circles.length; j++) {
                 const second = circles[j]!;
                 const dx = second.x - first.x;
                 const dy = second.y - first.y;
-                const separation = (first.size + second.size) / 2 + 10;
+                const gap =
+                    Boolean(first.isSuggestion) !== Boolean(second.isSuggestion)
+                        ? friendOrbitSuggestionGap / bounds.scale
+                        : 10;
+                const separation = (first.size + second.size) / 2 + gap;
                 if (Math.abs(dx) >= separation || Math.abs(dy) >= separation)
                     continue;
                 const distance = Math.hypot(dx, dy);
@@ -100,6 +105,7 @@ export const stepFriendOrbit = (
                 const nx = distance < 0.001 ? Math.cos(i + j) : dx / distance;
                 const ny = distance < 0.001 ? Math.sin(i + j) : dy / distance;
                 const push = separation - distance;
+                maxPush = Math.max(maxPush, push);
                 const firstShare =
                     first.id == draggedID
                         ? 0
@@ -123,15 +129,23 @@ export const stepFriendOrbit = (
             const radius = circle.size / 2 + 12 / bounds.scale;
             const halfWidth = bounds.width / (2 * bounds.scale);
             const halfHeight = bounds.height / (2 * bounds.scale);
-            circle.x = Math.max(
+            const x = Math.max(
                 -halfWidth + radius,
                 Math.min(halfWidth - radius, circle.x),
             );
-            circle.y = Math.max(
+            const y = Math.max(
                 -halfHeight + radius,
                 Math.min(halfHeight - radius, circle.y),
             );
+            maxPush = Math.max(
+                maxPush,
+                Math.abs(x - circle.x),
+                Math.abs(y - circle.y),
+            );
+            circle.x = x;
+            circle.y = y;
         });
+        if (maxPush * bounds.scale < 0.1) break;
     }
 };
 
@@ -139,23 +153,38 @@ export const arrangeFriendOrbit = (
     circles: FriendOrbitCircle[],
     bounds: FriendOrbitBounds,
     elapsed: number,
-    initialOuterID?: string,
 ) => {
     circles.forEach((circle, index) => {
         const initial = createFriendOrbitCircle(circle.id, index);
         Object.assign(circle, initial, { size: circle.size });
     });
-    const group = circles.filter((circle) => circle.id != initialOuterID);
+    const main = circles.filter((circle) => !circle.isSuggestion);
+    const group = main.length ? main : circles;
     for (let frame = 0; frame < 90; frame++) {
         stepFriendOrbit(group, bounds, 0, 16.667, undefined, true);
     }
-    const outer = circles.find((circle) => circle.id == initialOuterID);
-    if (outer && group.length) {
-        const neighbor = group.reduce((top, circle) =>
-            circle.y - circle.size / 2 < top.y - top.size / 2 ? circle : top,
+    if (main.length && main.length < circles.length) {
+        const suggestions = circles.filter((circle) => circle.isSuggestion);
+        const vertical = bounds.height >= bounds.width;
+        const edge = main.reduce(
+            (max, friend) =>
+                Math.max(max, Math.hypot(friend.x, friend.y) + friend.size / 2),
+            0,
         );
-        outer.x = neighbor.x;
-        outer.y = neighbor.y - (neighbor.size + outer.size) / 2 - 10;
+        suggestions.forEach((circle, index) => {
+            const side = index % 2;
+            const countOnSide = Math.ceil((suggestions.length - side) / 2);
+            const across =
+                (Math.floor(index / 2) - (countOnSide - 1) / 2) *
+                (circle.size + 10);
+            const distance =
+                edge +
+                circle.size / 2 +
+                friendOrbitSuggestionGap / bounds.scale;
+            const along = side ? distance : -distance;
+            circle.x = vertical ? across : along;
+            circle.y = vertical ? along : across;
+        });
     }
     const angle = friendOrbitAngle(elapsed);
     circles.forEach((circle) => {

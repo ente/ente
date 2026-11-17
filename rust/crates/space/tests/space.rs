@@ -119,6 +119,19 @@ fn friend_suggestions() -> TestResult {
                 .await?;
             people.insert(name, (account, ctx, identity));
         }
+        let (_, kit_ctx, kit) = &people["kit"];
+        assert!(
+            kit_ctx
+                .list_profile_friend_usernames(&kit.space_id, &kit.space_slug)
+                .await?
+                .is_empty()
+        );
+        assert!(
+            kit_ctx
+                .list_friend_suggestions(&kit.space_id)
+                .await?
+                .is_empty()
+        );
         for (from, to) in [
             ("viewer", "sam"),
             ("viewer", "lee"),
@@ -146,20 +159,41 @@ fn friend_suggestions() -> TestResult {
             )
             .await;
         }
-        let (_, jules, jules_space) = &people["jules"];
-        assert!(
-            jules
-                .list_friend_suggestions(&jules_space.space_id)
-                .await?
-                .is_empty()
+        let suggestions = kit_ctx.list_friend_suggestions(&kit.space_id).await?;
+        assert_eq!(suggestions.len(), 2);
+        assert_eq!(suggestions[0].space_id, people["lee"].2.space_id);
+        assert_eq!(suggestions[1].space_id, people["sam"].2.space_id);
+        let sam = &people["sam"].2;
+        space::assert_http_status(
+            kit_ctx
+                .list_profile_friend_usernames(&kit.space_id, &sam.space_slug)
+                .await,
+            404,
         );
+        let (_, lee_ctx, lee) = &people["lee"];
+        let listed = lee_ctx
+            .list_profile_friend_usernames(&lee.space_id, &sam.space_slug)
+            .await?;
+        let mut expected: Vec<_> = ["viewer", "lee", "maya", "alex", "robin", "drew", "jules"]
+            .map(|name| people[name].2.space_slug.clone())
+            .into();
+        expected.sort();
+        assert_eq!(listed, expected);
+        space::assert_http_status(
+            kit_ctx
+                .list_profile_friend_usernames(&sam.space_id, &sam.space_slug)
+                .await,
+            403,
+        );
+        let anonymous = ente_core::http::Http::new()?
+            .get(&format!(
+                "{endpoint}/spaces/{}/profiles/{}/friends",
+                kit.space_id, sam.space_slug
+            ))
+            .send()
+            .await?;
+        assert_eq!(anonymous.status(), 401);
         let (mut account, viewer, me) = people.remove("viewer").unwrap();
-        assert!(
-            viewer
-                .list_friend_suggestions(&me.space_id)
-                .await?
-                .is_empty()
-        );
         let (_, kit_ctx, kit) = &people["kit"];
         request_and_confirm_friend(
             &viewer,
@@ -172,19 +206,17 @@ fn friend_suggestions() -> TestResult {
         let suggestions = viewer.list_friend_suggestions(&me.space_id).await?;
         assert_eq!(suggestions.len(), 3);
         let maya = &people["maya"].2;
-        assert_eq!(suggestions[0].space_id, maya.space_id);
+        let jules = &people["jules"].2;
+        for (suggestion, name) in suggestions.iter().zip(["jules", "drew", "robin"]) {
+            assert_eq!(suggestion.space_id, people[name].2.space_id);
+        }
         let other_candidates = ["alex", "robin", "drew"].map(|name| &people[name].2.space_id);
-        assert!(
-            suggestions[1..]
-                .iter()
-                .all(|s| other_candidates.contains(&&s.space_id))
-        );
 
         viewer
-            .hide_friend_suggestion(&me.space_id, &maya.space_id)
+            .hide_friend_suggestion(&me.space_id, &jules.space_id)
             .await?;
         viewer
-            .hide_friend_suggestion(&me.space_id, &maya.space_id)
+            .hide_friend_suggestion(&me.space_id, &jules.space_id)
             .await?;
         account.sign_in(&endpoint).await?;
         let second_device = space::open_ctx(&endpoint, &account).await;
@@ -207,6 +239,18 @@ fn friend_suggestions() -> TestResult {
         alex_ctx
             .request_friend_by_username(&alex.space_id, &me.space_slug)
             .await?;
+        space::assert_http_status(
+            viewer
+                .list_profile_friend_usernames(&me.space_id, &alex.space_slug)
+                .await,
+            404,
+        );
+        space::assert_http_status(
+            alex_ctx
+                .list_profile_friend_usernames(&alex.space_id, &me.space_slug)
+                .await,
+            404,
+        );
         let outgoing = next
             .iter()
             .find(|s| s.space_id == people["robin"].2.space_id)
@@ -220,8 +264,9 @@ fn friend_suggestions() -> TestResult {
             "requested"
         );
         let remaining = viewer.list_friend_suggestions(&me.space_id).await?;
-        assert_eq!(remaining.len(), 1);
+        assert_eq!(remaining.len(), 2);
         assert_eq!(remaining[0].space_id, people["drew"].2.space_id);
+        assert_eq!(remaining[1].space_id, maya.space_id);
 
         assert_eq!(
             viewer
@@ -230,12 +275,37 @@ fn friend_suggestions() -> TestResult {
                 .status,
             "friend"
         );
+        assert!(
+            viewer
+                .list_profile_friend_usernames(&me.space_id, &alex.space_slug)
+                .await?
+                .contains(&me.space_slug)
+        );
+        assert!(
+            alex_ctx
+                .list_profile_friend_usernames(&alex.space_id, &me.space_slug)
+                .await?
+                .contains(&alex.space_slug)
+        );
         viewer
             .unfriend_by_space(&me.space_id, &alex.space_id)
             .await?;
+        space::assert_http_status(
+            viewer
+                .list_profile_friend_usernames(&me.space_id, &alex.space_slug)
+                .await,
+            404,
+        );
+        space::assert_http_status(
+            alex_ctx
+                .list_profile_friend_usernames(&alex.space_id, &me.space_slug)
+                .await,
+            404,
+        );
         let after_unfriend = second_device.list_friend_suggestions(&me.space_id).await?;
-        assert_eq!(after_unfriend.len(), 1);
+        assert_eq!(after_unfriend.len(), 2);
         assert_eq!(after_unfriend[0].space_id, people["drew"].2.space_id);
+        assert_eq!(after_unfriend[1].space_id, maya.space_id);
         let alex_suggestions = alex_ctx.list_friend_suggestions(&alex.space_id).await?;
         assert_eq!(alex_suggestions.len(), 2);
         for name in ["robin", "drew"] {

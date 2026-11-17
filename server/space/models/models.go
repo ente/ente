@@ -249,6 +249,7 @@ type SpaceProfileResponse struct {
 	Avatar           *ProfileAvatarResponse `json:"avatar,omitempty"`
 	Cover            *ProfileCoverResponse  `json:"cover,omitempty"`
 	Friends          int64                  `json:"friends"`
+	Posts            int64                  `json:"posts"`
 }
 
 type UpdateSpaceSlugRequest struct {

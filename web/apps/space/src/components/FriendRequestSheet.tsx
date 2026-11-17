@@ -22,7 +22,7 @@ export interface FriendRequestSheetActions {
     direction: "sent" | "received" | "suggested";
     username: string;
     onPrimary?: () => Promise<boolean>;
-    onSecondary: () => Promise<void>;
+    onSecondary?: () => Promise<void>;
 }
 
 interface FriendRequestSheetProps extends FriendRequestSheetActions {
@@ -49,7 +49,7 @@ export const FriendRequestSheet: React.FC<FriendRequestSheetProps> = ({
             title: `Be friends with @${username}?`,
             description: "Share photos, and keep up with each other.",
             primary: "Accept",
-            secondary: "Decline",
+            secondary: "Ignore",
             done: "Request accepted",
         },
         sent: {
@@ -64,7 +64,7 @@ export const FriendRequestSheet: React.FC<FriendRequestSheetProps> = ({
             description: "",
             primary: "Send friend request",
             secondary: "Hide suggestion",
-            done: "Request sent",
+            done: "Friend request sent",
         },
     }[direction];
     const dismiss = () => {
@@ -81,10 +81,10 @@ export const FriendRequestSheet: React.FC<FriendRequestSheetProps> = ({
         if (action?.phase != "done") return;
         const timeout = window.setTimeout(
             () => setOpen(false),
-            spaceActionDoneDurationMs,
+            direction === "suggested" ? 1500 : spaceActionDoneDurationMs,
         );
         return () => window.clearTimeout(timeout);
-    }, [action?.phase]);
+    }, [action?.phase, direction]);
 
     const updateRequest = async (type: "primary" | "secondary") => {
         if (action) return;
@@ -95,7 +95,7 @@ export const FriendRequestSheet: React.FC<FriendRequestSheetProps> = ({
                 if (await onPrimary?.()) setAction({ type, phase: "done" });
                 else setOpen(false);
             } else {
-                await onSecondary();
+                await onSecondary?.();
                 setOpen(false);
             }
         } catch (error) {
@@ -119,7 +119,9 @@ export const FriendRequestSheet: React.FC<FriendRequestSheetProps> = ({
         ...(onPrimary
             ? [{ type: "primary" as const, label: copy.primary }]
             : []),
-        { type: "secondary" as const, label: copy.secondary },
+        ...(onSecondary
+            ? [{ type: "secondary" as const, label: copy.secondary }]
+            : []),
     ];
 
     return (
@@ -232,6 +234,7 @@ export const FriendRequestSheet: React.FC<FriendRequestSheetProps> = ({
                                         '"Inter Variable", Inter, sans-serif',
                                     fontSize: 14,
                                     fontWeight: 600,
+                                    gap: "6px",
                                     height: 48,
                                     justifyContent: "center",
                                     p: "0 20px",
@@ -249,6 +252,9 @@ export const FriendRequestSheet: React.FC<FriendRequestSheetProps> = ({
                                 ) : (
                                     label
                                 )}
+                                {phase === "done" &&
+                                    direction === "suggested" &&
+                                    copy.done}
                             </Box>
                         );
                     })}

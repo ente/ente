@@ -17,6 +17,8 @@ export const spaceRoutes = {
     friend: (username: string) => `/${encodeURIComponent(username)}`,
     friendPage: "/profile-link",
     friends: "/app/friends",
+    profileFriends: (username: string) =>
+        `/app/profile/friends?username=${encodeURIComponent(username)}`,
     home: "/app",
     login: "/login",
     message: (spaceId: string) =>
@@ -57,6 +59,13 @@ export const spaceBackFallback = (asPath: string, page = asPath) => {
     if (page == spaceRoutes.friendPage) return spaceRoutes.home;
     if (path.startsWith("/app/messages/")) return spaceRoutes.messages;
     if (path.startsWith("/app/posts/")) return spaceRoutes.home;
+    if (path == "/app/profile/friends") {
+        const query = new URLSearchParams(search);
+        const username = query.get("username");
+        if (username && query.has("friend"))
+            return spaceRoutes.profileFriends(username);
+        return username ? spaceRoutes.friend(username) : spaceRoutes.profile;
+    }
 
     const source = profileImageFlowSourceFromQuery(
         new URLSearchParams(search).get("from") ?? undefined,

@@ -587,25 +587,42 @@ func (r *FriendsRepository) ListFriendsForSpace(ctx context.Context, spaceID str
 	return out, stacktrace.Propagate(rows.Err(), "")
 }
 
+func (r *FriendsRepository) ListProfileFriendUsernames(ctx context.Context, viewerSpaceID string, username string) ([]string, error) {
+	var usernames pq.StringArray
+	err := r.DB.QueryRowContext(ctx, `
+		SELECT ARRAY (
+			SELECT friend.space_slug
+			FROM space_friend_shares share
+			JOIN spaces friend ON friend.space_id = share.friend_space_id
+			JOIN users friend_owner ON friend_owner.user_id = friend.owner_id AND friend_owner.encrypted_email IS NOT NULL
+			WHERE share.space_id = profile.space_id
+			ORDER BY friend.space_slug
+		)
+		FROM spaces profile
+		JOIN users owner ON owner.user_id = profile.owner_id AND owner.encrypted_email IS NOT NULL
+		WHERE profile.space_slug = $2
+		  AND (profile.space_id = $1 OR EXISTS (
+			SELECT 1 FROM space_friend_shares
+			WHERE space_id = profile.space_id AND friend_space_id = $1
+		  ))
+	`, viewerSpaceID, normalizeSlug(username)).Scan(&usernames)
+	return usernames, stacktrace.Propagate(err, "")
+}
+
 func (r *FriendsRepository) ListFriendSuggestions(ctx context.Context, viewer *SpaceRecord) ([]SpaceRecord, error) {
 	rows, err := r.DB.QueryContext(ctx, `
-		WITH viewer_friends AS (
-			SELECT mine.friend_space_id
+		WITH candidates AS (
+			SELECT theirs.friend_space_id AS id, MAX(theirs.created_at) AS latest_friendship
 			FROM space_friend_shares mine
 			JOIN spaces mutual ON mutual.space_id = mine.friend_space_id
 			JOIN users mutual_owner ON mutual_owner.user_id = mutual.owner_id AND mutual_owner.encrypted_email IS NOT NULL
-			WHERE mine.space_id = $1
-		), counts AS (
-			SELECT theirs.friend_space_id AS id, COUNT(*) AS mutuals
-			FROM viewer_friends mine
 			JOIN space_friend_shares theirs ON theirs.space_id = mine.friend_space_id
-			WHERE (SELECT COUNT(*) FROM viewer_friends) >= 3
+			WHERE mine.space_id = $1
 			GROUP BY theirs.friend_space_id
-			HAVING COUNT(*) >= 2
 		)
 		SELECT candidate.space_id, candidate.space_slug, candidate.public_key
-		FROM counts
-		JOIN spaces candidate ON candidate.space_id = counts.id
+		FROM candidates
+		JOIN spaces candidate ON candidate.space_id = candidates.id
 		JOIN users candidate_owner ON candidate_owner.user_id = candidate.owner_id AND candidate_owner.encrypted_email IS NOT NULL
 		WHERE candidate.owner_id <> $2
 		  AND NOT EXISTS (
@@ -621,7 +638,7 @@ func (r *FriendsRepository) ListFriendSuggestions(ctx context.Context, viewer *S
 			SELECT 1 FROM space_hidden_friend_suggestions
 			WHERE viewer_space_id = $1 AND suggested_space_id = candidate.space_id
 		  )
-		ORDER BY counts.mutuals DESC, counts.id
+		ORDER BY candidates.latest_friendship DESC, candidate.space_id
 		LIMIT 3
 	`, viewer.SpaceID, viewer.OwnerID)
 	if err != nil {
@@ -653,8 +670,10 @@ func (r *FriendsRepository) CountFriendsForSpace(ctx context.Context, spaceID st
 	var count int64
 	if err := r.DB.QueryRowContext(ctx, `
 		SELECT COUNT(*)
-		FROM space_friend_shares
-		WHERE space_id = $1
+		FROM space_friend_shares share
+		JOIN spaces friend ON friend.space_id = share.friend_space_id
+		JOIN users friend_owner ON friend_owner.user_id = friend.owner_id AND friend_owner.encrypted_email IS NOT NULL
+		WHERE share.space_id = $1
 	`, spaceID).Scan(&count); err != nil {
 		return 0, stacktrace.Propagate(err, "")
 	}

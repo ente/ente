@@ -656,7 +656,7 @@ impl From<ente_space::DecryptedSpaceProfile> for DecryptedSpaceProfile {
             space_slug: value.space_slug,
             version: value.version,
             friends: value.friends,
-            posts: None,
+            posts: value.posts,
             profile: value.profile.map(Into::into),
             avatar: value.avatar.map(Into::into),
             cover: value.cover.map(Into::into),
@@ -1727,6 +1727,18 @@ impl SpaceAccountCtxHandle {
                     .map_err(Into::into)
             })
             .collect()
+    }
+
+    #[wasm_bindgen(js_name = listProfileFriendUsernames)]
+    pub async fn list_profile_friend_usernames(
+        &self,
+        viewer_space_id: String,
+        username: String,
+    ) -> Result<Vec<String>, Error> {
+        Ok(self
+            .inner
+            .list_profile_friend_usernames(&viewer_space_id, &username)
+            .await?)
     }
 
     #[wasm_bindgen(js_name = listFriendSuggestions)]

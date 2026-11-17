@@ -3,6 +3,7 @@ import {
     arrangeFriendOrbit,
     createFriendOrbitCircle,
     friendOrbitCircleSize,
+    friendOrbitSuggestionGap,
     stepFriendOrbit,
 } from "../src/utils/friend-orbit";
 
@@ -93,6 +94,64 @@ describe("friend orbit", () => {
             ).toBeGreaterThan(0.5);
         });
     });
+
+    for (const [width, height, scale] of [
+        [360, 720, 0.84],
+        [1280, 720, 1.4],
+    ] as const) {
+        it(`orbits suggestions around the group with clearance at ${width}px`, () => {
+            const bounds = { width, height, scale };
+            const friends = [112, 78, 100].map((diameter, index) => ({
+                ...createFriendOrbitCircle(`friend-${index}`, index),
+                size: diameter / scale,
+            }));
+            const suggestions = [72, 94, 119].map((diameter, index) => ({
+                ...createFriendOrbitCircle(
+                    `suggestion-${index}`,
+                    index + friends.length,
+                ),
+                isSuggestion: true,
+                size: diameter / scale,
+            }));
+            const circles = [...friends, ...suggestions];
+            arrangeFriendOrbit(circles, bounds, 0);
+            const initialAngles = suggestions.map(({ x, y }) =>
+                Math.atan2(y, x),
+            );
+            const frameDuration = 1000 / 30;
+            let closestGap = Infinity;
+            for (let frame = 1; frame <= 7200; frame++) {
+                stepFriendOrbit(
+                    circles,
+                    bounds,
+                    frame * frameDuration,
+                    frameDuration,
+                );
+                for (const suggestion of suggestions) {
+                    for (const friend of friends) {
+                        const gap =
+                            Math.hypot(
+                                suggestion.x - friend.x,
+                                suggestion.y - friend.y,
+                            ) -
+                            (suggestion.size + friend.size) / 2;
+                        closestGap = Math.min(closestGap, gap * scale);
+                    }
+                }
+                if (frame % 1800 === 0) {
+                    suggestions.forEach(({ x, y }, index) => {
+                        const expected =
+                            initialAngles[index]! +
+                            (frame / 7200) * 2 * Math.PI;
+                        expect(
+                            Math.cos(Math.atan2(y, x) - expected),
+                        ).toBeGreaterThan(0.7);
+                    });
+                }
+            }
+            expect(closestGap).toBeGreaterThan(friendOrbitSuggestionGap - 1);
+        });
+    }
 
     it("makes small groups larger and crowded groups smaller without tiny targets", () => {
         const bounds = { width: 390, height: 728, scale: 0.84 };

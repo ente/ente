@@ -14,6 +14,7 @@ const pageTitles: Record<string, string> = {
     "/app/post": "Create post",
     "/app/posts/[spaceId]/[postId]": "Post",
     "/app/profile": "Your profile",
+    "/app/profile/friends": "Friends",
     "/app/profile/photo": "Profile photo",
     "/app/profile/cover": "Cover photo",
     "/app/profile/photo-edit": "Edit profile photo",

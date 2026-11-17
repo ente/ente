@@ -1415,6 +1415,7 @@ async fn get_space_profile_decrypted_loads_and_decrypts_profile() {
                 "spaceSlug": "owner-main",
                 "version": 3,
                 "friends": 2,
+                "posts": 320,
                 "encryptedProfile": encrypted_profile,
                 "updatedAt": "2026-04-16T00:00:00Z"
             })
@@ -1445,6 +1446,7 @@ async fn get_space_profile_decrypted_loads_and_decrypts_profile() {
     assert_eq!(decrypted.space_slug, "owner-main");
     assert_eq!(decrypted.version, 3);
     assert_eq!(decrypted.friends, 2);
+    assert_eq!(decrypted.posts, Some(320));
     assert_eq!(
         decrypted.profile.unwrap().full_name.as_deref(),
         Some("Owner")
@@ -1552,6 +1554,7 @@ async fn get_space_profile_for_display_keeps_envelope_on_decryption_error() {
     assert_eq!(decrypted.space_slug, "owner-main");
     assert_eq!(decrypted.version, 3);
     assert_eq!(decrypted.friends, 2);
+    assert_eq!(decrypted.posts, None);
     assert!(decrypted.profile.is_none());
     profile.assert_async().await;
     spaces.assert_async().await;

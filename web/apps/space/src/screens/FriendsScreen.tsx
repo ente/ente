@@ -55,7 +55,13 @@ const orbitGlassSx = {
     },
 } as const;
 
-const friendAvatarCacheKey = (friend: FriendProfile) =>
+type OrbitFriend = Omit<FriendProfile, "friendsCount">;
+type OrbitContact = FriendRequestSheetActions & {
+    id: string;
+    isSuggestion?: boolean;
+};
+
+const friendAvatarCacheKey = (friend: OrbitFriend) =>
     [
         friend.id,
         friend.avatarKeyVersion ?? "",
@@ -72,7 +78,7 @@ interface FriendsScreenProps {
     onBack: () => void;
     onAcceptFriendRequest: (requestID: number) => Promise<boolean>;
     onDeleteFriendRequest: (requestID: number) => Promise<void>;
-    onLoadFriendAvatar?: (friend: FriendProfile) => Promise<string | null>;
+    onLoadFriendAvatar?: (friend: OrbitFriend) => Promise<string | null>;
     onAddFriend: (
         target: string | SpaceFriendSuggestion,
     ) => Promise<"friend" | "requested">;
@@ -84,7 +90,9 @@ interface FriendsScreenProps {
 
 interface FriendIdentityProps {
     avatarUrl?: string | null;
-    friend: FriendProfile;
+    friend: OrbitFriend;
+    showsUsername: boolean;
+    opensDialog: boolean;
     onLoadAvatar?: () => Promise<string | null | undefined>;
     onOpen: () => void;
 }
@@ -92,6 +100,8 @@ interface FriendIdentityProps {
 const FriendIdentity: React.FC<FriendIdentityProps> = ({
     avatarUrl,
     friend,
+    showsUsername,
+    opensDialog,
     onLoadAvatar,
     onOpen,
 }) => {
@@ -137,13 +147,25 @@ const FriendIdentity: React.FC<FriendIdentityProps> = ({
         });
     }, [avatarUrl, friend.avatarObjectID, onLoadAvatar, shouldLoadAvatar]);
 
+    const profileLabel = `Open ${displayName}'s profile`;
+    if (showsUsername)
+        return (
+            <OrbitUsernameCircle
+                variant="suggested"
+                username={friend.username}
+                ariaLabel={profileLabel}
+                opensDialog={opensDialog}
+                onOpen={onOpen}
+            />
+        );
+
     return (
         <Box
             component="button"
             type="button"
             onClick={onOpen}
-            aria-label={`Open ${displayName}'s profile`}
-            aria-haspopup="dialog"
+            aria-label={profileLabel}
+            aria-haspopup={opensDialog ? "dialog" : undefined}
             sx={{
                 alignItems: "center",
                 bgcolor: "transparent",
@@ -181,7 +203,7 @@ const FriendIdentity: React.FC<FriendIdentityProps> = ({
                     boxShadow: "0 8px 28px rgba(0, 0, 0, 0.2)",
                 }}
             >
-                {avatarUrl || !friend.avatarObjectID ? (
+                {avatarUrl ? (
                     <SpaceAvatarImage src={avatarUrl} />
                 ) : (
                     <Skeleton
@@ -202,7 +224,7 @@ const FriendIdentity: React.FC<FriendIdentityProps> = ({
 const orbitCircleSx = {
     ...orbitGlassSx,
     alignItems: "center",
-    bgcolor: spaceSurface,
+    aspectRatio: "1",
     border: "1px solid #454545",
     borderRadius: "50%",
     boxSizing: "border-box",
@@ -212,72 +234,109 @@ const orbitCircleSx = {
     flexDirection: "column",
     fontFamily: '"Inter Variable", Inter, sans-serif',
     gap: "6px",
-    height: "100%",
     justifyContent: "center",
-    p: "12px",
+    p: "16px",
     textAlign: "center",
     width: "100%",
     "&:focus-visible": { outline: `2px solid ${green}`, outlineOffset: 4 },
 } as const;
 
 const friendCircleAppearance = {
-    received: { border: green, pill: green, label: "Friend request from" },
-    sent: {
-        border: "#FFFFFF",
+    received: {
+        fill: green,
+        border: green,
         pill: "#FFFFFF",
+        text: "#000000",
+        label: "Friend request from",
+    },
+    sent: {
+        fill: spaceSurface,
+        border: "#737373",
+        pill: green,
+        text: spaceText,
         label: "Pending friend request to",
     },
     suggested: {
+        fill: spaceSurface,
         border: "#737373",
         pill: "#303030",
+        text: "rgba(255, 255, 255, 0.9)",
         label: "Suggested friend",
     },
 };
 
-interface FriendRequestCircleProps {
-    onOpen: () => void;
-    direction: FriendRequestSheetActions["direction"];
+const OrbitUsername = ({
+    username,
+    bgcolor,
+    color,
+}: {
     username: string;
+    bgcolor: string;
+    color: string;
+}) => (
+    <Box
+        component="span"
+        title={`@${username}`}
+        sx={{
+            bgcolor,
+            borderRadius: "999px",
+            color,
+            fontSize: 12,
+            fontWeight: 500,
+            lineHeight: "18px",
+            maxWidth: "100%",
+            overflowWrap: "anywhere",
+            px: "8px",
+            py: "4px",
+        }}
+    >
+        @{username}
+    </Box>
+);
+
+interface OrbitUsernameCircleProps {
+    onOpen: () => void;
+    variant: keyof typeof friendCircleAppearance;
+    username: string;
+    ariaLabel?: string;
+    opensDialog?: boolean;
+    isSuggestion?: boolean;
 }
 
-const FriendRequestCircle: React.FC<FriendRequestCircleProps> = ({
+const OrbitUsernameCircle: React.FC<OrbitUsernameCircleProps> = ({
     onOpen,
-    direction,
+    variant,
     username,
+    ariaLabel,
+    opensDialog = true,
+    isSuggestion = false,
 }) => {
-    const appearance = friendCircleAppearance[direction];
+    const appearance = friendCircleAppearance[variant];
     return (
         <Box
             component="button"
             type="button"
-            aria-label={`${appearance.label} @${username}`}
-            aria-haspopup="dialog"
+            aria-label={ariaLabel ?? `${appearance.label} @${username}`}
+            aria-haspopup={opensDialog ? "dialog" : undefined}
             onClick={onOpen}
-            sx={{ ...orbitCircleSx, borderColor: appearance.border }}
+            sx={[
+                {
+                    ...orbitCircleSx,
+                    bgcolor: appearance.fill,
+                    borderColor: appearance.border,
+                },
+                isSuggestion && {
+                    bgcolor: "rgba(0, 0, 0, 0.69)",
+                    borderColor: "#202020",
+                    "&::after": { filter: "brightness(0.2)" },
+                },
+            ]}
         >
-            <Box
-                component="span"
-                title={`@${username}`}
-                sx={{
-                    bgcolor: appearance.pill,
-                    borderRadius: "999px",
-                    color:
-                        direction == "sent"
-                            ? "#000000"
-                            : "rgba(255, 255, 255, 0.9)",
-                    fontSize: 12,
-                    fontWeight: 500,
-                    lineHeight: "18px",
-                    maxWidth: "100%",
-                    overflow: "hidden",
-                    px: "8px",
-                    py: "4px",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                }}
-            >
-                @{username}
-            </Box>
+            <OrbitUsername
+                username={username}
+                bgcolor={isSuggestion ? "#202020" : appearance.pill}
+                color={appearance.text}
+            />
         </Box>
     );
 };
@@ -298,62 +357,11 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({
     username,
 }) => {
     const [isAddFriendOpen, setIsAddFriendOpen] = React.useState(false);
-    const [selectedRequest, setSelectedRequest] =
-        React.useState<FriendRequestSheetActions | null>(null);
-    const [loadedAvatarURLsByKey, setLoadedAvatarURLsByKey] = React.useState<
-        Record<string, string>
-    >({});
-    const avatarLoadsInFlightRef = React.useRef<
-        Map<string, Promise<string | null | undefined>>
-    >(new Map());
-    const loadedAvatarURLFor = React.useCallback(
-        (friend: FriendProfile) =>
-            friend.avatarUrl ??
-            loadedAvatarURLsByKey[friendAvatarCacheKey(friend)],
-        [loadedAvatarURLsByKey],
-    );
-
-    const loadFriendAvatar = React.useCallback(
-        (friend: FriendProfile) => {
-            const loadedAvatarUrl = loadedAvatarURLFor(friend);
-            if (loadedAvatarUrl) return Promise.resolve(loadedAvatarUrl);
-            if (!friend.avatarObjectID || !onLoadFriendAvatar) {
-                return Promise.resolve(undefined);
-            }
-
-            const cacheKey = friendAvatarCacheKey(friend);
-            const inFlight = avatarLoadsInFlightRef.current.get(cacheKey);
-            if (inFlight) return inFlight;
-
-            const load = onLoadFriendAvatar(friend)
-                .then((avatarUrl) => {
-                    if (avatarUrl) {
-                        setLoadedAvatarURLsByKey((currentURLs) =>
-                            currentURLs[cacheKey] == avatarUrl
-                                ? currentURLs
-                                : { ...currentURLs, [cacheKey]: avatarUrl },
-                        );
-                    }
-                    return avatarUrl;
-                })
-                .catch((error: unknown) => {
-                    log.warn("Failed to load friend avatar", error);
-                    return undefined;
-                })
-                .finally(() => {
-                    avatarLoadsInFlightRef.current.delete(cacheKey);
-                });
-            avatarLoadsInFlightRef.current.set(cacheKey, load);
-            return load;
-        },
-        [loadedAvatarURLFor, onLoadFriendAvatar],
-    );
-
     const knownSpaceIDs = new Set([
         ...friends.map((friend) => friend.id),
         ...friendRequests.map((request) => request.friend.id),
     ]);
-    const contacts: (FriendRequestSheetActions & { id: string })[] = [
+    const contacts: OrbitContact[] = [
         ...friendRequests.map((request) => ({
             id: request.friend.id,
             username: request.friend.username,
@@ -368,6 +376,7 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({
             .filter((suggestion) => !knownSpaceIDs.has(suggestion.spaceId))
             .map((suggestion) => ({
                 id: suggestion.spaceId,
+                isSuggestion: true,
                 username: suggestion.spaceSlug,
                 direction: "suggested" as const,
                 onPrimary: async () =>
@@ -377,9 +386,169 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({
     ];
 
     return (
+        <>
+            <FriendsOrbitView
+                title="Friends"
+                friends={friends}
+                contacts={contacts}
+                isLoading={isLoading}
+                onOpenFriend={onOpenFriend}
+                onLoadFriendAvatar={onLoadFriendAvatar}
+                onBack={onBack}
+                headerAction={
+                    <Box
+                        component="button"
+                        type="button"
+                        aria-expanded={isAddFriendOpen}
+                        aria-label="Add friend"
+                        disabled={isLoading}
+                        onClick={() => setIsAddFriendOpen(true)}
+                        sx={{
+                            alignItems: "center",
+                            bgcolor: "transparent",
+                            border: 0,
+                            color: textBase,
+                            cursor: isLoading ? "default" : "pointer",
+                            display: "flex",
+                            height: spaceTouchTargetSize,
+                            justifyContent: "flex-end",
+                            justifySelf: "flex-end",
+                            p: 0,
+                            width: spaceTouchTargetSize,
+                            "&:focus-visible": {
+                                outline: `2px solid ${green}`,
+                                outlineOffset: 2,
+                            },
+                        }}
+                    >
+                        <HugeiconsIcon
+                            icon={UserAdd02Icon}
+                            size={22}
+                            strokeWidth={1.8}
+                        />
+                    </Box>
+                }
+                emptyState={
+                    <>
+                        <Box component="p" sx={{ m: 0, maxWidth: 260 }}>
+                            Invite your friends and family. Share everyday
+                            photos and keep up with each other.
+                        </Box>
+                        <Box
+                            className="green-bg"
+                            component="button"
+                            type="button"
+                            aria-haspopup="dialog"
+                            onClick={() => setIsAddFriendOpen(true)}
+                            sx={spaceEmptyStateButtonSx}
+                        >
+                            <HugeiconsIcon
+                                icon={UserAdd02Icon}
+                                size={18}
+                                strokeWidth={1.8}
+                            />
+                            Add friends
+                        </Box>
+                    </>
+                }
+            />
+            <SpaceAddFriendDialog
+                friendRequests={friendRequests}
+                friends={friends}
+                onAddFriend={onAddFriend}
+                onClose={() => setIsAddFriendOpen(false)}
+                open={isAddFriendOpen}
+                profileLink={profileLink}
+                username={username}
+            />
+        </>
+    );
+};
+
+export const FriendsOrbitView = ({
+    title,
+    friends,
+    contacts,
+    isLoading,
+    onBack,
+    onOpenFriend,
+    onLoadFriendAvatar,
+    headerAction,
+    emptyState,
+    currentUsername,
+    centerInViewport = false,
+}: {
+    title: string;
+    friends: OrbitFriend[];
+    contacts: OrbitContact[];
+    isLoading: boolean;
+    onBack: () => void;
+    onOpenFriend: (id: string) => void;
+    onLoadFriendAvatar?: (friend: OrbitFriend) => Promise<string | null>;
+    headerAction?: React.ReactNode;
+    emptyState: React.ReactNode;
+    currentUsername?: string;
+    centerInViewport?: boolean;
+}) => {
+    const [selectedRequest, setSelectedRequest] =
+        React.useState<FriendRequestSheetActions | null>(null);
+    const [loadedAvatarURLsByKey, setLoadedAvatarURLsByKey] = React.useState<
+        Record<string, string | null>
+    >({});
+    const avatarLoadsInFlightRef = React.useRef<
+        Map<string, Promise<string | null | undefined>>
+    >(new Map());
+    const loadedAvatarURLFor = React.useCallback(
+        (friend: OrbitFriend) =>
+            friend.avatarUrl ??
+            loadedAvatarURLsByKey[friendAvatarCacheKey(friend)],
+        [loadedAvatarURLsByKey],
+    );
+
+    const loadFriendAvatar = React.useCallback(
+        (friend: OrbitFriend) => {
+            const loadedAvatarUrl = loadedAvatarURLFor(friend);
+            if (loadedAvatarUrl !== undefined)
+                return Promise.resolve(loadedAvatarUrl);
+            if (!friend.avatarObjectID || !onLoadFriendAvatar) {
+                return Promise.resolve(undefined);
+            }
+
+            const cacheKey = friendAvatarCacheKey(friend);
+            const inFlight = avatarLoadsInFlightRef.current.get(cacheKey);
+            if (inFlight) return inFlight;
+
+            const load = onLoadFriendAvatar(friend)
+                .catch((error: unknown) => {
+                    log.warn("Failed to load friend avatar", error);
+                    return null;
+                })
+                .then((avatarUrl) => {
+                    setLoadedAvatarURLsByKey((currentURLs) =>
+                        currentURLs[cacheKey] === avatarUrl
+                            ? currentURLs
+                            : { ...currentURLs, [cacheKey]: avatarUrl },
+                    );
+                    return avatarUrl;
+                })
+                .finally(() => {
+                    avatarLoadsInFlightRef.current.delete(cacheKey);
+                });
+            avatarLoadsInFlightRef.current.set(cacheKey, load);
+            return load;
+        },
+        [loadedAvatarURLFor, onLoadFriendAvatar],
+    );
+
+    return (
         <Box
             component="main"
             sx={{
+                "--space-orbit-header-height":
+                    "calc(68px + var(--space-ios-safe-area-top, 0px))",
+                "--space-orbit-bottom-inset": centerInViewport
+                    ? "var(--space-orbit-header-height)"
+                    : "0px",
                 background: spaceAppBackground,
                 color: textBase,
                 display: "grid",
@@ -409,7 +578,7 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({
                         alignItems: "center",
                         display: "grid",
                         gridTemplateColumns: `${spaceTouchTargetSize}px 1fr ${spaceTouchTargetSize}px`,
-                        height: "calc(68px + var(--space-ios-safe-area-top, 0px))",
+                        height: "var(--space-orbit-header-height)",
                         pt: "var(--space-ios-safe-area-top, 0px)",
                         maxWidth: 390,
                         mx: "auto",
@@ -460,57 +629,19 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({
                             lineHeight: "24px",
                             m: 0,
                             px: "4px",
+                            overflowWrap: "anywhere",
+                            textAlign: "center",
                         }}
                     >
-                        Friends
+                        {title}
                     </Box>
-                    <Box
-                        component="button"
-                        type="button"
-                        aria-expanded={isAddFriendOpen}
-                        aria-label="Add friend"
-                        disabled={isLoading}
-                        onClick={() => setIsAddFriendOpen(true)}
-                        sx={{
-                            alignItems: "center",
-                            bgcolor: "transparent",
-                            border: 0,
-                            color: textBase,
-                            cursor: isLoading ? "default" : "pointer",
-                            display: "flex",
-                            height: spaceTouchTargetSize,
-                            justifyContent: "flex-end",
-                            justifySelf: "flex-end",
-                            p: 0,
-                            width: spaceTouchTargetSize,
-                            "&:focus-visible": {
-                                outline: `2px solid ${green}`,
-                                outlineOffset: 2,
-                            },
-                        }}
-                    >
-                        <HugeiconsIcon
-                            icon={UserAdd02Icon}
-                            size={22}
-                            strokeWidth={1.8}
-                        />
-                    </Box>
+                    {headerAction}
                 </Box>
-
-                <SpaceAddFriendDialog
-                    friendRequests={friendRequests}
-                    friends={friends}
-                    onAddFriend={onAddFriend}
-                    onClose={() => setIsAddFriendOpen(false)}
-                    open={isAddFriendOpen}
-                    profileLink={profileLink}
-                    username={username}
-                />
 
                 <Box
                     component="section"
                     id="space-main-content"
-                    aria-label="Friends"
+                    aria-label={title}
                     tabIndex={-1}
                 >
                     {isLoading ? (
@@ -527,31 +658,46 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({
                         </Box>
                     ) : friends.length > 0 || contacts.length > 0 ? (
                         <FriendOrbit
+                            ariaLabel={title}
                             items={[
-                                ...friends.map((friend) => ({
-                                    id: friend.id,
-                                    content: (
-                                        <FriendIdentity
-                                            avatarUrl={loadedAvatarURLFor(
-                                                friend,
-                                            )}
-                                            friend={friend}
-                                            onLoadAvatar={() =>
-                                                loadFriendAvatar(friend)
-                                            }
-                                            onOpen={() =>
-                                                onOpenFriend(friend.id)
-                                            }
-                                        />
-                                    ),
-                                })),
+                                ...friends.map((friend) => {
+                                    const avatarUrl =
+                                        loadedAvatarURLFor(friend);
+                                    const showsUsername =
+                                        !avatarUrl &&
+                                        (!friend.avatarObjectID ||
+                                            avatarUrl === null);
+                                    return {
+                                        id: friend.id,
+                                        fitContent: showsUsername,
+                                        content: (
+                                            <FriendIdentity
+                                                avatarUrl={avatarUrl}
+                                                friend={friend}
+                                                showsUsername={showsUsername}
+                                                opensDialog={
+                                                    friend.username !==
+                                                    currentUsername
+                                                }
+                                                onLoadAvatar={() =>
+                                                    loadFriendAvatar(friend)
+                                                }
+                                                onOpen={() =>
+                                                    onOpenFriend(friend.id)
+                                                }
+                                            />
+                                        ),
+                                    };
+                                }),
                                 ...contacts.map((contact) => ({
                                     id: contact.id,
-                                    fixedSize: 120,
+                                    isSuggestion: contact.isSuggestion,
+                                    fitContent: true,
                                     content: (
-                                        <FriendRequestCircle
-                                            direction={contact.direction}
+                                        <OrbitUsernameCircle
+                                            variant={contact.direction}
                                             username={contact.username}
+                                            isSuggestion={contact.isSuggestion}
                                             onOpen={() =>
                                                 setSelectedRequest(contact)
                                             }
@@ -583,25 +729,7 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({
                                 width: "100%",
                             }}
                         >
-                            <Box component="p" sx={{ m: 0, maxWidth: 260 }}>
-                                Invite your friends and family. Share everyday
-                                photos and keep up with each other.
-                            </Box>
-                            <Box
-                                className="green-bg"
-                                component="button"
-                                type="button"
-                                aria-haspopup="dialog"
-                                onClick={() => setIsAddFriendOpen(true)}
-                                sx={spaceEmptyStateButtonSx}
-                            >
-                                <HugeiconsIcon
-                                    icon={UserAdd02Icon}
-                                    size={18}
-                                    strokeWidth={1.8}
-                                />
-                                Add friends
-                            </Box>
+                            {emptyState}
                         </Box>
                     )}
                 </Box>

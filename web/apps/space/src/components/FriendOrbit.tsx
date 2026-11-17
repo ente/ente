@@ -4,17 +4,19 @@ import {
     arrangeFriendOrbit,
     createFriendOrbitCircle,
     friendOrbitCircleSize,
+    friendOrbitSuggestionGap,
     stepFriendOrbit,
     type FriendOrbitBounds,
     type FriendOrbitCircle,
 } from "utils/friend-orbit";
 
 interface FriendOrbitProps {
-    initialOuterID?: string;
+    ariaLabel: string;
     items: {
         id: string;
+        isSuggestion?: boolean;
         size?: number;
-        fixedSize?: number;
+        fitContent?: boolean;
         content: React.ReactNode;
     }[];
 }
@@ -30,7 +32,7 @@ interface OrbitDrag {
 }
 
 export const FriendOrbit: React.FC<FriendOrbitProps> = ({
-    initialOuterID,
+    ariaLabel,
     items,
 }) => {
     const fieldRef = React.useRef<HTMLUListElement>(null);
@@ -63,10 +65,15 @@ export const FriendOrbit: React.FC<FriendOrbitProps> = ({
         const current = new Map(
             circles.current.map((circle) => [circle.id, circle]),
         );
-        circles.current = items.map(
-            (item, index) =>
-                current.get(item.id) ?? createFriendOrbitCircle(item.id, index),
-        );
+        let membershipChanged = current.size !== items.length;
+        circles.current = items.map((item, index) => {
+            const existing = current.get(item.id);
+            if (!existing || existing.isSuggestion !== item.isSuggestion)
+                membershipChanged = true;
+            const circle = existing ?? createFriendOrbitCircle(item.id, index);
+            circle.isSuggestion = item.isSuggestion;
+            return circle;
+        });
         const field = fieldRef.current!;
         const resize = () => {
             const width = field.clientWidth;
@@ -84,41 +91,54 @@ export const FriendOrbit: React.FC<FriendOrbitProps> = ({
                 height: field.clientHeight,
                 scale,
             };
+            let largestFriend = 0;
+            let largestSuggestion = 0;
+            let area = 0;
             circles.current.forEach((circle, index) => {
                 const item = items[index]!;
-                circle.size = item.fixedSize
-                    ? item.fixedSize / scale
-                    : (item.size ??
-                      friendOrbitCircleSize(
-                          index,
-                          items.length,
-                          availableBounds,
-                      ));
+                const element = elements.current.get(circle.id)!;
+                if (item.fitContent) {
+                    element.style.width = "max-content";
+                    circle.size = element.offsetWidth / scale;
+                } else {
+                    circle.size =
+                        item.size ??
+                        friendOrbitCircleSize(
+                            index,
+                            items.length,
+                            availableBounds,
+                        );
+                    element.style.width = `${circle.size * scale}px`;
+                }
+                const diameter = circle.size * scale;
+                element.style.height = `${diameter}px`;
+                area += Math.PI * (diameter / 2 + 10) ** 2;
+                if (item.isSuggestion)
+                    largestSuggestion = Math.max(largestSuggestion, diameter);
+                else largestFriend = Math.max(largestFriend, diameter);
             });
-            const area = circles.current.reduce(
-                (total, circle) =>
-                    total + Math.PI * ((circle.size * scale) / 2 + 10) ** 2,
-                0,
-            );
-            field.style.minHeight = `${Math.ceil(area / (width * 0.52))}px`;
+            let minHeight = area / (width * 0.52);
+            if (largestFriend && largestSuggestion) {
+                minHeight += 2 * friendOrbitSuggestionGap;
+                const span =
+                    largestFriend +
+                    2 * (friendOrbitSuggestionGap + largestSuggestion + 12);
+                if (width < span) minHeight = Math.max(span, minHeight);
+            }
+            field.style.minHeight = `${Math.ceil(minHeight)}px`;
             const height = field.clientHeight;
             const layoutChanged =
                 width != bounds.current.width ||
                 height != bounds.current.height;
             bounds.current = { width, height, scale };
-            circles.current.forEach((circle) => {
-                const element = elements.current.get(circle.id)!;
-                element.style.width = `${circle.size * scale}px`;
-                element.style.height = `${circle.size * scale}px`;
-            });
-            if (layoutChanged)
+            if (layoutChanged || membershipChanged) {
                 arrangeFriendOrbit(
                     circles.current,
                     bounds.current,
                     elapsed.current,
-                    initialOuterID,
                 );
-            else
+                membershipChanged = false;
+            } else
                 stepFriendOrbit(
                     circles.current,
                     bounds.current,
@@ -131,9 +151,12 @@ export const FriendOrbit: React.FC<FriendOrbitProps> = ({
         };
         const observer = new ResizeObserver(resize);
         observer.observe(field);
+        for (const item of items)
+            if (item.fitContent)
+                observer.observe(elements.current.get(item.id)!);
         resize();
         return () => observer.disconnect();
-    }, [initialOuterID, items, paint]);
+    }, [items, paint]);
 
     React.useEffect(() => {
         if (reducedMotion) return;
@@ -219,7 +242,7 @@ export const FriendOrbit: React.FC<FriendOrbitProps> = ({
         <Box
             component="ul"
             ref={fieldRef}
-            aria-label="Friends, friend requests, and suggestions"
+            aria-label={ariaLabel}
             onDragStart={(event) => event.preventDefault()}
             onClickCapture={(event) => {
                 if (!suppressClick.current) return;
@@ -228,7 +251,7 @@ export const FriendOrbit: React.FC<FriendOrbitProps> = ({
                 suppressClick.current = false;
             }}
             sx={{
-                height: "calc(var(--space-page-height, 100svh) - 68px - var(--space-ios-safe-area-top, 0px))",
+                height: "calc(var(--space-page-height, 100svh) - var(--space-orbit-header-height) - var(--space-orbit-bottom-inset))",
                 listStyle: "none",
                 m: 0,
                 overflow: "hidden",
@@ -266,6 +289,7 @@ export const FriendOrbit: React.FC<FriendOrbitProps> = ({
                     onContextMenu={(event) => event.preventDefault()}
                     sx={{
                         "--space-friend-enter-delay": `${(index * 137) % 480}ms`,
+                        maxWidth: "calc(100% - 24px)",
                         borderRadius: "50%",
                         cursor: heldFriendID == item.id ? "grabbing" : "grab",
                         left: 0,

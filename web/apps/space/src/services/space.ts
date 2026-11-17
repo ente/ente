@@ -239,6 +239,13 @@ export interface SpaceFriendRequest {
 
 export type SpaceFriendSuggestion = SpaceLookupResponse;
 
+export type ProfileFriendListEntry = { username: string } & (
+    | { status: "self" }
+    | { status: "available" }
+    | { status: "friend"; friend: FriendProfile }
+    | { status: "received" | "sent"; requestId: number }
+);
+
 export interface SpaceUnreadStatus {
     messagesUnread: boolean;
     notificationsUnread: boolean;
@@ -323,6 +330,7 @@ const profileFromSpaceProfile = (
         coverUpdatedAt: spaceProfile.cover?.updatedAt,
         coverUrl: null,
         friendsCount: spaceProfile.friends,
+        postsCount: spaceProfile.posts,
         fullName,
         id: spaceProfile.spaceId || spaceProfile.spaceSlug,
         username: spaceProfile.spaceSlug,
@@ -959,6 +967,47 @@ export const loadFriendSuggestions = async (spaceId: string) => {
     }
 };
 
+export const loadProfileFriendList = async (
+    viewerSpaceId: string,
+    viewerUsername: string,
+    username: string,
+): Promise<ProfileFriendListEntry[]> => {
+    const ctx = await ensureCurrentSpaceContext();
+    try {
+        const [friends, usernames, requests] = await Promise.all([
+            ctx.listSpaceFriends(viewerSpaceId),
+            ctx.listProfileFriendUsernames(viewerSpaceId, username),
+            loadCurrentFriendRequests(viewerSpaceId),
+        ]);
+        const known = new Map(
+            friends.map(({ friend }) => [
+                friend.spaceSlug,
+                actorProfile(friend),
+            ]),
+        );
+        const pending = new Map(
+            requests.map((request) => [request.friend.username, request]),
+        );
+        return usernames.map((username) => {
+            if (username === viewerUsername)
+                return { username, status: "self" };
+            const friend = known.get(username);
+            if (friend) return { username, friend, status: "friend" };
+            const request = pending.get(username);
+            if (request) {
+                return {
+                    username,
+                    status: request.direction,
+                    requestId: request.requestId,
+                };
+            }
+            return { username, status: "available" };
+        });
+    } finally {
+        releaseCurrentSpaceContext(ctx);
+    }
+};
+
 export const hideFriendSuggestion = async (
     spaceId: string,
     suggestedSpaceId: string,
@@ -1266,7 +1315,10 @@ export const loadCurrentSpacePostAvatarURL: SpacePostAvatarURLLoader = async (
 };
 
 export const loadCurrentFriendAvatarURL = async (
-    friend: FriendProfile,
+    friend: Pick<
+        FriendProfile,
+        "spaceId" | "avatarUrl" | "avatarObjectID" | "avatarKeyVersion"
+    >,
     viewerSpaceId?: string,
 ): Promise<string | null> => {
     if (friend.avatarUrl) return friend.avatarUrl;

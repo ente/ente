@@ -112,7 +112,7 @@ const Page: React.FC = () => {
                 <Box inert={Boolean(selectedFriend)}>
                     <FriendsScreen
                         friendRequests={friendRequests}
-                        suggestions={friends.length >= 3 ? suggestions : []}
+                        suggestions={suggestions}
                         friends={friends}
                         isLoading={isFriendsLoading}
                         onBack={() => void router.back(spaceRoutes.home)}
