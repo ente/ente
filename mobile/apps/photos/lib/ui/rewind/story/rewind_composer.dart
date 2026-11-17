@@ -435,20 +435,14 @@ RewindChapter _scrapbook(rust.RewindReport report) {
 
 RewindChapter _finale(rust.RewindReport report) =>
     RewindChapter(const [FinalePage.pageKey], (media) async {
-      final best = switch (report.scrapbook?.fileIds) {
-        final ids? => media.glimpses(ids, 12),
-        null => const <EnteFile>[],
-      };
-      final more = switch (report.mosaic?.fileIds ?? report.totals?.fileIds) {
-        final ids? => media.glimpses(ids, 36),
-        null => const <EnteFile>[],
-      };
-      final seen = Set<EnteFile>.identity()..addAll(best);
-      return [
-        FinalePage([
-          ...best,
-          for (final file in more)
-            if (seen.add(file)) file,
-        ]),
-      ];
+      final photos = Set<EnteFile>.identity();
+      for (final ids in [
+        report.favourites?.fileIds,
+        report.scrapbook?.fileIds,
+        report.totals?.fileIds,
+      ]) {
+        if (ids == null || photos.length >= FinalePage.photoCount) continue;
+        photos.addAll(media.glimpses(ids, FinalePage.photoCount));
+      }
+      return [FinalePage(photos.take(FinalePage.photoCount).toList())];
     });

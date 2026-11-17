@@ -12,10 +12,6 @@ class RewindShareCard {
 }
 
 abstract interface class RewindNavigator {
-  List<RewindPage> get pages;
-
-  Future<bool> loadVideoMedia(List<RewindPage> pages);
-
   void next();
 
   void previous();
