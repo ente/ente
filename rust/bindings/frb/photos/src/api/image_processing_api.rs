@@ -1,5 +1,7 @@
 use ente_image::{
+    BoundedDecodeOptions, ImageInput,
     decode::decode_image_from_path,
+    decode_bounded,
     image_compression::{EncodedImageFormat, encode_rgb},
 };
 use ente_ml::face::thumbnail::{
@@ -32,8 +34,18 @@ pub fn generate_face_thumbnails(
 }
 
 // Use ente_heic instead of the platform decoder, which may fail on HEIC/HEIF.
-pub fn decode_to_jpeg(image_path: String, quality: Option<u8>) -> Result<Vec<u8>, String> {
-    let decoded = decode_image_from_path(&image_path).map_err(|e| e.to_string())?;
+pub fn decode_to_jpeg(
+    image_path: String,
+    max_side: u32,
+    quality: Option<u8>,
+) -> Result<Vec<u8>, String> {
+    let options = BoundedDecodeOptions {
+        max_side,
+        ..BoundedDecodeOptions::default()
+    };
+    let decoded = decode_bounded(ImageInput::Path(&image_path), options)
+        .map_err(|e| e.to_string())?
+        .image;
     let quality = quality.unwrap_or(95);
     encode_rgb(
         &decoded.rgb,
