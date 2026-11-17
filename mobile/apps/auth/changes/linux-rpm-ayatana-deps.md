@@ -1,0 +1,1 @@
+- Fix the Linux RPM failing to launch on Fedora when Ayatana tray libraries were not already installed.

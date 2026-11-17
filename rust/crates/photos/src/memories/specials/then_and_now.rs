@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use super::{Format, History, special};
 use crate::memories::calendar::LocalDate;
-use crate::memories::geo::{Located, cluster_by_location, distance_km};
+use crate::memories::geo::{Located, cluster_by_location};
 use crate::memories::input::{Period, PhotoSignals};
 use crate::memories::output::{Memory, SpecialFormat, ThenAndNow};
 use crate::memories::photo::Photo;
@@ -140,7 +140,7 @@ fn visits<'p>(members: &[Located<'p>], signals: &dyn PhotoSignals) -> Vec<Vec<&'
 fn is_same_spot(then: &Photo, now: &Photo) -> bool {
     then.location
         .zip(now.location)
-        .is_some_and(|(then, now)| distance_km(then, now) <= SPOT_RADIUS_KM)
+        .is_some_and(|(then, now)| then.distance_km(now) <= SPOT_RADIUS_KM)
 }
 
 fn score(similarity: f32, years_apart: i32) -> f64 {

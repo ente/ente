@@ -4,7 +4,6 @@ import "dart:math";
 import "package:flutter/material.dart";
 import "package:photos/core/constants.dart";
 import "package:photos/db/files_db.dart";
-import 'package:photos/models/file/file.dart';
 import "package:photos/models/file_load_result.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
@@ -57,17 +56,15 @@ class _DynamicLocationGalleryWidgetState
   Widget build(BuildContext context) {
     const galleryFilesLimit = 1000;
     final selectedRadius = InheritedLocationTagData.of(context).selectedRadius;
+    final centerPoint = InheritedLocationTagData.of(context).centerPoint;
     Future<FileLoadResult> filterFiles() async {
       final FileLoadResult result = await fileLoadResult;
       final stopWatch = Stopwatch()..start();
-      final copyOfFiles = List<EnteFile>.from(result.files);
-      copyOfFiles.removeWhere((f) {
-        return !isFileInsideLocationTag(
-          InheritedLocationTagData.of(context).centerPoint,
-          f.location!,
-          selectedRadius,
-        );
-      });
+      final copyOfFiles = filesInsideLocationTag(
+        result.files,
+        centerPoint,
+        selectedRadius,
+      );
       dev.log(
         "Time taken to get all files in a location tag: ${stopWatch.elapsedMilliseconds} ms",
       );
