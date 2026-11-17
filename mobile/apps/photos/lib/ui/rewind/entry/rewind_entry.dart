@@ -32,8 +32,6 @@ class RewindEntry {
 
   bool get started => opened && !completed;
 
-  bool get canDismissFromMemories => completed && !dismissed;
-
   int get resumeIndex => _story.resumeIndex(rewindService.progress.resumePage);
 
   int get pageCount => _story.pages.length;
