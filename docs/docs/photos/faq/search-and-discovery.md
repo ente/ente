@@ -108,10 +108,6 @@ Learn more about [Map and location](/photos/features/search-and-discovery/map-an
 
 The app will automatically cluster photos falling within that radius under your specified location tag.
 
-### How do I see more locations in Search? {#all-locations}
-
-On mobile, the **Locations** section on the **Search** tab shows only a few places at first. Tap the **Locations** heading, or the arrow next to it, to see more locations with matching photos. This page can also suggest places that are not your saved tags. A saved tag with no matching photos may not appear here.
-
 ### Are my location tags encrypted? {#location-tags-encryption}
 
 Yes! Location tags are stored end-to-end encrypted, just like your photos. When you create a location tag, all the location data (coordinates, radius, and tag name) is encrypted on your device before being synced.
