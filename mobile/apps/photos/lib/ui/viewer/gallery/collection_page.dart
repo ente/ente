@@ -189,7 +189,7 @@ class _CollectionPageState extends State<CollectionPage> {
       selectedFiles: _selectedFiles,
       initialFiles: initialFiles,
       albumName: c.collection.displayName,
-      sortAsyncFn: () => c.collection.pubMagicMetadata.asc ?? false,
+      sortOrderFn: () => c.collection.pubMagicMetadata.fileSortOrder,
       addHeaderOrFooterEmptyState: false,
       showSelectAll: true,
       emptyState: galleryType == GalleryType.ownedCollection
