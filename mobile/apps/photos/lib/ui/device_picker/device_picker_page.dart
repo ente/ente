@@ -12,6 +12,7 @@ import "package:photos/ente_theme_data.dart";
 import "package:photos/module/metadata/local_file.dart";
 import "package:photos/ui/components/bottom_action_bar/action_bar_widget.dart";
 import "package:photos/ui/components/collection_share_badge.dart";
+import "package:photos/ui/components/selection_preview_button.dart";
 import "package:photos/ui/components/thumbnail_list_item.dart";
 import "package:photos/ui/device_picker/device_media_library.dart";
 import "package:photos/ui/device_picker/device_picker_controller.dart";
@@ -21,15 +22,42 @@ import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 import "package:photos/ui/viewer/gallery/state/boundary_reporter_mixin.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_boundaries_provider.dart";
 
-Future<List<AssetEntity>?> showDevicePicker(BuildContext context) =>
-    Navigator.of(context).push<List<AssetEntity>>(
-      MaterialPageRoute(builder: (_) => const DevicePickerPage()),
-    );
+Future<List<AssetEntity>?> showDevicePicker(
+  BuildContext context, {
+  RequestType requestType = RequestType.common,
+  int? selectionLimit = maxPickAssetLimit,
+  bool allowEmptySelection = false,
+  String? initialAlbumID,
+  Iterable<AssetEntity> initialSelection = const [],
+}) => Navigator.of(context).push<List<AssetEntity>>(
+  MaterialPageRoute(
+    builder: (_) => DevicePickerPage(
+      requestType: requestType,
+      selectionLimit: selectionLimit,
+      allowEmptySelection: allowEmptySelection,
+      initialAlbumID: initialAlbumID,
+      initialSelection: initialSelection,
+    ),
+  ),
+);
 
 class DevicePickerPage extends StatefulWidget {
-  const DevicePickerPage({super.key, this.library});
+  const DevicePickerPage({
+    super.key,
+    this.library,
+    this.requestType = RequestType.common,
+    this.selectionLimit = maxPickAssetLimit,
+    this.allowEmptySelection = false,
+    this.initialAlbumID,
+    this.initialSelection = const [],
+  }) : assert(selectionLimit == null || selectionLimit > 0);
 
   final DeviceMediaLibrary? library;
+  final RequestType requestType;
+  final int? selectionLimit;
+  final bool allowEmptySelection;
+  final String? initialAlbumID;
+  final Iterable<AssetEntity> initialSelection;
 
   @override
   State<DevicePickerPage> createState() => _DevicePickerPageState();
@@ -38,7 +66,13 @@ class DevicePickerPage extends StatefulWidget {
 class _DevicePickerPageState extends State<DevicePickerPage>
     with WidgetsBindingObserver {
   late final _model = DevicePickerController(
-    library: widget.library ?? PhotoManagerDeviceLibrary(),
+    library:
+        widget.library ??
+        PhotoManagerDeviceLibrary(requestType: widget.requestType),
+    selectionLimit: widget.selectionLimit,
+    allowEmptySelection: widget.allowEmptySelection,
+    initialAlbumID: widget.initialAlbumID,
+    initialSelection: widget.initialSelection,
   );
   final _albumScroll = ScrollController();
   Timer? _refreshTimer;
@@ -145,6 +179,7 @@ class _DevicePickerPageState extends State<DevicePickerPage>
                   isLocalOnlyContext: true,
                   showEditAction: false,
                   showGalleryFilmstrip: true,
+                  selectionLimit: widget.selectionLimit,
                   onSelectionRemoved: (file) => _model.replaceSelection(
                     _model.selection.where((asset) => asset.id != file.localID),
                   ),
@@ -172,7 +207,7 @@ class _DevicePickerPageState extends State<DevicePickerPage>
   }
 
   Future<void> _manageAccess() async {
-    await PhotoManager.presentLimited(type: RequestType.common);
+    await PhotoManager.presentLimited(type: widget.requestType);
     if (mounted) await _model.refresh();
   }
 
@@ -273,8 +308,11 @@ class _DevicePickerPageState extends State<DevicePickerPage>
                               listenable: _model.selectionChanges,
                               builder: (context, _) => _model.selection.isEmpty
                                   ? const SizedBox.shrink()
-                                  : _SelectionPreviewButton(
-                                      asset: _model.selection.last,
+                                  : SelectionPreviewButton(
+                                      file: fileFromAsset(
+                                        '',
+                                        _model.selection.last,
+                                      ),
                                       count: _model.selectionCount,
                                       onTap: _model.confirming
                                           ? null
@@ -302,23 +340,36 @@ class _DevicePickerPageState extends State<DevicePickerPage>
                                       bottom: Spacing.sm,
                                       child: ListenableBuilder(
                                         listenable: _model.selectionChanges,
-                                        builder: (context, _) =>
-                                            _model.selectionCount > 0
-                                            ? SelectionControlChip(
-                                                label:
-                                                    '${_model.selectionCount}/$maxPickAssetLimit',
-                                                semanticLabel:
-                                                    '${context.strings.clearSelection}, ${context.strings.selectedCountWithLimit(count: _model.selectionCount, limit: maxPickAssetLimit)}',
-                                                icon: const HugeIcon(
-                                                  icon: HugeIcons
-                                                      .strokeRoundedCancel01,
-                                                  size: IconSizes.small,
-                                                ),
-                                                onTap: _model.confirming
-                                                    ? null
-                                                    : _model.clearSelection,
-                                              )
-                                            : const SizedBox.shrink(),
+                                        builder: (context, _) {
+                                          final count = _model.selectionCount;
+                                          final limit = _model.selectionLimit;
+                                          final summary = limit == null
+                                              ? context.strings.selectedCount(
+                                                  count: count,
+                                                )
+                                              : context.strings
+                                                    .selectedCountWithLimit(
+                                                      count: count,
+                                                      limit: limit,
+                                                    );
+                                          return count > 0
+                                              ? SelectionControlChip(
+                                                  label: limit == null
+                                                      ? count.toString()
+                                                      : '$count/$limit',
+                                                  semanticLabel:
+                                                      '${context.strings.clearSelection}, $summary',
+                                                  icon: const HugeIcon(
+                                                    icon: HugeIcons
+                                                        .strokeRoundedCancel01,
+                                                    size: IconSizes.small,
+                                                  ),
+                                                  onTap: _model.confirming
+                                                      ? null
+                                                      : _model.clearSelection,
+                                                )
+                                              : const SizedBox.shrink();
+                                        },
                                       ),
                                     ),
                                   ],
@@ -492,8 +543,10 @@ class _DevicePickerAddButton extends StatelessWidget {
         child: ListenableBuilder(
           listenable: Listenable.merge([model, model.selectionChanges]),
           builder: (context, _) => ButtonComponent(
-            label: context.strings.addSelected,
-            isDisabled: model.selectionCount == 0 || model.refreshing,
+            label: model.allowEmptySelection && model.selectionCount == 0
+                ? context.strings.done
+                : context.strings.addSelected,
+            isDisabled: !model.canConfirm,
             onTap: onTap,
             shouldShowSuccessState: false,
           ),
@@ -501,72 +554,6 @@ class _DevicePickerAddButton extends StatelessWidget {
       ),
     ),
   );
-}
-
-class _SelectionPreviewButton extends StatelessWidget {
-  const _SelectionPreviewButton({
-    required this.asset,
-    required this.count,
-    required this.onTap,
-  });
-
-  final AssetEntity asset;
-  final int count;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.componentColors;
-    return Semantics(
-      label:
-          '${context.strings.preview}, ${context.strings.selectedCount(count: count)}',
-      button: true,
-      enabled: onTap != null,
-      child: Tooltip(
-        message: context.strings.preview,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(Radii.sm),
-          child: ExcludeSemantics(
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: Padding(
-                    padding: const EdgeInsets.all(Spacing.xs),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(Radii.sm),
-                      child: ThumbnailWidget(
-                        fileFromAsset('', asset),
-                        rawThumbnail: true,
-                        placeholderColor: colors.fillLight,
-                      ),
-                    ),
-                  ),
-                ),
-                PositionedDirectional(
-                  bottom: 0,
-                  end: 0,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: Spacing.xs),
-                    decoration: BoxDecoration(
-                      color: colors.fillBase,
-                      borderRadius: BorderRadius.circular(Radii.lg),
-                    ),
-                    child: Text(
-                      '$count',
-                      style: TextStyles.tiny.copyWith(
-                        color: colors.textReverse,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 String _albumName(BuildContext context, AssetPathEntity? album) =>

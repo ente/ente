@@ -520,8 +520,9 @@ class SearchService {
   }
 
   Future<List<AlbumSearchResult>> getCollectionSearchResults(
-    String query,
-  ) async {
+    String query, {
+    bool Function(Collection)? collectionFilter,
+  }) async {
     if (isLocalGalleryMode) {
       return <AlbumSearchResult>[];
     }
@@ -538,6 +539,7 @@ class SearchService {
 
       if (!c.isHidden() &&
           c.type != CollectionType.uncategorized &&
+          (collectionFilter?.call(c) ?? true) &&
           c.displayName.toLowerCase().contains(query.toLowerCase())) {
         final EnteFile? thumbnail = await _collectionService.getCover(c);
         collectionSearchResults.add(

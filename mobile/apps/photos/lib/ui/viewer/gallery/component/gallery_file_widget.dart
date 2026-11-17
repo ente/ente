@@ -29,6 +29,7 @@ import "package:photos/ui/viewer/gallery/gallery_thumbnail_snapshot.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_context_state.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_swipe_helper.dart";
+import "package:photos/ui/viewer/gallery/state/selection_state.dart";
 
 Color galleryFileSelectionColor(
   BuildContext context,
@@ -189,11 +190,13 @@ class _GalleryFileWidgetState extends State<GalleryFileWidget> {
                   ? _onTapWithSelectionLimit(widget.file)
                   : _onTapNoSelectionLimit(context, widget.file);
             },
-      onLongPress: () {
-        widget.limitSelectionToOne
-            ? _onLongPressWithSelectionLimit(context, widget.file)
-            : _onLongPressNoSelectionLimit(context, widget.file);
-      },
+      onLongPress: disableSelection
+          ? null
+          : () {
+              widget.limitSelectionToOne
+                  ? _onLongPressWithSelectionLimit(context, widget.file)
+                  : _onLongPressNoSelectionLimit(context, widget.file);
+            },
       child: _isFileSelected
           ? Stack(
               clipBehavior: Clip.none,
@@ -268,12 +271,12 @@ class _GalleryFileWidgetState extends State<GalleryFileWidget> {
   }
 
   void _selectedFilesListener() {
-    late bool latestSelectionState;
-    if (widget.selectedFiles?.files.contains(widget.file) ?? false) {
-      latestSelectionState = true;
-    } else {
-      latestSelectionState = false;
-    }
+    final selectedFiles = widget.selectedFiles;
+    final latestSelectionState =
+        selectedFiles != null &&
+        (selectedFiles.dedupeByUploadID
+            ? selectedFiles.isFileSelected(widget.file)
+            : selectedFiles.files.contains(widget.file));
     if (latestSelectionState != _isFileSelected && mounted) {
       setState(() {
         _isFileSelected = latestSelectionState;
@@ -288,7 +291,7 @@ class _GalleryFileWidgetState extends State<GalleryFileWidget> {
 
   void _onTapWithSelectionLimit(EnteFile file) {
     if (widget.selectedFiles!.files.isNotEmpty &&
-        widget.selectedFiles!.files.first != file) {
+        !widget.selectedFiles!.isFileSelected(file)) {
       widget.selectedFiles!.clearAll();
     }
     _toggleFileSelection(file);
@@ -340,7 +343,8 @@ class _GalleryFileWidgetState extends State<GalleryFileWidget> {
     EnteFile file,
   ) async {
     if (AppLifecycleService.instance.mediaExtensionAction.action ==
-        IntentAction.pick) {
+            IntentAction.pick &&
+        !(GalleryContextState.of(context)?.inSelectionMode ?? false)) {
       await _returnPickerResult(file);
     } else {
       _routeToDetailPage(file, context);
@@ -366,11 +370,17 @@ class _GalleryFileWidgetState extends State<GalleryFileWidget> {
     // even after deleting from Ente (remote) since they still exist locally
     final galleryType = GalleryContextState.of(context)?.galleryType;
     final isLocalOnlyContext = galleryType == GalleryType.localFolder;
-    final page = DetailPage(
+    Widget page = DetailPage(
       DetailPageConfiguration(
         galleryFiles,
         selectedIndex,
         widget.tag,
+        mode:
+            AppLifecycleService.instance.mediaExtensionAction.action ==
+                    IntentAction.pick &&
+                (GalleryContextState.of(context)?.inSelectionMode ?? false)
+            ? DetailPageMode.minimalistic
+            : DetailPageMode.full,
         isLocalOnlyContext: isLocalOnlyContext,
         showGalleryFilmstrip: true,
         galleryType: galleryType,
@@ -379,6 +389,9 @@ class _GalleryFileWidgetState extends State<GalleryFileWidget> {
             ?.revealFile,
       ),
     );
+    if (widget.selectedFiles?.dedupeByUploadID ?? false) {
+      page = SelectionState(selectedFiles: widget.selectedFiles!, child: page);
+    }
     final isPhoto =
         file.fileType == FileType.image || file.fileType == FileType.livePhoto;
     if (isPhoto) {

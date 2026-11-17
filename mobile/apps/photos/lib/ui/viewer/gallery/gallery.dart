@@ -1110,7 +1110,14 @@ class GalleryState extends State<Gallery> with WidgetsBindingObserver {
       return _GalleryAppBarScrollBody(
         appBar: widget.appBar,
         physics: _scrollPhysics,
-        child: placeholder,
+        child:
+            widget.header != null && (widget.initialFiles?.isNotEmpty ?? false)
+            ? SingleChildScrollView(
+                primary: false,
+                physics: _scrollPhysics,
+                child: placeholder,
+              )
+            : placeholder,
       );
     }
 
@@ -1557,9 +1564,7 @@ class _PinnedGroupHeaderState extends State<PinnedGroupHeader>
                   children: [
                     Positioned.fill(
                       // Cover fractional-pixel gaps at the app bar boundary.
-                      top: widget.topOffset > 0
-                          ? -1 / MediaQuery.devicePixelRatioOf(context)
-                          : 0,
+                      top: -1 / MediaQuery.devicePixelRatioOf(context),
                       child: ColoredBox(color: backgroundColor),
                     ),
                     const Positioned.fill(

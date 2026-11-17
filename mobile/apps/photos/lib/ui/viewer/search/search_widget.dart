@@ -5,16 +5,14 @@ import "package:ente_components/hugeicons.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
-import "package:logging/logging.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/clear_and_unfocus_search_bar_event.dart";
 import "package:photos/events/tab_changed_event.dart";
 import "package:photos/models/home_tab.dart";
-import "package:photos/models/search/generic_search_result.dart";
 import "package:photos/models/search/index_of_indexed_stack.dart";
 import "package:photos/models/search/search_result.dart";
+import "package:photos/services/search_query_service.dart";
 import "package:photos/services/search_service.dart";
-import "package:photos/ui/viewer/search/search_query_utils.dart";
 import "package:photos/ui/viewer/search/search_suffix_icon_widget.dart";
 
 class SearchWidget extends StatefulWidget {
@@ -32,15 +30,13 @@ class SearchWidget extends StatefulWidget {
 }
 
 class SearchWidgetState extends State<SearchWidget> {
-  static const _localFileIDsSearchPrefix = "local_ids:";
-  static const _uploadedFileIDsSearchPrefix = "uploaded_ids:";
   static final ValueNotifier<Stream<List<SearchResult>>?>
   searchResultsStreamNotifier = ValueNotifier(null);
 
   // The search widget is disposed when switching tabs. Preserve its query.
   static String query = "";
   static final isLoading = ValueNotifier(false);
-  final _searchService = SearchService.instance;
+  final _searchQueryService = SearchQueryService(SearchService.instance);
   final _debouncer = Debouncer(const Duration(milliseconds: 314));
   late FocusNode focusNode;
   StreamSubscription<TabChangedEvent>? _tabChangedEvent;
@@ -50,7 +46,6 @@ class SearchWidgetState extends State<SearchWidget> {
   bool? _lastReportedSearchInputActive;
   late final StreamSubscription<ClearAndUnfocusSearchBar>
   _clearAndUnfocusSearchBar;
-  late final Logger _logger = Logger("SearchWidgetState");
 
   @override
   void initState() {
@@ -149,7 +144,7 @@ class SearchWidgetState extends State<SearchWidget> {
       if (mounted) {
         query = nextQuery;
         IndexOfStackNotifier().isSearchQueryEmpty = query.isEmpty;
-        searchResultsStreamNotifier.value = _getSearchResultsStream(
+        searchResultsStreamNotifier.value = _searchQueryService.search(
           context,
           query,
         );
@@ -196,129 +191,5 @@ class SearchWidgetState extends State<SearchWidget> {
         ),
       ),
     );
-  }
-
-  Stream<List<SearchResult>> _getSearchResultsStream(
-    BuildContext context,
-    String query,
-  ) {
-    if (query.isEmpty) {
-      return Stream<List<SearchResult>>.multi((controller) {
-        controller.add([]);
-        controller.close();
-      });
-    }
-
-    if (query.startsWith(_uploadedFileIDsSearchPrefix)) {
-      final uploadedFileIDs = query
-          .substring(_uploadedFileIDsSearchPrefix.length)
-          .split(",")
-          .map((value) => int.tryParse(value.trim()))
-          .whereType<int>()
-          .where((id) => id > 0)
-          .toSet();
-      return Stream.fromFuture(
-        _searchService.getUploadedFileIDsSearchResults(query, uploadedFileIDs),
-      );
-    }
-
-    if (query.startsWith(_localFileIDsSearchPrefix)) {
-      final localFileIDs = query
-          .substring(_localFileIDsSearchPrefix.length)
-          .split(",")
-          .map((value) => value.trim())
-          .where((id) => id.isNotEmpty)
-          .toSet();
-      return Stream.fromFuture(
-        _searchService.getLocalFileIDsSearchResults(query, localFileIDs),
-      );
-    }
-
-    int resultCount = 0;
-    final maxResultCount = isYearSearchQuery(query) ? 13 : 12;
-    final streamController = StreamController<List<SearchResult>>();
-
-    void onResultsReceived(List<SearchResult> results) {
-      streamController.sink.add(results);
-      resultCount++;
-      if (resultCount == maxResultCount) {
-        streamController.close();
-      }
-      if (resultCount > maxResultCount) {
-        _logger.warning(
-          "More results than expected. Expected: $maxResultCount, actual: $resultCount",
-        );
-      }
-    }
-
-    if (isYearSearchQuery(query)) {
-      _searchService.getYearSearchResults(query).then((yearSearchResults) {
-        onResultsReceived(yearSearchResults);
-      });
-    }
-
-    _searchService.getHolidaySearchResults(context, query).then((
-      holidayResults,
-    ) {
-      onResultsReceived(holidayResults);
-    });
-
-    _searchService.getFileTypeResults(context, query).then((
-      fileTypeSearchResults,
-    ) {
-      onResultsReceived(fileTypeSearchResults);
-    });
-
-    _searchService.getCaptionAndNameResults(query).then((
-      captionAndDisplayNameResult,
-    ) {
-      onResultsReceived(captionAndDisplayNameResult);
-    });
-
-    _searchService.getFileExtensionResults(query).then((fileExtnResult) {
-      onResultsReceived(fileExtnResult);
-    });
-
-    _searchService.getLocationResults(context, query).then((locationResult) {
-      onResultsReceived(locationResult);
-    });
-
-    _searchService.getAllFace(null, minClusterSize: 10).then((faceResult) {
-      final List<GenericSearchResult> filteredResults = [];
-      for (final result in faceResult) {
-        if (result.name().toLowerCase().contains(query.toLowerCase())) {
-          filteredResults.add(result);
-        }
-      }
-      onResultsReceived(filteredResults);
-    });
-
-    _searchService.getCollectionSearchResults(query).then((collectionResults) {
-      onResultsReceived(collectionResults);
-    });
-
-    _searchService.getDeviceCollectionSearchResults(query).then((
-      deviceCollectionResults,
-    ) {
-      onResultsReceived(deviceCollectionResults);
-    });
-
-    _searchService.getMonthSearchResults(context, query).then((monthResults) {
-      onResultsReceived(monthResults);
-    });
-
-    _searchService.getDateResults(context, query).then((possibleEvents) {
-      onResultsReceived(possibleEvents);
-    });
-
-    _searchService.getMagicSearchResults(context, query).then((magicResults) {
-      onResultsReceived(magicResults);
-    });
-
-    _searchService.getContactSearchResults(query).then((contactResults) {
-      onResultsReceived(contactResults);
-    });
-
-    return streamController.stream.asBroadcastStream();
   }
 }

@@ -7,9 +7,20 @@ import "package:photos/core/constants.dart";
 import "package:photos/ui/device_picker/device_media_library.dart";
 
 class DevicePickerController extends ChangeNotifier {
-  DevicePickerController({required this.library});
+  DevicePickerController({
+    required this.library,
+    this.selectionLimit = maxPickAssetLimit,
+    this.allowEmptySelection = false,
+    this.initialAlbumID,
+    Iterable<AssetEntity> initialSelection = const [],
+  }) : assert(selectionLimit == null || selectionLimit > 0) {
+    replaceSelection(initialSelection);
+  }
 
   final DeviceMediaLibrary library;
+  final int? selectionLimit;
+  final bool allowEmptySelection;
+  final String? initialAlbumID;
   final selectionChanges = ChangeNotifier();
   final _mediaIDs = <String>{};
   List<AssetEntity>? _selectionSnapshot;
@@ -35,12 +46,14 @@ class DevicePickerController extends ChangeNotifier {
       _selectionSnapshot ??= List.unmodifiable(_chosen.values);
   int get selectionCount => _chosen.length;
   bool get hasAccess => permission.hasAccess;
+  bool get canConfirm =>
+      !confirming && !refreshing && (allowEmptySelection || _chosen.isNotEmpty);
 
   void replaceSelection(Iterable<AssetEntity> items) {
     if (confirming) return;
     final next = <String, AssetEntity>{};
     for (final item in items) {
-      if (next.length >= maxPickAssetLimit) break;
+      if (selectionLimit != null && next.length >= selectionLimit!) break;
       next[item.id] = item;
     }
     if (mapEquals(_chosen, next)) return;
@@ -86,7 +99,9 @@ class DevicePickerController extends ChangeNotifier {
       if (!_isCurrent(revision)) return;
       final previousID = album?.id;
       final nextAlbum =
-          folders.where((item) => item.id == previousID).firstOrNull ??
+          folders
+              .where((item) => item.id == (previousID ?? initialAlbumID))
+              .firstOrNull ??
           folders.where((item) => item.isAll).firstOrNull ??
           folders.firstOrNull;
       final length = nextAlbum?.id == previousID
@@ -173,7 +188,7 @@ class DevicePickerController extends ChangeNotifier {
   }
 
   Future<List<AssetEntity>?> confirm() async {
-    if (confirming || refreshing || _chosen.isEmpty) {
+    if (!canConfirm) {
       return null;
     }
     confirming = true;

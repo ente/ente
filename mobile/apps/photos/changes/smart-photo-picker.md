@@ -1,0 +1,1 @@
+- Added albums, search, and device photos and videos when choosing Ente media from other Android apps.

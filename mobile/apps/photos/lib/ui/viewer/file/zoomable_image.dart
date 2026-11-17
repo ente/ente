@@ -28,6 +28,7 @@ import "package:photos/ui/actions/file/file_actions.dart";
 import "package:photos/ui/viewer/file/file_viewer_image_page_readiness.dart";
 import "package:photos/ui/viewer/file/image_zoom/image_zoom_viewer.dart";
 import 'package:photos/ui/viewer/file/thumbnail_widget.dart';
+import 'package:photos/ui/viewer/gallery/state/selection_state.dart';
 import 'package:photos/utils/dialog_util.dart';
 import 'package:photos/utils/image_util.dart';
 import "package:photos/utils/ram_check_util.dart";
@@ -344,6 +345,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
   }
 
   void _loadLocalImage(BuildContext context) {
+    final selectedFiles = SelectionState.maybeOf(context)?.selectedFiles;
     if (!_loadedSmallThumbnail &&
         !_loadedLargeThumbnail &&
         !_loadedFinalImage) {
@@ -387,7 +389,12 @@ class _ZoomableImageState extends State<ZoomableImage> {
         } else {
           _logger.info("File was deleted " + _photo.toString());
           if (_photo.uploadedFileID != null) {
-            _photo.localID = null;
+            if (selectedFiles?.dedupeByUploadID ?? false) {
+              if (!mounted) return;
+              selectedFiles!.mutateFile(_photo, () => _photo.localID = null);
+            } else {
+              _photo.localID = null;
+            }
             FilesDB.instance.update(_photo);
             _loadNetworkImage();
           } else {

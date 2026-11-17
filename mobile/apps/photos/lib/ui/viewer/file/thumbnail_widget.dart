@@ -27,6 +27,7 @@ import "package:photos/ui/sharing/user_avatar_widget.dart";
 import 'package:photos/ui/viewer/file/file_icons_widget.dart';
 import 'package:photos/ui/viewer/gallery/component/group/type.dart';
 import 'package:photos/ui/viewer/gallery/state/gallery_context_state.dart';
+import 'package:photos/ui/viewer/gallery/state/selection_state.dart';
 import "package:photos/utils/avatar_util.dart";
 
 class ThumbnailWidget extends StatefulWidget {
@@ -349,6 +350,7 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
   }
 
   Future _getThumbnailFromDisk() async {
+    final selectedFiles = SelectionState.maybeOf(context)?.selectedFiles;
     return _loadWithRetry()
         .then((thumbData) async {
           if (thumbData == null) {
@@ -362,7 +364,15 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
                   );
                 }
               } else {
-                widget.file.localID = null;
+                if (selectedFiles?.dedupeByUploadID ?? false) {
+                  if (!mounted) return;
+                  selectedFiles!.mutateFile(
+                    widget.file,
+                    () => widget.file.localID = null,
+                  );
+                } else {
+                  widget.file.localID = null;
+                }
                 unawaited(FilesDB.instance.update(widget.file));
               }
               _loadNetworkImage();
