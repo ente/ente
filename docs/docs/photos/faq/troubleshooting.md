@@ -237,6 +237,8 @@ Open device `Settings > Apps > Ente > Permissions > Photos and videos` (or "File
 
 With limited access, Ente only sees the photos you picked, so folders such as Camera and Screenshots may be missing from `Settings > Backup > Backed up folders`. After changing the permission, reopen Ente and select those folders.
 
+Limited or denied permission can look like other problems too: backup fails or never starts, Ente shows only one old folder or only the few photos you picked (for example after moving to a new phone), or files you download don't appear in your gallery because Ente isn't allowed to save them. In each case, allow access to all photos and videos (and, on Android, files and storage) in your phone's settings, reopen Ente and try again.
+
 If you've granted permission but Ente still can't access photos, try:
 
 - Restarting the app
