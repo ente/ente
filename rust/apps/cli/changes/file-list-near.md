@@ -1,0 +1,1 @@
+- Filter `photos file list` by distance from a point with `--near LAT,LON --radius KM`, using the location tag check shared with the Ente apps.

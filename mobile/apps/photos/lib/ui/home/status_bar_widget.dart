@@ -163,7 +163,7 @@ class _StatusBarWidgetState extends State<StatusBarWidget> {
     return _bannerPadding(
       BannerComponent(
         key: const ValueKey("large-backup-standby-banner"),
-        leadingIcon: HugeIcons.strokeRoundedMoon02,
+        leadingIcon: HugeIcons.strokeRoundedCloudUpload,
         title: context.strings.backupModeKeepAppOpen,
         subtitle: context.strings.backupModeScreenWillDim,
         state: BannerComponentState.success,
