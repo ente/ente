@@ -1,1 +1,1 @@
-- Improved dates for desktop imports without embedded or filename dates by using the file's Created date when it is earlier than Modified.
+- Use earlier file creation dates as a fallback for desktop imports.
