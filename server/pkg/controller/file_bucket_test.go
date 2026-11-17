@@ -399,7 +399,7 @@ func newFileBucketTest(t *testing.T) *fileBucketTest {
 			FileRepo: repository, ObjectRepo: repository.ObjectRepo,
 			ObjectCleanupRepo: cleanup.Repo, ObjectCleanupCtrl: cleanup,
 			CollectionRepo: &repo.CollectionRepository{DB: db, CollectionLinkRepo: &public.CollectionLinkRepo{DB: db}},
-			UsageCtrl: &UsageController{
+			UsageCtrl: &UsageController{UploadURLRepo: &repo.UploadURLRepository{DB: db},
 				UserRepo: users, UsageRepo: &repo.UsageRepository{DB: db}, UploadResultCache: make(map[int64]bool),
 				BillingCtrl: &BillingController{UserRepo: users, BillingRepo: &repo.BillingRepository{DB: db}},
 			},

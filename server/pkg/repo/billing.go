@@ -11,6 +11,9 @@ import (
 	"github.com/awa/go-iap/appstore"
 	"github.com/awa/go-iap/playstore"
 	"github.com/ente/museum/ente"
+	"github.com/ente/museum/ente/storagebonus"
+	"github.com/ente/museum/pkg/utils/billing"
+	"github.com/lib/pq"
 	"google.golang.org/api/androidpublisher/v3"
 )
 
@@ -133,6 +136,31 @@ func (repo *BillingRepository) IsUserOnPaidPlan(userID int64) (bool, error) {
 		return false, fmt.Errorf("error checking paid plan status: %v", err)
 	}
 	return isPaidPlan, nil
+}
+
+func (repo *BillingRepository) IsUserOnActivePaidPlan(userID int64) (bool, error) {
+	var isPaid bool
+	err := repo.DB.QueryRow(`SELECT NOT EXISTS (SELECT 1 FROM users WHERE user_id = 1)
+		OR EXISTS (
+			SELECT 1 FROM users u
+			LEFT JOIN subscriptions s ON s.user_id = COALESCE(u.family_admin_id, u.user_id)
+			WHERE u.user_id = $1 AND (
+				(s.product_id <> 'free' AND s.expiry_time + CASE s.payment_provider
+					WHEN 'appstore' THEN $2::BIGINT
+					WHEN 'paypal' THEN $3::BIGINT
+					WHEN 'playstore' THEN $4::BIGINT
+					WHEN 'stripe' THEN $5::BIGINT
+					ELSE 0 END >= now_utc_micro_seconds())
+				OR (SELECT COALESCE(SUM(sb.storage), 0) FROM storage_bonus sb
+					WHERE sb.user_id = COALESCE(u.family_admin_id, u.user_id)
+					AND sb.type = ANY($6) AND NOT sb.is_revoked
+					AND (sb.valid_till = 0 OR sb.valid_till > now_utc_micro_seconds())) > 0
+			)
+		)`, userID,
+		billing.ProviderToExpiryGracePeriodMap[ente.AppStore], billing.ProviderToExpiryGracePeriodMap[ente.Paypal],
+		billing.ProviderToExpiryGracePeriodMap[ente.PlayStore], billing.ProviderToExpiryGracePeriodMap[ente.Stripe],
+		pq.Array(storagebonus.PaidAddOnTypes)).Scan(&isPaid)
+	return isPaid, stacktrace.Propagate(err, "")
 }
 
 func (repo *BillingRepository) LogStripePush(eventLog ente.StripeEventLog) error {

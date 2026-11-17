@@ -6,7 +6,9 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strconv"
 	"syscall"
+	"time"
 
 	"github.com/ente/museum/ente"
 	"github.com/ente/museum/pkg/utils/auth"
@@ -55,6 +57,12 @@ func Error(c *gin.Context, err error) {
 		unWrappedErr = err
 	}
 	enteApiErr, isEnteApiErr := unWrappedErr.(*ente.ApiError)
+	var uploadLimit *ente.UploadRateLimitError
+	if errors.As(err, &uploadLimit) {
+		enteApiErr, isEnteApiErr = uploadLimit.Reason, true
+		seconds := max(1, int((uploadLimit.RetryAfter+time.Second-1)/time.Second))
+		c.Header("Retry-After", strconv.Itoa(seconds))
+	}
 
 	if level := requestFailureLogLevel(err, enteApiErr); level != nil {
 		contextLogger := log.WithError(err).
@@ -82,6 +90,9 @@ func Error(c *gin.Context, err error) {
 func requestFailureLogLevel(err error, apiErr *ente.ApiError) *log.Level {
 	if errors.Is(err, ente.ErrStorageLimitExceeded) ||
 		errors.Is(err, ente.ErrNoActiveSubscription) ||
+		errors.Is(err, ente.ErrSmallUploadLimitReached) ||
+		errors.Is(err, ente.ErrTinyUploadLimitReached) ||
+		errors.Is(err, ente.ErrPendingUploadLimitReached) ||
 		(apiErr != nil && apiErr.Code == ente.NotFoundError) {
 		return nil
 	}

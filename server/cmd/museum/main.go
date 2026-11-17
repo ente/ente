@@ -295,6 +295,8 @@ func main() {
 	objectCopiesCleanupController := controller.NewObjectCopiesCleanupController(objectCopiesRepo)
 
 	usageController := &controller.UsageController{
+		UploadNotifier:    discordController,
+		UploadURLRepo:     &repo.UploadURLRepository{DB: db},
 		BillingCtrl:       billingController,
 		StorageBonusCtrl:  storageBonusCtrl,
 		UserCacheCtrl:     userCacheCtrl,
@@ -326,7 +328,7 @@ func main() {
 		AccessCtrl:     accessCtrl,
 		AnonUsersRepo:  anonUsersRepo,
 	}
-	fileDataCtrl := filedata.New(fileDataRepo, accessCtrl, objectCleanupController, s3Config, fileRepo, collectionRepo, discordController)
+	fileDataCtrl := filedata.New(fileDataRepo, accessCtrl, objectCleanupController, s3Config, fileRepo, collectionRepo, discordController, usageController)
 
 	fileController := &controller.FileController{
 		FileRepo:              fileRepo,
@@ -1045,7 +1047,7 @@ func main() {
 	spaceapi.RegisterTokenSessionRoutes(privateAPI, spaceHandlers)
 	spaceapi.Register(spacePrivateAPI, publicAPI, spaceHandlers)
 
-	contactController := contactCtrl.New(contactRepository, objectCleanupController, s3Config)
+	contactController := contactCtrl.New(contactRepository, objectCleanupController, s3Config, usageController)
 	contactHandler := &api.ContactHandler{Controller: contactController}
 
 	storageAPI.POST("/contacts", contactHandler.Create)

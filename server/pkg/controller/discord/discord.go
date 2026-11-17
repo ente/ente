@@ -111,6 +111,10 @@ func (c *DiscordController) NotifyAccountDelete(userID int64, paymentProvider st
 	c.Notify(message)
 }
 
+func (c *DiscordController) NotifyUploadActivity(message string) {
+	c.Notify(fmt.Sprintf("%s: %s", c.HostName, message))
+}
+
 func (c *DiscordController) NotifyPotentialAbuse(message string) {
 	c.NotifyThrottled(fmt.Sprintf("%s: %s", c.HostName, message), time.Minute)
 }

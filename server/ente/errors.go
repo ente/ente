@@ -32,6 +32,24 @@ var ErrBadRequest = errors.New("bad request")
 
 var ErrTooManyBadRequest = errors.New("too many bad request")
 
+var ErrSmallUploadLimitReached = &ApiError{
+	Code:           "SMALL_UPLOAD_LIMIT_REACHED",
+	Message:        "Too many small uploads. Please try again later.",
+	HttpStatusCode: http.StatusTooManyRequests,
+}
+
+var ErrTinyUploadLimitReached = &ApiError{
+	Code:           "TINY_UPLOAD_LIMIT_REACHED",
+	Message:        "Too many very small uploads. Please try again later.",
+	HttpStatusCode: http.StatusTooManyRequests,
+}
+
+var ErrPendingUploadLimitReached = &ApiError{
+	Code:           "PENDING_UPLOAD_LIMIT_REACHED",
+	Message:        "Too many pending uploads. Please complete existing uploads or try again later.",
+	HttpStatusCode: http.StatusTooManyRequests,
+}
+
 var ErrUnexpectedState = errors.New("unexpected state")
 
 var ErrCannotDowngrade = errors.New("usage is greater than selected plan, cannot downgrade")

@@ -287,7 +287,7 @@ func setupCopyTest(t *testing.T, primary string, fileDCs, thumbDCs []string, fai
 		FileController: &controller.FileController{
 			S3Config: config, ObjectRepo: objectsRepo, FileRepo: fileRepo, ObjectCleanupRepo: cleanupRepo, CollectionRepo: collectionRepo,
 			ObjectCleanupCtrl: &controller.ObjectCleanupController{Repo: cleanupRepo},
-			UsageCtrl: &controller.UsageController{
+			UsageCtrl: &controller.UsageController{UploadURLRepo: &repo.UploadURLRepository{DB: db},
 				UserRepo: users, UsageRepo: &repo.UsageRepository{DB: db}, UploadResultCache: make(map[int64]bool),
 				BillingCtrl: &controller.BillingController{UserRepo: users, BillingRepo: &repo.BillingRepository{DB: db}},
 			},

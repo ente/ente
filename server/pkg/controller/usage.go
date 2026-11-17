@@ -19,12 +19,15 @@ type UsageController struct {
 	StorageBonusCtrl  *storagebonus.Controller
 	UserCacheCtrl     *usercache.Controller
 	UsageRepo         *repo.UsageRepository
+	UploadURLRepo     uploadLimitRepository
+	UploadNotifier    uploadActivityNotifier
 	UserRepo          *repo.UserRepository
 	FamilyRepo        *repo.FamilyRepository
 	FileRepo          *repo.FileRepository
 	UploadResultCache map[int64]bool
 
 	uploadURLResultCache map[int64]bool
+	uploadLimits         uploadURLLimiter
 }
 
 const softPhotosFileLimit = 50_000
