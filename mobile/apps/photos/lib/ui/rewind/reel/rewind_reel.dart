@@ -143,6 +143,9 @@ class _ReelNavigator implements RewindNavigator {
   const _ReelNavigator();
 
   @override
+  List<RewindPage> get pages => const [];
+
+  @override
   void next() {}
 
   @override

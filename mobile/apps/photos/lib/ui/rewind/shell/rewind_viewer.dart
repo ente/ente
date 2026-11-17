@@ -250,6 +250,9 @@ class _RewindViewerState extends State<RewindViewer>
   }
 
   @override
+  List<RewindPage> get pages => widget.pages;
+
+  @override
   void next() {
     final step = _currentStep;
     if (step >= _steps - 1) {

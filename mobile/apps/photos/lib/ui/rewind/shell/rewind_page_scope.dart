@@ -12,6 +12,8 @@ class RewindShareCard {
 }
 
 abstract interface class RewindNavigator {
+  List<RewindPage> get pages;
+
   void next();
 
   void previous();
