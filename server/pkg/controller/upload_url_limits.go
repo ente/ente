@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
+	"unsafe"
 
 	"github.com/ente/museum/ente"
 	"github.com/patrickmn/go-cache"
@@ -28,6 +30,7 @@ const smallUploadShortLimit = 1000
 const smallUploadDailyLimit = 10000
 const smallUploadShortWindow = 10 * time.Minute
 const smallUploadDailyWindow = 24 * time.Hour
+const uploadLimitStateTTL = 25 * time.Hour
 
 var uploadGuardRejections = promauto.NewCounterVec(prometheus.CounterOpts{
 	Name: "museum_upload_guard_rejections_total",
@@ -38,6 +41,16 @@ var uploadGrants = promauto.NewCounterVec(prometheus.CounterOpts{
 	Name: "museum_upload_grants_total",
 	Help: "Object grants admitted, partitioned by declared content size.",
 }, []string{"size_band"})
+
+var uploadLimitCacheEntries = promauto.NewGauge(prometheus.GaugeOpts{
+	Name: "museum_upload_limit_cache_entries",
+	Help: "Upload limiter states retained in the process cache, including expired states awaiting cleanup.",
+})
+
+var uploadLimitBucketBytes = promauto.NewGauge(prometheus.GaugeOpts{
+	Name: "museum_upload_limit_bucket_capacity_bytes",
+	Help: "Estimated bytes in cached upload limiter bucket backing arrays; excludes state, map and allocator overhead.",
+})
 
 type uploadActivityNotifier interface {
 	NotifyUploadActivity(string)
@@ -78,6 +91,8 @@ type smallUploadBucket struct {
 
 type uploadLimitState struct {
 	mu                 sync.Mutex
+	cached             bool
+	cacheExpires       atomic.Int64
 	remaining          int
 	inFlight           int
 	pendingCount       int
@@ -152,7 +167,11 @@ func (s *uploadLimitState) recordSmall(now time.Time, count int) {
 func (s *uploadLimitState) recordUpload(now time.Time, count int, band uploadSizeBand) {
 	end := now.Truncate(time.Minute).Add(time.Minute)
 	if n := len(s.buckets); n == 0 || !s.buckets[n-1].end.Equal(end) {
+		previousCapacity := cap(s.buckets)
 		s.buckets = append(s.buckets, smallUploadBucket{end: end})
+		if s.cached {
+			uploadLimitBucketBytes.Add(float64(cap(s.buckets)-previousCapacity) * float64(unsafe.Sizeof(smallUploadBucket{})))
+		}
 	}
 	bucket := &s.buckets[len(s.buckets)-1]
 	bucket.count += count
@@ -181,18 +200,40 @@ type uploadURLLimiter struct {
 
 func (l *uploadURLLimiter) state(userID int64) *uploadLimitState {
 	l.mu.Lock()
-	defer l.mu.Unlock()
 	if l.states == nil {
-		l.states = cache.New(25*time.Hour, time.Minute)
+		l.states = cache.New(uploadLimitStateTTL, time.Minute)
+		l.states.OnEvicted(func(_ string, value interface{}) {
+			state := value.(*uploadLimitState)
+			state.mu.Lock()
+			defer state.mu.Unlock()
+			expires := state.cacheExpires.Load()
+			if expires != 0 && time.Now().UnixNano() >= expires && state.cacheExpires.CompareAndSwap(expires, 0) && state.cached {
+				state.cached = false
+				uploadLimitCacheEntries.Dec()
+				uploadLimitBucketBytes.Sub(float64(cap(state.buckets)) * float64(unsafe.Sizeof(smallUploadBucket{})))
+			}
+		})
 	}
 	key := strconv.FormatInt(userID, 10)
 	var state *uploadLimitState
 	if value, ok := l.states.Get(key); ok {
 		state = value.(*uploadLimitState)
 	} else {
+		l.states.Delete(key)
 		state = &uploadLimitState{}
 	}
+	previousExpiry := state.cacheExpires.Swap(time.Now().Add(uploadLimitStateTTL).UnixNano())
 	l.states.Set(key, state, cache.DefaultExpiration)
+	l.mu.Unlock()
+	if previousExpiry == 0 {
+		state.mu.Lock()
+		if !state.cached && state.cacheExpires.Load() != 0 {
+			state.cached = true
+			uploadLimitCacheEntries.Inc()
+			uploadLimitBucketBytes.Add(float64(cap(state.buckets)) * float64(unsafe.Sizeof(smallUploadBucket{})))
+		}
+		state.mu.Unlock()
+	}
 	return state
 }
 
