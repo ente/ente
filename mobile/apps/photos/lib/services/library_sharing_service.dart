@@ -228,22 +228,6 @@ class LibrarySharingService implements LibrarySharingRepository {
     return (await _store.read(ownerUserID, recipientUserID))?.enabled ?? false;
   }
 
-  Future<Set<int>> recipientUserIDs(int ownerUserID) async {
-    try {
-      await _store.sync();
-    } catch (error, stackTrace) {
-      _logger.warning(
-        'Using cached library sharing recipients',
-        error,
-        stackTrace,
-      );
-    }
-    return {
-      for (final config in await _store.readAll(ownerUserID))
-        config.recipientUserID,
-    };
-  }
-
   @override
   Future<EnableAutomaticSharingResult> enableAutomaticSharing({
     required LibrarySharingRecipient recipient,

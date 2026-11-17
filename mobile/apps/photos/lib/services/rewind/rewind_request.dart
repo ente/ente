@@ -230,9 +230,6 @@ class _Albums {
     final collections = CollectionsService.instance;
     final hidden = collections.getHiddenCollectionIds();
     final archivedOrHidden = collections.archivedOrHiddenCollectionIds();
-    final libraryRecipients = await librarySharingService.recipientUserIDs(
-      userID,
-    );
     return _Albums(
       hidden: hidden,
       archived: archivedOrHidden.difference(hidden),
@@ -243,27 +240,21 @@ class _Albums {
       },
       shared: {
         for (final collection in collections.getActiveCollections())
-          if (_isSharedAlbum(collection, userID, libraryRecipients))
-            collection.id,
+          if (_isSharedAlbum(collection, userID)) collection.id,
       },
       favourites:
           (await FavoritesService.instance.getFavoritesCollection())?.id,
     );
   }
 
-  static bool _isSharedAlbum(
-    Collection collection,
-    int userID,
-    Set<int> libraryRecipients,
-  ) =>
+  static bool _isSharedAlbum(Collection collection, int userID) =>
       (collection.type == CollectionType.album ||
           collection.type == CollectionType.folder) &&
       !collection.isQuickLinkCollection() &&
       !collection.isHidden() &&
-      (collection.hasLink ||
-          [collection.owner, ...collection.sharees].any(
-            (user) => user.id != userID && !libraryRecipients.contains(user.id),
-          ));
+      (collection.hasSharees ||
+          collection.hasLink ||
+          !collection.isOwner(userID));
 
   rust.RewindVisibility visibility(EnteFile file, Set<int> collectionIDs) {
     final fileVisibility = file.magicMetadata.visibility;
