@@ -182,8 +182,6 @@ func (r *Repository) GetPasskeyCount(userID int64) (count int64, err error) {
 }
 
 func (r *Repository) GetUserPasskeys(userID int64) (passkeys []ente.Passkey, err error) {
-	// Older failed enrollments may leave metadata without a credential.
-	// Only credentials are valid passkeys for listing and factor selection.
 	rows, err := r.DB.Query(`
 		SELECT p.id, p.user_id, p.friendly_name, p.created_at
 		FROM passkeys p
