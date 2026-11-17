@@ -85,8 +85,9 @@ class _MemoryVideoExportSheetState extends State<_MemoryVideoExportSheet> {
 
   @override
   void dispose() {
-    if (!_isClosed) unawaited(_exporter.cancel());
-    _releaseExportGuards();
+    if (!_isClosed) {
+      unawaited(_exporter.cancel().whenComplete(_releaseExportGuards));
+    }
     super.dispose();
   }
 
