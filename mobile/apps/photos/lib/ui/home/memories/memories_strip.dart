@@ -325,7 +325,7 @@ class _MemoriesStripWidgetState extends State<MemoriesStripWidget> {
         if (memoryLaneCard != null && !hasSeenMemoryLane) memoryLaneCard.id,
       };
       strip.insert(
-        rewind.completed
+        rewind.dismissed
             ? strip.lastIndexWhere((card) => unseenIds.contains(card.id)) + 1
             : 0,
         MemoryCardWrapper(
@@ -334,6 +334,7 @@ class _MemoriesStripWidgetState extends State<MemoriesStripWidget> {
             entry: rewind,
             size: Size(_cardWidth, cardHeight),
             onTap: () => rewind.open(context),
+            onDismiss: rewind.canDismissFromMemories ? rewind.dismiss : null,
           ),
         ),
       );
