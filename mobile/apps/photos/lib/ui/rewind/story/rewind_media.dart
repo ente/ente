@@ -202,8 +202,16 @@ class RewindMedia {
     if (samples != null) return _sampleFace(samples, id, named: named);
     final name = named ? _nameOf(id) : null;
     if (named && name == null) return null;
+    if (!named && !await _isShownCluster(id)) return null;
     final crop = await _cover(id) ?? await _crop(faceIds);
     return RewindFace(name: name, crop: crop);
+  }
+
+  Future<bool> _isShownCluster(String clusterId) async {
+    final personId = (await _ml.getClusterIDToPersonID())[clusterId];
+    final person = _people[personId];
+    return person == null ||
+        (!person.data.isIgnored && !person.data.hideFromMemories);
   }
 
   String? _nameOf(String personId) {
