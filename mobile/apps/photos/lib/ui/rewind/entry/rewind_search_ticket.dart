@@ -1,4 +1,5 @@
 import "package:flutter/material.dart";
+import "package:flutter/semantics.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/rewind/rewind_edition.dart";
 import "package:photos/ui/rewind/entry/rewind_entry.dart";
@@ -18,59 +19,67 @@ class RewindSearchTicket extends StatelessWidget {
       listenable: rewindService.changes,
       builder: (context, _) {
         final entry = RewindEntry.current();
-        if (entry == null) return const SizedBox.shrink();
+        if (entry == null || entry.dismissed) return const SizedBox.shrink();
         final action = entry.completed
             ? "Watch again"
             : entry.opened
             ? "Continue"
             : "Watch";
-        return Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: searchTabSectionHorizontalPadding,
-            vertical: 8,
-          ),
-          child: Semantics(
-            button: true,
-            label: "Rewind ${RewindEdition.year}, $action",
-            child: RewindPressable(
-              onTap: () => entry.open(context),
-              pressedScale: 0.97,
-              child: ExcludeSemantics(
-                child: ClipPath(
-                  clipper: const _TicketClipper(),
-                  child: SizedBox(
-                    height: 76,
-                    child: Stack(
-                      children: [
-                        const Positioned.fill(child: RewindDoodleTile()),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(18, 8, 16, 8),
-                          child: Row(
-                            children: [
-                              Image.file(
-                                RewindAssets.file(RewindAssets.tileLockup),
-                                height: 60,
-                                fit: BoxFit.contain,
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  "YOUR YEAR\nIN PHOTOS",
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: RewindTextStyles.display(
-                                    17,
-                                    color: RewindColors.cream,
-                                    height: 0.95,
+        return Dismissible(
+          key: const ValueKey("rewind_search_ticket"),
+          direction: DismissDirection.endToStart,
+          onDismissed: (_) => entry.dismiss(),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: searchTabSectionHorizontalPadding,
+              vertical: 8,
+            ),
+            child: Semantics(
+              button: true,
+              label: "Rewind ${RewindEdition.year}, $action",
+              customSemanticsActions: {
+                const CustomSemanticsAction(label: "Dismiss"): entry.dismiss,
+              },
+              child: RewindPressable(
+                onTap: () => entry.open(context),
+                pressedScale: 0.97,
+                child: ExcludeSemantics(
+                  child: ClipPath(
+                    clipper: const _TicketClipper(),
+                    child: SizedBox(
+                      height: 76,
+                      child: Stack(
+                        children: [
+                          const Positioned.fill(child: RewindDoodleTile()),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(18, 8, 16, 8),
+                            child: Row(
+                              children: [
+                                Image.file(
+                                  RewindAssets.file(RewindAssets.tileLockup),
+                                  height: 60,
+                                  fit: BoxFit.contain,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    "YOUR YEAR\nIN PHOTOS",
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: RewindTextStyles.display(
+                                      17,
+                                      color: RewindColors.cream,
+                                      height: 0.95,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 8),
-                              _ActionPill(action),
-                            ],
+                                const SizedBox(width: 8),
+                                _ActionPill(action),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),

@@ -1,6 +1,8 @@
 import "dart:math";
 
+import "package:ente_components/hugeicons.dart";
 import "package:flutter/material.dart";
+import "package:flutter/semantics.dart";
 import "package:photos/services/rewind/rewind_edition.dart";
 import "package:photos/ui/home/memories/memory_card_constants.dart";
 import "package:photos/ui/rewind/entry/rewind_entry.dart";
@@ -16,29 +18,31 @@ class RewindMemoryTile extends StatelessWidget {
     required this.entry,
     required this.size,
     required this.onTap,
+    this.onDismiss,
     super.key,
   });
-
-  static const _design = Size(148, 215);
 
   final RewindEntry entry;
   final Size size;
   final VoidCallback onTap;
+  final VoidCallback? onDismiss;
 
   @override
   Widget build(BuildContext context) {
-    final page = entry.resumeIndex + 1;
-    final pages = entry.pageCount;
+    final onDismiss = this.onDismiss;
     final status = entry.completed
         ? "Watch again"
         : entry.started
-        ? "Continue, $page of $pages"
+        ? "Continue, ${entry.resumeIndex + 1} of ${entry.pageCount}"
         : "New";
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: kMemoryCardStripGap / 2),
       child: Semantics(
         button: true,
         label: "Rewind ${RewindEdition.year}, $status",
+        customSemanticsActions: onDismiss == null
+            ? null
+            : {const CustomSemanticsAction(label: "Dismiss"): onDismiss},
         child: RewindPressable(
           onTap: onTap,
           pressedScale: 0.96,
@@ -46,60 +50,117 @@ class RewindMemoryTile extends StatelessWidget {
             borderRadius: BorderRadius.circular(kMemoryCardBorderRadius),
             child: SizedBox.fromSize(
               size: size,
-              child: ExcludeSemantics(
-                child: MediaQuery.withClampedTextScaling(
-                  maxScaleFactor: 1.2,
-                  child: FittedBox(
-                    fit: BoxFit.cover,
-                    child: SizedBox.fromSize(
-                      size: _design,
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          const Positioned.fill(child: RewindDoodleTile()),
-                          Positioned.fromRect(
-                            rect: const Rect.fromLTWH(12.73, 18.83, 120, 91),
-                            child: Image.file(
-                              RewindAssets.file(RewindAssets.tileLockup),
-                              fit: BoxFit.contain,
-                            ),
-                          ),
-                          Positioned.fromRect(
-                            rect: const Rect.fromLTWH(
-                              20.47,
-                              118.83,
-                              106.27,
-                              119.4,
-                            ),
-                            child: Image.file(
-                              RewindAssets.file(RewindAssets.tileDucky),
-                              fit: BoxFit.contain,
-                            ),
-                          ),
-                          if (!entry.opened)
-                            Positioned(
-                              right: 7,
-                              bottom: 12,
-                              child: Transform.rotate(
-                                angle: -8 * pi / 180,
-                                child: const RewindLabelSticker(
-                                  "NEW",
-                                  size: 13,
-                                ),
-                              ),
-                            ),
-                          if (entry.started)
-                            _TileFooter(
-                              label: "Continue",
-                              detail: "$page of $pages",
-                              progress: page / pages,
-                            ),
-                          if (entry.completed)
-                            const _TileFooter(label: "Watch again"),
-                        ],
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  _TileArt(entry: entry),
+                  if (onDismiss != null)
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: _DismissButton(
+                        inset: size.height * 0.04,
+                        onTap: onDismiss,
                       ),
                     ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TileArt extends StatelessWidget {
+  const _TileArt({required this.entry});
+
+  static const _design = Size(148, 215);
+
+  final RewindEntry entry;
+
+  @override
+  Widget build(BuildContext context) {
+    final page = entry.resumeIndex + 1;
+    final pages = entry.pageCount;
+    return ExcludeSemantics(
+      child: MediaQuery.withClampedTextScaling(
+        maxScaleFactor: 1.2,
+        child: FittedBox(
+          fit: BoxFit.cover,
+          child: SizedBox.fromSize(
+            size: _design,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                const Positioned.fill(child: RewindDoodleTile()),
+                Positioned.fromRect(
+                  rect: const Rect.fromLTWH(12.73, 18.83, 120, 91),
+                  child: Image.file(
+                    RewindAssets.file(RewindAssets.tileLockup),
+                    fit: BoxFit.contain,
                   ),
+                ),
+                Positioned.fromRect(
+                  rect: const Rect.fromLTWH(20.47, 118.83, 106.27, 119.4),
+                  child: Image.file(
+                    RewindAssets.file(RewindAssets.tileDucky),
+                    fit: BoxFit.contain,
+                  ),
+                ),
+                if (!entry.opened)
+                  Positioned(
+                    right: 7,
+                    bottom: 12,
+                    child: Transform.rotate(
+                      angle: -8 * pi / 180,
+                      child: const RewindLabelSticker("NEW", size: 13),
+                    ),
+                  ),
+                if (entry.started)
+                  _TileFooter(
+                    label: "Continue",
+                    detail: "$page of $pages",
+                    progress: page / pages,
+                  ),
+                if (entry.completed) const _TileFooter(label: "Watch again"),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DismissButton extends StatelessWidget {
+  const _DismissButton({required this.inset, required this.onTap});
+
+  final double inset;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ExcludeSemantics(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Padding(
+          padding: EdgeInsets.all(inset),
+          child: SizedBox.square(
+            dimension: 16,
+            child: DecoratedBox(
+              decoration: const BoxDecoration(
+                color: Color(0x4AFFFFFF),
+                shape: BoxShape.circle,
+              ),
+              child: Transform.scale(
+                scale: 0.75,
+                child: const HugeIcon(
+                  icon: HugeIcons.strokeRoundedCancel01,
+                  color: Colors.white,
+                  strokeWidth: 1.0 / 0.75,
                 ),
               ),
             ),

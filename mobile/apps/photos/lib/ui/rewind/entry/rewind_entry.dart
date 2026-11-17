@@ -28,11 +28,17 @@ class RewindEntry {
 
   bool get completed => rewindService.progress.completed;
 
+  bool get dismissed => rewindService.progress.dismissed;
+
   bool get started => opened && !completed;
+
+  bool get canDismissFromMemories => completed && !dismissed;
 
   int get resumeIndex => _story.resumeIndex(rewindService.progress.resumePage);
 
   int get pageCount => _story.pages.length;
+
+  Future<void> dismiss() => rewindService.progress.markDismissed();
 
   Future<void> open(BuildContext context) async {
     await rewindService.revalidate();
