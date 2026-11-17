@@ -1,0 +1,1 @@
+- Added Belarusian, Norwegian Bokmål, and Swedish language support.

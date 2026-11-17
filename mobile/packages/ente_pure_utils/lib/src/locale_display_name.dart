@@ -8,6 +8,8 @@ String getLocaleDisplayName(Locale locale) {
       return 'Čeština';
     case 'ar':
       return 'العربية';
+    case 'be':
+      return 'Беларуская';
     case 'bg':
       return 'Български';
     case 'de':
@@ -45,6 +47,8 @@ String getLocaleDisplayName(Locale locale) {
       return 'Lietuvių';
     case 'nl':
       return 'Nederlands';
+    case 'nb':
+      return 'Norsk bokmål';
     case 'no':
       return 'Norsk';
     case 'pl':
@@ -64,6 +68,8 @@ String getLocaleDisplayName(Locale locale) {
       return 'Slovenčina';
     case 'sl':
       return 'Slovenščina';
+    case 'sv':
+      return 'Svenska';
     case 'tr':
       return 'Türkçe';
     case 'zh':
