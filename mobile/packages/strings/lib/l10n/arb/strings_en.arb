@@ -921,6 +921,7 @@
   "createStream": "Create stream",
   "creatingLink": "Creating link...",
   "creatingStream": "Creating stream",
+  "creatingVideo": "Creating your video",
   "credentialName": "Account",
   "credentialNameHint": "Name of the service",
   "credentialNotes": "Additional notes",
@@ -2242,6 +2243,7 @@
   "@keep": {
     "description": "Tooltip for the button that keeps the current photo while reviewing old photos."
   },
+  "keepEnteOpenUntilVideoIsReady": "Keep Ente open until your video is ready",
   "keepOffline": "Keep offline",
   "keepPhotos": "Keep photos",
   "kiloMeterUnit": "km",
@@ -3322,7 +3324,6 @@
     }
   },
   "preparingLogs": "Preparing logs...",
-  "preparingVideo": "Preparing video...",
   "preserveMore": "Preserve more",
   "pressAndHoldToPlayVideoDetailed": "Press and hold on the image to  play video",
   "preview": "Preview",

@@ -33,6 +33,13 @@ class MemoryVideoExportException implements Exception {
   String toString() => "MemoryVideoExportException: $message";
 }
 
+class MemoryVideoExportCancelled implements Exception {
+  const MemoryVideoExportCancelled();
+
+  @override
+  String toString() => "MemoryVideoExportCancelled";
+}
+
 class MemoryVideoExporter {
   static const frameWidth = 1080;
   static const frameHeight = 1920;
@@ -55,8 +62,10 @@ class MemoryVideoExporter {
   final Future<Uint8List?> Function(EnteFile file) _resolveThumbnailFromServer;
   final Future<File> Function(MemoryMusicTrack track) _resolveMusic;
   final SlideshowExport _export;
+  final Future<void> Function() _cancelExport;
   final String Function() _outputDirectory;
   final Random _random;
+  bool _isCancelled = false;
 
   MemoryVideoExporter({
     Future<File?> Function(EnteFile file)? resolveFile,
@@ -65,6 +74,7 @@ class MemoryVideoExporter {
     Future<Uint8List?> Function(EnteFile file)? resolveThumbnailFromServer,
     Future<File> Function(MemoryMusicTrack track)? resolveMusic,
     SlideshowExport? export,
+    Future<void> Function()? cancelExport,
     String Function()? outputDirectory,
     Random? random,
   }) : _resolveFile = resolveFile ?? getFile,
@@ -74,6 +84,7 @@ class MemoryVideoExporter {
            resolveThumbnailFromServer ?? getThumbnailFromServer,
        _resolveMusic = resolveMusic ?? _cachedMusicFile,
        _export = export ?? NativeVideoEditor.exportSlideshow,
+       _cancelExport = cancelExport ?? NativeVideoEditor.cancelProcessing,
        _outputDirectory =
            outputDirectory ?? Configuration.instance.getTempDirectory,
        _random = random ?? Random();
@@ -103,6 +114,9 @@ class MemoryVideoExporter {
         scratchFiles: scratchFiles,
         onProgress: onProgress,
       );
+    } on MemoryVideoExportCancelled {
+      _logger.info("Memory video export cancelled");
+      rethrow;
     } catch (e, s) {
       _logger.severe("Failed to export memory video", e, s);
       rethrow;
@@ -111,6 +125,16 @@ class MemoryVideoExporter {
         await deleteFileSystemEntityIfPresent(file);
       }
     }
+  }
+
+  Future<void> cancel() async {
+    if (_isCancelled) return;
+    _isCancelled = true;
+    await _cancelExport();
+  }
+
+  void _throwIfCancelled() {
+    if (_isCancelled) throw const MemoryVideoExportCancelled();
   }
 
   Future<File> _render({
@@ -122,6 +146,7 @@ class MemoryVideoExporter {
   }) async {
     final resolvedFiles = <File>[];
     for (var start = 0; start < files.length; start += _resolveConcurrency) {
+      _throwIfCancelled();
       final end = min(start + _resolveConcurrency, files.length);
       resolvedFiles.addAll(
         await Future.wait([
@@ -170,17 +195,29 @@ class MemoryVideoExporter {
       items: items,
       music: music,
     );
+    _throwIfCancelled();
     _logger.info(
       "Exporting memory video with ${items.length} items"
       "${music == null ? "" : " and music"}",
     );
-    final outputPath = await _export(
-      request,
-      onProgress: (progress) => onProgress?.call(
-        _downloadProgressShare + (1 - _downloadProgressShare) * progress,
-      ),
-    );
-    return File(outputPath);
+    final String outputPath;
+    try {
+      outputPath = await _export(
+        request,
+        onProgress: (progress) => onProgress?.call(
+          _downloadProgressShare + (1 - _downloadProgressShare) * progress,
+        ),
+      );
+    } catch (_) {
+      _throwIfCancelled();
+      rethrow;
+    }
+    final video = File(outputPath);
+    if (_isCancelled) {
+      await deleteFileSystemEntityIfPresent(video);
+      throw const MemoryVideoExportCancelled();
+    }
+    return video;
   }
 
   Future<File?> _resolveItem(EnteFile file, List<File> scratchFiles) async {
