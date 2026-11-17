@@ -43,6 +43,15 @@ class _Edges {
   final double right;
   final double sideTop;
   final double seamY;
+
+  RRect get back => RRect.fromLTRBAndCorners(
+    left,
+    EnvelopeShape.backTop,
+    right,
+    EnvelopeShape.bottom,
+    topLeft: const Radius.circular(18),
+    topRight: const Radius.circular(18),
+  );
 }
 
 class EnvelopeBackPainter extends CustomPainter {
@@ -55,15 +64,7 @@ class EnvelopeBackPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final edges = _Edges(bleed);
-    final outer = RRect.fromLTRBAndCorners(
-      edges.left,
-      EnvelopeShape.backTop,
-      edges.right,
-      EnvelopeShape.bottom,
-      topLeft: const Radius.circular(18),
-      topRight: const Radius.circular(18),
-    );
+    final outer = _Edges(bleed).back;
     canvas.drawRRect(outer, Paint()..color = RewindColors.cream);
     canvas
       ..save()
@@ -115,6 +116,7 @@ class EnvelopeFrontPainter extends CustomPainter {
     final sideRight = Offset(edges.right, edges.sideTop);
     final seamLeft = Offset(edges.left, edges.seamY);
     final seamRight = Offset(edges.right, edges.seamY);
+    canvas.clipRRect(edges.back);
     final silhouette = Path()
       ..moveTo(sideLeft.dx, sideLeft.dy)
       ..lineTo(_dipLeft.dx, _dipLeft.dy)
