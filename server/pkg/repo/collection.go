@@ -520,16 +520,15 @@ func (repo *CollectionRepository) Share(
 	encryptedKey string,
 	role ente.CollectionParticipantRole,
 	updationTime int64) error {
+	if role != ente.VIEWER && role != ente.COLLABORATOR && role != ente.ADMIN {
+		return stacktrace.Propagate(ente.NewBadRequestError(nil), "invalid share role")
+	}
 	context := context.Background()
 	tx, err := repo.DB.BeginTx(context, nil)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
 	defer tx.Rollback()
-	if role != ente.VIEWER && role != ente.COLLABORATOR && role != ente.ADMIN {
-		err = fmt.Errorf("invalid role %s", string(role))
-		return stacktrace.Propagate(err, "")
-	}
 	_, err = tx.ExecContext(context, `INSERT INTO collection_shares(collection_id, from_user_id, to_user_id, encrypted_key, updation_time, role_type, shared_at) VALUES($1, $2, $3, $4, $5, $6, $7)
 			ON CONFLICT (collection_id, from_user_id, to_user_id)
 			DO UPDATE SET
