@@ -42,13 +42,11 @@ pub(in crate::rewind) fn mosaic(
             .into_iter()
             .find_map(|(person, _)| subject(people, person))
     });
-    let cluster = people
-        .filter(|_| me.is_none() && top.is_none())
-        .and_then(|people| {
-            clusters_by_photos(library, people)
-                .into_iter()
-                .find_map(|cluster| subject(people, cluster))
-        });
+    let cluster = people.and_then(|people| {
+        clusters_by_photos(library, people)
+            .into_iter()
+            .find_map(|cluster| subject(people, cluster))
+    });
     let (me_person_id, me_face_ids) = me.unzip();
     let (top_person_id, top_face_ids) = top.unzip();
     let (cluster_id, cluster_face_ids) = cluster.unzip();
@@ -126,7 +124,8 @@ mod tests {
         assert_eq!(tiles.me_face_ids.len(), 5);
         assert_eq!(tiles.top_person_id.as_deref(), Some("sister"));
         assert_eq!(tiles.top_face_ids.len(), 5);
-        assert_eq!(tiles.cluster_id, None);
+        assert_eq!(tiles.cluster_id.as_deref(), Some("strangers"));
+        assert_eq!(tiles.cluster_face_ids.len(), 5);
 
         let nobody = Ranking::new(None, None);
         let anonymous = mosaic(
