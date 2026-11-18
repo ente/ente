@@ -496,6 +496,7 @@ public final class NativeVideoEditorPlugin: NSObject, @preconcurrency FlutterPlu
             let height = int(args["height"]),
             let frameRate = int(args["frameRate"]),
             let crossfadeMs = int64(args["crossfadeMs"]),
+            let videoBitrate = int(args["videoBitrate"]),
             let itemValues = args["items"] as? [[String: Any]]
         else {
             throw VideoEditorError.invalidRequest("Invalid slideshow arguments")
@@ -530,7 +531,11 @@ public final class NativeVideoEditorPlugin: NSObject, @preconcurrency FlutterPlu
                     )
                 )
             case "video":
-                return .video(url: url, isMuted: (value["isMuted"] as? Bool) ?? false)
+                return .video(
+                    url: url,
+                    isMuted: (value["isMuted"] as? Bool) ?? false,
+                    maxDurationMs: int64(value["maxDurationMs"])
+                )
             default:
                 throw VideoEditorError.invalidRequest("Invalid slideshow item type")
             }
@@ -555,6 +560,7 @@ public final class NativeVideoEditorPlugin: NSObject, @preconcurrency FlutterPlu
             height: height,
             frameRate: frameRate,
             crossfadeMs: crossfadeMs,
+            videoBitrate: videoBitrate,
             items: items,
             music: music
         )

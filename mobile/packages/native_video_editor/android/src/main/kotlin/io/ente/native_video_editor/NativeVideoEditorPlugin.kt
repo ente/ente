@@ -469,7 +469,8 @@ class NativeVideoEditorPlugin : FlutterPlugin, MethodCallHandler, EventChannel.S
 
                 "video" -> SlideshowItem.Video(
                     path = path,
-                    isMuted = value["isMuted"] as? Boolean ?: false
+                    isMuted = value["isMuted"] as? Boolean ?: false,
+                    maxDurationMs = (value["maxDurationMs"] as? Number)?.toLong()
                 )
 
                 else -> error("Invalid slideshow item type")
@@ -488,6 +489,7 @@ class NativeVideoEditorPlugin : FlutterPlugin, MethodCallHandler, EventChannel.S
             height = requireNotNull(call.argument<Int>("height")),
             frameRate = requireNotNull(call.argument<Int>("frameRate")),
             crossfadeMs = requireNotNull(call.argument<Number>("crossfadeMs")).toLong(),
+            videoBitrate = requireNotNull(call.argument<Number>("videoBitrate")).toInt(),
             items = items,
             music = music
         )

@@ -259,19 +259,21 @@ class _EnvelopeFinaleState extends State<EnvelopeFinale>
     return Positioned(
       left: left,
       top: top,
-      child: RewindEntrance(
-        preset: RewindPreset.pop,
-        active: widget.active,
-        delayMs: atMs,
-        child: RewindIdleLoop(
-          idle: idle,
+      child: IgnorePointer(
+        child: RewindEntrance(
+          preset: RewindPreset.pop,
           active: widget.active,
-          delayMs: atMs + 900,
-          child: Transform.rotate(
-            angle: tiltDeg * pi / 180,
-            child: asset.endsWith(".svg")
-                ? SvgPicture.file(RewindAssets.file(asset), width: width)
-                : Image.file(RewindAssets.file(asset), width: width),
+          delayMs: atMs,
+          child: RewindIdleLoop(
+            idle: idle,
+            active: widget.active,
+            delayMs: atMs + 900,
+            child: Transform.rotate(
+              angle: tiltDeg * pi / 180,
+              child: asset.endsWith(".svg")
+                  ? SvgPicture.file(RewindAssets.file(asset), width: width)
+                  : Image.file(RewindAssets.file(asset), width: width),
+            ),
           ),
         ),
       ),

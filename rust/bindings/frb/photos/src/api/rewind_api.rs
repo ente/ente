@@ -1,8 +1,8 @@
 use ente_photos::memories::CityLookup;
 use ente_photos::rewind;
 pub use ente_photos::rewind::{
-    Badge, BusiestDay, ColourOfTheYear, CrowdFavourite, Favourites, Globe, GlobePlace, LikedPhoto,
-    Mosaic, NewFace, NewFaces, PeopleRace, Places, RacePerson, RewindBadge, RewindCity,
+    Badge, BusiestDay, ColourOfTheYear, CrowdFavourite, Favourites, Finale, Globe, GlobePlace,
+    LikedPhoto, Mosaic, NewFace, NewFaces, PeopleRace, Places, RacePerson, RewindBadge, RewindCity,
     RewindColour, RewindFile, RewindFileType, RewindLocation, RewindPerson, RewindReport,
     RewindRequest, RewindState, RewindStatus, RewindVisibility, Scrapbook, Spots, Timelapse,
     TimelapseFrame, Totals, Tour, TourStop, Warp, WeeklyHabit,
@@ -115,6 +115,7 @@ pub struct _RewindReport {
     pub crowd_favourite: Option<CrowdFavourite>,
     pub badge: Option<Badge>,
     pub scrapbook: Option<Scrapbook>,
+    pub finale: Option<Finale>,
     pub tour: Option<Tour>,
     pub globe: Option<Globe>,
     pub mosaic: Option<Mosaic>,
@@ -270,6 +271,11 @@ pub enum _RewindBadge {
 
 #[frb(mirror(Scrapbook))]
 pub struct _Scrapbook {
+    pub file_ids: Vec<i64>,
+}
+
+#[frb(mirror(Finale))]
+pub struct _Finale {
     pub file_ids: Vec<i64>,
 }
 

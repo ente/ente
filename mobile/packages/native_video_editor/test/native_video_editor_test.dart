@@ -245,6 +245,7 @@ void main() {
         height: 1920,
         frameRate: 30,
         crossfade: const Duration(milliseconds: 600),
+        videoBitrate: 4500000,
         items: [
           SlideshowItem.photo(
             path: photo.path,
@@ -292,6 +293,7 @@ void main() {
           height: 1920,
           frameRate: 30,
           crossfade: const Duration(seconds: 6),
+          videoBitrate: 4500000,
           items: [
             SlideshowItem.photo(
               path: photo.path,

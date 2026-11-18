@@ -148,7 +148,7 @@ void main() {
       outputDirectory: () => "${directory.path}/",
     );
 
-    await exporter.export(
+    final video = await exporter.export(
       files: [
         makeFile(1, FileType.image, title: "shot.DNG")..uploadedFileID = 1,
       ],
@@ -157,7 +157,9 @@ void main() {
     );
 
     expect(requests.single.items.single.path, endsWith(".jpg"));
-    expect(await directory.list().toList(), isEmpty);
+    expect(await directory.list().map((entry) => entry.path).toList(), [
+      video.parent.path,
+    ]);
   });
 
   test("cleans up cloud fallback after local decoding fails", () async {
@@ -247,16 +249,17 @@ void main() {
           outputDirectory: () => "${directory.path}/",
         );
 
-        await exporter.export(
+        final video = await exporter.export(
           files: [file],
           musicTrack: null,
           muteVideos: false,
         );
 
         expect(remoteDownloads, 1);
-        expect(await directory.list().map((entry) => entry.path).toList(), [
-          remoteFile.path,
-        ]);
+        expect(
+          await directory.list().map((entry) => entry.path).toList(),
+          unorderedEquals([remoteFile.path, video.parent.path]),
+        );
       },
     );
   }

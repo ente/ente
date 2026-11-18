@@ -19,6 +19,7 @@ import androidx.media3.effect.Crop
 import androidx.media3.effect.Presentation
 import androidx.media3.effect.ScaleAndRotateTransformation
 import androidx.media3.transformer.Composition
+import androidx.media3.transformer.DefaultEncoderFactory
 import androidx.media3.transformer.EditedMediaItem
 import androidx.media3.transformer.EditedMediaItemSequence
 import androidx.media3.transformer.Effects
@@ -29,6 +30,7 @@ import androidx.media3.muxer.BufferInfo
 import androidx.media3.muxer.Muxer
 import androidx.media3.transformer.ProgressHolder
 import androidx.media3.transformer.Transformer
+import androidx.media3.transformer.VideoEncoderSettings
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -137,6 +139,7 @@ class VideoExportEngine(
                     transcodeVideo = true,
                     optimizeTrim = false,
                     maxDurationUs = null,
+                    videoBitrate = request.videoBitrate,
                     onProgress = onProgress
                 )
             }
@@ -224,6 +227,7 @@ class VideoExportEngine(
         transcodeVideo: Boolean,
         optimizeTrim: Boolean,
         maxDurationUs: Long?,
+        videoBitrate: Int? = null,
         onProgress: ((Float) -> Unit)?
     ): ExportResult = coroutineScope {
         var progressJob: Job? = null
@@ -235,6 +239,15 @@ class VideoExportEngine(
                 }
                 if (transcodeVideo) {
                     transformerBuilder.setVideoMimeType(MimeTypes.VIDEO_H264)
+                }
+                if (videoBitrate != null) {
+                    transformerBuilder.setEncoderFactory(
+                        DefaultEncoderFactory.Builder(context)
+                            .setRequestedVideoEncoderSettings(
+                                VideoEncoderSettings.Builder().setBitrate(videoBitrate).build()
+                            )
+                            .build()
+                    )
                 }
                 if (optimizeTrim) {
                     transformerBuilder.experimentalSetTrimOptimizationEnabled(true)
