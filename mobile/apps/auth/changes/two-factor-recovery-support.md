@@ -1,0 +1,1 @@
+- Passkey recovery now asks you to contact support when recovery is not set up.
