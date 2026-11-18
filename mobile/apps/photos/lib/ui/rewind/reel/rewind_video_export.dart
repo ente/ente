@@ -200,22 +200,37 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
       final reel = await _unlessCancelled(_loadReel());
       final directory = Configuration.instance.getTempDirectory();
       await _deleteOldVideos(directory);
-      sink = RewindVideoSink.open(
-        output: File(
-          "$directory$_filePrefix${DateTime.now().millisecondsSinceEpoch}.mp4",
-        ),
+      final output = File(
+        "$directory$_filePrefix${DateTime.now().millisecondsSinceEpoch}.mp4",
+      );
+      final duration = reel.duration + reel.timeOf(1);
+      sink = RewindNativeVideoSink.open(
+        output: output,
         format: widget.format,
         frameRate: RewindReel.frameRate,
-        duration: reel.duration + reel.timeOf(1),
+        duration: duration,
         music: music,
       );
-      await _unlessCancelled(sink.ready);
-      await _render(reel, sink);
-      if (mounted) setState(() => _stage = _Stage.finishing);
-      final wrap = Future<void>.delayed(_wrapHold);
-      final video = await sink.finish();
-      await wrap;
-      return video;
+      try {
+        return await _encode(reel, sink);
+      } on _Cancelled {
+        rethrow;
+      } catch (error, stackTrace) {
+        _logger.warning(
+          "Encoding the Rewind video with FFmpeg",
+          error,
+          stackTrace,
+        );
+        await sink.abort();
+        sink = RewindFfmpegVideoSink.open(
+          output: output,
+          format: widget.format,
+          frameRate: RewindReel.frameRate,
+          duration: duration,
+          music: music,
+        );
+        return await _encode(reel, sink);
+      }
     } catch (_) {
       await sink?.abort();
       rethrow;
@@ -226,6 +241,23 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
         wakeLockFor: WakeLockFor.rewindVideoExport,
       );
     }
+  }
+
+  Future<File> _encode(RewindReel reel, RewindVideoSink sink) async {
+    final clock = Stopwatch()..start();
+    await _unlessCancelled(sink.ready);
+    await _render(reel, sink);
+    final rendered = clock.elapsed;
+    if (mounted) setState(() => _stage = _Stage.finishing);
+    final wrap = Future<void>.delayed(_wrapHold);
+    final video = await sink.finish();
+    _logger.info(
+      "Rendered ${reel.frameCount + 1} frames in ${rendered.inMilliseconds} ms "
+      "and finished in ${(clock.elapsed - rendered).inMilliseconds} ms "
+      "with ${sink.runtimeType}",
+    );
+    await wrap;
+    return video;
   }
 
   Future<void> _deleteOldVideos(String directory) async {
@@ -281,7 +313,12 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
   Future<void> _render(RewindReel reel, RewindVideoSink sink) async {
     if (!mounted) throw const _Cancelled();
     _throwIfCancelled();
-    setState(() => _reel = reel);
+    _rendered = Duration.zero;
+    _frameIndex.value = 0;
+    setState(() {
+      _reel = reel;
+      _stage = _Stage.preparing;
+    });
     final stepper = _stepper = RewindFrameStepper(RewindReel.frameRate)
       ..install();
     var written = Future<void>.value();
@@ -298,7 +335,7 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
         final pixels = _read(await _capture())..ignore();
         final previous = written;
         written = previous.then((_) => pixels).then(sink.add);
-        await previous;
+        await _unlessCancelled(previous);
         final lap = _clock.elapsed;
         _clock.reset();
         _rendered += lap < _longestCountedFrame ? lap : _longestCountedFrame;

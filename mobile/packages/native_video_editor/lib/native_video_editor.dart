@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/services.dart';
@@ -363,11 +364,112 @@ class SlideshowExportRequest {
   };
 }
 
+class VideoFrameStreamRequest {
+  const VideoFrameStreamRequest({
+    required this.outputPath,
+    required this.width,
+    required this.height,
+    required this.frameRate,
+    required this.bitrate,
+  });
+
+  final String outputPath;
+  final int width;
+  final int height;
+  final int frameRate;
+  final int bitrate;
+
+  Map<String, dynamic> toMap() => {
+    'outputPath': outputPath,
+    'width': width,
+    'height': height,
+    'frameRate': frameRate,
+    'bitrate': bitrate,
+  };
+}
+
+class VideoFrameStream {
+  VideoFrameStream._(this.request);
+
+  final VideoFrameStreamRequest request;
+  var _isClosed = false;
+
+  Future<void> add(ByteData rgba) async {
+    _throwIfClosed();
+    final reply = await ServicesBinding.instance.defaultBinaryMessenger.send(
+      NativeVideoEditor._framesChannel,
+      rgba,
+    );
+    if (reply != null && reply.lengthInBytes > 0 && reply.getUint8(0) == 1) {
+      return;
+    }
+    final reason = reply == null || reply.lengthInBytes < 2
+        ? 'no reply'
+        : utf8.decode(Uint8List.sublistView(reply, 1));
+    throw NativeVideoEditorException('Failed to add video frame: $reason');
+  }
+
+  Future<String> finish() async {
+    _throwIfClosed();
+    _isClosed = true;
+    final result = await NativeVideoEditor._invokeMap(
+      'finishFrameStream',
+      const <String, dynamic>{},
+      operation: 'finish frame stream',
+    );
+    if (result['outputPath'] is! String) {
+      throw const FormatException('Frame stream returned an invalid result');
+    }
+    return request.outputPath;
+  }
+
+  Future<void> cancel() async {
+    if (_isClosed) return;
+    _isClosed = true;
+    await NativeVideoEditor._invokeVoid(
+      'cancelFrameStream',
+      null,
+      operation: 'cancel frame stream',
+    );
+  }
+
+  void _throwIfClosed() {
+    if (_isClosed) {
+      throw NativeVideoEditorException('The video frame stream is closed');
+    }
+  }
+}
+
 class NativeVideoEditor {
   static const MethodChannel _channel = MethodChannel('native_video_editor');
   static const EventChannel _progressChannel = EventChannel(
     'native_video_editor/progress',
   );
+  static const _framesChannel = 'native_video_editor/frames';
+
+  static Future<VideoFrameStream> openFrameStream(
+    VideoFrameStreamRequest request,
+  ) async {
+    if (request.width <= 0 ||
+        request.height <= 0 ||
+        request.width.isOdd ||
+        request.height.isOdd) {
+      throw ArgumentError('width and height must be positive even numbers');
+    }
+    if (request.frameRate < 1 || request.frameRate > 60) {
+      throw RangeError.range(request.frameRate, 1, 60, 'frameRate');
+    }
+    if (request.bitrate <= 0) {
+      throw ArgumentError.value(request.bitrate, 'bitrate', 'is not positive');
+    }
+    _ensureOutputDirectoryExists(request.outputPath);
+    await _invokeVoid(
+      'openFrameStream',
+      request.toMap(),
+      operation: 'open frame stream',
+    );
+    return VideoFrameStream._(request);
+  }
 
   static Future<VideoEditResult> processVideo({
     required String inputPath,
