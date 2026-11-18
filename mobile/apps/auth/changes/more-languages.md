@@ -1,0 +1,1 @@
+- Added Swedish language support.
