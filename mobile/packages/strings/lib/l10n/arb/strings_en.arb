@@ -1705,7 +1705,6 @@
     "description": "FAQ link label"
   },
   "faqs": "FAQs",
-  "fasterUploads": "Faster uploads",
   "favorite": "Favorite",
   "feastingWithThem": "Feasting with {name}",
   "@feastingWithThem": {
@@ -4441,6 +4440,7 @@
   "slideshow": "Slideshow",
   "slideshowSettings": "Slideshow settings",
   "smartMemories": "Smart memories",
+  "smartRouting": "Smart routing",
   "smartSuggestions": "Smart suggestions",
   "snowAdventures": "Winter adventures",
   "socialNotifications": "Likes and comments",
