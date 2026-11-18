@@ -1080,7 +1080,7 @@
     "filters": "筛选",
     "invert_colors": "反相颜色",
     "reset": "重设",
-    "faster_upload": "更快上传",
+    "smart_routing": "",
     "faster_upload_description": "通过附近的服务器路由上传",
     "open_ente_on_startup": "启动时打开 Ente",
     "cast_album_to_tv": "在电视上播放相册",

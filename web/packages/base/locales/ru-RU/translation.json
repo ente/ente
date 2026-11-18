@@ -1080,7 +1080,7 @@
     "filters": "Фильтры",
     "invert_colors": "Инвертировать Цвета",
     "reset": "Сбросить",
-    "faster_upload": "Более быстрая загрузка данных",
+    "smart_routing": "",
     "faster_upload_description": "Загрузка маршрута через близлежащие серверы",
     "open_ente_on_startup": "Открывать Ente при запуске",
     "cast_album_to_tv": "Воспроизвести альбом на ТВ",

@@ -1080,7 +1080,7 @@
     "filters": "Filtreler",
     "invert_colors": "Renkleri ters çevir",
     "reset": "Sıfırla",
-    "faster_upload": "Daha hızlı yükleme",
+    "smart_routing": "",
     "faster_upload_description": "Yüklemeleri yakındaki sunucular üzerinden yönlendir",
     "open_ente_on_startup": "Başlangıçta Ente’yi aç",
     "cast_album_to_tv": "Albümü TV'de oynat",
