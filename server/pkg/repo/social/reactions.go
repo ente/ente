@@ -3,6 +3,7 @@ package social
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/ente/museum/ente"
@@ -15,18 +16,13 @@ type ReactionsRepository struct {
 	DB *sql.DB
 }
 
-func (repo *ReactionsRepository) Upsert(ctx context.Context, reaction socialentity.Reaction) (string, error) {
-	var id string
-	err := repo.DB.QueryRowContext(ctx, `
+func (repo *ReactionsRepository) Upsert(ctx context.Context, reaction socialentity.Reaction) (string, bool, error) {
+	const query = `
         INSERT INTO reactions (id, collection_id, file_id, comment_id, user_id, anon_user_id, cipher, nonce, is_deleted)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, FALSE)
         ON CONFLICT (actor_key, unique_key)
-        DO UPDATE SET cipher = EXCLUDED.cipher,
-                      nonce = EXCLUDED.nonce,
-                      is_deleted = FALSE,
-                      updated_at = now_utc_micro_seconds()
-        RETURNING id
-    `,
+	`
+	args := []any{
 		reaction.ID,
 		reaction.CollectionID,
 		reaction.FileID,
@@ -35,11 +31,23 @@ func (repo *ReactionsRepository) Upsert(ctx context.Context, reaction socialenti
 		reaction.AnonUserID,
 		reaction.Cipher,
 		reaction.Nonce,
-	).Scan(&id)
-	if err != nil {
-		return "", stacktrace.Propagate(err, "")
 	}
-	return id, nil
+	var id string
+	err := repo.DB.QueryRowContext(ctx, query+`DO NOTHING RETURNING id`, args...).Scan(&id)
+	inserted := err == nil
+	if errors.Is(err, sql.ErrNoRows) {
+		err = repo.DB.QueryRowContext(ctx, query+`
+            DO UPDATE SET cipher = EXCLUDED.cipher,
+                          nonce = EXCLUDED.nonce,
+                          is_deleted = FALSE,
+                          updated_at = now_utc_micro_seconds()
+            RETURNING id
+        `, args...).Scan(&id)
+	}
+	if err != nil {
+		return "", false, stacktrace.Propagate(err, "")
+	}
+	return id, inserted, nil
 }
 
 func (repo *ReactionsRepository) SoftDeleteByID(ctx context.Context, id string, userID int64, anonUserID *string) error {

@@ -16,8 +16,8 @@ type PushTokenRepository struct {
 }
 
 const (
-	androidAlbumShareRolloutPercentage = 30
-	androidAlbumShareRollout           = "android-album-share-v1"
+	androidPushRolloutPercentage = 30
+	androidPushRollout           = "android-album-share-v1"
 )
 
 func (repo *PushTokenRepository) AddToken(userID int64, sessionTokenHash []byte, token ente.PushTokenRequest) error {
@@ -68,7 +68,7 @@ func (repo *PushTokenRepository) GetTokensToBeNotified(lastNotificationTime int6
 	return tokens, nil
 }
 
-func (repo *PushTokenRepository) GetTokensForAlbumShare(ctx context.Context, userIDs []int64) ([]ente.PushToken, error) {
+func (repo *PushTokenRepository) GetTokensForEncryptedPush(ctx context.Context, userIDs []int64) ([]ente.PushToken, error) {
 	rows, err := repo.DB.QueryContext(ctx, `SELECT p.user_id, p.fcm_token, p.notification_public_key, r.user_id IS NOT NULL FROM push_tokens p
 		JOIN tokens t ON t.token_hash = p.session_token_hash AND t.user_id = p.user_id AND t.is_deleted = false AND t.app = $3
 		LEFT JOIN remote_store r ON r.user_id = p.user_id AND r.key_name = $2 AND r.key_value = 'true'
@@ -85,7 +85,7 @@ func (repo *PushTokenRepository) GetTokensForAlbumShare(ctx context.Context, use
 		if err := rows.Scan(&token.UserID, &token.FCMToken, &token.NotificationPublicKey, &internalUser); err != nil {
 			return nil, stacktrace.Propagate(err, "")
 		}
-		if internalUser || rollout.IsInPercentageRollout(token.UserID, androidAlbumShareRollout, androidAlbumShareRolloutPercentage) {
+		if internalUser || rollout.IsInPercentageRollout(token.UserID, androidPushRollout, androidPushRolloutPercentage) {
 			tokens = append(tokens, token)
 		}
 	}
