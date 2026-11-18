@@ -10,6 +10,7 @@ import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/story/rewind_rituals.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
+import "package:photos/ui/rewind/theme/rewind_motion.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
@@ -72,7 +73,8 @@ class RitualStreakPage extends RewindPage {
   String get key => pageKey;
 
   @override
-  Duration? get reelHold => const Duration(milliseconds: 3000);
+  Duration? get reelHold =>
+      const Duration(milliseconds: 3000 + RewindMotion.reelReadingMs);
 
   @override
   Widget build(

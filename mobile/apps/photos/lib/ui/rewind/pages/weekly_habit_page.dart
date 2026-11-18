@@ -49,7 +49,8 @@ class WeeklyHabitPage extends RewindPage {
   String get key => "weekly_habit";
 
   @override
-  Duration? get reelHold => const Duration(milliseconds: 4400);
+  Duration? get reelHold =>
+      const Duration(milliseconds: 4400 + RewindMotion.reelReadingMs);
 
   @override
   RewindChrome get chrome => RewindChrome.dark;

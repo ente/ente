@@ -41,8 +41,11 @@ class PhotosCountPage extends RewindPage {
   String get key => pageKey;
 
   @override
-  Duration? get reelHold =>
-      Duration(milliseconds: photos.length < _minimumPhotos ? 2800 : 4200);
+  Duration? get reelHold => Duration(
+    milliseconds: photos.length < _minimumPhotos
+        ? 2800 + RewindMotion.reelReadingMs
+        : 4200,
+  );
 
   @override
   List<EnteFile> get reelThumbnails =>

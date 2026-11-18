@@ -100,7 +100,8 @@ class ArtTwinPage extends RewindPage {
   String get key => pageKey;
 
   @override
-  Duration? get reelHold => const Duration(milliseconds: 4400);
+  Duration? get reelHold =>
+      const Duration(milliseconds: 4400 + RewindMotion.reelReadingMs);
 
   @override
   RewindChrome get chrome => RewindChrome(

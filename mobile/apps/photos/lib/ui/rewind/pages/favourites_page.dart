@@ -73,7 +73,8 @@ class FavouritesPage extends RewindPage {
   String get key => "favourites";
 
   @override
-  Duration? get reelHold => const Duration(milliseconds: 3100);
+  Duration? get reelHold =>
+      const Duration(milliseconds: 3100 + RewindMotion.reelReadingMs);
 
   @override
   Widget build(

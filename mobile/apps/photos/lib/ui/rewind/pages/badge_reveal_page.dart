@@ -5,6 +5,7 @@ import "package:photos/src/rust/api/rewind_api.dart" as rust;
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
+import "package:photos/ui/rewind/theme/rewind_motion.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
@@ -179,7 +180,8 @@ class BadgeRevealPage extends RewindPage {
   String get key => "badge";
 
   @override
-  Duration? get reelHold => const Duration(milliseconds: 3400);
+  Duration? get reelHold =>
+      const Duration(milliseconds: 3400 + RewindMotion.reelReadingMs);
 
   @override
   Widget build(

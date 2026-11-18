@@ -65,7 +65,8 @@ class ScrapbookPage extends RewindPage {
   String get key => "scrapbook";
 
   @override
-  Duration? get reelHold => const Duration(milliseconds: 3800);
+  Duration? get reelHold =>
+      const Duration(milliseconds: 3800 + RewindMotion.reelReadingMs);
 
   @override
   RewindChrome get chrome => const RewindChrome(foreground: RewindColors.cream);
