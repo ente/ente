@@ -290,9 +290,12 @@ class _GalleryFileWidgetState extends State<GalleryFileWidget> {
   }
 
   void _onTapWithSelectionLimit(EnteFile file) {
-    if (widget.selectedFiles!.files.isNotEmpty &&
-        !widget.selectedFiles!.isFileSelected(file)) {
-      widget.selectedFiles!.clearAll();
+    final selectedFiles = widget.selectedFiles!;
+    if (selectedFiles.files.isNotEmpty &&
+        (selectedFiles.dedupeByUploadID
+            ? !selectedFiles.isFileSelected(file)
+            : selectedFiles.files.first != file)) {
+      selectedFiles.clearAll();
     }
     _toggleFileSelection(file);
   }

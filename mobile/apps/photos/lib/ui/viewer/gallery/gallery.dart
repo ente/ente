@@ -68,6 +68,7 @@ class Gallery extends StatefulWidget {
   final String tagPrefix;
   final GalleryAppBarConfig? appBar;
   final Widget? header;
+  final bool scrollInitialPlaceholder;
   final Widget? footer;
   final Widget emptyState;
   final String? albumName;
@@ -114,6 +115,7 @@ class Gallery extends StatefulWidget {
     this.forceReloadEvents,
     this.removalEventTypes = const {},
     this.header,
+    this.scrollInitialPlaceholder = false,
     this.footer = const SizedBox(height: 212),
     this.addHeaderOrFooterEmptyState = true,
     this.emptyState = const EmptyState(),
@@ -1111,7 +1113,9 @@ class GalleryState extends State<Gallery> with WidgetsBindingObserver {
         appBar: widget.appBar,
         physics: _scrollPhysics,
         child:
-            widget.header != null && (widget.initialFiles?.isNotEmpty ?? false)
+            widget.scrollInitialPlaceholder &&
+                widget.header != null &&
+                (widget.initialFiles?.isNotEmpty ?? false)
             ? SingleChildScrollView(
                 primary: false,
                 physics: _scrollPhysics,
@@ -1564,7 +1568,9 @@ class _PinnedGroupHeaderState extends State<PinnedGroupHeader>
                   children: [
                     Positioned.fill(
                       // Cover fractional-pixel gaps at the app bar boundary.
-                      top: -1 / MediaQuery.devicePixelRatioOf(context),
+                      top: widget.topOffset > 0
+                          ? -1 / MediaQuery.devicePixelRatioOf(context)
+                          : 0,
                       child: ColoredBox(color: backgroundColor),
                     ),
                     const Positioned.fill(

@@ -85,6 +85,7 @@ void main() {
             tagPrefix: "tall_header_$withAppBar",
             appBar: withAppBar ? appBar : null,
             header: const SizedBox(height: 1000),
+            scrollInitialPlaceholder: !withAppBar,
             initialFiles: [file],
             asyncLoader: (start, end, {limit, asc}) async =>
                 FileLoadResult([file], false),

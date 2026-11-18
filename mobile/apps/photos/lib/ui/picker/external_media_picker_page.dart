@@ -744,6 +744,7 @@ class _ExternalMediaPickerPageState extends State<ExternalMediaPickerPage> {
       tagPrefix: "external_media_picker",
       selectedFiles: _selectedFiles,
       header: header,
+      scrollInitialPlaceholder: true,
       footer: SizedBox(height: bottomPadding),
       inSelectionMode: true,
       limitSelectionToOne: !widget.allowMultiple,
@@ -934,7 +935,9 @@ class _ExternalMediaPickerPageState extends State<ExternalMediaPickerPage> {
                                 slivers: [
                                   if (!isBrowsingResult)
                                     SliverToBoxAdapter(child: pickerHeader),
-                                  SliverFillRemaining(child: content),
+                                  SliverFillRemaining(
+                                    child: ClipRect(child: content),
+                                  ),
                                 ],
                               ),
                             ),
