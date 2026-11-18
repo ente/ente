@@ -30,20 +30,21 @@ import {
     applyVariant,
     chooseBestLayout,
     chooseBestVariantKey,
-    generateAutoLayout,
     getVariantPreview,
     getVariantsForCount,
 } from "@/lib/layouts";
 import {
     availablePhotoSpaces,
+    createImportedBookPages,
     normalizeFrontCover,
     photoDestinationError,
+    placeGalleryPhoto,
     placeImportedPhotos,
     type AddPhotosOptions,
 } from "@/lib/photoPlacement";
 import { PreviewCache } from "@/lib/previewCache";
 import { constrainTextBlock } from "@/lib/printLayout";
-import { canInsertPage } from "@/lib/printProducts";
+import { canDeletePage, canInsertPage } from "@/lib/printProducts";
 import type {
     AppView,
     BookPage,
@@ -471,7 +472,7 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                 }
                 setProcessingProgress(100);
 
-                if (!replace && newPhotos.length === 0) {
+                if (newPhotos.length === 0) {
                     throw new Error(
                         "These photos couldn't be read. Please choose different image files.",
                     );
@@ -487,7 +488,7 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                     ? newPhotos
                     : [...photos, ...newPhotos];
                 const nextPages = replace
-                    ? generateAutoLayout(allPhotos)
+                    ? createImportedBookPages(newPhotos, files.length)
                     : placeImportedPhotos(
                           book.pages,
                           allPhotos,
@@ -511,12 +512,14 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                     setCanUndo(false);
                     setCanRedo(false);
                     setCurrentSpreadIndex(0);
-                } else if (newPhotos.length > 0) {
+                } else if (destination.kind !== "gallery") {
                     setBook((prev) => ({ ...prev, pages: nextPages }));
                     setCurrentSpreadIndex(destinationIndex);
                 }
 
-                setAppViewState("edit");
+                if (replace || destination.kind !== "gallery") {
+                    setAppViewState("edit");
+                }
                 return nextPages[destinationIndex]?.id;
             } finally {
                 if (rafRef.current) {
@@ -702,10 +705,7 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
     );
 
     const addEntePhotos = useCallback(
-        async (
-            credentials: EnteCredentials,
-            files: EnteFileDescriptor[],
-        ) => {
+        async (credentials: EnteCredentials, files: EnteFileDescriptor[]) => {
             setProcessingPhotos(true);
             progressRef.current = 0;
             setProcessingProgress(0);
@@ -852,7 +852,7 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                 newThumbUrls.set(r.photo.id, r.thumbUrl);
             }
 
-            const pages = generateAutoLayout(newPhotos);
+            const pages = createImportedBookPages(newPhotos, files.length);
             setPhotos(newPhotos);
             setThumbnailUrls(newThumbUrls);
             setBookRaw({ ...emptyBook, pages });
@@ -929,10 +929,12 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         if (loading || processingPhotos) return;
 
+        const placedPhotoIds = new Set(book.pages.flatMap(pagePhotoIds));
         const queue = photos
             .filter(
                 (photo) =>
                     isPendingEnteOriginal(photo) &&
+                    placedPhotoIds.has(photo.id) &&
                     !activeEnteOriginalDownloadsRef.current.has(photo.id),
             )
             .map((photo) => photo.id);
@@ -943,7 +945,13 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
             activeEnteOriginalDownloadsRef.current.add(photoId),
         );
         void startEnteOriginalDownloads(queue);
-    }, [loading, photos, processingPhotos, startEnteOriginalDownloads]);
+    }, [
+        book.pages,
+        loading,
+        photos,
+        processingPhotos,
+        startEnteOriginalDownloads,
+    ]);
 
     const addPage = useCallback(
         (afterIndex?: number) => {
@@ -967,6 +975,7 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
         (pageId: string) => {
             setBook((prev) => {
                 if (
+                    !canDeletePage(prev.pages.length) ||
                     pageId === prev.pages[0]?.id ||
                     pageId === prev.pages.at(-1)?.id
                 )
@@ -1184,11 +1193,9 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                 const movedPhotoId = fromSlot.photoId;
 
                 const sourcePhotoIds = fromPage.slots
+                    .filter((slot) => slot.id !== fromSlotId)
                     .map((s) => s.photoId)
-                    .filter(
-                        (id): id is string =>
-                            id !== null && id !== movedPhotoId,
-                    );
+                    .filter((id): id is string => id !== null);
                 const targetPhotoIds = [
                     ...toPage.slots
                         .map((s) => s.photoId)
@@ -1264,6 +1271,22 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
 
                 return { ...prev, pages: newPages };
             });
+        },
+        [setBook],
+    );
+
+    const addPhotoToPage = useCallback(
+        (photoId: string, pageId: string, slotId?: string) => {
+            setBook((prev) => ({
+                ...prev,
+                pages: placeGalleryPhoto(
+                    prev.pages,
+                    photosRef.current,
+                    photoId,
+                    pageId,
+                    slotId,
+                ),
+            }));
         },
         [setBook],
     );
@@ -1438,6 +1461,7 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
         removeSlot,
         swapPhotos,
         movePhotoToPage,
+        addPhotoToPage,
         setPageLayout,
         addTextBlock,
         updateTextBlock,

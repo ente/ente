@@ -1,5 +1,5 @@
 import { headerButtonSx } from "@/theme/buttons";
-import { toolbarColors, toolbarShadow } from "@/theme/colors";
+import { toolbarColors } from "@/theme/colors";
 import { Box, IconButton } from "@mui/material";
 import type { ReactNode } from "react";
 import BookTitleInput from "./BookTitleInput";
@@ -66,9 +66,12 @@ export default function BookHeader({
                                 borderRadius: headerButtonSx.borderRadius,
                                 flexShrink: 0,
                                 color: toolbarColors.text,
-                                bgcolor: toolbarColors.background,
-                                boxShadow: toolbarShadow,
-                                "&:hover": { bgcolor: toolbarColors.hover },
+                                bgcolor: "transparent",
+                                boxShadow: "none",
+                                transition: "background-color 120ms ease",
+                                "&:hover, &.Mui-focusVisible": {
+                                    bgcolor: toolbarColors.background,
+                                },
                                 "&:active": { bgcolor: toolbarColors.active },
                             }}
                         >

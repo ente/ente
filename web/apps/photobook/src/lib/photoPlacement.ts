@@ -6,12 +6,35 @@ import {
     getMaxAutoLayoutPhotos,
     getVariantsForCount,
 } from "./layouts";
-import { MAX_PRINT_PAGES } from "./printProducts";
+import { MAX_PRINT_PAGES, MIN_PRINT_PAGES } from "./printProducts";
 import type { BookPage, Photo } from "./types";
 
 export const MAX_PAGE_PHOTOS = 4;
+export const MAX_AUTO_LAYOUT_PHOTOS = getMaxAutoLayoutPhotos(MAX_PRINT_PAGES);
+
+export function createImportedBookPages(
+    photos: Photo[],
+    selectedCount: number,
+) {
+    const pages =
+        selectedCount > MAX_AUTO_LAYOUT_PHOTOS
+            ? Array.from({ length: MIN_PRINT_PAGES }, makeBlankPage)
+            : generateAutoLayout(photos);
+    if (pages.length > 0 && pages.length < MIN_PRINT_PAGES) {
+        pages.splice(
+            pages.length - 1,
+            0,
+            ...Array.from(
+                { length: MIN_PRINT_PAGES - pages.length },
+                makeBlankPage,
+            ),
+        );
+    }
+    return pages;
+}
+
 export type PhotoDestination =
-    { kind: "page"; pageId: string } | { kind: "end" };
+    { kind: "page"; pageId: string } | { kind: "end" } | { kind: "gallery" };
 export interface AddPhotosOptions {
     replace?: boolean;
     destination?: PhotoDestination;
@@ -70,7 +93,9 @@ export function photoDestinationError(
     destination: PhotoDestination,
     count: number,
 ): string | null {
-    let capacity = Math.max(0, MAX_PRINT_PAGES - pages.length) * MAX_PAGE_PHOTOS;
+    if (destination.kind === "gallery") return null;
+    let capacity =
+        Math.max(0, MAX_PRINT_PAGES - pages.length) * MAX_PAGE_PHOTOS;
     if (destination.kind === "page") {
         const index = pages.findIndex((page) => page.id === destination.pageId);
         if (index < 0)
@@ -81,7 +106,7 @@ export function photoDestinationError(
             return count === 1 ? null : "Choose one photo for the front cover.";
         capacity += availablePhotoSpaces(pages[index]!);
     } else if (pages.length === 0) {
-        capacity = getMaxAutoLayoutPhotos(MAX_PRINT_PAGES);
+        capacity = MAX_AUTO_LAYOUT_PHOTOS;
     }
     if (count <= capacity) return null;
     if (capacity === 0)
@@ -122,10 +147,11 @@ export function placeImportedPhotos(
     newPhotos: Photo[],
     destination: PhotoDestination,
 ): BookPage[] {
-    if (newPhotos.length === 0) return pages;
+    if (newPhotos.length === 0 || destination.kind === "gallery") return pages;
     const error = photoDestinationError(pages, destination, newPhotos.length);
     if (error) throw new Error(error);
-    if (pages.length === 0) return generateAutoLayout(newPhotos);
+    if (pages.length === 0)
+        return createImportedBookPages(newPhotos, newPhotos.length);
 
     const updated = [...pages];
     let insertAt = pages.length - 1;
@@ -168,4 +194,42 @@ export function placeImportedPhotos(
         ...inserted,
         ...updated.slice(insertAt),
     ]);
+}
+
+export function placeGalleryPhoto(
+    pages: BookPage[],
+    photos: Photo[],
+    photoId: string,
+    pageId: string,
+    slotId?: string,
+): BookPage[] {
+    const photo = photos.find((photo) => photo.id === photoId);
+    const page = pages.find((page) => page.id === pageId);
+    if (!photo || !page || page === pages.at(-1)) return pages;
+    if (slotId) {
+        if (!page.slots.some((slot) => slot.id === slotId)) return pages;
+        return pages.map((current) =>
+            current.id === pageId
+                ? {
+                      ...current,
+                      slots: current.slots.map((slot) =>
+                          slot.id === slotId
+                              ? {
+                                    ...slot,
+                                    photoId,
+                                    cropX: 0.5,
+                                    cropY: 0.5,
+                                    cropZoom: 1,
+                                }
+                              : slot,
+                      ),
+                  }
+                : current,
+        );
+    }
+    if (availablePhotoSpaces(page, page === pages[0]) === 0) return pages;
+    return placeImportedPhotos(pages, photos, [photo], {
+        kind: "page",
+        pageId,
+    });
 }

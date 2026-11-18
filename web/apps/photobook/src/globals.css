@@ -35,6 +35,22 @@ textarea {
     background-color: #08c225;
     color: white;
 }
+
+@keyframes book-content-appear {
+    from {
+        opacity: 0.75;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    [data-workspace-view] main > div {
+        animation: book-content-appear 140ms ease-out;
+    }
+}
+
 ::-webkit-scrollbar {
     width: 6px;
 }

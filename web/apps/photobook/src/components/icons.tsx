@@ -26,6 +26,7 @@ import {
     SearchAddIcon,
     SearchMinusIcon,
     TextFontIcon,
+    Tick02Icon,
     Undo03Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
@@ -143,6 +144,9 @@ export const SuccessIcon = forwardRef<SVGSVGElement, SvgIconProps>(
     (props, ref) => (
         <AppIcon {...props} ref={ref} icon={CheckmarkCircle02Icon} />
     ),
+);
+export const CheckIcon = forwardRef<SVGSVGElement, SvgIconProps>(
+    (props, ref) => <AppIcon {...props} ref={ref} icon={Tick02Icon} />,
 );
 export const InfoIcon = forwardRef<SVGSVGElement, SvgIconProps>(
     (props, ref) => (

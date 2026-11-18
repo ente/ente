@@ -1,6 +1,6 @@
 import { useBook } from "@/context/book";
 import { useDragDraft } from "@/hooks/useDragDraft";
-import type { DragInfo } from "@/hooks/usePhotoDrag";
+import type { DragInfo, PhotoDragSource } from "@/hooks/usePhotoDrag";
 import { usePreviews } from "@/hooks/usePreviews";
 import {
     CAPTION_FONT_WEIGHT,
@@ -14,16 +14,10 @@ import {
 } from "@/lib/printLayout";
 import type { BookPage, PhotoSlot, TextBlock } from "@/lib/types";
 import { bookPageShadow, uiColors } from "@/theme/colors";
-import { Box, Button, IconButton, Typography } from "@mui/material";
+import { Box, IconButton, Typography } from "@mui/material";
 import React, { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Layer, Stage } from "react-konva";
-import {
-    AddPhotosIcon,
-    DeleteIcon,
-    PanIcon,
-    ZoomInIcon,
-    ZoomOutIcon,
-} from "./icons";
+import { DeleteIcon, PanIcon, ZoomInIcon, ZoomOutIcon } from "./icons";
 import LayoutPicker from "./LayoutPicker";
 import type { CaptionPosition } from "./PageCanvas";
 import PageCanvas from "./PageCanvas";
@@ -245,8 +239,7 @@ interface SpreadPageProps {
     onTextEditEnd: () => void;
     onClearSelection: () => void;
     onInsertPage: (pageIndex: number, position: PageInsertPosition) => void;
-    onAddPhotos: (pageId: string) => void;
-    dragSourceInfo: DragInfo | null;
+    dragSourceInfo: PhotoDragSource | null;
     dragOverInfo: DragInfo | null;
     dragOverPageId: string | null;
     onPhotoDragStart: (
@@ -292,7 +285,6 @@ function SpreadPage({
     onTextEditEnd,
     onClearSelection,
     onInsertPage,
-    onAddPhotos,
     dragSourceInfo,
     dragOverInfo,
     dragOverPageId,
@@ -319,7 +311,6 @@ function SpreadPage({
         updatePage,
         updateSlot,
         getPhoto,
-        processingPhotos,
     } = useBook(
         "thumbnailUrls",
 
@@ -328,7 +319,6 @@ function SpreadPage({
         "updatePage",
         "updateSlot",
         "getPhoto",
-        "processingPhotos",
     );
 
     const pagePhotoIds = useMemo(
@@ -387,11 +377,6 @@ function SpreadPage({
         pageDragTarget === pageIndex && pageDragSource !== null;
     const isDragSource = pageDragSource === pageIndex;
     const photoCount = page.slots.filter((s) => s.photoId !== null).length;
-    const showEmptyPageAddPhotos =
-        isInterior &&
-        photoCount === 0 &&
-        page.textBlocks.length === 0 &&
-        !(editingCenterText ? centerTextDraft : (page.centerText ?? "")).trim();
     useEffect(() => {
         if (photoCount > 0) setEditingCenterText(false);
         else setEditingCaption(null);
@@ -478,6 +463,8 @@ function SpreadPage({
                         "&:not(:hover) [data-caption-placeholder]": {
                             visibility: "hidden",
                         },
+                        "&:not(:hover):not(:focus-within) [data-page-placeholder]":
+                            { opacity: 0 },
                     },
                 }}
             >
@@ -525,7 +512,8 @@ function SpreadPage({
                                     : null
                             }
                             dragSourceSlotId={
-                                dragSourceInfo?.pageId === page.id
+                                dragSourceInfo?.kind === "page" &&
+                                dragSourceInfo.pageId === page.id
                                     ? dragSourceInfo.slotId
                                     : null
                             }
@@ -578,7 +566,8 @@ function SpreadPage({
                 />
                 {dragOverPageId === page.id &&
                     dragSourceInfo &&
-                    dragSourceInfo.pageId !== page.id && (
+                    (dragSourceInfo.kind === "gallery" ||
+                        dragSourceInfo.pageId !== page.id) && (
                         <div
                             style={{
                                 position: "absolute",
@@ -931,81 +920,65 @@ function SpreadPage({
                                 }}
                             />
                         ) : (
-                            <button
-                                type="button"
-                                aria-label={
-                                    page.centerText
-                                        ? "Edit page text"
-                                        : "Add text..."
-                                }
-                                onClick={(event) => {
-                                    event.stopPropagation();
-                                    onClearSelection();
-                                    setCenterTextDraft(page.centerText ?? "");
-                                    setEditingCenterText(true);
-                                }}
-                                style={{
-                                    ...style,
-                                    cursor: "text",
-                                    whiteSpace: "pre",
-                                    overflow: "hidden",
-                                }}
-                            >
-                                {layout.lines.join("\n")}
-                            </button>
+                            <>
+                                <button
+                                    type="button"
+                                    data-page-placeholder={
+                                        !page.centerText || undefined
+                                    }
+                                    aria-label={
+                                        page.centerText
+                                            ? "Edit page text"
+                                            : "Add text..."
+                                    }
+                                    onClick={(event) => {
+                                        event.stopPropagation();
+                                        onClearSelection();
+                                        setCenterTextDraft(
+                                            page.centerText ?? "",
+                                        );
+                                        setEditingCenterText(true);
+                                    }}
+                                    style={{
+                                        ...style,
+                                        cursor: "text",
+                                        whiteSpace: "pre",
+                                        overflow: "hidden",
+                                    }}
+                                >
+                                    {layout.lines.join("\n")}
+                                </button>
+                                {!page.centerText && (
+                                    <Typography
+                                        data-page-placeholder
+                                        sx={{
+                                            position: "absolute",
+                                            left: style.left,
+                                            top:
+                                                ((layout.y + layout.height) /
+                                                    100) *
+                                                    pageHeight +
+                                                Math.max(6, pageHeight * 0.012),
+                                            width: style.width,
+                                            zIndex: 4,
+                                            fontFamily:
+                                                "var(--font-outfit), sans-serif",
+                                            fontSize: Math.max(
+                                                9,
+                                                pageHeight * 0.02,
+                                            ),
+                                            lineHeight: 1.5,
+                                            color: "#999",
+                                            textAlign: "center",
+                                            pointerEvents: "none",
+                                        }}
+                                    >
+                                        or drag and drop photos here
+                                    </Typography>
+                                )}
+                            </>
                         );
                     })()}
-                {showEmptyPageAddPhotos && (
-                    <Button
-                        type="button"
-                        aria-label={`Add photos to page ${pageIndex}`}
-                        startIcon={<AddPhotosIcon />}
-                        disabled={processingPhotos}
-                        disableRipple
-                        onClick={(event) => {
-                            event.stopPropagation();
-                            onClearSelection();
-                            onAddPhotos(page.id);
-                        }}
-                        sx={{
-                            position: "absolute",
-                            left: "50%",
-                            bottom: Math.max(16, pageHeight * 0.07),
-                            transform: "translateX(-50%)",
-                            zIndex: 4,
-                            minWidth: 0,
-                            maxWidth: "calc(100% - 24px)",
-                            height: 36,
-                            px: "14px",
-                            borderRadius: "999px",
-                            bgcolor: "#F1F3F2",
-                            color: "#59635D",
-                            fontFamily: "var(--font-inter), sans-serif",
-                            fontSize: 13,
-                            fontWeight: 500,
-                            textTransform: "none",
-                            whiteSpace: "nowrap",
-                            boxShadow: "none",
-                            pointerEvents:
-                                dragSourceInfo || pageDragSource !== null
-                                    ? "none"
-                                    : "auto",
-                            transition:
-                                "background-color 120ms ease, color 120ms ease",
-                            "& .MuiButton-startIcon": { ml: 0, mr: "6px" },
-                            "& .MuiSvgIcon-root": { fontSize: 17 },
-                            "&:hover": { bgcolor: "#E4F1E7", color: "#246B37" },
-                            "&:focus-visible": {
-                                bgcolor: "#E4F1E7",
-                                color: "#246B37",
-                                outline: "2px solid #08C225",
-                                outlineOffset: 2,
-                            },
-                        }}
-                    >
-                        Add photos
-                    </Button>
-                )}
                 {(["top", "bottom"] as const).map((position) => {
                     if (position === "bottom" && isBackCover) return null;
                     const key =
@@ -1164,11 +1137,9 @@ function SpreadPage({
                 key={page.id}
                 pageId={page.id}
                 pageIndex={pageIndex}
-                photoCount={photoCount}
                 totalPages={totalPages}
                 side={pickerSide}
                 requiredBlank={requiredBlank}
-                onAddPhotos={() => onAddPhotos(page.id)}
                 onInsert={(position) => onInsertPage(pageIndex, position)}
                 onDelete={() => {
                     onClearSelection();

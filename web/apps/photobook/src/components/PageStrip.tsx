@@ -1,8 +1,7 @@
 import { useBook } from "@/context/book";
-import { usePageDrag } from "@/hooks/usePageDrag";
 import { useSpreads } from "@/hooks/useSpreads";
 import { getSpreadLabel } from "@/lib/spreads";
-import { thumbnailShadow, toolbarColors, uiColors } from "@/theme/colors";
+import { thumbnailShadow, uiColors } from "@/theme/colors";
 import { Box, Typography, useMediaQuery } from "@mui/material";
 import {
     memo,
@@ -11,26 +10,26 @@ import {
     useRef,
     useState,
     type RefCallback,
+    type RefObject,
 } from "react";
 import { Layer, Stage } from "react-konva";
 import PageCanvas from "./PageCanvas";
-import PrinterBlankPage from "./PrinterBlankPage";
-import { EDITOR_SCROLLBAR_SX } from "./editorLayout";
+import { EDITOR_SCROLLBAR_SX, EDITOR_SIDEBAR_WIDTH } from "./editorLayout";
 
 export interface PageStripProps {
     onSpreadClick?: (spreadIdx: number) => void;
-    readOnly?: boolean;
 }
 
-function PageStrip({ onSpreadClick, readOnly = false }: PageStripProps) {
+function PageStrip({
+    onSpreadClick,
+    scrollRef,
+}: PageStripProps & { scrollRef: RefObject<HTMLDivElement | null> }) {
     const { book } = useBook("book");
     const isCompact = useMediaQuery("(max-width: 899px)");
-    const thumbnailWidth = isCompact ? 52 : 136;
-    const rowPadding = isCompact ? 8 : 12;
+    const thumbnailWidth =
+        (EDITOR_SIDEBAR_WIDTH[isCompact ? "xs" : "md"] - 40 - 2) / 2;
     const labelLineHeight = isCompact ? 16 : 18;
     const pages = book.pages;
-    const pageDrag = usePageDrag();
-    const stripContainerRef = useRef<HTMLDivElement | null>(null);
 
     const spreads = useSpreads(pages.length);
 
@@ -41,7 +40,7 @@ function PageStrip({ onSpreadClick, readOnly = false }: PageStripProps) {
     const stripObserverRef = useRef<IntersectionObserver | null>(null);
 
     useEffect(() => {
-        const root = stripContainerRef.current;
+        const root = scrollRef.current;
         if (!root) return;
 
         const observer = new IntersectionObserver(
@@ -76,7 +75,7 @@ function PageStrip({ onSpreadClick, readOnly = false }: PageStripProps) {
             observer.disconnect();
             stripObserverRef.current = null;
         };
-    }, [spreads.length]);
+    }, [scrollRef, spreads.length]);
 
     const stripSpreadRefs = useMemo(
         () =>
@@ -98,18 +97,16 @@ function PageStrip({ onSpreadClick, readOnly = false }: PageStripProps) {
 
     return (
         <Box
-            ref={stripContainerRef}
+            ref={scrollRef}
             sx={{
                 width: "100%",
                 display: "flex",
                 flexDirection: "column",
-                px: isCompact ? 1 : 2,
                 py: 3,
                 flex: 1,
                 minHeight: 0,
                 overflowX: "hidden",
                 overflowY: "auto",
-                scrollbarGutter: "stable both-edges",
                 ...EDITOR_SCROLLBAR_SX,
             }}
         >
@@ -131,8 +128,8 @@ function PageStrip({ onSpreadClick, readOnly = false }: PageStripProps) {
                 sx={{
                     display: "flex",
                     flexDirection: "column",
-                    alignItems: "center",
-                    gap: { xs: 1, sm: 1.5 },
+                    alignItems: "flex-start",
+                    gap: 3,
                 }}
             >
                 {spreads.map((spread, spreadIdx) => (
@@ -152,30 +149,22 @@ function PageStrip({ onSpreadClick, readOnly = false }: PageStripProps) {
                         }}
                         sx={{
                             cursor: "pointer",
-                            borderRadius: `${rowPadding + 4}px`,
-                            p: `${rowPadding}px`,
-                            width:
-                                (spread.left !== null && spread.right !== null
-                                    ? thumbnailWidth * 2 + 2
-                                    : thumbnailWidth) +
-                                rowPadding * 2,
-                            ml:
-                                spread.left === null
-                                    ? `${thumbnailWidth + 2}px`
-                                    : 0,
-                            mr:
-                                spread.right === null
-                                    ? `${thumbnailWidth + 2}px`
-                                    : 0,
-                            display: "flex",
+                            width: thumbnailWidth * 2 + 2,
+                            ml: 2.5,
+                            display: "grid",
+                            gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
                             gap: "2px",
-                            minHeight:
-                                thumbnailWidth +
-                                rowPadding * 2 +
-                                labelLineHeight +
-                                4,
-                            "&:hover": { bgcolor: toolbarColors.control },
-                            transition: "background-color 120ms ease",
+                            minHeight: thumbnailWidth + labelLineHeight + 4,
+                            "&:hover .page-strip-thumbnail": {
+                                transform: "translateY(-2px)",
+                                boxShadow:
+                                    "0 0 0 1px rgba(255,255,255,0.18), 0 6px 12px rgba(0,0,0,0.3)",
+                            },
+                            "&:focus-visible": { outline: "none" },
+                            "&:focus-visible .page-strip-thumbnail": {
+                                outline: `2px solid ${uiColors.text}`,
+                                outlineOffset: 2,
+                            },
                         }}
                     >
                         {visibleSpreads.has(spreadIdx) &&
@@ -188,11 +177,6 @@ function PageStrip({ onSpreadClick, readOnly = false }: PageStripProps) {
                                     pageIndex !== null
                                         ? pages[pageIndex]
                                         : null;
-                                const canDrag =
-                                    !readOnly &&
-                                    pageIndex !== null &&
-                                    pageIndex > 0 &&
-                                    pageIndex < pages.length - 1;
                                 const label =
                                     entry === "printer-blank"
                                         ? "Blank"
@@ -209,66 +193,30 @@ function PageStrip({ onSpreadClick, readOnly = false }: PageStripProps) {
                                         key={side}
                                         sx={{
                                             width: thumbnailWidth,
-                                            flexShrink: 0,
+                                            gridColumn: side === "left" ? 1 : 2,
                                         }}
                                     >
-                                        {entry === "printer-blank" ? (
-                                            <PrinterBlankPage
-                                                width={thumbnailWidth}
-                                                height={thumbnailWidth}
-                                            />
-                                        ) : page && pageIndex !== null ? (
-                                            <Box
-                                                draggable={canDrag}
-                                                onDragStart={(e) =>
-                                                    pageDrag.handlePageDragStart(
-                                                        e,
-                                                        pageIndex,
-                                                    )
-                                                }
-                                                onDragOver={
-                                                    readOnly
-                                                        ? undefined
-                                                        : (e) =>
-                                                              pageDrag.handlePageDragOverPage(
-                                                                  e,
-                                                                  pageIndex,
-                                                              )
-                                                }
-                                                onDrop={
-                                                    readOnly
-                                                        ? undefined
-                                                        : (e) =>
-                                                              pageDrag.handlePageDropOnPage(
-                                                                  e,
-                                                                  pageIndex,
-                                                              )
-                                                }
-                                                onDragEnd={
-                                                    pageDrag.handlePageDragEndCleanup
-                                                }
-                                                sx={{
-                                                    width: thumbnailWidth,
-                                                    height: thumbnailWidth,
-                                                    bgcolor: uiColors.paper,
-                                                    boxShadow: thumbnailShadow,
-                                                    borderRadius: 0.5,
-                                                    overflow: "hidden",
-                                                    cursor: canDrag
-                                                        ? "grab"
-                                                        : "pointer",
-                                                    outline:
-                                                        pageDrag.pageDragTarget ===
-                                                        pageIndex
-                                                            ? "2px solid #08C225"
-                                                            : undefined,
-                                                    opacity:
-                                                        pageDrag.pageDragSource ===
-                                                        pageIndex
-                                                            ? 0.4
-                                                            : 1,
-                                                }}
-                                            >
+                                        <Box
+                                            className="page-strip-thumbnail"
+                                            aria-label={
+                                                entry === "printer-blank"
+                                                    ? "Blank page (required)"
+                                                    : undefined
+                                            }
+                                            sx={{
+                                                width: thumbnailWidth,
+                                                height: thumbnailWidth,
+                                                bgcolor: uiColors.paper,
+                                                boxShadow: thumbnailShadow,
+                                                borderRadius: 0.5,
+                                                overflow: "hidden",
+                                                transition:
+                                                    "transform 120ms ease, box-shadow 120ms ease",
+                                                "@media (prefers-reduced-motion: reduce)":
+                                                    { transition: "none" },
+                                            }}
+                                        >
+                                            {page && pageIndex !== null && (
                                                 <Stage
                                                     width={thumbnailWidth}
                                                     height={thumbnailWidth}
@@ -296,8 +244,8 @@ function PageStrip({ onSpreadClick, readOnly = false }: PageStripProps) {
                                                         />
                                                     </Layer>
                                                 </Stage>
-                                            </Box>
-                                        ) : null}
+                                            )}
+                                        </Box>
                                         <Typography
                                             title={
                                                 entry === "printer-blank"

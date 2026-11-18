@@ -38,7 +38,10 @@ import { saveAsFileAndRevokeObjectURL } from "ente-base/utils/web";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BookBindingSelect from "./BookBindingSelect";
 import BookHeader from "./BookHeader";
-import BookSidebar from "./BookSidebar";
+import BookSidebar, {
+    type SidebarScrollPositions,
+    type SidebarTab,
+} from "./BookSidebar";
 import BookTitleInput from "./BookTitleInput";
 import BookViewer, { type BookViewerHandle } from "./BookViewer";
 import CheckoutDialog from "./CheckoutDialog";
@@ -62,10 +65,18 @@ type BookAction = "download" | "checkout";
 
 function ResultsPage({
     sidebarOpen,
+    sidebarTab,
+    sidebarScrollPositions,
+    onSidebarTabChange,
     onToggleSidebar,
+    onAddPhotos,
 }: {
     sidebarOpen: boolean;
+    sidebarTab: SidebarTab;
+    sidebarScrollPositions: SidebarScrollPositions;
+    onSidebarTabChange: (tab: SidebarTab) => void;
     onToggleSidebar: () => void;
+    onAddPhotos: () => void;
 }) {
     const mobile = useMediaQuery(MOBILE_QUERY, { noSsr: true });
     const { book, photos, setBook, setAppView, waitForEnteOriginals } = useBook(
@@ -179,15 +190,11 @@ function ResultsPage({
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, [isAtStart, isAtEnd]);
 
-    const continueWithCover = (
-        action: BookAction,
-        cover: PrintBinding,
-        title: string,
-    ) => {
+    const continueWithCover = (action: BookAction, cover: PrintBinding) => {
         const printSelection = getBindingPrintSelection(cover);
         const validationError = getPrintExportError(
             printSelection,
-            exportPages.length,
+            exportPages,
         );
         if (validationError) {
             setPrintValidation({
@@ -197,15 +204,14 @@ function ResultsPage({
             });
             return;
         }
-        if (action === "checkout") setDeliveryBook({ cover, title });
-        else void downloadPdf(printSelection);
+        withSpineTitle((title) => {
+            if (action === "checkout") setDeliveryBook({ cover, title });
+            else void downloadPdf(printSelection);
+        });
     };
 
     const requestBook = (action: BookAction) => {
-        if (binding)
-            withSpineTitle((title) =>
-                continueWithCover(action, binding, title),
-            );
+        if (binding) continueWithCover(action, binding);
         else setPendingCoverAction(action);
     };
 
@@ -361,6 +367,7 @@ function ResultsPage({
                 display: "flex",
                 alignItems: "center",
                 gap: { xs: "16px", md: "24px" },
+                flexShrink: 0,
             }}
         >
             <Button
@@ -381,7 +388,7 @@ function ResultsPage({
             >
                 Edit
             </Button>
-            <BookBindingSelect disabled={busy} />
+            {!mobile && <BookBindingSelect disabled={busy} />}
         </Box>
     );
 
@@ -555,13 +562,16 @@ function ResultsPage({
                     display: "flex",
                     flex: 1,
                     minHeight: 0,
-                    gap: EDITOR_PANEL_INSET,
                     mb: mobile ? 0 : EDITOR_PANEL_BOTTOM_INSET,
                 }}
             >
-                {!mobile && sidebarOpen && (
+                {!mobile && (
                     <BookSidebar
-                        readOnly
+                        open={sidebarOpen}
+                        tab={sidebarTab}
+                        scrollPositions={sidebarScrollPositions}
+                        onTabChange={onSidebarTabChange}
+                        gallery={{ onAddPhotos }}
                         onSpreadClick={(index) =>
                             viewerRef.current?.goToSpread(index)
                         }
@@ -640,9 +650,7 @@ function ResultsPage({
                             printSelection: getBindingPrintSelection(cover),
                         }));
                         setPendingCoverAction(undefined);
-                        withSpineTitle((title) =>
-                            continueWithCover(pendingCoverAction, cover, title),
-                        );
+                        continueWithCover(pendingCoverAction, cover);
                     }}
                 />
             )}

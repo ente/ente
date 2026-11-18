@@ -77,6 +77,7 @@ export interface BookContextValue {
         fromSlotId: string,
         toPageId: string,
     ) => void;
+    addPhotoToPage: (photoId: string, pageId: string, slotId?: string) => void;
     setPageLayout: (pageId: string, variantKey: string) => void;
     addTextBlock: (pageId: string) => TextBlock;
     updateTextBlock: (

@@ -2,6 +2,7 @@ import JSZip from "jszip";
 import assert from "node:assert/strict";
 import { afterAll, beforeAll, test, vi } from "vitest";
 import { makeBlankPage } from "./bookPages";
+import * as db from "./db";
 import {
     exportPdfX4Pages,
     exportPngPagesZip,
@@ -44,6 +45,7 @@ const fileReaderDescriptor = Object.getOwnPropertyDescriptor(
 let canvasCount = 0;
 
 beforeAll(() => {
+    vi.spyOn(db, "getPhotoBlob").mockResolvedValue(new Blob(["photo"]));
     Object.defineProperty(globalThis, "document", {
         configurable: true,
         value: {
@@ -91,13 +93,17 @@ beforeAll(() => {
                             });
                         },
                         drawImage(
-                            _image: unknown,
+                            image: HTMLImageElement,
                             x: number,
                             y: number,
                             width: number,
                             height: number,
                         ) {
-                            canvas.marks.push("ente-logo");
+                            canvas.marks.push(
+                                image.src === "/ente-branding.svg"
+                                    ? "ente-logo"
+                                    : "photo",
+                            );
                             canvas.imageDraws.push({ x, y, width, height });
                         },
                     }),
@@ -118,7 +124,12 @@ beforeAll(() => {
             naturalWidth = 844;
             naturalHeight = 264;
             onload: (() => void) | null = null;
-            set src(_value: string) {
+            private url = "";
+            get src() {
+                return this.url;
+            }
+            set src(value: string) {
+                this.url = value;
                 queueMicrotask(() => this.onload?.());
             }
         },
@@ -172,7 +183,9 @@ afterAll(() => {
 function bookWithBlankPage(count: number) {
     const pages = Array.from({ length: count }, (_, i) => ({
         ...makeBlankPage(),
-        centerText: i === 10 || i === count - 1 ? "" : `Page ${i + 1}`,
+        slots: i === 0 ? applyVariant("1-full", ["cover-photo"]) : [],
+        centerText:
+            i === 0 || i === 10 || i === count - 1 ? "" : `Page ${i + 1}`,
     }));
     return pages;
 }
@@ -224,7 +237,13 @@ test(`${sizeMm} mm PDF export preserves all 24 pages including a blank interior 
     assert.deepEqual(
         result.pages.map((page) => page.marks),
         pages.map((page, i) =>
-            i === 23 ? ["ente-logo"] : page.centerText ? [page.centerText] : [],
+            i === 0
+                ? ["photo"]
+                : i === 23
+                  ? ["ente-logo"]
+                  : page.centerText
+                    ? [page.centerText]
+                    : [],
         ),
     );
     assert.deepEqual(result.size, {

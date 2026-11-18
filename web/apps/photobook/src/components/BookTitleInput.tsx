@@ -69,13 +69,10 @@ export default function BookTitleInput({
                     color: uiColors.text,
                     textAlign: "left",
                     bgcolor: "transparent",
-                    border: compact
-                        ? "1px solid #484848"
-                        : "1px solid transparent",
+                    border: "1px solid #484848",
                     borderRadius: headerButtonSx.borderRadius,
                     outline: "none",
                     transition: "border-color 120ms ease",
-                    "&:enabled:hover": { borderColor: "#484848" },
                     "&:enabled:focus, &:enabled:active": {
                         borderColor: "#707070",
                     },

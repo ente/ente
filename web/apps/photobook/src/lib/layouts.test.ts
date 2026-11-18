@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { normalizeBookPages } from "./bookPages";
+import { isBlankPage, normalizeBookPages } from "./bookPages";
 import {
     applyVariant,
     chooseBestVariantKey,
@@ -12,7 +12,8 @@ import {
     getVariantPreview,
     getVariantsForCount,
 } from "./layouts";
-import { MAX_PRINT_PAGES } from "./printProducts";
+import { createImportedBookPages } from "./photoPlacement";
+import { MAX_PRINT_PAGES, MIN_PRINT_PAGES } from "./printProducts";
 import type { Photo } from "./types";
 
 const photos: Photo[] = Array.from({ length: 12 }, (_, i) => ({
@@ -263,6 +264,32 @@ test("the import cutoff fits exactly within the printable page limit", () => {
         MAX_PRINT_PAGES + 2,
     );
     assert.equal(generateAutoLayout(makePhotos(600)).length, 268);
+});
+
+test("imports pad the usual layout to 24 pages and start with blank pages above 223 photos", () => {
+    for (const count of [1, 2, 10, 45, 50, 60, 222, 223]) {
+        const photos = makePhotos(count);
+        const pages = createImportedBookPages(photos, count);
+        const autoPages = generateAutoLayout(photos);
+        const placed = (book: typeof pages) =>
+            book.map((page) => page.slots.map((slot) => slot.photoId));
+        assert.equal(pages.length, Math.max(MIN_PRINT_PAGES, autoPages.length));
+        assert.deepEqual(
+            placed(pages.slice(0, autoPages.length - 1)),
+            placed(autoPages.slice(0, -1)),
+        );
+        assert.ok(pages.slice(autoPages.length - 1).every(isBlankPage));
+        assert.equal(new Set(pages.map((page) => page.id)).size, pages.length);
+    }
+    for (const count of [224, 600]) {
+        const pages = createImportedBookPages(makePhotos(count), count);
+        assert.equal(pages.length, MIN_PRINT_PAGES);
+        assert.equal(
+            new Set(pages.map((page) => page.id)).size,
+            MIN_PRINT_PAGES,
+        );
+        assert.ok(pages.every((page) => page.slots.length === 0));
+    }
 });
 
 test("auto-layout fills every interior page whenever there are at least two interior photos", () => {

@@ -3,16 +3,21 @@ import { normalizeBookPages } from "./bookPages";
 import type { BookPage } from "./types";
 
 export const MAX_PRINT_PAGES = 100;
+export const MIN_PRINT_PAGES = 24;
+export const NO_PHOTOS_ERROR =
+    "Place at least one photo on a page of your book.";
 
 export const canInsertPage = (pageCount: number) =>
     pageCount >= 2 && pageCount < MAX_PRINT_PAGES;
+
+export const canDeletePage = (pageCount: number) => pageCount > MIN_PRINT_PAGES;
 
 export const PRINT_PRODUCTS = [
     {
         id: "layflat-gloss-190",
         binding: "Layflat",
         paper: "Gloss · 190 gsm",
-        minPages: 24,
+        minPages: MIN_PRINT_PAGES,
         maxPages: MAX_PRINT_PAGES,
         sizesMm: [BOOK_SIZE_MM],
     },
@@ -20,7 +25,7 @@ export const PRINT_PRODUCTS = [
         id: "softcover-gloss-150",
         binding: "Softcover",
         paper: "Gloss · 150 gsm",
-        minPages: 24,
+        minPages: MIN_PRINT_PAGES,
         maxPages: MAX_PRINT_PAGES,
         sizesMm: [BOOK_SIZE_MM],
     },
@@ -28,7 +33,7 @@ export const PRINT_PRODUCTS = [
         id: "softcover-mohawk-120",
         binding: "Softcover",
         paper: "Mohawk uncoated · 120 gsm",
-        minPages: 24,
+        minPages: MIN_PRINT_PAGES,
         maxPages: MAX_PRINT_PAGES,
         sizesMm: [BOOK_SIZE_MM],
     },
@@ -83,13 +88,16 @@ export function getPrintProduct(id: unknown): PrintProduct | undefined {
 
 export function getPrintExportError(
     selection: PrintSelection,
-    pageCount: number,
+    pages: BookPage[],
 ): string | null {
     const product = getPrintProduct(selection.productId);
     if (!product) return "Choose a print product before downloading.";
     if (!(product.sizesMm as readonly number[]).includes(selection.sizeMm)) {
         return `Only ${BOOK_SIZE_MM} × ${BOOK_SIZE_MM} mm books are supported.`;
     }
+    if (!pages.some((page) => page.slots.some((slot) => slot.photoId)))
+        return NO_PHOTOS_ERROR;
+    const pageCount = pages.length;
     if (pageCount < product.minPages || pageCount > product.maxPages) {
         const belowMinimum = pageCount < product.minPages;
         const difference = belowMinimum
@@ -117,7 +125,7 @@ export function preparePrintExport(
     selection: PrintSelection,
 ): BookPage[] {
     const pages = normalizeBookPages(inputPages);
-    const error = getPrintExportError(selection, pages.length);
+    const error = getPrintExportError(selection, pages);
     if (error) throw new PrintExportValidationError(error);
     return pages;
 }

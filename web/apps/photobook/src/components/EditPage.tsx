@@ -4,19 +4,10 @@ import { usePageDrag } from "@/hooks/usePageDrag";
 import { usePhotoDrag } from "@/hooks/usePhotoDrag";
 import { useSpreads } from "@/hooks/useSpreads";
 import { isRequiredBlankPage } from "@/lib/bookPages";
-import type { PhotoDestination } from "@/lib/photoPlacement";
 import { getSpreadPageIndices } from "@/lib/spreads";
 import type { TextBlock } from "@/lib/types";
 import { toolbarColors, toolbarShadow, uiColors } from "@/theme/colors";
-import {
-    Alert,
-    Backdrop,
-    Box,
-    CircularProgress,
-    Snackbar,
-    Typography,
-    useMediaQuery,
-} from "@mui/material";
+import { Box, useMediaQuery } from "@mui/material";
 import React, {
     memo,
     useCallback,
@@ -28,9 +19,11 @@ import React, {
     type RefCallback,
 } from "react";
 import AddPageDialog from "./AddPageDialog";
-import AddPhotosDialog from "./AddPhotosDialog";
 import BookHeader from "./BookHeader";
-import BookSidebar from "./BookSidebar";
+import BookSidebar, {
+    type SidebarScrollPositions,
+    type SidebarTab,
+} from "./BookSidebar";
 import EditorActions, { EditorPreviewButton } from "./EditorActions";
 import type { PageInsertPosition } from "./PageMenu";
 import PhotoChoiceDialog from "./PhotoChoiceDialog";
@@ -50,10 +43,18 @@ const PAGE_GAP = 2;
 
 function EditPage({
     sidebarOpen,
+    sidebarTab,
+    sidebarScrollPositions,
+    onSidebarTabChange,
     onToggleSidebar,
+    onAddPhotos,
 }: {
     sidebarOpen: boolean;
+    sidebarTab: SidebarTab;
+    sidebarScrollPositions: SidebarScrollPositions;
+    onSidebarTabChange: (tab: SidebarTab) => void;
     onToggleSidebar: () => void;
+    onAddPhotos: () => void;
 }) {
     const largeDesktop = useMediaQuery(LARGE_DESKTOP_QUERY);
     const {
@@ -61,27 +62,23 @@ function EditPage({
         currentSpreadIndex,
         setCurrentSpreadIndex,
         addPage,
-        addPhotos,
         removeSlot,
         updateTextBlock,
         removeTextBlock,
         undo,
         redo,
         processingPhotos,
-        processingProgress,
     } = useBook(
         "book",
         "currentSpreadIndex",
         "setCurrentSpreadIndex",
         "addPage",
-        "addPhotos",
         "removeSlot",
         "updateTextBlock",
         "removeTextBlock",
         "undo",
         "redo",
         "processingPhotos",
-        "processingProgress",
     );
 
     const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
@@ -91,36 +88,12 @@ function EditPage({
     const [editingTextId, setEditingTextId] = useState<string | null>(null);
     const [insertedPageId, setInsertedPageId] = useState<string | null>(null);
     const [addPageDialogOpen, setAddPageDialogOpen] = useState(false);
-    const [pendingFiles, setPendingFiles] = useState<File[] | null>(null);
-    const [photoImportError, setPhotoImportError] = useState<string | null>(
-        null,
-    );
-    const [showPhotoImportProgress, setShowPhotoImportProgress] =
-        useState(false);
-    const pagePhotoImportBusy =
-        processingPhotos && !pendingFiles && book.pages.length > 0;
-
-    useEffect(() => {
-        if (!pagePhotoImportBusy) {
-            setShowPhotoImportProgress(false);
-            return;
-        }
-        const timeout = window.setTimeout(
-            () => setShowPhotoImportProgress(true),
-            300,
-        );
-        return () => window.clearTimeout(timeout);
-    }, [pagePhotoImportBusy]);
-
     const containerRef = useRef<HTMLDivElement>(null);
-    const photoInputRef = useRef<HTMLInputElement>(null);
-    const photoDestinationRef = useRef<string | undefined>(undefined);
 
     const [containerWidth, setContainerWidth] = useState(0);
 
     const pages = book.pages;
     const totalPages = pages.length;
-    const frontCoverId = pages[0]?.id;
 
     const clearSelection = useCallback(() => {
         setSelectedSlotId(null);
@@ -365,30 +338,6 @@ function EditPage({
         [addPage, clearSelection],
     );
 
-    const handleAddPhotos = useCallback(
-        (pageId?: string) => {
-            const input = photoInputRef.current;
-            if (!input || processingPhotos) return;
-            setPhotoImportError(null);
-            photoDestinationRef.current = pageId;
-            input.multiple = !pageId || pageId !== frontCoverId;
-            input.click();
-        },
-        [frontCoverId, processingPhotos],
-    );
-
-    const importPhotos = useCallback(
-        async (files: File[], destination: PhotoDestination) => {
-            const pageId = await addPhotos(files, {
-                replace: pages.length === 0,
-                destination,
-            });
-            clearSelection();
-            if (pageId) setInsertedPageId(pageId);
-        },
-        [addPhotos, pages.length, clearSelection],
-    );
-
     useEffect(() => {
         if (!insertedPageId) return;
         const pageIndex = pages.findIndex((page) => page.id === insertedPageId);
@@ -456,7 +405,7 @@ function EditPage({
                     >
                         <EditorActions
                             onAddPage={() => setAddPageDialogOpen(true)}
-                            onAddPhotos={() => handleAddPhotos()}
+                            onAddPhotos={onAddPhotos}
                         />
                     </Box>
                 }
@@ -469,12 +418,22 @@ function EditPage({
                     display: "flex",
                     flex: 1,
                     minHeight: 0,
-                    gap: EDITOR_PANEL_INSET,
                     mb: EDITOR_PANEL_BOTTOM_INSET,
                 }}
             >
-                {sidebarOpen && pages.length > 0 && (
-                    <BookSidebar onSpreadClick={handleSidebarSpreadClick} />
+                {pages.length > 0 && (
+                    <BookSidebar
+                        open={sidebarOpen}
+                        onSpreadClick={handleSidebarSpreadClick}
+                        tab={sidebarTab}
+                        scrollPositions={sidebarScrollPositions}
+                        onTabChange={onSidebarTabChange}
+                        gallery={{
+                            onAddPhotos,
+                            onPhotoDragStart: photoDrag.handleGalleryDragStart,
+                            onPhotoDragEnd: photoDrag.handleDragEnd,
+                        }}
+                    />
                 )}
 
                 <Box
@@ -643,9 +602,6 @@ function EditPage({
                                                     onInsertPage={
                                                         handleInsertPage
                                                     }
-                                                    onAddPhotos={
-                                                        handleAddPhotos
-                                                    }
                                                     dragSourceInfo={
                                                         photoDrag.dragSourceInfo
                                                     }
@@ -749,9 +705,6 @@ function EditPage({
                                                     onInsertPage={
                                                         handleInsertPage
                                                     }
-                                                    onAddPhotos={
-                                                        handleAddPhotos
-                                                    }
                                                     dragSourceInfo={
                                                         photoDrag.dragSourceInfo
                                                     }
@@ -823,98 +776,30 @@ function EditPage({
                 </Box>
             </Box>
 
-            <input
-                ref={photoInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
-                multiple
-                style={{ display: "none" }}
-                onChange={async (event) => {
-                    const files = Array.from(event.currentTarget.files ?? []);
-                    const pageId = photoDestinationRef.current;
-                    event.currentTarget.value = "";
-                    if (files.length === 0) return;
-                    if (!pageId) {
-                        setPendingFiles(files);
-                        return;
-                    }
-                    try {
-                        await importPhotos(files, { kind: "page", pageId });
-                    } catch (error) {
-                        setPhotoImportError(
-                            error instanceof Error
-                                ? error.message
-                                : "Couldn't add these photos. Please try again.",
-                        );
-                    }
-                }}
-            />
-            {pendingFiles && (
-                <AddPhotosDialog
-                    pages={pages}
-                    photoCount={pendingFiles.length}
-                    busy={processingPhotos}
-                    progress={processingProgress}
-                    onClose={() => setPendingFiles(null)}
-                    onAdd={(destination) =>
-                        importPhotos(pendingFiles, destination)
-                    }
-                />
-            )}
             <PhotoChoiceDialog
                 open={photoDrag.awaitingDropChoice}
-                title="Add or swap photos?"
-                description="Keep both photos on this page, or swap them between pages."
+                title={
+                    photoDrag.galleryDrop
+                        ? "Add or replace photo?"
+                        : "Add or swap photos?"
+                }
+                description={
+                    photoDrag.galleryDrop
+                        ? "Add this photo to the page, or replace the photo already there."
+                        : "Keep both photos on this page, or swap them between pages."
+                }
                 primary={{
                     label: "Add to page",
                     onClick: () => photoDrag.resolveDrop("add"),
                 }}
                 secondary={{
-                    label: "Swap photos",
+                    label: photoDrag.galleryDrop
+                        ? "Replace photo"
+                        : "Swap photos",
                     onClick: () => photoDrag.resolveDrop("swap"),
                 }}
                 onClose={() => photoDrag.resolveDrop("cancel")}
             />
-            <Backdrop
-                open={pagePhotoImportBusy}
-                invisible={!showPhotoImportProgress}
-                transitionDuration={0}
-                sx={{ zIndex: (theme) => theme.zIndex.modal + 1 }}
-            >
-                {pagePhotoImportBusy && showPhotoImportProgress && (
-                    <Box
-                        role="status"
-                        aria-live="polite"
-                        sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 2,
-                            bgcolor: uiColors.surface,
-                            color: uiColors.text,
-                            p: 3,
-                            borderRadius: 3,
-                        }}
-                    >
-                        <CircularProgress size={24} sx={{ color: "#08C225" }} />
-                        <Typography>
-                            {"Adding photos… "}
-                            {processingProgress}%
-                        </Typography>
-                    </Box>
-                )}
-            </Backdrop>
-            <Snackbar
-                open={!!photoImportError}
-                onClose={() => setPhotoImportError(null)}
-                anchorOrigin={{ vertical: "top", horizontal: "center" }}
-            >
-                <Alert
-                    severity="error"
-                    onClose={() => setPhotoImportError(null)}
-                >
-                    {photoImportError}
-                </Alert>
-            </Snackbar>
 
             {addPageDialogOpen && (
                 <AddPageDialog

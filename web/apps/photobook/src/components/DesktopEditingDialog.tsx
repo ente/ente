@@ -13,9 +13,11 @@ import { CloseIcon, EditIcon } from "./icons";
 export default function DesktopEditingDialog({
     open,
     onClose,
+    largeImport = false,
 }: {
     open: boolean;
     onClose: () => void;
+    largeImport?: boolean;
 }) {
     return (
         <Dialog
@@ -65,14 +67,17 @@ export default function DesktopEditingDialog({
                             id="desktop-editing-title"
                             sx={dialogTitleSx}
                         >
-                            Edit on desktop
+                            {largeImport
+                                ? "Create on desktop"
+                                : "Edit on desktop"}
                         </Typography>
                         <Typography
                             id="desktop-editing-description"
                             sx={dialogDescriptionSx}
                         >
-                            Use the desktop version to arrange photos, change
-                            layouts and edit page text.
+                            {largeImport
+                                ? "There are too many photos to arrange automatically. Open Photobook on your computer to choose which photos go on each page."
+                                : "Use the desktop version to arrange photos, change layouts and edit page text."}
                         </Typography>
                     </Box>
                     <Button

@@ -131,13 +131,13 @@ export function EditorPreviewButton() {
         const selection = binding
             ? getBindingPrintSelection(binding)
             : DEFAULT_PRINT_SELECTION;
-        const pageCount = normalizeBookPages(book.pages).length;
-        const error = getPrintExportError(selection, pageCount);
+        const pages = normalizeBookPages(book.pages);
+        const error = getPrintExportError(selection, pages);
         if (error) {
-            setValidation({ selection, pageCount, error });
+            setValidation({ selection, pageCount: pages.length, error });
             return;
         }
-        setAppView("results");
+        withSpineTitle(() => setAppView("results"));
     };
 
     return (
@@ -146,7 +146,7 @@ export function EditorPreviewButton() {
                 variant="contained"
                 aria-label="Preview"
                 startIcon={<PreviewIcon />}
-                onClick={() => withSpineTitle(handlePreview)}
+                onClick={handlePreview}
                 disabled={processingPhotos || book.pages.length === 0}
                 sx={headerButtonSx}
             >

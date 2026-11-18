@@ -1,16 +1,9 @@
-import { MAX_PAGE_PHOTOS } from "@/lib/photoPlacement";
-import { canInsertPage } from "@/lib/printProducts";
+import { canDeletePage, canInsertPage } from "@/lib/printProducts";
 import { pageMenuColors, uiColors } from "@/theme/colors";
 import { pageMenuItemSx, pageMenuPaperSx } from "@/theme/menus";
 import { IconButton, Menu, MenuItem } from "@mui/material";
 import { useState } from "react";
-import {
-    AddPageIcon,
-    AddPhotosIcon,
-    DeleteIcon,
-    EditPhotoIcon,
-    MoreIcon,
-} from "./icons";
+import { AddPageIcon, DeleteIcon, MoreIcon } from "./icons";
 import RequiredPageDialog from "./RequiredPageDialog";
 
 export type PageInsertPosition = "before" | "after";
@@ -18,11 +11,9 @@ export type PageInsertPosition = "before" | "after";
 interface PageMenuProps {
     pageId: string;
     pageIndex: number;
-    photoCount: number;
     totalPages: number;
     side: "left" | "right";
     requiredBlank: boolean;
-    onAddPhotos: () => void;
     onInsert: (position: PageInsertPosition) => void;
     onDelete: () => void;
 }
@@ -30,11 +21,9 @@ interface PageMenuProps {
 export default function PageMenu({
     pageId,
     pageIndex,
-    photoCount,
     totalPages,
     side,
     requiredBlank,
-    onAddPhotos,
     onInsert,
     onDelete,
 }: PageMenuProps) {
@@ -109,31 +98,6 @@ export default function PageMenu({
                     list: { "aria-labelledby": buttonId, sx: { p: 0 } },
                 }}
             >
-                {isFrontCover && (
-                    <MenuItem
-                        dense
-                        disableRipple
-                        onClick={() => runAction(onAddPhotos)}
-                        sx={pageMenuItemSx}
-                    >
-                        <EditPhotoIcon sx={{ fontSize: 18, flexShrink: 0 }} />
-                        Change cover image
-                    </MenuItem>
-                )}
-                {isInterior && (
-                    <MenuItem
-                        dense
-                        disableRipple
-                        disabled={
-                            insertDisabled && photoCount >= MAX_PAGE_PHOTOS
-                        }
-                        onClick={() => runAction(onAddPhotos)}
-                        sx={pageMenuItemSx}
-                    >
-                        <AddPhotosIcon sx={{ fontSize: 18, flexShrink: 0 }} />
-                        Add photos
-                    </MenuItem>
-                )}
                 {!isFrontCover && (
                     <MenuItem
                         dense
@@ -162,6 +126,7 @@ export default function PageMenu({
                     <MenuItem
                         dense
                         disableRipple
+                        disabled={!canDeletePage(totalPages)}
                         onClick={() =>
                             runAction(() => {
                                 if (requiredBlank)
