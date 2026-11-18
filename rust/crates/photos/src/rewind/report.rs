@@ -228,6 +228,7 @@ pub struct Mosaic {
     pub top_person_id: Option<String>,
     pub top_face_ids: Vec<String>,
     pub cluster_id: Option<String>,
+    #[serde(default)]
     pub cluster_face_ids: Vec<String>,
 }
 

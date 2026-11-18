@@ -1,0 +1,1 @@
+- Kept an available Rewind visible after updating the app while new photos are waiting for ML indexing.
