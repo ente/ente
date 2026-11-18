@@ -879,6 +879,14 @@ class UserService {
           ),
           (route) => route.isFirst,
         );
+      } else if (e == const AccountsError.twoFactorRecoveryNotConfigured()) {
+        // ignore: unawaited_futures
+        showAlertBottomSheet(
+          context,
+          title: context.strings.contactSupport,
+          message: context.strings.pleaseContactSupportAndWeWillBeHappyToHelp,
+          assetPath: 'assets/warning-grey.png',
+        );
       } else {
         // ignore: unawaited_futures
         showAlertBottomSheet(
