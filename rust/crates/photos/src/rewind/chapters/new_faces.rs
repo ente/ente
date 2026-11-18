@@ -130,6 +130,7 @@ mod tests {
         assert_eq!(one.faces[0].cluster_id.as_deref(), Some("stranger"));
 
         let (_empty_directory, empty) = crate::rewind::fixtures::store();
+        let library = Library::of_year(&faces_request).unwrap();
         let people = People::load(&faces_request, &library, &empty).unwrap();
         let ranking = Ranking::new(Some(&people), None);
         assert!(new_faces(&faces_request, &library, &people, &ranking).is_none());

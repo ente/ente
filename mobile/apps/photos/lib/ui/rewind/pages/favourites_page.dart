@@ -107,8 +107,9 @@ class _FavouritesState extends State<_Favourites> {
   static const _flingVelocity = 350.0;
 
   var _ms = 0.0;
-  var _shown = 0;
-  var _shared = 0;
+  var _shownFront = 0;
+  var _latchedFront = 0;
+  bool? _still;
   double? _dragged;
   _Settle? _settle;
 
@@ -157,6 +158,25 @@ class _FavouritesState extends State<_Favourites> {
   double _bounded(double spun) =>
       _wraps ? spun : spun.clamp(0.0, _photos.length - 1.0);
 
+  double get _stageScale => RewindStage.scaleFor(MediaQuery.sizeOf(context));
+
+  void _settleTo(double from, double to) {
+    setState(() {
+      _dragged = null;
+      _settle = (from: from, to: _bounded(to), atMs: _ms);
+    });
+  }
+
+  void _step(int by) {
+    final front = _shownFront.toDouble();
+    _settleTo(front, front + by);
+  }
+
+  void _restartFromShown(double ms) {
+    final front = _shownFront.toDouble();
+    _settle = (from: front, to: front, atMs: ms);
+  }
+
   void _grab(DragStartDetails details) {
     setState(
       () => _dragged = _spunAt(
@@ -169,7 +189,9 @@ class _FavouritesState extends State<_Favourites> {
   void _drag(DragUpdateDetails details) {
     final dragged = _dragged;
     if (dragged == null) return;
-    final next = _bounded(dragged - details.primaryDelta! / _dragPerTurn);
+    final next = _bounded(
+      dragged - details.primaryDelta! / (_dragPerTurn * _stageScale),
+    );
     if (_frontOf(next) != _frontOf(dragged)) HapticFeedback.selectionClick();
     setState(() => _dragged = next);
   }
@@ -177,41 +199,47 @@ class _FavouritesState extends State<_Favourites> {
   void _release(DragEndDetails details) {
     final dragged = _dragged;
     if (dragged == null) return;
-    final velocity = details.primaryVelocity ?? 0;
-    final target = velocity.abs() < _flingVelocity
-        ? dragged.roundToDouble()
-        : velocity < 0
-        ? dragged.floorToDouble() + 1
-        : dragged.ceilToDouble() - 1;
-    setState(() {
-      _dragged = null;
-      _settle = (from: dragged, to: _bounded(target), atMs: _ms);
-    });
+    final velocity = (details.primaryVelocity ?? 0) / _stageScale;
+    _settleTo(
+      dragged,
+      velocity.abs() < _flingVelocity
+          ? dragged.roundToDouble()
+          : velocity < 0
+          ? dragged.floorToDouble() + 1
+          : dragged.ceilToDouble() - 1,
+    );
   }
 
-  void _latch() => _shared = _shown;
+  void _latch() => _latchedFront = _shownFront;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.translucent,
-      onHorizontalDragStart: _swipes ? _grab : null,
-      onHorizontalDragUpdate: _swipes ? _drag : null,
-      onHorizontalDragEnd: _swipes ? _release : null,
-      onHorizontalDragCancel: _swipes ? () => _release(DragEndDetails()) : null,
-      child: RewindShareable(
-        onShare: _latch,
-        child: Builder(
-          builder: (context) =>
-              _page(context, capturing: RewindShareable.capturing(context)),
+    return Semantics(
+      onScrollLeft: _swipes ? () => _step(1) : null,
+      onScrollRight: _swipes ? () => _step(-1) : null,
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        excludeFromSemantics: true,
+        onHorizontalDragStart: _swipes ? _grab : null,
+        onHorizontalDragUpdate: _swipes ? _drag : null,
+        onHorizontalDragEnd: _swipes ? _release : null,
+        onHorizontalDragCancel: _swipes
+            ? () => _release(DragEndDetails())
+            : null,
+        child: RewindShareable(
+          onShare: _latch,
+          child: Builder(
+            builder: (context) =>
+                _page(context, capturing: RewindShareable.capturing(context)),
+          ),
         ),
       ),
     );
   }
 
   Widget _page(BuildContext context, {required bool capturing}) {
-    final position = widget.position;
-    final isActive = widget.isActive;
+    final position = capturing ? 0.0 : widget.position;
+    final isActive = widget.isActive || capturing;
     final covered = RewindPageScope.coveredOf(context);
     final media = MediaQuery.of(context);
     final title = capturing
@@ -244,17 +272,19 @@ class _FavouritesState extends State<_Favourites> {
                             return _Deck(
                               photos: _photos,
                               ms: ms,
-                              spun: _shared.toDouble(),
+                              spun: _latchedFront.toDouble(),
                               wraps: _wraps,
                               frontOnly: true,
                             );
                           }
-                          final spun = _spunAt(
-                            ms,
-                            still: MediaQuery.disableAnimationsOf(context),
-                          );
+                          final still = MediaQuery.disableAnimationsOf(context);
+                          if (_still != null && _still != still) {
+                            _restartFromShown(ms);
+                          }
+                          _still = still;
+                          final spun = _spunAt(ms, still: still);
                           _ms = ms;
-                          _shown = _frontOf(spun);
+                          _shownFront = _frontOf(spun);
                           return _Deck(
                             photos: _photos,
                             ms: ms,
