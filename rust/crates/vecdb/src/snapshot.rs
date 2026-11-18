@@ -3,11 +3,15 @@ use std::io::{ErrorKind, Write};
 use std::path::{Path, PathBuf};
 
 use super::VecDbError;
+use super::cipher::{Cipher, NONCE_LEN, TAG_LEN};
 use super::crc::crc32;
 use super::graph::{Graph, GraphNodeParts};
 use super::log::{remove_if_present, rename_with_windows_fallback, sync_parent_dir};
 
 const MAGIC: [u8; 4] = *b"EVDG";
+const SEALED_MAGIC: [u8; 4] = *b"EVGE";
+const SEALED_PREFIX_LEN: usize = SEALED_MAGIC.len() + size_of::<u16>();
+const SEALED_BODY_START: usize = SEALED_PREFIX_LEN + NONCE_LEN;
 const FORMAT_VERSION: u16 = 1;
 const NO_ENTRY_POINT: u32 = u32::MAX;
 const CRC_LEN: usize = 4;
@@ -31,9 +35,15 @@ pub(crate) fn write_snapshot(
     generation: [u8; 16],
     covered_log_offset: u64,
     graph: &Graph,
+    cipher: Option<&Cipher>,
 ) -> Result<(), VecDbError> {
-    let bytes = encode_snapshot(&generation, covered_log_offset, graph);
     let target = snapshot_path(log_path);
+    let encoded = encode_snapshot(&generation, covered_log_offset, graph);
+    let bytes = match cipher {
+        None => encoded,
+        Some(cipher) => seal_snapshot(&encoded, &generation, cipher)
+            .map_err(|error| VecDbError::io(&target, std::io::Error::other(error)))?,
+    };
     let temp = temp_snapshot_path(log_path);
     write_and_swap(&bytes, &temp, &target).inspect_err(|_| {
         let _ = std::fs::remove_file(&temp);
@@ -43,9 +53,10 @@ pub(crate) fn write_snapshot(
 pub(crate) fn load_snapshot(
     log_path: &Path,
     expected_generation: [u8; 16],
+    cipher: Option<&Cipher>,
 ) -> Option<LoadedSnapshot> {
     let path = snapshot_path(log_path);
-    let bytes = match std::fs::read(&path) {
+    let mut bytes = match std::fs::read(&path) {
         Ok(bytes) => bytes,
         Err(error) if error.kind() == ErrorKind::NotFound => return None,
         Err(error) => {
@@ -53,13 +64,79 @@ pub(crate) fn load_snapshot(
             return None;
         }
     };
-    match decode_snapshot(&bytes, &expected_generation) {
+    let decoded = match cipher {
+        None => decode_snapshot(&bytes, &expected_generation),
+        Some(cipher) => open_snapshot(&mut bytes, &expected_generation, cipher)
+            .and_then(|encoded| decode_snapshot(encoded, &expected_generation)),
+    };
+    match decoded {
         Ok(loaded) => Some(loaded),
         Err(reason) => {
             log::debug!("discarding snapshot {}: {reason}", path.display());
             None
         }
     }
+}
+
+fn seal_snapshot(
+    encoded: &[u8],
+    generation: &[u8; 16],
+    cipher: &Cipher,
+) -> ente_core::crypto::Result<Vec<u8>> {
+    let mut bytes = Vec::with_capacity(SEALED_BODY_START + encoded.len() + TAG_LEN);
+    bytes.extend_from_slice(&SEALED_MAGIC);
+    bytes.extend_from_slice(&FORMAT_VERSION.to_le_bytes());
+    bytes.resize(SEALED_BODY_START, 0);
+    bytes.extend_from_slice(encoded);
+    let (nonce, tag) = cipher.seal(
+        &mut bytes[SEALED_BODY_START..],
+        &sealed_additional_data(generation),
+    )?;
+    bytes[SEALED_PREFIX_LEN..SEALED_BODY_START].copy_from_slice(nonce.as_bytes());
+    bytes.extend_from_slice(&tag);
+    Ok(bytes)
+}
+
+fn open_snapshot<'a>(
+    bytes: &'a mut [u8],
+    generation: &[u8; 16],
+    cipher: &Cipher,
+) -> Result<&'a [u8], String> {
+    if bytes.len() < SEALED_BODY_START + TAG_LEN {
+        return Err(format!(
+            "{} bytes is too short for an encrypted snapshot",
+            bytes.len()
+        ));
+    }
+    if bytes[0..4] != SEALED_MAGIC {
+        return Err(format!(
+            "bad encrypted snapshot magic {:02x?}",
+            &bytes[0..4]
+        ));
+    }
+    let version = u16::from_le_bytes([bytes[4], bytes[5]]);
+    if version != FORMAT_VERSION {
+        return Err(format!("unsupported snapshot format version {version}"));
+    }
+    let (prefix, sealed) = bytes.split_at_mut(SEALED_BODY_START);
+    let (encoded, tag) = sealed.split_at_mut(sealed.len() - TAG_LEN);
+    if !cipher.open(
+        encoded,
+        &sealed_additional_data(generation),
+        &prefix[SEALED_PREFIX_LEN..],
+        tag,
+    ) {
+        return Err("does not decrypt with the log's key and generation".to_string());
+    }
+    Ok(encoded)
+}
+
+fn sealed_additional_data(generation: &[u8; 16]) -> [u8; SEALED_PREFIX_LEN + 16] {
+    let mut additional_data = [0u8; SEALED_PREFIX_LEN + 16];
+    additional_data[..4].copy_from_slice(&SEALED_MAGIC);
+    additional_data[4..SEALED_PREFIX_LEN].copy_from_slice(&FORMAT_VERSION.to_le_bytes());
+    additional_data[SEALED_PREFIX_LEN..].copy_from_slice(generation);
+    additional_data
 }
 
 pub(crate) fn remove_snapshot(log_path: &Path) -> Result<(), VecDbError> {
@@ -307,7 +384,7 @@ mod tests {
     }
 
     fn load_golden(log_path: &Path) -> Option<LoadedSnapshot> {
-        load_snapshot(log_path, golden_generation())
+        load_snapshot(log_path, golden_generation(), None)
     }
 
     fn refresh_crc(bytes: &mut [u8]) {
@@ -414,7 +491,14 @@ mod tests {
     fn golden_bytes_pin_format_v1() {
         let dir = TempDir::new().unwrap();
         let written_path = dir.path().join("written");
-        write_snapshot(&written_path, golden_generation(), 300, &golden_graph()).unwrap();
+        write_snapshot(
+            &written_path,
+            golden_generation(),
+            300,
+            &golden_graph(),
+            None,
+        )
+        .unwrap();
         assert_eq!(std::fs::read(snapshot_path(&written_path)).unwrap(), GOLDEN);
         let literal_path = dir.path().join("literal");
         std::fs::write(snapshot_path(&literal_path), GOLDEN).unwrap();
@@ -446,9 +530,9 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let log_path = dir.path().join("log");
         let generation = [7u8; 16];
-        write_snapshot(&log_path, generation, 4096, &graph).unwrap();
+        write_snapshot(&log_path, generation, 4096, &graph, None).unwrap();
         assert!(!temp_snapshot_path(&log_path).exists());
-        let loaded = load_snapshot(&log_path, generation).unwrap();
+        let loaded = load_snapshot(&log_path, generation, None).unwrap();
         assert_eq!(loaded.covered_log_offset, 4096);
         assert_eq!(loaded.insert_ordinal, graph.insert_ordinal());
         assert_eq!(loaded.entry_point, graph.entry_point());
@@ -482,12 +566,12 @@ mod tests {
     fn empty_graph_round_trips() {
         let dir = TempDir::new().unwrap();
         let log_path = dir.path().join("log");
-        write_snapshot(&log_path, [3u8; 16], 32, &Graph::new()).unwrap();
+        write_snapshot(&log_path, [3u8; 16], 32, &Graph::new(), None).unwrap();
         assert_eq!(
             std::fs::read(snapshot_path(&log_path)).unwrap().len(),
             MIN_SNAPSHOT_LEN
         );
-        let loaded = load_snapshot(&log_path, [3u8; 16]).unwrap();
+        let loaded = load_snapshot(&log_path, [3u8; 16], None).unwrap();
         assert_eq!(loaded.covered_log_offset, 32);
         assert_eq!(loaded.insert_ordinal, 0);
         assert_eq!(loaded.entry_point, None);
@@ -507,8 +591,8 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let first_path = dir.path().join("first");
         let second_path = dir.path().join("second");
-        write_snapshot(&first_path, [5u8; 16], 777, &first).unwrap();
-        write_snapshot(&second_path, [5u8; 16], 777, &second).unwrap();
+        write_snapshot(&first_path, [5u8; 16], 777, &first, None).unwrap();
+        write_snapshot(&second_path, [5u8; 16], 777, &second, None).unwrap();
         let first_bytes = std::fs::read(snapshot_path(&first_path)).unwrap();
         let second_bytes = std::fs::read(snapshot_path(&second_path)).unwrap();
         assert_eq!(first_bytes, second_bytes);
@@ -628,7 +712,7 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let log_path = dir.path().join("log");
         std::fs::write(snapshot_path(&log_path), GOLDEN).unwrap();
-        assert!(load_snapshot(&log_path, [9u8; 16]).is_none());
+        assert!(load_snapshot(&log_path, [9u8; 16], None).is_none());
         assert!(load_golden(&log_path).is_some());
     }
 
@@ -637,7 +721,7 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let log_path = dir.path().join("log");
         std::fs::write(snapshot_path(&log_path), GOLDEN).unwrap();
-        let loaded = load_snapshot(&log_path, golden_generation()).unwrap();
+        let loaded = load_snapshot(&log_path, golden_generation(), None).unwrap();
         assert_eq!(loaded.covered_log_offset, 300);
     }
 
@@ -696,7 +780,7 @@ mod tests {
         });
         let dir = TempDir::new().unwrap();
         let log_path = dir.path().join("log");
-        write_snapshot(&log_path, golden_generation(), 300, &Graph::new()).unwrap();
+        write_snapshot(&log_path, golden_generation(), 300, &Graph::new(), None).unwrap();
         let path = snapshot_path(&log_path);
         let mut bytes = std::fs::read(&path).unwrap();
         bytes[38..42].copy_from_slice(&0u32.to_le_bytes());
@@ -710,12 +794,12 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let log_path = dir.path().join("log");
         std::fs::create_dir(snapshot_path(&log_path)).unwrap();
-        let error = write_snapshot(&log_path, [1u8; 16], 0, &Graph::new()).unwrap_err();
+        let error = write_snapshot(&log_path, [1u8; 16], 0, &Graph::new(), None).unwrap_err();
         assert!(matches!(error, VecDbError::Io { .. }));
         assert!(!temp_snapshot_path(&log_path).exists());
         assert!(snapshot_path(&log_path).is_dir());
         let orphan_path = dir.path().join("absent").join("log");
-        assert!(write_snapshot(&orphan_path, [1u8; 16], 0, &Graph::new()).is_err());
+        assert!(write_snapshot(&orphan_path, [1u8; 16], 0, &Graph::new(), None).is_err());
         assert!(!temp_snapshot_path(&orphan_path).exists());
         assert!(!snapshot_path(&orphan_path).exists());
     }
@@ -725,10 +809,10 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let log_path = dir.path().join("log");
         let generation = golden_generation();
-        write_snapshot(&log_path, generation, 100, &golden_graph()).unwrap();
-        write_snapshot(&log_path, generation, 999, &golden_graph()).unwrap();
+        write_snapshot(&log_path, generation, 100, &golden_graph(), None).unwrap();
+        write_snapshot(&log_path, generation, 999, &golden_graph(), None).unwrap();
         assert!(!temp_snapshot_path(&log_path).exists());
-        let loaded = load_snapshot(&log_path, generation).unwrap();
+        let loaded = load_snapshot(&log_path, generation, None).unwrap();
         assert_eq!(loaded.covered_log_offset, 999);
         assert_eq!(loaded.parts.len(), 3);
     }
@@ -738,7 +822,7 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let log_path = dir.path().join("log");
         remove_snapshot(&log_path).unwrap();
-        write_snapshot(&log_path, [2u8; 16], 0, &Graph::new()).unwrap();
+        write_snapshot(&log_path, [2u8; 16], 0, &Graph::new(), None).unwrap();
         std::fs::write(temp_snapshot_path(&log_path), b"leftover").unwrap();
         assert!(snapshot_path(&log_path).exists());
         assert!(temp_snapshot_path(&log_path).exists());
@@ -746,5 +830,65 @@ mod tests {
         assert!(!snapshot_path(&log_path).exists());
         assert!(!temp_snapshot_path(&log_path).exists());
         remove_snapshot(&log_path).unwrap();
+    }
+
+    #[test]
+    fn sealed_snapshots_round_trip_and_bind_to_their_key_and_generation() {
+        let dir = TempDir::new().unwrap();
+        let log_path = dir.path().join("log");
+        let cipher = Cipher::new(&ente_core::crypto::Key::from_bytes([4u8; 32]));
+        let other_cipher = Cipher::new(&ente_core::crypto::Key::from_bytes([5u8; 32]));
+        let generation = golden_generation();
+        write_snapshot(&log_path, generation, 300, &golden_graph(), Some(&cipher)).unwrap();
+        let sealed = std::fs::read(snapshot_path(&log_path)).unwrap();
+        assert_eq!(sealed[..4], SEALED_MAGIC);
+        assert_eq!(sealed.len(), GOLDEN.len() + SEALED_BODY_START + TAG_LEN);
+        assert!(
+            !sealed
+                .windows(GOLDEN.len() - 8)
+                .any(|window| window == &GOLDEN[4..GOLDEN.len() - 4])
+        );
+
+        let loaded = load_snapshot(&log_path, generation, Some(&cipher)).unwrap();
+        let golden = load_snapshot_from(&GOLDEN, &log_path, generation);
+        assert_eq!(loaded.covered_log_offset, golden.covered_log_offset);
+        assert_eq!(loaded.insert_ordinal, golden.insert_ordinal);
+        assert_eq!(loaded.entry_point, golden.entry_point);
+        assert_eq!(
+            loaded
+                .parts
+                .iter()
+                .map(|part| (part.slot, part.level, part.neighbors.clone()))
+                .collect::<Vec<_>>(),
+            golden
+                .parts
+                .iter()
+                .map(|part| (part.slot, part.level, part.neighbors.clone()))
+                .collect::<Vec<_>>()
+        );
+
+        std::fs::write(snapshot_path(&log_path), &sealed).unwrap();
+        assert!(load_snapshot(&log_path, generation, Some(&other_cipher)).is_none());
+        assert!(load_snapshot(&log_path, [9u8; 16], Some(&cipher)).is_none());
+        assert!(load_snapshot(&log_path, generation, None).is_none());
+        for index in [
+            5,
+            SEALED_PREFIX_LEN,
+            SEALED_BODY_START + 3,
+            sealed.len() - 1,
+        ] {
+            let mut altered = sealed.clone();
+            altered[index] ^= 0x01;
+            std::fs::write(snapshot_path(&log_path), &altered).unwrap();
+            assert!(load_snapshot(&log_path, generation, Some(&cipher)).is_none());
+        }
+        std::fs::write(snapshot_path(&log_path), GOLDEN).unwrap();
+        assert!(load_snapshot(&log_path, generation, Some(&cipher)).is_none());
+    }
+
+    fn load_snapshot_from(bytes: &[u8], log_path: &Path, generation: [u8; 16]) -> LoadedSnapshot {
+        let plain_path = log_path.with_file_name("plain");
+        std::fs::write(snapshot_path(&plain_path), bytes).unwrap();
+        load_snapshot(&plain_path, generation, None).unwrap()
     }
 }
