@@ -9,11 +9,13 @@ import "package:package_info_plus/package_info_plus.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/ente_theme_data.dart";
+import "package:photos/events/collection_meta_event.dart";
 import "package:photos/events/event.dart";
 import "package:photos/events/files_updated_event.dart";
 import "package:photos/events/gallery_layout_changed_event.dart";
 import "package:photos/models/file/dummy_file.dart";
 import "package:photos/models/file/file.dart";
+import "package:photos/models/file/file_sort_order.dart";
 import "package:photos/models/file/file_type.dart";
 import "package:photos/models/file_load_result.dart";
 import "package:photos/models/gallery/fixed_extent_grid_row.dart";
@@ -98,6 +100,84 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pumpAndSettle();
     }
+  });
+
+  testWidgets("filename sort loads the full album and restores date headers", (
+    tester,
+  ) async {
+    final key = GlobalKey<GalleryState>();
+    Completer<FileLoadResult>? pendingLoad;
+    var order = FileSortOrder.filenameAscending;
+    final files = List.generate(
+      201,
+      (index) => _justifiedTestFile(index)
+        ..title = "IMG${201 - index}.jpg"
+        ..uploadedFileID = index + 1,
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: lightThemeData,
+        localizationsDelegates: StringsLocalizations.localizationsDelegates,
+        supportedLocales: StringsLocalizations.supportedLocales,
+        home: Scaffold(
+          body: _galleryHost(
+            Gallery(
+              key: key,
+              tagPrefix: "filename_sort",
+              groupType: GroupType.day,
+              sortOrderFn: () => order,
+              forceReloadEvents: [Bus.instance.on<CollectionMetaEvent>()],
+              limitSelectionToOne: true,
+              showSelectAll: false,
+              asyncLoader: (start, end, {limit, asc}) async {
+                final pending = pendingLoad;
+                pendingLoad = null;
+                if (pending != null) return pending.future;
+                final loaded = files.take(limit ?? files.length).toList();
+                return FileLoadResult(loaded, loaded.length == limit);
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(key.currentState!.galleryGroups!.allFiles, hasLength(201));
+    expect(key.currentState!.galleryGroups!.allFiles.first.title, "IMG1.jpg");
+    expect(key.currentState!.galleryGroups!.groupType, GroupType.none);
+
+    final pending = Completer<FileLoadResult>();
+    pendingLoad = pending;
+    order = FileSortOrder.filenameAscending;
+    Bus.instance.fire(
+      CollectionMetaEvent(1, CollectionMetaEventType.sortChanged),
+    );
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+    expect(pendingLoad, isNull);
+
+    order = FileSortOrder.oldestFirst;
+    Bus.instance.fire(
+      CollectionMetaEvent(1, CollectionMetaEventType.sortChanged),
+    );
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+    pending.complete(FileLoadResult(List<EnteFile>.from(files), false));
+    await tester.pumpAndSettle();
+    expect(key.currentState!.galleryGroups!.groupType, GroupType.day);
+    expect(key.currentState!.galleryGroups!.groupHeaderExtent, greaterThan(2));
+    expect(key.currentState!.galleryGroups!.allFiles.first.title, "IMG201.jpg");
+
+    order = FileSortOrder.filenameDescending;
+    Bus.instance.fire(
+      CollectionMetaEvent(1, CollectionMetaEventType.sortChanged),
+    );
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+    expect(key.currentState!.galleryGroups!.groupType, GroupType.none);
+    expect(key.currentState!.galleryGroups!.allFiles.first.title, "IMG201.jpg");
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 100));
   });
 
   testWidgets("the gallery sheet toggle is reachable in landscape", (
@@ -216,7 +296,7 @@ void main() {
   );
 
   testWidgets(
-    "a layout change with a zero-size overlay retains a valid header cache",
+    "zero-size overlay preserves the header during layout and file reloads",
     (tester) async {
       tester.view.devicePixelRatio = 1;
       tester.view.physicalSize = const Size(400, 600);
@@ -224,7 +304,7 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       await localSettings.setPhotoGridSize(4);
       final galleryKey = GlobalKey<GalleryState>();
-      final files = List<EnteFile>.generate(4, _justifiedTestFile);
+      var files = List<EnteFile>.generate(4, _justifiedTestFile);
       var loads = 0;
       await tester.pumpWidget(
         _viewSizedGalleryHost(
@@ -232,6 +312,7 @@ void main() {
             key: galleryKey,
             tagPrefix: "retain_header_cache",
             groupType: GroupType.day,
+            forceReloadEvents: [Bus.instance.on<CollectionMetaEvent>()],
             asyncLoader: (start, end, {limit, asc}) async {
               loads++;
               return FileLoadResult(files, false);
@@ -257,12 +338,20 @@ void main() {
       expect(originalState.galleryGroups!.groupHeaderExtent, headerExtent);
       expect(tester.takeException(), isNull);
 
+      files = List<EnteFile>.generate(8, _justifiedTestFile);
+      Bus.instance.fire(
+        CollectionMetaEvent(1, CollectionMetaEventType.sortChanged),
+      );
+      await tester.pumpAndSettle();
+      expect(originalState.groupHeaderExtent, headerExtent);
+      expect(originalState.galleryGroups!.allFiles, orderedEquals(files));
+
       tester.view.physicalSize = const Size(400, 600);
       await tester.pumpAndSettle();
       expect(galleryKey.currentState, same(originalState));
       expect(originalState.groupHeaderExtent, headerExtent);
       expect(originalState.galleryGroups!.allFiles, orderedEquals(files));
-      expect(loads, 1);
+      expect(loads, 2);
       expect(tester.takeException(), isNull);
 
       await tester.pumpWidget(const SizedBox.shrink());

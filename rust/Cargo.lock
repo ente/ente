@@ -2603,6 +2603,8 @@ dependencies = [
  "ente-core",
  "ente-ensu",
  "ente-uniffi-log",
+ "rusqlite",
+ "tempfile",
  "thiserror 2.0.21",
  "uniffi",
  "uuid",

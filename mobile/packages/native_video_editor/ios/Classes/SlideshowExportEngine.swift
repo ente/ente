@@ -12,12 +12,26 @@ public final class SlideshowExportEngine: Sendable {
         try? FileManager.default.removeItem(at: request.outputURL)
         do {
             let timeline = try await SlideshowTimeline.prepare(request)
-            let session = try SlideshowWriterSession(
-                request: request,
-                timeline: timeline,
+            let session = try VideoWriterSession(
+                settings: VideoWriterSettings(
+                    outputURL: request.outputURL,
+                    width: request.width,
+                    height: request.height,
+                    frameRate: request.frameRate,
+                    bitrate: request.videoBitrate,
+                    audio: timeline.hasAudio
+                        ? VideoWriterAudioSettings(
+                            sampleRate: SlideshowAudioProducer.sampleRate,
+                            channelCount: SlideshowAudioProducer.channelCount
+                        )
+                        : nil
+                ),
                 onProgress: onProgress
             )
-            try await session.run()
+            try await session.run(
+                frames: { SlideshowFrameProducer(request: request, timeline: timeline, pool: $0) },
+                audio: { try SlideshowAudioProducer(timeline: timeline) }
+            )
             let outputSize =
                 (try? request.outputURL.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
             guard outputSize > 0 else {
@@ -44,6 +58,7 @@ struct SlideshowVideoSource: @unchecked Sendable {
     let audioTrack: AVAssetTrack?
     let orientation: CGImagePropertyOrientation
     let trackStart: CMTime
+    var readRange: CMTimeRange?
 }
 
 struct SlideshowSegment: @unchecked Sendable {
@@ -60,7 +75,7 @@ struct SlideshowSegment: @unchecked Sendable {
     }
 
     var playsVideoAudio: Bool {
-        if case .video(_, let isMuted) = item, !isMuted, video?.audioTrack != nil {
+        if case .video(_, let isMuted, _) = item, !isMuted, video?.audioTrack != nil {
             return true
         }
         return false
@@ -95,11 +110,18 @@ struct SlideshowTimeline: Sendable {
                 segments.append(
                     SlideshowSegment(item: item, start: cursor, duration: duration, video: nil))
                 cursor += duration
-            case .video(let url, _):
-                let source = try await loadVideo(url)
-                let duration = try await source.asset.load(.duration).seconds
+            case .video(let url, _, let maxDurationMs):
+                var source = try await loadVideo(url)
+                var duration = try await source.asset.load(.duration).seconds
                 guard duration.isFinite, duration > 0 else {
                     throw VideoEditorError.composition("Slideshow video has no duration")
+                }
+                if let maxDurationMs, Double(maxDurationMs) / 1000 < duration {
+                    duration = Double(maxDurationMs) / 1000
+                    source.readRange = CMTimeRange(
+                        start: source.trackStart,
+                        duration: CMTime(seconds: duration, preferredTimescale: 600)
+                    )
                 }
                 segments.append(
                     SlideshowSegment(item: item, start: cursor, duration: duration, video: source)
@@ -151,221 +173,13 @@ struct SlideshowTimeline: Sendable {
     }
 }
 
-private final class SlideshowWriterSession: @unchecked Sendable {
-    private let request: SlideshowExportRequest
-    private let timeline: SlideshowTimeline
-    private let onProgress: @Sendable (Double) -> Void
-    private let writer: AVAssetWriter
-    private let videoInput: AVAssetWriterInput
-    private let adaptor: AVAssetWriterInputPixelBufferAdaptor
-    private let audioInput: AVAssetWriterInput?
-    private let videoQueue = DispatchQueue(label: "io.ente.native_video_editor.slideshow.video")
-    private let audioQueue = DispatchQueue(label: "io.ente.native_video_editor.slideshow.audio")
-    private let lock = NSLock()
-    private let appendLock = NSLock()
-    private var terminalError: Error?
-    private var pendingInputs = 0
-    private var continuation: CheckedContinuation<Void, Error>?
-
-    init(
-        request: SlideshowExportRequest,
-        timeline: SlideshowTimeline,
-        onProgress: @escaping @Sendable (Double) -> Void
-    ) throws {
-        self.request = request
-        self.timeline = timeline
-        self.onProgress = onProgress
-        writer = try AVAssetWriter(outputURL: request.outputURL, fileType: .mp4)
-        writer.shouldOptimizeForNetworkUse = true
-
-        let bitsPerPixel = 0.12
-        let bitrate = Int(
-            Double(request.width * request.height * request.frameRate) * bitsPerPixel)
-        videoInput = AVAssetWriterInput(
-            mediaType: .video,
-            outputSettings: [
-                AVVideoCodecKey: AVVideoCodecType.h264,
-                AVVideoWidthKey: request.width,
-                AVVideoHeightKey: request.height,
-                AVVideoCompressionPropertiesKey: [
-                    AVVideoAverageBitRateKey: bitrate,
-                    AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel,
-                    AVVideoExpectedSourceFrameRateKey: request.frameRate,
-                    AVVideoMaxKeyFrameIntervalKey: request.frameRate * 2,
-                ],
-            ]
-        )
-        videoInput.expectsMediaDataInRealTime = false
-        adaptor = AVAssetWriterInputPixelBufferAdaptor(
-            assetWriterInput: videoInput,
-            sourcePixelBufferAttributes: [
-                kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
-                kCVPixelBufferWidthKey as String: request.width,
-                kCVPixelBufferHeightKey as String: request.height,
-                kCVPixelBufferIOSurfacePropertiesKey as String: [:],
-            ]
-        )
-        guard writer.canAdd(videoInput) else {
-            throw VideoEditorError.export("Cannot add slideshow video track")
-        }
-        writer.add(videoInput)
-
-        if timeline.hasAudio {
-            let input = AVAssetWriterInput(
-                mediaType: .audio,
-                outputSettings: [
-                    AVFormatIDKey: kAudioFormatMPEG4AAC,
-                    AVSampleRateKey: SlideshowAudioProducer.sampleRate,
-                    AVNumberOfChannelsKey: SlideshowAudioProducer.channelCount,
-                    AVEncoderBitRateKey: 128_000,
-                ]
-            )
-            input.expectsMediaDataInRealTime = false
-            guard writer.canAdd(input) else {
-                throw VideoEditorError.export("Cannot add slideshow audio track")
-            }
-            writer.add(input)
-            audioInput = input
-        } else {
-            audioInput = nil
-        }
-    }
-
-    func run() async throws {
-        guard writer.startWriting() else {
-            throw VideoEditorError.export("Failed to start slideshow export", writer.error)
-        }
-        writer.startSession(atSourceTime: .zero)
-        guard let pool = adaptor.pixelBufferPool else {
-            writer.cancelWriting()
-            throw VideoEditorError.export("Slideshow pixel buffer pool is unavailable")
-        }
-        let frames = SlideshowFrameProducer(request: request, timeline: timeline, pool: pool)
-        let audio = audioInput == nil ? nil : try SlideshowAudioProducer(timeline: timeline)
-
-        try await withTaskCancellationHandler(
-            operation: {
-                try await withCheckedThrowingContinuation { continuation in
-                    lock.lock()
-                    self.continuation = continuation
-                    pendingInputs = audio == nil ? 1 : 2
-                    let error = terminalError
-                    lock.unlock()
-                    if let error {
-                        resume(with: .failure(error))
-                        return
-                    }
-                    videoInput.requestMediaDataWhenReady(on: videoQueue) { [self] in
-                        pump(videoInput) {
-                            guard let frame = try frames.next() else { return false }
-                            guard append({ adaptor.append(frame.buffer, withPresentationTime: frame.time) })
-                            else {
-                                throw VideoEditorError.export(
-                                    "Failed to append slideshow frame", writer.error)
-                            }
-                            if let progress = frames.takeProgressUpdate() {
-                                onProgress(progress)
-                            }
-                            return true
-                        }
-                    }
-                    if let audio {
-                        audioInput?.requestMediaDataWhenReady(on: audioQueue) { [self] in
-                            guard let audioInput else { return }
-                            pump(audioInput) {
-                                guard let sample = try audio.next() else { return false }
-                                guard append({ audioInput.append(sample) }) else {
-                                    throw VideoEditorError.export(
-                                        "Failed to append slideshow audio", writer.error)
-                                }
-                                return true
-                            }
-                        }
-                    }
-                }
-            },
-            onCancel: {
-                terminate(with: CancellationError())
-            }
-        )
-    }
-
-    private func append(_ body: () -> Bool) -> Bool {
-        appendLock.lock()
-        defer { appendLock.unlock() }
-        return body()
-    }
-
-    private func pump(_ input: AVAssetWriterInput, appendNext: () throws -> Bool) {
-        while input.isReadyForMoreMediaData {
-            lock.lock()
-            let isRunning = terminalError == nil
-            lock.unlock()
-            guard isRunning else { return }
-            do {
-                guard try autoreleasepool(invoking: appendNext) else {
-                    finish(input)
-                    return
-                }
-            } catch {
-                terminate(with: error)
-                return
-            }
-        }
-    }
-
-    private func finish(_ input: AVAssetWriterInput) {
-        input.markAsFinished()
-        lock.lock()
-        defer { lock.unlock() }
-        guard terminalError == nil else { return }
-        pendingInputs -= 1
-        guard pendingInputs == 0 else { return }
-        writer.finishWriting { [self] in
-            if writer.status == .completed {
-                resume(with: .success(()))
-            } else {
-                resume(
-                    with: .failure(
-                        VideoEditorError.export("Failed to finish slideshow export", writer.error))
-                )
-            }
-        }
-    }
-
-    private func terminate(with error: Error) {
-        lock.lock()
-        guard terminalError == nil else {
-            lock.unlock()
-            return
-        }
-        terminalError = error
-        lock.unlock()
-        appendLock.lock()
-        writer.cancelWriting()
-        appendLock.unlock()
-        resume(with: .failure(error))
-    }
-
-    private func resume(with result: Result<Void, Error>) {
-        lock.lock()
-        let continuation = self.continuation
-        self.continuation = nil
-        lock.unlock()
-        continuation?.resume(with: result)
-    }
-}
-
 private func smoothstep(_ value: Double) -> Double {
     let t = min(max(value, 0), 1)
     return t * t * (3 - 2 * t)
 }
 
-private final class SlideshowFrameProducer: @unchecked Sendable {
-    struct Frame {
-        let buffer: CVPixelBuffer
-        let time: CMTime
-    }
+private final class SlideshowFrameProducer: VideoWriterFrameSource, @unchecked Sendable {
+    typealias Frame = VideoWriterFrame
 
     private struct PhotoState {
         let image: CIImage
@@ -499,6 +313,9 @@ private final class SlideshowFrameProducer: @unchecked Sendable {
                 throw VideoEditorError.composition("Cannot read slideshow video frames")
             }
             reader.add(output)
+            if let readRange = source.readRange {
+                reader.timeRange = readRange
+            }
             guard reader.startReading() else {
                 throw VideoEditorError.composition(
                     "Failed to read slideshow video", reader.error)
@@ -624,7 +441,7 @@ private final class SlideshowFrameProducer: @unchecked Sendable {
     }
 }
 
-private final class SlideshowAudioProducer: @unchecked Sendable {
+private final class SlideshowAudioProducer: VideoWriterAudioSource, @unchecked Sendable {
     static let sampleRate = 44_100
     static let channelCount = 2
     private static let chunkFrames = 1024

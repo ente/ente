@@ -1823,7 +1823,7 @@ mod tests {
             db.bulk_add_with_attrs(
                 &["key".into(), "key".into()],
                 &[vector.clone(), vector.clone()],
-                &[Some(attrs.clone()), Some(attrs.clone())],
+                &[Some(attrs.clone()), Some(attrs)],
             )
             .unwrap();
             db.flush().unwrap();
@@ -1966,7 +1966,7 @@ mod tests {
             db.bulk_add_with_attrs(
                 &vec!["key".to_string(); 5],
                 &[first.clone(), first.clone(), second, first.clone(), first],
-                &[None, Some(attrs.clone()), None, None, None],
+                &[None, Some(attrs), None, None, None],
             )
             .unwrap();
             let verify = |db: &VecDb| {
@@ -3654,10 +3654,7 @@ mod tests {
                 assert!(Instant::now() < deadline);
                 thread::yield_now();
             }
-            let opener = {
-                let path = path.clone();
-                thread::spawn(move || VecDb::open(&path, DIMS, Some(StorageKind::F32)))
-            };
+            let opener = thread::spawn(move || VecDb::open(&path, DIMS, Some(StorageKind::F32)));
             thread::sleep(Duration::from_millis(5));
             drop(frozen);
             deleter.join().unwrap().unwrap();

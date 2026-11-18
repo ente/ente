@@ -1,14 +1,14 @@
 import 'package:flutter/cupertino.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// Add more language to the list only when at least 90% of the strings are
-// translated in the corresponding language.
+// Enable languages once at least 90% of this app's strings are translated.
 const List<Locale> appSupportedLocales = <Locale>[
   Locale('cs'),
   Locale('de'),
   Locale('en'),
   Locale('es'),
   Locale('fr'),
+  Locale('id'),
   Locale('it'),
   Locale('ja'),
   Locale('ko'),
@@ -17,9 +17,11 @@ const List<Locale> appSupportedLocales = <Locale>[
   Locale('pt'),
   Locale('ro'),
   Locale('ru'),
+  Locale('sv'),
   Locale('tr'),
   Locale('uk'),
   Locale('vi'),
+  Locale('zh', 'CN'),
 ];
 
 Locale? autoDetectedLocale;
@@ -85,5 +87,8 @@ Future<void> setLocale(Locale locale) async {
   );
 }
 
-Locale _normalizedLocale(Locale locale) =>
-    locale.languageCode == 'pt' ? const Locale('pt', 'PT') : locale;
+Locale _normalizedLocale(Locale locale) => switch (locale.languageCode) {
+  'pt' => const Locale('pt', 'PT'),
+  'zh' => const Locale('zh', 'CN'),
+  _ => locale,
+};

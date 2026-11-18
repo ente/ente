@@ -1316,7 +1316,7 @@ impl Run<'_> {
                     &metadata,
                 )?;
                 self.finish_action(&mut target, false, None)?;
-                source.location = destination.clone();
+                source.location = destination;
                 source.temporary = false;
                 wrote_media = true;
             }

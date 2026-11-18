@@ -437,7 +437,7 @@ RewindChapter _finale(rust.RewindReport report) =>
     RewindChapter(const [FinalePage.pageKey], (media) async {
       final photos = Set<EnteFile>.identity();
       for (final ids in [
-        report.favourites?.fileIds,
+        report.finale?.fileIds,
         report.scrapbook?.fileIds,
         report.totals?.fileIds,
       ]) {

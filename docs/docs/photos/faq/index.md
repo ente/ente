@@ -252,6 +252,7 @@ Jump to a category:
 - [Can I edit metadata on all platforms?](/photos/faq/metadata-and-editing#platform-support)
 - [Why is GPS location missing when I share a photo to Ente on Android?](/photos/faq/metadata-and-editing#android-share-gps-missing)
 - [Does Ente modify any file metadata?](/photos/faq/metadata-and-editing#modify-file-metadata)
+- [Can Ente remove metadata such as location from my photos?](/photos/faq/metadata-and-editing#remove-metadata)
 
 ## Migration
 
@@ -459,6 +460,7 @@ Jump to a category:
 
 - [Why isn't background sync working on my phone?](/photos/faq/troubleshooting#background-sync-issues)
 - [Why can't Ente access my photos?](/photos/faq/troubleshooting#photo-access-permissions)
+- [Why does backup fail, or why don't my downloads save to my phone?](/photos/faq/troubleshooting#photo-access-permissions)
 
 ### Desktop App Issues
 

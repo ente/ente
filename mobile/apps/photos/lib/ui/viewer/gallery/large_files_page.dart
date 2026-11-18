@@ -98,7 +98,6 @@ class _LargeFilesPagePageState extends State<LargeFilesPagePage> {
       forceReloadEvents: [Bus.instance.on<CollectionMetaEvent>()],
       tagPrefix: widget.tagPrefix,
       selectedFiles: widget._selectedFiles,
-      sortAsyncFn: () => false,
       groupType: GroupType.size,
       initialFiles: null,
       albumName: context.strings.viewLargeFiles,

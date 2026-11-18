@@ -16,8 +16,8 @@ pub use input::{
     RewindFile, RewindFileType, RewindLocation, RewindPerson, RewindRequest, RewindVisibility,
 };
 pub use report::{
-    Badge, BusiestDay, ColourOfTheYear, CrowdFavourite, Favourites, Globe, GlobePlace, LikedPhoto,
-    Mosaic, NewFace, NewFaces, PeopleRace, Places, RacePerson, RewindBadge, RewindCity,
+    Badge, BusiestDay, ColourOfTheYear, CrowdFavourite, Favourites, Finale, Globe, GlobePlace,
+    LikedPhoto, Mosaic, NewFace, NewFaces, PeopleRace, Places, RacePerson, RewindBadge, RewindCity,
     RewindColour, RewindReport, Scrapbook, Spots, Timelapse, TimelapseFrame, Totals, Tour,
     TourStop, Warp, WeeklyHabit,
 };
@@ -450,6 +450,46 @@ mod tests {
             serde_json::from_slice::<RewindRequest>(&bytes).unwrap(),
             request
         );
+    }
+
+    #[test]
+    fn older_mosaic_caches_keep_rewind_ready_when_ml_coverage_drops() {
+        let (_directory, store) = indexed_store(1..=200);
+        let mut files = daily_photos(1, "2026-01-01T12:00:00", 200);
+        let ready = compute_rewind(
+            &request_at("2026-11-17T10:00:00", files.clone()),
+            Some(&store),
+            None,
+            None,
+        )
+        .unwrap();
+        assert!(!ready.is_final);
+        let shown_colour = colour(&ready);
+        assert!(shown_colour.is_some());
+        let mut cache = serde_json::to_value(&ready).unwrap();
+        let mosaic = cache["status"]["Ready"]["report"]["mosaic"]
+            .as_object_mut()
+            .unwrap();
+        mosaic.remove("cluster_id");
+        mosaic.remove("cluster_face_ids");
+        let bytes = serde_json::to_vec(&cache).unwrap();
+        let previous = decode_rewind_state(&bytes, 2026, false);
+
+        files.extend(daily_photos(201, "2026-07-20T12:00:00", 100));
+        let refreshed = compute_rewind(
+            &request_at("2026-11-18T10:00:00", files),
+            Some(&store),
+            None,
+            previous.as_ref(),
+        )
+        .unwrap();
+        assert_eq!(refreshed.ml_coverage, Some(200.0 / 300.0));
+        assert!(
+            matches!(refreshed.status, RewindStatus::Ready { .. }),
+            "{:?}",
+            refreshed.status
+        );
+        assert_eq!(colour(&refreshed), shown_colour);
     }
 
     #[test]

@@ -8,7 +8,10 @@ import "package:flutter/material.dart";
 import "package:photos/core/constants.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/memories/memory_music_track.dart";
+import "package:photos/service_locator.dart";
 import "package:photos/services/memories/memory_video_exporter.dart";
+import "package:photos/services/video_preview_service.dart";
+import "package:photos/services/wake_lock_service.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 
 Future<File?> showMemoryVideoExportSheet(
@@ -16,6 +19,7 @@ Future<File?> showMemoryVideoExportSheet(
   required List<EnteFile> files,
   required MemoryMusicTrack? musicTrack,
   required bool muteVideos,
+  required String title,
 }) async {
   final result = await showBottomSheetComponent<_MemoryVideoExportResult>(
     context: context,
@@ -25,6 +29,7 @@ Future<File?> showMemoryVideoExportSheet(
       files: files,
       musicTrack: musicTrack,
       muteVideos: muteVideos,
+      title: title,
     ),
   );
   if (result == null) return null;
@@ -52,11 +57,13 @@ class _MemoryVideoExportSheet extends StatefulWidget {
   final List<EnteFile> files;
   final MemoryMusicTrack? musicTrack;
   final bool muteVideos;
+  final String title;
 
   const _MemoryVideoExportSheet({
     required this.files,
     required this.musicTrack,
     required this.muteVideos,
+    required this.title,
   });
 
   @override
@@ -68,6 +75,7 @@ class _MemoryVideoExportSheetState extends State<_MemoryVideoExportSheet> {
   final _exporter = MemoryVideoExporter();
   double _progress = 0;
   bool _isClosed = false;
+  bool _holdsExportGuards = false;
 
   @override
   void initState() {
@@ -75,12 +83,27 @@ class _MemoryVideoExportSheetState extends State<_MemoryVideoExportSheet> {
     unawaited(_export());
   }
 
+  @override
+  void dispose() {
+    if (!_isClosed) {
+      unawaited(_exporter.cancel().whenComplete(_releaseExportGuards));
+    }
+    super.dispose();
+  }
+
   Future<void> _export() async {
+    _holdsExportGuards = true;
+    wakeLockService.updateWakeLock(
+      enable: true,
+      wakeLockFor: WakeLockFor.memoryVideoExport,
+    );
     try {
+      await VideoPreviewService.instance.pauseForExport();
       final video = await _exporter.export(
         files: widget.files,
         musicTrack: widget.musicTrack,
         muteVideos: widget.muteVideos,
+        title: widget.title,
         onProgress: _setProgress,
       );
       _close(_MemoryVideoExportResult.succeeded(video));
@@ -88,7 +111,19 @@ class _MemoryVideoExportSheetState extends State<_MemoryVideoExportSheet> {
       _close();
     } catch (e, s) {
       _close(_MemoryVideoExportResult.failed(e, s));
+    } finally {
+      _releaseExportGuards();
     }
+  }
+
+  void _releaseExportGuards() {
+    if (!_holdsExportGuards) return;
+    _holdsExportGuards = false;
+    VideoPreviewService.instance.resumeAfterExport();
+    wakeLockService.updateWakeLock(
+      enable: false,
+      wakeLockFor: WakeLockFor.memoryVideoExport,
+    );
   }
 
   void _setProgress(double progress) {
@@ -98,13 +133,20 @@ class _MemoryVideoExportSheetState extends State<_MemoryVideoExportSheet> {
 
   Future<void> _cancel() async {
     await _exporter.cancel();
+    _releaseExportGuards();
     _close();
   }
 
   void _close([_MemoryVideoExportResult? result]) {
     if (_isClosed || !mounted) return;
     _isClosed = true;
-    Navigator.of(context).pop(result);
+    final navigator = Navigator.of(context);
+    final route = ModalRoute.of(context)!;
+    if (route.isCurrent) {
+      navigator.pop(result);
+    } else {
+      navigator.removeRoute(route, result);
+    }
   }
 
   @override

@@ -210,7 +210,6 @@ class _DevicePickerGalleryState extends State<DevicePickerGallery> {
               limitSelectionToOne: widget.model.selectionLimit == 1,
               showSelectAll: widget.model.selectionLimit != 1,
               disableSelection: widget.model.confirming,
-              sortAsyncFn: () => false,
               disablePinnedGroupHeader: true,
               disableVerticalPaddingForScrollbar: true,
               header: widget.header,
