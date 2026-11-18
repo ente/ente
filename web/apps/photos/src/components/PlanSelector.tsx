@@ -264,7 +264,7 @@ export const PlanSelectorContents: React.FC<PlanSelectorContentsProps> = ({
                 plansData={plansData}
                 initialPeriod={subscription?.period ?? "month"}
                 currentPlanID={currentPlanID}
-                listMaxHeight="min(530px, 58svh)"
+                listMaxHeight="clamp(120px, calc(100svh - 220px), 530px)"
                 onContinueFree={canContinueFree ? onClose : undefined}
                 onContinuePaid={handlePlanSelect}
             />
