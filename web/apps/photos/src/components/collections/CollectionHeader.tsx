@@ -583,7 +583,11 @@ const CollectionHeaderOptions: React.FC<CollectionHeaderProps> = ({
                         </ContextMenuItem>
                     )
                 ) : undefined,
-                <ContextMenuItem key="leave" onClick={confirmLeaveSharedAlbum}>
+                <ContextMenuItem
+                    key="leave"
+                    destructive
+                    onClick={confirmLeaveSharedAlbum}
+                >
                     <HugeiconsIcon icon={Logout01Icon} size={20} />
                     {t("leave_album")}
                 </ContextMenuItem>,
