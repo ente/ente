@@ -56,6 +56,11 @@ class PlacesQuizPage extends RewindPage {
       const Duration(milliseconds: 3000 + RewindMotion.reelReadingMs);
 
   @override
+  List<EnteFile> get reelThumbnails => [
+    for (final stamp in stamps) ...[?stamp.photo, ...stamp.extras],
+  ];
+
+  @override
   void resetAnswer() {
     _guess = null;
     _played = false;

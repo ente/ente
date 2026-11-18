@@ -59,29 +59,6 @@ const placesSetupPage = SetupPage(
   ),
 );
 
-const spotsSetupPage = SetupPage(
-  key: "spots_setup",
-  color: Color(0xFFFFCA39),
-  pattern: Color(0xFFFFD24E),
-  ink: RewindColors.ink,
-  chrome: RewindChrome.dark,
-  headlines: [
-    SetupHeadline("SAME SPOTS,\nNEW SHOTS.", at: Offset(24, 140), size: 54),
-  ],
-  callout: SetupCallout(
-    "A LITTLE DÉJÀ VIEW!",
-    center: Offset(195, 385.5),
-    delayMs: 600,
-  ),
-  art: SetupArt.ducky(
-    RewindAssets.chairDucky,
-    Rect.fromLTWH(22, 401, 310.4, 373.1),
-    ticks: [(RewindTick.forward, Rect.fromLTWH(229, 423, 11, 18))],
-    pivot: Offset(176, 752),
-    delayMs: 780,
-  ),
-);
-
 const peopleSetupPage = SetupPage(
   key: "people_setup",
   color: Color(0xFF9D4AE4),
@@ -273,7 +250,6 @@ const badgeSetupPage = SetupPage(
 const setupPages = [
   paletteSetupPage,
   placesSetupPage,
-  spotsSetupPage,
   peopleSetupPage,
   busiestDaySetupPage,
   newFacesSetupPage,
