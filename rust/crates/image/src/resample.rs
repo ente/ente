@@ -5,21 +5,18 @@ pub(crate) struct Downsampler {
     target: Dimensions,
     rgb: Vec<u8>,
     sums: Vec<[f64; 3]>,
-    interlaced_sums: Vec<[f32; 3]>,
     row_sums: Vec<[f64; 3]>,
-    interlaced: bool,
     completed_rows: u32,
 }
 
 struct BufferLengths {
     rgb: u64,
     sums: u64,
-    interlaced_sums: u64,
     row_sums: u64,
 }
 
 impl BufferLengths {
-    fn new(source: &Dimensions, target: &Dimensions, interlaced: bool) -> Self {
+    fn new(source: &Dimensions, target: &Dimensions) -> Self {
         let pixels = u64::from(target.width) * u64::from(target.height);
         let sum_rows = if source == target {
             0
@@ -29,11 +26,6 @@ impl BufferLengths {
         Self {
             rgb: pixels.saturating_mul(3),
             sums: u64::from(target.width) * u64::from(sum_rows),
-            interlaced_sums: if interlaced && sum_rows > 0 {
-                pixels
-            } else {
-                0
-            },
             row_sums: if sum_rows == 0 {
                 0
             } else {
@@ -44,50 +36,37 @@ impl BufferLengths {
 }
 
 impl Downsampler {
-    pub(crate) fn bytes(source: &Dimensions, target: &Dimensions, interlaced: bool) -> u64 {
-        let lengths = BufferLengths::new(source, target, interlaced);
+    pub(crate) fn bytes(source: &Dimensions, target: &Dimensions) -> u64 {
+        let lengths = BufferLengths::new(source, target);
         lengths
             .rgb
             .saturating_add(lengths.sums.saturating_mul(24))
-            .saturating_add(lengths.interlaced_sums.saturating_mul(12))
             .saturating_add(lengths.row_sums.saturating_mul(24))
     }
 
-    pub(crate) fn new(
-        source: Dimensions,
-        target: Dimensions,
-        interlaced: bool,
-    ) -> ImageResult<Self> {
-        let lengths = BufferLengths::new(&source, &target, interlaced);
+    pub(crate) fn new(source: Dimensions, target: Dimensions) -> ImageResult<Self> {
+        let lengths = BufferLengths::new(&source, &target);
         Ok(Self {
             rgb: zeroed(lengths.rgb)?,
             sums: zeroed(lengths.sums)?,
-            interlaced_sums: zeroed(lengths.interlaced_sums)?,
             row_sums: zeroed(lengths.row_sums)?,
             source,
             target,
-            interlaced,
             completed_rows: 0,
         })
     }
 
-    pub(crate) fn push_row(&mut self, rgb: &[u8], left: u32, y: u32, step_x: u32) {
+    pub(crate) fn push_row(&mut self, rgb: &[u8], y: u32) {
         if self.sums.is_empty() {
-            for (index, pixel) in rgb.as_chunks::<3>().0.iter().enumerate() {
-                let x = left as usize + index * step_x as usize;
-                let offset = (y as usize * self.target.width as usize + x) * 3;
-                self.rgb[offset..offset + 3].copy_from_slice(pixel);
-            }
+            let offset = y as usize * self.target.width as usize * 3;
+            self.rgb[offset..offset + rgb.len()].copy_from_slice(rgb);
             return;
         }
-        self.finish_rows(
-            (u64::from(y) * u64::from(self.target.height) / u64::from(self.source.height)) as u32,
-        );
         let ys = contributions(y, self.source.height, self.target.height);
         self.row_sums.fill([0.0; 3]);
-        for (index, pixel) in rgb.as_chunks::<3>().0.iter().enumerate() {
-            let x = left + index as u32 * step_x;
-            for (dest_x, weight_x) in contributions(x, self.source.width, self.target.width) {
+        for (x, pixel) in rgb.as_chunks::<3>().0.iter().enumerate() {
+            for (dest_x, weight_x) in contributions(x as u32, self.source.width, self.target.width)
+            {
                 if weight_x == 0.0 {
                     continue;
                 }
@@ -126,35 +105,13 @@ impl Downsampler {
             let sum = &mut self.sums[(row * self.target.width + x) as usize];
             let index = (y * self.target.width + x) as usize;
             for (channel, &value) in sum.iter().enumerate() {
-                if self.interlaced {
-                    self.interlaced_sums[index][channel] += value as f32;
-                } else {
-                    self.rgb[index * 3 + channel] = value.round().clamp(0.0, 255.0) as u8;
-                }
+                self.rgb[index * 3 + channel] = value.round().clamp(0.0, 255.0) as u8;
             }
             *sum = [0.0; 3];
         }
     }
 
-    pub(crate) fn finish_pass(&mut self) {
-        if !self.sums.is_empty() {
-            self.finish_rows(self.target.height);
-            self.completed_rows = 0;
-        }
-    }
-
-    pub(crate) fn finish(mut self) -> Vec<u8> {
-        for (pixel, sum) in self
-            .rgb
-            .as_chunks_mut::<3>()
-            .0
-            .iter_mut()
-            .zip(self.interlaced_sums)
-        {
-            for (channel, value) in sum.into_iter().enumerate() {
-                pixel[channel] = value.round().clamp(0.0, 255.0) as u8;
-            }
-        }
+    pub(crate) fn finish(self) -> Vec<u8> {
         self.rgb
     }
 }
@@ -223,32 +180,17 @@ pub(crate) mod tests {
             width: 1,
             height: 1_000_000,
         };
-        for interlaced in [false, true] {
-            let mut output = Downsampler::new(
-                source.clone(),
-                Dimensions {
-                    width: 1,
-                    height: 1,
-                },
-                interlaced,
-            )
-            .unwrap();
-            let plain = [(0, 0, 1, 1)];
-            let passes = if interlaced {
-                &crate::png::ADAM7[..]
-            } else {
-                &plain[..]
-            };
-            for &(left, top, step_x, step_y) in passes {
-                if left >= source.width {
-                    continue;
-                }
-                for y in (top..source.height).step_by(step_y as usize) {
-                    output.push_row(&[128, 127, 254], left, y, step_x);
-                }
-                output.finish_pass();
-            }
-            assert_eq!(output.finish(), [128, 127, 254]);
+        let mut output = Downsampler::new(
+            source.clone(),
+            Dimensions {
+                width: 1,
+                height: 1,
+            },
+        )
+        .unwrap();
+        for y in 0..source.height {
+            output.push_row(&[128, 127, 254], y);
         }
+        assert_eq!(output.finish(), [128, 127, 254]);
     }
 }
