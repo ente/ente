@@ -34,28 +34,43 @@ const lockerProductLink = (
     />
 );
 
-interface SignupPlanSelectorProps {
+interface PlanSelectionCardsProps {
     plansData: PlansData | undefined;
-    onContinueFree: () => void;
+    initialPeriod?: PlanPeriod;
+    currentPlanID?: string;
+    listMaxHeight?: string;
+    onContinueFree?: () => void;
     onContinuePaid: (plan: Plan) => void;
 }
 
-export function SignupPlanSelector({
+export function PlanSelectionCards({
     plansData,
+    initialPeriod = "year",
+    currentPlanID,
+    listMaxHeight,
     onContinueFree,
     onContinuePaid,
-}: SignupPlanSelectorProps) {
+}: PlanSelectionCardsProps) {
     const planListRef = useRef<HTMLDivElement>(null);
     const [canScrollUp, setCanScrollUp] = useState(false);
     const [canScrollDown, setCanScrollDown] = useState(false);
-    const [period, setPeriod] = useState<PlanPeriod>("year");
+    const [selectedPeriod, setSelectedPeriod] = useState<PlanPeriod>();
+    const period = selectedPeriod ?? initialPeriod;
     const [selectedPlanID, setSelectedPlanID] = useState<string | null>();
     const paidPlans = plansData?.plans.filter(
-        (plan) => plan.period === period && plan.id !== "free" && plan.stripeID,
+        (plan) =>
+            plan.period === period &&
+            plan.id !== "free" &&
+            (plan.stripeID || plan.id === currentPlanID),
     );
-    const selectedPlan = paidPlans?.find(({ id }) => id === selectedPlanID);
+    const selection =
+        selectedPlanID === undefined ? currentPlanID : selectedPlanID;
+    const selectedPlan = paidPlans?.find(({ id }) => id === selection);
+    const selectedIsCurrent =
+        selectedPlan !== undefined && selectedPlan.id === currentPlanID;
     const selectedStorage =
-        selectedPlan?.storage ?? plansData?.freePlan.storage;
+        selectedPlan?.storage ??
+        (onContinueFree ? plansData?.freePlan.storage : undefined);
 
     const updateScrollEdges = useCallback(() => {
         const list = planListRef.current;
@@ -76,7 +91,18 @@ export function SignupPlanSelector({
     }, [period, plansData, updateScrollEdges]);
 
     return (
-        <Stack sx={{ gap: 2, minHeight: 0, flex: 1 }}>
+        <Stack
+            sx={(theme) => ({
+                gap: 2,
+                minHeight: 0,
+                flex: 1,
+                "--plan-panel-surface": `var(--auth-ui-content-background, ${theme.vars.palette.background.paper2})`,
+                "--plan-card-stroke": "var(--auth-ui-stroke, #e0e0e0)",
+                ...theme.applyStyles("dark", {
+                    "--plan-card-stroke": "var(--auth-ui-stroke, #3e3e3e)",
+                }),
+            })}
+        >
             <BillingPeriodToggle
                 exclusive
                 fullWidth
@@ -84,7 +110,7 @@ export function SignupPlanSelector({
                 aria-label={t("plan_billing_period")}
                 onChange={(_, newPeriod: PlanPeriod | null) => {
                     if (!newPeriod) return;
-                    setPeriod(newPeriod);
+                    setSelectedPeriod(newPeriod);
                     setSelectedPlanID(undefined);
                     planListRef.current?.scrollTo({ top: 0 });
                 }}
@@ -93,6 +119,7 @@ export function SignupPlanSelector({
                 <ToggleButton value="year">{t("yearly")}</ToggleButton>
             </BillingPeriodToggle>
             <PlanListViewport
+                sx={{ maxHeight: listMaxHeight }}
                 data-scroll-up={canScrollUp}
                 data-scroll-down={canScrollDown}
             >
@@ -116,13 +143,16 @@ export function SignupPlanSelector({
                 >
                     {plansData ? (
                         <>
-                            <SignupPlanCard
-                                storage={plansData.freePlan.storage}
-                                selected={!selectedPlan}
-                                onSelect={() => setSelectedPlanID(null)}
-                            />
+                            {onContinueFree && (
+                                <PlanSelectionCard
+                                    storage={plansData.freePlan.storage}
+                                    selected={!selectedPlan}
+                                    current
+                                    onSelect={() => setSelectedPlanID(null)}
+                                />
+                            )}
                             {paidPlans?.map((plan) => (
-                                <SignupPlanCard
+                                <PlanSelectionCard
                                     key={plan.id}
                                     storage={plan.storage}
                                     plan={plan}
@@ -139,6 +169,7 @@ export function SignupPlanSelector({
                                             : undefined
                                     }
                                     selected={selectedPlan?.id === plan.id}
+                                    current={plan.id === currentPlanID}
                                     onSelect={() => setSelectedPlanID(plan.id)}
                                 />
                             ))}
@@ -154,20 +185,30 @@ export function SignupPlanSelector({
                     )}
                 </Stack>
             </PlanListViewport>
-            {selectedStorage !== undefined && (
+            {plansData && (
                 <Box sx={{ flexShrink: 0, pb: { xs: 3, sm: 0 } }}>
                     <PlanContinueButton
                         variant="contained"
                         fullWidth
+                        disabled={
+                            selectedStorage === undefined || selectedIsCurrent
+                        }
                         onClick={() =>
                             selectedPlan
                                 ? onContinuePaid(selectedPlan)
-                                : onContinueFree()
+                                : onContinueFree?.()
                         }
                     >
-                        {t("continue_with_storage_plan", {
-                            storage: formattedByteSize(selectedStorage, 0),
-                        })}
+                        {selectedIsCurrent
+                            ? t("plan_current")
+                            : selectedStorage === undefined
+                              ? t("choose_plan")
+                              : t("continue_with_storage_plan", {
+                                    storage: formattedByteSize(
+                                        selectedStorage,
+                                        0,
+                                    ),
+                                })}
                     </PlanContinueButton>
                     {!!paidPlans?.length && (
                         <Typography
@@ -197,39 +238,41 @@ export function SignupPlanSelector({
     );
 }
 
-interface SignupPlanCardProps {
+interface PlanSelectionCardProps {
     storage: number;
     plan?: Plan;
     originalMonthlyPrice?: string;
     selected: boolean;
+    current: boolean;
     onSelect: () => void;
 }
 
-function SignupPlanCard({
+function PlanSelectionCard({
     storage,
     plan,
     originalMonthlyPrice,
     selected,
+    current,
     onSelect,
-}: SignupPlanCardProps) {
+}: PlanSelectionCardProps) {
     const id = useId();
     const [value, unit] = formattedByteSize(storage, 0).split(" ");
     const isPopular = !!plan && /^200gb_(monthly|yearly)/.test(plan.id);
     const yearlyMonthlyPrice =
         plan?.period === "year" ? formatPrice(plan.price, 12) : undefined;
-    const showBadge = !plan || isPopular;
+    const showBadge = current || isPopular;
 
     return (
-        <PlanCard data-selected={selected} sx={{ mt: plan ? 0 : "22px" }}>
+        <PlanCard data-selected={selected} data-has-badge={showBadge}>
             <input
                 type="radio"
-                name="signup-plan"
+                name="subscription-plan"
                 checked={selected}
                 onChange={onSelect}
                 aria-labelledby={`${id}-storage ${id}-price`}
                 aria-describedby={
                     plan
-                        ? isPopular
+                        ? showBadge
                             ? `${id}-badge`
                             : undefined
                         : `${id}-locker ${id}-badge`
@@ -296,8 +339,8 @@ function SignupPlanCard({
                 )}
             </Box>
             {showBadge && (
-                <PlanBadge id={`${id}-badge`} data-current={!plan}>
-                    {t(plan ? "plan_most_popular" : "plan_current")}
+                <PlanBadge id={`${id}-badge`} data-current={current}>
+                    {t(current ? "plan_current" : "plan_most_popular")}
                 </PlanBadge>
             )}
         </PlanCard>
@@ -317,9 +360,9 @@ const BillingPeriodToggle = styled(ToggleButtonGroup)(({ theme }) => ({
     padding: 4,
     gap: 4,
     borderRadius: 35,
-    backgroundColor: "var(--auth-ui-field)",
+    backgroundColor: "var(--auth-ui-field, #fff)",
     ...theme.applyStyles("dark", {
-        backgroundColor: "var(--auth-ui-fill-active)",
+        backgroundColor: "var(--auth-ui-fill-active, #292929)",
     }),
     "& .MuiToggleButtonGroup-grouped": {
         flex: "1 1 0",
@@ -341,7 +384,7 @@ const BillingPeriodToggle = styled(ToggleButtonGroup)(({ theme }) => ({
         },
         ...theme.applyStyles("dark", { color: theme.vars.palette.text.muted }),
         "&.Mui-selected, &.Mui-selected:hover": {
-            backgroundColor: "var(--auth-ui-fill)",
+            backgroundColor: "var(--auth-ui-fill, #eaeaea)",
             color: theme.vars.palette.text.primary,
             ...theme.applyStyles("dark", { backgroundColor: "#212121" }),
         },
@@ -375,7 +418,7 @@ const PlanListViewport = styled("div")({
         zIndex: 1,
         height: "var(--plan-edge-depth)",
         backgroundColor:
-            "color-mix(in srgb, var(--auth-ui-content-background) 72%, transparent)",
+            "color-mix(in srgb, var(--plan-panel-surface) 72%, transparent)",
         backdropFilter: "blur(5px)",
         pointerEvents: "none",
         opacity: 0,
@@ -410,10 +453,10 @@ const PlanCard = styled("label")(({ theme }) => ({
     minHeight: planCardMinHeight,
     boxSizing: "border-box",
     padding: "8px 20px",
-    border: "3px solid var(--auth-ui-stroke)",
+    border: "3px solid var(--plan-card-stroke)",
     borderRadius: 20,
     color: theme.vars.palette.text.primary,
-    "--plan-card-surface": "var(--auth-ui-field)",
+    "--plan-card-surface": "var(--auth-ui-field, #fff)",
     backgroundColor: "var(--plan-card-surface)",
     cursor: "pointer",
     "--plan-card-side": "8px",
@@ -424,6 +467,7 @@ const PlanCard = styled("label")(({ theme }) => ({
     ),
     ...theme.applyStyles("dark", { "--plan-card-surface": "#212121" }),
     "&:hover": { borderColor: theme.vars.palette.text.muted },
+    '&:first-child[data-has-badge="true"]': { marginBlockStart: 22 },
     "&:active:not(:has(a:active))": {
         "--plan-card-side": "5px",
         "--plan-card-base": "7px",
@@ -467,7 +511,7 @@ const PlanCard = styled("label")(({ theme }) => ({
     "& .plan-monthly-price": { fontSize: "0.625rem" },
     '&[data-selected="true"]': {
         color: "#171717",
-        backgroundColor: "var(--auth-ui-primary)",
+        backgroundColor: "var(--auth-ui-primary, #08c225)",
         borderColor: "#46e35e",
         boxShadow:
             "0 var(--plan-card-side) 0 #009b18, 0 var(--plan-card-base) 0 var(--plan-card-surface)",
@@ -501,9 +545,20 @@ const PlanContinueButton = styled(FocusVisibleButton)(({ theme }) => ({
     fontWeight: 700,
     fontSize: 16,
     "--plan-button-rim": "#454545",
-    ...theme.applyStyles("dark", { "--plan-button-rim": "#858585" }),
+    "--plan-button-face": "#000",
+    "--plan-button-ink": "#fff",
+    ...theme.applyStyles("dark", {
+        "--plan-button-rim": "#858585",
+        "--plan-button-face": "#fff",
+        "--plan-button-ink": "#000",
+    }),
+    "&:not(.Mui-disabled)": {
+        backgroundColor: "var(--plan-button-face)",
+        color: "var(--plan-button-ink)",
+    },
     boxShadow: "0 4px 0 var(--plan-button-rim)",
     "&:hover": { boxShadow: "0 4px 0 var(--plan-button-rim)" },
+    "&.Mui-disabled": { boxShadow: "none" },
     transition: theme.transitions.create(
         ["background-color", "box-shadow", "translate"],
         { duration: 160, easing: theme.transitions.easing.easeOut },
