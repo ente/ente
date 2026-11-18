@@ -4,7 +4,6 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { Dialog, Link, Stack, useMediaQuery, useTheme } from "@mui/material";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
-import { SpacedRow } from "ente-base/components/containers";
 import type { ButtonishProps } from "ente-base/components/mui";
 import { DialogCloseIconButton } from "ente-base/components/mui/DialogCloseIconButton";
 import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
@@ -248,10 +247,11 @@ export const PlanSelectorContents: React.FC<PlanSelectorContentsProps> = ({
 
     return (
         <Stack sx={{ gap: 2, p: 1.5 }}>
-            <SpacedRow sx={{ alignItems: "center" }}>
-                <Typography variant="h3">{t("choose_plan")}</Typography>
-                {showCloseButton && <DialogCloseIconButton onClose={onClose} />}
-            </SpacedRow>
+            {showCloseButton && (
+                <Box sx={{ alignSelf: "flex-end" }}>
+                    <DialogCloseIconButton onClose={onClose} />
+                </Box>
+            )}
             {activePaidSubscription && (
                 <Typography sx={{ color: "text.muted" }}>
                     <Trans

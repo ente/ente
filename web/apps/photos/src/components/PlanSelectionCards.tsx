@@ -360,10 +360,9 @@ const BillingPeriodToggle = styled(ToggleButtonGroup)(({ theme }) => ({
     padding: 4,
     gap: 4,
     borderRadius: 35,
-    backgroundColor: "var(--auth-ui-field, #fff)",
-    ...theme.applyStyles("dark", {
-        backgroundColor: "var(--auth-ui-fill-active, #292929)",
-    }),
+    backgroundColor: "var(--auth-ui-fill, #eaeaea)",
+    boxShadow: "inset 0 0 0 1px var(--plan-card-stroke)",
+    ...theme.applyStyles("dark", { backgroundColor: "#171717" }),
     "& .MuiToggleButtonGroup-grouped": {
         flex: "1 1 0",
         minHeight: 41,
@@ -371,10 +370,10 @@ const BillingPeriodToggle = styled(ToggleButtonGroup)(({ theme }) => ({
         margin: 0,
         border: 0,
         borderRadius: 35,
-        color: theme.vars.palette.text.primary,
+        color: theme.vars.palette.text.muted,
         textTransform: "none",
         transition: theme.transitions.create(
-            ["background-color", "translate"],
+            ["background-color", "color", "box-shadow", "translate"],
             { duration: 160, easing: theme.transitions.easing.easeOut },
         ),
         "&:active": { translate: "0 1px" },
@@ -382,11 +381,15 @@ const BillingPeriodToggle = styled(ToggleButtonGroup)(({ theme }) => ({
             transition: "none",
             "&:active": { translate: "none" },
         },
-        ...theme.applyStyles("dark", { color: theme.vars.palette.text.muted }),
         "&.Mui-selected, &.Mui-selected:hover": {
-            backgroundColor: "var(--auth-ui-fill, #eaeaea)",
+            backgroundColor: "var(--auth-ui-field, #fff)",
             color: theme.vars.palette.text.primary,
-            ...theme.applyStyles("dark", { backgroundColor: "#212121" }),
+            fontWeight: 650,
+            boxShadow: "0 1px 2px rgba(0 0 0 / 0.12)",
+            ...theme.applyStyles("dark", {
+                backgroundColor: "#383838",
+                boxShadow: "0 1px 2px rgba(0 0 0 / 0.3)",
+            }),
         },
         "&.Mui-focusVisible": {
             outline: `2px solid ${theme.vars.palette.text.primary}`,
