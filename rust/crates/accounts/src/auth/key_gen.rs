@@ -103,8 +103,7 @@ pub fn generate_key_attributes_for_new_password_with_strength(
     password: &str,
     strength: KeyDerivationStrength,
 ) -> Result<(KeyAttributes, SecretVec)> {
-    // Wrapping a key that is not the account's master key would lock the
-    // account out of the new password, so check it before deriving anything.
+    // A key that isn't this account's would lock it out of the new password.
     decrypt_secret_key(master_key, existing_attributes)?;
 
     let derived = strength.derive(password)?;
