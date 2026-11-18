@@ -48,7 +48,12 @@ test("gallery drops reuse photos and preserve existing crops, captions and page 
     const pages = makeBook();
     pages[1]!.slots = applyVariant("1-moderate", [photos[1]!.id]);
     const slot = pages[1]!.slots[0]!;
-    Object.assign(slot, { cropX: 0.2, cropY: 0.7, cropZoom: 1.4 });
+    Object.assign(slot, {
+        cropX: 0.2,
+        cropY: 0.7,
+        cropZoom: 1.4,
+        rotation: 90,
+    });
     const original = structuredClone(pages);
     const result = placeGalleryPhoto(
         pages,
@@ -61,15 +66,22 @@ test("gallery drops reuse photos and preserve existing crops, captions and page 
     assert.equal(result[1]!.slots[1]!.photoId, photos[0]!.id);
     assert.equal(result[1]!.centerText, pages[1]!.centerText);
     assert.equal(result[1]!.topCaption, pages[1]!.topCaption);
-    for (const key of ["id", "photoId", "cropX", "cropY", "cropZoom"] as const)
+    for (const key of [
+        "id",
+        "photoId",
+        "cropX",
+        "cropY",
+        "cropZoom",
+        "rotation",
+    ] as const)
         assert.equal(result[1]!.slots[0]![key], slot[key]);
     assert.deepEqual(pages, original);
 });
 
-test("gallery replacement preserves the slot layout and resets only its crop", () => {
+test("gallery replacement preserves the slot layout and resets crop and rotation", () => {
     const pages = makeBook();
     const slot = pages[0]!.slots[0]!;
-    Object.assign(slot, { cropX: 0.2, cropY: 0.7, cropZoom: 2 });
+    Object.assign(slot, { cropX: 0.2, cropY: 0.7, cropZoom: 2, rotation: 270 });
     const original = structuredClone(pages);
     const result = placeGalleryPhoto(
         pages,
@@ -84,6 +96,7 @@ test("gallery replacement preserves the slot layout and resets only its crop", (
         cropX: 0.5,
         cropY: 0.5,
         cropZoom: 1,
+        rotation: 0,
     });
     assert.equal(result[0]!.layoutVariant, pages[0]!.layoutVariant);
     assert.equal(result.length, pages.length);
@@ -414,6 +427,7 @@ test("old collage covers retain all photos and crops when limited to one cover p
         topCaption: "Our holiday",
     };
     pages[0].slots[2]!.cropZoom = 1.5;
+    pages[0].slots[2]!.rotation = 180;
     const original = structuredClone(pages);
     const result = normalizeFrontCover(pages);
     assert.equal(result[0]!.slots.length, 1);
@@ -426,6 +440,7 @@ test("old collage covers retain all photos and crops when limited to one cover p
         photos.slice(0, 4).map((photo) => photo.id),
     );
     assert.equal(result[1]!.slots[1]!.cropZoom, 1.5);
+    assert.equal(result[1]!.slots[1]!.rotation, 180);
     assert.equal(result[1]!.slots[1]!.id, pages[0].slots[2]!.id);
     assert.strictEqual(result[2]!, pages[1]!);
     assert.strictEqual(result.at(-1), pages.at(-1));

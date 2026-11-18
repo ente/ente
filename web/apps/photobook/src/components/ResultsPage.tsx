@@ -87,6 +87,7 @@ function ResultsPage({
         "waitForEnteOriginals",
     );
     const viewerRef = useRef<BookViewerHandle>(null);
+    const previewContainerRef = useRef<HTMLElement>(null);
     const [spreadIndex, setSpreadIndex] = useState(0);
     const [desktopEditingOpen, setDesktopEditingOpen] = useState(false);
     const [checkoutProgress, setCheckoutProgress] =
@@ -571,7 +572,7 @@ function ResultsPage({
                         tab={sidebarTab}
                         scrollPositions={sidebarScrollPositions}
                         onTabChange={onSidebarTabChange}
-                        gallery={{ onAddPhotos }}
+                        gallery={{ onAddPhotos, previewContainerRef }}
                         onSpreadClick={(index) =>
                             viewerRef.current?.goToSpread(index)
                         }
@@ -579,6 +580,7 @@ function ResultsPage({
                 )}
                 <Box
                     component="main"
+                    ref={previewContainerRef}
                     aria-label={`Photobook preview: ${pageLabel}`}
                     sx={{
                         ...EDITOR_PANEL_SX,

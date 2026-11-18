@@ -2,6 +2,7 @@ import { useBook } from "@/context/book";
 import { useDragDraft } from "@/hooks/useDragDraft";
 import type { DragInfo, PhotoDragSource } from "@/hooks/usePhotoDrag";
 import { usePreviews } from "@/hooks/usePreviews";
+import { getPhotoDrawLayout } from "@/lib/photoCrop";
 import {
     CAPTION_FONT_WEIGHT,
     CAPTION_TEXT_COLOR,
@@ -14,204 +15,15 @@ import {
 } from "@/lib/printLayout";
 import type { BookPage, PhotoSlot, TextBlock } from "@/lib/types";
 import { bookPageShadow, uiColors } from "@/theme/colors";
-import { Box, IconButton, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import React, { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Layer, Stage } from "react-konva";
-import { DeleteIcon, PanIcon, ZoomInIcon, ZoomOutIcon } from "./icons";
 import LayoutPicker from "./LayoutPicker";
 import type { CaptionPosition } from "./PageCanvas";
 import PageCanvas from "./PageCanvas";
 import PageMenu, { type PageInsertPosition } from "./PageMenu";
+import PhotoToolbar from "./PhotoToolbar";
 import TextToolbar from "./TextToolbar";
-
-function SlotControls({
-    pageId,
-    slot,
-    pageWidth,
-    pageHeight,
-    onPanStart,
-}: {
-    pageId: string;
-    slot: PhotoSlot;
-    pageWidth: number;
-    pageHeight: number;
-    onPanStart: (e: React.MouseEvent, slot: PhotoSlot) => void;
-}) {
-    const { updateSlot, removeSlot } = useBook("updateSlot", "removeSlot");
-    const [panning, setPanning] = useState(false);
-
-    const handleZoomIn = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        updateSlot(pageId, slot.id, {
-            cropZoom: Math.min(slot.cropZoom + 0.2, 3),
-        });
-    };
-
-    const handleZoomOut = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        updateSlot(pageId, slot.id, {
-            cropZoom: Math.max(slot.cropZoom - 0.2, 1),
-        });
-    };
-
-    const handleDelete = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        removeSlot(pageId, slot.id);
-    };
-
-    const btnSize = Math.max(22, Math.min(28, pageWidth * 0.06));
-    const iconSize = btnSize * 0.58;
-    const padding = Math.max(4, Math.min(6, pageWidth * 0.012));
-
-    return (
-        <div
-            style={{
-                position: "absolute",
-                left: (slot.x / 100) * pageWidth,
-                top: (slot.y / 100) * pageHeight,
-                width: (slot.width / 100) * pageWidth,
-                height: (slot.height / 100) * pageHeight,
-                zIndex: 3,
-                pointerEvents: "none",
-            }}
-        >
-            {panning && (
-                <div
-                    onMouseDown={(e) => onPanStart(e, slot)}
-                    style={{
-                        position: "absolute",
-                        inset: 0,
-                        cursor: "move",
-                        pointerEvents: "auto",
-                    }}
-                />
-            )}
-            <IconButton
-                data-page-control
-                aria-label="Pan photo"
-                aria-pressed={panning}
-                title={panning ? "Finish panning" : "Pan photo"}
-                onClick={() => setPanning((active) => !active)}
-                sx={{
-                    position: "absolute",
-                    bottom: padding,
-                    left: padding,
-                    width: btnSize,
-                    height: btnSize,
-                    p: 0,
-                    color: "rgba(255,255,255,0.9)",
-                    bgcolor: panning ? "secondary.main" : "rgba(0,0,0,0.45)",
-                    backdropFilter: "blur(8px)",
-                    "&:hover": {
-                        bgcolor: panning
-                            ? "secondary.main"
-                            : "rgba(0,0,0,0.65)",
-                    },
-                }}
-            >
-                <PanIcon sx={{ fontSize: iconSize }} />
-            </IconButton>
-            <div
-                data-page-control
-                onClick={handleDelete}
-                style={{
-                    position: "absolute",
-                    top: padding,
-                    right: padding,
-                    width: btnSize,
-                    height: btnSize,
-                    borderRadius: btnSize / 2,
-                    background: "rgba(0,0,0,0.45)",
-                    backdropFilter: "blur(8px)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: "pointer",
-                }}
-                onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "rgba(186,26,26,0.7)";
-                }}
-                onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "rgba(0,0,0,0.45)";
-                }}
-            >
-                <DeleteIcon
-                    sx={{ fontSize: iconSize, color: "rgba(255,255,255,0.9)" }}
-                />
-            </div>
-
-            <div
-                data-page-control
-                style={{
-                    position: "absolute",
-                    bottom: padding,
-                    right: padding,
-                    display: "flex",
-                    gap: 2,
-                    borderRadius: btnSize / 2,
-                    background: "rgba(0,0,0,0.45)",
-                    backdropFilter: "blur(8px)",
-                    padding: 2,
-                }}
-            >
-                <div
-                    onClick={handleZoomOut}
-                    style={{
-                        width: btnSize,
-                        height: btnSize,
-                        borderRadius: btnSize / 2,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        cursor: "pointer",
-                        transition: "background 0.15s",
-                    }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.background =
-                            "rgba(255,255,255,0.15)";
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.background = "transparent";
-                    }}
-                >
-                    <ZoomOutIcon
-                        sx={{
-                            fontSize: iconSize,
-                            color: "rgba(255,255,255,0.9)",
-                        }}
-                    />
-                </div>
-                <div
-                    onClick={handleZoomIn}
-                    style={{
-                        width: btnSize,
-                        height: btnSize,
-                        borderRadius: btnSize / 2,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        cursor: "pointer",
-                        transition: "background 0.15s",
-                    }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.background =
-                            "rgba(255,255,255,0.15)";
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.background = "transparent";
-                    }}
-                >
-                    <ZoomInIcon
-                        sx={{
-                            fontSize: iconSize,
-                            color: "rgba(255,255,255,0.9)",
-                        }}
-                    />
-                </div>
-            </div>
-        </div>
-    );
-}
 
 export const PICKER_WIDTH = 60;
 
@@ -381,11 +193,11 @@ function SpreadPage({
         if (photoCount > 0) setEditingCenterText(false);
         else setEditingCaption(null);
     }, [photoCount]);
-    const hideLayoutPicker = isBackCover;
     const selectedSlot =
         selectedPageId === page.id
             ? page.slots.find((slot) => slot.id === selectedSlotId)
             : undefined;
+    const isPhotoSelected = !!selectedSlot?.photoId;
 
     const handlePanStart = (e: React.MouseEvent, slot: PhotoSlot) => {
         if (e.button !== 0 || !slot.photoId) return;
@@ -397,20 +209,13 @@ function SpreadPage({
         const startY = e.clientY;
         const origCropX = slot.cropX;
         const origCropY = slot.cropY;
-        const sw = (slot.width / 100) * pageWidth;
-        const sh = (slot.height / 100) * pageHeight;
-        const imgAspect = photo.width / photo.height;
-        const slotAspect = sw / sh;
-        let drawW: number, drawH: number;
-        if (imgAspect > slotAspect) {
-            drawH = sh * slot.cropZoom;
-            drawW = drawH * imgAspect;
-        } else {
-            drawW = sw * slot.cropZoom;
-            drawH = drawW / imgAspect;
-        }
-        const slackX = sw - drawW;
-        const slackY = sh - drawH;
+        const { slackX, slackY } = getPhotoDrawLayout(
+            slot,
+            photo.width,
+            photo.height,
+            pageWidth,
+            pageHeight,
+        );
         startDrag(
             (ev) => {
                 const dx = ev.clientX - startX;
@@ -456,7 +261,7 @@ function SpreadPage({
                         ? `0 0 0 3px #08C225, ${bookPageShadow}`
                         : bookPageShadow,
                     borderRadius: 0.5,
-                    overflow: "hidden",
+                    zIndex: selectedSlot ? 2 : undefined,
                     opacity: isDragSource ? 0.4 : 1,
                     transition: "box-shadow 0.15s, opacity 0.15s",
                     "@media (hover: hover)": {
@@ -471,6 +276,7 @@ function SpreadPage({
                 <Stage
                     width={pageWidth}
                     height={pageHeight}
+                    style={{ borderRadius: 2, overflow: "hidden" }}
                     onClick={(e) => {
                         if (e.target === e.target.getStage())
                             onClearSelection();
@@ -585,6 +391,9 @@ function SpreadPage({
                         key={slot.id}
                         tabIndex={-1}
                         draggable={!!slot.photoId}
+                        onMouseDown={(event) => {
+                            if (event.detail === 2) handlePanStart(event, slot);
+                        }}
                         onDragStart={(e) => {
                             if (slot.photoId) {
                                 e.stopPropagation();
@@ -611,7 +420,12 @@ function SpreadPage({
                             top: (slot.y / 100) * pageHeight,
                             width: (slot.width / 100) * pageWidth,
                             height: (slot.height / 100) * pageHeight,
-                            cursor: slot.photoId ? "grab" : "default",
+                            cursor:
+                                draft && selectedSlot?.id === slot.id
+                                    ? "move"
+                                    : slot.photoId
+                                      ? "grab"
+                                      : "default",
                             pointerEvents:
                                 pageDragSource !== null ? "none" : "auto",
                             zIndex: 2,
@@ -728,7 +542,7 @@ function SpreadPage({
                 {selectedSlot?.photoId &&
                     !dragSourceInfo &&
                     pageDragSource === null && (
-                        <SlotControls
+                        <PhotoToolbar
                             key={`${selectedSlot.id}-${selectedSlot.photoId}`}
                             pageId={page.id}
                             slot={selectedSlot}
@@ -992,7 +806,11 @@ function SpreadPage({
                         position,
                         isFrontCover,
                     );
-                    if (!layout) return null;
+                    if (
+                        !layout ||
+                        (isPhotoSelected && !page[key] && !isEditing)
+                    )
+                        return null;
                     const style: React.CSSProperties = {
                         position: "absolute",
                         left: (layout.x / 100) * pageWidth,
@@ -1098,9 +916,12 @@ function SpreadPage({
 
     const slotThumbnails = page.slots
         .filter((s) => s.photoId !== null)
-        .map((s) => thumbnailUrls.get(s.photoId!) ?? "");
+        .map((s) => ({
+            url: thumbnailUrls.get(s.photoId!) ?? "",
+            rotation: s.rotation ?? 0,
+        }));
 
-    const showPicker = photoCount > 0 && !hideLayoutPicker;
+    const showPicker = photoCount > 0 && !isBackCover && !isPhotoSelected;
     const pickerContainer = (
         <Box
             sx={{
@@ -1127,25 +948,27 @@ function SpreadPage({
                     <LayoutPicker
                         photoCount={photoCount}
                         currentVariant={page.layoutVariant}
-                        thumbnailUrls={slotThumbnails}
+                        thumbnails={slotThumbnails}
                         onSelect={(key) => setPageLayout(page.id, key)}
                         isFrontCover={isFrontCover}
                     />
                 </Box>
             )}
-            <PageMenu
-                key={page.id}
-                pageId={page.id}
-                pageIndex={pageIndex}
-                totalPages={totalPages}
-                side={pickerSide}
-                requiredBlank={requiredBlank}
-                onInsert={(position) => onInsertPage(pageIndex, position)}
-                onDelete={() => {
-                    onClearSelection();
-                    removePage(page.id);
-                }}
-            />
+            {!isPhotoSelected && (
+                <PageMenu
+                    key={page.id}
+                    pageId={page.id}
+                    pageIndex={pageIndex}
+                    totalPages={totalPages}
+                    side={pickerSide}
+                    requiredBlank={requiredBlank}
+                    onInsert={(position) => onInsertPage(pageIndex, position)}
+                    onDelete={() => {
+                        onClearSelection();
+                        removePage(page.id);
+                    }}
+                />
+            )}
         </Box>
     );
 

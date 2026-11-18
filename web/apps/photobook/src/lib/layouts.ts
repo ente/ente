@@ -778,7 +778,7 @@ export function defaultVariantKeyForCount(count: number): string {
     return "4-grid";
 }
 
-export function chooseBestLayout(photos: Photo[]): PhotoSlot[] {
+function chooseBestLayout(photos: Photo[]): PhotoSlot[] {
     if (photos.length === 0) return [];
     const variantKey = chooseBestVariantKey(photos);
     return applyVariant(

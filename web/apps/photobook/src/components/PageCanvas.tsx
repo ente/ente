@@ -1,5 +1,6 @@
 import { useBookSelector } from "@/context/book";
 import { getCachedImage, loadImageCached } from "@/lib/imageCache";
+import { getPhotoDrawLayout } from "@/lib/photoCrop";
 import {
     CAPTION_FONT_WEIGHT,
     CAPTION_TEXT_COLOR,
@@ -92,23 +93,14 @@ function PhotoSlotRenderer({
 
     const drawProps = useMemo(() => {
         if (!image) return null;
-        const imgAspect = image.naturalWidth / image.naturalHeight;
-        const slotAspect = sw / sh;
-
-        let drawW: number, drawH: number;
-        if (imgAspect > slotAspect) {
-            drawH = sh * slot.cropZoom;
-            drawW = drawH * imgAspect;
-        } else {
-            drawW = sw * slot.cropZoom;
-            drawH = drawW / imgAspect;
-        }
-
-        const drawX = sx + (sw - drawW) * slot.cropX;
-        const drawY = sy + (sh - drawH) * slot.cropY;
-
-        return { x: drawX, y: drawY, width: drawW, height: drawH };
-    }, [image, sx, sy, sw, sh, slot.cropX, slot.cropY, slot.cropZoom]);
+        return getPhotoDrawLayout(
+            slot,
+            image.naturalWidth,
+            image.naturalHeight,
+            pageWidth,
+            pageHeight,
+        );
+    }, [image, slot, pageWidth, pageHeight]);
 
     return (
         <Group clipX={sx} clipY={sy} clipWidth={sw} clipHeight={sh}>
@@ -128,6 +120,9 @@ function PhotoSlotRenderer({
                     y={drawProps.y}
                     width={drawProps.width}
                     height={drawProps.height}
+                    offsetX={drawProps.width / 2}
+                    offsetY={drawProps.height / 2}
+                    rotation={drawProps.rotation}
                     listening={false}
                 />
             )}

@@ -266,10 +266,10 @@ test("the import cutoff fits exactly within the printable page limit", () => {
     assert.equal(generateAutoLayout(makePhotos(600)).length, 268);
 });
 
-test("imports pad the usual layout to 24 pages and start with blank pages above 223 photos", () => {
+test("imports keep every photo within the auto-layout limit and pad to 24 pages", () => {
     for (const count of [1, 2, 10, 45, 50, 60, 222, 223]) {
         const photos = makePhotos(count);
-        const pages = createImportedBookPages(photos, count);
+        const pages = createImportedBookPages(photos);
         const autoPages = generateAutoLayout(photos);
         const placed = (book: typeof pages) =>
             book.map((page) => page.slots.map((slot) => slot.photoId));
@@ -281,15 +281,51 @@ test("imports pad the usual layout to 24 pages and start with blank pages above 
         assert.ok(pages.slice(autoPages.length - 1).every(isBlankPage));
         assert.equal(new Set(pages.map((page) => page.id)).size, pages.length);
     }
-    for (const count of [224, 600]) {
-        const pages = createImportedBookPages(makePhotos(count), count);
-        assert.equal(pages.length, MIN_PRINT_PAGES);
-        assert.equal(
-            new Set(pages.map((page) => page.id)).size,
-            MIN_PRINT_PAGES,
+});
+
+test("large imports fill 100 pages with evenly spaced photos in date order", () => {
+    const limit = getMaxAutoLayoutPhotos(MAX_PRINT_PAGES);
+    const pageSizes = generateAutoLayout(makePhotos(limit)).map(
+        (page) => page.slots.length,
+    );
+    for (const count of [224, 600, 10000]) {
+        const photos = makePhotos(count).reverse();
+        const originalIds = photos.map((photo) => photo.id);
+        const pages = createImportedBookPages(photos);
+        const selected = pages.flatMap((page) =>
+            page.slots.map((slot) => Number(slot.photoId!.slice(6))),
         );
-        assert.ok(pages.every((page) => page.slots.length === 0));
+
+        assert.equal(pages.length, MAX_PRINT_PAGES);
+        assert.deepEqual(
+            pages.map((page) => page.slots.length),
+            pageSizes,
+        );
+        assert.equal(new Set(selected).size, limit);
+        assert.equal(selected[0], 0);
+        assert.equal(selected.at(-1), count - 1);
+        assert.deepEqual(
+            selected,
+            [...selected].sort((a, b) => a - b),
+        );
+        const gaps = selected
+            .slice(1)
+            .map((photo, index) => photo - selected[index]!);
+        assert.ok(Math.max(...gaps) - Math.min(...gaps) <= 1);
+        assert.deepEqual(
+            photos.map((photo) => photo.id),
+            originalIds,
+        );
     }
+});
+
+test("large imports select the same photos each time", () => {
+    const photos = makePhotos(600);
+    const selectedIds = () =>
+        createImportedBookPages(photos).flatMap((page) =>
+            page.slots.map((slot) => slot.photoId),
+        );
+    assert.deepEqual(selectedIds(), selectedIds());
 });
 
 test("auto-layout fills every interior page whenever there are at least two interior photos", () => {

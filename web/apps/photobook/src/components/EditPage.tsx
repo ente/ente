@@ -429,6 +429,7 @@ function EditPage({
                         scrollPositions={sidebarScrollPositions}
                         onTabChange={onSidebarTabChange}
                         gallery={{
+                            previewContainerRef: containerRef,
                             onAddPhotos,
                             onPhotoDragStart: photoDrag.handleGalleryDragStart,
                             onPhotoDragEnd: photoDrag.handleDragEnd,

@@ -1,6 +1,4 @@
-import { MOBILE_QUERY } from "@/components/editorLayout";
 import { useBook } from "@/context/book";
-import { MAX_AUTO_LAYOUT_PHOTOS } from "@/lib/photoPlacement";
 import { useRouter } from "next/router";
 import {
     createContext,
@@ -49,7 +47,6 @@ function usePhotoImportSession() {
     const [importing, setImporting] = useState(false);
     const importingRef = useRef(false);
     const retryFilesRef = useRef<File[]>([]);
-    const [desktopImportRequired, setDesktopImportRequired] = useState(false);
 
     const [enteStage, setEnteStage] = useState<EnteDialogStage>("closed");
     const [enteUrl, setEnteUrl] = useState("");
@@ -102,16 +99,6 @@ function usePhotoImportSession() {
         });
     }, []);
 
-    const needsDesktop = useCallback((photoCount: number) => {
-        if (
-            photoCount <= MAX_AUTO_LAYOUT_PHOTOS ||
-            !window.matchMedia(MOBILE_QUERY).matches
-        )
-            return false;
-        setDesktopImportRequired(true);
-        return true;
-    }, []);
-
     const handleImportEnte = useCallback(async () => {
         const url = enteUrl.trim();
         if (!url) {
@@ -129,10 +116,8 @@ function usePhotoImportSession() {
             );
             if (!files.length)
                 throw new Error("This album has no photos we can import.");
-            if (!needsDesktop(files.length)) {
-                await addEntePhotos(credentials, files);
-                setEnteUrl("");
-            }
+            await addEntePhotos(credentials, files);
+            setEnteUrl("");
             setImportActive(false);
         } catch (e) {
             const cancelled =
@@ -149,7 +134,7 @@ function usePhotoImportSession() {
             importingRef.current = false;
             setImporting(false);
         }
-    }, [enteUrl, addEntePhotos, requestPassword, beginImport, needsDesktop]);
+    }, [enteUrl, addEntePhotos, requestPassword, beginImport]);
 
     const handleSubmitPassword = useCallback(() => {
         const resolve = passwordResolverRef.current;
@@ -181,12 +166,7 @@ function usePhotoImportSession() {
             });
 
             if (valid.length > 0) {
-                if (
-                    importingRef.current ||
-                    needsDesktop(valid.length) ||
-                    !beginImport()
-                )
-                    return;
+                if (!beginImport()) return;
                 retryFilesRef.current = valid;
                 try {
                     await addPhotos(valid, { replace: true });
@@ -204,7 +184,7 @@ function usePhotoImportSession() {
                 }
             }
         },
-        [addPhotos, beginImport, needsDesktop],
+        [addPhotos, beginImport],
     );
 
     const retryImport = useCallback(() => {
@@ -241,8 +221,6 @@ function usePhotoImportSession() {
 
     return {
         fileInputRef,
-        desktopImportRequired,
-        dismissDesktopImport: () => setDesktopImportRequired(false),
         dragOver,
         enteStage,
         enteUrl,

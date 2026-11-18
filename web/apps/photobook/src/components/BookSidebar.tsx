@@ -57,12 +57,16 @@ export default function BookSidebar({
             aria-hidden={!open}
             inert={!open}
             sx={{
+                position: "relative",
                 display: "flex",
                 flexShrink: 0,
                 minHeight: 0,
                 width: open ? EDITOR_SIDEBAR_WIDTH : 0,
                 mr: open ? EDITOR_PANEL_INSET : 0,
                 overflow: "hidden",
+                "&:has([data-previewing='true'])": {
+                    zIndex: (theme) => theme.zIndex.tooltip,
+                },
                 transition:
                     "width 240ms cubic-bezier(0.2, 0.8, 0.2, 1), margin-right 240ms cubic-bezier(0.2, 0.8, 0.2, 1)",
                 "@media (prefers-reduced-motion: reduce)": {

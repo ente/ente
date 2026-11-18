@@ -28,7 +28,6 @@ import {
 } from "@/lib/images";
 import {
     applyVariant,
-    chooseBestLayout,
     chooseBestVariantKey,
     getVariantPreview,
     getVariantsForCount,
@@ -488,7 +487,7 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                     ? newPhotos
                     : [...photos, ...newPhotos];
                 const nextPages = replace
-                    ? createImportedBookPages(newPhotos, files.length)
+                    ? createImportedBookPages(newPhotos)
                     : placeImportedPhotos(
                           book.pages,
                           allPhotos,
@@ -852,7 +851,7 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                 newThumbUrls.set(r.photo.id, r.thumbUrl);
             }
 
-            const pages = createImportedBookPages(newPhotos, files.length);
+            const pages = createImportedBookPages(newPhotos);
             setPhotos(newPhotos);
             setThumbnailUrls(newThumbUrls);
             setBookRaw({ ...emptyBook, pages });
@@ -1061,9 +1060,10 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                 const page = prev.pages.find((p) => p.id === pageId);
                 if (!page) return prev;
 
-                const remainingPhotos = page.slots
-                    .filter((s) => s.id !== slotId && s.photoId)
-                    .map((s) => s.photoId!);
+                const remainingSlots = page.slots.filter(
+                    (s) => s.id !== slotId && s.photoId,
+                );
+                const remainingPhotos = remainingSlots.map((s) => s.photoId!);
 
                 if (remainingPhotos.length === 0) {
                     return {
@@ -1100,7 +1100,12 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                     };
                 }
 
-                const newSlots = applyVariant(variantKey, remainingPhotos);
+                const newSlots = applyVariant(variantKey, remainingPhotos).map(
+                    (slot, index) => ({
+                        ...slot,
+                        rotation: remainingSlots[index]!.rotation ?? 0,
+                    }),
+                );
 
                 return {
                     ...prev,
@@ -1159,8 +1164,11 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
 
                 if (fromSlot && toSlot) {
                     const tempPhotoId = fromSlot.photoId;
+                    const tempRotation = fromSlot.rotation;
                     fromSlot.photoId = toSlot.photoId;
+                    fromSlot.rotation = toSlot.rotation;
                     toSlot.photoId = tempPhotoId;
+                    toSlot.rotation = tempRotation;
                 }
 
                 return { ...prev, pages };
@@ -1190,20 +1198,15 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                 );
                 if (!fromSlot?.photoId) return prev;
 
-                const movedPhotoId = fromSlot.photoId;
-
-                const sourcePhotoIds = fromPage.slots
-                    .filter((slot) => slot.id !== fromSlotId)
-                    .map((s) => s.photoId)
-                    .filter((id): id is string => id !== null);
-                const targetPhotoIds = [
-                    ...toPage.slots
-                        .map((s) => s.photoId)
-                        .filter((id): id is string => id !== null),
-                    movedPhotoId,
+                const sourceSlots = fromPage.slots.filter(
+                    (slot) => slot.id !== fromSlotId && slot.photoId,
+                );
+                const targetSlots = [
+                    ...toPage.slots.filter((slot) => slot.photoId),
+                    fromSlot,
                 ];
 
-                if (targetPhotoIds.length > 4) return prev;
+                if (targetSlots.length > 4) return prev;
 
                 const makePhotoStub = (photoId: string): Photo => {
                     const photo = photosRef.current.find(
@@ -1221,52 +1224,26 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                 };
 
                 const newPages = prev.pages.map((p, pIdx) => {
-                    const isCover = pIdx === 0;
-                    const coverSingleKey = isCover ? "1-full" : null;
-                    if (p.id === fromPageId) {
-                        if (sourcePhotoIds.length === 0) {
-                            return {
-                                ...p,
-                                slots: [],
-                                layoutVariant: undefined,
-                            };
-                        }
-                        if (coverSingleKey && sourcePhotoIds.length === 1) {
-                            return {
-                                ...p,
-                                slots: applyVariant(
-                                    coverSingleKey,
-                                    sourcePhotoIds,
-                                ),
-                                layoutVariant: coverSingleKey,
-                            };
-                        }
-                        const srcPhotos = sourcePhotoIds.map(makePhotoStub);
-                        return {
-                            ...p,
-                            slots: chooseBestLayout(srcPhotos),
-                            layoutVariant: chooseBestVariantKey(srcPhotos),
-                        };
-                    }
-                    if (p.id === toPageId) {
-                        if (coverSingleKey && targetPhotoIds.length === 1) {
-                            return {
-                                ...p,
-                                slots: applyVariant(
-                                    coverSingleKey,
-                                    targetPhotoIds,
-                                ),
-                                layoutVariant: coverSingleKey,
-                            };
-                        }
-                        const tgtPhotos = targetPhotoIds.map(makePhotoStub);
-                        return {
-                            ...p,
-                            slots: chooseBestLayout(tgtPhotos),
-                            layoutVariant: chooseBestVariantKey(tgtPhotos),
-                        };
-                    }
-                    return p;
+                    if (p.id !== fromPageId && p.id !== toPageId) return p;
+                    const slots =
+                        p.id === fromPageId ? sourceSlots : targetSlots;
+                    if (slots.length === 0)
+                        return { ...p, slots: [], layoutVariant: undefined };
+                    const photoIds = slots.map((slot) => slot.photoId!);
+                    const layoutVariant =
+                        pIdx === 0 && slots.length === 1
+                            ? "1-full"
+                            : chooseBestVariantKey(photoIds.map(makePhotoStub));
+                    return {
+                        ...p,
+                        slots: applyVariant(layoutVariant, photoIds).map(
+                            (slot, index) => ({
+                                ...slot,
+                                rotation: slots[index]!.rotation ?? 0,
+                            }),
+                        ),
+                        layoutVariant,
+                    };
                 });
 
                 return { ...prev, pages: newPages };
@@ -1297,15 +1274,19 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                 if (pageId === prev.pages.at(-1)?.id) return prev;
                 const page = prev.pages.find((p) => p.id === pageId);
                 if (!page) return prev;
-                const photoIds = page.slots
-                    .map((s) => s.photoId)
-                    .filter((id): id is string => id !== null);
+                const photoSlots = page.slots.filter((slot) => slot.photoId);
+                const photoIds = photoSlots.map((slot) => slot.photoId!);
                 if (
                     pageId === prev.pages[0]?.id &&
                     getVariantPreview(variantKey).length !== 1
                 )
                     return prev;
-                const newSlots = applyVariant(variantKey, photoIds);
+                const newSlots = applyVariant(variantKey, photoIds).map(
+                    (slot, index) => ({
+                        ...slot,
+                        rotation: photoSlots[index]?.rotation ?? 0,
+                    }),
+                );
                 if (newSlots.length === 0) return prev;
                 return {
                     ...prev,

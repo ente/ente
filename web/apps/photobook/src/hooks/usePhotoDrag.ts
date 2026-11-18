@@ -53,16 +53,31 @@ export function usePhotoDrag(
             if (thumbUrl && dragGhostRef.current) {
                 const canvas = dragGhostRef.current;
                 const ctx = canvas.getContext("2d");
-                const img = new window.Image();
+                const img =
+                    source.kind === "gallery"
+                        ? e.currentTarget.querySelector("img")!
+                        : new window.Image();
                 img.src = thumbUrl;
-                const size = 200;
+                const size = source.kind === "gallery" ? 128 : 200;
                 canvas.width = size;
                 canvas.height = size;
-                if (ctx) {
+                if (ctx && img.complete && img.naturalWidth > 0) {
                     const aspect = img.naturalWidth / img.naturalHeight || 1;
                     const dw = aspect >= 1 ? size : size * aspect;
                     const dh = aspect >= 1 ? size / aspect : size;
                     ctx.clearRect(0, 0, size, size);
+                    if (source.kind === "gallery") {
+                        ctx.globalAlpha = 0.9;
+                        ctx.beginPath();
+                        ctx.roundRect(
+                            (size - dw) / 2,
+                            (size - dh) / 2,
+                            dw,
+                            dh,
+                            8,
+                        );
+                        ctx.clip();
+                    }
                     ctx.drawImage(
                         img,
                         (size - dw) / 2,
@@ -70,8 +85,8 @@ export function usePhotoDrag(
                         dw,
                         dh,
                     );
+                    e.dataTransfer.setDragImage(canvas, size / 2, size / 2);
                 }
-                e.dataTransfer.setDragImage(canvas, size / 2, size / 2);
             }
 
             const onGlobalEnd = () => {

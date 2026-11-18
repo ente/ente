@@ -19,6 +19,36 @@ import {
 
 const sizeMm = 210;
 
+test("print rendering applies each photo rotation and restores the canvas transform", async () => {
+    const page = {
+        ...makeBlankPage(),
+        slots: applyVariant("4-grid", ["a", "b", "c", "d"]).map(
+            (slot, index) => ({
+                ...slot,
+                rotation: index * 90,
+                cropZoom: 1.4,
+                cropX: 0.2,
+                cropY: 0.8,
+            }),
+        ),
+    };
+    const result = (await renderPageToCanvas(
+        page,
+        (id) => Promise.resolve(`test:${id}`),
+        1000,
+        1000,
+    )) as unknown as CanvasRecord;
+    assert.equal(result.imageDraws.length, 4);
+    for (const [index, draw] of result.imageDraws.entries()) {
+        const slot = page.slots[index]!;
+        assert.ok(Math.abs(draw.rotation - (index * Math.PI) / 2) < 1e-8);
+        assert.ok(draw.x <= slot.x * 10 + 1e-8);
+        assert.ok(draw.y <= slot.y * 10 + 1e-8);
+        assert.ok(draw.x + draw.width >= (slot.x + slot.width) * 10 - 1e-8);
+        assert.ok(draw.y + draw.height >= (slot.y + slot.height) * 10 - 1e-8);
+    }
+});
+
 interface TextDraw {
     text: string;
     x: number;
@@ -31,7 +61,13 @@ interface CanvasRecord {
     height: number;
     marks: string[];
     textDraws: TextDraw[];
-    imageDraws: { x: number; y: number; width: number; height: number }[];
+    imageDraws: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+        rotation: number;
+    }[];
 }
 const documentDescriptor = Object.getOwnPropertyDescriptor(
     globalThis,
@@ -60,17 +96,30 @@ beforeAll(() => {
                     textDraws: [],
                     imageDraws: [],
                 };
+                let transform = { x: 0, y: 0, rotation: 0 };
+                const transforms: (typeof transform)[] = [];
                 return Object.assign(canvas, {
                     getContext: () => ({
                         font: "10px sans-serif",
                         textAlign: "left",
-                        save: vi.fn(),
-                        restore: vi.fn(),
+                        save() {
+                            transforms.push({ ...transform });
+                        },
+                        restore() {
+                            transform = transforms.pop()!;
+                        },
                         beginPath: vi.fn(),
                         rect: vi.fn(),
                         clip: vi.fn(),
-                        translate: vi.fn(),
-                        rotate: vi.fn(),
+                        translate(x: number, y: number) {
+                            const cos = Math.cos(transform.rotation);
+                            const sin = Math.sin(transform.rotation);
+                            transform.x += x * cos - y * sin;
+                            transform.y += x * sin + y * cos;
+                        },
+                        rotate(angle: number) {
+                            transform.rotation += angle;
+                        },
                         fillRect: vi.fn(),
                         measureText(text: string) {
                             return {
@@ -104,7 +153,36 @@ beforeAll(() => {
                                     ? "ente-logo"
                                     : "photo",
                             );
-                            canvas.imageDraws.push({ x, y, width, height });
+                            const cos = Math.cos(transform.rotation);
+                            const sin = Math.sin(transform.rotation);
+                            const corners = [
+                                [x, y],
+                                [x + width, y],
+                                [x, y + height],
+                                [x + width, y + height],
+                            ].map(([px, py]) => ({
+                                x: transform.x + px! * cos - py! * sin,
+                                y: transform.y + px! * sin + py! * cos,
+                            }));
+                            const left = Math.min(
+                                ...corners.map((corner) => corner.x),
+                            );
+                            const top = Math.min(
+                                ...corners.map((corner) => corner.y),
+                            );
+                            canvas.imageDraws.push({
+                                x: left,
+                                y: top,
+                                width:
+                                    Math.max(
+                                        ...corners.map((corner) => corner.x),
+                                    ) - left,
+                                height:
+                                    Math.max(
+                                        ...corners.map((corner) => corner.y),
+                                    ) - top,
+                                rotation: transform.rotation,
+                            });
                         },
                     }),
                     toBlob(callback: BlobCallback) {

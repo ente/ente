@@ -9,17 +9,20 @@ import {
 import { MAX_PRINT_PAGES, MIN_PRINT_PAGES } from "./printProducts";
 import type { BookPage, Photo } from "./types";
 
-export const MAX_PAGE_PHOTOS = 4;
-export const MAX_AUTO_LAYOUT_PHOTOS = getMaxAutoLayoutPhotos(MAX_PRINT_PAGES);
+const MAX_PAGE_PHOTOS = 4;
+const MAX_AUTO_LAYOUT_PHOTOS = getMaxAutoLayoutPhotos(MAX_PRINT_PAGES);
 
-export function createImportedBookPages(
-    photos: Photo[],
-    selectedCount: number,
-) {
-    const pages =
-        selectedCount > MAX_AUTO_LAYOUT_PHOTOS
-            ? Array.from({ length: MIN_PRINT_PAGES }, makeBlankPage)
-            : generateAutoLayout(photos);
+export function createImportedBookPages(photos: Photo[]) {
+    let layoutPhotos = photos;
+    if (photos.length > MAX_AUTO_LAYOUT_PHOTOS) {
+        const sorted = [...photos].sort((a, b) => a.dateTaken - b.dateTaken);
+        const interval = (sorted.length - 1) / (MAX_AUTO_LAYOUT_PHOTOS - 1);
+        layoutPhotos = Array.from(
+            { length: MAX_AUTO_LAYOUT_PHOTOS },
+            (_, index) => sorted[Math.round(index * interval)]!,
+        );
+    }
+    const pages = generateAutoLayout(layoutPhotos);
     if (pages.length > 0 && pages.length < MIN_PRINT_PAGES) {
         pages.splice(
             pages.length - 1,
@@ -57,6 +60,7 @@ export function normalizeFrontCover(pages: BookPage[]): BookPage[] {
         cropX: remaining[index]!.cropX,
         cropY: remaining[index]!.cropY,
         cropZoom: remaining[index]!.cropZoom,
+        rotation: remaining[index]!.rotation,
     }));
     return normalizeBookPages([
         {
@@ -134,9 +138,9 @@ function addPhotosToPage(page: BookPage, allPhotos: Photo[], added: Photo[]) {
     );
     for (const [
         index,
-        { id, cropX, cropY, cropZoom },
+        { id, cropX, cropY, cropZoom, rotation },
     ] of existingSlots.entries()) {
-        Object.assign(slots[index]!, { id, cropX, cropY, cropZoom });
+        Object.assign(slots[index]!, { id, cropX, cropY, cropZoom, rotation });
     }
     return { ...page, slots, layoutVariant };
 }
@@ -150,8 +154,7 @@ export function placeImportedPhotos(
     if (newPhotos.length === 0 || destination.kind === "gallery") return pages;
     const error = photoDestinationError(pages, destination, newPhotos.length);
     if (error) throw new Error(error);
-    if (pages.length === 0)
-        return createImportedBookPages(newPhotos, newPhotos.length);
+    if (pages.length === 0) return createImportedBookPages(newPhotos);
 
     const updated = [...pages];
     let insertAt = pages.length - 1;
@@ -220,6 +223,7 @@ export function placeGalleryPhoto(
                                     cropX: 0.5,
                                     cropY: 0.5,
                                     cropZoom: 1,
+                                    rotation: 0,
                                 }
                               : slot,
                       ),
