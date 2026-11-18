@@ -485,7 +485,7 @@ private final class SlideshowAudioProducer: VideoWriterAudioSource, @unchecked S
                 totalFrames: Double(totalFrames),
                 fadeInFrames: music.fadeIn * sampleRate,
                 fadeOutFrames: music.fadeOut * sampleRate,
-                duckedVolume: music.duckedMusicGain,
+                duckedMusicGain: music.duckedMusicGain,
                 duckFadeFrames: music.duckFade * sampleRate,
                 videoAudio: audibleSegments.map {
                     (start: $0.start * sampleRate, end: $0.end * sampleRate)
@@ -630,7 +630,7 @@ private struct SlideshowMusicEnvelope {
     let totalFrames: Double
     let fadeInFrames: Double
     let fadeOutFrames: Double
-    let duckedVolume: Double
+    let duckedMusicGain: Double
     let duckFadeFrames: Double
     let ducks: [(start: Double, end: Double)]
 
@@ -638,14 +638,14 @@ private struct SlideshowMusicEnvelope {
         totalFrames: Double,
         fadeInFrames: Double,
         fadeOutFrames: Double,
-        duckedVolume: Double,
+        duckedMusicGain: Double,
         duckFadeFrames: Double,
         videoAudio: [(start: Double, end: Double)]
     ) {
         self.totalFrames = totalFrames
         self.fadeInFrames = fadeInFrames
         self.fadeOutFrames = fadeOutFrames
-        self.duckedVolume = duckedVolume
+        self.duckedMusicGain = duckedMusicGain
         self.duckFadeFrames = duckFadeFrames
         var ducks: [(start: Double, end: Double)] = []
         for range in videoAudio {
@@ -683,7 +683,7 @@ private struct SlideshowMusicEnvelope {
                 depth = 1 - (frame - duck.end) / duckFadeFrames
             }
             guard depth > 0 else { continue }
-            level = min(level, 1 - depth * (1 - duckedVolume))
+            level = min(level, 1 - depth * (1 - duckedMusicGain))
         }
         return level
     }

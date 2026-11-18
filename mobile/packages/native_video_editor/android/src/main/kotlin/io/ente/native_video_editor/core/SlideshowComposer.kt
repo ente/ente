@@ -15,6 +15,8 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.OverlaySettings
 import androidx.media3.common.VideoFrameProcessingException
+import androidx.media3.common.audio.AudioProcessor
+import androidx.media3.common.audio.BaseAudioProcessor
 import androidx.media3.common.audio.DefaultGainProvider
 import androidx.media3.common.audio.GainProcessor
 import androidx.media3.common.util.UnstableApi
@@ -29,6 +31,7 @@ import androidx.media3.transformer.Effects
 import java.io.Closeable
 import java.io.File
 import java.io.FileOutputStream
+import java.nio.ByteBuffer
 import java.util.UUID
 import kotlin.math.max
 import kotlin.math.min
@@ -152,6 +155,7 @@ internal class SlideshowComposer(
                     .setEffects(
                         Effects(
                             listOfNotNull(
+                                segment.clipEndUs?.let { ClipEndAudioProcessor(it) },
                                 videoAudioGain?.let {
                                     GainProcessor(DefaultGainProvider.Builder(it).build())
                                 }
@@ -208,7 +212,7 @@ internal class SlideshowComposer(
             totalUs = totalUs,
             fadeInUs = settings.fadeInMs * 1_000L,
             fadeOutUs = settings.fadeOutMs * 1_000L,
-            duckedVolume = settings.duckedMusicGain,
+            duckedMusicGain = settings.duckedMusicGain,
             duckFadeUs = settings.duckFadeMs * 1_000L,
             videoAudio = videoAudioRanges(segments)
         )
@@ -551,7 +555,7 @@ private class MusicEnvelope(
     private val totalUs: Long,
     private val fadeInUs: Long,
     private val fadeOutUs: Long,
-    private val duckedVolume: Double,
+    private val duckedMusicGain: Double,
     private val duckFadeUs: Long,
     videoAudio: List<LongRange>
 ) {
@@ -587,7 +591,7 @@ private class MusicEnvelope(
                 timeUs < duck.first -> 1.0 - (duck.first - timeUs).toDouble() / duckFadeUs
                 else -> 1.0 - (timeUs - duck.last - 1).toDouble() / duckFadeUs
             }
-            if (depth > 0) level = min(level, 1.0 - depth * (1.0 - duckedVolume))
+            if (depth > 0) level = min(level, 1.0 - depth * (1.0 - duckedMusicGain))
         }
         return level
     }
@@ -610,4 +614,29 @@ private class MusicGainProvider(
 
     private fun timeUs(samplePosition: Long, sampleRate: Int) =
         offsetUs + samplePosition * C.MICROS_PER_SECOND / sampleRate
+}
+
+@UnstableApi
+private class ClipEndAudioProcessor(private val clipEndUs: Long) : BaseAudioProcessor() {
+    private var remainingFrames = 0L
+
+    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat) = inputAudioFormat
+
+    override fun onFlush(streamMetadata: AudioProcessor.StreamMetadata) {
+        val remainingUs = max(0L, clipEndUs - streamMetadata.positionOffsetUs)
+        remainingFrames = remainingUs * inputAudioFormat.sampleRate / C.MICROS_PER_SECOND
+    }
+
+    override fun queueInput(inputBuffer: ByteBuffer) {
+        val bytesPerFrame = inputAudioFormat.bytesPerFrame
+        val keptFrames = min(inputBuffer.remaining().toLong() / bytesPerFrame, remainingFrames)
+        val inputEnd = inputBuffer.limit()
+        if (keptFrames > 0) {
+            remainingFrames -= keptFrames
+            inputBuffer.limit(inputBuffer.position() + keptFrames.toInt() * bytesPerFrame)
+            replaceOutputBuffer(keptFrames.toInt() * bytesPerFrame).put(inputBuffer).flip()
+            inputBuffer.limit(inputEnd)
+        }
+        inputBuffer.position(inputEnd)
+    }
 }
