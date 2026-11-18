@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.4.5 - Nov 2026
+
+- Filter `photos file list` by distance from a point with `--near LAT,LON --radius KM`, using the location tag check shared with the Ente apps.
+
 ## v0.4.4 - Nov 2026
 
 - Fixed Photos exports and adoption failing when macOS adds hidden metadata files to the destination (@Yovach).
