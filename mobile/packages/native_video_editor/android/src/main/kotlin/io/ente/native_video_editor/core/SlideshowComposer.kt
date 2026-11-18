@@ -15,6 +15,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.OverlaySettings
 import androidx.media3.common.VideoFrameProcessingException
+import androidx.media3.common.audio.DefaultGainProvider
 import androidx.media3.common.audio.GainProcessor
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.effect.BitmapOverlay
@@ -93,6 +94,7 @@ internal class SlideshowComposer(
             }
         }
 
+        val videoAudioGain = request.music?.videoAudioGain?.toFloat()
         var previousPhoto: PhotoOverlay? = null
         val videoItems = segments.mapIndexed { index, segment ->
             val previousOverlay = previousPhoto
@@ -149,7 +151,11 @@ internal class SlideshowComposer(
                     .setRemoveAudio(segment.isMuted)
                     .setEffects(
                         Effects(
-                            emptyList(),
+                            listOfNotNull(
+                                videoAudioGain?.let {
+                                    GainProcessor(DefaultGainProvider.Builder(it).build())
+                                }
+                            ),
                             listOfNotNull(presentation, dissolve?.let { OverlayEffect(listOf(it)) })
                         )
                     )
@@ -202,7 +208,7 @@ internal class SlideshowComposer(
             totalUs = totalUs,
             fadeInUs = settings.fadeInMs * 1_000L,
             fadeOutUs = settings.fadeOutMs * 1_000L,
-            duckedVolume = settings.duckedVolume,
+            duckedVolume = settings.duckedMusicGain,
             duckFadeUs = settings.duckFadeMs * 1_000L,
             videoAudio = videoAudioRanges(segments)
         )

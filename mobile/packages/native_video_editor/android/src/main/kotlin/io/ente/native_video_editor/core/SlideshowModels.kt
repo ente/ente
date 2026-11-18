@@ -59,6 +59,9 @@ data class SlideshowMusic(
                 duckedVolume in 0.0..1.0
         ) { "Invalid slideshow music" }
     }
+
+    val videoAudioGain: Double get() = 1 / (1 + duckedVolume)
+    val duckedMusicGain: Double get() = duckedVolume * videoAudioGain
 }
 
 data class SlideshowExportRequest(

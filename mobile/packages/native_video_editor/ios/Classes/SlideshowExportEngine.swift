@@ -84,6 +84,9 @@ struct SlideshowMusicSource: @unchecked Sendable {
     let fadeOut: Double
     let duckedVolume: Double
     let duckFade: Double
+
+    var videoAudioGain: Double { 1 / (1 + duckedVolume) }
+    var duckedMusicGain: Double { duckedVolume * videoAudioGain }
 }
 
 struct SlideshowTimeline: Sendable {
@@ -457,6 +460,7 @@ private final class SlideshowAudioProducer: VideoWriterAudioSource, @unchecked S
     private let videoAudio: [VideoAudio]
     private let music: PcmSource?
     private let musicEnvelope: SlideshowMusicEnvelope?
+    private let videoAudioGain: Float
     private var videoReader: PcmSource?
     private var videoReaderIndex: Int?
     private var position: Int64 = 0
@@ -475,12 +479,13 @@ private final class SlideshowAudioProducer: VideoWriterAudioSource, @unchecked S
         self.totalFrames = totalFrames
         self.videoAudio = videoAudio
         music = timeline.music.map { PcmSource(asset: $0.asset, track: $0.track) }
+        videoAudioGain = Float(timeline.music?.videoAudioGain ?? 1)
         musicEnvelope = timeline.music.map { music in
             SlideshowMusicEnvelope(
                 totalFrames: Double(totalFrames),
                 fadeInFrames: music.fadeIn * sampleRate,
                 fadeOutFrames: music.fadeOut * sampleRate,
-                duckedVolume: music.duckedVolume,
+                duckedVolume: music.duckedMusicGain,
                 duckFadeFrames: music.duckFade * sampleRate,
                 videoAudio: audibleSegments.map {
                     (start: $0.start * sampleRate, end: $0.end * sampleRate)
@@ -551,7 +556,8 @@ private final class SlideshowAudioProducer: VideoWriterAudioSource, @unchecked S
         var video = [Int16](repeating: 0, count: samples.count)
         try videoReader?.read(into: &video, frames: frames, loops: false)
         for sample in samples.indices {
-            samples[sample] = Int16(clamping: Int32(samples[sample]) + Int32(video[sample]))
+            let scaled = Int32((Float(video[sample]) * videoAudioGain).rounded())
+            samples[sample] = Int16(clamping: Int32(samples[sample]) + scaled)
         }
     }
 
