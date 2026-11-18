@@ -28,6 +28,8 @@ Learn more in the [Backup feature guide](/photos/features/backup-and-sync/).
 
 Yes. Your photos live in your Ente account, not on any single device. Install Ente on your new phone and sign in with the same account - your library downloads and syncs normally. New photos on your new phone are compared by content hash against what's already in your account, so anything already backed up won't be re-uploaded.
 
+Your Ente account is separate from your Apple ID or Google account. Switching to a new Apple ID or Google account doesn't affect your Ente library: install Ente on the new phone and sign in with your Ente email.
+
 ### How do I select which albums to back up? {#select-albums}
 
 **On mobile:**
