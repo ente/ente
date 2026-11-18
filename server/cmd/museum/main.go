@@ -11,6 +11,7 @@ import (
 	"path"
 	"runtime"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -1133,20 +1134,42 @@ func main() {
 	latencySensitiveDBCollector := sqlstats.NewStatsCollector("latency_sensitive_db", latencySensitiveDB)
 	prometheus.MustRegister(primaryDBCollector, latencySensitiveDBCollector)
 
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	defer signal.Stop(quit)
+
 	http.Handle("/metrics", promhttp.Handler())
-	go http.ListenAndServe(":2112", nil)
-	go runServer(environment, server)
+	metricsServer := &http.Server{Addr: ":2112"}
+	go metricsServer.ListenAndServe()
+	httpServer := runServer(server)
 	discordController.NotifyStartup()
 	log.Println("We have lift-off.")
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	log.Println("Shutting down server...")
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	var shutdown sync.WaitGroup
+	for _, srv := range []*http.Server{httpServer, metricsServer} {
+		shutdown.Go(func() {
+			err := srv.Shutdown(shutdownCtx)
+			if err == nil {
+				return
+			}
+			log.WithError(err).WithField("addr", srv.Addr).Error("Failed to shut down server")
+			if err == context.DeadlineExceeded {
+				if closeErr := srv.Close(); closeErr != nil {
+					log.WithError(closeErr).WithField("addr", srv.Addr).Error("Failed to close server connections")
+				}
+			}
+		})
+	}
+	shutdown.Wait()
 	discordController.NotifyShutdown()
 }
 
-func runServer(environment string, server *gin.Engine) {
+func runServer(server *gin.Engine) *http.Server {
+	httpServer := &http.Server{Handler: server.Handler()}
 	useTLS := viper.GetBool("http.use-tls")
 	if useTLS {
 		certPath, err := config.CredentialFilePath("tls.cert")
@@ -1159,7 +1182,12 @@ func runServer(environment string, server *gin.Engine) {
 			log.Fatal(err)
 		}
 
-		log.Fatal(server.RunTLS(":443", certPath, keyPath))
+		httpServer.Addr = ":443"
+		go func() {
+			if err := httpServer.ListenAndServeTLS(certPath, keyPath); err != http.ErrServerClosed {
+				log.Fatal(err)
+			}
+		}()
 	} else {
 		port := 8080
 		if viper.IsSet("http.port") {
@@ -1169,8 +1197,14 @@ func runServer(environment string, server *gin.Engine) {
 		if server.TrustedPlatform != "" {
 			log.Infof("trusted platform header: %s", server.TrustedPlatform)
 		}
-		server.Run(fmt.Sprintf(":%d", port))
+		httpServer.Addr = fmt.Sprintf(":%d", port)
+		go func() {
+			if err := httpServer.ListenAndServe(); err != http.ErrServerClosed {
+				log.Error(err)
+			}
+		}()
 	}
+	return httpServer
 }
 
 func setupLogger(environment string) {
