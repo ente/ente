@@ -1,5 +1,6 @@
 use crate::{
     clip::{run_clip_image, run_clip_text_query, tokenize_clip_text as tokenize_clip_text_impl},
+    decode::decode_image,
     diagnostics::{AnalysisContext, AnalysisOperation, AnalysisStage, log_public_ml_error},
     error::{MlError, MlResult},
     face::{
@@ -15,11 +16,7 @@ use crate::{
     preprocess, runtime,
     types::{self, ClipResult, Dimensions, FaceResult, PetBodyResult, PetFaceResult},
 };
-use ente_image::{
-    BoundedDecodeOptions, BoundedDecodedImage, ImageError, ImageInput,
-    decode::{decode_image_from_bytes, decode_image_from_path},
-    decode_bounded,
-};
+use ente_image::{BoundedDecodeOptions, BoundedDecodedImage};
 
 #[derive(Clone, Debug)]
 pub enum ImageSource {
@@ -115,7 +112,11 @@ fn analyze_image_inner(
         let BoundedDecodedImage {
             image: mut decoded,
             original_dimensions,
-        } = decode_image(file_id, &source, BoundedDecodeOptions::default())?;
+        } = decode_image(
+            &source,
+            BoundedDecodeOptions::default(),
+            &format!("file_id={file_id}"),
+        )?;
         let detector_input;
         let (face_input, pet_input) = if run_faces || run_pets {
             operation.set_stage(AnalysisStage::YoloPreprocess);
@@ -235,31 +236,6 @@ fn analyze_image_inner(
     })
 }
 
-fn decode_image(
-    file_id: i64,
-    source: &ImageSource,
-    options: BoundedDecodeOptions,
-) -> MlResult<BoundedDecodedImage> {
-    let input = match source {
-        ImageSource::Path(path) => ImageInput::Path(path),
-        ImageSource::Bytes(bytes) => ImageInput::Bytes(bytes),
-    };
-    match decode_bounded(input, options) {
-        Err(ImageError::Decode(reason)) => {
-            log::info!("Rust ML bounded decode refused: file_id={file_id} reason={reason}");
-            let image = match source {
-                ImageSource::Path(path) => decode_image_from_path(path)?,
-                ImageSource::Bytes(bytes) => decode_image_from_bytes(bytes)?,
-            };
-            Ok(BoundedDecodedImage {
-                original_dimensions: image.dimensions.clone(),
-                image,
-            })
-        }
-        result => result.map_err(MlError::from),
-    }
-}
-
 pub fn run_clip_text(req: RunClipTextRequest) -> MlResult<RunClipTextResult> {
     let result = (|| {
         let RunClipTextRequest {
@@ -327,6 +303,8 @@ fn validate_request_model_paths(req: &AnalyzeImageRequest) -> MlResult<()> {
 
 #[cfg(test)]
 mod tests {
+    use ente_image::decode::decode_image_from_bytes;
+
     use super::*;
 
     fn request_with_models(run_faces: bool, run_clip: bool, run_pets: bool) -> AnalyzeImageRequest {
@@ -368,7 +346,7 @@ mod tests {
         let BoundedDecodedImage {
             image,
             original_dimensions,
-        } = decode_image(1, &source, BoundedDecodeOptions::default()).unwrap();
+        } = decode_image(&source, BoundedDecodeOptions::default(), "file_id=1").unwrap();
         assert_eq!(image.dimensions, dimensions(6000, 7));
         assert_eq!(image.rgb.len(), 6000 * 7 * 3);
         assert_eq!(original_dimensions, dimensions(6400, 8));
@@ -387,7 +365,7 @@ mod tests {
         let BoundedDecodedImage {
             image,
             original_dimensions,
-        } = decode_image(1, &source, BoundedDecodeOptions::default()).unwrap();
+        } = decode_image(&source, BoundedDecodeOptions::default(), "file_id=1").unwrap();
         assert_eq!(image.dimensions, dimensions(6400, 8));
         assert_eq!(original_dimensions, dimensions(6400, 8));
     }
@@ -402,7 +380,7 @@ mod tests {
             ..BoundedDecodeOptions::default()
         };
         assert!(matches!(
-            decode_image(1, &source, too_large),
+            decode_image(&source, too_large, "file_id=1"),
             Err(MlError::Decode(_))
         ));
         let invalid = BoundedDecodeOptions {
@@ -410,7 +388,7 @@ mod tests {
             ..BoundedDecodeOptions::default()
         };
         assert!(matches!(
-            decode_image(1, &source, invalid),
+            decode_image(&source, invalid, "file_id=1"),
             Err(MlError::Image(_))
         ));
     }

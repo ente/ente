@@ -4,9 +4,7 @@ use ente_image::{
     decode_bounded,
     image_compression::{EncodedImageFormat, encode_rgb},
 };
-use ente_ml::face::thumbnail::{
-    FaceBox, generate_face_thumbnails as generate_face_thumbnails_impl,
-};
+use ente_ml::face::thumbnail::{FaceBox, generate_face_thumbnails_from_path};
 
 #[derive(Clone, Debug)]
 pub enum RustImageDecodeError {
@@ -26,7 +24,6 @@ pub fn generate_face_thumbnails(
     image_path: String,
     face_boxes: Vec<RustFaceBox>,
 ) -> Result<Vec<Vec<u8>>, String> {
-    let decoded = decode_image_from_path(&image_path).map_err(|e| e.to_string())?;
     let face_boxes = face_boxes
         .into_iter()
         .enumerate()
@@ -36,7 +33,7 @@ pub fn generate_face_thumbnails(
         })
         .collect::<Result<Vec<_>, _>>()?;
 
-    generate_face_thumbnails_impl(&decoded, &face_boxes).map_err(|e| e.to_string())
+    generate_face_thumbnails_from_path(&image_path, &face_boxes).map_err(|e| e.to_string())
 }
 
 // Use ente_heic instead of the platform decoder, which may fail on HEIC/HEIF.
