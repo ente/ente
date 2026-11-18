@@ -295,12 +295,15 @@ class GalleryState extends State<Gallery> with WidgetsBindingObserver {
           event.listen((event) async {
             _debouncer.run(() async {
               _logger.info("Force refresh all files on ${event.reason}");
+              final wasFilenameSort = _sortOrder.isFilename;
               _sortOrder =
                   widget.sortOrderFn?.call() ?? FileSortOrder.newestFirst;
               _setGroupType();
-              final measuredHeaderExtent = await _measureGroupHeaderExtent();
-              if (!mounted) return;
-              groupHeaderExtent = measuredHeaderExtent ?? groupHeaderExtent;
+              if (wasFilenameSort != _sortOrder.isFilename) {
+                final measuredHeaderExtent = await _measureGroupHeaderExtent();
+                if (!mounted) return;
+                groupHeaderExtent = measuredHeaderExtent ?? groupHeaderExtent;
+              }
               final result = await _loadFiles();
               _setFilesAndReload(result.files);
             });
