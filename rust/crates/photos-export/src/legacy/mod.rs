@@ -441,7 +441,11 @@ pub fn finish(root: &Path, store: &Store, cancel: &watch::Receiver<bool>) -> Res
         if meta.is_dir() {
             // List before deleting: removing entries mid-listing makes some
             // filesystems (SMB) skip others, and finish never runs again.
-            let entries = disk::read_dir(&meta)?.collect::<std::io::Result<Vec<_>>>()?;
+            let mut entries = Vec::new();
+            for entry in disk::read_dir(&meta)? {
+                ensure!(!*cancel.borrow(), crate::Cancelled);
+                entries.push(entry?);
+            }
             for entry in entries {
                 ensure!(!*cancel.borrow(), crate::Cancelled);
                 if entry.file_name() == "album_meta.json"
