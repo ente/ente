@@ -22,6 +22,7 @@ export interface AuthPageShellProps extends React.PropsWithChildren {
     presentationConfig: AuthPresentationConfig;
     contentWidth?: 400 | 420;
     viewportHeight?: string;
+    contentLayout?: "page-scroll" | "content-scroll";
 }
 
 export function AuthPageShell({
@@ -30,7 +31,9 @@ export function AuthPageShell({
     children,
     contentWidth = 400,
     viewportHeight = "100svh",
+    contentLayout = "page-scroll",
 }: AuthPageShellProps): React.JSX.Element {
+    const scrollWithinContent = contentLayout === "content-scroll";
     return (
         <PageRoot $viewportHeight={viewportHeight}>
             <GlobalStyles
@@ -59,9 +62,33 @@ export function AuthPageShell({
                         size="mobile"
                     />
                 </MobileBrandSlot>
-                <ContentSheet>
-                    <SheetHandle />
-                    <ContentColumn contentWidth={contentWidth}>
+                <ContentSheet
+                    sx={
+                        scrollWithinContent
+                            ? {
+                                  overflow: "hidden",
+                                  justifyContent: "flex-start",
+                                  [authMobileMediaQuery]: {
+                                      padding: "36px 24px 0",
+                                      borderRadius: "20px 20px 0 0",
+                                  },
+                                  "@media (max-height: 560px)": {
+                                      paddingBlockStart: "16px",
+                                      paddingBlockEnd: 0,
+                                  },
+                              }
+                            : undefined
+                    }
+                >
+                    {!scrollWithinContent && <SheetHandle />}
+                    <ContentColumn
+                        contentWidth={contentWidth}
+                        sx={
+                            scrollWithinContent
+                                ? { minHeight: 0, flex: 1, marginBlock: 0 }
+                                : undefined
+                        }
+                    >
                         {children}
                     </ContentColumn>
                 </ContentSheet>
@@ -258,7 +285,7 @@ const MobileBrandSlot = styled("div", {
     [authAboveMobileMediaQuery]: { display: "none" },
 }));
 
-const ContentSheet = styled("section")(({ theme }) => ({
+const ContentSheet = styled("section")({
     flex: 1,
     minHeight: 0,
     marginTop: "-28px",
@@ -271,8 +298,7 @@ const ContentSheet = styled("section")(({ theme }) => ({
     overflowY: "auto",
     boxSizing: "border-box",
     borderRadius: "24px 24px 0 0",
-    backgroundColor: "#fff",
-    ...theme.applyStyles("dark", { backgroundColor: "#252525" }),
+    backgroundColor: "var(--auth-ui-content-background)",
     [authAboveMobileMediaQuery]: {
         marginTop: "-32px",
         padding: "16px 48px 48px",
@@ -286,7 +312,7 @@ const ContentSheet = styled("section")(({ theme }) => ({
         borderRadius: 0,
     },
     "@media (min-width: 1600px)": { width: "744px", padding: "56px 172px" },
-}));
+});
 
 const SheetHandle = styled("div")({
     width: "36px",

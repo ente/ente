@@ -1,3 +1,4 @@
+import { SignupPlanSelector } from "@/components/SignupPlanSelector";
 import { useWrapAsyncOperation } from "@/components/utils/use-wrap-async";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
@@ -114,12 +115,13 @@ export const PlanSelector: React.FC<PlanSelectorProps> = ({
 export type PlanSelectorContentsProps = Pick<
     PlanSelectorProps,
     "onClose" | "setLoading" | "onManageFamily"
-> & { onBeginCheckout?: () => void };
+> & { variant?: "manage" | "signup"; onBeginCheckout?: () => void };
 
 export const PlanSelectorContents: React.FC<PlanSelectorContentsProps> = ({
     onClose,
     setLoading,
     onManageFamily,
+    variant = "manage",
     onBeginCheckout,
 }) => {
     const { showMiniDialog } = useBaseContext();
@@ -237,6 +239,16 @@ export const PlanSelectorContents: React.FC<PlanSelectorContentsProps> = ({
                 break;
         }
     };
+
+    if (variant === "signup") {
+        return (
+            <SignupPlanSelector
+                plansData={plansData}
+                onContinueFree={onClose}
+                onContinuePaid={handlePlanSelect}
+            />
+        );
+    }
 
     const commonCardData = {
         onClose,

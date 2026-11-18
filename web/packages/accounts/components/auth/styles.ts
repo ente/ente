@@ -11,6 +11,8 @@ export interface AuthPresentationConfig {
     passwordMessage: string;
     passwordMessageDark: string;
     textDisabledDark: string;
+    lightContentBackground?: string;
+    darkContentBackground?: string;
     wideGamutPrimary?: string;
     mobileBrandHeight: number;
     illustrationHeights: {
@@ -23,6 +25,7 @@ export interface AuthPresentationConfig {
 
 export const createAuthColorVariables = (theme: AuthPresentationConfig) => ({
     ":where(:root)": {
+        "--auth-ui-content-background": theme.lightContentBackground ?? "#fff",
         "--auth-ui-primary": theme.primary,
         "--auth-ui-primary-hover": theme.primaryHover,
         "--auth-ui-primary-active": theme.primaryActive,
@@ -53,6 +56,8 @@ export const createAuthColorVariables = (theme: AuthPresentationConfig) => ({
         "--auth-ui-button-primary-stroke-active": "rgba(255, 255, 255, 0.2)",
     },
     "*:where(.dark)": {
+        "--auth-ui-content-background":
+            theme.darkContentBackground ?? "#252525",
         "--auth-ui-focus": theme.focusDark,
         "--auth-ui-link": theme.linkDark,
         "--auth-ui-terms-link": theme.termsLinkDark,
