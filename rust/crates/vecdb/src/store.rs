@@ -1879,7 +1879,7 @@ mod tests {
     use super::super::crc::crc32;
     use super::super::kernel::splitmix64;
     use super::super::lock::lock_path;
-    use super::super::log::{HEADER_LEN, SEALED_HEADER_LEN};
+    use super::super::log::{ENCODE_FLUSH_BYTES, HEADER_LEN, SEALED_HEADER_LEN};
     use super::super::test_support;
     use super::*;
 
@@ -7005,6 +7005,27 @@ mod tests {
             assert_eq!(db.stats().unwrap().dead_count, 64);
             assert_eq!(generation_of(&path), generation);
         }
+    }
+
+    #[test]
+    fn encrypted_appends_spanning_several_flushes_replay_in_full() {
+        let dir = TempDir::new().unwrap();
+        let key = encryption_key(14);
+        let path = dir.path().join("db");
+        let seed = 500;
+        let db = open_sealed(&path, &key);
+        let before = fs::metadata(&path).unwrap().len();
+        bulk_add(&db, &bulk_entries(0, 1200, seed)).unwrap();
+        let after = fs::metadata(&path).unwrap().len();
+        assert!(after - before > 2 * ENCODE_FLUSH_BYTES as u64);
+        drop(db);
+        let verify = |db: &VecDb| {
+            assert_eq!(db.len().unwrap(), 1200);
+            assert_own_nearest(db, "key-1199", &seeded_unit_vector(seed + 1199, DIMS));
+        };
+        verify(&open_sealed_reader(&path, &key).unwrap());
+        verify(&open_sealed(&path, &key));
+        assert_eq!(fs::metadata(&path).unwrap().len(), after);
     }
 
     #[test]
