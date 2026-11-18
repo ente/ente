@@ -476,8 +476,7 @@ class CollectionsService {
   }
 
   Future<EnteFile?> getCover(Collection c) async {
-    final int localSyncTime = getCollectionSyncTime(c.id);
-    final String coverKey = '${c.id}_${localSyncTime}_${c.updationTime}';
+    final coverKey = _coverCacheKey(c);
     if (_coverCache.containsKey(coverKey)) {
       return Future.value(_coverCache[coverKey]!);
     }
@@ -504,9 +503,13 @@ class CollectionsService {
   }
 
   EnteFile? getCoverCache(Collection c) {
-    final int localSyncTime = getCollectionSyncTime(c.id);
-    final String coverKey = '${c.id}_${localSyncTime}_${c.updationTime}';
-    return _coverCache[coverKey];
+    return _coverCache[_coverCacheKey(c)];
+  }
+
+  String _coverCacheKey(Collection c) {
+    final metadata = c.pubMagicMetadata;
+    return '${c.id}_${getCollectionSyncTime(c.id)}_${c.updationTime}_'
+        '${metadata.asc ?? false}_${metadata.coverID ?? 0}';
   }
 
   Future<int> getFileCount(Collection c, {bool useCache = true}) async {
