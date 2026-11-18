@@ -1591,7 +1591,7 @@
       },
       "now": {
         "type": "String",
-        "description": "The localized word for now, rendered in a handwritten style. Keep this placeholder rather than writing the word directly."
+        "description": "The localized word for now, styled like the year numbers. Keep this placeholder rather than writing the word directly."
       }
     }
   },
