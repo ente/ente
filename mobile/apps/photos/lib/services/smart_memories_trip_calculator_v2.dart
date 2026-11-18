@@ -1,27 +1,58 @@
 part of "memories/dart_memories_computer.dart";
 
+class _LocationSum {
+  double _latitude;
+  double _longitudeSin = 0;
+  double _longitudeCos = 0;
+
+  _LocationSum() : _latitude = 0;
+
+  _LocationSum.fromLocation(Location location)
+    : _latitude = location.latitude! {
+    final longitude = location.longitude! * (pi / 180);
+    _longitudeSin = sin(longitude);
+    _longitudeCos = cos(longitude);
+  }
+
+  void add(Location location) {
+    final longitude = location.longitude! * (pi / 180);
+    _latitude += location.latitude!;
+    _longitudeSin += sin(longitude);
+    _longitudeCos += cos(longitude);
+  }
+
+  void merge(_LocationSum other) {
+    _latitude += other._latitude;
+    _longitudeSin += other._longitudeSin;
+    _longitudeCos += other._longitudeCos;
+  }
+
+  Location mean(int count) {
+    return Location(
+      latitude: _latitude / count,
+      longitude: atan2(_longitudeSin, _longitudeCos) * (180 / pi),
+    );
+  }
+}
+
 class _LocationCluster {
   final List<EnteFile> files;
-  double _latitudeSum;
-  double _longitudeSum;
+  final _LocationSum _locationSum;
   Location _center;
 
   _LocationCluster(EnteFile file)
     : files = [file],
-      _latitudeSum = file.location!.latitude!,
-      _longitudeSum = file.location!.longitude!,
+      _locationSum = _LocationSum.fromLocation(file.location!),
       _center = file.location!;
 
   _LocationCluster.fromFiles(Iterable<EnteFile> files)
     : files = List<EnteFile>.from(files),
-      _latitudeSum = 0,
-      _longitudeSum = 0,
+      _locationSum = _LocationSum(),
       _center = const Location(latitude: 0, longitude: 0) {
     for (final file in this.files) {
-      _latitudeSum += file.location!.latitude!;
-      _longitudeSum += file.location!.longitude!;
+      _locationSum.add(file.location!);
     }
-    _recalculateCenter();
+    _center = _locationSum.mean(this.files.length);
   }
 
   Location get center => _center;
@@ -36,23 +67,14 @@ class _LocationCluster {
 
   void addFile(EnteFile file) {
     files.add(file);
-    _latitudeSum += file.location!.latitude!;
-    _longitudeSum += file.location!.longitude!;
-    _recalculateCenter();
+    _locationSum.add(file.location!);
+    _center = _locationSum.mean(files.length);
   }
 
   void addCluster(_LocationCluster cluster) {
     files.addAll(cluster.files);
-    _latitudeSum += cluster._latitudeSum;
-    _longitudeSum += cluster._longitudeSum;
-    _recalculateCenter();
-  }
-
-  void _recalculateCenter() {
-    _center = Location(
-      latitude: _latitudeSum / files.length,
-      longitude: _longitudeSum / files.length,
-    );
+    _locationSum.merge(cluster._locationSum);
+    _center = _locationSum.mean(files.length);
   }
 }
 
@@ -689,22 +711,14 @@ class TripMemoriesCalculatorV2 {
   }
 
   static Location _representativeLocationFromFiles(Iterable<EnteFile> files) {
-    final filesWithLocation = files
-        .where((file) => file.hasLocation)
-        .toList(growable: false);
-    assert(filesWithLocation.isNotEmpty);
-
-    double latitudeSum = 0;
-    double longitudeSum = 0;
-    for (final file in filesWithLocation) {
-      latitudeSum += file.location!.latitude!;
-      longitudeSum += file.location!.longitude!;
+    final locationSum = _LocationSum();
+    int count = 0;
+    for (final file in files.where((file) => file.hasLocation)) {
+      locationSum.add(file.location!);
+      count++;
     }
-
-    return Location(
-      latitude: latitudeSum / filesWithLocation.length,
-      longitude: longitudeSum / filesWithLocation.length,
-    );
+    assert(count > 0);
+    return locationSum.mean(count);
   }
 
   static TripMemory _ensureTripKey(TripMemory trip) {

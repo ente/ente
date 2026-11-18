@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use ente_location::{Coordinate, EARTH_RADIUS_KM, KILOMETERS_PER_DEGREE};
+use ente_location::{Coordinate, EARTH_RADIUS_KM};
 
 use super::photo::Photo;
 
@@ -13,11 +13,45 @@ pub(super) struct Located<'p> {
     pub(super) location: Coordinate,
 }
 
+#[derive(Debug, Default)]
+struct LocationSum {
+    latitude: f64,
+    longitude_sin: f64,
+    longitude_cos: f64,
+}
+
+impl LocationSum {
+    fn new(location: Coordinate) -> Self {
+        let (sin, cos) = location.longitude.to_radians().sin_cos();
+        Self {
+            latitude: location.latitude,
+            longitude_sin: sin,
+            longitude_cos: cos,
+        }
+    }
+
+    fn add(&mut self, location: Coordinate) {
+        self.merge(Self::new(location));
+    }
+
+    fn merge(&mut self, other: Self) {
+        self.latitude += other.latitude;
+        self.longitude_sin += other.longitude_sin;
+        self.longitude_cos += other.longitude_cos;
+    }
+
+    fn mean(&self, count: usize) -> Coordinate {
+        Coordinate::new(
+            self.latitude / count as f64,
+            self.longitude_sin.atan2(self.longitude_cos).to_degrees(),
+        )
+    }
+}
+
 #[derive(Debug)]
 pub(super) struct Cluster<'p> {
     pub(super) members: Vec<Located<'p>>,
-    latitude_sum: f64,
-    longitude_sum: f64,
+    location_sum: LocationSum,
     pub(super) center: Coordinate,
 }
 
@@ -25,8 +59,7 @@ impl<'p> Cluster<'p> {
     fn new(member: Located<'p>) -> Self {
         Self {
             members: vec![member],
-            latitude_sum: member.location.latitude,
-            longitude_sum: member.location.longitude,
+            location_sum: LocationSum::new(member.location),
             center: member.location,
         }
     }
@@ -34,8 +67,7 @@ impl<'p> Cluster<'p> {
     pub(super) fn from_members(members: Vec<Located<'p>>) -> Self {
         let mut cluster = Self {
             members: Vec::new(),
-            latitude_sum: 0.0,
-            longitude_sum: 0.0,
+            location_sum: LocationSum::default(),
             center: Coordinate::new(0.0, 0.0),
         };
         for member in members {
@@ -46,15 +78,13 @@ impl<'p> Cluster<'p> {
 
     fn add(&mut self, member: Located<'p>) {
         self.members.push(member);
-        self.latitude_sum += member.location.latitude;
-        self.longitude_sum += member.location.longitude;
+        self.location_sum.add(member.location);
         self.recenter();
     }
 
     pub(super) fn absorb(&mut self, other: Cluster<'p>) {
         self.members.extend(other.members);
-        self.latitude_sum += other.latitude_sum;
-        self.longitude_sum += other.longitude_sum;
+        self.location_sum.merge(other.location_sum);
         self.recenter();
     }
 
@@ -75,8 +105,7 @@ impl<'p> Cluster<'p> {
     }
 
     fn recenter(&mut self) {
-        let count = self.members.len() as f64;
-        self.center = Coordinate::new(self.latitude_sum / count, self.longitude_sum / count);
+        self.center = self.location_sum.mean(self.members.len());
     }
 }
 
@@ -92,7 +121,7 @@ pub(super) fn cluster_by_location<'p>(
     radius_km: f64,
 ) -> Vec<Cluster<'p>> {
     let mut clusters: Vec<Cluster> = Vec::new();
-    let mut grid = Grid::for_ellipses(radius_km);
+    let mut grid = Grid::for_great_circles(radius_km);
     for member in members {
         let nearby = grid.first_near(member.location, |&id| {
             member
@@ -157,14 +186,6 @@ struct Grid {
 }
 
 impl Grid {
-    fn for_ellipses(radius_km: f64) -> Self {
-        let longitude_reach = radius_km / KILOMETERS_PER_DEGREE;
-        Self::new(
-            longitude_reach / GRID_MAX_LATITUDE.to_radians().cos(),
-            longitude_reach,
-        )
-    }
-
     fn for_great_circles(radius_km: f64) -> Self {
         let half_angle = radius_km / (2.0 * EARTH_RADIUS_KM);
         let longitude_half_angle = (half_angle.sin() / GRID_MAX_LATITUDE.to_radians().cos())
@@ -241,17 +262,11 @@ impl Grid {
 }
 
 pub(super) fn mean_location(members: &[Located]) -> Coordinate {
-    let (latitude_sum, longitude_sum) =
-        members
-            .iter()
-            .fold((0.0, 0.0), |(latitude, longitude), member| {
-                (
-                    latitude + member.location.latitude,
-                    longitude + member.location.longitude,
-                )
-            });
-    let count = members.len() as f64;
-    Coordinate::new(latitude_sum / count, longitude_sum / count)
+    let mut location_sum = LocationSum::default();
+    for member in members {
+        location_sum.add(member.location);
+    }
+    location_sum.mean(members.len())
 }
 
 pub(super) fn two_decimals(value: f64) -> String {
@@ -270,7 +285,8 @@ mod tests {
     use ente_location::Coordinate;
 
     use super::{
-        Cluster, Located, cluster_by_location, located, merge_nearby_clusters, two_decimals,
+        Cluster, Located, cluster_by_location, located, mean_location, merge_nearby_clusters,
+        two_decimals,
     };
     use crate::memories::calendar::LocalDate;
     use crate::memories::photo::Photo;
@@ -385,6 +401,18 @@ mod tests {
     }
 
     #[test]
+    fn clustering_reaches_east_at_high_latitudes() {
+        let photos = [
+            photo(1, Coordinate::new(60.0, 10.2)),
+            photo(2, Coordinate::new(60.0, 10.6)),
+        ];
+        let clusters = cluster_by_location(located(&photos), 25.0);
+
+        assert_eq!(clusters.len(), 1);
+        assert_eq!(member_ids(&clusters[0]), [1, 2]);
+    }
+
+    #[test]
     fn a_merge_that_moves_a_center_next_to_an_earlier_cluster_merges_that_one_too() {
         let kilometers = |north: f64, east: f64| Coordinate::new(north / 111.195, east / 111.195);
         let photos = [
@@ -403,21 +431,26 @@ mod tests {
     }
 
     #[test]
-    fn merging_reaches_across_the_antimeridian_and_the_poles() {
+    fn clustering_and_merging_keep_nearby_photos_together_at_the_antimeridian() {
         let photos = [
             photo(1, Coordinate::new(-16.5, 179.9999)),
             photo(2, Coordinate::new(-16.5, -179.9999)),
-            photo(3, Coordinate::new(89.995, 0.0)),
-            photo(4, Coordinate::new(89.995, 120.0)),
-            photo(5, Coordinate::new(89.995, -120.0)),
+            photo(3, Coordinate::new(-16.5, -179.99)),
+            photo(4, Coordinate::new(89.995, 0.0)),
+            photo(5, Coordinate::new(89.995, 120.0)),
+            photo(6, Coordinate::new(89.995, -120.0)),
         ];
+        let dateline = Coordinate::new(-16.5, 180.0);
         let clusters = cluster_by_location(located(&photos), 0.6);
-        assert_eq!(clusters.len(), 5);
+        assert_eq!(member_ids(&clusters[0]), [1, 2]);
+        assert!(clusters[0].center.distance_km(dateline) < 0.001);
 
         let merged = merge_nearby_clusters(clusters, 1.5);
 
         let members: Vec<Vec<i64>> = merged.iter().map(member_ids).collect();
-        assert_eq!(members, [vec![1, 2], vec![3, 4, 5]]);
+        assert_eq!(members, [vec![1, 2, 3], vec![4, 5, 6]]);
+        assert!(merged[0].center.distance_km(dateline) < 0.6);
+        assert!(mean_location(&merged[0].members).distance_km(dateline) < 0.6);
     }
 
     #[test]

@@ -121,6 +121,33 @@ void main() {
       },
     );
 
+    test("TripMemoriesCalculatorV2 keeps trips centered at the dateline", () {
+      final files = [
+        for (int i = 0; i < 20; i++)
+          _file(
+            id: i + 1,
+            createdAt: DateTime.utc(2024, 1, 10 + (i ~/ 7), 8 + (i % 7) * 2),
+            location: Location(
+              latitude: -16.5,
+              longitude: i.isEven ? 179.99 : -179.99,
+            ),
+          ),
+      ];
+
+      final analysis = TripMemoriesCalculatorV2.analyze(
+        files,
+        {for (final file in files) file.uploadedFileID!: file},
+        DateTime.utc(2026, 4, 10),
+        isLocalGalleryMode: false,
+        seenTimes: const {},
+        citySearchIndex: const CitySearchIndex({}),
+      );
+
+      final trip = analysis.tripCandidates.single;
+      expect(trip.memories, hasLength(20));
+      expect(trip.location.longitude!.abs(), closeTo(180, 0.001));
+    });
+
     test(
       "TimeMemoriesCalculator uses the recent source without historical candidates",
       () async {

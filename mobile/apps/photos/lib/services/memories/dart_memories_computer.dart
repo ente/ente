@@ -1,6 +1,6 @@
 import "dart:async";
 import "dart:developer" as dev show log;
-import "dart:math" show Random, max, min;
+import "dart:math" show Random, atan2, cos, max, min, pi, sin;
 
 import "package:computer/computer.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
