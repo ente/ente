@@ -1,7 +1,7 @@
 use ente_core::b64;
 use ente_core::crypto::{self, Key, SecretString, SecretVec, argon, kdf, secretbox};
 
-use super::{KeyAttributes, KeyGenResult, PrivateKeyAttributes};
+use super::{KeyAttributes, KeyGenResult, PrivateKeyAttributes, decrypt_secret_key};
 use crate::error::{Error, Result};
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -84,7 +84,7 @@ pub fn generate_keys_with_strength(
 }
 
 pub fn generate_key_attributes_for_new_password(
-    master_key: &[u8],
+    master_key: &Key,
     existing_attributes: &KeyAttributes,
     password: &str,
 ) -> Result<(KeyAttributes, SecretVec)> {
@@ -98,15 +98,19 @@ pub fn generate_key_attributes_for_new_password(
 
 // Changing the password must not rotate the account or recovery keys.
 pub fn generate_key_attributes_for_new_password_with_strength(
-    master_key: &[u8],
+    master_key: &Key,
     existing_attributes: &KeyAttributes,
     password: &str,
     strength: KeyDerivationStrength,
 ) -> Result<(KeyAttributes, SecretVec)> {
+    // Wrapping a key that is not the account's master key would lock the
+    // account out of the new password, so check it before deriving anything.
+    decrypt_secret_key(master_key, existing_attributes)?;
+
     let derived = strength.derive(password)?;
     let login_key = kdf::derive_login_key(&derived.key);
 
-    let (enc_key, key_nonce) = encrypt_to_b64(master_key, &derived.key)?;
+    let (enc_key, key_nonce) = encrypt_to_b64(master_key.as_bytes(), &derived.key)?;
 
     let key_attributes = KeyAttributes {
         kek_salt: b64::encode(derived.salt.as_bytes()),
@@ -227,7 +231,7 @@ mod tests {
         let master_key = b64::decode(&initial.private_key_attributes.key).unwrap();
 
         let (new_attrs, new_login_key) = generate_key_attributes_for_new_password_with_strength(
-            &master_key,
+            &Key::try_from_slice(&master_key).unwrap(),
             &initial.key_attributes,
             "new_password",
             KeyDerivationStrength::Interactive,
@@ -252,6 +256,20 @@ mod tests {
         let nonce = b64::decode(&new_attrs.key_decryption_nonce).unwrap();
         let decrypted = decrypt_raw(&encrypted, &nonce, kek.as_bytes());
         assert_eq!(decrypted, master_key);
+    }
+
+    #[test]
+    fn test_password_change_rejects_other_master_key() {
+        let initial = generate_test_keys("old_password").unwrap();
+
+        let result = generate_key_attributes_for_new_password_with_strength(
+            &Key::generate(),
+            &initial.key_attributes,
+            "new_password",
+            KeyDerivationStrength::Interactive,
+        );
+
+        assert!(matches!(result, Err(Error::InvalidKeyAttributes)));
     }
 
     #[test]
