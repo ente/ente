@@ -243,33 +243,6 @@ async fn conversation_activities_open_content_and_preserve_server_kind() {
 }
 
 #[tokio::test]
-async fn get_space_root_key_returns_context_space_root_key() {
-    let server = Server::new_async().await;
-    let expected_space_root = generate_key();
-    let ctx = test_account_ctx_with_space_root_key(&server.url(), expected_space_root.clone());
-
-    let space_root = ctx
-        .get_space_root_key()
-        .expect("space root key should load")
-        .expect("space root key should exist");
-
-    assert_eq!(space_root, expected_space_root);
-}
-
-#[tokio::test]
-async fn get_or_create_space_root_key_returns_context_space_root_key() {
-    let server = Server::new_async().await;
-    let expected_space_root = generate_key();
-    let ctx = test_account_ctx_with_space_root_key(&server.url(), expected_space_root.clone());
-
-    let space_root = ctx
-        .get_or_create_space_root_key()
-        .expect("space root key should load");
-
-    assert_eq!(space_root, expected_space_root);
-}
-
-#[tokio::test]
 async fn ensure_entity_key_uses_generic_split_key_endpoint() {
     let mut server = Server::new_async().await;
     let ctx = test_account_ctx(&server.url());

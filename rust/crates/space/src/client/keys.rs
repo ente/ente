@@ -97,12 +97,11 @@ impl AccountSpaceCtx {
             }
         };
         let next_space_key = generate_key();
-        let space_root_key = self.get_or_create_space_root_key()?;
         let link_rotation = self.active_link_wrapper(space_id, &next_space_key).await?;
         let request = RotateSpaceKeyRequest {
             key_version: current.key_version,
             root_wrapped_space_key: b64::encode(&encrypt_secretbox_payload(
-                &space_root_key,
+                self.space_root_key(),
                 &next_space_key,
             )?),
             // Keep old posts and profiles readable through the wrapped key
