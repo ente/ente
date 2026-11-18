@@ -437,29 +437,29 @@ class _BodyState extends State<_Body> {
             children: [
               _buildPageView(),
               ValueListenableBuilder<bool>(
-                  valueListenable: InheritedDetailPageState.of(
-                    context,
-                  ).enableFullScreenNotifier,
-                  builder: (context, isFullScreen, _) {
-                    if (widget.config.mode != DetailPageMode.full) {
-                      return const SizedBox.shrink();
-                    }
-                    return Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      height:
-                          max(
-                            MediaQuery.paddingOf(context).bottom,
-                            MediaQuery.systemGestureInsetsOf(context).bottom,
-                          ) +
-                          (isFullScreen || isGuestView
-                              ? 0
-                              : _galleryBottomBarHeight),
-                      child: const AbsorbPointer(child: SizedBox.expand()),
-                    );
-                  },
-                ),
+                valueListenable: InheritedDetailPageState.of(
+                  context,
+                ).enableFullScreenNotifier,
+                builder: (context, isFullScreen, _) {
+                  if (widget.config.mode != DetailPageMode.full) {
+                    return const SizedBox.shrink();
+                  }
+                  return Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    height:
+                        max(
+                          MediaQuery.paddingOf(context).bottom,
+                          MediaQuery.systemGestureInsetsOf(context).bottom,
+                        ) +
+                        (isFullScreen || isGuestView
+                            ? 0
+                            : _galleryBottomBarHeight),
+                    child: const AbsorbPointer(child: SizedBox.expand()),
+                  );
+                },
+              ),
               if (MediaQuery.systemGestureInsetsOf(context).left > 0)
                 Positioned(
                   left: 0,
