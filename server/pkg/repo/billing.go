@@ -138,9 +138,9 @@ func (repo *BillingRepository) IsUserOnPaidPlan(userID int64) (bool, error) {
 	return isPaidPlan, nil
 }
 
-func (repo *BillingRepository) IsUserOnActivePaidPlan(userID int64) (bool, error) {
+func (repo *BillingRepository) IsUserOnActivePaidPlan(ctx context.Context, userID int64) (bool, error) {
 	var isPaid bool
-	err := repo.DB.QueryRow(`SELECT NOT EXISTS (SELECT 1 FROM users WHERE user_id = 1)
+	err := repo.DB.QueryRowContext(ctx, `SELECT NOT EXISTS (SELECT 1 FROM users WHERE user_id = 1)
 		OR EXISTS (
 			SELECT 1 FROM users u
 			LEFT JOIN subscriptions s ON s.user_id = COALESCE(u.family_admin_id, u.user_id)

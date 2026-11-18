@@ -23,6 +23,7 @@ const tinyUploadMaxSize = 2 * 1024
 const tinyUploadDailyLimit = 2000
 const tinyUploadNotifyThreshold = 1000
 const uploadGuardNotifyInterval = time.Hour
+const uploadLimitQueryTimeout = 5 * time.Second
 const smallUploadEntitlementTTL = 30 * time.Second
 const smallUploadShortLimit = 1000
 const smallUploadDailyLimit = 10000
@@ -212,8 +213,13 @@ func (c *UsageController) ReserveUploadURLs(ctx context.Context, userID int64, s
 	}
 	// Public-link uploads intentionally share the owner's account limits.
 	state := c.uploadLimits.state(userID)
+	ctx, cancel := context.WithTimeout(ctx, uploadLimitQueryTimeout)
+	defer cancel()
 	state.mu.Lock()
 	defer state.mu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	now := time.Now()
 	band := uploadBand(size)
 	notifyPending := func() {
@@ -238,7 +244,7 @@ func (c *UsageController) ReserveUploadURLs(ctx context.Context, userID int64, s
 		}
 		if !retryAt.IsZero() {
 			if !now.Before(state.entitlementExpires) {
-				paid, queryErr := c.BillingCtrl.BillingRepo.IsUserOnActivePaidPlan(userID)
+				paid, queryErr := c.BillingCtrl.BillingRepo.IsUserOnActivePaidPlan(ctx, userID)
 				if queryErr != nil {
 					return nil, queryErr
 				}

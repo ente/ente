@@ -56,6 +56,17 @@ func TestPendingUploadCheckCadence(t *testing.T) {
 	require.Zero(t, c.uploadLimits.state(1).inFlight)
 }
 
+func TestCanceledUploadRequestDoesNotReserveURLs(t *testing.T) {
+	c := newUploadLimitTestController(0)
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	size := int64(10240)
+	_, err := c.ReserveUploadURLs(ctx, 1, &size, 1)
+	require.ErrorIs(t, err, context.Canceled)
+	require.Zero(t, c.UploadURLRepo.(*pendingUploadTestRepository).calls.Load())
+	require.Zero(t, c.uploadLimits.state(1).inFlight)
+}
+
 func TestPendingUploadBatchAndCooldown(t *testing.T) {
 	c := newUploadLimitTestController(970)
 	r := c.UploadURLRepo.(*pendingUploadTestRepository)
