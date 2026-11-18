@@ -11,7 +11,6 @@ import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
 import "package:photos/ui/rewind/widgets/rewind_rive.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
-import "package:photos/ui/rewind/widgets/rewind_text.dart";
 
 typedef _BadgeCopy = ({String title, String pronunciation, String definition});
 
@@ -172,7 +171,6 @@ class BadgeRevealPage extends RewindPage {
     pattern: RewindRays(Color(0xFF070707)),
   );
   static const _badgeCenter = Offset(195, 326);
-  static const _titleBox = 92.0;
 
   final rust.Badge badge;
 
@@ -190,8 +188,7 @@ class BadgeRevealPage extends RewindPage {
     required bool isActive,
   }) {
     final copy = _copyOf(badge.id);
-    final title = copy.title;
-    final entry = "${copy.pronunciation} · noun";
+    final title = copy.title.replaceAll("\n", " ");
     final trigger = badge.id.name.replaceAllMapped(
       RegExp("[A-Z]"),
       (match) => "_${match[0]!.toLowerCase()}",
@@ -216,7 +213,7 @@ class BadgeRevealPage extends RewindPage {
                   position: position,
                   centerY: _badgeCenter.dy,
                   child: Semantics(
-                    label: "${title.replaceAll("\n", " ")} badge",
+                    label: "$title badge",
                     button: true,
                     hint: "Double tap to flip it again",
                     child: OverflowBox(
@@ -232,73 +229,17 @@ class BadgeRevealPage extends RewindPage {
                   position: position,
                   centerY: 640,
                   child: CustomSingleChildLayout(
-                    delegate: _BadgeTextLayout(
-                      bottom: 768 - max(0, inset - 12),
-                    ),
-                    child: SizedBox(
-                      width: 334,
-                      child: Semantics(
-                        label:
-                            "${title.replaceAll("\n", " ")}. "
-                            "${copy.definition}",
-                        child: ExcludeSemantics(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              SizedBox(
-                                height: _titleBox,
-                                child: Align(
-                                  alignment: Alignment.bottomLeft,
-                                  child: RewindEntrance(
-                                    preset: RewindPreset.slap,
-                                    active: isActive,
-                                    delayMs: 1350,
-                                    child: FittedBox(
-                                      fit: BoxFit.scaleDown,
-                                      alignment: Alignment.bottomLeft,
-                                      child: RewindOutlinedText(
-                                        title,
-                                        style: RewindTextStyles.display(
-                                          44,
-                                          color: RewindColors.white,
-                                          height: 46 / 44,
-                                        ),
-                                        outline: 2.264,
-                                        shadow: const Offset(3.234, 3.881),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              RewindEntrance(
-                                active: isActive,
-                                preset: RewindPreset.line,
-                                delayMs: 1650,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      entry,
-                                      style: RewindTextStyles.phonetic(
-                                        14,
-                                        color: RewindColors.white,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Text(
-                                      copy.definition,
-                                      style: RewindTextStyles.body(
-                                        18,
-                                        height: 24 / 18,
-                                        color: RewindColors.white,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
+                    delegate: _PlaqueLayout(bottom: 768 - max(0, inset - 12)),
+                    child: Semantics(
+                      label: "$title. ${copy.definition}",
+                      child: ExcludeSemantics(
+                        child: RewindEntrance(
+                          preset: RewindPreset.slap,
+                          active: isActive,
+                          delayMs: 1350,
+                          child: _Plaque(
+                            pronunciation: "${copy.pronunciation} · noun",
+                            definition: copy.definition,
                           ),
                         ),
                       ),
@@ -314,11 +255,10 @@ class BadgeRevealPage extends RewindPage {
   }
 }
 
-class _BadgeTextLayout extends SingleChildLayoutDelegate {
-  const _BadgeTextLayout({required this.bottom});
+class _PlaqueLayout extends SingleChildLayoutDelegate {
+  const _PlaqueLayout({required this.bottom});
 
-  static const _left = 26.0;
-  static const _top = 536.0;
+  static const _top = 584.0;
 
   final double bottom;
 
@@ -327,10 +267,111 @@ class _BadgeTextLayout extends SingleChildLayoutDelegate {
       constraints.loosen();
 
   @override
-  Offset getPositionForChild(Size size, Size childSize) =>
-      Offset(_left, min(_top, bottom - childSize.height));
+  Offset getPositionForChild(Size size, Size childSize) => Offset(
+    (size.width - childSize.width) / 2,
+    min(_top, bottom - childSize.height),
+  );
 
   @override
-  bool shouldRelayout(_BadgeTextLayout oldDelegate) =>
+  bool shouldRelayout(_PlaqueLayout oldDelegate) =>
       oldDelegate.bottom != bottom;
+}
+
+class _Plaque extends StatelessWidget {
+  const _Plaque({required this.pronunciation, required this.definition});
+
+  static const _width = 314.0;
+  static const _minHeight = 115.0;
+
+  final String pronunciation;
+  final String definition;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: const _PlaquePainter(),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints.tightFor(
+          width: _width,
+        ).copyWith(minHeight: _minHeight),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 13, 24, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                pronunciation,
+                textAlign: TextAlign.center,
+                style: RewindTextStyles.phonetic(
+                  12.5,
+                  color: RewindColors.ink.withValues(alpha: 0.72),
+                ).copyWith(fontWeight: FontWeight.w500, height: 1.26),
+              ),
+              const SizedBox(height: 1),
+              Text(
+                definition,
+                textAlign: TextAlign.center,
+                style: RewindTextStyles.body(
+                  18,
+                  height: 1.26,
+                  color: RewindColors.ink,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PlaquePainter extends CustomPainter {
+  const _PlaquePainter();
+
+  static const _gold = Color(0xFFFFCA39);
+  static const _screwInk = Color(0xFF1E1E1E);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final plate = Path()
+      ..moveTo(38, 0)
+      ..lineTo(w - 38, 0)
+      ..cubicTo(w - 26, 0, w - 16, 12.43, w - 14, 29.53)
+      ..cubicTo(w - 6, 34.19, w, 45.07, w, h / 2)
+      ..cubicTo(w, h - 45.07, w - 6, h - 34.19, w - 14, h - 29.53)
+      ..cubicTo(w - 16, h - 12.43, w - 26, h, w - 38, h)
+      ..lineTo(38, h)
+      ..cubicTo(26, h, 16, h - 12.43, 14, h - 29.53)
+      ..cubicTo(6, h - 34.19, 0, h - 45.07, 0, h / 2)
+      ..cubicTo(0, 45.07, 6, 34.19, 14, 29.53)
+      ..cubicTo(16, 12.43, 26, 0, 38, 0)
+      ..close();
+    canvas.drawPath(plate, Paint()..color = RewindColors.cream);
+    canvas.drawPath(
+      plate,
+      Paint()
+        ..color = _gold
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3
+        ..strokeJoin = StrokeJoin.round,
+    );
+    for (final x in [17.0, w - 17]) {
+      final screw = Offset(x, h / 2 - 1.5);
+      canvas.drawCircle(screw, 4.25, Paint()..color = _gold);
+      canvas.drawCircle(
+        screw,
+        4.25,
+        Paint()
+          ..color = _screwInk
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.5,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_PlaquePainter oldDelegate) => false;
 }

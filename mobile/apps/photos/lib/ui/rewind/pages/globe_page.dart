@@ -60,6 +60,9 @@ class GlobePage extends RewindPage {
   Duration? get reelHold => Duration(milliseconds: 1450 + _reelJourney.round());
 
   @override
+  List<EnteFile> get reelThumbnails => [for (final photo in photos) ?photo];
+
+  @override
   Future<bool> warmUp() async {
     await _pins.value;
     return true;

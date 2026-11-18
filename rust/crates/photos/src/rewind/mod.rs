@@ -551,6 +551,7 @@ mod tests {
     fn a_timelapse_alone_keeps_the_ml_chapters_once_shown() {
         let (_directory, store) = store();
         let faces: Vec<(FaceRow, &str)> = (1..=40)
+            .chain([900])
             .map(|file_id| {
                 let mut face = face_row(&format!("{file_id}_kid"), 0.9, 0.3);
                 face.detection_json = r#"{"box":{"x":0.3,"y":0.2,"width":0.3,"height":0.3},"landmarks":[{"x":0.4,"y":0.3},{"x":0.5,"y":0.3},{"x":0.45,"y":0.36}]}"#.to_string();
@@ -574,7 +575,8 @@ mod tests {
             }
             RewindStatus::WaitingForMl | RewindStatus::NothingToShow => None,
         };
-        let indexed = photos_every(1, "2026-01-01T12:00:00", 40, 7);
+        let mut indexed = photos_every(1, "2026-01-01T12:00:00", 40, 7);
+        indexed.push(photo(900, "2025-06-01T12:00:00"));
         let mut small = request_at(BEFORE_NEW_YEAR, indexed.clone());
         small.people = vec![person("kid")];
         let ready = compute_rewind(&small, Some(&store), None, None).unwrap();
