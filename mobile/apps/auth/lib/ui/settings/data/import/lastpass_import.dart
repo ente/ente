@@ -45,9 +45,19 @@ Future<int?> _processLastpassExportFile(
     var secret = item['secret'];
     var account = item['userName'];
 
-    String otpUrl =
-        'otpauth://totp/$issuer:$account?secret=$secret&issuer=$issuer&algorithm=$algorithm&digits=$digits&period=$timer';
-    parsedCodes.add(Code.fromOTPAuthUrl(otpUrl));
+    final otpUri = Uri(
+      scheme: 'otpauth',
+      host: 'totp',
+      pathSegments: ['$issuer:$account'],
+      queryParameters: {
+        'secret': '$secret',
+        'issuer': '$issuer',
+        'algorithm': '$algorithm',
+        'digits': '$digits',
+        'period': '$timer',
+      },
+    );
+    parsedCodes.add(Code.fromOTPAuthUrl(otpUri.toString()));
   }
 
   return saveImportedCodes(parsedCodes);

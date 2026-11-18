@@ -1,0 +1,1 @@
+- Fixed LastPass imports for account and issuer names containing special characters.
