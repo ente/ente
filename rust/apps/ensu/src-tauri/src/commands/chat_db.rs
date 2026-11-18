@@ -481,7 +481,7 @@ pub fn chat_db_has_existing_store(app: AppHandle) -> Result<bool, ApiError> {
         return Ok(true);
     }
     let attachments = root.join(ATTACHMENTS_DIR_NAME);
-    if attachments
+    Ok(attachments
         .try_exists()
         .map_err(|error| ApiError::new("io", error.to_string()))?
         && fs::read_dir(attachments)
@@ -489,11 +489,7 @@ pub fn chat_db_has_existing_store(app: AppHandle) -> Result<bool, ApiError> {
             .next()
             .transpose()
             .map_err(|error| ApiError::new("io", error.to_string()))?
-            .is_some()
-    {
-        return Ok(true);
-    }
-    Ok(false)
+            .is_some())
 }
 
 #[tauri::command]
