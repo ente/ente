@@ -465,10 +465,7 @@ class _BodyState extends State<_Body> {
                   left: 0,
                   top: 0,
                   bottom: 0,
-                  width: max(
-                    MediaQuery.systemGestureInsetsOf(context).left,
-                    24.0,
-                  ),
+                  width: MediaQuery.systemGestureInsetsOf(context).left,
                   child: const AbsorbPointer(child: SizedBox.expand()),
                 ),
               if (MediaQuery.systemGestureInsetsOf(context).right > 0)
@@ -476,10 +473,7 @@ class _BodyState extends State<_Body> {
                   right: 0,
                   top: 0,
                   bottom: 0,
-                  width: max(
-                    MediaQuery.systemGestureInsetsOf(context).right,
-                    24.0,
-                  ),
+                  width: MediaQuery.systemGestureInsetsOf(context).right,
                   child: const AbsorbPointer(child: SizedBox.expand()),
                 ),
               // Keep viewer controls above OCR so their real hit boxes, rather
