@@ -70,9 +70,17 @@ class PushService {
     await _configurePushToken();
   }
 
-  Future<void> _configurePushToken() async {
+  static bool get canRefreshPushRegistration =>
+      Platform.isIOS &&
+      flagService.flags.internalUser &&
+      !localSettings.isInternalUserDisabled;
+
+  Future<bool> refreshPushRegistration() async =>
+      canRefreshPushRegistration && await _configurePushToken(force: true);
+
+  Future<bool> _configurePushToken({bool force = false}) async {
     final sessionToken = Configuration.instance.getToken();
-    if (sessionToken == null) return;
+    if (sessionToken == null) return false;
     try {
       // ignore: deprecated_member_use
       final String? fcmToken = await FirebaseMessaging.instance.getToken();
@@ -82,43 +90,50 @@ class PushService {
           kFCMTokenUpdationIntervalInMicroSeconds;
       if (fcmToken != null &&
           (_prefs.getString(kFCMPushToken) != fcmToken ||
-              shouldForceRefreshServerToken)) {
+              shouldForceRefreshServerToken ||
+              force)) {
         final String? apnsToken = Platform.isIOS
             ? await FirebaseMessaging.instance.getAPNSToken()
             : null;
+        final notificationKey = await _prepareNotificationKey();
+        if (force &&
+            (notificationKey == null ||
+                Configuration.instance.getToken() != sessionToken)) {
+          return false;
+        }
         _logger.info("Updating token on server");
-        await _setPushTokenOnServer(fcmToken, apnsToken);
-        if (Configuration.instance.getToken() != sessionToken) return;
+        await pushGateway.registerToken(
+          fcmToken: fcmToken,
+          platform: Platform.operatingSystem,
+          apnsToken: apnsToken,
+          notificationKey: notificationKey,
+        );
+        if (Configuration.instance.getToken() != sessionToken) return false;
         await _prefs.setString(kFCMPushToken, fcmToken);
         await _prefs.setInt(
           kLastFCMTokenUpdationTime,
           DateTime.now().microsecondsSinceEpoch,
         );
         _logger.info("Push token updated on server");
+        return true;
       } else {
         _logger.info("Skipping token update");
       }
     } catch (e, s) {
       _logPushError("Could not configure push token", e, s);
     }
+    return false;
   }
 
-  Future<void> _setPushTokenOnServer(String fcmToken, String? apnsToken) async {
-    String? notificationKey;
+  Future<String?> _prepareNotificationKey() async {
     try {
       if (Platform.isAndroid || flagService.internalUser) {
-        notificationKey =
-            await NotificationKeyService.generateNotificationKey();
+        return await NotificationKeyService.generateNotificationKey();
       }
     } catch (e, s) {
       _logPushError("Could not prepare notification key", e, s);
     }
-    await pushGateway.registerToken(
-      fcmToken: fcmToken,
-      platform: Platform.operatingSystem,
-      apnsToken: apnsToken,
-      notificationKey: notificationKey,
-    );
+    return null;
   }
 
   void _logPushError(String message, Object error, StackTrace stack) {
