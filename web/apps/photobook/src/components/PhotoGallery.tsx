@@ -1,6 +1,6 @@
 import { useBook } from "@/context/book";
 import { getPreview } from "@/lib/db";
-import { accentGreen, editorToolbarButtonSx } from "@/theme/buttons";
+import { editorToolbarButtonSx } from "@/theme/buttons";
 import { popupShadow, toolbarColors } from "@/theme/colors";
 import {
     Backdrop,
@@ -222,9 +222,10 @@ export default function PhotoGallery({
                                                             ? 0
                                                             : "5px",
                                                     borderRadius: "999px",
-                                                    bgcolor: "#fff",
-                                                    color: accentGreen,
-                                                    fontSize: 10,
+                                                    bgcolor:
+                                                        toolbarColors.background,
+                                                    color: "#D6D6D6",
+                                                    fontSize: 9,
                                                     fontWeight: 800,
                                                     lineHeight: 1,
                                                     fontVariantNumeric:
