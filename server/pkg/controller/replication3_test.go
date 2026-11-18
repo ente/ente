@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"database/sql"
 	"encoding/base64"
 	"fmt"
@@ -15,6 +16,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/ente/museum/ente"
@@ -319,6 +321,31 @@ func TestReplicationWorkerRouting(t *testing.T) {
 			require.Equal(t, !tc.local, c.scwDest.IsGlacier)
 		})
 	}
+}
+
+func TestReplicationDownloadTimesOutWhenBodyStalls(t *testing.T) {
+	c := newReplicationTestController(t, "http://example.com", "b2", true, false)
+	client := &http.Client{Transport: replicationRoundTripFunc(func(r *http.Request) (*http.Response, error) {
+		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(replicationStalledBody{r.Context()})}, nil
+	})}
+	file, err := os.CreateTemp(c.tempStorage, "download")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = file.Close() })
+	_, err = c.downloadFromSourceWithIdleTimeout("1/object", file, c.b2Dest, client, 25*time.Millisecond)
+	require.ErrorIs(t, err, context.Canceled)
+}
+
+type replicationRoundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f replicationRoundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) {
+	return f(r)
+}
+
+type replicationStalledBody struct{ context.Context }
+
+func (b replicationStalledBody) Read([]byte) (int, error) {
+	<-b.Done()
+	return 0, b.Err()
 }
 
 func newReplicationTestController(t *testing.T, endpoint, primary string, local, compliance bool) *ReplicationController3 {
