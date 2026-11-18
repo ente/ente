@@ -109,6 +109,7 @@ class _FavouritesState extends State<_Favourites> {
   var _ms = 0.0;
   var _shownFront = 0;
   var _latchedFront = 0;
+  var _grabbedFront = 0;
   bool? _still;
   double? _dragged;
   _Settle? _settle;
@@ -178,12 +179,9 @@ class _FavouritesState extends State<_Favourites> {
   }
 
   void _grab(DragStartDetails details) {
-    setState(
-      () => _dragged = _spunAt(
-        _ms,
-        still: MediaQuery.disableAnimationsOf(context),
-      ),
-    );
+    final spun = _spunAt(_ms, still: MediaQuery.disableAnimationsOf(context));
+    _grabbedFront = _frontOf(spun);
+    setState(() => _dragged = spun);
   }
 
   void _drag(DragUpdateDetails details) {
@@ -200,13 +198,14 @@ class _FavouritesState extends State<_Favourites> {
     final dragged = _dragged;
     if (dragged == null) return;
     final velocity = (details.primaryVelocity ?? 0) / _stageScale;
+    final nearest = dragged.roundToDouble();
     _settleTo(
       dragged,
       velocity.abs() < _flingVelocity
-          ? dragged.roundToDouble()
+          ? nearest
           : velocity < 0
-          ? dragged.floorToDouble() + 1
-          : dragged.ceilToDouble() - 1,
+          ? min(dragged.floorToDouble() + 1, max(_grabbedFront + 1.0, nearest))
+          : max(dragged.ceilToDouble() - 1, min(_grabbedFront - 1.0, nearest)),
     );
   }
 
