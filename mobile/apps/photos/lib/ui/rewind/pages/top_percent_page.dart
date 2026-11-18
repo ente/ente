@@ -28,7 +28,8 @@ class TopPercentPage extends RewindPage {
   String get key => pageKey;
 
   @override
-  Duration? get reelHold => const Duration(milliseconds: 2700);
+  Duration? get reelHold =>
+      const Duration(milliseconds: 2700 + RewindMotion.reelReadingMs);
 
   @override
   List<EnteFile> get reelThumbnails => const [];

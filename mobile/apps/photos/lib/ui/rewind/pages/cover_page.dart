@@ -30,7 +30,8 @@ class CoverPage extends RewindPage {
   String get key => "cover";
 
   @override
-  Duration? get reelHold => const Duration(milliseconds: 2600);
+  Duration? get reelHold =>
+      const Duration(milliseconds: 2600 + RewindMotion.reelReadingMs);
 
   @override
   RewindChrome get chrome => const RewindChrome(foreground: RewindColors.cream);

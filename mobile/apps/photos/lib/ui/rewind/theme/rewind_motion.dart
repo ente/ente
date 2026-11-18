@@ -39,4 +39,5 @@ abstract final class RewindMotion {
   static const bubble = RewindSpring(260, 13, Duration(milliseconds: 992));
 
   static const waveDuration = Duration(milliseconds: 900);
+  static const reelReadingMs = 3000;
 }
