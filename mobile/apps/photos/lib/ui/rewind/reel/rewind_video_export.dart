@@ -91,11 +91,8 @@ class RewindVideoExportPage extends StatefulWidget {
   final Future<bool> Function(List<RewindPage> pages)? loadMedia;
   final MemoryMusicTrack? track;
 
-  static const previewHeroTag = "rewind_video_preview";
-  static const previewTilt = -0.026;
-
   Route<Object?> route() => PageRouteBuilder<Object?>(
-    transitionDuration: const Duration(milliseconds: 420),
+    transitionDuration: const Duration(milliseconds: 260),
     reverseTransitionDuration: const Duration(milliseconds: 220),
     pageBuilder: (_, _, _) => this,
     transitionsBuilder: (_, animation, _, child) =>
@@ -214,7 +211,6 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
         duration: duration,
         music: music,
       );
-      await _unlessCancelled(_settled());
       try {
         return await _encode(reel, sink);
       } on _Cancelled {
@@ -262,23 +258,6 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
     );
     await wrap;
     return video;
-  }
-
-  Future<void> _settled() {
-    final animation = ModalRoute.of(context)?.animation;
-    if (animation == null || animation.isCompleted) return Future.value();
-    final settled = Completer<void>();
-    void listen(AnimationStatus status) {
-      if (status != AnimationStatus.completed &&
-          status != AnimationStatus.dismissed) {
-        return;
-      }
-      animation.removeStatusListener(listen);
-      settled.complete();
-    }
-
-    animation.addStatusListener(listen);
-    return settled.future;
   }
 
   Future<void> _deleteOldVideos(String directory) async {
@@ -484,16 +463,7 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
                   ),
                   Positioned.fromRect(
                     rect: _frame,
-                    child: HeroMode(
-                      enabled: _stage == _Stage.preparing,
-                      child: Hero(
-                        tag: RewindVideoExportPage.previewHeroTag,
-                        child: Transform.rotate(
-                          angle: RewindVideoExportPage.previewTilt,
-                          child: _preview(),
-                        ),
-                      ),
-                    ),
+                    child: Transform.rotate(angle: -0.026, child: _preview()),
                   ),
                   Positioned.fromRect(
                     rect: _ducky,
@@ -607,71 +577,19 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
   }
 
   Widget _preview() {
-    return RewindVideoFrame(
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          if (_reel case final reel?)
-            FittedBox(
-              fit: BoxFit.cover,
-              child: SizedBox.fromSize(
-                size: RewindReel.canvas,
-                child: RepaintBoundary(
-                  key: _boundary,
-                  child: RewindReelView(
-                    key: ValueKey(_stage == _Stage.preparing),
-                    reel: reel,
-                    time: _time,
-                    pixelRatio: widget.format.pixelRatio,
-                  ),
-                ),
-              ),
-            ),
-          if (_stage == _Stage.preparing) const RewindVideoCover(),
-          Positioned(
-            left: 10,
-            top: 10,
-            child: _RecordingTag(active: _stage == _Stage.rendering),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class RewindVideoFrame extends StatelessWidget {
-  const RewindVideoFrame({
-    required this.child,
-    this.inset = standardInset,
-    this.radius = standardRadius,
-    this.shadow = standardShadow,
-    super.key,
-  });
-
-  static const standardInset = 8.0;
-  static const standardRadius = 20.0;
-  static const standardShadow = Offset(6, 7);
-
-  final Widget child;
-  final double inset;
-  final double radius;
-  final Offset shadow;
-
-  @override
-  Widget build(BuildContext context) {
     return Stack(
       clipBehavior: Clip.none,
       fit: StackFit.expand,
       children: [
-        Positioned.fill(
-          left: shadow.dx,
-          top: shadow.dy,
-          right: -shadow.dx,
-          bottom: -shadow.dy,
+        const Positioned.fill(
+          left: 6,
+          top: 7,
+          right: -6,
+          bottom: -7,
           child: DecoratedBox(
             decoration: BoxDecoration(
               color: RewindColors.ink,
-              borderRadius: BorderRadius.circular(radius),
+              borderRadius: BorderRadius.all(Radius.circular(20)),
             ),
           ),
         ),
@@ -679,36 +597,52 @@ class RewindVideoFrame extends StatelessWidget {
           decoration: BoxDecoration(
             color: RewindColors.cream,
             border: Border.all(color: RewindColors.ink, width: 3),
-            borderRadius: BorderRadius.circular(radius),
+            borderRadius: BorderRadius.circular(20),
           ),
           child: Padding(
-            padding: EdgeInsets.all(inset),
+            padding: const EdgeInsets.all(8),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(11),
-              child: child,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  if (_reel case final reel?)
+                    FittedBox(
+                      fit: BoxFit.cover,
+                      child: SizedBox.fromSize(
+                        size: RewindReel.canvas,
+                        child: RepaintBoundary(
+                          key: _boundary,
+                          child: RewindReelView(
+                            key: ValueKey(_stage == _Stage.preparing),
+                            reel: reel,
+                            time: _time,
+                            pixelRatio: widget.format.pixelRatio,
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (_stage == _Stage.preparing)
+                    ColoredBox(
+                      color: RewindColors.green,
+                      child: Padding(
+                        padding: const EdgeInsets.all(22),
+                        child: Image.file(
+                          RewindAssets.file(RewindAssets.coverLockup),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ),
+        Positioned(
+          left: 18,
+          top: 18,
+          child: _RecordingTag(active: _stage == _Stage.rendering),
+        ),
       ],
-    );
-  }
-}
-
-class RewindVideoCover extends StatelessWidget {
-  const RewindVideoCover({this.inset = standardInset, super.key});
-
-  static const standardInset = 22.0;
-
-  final double inset;
-
-  @override
-  Widget build(BuildContext context) {
-    return ColoredBox(
-      color: RewindColors.green,
-      child: Padding(
-        padding: EdgeInsets.all(inset),
-        child: Image.file(RewindAssets.file(RewindAssets.coverLockup)),
-      ),
     );
   }
 }

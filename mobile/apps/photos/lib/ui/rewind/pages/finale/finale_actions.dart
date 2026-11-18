@@ -47,7 +47,7 @@ class _FinaleActionsState extends State<FinaleActions> {
             child: _ShareButton(key: _shareButton, onTap: _share),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         RewindEntrance(
           preset: RewindPreset.line,
           active: widget.active,
@@ -69,11 +69,10 @@ class _ShareButton extends StatefulWidget {
 }
 
 class _ShareButtonState extends State<_ShareButton> {
-  static const _width = 232.0;
-  static const _height = 62.0;
-  static const _lift = 5.0;
-  static const _fill = RewindColors.yellow;
-  static const _label = RewindColors.ink;
+  static const _width = 318.0;
+  static const _height = 64.0;
+  static const _lift = 6.0;
+  static const _radius = BorderRadius.all(Radius.circular(_height / 2));
 
   var _pressed = false;
 
@@ -83,10 +82,9 @@ class _ShareButtonState extends State<_ShareButton> {
 
   @override
   Widget build(BuildContext context) {
-    final sink = _pressed ? _lift - 1 : 0.0;
     return Semantics(
       button: true,
-      label: "Share",
+      label: "Share your Rewind",
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTapDown: (_) => _press(true),
@@ -98,7 +96,7 @@ class _ShareButtonState extends State<_ShareButton> {
           height: _height + _lift,
           child: Stack(
             children: [
-              Positioned(
+              const Positioned(
                 left: 0,
                 right: 0,
                 top: _lift,
@@ -106,7 +104,7 @@ class _ShareButtonState extends State<_ShareButton> {
                 child: DecoratedBox(
                   decoration: BoxDecoration(
                     color: RewindColors.outline,
-                    borderRadius: BorderRadius.circular(_height / 2),
+                    borderRadius: _radius,
                   ),
                 ),
               ),
@@ -115,31 +113,80 @@ class _ShareButtonState extends State<_ShareButton> {
                 curve: Curves.easeOut,
                 left: 0,
                 right: 0,
-                top: sink,
+                top: _pressed ? _lift - 1 : 0,
                 height: _height,
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: _fill,
+                    borderRadius: _radius,
                     border: Border.all(color: RewindColors.outline, width: 3),
-                    borderRadius: BorderRadius.circular(_height / 2),
+                    gradient: const LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      stops: [0, 0.6, 0.61, 1],
+                      colors: [
+                        Color(0xFFFF4FA6),
+                        Color(0xFFF0308F),
+                        Color(0xFFCB1F76),
+                        Color(0xFFB8196A),
+                      ],
+                    ),
                   ),
-                  child: ExcludeSemantics(
-                    child: Center(
-                      child: Text(
-                        "Share",
-                        style: RewindTextStyles.body(
-                          25,
-                          color: _label,
-                          height: 1.05,
+                  child: Stack(
+                    children: [
+                      const Positioned(
+                        right: 46,
+                        top: 7,
+                        width: 34,
+                        height: 9,
+                        child: _Shine(),
+                      ),
+                      const Positioned(
+                        right: 88,
+                        top: 8,
+                        width: 12,
+                        height: 7,
+                        child: _Shine(),
+                      ),
+                      Center(
+                        child: ExcludeSemantics(
+                          child: Text(
+                            "Share your Rewind",
+                            style:
+                                RewindTextStyles.numeral(
+                                  27,
+                                  color: RewindColors.cream,
+                                ).copyWith(
+                                  shadows: const [
+                                    Shadow(
+                                      color: Color(0x55800040),
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _Shine extends StatelessWidget {
+  const _Shine();
+
+  @override
+  Widget build(BuildContext context) {
+    return const DecoratedBox(
+      decoration: BoxDecoration(
+        color: Color(0x8CFFFFFF),
+        borderRadius: BorderRadius.all(Radius.circular(9)),
       ),
     );
   }
@@ -158,26 +205,73 @@ class _SaveButton extends StatelessWidget {
       child: RewindPressable(
         onTap: onTap,
         child: Container(
+          width: 300,
           height: 44,
-          padding: const EdgeInsets.symmetric(horizontal: 22),
           decoration: BoxDecoration(
+            color: RewindColors.photoPaper,
             border: Border.all(
-              color: RewindColors.cream.withValues(alpha: 0.85),
-              width: 2,
+              color: RewindColors.ink.withValues(alpha: 0.85),
+              width: 2.5,
             ),
             borderRadius: BorderRadius.circular(22),
           ),
           child: ExcludeSemantics(
-            child: Center(
-              widthFactor: 1,
-              child: Text(
-                "Save to Ente",
-                style: RewindTextStyles.body(17, height: 1.05),
-              ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const CustomPaint(
+                  size: Size(18, 18),
+                  painter: _DownloadPainter(),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  "Save to Ente",
+                  style: RewindTextStyles.body(
+                    17,
+                    color: RewindColors.ink,
+                    height: 1.05,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
       ),
     );
   }
+}
+
+class _DownloadPainter extends CustomPainter {
+  const _DownloadPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final paint = Paint()
+      ..color = RewindColors.ink
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.2
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    canvas.drawLine(Offset(w / 2, 1), Offset(w / 2, h * 0.66), paint);
+    canvas.drawPath(
+      Path()
+        ..moveTo(w * 0.24, h * 0.42)
+        ..lineTo(w / 2, h * 0.68)
+        ..lineTo(w * 0.76, h * 0.42),
+      paint,
+    );
+    canvas.drawPath(
+      Path()
+        ..moveTo(1, h * 0.7)
+        ..lineTo(1, h - 1)
+        ..lineTo(w - 1, h - 1)
+        ..lineTo(w - 1, h * 0.7),
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_DownloadPainter oldDelegate) => false;
 }

@@ -278,6 +278,26 @@ func (c *PostsController) Delete(ctx context.Context, space *repo.SpaceRecord, p
 	return c.PostsRepo.DeletePost(ctx, postID, space.SpaceID)
 }
 
+func (c *PostsController) DeleteMedia(ctx context.Context, space *repo.SpaceRecord, postID int64, objectKey string) (*models.PostResponse, error) {
+	if strings.TrimSpace(objectKey) == "" {
+		return nil, ente.NewBadRequestWithMessage("objectKey is required")
+	}
+	if err := validateSpaceTextFieldBytes("objectKey", objectKey, maxSpaceObjectKeyBytes); err != nil {
+		return nil, err
+	}
+	if err := c.PostsRepo.DeletePostMedia(ctx, postID, space.SpaceID, objectKey); err != nil {
+		if errors.Is(err, repo.ErrLastPostMedia) {
+			return nil, ente.NewConflictError("the post must contain at least one photo or video")
+		}
+		return nil, err
+	}
+	post, err := c.PostsRepo.GetPost(ctx, postID, space.SpaceID)
+	if err != nil {
+		return nil, err
+	}
+	return c.postResponse(ctx, post, true)
+}
+
 func (c *PostsController) ListLikes(ctx context.Context, space *repo.SpaceRecord, postID int64) ([]models.SpaceActorResponse, error) {
 	post, err := c.PostsRepo.GetPost(ctx, postID, space.SpaceID)
 	if err != nil {

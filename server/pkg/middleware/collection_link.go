@@ -201,9 +201,9 @@ func (m *CollectionLinkMiddleware) checkDeviceLimit(c *gin.Context, accessToken 
 }
 
 func shouldCheckCollectionLinkDeviceLimit(reqPath string) bool {
-	// Device admission for public collections is intentionally tied to the two
-	// metadata endpoints used as the browser entry/refresh points. Other routes
-	// (download/upload/social) continue to use the already-admitted session.
+	// Device limits are best effort and gate metadata needed for decryption.
+	// Blob routes still enforce link access and any configured password, but
+	// intentionally allow ciphertext downloads without device admission.
 	return reqPath == "/public-collection/info" ||
 		reqPath == "/public-collection/diff"
 }

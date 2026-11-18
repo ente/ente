@@ -187,7 +187,7 @@ async fn space_bootstrap_posts_and_friend_share_suite(endpoint: &str) {
     let post = owner_ctx
         .create_photo_post(
             &owner_space.space_id,
-            std::iter::once(PostPhotoInput {
+            (0..2).map(|_| PostPhotoInput {
                 bytes: TEST_WEBP_BYTES.to_vec(),
                 options: PostPhotoAssetOptions {
                     width: Some(320),
@@ -317,6 +317,38 @@ async fn space_bootstrap_posts_and_friend_share_suite(endpoint: &str) {
         .await
         .expect("liked post should load");
     assert!(liked_post.viewer_liked);
+    let removed = &owner_content.photos[0].asset;
+    let kept = &owner_content.photos[1].asset;
+    space::assert_http_status(
+        friend_ctx
+            .delete_post_media(&friend_space.space_id, post_id, &removed.object_key)
+            .await,
+        404,
+    );
+    for _ in 0..2 {
+        let updated = owner_ctx
+            .delete_post_media(&owner_space.space_id, post_id, &removed.object_key)
+            .await
+            .unwrap();
+        assert_eq!(updated.like_count, 1);
+        let content = updated.content.unwrap();
+        assert_eq!(content.caption, owner_content.caption);
+        assert_eq!(content.photos.len(), 1);
+        assert_eq!(content.photos[0].asset.object_key, kept.object_key);
+    }
+    space::assert_http_status(
+        owner_ctx
+            .delete_post_media(&owner_space.space_id, post_id, &kept.object_key)
+            .await,
+        409,
+    );
+    let remaining = friend_ctx
+        .get_post(&owner_space.space_id, post_id, Some(&friend_space.space_id))
+        .await
+        .unwrap();
+    let photos = remaining.content.unwrap().photos;
+    assert_eq!(photos.len(), 1);
+    assert_eq!(photos[0].asset.object_key, kept.object_key);
     let notifications = owner_ctx
         .list_notifications(&owner_space.space_id, None, None)
         .await

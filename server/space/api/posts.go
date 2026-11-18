@@ -94,3 +94,12 @@ func (h *Handlers) DeletePost(c *gin.Context, space *spacerepo.SpaceRecord) {
 	}
 	respondStatus(c, h.Module.Posts.Delete(c, space, postID))
 }
+
+func (h *Handlers) DeletePostMedia(c *gin.Context, space *spacerepo.SpaceRecord) {
+	postID, ok := positiveInt64Param(c, "postID")
+	if !ok {
+		return
+	}
+	post, err := h.Module.Posts.DeleteMedia(c, space, postID, c.Query("objectKey"))
+	respondJSON(c, post, err)
+}

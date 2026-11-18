@@ -39,6 +39,7 @@ export const viewerPhotosFromPost = (
     return photos.map((photo, index) => ({
         ...post,
         ...photo,
+        video: photo.video,
         height: photo.height ?? (index == 0 ? post.height : undefined),
         imageUrl: photo.imageUrl || (index == 0 ? post.imageUrl : "") || "",
         postPhotoIndex: index,

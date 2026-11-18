@@ -86,6 +86,7 @@ export interface SpaceAppState {
     profileLoadError?: string;
     profileLoadStatus: SpaceProfileLoadStatus;
     postPublication: SpacePostPublication | null;
+    deletePostMedia: (postId: number, objectKey: string) => Promise<SpacePost>;
     signupEmail: string;
     setPostPublication: React.Dispatch<
         React.SetStateAction<SpacePostPublication | null>
