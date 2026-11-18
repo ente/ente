@@ -648,13 +648,13 @@ const AdvancedSettings: React.FC<NestedSidebarDrawerVisibilityProps> = ({
             <Stack sx={{ px: 2, py: 1, gap: 1 }}>
                 <Stack>
                     <RowCard
-                        title={t("faster_upload")}
+                        title={t("smart_routing")}
                         endIcon={
                             <EnteSwitch
                                 checked={!cfUploadProxyDisabled}
                                 onChange={toggleProxy}
                                 slotProps={{
-                                    input: { "aria-label": t("faster_upload") },
+                                    input: { "aria-label": t("smart_routing") },
                                 }}
                             />
                         }
