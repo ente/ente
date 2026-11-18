@@ -439,9 +439,11 @@ pub fn finish(root: &Path, store: &Store, cancel: &watch::Receiver<bool>) -> Res
         after = album.key.clone();
         let meta = names::check(root, &format!("{}/.meta", album.path))?;
         if meta.is_dir() {
-            for entry in disk::read_dir(&meta)? {
+            // List before deleting: removing entries mid-listing makes some
+            // filesystems (SMB) skip others, and finish never runs again.
+            let entries = disk::read_dir(&meta)?.collect::<std::io::Result<Vec<_>>>()?;
+            for entry in entries {
                 ensure!(!*cancel.borrow(), crate::Cancelled);
-                let entry = entry?;
                 if entry.file_name() == "album_meta.json"
                     || entry.path().extension().is_none_or(|e| e != "json")
                     || !entry.file_type()?.is_file()
