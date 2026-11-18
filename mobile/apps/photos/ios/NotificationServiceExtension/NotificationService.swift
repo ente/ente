@@ -6,8 +6,10 @@ final class NotificationService: UNNotificationServiceExtension {
   private var contentHandler: ((UNNotificationContent) -> Void)?
   private var fallback: UNNotificationContent?
 
-  override func didReceive(_ request: UNNotificationRequest,
-    withContentHandler contentHandler: @escaping (UNNotificationContent) -> Void) {
+  override func didReceive(
+    _ request: UNNotificationRequest,
+    withContentHandler contentHandler: @escaping (UNNotificationContent) -> Void
+  ) {
     guard request.content.userInfo["notificationCiphertext"] != nil,
       let content = request.content.mutableCopy() as? UNMutableNotificationContent
     else {
@@ -24,9 +26,16 @@ final class NotificationService: UNNotificationServiceExtension {
 
     if let ciphertext = request.content.userInfo["notificationCiphertext"] as? String,
       let recipient = try? NotificationKeyStore.read(),
-      let event = NotificationEvent.decrypt(ciphertext, recipient: recipient),
-      event.eventType == "album_shared" {
-      content.body = "An album was shared with you"
+      let event = NotificationEvent.decrypt(ciphertext, recipient: recipient)
+    {
+      switch event.eventType {
+      case "album_shared":
+        content.body = "An album was shared with you"
+      case "file_liked":
+        content.body = "Someone liked a memory you shared"
+      default:
+        break
+      }
     }
     finish(content)
   }

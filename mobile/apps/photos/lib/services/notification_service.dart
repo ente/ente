@@ -75,8 +75,9 @@ class NotificationService {
       }
       return;
     }
-    if (event['eventType'] == 'album_shared') {
-      _logger.info('Received encrypted album-share push');
+    if (event['eventType'] == 'album_shared' ||
+        event['eventType'] == 'file_liked') {
+      _logger.info('Received encrypted ${event['eventType']} push');
       await onSync();
     }
   }
