@@ -69,7 +69,7 @@ class SimilarFiles {
 }
 
 class SimilarFilesCache {
-  static const currentVersion = 1;
+  static const currentVersion = 2;
 
   final int version;
   final List<String> similarFilesJsonStringList;
@@ -101,6 +101,17 @@ class SimilarFilesCache {
       return SimilarFiles.fromJson(jsonDecode(jsonString), fileMap);
     }).toList();
     return _similarFilesList!;
+  }
+
+  List<Set<int>> fileIDGroupsWithin(double maxDistance) {
+    final groups = <Set<int>>[];
+    for (final jsonString in similarFilesJsonStringList) {
+      final json = jsonDecode(jsonString) as Map<String, dynamic>;
+      if ((json['distance'] as num).toDouble() <= maxDistance) {
+        groups.add(Set<int>.from(json['fileIDs']));
+      }
+    }
+    return groups;
   }
 
   Future<Set<int>> getGroupedFileIDs() async {
