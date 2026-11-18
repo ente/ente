@@ -65,7 +65,8 @@ class NotificationService {
           !_preferences.containsKey(Configuration.tokenKey)) {
         return;
       }
-      if (shouldShowNotificationsForSharedPhotosAndAlbums()) {
+      if (shouldShowNotificationsForSharedPhotosAndAlbums() &&
+          shouldShowSocialNotifications()) {
         final strings = await LanguageService.locals;
         await showNotification(
           strings.entePhotos,
