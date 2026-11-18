@@ -2,9 +2,9 @@ use super::test_support::*;
 use super::*;
 use crate::crypto::{encrypt_asset_payload, seal_with_public_key};
 use crate::transport::{
-    ConversationChatSummaryResponse, EntityKeyPayload, MessageConversationActivity,
-    MessagePageResponse, MessageResponse, ProfileAvatarPayload, ProfileCoverPayload,
-    SpaceActorResponse, SpaceFriendResponse,
+    ConversationChatSummaryResponse, MessageConversationActivity, MessagePageResponse,
+    MessageResponse, ProfileAvatarPayload, ProfileCoverPayload, SpaceActorResponse,
+    SpaceFriendResponse,
 };
 
 use mockito::{Matcher, Server};
@@ -240,52 +240,6 @@ async fn conversation_activities_open_content_and_preserve_server_kind() {
         summary.latest_activity.content,
         Err(Error::InvalidInput(_))
     ));
-}
-
-#[tokio::test]
-async fn ensure_entity_key_uses_generic_split_key_endpoint() {
-    let mut server = Server::new_async().await;
-    let ctx = test_account_ctx(&server.url());
-    let header = vec![1u8; 24];
-    let encrypted_key = vec![2u8; 48];
-    let mut combined = header.clone();
-    combined.extend_from_slice(&encrypted_key);
-    let ensure = server
-        .mock("POST", "/user-entity/key/ensure")
-        .match_body(Matcher::JsonString(
-            json!({
-                "type": "space",
-                "encryptedKey": b64::encode(&encrypted_key),
-                "header": b64::encode(&header),
-            })
-            .to_string(),
-        ))
-        .with_status(200)
-        .with_body(
-            json!({
-                "userID": 1,
-                "type": "space",
-                "encryptedKey": b64::encode(&encrypted_key),
-                "header": b64::encode(&header),
-                "createdAt": 123,
-            })
-            .to_string(),
-        )
-        .create_async()
-        .await;
-
-    let payload = ctx
-        .ensure_entity_key(
-            "space",
-            &EntityKeyPayload {
-                encrypted_key: b64::encode(&combined),
-            },
-        )
-        .await
-        .expect("entity key");
-
-    assert_eq!(payload.encrypted_key, b64::encode(&combined));
-    ensure.assert_async().await;
 }
 
 #[tokio::test]

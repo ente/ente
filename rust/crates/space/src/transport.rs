@@ -8,30 +8,6 @@ fn is_false(value: &bool) -> bool {
     !*value
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub struct EntityKeyPayload {
-    pub encrypted_key: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct EntityKeyResponse {
-    #[serde(rename = "type")]
-    pub key_type: String,
-    pub encrypted_key: String,
-    pub header: String,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CreateEntityKeyRequest {
-    #[serde(rename = "type")]
-    pub key_type: String,
-    pub encrypted_key: String,
-    pub header: String,
-}
-
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateSpaceRequest {
