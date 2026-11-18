@@ -156,14 +156,6 @@ impl AccountSpaceCtx {
         &self.space_root_key
     }
 
-    pub fn get_space_root_key(&self) -> Result<Option<Vec<u8>>> {
-        Ok(Some(self.space_root_key.to_vec()))
-    }
-
-    pub fn get_or_create_space_root_key(&self) -> Result<Vec<u8>> {
-        Ok(self.space_root_key.to_vec())
-    }
-
     pub async fn list_owned_spaces(&self) -> Result<Vec<SpaceKeyResponse>> {
         if let Some(value) = cache_lock(&self.owned_spaces_cache, "owned spaces")?.clone() {
             return Ok(value);
@@ -259,9 +251,6 @@ impl AccountSpaceCtx {
         &self,
         space_id: &str,
     ) -> Result<(SpaceKeyResponse, Vec<u8>)> {
-        let space_root_key = self
-            .get_space_root_key()?
-            .ok_or_else(|| Error::InvalidInput("space root key is missing".into()))?;
         let space_id = space_id.trim();
         if space_id.is_empty() {
             return Err(Error::InvalidInput("space id is required".into()));
@@ -275,7 +264,7 @@ impl AccountSpaceCtx {
                 Error::InvalidInput(format!("space {space_id} is not owned by the account"))
             })?;
         let packed = b64::decode(&space.root_wrapped_space_key)?;
-        let space_key = decrypt_secretbox_payload(&space_root_key, &packed)?;
+        let space_key = decrypt_secretbox_payload(self.space_root_key(), &packed)?;
         Ok((space, space_key))
     }
 
@@ -331,11 +320,11 @@ impl AccountSpaceCtx {
         profile: &[u8],
         referred_by_space_id: Option<&str>,
     ) -> Result<CreatedSpace> {
-        let space_root_key = self.get_or_create_space_root_key()?;
+        let space_root_key = self.space_root_key();
         let root_wrapped_space_key =
-            b64::encode(&encrypt_secretbox_payload(&space_root_key, space_key)?);
+            b64::encode(&encrypt_secretbox_payload(space_root_key, space_key)?);
         let (public_key, secret_key) = generate_keypair()?;
-        let encrypted_secret_key = encrypt_secretbox_payload(&space_root_key, &secret_key)?;
+        let encrypted_secret_key = encrypt_secretbox_payload(space_root_key, &secret_key)?;
         let encrypted_profile = b64::encode(&encrypt_secretbox_payload(space_key, profile)?);
         let request = CreateSpaceRequest {
             space_slug: space_slug.to_owned(),
@@ -439,15 +428,12 @@ impl AccountSpaceCtx {
         &self,
         space_id: &str,
     ) -> Result<Option<ResolvedOwnedSpaceAccess>> {
-        let Some(space_root_key) = self.get_space_root_key()? else {
-            return Ok(None);
-        };
         let spaces = self.list_owned_spaces_cached().await?;
         let Some(record) = spaces.into_iter().find(|value| value.space_id == space_id) else {
             return Ok(None);
         };
         let packed = b64::decode(&record.root_wrapped_space_key)?;
-        let space_key = decrypt_secretbox_payload(&space_root_key, &packed)?;
+        let space_key = decrypt_secretbox_payload(self.space_root_key(), &packed)?;
         Ok(Some(ResolvedOwnedSpaceAccess {
             space_key,
             key_version: record.key_version,
