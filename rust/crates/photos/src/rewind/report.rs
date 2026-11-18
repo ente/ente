@@ -24,6 +24,7 @@ pub struct RewindReport {
     pub crowd_favourite: Option<CrowdFavourite>,
     pub badge: Option<Badge>,
     pub scrapbook: Option<Scrapbook>,
+    pub finale: Option<Finale>,
     pub tour: Option<Tour>,
     pub globe: Option<Globe>,
     pub mosaic: Option<Mosaic>,
@@ -183,6 +184,11 @@ pub struct Scrapbook {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Finale {
+    pub file_ids: Vec<i64>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Tour {
     pub stops: Vec<TourStop>,
     pub city_count: u32,
@@ -301,6 +307,7 @@ impl RewindReport {
             crowd_favourite: chapters::crowd_favourite(library, &ranking),
             badge: chapters::badge(request, library, ml_people, clip.as_ref()),
             scrapbook: chapters::scrapbook(library, &ranking),
+            finale: chapters::finale(library, &ranking),
             tour: located_cities
                 .as_deref()
                 .and_then(|cities| chapters::tour(cities, &ranking)),
