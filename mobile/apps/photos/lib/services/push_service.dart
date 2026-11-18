@@ -106,10 +106,7 @@ class PushService {
   Future<void> _setPushTokenOnServer(String fcmToken, String? apnsToken) async {
     String? notificationKey;
     try {
-      if (Platform.isAndroid || flagService.internalUser) {
-        notificationKey =
-            await NotificationKeyService.generateNotificationKey();
-      }
+      notificationKey = await NotificationKeyService.generateNotificationKey();
     } catch (e, s) {
       _logPushError("Could not prepare notification key", e, s);
     }
