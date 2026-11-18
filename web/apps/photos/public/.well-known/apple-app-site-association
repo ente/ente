@@ -4,7 +4,7 @@
         "details": [
             {
                 "appIDs": ["6Z68YJY9Q2.io.ente.frame"],
-                "components": [{ "/": "/redirect" }]
+                "components": [{ "/": "/redirect/email" }]
             }
         ]
     },

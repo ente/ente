@@ -68,7 +68,7 @@
                 <data
                     android:scheme="https"
                     android:host="photos.ente.com"
-                    android:path="/redirect"/>
+                    android:path="/redirect/email"/>
             </intent-filter>
 
             <intent-filter android:label="@string/backup">
