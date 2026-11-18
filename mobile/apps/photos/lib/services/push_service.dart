@@ -127,9 +127,7 @@ class PushService {
 
   Future<String?> _prepareNotificationKey() async {
     try {
-      if (Platform.isAndroid || flagService.internalUser) {
-        return await NotificationKeyService.generateNotificationKey();
-      }
+      return await NotificationKeyService.generateNotificationKey();
     } catch (e, s) {
       _logPushError("Could not prepare notification key", e, s);
     }
