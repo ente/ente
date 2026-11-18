@@ -2,7 +2,6 @@ import "dart:async";
 import "dart:convert";
 import "dart:io";
 
-
 import "package:app_links/app_links.dart";
 import "package:ente_crypto/ente_crypto.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
