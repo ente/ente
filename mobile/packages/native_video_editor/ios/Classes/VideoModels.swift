@@ -220,11 +220,11 @@ public struct SlideshowMotion: Sendable {
 
 public enum SlideshowItem: Sendable {
     case photo(url: URL, durationMs: Int64, motion: SlideshowMotion)
-    case video(url: URL, isMuted: Bool)
+    case video(url: URL, isMuted: Bool, maxDurationMs: Int64?)
 
     public var url: URL {
         switch self {
-        case .photo(let url, _, _), .video(let url, _):
+        case .photo(let url, _, _), .video(let url, _, _):
             return url
         }
     }
@@ -251,6 +251,7 @@ public struct SlideshowExportRequest: Sendable {
     public let height: Int
     public let frameRate: Int
     public let crossfadeMs: Int64
+    public let videoBitrate: Int
     public let items: [SlideshowItem]
     public let music: SlideshowMusic?
 
@@ -260,6 +261,7 @@ public struct SlideshowExportRequest: Sendable {
         height: Int,
         frameRate: Int,
         crossfadeMs: Int64,
+        videoBitrate: Int,
         items: [SlideshowItem],
         music: SlideshowMusic?
     ) throws {
@@ -269,6 +271,7 @@ public struct SlideshowExportRequest: Sendable {
             width > 0, height > 0, width % 2 == 0, height % 2 == 0,
             (1...60).contains(frameRate),
             crossfadeMs >= 0,
+            videoBitrate > 0,
             inputURLs.allSatisfy({ FileManager.default.fileExists(atPath: $0.path) }),
             !inputURLs.contains(outputURL),
             music.map({ FileManager.default.fileExists(atPath: $0.url.path) && $0.url != outputURL })
@@ -282,12 +285,18 @@ public struct SlideshowExportRequest: Sendable {
             {
                 throw VideoEditorError.invalidRequest("Photo durations must exceed the crossfade")
             }
+            if case .video(_, _, let maxDurationMs?) = item,
+                maxDurationMs <= 0 || crossfadeMs > maxDurationMs
+            {
+                throw VideoEditorError.invalidRequest("Video clips must exceed the crossfade")
+            }
         }
         self.outputURL = outputURL
         self.width = width
         self.height = height
         self.frameRate = frameRate
         self.crossfadeMs = crossfadeMs
+        self.videoBitrate = videoBitrate
         self.items = items
         self.music = music
     }

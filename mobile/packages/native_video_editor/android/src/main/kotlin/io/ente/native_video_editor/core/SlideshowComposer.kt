@@ -52,7 +52,12 @@ internal class SlideshowComposer(
             durationUs: Long
         ) : Segment(durationUs)
 
-        class Video(val file: File, val isMuted: Boolean, durationUs: Long) : Segment(durationUs)
+        class Video(
+            val file: File,
+            val isMuted: Boolean,
+            val clipEndUs: Long?,
+            durationUs: Long
+        ) : Segment(durationUs)
     }
 
     fun compose(): Composition {
@@ -69,11 +74,18 @@ internal class SlideshowComposer(
                     durationUs = item.durationMs * 1_000L
                 )
 
-                is SlideshowItem.Video -> Segment.Video(
-                    file = file,
-                    isMuted = item.isMuted,
-                    durationUs = mediaDurationUs(file)
-                )
+                is SlideshowItem.Video -> {
+                    val fullDurationUs = mediaDurationUs(file)
+                    val clipEndUs = item.maxDurationMs
+                        ?.times(1_000L)
+                        ?.takeIf { it < fullDurationUs }
+                    Segment.Video(
+                        file = file,
+                        isMuted = item.isMuted,
+                        clipEndUs = clipEndUs,
+                        durationUs = clipEndUs ?: fullDurationUs
+                    )
+                }
             }
         }
 
@@ -128,7 +140,7 @@ internal class SlideshowComposer(
 
                 is Segment.Video -> {
                     previousPhoto = null
-                    EditedMediaItem.Builder(MediaItem.fromUri(Uri.fromFile(segment.file)))
+                    EditedMediaItem.Builder(videoMediaItem(segment))
                     .setFrameRate(request.frameRate)
                     .setRemoveAudio(segment.isMuted)
                     .setEffects(
@@ -163,6 +175,16 @@ internal class SlideshowComposer(
         return Composition.Builder(sequences)
             .setHdrMode(Composition.HDR_MODE_TONE_MAP_HDR_TO_SDR_USING_OPEN_GL)
             .build()
+    }
+
+    private fun videoMediaItem(segment: Segment.Video): MediaItem {
+        val builder = MediaItem.Builder().setUri(Uri.fromFile(segment.file))
+        segment.clipEndUs?.let { endUs ->
+            builder.setClippingConfiguration(
+                MediaItem.ClippingConfiguration.Builder().setEndPositionUs(endUs).build()
+            )
+        }
+        return builder.build()
     }
 
     private fun musicSequence(

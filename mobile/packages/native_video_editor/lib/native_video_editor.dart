@@ -284,18 +284,23 @@ class SlideshowItem {
     required Duration this.duration,
     required SlideshowMotion this.motion,
   }) : type = SlideshowItemType.photo,
-       isMuted = false;
+       isMuted = false,
+       maxDuration = null;
 
-  const SlideshowItem.video({required this.path, this.isMuted = false})
-    : type = SlideshowItemType.video,
-      duration = null,
-      motion = null;
+  const SlideshowItem.video({
+    required this.path,
+    this.isMuted = false,
+    this.maxDuration,
+  }) : type = SlideshowItemType.video,
+       duration = null,
+       motion = null;
 
   final SlideshowItemType type;
   final String path;
   final Duration? duration;
   final SlideshowMotion? motion;
   final bool isMuted;
+  final Duration? maxDuration;
 
   Map<String, dynamic> toMap() => {
     'type': type.name,
@@ -303,6 +308,7 @@ class SlideshowItem {
     'durationMs': ?duration?.inMilliseconds,
     ...?motion?.toMap(),
     'isMuted': isMuted,
+    'maxDurationMs': ?maxDuration?.inMilliseconds,
   };
 }
 
@@ -331,6 +337,7 @@ class SlideshowExportRequest {
     required this.height,
     required this.frameRate,
     required this.crossfade,
+    required this.videoBitrate,
     required this.items,
     this.music,
   });
@@ -340,6 +347,7 @@ class SlideshowExportRequest {
   final int height;
   final int frameRate;
   final Duration crossfade;
+  final int videoBitrate;
   final List<SlideshowItem> items;
   final SlideshowMusic? music;
 
@@ -349,6 +357,7 @@ class SlideshowExportRequest {
     'height': height,
     'frameRate': frameRate,
     'crossfadeMs': crossfade.inMilliseconds,
+    'videoBitrate': videoBitrate,
     'items': items.map((item) => item.toMap()).toList(),
     'music': ?music?.toMap(),
   };
@@ -677,6 +686,13 @@ class NativeVideoEditor {
     if (request.crossfade.isNegative) {
       throw ArgumentError.value(request.crossfade, 'crossfade', 'is negative');
     }
+    if (request.videoBitrate <= 0) {
+      throw ArgumentError.value(
+        request.videoBitrate,
+        'videoBitrate',
+        'must be positive',
+      );
+    }
     _ensureOutputDirectoryExists(request.outputPath);
     for (final item in request.items) {
       _ensureInputPathExists(item.path);
@@ -700,6 +716,11 @@ class NativeVideoEditor {
             motion.endScale <= 0) {
           throw ArgumentError('Photo motion must use finite positive scales');
         }
+      }
+      final maxDuration = item.maxDuration;
+      if (maxDuration != null &&
+          (maxDuration <= Duration.zero || request.crossfade > maxDuration)) {
+        throw ArgumentError('Video clips must exceed the crossfade');
       }
     }
     final music = request.music;
