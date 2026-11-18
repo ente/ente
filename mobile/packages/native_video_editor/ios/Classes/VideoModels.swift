@@ -234,14 +234,25 @@ public struct SlideshowMusic: Sendable {
     public let url: URL
     public let fadeInMs: Int64
     public let fadeOutMs: Int64
+    public let duckedVolume: Double
+    public let duckFadeMs: Int64
 
-    public init(url: URL, fadeInMs: Int64, fadeOutMs: Int64) throws {
-        guard fadeInMs >= 0, fadeOutMs >= 0 else {
-            throw VideoEditorError.invalidRequest("Invalid slideshow music fades")
+    public init(
+        url: URL,
+        fadeInMs: Int64,
+        fadeOutMs: Int64,
+        duckedVolume: Double,
+        duckFadeMs: Int64
+    ) throws {
+        guard fadeInMs >= 0, fadeOutMs >= 0, duckFadeMs >= 0, (0...1).contains(duckedVolume)
+        else {
+            throw VideoEditorError.invalidRequest("Invalid slideshow music")
         }
         self.url = url.standardizedFileURL.resolvingSymlinksInPath()
         self.fadeInMs = fadeInMs
         self.fadeOutMs = fadeOutMs
+        self.duckedVolume = duckedVolume
+        self.duckFadeMs = duckFadeMs
     }
 }
 

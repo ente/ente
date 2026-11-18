@@ -55,9 +55,12 @@ internal class SlideshowComposer(
         class Video(
             val file: File,
             val isMuted: Boolean,
+            val hasAudio: Boolean,
             val clipEndUs: Long?,
             durationUs: Long
-        ) : Segment(durationUs)
+        ) : Segment(durationUs) {
+            val playsAudio get() = !isMuted && hasAudio
+        }
     }
 
     fun compose(): Composition {
@@ -75,15 +78,16 @@ internal class SlideshowComposer(
                 )
 
                 is SlideshowItem.Video -> {
-                    val fullDurationUs = mediaDurationUs(file)
+                    val media = readMedia(file)
                     val clipEndUs = item.maxDurationMs
                         ?.times(1_000L)
-                        ?.takeIf { it < fullDurationUs }
+                        ?.takeIf { it < media.durationUs }
                     Segment.Video(
                         file = file,
                         isMuted = item.isMuted,
+                        hasAudio = media.hasAudio,
                         clipEndUs = clipEndUs,
-                        durationUs = clipEndUs ?: fullDurationUs
+                        durationUs = clipEndUs ?: media.durationUs
                     )
                 }
             }
@@ -158,7 +162,7 @@ internal class SlideshowComposer(
         val musicFile = musicSettings?.let { File(it.path).canonicalFile }
         val musicDurationUs = musicFile?.let {
             require(it.isFile && it != outputFile) { "Invalid slideshow music: ${it.path}" }
-            mediaDurationUs(it)
+            readMedia(it).durationUs
         }
         val playsVideoAudio = segments.any { it is Segment.Video && !it.isMuted }
         val hasAudio = musicDurationUs != null || playsVideoAudio
@@ -193,68 +197,53 @@ internal class SlideshowComposer(
         trackDurationUs: Long,
         settings: SlideshowMusic
     ): EditedMediaItemSequence {
+        val totalUs = segments.sumOf { it.durationUs }
+        val envelope = MusicEnvelope(
+            totalUs = totalUs,
+            fadeInUs = settings.fadeInMs * 1_000L,
+            fadeOutUs = settings.fadeOutMs * 1_000L,
+            duckedVolume = settings.duckedVolume,
+            duckFadeUs = settings.duckFadeMs * 1_000L,
+            videoAudio = videoAudioRanges(segments)
+        )
         @Suppress("DEPRECATION")
         val builder = EditedMediaItemSequence.Builder().experimentalSetForceAudioTrack(true)
-        var gapUs = 0L
-        var positionUs = 0L
-        var runDurationUs = 0L
-
-        fun flushRun() {
-            if (runDurationUs == 0L) return
-            if (gapUs > 0) {
-                builder.addGap(gapUs)
-                gapUs = 0
-            }
-            var offsetUs = 0L
-            while (offsetUs < runDurationUs) {
-                val clipUs = min(runDurationUs - offsetUs, trackDurationUs - positionUs)
-                builder.addItem(
-                    EditedMediaItem.Builder(
-                        MediaItem.Builder()
-                            .setUri(Uri.fromFile(music))
-                            .setClippingConfiguration(
-                                MediaItem.ClippingConfiguration.Builder()
-                                    .setStartPositionUs(positionUs)
-                                    .setEndPositionUs(positionUs + clipUs)
-                                    .build()
-                            )
-                            .build()
-                    )
-                        .setEffects(
-                            Effects(
-                                listOf(
-                                    GainProcessor(
-                                        FadeGainProvider(
-                                            offsetUs = offsetUs,
-                                            durationUs = runDurationUs,
-                                            fadeInUs = settings.fadeInMs * 1_000L,
-                                            fadeOutUs = settings.fadeOutMs * 1_000L
-                                        )
-                                    )
-                                ),
-                                emptyList()
-                            )
+        var offsetUs = 0L
+        while (offsetUs < totalUs) {
+            val clipUs = min(totalUs - offsetUs, trackDurationUs)
+            builder.addItem(
+                EditedMediaItem.Builder(
+                    MediaItem.Builder()
+                        .setUri(Uri.fromFile(music))
+                        .setClippingConfiguration(
+                            MediaItem.ClippingConfiguration.Builder()
+                                .setEndPositionUs(clipUs)
+                                .build()
                         )
                         .build()
                 )
-                positionUs = (positionUs + clipUs) % trackDurationUs
-                offsetUs += clipUs
-            }
-            runDurationUs = 0
+                    .setEffects(
+                        Effects(
+                            listOf(GainProcessor(MusicGainProvider(offsetUs, envelope))),
+                            emptyList()
+                        )
+                    )
+                    .build()
+            )
+            offsetUs += clipUs
         }
-
-        for (segment in segments) {
-            when (segment) {
-                is Segment.Photo -> runDurationUs += segment.durationUs
-                is Segment.Video -> {
-                    flushRun()
-                    gapUs += segment.durationUs
-                }
-            }
-        }
-        flushRun()
-        if (gapUs > 0) builder.addGap(gapUs)
         return builder.build()
+    }
+
+    private fun videoAudioRanges(segments: List<Segment>): List<LongRange> {
+        val ranges = mutableListOf<LongRange>()
+        var startUs = 0L
+        for (segment in segments) {
+            val endUs = startUs + segment.durationUs
+            if (segment is Segment.Video && segment.playsAudio) ranges.add(startUs until endUs)
+            startUs = endUs
+        }
+        return ranges
     }
 
     private fun writeBackground(photo: File, index: Int): File {
@@ -375,14 +364,19 @@ internal fun smoothstep(value: Float): Float {
     return t * t * (3f - 2f * t)
 }
 
-private fun mediaDurationUs(file: File): Long {
+private class MediaInfo(val durationUs: Long, val hasAudio: Boolean)
+
+private fun readMedia(file: File): MediaInfo {
     val retriever = MediaMetadataRetriever()
     return try {
         retriever.setDataSource(file.path)
         val durationMs = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
             ?.toLongOrNull()
         require(durationMs != null && durationMs > 0) { "Media duration is unavailable: ${file.path}" }
-        durationMs * 1_000L
+        MediaInfo(
+            durationUs = durationMs * 1_000L,
+            hasAudio = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_AUDIO) == "yes"
+        )
     } finally {
         retriever.release()
     }
@@ -547,24 +541,67 @@ private class DissolveOverlay(
     }
 }
 
-private class FadeGainProvider(
-    private val offsetUs: Long,
-    private val durationUs: Long,
+private class MusicEnvelope(
+    private val totalUs: Long,
     private val fadeInUs: Long,
-    private val fadeOutUs: Long
-) : GainProcessor.GainProvider {
-    override fun getGainFactorAtSamplePosition(samplePosition: Long, sampleRate: Int): Float {
-        val timeUs = offsetUs + samplePosition * C.MICROS_PER_SECOND / sampleRate
-        var gain = 1f
-        if (fadeInUs > 0) gain = min(gain, timeUs.toFloat() / fadeInUs)
-        if (fadeOutUs > 0) gain = min(gain, (durationUs - timeUs).toFloat() / fadeOutUs)
-        return gain.coerceIn(0f, 1f)
+    private val fadeOutUs: Long,
+    private val duckedVolume: Double,
+    private val duckFadeUs: Long,
+    videoAudio: List<LongRange>
+) {
+    private val ducks = videoAudio.fold(mutableListOf<LongRange>()) { merged, range ->
+        val last = merged.lastOrNull()
+        if (last != null && range.first - (last.last + 1) <= 2 * duckFadeUs) {
+            merged[merged.lastIndex] = last.first..range.last
+        } else {
+            merged.add(range)
+        }
+        merged
     }
+
+    fun gainAt(timeUs: Long): Float {
+        var gain = 1.0
+        if (fadeInUs > 0) gain = min(gain, timeUs.toDouble() / fadeInUs)
+        if (fadeOutUs > 0) gain = min(gain, (totalUs - timeUs).toDouble() / fadeOutUs)
+        return (gain.coerceIn(0.0, 1.0) * duckLevelAt(timeUs)).toFloat()
+    }
+
+    fun nextChangeUs(timeUs: Long): Long? {
+        val fadeOutStartUs = if (fadeOutUs > 0) totalUs - fadeOutUs else null
+        val duckStartsUs = ducks.map { it.first - duckFadeUs }
+        return (listOfNotNull(fadeOutStartUs) + duckStartsUs).filter { it >= timeUs }.minOrNull()
+    }
+
+    private fun duckLevelAt(timeUs: Long): Double {
+        var level = 1.0
+        for (duck in ducks) {
+            val depth = when {
+                timeUs in duck -> 1.0
+                duckFadeUs <= 0 -> 0.0
+                timeUs < duck.first -> 1.0 - (duck.first - timeUs).toDouble() / duckFadeUs
+                else -> 1.0 - (timeUs - duck.last - 1).toDouble() / duckFadeUs
+            }
+            if (depth > 0) level = min(level, 1.0 - depth * (1.0 - duckedVolume))
+        }
+        return level
+    }
+}
+
+private class MusicGainProvider(
+    private val offsetUs: Long,
+    private val envelope: MusicEnvelope
+) : GainProcessor.GainProvider {
+    override fun getGainFactorAtSamplePosition(samplePosition: Long, sampleRate: Int): Float =
+        envelope.gainAt(timeUs(samplePosition, sampleRate))
 
     override fun isUnityUntil(samplePosition: Long, sampleRate: Int): Long {
         if (getGainFactorAtSamplePosition(samplePosition, sampleRate) < 1f) return C.TIME_UNSET
-        if (fadeOutUs <= 0) return C.TIME_END_OF_SOURCE
-        val fadeOutStartSample = (durationUs - fadeOutUs - offsetUs) * sampleRate / C.MICROS_PER_SECOND
-        return if (fadeOutStartSample > samplePosition) fadeOutStartSample else samplePosition + 1
+        val changeUs = envelope.nextChangeUs(timeUs(samplePosition, sampleRate))
+            ?: return C.TIME_END_OF_SOURCE
+        val changeSample = (changeUs - offsetUs) * sampleRate / C.MICROS_PER_SECOND
+        return if (changeSample > samplePosition) changeSample else samplePosition + 1
     }
+
+    private fun timeUs(samplePosition: Long, sampleRate: Int) =
+        offsetUs + samplePosition * C.MICROS_PER_SECOND / sampleRate
 }
