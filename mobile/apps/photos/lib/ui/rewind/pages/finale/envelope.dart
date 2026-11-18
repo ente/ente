@@ -109,6 +109,23 @@ class EnvelopeFrontPainter extends CustomPainter {
 
   final double bleed;
 
+  static Path _silhouette(_Edges edges) => Path()
+    ..moveTo(edges.left, edges.sideTop)
+    ..lineTo(_dipLeft.dx, _dipLeft.dy)
+    ..lineTo(_apex.dx, _apex.dy)
+    ..lineTo(_dipRight.dx, _dipRight.dy)
+    ..lineTo(edges.right, edges.sideTop)
+    ..lineTo(edges.right, EnvelopeShape.bottom)
+    ..lineTo(edges.left, EnvelopeShape.bottom)
+    ..close();
+
+  @override
+  bool hitTest(Offset position) {
+    final edges = _Edges(bleed);
+    return edges.back.contains(position) &&
+        _silhouette(edges).contains(position);
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
     final edges = _Edges(bleed);
@@ -117,15 +134,7 @@ class EnvelopeFrontPainter extends CustomPainter {
     final seamLeft = Offset(edges.left, edges.seamY);
     final seamRight = Offset(edges.right, edges.seamY);
     canvas.clipRRect(edges.back);
-    final silhouette = Path()
-      ..moveTo(sideLeft.dx, sideLeft.dy)
-      ..lineTo(_dipLeft.dx, _dipLeft.dy)
-      ..lineTo(_apex.dx, _apex.dy)
-      ..lineTo(_dipRight.dx, _dipRight.dy)
-      ..lineTo(sideRight.dx, sideRight.dy)
-      ..lineTo(edges.right, EnvelopeShape.bottom)
-      ..lineTo(edges.left, EnvelopeShape.bottom)
-      ..close();
+    final silhouette = _silhouette(edges);
     canvas
       ..drawPath(
         silhouette.shift(const Offset(0, -5)),
@@ -196,7 +205,7 @@ class EnvelopePhoto extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(7),
-        child: RewindPhoto(photo, zoomable: false),
+        child: RewindPhoto(photo),
       ),
     );
   }
