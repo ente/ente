@@ -21,6 +21,7 @@ zeroize.workspace = true
 zstd = "0.14.3"
 
 [dev-dependencies]
+rusqlite = { workspace = true, features = ["hooks"] }
 tempfile.workspace = true
 
 # Keep `mtmd` on every platform for multimodal support.
