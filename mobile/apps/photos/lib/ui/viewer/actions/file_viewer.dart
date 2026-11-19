@@ -298,7 +298,8 @@ class FileViewerState extends State<FileViewer> {
     if (uploaded != null) {
       file.uploadedFileID = uploaded.uploadedFileID;
       file.collectionID = uploaded.collectionID;
-      file.ownerID = uploaded.ownerID;
+      file.encryptedKey = uploaded.encryptedKey;
+      file.keyDecryptionNonce = uploaded.keyDecryptionNonce;
     }
     return file;
   }
