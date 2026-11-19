@@ -971,7 +971,6 @@ func main() {
 	privateAPI.POST("/storage-bonus/referral-claim", storageBonusHandler.ClaimReferral)
 
 	adminHandler := &api.AdminHandler{
-		QueueRepo:              queueRepo,
 		UserRepo:               userRepo,
 		CollectionRepo:         collectionRepo,
 		AuthenticatorRepo:      authRepo,
@@ -1015,7 +1014,6 @@ func main() {
 	adminAPI.GET("/email-hash", adminHandler.GetEmailHash)
 	adminAPI.POST("/emails-from-hashes", adminHandler.GetEmailsFromHashes)
 	adminAPI.PUT("/user/subscription", adminHandler.UpdateSubscription)
-	adminAPI.POST("/queue/re-queue", adminHandler.ReQueueItem)
 	adminAPI.POST("/collection/repair-deleted-share", adminHandler.RepairDeletedCollectionShare)
 	adminAPI.POST("/user/init-file-counts", adminHandler.InitializeFileCounts)
 	adminAPI.POST("/user/bonus", adminHandler.UpdateBonus)

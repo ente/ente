@@ -38,7 +38,6 @@ import (
 )
 
 type AdminHandler struct {
-	QueueRepo              *repo.QueueRepository
 	UserRepo               *repo.UserRepository
 	CollectionRepo         *repo.CollectionRepository
 	AuthenticatorRepo      *authenticator.Repository
@@ -502,23 +501,6 @@ func (h *AdminHandler) ChangeEmail(c *gin.Context) {
 		return
 	}
 	logrus.Info("Updated email")
-	c.JSON(http.StatusOK, gin.H{})
-}
-
-func (h *AdminHandler) ReQueueItem(c *gin.Context) {
-	var r ente.ReQueueItemRequest
-	if err := handler.BindJSON(c, &r); err != nil {
-		handler.Error(c, stacktrace.Propagate(err, "Bad request"))
-		return
-	}
-	adminID := auth.GetUserID(c.Request.Header)
-	h.notifyAdminAction(adminID, "requeueing item %d for queue: %s", r.ID, r.QueueName)
-	err := h.QueueRepo.RequeueItem(c, r.QueueName, r.ID)
-	if err != nil {
-		logrus.WithError(err).Error("Failed to re-queue item")
-		handler.Error(c, stacktrace.Propagate(err, ""))
-		return
-	}
 	c.JSON(http.StatusOK, gin.H{})
 }
 
