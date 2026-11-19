@@ -669,22 +669,26 @@ private class AudioWindowProcessor(
     override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat) = inputAudioFormat
 
     override fun onFlush(streamMetadata: AudioProcessor.StreamMetadata) {
-        pendingSilenceFrames = frames(delayUs)
         remainingFrames = frames(max(0L, lengthUs - streamMetadata.positionOffsetUs))
+        pendingSilenceFrames = min(frames(delayUs), remainingFrames)
     }
 
     override fun queueInput(inputBuffer: ByteBuffer) {
         val bytesPerFrame = inputAudioFormat.bytesPerFrame
-        val silenceFrames = min(pendingSilenceFrames, remainingFrames)
-        val keptFrames = min(inputBuffer.remaining().toLong() / bytesPerFrame, remainingFrames - silenceFrames)
+        if (pendingSilenceFrames > 0) {
+            val silenceFrames = min(pendingSilenceFrames, (silenceChunk.size / bytesPerFrame).toLong())
+            pendingSilenceFrames -= silenceFrames
+            remainingFrames -= silenceFrames
+            val silenceBytes = silenceFrames.toInt() * bytesPerFrame
+            replaceOutputBuffer(silenceBytes).put(silenceChunk, 0, silenceBytes).flip()
+            return
+        }
+        val keptFrames = min(inputBuffer.remaining().toLong() / bytesPerFrame, remainingFrames)
         val inputEnd = inputBuffer.limit()
-        pendingSilenceFrames = 0
-        if (silenceFrames + keptFrames > 0) {
-            remainingFrames -= silenceFrames + keptFrames
-            val output = replaceOutputBuffer(((silenceFrames + keptFrames) * bytesPerFrame).toInt())
-            output.put(ByteArray((silenceFrames * bytesPerFrame).toInt()))
+        if (keptFrames > 0) {
+            remainingFrames -= keptFrames
             inputBuffer.limit(inputBuffer.position() + keptFrames.toInt() * bytesPerFrame)
-            output.put(inputBuffer).flip()
+            replaceOutputBuffer(keptFrames.toInt() * bytesPerFrame).put(inputBuffer).flip()
             inputBuffer.limit(inputEnd)
         }
         inputBuffer.position(inputEnd)
@@ -692,3 +696,5 @@ private class AudioWindowProcessor(
 
     private fun frames(durationUs: Long) = durationUs * inputAudioFormat.sampleRate / C.MICROS_PER_SECOND
 }
+
+private val silenceChunk = ByteArray(64 * 1024)
