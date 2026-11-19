@@ -79,7 +79,7 @@ class WarpPage extends RewindPage {
   late final RewindWarm<RewindAtlas> _walls = RewindWarm(
     () => RewindAtlas.load(
       photos,
-      tile: 96,
+      tile: 192,
       bytes: bytes,
       minimum: minimumPanels,
     ),
@@ -176,7 +176,7 @@ class _Flight extends StatefulWidget {
 class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   static const _printWidth = 228.0;
   static const _coastMs = 450.0;
-  static const _pixelsPerUnit = 90.0;
+  static const _pixelsPerUnit = 68.0;
   static const _touchTop = 70.0;
   static const _touchBottom = 770.0;
   static const _flyAbove = 700.0;
@@ -202,6 +202,16 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   late final _Course _course = _Course(
     (widget.walls?.length ?? 0) ~/ _Course.sides,
   );
+  late final ImageShader? _shader = switch (widget.walls) {
+    final walls? => ImageShader(
+      walls.image,
+      TileMode.clamp,
+      TileMode.clamp,
+      Matrix4.identity().storage,
+      filterQuality: FilterQuality.medium,
+    ),
+    null => null,
+  };
   final _landingPhoto = GlobalKey<RewindPhotoState>();
   final _pickedPhoto = GlobalKey<RewindPhotoState>();
 
@@ -261,6 +271,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   void dispose() {
     _ticker.dispose();
     _pull.dispose();
+    _shader?.dispose();
     super.dispose();
   }
 
@@ -348,7 +359,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
     if (walls == null) return null;
     final ring = min(
       max(0, _course.rings - 1),
-      max(0, ((_travelled - _Course.lead) / _Course.gap).floor()),
+      max(0, ((_travelled - _Course.lead) / _Course.depth).floor()),
     );
     return WarpPage.taken(walls.files[ring * _Course.sides]);
   }
@@ -532,7 +543,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
           0.0,
           1.0,
         );
-    final door = course.project(course.end, travelled, 0, 0);
+    const door = _Course.vanish;
     final settle = Curves.easeOutBack.transform(
       (sinceLanding / 420).clamp(0.0, 1.0),
     );
@@ -549,7 +560,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              const ColoredBox(color: Color(0xFF120E2E)),
+              const ColoredBox(color: RewindColors.outline),
               RewindStage(
                 children: [
                   Positioned.fill(
@@ -559,18 +570,63 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
                       child: CustomPaint(
                         painter: _Tube(
                           walls: walls,
+                          shader: _shader,
                           course: course,
                           travelled: travelled,
                           roll: _roll,
-                          speed: _pace,
                           arrival: arrival,
-                          sinceLanding: sinceLanding,
                           dim: pulled,
                           ms: _ms,
                         ),
                       ),
                     ),
                   ),
+                  if (walls != null && passing != null)
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      top: _Course.vanish.dy - 40,
+                      height: 80,
+                      child: RewindLeave(
+                        position: widget.position,
+                        centerY: _Course.vanish.dy,
+                        child: IgnorePointer(
+                          child: Opacity(
+                            opacity:
+                                (1.6 - arrival * 2).clamp(0.0, 1.0) *
+                                (1 - pulled),
+                            child: Center(
+                              child: AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 240),
+                                reverseDuration: Duration.zero,
+                                switchInCurve: Curves.easeOut,
+                                transitionBuilder: (child, animation) =>
+                                    FadeTransition(
+                                      opacity: animation,
+                                      child: SlideTransition(
+                                        position: Tween(
+                                          begin: const Offset(0, 0.14),
+                                          end: Offset.zero,
+                                        ).animate(animation),
+                                        child: ScaleTransition(
+                                          scale: Tween(
+                                            begin: 0.96,
+                                            end: 1.0,
+                                          ).animate(animation),
+                                          child: child,
+                                        ),
+                                      ),
+                                    ),
+                                child: _Month(
+                                  _monthNames[passing.month - 1],
+                                  key: ValueKey(passing.month),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   if (walls != null)
                     Positioned(
                       left: door.dx - 160,
@@ -966,6 +1022,23 @@ class _Counter extends StatelessWidget {
   }
 }
 
+class _Month extends StatelessWidget {
+  const _Month(this.name, {super.key});
+
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    return RewindOutlinedText(
+      name,
+      style: RewindTextStyles.display(30, height: 1.1, letterSpacing: 0.2),
+      outline: 2.5,
+      shadow: const Offset(0, 4),
+      ink: RewindColors.outline,
+    );
+  }
+}
+
 class _Again extends StatelessWidget {
   const _Again();
 
@@ -1027,346 +1100,304 @@ class _Print extends StatelessWidget {
 }
 
 class _Course {
-  const _Course(this.rings);
+  _Course(this.rings) : _boxes = List.filled(rings * sides, null);
 
   static const sides = 6;
-  static const gap = 1.06;
+  static const depth = 1.4;
   static const lead = 0.5;
   static const landing = 2.9;
   static const sighted = 10.0;
-  static const focal = 250.0;
+  static const focal = 560.0;
   static const vanish = Offset(195, 390);
   static const nearest = 0.14;
-  static const farthest = 15.0;
-  static const _straight = 9.0;
+  static const fogFrom = 12.7;
+  static const fogTo = 23.3;
+  static const _twist = 0.0786;
+  static const _drift = 0.018;
+  static const _rounding = 0.22;
+  static const _across = 8;
+  static const _deep = 4;
 
   final int rings;
+  final List<Rect?> _boxes;
 
-  double get end => lead + rings * gap;
+  double get end => lead + rings * depth;
 
   double get length => max(1.0, end - landing);
 
-  Offset bend(double along) =>
-      Offset(1.5 * sin(0.17 * along), 1.05 * sin(0.12 * along + 1.1)) *
-      ((length - along) / _straight).clamp(0.0, 1.0);
+  double start(int ring) => lead + ring * depth;
 
-  Offset project(double along, double travelled, double turn, double reach) {
-    final lateral =
-        bend(along) - bend(travelled) + Offset.fromDirection(turn, reach);
-    return vanish + lateral * (focal / (along - travelled));
+  static Offset _corner(int index) =>
+      Offset.fromDirection(index * pi / 3 + pi / 6);
+
+  static Offset _rounded(int corner, double t) {
+    final tip = _corner(corner);
+    final from = Offset.lerp(tip, _corner(corner - 1), _rounding)!;
+    final to = Offset.lerp(tip, _corner(corner + 1), _rounding)!;
+    return from * ((1 - t) * (1 - t)) + tip * (2 * (1 - t) * t) + to * (t * t);
   }
 
-  double twist(int ring, double travelled, double roll) =>
-      0.05 * travelled + ring * 0.21 + roll;
+  static Offset _rim(double around) {
+    final corner = around.floor();
+    final t = around - corner;
+    if (t < _rounding) return _rounded(corner, 0.5 + t / (2 * _rounding));
+    if (t > 1 - _rounding) {
+      return _rounded(corner + 1, (t - 1 + _rounding) / (2 * _rounding));
+    }
+    return Offset.lerp(_corner(corner), _corner(corner + 1), t)!;
+  }
 
-  ({double near, double far})? stretch(int ring, double travelled) {
-    final along = lead + ring * gap;
-    final far = along + gap * 0.93;
-    final near = max(along, travelled + nearest);
-    return far - near < 0.02 || along - travelled > farthest
+  static Offset _turn(Offset point, double angle) {
+    final c = cos(angle);
+    final s = sin(angle);
+    return Offset(point.dx * c - point.dy * s, point.dx * s + point.dy * c);
+  }
+
+  Offset point(double around, double along, double travelled, double roll) =>
+      vanish +
+      _turn(_rim(around), _twist * along + _drift * travelled + roll) *
+          (focal / (along - travelled));
+
+  Offset _decal(int ring, double around, double along) =>
+      _turn(_rim(around), _twist * along + _drift * (start(ring) - depth)) /
+      (along - start(ring) + depth);
+
+  Rect _box(int ring, int side) =>
+      _boxes[ring * sides + side] ??= _measure(ring, side);
+
+  Rect _measure(int ring, int side) {
+    var box = Rect.fromCenter(
+      center: _decal(ring, side.toDouble(), start(ring)),
+      width: 0,
+      height: 0,
+    );
+    for (var row = 0; row <= _deep; row++) {
+      for (var step = 0; step <= _across; step++) {
+        final decal = _decal(
+          ring,
+          side + step / _across,
+          start(ring) + depth * row / _deep,
+        );
+        box = box.expandToInclude(
+          Rect.fromCenter(center: decal, width: 0, height: 0),
+        );
+      }
+    }
+    return box;
+  }
+
+  ({double near, double far})? reach(int ring, double travelled) {
+    final near = max(start(ring), travelled + nearest);
+    final far = start(ring) + depth;
+    return far - near < 0.01 || near - travelled > fogTo
         ? null
         : (near: near, far: far);
   }
 
-  List<Offset> panel(
+  void mesh(
     int ring,
     int side,
     double travelled,
     double roll,
-    double near,
-    double far,
+    Rect tile,
+    List<double> positions,
+    List<double> pixels,
+    List<int> indices,
   ) {
-    final turn = twist(ring, travelled, roll);
-    final from = turn + (side + 0.035) * 2 * pi / sides;
-    final to = turn + (side + 0.965) * 2 * pi / sides;
-    return [
-      project(far, travelled, to, 1),
-      project(far, travelled, from, 1),
-      project(near, travelled, from, 1),
-      project(near, travelled, to, 1),
-    ];
+    final reach = this.reach(ring, travelled);
+    if (reach == null) return;
+    final box = _box(ring, side);
+    final wide = min(1.0, box.width / box.height);
+    final tall = min(1.0, box.height / box.width);
+    final first = positions.length ~/ 2;
+    for (var row = 0; row <= _deep; row++) {
+      final along = reach.near + (reach.far - reach.near) * row / _deep;
+      for (var step = 0; step <= _across; step++) {
+        final around = side + step / _across;
+        final seen = point(around, along, travelled, roll);
+        final decal = _decal(ring, around, along);
+        final u = ((decal.dx - box.left) / box.width - 0.5) * wide + 0.5;
+        final v = ((decal.dy - box.top) / box.height - 0.5) * tall + 0.5;
+        positions
+          ..add(seen.dx)
+          ..add(seen.dy);
+        pixels
+          ..add(tile.left + 1 + u * (tile.width - 2))
+          ..add(tile.top + 1 + v * (tile.height - 2));
+        if (row == _deep || step == _across) continue;
+        final corner = first + row * (_across + 1) + step;
+        final below = corner + _across + 1;
+        indices.addAll([
+          corner,
+          corner + 1,
+          below + 1,
+          corner,
+          below + 1,
+          below,
+        ]);
+      }
+    }
   }
 
-  int? panelAt(Offset point, double travelled, double roll) {
+  int? panelAt(Offset at, double travelled, double roll) {
     for (var ring = 0; ring < rings; ring++) {
-      final stretch = this.stretch(ring, travelled);
-      if (stretch == null) continue;
+      final reach = this.reach(ring, travelled);
+      if (reach == null) continue;
       for (var side = 0; side < sides; side++) {
-        final corners = panel(
-          ring,
-          side,
-          travelled,
-          roll,
-          stretch.near,
-          stretch.far,
-        );
-        var turns = 0;
-        for (var corner = 0; corner < 4; corner++) {
-          final edge = corners[(corner + 1) % 4] - corners[corner];
-          final reach = point - corners[corner];
-          turns += (edge.dx * reach.dy - edge.dy * reach.dx) > 0 ? 1 : -1;
-        }
-        if (turns.abs() == 4) return ring * sides + side;
+        final outline = [
+          for (var step = 0; step <= _across; step++)
+            point(side + step / _across, reach.near, travelled, roll),
+          for (var step = _across; step >= 0; step--)
+            point(side + step / _across, reach.far, travelled, roll),
+        ];
+        if (_encloses(outline, at)) return ring * sides + side;
       }
     }
     return null;
+  }
+
+  static bool _encloses(List<Offset> outline, Offset at) {
+    var inside = false;
+    for (var i = 0, j = outline.length - 1; i < outline.length; j = i++) {
+      final a = outline[i];
+      final b = outline[j];
+      if ((a.dy > at.dy) != (b.dy > at.dy) &&
+          at.dx < (b.dx - a.dx) * (at.dy - a.dy) / (b.dy - a.dy) + a.dx) {
+        inside = !inside;
+      }
+    }
+    return inside;
   }
 }
 
 class _Tube extends CustomPainter {
   _Tube({
     required this.walls,
+    required this.shader,
     required this.course,
     required this.travelled,
     required this.roll,
-    required this.speed,
     required this.arrival,
-    required this.sinceLanding,
     required this.dim,
     required this.ms,
   });
 
-  static const _night = Color(0xFF120E2E);
+  static const _fogSteps = 8;
 
   final RewindAtlas? walls;
+  final ImageShader? shader;
   final _Course course;
   final double travelled;
   final double roll;
-  final double speed;
   final double arrival;
-  final double sinceLanding;
   final double dim;
   final double ms;
-
-  Offset _project(double along, double turn, [double reach = 1]) =>
-      course.project(along, travelled, turn, reach);
-
-  Color _shade(double depth) {
-    final light =
-        ((1.2 - depth / 10).clamp(0.1, 1.0) *
-                (1 - 0.42 * arrival) *
-                (1 - 0.55 * dim) *
-                255)
-            .round();
-    return Color.fromARGB(255, light, light, light);
-  }
 
   @override
   void paint(Canvas canvas, Size size) {
     final walls = this.walls;
-    if (walls == null) {
+    final shader = this.shader;
+    if (walls == null || shader == null) {
       _static(canvas);
       return;
     }
-    const sides = _Course.sides;
-    final gates = <(int, double, double)>[];
-    final wall = Paint()..filterQuality = FilterQuality.medium;
+    final positions = <double>[];
+    final pixels = <double>[];
+    final indices = <int>[];
     for (var ring = course.rings - 1; ring >= 0; ring--) {
-      final stretch = course.stretch(ring, travelled);
-      if (stretch == null) continue;
-      final along = _Course.lead + ring * _Course.gap;
-      final (:near, :far) = stretch;
-      wall.colorFilter = ColorFilter.mode(
-        _shade((near + far) / 2 - travelled),
-        BlendMode.modulate,
-      );
-      for (var side = 0; side < sides; side++) {
-        final source = walls.source(ring * sides + side);
-        final corners = course.panel(ring, side, travelled, roll, near, far);
-        _panel(
-          canvas,
-          walls.image,
-          Rect.fromLTRB(
-            source.left,
-            source.top,
-            source.right,
-            source.bottom - source.height * (near - along) / (far - along),
-          ),
-          corners[0],
-          corners[1],
-          corners[2],
-          corners[3],
-          wall,
+      for (var side = 0; side < _Course.sides; side++) {
+        course.mesh(
+          ring,
+          side,
+          travelled,
+          roll,
+          walls.source(ring * _Course.sides + side),
+          positions,
+          pixels,
+          indices,
         );
       }
-      final month = WarpPage.taken(walls.files[ring * sides]).month;
-      final earlier = ring + 1 < course.rings
-          ? WarpPage.taken(walls.files[(ring + 1) * sides]).month
-          : month;
-      if (earlier != month && far < course.length - 3) {
-        gates.add((
-          earlier,
-          far + _Course.gap * 0.035,
-          course.twist(ring, travelled, roll),
-        ));
-      }
     }
-    for (final (month, along, twist) in gates) {
-      _gate(canvas, month, along, twist);
-    }
-    _streaks(canvas);
-    _touchdown(canvas);
-  }
-
-  static void _panel(
-    Canvas canvas,
-    ui.Image image,
-    Rect source,
-    Offset topLeft,
-    Offset topRight,
-    Offset bottomRight,
-    Offset bottomLeft,
-    Paint paint,
-  ) {
-    final acrossX = topRight.dx - bottomRight.dx;
-    final acrossY = topRight.dy - bottomRight.dy;
-    final downX = bottomLeft.dx - bottomRight.dx;
-    final downY = bottomLeft.dy - bottomRight.dy;
-    final skewX = topLeft.dx - topRight.dx + bottomRight.dx - bottomLeft.dx;
-    final skewY = topLeft.dy - topRight.dy + bottomRight.dy - bottomLeft.dy;
-    final spread = acrossX * downY - downX * acrossY;
-    if (spread.abs() < 1e-6) return;
-    final g = (skewX * downY - downX * skewY) / spread;
-    final h = (acrossX * skewY - skewX * acrossY) / spread;
-    canvas.save();
-    canvas.transform(
-      Float64List.fromList([
-        topRight.dx - topLeft.dx + g * topRight.dx,
-        topRight.dy - topLeft.dy + g * topRight.dy,
-        0,
-        g,
-        bottomLeft.dx - topLeft.dx + h * bottomLeft.dx,
-        bottomLeft.dy - topLeft.dy + h * bottomLeft.dy,
-        0,
-        h,
-        0,
-        0,
-        1,
-        0,
-        topLeft.dx,
-        topLeft.dy,
-        0,
-        1,
-      ]),
-    );
-    canvas.drawImageRect(image, source, const Rect.fromLTWH(0, 0, 1, 1), paint);
-    canvas.restore();
-  }
-
-  void _gate(Canvas canvas, int month, double along, double twist) {
-    final depth = along - travelled;
-    if (depth < 0.5) return;
-    const sides = _Course.sides;
-    final near = ((depth - 0.5) / 1.6).clamp(0.0, 1.0);
-    final hoop = Path();
-    for (var side = 0; side <= sides; side++) {
-      final corner = _project(along, twist + side * 2 * pi / sides);
-      side == 0
-          ? hoop.moveTo(corner.dx, corner.dy)
-          : hoop.lineTo(corner.dx, corner.dy);
-    }
-    final width = (14 / depth).clamp(1.2, 16.0);
-    canvas.drawPath(
-      hoop,
-      Paint()
-        ..color = RewindColors.ink.withValues(alpha: near)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = width * 1.7
-        ..strokeJoin = StrokeJoin.round,
-    );
-    canvas.drawPath(
-      hoop,
-      Paint()
-        ..color = (month.isEven ? RewindColors.hotPink : RewindColors.yellow)
-            .withValues(alpha: near)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = width
-        ..strokeJoin = StrokeJoin.round,
-    );
-    final legible = near * (1 - arrival * 4).clamp(0.0, 1.0);
-    if (depth > 9 || legible <= 0) return;
-    final label = TextPainter(
-      text: TextSpan(
-        text: _months[month - 1],
-        style: RewindTextStyles.display(
-          64,
-          color: RewindColors.cream.withValues(alpha: legible),
-          height: 1,
+    if (indices.isNotEmpty) {
+      canvas.drawVertices(
+        ui.Vertices.raw(
+          ui.VertexMode.triangles,
+          Float32List.fromList(positions),
+          textureCoordinates: Float32List.fromList(pixels),
+          indices: Uint16List.fromList(indices),
         ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    final center = _project(along, 0, 0);
-    canvas.save();
-    canvas.translate(center.dx, center.dy);
-    canvas.scale(min(4.5, 1.9 / depth));
-    label.paint(canvas, Offset(-label.width / 2, -label.height / 2));
-    canvas.restore();
-    label.dispose();
-  }
-
-  void _streaks(Canvas canvas) {
-    if (speed < 0.05) return;
-    final random = Random(3);
-    for (var i = 0; i < 44; i++) {
-      final direction = Offset.fromDirection(random.nextDouble() * 2 * pi);
-      final phase =
-          (random.nextDouble() + ms / (520 + 300 * random.nextDouble())) % 1;
-      final from = 40 + 520 * phase * phase;
-      canvas.drawLine(
-        _Course.vanish + direction * from,
-        _Course.vanish + direction * (from + (26 + 150 * phase) * speed),
+        BlendMode.srcOver,
         Paint()
-          ..color = RewindColors.cream.withValues(alpha: 0.5 * speed * phase)
-          ..strokeWidth = 1 + 2.4 * phase
-          ..strokeCap = StrokeCap.round,
+          ..shader = shader
+          ..colorFilter = _fade((1 - 0.42 * arrival) * (1 - 0.55 * dim)),
       );
     }
+    _fog(canvas);
+    _dusk(canvas);
   }
 
-  void _touchdown(Canvas canvas) {
+  static ColorFilter? _fade(double light) {
+    if (light >= 1) return null;
+    final lift = (1 - light) * RewindColors.outline.r * 255;
+    return ColorFilter.matrix([
+      light,
+      0,
+      0,
+      0,
+      lift,
+      0,
+      light,
+      0,
+      0,
+      lift,
+      0,
+      0,
+      light,
+      0,
+      lift,
+      0,
+      0,
+      0,
+      1,
+      0,
+    ]);
+  }
+
+  void _fog(Canvas canvas) {
+    const edge = _Course.focal * 0.9 / _Course.fogFrom;
+    final colors = <Color>[];
+    final stops = <double>[];
+    for (var step = 0; step <= _fogSteps; step++) {
+      final along = step == 0
+          ? double.infinity
+          : _Course.focal * 0.9 / (edge * step / _fogSteps);
+      final thick =
+          ((along - _Course.fogFrom) / (_Course.fogTo - _Course.fogFrom)).clamp(
+            0.0,
+            1.0,
+          );
+      colors.add(RewindColors.outline.withValues(alpha: thick));
+      stops.add(step / _fogSteps);
+    }
+    canvas.drawCircle(
+      _Course.vanish,
+      edge,
+      Paint()..shader = ui.Gradient.radial(_Course.vanish, edge, colors, stops),
+    );
+  }
+
+  void _dusk(Canvas canvas) {
     final dusk = max(arrival * arrival, dim);
     if (dusk <= 0) return;
     canvas.drawRect(
       const Rect.fromLTRB(-600, 430, 990, 1500),
       Paint()
-        ..shader = ui.Gradient.linear(
-          const Offset(0, 430),
-          const Offset(0, 640),
-          [_night.withValues(alpha: 0), _night.withValues(alpha: 0.94 * dusk)],
-        ),
+        ..shader =
+            ui.Gradient.linear(const Offset(0, 430), const Offset(0, 640), [
+              RewindColors.outline.withValues(alpha: 0),
+              RewindColors.outline.withValues(alpha: 0.94 * dusk),
+            ]),
     );
-    final ripple = sinceLanding / 620;
-    if (ripple <= 0 || ripple >= 1) return;
-    for (final (delay, colour) in [
-      (0.0, RewindColors.yellow),
-      (0.22, RewindColors.hotPink),
-    ]) {
-      final spread = Curves.easeOutCubic.transform(
-        ((ripple - delay) / (1 - delay)).clamp(0.0, 1.0),
-      );
-      if (spread <= 0) continue;
-      final hoop = Path();
-      for (var side = 0; side <= _Course.sides; side++) {
-        final corner =
-            _Course.vanish +
-            Offset.fromDirection(
-              side * 2 * pi / _Course.sides + pi / 6,
-              120 + 420 * spread,
-            );
-        side == 0
-            ? hoop.moveTo(corner.dx, corner.dy)
-            : hoop.lineTo(corner.dx, corner.dy);
-      }
-      canvas.drawPath(
-        hoop,
-        Paint()
-          ..color = colour.withValues(alpha: 0.85 * (1 - spread))
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 4 + 16 * (1 - spread)
-          ..strokeJoin = StrokeJoin.round,
-      );
-    }
   }
 
   void _static(Canvas canvas) {
@@ -1388,6 +1419,7 @@ class _Tube extends CustomPainter {
       oldDelegate.walls != walls ||
       oldDelegate.travelled != travelled ||
       oldDelegate.roll != roll ||
+      oldDelegate.arrival != arrival ||
       oldDelegate.dim != dim ||
       oldDelegate.ms != ms;
 }
