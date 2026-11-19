@@ -46,7 +46,7 @@ pub fn generate_face_thumbnails_from_path(
     let decoded = decode_image(
         &ImageSource::Path(image_path.to_string()),
         BoundedDecodeOptions::default(),
-        &format!("path={image_path}"),
+        "face thumbnails",
     )?;
     generate_face_thumbnails(&decoded.image, face_boxes)
 }
