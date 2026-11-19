@@ -12,8 +12,9 @@ import "package:photo_manager/photo_manager.dart";
 import "package:photo_manager_image_provider/photo_manager_image_provider.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/models/file/file.dart";
+import "package:photos/models/file/file_type.dart";
 import "package:photos/models/gallery_type.dart";
-import "package:photos/models/metadata/file_magic.dart";
+import "package:photos/module/metadata/asset_date_times.dart";
 import "package:photos/module/metadata/local_file.dart";
 import "package:photos/services/app_lifecycle_service.dart";
 import "package:photos/ui/viewer/file/detail_page.dart";
@@ -291,10 +292,17 @@ class FileViewerState extends State<FileViewer> {
   Future<EnteFile> _fileFromAsset(String pathName, AssetEntity asset) async {
     final uploaded = await FilesDB.instance.getUploadedFileForLocalID(asset.id);
     final file = uploaded ?? fileFromAsset(pathName, asset);
-    file.pubMagicMetadata = PubMagicMetadata(
-      w: asset.orientatedWidth,
-      h: asset.orientatedHeight,
-    );
+    // Refresh the local fields from the current MediaStore asset while
+    // preserving the uploaded row's cloud fields.
+    if (uploaded != null) {
+      file.title = asset.title;
+      file.deviceFolder = pathName;
+      final dateTimes = resolveAssetDateTimes(asset);
+      file.creationTime = dateTimes.creationTime;
+      file.modificationTime = dateTimes.modificationTime;
+      file.fileType = fileTypeFromAsset(asset);
+    }
+    applyDisplayDimensions(file, asset.orientatedWidth, asset.orientatedHeight);
     return file;
   }
 
