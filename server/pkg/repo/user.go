@@ -320,6 +320,11 @@ func (repo *UserRepository) CreateTx(ctx context.Context, tx *sql.Tx, encryptedE
 	return userID, nil
 }
 
+func (repo *UserRepository) SetSourceIfEmpty(ctx context.Context, userID int64, source string) error {
+	_, err := repo.DB.ExecContext(ctx, `UPDATE users SET source = $1 WHERE user_id = $2 AND (source IS NULL OR source = '')`, source, userID)
+	return stacktrace.Propagate(err, "failed to set source")
+}
+
 func (repo *UserRepository) UpdateDeleteFeedback(userID int64, feedback map[string]string) error {
 	feedbackJSON, err := json.Marshal(feedback)
 	if err != nil {
