@@ -1,5 +1,7 @@
 import "dart:async";
+import "dart:math";
 
+import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:logging/logging.dart";
@@ -104,7 +106,7 @@ class _RewindViewerState extends State<RewindViewer>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: LayoutBuilder(builder: _buildPager),
+      body: _MinimumTouchSlop(child: LayoutBuilder(builder: _buildPager)),
     );
   }
 
@@ -269,6 +271,8 @@ class _RewindViewerState extends State<RewindViewer>
       controller.jumpTo(step * height);
       return;
     }
+    final passing = _targetStep;
+    if (passing != null && step > passing) _settle(passing);
     _targetStep = step;
     unawaited(
       controller
@@ -346,6 +350,25 @@ class _RewindViewerState extends State<RewindViewer>
   }
 }
 
+class _MinimumTouchSlop extends StatelessWidget {
+  const _MinimumTouchSlop({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    return MediaQuery(
+      data: media.copyWith(
+        gestureSettings: DeviceGestureSettings(
+          touchSlop: max(kTouchSlop, media.gestureSettings.touchSlop ?? 0),
+        ),
+      ),
+      child: child,
+    );
+  }
+}
+
 class _PagerController extends ScrollController {
   _PagerController({super.initialScrollOffset});
 
@@ -376,4 +399,19 @@ class _PagerPosition extends ScrollPositionWithSingleContext {
 
   @override
   bool get shouldIgnorePointer => false;
+
+  @override
+  ScrollHoldController hold(VoidCallback holdCancelCallback) {
+    if (activity?.isScrolling ?? false) return _KeepTurning(holdCancelCallback);
+    return super.hold(holdCancelCallback);
+  }
+}
+
+class _KeepTurning implements ScrollHoldController {
+  const _KeepTurning(this.onCancel);
+
+  final VoidCallback onCancel;
+
+  @override
+  void cancel() => onCancel();
 }
