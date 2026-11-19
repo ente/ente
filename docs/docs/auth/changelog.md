@@ -7,6 +7,21 @@ description: Release notes of recent updates to Ente Auth
 
 A short summary list of changes to the Ente Auth mobile and desktop apps. For a more descriptive list with screenshots and blog post links, see the [news](https://ente.com/news).
 
+## v4.4.27 - Nov 2026
+
+- Added support for importing Open Authenticator backups (@NKjoep).
+- Added a newest-first sort option (@hehbveh).
+- Added search for settings available on your account and device.
+- Remember your selected tag when reopening the app.
+- Fixed the current 2FA code being cut off at large text sizes (@yzhou216).
+- Fixed app locks remaining enabled after logout.
+- Moved the session token to secure storage.
+- Improved Google Play compatibility with Chromebooks.
+- Fixed unlocking with existing desktop PINs containing letters or symbols.
+- Fixed PIN and password entry after manually locking the desktop app.
+- Remember window position and size on Windows, including when reopening maximized.
+- Fixed the app name showing as “Runner” in macOS App Store builds.
+
 ## v4.4.26 - Oct 2026
 
 - Fixed 2FAS token imports.
