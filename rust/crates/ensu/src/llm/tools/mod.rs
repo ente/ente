@@ -1,11 +1,3 @@
-//! Native tool calling for local models.
-//!
-//! Callers describe tools with [`ToolSpec`] and attach a [`ToolRequest`] to a
-//! [`super::ChatRequest`]. Generation then decides between a normal reply and a
-//! tool call from the first token, constrains any call to the model's own
-//! tool-call syntax, and reports parsed [`ToolCall`]s in the summary. Tool
-//! turns in history are rendered through the model's tool-response format.
-
 mod format;
 mod grammar;
 
@@ -15,11 +7,8 @@ use serde::{Deserialize, Serialize};
 
 pub(super) use format::Format;
 
-/// Upper bound on calls in one assistant turn.
 pub const MAX_TOOL_CALLS: u8 = 4;
-/// Longest free-text argument the grammar allows, in characters.
-pub const MAX_TEXT_ARGUMENT_CHARS: usize = 128;
-/// Longest source text whose words can be quoted.
+pub(crate) const MAX_TEXT_ARGUMENT_CHARS: usize = 128;
 pub(super) const MAX_QUOTE_WORDS: usize = 192;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -40,48 +29,23 @@ pub struct ToolParameter {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ParameterKind {
-    /// Free text, up to [`MAX_TEXT_ARGUMENT_CHARS`].
     Text,
-    /// A contiguous span of [`ToolRequest::quote_source`]'s words.
     Quote,
-    /// One of a fixed set of values.
     Choice { values: Vec<String> },
-    /// A positive integer up to `max`.
     Integer { max: u32 },
-}
-
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum ToolChoice {
-    /// The model may reply or call tools.
-    #[default]
-    Auto,
-    /// The model must call a tool.
-    Required,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ToolRequest {
     pub tools: Vec<ToolSpec>,
     #[serde(default)]
-    pub choice: ToolChoice,
-    /// Text that [`ParameterKind::Quote`] arguments must quote from, usually
-    /// the current user message.
-    #[serde(default)]
     pub quote_source: String,
-    /// Maximum calls in one turn, capped at [`MAX_TOOL_CALLS`].
     pub max_calls: u8,
-    /// With [`ToolChoice::Auto`], the minimum probability of the tool-call
-    /// token at the first position for the model to call a tool.
     pub min_call_probability: f32,
-    /// Example exchanges, shown to models whose format needs them to decide
-    /// when to call (see [`Format::declarations`]).
     #[serde(default)]
     pub examples: Vec<ToolExample>,
 }
 
-/// A user message and the right response to it: either tool calls, or a
-/// plain reply when `calls` is empty.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ToolExample {
     pub user: String,
@@ -120,6 +84,9 @@ impl ToolRequest {
                             .any(|v| v.is_empty() || v.chars().any(|c| c.is_control() || c == '<')))
                 {
                     return invalid("Tool choices must be non-empty plain text");
+                }
+                if parameter.kind == (ParameterKind::Integer { max: 0 }) {
+                    return invalid("Tool integers must allow at least 1");
                 }
             }
         }
@@ -175,20 +142,45 @@ impl ToolCall {
     }
 }
 
-/// Result of the reply-or-call decision for one generation.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct ToolOutcome {
-    /// Parsed calls, empty when the model replied.
     pub calls: Vec<ToolCall>,
-    /// Probability of the tool-call token at the first position, when the
-    /// model supports native tool calls.
     pub call_probability: Option<f32>,
-    /// False when the model's chat format has no native tool calls, in which
-    /// case the request ran as a plain reply.
-    pub supported: bool,
 }
 
-/// The token for `text` when the vocabulary has it as a single entry.
+#[derive(Debug)]
+pub struct ToolExchange {
+    request: ToolRequest,
+    outcome: std::sync::Mutex<Option<ToolOutcome>>,
+}
+
+impl ToolExchange {
+    pub fn new(request: ToolRequest) -> Self {
+        Self {
+            request,
+            outcome: std::sync::Mutex::new(None),
+        }
+    }
+
+    pub fn request(&self) -> &ToolRequest {
+        &self.request
+    }
+
+    pub(crate) fn record(&self, outcome: Option<ToolOutcome>) {
+        *self
+            .outcome
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = outcome;
+    }
+
+    pub fn outcome(&self) -> Option<ToolOutcome> {
+        self.outcome
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clone()
+    }
+}
+
 pub(crate) fn single_token(
     model: &llama_cpp_2::model::LlamaModel,
     text: &str,
@@ -198,6 +190,23 @@ pub(crate) fn single_token(
         [token] if vocab.token_to_piece(*token, true, None) == text.as_bytes() => Some(*token),
         _ => None,
     }
+}
+
+pub(crate) fn finished_calls(
+    format: Format,
+    raw: &[u8],
+    request: &ToolRequest,
+    complete: bool,
+) -> Result<Vec<ToolCall>, super::Error> {
+    format
+        .parse(&String::from_utf8_lossy(raw), request)
+        .map_err(|error| {
+            if complete {
+                error
+            } else {
+                super::ToolCallFailure::Unfinished.into()
+            }
+        })
 }
 
 pub(crate) fn grammar(
@@ -210,10 +219,6 @@ pub(crate) fn grammar(
     })
 }
 
-/// Rewrites tool declarations, assistant tool calls and tool results into
-/// plain role and content messages for `format`. Without a format, calls are
-/// dropped and results become assistant text, so history stays readable for
-/// models without native tool calls.
 pub(crate) fn adapt_messages(
     format: Option<Format>,
     messages: Vec<super::ChatMessage>,

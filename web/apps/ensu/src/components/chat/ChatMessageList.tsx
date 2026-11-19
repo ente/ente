@@ -10,7 +10,7 @@ import {
     safeExternalUrl,
 } from "@/services/external-links";
 import { noteSourceErrorMessage, openNoteDocument } from "@/services/notes";
-import type { TodoTurnStatus } from "@/services/todos";
+import type { ToolTurnStatus } from "@/services/todos";
 import {
     ArrowLeft01Icon,
     ArrowRight01Icon,
@@ -50,6 +50,14 @@ interface IconProps {
     size: number;
     strokeWidth: number;
 }
+
+const UNDO_LABELS: Record<ToolTurnStatus["undo"], string> = {
+    none: "",
+    available: "Undo",
+    undone: "Undone",
+    partlyUndone: "Partly undone",
+    stale: "Can't undo",
+};
 
 const sourceLinkSx = {
     border: 0,
@@ -105,10 +113,8 @@ export interface ChatMessageListProps {
     onEditMessage: (message: ChatMessage) => void;
     onCopyMessage: (text: string) => void;
     onRetryMessage: (message: ChatMessage) => void;
-    /** To Do changes made by assistant replies, keyed by reply id. */
-    todoTurns: Record<string, TodoTurnStatus>;
+    todoTurns: Record<string, ToolTurnStatus>;
     onUndoTodoTurn: (message: ChatMessage) => void;
-    /** Makes the changes a reply offered. */
     onConfirmTodoTurn: (message: ChatMessage) => void;
     onPrevBranch: (switcher: BranchSwitcher) => void;
     onNextBranch: (switcher: BranchSwitcher) => void;
@@ -425,7 +431,7 @@ interface MessageRowProps {
     onEditMessage: (message: ChatMessage) => void;
     onCopyMessage: (text: string) => void;
     onRetryMessage: (message: ChatMessage) => void;
-    todoTurn: TodoTurnStatus | undefined;
+    todoTurn: ToolTurnStatus | undefined;
     onUndoTodoTurn: (message: ChatMessage) => void;
     onConfirmTodoTurn: (message: ChatMessage) => void;
     onPrevBranch: (switcher: BranchSwitcher) => void;
@@ -777,40 +783,43 @@ const MessageRow = memo(
                                         {...actionIconProps}
                                     />
                                 </IconButton>
-                                {todoTurn ? (
-                                    // A To Do receipt is a record of changes
-                                    // made or offered, so it can be confirmed
-                                    // or undone but not regenerated.
+                                {todoTurn && (
                                     <>
-                                        {todoTurn.pending &&
-                                            !todoTurn.undone && (
-                                                <Button
-                                                    size="small"
-                                                    variant="contained"
-                                                    onClick={() =>
-                                                        onConfirmTodoTurn(
-                                                            message,
-                                                        )
-                                                    }
-                                                >
-                                                    Confirm
-                                                </Button>
-                                            )}
-                                        {todoTurn.changed && (
+                                        {todoTurn.confirm !== "none" && (
                                             <Button
                                                 size="small"
-                                                disabled={todoTurn.undone}
+                                                variant="contained"
+                                                disabled={
+                                                    isGenerating ||
+                                                    todoTurn.confirm === "stale"
+                                                }
+                                                onClick={() =>
+                                                    onConfirmTodoTurn(message)
+                                                }
+                                            >
+                                                {todoTurn.confirm === "stale"
+                                                    ? "Expired"
+                                                    : "Confirm"}
+                                            </Button>
+                                        )}
+                                        {todoTurn.undo !== "none" && (
+                                            <Button
+                                                size="small"
+                                                disabled={
+                                                    isGenerating ||
+                                                    todoTurn.undo !==
+                                                        "available"
+                                                }
                                                 onClick={() =>
                                                     onUndoTodoTurn(message)
                                                 }
                                             >
-                                                {todoTurn.undone
-                                                    ? "Undone"
-                                                    : "Undo"}
+                                                {UNDO_LABELS[todoTurn.undo]}
                                             </Button>
                                         )}
                                     </>
-                                ) : (
+                                )}
+                                {(!todoTurn || todoTurn.canRetry) && (
                                     <IconButton
                                         aria-label="Retry"
                                         sx={actionButtonSx}

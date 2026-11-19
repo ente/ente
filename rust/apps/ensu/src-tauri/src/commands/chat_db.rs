@@ -48,9 +48,30 @@ fn image_thread_error() -> ApiError {
     ApiError::new("image_thread", "Image task failed")
 }
 
+fn refusal_name(refusal: db::Refusal) -> &'static str {
+    match refusal {
+        db::Refusal::TodoChanged => "refused.todo_changed",
+        db::Refusal::TitleMissing => "refused.title_missing",
+        db::Refusal::TitleTooLong { .. } => "refused.title_too_long",
+        db::Refusal::UndoStale => "refused.undo_stale",
+        db::Refusal::OfferStale => "refused.offer_stale",
+        db::Refusal::EarlierReplyStands => "refused.earlier_reply_stands",
+        db::Refusal::NothingOffered => "refused.nothing_offered",
+        db::Refusal::NothingChanged => "refused.nothing_changed",
+    }
+}
+
 impl From<db::Error> for ApiError {
     fn from(error: db::Error) -> Self {
-        ApiError::other(ente_core::error::chain(&error))
+        match error {
+            db::Error::Refused(refusal) => {
+                ApiError::new(refusal_name(refusal), refusal.to_string())
+            }
+            db::Error::ConversationChanged => {
+                ApiError::new("conversation_changed", error.to_string())
+            }
+            error => ApiError::other(ente_core::error::chain(&error)),
+        }
     }
 }
 
@@ -214,7 +235,6 @@ pub struct ChatMessageInsertInput {
     parent_message_uuid: Option<String>,
     attachments: Option<Vec<ChatAttachmentInput>>,
     sources: Option<Vec<GroundedSourceDto>>,
-    preparation_token: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -336,71 +356,97 @@ pub async fn chat_db_get_messages(
     .await
 }
 
+fn assistant_text(text: &str, sources: Vec<GroundedSourceDto>) -> Result<String, ApiError> {
+    let sources = sources.into_iter().map(Into::into).collect::<Vec<_>>();
+    if sources.len() > ente_ensu::retrieval::MAX_GROUNDED_SOURCES {
+        return Err(ApiError::new("invalid_input", "Too many grounded sources"));
+    }
+    ente_ensu::retrieval::finalize_grounded_assistant_text(text, &sources).or_else(|error| {
+        logging::log(
+            "ChatDb",
+            format!("assistant source finalization failed error={error}"),
+        );
+        ente_ensu::retrieval::finalize_grounded_assistant_text(text, &[])
+            .map_err(crate::commands::knowledge::retrieval_error)
+    })
+}
+
 #[tauri::command]
 pub async fn chat_db_insert_message(
     state: State<'_, ChatDbState>,
-    conversation_state: State<'_, super::conversation::State>,
-    window: tauri::WebviewWindow,
     input: ChatMessageInsertInput,
 ) -> Result<ChatMessageDto, ApiError> {
     let session_uuid = parse_uuid(&input.session_uuid)?;
     let parent = optional_uuid(&input.parent_message_uuid)?;
     let sender = normalize_sender(&input.sender)?;
     let attachments = convert_attachments(input.attachments)?;
-    let prepared = input
-        .preparation_token
-        .as_deref()
-        .map(|token| conversation_state.take_answer(window.app_handle(), window.label(), token))
-        .transpose()?;
     let text = if sender == "other" {
-        let sources = input
-            .sources
-            .unwrap_or_default()
-            .into_iter()
-            .map(Into::into)
-            .collect::<Vec<_>>();
-        if sources.len() > ente_ensu::retrieval::MAX_GROUNDED_SOURCES {
-            return Err(ApiError::new("invalid_input", "Too many grounded sources"));
-        }
-        let result = ente_ensu::retrieval::finalize_grounded_assistant_text(&input.text, &sources)
-            .map_err(crate::commands::knowledge::retrieval_error);
-        match result {
-            Ok(text) => text,
-            Err(error) => {
-                logging::log(
-                    "ChatDb",
-                    format!(
-                        "assistant source finalization failed error={}",
-                        error.message
-                    ),
-                );
-                ente_ensu::retrieval::finalize_grounded_assistant_text(&input.text, &[])
-                    .map_err(crate::commands::knowledge::retrieval_error)?
-            }
-        }
+        assistant_text(&input.text, input.sources.unwrap_or_default())?
     } else {
         input.text
     };
     with_chat_db_async(&state, move |db| {
-        let snapshot = prepared.as_ref().map(|(snapshot, _)| snapshot);
-        let message =
-            db.insert_message_guarded(session_uuid, sender, &text, parent, attachments, snapshot)?;
-        if let Some((snapshot, passages)) = prepared.filter(|(_, passages)| !passages.is_empty()) {
-            match db.save_answer_evidence(&snapshot, message.uuid, passages) {
-                Ok(true) => {}
-                Ok(false) => logging::log(
-                    "ChatDb",
-                    "Reply saved, but its source references could not be retained",
-                ),
-                Err(error) => logging::log(
-                    "ChatDb",
-                    format!("Reply saved but source reference persistence failed: {error}"),
-                ),
-            }
-        }
-        Ok(ChatMessageDto::from(message))
+        Ok(ChatMessageDto::from(db.insert_message(
+            session_uuid,
+            sender,
+            &text,
+            parent,
+            attachments,
+        )?))
     })
     .await
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FinishReplyInput {
+    preparation_token: String,
+    text: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FinishedReplyDto {
+    message: ChatMessageDto,
+    tool_turn: Option<super::todo::ToolTurnStatusDto>,
+}
+
+#[tauri::command]
+pub async fn chat_db_finish_reply(
+    state: State<'_, ChatDbState>,
+    conversation_state: State<'_, super::conversation::State>,
+    window: tauri::WebviewWindow,
+    input: FinishReplyInput,
+) -> Result<FinishedReplyDto, ApiError> {
+    let app = window.app_handle();
+    let super::conversation::Answer {
+        snapshot,
+        sources,
+        passages,
+        tools,
+    } = conversation_state.take_answer(app, window.label(), &input.preparation_token)?;
+    let finished = with_chat_db_async(&state, move |db| {
+        ente_ensu::conversation::finish_turn(
+            db,
+            &snapshot,
+            ente_ensu::conversation::Reply {
+                text: &input.text,
+                sources: &sources,
+                passages,
+                attachments: Vec::new(),
+                tools: tools.as_deref(),
+            },
+        )
+    })
+    .await?;
+    for warning in &finished.warnings {
+        logging::log("ChatDb", warning.to_string());
+    }
+    let finished = finished.reply;
+    Ok(FinishedReplyDto {
+        message: finished.message.into(),
+        tool_turn: finished.tool_turn.map(Into::into),
+    })
 }
 
 #[tauri::command]
@@ -462,7 +508,7 @@ pub async fn chat_db_open(
             .collect::<Vec<_>>();
         let migrated =
             chat_db_migration::prepare(&root, &path, &attachments, key.clone(), recovery_keys)?;
-        open_chat_db(&inner, path, key)?;
+        open_chat_db(&inner, path, key, app)?;
         Ok(migrated)
     })
     .await
@@ -574,6 +620,7 @@ fn open_chat_db(
     inner: &Arc<Mutex<Option<ChatDbHolder>>>,
     path: PathBuf,
     key: Vec<u8>,
+    app: AppHandle,
 ) -> Result<(), ApiError> {
     logging::log("ChatDb", format!("opening chat DB db={}", path.display()));
     let db = ChatDb::open_sqlite_with_defaults(path, key).map_err(|error| {
@@ -581,6 +628,7 @@ fn open_chat_db(
         ApiError::from(error)
     })?;
     db.list_sessions().map_err(ApiError::from)?;
+    db.observe_tools(Arc::new(move || super::todo::notify(&app)));
     *inner
         .lock()
         .map_err(|_| ApiError::new("lock", "Failed to lock chat DB state"))? =

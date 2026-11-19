@@ -29,17 +29,18 @@ CREATE INDEX IF NOT EXISTS idx_messages_order ON messages(session_uuid, created_
 CREATE INDEX IF NOT EXISTS idx_sessions_updated ON sessions(updated_at);
 ";
 
-pub(super) const CREATE_TODO_TABLES: &str = "
+pub(super) const CREATE_TOOL_TABLES: &str = "
 CREATE TABLE IF NOT EXISTS todos (
   todo_id    TEXT PRIMARY KEY NOT NULL,
   record     BLOB NOT NULL,
   created_at INTEGER NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS todo_turns (
+CREATE TABLE IF NOT EXISTS tool_turns (
   reply_id  TEXT PRIMARY KEY NOT NULL,
-  source_id TEXT UNIQUE NOT NULL,
+  source_id TEXT NOT NULL,
   record    BLOB NOT NULL,
   FOREIGN KEY (reply_id) REFERENCES messages(message_uuid) ON DELETE CASCADE
 );
+CREATE INDEX IF NOT EXISTS idx_tool_turns_source ON tool_turns(source_id);
 ";

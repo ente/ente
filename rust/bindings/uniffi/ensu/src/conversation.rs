@@ -7,9 +7,10 @@ use ente_ensu::{conversation as core, db, llm, retrieval};
 use thiserror::Error;
 use uuid::Uuid;
 
-use crate::db::{DbAttachmentMeta, DbMessage, EnsuDb, to_message};
+use crate::db::{DbAttachmentMeta, EnsuDb, to_message};
 use crate::llm::{LlmChatMessage, LlmContext, LlmToolRequest};
 use crate::retrieval::GroundedExcerpt;
+use crate::todos::FinishedReply;
 
 #[derive(Debug, Error, uniffi::Error)]
 pub enum ConversationError {
@@ -21,6 +22,11 @@ pub enum ConversationError {
         "This message is too long for the model, even without earlier messages. Shorten it or split it into smaller messages. Your full text is still available to edit or copy."
     )]
     CurrentInputTooLarge,
+    #[error("{detail}")]
+    Refused {
+        reason: crate::db::RefusalReason,
+        detail: String,
+    },
     #[error("{detail}")]
     Other { detail: String },
 }
@@ -54,16 +60,12 @@ pub struct ConversationRequest {
     pub searched: Vec<GroundedExcerpt>,
     pub followup: Option<Arc<crate::followup::ConversationFollowup>>,
     pub reloaded: Vec<GroundedExcerpt>,
-    /// Offer the model the To Do tools for this turn.
-    #[uniffi(default = false)]
-    pub todo_tools: bool,
 }
 
 #[derive(Debug, Clone, uniffi::Record)]
 pub struct ConversationResult {
     pub messages: Vec<LlmChatMessage>,
     pub max_tokens: u32,
-    /// Tools to pass with the generation request, when requested.
     pub tools: Option<Arc<LlmToolRequest>>,
 }
 
@@ -183,12 +185,10 @@ impl ConversationPreparation {
             input.searched.into_iter().map(Into::into).collect(),
             core::MAX_GROUNDING_BYTES,
         )?;
-        let tools = input
-            .todo_tools
-            .then(|| self.db.todo_chat_tools(&input.expected_user_text))
-            .transpose()
+        let turn_tools = self
+            .db
+            .turn_tools(&snapshot, &input.expected_user_text)
             .map_err(error)?;
-        let tool_turns = self.db.tool_history(snapshot.messages()).map_err(error)?;
         let input = core::TurnInput {
             session,
             messages: snapshot.messages().to_vec(),
@@ -200,13 +200,12 @@ impl ConversationPreparation {
             output: input.max_tokens.map(|value| value as usize),
             state: snapshot.state().cloned(),
             candidates,
-            tool_turns,
+            tools: turn_tools,
         };
         let mut effects = NativeEffects {
             owner: self,
             snapshot: &mut snapshot,
             callback,
-            tools: tools.as_ref(),
         };
         let mut prepared = self.grounding.prepare_turn(input, &mut effects)?;
         let result = prepared.preparation.run(&mut effects)?;
@@ -216,7 +215,9 @@ impl ConversationPreparation {
             result,
             max_tokens: prepared.budget.output as u32,
             grounded: prepared.grounding.context,
-            tools: tools.map(|tools| Arc::new(LlmToolRequest(tools))),
+            tools: prepared
+                .tools
+                .map(|tools| Arc::new(LlmToolRequest(llm::ToolExchange::new(tools)))),
         })
     }
 }
@@ -266,52 +267,49 @@ impl ConversationPreparation {
         Ok(())
     }
 
-    pub fn add_answer(
+    pub fn finish(
         &self,
         text: String,
         attachments: Vec<DbAttachmentMeta>,
-    ) -> Result<DbMessage, ConversationError> {
+    ) -> Result<FinishedReply, ConversationError> {
         let mut work = self.work.lock().map_err(error)?;
         self.check(&work)?;
         let Work::Ready(work) = &mut *work else {
             return Err(error("Conversation preparation is not complete"));
         };
-        let sources = work
-            .grounded
-            .as_ref()
-            .map(|grounded| grounded.sources.as_slice())
-            .unwrap_or_default();
-        let text = retrieval::finalize_grounded_assistant_text(&text, sources).map_err(error)?;
-        let answer = self
+        let (sources, passages) = match &work.grounded {
+            Some(grounded) => (grounded.sources.clone(), grounded.included_passages.clone()),
+            None => Default::default(),
+        };
+        let finished = self
             .grounding
-            .save_answer(
+            .finish(
                 &self.db,
                 &work.snapshot,
                 &mut work.result,
-                &text,
-                attachments.into_iter().map(Into::into).collect(),
+                core::Reply {
+                    text: &text,
+                    sources: &sources,
+                    passages,
+                    attachments: attachments.into_iter().map(Into::into).collect(),
+                    tools: work.tools.as_ref().map(|tools| &tools.0),
+                },
             )
-            .map_err(error)?;
-        if let Some(grounded) = work.grounded.take()
-            && !grounded.included_passages.is_empty()
-        {
-            match self.db.save_answer_evidence(
-                &work.snapshot,
-                answer.uuid,
-                grounded.included_passages,
-            ) {
-                Ok(true) => {}
-                Ok(false) => ente_uniffi_log::warn!(
-                    target: "Conversation",
-                    "Reply saved, but its source references could not be retained"
-                ),
-                Err(error) => ente_uniffi_log::warn!(
-                    target: "Conversation",
-                    "Reply saved but source reference persistence failed: {error}"
-                ),
-            }
+            .map_err(|cause| match cause {
+                db::Error::Refused(refusal) => ConversationError::Refused {
+                    reason: refusal.into(),
+                    detail: refusal.to_string(),
+                },
+                db::Error::ConversationChanged => ConversationError::Stale,
+                cause => error(cause),
+            })?;
+        for warning in &finished.warnings {
+            ente_uniffi_log::warn!(target: "Conversation", "{warning}");
         }
-        Ok(to_message(answer))
+        Ok(FinishedReply {
+            message: to_message(finished.reply.message),
+            tool_turn: finished.reply.tool_turn.map(Into::into),
+        })
     }
 }
 
@@ -319,13 +317,15 @@ struct NativeEffects<'a> {
     owner: &'a ConversationPreparation,
     snapshot: &'a mut db::chat::ConversationSnapshot,
     callback: &'a dyn ConversationProgressCallback,
-    /// Counted in every measurement, since generation declares them.
-    tools: Option<&'a llm::ToolRequest>,
 }
 
 impl core::Effects for NativeEffects<'_> {
     fn supports_partial_prompt_reuse(&self) -> bool {
         self.owner.context.supports_partial_prompt_reuse()
+    }
+
+    fn supports_tools(&self) -> bool {
+        self.owner.context.supports_tools()
     }
 
     fn prefer_large_summary_chunks(&self) -> bool {
@@ -352,12 +352,16 @@ impl core::Effects for NativeEffects<'_> {
         Ok(())
     }
 
-    fn measure(&mut self, messages: &[llm::ChatMessage]) -> Result<usize, core::PrepareError> {
+    fn measure(
+        &mut self,
+        messages: &[llm::ChatMessage],
+        tools: Option<&llm::ToolRequest>,
+    ) -> Result<usize, core::PrepareError> {
         self.owner
             .context
             .measure_text_chat_prompt(&llm::ChatRequest {
                 messages: messages.to_vec(),
-                tools: self.tools.cloned(),
+                tools: tools.cloned(),
                 ..Default::default()
             })
             .map_err(|cause| core::PrepareError::Backend(cause.to_string()))
@@ -371,14 +375,7 @@ impl core::Effects for NativeEffects<'_> {
         self.check_current()?;
         self.callback.on_progress();
         self.check_cancelled()?;
-        let prompt_tokens = self
-            .owner
-            .context
-            .measure_text_chat_prompt(&llm::ChatRequest {
-                messages: messages.clone(),
-                ..Default::default()
-            })
-            .map_err(|cause| core::PrepareError::Backend(cause.to_string()))?;
+        let prompt_tokens = self.measure(&messages, None)?;
         let generation = core::summary_request(messages, output, prompt_tokens)?;
         let mut text = String::new();
         let result = self

@@ -54,7 +54,6 @@ export interface ChatSidebarProps {
     requestRenameSession: (session: ChatSession) => void;
     requestDeleteSession: (sessionId: string) => void;
     openSettingsModal: () => void;
-    /** Opens the To Do list; omitted where To Dos are unavailable. */
     openTodos?: () => void;
 }
 

@@ -115,18 +115,8 @@ pub struct LlmToolCall {
     pub arguments: Vec<LlmToolArgument>,
 }
 
-#[derive(Debug, Clone, uniffi::Record)]
-pub struct LlmToolOutcome {
-    /// Parsed calls, empty when the model replied.
-    pub calls: Vec<LlmToolCall>,
-    pub call_probability: Option<f32>,
-    /// False when the model has no native tool calls and replied instead.
-    pub supported: bool,
-}
-
-/// Tools for a chat request, built by the Rust core.
 #[derive(Debug, uniffi::Object)]
-pub struct LlmToolRequest(pub(crate) llm::ToolRequest);
+pub struct LlmToolRequest(pub(crate) llm::ToolExchange);
 
 impl From<llm::ToolValue> for LlmToolValue {
     fn from(value: llm::ToolValue) -> Self {
@@ -175,16 +165,6 @@ impl From<LlmToolCall> for llm::ToolCall {
     }
 }
 
-impl From<llm::ToolOutcome> for LlmToolOutcome {
-    fn from(outcome: llm::ToolOutcome) -> Self {
-        Self {
-            calls: outcome.calls.into_iter().map(Into::into).collect(),
-            call_probability: outcome.call_probability,
-            supported: outcome.supported,
-        }
-    }
-}
-
 #[derive(Debug, Clone, uniffi::Record)]
 pub struct LlmChatRequest {
     pub messages: Vec<LlmChatMessage>,
@@ -213,8 +193,7 @@ pub struct LlmGenerationSummary {
     pub prompt_tokens: Option<i32>,
     pub generated_tokens: Option<i32>,
     pub total_time_ms: Option<i64>,
-    /// Present when the request had tools.
-    pub tools: Option<LlmToolOutcome>,
+    pub called_tools: bool,
 }
 
 #[derive(Debug, Clone, uniffi::Enum)]
@@ -334,8 +313,13 @@ impl LlmContext {
         callback: Arc<dyn LlmGenerationEventCallback>,
     ) -> Result<LlmGenerationSummary, LlmError> {
         let mut sink = CallbackSink { callback };
+        let tools = request.tools.clone();
         self.handle
-            .generate_chat_stream(request.into(), &mut sink)
+            .generate_with_tools(
+                request.into(),
+                tools.as_ref().map(|tools| &tools.0),
+                &mut sink,
+            )
             .map(Into::into)
             .map_err(LlmError::from)
     }
@@ -468,7 +452,7 @@ impl From<LlmChatRequest> for llm::ChatRequest {
             seed: value.seed,
             stop_sequences: value.stop_sequences,
             grammar: value.grammar,
-            tools: value.tools.map(|tools| tools.0.clone()),
+            tools: None,
         }
     }
 }
@@ -480,7 +464,7 @@ impl From<llm::GenerationSummary> for LlmGenerationSummary {
             prompt_tokens: value.prompt_tokens,
             generated_tokens: value.generated_tokens,
             total_time_ms: value.total_time_ms,
-            tools: value.tools.map(Into::into),
+            called_tools: value.tools.is_some_and(|tools| !tools.calls.is_empty()),
         }
     }
 }

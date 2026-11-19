@@ -1,5 +1,6 @@
 import type { GroundedSource } from "@/services/knowledge";
 import { isTauriRuntime } from "@/services/tauri-runtime";
+import type { ToolTurnStatus } from "@/services/todos";
 import { getKV, removeKV, setKV } from "ente-base/kv";
 import log from "ente-base/log";
 import { ensureArrayBufferBacked } from "ente-utils/bytes";
@@ -134,7 +135,7 @@ interface NativeAttachment {
     size: number;
 }
 
-export interface NativeMessage {
+interface NativeMessage {
     messageUuid: string;
     sessionUuid: string;
     parentMessageUuid?: string | null;
@@ -145,8 +146,7 @@ export interface NativeMessage {
     sources?: GroundedSource[];
 }
 
-/** Converts a message returned by a native chat command. */
-export const fromNativeMessage = (message: NativeMessage): ChatMessage => ({
+const fromNativeMessage = (message: NativeMessage): ChatMessage => ({
     messageUuid: message.messageUuid,
     sessionUuid: message.sessionUuid,
     parentMessageUuid: message.parentMessageUuid ?? undefined,
@@ -450,7 +450,6 @@ const addMessageNative = async (
     parentMessageUuid?: string,
     attachments: ChatAttachment[] = [],
     sources: GroundedSource[] = [],
-    preparationToken?: string,
 ): Promise<ChatMessage> => {
     const message = await invokeChat<NativeMessage>("chat_db_insert_message", {
         input: {
@@ -459,7 +458,6 @@ const addMessageNative = async (
             text,
             parentMessageUuid,
             sources,
-            preparationToken,
             attachments: attachments.map((attachment) => ({
                 id: attachment.id,
                 kind: attachment.kind,
@@ -622,26 +620,24 @@ export const createSession = async (chatKey: string) => {
     return sessionUuid;
 };
 
-export interface PreparedAnswer {
-    token: string;
-    sessionUuid: string;
-    parentMessageUuid: string;
-    sources: GroundedSource[];
+export interface FinishedReply {
+    message: ChatMessage;
+    toolTurn: ToolTurnStatus | null;
 }
 
-export const addPreparedAnswer = (
-    preparation: PreparedAnswer,
+export const finishPreparedReply = async (
+    preparationToken: string,
     text: string,
-): Promise<ChatMessage> =>
-    addMessageNative(
-        preparation.sessionUuid,
-        "assistant",
-        text,
-        preparation.parentMessageUuid,
-        [],
-        preparation.sources,
-        preparation.token,
-    );
+): Promise<FinishedReply> => {
+    const finished = await invokeChat<{
+        message: NativeMessage;
+        toolTurn: ToolTurnStatus | null;
+    }>("chat_db_finish_reply", { input: { preparationToken, text } });
+    return {
+        message: fromNativeMessage(finished.message),
+        toolTurn: finished.toolTurn,
+    };
+};
 
 export const addMessage = async (
     sessionUuid: string,

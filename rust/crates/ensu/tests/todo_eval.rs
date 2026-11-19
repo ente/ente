@@ -1,19 +1,3 @@
-//! Accuracy and latency of To Do tool calls against a labelled set of chat
-//! turns. Run per model:
-//!
-//! ```sh
-//! ENSU_TEST_MODEL=/path/model.gguf cargo test -p ente-ensu --test todo_eval -- --ignored --nocapture
-//! ```
-//!
-//! `data/todo_eval.jsonl` is the dev set: study its failures when tuning tool
-//! wording or call handling. `data/todo_eval_holdout.jsonl` is held out:
-//! score it with `ENSU_EVAL_CASES`, but don't shape fixes around its
-//! individual failures, or its score stops measuring how well they generalise.
-//!
-//! Optional: `ENSU_EVAL_CASES` (another JSONL file), `ENSU_EVAL_OUT` (write a
-//! JSON report), `ENSU_EVAL_MIN_ROUTE` and `ENSU_EVAL_MAX_FALSE_CHANGE`
-//! (fail below or above these rates), `ENSU_EVAL_CALL_PROBABILITY`.
-
 #![cfg(test)]
 
 use std::time::Instant;
@@ -29,18 +13,13 @@ struct Case {
     #[serde(default)]
     history: Vec<ChatMessage>,
     user: String,
-    /// "tool" or "reply".
     expect: String,
     #[serde(default)]
     calls: Vec<ExpectedCall>,
-    /// Open To Do titles when the turn starts, in list order. Absent means
-    /// the list the history just showed or, without one, [`BACKGROUND_TODOS`].
     #[serde(default)]
     todos: Option<Vec<String>>,
 }
 
-/// Open tasks for cases that don't set their own: unrelated to every case, so
-/// they never make a reply case a valid completion.
 const BACKGROUND_TODOS: [&str; 4] = [
     "Order new contact lenses",
     "Repot the fern",
@@ -51,18 +30,14 @@ const BACKGROUND_TODOS: [&str; 4] = [
 #[derive(Deserialize)]
 struct ExpectedCall {
     name: String,
-    /// Words the title must contain, case-insensitively.
     #[serde(default)]
     title: Vec<String>,
-    /// The exact quoted deadline. `null` means no deadline; absent means
-    /// unchecked.
     #[serde(default, deserialize_with = "present")]
     when: Option<Option<String>>,
     #[serde(default)]
     filter: Option<String>,
     #[serde(default)]
     number: Option<i64>,
-    /// Words the task reference must contain.
     #[serde(default)]
     task: Vec<String>,
 }
@@ -78,7 +53,6 @@ fn contains_all(value: Option<&str>, words: &[String]) -> bool {
         .all(|word| value.contains(&word.to_lowercase()))
 }
 
-/// The clock the labels assume: Thursday 12 November 2026, 14:30 local time.
 fn now() -> chrono::NaiveDateTime {
     chrono::NaiveDate::from_ymd_opt(2026, 11, 12)
         .unwrap()
@@ -86,8 +60,6 @@ fn now() -> chrono::NaiveDateTime {
         .unwrap()
 }
 
-/// Deadlines match when both resolve to the same time, so equivalent quotes
-/// ("Thursday at 11 AM", "on Thursday at 11 AM") count as correct.
 fn same_deadline(expected: Option<&str>, actual: Option<&str>) -> bool {
     let resolve = |quote: &str| todo::timing::parse_deadline(quote, now()).map(|d| d.at);
     match (expected, actual) {
@@ -110,7 +82,7 @@ fn call_matches(expected: &ExpectedCall, actual: &ToolCall) -> bool {
         && expected
             .filter
             .as_ref()
-            .is_none_or(|filter| Some(filter.as_str()) == actual.text("filter"))
+            .is_none_or(|filter| filter == actual.text("filter").unwrap_or("open"))
         && expected
             .number
             .is_none_or(|number| Some(number) == actual.integer("number"))
@@ -118,8 +90,6 @@ fn call_matches(expected: &ExpectedCall, actual: &ToolCall) -> bool {
 
 const CHANGES: [&str; 2] = [todo::SAVE_TOOL, todo::COMPLETE_TOOL];
 
-/// Tasks in the list the history's last reply showed, as the app tracks them
-/// for "the second one".
 fn shown(history: &[ChatMessage]) -> Vec<String> {
     history
         .last()
@@ -137,7 +107,6 @@ fn shown(history: &[ChatMessage]) -> Vec<String> {
         })
 }
 
-/// The open tasks the model is shown for `case`.
 fn open_todos(case: &Case) -> Vec<String> {
     if let Some(todos) = &case.todos {
         return todos.clone();
@@ -150,6 +119,75 @@ fn open_todos(case: &Case) -> Vec<String> {
             .collect()
     } else {
         shown
+    }
+}
+
+const NOW_MS: i64 = 1_794_493_800_000;
+
+#[derive(serde::Serialize, Deserialize)]
+struct Recorded {
+    id: String,
+    raw_calls: Vec<ToolCall>,
+    call_probability: Option<f32>,
+    calls: Vec<ToolCall>,
+    unsure: bool,
+    text: String,
+}
+
+fn todos(case: &Case, open: &[&str]) -> (Vec<todo::Todo>, Vec<uuid::Uuid>) {
+    let shown = shown(&case.history);
+    let mut titles: Vec<&str> = open.to_vec();
+    for title in &shown {
+        if !titles.contains(&title.as_str()) {
+            titles.push(title);
+        }
+    }
+    let todos: Vec<todo::Todo> = titles
+        .iter()
+        .enumerate()
+        .map(|(i, title)| todo::Todo {
+            id: uuid::Uuid::from_u128(i as u128 + 1),
+            title: (*title).to_owned(),
+            due_at_ms: None,
+            completed_at_ms: None,
+            created_at_ms: i as i64,
+            updated_at_ms: i as i64,
+            version: 1,
+        })
+        .collect();
+    let shown = shown
+        .iter()
+        .filter_map(|title| todos.iter().find(|todo| &todo.title == title))
+        .map(|todo| todo.id)
+        .collect();
+    (todos, shown)
+}
+
+fn planned(
+    case: &Case,
+    open: &[&str],
+    calls: &[ToolCall],
+    call_probability: Option<f32>,
+) -> (Vec<ToolCall>, bool, String) {
+    let (todos, shown) = todos(case, open);
+    let mut next = 1000_u128;
+    match todo::plan(
+        calls,
+        &case.user,
+        &shown,
+        todos,
+        (NOW_MS, &chrono::Utc),
+        call_probability,
+        &mut || {
+            next += 1;
+            uuid::Uuid::from_u128(next)
+        },
+    ) {
+        Ok(plan) => {
+            let text = plan.text(plan.unsure, &chrono::Utc);
+            (plan.calls, plan.unsure, text)
+        }
+        Err(name) => (calls.to_vec(), true, format!("unknown tool {name}")),
     }
 }
 
@@ -196,11 +234,10 @@ fn todo_tool_calls_meet_accuracy_targets() {
     let (mut route_ok, mut calls_ok, mut false_changes, mut misses) = (0, 0, 0, 0);
     let mut raw_calls_ok = 0;
     let mut false_by_tool = std::collections::BTreeMap::<&str, usize>::new();
-    // How the app would handle each turn: changes apply directly at high
-    // confidence and are offered for confirmation below it.
     let (mut applied_right, mut offered_right, mut applied_wrong, mut offered_wrong) = (0, 0, 0, 0);
     let (mut prompt_tokens, mut elapsed_ms) = (0_i64, 0_u128);
     let mut failures = Vec::new();
+    let mut recorded = Vec::new();
     let mut probabilities = Vec::new();
     for case in &cases {
         let mut messages = vec![ChatMessage::new("system", system.clone())];
@@ -231,7 +268,6 @@ fn todo_tool_calls_meet_accuracy_targets() {
         elapsed_ms += started.elapsed().as_millis();
         prompt_tokens += i64::from(summary.prompt_tokens.unwrap_or_default());
         let outcome = summary.tools.expect("tool outcome");
-        assert!(outcome.supported, "this model has no native tool calls");
         probabilities.push((
             case.expect == "tool",
             outcome.call_probability.unwrap_or_default(),
@@ -251,9 +287,6 @@ fn todo_tool_calls_meet_accuracy_targets() {
         {
             false_changes += 1;
         }
-        // On reply cases, which tools fired: saves become offers for models
-        // that confirm, completions only change a task that matches, and
-        // lists change nothing.
         if case.expect == "reply" {
             for name in [todo::SAVE_TOOL, todo::COMPLETE_TOOL, todo::LIST_TOOL] {
                 if outcome.calls.iter().any(|call| call.name == name) {
@@ -273,13 +306,16 @@ fn todo_tool_calls_meet_accuracy_targets() {
                     .zip(calls)
                     .all(|(e, a)| call_matches(e, a))
         };
-        // Scored as the app applies them: after the rule-based refinements.
-        let refined = todo::refine_calls(
-            &outcome.calls,
-            &case.user,
-            shown(&case.history).len(),
-            now(),
-        );
+        let (refined, unsure, text) =
+            planned(case, &open, &outcome.calls, outcome.call_probability);
+        recorded.push(Recorded {
+            id: case.id.clone(),
+            raw_calls: outcome.calls.clone(),
+            call_probability: outcome.call_probability,
+            calls: refined.clone(),
+            unsure,
+            text,
+        });
         raw_calls_ok += usize::from(matches(&outcome.calls));
         let matched = matches(&refined);
         calls_ok += usize::from(matched);
@@ -287,7 +323,7 @@ fn todo_tool_calls_meet_accuracy_targets() {
             .iter()
             .any(|call| CHANGES.contains(&call.name.as_str()));
         if changes {
-            let direct = !todo::confirm_changes(outcome.call_probability);
+            let direct = !unsure;
             match (matched, direct) {
                 (true, true) => applied_right += 1,
                 (true, false) => offered_right += 1,
@@ -335,6 +371,13 @@ fn todo_tool_calls_meet_accuracy_targets() {
             .collect::<Vec<Value>>(),
         "failures": failures,
     });
+    if let Ok(out) = std::env::var("ENSU_EVAL_RECORD") {
+        let lines: Vec<String> = recorded
+            .iter()
+            .map(|record| serde_json::to_string(record).unwrap())
+            .collect();
+        std::fs::write(out, lines.join("\n") + "\n").unwrap();
+    }
     if let Ok(out) = std::env::var("ENSU_EVAL_OUT") {
         std::fs::write(out, serde_json::to_string_pretty(&report).unwrap()).unwrap();
     }
@@ -361,6 +404,7 @@ fn todo_tool_calls_meet_accuracy_targets() {
 
 #[test]
 fn labelled_cases_parse_and_their_deadlines_resolve() {
+    assert_eq!(now().and_utc().timestamp_millis(), NOW_MS);
     let cases: Vec<Case> = [
         include_str!("data/todo_eval.jsonl"),
         include_str!("data/todo_eval_holdout.jsonl"),
@@ -396,4 +440,35 @@ fn labelled_cases_parse_and_their_deadlines_resolve() {
             }
         }
     }
+}
+
+#[test]
+fn recorded_model_calls_plan_the_same() {
+    let cases: std::collections::BTreeMap<String, Case> = include_str!("data/todo_eval.jsonl")
+        .lines()
+        .filter(|line| !line.trim().is_empty())
+        .map(|line| serde_json::from_str::<Case>(line).unwrap())
+        .map(|case| (case.id.clone(), case))
+        .collect();
+    let mut replayed = 0;
+    for line in include_str!("data/todo_replay.jsonl")
+        .lines()
+        .filter(|line| !line.trim().is_empty())
+    {
+        let record: Recorded = serde_json::from_str(line).unwrap();
+        let case = &cases[&record.id];
+        let open = open_todos(case);
+        let open: Vec<&str> = open.iter().map(String::as_str).collect();
+        let (calls, unsure, text) =
+            planned(case, &open, &record.raw_calls, record.call_probability);
+        assert_eq!(
+            (calls, unsure, text),
+            (record.calls, record.unsure, record.text),
+            "{}: {}",
+            record.id,
+            case.user
+        );
+        replayed += 1;
+    }
+    assert_eq!(replayed, cases.len());
 }

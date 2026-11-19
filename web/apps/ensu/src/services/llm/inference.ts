@@ -728,11 +728,6 @@ const normalizeWllamaError = (error: unknown, fallback: string) => {
     return new Error(typeof error === "string" ? error : fallback);
 };
 
-/**
- * The WASM backend has no native tool format, so tool turns are flattened
- * the same way the native layer does it for such models: results become
- * assistant text and call markup is dropped.
- */
 const toWllamaMessages = (messages: LlmMessage[]) =>
     messages.map(({ role, content }) => ({
         role: role === "tool" ? ("assistant" as const) : role,
@@ -756,7 +751,6 @@ const buildGenerateChatRequest = (request: GenerateChatRequest) => ({
     seed: request.seed ?? null,
     stop_sequences: request.stopSequences ?? null,
     grammar: request.grammar ?? null,
-    tools: request.tools ?? null,
 });
 
 const buildSamplingConfig = (request: GenerateChatRequest) => {

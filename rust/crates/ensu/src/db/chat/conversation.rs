@@ -12,8 +12,10 @@ pub struct ConversationSnapshot {
     pub(super) session_uuid: Uuid,
     pub(super) messages: Vec<Message>,
     pub(super) state: Option<ConversationState>,
+    pub(super) todos: Vec<crate::todo::Todo>,
     derived: ConversationEnvelope,
     rows: Vec<crate::db::Row>,
+    turns: Vec<crate::db::Row>,
     envelope: Value,
 }
 
@@ -48,7 +50,7 @@ impl<B: Backend> ChatDb<B> {
                 "Conversation history is too large".into(),
             ));
         }
-        let (envelope, rows) = self.backend.transaction(|tx| {
+        let (envelope, rows, turns, todos) = self.backend.transaction(|tx| {
             let envelope = session_envelope(tx, session)?.ok_or(Error::NotFound {
                 entity: EntityType::Session,
                 id: session,
@@ -72,7 +74,7 @@ impl<B: Backend> ChatDb<B> {
                     "Conversation history omits an existing ancestor".into(),
                 ));
             }
-            Ok((envelope, rows))
+            Ok((envelope, rows, turn_rows(tx, path)?, self.read_todos(tx)?))
         })?;
         let messages = rows
             .iter()
@@ -96,8 +98,10 @@ impl<B: Backend> ChatDb<B> {
             session_uuid: session,
             messages,
             state,
+            todos,
             derived,
             rows,
+            turns,
             envelope,
         })
     }
@@ -328,6 +332,22 @@ fn message_rows<T: BackendTx>(
     Ok(Some(rows))
 }
 
+fn turn_rows<T: BackendTx>(tx: &T, replies: &[Uuid]) -> Result<Vec<crate::db::Row>> {
+    let mut rows = Vec::new();
+    for ids in replies.chunks(MESSAGE_QUERY_BATCH_SIZE) {
+        let placeholders = vec!["?"; ids.len()].join(", ");
+        let params: Vec<_> = ids.iter().map(|id| Value::Text(id.to_string())).collect();
+        rows.extend(tx.query(
+            &format!(
+                "SELECT reply_id, record FROM tool_turns
+                 WHERE reply_id IN ({placeholders}) ORDER BY reply_id"
+            ),
+            &params,
+        )?);
+    }
+    Ok(rows)
+}
+
 fn has_existing_parent<T: BackendTx>(tx: &T, rows: &[crate::db::Row]) -> Result<bool> {
     let Some(root) = rows.first() else {
         return Ok(false);
@@ -346,8 +366,10 @@ pub(super) fn snapshot_matches<T: BackendTx>(
     let Some(envelope) = session_envelope(tx, snapshot.session_uuid)? else {
         return Ok(false);
     };
+    let path: Vec<_> = snapshot.messages.iter().map(|m| m.uuid).collect();
     if (compare_envelope && envelope != snapshot.envelope)
         || has_existing_parent(tx, &snapshot.rows)?
+        || turn_rows(tx, &path)? != snapshot.turns
     {
         return Ok(false);
     }

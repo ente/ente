@@ -1,27 +1,8 @@
 type LlmRole = "system" | "user" | "assistant" | "tool";
 
-/** A tool call the model made, as returned by the native layer. */
-export interface LlmToolCall {
-    name: string;
-    arguments: Record<string, string | number>;
-}
-
-/**
- * Tool declarations built by the native layer. The web layer only passes
- * them back with the generation request, so the shape stays opaque here.
- */
-export type LlmToolRequest = Record<string, unknown>;
-
-export interface LlmToolOutcome {
-    calls: LlmToolCall[];
-    call_probability: number | null;
-    supported: boolean;
-}
-
 export interface LlmMessage {
     role: LlmRole;
     content: string;
-    tool_calls?: LlmToolCall[];
 }
 
 export interface ModelInfo {
@@ -54,7 +35,7 @@ export interface GenerateSummary {
     prompt_tokens: number | null;
     generated_tokens: number | null;
     total_time_ms: number | null;
-    tools?: LlmToolOutcome | null;
+    tools?: { calls: unknown[] } | null;
 }
 
 export type GenerateEvent =
@@ -78,6 +59,5 @@ export interface GenerateChatRequest {
     seed?: number;
     stopSequences?: string[];
     grammar?: string;
-    tools?: LlmToolRequest;
     preparationToken?: string;
 }

@@ -5,7 +5,6 @@ use serde_json::{Map, Value, json};
 use super::{ParameterKind, ToolCall, ToolExample, ToolRequest, ToolSpec, ToolValue};
 use crate::llm::Error;
 
-/// A chat format with native tool calls.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Format {
     Lfm,
@@ -20,37 +19,82 @@ const LFM_RESPONSE_START: &str = "<|tool_response_start|>";
 const LFM_RESPONSE_END: &str = "<|tool_response_end|>";
 
 fn invalid() -> Error {
-    Error::InvalidInput("The model produced an invalid tool call".into())
+    crate::llm::ToolCallFailure::Invalid.into()
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(super) enum TextSyntax {
+    Delimited(&'static str),
+    Json,
+    Bare,
+}
+
+pub(super) struct Syntax {
+    pub(super) open: &'static str,
+    pub(super) close: &'static str,
+    pub(super) list: Option<[&'static str; 3]>,
+    pub(super) between: &'static str,
+    pub(super) call: [&'static str; 3],
+    pub(super) argument: [&'static str; 3],
+    pub(super) argument_separator: &'static str,
+    pub(super) text: TextSyntax,
+}
+
+const LFM: Syntax = Syntax {
+    open: "<|tool_call_start|>",
+    close: "<|tool_call_end|>",
+    list: Some(["[", ", ", "]"]),
+    between: "",
+    call: ["", "(", ")"],
+    argument: ["", "=", ""],
+    argument_separator: ", ",
+    text: TextSyntax::Json,
+};
+
+const GEMMA: Syntax = Syntax {
+    open: "<|tool_call>",
+    close: "<tool_call|>",
+    list: None,
+    between: "",
+    call: ["call:", "{", "}"],
+    argument: ["", ":", ""],
+    argument_separator: ",",
+    text: TextSyntax::Delimited(GEMMA_QUOTE),
+};
+
+const QWEN: Syntax = Syntax {
+    open: "<tool_call>",
+    close: "</tool_call>",
+    list: None,
+    between: "\n",
+    call: ["\n<function=", ">\n", "</function>\n"],
+    argument: ["<parameter=", ">\n", "\n</parameter>\n"],
+    argument_separator: "",
+    text: TextSyntax::Bare,
+};
+
 impl Format {
+    pub(super) fn syntax(self) -> &'static Syntax {
+        match self {
+            Self::Lfm => &LFM,
+            Self::Gemma => &GEMMA,
+            Self::Qwen => &QWEN,
+        }
+    }
+
     pub(crate) fn open(self) -> &'static str {
-        match self {
-            Self::Lfm => "<|tool_call_start|>",
-            Self::Gemma => "<|tool_call>",
-            Self::Qwen => "<tool_call>",
-        }
+        self.syntax().open
     }
 
-    pub(crate) fn close(self) -> &'static str {
-        match self {
-            Self::Lfm => "<|tool_call_end|>",
-            Self::Gemma => "<tool_call|>",
-            Self::Qwen => "</tool_call>",
+    pub(crate) fn required_tokens(self) -> Vec<&'static str> {
+        let syntax = self.syntax();
+        let mut tokens = vec![syntax.open, syntax.close];
+        if let TextSyntax::Delimited(quote) = syntax.text {
+            tokens.push(quote);
         }
+        tokens
     }
 
-    /// Special tokens the format needs as single vocabulary entries.
-    pub(crate) fn required_tokens(self) -> &'static [&'static str] {
-        match self {
-            Self::Lfm => &["<|tool_call_start|>", "<|tool_call_end|>"],
-            Self::Gemma => &["<|tool_call>", "<tool_call|>", GEMMA_QUOTE],
-            Self::Qwen => &["<tool_call>", "</tool_call>"],
-        }
-    }
-
-    /// Tool declarations appended to the system turn: the tool list in the
-    /// model's own format, then the same guidance for every model.
     pub(crate) fn declarations(
         self,
         tools: &[ToolSpec],
@@ -62,7 +106,6 @@ impl Format {
         text
     }
 
-    /// The tools as the model's chat template lists them.
     fn tool_list(self, tools: &[ToolSpec], has_token: &dyn Fn(&str) -> bool) -> String {
         match self {
             Self::Gemma => tools
@@ -97,11 +140,6 @@ impl Format {
         }
     }
 
-    /// The same guidance for every model, in its own call syntax: call
-    /// instead of describing a call, and examples of when a tool fits. Small
-    /// models otherwise describe calls in prose and rarely tell when a tool
-    /// fits (the To Do eval's routing for LFM2.5-VL-1.6B goes from 41% to
-    /// 86% with it).
     fn guidance(self, examples: &[ToolExample]) -> String {
         let syntax = self.render_calls(&[ToolCall {
             name: "tool_name".into(),
@@ -124,70 +162,45 @@ impl Format {
         text
     }
 
-    /// Calls as the model writes them, for history and tests.
     pub(crate) fn render_calls(self, calls: &[ToolCall]) -> String {
-        match self {
-            Self::Gemma => calls
+        let syntax = self.syntax();
+        let [before_key, after_key, after_value] = syntax.argument;
+        let [before_name, after_name, end] = syntax.call;
+        let rendered = calls.iter().map(|call| {
+            let arguments = call
+                .arguments
                 .iter()
-                .map(|call| {
-                    let args = call
-                        .arguments
-                        .iter()
-                        .map(|(key, value)| format!("{key}:{}", gemma_value(value)))
-                        .collect::<Vec<_>>()
-                        .join(",");
-                    format!(
-                        "{}call:{}{{{args}}}{}",
-                        self.open(),
-                        call.name,
-                        self.close()
-                    )
-                })
-                .collect(),
-            Self::Lfm => {
-                let calls = calls
-                    .iter()
-                    .map(|call| {
-                        let args = call
-                            .arguments
-                            .iter()
-                            .map(|(key, value)| format!("{key}={}", json_value(value)))
-                            .collect::<Vec<_>>()
-                            .join(", ");
-                        format!("{}({args})", call.name)
-                    })
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                format!("{}[{calls}]{}", self.open(), self.close())
-            }
-            Self::Qwen => calls
-                .iter()
-                .map(|call| {
-                    let args: String = call
-                        .arguments
-                        .iter()
-                        .map(|(key, value)| {
-                            let value = match value {
-                                ToolValue::Text(text) => text.clone(),
-                                ToolValue::Integer(number) => number.to_string(),
-                            };
-                            format!("<parameter={key}>\n{value}\n</parameter>\n")
-                        })
-                        .collect();
-                    format!(
-                        "{}\n<function={}>\n{args}</function>\n{}",
-                        self.open(),
-                        call.name,
-                        self.close()
-                    )
+                .map(|(key, value)| {
+                    let value = match (value, syntax.text) {
+                        (ToolValue::Integer(number), _) => number.to_string(),
+                        (ToolValue::Text(text), TextSyntax::Delimited(q)) => {
+                            format!("{q}{text}{q}")
+                        }
+                        (ToolValue::Text(text), TextSyntax::Json) => {
+                            Value::from(text.as_str()).to_string()
+                        }
+                        (ToolValue::Text(text), TextSyntax::Bare) => text.clone(),
+                    };
+                    format!("{before_key}{key}{after_key}{value}{after_value}")
                 })
                 .collect::<Vec<_>>()
-                .join("\n"),
+                .join(syntax.argument_separator);
+            format!("{before_name}{}{after_name}{arguments}{end}", call.name)
+        });
+        match syntax.list {
+            Some([start, separator, end]) => format!(
+                "{}{start}{}{end}{}",
+                syntax.open,
+                rendered.collect::<Vec<_>>().join(separator),
+                syntax.close
+            ),
+            None => rendered
+                .map(|call| format!("{}{call}{}", syntax.open, syntax.close))
+                .collect::<Vec<_>>()
+                .join(syntax.between),
         }
     }
 
-    /// A tool result in the format's response wrapper. Qwen's wrapper is added
-    /// by its chat renderer.
     pub(crate) fn render_response(
         self,
         name: &str,
@@ -205,97 +218,63 @@ impl Format {
         }
     }
 
-    /// Parses grammar-constrained output, starting with the call token.
     pub(crate) fn parse(self, raw: &str, request: &ToolRequest) -> Result<Vec<ToolCall>, Error> {
+        let syntax = self.syntax();
+        let [before_key, after_key, after_value] = syntax.argument;
+        let [before_name, after_name, end] = syntax.call;
         let mut reader = Reader(raw);
         let mut calls = Vec::new();
-        match self {
-            Self::Gemma => {
-                while !reader.0.is_empty() {
-                    reader.expect(self.open())?;
-                    reader.expect("call:")?;
-                    let name = reader.word()?;
-                    reader.expect("{")?;
-                    let mut raw_args = Vec::new();
-                    if !reader.take("}") {
-                        loop {
-                            let key = reader.word()?;
-                            reader.expect(":")?;
-                            let value = if reader.take(GEMMA_QUOTE) {
-                                RawValue::Text(reader.until(GEMMA_QUOTE)?.to_owned())
-                            } else {
-                                RawValue::Number(reader.digits()?)
-                            };
-                            raw_args.push((key, value));
-                            if reader.take("}") {
-                                break;
-                            }
-                            reader.expect(",")?;
-                        }
+        loop {
+            reader.expect(syntax.open)?;
+            if let Some([start, ..]) = syntax.list {
+                reader.expect(start)?;
+            }
+            loop {
+                reader.expect(before_name)?;
+                let name = reader.word()?;
+                reader.expect(after_name)?;
+                let mut raw_args = Vec::new();
+                while !reader.take(end) {
+                    if !raw_args.is_empty() {
+                        reader.expect(syntax.argument_separator)?;
                     }
-                    reader.expect(self.close())?;
-                    calls.push(typed_call(request, name, raw_args)?);
+                    reader.expect(before_key)?;
+                    let key = reader.word()?;
+                    reader.expect(after_key)?;
+                    let value = match syntax.text {
+                        TextSyntax::Bare => RawValue::Text(reader.until(after_value)?.to_owned()),
+                        TextSyntax::Delimited(q) if reader.take(q) => {
+                            RawValue::Text(reader.until(q)?.to_owned())
+                        }
+                        TextSyntax::Json if reader.0.starts_with('"') => {
+                            RawValue::Text(reader.json_string()?)
+                        }
+                        _ => RawValue::Number(reader.digits()?),
+                    };
+                    if syntax.text != TextSyntax::Bare {
+                        reader.expect(after_value)?;
+                    }
+                    raw_args.push((key, value));
+                }
+                calls.push(typed_call(request, name, raw_args)?);
+                match syntax.list {
+                    Some([_, separator, end]) if !reader.take(end) => reader.expect(separator)?,
+                    _ => break,
                 }
             }
-            Self::Lfm => {
-                reader.expect(self.open())?;
-                reader.expect("[")?;
-                loop {
-                    let name = reader.word()?;
-                    reader.expect("(")?;
-                    let mut raw_args = Vec::new();
-                    if !reader.take(")") {
-                        loop {
-                            let key = reader.word()?;
-                            reader.expect("=")?;
-                            let value = if reader.0.starts_with('"') {
-                                RawValue::Text(reader.json_string()?)
-                            } else {
-                                RawValue::Number(reader.digits()?)
-                            };
-                            raw_args.push((key, value));
-                            if reader.take(")") {
-                                break;
-                            }
-                            reader.expect(",")?;
-                            reader.take(" ");
-                        }
-                    }
-                    calls.push(typed_call(request, name, raw_args)?);
-                    if reader.take("]") {
-                        break;
-                    }
-                    reader.expect(",")?;
-                    reader.take(" ");
-                }
-                reader.expect(self.close())?;
-                if !reader.0.is_empty() {
-                    return Err(invalid());
-                }
+            reader.expect(syntax.close)?;
+            if reader.0.is_empty() {
+                break;
             }
-            Self::Qwen => {
-                while !reader.0.is_empty() {
-                    reader.expect(self.open())?;
-                    reader.expect("\n<function=")?;
-                    let name = reader.word()?;
-                    reader.expect(">\n")?;
-                    let mut raw_args = Vec::new();
-                    while reader.take("<parameter=") {
-                        let key = reader.word()?;
-                        reader.expect(">\n")?;
-                        raw_args.push((
-                            key,
-                            RawValue::Text(reader.until("\n</parameter>\n")?.to_owned()),
-                        ));
-                    }
-                    reader.expect("</function>\n")?;
-                    reader.expect(self.close())?;
-                    calls.push(typed_call(request, name, raw_args)?);
-                    reader.take("\n");
-                }
+            if syntax.list.is_some() {
+                return Err(invalid());
+            }
+            reader.expect(syntax.between)?;
+            if reader.0.is_empty() {
+                return Err(invalid());
             }
         }
-        if calls.is_empty() || calls.len() > request.max_calls() {
+        if calls.len() > request.max_calls() {
             return Err(invalid());
         }
         Ok(calls)
@@ -412,20 +391,6 @@ impl<'a> Reader<'a> {
     }
 }
 
-fn json_value(value: &ToolValue) -> String {
-    match value {
-        ToolValue::Text(text) => Value::from(text.as_str()).to_string(),
-        ToolValue::Integer(number) => number.to_string(),
-    }
-}
-
-fn gemma_value(value: &ToolValue) -> String {
-    match value {
-        ToolValue::Text(text) => format!("{GEMMA_QUOTE}{text}{GEMMA_QUOTE}"),
-        ToolValue::Integer(number) => number.to_string(),
-    }
-}
-
 fn json_declaration(tool: &ToolSpec) -> Value {
     let mut properties = Map::new();
     for parameter in &tool.parameters {
@@ -453,7 +418,6 @@ fn json_declaration(tool: &ToolSpec) -> Value {
     })
 }
 
-/// Matches Gemma 4's `format_function_declaration` macro.
 fn gemma_declaration(tool: &ToolSpec) -> String {
     let q = GEMMA_QUOTE;
     let mut parameters: Vec<_> = tool.parameters.iter().collect();

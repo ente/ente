@@ -9,7 +9,7 @@ use ente_ensu::{
     conversation::{self, Effects, PrepareError},
     db::{ChatDb, SqliteBackend, chat::ConversationSnapshot},
     llm,
-    retrieval::IncludedPassage,
+    retrieval::{GroundedSource, IncludedPassage},
 };
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, State as TauriState, WebviewWindow, async_runtime};
@@ -23,9 +23,18 @@ struct Slot {
     token: String,
     snapshot: ConversationSnapshot,
     db: Arc<ChatDb<SqliteBackend>>,
+    sources: Vec<GroundedSource>,
     passages: Vec<IncludedPassage>,
+    tools: Option<Arc<llm::ToolExchange>>,
     model_epoch: u64,
     cancel_epoch: u64,
+}
+
+pub(crate) struct Answer {
+    pub(crate) snapshot: ConversationSnapshot,
+    pub(crate) sources: Vec<GroundedSource>,
+    pub(crate) passages: Vec<IncludedPassage>,
+    pub(crate) tools: Option<Arc<llm::ToolExchange>>,
 }
 
 impl State {
@@ -36,7 +45,7 @@ impl State {
         token: &str,
         model_epoch: u64,
         cancel_epoch: u64,
-    ) -> Result<(), ApiError> {
+    ) -> Result<Option<Arc<llm::ToolExchange>>, ApiError> {
         let slots = self
             .slots
             .lock()
@@ -59,14 +68,14 @@ impl State {
         if !Arc::ptr_eq(&slot.db, &app.state::<ChatDbState>().database()?) {
             return Err(error("Conversation database changed; retry the reply"));
         }
-        Ok(())
+        Ok(slot.tools.clone())
     }
     pub(crate) fn take_answer(
         &self,
         app: &AppHandle,
         window: &str,
         token: &str,
-    ) -> Result<(ConversationSnapshot, Vec<IncludedPassage>), ApiError> {
+    ) -> Result<Answer, ApiError> {
         let mut slots = self
             .slots
             .lock()
@@ -80,7 +89,12 @@ impl State {
         }
         slots
             .remove(window)
-            .map(|slot| (slot.snapshot, slot.passages))
+            .map(|slot| Answer {
+                snapshot: slot.snapshot,
+                sources: slot.sources,
+                passages: slot.passages,
+                tools: slot.tools,
+            })
             .ok_or_else(|| error("Preparation has expired"))
     }
 }
@@ -99,9 +113,6 @@ pub struct Request {
     preparation_token: String,
     cancellation_epoch: u64,
     resolution_token: Option<String>,
-    /// Offer the model the To Do tools for this turn.
-    #[serde(default)]
-    todo_tools: bool,
 }
 
 #[derive(Serialize)]
@@ -109,9 +120,6 @@ pub struct Request {
 pub struct Response {
     preparation_token: String,
     messages: Vec<llm::ChatMessage>,
-    grounded_context: Option<super::knowledge::GroundedPromptContextDto>,
-    /// Tools to send with the generation request, when requested.
-    tools: Option<llm::ToolRequest>,
 }
 
 fn error(message: impl Into<String>) -> ApiError {
@@ -133,10 +141,11 @@ struct NativeEffects<'a> {
     snapshot: &'a mut ConversationSnapshot,
     epoch: Arc<AtomicU64>,
     expected_epoch: u64,
-    /// Counted in every measurement, since generation declares them.
-    tools: Option<llm::ToolRequest>,
 }
 impl Effects for NativeEffects<'_> {
+    fn supports_tools(&self) -> bool {
+        self.context.supports_tools()
+    }
     fn check_current(&mut self) -> Result<(), PrepareError> {
         self.check_cancelled()?;
         if !self
@@ -162,11 +171,15 @@ impl Effects for NativeEffects<'_> {
         }
         Ok(())
     }
-    fn measure(&mut self, messages: &[llm::ChatMessage]) -> Result<usize, PrepareError> {
+    fn measure(
+        &mut self,
+        messages: &[llm::ChatMessage],
+        tools: Option<&llm::ToolRequest>,
+    ) -> Result<usize, PrepareError> {
         self.context
             .measure_text_chat_prompt(&llm::ChatRequest {
                 messages: messages.to_vec(),
-                tools: self.tools.clone(),
+                tools: tools.cloned(),
                 ..Default::default()
             })
             .map_err(|e| PrepareError::Backend(e.to_string()))
@@ -181,13 +194,7 @@ impl Effects for NativeEffects<'_> {
             "conversation-progress",
             serde_json::json!({"preparationToken": self.token}),
         );
-        let prompt_tokens = self
-            .context
-            .measure_text_chat_prompt(&llm::ChatRequest {
-                messages: messages.clone(),
-                ..Default::default()
-            })
-            .map_err(|e| PrepareError::Backend(e.to_string()))?;
+        let prompt_tokens = self.measure(&messages, None)?;
         let generation = conversation::summary_request(messages, output, prompt_tokens)?;
         let mut text = String::new();
         let epoch = self.epoch.clone();
@@ -287,12 +294,9 @@ pub async fn conversation_prepare(
                 .map_err(preparation_error)?,
         };
         candidates.validate().map_err(|e| error(e.to_string()))?;
-        let tools = input
-            .todo_tools
-            .then(|| db.todo_chat_tools(&input.expected_user_text))
-            .transpose()
+        let turn_tools = db
+            .turn_tools(&snapshot, &input.expected_user_text)
             .map_err(ApiError::from)?;
-        let tool_turns = db.tool_history(snapshot.messages()).map_err(ApiError::from)?;
         let turn = conversation::TurnInput {
             session: input.session_uuid,
             messages: snapshot.messages().to_vec(),
@@ -304,7 +308,7 @@ pub async fn conversation_prepare(
             output: Some(input.max_tokens),
             state: snapshot.state().cloned(),
             candidates,
-            tool_turns,
+            tools: turn_tools,
         };
         let mut effects = NativeEffects {
             app,
@@ -315,7 +319,6 @@ pub async fn conversation_prepare(
             snapshot: &mut snapshot,
             epoch,
             expected_epoch,
-            tools: tools.clone(),
         };
         let mut prepared = conversation::prepare_turn(turn, &mut effects)
             .map_err(preparation_error)?;
@@ -326,22 +329,23 @@ pub async fn conversation_prepare(
         ));
         let result = prepared.preparation.run(&mut effects).map_err(preparation_error)?;
         effects.check_current().map_err(preparation_error)?;
-        let mut grounded = prepared.grounding.context;
-        let passages = grounded.as_mut()
-            .map(|context| std::mem::take(&mut context.included_passages))
+        let (sources, passages) = prepared.grounding.context
+            .map(|context| (context.sources, context.included_passages))
             .unwrap_or_default();
         Ok((
             Response {
                 preparation_token: token.clone(),
                 messages: result.messages,
-                grounded_context: grounded.map(Into::into),
-                tools,
             },
             Slot {
                 token,
                 snapshot,
                 db,
+                sources,
                 passages,
+                tools: prepared
+                    .tools
+                    .map(|tools| Arc::new(llm::ToolExchange::new(tools))),
                 model_epoch,
                 cancel_epoch: expected_epoch,
             },

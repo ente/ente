@@ -16,13 +16,14 @@ const QWEN_SHA256: [u8; 32] = [
     0x77, 0xf4, 0x3b, 0xe7, 0x54, 0xa9, 0x4e, 0x27, 0x25, 0xa5, 0x8c, 0x4e, 0x16, 0xd2, 0xed, 0x67,
 ];
 
-/// A rendered prompt and, when tools were requested and the model supports
-/// them, the native tool-call format the prompt declared.
 pub(super) struct Prompt {
     pub(super) text: String,
-    /// The model's native tool-call format, whether or not tools were declared.
     pub(super) native_format: Option<Format>,
-    pub(super) tool_format: Option<Format>,
+}
+
+pub(super) fn supports_tools(model: &LlamaModel) -> bool {
+    build_prompt(model, vec![ChatMessage::new("user", "")], None, true, None)
+        .is_ok_and(|prompt| prompt.native_format.is_some())
 }
 
 pub(super) fn build_prompt(
@@ -59,23 +60,14 @@ pub(super) fn build_prompt(
             return Ok(Prompt {
                 text,
                 native_format: None,
-                tool_format: None,
             });
         }
     }
     let format = match Template::identify(&source) {
-        Ok(Template::Lfm) => Some(Format::Lfm),
-        Ok(Template::Gemma) => Some(Format::Gemma),
-        Ok(Template::Qwen) => Some(Format::Qwen),
+        Ok(Template::Native(format)) => Some(format),
         Ok(Template::ChatMl) | Err(_) => None,
     }
-    .filter(|format| {
-        format
-            .required_tokens()
-            .iter()
-            .all(|token| has_token(token))
-    });
-    let tool_format = format.filter(|_| tools.is_some());
+    .filter(|format| format.required_tokens().into_iter().all(&has_token));
     let messages = super::tools::adapt_messages(
         format,
         messages,
@@ -100,16 +92,13 @@ pub(super) fn build_prompt(
     Ok(Prompt {
         text,
         native_format: format,
-        tool_format,
     })
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Template {
     ChatMl,
-    Lfm,
-    Gemma,
-    Qwen,
+    Native(Format),
 }
 
 impl Template {
@@ -118,9 +107,9 @@ impl Template {
             return Ok(Self::ChatMl);
         }
         match ente_ensu_crypto::sha256(source.as_bytes()) {
-            LFM_SHA256 => Ok(Self::Lfm),
-            GEMMA_SHA256 => Ok(Self::Gemma),
-            QWEN_SHA256 => Ok(Self::Qwen),
+            LFM_SHA256 => Ok(Self::Native(Format::Lfm)),
+            GEMMA_SHA256 => Ok(Self::Native(Format::Gemma)),
+            QWEN_SHA256 => Ok(Self::Native(Format::Qwen)),
             _ => Err(Error::Unsupported(
                 "This model's chat template is not supported by this version of Ensu",
             )),
@@ -151,9 +140,9 @@ fn render(
             }
             Ok(prompt)
         }
-        Template::Lfm => Ok(render_lfm(bos, messages, add_assistant)),
-        Template::Gemma => Ok(render_gemma(bos, messages, add_assistant)),
-        Template::Qwen => render_qwen(messages, add_assistant),
+        Template::Native(Format::Lfm) => Ok(render_lfm(bos, messages, add_assistant)),
+        Template::Native(Format::Gemma) => Ok(render_gemma(bos, messages, add_assistant)),
+        Template::Native(Format::Qwen) => render_qwen(messages, add_assistant),
     }
 }
 
@@ -229,10 +218,12 @@ fn render_gemma(bos: &str, mut messages: &[ChatMessage], add_assistant: bool) ->
     while let Some(message) = turns.next() {
         let current_role = role(message);
         if current_role == "tool" {
-            // Gemma 4 leaves a content-free tool-response turn open.
-            prompt.push_str("<|turn>tool\n");
             prompt.push_str(&message.content);
-            previous_role = Some(current_role);
+            match turns.peek().map(|next| role(next)) {
+                Some("assistant") => previous_role = Some("assistant"),
+                Some("tool") | None => {}
+                Some(_) => prompt.push_str("<turn|>\n"),
+            }
             continue;
         }
         let rendered_role = if current_role == "assistant" {
@@ -255,12 +246,16 @@ fn render_gemma(bos: &str, mut messages: &[ChatMessage], add_assistant: bool) ->
         } else {
             prompt.push_str(trim(&message.content));
         }
-        if rendered_role != "model" || turns.peek().is_none_or(|next| role(next) != "assistant") {
+        if rendered_role != "model"
+            || turns
+                .peek()
+                .is_none_or(|next| !matches!(role(next), "assistant" | "tool"))
+        {
             prompt.push_str("<turn|>\n");
         }
         previous_role = Some(current_role);
     }
-    if add_assistant {
+    if add_assistant && messages.last().is_none_or(|last| role(last) != "tool") {
         prompt.push_str("<|turn>model\n");
     }
     prompt
@@ -340,11 +335,7 @@ mod tests {
     fn messages(turns: &[(&str, &str)]) -> Vec<ChatMessage> {
         turns
             .iter()
-            .map(|(role, content)| ChatMessage {
-                role: (*role).to_owned(),
-                content: (*content).to_owned(),
-                tool_calls: Vec::new(),
-            })
+            .map(|(role, content)| ChatMessage::new(*role, *content))
             .collect()
     }
 
@@ -397,6 +388,21 @@ mod tests {
                 format!("{chatml}{suffix}")
             );
         }
+        let with_tool = self::messages(&[
+            ("user", "Add milk"),
+            ("assistant", "<call>"),
+            ("tool", "<result>"),
+            ("user", "Thanks"),
+        ]);
+        assert_eq!(
+            render_gemma("<bos>", &with_tool, true),
+            concat!(
+                "<bos><|turn>user\nAdd milk<turn|>\n",
+                "<|turn>model\n<call><result><turn|>\n",
+                "<|turn>user\nThanks<turn|>\n",
+                "<|turn>model\n",
+            )
+        );
     }
 
     #[test]
@@ -531,13 +537,7 @@ mod tests {
             &llama_cpp_2::model::params::LlamaModelParams::default().with_n_gpu_layers(0),
         )
         .unwrap();
-        let messages = |content: &str| {
-            vec![ChatMessage {
-                role: "user".to_owned(),
-                content: content.to_owned(),
-                tool_calls: Vec::new(),
-            }]
-        };
+        let messages = |content: &str| vec![ChatMessage::new("user", content)];
         assert_eq!(
             build_chat_prompt(&model, messages("Hi"), Some("llama2".to_owned()), true).unwrap(),
             "[INST] Hi [/INST]"

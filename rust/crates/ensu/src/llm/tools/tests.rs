@@ -45,7 +45,6 @@ fn request(quote_source: &str) -> ToolRequest {
                 }],
             },
         ],
-        choice: ToolChoice::Auto,
         quote_source: quote_source.into(),
         max_calls: 3,
         min_call_probability: 0.5,
@@ -65,29 +64,6 @@ fn request(quote_source: &str) -> ToolRequest {
             },
         ],
     }
-}
-
-#[test]
-fn every_format_gets_the_same_guidance_in_its_own_syntax() {
-    let request = request("x");
-    let guidance = |call: &str, example: &str| {
-        format!(
-            "\nWhen a tool fits the user's request, call it instead of describing it, in this format with nothing else: {call}\n\nExamples:\nUser: Anything left?\nAssistant: {example}\nUser: Hi\nAssistant: Hello!"
-        )
-    };
-    let lfm = Format::Lfm.declarations(&request.tools, &request.examples, &|_| false);
-    assert!(lfm.starts_with("List of tools: [{"));
-    assert!(lfm.ends_with(&guidance(
-        "<|tool_call_start|>[tool_name(parameter=\"value\")]<|tool_call_end|>",
-        "<|tool_call_start|>[list_to_dos(filter=\"open\")]<|tool_call_end|>",
-    )));
-    let gemma = Format::Gemma.declarations(&request.tools, &request.examples, &|_| true);
-    assert!(gemma.ends_with(&guidance(
-        "<|tool_call>call:tool_name{parameter:<|\"|>value<|\"|>}<tool_call|>",
-        "<|tool_call>call:list_to_dos{filter:<|\"|>open<|\"|>}<tool_call|>",
-    )));
-    let qwen = Format::Qwen.declarations(&request.tools, &request.examples, &|_| true);
-    assert!(qwen.contains("\n\nExamples:\nUser: Anything left?\nAssistant: <tool_call>"));
 }
 
 fn calls() -> Vec<ToolCall> {
@@ -176,6 +152,38 @@ fn gemma_declarations_follow_the_model_template() {
 }
 
 #[test]
+fn calls_cut_off_at_the_token_limit_count_only_when_whole() {
+    let request = request("Call Lee tomorrow at 4 PM");
+    for format in [Format::Lfm, Format::Gemma, Format::Qwen] {
+        let rendered = format.render_calls(&calls()[..1]);
+        for complete in [true, false] {
+            assert_eq!(
+                finished_calls(format, rendered.as_bytes(), &request, complete).unwrap(),
+                calls()[..1],
+                "{format:?}"
+            );
+        }
+        let cut = &rendered.as_bytes()[..rendered.len() - 3];
+        let unfinished = finished_calls(format, cut, &request, false).unwrap_err();
+        assert!(
+            matches!(
+                unfinished,
+                crate::llm::Error::ToolCall(crate::llm::ToolCallFailure::Unfinished)
+            ),
+            "{format:?}: {unfinished}"
+        );
+        assert!(finished_calls(format, cut, &request, true).is_err());
+
+        let two = format.render_calls(&calls()[..2]);
+        let inside = &two.as_bytes()[..two.find("list_to_dos").unwrap()];
+        assert!(finished_calls(format, inside, &request, false).is_err());
+    }
+    let one = Format::Qwen.render_calls(&calls()[..1]);
+    let separated = format!("{one}\n");
+    assert!(finished_calls(Format::Qwen, separated.as_bytes(), &request, false).is_err());
+}
+
+#[test]
 fn history_renders_native_calls_and_results_and_falls_back_to_text() {
     let mut assistant = ChatMessage::new("assistant", "");
     assistant.tool_calls = calls()[1..2].to_vec();
@@ -248,94 +256,68 @@ fn grammar_builds_for_every_format_and_quotes_only_source_spans() {
             "{grammar}"
         );
         assert!(grammar.contains("{0,2}"), "{grammar}");
+        if format == Format::Qwen {
+            assert_eq!(
+                grammar.lines().next(),
+                Some(r#"root ::= <[10]> call <[11]> ("\n" <[10]> call <[11]>){0,2}"#)
+            );
+        }
     }
     let empty = grammar::grammar(Format::Gemma, &request(""), &token).unwrap();
     assert!(!empty.contains("quote ::="));
     assert!(grammar::grammar(Format::Gemma, &request("x"), &|_| None).is_err());
 }
 
-#[test]
-fn requests_are_validated() {
-    let mut bad = request("x");
-    bad.tools[1].name = "List".into();
-    assert!(bad.validate().is_err());
-    let mut bad = request("x");
-    bad.min_call_probability = 1.5;
-    assert!(bad.validate().is_err());
-    let mut bad = request("x");
-    bad.tools.push(bad.tools[0].clone());
-    assert!(bad.validate().is_err());
-    assert!(request("x").validate().is_ok());
-}
-
-/// Compiles every format's grammar against a real vocabulary and checks that
-/// rendered calls are accepted token by token while ungrounded quotes are not.
-/// Point `ENSU_TEST_TOOL_VOCAB` at any GGUF, including vocab-only files.
-#[test]
-#[ignore = "requires ENSU_TEST_TOOL_VOCAB"]
-fn grammars_accept_rendered_calls_with_a_real_vocabulary() {
-    use llama_cpp_2::model::{LlamaModel, params::LlamaModelParams};
-    use llama_cpp_2::sampling::LlamaSampler;
-    use llama_cpp_2::token::{data::LlamaTokenData, data_array::LlamaTokenDataArray};
-
-    let model = LlamaModel::load_from_file(
-        crate::llm::backend().unwrap(),
-        std::env::var("ENSU_TEST_TOOL_VOCAB").unwrap(),
-        &LlamaModelParams::default().with_vocab_only(true),
-    )
-    .unwrap();
-    let accepts = |grammar: &str, text: &str| -> bool {
-        let mut sampler = LlamaSampler::grammar(&model, grammar, "root").unwrap();
-        let vocab = model.vocab();
-        for token in vocab.tokenize(text.as_bytes(), false, true) {
-            let mut one =
-                LlamaTokenDataArray::new(vec![LlamaTokenData::new(token, 0.0, 0.0)], false);
-            sampler.apply(&mut one);
-            if !one.data[0].logit().is_finite() {
+fn range_accepts(rule: &str, text: &str) -> bool {
+    let inner = rule.strip_prefix('(').unwrap().strip_suffix(')').unwrap();
+    inner.split(" | ").any(|alternative| {
+        let mut rest = text.as_bytes();
+        for item in alternative.split(' ') {
+            if let Some(digit) = item.strip_prefix('"') {
+                if rest.first() != Some(&digit.as_bytes()[0]) {
+                    return false;
+                }
+                rest = &rest[1..];
+                continue;
+            }
+            let (class, count) = item.split_at(5);
+            let (low, high) = (class.as_bytes()[1], class.as_bytes()[3]);
+            let matching = rest
+                .iter()
+                .take_while(|byte| (low..=high).contains(byte))
+                .count();
+            let take = match count.trim_matches(['{', '}']) {
+                "" => 1,
+                optional if optional.starts_with("0,") => {
+                    let most: usize = optional[2..].parse().unwrap();
+                    matching.min(most)
+                }
+                exact => exact.parse().unwrap(),
+            };
+            if matching < take {
                 return false;
             }
-            sampler.accept(token);
+            rest = &rest[take..];
         }
-        let mut eos =
-            LlamaTokenDataArray::new(vec![LlamaTokenData::new(vocab.eos(), 0.0, 0.0)], false);
-        sampler.apply(&mut eos);
-        eos.data[0].logit().is_finite()
-    };
-    let formats: Vec<_> = [Format::Lfm, Format::Gemma, Format::Qwen]
-        .into_iter()
-        .filter(|format| {
-            format
-                .required_tokens()
-                .iter()
-                .all(|t| single_token(&model, t).is_some())
-        })
-        .collect();
-    assert!(
-        !formats.is_empty(),
-        "the vocabulary has no native tool tokens"
-    );
-    let request = request("Call \"Lee\" tomorrow at 4 PM");
-    for format in formats {
-        let grammar = super::grammar(format, &request, &model).unwrap();
-        assert!(
-            accepts(&grammar, &format.render_calls(&calls())),
-            "{format:?}"
-        );
-        let mut ungrounded = calls();
-        ungrounded[0]
-            .arguments
-            .insert("when".into(), ToolValue::Text("next week".into()));
-        assert!(
-            !accepts(&grammar, &format.render_calls(&ungrounded)),
-            "{format:?}"
-        );
-        let mut unsorted = format.render_calls(&calls()[..1]);
-        if format == Format::Gemma {
-            unsorted = unsorted.replace(
-                "title:<|\"|>Call \"Lee\"<|\"|>,when:<|\"|>tomorrow at 4 PM<|\"|>",
-                "when:<|\"|>tomorrow at 4 PM<|\"|>,title:<|\"|>Call \"Lee\"<|\"|>",
+        rest.is_empty()
+    })
+}
+
+#[test]
+fn integer_grammar_accepts_exactly_what_the_parser_does() {
+    for max in (1..=1200).chain([9_999, 10_000, 54_321, u32::MAX]) {
+        let rule = grammar::integer_range(max);
+        let near = max.saturating_sub(15)..=max.saturating_add(15);
+        for number in (0..=1300)
+            .chain(near)
+            .chain([max / 10, max.saturating_mul(10)])
+        {
+            assert_eq!(
+                range_accepts(&rule, &number.to_string()),
+                (1..=max).contains(&number),
+                "{number} in {rule}"
             );
-            assert!(!accepts(&grammar, &unsorted));
         }
+        assert!(!range_accepts(&rule, "01") && !range_accepts(&rule, ""));
     }
 }

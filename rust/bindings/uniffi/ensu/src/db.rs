@@ -8,13 +8,49 @@ pub enum DbError {
     #[error("database is readonly")]
     ReadonlyDatabase,
     #[error("{detail}")]
+    Refused {
+        reason: RefusalReason,
+        detail: String,
+    },
+    #[error("{detail}")]
     Other { detail: String },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Enum)]
+pub enum RefusalReason {
+    TodoChanged,
+    TitleMissing,
+    TitleTooLong { max: u32 },
+    UndoStale,
+    OfferStale,
+    EarlierReplyStands,
+    NothingOffered,
+    NothingChanged,
+}
+
+impl From<db::Refusal> for RefusalReason {
+    fn from(refusal: db::Refusal) -> Self {
+        match refusal {
+            db::Refusal::TodoChanged => Self::TodoChanged,
+            db::Refusal::TitleMissing => Self::TitleMissing,
+            db::Refusal::TitleTooLong { max } => Self::TitleTooLong { max: max as u32 },
+            db::Refusal::UndoStale => Self::UndoStale,
+            db::Refusal::OfferStale => Self::OfferStale,
+            db::Refusal::EarlierReplyStands => Self::EarlierReplyStands,
+            db::Refusal::NothingOffered => Self::NothingOffered,
+            db::Refusal::NothingChanged => Self::NothingChanged,
+        }
+    }
 }
 
 impl From<db::Error> for DbError {
     fn from(error: db::Error) -> Self {
         match error {
             db::Error::ReadonlyDatabase => Self::ReadonlyDatabase,
+            db::Error::Refused(refusal) => Self::Refused {
+                reason: refusal.into(),
+                detail: refusal.to_string(),
+            },
             error => Self::Other {
                 detail: ente_core::error::chain(&error),
             },
@@ -22,7 +58,7 @@ impl From<db::Error> for DbError {
     }
 }
 
-fn parse_uuid(value: &str) -> db::Result<Uuid> {
+pub(crate) fn parse_uuid(value: &str) -> db::Result<Uuid> {
     Ok(Uuid::parse_str(value)?)
 }
 

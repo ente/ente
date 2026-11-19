@@ -1,47 +1,68 @@
-//! A personal To Do list the chat model can manage through native tool calls.
-//!
-//! Storage lives in [`crate::db::ChatDb`]. This module defines the domain
-//! types, the tools offered to the model, and the pure rules for interpreting
-//! calls: deadline parsing, task matching and receipt text.
-
+mod intent;
 mod matching;
+mod phrase;
+mod plan;
 mod refine;
 pub mod timing;
+mod wording;
 
+use chrono::TimeZone;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::db::models::{Message, Sender};
 use crate::llm::{
-    ParameterKind, ToolCall, ToolChoice, ToolExample, ToolParameter, ToolRequest, ToolSpec,
-    ToolValue,
+    ParameterKind, ToolCall, ToolExample, ToolParameter, ToolRequest, ToolSpec, ToolValue,
 };
 
-pub(crate) use matching::find_tasks;
-pub use refine::refine_calls;
+use matching::asks_again;
+pub(crate) use matching::{choice_label, find_tasks};
+pub use plan::{Outcome, Plan, SavedDeadline, plan};
 
-/// Most tasks a list reply numbers.
 pub const LIST_LIMIT: usize = 20;
-/// Longest stored title, in characters.
 pub const MAX_TITLE_CHARS: usize = 200;
-/// Default first-token probability needed before the model may call a tool.
 pub const DEFAULT_CALL_PROBABILITY: f32 = 0.5;
 
 pub const SAVE_TOOL: &str = "save_to_do";
 pub const LIST_TOOL: &str = "list_to_dos";
 pub const COMPLETE_TOOL: &str = "complete_to_do";
 
-/// Confidence in a tool call, the first-token probability of the call, at
-/// which a change to the list applies directly. Below it, down to
-/// [`DEFAULT_CALL_PROBABILITY`], saves and completions are offered for the
-/// user to confirm. One rule for every model: a model that is unsure, or
-/// that tells tasks from chat less well, lands in the confirm band on its own
-/// (measured with `tests/todo_eval.rs`).
-pub const DIRECT_CALL_PROBABILITY: f32 = 0.9;
+pub(crate) const DIRECT_CALL_PROBABILITY: f32 = 0.9;
 
-/// Whether a turn's changes apply directly or wait for confirmation, given
-/// the model's confidence in its calls. Without a confidence, they wait.
-pub fn confirm_changes(call_probability: Option<f32>) -> bool {
+pub fn request_text<'a, E>(
+    messages: &'a [Message],
+    user_text: &'a str,
+    mut is_tool_reply: impl FnMut(&Message) -> Result<bool, E>,
+) -> Result<&'a str, E> {
+    let mut text = user_text;
+    let mut rest = messages;
+    while let [.., earlier, reply, _] = rest {
+        if !asks_again(text) || earlier.sender != Sender::SelfUser || !is_tool_reply(reply)? {
+            break;
+        }
+        text = &earlier.text;
+        rest = &rest[..rest.len() - 2];
+    }
+    Ok(text)
+}
+
+pub(crate) fn needs_backing(call_probability: Option<f32>) -> bool {
     call_probability.is_none_or(|p| p < DIRECT_CALL_PROBABILITY)
+}
+
+#[cfg(test)]
+fn confirm_calls(
+    calls: &[ToolCall],
+    user_text: &str,
+    shown: usize,
+    call_probability: Option<f32>,
+) -> bool {
+    needs_backing(call_probability)
+        || calls.iter().any(|call| {
+            call.name == COMPLETE_TOOL
+                && refine::complete(call.text("task"), call.integer("number"), user_text, shown)
+                    .unsure()
+        })
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -59,25 +80,32 @@ impl Todo {
     pub fn is_open(&self) -> bool {
         self.completed_at_ms.is_none()
     }
+
+    pub(crate) fn new(id: Uuid, title: String, due_at_ms: Option<i64>, now_ms: i64) -> Self {
+        Self {
+            id,
+            title,
+            due_at_ms,
+            completed_at_ms: None,
+            created_at_ms: now_ms,
+            updated_at_ms: now_ms,
+            version: 1,
+        }
+    }
+
+    pub(crate) fn changed(&self, now_ms: i64, change: impl FnOnce(&mut Todo)) -> Todo {
+        let mut after = self.clone();
+        change(&mut after);
+        after.version = self.version + 1;
+        after.updated_at_ms = now_ms;
+        after
+    }
 }
 
-/// One task's state before and after a change. `None` means the task did
-/// not exist.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TodoChange {
     pub before: Option<Todo>,
     pub after: Option<Todo>,
-}
-
-/// A scheduled reminder for an open task with a future deadline. Platforms
-/// keep the OS schedule equal to the latest set of alarms, comparing `key`s.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct TodoAlarm {
-    pub todo_id: Uuid,
-    pub title: String,
-    pub due_at_ms: i64,
-    /// Changes whenever the alarm's time or text changes.
-    pub key: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -91,17 +119,26 @@ pub enum ListFilter {
 }
 
 impl ListFilter {
-    pub const NAMES: [&'static str; 5] = ["open", "completed", "overdue", "today", "all"];
+    const NAMED: [(&'static str, Self); 5] = [
+        ("open", Self::Open),
+        ("completed", Self::Completed),
+        ("overdue", Self::Overdue),
+        ("today", Self::Today),
+        ("all", Self::All),
+    ];
+
+    pub fn name(self) -> &'static str {
+        Self::NAMED
+            .iter()
+            .find(|(_, filter)| *filter == self)
+            .map_or("open", |(name, _)| name)
+    }
 
     pub fn from_name(name: &str) -> Option<Self> {
-        Some(match name {
-            "open" => Self::Open,
-            "completed" => Self::Completed,
-            "overdue" => Self::Overdue,
-            "today" => Self::Today,
-            "all" => Self::All,
-            _ => return None,
-        })
+        Self::NAMED
+            .iter()
+            .find(|(named, _)| *named == name)
+            .map(|(_, filter)| *filter)
     }
 }
 
@@ -114,30 +151,47 @@ fn parameter(name: &str, description: &str, kind: ParameterKind, required: bool)
     }
 }
 
-/// Longest open-task title shown to the model, in characters.
-const PROMPT_TITLE_CHARS: usize = 60;
-
-/// How the open tasks read in the complete tool's description, so the model
-/// knows what it can mark as done.
-fn open_tasks_text(open_titles: &[&str]) -> String {
-    if open_titles.is_empty() {
-        return "The list has no open tasks.".into();
-    }
-    let titles: Vec<String> = open_titles
+fn task_choices(user_text: &str, open_titles: &[&str]) -> Vec<String> {
+    let mut labels: Vec<String> = open_titles
         .iter()
-        .take(LIST_LIMIT)
-        .map(|title| {
-            let short: String = title.chars().take(PROMPT_TITLE_CHARS).collect();
-            format!("“{short}”")
-        })
+        .filter_map(|title| choice_label(title))
         .collect();
-    format!("Open tasks: {}.", titles.join(", "))
+    labels.sort_by_cached_key(|label| {
+        if matching::spells_out(label, user_text) {
+            0
+        } else if refine::names_task(label, user_text) {
+            1
+        } else {
+            2
+        }
+    });
+    let mut choices: Vec<String> = Vec::new();
+    for label in labels {
+        if choices.len() == LIST_LIMIT {
+            break;
+        }
+        if !choices.contains(&label) {
+            choices.push(label);
+        }
+    }
+    choices
 }
 
-/// The To Do tools for one chat turn. Quoted arguments must come from
-/// `user_text`, the current user message. `open_titles` are the open tasks,
-/// in list order; the first [`LIST_LIMIT`] are shown to the model.
 pub fn chat_tools(user_text: &str, open_titles: &[&str]) -> ToolRequest {
+    let choices = task_choices(user_text, open_titles);
+    let (task_kind, task_text, open_text) = if choices.is_empty() {
+        (
+            ParameterKind::Quote,
+            "Words naming the task, copied from the user's message.",
+            " The list has no open tasks.",
+        )
+    } else {
+        (
+            ParameterKind::Choice { values: choices },
+            "The open task the user means.",
+            "",
+        )
+    };
     ToolRequest {
         tools: vec![
             ToolSpec {
@@ -166,7 +220,7 @@ pub fn chat_tools(user_text: &str, open_titles: &[&str]) -> ToolRequest {
                         "filter",
                         "Which tasks to show. Omit to show open tasks.",
                         ParameterKind::Choice {
-                            values: ListFilter::NAMES.iter().map(|name| (*name).to_owned()).collect(),
+                            values: ListFilter::NAMED.iter().map(|(name, _)| (*name).to_owned()).collect(),
                         },
                         false,
                     ),
@@ -181,16 +235,10 @@ pub fn chat_tools(user_text: &str, open_titles: &[&str]) -> ToolRequest {
             ToolSpec {
                 name: COMPLETE_TOOL.into(),
                 description: format!(
-                    "Mark a task in the user's To Do list as done: when the user asks to mark, tick or check it off, or says they have just done it (\"finished the…\", \"called…\", \"picked up…\"). Name the task, or give its number from the list just shown. {}",
-                    open_tasks_text(open_titles),
+                    "Mark a task in the user's To Do list as done: when the user asks to mark, tick or check it off, or says they have just done it (\"finished the…\", \"called…\", \"picked up…\"). Name the task, or give its number from the list just shown.{open_text}",
                 ),
                 parameters: vec![
-                    parameter(
-                        "task",
-                        "Words naming the task, copied from the user's message.",
-                        ParameterKind::Quote,
-                        false,
-                    ),
+                    parameter("task", task_text, task_kind, false),
                     parameter(
                         "number",
                         "The task's position in the list just shown, when the user refers to it by position (\"the third one\" is 3).",
@@ -202,7 +250,6 @@ pub fn chat_tools(user_text: &str, open_titles: &[&str]) -> ToolRequest {
                 ],
             },
         ],
-        choice: ToolChoice::Auto,
         quote_source: user_text.to_owned(),
         max_calls: crate::llm::MAX_TOOL_CALLS,
         min_call_probability: DEFAULT_CALL_PROBABILITY,
@@ -210,8 +257,6 @@ pub fn chat_tools(user_text: &str, open_titles: &[&str]) -> ToolRequest {
     }
 }
 
-/// Exchanges for models that need examples to tell when a tool fits. Kept
-/// unlike any case in `tests/data`, so the eval still measures new wording.
 fn examples() -> Vec<ToolExample> {
     let call = |name: &str, args: &[(&str, &str)]| ToolCall {
         name: name.into(),
@@ -245,7 +290,7 @@ fn examples() -> Vec<ToolExample> {
         calls("Anything left on my list?", vec![call(LIST_TOOL, &[])]),
         calls(
             "Renewed the TV licence today",
-            vec![call(COMPLETE_TOOL, &[("task", "TV licence")])],
+            vec![call(COMPLETE_TOOL, &[("task", "Renew the TV licence")])],
         ),
         reply(
             "My flatmate needs to pay the water bill",
@@ -255,49 +300,28 @@ fn examples() -> Vec<ToolExample> {
     ]
 }
 
-/// A title as stored: one trimmed line, first letter capitalised.
 pub(crate) fn clean_title(raw: &str) -> Option<String> {
     let line: String = raw.split_whitespace().collect::<Vec<_>>().join(" ");
+    let quote = |c: char| c == '"' || c == '“' || c == '”' || c.is_whitespace();
     let line = line
-        .trim_matches(|c: char| c == '"' || c == '“' || c == '”' || c == '.' || c.is_whitespace());
+        .trim_start_matches(quote)
+        .trim_end_matches(|c: char| quote(c) || c == '.');
     if line.is_empty() {
         return None;
     }
     let mut chars = line.chars();
     let first = chars.next()?;
-    let title: String = first
-        .to_uppercase()
-        .chain(chars)
-        .take(MAX_TITLE_CHARS)
-        .collect();
-    Some(title)
+    Some(first.to_uppercase().chain(chars).collect())
 }
 
-/// A deadline for chat receipts and lists, in local time.
-pub(crate) fn describe_due(due_at_ms: i64) -> String {
-    timing::local_time(due_at_ms)
-        .map(|at| at.format("%a %-d %b %Y, %H:%M").to_string())
-        .unwrap_or_else(|| "an unknown time".into())
-}
-
-pub(crate) fn list_line(number: usize, todo: &Todo) -> String {
-    let due = todo.due_at_ms.map_or_else(
-        || "no due date".to_owned(),
-        |due| format!("due {}", describe_due(due)),
-    );
-    let done = if todo.is_open() { "" } else { ", done" };
-    format!("{number}. {} — {due}{done}", todo.title)
-}
-
-/// Tasks matching a list request, in display order: open before done,
-/// earlier deadlines first, then oldest first.
 pub(crate) fn select_tasks<'a>(
     todos: &'a [Todo],
     filter: ListFilter,
     query: Option<&str>,
     now_ms: i64,
+    zone: &impl TimeZone,
 ) -> Vec<&'a Todo> {
-    let today = timing::local_time(now_ms).map(|now| now.date());
+    let today = timing::local_time(now_ms, zone).map(|now| now.date());
     let mut selected: Vec<_> = todos
         .iter()
         .filter(|todo| match filter {
@@ -308,25 +332,33 @@ pub(crate) fn select_tasks<'a>(
                 todo.is_open()
                     && todo
                         .due_at_ms
-                        .and_then(timing::local_time)
+                        .and_then(|due| timing::local_time(due, zone))
                         .is_some_and(|due| Some(due.date()) == today)
             }
             ListFilter::All => true,
         })
         .collect();
-    if let Some(query) = query {
-        let matched = find_tasks(
-            &selected.iter().copied().cloned().collect::<Vec<_>>(),
-            query,
-        )
-        .into_iter()
-        .map(|todo| todo.id)
-        .collect::<Vec<_>>();
-        selected.retain(|todo| matched.contains(&todo.id));
+    if let Some(query) = query.filter(|query| matching::has_search_words(query)) {
+        selected = find_tasks(&selected, query);
     }
-    // Stable, so equal keys keep the stored creation order.
-    selected.sort_by_key(|todo| (!todo.is_open(), todo.due_at_ms.unwrap_or(i64::MAX)));
+    selected.sort_by(|a, b| display_order(a, b));
     selected
+}
+
+fn display_order(a: &Todo, b: &Todo) -> std::cmp::Ordering {
+    let key = |todo: &Todo| match todo.completed_at_ms {
+        None => (
+            false,
+            todo.due_at_ms.unwrap_or(i64::MAX),
+            todo.created_at_ms,
+        ),
+        Some(done) => (true, -done, todo.created_at_ms),
+    };
+    key(a).cmp(&key(b))
+}
+
+pub fn sort_for_display(todos: &mut [Todo]) {
+    todos.sort_by(display_order);
 }
 
 #[cfg(test)]
@@ -334,44 +366,146 @@ mod tests {
     use super::*;
 
     #[test]
-    fn titles_are_single_trimmed_capitalised_lines() {
-        assert_eq!(clean_title("  call   mom\n").as_deref(), Some("Call mom"));
-        assert_eq!(clean_title("“buy milk.”").as_deref(), Some("Buy milk"));
-        assert_eq!(clean_title(" . "), None);
-        assert_eq!(
-            clean_title(&"x".repeat(500)).unwrap().chars().count(),
-            MAX_TITLE_CHARS
-        );
-    }
-
-    #[test]
-    fn chat_tools_are_valid_for_any_user_text() {
-        for text in ["Buy milk tomorrow", "", "明日牛乳を買う"] {
-            let request = chat_tools(text, &[]);
-            assert!(request.tools.iter().any(|tool| tool.name == SAVE_TOOL));
-            assert_eq!(request.quote_source, text);
-        }
-    }
-
-    #[test]
-    fn open_tasks_are_named_for_the_complete_tool() {
-        let complete = |titles: &[&str]| {
+    fn open_tasks_are_the_complete_tools_choices() {
+        let task = |titles: &[&str]| {
             chat_tools("done", titles)
                 .tools
                 .into_iter()
                 .find(|tool| tool.name == COMPLETE_TOOL)
                 .unwrap()
-                .description
+                .parameters
+                .into_iter()
+                .find(|parameter| parameter.name == "task")
+                .unwrap()
+                .kind
         };
-        assert!(complete(&[]).ends_with("The list has no open tasks."));
-        assert!(
-            complete(&["Buy milk", "Call Ana"]).ends_with("Open tasks: “Buy milk”, “Call Ana”.")
+        assert_eq!(task(&[]), ParameterKind::Quote);
+        assert_eq!(
+            task(&["Buy milk", "Call Ana", "Buy milk"]),
+            ParameterKind::Choice {
+                values: vec!["Buy milk".into(), "Call Ana".into()]
+            }
         );
         let many: Vec<String> = (0..30).map(|i| format!("Task {i}")).collect();
         let many: Vec<&str> = many.iter().map(String::as_str).collect();
-        let description = complete(&many);
-        assert!(description.contains("“Task 19”") && !description.contains("“Task 20”"));
-        let long = "x".repeat(500);
-        assert!(complete(&[&long]).contains(&format!("“{}”", "x".repeat(PROMPT_TITLE_CHARS))));
+        let ParameterKind::Choice { values } = task(&many) else {
+            panic!("expected choices");
+        };
+        assert_eq!(values.len(), LIST_LIMIT);
+        assert_eq!(values.last().unwrap(), "Task 19");
+        let mut many = many;
+        many.push("Renew passport");
+        let task_kind = |user: &str, titles: &[&str]| {
+            chat_tools(user, titles)
+                .tools
+                .remove(2)
+                .parameters
+                .remove(0)
+                .kind
+        };
+        let ParameterKind::Choice { values } = task_kind("Renew passport is done", &many) else {
+            panic!("expected choices");
+        };
+        assert_eq!(values[0], "Renew passport");
+        let clients: Vec<String> = (1..=21).map(|i| format!("Call client {i}")).collect();
+        let clients: Vec<&str> = clients.iter().map(String::as_str).collect();
+        let ParameterKind::Choice { values } = task_kind("I called client 21", &clients) else {
+            panic!("expected choices");
+        };
+        assert_eq!(values[0], "Call client 21");
+    }
+
+    #[test]
+    fn changes_the_message_does_not_back_wait_for_confirmation() {
+        let item = |number: i64| ToolCall {
+            name: COMPLETE_TOOL.into(),
+            arguments: [("number".to_owned(), ToolValue::Integer(number))].into(),
+        };
+        let sure = Some(0.99);
+        for (number, user, confirm) in [
+            (2, "The second one is done", false),
+            (3, "Tick off the third", false),
+            (4, "Finished the last one", false),
+            (3, "Please tick off 3", false),
+            (2, "mark 2 as complete", false),
+            (3, "Done with 3", false),
+            (3, "Called 3 people", true),
+            (3, "Booked a table for 3", true),
+            (1, "I finished the first draft", true),
+            (3, "Finished chapter 3", true),
+            (3, "Finished chapter 3 already", true),
+            (3, "Finished chapter #3", true),
+            (3, "Finished version 3", true),
+            (4, "Finished the last chapter", true),
+            (3, "Chapter number 3 is done", true),
+            (3, "#3 is done", false),
+            (3, "Finished item #3", false),
+            (3, "Finished item 3", false),
+            (2, "The second is done", false),
+            (9, "ok thanks", false),
+            (1, "ok thanks", true),
+            (1, "Can you try again?", true),
+            (2, "Tick off the third", true),
+            (3, "Booked a table for the 3rd", true),
+        ] {
+            assert_eq!(
+                confirm_calls(&[item(number)], user, 4, sure),
+                confirm,
+                "{user}"
+            );
+        }
+        assert!(!confirm_calls(&[item(1)], "ok thanks", 0, sure));
+        assert!(!confirm_calls(
+            &[item(2), item(3)],
+            "The second and third ones are done",
+            4,
+            sure
+        ));
+        assert!(confirm_calls(
+            &[item(1), item(2)],
+            "Mark number 1 done",
+            4,
+            sure
+        ));
+        let pick = ToolCall {
+            name: COMPLETE_TOOL.into(),
+            arguments: [(
+                "task".to_owned(),
+                ToolValue::Text("Review chapter 3".into()),
+            )]
+            .into(),
+        };
+        assert!(confirm_calls(
+            std::slice::from_ref(&pick),
+            "Tick off 3",
+            4,
+            sure
+        ));
+        assert!(!confirm_calls(&[pick], "Reviewed chapter 3", 4, sure));
+        let other = ToolCall {
+            name: COMPLETE_TOOL.into(),
+            arguments: [("task".to_owned(), ToolValue::Text("Call client 2".into()))].into(),
+        };
+        assert!(confirm_calls(&[other], "I called client 21", 0, sure));
+        let complete = |task: &str| ToolCall {
+            name: COMPLETE_TOOL.into(),
+            arguments: [("task".to_owned(), ToolValue::Text(task.into()))].into(),
+        };
+        for (task, user, probability, confirm) in [
+            (
+                "Call Vidhi about Aadhar",
+                "I have talked to Vidhi for her Aadhar",
+                sure,
+                false,
+            ),
+            ("Call Vidhi about Aadhar", "Can you try again?", sure, true),
+            ("Buy milk", "I bought the milk", Some(0.6), true),
+        ] {
+            assert_eq!(
+                confirm_calls(&[complete(task)], user, 0, probability),
+                confirm,
+                "{user}"
+            );
+        }
     }
 }

@@ -19,7 +19,7 @@ use super::context::LocalContext;
 use super::event::{EventSink, FinishReason, GenerationEvent, GenerationSummary, JobId};
 use super::execution::{ExecutionContext, ExecutionState, MIN_GPU_PROMPT_TOKENS, MultimodalPrompt};
 use super::template::build_prompt;
-use super::tools::{self, Format, ToolCall, ToolChoice, ToolOutcome, ToolRequest};
+use super::tools::{self, Format, ToolCall, ToolOutcome, ToolRequest};
 use super::{Error, format_error, lock};
 
 static JOB_COUNTER: AtomicI64 = AtomicI64::new(1);
@@ -64,8 +64,6 @@ impl Drop for JobGuard {
 pub struct ChatMessage {
     pub role: String,
     pub content: String,
-    /// Calls an assistant message made. A following `tool` message carries
-    /// their result.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tool_calls: Vec<ToolCall>,
 }
@@ -109,7 +107,6 @@ pub struct ChatRequest {
     pub seed: Option<i64>,
     pub stop_sequences: Option<Vec<String>>,
     pub grammar: Option<String>,
-    /// Native tool calling. Cannot be combined with `grammar`.
     #[serde(default)]
     pub tools: Option<ToolRequest>,
 }
@@ -307,7 +304,6 @@ enum ToolState {
     Call,
 }
 
-/// Decodes the reply-or-call decision and any grammar-constrained calls.
 struct ToolDecode {
     format: Format,
     request: ToolRequest,
@@ -341,9 +337,7 @@ impl ToolDecode {
             ToolState::Undecided => {
                 let probability = token_probability(ctx.get_logits_ith(index), self.open);
                 self.probability = Some(probability);
-                if self.request.choice == ToolChoice::Required
-                    || probability >= self.request.min_call_probability
-                {
+                if probability >= self.request.min_call_probability {
                     self.state = ToolState::Call;
                     self.grammar.accept(self.open);
                     Ok(self.open)
@@ -357,9 +351,6 @@ impl ToolDecode {
         }
     }
 
-    /// Greedy grammar-constrained choice. Most steps keep the model's top
-    /// token, so the grammar only checks that one candidate; the full
-    /// vocabulary is filtered only when the top token is rejected.
     fn constrained(&mut self, ctx: &LlamaContext, index: i32) -> Result<LlamaToken, Error> {
         let logits = ctx.get_logits_ith(index);
         let best = logits
@@ -367,7 +358,7 @@ impl ToolDecode {
             .enumerate()
             .max_by(|a, b| a.1.total_cmp(b.1))
             .map(|(i, logit)| (i as i32, *logit))
-            .ok_or_else(|| Error::InvalidInput("No logits for the tool call".into()))?;
+            .ok_or(super::ToolCallFailure::Invalid)?;
         let mut single = LlamaTokenDataArray::new(
             vec![LlamaTokenData::new(LlamaToken(best.0), best.1, 0.0)],
             false,
@@ -383,9 +374,7 @@ impl ToolDecode {
                 .filter(|candidate| candidate.logit().is_finite())
                 .max_by(|a, b| a.logit().total_cmp(&b.logit()))
                 .map(LlamaTokenData::id)
-                .ok_or_else(|| {
-                    Error::InvalidInput("The tool-call grammar has no valid token".into())
-                })?
+                .ok_or(super::ToolCallFailure::Invalid)?
         };
         if !ctx.model.vocab().is_eog(token) {
             self.grammar.accept(token);
@@ -395,20 +384,18 @@ impl ToolDecode {
 
     fn finish(self, reason: FinishReason) -> Result<ToolOutcome, Error> {
         let calls = if self.state == ToolState::Call {
-            if reason != FinishReason::Eog {
-                return Err(Error::InvalidInput(
-                    "The model did not finish its tool call".into(),
-                ));
-            }
-            self.format
-                .parse(&String::from_utf8_lossy(&self.raw), &self.request)?
+            tools::finished_calls(
+                self.format,
+                &self.raw,
+                &self.request,
+                reason == FinishReason::Eog,
+            )?
         } else {
             Vec::<ToolCall>::new()
         };
         Ok(ToolOutcome {
             calls,
             call_probability: self.probability,
-            supported: true,
         })
     }
 }
@@ -792,7 +779,7 @@ fn generate_chat_stream(
                 && let Some(open) = tools::single_token(ctx.model, format.open())
             {
                 banned.push(open);
-                if let (Some(format), Some(request)) = (built.tool_format, tool_request.clone()) {
+                if let Some(request) = tool_request {
                     let grammar = tools::grammar(format, &request, ctx.model)?;
                     let grammar =
                         LlamaSampler::grammar(ctx.model, &grammar, "root").map_err(|err| {
@@ -1110,11 +1097,22 @@ pub fn cancel(job_id: JobId) {
 
 #[cfg(test)]
 mod tests {
-    use super::{StreamDecoder, reusable_prefix_len};
+    use super::{StreamDecoder, reusable_prefix_len, token_probability};
     use llama_cpp_2::token::LlamaToken;
 
     fn tokens(ids: &[i32]) -> Vec<LlamaToken> {
         ids.iter().copied().map(LlamaToken).collect()
+    }
+
+    #[test]
+    fn token_probability_is_the_softmax_share() {
+        let logits = [0.0, (3.0_f32).ln(), 0.0];
+        assert!((token_probability(&logits, LlamaToken(1)) - 0.6).abs() < 1e-6);
+        assert!((token_probability(&logits, LlamaToken(0)) - 0.2).abs() < 1e-6);
+        let large = [1000.0, 1000.0];
+        assert!((token_probability(&large, LlamaToken(0)) - 0.5).abs() < 1e-6);
+        assert_eq!(token_probability(&logits, LlamaToken(3)), 0.0);
+        assert_eq!(token_probability(&logits, LlamaToken(-1)), 0.0);
     }
 
     #[test]

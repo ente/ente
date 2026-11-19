@@ -1,12 +1,8 @@
+use std::collections::HashMap;
+
 use ente_ensu::{db, todo};
-use uuid::Uuid;
 
-use crate::db::{DbError, DbMessage, EnsuDb, to_message};
-use crate::llm::LlmToolCall;
-
-fn parse(id: &str) -> Result<Uuid, DbError> {
-    Uuid::parse_str(id).map_err(|error| DbError::from(db::Error::from(error)))
-}
+use crate::db::{DbError, DbMessage, EnsuDb, parse_uuid};
 
 #[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
 pub struct TodoItem {
@@ -31,29 +27,59 @@ impl From<todo::Todo> for TodoItem {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
-pub struct TodoAlarmItem {
-    pub todo_id: String,
-    pub title: String,
-    pub due_at_ms: i64,
-    pub key: String,
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct FinishedReply {
+    pub message: DbMessage,
+    pub tool_turn: Option<ToolTurnStatus>,
 }
 
-#[derive(Debug, Clone, uniffi::Record)]
-pub struct TodoTurnResult {
-    /// The assistant reply saved for the turn.
-    pub reply: DbMessage,
-    /// True when the turn changed tasks and can be undone.
-    pub changed: bool,
-    /// True when the reply offers changes to make with `confirm_todo_turn`.
-    pub pending: bool,
+#[derive(Debug, Clone, Copy, uniffi::Enum)]
+pub enum ToolTurnUndo {
+    None,
+    Available,
+    Undone,
+    PartlyUndone,
+    Stale,
+}
+
+#[derive(Debug, Clone, Copy, uniffi::Enum)]
+pub enum ToolTurnConfirm {
+    None,
+    Offered,
+    Stale,
 }
 
 #[derive(Debug, Clone, Copy, uniffi::Record)]
-pub struct TodoTurnStatus {
-    pub changed: bool,
-    pub undone: bool,
-    pub pending: bool,
+pub struct ToolTurnStatus {
+    pub undo: ToolTurnUndo,
+    pub confirm: ToolTurnConfirm,
+    pub can_retry: bool,
+}
+
+impl From<db::chat::ToolTurnState> for ToolTurnStatus {
+    fn from(state: db::chat::ToolTurnState) -> Self {
+        use db::chat::{Confirm, Undo};
+        Self {
+            undo: match state.undo {
+                Undo::None => ToolTurnUndo::None,
+                Undo::Available => ToolTurnUndo::Available,
+                Undo::Undone => ToolTurnUndo::Undone,
+                Undo::PartlyUndone => ToolTurnUndo::PartlyUndone,
+                Undo::Stale => ToolTurnUndo::Stale,
+            },
+            confirm: match state.confirm {
+                Confirm::None => ToolTurnConfirm::None,
+                Confirm::Offered => ToolTurnConfirm::Offered,
+                Confirm::Stale => ToolTurnConfirm::Stale,
+            },
+            can_retry: state.can_retry,
+        }
+    }
+}
+
+#[uniffi::export(with_foreign)]
+pub trait ToolsObserver: Send + Sync {
+    fn on_change(&self);
 }
 
 #[uniffi::export]
@@ -80,7 +106,7 @@ impl EnsuDb {
     ) -> Result<TodoItem, DbError> {
         Ok(self
             .inner
-            .update_todo(parse(&id)?, version, &title, due_at_ms)?
+            .update_todo(parse_uuid(&id)?, version, &title, due_at_ms)?
             .into())
     }
 
@@ -92,71 +118,36 @@ impl EnsuDb {
     ) -> Result<TodoItem, DbError> {
         Ok(self
             .inner
-            .set_todo_completed(parse(&id)?, version, completed)?
+            .set_todo_completed(parse_uuid(&id)?, version, completed)?
             .into())
     }
 
     pub fn delete_todo(&self, id: String, version: u64) -> Result<(), DbError> {
-        Ok(self.inner.delete_todo(parse(&id)?, version)?)
+        Ok(self.inner.delete_todo(parse_uuid(&id)?, version)?)
     }
 
-    /// Reminders the OS should hold: the earliest `limit` open tasks due
-    /// after `now_ms`.
-    pub fn todo_alarms(&self, now_ms: i64, limit: u32) -> Result<Vec<TodoAlarmItem>, DbError> {
+    pub fn confirm_tool_turn(&self, reply_id: String) -> Result<ToolTurnStatus, DbError> {
+        Ok(self.inner.confirm_tool_turn(parse_uuid(&reply_id)?)?.into())
+    }
+
+    pub fn undo_tool_turn(&self, reply_id: String) -> Result<ToolTurnStatus, DbError> {
+        Ok(self.inner.undo_tool_turn(parse_uuid(&reply_id)?)?.into())
+    }
+
+    pub fn tool_turn_statuses(
+        &self,
+        session_id: String,
+    ) -> Result<HashMap<String, ToolTurnStatus>, DbError> {
         Ok(self
             .inner
-            .todo_alarms(now_ms, limit as usize)?
+            .tool_turn_states(parse_uuid(&session_id)?)?
             .into_iter()
-            .map(|alarm| TodoAlarmItem {
-                todo_id: alarm.todo_id.to_string(),
-                title: alarm.title,
-                due_at_ms: alarm.due_at_ms,
-                key: alarm.key,
-            })
+            .map(|(reply, state)| (reply.to_string(), state.into()))
             .collect())
     }
 
-    /// Applies a generation's To Do calls for the user message `source_id`
-    /// and saves the reply. `call_probability` is the generation's confidence
-    /// in the calls; below a threshold, changes are offered for confirmation
-    /// with `confirm_todo_turn` instead of made.
-    pub fn apply_todo_calls(
-        &self,
-        source_id: String,
-        calls: Vec<LlmToolCall>,
-        now_ms: i64,
-        call_probability: Option<f32>,
-    ) -> Result<TodoTurnResult, DbError> {
-        let calls: Vec<_> = calls.into_iter().map(Into::into).collect();
-        let turn =
-            self.inner
-                .apply_todo_calls(parse(&source_id)?, &calls, now_ms, call_probability)?;
-        Ok(TodoTurnResult {
-            changed: !turn.changes.is_empty(),
-            pending: !turn.proposed.is_empty(),
-            reply: to_message(turn.reply),
-        })
-    }
-
-    /// Makes the changes a reply offered.
-    pub fn confirm_todo_turn(&self, reply_id: String) -> Result<(), DbError> {
-        self.inner.confirm_todo_turn(parse(&reply_id)?)?;
-        Ok(())
-    }
-
-    pub fn undo_todo_turn(&self, reply_id: String) -> Result<(), DbError> {
-        self.inner.undo_todo_turn(parse(&reply_id)?)?;
-        Ok(())
-    }
-
-    pub fn todo_turn_status(&self, reply_id: String) -> Result<Option<TodoTurnStatus>, DbError> {
-        Ok(self
-            .inner
-            .todo_turn_state(parse(&reply_id)?)?
-            .map(|state| TodoTurnStatus {
-                changed: state.changed,
-                undone: state.undone,
-                pending: state.pending,
-            }))
+    pub fn observe_tools(&self, observer: std::sync::Arc<dyn ToolsObserver>) {
+        self.inner
+            .observe_tools(std::sync::Arc::new(move || observer.on_change()));
     }
 }

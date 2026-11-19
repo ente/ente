@@ -77,11 +77,12 @@ import { NotesIndexingIdleScheduler } from "@/services/notes-indexing-idle";
 import { tauriCommandError } from "@/services/tauri-error";
 import { isTauriRuntime as detectTauriAppRuntime } from "@/services/tauri-runtime";
 import {
-    applyTodoCalls,
-    confirmTodoTurn,
+    confirmToolTurn,
     loadTodoTurnStatuses,
-    undoTodoTurn,
-    type TodoTurnStatus,
+    refusalMessage,
+    undoToolTurn,
+    watchTodos,
+    type ToolTurnStatus,
 } from "@/services/todos";
 import { Menu01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -546,7 +547,7 @@ const Page: React.FC = () => {
     const [chatKey, setChatKey] = useState<string | undefined>();
     const [sessions, setSessions] = useState<ChatSession[]>([]);
     const [allMessages, setAllMessages] = useState<ChatMessage[]>([]);
-    const [todoTurns, setTodoTurns] = useState<Record<string, TodoTurnStatus>>(
+    const [todoTurns, setTodoTurns] = useState<Record<string, ToolTurnStatus>>(
         {},
     );
     const [branchSelections, setBranchSelections] = useState<
@@ -1970,7 +1971,11 @@ const Page: React.FC = () => {
         if (isNamedError(error, "prompt_too_long")) {
             return "Prompt exceeds the model context window. Reduce history or increase context length.";
         }
-        return tauriCommandError(error).message ?? "Unknown model error";
+        const { name, message } = tauriCommandError(error);
+        if (name === "conversation_changed") {
+            return "Conversation changed while generating the reply. Retry the reply.";
+        }
+        return refusalMessage(name) ?? message ?? "Unknown model error";
     }, []);
 
     const trimToWords = useCallback((text: string, maxWords: number) => {
@@ -2469,74 +2474,77 @@ const Page: React.FC = () => {
         [stripHiddenParts],
     );
 
+    const reloadTodoTurns = useRef<(() => void) | undefined>(undefined);
+    const pendingTodoTurnChangeRef = useRef<
+        Promise<ToolTurnStatus> | undefined
+    >(undefined);
+
     useEffect(() => {
         if (!isTauriRuntime) return;
-        const replyIds = allMessages
-            .filter(
-                (message) =>
-                    message.sender === "assistant" &&
-                    !(message.messageUuid in todoTurns),
-            )
-            .map((message) => message.messageUuid);
-        if (replyIds.length === 0) return;
-        let current = true;
-        loadTodoTurnStatuses(replyIds)
-            .then((statuses) => {
-                if (!current || Object.keys(statuses).length === 0) return;
-                setTodoTurns((prev) => ({ ...prev, ...statuses }));
-            })
-            .catch((error: unknown) =>
-                log.error("Failed to load To Do turn statuses", error),
-            );
+        const watcher = watchTodos(
+            () =>
+                currentSessionId
+                    ? loadTodoTurnStatuses(currentSessionId)
+                    : Promise.resolve({}),
+            setTodoTurns,
+            (error) => log.error("Failed to load To Do turn statuses", error),
+        );
+        reloadTodoTurns.current = watcher.refresh;
         return () => {
-            current = false;
+            watcher.dispose();
+            reloadTodoTurns.current = undefined;
         };
-        // todoTurns is read only to skip replies already known.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [allMessages, isTauriRuntime]);
+    }, [isTauriRuntime, currentSessionId]);
 
-    const handleUndoTodoTurn = useCallback(
-        async (message: ChatMessage) => {
+    const changeTodoTurn = useCallback(
+        async (
+            replyId: string,
+            change: (replyId: string) => Promise<ToolTurnStatus>,
+            failure: string,
+        ) => {
+            if (
+                generationActiveRef.current ||
+                generationStartingRef.current ||
+                generationStoppingRef.current ||
+                pendingTodoTurnChangeRef.current
+            )
+                return;
             try {
-                await undoTodoTurn(message.messageUuid);
-                setTodoTurns((prev) => ({
-                    ...prev,
-                    [message.messageUuid]: {
-                        changed: true,
-                        undone: true,
-                        pending: false,
-                    },
-                }));
+                const pending = change(replyId);
+                pendingTodoTurnChangeRef.current = pending;
+                const status = await pending;
+                setTodoTurns((prev) => ({ ...prev, [replyId]: status }));
+                reloadTodoTurns.current?.();
             } catch (error) {
                 showMiniDialog({
-                    title: "Couldn't undo",
+                    title: failure,
                     message: formatErrorMessage(error),
                 });
+            } finally {
+                pendingTodoTurnChangeRef.current = undefined;
             }
         },
         [showMiniDialog, formatErrorMessage],
     );
 
+    const handleUndoTodoTurn = useCallback(
+        (message: ChatMessage) =>
+            void changeTodoTurn(
+                message.messageUuid,
+                undoToolTurn,
+                "Couldn't undo",
+            ),
+        [changeTodoTurn],
+    );
+
     const handleConfirmTodoTurn = useCallback(
-        async (message: ChatMessage) => {
-            try {
-                await confirmTodoTurn(message.messageUuid);
-                setTodoTurns((prev) => ({
-                    ...prev,
-                    [message.messageUuid]: {
-                        changed: true,
-                        undone: false,
-                        pending: false,
-                    },
-                }));
-            } catch (error) {
-                showMiniDialog({
-                    title: "Couldn't confirm",
-                    message: formatErrorMessage(error),
-                });
-            }
-        },
-        [showMiniDialog, formatErrorMessage],
+        (message: ChatMessage) =>
+            void changeTodoTurn(
+                message.messageUuid,
+                confirmToolTurn,
+                "Couldn't confirm",
+            ),
+        [changeTodoTurn],
     );
 
     const appendMessageToState = useCallback((message: ChatMessage) => {
@@ -3062,7 +3070,9 @@ const Page: React.FC = () => {
             ) {
                 try {
                     const assistantMessage = await (preparedReply
-                        ? preparedReply.saveAnswer(finalText)
+                        ? preparedReply
+                              .finish(finalText)
+                              .then((finished) => finished.message)
                         : addMessage(
                               activeSessionId,
                               "assistant",
@@ -3202,6 +3212,8 @@ const Page: React.FC = () => {
             let previousSelection: string | null | undefined;
             let startupCompleted = false;
             try {
+                await pendingTodoTurnChangeRef.current?.catch(() => undefined);
+                if (!isActiveGeneration()) return;
                 provider = await ensureProvider();
                 if (provider.getBackendKind() === "tauri") {
                     await provider.cancelGeneration(-1);
@@ -3475,7 +3487,6 @@ const Page: React.FC = () => {
                                 ? undefined
                                 : knowledgeContext?.candidates,
                             resolutionToken,
-                            todoTools: true,
                         },
                         provider,
                         {
@@ -3583,38 +3594,13 @@ const Page: React.FC = () => {
                 flushStreamingText();
                 const finalText = streamingBufferRef.current;
 
-                const toolCalls = summary?.tools?.calls ?? [];
                 const preparedReply = preparedReplyRef.current;
-                if (toolCalls.length > 0 && preparedReply && !errorMessage) {
-                    // The model called the To Do tools: the native layer
-                    // applies them, or offers them for the user to confirm
-                    // when the model was unsure, and saves its receipt as
-                    // the reply.
-                    const turn = await applyTodoCalls(
-                        parentMessageUuid,
-                        toolCalls,
-                        summary?.tools?.call_probability ?? null,
-                        preparedReply.preparationToken,
-                    );
-                    if (!isActiveGeneration()) return;
-                    setTodoTurns((prev) => ({
-                        ...prev,
-                        [turn.reply.messageUuid]: {
-                            changed: turn.changed,
-                            undone: false,
-                            pending: turn.pending,
-                        },
-                    }));
-                    void updateBranchSelectionState(
-                        parentMessageUuid,
-                        turn.reply.messageUuid,
-                    );
-                    appendMessageToState(turn.reply);
-                    updateSessionAfterMessage(turn.reply);
-                    return;
-                }
+                const appliesTools =
+                    !!summary?.tools?.calls.length &&
+                    !!preparedReply &&
+                    !errorMessage;
 
-                if (!finalText.trim()) {
+                if (!finalText.trim() && !appliesTools) {
                     if (errorMessage) {
                         showMiniDialog({
                             title: "Generation failed",
@@ -3631,31 +3617,41 @@ const Page: React.FC = () => {
                 }
 
                 const rawAssistantText = finalText.replaceAll("\0", "");
-                setIsStreamingOutro(true);
+                if (!appliesTools) {
+                    setIsStreamingOutro(true);
 
-                await new Promise<void>((resolve) => {
-                    window.setTimeout(resolve, STREAMING_OUTRO_DURATION_MS);
-                });
+                    await new Promise<void>((resolve) => {
+                        window.setTimeout(resolve, STREAMING_OUTRO_DURATION_MS);
+                    });
 
-                if (!isActiveGeneration()) {
-                    return;
+                    if (!isActiveGeneration()) {
+                        return;
+                    }
+
+                    activeKnowledgeSourcesRef.current = [];
                 }
 
-                activeKnowledgeSourcesRef.current = [];
-
-                const assistantMessage = await (preparedReplyRef.current
-                    ? preparedReplyRef.current.saveAnswer(rawAssistantText)
-                    : addMessage(
-                          activeSessionId,
-                          "assistant",
-                          rawAssistantText,
-                          chatKey,
-                          parentMessageUuid,
-                          [],
-                          activeSources,
-                      ));
+                const { message: assistantMessage, toolTurn } =
+                    await (preparedReply
+                        ? preparedReply.finish(rawAssistantText)
+                        : addMessage(
+                              activeSessionId,
+                              "assistant",
+                              rawAssistantText,
+                              chatKey,
+                              parentMessageUuid,
+                              [],
+                              activeSources,
+                          ).then((message) => ({ message, toolTurn: null })));
 
                 if (!isActiveGeneration()) return;
+                if (toolTurn) {
+                    setTodoTurns((prev) => ({
+                        ...prev,
+                        [assistantMessage.messageUuid]: toolTurn,
+                    }));
+                    reloadTodoTurns.current?.();
+                }
                 void updateBranchSelectionState(
                     parentMessageUuid,
                     assistantMessage.messageUuid,
@@ -3684,7 +3680,12 @@ const Page: React.FC = () => {
                 } else {
                     const message = formatErrorMessage(error);
                     if (name !== "cancelled" && name !== "stale") {
-                        showMiniDialog({ title: "Model error", message });
+                        showMiniDialog({
+                            title: name?.startsWith("refused.")
+                                ? "Couldn't update To Dos"
+                                : "Model error",
+                            message,
+                        });
                     }
                 }
                 if (previousSelection) {

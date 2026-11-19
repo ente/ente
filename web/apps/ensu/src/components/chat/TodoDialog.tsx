@@ -4,9 +4,9 @@ import {
     formatDue,
     isOpen,
     listTodos,
-    onTodosChanged,
     setTodoCompleted,
     updateTodo,
+    watchTodos,
     type Todo,
 } from "@/services/todos";
 import { Delete01Icon } from "@hugeicons/core-free-icons";
@@ -23,7 +23,7 @@ import {
     TextField,
     Typography,
 } from "@mui/material";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 interface TodoDialogProps {
     open: boolean;
@@ -31,7 +31,6 @@ interface TodoDialogProps {
     onError: (error: unknown) => void;
 }
 
-/** `datetime-local` input value for a time, in the local zone. */
 const toInputValue = (ms: number | null) => {
     if (ms === null) return "";
     const date = new Date(ms);
@@ -42,57 +41,64 @@ const toInputValue = (ms: number | null) => {
 const fromInputValue = (value: string) =>
     value ? new Date(value).getTime() : null;
 
-/**
- * The To Do list without the model: everything chat can do to a To Do can
- * also be done here by hand.
- */
 export const TodoDialog: React.FC<TodoDialogProps> = ({
     open,
     onClose,
     onError,
 }) => {
     const [todos, setTodos] = useState<Todo[]>([]);
+    const [loaded, setLoaded] = useState(false);
     const [title, setTitle] = useState("");
     const [due, setDue] = useState("");
-    const [editing, setEditing] = useState<string | null>(null);
+    const [editing, setEditing] = useState<{ id: string } | null>(null);
 
-    const reload = useCallback(() => {
-        listTodos().then(setTodos).catch(onError);
-    }, [onError]);
+    const reload = useRef<(() => void) | undefined>(undefined);
 
     useEffect(() => {
-        if (!open) return;
-        reload();
-        const unlisten = onTodosChanged(reload);
+        if (!open) {
+            setEditing(null);
+            return;
+        }
+        const watcher = watchTodos(
+            listTodos,
+            (latest) => {
+                setTodos(latest);
+                setLoaded(true);
+            },
+            onError,
+        );
+        reload.current = watcher.refresh;
         return () => {
-            void unlisten.then((stop) => stop());
+            watcher.dispose();
+            reload.current = undefined;
         };
-    }, [open, reload]);
+    }, [open, onError]);
 
     const run = (action: Promise<unknown>) => {
-        action.then(reload).catch(onError);
+        void action.then(
+            () => reload.current?.(),
+            (error: unknown) => {
+                onError(error);
+                reload.current?.();
+            },
+        );
     };
 
+    const adding = useRef(false);
     const add = () => {
-        if (!title.trim()) return;
+        if (!title.trim() || adding.current) return;
+        adding.current = true;
         run(
-            createTodo(title, fromInputValue(due)).then(() => {
-                setTitle("");
-                setDue("");
-            }),
+            createTodo(title, fromInputValue(due))
+                .then(() => {
+                    setTitle("");
+                    setDue("");
+                })
+                .finally(() => {
+                    adding.current = false;
+                }),
         );
     };
-
-    const open_ = todos
-        .filter(isOpen)
-        .sort(
-            (a, b) =>
-                (a.dueAtMs ?? Infinity) - (b.dueAtMs ?? Infinity) ||
-                a.createdAtMs - b.createdAtMs,
-        );
-    const done = todos
-        .filter((todo) => !isOpen(todo))
-        .sort((a, b) => (b.completedAtMs ?? 0) - (a.completedAtMs ?? 0));
 
     return (
         <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
@@ -105,7 +111,11 @@ export const TodoDialog: React.FC<TodoDialogProps> = ({
                         value={title}
                         onChange={(event) => setTitle(event.target.value)}
                         onKeyDown={(event) => {
-                            if (event.key === "Enter") add();
+                            if (
+                                event.key === "Enter" &&
+                                !event.nativeEvent.isComposing
+                            )
+                                add();
                         }}
                         sx={{ flex: 1 }}
                     />
@@ -121,13 +131,13 @@ export const TodoDialog: React.FC<TodoDialogProps> = ({
                         Add
                     </Button>
                 </Stack>
-                {todos.length === 0 && (
+                {loaded && todos.length === 0 && (
                     <Typography variant="small" sx={{ color: "text.muted" }}>
                         Nothing yet. Add one here, or ask in chat.
                     </Typography>
                 )}
-                {[...open_, ...done].map((todo) =>
-                    editing === todo.id ? (
+                {todos.map((todo) =>
+                    editing?.id === todo.id ? (
                         <TodoEditor
                             key={todo.id}
                             todo={todo}
@@ -135,7 +145,12 @@ export const TodoDialog: React.FC<TodoDialogProps> = ({
                             onSave={(newTitle, newDue) =>
                                 run(
                                     updateTodo(todo, newTitle, newDue).then(
-                                        () => setEditing(null),
+                                        () =>
+                                            setEditing((current) =>
+                                                current === editing
+                                                    ? null
+                                                    : current,
+                                            ),
                                     ),
                                 )
                             }
@@ -148,6 +163,9 @@ export const TodoDialog: React.FC<TodoDialogProps> = ({
                         >
                             <Checkbox
                                 checked={!isOpen(todo)}
+                                slotProps={{
+                                    input: { "aria-label": todo.title },
+                                }}
                                 onChange={(event) =>
                                     run(
                                         setTodoCompleted(
@@ -159,7 +177,7 @@ export const TodoDialog: React.FC<TodoDialogProps> = ({
                             />
                             <Box
                                 sx={{ flex: 1, cursor: "pointer" }}
-                                onClick={() => setEditing(todo.id)}
+                                onClick={() => setEditing({ id: todo.id })}
                             >
                                 <Typography
                                     sx={{
@@ -186,7 +204,7 @@ export const TodoDialog: React.FC<TodoDialogProps> = ({
                                 )}
                             </Box>
                             <IconButton
-                                aria-label="Delete"
+                                aria-label={`Delete ${todo.title}`}
                                 onClick={() => run(deleteTodo(todo))}
                             >
                                 <HugeiconsIcon icon={Delete01Icon} size={18} />
@@ -208,6 +226,11 @@ interface TodoEditorProps {
 const TodoEditor: React.FC<TodoEditorProps> = ({ todo, onSave, onCancel }) => {
     const [title, setTitle] = useState(todo.title);
     const [due, setDue] = useState(toInputValue(todo.dueAtMs));
+    const sameDue = due === toInputValue(todo.dueAtMs);
+    const save = () => {
+        if (title.trim() === todo.title && sameDue) onCancel();
+        else onSave(title, sameDue ? todo.dueAtMs : fromInputValue(due));
+    };
     return (
         <Stack direction="row" sx={{ gap: 1, my: 1, alignItems: "center" }}>
             <TextField
@@ -223,10 +246,7 @@ const TodoEditor: React.FC<TodoEditorProps> = ({ todo, onSave, onCancel }) => {
                 value={due}
                 onChange={(event) => setDue(event.target.value)}
             />
-            <Button
-                disabled={!title.trim()}
-                onClick={() => onSave(title, fromInputValue(due))}
-            >
+            <Button disabled={!title.trim()} onClick={save}>
                 Save
             </Button>
             <Button onClick={onCancel}>Cancel</Button>

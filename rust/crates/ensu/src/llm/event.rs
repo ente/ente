@@ -34,7 +34,6 @@ pub struct GenerationSummary {
     pub total_time_ms: Option<i64>,
     #[serde(default)]
     pub finish_reason: FinishReason,
-    /// Present when the request asked for tools.
     #[serde(default)]
     pub tools: Option<super::ToolOutcome>,
 }

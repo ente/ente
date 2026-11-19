@@ -25,11 +25,18 @@ pub trait Effects {
     fn prefer_large_summary_chunks(&self) -> bool {
         false
     }
+    fn supports_tools(&self) -> bool {
+        true
+    }
     fn check_current(&mut self) -> Result<(), PrepareError>;
     fn check_cancelled(&mut self) -> Result<(), PrepareError> {
         self.check_current()
     }
-    fn measure(&mut self, messages: &[ChatMessage]) -> Result<usize, PrepareError>;
+    fn measure(
+        &mut self,
+        messages: &[ChatMessage],
+        tools: Option<&ToolRequest>,
+    ) -> Result<usize, PrepareError>;
     fn summarize(
         &mut self,
         messages: Vec<ChatMessage>,
@@ -64,6 +71,7 @@ pub struct Preparation {
     covered: usize,
     grounding: Option<PromptGrounding>,
     tool_turns: std::collections::HashMap<Uuid, super::ToolTurnHistory>,
+    tools: Option<ToolRequest>,
 }
 
 struct PendingChunk {
@@ -118,6 +126,7 @@ impl Preparation {
             covered,
             grounding: None,
             tool_turns: std::collections::HashMap::new(),
+            tools: None,
         })
     }
 
@@ -140,11 +149,13 @@ impl Preparation {
         self
     }
 
-    pub(super) fn with_tool_turns(
+    pub(super) fn with_tools(
         mut self,
         tool_turns: std::collections::HashMap<Uuid, super::ToolTurnHistory>,
+        tools: Option<ToolRequest>,
     ) -> Self {
         self.tool_turns = tool_turns;
+        self.tools = tools;
         self
     }
 
@@ -182,11 +193,11 @@ impl Preparation {
         effects.check_current()?;
         let mut memory = self.state.as_ref().map(|s| s.summary.text.as_str());
         let mut messages = self.answer_messages(memory, &[], &self.current);
-        let mut prompt_tokens = effects.measure(&messages)?;
+        let mut prompt_tokens = effects.measure(&messages, self.tools.as_ref())?;
         if prompt_tokens > self.input_budget {
             memory = None;
             messages = self.answer_messages(None, &[], &self.current);
-            prompt_tokens = effects.measure(&messages)?;
+            prompt_tokens = effects.measure(&messages, self.tools.as_ref())?;
         }
         if prompt_tokens > self.input_budget {
             return Err(PrepareError::CurrentInputTooLarge);
@@ -201,7 +212,7 @@ impl Preparation {
             let mid = low + (high - low) / 2;
             let candidate =
                 self.answer_messages(memory, &history[ranges[mid].start..], &self.current);
-            let count = effects.measure(&candidate)?;
+            let count = effects.measure(&candidate, self.tools.as_ref())?;
             if count <= self.input_budget {
                 messages = candidate;
                 prompt_tokens = count;
@@ -221,12 +232,12 @@ impl Preparation {
         let mut use_retry_instruction = false;
         effects.check_current()?;
         let mandatory = self.answer_messages(None, &[], &self.current);
-        if effects.measure(&mandatory)? > self.input_budget {
+        if effects.measure(&mandatory, self.tools.as_ref())? > self.input_budget {
             return Err(PrepareError::CurrentInputTooLarge);
         }
         if self.covered > 0 {
             let messages = self.answer_messages(None, &self.history, &self.current);
-            let prompt_tokens = effects.measure(&messages)?;
+            let prompt_tokens = effects.measure(&messages, self.tools.as_ref())?;
             if prompt_tokens <= self.input_budget {
                 effects.check_current()?;
                 return Ok(self.result(messages, prompt_tokens, &self.history));
@@ -237,7 +248,7 @@ impl Preparation {
             let memory = self.state.as_ref().map(|s| s.summary.text.as_str());
             let messages =
                 self.answer_messages(memory, &self.history[self.covered..], &self.current);
-            let count = effects.measure(&messages)?;
+            let count = effects.measure(&messages, self.tools.as_ref())?;
             if count <= self.input_budget {
                 if self.covered > 0
                     && let Some(query) = &self.history_query
@@ -254,7 +265,7 @@ impl Preparation {
                             &self.history[self.covered..],
                             &lookup.prepend_to(&self.current, take),
                         );
-                        let tokens = effects.measure(&recovered)?;
+                        let tokens = effects.measure(&recovered, self.tools.as_ref())?;
                         if tokens <= self.input_budget && tokens.saturating_sub(count) <= allowance
                         {
                             effects.check_current()?;
@@ -270,16 +281,19 @@ impl Preparation {
                 return Ok(self.result(messages, count, &self.history[self.covered..]));
             }
             let memory_tokens = if memory.is_some() {
-                effects.measure(&self.answer_messages(memory, &[], &self.current))?
+                effects.measure(
+                    &self.answer_messages(memory, &[], &self.current),
+                    self.tools.as_ref(),
+                )?
             } else {
                 0
             };
             if memory.is_some()
                 && (memory_tokens > self.input_budget || self.covered == self.history.len())
             {
-                let mut request = summary_messages(memory, &[]);
+                let mut request = summary_messages(memory, &[], &self.tool_turns);
                 request[0].content.push_str(" Shorten the previous memory substantially by removing redundant detail. Keep active constraints and decisions.");
-                if effects.measure(&request)? > self.summary_input_budget {
+                if effects.measure(&request, None)? > self.summary_input_budget {
                     return self.fallback(effects);
                 }
                 let (text, finish) = match effects.summarize(request, self.summary_output) {
@@ -294,7 +308,7 @@ impl Preparation {
                     return self.fallback(effects);
                 };
                 let after = self.answer_messages(Some(&text), &[], &self.current);
-                if effects.measure(&after)? >= memory_tokens {
+                if effects.measure(&after, self.tools.as_ref())? >= memory_tokens {
                     return self.fallback(effects);
                 }
                 effects.check_current()?;
@@ -311,8 +325,12 @@ impl Preparation {
                 let preferred = ranges.len().saturating_sub(2).max(1);
                 for range in ranges.iter().take(preferred) {
                     let candidate = self.covered + range.end;
-                    let request = summary_messages(memory, &self.history[self.covered..candidate]);
-                    let tokens = effects.measure(&request)?;
+                    let request = summary_messages(
+                        memory,
+                        &self.history[self.covered..candidate],
+                        &self.tool_turns,
+                    );
+                    let tokens = effects.measure(&request, None)?;
                     if tokens > self.summary_input_budget
                         || (!full_summary_budget
                             && candidate > end
@@ -322,8 +340,11 @@ impl Preparation {
                     }
                     end = candidate;
                 }
-                let payload =
-                    serde_json::json!(history_rows(&self.history[self.covered..end])).to_string();
+                let payload = serde_json::json!(history_rows(
+                    &self.history[self.covered..end],
+                    &self.tool_turns
+                ))
+                .to_string();
                 pending_chunk = Some(PendingChunk {
                     end,
                     payload,
@@ -335,16 +356,16 @@ impl Preparation {
             let remaining = &pending.payload[pending.offset..];
             let make_request = |length: usize| {
                 vec![
-                ChatMessage { role: "system".into(), content: summary_instruction(use_retry_instruction || retrying), tool_calls: Vec::new() },
-                ChatMessage { role: "user".into(), content: serde_json::json!({
+                ChatMessage::new("system", summary_instruction(use_retry_instruction || retrying)),
+                ChatMessage::new("user", serde_json::json!({
                     "previous_summary": pending.memory.as_deref().unwrap_or(""),
                     "history_fragment": &remaining[..length], "fragment_start_byte": pending.offset,
                     "history_total_bytes": pending.payload.len(), "last_fragment": length == remaining.len()
-                }).to_string(), tool_calls: Vec::new() }
+                }).to_string())
             ]
             };
             let mut length = remaining.len();
-            while effects.measure(&make_request(length))? > self.summary_input_budget {
+            while effects.measure(&make_request(length), None)? > self.summary_input_budget {
                 length /= 2;
                 while length > 0 && !remaining.is_char_boundary(length) {
                     length -= 1;
@@ -354,7 +375,8 @@ impl Preparation {
                 }
             }
             let request = make_request(length);
-            let output = if !retrying && effects.measure(&request)? > self.summary_output * 2 {
+            let output = if !retrying && effects.measure(&request, None)? > self.summary_output * 2
+            {
                 self.summary_output.min(384)
             } else {
                 self.summary_output
