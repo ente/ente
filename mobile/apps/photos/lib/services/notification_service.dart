@@ -77,7 +77,9 @@ class NotificationService {
       return;
     }
     if (event['eventType'] == 'album_shared' ||
-        event['eventType'] == 'file_liked') {
+        event['eventType'] == 'file_liked' ||
+        event['eventType'] == 'file_commented' ||
+        event['eventType'] == 'comment_replied') {
       _logger.info('Received encrypted ${event['eventType']} push');
       await onSync();
     }
