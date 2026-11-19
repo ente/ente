@@ -252,11 +252,7 @@ class _RewindViewerState extends State<RewindViewer>
   @override
   void next() {
     final step = _currentStep;
-    if (step >= _steps - 1) {
-      unawaited(Navigator.of(context).maybePop());
-    } else {
-      _animateTo(step + 1);
-    }
+    if (step < _steps - 1) _animateTo(step + 1);
   }
 
   @override
