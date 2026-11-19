@@ -3,6 +3,8 @@ import "dart:async";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:logging/logging.dart";
+import "package:photos/service_locator.dart";
+import "package:photos/services/wake_lock_service.dart";
 import "package:photos/ui/rewind/reel/rewind_video_export.dart";
 import "package:photos/ui/rewind/shell/rewind_chrome.dart";
 import "package:photos/ui/rewind/shell/rewind_music.dart";
@@ -54,6 +56,7 @@ class _RewindViewerState extends State<RewindViewer>
   static final _logger = Logger("RewindViewer");
   static const _tapZoneTop = 70 / 844;
   static const _tapZoneBottom = 770 / 844;
+  static var _openViewers = 0;
 
   late final _starts = RewindPageStack.startsOf(widget.pages);
   late final _steps = _starts.last + widget.pages.last.stops;
@@ -82,10 +85,22 @@ class _RewindViewerState extends State<RewindViewer>
     _settle(_initialStep);
     WidgetsBinding.instance.addObserver(this);
     unawaited(_music.start());
+    if (_openViewers++ == 0) {
+      wakeLockService.updateWakeLock(
+        enable: true,
+        wakeLockFor: WakeLockFor.rewindViewer,
+      );
+    }
   }
 
   @override
   void dispose() {
+    if (--_openViewers == 0) {
+      wakeLockService.updateWakeLock(
+        enable: false,
+        wakeLockFor: WakeLockFor.rewindViewer,
+      );
+    }
     WidgetsBinding.instance.removeObserver(this);
     _music.dispose();
     _controller?.dispose();
