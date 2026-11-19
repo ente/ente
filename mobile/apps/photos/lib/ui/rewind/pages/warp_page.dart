@@ -176,7 +176,7 @@ class _Flight extends StatefulWidget {
 class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   static const _printWidth = 228.0;
   static const _coastMs = 450.0;
-  static const _pixelsPerUnit = 119.0;
+  static const _pixelsPerUnit = 68.0;
   static const _touchTop = 70.0;
   static const _touchBottom = 770.0;
   static const _flyAbove = 700.0;
