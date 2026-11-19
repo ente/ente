@@ -113,6 +113,7 @@ class FileBottomBarState extends State<FileBottomBar> {
     final List<Widget> children = [];
     final bool isOwnedByUser =
         widget.file.ownerID == null || widget.file.ownerID == widget.userID;
+    final bool canDelete = isOwnedByUser || widget.file.localID != null;
     final bool isFileHidden =
         widget.file.isOwner &&
         widget.file.isUploaded &&
@@ -122,7 +123,7 @@ class FileBottomBarState extends State<FileBottomBar> {
     }
 
     if (!widget.file.isTrash) {
-      if (isOwnedByUser) {
+      if (canDelete) {
         children.add(
           Tooltip(
             message: context.strings.delete,
