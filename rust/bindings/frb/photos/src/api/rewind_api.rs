@@ -383,3 +383,14 @@ pub fn decode_rewind_state(
 pub fn encode_rewind_request(request: RewindRequest) -> Result<Vec<u8>, RewindError> {
     Ok(rewind::encode_rewind_request(&request)?)
 }
+
+pub fn rewind_badge_signals(
+    request: RewindRequest,
+    store: Option<RustAutoOpaque<MlStore>>,
+) -> Result<String, RewindError> {
+    let store = store.as_ref().map(RustAutoOpaque::blocking_read);
+    Ok(rewind::rewind_badge_signals(
+        &request,
+        store.as_deref().map(|store| &store.inner),
+    )?)
+}
