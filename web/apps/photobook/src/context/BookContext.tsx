@@ -237,9 +237,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
 
     const [processingPhotos, setProcessingPhotos] = useState(false);
     const [processingProgress, setProcessingProgress] = useState(0);
-    const [processingMessage, setProcessingMessage] = useState(
-        "Processing your photos...",
-    );
     const [importNotice, setImportNotice] = useState<string | null>(null);
     const clearImportNotice = useCallback(() => setImportNotice(null), []);
     const pendingEnteOriginals = useMemo(() => {
@@ -363,7 +360,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
             setProcessingPhotos(true);
             progressRef.current = 0;
             setProcessingProgress(0);
-            setProcessingMessage("Processing your photos...");
 
             try {
                 if (replace) {
@@ -708,7 +704,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
             setProcessingPhotos(true);
             progressRef.current = 0;
             setProcessingProgress(0);
-            setProcessingMessage("Importing your photos...");
 
             let fetchAndDecryptThumbnail: (typeof import("@/lib/ente/import"))["fetchAndDecryptThumbnail"];
             try {
@@ -725,7 +720,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                 enteOriginalWaitersRef.current = new Map();
             } catch (e) {
                 setProcessingPhotos(false);
-                setProcessingMessage("Processing your photos...");
                 throw e;
             }
 
@@ -839,7 +833,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
 
             if (successful.length === 0) {
                 setProcessingPhotos(false);
-                setProcessingMessage("Processing your photos...");
                 throw new Error(
                     "We couldn't prepare any photos from this album.",
                 );
@@ -862,7 +855,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
             setCurrentSpreadIndex(0);
 
             setProcessingPhotos(false);
-            setProcessingMessage("Processing your photos...");
             setAppViewState("edit");
         },
         [previews],
@@ -953,16 +945,21 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
     ]);
 
     const addPage = useCallback(
-        (afterIndex?: number) => {
+        (afterIndex?: number, count = 1) => {
             const newPage = makeBlankPage();
             setBook((prev) => {
-                if (!canInsertPage(prev.pages.length)) return prev;
+                if (!canInsertPage(prev.pages.length, count)) return prev;
                 const pages = [...prev.pages];
                 const lastIndex = pages.length - 1;
                 const requestedIndex =
                     afterIndex !== undefined ? afterIndex + 1 : lastIndex;
                 const idx = Math.max(1, Math.min(requestedIndex, lastIndex));
-                pages.splice(idx, 0, newPage);
+                pages.splice(
+                    idx,
+                    0,
+                    newPage,
+                    ...Array.from({ length: count - 1 }, makeBlankPage),
+                );
                 return { ...prev, pages };
             });
             return newPage.id;
@@ -1425,7 +1422,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
         addEntePhotos,
         processingPhotos,
         processingProgress,
-        processingMessage,
         importNotice,
         clearImportNotice,
         pendingEnteOriginals,

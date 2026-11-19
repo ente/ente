@@ -10,7 +10,7 @@ import { MAX_PRINT_PAGES, MIN_PRINT_PAGES } from "./printProducts";
 import type { BookPage, Photo } from "./types";
 
 const MAX_PAGE_PHOTOS = 4;
-const MAX_AUTO_LAYOUT_PHOTOS = getMaxAutoLayoutPhotos(MAX_PRINT_PAGES);
+export const MAX_AUTO_LAYOUT_PHOTOS = getMaxAutoLayoutPhotos(MAX_PRINT_PAGES);
 
 export function createImportedBookPages(photos: Photo[]) {
     let layoutPhotos = photos;

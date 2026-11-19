@@ -78,7 +78,7 @@ export default function EditorActions({
                 disabled={processingPhotos || !canInsertPage(book.pages.length)}
                 sx={editorToolbarButtonSx}
             >
-                Add page
+                Add pages
             </Button>
             <Box
                 role="group"

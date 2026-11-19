@@ -782,7 +782,7 @@ function SpreadPage({
                                                 pageHeight * 0.02,
                                             ),
                                             lineHeight: 1.5,
-                                            color: "#999",
+                                            color: "#bbb",
                                             textAlign: "center",
                                             pointerEvents: "none",
                                         }}

@@ -40,7 +40,7 @@ import BookBindingSelect from "./BookBindingSelect";
 import BookHeader from "./BookHeader";
 import BookSidebar, {
     type SidebarScrollPositions,
-    type SidebarTab,
+    type SidebarTabsState,
 } from "./BookSidebar";
 import BookTitleInput from "./BookTitleInput";
 import BookViewer, { type BookViewerHandle } from "./BookViewer";
@@ -64,26 +64,25 @@ import ResetBookButton from "./ResetBookButton";
 type BookAction = "download" | "checkout";
 
 function ResultsPage({
+    onEdit,
     sidebarOpen,
-    sidebarTab,
     sidebarScrollPositions,
-    onSidebarTabChange,
+    sidebarTabsState,
     onToggleSidebar,
     onAddPhotos,
 }: {
+    onEdit: () => void;
     sidebarOpen: boolean;
-    sidebarTab: SidebarTab;
     sidebarScrollPositions: SidebarScrollPositions;
-    onSidebarTabChange: (tab: SidebarTab) => void;
+    sidebarTabsState: SidebarTabsState;
     onToggleSidebar: () => void;
     onAddPhotos: () => void;
 }) {
     const mobile = useMediaQuery(MOBILE_QUERY, { noSsr: true });
-    const { book, photos, setBook, setAppView, waitForEnteOriginals } = useBook(
+    const { book, photos, setBook, waitForEnteOriginals } = useBook(
         "book",
         "photos",
         "setBook",
-        "setAppView",
         "waitForEnteOriginals",
     );
     const viewerRef = useRef<BookViewerHandle>(null);
@@ -377,7 +376,7 @@ function ResultsPage({
                 startIcon={<EditIcon />}
                 disabled={busy}
                 onClick={() =>
-                    mobile ? setDesktopEditingOpen(true) : setAppView("edit")
+                    mobile ? setDesktopEditingOpen(true) : onEdit()
                 }
                 sx={{
                     ...editorButtonSx,
@@ -569,9 +568,9 @@ function ResultsPage({
                 {!mobile && (
                     <BookSidebar
                         open={sidebarOpen}
-                        tab={sidebarTab}
                         scrollPositions={sidebarScrollPositions}
-                        onTabChange={onSidebarTabChange}
+                        tabsState={sidebarTabsState}
+                        preview
                         gallery={{ onAddPhotos, previewContainerRef }}
                         onSpreadClick={(index) =>
                             viewerRef.current?.goToSpread(index)

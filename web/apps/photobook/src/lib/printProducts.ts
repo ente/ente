@@ -7,8 +7,11 @@ export const MIN_PRINT_PAGES = 24;
 export const NO_PHOTOS_ERROR =
     "Place at least one photo on a page of your book.";
 
-export const canInsertPage = (pageCount: number) =>
-    pageCount >= 2 && pageCount < MAX_PRINT_PAGES;
+export const canInsertPage = (pageCount: number, count = 1) =>
+    pageCount >= 2 &&
+    Number.isInteger(count) &&
+    count > 0 &&
+    pageCount + count <= MAX_PRINT_PAGES;
 
 export const canDeletePage = (pageCount: number) => pageCount > MIN_PRINT_PAGES;
 

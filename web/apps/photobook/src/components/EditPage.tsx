@@ -23,6 +23,7 @@ import BookHeader from "./BookHeader";
 import BookSidebar, {
     type SidebarScrollPositions,
     type SidebarTab,
+    type SidebarTabsState,
 } from "./BookSidebar";
 import EditorActions, { EditorPreviewButton } from "./EditorActions";
 import type { PageInsertPosition } from "./PageMenu";
@@ -45,6 +46,7 @@ function EditPage({
     sidebarOpen,
     sidebarTab,
     sidebarScrollPositions,
+    sidebarTabsState,
     onSidebarTabChange,
     onToggleSidebar,
     onAddPhotos,
@@ -52,6 +54,7 @@ function EditPage({
     sidebarOpen: boolean;
     sidebarTab: SidebarTab;
     sidebarScrollPositions: SidebarScrollPositions;
+    sidebarTabsState: SidebarTabsState;
     onSidebarTabChange: (tab: SidebarTab) => void;
     onToggleSidebar: () => void;
     onAddPhotos: () => void;
@@ -83,6 +86,7 @@ function EditPage({
 
     const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
     const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
+    const [focusedPageId, setFocusedPageId] = useState<string | null>(null);
     const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
 
     const [editingTextId, setEditingTextId] = useState<string | null>(null);
@@ -328,10 +332,11 @@ function EditPage({
     );
 
     const handleInsertPage = useCallback(
-        (pageIndex: number, position: PageInsertPosition) => {
+        (pageIndex: number, position: PageInsertPosition, count = 1) => {
             clearSelection();
             const pageId = addPage(
                 position === "before" ? pageIndex - 1 : pageIndex,
+                count,
             );
             setInsertedPageId(pageId);
         },
@@ -427,6 +432,7 @@ function EditPage({
                         onSpreadClick={handleSidebarSpreadClick}
                         tab={sidebarTab}
                         scrollPositions={sidebarScrollPositions}
+                        tabsState={sidebarTabsState}
                         onTabChange={onSidebarTabChange}
                         gallery={{
                             previewContainerRef: containerRef,
@@ -458,6 +464,14 @@ function EditPage({
                         ref={containerRef}
                         onScroll={handleMainScroll}
                         onClick={handleWorkspaceClick}
+                        onFocusCapture={(event) =>
+                            setFocusedPageId(
+                                event.target.closest<HTMLElement>(
+                                    "[data-book-page]",
+                                )?.dataset.bookPage ?? null,
+                            )
+                        }
+                        onBlur={() => setFocusedPageId(null)}
                         onDragOver={
                             pages.length > 0
                                 ? photoDrag.handleContainerDragOver
@@ -507,6 +521,9 @@ function EditPage({
 
                                     const isVisible =
                                         visibleSpreads.has(spreadIdx) ||
+                                        (focusedPageId !== null &&
+                                            (lp?.id === focusedPageId ||
+                                                rp?.id === focusedPageId)) ||
                                         (selectedPageId !== null &&
                                             (lp?.id === selectedPageId ||
                                                 rp?.id === selectedPageId));

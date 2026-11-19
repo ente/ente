@@ -24,7 +24,7 @@ export default function PhotoChoiceDialog({
     title: string;
     description: string;
     primary: { label: string; onClick: () => void };
-    secondary: { label: string; onClick: () => void };
+    secondary?: { label: string; onClick: () => void };
     onClose: () => void;
 }) {
     const id = useId();
@@ -84,14 +84,16 @@ export default function PhotoChoiceDialog({
                 >
                     {primary.label}
                 </Button>
-                <Button
-                    variant="outlined"
-                    fullWidth
-                    onClick={secondary.onClick}
-                    sx={dialogCancelButtonSx}
-                >
-                    {secondary.label}
-                </Button>
+                {secondary && (
+                    <Button
+                        variant="outlined"
+                        fullWidth
+                        onClick={secondary.onClick}
+                        sx={dialogCancelButtonSx}
+                    >
+                        {secondary.label}
+                    </Button>
+                )}
             </Box>
         </Dialog>
     );

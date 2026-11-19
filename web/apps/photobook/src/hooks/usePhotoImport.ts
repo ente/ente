@@ -1,4 +1,4 @@
-import { useBook } from "@/context/book";
+import { useBook, useBookSelector } from "@/context/book";
 import { useRouter } from "next/router";
 import {
     createContext,
@@ -23,12 +23,12 @@ type EnteDialogStage = "closed" | "url" | "password";
 
 function usePhotoImportSession() {
     const router = useRouter();
+    const hasBook = useBookSelector((state) => state.book.pages.length > 0);
     const {
         addPhotos,
         addEntePhotos,
         processingPhotos,
         processingProgress,
-        processingMessage,
         setAppView,
         loading,
     } = useBook(
@@ -36,7 +36,6 @@ function usePhotoImportSession() {
         "addEntePhotos",
         "processingPhotos",
         "processingProgress",
-        "processingMessage",
         "setAppView",
         "loading",
     );
@@ -44,6 +43,14 @@ function usePhotoImportSession() {
     const [dragOver, setDragOver] = useState(false);
     const [importError, setImportError] = useState<string | null>(null);
     const [importActive, setImportActive] = useState(false);
+    const [importCompleted, setImportCompleted] = useState(false);
+    useEffect(() => {
+        if (importCompleted && hasBook) setImportActive(false);
+    }, [importCompleted, hasBook]);
+    const clearImportCompleted = useCallback(
+        () => setImportCompleted(false),
+        [],
+    );
     const [importing, setImporting] = useState(false);
     const importingRef = useRef(false);
     const retryFilesRef = useRef<File[]>([]);
@@ -60,6 +67,7 @@ function usePhotoImportSession() {
         if (loading || importingRef.current) return false;
         importingRef.current = true;
         setImportActive(true);
+        setImportCompleted(false);
         setImporting(true);
         setImportError(null);
         setEnteError(null);
@@ -118,7 +126,7 @@ function usePhotoImportSession() {
                 throw new Error("This album has no photos we can import.");
             await addEntePhotos(credentials, files);
             setEnteUrl("");
-            setImportActive(false);
+            setImportCompleted(true);
         } catch (e) {
             const cancelled =
                 (e as { cancelled?: boolean } | null)?.cancelled === true;
@@ -171,7 +179,7 @@ function usePhotoImportSession() {
                 try {
                     await addPhotos(valid, { replace: true });
                     retryFilesRef.current = [];
-                    setImportActive(false);
+                    setImportCompleted(true);
                 } catch (error) {
                     setImportError(
                         error instanceof Error
@@ -230,10 +238,11 @@ function usePhotoImportSession() {
         enteError,
         importError,
         processingPhotos,
-        processingProgress: processingPhotos ? processingProgress : 0,
-        processingMessage: processingPhotos
-            ? processingMessage
-            : "Preparing your photos...",
+        processingProgress: importCompleted
+            ? 100
+            : processingPhotos
+              ? processingProgress
+              : 0,
         openEnteDialog,
         closeEnteDialog,
         handleImportEnte,
@@ -244,7 +253,9 @@ function usePhotoImportSession() {
         handleDragOver,
         handleDragLeave,
         importActive,
-        importing,
+        importCompleted,
+        clearImportCompleted,
+        importing: importing || (importActive && importCompleted),
         dismissImport,
         retryImport,
     };

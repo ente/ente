@@ -37,7 +37,6 @@ export interface BookContextValue {
     ) => Promise<void>;
     processingPhotos: boolean;
     processingProgress: number;
-    processingMessage: string;
     importNotice: string | null;
     clearImportNotice: () => void;
     pendingEnteOriginals: Set<string>;
@@ -56,7 +55,7 @@ export interface BookContextValue {
     canUndo: boolean;
     canRedo: boolean;
 
-    addPage: (afterIndex?: number) => string;
+    addPage: (afterIndex?: number, count?: number) => string;
     removePage: (pageId: string) => void;
     reorderPages: (fromIndex: number, toIndex: number) => void;
     updatePage: (pageId: string, updates: Partial<BookPage>) => void;

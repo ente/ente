@@ -4,6 +4,7 @@ import { makeBlankPage } from "./bookPages";
 import { applyVariant } from "./layouts";
 import {
     canDeletePage,
+    canInsertPage,
     DEFAULT_PRINT_SELECTION,
     getBindingPrintSelection,
     getPrintBinding,
@@ -20,6 +21,36 @@ const pages = (count: number) =>
         ...makeBlankPage(),
         slots: index === 0 ? applyVariant("1-full", ["cover-photo"]) : [],
     }));
+
+test("bulk page additions respect the final print limit", () => {
+    for (const [current, count, total] of [
+        [24, 76, 100],
+        [96, 1, 98],
+        [96, 3, 100],
+        [96, 4, 100],
+        [98, 1, 100],
+        [98, 2, 100],
+    ] as const) {
+        assert.equal(canInsertPage(current, count), true);
+        assert.equal(
+            preparePrintExport(pages(current + count), DEFAULT_PRINT_SELECTION)
+                .length,
+            total,
+        );
+    }
+    for (const [current, count] of [
+        [24, 77],
+        [96, 5],
+        [98, 3],
+        [100, 1],
+    ] as const)
+        assert.equal(canInsertPage(current, count), false);
+});
+
+test("page additions require a positive whole number", () => {
+    for (const count of [0, -1, 1.5, NaN, Infinity])
+        assert.equal(canInsertPage(24, count), false);
+});
 
 test("pages can only be deleted above the 24-page print minimum", () => {
     assert.equal(canDeletePage(22), false);

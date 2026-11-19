@@ -21,7 +21,6 @@ export default function ImportProgress() {
     const {
         importing,
         processingProgress,
-        processingMessage,
         enteUrl,
         setEnteUrl,
         enteError,
@@ -65,7 +64,7 @@ export default function ImportProgress() {
                                     mb: 3,
                                 }}
                             >
-                                {processingMessage}
+                                Importing your photos...
                             </Typography>
                             <LinearProgress
                                 variant="determinate"

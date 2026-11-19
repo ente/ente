@@ -2,6 +2,7 @@ import EditPage from "@/components/EditPage";
 import ResultsPage from "@/components/ResultsPage";
 import { useBook, useBookSelector } from "@/context/book";
 import { usePhotoImport } from "@/hooks/usePhotoImport";
+import { MAX_AUTO_LAYOUT_PHOTOS } from "@/lib/photoPlacement";
 import { popupShadow, uiColors } from "@/theme/colors";
 import {
     Alert,
@@ -12,11 +13,18 @@ import {
     Typography,
     useMediaQuery,
 } from "@mui/material";
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { SidebarTab } from "./BookSidebar";
+import {
+    useCallback,
+    useEffect,
+    useLayoutEffect,
+    useRef,
+    useState,
+} from "react";
+import type { SidebarTab, SidebarTabsState } from "./BookSidebar";
 import { MOBILE_QUERY } from "./editorLayout";
 import EntePasswordDialog from "./EntePasswordDialog";
 import ImportProgress from "./ImportProgress";
+import PhotoChoiceDialog from "./PhotoChoiceDialog";
 
 export default function AppShell() {
     const mobile = useMediaQuery(MOBILE_QUERY, { noSsr: true });
@@ -25,11 +33,15 @@ export default function AppShell() {
             page.slots.some((slot) => slot.photoId),
         ),
     );
+    const isLargeAlbum = useBookSelector(
+        (state) => state.photos.length > MAX_AUTO_LAYOUT_PHOTOS,
+    );
     const [sidebarOpen, setSidebarOpen] = useState(!mobile);
     const [sidebarTab, setSidebarTab] = useState<SidebarTab>(
-        hasPlacedPhotos ? "pages" : "photos",
+        hasPlacedPhotos && !isLargeAlbum ? "pages" : "photos",
     );
     const sidebarScrollPositions = useRef({ pages: 0, photos: 0 });
+    const sidebarTabsState = useRef<SidebarTabsState["current"]>(null);
     const toggleSidebar = useCallback(
         () => setSidebarOpen((open) => !open),
         [],
@@ -37,6 +49,7 @@ export default function AppShell() {
     const openSidebar = useCallback(() => setSidebarOpen(true), []);
     const {
         appView,
+        setAppView,
         loading,
         importNotice,
         clearImportNotice,
@@ -46,6 +59,7 @@ export default function AppShell() {
         processingProgress,
     } = useBook(
         "appView",
+        "setAppView",
         "loading",
         "importNotice",
         "clearImportNotice",
@@ -55,24 +69,41 @@ export default function AppShell() {
         "processingProgress",
     );
     const showPreview = mobile || appView === "results";
+    const handleEdit = useCallback(() => {
+        if (sidebarOpen) setSidebarTab("pages");
+        setAppView("edit");
+    }, [sidebarOpen, setAppView]);
+    useLayoutEffect(() => {
+        setSidebarOpen(!showPreview);
+    }, [showPreview]);
     const {
         importActive,
+        importCompleted,
+        clearImportCompleted,
         enteStage,
         entePassword,
         setEntePassword,
         handleSubmitPassword,
         handleCancelPassword,
     } = usePhotoImport();
-    const wasImporting = useRef(false);
     useEffect(() => {
         if (importActive) {
             sidebarScrollPositions.current = { pages: 0, photos: 0 };
             setSidebarOpen(true);
-        } else if (wasImporting.current) {
-            setSidebarTab(hasPlacedPhotos ? "pages" : "photos");
+        } else if (importCompleted) {
+            setSidebarTab(
+                hasPlacedPhotos && !isLargeAlbum ? "pages" : "photos",
+            );
+            if (!isLargeAlbum || mobile) clearImportCompleted();
         }
-        wasImporting.current = importActive;
-    }, [importActive, hasPlacedPhotos]);
+    }, [
+        importActive,
+        importCompleted,
+        clearImportCompleted,
+        hasPlacedPhotos,
+        isLargeAlbum,
+        mobile,
+    ]);
     const [photoImportError, setPhotoImportError] = useState<string | null>(
         null,
     );
@@ -124,10 +155,10 @@ export default function AppShell() {
                 <Box data-workspace-view={showPreview ? "results" : "edit"}>
                     {showPreview ? (
                         <ResultsPage
+                            onEdit={handleEdit}
                             sidebarOpen={sidebarOpen}
-                            sidebarTab={sidebarTab}
                             sidebarScrollPositions={sidebarScrollPositions}
-                            onSidebarTabChange={setSidebarTab}
+                            sidebarTabsState={sidebarTabsState}
                             onToggleSidebar={toggleSidebar}
                             onAddPhotos={handleAddPhotos}
                         />
@@ -136,6 +167,7 @@ export default function AppShell() {
                             sidebarOpen={sidebarOpen}
                             sidebarTab={sidebarTab}
                             sidebarScrollPositions={sidebarScrollPositions}
+                            sidebarTabsState={sidebarTabsState}
                             onSidebarTabChange={setSidebarTab}
                             onToggleSidebar={toggleSidebar}
                             onAddPhotos={handleAddPhotos}
@@ -216,6 +248,19 @@ export default function AppShell() {
                 onPasswordChange={setEntePassword}
                 onSubmit={handleSubmitPassword}
                 onCancel={handleCancelPassword}
+            />
+
+            <PhotoChoiceDialog
+                open={
+                    !importActive && importCompleted && isLargeAlbum && !mobile
+                }
+                title="Make it yours"
+                description="We’ve picked some photos to get you started. You’ll find your whole album in the Photos tab to choose from."
+                primary={{
+                    label: "Start editing",
+                    onClick: clearImportCompleted,
+                }}
+                onClose={clearImportCompleted}
             />
 
             <Snackbar
