@@ -208,6 +208,7 @@ class _ExternalMediaPickerPageState extends State<ExternalMediaPickerPage> {
     final query = _excludedUploadIDs;
     final excluded = await query;
     final removed = <EnteFile>{};
+    final replacements = <int, EnteFile>{};
     if (_checkSelectedAlbums) {
       final pairs = {
         for (final file in _selectedFiles.files)
@@ -225,6 +226,19 @@ class _ExternalMediaPickerPageState extends State<ExternalMediaPickerPage> {
                   true,
         ),
       );
+      if (removed.isNotEmpty) {
+        final copies = await FilesDB.instance.getFilesFromIDs([
+          for (final file in removed) file.uploadedFileID!,
+        ]);
+        for (final copy in copies) {
+          if (copy.collectionID != null &&
+              !excluded.contains(copy.uploadedFileID) &&
+              copy.magicMetadata.visibility == visibleVisibility &&
+              _matchesRequestedType(copy)) {
+            replacements[copy.uploadedFileID!] = copy;
+          }
+        }
+      }
     }
     if (!mounted) return;
     if (_excludedFileIDs != query) return _refreshSelectionVisibility();
@@ -236,7 +250,15 @@ class _ExternalMediaPickerPageState extends State<ExternalMediaPickerPage> {
         ),
       );
     }
-    if (removed.isNotEmpty) _selectedFiles.unSelectAll(removed);
+    if (removed.any(_selectedFiles.files.contains)) {
+      _selectedFiles.replaceSelection({
+        for (final file in _selectedFiles.files)
+          if (removed.contains(file))
+            ?replacements[file.uploadedFileID]
+          else
+            file,
+      });
+    }
   }
 
   Future<_PickerAlbums> _loadAlbums() => (
@@ -715,7 +737,7 @@ class _ExternalMediaPickerPageState extends State<ExternalMediaPickerPage> {
         await _refreshSelectionVisibility();
         if (!mounted || _preparingFiles != selectedFiles) return;
       }
-      if (uris.isEmpty || !selectedFiles.every(_selectedFiles.isFileSelected)) {
+      if (uris.isEmpty || !_selectedFiles.files.containsAll(selectedFiles)) {
         throw StateError("Picker selection is no longer available");
       }
       await _finishPicker(

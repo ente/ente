@@ -58,6 +58,7 @@ import "package:photos/ui/collections/album/row_item.dart";
 import "package:photos/ui/collections/collection_list_page.dart";
 import "package:photos/ui/components/bottom_action_bar/action_bar_widget.dart";
 import "package:photos/ui/components/bottom_action_bar/selection_action_sheet.dart";
+import "package:photos/ui/picker/external_media_picker_page.dart";
 import "package:photos/ui/viewer/actions/album_selection_overlay_bar.dart";
 import "package:photos/ui/viewer/actions/file_selection_overlay_bar.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
@@ -136,6 +137,45 @@ void main() {
   tearDownAll(() async {
     PathProviderPlatform.instance = previousPathProvider;
     await tempDir.delete(recursive: true);
+  });
+
+  testWidgets("picker keeps the photo selected through its surviving album", (
+    tester,
+  ) async {
+    await tester.runAsync(() async {
+      final original = _file(1);
+      final surviving = EnteFile.from(original)
+        ..generatedID = 2
+        ..collectionID = 2;
+      final db = FilesDB.instance;
+      await db.insertMultiple([original, surviving]);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: lightThemeData,
+          localizationsDelegates: StringsLocalizations.localizationsDelegates,
+          supportedLocales: StringsLocalizations.supportedLocales,
+          home: const ExternalMediaPickerPage(allowMultiple: true),
+        ),
+      );
+      final selection = tester
+          .widget<Gallery>(find.byType(Gallery))
+          .selectedFiles!;
+      selection.selectAll({original});
+      await db.deleteFilesFromCollection(1, [original.uploadedFileID!]);
+      final refreshed = Completer<void>();
+      selection.addListener(() => refreshed.complete());
+      Bus.instance.fire(
+        CollectionUpdatedEvent(
+          1,
+          [original],
+          "syncDeleteFromRemote",
+          type: EventType.deletedFromRemote,
+        ),
+      );
+      await refreshed.future.timeout(const Duration(seconds: 5));
+      expect(selection.files, orderedEquals([surviving]));
+    });
+    await _disposeAlbum(tester);
   });
 
   testWidgets("sorts Discover photos using the shared sheet", (tester) async {
