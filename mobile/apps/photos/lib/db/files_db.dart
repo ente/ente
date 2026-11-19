@@ -1038,13 +1038,17 @@ class FilesDB with SqlDbBase {
     return result;
   }
 
-  Future<EnteFile?> getUploadedFileForLocalID(String localID) async {
+  // Same row selection as getFilesInDeviceCollection + deduplicateByLocalID.
+  Future<EnteFile?> getDeviceFileForLocalID(
+    String localID,
+    int? ownerID,
+  ) async {
     final db = await instance.sqliteAsyncDB;
     final rows = await db.getAll(
       'SELECT * FROM $filesTable WHERE $columnLocalID = ? AND '
-      '$columnUploadedFileID IS NOT NULL AND $columnUploadedFileID != -1 '
-      'ORDER BY $columnUploadedFileID DESC LIMIT 1',
-      [localID],
+      '($columnOwnerID IS NULL OR $columnOwnerID = ?) '
+      'ORDER BY $columnCreationTime DESC, $columnModificationTime DESC LIMIT 1',
+      [localID, ownerID],
     );
     if (rows.isEmpty) {
       return null;

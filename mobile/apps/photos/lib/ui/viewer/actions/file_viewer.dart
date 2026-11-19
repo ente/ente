@@ -10,9 +10,11 @@ import "package:media_extension/media_extension.dart";
 import "package:media_extension/media_extension_action_types.dart";
 import "package:photo_manager/photo_manager.dart";
 import "package:photo_manager_image_provider/photo_manager_image_provider.dart";
+import "package:photos/core/configuration.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/gallery_type.dart";
+import "package:photos/models/metadata/file_magic.dart";
 import "package:photos/module/metadata/local_file.dart";
 import "package:photos/services/app_lifecycle_service.dart";
 import "package:photos/ui/viewer/file/detail_page.dart";
@@ -288,8 +290,19 @@ class FileViewerState extends State<FileViewer> {
   }
 
   Future<EnteFile> _fileFromAsset(String pathName, AssetEntity asset) async {
-    final uploaded = await FilesDB.instance.getUploadedFileForLocalID(asset.id);
-    return uploaded ?? fileFromAsset(pathName, asset);
+    final dbFile = await FilesDB.instance.getDeviceFileForLocalID(
+      asset.id,
+      Configuration.instance.getUserID(),
+    );
+    if (dbFile != null) {
+      return dbFile;
+    }
+    final file = fileFromAsset(pathName, asset);
+    file.pubMagicMetadata = PubMagicMetadata(
+      w: asset.orientatedWidth,
+      h: asset.orientatedHeight,
+    );
+    return file;
   }
 
   Future<Uint8List?> _readGrantedImageBytes(String uri) async {
