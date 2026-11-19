@@ -180,7 +180,7 @@ func TestPushPlatformRegistrationMigration(t *testing.T) {
 	require.Equal(t, 2, count)
 }
 
-func TestAlbumShareTokensRequireRolloutAndActiveSession(t *testing.T) {
+func TestEncryptedPushTokensRequireRolloutAndActiveSession(t *testing.T) {
 	testutil.WithServerRoot(t)
 	db := testutil.RequireTestDB(t)
 	testutil.ResetTables(t, db)
@@ -228,7 +228,7 @@ func TestAlbumShareTokensRequireRolloutAndActiveSession(t *testing.T) {
 		}
 	}
 	r := &PushTokenRepository{DB: db}
-	tokens, err := r.GetTokensForAlbumShare(context.Background(), userIDs)
+	tokens, err := r.GetTokensForEncryptedPush(context.Background(), userIDs)
 	require.NoError(t, err)
 	var selected []string
 	for _, token := range tokens {
@@ -238,7 +238,7 @@ func TestAlbumShareTokensRequireRolloutAndActiveSession(t *testing.T) {
 	for _, apnsToken := range []any{"", nil} {
 		_, err := db.Exec(`UPDATE push_tokens SET apns_token=$1 WHERE fcm_token='eligible'`, apnsToken)
 		require.NoError(t, err)
-		tokens, err := r.GetTokensForAlbumShare(context.Background(), []int64{2})
+		tokens, err := r.GetTokensForEncryptedPush(context.Background(), []int64{2})
 		require.NoError(t, err)
 		require.Len(t, tokens, 1)
 		require.Equal(t, "eligible", tokens[0].FCMToken)
@@ -249,14 +249,14 @@ func TestAlbumShareTokensRequireRolloutAndActiveSession(t *testing.T) {
 	require.Equal(t, "ios", tokens[0].FCMToken)
 	_, err = db.Exec(`UPDATE remote_store SET key_value='false' WHERE user_id=2`)
 	require.NoError(t, err)
-	tokens, err = r.GetTokensForAlbumShare(context.Background(), []int64{2})
+	tokens, err = r.GetTokensForEncryptedPush(context.Background(), []int64{2})
 	require.NoError(t, err)
 	require.Empty(t, tokens)
 
 	_, err = db.Exec(`UPDATE push_tokens SET platform='ios';
 		UPDATE remote_store SET key_value='true' WHERE user_id=2`)
 	require.NoError(t, err)
-	tokens, err = r.GetTokensForAlbumShare(context.Background(), userIDs)
+	tokens, err = r.GetTokensForEncryptedPush(context.Background(), userIDs)
 	require.NoError(t, err)
 	selected = nil
 	for _, token := range tokens {
@@ -266,7 +266,7 @@ func TestAlbumShareTokensRequireRolloutAndActiveSession(t *testing.T) {
 	_, err = db.Exec(`UPDATE remote_store SET key_value='false' WHERE user_id=2;
 		DELETE FROM remote_store WHERE user_id=4`)
 	require.NoError(t, err)
-	tokens, err = r.GetTokensForAlbumShare(context.Background(), userIDs)
+	tokens, err = r.GetTokensForEncryptedPush(context.Background(), userIDs)
 	require.NoError(t, err)
 	require.Empty(t, tokens, "removing internal status must stop iOS album-share pushes")
 }

@@ -1,6 +1,7 @@
 pub mod assets;
 mod clip;
 mod cv;
+mod decode;
 mod diagnostics;
 pub mod error;
 pub mod face;

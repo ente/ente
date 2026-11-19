@@ -357,15 +357,12 @@ impl AccountSpaceCtx {
     }
 
     pub async fn hydrate_space_keys(&self) -> Result<HydratedKeys> {
-        let space_root_key = self.get_space_root_key()?;
         let owned_records = self.list_owned_spaces().await?;
         let mut owned = Vec::with_capacity(owned_records.len());
-        if let Some(space_root_key) = space_root_key {
-            for record in owned_records {
-                let packed = b64::decode(&record.root_wrapped_space_key)?;
-                let space_key = decrypt_secretbox_payload(&space_root_key, &packed)?;
-                owned.push((record.space_id, space_key));
-            }
+        for record in owned_records {
+            let packed = b64::decode(&record.root_wrapped_space_key)?;
+            let space_key = decrypt_secretbox_payload(self.space_root_key(), &packed)?;
+            owned.push((record.space_id, space_key));
         }
 
         let mut friends = Vec::new();

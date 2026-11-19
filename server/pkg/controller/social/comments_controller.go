@@ -1,6 +1,8 @@
 package social
 
 import (
+	"context"
+
 	"github.com/ente/museum/ente"
 	socialentity "github.com/ente/museum/ente/social"
 	"github.com/ente/museum/pkg/controller/access"
@@ -8,12 +10,20 @@ import (
 	socialrepo "github.com/ente/museum/pkg/repo/social"
 	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
 )
+
+type CommentPushNotifier interface {
+	NotifyFileComment(ctx context.Context, recipientID int64)
+	NotifyCommentReply(ctx context.Context, recipientID int64)
+}
 
 type CommentsController struct {
 	Repo           *socialrepo.CommentsRepository
 	CollectionRepo *repo.CollectionRepository
+	FileRepo       *repo.FileRepository
 	AccessCtrl     access.Controller
+	PushCtrl       CommentPushNotifier
 }
 
 type CreateCommentRequest struct {
@@ -124,7 +134,38 @@ func (c *CommentsController) Create(ctx *gin.Context, req CreateCommentRequest) 
 	if err := c.Repo.Insert(ctx, comment); err != nil {
 		return "", stacktrace.Propagate(err, "")
 	}
+	if comment.FileID != nil && c.PushCtrl != nil {
+		c.notifyFileComment(ctx, comment, parentComment)
+	}
 	return comment.ID, nil
+}
+
+func (c *CommentsController) notifyFileComment(ctx *gin.Context, comment socialentity.Comment, parent *socialentity.Comment) {
+	var recipientID int64
+	if parent != nil {
+		recipientID = parent.UserID
+	} else {
+		var err error
+		recipientID, err = c.FileRepo.GetOwnerID(*comment.FileID)
+		if err != nil {
+			log.WithError(err).Warn("file comment push owner lookup failed; comment remains saved")
+			return
+		}
+	}
+	if recipientID <= 0 || recipientID == comment.UserID {
+		return
+	}
+	if _, err := c.AccessCtrl.GetCollection(ctx, &access.GetCollectionParams{
+		CollectionID: comment.CollectionID,
+		ActorUserID:  recipientID,
+	}); err != nil {
+		return
+	}
+	if parent != nil {
+		go c.PushCtrl.NotifyCommentReply(ctx.Request.Context(), recipientID)
+	} else {
+		go c.PushCtrl.NotifyFileComment(ctx.Request.Context(), recipientID)
+	}
 }
 
 func (c *CommentsController) Diff(ctx *gin.Context, req CommentDiffRequest) ([]socialentity.Comment, bool, error) {

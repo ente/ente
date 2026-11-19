@@ -148,9 +148,10 @@ async fn change_password_with_strength(
     params: ChangePasswordParams,
     key_derivation_strength: KeyDerivationStrength,
 ) -> Result<KeyAttributes> {
+    let master_key = crypto::Key::try_from_slice(&params.master_key)?;
     let (updated_key_attributes, login_key) =
         auth::generate_key_attributes_for_new_password_with_strength(
-            &params.master_key,
+            &master_key,
             &params.key_attributes,
             &params.password,
             key_derivation_strength,

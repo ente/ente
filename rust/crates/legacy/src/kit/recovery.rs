@@ -182,6 +182,7 @@ impl LegacyKitRecoveryHandle {
     pub async fn change_password(&self, new_password: &str) -> Result<()> {
         let bundle = self.recovery_bundle().await?;
         let master_key = decrypt_master_key(&bundle.user_key_attributes, &bundle.recovery_key)?;
+        let master_key = crypto::Key::try_from_slice(&master_key)?;
         let (updated_key_attrs, login_key) = auth::generate_key_attributes_for_new_password(
             &master_key,
             &bundle.user_key_attributes,

@@ -497,6 +497,25 @@ impl MlDb {
         }
         self.read_column(&sql, params_from_iter(parameters))
     }
+
+    pub(crate) fn count_fully_indexed_files(&self, file_ids: &[i64]) -> Result<i64> {
+        let file_ids = serde_json::to_string(file_ids)
+            .map_err(|error| Error::Invalid(format!("could not encode file IDs: {error}")))?;
+        self.read_value(
+            r#"
+            SELECT COUNT(*)
+            FROM json_each(?) AS requested
+            WHERE EXISTS (
+                SELECT 1 FROM faces
+                WHERE file_id = requested.value AND ml_version >= ?
+            ) AND EXISTS (
+                SELECT 1 FROM clip
+                WHERE file_id = requested.value AND ml_version >= ?
+            )
+            "#,
+            (file_ids, FACE_ML_VERSION, CLIP_ML_VERSION),
+        )
+    }
 }
 
 pub(super) fn is_bad_face_for_clustering(
@@ -538,11 +557,11 @@ pub(in crate::ml_db) mod tests {
     use std::collections::HashMap;
     use std::ops::RangeInclusive;
 
-    use super::{FaceRow, FaceWithoutEmbedding, MlDb};
-    use crate::ml_db::Error;
+    use super::{CLIP_ML_VERSION, FaceRow, FaceWithoutEmbedding, MlDb};
     use crate::ml_db::queries::{clip, clusters, persons};
     use crate::ml_db::tests::{cases, check, ids, open, strings};
     use crate::ml_db::vector_encoding::encode_evector;
+    use crate::ml_db::{ClipEmbedding, Error};
     use tempfile::TempDir;
 
     fn face(file_id: i64, index: i64, score: f64, blur: f64, is_sideways: bool) -> FaceRow {
@@ -641,6 +660,29 @@ pub(in crate::ml_db) mod tests {
                 "clustered except c1": ids([1, 3, 7, 8, 9]) =>
                     |db| db.get_all_files_associated_with_all_clusters(Some(&strings(["c1"]))),
             ],
+        );
+    }
+
+    #[test]
+    fn counts_requested_files_with_current_face_and_clip_versions() {
+        let (_directory, db) = seeded();
+        db.insert_clip_rows(&[
+            ClipEmbedding {
+                version: CLIP_ML_VERSION - 1,
+                ..clip::tests::full_clip(6)
+            },
+            clip::tests::full_clip(10),
+            clip::tests::full_clip(11),
+            clip::tests::full_clip(i64::MAX),
+        ])
+        .unwrap();
+        db.bulk_insert_faces(&[good_face(i64::MAX, 0)]).unwrap();
+
+        assert_eq!(db.count_fully_indexed_files(&[]).unwrap(), 0);
+        assert_eq!(
+            db.count_fully_indexed_files(&[i64::MAX, 11, 10, 7, 6, 2, 1])
+                .unwrap(),
+            3
         );
     }
 

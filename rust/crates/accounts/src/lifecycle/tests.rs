@@ -366,6 +366,57 @@ async fn change_password_updates_srp_and_keys() {
     get_srp_attributes.assert_async().await;
 }
 
+async fn change_password_with_bad_master_key(master_key: Vec<u8>) -> Error {
+    let original =
+        auth::generate_keys_with_strength("old-password", auth::KeyDerivationStrength::Interactive)
+            .unwrap();
+
+    let mut server = Server::new_async().await;
+    let mut no_requests = Vec::new();
+    for method in ["GET", "POST", "PUT", "PATCH", "DELETE"] {
+        no_requests.push(
+            server
+                .mock(method, Matcher::Any)
+                .expect(0)
+                .create_async()
+                .await,
+        );
+    }
+
+    let client = make_client(server.url());
+    client.set_auth_token(Some("session-token".into()));
+
+    let error = change_password(
+        &client,
+        ChangePasswordParams {
+            password: Zeroizing::new("new-password".into()),
+            master_key: SecretVec::new(master_key),
+            key_attributes: original.key_attributes,
+            log_out_other_devices: true,
+        },
+    )
+    .await
+    .unwrap_err();
+
+    for mock in no_requests {
+        mock.assert_async().await;
+    }
+    error
+}
+
+#[tokio::test]
+async fn change_password_rejects_empty_master_key_without_uploading() {
+    let error = change_password_with_bad_master_key(Vec::new()).await;
+    assert!(matches!(error, Error::Crypto(_)), "{error:?}");
+}
+
+#[tokio::test]
+async fn change_password_rejects_other_master_key_without_uploading() {
+    let other_key = crypto::Key::generate().as_bytes().to_vec();
+    let error = change_password_with_bad_master_key(other_key).await;
+    assert!(matches!(error, Error::InvalidKeyAttributes), "{error:?}");
+}
+
 #[tokio::test]
 async fn passkey_management_only_configures_recovery_when_needed() {
     let recovery_key = [7; 32];

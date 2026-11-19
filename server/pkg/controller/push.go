@@ -111,17 +111,37 @@ func (c *PushController) AddToken(userID int64, sessionTokenHash []byte, token e
 }
 
 func (c *PushController) NotifyAlbumShare(ctx context.Context, recipients []int64) {
+	c.notifyEncryptedPush(ctx, recipients, []byte(`{"eventType":"album_shared"}`))
+}
+
+func (c *PushController) NotifyFileLike(ctx context.Context, recipientID int64) {
+	c.notifyEncryptedPush(ctx, []int64{recipientID}, []byte(`{"eventType":"file_liked"}`))
+}
+
+func (c *PushController) NotifyFileComment(ctx context.Context, recipientID int64) {
+	c.notifyEncryptedPush(ctx, []int64{recipientID}, []byte(`{"eventType":"file_commented"}`))
+}
+
+func (c *PushController) NotifyCommentReply(ctx context.Context, recipientID int64) {
+	c.notifyEncryptedPush(ctx, []int64{recipientID}, []byte(`{"eventType":"comment_replied"}`))
+}
+
+func (c *PushController) notifyEncryptedPush(ctx context.Context, recipients []int64, payload []byte) {
 	if viper.GetBool("internal.silent") || c.fcm == nil || len(recipients) == 0 {
 		return
 	}
 	ctx = context.WithoutCancel(ctx)
 	lookupCtx, cancel := context.WithTimeout(ctx, 5*gotime.Second)
-	tokens, err := c.PushRepo.GetTokensForAlbumShare(lookupCtx, recipients)
+	tokens, err := c.PushRepo.GetTokensForEncryptedPush(lookupCtx, recipients)
 	cancel()
 	if err != nil {
-		log.WithError(err).Warn("album share push token lookup failed")
+		log.WithError(err).Warn("encrypted push token lookup failed; saved activity is unchanged")
 		return
 	}
+	c.sendEncryptedPushes(ctx, tokens, payload)
+}
+
+func (c *PushController) sendEncryptedPushes(ctx context.Context, tokens []ente.PushToken, payload []byte) {
 	var unregisteredTokens []string
 	for _, token := range tokens {
 		if token.NotificationPublicKey == nil {
@@ -129,13 +149,13 @@ func (c *PushController) NotifyAlbumShare(ctx context.Context, recipients []int6
 		}
 		publicKey, err := hpke.MLKEM768X25519().NewPublicKey(token.NotificationPublicKey)
 		if err != nil {
-			log.WithError(err).Warn("invalid album share notification public key")
+			log.WithError(err).Warn("invalid notification public key")
 			continue
 		}
 		ciphertext, err := hpke.Seal(publicKey, hpke.HKDFSHA256(), hpke.ChaCha20Poly1305(),
-			[]byte("ente-push"), []byte(`{"eventType":"album_shared"}`))
+			[]byte("ente-push"), payload)
 		if err != nil {
-			log.WithError(err).Warn("album share notification encryption failed")
+			log.WithError(err).Warn("notification encryption failed")
 			continue
 		}
 		err = c.fcm.sendMessage(ctx, map[string]any{
@@ -155,7 +175,7 @@ func (c *PushController) NotifyAlbumShare(ctx context.Context, recipients []int6
 			},
 		})
 		if err != nil {
-			log.WithError(err).Warn("album share push failed; album remains shared")
+			log.WithError(err).Warn("encrypted push failed; saved activity is unchanged")
 			if errors.Is(err, errUnregisteredToken) {
 				unregisteredTokens = append(unregisteredTokens, token.FCMToken)
 			}

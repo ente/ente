@@ -4,10 +4,11 @@ import "package:flutter/widgets.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 
 class RewindShareCard {
-  RewindShareCard({required this.branded});
+  RewindShareCard({required this.branded, required this.onShare});
 
   final boundary = GlobalKey();
   final bool branded;
+  final VoidCallback onShare;
   final stillFrame = ValueNotifier<ui.Image?>(null);
 }
 

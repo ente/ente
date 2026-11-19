@@ -586,8 +586,41 @@ class _ZoomableImageState extends State<ZoomableImage> {
       final MemoryImage imageProvider = MemoryImage(rustBytes);
       _logger.info("Rust HEIC decode succeeded for ${_photo.generatedID}");
       return imageProvider;
+    } on rust_image.RustImageDecodeError_TooLarge catch (e) {
+      _logger.warning(
+        "Rust HEIC decode refused ${_photo.generatedID} as too large: ${e.message}",
+      );
+      return null;
     } catch (e) {
       _logger.warning("Rust HEIC decode failed for ${_photo.generatedID}: $e");
+      return _tryFullDecodeHeicWithRust(file, quality: quality);
+    }
+  }
+
+  Future<ImageProvider<Object>?> _tryFullDecodeHeicWithRust(
+    File file, {
+    int? quality,
+  }) async {
+    if (!mounted) return null;
+    if (!_photo.hasDimensions || isTooLargeImage) {
+      _logger.info(
+        "Skipping full Rust HEIC decode for ${_photo.generatedID} (${_photo.width}x${_photo.height})",
+      );
+      return null;
+    }
+
+    try {
+      _logger.info("Using full Rust HEIC decoder for ${_photo.generatedID}");
+      final Uint8List rustBytes = await rust_image.decodeFullToJpeg(
+        imagePath: file.path,
+        quality: quality,
+      );
+      _logger.info("Full Rust HEIC decode succeeded for ${_photo.generatedID}");
+      return MemoryImage(rustBytes);
+    } catch (e) {
+      _logger.warning(
+        "Full Rust HEIC decode failed for ${_photo.generatedID}: $e",
+      );
       return null;
     }
   }
@@ -671,6 +704,8 @@ class _ZoomableImageState extends State<ZoomableImage> {
         return;
       }
     }
+
+    if (!mounted) return;
 
     Uint8List? compressedFile;
     if (isTooLargeImage) {

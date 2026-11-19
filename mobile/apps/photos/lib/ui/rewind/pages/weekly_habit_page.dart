@@ -1,11 +1,8 @@
 import "dart:math";
-import "dart:ui" show lerpDouble;
 
 import "package:flutter/material.dart";
-import "package:photos/models/file/file.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
 import "package:photos/ui/rewind/shell/rewind_page.dart";
-import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
@@ -14,7 +11,6 @@ import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
 import "package:photos/ui/rewind/widgets/rewind_elapsed.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
-import "package:photos/ui/rewind/widgets/rewind_photo.dart";
 import "package:photos/ui/rewind/widgets/rewind_reveal_layer.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
 import "package:photos/ui/rewind/widgets/rewind_text.dart";
@@ -35,21 +31,19 @@ String _clockHour(int hour) {
 }
 
 class WeeklyHabitPage extends RewindPage {
-  const WeeklyHabitPage(this.habit, this.hourPhotos, this.ringPhotos);
+  const WeeklyHabitPage(this.habit);
 
-  static const maxHourPhotos = 3;
-  static const maxRingPhotos = 3 * (_Dial._maxSlots - 1);
-  static const _tilesTop = 476.0;
+  static const _clock = Rect.fromLTWH(72.2, 157.9, 237.583, 237.583);
+  static const _tilesTop = 455.0;
 
   final rust.WeeklyHabit habit;
-  final List<EnteFile> hourPhotos;
-  final List<EnteFile> ringPhotos;
 
   @override
   String get key => "weekly_habit";
 
   @override
-  Duration? get reelHold => const Duration(milliseconds: 4400);
+  Duration? get reelHold =>
+      const Duration(milliseconds: 5100 + RewindMotion.reelReadingMs);
 
   @override
   RewindChrome get chrome => RewindChrome.dark;
@@ -82,24 +76,51 @@ class WeeklyHabitPage extends RewindPage {
             child: ExcludeSemantics(
               child: RewindStage(
                 children: [
-                  Positioned.fill(
-                    child: RewindLeave(
-                      position: position,
-                      centerY: _Dial.center.dy,
-                      child: _Dial(
-                        hourPhotos: hourPhotos,
-                        ringPhotos: ringPhotos,
-                        hour: habit.hour,
-                        label: hour,
+                  _layer(
+                    rect: _clock.inflate(40),
+                    position: position,
+                    child: RewindEntrance(
+                      preset: RewindPreset.pop,
+                      active: isActive,
+                      child: RewindElapsed(
                         active: isActive,
-                        paused: RewindPageScope.coveredOf(context),
+                        stillMs: 3000,
+                        builder: (context, ms) => Transform.rotate(
+                          angle: _wobble(ms) * pi / 180,
+                          child: Stack(
+                            children: [
+                              Positioned.fromRect(
+                                rect: _clock.shift(const Offset(-32.2, -117.9)),
+                                child: CustomPaint(
+                                  painter: _ClockPainter(
+                                    hour: habit.hour,
+                                    spin: rewindProgress(
+                                      ms,
+                                      delayMs: 400,
+                                      durationMs: 1400,
+                                      curve: const Cubic(0.35, 0, 0.2, 1),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                left: 255 - 32.2,
+                                top: 173 - 117.9,
+                                child: FractionalTranslation(
+                                  translation: const Offset(-0.5, -0.5),
+                                  child: _HourTag(hour),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ),
                   _layer(
-                    rect: Rect.fromLTWH(dayLeft - 26, _tilesTop - 60, 92, 107),
+                    rect: Rect.fromLTWH(dayLeft - 29.4, 389, 97, 113.1),
                     position: position,
-                    child: _Fire(active: isActive, delayMs: 3000),
+                    child: _Fire(active: isActive, delayMs: 3150),
                   ),
                   for (var i = 0; i < 7; i++)
                     _layer(
@@ -108,7 +129,7 @@ class WeeklyHabitPage extends RewindPage {
                       child: RewindEntrance(
                         preset: RewindPreset.bubble,
                         active: isActive,
-                        delayMs: 2100 + 110 * (i + 1),
+                        delayMs: 1900 + 140 * (i + 1),
                         origin: Alignment.bottomCenter,
                         child: _DayTile(
                           letter: _weekdays[i][0],
@@ -116,6 +137,23 @@ class WeeklyHabitPage extends RewindPage {
                         ),
                       ),
                     ),
+                  _layer(
+                    rect: const Rect.fromLTWH(37, 89.7, 178.6, 354),
+                    position: position,
+                    child: RewindEntrance(
+                      preset: RewindPreset.drop,
+                      active: isActive,
+                      delayMs: 3550,
+                      child: Image.file(
+                        RewindAssets.file(RewindAssets.cameraOnPole),
+                      ),
+                    ),
+                  ),
+                  _layer(
+                    rect: const Rect.fromLTWH(-0.3, 40.3, 209.4, 244.1),
+                    position: position,
+                    child: _Fire(active: isActive, delayMs: 2950),
+                  ),
                   RewindRevealLayer(
                     left: 28,
                     top: 597,
@@ -123,7 +161,7 @@ class WeeklyHabitPage extends RewindPage {
                     height: 18,
                     position: position,
                     active: isActive,
-                    delayMs: 3300,
+                    delayMs: 4000,
                     child: RewindVoice(
                       you: "YOUR WEEKLY RITUAL",
                       me: "MY WEEKLY RITUAL",
@@ -146,7 +184,7 @@ class WeeklyHabitPage extends RewindPage {
                     position: position,
                     active: isActive,
                     preset: RewindPreset.slap,
-                    delayMs: 3500,
+                    delayMs: 4200,
                     child: RewindOutlinedText(
                       title.toUpperCase(),
                       style: RewindTextStyles.display(
@@ -165,7 +203,7 @@ class WeeklyHabitPage extends RewindPage {
                     height: 44,
                     position: position,
                     active: isActive,
-                    delayMs: 3800,
+                    delayMs: 4500,
                     child: RewindVoice(
                       you: line,
                       me: "$share of my photos were taken on $weekdays.",
@@ -201,306 +239,21 @@ class WeeklyHabitPage extends RewindPage {
       ),
     );
   }
-}
-
-class _Dial extends StatelessWidget {
-  const _Dial({
-    required this.hourPhotos,
-    required this.ringPhotos,
-    required this.hour,
-    required this.label,
-    required this.active,
-    required this.paused,
-  });
-
-  static const center = Offset(195, 258);
-  static const _clockScale = 0.84;
-  static const _clockRadius = 118.8 * _clockScale;
-  static const _ringRadius = 147.0;
-  static const _heroRadius = 138.0;
-  static const _photoSize = Size.square(66);
-  static const _heroSize = Size(96, 116);
-  static const _sweepFromMs = 420.0;
-  static const _sweepMs = 1260.0;
-  static const _heroMs = _sweepFromMs + _sweepMs;
-  static const _ringMs = 1820.0;
-  static const _tickFromMs = 3500.0;
-  static const _tickEveryMs = 760.0;
-  static const _tickMs = 220.0;
-  static const _flipMs = 460.0;
-  static const _maxSlots = 12;
-  static const _tilts = [
-    -4.0,
-    5.0,
-    -6.0,
-    3.0,
-    -3.0,
-    6.0,
-    -5.0,
-    4.0,
-    -2.0,
-    5.0,
-    -6.0,
-    3.0,
-  ];
-
-  final List<EnteFile> hourPhotos;
-  final List<EnteFile> ringPhotos;
-  final int hour;
-  final String label;
-  final bool active;
-  final bool paused;
-
-  double get _heroTurn => (hour % 12) * pi / 6;
-
-  int get _slots =>
-      hourPhotos.isEmpty ? 0 : min(_maxSlots, 1 + ringPhotos.length);
-
-  double _slotTurn(int slot) => _heroTurn + slot * 2 * pi / _slots;
-
-  @override
-  Widget build(BuildContext context) {
-    final count = _slots;
-    final faces = [
-      [
-        for (final (i, file) in hourPhotos.indexed)
-          _DialPhoto(key: ValueKey(-1 - i), file: file, caption: label),
-      ],
-      for (var slot = 1; slot < count; slot++)
-        [
-          for (var i = slot - 1; i < ringPhotos.length; i += count - 1)
-            _DialPhoto(key: ValueKey(i), file: ringPhotos[i]),
-        ],
-    ];
-    return RewindElapsed(
-      active: active && !paused,
-      stillMs: _tickFromMs,
-      builder: (context, ms) => Stack(
-        clipBehavior: Clip.none,
-        children: [
-          for (var slot = count - 1; slot >= 1; slot--)
-            _ringPhoto(_face(faces[slot], slot, ms), slot, ms),
-          _clock(ms),
-          if (count > 0) _hero(_face(faces[0], 0, ms), ms),
-        ],
-      ),
-    );
-  }
-
-  Widget _clock(double ms) {
-    const box = 118.8 * 2;
-    return Positioned.fromRect(
-      rect: Rect.fromCenter(center: center, width: box + 80, height: box + 80),
-      child: RewindEntrance(
-        preset: RewindPreset.pop,
-        active: active,
-        child: Transform.rotate(
-          angle: _wobble(ms) * pi / 180,
-          child: Transform.scale(
-            scale: _clockScale,
-            child: Padding(
-              padding: const EdgeInsets.all(40),
-              child: CustomPaint(
-                painter: _ClockPainter(
-                  hour: hour,
-                  spin: rewindProgress(
-                    ms,
-                    delayMs: 400,
-                    durationMs: 1400,
-                    curve: const Cubic(0.35, 0, 0.2, 1),
-                  ),
-                  second: _slots < 2 ? null : _secondTurn(ms),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  double _dealMs(int slot) => _sweepFromMs + _sweepMs * slot / _slots;
-
-  double _secondTurn(double ms) {
-    if (ms < _tickFromMs) {
-      final sweep = rewindProgress(
-        ms,
-        delayMs: _sweepFromMs,
-        durationMs: _sweepMs,
-      );
-      return _heroTurn + 2 * pi * sweep;
-    }
-    final beat = (ms - _tickFromMs) / _tickEveryMs;
-    final step = beat.floor();
-    final into = (beat - step) * _tickEveryMs;
-    final settle = RewindMotion.pop.transform((into / _tickMs).clamp(0.0, 1.0));
-    final from = _slotTurn(_tickSlot(step - 1));
-    var to = _slotTurn(_tickSlot(step));
-    if (to < from) to += 2 * pi;
-    return lerpDouble(from, to, settle)!;
-  }
-
-  int _tickSlot(int step) => step < 0 ? 0 : (step + 1) % _slots;
-
-  int _step(double ms) => ((ms - _tickFromMs) / _tickEveryMs).floor();
-
-  Widget _face(List<Widget> faces, int slot, double ms) {
-    final step = _step(ms);
-    final first = (slot - 1) % _slots;
-    if (faces.length == 1 || _slots < 2 || ms < _tickFromMs || step < first) {
-      return faces.first;
-    }
-    final ticks = (step - first) ~/ _slots + 1;
-    final settled = faces[ticks % faces.length];
-    final into = ms - _tickFromMs - step * _tickEveryMs;
-    if ((step - first) % _slots != 0 || into >= _flipMs) return settled;
-    final t = Curves.easeInOut.transform(into / _flipMs);
-    return Transform(
-      alignment: Alignment.center,
-      transform: Matrix4.identity()
-        ..setEntry(3, 2, 0.0018)
-        ..rotateY(t < 0.5 ? pi * t : pi * (t - 1)),
-      child: t < 0.5 ? faces[(ticks - 1) % faces.length] : settled,
-    );
-  }
-
-  Widget _ringPhoto(Widget frame, int slot, double ms) {
-    final dealMs = _dealMs(slot);
-    final e = _spring(ms, dealMs);
-    final turn = _slotTurn(slot);
-    final radius =
-        lerpDouble(_clockRadius - 40, _ringRadius, e)! + _jolt(ms, slot);
-    final tick = _tick(ms, slot);
-    final scale = lerpDouble(0.3, 1, e)! * (1 + 0.12 * tick);
-    final tilt = lerpDouble(-30, _tilts[slot % _tilts.length], e)! + 6 * tick;
-    return _placed(
-      frame,
-      center + Offset(sin(turn), -cos(turn)) * radius,
-      _photoSize,
-      scale: scale,
-      tilt: tilt,
-      opacity: ((ms - dealMs) / 90).clamp(0.0, 1.0),
-    );
-  }
-
-  Widget _hero(Widget frame, double ms) {
-    final e = _spring(ms, _heroMs);
-    final turn = _heroTurn;
-    final radius = lerpDouble(_heroRadius + 16, _heroRadius, e)!;
-    final tick = _tick(ms, 0);
-    return _placed(
-      frame,
-      center + Offset(sin(turn), -cos(turn)) * radius,
-      _heroSize,
-      scale: lerpDouble(0.2, 1, e)! * (1 + 0.08 * tick),
-      tilt: lerpDouble(-24, -4, e)! + 4 * tick,
-      opacity: ((ms - _heroMs) / 90).clamp(0.0, 1.0),
-    );
-  }
-
-  Widget _placed(
-    Widget frame,
-    Offset at,
-    Size size, {
-    required double scale,
-    required double tilt,
-    required double opacity,
-  }) {
-    return Positioned.fromRect(
-      rect: Rect.fromCenter(center: at, width: size.width, height: size.height),
-      child: Opacity(
-        opacity: opacity,
-        child: Transform.rotate(
-          angle: tilt * pi / 180,
-          child: Transform.scale(scale: scale, child: frame),
-        ),
-      ),
-    );
-  }
-
-  double _spring(double ms, double fromMs) => RewindMotion.pop.transform(
-    ((ms - fromMs) / RewindMotion.pop.duration.inMilliseconds).clamp(0.0, 1.0),
-  );
-
-  double _jolt(double ms, int slot) {
-    final q = (ms - _ringMs - 14 * slot) / 700;
-    if (q <= 0 || q >= 1) return 0;
-    return 10 * sin(q * 5 * pi) * pow(1 - q, 2);
-  }
-
-  double _tick(double ms, int slot) {
-    if (_slots < 2 || ms < _tickFromMs) return 0;
-    final beat = (ms - _tickFromMs) / _tickEveryMs;
-    if (_tickSlot(beat.floor()) != slot) return 0;
-    final into = (beat - beat.floor()) * _tickEveryMs;
-    return sin((into / 420).clamp(0.0, 1.0) * pi);
-  }
 
   double _wobble(double ms) {
     const turns = [0.0, -5.0, 5.0, -4.0, 4.0, -2.0, 0.0];
-    final t = rewindProgress(ms, delayMs: _ringMs, durationMs: 650);
+    final t = rewindProgress(ms, delayMs: 1820, durationMs: 650);
     final span = t * (turns.length - 1);
     final i = min(span.floor(), turns.length - 2);
     return turns[i] + (turns[i + 1] - turns[i]) * (span - i);
   }
 }
 
-class _DialPhoto extends StatelessWidget {
-  const _DialPhoto({required this.file, this.caption, super.key});
-
-  final EnteFile file;
-  final String? caption;
-
-  @override
-  Widget build(BuildContext context) {
-    final caption = this.caption;
-    final hero = caption != null;
-    final photo = ClipRRect(
-      borderRadius: BorderRadius.circular(4),
-      child: RewindPhoto(file, placeholder: const Color(0x1F151515)),
-    );
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: hero ? RewindColors.hotPink : RewindColors.photoPaper,
-        border: Border.all(color: RewindColors.ink, width: hero ? 3 : 2.5),
-        borderRadius: BorderRadius.circular(hero ? 9 : 8),
-        boxShadow: [
-          BoxShadow(
-            color: RewindColors.ink,
-            offset: hero ? const Offset(4, 5) : const Offset(2.5, 3.5),
-          ),
-        ],
-      ),
-      child: hero
-          ? Padding(
-              padding: const EdgeInsets.fromLTRB(5, 5, 5, 0),
-              child: Column(
-                children: [
-                  AspectRatio(aspectRatio: 1, child: photo),
-                  Expanded(
-                    child: Center(
-                      child: FittedBox(
-                        child: Text(
-                          caption,
-                          style: RewindTextStyles.display(20, height: 1),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            )
-          : Padding(padding: const EdgeInsets.all(3.5), child: photo),
-    );
-  }
-}
-
 class _ClockPainter extends CustomPainter {
-  _ClockPainter({required this.hour, required this.spin, this.second});
+  _ClockPainter({required this.hour, required this.spin});
 
   final int hour;
   final double spin;
-  final double? second;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -538,18 +291,6 @@ class _ClockPainter extends CustomPainter {
 
     hand(66.2, 7.92, 360.0 * hours * spin);
     hand(43.83, 6.34, 30.0 * hours * spin);
-    final second = this.second;
-    if (second != null) {
-      final tip = Offset(sin(second), -cos(second));
-      canvas.drawLine(
-        center - tip * 18,
-        center + tip * 88,
-        Paint()
-          ..color = RewindColors.hotPink
-          ..strokeWidth = 3.4
-          ..strokeCap = StrokeCap.round,
-      );
-    }
     canvas.drawCircle(center, 7.92, Paint()..color = RewindColors.hotPink);
     canvas.drawCircle(
       center,
@@ -563,9 +304,32 @@ class _ClockPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_ClockPainter oldDelegate) =>
-      oldDelegate.hour != hour ||
-      oldDelegate.spin != spin ||
-      oldDelegate.second != second;
+      oldDelegate.hour != hour || oldDelegate.spin != spin;
+}
+
+class _HourTag extends StatelessWidget {
+  const _HourTag(this.hour);
+
+  final String hour;
+
+  @override
+  Widget build(BuildContext context) {
+    return Transform.rotate(
+      angle: -6 * pi / 180,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 15.84, vertical: 4.75),
+        decoration: BoxDecoration(
+          color: RewindColors.hotPink,
+          border: Border.all(color: RewindColors.ink, width: 3.49),
+          borderRadius: BorderRadius.circular(6.34),
+          boxShadow: const [
+            BoxShadow(color: RewindColors.ink, offset: Offset(3.17, 4.75)),
+          ],
+        ),
+        child: Text(hour, style: RewindTextStyles.display(28.51, height: 1.15)),
+      ),
+    );
+  }
 }
 
 class _DayTile extends StatelessWidget {

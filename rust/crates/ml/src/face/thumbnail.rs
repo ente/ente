@@ -3,12 +3,17 @@ use fast_image_resize::{
     images::{Image as FirImage, ImageRef as FirImageRef},
 };
 
-use ente_image::image_compression::{
-    EncodedImageFormat, FACE_THUMBNAIL_JPEG_QUALITY, FACE_THUMBNAIL_MIN_DIMENSION, encode_rgb,
+use ente_image::{
+    BoundedDecodeOptions,
+    image_compression::{
+        EncodedImageFormat, FACE_THUMBNAIL_JPEG_QUALITY, FACE_THUMBNAIL_MIN_DIMENSION, encode_rgb,
+    },
 };
 
 use crate::{
+    decode::decode_image,
     error::{MlError, MlResult},
+    indexing::ImageSource,
     types::DecodedImage,
 };
 
@@ -32,6 +37,18 @@ struct CropRect {
     height: f64,
     output_width: u32,
     output_height: u32,
+}
+
+pub fn generate_face_thumbnails_from_path(
+    image_path: &str,
+    face_boxes: &[FaceBox],
+) -> MlResult<Vec<Vec<u8>>> {
+    let decoded = decode_image(
+        &ImageSource::Path(image_path.to_string()),
+        BoundedDecodeOptions::default(),
+        &format!("path={image_path}"),
+    )?;
+    generate_face_thumbnails(&decoded.image, face_boxes)
 }
 
 pub fn generate_face_thumbnails(
@@ -246,12 +263,16 @@ mod tests {
     use fast_image_resize::FilterType;
     use image::ImageFormat;
 
+    use ente_image::BoundedDecodeOptions;
+
     use super::{
         FaceBox, compute_crop_rect, face_thumbnail_dimensions, generate_face_thumbnails,
-        select_resize_filter,
+        generate_face_thumbnails_from_path, select_resize_filter,
     };
     use crate::{
+        decode::decode_image,
         error::MlError,
+        indexing::ImageSource,
         types::{DecodedImage, Dimensions},
     };
 
@@ -449,6 +470,43 @@ mod tests {
             .expect("thumbnail bytes should decode as JPEG");
         let short_side = decoded_jpeg.width().min(decoded_jpeg.height());
         assert_eq!(short_side, 512);
+    }
+
+    #[test]
+    fn thumbnails_from_paths_use_the_indexing_decode() {
+        let directory = tempfile::tempdir().unwrap();
+        let face_boxes = [FaceBox {
+            x: 0.25,
+            y: 0.25,
+            width: 0.5,
+            height: 0.5,
+        }];
+        for (name, format, width, height) in [
+            ("wide.png", ImageFormat::Png, 6400, 48),
+            ("small.webp", ImageFormat::WebP, 64, 48),
+        ] {
+            let path = directory.path().join(name);
+            image::RgbImage::from_raw(width, height, synthetic_decoded_image(width, height).rgb)
+                .unwrap()
+                .save_with_format(&path, format)
+                .unwrap();
+
+            let path = path.to_str().unwrap();
+            let decoded = decode_image(
+                &ImageSource::Path(path.to_string()),
+                BoundedDecodeOptions::default(),
+                name,
+            )
+            .unwrap();
+
+            let thumbnails = generate_face_thumbnails_from_path(path, &face_boxes).unwrap();
+            assert_eq!(thumbnails.len(), 1, "{name}");
+            assert_eq!(
+                thumbnails,
+                generate_face_thumbnails(&decoded.image, &face_boxes).unwrap(),
+                "{name}"
+            );
+        }
     }
 
     fn synthetic_decoded_image(width: u32, height: u32) -> DecodedImage {

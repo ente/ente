@@ -31,11 +31,11 @@ class ImageHeroSource extends InheritedWidget {
 }
 
 ui.Image? imageFromHero(BuildContext context) {
-  ui.Image? image;
+  RenderImage? renderImage;
   void visit(RenderObject renderObject) {
-    if (renderObject is RenderImage && renderObject.image != null) {
-      image ??= renderObject.image;
-    } else if (image == null) {
+    if (renderObject is RenderImage) {
+      renderImage ??= renderObject;
+    } else if (renderImage == null) {
       renderObject.visitChildren(visit);
     }
   }
@@ -44,7 +44,7 @@ ui.Image? imageFromHero(BuildContext context) {
   if (renderObject != null) {
     visit(renderObject);
   }
-  return image;
+  return renderImage?.image;
 }
 
 Widget imageHeroFlightShuttleBuilder(

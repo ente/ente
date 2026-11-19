@@ -21,9 +21,6 @@ pub enum Error {
     #[error("missing friend sealed space key")]
     MissingFriendSealedSpaceKey,
 
-    #[error("entity key conflict")]
-    EntityKeyConflict,
-
     #[error("space limit reached")]
     SpaceLimitReached,
 

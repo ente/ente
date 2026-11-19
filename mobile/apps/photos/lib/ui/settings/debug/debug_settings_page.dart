@@ -3,6 +3,7 @@ import "package:flutter/material.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/christmas_banner_event.dart";
 import "package:photos/service_locator.dart";
+import "package:photos/services/push_service.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/components/menu_item_widget/menu_item_widget_new.dart";
 import "package:photos/ui/components/settings/settings_grouped_card.dart";
@@ -137,6 +138,16 @@ class _DebugSettingsPageState extends State<DebugSettingsPage> {
                                 },
                               ),
                             ),
+                          if (PushService.canRefreshPushRegistration)
+                            MenuItemWidgetNew(
+                              title: "Refresh push registration",
+                              leadingIconWidget: _buildIconWidget(
+                                context,
+                                HugeIcons.strokeRoundedRefresh,
+                              ),
+                              showOnlyLoadingState: true,
+                              onTap: _refreshPushRegistration,
+                            ),
                           MenuItemWidgetNew(
                             title: "Show local ID over thumbnails",
                             leadingIconWidget: _buildIconWidget(
@@ -226,6 +237,17 @@ class _DebugSettingsPageState extends State<DebugSettingsPage> {
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _refreshPushRegistration() async {
+    final refreshed = await PushService.instance.refreshPushRegistration();
+    if (!mounted) return;
+    showShortToast(
+      context,
+      refreshed
+          ? "Push registration refreshed"
+          : "Could not refresh push registration",
     );
   }
 

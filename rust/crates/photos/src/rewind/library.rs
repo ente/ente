@@ -97,17 +97,17 @@ impl<'r> Library<'r> {
     }
 
     pub(super) fn ml_coverage(&self, store: &MlStore) -> Result<f32> {
-        let indexed = store.db().get_fully_indexed_file_ids(false)?;
-        let indexable: Vec<i64> = self
+        let mut indexable: Vec<i64> = self
             .files
             .iter()
             .filter(|file| file.file.file_type != RewindFileType::Other)
             .map(|file| file.file.id)
             .collect();
+        indexable.sort_unstable();
+        let covered = store.db().count_fully_indexed_files(&indexable)?;
         if indexable.is_empty() {
             return Ok(1.0);
         }
-        let covered = indexable.iter().filter(|id| indexed.contains(id)).count();
         Ok(covered as f32 / indexable.len() as f32)
     }
 }

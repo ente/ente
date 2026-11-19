@@ -1,12 +1,16 @@
 use ente_image::{
-    BoundedDecodeOptions, ImageInput,
+    BoundedDecodeOptions, DecodedImage, ImageError, ImageInput,
     decode::decode_image_from_path,
     decode_bounded,
     image_compression::{EncodedImageFormat, encode_rgb},
 };
-use ente_ml::face::thumbnail::{
-    FaceBox, generate_face_thumbnails as generate_face_thumbnails_impl,
-};
+use ente_ml::face::thumbnail::{FaceBox, generate_face_thumbnails_from_path};
+
+#[derive(Clone, Debug)]
+pub enum RustImageDecodeError {
+    TooLarge { message: String },
+    Other { message: String },
+}
 
 #[derive(Clone, Debug)]
 pub struct RustFaceBox {
@@ -20,7 +24,6 @@ pub fn generate_face_thumbnails(
     image_path: String,
     face_boxes: Vec<RustFaceBox>,
 ) -> Result<Vec<Vec<u8>>, String> {
-    let decoded = decode_image_from_path(&image_path).map_err(|e| e.to_string())?;
     let face_boxes = face_boxes
         .into_iter()
         .enumerate()
@@ -30,7 +33,7 @@ pub fn generate_face_thumbnails(
         })
         .collect::<Result<Vec<_>, _>>()?;
 
-    generate_face_thumbnails_impl(&decoded, &face_boxes).map_err(|e| e.to_string())
+    generate_face_thumbnails_from_path(&image_path, &face_boxes).map_err(|e| e.to_string())
 }
 
 // Use ente_heic instead of the platform decoder, which may fail on HEIC/HEIF.
@@ -38,22 +41,42 @@ pub fn decode_to_jpeg(
     image_path: String,
     max_side: u32,
     quality: Option<u8>,
-) -> Result<Vec<u8>, String> {
+) -> Result<Vec<u8>, RustImageDecodeError> {
     let options = BoundedDecodeOptions {
         max_side,
         ..BoundedDecodeOptions::default()
     };
-    let decoded = decode_bounded(ImageInput::Path(&image_path), options)
-        .map_err(|e| e.to_string())?
-        .image;
-    let quality = quality.unwrap_or(95);
+    let decoded = decode_bounded(ImageInput::Path(&image_path), options)?.image;
+    Ok(encode_jpeg(&decoded, quality)?)
+}
+
+pub fn decode_full_to_jpeg(
+    image_path: String,
+    quality: Option<u8>,
+) -> Result<Vec<u8>, RustImageDecodeError> {
+    let decoded = decode_image_from_path(&image_path)?;
+    Ok(encode_jpeg(&decoded, quality)?)
+}
+
+fn encode_jpeg(decoded: &DecodedImage, quality: Option<u8>) -> Result<Vec<u8>, ImageError> {
     encode_rgb(
         &decoded.rgb,
         decoded.dimensions.width,
         decoded.dimensions.height,
-        EncodedImageFormat::Jpeg { quality },
+        EncodedImageFormat::Jpeg {
+            quality: quality.unwrap_or(95),
+        },
     )
-    .map_err(|e| e.to_string())
+}
+
+impl From<ImageError> for RustImageDecodeError {
+    fn from(error: ImageError) -> Self {
+        let message = error.to_string();
+        match error {
+            ImageError::TooLarge(_) => Self::TooLarge { message },
+            ImageError::Decode(_) | ImageError::Postprocess(_) => Self::Other { message },
+        }
+    }
 }
 
 impl TryFrom<RustFaceBox> for FaceBox {

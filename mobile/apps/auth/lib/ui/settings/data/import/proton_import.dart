@@ -1,3 +1,5 @@
+import 'package:ente_auth/models/code.dart';
+import 'package:ente_auth/src/rust/api/import_api.dart' as rust;
 import 'package:ente_auth/ui/settings/data/import/import_file_cleanup.dart';
 import 'package:ente_auth/ui/settings/data/import/import_flow.dart';
 import 'package:ente_auth/ui/settings/data/import/proton_import_parser.dart';
@@ -5,7 +7,6 @@ import 'package:ente_auth/utils/dialog_util.dart';
 import 'package:ente_strings/ente_strings.dart';
 import 'package:ente_ui/components/progress_dialog.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 
@@ -40,9 +41,32 @@ Future<int?> _processProtonExportFile(
 ) async {
   final jsonString = await readPickedImportFileAsString(path);
 
-  Map<String, dynamic> decodedJson;
+  late List<Code> parsedCodes;
   try {
-    decodedJson = decodeProtonExportJson(jsonString);
+    parsedCodes = await importProtonExport(jsonString);
+  } on rust.ImportError_PasswordRequired {
+    if (!context.mounted) return null;
+    while (true) {
+      if (!context.mounted) return null;
+      final password = await promptForImportPassword(
+        context,
+        title: context.strings.passwordForDecryptingExport,
+      );
+      if (password == null) return null;
+      await dialog.show();
+      try {
+        parsedCodes = await importProtonExport(jsonString, password: password);
+        break;
+      } on rust.ImportError_IncorrectPassword {
+        await dialog.hide();
+        if (!context.mounted) return null;
+        await showErrorDialog(
+          context,
+          context.strings.incorrectPasswordTitle,
+          context.strings.pleaseCheckPasswordAndTryAgain,
+        );
+      }
+    }
   } on FormatException {
     if (!context.mounted) return null;
     await dialog.hide();
@@ -54,73 +78,5 @@ Future<int?> _processProtonExportFile(
     );
     return null;
   }
-
-  if (isEncryptedProtonExport(decodedJson)) {
-    if (!context.mounted) return null;
-    while (true) {
-      if (!context.mounted) return null;
-      final password = await promptForImportPassword(
-        context,
-        title: context.strings.passwordForDecryptingExport,
-      );
-      if (password == null) {
-        return null;
-      }
-
-      await dialog.show();
-      try {
-        final decryptedJsonResult = await compute(
-          _decryptProtonExportInBackground,
-          {'jsonString': jsonString, 'password': password},
-        );
-        switch (decryptedJsonResult['status']) {
-          case 'incorrect_password':
-            await dialog.hide();
-            if (!context.mounted) return null;
-            await showErrorDialog(
-              context,
-              context.strings.incorrectPasswordTitle,
-              context.strings.pleaseCheckPasswordAndTryAgain,
-            );
-            continue;
-          case 'ok':
-            decodedJson = decodeProtonExportJson(
-              decryptedJsonResult['jsonString']!,
-            );
-            break;
-          default:
-            throw StateError('Unexpected Proton decrypt result status');
-        }
-        break;
-      } catch (e, s) {
-        Logger('ProtonImport').warning('Failed to decrypt Proton export', e, s);
-        rethrow;
-      }
-    }
-  } else {
-    await dialog.show();
-  }
-
-  final parsedCodes = parseProtonExport(decodedJson);
   return saveImportedCodes(parsedCodes);
-}
-
-Map<String, String> _decryptProtonExportInBackground(
-  Map<String, String> params,
-) {
-  final jsonString = params['jsonString'];
-  final password = params['password'];
-  if (jsonString == null || password == null) {
-    throw ArgumentError('Missing Proton export decryption params');
-  }
-
-  final decodedJson = decodeProtonExportJson(jsonString);
-  try {
-    return {
-      'status': 'ok',
-      'jsonString': decryptProtonExport(decodedJson, password: password),
-    };
-  } on IncorrectProtonExportPasswordException {
-    return {'status': 'incorrect_password'};
-  }
 }

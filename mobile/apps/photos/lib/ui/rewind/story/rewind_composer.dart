@@ -23,11 +23,8 @@ import "package:photos/ui/rewind/pages/ritual_streak_page.dart";
 import "package:photos/ui/rewind/pages/scrapbook_page.dart";
 import "package:photos/ui/rewind/pages/setup_page.dart";
 import "package:photos/ui/rewind/pages/setup_pages.dart";
-import "package:photos/ui/rewind/pages/spots_page.dart";
 import "package:photos/ui/rewind/pages/timelapse_page.dart";
 import "package:photos/ui/rewind/pages/top_percent_page.dart";
-import "package:photos/ui/rewind/pages/tour_page.dart";
-import "package:photos/ui/rewind/pages/tower_page.dart";
 import "package:photos/ui/rewind/pages/warp_page.dart";
 import "package:photos/ui/rewind/pages/weekly_habit_page.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
@@ -59,12 +56,8 @@ List<RewindChapter> rewindChapters(
   RewindChapter([const CoverPage().key], (_) async => const [CoverPage()]),
   _warp(report),
   _totals(report.totals),
-  _tower(report),
   _colour(report.colour),
-  _places(report.places, showDistance: report.globe == null),
-  _tour(report.tour),
-  _globe(report.globe),
-  _spots(report.spots),
+  _places(report.places, report.globe),
   _peopleRace(report.peopleRace),
   _timelapse(report),
   _busiestDay(report.busiestDay),
@@ -81,8 +74,9 @@ List<RewindChapter> rewindChapters(
 
 List<RewindChapter> rewindPhotoCardChapters(rust.RewindReport report) => [
   _warp(report),
-  _tower(report),
-  _globe(report.globe),
+  RewindChapter([
+    GlobePage.pageKey,
+  ], (media) async => [?_globe(media, report.globe)]),
   _timelapse(report),
   _mosaic(report),
 ];
@@ -91,11 +85,10 @@ const _quizCities = 6;
 const _podiumPlaces = 3;
 const _stampsPerPlace = 3;
 const _galleryPhotos = 9;
-const _minimumPolaroids = 3;
 const _boothStrips = 3;
 const _newFaceBubbles = 6;
 const _newFacePhotos = 9;
-const _minimumNewFaces = 3;
+const _minimumNewFaces = 1;
 
 RewindChapter _totals(rust.Totals? totals) {
   return RewindChapter([PhotosCountPage.pageKey, TopPercentPage.pageKey], (
@@ -113,10 +106,6 @@ RewindChapter _totals(rust.Totals? totals) {
   });
 }
 
-RewindChapter _tour(rust.Tour? tour) => RewindChapter([
-  TourPage.pageKey,
-], (_) async => [if (tour != null) TourPage(tour)]);
-
 RewindChapter _warp(rust.RewindReport report) =>
     RewindChapter([WarpPage.pageKey], (media) async {
       final warp = report.warp;
@@ -133,31 +122,12 @@ RewindChapter _warp(rust.RewindReport report) =>
       return [WarpPage(photos: panels, first: first)];
     });
 
-RewindChapter _tower(rust.RewindReport report) =>
-    RewindChapter([TowerPage.pageKey], (media) async {
-      final totals = report.totals;
-      if (totals == null || totals.files < TowerPage.minimumPrints) {
-        return const [];
-      }
-      final photos = media.extraPhotos(
-        report.mosaic?.fileIds ?? totals.fileIds,
-        TowerPage.tiles,
-      );
-      return photos.isEmpty
-          ? const []
-          : [TowerPage(prints: totals.files, photos: photos)];
-    });
-
-RewindChapter _globe(rust.Globe? globe) =>
-    RewindChapter([GlobePage.pageKey], (media) async {
-      if (globe == null) return const [];
-      return [
-        GlobePage(globe, [
-          for (final place in globe.places)
-            media.photos(place.fileIds, 1).firstOrNull,
-        ]),
-      ];
-    });
+GlobePage? _globe(RewindMedia media, rust.Globe? globe) => globe == null
+    ? null
+    : GlobePage(globe, [
+        for (final place in globe.places)
+          media.photos(place.fileIds, 1).firstOrNull,
+      ]);
 
 RewindChapter _timelapse(rust.RewindReport report) =>
     RewindChapter([TimelapsePage.pageKey], (media) async {
@@ -238,19 +208,28 @@ RewindChapter _colour(rust.ColourOfTheYear? colour) => RewindChapter(
   },
 );
 
-RewindChapter _places(rust.Places? places, {required bool showDistance}) {
-  return RewindChapter.revealed(placesSetupPage, PlacesQuizPage.pageKey, (
-    media,
-  ) {
-    if (places == null) return null;
-    final stamps = [
-      for (final (rank, city) in places.cities.take(_quizCities).indexed)
-        _placeStamp(media, city, rank < _podiumPlaces),
-    ];
-    return stamps.length < 3
-        ? null
-        : PlacesQuizPage(places, stamps, showDistance: showDistance);
-  });
+RewindChapter _places(rust.Places? places, rust.Globe? globe) => RewindChapter(
+  [placesSetupPage.key, GlobePage.pageKey, PlacesQuizPage.pageKey],
+  (media) async {
+    final quiz = _placesQuiz(media, places, showDistance: globe == null);
+    final revealed = [?_globe(media, globe), ?quiz];
+    return revealed.isEmpty ? const [] : [placesSetupPage, ...revealed];
+  },
+);
+
+PlacesQuizPage? _placesQuiz(
+  RewindMedia media,
+  rust.Places? places, {
+  required bool showDistance,
+}) {
+  if (places == null) return null;
+  final stamps = [
+    for (final (rank, city) in places.cities.take(_quizCities).indexed)
+      _placeStamp(media, city, rank < _podiumPlaces),
+  ];
+  return stamps.length < 3
+      ? null
+      : PlacesQuizPage(places, stamps, showDistance: showDistance);
 }
 
 PlaceStamp _placeStamp(RewindMedia media, rust.RewindCity city, bool podium) {
@@ -263,14 +242,6 @@ PlaceStamp _placeStamp(RewindMedia media, rust.RewindCity city, bool podium) {
         ? media.extraPhotos(city.fileIds, _galleryPhotos)
         : const [],
   );
-}
-
-RewindChapter _spots(rust.Spots? spots) {
-  return RewindChapter.revealed(spotsSetupPage, SpotsPage.pageKey, (media) {
-    if (spots == null) return null;
-    final photos = media.photos(spots.fileIds, 9);
-    return photos.length < _minimumPolaroids ? null : SpotsPage(spots, photos);
-  });
 }
 
 RewindChapter _peopleRace(rust.PeopleRace? race) {
@@ -361,25 +332,16 @@ RewindChapter _favourites(rust.Favourites? favourites) {
   return RewindChapter.revealed(favouritesSetupPage, "favourites", (media) {
     if (favourites == null) return null;
     final photos = media.photos(favourites.fileIds, 9);
-    return photos.isEmpty ? null : FavouritesPage(favourites, photos);
+    return photos.isEmpty ? null : FavouritesPage(photos);
   });
 }
 
 RewindChapter _weeklyHabit(rust.WeeklyHabit? habit) {
-  return RewindChapter.revealed(ritualSetupPage, "weekly_habit", (media) {
-    if (habit == null) return null;
-    final hourPhotos = media.photos(
-      habit.hourFileIds,
-      WeeklyHabitPage.maxHourPhotos,
-    );
-    return WeeklyHabitPage(
-      habit,
-      hourPhotos,
-      hourPhotos.isEmpty
-          ? const []
-          : media.photos(habit.fileIds, WeeklyHabitPage.maxRingPhotos),
-    );
-  });
+  return RewindChapter.revealed(
+    ritualSetupPage,
+    "weekly_habit",
+    (_) => habit == null ? null : WeeklyHabitPage(habit),
+  );
 }
 
 RewindChapter _crowdFavourite(rust.CrowdFavourite? crowd) {

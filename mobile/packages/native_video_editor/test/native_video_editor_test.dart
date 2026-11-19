@@ -263,6 +263,8 @@ void main() {
           path: music.path,
           fadeIn: const Duration(milliseconds: 900),
           fadeOut: const Duration(milliseconds: 250),
+          duckedVolume: 0.25,
+          duckFade: const Duration(milliseconds: 500),
         ),
       ),
     );

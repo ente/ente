@@ -12,6 +12,7 @@ import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
+import "package:photos/ui/rewind/theme/rewind_motion.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
 import "package:photos/ui/rewind/widgets/rewind_confetti.dart";
@@ -51,7 +52,13 @@ class PlacesQuizPage extends RewindPage {
   String get key => pageKey;
 
   @override
-  Duration? get reelHold => const Duration(milliseconds: 3000);
+  Duration? get reelHold =>
+      const Duration(milliseconds: 3000 + RewindMotion.reelReadingMs);
+
+  @override
+  List<EnteFile> get reelThumbnails => [
+    for (final stamp in stamps) ...[?stamp.photo, ...stamp.extras],
+  ];
 
   @override
   void resetAnswer() {

@@ -2,7 +2,6 @@ import "dart:math";
 
 import "package:flutter/material.dart";
 import "package:photos/models/file/file.dart";
-import "package:photos/services/rewind/rewind_edition.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
@@ -24,6 +23,7 @@ import "package:photos/ui/rewind/widgets/rewind_wordmark.dart";
 
 const _summaryInk = Color(0xFF131313);
 const _summaryGreen = Color(0xFF0EBF29);
+const _enlarged = 1.04;
 
 enum _Cutout {
   outing(Offset(101, 211), Size(152.172, 119.006), -4),
@@ -65,7 +65,8 @@ class ScrapbookPage extends RewindPage {
   String get key => "scrapbook";
 
   @override
-  Duration? get reelHold => const Duration(milliseconds: 3800);
+  Duration? get reelHold =>
+      const Duration(milliseconds: 3800 + RewindMotion.reelReadingMs);
 
   @override
   RewindChrome get chrome => const RewindChrome(foreground: RewindColors.cream);
@@ -99,100 +100,102 @@ class _Scrapbook extends StatelessWidget {
           ),
           RewindStage(
             children: [
-              Positioned(
-                left: 33.2,
-                top: 48.1,
-                child: RewindEntrance(
-                  preset: RewindPreset.line,
-                  active: isActive,
-                  delayMs: 350,
-                  child: const RewindWordmark(
-                    color: RewindColors.cream,
-                    width: 88.8,
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 28,
-                top: 69.7,
-                child: RewindEntrance(
-                  preset: RewindPreset.pop,
-                  active: isActive,
-                  delayMs: 420,
-                  child: Semantics(
-                    label: "Rewind 2026",
-                    child: Image.file(
-                      RewindAssets.file(RewindAssets.compactHeader),
-                      width: 239,
-                      height: 45,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                ),
-              ),
-              Positioned.fromRect(
-                rect: const Rect.fromLTWH(29.73, 137.55, 329.706, 311.172),
-                child: RewindEntrance(
-                  preset: RewindPreset.pop,
-                  active: isActive,
-                  delayMs: 150,
-                  child: Transform.rotate(
-                    angle: 0.13 * pi / 180,
-                    child: const CustomPaint(painter: _GraphPaperPainter()),
-                  ),
-                ),
-              ),
-              for (final (index, cutout) in _Cutout.values.indexed)
-                if (index < page.photos.length)
-                  Positioned.fromRect(
-                    rect: Rect.fromCenter(
-                      center: cutout.center,
-                      width: cutout.size.width,
-                      height: cutout.size.height,
-                    ),
-                    child: RewindEntrance(
-                      preset: RewindPreset.drop,
-                      active: isActive,
-                      delayMs: 300 + 70 * index,
-                      child: Transform.rotate(
-                        angle: cutout.turn * pi / 180,
-                        child: _photoCutout(cutout, page.photos[index]),
-                      ),
-                    ),
-                  ),
               Positioned.fill(
-                child: RewindElapsed(
-                  active: isActive,
-                  stillMs: 2000,
-                  builder: (context, ms) => Transform.translate(
-                    offset: Offset(
-                      0,
-                      380 *
-                          (1 -
-                              rewindProgress(
-                                ms,
-                                delayMs: 380,
-                                durationMs: 792,
-                                curve: RewindMotion.soft,
-                              )),
-                    ),
-                    child: _Summary(page: page),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 0,
-                right: 0,
-                top: 762,
-                child: RewindEntrance(
-                  preset: RewindPreset.slap,
-                  active: isActive,
-                  delayMs: 1350,
-                  child: Center(
-                    child: Transform.rotate(
-                      angle: -3 * pi / 180,
-                      child: const _SignOff(),
-                    ),
+                child: Transform.scale(
+                  scale: _enlarged,
+                  alignment: Alignment.topCenter,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Positioned(
+                        left: 33.2,
+                        top: 48.1,
+                        child: RewindEntrance(
+                          preset: RewindPreset.line,
+                          active: isActive,
+                          delayMs: 350,
+                          child: const RewindWordmark(
+                            color: RewindColors.cream,
+                            width: 88.8,
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        left: 28,
+                        top: 69.7,
+                        child: RewindEntrance(
+                          preset: RewindPreset.pop,
+                          active: isActive,
+                          delayMs: 420,
+                          child: Semantics(
+                            label: "Rewind 2026",
+                            child: Image.file(
+                              RewindAssets.file(RewindAssets.compactHeader),
+                              width: 239,
+                              height: 45,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ),
+                      ),
+                      Positioned.fromRect(
+                        rect: const Rect.fromLTWH(
+                          29.73,
+                          137.55,
+                          329.706,
+                          311.172,
+                        ),
+                        child: RewindEntrance(
+                          preset: RewindPreset.pop,
+                          active: isActive,
+                          delayMs: 150,
+                          child: Transform.rotate(
+                            angle: 0.13 * pi / 180,
+                            child: const CustomPaint(
+                              painter: _GraphPaperPainter(),
+                            ),
+                          ),
+                        ),
+                      ),
+                      for (final (index, cutout) in _Cutout.values.indexed)
+                        if (index < page.photos.length)
+                          Positioned.fromRect(
+                            rect: Rect.fromCenter(
+                              center: cutout.center,
+                              width: cutout.size.width,
+                              height: cutout.size.height,
+                            ),
+                            child: RewindEntrance(
+                              preset: RewindPreset.drop,
+                              active: isActive,
+                              delayMs: 300 + 70 * index,
+                              child: Transform.rotate(
+                                angle: cutout.turn * pi / 180,
+                                child: _photoCutout(cutout, page.photos[index]),
+                              ),
+                            ),
+                          ),
+                      Positioned.fill(
+                        child: RewindElapsed(
+                          active: isActive,
+                          stillMs: 2000,
+                          builder: (context, ms) => Transform.translate(
+                            offset: Offset(
+                              0,
+                              380 *
+                                  (1 -
+                                      rewindProgress(
+                                        ms,
+                                        delayMs: 380,
+                                        durationMs: 792,
+                                        curve: RewindMotion.soft,
+                                      )),
+                            ),
+                            child: _Summary(page: page),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -221,41 +224,6 @@ class _Scrapbook extends StatelessWidget {
         ],
       ),
       child: photo,
-    );
-  }
-}
-
-class _SignOff extends StatelessWidget {
-  const _SignOff();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(3.7),
-      decoration: BoxDecoration(
-        color: RewindColors.cream,
-        border: Border.all(color: RewindColors.ink, width: 1.9),
-        borderRadius: BorderRadius.circular(9),
-        boxShadow: const [
-          BoxShadow(color: RewindColors.ink, offset: Offset(3, 3.7)),
-        ],
-      ),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(9, 2.5, 9, 3),
-        decoration: BoxDecoration(
-          color: RewindColors.ink,
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Text(
-          "HERE’S TO EVERYTHING\nWORTH KEEPING IN ${RewindEdition.year + 1}.",
-          textAlign: TextAlign.center,
-          style: RewindTextStyles.display(
-            16.3,
-            color: RewindColors.cream,
-            height: 1.05,
-          ),
-        ),
-      ),
     );
   }
 }

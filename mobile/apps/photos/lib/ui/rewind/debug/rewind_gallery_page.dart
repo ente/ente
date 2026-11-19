@@ -10,7 +10,6 @@ import "package:photos/ui/rewind/pages/cover_page.dart";
 import "package:photos/ui/rewind/pages/ritual_streak_page.dart";
 import "package:photos/ui/rewind/pages/setup_pages.dart";
 import "package:photos/ui/rewind/pages/top_percent_page.dart";
-import "package:photos/ui/rewind/pages/tour_page.dart";
 import "package:photos/ui/rewind/reel/rewind_video_export.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_viewer.dart";
@@ -65,10 +64,6 @@ final rewindColourChapters = [
         ]),
       ),
     ),
-];
-
-List<RewindPage> rewindTourPages(rust.RewindReport report) => [
-  if (report.tour case final tour?) TourPage(tour),
 ];
 
 Future<RewindStory> _sampleStory(rust.RewindReport report) async =>
@@ -160,28 +155,12 @@ class _RewindGalleryPageState extends State<RewindGalleryPage> {
             ),
           ),
         ),
-        for (final sample in rewindSampleReports.entries)
-          if (rewindTourPages(sample.value).isNotEmpty)
-            ListTile(
-              title: Text("Tour tee: ${sample.key}"),
-              trailing: const Icon(Icons.chevron_right_outlined),
-              onTap: () => open(rewindTourPages(sample.value)),
-            ),
-        if (rewindService.state.value?.status case rust.RewindStatus_Ready(
-          :final report,
-        ) when report.tour != null)
-          ListTile(
-            title: const Text("Tour tee: your library"),
-            subtitle: const Text("From the computed Rewind"),
-            trailing: const Icon(Icons.chevron_right_outlined),
-            onTap: () => open(rewindTourPages(report)),
-          ),
         if (rewindService.state.value?.status case rust.RewindStatus_Ready(
           :final report,
         ))
           ListTile(
             title: const Text("Photo cards: your library"),
-            subtitle: const Text("Tunnel, tower, globe, timelapse, mosaic"),
+            subtitle: const Text("Tunnel, globe, timelapse, mosaic"),
             trailing: const Icon(Icons.chevron_right_outlined),
             onTap: () => openStory(
               RewindMedia.load().then(
