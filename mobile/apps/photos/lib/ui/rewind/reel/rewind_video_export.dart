@@ -40,24 +40,49 @@ Future<void> shareRewindVideo(
   Future<bool> Function(List<RewindPage> pages)? loadMedia,
   MemoryMusicTrack? track,
   Rect? origin,
+}) => _shareExport(
+  context,
+  RewindVideoExportPage(pages: pages, loadMedia: loadMedia, track: track),
+  cacheKey: pages,
+  origin: origin,
+);
+
+Future<void> shareRewindClip(
+  BuildContext context, {
+  required RewindPage page,
+  Future<bool> Function(List<RewindPage> pages)? loadMedia,
+  MemoryMusicTrack? track,
+  Rect? origin,
+}) => _shareExport(
+  context,
+  RewindVideoExportPage(
+    pages: [page],
+    reelOf: RewindReel.clipOf,
+    filePrefix: "ente-rewind-${page.key}-",
+    loadMedia: loadMedia,
+    track: track,
+  ),
+  cacheKey: page,
+  origin: origin,
+);
+
+Future<void> _shareExport(
+  BuildContext context,
+  RewindVideoExportPage export, {
+  required Object cacheKey,
+  Rect? origin,
 }) async {
-  var video = _videos[pages];
+  var video = _videos[cacheKey];
   if (video == null || !await video.exists()) {
     if (!context.mounted) return;
-    final result = await Navigator.of(context).push(
-      RewindVideoExportPage(
-        pages: pages,
-        loadMedia: loadMedia,
-        track: track,
-      ).route(),
-    );
+    final result = await Navigator.of(context).push(export.route());
     if (result is! File) {
       if (result != null && context.mounted) {
         await showGenericErrorBottomSheet(context: context, error: result);
       }
       return;
     }
-    video = _videos[pages] = result;
+    video = _videos[cacheKey] = result;
   }
   if (!context.mounted || !_isInFront(context)) return;
   await SharePlus.instance.share(
@@ -80,6 +105,8 @@ bool _isOnTop(BuildContext context) {
 class RewindVideoExportPage extends StatefulWidget {
   const RewindVideoExportPage({
     required this.pages,
+    this.reelOf = RewindReel.of,
+    this.filePrefix = "ente-rewind-",
     this.format = RewindVideoFormat.fullHd,
     this.loadMedia,
     this.track,
@@ -87,6 +114,8 @@ class RewindVideoExportPage extends StatefulWidget {
   });
 
   final List<RewindPage> pages;
+  final RewindReel Function(List<RewindPage> pages) reelOf;
+  final String filePrefix;
   final RewindVideoFormat format;
   final Future<bool> Function(List<RewindPage> pages)? loadMedia;
   final MemoryMusicTrack? track;
@@ -112,7 +141,6 @@ class _Cancelled implements Exception {
 class _RewindVideoExportPageState extends State<RewindVideoExportPage>
     with WidgetsBindingObserver {
   static final _logger = Logger("RewindVideoExport");
-  static const _filePrefix = "ente-rewind-";
   static const _musicTimeout = Duration(seconds: 10);
   static const _wrapHold = Duration(milliseconds: 900);
   static const _longestCountedFrame = Duration(milliseconds: 500);
@@ -201,7 +229,8 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
       final directory = Configuration.instance.getTempDirectory();
       await _deleteOldVideos(directory);
       final output = File(
-        "$directory$_filePrefix${DateTime.now().millisecondsSinceEpoch}.mp4",
+        "$directory${widget.filePrefix}"
+        "${DateTime.now().millisecondsSinceEpoch}.mp4",
       );
       final duration = reel.duration + reel.timeOf(1);
       sink = RewindNativeVideoSink.open(
@@ -261,10 +290,10 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
   }
 
   Future<void> _deleteOldVideos(String directory) async {
+    final old = RegExp("^${RegExp.escape(widget.filePrefix)}\\d+\\.mp4");
     try {
       await for (final entry in Directory(directory).list()) {
-        if (entry is File &&
-            entry.uri.pathSegments.last.startsWith(_filePrefix)) {
+        if (entry is File && old.hasMatch(entry.uri.pathSegments.last)) {
           await entry.delete();
         }
       }
@@ -300,7 +329,7 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
     final warmed = await Future.wait([
       for (final page in widget.pages) page.warmUp(),
     ]);
-    final reel = RewindReel.of(widget.pages);
+    final reel = widget.reelOf(widget.pages);
     final ready =
         !warmed.contains(false) &&
         (await widget.loadMedia?.call(reel.pages) ?? true);

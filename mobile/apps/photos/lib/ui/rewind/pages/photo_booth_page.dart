@@ -61,6 +61,9 @@ class PhotoBoothPage extends RewindPage {
       place == 0 ? const Duration(milliseconds: 3300) : null;
 
   @override
+  Duration get clipHold => _Booth.clipHold(photos);
+
+  @override
   List<EnteFile> get reelThumbnails => photos;
 
   @override
@@ -215,6 +218,16 @@ class _Booth extends StatefulWidget {
   static const _printStartMs = 750;
   static const _printMs = 2600;
 
+  static Duration clipHold(List<EnteFile> photos) {
+    final strips = _BoothState._stripsOf(photos).length;
+    return Duration(
+      milliseconds:
+          printedMs +
+          (strips - 1) * (_BoothState._reelHangMs + _printMs) +
+          _BoothState._swayMs,
+    );
+  }
+
   final List<EnteFile> photos;
   final Map<EnteFile, Alignment> focus;
   final bool active;
@@ -243,6 +256,7 @@ class _BoothState extends State<_Booth> with TickerProviderStateMixin {
   static const _nudgeStartMs = _Booth.printedMs + _swayMs + 300;
   static const _nudgeMs = 650;
   static const _hangMs = 3000;
+  static const _reelHangMs = 1500;
   static const _tugMs = 480;
   static const _tugDistance = 34.0;
   static const _tearDistance = 24.0;
@@ -260,7 +274,7 @@ class _BoothState extends State<_Booth> with TickerProviderStateMixin {
   );
   late final _wait = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: _hangMs - _tugMs),
+    duration: Duration(milliseconds: (_reel ? _reelHangMs : _hangMs) - _tugMs),
   );
   late final _tugging = AnimationController(
     vsync: this,
@@ -341,7 +355,8 @@ class _BoothState extends State<_Booth> with TickerProviderStateMixin {
   double get _elapsed =>
       _controller.value * _controller.duration!.inMilliseconds;
 
-  bool get _autoDrops => _strips.length > 1 && !_still;
+  bool get _autoDrops =>
+      _strips.length > 1 && !_still && (!_reel || _prints < _strips.length - 1);
 
   double get _tug =>
       _tugDistance * Curves.easeInOutCubic.transform(_tugging.value);

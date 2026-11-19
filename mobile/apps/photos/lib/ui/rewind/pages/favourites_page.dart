@@ -73,6 +73,9 @@ class FavouritesPage extends RewindPage {
   Duration? get reelHold => const Duration(milliseconds: 7100);
 
   @override
+  Duration? get clipHold => reelHold;
+
+  @override
   Widget build(
     BuildContext context,
     double position, {

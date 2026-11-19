@@ -60,6 +60,9 @@ class GlobePage extends RewindPage {
   Duration? get reelHold => Duration(milliseconds: 1450 + _reelJourney.round());
 
   @override
+  Duration? get clipHold => reelHold;
+
+  @override
   List<EnteFile> get reelThumbnails => [for (final photo in photos) ?photo];
 
   @override

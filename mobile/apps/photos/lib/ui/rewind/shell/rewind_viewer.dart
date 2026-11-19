@@ -208,11 +208,27 @@ class _RewindViewerState extends State<RewindViewer>
         videoKey: _videoButton,
         onClose: () => Navigator.of(context).maybePop(),
         onShare: card == null ? null : () => _share(page, card, layout),
-        onShareVideo: index < widget.pages.length - 1 || page.hasOwnVideoButton
-            ? null
-            : () => shareVideo(shareButtonRect(context, _videoButton)),
+        onShareVideo: _videoAction(context, index, card),
       ),
     );
+  }
+
+  VoidCallback? _videoAction(
+    BuildContext context,
+    int index,
+    RewindShareCard? card,
+  ) {
+    final page = widget.pages[index];
+    if (index == widget.pages.length - 1 && !page.hasOwnVideoButton) {
+      return () => shareVideo(shareButtonRect(context, _videoButton));
+    }
+    if (card == null ||
+        page.clipHold == null ||
+        MediaQuery.disableAnimationsOf(context)) {
+      return null;
+    }
+    return () =>
+        unawaited(_shareClip(page, shareButtonRect(context, _videoButton)));
   }
 
   ScrollController _controllerFor(double height) {
@@ -327,6 +343,28 @@ class _RewindViewerState extends State<RewindViewer>
       );
     } catch (error, stackTrace) {
       _logger.warning("Failed to share the Rewind video", error, stackTrace);
+    } finally {
+      _sharing = false;
+    }
+  }
+
+  Future<void> _shareClip(RewindPage page, Rect? origin) async {
+    if (_sharing) return;
+    _sharing = true;
+    try {
+      await shareRewindClip(
+        context,
+        page: page,
+        loadMedia: widget.loadVideoMedia,
+        track: _music.track,
+        origin: origin,
+      );
+    } catch (error, stackTrace) {
+      _logger.warning(
+        "Failed to share the ${page.key} clip",
+        error,
+        stackTrace,
+      );
     } finally {
       _sharing = false;
     }
