@@ -289,19 +289,12 @@ class FileViewerState extends State<FileViewer> {
   }
 
   Future<EnteFile> _fileFromAsset(String pathName, AssetEntity asset) async {
-    final file = fileFromAsset(pathName, asset);
+    final uploaded = await FilesDB.instance.getUploadedFileForLocalID(asset.id);
+    final file = uploaded ?? fileFromAsset(pathName, asset);
     file.pubMagicMetadata = PubMagicMetadata(
       w: asset.orientatedWidth,
       h: asset.orientatedHeight,
     );
-    final uploaded = await FilesDB.instance.getUploadedFileForLocalID(asset.id);
-    if (uploaded != null) {
-      file.uploadedFileID = uploaded.uploadedFileID;
-      file.collectionID = uploaded.collectionID;
-      file.ownerID = uploaded.ownerID;
-      file.encryptedKey = uploaded.encryptedKey;
-      file.keyDecryptionNonce = uploaded.keyDecryptionNonce;
-    }
     return file;
   }
 
