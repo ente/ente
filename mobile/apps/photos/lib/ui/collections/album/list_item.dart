@@ -26,6 +26,7 @@ class AlbumListItemWidget extends StatelessWidget {
   final void Function(Collection)? onLongPressCallback;
   final SelectedAlbums? selectedAlbums;
   final bool isSelected;
+  final bool Function(EnteFile)? canShowCover;
 
   const AlbumListItemWidget(
     this.collection, {
@@ -35,6 +36,7 @@ class AlbumListItemWidget extends StatelessWidget {
     this.onLongPressCallback,
     this.selectedAlbums,
     this.isSelected = false,
+    this.canShowCover,
   });
 
   @override
@@ -80,6 +82,7 @@ class AlbumListItemWidget extends StatelessWidget {
           : () => onLongPressCallback!(collection),
       leading: AlbumListItemCover(
         collection: collection,
+        canShowCover: canShowCover,
         heroTag: tag == null
             ? null
             : (isOwner ? "collection" : "shared_collection") +
@@ -276,6 +279,7 @@ class AlbumListItemCover extends StatelessWidget {
   const AlbumListItemCover({
     required this.collection,
     this.heroTag,
+    this.canShowCover,
     this.borderRadius = ThumbnailListItem.defaultLeadingRadius,
     super.key,
   });
@@ -283,6 +287,7 @@ class AlbumListItemCover extends StatelessWidget {
   final Collection collection;
   final String? heroTag;
   final double borderRadius;
+  final bool Function(EnteFile)? canShowCover;
 
   @override
   Widget build(BuildContext context) {
@@ -296,7 +301,7 @@ class AlbumListItemCover extends StatelessWidget {
             final thumbnail =
                 snapshot.data ??
                 CollectionsService.instance.getCoverCache(collection);
-            if (thumbnail == null) {
+            if (thumbnail == null || canShowCover?.call(thumbnail) == false) {
               return NoThumbnailWidget(
                 borderRadius: borderRadius,
                 addBorder: false,

@@ -345,7 +345,6 @@ class _ZoomableImageState extends State<ZoomableImage> {
   }
 
   void _loadLocalImage(BuildContext context) {
-    final selectedFiles = SelectionState.maybeOf(context)?.selectedFiles;
     if (!_loadedSmallThumbnail &&
         !_loadedLargeThumbnail &&
         !_loadedFinalImage) {
@@ -378,6 +377,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
 
     if (!_loadingFinalImage && !_loadedFinalImage && !_photo.isDeviceTrash) {
       _loadingFinalImage = true;
+      final selectedFiles = SelectionState.maybeOf(context)?.selectedFiles;
       getFile(
         _photo,
         isOrigin:

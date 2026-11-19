@@ -23,6 +23,8 @@ import "package:photos/events/files_updated_event.dart";
 import "package:photos/events/force_reload_home_gallery_event.dart";
 import "package:photos/events/local_photos_updated_event.dart";
 import "package:photos/models/collection/collection.dart";
+import "package:photos/models/collection/collection_items.dart";
+import "package:photos/models/device_collection.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
 import "package:photos/models/file_load_result.dart";
@@ -64,6 +66,8 @@ typedef _PickerSearchResults = ({
   List<SearchResult> suggestions,
 });
 
+typedef _PickerAlbums = (List<Collection>, Set<int>);
+
 class ExternalMediaPickerPage extends StatefulWidget {
   final MediaType? requestedType;
   final bool allowMultiple;
@@ -85,13 +89,14 @@ class _ExternalMediaPickerPageState extends State<ExternalMediaPickerPage> {
   final _searchQueryService = SearchQueryService(SearchService.instance);
   final _subscriptions = <StreamSubscription<Event>>[];
   Future<Map<int, EnteFile>>? _searchFiles;
+  Future<Set<int>>? _excludedFileIDs;
+  bool _checkSelectedAlbums = false;
   Future<void>? _searchPreparation;
   int _searchGeneration = 0;
   final _searchController = TextEditingController();
   final _headerScrollController = ScrollController();
   final _searchDebouncer = Debouncer(const Duration(milliseconds: 314));
-  late Future<List<Collection>> _albums = CollectionsService.instance
-      .getCollectionForOnEnteSection();
+  Future<_PickerAlbums>? _albums;
   Stream<_PickerSearchResults>? _searchResults;
   GenericSearchResult? _searchResult;
   Collection? _collection;
@@ -99,8 +104,11 @@ class _ExternalMediaPickerPageState extends State<ExternalMediaPickerPage> {
   String _query = "";
   bool _showAlbums = false;
   bool _isBusy = false;
+  List<EnteFile>? _preparingFiles;
 
   bool get _isBrowsingResult => _collection != null || _searchResult != null;
+  bool get _isShowingAlbums =>
+      _showAlbums && _query.isEmpty && !_isBrowsingResult;
 
   @override
   void initState() {
@@ -113,28 +121,39 @@ class _ExternalMediaPickerPageState extends State<ExternalMediaPickerPage> {
       _subscriptions.add(
         stream.listen((event) {
           _searchFiles = null;
+          _excludedFileIDs = null;
+          final checkRemoved =
+              event is FilesUpdatedEvent &&
+              event.type == EventType.deletedFromRemote &&
+              _selectedFiles.files.isNotEmpty &&
+              (event.updatedFiles.isEmpty ||
+                  event.updatedFiles.any(_selectedFiles.isFileSelected));
+          if (checkRemoved) _checkSelectedAlbums = true;
           if (event is FilesUpdatedEvent &&
               const {
-                EventType.deletedFromRemote,
                 EventType.deletedFromEverywhere,
                 EventType.archived,
                 EventType.hide,
               }.contains(event.type)) {
             _selectedFiles.unSelectAll(event.updatedFiles.toSet());
           }
-          if (event is ForceReloadHomeGalleryEvent) {
-            final hidden = CollectionsService.instance
-                .archivedOrHiddenCollectionIds();
-            _selectedFiles.unSelectAll(
-              _selectedFiles.files
-                  .where((file) => hidden.contains(file.collectionID))
-                  .toSet(),
-            );
-            setState(
-              () => _albums = CollectionsService.instance
-                  .getCollectionForOnEnteSection(),
+          if ((checkRemoved || event is ForceReloadHomeGalleryEvent) &&
+              _selectedFiles.files.any((file) => file.isUploaded)) {
+            unawaited(
+              _refreshSelectionVisibility().catchError((
+                Object error,
+                StackTrace stack,
+              ) {
+                _logger.warning(
+                  "Could not refresh picker selection",
+                  error,
+                  stack,
+                );
+              }),
             );
           }
+          _albums = null;
+          if (_isShowingAlbums) setState(() {});
           if (_query.isNotEmpty) {
             setState(() => _searchResults = null);
             _scheduleSearch();
@@ -169,6 +188,61 @@ class _ExternalMediaPickerPageState extends State<ExternalMediaPickerPage> {
     _selectedFiles.dispose();
     super.dispose();
   }
+
+  Future<Set<int>> get _excludedUploadIDs =>
+      _excludedFileIDs ??= _loadExcludedUploadIDs();
+
+  Future<Set<int>> _loadExcludedUploadIDs() async {
+    try {
+      final ids = await FilesDB.instance.getUploadedFileIDsInCollections(
+        CollectionsService.instance.archivedOrHiddenCollectionIds(),
+      );
+      return ids.toSet();
+    } catch (_) {
+      _excludedFileIDs = null;
+      rethrow;
+    }
+  }
+
+  Future<void> _refreshSelectionVisibility() async {
+    final query = _excludedUploadIDs;
+    final excluded = await query;
+    final removed = <EnteFile>{};
+    if (_checkSelectedAlbums) {
+      final pairs = {
+        for (final file in _selectedFiles.files)
+          if (file.uploadedFileID != null && file.collectionID != null)
+            (file.uploadedFileID!, file.collectionID!),
+      };
+      final existing = await FilesDB.instance.getExistingFileIDsByCollection(
+        pairs,
+      );
+      removed.addAll(
+        _selectedFiles.files.where(
+          (file) =>
+              pairs.contains((file.uploadedFileID, file.collectionID)) &&
+              existing[file.collectionID]?.contains(file.uploadedFileID) !=
+                  true,
+        ),
+      );
+    }
+    if (!mounted) return;
+    if (_excludedFileIDs != query) return _refreshSelectionVisibility();
+    _checkSelectedAlbums = false;
+    if (excluded.isNotEmpty) {
+      removed.addAll(
+        _selectedFiles.files.where(
+          (file) => excluded.contains(file.uploadedFileID),
+        ),
+      );
+    }
+    if (removed.isNotEmpty) _selectedFiles.unSelectAll(removed);
+  }
+
+  Future<_PickerAlbums> _loadAlbums() => (
+    CollectionsService.instance.getCollectionForOnEnteSection(),
+    _excludedUploadIDs,
+  ).wait;
 
   Future<FileLoadResult> _loadFiles(
     int creationStartTime,
@@ -227,6 +301,12 @@ class _ExternalMediaPickerPageState extends State<ExternalMediaPickerPage> {
       );
     }
 
+    final excluded = await _excludedUploadIDs;
+    if (excluded.isNotEmpty) {
+      result.files.removeWhere(
+        (file) => excluded.contains(file.uploadedFileID),
+      );
+    }
     if (searchResult == null && widget.requestedType == null) {
       return result;
     }
@@ -283,18 +363,54 @@ class _ExternalMediaPickerPageState extends State<ExternalMediaPickerPage> {
     null => RequestType.common,
   };
 
-  Future<Set<String>> _accessibleDeviceAlbumIDs() async {
+  Future<List<DeviceAlbumSearchResult>> _accessibleDeviceAlbums(
+    Iterable<DeviceAlbumSearchResult> matches,
+  ) async {
     try {
       final library = PhotoManagerDeviceLibrary(
         requestType: _deviceRequestType,
       );
       if (!(await library.permission(request: false)).hasAccess) {
-        return <String>{};
+        return [];
       }
-      return (await library.albums()).map((album) => album.id).toSet();
+      final albums = {
+        for (final album in await library.albums()) album.id: album,
+      };
+      final folders = matches
+          .map((match) => albums[match.deviceCollection.id])
+          .nonNulls;
+      return await Future.wait(
+        folders.map((album) async {
+          try {
+            final (cover, count) = await (
+              album.getAssetListPaged(page: 0, size: 1),
+              library.count(album),
+            ).wait;
+            return DeviceAlbumSearchResult(
+              DeviceCollection(
+                album.id,
+                album.name,
+                count: count,
+                thumbnail: cover.isEmpty
+                    ? null
+                    : fileFromAsset(album.name, cover.first),
+              ),
+            );
+          } catch (error, stack) {
+            _logger.warning(
+              "Could not read device folder preview",
+              error,
+              stack,
+            );
+            return DeviceAlbumSearchResult(
+              DeviceCollection(album.id, album.name),
+            );
+          }
+        }),
+      );
     } catch (error, stack) {
       _logger.warning("Could not search device folders", error, stack);
-      return <String>{};
+      return [];
     }
   }
 
@@ -330,19 +446,25 @@ class _ExternalMediaPickerPageState extends State<ExternalMediaPickerPage> {
           ));
       var fileMatches = <EnteFile>[];
       final suggestions = <SearchResult>[];
-      Future<Set<String>>? accessibleDeviceAlbumIDs;
       await for (final batch in batches) {
         var changed = false;
+        final deviceMatches = batch.whereType<DeviceAlbumSearchResult>();
+        if (deviceMatches.isNotEmpty) {
+          final folders = await _accessibleDeviceAlbums(deviceMatches);
+          suggestions.addAll(folders);
+          changed = folders.isNotEmpty;
+        }
         for (final result in batch) {
-          if (result is DeviceAlbumSearchResult) {
-            final albumIDs = await (accessibleDeviceAlbumIDs ??=
-                _accessibleDeviceAlbumIDs());
-            if (albumIDs.contains(result.deviceCollection.id)) {
-              suggestions.add(result);
-              changed = true;
-            }
-          } else if (result is AlbumSearchResult) {
-            suggestions.add(result);
+          if (result is AlbumSearchResult) {
+            final album = result.collectionWithThumbnail;
+            suggestions.add(
+              AlbumSearchResult(
+                CollectionWithThumbnail(
+                  album.collection,
+                  eligibleByID[album.thumbnail?.uploadedFileID],
+                ),
+              ),
+            );
             changed = true;
           } else if (result is GenericSearchResult) {
             final fileIDs = result
@@ -464,9 +586,21 @@ class _ExternalMediaPickerPageState extends State<ExternalMediaPickerPage> {
         allowEmptySelection: initial.isNotEmpty,
       );
       if (result == null || !mounted) return;
-      final knownFiles = await const PhotoManagerDeviceLibrary().files(
-        result.map((asset) => asset.id).toList(),
-      );
+      var knownFiles = <String, EnteFile>{};
+      try {
+        final files = await const PhotoManagerDeviceLibrary().files(
+          result.map((asset) => asset.id).toList(),
+        );
+        if (files.isNotEmpty) {
+          final excluded = await _excludedUploadIDs;
+          files.removeWhere(
+            (_, file) => excluded.contains(file.uploadedFileID),
+          );
+        }
+        knownFiles = files;
+      } catch (error, stack) {
+        _logger.warning("Could not read device file metadata", error, stack);
+      }
       if (!mounted) return;
       _selectedFiles.replaceSelection({
         if (widget.allowMultiple)
@@ -562,33 +696,54 @@ class _ExternalMediaPickerPageState extends State<ExternalMediaPickerPage> {
     if (_isBusy || _selectedFiles.files.isEmpty) {
       return;
     }
+    final selectedFiles = _selectedFiles.files.toList();
     setState(() {
       _isBusy = true;
+      _preparingFiles = selectedFiles;
     });
-    final selectedFiles = _selectedFiles.files.toList();
     final uris = <String>[];
     try {
       for (final file in selectedFiles) {
-        final uri = await getPickerResultUri(file);
-        if (uri == null) throw StateError("Could not prepare picker selection");
-        uris.add(uri);
+        final uri = await getPickerResultUri(file).onError((error, stack) {
+          _logger.warning("Could not prepare picker item", error, stack);
+          return null;
+        });
+        if (!mounted || _preparingFiles != selectedFiles) return;
+        if (uri != null) uris.add(uri);
       }
-      if (!mounted) return;
-      if (!selectedFiles.every(_selectedFiles.isFileSelected)) {
-        throw StateError("Picker selection changed while preparing media");
+      if (selectedFiles.any((file) => file.isUploaded)) {
+        await _refreshSelectionVisibility();
+        if (!mounted || _preparingFiles != selectedFiles) return;
       }
-      if (uris.length == 1) {
-        await MediaExtension().setResult(uris.first);
-      } else {
-        await MediaExtension().setResults(uris);
+      if (uris.isEmpty || !selectedFiles.every(_selectedFiles.isFileSelected)) {
+        throw StateError("Picker selection is no longer available");
       }
+      await _finishPicker(
+        () => uris.length == 1
+            ? MediaExtension().setResult(uris.first)
+            : MediaExtension().setResults(uris),
+      );
     } catch (error, stack) {
-      _logger.warning("Could not return picker selection", error, stack);
-      if (mounted) {
-        showShortToast(context, context.strings.somethingWentWrong);
-        setState(() => _isBusy = false);
-      }
-      return;
+      if (!mounted || _preparingFiles != selectedFiles) return;
+      _logger.warning("Could not prepare picker selection", error, stack);
+      showShortToast(context, context.strings.somethingWentWrong);
+      setState(() {
+        _isBusy = false;
+        _preparingFiles = null;
+      });
+    }
+  }
+
+  Future<void> _finishPicker(Future<void> Function() finish) async {
+    if (_isBusy && _preparingFiles == null) return;
+    setState(() {
+      _isBusy = true;
+      _preparingFiles = null;
+    });
+    try {
+      await finish();
+    } finally {
+      if (mounted) setState(() => _isBusy = false);
     }
   }
 
@@ -615,13 +770,13 @@ class _ExternalMediaPickerPageState extends State<ExternalMediaPickerPage> {
       _selectedFiles.clearAll();
       return;
     }
-    await MediaExtension().cancelResult();
+    await _finishPicker(MediaExtension().cancelResult);
   }
 
   @override
   Widget build(BuildContext context) {
     final isBrowsingResult = _isBrowsingResult;
-    final isShowingAlbums = _query.isEmpty && _showAlbums && !isBrowsingResult;
+    final showBack = isBrowsingResult && _preparingFiles == null;
     final isKeyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
     final selectionControlHeight = max(
       44.0,
@@ -630,7 +785,7 @@ class _ExternalMediaPickerPageState extends State<ExternalMediaPickerPage> {
           Spacing.xxl,
     );
     final bottomPadding =
-        (isShowingAlbums ? 0 : selectionControlHeight) +
+        (_isShowingAlbums ? 0 : selectionControlHeight) +
         Spacing.md +
         MediaQuery.paddingOf(context).bottom;
     final deviceButton = ConstrainedBox(
@@ -698,10 +853,7 @@ class _ExternalMediaPickerPageState extends State<ExternalMediaPickerPage> {
                               ? null
                               : (_) => setState(() {
                                   _showAlbums = showAlbums;
-                                  if (showAlbums) {
-                                    _albums = CollectionsService.instance
-                                        .getCollectionForOnEnteSection();
-                                  }
+                                  _albums = null;
                                 }),
                         ),
                     ],
@@ -781,26 +933,23 @@ class _ExternalMediaPickerPageState extends State<ExternalMediaPickerPage> {
           }
           final header = suggestions.isEmpty
               ? null
-              : AbsorbPointer(
-                  absorbing: _isBusy,
-                  child: Padding(
-                    padding: const EdgeInsets.all(Spacing.md),
-                    child: SearchResultsSectionsWidget(
-                      query: _query,
-                      results: suggestions,
-                      resultBuilder: (result) => SearchResultsWidgetGenerator(
-                        result,
-                        onResultTap: () => switch (result) {
-                          AlbumSearchResult() => _openCollection(
-                            result.collectionWithThumbnail.collection,
-                          ),
-                          DeviceAlbumSearchResult() => _pickFromDevice(
-                            initialAlbumID: result.deviceCollection.id,
-                          ),
-                          GenericSearchResult() => _openSearchResult(result),
-                          _ => null,
-                        },
-                      ),
+              : Padding(
+                  padding: const EdgeInsets.all(Spacing.md),
+                  child: SearchResultsSectionsWidget(
+                    query: _query,
+                    results: suggestions,
+                    resultBuilder: (result) => SearchResultsWidgetGenerator(
+                      result,
+                      onResultTap: () => switch (result) {
+                        AlbumSearchResult() => _openCollection(
+                          result.collectionWithThumbnail.collection,
+                        ),
+                        DeviceAlbumSearchResult() => _pickFromDevice(
+                          initialAlbumID: result.deviceCollection.id,
+                        ),
+                        GenericSearchResult() => _openSearchResult(result),
+                        _ => null,
+                      },
                     ),
                   ),
                 );
@@ -813,9 +962,9 @@ class _ExternalMediaPickerPageState extends State<ExternalMediaPickerPage> {
           return gallery(files: files, header: header);
         },
       );
-    } else if (isShowingAlbums) {
-      content = FutureBuilder<List<Collection>>(
-        future: _albums,
+    } else if (_isShowingAlbums) {
+      content = FutureBuilder<_PickerAlbums>(
+        future: _albums ??= _loadAlbums(),
         builder: (context, snapshot) =>
             snapshot.connectionState != ConnectionState.done
             ? const Center(child: LoadingComponent())
@@ -828,13 +977,32 @@ class _ExternalMediaPickerPageState extends State<ExternalMediaPickerPage> {
                   Spacing.md,
                   bottomPadding,
                 ),
-                itemCount: snapshot.data!.length,
+                itemCount: snapshot.data!.$1.length,
                 separatorBuilder: (_, _) => const SizedBox(height: Spacing.sm),
                 itemBuilder: (context, index) => AlbumListItemWidget(
-                  snapshot.data![index],
+                  snapshot.data!.$1[index],
+                  canShowCover: (file) =>
+                      file.isUploaded &&
+                      file.magicMetadata.visibility == visibleVisibility &&
+                      !snapshot.data!.$2.contains(file.uploadedFileID) &&
+                      _matchesRequestedType(file),
                   onTapCallback: _isBusy ? null : _openCollection,
                 ),
               ),
+      );
+    } else if (_searchResult?.type() == ResultType.magic) {
+      content = LayoutBuilder(
+        builder: (context, _) {
+          final boundaries = GalleryBoundariesProvider.of(context);
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!context.mounted) return;
+            final box = context.findRenderObject() as RenderBox?;
+            if (box != null && box.hasSize) {
+              boundaries?.setTopBoundary(box.localToGlobal(Offset.zero).dy);
+            }
+          });
+          return gallery();
+        },
       );
     } else {
       content = gallery();
@@ -863,20 +1031,20 @@ class _ExternalMediaPickerPageState extends State<ExternalMediaPickerPage> {
                   child: IconButtonComponent(
                     variant: IconButtonComponentVariant.unfilled,
                     size: 48,
-                    tooltip: isBrowsingResult
+                    tooltip: showBack
                         ? context.strings.back
                         : context.strings.close,
-                    icon: isBrowsingResult
+                    icon: showBack
                         ? const Icon(Icons.arrow_back, size: IconSizes.medium)
                         : const HugeIcon(
                             icon: HugeIcons.strokeRoundedCancel01,
                             size: IconSizes.medium,
                           ),
-                    onTap: _isBusy
+                    onTap: _isBusy && _preparingFiles == null
                         ? null
-                        : () => isBrowsingResult
-                              ? _handleBack()
-                              : MediaExtension().cancelResult(),
+                        : showBack
+                        ? _handleBack
+                        : () => _finishPicker(MediaExtension().cancelResult),
                   ),
                 ),
                 title: AnimatedBuilder(
@@ -936,12 +1104,17 @@ class _ExternalMediaPickerPageState extends State<ExternalMediaPickerPage> {
                                   if (!isBrowsingResult)
                                     SliverToBoxAdapter(child: pickerHeader),
                                   SliverFillRemaining(
-                                    child: ClipRect(child: content),
+                                    child: ClipRect(
+                                      child: AbsorbPointer(
+                                        absorbing: _isBusy,
+                                        child: content,
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
-                            if (!isShowingAlbums &&
+                            if (!_isShowingAlbums &&
                                 viewport.maxHeight >=
                                     selectionControlHeight + Spacing.sm)
                               PositionedDirectional(

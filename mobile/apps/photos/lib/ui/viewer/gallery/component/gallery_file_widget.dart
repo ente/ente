@@ -190,13 +190,11 @@ class _GalleryFileWidgetState extends State<GalleryFileWidget> {
                   ? _onTapWithSelectionLimit(widget.file)
                   : _onTapNoSelectionLimit(context, widget.file);
             },
-      onLongPress: disableSelection
-          ? null
-          : () {
-              widget.limitSelectionToOne
-                  ? _onLongPressWithSelectionLimit(context, widget.file)
-                  : _onLongPressNoSelectionLimit(context, widget.file);
-            },
+      onLongPress: () {
+        widget.limitSelectionToOne
+            ? _onLongPressWithSelectionLimit(context, widget.file)
+            : _onLongPressNoSelectionLimit(context, widget.file);
+      },
       child: _isFileSelected
           ? Stack(
               clipBehavior: Clip.none,

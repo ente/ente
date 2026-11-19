@@ -151,10 +151,12 @@ class SelectedFiles extends ChangeNotifier {
   }
 
   Set<EnteFile> _selectableFiles(Iterable<EnteFile> candidates) {
-    final result = dedupeByUploadID ? _IndexedSelectionFiles() : <EnteFile>{};
+    if (!dedupeByUploadID) {
+      return candidates.where((file) => file is! DummyFile).toSet();
+    }
+    final result = _IndexedSelectionFiles();
     for (final file in candidates) {
-      if (file is DummyFile) continue;
-      if (result is! _IndexedSelectionFiles || !result.matches(file)) {
+      if (file is! DummyFile && !result.matches(file)) {
         result.add(file);
       }
     }
