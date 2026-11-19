@@ -93,7 +93,7 @@ pub async fn change_password(
     let target_master_key =
         decrypt_master_key_with_recovery_key(&bundle.user_key_attributes, &bundle.recovery_key)?;
     let (updated_key_attrs, login_key) = auth::generate_key_attributes_for_new_password(
-        target_master_key.as_bytes(),
+        &target_master_key,
         &bundle.user_key_attributes,
         new_password,
     )?;
