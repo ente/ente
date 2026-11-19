@@ -50,7 +50,7 @@ export const TodoDialog: React.FC<TodoDialogProps> = ({
     const [loaded, setLoaded] = useState(false);
     const [title, setTitle] = useState("");
     const [due, setDue] = useState("");
-    const [editing, setEditing] = useState<{ id: string } | null>(null);
+    const [editing, setEditing] = useState<Todo | null>(null);
 
     const reload = useRef<(() => void) | undefined>(undefined);
 
@@ -140,11 +140,11 @@ export const TodoDialog: React.FC<TodoDialogProps> = ({
                     editing?.id === todo.id ? (
                         <TodoEditor
                             key={todo.id}
-                            todo={todo}
+                            todo={editing}
                             onCancel={() => setEditing(null)}
                             onSave={(newTitle, newDue) =>
                                 run(
-                                    updateTodo(todo, newTitle, newDue).then(
+                                    updateTodo(editing, newTitle, newDue).then(
                                         () =>
                                             setEditing((current) =>
                                                 current === editing
@@ -177,7 +177,7 @@ export const TodoDialog: React.FC<TodoDialogProps> = ({
                             />
                             <Box
                                 sx={{ flex: 1, cursor: "pointer" }}
-                                onClick={() => setEditing({ id: todo.id })}
+                                onClick={() => setEditing(todo)}
                             >
                                 <Typography
                                     sx={{

@@ -90,6 +90,54 @@ fn call_matches(expected: &ExpectedCall, actual: &ToolCall) -> bool {
 
 const CHANGES: [&str; 2] = [todo::SAVE_TOOL, todo::COMPLETE_TOOL];
 
+const MIN_ROUTE_ACCURACY: f64 = 0.95;
+const MIN_CALL_ACCURACY: f64 = 0.90;
+const MAX_FALSE_CHANGE_RATE: f64 = 0.02;
+
+fn threshold(name: &str, default: f64) -> f64 {
+    let value = std::env::var(name)
+        .map(|value| {
+            value
+                .parse::<f64>()
+                .unwrap_or_else(|_| panic!("Invalid {name}: {value}"))
+        })
+        .unwrap_or(default);
+    assert!(
+        (0.0..=1.0).contains(&value),
+        "{name} must be between 0 and 1"
+    );
+    value
+}
+
+fn accuracy_failures(
+    report: &Value,
+    min_route: f64,
+    min_calls: f64,
+    max_false_change: f64,
+) -> Vec<String> {
+    [
+        ("route_accuracy", min_route, true),
+        ("call_accuracy", min_calls, true),
+        ("false_change_rate", max_false_change, false),
+    ]
+    .into_iter()
+    .filter_map(|(metric, target, minimum)| {
+        let actual = report[metric].as_f64().unwrap();
+        let meets_target = if minimum {
+            actual >= target
+        } else {
+            actual <= target
+        };
+        (!meets_target).then(|| {
+            format!(
+                "{metric}: {actual:.3}, expected {} {target:.3}",
+                if minimum { ">=" } else { "<=" }
+            )
+        })
+    })
+    .collect()
+}
+
 fn shown(history: &[ChatMessage]) -> Vec<String> {
     history
         .last()
@@ -394,12 +442,35 @@ fn todo_tool_calls_meet_accuracy_targets() {
     for failure in report["failures"].as_array().unwrap() {
         println!("FAIL {failure}");
     }
-    if let Ok(minimum) = std::env::var("ENSU_EVAL_MIN_ROUTE") {
-        assert!(report["route_accuracy"].as_f64().unwrap() >= minimum.parse::<f64>().unwrap());
+    let failures = accuracy_failures(
+        &report,
+        threshold("ENSU_EVAL_MIN_ROUTE", MIN_ROUTE_ACCURACY),
+        threshold("ENSU_EVAL_MIN_CALL", MIN_CALL_ACCURACY),
+        threshold("ENSU_EVAL_MAX_FALSE_CHANGE", MAX_FALSE_CHANGE_RATE),
+    );
+    assert!(
+        failures.is_empty(),
+        "To Do accuracy targets failed:\n{}",
+        failures.join("\n")
+    );
+}
+
+#[test]
+fn accuracy_targets_reject_routing_argument_and_false_change_regressions() {
+    let check = |route, calls, false_changes| {
+        accuracy_failures(
+            &json!({"route_accuracy": route, "call_accuracy": calls, "false_change_rate": false_changes}),
+            MIN_ROUTE_ACCURACY,
+            MIN_CALL_ACCURACY,
+            MAX_FALSE_CHANGE_RATE,
+        )
+    };
+    assert!(check(0.95, 0.90, 0.02).is_empty());
+    for (route, calls, false_changes) in [(0.94, 1.0, 0.0), (1.0, 0.89, 0.0), (1.0, 1.0, 0.03)] {
+        assert_eq!(check(route, calls, false_changes).len(), 1);
     }
-    if let Ok(maximum) = std::env::var("ENSU_EVAL_MAX_FALSE_CHANGE") {
-        assert!(report["false_change_rate"].as_f64().unwrap() <= maximum.parse::<f64>().unwrap());
-    }
+    // The reviewed LFM holdout used to exit successfully despite all three failures.
+    assert_eq!(check(0.863, 0.707, 0.205).len(), 3);
 }
 
 #[test]
