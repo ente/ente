@@ -34,12 +34,12 @@ void main() {
     expect(files.map((file) => file.uploadedFileID), [30, 20, 5, 10, 40]);
   });
 
-  test("uses locale-independent ordering for accented names", () {
+  test("sorts accented names with their base letters", () {
     final files = [_file(1, "z.jpg"), _file(2, "ä.jpg"), _file(3, "a.jpg")];
     sortFilesByName(files, FileSortOrder.filenameAscending);
-    expect(files.map((file) => file.uploadedFileID), [3, 1, 2]);
+    expect(files.map((file) => file.uploadedFileID), [3, 2, 1]);
     sortFilesByName(files, FileSortOrder.filenameDescending);
-    expect(files.map((file) => file.uploadedFileID), [2, 1, 3]);
+    expect(files.map((file) => file.uploadedFileID), [1, 2, 3]);
   });
 
   test("album metadata round-trips every sort and defaults to date", () {
