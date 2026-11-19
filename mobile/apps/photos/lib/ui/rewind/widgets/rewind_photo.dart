@@ -24,10 +24,10 @@ class RewindPhoto extends StatefulWidget {
   final ui.Image? decoded;
 
   @override
-  State<RewindPhoto> createState() => _RewindPhotoState();
+  State<RewindPhoto> createState() => RewindPhotoState();
 }
 
-class _RewindPhotoState extends State<RewindPhoto> {
+class RewindPhotoState extends State<RewindPhoto> {
   var _lifted = false;
   var _zooming = false;
 
@@ -57,12 +57,12 @@ class _RewindPhotoState extends State<RewindPhoto> {
     if (!widget.zoomable) return thumbnail;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: _zoom,
+      onTap: zoom,
       child: Opacity(opacity: _lifted ? 0 : 1, child: thumbnail),
     );
   }
 
-  Future<void> _zoom() async {
+  Future<void> zoom() async {
     if (_zooming) return;
     _zooming = true;
     await showRewindPhotoZoom(

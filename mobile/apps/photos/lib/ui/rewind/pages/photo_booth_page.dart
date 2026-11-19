@@ -242,7 +242,7 @@ class _BoothState extends State<_Booth> with TickerProviderStateMixin {
   static const _swayMs = 1300;
   static const _nudgeStartMs = _Booth.printedMs + _swayMs + 300;
   static const _nudgeMs = 650;
-  static const _hangMs = 5000;
+  static const _hangMs = 3000;
   static const _tugMs = 480;
   static const _tugDistance = 34.0;
   static const _tearDistance = 24.0;

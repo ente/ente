@@ -16,6 +16,8 @@ import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
 import "package:photos/ui/rewind/widgets/rewind_hint.dart";
 import "package:photos/ui/rewind/widgets/rewind_layer.dart";
 import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
+import "package:photos/ui/rewind/widgets/rewind_photo.dart";
+import "package:photos/ui/rewind/widgets/rewind_photo_zoom.dart";
 import "package:photos/ui/rewind/widgets/rewind_pixels.dart";
 import "package:photos/ui/rewind/widgets/rewind_reveal_layer.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
@@ -337,10 +339,14 @@ class _Grid {
 }
 
 class _FlipbookState extends State<_Flipbook> {
+  final _portrait = GlobalKey();
   double? _held;
   var _heldAtMs = 0.0;
   var _phase = 0.0;
   var _ms = 0.0;
+  var _scrubbed = 0.0;
+  var _lifted = false;
+  var _zooming = false;
 
   int get _count => widget.reel?.frames.length ?? 0;
 
@@ -374,12 +380,42 @@ class _FlipbookState extends State<_Flipbook> {
     });
   }
 
+  Future<void> _zoom(int index) async {
+    final frame = widget.reel?.frames[index];
+    if (frame == null || _zooming) return;
+    _zooming = true;
+    setState(() {
+      _held = index.toDouble();
+      _heldAtMs = _ms;
+    });
+    final eyes = (frame.leftEye + frame.rightEye) / 2;
+    final focus = Alignment(eyes.dx * 2 - 1, eyes.dy * 2 - 1);
+    await showRewindPhotoZoom(
+      context,
+      file: frame.file,
+      focus: focus,
+      placeholder: RewindPhoto(frame.file, focus: focus, zoomable: false),
+      placement: () => switch (_portrait.currentContext) {
+        final portrait? => rewindPhotoPlacement(portrait),
+        null => null,
+      },
+      onLifted: () => setState(() => _lifted = true),
+      onReturned: _settle,
+    );
+    _settle();
+  }
+
+  void _settle() {
+    _zooming = false;
+    if (mounted && _lifted) setState(() => _lifted = false);
+  }
+
   @override
   Widget build(BuildContext context) {
     final reel = widget.reel;
     final grid = _Grid(_count);
     return RewindElapsed(
-      active: widget.active,
+      active: widget.active && !RewindPageScope.coveredOf(context),
       stillMs: 600000,
       builder: (context, ms) {
         _ms = ms;
@@ -398,6 +434,7 @@ class _FlipbookState extends State<_Flipbook> {
                     reel: reel,
                     at: at,
                     ms: ms,
+                    lifted: _lifted,
                     yearGone: shown == null
                         ? 0
                         : ((shown.month - 1) * 30.4 + shown.day) / 365,
@@ -442,6 +479,7 @@ class _FlipbookState extends State<_Flipbook> {
               Positioned.fromRect(
                 rect: _Flipbook.portrait,
                 child: RawGestureDetector(
+                  key: _portrait,
                   behavior: HitTestBehavior.opaque,
                   gestures: {
                     _EagerSwipeRecognizer:
@@ -450,11 +488,22 @@ class _FlipbookState extends State<_Flipbook> {
                         >(
                           _EagerSwipeRecognizer.new,
                           (recognizer) => recognizer
-                            ..onUpdate = (details) => _hold(
-                              (_held ?? at) +
-                                  details.primaryDelta! /
-                                      _Flipbook._dragPerFrame,
-                            ),
+                            ..onStart = (_) {
+                              _scrubbed = 0;
+                            }
+                            ..onUpdate = (details) {
+                              _scrubbed += details.primaryDelta!.abs();
+                              _hold(
+                                (_held ?? at) +
+                                    details.primaryDelta! /
+                                        _Flipbook._dragPerFrame,
+                              );
+                            }
+                            ..onEnd = (_) {
+                              if (_scrubbed < kTouchSlop) {
+                                _zoom((_held ?? at).round());
+                              }
+                            },
                         ),
                   },
                 ),
@@ -471,12 +520,14 @@ class _PortraitPainter extends CustomPainter {
     required this.reel,
     required this.at,
     required this.ms,
+    required this.lifted,
     required this.yearGone,
   });
 
   final _Reel? reel;
   final double at;
   final double ms;
+  final bool lifted;
   final double yearGone;
 
   @override
@@ -513,6 +564,8 @@ class _PortraitPainter extends CustomPainter {
         radius * (0.25 + 0.08 * sin(ms / 300)),
         Paint()..color = const Color(0xFF473A57),
       );
+    } else if (lifted) {
+      canvas.drawRect(face, Paint()..color = const Color(0xFF2A2233));
     } else {
       final from = at.floor().clamp(0, reel.frames.length - 1);
       final to = min(from + 1, reel.frames.length - 1);
@@ -536,7 +589,10 @@ class _PortraitPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_PortraitPainter oldDelegate) =>
-      oldDelegate.reel != reel || oldDelegate.at != at || oldDelegate.ms != ms;
+      oldDelegate.reel != reel ||
+      oldDelegate.at != at ||
+      oldDelegate.ms != ms ||
+      oldDelegate.lifted != lifted;
 }
 
 class _FacesPainter extends CustomPainter {

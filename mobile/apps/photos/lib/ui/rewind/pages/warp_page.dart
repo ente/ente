@@ -14,6 +14,7 @@ import "package:photos/ui/rewind/theme/rewind_colors.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_hint.dart";
 import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
+import "package:photos/ui/rewind/widgets/rewind_photo.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo_frames.dart";
 import "package:photos/ui/rewind/widgets/rewind_pixels.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
@@ -142,7 +143,7 @@ class WarpPage extends RewindPage {
           first: first,
           landing: landing,
           photo: photo,
-          active: isActive,
+          active: isActive && !RewindPageScope.coveredOf(context),
           position: position,
         ),
       ),
@@ -201,6 +202,8 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   late final _Course _course = _Course(
     (widget.walls?.length ?? 0) ~/ _Course.sides,
   );
+  final _landingPhoto = GlobalKey<RewindPhotoState>();
+  final _pickedPhoto = GlobalKey<RewindPhotoState>();
 
   var _last = Duration.zero;
   var _ms = 0.0;
@@ -476,21 +479,27 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
     if (status == AnimationStatus.dismissed) setState(() => _picked = null);
   }
 
+  Rect _printAt(Offset center) => Rect.fromCenter(
+    center: center,
+    width: _printWidth,
+    height: _printWidth * 1.22,
+  );
+
   void _tap(Offset at) {
     if (_picked != null) {
-      _release();
+      if (_pull.status.isForwardOrCompleted &&
+          _printAt(_pickedAt).contains(at)) {
+        _pickedPhoto.currentState?.zoom();
+      } else {
+        _release();
+      }
       return;
     }
-    final onFirst =
-        _landed &&
-        Rect.fromCenter(
-          center: _Course.vanish,
-          width: _printWidth,
-          height: _printWidth * 1.22,
-        ).contains(at);
-    final panel = onFirst || !_canPick
-        ? null
-        : _course.panelAt(at, _travelled, _roll);
+    if (_landed && _printAt(_Course.vanish).contains(at)) {
+      _landingPhoto.currentState?.zoom();
+      return;
+    }
+    final panel = _canPick ? _course.panelAt(at, _travelled, _roll) : null;
     if (panel == null) {
       if (!_landed) return;
       final navigator = RewindPageScope.navigatorOf(context);
@@ -588,6 +597,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
                                     photo: widget.photo(
                                       widget.first,
                                       decoded: widget.landing?[widget.first],
+                                      key: _landingPhoto,
                                     ),
                                     caption: WarpPage.dated(
                                       WarpPage.taken(widget.first),
@@ -624,7 +634,10 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
                                     scale: 0.14 + 0.86 * pulled,
                                     child: _Print(
                                       width: _printWidth,
-                                      photo: widget.photo(walls.files[picked]),
+                                      photo: widget.photo(
+                                        walls.files[picked],
+                                        key: _pickedPhoto,
+                                      ),
                                       caption: WarpPage.dated(
                                         WarpPage.taken(walls.files[picked]),
                                       ),

@@ -88,6 +88,7 @@ class GlobePage extends RewindPage {
         _card(
           position,
           isActive,
+          isActive && !RewindPageScope.coveredOf(context),
           km,
           lap,
           RewindPageScope.reelOf(context) ? _reelJourney : _world.journeyMs,
@@ -106,6 +107,7 @@ class GlobePage extends RewindPage {
   Widget _card(
     double position,
     bool isActive,
+    bool playing,
     int km,
     String body,
     double journeyMs,
@@ -141,7 +143,7 @@ class GlobePage extends RewindPage {
                           photos: photos,
                           photo: photo,
                           pins: pins,
-                          active: isActive,
+                          active: playing,
                         ),
                       ),
                     ),
@@ -175,7 +177,7 @@ class GlobePage extends RewindPage {
                         width: 322,
                         child: RewindCountUp(
                           value: km,
-                          active: isActive,
+                          active: playing,
                           delayMs: _World.introMs.round(),
                           durationMs: journeyMs.round(),
                           builder: (context, text) => RewindOutlinedText(

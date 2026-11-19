@@ -39,7 +39,11 @@ class _RewindCountUpState extends State<RewindCountUp>
   @override
   void didUpdateWidget(RewindCountUp oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.active && _controller.isDismissed) _controller.forward();
+    if (!widget.active) {
+      _controller.stop();
+    } else if (!_controller.isAnimating && !_controller.isCompleted) {
+      _controller.forward();
+    }
   }
 
   @override
