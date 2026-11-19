@@ -111,6 +111,9 @@ class WarpPage extends RewindPage {
   Duration? get reelHold => const Duration(milliseconds: 4000);
 
   @override
+  Duration? get clipHold => reelHold;
+
+  @override
   List<EnteFile> get reelThumbnails => [first];
 
   @override

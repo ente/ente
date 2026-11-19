@@ -42,6 +42,8 @@ abstract class RewindPage {
 
   List<EnteFile>? get reelThumbnails => null;
 
+  Duration? get clipHold => null;
+
   bool get hasOwnVideoButton => false;
 
   void resetAnswer() {}

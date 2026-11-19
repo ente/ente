@@ -40,6 +40,9 @@ class PeopleRacePage extends RewindPage {
   Duration? get reelHold => const Duration(milliseconds: 4500);
 
   @override
+  Duration? get clipHold => reelHold;
+
+  @override
   List<EnteFile> get reelThumbnails => const [];
 
   @override

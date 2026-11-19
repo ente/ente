@@ -78,6 +78,9 @@ class TimelapsePage extends RewindPage {
   );
 
   @override
+  Duration? get clipHold => reelHold;
+
+  @override
   Future<bool> warmUp() async => await _reel.value != null;
 
   @override
