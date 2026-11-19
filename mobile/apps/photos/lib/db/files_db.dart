@@ -1047,7 +1047,8 @@ class FilesDB with SqlDbBase {
     final rows = await db.getAll(
       'SELECT * FROM $filesTable WHERE $columnLocalID = ? AND '
       '($columnOwnerID IS NULL OR $columnOwnerID = ?) '
-      'ORDER BY $columnCreationTime DESC, $columnModificationTime DESC LIMIT 1',
+      'ORDER BY $columnCreationTime DESC, $columnModificationTime DESC, '
+      '$columnUploadedFileID DESC LIMIT 1',
       [localID, ownerID],
     );
     if (rows.isEmpty) {
