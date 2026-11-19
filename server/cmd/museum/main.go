@@ -1330,30 +1330,50 @@ func setupAndStartCrons(userAuthRepo *repo.UserAuthRepository, collectionLinkRep
 
 	c := cron.New()
 	schedule(c, "@every 1m", func() {
-		_ = userAuthRepo.RemoveExpiredOTTs()
+		if err := userAuthRepo.RemoveExpiredOTTs(); err != nil {
+			log.WithError(err).Error("Failed to remove expired OTTs")
+		}
 	})
 
 	schedule(c, "@every 24h", func() {
-		_ = userAuthRepo.RemoveDeletedTokens(timeUtil.MicrosecondsBeforeDays(deletedTokenRetentionDays))
-		_ = castDb.DeleteOldSessions(context.Background(), timeUtil.MicrosecondsBeforeDays(7))
-		_ = collectionLinkRepo.CleanupAccessHistory(context.Background())
-		_ = fileLinkRepo.CleanupAccessHistory(context.Background())
+		if err := userAuthRepo.RemoveDeletedTokens(timeUtil.MicrosecondsBeforeDays(deletedTokenRetentionDays)); err != nil {
+			log.WithError(err).Error("Failed to remove deleted tokens")
+		}
+		if err := castDb.DeleteOldSessions(context.Background(), timeUtil.MicrosecondsBeforeDays(7)); err != nil {
+			log.WithError(err).Error("Failed to remove old cast sessions")
+		}
+		if err := collectionLinkRepo.CleanupAccessHistory(context.Background()); err != nil {
+			log.WithError(err).Error("Failed to clean up collection link access history")
+		}
+		if err := fileLinkRepo.CleanupAccessHistory(context.Background()); err != nil {
+			log.WithError(err).Error("Failed to clean up file link access history")
+		}
 	})
 
 	schedule(c, "@every 30m", func() {
-		_ = pasteRepo.CleanupExpired(context.Background())
+		if err := pasteRepo.CleanupExpired(context.Background()); err != nil {
+			log.WithError(err).Error("Failed to remove expired pastes")
+		}
 	})
 
 	schedule(c, "@every 1m", func() {
-		_ = twoFactorRepo.RemoveExpiredTwoFactorSessions()
-		_ = twoFactorRepo.RemoveExpiredUsedOTPCodes(90 * 1000 * 1000)
+		if err := twoFactorRepo.RemoveExpiredTwoFactorSessions(); err != nil {
+			log.WithError(err).Error("Failed to remove expired two-factor sessions")
+		}
+		if err := twoFactorRepo.RemoveExpiredUsedOTPCodes(90 * 1000 * 1000); err != nil {
+			log.WithError(err).Error("Failed to remove expired used OTP codes")
+		}
 	})
 	schedule(c, "@every 1m", func() {
-		_ = twoFactorRepo.RemoveExpiredTempTwoFactorSecrets()
+		if err := twoFactorRepo.RemoveExpiredTempTwoFactorSecrets(); err != nil {
+			log.WithError(err).Error("Failed to remove expired temporary two-factor secrets")
+		}
 	})
 
 	schedule(c, "@every 1m", func() {
-		_ = passkeysRepo.RemoveExpiredPasskeySessions()
+		if err := passkeysRepo.RemoveExpiredPasskeySessions(); err != nil {
+			log.WithError(err).Error("Failed to remove expired passkey sessions")
+		}
 	})
 	schedule(c, "@every 1m", func() {
 		healthCheckHandler.PerformHealthCheck()
@@ -1404,7 +1424,9 @@ func setupAndStartCrons(userAuthRepo *repo.UserAuthRepository, collectionLinkRep
 	})
 
 	schedule(c, "@every 45m", func() {
-		_ = castDb.DeleteUnclaimedCodes(context.Background(), timeUtil.MicrosecondsBeforeMinutes(60))
+		if err := castDb.DeleteUnclaimedCodes(context.Background(), timeUtil.MicrosecondsBeforeMinutes(60)); err != nil {
+			log.WithError(err).Error("Failed to remove unclaimed cast codes")
+		}
 		dataCleanupCtrl.DeleteDataCron()
 	})
 
