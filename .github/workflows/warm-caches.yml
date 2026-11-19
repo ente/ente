@@ -162,6 +162,9 @@ jobs:
 
             - run: cargo clippy -p ente-locker-frb --features flutter --all-targets --locked
 
+            - name: Build Rust libraries for tests
+              run: cargo build -p ente-auth-frb -p ente-photos-frb --features flutter --locked
+
             - run: node .github/actions/restore-rust-target/mtimes.mjs save
               working-directory: ${{ github.workspace }}
 
