@@ -149,9 +149,7 @@ RewindChapter _timelapse(rust.RewindReport report) =>
           (!lapse.isMe && name == null)) {
         return const [];
       }
-      return [
-        TimelapsePage(frames: frames, name: name, photoCount: lapse.photoCount),
-      ];
+      return [TimelapsePage(frames: frames, name: name)];
     });
 
 EnteFile? _file(RewindMedia media, int fileId) =>
@@ -183,13 +181,6 @@ RewindChapter _mosaic(rust.RewindReport report) =>
         MosaicPage(
           files: files,
           subject: me?.crop ?? favourite?.crop ?? familiar?.crop,
-          subjectName: me?.crop != null
-              ? null
-              : favourite?.crop != null
-              ? favourite?.name
-              : familiar?.crop != null
-              ? MosaicPage.familiarFace
-              : null,
         ),
       ];
     });
@@ -355,12 +346,9 @@ RewindChapter _crowdFavourite(rust.CrowdFavourite? crowd) {
 }
 
 RewindChapter ritualStreakChapter(RewindRituals? rituals) => RewindChapter(
-  [ritualStreakSetupKey, RitualStreakPage.pageKey],
+  [ritualStreakSetupPage.key, RitualStreakPage.pageKey],
   (_) async => [
-    if (rituals != null) ...[
-      ritualStreakSetupPage(rituals),
-      RitualStreakPage(rituals),
-    ],
+    if (rituals != null) ...[ritualStreakSetupPage, RitualStreakPage(rituals)],
   ],
 );
 

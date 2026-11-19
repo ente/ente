@@ -194,37 +194,6 @@ class RitualStreakPage extends RewindPage {
                       ),
                     ),
                   ),
-                  RewindRevealLayer(
-                    left: 34,
-                    top: 509,
-                    width: 320,
-                    height: 66,
-                    position: position,
-                    active: isActive,
-                    delayMs: 1250,
-                    child: Column(
-                      children: [
-                        RewindVoice(
-                          you: "Apparently,\nconsistency is your thing.",
-                          me: "Apparently,\nconsistency is my thing.",
-                          builder: (text) => Text(
-                            text,
-                            textAlign: TextAlign.center,
-                            style: RewindTextStyles.body(
-                              20,
-                              height: 26 / 20,
-                              color: RewindColors.white,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(
-                          width: 96,
-                          height: 11,
-                          child: CustomPaint(painter: _UnderlinePainter()),
-                        ),
-                      ],
-                    ),
-                  ),
                   _tile(
                     _leftTile,
                     rewindCount(rituals.checkIns),
@@ -535,25 +504,4 @@ class _BlobPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_BlobPainter oldDelegate) => false;
-}
-
-class _UnderlinePainter extends CustomPainter {
-  const _UnderlinePainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.drawPath(
-      Path()
-        ..moveTo(1.5, 8.607)
-        ..cubicTo(27.103, -0.324, 72.639, 0.497, 94.473, 3.856),
-      Paint()
-        ..color = RitualStreakPage._yellow
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 3
-        ..strokeCap = StrokeCap.round,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_UnderlinePainter oldDelegate) => false;
 }

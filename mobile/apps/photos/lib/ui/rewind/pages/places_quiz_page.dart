@@ -763,8 +763,8 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
           110,
           swap(
             RewindVoice(
-              you: travelled ? "YOUR PHOTOS TRAVELLED" : "YOUR TOP PLACE",
-              me: travelled ? "MY PHOTOS TRAVELLED" : "MY TOP PLACE",
+              you: travelled ? "YOUR PHOTOS TRAVELED" : "YOUR TOP PLACE",
+              me: travelled ? "MY PHOTOS TRAVELED" : "MY TOP PLACE",
               builder: (text) => Text(
                 text,
                 style: RewindTextStyles.display(17, letterSpacing: 0.3),

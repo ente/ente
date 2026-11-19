@@ -15,7 +15,6 @@ import "package:photos/ui/rewind/widgets/rewind_elapsed.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
 import "package:photos/ui/rewind/widgets/rewind_hint.dart";
 import "package:photos/ui/rewind/widgets/rewind_layer.dart";
-import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo_zoom.dart";
 import "package:photos/ui/rewind/widgets/rewind_pixels.dart";
@@ -50,7 +49,6 @@ class TimelapsePage extends RewindPage {
   TimelapsePage({
     required this.frames,
     required this.name,
-    required this.photoCount,
     this.bytes = rewindThumbnailBytes,
   });
 
@@ -59,7 +57,6 @@ class TimelapsePage extends RewindPage {
 
   final List<RewindLapseFrame> frames;
   final String? name;
-  final int photoCount;
   final RewindBytes bytes;
 
   late final RewindWarm<_Reel> _reel = RewindWarm(
@@ -95,15 +92,12 @@ class TimelapsePage extends RewindPage {
     final who = name?.toUpperCase();
     final span =
         "${_months[frames.first.month - 1]} TO ${_months[frames.last.month - 1]}";
-    final body =
-        "${rewindCounted(photoCount, "photo", "photos")} this year, "
-        "lined up by the eyes.";
     return RewindWarmBuilder<_Reel>(
       warm: _reel,
       builder: (context, reel) => Stack(
         fit: StackFit.expand,
         children: [
-          _card(position, isActive, who, span, body, reel),
+          _card(position, isActive, who, span, reel),
           RewindHint(
             "TAP A FACE",
             centerY: 566,
@@ -121,7 +115,6 @@ class TimelapsePage extends RewindPage {
     bool isActive,
     String? who,
     String span,
-    String body,
     _Reel? reel,
   ) {
     return RewindShareable(
@@ -134,7 +127,7 @@ class TimelapsePage extends RewindPage {
             pattern: RewindStripes(Color(0xFF9D4EE0)),
           ),
           Semantics(
-            label: "A year of ${who ?? "YOU"}, $span. $body",
+            label: "A year of ${who ?? "YOU"}, $span.",
             child: ExcludeSemantics(
               child: RewindStage(
                 children: [
@@ -192,16 +185,6 @@ class TimelapsePage extends RewindPage {
                         ),
                       ),
                     ),
-                  ),
-                  RewindRevealLayer(
-                    left: 28,
-                    top: 690,
-                    width: 334,
-                    height: 44,
-                    position: position,
-                    active: isActive,
-                    delayMs: 1000,
-                    child: Text(body, style: RewindTextStyles.body(17)),
                   ),
                 ],
               ),

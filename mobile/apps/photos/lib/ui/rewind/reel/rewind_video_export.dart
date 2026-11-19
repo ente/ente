@@ -414,13 +414,12 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
   String _timeLeft(int frame) {
     const warmUpFrames = 30;
     if (_stage == _Stage.finishing) return "Ready to share";
-    if (_stage == _Stage.preparing || frame < warmUpFrames) {
-      return "Keep Ente open, this won’t take long";
+    if (_stage == _Stage.rendering && frame >= warmUpFrames) {
+      final left =
+          _rendered.inMilliseconds / frame * (_reel!.frameCount - frame) / 1000;
+      if (left < 5) return "Almost there";
     }
-    final left =
-        _rendered.inMilliseconds / frame * (_reel!.frameCount - frame) / 1000;
-    if (left < 5) return "Almost there";
-    return "About ${(left / 5).ceil() * 5} seconds left";
+    return "Keep Ente open, this won’t take long";
   }
 
   @override
