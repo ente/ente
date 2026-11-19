@@ -544,14 +544,18 @@ public final class NativeVideoEditorPlugin: NSObject, @preconcurrency FlutterPlu
         if let musicValue = args["music"] as? [String: Any] {
             guard let path = musicValue["path"] as? String, !path.isEmpty,
                 let fadeInMs = int64(musicValue["fadeInMs"]),
-                let fadeOutMs = int64(musicValue["fadeOutMs"])
+                let fadeOutMs = int64(musicValue["fadeOutMs"]),
+                let duckedVolume = double(musicValue["duckedVolume"]),
+                let duckFadeMs = int64(musicValue["duckFadeMs"])
             else {
                 throw VideoEditorError.invalidRequest("Invalid slideshow music")
             }
             music = try SlideshowMusic(
                 url: URL(fileURLWithPath: path),
                 fadeInMs: fadeInMs,
-                fadeOutMs: fadeOutMs
+                fadeOutMs: fadeOutMs,
+                duckedVolume: duckedVolume,
+                duckFadeMs: duckFadeMs
             )
         }
         return try SlideshowExportRequest(

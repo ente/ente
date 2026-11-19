@@ -7,6 +7,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.Paint
+import android.media.MediaFormat
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import androidx.exifinterface.media.ExifInterface
@@ -15,12 +16,16 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.OverlaySettings
 import androidx.media3.common.VideoFrameProcessingException
+import androidx.media3.common.audio.AudioProcessor
+import androidx.media3.common.audio.BaseAudioProcessor
+import androidx.media3.common.audio.DefaultGainProvider
 import androidx.media3.common.audio.GainProcessor
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.effect.BitmapOverlay
 import androidx.media3.effect.OverlayEffect
 import androidx.media3.effect.Presentation
 import androidx.media3.effect.StaticOverlaySettings
+import androidx.media3.inspector.MediaExtractorCompat
 import androidx.media3.transformer.Composition
 import androidx.media3.transformer.EditedMediaItem
 import androidx.media3.transformer.EditedMediaItemSequence
@@ -28,6 +33,7 @@ import androidx.media3.transformer.Effects
 import java.io.Closeable
 import java.io.File
 import java.io.FileOutputStream
+import java.nio.ByteBuffer
 import java.util.UUID
 import kotlin.math.max
 import kotlin.math.min
@@ -35,7 +41,7 @@ import kotlin.math.roundToInt
 
 @UnstableApi
 internal class SlideshowComposer(
-    context: Context,
+    private val context: Context,
     private val request: SlideshowExportRequest
 ) : Closeable {
     private val workDir = File(context.cacheDir, "slideshow-${UUID.randomUUID()}")
@@ -89,6 +95,7 @@ internal class SlideshowComposer(
             }
         }
 
+        val videoAudioGain = request.music?.videoAudioGain?.toFloat()
         var previousPhoto: PhotoOverlay? = null
         val videoItems = segments.mapIndexed { index, segment ->
             val previousOverlay = previousPhoto
@@ -145,7 +152,12 @@ internal class SlideshowComposer(
                     .setRemoveAudio(segment.isMuted)
                     .setEffects(
                         Effects(
-                            emptyList(),
+                            listOfNotNull(
+                                segment.clipEndUs?.let { ClipEndAudioProcessor(it) },
+                                videoAudioGain?.let {
+                                    GainProcessor(DefaultGainProvider.Builder(it).build())
+                                }
+                            ),
                             listOfNotNull(presentation, dissolve?.let { OverlayEffect(listOf(it)) })
                         )
                     )
@@ -177,6 +189,18 @@ internal class SlideshowComposer(
             .build()
     }
 
+    private fun hasAudioTrack(file: File): Boolean {
+        val extractor = MediaExtractorCompat(context)
+        return try {
+            extractor.setDataSource(Uri.fromFile(file), 0L)
+            (0 until extractor.trackCount).any {
+                extractor.getTrackFormat(it).getString(MediaFormat.KEY_MIME)?.startsWith("audio/") == true
+            }
+        } finally {
+            extractor.release()
+        }
+    }
+
     private fun videoMediaItem(segment: Segment.Video): MediaItem {
         val builder = MediaItem.Builder().setUri(Uri.fromFile(segment.file))
         segment.clipEndUs?.let { endUs ->
@@ -193,68 +217,55 @@ internal class SlideshowComposer(
         trackDurationUs: Long,
         settings: SlideshowMusic
     ): EditedMediaItemSequence {
+        val totalUs = segments.sumOf { it.durationUs }
+        val envelope = MusicEnvelope(
+            totalUs = totalUs,
+            fadeInUs = settings.fadeInMs * 1_000L,
+            fadeOutUs = settings.fadeOutMs * 1_000L,
+            duckedMusicGain = settings.duckedMusicGain,
+            duckFadeUs = settings.duckFadeMs * 1_000L,
+            videoAudio = videoAudioRanges(segments)
+        )
         @Suppress("DEPRECATION")
         val builder = EditedMediaItemSequence.Builder().experimentalSetForceAudioTrack(true)
-        var gapUs = 0L
-        var positionUs = 0L
-        var runDurationUs = 0L
-
-        fun flushRun() {
-            if (runDurationUs == 0L) return
-            if (gapUs > 0) {
-                builder.addGap(gapUs)
-                gapUs = 0
-            }
-            var offsetUs = 0L
-            while (offsetUs < runDurationUs) {
-                val clipUs = min(runDurationUs - offsetUs, trackDurationUs - positionUs)
-                builder.addItem(
-                    EditedMediaItem.Builder(
-                        MediaItem.Builder()
-                            .setUri(Uri.fromFile(music))
-                            .setClippingConfiguration(
-                                MediaItem.ClippingConfiguration.Builder()
-                                    .setStartPositionUs(positionUs)
-                                    .setEndPositionUs(positionUs + clipUs)
-                                    .build()
-                            )
-                            .build()
-                    )
-                        .setEffects(
-                            Effects(
-                                listOf(
-                                    GainProcessor(
-                                        FadeGainProvider(
-                                            offsetUs = offsetUs,
-                                            durationUs = runDurationUs,
-                                            fadeInUs = settings.fadeInMs * 1_000L,
-                                            fadeOutUs = settings.fadeOutMs * 1_000L
-                                        )
-                                    )
-                                ),
-                                emptyList()
-                            )
+        var offsetUs = 0L
+        while (offsetUs < totalUs) {
+            val clipUs = min(totalUs - offsetUs, trackDurationUs)
+            builder.addItem(
+                EditedMediaItem.Builder(
+                    MediaItem.Builder()
+                        .setUri(Uri.fromFile(music))
+                        .setClippingConfiguration(
+                            MediaItem.ClippingConfiguration.Builder()
+                                .setEndPositionUs(clipUs)
+                                .build()
                         )
                         .build()
                 )
-                positionUs = (positionUs + clipUs) % trackDurationUs
-                offsetUs += clipUs
-            }
-            runDurationUs = 0
+                    .setEffects(
+                        Effects(
+                            listOf(GainProcessor(MusicGainProvider(offsetUs, envelope))),
+                            emptyList()
+                        )
+                    )
+                    .build()
+            )
+            offsetUs += clipUs
         }
-
-        for (segment in segments) {
-            when (segment) {
-                is Segment.Photo -> runDurationUs += segment.durationUs
-                is Segment.Video -> {
-                    flushRun()
-                    gapUs += segment.durationUs
-                }
-            }
-        }
-        flushRun()
-        if (gapUs > 0) builder.addGap(gapUs)
         return builder.build()
+    }
+
+    private fun videoAudioRanges(segments: List<Segment>): List<LongRange> {
+        val ranges = mutableListOf<LongRange>()
+        var startUs = 0L
+        for (segment in segments) {
+            val endUs = startUs + segment.durationUs
+            if (segment is Segment.Video && !segment.isMuted && hasAudioTrack(segment.file)) {
+                ranges.add(startUs until endUs)
+            }
+            startUs = endUs
+        }
+        return ranges
     }
 
     private fun writeBackground(photo: File, index: Int): File {
@@ -547,24 +558,106 @@ private class DissolveOverlay(
     }
 }
 
-private class FadeGainProvider(
-    private val offsetUs: Long,
-    private val durationUs: Long,
+private class MusicEnvelope(
+    private val totalUs: Long,
     private val fadeInUs: Long,
-    private val fadeOutUs: Long
-) : GainProcessor.GainProvider {
-    override fun getGainFactorAtSamplePosition(samplePosition: Long, sampleRate: Int): Float {
-        val timeUs = offsetUs + samplePosition * C.MICROS_PER_SECOND / sampleRate
-        var gain = 1f
-        if (fadeInUs > 0) gain = min(gain, timeUs.toFloat() / fadeInUs)
-        if (fadeOutUs > 0) gain = min(gain, (durationUs - timeUs).toFloat() / fadeOutUs)
-        return gain.coerceIn(0f, 1f)
+    private val fadeOutUs: Long,
+    private val duckedMusicGain: Double,
+    private val duckFadeUs: Long,
+    videoAudio: List<LongRange>
+) {
+    private val ducks = videoAudio.fold(mutableListOf<LongRange>()) { merged, range ->
+        val last = merged.lastOrNull()
+        if (last != null && range.first - (last.last + 1) <= 2 * duckFadeUs) {
+            merged[merged.lastIndex] = last.first..range.last
+        } else {
+            merged.add(range)
+        }
+        merged
     }
+
+    fun gainAt(timeUs: Long): Float {
+        var gain = 1.0
+        if (fadeInUs > 0) gain = min(gain, timeUs.toDouble() / fadeInUs)
+        if (fadeOutUs > 0) gain = min(gain, (totalUs - timeUs).toDouble() / fadeOutUs)
+        return (gain.coerceIn(0.0, 1.0) * duckLevelAt(timeUs)).toFloat()
+    }
+
+    fun nextChangeUs(timeUs: Long): Long? {
+        val fadeOutStartUs = (totalUs - fadeOutUs).takeIf { fadeOutUs > 0 && it >= timeUs }
+        val duckStartUs = ducks.getOrNull(firstDuckWhere { it.first - duckFadeUs >= timeUs })
+            ?.let { it.first - duckFadeUs }
+        return listOfNotNull(fadeOutStartUs, duckStartUs).minOrNull()
+    }
+
+    private fun duckLevelAt(timeUs: Long): Double {
+        var level = 1.0
+        var index = firstDuckWhere { it.last >= timeUs - duckFadeUs }
+        while (index < ducks.size && ducks[index].first - duckFadeUs <= timeUs) {
+            val duck = ducks[index]
+            index++
+            val depth = when {
+                timeUs in duck -> 1.0
+                duckFadeUs <= 0 -> 0.0
+                timeUs < duck.first -> 1.0 - (duck.first - timeUs).toDouble() / duckFadeUs
+                else -> 1.0 - (timeUs - duck.last - 1).toDouble() / duckFadeUs
+            }
+            if (depth > 0) level = min(level, 1.0 - depth * (1.0 - duckedMusicGain))
+        }
+        return level
+    }
+
+    private inline fun firstDuckWhere(isReached: (LongRange) -> Boolean): Int {
+        var low = 0
+        var high = ducks.size
+        while (low < high) {
+            val middle = (low + high) / 2
+            if (isReached(ducks[middle])) high = middle else low = middle + 1
+        }
+        return low
+    }
+}
+
+private class MusicGainProvider(
+    private val offsetUs: Long,
+    private val envelope: MusicEnvelope
+) : GainProcessor.GainProvider {
+    override fun getGainFactorAtSamplePosition(samplePosition: Long, sampleRate: Int): Float =
+        envelope.gainAt(timeUs(samplePosition, sampleRate))
 
     override fun isUnityUntil(samplePosition: Long, sampleRate: Int): Long {
         if (getGainFactorAtSamplePosition(samplePosition, sampleRate) < 1f) return C.TIME_UNSET
-        if (fadeOutUs <= 0) return C.TIME_END_OF_SOURCE
-        val fadeOutStartSample = (durationUs - fadeOutUs - offsetUs) * sampleRate / C.MICROS_PER_SECOND
-        return if (fadeOutStartSample > samplePosition) fadeOutStartSample else samplePosition + 1
+        val changeUs = envelope.nextChangeUs(timeUs(samplePosition, sampleRate))
+            ?: return C.TIME_END_OF_SOURCE
+        val changeSample = (changeUs - offsetUs) * sampleRate / C.MICROS_PER_SECOND
+        return if (changeSample > samplePosition) changeSample else samplePosition + 1
+    }
+
+    private fun timeUs(samplePosition: Long, sampleRate: Int) =
+        offsetUs + samplePosition * C.MICROS_PER_SECOND / sampleRate
+}
+
+@UnstableApi
+private class ClipEndAudioProcessor(private val clipEndUs: Long) : BaseAudioProcessor() {
+    private var remainingFrames = 0L
+
+    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat) = inputAudioFormat
+
+    override fun onFlush(streamMetadata: AudioProcessor.StreamMetadata) {
+        val remainingUs = max(0L, clipEndUs - streamMetadata.positionOffsetUs)
+        remainingFrames = remainingUs * inputAudioFormat.sampleRate / C.MICROS_PER_SECOND
+    }
+
+    override fun queueInput(inputBuffer: ByteBuffer) {
+        val bytesPerFrame = inputAudioFormat.bytesPerFrame
+        val keptFrames = min(inputBuffer.remaining().toLong() / bytesPerFrame, remainingFrames)
+        val inputEnd = inputBuffer.limit()
+        if (keptFrames > 0) {
+            remainingFrames -= keptFrames
+            inputBuffer.limit(inputBuffer.position() + keptFrames.toInt() * bytesPerFrame)
+            replaceOutputBuffer(keptFrames.toInt() * bytesPerFrame).put(inputBuffer).flip()
+            inputBuffer.limit(inputEnd)
+        }
+        inputBuffer.position(inputEnd)
     }
 }
