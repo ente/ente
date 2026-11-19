@@ -1,1 +1,0 @@
-- Added Indonesian, Swedish, and Simplified Chinese language support.

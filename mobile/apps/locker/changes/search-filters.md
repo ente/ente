@@ -1,1 +1,0 @@
-- Added search filters and multi-selection for items and collections.
