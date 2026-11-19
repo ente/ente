@@ -208,7 +208,7 @@ class _RewindViewerState extends State<RewindViewer>
         previousHeight == null ||
         !controller.hasClients) {
       controller?.dispose();
-      return _controller = ScrollController(
+      return _controller = _PagerController(
         initialScrollOffset: _settledStep * height,
       );
     }
@@ -344,4 +344,36 @@ class _RewindViewerState extends State<RewindViewer>
       _sharing = false;
     }
   }
+}
+
+class _PagerController extends ScrollController {
+  _PagerController({super.initialScrollOffset});
+
+  @override
+  ScrollPosition createScrollPosition(
+    ScrollPhysics physics,
+    ScrollContext context,
+    ScrollPosition? oldPosition,
+  ) => _PagerPosition(
+    physics: physics,
+    context: context,
+    initialPixels: initialScrollOffset,
+    keepScrollOffset: keepScrollOffset,
+    oldPosition: oldPosition,
+    debugLabel: debugLabel,
+  );
+}
+
+class _PagerPosition extends ScrollPositionWithSingleContext {
+  _PagerPosition({
+    required super.physics,
+    required super.context,
+    super.initialPixels,
+    super.keepScrollOffset,
+    super.oldPosition,
+    super.debugLabel,
+  });
+
+  @override
+  bool get shouldIgnorePointer => false;
 }
