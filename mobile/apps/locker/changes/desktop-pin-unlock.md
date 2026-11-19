@@ -1,1 +1,0 @@
-- Fix unlocking with existing desktop PINs containing letters or symbols.
