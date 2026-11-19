@@ -220,9 +220,10 @@ const likesSetupPage = SetupPage(
     SetupHeadline("YOUR FEED\nWAS LIT!", at: Offset(24, 140), size: 48),
   ],
   callout: SetupCallout("’SPECIALLY THIS ONE.", center: Offset(188.2, 383.5)),
-  art: SetupArt.image(
-    RewindAssets.polaroidHugDucky,
-    Rect.fromLTWH(46, 434, 296, 328),
+  art: SetupArt.ducky(
+    RewindAssets.likesDucky,
+    Rect.fromLTWH(21.5, 410, 344, 376),
+    pivot: Offset(194, 762),
   ),
 );
 
@@ -239,9 +240,9 @@ const badgeSetupPage = SetupPage(
     center: Offset(196.5, 395),
     size: 23.87,
   ),
-  art: SetupArt.image(
+  art: SetupArt.ducky(
     RewindAssets.detectiveDucky,
-    Rect.fromLTWH(39, 445, 286, 331),
+    Rect.fromLTWH(14.5, 420, 334, 378.4),
     ticks: [(RewindTick.bold, Rect.fromLTWH(209, 424, 16, 23))],
     pivot: Offset(182, 777),
   ),

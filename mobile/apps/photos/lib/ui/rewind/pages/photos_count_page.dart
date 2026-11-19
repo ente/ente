@@ -19,6 +19,7 @@ import "package:photos/ui/rewind/widgets/rewind_layer.dart";
 import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo_frames.dart";
+import "package:photos/ui/rewind/widgets/rewind_rive.dart";
 import "package:photos/ui/rewind/widgets/rewind_spread.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
 import "package:photos/ui/rewind/widgets/rewind_text.dart";
@@ -30,7 +31,7 @@ class PhotosCountPage extends RewindPage {
   static const maxPhotos = 24;
   static const _minimumPhotos = 8;
 
-  static const _ducky = Rect.fromLTWH(90, 191, 210, 234);
+  static const _ducky = Rect.fromLTWH(49, 174.5, 288.3, 290.2);
   static const _burstPivot = Offset(195, 457);
   static const _cloud = Color(0xFFFFF4DC);
 
@@ -133,10 +134,7 @@ class PhotosCountPage extends RewindPage {
                     RewindPose(0.88, dy: -3, sx: 0.99, sy: 1.01),
                     RewindPose(1),
                   ],
-                  child: Image.file(
-                    RewindAssets.file(RewindAssets.heroDucky),
-                    fit: BoxFit.contain,
-                  ),
+                  child: const RewindDucky(RewindAssets.superheroDucky),
                 ),
               ),
               RewindLayer(

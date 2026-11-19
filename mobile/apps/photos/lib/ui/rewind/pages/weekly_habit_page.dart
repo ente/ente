@@ -12,6 +12,7 @@ import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
 import "package:photos/ui/rewind/widgets/rewind_elapsed.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
 import "package:photos/ui/rewind/widgets/rewind_reveal_layer.dart";
+import "package:photos/ui/rewind/widgets/rewind_rive.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
 import "package:photos/ui/rewind/widgets/rewind_text.dart";
 
@@ -397,12 +398,7 @@ class _Fire extends StatelessWidget {
       preset: RewindPreset.pop,
       active: active,
       delayMs: delayMs,
-      child: RewindIdleLoop(
-        idle: RewindIdle.flicker,
-        active: active,
-        delayMs: delayMs + 700,
-        child: Image.file(RewindAssets.file(RewindAssets.fireSticker)),
-      ),
+      child: const RewindDucky(RewindAssets.fire, stateMachine: "Fire"),
     );
   }
 }

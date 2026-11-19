@@ -253,13 +253,7 @@ const _rest = (sx: 1.0, sy: 1.0, turn: 0.0, skew: 0.0);
 
 enum RewindIdle {
   pulse(1400, [_rest, (sx: 1.07, sy: 1.07, turn: 0.0, skew: 0.0), _rest]),
-  twinkle(1500, [_rest, (sx: 0.55, sy: 0.55, turn: 25.0, skew: 0.0), _rest]),
-  flicker(700, [
-    _rest,
-    (sx: 1.04, sy: 1.1, turn: 0.0, skew: -3.0),
-    (sx: 0.98, sy: 0.94, turn: 0.0, skew: 3.0),
-    _rest,
-  ]);
+  twinkle(1500, [_rest, (sx: 0.55, sy: 0.55, turn: 25.0, skew: 0.0), _rest]);
 
   const RewindIdle(this.periodMs, this._poses);
 
@@ -343,9 +337,7 @@ class _RewindIdleLoopState extends State<RewindIdleLoop>
       child: widget.child,
       builder: (context, child) => Transform(
         transform: widget.idle.transformAt(_loop.value),
-        alignment: widget.idle == RewindIdle.flicker
-            ? Alignment.bottomCenter
-            : Alignment.center,
+        alignment: Alignment.center,
         child: child,
       ),
     );
