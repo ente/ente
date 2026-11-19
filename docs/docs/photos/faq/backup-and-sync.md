@@ -478,6 +478,16 @@ If Ente isn't picking these up:
 2. If it isn't listed, move or copy the photos into the Camera folder, which Ente recognizes by default.
 3. New photos taken with the camera will continue to back up normally.
 
+### Why don't my WhatsApp photos and videos show up in Ente? {#whatsapp-media-backup}
+
+Ente can only back up WhatsApp photos and videos after WhatsApp saves them to your phone's gallery. Media that stays inside WhatsApp isn't visible to Ente.
+
+**On Android:** turn on **Media visibility** in WhatsApp's chat settings (and in the contact or group info of the chat, if it is turned off there). Then make sure the WhatsApp Images and WhatsApp Video folders are selected in `Settings > Backup > Backed up folders` in Ente.
+
+**On iPhone:** turn on **Save to Photos** in WhatsApp's chat settings (and for the chat, if it has its own setting). In Ente, back up **Recents** under `Settings > Backup > Backed up folders` so saved media is included.
+
+New media is backed up the next time Ente backs up, so it may not appear in Ente the moment it arrives in WhatsApp.
+
 ### Can I pick photos from Ente in other apps? {#pick-photos-in-other-apps}
 
 In some Android apps, yes. If an app offers Ente Photos in its app chooser or under **Browse**, select it to open Ente's own picker and choose photos or videos from your Ente library.
