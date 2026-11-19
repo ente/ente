@@ -1,7 +1,6 @@
 import "package:flutter/painting.dart";
 import "package:photos/ui/rewind/pages/setup_page.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
-import "package:photos/ui/rewind/story/rewind_rituals.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
@@ -180,36 +179,26 @@ const ritualSetupPage = SetupPage(
   ),
 );
 
-SetupPage ritualStreakSetupPage(RewindRituals rituals) => SetupPage(
-  key: ritualStreakSetupKey,
-  color: const Color(0xFFE86436),
-  pattern: const Color(0xFFF0713F),
+const ritualStreakSetupPage = SetupPage(
+  key: "ritual_streak_setup",
+  color: Color(0xFFE86436),
+  pattern: Color(0xFFF0713F),
   ink: RewindColors.cream,
   headlines: [
-    SetupHeadline(
-      switch ((rituals.built, rituals.started)) {
-        (1, 1) => "YOU BUILT\nA NEW\nRITUAL.",
-        (1, _) => "YOU BUILT\nA HABIT.",
-        _ => "YOU BUILT\nRITUALS.",
-      },
-      at: const Offset(24, 140),
-      size: 66,
-    ),
+    SetupHeadline("YOU BUILT\nRITUALS.", at: Offset(24, 140), size: 66),
   ],
-  callout: const SetupCallout(
+  callout: SetupCallout(
     "ONE PHOTO A DAY.",
     center: Offset(195, 398.5),
     delayMs: 600,
   ),
-  art: const SetupArt.ducky(
+  art: SetupArt.ducky(
     RewindAssets.cameraDucky,
     Rect.fromLTWH(46.5, 441, 265.3, 334),
     pivot: Offset(179, 775),
     delayMs: 780,
   ),
 );
-
-const ritualStreakSetupKey = "ritual_streak_setup";
 
 const likesSetupPage = SetupPage(
   key: "likes_setup",

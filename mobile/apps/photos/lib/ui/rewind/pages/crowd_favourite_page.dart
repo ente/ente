@@ -72,7 +72,7 @@ class CrowdFavouritePage extends RewindPage {
             ),
           ),
           Semantics(
-            label: "Crowd favourite. $line",
+            label: "The crowd favorite. $line",
             child: ExcludeSemantics(
               child: RewindStage(
                 children: [
@@ -115,7 +115,7 @@ class CrowdFavouritePage extends RewindPage {
                     preset: RewindPreset.slap,
                     delayMs: 1500,
                     child: RewindOutlinedText(
-                      "CROWD FAVOURITE",
+                      "THE CROWD FAVORITE",
                       style: RewindTextStyles.display(32, height: 1.15),
                       outline: 1.6,
                       shadow: const Offset(2, 3),

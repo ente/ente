@@ -241,10 +241,10 @@ class _FavouritesState extends State<_Favourites> {
     final covered = RewindPageScope.coveredOf(context);
     final media = MediaQuery.of(context);
     final title = capturing
-        ? "MY FAVOURITE"
+        ? "MY FAVORITE"
         : RewindPageScope.reelOf(context)
-        ? "MY FAVOURITES"
-        : "YOUR FAVOURITES";
+        ? "MY FAVORITES"
+        : "YOUR FAVORITES";
     return MediaQuery(
       data: media.copyWith(
         disableAnimations: media.disableAnimations || capturing,
@@ -254,7 +254,7 @@ class _FavouritesState extends State<_Favourites> {
         children: [
           _backdrop(),
           Semantics(
-            label: "Your favourites. $_line",
+            label: "Your favorites. $_line",
             child: ExcludeSemantics(
               child: RewindStage(
                 children: [

@@ -23,17 +23,7 @@ import "package:photos/ui/rewind/widgets/rewind_rive.dart";
 final rewindDesignPages = <RewindPage>[
   const CoverPage(),
   ...setupPages,
-  ritualStreakSetupPage(
-    const RewindRituals(
-      longestStreak: 12,
-      checkIns: 40,
-      busiestMonth: 3,
-      continued: 1,
-      built: 1,
-      started: 1,
-      icons: ["📸"],
-    ),
-  ),
+  ritualStreakSetupPage,
 ];
 
 const rewindSampleRituals = RewindRituals(
@@ -41,8 +31,6 @@ const rewindSampleRituals = RewindRituals(
   checkIns: 148,
   busiestMonth: 8,
   continued: 3,
-  built: 3,
-  started: 2,
   icons: ["🏃", "📚"],
 );
 
@@ -174,7 +162,7 @@ class _RewindGalleryPageState extends State<RewindGalleryPage> {
           subtitle: const Text("64 days, 148 check-ins, 3 rituals"),
           trailing: const Icon(Icons.chevron_right_outlined),
           onTap: () => open([
-            ritualStreakSetupPage(rewindSampleRituals),
+            ritualStreakSetupPage,
             const RitualStreakPage(rewindSampleRituals),
           ]),
         ),

@@ -16,8 +16,6 @@ class RewindRituals {
     required this.checkIns,
     required this.busiestMonth,
     required this.continued,
-    required this.built,
-    required this.started,
     required this.icons,
   });
 
@@ -25,8 +23,6 @@ class RewindRituals {
   final int checkIns;
   final int busiestMonth;
   final int continued;
-  final int built;
-  final int started;
   final List<String> icons;
 
   static const _readyTimeout = Duration(seconds: 5);
@@ -134,10 +130,6 @@ class RewindRituals {
       checkIns: months.sum,
       busiestMonth: busiest + 1,
       continued: continued,
-      built: checkInsByRitual.length,
-      started: checkInsByRitual.keys
-          .where((ritual) => ritual.createdAt.year == year)
-          .length,
       icons: {
         for (final entry in ranked)
           if (entry.key.icon.trim().isNotEmpty) entry.key.icon.trim(),
@@ -152,8 +144,6 @@ class RewindRituals {
       other.checkIns == checkIns &&
       other.busiestMonth == busiestMonth &&
       other.continued == continued &&
-      other.built == built &&
-      other.started == started &&
       listEquals(other.icons, icons);
 
   @override
@@ -162,8 +152,6 @@ class RewindRituals {
     checkIns,
     busiestMonth,
     continued,
-    built,
-    started,
     Object.hashAll(icons),
   );
 }

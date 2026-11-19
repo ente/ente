@@ -723,12 +723,8 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
                                 key: const ValueKey("first"),
                                 eyebrow: _ago,
                                 title: "IT STARTED HERE",
-                                body:
-                                    "Your first photo of the year. Look how "
-                                    "far you have come since.",
-                                myBody:
-                                    "My first photo of the year. Look how "
-                                    "far I have come since.",
+                                body: "Your first photo of the year.",
+                                myBody: "My first photo of the year.",
                               )
                             : const SizedBox(
                                 key: ValueKey("flying"),
