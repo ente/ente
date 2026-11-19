@@ -196,6 +196,11 @@ testWithPhotos(
         await expect(confirm).toBeHidden();
         await expect(counter).toHaveText("1 / 3");
         await expect(viewer).toBeVisible();
+        await expect(activeImage).toBeVisible();
+        await expect(activeImage).toHaveJSProperty(
+            "naturalWidth",
+            photos[1].width,
+        );
 
         for (const [index, photo] of photos.slice(2).entries()) {
             await viewer
@@ -208,6 +213,23 @@ testWithPhotos(
                 photo.width,
             );
         }
+
+        await expect
+            .poll(() =>
+                activeImage.evaluate(async (image) => {
+                    let previousLeft = image.getBoundingClientRect().left;
+                    for (let frame = 0; frame < 6; frame++) {
+                        await new Promise<void>((resolve) =>
+                            requestAnimationFrame(() => resolve()),
+                        );
+                        const left = image.getBoundingClientRect().left;
+                        if (Math.abs(left - previousLeft) > 0.1) return false;
+                        previousLeft = left;
+                    }
+                    return true;
+                }),
+            )
+            .toBe(true);
 
         const horizontalOffset = await activeImage.evaluate((image) => {
             const { left, right } = image.getBoundingClientRect();
