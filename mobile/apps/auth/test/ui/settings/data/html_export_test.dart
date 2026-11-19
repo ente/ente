@@ -6,7 +6,16 @@ import 'package:ente_auth/ui/settings/data/html_export.dart';
 import 'package:ente_auth/ui/settings/data/import/plain_text_import_parser.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../../helpers/rust.dart';
+
 void main() {
+  final skipReason = rustTestSkipReason;
+  if (skipReason != null) {
+    test('Rust import tests', () {}, skip: skipReason);
+    return;
+  }
+  setUpAll(initializeTestRust);
+
   test(
     'escapes imported labels and notes after a storage round-trip',
     () async {

@@ -4,24 +4,31 @@ import 'dart:typed_data';
 
 import 'package:ente_auth/core/errors.dart';
 import 'package:ente_auth/models/code.dart';
+import 'package:ente_auth/src/rust/api/import_api.dart' as rust;
 import 'package:ente_auth/ui/settings/data/import/otp_auth_import_parser.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../../../helpers/rust.dart';
+
 void main() {
+  final skipReason = rustTestSkipReason;
+  if (skipReason != null) {
+    test('Rust import tests', () {}, skip: skipReason);
+    return;
+  }
+  setUpAll(initializeTestRust);
+
   group('OTP Auth import parser', () {
-    test('rejects oversized files before attempting decryption', () {
-      expect(
-        () => parseOtpAuthExport(
-          Uint8List(otpAuthImportMaxBytes + 1),
-          password: '',
-        ),
+    test('rejects oversized files before attempting decryption', () async {
+      await expectLater(
+        importOtpAuthExport(Uint8List(otpAuthImportMaxBytes + 1), password: ''),
         throwsA(isA<ImportFileTooLargeException>()),
       );
     });
 
     for (final version in ['1.0', '1.1']) {
       test('decrypts backup version $version', () async {
-        final codes = parseOtpAuthExport(
+        final codes = await importOtpAuthExport(
           await _fixture('backup-$version.otpauthdb'),
           password: 'abc123',
         );
@@ -46,7 +53,7 @@ void main() {
     }
 
     test('decrypts single-account version 1.1', () async {
-      final codes = parseOtpAuthExport(
+      final codes = await importOtpAuthExport(
         await _fixture('account-1.1.otpauth'),
         password: 'abc123',
       );
@@ -62,7 +69,7 @@ void main() {
     });
 
     test('decrypts single-account version 1.2', () async {
-      final codes = parseOtpAuthExport(
+      final codes = await importOtpAuthExport(
         await _fixture('account-1.2.otpauth'),
         password: 'abc123',
       );
@@ -78,11 +85,11 @@ void main() {
     });
 
     test('preserves ordinary shared folders and account lists', () async {
-      final codes = parseOtpAuthExport(
+      final codes = await importOtpAuthExport(
         await _fixture('backup-shared.otpauthdb'),
         password: 'abc123',
       );
-      final original = parseOtpAuthExport(
+      final original = await importOtpAuthExport(
         await _fixture('backup-1.1.otpauthdb'),
         password: 'abc123',
       );
@@ -98,8 +105,8 @@ void main() {
         final bytes = await _fixture(
           'backup-expanded-$representation.otpauthdb',
         );
-        expect(
-          () => parseOtpAuthExport(bytes, password: 'abc123'),
+        await expectLater(
+          importOtpAuthExport(bytes, password: 'abc123'),
           throwsA(
             isA<FormatException>().having(
               (error) => error.message,
@@ -113,22 +120,25 @@ void main() {
 
     test('bounds binary decoding before resolving the keyed archive', () async {
       final bytes = await _fixture('backup-expanded-binary.otpauthdb');
-      expect(
-        () => parseOtpAuthExport(bytes, password: 'abc123'),
+      await expectLater(
+        importOtpAuthExport(bytes, password: 'abc123'),
         throwsFormatException,
       );
     });
 
     for (final version in ['1.0', '1.1']) {
-      test('rejects an incorrect password for backup version $version', () {
-        expect(
-          () async => parseOtpAuthExport(
-            await _fixture('backup-$version.otpauthdb'),
-            password: 'wrong-password',
-          ),
-          throwsA(isA<IncorrectOtpAuthPasswordException>()),
-        );
-      });
+      test(
+        'rejects an incorrect password for backup version $version',
+        () async {
+          await expectLater(
+            importOtpAuthExport(
+              await _fixture('backup-$version.otpauthdb'),
+              password: 'wrong-password',
+            ),
+            throwsA(isA<rust.ImportError_IncorrectPassword>()),
+          );
+        },
+      );
     }
   });
 }
