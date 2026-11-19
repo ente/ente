@@ -11,8 +11,7 @@ int _compareFileIDs(EnteFile first, EnteFile second) {
 void sortFilesByName(List<EnteFile> files, FileSortOrder order) {
   assert(order.isFilename);
   if (files.length < 2) return;
-  // Keys are computed once per file; folding inside the comparator is ~10x
-  // slower for accented names.
+  // Folding inside the comparator is ~10x slower on accented names.
   final keyed = [
     for (final file in files)
       (file: file, name: file.displayName, key: nameSortKey(file.displayName)),

@@ -1,13 +1,10 @@
 import 'package:collection/collection.dart';
 
-/// Sort key for [compareNames]: lower case with Latin accents removed, so
-/// "Élise" sorts with "Elise". Compute it once per item for large lists.
 String nameSortKey(String name) {
   if (_isAscii(name)) return name;
   final key = StringBuffer();
   for (final rune in name.toLowerCase().runes) {
-    // Combining marks, as in decomposed (NFD) file names.
-    if (rune >= 0x0300 && rune <= 0x036F) continue;
+    if (_isCombiningMark(rune)) continue;
     final folded = _foldedLatin[rune];
     if (folded == null) {
       key.writeCharCode(rune);
@@ -18,9 +15,6 @@ String nameSortKey(String name) {
   return key.toString();
 }
 
-/// Orders display names ignoring case and Latin accents, with digit runs in
-/// natural order. Names that only differ in accents or case fall back to their
-/// original spelling, so the order is stable.
 int compareNames(String a, String b, {String? aKey, String? bKey}) {
   final result = compareAsciiLowerCaseNatural(
     aKey ?? nameSortKey(a),
@@ -28,6 +22,8 @@ int compareNames(String a, String b, {String? aKey, String? bKey}) {
   );
   return result != 0 ? result : compareAsciiLowerCaseNatural(a, b);
 }
+
+bool _isCombiningMark(int rune) => rune >= 0x0300 && rune <= 0x036F;
 
 bool _isAscii(String value) {
   for (var i = 0; i < value.length; i++) {
