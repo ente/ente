@@ -111,6 +111,22 @@ func (c *PushController) AddToken(userID int64, sessionTokenHash []byte, token e
 }
 
 func (c *PushController) NotifyAlbumShare(ctx context.Context, recipients []int64) {
+	c.notifyEncryptedPush(ctx, recipients, []byte(`{"eventType":"album_shared"}`))
+}
+
+func (c *PushController) NotifyFileLike(ctx context.Context, recipientID int64) {
+	c.notifyEncryptedPush(ctx, []int64{recipientID}, []byte(`{"eventType":"file_liked"}`))
+}
+
+func (c *PushController) NotifyFileComment(ctx context.Context, recipientID int64) {
+	c.notifyEncryptedPush(ctx, []int64{recipientID}, []byte(`{"eventType":"file_commented"}`))
+}
+
+func (c *PushController) NotifyCommentReply(ctx context.Context, recipientID int64) {
+	c.notifyEncryptedPush(ctx, []int64{recipientID}, []byte(`{"eventType":"comment_replied"}`))
+}
+
+func (c *PushController) notifyEncryptedPush(ctx context.Context, recipients []int64, payload []byte) {
 	if viper.GetBool("internal.silent") || c.fcm == nil || len(recipients) == 0 {
 		return
 	}
@@ -119,25 +135,10 @@ func (c *PushController) NotifyAlbumShare(ctx context.Context, recipients []int6
 	tokens, err := c.PushRepo.GetTokensForEncryptedPush(lookupCtx, recipients)
 	cancel()
 	if err != nil {
-		log.WithError(err).Warn("album share push token lookup failed")
+		log.WithError(err).Warn("encrypted push token lookup failed; saved activity is unchanged")
 		return
 	}
-	c.sendEncryptedPushes(ctx, tokens, []byte(`{"eventType":"album_shared"}`))
-}
-
-func (c *PushController) NotifyFileLike(ctx context.Context, recipientID int64) {
-	if viper.GetBool("internal.silent") || c.fcm == nil {
-		return
-	}
-	ctx = context.WithoutCancel(ctx)
-	lookupCtx, cancel := context.WithTimeout(ctx, 5*gotime.Second)
-	tokens, err := c.PushRepo.GetTokensForEncryptedPush(lookupCtx, []int64{recipientID})
-	cancel()
-	if err != nil {
-		log.WithError(err).Warn("file like push token lookup failed; reaction remains saved")
-		return
-	}
-	c.sendEncryptedPushes(ctx, tokens, []byte(`{"eventType":"file_liked"}`))
+	c.sendEncryptedPushes(ctx, tokens, payload)
 }
 
 func (c *PushController) sendEncryptedPushes(ctx context.Context, tokens []ente.PushToken, payload []byte) {

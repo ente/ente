@@ -313,7 +313,9 @@ func main() {
 	commentsController := &socialcontroller.CommentsController{
 		Repo:           commentsRepo,
 		CollectionRepo: collectionRepo,
+		FileRepo:       fileRepo,
 		AccessCtrl:     accessCtrl,
+		PushCtrl:       pushController,
 	}
 	reactionsController := &socialcontroller.ReactionsController{
 		Repo:           reactionsRepo,
