@@ -178,6 +178,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   static const _pixelsPerUnit = 90.0;
   static const _touchTop = 70.0;
   static const _touchBottom = 770.0;
+  static const _flyAbove = 700.0;
   static const _rollSpan = 140.0;
   static const _rollCoastMs = 520.0;
   static const _detent = pi / 3;
@@ -238,6 +239,8 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
       _held || (!_piloted && !_landed) || _velocity != 0 || _rollRate != 0;
 
   bool get _idle => _piloted && !_held && _pace < 0.04;
+
+  bool get _canPick => widget.walls != null && (_piloted || _landed);
 
   @override
   void didChangeDependencies() {
@@ -363,9 +366,6 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
     _velocity = -pixelsPerSecond / _pixelsPerUnit / 1000;
   }
 
-  bool _yields(bool deeper) =>
-      _picked == null && (deeper ? _landed : _travelled <= 0.002);
-
   void _listenForFlight(_FlightRecognizer recognizer) {
     recognizer.onStart = (_) => _takeOver();
     recognizer.onUpdate = (details) => _flyBy(details.delta.dy);
@@ -488,8 +488,11 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
           width: _printWidth,
           height: _printWidth * 1.22,
         ).contains(at);
-    final panel = onFirst ? null : _course.panelAt(at, _travelled, _roll);
+    final panel = onFirst || !_canPick
+        ? null
+        : _course.panelAt(at, _travelled, _roll);
     if (panel == null) {
+      if (!_landed) return;
       final navigator = RewindPageScope.navigatorOf(context);
       at.dx < RewindStage.size.width / 3
           ? navigator?.previous()
@@ -526,7 +529,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
     );
     final picked = _picked;
     final pulled = Curves.easeOutCubic.transform(_pull.value);
-    final canPick = walls != null && (_piloted || landed);
+    final canPick = _canPick;
     final forward = _piloted && _heading < 0;
     final hint = _hint(landed, sinceLanding, canPick);
     return Stack(
@@ -739,7 +742,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
                   gestures: {
                     _FlightRecognizer:
                         GestureRecognizerFactoryWithHandlers<_FlightRecognizer>(
-                          () => _FlightRecognizer(yields: _yields),
+                          () => _FlightRecognizer(above: _flyAbove - _touchTop),
                           _listenForFlight,
                         ),
                     HorizontalDragGestureRecognizer:
@@ -755,11 +758,10 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
                                 LongPressGestureRecognizer(duration: _holdFor),
                             _listenForHold,
                           ),
-                    if (canPick)
-                      TapGestureRecognizer:
-                          GestureRecognizerFactoryWithHandlers<
-                            TapGestureRecognizer
-                          >(TapGestureRecognizer.new, _listenForTap),
+                    TapGestureRecognizer:
+                        GestureRecognizerFactoryWithHandlers<
+                          TapGestureRecognizer
+                        >(TapGestureRecognizer.new, _listenForTap),
                   },
                 ),
               ),
@@ -1382,38 +1384,11 @@ class _Tube extends CustomPainter {
 }
 
 class _FlightRecognizer extends VerticalDragGestureRecognizer {
-  _FlightRecognizer({required this.yields});
+  _FlightRecognizer({required this.above});
 
-  static const _decideAfter = 3.0;
-
-  final bool Function(bool deeper) yields;
-  var _moved = 0.0;
-  var _decided = false;
+  final double above;
 
   @override
-  void addAllowedPointer(PointerDownEvent event) {
-    _moved = 0;
-    _decided = false;
-    super.addAllowedPointer(event);
-  }
-
-  @override
-  void acceptGesture(int pointer) {
-    _decided = true;
-    super.acceptGesture(pointer);
-  }
-
-  @override
-  void handleEvent(PointerEvent event) {
-    if (!_decided && event is PointerMoveEvent) {
-      _moved += event.delta.dy;
-      if (_moved.abs() > _decideAfter && yields(_moved < 0)) {
-        _decided = true;
-        resolve(GestureDisposition.rejected);
-        stopTrackingPointer(event.pointer);
-        return;
-      }
-    }
-    super.handleEvent(event);
-  }
+  bool isPointerAllowed(PointerEvent event) =>
+      event.localPosition.dy < above && super.isPointerAllowed(event);
 }
