@@ -1507,7 +1507,6 @@ class _HomePageState extends State<HomePage> {
       focusNode: searchBoxFocusNode,
       child: TextField(
         autocorrect: false,
-        enableSuggestions: false,
         autofocus: _autoFocusSearch && _showSearchBox && !Platform.isAndroid,
         selectAllOnFocus: false,
         controller: _textController,
