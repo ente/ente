@@ -112,12 +112,27 @@ testWithPhotos(
 
         await viewer.getByRole("button", { name: "Next", exact: true }).click();
         await expect(counter).toHaveText("2 / 4");
+        await expect(activeImage).toBeVisible();
+        await expect(activeImage).toHaveJSProperty(
+            "naturalWidth",
+            photos[1].width,
+        );
         await page.keyboard.press("ArrowRight");
         await expect(counter).toHaveText("3 / 4");
+        await expect(activeImage).toBeVisible();
+        await expect(activeImage).toHaveJSProperty(
+            "naturalWidth",
+            photos[2].width,
+        );
         await viewer
             .getByRole("button", { name: "Previous", exact: true })
             .click();
         await expect(counter).toHaveText("2 / 4");
+        await expect(activeImage).toBeVisible();
+        await expect(activeImage).toHaveJSProperty(
+            "naturalWidth",
+            photos[1].width,
+        );
 
         await viewer.getByRole("button", { name: "More", exact: true }).click();
         const [download] = await Promise.all([
@@ -143,6 +158,9 @@ testWithPhotos(
         await thumbnails.first().click();
 
         const viewer = page.getByRole("dialog").and(page.locator(".pswp"));
+        const activeImage = viewer.locator(
+            '[aria-hidden="false"] img.pswp__img:not(.pswp__img--placeholder)',
+        );
         const caption = viewer.locator(".pswp__caption");
         const description = "Blue photo from the viewer test";
         await viewer.getByRole("button", { name: "Info", exact: true }).click();
@@ -158,19 +176,39 @@ testWithPhotos(
             .click();
         await expect(caption).toHaveText(description);
         await expect(caption).toBeVisible();
+        await expect(activeImage).toBeVisible();
+        await expect(activeImage).toHaveJSProperty(
+            "naturalWidth",
+            photos[0].width,
+        );
 
         await page.keyboard.press("ArrowRight");
         await expect(viewer.locator(".pswp__counter")).toHaveText("2 / 4");
+        await expect(activeImage).toBeVisible();
+        await expect(activeImage).toHaveJSProperty(
+            "naturalWidth",
+            photos[1].width,
+        );
         await expect(caption).toBeHidden();
         await page.keyboard.press("ArrowLeft");
         await expect(caption).toHaveText(description);
         await expect(caption).toBeVisible();
+        await expect(activeImage).toBeVisible();
+        await expect(activeImage).toHaveJSProperty(
+            "naturalWidth",
+            photos[0].width,
+        );
 
         await page.keyboard.press("Escape");
         await expect(viewer).toBeHidden();
         await thumbnails.first().click();
         await expect(caption).toHaveText(description);
         await expect(caption).toBeVisible();
+        await expect(activeImage).toBeVisible();
+        await expect(activeImage).toHaveJSProperty(
+            "naturalWidth",
+            photos[0].width,
+        );
     },
 );
 
