@@ -163,7 +163,7 @@ class _RewindGalleryPageState extends State<RewindGalleryPage> {
             subtitle: const Text("Tunnel, globe, timelapse, mosaic"),
             trailing: const Icon(Icons.chevron_right_outlined),
             onTap: () => openStory(
-              RewindMedia.load().then(
+              RewindMedia.load(waitsForOriginals: true).then(
                 (media) =>
                     RewindStory.compose(rewindPhotoCardChapters(report), media),
               ),

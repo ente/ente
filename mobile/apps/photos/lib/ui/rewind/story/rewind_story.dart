@@ -10,7 +10,13 @@ import "package:photos/ui/rewind/story/rewind_rituals.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo.dart";
 
 class RewindStory {
-  RewindStory._(this.pages, this._photos, this._outline, this.rituals);
+  RewindStory._(
+    this.pages,
+    this._photos,
+    this._outline,
+    this.rituals,
+    this._blurryFaces,
+  );
 
   static const _lookahead = 3;
   static const _photoPatience = Duration(seconds: 20);
@@ -37,16 +43,28 @@ class RewindStory {
       pages.addAll(chapterPages);
       photos.addAll([for (final _ in chapterPages) chapterPhotos]);
     }
-    return RewindStory._(pages, photos, [
-      for (final chapter in chapters) ...chapter.keys,
-    ], rituals);
+    return RewindStory._(
+      pages,
+      photos,
+      [for (final chapter in chapters) ...chapter.keys],
+      rituals,
+      media.blurryFaces,
+    );
   }
 
   final List<RewindPage> pages;
   final RewindRituals? rituals;
   final List<List<EnteFile>> _photos;
   final List<String> _outline;
+  final List<RewindBlurryFaces> _blurryFaces;
   final _preloaded = Set<List<EnteFile>>.identity();
+
+  int get blurryFaceFiles => _blurryFaces.length;
+
+  Future<bool> sharpenFaces() async {
+    final sharpened = await Future.wait(_blurryFaces.map(RewindMedia.sharpen));
+    return sharpened.contains(true);
+  }
 
   int indexOf(String? key) =>
       max(0, pages.indexWhere((page) => page.key == key));
