@@ -157,17 +157,20 @@ testWithPhotos(
             .getByRole("button", { name: "Go back", exact: true })
             .click();
         await expect(caption).toHaveText(description);
+        await expect(caption).toBeVisible();
 
         await page.keyboard.press("ArrowRight");
         await expect(viewer.locator(".pswp__counter")).toHaveText("2 / 4");
         await expect(caption).toBeHidden();
         await page.keyboard.press("ArrowLeft");
         await expect(caption).toHaveText(description);
+        await expect(caption).toBeVisible();
 
         await page.keyboard.press("Escape");
         await expect(viewer).toBeHidden();
         await thumbnails.first().click();
         await expect(caption).toHaveText(description);
+        await expect(caption).toBeVisible();
     },
 );
 
