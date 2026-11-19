@@ -1038,10 +1038,6 @@ class FilesDB with SqlDbBase {
     return result;
   }
 
-  /// Returns the uploaded counterpart of a device file, if it has already
-  /// been uploaded to Ente. Used when a file is opened through the Android
-  /// media extension, where we only have the MediaStore asset and need the
-  /// DB row to know whether "delete from both" applies.
   Future<EnteFile?> getUploadedFileForLocalID(String localID) async {
     final db = await instance.sqliteAsyncDB;
     final rows = await db.getAll(

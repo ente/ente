@@ -294,11 +294,6 @@ class FileViewerState extends State<FileViewer> {
       w: asset.orientatedWidth,
       h: asset.orientatedHeight,
     );
-    // The media extension hands us a MediaStore asset, not an Ente file, so
-    // the freshly built EnteFile has no uploadedFileID even when this photo
-    // is already backed up. Without it, the viewer would offer only "delete
-    // from device" for an uploaded photo. Copy the uploaded counterpart over
-    // from the DB when it exists.
     final uploaded = await FilesDB.instance.getUploadedFileForLocalID(asset.id);
     if (uploaded != null) {
       file.uploadedFileID = uploaded.uploadedFileID;
