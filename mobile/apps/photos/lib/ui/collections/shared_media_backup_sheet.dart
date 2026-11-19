@@ -8,12 +8,14 @@ Future<bool> confirmSharedMediaBackup(
   BuildContext context,
   List<SharedMediaFile> files,
 ) async {
-  final hasPhotos = files.any(
+  final hasMedia = files.any(
     (file) =>
         file.type == SharedMediaType.image ||
-        (file.mimeType?.startsWith("image/") ?? false),
+        file.type == SharedMediaType.video ||
+        (file.mimeType?.startsWith("image/") ?? false) ||
+        (file.mimeType?.startsWith("video/") ?? false),
   );
-  if (!hasPhotos || localSettings.isSharedPhotoLocationWarningDismissed) {
+  if (!hasMedia || localSettings.isSharedPhotoLocationWarningDismissed) {
     return true;
   }
 
