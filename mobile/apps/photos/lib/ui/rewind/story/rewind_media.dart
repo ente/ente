@@ -17,7 +17,12 @@ import "package:photos/services/memories/memory_sources.dart";
 import "package:photos/ui/rewind/story/rewind_face.dart";
 import "package:photos/utils/face/face_thumbnail_cache.dart";
 
-typedef RewindBlurryFaces = ({EnteFile file, List<FaceWithoutEmbedding> faces});
+typedef RewindBlurryFace = ({
+  FaceWithoutEmbedding face,
+  List<RewindFace> shownIn,
+});
+typedef RewindBlurryFaces = ({EnteFile file, List<RewindBlurryFace> faces});
+typedef _FaceCrop = ({String faceId, Uint8List crop});
 
 class RewindMedia {
   RewindMedia._(
@@ -101,34 +106,50 @@ class RewindMedia {
   final _handedOut = <EnteFile>[];
   final _faces = <String, Future<RewindFace?>>{};
   final _blurryFaces = <int, Map<String, FaceWithoutEmbedding>>{};
+  final _shownFaces = <String, List<RewindFace>>{};
 
   IMLDataDB<int> get _ml =>
       isLocalGalleryMode ? MLDataDB.localGalleryInstance : MLDataDB.instance;
 
   List<RewindBlurryFaces> get blurryFaces => [
     for (final MapEntry(key: fileId, value: faces) in _blurryFaces.entries)
-      (file: _files[fileId]!, faces: [...faces.values]),
+      (
+        file: _files[fileId]!,
+        faces: [
+          for (final face in faces.values)
+            (face: face, shownIn: _shownFaces[face.faceID] ?? const []),
+        ],
+      ),
   ];
 
   static Future<bool> sharpen(RewindBlurryFaces blurry) async {
     var sharpened = false;
-    for (final face in blurry.faces) {
-      if (await _sharpen(blurry.file, face)) sharpened = true;
+    for (final (:face, :shownIn) in blurry.faces) {
+      final crop = await _sharpen(blurry.file, face);
+      if (crop == null) continue;
+      sharpened = true;
+      for (final shown in shownIn) {
+        shown.sharpen(crop);
+      }
     }
     return sharpened;
   }
 
-  static Future<bool> _sharpen(EnteFile file, FaceWithoutEmbedding face) async {
+  static Future<Uint8List?> _sharpen(
+    EnteFile file,
+    FaceWithoutEmbedding face,
+  ) async {
     try {
       await _cropFrom(file, face, useFullFile: true);
-      return await areFullFaceCropsCached([face.faceID]);
+      if (!await areFullFaceCropsCached([face.faceID])) return null;
+      return await _cropFrom(file, face, useFullFile: false);
     } catch (error, stackTrace) {
       _logger.warning(
         "Could not sharpen face ${face.faceID}",
         error,
         stackTrace,
       );
-      return false;
+      return null;
     }
   }
 
@@ -244,8 +265,10 @@ class RewindMedia {
     final name = named ? _nameOf(id) : null;
     if (named && name == null) return null;
     if (!named && !await _isShownCluster(id)) return null;
-    final crop = await _cover(id) ?? await _crop(faceIds);
-    return RewindFace(name: name, crop: crop);
+    final found = await _cover(id) ?? await _crop(faceIds);
+    final face = RewindFace(name: name, crop: found?.crop);
+    if (found != null) (_shownFaces[found.faceId] ??= []).add(face);
+    return face;
   }
 
   Future<bool> _isShownCluster(String clusterId) async {
@@ -274,13 +297,14 @@ class RewindMedia {
       personId,
       limit: _sampleFaceCount,
     );
+    final found = await _crop(faceIds) ?? await _cover(personId);
     return RewindFace(
       name: named ? _nameOf(personId) : null,
-      crop: await _crop(faceIds) ?? await _cover(personId),
+      crop: found?.crop,
     );
   }
 
-  Future<Uint8List?> _cover(String personOrClusterId) async {
+  Future<_FaceCrop?> _cover(String personOrClusterId) async {
     try {
       final faceId = await checkUsedFaceIDForPersonOrClusterId(
         personOrClusterId,
@@ -292,7 +316,7 @@ class RewindMedia {
     }
   }
 
-  Future<Uint8List?> _crop(List<String> faceIds) async {
+  Future<_FaceCrop?> _crop(List<String> faceIds) async {
     for (final faceId in faceIds) {
       try {
         final fileId = getFileIdFromFaceId<int>(faceId);
@@ -302,7 +326,7 @@ class RewindMedia {
         final face = faces?.firstWhereOrNull((face) => face.faceID == faceId);
         if (face == null) continue;
         final crop = await _cropOf(fileId, file, face);
-        if (crop != null) return crop;
+        if (crop != null) return (faceId: faceId, crop: crop);
       } catch (error, stackTrace) {
         _logger.warning("No crop for face $faceId", error, stackTrace);
       }
