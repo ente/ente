@@ -11,7 +11,6 @@ use crate::ml_db::vector_encoding::decode_f32;
 use crate::ml_store::MlStore;
 
 const SCAN_PAGE: NonZeroUsize = NonZeroUsize::new(1000).unwrap();
-pub(super) const MATCH_SIMILARITY: f32 = 0.225;
 
 pub(super) const COLOURS: [RewindColour; 10] = [
     RewindColour::CherryBomb,
@@ -59,6 +58,25 @@ pub(super) const SUBJECTS: [Subject; 13] = [
     Subject::Artwork,
 ];
 
+impl Subject {
+    fn match_similarity(self) -> f32 {
+        match self {
+            Self::Pets | Self::Plants => 0.18,
+            Self::Architecture => 0.19,
+            Self::GoldenHour
+            | Self::Food
+            | Self::Indoors
+            | Self::Outdoors
+            | Self::SportsAction
+            | Self::Concerts
+            | Self::Artwork => 0.2,
+            Self::Festivities => 0.215,
+            Self::Parties => 0.23,
+            Self::Outfits => 0.25,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(super) struct Similarities {
     pub(super) colours: [f32; COLOURS.len()],
@@ -67,7 +85,7 @@ pub(super) struct Similarities {
 
 impl Similarities {
     pub(super) fn matches(&self, subject: Subject) -> bool {
-        self.subject(subject) >= MATCH_SIMILARITY
+        self.subject(subject) >= subject.match_similarity()
     }
 
     pub(super) fn subject(&self, subject: Subject) -> f32 {
@@ -184,6 +202,17 @@ pub(super) mod tests {
         for (position, subject) in SUBJECTS.iter().enumerate() {
             assert_eq!(*subject as usize, position);
         }
+    }
+
+    #[test]
+    fn each_subject_matches_from_its_own_similarity() {
+        let mut similarities = showing(&[]);
+        similarities.subjects[Subject::Pets as usize] = 0.19;
+        similarities.subjects[Subject::Parties as usize] = 0.22;
+        similarities.subjects[Subject::Outfits as usize] = 0.24;
+        assert!(similarities.matches(Subject::Pets));
+        assert!(!similarities.matches(Subject::Parties));
+        assert!(!similarities.matches(Subject::Outfits));
     }
 
     #[test]

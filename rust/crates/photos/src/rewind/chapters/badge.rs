@@ -4,7 +4,7 @@ use serde::Serialize;
 
 use super::spots::spots_of;
 use super::{count, percent};
-use crate::rewind::clip::{Clip, MATCH_SIMILARITY, SUBJECTS, Similarities, Subject};
+use crate::rewind::clip::{Clip, SUBJECTS, Similarities, Subject};
 use crate::rewind::geo::distance_km;
 use crate::rewind::input::{RewindFileType, RewindRequest};
 use crate::rewind::library::{Library, YearFile, local_time};
@@ -15,16 +15,16 @@ const BADGE_MINIMUM_TAKEN: usize = 50;
 
 const CONSISTENCY_CHAMP: Scale = Scale::new(0.5, 0.8);
 const CONSISTENCY_CHAMP_MONTHLY_MINIMUM: usize = 10;
-const UNPAID_PHOTOGRAPHER: Scale = Scale::new(5.0, 20.0);
+const UNPAID_PHOTOGRAPHER: Scale = Scale::new(8.0, 30.0);
 const UNPAID_PHOTOGRAPHER_ALBUM_PHOTOS: usize = 5;
 const MAIN_CHARACTER: Scale = Scale::new(0.25, 0.5);
 const MAIN_CHARACTER_MINIMUM: usize = 30;
 const EARLY_BIRD_HOURS: [u32; 4] = [4, 5, 6, 7];
-const EARLY_BIRD: Scale = Scale::new(0.2, 0.4);
+const EARLY_BIRD: Scale = Scale::new(0.06, 0.15);
 const NIGHT_OWL_HOURS: [u32; 6] = [22, 23, 0, 1, 2, 3];
-const NIGHT_OWL: Scale = Scale::new(0.25, 0.5);
+const NIGHT_OWL: Scale = Scale::new(0.15, 0.3);
 const WEEKEND_DAYS: [u32; 2] = [6, 7];
-const WEEKEND_STAR: Scale = Scale::new(0.5, 0.75);
+const WEEKEND_STAR: Scale = Scale::new(0.5, 0.7);
 const SCREENSHOT_COLLECTOR: Scale = Scale::new(0.15, 0.4);
 const SCREENSHOT_COLLECTOR_MINIMUM: usize = 100;
 const HOBBY_HOPPER: Scale = Scale::new(3.0, 4.0);
@@ -32,9 +32,9 @@ const HOBBY_HOPPER_QUARTER_MINIMUM: usize = 15;
 const INDOOR_KID: Scale = Scale::new(0.65, 0.85);
 const INDOOR_KID_MINIMUM_CLASSIFIED: usize = 100;
 const OUT_OF_OFFICE: Scale = Scale::new(4.0, 12.0);
-const EVENT_HOPPER: Scale = Scale::new(10.0, 30.0);
+const EVENT_HOPPER: Scale = Scale::new(8.0, 25.0);
 const EVENT_HOPPER_PHOTOS_PER_DATE: usize = 3;
-const ALWAYS_ROLLING: Scale = Scale::new(0.15, 0.35);
+const ALWAYS_ROLLING: Scale = Scale::new(0.12, 0.3);
 const ALWAYS_ROLLING_MINIMUM: usize = 50;
 const LIMITED_EDITION_MAXIMUM_TAKEN: usize = 300;
 const GUEST_STAR_MAXIMUM_DATES: usize = 60;
@@ -53,49 +53,49 @@ const SUBJECT_BADGES: [SubjectBadge; 8] = [
     SubjectBadge {
         id: RewindBadge::SunChaser,
         subject: Subject::GoldenHour,
-        scale: Scale::new(0.06, 0.18),
+        scale: Scale::new(0.04, 0.12),
         minimum: 30,
     },
     SubjectBadge {
         id: RewindBadge::Pawparazzi,
         subject: Subject::Pets,
-        scale: Scale::new(0.08, 0.24),
+        scale: Scale::new(0.05, 0.2),
         minimum: 40,
     },
     SubjectBadge {
         id: RewindBadge::Foodie,
         subject: Subject::Food,
-        scale: Scale::new(0.08, 0.24),
+        scale: Scale::new(0.04, 0.12),
         minimum: 40,
     },
     SubjectBadge {
         id: RewindBadge::PlantParent,
         subject: Subject::Plants,
-        scale: Scale::new(0.06, 0.18),
+        scale: Scale::new(0.03, 0.1),
         minimum: 30,
     },
     SubjectBadge {
         id: RewindBadge::BuildingBuff,
         subject: Subject::Architecture,
-        scale: Scale::new(0.08, 0.24),
+        scale: Scale::new(0.04, 0.12),
         minimum: 40,
     },
     SubjectBadge {
         id: RewindBadge::FullThrottle,
         subject: Subject::SportsAction,
-        scale: Scale::new(0.05, 0.15),
+        scale: Scale::new(0.03, 0.1),
         minimum: 25,
     },
     SubjectBadge {
         id: RewindBadge::FitCheck,
         subject: Subject::Outfits,
-        scale: Scale::new(0.04, 0.12),
+        scale: Scale::new(0.015, 0.05),
         minimum: 20,
     },
     SubjectBadge {
         id: RewindBadge::ArtLover,
         subject: Subject::Artwork,
-        scale: Scale::new(0.04, 0.12),
+        scale: Scale::new(0.02, 0.06),
         minimum: 20,
     },
 ];
@@ -340,7 +340,11 @@ pub(in crate::rewind) fn badge_signals(
                 }),
             })
             .collect(),
-        event_dates: SIGNAL_CUTOFFS.map(|cutoff| event_dates(&classified, cutoff)),
+        event_dates: SIGNAL_CUTOFFS.map(|cutoff| {
+            event_dates(&classified, |similarities, subject| {
+                similarities.subject(subject) >= cutoff
+            })
+        }),
     }
 }
 
@@ -706,13 +710,13 @@ fn indoor_kid(classified: &Classified<'_, '_>) -> Option<Reading> {
     })
 }
 
-fn event_dates(classified: &Classified<'_, '_>, cutoff: f32) -> usize {
+fn event_dates(
+    classified: &Classified<'_, '_>,
+    matches: impl Fn(&Similarities, Subject) -> bool,
+) -> usize {
     let mut per_date: HashMap<i64, usize> = HashMap::new();
     for (file, similarities) in classified {
-        if EVENTS
-            .iter()
-            .any(|&subject| similarities.subject(subject) >= cutoff)
-        {
+        if EVENTS.iter().any(|&subject| matches(similarities, subject)) {
             *per_date.entry(file.day).or_default() += 1;
         }
     }
@@ -723,7 +727,7 @@ fn event_dates(classified: &Classified<'_, '_>, cutoff: f32) -> usize {
 }
 
 fn event_hopper(classified: &Classified<'_, '_>) -> Reading {
-    let dates = event_dates(classified, MATCH_SIMILARITY);
+    let dates = event_dates(classified, Similarities::matches);
     Reading::new(
         RewindBadge::EventHopper,
         dates as f64,
@@ -874,7 +878,7 @@ mod tests {
 
     #[test]
     fn a_standout_badge_beats_one_that_only_just_qualifies_and_ties_go_to_the_rarer_badge() {
-        let mut files = weekday_shots(1, 100, 1);
+        let mut files = weekday_shots(1, 150, 1);
         for (position, file) in files.iter_mut().enumerate() {
             file.creation_time += 11 * HOUR;
             file.shared_album_ids = vec![position as i64 / 5];
@@ -891,9 +895,22 @@ mod tests {
             badge_of(with_history(files)),
             Some(Badge {
                 id: RewindBadge::UnpaidPhotographer,
-                value: Some(20),
+                value: Some(30),
             })
         );
+    }
+
+    #[test]
+    fn early_bird_starts_at_six_percent_of_photos_between_four_and_eight() {
+        let at_dawn = |dawn_photos: usize| {
+            let mut files = weekday_shots(1, 100, 1);
+            for file in files.iter_mut().take(dawn_photos) {
+                file.creation_time -= 6 * HOUR;
+            }
+            badge_of(with_history(files))
+        };
+        assert_eq!(at_dawn(8), generic(RewindBadge::EarlyBird));
+        assert_eq!(at_dawn(5), generic(RewindBadge::LimitedEdition));
     }
 
     #[test]
