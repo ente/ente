@@ -1993,11 +1993,10 @@ class SearchService {
           return countComparison;
         }
 
-        final aName =
-            a.key.displayName?.toLowerCase() ?? a.key.email.toLowerCase();
-        final bName =
-            b.key.displayName?.toLowerCase() ?? b.key.email.toLowerCase();
-        return aName.compareTo(bName);
+        return compareNames(
+          a.key.displayName ?? a.key.email,
+          b.key.displayName ?? b.key.email,
+        );
       });
 
       final limitedEntries = limit == null

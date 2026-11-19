@@ -478,9 +478,7 @@ class _AddContactSheetState extends State<AddContactSheet> {
       );
     }
     suggestedUsers.sort(
-      (a, b) => a.resolvedDisplayName.toLowerCase().compareTo(
-        b.resolvedDisplayName.toLowerCase(),
-      ),
+      (a, b) => compareNames(a.resolvedDisplayName, b.resolvedDisplayName),
     );
 
     return suggestedUsers;

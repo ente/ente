@@ -584,7 +584,7 @@ class _PeopleSectionAllWidgetState extends State<PeopleSectionAllWidget> {
           final bool bPinned = b.params[kPersonPinned] as bool? ?? false;
           if (aPinned && !bPinned) return -1;
           if (!aPinned && bPinned) return 1;
-          return a.name().compareTo(b.name());
+          return compareNames(a.name(), b.name());
         });
       }
     }
