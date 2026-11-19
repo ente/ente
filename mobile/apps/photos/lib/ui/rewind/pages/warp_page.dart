@@ -1197,6 +1197,9 @@ class _Course {
         : (near: near, far: far);
   }
 
+  static double _row(({double near, double far}) reach, int row) =>
+      reach.near + (reach.far - reach.near) * row / _deep;
+
   void mesh(
     int ring,
     int side,
@@ -1214,7 +1217,7 @@ class _Course {
     final tall = min(1.0, box.height / box.width);
     final first = positions.length ~/ 2;
     for (var row = 0; row <= _deep; row++) {
-      final along = reach.near + (reach.far - reach.near) * row / _deep;
+      final along = _row(reach, row);
       for (var step = 0; step <= _across; step++) {
         final around = side + step / _across;
         final seen = point(around, along, travelled, roll);
@@ -1247,11 +1250,15 @@ class _Course {
       final reach = this.reach(ring, travelled);
       if (reach == null) continue;
       for (var side = 0; side < sides; side++) {
+        Offset seen(double around, int row) =>
+            point(around, _row(reach, row), travelled, roll);
         final outline = [
           for (var step = 0; step <= _across; step++)
-            point(side + step / _across, reach.near, travelled, roll),
+            seen(side + step / _across, 0),
+          for (var row = 1; row < _deep; row++) seen(side + 1.0, row),
           for (var step = _across; step >= 0; step--)
-            point(side + step / _across, reach.far, travelled, roll),
+            seen(side + step / _across, _deep),
+          for (var row = _deep - 1; row > 0; row--) seen(side.toDouble(), row),
         ];
         if (_encloses(outline, at)) return ring * sides + side;
       }
@@ -1322,18 +1329,20 @@ class _Tube extends CustomPainter {
       }
     }
     if (indices.isNotEmpty) {
+      final tube = ui.Vertices.raw(
+        ui.VertexMode.triangles,
+        Float32List.fromList(positions),
+        textureCoordinates: Float32List.fromList(pixels),
+        indices: Uint16List.fromList(indices),
+      );
       canvas.drawVertices(
-        ui.Vertices.raw(
-          ui.VertexMode.triangles,
-          Float32List.fromList(positions),
-          textureCoordinates: Float32List.fromList(pixels),
-          indices: Uint16List.fromList(indices),
-        ),
+        tube,
         BlendMode.srcOver,
         Paint()
           ..shader = shader
           ..colorFilter = _fade((1 - 0.42 * arrival) * (1 - 0.55 * dim)),
       );
+      tube.dispose();
     }
     _fog(canvas);
     _dusk(canvas);
