@@ -671,7 +671,10 @@ private struct SlideshowMusicEnvelope {
 
     private func duckLevel(at frame: Double) -> Double {
         var level = 1.0
-        for duck in ducks {
+        var index = firstDuck(endingAfter: frame - duckFadeFrames)
+        while index < ducks.count, ducks[index].start - duckFadeFrames <= frame {
+            let duck = ducks[index]
+            index += 1
             let depth: Double
             if frame >= duck.start, frame < duck.end {
                 depth = 1
@@ -686,6 +689,20 @@ private struct SlideshowMusicEnvelope {
             level = min(level, 1 - depth * (1 - duckedMusicGain))
         }
         return level
+    }
+
+    private func firstDuck(endingAfter frame: Double) -> Int {
+        var low = 0
+        var high = ducks.count
+        while low < high {
+            let middle = (low + high) / 2
+            if ducks[middle].end <= frame {
+                low = middle + 1
+            } else {
+                high = middle
+            }
+        }
+        return low
     }
 }
 

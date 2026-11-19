@@ -7,6 +7,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.Paint
+import android.media.MediaFormat
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import androidx.exifinterface.media.ExifInterface
@@ -24,6 +25,7 @@ import androidx.media3.effect.BitmapOverlay
 import androidx.media3.effect.OverlayEffect
 import androidx.media3.effect.Presentation
 import androidx.media3.effect.StaticOverlaySettings
+import androidx.media3.inspector.MediaExtractorCompat
 import androidx.media3.transformer.Composition
 import androidx.media3.transformer.EditedMediaItem
 import androidx.media3.transformer.EditedMediaItemSequence
@@ -39,7 +41,7 @@ import kotlin.math.roundToInt
 
 @UnstableApi
 internal class SlideshowComposer(
-    context: Context,
+    private val context: Context,
     private val request: SlideshowExportRequest
 ) : Closeable {
     private val workDir = File(context.cacheDir, "slideshow-${UUID.randomUUID()}")
@@ -59,12 +61,9 @@ internal class SlideshowComposer(
         class Video(
             val file: File,
             val isMuted: Boolean,
-            val hasAudio: Boolean,
             val clipEndUs: Long?,
             durationUs: Long
-        ) : Segment(durationUs) {
-            val playsAudio get() = !isMuted && hasAudio
-        }
+        ) : Segment(durationUs)
     }
 
     fun compose(): Composition {
@@ -82,16 +81,15 @@ internal class SlideshowComposer(
                 )
 
                 is SlideshowItem.Video -> {
-                    val media = readMedia(file)
+                    val fullDurationUs = mediaDurationUs(file)
                     val clipEndUs = item.maxDurationMs
                         ?.times(1_000L)
-                        ?.takeIf { it < media.durationUs }
+                        ?.takeIf { it < fullDurationUs }
                     Segment.Video(
                         file = file,
                         isMuted = item.isMuted,
-                        hasAudio = media.hasAudio,
                         clipEndUs = clipEndUs,
-                        durationUs = clipEndUs ?: media.durationUs
+                        durationUs = clipEndUs ?: fullDurationUs
                     )
                 }
             }
@@ -172,7 +170,7 @@ internal class SlideshowComposer(
         val musicFile = musicSettings?.let { File(it.path).canonicalFile }
         val musicDurationUs = musicFile?.let {
             require(it.isFile && it != outputFile) { "Invalid slideshow music: ${it.path}" }
-            readMedia(it).durationUs
+            mediaDurationUs(it)
         }
         val playsVideoAudio = segments.any { it is Segment.Video && !it.isMuted }
         val hasAudio = musicDurationUs != null || playsVideoAudio
@@ -189,6 +187,18 @@ internal class SlideshowComposer(
         return Composition.Builder(sequences)
             .setHdrMode(Composition.HDR_MODE_TONE_MAP_HDR_TO_SDR_USING_OPEN_GL)
             .build()
+    }
+
+    private fun hasAudioTrack(file: File): Boolean {
+        val extractor = MediaExtractorCompat(context)
+        return try {
+            extractor.setDataSource(Uri.fromFile(file), 0L)
+            (0 until extractor.trackCount).any {
+                extractor.getTrackFormat(it).getString(MediaFormat.KEY_MIME)?.startsWith("audio/") == true
+            }
+        } finally {
+            extractor.release()
+        }
     }
 
     private fun videoMediaItem(segment: Segment.Video): MediaItem {
@@ -250,7 +260,9 @@ internal class SlideshowComposer(
         var startUs = 0L
         for (segment in segments) {
             val endUs = startUs + segment.durationUs
-            if (segment is Segment.Video && segment.playsAudio) ranges.add(startUs until endUs)
+            if (segment is Segment.Video && !segment.isMuted && hasAudioTrack(segment.file)) {
+                ranges.add(startUs until endUs)
+            }
             startUs = endUs
         }
         return ranges
@@ -374,19 +386,14 @@ internal fun smoothstep(value: Float): Float {
     return t * t * (3f - 2f * t)
 }
 
-private class MediaInfo(val durationUs: Long, val hasAudio: Boolean)
-
-private fun readMedia(file: File): MediaInfo {
+private fun mediaDurationUs(file: File): Long {
     val retriever = MediaMetadataRetriever()
     return try {
         retriever.setDataSource(file.path)
         val durationMs = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
             ?.toLongOrNull()
         require(durationMs != null && durationMs > 0) { "Media duration is unavailable: ${file.path}" }
-        MediaInfo(
-            durationUs = durationMs * 1_000L,
-            hasAudio = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_AUDIO) == "yes"
-        )
+        durationMs * 1_000L
     } finally {
         retriever.release()
     }
@@ -577,14 +584,18 @@ private class MusicEnvelope(
     }
 
     fun nextChangeUs(timeUs: Long): Long? {
-        val fadeOutStartUs = if (fadeOutUs > 0) totalUs - fadeOutUs else null
-        val duckStartsUs = ducks.map { it.first - duckFadeUs }
-        return (listOfNotNull(fadeOutStartUs) + duckStartsUs).filter { it >= timeUs }.minOrNull()
+        val fadeOutStartUs = (totalUs - fadeOutUs).takeIf { fadeOutUs > 0 && it >= timeUs }
+        val duckStartUs = ducks.getOrNull(firstDuckWhere { it.first - duckFadeUs >= timeUs })
+            ?.let { it.first - duckFadeUs }
+        return listOfNotNull(fadeOutStartUs, duckStartUs).minOrNull()
     }
 
     private fun duckLevelAt(timeUs: Long): Double {
         var level = 1.0
-        for (duck in ducks) {
+        var index = firstDuckWhere { it.last >= timeUs - duckFadeUs }
+        while (index < ducks.size && ducks[index].first - duckFadeUs <= timeUs) {
+            val duck = ducks[index]
+            index++
             val depth = when {
                 timeUs in duck -> 1.0
                 duckFadeUs <= 0 -> 0.0
@@ -594,6 +605,16 @@ private class MusicEnvelope(
             if (depth > 0) level = min(level, 1.0 - depth * (1.0 - duckedMusicGain))
         }
         return level
+    }
+
+    private inline fun firstDuckWhere(isReached: (LongRange) -> Boolean): Int {
+        var low = 0
+        var high = ducks.size
+        while (low < high) {
+            val middle = (low + high) / 2
+            if (isReached(ducks[middle])) high = middle else low = middle + 1
+        }
+        return low
     }
 }
 
