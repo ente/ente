@@ -46,6 +46,19 @@ void main() {
       expect(compareNames('Éric', 'Éric'), 0);
     });
 
+    test('folds Vietnamese and Yoruba letters', () {
+      final names = ['Zoe', 'Ọlá', 'Ẹlan', 'Ông', 'Ạnh', 'Nguyễn', 'Nguyen'];
+      expect(names..sort(compareNames), [
+        'Ạnh',
+        'Ẹlan',
+        'Nguyen',
+        'Nguyễn',
+        'Ọlá',
+        'Ông',
+        'Zoe',
+      ]);
+    });
+
     test('ignores case outside ASCII', () {
       expect(['Борис', 'анна']..sort(compareNames), ['анна', 'Борис']);
     });
@@ -53,7 +66,7 @@ void main() {
 
   group('nameSortKey', () {
     test('folds decomposed accents like precomposed ones', () {
-      expect(nameSortKey('Élise'), nameSortKey('Élise'));
+      expect(nameSortKey('E\u0301lise'), nameSortKey('Élise'));
       expect(nameSortKey('Élise'), 'elise');
     });
 
