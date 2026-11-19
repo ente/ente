@@ -513,10 +513,6 @@ class FileViewerState extends State<FileViewer> {
     _isClosingViewer = true;
     try {
       if (_isExternalView) {
-        // When the camera launches Ente as an external gallery, Ente opens in
-        // its own task. Activity.finish() leaves that task in the background,
-        // so the app stays alive after the back gesture. finishAndRemoveTask
-        // removes it instead, matching Google Photos.
         await _finishTaskChannel.invokeMethod('finishAndRemoveTask');
       } else {
         await SystemChannels.platform.invokeMethod('SystemNavigator.pop');
