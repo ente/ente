@@ -4,9 +4,10 @@ import { expect, test } from "../../../e2e/fixtures/test";
 
 const albumName = "Photo viewer";
 const photos = [
-    { name: "IMG-20200103-WA0000.png", color: "royalblue" },
-    { name: "IMG-20200102-WA0000.png", color: "seagreen" },
-    { name: "IMG-20200101-WA0000.png", color: "tomato" },
+    { name: "IMG-20200103-WA0000.png", color: "royalblue", width: 1600 },
+    { name: "IMG-20200102-WA0000.png", color: "seagreen", width: 1500 },
+    { name: "IMG-20200101-WA0000.png", color: "tomato", width: 1400 },
+    { name: "IMG-20191231-WA0000.png", color: "goldenrod", width: 1300 },
 ] as const;
 
 const testWithPhotos = test.extend<{
@@ -29,20 +30,17 @@ const testWithPhotos = test.extend<{
             .click();
         await expect(newAlbum).toBeHidden();
 
-        const images = await page.evaluate(
-            (colors) => {
-                const canvas = document.createElement("canvas");
-                canvas.width = 1600;
-                canvas.height = 1200;
-                const context = canvas.getContext("2d")!;
-                return colors.map((color) => {
-                    context.fillStyle = color;
-                    context.fillRect(0, 0, canvas.width, canvas.height);
-                    return canvas.toDataURL().split(",")[1]!;
-                });
-            },
-            photos.map(({ color }) => color),
-        );
+        const images = await page.evaluate((fixtures) => {
+            const canvas = document.createElement("canvas");
+            canvas.height = 1200;
+            const context = canvas.getContext("2d")!;
+            return fixtures.map(({ color, width }) => {
+                canvas.width = width;
+                context.fillStyle = color;
+                context.fillRect(0, 0, canvas.width, canvas.height);
+                return canvas.toDataURL().split(",")[1]!;
+            });
+        }, photos);
         const buffers = images.map((image) => Buffer.from(image, "base64"));
 
         await page.getByRole("button", { name: "Upload", exact: true }).click();
@@ -72,7 +70,7 @@ const testWithPhotos = test.extend<{
             .getByRole("button", { name: albumName, exact: true })
             .click();
         await expect(
-            page.getByText("3 memories", { exact: true }),
+            page.getByText(`${photos.length} memories`, { exact: true }),
         ).toBeVisible();
         await page
             .getByText("Upload complete", { exact: true })
@@ -98,7 +96,7 @@ testWithPhotos(
         const activeImage = viewer.locator(
             '[aria-hidden="false"] img.pswp__img:not(.pswp__img--placeholder)',
         );
-        await expect(counter).toHaveText("1 / 3");
+        await expect(counter).toHaveText("1 / 4");
         // Wait for the original image to replace the thumbnail before zooming.
         await expect(activeImage).toHaveJSProperty("naturalWidth", 1600);
         const displayedWidth = () =>
@@ -113,13 +111,13 @@ testWithPhotos(
         await expect.poll(displayedWidth).toBe(fittedWidth);
 
         await viewer.getByRole("button", { name: "Next", exact: true }).click();
-        await expect(counter).toHaveText("2 / 3");
+        await expect(counter).toHaveText("2 / 4");
         await page.keyboard.press("ArrowRight");
-        await expect(counter).toHaveText("3 / 3");
+        await expect(counter).toHaveText("3 / 4");
         await viewer
             .getByRole("button", { name: "Previous", exact: true })
             .click();
-        await expect(counter).toHaveText("2 / 3");
+        await expect(counter).toHaveText("2 / 4");
 
         await viewer.getByRole("button", { name: "More", exact: true }).click();
         const [download] = await Promise.all([
@@ -161,7 +159,7 @@ testWithPhotos(
         await expect(caption).toHaveText(description);
 
         await page.keyboard.press("ArrowRight");
-        await expect(viewer.locator(".pswp__counter")).toHaveText("2 / 3");
+        await expect(viewer.locator(".pswp__counter")).toHaveText("2 / 4");
         await expect(caption).toBeHidden();
         await page.keyboard.press("ArrowLeft");
         await expect(caption).toHaveText(description);
@@ -170,5 +168,61 @@ testWithPhotos(
         await expect(viewer).toBeHidden();
         await thumbnails.first().click();
         await expect(caption).toHaveText(description);
+    },
+);
+
+testWithPhotos(
+    "keeps the correct photo centered after moving a photo to trash",
+    async ({ photoAlbum: { page, thumbnails } }) => {
+        await thumbnails.first().click();
+        const viewer = page.locator(".pswp");
+        const counter = viewer.locator(".pswp__counter");
+        const activeImage = viewer.locator(
+            '[aria-hidden="false"] img.pswp__img:not(.pswp__img--placeholder)',
+        );
+        await expect(activeImage).toHaveJSProperty(
+            "naturalWidth",
+            photos[0].width,
+        );
+        await viewer.getByRole("button", { name: "More", exact: true }).click();
+        await page
+            .getByRole("menuitem", { name: "Delete", exact: true })
+            .click();
+        const confirm = page.getByRole("dialog", { name: "Delete file?" });
+        await confirm.getByRole("button", { name: "Move to trash" }).click();
+        await expect(confirm).toBeHidden();
+        await expect(counter).toHaveText("1 / 3");
+        await expect(viewer).toBeVisible();
+
+        for (const [index, photo] of photos.slice(2).entries()) {
+            await viewer
+                .getByRole("button", { name: "Next", exact: true })
+                .click();
+            await expect(counter).toHaveText(`${index + 2} / 3`);
+            await expect(activeImage).toBeVisible();
+            await expect(activeImage).toHaveJSProperty(
+                "naturalWidth",
+                photo.width,
+            );
+        }
+
+        const horizontalOffset = await activeImage.evaluate((image) => {
+            const { left, right } = image.getBoundingClientRect();
+            return Math.abs((left + right) / 2 - window.innerWidth / 2);
+        });
+
+        await page.keyboard.press("i");
+        await expect(
+            page.getByRole("heading", { name: "Details" }),
+        ).toBeVisible();
+        await expect(
+            page.getByText(photos[3].name, { exact: true }),
+        ).toBeVisible();
+
+        test.fail(
+            true,
+            "The viewer shifts sideways after the Trash dialog closes",
+        );
+        expect(horizontalOffset).toBeLessThan(2);
     },
 );
