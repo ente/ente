@@ -1,8 +1,10 @@
 use std::collections::{HashMap, HashSet};
 
+use serde::Serialize;
+
 use super::spots::spots_of;
 use super::{count, percent};
-use crate::rewind::clip::{Clip, Similarities, Subject};
+use crate::rewind::clip::{Clip, MATCH_SIMILARITY, SUBJECTS, Similarities, Subject};
 use crate::rewind::geo::distance_km;
 use crate::rewind::input::{RewindFileType, RewindRequest};
 use crate::rewind::library::{Library, YearFile, local_time};
@@ -42,6 +44,10 @@ const HAPPY_SNAPPER_MINIMUM_TAKEN: usize = 3000;
 const TRIP_AWAY_KM: f64 = 100.0;
 const TRIP_MAXIMUM_GAP_DAYS: i64 = 2;
 const TRIP_MINIMUM_DATES: usize = 2;
+const SIGNAL_CUTOFFS: [f32; 14] = [
+    0.17, 0.18, 0.19, 0.2, 0.21, 0.22, 0.225, 0.23, 0.24, 0.25, 0.26, 0.27, 0.28, 0.3,
+];
+const BUSIEST_DATES_SHOWN: usize = 10;
 
 const SUBJECT_BADGES: [SubjectBadge; 8] = [
     SubjectBadge {
@@ -129,6 +135,7 @@ const HOBBIES: [&[Subject]; 8] = [
     &[Subject::Artwork],
 ];
 
+#[derive(Clone, Copy)]
 struct Scale {
     qualifies: f64,
     standout: f64,
@@ -155,11 +162,76 @@ struct SubjectBadge {
     minimum: usize,
 }
 
-struct Candidate {
+struct Reading {
     id: RewindBadge,
-    score: f64,
+    signal: f64,
+    scale: Scale,
+    enough: bool,
     value: Option<u32>,
 }
+
+impl Reading {
+    fn new(id: RewindBadge, signal: f64, scale: Scale, value: Option<u32>) -> Self {
+        Self {
+            id,
+            signal,
+            scale,
+            enough: true,
+            value,
+        }
+    }
+
+    fn score(&self) -> Option<f64> {
+        self.enough
+            .then(|| self.scale.strength(self.signal))
+            .flatten()
+    }
+}
+
+#[derive(Serialize)]
+pub(in crate::rewind) struct BadgeSignals {
+    badge: Option<RewindBadge>,
+    readings: Vec<BadgeReading>,
+    ml_coverage: Option<f32>,
+    has_people: bool,
+    has_me: bool,
+    has_clip: bool,
+    files: usize,
+    eligible: usize,
+    taken: usize,
+    taken_images: usize,
+    taken_videos: usize,
+    screenshots: usize,
+    located: usize,
+    complete_months: usize,
+    taken_per_hour: [usize; 24],
+    taken_per_weekday: [usize; 7],
+    taken_per_month: [usize; 12],
+    dates: usize,
+    busiest_dates: Vec<usize>,
+    shared_album_photos: Vec<usize>,
+    classified: usize,
+    indoors: usize,
+    similarity_cutoffs: [f32; SIGNAL_CUTOFFS.len()],
+    subjects: Vec<SubjectSignal>,
+    event_dates: [usize; SIGNAL_CUTOFFS.len()],
+}
+
+#[derive(Serialize)]
+struct BadgeReading {
+    badge: RewindBadge,
+    signal: f64,
+    score: Option<f64>,
+    value: Option<u32>,
+}
+
+#[derive(Serialize)]
+struct SubjectSignal {
+    subject: String,
+    matching: [usize; SIGNAL_CUTOFFS.len()],
+}
+
+type Classified<'a, 'r> = Vec<(&'a YearFile<'r>, &'a Similarities)>;
 
 fn rarity_rank(badge: RewindBadge) -> usize {
     RAREST_FIRST
@@ -184,34 +256,137 @@ pub(in crate::rewind) fn badge(
     people: Option<&People>,
     clip: Option<&Clip>,
 ) -> Option<Badge> {
+    let taken: Vec<&YearFile> = library.taken().collect();
+    let readings = readings(request, library, &taken, people, clip);
+    chosen(request, library, &taken, &readings)
+}
+
+pub(in crate::rewind) fn badge_signals(
+    request: &RewindRequest,
+    library: &Library<'_>,
+    people: Option<&People>,
+    clip: Option<&Clip>,
+    ml_coverage: Option<f32>,
+) -> BadgeSignals {
+    let taken: Vec<&YearFile> = library.taken().collect();
+    let readings = readings(request, library, &taken, people, clip);
+    let mut taken_per_hour = [0; 24];
+    let mut taken_per_weekday = [0; 7];
+    let mut taken_per_month = [0; 12];
+    let mut per_date: HashMap<i64, usize> = HashMap::new();
+    for file in &taken {
+        taken_per_hour[file.hour as usize] += 1;
+        taken_per_weekday[file.weekday as usize - 1] += 1;
+        taken_per_month[file.month as usize - 1] += 1;
+        *per_date.entry(file.day).or_default() += 1;
+    }
+    let mut busiest_dates: Vec<usize> = per_date.into_values().collect();
+    busiest_dates.sort_unstable_by(|first, second| second.cmp(first));
+    let dates = busiest_dates.len();
+    busiest_dates.truncate(BUSIEST_DATES_SHOWN);
+    let classified = clip
+        .map(|clip| classified(&taken, clip))
+        .unwrap_or_default();
+    BadgeSignals {
+        badge: chosen(request, library, &taken, &readings).map(|badge| badge.id),
+        readings: readings
+            .iter()
+            .map(|reading| BadgeReading {
+                badge: reading.id,
+                signal: reading.signal,
+                score: reading.score(),
+                value: reading.value,
+            })
+            .collect(),
+        ml_coverage,
+        has_people: people.is_some(),
+        has_me: request.me_person_id.is_some(),
+        has_clip: clip.is_some(),
+        files: library.files().len(),
+        eligible: library.eligible().count(),
+        taken: taken.len(),
+        taken_images: taken.iter().filter(|file| file.is_image()).count(),
+        taken_videos: taken
+            .iter()
+            .filter(|file| file.file.file_type == RewindFileType::Video)
+            .count(),
+        screenshots: library
+            .eligible()
+            .filter(|file| file.file.is_screenshot)
+            .count(),
+        located: taken
+            .iter()
+            .filter(|file| file.location().is_some())
+            .count(),
+        complete_months: library.complete_months(),
+        taken_per_hour,
+        taken_per_weekday,
+        taken_per_month,
+        dates,
+        busiest_dates,
+        shared_album_photos: shared_album_photos(&taken),
+        classified: classified.len(),
+        indoors: indoors(&classified),
+        similarity_cutoffs: SIGNAL_CUTOFFS,
+        subjects: SUBJECTS
+            .iter()
+            .map(|&subject| SubjectSignal {
+                subject: format!("{subject:?}"),
+                matching: SIGNAL_CUTOFFS.map(|cutoff| {
+                    classified
+                        .iter()
+                        .filter(|(_, similarities)| similarities.subject(subject) >= cutoff)
+                        .count()
+                }),
+            })
+            .collect(),
+        event_dates: SIGNAL_CUTOFFS.map(|cutoff| event_dates(&classified, cutoff)),
+    }
+}
+
+fn chosen(
+    request: &RewindRequest,
+    library: &Library<'_>,
+    taken: &[&YearFile<'_>],
+    readings: &[Reading],
+) -> Option<Badge> {
     if library.files().is_empty() {
         return None;
     }
-    let taken: Vec<&YearFile> = library.taken().collect();
     let specific = (taken.len() >= BADGE_MINIMUM_TAKEN)
-        .then(|| specific(request, library, &taken, people, clip))
+        .then(|| specific(readings))
         .flatten();
-    Some(specific.unwrap_or_else(|| generic(request, library, &taken)))
+    Some(specific.unwrap_or_else(|| generic(request, library, taken)))
 }
 
-fn specific(
+fn specific(readings: &[Reading]) -> Option<Badge> {
+    readings
+        .iter()
+        .filter_map(|reading| Some((reading.score()?, reading)))
+        .max_by(|(first_score, first), (second_score, second)| {
+            first_score
+                .total_cmp(second_score)
+                .then(rarity_rank(second.id).cmp(&rarity_rank(first.id)))
+        })
+        .map(|(_, reading)| Badge {
+            id: reading.id,
+            value: reading.value,
+        })
+}
+
+fn readings(
     request: &RewindRequest,
     library: &Library<'_>,
     taken: &[&YearFile<'_>],
     people: Option<&People>,
     clip: Option<&Clip>,
-) -> Option<Badge> {
+) -> Vec<Reading> {
     let eligible: Vec<&YearFile> = library.eligible().collect();
-    let mut candidates = vec![
+    let mut readings = vec![
         consistency_champ(library, taken),
-        unpaid_photographer(taken),
-        share_of_hours(
-            RewindBadge::EarlyBird,
-            taken,
-            &EARLY_BIRD_HOURS,
-            &EARLY_BIRD,
-        ),
-        share_of_hours(RewindBadge::NightOwl, taken, &NIGHT_OWL_HOURS, &NIGHT_OWL),
+        Some(unpaid_photographer(taken)),
+        share_of_hours(RewindBadge::EarlyBird, taken, &EARLY_BIRD_HOURS, EARLY_BIRD),
+        share_of_hours(RewindBadge::NightOwl, taken, &NIGHT_OWL_HOURS, NIGHT_OWL),
         weekend_star(taken),
         share(
             RewindBadge::ScreenshotCollector,
@@ -220,7 +395,7 @@ fn specific(
                 .filter(|file| file.file.is_screenshot)
                 .count(),
             eligible.len(),
-            &SCREENSHOT_COLLECTOR,
+            SCREENSHOT_COLLECTOR,
             SCREENSHOT_COLLECTOR_MINIMUM,
         ),
         out_of_office(library, taken),
@@ -231,43 +406,35 @@ fn specific(
                 .filter(|file| file.file.file_type == RewindFileType::Video)
                 .count(),
             taken.len(),
-            &ALWAYS_ROLLING,
+            ALWAYS_ROLLING,
             ALWAYS_ROLLING_MINIMUM,
         ),
     ];
     if let Some(people) = people {
-        candidates.push(main_character(request, library, taken, people));
+        readings.push(main_character(request, library, taken, people));
     }
     if let Some(clip) = clip {
-        let classified: Vec<(&YearFile, &Similarities)> = taken
-            .iter()
-            .filter(|file| file.is_image())
-            .filter_map(|&file| Some((file, clip.get(file.id())?)))
-            .collect();
-        candidates.extend(
+        let classified = classified(taken, clip);
+        readings.extend(
             SUBJECT_BADGES
                 .iter()
                 .map(|badge| subject_share(badge, &classified)),
         );
-        candidates.extend([
-            hobby_hopper(&classified),
+        readings.extend([
+            Some(hobby_hopper(&classified)),
             indoor_kid(&classified),
-            event_hopper(&classified),
+            Some(event_hopper(&classified)),
         ]);
     }
-    candidates
-        .into_iter()
-        .flatten()
-        .max_by(|first, second| {
-            first
-                .score
-                .total_cmp(&second.score)
-                .then(rarity_rank(second.id).cmp(&rarity_rank(first.id)))
-        })
-        .map(|candidate| Badge {
-            id: candidate.id,
-            value: candidate.value,
-        })
+    readings.into_iter().flatten().collect()
+}
+
+fn classified<'a, 'r>(taken: &[&'a YearFile<'r>], clip: &'a Clip) -> Classified<'a, 'r> {
+    taken
+        .iter()
+        .filter(|file| file.is_image())
+        .filter_map(|&file| Some((file, clip.get(file.id())?)))
+        .collect()
 }
 
 fn generic(request: &RewindRequest, library: &Library<'_>, taken: &[&YearFile<'_>]) -> Badge {
@@ -303,32 +470,25 @@ fn is_bursty(taken: &[&YearFile<'_>]) -> bool {
         && busiest as f64 >= GUEST_STAR_BUSIEST_SHARE * taken.len() as f64
 }
 
-fn scored(id: RewindBadge, signal: f64, scale: &Scale, value: Option<u32>) -> Option<Candidate> {
-    scale
-        .strength(signal)
-        .map(|score| Candidate { id, score, value })
-}
-
 fn share(
     id: RewindBadge,
     matching: usize,
     base: usize,
-    scale: &Scale,
+    scale: Scale,
     minimum: usize,
-) -> Option<Candidate> {
-    (matching >= minimum && base > 0)
-        .then(|| {
-            scored(
-                id,
-                matching as f64 / base as f64,
-                scale,
-                Some(count(matching)),
-            )
-        })
-        .flatten()
+) -> Option<Reading> {
+    (base > 0).then(|| Reading {
+        enough: matching >= minimum,
+        ..Reading::new(
+            id,
+            matching as f64 / base as f64,
+            scale,
+            Some(count(matching)),
+        )
+    })
 }
 
-fn consistency_champ(library: &Library<'_>, taken: &[&YearFile<'_>]) -> Option<Candidate> {
+fn consistency_champ(library: &Library<'_>, taken: &[&YearFile<'_>]) -> Option<Reading> {
     let mut per_month = [0usize; 12];
     for file in taken {
         per_month[file.month as usize - 1] += 1;
@@ -336,34 +496,39 @@ fn consistency_champ(library: &Library<'_>, taken: &[&YearFile<'_>]) -> Option<C
     let mut complete = per_month[..library.complete_months()].to_vec();
     complete.sort_unstable();
     let quietest = *complete.first()?;
-    let median = complete[complete.len() / 2];
-    (quietest >= CONSISTENCY_CHAMP_MONTHLY_MINIMUM)
-        .then(|| {
-            scored(
-                RewindBadge::ConsistencyChamp,
-                quietest as f64 / median as f64,
-                &CONSISTENCY_CHAMP,
-                Some(count(complete.len())),
-            )
-        })
-        .flatten()
+    let median = complete[complete.len() / 2].max(1);
+    Some(Reading {
+        enough: quietest >= CONSISTENCY_CHAMP_MONTHLY_MINIMUM,
+        ..Reading::new(
+            RewindBadge::ConsistencyChamp,
+            quietest as f64 / median as f64,
+            CONSISTENCY_CHAMP,
+            Some(count(complete.len())),
+        )
+    })
 }
 
-fn unpaid_photographer(taken: &[&YearFile<'_>]) -> Option<Candidate> {
+fn shared_album_photos(taken: &[&YearFile<'_>]) -> Vec<usize> {
     let mut photos_per_album: HashMap<i64, usize> = HashMap::new();
     for file in taken {
         for &album in &file.file.shared_album_ids {
             *photos_per_album.entry(album).or_default() += 1;
         }
     }
-    let albums = photos_per_album
-        .into_values()
+    let mut photos: Vec<usize> = photos_per_album.into_values().collect();
+    photos.sort_unstable_by(|first, second| second.cmp(first));
+    photos
+}
+
+fn unpaid_photographer(taken: &[&YearFile<'_>]) -> Reading {
+    let albums = shared_album_photos(taken)
+        .into_iter()
         .filter(|&photos| photos >= UNPAID_PHOTOGRAPHER_ALBUM_PHOTOS)
         .count();
-    scored(
+    Reading::new(
         RewindBadge::UnpaidPhotographer,
         albums as f64,
-        &UNPAID_PHOTOGRAPHER,
+        UNPAID_PHOTOGRAPHER,
         Some(count(albums)),
     )
 }
@@ -372,19 +537,19 @@ fn share_of_hours(
     id: RewindBadge,
     taken: &[&YearFile<'_>],
     hours: &[u32],
-    scale: &Scale,
-) -> Option<Candidate> {
+    scale: Scale,
+) -> Option<Reading> {
     let matching = taken
         .iter()
         .filter(|file| hours.contains(&file.hour))
         .count();
-    share(id, matching, taken.len(), scale, 1).map(|candidate| Candidate {
+    share(id, matching, taken.len(), scale, 1).map(|reading| Reading {
         value: None,
-        ..candidate
+        ..reading
     })
 }
 
-fn weekend_star(taken: &[&YearFile<'_>]) -> Option<Candidate> {
+fn weekend_star(taken: &[&YearFile<'_>]) -> Option<Reading> {
     let weekend = taken
         .iter()
         .filter(|file| WEEKEND_DAYS.contains(&file.weekday))
@@ -393,12 +558,12 @@ fn weekend_star(taken: &[&YearFile<'_>]) -> Option<Candidate> {
         RewindBadge::WeekendStar,
         weekend,
         taken.len(),
-        &WEEKEND_STAR,
+        WEEKEND_STAR,
         1,
     )
-    .map(|candidate| Candidate {
+    .map(|reading| Reading {
         value: Some(percent(weekend, taken.len())),
-        ..candidate
+        ..reading
     })
 }
 
@@ -407,7 +572,7 @@ fn main_character(
     library: &Library<'_>,
     taken: &[&YearFile<'_>],
     people: &People,
-) -> Option<Candidate> {
+) -> Option<Reading> {
     let me = request.me_person_id.as_deref()?;
     let person = people.persons().iter().find(|person| person.id == me)?;
     let images = taken.iter().filter(|file| file.is_image()).count();
@@ -420,16 +585,16 @@ fn main_character(
         RewindBadge::MainCharacter,
         with_me,
         images,
-        &MAIN_CHARACTER,
+        MAIN_CHARACTER,
         MAIN_CHARACTER_MINIMUM,
     )
-    .map(|candidate| Candidate {
+    .map(|reading| Reading {
         value: Some(percent(with_me, images)),
-        ..candidate
+        ..reading
     })
 }
 
-fn out_of_office(library: &Library<'_>, taken: &[&YearFile<'_>]) -> Option<Candidate> {
+fn out_of_office(library: &Library<'_>, taken: &[&YearFile<'_>]) -> Option<Reading> {
     let home = spots_of(library)
         .into_iter()
         .max_by_key(|spot| (spot.days, spot.files.len()))?
@@ -462,18 +627,15 @@ fn out_of_office(library: &Library<'_>, taken: &[&YearFile<'_>]) -> Option<Candi
             trips += 1;
         }
     }
-    scored(
+    Some(Reading::new(
         RewindBadge::OutOfOffice,
         trips as f64,
-        &OUT_OF_OFFICE,
+        OUT_OF_OFFICE,
         Some(count(trips)),
-    )
+    ))
 }
 
-fn subject_share(
-    badge: &SubjectBadge,
-    classified: &[(&YearFile<'_>, &Similarities)],
-) -> Option<Candidate> {
+fn subject_share(badge: &SubjectBadge, classified: &Classified<'_, '_>) -> Option<Reading> {
     let matching = classified
         .iter()
         .filter(|(_, similarities)| similarities.matches(badge.subject))
@@ -482,12 +644,12 @@ fn subject_share(
         badge.id,
         matching,
         classified.len(),
-        &badge.scale,
+        badge.scale,
         badge.minimum,
     )
 }
 
-fn hobby_hopper(classified: &[(&YearFile<'_>, &Similarities)]) -> Option<Candidate> {
+fn hobby_hopper(classified: &Classified<'_, '_>) -> Reading {
     let tops: HashSet<usize> = (0..4)
         .filter_map(|quarter| {
             let in_quarter: Vec<&Similarities> = classified
@@ -511,50 +673,61 @@ fn hobby_hopper(classified: &[(&YearFile<'_>, &Similarities)]) -> Option<Candida
                 .filter(|&hobby| counts[hobby] >= HOBBY_HOPPER_QUARTER_MINIMUM)
         })
         .collect();
-    scored(
+    Reading::new(
         RewindBadge::HobbyHopper,
         tops.len() as f64,
-        &HOBBY_HOPPER,
+        HOBBY_HOPPER,
         None,
     )
 }
 
-fn indoor_kid(classified: &[(&YearFile<'_>, &Similarities)]) -> Option<Candidate> {
-    let indoors = classified
+fn indoors(classified: &Classified<'_, '_>) -> usize {
+    classified
         .iter()
         .filter(|(_, similarities)| {
             similarities.subject(Subject::Indoors) > similarities.subject(Subject::Outdoors)
         })
-        .count();
+        .count()
+}
+
+fn indoor_kid(classified: &Classified<'_, '_>) -> Option<Reading> {
+    let indoors = indoors(classified);
     share(
         RewindBadge::IndoorKid,
         indoors,
         classified.len(),
-        &INDOOR_KID,
+        INDOOR_KID,
         1,
     )
-    .filter(|_| classified.len() >= INDOOR_KID_MINIMUM_CLASSIFIED)
-    .map(|candidate| Candidate {
+    .map(|reading| Reading {
+        enough: reading.enough && classified.len() >= INDOOR_KID_MINIMUM_CLASSIFIED,
         value: Some(percent(indoors, classified.len())),
-        ..candidate
+        ..reading
     })
 }
 
-fn event_hopper(classified: &[(&YearFile<'_>, &Similarities)]) -> Option<Candidate> {
+fn event_dates(classified: &Classified<'_, '_>, cutoff: f32) -> usize {
     let mut per_date: HashMap<i64, usize> = HashMap::new();
     for (file, similarities) in classified {
-        if EVENTS.iter().any(|&subject| similarities.matches(subject)) {
+        if EVENTS
+            .iter()
+            .any(|&subject| similarities.subject(subject) >= cutoff)
+        {
             *per_date.entry(file.day).or_default() += 1;
         }
     }
-    let dates = per_date
+    per_date
         .into_values()
         .filter(|&photos| photos >= EVENT_HOPPER_PHOTOS_PER_DATE)
-        .count();
-    scored(
+        .count()
+}
+
+fn event_hopper(classified: &Classified<'_, '_>) -> Reading {
+    let dates = event_dates(classified, MATCH_SIMILARITY);
+    Reading::new(
         RewindBadge::EventHopper,
         dates as f64,
-        &EVENT_HOPPER,
+        EVENT_HOPPER,
         Some(count(dates)),
     )
 }
@@ -574,7 +747,7 @@ mod tests {
     use crate::rewind::people::People;
     use crate::rewind::report::{Badge, RewindBadge};
 
-    use super::{badge, badge_uses_ml};
+    use super::{badge, badge_signals, badge_uses_ml};
 
     const HOUR: i64 = 3_600_000_000;
     const DAY: i64 = 24 * HOUR;
@@ -624,6 +797,47 @@ mod tests {
 
     fn generic(id: RewindBadge) -> Option<Badge> {
         Some(Badge { id, value: None })
+    }
+
+    #[test]
+    fn signals_report_every_badge_reading_beside_the_chosen_badge() {
+        let mut files = weekday_shots(1, 100, 1);
+        for (position, file) in files.iter_mut().enumerate().take(12) {
+            file.shared_album_ids = vec![position as i64 / 6];
+        }
+        let signals_request = request(with_history(files));
+        let library = Library::of_year(&signals_request).unwrap();
+        let signals =
+            serde_json::to_value(badge_signals(&signals_request, &library, None, None, None))
+                .unwrap();
+
+        assert_eq!(signals["badge"], "LimitedEdition");
+        assert_eq!(signals["taken"], 100);
+        assert_eq!(
+            signals["taken_per_weekday"],
+            serde_json::json!([20, 20, 20, 20, 20, 0, 0])
+        );
+        assert_eq!(signals["shared_album_photos"], serde_json::json!([6, 6]));
+        let reading = |id: &str| {
+            signals["readings"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|reading| reading["badge"] == id)
+                .unwrap()
+                .clone()
+        };
+        assert_eq!(
+            reading("UnpaidPhotographer"),
+            serde_json::json!({
+                "badge": "UnpaidPhotographer",
+                "signal": 2.0,
+                "score": null,
+                "value": 2,
+            })
+        );
+        assert_eq!(reading("WeekendStar")["signal"], 0.0);
+        assert_eq!(reading("WeekendStar")["score"], serde_json::Value::Null);
     }
 
     #[test]

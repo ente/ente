@@ -11,7 +11,7 @@ use crate::ml_db::vector_encoding::decode_f32;
 use crate::ml_store::MlStore;
 
 const SCAN_PAGE: NonZeroUsize = NonZeroUsize::new(1000).unwrap();
-const MATCH_SIMILARITY: f32 = 0.225;
+pub(super) const MATCH_SIMILARITY: f32 = 0.225;
 
 pub(super) const COLOURS: [RewindColour; 10] = [
     RewindColour::CherryBomb,
@@ -43,7 +43,7 @@ pub(super) enum Subject {
     Artwork,
 }
 
-const SUBJECTS: [Subject; 13] = [
+pub(super) const SUBJECTS: [Subject; 13] = [
     Subject::GoldenHour,
     Subject::Pets,
     Subject::Food,

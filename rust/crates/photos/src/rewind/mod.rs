@@ -23,7 +23,9 @@ pub use report::{
 };
 pub use state::{REWIND_VERSION, RewindState, RewindStatus};
 
+use clip::Clip;
 use library::Library;
+use people::People;
 
 use crate::memories::CityLookup;
 use crate::ml_store::MlStore;
@@ -98,6 +100,23 @@ pub fn decode_rewind_state(
 
 pub fn encode_rewind_request(request: &RewindRequest) -> Result<Vec<u8>> {
     Ok(serde_json::to_vec_pretty(request)?)
+}
+
+pub fn rewind_badge_signals(request: &RewindRequest, store: Option<&MlStore>) -> Result<String> {
+    let library = Library::of_year(request)?;
+    let ml_coverage = store.map(|store| library.ml_coverage(store)).transpose()?;
+    let people = store
+        .map(|store| People::load(request, &library, store))
+        .transpose()?;
+    let clip = store.map(|store| Clip::load(&library, store)).transpose()?;
+    let signals = chapters::badge_signals(
+        request,
+        &library,
+        people.as_ref(),
+        clip.as_ref(),
+        ml_coverage,
+    );
+    Ok(serde_json::to_string_pretty(&signals)?)
 }
 
 #[cfg(test)]
