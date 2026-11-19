@@ -10,6 +10,7 @@ import "package:media_extension/media_extension.dart";
 import "package:media_extension/media_extension_action_types.dart";
 import "package:photo_manager/photo_manager.dart";
 import "package:photo_manager_image_provider/photo_manager_image_provider.dart";
+import "package:photos/db/files_db.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/gallery_type.dart";
 import "package:photos/models/metadata/file_magic.dart";
@@ -19,6 +20,8 @@ import "package:photos/ui/viewer/file/detail_page.dart";
 import "package:photos/ui/viewer/file/external_video_viewer.dart";
 import "package:photos/ui/viewer/file/image_zoom/image_zoom_viewer.dart";
 import "package:receive_sharing_intent/receive_sharing_intent.dart";
+
+const _finishTaskChannel = MethodChannel("io.ente/finishTask");
 
 class FileViewer extends StatefulWidget {
   final SharedMediaFile? sharedMediaFile;
@@ -291,6 +294,17 @@ class FileViewerState extends State<FileViewer> {
       w: asset.orientatedWidth,
       h: asset.orientatedHeight,
     );
+    // The media extension hands us a MediaStore asset, not an Ente file, so
+    // the freshly built EnteFile has no uploadedFileID even when this photo
+    // is already backed up. Without it, the viewer would offer only "delete
+    // from device" for an uploaded photo. Copy the uploaded counterpart over
+    // from the DB when it exists.
+    final uploaded = await FilesDB.instance.getUploadedFileForLocalID(asset.id);
+    if (uploaded != null) {
+      file.uploadedFileID = uploaded.uploadedFileID;
+      file.collectionID = uploaded.collectionID;
+      file.ownerID = uploaded.ownerID;
+    }
     return file;
   }
 
@@ -514,7 +528,15 @@ class FileViewerState extends State<FileViewer> {
     }
     _isClosingViewer = true;
     try {
-      await SystemChannels.platform.invokeMethod('SystemNavigator.pop');
+      if (_isExternalView) {
+        // When the camera launches Ente as an external gallery, Ente opens in
+        // its own task. Activity.finish() leaves that task in the background,
+        // so the app stays alive after the back gesture. finishAndRemoveTask
+        // removes it instead, matching Google Photos.
+        await _finishTaskChannel.invokeMethod('finishAndRemoveTask');
+      } else {
+        await SystemChannels.platform.invokeMethod('SystemNavigator.pop');
+      }
     } finally {
       _isClosingViewer = false;
     }
