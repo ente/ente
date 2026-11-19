@@ -255,11 +255,14 @@ export class FileViewerPhotoSwipe<
         const currentFileAnnotation = () => currentAnnotatedFile().annotation;
 
         let lastFiles = delegate.getFiles();
-        let needsSlideSync = false;
+        let slideBeforeFilesUpdate: PhotoSwipe["currSlide"];
+        let shouldUpdateVideoOnChange = true;
 
         pswp.on("change", () => {
-            if (!needsSlideSync) return;
-            needsSlideSync = false;
+            shouldUpdateVideoOnChange = true;
+            const previousSlide = slideBeforeFilesUpdate;
+            if (!previousSlide) return;
+            slideBeforeFilesUpdate = undefined;
 
             const files = delegate.getFiles();
             pswp.mainScroll.itemHolders.forEach((holder, offset) => {
@@ -281,6 +284,9 @@ export class FileViewerPhotoSwipe<
                 holder.slide?.setIsActive(offset == 1);
                 if (offset == 1) _currentAnnotatedFile = undefined;
             });
+
+            // PhotoSwipe still needs change to refresh the counter and arrows.
+            shouldUpdateVideoOnChange = pswp.currSlide != previousSlide;
         });
 
         this.refreshSlideOnFilesUpdateIfNeeded = () => {
@@ -296,7 +302,7 @@ export class FileViewerPhotoSwipe<
                     ? currentIndex
                     : files.findIndex(({ id }) => id == fileID);
 
-            needsSlideSync = true;
+            slideBeforeFilesUpdate = pswp.currSlide;
             pswp.goTo(
                 newIndex == -1
                     ? Math.min(currentIndex, files.length - 1)
@@ -1393,9 +1399,10 @@ export class FileViewerPhotoSwipe<
                         handleFullscreenButtonClick,
                         { capture: true },
                     );
-                    pswp.on("change", () =>
-                        updateVideoControlsAndPlayback(currSlideData()),
-                    );
+                    pswp.on("change", () => {
+                        if (shouldUpdateVideoOnChange)
+                            updateVideoControlsAndPlayback(currSlideData());
+                    });
                 },
             });
 
