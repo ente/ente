@@ -61,9 +61,13 @@ internal class SlideshowComposer(
         class Video(
             val file: File,
             val isMuted: Boolean,
+            val audioStartUs: Long?,
             val clipEndUs: Long?,
             durationUs: Long
-        ) : Segment(durationUs)
+        ) : Segment(durationUs) {
+            val playsAudio get() = audioStartUs != null
+            val audioStartsAfterSlot get() = audioStartUs != null && audioStartUs >= durationUs
+        }
     }
 
     fun compose(): Composition {
@@ -88,6 +92,7 @@ internal class SlideshowComposer(
                     Segment.Video(
                         file = file,
                         isMuted = item.isMuted,
+                        audioStartUs = if (item.isMuted) null else readAudioStartUs(file),
                         clipEndUs = clipEndUs,
                         durationUs = clipEndUs ?: fullDurationUs
                     )
@@ -149,11 +154,11 @@ internal class SlideshowComposer(
                     previousPhoto = null
                     EditedMediaItem.Builder(videoMediaItem(segment))
                     .setFrameRate(request.frameRate)
-                    .setRemoveAudio(segment.isMuted)
+                    .setRemoveAudio(segment.isMuted || segment.audioStartsAfterSlot)
                     .setEffects(
                         Effects(
                             listOfNotNull(
-                                segment.clipEndUs?.let { ClipEndAudioProcessor(it) },
+                                audioWindow(segment, startsSequence = index == 0),
                                 videoAudioGain?.let {
                                     GainProcessor(DefaultGainProvider.Builder(it).build())
                                 }
@@ -189,15 +194,33 @@ internal class SlideshowComposer(
             .build()
     }
 
-    private fun hasAudioTrack(file: File): Boolean {
+    private fun readAudioStartUs(file: File): Long? {
         val extractor = MediaExtractorCompat(context)
         return try {
             extractor.setDataSource(Uri.fromFile(file), 0L)
-            (0 until extractor.trackCount).any {
-                extractor.getTrackFormat(it).getString(MediaFormat.KEY_MIME)?.startsWith("audio/") == true
+            val audioTracks = (0 until extractor.trackCount).filter {
+                MimeTypes.isAudio(extractor.getTrackFormat(it).getString(MediaFormat.KEY_MIME))
+            }
+            when (audioTracks.size) {
+                0 -> null
+                1 -> {
+                    extractor.selectTrack(audioTracks.single())
+                    max(0L, extractor.sampleTime)
+                }
+                else -> 0L
             }
         } finally {
             extractor.release()
+        }
+    }
+
+    private fun audioWindow(segment: Segment.Video, startsSequence: Boolean): AudioProcessor? {
+        val audioStartUs = segment.audioStartUs
+        return when {
+            audioStartUs == null -> segment.clipEndUs?.let { AudioWindowProcessor(delayUs = 0, lengthUs = it) }
+            segment.audioStartsAfterSlot -> AudioWindowProcessor(delayUs = 0, lengthUs = segment.durationUs)
+            startsSequence -> AudioWindowProcessor(delayUs = 0, lengthUs = segment.durationUs - audioStartUs)
+            else -> AudioWindowProcessor(delayUs = audioStartUs, lengthUs = segment.durationUs)
         }
     }
 
@@ -260,9 +283,7 @@ internal class SlideshowComposer(
         var startUs = 0L
         for (segment in segments) {
             val endUs = startUs + segment.durationUs
-            if (segment is Segment.Video && !segment.isMuted && hasAudioTrack(segment.file)) {
-                ranges.add(startUs until endUs)
-            }
+            if (segment is Segment.Video && segment.playsAudio) ranges.add(startUs until endUs)
             startUs = endUs
         }
         return ranges
@@ -638,18 +659,30 @@ private class MusicGainProvider(
 }
 
 @UnstableApi
-private class ClipEndAudioProcessor(private val clipEndUs: Long) : BaseAudioProcessor() {
+private class AudioWindowProcessor(
+    private val delayUs: Long,
+    private val lengthUs: Long
+) : BaseAudioProcessor() {
+    private var pendingSilenceFrames = 0L
     private var remainingFrames = 0L
 
     override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat) = inputAudioFormat
 
     override fun onFlush(streamMetadata: AudioProcessor.StreamMetadata) {
-        val remainingUs = max(0L, clipEndUs - streamMetadata.positionOffsetUs)
-        remainingFrames = remainingUs * inputAudioFormat.sampleRate / C.MICROS_PER_SECOND
+        remainingFrames = frames(max(0L, lengthUs - streamMetadata.positionOffsetUs))
+        pendingSilenceFrames = min(frames(delayUs), remainingFrames)
     }
 
     override fun queueInput(inputBuffer: ByteBuffer) {
         val bytesPerFrame = inputAudioFormat.bytesPerFrame
+        if (pendingSilenceFrames > 0) {
+            val silenceFrames = min(pendingSilenceFrames, (silenceChunk.size / bytesPerFrame).toLong())
+            pendingSilenceFrames -= silenceFrames
+            remainingFrames -= silenceFrames
+            val silenceBytes = silenceFrames.toInt() * bytesPerFrame
+            replaceOutputBuffer(silenceBytes).put(silenceChunk, 0, silenceBytes).flip()
+            return
+        }
         val keptFrames = min(inputBuffer.remaining().toLong() / bytesPerFrame, remainingFrames)
         val inputEnd = inputBuffer.limit()
         if (keptFrames > 0) {
@@ -660,4 +693,8 @@ private class ClipEndAudioProcessor(private val clipEndUs: Long) : BaseAudioProc
         }
         inputBuffer.position(inputEnd)
     }
+
+    private fun frames(durationUs: Long) = durationUs * inputAudioFormat.sampleRate / C.MICROS_PER_SECOND
 }
+
+private val silenceChunk = ByteArray(64 * 1024)
