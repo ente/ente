@@ -1,5 +1,7 @@
+import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
+import "package:photos/core/configuration.dart";
 import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
@@ -8,16 +10,24 @@ import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
 import "package:photos/utils/share_util.dart";
 
 class FinaleActions extends StatefulWidget {
-  const FinaleActions({required this.active, required this.delayMs, super.key});
+  const FinaleActions({
+    required this.active,
+    required this.delayMs,
+    required this.elapsedMs,
+    super.key,
+  });
 
   final bool active;
   final int delayMs;
+  final ValueListenable<double> elapsedMs;
 
   @override
   State<FinaleActions> createState() => _FinaleActionsState();
 }
 
 class _FinaleActionsState extends State<FinaleActions> {
+  static const _saveDelayMs = 220;
+
   final _shareButton = GlobalKey();
 
   void _share() {
@@ -29,10 +39,14 @@ class _FinaleActionsState extends State<FinaleActions> {
 
   void _save() {
     HapticFeedback.selectionClick().ignore();
+    RewindPageScope.navigatorOf(context)?.saveVideo();
   }
 
   @override
   Widget build(BuildContext context) {
+    final videoSaved = RewindPageScope.navigatorOf(context)?.videoSaved;
+    final still = MediaQuery.disableAnimationsOf(context);
+    final saveAtMs = widget.delayMs + _saveDelayMs;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -47,13 +61,25 @@ class _FinaleActionsState extends State<FinaleActions> {
             child: _ShareButton(key: _shareButton, onTap: _share),
           ),
         ),
-        const SizedBox(height: 12),
-        RewindEntrance(
-          preset: RewindPreset.line,
-          active: widget.active,
-          delayMs: widget.delayMs + 220,
-          child: _SaveButton(onTap: _save),
-        ),
+        if (Configuration.instance.hasConfiguredAccount()) ...[
+          const SizedBox(height: 12),
+          ValueListenableBuilder(
+            valueListenable: widget.elapsedMs,
+            builder: (context, ms, save) =>
+                IgnorePointer(ignoring: !still && ms < saveAtMs, child: save),
+            child: RewindEntrance(
+              preset: RewindPreset.line,
+              active: widget.active,
+              delayMs: saveAtMs,
+              child: ValueListenableBuilder(
+                valueListenable:
+                    videoSaved ?? const AlwaysStoppedAnimation(false),
+                builder: (context, saved, _) =>
+                    _SaveButton(saved: saved, onTap: _save),
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -193,52 +219,84 @@ class _Shine extends StatelessWidget {
 }
 
 class _SaveButton extends StatelessWidget {
-  const _SaveButton({required this.onTap});
+  const _SaveButton({required this.saved, required this.onTap});
 
+  final bool saved;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: "Save to Ente",
-      child: RewindPressable(
-        onTap: onTap,
-        child: Container(
-          width: 300,
-          height: 44,
-          decoration: BoxDecoration(
-            color: RewindColors.photoPaper,
-            border: Border.all(
-              color: RewindColors.ink.withValues(alpha: 0.85),
-              width: 2.5,
+    final label = saved ? "Saved to Ente" : "Save to Ente";
+    final button = Container(
+      width: 300,
+      height: 44,
+      decoration: BoxDecoration(
+        color: RewindColors.photoPaper,
+        border: Border.all(
+          color: RewindColors.ink.withValues(alpha: 0.85),
+          width: 2.5,
+        ),
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: ExcludeSemantics(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CustomPaint(
+              size: const Size(18, 18),
+              painter: saved ? const _CheckPainter() : const _DownloadPainter(),
             ),
-            borderRadius: BorderRadius.circular(22),
-          ),
-          child: ExcludeSemantics(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const CustomPaint(
-                  size: Size(18, 18),
-                  painter: _DownloadPainter(),
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  "Save to Ente",
-                  style: RewindTextStyles.body(
-                    17,
-                    color: RewindColors.ink,
-                    height: 1.05,
-                  ),
-                ),
-              ],
+            const SizedBox(width: 10),
+            Text(
+              label,
+              style: RewindTextStyles.body(
+                17,
+                color: RewindColors.ink,
+                height: 1.05,
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
+    return Semantics(
+      button: !saved,
+      label: label,
+      child: saved
+          ? GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {},
+              excludeFromSemantics: true,
+              child: button,
+            )
+          : RewindPressable(onTap: onTap, child: button),
+    );
   }
+}
+
+class _CheckPainter extends CustomPainter {
+  const _CheckPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    canvas.drawPath(
+      Path()
+        ..moveTo(w * 0.1, h * 0.54)
+        ..lineTo(w * 0.38, h * 0.82)
+        ..lineTo(w * 0.9, h * 0.22),
+      Paint()
+        ..color = RewindColors.ink
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.6
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_CheckPainter oldDelegate) => false;
 }
 
 class _DownloadPainter extends CustomPainter {
