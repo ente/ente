@@ -34,6 +34,8 @@ abstract final class RewindAssets {
   static const pinkSparkle = "$_images/sparkle-pink.svg";
   static const creamSparkle = "$_images/sparkle-cream.svg";
 
+  static String lockupPiece(String name) => "$_images/lockup-$name.svg";
+
   static const introDucky = "$_rive/ente-rewind-intro-ducky.riv";
   static const paletteDucky = "$_rive/ente-rewind-palette-ducky.riv";
   static const globeDucky = "$_rive/ente-rewind-globe-ducky.riv";

@@ -1,3 +1,4 @@
+import "dart:async";
 import "dart:math";
 
 import "package:flutter/material.dart";
@@ -80,10 +81,13 @@ class RewindChromeOverlay extends StatelessWidget {
         Positioned(
           right: layout.rail.dx,
           top: layout.rail.dy,
-          child: RewindProgressRail(
+          child: _PeekingRail(
             index: page,
-            count: pageCount,
-            color: chrome.foreground,
+            child: RewindProgressRail(
+              index: page,
+              count: pageCount,
+              color: chrome.foreground,
+            ),
           ),
         ),
         if (chrome.muteButton)
@@ -217,6 +221,64 @@ class RewindProgressRail extends StatelessWidget {
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _PeekingRail extends StatefulWidget {
+  const _PeekingRail({required this.index, required this.child});
+
+  final int index;
+  final Widget child;
+
+  @override
+  State<_PeekingRail> createState() => _PeekingRailState();
+}
+
+class _PeekingRailState extends State<_PeekingRail> {
+  static const _shownFor = Duration(milliseconds: 1600);
+
+  Timer? _hide;
+  var _visible = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _peek();
+  }
+
+  @override
+  void didUpdateWidget(_PeekingRail oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.index != widget.index) _peek();
+  }
+
+  void _peek() {
+    _hide?.cancel();
+    _visible = widget.index > 0;
+    if (_visible) {
+      _hide = Timer(_shownFor, () {
+        if (mounted) setState(() => _visible = false);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _hide?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: AnimatedOpacity(
+        opacity: _visible ? 1 : 0,
+        duration: Duration(milliseconds: _visible ? 200 : 600),
+        curve: Curves.easeOut,
+        alwaysIncludeSemantics: true,
+        child: widget.child,
       ),
     );
   }
