@@ -356,9 +356,12 @@ function PlanSelectionCard({
 
 function formatPrice(price: string, divisor = 1) {
     const [, prefix, amount, suffix] =
-        /^(\D*)(\d+(?:\.\d+)?)(\D*)$/.exec(price) ?? [];
+        /^(\D*)((?:\d{1,3}(?:,\d{3})+|\d{1,2}(?:,\d{2})+,\d{3}|\d+)(?:\.\d+)?)(\D*)$/.exec(
+            price,
+        ) ?? [];
     if (!amount) return undefined;
-    const value = Math.round((Number(amount) / divisor) * 100) / 100;
+    const value =
+        Math.round((Number(amount.replaceAll(",", "")) / divisor) * 100) / 100;
     return `${prefix}${formattedNumber(value)}${suffix}`;
 }
 
