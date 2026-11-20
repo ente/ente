@@ -59,7 +59,6 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
   ScrollController? _actionsController;
   double? _minHeight;
   double? _railStartOffset;
-  double _railMaxOffset = 0;
   double _minExtent = 0;
   double _maxExtent = 1;
   bool _isCollapsing = false;
@@ -68,6 +67,9 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
 
   double get _reveal =>
       const Interval(0.15, 1, curve: Curves.easeOutCubic).transform(_expansion);
+
+  double get _conceal =>
+      const Interval(0, 0.3, curve: Curves.easeOutCubic).transform(_expansion);
 
   double get _expansion {
     if (_maxExtent <= _minExtent) return 1;
@@ -182,7 +184,13 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
     if (!_railController.hasClients) return;
     _railStartOffset ??= math.max(0.0, _railController.offset);
     final offset =
-        math.min(_railStartOffset!, _railMaxOffset) * (1 - _expansion);
+        _railStartOffset! *
+        (1 -
+            const Interval(
+              0.15,
+              0.3,
+              curve: Curves.easeOutCubic,
+            ).transform(_expansion));
     _railController.jumpTo(
       math.min(math.max(0.0, _railController.offset), offset),
     );
@@ -280,29 +288,35 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
         final gridLabelWidth =
             (sheetWidth - Spacing.md * 2 - Spacing.xs * (columns - 1)) /
             columns;
-        _railMaxOffset = math.max(
-          0.0,
-          (railTileWidth - gridLabelWidth) * columns,
-        );
         final labelWidth = usesRail
             ? math.min(gridLabelWidth, railTileWidth)
             : gridLabelWidth;
-        var labelHeight = labelLineHeight;
-        for (final action in grid) {
-          final painter = TextPainter(
-            text: TextSpan(text: action.labelText, style: TextStyles.mini),
-            textDirection: Directionality.of(context),
-            textScaler: media.textScaler,
-            maxLines: 2,
-            ellipsis: "…",
-          )..layout(maxWidth: math.max(0, labelWidth));
-          labelHeight = math.max(labelHeight, painter.height);
-          painter.dispose();
+        double tileHeightFor(Iterable<SelectionSheetAction> actions) {
+          var labelHeight = labelLineHeight;
+          for (final action in actions) {
+            final painter = TextPainter(
+              text: TextSpan(text: action.labelText, style: TextStyles.mini),
+              textDirection: Directionality.of(context),
+              textScaler: media.textScaler,
+              maxLines: 2,
+              ellipsis: "…",
+            )..layout(maxWidth: math.max(0, labelWidth));
+            labelHeight = math.max(labelHeight, painter.height);
+            painter.dispose();
+          }
+          return math.max(
+            64.0,
+            _SheetAction.iconSize +
+                Spacing.sm * 2 +
+                Spacing.xs * 3 +
+                labelHeight,
+          );
         }
-        final tileHeight = math.max(
-          64.0,
-          _SheetAction.iconSize + Spacing.sm * 2 + Spacing.xs * 3 + labelHeight,
-        );
+
+        final tileHeight = tileHeightFor(grid);
+        final railHeight = usesRail
+            ? math.max(tileHeight, tileHeightFor(rows))
+            : tileHeight;
         final gridHeight =
             gridRows * tileHeight + (gridRows - 1) * gridRowSpacing;
         final bottomSpacing = rows.isEmpty
@@ -331,7 +345,7 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
           return const SizedBox.shrink();
         }
         final minHeight = math.min(
-          baseHeight + tileHeight + Spacing.sm,
+          baseHeight + railHeight + Spacing.sm,
           maxHeight,
         );
         final peekHeight = usesRail
@@ -347,12 +361,13 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
         _maxExtent = maxHeight / availableHeight;
         final peekExtent = peekHeight / availableHeight;
         final railTiles = [
-          for (final action in grid)
-            _SheetAction(action: action, height: tileHeight),
+          for (final action in [...grid, if (minHeight < maxHeight) ...rows])
+            _SheetAction(action: action, height: railHeight),
         ];
         final keyedRailTiles = [
           for (final action in grid)
-            _SheetAction(key: action.key, action: action, height: tileHeight),
+            _SheetAction(key: action.key, action: action, height: railHeight),
+          ...railTiles.skip(grid.length),
         ];
 
         return SafeArea(
@@ -458,7 +473,7 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
                                             IgnorePointer(
                                               ignoring: !collapsed,
                                               child: SizedBox(
-                                                height: tileHeight,
+                                                height: railHeight,
                                                 child: ListView.separated(
                                                   controller: _railController,
                                                   scrollDirection:
@@ -467,22 +482,28 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
                                                       const EdgeInsets.symmetric(
                                                         horizontal: Spacing.md,
                                                       ),
-                                                  itemCount: grid.length,
+                                                  itemCount: railTiles.length,
                                                   separatorBuilder: (_, _) =>
                                                       const SizedBox(
                                                         width: Spacing.xs,
                                                       ),
                                                   itemBuilder:
-                                                      (context, index) =>
-                                                          SizedBox(
-                                                            width: tileWidth,
-                                                            child:
-                                                                collapsed ||
-                                                                    index <
-                                                                        columns
-                                                                ? tiles[index]
-                                                                : null,
-                                                          ),
+                                                      (
+                                                        context,
+                                                        index,
+                                                      ) => SizedBox(
+                                                        width: tileWidth,
+                                                        child: index < columns
+                                                            ? tiles[index]
+                                                            : Opacity(
+                                                                opacity:
+                                                                    collapsed
+                                                                    ? 1
+                                                                    : 1 - _conceal,
+                                                                child:
+                                                                    tiles[index],
+                                                              ),
+                                                      ),
                                                 ),
                                               ),
                                             ),

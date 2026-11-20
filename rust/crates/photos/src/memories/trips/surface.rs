@@ -6,7 +6,6 @@ use ente_location::Coordinate;
 use super::{Base, Trip, TripAnalysis};
 use crate::memories::UPDATE_FREQUENCY_DAYS;
 use crate::memories::calendar::{LocalDate, MICROS_PER_DAY};
-use crate::memories::geo::distance_km;
 use crate::memories::input::{CachedTrip, MemoriesRequest, Period, ShownTrip};
 use crate::memories::output::{BaseMemory, Memory, MemoryBoundary, MemoryKind, TripMemory};
 use crate::memories::photo::{Photo, sort_chronologically};
@@ -87,7 +86,7 @@ impl<'r> TripHistory<'r> {
             .iter()
             .filter(|shown| match &shown.key {
                 Some(key) => is_same_trip(key, trip, current),
-                None => distance_km(trip.location, shown.location) < LEGACY_SHOWN_TRIP_RADIUS_KM,
+                None => trip.location.distance_km(shown.location) < LEGACY_SHOWN_TRIP_RADIUS_KM,
             })
             .map(|shown| {
                 (
@@ -140,6 +139,25 @@ pub(in crate::memories) fn memories(
     selected
         .into_iter()
         .map(|trip| trip_memory(trip, selector, period.now, last_date_to_show))
+        .collect()
+}
+
+pub(in crate::memories) fn photos_on_screen(
+    analysis: &TripAnalysis,
+    history: &TripHistory,
+    period: Period,
+) -> HashSet<i64> {
+    let current: HashSet<&str> = analysis
+        .trips
+        .iter()
+        .map(|trip| trip.key.as_str())
+        .collect();
+    let active = history.active_identity_keys(period.now);
+    analysis
+        .trips
+        .iter()
+        .filter(|trip| is_on_screen(trip, &active, &current))
+        .flat_map(|trip| trip.members.iter().map(|member| member.photo.id))
         .collect()
 }
 
@@ -203,11 +221,10 @@ fn scheduled<'a, 'p>(
     if slots == 0 || trips.is_empty() {
         return Vec::new();
     }
-    let (on_screen, waiting): (Vec<&Trip>, Vec<&Trip>) = trips.iter().copied().partition(|trip| {
-        active
-            .iter()
-            .any(|identity_key| is_same_trip(trip_key(identity_key), trip, current))
-    });
+    let (on_screen, waiting): (Vec<&Trip>, Vec<&Trip>) = trips
+        .iter()
+        .copied()
+        .partition(|trip| is_on_screen(trip, &active, current));
     let candidates: Vec<Candidate> = waiting
         .into_iter()
         .map(|trip| {
@@ -415,6 +432,12 @@ fn trip_key(identity_key: &str) -> &str {
     identity_key.strip_prefix("trip:").unwrap_or(identity_key)
 }
 
+fn is_on_screen(trip: &Trip, active: &[&str], current: &HashSet<&str>) -> bool {
+    active
+        .iter()
+        .any(|identity_key| is_same_trip(trip_key(identity_key), trip, current))
+}
+
 fn is_same_trip(key: &str, trip: &Trip, current: &HashSet<&str>) -> bool {
     if key == trip.key {
         return true;
@@ -428,7 +451,7 @@ fn is_same_trip(key: &str, trip: &Trip, current: &HashSet<&str>) -> bool {
     let overlaps_nearby = first <= trip_last
         && trip_first <= last
         && key_location(key).is_some_and(|location| {
-            distance_km(location, trip.location) < OLDER_KEY_MAX_DISTANCE_KM
+            location.distance_km(trip.location) < OLDER_KEY_MAX_DISTANCE_KM
         });
     !current.contains(key) && (contains || overlaps_nearby)
 }

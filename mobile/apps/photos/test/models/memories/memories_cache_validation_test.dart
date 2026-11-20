@@ -225,6 +225,7 @@ void main() {
         peopleShownLogs: [],
         clipShownLogs: [],
         tripsShownLogs: [],
+        specialShownLogs: [],
         baseLocations: [],
       );
 

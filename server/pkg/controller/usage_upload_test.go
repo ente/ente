@@ -266,7 +266,7 @@ func setupPhotoUploadLimitTest(t *testing.T) (*FileController, *sql.DB, int64) {
 	})
 	users := &repo.UserRepository{DB: db}
 	bonuses := &storagebonusrepo.Repository{DB: db}
-	return &FileController{UsageCtrl: &UsageController{
+	return &FileController{UsageCtrl: &UsageController{UploadURLRepo: &repo.UploadURLRepository{DB: db},
 		UserRepo: users, UsageRepo: &repo.UsageRepository{DB: db},
 		FamilyRepo: &repo.FamilyRepository{DB: db},
 		BillingCtrl: &BillingController{

@@ -25,7 +25,12 @@ import "package:photos/ui/rewind/widgets/rewind_stage.dart";
 import "package:photos/ui/rewind/widgets/rewind_text.dart";
 
 class GlobePage extends RewindPage {
-  GlobePage(this.globe, this.photos, {this.photo = rewindPhoto});
+  GlobePage(
+    this.globe,
+    this.photos, {
+    this.photo = rewindPhoto,
+    this.bytes = rewindThumbnailBytes,
+  });
 
   static const pageKey = "globe";
   static const earthKm = 40075;
@@ -37,8 +42,14 @@ class GlobePage extends RewindPage {
   final rust.Globe globe;
   final List<EnteFile?> photos;
   final RewindPhotoBuilder photo;
+  final RewindBytes bytes;
 
   late final _World _world = _World.of(globe);
+
+  late final RewindWarm<RewindDecoded> _pins = RewindDecoded.warm([
+    for (final place in _GlobeViewState.docked(_world, globe, photos))
+      photos[place]!,
+  ], bytes);
 
   @override
   String get key => pageKey;
@@ -49,6 +60,21 @@ class GlobePage extends RewindPage {
   Duration? get reelHold => Duration(milliseconds: 1450 + _reelJourney.round());
 
   @override
+  Duration? get clipHold => reelHold;
+
+  @override
+  List<EnteFile> get reelThumbnails => [for (final photo in photos) ?photo];
+
+  @override
+  Future<bool> warmUp() async {
+    await _pins.value;
+    return true;
+  }
+
+  @override
+  void release() => _pins.release();
+
+  @override
   Widget build(
     BuildContext context,
     double position, {
@@ -56,15 +82,16 @@ class GlobePage extends RewindPage {
   }) {
     final km = globe.distanceKm;
     final lap = km >= earthKm
-        ? "That’s ${(km / earthKm).toStringAsFixed(1)} times around the Earth."
-        : "That’s ${max(1, (100 * km / earthKm).round())}% of the way "
-              "around the Earth.";
+        ? "That’s ${(km / earthKm).toStringAsFixed(1)} laps around the globe."
+        : "That’s ${max(1, (100 * km / earthKm).round())}% of a lap "
+              "around the globe.";
     return Stack(
       fit: StackFit.expand,
       children: [
         _card(
           position,
           isActive,
+          isActive && !RewindPageScope.coveredOf(context),
           km,
           lap,
           RewindPageScope.reelOf(context) ? _reelJourney : _world.journeyMs,
@@ -83,101 +110,107 @@ class GlobePage extends RewindPage {
   Widget _card(
     double position,
     bool isActive,
+    bool playing,
     int km,
     String body,
     double journeyMs,
   ) {
-    return RewindShareable(
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          const RewindBackdrop(
-            color: _space,
-            pattern: RewindRays(
-              _spaceRay,
-              center: _GlobeView.center,
-              wedge: 7.5,
-              step: 15,
+    return RewindWarmBuilder<RewindDecoded>(
+      warm: _pins,
+      builder: (context, pins) => RewindShareable(
+        enabled: pins != null,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            const RewindBackdrop(
+              color: _space,
+              pattern: RewindRays(
+                _spaceRay,
+                center: _GlobeView.center,
+                wedge: 7.5,
+                step: 15,
+              ),
             ),
-          ),
-          Semantics(
-            label: "Your photos flew ${rewindCount(km)} kilometres. $body",
-            child: ExcludeSemantics(
-              child: RewindStage(
-                children: [
-                  Positioned.fill(
-                    child: RewindLeave(
-                      position: position,
-                      centerY: _GlobeView.center.dy,
-                      child: _GlobeView(
-                        world: _world,
-                        globe: globe,
-                        photos: photos,
-                        photo: photo,
-                        active: isActive,
-                      ),
-                    ),
-                  ),
-                  RewindRevealLayer(
-                    left: 28,
-                    top: 597,
-                    maxWidth: 316,
-                    height: 18,
-                    position: position,
-                    active: isActive,
-                    delayMs: 500,
-                    child: RewindVoice(
-                      you: "YOUR PHOTOS FLEW",
-                      me: "MY PHOTOS FLEW",
-                      builder: (text) => Text(
-                        text,
-                        style: RewindTextStyles.display(17, height: 1.05),
-                      ),
-                    ),
-                  ),
-                  RewindRevealLayer(
-                    left: 28,
-                    top: 622,
-                    height: 52,
-                    position: position,
-                    active: isActive,
-                    preset: RewindPreset.slap,
-                    delayMs: 700,
-                    origin: Alignment.centerLeft,
-                    child: RewindFitWidth(
-                      width: 322,
-                      child: RewindCountUp(
-                        value: km,
-                        active: isActive,
-                        delayMs: _World.introMs.round(),
-                        durationMs: journeyMs.round(),
-                        builder: (context, text) => RewindOutlinedText(
-                          "$text KM",
-                          style: RewindTextStyles.display(
-                            58,
-                            color: RewindColors.yellow,
-                            height: 0.84,
-                          ),
-                          shadow: const Offset(2.2, 2.6),
+            Semantics(
+              label: "Your photos flew ${rewindCount(km)} kilometers. $body",
+              child: ExcludeSemantics(
+                child: RewindStage(
+                  children: [
+                    Positioned.fill(
+                      child: RewindLeave(
+                        position: position,
+                        centerY: _GlobeView.center.dy,
+                        child: _GlobeView(
+                          world: _world,
+                          globe: globe,
+                          photos: photos,
+                          photo: photo,
+                          pins: pins,
+                          active: playing,
                         ),
                       ),
                     ),
-                  ),
-                  RewindRevealLayer(
-                    left: 28,
-                    top: 688,
-                    width: 334,
-                    height: 44,
-                    position: position,
-                    active: isActive,
-                    delayMs: 1000,
-                    child: Text(body, style: RewindTextStyles.body(17)),
-                  ),
-                ],
+                    RewindRevealLayer(
+                      left: 28,
+                      top: 597,
+                      maxWidth: 316,
+                      height: 18,
+                      position: position,
+                      active: isActive,
+                      delayMs: 500,
+                      child: RewindVoice(
+                        you: "YOUR PHOTOS FLEW",
+                        me: "MY PHOTOS FLEW",
+                        builder: (text) => Text(
+                          text,
+                          style: RewindTextStyles.display(17, height: 1.05),
+                        ),
+                      ),
+                    ),
+                    RewindRevealLayer(
+                      left: 28,
+                      top: 622,
+                      height: 52,
+                      position: position,
+                      active: isActive,
+                      preset: RewindPreset.slap,
+                      delayMs: 700,
+                      origin: Alignment.centerLeft,
+                      child: RewindFitWidth(
+                        width: 322,
+                        child: RewindCountUp(
+                          value: km,
+                          active: playing,
+                          delayMs: _World.introMs.round(),
+                          durationMs: journeyMs.round(),
+                          builder: (context, text) => RewindOutlinedText(
+                            "$text KM",
+                            style: RewindTextStyles.display(
+                              58,
+                              color: RewindColors.yellow,
+                              height: 0.84,
+                            ),
+                            shadow: const Offset(2.2, 2.6),
+                          ),
+                        ),
+                      ),
+                    ),
+                    RewindRevealLayer(
+                      left: 28,
+                      top: 688,
+                      width: 334,
+                      height: 44,
+                      position: position,
+                      active: isActive,
+                      delayMs: 1000,
+                      child: Text(body, style: RewindTextStyles.body(17)),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -454,6 +487,7 @@ class _GlobeView extends StatefulWidget {
     required this.globe,
     required this.photos,
     required this.photo,
+    required this.pins,
     required this.active,
   });
 
@@ -464,6 +498,7 @@ class _GlobeView extends StatefulWidget {
   final rust.Globe globe;
   final List<EnteFile?> photos;
   final RewindPhotoBuilder photo;
+  final RewindDecoded? pins;
   final bool active;
 
   @override
@@ -663,18 +698,26 @@ class _GlobeViewState extends State<_GlobeView>
 
   late final Map<int, Offset> _berths = _berth();
 
-  Map<int, Offset> _berth() {
-    final home = _Projection.towards(_world.home, _steepest);
+  static List<int> docked(
+    _World world,
+    rust.Globe globe,
+    List<EnteFile?> photos,
+  ) {
+    final home = _Projection.towards(world.home, _steepest);
     final seen =
         [
-          for (var place = 0; place < widget.photos.length; place++)
-            if (home.project(_world.places[place], 1).depth > 0.2) place,
+          for (var place = 0; place < photos.length; place++)
+            if (home.project(world.places[place], 1).depth > 0.2) place,
         ]..sort(
-          (a, b) => widget.globe.places[b].photoCount.compareTo(
-            widget.globe.places[a].photoCount,
-          ),
+          (a, b) =>
+              globe.places[b].photoCount.compareTo(globe.places[a].photoCount),
         );
-    final docking = _spaced(seen, _callouts, _nearby).toList();
+    return _spaced(world, photos, seen, _callouts, _nearby).toList();
+  }
+
+  Map<int, Offset> _berth() {
+    final home = _Projection.towards(_world.home, _steepest);
+    final docking = docked(_world, widget.globe, widget.photos);
     double bearing(int place) {
       final at = home.project(_world.places[place], 1).at;
       return atan2(at.dy, at.dx);
@@ -714,13 +757,19 @@ class _GlobeViewState extends State<_GlobeView>
     return Offset(berth.dx.clamp(36.0, 354.0), berth.dy);
   }
 
-  Set<int> _spaced(Iterable<int> candidates, int limit, double apart) {
+  static Set<int> _spaced(
+    _World world,
+    List<EnteFile?> photos,
+    Iterable<int> candidates,
+    int limit,
+    double apart,
+  ) {
     final chosen = <int>[];
     for (final place in candidates) {
       if (chosen.length >= limit) break;
-      if (widget.photos[place] == null) continue;
+      if (photos[place] == null) continue;
       final crowded = chosen.any(
-        (other) => _angle(_world.places[place], _world.places[other]) < apart,
+        (other) => _angle(world.places[place], world.places[other]) < apart,
       );
       if (!crowded) chosen.add(place);
     }
@@ -733,7 +782,7 @@ class _GlobeViewState extends State<_GlobeView>
       for (final place in _berths.keys)
         if (_world.pinnedMs[place] <= _ms) place,
     ]..sort((a, b) => _world.pinnedMs[a].compareTo(_world.pinnedMs[b]));
-    return _spaced(pinned, _callouts, _apart);
+    return _spaced(_world, widget.photos, pinned, _callouts, _apart);
   }
 
   ({int place, EnteFile photo, Offset at, Offset pin, double size, double pop})
@@ -904,7 +953,10 @@ class _GlobeViewState extends State<_GlobeView>
                 padding: const EdgeInsets.all(3),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(6),
-                  child: widget.photo(callout.photo),
+                  child: widget.photo(
+                    callout.photo,
+                    decoded: widget.pins?[callout.photo],
+                  ),
                 ),
               ),
             ),

@@ -1,0 +1,1 @@
+- Improved upload retries on unreliable connections and added a brief pause when uploads are rate-limited.

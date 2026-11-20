@@ -56,32 +56,24 @@ mod tests {
 
     use super::*;
     use crate::{
-        bounded::{target_dimensions, tests::options},
+        bounded::{
+            target_dimensions,
+            tests::{fixtures_dir, options},
+        },
         decode::decode_image_from_path,
         decode_bounded,
         resample::tests::area_reference,
     };
 
-    const GRID_FIXTURES: [&str; 3] = [
+    const SUPPORTED_FIXTURES: [&str; 5] = [
         "IMG_0983.HEIC",
         "IMG_0682_pano.HEIC",
         "IMG_8606_rotate_90_cw_contains_text.HEIC",
-    ];
-
-    const NON_GRID_FIXTURES: [&str; 3] = [
         "1718_rotate_90_cw.HEIC",
-        "7765_horizontal_normal.HEIC",
         "7949_mirror_horizontal_rotate_270_cw.HEIC",
     ];
 
-    fn fixtures_dir() -> Option<PathBuf> {
-        if let Some(path) = std::env::var_os("ENTE_TEST_FIXTURES_DIR") {
-            return Some(PathBuf::from(path));
-        }
-        let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-        let repo_root = manifest_dir.parent()?.parent()?.parent()?;
-        Some(repo_root.parent()?.join("test-fixtures"))
-    }
+    const GRAYSCALE_PROFILE_FIXTURE: &str = "7765_horizontal_normal.HEIC";
 
     fn heic_fixtures_dir() -> Option<PathBuf> {
         fixtures_dir()
@@ -109,30 +101,25 @@ mod tests {
     }
 
     #[test]
-    fn non_grid_heic_fixtures_are_rejected_when_present() {
+    fn grayscale_profile_heic_fixture_is_rejected_when_present() {
         let Some(directory) = heic_fixtures_dir() else {
             eprintln!("Skipping: external HEIC fixtures not present");
             return;
         };
-        for name in NON_GRID_FIXTURES {
-            let path = directory.join(name);
-            assert!(
-                matches!(
-                    decode_bounded(ImageInput::Path(path.to_str().unwrap()), options(6000)),
-                    Err(ImageError::Decode(_))
-                ),
-                "{name}"
-            );
-        }
+        let path = directory.join(GRAYSCALE_PROFILE_FIXTURE);
+        assert!(matches!(
+            decode_bounded(ImageInput::Path(path.to_str().unwrap()), options(6000)),
+            Err(ImageError::Decode(_))
+        ));
     }
 
     #[test]
-    fn grid_heic_fixtures_match_the_full_decoder_when_present() {
+    fn heic_fixtures_match_the_full_decoder_when_present() {
         let Some(directory) = heic_fixtures_dir() else {
             eprintln!("Skipping: external HEIC fixtures not present");
             return;
         };
-        for name in GRID_FIXTURES {
+        for name in SUPPORTED_FIXTURES {
             let path = directory.join(name);
             let path = path.to_str().unwrap();
             let full = decode_image_from_path(path).unwrap();

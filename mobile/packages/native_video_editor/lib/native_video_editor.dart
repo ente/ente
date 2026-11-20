@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/services.dart';
@@ -284,18 +285,23 @@ class SlideshowItem {
     required Duration this.duration,
     required SlideshowMotion this.motion,
   }) : type = SlideshowItemType.photo,
-       isMuted = false;
+       isMuted = false,
+       maxDuration = null;
 
-  const SlideshowItem.video({required this.path, this.isMuted = false})
-    : type = SlideshowItemType.video,
-      duration = null,
-      motion = null;
+  const SlideshowItem.video({
+    required this.path,
+    this.isMuted = false,
+    this.maxDuration,
+  }) : type = SlideshowItemType.video,
+       duration = null,
+       motion = null;
 
   final SlideshowItemType type;
   final String path;
   final Duration? duration;
   final SlideshowMotion? motion;
   final bool isMuted;
+  final Duration? maxDuration;
 
   Map<String, dynamic> toMap() => {
     'type': type.name,
@@ -303,6 +309,7 @@ class SlideshowItem {
     'durationMs': ?duration?.inMilliseconds,
     ...?motion?.toMap(),
     'isMuted': isMuted,
+    'maxDurationMs': ?maxDuration?.inMilliseconds,
   };
 }
 
@@ -311,16 +318,22 @@ class SlideshowMusic {
     required this.path,
     required this.fadeIn,
     required this.fadeOut,
+    required this.duckedVolume,
+    required this.duckFade,
   });
 
   final String path;
   final Duration fadeIn;
   final Duration fadeOut;
+  final double duckedVolume;
+  final Duration duckFade;
 
   Map<String, dynamic> toMap() => {
     'path': path,
     'fadeInMs': fadeIn.inMilliseconds,
     'fadeOutMs': fadeOut.inMilliseconds,
+    'duckedVolume': duckedVolume,
+    'duckFadeMs': duckFade.inMilliseconds,
   };
 }
 
@@ -331,6 +344,7 @@ class SlideshowExportRequest {
     required this.height,
     required this.frameRate,
     required this.crossfade,
+    required this.videoBitrate,
     required this.items,
     this.music,
   });
@@ -340,6 +354,7 @@ class SlideshowExportRequest {
   final int height;
   final int frameRate;
   final Duration crossfade;
+  final int videoBitrate;
   final List<SlideshowItem> items;
   final SlideshowMusic? music;
 
@@ -349,9 +364,86 @@ class SlideshowExportRequest {
     'height': height,
     'frameRate': frameRate,
     'crossfadeMs': crossfade.inMilliseconds,
+    'videoBitrate': videoBitrate,
     'items': items.map((item) => item.toMap()).toList(),
     'music': ?music?.toMap(),
   };
+}
+
+class VideoFrameStreamRequest {
+  const VideoFrameStreamRequest({
+    required this.outputPath,
+    required this.width,
+    required this.height,
+    required this.frameRate,
+    required this.bitrate,
+  });
+
+  final String outputPath;
+  final int width;
+  final int height;
+  final int frameRate;
+  final int bitrate;
+
+  Map<String, dynamic> toMap() => {
+    'outputPath': outputPath,
+    'width': width,
+    'height': height,
+    'frameRate': frameRate,
+    'bitrate': bitrate,
+  };
+}
+
+class VideoFrameStream {
+  VideoFrameStream._(this.request);
+
+  final VideoFrameStreamRequest request;
+  var _isClosed = false;
+
+  Future<void> add(ByteData rgba) async {
+    _throwIfClosed();
+    final reply = await ServicesBinding.instance.defaultBinaryMessenger.send(
+      NativeVideoEditor._framesChannel,
+      rgba,
+    );
+    if (reply != null && reply.lengthInBytes > 0 && reply.getUint8(0) == 1) {
+      return;
+    }
+    final reason = reply == null || reply.lengthInBytes < 2
+        ? 'no reply'
+        : utf8.decode(Uint8List.sublistView(reply, 1));
+    throw NativeVideoEditorException('Failed to add video frame: $reason');
+  }
+
+  Future<String> finish() async {
+    _throwIfClosed();
+    _isClosed = true;
+    final result = await NativeVideoEditor._invokeMap(
+      'finishFrameStream',
+      const <String, dynamic>{},
+      operation: 'finish frame stream',
+    );
+    if (result['outputPath'] is! String) {
+      throw const FormatException('Frame stream returned an invalid result');
+    }
+    return request.outputPath;
+  }
+
+  Future<void> cancel() async {
+    if (_isClosed) return;
+    _isClosed = true;
+    await NativeVideoEditor._invokeVoid(
+      'cancelFrameStream',
+      null,
+      operation: 'cancel frame stream',
+    );
+  }
+
+  void _throwIfClosed() {
+    if (_isClosed) {
+      throw NativeVideoEditorException('The video frame stream is closed');
+    }
+  }
 }
 
 class NativeVideoEditor {
@@ -359,6 +451,31 @@ class NativeVideoEditor {
   static const EventChannel _progressChannel = EventChannel(
     'native_video_editor/progress',
   );
+  static const _framesChannel = 'native_video_editor/frames';
+
+  static Future<VideoFrameStream> openFrameStream(
+    VideoFrameStreamRequest request,
+  ) async {
+    if (request.width <= 0 ||
+        request.height <= 0 ||
+        request.width.isOdd ||
+        request.height.isOdd) {
+      throw ArgumentError('width and height must be positive even numbers');
+    }
+    if (request.frameRate < 1 || request.frameRate > 60) {
+      throw RangeError.range(request.frameRate, 1, 60, 'frameRate');
+    }
+    if (request.bitrate <= 0) {
+      throw ArgumentError.value(request.bitrate, 'bitrate', 'is not positive');
+    }
+    _ensureOutputDirectoryExists(request.outputPath);
+    await _invokeVoid(
+      'openFrameStream',
+      request.toMap(),
+      operation: 'open frame stream',
+    );
+    return VideoFrameStream._(request);
+  }
 
   static Future<VideoEditResult> processVideo({
     required String inputPath,
@@ -677,6 +794,13 @@ class NativeVideoEditor {
     if (request.crossfade.isNegative) {
       throw ArgumentError.value(request.crossfade, 'crossfade', 'is negative');
     }
+    if (request.videoBitrate <= 0) {
+      throw ArgumentError.value(
+        request.videoBitrate,
+        'videoBitrate',
+        'must be positive',
+      );
+    }
     _ensureOutputDirectoryExists(request.outputPath);
     for (final item in request.items) {
       _ensureInputPathExists(item.path);
@@ -701,6 +825,11 @@ class NativeVideoEditor {
           throw ArgumentError('Photo motion must use finite positive scales');
         }
       }
+      final maxDuration = item.maxDuration;
+      if (maxDuration != null &&
+          (maxDuration <= Duration.zero || request.crossfade > maxDuration)) {
+        throw ArgumentError('Video clips must exceed the crossfade');
+      }
     }
     final music = request.music;
     if (music != null) {
@@ -709,8 +838,13 @@ class NativeVideoEditor {
         inputPath: music.path,
         outputPath: request.outputPath,
       );
-      if (music.fadeIn.isNegative || music.fadeOut.isNegative) {
+      if (music.fadeIn.isNegative ||
+          music.fadeOut.isNegative ||
+          music.duckFade.isNegative) {
         throw ArgumentError('Music fades must not be negative');
+      }
+      if (!(music.duckedVolume >= 0 && music.duckedVolume <= 1)) {
+        throw ArgumentError('Ducked music volume must be between 0 and 1');
       }
     }
   }

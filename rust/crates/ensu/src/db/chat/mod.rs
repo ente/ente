@@ -8,6 +8,9 @@ pub use tool_turn::{Confirm, FinishedReply, ToolTurnState, Undo};
 mod retired_storage;
 mod schema;
 
+#[cfg(all(test, feature = "sqlite"))]
+mod transaction_tests;
+
 use std::collections::BTreeSet;
 use std::sync::Arc;
 

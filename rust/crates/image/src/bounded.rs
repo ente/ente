@@ -3,9 +3,12 @@ use std::{
     io::{BufRead, BufReader, Cursor, Seek},
 };
 
+use image::{DynamicImage, metadata::Orientation};
+
 use crate::{DecodedImage, Dimensions, ImageError, ImageResult};
 
 const MAX_SIDE: u32 = 6000;
+pub(crate) const MAX_SOURCE_PIXELS: u64 = 500_000_000;
 
 pub enum ImageInput<'a> {
     Path(&'a str),
@@ -36,6 +39,7 @@ pub struct BoundedDecodedImage {
 enum Format {
     Png,
     Heif,
+    Jpeg,
 }
 
 pub fn decode_bounded(
@@ -67,6 +71,8 @@ fn sniff(header: &[u8]) -> Option<Format> {
         Some(Format::Png)
     } else if has_heif_brand(header) {
         Some(Format::Heif)
+    } else if header.starts_with(crate::jpeg::SIGNATURE) {
+        Some(Format::Jpeg)
     } else {
         None
     }
@@ -110,8 +116,9 @@ fn decode_format<R: BufRead + Seek>(
     match format {
         Some(Format::Png) => crate::png::decode(reader, options),
         Some(Format::Heif) => crate::heif::decode(input, options),
+        Some(Format::Jpeg) => crate::jpeg::decode(input, options),
         None => Err(ImageError::Decode(
-            "unsupported format for bounded decoding: only PNG and HEIC are supported".into(),
+            "unsupported format for bounded decoding: only PNG, HEIC and JPEG are supported".into(),
         )),
     }
 }
@@ -128,6 +135,39 @@ pub(crate) fn target_dimensions(source: &Dimensions, max_side: u32) -> Dimension
     }
 }
 
+pub(crate) fn oriented_output(
+    rgb: Vec<u8>,
+    source: Dimensions,
+    target: Dimensions,
+    orientation: Orientation,
+) -> ImageResult<BoundedDecodedImage> {
+    let buffer = image::RgbImage::from_raw(target.width, target.height, rgb)
+        .ok_or_else(|| ImageError::Postprocess("invalid bounded image buffer".into()))?;
+    let mut image = DynamicImage::ImageRgb8(buffer);
+    image.apply_orientation(orientation);
+    let image = image.into_rgb8();
+    let original_dimensions = match orientation {
+        Orientation::Rotate90
+        | Orientation::Rotate270
+        | Orientation::Rotate90FlipH
+        | Orientation::Rotate270FlipH => Dimensions {
+            width: source.height,
+            height: source.width,
+        },
+        _ => source,
+    };
+    Ok(BoundedDecodedImage {
+        image: DecodedImage {
+            dimensions: Dimensions {
+                width: image.width(),
+                height: image.height(),
+            },
+            rgb: image.into_raw(),
+        },
+        original_dimensions,
+    })
+}
+
 pub(crate) fn too_large() -> ImageError {
     image::ImageError::Limits(image::error::LimitError::from_kind(
         image::error::LimitErrorKind::InsufficientMemory,
@@ -137,17 +177,25 @@ pub(crate) fn too_large() -> ImageError {
 
 #[cfg(test)]
 pub(crate) mod tests {
+    use std::path::{Path, PathBuf};
+
     use super::*;
-    use crate::{
-        decode::decode_image_from_bytes,
-        image_compression::{EncodedImageFormat, encode_rgb},
-    };
+    use crate::image_compression::{EncodedImageFormat, encode_rgb};
 
     pub(crate) fn options(max_side: u32) -> BoundedDecodeOptions {
         BoundedDecodeOptions {
             max_side,
             ..BoundedDecodeOptions::default()
         }
+    }
+
+    pub(crate) fn fixtures_dir() -> Option<PathBuf> {
+        if let Some(path) = std::env::var_os("ENTE_TEST_FIXTURES_DIR") {
+            return Some(PathBuf::from(path));
+        }
+        let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+        let repo_root = manifest_dir.parent()?.parent()?.parent()?;
+        Some(repo_root.parent()?.join("test-fixtures"))
     }
 
     fn encode(format: EncodedImageFormat) -> Vec<u8> {
@@ -167,20 +215,11 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn rejects_unsupported_formats_from_bytes_and_paths_without_affecting_existing_decode() {
-        let jpeg = encode(EncodedImageFormat::Jpeg { quality: 90 });
-        assert_eq!(
-            decode_image_from_bytes(&jpeg).unwrap().dimensions,
-            Dimensions {
-                width: 12,
-                height: 8
-            }
-        );
+    fn rejects_unsupported_formats_from_bytes_and_paths() {
         let directory = tempfile::tempdir().unwrap();
         let path = directory.path().join("image.png");
         for bytes in [
-            jpeg.as_slice(),
-            b"GIF89a\x01\0\x01\0\0\0\0;",
+            &b"GIF89a\x01\0\x01\0\0\0\0;"[..],
             b"\0\0\0\x14ftypisom\0\0\0\0isom",
             b"\0\0\0\x10ftypisomheic",
             b"not an image",

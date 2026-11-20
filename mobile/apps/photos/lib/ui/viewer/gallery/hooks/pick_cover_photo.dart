@@ -101,8 +101,8 @@ class _PickCoverPhotoWidgetState extends State<PickCoverPhotoWidget> {
               selectedFiles: _selectedFiles,
               limitSelectionToOne: true,
               showSelectAll: false,
-              sortAsyncFn: () =>
-                  widget.collection.pubMagicMetadata.asc ?? false,
+              sortOrderFn: () =>
+                  widget.collection.pubMagicMetadata.fileSortOrder,
               disablePinnedGroupHeader: true,
               disableVerticalPaddingForScrollbar: true,
             ),

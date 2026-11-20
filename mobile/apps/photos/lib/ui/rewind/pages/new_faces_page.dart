@@ -1,11 +1,13 @@
 import "dart:math";
 
 import "package:flutter/material.dart";
+import "package:flutter_svg/flutter_svg.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/story/rewind_face.dart";
+import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
@@ -81,6 +83,119 @@ const List<_Bubble> _bubbles = [
 
 const _paintOrder = [3, 1, 0, 4, 2, 5];
 
+typedef _Sparkle = ({String asset, Rect rect, int delayMs});
+
+typedef _Layout = ({
+  List<_Bubble> bubbles,
+  List<int> paintOrder,
+  List<_Sparkle> sparkles,
+  bool centred,
+});
+
+const List<_Sparkle> _sparkles = [
+  (
+    asset: RewindAssets.yellowSparkle,
+    rect: Rect.fromLTWH(35, 238, 40, 59),
+    delayMs: 900,
+  ),
+  (
+    asset: RewindAssets.yellowSparkle,
+    rect: Rect.fromLTWH(240, 479, 40, 59),
+    delayMs: 1100,
+  ),
+  (
+    asset: RewindAssets.smallYellowSparkle,
+    rect: Rect.fromLTWH(247, 195, 26, 38),
+    delayMs: 1250,
+  ),
+];
+
+const _Layout _single = (
+  bubbles: [
+    (
+      size: 260,
+      center: Offset(195, 340),
+      delayMs: 150,
+      drift: Offset(0, -7),
+      periodMs: 4200,
+      phase: 0,
+    ),
+  ],
+  paintOrder: [0],
+  centred: false,
+  sparkles: [
+    (
+      asset: RewindAssets.yellowSparkle,
+      rect: Rect.fromLTWH(30, 216, 40, 59),
+      delayMs: 900,
+    ),
+    (
+      asset: RewindAssets.yellowSparkle,
+      rect: Rect.fromLTWH(312, 412, 40, 59),
+      delayMs: 1100,
+    ),
+    (
+      asset: RewindAssets.smallYellowSparkle,
+      rect: Rect.fromLTWH(300, 196, 26, 38),
+      delayMs: 1250,
+    ),
+  ],
+);
+
+const _Layout _pair = (
+  bubbles: [
+    (
+      size: 210,
+      center: Offset(131, 385),
+      delayMs: 150,
+      drift: Offset(0, -7),
+      periodMs: 4200,
+      phase: 0,
+    ),
+    (
+      size: 165,
+      center: Offset(273, 270),
+      delayMs: 330,
+      drift: Offset(-5, -6),
+      periodMs: 4700,
+      phase: 0.6,
+    ),
+  ],
+  paintOrder: [1, 0],
+  centred: false,
+  sparkles: [
+    (
+      asset: RewindAssets.yellowSparkle,
+      rect: Rect.fromLTWH(33, 232, 40, 59),
+      delayMs: 900,
+    ),
+    (
+      asset: RewindAssets.yellowSparkle,
+      rect: Rect.fromLTWH(263, 395, 40, 59),
+      delayMs: 1100,
+    ),
+    (
+      asset: RewindAssets.smallYellowSparkle,
+      rect: Rect.fromLTWH(171, 175, 26, 38),
+      delayMs: 1250,
+    ),
+  ],
+);
+
+_Layout _layoutOf(int count) => switch (count) {
+  1 => _single,
+  2 => _pair,
+  _ => (
+    bubbles: _bubbles.take(count).toList(),
+    paintOrder: [
+      for (final slot in _paintOrder)
+        if (slot < count) slot,
+    ],
+    sparkles: _sparkles,
+    centred: true,
+  ),
+};
+
 Rect _boundsOf(Iterable<_Bubble> bubbles) => bubbles
     .map(
       (bubble) => Rect.fromCenter(
@@ -109,16 +224,17 @@ class NewFacesPage extends RewindPage {
     final count = newFaces.count;
     final title = count == 1 ? "1 NEW FACE" : "${rewindCount(count)} NEW FACES";
     const line = "debuted in your gallery this year.";
-    final shown = min(faces.length, _bubbles.length);
-    final centering =
-        _boundsOf(_bubbles).center - _boundsOf(_bubbles.take(shown)).center;
+    final layout = _layoutOf(min(faces.length, _bubbles.length));
+    final centering = layout.centred
+        ? _boundsOf(_bubbles).center - _boundsOf(layout.bubbles).center
+        : Offset.zero;
     return RewindShareable(
       child: Stack(
         fit: StackFit.expand,
         children: [
           const RewindBackdrop(
-            color: Color(0xFF19B331),
-            pattern: RewindStripes(Color(0xFF19BA32)),
+            color: Color(0xFF3C6ED8),
+            pattern: RewindStripes(Color(0xFF3366D3)),
           ),
           Semantics(
             label: "${title.toLowerCase()} $line",
@@ -134,20 +250,39 @@ class NewFacesPage extends RewindPage {
                         builder: (context, ms) => Stack(
                           clipBehavior: Clip.none,
                           children: [
-                            for (final slot in _paintOrder)
-                              if (slot < shown)
-                                _placed(
-                                  _bubbles[slot],
-                                  faces[slot],
-                                  ms,
-                                  isActive,
-                                  centering,
-                                ),
+                            for (final slot in layout.paintOrder)
+                              _placed(
+                                layout.bubbles[slot],
+                                faces[slot],
+                                ms,
+                                isActive,
+                                centering,
+                              ),
                           ],
                         ),
                       ),
                     ),
                   ),
+                  for (final sparkle in layout.sparkles)
+                    RewindRevealLayer(
+                      left: sparkle.rect.left + centering.dx,
+                      top: sparkle.rect.top + centering.dy,
+                      height: sparkle.rect.height,
+                      position: position,
+                      active: isActive,
+                      preset: RewindPreset.twinkle,
+                      delayMs: sparkle.delayMs,
+                      child: RewindIdleLoop(
+                        idle: RewindIdle.twinkle,
+                        active: isActive,
+                        delayMs: sparkle.delayMs + 700,
+                        child: SvgPicture.file(
+                          RewindAssets.file(sparkle.asset),
+                          width: sparkle.rect.width,
+                          height: sparkle.rect.height,
+                        ),
+                      ),
+                    ),
                   RewindRevealLayer(
                     left: 22,
                     top: 630,

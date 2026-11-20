@@ -2,18 +2,27 @@ import "package:ente_components/ente_components.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:photos/events/magic_sort_change_event.dart";
+import "package:photos/models/file/file_sort_order.dart";
 import "package:photos/ui/components/collection_share_badge.dart";
 
-Future<bool?> showAlbumSortSheet(
+String albumSortOrderLabel(FileSortOrder order, StringsLocalizations strings) =>
+    switch (order) {
+      FileSortOrder.newestFirst => strings.sortNewestFirst,
+      FileSortOrder.oldestFirst => strings.sortOldestFirst,
+      FileSortOrder.filenameAscending => strings.sortAToZ,
+      FileSortOrder.filenameDescending => strings.sortZToA,
+    };
+
+Future<FileSortOrder?> showAlbumSortSheet(
   BuildContext context, {
-  required bool ascending,
+  required FileSortOrder sortOrder,
 }) {
   return _showSortSheet(
     context,
-    selected: ascending,
+    selected: sortOrder,
     options: [
-      (false, context.strings.sortNewestFirst),
-      (true, context.strings.sortOldestFirst),
+      for (final order in FileSortOrder.values)
+        (order, albumSortOrderLabel(order, context.strings)),
     ],
   );
 }

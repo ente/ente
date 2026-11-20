@@ -84,8 +84,8 @@ class BusiestDayPage extends RewindPage {
           fit: StackFit.expand,
           children: [
             const RewindBackdrop(
-              color: Color(0xFFF7601F),
-              pattern: RewindStripes(Color(0xFFFF6B2B)),
+              color: Color(0xFFF71F1F),
+              pattern: RewindStripes(Color(0xFFFF2B2F)),
               grain: 0.25,
             ),
             Semantics(
@@ -119,10 +119,8 @@ class BusiestDayPage extends RewindPage {
                         isActive: isActive && !held && !covered,
                       ),
                     ],
-                    RewindRevealLayer(
-                      left: 28,
-                      top: 571,
-                      maxWidth: 334,
+                    _centred(
+                      top: 585,
                       height: 23,
                       position: position,
                       active: isActive,
@@ -134,59 +132,44 @@ class BusiestDayPage extends RewindPage {
                           text,
                           style: RewindTextStyles.display(
                             20,
+                            color: RewindColors.white,
                             height: 1.15,
                             letterSpacing: 0.3,
                           ),
                         ),
                       ),
                     ),
-                    RewindRevealLayer(
-                      left: 28,
-                      top: 607,
-                      maxWidth: 334,
-                      height: 99,
+                    _centred(
+                      top: 608,
+                      height: 119,
                       position: position,
                       active: isActive,
                       preset: RewindPreset.slap,
                       delayMs: 1050,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          RewindOutlinedText(
-                            count,
-                            style: RewindTextStyles.numeral(
-                              104,
-                              color: RewindColors.white,
-                            ),
-                            outline: 3.5,
-                            shadow: const Offset(5, 6),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 119),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: _Count(
+                            count: count,
+                            unit: day.photoCount == 1 ? "photo" : "photos",
                           ),
-                          const SizedBox(width: 12),
-                          RewindOutlinedText(
-                            day.photoCount == 1 ? "PHOTO" : "PHOTOS",
-                            style: RewindTextStyles.display(
-                              44,
-                              color: RewindColors.white,
-                            ),
-                            outline: 2.5,
-                            shadow: const Offset(2.5, 3),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
-                    RewindRevealLayer(
-                      left: 28,
-                      top: 718,
-                      width: 316,
+                    _centred(
+                      top: 736,
                       height: 25,
                       position: position,
                       active: isActive,
                       delayMs: 1350,
                       child: Text(
                         line,
-                        style: RewindTextStyles.body(19, height: 1.32),
+                        style: RewindTextStyles.body(
+                          19,
+                          height: 1.32,
+                          color: RewindColors.white,
+                        ),
                       ),
                     ),
                   ],
@@ -197,6 +180,96 @@ class BusiestDayPage extends RewindPage {
         ),
       ),
     );
+  }
+}
+
+Widget _centred({
+  required double top,
+  required double height,
+  required double position,
+  required bool active,
+  required int delayMs,
+  required Widget child,
+  RewindPreset preset = RewindPreset.line,
+}) => RewindRevealLayer(
+  left: 28,
+  top: top,
+  width: 334,
+  height: height,
+  position: position,
+  active: active,
+  preset: preset,
+  delayMs: delayMs,
+  child: Center(
+    child: FittedBox(fit: BoxFit.scaleDown, child: child),
+  ),
+);
+
+class _Count extends StatelessWidget {
+  const _Count({required this.count, required this.unit});
+
+  static const _overhang = 15.0;
+  static const _drop = 19.6;
+  static const _turn = -1.7;
+  static const _numberSize = 104.0;
+  static const _label = Color(0xFFFDE11A);
+  static const _labelInk = Color(0xFF0A0A0A);
+
+  final String count;
+  final String unit;
+
+  @override
+  Widget build(BuildContext context) {
+    final scaler = MediaQuery.textScalerOf(context);
+    final grow = scaler.scale(_numberSize) / _numberSize;
+    final numberStyle = RewindTextStyles.display(
+      _numberSize,
+      color: RewindColors.white,
+    );
+    final labelStyle = RewindTextStyles.display(44.228, color: _label);
+    final number = _measure(count, numberStyle, scaler);
+    final label = _measure(unit, labelStyle, scaler);
+    final left = max(0.0, number.width + _overhang * grow - label.width);
+    final top = number.height + _drop * grow - label.height;
+    return SizedBox(
+      width: max(number.width, left + label.width),
+      height: top + label.height,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          RewindOutlinedText(
+            count,
+            style: numberStyle,
+            outline: 3.5,
+            shadow: const Offset(5, 6),
+          ),
+          Positioned(
+            left: left,
+            top: top,
+            child: Transform.rotate(
+              angle: _turn * pi / 180,
+              child: RewindOutlinedText(
+                unit,
+                style: labelStyle,
+                outline: 4,
+                ink: _labelInk,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static Size _measure(String text, TextStyle style, TextScaler scaler) {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: TextDirection.ltr,
+      textScaler: scaler,
+    )..layout();
+    final size = painter.size;
+    painter.dispose();
+    return size;
   }
 }
 

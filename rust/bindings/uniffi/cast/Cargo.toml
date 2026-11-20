@@ -11,7 +11,7 @@ ente-cast.workspace = true
 ente-core.workspace = true
 ente-uniffi-log.workspace = true
 thiserror.workspace = true
-uniffi.workspace = true
+uniffi = { workspace = true, features = ["tokio"] }
 
 [lints]
 workspace = true

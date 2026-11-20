@@ -30,6 +30,8 @@ import "package:photos/ui/rewind/debug/rewind_gallery_page.dart";
 import "package:photos/ui/settings/debug/memories_debug_page.dart";
 import "package:photos/utils/dialog_util.dart";
 import "package:photos/utils/ml_util.dart";
+import "package:photos/utils/share_util.dart";
+import "package:share_plus/share_plus.dart";
 
 typedef _VectorIndexStatus = ({rust.FillState state, int vectors});
 
@@ -596,6 +598,16 @@ class _MLDebugSettingsPageState extends State<MLDebugSettingsPage> {
             onTap: () async => _onExportRewindSnapshot(context),
           ),
           MenuItemWidgetNew(
+            title: "Share Ente Rewind badge signals",
+            leadingIconWidget: _buildIconWidget(
+              context,
+              HugeIcons.strokeRoundedShare08,
+            ),
+            trailingIcon: Icons.chevron_right_outlined,
+            trailingIconIsMuted: true,
+            onTap: () async => _onShareRewindBadgeSignals(context),
+          ),
+          MenuItemWidgetNew(
             title: "Open Ente Rewind gallery",
             leadingIconWidget: _buildIconWidget(
               context,
@@ -935,6 +947,23 @@ class _MLDebugSettingsPageState extends State<MLDebugSettingsPage> {
       showShortToast(context, "Ente Rewind request: $snapshot");
     } catch (e, s) {
       logger.warning('Ente Rewind snapshot export failed', e, s);
+      if (!context.mounted) return;
+      await showGenericErrorDialog(context: context, error: e);
+    }
+  }
+
+  Future<void> _onShareRewindBadgeSignals(BuildContext context) async {
+    try {
+      final signals = await exportRewindBadgeSignals();
+      if (!context.mounted) return;
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(signals.path, mimeType: "application/json")],
+          sharePositionOrigin: shareButtonRect(context, null),
+        ),
+      );
+    } catch (e, s) {
+      logger.warning('Ente Rewind badge signals export failed', e, s);
       if (!context.mounted) return;
       await showGenericErrorDialog(context: context, error: e);
     }

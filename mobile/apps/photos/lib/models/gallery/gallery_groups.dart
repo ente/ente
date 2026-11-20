@@ -229,6 +229,7 @@ class GalleryGroups {
   }
 
   double? getOffsetOfGroupContainingFile(EnteFile file) {
+    if (!groupType.timeGrouping()) return getOffsetOfFile(file);
     final creationTime = file.creationTime;
     if (creationTime == null) {
       _logger.warning('Cannot scroll to file with null creation time');

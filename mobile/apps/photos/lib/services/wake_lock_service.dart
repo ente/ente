@@ -8,6 +8,8 @@ enum WakeLockFor {
   albumSlideshow,
   mlProgressBanner,
   rewindVideoExport,
+  rewindViewer,
+  memoryVideoExport,
 }
 
 class EnteWakeLockService {

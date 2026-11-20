@@ -16,14 +16,15 @@ pub use input::{
     RewindFile, RewindFileType, RewindLocation, RewindPerson, RewindRequest, RewindVisibility,
 };
 pub use report::{
-    Badge, BusiestDay, ColourOfTheYear, CrowdFavourite, Favourites, Globe, GlobePlace, LikedPhoto,
-    Mosaic, NewFace, NewFaces, PeopleRace, Places, RacePerson, RewindBadge, RewindCity,
-    RewindColour, RewindReport, Scrapbook, Spots, Timelapse, TimelapseFrame, Totals, Tour,
-    TourStop, Warp, WeeklyHabit,
+    Badge, BusiestDay, ColourOfTheYear, CrowdFavourite, Favourites, Finale, Globe, GlobePlace,
+    LikedPhoto, Mosaic, NewFace, NewFaces, PeopleRace, Places, RacePerson, RewindBadge, RewindCity,
+    RewindColour, RewindReport, Scrapbook, Spots, Totals, Tour, TourStop, Warp, WeeklyHabit,
 };
 pub use state::{REWIND_VERSION, RewindState, RewindStatus};
 
+use clip::Clip;
 use library::Library;
+use people::People;
 
 use crate::memories::CityLookup;
 use crate::ml_store::MlStore;
@@ -100,18 +101,32 @@ pub fn encode_rewind_request(request: &RewindRequest) -> Result<Vec<u8>> {
     Ok(serde_json::to_vec_pretty(request)?)
 }
 
+pub fn rewind_badge_signals(request: &RewindRequest, store: Option<&MlStore>) -> Result<String> {
+    let library = Library::of_year(request)?;
+    let ml_coverage = store.map(|store| library.ml_coverage(store)).transpose()?;
+    let people = store
+        .map(|store| People::load(request, &library, store))
+        .transpose()?;
+    let clip = store.map(|store| Clip::load(&library, store)).transpose()?;
+    let signals = chapters::badge_signals(
+        request,
+        &library,
+        people.as_ref(),
+        clip.as_ref(),
+        ml_coverage,
+    );
+    Ok(serde_json::to_string_pretty(&signals)?)
+}
+
 #[cfg(test)]
 mod tests {
     use tempfile::TempDir;
 
-    use super::fixtures::{
-        BEFORE_NEW_YEAR, NoCities, add_clip, add_faces, daily_photos, face_row, located, person,
-        photo, photos_every, request_at, store,
-    };
+    use super::fixtures::{BEFORE_NEW_YEAR, NoCities, daily_photos, located, photo, request_at};
     use super::{
-        REWIND_VERSION, RewindColour, RewindFile, RewindFileType, RewindRequest, RewindState,
-        RewindStatus, compute_rewind, decode_rewind_state, encode_rewind_request,
-        encode_rewind_state,
+        Mosaic, REWIND_VERSION, RewindColour, RewindFile, RewindFileType, RewindReport,
+        RewindRequest, RewindState, RewindStatus, compute_rewind, decode_rewind_state,
+        encode_rewind_request, encode_rewind_state,
     };
     use crate::ml_db::{
         CLIP_EMBEDDING_DIMENSIONS, CLIP_ML_VERSION, ClipEmbedding, FACE_ML_VERSION, FaceRow,
@@ -453,6 +468,46 @@ mod tests {
     }
 
     #[test]
+    fn older_mosaic_caches_keep_rewind_ready_when_ml_coverage_drops() {
+        let (_directory, store) = indexed_store(1..=200);
+        let mut files = daily_photos(1, "2026-01-01T12:00:00", 200);
+        let ready = compute_rewind(
+            &request_at("2026-11-17T10:00:00", files.clone()),
+            Some(&store),
+            None,
+            None,
+        )
+        .unwrap();
+        assert!(!ready.is_final);
+        let shown_colour = colour(&ready);
+        assert!(shown_colour.is_some());
+        let mut cache = serde_json::to_value(&ready).unwrap();
+        let mosaic = cache["status"]["Ready"]["report"]["mosaic"]
+            .as_object_mut()
+            .unwrap();
+        mosaic.remove("cluster_id");
+        mosaic.remove("cluster_face_ids");
+        let bytes = serde_json::to_vec(&cache).unwrap();
+        let previous = decode_rewind_state(&bytes, 2026, false);
+
+        files.extend(daily_photos(201, "2026-07-20T12:00:00", 100));
+        let refreshed = compute_rewind(
+            &request_at("2026-11-18T10:00:00", files),
+            Some(&store),
+            None,
+            previous.as_ref(),
+        )
+        .unwrap();
+        assert_eq!(refreshed.ml_coverage, Some(200.0 / 300.0));
+        assert!(
+            matches!(refreshed.status, RewindStatus::Ready { .. }),
+            "{:?}",
+            refreshed.status
+        );
+        assert_eq!(colour(&refreshed), shown_colour);
+    }
+
+    #[test]
     fn a_final_result_is_kept_unless_ml_was_switched_off() {
         let (_directory, store) = indexed_store(1..=60);
         let request = request_at(AFTER_NEW_YEAR, daily_photos(1, "2026-01-01T12:00:00", 60));
@@ -508,46 +563,20 @@ mod tests {
     }
 
     #[test]
-    fn a_timelapse_alone_keeps_the_ml_chapters_once_shown() {
-        let (_directory, store) = store();
-        let faces: Vec<(FaceRow, &str)> = (1..=40)
-            .map(|file_id| {
-                let mut face = face_row(&format!("{file_id}_kid"), 0.9, 0.3);
-                face.detection_json = r#"{"box":{"x":0.3,"y":0.2,"width":0.3,"height":0.3},"landmarks":[{"x":0.4,"y":0.3},{"x":0.5,"y":0.3},{"x":0.45,"y":0.36}]}"#.to_string();
-                (face, "kid")
-            })
-            .collect();
-        add_faces(&store, &faces);
-        store.db().assign_cluster_to_person("kid", "kid").unwrap();
-        for file_id in 1..=40 {
-            add_clip(&store, file_id, &[0.5; CLIP_EMBEDDING_DIMENSIONS]);
-        }
-        let timelapse = |state: &RewindState| match &state.status {
-            RewindStatus::Ready { report } => {
-                assert_eq!(report.colour, None);
-                assert_eq!(report.people_race, None);
-                assert_eq!(report.new_faces, None);
-                report
-                    .timelapse
-                    .as_ref()
-                    .map(|lapse| lapse.person_id.clone())
-            }
-            RewindStatus::WaitingForMl | RewindStatus::NothingToShow => None,
+    fn an_unnamed_mosaic_face_keeps_the_ml_chapters_once_shown() {
+        let report = RewindReport {
+            mosaic: Some(Mosaic {
+                file_ids: vec![1],
+                me_person_id: None,
+                me_face_ids: Vec::new(),
+                top_person_id: None,
+                top_face_ids: Vec::new(),
+                cluster_id: Some("stranger".to_string()),
+                cluster_face_ids: vec!["1_stranger".to_string()],
+            }),
+            ..RewindReport::default()
         };
-        let indexed = photos_every(1, "2026-01-01T12:00:00", 40, 7);
-        let mut small = request_at(BEFORE_NEW_YEAR, indexed.clone());
-        small.people = vec![person("kid")];
-        let ready = compute_rewind(&small, Some(&store), None, None).unwrap();
-        assert_eq!(ready.ml_coverage, Some(1.0));
-        assert_eq!(timelapse(&ready).as_deref(), Some("kid"));
-
-        let mut more = indexed;
-        more.extend(daily_photos(101, "2026-11-01T12:00:00", 40));
-        let mut grown = request_at(BEFORE_NEW_YEAR, more);
-        grown.people = vec![person("kid")];
-        let latched = compute_rewind(&grown, Some(&store), None, Some(&ready)).unwrap();
-        assert_eq!(latched.ml_coverage, Some(0.5));
-        assert_eq!(timelapse(&latched).as_deref(), Some("kid"));
+        assert!(report.shows_ml_chapters());
     }
 
     #[test]

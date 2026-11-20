@@ -142,8 +142,13 @@ class RewindMedia {
     return _faces[personId] ??= _resolve(personId, faceIds, named: true);
   }
 
-  Future<RewindFace?> cluster(String clusterId, List<String> faceIds) {
-    return _faces[clusterId] ??= _resolve(clusterId, faceIds, named: false);
+  Future<RewindFace?> cluster(String clusterId, List<String> faceIds) async {
+    final cached = _faces[clusterId];
+    final face =
+        await (cached ??
+            (_faces[clusterId] = _resolve(clusterId, faceIds, named: false)));
+    if (cached == null || face?.crop != null) return face;
+    return _faces[clusterId] = _resolve(clusterId, faceIds, named: false);
   }
 
   Future<Map<EnteFile, Alignment>> faceFocus(
@@ -197,8 +202,16 @@ class RewindMedia {
     if (samples != null) return _sampleFace(samples, id, named: named);
     final name = named ? _nameOf(id) : null;
     if (named && name == null) return null;
+    if (!named && !await _isShownCluster(id)) return null;
     final crop = await _cover(id) ?? await _crop(faceIds);
     return RewindFace(name: name, crop: crop);
+  }
+
+  Future<bool> _isShownCluster(String clusterId) async {
+    final personId = (await _ml.getClusterIDToPersonID())[clusterId];
+    final person = _people[personId];
+    return person == null ||
+        (!person.data.isIgnored && !person.data.hideFromMemories);
   }
 
   String? _nameOf(String personId) {

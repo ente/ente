@@ -1080,7 +1080,7 @@
     "filters": "",
     "invert_colors": "Invertir colores",
     "reset": "Restablecer",
-    "faster_upload": "Subidas más rápidas",
+    "smart_routing": "",
     "faster_upload_description": "Enrutar subidas a través de servidores cercanos",
     "open_ente_on_startup": "Abrir ente al iniciar",
     "cast_album_to_tv": "Reproducir álbum en TV",

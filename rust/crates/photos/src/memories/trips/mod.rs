@@ -10,14 +10,12 @@ use ente_location::Coordinate;
 
 use super::MAX_MEMORY_ITEMS;
 use super::calendar::{LocalDate, MICROS_PER_DAY};
-use super::geo::{
-    Cluster, Located, cluster_by_location, distance_km, is_within, mean_location, two_decimals,
-};
+use super::geo::{Cluster, Located, cluster_by_location, mean_location, two_decimals};
 use super::photo::Photo;
 use super::places::Places;
 
 pub(super) use bases::Base;
-pub(super) use surface::{TripHistory, all_memories, memories};
+pub(super) use surface::{TripHistory, all_memories, memories, photos_on_screen};
 
 const MAX_TEMPORAL_GAP_DAYS: i64 = 15;
 const TRIP_CLUSTER_RADIUS_KM: f64 = 25.0;
@@ -33,6 +31,12 @@ const MERGE_MAX_DISTANCE_KM: f64 = 25.0;
 pub(super) struct TripAnalysis<'p> {
     pub(super) bases: Vec<Base<'p>>,
     trips: Vec<Trip<'p>>,
+}
+
+impl<'p> TripAnalysis<'p> {
+    pub(super) fn members_by_trip(&self) -> impl Iterator<Item = &[Located<'p>]> {
+        self.trips.iter().map(|trip| trip.members.as_slice())
+    }
 }
 
 struct Trip<'p> {
@@ -119,7 +123,7 @@ fn valid_trip<'p>(cluster: Cluster<'p>, bases: &[Base]) -> Option<Trip<'p>> {
 fn is_near_any_base(location: Coordinate, bases: &[Base]) -> bool {
     bases
         .iter()
-        .any(|base| is_within(base.location, location, BASE_OVERLAP_RADIUS_KM))
+        .any(|base| location.is_within_radius_km(base.location, BASE_OVERLAP_RADIUS_KM))
 }
 
 fn segment_away_from_bases<'p>(members: &[Located<'p>], bases: &[Base]) -> Vec<Vec<Located<'p>>> {
@@ -180,7 +184,7 @@ fn merge_chained_clusters(clusters: Vec<Cluster<'_>>) -> Vec<Cluster<'_>> {
                 .first_creation_time()
                 .min(current.first_creation_time()))
             / MICROS_PER_DAY;
-        if distance_km(current.center, next.center) <= CHAIN_HOP_DISTANCE_KM
+        if current.center.distance_km(next.center) <= CHAIN_HOP_DISTANCE_KM
             && gap_days <= MERGE_WINDOW_DAYS
             && span_days <= MAX_TRIP_DAYS
         {
@@ -229,7 +233,7 @@ fn should_merge(trip: &Trip, other: &Trip) -> bool {
     let last = trip.last.creation_time.max(other.last.creation_time);
     trip.first.creation_time < other.last.creation_time + window
         && trip.last.creation_time > other.first.creation_time - window
-        && distance_km(trip.location, other.location) < MERGE_MAX_DISTANCE_KM
+        && trip.location.distance_km(other.location) < MERGE_MAX_DISTANCE_KM
         && (last - first) / MICROS_PER_DAY <= MAX_TRIP_DAYS
 }
 
@@ -238,7 +242,6 @@ mod tests {
     use ente_location::{City, CityMatch, Coordinate, CountryCode};
 
     use crate::memories::calendar::MICROS_PER_DAY;
-    use crate::memories::geo::distance_km;
     use crate::memories::tests::{located_file, micros, period};
     use crate::memories::{
         BaseMemory, CachedTrip, CityLookup, MemoriesRequest, Memory, MemoryFile, MemoryKind,
@@ -279,8 +282,7 @@ mod tests {
                             .iter()
                             .enumerate()
                             .filter(|(_, coordinate)| {
-                                distance_km(**coordinate, Coordinate::new(latitude, longitude))
-                                    < 30.0
+                                coordinate.distance_km(Coordinate::new(latitude, longitude)) < 30.0
                             })
                             .map(|(position, _)| position as u32)
                             .collect(),

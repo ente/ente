@@ -255,7 +255,7 @@ func setupFileUploadBindingTest(t *testing.T, app ente.App) (*FileController, en
 		FileRepo: repository, ObjectRepo: repository.ObjectRepo, S3Config: repository.S3Config,
 		ObjectCleanupRepo: repository.ObjectCleanupRepo,
 		CollectionRepo:    &repo.CollectionRepository{DB: db, CollectionLinkRepo: &public.CollectionLinkRepo{DB: db}},
-		UsageCtrl: &UsageController{UserRepo: users, UsageRepo: &repo.UsageRepository{DB: db}, UploadResultCache: make(map[int64]bool),
+		UsageCtrl: &UsageController{UploadURLRepo: &repo.UploadURLRepository{DB: db}, UserRepo: users, UsageRepo: &repo.UsageRepository{DB: db}, UploadResultCache: make(map[int64]bool),
 			BillingCtrl: &BillingController{UserRepo: users, BillingRepo: &repo.BillingRepository{DB: db}}},
 	}, file, db
 }

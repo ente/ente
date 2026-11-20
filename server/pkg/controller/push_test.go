@@ -1,16 +1,20 @@
 package controller
 
 import (
+	"bytes"
 	"context"
 	"crypto/hpke"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/ente/museum/ente"
 	"github.com/ente/museum/internal/testutil"
@@ -40,12 +44,18 @@ type wireMsg struct {
 		Data    map[string]string `json:"data"`
 		Android struct {
 			Priority string `json:"priority"`
+			TTL      string `json:"ttl"`
 		} `json:"android"`
 		APNS struct {
 			Headers map[string]string `json:"headers"`
 			Payload struct {
 				Aps struct {
 					ContentAvailable int `json:"content-available"`
+					MutableContent   int `json:"mutable-content"`
+					Alert            struct {
+						Title string `json:"title"`
+						Body  string `json:"body"`
+					} `json:"alert"`
 				} `json:"aps"`
 			} `json:"payload"`
 		} `json:"apns"`
@@ -165,7 +175,7 @@ func TestFCMSendDoesNotClassifyInvalidArgumentAsUnregistered(t *testing.T) {
 	require.False(t, errors.Is(err, errUnregisteredToken))
 }
 
-func TestAlbumShareSendsOnlyEnrolledAndroidDevices(t *testing.T) {
+func TestAlbumShareSendsEncryptedAlertToInternalIOS(t *testing.T) {
 	testutil.WithServerRoot(t)
 	db := testutil.RequireTestDB(t)
 	testutil.ResetTables(t, db)
@@ -178,27 +188,47 @@ func TestAlbumShareSendsOnlyEnrolledAndroidDevices(t *testing.T) {
 	controller := &PushController{PushRepo: &repo.PushTokenRepository{DB: db}}
 	key, err := hpke.MLKEM768X25519().GenerateKey()
 	require.NoError(t, err)
-	for _, platform := range []string{"ios", "android"} {
-		require.NoError(t, controller.AddToken(1, hash[:], ente.PushTokenRequest{
-			FCMToken: platform + "-device", Platform: &platform, NotificationKey: key.PublicKey().Bytes(),
-		}))
-	}
-	var messages []map[string]any
+	platform := "ios"
+	require.NoError(t, controller.AddToken(1, hash[:], ente.PushTokenRequest{
+		FCMToken: "ios-device", Platform: &platform, NotificationKey: key.PublicKey().Bytes(),
+	}))
+	require.NoError(t, controller.AddToken(1, hash[:], ente.PushTokenRequest{
+		FCMToken: "keyless", Platform: &platform,
+	}))
+	_, err = db.Exec(`INSERT INTO push_tokens(user_id,fcm_token,platform,session_token_hash,notification_public_key)
+		VALUES(1,'invalid','ios',$1,$2)`, hash[:], bytes.Repeat([]byte{0xff}, 1216))
+	require.NoError(t, err)
+	var messages []wireMsg
 	controller.fcm = &fcmClient{projectID: "test-project", httpClient: &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
 		require.NoError(t, request.Context().Err())
-		var envelope struct {
-			Message map[string]any `json:"message"`
-		}
+		var envelope wireMsg
 		require.NoError(t, json.NewDecoder(request.Body).Decode(&envelope))
-		messages = append(messages, envelope.Message)
+		messages = append(messages, envelope)
 		return jsonResponse(http.StatusOK, "{}"), nil
 	})}}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
+	before := time.Now().Add(24 * time.Hour).Unix()
 	controller.NotifyAlbumShare(ctx, []int64{1})
-	require.Len(t, messages, 1)
-	require.Equal(t, "android-device", messages[0]["token"])
-	require.Equal(t, map[string]any{"priority": "high", "ttl": "86400s"}, messages[0]["android"])
+	after := time.Now().Add(24 * time.Hour).Unix()
+	require.Len(t, messages, 1, "skip keyless and invalid-key devices without a sync fallback")
+	message := messages[0].Message
+	require.Equal(t, "ios-device", message.Token)
+	ciphertext, err := base64.StdEncoding.DecodeString(message.Data["notificationCiphertext"])
+	require.NoError(t, err)
+	plaintext, err := hpke.Open(key, hpke.HKDFSHA256(), hpke.ChaCha20Poly1305(), []byte("ente-push"), ciphertext)
+	require.NoError(t, err)
+	require.JSONEq(t, `{"eventType":"album_shared"}`, string(plaintext))
+	require.Equal(t, "alert", message.APNS.Headers["apns-push-type"])
+	require.Equal(t, "10", message.APNS.Headers["apns-priority"])
+	require.NotContains(t, message.APNS.Headers, "apns-topic")
+	expiry, err := strconv.ParseInt(message.APNS.Headers["apns-expiration"], 10, 64)
+	require.NoError(t, err)
+	require.GreaterOrEqual(t, expiry, before)
+	require.LessOrEqual(t, expiry, after)
+	require.Equal(t, 1, message.APNS.Payload.Aps.MutableContent)
+	require.Equal(t, "Ente", message.APNS.Payload.Aps.Alert.Title)
+	require.Equal(t, "New activity", message.APNS.Payload.Aps.Alert.Body)
 }
 
 func TestAlbumShareEncryptsForEachEnrolledDevice(t *testing.T) {
@@ -232,6 +262,8 @@ func TestAlbumShareEncryptsForEachEnrolledDevice(t *testing.T) {
 	require.Len(t, messages, 2, "devices without a key must receive no push")
 	for _, envelope := range messages {
 		message := envelope.Message
+		require.Equal(t, "high", message.Android.Priority)
+		require.Equal(t, "86400s", message.Android.TTL)
 		require.Contains(t, keys, message.Token)
 		require.Contains(t, message.Data, "notificationCiphertext")
 		ciphertext, err := base64.StdEncoding.DecodeString(message.Data["notificationCiphertext"])
@@ -301,6 +333,62 @@ func TestAlbumShareHonorsSilentMode(t *testing.T) {
 	t.Cleanup(func() { viper.Set("internal.silent", previous) })
 	controller := &PushController{fcm: &fcmClient{}}
 	controller.NotifyAlbumShare(context.Background(), []int64{1})
+}
+
+func TestSocialPushEvents(t *testing.T) {
+	testutil.WithServerRoot(t)
+	db := testutil.RequireTestDB(t)
+	testutil.ResetTables(t, db)
+	t.Cleanup(func() { testutil.ResetTables(t, db) })
+	controller := &PushController{PushRepo: &repo.PushTokenRepository{DB: db}}
+	key, err := hpke.MLKEM768X25519().GenerateKey()
+	require.NoError(t, err)
+	for _, id := range []int64{1, 2} {
+		testutil.InsertUser(t, db, testutil.UserFixture{UserID: id, Email: fmt.Sprintf("social-%d@example.com", id), CreationTime: 1})
+		_, err := db.Exec(`INSERT INTO remote_store(user_id, key_name, key_value) VALUES ($1, 'internalUser', 'true')`, id)
+		require.NoError(t, err)
+		session := fmt.Sprintf("social-session-%d", id)
+		require.NoError(t, (&repo.UserAuthRepository{DB: db}).AddToken(id, ente.Photos, session, "", ""))
+		hash := auth.HashToken(session)
+		for _, platform := range []string{"android", "ios"} {
+			require.NoError(t, controller.AddToken(id, hash[:], ente.PushTokenRequest{
+				FCMToken: fmt.Sprintf("%d-%s", id, platform), Platform: &platform, NotificationKey: key.PublicKey().Bytes(),
+			}))
+		}
+	}
+	for _, tc := range []struct {
+		event  string
+		notify func(context.Context, int64)
+	}{
+		{"file_liked", controller.NotifyFileLike},
+		{"file_commented", controller.NotifyFileComment},
+		{"comment_replied", controller.NotifyCommentReply},
+	} {
+		t.Run(tc.event, func(t *testing.T) {
+			var messages []wireMsg
+			controller.fcm = &fcmClient{projectID: "test-project", httpClient: &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+				require.NoError(t, request.Context().Err())
+				var message wireMsg
+				require.NoError(t, json.NewDecoder(request.Body).Decode(&message))
+				messages = append(messages, message)
+				return jsonResponse(http.StatusOK, "{}"), nil
+			})}}
+			ctx, cancel := context.WithCancel(t.Context())
+			cancel()
+			tc.notify(ctx, 1)
+			var recipients []string
+			for _, message := range messages {
+				recipients = append(recipients, message.Message.Token)
+				require.Len(t, message.Message.Data, 1)
+				ciphertext, err := base64.StdEncoding.DecodeString(message.Message.Data["notificationCiphertext"])
+				require.NoError(t, err)
+				plaintext, err := hpke.Open(key, hpke.HKDFSHA256(), hpke.ChaCha20Poly1305(), []byte("ente-push"), ciphertext)
+				require.NoError(t, err)
+				require.JSONEq(t, fmt.Sprintf(`{"eventType":%q}`, tc.event), string(plaintext))
+			}
+			require.ElementsMatch(t, []string{"1-android", "1-ios"}, recipients)
+		})
+	}
 }
 
 func captureLogs(t *testing.T) *logtest.Hook {

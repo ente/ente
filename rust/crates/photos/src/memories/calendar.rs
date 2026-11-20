@@ -1,6 +1,7 @@
 pub(super) const MICROS_PER_SECOND: i64 = 1_000_000;
 pub(super) const MICROS_PER_MINUTE: i64 = 60 * MICROS_PER_SECOND;
-pub(super) const MICROS_PER_DAY: i64 = 24 * 60 * MICROS_PER_MINUTE;
+pub(super) const MICROS_PER_HOUR: i64 = 60 * MICROS_PER_MINUTE;
+pub(super) const MICROS_PER_DAY: i64 = 24 * MICROS_PER_HOUR;
 
 const DAYS_PER_ERA: i64 = 146_097;
 const DAYS_FROM_ERA_START_TO_UNIX_EPOCH: i64 = 719_468;
@@ -67,6 +68,11 @@ impl LocalDate {
         other.days_since_epoch() - self.days_since_epoch()
     }
 
+    pub(super) fn whole_years_until(self, other: Self) -> i32 {
+        let is_before_anniversary = (other.month, other.day) < (self.month, self.day);
+        other.year - self.year - i32::from(is_before_anniversary)
+    }
+
     pub(super) fn weekday(self) -> i64 {
         (self.days_since_epoch() + 3).rem_euclid(7) + 1
     }
@@ -107,6 +113,18 @@ mod tests {
 
     fn date(year: i32, month: i32, day: i32) -> LocalDate {
         LocalDate { year, month, day }
+    }
+
+    #[test]
+    fn whole_years_count_completed_anniversaries() {
+        let new_year = date(2023, 1, 1);
+        assert_eq!(new_year.whole_years_until(date(2024, 12, 31)), 1);
+        assert_eq!(new_year.whole_years_until(date(2025, 1, 1)), 2);
+        assert_eq!(date(2018, 12, 31).whole_years_until(date(2021, 1, 2)), 2);
+        let leap_day = date(2020, 2, 29);
+        assert_eq!(leap_day.whole_years_until(date(2022, 2, 28)), 1);
+        assert_eq!(leap_day.whole_years_until(date(2022, 3, 1)), 2);
+        assert_eq!(leap_day.whole_years_until(date(2024, 2, 29)), 4);
     }
 
     #[test]

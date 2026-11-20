@@ -37,27 +37,52 @@ final _videos = Expando<File>();
 Future<void> shareRewindVideo(
   BuildContext context, {
   required List<RewindPage> pages,
-  Future<void> Function(List<RewindPage> pages)? loadMedia,
+  Future<bool> Function(List<RewindPage> pages)? loadMedia,
   MemoryMusicTrack? track,
   Rect? origin,
+}) => _shareExport(
+  context,
+  RewindVideoExportPage(pages: pages, loadMedia: loadMedia, track: track),
+  cacheKey: pages,
+  origin: origin,
+);
+
+Future<void> shareRewindClip(
+  BuildContext context, {
+  required RewindPage page,
+  Future<bool> Function(List<RewindPage> pages)? loadMedia,
+  MemoryMusicTrack? track,
+  Rect? origin,
+}) => _shareExport(
+  context,
+  RewindVideoExportPage(
+    pages: [page],
+    reelOf: RewindReel.clipOf,
+    filePrefix: "ente-rewind-${page.key}-",
+    loadMedia: loadMedia,
+    track: track,
+  ),
+  cacheKey: page,
+  origin: origin,
+);
+
+Future<void> _shareExport(
+  BuildContext context,
+  RewindVideoExportPage export, {
+  required Object cacheKey,
+  Rect? origin,
 }) async {
-  var video = _videos[pages];
+  var video = _videos[cacheKey];
   if (video == null || !await video.exists()) {
     if (!context.mounted) return;
-    final result = await Navigator.of(context).push(
-      RewindVideoExportPage(
-        pages: pages,
-        loadMedia: loadMedia,
-        track: track,
-      ).route(),
-    );
+    final result = await Navigator.of(context).push(export.route());
     if (result is! File) {
       if (result != null && context.mounted) {
         await showGenericErrorBottomSheet(context: context, error: result);
       }
       return;
     }
-    video = _videos[pages] = result;
+    video = _videos[cacheKey] = result;
   }
   if (!context.mounted || !_isInFront(context)) return;
   await SharePlus.instance.share(
@@ -80,6 +105,8 @@ bool _isOnTop(BuildContext context) {
 class RewindVideoExportPage extends StatefulWidget {
   const RewindVideoExportPage({
     required this.pages,
+    this.reelOf = RewindReel.of,
+    this.filePrefix = "ente-rewind-",
     this.format = RewindVideoFormat.fullHd,
     this.loadMedia,
     this.track,
@@ -87,8 +114,10 @@ class RewindVideoExportPage extends StatefulWidget {
   });
 
   final List<RewindPage> pages;
+  final RewindReel Function(List<RewindPage> pages) reelOf;
+  final String filePrefix;
   final RewindVideoFormat format;
-  final Future<void> Function(List<RewindPage> pages)? loadMedia;
+  final Future<bool> Function(List<RewindPage> pages)? loadMedia;
   final MemoryMusicTrack? track;
 
   Route<Object?> route() => PageRouteBuilder<Object?>(
@@ -112,8 +141,6 @@ class _Cancelled implements Exception {
 class _RewindVideoExportPageState extends State<RewindVideoExportPage>
     with WidgetsBindingObserver {
   static final _logger = Logger("RewindVideoExport");
-  static const _filePrefix = "ente-rewind-";
-  static const _mediaTimeout = Duration(seconds: 20);
   static const _musicTimeout = Duration(seconds: 10);
   static const _wrapHold = Duration(milliseconds: 900);
   static const _longestCountedFrame = Duration(milliseconds: 500);
@@ -201,21 +228,38 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
       final reel = await _unlessCancelled(_loadReel());
       final directory = Configuration.instance.getTempDirectory();
       await _deleteOldVideos(directory);
-      sink = await RewindVideoSink.open(
-        output: File(
-          "$directory$_filePrefix${DateTime.now().millisecondsSinceEpoch}.mp4",
-        ),
+      final output = File(
+        "$directory${widget.filePrefix}"
+        "${DateTime.now().millisecondsSinceEpoch}.mp4",
+      );
+      final duration = reel.duration + reel.timeOf(1);
+      sink = RewindNativeVideoSink.open(
+        output: output,
         format: widget.format,
         frameRate: RewindReel.frameRate,
-        duration: reel.duration,
+        duration: duration,
         music: music,
       );
-      await _render(reel, sink);
-      if (mounted) setState(() => _stage = _Stage.finishing);
-      final wrap = Future<void>.delayed(_wrapHold);
-      final video = await sink.finish();
-      await wrap;
-      return video;
+      try {
+        return await _encode(reel, sink);
+      } on _Cancelled {
+        rethrow;
+      } catch (error, stackTrace) {
+        _logger.warning(
+          "Encoding the Rewind video with FFmpeg",
+          error,
+          stackTrace,
+        );
+        await sink.abort();
+        sink = RewindFfmpegVideoSink.open(
+          output: output,
+          format: widget.format,
+          frameRate: RewindReel.frameRate,
+          duration: duration,
+          music: music,
+        );
+        return await _encode(reel, sink);
+      }
     } catch (_) {
       await sink?.abort();
       rethrow;
@@ -228,11 +272,28 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
     }
   }
 
+  Future<File> _encode(RewindReel reel, RewindVideoSink sink) async {
+    final clock = Stopwatch()..start();
+    await _unlessCancelled(sink.ready);
+    await _render(reel, sink);
+    final rendered = clock.elapsed;
+    if (mounted) setState(() => _stage = _Stage.finishing);
+    final wrap = Future<void>.delayed(_wrapHold);
+    final video = await sink.finish();
+    _logger.info(
+      "Rendered ${reel.frameCount + 1} frames in ${rendered.inMilliseconds} ms "
+      "and finished in ${(clock.elapsed - rendered).inMilliseconds} ms "
+      "with ${sink.runtimeType}",
+    );
+    await wrap;
+    return video;
+  }
+
   Future<void> _deleteOldVideos(String directory) async {
+    final old = RegExp("^${RegExp.escape(widget.filePrefix)}\\d+\\.mp4");
     try {
       await for (final entry in Directory(directory).list()) {
-        if (entry is File &&
-            entry.uri.pathSegments.last.startsWith(_filePrefix)) {
+        if (entry is File && old.hasMatch(entry.uri.pathSegments.last)) {
           await entry.delete();
         }
       }
@@ -268,52 +329,42 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
     final warmed = await Future.wait([
       for (final page in widget.pages) page.warmUp(),
     ]);
-    if (warmed.contains(false)) {
+    final reel = widget.reelOf(widget.pages);
+    final ready =
+        !warmed.contains(false) &&
+        (await widget.loadMedia?.call(reel.pages) ?? true);
+    if (!ready) {
       throw StateError("Some Rewind cards could not load their photos");
     }
-    final reel = RewindReel.of(widget.pages);
-    await _loadMedia(reel.pages);
     return reel;
-  }
-
-  Future<void> _loadMedia(List<RewindPage> pages) async {
-    try {
-      await widget.loadMedia?.call(pages).timeout(_mediaTimeout);
-    } catch (error, stackTrace) {
-      _logger.warning(
-        "Some Rewind video media did not load",
-        error,
-        stackTrace,
-      );
-    }
   }
 
   Future<void> _render(RewindReel reel, RewindVideoSink sink) async {
     if (!mounted) throw const _Cancelled();
     _throwIfCancelled();
+    _rendered = Duration.zero;
+    _frameIndex.value = 0;
     setState(() {
       _reel = reel;
-      _stage = _Stage.rendering;
+      _stage = _Stage.preparing;
     });
     final stepper = _stepper = RewindFrameStepper(RewindReel.frameRate)
       ..install();
     var written = Future<void>.value();
-    _clock.start();
     try {
+      written = sink.add(await _cover(reel, stepper));
+      if (!mounted) throw const _Cancelled();
+      setState(() => _stage = _Stage.rendering);
+      _clock.start();
       for (var frame = 0; frame < reel.frameCount; frame++) {
         _time.value = reel.timeOf(frame);
         _frameIndex.value = frame;
         await _unlessCancelled(stepper.step());
-        final boundary =
-            _boundary.currentContext!.findRenderObject()!
-                as RenderRepaintBoundary;
-        final image = await boundary.toImage(
-          pixelRatio: widget.format.pixelRatio,
-        );
-        final pixels = _read(image)..ignore();
+        await _unlessCancelled(rewindRiveFilesLoaded());
+        final pixels = _read(await _capture())..ignore();
         final previous = written;
         written = previous.then((_) => pixels).then(sink.add);
-        await previous;
+        await _unlessCancelled(previous);
         final lap = _clock.elapsed;
         _clock.reset();
         _rendered += lap < _longestCountedFrame ? lap : _longestCountedFrame;
@@ -327,6 +378,22 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
       _stepper = null;
       stepper.uninstall();
     }
+  }
+
+  Future<ByteData> _cover(RewindReel reel, RewindFrameStepper stepper) async {
+    for (var frame = 0; frame <= reel.coverFrame; frame++) {
+      _time.value = reel.timeOf(frame);
+      await _unlessCancelled(stepper.step());
+    }
+    await _unlessCancelled(rewindRiveFilesLoaded());
+    await _unlessCancelled(stepper.step());
+    return _read(await _capture());
+  }
+
+  Future<ui.Image> _capture() {
+    final boundary =
+        _boundary.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+    return boundary.toImage(pixelRatio: widget.format.pixelRatio);
   }
 
   Future<ByteData> _read(ui.Image image) async {
@@ -376,13 +443,12 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
   String _timeLeft(int frame) {
     const warmUpFrames = 30;
     if (_stage == _Stage.finishing) return "Ready to share";
-    if (_stage == _Stage.preparing || frame < warmUpFrames) {
-      return "Keep Ente open, this won’t take long";
+    if (_stage == _Stage.rendering && frame >= warmUpFrames) {
+      final left =
+          _rendered.inMilliseconds / frame * (_reel!.frameCount - frame) / 1000;
+      if (left < 5) return "Almost there";
     }
-    final left =
-        _rendered.inMilliseconds / frame * (_reel!.frameCount - frame) / 1000;
-    if (left < 5) return "Almost there";
-    return "About ${(left / 5).ceil() * 5} seconds left";
+    return "Keep Ente open, this won’t take long";
   }
 
   @override
@@ -565,8 +631,27 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
             padding: const EdgeInsets.all(8),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(11),
-              child: _stage == _Stage.preparing
-                  ? ColoredBox(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  if (_reel case final reel?)
+                    FittedBox(
+                      fit: BoxFit.cover,
+                      child: SizedBox.fromSize(
+                        size: RewindReel.canvas,
+                        child: RepaintBoundary(
+                          key: _boundary,
+                          child: RewindReelView(
+                            key: ValueKey(_stage == _Stage.preparing),
+                            reel: reel,
+                            time: _time,
+                            pixelRatio: widget.format.pixelRatio,
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (_stage == _Stage.preparing)
+                    ColoredBox(
                       color: RewindColors.green,
                       child: Padding(
                         padding: const EdgeInsets.all(22),
@@ -574,21 +659,9 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
                           RewindAssets.file(RewindAssets.coverLockup),
                         ),
                       ),
-                    )
-                  : FittedBox(
-                      fit: BoxFit.cover,
-                      child: SizedBox.fromSize(
-                        size: RewindReel.canvas,
-                        child: RepaintBoundary(
-                          key: _boundary,
-                          child: RewindReelView(
-                            reel: _reel!,
-                            time: _time,
-                            pixelRatio: widget.format.pixelRatio,
-                          ),
-                        ),
-                      ),
                     ),
+                ],
+              ),
             ),
           ),
         ),

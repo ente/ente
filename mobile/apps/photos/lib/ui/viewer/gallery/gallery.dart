@@ -18,6 +18,7 @@ import "package:photos/events/homepage_swipe_to_select_in_progress_event.dart";
 import 'package:photos/events/local_photos_updated_event.dart';
 import 'package:photos/events/tab_changed_event.dart';
 import 'package:photos/models/file/file.dart';
+import "package:photos/models/file/file_sort_order.dart";
 import 'package:photos/models/file_load_result.dart';
 import "package:photos/models/gallery/gallery_groups.dart";
 import "package:photos/models/gallery_type.dart";
@@ -40,6 +41,7 @@ import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.da
 import "package:photos/ui/viewer/gallery/state/inherited_search_filter_data.dart";
 import "package:photos/ui/viewer/gallery/swipe_selection_wrapper.dart";
 import "package:photos/ui/viewer/gallery/swipe_to_select_helper.dart";
+import "package:photos/utils/file_sort_util.dart";
 import "package:photos/utils/hierarchical_search_util.dart";
 import "package:photos/utils/widget_util.dart";
 
@@ -53,7 +55,7 @@ typedef GalleryLoader =
 
 typedef _LayoutScrollAnchor = ({EnteFile file, bool inHeader, double progress});
 
-typedef SortAscFn = bool Function();
+typedef FileSortOrderFn = FileSortOrder Function();
 
 typedef NewLocalFilesResolver =
     Future<List<EnteFile>?> Function(LocalPhotosAddedEvent event);
@@ -95,13 +97,14 @@ class Gallery extends StatefulWidget {
   final bool disableSelection;
   final bool showSelectAll;
 
-  final SortAscFn? sortAsyncFn;
+  final FileSortOrderFn? sortOrderFn;
 
   final GroupType? groupType;
   final bool disablePinnedGroupHeader;
   final bool disableVerticalPaddingForScrollbar;
 
   final EnteFile? fileToJumpTo;
+  final EnteFile? fileToReveal;
 
   const Gallery({
     required this.asyncLoader,
@@ -124,7 +127,7 @@ class Gallery extends StatefulWidget {
     this.limitSelectionToOne = false,
     this.inSelectionMode = false,
     this.disableSelection = false,
-    this.sortAsyncFn,
+    this.sortOrderFn,
     this.showSelectAll = true,
     this.reloadDebounceTime = const Duration(milliseconds: 500),
     this.reloadDebounceExecutionInterval = const Duration(seconds: 2),
@@ -136,6 +139,7 @@ class Gallery extends StatefulWidget {
     this.groupHeaderAction,
     this.layoutTypeOverride,
     this.fileToJumpTo,
+    this.fileToReveal,
     this.newLocalFilesResolver,
     super.key,
   });
@@ -162,12 +166,14 @@ class GalleryState extends State<Gallery> with WidgetsBindingObserver {
   bool _hasLoadedFiles = false;
   bool _allFilesLoaded = false;
   bool _completedJumpToDate = false;
+  bool _revealedFile = false;
   StreamSubscription<FilesUpdatedEvent>? _reloadEventSubscription;
   StreamSubscription<GalleryLayoutChangedEvent>? _layoutChangeSubscription;
   StreamSubscription<TabDoubleTapEvent>? _tabDoubleTapEvent;
   final _forceReloadEventSubscriptions = <StreamSubscription<Event>>[];
   late String _logTag;
-  bool _sortOrderAsc = false;
+  FileSortOrder _sortOrder = FileSortOrder.newestFirst;
+  bool get _sortOrderAsc => _sortOrder.ascending;
   int _layoutChangeGeneration = 0;
   bool _committingGridZoom = false;
   bool _isGalleryVisible = false;
@@ -208,6 +214,7 @@ class GalleryState extends State<Gallery> with WidgetsBindingObserver {
       assert(widget.showSelectAll == false);
     }
 
+    _sortOrder = widget.sortOrderFn?.call() ?? FileSortOrder.newestFirst;
     _setGroupType();
     _debouncer = Debouncer(
       widget.reloadDebounceTime,
@@ -225,7 +232,6 @@ class GalleryState extends State<Gallery> with WidgetsBindingObserver {
           _needsLayoutRefresh = true;
           unawaited(_refreshGalleryLayout());
         });
-    _sortOrderAsc = widget.sortAsyncFn != null ? widget.sortAsyncFn!() : false;
     if (widget.reloadEvent != null) {
       _reloadEventSubscription = widget.reloadEvent!.listen((event) async {
         bool shouldReloadFromDB = true;
@@ -289,10 +295,15 @@ class GalleryState extends State<Gallery> with WidgetsBindingObserver {
           event.listen((event) async {
             _debouncer.run(() async {
               _logger.info("Force refresh all files on ${event.reason}");
-              _sortOrderAsc = widget.sortAsyncFn != null
-                  ? widget.sortAsyncFn!()
-                  : false;
+              final wasFilenameSort = _sortOrder.isFilename;
+              _sortOrder =
+                  widget.sortOrderFn?.call() ?? FileSortOrder.newestFirst;
               _setGroupType();
+              if (wasFilenameSort != _sortOrder.isFilename) {
+                final measuredHeaderExtent = await _measureGroupHeaderExtent();
+                if (!mounted) return;
+                groupHeaderExtent = measuredHeaderExtent ?? groupHeaderExtent;
+              }
               final result = await _loadFiles();
               _setFilesAndReload(result.files);
             });
@@ -300,7 +311,9 @@ class GalleryState extends State<Gallery> with WidgetsBindingObserver {
         );
       }
     }
-    if (widget.initialFiles != null && !_sortOrderAsc) {
+    if (widget.initialFiles != null &&
+        !_sortOrderAsc &&
+        !_sortOrder.isFilename) {
       _onFilesLoaded(widget.initialFiles!);
     }
 
@@ -688,7 +701,7 @@ class GalleryState extends State<Gallery> with WidgetsBindingObserver {
   }
 
   void _setGroupType() {
-    if (!widget.enableFileGrouping) {
+    if (!widget.enableFileGrouping || _sortOrder.isFilename) {
       _groupType = GroupType.none;
     } else if (widget.groupType != null) {
       _groupType = widget.groupType!;
@@ -877,13 +890,15 @@ class GalleryState extends State<Gallery> with WidgetsBindingObserver {
     _logger.info("Loading ${limit ?? "all"} files");
     _activeFileLoads++;
     try {
+      final sortOrder = _sortOrder;
       final startTime = DateTime.now().microsecondsSinceEpoch;
       final result = await widget.asyncLoader(
         galleryLoadStartTime,
         galleryLoadEndTime,
-        limit: limit,
-        asc: _sortOrderAsc,
+        limit: sortOrder.isFilename ? null : limit,
+        asc: sortOrder.ascending,
       );
+      if (sortOrder != _sortOrder) return await _loadFiles();
       final endTime = DateTime.now().microsecondsSinceEpoch;
       final duration = Duration(microseconds: endTime - startTime);
       _logger.info(
@@ -893,6 +908,10 @@ class GalleryState extends State<Gallery> with WidgetsBindingObserver {
             duration.inMilliseconds.toString() +
             "ms",
       );
+
+      if (sortOrder.isFilename) {
+        sortFilesByName(result.files, sortOrder);
+      }
 
       if (!result.hasMore) {
         if (!mounted) {
@@ -1049,6 +1068,16 @@ class GalleryState extends State<Gallery> with WidgetsBindingObserver {
       });
     }
 
+    if (widget.fileToReveal != null &&
+        !_revealedFile &&
+        galleryGroups != null &&
+        groupHeaderExtent != null) {
+      _revealedFile = true;
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => revealFile(widget.fileToReveal!),
+      );
+    }
+
     final viewSize = MediaQuery.sizeOf(context);
     final widthAvailable = viewSize.width;
     final shouldEnableSwipeSelection = widget.limitSelectionToOne == false;
@@ -1060,7 +1089,8 @@ class GalleryState extends State<Gallery> with WidgetsBindingObserver {
           (widthAvailable - (photoGridSize - 1) * GalleryGroups.spacing) /
           photoGridSize;
       final placeholder =
-          _hasUsableSize(viewSize) &&
+          !_sortOrder.isFilename &&
+              _hasUsableSize(viewSize) &&
               tileHeight.isFinite &&
               tileHeight > 0 &&
               widget.initialFiles != null &&

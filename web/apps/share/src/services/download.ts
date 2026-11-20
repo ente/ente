@@ -55,6 +55,12 @@ const decryptFileStream = (
             async transform(chunk, controller) {
                 let offset = 0;
                 while (offset < chunk.length) {
+                    if (buffered === buffer.length) {
+                        controller.enqueue(
+                            await decryptStreamChunk(buffer, pullState, false),
+                        );
+                        buffered = 0;
+                    }
                     const count = Math.min(
                         buffer.length - buffered,
                         chunk.length - offset,
@@ -65,23 +71,17 @@ const decryptFileStream = (
                     );
                     buffered += count;
                     offset += count;
-                    if (buffered === buffer.length) {
-                        controller.enqueue(
-                            await decryptStreamChunk(buffer, pullState),
-                        );
-                        buffered = 0;
-                    }
                 }
             },
             async flush(controller) {
-                if (buffered > 0) {
-                    controller.enqueue(
-                        await decryptStreamChunk(
-                            buffer.subarray(0, buffered),
-                            pullState,
-                        ),
-                    );
-                }
+                if (!buffered) throw new Error("Missing final encrypted chunk");
+                controller.enqueue(
+                    await decryptStreamChunk(
+                        buffer.subarray(0, buffered),
+                        pullState,
+                        true,
+                    ),
+                );
             },
         }),
     );

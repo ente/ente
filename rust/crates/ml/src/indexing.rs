@@ -1,5 +1,6 @@
 use crate::{
     clip::{run_clip_image, run_clip_text_query, tokenize_clip_text as tokenize_clip_text_impl},
+    decode::decode_image,
     diagnostics::{AnalysisContext, AnalysisOperation, AnalysisStage, log_public_ml_error},
     error::{MlError, MlResult},
     face::{
@@ -15,7 +16,7 @@ use crate::{
     preprocess, runtime,
     types::{self, ClipResult, Dimensions, FaceResult, PetBodyResult, PetFaceResult},
 };
-use ente_image::decode::{decode_image_from_bytes, decode_image_from_path};
+use ente_image::{BoundedDecodeOptions, BoundedDecodedImage};
 
 #[derive(Clone, Debug)]
 pub enum ImageSource {
@@ -108,11 +109,14 @@ fn analyze_image_inner(
     operation.set_stage(AnalysisStage::RuntimeSetup);
     runtime::with_runtime(&model_paths, |runtime| {
         operation.set_stage(AnalysisStage::DecodeImage);
-        let mut decoded = match &source {
-            ImageSource::Path(path) => decode_image_from_path(path)?,
-            ImageSource::Bytes(bytes) => decode_image_from_bytes(bytes)?,
-        };
-        let dims = decoded.dimensions.clone();
+        let BoundedDecodedImage {
+            image: mut decoded,
+            original_dimensions,
+        } = decode_image(
+            &source,
+            BoundedDecodeOptions::default(),
+            &format!("file_id={file_id}"),
+        )?;
         let detector_input;
         let (face_input, pet_input) = if run_faces || run_pets {
             operation.set_stage(AnalysisStage::YoloPreprocess);
@@ -220,7 +224,7 @@ fn analyze_image_inner(
         let provider_usage = runtime.provider_usage();
         Ok(AnalyzeImageResult {
             file_id,
-            decoded_image_size: dims,
+            decoded_image_size: original_dimensions,
             faces,
             face_crops,
             clip,
@@ -299,6 +303,8 @@ fn validate_request_model_paths(req: &AnalyzeImageRequest) -> MlResult<()> {
 
 #[cfg(test)]
 mod tests {
+    use ente_image::decode::decode_image_from_bytes;
+
     use super::*;
 
     fn request_with_models(run_faces: bool, run_clip: bool, run_pets: bool) -> AnalyzeImageRequest {
@@ -320,21 +326,78 @@ mod tests {
         }
     }
 
-    fn png_bytes(width: u32, height: u32) -> Vec<u8> {
+    fn encoded_image(width: u32, height: u32, format: image::ImageFormat) -> Vec<u8> {
         let img =
             image::RgbImage::from_fn(width, height, |x, y| image::Rgb([x as u8, y as u8, 128]));
         let mut bytes = std::io::Cursor::new(Vec::new());
         image::DynamicImage::ImageRgb8(img)
-            .write_to(&mut bytes, image::ImageFormat::Png)
-            .expect("png encoding succeeds");
+            .write_to(&mut bytes, format)
+            .expect("image encoding succeeds");
         bytes.into_inner()
+    }
+
+    fn dimensions(width: u32, height: u32) -> Dimensions {
+        Dimensions { width, height }
+    }
+
+    #[test]
+    fn large_images_are_downsampled_and_keep_their_original_size() {
+        let source = ImageSource::Bytes(encoded_image(6400, 8, image::ImageFormat::Png));
+        let BoundedDecodedImage {
+            image,
+            original_dimensions,
+        } = decode_image(&source, BoundedDecodeOptions::default(), "file_id=1").unwrap();
+        assert_eq!(image.dimensions, dimensions(6000, 7));
+        assert_eq!(image.rgb.len(), 6000 * 7 * 3);
+        assert_eq!(original_dimensions, dimensions(6400, 8));
+
+        let req = AnalyzeImageRequest {
+            source,
+            ..request_with_models(false, false, false)
+        };
+        let result = analyze_image(req).unwrap();
+        assert_eq!(result.decoded_image_size, dimensions(6400, 8));
+    }
+
+    #[test]
+    fn formats_without_bounded_decoding_use_the_full_decoder() {
+        let source = ImageSource::Bytes(encoded_image(6400, 8, image::ImageFormat::WebP));
+        let BoundedDecodedImage {
+            image,
+            original_dimensions,
+        } = decode_image(&source, BoundedDecodeOptions::default(), "file_id=1").unwrap();
+        assert_eq!(image.dimensions, dimensions(6400, 8));
+        assert_eq!(original_dimensions, dimensions(6400, 8));
+    }
+
+    #[test]
+    fn only_decode_failures_fall_back_to_the_full_decoder() {
+        let bytes = encoded_image(512, 512, image::ImageFormat::Png);
+        assert!(decode_image_from_bytes(&bytes).is_ok());
+        let source = ImageSource::Bytes(bytes);
+        let too_large = BoundedDecodeOptions {
+            max_memory_bytes: 64 * 1024,
+            ..BoundedDecodeOptions::default()
+        };
+        assert!(matches!(
+            decode_image(&source, too_large, "file_id=1"),
+            Err(MlError::Decode(_))
+        ));
+        let invalid = BoundedDecodeOptions {
+            max_side: 0,
+            ..BoundedDecodeOptions::default()
+        };
+        assert!(matches!(
+            decode_image(&source, invalid, "file_id=1"),
+            Err(MlError::Image(_))
+        ));
     }
 
     #[test]
     fn analyze_image_decodes_from_bytes() {
         let req = AnalyzeImageRequest {
             file_id: 1,
-            source: ImageSource::Bytes(png_bytes(64, 48)),
+            source: ImageSource::Bytes(encoded_image(64, 48, image::ImageFormat::Png)),
             run_faces: false,
             run_clip: false,
             run_pets: false,

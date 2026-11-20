@@ -1080,7 +1080,7 @@
     "filters": "",
     "invert_colors": "Αντιστροφή Χρωμάτων",
     "reset": "Επαναφορά",
-    "faster_upload": "Ταχύτερη μεταφόρτωση",
+    "smart_routing": "",
     "faster_upload_description": "Δρομολόγηση μεταφορτώσεων μέσω κοντινών διακομιστών",
     "open_ente_on_startup": "Άνοιγμα του Ente κατά την εκκίνηση",
     "cast_album_to_tv": "Αναπαραγωγή άλμπουμ στην τηλεόραση",

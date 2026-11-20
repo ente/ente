@@ -292,6 +292,7 @@ final _busyYear = rust.RewindReport(
   ),
   badge: const rust.Badge(id: rust.RewindBadge.sunChaser, value: 142),
   scrapbook: rust.Scrapbook(fileIds: _ids(100900, 12)),
+  finale: rust.Finale(fileIds: _ids(100700, 12)),
   tour: rust.Tour(
     stops: [
       _stop("Mumbai", "IN", 1, 3, 96),
@@ -325,6 +326,15 @@ final _busyYear = rust.RewindReport(
     [0, 1, 0, 2, 0, 3, 0, 4, 5, 6, 7, 0, 8, 0, 9, 0],
     29120,
   ),
+  warp: rust.Warp(fileIds: _ids(102000, 240)),
+  mosaic: rust.Mosaic(
+    fileIds: _ids(102000, 400),
+    mePersonId: "person_me",
+    meFaceIds: _faceIds(102000, 5),
+    topPersonId: "person_maya",
+    topFaceIds: _faceIds(100400, 5),
+    clusterFaceIds: const [],
+  ),
 );
 
 final _sparseYear = rust.RewindReport(
@@ -345,6 +355,7 @@ final _sparseYear = rust.RewindReport(
   ),
   badge: const rust.Badge(id: rust.RewindBadge.limitedEdition),
   scrapbook: rust.Scrapbook(fileIds: _ids(200300, 6)),
+  finale: rust.Finale(fileIds: _ids(200200, 4)),
 );
 
 final _topTenYear = rust.RewindReport(
@@ -366,6 +377,7 @@ final _topTenYear = rust.RewindReport(
   spots: rust.Spots(spotCount: 3, photoCount: 412, fileIds: _ids(300300, 6)),
   badge: const rust.Badge(id: rust.RewindBadge.weekendStar, value: 64),
   scrapbook: rust.Scrapbook(fileIds: _ids(300900, 12)),
+  finale: rust.Finale(fileIds: _ids(300950, 2)),
   tour: rust.Tour(
     stops: [
       _stop("Bengaluru", "IN", 1, 1, 640),

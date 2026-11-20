@@ -3,6 +3,9 @@ use std::sync::Arc;
 use thiserror::Error;
 use uuid::Uuid;
 
+#[cfg(test)]
+mod transaction_tests;
+
 #[derive(Debug, Error, uniffi::Error)]
 pub enum DbError {
     #[error("database is readonly")]

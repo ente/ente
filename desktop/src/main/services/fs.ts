@@ -36,6 +36,9 @@ export const fsIsDir = async (dirPath: string) => {
 export const fsStatMtime = (path: string) =>
     fs.stat(path).then((st) => st.mtime.getTime());
 
+export const fsStatBirthtime = (path: string) =>
+    fs.stat(path).then((st) => st.birthtime.getTime());
+
 export const fsFindFiles = async (dirPath: string) => {
     const items = await fs.readdir(dirPath, { withFileTypes: true });
     let paths: string[] = [];

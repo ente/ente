@@ -2,6 +2,7 @@ import "dart:math";
 import "dart:typed_data";
 import "dart:ui" as ui;
 
+import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 import "package:flutter/scheduler.dart";
 import "package:flutter/services.dart";
@@ -13,6 +14,7 @@ import "package:photos/ui/rewind/theme/rewind_colors.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_hint.dart";
 import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
+import "package:photos/ui/rewind/widgets/rewind_photo.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo_frames.dart";
 import "package:photos/ui/rewind/widgets/rewind_pixels.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
@@ -77,12 +79,16 @@ class WarpPage extends RewindPage {
   late final RewindWarm<RewindAtlas> _walls = RewindWarm(
     () => RewindAtlas.load(
       photos,
-      tile: 96,
+      tile: 192,
       bytes: bytes,
       minimum: minimumPanels,
     ),
     (atlas) => atlas.dispose(),
   );
+
+  late final RewindWarm<RewindDecoded> _landing = RewindDecoded.warm([
+    first,
+  ], bytes);
 
   static final _wallClock = RegExp(r"^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}");
 
@@ -105,10 +111,24 @@ class WarpPage extends RewindPage {
   Duration? get reelHold => const Duration(milliseconds: 4000);
 
   @override
-  Future<bool> warmUp() async => await _walls.value != null;
+  Duration? get clipHold => reelHold;
 
   @override
-  void release() => _walls.release();
+  List<EnteFile> get reelThumbnails => [first];
+
+  @override
+  Future<bool> warmUp() async {
+    final landing = _landing.value;
+    final walls = await _walls.value;
+    await landing;
+    return walls != null;
+  }
+
+  @override
+  void release() {
+    _walls.release();
+    _landing.release();
+  }
 
   @override
   Widget build(
@@ -118,13 +138,17 @@ class WarpPage extends RewindPage {
   }) {
     return RewindWarmBuilder<RewindAtlas>(
       warm: _walls,
-      builder: (context, walls) => _Flight(
-        key: ValueKey(walls),
-        walls: walls,
-        first: first,
-        photo: photo,
-        active: isActive,
-        position: position,
+      builder: (context, walls) => RewindWarmBuilder<RewindDecoded>(
+        warm: _landing,
+        builder: (context, landing) => _Flight(
+          key: ValueKey(walls),
+          walls: walls,
+          first: first,
+          landing: landing,
+          photo: photo,
+          active: isActive && !RewindPageScope.coveredOf(context),
+          position: position,
+        ),
       ),
     );
   }
@@ -134,6 +158,7 @@ class _Flight extends StatefulWidget {
   const _Flight({
     required this.walls,
     required this.first,
+    required this.landing,
     required this.photo,
     required this.active,
     required this.position,
@@ -142,6 +167,7 @@ class _Flight extends StatefulWidget {
 
   final RewindAtlas? walls;
   final EnteFile first;
+  final RewindDecoded? landing;
   final RewindPhotoBuilder photo;
   final bool active;
   final double position;
@@ -152,9 +178,20 @@ class _Flight extends StatefulWidget {
 
 class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   static const _printWidth = 228.0;
-  static const _coastMs = 380.0;
-  static const _seekMs = 170.0;
-  static const _wheelSpan = 900.0;
+  static const _coastMs = 450.0;
+  static const _pixelsPerUnit = 68.0;
+  static const _touchTop = 70.0;
+  static const _touchBottom = 770.0;
+  static const _flyAbove = 700.0;
+  static const _rollSpan = 140.0;
+  static const _rollCoastMs = 520.0;
+  static const _detent = pi / 3;
+  static const _holdFor = Duration(milliseconds: 250);
+  static const _holdSlop = 12.0;
+  static const _brakeMs = 90.0;
+  static const _hintFromMs = 1500.0;
+  static const _hintMs = 2200.0;
+  static const _restMs = 500.0;
   static const _pickedAt = Offset(195, 356);
 
   late final _reel = RewindPageScope.reelOf(context);
@@ -169,19 +206,44 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   late final _Course _course = _Course(
     (widget.walls?.length ?? 0) ~/ _Course.sides,
   );
-  late final List<_Month> _calendar = _Month.along(_course, widget.walls);
+  late final ImageShader? _shader = switch (widget.walls) {
+    final walls? => ImageShader(
+      walls.image,
+      TileMode.clamp,
+      TileMode.clamp,
+      Matrix4.identity().storage,
+      filterQuality: FilterQuality.medium,
+    ),
+    null => null,
+  };
+  final _landingPhoto = GlobalKey<RewindPhotoState>();
+  final _pickedPhoto = GlobalKey<RewindPhotoState>();
 
   var _last = Duration.zero;
   var _ms = 0.0;
   var _flownMs = 0.0;
+  var _guidedMs = 0.0;
   var _travelled = 0.0;
   var _previous = 0.0;
   var _velocity = 0.0;
   var _pace = 0.0;
+  var _heading = 1.0;
+  var _flewMs = double.negativeInfinity;
   var _piloted = false;
   var _still = false;
   var _dragging = false;
-  double? _seek;
+  var _roll = 0.0;
+  var _rollRate = 0.0;
+  var _rollSide = 1.0;
+  var _rolling = false;
+  var _hasFlown = false;
+  var _hasRolled = false;
+  var _detents = 0;
+  var _held = false;
+  var _hasHeld = false;
+  var _heldBy = Offset.zero;
+  Axis? _heldAxis;
+  var _brake = 0.0;
   double? _landedMs;
   var _gate = -1;
   int? _picked;
@@ -190,6 +252,13 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
 
   bool get _landed =>
       widget.walls != null && _travelled >= _course.length - 0.01;
+
+  bool get _canHold =>
+      _held || (!_piloted && !_landed) || _velocity != 0 || _rollRate != 0;
+
+  bool get _idle => _piloted && !_held && _pace < 0.04;
+
+  bool get _canPick => widget.walls != null && (_piloted || _landed);
 
   @override
   void didChangeDependencies() {
@@ -207,6 +276,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   void dispose() {
     _ticker.dispose();
     _pull.dispose();
+    _shader?.dispose();
     super.dispose();
   }
 
@@ -229,8 +299,13 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
     _last = elapsed;
     if (dt <= 0) return;
     _ms += dt;
+    _brake += ((_held ? 1 : 0) - _brake) * (1 - exp(-dt / _brakeMs));
     if (widget.walls != null && _picked == null) _fly(dt);
-    final rate = (_travelled - _previous).abs() / dt;
+    _coastRoll(dt);
+    final moved = _travelled - _previous;
+    final rate = moved.abs() / dt;
+    if (rate > 0.0004) _heading = moved.sign;
+    if (moved != 0) _flewMs = _ms;
     _previous = _travelled;
     final cruise = 2 * _course.length / _flightMs;
     _pace += ((rate / cruise).clamp(0.0, 1.0) - _pace) * (1 - exp(-dt / 160));
@@ -253,7 +328,8 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   void _fly(double dt) {
     final length = _course.length;
     if (!_piloted) {
-      _flownMs += dt;
+      _guidedMs += dt;
+      _flownMs += dt * (1 - _brake);
       _travelled = _still
           ? length
           : length *
@@ -262,18 +338,26 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
                 );
       return;
     }
+    if (_dragging || _velocity == 0) return;
     final step = min(dt, 50.0);
-    final seek = _seek;
-    if (seek != null) {
-      _travelled += (seek - _travelled) * (1 - exp(-step / _seekMs));
-      if ((seek - _travelled).abs() < 0.01) _seek = null;
-    } else if (!_dragging && _velocity != 0) {
-      _travelled = (_travelled + _velocity * step).clamp(0.0, length);
-      _velocity *= exp(-step / _coastMs);
-      if (_velocity.abs() < 0.0003 || _travelled <= 0 || _travelled >= length) {
-        _velocity = 0;
-      }
+    _travelled = (_travelled + _velocity * step).clamp(0.0, length);
+    _velocity *= exp(-step / _coastMs);
+    if (_velocity.abs() < 0.0003 || _travelled <= 0 || _travelled >= length) {
+      _velocity = 0;
     }
+  }
+
+  void _coastRoll(double dt) {
+    if (!_rolling && _rollRate != 0) {
+      final step = min(dt, 50.0);
+      _roll += _rollRate * step;
+      _rollRate *= exp(-step / _rollCoastMs);
+      if (_rollRate.abs() < 0.00008) _rollRate = 0;
+    }
+    final detents = (_roll / _detent).round();
+    if (detents == _detents) return;
+    _detents = detents;
+    HapticFeedback.selectionClick();
   }
 
   DateTime? get _passing {
@@ -281,7 +365,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
     if (walls == null) return null;
     final ring = min(
       max(0, _course.rings - 1),
-      max(0, ((_travelled - _Course.lead) / _Course.gap).floor()),
+      max(0, ((_travelled - _Course.lead) / _Course.depth).floor()),
     );
     return WarpPage.taken(walls.files[ring * _Course.sides]);
   }
@@ -289,34 +373,126 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   void _takeOver() {
     _release();
     _piloted = true;
+    _hasFlown = true;
     _dragging = true;
     _velocity = 0;
-    _seek = null;
   }
 
-  void _steer(double dx, double span) => _travelled =
-      (_travelled - dx / span * _course.length).clamp(0.0, _course.length);
+  void _flyBy(double dy) {
+    _flewMs = _ms;
+    _travelled = (_travelled - dy / _pixelsPerUnit).clamp(0.0, _course.length);
+  }
 
-  void _letGo(double pixelsPerSecond, double span) {
+  void _letGo(double pixelsPerSecond) {
+    _flewMs = _ms;
     _dragging = false;
-    _velocity = -pixelsPerSecond / span * _course.length / 1000;
+    _velocity = -pixelsPerSecond / _pixelsPerUnit / 1000;
   }
 
-  void _jump(double x) {
+  bool _yields(bool deeper) =>
+      _picked == null &&
+      _ms - _flewMs >= _restMs &&
+      (deeper ? _landed : _travelled <= 0.002);
+
+  void _listenForFlight(_FlightRecognizer recognizer) {
+    recognizer.onStart = (_) => _takeOver();
+    recognizer.onUpdate = (details) => _flyBy(details.delta.dy);
+    recognizer.onEnd = (details) => _letGo(details.primaryVelocity ?? 0);
+    recognizer.onCancel = () => _letGo(0);
+  }
+
+  double _sideOf(Offset at) => at.dy < _Course.vanish.dy ? 1 : -1;
+
+  void _startRoll(Offset at) {
     _release();
-    _piloted = true;
+    _rolling = true;
+    _rollRate = 0;
+    _rollSide = _sideOf(at);
+  }
+
+  void _rollBy(double dx) {
+    _roll += _rollSide * dx / _rollSpan;
+    _hasRolled = true;
+  }
+
+  void _endRoll(double pixelsPerSecond) {
+    _rolling = false;
+    _rollRate = _still ? 0 : _rollSide * pixelsPerSecond / _rollSpan / 1000;
+  }
+
+  void _listenForSpin(HorizontalDragGestureRecognizer recognizer) {
+    recognizer.onStart = (details) =>
+        _startRoll(details.localPosition + const Offset(0, _touchTop));
+    recognizer.onUpdate = (details) => _rollBy(details.delta.dx);
+    recognizer.onEnd = (details) => _endRoll(details.primaryVelocity ?? 0);
+    recognizer.onCancel = () => _endRoll(0);
+  }
+
+  void _listenForHold(LongPressGestureRecognizer recognizer) {
+    recognizer.onLongPressStart = (details) =>
+        _hold(details.localPosition + const Offset(0, _touchTop));
+    recognizer.onLongPressMoveUpdate = (details) =>
+        _holdMove(details.localOffsetFromOrigin);
+    recognizer.onLongPressEnd = (details) =>
+        _letHoldGo(details.velocity.pixelsPerSecond);
+    recognizer.onLongPressCancel = () => _letHoldGo(Offset.zero);
+  }
+
+  void _hold(Offset at) {
+    _release();
+    _held = true;
+    _hasHeld = true;
+    _heldBy = Offset.zero;
+    _heldAxis = null;
     _velocity = 0;
-    _seek =
-        _course.length *
-        ((_Rail.span - (x - _Rail.inset)) / _Rail.span).clamp(0.0, 1.0);
+    _rollRate = 0;
+    _rollSide = _sideOf(at);
+    HapticFeedback.selectionClick();
+  }
+
+  void _holdMove(Offset moved) {
+    final delta = moved - _heldBy;
+    _heldBy = moved;
+    switch (_heldAxis) {
+      case Axis.vertical:
+        _flyBy(delta.dy);
+      case Axis.horizontal:
+        _rollBy(delta.dx);
+      case null:
+        if (moved.distance < _holdSlop) return;
+        if (moved.dy.abs() > moved.dx.abs()) {
+          _heldAxis = Axis.vertical;
+          _takeOver();
+        } else {
+          _heldAxis = Axis.horizontal;
+          _rolling = true;
+        }
+    }
+  }
+
+  void _letHoldGo(Offset pixelsPerSecond) {
+    if (!_held) return;
+    _held = false;
+    switch (_heldAxis) {
+      case Axis.vertical:
+        _letGo(pixelsPerSecond.dy);
+      case Axis.horizontal:
+        _endRoll(pixelsPerSecond.dx);
+      case null:
+    }
+  }
+
+  void _listenForTap(TapGestureRecognizer recognizer) {
+    recognizer.onTapUp = (details) =>
+        _tap(details.localPosition + const Offset(0, _touchTop));
   }
 
   void _flyAgain() {
     _release();
     _piloted = false;
     _flownMs = 0;
+    _guidedMs = 0;
     _velocity = 0;
-    _seek = null;
     _gate = -1;
   }
 
@@ -328,20 +504,29 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
     if (status == AnimationStatus.dismissed) setState(() => _picked = null);
   }
 
+  Rect _printAt(Offset center) => Rect.fromCenter(
+    center: center,
+    width: _printWidth,
+    height: _printWidth * 1.22,
+  );
+
   void _tap(Offset at) {
     if (_picked != null) {
-      _release();
+      if (_pull.status.isForwardOrCompleted &&
+          _printAt(_pickedAt).contains(at)) {
+        _pickedPhoto.currentState?.zoom();
+      } else {
+        _release();
+      }
       return;
     }
-    final onFirst =
-        _landed &&
-        Rect.fromCenter(
-          center: _Course.vanish,
-          width: _printWidth,
-          height: _printWidth * 1.22,
-        ).contains(at);
-    final panel = onFirst ? null : _course.panelAt(at, _travelled);
+    if (_landed && _printAt(_Course.vanish).contains(at)) {
+      _landingPhoto.currentState?.zoom();
+      return;
+    }
+    final panel = _canPick ? _course.panelAt(at, _travelled, _roll) : null;
     if (panel == null) {
+      if (!_landed) return;
       final navigator = RewindPageScope.navigatorOf(context);
       at.dx < RewindStage.size.width / 3
           ? navigator?.previous()
@@ -350,7 +535,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
     }
     HapticFeedback.lightImpact();
     _velocity = 0;
-    _seek = null;
+    _rollRate = 0;
     _piloted = true;
     _hasPicked = true;
     _pickedFrom = at;
@@ -372,22 +557,24 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
           0.0,
           1.0,
         );
-    final door = course.project(course.end, travelled, 0, 0);
+    const door = _Course.vanish;
     final settle = Curves.easeOutBack.transform(
       (sinceLanding / 420).clamp(0.0, 1.0),
     );
     final picked = _picked;
     final pulled = Curves.easeOutCubic.transform(_pull.value);
-    final canPick = walls != null && (_piloted || landed);
+    final canPick = _canPick;
+    final forward = _piloted && _heading < 0;
+    final hint = _hint(landed, sinceLanding, canPick);
     return Stack(
       fit: StackFit.expand,
       children: [
         RewindShareable(
-          enabled: walls != null,
+          enabled: walls != null && widget.landing != null,
           child: Stack(
             fit: StackFit.expand,
             children: [
-              const ColoredBox(color: Color(0xFF120E2E)),
+              const ColoredBox(color: RewindColors.outline),
               RewindStage(
                 children: [
                   Positioned.fill(
@@ -397,17 +584,63 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
                       child: CustomPaint(
                         painter: _Tube(
                           walls: walls,
+                          shader: _shader,
                           course: course,
                           travelled: travelled,
-                          speed: _pace,
+                          roll: _roll,
                           arrival: arrival,
-                          sinceLanding: sinceLanding,
                           dim: pulled,
                           ms: _ms,
                         ),
                       ),
                     ),
                   ),
+                  if (walls != null && passing != null)
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      top: _Course.vanish.dy - 40,
+                      height: 80,
+                      child: RewindLeave(
+                        position: widget.position,
+                        centerY: _Course.vanish.dy,
+                        child: IgnorePointer(
+                          child: Opacity(
+                            opacity:
+                                (1.6 - arrival * 2).clamp(0.0, 1.0) *
+                                (1 - pulled),
+                            child: Center(
+                              child: AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 240),
+                                reverseDuration: Duration.zero,
+                                switchInCurve: Curves.easeOut,
+                                transitionBuilder: (child, animation) =>
+                                    FadeTransition(
+                                      opacity: animation,
+                                      child: SlideTransition(
+                                        position: Tween(
+                                          begin: const Offset(0, 0.14),
+                                          end: Offset.zero,
+                                        ).animate(animation),
+                                        child: ScaleTransition(
+                                          scale: Tween(
+                                            begin: 0.96,
+                                            end: 1.0,
+                                          ).animate(animation),
+                                          child: child,
+                                        ),
+                                      ),
+                                    ),
+                                child: _Month(
+                                  _monthNames[passing.month - 1],
+                                  key: ValueKey(passing.month),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   if (walls != null)
                     Positioned(
                       left: door.dx - 160,
@@ -431,7 +664,11 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
                                       (0.94 + 0.06 * settle),
                                   child: _Print(
                                     width: _printWidth,
-                                    photo: widget.photo(widget.first),
+                                    photo: widget.photo(
+                                      widget.first,
+                                      decoded: widget.landing?[widget.first],
+                                      key: _landingPhoto,
+                                    ),
                                     caption: WarpPage.dated(
                                       WarpPage.taken(widget.first),
                                     ),
@@ -467,7 +704,10 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
                                     scale: 0.14 + 0.86 * pulled,
                                     child: _Print(
                                       width: _printWidth,
-                                      photo: widget.photo(walls.files[picked]),
+                                      photo: widget.photo(
+                                        walls.files[picked],
+                                        key: _pickedPhoto,
+                                      ),
                                       caption: WarpPage.dated(
                                         WarpPage.taken(walls.files[picked]),
                                       ),
@@ -498,12 +738,23 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
                                   ? madeIt
                                   : walls == null
                                   ? "LOADING THE TAPE"
-                                  : _piloted
+                                  : _held
+                                  ? "PAUSED"
+                                  : _idle
                                   ? "TIME TRAVEL"
+                                  : forward
+                                  ? "FAST FORWARD"
                                   : "REWINDING",
                               passing == null || landed
                                   ? null
                                   : "${passing.day} ${_months[passing.month - 1]}",
+                              icon: _held
+                                  ? Icons.pause_rounded
+                                  : _idle
+                                  ? Icons.swap_vert_rounded
+                                  : forward
+                                  ? Icons.fast_forward_rounded
+                                  : Icons.fast_rewind_rounded,
                             ),
                           ),
                         ),
@@ -542,12 +793,8 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
                                 key: const ValueKey("first"),
                                 eyebrow: _ago,
                                 title: "IT STARTED HERE",
-                                body:
-                                    "Your first photo of the year. Look how "
-                                    "far you have come since.",
-                                myBody:
-                                    "My first photo of the year. Look how "
-                                    "far I have come since.",
+                                body: "Your first photo of the year.",
+                                myBody: "My first photo of the year.",
                               )
                             : const SizedBox(
                                 key: ValueKey("flying"),
@@ -567,53 +814,37 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
               Positioned(
                 left: 0,
                 right: 0,
-                top: 146,
-                height: 398,
-                child: GestureDetector(
+                top: _touchTop,
+                height: _touchBottom - _touchTop,
+                child: RawGestureDetector(
                   behavior: HitTestBehavior.translucent,
-                  onHorizontalDragStart: (_) => _takeOver(),
-                  onHorizontalDragUpdate: (details) =>
-                      _steer(details.delta.dx, _wheelSpan),
-                  onHorizontalDragEnd: (details) =>
-                      _letGo(details.velocity.pixelsPerSecond.dx, _wheelSpan),
-                  onHorizontalDragCancel: () => _letGo(0, _wheelSpan),
-                  onTapUp: canPick
-                      ? (details) =>
-                            _tap(details.localPosition + const Offset(0, 146))
-                      : null,
-                ),
-              ),
-            if (walls != null)
-              Positioned(
-                left: 28,
-                top: 548,
-                width: _Rail.width,
-                height: _Rail.height,
-                child: RewindLeave(
-                  position: widget.position,
-                  centerY: 570,
-                  child: Opacity(
-                    opacity: ((_ms - 700) / 400).clamp(0.0, 1.0),
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onHorizontalDragStart: (_) => _takeOver(),
-                      onHorizontalDragUpdate: (details) =>
-                          _steer(details.delta.dx, _Rail.span),
-                      onHorizontalDragEnd: (details) => _letGo(
-                        details.velocity.pixelsPerSecond.dx,
-                        _Rail.span,
-                      ),
-                      onHorizontalDragCancel: () => _letGo(0, _Rail.span),
-                      onTapUp: (details) => _jump(details.localPosition.dx),
-                      child: CustomPaint(
-                        painter: _Rail(
-                          calendar: _calendar,
-                          rewound: travelled / course.length,
-                          held: _dragging,
+                  gestures: {
+                    _FlightRecognizer:
+                        GestureRecognizerFactoryWithHandlers<_FlightRecognizer>(
+                          () => _FlightRecognizer(
+                            above: _flyAbove - _touchTop,
+                            yields: _yields,
+                          ),
+                          _listenForFlight,
                         ),
-                      ),
-                    ),
-                  ),
+                    HorizontalDragGestureRecognizer:
+                        GestureRecognizerFactoryWithHandlers<
+                          HorizontalDragGestureRecognizer
+                        >(HorizontalDragGestureRecognizer.new, _listenForSpin),
+                    if (_canHold)
+                      LongPressGestureRecognizer:
+                          GestureRecognizerFactoryWithHandlers<
+                            LongPressGestureRecognizer
+                          >(
+                            () =>
+                                LongPressGestureRecognizer(duration: _holdFor),
+                            _listenForHold,
+                          ),
+                    TapGestureRecognizer:
+                        GestureRecognizerFactoryWithHandlers<
+                          TapGestureRecognizer
+                        >(TapGestureRecognizer.new, _listenForTap),
+                  },
                 ),
               ),
             if (walls != null)
@@ -623,14 +854,8 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
                 top: 150,
                 child: IgnorePointer(
                   child: Opacity(
-                    opacity: _hint(landed, sinceLanding),
-                    child: Center(
-                      child: RewindHintTag(
-                        canPick
-                            ? "TAP A PHOTO TO PULL IT OUT"
-                            : "DRAG TO FLY IT YOURSELF",
-                      ),
-                    ),
+                    opacity: hint.shown,
+                    child: Center(child: RewindHintTag(hint.text)),
                   ),
                 ),
               ),
@@ -659,12 +884,37 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
     );
   }
 
-  double _hint(bool landed, double sinceLanding) {
+  ({String text, double shown}) _hint(
+    bool landed,
+    double sinceLanding,
+    bool canPick,
+  ) {
     double window(double ms, double from, double to) =>
         ((ms - from) / 260).clamp(0.0, 1.0) * ((to - ms) / 420).clamp(0.0, 1.0);
-    if (_reel || _picked != null || _hasPicked) return 0;
-    if (landed) return window(sinceLanding, 900, 7000);
-    return _piloted ? 1 : window(_flownMs, 1500, 6200);
+    final texts = [
+      if (!_hasFlown)
+        landed ? "SWIPE DOWN TO FLY BACK" : "SWIPE UP OR DOWN TO FLY",
+      if (canPick && !_hasPicked) "TAP A PHOTO TO PULL IT OUT",
+      if (!_hasRolled) "SWIPE SIDEWAYS TO SPIN IT",
+      if (!canPick && !_hasHeld) "HOLD TO PAUSE",
+    ];
+    if (_reel || _picked != null || texts.isEmpty) return (text: "", shown: 0);
+    if (!canPick) {
+      final since = _guidedMs - _hintFromMs;
+      final turn = (since / _hintMs).floor().clamp(0, texts.length - 1);
+      return (
+        text: texts[turn],
+        shown: window(since, turn * _hintMs, (turn + 1) * _hintMs),
+      );
+    }
+    final turn = (_ms / _hintMs).floor() % texts.length;
+    final swapping = texts.length == 1
+        ? 1.0
+        : window(_ms % _hintMs, 0, _hintMs);
+    return (
+      text: texts[turn],
+      shown: swapping * (landed ? window(sinceLanding, 900, 7000) : 1),
+    );
   }
 
   Widget _caption(EnteFile file) {
@@ -736,120 +986,12 @@ class _Caption extends StatelessWidget {
   }
 }
 
-class _Month {
-  const _Month(this.month, this.from, this.to);
-
-  final int month;
-  final double from;
-  final double to;
-
-  static List<_Month> along(_Course course, RewindAtlas? walls) {
-    if (walls == null || course.rings == 0) return const [];
-    double rewound(int ring) =>
-        ((_Course.lead + ring * _Course.gap) / course.length).clamp(0.0, 1.0);
-    final calendar = <_Month>[];
-    var start = 0;
-    for (var ring = 1; ring <= course.rings; ring++) {
-      final month = WarpPage.taken(
-        walls.files[(ring - 1) * _Course.sides],
-      ).month;
-      final next = ring == course.rings
-          ? null
-          : WarpPage.taken(walls.files[ring * _Course.sides]).month;
-      if (next == month) continue;
-      calendar.add(
-        _Month(month, start == 0 ? 0 : rewound(start), rewound(ring)),
-      );
-      start = ring;
-    }
-    return calendar;
-  }
-}
-
-class _Rail extends CustomPainter {
-  _Rail({required this.calendar, required this.rewound, required this.held});
-
-  static const width = 334.0;
-  static const height = 50.0;
-  static const inset = 14.0;
-  static const span = width - 2 * inset;
-  static const _line = 22.0;
-
-  final List<_Month> calendar;
-  final double rewound;
-  final bool held;
-
-  static double _x(double rewound) => inset + span * (1 - rewound);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    Paint stroke(Color color, double width) => Paint()
-      ..color = color
-      ..strokeWidth = width
-      ..strokeCap = StrokeCap.round;
-    final thumb = Offset(_x(rewound), _line);
-    canvas.drawLine(
-      const Offset(inset, _line),
-      const Offset(inset + span, _line),
-      stroke(RewindColors.ink, 9),
-    );
-    canvas.drawLine(
-      const Offset(inset, _line),
-      const Offset(inset + span, _line),
-      stroke(const Color(0xFF4B4478), 5),
-    );
-    canvas.drawLine(
-      thumb,
-      const Offset(inset + span, _line),
-      stroke(RewindColors.hotPink, 5),
-    );
-    for (final month in calendar) {
-      final from = _x(month.from);
-      final to = _x(month.to);
-      if (month.to < 1) {
-        canvas.drawLine(
-          Offset(to, _line - 6),
-          Offset(to, _line + 6),
-          stroke(RewindColors.cream.withValues(alpha: 0.7), 1.6),
-        );
-      }
-      if (from - to < 20) continue;
-      final here = rewound >= month.from && rewound <= month.to;
-      final label = TextPainter(
-        text: TextSpan(
-          text: _months[month.month - 1],
-          style: RewindTextStyles.numeral(
-            9,
-            color: here
-                ? RewindColors.yellow
-                : RewindColors.cream.withValues(alpha: 0.72),
-          ),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      label.paint(canvas, Offset((from + to - label.width) / 2, _line + 11));
-      label.dispose();
-    }
-    canvas.drawCircle(thumb, held ? 13 : 11, Paint()..color = RewindColors.ink);
-    canvas.drawCircle(
-      thumb,
-      held ? 10 : 8,
-      Paint()..color = RewindColors.yellow,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_Rail oldDelegate) =>
-      oldDelegate.rewound != rewound ||
-      oldDelegate.held != held ||
-      oldDelegate.calendar != calendar;
-}
-
 class _Counter extends StatelessWidget {
-  const _Counter(this.label, this.date);
+  const _Counter(this.label, this.date, {required this.icon});
 
   final String label;
   final String? date;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
@@ -864,35 +1006,52 @@ class _Counter extends StatelessWidget {
           BoxShadow(color: Color(0xFF000000), offset: Offset(4, 5)),
         ],
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (date != null) ...[
-            const Icon(
-              Icons.fast_rewind_rounded,
-              color: RewindColors.cream,
-              size: 22,
-            ),
-            const SizedBox(width: 6),
-          ],
-          Text(label, style: RewindTextStyles.display(15, height: 1.1)),
-          if (date != null) ...[
-            const SizedBox(width: 12),
-            SizedBox(
-              width: 86,
-              child: Text(
-                date,
-                textAlign: TextAlign.right,
-                style: RewindTextStyles.display(
-                  24,
-                  color: RewindColors.yellow,
-                  height: 1.05,
+      child: AnimatedSize(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (date != null) ...[
+              Icon(icon, color: RewindColors.cream, size: 22),
+              const SizedBox(width: 6),
+            ],
+            Text(label, style: RewindTextStyles.display(15, height: 1.1)),
+            if (date != null) ...[
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 86,
+                child: Text(
+                  date,
+                  textAlign: TextAlign.right,
+                  style: RewindTextStyles.display(
+                    24,
+                    color: RewindColors.yellow,
+                    height: 1.05,
+                  ),
                 ),
               ),
-            ),
+            ],
           ],
-        ],
+        ),
       ),
+    );
+  }
+}
+
+class _Month extends StatelessWidget {
+  const _Month(this.name, {super.key});
+
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    return RewindOutlinedText(
+      name,
+      style: RewindTextStyles.display(30, height: 1.1, letterSpacing: 0.2),
+      outline: 2.5,
+      shadow: const Offset(0, 4),
+      ink: RewindColors.outline,
     );
   }
 }
@@ -958,335 +1117,313 @@ class _Print extends StatelessWidget {
 }
 
 class _Course {
-  const _Course(this.rings);
+  _Course(this.rings) : _boxes = List.filled(rings * sides, null);
 
   static const sides = 6;
-  static const gap = 1.06;
+  static const depth = 1.4;
   static const lead = 0.5;
   static const landing = 2.9;
   static const sighted = 10.0;
-  static const focal = 250.0;
+  static const focal = 560.0;
   static const vanish = Offset(195, 390);
   static const nearest = 0.14;
-  static const farthest = 15.0;
-  static const _straight = 9.0;
+  static const fogFrom = 12.7;
+  static const fogTo = 23.3;
+  static const _twist = 0.0786;
+  static const _drift = 0.018;
+  static const _rounding = 0.22;
+  static const _across = 8;
+  static const _deep = 4;
 
   final int rings;
+  final List<Rect?> _boxes;
 
-  double get end => lead + rings * gap;
+  double get end => lead + rings * depth;
 
   double get length => max(1.0, end - landing);
 
-  Offset bend(double along) =>
-      Offset(1.5 * sin(0.17 * along), 1.05 * sin(0.12 * along + 1.1)) *
-      ((length - along) / _straight).clamp(0.0, 1.0);
+  double start(int ring) => lead + ring * depth;
 
-  Offset project(double along, double travelled, double turn, double reach) {
-    final lateral =
-        bend(along) - bend(travelled) + Offset.fromDirection(turn, reach);
-    return vanish + lateral * (focal / (along - travelled));
+  static Offset _corner(int index) =>
+      Offset.fromDirection(index * pi / 3 + pi / 6);
+
+  static Offset _rounded(int corner, double t) {
+    final tip = _corner(corner);
+    final from = Offset.lerp(tip, _corner(corner - 1), _rounding)!;
+    final to = Offset.lerp(tip, _corner(corner + 1), _rounding)!;
+    return from * ((1 - t) * (1 - t)) + tip * (2 * (1 - t) * t) + to * (t * t);
   }
 
-  double twist(int ring, double travelled) => 0.05 * travelled + ring * 0.21;
+  static Offset _rim(double around) {
+    final corner = around.floor();
+    final t = around - corner;
+    if (t < _rounding) return _rounded(corner, 0.5 + t / (2 * _rounding));
+    if (t > 1 - _rounding) {
+      return _rounded(corner + 1, (t - 1 + _rounding) / (2 * _rounding));
+    }
+    return Offset.lerp(_corner(corner), _corner(corner + 1), t)!;
+  }
 
-  ({double near, double far})? stretch(int ring, double travelled) {
-    final along = lead + ring * gap;
-    final far = along + gap * 0.93;
-    final near = max(along, travelled + nearest);
-    return far - near < 0.02 || along - travelled > farthest
+  static Offset _turn(Offset point, double angle) {
+    final c = cos(angle);
+    final s = sin(angle);
+    return Offset(point.dx * c - point.dy * s, point.dx * s + point.dy * c);
+  }
+
+  Offset point(double around, double along, double travelled, double roll) =>
+      vanish +
+      _turn(_rim(around), _twist * along + _drift * travelled + roll) *
+          (focal / (along - travelled));
+
+  Offset _decal(int ring, double around, double along) =>
+      _turn(_rim(around), _twist * along + _drift * (start(ring) - depth)) /
+      (along - start(ring) + depth);
+
+  Rect _box(int ring, int side) =>
+      _boxes[ring * sides + side] ??= _measure(ring, side);
+
+  Rect _measure(int ring, int side) {
+    var box = Rect.fromCenter(
+      center: _decal(ring, side.toDouble(), start(ring)),
+      width: 0,
+      height: 0,
+    );
+    for (var row = 0; row <= _deep; row++) {
+      for (var step = 0; step <= _across; step++) {
+        final decal = _decal(
+          ring,
+          side + step / _across,
+          start(ring) + depth * row / _deep,
+        );
+        box = box.expandToInclude(
+          Rect.fromCenter(center: decal, width: 0, height: 0),
+        );
+      }
+    }
+    return box;
+  }
+
+  ({double near, double far})? reach(int ring, double travelled) {
+    final near = max(start(ring), travelled + nearest);
+    final far = start(ring) + depth;
+    return far - near < 0.01 || near - travelled > fogTo
         ? null
         : (near: near, far: far);
   }
 
-  List<Offset> panel(
+  static double _row(({double near, double far}) reach, int row) =>
+      reach.near + (reach.far - reach.near) * row / _deep;
+
+  void mesh(
     int ring,
     int side,
     double travelled,
-    double near,
-    double far,
+    double roll,
+    Rect tile,
+    List<double> positions,
+    List<double> pixels,
+    List<int> indices,
   ) {
-    final turn = twist(ring, travelled);
-    final from = turn + (side + 0.035) * 2 * pi / sides;
-    final to = turn + (side + 0.965) * 2 * pi / sides;
-    return [
-      project(far, travelled, to, 1),
-      project(far, travelled, from, 1),
-      project(near, travelled, from, 1),
-      project(near, travelled, to, 1),
-    ];
+    final reach = this.reach(ring, travelled);
+    if (reach == null) return;
+    final box = _box(ring, side);
+    final wide = min(1.0, box.width / box.height);
+    final tall = min(1.0, box.height / box.width);
+    final first = positions.length ~/ 2;
+    for (var row = 0; row <= _deep; row++) {
+      final along = _row(reach, row);
+      for (var step = 0; step <= _across; step++) {
+        final around = side + step / _across;
+        final seen = point(around, along, travelled, roll);
+        final decal = _decal(ring, around, along);
+        final u = ((decal.dx - box.left) / box.width - 0.5) * wide + 0.5;
+        final v = ((decal.dy - box.top) / box.height - 0.5) * tall + 0.5;
+        positions
+          ..add(seen.dx)
+          ..add(seen.dy);
+        pixels
+          ..add(tile.left + 1 + u * (tile.width - 2))
+          ..add(tile.top + 1 + v * (tile.height - 2));
+        if (row == _deep || step == _across) continue;
+        final corner = first + row * (_across + 1) + step;
+        final below = corner + _across + 1;
+        indices.addAll([
+          corner,
+          corner + 1,
+          below + 1,
+          corner,
+          below + 1,
+          below,
+        ]);
+      }
+    }
   }
 
-  int? panelAt(Offset point, double travelled) {
+  int? panelAt(Offset at, double travelled, double roll) {
     for (var ring = 0; ring < rings; ring++) {
-      final stretch = this.stretch(ring, travelled);
-      if (stretch == null) continue;
+      final reach = this.reach(ring, travelled);
+      if (reach == null) continue;
       for (var side = 0; side < sides; side++) {
-        final corners = panel(ring, side, travelled, stretch.near, stretch.far);
-        var turns = 0;
-        for (var corner = 0; corner < 4; corner++) {
-          final edge = corners[(corner + 1) % 4] - corners[corner];
-          final reach = point - corners[corner];
-          turns += (edge.dx * reach.dy - edge.dy * reach.dx) > 0 ? 1 : -1;
-        }
-        if (turns.abs() == 4) return ring * sides + side;
+        Offset seen(double around, int row) =>
+            point(around, _row(reach, row), travelled, roll);
+        final outline = [
+          for (var step = 0; step <= _across; step++)
+            seen(side + step / _across, 0),
+          for (var row = 1; row < _deep; row++) seen(side + 1.0, row),
+          for (var step = _across; step >= 0; step--)
+            seen(side + step / _across, _deep),
+          for (var row = _deep - 1; row > 0; row--) seen(side.toDouble(), row),
+        ];
+        if (_encloses(outline, at)) return ring * sides + side;
       }
     }
     return null;
+  }
+
+  static bool _encloses(List<Offset> outline, Offset at) {
+    var inside = false;
+    for (var i = 0, j = outline.length - 1; i < outline.length; j = i++) {
+      final a = outline[i];
+      final b = outline[j];
+      if ((a.dy > at.dy) != (b.dy > at.dy) &&
+          at.dx < (b.dx - a.dx) * (at.dy - a.dy) / (b.dy - a.dy) + a.dx) {
+        inside = !inside;
+      }
+    }
+    return inside;
   }
 }
 
 class _Tube extends CustomPainter {
   _Tube({
     required this.walls,
+    required this.shader,
     required this.course,
     required this.travelled,
-    required this.speed,
+    required this.roll,
     required this.arrival,
-    required this.sinceLanding,
     required this.dim,
     required this.ms,
   });
 
-  static const _night = Color(0xFF120E2E);
+  static const _fogSteps = 8;
 
   final RewindAtlas? walls;
+  final ImageShader? shader;
   final _Course course;
   final double travelled;
-  final double speed;
+  final double roll;
   final double arrival;
-  final double sinceLanding;
   final double dim;
   final double ms;
-
-  Offset _project(double along, double turn, [double reach = 1]) =>
-      course.project(along, travelled, turn, reach);
-
-  Color _shade(double depth) {
-    final light =
-        ((1.2 - depth / 10).clamp(0.1, 1.0) *
-                (1 - 0.42 * arrival) *
-                (1 - 0.55 * dim) *
-                255)
-            .round();
-    return Color.fromARGB(255, light, light, light);
-  }
 
   @override
   void paint(Canvas canvas, Size size) {
     final walls = this.walls;
-    if (walls == null) {
+    final shader = this.shader;
+    if (walls == null || shader == null) {
       _static(canvas);
       return;
     }
-    const sides = _Course.sides;
-    final gates = <(int, double, double)>[];
-    final wall = Paint()..filterQuality = FilterQuality.medium;
+    final positions = <double>[];
+    final pixels = <double>[];
+    final indices = <int>[];
     for (var ring = course.rings - 1; ring >= 0; ring--) {
-      final stretch = course.stretch(ring, travelled);
-      if (stretch == null) continue;
-      final along = _Course.lead + ring * _Course.gap;
-      final (:near, :far) = stretch;
-      wall.colorFilter = ColorFilter.mode(
-        _shade((near + far) / 2 - travelled),
-        BlendMode.modulate,
-      );
-      for (var side = 0; side < sides; side++) {
-        final source = walls.source(ring * sides + side);
-        final corners = course.panel(ring, side, travelled, near, far);
-        _panel(
-          canvas,
-          walls.image,
-          Rect.fromLTRB(
-            source.left,
-            source.top,
-            source.right,
-            source.bottom - source.height * (near - along) / (far - along),
-          ),
-          corners[0],
-          corners[1],
-          corners[2],
-          corners[3],
-          wall,
+      for (var side = 0; side < _Course.sides; side++) {
+        course.mesh(
+          ring,
+          side,
+          travelled,
+          roll,
+          walls.source(ring * _Course.sides + side),
+          positions,
+          pixels,
+          indices,
         );
       }
-      final month = WarpPage.taken(walls.files[ring * sides]).month;
-      final earlier = ring + 1 < course.rings
-          ? WarpPage.taken(walls.files[(ring + 1) * sides]).month
-          : month;
-      if (earlier != month && far < course.length - 3) {
-        gates.add((
-          earlier,
-          far + _Course.gap * 0.035,
-          course.twist(ring, travelled),
-        ));
-      }
     }
-    for (final (month, along, twist) in gates) {
-      _gate(canvas, month, along, twist);
-    }
-    _streaks(canvas);
-    _touchdown(canvas);
-  }
-
-  static void _panel(
-    Canvas canvas,
-    ui.Image image,
-    Rect source,
-    Offset topLeft,
-    Offset topRight,
-    Offset bottomRight,
-    Offset bottomLeft,
-    Paint paint,
-  ) {
-    final acrossX = topRight.dx - bottomRight.dx;
-    final acrossY = topRight.dy - bottomRight.dy;
-    final downX = bottomLeft.dx - bottomRight.dx;
-    final downY = bottomLeft.dy - bottomRight.dy;
-    final skewX = topLeft.dx - topRight.dx + bottomRight.dx - bottomLeft.dx;
-    final skewY = topLeft.dy - topRight.dy + bottomRight.dy - bottomLeft.dy;
-    final spread = acrossX * downY - downX * acrossY;
-    if (spread.abs() < 1e-6) return;
-    final g = (skewX * downY - downX * skewY) / spread;
-    final h = (acrossX * skewY - skewX * acrossY) / spread;
-    canvas.save();
-    canvas.transform(
-      Float64List.fromList([
-        topRight.dx - topLeft.dx + g * topRight.dx,
-        topRight.dy - topLeft.dy + g * topRight.dy,
-        0,
-        g,
-        bottomLeft.dx - topLeft.dx + h * bottomLeft.dx,
-        bottomLeft.dy - topLeft.dy + h * bottomLeft.dy,
-        0,
-        h,
-        0,
-        0,
-        1,
-        0,
-        topLeft.dx,
-        topLeft.dy,
-        0,
-        1,
-      ]),
-    );
-    canvas.drawImageRect(image, source, const Rect.fromLTWH(0, 0, 1, 1), paint);
-    canvas.restore();
-  }
-
-  void _gate(Canvas canvas, int month, double along, double twist) {
-    final depth = along - travelled;
-    if (depth < 0.5) return;
-    const sides = _Course.sides;
-    final near = ((depth - 0.5) / 1.6).clamp(0.0, 1.0);
-    final hoop = Path();
-    for (var side = 0; side <= sides; side++) {
-      final corner = _project(along, twist + side * 2 * pi / sides);
-      side == 0
-          ? hoop.moveTo(corner.dx, corner.dy)
-          : hoop.lineTo(corner.dx, corner.dy);
-    }
-    final width = (14 / depth).clamp(1.2, 16.0);
-    canvas.drawPath(
-      hoop,
-      Paint()
-        ..color = RewindColors.ink.withValues(alpha: near)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = width * 1.7
-        ..strokeJoin = StrokeJoin.round,
-    );
-    canvas.drawPath(
-      hoop,
-      Paint()
-        ..color = (month.isEven ? RewindColors.hotPink : RewindColors.yellow)
-            .withValues(alpha: near)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = width
-        ..strokeJoin = StrokeJoin.round,
-    );
-    final legible = near * (1 - arrival * 4).clamp(0.0, 1.0);
-    if (depth > 9 || legible <= 0) return;
-    final label = TextPainter(
-      text: TextSpan(
-        text: _months[month - 1],
-        style: RewindTextStyles.display(
-          64,
-          color: RewindColors.cream.withValues(alpha: legible),
-          height: 1,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    final center = _project(along, 0, 0);
-    canvas.save();
-    canvas.translate(center.dx, center.dy);
-    canvas.scale(min(4.5, 1.9 / depth));
-    label.paint(canvas, Offset(-label.width / 2, -label.height / 2));
-    canvas.restore();
-    label.dispose();
-  }
-
-  void _streaks(Canvas canvas) {
-    if (speed < 0.05) return;
-    final random = Random(3);
-    for (var i = 0; i < 44; i++) {
-      final direction = Offset.fromDirection(random.nextDouble() * 2 * pi);
-      final phase =
-          (random.nextDouble() + ms / (520 + 300 * random.nextDouble())) % 1;
-      final from = 40 + 520 * phase * phase;
-      canvas.drawLine(
-        _Course.vanish + direction * from,
-        _Course.vanish + direction * (from + (26 + 150 * phase) * speed),
-        Paint()
-          ..color = RewindColors.cream.withValues(alpha: 0.5 * speed * phase)
-          ..strokeWidth = 1 + 2.4 * phase
-          ..strokeCap = StrokeCap.round,
+    if (indices.isNotEmpty) {
+      final tube = ui.Vertices.raw(
+        ui.VertexMode.triangles,
+        Float32List.fromList(positions),
+        textureCoordinates: Float32List.fromList(pixels),
+        indices: Uint16List.fromList(indices),
       );
+      canvas.drawVertices(
+        tube,
+        BlendMode.srcOver,
+        Paint()
+          ..shader = shader
+          ..colorFilter = _fade((1 - 0.42 * arrival) * (1 - 0.55 * dim)),
+      );
+      tube.dispose();
     }
+    _fog(canvas);
+    _dusk(canvas);
   }
 
-  void _touchdown(Canvas canvas) {
+  static ColorFilter? _fade(double light) {
+    if (light >= 1) return null;
+    final lift = (1 - light) * RewindColors.outline.r * 255;
+    return ColorFilter.matrix([
+      light,
+      0,
+      0,
+      0,
+      lift,
+      0,
+      light,
+      0,
+      0,
+      lift,
+      0,
+      0,
+      light,
+      0,
+      lift,
+      0,
+      0,
+      0,
+      1,
+      0,
+    ]);
+  }
+
+  void _fog(Canvas canvas) {
+    const edge = _Course.focal * 0.9 / _Course.fogFrom;
+    final colors = <Color>[];
+    final stops = <double>[];
+    for (var step = 0; step <= _fogSteps; step++) {
+      final along = step == 0
+          ? double.infinity
+          : _Course.focal * 0.9 / (edge * step / _fogSteps);
+      final thick =
+          ((along - _Course.fogFrom) / (_Course.fogTo - _Course.fogFrom)).clamp(
+            0.0,
+            1.0,
+          );
+      colors.add(RewindColors.outline.withValues(alpha: thick));
+      stops.add(step / _fogSteps);
+    }
+    canvas.drawCircle(
+      _Course.vanish,
+      edge,
+      Paint()..shader = ui.Gradient.radial(_Course.vanish, edge, colors, stops),
+    );
+  }
+
+  void _dusk(Canvas canvas) {
     final dusk = max(arrival * arrival, dim);
     if (dusk <= 0) return;
     canvas.drawRect(
       const Rect.fromLTRB(-600, 430, 990, 1500),
       Paint()
-        ..shader = ui.Gradient.linear(
-          const Offset(0, 430),
-          const Offset(0, 640),
-          [_night.withValues(alpha: 0), _night.withValues(alpha: 0.94 * dusk)],
-        ),
+        ..shader =
+            ui.Gradient.linear(const Offset(0, 430), const Offset(0, 640), [
+              RewindColors.outline.withValues(alpha: 0),
+              RewindColors.outline.withValues(alpha: 0.94 * dusk),
+            ]),
     );
-    final ripple = sinceLanding / 620;
-    if (ripple <= 0 || ripple >= 1) return;
-    for (final (delay, colour) in [
-      (0.0, RewindColors.yellow),
-      (0.22, RewindColors.hotPink),
-    ]) {
-      final spread = Curves.easeOutCubic.transform(
-        ((ripple - delay) / (1 - delay)).clamp(0.0, 1.0),
-      );
-      if (spread <= 0) continue;
-      final hoop = Path();
-      for (var side = 0; side <= _Course.sides; side++) {
-        final corner =
-            _Course.vanish +
-            Offset.fromDirection(
-              side * 2 * pi / _Course.sides + pi / 6,
-              120 + 420 * spread,
-            );
-        side == 0
-            ? hoop.moveTo(corner.dx, corner.dy)
-            : hoop.lineTo(corner.dx, corner.dy);
-      }
-      canvas.drawPath(
-        hoop,
-        Paint()
-          ..color = colour.withValues(alpha: 0.85 * (1 - spread))
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 4 + 16 * (1 - spread)
-          ..strokeJoin = StrokeJoin.round,
-      );
-    }
   }
 
   void _static(Canvas canvas) {
@@ -1307,6 +1444,50 @@ class _Tube extends CustomPainter {
   bool shouldRepaint(_Tube oldDelegate) =>
       oldDelegate.walls != walls ||
       oldDelegate.travelled != travelled ||
+      oldDelegate.roll != roll ||
+      oldDelegate.arrival != arrival ||
       oldDelegate.dim != dim ||
       oldDelegate.ms != ms;
+}
+
+class _FlightRecognizer extends VerticalDragGestureRecognizer {
+  _FlightRecognizer({required this.above, required this.yields});
+
+  static const _decideAfter = 3.0;
+
+  final double above;
+  final bool Function(bool deeper) yields;
+  var _moved = 0.0;
+  var _decided = false;
+
+  @override
+  bool isPointerAllowed(PointerEvent event) =>
+      event.localPosition.dy < above && super.isPointerAllowed(event);
+
+  @override
+  void addAllowedPointer(PointerDownEvent event) {
+    _moved = 0;
+    _decided = false;
+    super.addAllowedPointer(event);
+  }
+
+  @override
+  void acceptGesture(int pointer) {
+    _decided = true;
+    super.acceptGesture(pointer);
+  }
+
+  @override
+  void handleEvent(PointerEvent event) {
+    if (!_decided && event is PointerMoveEvent) {
+      _moved += event.delta.dy;
+      if (_moved.abs() > _decideAfter && yields(_moved < 0)) {
+        _decided = true;
+        resolve(GestureDisposition.rejected);
+        stopTrackingPointer(event.pointer);
+        return;
+      }
+    }
+    super.handleEvent(event);
+  }
 }

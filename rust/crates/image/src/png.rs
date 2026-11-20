@@ -3,8 +3,8 @@ use std::io::{BufRead, Seek};
 use image::{DynamicImage, ImageBuffer, metadata::Orientation};
 
 use crate::{
-    BoundedDecodeOptions, BoundedDecodedImage, DecodedImage, Dimensions, ImageError, ImageResult,
-    bounded::{target_dimensions, too_large},
+    BoundedDecodeOptions, BoundedDecodedImage, Dimensions, ImageError, ImageResult,
+    bounded::{MAX_SOURCE_PIXELS, oriented_output, target_dimensions, too_large},
     color_management::IccConverter,
     resample::Downsampler,
 };
@@ -13,16 +13,6 @@ pub(crate) const SIGNATURE: &[u8] = b"\x89PNG\r\n\x1a\n";
 const DECODER_BYTES: usize = 32 * 1024 * 1024;
 const MAX_ROW_BYTES: u64 = 4 * 1024 * 1024;
 const MAX_SOURCE_HEIGHT: u32 = 512 * 1024;
-const MAX_SOURCE_PIXELS: u64 = 256_000_000;
-pub(crate) const ADAM7: [(u32, u32, u32, u32); 7] = [
-    (0, 0, 8, 8),
-    (4, 0, 8, 8),
-    (0, 4, 4, 8),
-    (2, 0, 4, 4),
-    (0, 2, 2, 4),
-    (1, 0, 2, 2),
-    (0, 1, 1, 2),
-];
 
 pub(crate) fn decode<R: BufRead + Seek>(
     input: R,
@@ -37,11 +27,15 @@ pub(crate) fn decode<R: BufRead + Seek>(
     decoder.set_ignore_text_chunk(true);
     decoder.set_transformations(::png::Transformations::EXPAND);
     let header = decoder.read_header_info().map_err(png_error)?;
+    if header.interlaced {
+        return Err(ImageError::Decode(
+            "unsupported PNG for bounded decoding: interlaced".into(),
+        ));
+    }
     let source = Dimensions {
         width: header.width,
         height: header.height,
     };
-    let interlaced = header.interlaced;
     let row_bytes = u64::from(source.width) * 8;
     if row_bytes > MAX_ROW_BYTES
         || source.height > MAX_SOURCE_HEIGHT
@@ -51,13 +45,13 @@ pub(crate) fn decode<R: BufRead + Seek>(
     }
     let target = target_dimensions(&source, options.max_side);
     let oriented_copy = u64::from(target.width) * u64::from(target.height) * 3;
-    let required = Downsampler::bytes(&source, &target, interlaced)
+    let required = Downsampler::bytes(&source, &target)
         .saturating_add(oriented_copy)
         .saturating_add(row_bytes * 4 + DECODER_BYTES as u64);
     if required > options.max_memory_bytes {
         return Err(too_large());
     }
-    let mut output = Downsampler::new(source.clone(), target.clone(), interlaced)?;
+    let mut output = Downsampler::new(source.clone(), target.clone())?;
     let mut reader = decoder.read_info().map_err(png_error)?;
     let profile = reader.info().icc_profile.clone();
     let mut converter = IccConverter::new(profile.as_deref());
@@ -68,55 +62,19 @@ pub(crate) fn decode<R: BufRead + Seek>(
         .and_then(Orientation::from_exif_chunk)
         .unwrap_or(Orientation::NoTransforms);
     let (color, depth) = reader.output_color_type();
-    let plain = [(0, 0, 1, 1)];
-    let passes = if interlaced { &ADAM7[..] } else { &plain[..] };
-    for &(left, top, step_x, step_y) in passes {
-        if left >= source.width || top >= source.height {
-            continue;
-        }
-        let width = (source.width - left).div_ceil(step_x);
-        for y in (top..source.height).step_by(step_y as usize) {
-            let row = reader
-                .next_interlaced_row()
-                .map_err(png_error)?
-                .ok_or_else(|| {
-                    ImageError::Decode("PNG ended before all rows were decoded".into())
-                })?;
-            let rgb = row_rgb(row.data(), width, color, depth, &mut converter)?;
-            output.push_row(&rgb, left, y, step_x);
-        }
-        output.finish_pass();
+    for y in 0..source.height {
+        let row = reader
+            .next_row()
+            .map_err(png_error)?
+            .ok_or_else(|| ImageError::Decode("PNG ended before all rows were decoded".into()))?;
+        let rgb = row_rgb(row.data(), source.width, color, depth, &mut converter)?;
+        output.push_row(&rgb, y);
     }
-    if reader.next_interlaced_row().map_err(png_error)?.is_some() {
+    if reader.next_row().map_err(png_error)?.is_some() {
         return Err(ImageError::Decode("PNG contains unexpected rows".into()));
     }
     reader.finish().map_err(png_error)?;
-    let rgb = output.finish();
-    let buffer = image::RgbImage::from_raw(target.width, target.height, rgb)
-        .ok_or_else(|| ImageError::Postprocess("invalid bounded PNG buffer".into()))?;
-    let mut image = DynamicImage::ImageRgb8(buffer);
-    image.apply_orientation(orientation);
-    let image = image.into_rgb8();
-    let original_dimensions = match orientation {
-        Orientation::Rotate90
-        | Orientation::Rotate270
-        | Orientation::Rotate90FlipH
-        | Orientation::Rotate270FlipH => Dimensions {
-            width: source.height,
-            height: source.width,
-        },
-        _ => source,
-    };
-    Ok(BoundedDecodedImage {
-        image: DecodedImage {
-            dimensions: Dimensions {
-                width: image.width(),
-                height: image.height(),
-            },
-            rgb: image.into_raw(),
-        },
-        original_dimensions,
-    })
+    oriented_output(output.finish(), source, target, orientation)
 }
 
 fn row_rgb(
@@ -204,6 +162,16 @@ mod tests {
         resample::tests::area_reference,
     };
 
+    const ADAM7: [(u32, u32, u32, u32); 7] = [
+        (0, 0, 8, 8),
+        (4, 0, 8, 8),
+        (0, 4, 4, 8),
+        (2, 0, 4, 4),
+        (0, 2, 2, 4),
+        (1, 0, 2, 2),
+        (0, 1, 1, 2),
+    ];
+
     fn fixture(info: ::png::Info<'_>, pixels: &[u8]) -> Vec<u8> {
         let mut bytes = Vec::new();
         let interlaced = info.interlaced;
@@ -276,36 +244,52 @@ mod tests {
     }
 
     #[test]
-    fn streamed_rows_match_area_reference_including_adam7_and_thin_images() {
+    fn streamed_rows_match_area_reference_including_thin_images() {
         for (width, height) in [(1, 19), (19, 1), (2, 3), (13, 17), (31, 23)] {
             let pixels = (0..width * height * 3)
                 .map(|i| ((i * 37 + 11) % 256) as u8)
                 .collect::<Vec<_>>();
-            for interlaced in [false, true] {
-                let bytes = fixture(rgb_info(width, height, interlaced), &pixels);
-                assert_eq!(decode_image_from_bytes(&bytes).unwrap().rgb, pixels);
-                for max_side in [1, 2, 7, 13, 40] {
-                    let decoded =
-                        decode_bounded(ImageInput::Bytes(&bytes), options(max_side)).unwrap();
-                    let reference =
-                        area_reference(&pixels, width, height, &decoded.image.dimensions);
-                    assert_eq!(decoded.original_dimensions, Dimensions { width, height });
+            let bytes = fixture(rgb_info(width, height, false), &pixels);
+            assert_eq!(decode_image_from_bytes(&bytes).unwrap().rgb, pixels);
+            for max_side in [1, 2, 7, 13, 40] {
+                let decoded = decode_bounded(ImageInput::Bytes(&bytes), options(max_side)).unwrap();
+                let reference = area_reference(&pixels, width, height, &decoded.image.dimensions);
+                assert_eq!(decoded.original_dimensions, Dimensions { width, height });
+                assert!(
+                    decoded
+                        .image
+                        .dimensions
+                        .width
+                        .max(decoded.image.dimensions.height)
+                        <= max_side
+                );
+                for (actual, expected) in decoded.image.rgb.iter().zip(reference) {
                     assert!(
-                        decoded
-                            .image
-                            .dimensions
-                            .width
-                            .max(decoded.image.dimensions.height)
-                            <= max_side
+                        actual.abs_diff(expected) <= 1,
+                        "{width}x{height}, max {max_side}: {actual} != {expected}"
                     );
-                    for (actual, expected) in decoded.image.rgb.iter().zip(reference) {
-                        assert!(
-                            actual.abs_diff(expected) <= 1,
-                            "{width}x{height}, max {max_side}, interlaced {interlaced}: {actual} != {expected}"
-                        );
-                    }
                 }
             }
+        }
+    }
+
+    #[test]
+    fn interlaced_pngs_are_left_to_the_full_decoder() {
+        let pixels = (0..31 * 23 * 3)
+            .map(|i| ((i * 37 + 11) % 256) as u8)
+            .collect::<Vec<_>>();
+        let bytes = fixture(rgb_info(31, 23, true), &pixels);
+        assert_eq!(decode_image_from_bytes(&bytes).unwrap().rgb, pixels);
+        for bytes in [
+            bytes,
+            header_only(8000, 8000, true),
+            header_only(65_536, 65_536, true),
+        ] {
+            let result = decode_bounded(ImageInput::Bytes(&bytes), BoundedDecodeOptions::default());
+            assert!(
+                matches!(&result, Err(ImageError::Decode(message)) if message.contains("interlaced")),
+                "{result:?}"
+            );
         }
     }
 
@@ -332,47 +316,44 @@ mod tests {
             ::png::ColorType::Rgba,
         ] {
             for depth in [::png::BitDepth::Eight, ::png::BitDepth::Sixteen] {
-                for interlaced in [false, true] {
-                    let mut info = rgb_info(9, 7, interlaced);
-                    info.color_type = color;
-                    info.bit_depth = depth;
-                    let profile = if matches!(
-                        color,
-                        ::png::ColorType::Grayscale | ::png::ColorType::GrayscaleAlpha
-                    ) {
-                        moxcms::ColorProfile::new_gray_with_gamma(1.8)
+                let mut info = rgb_info(9, 7, false);
+                info.color_type = color;
+                info.bit_depth = depth;
+                let profile = if matches!(
+                    color,
+                    ::png::ColorType::Grayscale | ::png::ColorType::GrayscaleAlpha
+                ) {
+                    moxcms::ColorProfile::new_gray_with_gamma(1.8)
+                } else {
+                    moxcms::ColorProfile::new_display_p3()
+                };
+                info.icc_profile = Some(Cow::Owned(profile.encode().unwrap()));
+                let count = 9
+                    * 7
+                    * color.samples()
+                    * if depth == ::png::BitDepth::Sixteen {
+                        2
                     } else {
-                        moxcms::ColorProfile::new_display_p3()
+                        1
                     };
-                    info.icc_profile = Some(Cow::Owned(profile.encode().unwrap()));
-                    let count = 9
-                        * 7
-                        * color.samples()
-                        * if depth == ::png::BitDepth::Sixteen {
-                            2
-                        } else {
-                            1
-                        };
-                    let pixels = (0..count)
-                        .map(|i| ((i * 71) % 256) as u8)
-                        .collect::<Vec<_>>();
-                    let bytes = fixture(info, &pixels);
-                    let full = decode_image_from_bytes(&bytes).unwrap();
-                    for max_side in [4, 6000] {
-                        let bounded =
-                            decode_bounded(ImageInput::Bytes(&bytes), options(max_side)).unwrap();
-                        if max_side == 6000 {
-                            assert_eq!(bounded.image.rgb, full.rgb);
-                        } else {
-                            let expected =
-                                area_reference(&full.rgb, 9, 7, &bounded.image.dimensions);
-                            assert_eq!(bounded.image.rgb.len(), expected.len());
-                            for (actual, expected) in bounded.image.rgb.iter().zip(expected) {
-                                assert!(
-                                    actual.abs_diff(expected) <= 1,
-                                    "{color:?} {depth:?} {interlaced}: {actual} != {expected}"
-                                );
-                            }
+                let pixels = (0..count)
+                    .map(|i| ((i * 71) % 256) as u8)
+                    .collect::<Vec<_>>();
+                let bytes = fixture(info, &pixels);
+                let full = decode_image_from_bytes(&bytes).unwrap();
+                for max_side in [4, 6000] {
+                    let bounded =
+                        decode_bounded(ImageInput::Bytes(&bytes), options(max_side)).unwrap();
+                    if max_side == 6000 {
+                        assert_eq!(bounded.image.rgb, full.rgb);
+                    } else {
+                        let expected = area_reference(&full.rgb, 9, 7, &bounded.image.dimensions);
+                        assert_eq!(bounded.image.rgb.len(), expected.len());
+                        for (actual, expected) in bounded.image.rgb.iter().zip(expected) {
+                            assert!(
+                                actual.abs_diff(expected) <= 1,
+                                "{color:?} {depth:?}: {actual} != {expected}"
+                            );
                         }
                     }
                 }
@@ -399,18 +380,15 @@ mod tests {
             Some(pq.encode().unwrap()),
             Some(hlg.encode().unwrap()),
         ] {
-            for interlaced in [false, true] {
-                let mut info = rgb_info(9, 7, interlaced);
-                info.icc_profile = profile.clone().map(Cow::Owned);
-                let bytes = fixture(info, &pixels);
-                for max_side in [4, 6000] {
-                    let bounded =
-                        decode_bounded(ImageInput::Bytes(&bytes), options(max_side)).unwrap();
-                    let expected = area_reference(&pixels, 9, 7, &bounded.image.dimensions);
-                    assert_eq!(bounded.image.rgb.len(), expected.len());
-                    for (actual, expected) in bounded.image.rgb.iter().zip(expected) {
-                        assert!(actual.abs_diff(expected) <= 1);
-                    }
+            let mut info = rgb_info(9, 7, false);
+            info.icc_profile = profile.map(Cow::Owned);
+            let bytes = fixture(info, &pixels);
+            for max_side in [4, 6000] {
+                let bounded = decode_bounded(ImageInput::Bytes(&bytes), options(max_side)).unwrap();
+                let expected = area_reference(&pixels, 9, 7, &bounded.image.dimensions);
+                assert_eq!(bounded.image.rgb.len(), expected.len());
+                for (actual, expected) in bounded.image.rgb.iter().zip(expected) {
+                    assert!(actual.abs_diff(expected) <= 1);
                 }
             }
         }
@@ -466,7 +444,7 @@ mod tests {
     fn applies_all_exif_orientations_after_downsampling() {
         let pixels = (0..8 * 4 * 3).map(|i| (i * 7) as u8).collect::<Vec<_>>();
         for orientation in 1..=8 {
-            let mut info = rgb_info(8, 4, true);
+            let mut info = rgb_info(8, 4, false);
             let mut exif = b"II\x2a\0\x08\0\0\0\x01\0\x12\x01\x03\0\x01\0\0\0".to_vec();
             exif.extend_from_slice(&[orientation, 0, 0, 0, 0, 0, 0, 0]);
             info.exif_metadata = Some(Cow::Owned(exif));
@@ -488,7 +466,7 @@ mod tests {
     fn path_sniffs_content_and_matches_bytes() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("image.jpg");
-        let bytes = fixture(rgb_info(11, 5, true), &[70; 11 * 5 * 3]);
+        let bytes = fixture(rgb_info(11, 5, false), &[70; 11 * 5 * 3]);
         std::fs::write(&path, &bytes).unwrap();
         let from_path =
             decode_bounded(ImageInput::Path(path.to_str().unwrap()), options(6)).unwrap();
@@ -530,13 +508,6 @@ mod tests {
             decode_bounded(ImageInput::Bytes(&bytes), options(6000)),
             Err(ImageError::TooLarge(_))
         ));
-        assert!(matches!(
-            decode_bounded(
-                ImageInput::Bytes(&header_only(8000, 8000, true)),
-                BoundedDecodeOptions::default()
-            ),
-            Err(ImageError::TooLarge(_))
-        ));
         let plain = header_only(8000, 8000, false);
         assert!(matches!(
             decode_bounded(
@@ -561,49 +532,35 @@ mod tests {
         for (width, height) in [
             (1, 524_289),
             (1, u32::MAX),
-            (16_000, 16_001),
+            (22_361, 22_361),
             (65_536, 65_536),
         ] {
-            for interlaced in [false, true] {
-                let mut bytes = Vec::new();
-                ::png::Encoder::with_info(&mut bytes, rgb_info(width, height, interlaced))
-                    .unwrap()
-                    .write_header()
-                    .unwrap()
-                    .finish()
-                    .unwrap();
-                std::fs::write(&path, &bytes).unwrap();
-                for input in [
-                    ImageInput::Bytes(&bytes),
-                    ImageInput::Path(path.to_str().unwrap()),
-                ] {
-                    let result = decode_bounded(input, options(1));
-                    assert!(
-                        matches!(result, Err(ImageError::TooLarge(_))),
-                        "{width}x{height}, interlaced {interlaced}: {result:?}"
-                    );
-                }
+            let bytes = header_only(width, height, false);
+            std::fs::write(&path, &bytes).unwrap();
+            for input in [
+                ImageInput::Bytes(&bytes),
+                ImageInput::Path(path.to_str().unwrap()),
+            ] {
+                let result = decode_bounded(input, options(1));
+                assert!(
+                    matches!(result, Err(ImageError::TooLarge(_))),
+                    "{width}x{height}: {result:?}"
+                );
             }
         }
     }
 
     #[test]
     fn source_dimension_limits_allow_boundary_headers() {
-        for (width, height) in [(1, 524_288), (524_288, 1), (16_000, 16_000)] {
-            for interlaced in [false, true] {
-                let mut bytes = Vec::new();
-                ::png::Encoder::with_info(&mut bytes, rgb_info(width, height, interlaced))
-                    .unwrap()
-                    .write_header()
-                    .unwrap()
-                    .finish()
-                    .unwrap();
-                let result = decode_bounded(ImageInput::Bytes(&bytes), options(1));
-                assert!(
-                    matches!(result, Err(ImageError::Decode(_))),
-                    "{width}x{height}, interlaced {interlaced}: {result:?}"
-                );
-            }
+        for (width, height) in [(1, 524_288), (524_288, 1), (22_360, 22_360)] {
+            let result = decode_bounded(
+                ImageInput::Bytes(&header_only(width, height, false)),
+                options(1),
+            );
+            assert!(
+                matches!(result, Err(ImageError::Decode(_))),
+                "{width}x{height}: {result:?}"
+            );
         }
     }
 
@@ -613,37 +570,33 @@ mod tests {
         let pixels = (0..256 * 1024 * 6)
             .map(|index| ((index * 71) % 256) as u8)
             .collect::<Vec<_>>();
-        for interlaced in [false, true] {
-            let mut info = rgb_info(256, 1024, interlaced);
-            info.bit_depth = ::png::BitDepth::Sixteen;
-            info.icc_profile = Some(Cow::Owned(
-                moxcms::ColorProfile::new_display_p3().encode().unwrap(),
-            ));
-            let bytes = fixture(info, &pixels);
+        let mut info = rgb_info(256, 1024, false);
+        info.bit_depth = ::png::BitDepth::Sixteen;
+        info.icc_profile = Some(Cow::Owned(
+            moxcms::ColorProfile::new_display_p3().encode().unwrap(),
+        ));
+        let bytes = fixture(info, &pixels);
+        let start = Instant::now();
+        let full = decode_image_from_bytes(&bytes).unwrap();
+        let full_time = start.elapsed();
+        for max_side in [1024, 128] {
             let start = Instant::now();
-            let full = decode_image_from_bytes(&bytes).unwrap();
-            let full_time = start.elapsed();
-            for max_side in [1024, 128] {
-                let start = Instant::now();
-                let bounded = decode_bounded(ImageInput::Bytes(&bytes), options(max_side)).unwrap();
-                let bounded_time = start.elapsed();
-                if max_side == 1024 {
-                    assert_eq!(bounded.image.rgb, full.rgb);
-                } else {
-                    let expected = area_reference(&full.rgb, 256, 1024, &bounded.image.dimensions);
-                    assert_eq!(bounded.image.rgb.len(), expected.len());
-                    for (actual, expected) in bounded.image.rgb.iter().zip(expected) {
-                        assert!(actual.abs_diff(expected) <= 1);
-                    }
+            let bounded = decode_bounded(ImageInput::Bytes(&bytes), options(max_side)).unwrap();
+            let bounded_time = start.elapsed();
+            if max_side == 1024 {
+                assert_eq!(bounded.image.rgb, full.rgb);
+            } else {
+                let expected = area_reference(&full.rgb, 256, 1024, &bounded.image.dimensions);
+                assert_eq!(bounded.image.rgb.len(), expected.len());
+                for (actual, expected) in bounded.image.rgb.iter().zip(expected) {
+                    assert!(actual.abs_diff(expected) <= 1);
                 }
-                println!(
-                    "interlaced {interlaced}, max_side {max_side}: bounded {bounded_time:?}, full {full_time:?}"
-                );
-                assert!(
-                    bounded_time <= (full_time * 20).max(Duration::from_millis(100)),
-                    "bounded decode took {bounded_time:?}, full decode took {full_time:?}"
-                );
             }
+            println!("max_side {max_side}: bounded {bounded_time:?}, full {full_time:?}");
+            assert!(
+                bounded_time <= (full_time * 20).max(Duration::from_millis(100)),
+                "bounded decode took {bounded_time:?}, full decode took {full_time:?}"
+            );
         }
     }
 

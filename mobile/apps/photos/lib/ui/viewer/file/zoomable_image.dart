@@ -94,9 +94,13 @@ class _ZoomableImageState extends State<ZoomableImage> {
   // https://github.com/flutter/flutter/issues/110331
   static const int _defaultMaxPixels = 100000000; // 100MP
   static const int _lowRamMaxPixels = 24000000; // 24MP
+  static const int _rustDecodeMaxSideLimit = 6000;
 
   int get _maxImagePixels =>
       hasLessThan5GBRAM ? _lowRamMaxPixels : _defaultMaxPixels;
+
+  int get _rustDecodeMaxSide =>
+      min(_rustDecodeMaxSideLimit, sqrt(_maxImagePixels).floor());
 
   bool get isTooLargeImage => _photo.width * _photo.height > _maxImagePixels;
 
@@ -420,7 +424,6 @@ class _ZoomableImageState extends State<ZoomableImage> {
 
   void _onFileLoaded(File file) {
     // Android's HEIC decoder can produce a glitched image without throwing.
-    // Use Rust when the image dimensions make it safe.
     if (_isAndroidHeic()) {
       unawaited(_loadAndroidHeic(file));
       return;
@@ -555,22 +558,8 @@ class _ZoomableImageState extends State<ZoomableImage> {
 
   bool _isAndroidHeic() => Platform.isAndroid && _isHeic();
 
-  bool _shouldUseRustHeicDecoder() {
-    if (!_isAndroidHeic()) {
-      return false;
-    }
-    if (!flagService.useRustForHeicDecoder) {
-      return false;
-    }
-    if (!_photo.hasDimensions) {
-      return false;
-    }
-    if (isTooLargeImage) {
-      return false;
-    }
-
-    return true;
-  }
+  bool _shouldUseRustHeicDecoder() =>
+      _isAndroidHeic() && flagService.useRustForHeicDecoder;
 
   Future<ImageProvider<Object>?> _tryDecodeHeicWithRust(
     File file, {
@@ -584,13 +573,47 @@ class _ZoomableImageState extends State<ZoomableImage> {
       _logger.info("Using Rust HEIC decoder for ${_photo.generatedID}");
       final Uint8List rustBytes = await rust_image.decodeToJpeg(
         imagePath: file.path,
+        maxSide: _rustDecodeMaxSide,
         quality: quality,
       );
       final MemoryImage imageProvider = MemoryImage(rustBytes);
       _logger.info("Rust HEIC decode succeeded for ${_photo.generatedID}");
       return imageProvider;
+    } on rust_image.RustImageDecodeError_TooLarge catch (e) {
+      _logger.warning(
+        "Rust HEIC decode refused ${_photo.generatedID} as too large: ${e.message}",
+      );
+      return null;
     } catch (e) {
       _logger.warning("Rust HEIC decode failed for ${_photo.generatedID}: $e");
+      return _tryFullDecodeHeicWithRust(file, quality: quality);
+    }
+  }
+
+  Future<ImageProvider<Object>?> _tryFullDecodeHeicWithRust(
+    File file, {
+    int? quality,
+  }) async {
+    if (!mounted) return null;
+    if (!_photo.hasDimensions || isTooLargeImage) {
+      _logger.info(
+        "Skipping full Rust HEIC decode for ${_photo.generatedID} (${_photo.width}x${_photo.height})",
+      );
+      return null;
+    }
+
+    try {
+      _logger.info("Using full Rust HEIC decoder for ${_photo.generatedID}");
+      final Uint8List rustBytes = await rust_image.decodeFullToJpeg(
+        imagePath: file.path,
+        quality: quality,
+      );
+      _logger.info("Full Rust HEIC decode succeeded for ${_photo.generatedID}");
+      return MemoryImage(rustBytes);
+    } catch (e) {
+      _logger.warning(
+        "Full Rust HEIC decode failed for ${_photo.generatedID}: $e",
+      );
       return null;
     }
   }
@@ -600,25 +623,58 @@ class _ZoomableImageState extends State<ZoomableImage> {
     ImageProvider<Object> imageProvider, {
     required bool fallbackToSupportedFormatOnFailure,
   }) async {
-    try {
-      if (!mounted) {
-        return false;
-      }
+    if (!mounted) {
+      return false;
+    }
 
-      await precacheImage(imageProvider, context);
+    final displayError = await _precacheImageError(imageProvider);
+    if (displayError == null) {
       if (mounted && !_loadedFinalImage) {
         await _updateViewWithFinalImage(imageProvider, file);
       }
       return true;
-    } catch (e) {
-      _logger.warning(
-        "Flutter failed to decode Rust JPEG bytes for ${_photo.generatedID}: $e",
-      );
-      if (fallbackToSupportedFormatOnFailure) {
-        unawaited(_loadInSupportedFormat(file, e, skipRustDecoder: true));
-      }
-      return false;
     }
+
+    _logger.warning(
+      "Flutter failed to decode Rust JPEG bytes for ${_photo.generatedID}: $displayError",
+    );
+    if (fallbackToSupportedFormatOnFailure) {
+      unawaited(
+        _loadInSupportedFormat(file, displayError, skipRustDecoder: true),
+      );
+    }
+    return false;
+  }
+
+  Future<Object?> _precacheImageError(
+    ImageProvider<Object> imageProvider,
+  ) async {
+    Object? error;
+    try {
+      await precacheImage(
+        imageProvider,
+        context,
+        onError: (exception, _) {
+          error = exception;
+        },
+      );
+    } catch (e) {
+      error = e;
+    }
+    return error;
+  }
+
+  void _showThumbnailFallback() {
+    if (!mounted) return;
+    setState(() {
+      _showingThumbnailFallback = true;
+    });
+    InheritedDetailPageState.maybeOf(
+      context,
+    )?.showingThumbnailFallbackNotifier.value = detailPageFileIdentifier(
+      _photo,
+    );
+    _notifyReadyOnce();
   }
 
   bool _isHeic() {
@@ -642,17 +698,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
         "Skipping compression for RAW file ${_photo.displayName}, using thumbnail fallback",
       );
       _convertToSupportedFormat = true;
-      if (mounted) {
-        setState(() {
-          _showingThumbnailFallback = true;
-        });
-        InheritedDetailPageState.maybeOf(
-          context,
-        )?.showingThumbnailFallbackNotifier.value = detailPageFileIdentifier(
-          _photo,
-        );
-        _notifyReadyOnce();
-      }
+      _showThumbnailFallback();
       return;
     }
 
@@ -674,6 +720,8 @@ class _ZoomableImageState extends State<ZoomableImage> {
         return;
       }
     }
+
+    if (!mounted) return;
 
     Uint8List? compressedFile;
     if (isTooLargeImage) {
@@ -703,32 +751,27 @@ class _ZoomableImageState extends State<ZoomableImage> {
       return;
     }
 
-    if (compressedFile != null) {
-      final imageProvider = MemoryImage(compressedFile);
-
-      unawaited(
-        precacheImage(imageProvider, context).then((value) {
-          if (mounted) {
-            _updateViewWithFinalImage(imageProvider, file);
-          }
-        }),
-      );
-    } else {
+    if (compressedFile == null) {
       _logger.severe(
         "Failed to compress image ${_photo.displayName} to viewable format",
       );
-      if (mounted) {
-        setState(() {
-          _showingThumbnailFallback = true;
-        });
-        InheritedDetailPageState.maybeOf(
-          context,
-        )?.showingThumbnailFallbackNotifier.value = detailPageFileIdentifier(
-          _photo,
-        );
-        _notifyReadyOnce();
-      }
+      _showThumbnailFallback();
+      return;
     }
+
+    final imageProvider = MemoryImage(compressedFile);
+    final displayError = await _precacheImageError(imageProvider);
+    if (!mounted) {
+      return;
+    }
+    if (displayError != null) {
+      _logger.severe(
+        "Flutter failed to decode compressed image ${_photo.displayName}: $displayError",
+      );
+      _showThumbnailFallback();
+      return;
+    }
+    await _updateViewWithFinalImage(imageProvider, file);
   }
 }
 

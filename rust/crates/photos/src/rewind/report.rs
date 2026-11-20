@@ -24,10 +24,10 @@ pub struct RewindReport {
     pub crowd_favourite: Option<CrowdFavourite>,
     pub badge: Option<Badge>,
     pub scrapbook: Option<Scrapbook>,
+    pub finale: Option<Finale>,
     pub tour: Option<Tour>,
     pub globe: Option<Globe>,
     pub mosaic: Option<Mosaic>,
-    pub timelapse: Option<Timelapse>,
     pub warp: Option<Warp>,
 }
 
@@ -183,6 +183,11 @@ pub struct Scrapbook {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Finale {
+    pub file_ids: Vec<i64>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Tour {
     pub stops: Vec<TourStop>,
     pub city_count: u32,
@@ -227,30 +232,14 @@ pub struct Mosaic {
     pub me_face_ids: Vec<String>,
     pub top_person_id: Option<String>,
     pub top_face_ids: Vec<String>,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Timelapse {
-    pub person_id: String,
-    pub is_me: bool,
-    pub photo_count: u32,
-    pub frames: Vec<TimelapseFrame>,
+    pub cluster_id: Option<String>,
+    #[serde(default)]
+    pub cluster_face_ids: Vec<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Warp {
     pub file_ids: Vec<i64>,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct TimelapseFrame {
-    pub file_id: i64,
-    pub month: u32,
-    pub day: u32,
-    pub left_eye_x: u32,
-    pub left_eye_y: u32,
-    pub right_eye_x: u32,
-    pub right_eye_y: u32,
 }
 
 impl RewindReport {
@@ -299,6 +288,7 @@ impl RewindReport {
             crowd_favourite: chapters::crowd_favourite(library, &ranking),
             badge: chapters::badge(request, library, ml_people, clip.as_ref()),
             scrapbook: chapters::scrapbook(library, &ranking),
+            finale: chapters::finale(library, &ranking),
             tour: located_cities
                 .as_deref()
                 .and_then(|cities| chapters::tour(cities, &ranking)),
@@ -307,8 +297,6 @@ impl RewindReport {
                 .zip(cities)
                 .and_then(|(located, lookup)| chapters::globe(located, lookup, &ranking)),
             mosaic: chapters::mosaic(request, library, ml_people, &ranking, &year_photos),
-            timelapse: ml_people
-                .and_then(|people| chapters::timelapse(request, library, people, &ranking)),
             warp: chapters::warp(library, &ranking, &year_photos),
         })
     }
@@ -324,9 +312,10 @@ impl RewindReport {
             || self
                 .badge
                 .is_some_and(|badge| chapters::badge_uses_ml(badge.id))
-            || self.timelapse.is_some()
             || self.mosaic.as_ref().is_some_and(|mosaic| {
-                mosaic.me_person_id.is_some() || mosaic.top_person_id.is_some()
+                mosaic.me_person_id.is_some()
+                    || mosaic.top_person_id.is_some()
+                    || mosaic.cluster_id.is_some()
             })
     }
 }

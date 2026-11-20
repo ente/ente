@@ -1,3 +1,5 @@
+import "dart:ui" as ui;
+
 import "package:flutter/widgets.dart";
 import "package:photos/core/constants.dart";
 import "package:photos/models/file/file.dart";
@@ -11,6 +13,7 @@ class RewindPhoto extends StatefulWidget {
     this.placeholder = const Color(0xFFE4DCCD),
     this.focus = Alignment.center,
     this.zoomable = true,
+    this.decoded,
     super.key,
   });
 
@@ -18,27 +21,35 @@ class RewindPhoto extends StatefulWidget {
   final Color placeholder;
   final Alignment focus;
   final bool zoomable;
+  final ui.Image? decoded;
 
   @override
-  State<RewindPhoto> createState() => _RewindPhotoState();
+  State<RewindPhoto> createState() => RewindPhotoState();
 }
 
-class _RewindPhotoState extends State<RewindPhoto> {
+class RewindPhotoState extends State<RewindPhoto> {
   var _lifted = false;
   var _zooming = false;
 
-  Widget get _thumbnail => ThumbnailWidget(
-    widget.file,
-    key: ValueKey(widget.file.tag),
-    alignment: widget.focus,
-    rawThumbnail: true,
-    shouldShowSyncStatus: false,
-    shouldShowFavoriteIcon: false,
-    shouldShowVideoOverlayIcon: false,
-    thumbnailSize: thumbnailLargeSize,
-    useRequestedThumbnailSizeForLocalCache: true,
-    placeholderColor: widget.placeholder,
-  );
+  Widget get _thumbnail => switch (widget.decoded) {
+    final decoded? => RawImage(
+      image: decoded,
+      fit: BoxFit.cover,
+      alignment: widget.focus,
+    ),
+    null => ThumbnailWidget(
+      widget.file,
+      key: ValueKey(widget.file.tag),
+      alignment: widget.focus,
+      rawThumbnail: true,
+      shouldShowSyncStatus: false,
+      shouldShowFavoriteIcon: false,
+      shouldShowVideoOverlayIcon: false,
+      thumbnailSize: thumbnailLargeSize,
+      useRequestedThumbnailSizeForLocalCache: true,
+      placeholderColor: widget.placeholder,
+    ),
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -46,12 +57,12 @@ class _RewindPhotoState extends State<RewindPhoto> {
     if (!widget.zoomable) return thumbnail;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: _zoom,
+      onTap: zoom,
       child: Opacity(opacity: _lifted ? 0 : 1, child: thumbnail),
     );
   }
 
-  Future<void> _zoom() async {
+  Future<void> zoom() async {
     if (_zooming) return;
     _zooming = true;
     await showRewindPhotoZoom(
@@ -72,12 +83,14 @@ class _RewindPhotoState extends State<RewindPhoto> {
   }
 }
 
-Future<void> loadRewindPhoto(EnteFile file) async {
-  if (file.isRemoteOnlyFile) {
-    await getThumbnailFromServer(file);
-  } else {
-    await getThumbnailFromLocal(file, size: thumbnailLargeSize);
-  }
+Future<bool> loadRewindPhoto(EnteFile file) async {
+  final isOnDevice =
+      !file.isRemoteOnlyFile &&
+      await getThumbnailFromLocal(file, size: thumbnailLargeSize) != null;
+  if (isOnDevice) return true;
+  if (!file.isUploaded) return false;
+  await getThumbnailFromServer(file);
+  return true;
 }
 
 void preloadRewindPhoto(EnteFile file) => loadRewindPhoto(file).ignore();

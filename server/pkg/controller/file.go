@@ -352,12 +352,17 @@ func (c *FileController) GetUploadURLs(ctx context.Context, userID int64, count 
 	if err != nil {
 		return []ente.UploadURL{}, stacktrace.Propagate(err, "")
 	}
-	dc := c.S3Config.GetHotDataCenter()
 	urls := make([]ente.UploadURL, 0)
 	objectKeys := make([]string, 0)
 	if count > MaxUploadURLsLimit && !ignoreLimit {
 		count = MaxUploadURLsLimit
 	}
+	release, err := c.UsageCtrl.ReserveUploadURLs(ctx, userID, nil, count)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "")
+	}
+	defer release()
+	dc := c.S3Config.GetHotDataCenter()
 	for i := 0; i < count; i++ {
 		objectKey := strconv.FormatInt(userID, 10) + "/" + uuid.NewString()
 		objectKeys = append(objectKeys, objectKey)
@@ -403,6 +408,11 @@ func (c *FileController) GetUploadURLWithMetadata(ctx context.Context, userID in
 	if err := c.UsageCtrl.CanIssueUploadURLs(ctx, userID, &req.ContentLength, app); err != nil {
 		return ente.UploadURL{}, stacktrace.Propagate(err, "")
 	}
+	release, err := c.UsageCtrl.ReserveUploadURLs(ctx, userID, &req.ContentLength, 1)
+	if err != nil {
+		return ente.UploadURL{}, stacktrace.Propagate(err, "")
+	}
+	defer release()
 	dc := c.S3Config.GetHotDataCenter()
 	objectKey := strconv.FormatInt(userID, 10) + "/" + uuid.NewString()
 	url, err := c.getObjectURL(ente.TempObject{
@@ -879,7 +889,7 @@ func (c *FileController) cleanupDeletedFile(qItem repo.QueueItem) {
 		ctxLogger.WithError(err).Error("Failed to remove item from object_keys")
 		return
 	}
-	err = c.QueueRepo.DeleteItem(repo.DeleteObjectQueue, qItem.Item)
+	err = c.QueueRepo.DeleteItem(repo.DeleteObjectQueue, qItem.Id)
 	if err != nil {
 		ctxLogger.WithError(err).Error("Failed to remove item from the queue")
 		return
@@ -1104,6 +1114,11 @@ func (c *FileController) GetMultipartUploadURLs(ctx context.Context, userID int6
 	if err != nil {
 		return ente.MultipartUploadURLs{}, stacktrace.Propagate(err, "")
 	}
+	release, err := c.UsageCtrl.ReserveUploadURLs(ctx, userID, nil, 1)
+	if err != nil {
+		return ente.MultipartUploadURLs{}, stacktrace.Propagate(err, "")
+	}
+	defer release()
 	s3Client := c.S3Config.GetHotS3Client()
 	dc := c.S3Config.GetHotDataCenter()
 	bucket := c.S3Config.GetHotBucket()
@@ -1192,6 +1207,11 @@ func (c *FileController) GetMultipartUploadURLWithMetadata(ctx context.Context, 
 	if err := c.UsageCtrl.CanIssueUploadURLs(ctx, userID, nil, app); err != nil {
 		return ente.MultipartUploadURLs{}, stacktrace.Propagate(err, "")
 	}
+	release, err := c.UsageCtrl.ReserveUploadURLs(ctx, userID, &req.ContentLength, 1)
+	if err != nil {
+		return ente.MultipartUploadURLs{}, stacktrace.Propagate(err, "")
+	}
+	defer release()
 	s3Client := c.S3Config.GetHotS3Client()
 	dc := c.S3Config.GetHotDataCenter()
 	bucket := c.S3Config.GetHotBucket()

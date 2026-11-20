@@ -1,8 +1,7 @@
-import 'dart:convert';
-
-import 'package:ente_auth/models/code.dart';
+import 'package:ente_auth/src/rust/api/import_api.dart' as rust;
 import 'package:ente_auth/ui/settings/data/import/import_file_cleanup.dart';
 import 'package:ente_auth/ui/settings/data/import/import_flow.dart';
+import 'package:ente_auth/ui/settings/data/import/rust_import.dart';
 import 'package:ente_auth/utils/dialog_util.dart';
 import 'package:ente_strings/ente_strings.dart';
 import 'package:flutter/cupertino.dart';
@@ -43,35 +42,8 @@ Future<int?> _processRaivoExportFile(BuildContext context, String path) async {
     return null;
   }
   final jsonString = await readPickedImportFileAsString(path);
-  List<dynamic> jsonArray = jsonDecode(jsonString);
-  final parsedCodes = <Code>[];
-  for (var item in jsonArray) {
-    var kind = item['kind'];
-    var algorithm = item['algorithm'];
-    var timer = item['timer'];
-    var digits = item['digits'];
-    var issuer = item['issuer'];
-    var secret = item['secret'];
-    var account = item['account'];
-    var counter = item['counter'];
-
-    parsedCodes.add(
-      parseImportOtpCode(
-        item,
-        () => buildImportOtpUri(
-          kind: kind,
-          issuer: issuer,
-          account: account,
-          secret: secret,
-          algorithm: algorithm,
-          digits: digits,
-          period: timer,
-          counter: counter,
-          allowSteam: false,
-        ),
-      ),
-    );
-  }
-
-  return saveImportedCodes(parsedCodes);
+  final codes = runRustImport(
+    () => importCodes(rust.parseRaivo(export_: jsonString)),
+  );
+  return saveImportedCodes(codes);
 }

@@ -3,22 +3,35 @@ import "package:flutter_rust_bridge/flutter_rust_bridge.dart" show Int64List;
 import "package:photos/service_locator.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
 import "package:photos/ui/rewind/debug/sample_reports.dart";
+import "package:photos/ui/rewind/pages/badge_reveal_page.dart";
 import "package:photos/ui/rewind/pages/colour_page.dart";
 import "package:photos/ui/rewind/pages/cover_page.dart";
+import "package:photos/ui/rewind/pages/ritual_streak_page.dart";
 import "package:photos/ui/rewind/pages/setup_pages.dart";
 import "package:photos/ui/rewind/pages/top_percent_page.dart";
-import "package:photos/ui/rewind/pages/tour_page.dart";
 import "package:photos/ui/rewind/reel/rewind_video_export.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_viewer.dart";
 import "package:photos/ui/rewind/story/rewind_composer.dart";
 import "package:photos/ui/rewind/story/rewind_media.dart";
+import "package:photos/ui/rewind/story/rewind_rituals.dart";
 import "package:photos/ui/rewind/story/rewind_story.dart";
 import "package:photos/ui/rewind/story/rewind_story_view.dart";
-import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
 import "package:photos/ui/rewind/widgets/rewind_rive.dart";
 
-const rewindDesignPages = <RewindPage>[CoverPage(), ...setupPages];
+final rewindDesignPages = <RewindPage>[
+  const CoverPage(),
+  ...setupPages,
+  ritualStreakSetupPage,
+];
+
+const rewindSampleRituals = RewindRituals(
+  longestStreak: 64,
+  checkIns: 148,
+  busiestMonth: 8,
+  continued: 3,
+  icons: ["🏃", "📚"],
+);
 
 const rewindTopPercentPages = <RewindPage>[
   TopPercentPage(percent: 1, count: 15059),
@@ -40,13 +53,16 @@ final rewindColourChapters = [
     ),
 ];
 
-List<RewindPage> rewindTourPages(rust.RewindReport report) => [
-  if (report.tour case final tour?) TourPage(tour),
-];
+Future<RewindStory> _sampleStory(rust.RewindReport report) async =>
+    RewindStory.compose(
+      rewindChapters(report, rewindSampleRituals),
+      await RewindMedia.sampled(),
+    );
 
-RewindChapter _colourChapter(rust.ColourOfTheYear colour) => RewindChapter([
-  ColourPage.pageKey,
-], (media) async => [ColourPage(colour, media.photos(colour.fileIds, 9))]);
+RewindChapter _colourChapter(rust.ColourOfTheYear colour) =>
+    RewindChapter([ColourPage.pageKey], (media) async {
+      return [ColourPage(colour, media.photos(colour.fileIds, 9))];
+    });
 
 class RewindGalleryPage extends StatefulWidget {
   const RewindGalleryPage({super.key});
@@ -115,7 +131,7 @@ class _RewindGalleryPageState extends State<RewindGalleryPage> {
         ),
         ListTile(
           title: const Text("Colours of the year"),
-          subtitle: const Text("All ten paint chips, library photos"),
+          subtitle: const Text("All ten paint chips"),
           trailing: const Icon(Icons.chevron_right_outlined),
           onTap: () => openStory(
             RewindMedia.sampled().then(
@@ -123,28 +139,12 @@ class _RewindGalleryPageState extends State<RewindGalleryPage> {
             ),
           ),
         ),
-        for (final sample in rewindSampleReports.entries)
-          if (rewindTourPages(sample.value).isNotEmpty)
-            ListTile(
-              title: Text("Tour tee: ${sample.key}"),
-              trailing: const Icon(Icons.chevron_right_outlined),
-              onTap: () => open(rewindTourPages(sample.value)),
-            ),
-        if (rewindService.state.value?.status case rust.RewindStatus_Ready(
-          :final report,
-        ) when report.tour != null)
-          ListTile(
-            title: const Text("Tour tee: your library"),
-            subtitle: const Text("From the computed Rewind"),
-            trailing: const Icon(Icons.chevron_right_outlined),
-            onTap: () => open(rewindTourPages(report)),
-          ),
         if (rewindService.state.value?.status case rust.RewindStatus_Ready(
           :final report,
         ))
           ListTile(
             title: const Text("Photo cards: your library"),
-            subtitle: const Text("Tunnel, tower, globe, timelapse, mosaic"),
+            subtitle: const Text("Tunnel, globe, mosaic"),
             trailing: const Icon(Icons.chevron_right_outlined),
             onTap: () => openStory(
               RewindMedia.load().then(
@@ -153,6 +153,27 @@ class _RewindGalleryPageState extends State<RewindGalleryPage> {
               ),
             ),
           ),
+        ListTile(
+          title: const Text("Ritual streak: sample"),
+          subtitle: const Text("64 days, 148 check-ins, 3 rituals"),
+          trailing: const Icon(Icons.chevron_right_outlined),
+          onTap: () => open([
+            ritualStreakSetupPage,
+            const RitualStreakPage(rewindSampleRituals),
+          ]),
+        ),
+        ListTile(
+          title: const Text("Ritual streak: your rituals"),
+          subtitle: const Text("From the rituals on this device"),
+          trailing: const Icon(Icons.chevron_right_outlined),
+          onTap: () => openStory(
+            RewindMedia.sampled().then(
+              (media) => RewindStory.compose([
+                ritualStreakChapter(RewindRituals.current()),
+              ], media),
+            ),
+          ),
+        ),
         ListTile(
           title: const Text("Badge"),
           subtitle: const Text("Fire each Rive badge trigger"),
@@ -166,18 +187,14 @@ class _RewindGalleryPageState extends State<RewindGalleryPage> {
             title: Text(sample.key),
             subtitle: const Text("Sample report, library photos and people"),
             trailing: const Icon(Icons.chevron_right_outlined),
-            onTap: () => openStory(
-              RewindStory.prepare(sample.value, media: RewindMedia.sampled),
-            ),
+            onTap: () => openStory(_sampleStory(sample.value)),
           ),
         for (final sample in rewindSampleReports.entries)
           ListTile(
             title: Text("${sample.key} video"),
             subtitle: const Text("Export the reel and open the share sheet"),
             trailing: const Icon(Icons.movie_outlined),
-            onTap: () => openVideo(
-              RewindStory.prepare(sample.value, media: RewindMedia.sampled),
-            ),
+            onTap: () => openVideo(_sampleStory(sample.value)),
           ),
       ],
     );
@@ -204,10 +221,7 @@ class _BadgePreviewState extends State<_BadgePreview> {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                const RewindBackdrop(
-                  color: Color(0xFF12BB2C),
-                  pattern: RewindRays(Color(0xFF16B42E)),
-                ),
+                BadgeRevealPage.backdrop,
                 RewindBadge(badge: _badge, active: true),
               ],
             ),

@@ -5,6 +5,7 @@ import "package:flutter_svg/flutter_svg.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/services/rewind/rewind_edition.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
+import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
@@ -19,6 +20,7 @@ import "package:photos/ui/rewind/widgets/rewind_layer.dart";
 import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo_frames.dart";
+import "package:photos/ui/rewind/widgets/rewind_rive.dart";
 import "package:photos/ui/rewind/widgets/rewind_spread.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
 import "package:photos/ui/rewind/widgets/rewind_text.dart";
@@ -30,7 +32,7 @@ class PhotosCountPage extends RewindPage {
   static const maxPhotos = 24;
   static const _minimumPhotos = 8;
 
-  static const _ducky = Rect.fromLTWH(90, 191, 210, 234);
+  static const _ducky = Rect.fromLTWH(49, 174.5, 288.3, 290.2);
   static const _burstPivot = Offset(195, 457);
   static const _cloud = Color(0xFFFFF4DC);
 
@@ -41,8 +43,15 @@ class PhotosCountPage extends RewindPage {
   String get key => pageKey;
 
   @override
-  Duration? get reelHold =>
-      Duration(milliseconds: photos.length < _minimumPhotos ? 2800 : 4200);
+  Duration? get reelHold => Duration(
+    milliseconds: photos.length < _minimumPhotos
+        ? 2800 + RewindMotion.reelReadingMs
+        : 4200,
+  );
+
+  @override
+  List<EnteFile> get reelThumbnails =>
+      photos.length < _minimumPhotos ? const [] : photos;
 
   @override
   RewindChrome get chrome => const RewindChrome(
@@ -67,6 +76,7 @@ class PhotosCountPage extends RewindPage {
       outline: 2.8,
       shadow: const Offset(3.5, 4.2),
     );
+    final playing = isActive && !RewindPageScope.coveredOf(context);
 
     return RewindShareable(
       child: Stack(
@@ -103,7 +113,7 @@ class PhotosCountPage extends RewindPage {
                   child: RewindLeave(
                     position: position,
                     centerY: 420,
-                    child: _Popcorn(photos: photos, active: isActive),
+                    child: _Popcorn(photos: photos, active: playing),
                   ),
                 ),
               RewindLayer(
@@ -126,10 +136,7 @@ class PhotosCountPage extends RewindPage {
                     RewindPose(0.88, dy: -3, sx: 0.99, sy: 1.01),
                     RewindPose(1),
                   ],
-                  child: Image.file(
-                    RewindAssets.file(RewindAssets.heroDucky),
-                    fit: BoxFit.contain,
-                  ),
+                  child: const RewindDucky(RewindAssets.superheroDucky),
                 ),
               ),
               RewindLayer(
@@ -211,7 +218,7 @@ class PhotosCountPage extends RewindPage {
                                   ),
                                   RewindCountUp(
                                     value: count,
-                                    active: isActive,
+                                    active: playing,
                                     delayMs: 1450,
                                     builder: (context, text) => big(text),
                                   ),
@@ -332,27 +339,21 @@ class _Popcorn extends StatelessWidget {
       for (final file in photos)
         RewindPolaroid(
           width: _width,
-          photo: RewindPhoto(
-            file,
-            placeholder: const Color(0x1F151515),
-            zoomable: false,
-          ),
+          photo: RewindPhoto(file, placeholder: const Color(0x1F151515)),
         ),
     ];
-    return IgnorePointer(
-      child: RewindElapsed(
-        active: active,
-        stillMs: 5200,
-        builder: (context, ms) => Stack(
-          clipBehavior: Clip.none,
-          children: [
-            for (final slot in _beltSlots(ms))
-              _onBelt(prints[(_firstBelted + slot) % prints.length], slot, ms),
-            for (var k = 0; k < _burstCount; k++)
-              if (_burst[k] <= ms && ms < _burst[k] + _flightMs)
-                _flight(prints[k % prints.length], k, ms),
-          ],
-        ),
+    return RewindElapsed(
+      active: active,
+      stillMs: 5200,
+      builder: (context, ms) => Stack(
+        clipBehavior: Clip.none,
+        children: [
+          for (final slot in _beltSlots(ms))
+            _onBelt(prints[(_firstBelted + slot) % prints.length], slot, ms),
+          for (var k = 0; k < _burstCount; k++)
+            if (_burst[k] <= ms && ms < _burst[k] + _flightMs)
+              _flight(prints[k % prints.length], k, ms),
+        ],
       ),
     );
   }

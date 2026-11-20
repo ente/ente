@@ -399,6 +399,7 @@ class _PeopleSectionAllWidgetState extends State<PeopleSectionAllWidget> {
   final _searchController = TextEditingController();
   final _searchFocusNode = FocusNode();
   int _suggestionReloadToken = 0;
+  bool _suggestionReloadPending = false;
   final Debouncer _peopleReloadDebouncer = Debouncer(
     const Duration(milliseconds: 400),
   );
@@ -477,25 +478,18 @@ class _PeopleSectionAllWidgetState extends State<PeopleSectionAllWidget> {
             setState(() {
               _suggestionReloadToken++;
             });
-          } else if (event is PeopleChangedEvent &&
-              event.type == PeopleEventType.syncDone) {
-            _peopleReloadDebouncer.run(() async {
-              if (!mounted) {
-                return;
-              }
-              setState(() {
-                _isInitialLoad = false;
-                _isLoaded = false;
-                sectionData = getResults();
-              });
-            });
           } else {
+            _suggestionReloadPending =
+                _suggestionReloadPending ||
+                event is! PeopleChangedEvent ||
+                event.type != PeopleEventType.syncDone;
             _peopleReloadDebouncer.run(() async {
-              if (!mounted) {
-                return;
-              }
+              if (!mounted) return;
               setState(() {
-                _suggestionReloadToken++;
+                if (_suggestionReloadPending) {
+                  _suggestionReloadToken++;
+                  _suggestionReloadPending = false;
+                }
                 _isInitialLoad = false;
                 _isLoaded = false;
                 sectionData = getResults();
@@ -590,7 +584,7 @@ class _PeopleSectionAllWidgetState extends State<PeopleSectionAllWidget> {
           final bool bPinned = b.params[kPersonPinned] as bool? ?? false;
           if (aPinned && !bPinned) return -1;
           if (!aPinned && bPinned) return 1;
-          return a.name().compareTo(b.name());
+          return compareNames(a.name(), b.name());
         });
       }
     }

@@ -17,6 +17,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
+	"math/big"
 	mathRand "math/rand"
 	"net/http"
 	"time"
@@ -232,18 +233,27 @@ func (c *UserController) VerifySRPSession(context *gin.Context, req ente.VerifyS
 	return &verResponse, nil
 }
 
+func decodeSRPPublicA(value string) ([]byte, error) {
+	decoded, err := convertStringToBytes(value)
+	if err != nil || len(decoded) != 512 {
+		return nil, ente.NewBadRequestError(nil)
+	}
+	a := new(big.Int).SetBytes(decoded)
+	if a.Sign() == 0 || a.Cmp(srp.GetParams(Srp4096Params).N) >= 0 {
+		return nil, ente.NewBadRequestError(nil)
+	}
+	return decoded, nil
+}
+
 func (c *UserController) createAndInsertSRPSession(
 	gContext *gin.Context,
 	srpUserID uuid.UUID,
 	srpVerifier string,
 	srpA string,
 ) (*string, *uuid.UUID, error) {
-	srpABytes, err := convertStringToBytes(srpA)
+	srpABytes, err := decodeSRPPublicA(srpA)
 	if err != nil {
 		return nil, nil, err
-	}
-	if len(srpABytes) != 512 {
-		return nil, nil, ente.NewBadRequestWithMessage("Invalid length for srpA")
 	}
 	unverifiedSessions, err := c.UserAuthRepo.GetUnverifiedSessionsInLastHour(srpUserID)
 	if err != nil {
@@ -426,12 +436,8 @@ func fSrpAttributes(email string, hashKey []byte) (*ente.GetSRPAttributesRespons
 }
 
 func (c *UserController) fCreateSession(srpUserID string, srpA string) (*ente.CreateSRPSessionResponse, error) {
-	srpABytes, err := convertStringToBytes(srpA)
-	if err != nil {
+	if _, err := decodeSRPPublicA(srpA); err != nil {
 		return nil, err
-	}
-	if len(srpABytes) != 512 {
-		return nil, ente.NewBadRequestWithMessage("Invalid length for srpA")
 	}
 
 	// Match the timing variance of a real SRP exchange.

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use ente_location::Coordinate;
 
 use super::count;
-use super::places::{City, stays, travelled_km};
+use super::places::{City, mentionable, stays, travelled_km};
 use super::tour::{countries, stops};
 use crate::memories::CityLookup;
 use crate::rewind::ranking::{Ranking, Spread};
@@ -19,6 +19,7 @@ pub(in crate::rewind) fn globe(
     lookup: &dyn CityLookup,
     ranking: &Ranking<'_>,
 ) -> Option<Globe> {
+    let cities = &mentionable(cities, ranking);
     let mut stops = stops(cities, ranking);
     let city_count = count(stops.len());
     let visited = countries(cities, &stops);
@@ -316,6 +317,44 @@ mod tests {
         let printed: Vec<&str> = tee.stops.iter().map(|stop| stop.city.as_str()).collect();
         assert_eq!(printed, ["Amsterdam", "Groningen", "Utrecht"]);
         assert_eq!(tee.city_count, 3);
+    }
+
+    #[test]
+    fn a_visit_with_only_archived_photos_stays_off_the_route() {
+        let lookup = LowCountries(Towns(vec![
+            ("Amsterdam", 52.37, 4.90),
+            ("Groningen", 53.22, 6.57),
+            ("Utrecht", 52.09, 5.12),
+        ]));
+        let mut files = visit(1, (52.37, 4.90), "2026-02-01", 9);
+        files.extend(
+            visit(100, (53.22, 6.57), "2026-01-10", 4)
+                .into_iter()
+                .map(|mut file| {
+                    file.visibility = RewindVisibility::Archived;
+                    file
+                }),
+        );
+        files.extend(visit(200, (52.09, 5.12), "2026-03-01", 4));
+        files.extend(visit(300, (53.22, 6.57), "2026-04-01", 5));
+        let archive = request(files);
+        let library = Library::of_year(&archive).unwrap();
+        let cities = cities(&library, &lookup).unwrap();
+
+        let globe = globe(&cities, &lookup, &Ranking::new(None, None)).unwrap();
+
+        let flown: Vec<&str> = globe
+            .route
+            .iter()
+            .map(|&place| globe.places[place as usize].name.as_str())
+            .collect();
+        assert_eq!(flown, ["Amsterdam", "Utrecht", "Groningen"]);
+        let groningen = globe
+            .places
+            .iter()
+            .find(|place| place.name == "Groningen")
+            .unwrap();
+        assert_eq!(groningen.photo_count, 5);
     }
 
     #[test]

@@ -80,26 +80,30 @@ impl<'r> Library<'r> {
         self.start
     }
 
-    pub(super) fn elapsed_days(&self) -> usize {
-        self.elapsed_days
-    }
-
     pub(super) fn year_has_ended(&self) -> bool {
         self.year_has_ended
     }
 
+    pub(super) fn complete_months(&self) -> usize {
+        if self.year_has_ended {
+            return 12;
+        }
+        let today = self.start + (self.elapsed_days as i64 - 1) * MICROS_PER_DAY;
+        LocalDate::of_local_time(today).month.unsigned_abs() as usize - 1
+    }
+
     pub(super) fn ml_coverage(&self, store: &MlStore) -> Result<f32> {
-        let indexed = store.db().get_fully_indexed_file_ids(false)?;
-        let indexable: Vec<i64> = self
+        let mut indexable: Vec<i64> = self
             .files
             .iter()
             .filter(|file| file.file.file_type != RewindFileType::Other)
             .map(|file| file.file.id)
             .collect();
+        indexable.sort_unstable();
+        let covered = store.db().count_fully_indexed_files(&indexable)?;
         if indexable.is_empty() {
             return Ok(1.0);
         }
-        let covered = indexable.iter().filter(|id| indexed.contains(id)).count();
         Ok(covered as f32 / indexable.len() as f32)
     }
 }

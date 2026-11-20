@@ -83,7 +83,7 @@ class MemoryHomeWidgetService {
       return;
     }
 
-    await _setTotalMemories(null);
+    await _setTotalMemories(0);
     await updateMemoriesStatus(WidgetStatus.syncedEmpty);
     await _refreshWidget(message: "MemoryHomeWidget cleared & updated");
   }
@@ -240,7 +240,7 @@ class MemoryHomeWidgetService {
     _logger.info("Home Widget updated: ${message ?? "standard update"}");
   }
 
-  Future<void> _setTotalMemories(int? total) async {
+  Future<void> _setTotalMemories(int total) async {
     await HomeWidgetService.instance.setData(TOTAL_MEMORIES_KEY, total);
   }
 

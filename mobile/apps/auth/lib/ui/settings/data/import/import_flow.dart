@@ -17,8 +17,6 @@ import 'package:logging/logging.dart';
 typedef ImportFileProcessor =
     Future<int?> Function(String path, ProgressDialog progressDialog);
 
-const _maxImportedOtpDigits = 10;
-
 class ImportEntryParseException implements Exception {
   final Object? entry;
   final Object error;
@@ -41,11 +39,6 @@ class ImportEntryParseException implements Exception {
 
   @override
   String toString() => 'Could not parse import entry: $errorText';
-}
-
-Never throwImportEntryParseError(Object? entry, Object error) {
-  if (error is ImportEntryParseException) throw error;
-  throw ImportEntryParseException(entry: entry, error: error);
 }
 
 Future<void> showFileImportInstruction({
@@ -160,67 +153,6 @@ Future<String?> promptForImportPassword(
     },
   );
   return password;
-}
-
-Code parseImportOtpCode(Object? entry, String Function() buildUri) {
-  try {
-    return Code.fromOTPAuthUrl(buildUri());
-  } catch (error) {
-    throwImportEntryParseError(entry, error);
-  }
-}
-
-String buildImportOtpUri({
-  required String kind,
-  required Object issuer,
-  required Object account,
-  required Object secret,
-  required Object algorithm,
-  required Object digits,
-  Object? period,
-  Object? counter,
-  bool allowSteam = true,
-}) {
-  final normalizedKind = kind.toLowerCase();
-  final normalizedDigits = _normalizeImportedOtpDigits(digits);
-  if (normalizedKind == 'totp' || (allowSteam && normalizedKind == 'steam')) {
-    final normalizedPeriod = _normalizeImportedOtpPeriod(period);
-    return 'otpauth://$normalizedKind/$issuer:$account?secret=$secret&issuer=$issuer&algorithm=$algorithm&digits=$normalizedDigits&period=$normalizedPeriod';
-  }
-  if (normalizedKind == 'hotp') {
-    final normalizedCounter = _normalizeImportedOtpCounter(counter);
-    return 'otpauth://hotp/$issuer:$account?secret=$secret&issuer=$issuer&algorithm=$algorithm&digits=$normalizedDigits&counter=$normalizedCounter';
-  }
-  throw FormatException('Invalid OTP type: $kind');
-}
-
-int _normalizeImportedOtpDigits(Object? digits) {
-  final parsedDigits = _parseImportedOtpInt(digits);
-  if (parsedDigits == null || parsedDigits == 0) return Code.defaultDigits;
-  if (parsedDigits < 0 || parsedDigits > _maxImportedOtpDigits) {
-    throw FormatException('Invalid OTP digits: $parsedDigits');
-  }
-  return parsedDigits;
-}
-
-int _normalizeImportedOtpPeriod(Object? period) {
-  final parsedPeriod = _parseImportedOtpInt(period);
-  if (parsedPeriod == null || parsedPeriod <= 0) return Code.defaultPeriod;
-  return parsedPeriod;
-}
-
-int _normalizeImportedOtpCounter(Object? counter) {
-  final parsedCounter = _parseImportedOtpInt(counter);
-  if (parsedCounter == null) return 0;
-  if (parsedCounter < 0) {
-    throw FormatException('Invalid HOTP counter: $parsedCounter');
-  }
-  return parsedCounter;
-}
-
-int? _parseImportedOtpInt(Object? value) {
-  if (value is int) return value;
-  return int.tryParse(value?.toString() ?? '');
 }
 
 Future<int> saveImportedCodes(Iterable<Code> codes) async {

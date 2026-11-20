@@ -26,6 +26,8 @@ Collaborative albums allow multiple Ente users to contribute photos to the same 
 4. Choose permissions (Viewer, Collaborator, or Admin)
 5. Send the invitation
 
+![Add people email field with jane@ente.com highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/add-person-email-v2.png){width=560px}
+
 ![Share with Ente users in the share panel on Ente Photos web](https://docs-assets.ente.com/screenshots/web-collab-share-ente-users.png){width=720px}
 
 Recipients receive a notification and can access the shared album from their Ente app.

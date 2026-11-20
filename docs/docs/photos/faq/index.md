@@ -34,6 +34,7 @@ Jump to a category:
 - [How do I install Ente Photos on desktop?](/photos/faq/account-creation#install-desktop)
 - [How do I install CLI for Ente Photos?](/photos/faq/account-creation#install-cli)
 - [Can I access Ente Photos from my browser?](/photos/faq/account-creation#web-app)
+- [Can I use Ente Photos on a Chromebook?](/photos/faq/account-creation#chromebook)
 - [Why is the latest version not available on F-Droid?](/photos/faq/account-creation#fdroid-delay)
 - [How can I manually setup Ente Photos installation with Obtainium?](/photos/faq/account-creation#manual-obtanium)
 - [How do I update to the latest version?](/photos/faq/account-creation#update-latest)
@@ -159,6 +160,7 @@ Jump to a category:
 - [Does Ente backup Live Photos from iPhone?](/photos/faq/backup-and-sync#live-photos-backup)
 - [Why do my Live Photos show up as a separate photo and video?](/photos/faq/backup-and-sync#live-photo-not-paired)
 - [Can I save just the still image from a Live Photo or remove its motion clip?](/photos/faq/backup-and-sync#live-photo-still-only)
+- [Why don't my WhatsApp photos and videos show up in Ente?](/photos/faq/backup-and-sync#whatsapp-media-backup)
 - [Can I pick photos from Ente in other apps?](/photos/faq/backup-and-sync#pick-photos-in-other-apps)
 - [Can I open photos from my camera app in Ente?](/photos/faq/backup-and-sync#open-camera-photos-in-ente)
 
@@ -252,6 +254,7 @@ Jump to a category:
 - [Can I edit metadata on all platforms?](/photos/faq/metadata-and-editing#platform-support)
 - [Why is GPS location missing when I share a photo to Ente on Android?](/photos/faq/metadata-and-editing#android-share-gps-missing)
 - [Does Ente modify any file metadata?](/photos/faq/metadata-and-editing#modify-file-metadata)
+- [Can Ente remove metadata such as location from my photos?](/photos/faq/metadata-and-editing#remove-metadata)
 
 ## Migration
 
@@ -459,6 +462,7 @@ Jump to a category:
 
 - [Why isn't background sync working on my phone?](/photos/faq/troubleshooting#background-sync-issues)
 - [Why can't Ente access my photos?](/photos/faq/troubleshooting#photo-access-permissions)
+- [Why does backup fail, or why don't my downloads save to my phone?](/photos/faq/troubleshooting#photo-access-permissions)
 
 ### Desktop App Issues
 

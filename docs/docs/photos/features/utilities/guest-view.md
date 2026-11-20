@@ -28,7 +28,7 @@ This locks the viewer to that single file - swiping to other photos is disabled.
 **From selected photos:**
 
 1. Long press to select one or more photos
-2. Select "Guest view" from the selection actions
+2. Pull up the selection menu, then tap "Guest view"
 
 Guest view opens with only the selected photos, and you can swipe between them.
 

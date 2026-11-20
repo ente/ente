@@ -270,6 +270,17 @@ class _AllSearchSectionsState extends State<AllSearchSections> {
           final hasSurfacedFaces =
               resultsBySection[SectionType.face]!.isNotEmpty;
           final sectionWidgets = [
+            const RewindSearchTicket(),
+            hasSurfacedFaces
+                ? const SizedBox.shrink()
+                : Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: searchTabSectionHorizontalPadding,
+                    ),
+                    child: MLProgressBanner(
+                      isOnSearchTab: widget.isOnSearchTab,
+                    ),
+                  ),
             if (hasGrantedMLConsent)
               PeopleSection(
                 examples: examplesFor(SectionType.face),
@@ -287,7 +298,6 @@ class _AllSearchSectionsState extends State<AllSearchSections> {
               _RitualsDiscoverySection(
                 resultLimit: widget.previewLimits.ritualResults,
               ),
-            const RewindSearchTicket(),
             ContactsSectionLoader(
               resultLimit: widget.previewLimits.contactResults,
             ),
@@ -299,23 +309,8 @@ class _AllSearchSectionsState extends State<AllSearchSections> {
                   bottom: bottomPadding,
                 ),
                 physics: const BouncingScrollPhysics(),
-                itemCount: sectionWidgets.length + 1,
-                itemBuilder: (context, index) {
-                  if (index == 0) {
-                    if (hasSurfacedFaces) {
-                      return const SizedBox.shrink();
-                    }
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: searchTabSectionHorizontalPadding,
-                      ),
-                      child: MLProgressBanner(
-                        isOnSearchTab: widget.isOnSearchTab,
-                      ),
-                    );
-                  }
-                  return sectionWidgets[index - 1];
-                },
+                itemCount: sectionWidgets.length,
+                itemBuilder: (context, index) => sectionWidgets[index],
               )
               .animate(delay: const Duration(milliseconds: 150))
               .slide(

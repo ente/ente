@@ -42,7 +42,9 @@ const openAlbumWithPhotos = async (
     metadataSidecars = false,
 ) => {
     await page.setViewportSize(desktop);
-    await page.getByText("Continue with free plan", { exact: true }).click();
+    await page
+        .getByRole("button", { name: "Continue with 10 GB plan" })
+        .click();
 
     const navigation = page.getByRole("navigation", {
         name: "Albums",
@@ -207,6 +209,7 @@ test("performs every selection action on shuffled batches of photos", async ({
     );
 
     const toolbar = page.getByRole("toolbar");
+    const gridContents = page.locator(".photo-list > div");
     const thumbnails = page.locator('input[type="checkbox"]:not([name])');
     const dialog = page.getByRole("dialog");
     const finishAlbumChange = async (title: string, destination: string) => {
@@ -360,8 +363,15 @@ test("performs every selection action on shuffled batches of photos", async ({
             ).slice(0, batchSize);
             for (const index of selected) {
                 const checkbox = thumbnails.nth(index);
+                const thumbnail = checkbox.locator("..");
                 await expect(async () => {
-                    await checkbox.locator("..").hover({ timeout: 1500 });
+                    await thumbnail.scrollIntoViewIfNeeded({ timeout: 1500 });
+                    await expect(gridContents).toHaveCSS(
+                        "pointer-events",
+                        "auto",
+                        { timeout: 1500 },
+                    );
+                    await thumbnail.hover({ timeout: 1500 });
                     await checkbox.check({ timeout: 1500 });
                 }).toPass({ timeout: 10_000 });
             }

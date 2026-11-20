@@ -58,29 +58,6 @@ const placesSetupPage = SetupPage(
   ),
 );
 
-const spotsSetupPage = SetupPage(
-  key: "spots_setup",
-  color: Color(0xFFFFCA39),
-  pattern: Color(0xFFFFD24E),
-  ink: RewindColors.ink,
-  chrome: RewindChrome.dark,
-  headlines: [
-    SetupHeadline("SAME SPOTS,\nNEW SHOTS.", at: Offset(24, 140), size: 54),
-  ],
-  callout: SetupCallout(
-    "A LITTLE DÉJÀ VIEW!",
-    center: Offset(195, 385.5),
-    delayMs: 600,
-  ),
-  art: SetupArt.ducky(
-    RewindAssets.chairDucky,
-    Rect.fromLTWH(22, 401, 310.4, 373.1),
-    ticks: [(RewindTick.forward, Rect.fromLTWH(229, 423, 11, 18))],
-    pivot: Offset(176, 752),
-    delayMs: 780,
-  ),
-);
-
 const peopleSetupPage = SetupPage(
   key: "people_setup",
   color: Color(0xFF9D4AE4),
@@ -109,8 +86,8 @@ const peopleSetupPage = SetupPage(
 
 const busiestDaySetupPage = SetupPage(
   key: "busiest_day_setup",
-  color: Color(0xFFFF6727),
-  pattern: Color(0xFFFC5D19),
+  color: Color(0xFFF72F33),
+  pattern: Color(0xFFF02525),
   ink: RewindColors.cream,
   headlines: [
     SetupHeadline("ONE DAY,\nTHINGS GOT", at: Offset(24, 140), size: 59),
@@ -130,11 +107,11 @@ const busiestDaySetupPage = SetupPage(
 
 const newFacesSetupPage = SetupPage(
   key: "new_faces_setup",
-  color: Color(0xFF1EB736),
-  pattern: Color(0xFF1DB034),
+  color: Color(0xFF3366D3),
+  pattern: Color(0xFF3B6ED7),
   ink: RewindColors.cream,
   headlines: [
-    SetupHeadline("THE CAST GOT\nBIGGER", at: Offset(24, 140), size: 39),
+    SetupHeadline("THE CAST GOT\nBIGGER", at: Offset(24, 140), size: 49.578),
   ],
   callout: SetupCallout(
     "WELCOME TO THE FAM!",
@@ -202,6 +179,27 @@ const ritualSetupPage = SetupPage(
   ),
 );
 
+const ritualStreakSetupPage = SetupPage(
+  key: "ritual_streak_setup",
+  color: Color(0xFFE86436),
+  pattern: Color(0xFFF0713F),
+  ink: RewindColors.cream,
+  headlines: [
+    SetupHeadline("YOU BUILT\nRITUALS.", at: Offset(24, 140), size: 66),
+  ],
+  callout: SetupCallout(
+    "ONE PHOTO A DAY.",
+    center: Offset(195, 398.5),
+    delayMs: 600,
+  ),
+  art: SetupArt.ducky(
+    RewindAssets.cameraDucky,
+    Rect.fromLTWH(46.5, 441, 265.3, 334),
+    pivot: Offset(179, 775),
+    delayMs: 780,
+  ),
+);
+
 const likesSetupPage = SetupPage(
   key: "likes_setup",
   color: Color(0xFF2F65D7),
@@ -211,9 +209,10 @@ const likesSetupPage = SetupPage(
     SetupHeadline("YOUR FEED\nWAS LIT!", at: Offset(24, 140), size: 48),
   ],
   callout: SetupCallout("’SPECIALLY THIS ONE.", center: Offset(188.2, 383.5)),
-  art: SetupArt.image(
-    RewindAssets.polaroidHugDucky,
-    Rect.fromLTWH(46, 434, 296, 328),
+  art: SetupArt.ducky(
+    RewindAssets.likesDucky,
+    Rect.fromLTWH(21.5, 410, 344, 376),
+    pivot: Offset(194, 762),
   ),
 );
 
@@ -230,9 +229,9 @@ const badgeSetupPage = SetupPage(
     center: Offset(196.5, 395),
     size: 23.87,
   ),
-  art: SetupArt.image(
+  art: SetupArt.ducky(
     RewindAssets.detectiveDucky,
-    Rect.fromLTWH(39, 445, 286, 331),
+    Rect.fromLTWH(14.5, 420, 334, 378.4),
     ticks: [(RewindTick.bold, Rect.fromLTWH(209, 424, 16, 23))],
     pivot: Offset(182, 777),
   ),
@@ -241,7 +240,6 @@ const badgeSetupPage = SetupPage(
 const setupPages = [
   paletteSetupPage,
   placesSetupPage,
-  spotsSetupPage,
   peopleSetupPage,
   busiestDaySetupPage,
   newFacesSetupPage,

@@ -42,6 +42,10 @@ type EmailVerificationRequest struct {
 	Source *string `json:"source"`
 }
 
+type SetSourceRequest struct {
+	Source string `json:"source" binding:"required"`
+}
+
 type EmailVerificationResponse struct {
 	ID            int64         `json:"id"`
 	Token         string        `json:"token"`

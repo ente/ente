@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 
 use ente_location::{Coordinate, CountryCode, normalize_search_text};
 
-use super::geo::{Located, distance_km};
+use super::geo::Located;
 use super::input::CityLookup;
 
 const NEARBY_TOWN_KM: f64 = 10.0;
@@ -89,6 +89,12 @@ impl Places {
         Some(normalized(&self.places[tally.biggest].country)).filter(|country| !country.is_empty())
     }
 
+    pub(super) fn city(&self, photo_id: i64) -> Option<&str> {
+        self.place_of_photo
+            .get(&photo_id)
+            .map(|&place| self.places[place].city.as_str())
+    }
+
     pub(super) fn country_code(&self, photo_id: i64) -> Option<CountryCode> {
         self.place_of_photo
             .get(&photo_id)
@@ -98,11 +104,11 @@ impl Places {
     pub(super) fn cities(&self, members: &[Located]) -> Vec<CityPhotos<'_>> {
         let places = self.fold(self.place_counts(members), |town, place, _, _| {
             normalize_search_text(&town.city) == normalize_search_text(&place.city)
-                && distance_km(town.location, place.location) <= NEARBY_TOWN_KM
+                && town.location.distance_km(place.location) <= NEARBY_TOWN_KM
         });
         let towns = self.fold(places, |town, place, town_photos, place_photos| {
             town.rank > place.rank
-                && distance_km(town.location, place.location) <= NEARBY_TOWN_KM
+                && town.location.distance_km(place.location) <= NEARBY_TOWN_KM
                 && town_photos * TOWN_MAX_PHOTO_RATIO >= place_photos
         });
         let mut cities: Vec<CityPhotos> = towns

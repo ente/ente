@@ -164,7 +164,7 @@ func (c *PlayStoreController) HandleNotification(notification playstore.Develope
 			Storage:               newPlan.Storage,
 			ExpiryTime:            purchase.ExpiryTimeMillis * 1000,
 			ProductID:             productID,
-			PaymentProvider:       ente.AppStore,
+			PaymentProvider:       ente.PlayStore,
 			OriginalTransactionID: originalTransactionID,
 			Attributes:            ente.SubscriptionAttributes{LatestVerificationData: transactionID},
 		}

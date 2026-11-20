@@ -1,3 +1,5 @@
+import "dart:math";
+
 import "package:flutter/foundation.dart";
 import "package:flutter/widgets.dart";
 import "package:photos/ui/rewind/shell/rewind_chrome.dart";
@@ -9,27 +11,38 @@ import "package:photos/ui/rewind/theme/rewind_motion.dart";
 import "package:photos/ui/rewind/widgets/rewind_wordmark.dart";
 
 class RewindReel {
-  RewindReel._(this.pages, this._holds)
+  RewindReel._(this.pages, this._holds, {required this.branded})
     : starts = RewindPageStack.startsOf(pages);
 
-  factory RewindReel.of(List<RewindPage> story) {
+  factory RewindReel.of(List<RewindPage> story) =>
+      RewindReel._holding(story, (page) => page.reelHold, branded: false);
+
+  factory RewindReel.clipOf(List<RewindPage> pages) =>
+      RewindReel._holding(pages, (page) => page.clipHold, branded: true);
+
+  factory RewindReel._holding(
+    List<RewindPage> story,
+    Duration? Function(RewindPage page) holdOf, {
+    required bool branded,
+  }) {
     final pages = <RewindPage>[];
     final holds = <Duration>[];
     for (final page in story) {
-      final hold = page.reelHold;
+      final hold = holdOf(page);
       if (hold == null) continue;
       pages.add(page);
       holds.addAll(List.filled(page.stops, hold));
     }
-    return RewindReel._(pages, holds);
+    return RewindReel._(pages, holds, branded: branded);
   }
 
-  static const frameRate = 30;
+  static const frameRate = 24;
   static const canvas = Size(360, 640);
   static const _turn = RewindMotion.waveDuration;
 
   final List<RewindPage> pages;
   final List<int> starts;
+  final bool branded;
   final List<Duration> _holds;
 
   Duration get duration =>
@@ -39,6 +52,11 @@ class RewindReel {
   int get frameCount =>
       (duration.inMicroseconds * frameRate / Duration.microsecondsPerSecond)
           .ceil();
+
+  int get coverFrame => min(
+    frameCount - 1,
+    _holds.first.inMicroseconds * frameRate ~/ Duration.microsecondsPerSecond,
+  );
 
   Duration timeOf(int frame) => Duration(
     microseconds: (frame * Duration.microsecondsPerSecond / frameRate).round(),
@@ -98,7 +116,9 @@ class RewindReelView extends StatelessWidget {
               valueListenable: time,
               builder: (context, time, _) {
                 final scroll = reel.scrollAt(time);
-                final wordmark = reel.pageAt(scroll).chrome.wordmark;
+                final wordmark =
+                    reel.pageAt(scroll).chrome.wordmark ??
+                    (reel.branded ? RewindColors.white : null);
                 return Stack(
                   fit: StackFit.expand,
                   children: [

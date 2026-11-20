@@ -92,7 +92,7 @@ class HomeWidgetService {
     return hw.HomeWidget.getWidgetData<T>(key);
   }
 
-  Future<bool?> setData<T>(String key, T? data) async {
+  Future<bool?> setData<T extends Object>(String key, T data) async {
     return hw.HomeWidget.saveWidgetData<T>(key, data);
   }
 
@@ -220,7 +220,7 @@ class HomeWidgetService {
       AlbumHomeWidgetService.instance.clearWidget(),
       PeopleHomeWidgetService.instance.clearWidget(),
       MemoryHomeWidgetService.instance.clearWidget(),
-      hw.HomeWidget.saveWidgetData<int?>(WIDGET_HIDE_TITLE_FLAGS_KEY, null),
+      setData(WIDGET_HIDE_TITLE_FLAGS_KEY, 0),
     ]);
 
     try {

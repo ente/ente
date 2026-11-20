@@ -65,7 +65,8 @@ class NotificationService {
           !_preferences.containsKey(Configuration.tokenKey)) {
         return;
       }
-      if (shouldShowNotificationsForSharedPhotosAndAlbums()) {
+      if (shouldShowNotificationsForSharedPhotosAndAlbums() &&
+          shouldShowSocialNotifications()) {
         final strings = await LanguageService.locals;
         await showNotification(
           strings.entePhotos,
@@ -75,8 +76,11 @@ class NotificationService {
       }
       return;
     }
-    if (event['eventType'] == 'album_shared') {
-      _logger.info('Received encrypted album-share push');
+    if (event['eventType'] == 'album_shared' ||
+        event['eventType'] == 'file_liked' ||
+        event['eventType'] == 'file_commented' ||
+        event['eventType'] == 'comment_replied') {
+      _logger.info('Received encrypted ${event['eventType']} push');
       await onSync();
     }
   }

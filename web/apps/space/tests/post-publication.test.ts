@@ -132,6 +132,22 @@ test("a cache failure after creation does not discard the saved post ID", async 
     expect(mocks.ctx.createMediaPost).toHaveBeenCalledTimes(1);
 });
 
+test("readback uses the original upload position when the cover has been deleted", async () => {
+    const created = (await mocks.ctx.getPost()) as PostResponse;
+    created.photos[0]!.position = 1;
+    const remainingFile = new File(["remaining"], "remaining.webp", {
+        type: "image/webp",
+    });
+    await loadCurrentCreatedPost("self", 501, [
+        images[0]!,
+        { ...images[0]!, file: remainingFile },
+    ]);
+    expect(mocks.cacheMedia).toHaveBeenCalledWith(
+        "self:photo-1",
+        remainingFile,
+    );
+});
+
 test("readback caches the exported MP4 under the published video asset", async () => {
     const created = (await mocks.ctx.getPost()) as PostResponse;
     const videoAsset = { ...asset, objectKey: "video-1" };

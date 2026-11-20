@@ -135,6 +135,37 @@ async fn run(museum: &Museum) -> TestResult {
     ));
 
     let new_password = format!("Changed-{}!", Uuid::new_v4().simple());
+    // A master key that is not the account's is rejected and leaves the password untouched.
+    let foreign_key = ente_core::crypto::Key::generate();
+    assert!(matches!(
+        change_password(
+            &recovery_client,
+            ChangePasswordParams {
+                password: Zeroizing::new(new_password.clone()),
+                master_key: SecretVec::new(foreign_key.as_bytes().to_vec()),
+                key_attributes: recovered.key_attributes.clone(),
+                log_out_other_devices: false,
+            },
+        )
+        .await,
+        Err(Error::InvalidKeyAttributes)
+    ));
+    let unchanged_client = accounts_client(endpoint);
+    let (response, kek) = unchanged_client
+        .login_with_srp(&password, &original_srp_attributes)
+        .await?;
+    let unchanged_login = unchanged_client.unlock(&response, &kek)?;
+    assert_eq!(
+        unchanged_login.secrets.master_key,
+        created.secrets.master_key
+    );
+    assert!(matches!(
+        unchanged_client
+            .login_with_srp(&new_password, &original_srp_attributes)
+            .await,
+        Err(Error::IncorrectPassword)
+    ));
+
     let changed = change_password(
         &recovery_client,
         ChangePasswordParams {

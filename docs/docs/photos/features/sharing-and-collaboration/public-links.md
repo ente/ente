@@ -251,11 +251,13 @@ Learn more in the [Custom domains guide](/photos/features/sharing-and-collaborat
 4. Tap the **link icon** to open **Link settings**
 5. Change the settings you need, such as **Download photos**, password, expiry, or device limit
 
+![Link icon in the quick-link album header highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-quick-link-settings-entry-callout.png){width=320px}
+
 **For a regular album link on mobile:**
 
-Open the album, tap the **Share icon**, and manage its public link.
+Open the album, tap the **Share icon**, then tap **Link settings**.
 
-![Link icon in the quick-link album header highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-quick-link-settings-entry-callout.png){width=320px}
+![Link settings row highlighted in the album share panel, then the Link settings screen on Ente Photos mobile](https://docs-assets.ente.com/screenshots/public-link-settings-v2.png){width=560px}
 
 **On web/desktop:**
 

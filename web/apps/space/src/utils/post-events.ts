@@ -1,1 +1,1 @@
-export const spacePostDeletedEvent = "space-post-deleted";
+export const spacePostMediaChangedEvent = "space-post-media-changed";

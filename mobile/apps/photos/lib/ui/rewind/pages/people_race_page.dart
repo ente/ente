@@ -5,6 +5,7 @@ import "package:flutter/material.dart";
 import "package:flutter/scheduler.dart";
 import "package:flutter/services.dart";
 import "package:flutter_svg/flutter_svg.dart";
+import "package:photos/models/file/file.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
@@ -37,6 +38,12 @@ class PeopleRacePage extends RewindPage {
 
   @override
   Duration? get reelHold => const Duration(milliseconds: 4500);
+
+  @override
+  Duration? get clipHold => reelHold;
+
+  @override
+  List<EnteFile> get reelThumbnails => const [];
 
   @override
   RewindChrome get chrome => const RewindChrome(foreground: RewindColors.cream);

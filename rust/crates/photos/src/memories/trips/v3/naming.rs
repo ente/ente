@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use ente_location::CountryCode;
 
 use super::Placed;
-use crate::memories::geo::{Located, distance_km};
+use crate::memories::geo::Located;
 use crate::memories::input::CityLookup;
 use crate::memories::places::{CityPhotos, Places};
 
@@ -70,7 +70,7 @@ fn spread_km(cities: &[&CityPhotos]) -> f64 {
         .flat_map(|city| {
             cities
                 .iter()
-                .map(|other| distance_km(city.location, other.location))
+                .map(|other| city.location.distance_km(other.location))
         })
         .fold(0.0, f64::max)
 }
