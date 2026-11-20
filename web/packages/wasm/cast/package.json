@@ -15,6 +15,6 @@
     },
     "devDependencies": {
         "ente-build-config": "*",
-        "wasm-pack": "0.15.0"
+        "wasm-pack": "0.15.1"
     }
 }
