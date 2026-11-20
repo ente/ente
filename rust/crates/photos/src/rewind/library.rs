@@ -80,10 +80,6 @@ impl<'r> Library<'r> {
         self.start
     }
 
-    pub(super) fn elapsed_days(&self) -> usize {
-        self.elapsed_days
-    }
-
     pub(super) fn year_has_ended(&self) -> bool {
         self.year_has_ended
     }
