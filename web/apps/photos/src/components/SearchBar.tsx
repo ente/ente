@@ -1,4 +1,5 @@
 import { usePhotosNavigation } from "@/components/gallery/navigation/PhotosNavigationContext";
+import { RailIcon } from "@/components/gallery/navigation/RailIcon";
 import { sidebarTheme } from "@/components/sidebar/theme";
 import {
     groupSearchOptions,
@@ -140,11 +141,7 @@ export const SearchBar: React.FC<SearchBarProps> = (props) => {
                             borderRadius: "12px",
                         }}
                     >
-                        <HugeiconsIcon
-                            icon={Search01Icon}
-                            size={20}
-                            strokeWidth={1.8}
-                        />
+                        <RailIcon icon={Search01Icon} artboard="search" />
                     </FocusVisibleButton>
                 </Tooltip>
             </Stack>
