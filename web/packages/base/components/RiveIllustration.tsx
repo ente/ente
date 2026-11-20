@@ -11,7 +11,6 @@ interface RiveIllustrationProps {
     runtime?: "canvas-lite" | "canvas";
 }
 
-/** A decorative Rive canvas with a static fallback until its first frame. */
 export function RiveIllustration({
     src,
     stateMachine,
