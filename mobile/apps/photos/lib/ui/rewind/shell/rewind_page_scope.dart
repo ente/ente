@@ -1,5 +1,6 @@
 import "dart:ui" as ui;
 
+import "package:flutter/foundation.dart";
 import "package:flutter/widgets.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 
@@ -22,6 +23,10 @@ abstract interface class RewindNavigator {
   void detachShareCard(RewindPage page, RewindShareCard card);
 
   void shareVideo(Rect? origin);
+
+  ValueListenable<bool> get videoSaved;
+
+  void saveVideo();
 }
 
 class RewindPageScope extends InheritedWidget {

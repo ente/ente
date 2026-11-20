@@ -236,6 +236,7 @@ class _EnvelopeFinaleState extends State<EnvelopeFinale>
                   child: FinaleActions(
                     active: widget.active,
                     delayMs: _actionsDelayMs,
+                    elapsedMs: _ms,
                   ),
                 ),
               ),

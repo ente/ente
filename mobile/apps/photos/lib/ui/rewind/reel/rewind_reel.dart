@@ -49,6 +49,8 @@ class RewindReel {
       _holds.fold(Duration.zero, (total, hold) => total + hold) +
       _turn * (_holds.length - 1);
 
+  Duration get videoDuration => duration + timeOf(1);
+
   int get frameCount =>
       (duration.inMicroseconds * frameRate / Duration.microsecondsPerSecond)
           .ceil();
@@ -169,4 +171,10 @@ class _ReelNavigator implements RewindNavigator {
 
   @override
   void shareVideo(Rect? origin) {}
+
+  @override
+  ValueListenable<bool> get videoSaved => const AlwaysStoppedAnimation(false);
+
+  @override
+  void saveVideo() {}
 }

@@ -1,6 +1,7 @@
 import "dart:async";
 import "dart:math";
 
+import "package:flutter/foundation.dart";
 import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
@@ -16,6 +17,7 @@ import "package:photos/ui/rewind/shell/rewind_page_stack.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
 import "package:photos/ui/rewind/theme/rewind_motion.dart";
+import "package:photos/utils/dialog_util.dart";
 import "package:photos/utils/share_util.dart";
 
 class RewindViewer extends StatefulWidget {
@@ -72,7 +74,8 @@ class _RewindViewerState extends State<RewindViewer>
   var _settledStep = -1;
   int? _resizeStep;
   int? _targetStep;
-  var _sharing = false;
+  final _videoSaved = ValueNotifier(false);
+  var _busy = false;
 
   @override
   void initState() {
@@ -105,6 +108,7 @@ class _RewindViewerState extends State<RewindViewer>
     }
     WidgetsBinding.instance.removeObserver(this);
     _music.dispose();
+    _videoSaved.dispose();
     _controller?.dispose();
     for (final page in widget.pages) {
       page.release();
@@ -335,8 +339,8 @@ class _RewindViewerState extends State<RewindViewer>
   void shareVideo(Rect? origin) => unawaited(_shareVideo(origin));
 
   Future<void> _shareVideo(Rect? origin) async {
-    if (_sharing) return;
-    _sharing = true;
+    if (_busy) return;
+    _busy = true;
     try {
       await shareRewindVideo(
         context,
@@ -348,13 +352,40 @@ class _RewindViewerState extends State<RewindViewer>
     } catch (error, stackTrace) {
       _logger.warning("Failed to share the Rewind video", error, stackTrace);
     } finally {
-      _sharing = false;
+      _busy = false;
+    }
+  }
+
+  @override
+  ValueListenable<bool> get videoSaved => _videoSaved;
+
+  @override
+  void saveVideo() => unawaited(_saveVideo());
+
+  Future<void> _saveVideo() async {
+    if (_busy || _videoSaved.value) return;
+    _busy = true;
+    try {
+      final saved = await saveRewindVideo(
+        context,
+        pages: widget.pages,
+        loadMedia: widget.loadVideoMedia,
+        track: _music.track,
+      );
+      if (saved && mounted) _videoSaved.value = true;
+    } catch (error, stackTrace) {
+      _logger.warning("Failed to save the Rewind video", error, stackTrace);
+      if (mounted) {
+        await showGenericErrorBottomSheet(context: context, error: error);
+      }
+    } finally {
+      _busy = false;
     }
   }
 
   Future<void> _shareClip(RewindPage page, Rect? origin) async {
-    if (_sharing) return;
-    _sharing = true;
+    if (_busy) return;
+    _busy = true;
     try {
       await shareRewindClip(
         context,
@@ -370,7 +401,7 @@ class _RewindViewerState extends State<RewindViewer>
         stackTrace,
       );
     } finally {
-      _sharing = false;
+      _busy = false;
     }
   }
 
@@ -385,8 +416,8 @@ class _RewindViewerState extends State<RewindViewer>
     RewindShareCard card,
     RewindChromeLayout layout,
   ) async {
-    if (_sharing) return;
-    _sharing = true;
+    if (_busy) return;
+    _busy = true;
     try {
       await shareRewindCard(
         card,
@@ -398,7 +429,7 @@ class _RewindViewerState extends State<RewindViewer>
     } catch (error, stackTrace) {
       _logger.warning("Failed to share ${page.key}", error, stackTrace);
     } finally {
-      _sharing = false;
+      _busy = false;
     }
   }
 }

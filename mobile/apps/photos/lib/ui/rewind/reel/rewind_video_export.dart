@@ -1,18 +1,27 @@
 import "dart:async";
 import "dart:io";
+import "dart:math";
 import "dart:ui" as ui;
 
+import "package:dio/dio.dart";
 import "package:flutter/material.dart";
 import "package:flutter/rendering.dart";
 import "package:flutter/services.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/models/memories/memory_music_track.dart";
+import "package:photos/models/user_details.dart";
+import "package:photos/module/upload/service/file_uploader.dart";
 import "package:photos/service_locator.dart";
+import "package:photos/services/account/user_service.dart";
+import "package:photos/services/collections_service.dart";
 import "package:photos/services/memories/memory_music_service.dart";
 import "package:photos/services/remote_assets_service.dart";
+import "package:photos/services/rewind/rewind_edition.dart";
 import "package:photos/services/video_preview_service.dart";
 import "package:photos/services/wake_lock_service.dart";
+import "package:photos/ui/actions/collection/collection_file_actions.dart";
+import "package:photos/ui/actions/collection/collection_sharing_actions.dart";
 import "package:photos/ui/rewind/reel/rewind_frame_stepper.dart";
 import "package:photos/ui/rewind/reel/rewind_reel.dart";
 import "package:photos/ui/rewind/reel/rewind_video_format.dart";
@@ -30,9 +39,12 @@ import "package:photos/ui/rewind/widgets/rewind_stage.dart";
 import "package:photos/ui/rewind/widgets/rewind_swap_in.dart";
 import "package:photos/ui/rewind/widgets/rewind_text.dart";
 import "package:photos/utils/dialog_util.dart";
+import "package:receive_sharing_intent/receive_sharing_intent.dart";
 import "package:share_plus/share_plus.dart";
 
 final _videos = Expando<File>();
+final _saveLogger = Logger("RewindVideoSave");
+const _saveCheckTimeout = Duration(seconds: 10);
 
 Future<void> shareRewindVideo(
   BuildContext context, {
@@ -40,12 +52,16 @@ Future<void> shareRewindVideo(
   Future<bool> Function(List<RewindPage> pages)? loadMedia,
   MemoryMusicTrack? track,
   Rect? origin,
-}) => _shareExport(
-  context,
-  RewindVideoExportPage(pages: pages, loadMedia: loadMedia, track: track),
-  cacheKey: pages,
-  origin: origin,
-);
+}) async {
+  final video = await _exportRewindVideo(
+    context,
+    pages: pages,
+    loadMedia: loadMedia,
+    track: track,
+  );
+  if (!context.mounted) return;
+  await _shareVideoFile(context, video, origin);
+}
 
 Future<void> shareRewindClip(
   BuildContext context, {
@@ -53,44 +69,157 @@ Future<void> shareRewindClip(
   Future<bool> Function(List<RewindPage> pages)? loadMedia,
   MemoryMusicTrack? track,
   Rect? origin,
-}) => _shareExport(
-  context,
-  RewindVideoExportPage(
-    pages: [page],
-    reelOf: RewindReel.clipOf,
-    filePrefix: "ente-rewind-${page.key}-",
-    loadMedia: loadMedia,
-    track: track,
-  ),
-  cacheKey: page,
-  origin: origin,
-);
-
-Future<void> _shareExport(
-  BuildContext context,
-  RewindVideoExportPage export, {
-  required Object cacheKey,
-  Rect? origin,
 }) async {
-  var video = _videos[cacheKey];
-  if (video == null || !await video.exists()) {
-    if (!context.mounted) return;
-    final result = await Navigator.of(context).push(export.route());
-    if (result is! File) {
-      if (result != null && context.mounted) {
-        await showGenericErrorBottomSheet(context: context, error: result);
-      }
-      return;
-    }
-    video = _videos[cacheKey] = result;
-  }
-  if (!context.mounted || !_isInFront(context)) return;
+  final video = await _export(
+    context,
+    RewindVideoExportPage(
+      pages: [page],
+      reelOf: RewindReel.clipOf,
+      filePrefix: "ente-rewind-${page.key}-",
+      loadMedia: loadMedia,
+      track: track,
+    ),
+    cacheKey: page,
+  );
+  if (!context.mounted) return;
+  await _shareVideoFile(context, video, origin);
+}
+
+Future<void> _shareVideoFile(
+  BuildContext context,
+  File? video,
+  Rect? origin,
+) async {
+  if (video == null || !_isInFront(context)) return;
   await SharePlus.instance.share(
     ShareParams(
       files: [XFile(video.path, mimeType: "video/mp4")],
       sharePositionOrigin: origin,
     ),
   );
+}
+
+Future<bool> saveRewindVideo(
+  BuildContext context, {
+  required List<RewindPage> pages,
+  Future<bool> Function(List<RewindPage> pages)? loadMedia,
+  MemoryMusicTrack? track,
+}) async {
+  final video = await _exportRewindVideo(
+    context,
+    pages: pages,
+    loadMedia: loadMedia,
+    track: track,
+  );
+  if (video == null || !context.mounted) return false;
+  final fits = await _fitsInFreeStorage(video);
+  if (!context.mounted) return false;
+  if (!fits) {
+    await showStorageFullSheet(context);
+    return false;
+  }
+  final uncategorized = await CollectionsService.instance
+      .getUncategorizedCollection()
+      .timeout(_saveCheckTimeout);
+  final staging = await Directory(
+    Configuration.instance.getTempDirectory(),
+  ).createTemp("rewind-save-");
+  try {
+    final staged = await video.copy(
+      "${staging.path}/Ente Rewind ${RewindEdition.year}.mp4",
+    );
+    if (!context.mounted) return false;
+    return await CollectionActions(CollectionsService.instance)
+        .addToCollection(
+          context,
+          uncategorized.id,
+          false,
+          sharedFiles: [
+            SharedMediaFile(
+              path: staged.path,
+              type: SharedMediaType.video,
+              duration: RewindReel.of(pages).videoDuration.inMilliseconds,
+            ),
+          ],
+        )
+        .catchError((_) => false);
+  } finally {
+    await _deleteStaging(staging);
+  }
+}
+
+Future<void> _deleteStaging(Directory staging) async {
+  try {
+    await staging.delete(recursive: true);
+  } on FileSystemException catch (error, stackTrace) {
+    _saveLogger.warning(
+      "Could not delete the staged Rewind video",
+      error,
+      stackTrace,
+    );
+  }
+}
+
+Future<bool> _fitsInFreeStorage(File video) async {
+  if (await _isOverQuota()) return false;
+  final userDetails = await _latestUserDetails();
+  if (userDetails == null) return true;
+  final sharedHeadroom = max(
+    userDetails.getTotalStorage() - userDetails.getFamilyOrPersonalUsage(),
+    0,
+  );
+  final freeStorage = min(userDetails.getFreeStorage(), sharedHeadroom);
+  return await video.length() <= freeStorage + FileUploader.k20MBStorageBuffer;
+}
+
+Future<bool> _isOverQuota() async {
+  try {
+    await fileUploadGateway.validateUploadEligibility().timeout(
+      _saveCheckTimeout,
+    );
+    return false;
+  } on DioException catch (error) {
+    return error.response?.statusCode == 426;
+  } on TimeoutException {
+    return false;
+  }
+}
+
+Future<UserDetails?> _latestUserDetails() async {
+  try {
+    return await UserService.instance.getUserDetailsV2().timeout(
+      _saveCheckTimeout,
+    );
+  } catch (_) {
+    return UserService.instance.getCachedUserDetails();
+  }
+}
+
+Future<File?> _exportRewindVideo(
+  BuildContext context, {
+  required List<RewindPage> pages,
+  Future<bool> Function(List<RewindPage> pages)? loadMedia,
+  MemoryMusicTrack? track,
+}) => _export(
+  context,
+  RewindVideoExportPage(pages: pages, loadMedia: loadMedia, track: track),
+  cacheKey: pages,
+);
+
+Future<File?> _export(
+  BuildContext context,
+  RewindVideoExportPage export, {
+  required Object cacheKey,
+}) async {
+  final cached = _videos[cacheKey];
+  if (cached != null && await cached.exists()) return cached;
+  if (!context.mounted) return null;
+  final result = await Navigator.of(context).push(export.route());
+  if (result is File) return _videos[cacheKey] = result;
+  if (result != null && context.mounted) {
+    await showGenericErrorBottomSheet(context: context, error: result);
+  }
+  return null;
 }
 
 bool _isInFront(BuildContext context) =>
@@ -232,7 +361,7 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
         "$directory${widget.filePrefix}"
         "${DateTime.now().millisecondsSinceEpoch}.mp4",
       );
-      final duration = reel.duration + reel.timeOf(1);
+      final duration = reel.videoDuration;
       sink = RewindNativeVideoSink.open(
         output: output,
         format: widget.format,
@@ -442,7 +571,7 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
 
   String _timeLeft(int frame) {
     const warmUpFrames = 30;
-    if (_stage == _Stage.finishing) return "Ready to share";
+    if (_stage == _Stage.finishing) return "All done";
     if (_stage == _Stage.rendering && frame >= warmUpFrames) {
       final left =
           _rendered.inMilliseconds / frame * (_reel!.frameCount - frame) / 1000;
