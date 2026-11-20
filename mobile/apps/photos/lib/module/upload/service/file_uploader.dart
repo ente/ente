@@ -25,6 +25,7 @@ import "package:photos/models/backup/backup_item.dart";
 import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file/file_type.dart';
 import "package:photos/models/user_details.dart";
+import "package:photos/module/download/file.dart";
 import "package:photos/module/metadata/exif.dart";
 import 'package:photos/module/upload/model/media_upload_data.dart';
 import "package:photos/module/upload/service/existing_upload_resolver.dart";
@@ -854,11 +855,13 @@ class FileUploader {
       // succeeds.
       // A Live Photo source is an app-created archive, and each retry rebuilds
       // it, so it must be removed after every attempt.
-      if ((Platform.isIOS &&
-              (file.fileType == FileType.livePhoto ||
-                  uploadCompleted ||
-                  uploadHardFailure)) ||
-          (uploadCompleted && file.isSharedMediaToAppSandbox)) {
+      final bool shouldDeleteSource = file.isSharedMediaToAppSandbox
+          ? uploadCompleted
+          : Platform.isIOS &&
+                (file.fileType == FileType.livePhoto ||
+                    uploadCompleted ||
+                    uploadHardFailure);
+      if (shouldDeleteSource) {
         await deleteFileSystemEntityIfPresent(mediaUploadData.sourceFile);
       }
     }
@@ -936,6 +939,11 @@ class FileUploader {
       }
       if (deleteEntry) {
         await FilesDB.instance.deleteLocalFile(file);
+        if (file.isSharedMediaToAppSandbox) {
+          await deleteFileSystemEntityIfPresent(
+            File(getSharedMediaFilePath(file)),
+          );
+        }
         Bus.instance.fire(
           LocalPhotosUpdatedEvent(
             [file],
