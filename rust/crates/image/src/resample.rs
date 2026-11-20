@@ -47,7 +47,11 @@ impl Downsampler {
     pub(crate) fn new(source: Dimensions, target: Dimensions) -> ImageResult<Self> {
         let lengths = BufferLengths::new(&source, &target);
         Ok(Self {
-            rgb: zeroed(lengths.rgb)?,
+            rgb: if lengths.sums == 0 {
+                reserved(lengths.rgb)?
+            } else {
+                zeroed(lengths.rgb)?
+            },
             sums: zeroed(lengths.sums)?,
             row_sums: zeroed(lengths.row_sums)?,
             source,
@@ -58,10 +62,13 @@ impl Downsampler {
 
     pub(crate) fn push_row(&mut self, rgb: &[u8], y: u32) {
         if self.sums.is_empty() {
-            let offset = y as usize * self.target.width as usize * 3;
-            self.rgb[offset..offset + rgb.len()].copy_from_slice(rgb);
-            return;
+            self.rgb.extend_from_slice(rgb);
+        } else {
+            self.accumulate_row(rgb, y);
         }
+    }
+
+    fn accumulate_row(&mut self, rgb: &[u8], y: u32) {
         let ys = contributions(y, self.source.height, self.target.height);
         self.row_sums.fill([0.0; 3]);
         for (x, pixel) in rgb.as_chunks::<3>().0.iter().enumerate() {
@@ -129,11 +136,17 @@ fn contributions(position: u32, source: u32, target: u32) -> [(u32, f64); 2] {
     ]
 }
 
-fn zeroed<T: Default + Clone>(length: u64) -> ImageResult<Vec<T>> {
-    let length = usize::try_from(length).map_err(|_| too_large())?;
+fn reserved<T>(length: u64) -> ImageResult<Vec<T>> {
     let mut buffer = Vec::new();
-    buffer.try_reserve_exact(length).map_err(|_| too_large())?;
-    buffer.resize(length, T::default());
+    buffer
+        .try_reserve_exact(usize::try_from(length).map_err(|_| too_large())?)
+        .map_err(|_| too_large())?;
+    Ok(buffer)
+}
+
+fn zeroed<T: Default + Clone>(length: u64) -> ImageResult<Vec<T>> {
+    let mut buffer = reserved(length)?;
+    buffer.resize(length as usize, T::default());
     Ok(buffer)
 }
 
