@@ -186,7 +186,6 @@ function UploadProgressSummary() {
                     )
                 }
                 stateMachine="Sleep"
-                runtime="canvas"
                 fallback={
                     <img
                         src="/images/upload-progress-sleeping-duck.svg"

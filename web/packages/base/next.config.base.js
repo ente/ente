@@ -130,7 +130,7 @@ const nextConfig = {
         config.experiments = { ...config.experiments, asyncWebAssembly: true };
 
         config.module.rules.push({
-            test: /(?:\.riv|@rive-app[\\/]canvas(?:-lite)?[\\/]rive\.wasm)$/,
+            test: /(?:\.riv|@rive-app[\\/]canvas-lite[\\/]rive\.wasm)$/,
             type: "asset/resource",
             generator: { filename: "static/media/[name].[contenthash][ext]" },
         });

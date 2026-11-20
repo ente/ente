@@ -8,7 +8,6 @@ interface RiveIllustrationProps {
     stateMachine: string;
     fallback: ReactNode;
     className?: string;
-    runtime?: "canvas-lite" | "canvas";
 }
 
 export function RiveIllustration({
@@ -16,7 +15,6 @@ export function RiveIllustration({
     stateMachine,
     fallback,
     className,
-    runtime = "canvas-lite",
 }: RiveIllustrationProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const prefersReducedMotion = useMediaQuery(
@@ -31,24 +29,16 @@ export function RiveIllustration({
         if (!canvas || prefersReducedMotion) return;
 
         let disposed = false;
-        let rive:
-            Pick<Rive, "cleanup" | "resizeDrawingSurfaceToCanvas"> | undefined;
+        let rive: Rive | undefined;
         let resizeObserver: ResizeObserver | undefined;
         let firstFrame = 0;
 
         const load = async () => {
             const { RuntimeLoader, Rive } =
-                runtime === "canvas"
-                    ? await import("@rive-app/canvas")
-                    : await import("@rive-app/canvas-lite");
+                await import("@rive-app/canvas-lite");
             RuntimeLoader.setWasmUrl(
-                runtime === "canvas"
-                    ? new URL("@rive-app/canvas/rive.wasm", import.meta.url)
-                          .href
-                    : new URL(
-                          "@rive-app/canvas-lite/rive.wasm",
-                          import.meta.url,
-                      ).href,
+                new URL("@rive-app/canvas-lite/rive.wasm", import.meta.url)
+                    .href,
             );
             RuntimeLoader.setWasmFallbackUrl(null);
             await RuntimeLoader.awaitInstance();
@@ -97,7 +87,7 @@ export function RiveIllustration({
             cancelAnimationFrame(firstFrame);
             rive?.cleanup();
         };
-    }, [prefersReducedMotion, runtime, stateMachine, url]);
+    }, [prefersReducedMotion, stateMachine, url]);
 
     return (
         <div
