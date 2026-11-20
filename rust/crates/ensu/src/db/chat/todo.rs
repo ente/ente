@@ -128,17 +128,22 @@ impl<B: Backend> ChatDb<B> {
     ) -> Result<Todo> {
         let title = Self::typed_title(title)?;
         let now = self.now_ms();
-        self.backend
-            .transaction(|tx| {
-                let before = self.current(tx, id, version)?;
-                let after = before.changed(now, |todo| {
-                    todo.title = title;
-                    todo.due_at_ms = due_at_ms;
-                });
-                self.write_todo(tx, &after)?;
-                Ok(after)
-            })
-            .inspect(|_| self.tools_changed())
+        let (todo, changed) = self.backend.transaction(|tx| {
+            let before = self.current(tx, id, version)?;
+            if before.title == title && before.due_at_ms == due_at_ms {
+                return Ok((before, false));
+            }
+            let after = before.changed(now, |todo| {
+                todo.title = title;
+                todo.due_at_ms = due_at_ms;
+            });
+            self.write_todo(tx, &after)?;
+            Ok((after, true))
+        })?;
+        if changed {
+            self.tools_changed();
+        }
+        Ok(todo)
     }
 
     pub fn set_todo_completed(&self, id: Uuid, version: u64, completed: bool) -> Result<Todo> {
