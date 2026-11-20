@@ -63,7 +63,7 @@ class GlobePage extends RewindPage {
   Duration? get clipHold =>
       Duration(milliseconds: (_world.endMs + _clipEndMs).round());
 
-  static const _clipEndMs = 2500.0;
+  static const _clipEndMs = 5500.0;
 
   @override
   List<EnteFile> get reelThumbnails => [for (final photo in photos) ?photo];
