@@ -414,6 +414,7 @@ impl<B: Backend> ChatDb<B> {
                     undone: record.undone.is_some(),
                     kept_edits: record.undone.is_some_and(|undone| undone.kept_edits),
                     calls: record.calls,
+                    responses: record.todo.responses,
                 };
                 (reply, history)
             })

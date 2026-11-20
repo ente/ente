@@ -328,6 +328,10 @@ fn render_qwen(messages: &[ChatMessage], add_assistant: bool) -> Result<String, 
     Ok(prompt)
 }
 
+#[cfg(all(test, feature = "sqlite"))]
+#[path = "tool_history_tests.rs"]
+mod tool_history_tests;
+
 #[cfg(test)]
 mod tests {
     use super::*;

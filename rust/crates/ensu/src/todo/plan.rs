@@ -54,6 +54,13 @@ impl Plan {
     pub fn text(&self, offer: bool, zone: &impl TimeZone) -> String {
         wording::reply(&self.outcomes, offer, zone)
     }
+
+    pub fn responses(&self, offer: bool, zone: &impl TimeZone) -> Vec<String> {
+        self.outcomes
+            .iter()
+            .map(|outcome| wording::reply(std::slice::from_ref(outcome), offer, zone))
+            .collect()
+    }
 }
 
 struct Step {

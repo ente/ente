@@ -242,10 +242,14 @@ pub(crate) fn adapt_messages(
     }
     let skip =
         usize::from(!output.is_empty() && messages.first().is_some_and(|m| m.role == "system"));
-    let mut last_call = None::<String>;
+    let mut pending_calls = std::collections::VecDeque::new();
     for message in messages.into_iter().skip(skip) {
         if message.role == "assistant" && !message.tool_calls.is_empty() {
-            last_call = message.tool_calls.last().map(|call| call.name.clone());
+            pending_calls = message
+                .tool_calls
+                .iter()
+                .map(|call| call.name.clone())
+                .collect();
             let content = match format {
                 None => message.content,
                 Some(Format::Qwen) if !message.content.trim().is_empty() => {
@@ -267,16 +271,21 @@ pub(crate) fn adapt_messages(
             continue;
         }
         if message.role == "tool" {
-            let name = last_call.as_deref().unwrap_or("tool");
+            let name = pending_calls.pop_front();
             output.push(match format {
                 Some(format) => super::ChatMessage::new(
                     "tool",
-                    format.render_response(name, &message.content, has_token),
+                    format.render_response(
+                        name.as_deref().unwrap_or("tool"),
+                        &message.content,
+                        has_token,
+                    ),
                 ),
                 None => super::ChatMessage::new("assistant", message.content),
             });
             continue;
         }
+        pending_calls.clear();
         output.push(super::ChatMessage::new(message.role, message.content));
     }
     output

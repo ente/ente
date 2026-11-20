@@ -11,6 +11,7 @@ use crate::todo::{self, ListFilter, MAX_TITLE_CHARS, Todo, TodoChange};
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub(super) struct TodoTurnData {
+    pub(super) responses: Vec<String>,
     pub(super) changes: Vec<TodoChange>,
     pub(super) proposed: Vec<TodoChange>,
     pub(super) shown: Vec<Uuid>,
@@ -207,6 +208,7 @@ impl<B: Backend> ChatDb<B> {
         }
         let text = plan.text(plan.unsure, &chrono::Local);
         let mut data = TodoTurnData {
+            responses: plan.responses(plan.unsure, &chrono::Local),
             shown: plan.shown.unwrap_or(shown),
             ..Default::default()
         };

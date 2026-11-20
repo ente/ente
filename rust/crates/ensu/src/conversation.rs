@@ -23,6 +23,8 @@ pub use turn::{PreparedTurn, TurnInput, TurnTools, prepare_turn};
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ToolTurnHistory {
     pub calls: Vec<crate::llm::ToolCall>,
+    /// One response per call, in call order.
+    pub responses: Vec<String>,
     pub undone: bool,
     pub kept_edits: bool,
     pub proposal: Option<bool>,
@@ -68,10 +70,15 @@ fn expand_tool_turns(
             .and_then(|m| tool_turns.get(&m.uuid));
         match turn {
             Some(turn) => {
+                let outcome = turn.outcome();
                 let mut call = ChatMessage::new("assistant", "");
                 call.tool_calls = turn.calls.clone();
                 output.push(call);
-                output.push(ChatMessage::new("tool", message.content + &turn.outcome()));
+                output.extend(
+                    turn.responses
+                        .iter()
+                        .map(|response| ChatMessage::new("tool", response.clone() + &outcome)),
+                );
             }
             None => output.push(message),
         }

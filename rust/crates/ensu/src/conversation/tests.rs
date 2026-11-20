@@ -839,6 +839,7 @@ fn tool_turns_render_as_calls_and_tools_are_withdrawn_when_they_cannot_fit() {
         history[1].uuid,
         crate::conversation::ToolTurnHistory {
             calls: vec![call.clone()],
+            responses: vec!["Saved “Milk”.".into()],
             undone: true,
             kept_edits: false,
             proposal: None,
