@@ -4,6 +4,7 @@ import "package:flutter/material.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
+import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
 import "package:photos/ui/rewind/theme/rewind_motion.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
@@ -11,6 +12,8 @@ import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
 import "package:photos/ui/rewind/widgets/rewind_rive.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
+import "package:photos/ui/rewind/widgets/rewind_svg.dart";
+import "package:photos/ui/rewind/widgets/rewind_text.dart";
 
 typedef _BadgeCopy = ({String title, String pronunciation, String definition});
 
@@ -167,10 +170,14 @@ class BadgeRevealPage extends RewindPage {
   const BadgeRevealPage(this.badge);
 
   static const backdrop = RewindBackdrop(
-    color: Color(0xFF000000),
-    pattern: RewindRays(Color(0xFF070707)),
+    color: Color(0xFF1A1A1A),
+    pattern: RewindRays(Color(0xFF232323), center: Offset(195, 354)),
   );
-  static const _badgeCenter = Offset(195, 326);
+  static const _badgeCenter = Offset(195, 378.3);
+  static const _sparkles = [
+    (RewindAssets.topBadgeSparkle, Offset(318, 217), 900),
+    (RewindAssets.bottomBadgeSparkle, Offset(25, 502), 1050),
+  ];
 
   final rust.Badge badge;
 
@@ -205,9 +212,46 @@ class BadgeRevealPage extends RewindPage {
             children: [
               Positioned.fromRect(
                 rect: Rect.fromCenter(
+                  center: const Offset(195, 376),
+                  width: 280,
+                  height: 380,
+                ),
+                child: RewindLeave(
+                  position: position,
+                  centerY: 376,
+                  child: RewindEntrance(
+                    preset: RewindPreset.fadeIn,
+                    active: isActive,
+                    delayMs: 200,
+                    child: const CustomPaint(painter: _GlowPainter()),
+                  ),
+                ),
+              ),
+              for (final (asset, at, delayMs) in _sparkles)
+                Positioned(
+                  left: at.dx,
+                  top: at.dy,
+                  child: RewindLeave(
+                    position: position,
+                    centerY: at.dy,
+                    child: RewindEntrance(
+                      preset: RewindPreset.twinkle,
+                      active: isActive,
+                      delayMs: delayMs,
+                      child: RewindIdleLoop(
+                        idle: RewindIdle.twinkle,
+                        active: isActive,
+                        delayMs: delayMs + 900,
+                        child: RewindSvg(asset),
+                      ),
+                    ),
+                  ),
+                ),
+              Positioned.fromRect(
+                rect: Rect.fromCenter(
                   center: _badgeCenter,
-                  width: 290,
-                  height: 364,
+                  width: 304,
+                  height: 382,
                 ),
                 child: RewindLeave(
                   position: position,
@@ -217,9 +261,42 @@ class BadgeRevealPage extends RewindPage {
                     button: true,
                     hint: "Double tap to flip it again",
                     child: OverflowBox(
-                      maxWidth: 522,
-                      maxHeight: 580,
+                      maxWidth: 547.4,
+                      maxHeight: 608.2,
                       child: RewindBadge(badge: trigger, active: isActive),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 33,
+                top: 109,
+                width: 324,
+                child: RewindLeave(
+                  position: position,
+                  centerY: 141,
+                  child: Semantics(
+                    header: true,
+                    label: "What my photos say about me",
+                    child: ExcludeSemantics(
+                      child: RewindEntrance(
+                        preset: RewindPreset.rise,
+                        active: isActive,
+                        child: RewindFitWidth(
+                          width: 324,
+                          alignment: Alignment.topCenter,
+                          child: Text(
+                            "WHAT MY PHOTOS\nSAY ABOUT ME",
+                            textAlign: TextAlign.center,
+                            style: RewindTextStyles.display(
+                              31.685,
+                              color: RewindColors.white,
+                              height: 1,
+                              letterSpacing: 0.6337,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -258,7 +335,7 @@ class BadgeRevealPage extends RewindPage {
 class _PlaqueLayout extends SingleChildLayoutDelegate {
   const _PlaqueLayout({required this.bottom});
 
-  static const _top = 584.0;
+  static const _top = 609.0;
 
   final double bottom;
 
@@ -326,11 +403,27 @@ class _Plaque extends StatelessWidget {
   }
 }
 
+class _GlowPainter extends CustomPainter {
+  const _GlowPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawOval(
+      Offset.zero & size,
+      Paint()
+        ..color = RewindColors.white.withValues(alpha: 0.2)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 64.4),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_GlowPainter oldDelegate) => false;
+}
+
 class _PlaquePainter extends CustomPainter {
   const _PlaquePainter();
 
   static const _gold = Color(0xFFFFCA39);
-  static const _screwInk = Color(0xFF1E1E1E);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -358,18 +451,6 @@ class _PlaquePainter extends CustomPainter {
         ..strokeWidth = 3
         ..strokeJoin = StrokeJoin.round,
     );
-    for (final x in [17.0, w - 17]) {
-      final screw = Offset(x, h / 2 - 1.5);
-      canvas.drawCircle(screw, 4.25, Paint()..color = _gold);
-      canvas.drawCircle(
-        screw,
-        4.25,
-        Paint()
-          ..color = _screwInk
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.5,
-      );
-    }
   }
 
   @override

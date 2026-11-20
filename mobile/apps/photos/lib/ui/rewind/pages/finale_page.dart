@@ -1,16 +1,13 @@
 import "package:flutter/widgets.dart";
-import "package:photos/models/file/file.dart";
-import "package:photos/ui/rewind/pages/finale/envelope_finale.dart";
+import "package:photos/ui/rewind/pages/finale/finale_card.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
+import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
 
 class FinalePage extends RewindPage {
-  const FinalePage(this.photos);
+  const FinalePage();
 
   static const pageKey = "finale";
-  static const photoCount = EnvelopeFinale.photoCount;
-
-  final List<EnteFile> photos;
 
   @override
   String get key => pageKey;
@@ -30,6 +27,9 @@ class FinalePage extends RewindPage {
     double position, {
     required bool isActive,
   }) {
-    return EnvelopeFinale(photos: photos, active: isActive);
+    final launched =
+        (isActive || (position < 0 && position > -0.9)) &&
+        !RewindPageScope.coveredOf(context);
+    return FinaleCard(active: isActive, launched: launched);
   }
 }
