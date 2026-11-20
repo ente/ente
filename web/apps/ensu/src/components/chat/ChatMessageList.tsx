@@ -10,6 +10,7 @@ import {
     safeExternalUrl,
 } from "@/services/external-links";
 import { noteSourceErrorMessage, openNoteDocument } from "@/services/notes";
+import type { ToolTurnStatus } from "@/services/todos";
 import {
     ArrowLeft01Icon,
     ArrowRight01Icon,
@@ -22,6 +23,7 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
     Box,
+    Button,
     Chip,
     Dialog,
     DialogContent,
@@ -48,6 +50,14 @@ interface IconProps {
     size: number;
     strokeWidth: number;
 }
+
+const UNDO_LABELS: Record<ToolTurnStatus["undo"], string> = {
+    none: "",
+    available: "Undo",
+    undone: "Undone",
+    partlyUndone: "Partly undone",
+    stale: "Can't undo",
+};
 
 const sourceLinkSx = {
     border: 0,
@@ -103,6 +113,9 @@ export interface ChatMessageListProps {
     onEditMessage: (message: ChatMessage) => void;
     onCopyMessage: (text: string) => void;
     onRetryMessage: (message: ChatMessage) => void;
+    todoTurns: Record<string, ToolTurnStatus>;
+    onUndoTodoTurn: (message: ChatMessage) => void;
+    onConfirmTodoTurn: (message: ChatMessage) => void;
     onPrevBranch: (switcher: BranchSwitcher) => void;
     onNextBranch: (switcher: BranchSwitcher) => void;
     onRequestPreview: (attachment: ChatAttachment, sessionUuid: string) => void;
@@ -418,6 +431,9 @@ interface MessageRowProps {
     onEditMessage: (message: ChatMessage) => void;
     onCopyMessage: (text: string) => void;
     onRetryMessage: (message: ChatMessage) => void;
+    todoTurn: ToolTurnStatus | undefined;
+    onUndoTodoTurn: (message: ChatMessage) => void;
+    onConfirmTodoTurn: (message: ChatMessage) => void;
     onPrevBranch: (switcher: BranchSwitcher) => void;
     onNextBranch: (switcher: BranchSwitcher) => void;
     attachmentPreviews: Record<string, string>;
@@ -451,6 +467,9 @@ const MessageRow = memo(
         onEditMessage,
         onCopyMessage,
         onRetryMessage,
+        todoTurn,
+        onUndoTodoTurn,
+        onConfirmTodoTurn,
         onPrevBranch,
         onNextBranch,
         attachmentPreviews,
@@ -764,16 +783,54 @@ const MessageRow = memo(
                                         {...actionIconProps}
                                     />
                                 </IconButton>
-                                <IconButton
-                                    aria-label="Retry"
-                                    sx={actionButtonSx}
-                                    onClick={() => onRetryMessage(message)}
-                                >
-                                    <HugeiconsIcon
-                                        icon={RepeatIcon}
-                                        {...actionIconProps}
-                                    />
-                                </IconButton>
+                                {todoTurn && (
+                                    <>
+                                        {todoTurn.confirm !== "none" && (
+                                            <Button
+                                                size="small"
+                                                variant="contained"
+                                                disabled={
+                                                    isGenerating ||
+                                                    todoTurn.confirm === "stale"
+                                                }
+                                                onClick={() =>
+                                                    onConfirmTodoTurn(message)
+                                                }
+                                            >
+                                                {todoTurn.confirm === "stale"
+                                                    ? "Expired"
+                                                    : "Confirm"}
+                                            </Button>
+                                        )}
+                                        {todoTurn.undo !== "none" && (
+                                            <Button
+                                                size="small"
+                                                disabled={
+                                                    isGenerating ||
+                                                    todoTurn.undo !==
+                                                        "available"
+                                                }
+                                                onClick={() =>
+                                                    onUndoTodoTurn(message)
+                                                }
+                                            >
+                                                {UNDO_LABELS[todoTurn.undo]}
+                                            </Button>
+                                        )}
+                                    </>
+                                )}
+                                {(!todoTurn || todoTurn.canRetry) && (
+                                    <IconButton
+                                        aria-label="Retry"
+                                        sx={actionButtonSx}
+                                        onClick={() => onRetryMessage(message)}
+                                    >
+                                        <HugeiconsIcon
+                                            icon={RepeatIcon}
+                                            {...actionIconProps}
+                                        />
+                                    </IconButton>
+                                )}
                             </>
                         )}
                     </Stack>
@@ -937,6 +994,9 @@ export const ChatMessageList = memo(
         onEditMessage,
         onCopyMessage,
         onRetryMessage,
+        todoTurns,
+        onUndoTodoTurn,
+        onConfirmTodoTurn,
         onPrevBranch,
         onNextBranch,
         onRequestPreview,
@@ -1003,6 +1063,9 @@ export const ChatMessageList = memo(
                         onEditMessage={onEditMessage}
                         onCopyMessage={onCopyMessage}
                         onRetryMessage={onRetryMessage}
+                        todoTurn={todoTurns[message.messageUuid]}
+                        onUndoTodoTurn={onUndoTodoTurn}
+                        onConfirmTodoTurn={onConfirmTodoTurn}
                         onPrevBranch={onPrevBranch}
                         onNextBranch={onNextBranch}
                         attachmentPreviews={attachmentPreviews}
@@ -1045,6 +1108,9 @@ export const ChatMessageList = memo(
                 onPrevBranch,
                 onRequestPreview,
                 onRetryMessage,
+                onUndoTodoTurn,
+                onConfirmTodoTurn,
+                todoTurns,
                 parseDocumentBlocks,
                 smallIconProps,
                 streamingMessageSx,

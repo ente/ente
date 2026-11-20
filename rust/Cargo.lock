@@ -2637,6 +2637,7 @@ dependencies = [
 name = "ente-ensu"
 version = "0.0.0"
 dependencies = [
+ "chrono",
  "ente-assets",
  "ente-core",
  "ente-ensu-crypto",

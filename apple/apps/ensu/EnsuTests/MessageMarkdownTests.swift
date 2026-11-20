@@ -68,7 +68,7 @@ final class MessageMarkdownTests: XCTestCase {
             switch block.kind {
             case .paragraph(let text), .blockquote(let text):
                 content = text
-            case .list(let items):
+            case .list(let items, _):
                 XCTAssertEqual(items.count, 1)
                 content = InlineContent.joined(items, separator: "")
             default:
@@ -87,7 +87,7 @@ final class MessageMarkdownTests: XCTestCase {
             "# Heading \\(x\\)\n\n- Item $y$\n\n> Quote \\(z\\)\ncontinued $q$\n\n$$\\frac{1}{2}$$")
         XCTAssertEqual(blocks.count, 4)
         guard blocks.count == 4, case .heading(_, let heading) = blocks[0].kind,
-            case .list(let items) = blocks[1].kind,
+            case .list(let items, _) = blocks[1].kind,
             case .blockquote(let quote) = blocks[2].kind,
             case .math(let display) = blocks[3].kind
         else { return XCTFail("Unexpected block kinds") }

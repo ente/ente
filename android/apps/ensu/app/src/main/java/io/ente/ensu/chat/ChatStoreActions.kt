@@ -13,6 +13,7 @@ import io.ente.ensu.bindings.GroundedSource
 import io.ente.ensu.bindings.KnowledgeDatasetConfig
 import io.ente.ensu.bindings.LlmException
 import io.ente.ensu.bindings.PassageLocator
+import io.ente.ensu.bindings.ToolTurnStatus
 import io.ente.ensu.bindings.buildGroundedPromptContext
 import io.ente.ensu.bindings.cleanAssistantText
 import io.ente.ensu.bindings.finalizeGroundedAssistantText
@@ -37,9 +38,12 @@ import io.ente.ensu.notes.NotesStore
 import io.ente.ensu.notifications.BackgroundGeneration
 import io.ente.ensu.notifications.NotificationPermissions
 import io.ente.ensu.settings.SessionPreferencesDataStore
+import io.ente.ensu.todo.message
+import io.ente.ensu.todo.todoErrorDetail
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -84,6 +88,7 @@ internal class ChatStoreActions(
     private val sessionAccessTimes = mutableMapOf<String, Long>()
     private var scope: CoroutineScope? = null
     private var generationJob: Job? = null
+    private var todoTurnChangeJob: Job? = null
     private var initialSessionLoad: Job? = null
     private val notificationNavigation = NotificationNavigation { error ->
         logRepository.log(
@@ -101,6 +106,7 @@ internal class ChatStoreActions(
     @Volatile private var activeFollowup: ConversationFollowup? = null
     private var streamingParentId: String? = null
     private var activeGenerationToken = 0L
+    private val todoTurnsRevision = AtomicLong()
     private var pendingOverflow: PendingOverflow? = null
     private var overflowBypassMessageId: String? = null
 
@@ -626,6 +632,7 @@ internal class ChatStoreActions(
         notificationNavigation.cancel()
         val priorGeneration = generationJob
         val priorSummary = sessionSummaryJob
+        val priorTodoTurnChange = todoTurnChangeJob
         activePreparation?.cancel()
         activeFollowup?.cancel()
         priorGeneration?.cancel()
@@ -688,6 +695,7 @@ internal class ChatStoreActions(
             notesStore.awaitMaintenance()
             priorGeneration?.join()
             priorSummary?.join()
+            priorTodoTurnChange?.join()
             val runningJob = coroutineContext[Job]
             val isActive = {
                 isGenerationActive(generationToken, sessionId) &&
@@ -1191,6 +1199,85 @@ internal class ChatStoreActions(
         }
     }
 
+    fun loadTodoTurns() {
+        val scope = scope ?: return
+        val revision = todoTurnsRevision.incrementAndGet()
+        scope.launch(Dispatchers.Main) {
+            val session = state.value.chat.currentSessionId
+            val statuses =
+                if (session == null) emptyMap()
+                else
+                    withContext(Dispatchers.IO) {
+                            runCatching { chatRepository.toolTurnStatuses(session) }
+                        }
+                        .getOrElse { error ->
+                            logRepository.log(
+                                LogLevel.Warning,
+                                "Failed to load To Do turn statuses",
+                                tag = "Chat",
+                                throwable = error,
+                            )
+                            return@launch
+                        }
+            if (
+                revision == todoTurnsRevision.get() && state.value.chat.currentSessionId == session
+            ) {
+                state.update { it.copy(chat = it.chat.copy(todoTurns = statuses)) }
+            }
+        }
+    }
+
+    fun confirmToolTurn(replyId: String) =
+        updateTodoTurn(replyId, "Couldn't confirm") { chatRepository.confirmToolTurn(it) }
+
+    fun undoToolTurn(replyId: String) =
+        updateTodoTurn(replyId, "Couldn't undo") { chatRepository.undoToolTurn(it) }
+
+    fun dismissTodoTurnError() {
+        state.update { it.copy(chat = it.chat.copy(todoTurnError = null)) }
+    }
+
+    private fun updateTodoTurn(
+        replyId: String,
+        errorTitle: String,
+        action: (String) -> ToolTurnStatus,
+    ) {
+        val scope = scope ?: return
+        if (state.value.chat.isGenerating || todoTurnChangeJob?.isActive == true) return
+        todoTurnChangeJob = scope.launch {
+            withContext(Dispatchers.IO) { runCatching { action(replyId) } }
+                .onSuccess { status -> publishTodoTurn(replyId, status) }
+                .onFailure { error ->
+                    logRepository.log(
+                        LogLevel.Warning,
+                        errorTitle,
+                        details = error.message,
+                        tag = "Chat",
+                        throwable = error,
+                    )
+                    state.update {
+                        it.copy(
+                            chat =
+                                it.chat.copy(
+                                    todoTurnError =
+                                        TodoTurnError(
+                                            errorTitle,
+                                            error.todoErrorDetail() ?: "Something went wrong",
+                                        )
+                                )
+                        )
+                    }
+                }
+        }
+    }
+
+    private fun publishTodoTurn(replyId: String, status: ToolTurnStatus) {
+        state.update {
+            it.copy(chat = it.chat.copy(todoTurns = it.chat.todoTurns + (replyId to status)))
+        }
+        loadTodoTurns()
+    }
+
     private fun closeFollowup(followup: ConversationFollowup?) {
         if (activeFollowup === followup) activeFollowup = null
         followup?.cancel()
@@ -1327,6 +1414,7 @@ internal class ChatStoreActions(
                             result.messages,
                             result.maxTokens,
                             temperature,
+                            result.tools,
                         ) { token ->
                             if (!isActive() || stopRequested) llmProvider.stopGeneration()
                             else {
@@ -1342,15 +1430,23 @@ internal class ChatStoreActions(
                     }
                     withContext(Dispatchers.Main + NonCancellable) {
                         val error = generated.exceptionOrNull()
+                        val interrupted = stopRequested || error != null
+                        val calledTools = !interrupted && generated.getOrNull()?.calledTools == true
                         finishGeneration(
                             sessionId,
                             userMessage,
                             buffer,
                             tokens,
                             generated.getOrNull()?.totalTimeMs,
-                            interrupted = stopRequested || error != null,
+                            interrupted = interrupted,
                             shouldUpdateUi = isActive(),
                             saveAnswer = { chatRepository.insertPreparedAnswer(preparation, it) },
+                            saveTodoTurn =
+                                if (calledTools) {
+                                    { chatRepository.applyToolCalls(preparation) }
+                                } else {
+                                    null
+                                },
                         )
                     }
                     generated.getOrThrow()
@@ -1410,7 +1506,12 @@ internal class ChatStoreActions(
         shouldUpdateUi: Boolean,
         citations: List<GroundedSource> = emptyList(),
         saveAnswer: ((String) -> ChatMessage)? = null,
+        saveTodoTurn: (() -> TodoTurn)? = null,
     ) {
+        if (saveTodoTurn != null) {
+            finishTodoTurn(sessionId, parentMessage, shouldUpdateUi, saveTodoTurn)
+            return
+        }
         val rawText = buffer.toString().trim()
         val finalText =
             if (rawText.isNotEmpty() && saveAnswer == null) {
@@ -1465,19 +1566,11 @@ internal class ChatStoreActions(
                             tokensPerSecond = tokensPerSecond,
                         )
 
-                    val assistantText = cleanAssistantText(assistantMessage.text)
-                    if (!interrupted && !stopRequested)
-                        backgroundGeneration.completed(
-                            activeGenerationToken,
-                            assistantMessage.id,
-                            assistantText,
-                        )
-                    messageStore.getOrPut(sessionId) { mutableListOf() }.add(assistantMessage)
-                    updateSelectionForParent(sessionId, parentMessage.id, assistantMessage.id)
-                    updateCurrentSessionPreview(
+                    recordAssistantReply(
                         sessionId,
-                        assistantText,
-                        assistantMessage.timestampMillis,
+                        parentMessage.id,
+                        assistantMessage,
+                        notifyCompletion = !interrupted,
                     )
                 }
             } else {
@@ -1491,6 +1584,76 @@ internal class ChatStoreActions(
             }
         }
 
+        endGeneration(sessionId, shouldUpdateUi)
+    }
+
+    private fun finishTodoTurn(
+        sessionId: String,
+        parentMessage: ChatMessage,
+        shouldUpdateUi: Boolean,
+        saveTodoTurn: () -> TodoTurn,
+    ) {
+        if (!shouldUpdateUi) {
+            logRepository.log(
+                LogLevel.Info,
+                "Dropped stale To Do turn",
+                details = "session=$sessionId parent=${parentMessage.id}",
+                tag = "Chat",
+            )
+            endGeneration(sessionId, shouldUpdateUi)
+            return
+        }
+        val turn =
+            runCatching(saveTodoTurn).getOrElse { error ->
+                logRepository.log(
+                    LogLevel.Error,
+                    "Failed to apply To Do calls",
+                    details = "session=$sessionId parent=${parentMessage.id}",
+                    tag = "Chat",
+                    throwable = error,
+                )
+                val refused =
+                    (error as? ConversationException.Refused)?.let {
+                        TodoTurnError("Couldn't update To Dos", it.reason.message())
+                    }
+                state.update {
+                    it.copy(
+                        chat =
+                            if (refused != null) {
+                                it.chat.copy(todoTurnError = refused)
+                            } else {
+                                it.chat.copy(
+                                    transientAssistantError =
+                                        "Couldn't update your To Dos. Retry the message.",
+                                    transientAssistantParentId = parentMessage.id,
+                                )
+                            }
+                    )
+                }
+                null
+            }
+        if (turn != null) {
+            recordAssistantReply(sessionId, parentMessage.id, turn.reply)
+            publishTodoTurn(turn.reply.id, turn.status)
+        }
+        endGeneration(sessionId, shouldUpdateUi)
+    }
+
+    private fun recordAssistantReply(
+        sessionId: String,
+        parentId: String,
+        reply: ChatMessage,
+        notifyCompletion: Boolean = true,
+    ) {
+        val text = cleanAssistantText(reply.text)
+        if (notifyCompletion && !stopRequested)
+            backgroundGeneration.completed(activeGenerationToken, reply.id, text)
+        messageStore.getOrPut(sessionId) { mutableListOf() }.add(reply)
+        updateSelectionForParent(sessionId, parentId, reply.id)
+        updateCurrentSessionPreview(sessionId, text, reply.timestampMillis)
+    }
+
+    private fun endGeneration(sessionId: String, shouldUpdateUi: Boolean) {
         if (shouldUpdateUi) {
             streamingParentId = null
             val (displayMessages, branchSelectionIndices) =
@@ -1898,7 +2061,7 @@ internal class ChatStoreActions(
     }
 
     private fun isDuplicate(left: ChatMessage, right: ChatMessage): Boolean {
-        if (left.author != right.author) return false
+        if (left.author != right.author || left.author == MessageAuthor.Assistant) return false
         if (left.text != right.text) return false
         if (
             !attachmentsSignature(left.attachments)

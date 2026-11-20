@@ -76,6 +76,7 @@ struct GenerationSummary {
     let jobId: Int64
     let generatedTokens: Int
     let totalTimeMs: Int64?
+    var calledTools = false
 }
 
 struct RequiredModelValidationError: LocalizedError {
@@ -557,6 +558,7 @@ actor LlmProvider {
         imageFiles: [URL] = [],
         temperature: Float,
         maxTokens: UInt32,
+        tools: LlmToolRequest? = nil,
         control: ChatGenerationControl,
         onPromptProgress: (@Sendable (Int32, Int32) -> Void)? = nil,
         onToken: @escaping @Sendable (String) -> Void
@@ -567,6 +569,7 @@ actor LlmProvider {
             imageFiles: imageFiles,
             temperature: temperature,
             maxTokens: Int(maxTokens),
+            tools: tools,
             control: control,
             onPromptProgress: onPromptProgress,
             onToken: onToken
@@ -579,6 +582,7 @@ actor LlmProvider {
         imageFiles: [URL],
         temperature: Float,
         maxTokens: Int?,
+        tools: LlmToolRequest? = nil,
         contextOverride: LlmContext? = nil,
         control: ChatGenerationControl,
         onPromptProgress: (@Sendable (Int32, Int32) -> Void)? = nil,
@@ -624,7 +628,8 @@ actor LlmProvider {
             presencePenalty: 0,
             seed: nil,
             stopSequences: nil,
-            grammar: nil
+            grammar: nil,
+            tools: tools
         )
 
         let sink = CallbackSink { event in
@@ -647,7 +652,8 @@ actor LlmProvider {
         return GenerationSummary(
             jobId: summary.jobId,
             generatedTokens: Int(summary.generatedTokens ?? 0),
-            totalTimeMs: summary.totalTimeMs
+            totalTimeMs: summary.totalTimeMs,
+            calledTools: summary.calledTools
         )
     }
 

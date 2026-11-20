@@ -23,6 +23,7 @@ import io.ente.ensu.bindings.LlmGenerationSummary as NativeSummary
 import io.ente.ensu.bindings.LlmMemoryOperation
 import io.ente.ensu.bindings.LlmModel
 import io.ente.ensu.bindings.LlmModelLoadParams
+import io.ente.ensu.bindings.LlmToolRequest
 import io.ente.ensu.bindings.ModelRuntimeSurface
 import io.ente.ensu.bindings.Transcriber
 import io.ente.ensu.bindings.knowledgeEmbeddingModelAsset
@@ -550,15 +551,21 @@ class LlmProvider(
         messages: List<NativeChatMessage>,
         maxTokens: UInt,
         temperature: Float,
+        tools: LlmToolRequest?,
         onToken: (String) -> Unit,
     ): GenerationSummary {
         val summary =
             generateStreamWithCallback(
                 context,
-                chatRequest(messages, emptyList(), null, temperature, maxTokens.toInt()),
+                chatRequest(messages, emptyList(), null, temperature, maxTokens.toInt(), tools),
                 onToken,
             )
-        return GenerationSummary(summary.jobId, summary.generatedTokens ?: 0, summary.totalTimeMs)
+        return GenerationSummary(
+            summary.jobId,
+            summary.generatedTokens ?: 0,
+            summary.totalTimeMs,
+            summary.calledTools,
+        )
     }
 
     private fun chatRequest(
@@ -567,6 +574,7 @@ class LlmProvider(
         mmprojPath: String?,
         temperature: Float,
         maxTokens: Int?,
+        tools: LlmToolRequest? = null,
     ) =
         LlmChatRequest(
             messages = messages,
@@ -585,6 +593,7 @@ class LlmProvider(
             seed = null,
             stopSequences = null,
             grammar = null,
+            tools = tools,
         )
 
     suspend fun <T> withRetrievalContext(

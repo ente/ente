@@ -307,6 +307,14 @@ fun HomeView(
                         scope.launch { drawerState.close() }
                     },
                     onDeleteSession = { session -> deleteSessionTarget = session },
+                    onOpenTodos = {
+                        store.cancelNotificationNavigation()
+                        navController.navigate(HomeRoute.Todos) {
+                            launchSingleTop = true
+                            popUpTo(HomeRoute.Chat) { inclusive = false }
+                        }
+                        scope.launch { drawerState.close() }
+                    },
                     onOpenSettings = {
                         store.cancelNotificationNavigation()
                         navController.navigate(HomeRoute.Settings) {

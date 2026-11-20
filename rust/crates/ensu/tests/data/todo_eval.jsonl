@@ -1,0 +1,50 @@
+{"id": "add-when-01", "user": "I need to call the bank tomorrow at 10am", "expect": "tool", "calls": [{"name": "save_to_do", "title": ["bank"], "when": "tomorrow at 10am"}]}
+{"id": "add-when-03", "user": "I have to pick up a pie tomorrow around 615 PM", "expect": "tool", "calls": [{"name": "save_to_do", "title": ["pie"], "when": "tomorrow around 615 PM"}]}
+{"id": "add-when-05", "user": "I need to water the garden in 20 minutes", "expect": "tool", "calls": [{"name": "save_to_do", "title": ["garden"], "when": "in 20 minutes"}]}
+{"id": "add-when-06", "user": "I need to renew the permit in three weeks", "expect": "tool", "calls": [{"name": "save_to_do", "title": ["permit"], "when": "in three weeks"}]}
+{"id": "add-when-08", "user": "Dentist appointment on December 5 at 1 PM", "expect": "tool", "calls": [{"name": "save_to_do", "title": ["dentist"], "when": "December 5 at 1 PM"}]}
+{"id": "add-when-10", "user": "Don't let me forget to call Mom tonight", "expect": "tool", "calls": [{"name": "save_to_do", "title": ["mom"], "when": "tonight"}]}
+{"id": "add-when-12", "user": "Pay the electricity bill on the 23rd of November", "expect": "tool", "calls": [{"name": "save_to_do", "title": ["electricity"], "when": "23rd of November"}]}
+{"id": "add-when-14", "user": "I should book flights next Monday at noon", "expect": "tool", "calls": [{"name": "save_to_do", "title": ["flights"], "when": "next Monday at noon"}]}
+{"id": "add-when-17", "user": "Call the plumber at 5", "expect": "tool", "calls": [{"name": "save_to_do", "title": ["plumber"], "when": "at 5"}]}
+{"id": "add-plain-02", "user": "Add milk to my to-do list", "expect": "tool", "calls": [{"name": "save_to_do", "title": ["milk"], "when": null}]}
+{"id": "add-plain-07", "user": "Note to self: buy printer ink", "expect": "tool", "calls": [{"name": "save_to_do", "title": ["ink"], "when": null}]}
+{"id": "add-plain-08", "user": "I want to start reading Dune", "expect": "tool", "calls": [{"name": "save_to_do", "title": ["dune"], "when": null}]}
+{"id": "add-multi-01", "user": "Buy apples tomorrow and call Lee at 4 PM", "expect": "tool", "calls": [{"name": "save_to_do", "title": ["apples"], "when": "tomorrow"}, {"name": "save_to_do", "title": ["lee"], "when": "at 4 PM"}]}
+{"id": "add-multi-02", "user": "Add two tasks: collect keys and buy stamps.", "expect": "tool", "calls": [{"name": "save_to_do", "title": ["keys"], "when": null}, {"name": "save_to_do", "title": ["stamps"], "when": null}]}
+{"id": "add-multi-03", "user": "Tomorrow I need to buy ink and post the letter", "expect": "tool", "calls": [{"name": "save_to_do", "title": ["ink"], "when": "Tomorrow"}, {"name": "save_to_do", "title": ["letter"], "when": "Tomorrow"}]}
+{"id": "add-multi-04", "user": "Add these:\n- Feed the cat tonight\n- Post the letter\n- Phone Jo on Friday", "expect": "tool", "calls": [{"name": "save_to_do", "title": ["cat"], "when": "tonight"}, {"name": "save_to_do", "title": ["letter"], "when": null}, {"name": "save_to_do", "title": ["jo"], "when": "Friday"}]}
+{"id": "reply-01", "user": "What's 2 + 2?", "expect": "reply"}
+{"id": "reply-02", "user": "Write a birthday note for my aunt.", "expect": "reply"}
+{"id": "reply-04", "user": "How do I make a to-do list in Excel?", "expect": "reply"}
+{"id": "reply-05", "user": "Would I be notified if I created a task for Monday?", "expect": "reply"}
+{"id": "reply-07", "user": "Don't add anything, I'm just thinking out loud.", "expect": "reply"}
+{"id": "reply-08", "user": "My wife has to call the bank tomorrow.", "expect": "reply"}
+{"id": "reply-09", "user": "Yesterday I bought milk.", "expect": "reply"}
+{"id": "reply-10", "user": "If I had to buy a car, which one would you suggest?", "expect": "reply"}
+{"id": "reply-14", "user": "Translate 'buy milk' into French.", "expect": "reply"}
+{"id": "reply-17", "user": "Should I call my mom tonight or tomorrow?", "expect": "reply"}
+{"id": "reply-19", "user": "I don't need to do laundry today.", "expect": "reply"}
+{"id": "reply-20", "user": "Write a to-do list template for a wedding.", "expect": "reply"}
+{"id": "reply-21", "user": "Hi!", "expect": "reply"}
+{"id": "reply-33", "user": "Remind me what we talked about earlier.", "expect": "reply"}
+{"id": "list-01", "user": "What's on my to-do list?", "expect": "tool", "calls": [{"name": "list_to_dos", "filter": "open"}]}
+{"id": "list-03", "user": "Which To Dos are overdue?", "expect": "tool", "calls": [{"name": "list_to_dos", "filter": "overdue"}]}
+{"id": "list-04", "user": "What do I have to do today?", "expect": "tool", "calls": [{"name": "list_to_dos", "filter": "today"}]}
+{"id": "list-05", "user": "Show my completed tasks", "expect": "tool", "calls": [{"name": "list_to_dos", "filter": "completed"}]}
+{"id": "list-06", "user": "List everything on my list, done or not", "expect": "tool", "calls": [{"name": "list_to_dos", "filter": "all"}]}
+{"id": "list-07", "user": "Do I have any tasks about the car?", "expect": "tool", "calls": [{"name": "list_to_dos", "filter": "open"}]}
+{"id": "complete-01", "user": "I bought the milk", "expect": "tool", "calls": [{"name": "complete_to_do", "task": ["milk"]}], "todos": ["Order new contact lenses", "Repot the fern", "Buy milk", "Tune the ukulele", "Refill the bird feeder"]}
+{"id": "complete-02", "user": "Mark the dentist task as done", "expect": "tool", "calls": [{"name": "complete_to_do", "task": ["dentist"]}], "todos": ["Order new contact lenses", "Repot the fern", "Tune the ukulele", "Book the dentist", "Refill the bird feeder"]}
+{"id": "complete-06", "user": "I've renewed the passport, cross it off", "expect": "tool", "calls": [{"name": "complete_to_do", "task": ["passport"]}], "todos": ["Order new contact lenses", "Repot the fern", "Renew passport", "Tune the ukulele", "Refill the bird feeder"]}
+{"id": "followup-01", "user": "The second one is done", "expect": "tool", "calls": [{"name": "complete_to_do", "number": 2}], "history": [{"role": "user", "content": "What's on my list?"}, {"role": "assistant", "content": "", "tool_calls": [{"name": "list_to_dos", "arguments": {"filter": "open"}}]}, {"role": "tool", "content": "1. Call Lee — due Thu 12 Nov 2026, 16:00\n2. Buy apples — due Fri 13 Nov 2026, 09:00\n3. Water plants — no due date"}]}
+{"id": "followup-06", "user": "Did you save it?", "expect": "reply", "history": [{"role": "user", "content": "Add milk"}, {"role": "assistant", "content": "", "tool_calls": [{"name": "save_to_do", "arguments": {"title": "Milk"}}]}, {"role": "tool", "content": "Saved “Milk”."}]}
+{"id": "lang-01", "user": "Recuérdame llamar a mamá mañana", "expect": "tool", "calls": [{"name": "save_to_do", "title": ["mam"]}]}
+{"id": "lang-04", "user": "明日、牛乳を買わなきゃ", "expect": "tool", "calls": [{"name": "save_to_do", "title": ["牛乳"]}]}
+{"id": "add-plain-129", "user": "So my sister keeps nagging me and she's right, I really need to set up the family photo backup at some point. Can you note that down?", "expect": "tool", "calls": [{"name": "save_to_do", "title": ["backup"], "when": null}]}
+{"id": "add-when-113", "user": "need to email the accountant tmrw", "expect": "tool", "calls": [{"name": "save_to_do", "title": ["accountant"], "when": "tmrw"}]}
+{"id": "complete-128", "user": "check off pharmacy pls", "expect": "tool", "calls": [{"name": "complete_to_do", "task": ["pharmacy"]}], "todos": ["Order new contact lenses", "Pharmacy", "Repot the fern", "Tune the ukulele", "Refill the bird feeder"]}
+{"id": "followup-117", "user": "Grandma's been called, tick that one", "expect": "tool", "calls": [{"name": "complete_to_do", "task": ["grandma"]}], "history": [{"role": "user", "content": "What's on my list?"}, {"role": "assistant", "content": "", "tool_calls": [{"name": "list_to_dos", "arguments": {"filter": "open"}}]}, {"role": "tool", "content": "1. Buy stamps — due Thu 12 Nov 2026, 17:00\n2. Collect keys — due Fri 13 Nov 2026, 10:00\n3. Call Grandma — due Sat 14 Nov 2026, 11:00\n4. Renew passport — due Mon 30 Nov 2026, 09:00\n5. Fix bike — no due date"}]}
+{"id": "followup-123", "user": "And remind me to pick up the parcel at 6 PM", "expect": "tool", "calls": [{"name": "save_to_do", "title": ["parcel"], "when": "at 6 PM"}], "history": [{"role": "user", "content": "I need to call Ana tomorrow at 9am"}, {"role": "assistant", "content": "", "tool_calls": [{"name": "save_to_do", "arguments": {"title": "Call Ana", "when": "tomorrow at 9am"}}]}, {"role": "tool", "content": "Saved “Call Ana”, due Fri 13 Nov 2026, 09:00."}]}
+{"id": "lang-116", "user": "Mia sorella deve andare dal medico domani.", "expect": "reply"}
+{"id": "reply-197", "user": "My cat died last week and I really miss her.", "expect": "reply"}

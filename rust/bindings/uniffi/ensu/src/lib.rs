@@ -10,5 +10,6 @@ pub mod llm;
 pub mod log;
 pub mod notes;
 pub mod retrieval;
+pub mod todos;
 pub mod transcription;
 pub mod voice;

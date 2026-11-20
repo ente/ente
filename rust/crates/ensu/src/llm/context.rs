@@ -27,6 +27,7 @@ pub struct Context {
     worker: Worker<LocalContext>,
     context_size: u32,
     supports_partial_prompt_reuse: bool,
+    supports_tools: bool,
 }
 
 pub type ContextRef = Arc<Context>;
@@ -36,15 +37,23 @@ impl Context {
         initialize: impl FnOnce() -> Result<LocalContext, Error> + Send + 'static,
     ) -> Result<ContextRef, Error> {
         let worker = Worker::spawn(initialize)?;
-        let (context_size, supports_partial_prompt_reuse) = worker.call(|context| {
-            let supports_partial_prompt_reuse =
-                context.with_model(|model| Ok(!model.is_recurrent() && !model.is_hybrid()))?;
-            Ok((context.context_size(), supports_partial_prompt_reuse))
-        })?;
+        let (context_size, supports_partial_prompt_reuse, supports_tools) =
+            worker.call(|context| {
+                let supports_partial_prompt_reuse =
+                    context.with_model(|model| Ok(!model.is_recurrent() && !model.is_hybrid()))?;
+                let supports_tools =
+                    context.with_model(|model| Ok(super::template::supports_tools(model)))?;
+                Ok((
+                    context.context_size(),
+                    supports_partial_prompt_reuse,
+                    supports_tools,
+                ))
+            })?;
         Ok(Arc::new(Self {
             worker,
             context_size,
             supports_partial_prompt_reuse,
+            supports_tools,
         }))
     }
 
@@ -104,6 +113,10 @@ impl Context {
         self.supports_partial_prompt_reuse
     }
 
+    pub fn supports_tools(&self) -> bool {
+        self.supports_tools
+    }
+
     pub fn can_preserve_execution_state(&self) -> bool {
         self.worker
             .call(|context| {
@@ -155,6 +168,23 @@ impl Context {
     ) -> Result<(), Error> {
         self.worker
             .call(move |context| context.prewarm_multimodal(mmproj_path, media_marker))
+    }
+
+    pub fn generate_with_tools(
+        &self,
+        mut request: ChatRequest,
+        tools: Option<&super::ToolExchange>,
+        sink: &mut dyn EventSink,
+    ) -> Result<GenerationSummary, Error> {
+        request.tools = tools.map(|tools| tools.request().clone());
+        if let Some(tools) = tools {
+            tools.record(None);
+        }
+        let summary = self.generate_chat_stream(request, sink)?;
+        if let Some(tools) = tools {
+            tools.record(summary.tools.clone());
+        }
+        Ok(summary)
     }
 
     pub fn generate_chat_stream(
