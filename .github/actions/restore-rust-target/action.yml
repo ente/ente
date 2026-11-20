@@ -20,16 +20,18 @@ outputs:
 runs:
     using: composite
     steps:
-        # Runner image changes can break cached binaries.
-        - id: image
+        # Image versions roll out over days and ship different stable releases.
+        - id: rust
           shell: bash
-          run: echo "version=$ImageOS-$ImageVersion" >> "$GITHUB_OUTPUT"
+          run: |
+              rustup update stable --no-self-update
+              echo "version=$ImageOS-$(rustc -V | cut -d' ' -f2)" >> "$GITHUB_OUTPUT"
 
         - id: cache
           uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
           with:
-              key: target-${{ inputs.shared-key }}-${{ steps.image.outputs.version }}-${{ github.sha }}
-              restore-keys: target-${{ inputs.shared-key }}-${{ steps.image.outputs.version }}-
+              key: target-${{ inputs.shared-key }}-${{ steps.rust.outputs.version }}-${{ github.sha }}
+              restore-keys: target-${{ inputs.shared-key }}-${{ steps.rust.outputs.version }}-
               path: rust/target
               lookup-only: ${{ inputs.lookup-only }}
 
