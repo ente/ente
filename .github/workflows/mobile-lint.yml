@@ -58,7 +58,12 @@ jobs:
               uses: $/.github/actions/setup-flutter
 
             # Restore-only; primed on main by warm-caches.yml.
+            - name: Restore FRB outputs
+              id: frb
+              uses: $/.github/actions/restore-frb-outputs
+
             - name: Restore Rust cache
+              if: steps.frb.outputs.cache-hit != 'true'
               uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
               with:
                   workspaces: rust
@@ -67,20 +72,25 @@ jobs:
                   save-if: false
 
             - name: Restore Rust target
+              if: steps.frb.outputs.cache-hit != 'true'
               uses: $/.github/actions/restore-rust-target
               with:
                   shared-key: rust-flutter
 
-            - run: cargo codegen frb
+            - if: steps.frb.outputs.cache-hit != 'true'
+              run: cargo codegen frb
               working-directory: rust
 
-            - run: cargo clippy -p ente-auth-frb --features flutter --all-targets --locked
+            - if: steps.frb.outputs.cache-hit != 'true'
+              run: cargo clippy -p ente-auth-frb --features flutter --all-targets --locked
               working-directory: rust
 
-            - run: cargo clippy -p ente-photos-frb --features flutter --all-targets --locked
+            - if: steps.frb.outputs.cache-hit != 'true'
+              run: cargo clippy -p ente-photos-frb --features flutter --all-targets --locked
               working-directory: rust
 
-            - run: cargo clippy -p ente-locker-frb --features flutter --all-targets --locked
+            - if: steps.frb.outputs.cache-hit != 'true'
+              run: cargo clippy -p ente-locker-frb --features flutter --all-targets --locked
               working-directory: rust
 
             - name: Restore localizations
@@ -102,6 +112,7 @@ jobs:
               working-directory: mobile
 
             - name: Build Rust libraries for tests
+              if: steps.frb.outputs.cache-hit != 'true'
               run: cargo build -p ente-auth-frb -p ente-photos-frb --features flutter --locked
               working-directory: rust
 

@@ -74,6 +74,7 @@
         "infra/staff/**"
     ],
     "mobile-lint": [
+        ".github/actions/restore-frb-outputs/**",
         ".github/actions/restore-rust-target/**",
         ".github/actions/setup-flutter/**",
         ".github/workflows/mobile-lint.yml",

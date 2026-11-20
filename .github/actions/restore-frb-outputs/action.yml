@@ -1,0 +1,36 @@
+name: Restore FRB outputs
+description: Restore generated Flutter Rust Bridge bindings and test libraries
+
+inputs:
+    lookup-only:
+        description: Check without restoring
+        default: false
+
+outputs:
+    cache-key:
+        description: Cache key
+        value: ${{ steps.cache.outputs.cache-primary-key }}
+    cache-hit:
+        description: Exact cache hit
+        value: ${{ steps.cache.outputs.cache-hit }}
+
+runs:
+    using: composite
+    steps:
+        - id: key
+          shell: bash
+          working-directory: ${{ github.workspace }}
+          run: node .github/actions/restore-frb-outputs/key.mjs >> "$GITHUB_OUTPUT"
+
+        - id: cache
+          uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+          with:
+              key: frb-outputs-${{ runner.os }}-${{ runner.arch }}-${{ steps.key.outputs.hash }}
+              path: |
+                  mobile/apps/auth/lib/src/rust
+                  mobile/apps/locker/lib/src/rust
+                  mobile/apps/photos/lib/src/rust
+                  mobile/packages/frb/lib
+                  rust/target/debug/libente_auth_frb.so
+                  rust/target/debug/libente_photos_frb.so
+              lookup-only: ${{ inputs.lookup-only }}
