@@ -645,19 +645,21 @@ class _Face extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final crop = face.crop;
     final name = face.name ?? "";
-    final image = crop == null
-        ? ColoredBox(
-            color: RewindColors.ink,
-            child: Center(
-              child: Text(
-                name.isEmpty ? "?" : name.characters.first.toUpperCase(),
-                style: RewindTextStyles.display(40),
+    final image = ValueListenableBuilder(
+      valueListenable: face.liveCrop,
+      builder: (context, crop, _) => crop == null
+          ? ColoredBox(
+              color: RewindColors.ink,
+              child: Center(
+                child: Text(
+                  name.isEmpty ? "?" : name.characters.first.toUpperCase(),
+                  style: RewindTextStyles.display(40),
+                ),
               ),
-            ),
-          )
-        : Image.memory(crop, fit: BoxFit.cover, gaplessPlayback: true);
+            )
+          : Image.memory(crop, fit: BoxFit.cover, gaplessPlayback: true),
+    );
     return DecoratedBox(
       decoration: const BoxDecoration(
         color: RewindColors.cream,

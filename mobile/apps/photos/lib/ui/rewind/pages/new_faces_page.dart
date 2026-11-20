@@ -386,27 +386,29 @@ class _FaceBubble extends StatelessWidget {
   );
 
   Widget _bubble() {
-    final crop = face.crop;
     final initial = face.name?.trim().characters.firstOrNull ?? "";
     return CustomPaint(
       painter: const _BubblePainter(),
       child: Padding(
         padding: const EdgeInsets.all(6.6),
         child: ClipOval(
-          child: crop != null
-              ? Image.memory(crop, fit: BoxFit.cover, gaplessPlayback: true)
-              : ColoredBox(
-                  color: RewindColors.cream,
-                  child: Center(
-                    child: Text(
-                      initial.toUpperCase(),
-                      style: RewindTextStyles.display(
-                        40,
-                        color: RewindColors.ink,
+          child: ValueListenableBuilder(
+            valueListenable: face.liveCrop,
+            builder: (context, crop, _) => crop != null
+                ? Image.memory(crop, fit: BoxFit.cover, gaplessPlayback: true)
+                : ColoredBox(
+                    color: RewindColors.cream,
+                    child: Center(
+                      child: Text(
+                        initial.toUpperCase(),
+                        style: RewindTextStyles.display(
+                          40,
+                          color: RewindColors.ink,
+                        ),
                       ),
                     ),
                   ),
-                ),
+          ),
         ),
       ),
     );

@@ -576,6 +576,16 @@ class _MLDebugSettingsPageState extends State<MLDebugSettingsPage> {
   Widget _buildResetActionsCard(BuildContext context) {
     return SettingsGroupedCard(
       children: [
+        MenuItemWidgetNew(
+          title: "Show Ente Rewind status",
+          leadingIconWidget: _buildIconWidget(
+            context,
+            HugeIcons.strokeRoundedInformationCircle,
+          ),
+          trailingIcon: Icons.chevron_right_outlined,
+          trailingIconIsMuted: true,
+          onTap: () async => showToast(context, rewindService.diagnosis),
+        ),
         if (RewindEdition.isAvailable(DateTime.now())) ...[
           MenuItemWidgetNew(
             title: "Recompute Ente Rewind",

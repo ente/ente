@@ -46,6 +46,9 @@ class RewindService {
   final _state = ValueNotifier<rust.RewindState?>(null);
   final _story = ValueNotifier<RewindStory?>(null);
   int? _storyComputedAt;
+  String? _hiddenReason;
+  String _missingStateReason = "no state";
+  String? _storyError;
   final assets = RewindAssetStore();
 
   static const _startupDelay = Duration(seconds: 5);
@@ -72,12 +75,29 @@ class RewindService {
 
   late final Listenable changes = Listenable.merge([_story, _progress]);
 
-  void scheduleRefresh() => unawaited(Future.delayed(_startupDelay, refresh));
+  String get diagnosis {
+    final hiddenReason = _hiddenReason;
+    if (hiddenReason != null) return "hidden: $hiddenReason";
+    return [
+      _describe(_state.value),
+      _storySummary,
+      if (!memoriesCacheService.showAnyMemories)
+        "home tile hidden because memories are off",
+    ].join(", ");
+  }
 
-  Future<void> refresh({bool afterMlRun = false}) async {
+  void scheduleRefresh() {
+    unawaited(_guarded(_showCached));
+    unawaited(Future.delayed(_startupDelay, refresh));
+  }
+
+  Future<void> refresh({bool afterMlRun = false}) =>
+      _guarded(() => _refresh(afterMlRun: afterMlRun));
+
+  Future<void> _guarded(Future<void> Function() work) async {
     if (isIOSBackgroundRefresh) return;
     try {
-      await _lock.synchronized(() => _refresh(afterMlRun: afterMlRun));
+      await _lock.synchronized(work);
     } catch (e, s) {
       _logger.warning("Failed to refresh Rewind", e, s);
     }
@@ -109,43 +129,115 @@ class RewindService {
 
   void _reset() {
     _state.value = null;
+    _hiddenReason = null;
+    _missingStateReason = "no state";
     _setStory(null, null);
   }
 
   void _setStory(RewindStory? story, int? computedAt) {
     _story.value = story;
     _storyComputedAt = computedAt;
+    _storyError = null;
+  }
+
+  Future<void> _showCached() async {
+    final owner = _owner;
+    if (owner == null) return;
+    final stored = await _load(owner);
+    if (stored == null || _madeWithDisabledMl(stored)) return;
+    if (await _shownOwner(DateTime.now()) == owner) {
+      await _publish(owner, stored, "cached");
+    }
   }
 
   Future<void> _refresh({required bool afterMlRun}) async {
     final now = DateTime.now();
-    if (!RewindEdition.isAvailable(now)) {
-      _reset();
-      return;
-    }
-    final owner = _owner;
-    if (owner == null || !_hasSyncedLibrary || !await assets.prepare()) {
-      _reset();
-      return;
-    }
+    final owner = await _shownOwner(now);
+    if (owner == null) return;
     final stored = await _load(owner);
-    await _publish(owner, stored);
+    await _publishCached(owner, stored);
     if (stored == null || !_isFresh(stored, now, afterMlRun: afterMlRun)) {
-      await _publish(owner, await _compute(owner, stored, now));
+      await _publish(owner, await _compute(owner, stored, now), "computed");
     }
     await _updateNotification();
   }
 
-  Future<void> _publish(int owner, rust.RewindState? state) async {
-    _state.value = owner == _owner ? state : null;
-    await _buildStory();
+  Future<int?> _shownOwner(DateTime now) async {
+    final reason =
+        _unavailableReason(now) ??
+        (await assets.prepare() ? null : "assets are unavailable");
+    final changed = reason != _hiddenReason;
+    if (reason == null) {
+      _hiddenReason = null;
+      return _owner;
+    }
+    _reset();
+    _hiddenReason = reason;
+    if (changed) _logger.info("Rewind $diagnosis");
+    return null;
   }
 
-  Future<void> _rebuildStory() async {
+  String? _unavailableReason(DateTime now) {
+    if (!RewindEdition.isAvailable(now)) {
+      return "not available (flag ${flagService.rewind})";
+    }
+    if (_owner == null) return "no owner";
+    if (!_hasSyncedLibrary) return "library has not synced yet";
+    return null;
+  }
+
+  Future<void> _publishCached(int owner, rust.RewindState? stored) {
+    final ignored = stored != null && _madeWithDisabledMl(stored);
+    _missingStateReason = ignored
+        ? "cached report was made with ML, which is now off"
+        : "no cached report";
+    return _publish(owner, ignored ? null : stored, "cached");
+  }
+
+  bool _madeWithDisabledMl(rust.RewindState state) =>
+      state.mlCoverage != null && !rewindUsesMl;
+
+  Future<void> _publish(
+    int owner,
+    rust.RewindState? state,
+    String source,
+  ) async {
+    _state.value = owner == _owner ? state : null;
+    await _buildStory();
+    _logger.info("Rewind $source: $diagnosis");
+  }
+
+  String _describe(rust.RewindState? state) {
+    if (state == null) return _missingStateReason;
+    final status = switch (state.status) {
+      rust.RewindStatus_Ready() => "ready",
+      rust.RewindStatus_WaitingForMl() => "waiting for ML",
+      rust.RewindStatus_NothingToShow() => "nothing to show",
+    };
+    final coverage = state.mlCoverage;
+    final computedAt = DateTime.fromMicrosecondsSinceEpoch(state.computedAt);
+    return [
+      status,
+      if (coverage != null)
+        "ML coverage ${(coverage * 100).toStringAsFixed(1)}%",
+      if (state.isFinal) "final",
+      "computed at $computedAt",
+    ].join(", ");
+  }
+
+  String get _storySummary {
+    final story = _story.value;
+    if (story != null) return "story of ${story.pages.length} pages";
+    if (isProcessBg) return "no story in the background";
+    final error = _storyError;
+    return error == null ? "no story" : "story failed to build: $error";
+  }
+
+  Future<void> _rebuildStory({bool sharpenFaces = true}) async {
     if (_state.value?.status is! rust.RewindStatus_Ready) return;
     await _lock.synchronized(() {
       _storyComputedAt = null;
-      return _buildStory();
+      return _buildStory(sharpenFaces: sharpenFaces);
     });
   }
 
@@ -160,7 +252,7 @@ class RewindService {
     unawaited(_rebuildStory());
   }
 
-  Future<void> _buildStory() async {
+  Future<void> _buildStory({bool sharpenFaces = true}) async {
     final state = _state.value;
     final status = state?.status;
     if (state == null || status is! rust.RewindStatus_Ready || isProcessBg) {
@@ -172,20 +264,33 @@ class RewindService {
       return;
     }
     try {
+      final timer = Stopwatch()..start();
       var story = await RewindStory.prepare(status.report);
       while (identical(_state.value, state) &&
           story.rituals != RewindRituals.current()) {
         story = await RewindStory.prepare(status.report);
       }
       if (!identical(_state.value, state)) return;
+      _logger.info(
+        "Built the Rewind story in ${timer.elapsedMilliseconds} ms, "
+        "${story.blurryFaceFiles} files to sharpen faces from",
+      );
       _setStory(story, state.computedAt);
       story.preloadFrom(
         story.resumeIndex(_progress.completed ? null : _progress.resumePage),
       );
+      if (sharpenFaces) unawaited(_sharpenFaces(story));
     } catch (e, s) {
       _logger.warning("Failed to build the Rewind story", e, s);
       _setStory(null, null);
+      _storyError = "$e";
     }
+  }
+
+  Future<void> _sharpenFaces(RewindStory story) async {
+    if (!await story.sharpenFaces() || !identical(_story.value, story)) return;
+    _logger.info("Sharpened Rewind faces, rebuilding the story");
+    await _rebuildStory(sharpenFaces: false);
   }
 
   Future<rust.RewindState?> _compute(
@@ -195,7 +300,8 @@ class RewindService {
   ) async {
     final usesMl = rewindUsesMl;
     if (usesMl && !MLDataDB.isRustBackend) {
-      _logger.info("Skipping Rewind: ML is on but the Rust ML DB is not");
+      _missingStateReason = "ML is on but the Rust ML DB is not";
+      _logger.info("Skipping Rewind: $_missingStateReason");
       return previous?.mlCoverage != null ? previous : null;
     }
     final store = usesMl
@@ -247,7 +353,7 @@ class RewindService {
     DateTime now, {
     required bool afterMlRun,
   }) {
-    if (state.mlCoverage != null && !rewindUsesMl) return false;
+    if (_madeWithDisabledMl(state)) return false;
     if (state.isFinal) return true;
     if ((state.mlCoverage != null) != rewindUsesMl) return false;
     if (afterMlRun && state.status is rust.RewindStatus_WaitingForMl) {
