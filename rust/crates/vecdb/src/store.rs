@@ -3312,6 +3312,7 @@ mod tests {
                 .is_empty()
                 .unwrap()
         );
+        holder.unlock().unwrap();
         drop(holder);
         let writer = open_writer(&alias);
         assert!(writer.is_empty().unwrap());
