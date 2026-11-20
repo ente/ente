@@ -282,10 +282,6 @@ testWithPhotos(
             page.getByText(photos[3].name, { exact: true }),
         ).toBeVisible();
 
-        test.fail(
-            true,
-            "The viewer shifts sideways after the Trash dialog closes",
-        );
         expect(horizontalOffset).toBeLessThan(2);
     },
 );
