@@ -3,6 +3,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { GlobalStyles, keyframes, styled } from "@mui/material";
 import { EnteLogo } from "ente-base/components/EnteLogo";
 import type React from "react";
+import styles from "./AuthPageShell.module.css";
 import {
     authAboveMobileMediaQuery,
     authDisplayFontFamily,
@@ -136,11 +137,6 @@ const cameraSparkle = keyframes({
     },
 });
 
-const brandCurvesDrift = keyframes({
-    "0%, 100%": { backgroundPosition: "calc(50% - 6px) calc(50% + 4px)" },
-    "50%": { backgroundPosition: "calc(50% + 6px) calc(50% - 4px)" },
-});
-
 const brandCopyAnimation = {
     animation: `${brandCopyReveal} 520ms cubic-bezier(0.22, 1, 0.36, 1) both`,
     "@media (prefers-reduced-motion: reduce)": { animation: "none" },
@@ -161,6 +157,7 @@ function BrandPanel({
 }: BrandPanelProps): React.JSX.Element {
     return (
         <BrandPanelRoot
+            className={styles.brandPanel}
             size={size}
             $wideGamutPrimary={presentationConfig.wideGamutPrimary}
         >
@@ -378,27 +375,16 @@ const BrandPanelRoot = styled("div", {
         boxSizing: "border-box",
         color: "#fff",
         backgroundColor: "var(--auth-ui-primary)",
-        backgroundImage: 'url("/images/auth-surface-noise.svg")',
-        backgroundRepeat: "repeat",
-        backgroundPosition: "0 0",
-        backgroundSize: "auto",
         "&::before": {
             content: '""',
             position: "absolute",
             inset: 0,
             pointerEvents: "none",
-            backgroundImage: 'url("/images/auth-frame-curves.svg")',
             backgroundRepeat: "no-repeat",
-            backgroundPosition: "center",
-            backgroundSize: "cover",
-            maskImage:
-                "linear-gradient(to bottom, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.55) 42%, #000 100%)",
-            WebkitMaskImage:
-                "linear-gradient(to bottom, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.55) 42%, #000 100%)",
-            animation: `${brandCurvesDrift} 20s ease-in-out infinite`,
-        },
-        "@media (prefers-reduced-motion: reduce)": {
-            "&::before": { animation: "none" },
+            backgroundPosition: size === "mobile" ? "-90px top" : "center top",
+            backgroundSize: size === "mobile" ? "670px auto" : "cover",
+            opacity: 0.05,
+            maskImage: "linear-gradient(to bottom, transparent 30%, #000 85%)",
         },
         ...($wideGamutPrimary && {
             "@supports (color: color(display-p3 1 1 1))": {
