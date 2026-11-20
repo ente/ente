@@ -441,7 +441,10 @@ class _BodyState extends State<_Body> {
                   left: 0,
                   right: 0,
                   bottom: 0,
-                  height: MediaQuery.systemGestureInsetsOf(context).bottom,
+                  height: max(
+                    MediaQuery.paddingOf(context).bottom,
+                    MediaQuery.systemGestureInsetsOf(context).bottom,
+                  ),
                   child: const AbsorbPointer(child: SizedBox.expand()),
                 ),
               if (MediaQuery.systemGestureInsetsOf(context).left > 0)
