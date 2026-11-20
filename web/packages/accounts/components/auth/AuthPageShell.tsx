@@ -163,6 +163,28 @@ function BrandPanel({
         <BrandPanelRoot
             size={size}
             $wideGamutPrimary={presentationConfig.wideGamutPrimary}
+            sx={
+                presentationConfig.brandBackdrop
+                    ? {
+                          backgroundImage: "none",
+                          "&::before": {
+                              backgroundImage: `url("${presentationConfig.brandBackdrop}")`,
+                              backgroundPosition:
+                                  size === "mobile"
+                                      ? "-90px top"
+                                      : "center top",
+                              backgroundSize:
+                                  size === "mobile" ? "670px auto" : "cover",
+                              opacity: 0.05,
+                              maskImage:
+                                  "linear-gradient(to bottom, transparent 30%, #000 85%)",
+                              WebkitMaskImage:
+                                  "linear-gradient(to bottom, transparent 30%, #000 85%)",
+                              animation: "none",
+                          },
+                      }
+                    : undefined
+            }
         >
             <Wordmark size={size}>
                 <EnteLogo />
