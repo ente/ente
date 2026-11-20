@@ -1080,7 +1080,7 @@
     "filters": "",
     "invert_colors": "عكس الألوان",
     "reset": "إعادة تعيين",
-    "faster_upload": "تحميل أسرع",
+    "smart_routing": "",
     "faster_upload_description": "توجيه التحميلات عبر خوادم قريبة",
     "open_ente_on_startup": "فتح Ente عند بدء التشغيل",
     "cast_album_to_tv": "تشغيل الألبوم على التلفزيون",

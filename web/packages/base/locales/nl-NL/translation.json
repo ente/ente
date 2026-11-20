@@ -1080,7 +1080,7 @@
     "filters": "",
     "invert_colors": "Kleuren omkeren",
     "reset": "Herstellen",
-    "faster_upload": "Snellere uploads",
+    "smart_routing": "",
     "faster_upload_description": "Uploaden door nabije servers",
     "open_ente_on_startup": "Open Ente tijdens opstarten",
     "cast_album_to_tv": "Album afspelen op TV",

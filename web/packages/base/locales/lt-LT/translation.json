@@ -1080,7 +1080,7 @@
     "filters": "",
     "invert_colors": "Invertuoti spalvas",
     "reset": "Atkurti",
-    "faster_upload": "Spartesni įkėlimai",
+    "smart_routing": "",
     "faster_upload_description": "Nukreipkite įkėlimus per netoliese esančius serverius.",
     "open_ente_on_startup": "Atverti „Ente“ paleidimo metu",
     "cast_album_to_tv": "Paleisti albumą televizoriuje",
