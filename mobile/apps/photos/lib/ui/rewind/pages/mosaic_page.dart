@@ -5,35 +5,59 @@ import "dart:ui" as ui;
 import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
+import "package:flutter_svg/flutter_svg.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/services/rewind/rewind_edition.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
+import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
+import "package:photos/ui/rewind/theme/rewind_motion.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
 import "package:photos/ui/rewind/widgets/rewind_elapsed.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
-import "package:photos/ui/rewind/widgets/rewind_hint.dart";
+import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
 import "package:photos/ui/rewind/widgets/rewind_pixels.dart";
+import "package:photos/ui/rewind/widgets/rewind_reveal_layer.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
+import "package:photos/ui/rewind/widgets/rewind_text.dart";
+
+typedef _Sparkle = ({String asset, Rect rect, int delayMs});
+
+const List<_Sparkle> _sparkles = [
+  (
+    asset: RewindAssets.pinkSparkle,
+    rect: Rect.fromLTWH(331.75, 96.75, 42.5, 42.5),
+    delayMs: 700,
+  ),
+  (
+    asset: RewindAssets.creamSparkle,
+    rect: Rect.fromLTWH(6.75, 543.75, 32.5, 32.5),
+    delayMs: 850,
+  ),
+];
 
 class MosaicPage extends RewindPage {
   MosaicPage({
     required this.files,
     this.subject,
+    this.subjectName,
     this.bytes = rewindThumbnailBytes,
   });
 
   static const pageKey = "mosaic";
   static const minimumTiles = 120;
+  static const familiarFace = "FAMILIAR FACE";
 
   final List<EnteFile> files;
   final Uint8List? subject;
+  final String? subjectName;
   final RewindBytes bytes;
 
   var _isOnScreen = false;
+  final _tagTaps = ValueNotifier(0);
 
   late final RewindWarm<_Tiling> _tiling = RewindWarm(
     () => _Tiling.of(files, subject, bytes, () => _isOnScreen),
@@ -47,7 +71,8 @@ class MosaicPage extends RewindPage {
   int get warmAhead => 8;
 
   @override
-  Duration? get reelHold => const Duration(milliseconds: 3400);
+  Duration? get reelHold =>
+      const Duration(milliseconds: 3400 + RewindMotion.reelReadingMs);
 
   @override
   Duration? get clipHold => reelHold;
@@ -68,37 +93,65 @@ class MosaicPage extends RewindPage {
     final pace = _Pace.of(context);
     return RewindWarmBuilder<_Tiling>(
       warm: _tiling,
-      builder: (context, tiling) => Stack(
-        fit: StackFit.expand,
-        children: [
-          _card(position, isActive, tiling, pace),
-          RewindHint(
-            "TAP OR PINCH TO DIVE IN",
-            centerY: _Wall.frame.bottom - 30,
-            active: isActive && tiling != null,
-            position: position,
-            delayMs: pace.revealedMs + 300,
-          ),
-        ],
-      ),
+      builder: (context, tiling) {
+        final card = _card(position, isActive, tiling, pace);
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            RewindElapsed(
+              active: isActive && tiling != null,
+              stillMs: pace.titledMs.toDouble(),
+              builder: (context, ms) => RewindShareable(
+                enabled: tiling != null && ms >= pace.titledMs,
+                child: card,
+              ),
+            ),
+            _ExploreTag(
+              active: isActive && tiling != null,
+              position: position,
+              delayMs: pace.revealedMs + 300,
+              onTap: () => _tagTaps.value++,
+            ),
+          ],
+        );
+      },
     );
   }
 
+  String _subjectLine(String self) =>
+      "ONE ${subject == null ? "YEAR" : subjectName?.toUpperCase() ?? self}.";
+
+  static Widget _titleLine(String text) => RewindFitWidth(
+    width: 342,
+    alignment: Alignment.center,
+    child: RewindOutlinedText(
+      text,
+      textAlign: TextAlign.center,
+      style: RewindTextStyles.display(40, height: 41 / 40, letterSpacing: -0.3),
+      outline: 3.5,
+      shadow: const Offset(0, 3),
+      ink: RewindColors.outline,
+    ),
+  );
+
   Widget _card(double position, bool isActive, _Tiling? tiling, _Pace pace) {
-    return RewindShareable(
-      enabled: tiling != null,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          const RewindBackdrop(
-            color: Color(0xFFFF6727),
-            pattern: RewindStripes(Color(0xFFFF7638)),
-          ),
-          ExcludeSemantics(
+    final count = tiling == null
+        ? null
+        : "${rewindCount(tiling.photos)} PHOTOS.";
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        const RewindBackdrop(
+          color: Color(0xFFFF6727),
+          pattern: RewindStripes(Color(0xFFFF7638)),
+        ),
+        Semantics(
+          label: count == null ? null : "$count ${_subjectLine("YOU")}",
+          child: ExcludeSemantics(
             child: RewindStage(
               children: [
                 Positioned.fromRect(
-                  rect: _Wall.frame.inflate(12),
+                  rect: _Wall.frame.inflate(_Wall.border),
                   child: RewindLeave(
                     position: position,
                     centerY: _Wall.frame.center.dy,
@@ -110,23 +163,156 @@ class MosaicPage extends RewindPage {
                         tiling: tiling,
                         pace: pace,
                         active: isActive,
+                        tagTaps: _tagTaps,
                       ),
                     ),
                   ),
                 ),
+                for (final sparkle in _sparkles)
+                  RewindRevealLayer(
+                    left: sparkle.rect.left,
+                    top: sparkle.rect.top,
+                    height: sparkle.rect.height,
+                    position: position,
+                    active: isActive,
+                    preset: RewindPreset.twinkle,
+                    delayMs: sparkle.delayMs,
+                    child: RewindIdleLoop(
+                      idle: RewindIdle.twinkle,
+                      active: isActive,
+                      delayMs: sparkle.delayMs + 700,
+                      child: SvgPicture.file(
+                        RewindAssets.file(sparkle.asset),
+                        width: sparkle.rect.width,
+                        height: sparkle.rect.height,
+                      ),
+                    ),
+                  ),
+                if (count != null)
+                  RewindRevealLayer(
+                    left: 24,
+                    top: 636,
+                    width: 342,
+                    height: 82,
+                    position: position,
+                    active: isActive,
+                    preset: RewindPreset.rise,
+                    delayMs: pace.titleMs,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _titleLine(count),
+                        RewindVoice(
+                          you: _subjectLine("YOU"),
+                          me: _subjectLine("ME"),
+                          builder: _titleLine,
+                        ),
+                      ],
+                    ),
+                  ),
               ],
             ),
           ),
-        ],
-      ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ExploreTag extends StatelessWidget {
+  const _ExploreTag({
+    required this.active,
+    required this.position,
+    required this.delayMs,
+    required this.onTap,
+  });
+
+  static const _center = Offset(192.7, 566.6);
+  static const _turn = -3.28;
+  static const _showMs = 5000;
+  static const _fadeMs = 420;
+
+  final bool active;
+  final double position;
+  final int delayMs;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    if (RewindPageScope.reelOf(context)) return const SizedBox.shrink();
+    final tag = RewindStage(
+      children: [
+        Positioned.fromRect(
+          rect: Rect.fromCenter(center: _center, width: 260, height: 80),
+          child: RewindLeave(
+            position: position,
+            centerY: _center.dy,
+            child: Center(
+              child: RewindEntrance(
+                preset: RewindPreset.pop,
+                active: active,
+                delayMs: delayMs,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onTap,
+                  child: Transform.rotate(
+                    angle: _turn * pi / 180,
+                    child: Container(
+                      height: 39.354,
+                      padding: const EdgeInsets.symmetric(horizontal: 17.794),
+                      decoration: BoxDecoration(
+                        color: RewindColors.cream,
+                        border: Border.all(
+                          color: RewindColors.ink,
+                          width: 2.471,
+                        ),
+                        borderRadius: BorderRadius.circular(3.954),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: RewindColors.ink,
+                            offset: Offset(2.966, 3.954),
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        widthFactor: 1,
+                        child: Text(
+                          "Tap or pinch to explore",
+                          style: RewindTextStyles.display(
+                            17.794,
+                            color: RewindColors.ink,
+                            height: 1.15,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+    return RewindElapsed(
+      active: active,
+      stillMs: delayMs.toDouble(),
+      builder: (context, ms) {
+        final left = delayMs + _showMs - ms;
+        if (left <= 0) return const SizedBox.shrink();
+        return IgnorePointer(
+          ignoring: !active || ms < delayMs,
+          child: Opacity(opacity: (left / _fadeMs).clamp(0.0, 1.0), child: tag),
+        );
+      },
     );
   }
 }
 
 class _Tiling {
-  _Tiling(this.atlas, this.print, this.transforms, this.sources);
+  _Tiling(this.atlas, this.print, this.transforms, this.sources, this.photos);
 
-  static const columns = 44;
+  static const columns = 42;
   static const rows = 56;
   static const _detail = 2;
   static const _printCell = 24.0;
@@ -138,6 +324,7 @@ class _Tiling {
   final ui.Image print;
   final Float32List transforms;
   final Float32List sources;
+  final int photos;
 
   void dispose() {
     atlas.dispose();
@@ -184,6 +371,7 @@ class _Tiling {
       await _develop(atlas, quarters, cells, target),
       transforms,
       sources,
+      cells.toSet().length,
     );
   }
 
@@ -434,6 +622,10 @@ enum _Pace {
 
   int get revealedMs => holdMs + pullMs;
 
+  int get titleMs => revealedMs - 500;
+
+  int get titledMs => titleMs + RewindPreset.rise.lengthMs;
+
   static _Pace of(BuildContext context) =>
       RewindPageScope.reelOf(context) ? reel : viewer;
 }
@@ -443,10 +635,17 @@ class _Wall extends StatefulWidget {
     required this.tiling,
     required this.pace,
     required this.active,
+    required this.tagTaps,
     super.key,
   });
 
-  static const frame = Rect.fromLTWH(30, 212, 330, 420);
+  static const frame = Rect.fromLTWH(
+    48,
+    143,
+    293,
+    293 * _Tiling.rows / _Tiling.columns,
+  );
+  static const border = 29.0;
   static const _opening = 10.0;
   static const _closest = 14.0;
   static const _dive = 8.0;
@@ -455,6 +654,7 @@ class _Wall extends StatefulWidget {
   final _Tiling? tiling;
   final _Pace pace;
   final bool active;
+  final Listenable tagTaps;
 
   @override
   State<_Wall> createState() => _WallState();
@@ -480,7 +680,22 @@ class _WallState extends State<_Wall> with SingleTickerProviderStateMixin {
   var _pinched = false;
 
   @override
+  void initState() {
+    super.initState();
+    widget.tagTaps.addListener(_onTagTap);
+  }
+
+  @override
+  void didUpdateWidget(_Wall oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.tagTaps == widget.tagTaps) return;
+    oldWidget.tagTaps.removeListener(_onTagTap);
+    widget.tagTaps.addListener(_onTagTap);
+  }
+
+  @override
   void dispose() {
+    widget.tagTaps.removeListener(_onTagTap);
     _glide.dispose();
     super.dispose();
   }
@@ -538,10 +753,18 @@ class _WallState extends State<_Wall> with SingleTickerProviderStateMixin {
   void _lift({required bool tapped}) {
     _fingers = max(0, _fingers - 1);
     if (!tapped || _fingers > 0 || _pinched || _travel > 10) return;
-    _zoom < 1.5
-        ? _glideTo(_Wall._dive, _grabbed)
-        : _glideTo(1, const Offset(0.5, 0.5));
+    _toggle(_grabbed);
   }
+
+  void _onTagTap() {
+    if (widget.tiling == null) return;
+    _handsOn = true;
+    _toggle(const Offset(0.5, 0.5));
+  }
+
+  void _toggle(Offset at) => _zoom < 1.5
+      ? _glideTo(_Wall._dive, at)
+      : _glideTo(1, const Offset(0.5, 0.5));
 
   Offset _under(Offset touch, double zoom, Offset focus) => Offset(
     focus.dx + (touch.dx - _Wall.frame.width / 2) / (_Wall.frame.width * zoom),
@@ -572,10 +795,10 @@ class _WallState extends State<_Wall> with SingleTickerProviderStateMixin {
             ),
             if (tiling != null && revealed)
               Positioned.fill(
-                left: 12,
-                top: 12,
-                right: 12,
-                bottom: 12,
+                left: _Wall.border,
+                top: _Wall.border,
+                right: _Wall.border,
+                bottom: _Wall.border,
                 child: Listener(
                   onPointerDown: (_) => _touch(),
                   onPointerUp: (_) => _lift(tapped: true),
@@ -645,34 +868,63 @@ class _WallPainter extends CustomPainter {
     required this.ms,
   });
 
-  static const _inset = 12.0;
-  static const _mat = 7.0;
+  static const _moulding = 23.69;
+  static const _seam = 1.615;
+  static const _top = Color(0xFFFFF8E8);
+  static const _left = Color(0xFFFFF0D2);
+  static const _right = Color(0xFFF2DCB2);
+  static const _bottom = Color(0xFFEAD09F);
 
   final _Tiling? tiling;
   final double zoom;
   final Offset focus;
   final double ms;
 
+  static Paint _edge(double width) => Paint()
+    ..color = RewindColors.outline
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = width
+    ..strokeJoin = StrokeJoin.miter;
+
+  void _frame(Canvas canvas, Rect outer) {
+    final inner = outer.deflate(_moulding);
+    canvas.save();
+    canvas.clipRect(outer);
+    for (final (colour, corners) in [
+      (_top, [outer.topLeft, outer.topRight, inner.topRight, inner.topLeft]),
+      (
+        _left,
+        [outer.topLeft, inner.topLeft, inner.bottomLeft, outer.bottomLeft],
+      ),
+      (
+        _right,
+        [outer.topRight, outer.bottomRight, inner.bottomRight, inner.topRight],
+      ),
+      (
+        _bottom,
+        [
+          outer.bottomLeft,
+          inner.bottomLeft,
+          inner.bottomRight,
+          outer.bottomRight,
+        ],
+      ),
+    ]) {
+      final strip = Path()..addPolygon(corners, true);
+      canvas.drawPath(strip, Paint()..color = colour);
+      canvas.drawPath(strip, _edge(_seam));
+    }
+    canvas.restore();
+    canvas.drawRect(inner, Paint()..color = RewindColors.yellow);
+    canvas.drawRect(inner.deflate(_seam / 2), _edge(_seam));
+    canvas.drawRect(outer.deflate(_seam), _edge(_seam * 2));
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
-    final print = Rect.fromLTWH(
-      _inset - _mat,
-      _inset - _mat,
-      size.width - 2 * (_inset - _mat),
-      size.height - 2 * (_inset - _mat),
-    );
-    final picture = (Offset.zero & size).deflate(_inset);
-    final ink = Paint()..color = RewindColors.ink;
-    final card = RRect.fromRectAndRadius(print, const Radius.circular(8));
-    canvas.drawRRect(card.shift(const Offset(5, 6)), ink);
-    canvas.drawRRect(card, Paint()..color = RewindColors.cream);
-    canvas.drawRRect(
-      card,
-      Paint()
-        ..color = RewindColors.ink
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 3,
-    );
+    final outer = Offset.zero & size;
+    final picture = outer.deflate(_Wall.border);
+    _frame(canvas, outer);
     canvas.save();
     canvas.clipRect(picture);
     final tiling = this.tiling;
@@ -717,13 +969,7 @@ class _WallPainter extends CustomPainter {
       }
     }
     canvas.restore();
-    canvas.drawRect(
-      picture,
-      Paint()
-        ..color = RewindColors.ink
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2,
-    );
+    canvas.drawRect(picture, _edge(_seam));
   }
 
   void _developing(Canvas canvas, Rect picture) {
