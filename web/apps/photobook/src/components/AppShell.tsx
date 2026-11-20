@@ -22,7 +22,6 @@ import {
 } from "react";
 import type { SidebarTab, SidebarTabsState } from "./BookSidebar";
 import { MOBILE_QUERY } from "./editorLayout";
-import EntePasswordDialog from "./EntePasswordDialog";
 import ImportProgress from "./ImportProgress";
 import PhotoChoiceDialog from "./PhotoChoiceDialog";
 
@@ -76,16 +75,8 @@ export default function AppShell() {
     useLayoutEffect(() => {
         setSidebarOpen(!showPreview);
     }, [showPreview]);
-    const {
-        importActive,
-        importCompleted,
-        clearImportCompleted,
-        enteStage,
-        entePassword,
-        setEntePassword,
-        handleSubmitPassword,
-        handleCancelPassword,
-    } = usePhotoImport();
+    const { importActive, importCompleted, clearImportCompleted } =
+        usePhotoImport();
     useEffect(() => {
         if (importActive) {
             sidebarScrollPositions.current = { pages: 0, photos: 0 };
@@ -241,14 +232,6 @@ export default function AppShell() {
                     {photoImportError}
                 </Alert>
             </Snackbar>
-
-            <EntePasswordDialog
-                open={enteStage === "password"}
-                password={entePassword}
-                onPasswordChange={setEntePassword}
-                onSubmit={handleSubmitPassword}
-                onCancel={handleCancelPassword}
-            />
 
             <PhotoChoiceDialog
                 open={

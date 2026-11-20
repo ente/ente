@@ -17,6 +17,7 @@ import {
     ImageAdd02Icon,
     InformationCircleIcon,
     Location01Icon,
+    LockKeyholeIcon,
     MinusSignIcon,
     MoreHorizontalIcon,
     PanelLeftCloseIcon,
@@ -72,6 +73,9 @@ export const ArrowRightIcon = forwardRef<SVGSVGElement, SvgIconProps>(
 );
 export const LocationIcon = forwardRef<SVGSVGElement, SvgIconProps>(
     (props, ref) => <AppIcon {...props} ref={ref} icon={Location01Icon} />,
+);
+export const LockIcon = forwardRef<SVGSVGElement, SvgIconProps>(
+    (props, ref) => <AppIcon {...props} ref={ref} icon={LockKeyholeIcon} />,
 );
 export const CloseIcon = forwardRef<SVGSVGElement, SvgIconProps>(
     (props, ref) => <AppIcon {...props} ref={ref} icon={Cancel01Icon} />,

@@ -1,33 +1,34 @@
 import { usePhotoImport } from "@/hooks/usePhotoImport";
-import {
-    accentGreen,
-    accentGreenHover,
-    editorButtonSx,
-    secondaryButtonSx,
-} from "@/theme/buttons";
+import { accentGreen, accentGreenHover } from "@/theme/buttons";
 import { uiColors } from "@/theme/colors";
-import {
-    Alert,
-    Box,
-    Button,
-    LinearProgress,
-    TextField,
-    Typography,
-} from "@mui/material";
+import { Box, LinearProgress, Typography } from "@mui/material";
+import { useEffect, useState } from "react";
 import BookHeader from "./BookHeader";
+import PhotoChoiceDialog from "./PhotoChoiceDialog";
 import { EDITOR_PANEL_INSET } from "./editorLayout";
 
 export default function ImportProgress() {
     const {
         importing,
         processingProgress,
-        enteUrl,
-        setEnteUrl,
         enteError,
         importError,
+        enteStage,
         retryImport,
         dismissImport,
+        chooseAnotherAlbum,
     } = usePhotoImport();
+    const canRetry = enteError?.canRetry ?? true;
+    const retryAt = enteError?.retryAt ?? 0;
+    const [now, setNow] = useState(Date.now);
+    useEffect(() => {
+        if (!retryAt) return;
+        const timeout = window.setTimeout(
+            () => setNow(Date.now()),
+            Math.max(0, retryAt - Date.now()),
+        );
+        return () => window.clearTimeout(timeout);
+    }, [retryAt]);
 
     return (
         <Box
@@ -95,55 +96,35 @@ export default function ImportProgress() {
                             </Typography>
                         </>
                     ) : (
-                        <>
-                            <Typography
-                                component="h1"
-                                sx={{ fontSize: 24, fontWeight: 600, mb: 2 }}
-                            >
-                                Couldn’t import your photos
-                            </Typography>
-                            <Alert
-                                severity="error"
-                                sx={{
-                                    textAlign: "left",
-                                    borderRadius: "14px",
-                                    mb: 2,
-                                }}
-                            >
-                                {enteError || importError}
-                            </Alert>
-                            {enteError && (
-                                <TextField
-                                    fullWidth
-                                    label="Ente album link"
-                                    value={enteUrl}
-                                    onChange={(event) =>
-                                        setEnteUrl(event.target.value)
-                                    }
-                                    sx={{ mb: 2 }}
-                                />
-                            )}
-                            <Box sx={{ display: "flex", gap: 1 }}>
-                                <Button
-                                    fullWidth
-                                    onClick={dismissImport}
-                                    sx={secondaryButtonSx}
-                                >
-                                    Back
-                                </Button>
-                                <Button
-                                    fullWidth
-                                    variant="contained"
-                                    onClick={() => {
-                                        void retryImport();
-                                    }}
-                                    disabled={!!enteError && !enteUrl.trim()}
-                                    sx={editorButtonSx}
-                                >
-                                    Try again
-                                </Button>
-                            </Box>
-                        </>
+                        <PhotoChoiceDialog
+                            open={enteStage !== "url"}
+                            icon="warning"
+                            title="Couldn't import your photos"
+                            description={
+                                enteError?.message ||
+                                importError ||
+                                "Please try again."
+                            }
+                            primary={{
+                                label: canRetry
+                                    ? "Try again"
+                                    : "Try a different album",
+                                onClick: () => {
+                                    if (canRetry) void retryImport();
+                                    else chooseAnotherAlbum();
+                                },
+                                disabled: canRetry && now < retryAt,
+                            }}
+                            secondary={
+                                canRetry
+                                    ? {
+                                          label: "Try a different album",
+                                          onClick: chooseAnotherAlbum,
+                                      }
+                                    : undefined
+                            }
+                            onClose={dismissImport}
+                        />
                     )}
                 </Box>
             </Box>

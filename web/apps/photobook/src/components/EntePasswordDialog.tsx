@@ -1,16 +1,12 @@
-import {
-    Button,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogTitle,
-    TextField,
-    Typography,
-} from "@mui/material";
+import { TextField } from "@mui/material";
+import { useEffect, useRef } from "react";
+import PhotoChoiceDialog from "./PhotoChoiceDialog";
 
 interface EntePasswordDialogProps {
     open: boolean;
     password: string;
+    error?: string;
+    submitting: boolean;
     onPasswordChange: (v: string) => void;
     onSubmit: () => void;
     onCancel: () => void;
@@ -19,59 +15,50 @@ interface EntePasswordDialogProps {
 export default function EntePasswordDialog({
     open,
     password,
+    error,
+    submitting,
     onPasswordChange,
     onSubmit,
     onCancel,
 }: EntePasswordDialogProps) {
+    const inputRef = useRef<HTMLInputElement>(null);
+    useEffect(() => {
+        if (error) {
+            inputRef.current?.focus();
+            inputRef.current?.select();
+        }
+    }, [error]);
     return (
-        <Dialog open={open} onClose={onCancel} maxWidth="xs" fullWidth>
-            <DialogTitle
-                sx={{
-                    fontFamily: "var(--font-inter), sans-serif",
-                    fontWeight: 700,
+        <PhotoChoiceDialog
+            open={open}
+            icon="lock"
+            title="Album password"
+            description="Enter the album password to continue."
+            primary={{
+                label: submitting ? "Unlocking..." : "Unlock",
+                onClick: onSubmit,
+                disabled: submitting || !password,
+            }}
+            onClose={submitting ? undefined : onCancel}
+        >
+            <TextField
+                autoFocus
+                inputRef={inputRef}
+                fullWidth
+                type="password"
+                label="Password"
+                value={password}
+                error={!!error}
+                helperText={error}
+                disabled={submitting}
+                onChange={(event) => onPasswordChange(event.target.value)}
+                onKeyDown={(event) => {
+                    if (event.key === "Enter" && password && !submitting) {
+                        event.preventDefault();
+                        onSubmit();
+                    }
                 }}
-            >
-                Album password
-            </DialogTitle>
-            <DialogContent>
-                <Typography
-                    sx={{ color: "text.secondary", mb: 2, fontSize: "0.95rem" }}
-                >
-                    This album is password-protected. Enter the password shared
-                    with you.
-                </Typography>
-                <TextField
-                    autoFocus
-                    fullWidth
-                    variant="outlined"
-                    type="password"
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => onPasswordChange(e.target.value)}
-                    onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                            e.preventDefault();
-                            onSubmit();
-                        }
-                    }}
-                />
-            </DialogContent>
-            <DialogActions sx={{ px: 3, pb: 2 }}>
-                <Button onClick={onCancel} sx={{ color: "text.secondary" }}>
-                    Cancel
-                </Button>
-                <Button
-                    onClick={onSubmit}
-                    variant="contained"
-                    sx={{
-                        background: "#08C225",
-                        fontWeight: 700,
-                        "&:hover": { background: "#07AE22" },
-                    }}
-                >
-                    Unlock
-                </Button>
-            </DialogActions>
-        </Dialog>
+            />
+        </PhotoChoiceDialog>
     );
 }

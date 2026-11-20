@@ -323,7 +323,7 @@ export default function StartPage() {
                                         textAlign: "left",
                                     }}
                                 >
-                                    {enteError}
+                                    {enteError.message}
                                 </Alert>
                             )}
                         </Box>

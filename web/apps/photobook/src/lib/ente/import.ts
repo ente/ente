@@ -13,50 +13,68 @@ import {
     getPublicCollectionInfo,
     verifyPublicCollectionPassword,
 } from "ente-media/public-albums";
+import { AlbumImportBlockedError } from "./import-error";
 import type { EnteCredentials, EnteFileDescriptor } from "./types";
 import { parseEnteAlbumUrl } from "./url";
 
 export async function prepareEnteAlbum(
     albumUrl: string,
-    requestPassword: () => Promise<string | null>,
+    requestPassword: (error?: string) => Promise<string | null>,
+    linkDeviceToken?: string,
 ) {
-    const { collectionKey, ...parsedCredentials } = parseEnteAlbumUrl(albumUrl);
+    let parsed;
+    try {
+        parsed = parseEnteAlbumUrl(albumUrl);
+    } catch (error) {
+        throw new AlbumImportBlockedError(
+            error instanceof Error
+                ? error.message
+                : "This album link is invalid.",
+        );
+    }
+    const { collectionKey, ...parsedCredentials } = parsed;
     const deviceTokenKey = `public-collection-link-device-token:${await apiOrigin()}:${parsedCredentials.accessToken}`;
     const credentials: EnteCredentials = {
         ...parsedCredentials,
-        linkDeviceToken: await getKVS(deviceTokenKey),
+        linkDeviceToken: linkDeviceToken ?? (await getKVS(deviceTokenKey)),
         downloadOrigin:
             (await customAPIOrigin()) ?? "https://public-albums.ente.com",
     };
     const info = await getPublicCollectionInfo(credentials);
     if (info.linkDeviceToken) {
         credentials.linkDeviceToken = info.linkDeviceToken;
-        await setKV(deviceTokenKey, info.linkDeviceToken);
     }
+    if (credentials.linkDeviceToken)
+        await setKV(deviceTokenKey, credentials.linkDeviceToken);
     const publicURL = info.collection.publicURLs[0];
-    if (!publicURL) throw new Error("Public album share has no active URL.");
+    if (!publicURL)
+        throw new AlbumImportBlockedError(
+            "This album no longer has an active public link.",
+        );
     if (!publicURL.enableDownload)
         throw new Error(
-            "This album cannot be imported because downloads are disabled for this public link.",
+            "Downloads are disabled for this album. Enable downloads in the album's sharing settings, then try again.",
         );
     if (publicURL.passwordEnabled) {
-        const password = await requestPassword();
-        if (password === null)
-            throw Object.assign(new Error("Album import cancelled."), {
-                cancelled: true,
-            });
-        try {
-            credentials.accessTokenJWT = await verifyPublicCollectionPassword(
-                credentials,
-                publicURL,
-                password,
-            );
-        } catch (error) {
-            if (isHTTP401Error(error))
-                throw new Error("That password is incorrect.", {
-                    cause: error,
+        let passwordError: string | undefined;
+        while (true) {
+            const password = await requestPassword(passwordError);
+            if (password === null)
+                throw Object.assign(new Error("Album import cancelled."), {
+                    cancelled: true,
                 });
-            throw error;
+            try {
+                credentials.accessTokenJWT =
+                    await verifyPublicCollectionPassword(
+                        credentials,
+                        publicURL,
+                        password,
+                    );
+                break;
+            } catch (error) {
+                if (!isHTTP401Error(error)) throw error;
+                passwordError = "That password is incorrect.";
+            }
         }
     }
     const remote = new Map<number, RemoteEnteFile>();
