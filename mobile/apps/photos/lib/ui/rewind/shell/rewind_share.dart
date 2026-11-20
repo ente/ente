@@ -12,16 +12,16 @@ import "package:share_plus/share_plus.dart";
 class RewindShareable extends StatefulWidget {
   const RewindShareable({
     required this.child,
-    this.shared,
     this.branded = true,
     this.enabled = true,
+    this.onShare,
     super.key,
   });
 
   final Widget child;
-  final Widget? shared;
   final bool branded;
   final bool enabled;
+  final VoidCallback? onShare;
 
   static bool capturing(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<_Capturing>()?.enabled ??
@@ -32,7 +32,10 @@ class RewindShareable extends StatefulWidget {
 }
 
 class _RewindShareableState extends State<RewindShareable> {
-  late final _card = RewindShareCard(branded: widget.branded);
+  late final _card = RewindShareCard(
+    branded: widget.branded,
+    onShare: () => widget.onShare?.call(),
+  );
   RewindPageScope? _scope;
 
   @override
@@ -80,10 +83,7 @@ class _RewindShareableState extends State<RewindShareable> {
         children: [
           RepaintBoundary(
             key: _card.boundary,
-            child: _Capturing(
-              enabled: stillFrame != null,
-              child: _layout(capturing: stillFrame != null),
-            ),
+            child: _Capturing(enabled: stillFrame != null, child: widget.child),
           ),
           if (stillFrame != null)
             Positioned.fill(
@@ -91,18 +91,6 @@ class _RewindShareableState extends State<RewindShareable> {
             ),
         ],
       ),
-    );
-  }
-
-  Widget _layout({required bool capturing}) {
-    final shared = widget.shared;
-    if (shared == null) return widget.child;
-    return Stack(
-      fit: StackFit.passthrough,
-      children: [
-        Offstage(offstage: capturing, child: widget.child),
-        Offstage(offstage: !capturing, child: shared),
-      ],
     );
   }
 }
@@ -145,6 +133,7 @@ Future<void> shareRewindCard(
 }) async {
   final boundary = card.boundary.currentContext?.findRenderObject();
   if (boundary is! RenderRepaintBoundary) return;
+  card.onShare();
   var image = await _captureInFirstPerson(card, boundary, pixelRatio);
   if (card.branded) {
     final topLeft = boundary.globalToLocal(wordmark.topLeft);

@@ -77,7 +77,7 @@ class BackupSettingsScreen extends StatelessWidget {
           const SizedBox(height: 8),
           _toggleItem(
             context,
-            title: l10n.fasterUploads,
+            title: l10n.smartRouting,
             value: () =>
                 localSettings.cfUploadProxyEnabled ??
                 flagService.cloudflareUploadWorker,

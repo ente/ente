@@ -1088,7 +1088,7 @@
     "filters": "Filters",
     "invert_colors": "Invert colors",
     "reset": "Reset",
-    "faster_upload": "Faster uploads",
+    "smart_routing": "Smart routing",
     "faster_upload_description": "Route uploads through nearby servers",
     "open_ente_on_startup": "Open Ente on startup",
     "cast_album_to_tv": "Play album on TV",

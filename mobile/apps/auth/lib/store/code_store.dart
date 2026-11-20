@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:collection/collection.dart';
 import 'package:ente_auth/core/configuration.dart';
 import 'package:ente_auth/events/codes_updated_event.dart';
 import 'package:ente_auth/models/authenticator/entity_result.dart';
@@ -10,6 +9,7 @@ import 'package:ente_auth/models/code_parse_error.dart';
 import 'package:ente_auth/services/authenticator_service.dart';
 import 'package:ente_auth/store/offline_authenticator_db.dart';
 import 'package:ente_events/event_bus.dart';
+import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:logging/logging.dart';
 
 class CodeStore {
@@ -107,17 +107,14 @@ class CodeStore {
         if (secondCode.isPinned && !firstCode.isPinned) return 1;
         if (!secondCode.isPinned && firstCode.isPinned) return -1;
 
-        final issuerComparison = compareAsciiLowerCaseNatural(
+        final issuerComparison = compareNames(
           firstCode.issuer,
           secondCode.issuer,
         );
         if (issuerComparison != 0) {
           return issuerComparison;
         }
-        return compareAsciiLowerCaseNatural(
-          firstCode.account,
-          secondCode.account,
-        );
+        return compareNames(firstCode.account, secondCode.account);
       });
     }
 

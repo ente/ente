@@ -70,7 +70,7 @@ class _BackupFolderSelectionPageState extends State<BackupFolderSelectionPage> {
       setState(() {
         _deviceCollections = files;
         _deviceCollections!.sort((first, second) {
-          return first.name.toLowerCase().compareTo(second.name.toLowerCase());
+          return compareNames(first.name, second.name);
         });
         for (final file in _deviceCollections!) {
           _allDevicePathIDs.add(file.id);

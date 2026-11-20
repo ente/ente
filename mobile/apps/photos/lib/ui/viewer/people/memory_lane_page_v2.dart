@@ -11,6 +11,7 @@ import "package:flutter/material.dart";
 import "package:flutter/services.dart" show SystemUiOverlayStyle;
 import "package:intl/intl.dart" show DateFormat;
 import "package:logging/logging.dart";
+import "package:photos/core/constants.dart";
 import "package:photos/db/ml/db.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/memory_lane/memory_lane_models.dart";
@@ -265,6 +266,7 @@ class _MemoryLanePageV2State extends State<MemoryLanePageV2> {
   void _onPhotoPointerEnd(PointerEvent event) {
     if (event.pointer != _photoPointer) return;
     _photoPointer = null;
+    if (ModalRoute.of(context)?.isActive == false) return;
     _setMusicPausedByPointer(false);
     unawaited(_play(i, fastTransition: true));
   }
@@ -622,6 +624,27 @@ class _MemoryLanePageV2State extends State<MemoryLanePageV2> {
                             }
                           },
                           onLongPress: () {},
+                          onLongPressMoveUpdate: widget.isFromMemoriesStrip
+                              ? (details) {
+                                  final offset = details.offsetFromOrigin;
+                                  if (offset.dy >
+                                          kMemoryHoldSwipeDownDistance &&
+                                      offset.dy > offset.dx.abs() &&
+                                      ModalRoute.of(context)?.isCurrent ==
+                                          true) {
+                                    unawaited(Navigator.maybePop(context));
+                                  }
+                                }
+                              : null,
+                          onVerticalDragUpdate: widget.isFromMemoriesStrip
+                              ? (details) {
+                                  if (details.delta.dy > dragSensitivity &&
+                                      ModalRoute.of(context)?.isCurrent ==
+                                          true) {
+                                    unawaited(Navigator.maybePop(context));
+                                  }
+                                }
+                              : null,
                           child: Padding(
                             padding: EdgeInsets.symmetric(
                               horizontal: screenSize.width * 0.08,

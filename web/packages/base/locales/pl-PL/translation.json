@@ -1080,7 +1080,7 @@
     "filters": "",
     "invert_colors": "Odwróć kolory",
     "reset": "Zresetuj",
-    "faster_upload": "Szybsze przesłania",
+    "smart_routing": "",
     "faster_upload_description": "Kieruj przesłania przez pobliskie serwery",
     "open_ente_on_startup": "Uruchom Ente przy starcie systemu",
     "cast_album_to_tv": "Odtwórz album na telewizorze",

@@ -1,6 +1,7 @@
 import "package:flutter/widgets.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
+import "package:photos/ui/rewind/theme/rewind_motion.dart";
 
 class RewindChrome {
   const RewindChrome({
@@ -36,9 +37,12 @@ abstract class RewindPage {
 
   RewindChrome get chrome => RewindChrome.light;
 
-  Duration? get reelHold => const Duration(milliseconds: 2400);
+  Duration? get reelHold =>
+      const Duration(milliseconds: 2400 + RewindMotion.reelReadingMs);
 
   List<EnteFile>? get reelThumbnails => null;
+
+  Duration? get clipHold => null;
 
   bool get hasOwnVideoButton => false;
 

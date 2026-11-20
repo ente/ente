@@ -36,8 +36,14 @@ const httpOwners = sorted("httpOwners", [
 ]);
 const cryptoOwner = "rust/crates/core/Cargo.toml";
 const cryptoExceptions = sorted("cryptoExceptions", [
+    "aes rust/crates/auth/Cargo.toml",
+    "aes-gcm rust/crates/auth/Cargo.toml",
+    "argon2 rust/crates/auth/Cargo.toml",
     "hkdf rust/crates/ensu-crypto/Cargo.toml",
+    "hmac rust/crates/auth/Cargo.toml",
     "hmac rust/crates/legacy/Cargo.toml",
+    "pbkdf2 rust/crates/auth/Cargo.toml",
+    "scrypt rust/crates/auth/Cargo.toml",
     "srp rust/crates/accounts/Cargo.toml",
 ]);
 const cryptoName =

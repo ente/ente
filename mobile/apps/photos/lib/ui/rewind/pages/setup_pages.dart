@@ -1,7 +1,6 @@
 import "package:flutter/painting.dart";
 import "package:photos/ui/rewind/pages/setup_page.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
-import "package:photos/ui/rewind/story/rewind_rituals.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
@@ -55,29 +54,6 @@ const placesSetupPage = SetupPage(
     Rect.fromLTWH(0, 471, 390.2, 310.4),
     ticks: [(RewindTick.forward, Rect.fromLTWH(194, 486, 11, 18))],
     pivot: Offset(195, 758),
-    delayMs: 780,
-  ),
-);
-
-const spotsSetupPage = SetupPage(
-  key: "spots_setup",
-  color: Color(0xFFFFCA39),
-  pattern: Color(0xFFFFD24E),
-  ink: RewindColors.ink,
-  chrome: RewindChrome.dark,
-  headlines: [
-    SetupHeadline("SAME SPOTS,\nNEW SHOTS.", at: Offset(24, 140), size: 54),
-  ],
-  callout: SetupCallout(
-    "A LITTLE DÉJÀ VIEW!",
-    center: Offset(195, 385.5),
-    delayMs: 600,
-  ),
-  art: SetupArt.ducky(
-    RewindAssets.chairDucky,
-    Rect.fromLTWH(22, 401, 310.4, 373.1),
-    ticks: [(RewindTick.forward, Rect.fromLTWH(229, 423, 11, 18))],
-    pivot: Offset(176, 752),
     delayMs: 780,
   ),
 );
@@ -203,36 +179,26 @@ const ritualSetupPage = SetupPage(
   ),
 );
 
-SetupPage ritualStreakSetupPage(RewindRituals rituals) => SetupPage(
-  key: ritualStreakSetupKey,
-  color: const Color(0xFFE86436),
-  pattern: const Color(0xFFF0713F),
+const ritualStreakSetupPage = SetupPage(
+  key: "ritual_streak_setup",
+  color: Color(0xFFE86436),
+  pattern: Color(0xFFF0713F),
   ink: RewindColors.cream,
   headlines: [
-    SetupHeadline(
-      switch ((rituals.built, rituals.started)) {
-        (1, 1) => "YOU BUILT\nA NEW\nRITUAL.",
-        (1, _) => "YOU BUILT\nA HABIT.",
-        _ => "YOU BUILT\nRITUALS.",
-      },
-      at: const Offset(24, 140),
-      size: 66,
-    ),
+    SetupHeadline("YOU BUILT\nRITUALS.", at: Offset(24, 140), size: 66),
   ],
-  callout: const SetupCallout(
+  callout: SetupCallout(
     "ONE PHOTO A DAY.",
     center: Offset(195, 398.5),
     delayMs: 600,
   ),
-  art: const SetupArt.ducky(
+  art: SetupArt.ducky(
     RewindAssets.cameraDucky,
     Rect.fromLTWH(46.5, 441, 265.3, 334),
     pivot: Offset(179, 775),
     delayMs: 780,
   ),
 );
-
-const ritualStreakSetupKey = "ritual_streak_setup";
 
 const likesSetupPage = SetupPage(
   key: "likes_setup",
@@ -243,9 +209,10 @@ const likesSetupPage = SetupPage(
     SetupHeadline("YOUR FEED\nWAS LIT!", at: Offset(24, 140), size: 48),
   ],
   callout: SetupCallout("’SPECIALLY THIS ONE.", center: Offset(188.2, 383.5)),
-  art: SetupArt.image(
-    RewindAssets.polaroidHugDucky,
-    Rect.fromLTWH(46, 434, 296, 328),
+  art: SetupArt.ducky(
+    RewindAssets.likesDucky,
+    Rect.fromLTWH(21.5, 410, 344, 376),
+    pivot: Offset(194, 762),
   ),
 );
 
@@ -262,9 +229,9 @@ const badgeSetupPage = SetupPage(
     center: Offset(196.5, 395),
     size: 23.87,
   ),
-  art: SetupArt.image(
+  art: SetupArt.ducky(
     RewindAssets.detectiveDucky,
-    Rect.fromLTWH(39, 445, 286, 331),
+    Rect.fromLTWH(14.5, 420, 334, 378.4),
     ticks: [(RewindTick.bold, Rect.fromLTWH(209, 424, 16, 23))],
     pivot: Offset(182, 777),
   ),
@@ -273,7 +240,6 @@ const badgeSetupPage = SetupPage(
 const setupPages = [
   paletteSetupPage,
   placesSetupPage,
-  spotsSetupPage,
   peopleSetupPage,
   busiestDaySetupPage,
   newFacesSetupPage,

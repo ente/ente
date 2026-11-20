@@ -24,6 +24,13 @@ struct KdfParams {
     salt: String,
 }
 
+struct ValidatedBackup {
+    params: argon::Params,
+    salt: Salt,
+    header: Header,
+    encrypted: Vec<u8>,
+}
+
 pub fn encrypt(plaintext: &[u8], password: &str) -> Result<Vec<u8>> {
     let derived = argon::derive_sensitive_key(password)?;
     let encrypted = blob::encrypt(plaintext, &derived.key)?;
@@ -41,6 +48,16 @@ pub fn encrypt(plaintext: &[u8], password: &str) -> Result<Vec<u8>> {
 }
 
 pub fn decrypt(input: &[u8], password: &str) -> Result<Zeroizing<Vec<u8>>> {
+    let backup = validate(input)?;
+    let key = argon::derive_key(password, &backup.salt, backup.params)?;
+    Ok(Zeroizing::new(blob::decrypt_legacy(
+        &backup.encrypted,
+        &backup.header,
+        &key,
+    )?))
+}
+
+fn validate(input: &[u8]) -> Result<ValidatedBackup> {
     let backup: Backup = serde_json::from_slice(input).map_err(|_| Error::InvalidBackup)?;
     if backup.version != 1 {
         return Err(Error::UnsupportedVersion);
@@ -56,10 +73,16 @@ pub fn decrypt(input: &[u8], password: &str) -> Result<Zeroizing<Vec<u8>>> {
     if encrypted.len() < blob::ABYTES {
         return Err(Error::InvalidBackup);
     }
-    let key = argon::derive_key(password, &salt, params)?;
-    Ok(Zeroizing::new(blob::decrypt_legacy(
-        &encrypted, &header, &key,
-    )?))
+    Ok(ValidatedBackup {
+        params,
+        salt,
+        header,
+        encrypted,
+    })
+}
+
+pub fn validate_encrypted(input: &[u8]) -> Result<()> {
+    validate(input).map(drop)
 }
 
 #[cfg(test)]
@@ -86,6 +109,7 @@ mod tests {
             encryption_nonce: b64::encode(stream.header().as_bytes()),
         };
         let encoded = serde_json::to_vec(&backup).unwrap();
+        validate_encrypted(&encoded).unwrap();
         assert_eq!(decrypt(&encoded, password).unwrap().as_slice(), bytes);
         backup.kdf_params.mem_limit = 1 << 32;
         backup.kdf_params.ops_limit = 5;

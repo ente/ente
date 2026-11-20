@@ -60,6 +60,12 @@ class GlobePage extends RewindPage {
   Duration? get reelHold => Duration(milliseconds: 1450 + _reelJourney.round());
 
   @override
+  Duration? get clipHold => reelHold;
+
+  @override
+  List<EnteFile> get reelThumbnails => [for (final photo in photos) ?photo];
+
+  @override
   Future<bool> warmUp() async {
     await _pins.value;
     return true;
@@ -76,15 +82,16 @@ class GlobePage extends RewindPage {
   }) {
     final km = globe.distanceKm;
     final lap = km >= earthKm
-        ? "That’s ${(km / earthKm).toStringAsFixed(1)} times around the Earth."
-        : "That’s ${max(1, (100 * km / earthKm).round())}% of the way "
-              "around the Earth.";
+        ? "That’s ${(km / earthKm).toStringAsFixed(1)} laps around the globe."
+        : "That’s ${max(1, (100 * km / earthKm).round())}% of a lap "
+              "around the globe.";
     return Stack(
       fit: StackFit.expand,
       children: [
         _card(
           position,
           isActive,
+          isActive && !RewindPageScope.coveredOf(context),
           km,
           lap,
           RewindPageScope.reelOf(context) ? _reelJourney : _world.journeyMs,
@@ -103,6 +110,7 @@ class GlobePage extends RewindPage {
   Widget _card(
     double position,
     bool isActive,
+    bool playing,
     int km,
     String body,
     double journeyMs,
@@ -124,7 +132,7 @@ class GlobePage extends RewindPage {
               ),
             ),
             Semantics(
-              label: "Your photos flew ${rewindCount(km)} kilometres. $body",
+              label: "Your photos flew ${rewindCount(km)} kilometers. $body",
               child: ExcludeSemantics(
                 child: RewindStage(
                   children: [
@@ -138,7 +146,7 @@ class GlobePage extends RewindPage {
                           photos: photos,
                           photo: photo,
                           pins: pins,
-                          active: isActive,
+                          active: playing,
                         ),
                       ),
                     ),
@@ -172,7 +180,7 @@ class GlobePage extends RewindPage {
                         width: 322,
                         child: RewindCountUp(
                           value: km,
-                          active: isActive,
+                          active: playing,
                           delayMs: _World.introMs.round(),
                           durationMs: journeyMs.round(),
                           builder: (context, text) => RewindOutlinedText(

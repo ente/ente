@@ -140,6 +140,7 @@ class VideoExportEngine(
                     optimizeTrim = false,
                     maxDurationUs = null,
                     videoBitrate = request.videoBitrate,
+                    maxFramesInEncoder = SLIDESHOW_MAX_FRAMES_IN_ENCODER,
                     onProgress = onProgress
                 )
             }
@@ -228,6 +229,7 @@ class VideoExportEngine(
         optimizeTrim: Boolean,
         maxDurationUs: Long?,
         videoBitrate: Int? = null,
+        maxFramesInEncoder: Int? = null,
         onProgress: ((Float) -> Unit)?
     ): ExportResult = coroutineScope {
         var progressJob: Job? = null
@@ -251,6 +253,9 @@ class VideoExportEngine(
                 }
                 if (optimizeTrim) {
                     transformerBuilder.experimentalSetTrimOptimizationEnabled(true)
+                }
+                if (maxFramesInEncoder != null) {
+                    transformerBuilder.experimentalSetMaxFramesInEncoder(maxFramesInEncoder)
                 }
                 val transformer = transformerBuilder
                     .addListener(object : Transformer.Listener {
@@ -315,6 +320,10 @@ class VideoExportEngine(
         } finally {
             extractor.release()
         }
+    }
+
+    private companion object {
+        const val SLIDESHOW_MAX_FRAMES_IN_ENCODER = 16
     }
 }
 

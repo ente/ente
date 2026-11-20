@@ -6,9 +6,9 @@ import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_motion.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
-import "package:photos/ui/rewind/widgets/rewind_keyframes.dart";
 import "package:photos/ui/rewind/widgets/rewind_layer.dart";
 import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
+import "package:photos/ui/rewind/widgets/rewind_rive.dart";
 import "package:photos/ui/rewind/widgets/rewind_spread.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
 import "package:photos/ui/rewind/widgets/rewind_text.dart";
@@ -18,8 +18,8 @@ class TopPercentPage extends RewindPage {
 
   static const pageKey = "top_percent";
 
-  static const _base = Color(0xFF5666CC);
   static const _night = Color(0xFF1A2A8F);
+  static const _textDelayMs = 900;
 
   final int percent;
   final int count;
@@ -28,22 +28,16 @@ class TopPercentPage extends RewindPage {
   String get key => pageKey;
 
   @override
-  Duration? get reelHold => const Duration(milliseconds: 2700);
+  Duration? get reelHold =>
+      const Duration(milliseconds: 2700 + RewindMotion.reelReadingMs);
 
   @override
   List<EnteFile> get reelThumbnails => const [];
 
-  _Crowd get _crowd => percent == 1 ? _Crowd.top1 : _Crowd.wide;
-
-  List<(String, Rect)> get _heroes => switch (percent) {
-    1 => const [
-      (RewindAssets.crowdHeroTop1, Rect.fromLTWH(141, 152, 113, 118)),
-    ],
-    _ => const [
-      (RewindAssets.crowdHeroLeft, Rect.fromLTWH(78, 188, 82, 112)),
-      (RewindAssets.crowdHeroMiddle, Rect.fromLTWH(139, 188, 98, 112)),
-      (RewindAssets.crowdHeroRight, Rect.fromLTWH(223, 183, 88, 113)),
-    ],
+  ({String trigger, Rect heroes}) get _variant => switch (percent) {
+    1 => (trigger: "top1", heroes: const Rect.fromLTRB(134, 142, 260, 251)),
+    <= 10 => (trigger: "top10", heroes: const Rect.fromLTRB(68, 137, 314, 266)),
+    _ => (trigger: "top25", heroes: const Rect.fromLTRB(68, 100, 314, 267)),
   };
 
   @override
@@ -52,96 +46,35 @@ class TopPercentPage extends RewindPage {
     double position, {
     required bool isActive,
   }) {
-    final crowd = _crowd;
-    final heroes = _heroes;
-    final textDelay = 950 + 175 * (heroes.length - 1);
     final small = percent >= 10;
+    final variant = _variant;
     return RewindShareable(
       child: LayoutBuilder(
         builder: (context, constraints) {
           final size = constraints.biggest;
-          final night =
-              RewindStage.originFor(size).dy + 420 * RewindStage.scaleFor(size);
+          final wide = size.aspectRatio > RewindStage.size.aspectRatio;
           return Stack(
             fit: StackFit.expand,
             children: [
-              const ColoredBox(color: _base),
-              Positioned(
-                left: 0,
-                right: 0,
-                top: 0,
-                height: night,
-                child: RewindLeave(
-                  position: position,
-                  centerY: 200,
-                  child: const ColoredBox(color: _night),
-                ),
-              ),
+              const ColoredBox(color: _night),
               RewindStage(
                 children: [
                   RewindLayer(
-                    rect: crowd.back,
+                    rect: Offset.zero & RewindStage.size,
                     position: position,
                     child: RewindSpread(
-                      child: Image.file(
-                        RewindAssets.file(crowd.backAsset),
-                        fit: BoxFit.fill,
-                      ),
-                    ),
-                  ),
-                  for (final (i, (asset, rect)) in heroes.indexed)
-                    RewindLayer(
-                      rect: rect,
-                      position: position,
-                      child: RewindKeyframes(
+                      mirror: wide
+                          ? const RewindDucky(
+                              RewindAssets.topPercent,
+                              stateMachine: "Top",
+                            )
+                          : const SizedBox.shrink(),
+                      child: RewindDucky(
+                        RewindAssets.topPercent,
+                        stateMachine: "Top",
+                        play: variant.trigger,
                         active: isActive,
-                        delayMs: 350 + 300 * i,
-                        durationMs: 780,
-                        curve: RewindMotion.hop,
-                        hiddenBeforeStart: true,
-                        origin: Alignment.bottomCenter,
-                        poses: const [
-                          RewindPose(0, dy: 84, sx: 0.94, sy: 1.06),
-                          RewindPose(0.5, dy: -16, sx: 0.97, sy: 1.04),
-                          RewindPose(0.72, dy: 5, sx: 1.04, sy: 0.96),
-                          RewindPose(0.88, dy: -2),
-                          RewindPose(1),
-                        ],
-                        child: Image.file(
-                          RewindAssets.file(asset),
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-                    ),
-                  RewindLayer(
-                    rect: crowd.front,
-                    position: position,
-                    child: RewindSpread(
-                      child: Image.file(
-                        RewindAssets.file(crowd.frontAsset),
-                        fit: BoxFit.fill,
-                      ),
-                    ),
-                  ),
-                  Positioned.fromRect(
-                    rect: Rect.fromLTWH(
-                      -RewindStage.size.width,
-                      crowd.front.bottom - 193,
-                      3 * RewindStage.size.width,
-                      206,
-                    ),
-                    child: RewindLeave(
-                      position: position,
-                      centerY: 440,
-                      child: const DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            stops: [0.012, 0.953],
-                            colors: [Color(0x001A2A8F), _base],
-                          ),
-                        ),
+                        tap: (trigger: "tap", area: variant.heroes),
                       ),
                     ),
                   ),
@@ -151,7 +84,7 @@ class TopPercentPage extends RewindPage {
                     child: RewindEntrance(
                       preset: RewindPreset.line,
                       active: isActive,
-                      delayMs: textDelay,
+                      delayMs: _textDelayMs,
                       child: Center(
                         child: RewindVoice(
                           you: "ACROSS ENTE, YOU’RE IN THE",
@@ -170,7 +103,7 @@ class TopPercentPage extends RewindPage {
                     child: RewindEntrance(
                       preset: RewindPreset.slap,
                       active: isActive,
-                      delayMs: textDelay + 200,
+                      delayMs: _textDelayMs + 200,
                       origin: Alignment.centerLeft,
                       child: RewindFitWidth(
                         width: 340,
@@ -193,7 +126,7 @@ class TopPercentPage extends RewindPage {
                     child: RewindEntrance(
                       preset: RewindPreset.line,
                       active: isActive,
-                      delayMs: textDelay + 500,
+                      delayMs: _textDelayMs + 500,
                       child: Text(
                         "${rewindCounted(count, "memory", "memories")} saved, "
                         "and counting!",
@@ -209,26 +142,4 @@ class TopPercentPage extends RewindPage {
       ),
     );
   }
-}
-
-enum _Crowd {
-  top1(
-    RewindAssets.crowdBackTop1,
-    Rect.fromLTWH(0, 0, 390, 296),
-    RewindAssets.crowdFrontTop1,
-    Rect.fromLTWH(0, 185, 390, 345),
-  ),
-  wide(
-    RewindAssets.crowdBack,
-    Rect.fromLTWH(0, 0, 390, 304),
-    RewindAssets.crowdFront,
-    Rect.fromLTWH(0, 218, 390, 341),
-  );
-
-  const _Crowd(this.backAsset, this.back, this.frontAsset, this.front);
-
-  final String backAsset;
-  final Rect back;
-  final String frontAsset;
-  final Rect front;
 }

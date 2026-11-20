@@ -17,7 +17,7 @@ mod tour;
 mod warp;
 mod weekly_habit;
 
-pub(super) use badge::{badge, badge_uses_ml};
+pub(super) use badge::{badge, badge_signals, badge_uses_ml};
 pub(super) use busiest_day::busiest_day;
 pub(super) use colour::colour;
 pub(super) use crowd_favourite::crowd_favourite;

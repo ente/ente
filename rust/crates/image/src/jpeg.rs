@@ -150,7 +150,7 @@ fn decode_bytes(
         .unwrap_or(Orientation::NoTransforms);
     let profile = decoder.icc_profile();
     let mut converter = IccConverter::new(profile.as_deref());
-    let mut output = Downsampler::new(source.clone(), target.clone(), false)?;
+    let mut output = Downsampler::new(source.clone(), target.clone())?;
     let row_bytes = source.width as usize * color.num_components();
     let mut rows_buffer = vec![0; row_bytes * MAX_STRIPE_ROWS];
     let mut session = decoder.scanline_output();
@@ -170,7 +170,7 @@ fn decode_bytes(
                     &mut converter,
                 )?;
                 for row in rgb.chunks_exact(source.width as usize * 3) {
-                    output.push_row(row, 0, y, 1);
+                    output.push_row(row, y);
                     y += 1;
                 }
             }
@@ -188,7 +188,7 @@ fn decode_bytes(
 fn required_bytes(retained_bytes: u64, source: &Dimensions, target: &Dimensions) -> u64 {
     let oriented_copy = u64::from(target.width) * u64::from(target.height) * 3;
     retained_bytes
-        .saturating_add(Downsampler::bytes(source, target, false))
+        .saturating_add(Downsampler::bytes(source, target))
         .saturating_add(oriented_copy)
         .saturating_add(DECODER_BYTES + u64::from(source.width) * DECODER_BYTES_PER_COLUMN)
 }

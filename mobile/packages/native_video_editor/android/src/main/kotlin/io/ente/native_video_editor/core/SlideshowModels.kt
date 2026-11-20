@@ -43,10 +43,25 @@ sealed class SlideshowItem {
     }
 }
 
-data class SlideshowMusic(val path: String, val fadeInMs: Long, val fadeOutMs: Long) {
+data class SlideshowMusic(
+    val path: String,
+    val fadeInMs: Long,
+    val fadeOutMs: Long,
+    val duckedVolume: Double,
+    val duckFadeMs: Long
+) {
     init {
-        require(path.isNotBlank() && fadeInMs >= 0 && fadeOutMs >= 0) { "Invalid slideshow music" }
+        require(
+            path.isNotBlank() &&
+                fadeInMs >= 0 &&
+                fadeOutMs >= 0 &&
+                duckFadeMs >= 0 &&
+                duckedVolume in 0.0..1.0
+        ) { "Invalid slideshow music" }
     }
+
+    val videoAudioGain: Double get() = 1 / (1 + duckedVolume)
+    val duckedMusicGain: Double get() = duckedVolume * videoAudioGain
 }
 
 data class SlideshowExportRequest(

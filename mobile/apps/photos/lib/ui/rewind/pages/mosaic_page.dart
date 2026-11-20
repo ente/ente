@@ -16,26 +16,21 @@ import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
 import "package:photos/ui/rewind/widgets/rewind_elapsed.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
 import "package:photos/ui/rewind/widgets/rewind_hint.dart";
-import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
 import "package:photos/ui/rewind/widgets/rewind_pixels.dart";
-import "package:photos/ui/rewind/widgets/rewind_reveal_layer.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
 
 class MosaicPage extends RewindPage {
   MosaicPage({
     required this.files,
     this.subject,
-    this.subjectName,
     this.bytes = rewindThumbnailBytes,
   });
 
   static const pageKey = "mosaic";
   static const minimumTiles = 120;
-  static const familiarFace = "FAMILIAR FACE";
 
   final List<EnteFile> files;
   final Uint8List? subject;
-  final String? subjectName;
   final RewindBytes bytes;
 
   var _isOnScreen = false;
@@ -55,6 +50,9 @@ class MosaicPage extends RewindPage {
   Duration? get reelHold => const Duration(milliseconds: 3400);
 
   @override
+  Duration? get clipHold => reelHold;
+
+  @override
   Future<bool> warmUp() async => await _tiling.value != null;
 
   @override
@@ -67,19 +65,16 @@ class MosaicPage extends RewindPage {
     required bool isActive,
   }) {
     _isOnScreen = _isOnScreen || isActive;
-    final who = subject == null
-        ? "${RewindEdition.year}"
-        : subjectName?.toUpperCase();
     final pace = _Pace.of(context);
     return RewindWarmBuilder<_Tiling>(
       warm: _tiling,
       builder: (context, tiling) => Stack(
         fit: StackFit.expand,
         children: [
-          _card(position, isActive, who, tiling, pace),
+          _card(position, isActive, tiling, pace),
           RewindHint(
             "TAP OR PINCH TO DIVE IN",
-            centerY: 500,
+            centerY: _Wall.frame.bottom - 30,
             active: isActive && tiling != null,
             position: position,
             delayMs: pace.revealedMs + 300,
@@ -89,19 +84,7 @@ class MosaicPage extends RewindPage {
     );
   }
 
-  Widget _card(
-    double position,
-    bool isActive,
-    String? who,
-    _Tiling? tiling,
-    _Pace pace,
-  ) {
-    final count = tiling == null
-        ? "GATHERING"
-        : "${rewindCount(tiling.atlas.length)} OF";
-    final label = "$count YOUR PHOTOS";
-    final title = "MAKE ONE ${who ?? "OF YOU"}";
-    const body = "Every tile is a real photo from your year.";
+  Widget _card(double position, bool isActive, _Tiling? tiling, _Pace pace) {
     return RewindShareable(
       enabled: tiling != null,
       child: Stack(
@@ -111,45 +94,27 @@ class MosaicPage extends RewindPage {
             color: Color(0xFFFF6727),
             pattern: RewindStripes(Color(0xFFFF7638)),
           ),
-          Semantics(
-            label: "$label $title. $body",
-            child: ExcludeSemantics(
-              child: RewindStage(
-                children: [
-                  Positioned.fromRect(
-                    rect: _Wall.frame.inflate(12),
-                    child: RewindLeave(
-                      position: position,
-                      centerY: _Wall.frame.center.dy,
-                      child: RewindEntrance(
-                        preset: RewindPreset.drop,
+          ExcludeSemantics(
+            child: RewindStage(
+              children: [
+                Positioned.fromRect(
+                  rect: _Wall.frame.inflate(12),
+                  child: RewindLeave(
+                    position: position,
+                    centerY: _Wall.frame.center.dy,
+                    child: RewindEntrance(
+                      preset: RewindPreset.drop,
+                      active: isActive,
+                      child: _Wall(
+                        key: ValueKey(tiling),
+                        tiling: tiling,
+                        pace: pace,
                         active: isActive,
-                        child: _Wall(
-                          key: ValueKey(tiling),
-                          tiling: tiling,
-                          pace: pace,
-                          active: isActive,
-                        ),
                       ),
                     ),
                   ),
-                  ...rewindCaption(
-                    label: label,
-                    title: title,
-                    body: body,
-                    me: (
-                      label: "$count MY PHOTOS",
-                      title: "MAKE ONE ${who ?? "OF ME"}",
-                      body: "Every tile is a real photo from my year.",
-                    ),
-                    position: position,
-                    active: isActive && tiling != null,
-                    delayMs: pace.revealedMs - 500,
-                    top: 600,
-                    titleSize: 44,
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],
@@ -481,7 +446,7 @@ class _Wall extends StatefulWidget {
     super.key,
   });
 
-  static const frame = Rect.fromLTWH(30, 110, 330, 420);
+  static const frame = Rect.fromLTWH(30, 212, 330, 420);
   static const _opening = 10.0;
   static const _closest = 14.0;
   static const _dive = 8.0;

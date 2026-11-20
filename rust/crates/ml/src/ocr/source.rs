@@ -1,11 +1,13 @@
 use std::path::Path;
 
-use ente_image::decode::decode_image_from_path;
+use ente_image::BoundedDecodeOptions;
 
 use super::OcrError;
 use crate::cv;
 use crate::cv::image::ImageU8;
+use crate::decode::decode_image;
 use crate::error::{MlError, MlResult};
+use crate::indexing::ImageSource;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct WorkingSizeCap {
@@ -53,16 +55,27 @@ pub(crate) fn load_source(image_path: &str, cap: WorkingSizeCap) -> Result<Sourc
     if !Path::new(image_path).is_file() {
         return Err(OcrError::ImageNotFound(image_path.to_string()));
     }
-    let decoded = decode_image_from_path(image_path).map_err(MlError::from)?;
-    let (width, height) = (decoded.dimensions.width, decoded.dimensions.height);
-    let full =
-        ImageU8::new(to_side(width)?, to_side(height)?, 3, decoded.rgb).map_err(MlError::Image)?;
+    let decoded = decode_image(
+        &ImageSource::Path(image_path.to_string()),
+        BoundedDecodeOptions {
+            max_side: cap.max_side,
+            ..BoundedDecodeOptions::default()
+        },
+        "ocr",
+    )?;
+    let original = decoded.original_dimensions;
+    let (width, height) = (
+        decoded.image.dimensions.width,
+        decoded.image.dimensions.height,
+    );
+    let image = ImageU8::new(to_side(width)?, to_side(height)?, 3, decoded.image.rgb)
+        .map_err(MlError::Image)?;
     let (working_width, working_height) = cap.working_size(width, height);
     let working = if (working_width, working_height) == (width, height) {
-        full
+        image
     } else {
         cv::resize_u8(
-            &full,
+            &image,
             to_side(working_width)?,
             to_side(working_height)?,
             cv::Interp::Area,
@@ -70,8 +83,8 @@ pub(crate) fn load_source(image_path: &str, cap: WorkingSizeCap) -> Result<Sourc
         .map_err(MlError::Image)?
     };
     Ok(SourceImage {
-        decoded_width: width,
-        decoded_height: height,
+        decoded_width: original.width,
+        decoded_height: original.height,
         working,
     })
 }
@@ -113,6 +126,17 @@ mod tests {
         assert_eq!(source.working.width, 4096);
         assert_eq!(source.working.height, 819);
         assert_eq!(source.working.channels, 3);
+    }
+
+    #[test]
+    fn side_capped_image_keeps_the_decoded_size() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = write_png(dir.path(), "side_capped.png", 4097, 1000);
+
+        let source = load_source(&path, FULL_TEXT_CAP).unwrap();
+
+        assert_eq!((source.decoded_width, source.decoded_height), (4097, 1000));
+        assert_eq!((source.working.width, source.working.height), (4096, 999));
     }
 
     #[test]

@@ -69,11 +69,6 @@ struct SlideshowSegment: @unchecked Sendable {
 
     var end: Double { start + duration }
 
-    var playsMusic: Bool {
-        if case .photo = item { return true }
-        return false
-    }
-
     var playsVideoAudio: Bool {
         if case .video(_, let isMuted, _) = item, !isMuted, video?.audioTrack != nil {
             return true
@@ -87,6 +82,11 @@ struct SlideshowMusicSource: @unchecked Sendable {
     let track: AVAssetTrack
     let fadeIn: Double
     let fadeOut: Double
+    let duckedVolume: Double
+    let duckFade: Double
+
+    var videoAudioGain: Double { 1 / (1 + duckedVolume) }
+    var duckedMusicGain: Double { duckedVolume * videoAudioGain }
 }
 
 struct SlideshowTimeline: Sendable {
@@ -137,7 +137,9 @@ struct SlideshowTimeline: Sendable {
                     asset: asset,
                     track: track,
                     fadeIn: Double(requestedMusic.fadeInMs) / 1000,
-                    fadeOut: Double(requestedMusic.fadeOutMs) / 1000
+                    fadeOut: Double(requestedMusic.fadeOutMs) / 1000,
+                    duckedVolume: requestedMusic.duckedVolume,
+                    duckFade: Double(requestedMusic.duckFadeMs) / 1000
                 )
             }
         }
@@ -444,62 +446,52 @@ private final class SlideshowFrameProducer: VideoWriterFrameSource, @unchecked S
 private final class SlideshowAudioProducer: VideoWriterAudioSource, @unchecked Sendable {
     static let sampleRate = 44_100
     static let channelCount = 2
-    private static let chunkFrames = 1024
+    private static let chunkFrames: Int64 = 1024
 
-    private enum Source {
-        case music
-        case video(SlideshowVideoSource)
-        case silence
-    }
-
-    private struct AudioSegment {
+    private struct VideoAudio {
         let start: Int64
         let end: Int64
-        let source: Source
-    }
-
-    private struct MusicRun {
-        let start: Int64
-        let end: Int64
+        let asset: AVAsset
+        let track: AVAssetTrack
     }
 
     private let formatDescription: CMAudioFormatDescription
-    private let segments: [AudioSegment]
-    private let musicRuns: [MusicRun]
+    private let totalFrames: Int64
+    private let videoAudio: [VideoAudio]
     private let music: PcmSource?
-    private let fadeInFrames: Double
-    private let fadeOutFrames: Double
-    private var videoAudio: PcmSource?
+    private let musicEnvelope: SlideshowMusicEnvelope?
+    private let videoAudioGain: Float
+    private var videoReader: PcmSource?
+    private var videoReaderIndex: Int?
     private var position: Int64 = 0
 
     init(timeline: SlideshowTimeline) throws {
         let sampleRate = Double(Self.sampleRate)
-        var segments: [AudioSegment] = []
-        var runs: [MusicRun] = []
-        for segment in timeline.segments {
+        let totalFrames = Int64((timeline.duration * sampleRate).rounded())
+        let audibleSegments = timeline.segments.filter(\.playsVideoAudio)
+        let videoAudio: [VideoAudio] = audibleSegments.compactMap { segment in
+            guard let video = segment.video, let track = video.audioTrack else { return nil }
             let start = Int64((segment.start * sampleRate).rounded())
             let end = Int64((segment.end * sampleRate).rounded())
-            guard end > start else { continue }
-            let source: Source
-            if segment.playsMusic, timeline.music != nil {
-                source = .music
-                if let last = runs.last, last.end == start {
-                    runs[runs.count - 1] = MusicRun(start: last.start, end: end)
-                } else {
-                    runs.append(MusicRun(start: start, end: end))
-                }
-            } else if segment.playsVideoAudio, let video = segment.video {
-                source = .video(video)
-            } else {
-                source = .silence
-            }
-            segments.append(AudioSegment(start: start, end: end, source: source))
+            guard end > start else { return nil }
+            return VideoAudio(start: start, end: end, asset: video.asset, track: track)
         }
-        self.segments = segments
-        musicRuns = runs
+        self.totalFrames = totalFrames
+        self.videoAudio = videoAudio
         music = timeline.music.map { PcmSource(asset: $0.asset, track: $0.track) }
-        fadeInFrames = (timeline.music?.fadeIn ?? 0) * sampleRate
-        fadeOutFrames = (timeline.music?.fadeOut ?? 0) * sampleRate
+        videoAudioGain = Float(timeline.music?.videoAudioGain ?? 1)
+        musicEnvelope = timeline.music.map { music in
+            SlideshowMusicEnvelope(
+                totalFrames: Double(totalFrames),
+                fadeInFrames: music.fadeIn * sampleRate,
+                fadeOutFrames: music.fadeOut * sampleRate,
+                duckedMusicGain: music.duckedMusicGain,
+                duckFadeFrames: music.duckFade * sampleRate,
+                videoAudio: audibleSegments.map {
+                    (start: $0.start * sampleRate, end: $0.end * sampleRate)
+                }
+            )
+        }
 
         var description = AudioStreamBasicDescription(
             mSampleRate: sampleRate,
@@ -530,48 +522,52 @@ private final class SlideshowAudioProducer: VideoWriterAudioSource, @unchecked S
     }
 
     func next() throws -> CMSampleBuffer? {
-        guard let segment = segments.first(where: { position >= $0.start && position < $0.end })
-        else {
-            return nil
+        guard position < totalFrames else { return nil }
+        let videoIndex = videoAudio.firstIndex { position >= $0.start && position < $0.end }
+        var chunkEnd = min(position + Self.chunkFrames, totalFrames)
+        if let videoIndex {
+            chunkEnd = min(chunkEnd, videoAudio[videoIndex].end)
+        } else if let upcoming = videoAudio.first(where: { $0.start > position }) {
+            chunkEnd = min(chunkEnd, upcoming.start)
         }
-        let frames = Int(min(Int64(Self.chunkFrames), segment.end - position))
+        let frames = Int(chunkEnd - position)
         var samples = [Int16](repeating: 0, count: frames * Self.channelCount)
-        switch segment.source {
-        case .music:
-            if let music {
-                try music.read(into: &samples, frames: frames, loops: true)
-                applyMusicGain(to: &samples, frames: frames)
-            }
-        case .video(let source):
-            if videoAudio == nil, let track = source.audioTrack {
-                videoAudio = PcmSource(asset: source.asset, track: track)
-            }
-            try videoAudio?.read(into: &samples, frames: frames, loops: false)
-        case .silence:
-            break
+        if let music, let musicEnvelope {
+            try music.read(into: &samples, frames: frames, loops: true)
+            applyMusicGain(musicEnvelope, to: &samples, frames: frames)
+        }
+        if let videoIndex {
+            try mixVideoAudio(videoIndex, into: &samples, frames: frames)
+        } else {
+            videoReader = nil
+            videoReaderIndex = nil
         }
         let sample = try makeSampleBuffer(samples, frames: frames, at: position)
-        position += Int64(frames)
-        if position >= segment.end {
-            videoAudio = nil
-        }
+        position = chunkEnd
         return sample
     }
 
-    private func applyMusicGain(to samples: inout [Int16], frames: Int) {
-        guard let run = musicRuns.first(where: { position >= $0.start && position < $0.end })
-        else {
-            return
+    private func mixVideoAudio(_ index: Int, into samples: inout [Int16], frames: Int) throws {
+        if videoReaderIndex != index {
+            let video = videoAudio[index]
+            videoReader = PcmSource(asset: video.asset, track: video.track)
+            videoReaderIndex = index
         }
+        var video = [Int16](repeating: 0, count: samples.count)
+        try videoReader?.read(into: &video, frames: frames, loops: false)
+        for sample in samples.indices {
+            let scaled = Int32((Float(video[sample]) * videoAudioGain).rounded())
+            samples[sample] = Int16(clamping: Int32(samples[sample]) + scaled)
+        }
+    }
+
+    private func applyMusicGain(
+        _ envelope: SlideshowMusicEnvelope,
+        to samples: inout [Int16],
+        frames: Int
+    ) {
         for frame in 0..<frames {
-            let absolute = Double(position + Int64(frame))
-            var gain = 1.0
-            if fadeInFrames > 0 {
-                gain = min(gain, (absolute - Double(run.start)) / fadeInFrames)
-            }
-            if fadeOutFrames > 0 {
-                gain = min(gain, (Double(run.end) - absolute) / fadeOutFrames)
-            }
+            let gain = envelope.gain(at: Double(position + Int64(frame)))
             guard gain < 1 else { continue }
             let clamped = Float(max(gain, 0))
             for channel in 0..<Self.channelCount {
@@ -627,6 +623,86 @@ private final class SlideshowAudioProducer: VideoWriterAudioSource, @unchecked S
             throw VideoEditorError.export("Failed to build slideshow audio")
         }
         return sampleBuffer
+    }
+}
+
+private struct SlideshowMusicEnvelope {
+    let totalFrames: Double
+    let fadeInFrames: Double
+    let fadeOutFrames: Double
+    let duckedMusicGain: Double
+    let duckFadeFrames: Double
+    let ducks: [(start: Double, end: Double)]
+
+    init(
+        totalFrames: Double,
+        fadeInFrames: Double,
+        fadeOutFrames: Double,
+        duckedMusicGain: Double,
+        duckFadeFrames: Double,
+        videoAudio: [(start: Double, end: Double)]
+    ) {
+        self.totalFrames = totalFrames
+        self.fadeInFrames = fadeInFrames
+        self.fadeOutFrames = fadeOutFrames
+        self.duckedMusicGain = duckedMusicGain
+        self.duckFadeFrames = duckFadeFrames
+        var ducks: [(start: Double, end: Double)] = []
+        for range in videoAudio {
+            if let last = ducks.last, (range.start - last.end).rounded() <= 2 * duckFadeFrames {
+                ducks[ducks.count - 1] = (last.start, range.end)
+            } else {
+                ducks.append(range)
+            }
+        }
+        self.ducks = ducks
+    }
+
+    func gain(at frame: Double) -> Double {
+        var gain = 1.0
+        if fadeInFrames > 0 {
+            gain = min(gain, frame / fadeInFrames)
+        }
+        if fadeOutFrames > 0 {
+            gain = min(gain, (totalFrames - frame) / fadeOutFrames)
+        }
+        return max(gain, 0) * duckLevel(at: frame)
+    }
+
+    private func duckLevel(at frame: Double) -> Double {
+        var level = 1.0
+        var index = firstDuck(endingAfter: frame - duckFadeFrames)
+        while index < ducks.count, ducks[index].start - duckFadeFrames <= frame {
+            let duck = ducks[index]
+            index += 1
+            let depth: Double
+            if frame >= duck.start, frame < duck.end {
+                depth = 1
+            } else if duckFadeFrames <= 0 {
+                depth = 0
+            } else if frame < duck.start {
+                depth = 1 - (duck.start - frame) / duckFadeFrames
+            } else {
+                depth = 1 - (frame - duck.end) / duckFadeFrames
+            }
+            guard depth > 0 else { continue }
+            level = min(level, 1 - depth * (1 - duckedMusicGain))
+        }
+        return level
+    }
+
+    private func firstDuck(endingAfter frame: Double) -> Int {
+        var low = 0
+        var high = ducks.count
+        while low < high {
+            let middle = (low + high) / 2
+            if ducks[middle].end <= frame {
+                low = middle + 1
+            } else {
+                high = middle
+            }
+        }
+        return low
     }
 }
 

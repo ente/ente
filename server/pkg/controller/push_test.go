@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -332,6 +333,62 @@ func TestAlbumShareHonorsSilentMode(t *testing.T) {
 	t.Cleanup(func() { viper.Set("internal.silent", previous) })
 	controller := &PushController{fcm: &fcmClient{}}
 	controller.NotifyAlbumShare(context.Background(), []int64{1})
+}
+
+func TestSocialPushEvents(t *testing.T) {
+	testutil.WithServerRoot(t)
+	db := testutil.RequireTestDB(t)
+	testutil.ResetTables(t, db)
+	t.Cleanup(func() { testutil.ResetTables(t, db) })
+	controller := &PushController{PushRepo: &repo.PushTokenRepository{DB: db}}
+	key, err := hpke.MLKEM768X25519().GenerateKey()
+	require.NoError(t, err)
+	for _, id := range []int64{1, 2} {
+		testutil.InsertUser(t, db, testutil.UserFixture{UserID: id, Email: fmt.Sprintf("social-%d@example.com", id), CreationTime: 1})
+		_, err := db.Exec(`INSERT INTO remote_store(user_id, key_name, key_value) VALUES ($1, 'internalUser', 'true')`, id)
+		require.NoError(t, err)
+		session := fmt.Sprintf("social-session-%d", id)
+		require.NoError(t, (&repo.UserAuthRepository{DB: db}).AddToken(id, ente.Photos, session, "", ""))
+		hash := auth.HashToken(session)
+		for _, platform := range []string{"android", "ios"} {
+			require.NoError(t, controller.AddToken(id, hash[:], ente.PushTokenRequest{
+				FCMToken: fmt.Sprintf("%d-%s", id, platform), Platform: &platform, NotificationKey: key.PublicKey().Bytes(),
+			}))
+		}
+	}
+	for _, tc := range []struct {
+		event  string
+		notify func(context.Context, int64)
+	}{
+		{"file_liked", controller.NotifyFileLike},
+		{"file_commented", controller.NotifyFileComment},
+		{"comment_replied", controller.NotifyCommentReply},
+	} {
+		t.Run(tc.event, func(t *testing.T) {
+			var messages []wireMsg
+			controller.fcm = &fcmClient{projectID: "test-project", httpClient: &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+				require.NoError(t, request.Context().Err())
+				var message wireMsg
+				require.NoError(t, json.NewDecoder(request.Body).Decode(&message))
+				messages = append(messages, message)
+				return jsonResponse(http.StatusOK, "{}"), nil
+			})}}
+			ctx, cancel := context.WithCancel(t.Context())
+			cancel()
+			tc.notify(ctx, 1)
+			var recipients []string
+			for _, message := range messages {
+				recipients = append(recipients, message.Message.Token)
+				require.Len(t, message.Message.Data, 1)
+				ciphertext, err := base64.StdEncoding.DecodeString(message.Message.Data["notificationCiphertext"])
+				require.NoError(t, err)
+				plaintext, err := hpke.Open(key, hpke.HKDFSHA256(), hpke.ChaCha20Poly1305(), []byte("ente-push"), ciphertext)
+				require.NoError(t, err)
+				require.JSONEq(t, fmt.Sprintf(`{"eventType":%q}`, tc.event), string(plaintext))
+			}
+			require.ElementsMatch(t, []string{"1-android", "1-ios"}, recipients)
+		})
+	}
 }
 
 func captureLogs(t *testing.T) *logtest.Hook {

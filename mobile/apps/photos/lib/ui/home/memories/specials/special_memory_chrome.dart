@@ -8,6 +8,7 @@ import "package:ente_components/theme/text_styles.dart" as component;
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
+import "package:photos/core/constants.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
 import "package:photos/module/download/file.dart";
@@ -223,11 +224,25 @@ class SpecialMemoryGestures extends StatelessWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onLongPress: () {},
+        onLongPressMoveUpdate: (details) {
+          final offset = details.offsetFromOrigin;
+          if (offset.dy > kMemoryHoldSwipeDownDistance &&
+              offset.dy > offset.dx.abs() &&
+              ModalRoute.of(context)?.isCurrent == true) {
+            unawaited(Navigator.maybePop(context));
+          }
+        },
         onTapUp: (details) {
           final onMemory = details.localPosition.dx < screenWidth * 0.2
               ? onPreviousMemory
               : onNextMemory;
           onMemory?.call();
+        },
+        onVerticalDragUpdate: (details) {
+          if (details.delta.dy > dragSensitivity &&
+              ModalRoute.of(context)?.isCurrent == true) {
+            unawaited(Navigator.maybePop(context));
+          }
         },
         child: child,
       ),

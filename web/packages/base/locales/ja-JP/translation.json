@@ -1080,7 +1080,7 @@
     "filters": "",
     "invert_colors": "色を反転",
     "reset": "リセット",
-    "faster_upload": "アップロードを高速化",
+    "smart_routing": "",
     "faster_upload_description": "近くのサーバー経由でのアップロード",
     "open_ente_on_startup": "開始時に Ente を開く",
     "cast_album_to_tv": "TVでアルバムを再生",

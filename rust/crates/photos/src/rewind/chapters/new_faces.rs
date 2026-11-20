@@ -8,8 +8,8 @@ use crate::rewind::people::{Entity, People};
 use crate::rewind::ranking::{Ranking, Spread, best_faces};
 use crate::rewind::report::{NewFace, NewFaces};
 
-const NEW_FACE_MINIMUM_PHOTOS: usize = 40;
-const NEW_FACES_MINIMUM: usize = 3;
+const NEW_FACE_MINIMUM_PHOTOS: usize = 30;
+const NEW_FACES_MINIMUM: usize = 1;
 const NEW_FACES_SHOWN: usize = 12;
 const NEW_FACE_FACES: usize = 3;
 const NEW_FACE_PHOTOS: usize = 9;
@@ -91,8 +91,8 @@ mod tests {
         );
         appear(&store, "me", Some("me"), 122..=161);
         appear(&store, "hidden", Some("hidden"), 162..=201);
-        appear(&store, "stranger", None, 202..=241);
-        appear(&store, "passer-by", None, 242..=280);
+        appear(&store, "stranger", None, 202..=231);
+        appear(&store, "passer-by", None, 242..=270);
         appear(&store, "deleted-person", Some("gone"), 281..=320);
         let library = Library::of_year(&faces_request).unwrap();
         let people = People::load(&faces_request, &library, &store).unwrap();
@@ -119,10 +119,20 @@ mod tests {
         assert!(new.faces[1].file_ids.iter().all(|id| (1..=40).contains(id)));
 
         let mut fewer = faces_request.clone();
-        fewer.people.retain(|person| person.id != "ben");
+        fewer
+            .people
+            .retain(|person| person.id != "ana" && person.id != "ben");
         let library = Library::of_year(&fewer).unwrap();
         let people = People::load(&fewer, &library, &store).unwrap();
         let ranking = Ranking::new(Some(&people), None);
-        assert!(new_faces(&fewer, &library, &people, &ranking).is_none());
+        let one = new_faces(&fewer, &library, &people, &ranking).unwrap();
+        assert_eq!(one.count, 1);
+        assert_eq!(one.faces[0].cluster_id.as_deref(), Some("stranger"));
+
+        let (_empty_directory, empty) = crate::rewind::fixtures::store();
+        let library = Library::of_year(&faces_request).unwrap();
+        let people = People::load(&faces_request, &library, &empty).unwrap();
+        let ranking = Ranking::new(Some(&people), None);
+        assert!(new_faces(&faces_request, &library, &people, &ranking).is_none());
     }
 }

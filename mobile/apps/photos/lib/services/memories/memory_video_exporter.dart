@@ -50,7 +50,9 @@ class MemoryVideoExporter {
   static const videoBitrate = 4500000;
   static const crossfade = Duration(milliseconds: 600);
   static const musicFadeIn = Duration(milliseconds: 900);
-  static const musicFadeOut = Duration(milliseconds: 250);
+  static const musicFadeOut = Duration(milliseconds: 1500);
+  static const musicDuckedVolume = 0.25;
+  static const musicDuckFade = Duration(milliseconds: 500);
   static const _nearScale = 1.15;
   static const _farScale = 1.05;
   static const _maxPanFraction = 0.0125;
@@ -222,6 +224,8 @@ class MemoryVideoExporter {
         path: musicFile.path,
         fadeIn: musicFadeIn,
         fadeOut: musicFadeOut,
+        duckedVolume: musicDuckedVolume,
+        duckFade: musicDuckFade,
       );
     }
     final request = SlideshowExportRequest(
