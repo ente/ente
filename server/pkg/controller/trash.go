@@ -229,7 +229,7 @@ func (t *TrashController) trashCollection(item repo.QueueItem, queueName string,
 		ctxLogger.WithError(err).Error("failed to trash collection")
 		return
 	}
-	err = t.QueueRepo.DeleteItem(queueName, item.Item)
+	err = t.QueueRepo.DeleteItem(queueName, item.Id)
 	if err != nil {
 		ctxLogger.WithError(err).Error("failed to delete item from queue")
 		return
@@ -283,7 +283,7 @@ func (t *TrashController) emptyTrash(item repo.QueueItem, app ente.App, queueNam
 			return
 		}
 	}
-	err = t.QueueRepo.DeleteItem(queueName, item.Item)
+	err = t.QueueRepo.DeleteItem(queueName, item.Id)
 	if err != nil {
 		log.Error("Error while removing item from queue "+item.Item, err)
 		return

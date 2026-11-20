@@ -87,7 +87,7 @@ func (c *Controller) deleteEmbedding(qItem repo.QueueItem) {
 		ctxLogger.WithError(err).Error("Failed to remove from db")
 		return
 	}
-	err = c.QueueRepo.DeleteItem(repo.DeleteEmbeddingsQueue, qItem.Item)
+	err = c.QueueRepo.DeleteItem(repo.DeleteEmbeddingsQueue, qItem.Id)
 	if err != nil {
 		ctxLogger.WithError(err).Error("Failed to remove item from the queue")
 		return
