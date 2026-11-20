@@ -357,7 +357,6 @@ RewindChapter _scrapbook(rust.RewindReport report) {
   });
 }
 
-RewindChapter _finale() => RewindChapter(
-  const [FinalePage.pageKey],
-  (media) async => const [FinalePage()],
-);
+RewindChapter _finale() => RewindChapter(const [
+  FinalePage.pageKey,
+], (media) async => const [FinalePage()]);
