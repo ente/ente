@@ -191,6 +191,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   static const _brakeMs = 90.0;
   static const _hintFromMs = 1500.0;
   static const _hintMs = 2200.0;
+  static const _restMs = 500.0;
   static const _pickedAt = Offset(195, 356);
 
   late final _reel = RewindPageScope.reelOf(context);
@@ -227,6 +228,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   var _velocity = 0.0;
   var _pace = 0.0;
   var _heading = 1.0;
+  var _flewMs = double.negativeInfinity;
   var _piloted = false;
   var _still = false;
   var _dragging = false;
@@ -303,6 +305,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
     final moved = _travelled - _previous;
     final rate = moved.abs() / dt;
     if (rate > 0.0004) _heading = moved.sign;
+    if (moved != 0) _flewMs = _ms;
     _previous = _travelled;
     final cruise = 2 * _course.length / _flightMs;
     _pace += ((rate / cruise).clamp(0.0, 1.0) - _pace) * (1 - exp(-dt / 160));
@@ -375,13 +378,21 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
     _velocity = 0;
   }
 
-  void _flyBy(double dy) => _travelled = (_travelled - dy / _pixelsPerUnit)
-      .clamp(0.0, _course.length);
+  void _flyBy(double dy) {
+    _flewMs = _ms;
+    _travelled = (_travelled - dy / _pixelsPerUnit).clamp(0.0, _course.length);
+  }
 
   void _letGo(double pixelsPerSecond) {
+    _flewMs = _ms;
     _dragging = false;
     _velocity = -pixelsPerSecond / _pixelsPerUnit / 1000;
   }
+
+  bool _yields(bool deeper) =>
+      _picked == null &&
+      _ms - _flewMs >= _restMs &&
+      (deeper ? _landed : _travelled <= 0.002);
 
   void _listenForFlight(_FlightRecognizer recognizer) {
     recognizer.onStart = (_) => _takeOver();
@@ -810,7 +821,10 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
                   gestures: {
                     _FlightRecognizer:
                         GestureRecognizerFactoryWithHandlers<_FlightRecognizer>(
-                          () => _FlightRecognizer(above: _flyAbove - _touchTop),
+                          () => _FlightRecognizer(
+                            above: _flyAbove - _touchTop,
+                            yields: _yields,
+                          ),
                           _listenForFlight,
                         ),
                     HorizontalDragGestureRecognizer:
@@ -1437,11 +1451,43 @@ class _Tube extends CustomPainter {
 }
 
 class _FlightRecognizer extends VerticalDragGestureRecognizer {
-  _FlightRecognizer({required this.above});
+  _FlightRecognizer({required this.above, required this.yields});
+
+  static const _decideAfter = 3.0;
 
   final double above;
+  final bool Function(bool deeper) yields;
+  var _moved = 0.0;
+  var _decided = false;
 
   @override
   bool isPointerAllowed(PointerEvent event) =>
       event.localPosition.dy < above && super.isPointerAllowed(event);
+
+  @override
+  void addAllowedPointer(PointerDownEvent event) {
+    _moved = 0;
+    _decided = false;
+    super.addAllowedPointer(event);
+  }
+
+  @override
+  void acceptGesture(int pointer) {
+    _decided = true;
+    super.acceptGesture(pointer);
+  }
+
+  @override
+  void handleEvent(PointerEvent event) {
+    if (!_decided && event is PointerMoveEvent) {
+      _moved += event.delta.dy;
+      if (_moved.abs() > _decideAfter && yields(_moved < 0)) {
+        _decided = true;
+        resolve(GestureDisposition.rejected);
+        stopTrackingPointer(event.pointer);
+        return;
+      }
+    }
+    super.handleEvent(event);
+  }
 }
