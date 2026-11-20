@@ -25,14 +25,12 @@ interface RiveIllustrationProps {
     style?: CSSProperties;
     canvasStyle?: CSSProperties;
     staticFrameOnReducedMotion?: boolean;
-    /** Starts controlled playback in animated mode. Return false to keep the fallback. */
     setup?: (
         rive: Rive,
         canvas: HTMLCanvasElement,
     ) => RiveIllustrationPlayback | false;
 }
 
-// A file with named artboards can be shared across multiple illustrations.
 const artboardFiles = new Map<string, Promise<RiveFile>>();
 
 const getArtboardFile = (url: string, File: typeof RiveFile) => {
@@ -42,7 +40,6 @@ const getArtboardFile = (url: string, File: typeof RiveFile) => {
         pending = file
             .init()
             .then(() => {
-                // Retain one reference for as long as this file is cached.
                 file.getInstance();
                 return file;
             })

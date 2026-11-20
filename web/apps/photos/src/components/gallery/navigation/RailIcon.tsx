@@ -34,8 +34,6 @@ export const RailIcon = ({
 
     const setup = (rive: Rive, canvas: HTMLCanvasElement) => {
         const button = canvas.closest("button");
-        // The supplied artboards expose state machine inputs.
-        // eslint-disable-next-line @typescript-eslint/no-deprecated
         const controls = rive.stateMachineInputs(stateMachine);
         const { active, dark, hover, click } = Object.fromEntries(
             (controls ?? []).map((input) => [input.name, input]),
@@ -45,7 +43,6 @@ export const RailIcon = ({
 
         let secondsLeft = 0;
         const play = () => {
-            // Let the authored transition finish before pausing the idle icon.
             secondsLeft = 1.5;
             rive.play();
         };
