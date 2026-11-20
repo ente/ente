@@ -17,6 +17,7 @@ outputs:
 runs:
     using: composite
     steps:
+        # No image patch or rustc version: the outputs are Dart source and C ABI libraries.
         - id: key
           shell: bash
           working-directory: ${{ github.workspace }}
@@ -25,7 +26,7 @@ runs:
         - id: cache
           uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
           with:
-              key: frb-outputs-${{ runner.os }}-${{ runner.arch }}-${{ steps.key.outputs.hash }}
+              key: frb-outputs-${{ steps.key.outputs.version }}
               path: |
                   mobile/apps/auth/lib/src/rust
                   mobile/apps/locker/lib/src/rust

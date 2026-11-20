@@ -13,6 +13,8 @@ on:
             - ".github/actions/restore-frb-outputs/**"
             - ".github/actions/setup-flutter/**"
             - ".github/scripts/ci/paths.json"
+            - ".github/workflows/mobile-lint.yml"
+            - ".github/workflows/warm-caches.yml"
             - "mobile/apps/*/flutter_rust_bridge.yaml"
             - "mobile/packages/frb/pubspec.yaml"
             - "mobile/pubspec.lock"

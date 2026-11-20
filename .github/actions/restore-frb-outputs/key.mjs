@@ -12,6 +12,8 @@ const patterns = [
     ...paths["mobile-lint"].filter((path) => path.startsWith("rust/")),
     ".github/actions/restore-frb-outputs/**",
     ".github/actions/setup-flutter/**",
+    ".github/workflows/mobile-lint.yml",
+    ".github/workflows/warm-caches.yml",
     "mobile/apps/*/flutter_rust_bridge.yaml",
     "mobile/packages/frb/pubspec.yaml",
     "mobile/pubspec.lock",
@@ -22,4 +24,5 @@ const index = execFileSync("git", [
     "--",
     ...patterns.map((pattern) => `:(top,glob)${pattern}`),
 ]);
-console.log(`hash=${createHash("sha256").update(index).digest("hex")}`);
+const hash = createHash("sha256").update(index).digest("hex");
+console.log(`version=${process.env.ImageOS}-${hash}`);
