@@ -31,9 +31,6 @@ abstract final class RewindAssets {
   static const yellowSparkle = "$_images/sparkle-yellow.svg";
   static const smallYellowSparkle = "$_images/sparkle-yellow-small.svg";
   static const lightningSticker = "$_images/lightning-sticker.svg";
-  static const artCloth = "$_images/art-cloth.svg";
-
-  static String artTwin(String colour) => "$_images/art-twin-$colour.webp";
 
   static const introDucky = "$_rive/ente-rewind-intro-ducky.riv";
   static const paletteDucky = "$_rive/ente-rewind-palette-ducky.riv";
