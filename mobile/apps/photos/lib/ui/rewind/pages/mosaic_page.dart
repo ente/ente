@@ -74,7 +74,7 @@ class MosaicPage extends RewindPage {
           _card(position, isActive, tiling, pace),
           RewindHint(
             "TAP OR PINCH TO DIVE IN",
-            centerY: 500,
+            centerY: _Wall.frame.bottom - 30,
             active: isActive && tiling != null,
             position: position,
             delayMs: pace.revealedMs + 300,
@@ -446,7 +446,7 @@ class _Wall extends StatefulWidget {
     super.key,
   });
 
-  static const frame = Rect.fromLTWH(30, 110, 330, 420);
+  static const frame = Rect.fromLTWH(30, 212, 330, 420);
   static const _opening = 10.0;
   static const _closest = 14.0;
   static const _dive = 8.0;
