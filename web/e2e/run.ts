@@ -11,21 +11,17 @@ const { values } = parseArgs({
     allowPositionals: true,
 });
 const projects = values.project ?? [];
-if (projects.length > 1)
-    throw new Error("Select only one --project, or omit it to test all apps");
-const project = projects[0];
-if (
-    project !== undefined &&
-    (typeof project !== "string" || !Object.hasOwn(apps, project))
-) {
-    throw new Error(
-        `Expected --project to be one of: ${Object.keys(apps).join(", ")}`,
-    );
+const selected: string[] = [];
+for (const name of projects) {
+    if (typeof name !== "string" || !Object.hasOwn(apps, name)) {
+        throw new Error(
+            `Expected --project to be one of: ${Object.keys(apps).join(", ")}`,
+        );
+    }
+    if (!selected.includes(name)) selected.push(name);
 }
-const selected = Object.keys(apps).filter(
-    (name) => project === undefined || name === project,
-);
-const env = { ...process.env, ENTE_E2E_PROJECT: project ?? "" };
+const targetProjects = selected.length > 0 ? selected : Object.keys(apps);
+const env = { ...process.env, ENTE_E2E_PROJECTS: selected.join(",") };
 if (
     !process.env.NEXT_PUBLIC_ENTE_ENDPOINT ||
     !process.env.ENTE_TEST_EMAIL_CODE
@@ -48,7 +44,7 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
 }
 
 const commands: [string, string[]][] = [
-    ...appServersFor(selected).map((name): [string, string[]] => [
+    ...appServersFor(targetProjects).map((name): [string, string[]] => [
         process.execPath,
         [npmCLI, "run", `build:${name}`],
     ]),

@@ -8,8 +8,19 @@ permissions:
 
 jobs:
     test:
+        name: test (${{ matrix.name }})
         runs-on: ubuntu-latest
         timeout-minutes: 30
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - name: photos-1
+                      args: --project=photos --shard=1/2
+                    - name: photos-2
+                      args: --project=photos --shard=2/2
+                    - name: locker-share
+                      args: --project=locker --project=share
         defaults:
             run:
                 working-directory: web
@@ -59,7 +70,7 @@ jobs:
 
             - run: npm exec -- playwright install --with-deps chromium
 
-            - run: npm run test:e2e
+            - run: npm run test:e2e -- ${{ matrix.args }}
               env:
                   GITHUB_TOKEN: ${{ github.token }}
                   TMPDIR: ${{ runner.temp }}
@@ -78,7 +89,7 @@ jobs:
               if: failure()
               uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
               with:
-                  name: web-e2e-failure
+                  name: web-e2e-failure-${{ matrix.name }}
                   path: |
                       web/e2e/playwright-report
                       web/e2e/test-results

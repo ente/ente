@@ -2,9 +2,11 @@ import { defineConfig, devices } from "@playwright/test";
 import { fileURLToPath } from "node:url";
 import { apps, appServersFor } from "./apps.ts";
 
+const requested = (process.env.ENTE_E2E_PROJECTS ?? "")
+    .split(",")
+    .filter(Boolean);
 const selected = Object.entries(apps).filter(
-    ([name]) =>
-        !process.env.ENTE_E2E_PROJECT || name === process.env.ENTE_E2E_PROJECT,
+    ([name]) => requested.length === 0 || requested.includes(name),
 );
 const servers = appServersFor(selected.map(([name]) => name));
 
