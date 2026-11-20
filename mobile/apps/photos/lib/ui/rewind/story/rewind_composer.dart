@@ -65,7 +65,7 @@ List<RewindChapter> rewindChapters(
   _mosaic(report),
   _badge(report.badge),
   _scrapbook(report),
-  _finale(report),
+  _finale(),
 ];
 
 List<RewindChapter> rewindPhotoCardChapters(rust.RewindReport report) => [
@@ -357,16 +357,7 @@ RewindChapter _scrapbook(rust.RewindReport report) {
   });
 }
 
-RewindChapter _finale(rust.RewindReport report) =>
-    RewindChapter(const [FinalePage.pageKey], (media) async {
-      final photos = Set<EnteFile>.identity();
-      for (final ids in [
-        report.finale?.fileIds,
-        report.scrapbook?.fileIds,
-        report.totals?.fileIds,
-      ]) {
-        if (ids == null || photos.length >= FinalePage.photoCount) continue;
-        photos.addAll(media.glimpses(ids, FinalePage.photoCount));
-      }
-      return [FinalePage(photos.take(FinalePage.photoCount).toList())];
-    });
+RewindChapter _finale() => RewindChapter(
+  const [FinalePage.pageKey],
+  (media) async => const [FinalePage()],
+);

@@ -17,7 +17,6 @@ abstract final class RewindAssets {
   static const grain = "$_images/grain.png";
   static const wordmark = "$_images/ente-wordmark.svg";
   static const photoHeapDucky = "$_images/ducky-photo-heap.webp";
-  static const polaroidHugDucky = "$_images/ducky-polaroid-hug.png";
   static const heroDucky = "$_images/ducky-hero-flying.webp";
   static const cloudsBack = "$_images/clouds-back.webp";
   static const cloudsFront = "$_images/clouds-front.webp";
@@ -33,6 +32,15 @@ abstract final class RewindAssets {
   static const lightningSticker = "$_images/lightning-sticker.svg";
   static const pinkSparkle = "$_images/sparkle-pink.svg";
   static const creamSparkle = "$_images/sparkle-cream.svg";
+  static const finaleRays = "$_images/finale-rays.svg";
+  static const finaleShareButton = "$_images/finale-share-button.svg";
+  static const finaleSaveButton = "$_images/finale-save-button.svg";
+  static const blueConfetti = "$_images/finale-confetti-blue.svg";
+  static const greenConfetti = "$_images/finale-confetti-green.svg";
+  static const limeConfetti = "$_images/finale-confetti-lime.svg";
+  static const yellowConfetti = "$_images/finale-confetti-yellow.svg";
+  static const topBadgeSparkle = "$_images/badge-sparkle-top.svg";
+  static const bottomBadgeSparkle = "$_images/badge-sparkle-bottom.svg";
 
   static String lockupPiece(String name) => "$_images/lockup-$name.svg";
 
@@ -51,4 +59,5 @@ abstract final class RewindAssets {
   static const detectiveDucky = "$_rive/ente-rewind-detective-ducky.riv";
   static const fire = "$_rive/ente-rewind-fire.riv";
   static const badges = "$_rive/ente-rewind-badges.riv";
+  static const yearDuckies = "$_rive/ente-rewind-year-duckies.riv";
 }
