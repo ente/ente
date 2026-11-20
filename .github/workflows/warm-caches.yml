@@ -88,6 +88,20 @@ jobs:
 
             - run: ./scripts/lint.sh
 
+            - run: cargo test --locked --workspace --exclude ente-cli --features museum,ente-ml/ml-assets --no-run
+
+            - run: cargo test --locked -p ente-cli --features museum --no-run
+
+            - run: node .github/actions/restore-rust-target/mtimes.mjs save
+              working-directory: ${{ github.workspace }}
+
+            - name: Save Rust target
+              if: steps.rust-target.outputs.cache-hit != 'true'
+              uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  key: ${{ steps.rust-target.outputs.cache-key }}
+                  path: rust/target
+
             - name: Cache Museum
               uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
               with:
@@ -101,18 +115,6 @@ jobs:
             - run: cargo test --locked --workspace --exclude ente-cli --features museum,ente-ml/ml-assets
               env:
                   GITHUB_TOKEN: ${{ github.token }}
-
-            - run: cargo test --locked -p ente-cli --features museum --no-run
-
-            - run: node .github/actions/restore-rust-target/mtimes.mjs save
-              working-directory: ${{ github.workspace }}
-
-            - name: Save Rust target
-              if: steps.rust-target.outputs.cache-hit != 'true'
-              uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-              with:
-                  key: ${{ steps.rust-target.outputs.cache-key }}
-                  path: rust/target
 
     rust-cli:
         # For rust-cli-test.yml.
