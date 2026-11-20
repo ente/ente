@@ -115,6 +115,7 @@ jobs:
                   XDG_CACHE_HOME: /tmp/cache
               with:
                   codex-home: ${{ runner.temp }}/codex
+                  codex-version: "0.169.0"
                   prompt-file: ${{ runner.temp }}/prompt.md
                   output-file: ${{ runner.temp }}/result/report.md
                   openai-api-key: ${{ secrets.OPENAI_API_KEY }}
