@@ -98,7 +98,7 @@ class _SearchSuggestionsWidgetState extends State<SearchSuggestionsWidget> {
       (timer) {
         if (queueOfSearchResults.isNotEmpty) {
           for (List<SearchResult> event in queueOfSearchResults) {
-            _addResultsToSections(event);
+            _addResultsToSections(_sectionedResults, event);
           }
           queueOfSearchResults.clear();
           setState(() {});
@@ -123,7 +123,11 @@ class _SearchSuggestionsWidgetState extends State<SearchSuggestionsWidget> {
     final resultsBackground = EnteTheme.isDark(context)
         ? colorScheme.backgroundColour
         : colorScheme.backgroundElevated2;
-    final sectionWidgets = _buildSectionWidgets(context);
+    final sectionWidgets = _buildSectionWidgets(
+      context,
+      _sectionedResults,
+      _sectionOrderForCurrentQuery(context),
+    );
     const bottomPadding = 124.0;
     if (_resultsCount > 0) {
       sectionWidgets.insert(
@@ -165,35 +169,6 @@ class _SearchSuggestionsWidgetState extends State<SearchSuggestionsWidget> {
     return count;
   }
 
-  void _addResultsToSections(List<SearchResult> results) {
-    for (final result in results) {
-      final section = _sectionForResult(result);
-      _sectionedResults.putIfAbsent(section, () => <SearchResult>[]);
-      _sectionedResults[section]!.add(result);
-    }
-  }
-
-  List<Widget> _buildSectionWidgets(BuildContext context) {
-    final widgets = <Widget>[];
-    for (final section in _sectionOrderForCurrentQuery(context)) {
-      final results = _sectionedResults[section] ?? [];
-      if (results.isEmpty) {
-        continue;
-      }
-      if (widgets.isNotEmpty) {
-        widgets.add(const SizedBox(height: 18));
-      }
-      widgets.add(
-        _SearchResultsSectionWidget(
-          title: _sectionTitle(context, section),
-          icon: _sectionIcon(section),
-          results: results,
-        ),
-      );
-    }
-    return widgets;
-  }
-
   List<_SearchResultsSection> _sectionOrderForCurrentQuery(
     BuildContext context,
   ) {
@@ -214,12 +189,80 @@ class _SearchSuggestionsWidgetState extends State<SearchSuggestionsWidget> {
   }
 }
 
+class SearchResultsSectionsWidget extends StatelessWidget {
+  final List<SearchResult> results;
+  final String query;
+  final Widget Function(SearchResult)? resultBuilder;
+
+  const SearchResultsSectionsWidget({
+    super.key,
+    required this.results,
+    required this.query,
+    this.resultBuilder,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final sectionedResults = <_SearchResultsSection, List<SearchResult>>{};
+    _addResultsToSections(sectionedResults, results);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: _buildSectionWidgets(
+        context,
+        sectionedResults,
+        _sectionOrderForQuery(context, query),
+        resultBuilder: resultBuilder,
+      ),
+    );
+  }
+}
+
+void _addResultsToSections(
+  Map<_SearchResultsSection, List<SearchResult>> sectionedResults,
+  List<SearchResult> results,
+) {
+  for (final result in results) {
+    final section = _sectionForResult(result);
+    sectionedResults.putIfAbsent(section, () => <SearchResult>[]);
+    sectionedResults[section]!.add(result);
+  }
+}
+
+List<Widget> _buildSectionWidgets(
+  BuildContext context,
+  Map<_SearchResultsSection, List<SearchResult>> sectionedResults,
+  List<_SearchResultsSection> sectionOrder, {
+  Widget Function(SearchResult)? resultBuilder,
+}) {
+  final widgets = <Widget>[];
+  for (final section in sectionOrder) {
+    final results = sectionedResults[section] ?? [];
+    if (results.isEmpty) {
+      continue;
+    }
+    if (widgets.isNotEmpty) {
+      widgets.add(const SizedBox(height: 18));
+    }
+    widgets.add(
+      _SearchResultsSectionWidget(
+        title: _sectionTitle(context, section),
+        icon: _sectionIcon(section),
+        results: results,
+        resultBuilder: resultBuilder,
+      ),
+    );
+  }
+  return widgets;
+}
+
 class SearchResultsWidgetGenerator extends StatelessWidget {
   final SearchResult result;
   final bool showTypeLabel;
+  final VoidCallback? onResultTap;
   const SearchResultsWidgetGenerator(
     this.result, {
     this.showTypeLabel = true,
+    this.onResultTap,
     super.key,
   });
 
@@ -233,14 +276,16 @@ class SearchResultsWidgetGenerator extends StatelessWidget {
           albumSearchResult.collectionWithThumbnail.collection,
         ),
         showTypeLabel: showTypeLabel,
-        onResultTap: () => routeToPage(
-          context,
-          CollectionPage(
-            albumSearchResult.collectionWithThumbnail,
-            tagPrefix: result.heroTag(),
-          ),
-          useFadeTransition: true,
-        ),
+        onResultTap:
+            onResultTap ??
+            () => routeToPage(
+              context,
+              CollectionPage(
+                albumSearchResult.collectionWithThumbnail,
+                tagPrefix: result.heroTag(),
+              ),
+              useFadeTransition: true,
+            ),
       );
     } else if (result is DeviceAlbumSearchResult) {
       final deviceResult = result as DeviceAlbumSearchResult;
@@ -248,23 +293,27 @@ class SearchResultsWidgetGenerator extends StatelessWidget {
         result,
         resultCount: Future.value(deviceResult.deviceCollection.count),
         showTypeLabel: showTypeLabel,
-        onResultTap: () => routeToPage(
-          context,
-          DeviceFolderPage(
-            deviceResult.deviceCollection,
-            coverHeroTag:
-                result.heroTag() + (result.previewThumbnail()?.tag ?? ""),
-          ),
-          useFadeTransition: true,
-        ),
+        onResultTap:
+            onResultTap ??
+            () => routeToPage(
+              context,
+              DeviceFolderPage(
+                deviceResult.deviceCollection,
+                coverHeroTag:
+                    result.heroTag() + (result.previewThumbnail()?.tag ?? ""),
+              ),
+              useFadeTransition: true,
+            ),
       );
     } else if (result is GenericSearchResult) {
       return SearchResultWidget(
         result,
         showTypeLabel: showTypeLabel,
-        onResultTap: (result as GenericSearchResult).onResultTap != null
-            ? () => (result as GenericSearchResult).onResultTap!(context)
-            : null,
+        onResultTap:
+            onResultTap ??
+            ((result as GenericSearchResult).onResultTap != null
+                ? () => (result as GenericSearchResult).onResultTap!(context)
+                : null),
       );
     } else {
       Logger('SearchResultsWidgetGenerator').info("Invalid/Unsupported value");
@@ -512,11 +561,13 @@ class _SearchResultsSectionWidget extends StatelessWidget {
   final String title;
   final List<List<dynamic>> icon;
   final List<SearchResult> results;
+  final Widget Function(SearchResult)? resultBuilder;
 
   const _SearchResultsSectionWidget({
     required this.title,
     required this.icon,
     required this.results,
+    this.resultBuilder,
   });
 
   @override
@@ -533,13 +584,16 @@ class _SearchResultsSectionWidget extends StatelessWidget {
           borderRadius: radius,
           clipBehavior: Clip.antiAlias,
           child:
-              SearchResultsWidgetGenerator(
-                results[i],
-                showTypeLabel: showTypeLabel,
-              ).animate().fadeIn(
-                duration: const Duration(milliseconds: 80),
-                curve: Curves.easeIn,
-              ),
+              (resultBuilder?.call(results[i]) ??
+                      SearchResultsWidgetGenerator(
+                        results[i],
+                        showTypeLabel: showTypeLabel,
+                      ))
+                  .animate()
+                  .fadeIn(
+                    duration: const Duration(milliseconds: 80),
+                    curve: Curves.easeIn,
+                  ),
         ),
       );
       if (i != results.length - 1) {

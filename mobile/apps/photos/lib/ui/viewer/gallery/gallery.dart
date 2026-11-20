@@ -70,6 +70,7 @@ class Gallery extends StatefulWidget {
   final String tagPrefix;
   final GalleryAppBarConfig? appBar;
   final Widget? header;
+  final bool scrollInitialPlaceholder;
   final Widget? footer;
   final Widget emptyState;
   final String? albumName;
@@ -116,6 +117,7 @@ class Gallery extends StatefulWidget {
     this.forceReloadEvents,
     this.removalEventTypes = const {},
     this.header,
+    this.scrollInitialPlaceholder = false,
     this.footer = const SizedBox(height: 212),
     this.addHeaderOrFooterEmptyState = true,
     this.emptyState = const EmptyState(),
@@ -1127,7 +1129,16 @@ class GalleryState extends State<Gallery> with WidgetsBindingObserver {
       return _GalleryAppBarScrollBody(
         appBar: widget.appBar,
         physics: _scrollPhysics,
-        child: placeholder,
+        child:
+            widget.scrollInitialPlaceholder &&
+                widget.header != null &&
+                (widget.initialFiles?.isNotEmpty ?? false)
+            ? SingleChildScrollView(
+                primary: false,
+                physics: _scrollPhysics,
+                child: placeholder,
+              )
+            : placeholder,
       );
     }
 

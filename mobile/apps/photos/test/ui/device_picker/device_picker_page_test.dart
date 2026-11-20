@@ -2,6 +2,7 @@ import "dart:async";
 import "dart:io";
 
 import "package:dio/dio.dart";
+import "package:ente_components/components/buttons/button_component.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
@@ -12,11 +13,14 @@ import "package:photo_manager/photo_manager.dart";
 import "package:photos/app_mode.dart";
 import "package:photos/core/cache/image_cache.dart";
 import "package:photos/core/configuration.dart";
+import "package:photos/core/constants.dart";
 import "package:photos/ente_theme_data.dart";
 import "package:photos/module/metadata/local_file.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/settings/local_settings.dart";
 import "package:photos/states/detail_page_state.dart";
+import "package:photos/ui/components/bottom_action_bar/action_bar_widget.dart";
+import "package:photos/ui/components/selection_preview_button.dart";
 import "package:photos/ui/device_picker/device_picker_gallery.dart";
 import "package:photos/ui/device_picker/device_picker_page.dart";
 import "package:photos/ui/viewer/file/detail_page.dart";
@@ -99,6 +103,9 @@ void main() {
     Size size = const Size(390, 844),
     double textScale = 1,
     String locale = 'en',
+    int? selectionLimit = maxPickAssetLimit,
+    bool allowEmptySelection = false,
+    Iterable<AssetEntity> initialSelection = const [],
   }) async {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -131,7 +138,14 @@ void main() {
       await tester.pumpAndSettle();
     }
     result = navigatorKey.currentState!.push<List<AssetEntity>>(
-      MaterialPageRoute(builder: (_) => DevicePickerPage(library: library)),
+      MaterialPageRoute(
+        builder: (_) => DevicePickerPage(
+          library: library,
+          selectionLimit: selectionLimit,
+          allowEmptySelection: allowEmptySelection,
+          initialSelection: initialSelection,
+        ),
+      ),
     );
     await _settleImages(tester);
     await tester.pump(const Duration(seconds: 5));
@@ -140,6 +154,94 @@ void main() {
   tearDown(() async {
     await EasyLoading.dismiss(animation: false);
     FileLruCache.clearAll();
+  });
+
+  testWidgets('editing can return an empty selection while closing cancels', (
+    tester,
+  ) async {
+    for (final confirm in [true, false]) {
+      await mount(
+        tester,
+        allowEmptySelection: true,
+        initialSelection: library.items.take(1),
+      );
+      await tester.tap(find.byType(GalleryFileWidget).first);
+      await tester.pumpAndSettle();
+      if (confirm) {
+        await tester.tap(find.text('Done'));
+      } else {
+        await tester.tap(find.byTooltip('Close'));
+      }
+      await _settleImages(tester);
+      expect(await result, confirm ? isEmpty : isNull);
+      expect(tester.takeException(), isNull);
+    }
+    await mount(tester);
+    final button = tester.widget<ButtonComponent>(
+      find.widgetWithText(ButtonComponent, 'Add selected'),
+    );
+    expect(button.isDisabled, isTrue);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('uncapped selection previews and returns more than 50 items', (
+    tester,
+  ) async {
+    final initial = library.items.take(100).toList();
+    await mount(
+      tester,
+      selectionLimit: null,
+      initialSelection: initial,
+      size: const Size(500, 844),
+      textScale: 3,
+    );
+    expect(find.widgetWithText(SelectionControlChip, '100'), findsOneWidget);
+    final preview = find.byType(SelectionPreviewButton);
+    final countBounds = tester.getRect(
+      find.descendant(of: preview, matching: find.text('100')),
+    );
+    expect(
+      countBounds.left,
+      greaterThanOrEqualTo(tester.getRect(preview).left),
+    );
+    final file = fileFromAsset('', initial.last);
+    FileLruCache.put('${file.tag}falsefalse', File('assets/memories.jpg'));
+    await tester.tap(find.byTooltip('Preview'));
+    await _settleImages(tester);
+    expect(find.text('100 selected'), findsOneWidget);
+    await tester.tap(find.text('Add selected'));
+    await _settleImages(tester);
+    expect(await result, initial);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('single selection replaces a preselected photo and returns it', (
+    tester,
+  ) async {
+    await mount(
+      tester,
+      selectionLimit: 1,
+      initialSelection: library.items.take(2),
+    );
+    expect(find.text('1/1'), findsOneWidget);
+    await tester.tap(find.byType(GalleryFileWidget).at(1));
+    await tester.pumpAndSettle();
+    final file = fileFromAsset('', library.items[1]);
+    FileLruCache.put('${file.tag}falsefalse', File('assets/memories.jpg'));
+    await tester.tap(find.byTooltip('Preview'));
+    await _settleImages(tester);
+    expect(find.text('1/1 selected'), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.close));
+    await _settleImages(tester);
+    await tester.tap(find.text('Add selected'));
+    await _settleImages(tester);
+    expect(await result, [library.items[1]]);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
   });
 
   testWidgets(
@@ -392,6 +494,27 @@ void main() {
     expect(await result, isNull);
     expect(find.text('Album'), findsOneWidget);
     expect(navigatorKey.currentState!.canPop(), isTrue);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('stale gallery files do not occupy selection slots', (
+    tester,
+  ) async {
+    await mount(tester);
+    final tiles = find.byType(GalleryFileWidget);
+    final first = tester.widget<GalleryFileWidget>(tiles.at(0));
+    final second = tester.widget<GalleryFileWidget>(tiles.at(1));
+    final model = tester
+        .widget<DevicePickerGallery>(find.byType(DevicePickerGallery))
+        .model;
+    library.items.removeAt(0);
+    await model.refresh();
+    first.selectedFiles!.selectAll({first.file, second.file});
+    expect(model.selection, [library.items.first]);
+    expect(first.selectedFiles!.files, {second.file});
+    await _settleImages(tester);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pumpAndSettle();

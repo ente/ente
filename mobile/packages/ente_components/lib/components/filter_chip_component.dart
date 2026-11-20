@@ -26,6 +26,7 @@ class FilterChipComponent extends StatelessWidget {
     this.tooltip,
     this.avatarSize,
     this.scaleAvatarWithText = false,
+    this.showSelectedTrailing = true,
   }) : assert(label != null || avatar != null);
 
   final String? label;
@@ -39,6 +40,7 @@ class FilterChipComponent extends StatelessWidget {
   final String? tooltip;
   final double? avatarSize;
   final bool scaleAvatarWithText;
+  final bool showSelectedTrailing;
 
   static const minHeight = 40.0;
   static const _textVerticalPadding = 24.0;
@@ -173,7 +175,8 @@ class FilterChipComponent extends StatelessWidget {
       );
     }
 
-    final selectedTrailing = _selected && trailing == null;
+    final selectedTrailing =
+        _selected && trailing == null && showSelectedTrailing;
     if (trailing != null || selectedTrailing) {
       addGap();
       children.add(
@@ -197,8 +200,10 @@ class FilterChipComponent extends StatelessWidget {
   }
 
   EdgeInsets get _padding {
+    final useSelectedPadding =
+        _selected && (showSelectedTrailing || trailing != null);
     if (avatar != null && label == null) {
-      return _selected
+      return useSelectedPadding
           ? const EdgeInsets.fromLTRB(
               Spacing.xs,
               Spacing.xs,
@@ -212,7 +217,7 @@ class FilterChipComponent extends StatelessWidget {
       return EdgeInsets.fromLTRB(
         Spacing.xs,
         Spacing.xs,
-        _selected ? Spacing.sm : 18,
+        useSelectedPadding ? Spacing.sm : 18,
         Spacing.xs,
       );
     }
@@ -221,7 +226,7 @@ class FilterChipComponent extends StatelessWidget {
       return EdgeInsets.fromLTRB(
         Spacing.md,
         Spacing.md,
-        _selected ? Spacing.md : Spacing.lg,
+        useSelectedPadding ? Spacing.md : Spacing.lg,
         Spacing.md,
       );
     }
@@ -235,7 +240,7 @@ class FilterChipComponent extends StatelessWidget {
       );
     }
 
-    if (_selected) {
+    if (useSelectedPadding) {
       return const EdgeInsets.fromLTRB(18, Spacing.md, Spacing.md, Spacing.md);
     }
 

@@ -4,6 +4,7 @@ import "dart:io";
 import "package:ente_components/ente_components.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
+import "package:media_extension/media_extension_action_types.dart";
 import "package:photo_manager/photo_manager.dart";
 import "package:photos/core/constants.dart";
 import "package:photos/core/event_bus.dart";
@@ -12,6 +13,7 @@ import "package:photos/models/file/extensions/file_props.dart";
 import 'package:photos/models/file/file.dart';
 import 'package:photos/module/metadata/panorama.dart';
 import "package:photos/service_locator.dart";
+import "package:photos/services/app_lifecycle_service.dart";
 import "package:photos/ui/notification/toast.dart";
 import 'package:photos/ui/viewer/file/file_details_widget.dart';
 import "package:photos/utils/delete_file_util.dart";
@@ -108,6 +110,10 @@ Future<void> showSingleFileDeleteSheet(
 }
 
 Future<void> showDetailsSheet(BuildContext context, EnteFile file) async {
+  if (AppLifecycleService.instance.mediaExtensionAction.action ==
+      IntentAction.pick) {
+    return;
+  }
   if (file.canEditMetaInfo && file.isPanorama() == null) {
     guardedCheckPanorama(file).ignore();
   }

@@ -32,7 +32,9 @@ class DevicePickerGallery extends StatefulWidget {
 }
 
 class _DevicePickerGalleryState extends State<DevicePickerGallery> {
-  final _selection = DevicePickerSelectedFiles();
+  late final _selection = DevicePickerSelectedFiles(
+    selectionLimit: widget.model.selectionLimit,
+  );
   final _reload = StreamController<FilesUpdatedEvent>.broadcast();
   final _assets = <String, AssetEntity>{};
   final _files = <String, EnteFile>{};
@@ -126,19 +128,31 @@ class _DevicePickerGalleryState extends State<DevicePickerGallery> {
   }
 
   void _readSelection() {
+    if (_syncingSelection) return;
     _syncingSelection = true;
-    final next = widget.model.selection.map(_fileFor).toSet();
-    if (!setEquals(_selection.files, next)) _selection.replaceSelection(next);
-    _syncingSelection = false;
+    try {
+      final next = widget.model.selection.map(_fileFor).toSet();
+      if (!setEquals(_selection.files, next)) _selection.replaceSelection(next);
+    } finally {
+      _syncingSelection = false;
+    }
   }
 
   void _writeSelection() {
     if (_syncingSelection) return;
-    widget.model.replaceSelection(
-      _selection.files
-          .map((file) => _assets[_selection.assetID(file)])
-          .nonNulls,
-    );
+    _syncingSelection = true;
+    try {
+      widget.model.replaceSelection(
+        _selection.files
+            .map((file) => _assets[_selection.assetID(file)])
+            .nonNulls,
+      );
+    } finally {
+      _syncingSelection = false;
+    }
+    if (_selection.files.length != widget.model.selectionCount) {
+      _readSelection();
+    }
   }
 
   void _loadMore(ScrollMetrics metrics) {
@@ -193,6 +207,8 @@ class _DevicePickerGalleryState extends State<DevicePickerGallery> {
               galleryType: GalleryType.localFolder,
               selectedFiles: _selection,
               inSelectionMode: true,
+              limitSelectionToOne: widget.model.selectionLimit == 1,
+              showSelectAll: widget.model.selectionLimit != 1,
               disableSelection: widget.model.confirming,
               disablePinnedGroupHeader: true,
               disableVerticalPaddingForScrollbar: true,

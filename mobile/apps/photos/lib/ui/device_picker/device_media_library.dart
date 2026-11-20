@@ -2,7 +2,6 @@ import "package:photo_manager/photo_manager.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/models/file/extensions/file_props.dart";
 import "package:photos/models/file/file.dart";
-import "package:photos/service_locator.dart";
 
 abstract interface class DeviceMediaLibrary {
   Future<PermissionState> permission({required bool request});
@@ -18,14 +17,26 @@ abstract interface class DeviceMediaLibrary {
 }
 
 class PhotoManagerDeviceLibrary implements DeviceMediaLibrary {
+  const PhotoManagerDeviceLibrary({this.requestType = RequestType.common});
+
+  final RequestType requestType;
+
   @override
-  Future<PermissionState> permission({required bool request}) => request
-      ? permissionService.requestPhotoManagerPermissions()
-      : permissionService.getPermissionState();
+  Future<PermissionState> permission({required bool request}) {
+    final option = PermissionRequestOption(
+      androidPermission: AndroidPermission(
+        type: requestType,
+        mediaLocation: true,
+      ),
+    );
+    return request
+        ? PhotoManager.requestPermissionExtend(requestOption: option)
+        : PhotoManager.getPermissionState(requestOption: option);
+  }
 
   @override
   Future<List<AssetPathEntity>> albums() => PhotoManager.getAssetPathList(
-    type: RequestType.common,
+    type: requestType,
     filterOption: FilterOptionGroup(
       imageOption: const FilterOption(
         sizeConstraint: SizeConstraint(ignoreSize: true),
