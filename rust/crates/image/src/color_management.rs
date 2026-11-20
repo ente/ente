@@ -68,6 +68,26 @@ impl<'a> IccConverter<'a> {
             }
         }
     }
+
+    pub(crate) fn apply_to_rgb8(&mut self, rgb: &mut [u8]) {
+        let Some(source_profile) = &self.source_profile else {
+            return;
+        };
+        match u8::transform_to_srgb(
+            rgb,
+            source_profile,
+            self.encoded_profile,
+            &mut self.transforms,
+            Layout::Rgb,
+        ) {
+            Ok(Some(transformed)) => rgb.copy_from_slice(&transformed),
+            Ok(None) => {}
+            Err(err) => {
+                log::warn!("failed to convert embedded ICC profile to sRGB: {err}");
+                self.source_profile = None;
+            }
+        }
+    }
 }
 
 struct CachedIccProfile {
