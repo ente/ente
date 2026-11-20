@@ -73,6 +73,9 @@
             "katex": "0.18.2"
         }
     },
+    "dependencies": {
+        "@rive-app/canvas-lite": "2.43.1"
+    },
     "devDependencies": {
         "@playwright/test": "1.65.0",
         "concurrently": "10.0.6",

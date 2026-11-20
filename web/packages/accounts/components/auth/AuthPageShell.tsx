@@ -23,6 +23,7 @@ export interface AuthPageShellProps extends React.PropsWithChildren {
     contentWidth?: 400 | 420;
     viewportHeight?: string;
     contentLayout?: "page-scroll" | "content-scroll";
+    illustration?: React.ReactNode;
 }
 
 export function AuthPageShell({
@@ -32,6 +33,7 @@ export function AuthPageShell({
     contentWidth = 400,
     viewportHeight = "100svh",
     contentLayout = "page-scroll",
+    illustration,
 }: AuthPageShellProps): React.JSX.Element {
     const scrollWithinContent = contentLayout === "content-scroll";
     return (
@@ -46,6 +48,7 @@ export function AuthPageShell({
                         brand={brand}
                         presentationConfig={presentationConfig}
                         size="desktop"
+                        illustration={illustration}
                     />
                 </DesktopBrandSlot>
                 <TabletBrandSlot>
@@ -53,6 +56,7 @@ export function AuthPageShell({
                         brand={brand}
                         presentationConfig={presentationConfig}
                         size="tablet"
+                        illustration={illustration}
                     />
                 </TabletBrandSlot>
                 <MobileBrandSlot $height={presentationConfig.mobileBrandHeight}>
@@ -60,6 +64,7 @@ export function AuthPageShell({
                         brand={brand}
                         presentationConfig={presentationConfig}
                         size="mobile"
+                        illustration={illustration}
                     />
                 </MobileBrandSlot>
                 <ContentSheet
@@ -145,12 +150,14 @@ interface BrandPanelProps {
     brand: AuthBrandCopy;
     presentationConfig: AuthPresentationConfig;
     size: "desktop" | "tablet" | "mobile";
+    illustration?: React.ReactNode;
 }
 
 function BrandPanel({
     brand,
     presentationConfig,
     size,
+    illustration,
 }: BrandPanelProps): React.JSX.Element {
     return (
         <BrandPanelRoot
@@ -185,8 +192,13 @@ function BrandPanel({
             <IllustrationClip
                 size={size}
                 $heights={presentationConfig.illustrationHeights}
+                sx={
+                    illustration
+                        ? { "&::after": { display: "none" } }
+                        : undefined
+                }
             >
-                <img src="/images/auth-ducky.svg" alt="" />
+                {illustration ?? <img src="/images/auth-ducky.svg" alt="" />}
             </IllustrationClip>
         </BrandPanelRoot>
     );
@@ -538,7 +550,7 @@ const IllustrationClip = styled("div", {
         animation: `${cameraSparkle} 520ms ease-out ${size === "desktop" ? "1400ms" : size === "tablet" ? "740ms" : "690ms"} both`,
         "@media (prefers-reduced-motion: reduce)": { display: "none" },
     },
-    "& > img": {
+    "& > *": {
         display: "block",
         width: "473.694px",
         height: "370px",

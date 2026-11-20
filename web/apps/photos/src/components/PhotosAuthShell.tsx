@@ -1,6 +1,7 @@
 import { AuthPageShell } from "ente-accounts/components/auth/AuthPageShell";
 import type { AuthPresentationConfig } from "ente-accounts/components/auth/styles";
 import { isDesktop } from "ente-base/app";
+import { RiveIllustration } from "ente-base/components/RiveIllustration";
 import { t } from "i18next";
 import type React from "react";
 
@@ -54,6 +55,28 @@ export function PhotosAuthShell({
             }
             contentWidth={contentWidth}
             contentLayout={isPlanSelection ? "content-scroll" : undefined}
+            illustration={
+                <RiveIllustration
+                    src={
+                        new URL(
+                            "../assets/ente-login-ducky.riv",
+                            import.meta.url,
+                        )
+                    }
+                    stateMachine="Ducky"
+                    fallback={
+                        <img
+                            src="/images/auth-ducky.svg"
+                            alt=""
+                            style={{
+                                display: "block",
+                                width: "100%",
+                                height: 370,
+                            }}
+                        />
+                    }
+                />
+            }
             viewportHeight={
                 isDesktop
                     ? "calc(100svh - env(titlebar-area-height, 30px))"
