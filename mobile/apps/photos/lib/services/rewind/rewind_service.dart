@@ -129,6 +129,7 @@ class RewindService {
 
   void _reset() {
     _state.value = null;
+    _hiddenReason = null;
     _missingStateReason = "no state";
     _setStory(null, null);
   }
@@ -166,10 +167,13 @@ class RewindService {
         _unavailableReason(now) ??
         (await assets.prepare() ? null : "assets are unavailable");
     final changed = reason != _hiddenReason;
-    _hiddenReason = reason;
-    if (reason == null) return _owner;
-    if (changed) _logger.info("Rewind $diagnosis");
+    if (reason == null) {
+      _hiddenReason = null;
+      return _owner;
+    }
     _reset();
+    _hiddenReason = reason;
+    if (changed) _logger.info("Rewind $diagnosis");
     return null;
   }
 

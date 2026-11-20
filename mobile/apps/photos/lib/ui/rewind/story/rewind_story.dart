@@ -62,8 +62,11 @@ class RewindStory {
   int get blurryFaceFiles => _blurryFaces.length;
 
   Future<bool> sharpenFaces() async {
-    final sharpened = await Future.wait(_blurryFaces.map(RewindMedia.sharpen));
-    return sharpened.contains(true);
+    var sharpened = false;
+    for (final blurry in _blurryFaces) {
+      if (await RewindMedia.sharpen(blurry)) sharpened = true;
+    }
+    return sharpened;
   }
 
   int indexOf(String? key) =>
