@@ -237,7 +237,10 @@ class SocialNotificationCoordinator {
     }
 
     for (final reaction in photoLikes) {
-      if (!isOwnedByUser(reaction.fileID)) {
+      final sharedAt = _collectionsService
+          .getCollectionByID(reaction.collectionID)
+          ?.sharedAt;
+      if (sharedAt != null && reaction.createdAt <= sharedAt) {
         continue;
       }
       considerCandidate(
@@ -392,7 +395,10 @@ class SocialNotificationCoordinator {
     final isVideo = fileType == FileType.video;
     switch (candidate.type) {
       case FeedItemType.photoLike:
-        return isVideo ? s.likedYourVideo : s.likedYourPhoto;
+        if (isOwn) {
+          return isVideo ? s.likedYourVideo : s.likedYourPhoto;
+        }
+        return isVideo ? s.likedAVideo : s.likedAPhoto;
       case FeedItemType.comment:
         if (isOwn) {
           return isVideo ? s.commentedOnYourVideo : s.commentedOnYourPhoto;
