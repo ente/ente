@@ -1,7 +1,13 @@
 import { useBook } from "@/context/book";
-import { getBindingPrintSelection, getPrintBinding } from "@/lib/printProducts";
+import {
+    getBindingPrintSelection,
+    getPrintBinding,
+    getPrintBindingLabel,
+    PRINT_BINDINGS,
+    type PrintBinding,
+} from "@/lib/printProducts";
 import { accentGreen } from "@/theme/buttons";
-import { pageMenuColors, toolbarShadow } from "@/theme/colors";
+import { pageMenuColors, toolbarColors, toolbarShadow } from "@/theme/colors";
 import { dialogSelectSx } from "@/theme/dialogs";
 import { pageMenuItemSx, pageMenuPaperSx } from "@/theme/menus";
 import { MenuItem, Select } from "@mui/material";
@@ -19,12 +25,16 @@ export default function BookBindingSelect({
     );
     const binding = getPrintBinding(book.printSelection);
     return (
-        <Select
-            value={binding}
+        <Select<PrintBinding | "">
+            value={binding ?? ""}
+            displayEmpty
+            renderValue={(value) => value || "Choose type"}
             disabled={disabled || processingPhotos}
-            inputProps={{ "aria-label": "Cover type" }}
+            inputProps={{ "aria-label": "Photobook type" }}
             IconComponent={ChevronDownIcon}
             MenuProps={{
+                anchorOrigin: { vertical: "bottom", horizontal: "right" },
+                transformOrigin: { vertical: "top", horizontal: "right" },
                 sx: {
                     "& .MuiMenuItem-root": {
                         ...pageMenuItemSx,
@@ -56,7 +66,7 @@ export default function BookBindingSelect({
             }}
             onChange={(event) => {
                 const next = event.target.value;
-                if (!book.printSelection || next !== binding)
+                if (next && next !== binding)
                     setBook((previous) => ({
                         ...previous,
                         printSelection: getBindingPrintSelection(next),
@@ -64,7 +74,8 @@ export default function BookBindingSelect({
             }}
             sx={{
                 ...dialogSelectSx,
-                bgcolor: "transparent",
+                bgcolor: toolbarColors.control,
+                "&:hover": { bgcolor: toolbarColors.hover },
                 width: "auto",
                 mr: "14px",
                 height: { xs: 48, sm: 52 },
@@ -99,12 +110,11 @@ export default function BookBindingSelect({
                 },
             }}
         >
-            <MenuItem value="Hardcover" disableRipple>
-                Hardcover
-            </MenuItem>
-            <MenuItem value="Softcover" disableRipple>
-                Softcover
-            </MenuItem>
+            {PRINT_BINDINGS.map((cover) => (
+                <MenuItem key={cover} value={cover} disableRipple>
+                    {getPrintBindingLabel(cover)}
+                </MenuItem>
+            ))}
         </Select>
     );
 }

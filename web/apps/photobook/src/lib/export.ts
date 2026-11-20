@@ -2,6 +2,7 @@ import JSZip from "jszip";
 import { BOOK_SIZE_MM } from "./bookFormats";
 import { getPhotoBlob } from "./db";
 import { createPdfWriter } from "./pdfx";
+import { getPhotoDrawLayout } from "./photoCrop";
 import {
     CAPTION_FONT_WEIGHT,
     CAPTION_TEXT_COLOR,
@@ -109,22 +110,22 @@ export async function renderPageToCanvas(
             ctx.rect(sx, sy, sw, sh);
             ctx.clip();
 
-            const imgAspect = img.naturalWidth / img.naturalHeight;
-            const slotAspect = sw / sh;
-
-            let drawW: number, drawH: number;
-            if (imgAspect > slotAspect) {
-                drawH = sh * slot.cropZoom;
-                drawW = drawH * imgAspect;
-            } else {
-                drawW = sw * slot.cropZoom;
-                drawH = drawW / imgAspect;
-            }
-
-            const drawX = sx + (sw - drawW) * slot.cropX;
-            const drawY = sy + (sh - drawH) * slot.cropY;
-
-            ctx.drawImage(img, drawX, drawY, drawW, drawH);
+            const draw = getPhotoDrawLayout(
+                slot,
+                img.naturalWidth,
+                img.naturalHeight,
+                width,
+                height,
+            );
+            ctx.translate(draw.x, draw.y);
+            ctx.rotate((draw.rotation * Math.PI) / 180);
+            ctx.drawImage(
+                img,
+                -draw.width / 2,
+                -draw.height / 2,
+                draw.width,
+                draw.height,
+            );
             ctx.restore();
         } catch {
             throw new Error(

@@ -10,10 +10,15 @@ import { useMemo } from "react";
 
 const THUMB_W = 44;
 
+interface PhotoThumbnail {
+    url: string;
+    rotation: number;
+}
+
 interface LayoutPickerProps {
     photoCount: number;
     currentVariant?: string;
-    thumbnailUrls: string[];
+    thumbnails: PhotoThumbnail[];
     onSelect: (variantKey: string) => void;
     isFrontCover?: boolean;
 }
@@ -21,12 +26,12 @@ interface LayoutPickerProps {
 function VariantThumbnail({
     variant,
     isActive,
-    thumbnailUrls,
+    thumbnails,
     onClick,
 }: {
     variant: LayoutVariant;
     isActive: boolean;
-    thumbnailUrls: string[];
+    thumbnails: PhotoThumbnail[];
     onClick: () => void;
 }) {
     const slots = useMemo(() => getVariantPreview(variant.key), [variant.key]);
@@ -60,7 +65,9 @@ function VariantThumbnail({
             }}
         >
             {slots.map((slot, i) => {
-                const url = thumbnailUrls[i];
+                const thumbnail = thumbnails[i];
+                const rotation = thumbnail?.rotation ?? 0;
+                const sideways = rotation % 180 !== 0;
                 const GAP = isFullBleed ? 0 : 1.5;
                 const left = (slot.x / 100) * THUMB_W + GAP;
                 const top = (slot.y / 100) * THUMB_W + GAP;
@@ -75,18 +82,22 @@ function VariantThumbnail({
                             top: `${top}px`,
                             width: `${width}px`,
                             height: `${height}px`,
-                            bgcolor: url ? undefined : "#b0b0b0",
+                            bgcolor: thumbnail?.url ? undefined : "#b0b0b0",
                             borderRadius: isFullBleed ? 0 : "1px",
                             overflow: "hidden",
                         }}
                     >
-                        {url && (
+                        {thumbnail?.url && (
                             <img
-                                src={url}
+                                src={thumbnail.url}
                                 alt=""
                                 style={{
-                                    width: "100%",
-                                    height: "100%",
+                                    position: "absolute",
+                                    left: "50%",
+                                    top: "50%",
+                                    width: sideways ? height : width,
+                                    height: sideways ? width : height,
+                                    transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
                                     objectFit: "cover",
                                     display: "block",
                                 }}
@@ -102,7 +113,7 @@ function VariantThumbnail({
 export default function LayoutPicker({
     photoCount,
     currentVariant,
-    thumbnailUrls,
+    thumbnails,
     onSelect,
     isFrontCover = false,
 }: LayoutPickerProps) {
@@ -136,7 +147,7 @@ export default function LayoutPicker({
                         key={v.key}
                         variant={v}
                         isActive={isActive}
-                        thumbnailUrls={thumbnailUrls}
+                        thumbnails={thumbnails}
                         onClick={() => {
                             if (isActive) {
                                 const mirror = getMirrorVariant(

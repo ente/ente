@@ -2,63 +2,77 @@ import { BOOK_SIZE_MM } from "./bookFormats";
 import { normalizeBookPages } from "./bookPages";
 import type { BookPage } from "./types";
 
+export const MAX_PRINT_PAGES = 100;
+export const MIN_PRINT_PAGES = 24;
+export const NO_PHOTOS_ERROR =
+    "Place at least one photo on a page of your book.";
+
+export const canInsertPage = (pageCount: number, count = 1) =>
+    pageCount >= 2 &&
+    Number.isInteger(count) &&
+    count > 0 &&
+    pageCount + count <= MAX_PRINT_PAGES;
+
+export const canDeletePage = (pageCount: number) => pageCount > MIN_PRINT_PAGES;
+
 export const PRINT_PRODUCTS = [
     {
-        id: "hardcover-gloss-200",
-        binding: "Hardcover",
-        paper: "Gloss · 200 gsm",
-        minPages: 24,
-        maxPages: 300,
-        sizesMm: [BOOK_SIZE_MM],
-    },
-    {
-        id: "hardcover-gloss-150",
-        binding: "Hardcover",
-        paper: "Gloss · 150 gsm",
-        minPages: 24,
-        maxPages: 500,
-        sizesMm: [BOOK_SIZE_MM],
-    },
-    {
-        id: "hardcover-mohawk-120",
-        binding: "Hardcover",
-        paper: "Mohawk uncoated · 120 gsm",
-        minPages: 24,
-        maxPages: 300,
+        id: "layflat-gloss-190",
+        binding: "Layflat",
+        paper: "Gloss · 190 gsm",
+        minPages: MIN_PRINT_PAGES,
+        maxPages: MAX_PRINT_PAGES,
         sizesMm: [BOOK_SIZE_MM],
     },
     {
         id: "softcover-gloss-150",
         binding: "Softcover",
         paper: "Gloss · 150 gsm",
-        minPages: 24,
-        maxPages: 300,
+        minPages: MIN_PRINT_PAGES,
+        maxPages: MAX_PRINT_PAGES,
         sizesMm: [BOOK_SIZE_MM],
     },
     {
         id: "softcover-mohawk-120",
         binding: "Softcover",
         paper: "Mohawk uncoated · 120 gsm",
-        minPages: 24,
-        maxPages: 300,
+        minPages: MIN_PRINT_PAGES,
+        maxPages: MAX_PRINT_PAGES,
         sizesMm: [BOOK_SIZE_MM],
     },
 ] as const;
 
 export type PrintProduct = (typeof PRINT_PRODUCTS)[number];
 export type PrintBinding = PrintProduct["binding"];
+export const PRINT_BINDINGS = [
+    "Layflat",
+    "Softcover",
+] as const satisfies readonly PrintBinding[];
+
+export function getPrintBindingLabel(binding: PrintBinding) {
+    const inches = (BOOK_SIZE_MM / 25.4).toFixed(1);
+    return `${binding} (${inches} x ${inches}")`;
+}
+
+export function getSpineTitle(title?: string) {
+    const text = title?.trim() ?? "";
+    return text === "Untitled photobook (for spine)" ? "" : text;
+}
+
 export interface PrintSelection {
     productId: PrintProduct["id"];
     sizeMm: number;
 }
 
 export const DEFAULT_PRINT_SELECTION: PrintSelection = {
-    productId: "hardcover-gloss-200",
+    productId: "layflat-gloss-190",
     sizeMm: BOOK_SIZE_MM,
 };
 
-export function getPrintBinding(selection?: PrintSelection): PrintBinding {
-    return getPrintProduct(selection?.productId)?.binding ?? "Hardcover";
+export function getPrintBinding(
+    selection?: PrintSelection,
+): PrintBinding | undefined {
+    return getPrintProduct(selection?.productId)?.binding;
 }
 
 export function getBindingPrintSelection(
@@ -66,9 +80,7 @@ export function getBindingPrintSelection(
 ): PrintSelection {
     return {
         productId:
-            binding === "Hardcover"
-                ? "hardcover-gloss-200"
-                : "softcover-gloss-150",
+            binding === "Layflat" ? "layflat-gloss-190" : "softcover-gloss-150",
         sizeMm: BOOK_SIZE_MM,
     };
 }
@@ -79,13 +91,16 @@ export function getPrintProduct(id: unknown): PrintProduct | undefined {
 
 export function getPrintExportError(
     selection: PrintSelection,
-    pageCount: number,
+    pages: BookPage[],
 ): string | null {
     const product = getPrintProduct(selection.productId);
     if (!product) return "Choose a print product before downloading.";
     if (!(product.sizesMm as readonly number[]).includes(selection.sizeMm)) {
         return `Only ${BOOK_SIZE_MM} × ${BOOK_SIZE_MM} mm books are supported.`;
     }
+    if (!pages.some((page) => page.slots.some((slot) => slot.photoId)))
+        return NO_PHOTOS_ERROR;
+    const pageCount = pages.length;
     if (pageCount < product.minPages || pageCount > product.maxPages) {
         const belowMinimum = pageCount < product.minPages;
         const difference = belowMinimum
@@ -113,7 +128,7 @@ export function preparePrintExport(
     selection: PrintSelection,
 ): BookPage[] {
     const pages = normalizeBookPages(inputPages);
-    const error = getPrintExportError(selection, pages.length);
+    const error = getPrintExportError(selection, pages);
     if (error) throw new PrintExportValidationError(error);
     return pages;
 }

@@ -1,3 +1,4 @@
+import type { EnteCredentials, EnteFileDescriptor } from "@/lib/ente/types";
 import type { AddPhotosOptions } from "@/lib/photoPlacement";
 import type {
     AppView,
@@ -31,12 +32,11 @@ export interface BookContextValue {
         options?: AddPhotosOptions,
     ) => Promise<string | undefined>;
     addEntePhotos: (
-        albumUrl: string,
-        requestPassword: () => Promise<string | null>,
+        credentials: EnteCredentials,
+        files: EnteFileDescriptor[],
     ) => Promise<void>;
     processingPhotos: boolean;
     processingProgress: number;
-    processingMessage: string;
     importNotice: string | null;
     clearImportNotice: () => void;
     pendingEnteOriginals: Set<string>;
@@ -55,7 +55,7 @@ export interface BookContextValue {
     canUndo: boolean;
     canRedo: boolean;
 
-    addPage: (afterIndex?: number) => string;
+    addPage: (afterIndex?: number, count?: number) => string;
     removePage: (pageId: string) => void;
     reorderPages: (fromIndex: number, toIndex: number) => void;
     updatePage: (pageId: string, updates: Partial<BookPage>) => void;
@@ -76,6 +76,7 @@ export interface BookContextValue {
         fromSlotId: string,
         toPageId: string,
     ) => void;
+    addPhotoToPage: (photoId: string, pageId: string, slotId?: string) => void;
     setPageLayout: (pageId: string, variantKey: string) => void;
     addTextBlock: (pageId: string) => TextBlock;
     updateTextBlock: (

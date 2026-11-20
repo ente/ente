@@ -2,6 +2,7 @@ import JSZip from "jszip";
 import assert from "node:assert/strict";
 import { afterAll, beforeAll, test, vi } from "vitest";
 import { makeBlankPage } from "./bookPages";
+import * as db from "./db";
 import {
     exportPdfX4Pages,
     exportPngPagesZip,
@@ -18,6 +19,36 @@ import {
 
 const sizeMm = 210;
 
+test("print rendering applies each photo rotation and restores the canvas transform", async () => {
+    const page = {
+        ...makeBlankPage(),
+        slots: applyVariant("4-grid", ["a", "b", "c", "d"]).map(
+            (slot, index) => ({
+                ...slot,
+                rotation: index * 90,
+                cropZoom: 1.4,
+                cropX: 0.2,
+                cropY: 0.8,
+            }),
+        ),
+    };
+    const result = (await renderPageToCanvas(
+        page,
+        (id) => Promise.resolve(`test:${id}`),
+        1000,
+        1000,
+    )) as unknown as CanvasRecord;
+    assert.equal(result.imageDraws.length, 4);
+    for (const [index, draw] of result.imageDraws.entries()) {
+        const slot = page.slots[index]!;
+        assert.ok(Math.abs(draw.rotation - (index * Math.PI) / 2) < 1e-8);
+        assert.ok(draw.x <= slot.x * 10 + 1e-8);
+        assert.ok(draw.y <= slot.y * 10 + 1e-8);
+        assert.ok(draw.x + draw.width >= (slot.x + slot.width) * 10 - 1e-8);
+        assert.ok(draw.y + draw.height >= (slot.y + slot.height) * 10 - 1e-8);
+    }
+});
+
 interface TextDraw {
     text: string;
     x: number;
@@ -30,7 +61,13 @@ interface CanvasRecord {
     height: number;
     marks: string[];
     textDraws: TextDraw[];
-    imageDraws: { x: number; y: number; width: number; height: number }[];
+    imageDraws: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+        rotation: number;
+    }[];
 }
 const documentDescriptor = Object.getOwnPropertyDescriptor(
     globalThis,
@@ -44,6 +81,7 @@ const fileReaderDescriptor = Object.getOwnPropertyDescriptor(
 let canvasCount = 0;
 
 beforeAll(() => {
+    vi.spyOn(db, "getPhotoBlob").mockResolvedValue(new Blob(["photo"]));
     Object.defineProperty(globalThis, "document", {
         configurable: true,
         value: {
@@ -58,17 +96,30 @@ beforeAll(() => {
                     textDraws: [],
                     imageDraws: [],
                 };
+                let transform = { x: 0, y: 0, rotation: 0 };
+                const transforms: (typeof transform)[] = [];
                 return Object.assign(canvas, {
                     getContext: () => ({
                         font: "10px sans-serif",
                         textAlign: "left",
-                        save: vi.fn(),
-                        restore: vi.fn(),
+                        save() {
+                            transforms.push({ ...transform });
+                        },
+                        restore() {
+                            transform = transforms.pop()!;
+                        },
                         beginPath: vi.fn(),
                         rect: vi.fn(),
                         clip: vi.fn(),
-                        translate: vi.fn(),
-                        rotate: vi.fn(),
+                        translate(x: number, y: number) {
+                            const cos = Math.cos(transform.rotation);
+                            const sin = Math.sin(transform.rotation);
+                            transform.x += x * cos - y * sin;
+                            transform.y += x * sin + y * cos;
+                        },
+                        rotate(angle: number) {
+                            transform.rotation += angle;
+                        },
                         fillRect: vi.fn(),
                         measureText(text: string) {
                             return {
@@ -91,14 +142,47 @@ beforeAll(() => {
                             });
                         },
                         drawImage(
-                            _image: unknown,
+                            image: HTMLImageElement,
                             x: number,
                             y: number,
                             width: number,
                             height: number,
                         ) {
-                            canvas.marks.push("ente-logo");
-                            canvas.imageDraws.push({ x, y, width, height });
+                            canvas.marks.push(
+                                image.src === "/ente-branding.svg"
+                                    ? "ente-logo"
+                                    : "photo",
+                            );
+                            const cos = Math.cos(transform.rotation);
+                            const sin = Math.sin(transform.rotation);
+                            const corners = [
+                                [x, y],
+                                [x + width, y],
+                                [x, y + height],
+                                [x + width, y + height],
+                            ].map(([px, py]) => ({
+                                x: transform.x + px! * cos - py! * sin,
+                                y: transform.y + px! * sin + py! * cos,
+                            }));
+                            const left = Math.min(
+                                ...corners.map((corner) => corner.x),
+                            );
+                            const top = Math.min(
+                                ...corners.map((corner) => corner.y),
+                            );
+                            canvas.imageDraws.push({
+                                x: left,
+                                y: top,
+                                width:
+                                    Math.max(
+                                        ...corners.map((corner) => corner.x),
+                                    ) - left,
+                                height:
+                                    Math.max(
+                                        ...corners.map((corner) => corner.y),
+                                    ) - top,
+                                rotation: transform.rotation,
+                            });
                         },
                     }),
                     toBlob(callback: BlobCallback) {
@@ -118,7 +202,12 @@ beforeAll(() => {
             naturalWidth = 844;
             naturalHeight = 264;
             onload: (() => void) | null = null;
-            set src(_value: string) {
+            private url = "";
+            get src() {
+                return this.url;
+            }
+            set src(value: string) {
+                this.url = value;
                 queueMicrotask(() => this.onload?.());
             }
         },
@@ -172,28 +261,30 @@ afterAll(() => {
 function bookWithBlankPage(count: number) {
     const pages = Array.from({ length: count }, (_, i) => ({
         ...makeBlankPage(),
-        centerText: i === 10 || i === count - 1 ? "" : `Page ${i + 1}`,
+        slots: i === 0 ? applyVariant("1-full", ["cover-photo"]) : [],
+        centerText:
+            i === 0 || i === 10 || i === count - 1 ? "" : `Page ${i + 1}`,
     }));
     return pages;
 }
 
-test("hardcover and softcover export the same content without printer-added blanks", async () => {
+test("layflat and softcover export the same content without printer-added blanks", async () => {
     const pages = bookWithBlankPage(24);
     const original = structuredClone(pages);
-    const hardcover = await exportPdfX4Pages(
+    const layflat = await exportPdfX4Pages(
         pages,
-        getBindingPrintSelection("Hardcover"),
+        getBindingPrintSelection("Layflat"),
     );
     const softcover = await exportPdfX4Pages(
         pages,
         getBindingPrintSelection("Softcover"),
     );
     assert.deepEqual(
-        JSON.parse(await hardcover.text()),
+        JSON.parse(await layflat.text()),
         JSON.parse(await softcover.text()),
     );
     assert.equal(
-        (JSON.parse(await hardcover.text()) as { pages: CanvasRecord[] }).pages
+        (JSON.parse(await layflat.text()) as { pages: CanvasRecord[] }).pages
             .length,
         24,
     );
@@ -224,7 +315,13 @@ test(`${sizeMm} mm PDF export preserves all 24 pages including a blank interior 
     assert.deepEqual(
         result.pages.map((page) => page.marks),
         pages.map((page, i) =>
-            i === 23 ? ["ente-logo"] : page.centerText ? [page.centerText] : [],
+            i === 0
+                ? ["photo"]
+                : i === 23
+                  ? ["ente-logo"]
+                  : page.centerText
+                    ? [page.centerText]
+                    : [],
         ),
     );
     assert.deepEqual(result.size, {
@@ -288,7 +385,7 @@ for (const [format, runExport] of [
     ["PNG", exportPngPagesZip],
 ] as const) {
     test(`${format} rejects invalid product counts before rendering or reporting progress`, async () => {
-        for (const count of [0, 2, 20, 301]) {
+        for (const count of [0, 2, 16, 101]) {
             const before = canvasCount;
             let progressCalls = 0;
             await assert.rejects(
@@ -309,7 +406,7 @@ for (const [format, runExport] of [
     test(`${format} cannot bypass validation with an unknown product or unsupported size`, async () => {
         for (const selection of [
             { productId: "unknown", sizeMm: 210 },
-            { productId: "hardcover-gloss-200", sizeMm: 211 },
+            { productId: "layflat-gloss-190", sizeMm: 211 },
             { productId: "softcover-gloss-150", sizeMm: 211 },
         ] as PrintSelection[]) {
             const before = canvasCount;
@@ -341,22 +438,6 @@ test("softcover requires 24 pages and rejects the former 20-page minimum", async
     const zip = await JSZip.loadAsync(await png.arrayBuffer());
     assert.equal(pdf.pages.length, 24);
     assert.equal(Object.keys(zip.files).length, 24);
-});
-
-test("150 gsm hardcover accepts a 500-page PDF while other hardcover paper rejects it", async () => {
-    const pages = bookWithBlankPage(500);
-    const selection: PrintSelection = {
-        productId: "hardcover-gloss-150",
-        sizeMm: 210,
-    };
-    const result = JSON.parse(
-        await (await exportPdfX4Pages(pages, selection)).text(),
-    ) as { pages: CanvasRecord[] };
-    assert.equal(result.pages.length, 500);
-    await assert.rejects(
-        exportPdfX4Pages(pages, DEFAULT_PRINT_SELECTION),
-        PrintExportValidationError,
-    );
 });
 
 test("PNG dimensions match 210 mm pages at 300 DPI", async () => {

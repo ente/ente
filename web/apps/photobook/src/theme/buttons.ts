@@ -1,4 +1,4 @@
-import { toolbarColors, toolbarShadow, uiColors } from "./colors";
+import { toolbarColors, toolbarShadow } from "./colors";
 
 export const accentGreen = "#08C225";
 export const accentGreenHover = "#07AE22";
@@ -38,14 +38,6 @@ export const headerButtonSx = {
     },
     "& .MuiButton-startIcon": { m: 0 },
     "& .MuiSvgIcon-root": { fontSize: 20 },
-} as const;
-
-export const secondaryButtonSx = {
-    ...editorButtonSx,
-    color: uiColors.text,
-    bgcolor: uiColors.control,
-    "&:hover": { bgcolor: uiColors.controlHover, boxShadow: "none" },
-    "&.Mui-disabled": { color: uiColors.muted, opacity: 0.45 },
 } as const;
 
 export const editorToolbarButtonSx = {

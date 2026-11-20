@@ -1,7 +1,8 @@
 import { useBook } from "@/context/book";
 import { useDragDraft } from "@/hooks/useDragDraft";
-import type { DragInfo } from "@/hooks/usePhotoDrag";
+import type { DragInfo, PhotoDragSource } from "@/hooks/usePhotoDrag";
 import { usePreviews } from "@/hooks/usePreviews";
+import { getPhotoDrawLayout } from "@/lib/photoCrop";
 import {
     CAPTION_FONT_WEIGHT,
     CAPTION_TEXT_COLOR,
@@ -12,175 +13,17 @@ import {
     getTextBlockLayout,
     TEXT_LINE_HEIGHT,
 } from "@/lib/printLayout";
-import type { BookPage, TextBlock } from "@/lib/types";
+import type { BookPage, PhotoSlot, TextBlock } from "@/lib/types";
 import { bookPageShadow, uiColors } from "@/theme/colors";
-import { Box, Button, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import React, { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Layer, Stage } from "react-konva";
-import { AddPhotosIcon, DeleteIcon, ZoomInIcon, ZoomOutIcon } from "./icons";
 import LayoutPicker from "./LayoutPicker";
 import type { CaptionPosition } from "./PageCanvas";
 import PageCanvas from "./PageCanvas";
 import PageMenu, { type PageInsertPosition } from "./PageMenu";
+import PhotoToolbar from "./PhotoToolbar";
 import TextToolbar from "./TextToolbar";
-
-function SlotControls({
-    pageId,
-    slotId,
-    slot,
-    pageWidth,
-    pageHeight,
-}: {
-    pageId: string;
-    slotId: string;
-    slot: {
-        x: number;
-        y: number;
-        width: number;
-        height: number;
-        cropZoom: number;
-    };
-    pageWidth: number;
-    pageHeight: number;
-}) {
-    const { updateSlot, removeSlot } = useBook("updateSlot", "removeSlot");
-
-    const handleZoomIn = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        updateSlot(pageId, slotId, {
-            cropZoom: Math.min(slot.cropZoom + 0.2, 3),
-        });
-    };
-
-    const handleZoomOut = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        updateSlot(pageId, slotId, {
-            cropZoom: Math.max(slot.cropZoom - 0.2, 1),
-        });
-    };
-
-    const handleDelete = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        removeSlot(pageId, slotId);
-    };
-
-    const btnSize = Math.max(22, Math.min(28, pageWidth * 0.06));
-    const iconSize = btnSize * 0.58;
-    const padding = Math.max(4, Math.min(6, pageWidth * 0.012));
-
-    return (
-        <div
-            style={{
-                position: "absolute",
-                left: (slot.x / 100) * pageWidth,
-                top: (slot.y / 100) * pageHeight,
-                width: (slot.width / 100) * pageWidth,
-                height: (slot.height / 100) * pageHeight,
-                zIndex: 3,
-                pointerEvents: "none",
-            }}
-        >
-            <div
-                data-page-control
-                onClick={handleDelete}
-                style={{
-                    position: "absolute",
-                    top: padding,
-                    right: padding,
-                    width: btnSize,
-                    height: btnSize,
-                    borderRadius: btnSize / 2,
-                    background: "rgba(0,0,0,0.45)",
-                    backdropFilter: "blur(8px)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: "pointer",
-                }}
-                onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "rgba(186,26,26,0.7)";
-                }}
-                onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "rgba(0,0,0,0.45)";
-                }}
-            >
-                <DeleteIcon
-                    sx={{ fontSize: iconSize, color: "rgba(255,255,255,0.9)" }}
-                />
-            </div>
-
-            <div
-                data-page-control
-                style={{
-                    position: "absolute",
-                    bottom: padding,
-                    right: padding,
-                    display: "flex",
-                    gap: 2,
-                    borderRadius: btnSize / 2,
-                    background: "rgba(0,0,0,0.45)",
-                    backdropFilter: "blur(8px)",
-                    padding: 2,
-                }}
-            >
-                <div
-                    onClick={handleZoomOut}
-                    style={{
-                        width: btnSize,
-                        height: btnSize,
-                        borderRadius: btnSize / 2,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        cursor: "pointer",
-                        transition: "background 0.15s",
-                    }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.background =
-                            "rgba(255,255,255,0.15)";
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.background = "transparent";
-                    }}
-                >
-                    <ZoomOutIcon
-                        sx={{
-                            fontSize: iconSize,
-                            color: "rgba(255,255,255,0.9)",
-                        }}
-                    />
-                </div>
-                <div
-                    onClick={handleZoomIn}
-                    style={{
-                        width: btnSize,
-                        height: btnSize,
-                        borderRadius: btnSize / 2,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        cursor: "pointer",
-                        transition: "background 0.15s",
-                    }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.background =
-                            "rgba(255,255,255,0.15)";
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.background = "transparent";
-                    }}
-                >
-                    <ZoomInIcon
-                        sx={{
-                            fontSize: iconSize,
-                            color: "rgba(255,255,255,0.9)",
-                        }}
-                    />
-                </div>
-            </div>
-        </div>
-    );
-}
 
 export const PICKER_WIDTH = 60;
 
@@ -208,8 +51,7 @@ interface SpreadPageProps {
     onTextEditEnd: () => void;
     onClearSelection: () => void;
     onInsertPage: (pageIndex: number, position: PageInsertPosition) => void;
-    onAddPhotos: (pageId: string) => void;
-    dragSourceInfo: DragInfo | null;
+    dragSourceInfo: PhotoDragSource | null;
     dragOverInfo: DragInfo | null;
     dragOverPageId: string | null;
     onPhotoDragStart: (
@@ -223,10 +65,9 @@ interface SpreadPageProps {
         pageId: string,
         slotId: string,
     ) => void;
-    onPhotoDrop: (e: React.DragEvent, pageId: string, slotId: string) => void;
+    onPhotoDrop: (e: React.DragEvent, pageId: string, slotId?: string) => void;
     onPhotoDragEnd: () => void;
     onPageDragOver: (e: React.DragEvent, pageId: string) => void;
-    onPageDrop: (e: React.DragEvent, pageId: string) => void;
     pageDragSource: number | null;
     pageDragTarget: number | null;
     pageDragSourceRef: React.RefObject<number | null>;
@@ -256,7 +97,6 @@ function SpreadPage({
     onTextEditEnd,
     onClearSelection,
     onInsertPage,
-    onAddPhotos,
     dragSourceInfo,
     dragOverInfo,
     dragOverPageId,
@@ -265,7 +105,6 @@ function SpreadPage({
     onPhotoDrop,
     onPhotoDragEnd,
     onPageDragOver,
-    onPageDrop,
     pageDragSource,
     pageDragTarget,
     pageDragSourceRef,
@@ -284,7 +123,6 @@ function SpreadPage({
         updatePage,
         updateSlot,
         getPhoto,
-        processingPhotos,
     } = useBook(
         "thumbnailUrls",
 
@@ -293,7 +131,6 @@ function SpreadPage({
         "updatePage",
         "updateSlot",
         "getPhoto",
-        "processingPhotos",
     );
 
     const pagePhotoIds = useMemo(
@@ -352,18 +189,66 @@ function SpreadPage({
         pageDragTarget === pageIndex && pageDragSource !== null;
     const isDragSource = pageDragSource === pageIndex;
     const photoCount = page.slots.filter((s) => s.photoId !== null).length;
-    const showEmptyPageAddPhotos =
-        isInterior &&
-        photoCount === 0 &&
-        page.textBlocks.length === 0 &&
-        !(editingCenterText ? centerTextDraft : (page.centerText ?? "")).trim();
     useEffect(() => {
         if (photoCount > 0) setEditingCenterText(false);
         else setEditingCaption(null);
     }, [photoCount]);
-    const hideLayoutPicker = isBackCover;
-    const hasSelectedSlotOnPage =
-        selectedPageId === page.id && selectedSlotId !== null;
+    const selectedSlot =
+        selectedPageId === page.id
+            ? page.slots.find((slot) => slot.id === selectedSlotId)
+            : undefined;
+    const isPhotoSelected = !!selectedSlot?.photoId;
+
+    const handlePanStart = (e: React.MouseEvent, slot: PhotoSlot) => {
+        if (e.button !== 0 || !slot.photoId) return;
+        const photo = getPhoto(slot.photoId);
+        if (!photo) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const origCropX = slot.cropX;
+        const origCropY = slot.cropY;
+        const { slackX, slackY } = getPhotoDrawLayout(
+            slot,
+            photo.width,
+            photo.height,
+            pageWidth,
+            pageHeight,
+        );
+        startDrag(
+            (ev) => {
+                const dx = ev.clientX - startX;
+                const dy = ev.clientY - startY;
+                const newCropX =
+                    slackX !== 0
+                        ? Math.max(0, Math.min(1, origCropX + dx / slackX))
+                        : origCropX;
+                const newCropY =
+                    slackY !== 0
+                        ? Math.max(0, Math.min(1, origCropY + dy / slackY))
+                        : origCropY;
+                return {
+                    ...page,
+                    slots: page.slots.map((current) =>
+                        current.id === slot.id
+                            ? { ...current, cropX: newCropX, cropY: newCropY }
+                            : current,
+                    ),
+                };
+            },
+            (next) => {
+                const cropped = next.slots.find(
+                    (current) => current.id === slot.id,
+                )!;
+                if (cropped.cropX !== origCropX || cropped.cropY !== origCropY)
+                    updateSlot(page.id, slot.id, {
+                        cropX: cropped.cropX,
+                        cropY: cropped.cropY,
+                    });
+            },
+        );
+    };
 
     const pageBlock = (
         <Box>
@@ -376,14 +261,22 @@ function SpreadPage({
                         ? `0 0 0 3px #08C225, ${bookPageShadow}`
                         : bookPageShadow,
                     borderRadius: 0.5,
-                    overflow: "hidden",
+                    zIndex: selectedSlot ? 2 : undefined,
                     opacity: isDragSource ? 0.4 : 1,
                     transition: "box-shadow 0.15s, opacity 0.15s",
+                    "@media (hover: hover)": {
+                        "&:not(:hover) [data-caption-placeholder]": {
+                            visibility: "hidden",
+                        },
+                        "&:not(:hover):not(:focus-within) [data-page-placeholder]":
+                            { opacity: 0 },
+                    },
                 }}
             >
                 <Stage
                     width={pageWidth}
                     height={pageHeight}
+                    style={{ borderRadius: 2, overflow: "hidden" }}
                     onClick={(e) => {
                         if (e.target === e.target.getStage())
                             onClearSelection();
@@ -425,7 +318,8 @@ function SpreadPage({
                                     : null
                             }
                             dragSourceSlotId={
-                                dragSourceInfo?.pageId === page.id
+                                dragSourceInfo?.kind === "page" &&
+                                dragSourceInfo.pageId === page.id
                                     ? dragSourceInfo.slotId
                                     : null
                             }
@@ -456,7 +350,7 @@ function SpreadPage({
                         if (pageDragSourceRef.current !== null) {
                             onPageDropOnPage(e, pageIndex);
                         } else {
-                            onPageDrop(e, page.id);
+                            onPhotoDrop(e, page.id);
                         }
                     }}
                     onDragEnd={() => {
@@ -469,7 +363,7 @@ function SpreadPage({
                         zIndex: 1,
                         cursor: isInterior ? "grab" : "default",
                         pointerEvents:
-                            hasSelectedSlotOnPage &&
+                            selectedSlot &&
                             pageDragSource === null &&
                             !dragSourceInfo
                                 ? "none"
@@ -478,7 +372,8 @@ function SpreadPage({
                 />
                 {dragOverPageId === page.id &&
                     dragSourceInfo &&
-                    dragSourceInfo.pageId !== page.id && (
+                    (dragSourceInfo.kind === "gallery" ||
+                        dragSourceInfo.pageId !== page.id) && (
                         <div
                             style={{
                                 position: "absolute",
@@ -491,159 +386,52 @@ function SpreadPage({
                             }}
                         />
                     )}
-                {page.slots.map((slot) => {
-                    const isSelected =
-                        selectedPageId === page.id &&
-                        selectedSlotId === slot.id;
-                    const canPanCrop =
-                        isSelected && !!slot.photoId && !dragSourceInfo;
-                    return (
-                        <div
-                            key={slot.id}
-                            tabIndex={-1}
-                            draggable={!!slot.photoId && !isSelected}
-                            onDragStart={(e) => {
-                                if (slot.photoId) {
-                                    e.stopPropagation();
-                                    onPhotoDragStart(
-                                        e,
-                                        page.id,
-                                        slot.id,
-                                        slot.photoId,
-                                    );
-                                } else {
-                                    e.preventDefault();
-                                }
-                            }}
-                            onDragOver={(e) =>
-                                onSlotDragOver(e, page.id, slot.id)
+                {page.slots.map((slot) => (
+                    <div
+                        key={slot.id}
+                        tabIndex={-1}
+                        draggable={!!slot.photoId}
+                        onMouseDown={(event) => {
+                            if (event.detail === 2) handlePanStart(event, slot);
+                        }}
+                        onDragStart={(e) => {
+                            if (slot.photoId) {
+                                e.stopPropagation();
+                                onPhotoDragStart(
+                                    e,
+                                    page.id,
+                                    slot.id,
+                                    slot.photoId,
+                                );
+                            } else {
+                                e.preventDefault();
                             }
-                            onDrop={(e) => onPhotoDrop(e, page.id, slot.id)}
-                            onDragEnd={onPhotoDragEnd}
-                            onClick={(event) => {
-                                event.currentTarget.focus({
-                                    preventScroll: true,
-                                });
-                                onSlotClick(page.id, slot.id);
-                            }}
-                            onMouseDown={
-                                canPanCrop
-                                    ? (e) => {
-                                          if (e.button !== 0) return;
-                                          const photo = getPhoto(slot.photoId!);
-                                          if (!photo) return;
-                                          e.preventDefault();
-                                          e.stopPropagation();
-                                          const startX = e.clientX;
-                                          const startY = e.clientY;
-                                          const origCropX = slot.cropX;
-                                          const origCropY = slot.cropY;
-                                          const sw =
-                                              (slot.width / 100) * pageWidth;
-                                          const sh =
-                                              (slot.height / 100) * pageHeight;
-                                          const imgAspect =
-                                              photo.width / photo.height;
-                                          const slotAspect = sw / sh;
-                                          let drawW: number, drawH: number;
-                                          if (imgAspect > slotAspect) {
-                                              drawH = sh * slot.cropZoom;
-                                              drawW = drawH * imgAspect;
-                                          } else {
-                                              drawW = sw * slot.cropZoom;
-                                              drawH = drawW / imgAspect;
-                                          }
-                                          const slackX = sw - drawW;
-                                          const slackY = sh - drawH;
-                                          startDrag(
-                                              (ev) => {
-                                                  const dx =
-                                                      ev.clientX - startX;
-                                                  const dy =
-                                                      ev.clientY - startY;
-                                                  const newCropX =
-                                                      slackX !== 0
-                                                          ? Math.max(
-                                                                0,
-                                                                Math.min(
-                                                                    1,
-                                                                    origCropX +
-                                                                        dx /
-                                                                            slackX,
-                                                                ),
-                                                            )
-                                                          : origCropX;
-                                                  const newCropY =
-                                                      slackY !== 0
-                                                          ? Math.max(
-                                                                0,
-                                                                Math.min(
-                                                                    1,
-                                                                    origCropY +
-                                                                        dy /
-                                                                            slackY,
-                                                                ),
-                                                            )
-                                                          : origCropY;
-                                                  return {
-                                                      ...page,
-                                                      slots: page.slots.map(
-                                                          (current) =>
-                                                              current.id ===
-                                                              slot.id
-                                                                  ? {
-                                                                        ...current,
-                                                                        cropX: newCropX,
-                                                                        cropY: newCropY,
-                                                                    }
-                                                                  : current,
-                                                      ),
-                                                  };
-                                              },
-                                              (next) => {
-                                                  const cropped =
-                                                      next.slots.find(
-                                                          (current) =>
-                                                              current.id ===
-                                                              slot.id,
-                                                      )!;
-                                                  if (
-                                                      cropped.cropX !==
-                                                          origCropX ||
-                                                      cropped.cropY !==
-                                                          origCropY
-                                                  )
-                                                      updateSlot(
-                                                          page.id,
-                                                          slot.id,
-                                                          {
-                                                              cropX: cropped.cropX,
-                                                              cropY: cropped.cropY,
-                                                          },
-                                                      );
-                                              },
-                                          );
-                                      }
-                                    : undefined
-                            }
-                            style={{
-                                position: "absolute",
-                                left: (slot.x / 100) * pageWidth,
-                                top: (slot.y / 100) * pageHeight,
-                                width: (slot.width / 100) * pageWidth,
-                                height: (slot.height / 100) * pageHeight,
-                                cursor: slot.photoId
-                                    ? isSelected
-                                        ? "move"
-                                        : "grab"
-                                    : "default",
-                                pointerEvents:
-                                    pageDragSource !== null ? "none" : "auto",
-                                zIndex: 2,
-                            }}
-                        />
-                    );
-                })}
+                        }}
+                        onDragOver={(e) => onSlotDragOver(e, page.id, slot.id)}
+                        onDrop={(e) => onPhotoDrop(e, page.id, slot.id)}
+                        onDragEnd={onPhotoDragEnd}
+                        onClick={(event) => {
+                            event.currentTarget.focus({ preventScroll: true });
+                            onSlotClick(page.id, slot.id);
+                        }}
+                        style={{
+                            position: "absolute",
+                            left: (slot.x / 100) * pageWidth,
+                            top: (slot.y / 100) * pageHeight,
+                            width: (slot.width / 100) * pageWidth,
+                            height: (slot.height / 100) * pageHeight,
+                            cursor:
+                                draft && selectedSlot?.id === slot.id
+                                    ? "move"
+                                    : slot.photoId
+                                      ? "grab"
+                                      : "default",
+                            pointerEvents:
+                                pageDragSource !== null ? "none" : "auto",
+                            zIndex: 2,
+                        }}
+                    />
+                ))}
                 {page.textBlocks.map((block) => {
                     const isTextEditing =
                         selectedPageId === page.id &&
@@ -751,22 +539,18 @@ function SpreadPage({
                         />
                     );
                 })}
-                {page.slots.map((slot) => {
-                    const isSelected =
-                        selectedPageId === page.id &&
-                        selectedSlotId === slot.id;
-                    if (!isSelected || !slot.photoId) return null;
-                    return (
-                        <SlotControls
-                            key={`ctrl-${slot.id}`}
+                {selectedSlot?.photoId &&
+                    !dragSourceInfo &&
+                    pageDragSource === null && (
+                        <PhotoToolbar
+                            key={`${selectedSlot.id}-${selectedSlot.photoId}`}
                             pageId={page.id}
-                            slotId={slot.id}
-                            slot={slot}
+                            slot={selectedSlot}
                             pageWidth={pageWidth}
                             pageHeight={pageHeight}
+                            onPanStart={handlePanStart}
                         />
-                    );
-                })}
+                    )}
                 {selectedPageId === page.id &&
                     editingTextId &&
                     (() => {
@@ -950,81 +734,65 @@ function SpreadPage({
                                 }}
                             />
                         ) : (
-                            <button
-                                type="button"
-                                aria-label={
-                                    page.centerText
-                                        ? "Edit page text"
-                                        : "Add text..."
-                                }
-                                onClick={(event) => {
-                                    event.stopPropagation();
-                                    onClearSelection();
-                                    setCenterTextDraft(page.centerText ?? "");
-                                    setEditingCenterText(true);
-                                }}
-                                style={{
-                                    ...style,
-                                    cursor: "text",
-                                    whiteSpace: "pre",
-                                    overflow: "hidden",
-                                }}
-                            >
-                                {layout.lines.join("\n")}
-                            </button>
+                            <>
+                                <button
+                                    type="button"
+                                    data-page-placeholder={
+                                        !page.centerText || undefined
+                                    }
+                                    aria-label={
+                                        page.centerText
+                                            ? "Edit page text"
+                                            : "Add text..."
+                                    }
+                                    onClick={(event) => {
+                                        event.stopPropagation();
+                                        onClearSelection();
+                                        setCenterTextDraft(
+                                            page.centerText ?? "",
+                                        );
+                                        setEditingCenterText(true);
+                                    }}
+                                    style={{
+                                        ...style,
+                                        cursor: "text",
+                                        whiteSpace: "pre",
+                                        overflow: "hidden",
+                                    }}
+                                >
+                                    {layout.lines.join("\n")}
+                                </button>
+                                {!page.centerText && (
+                                    <Typography
+                                        data-page-placeholder
+                                        sx={{
+                                            position: "absolute",
+                                            left: style.left,
+                                            top:
+                                                ((layout.y + layout.height) /
+                                                    100) *
+                                                    pageHeight +
+                                                Math.max(6, pageHeight * 0.012),
+                                            width: style.width,
+                                            zIndex: 4,
+                                            fontFamily:
+                                                "var(--font-outfit), sans-serif",
+                                            fontSize: Math.max(
+                                                9,
+                                                pageHeight * 0.02,
+                                            ),
+                                            lineHeight: 1.5,
+                                            color: "#bbb",
+                                            textAlign: "center",
+                                            pointerEvents: "none",
+                                        }}
+                                    >
+                                        or drag and drop photos here
+                                    </Typography>
+                                )}
+                            </>
                         );
                     })()}
-                {showEmptyPageAddPhotos && (
-                    <Button
-                        type="button"
-                        aria-label={`Add photos to page ${pageIndex}`}
-                        startIcon={<AddPhotosIcon />}
-                        disabled={processingPhotos}
-                        disableRipple
-                        onClick={(event) => {
-                            event.stopPropagation();
-                            onClearSelection();
-                            onAddPhotos(page.id);
-                        }}
-                        sx={{
-                            position: "absolute",
-                            left: "50%",
-                            bottom: Math.max(16, pageHeight * 0.07),
-                            transform: "translateX(-50%)",
-                            zIndex: 4,
-                            minWidth: 0,
-                            maxWidth: "calc(100% - 24px)",
-                            height: 36,
-                            px: "14px",
-                            borderRadius: "999px",
-                            bgcolor: "#F1F3F2",
-                            color: "#59635D",
-                            fontFamily: "var(--font-inter), sans-serif",
-                            fontSize: 13,
-                            fontWeight: 500,
-                            textTransform: "none",
-                            whiteSpace: "nowrap",
-                            boxShadow: "none",
-                            pointerEvents:
-                                dragSourceInfo || pageDragSource !== null
-                                    ? "none"
-                                    : "auto",
-                            transition:
-                                "background-color 120ms ease, color 120ms ease",
-                            "& .MuiButton-startIcon": { ml: 0, mr: "6px" },
-                            "& .MuiSvgIcon-root": { fontSize: 17 },
-                            "&:hover": { bgcolor: "#E4F1E7", color: "#246B37" },
-                            "&:focus-visible": {
-                                bgcolor: "#E4F1E7",
-                                color: "#246B37",
-                                outline: "2px solid #08C225",
-                                outlineOffset: 2,
-                            },
-                        }}
-                    >
-                        Add photos
-                    </Button>
-                )}
                 {(["top", "bottom"] as const).map((position) => {
                     if (position === "bottom" && isBackCover) return null;
                     const key =
@@ -1038,7 +806,11 @@ function SpreadPage({
                         position,
                         isFrontCover,
                     );
-                    if (!layout) return null;
+                    if (
+                        !layout ||
+                        (isPhotoSelected && !page[key] && !isEditing)
+                    )
+                        return null;
                     const style: React.CSSProperties = {
                         position: "absolute",
                         left: (layout.x / 100) * pageWidth,
@@ -1100,6 +872,11 @@ function SpreadPage({
                             }}
                         >
                             <span
+                                data-caption-placeholder={
+                                    !isFrontCover && !page[key]
+                                        ? true
+                                        : undefined
+                                }
                                 style={{
                                     color:
                                         page[key] ||
@@ -1139,9 +916,12 @@ function SpreadPage({
 
     const slotThumbnails = page.slots
         .filter((s) => s.photoId !== null)
-        .map((s) => thumbnailUrls.get(s.photoId!) ?? "");
+        .map((s) => ({
+            url: thumbnailUrls.get(s.photoId!) ?? "",
+            rotation: s.rotation ?? 0,
+        }));
 
-    const showPicker = photoCount > 0 && !hideLayoutPicker;
+    const showPicker = photoCount > 0 && !isBackCover && !isPhotoSelected;
     const pickerContainer = (
         <Box
             sx={{
@@ -1168,27 +948,27 @@ function SpreadPage({
                     <LayoutPicker
                         photoCount={photoCount}
                         currentVariant={page.layoutVariant}
-                        thumbnailUrls={slotThumbnails}
+                        thumbnails={slotThumbnails}
                         onSelect={(key) => setPageLayout(page.id, key)}
                         isFrontCover={isFrontCover}
                     />
                 </Box>
             )}
-            <PageMenu
-                key={page.id}
-                pageId={page.id}
-                pageIndex={pageIndex}
-                totalPages={totalPages}
-                side={pickerSide}
-                photoCount={photoCount}
-                requiredBlank={requiredBlank}
-                onAddPhotos={() => onAddPhotos(page.id)}
-                onInsert={(position) => onInsertPage(pageIndex, position)}
-                onDelete={() => {
-                    onClearSelection();
-                    removePage(page.id);
-                }}
-            />
+            {!isPhotoSelected && (
+                <PageMenu
+                    key={page.id}
+                    pageId={page.id}
+                    pageIndex={pageIndex}
+                    totalPages={totalPages}
+                    side={pickerSide}
+                    requiredBlank={requiredBlank}
+                    onInsert={(position) => onInsertPage(pageIndex, position)}
+                    onDelete={() => {
+                        onClearSelection();
+                        removePage(page.id);
+                    }}
+                />
+            )}
         </Box>
     );
 

@@ -1,3 +1,4 @@
+import { canInsertPage, MAX_PRINT_PAGES } from "@/lib/printProducts";
 import type { BookPage } from "@/lib/types";
 import { accentGreen, accentGreenHover } from "@/theme/buttons";
 import {
@@ -28,7 +29,40 @@ interface AddPageDialogProps {
     initialPageId?: string;
     disabled: boolean;
     onClose: () => void;
-    onInsert: (pageIndex: number, position: PageInsertPosition) => void;
+    onInsert: (
+        pageIndex: number,
+        position: PageInsertPosition,
+        count: number,
+    ) => void;
+}
+
+function FittedSelectValue({
+    value,
+    options,
+}: {
+    value: string;
+    options: string[];
+}) {
+    return (
+        <Box
+            component="span"
+            sx={{ display: "inline-grid", whiteSpace: "nowrap" }}
+        >
+            {options.map((option) => (
+                <Box
+                    component="span"
+                    key={option}
+                    aria-hidden="true"
+                    sx={{ gridArea: "1 / 1", visibility: "hidden" }}
+                >
+                    {option}
+                </Box>
+            ))}
+            <Box component="span" sx={{ gridArea: "1 / 1" }}>
+                {value}
+            </Box>
+        </Box>
+    );
 }
 
 export default function AddPageDialog({
@@ -40,9 +74,11 @@ export default function AddPageDialog({
 }: AddPageDialogProps) {
     const id = useId();
     const [open, setOpen] = useState(true);
+    const [count, setCount] = useState(1);
     const [insertion, setInsertion] = useState<{
         pageIndex: number;
         position: PageInsertPosition;
+        count: number;
     } | null>(null);
     const [pageId, setPageId] = useState(
         initialPageId ?? pages.at(0)?.id ?? "",
@@ -63,7 +99,24 @@ export default function AddPageDialog({
         ),
     );
     const targetPage = pages.at(pageIndex);
-    const canInsert = !disabled && pages.length >= 2 && !!targetPage;
+    const remainingPages = Math.max(0, MAX_PRINT_PAGES - pages.length);
+    const canInsert =
+        !disabled && canInsertPage(pages.length, count) && !!targetPage;
+    const countOptions = Array.from({ length: remainingPages }, (_, i) => ({
+        value: i + 1,
+        label: `${i + 1} ${i === 0 ? "page" : "pages"}`,
+    }));
+    const pageOptions = pages
+        .slice(firstAllowedIndex, lastAllowedIndex + 1)
+        .map((page, i) => ({
+            value: page.id,
+            label:
+                i + firstAllowedIndex === 0
+                    ? "Front cover"
+                    : i + firstAllowedIndex === lastIndex
+                      ? "Back cover"
+                      : `Page ${i + firstAllowedIndex}`,
+        }));
 
     return (
         <Dialog
@@ -78,8 +131,12 @@ export default function AddPageDialog({
                 transition: {
                     onExited: () => {
                         onClose();
-                        if (insertion)
-                            onInsert(insertion.pageIndex, insertion.position);
+                        if (insertion && canInsert)
+                            onInsert(
+                                insertion.pageIndex,
+                                insertion.position,
+                                insertion.count,
+                            );
                     },
                 },
             }}
@@ -89,7 +146,7 @@ export default function AddPageDialog({
                 onSubmit={(event) => {
                     event.preventDefault();
                     if (!open || !canInsert) return;
-                    setInsertion({ pageIndex, position });
+                    setInsertion({ pageIndex, position, count });
                     setOpen(false);
                 }}
                 sx={{ position: "relative", p: "48px 16px 16px" }}
@@ -130,23 +187,48 @@ export default function AddPageDialog({
                             id={`${id}-title`}
                             sx={dialogTitleSx}
                         >
-                            Add page
+                            Add pages
                         </Typography>
                         <Typography
                             id={`${id}-description`}
                             sx={dialogDescriptionSx}
                         >
-                            Choose where to add a blank page.
+                            Choose how many pages to add and where.
                         </Typography>
                     </Box>
                     <Box
                         sx={{
                             display: "grid",
-                            gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                            gap: "12px",
+                            gridTemplateColumns: "repeat(3, max-content)",
+                            justifyContent: "center",
+                            gap: "8px",
                             width: "100%",
                         }}
                     >
+                        <Select
+                            autoFocus
+                            inputProps={{ "aria-label": "Number of pages" }}
+                            SelectDisplayProps={{ style: { paddingRight: 36 } }}
+                            value={count}
+                            renderValue={(value) => (
+                                <FittedSelectValue
+                                    value={`${value} ${value === 1 ? "page" : "pages"}`}
+                                    options={countOptions.map(
+                                        ({ label }) => label,
+                                    )}
+                                />
+                            )}
+                            onChange={(event) => setCount(event.target.value)}
+                            disabled={disabled || remainingPages === 0}
+                            sx={{ ...dialogSelectSx, minWidth: 0 }}
+                            MenuProps={dialogSelectMenuProps}
+                        >
+                            {countOptions.map(({ value, label }) => (
+                                <MenuItem key={value} value={value}>
+                                    {label}
+                                </MenuItem>
+                            ))}
+                        </Select>
                         <Box
                             sx={{
                                 display: "flex",
@@ -156,9 +238,18 @@ export default function AddPageDialog({
                             }}
                         >
                             <Select
-                                autoFocus
                                 inputProps={{ "aria-label": "Insert position" }}
                                 value={position}
+                                renderValue={(value) => (
+                                    <FittedSelectValue
+                                        value={
+                                            value === "before"
+                                                ? "Before"
+                                                : "After"
+                                        }
+                                        options={["Before", "After"]}
+                                    />
+                                )}
                                 onChange={(event) => {
                                     const nextPosition = event.target.value;
                                     const nextIndex =
@@ -190,6 +281,19 @@ export default function AddPageDialog({
                             <Select
                                 inputProps={{ "aria-label": "Page" }}
                                 value={targetPage?.id ?? ""}
+                                renderValue={(value) => (
+                                    <FittedSelectValue
+                                        value={
+                                            pageOptions.find(
+                                                (option) =>
+                                                    option.value === value,
+                                            )?.label ?? ""
+                                        }
+                                        options={pageOptions.map(
+                                            ({ label }) => label,
+                                        )}
+                                    />
+                                )}
                                 onChange={(event) =>
                                     setPageId(event.target.value)
                                 }
@@ -197,18 +301,11 @@ export default function AddPageDialog({
                                 sx={dialogSelectSx}
                                 MenuProps={dialogSelectMenuProps}
                             >
-                                {pages.map((page, index) =>
-                                    index < firstAllowedIndex ||
-                                    index > lastAllowedIndex ? null : (
-                                        <MenuItem key={page.id} value={page.id}>
-                                            {index === 0
-                                                ? "Front cover"
-                                                : index === lastIndex
-                                                  ? "Back cover"
-                                                  : `Page ${index}`}
-                                        </MenuItem>
-                                    ),
-                                )}
+                                {pageOptions.map(({ value, label }) => (
+                                    <MenuItem key={value} value={value}>
+                                        {label}
+                                    </MenuItem>
+                                ))}
                             </Select>
                         </Box>
                     </Box>
@@ -233,7 +330,7 @@ export default function AddPageDialog({
                                 "&:hover": { bgcolor: accentGreenHover },
                             }}
                         >
-                            Add page
+                            Add {count} {count === 1 ? "page" : "pages"}
                         </Button>
                     </Box>
                 </Box>

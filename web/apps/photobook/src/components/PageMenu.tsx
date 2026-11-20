@@ -1,15 +1,9 @@
-import { MAX_PAGE_PHOTOS } from "@/lib/photoPlacement";
+import { canDeletePage, canInsertPage } from "@/lib/printProducts";
 import { pageMenuColors, uiColors } from "@/theme/colors";
 import { pageMenuItemSx, pageMenuPaperSx } from "@/theme/menus";
 import { IconButton, Menu, MenuItem } from "@mui/material";
 import { useState } from "react";
-import {
-    AddPageIcon,
-    AddPhotosIcon,
-    DeleteIcon,
-    EditPhotoIcon,
-    MoreIcon,
-} from "./icons";
+import { AddPageIcon, DeleteIcon, MoreIcon } from "./icons";
 import RequiredPageDialog from "./RequiredPageDialog";
 
 export type PageInsertPosition = "before" | "after";
@@ -19,9 +13,7 @@ interface PageMenuProps {
     pageIndex: number;
     totalPages: number;
     side: "left" | "right";
-    photoCount: number;
     requiredBlank: boolean;
-    onAddPhotos: () => void;
     onInsert: (position: PageInsertPosition) => void;
     onDelete: () => void;
 }
@@ -31,9 +23,7 @@ export default function PageMenu({
     pageIndex,
     totalPages,
     side,
-    photoCount,
     requiredBlank,
-    onAddPhotos,
     onInsert,
     onDelete,
 }: PageMenuProps) {
@@ -43,6 +33,7 @@ export default function PageMenu({
     const isFrontCover = pageIndex === 0;
     const isBackCover = pageIndex === totalPages - 1;
     const isInterior = !isFrontCover && !isBackCover;
+    const insertDisabled = !canInsertPage(totalPages);
     const label = isFrontCover
         ? "Front cover"
         : isBackCover
@@ -107,32 +98,11 @@ export default function PageMenu({
                     list: { "aria-labelledby": buttonId, sx: { p: 0 } },
                 }}
             >
-                {isFrontCover && (
-                    <MenuItem
-                        dense
-                        disableRipple
-                        onClick={() => runAction(onAddPhotos)}
-                        sx={pageMenuItemSx}
-                    >
-                        <EditPhotoIcon sx={{ fontSize: 18, flexShrink: 0 }} />
-                        Change cover image
-                    </MenuItem>
-                )}
-                {isInterior && photoCount < MAX_PAGE_PHOTOS && (
-                    <MenuItem
-                        dense
-                        disableRipple
-                        onClick={() => runAction(onAddPhotos)}
-                        sx={pageMenuItemSx}
-                    >
-                        <AddPhotosIcon sx={{ fontSize: 18, flexShrink: 0 }} />
-                        Add photos
-                    </MenuItem>
-                )}
                 {!isFrontCover && (
                     <MenuItem
                         dense
                         disableRipple
+                        disabled={insertDisabled}
                         onClick={() => runAction(() => onInsert("before"))}
                         sx={pageMenuItemSx}
                     >
@@ -144,6 +114,7 @@ export default function PageMenu({
                     <MenuItem
                         dense
                         disableRipple
+                        disabled={insertDisabled}
                         onClick={() => runAction(() => onInsert("after"))}
                         sx={pageMenuItemSx}
                     >
@@ -155,6 +126,7 @@ export default function PageMenu({
                     <MenuItem
                         dense
                         disableRipple
+                        disabled={!canDeletePage(totalPages)}
                         onClick={() =>
                             runAction(() => {
                                 if (requiredBlank)
