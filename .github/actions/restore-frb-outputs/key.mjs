@@ -15,6 +15,7 @@ const patterns = [
     ".github/workflows/mobile-lint.yml",
     ".github/workflows/warm-caches.yml",
     "mobile/apps/*/flutter_rust_bridge.yaml",
+    "mobile/apps/*/pubspec.yaml",
     "mobile/packages/frb/pubspec.yaml",
     "mobile/pubspec.lock",
 ];
