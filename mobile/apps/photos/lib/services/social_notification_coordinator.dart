@@ -217,8 +217,13 @@ class SocialNotificationCoordinator {
     }
 
     final allFileIDs = <int>{};
+    final likedFiles = <(int fileID, int collectionID)>{};
     for (final reaction in photoLikes) {
-      if (reaction.fileID != null) allFileIDs.add(reaction.fileID!);
+      final fileID = reaction.fileID;
+      if (fileID != null) {
+        allFileIDs.add(fileID);
+        likedFiles.add((fileID, reaction.collectionID));
+      }
     }
     for (final comment in fileComments) {
       if (comment.fileID != null) allFileIDs.add(comment.fileID!);
@@ -236,11 +241,12 @@ class SocialNotificationCoordinator {
       return file != null && file.ownerID == userID;
     }
 
+    final existingLikedFiles = await _filesDb.getExistingFileIDsByCollection(
+      likedFiles,
+    );
     for (final reaction in photoLikes) {
-      final sharedAt = _collectionsService
-          .getCollectionByID(reaction.collectionID)
-          ?.sharedAt;
-      if (sharedAt != null && reaction.createdAt <= sharedAt) {
+      final filesInAlbum = existingLikedFiles[reaction.collectionID];
+      if (filesInAlbum?.contains(reaction.fileID) != true) {
         continue;
       }
       considerCandidate(
