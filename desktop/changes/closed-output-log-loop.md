@@ -1,0 +1,1 @@
+- Fixed high CPU use and an endlessly growing log after the program that launched the app exits. - @VanshajPoonia
