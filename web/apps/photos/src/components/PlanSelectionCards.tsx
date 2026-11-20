@@ -39,6 +39,8 @@ interface PlanSelectionCardsProps {
     initialPeriod?: PlanPeriod;
     currentPlanID?: string;
     listMaxHeight?: string;
+    showLockerAllowance?: boolean;
+    freePlanAction?: "continue" | "close";
     onContinueFree?: () => void;
     onContinuePaid: (plan: Plan) => void;
 }
@@ -48,6 +50,8 @@ export function PlanSelectionCards({
     initialPeriod = "year",
     currentPlanID,
     listMaxHeight,
+    showLockerAllowance = false,
+    freePlanAction = "continue",
     onContinueFree,
     onContinuePaid,
 }: PlanSelectionCardsProps) {
@@ -71,6 +75,17 @@ export function PlanSelectionCards({
     const selectedStorage =
         selectedPlan?.storage ??
         (onContinueFree ? plansData?.freePlan.storage : undefined);
+    let continueLabel = t("choose_plan");
+    if (selectedIsCurrent) {
+        continueLabel = t("plan_current");
+    } else if (selectedStorage !== undefined) {
+        continueLabel =
+            !selectedPlan && freePlanAction === "close"
+                ? t("close")
+                : t("continue_with_storage_plan", {
+                      storage: formattedByteSize(selectedStorage, 0),
+                  });
+    }
 
     const updateScrollEdges = useCallback(() => {
         const list = planListRef.current;
@@ -147,7 +162,8 @@ export function PlanSelectionCards({
                                 <PlanSelectionCard
                                     storage={plansData.freePlan.storage}
                                     selected={!selectedPlan}
-                                    current
+                                    current={freePlanAction === "continue"}
+                                    showLockerAllowance={showLockerAllowance}
                                     onSelect={() => setSelectedPlanID(null)}
                                 />
                             )}
@@ -199,18 +215,9 @@ export function PlanSelectionCards({
                                 : onContinueFree?.()
                         }
                     >
-                        {selectedIsCurrent
-                            ? t("plan_current")
-                            : selectedStorage === undefined
-                              ? t("choose_plan")
-                              : t("continue_with_storage_plan", {
-                                    storage: formattedByteSize(
-                                        selectedStorage,
-                                        0,
-                                    ),
-                                })}
+                        {continueLabel}
                     </PlanContinueButton>
-                    {!!paidPlans?.length && (
+                    {showLockerAllowance && !!paidPlans?.length && (
                         <Typography
                             component="p"
                             variant="small"
@@ -244,6 +251,7 @@ interface PlanSelectionCardProps {
     originalMonthlyPrice?: string;
     selected: boolean;
     current: boolean;
+    showLockerAllowance?: boolean;
     onSelect: () => void;
 }
 
@@ -253,6 +261,7 @@ function PlanSelectionCard({
     originalMonthlyPrice,
     selected,
     current,
+    showLockerAllowance = false,
     onSelect,
 }: PlanSelectionCardProps) {
     const id = useId();
@@ -261,6 +270,10 @@ function PlanSelectionCard({
     const yearlyMonthlyPrice =
         plan?.period === "year" ? formatPrice(plan.price, 12) : undefined;
     const showBadge = current || isPopular;
+    const descriptions = [
+        showLockerAllowance && `${id}-locker`,
+        showBadge && `${id}-badge`,
+    ].filter(Boolean);
 
     return (
         <PlanCard data-selected={selected} data-has-badge={showBadge}>
@@ -270,13 +283,7 @@ function PlanSelectionCard({
                 checked={selected}
                 onChange={onSelect}
                 aria-labelledby={`${id}-storage ${id}-price`}
-                aria-describedby={
-                    plan
-                        ? showBadge
-                            ? `${id}-badge`
-                            : undefined
-                        : `${id}-locker ${id}-badge`
-                }
+                aria-describedby={descriptions.join(" ") || undefined}
             />
             <Box component="span">
                 <Box
@@ -286,7 +293,7 @@ function PlanSelectionCard({
                 >
                     {value} <span>{unit}</span>
                 </Box>
-                {!plan && (
+                {showLockerAllowance && (
                     <Box
                         component="span"
                         id={`${id}-locker`}

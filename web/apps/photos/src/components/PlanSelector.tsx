@@ -28,6 +28,8 @@ import {
     activateStripeSubscription,
     cancelStripeSubscription,
     getPlansData,
+    isFamilyAdmin,
+    isPartOfFamily,
     isSubscriptionActivePaid,
     isSubscriptionCancelled,
     isSubscriptionForPlan,
@@ -230,6 +232,7 @@ export const PlanSelectorContents: React.FC<PlanSelectorContentsProps> = ({
         return (
             <PlanSelectionCards
                 plansData={plansData}
+                showLockerAllowance
                 onContinueFree={onClose}
                 onContinuePaid={handlePlanSelect}
             />
@@ -244,6 +247,10 @@ export const PlanSelectorContents: React.FC<PlanSelectorContentsProps> = ({
     const canContinueFree =
         (!subscription || isSubscriptionFree(subscription)) &&
         !addOnBonuses.length;
+    const isNonAdminFamilyMember =
+        userDetails &&
+        isPartOfFamily(userDetails) &&
+        !isFamilyAdmin(userDetails);
 
     return (
         <Stack sx={{ gap: 2, p: 1.5 }}>
@@ -265,6 +272,7 @@ export const PlanSelectorContents: React.FC<PlanSelectorContentsProps> = ({
                 initialPeriod={subscription?.period ?? "month"}
                 currentPlanID={currentPlanID}
                 listMaxHeight="clamp(120px, calc(100svh - 220px), 530px)"
+                freePlanAction={isNonAdminFamilyMember ? "close" : "continue"}
                 onContinueFree={canContinueFree ? onClose : undefined}
                 onContinuePaid={handlePlanSelect}
             />
