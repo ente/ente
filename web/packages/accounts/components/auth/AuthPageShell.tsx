@@ -2,6 +2,7 @@ import { Tick02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { GlobalStyles, keyframes, styled } from "@mui/material";
 import { EnteLogo } from "ente-base/components/EnteLogo";
+import { RiveIllustration } from "ente-base/components/RiveIllustration";
 import type React from "react";
 import {
     authAboveMobileMediaQuery,
@@ -112,25 +113,6 @@ const illustrationReveal = keyframes({
     to: { opacity: 1, transform: "translateY(0) scale(1)" },
 });
 
-const cameraSparkle = keyframes({
-    from: {
-        opacity: 0,
-        transform: "translate(-50%, -50%) scale(0) rotate(-20deg)",
-    },
-    "35%": {
-        opacity: 1,
-        transform: "translate(-50%, -50%) scale(1) rotate(0)",
-    },
-    "70%": {
-        opacity: 0.85,
-        transform: "translate(-50%, -50%) scale(0.72) rotate(24deg)",
-    },
-    to: {
-        opacity: 0,
-        transform: "translate(-50%, -50%) scale(1.3) rotate(45deg)",
-    },
-});
-
 const brandCurvesDrift = keyframes({
     "0%, 100%": { backgroundPosition: "calc(50% - 6px) calc(50% + 4px)" },
     "50%": { backgroundPosition: "calc(50% + 6px) calc(50% - 4px)" },
@@ -186,7 +168,16 @@ function BrandPanel({
                 size={size}
                 $heights={presentationConfig.illustrationHeights}
             >
-                <img src="/images/auth-ducky.svg" alt="" />
+                <RiveIllustration
+                    src={
+                        new URL(
+                            "../../assets/ente-login-ducky.riv",
+                            import.meta.url,
+                        )
+                    }
+                    stateMachine="Ducky"
+                    fallback={<img src="/images/auth-ducky.svg" alt="" />}
+                />
             </IllustrationClip>
         </BrandPanelRoot>
     );
@@ -521,24 +512,7 @@ const IllustrationClip = styled("div", {
               // bottom edge by 32px (tablet) / 28px (mobile).
               bottom: size === "tablet" ? "44px" : "38px",
           }),
-    "&::after": {
-        content: '""',
-        width:
-            size === "desktop" ? "34px" : size === "tablet" ? "26px" : "20px",
-        aspectRatio: "1",
-        position: "absolute",
-        left: "67%",
-        top: size === "desktop" ? "59%" : "57%",
-        zIndex: 1,
-        pointerEvents: "none",
-        backgroundColor: "#fff",
-        clipPath:
-            "polygon(50% 0%, 59% 39%, 100% 50%, 59% 61%, 50% 100%, 41% 61%, 0% 50%, 41% 39%)",
-        filter: "drop-shadow(0 0 7px rgba(255, 245, 168, 0.95))",
-        animation: `${cameraSparkle} 520ms ease-out ${size === "desktop" ? "1400ms" : size === "tablet" ? "740ms" : "690ms"} both`,
-        "@media (prefers-reduced-motion: reduce)": { display: "none" },
-    },
-    "& > img": {
+    "& > *": {
         display: "block",
         width: "473.694px",
         height: "370px",
@@ -553,4 +527,5 @@ const IllustrationClip = styled("div", {
             "@media (min-width: 1600px)": { transform: "scale(0.75)" },
         }),
     },
+    "& img": { display: "block", width: "100%" },
 }));

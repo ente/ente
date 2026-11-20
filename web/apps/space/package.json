@@ -13,7 +13,6 @@
         "@hugeicons/core-free-icons": "4.3.5",
         "@hugeicons/react": "1.1.10",
         "@mediabunny/aac-encoder": "1.61.6",
-        "@rive-app/canvas-lite": "2.43.1",
         "ente-accounts": "*",
         "ente-base": "*",
         "ente-media": "*",
