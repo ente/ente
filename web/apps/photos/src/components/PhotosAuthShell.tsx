@@ -6,6 +6,7 @@ import type React from "react";
 
 interface PhotosAuthShellProps extends React.PropsWithChildren {
     contentWidth?: 400 | 420;
+    isPlanSelection?: boolean;
 }
 
 const photosAuthTheme: AuthPresentationConfig = {
@@ -26,9 +27,16 @@ const photosAuthTheme: AuthPresentationConfig = {
     illustrationHeights: { desktop: 219, tablet: 172, mobile: 127, wide: 249 },
 };
 
+const planSelectionTheme: AuthPresentationConfig = {
+    ...photosAuthTheme,
+    lightContentBackground: "#f4f4f4",
+    darkContentBackground: "#171717",
+};
+
 export function PhotosAuthShell({
     children,
     contentWidth,
+    isPlanSelection,
 }: PhotosAuthShellProps): React.JSX.Element {
     return (
         <AuthPageShell
@@ -41,8 +49,11 @@ export function PhotosAuthShell({
                     t("auth_independently_audited"),
                 ],
             }}
-            presentationConfig={photosAuthTheme}
+            presentationConfig={
+                isPlanSelection ? planSelectionTheme : photosAuthTheme
+            }
             contentWidth={contentWidth}
+            contentLayout={isPlanSelection ? "content-scroll" : undefined}
             viewportHeight={
                 isDesktop
                     ? "calc(100svh - env(titlebar-area-height, 30px))"

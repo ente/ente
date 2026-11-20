@@ -16,7 +16,10 @@ const testWithPhotos = test.extend<{
     photoAlbum: async ({ signedInPage: page }, use) => {
         await page.setViewportSize({ width: 1440, height: 900 });
         await page
-            .getByText("Continue with free plan", { exact: true })
+            .getByRole("button", {
+                name: "Continue with 10 GB plan",
+                exact: true,
+            })
             .click();
 
         const albums = page.getByRole("navigation", { name: "Albums" });
@@ -282,10 +285,6 @@ testWithPhotos(
             page.getByText(photos[3].name, { exact: true }),
         ).toBeVisible();
 
-        test.fail(
-            true,
-            "The viewer shifts sideways after the Trash dialog closes",
-        );
         expect(horizontalOffset).toBeLessThan(2);
     },
 );
