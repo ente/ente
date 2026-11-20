@@ -189,32 +189,32 @@ class SetupPage extends RewindPage {
 
   Widget _art(double position, bool isActive) {
     final pivot = art.pivot ?? art.rect.bottomCenter;
+    final stack = Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned.fromRect(
+          rect: art.rect,
+          child: art.animated
+              ? RewindDucky(art.asset)
+              : Image.file(RewindAssets.file(art.asset), fit: BoxFit.contain),
+        ),
+        for (final (tick, rect) in art.ticks)
+          Positioned.fromRect(rect: rect, child: RewindTickMark(tick)),
+      ],
+    );
     return Positioned.fill(
       child: RewindLeave(
         position: position,
         centerY: art.rect.center.dy,
-        child: RewindEntrance(
-          preset: art.preset,
-          active: isActive,
-          delayMs: art.delayMs,
-          origin: RewindStage.alignmentOf(pivot),
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Positioned.fromRect(
-                rect: art.rect,
-                child: art.animated
-                    ? RewindDucky(art.asset)
-                    : Image.file(
-                        RewindAssets.file(art.asset),
-                        fit: BoxFit.contain,
-                      ),
+        child: art.animated
+            ? stack
+            : RewindEntrance(
+                preset: art.preset,
+                active: isActive,
+                delayMs: art.delayMs,
+                origin: RewindStage.alignmentOf(pivot),
+                child: stack,
               ),
-              for (final (tick, rect) in art.ticks)
-                Positioned.fromRect(rect: rect, child: RewindTickMark(tick)),
-            ],
-          ),
-        ),
       ),
     );
   }

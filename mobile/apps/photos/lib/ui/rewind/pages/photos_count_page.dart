@@ -76,7 +76,10 @@ class PhotosCountPage extends RewindPage {
       outline: 2.8,
       shadow: const Offset(3.5, 4.2),
     );
-    final playing = isActive && !RewindPageScope.coveredOf(context);
+    final covered = RewindPageScope.coveredOf(context);
+    final playing = isActive && !covered;
+    final launched =
+        (isActive || (position < 0 && position > -0.9)) && !covered;
 
     return RewindShareable(
       child: Stack(
@@ -99,7 +102,7 @@ class PhotosCountPage extends RewindPage {
                 position: position,
                 child: RewindEntrance(
                   preset: RewindPreset.cloud,
-                  active: isActive,
+                  active: launched,
                   child: RewindSpread(
                     child: Image.file(
                       RewindAssets.file(RewindAssets.cloudsBack),
@@ -113,16 +116,16 @@ class PhotosCountPage extends RewindPage {
                   child: RewindLeave(
                     position: position,
                     centerY: 420,
-                    child: _Popcorn(photos: photos, active: playing),
+                    child: _Popcorn(photos: photos, active: launched),
                   ),
                 ),
               RewindLayer(
                 rect: _ducky,
                 position: position,
                 child: RewindKeyframes(
-                  active: isActive,
-                  delayMs: 850,
-                  durationMs: 1050,
+                  active: launched,
+                  delayMs: 380,
+                  durationMs: 1350,
                   curve: RewindMotion.hop,
                   hiddenBeforeStart: true,
                   origin: Alignment(
@@ -144,7 +147,7 @@ class PhotosCountPage extends RewindPage {
                 position: position,
                 child: RewindEntrance(
                   preset: RewindPreset.cloud,
-                  active: isActive,
+                  active: launched,
                   delayMs: 90,
                   child: Stack(
                     clipBehavior: Clip.none,
@@ -173,7 +176,7 @@ class PhotosCountPage extends RewindPage {
                 child: RewindEntrance(
                   preset: RewindPreset.line,
                   active: isActive,
-                  delayMs: 1250,
+                  delayMs: 700,
                   child: Center(
                     child: RewindVoice(
                       you: "IN ${RewindEdition.year}, YOU CLICKED",
@@ -208,7 +211,7 @@ class PhotosCountPage extends RewindPage {
                             child: RewindEntrance(
                               preset: RewindPreset.slap,
                               active: isActive,
-                              delayMs: 1400,
+                              delayMs: 850,
                               child: Stack(
                                 alignment: Alignment.centerRight,
                                 children: [
@@ -219,7 +222,7 @@ class PhotosCountPage extends RewindPage {
                                   RewindCountUp(
                                     value: count,
                                     active: playing,
-                                    delayMs: 1450,
+                                    delayMs: 900,
                                     builder: (context, text) => big(text),
                                   ),
                                 ],
@@ -233,7 +236,7 @@ class PhotosCountPage extends RewindPage {
                           child: RewindEntrance(
                             preset: RewindPreset.pop,
                             active: isActive,
-                            delayMs: 1700,
+                            delayMs: 1150,
                             child: Transform.rotate(
                               angle: -1.7 * pi / 180,
                               child: RewindOutlinedText(
@@ -310,8 +313,8 @@ class _Popcorn extends StatelessWidget {
 
   static const _launchY = 650.0;
   static const _flightMs = 1750.0;
-  static const _burstFromMs = 1420.0;
-  static const _burstMs = 1400.0;
+  static const _burstFromMs = 200.0;
+  static const _burstMs = 1000.0;
   static const _burstCount = 16;
   static const _belted = 5;
   static const _firstBelted = _burstCount - _belted;

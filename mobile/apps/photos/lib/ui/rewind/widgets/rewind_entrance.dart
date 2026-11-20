@@ -5,9 +5,9 @@ import "package:flutter/material.dart";
 import "package:photos/ui/rewind/theme/rewind_motion.dart";
 
 enum RewindPreset {
-  rise(1050, RewindMotion.expo),
+  rise(950, RewindMotion.textRise),
   line(900, RewindMotion.expo, fadeMs: 420, blur: 5),
-  pop(879, RewindMotion.pop, fadeMs: 420, blur: 8),
+  pop(800, RewindMotion.softPop, fadeMs: 260, blur: 3),
   slap(642, RewindMotion.slap, fadeMs: 240, blur: 12),
   duck(1050, RewindMotion.squash, fadeMs: 200),
   hop(1150, RewindMotion.hop, fadeMs: 70),
@@ -48,8 +48,8 @@ enum RewindPreset {
         matrix.translateByDouble(0, 18 * rest, 0, 1);
       case pop:
         matrix
-          ..rotateZ(_radians(-14 * rest))
-          ..scaleByDouble(0.25 + 0.75 * e, 0.25 + 0.75 * e, 1, 1);
+          ..rotateZ(_radians(-7 * rest))
+          ..scaleByDouble(0.55 + 0.45 * e, 0.55 + 0.45 * e, 1, 1);
       case slap:
         matrix
           ..rotateZ(_radians(3 * rest))
