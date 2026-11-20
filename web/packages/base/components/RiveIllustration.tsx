@@ -81,8 +81,6 @@ export function RiveIllustration({
             });
         };
 
-        // Auth renders separate panels for each breakpoint. Only load the
-        // illustration that is visible.
         const observer = new IntersectionObserver((entries) => {
             if (!entries.some((entry) => entry.isIntersecting)) return;
             observer.disconnect();
