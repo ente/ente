@@ -442,6 +442,33 @@ class _BodyState extends State<_Body> {
           child: Stack(
             children: [
               _buildPageView(),
+              if (widget.config.mode == DetailPageMode.full)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  height: max(
+                    MediaQuery.paddingOf(context).bottom,
+                    MediaQuery.systemGestureInsetsOf(context).bottom,
+                  ),
+                  child: const AbsorbPointer(child: SizedBox.expand()),
+                ),
+              if (MediaQuery.systemGestureInsetsOf(context).left > 0)
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: MediaQuery.systemGestureInsetsOf(context).left,
+                  child: const AbsorbPointer(child: SizedBox.expand()),
+                ),
+              if (MediaQuery.systemGestureInsetsOf(context).right > 0)
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: MediaQuery.systemGestureInsetsOf(context).right,
+                  child: const AbsorbPointer(child: SizedBox.expand()),
+                ),
               // Keep viewer controls above OCR so their real hit boxes, rather
               // than approximated screen insets, decide which gestures they own.
               ValueListenableBuilder(
