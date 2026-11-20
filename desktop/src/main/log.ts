@@ -9,8 +9,6 @@ export const initLogging = () => {
 
     log.transports.console.level = false;
 
-    // Without these, a write to a closed stdout or stderr (EPIPE) becomes an
-    // uncaught error, which logError then writes to the console again, forever.
     process.stdout.on("error", () => undefined);
     process.stderr.on("error", () => undefined);
 
