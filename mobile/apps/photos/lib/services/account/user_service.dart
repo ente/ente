@@ -90,12 +90,6 @@ class UserService {
       emailValueNotifier.value = Configuration.instance.getEmail();
     });
     _preferences = await SharedPreferences.getInstance();
-    if (Configuration.instance.isLoggedIn() && !isLocalGalleryMode) {
-      Future.delayed(
-        const Duration(seconds: 5),
-        () => {setTwoFactor(fetchTwoFactorStatus: true).ignore()},
-      );
-    }
   }
 
   Future<void> sendOtt(
@@ -253,24 +247,25 @@ class UserService {
   }) async {
     _logger.info("Fetching user details");
     final bool previousEmailMFAStatus = hasEmailMFAEnabled();
-    final bool previousTwoFactorStatus = hasEnabledTwoFactor();
+    final previousTwoFactorStatus = hasEnabledTwoFactor();
     final userDetails = await _gateway.getUserDetails(memoryCount: memoryCount);
     if (shouldCache) {
       await _preferences.setString(keyUserDetails, userDetails.toJson());
       bool hasSecurityStatusChanged = false;
-      if (userDetails.profileData != null) {
-        final bool currentEmailMFAStatus =
-            userDetails.profileData!.isEmailMFAEnabled;
+      final profileData = userDetails.profileData;
+      if (profileData != null) {
+        final bool currentEmailMFAStatus = profileData.isEmailMFAEnabled;
         await _preferences.setBool(kIsEmailMFAEnabled, currentEmailMFAStatus);
         hasSecurityStatusChanged =
             hasSecurityStatusChanged ||
             previousEmailMFAStatus != currentEmailMFAStatus;
-        final bool currentTwoFactorStatus =
-            userDetails.profileData!.isTwoFactorEnabled;
-        await setTwoFactor(value: currentTwoFactorStatus);
-        hasSecurityStatusChanged =
-            hasSecurityStatusChanged ||
-            previousTwoFactorStatus != currentTwoFactorStatus;
+        final currentTwoFactorStatus = profileData.isTwoFactorEnabled;
+        if (currentTwoFactorStatus != null) {
+          await _setTwoFactor(currentTwoFactorStatus);
+          hasSecurityStatusChanged =
+              hasSecurityStatusChanged ||
+              previousTwoFactorStatus != currentTwoFactorStatus;
+        }
       }
       if (hasSecurityStatusChanged) {
         Bus.instance.fire(UserDetailsChangedEvent());
@@ -430,7 +425,7 @@ class UserService {
           accountsUrl: accountsUrl,
         );
       } else if (twoFASessionID.isNotEmpty) {
-        await setTwoFactor(value: true);
+        await _setTwoFactor(true);
         page = TwoFactorAuthenticationPage(twoFASessionID);
       } else {
         await _saveConfiguration(response.toMap());
@@ -643,7 +638,7 @@ class UserService {
         keyEncryptionKey: keyEncryptionKey,
       );
     } else if (twoFASessionID.isNotEmpty) {
-      await setTwoFactor(value: true);
+      await _setTwoFactor(true);
       page = TwoFactorAuthenticationPage(
         twoFASessionID,
         keyEncryptionKey: keyEncryptionKey,
@@ -1032,7 +1027,7 @@ class UserService {
           code: code,
         ),
       );
-      await setTwoFactor(value: true);
+      await _setTwoFactor(true);
       await dialog.hide();
       if (context.mounted) {
         Navigator.pop(context);
@@ -1072,7 +1067,7 @@ class UserService {
     await dialog.show();
     try {
       await _gateway.disableTwoFactor();
-      await setTwoFactor(value: false);
+      await _setTwoFactor(false);
       await dialog.hide();
       Bus.instance.fire(UserDetailsChangedEvent());
       if (!context.mounted) return;
@@ -1090,21 +1085,6 @@ class UserService {
         message: context.strings.pleaseContactSupportIfTheProblemPersists,
         assetPath: 'assets/warning-grey.png',
       );
-    }
-  }
-
-  Future<bool> fetchTwoFactorStatus() async {
-    try {
-      final previousStatus = hasEnabledTwoFactor();
-      final status = await _gateway.getTwoFactorStatus();
-      await setTwoFactor(value: status);
-      if (previousStatus != status) {
-        Bus.instance.fire(UserDetailsChangedEvent());
-      }
-      return status;
-    } catch (e) {
-      _logger.severe("Failed to fetch 2FA status", e);
-      rethrow;
     }
   }
 
@@ -1157,18 +1137,12 @@ class UserService {
     localSettings.getOrCreateSharedPhotoFeedCutoffTime();
   }
 
-  Future<void> setTwoFactor({
-    bool value = false,
-    bool fetchTwoFactorStatus = false,
-  }) async {
-    if (fetchTwoFactorStatus) {
-      value = await UserService.instance.fetchTwoFactorStatus();
-    }
-    await _preferences.setBool(keyHasEnabledTwoFactor, value);
+  Future<void> _setTwoFactor(bool enabled) async {
+    await _preferences.setBool(keyHasEnabledTwoFactor, enabled);
   }
 
-  bool hasEnabledTwoFactor() {
-    return _preferences.getBool(keyHasEnabledTwoFactor) ?? false;
+  bool? hasEnabledTwoFactor() {
+    return _preferences.getBool(keyHasEnabledTwoFactor);
   }
 
   bool hasEmailMFAEnabled() {
