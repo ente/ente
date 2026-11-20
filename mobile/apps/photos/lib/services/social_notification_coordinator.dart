@@ -217,13 +217,8 @@ class SocialNotificationCoordinator {
     }
 
     final allFileIDs = <int>{};
-    final likedFiles = <(int fileID, int collectionID)>{};
     for (final reaction in photoLikes) {
-      final fileID = reaction.fileID;
-      if (fileID != null) {
-        allFileIDs.add(fileID);
-        likedFiles.add((fileID, reaction.collectionID));
-      }
+      if (reaction.fileID != null) allFileIDs.add(reaction.fileID!);
     }
     for (final comment in fileComments) {
       if (comment.fileID != null) allFileIDs.add(comment.fileID!);
@@ -241,12 +236,8 @@ class SocialNotificationCoordinator {
       return file != null && file.ownerID == userID;
     }
 
-    final existingLikedFiles = await _filesDb.getExistingFileIDsByCollection(
-      likedFiles,
-    );
     for (final reaction in photoLikes) {
-      final filesInAlbum = existingLikedFiles[reaction.collectionID];
-      if (filesInAlbum?.contains(reaction.fileID) != true) {
+      if (!isOwnedByUser(reaction.fileID)) {
         continue;
       }
       considerCandidate(
@@ -401,10 +392,7 @@ class SocialNotificationCoordinator {
     final isVideo = fileType == FileType.video;
     switch (candidate.type) {
       case FeedItemType.photoLike:
-        if (isOwn) {
-          return isVideo ? s.likedYourVideo : s.likedYourPhoto;
-        }
-        return isVideo ? s.likedAVideo : s.likedAPhoto;
+        return isVideo ? s.likedYourVideo : s.likedYourPhoto;
       case FeedItemType.comment:
         if (isOwn) {
           return isVideo ? s.commentedOnYourVideo : s.commentedOnYourPhoto;
