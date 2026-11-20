@@ -1156,6 +1156,11 @@ class _Course {
 
   double start(int ring) => lead + ring * depth;
 
+  ({double from, double to}) _along(int ring, int side) {
+    final from = start(ring) - (side.isOdd ? depth / 2 : 0.0);
+    return (from: from, to: ring == rings - 1 ? end : from + depth);
+  }
+
   static Offset _corner(int index) =>
       Offset.fromDirection(index * pi / 3 + pi / 6);
 
@@ -1187,25 +1192,26 @@ class _Course {
       _turn(_rim(around), _twist * along + _drift * travelled + roll) *
           (focal / (along - travelled));
 
-  Offset _decal(int ring, double around, double along) =>
-      _turn(_rim(around), _twist * along + _drift * (start(ring) - depth)) /
-      (along - start(ring) + depth);
+  static Offset _decal(double from, double around, double along) =>
+      _turn(_rim(around), _twist * along + _drift * (from - depth)) /
+      (along - from + depth);
 
   Rect _box(int ring, int side) =>
       _boxes[ring * sides + side] ??= _measure(ring, side);
 
   Rect _measure(int ring, int side) {
+    final along = _along(ring, side);
     var box = Rect.fromCenter(
-      center: _decal(ring, side.toDouble(), start(ring)),
+      center: _decal(along.from, side.toDouble(), along.from),
       width: 0,
       height: 0,
     );
     for (var row = 0; row <= _deep; row++) {
       for (var step = 0; step <= _across; step++) {
         final decal = _decal(
-          ring,
+          along.from,
           side + step / _across,
-          start(ring) + depth * row / _deep,
+          along.from + (along.to - along.from) * row / _deep,
         );
         box = box.expandToInclude(
           Rect.fromCenter(center: decal, width: 0, height: 0),
@@ -1215,9 +1221,10 @@ class _Course {
     return box;
   }
 
-  ({double near, double far})? reach(int ring, double travelled) {
-    final near = max(start(ring), travelled + nearest);
-    final far = start(ring) + depth;
+  ({double near, double far})? reach(int ring, int side, double travelled) {
+    final along = _along(ring, side);
+    final near = max(along.from, travelled + nearest);
+    final far = along.to;
     return far - near < 0.01 || near - travelled > fogTo
         ? null
         : (near: near, far: far);
@@ -1236,8 +1243,9 @@ class _Course {
     List<double> pixels,
     List<int> indices,
   ) {
-    final reach = this.reach(ring, travelled);
+    final reach = this.reach(ring, side, travelled);
     if (reach == null) return;
+    final from = _along(ring, side).from;
     final box = _box(ring, side);
     final wide = min(1.0, box.width / box.height);
     final tall = min(1.0, box.height / box.width);
@@ -1247,7 +1255,7 @@ class _Course {
       for (var step = 0; step <= _across; step++) {
         final around = side + step / _across;
         final seen = point(around, along, travelled, roll);
-        final decal = _decal(ring, around, along);
+        final decal = _decal(from, around, along);
         final u = ((decal.dx - box.left) / box.width - 0.5) * wide + 0.5;
         final v = ((decal.dy - box.top) / box.height - 0.5) * tall + 0.5;
         positions
@@ -1273,9 +1281,9 @@ class _Course {
 
   int? panelAt(Offset at, double travelled, double roll) {
     for (var ring = 0; ring < rings; ring++) {
-      final reach = this.reach(ring, travelled);
-      if (reach == null) continue;
       for (var side = 0; side < sides; side++) {
+        final reach = this.reach(ring, side, travelled);
+        if (reach == null) continue;
         Offset seen(double around, int row) =>
             point(around, _row(reach, row), travelled, roll);
         final outline = [
