@@ -48,7 +48,7 @@ workflows:
     '.github/workflows/codex-review.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
         - 'actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3'
-        - 'openai/codex-action@bdf19a4a223ec2549a3e2274a0cf61556bc07675'
+        - 'openai/codex-action@306c6a196a99dcc6582530c396a19d2672d5e9ec'
     '.github/workflows/copycat-db-release.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
     '.github/workflows/dependabot-follow-up.yml':
@@ -152,7 +152,7 @@ workflows:
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
         - 'actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510'
         - 'actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3'
-        - 'openai/codex-action@bdf19a4a223ec2549a3e2274a0cf61556bc07675'
+        - 'openai/codex-action@306c6a196a99dcc6582530c396a19d2672d5e9ec'
     '.github/workflows/repo-lint.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
         - 'actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1'
@@ -329,13 +329,6 @@ dependencies:
     'openai/codex-action@306c6a196a99dcc6582530c396a19d2672d5e9ec':
         ref: 'v1.14'
         commit: 'sha1-306c6a196a99dcc6582530c396a19d2672d5e9ec'
-        owner_id: 14957082
-        repo_id: 1068091251
-        uses:
-            - 'actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f'
-    'openai/codex-action@bdf19a4a223ec2549a3e2274a0cf61556bc07675':
-        ref: 'v1.13'
-        commit: 'sha1-bdf19a4a223ec2549a3e2274a0cf61556bc07675'
         owner_id: 14957082
         repo_id: 1068091251
         uses:
