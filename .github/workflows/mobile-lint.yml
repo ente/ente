@@ -58,6 +58,13 @@ jobs:
               uses: $/.github/actions/setup-flutter
 
             # Restore-only; primed on main by warm-caches.yml.
+            - name: Restore pub packages
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  key: mobile-pub-${{ hashFiles('mobile/pubspec.lock') }}
+                  restore-keys: mobile-pub-
+                  path: ~/.pub-cache
+
             - name: Restore FRB outputs
               id: frb
               uses: $/.github/actions/restore-frb-outputs
