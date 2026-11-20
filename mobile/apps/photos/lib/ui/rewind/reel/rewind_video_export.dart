@@ -566,8 +566,10 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
         0,
         _quips.length - 1,
       )],
-    _Stage.finishing => "That’s a wrap!",
+    _Stage.finishing => _celebrates ? "That’s a wrap!" : _quips.last,
   };
+
+  bool get _celebrates => !(_reel?.clip ?? false);
 
   String _timeLeft(int frame) {
     const warmUpFrames = 30;
@@ -638,7 +640,7 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
                     top: 766,
                     child: Center(child: _cancelButton()),
                   ),
-                  if (_stage == _Stage.finishing)
+                  if (_stage == _Stage.finishing && _celebrates)
                     const Positioned.fill(
                       child: IgnorePointer(
                         child: RewindConfetti(count: 70, active: true),

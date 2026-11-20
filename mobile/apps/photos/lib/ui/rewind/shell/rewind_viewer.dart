@@ -213,28 +213,26 @@ class _RewindViewerState extends State<RewindViewer>
         shareKey: _shareButton,
         videoKey: _videoButton,
         onClose: () => Navigator.of(context).maybePop(),
-        onShare: card == null ? null : () => _share(page, card, layout),
-        onShareVideo: _videoAction(context, index, card),
+        onShare: _shareAction(context, page, card, layout),
+        onShareVideo: index < widget.pages.length - 1 || page.hasOwnVideoButton
+            ? null
+            : () => shareVideo(shareButtonRect(context, _videoButton)),
       ),
     );
   }
 
-  VoidCallback? _videoAction(
+  VoidCallback? _shareAction(
     BuildContext context,
-    int index,
+    RewindPage page,
     RewindShareCard? card,
+    RewindChromeLayout layout,
   ) {
-    final page = widget.pages[index];
-    if (index == widget.pages.length - 1 && !page.hasOwnVideoButton) {
-      return () => shareVideo(shareButtonRect(context, _videoButton));
-    }
-    if (card == null ||
-        page.clipHold == null ||
-        MediaQuery.disableAnimationsOf(context)) {
-      return null;
+    if (card == null) return null;
+    if (page.clipHold == null || MediaQuery.disableAnimationsOf(context)) {
+      return () => _share(page, card, layout);
     }
     return () =>
-        unawaited(_shareClip(page, shareButtonRect(context, _videoButton)));
+        unawaited(_shareClip(page, shareButtonRect(context, _shareButton)));
   }
 
   ScrollController _controllerFor(double height) {

@@ -223,8 +223,8 @@ class _Booth extends StatefulWidget {
     return Duration(
       milliseconds:
           printedMs +
-          (strips - 1) * (_BoothState._reelHangMs + _printMs) +
-          _BoothState._swayMs,
+          (strips - 1) * (_BoothState._clipHangMs + _printMs) +
+          _BoothState._clipLastHangMs,
     );
   }
 
@@ -256,7 +256,8 @@ class _BoothState extends State<_Booth> with TickerProviderStateMixin {
   static const _nudgeStartMs = _Booth.printedMs + _swayMs + 300;
   static const _nudgeMs = 650;
   static const _hangMs = 3000;
-  static const _reelHangMs = 1500;
+  static const _clipHangMs = 3500;
+  static const _clipLastHangMs = _swayMs + 2000;
   static const _tugMs = 480;
   static const _tugDistance = 34.0;
   static const _tearDistance = 24.0;
@@ -267,6 +268,7 @@ class _BoothState extends State<_Booth> with TickerProviderStateMixin {
   static const _drop = Cubic(0.2, 0.8, 0.3, 1);
 
   late final _reel = RewindPageScope.reelOf(context);
+  late final _clip = RewindPageScope.clipOf(context);
   late final _strips = _stripsOf(widget.photos);
   late final _controller = AnimationController(
     vsync: this,
@@ -274,7 +276,7 @@ class _BoothState extends State<_Booth> with TickerProviderStateMixin {
   );
   late final _wait = AnimationController(
     vsync: this,
-    duration: Duration(milliseconds: (_reel ? _reelHangMs : _hangMs) - _tugMs),
+    duration: Duration(milliseconds: (_clip ? _clipHangMs : _hangMs) - _tugMs),
   );
   late final _tugging = AnimationController(
     vsync: this,
@@ -356,7 +358,7 @@ class _BoothState extends State<_Booth> with TickerProviderStateMixin {
       _controller.value * _controller.duration!.inMilliseconds;
 
   bool get _autoDrops =>
-      _strips.length > 1 && !_still && (!_reel || _prints < _strips.length - 1);
+      _strips.length > 1 && !_still && (!_clip || _prints < _strips.length - 1);
 
   double get _tug =>
       _tugDistance * Curves.easeInOutCubic.transform(_tugging.value);

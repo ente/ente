@@ -40,7 +40,13 @@ class PeopleRacePage extends RewindPage {
   Duration? get reelHold => const Duration(milliseconds: 4500);
 
   @override
-  Duration? get clipHold => reelHold;
+  Duration? get clipHold => Duration(
+    milliseconds:
+        (_PeopleRaceState._clipLeadMs +
+                12 * _PeopleRaceState._monthMsLive +
+                _PeopleRaceState._clipEndMs)
+            .round(),
+  );
 
   @override
   List<EnteFile> get reelThumbnails => const [];
@@ -112,10 +118,17 @@ class _PeopleRaceState extends State<_PeopleRace>
   static const _rampMs = 350.0;
   static const _laneMs = 700.0;
   static const _speed = 0.75;
+  static const _monthMsLive = 470.0;
+  static const _clipLeadMs = 2000.0;
+  static const _clipEndMs = 5750.0;
 
   late final _reel = RewindPageScope.reelOf(context);
-  late final _monthMs = _reel ? 280.0 : 470.0;
+  late final _clip = RewindPageScope.clipOf(context);
+  late final _monthMs = RewindPageScope.reelPaceOf(context)
+      ? 280.0
+      : _monthMsLive;
   late final _settleFrames = _reel ? 18 : 36;
+  late final _leadMs = _clip ? _clipLeadMs : 0.0;
   late final Ticker _ticker = createTicker(_tick);
   late final List<_Lane> _lanes;
   late var _phase = _pick == null ? _Phase.pick : _Phase.done;
@@ -197,14 +210,15 @@ class _PeopleRaceState extends State<_PeopleRace>
   }
 
   void _tick(Duration elapsed) {
-    final nowMs = elapsed.inMicroseconds / 1000;
+    final nowMs = elapsed.inMicroseconds / 1000 - _leadMs;
+    if (nowMs < 0) return;
     final dt = _lastMs == 0 ? 16.0 : min(50.0, nowMs - _lastMs);
     _lastMs = nowMs;
     final raceMs = 12 * _monthMs;
     if (_settling == 0) {
       _speedFactor = min(1, nowMs / _rampMs);
     } else {
-      _speedFactor *= 0.86;
+      _speedFactor *= _clip ? pow(0.86, dt / 16).toDouble() : 0.86;
     }
     _world += dt * _speedFactor;
     for (final lane in _lanes) {

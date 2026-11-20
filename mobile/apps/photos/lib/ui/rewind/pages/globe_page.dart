@@ -60,7 +60,10 @@ class GlobePage extends RewindPage {
   Duration? get reelHold => Duration(milliseconds: 1450 + _reelJourney.round());
 
   @override
-  Duration? get clipHold => reelHold;
+  Duration? get clipHold =>
+      Duration(milliseconds: (_world.endMs + _clipEndMs).round());
+
+  static const _clipEndMs = 2500.0;
 
   @override
   List<EnteFile> get reelThumbnails => [for (final photo in photos) ?photo];
@@ -94,7 +97,7 @@ class GlobePage extends RewindPage {
           isActive && !RewindPageScope.coveredOf(context),
           km,
           lap,
-          RewindPageScope.reelOf(context) ? _reelJourney : _world.journeyMs,
+          RewindPageScope.reelPaceOf(context) ? _reelJourney : _world.journeyMs,
         ),
         RewindHint(
           "DRAG TO SPIN",
@@ -517,7 +520,9 @@ class _GlobeViewState extends State<_GlobeView>
   static const _slots = [-128.0, -98.0, -8.0, 28.0, 62.0, 118.0, 152.0, 188.0];
 
   late final _reel = RewindPageScope.reelOf(context);
-  late final _reelPace = max(1.0, _world.journeyMs / GlobePage._reelJourneyMs);
+  late final _reelPace = RewindPageScope.reelPaceOf(context)
+      ? max(1.0, _world.journeyMs / GlobePage._reelJourneyMs)
+      : 1.0;
   late final Ticker _ticker = createTicker(_onTick);
   var _last = Duration.zero;
   var _ms = 0.0;
@@ -610,9 +615,7 @@ class _GlobeViewState extends State<_GlobeView>
   void _onTick(Duration elapsed) {
     final travelling = _ms >= _World.introMs && _ms < _world.endMs;
     final dt =
-        (elapsed - _last).inMicroseconds /
-        1000 *
-        (_reel && travelling ? _reelPace : 1);
+        (elapsed - _last).inMicroseconds / 1000 * (travelling ? _reelPace : 1);
     _last = elapsed;
     if (dt <= 0) return;
     _ms += dt;

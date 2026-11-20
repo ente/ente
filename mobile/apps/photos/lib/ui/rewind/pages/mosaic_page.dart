@@ -75,7 +75,10 @@ class MosaicPage extends RewindPage {
       const Duration(milliseconds: 3400 + RewindMotion.reelReadingMs);
 
   @override
-  Duration? get clipHold => reelHold;
+  Duration? get clipHold =>
+      Duration(milliseconds: _Pace.viewer.revealedMs + _clipEndMs);
+
+  static const _clipEndMs = 5700;
 
   @override
   Future<bool> warmUp() async => await _tiling.value != null;
@@ -627,7 +630,7 @@ enum _Pace {
   int get titledMs => titleMs + RewindPreset.rise.lengthMs;
 
   static _Pace of(BuildContext context) =>
-      RewindPageScope.reelOf(context) ? reel : viewer;
+      RewindPageScope.reelPaceOf(context) ? reel : viewer;
 }
 
 class _Wall extends StatefulWidget {

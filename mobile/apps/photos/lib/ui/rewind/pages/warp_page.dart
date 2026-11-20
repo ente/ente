@@ -111,7 +111,15 @@ class WarpPage extends RewindPage {
   Duration? get reelHold => const Duration(milliseconds: 4000);
 
   @override
-  Duration? get clipHold => reelHold;
+  Duration? get clipHold => Duration(
+    milliseconds:
+        (_FlightState._countdownMsLive +
+                _FlightState._flightMsLive +
+                _clipLandedMs)
+            .round(),
+  );
+
+  static const _clipLandedMs = 2500.0;
 
   @override
   List<EnteFile> get reelThumbnails => [first];
@@ -194,9 +202,13 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   static const _restMs = 500.0;
   static const _pickedAt = Offset(195, 356);
 
+  static const _flightMsLive = 9500.0;
+  static const _countdownMsLive = 900.0;
+
   late final _reel = RewindPageScope.reelOf(context);
-  late final _flightMs = _reel ? 2800.0 : 9500.0;
-  late final _countdownMs = _reel ? 300.0 : 900.0;
+  late final _reelPace = RewindPageScope.reelPaceOf(context);
+  late final _flightMs = _reelPace ? 2800.0 : _flightMsLive;
+  late final _countdownMs = _reelPace ? 300.0 : _countdownMsLive;
   late final Ticker _ticker = createTicker(_onTick);
   late final AnimationController _pull = AnimationController(
     vsync: this,

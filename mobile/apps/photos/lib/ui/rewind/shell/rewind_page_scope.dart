@@ -35,18 +35,27 @@ class RewindPageScope extends InheritedWidget {
     required this.navigator,
     required super.child,
     this.reel = false,
+    this.clip = false,
     super.key,
   });
 
   final RewindPage page;
   final RewindNavigator navigator;
   final bool reel;
+  final bool clip;
 
   static RewindPageScope? maybeOf(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<RewindPageScope>();
 
-  static bool reelOf(BuildContext context) =>
-      context.getInheritedWidgetOfExactType<RewindPageScope>()?.reel ?? false;
+  static bool reelOf(BuildContext context) => _of(context)?.reel ?? false;
+
+  static bool clipOf(BuildContext context) => _of(context)?.clip ?? false;
+
+  static bool reelPaceOf(BuildContext context) =>
+      reelOf(context) && !clipOf(context);
+
+  static RewindPageScope? _of(BuildContext context) =>
+      context.getInheritedWidgetOfExactType<RewindPageScope>();
 
   static bool coveredOf(BuildContext context) =>
       !reelOf(context) && ModalRoute.of(context)?.isCurrent == false;
@@ -58,5 +67,6 @@ class RewindPageScope extends InheritedWidget {
   bool updateShouldNotify(RewindPageScope oldWidget) =>
       page != oldWidget.page ||
       navigator != oldWidget.navigator ||
-      reel != oldWidget.reel;
+      reel != oldWidget.reel ||
+      clip != oldWidget.clip;
 }
