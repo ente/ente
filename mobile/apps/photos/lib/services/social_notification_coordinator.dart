@@ -217,9 +217,14 @@ class SocialNotificationCoordinator {
       );
     }
 
+    final isAndroid = Platform.isAndroid;
+    final likedFilePairs = <(int fileID, int collectionID)>{};
     final allFileIDs = <int>{};
     for (final reaction in photoLikes) {
-      if (reaction.fileID != null) allFileIDs.add(reaction.fileID!);
+      final fileID = reaction.fileID;
+      if (fileID == null) continue;
+      allFileIDs.add(fileID);
+      if (isAndroid) likedFilePairs.add((fileID, reaction.collectionID));
     }
     for (final comment in fileComments) {
       if (comment.fileID != null) allFileIDs.add(comment.fileID!);
@@ -237,9 +242,16 @@ class SocialNotificationCoordinator {
       return file != null && file.ownerID == userID;
     }
 
+    final existingLikedFiles = await _filesDb.getExistingFileIDsByCollection(
+      likedFilePairs,
+    );
     for (final reaction in photoLikes) {
       // iOS displays album-wide pushes through its notification extension.
       if (Platform.isIOS && !isOwnedByUser(reaction.fileID)) {
+        continue;
+      }
+      final filesInAlbum = existingLikedFiles[reaction.collectionID];
+      if (isAndroid && filesInAlbum?.contains(reaction.fileID) != true) {
         continue;
       }
       considerCandidate(
