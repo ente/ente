@@ -23,7 +23,6 @@ pub use turn::{PreparedTurn, TurnInput, TurnTools, prepare_turn};
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ToolTurnHistory {
     pub calls: Vec<crate::llm::ToolCall>,
-    /// One response per call, in call order.
     pub responses: Vec<String>,
     pub undone: bool,
     pub kept_edits: bool,

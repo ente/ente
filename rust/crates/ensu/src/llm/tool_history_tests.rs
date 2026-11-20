@@ -38,8 +38,6 @@ fn stored_multi_call_turns_render_each_gemma_response_with_its_own_call() {
         name: name.into(),
         arguments: [(key.to_owned(), ToolValue::Text(value.into()))].into(),
     };
-    // Include repeated tool names and a list between saves: the list must keep
-    // its historical contents, even after the second save has changed the DB.
     let calls = vec![
         call(SAVE_TOOL, "title", "Buy milk"),
         call(LIST_TOOL, "filter", "open"),

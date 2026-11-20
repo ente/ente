@@ -469,7 +469,6 @@ fn accuracy_targets_reject_routing_argument_and_false_change_regressions() {
     for (route, calls, false_changes) in [(0.94, 1.0, 0.0), (1.0, 0.89, 0.0), (1.0, 1.0, 0.03)] {
         assert_eq!(check(route, calls, false_changes).len(), 1);
     }
-    // The reviewed LFM holdout used to exit successfully despite all three failures.
     assert_eq!(check(0.863, 0.707, 0.205).len(), 3);
 }
 

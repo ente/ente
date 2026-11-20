@@ -38,24 +38,3 @@ To create a static build:
 cd rust/apps/ensu
 npm run build
 ```
-
-## To Do evaluation
-
-Run the model evaluation from `rust/`, with a local GGUF model:
-
-```sh
-ENSU_TEST_MODEL=/path/to/model.gguf cargo test --locked -p ente-ensu --test todo_eval todo_tool_calls_meet_accuracy_targets -- --ignored --nocapture
-```
-
-The evaluation fails below 95% routing accuracy or 90% call accuracy, or above
-2% false change calls. Call accuracy includes the tool arguments after refinement.
-False change calls include proposals that would need confirmation, not only changes
-applied immediately. Reports are written before checking the targets; set
-`ENSU_EVAL_OUT` to a JSON output path to retain them.
-
-Tune against `crates/ensu/tests/data/todo_eval.jsonl`, then validate separately with
-`ENSU_EVAL_CASES` set to the absolute path of
-`crates/ensu/tests/data/todo_eval_holdout.jsonl`. Run both datasets for each supported
-model. `ENSU_EVAL_MIN_ROUTE`, `ENSU_EVAL_MIN_CALL`, and
-`ENSU_EVAL_MAX_FALSE_CHANGE` can explicitly override the targets for experiments;
-use the defaults for PR validation.
