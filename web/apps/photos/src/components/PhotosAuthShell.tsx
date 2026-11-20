@@ -24,7 +24,6 @@ const photosAuthTheme: AuthPresentationConfig = {
     passwordMessageDark: "#fff",
     textDisabledDark: "#4d4d4d",
     wideGamutPrimary: "color(display-p3 0.03137 0.76078 0.1451)",
-    brandBackdrop: "/images/auth-onboarding-doodle.svg",
     mobileBrandHeight: 196,
     illustrationHeights: { desktop: 219, tablet: 172, mobile: 127, wide: 249 },
 };

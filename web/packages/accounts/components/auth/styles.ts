@@ -14,7 +14,6 @@ export interface AuthPresentationConfig {
     lightContentBackground?: string;
     darkContentBackground?: string;
     wideGamutPrimary?: string;
-    brandBackdrop?: string;
     mobileBrandHeight: number;
     illustrationHeights: {
         desktop: number;
