@@ -194,11 +194,13 @@ private final class SlideshowFrameProducer: VideoWriterFrameSource, @unchecked S
     private struct VideoState {
         let reader: AVAssetReader
         let output: AVAssetReaderTrackOutput
+        var background: CIImage?
         var lastImage: CIImage?
         var lastFrameIndex: Int64 = -1
     }
 
     private static let timescale: CMTimeScale = 1_000_000
+    private static let backgroundSampleSize = 32
 
     private let request: SlideshowExportRequest
     private let segments: [SlideshowSegment]
@@ -263,11 +265,8 @@ private final class SlideshowFrameProducer: VideoWriterFrameSource, @unchecked S
                 (Double(max(request.width, request.height)) * maxScale).rounded(.up))
             let image = try loadImage(url, maxPixelSize: maxPixelSize)
             let background = try renderHold(
-                covered(try loadImage(url, maxPixelSize: 32))
-                    .clampedToExtent()
-                    .applyingGaussianBlur(sigma: 24)
-                    .cropped(to: frameRect)
-            )
+                blurredBackground(
+                    try loadImage(url, maxPixelSize: Self.backgroundSampleSize)))
             photo = PhotoState(
                 image: image,
                 background: background,
@@ -337,8 +336,10 @@ private final class SlideshowFrameProducer: VideoWriterFrameSource, @unchecked S
             guard frameIndex > state.lastFrameIndex else { continue }
             let frameTime = time(segment.start + elapsed)
             guard !lastTime.isValid || CMTimeCompare(frameTime, lastTime) > 0 else { continue }
-            let image = contained(CIImage(cvPixelBuffer: imageBuffer).oriented(source.orientation))
-                .composited(over: CIImage(color: .black).cropped(to: frameRect))
+            let frame = CIImage(cvPixelBuffer: imageBuffer).oriented(source.orientation)
+            let background = try state.background ?? videoBackground(for: frame)
+            state.background = background
+            let image = contained(frame).composited(over: background)
             let buffer = try render(dissolved(image, elapsed: elapsed))
             state.lastImage = image
             state.lastFrameIndex = frameIndex
@@ -368,9 +369,7 @@ private final class SlideshowFrameProducer: VideoWriterFrameSource, @unchecked S
 
     private func fitted(_ image: CIImage, scale: Double, offset: CGPoint) -> CIImage {
         let extent = image.extent
-        let containScale = min(
-            frameRect.width / extent.width, frameRect.height / extent.height)
-        let totalScale = containScale * scale
+        let totalScale = containScale(for: extent) * scale
         let transform = CGAffineTransform(
             translationX: frameRect.midX + offset.x * frameRect.width,
             y: frameRect.midY - offset.y * frameRect.height
@@ -382,6 +381,42 @@ private final class SlideshowFrameProducer: VideoWriterFrameSource, @unchecked S
 
     private func contained(_ image: CIImage) -> CIImage {
         fitted(image, scale: 1, offset: .zero)
+    }
+
+    private func containScale(for extent: CGRect) -> CGFloat {
+        min(frameRect.width / extent.width, frameRect.height / extent.height)
+    }
+
+    private func videoBackground(for frame: CIImage) throws -> CIImage {
+        let extent = frame.extent
+        let scale = containScale(for: extent)
+        guard
+            frameRect.width - extent.width * scale >= 1
+                || frameRect.height - extent.height * scale >= 1
+        else { return CIImage(color: .black).cropped(to: frameRect) }
+        return try renderHold(blurredBackground(shrunk(frame, to: Self.backgroundSampleSize)))
+    }
+
+    private func blurredBackground(_ sample: CIImage) -> CIImage {
+        covered(sample)
+            .clampedToExtent()
+            .applyingGaussianBlur(sigma: 24)
+            .cropped(to: frameRect)
+    }
+
+    private func shrunk(_ image: CIImage, to maxPixelSize: Int) -> CIImage {
+        let longSide = max(image.extent.width, image.extent.height)
+        guard longSide > CGFloat(maxPixelSize) else { return image }
+        let scale = CGFloat(maxPixelSize) / longSide
+        return image.clampedToExtent()
+            .applyingFilter(
+                "CILanczosScaleTransform",
+                parameters: [
+                    kCIInputScaleKey: scale,
+                    kCIInputAspectRatioKey: 1,
+                ]
+            )
+            .cropped(to: image.extent.applying(CGAffineTransform(scaleX: scale, y: scale)).integral)
     }
 
     private func covered(_ image: CIImage) -> CIImage {
