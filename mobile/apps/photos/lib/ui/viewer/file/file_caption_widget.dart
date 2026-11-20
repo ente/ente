@@ -90,12 +90,12 @@ class _FileCaptionWidgetState extends State<FileCaptionWidget> {
 
   Future<void> _onDoneClick(BuildContext context) async {
     if (_hasPendingCaptionEdit) {
-      final isSuccesful = await editFileCaption(
+      final isSuccessful = await editFileCaption(
         context,
         widget.file,
         editedCaption!,
       ).then((isSuccess) => _onEditFileFinish(isSuccess));
-      if (isSuccesful && mounted) {
+      if (isSuccessful && mounted) {
         setState(() {});
       }
     }
