@@ -189,13 +189,34 @@ const ritualStreakSetupPage = SetupPage(
   ],
   callout: SetupCallout(
     "ONE PHOTO A DAY.",
-    center: Offset(195, 398.5),
+    center: Offset(196.6, 391.9),
     delayMs: 600,
   ),
   art: SetupArt.ducky(
-    RewindAssets.cameraDucky,
-    Rect.fromLTWH(46.5, 441, 265.3, 334),
-    pivot: Offset(179, 775),
+    RewindAssets.artistDucky,
+    Rect.fromLTWH(-17.2, 422.3, 427.6, 375.7),
+    ticks: [(RewindTick.forwardFlipped, Rect.fromLTWH(190, 429, 10.5, 18))],
+    pivot: Offset(175, 765),
+    delayMs: 780,
+  ),
+);
+
+const mosaicSetupPage = SetupPage(
+  key: "mosaic_setup",
+  color: Color(0xFFF9692C),
+  pattern: Color(0xFFF9763B),
+  ink: RewindColors.cream,
+  headlines: [SetupHeadline("IT ALL\nADDS UP.", at: Offset(24, 140), size: 66)],
+  callout: SetupCallout(
+    "PHOTO BY PHOTO.",
+    center: Offset(188.6, 380.6),
+    delayMs: 600,
+  ),
+  art: SetupArt.ducky(
+    RewindAssets.puzzleDucky,
+    Rect.fromLTWH(-20, 432, 484, 484),
+    ticks: [(RewindTick.slant, Rect.fromLTWH(239, 436.3, 13.9, 19.3))],
+    pivot: Offset(195, 844),
     delayMs: 780,
   ),
 );
@@ -246,5 +267,6 @@ const setupPages = [
   favouritesSetupPage,
   ritualSetupPage,
   likesSetupPage,
+  mosaicSetupPage,
   badgeSetupPage,
 ];

@@ -31,6 +31,8 @@ abstract final class RewindAssets {
   static const yellowSparkle = "$_images/sparkle-yellow.svg";
   static const smallYellowSparkle = "$_images/sparkle-yellow-small.svg";
   static const lightningSticker = "$_images/lightning-sticker.svg";
+  static const pinkSparkle = "$_images/sparkle-pink.svg";
+  static const creamSparkle = "$_images/sparkle-cream.svg";
 
   static const introDucky = "$_rive/ente-rewind-intro-ducky.riv";
   static const paletteDucky = "$_rive/ente-rewind-palette-ducky.riv";
@@ -39,6 +41,8 @@ abstract final class RewindAssets {
   static const famDucky = "$_rive/ente-rewind-fam-ducky.riv";
   static const photosDucky = "$_rive/ente-rewind-photos-ducky.riv";
   static const cameraDucky = "$_rive/ente-rewind-camera-ducky.riv";
+  static const artistDucky = "$_rive/ente-rewind-artist-ducky.riv";
+  static const puzzleDucky = "$_rive/ente-rewind-puzzle-ducky.riv";
   static const superheroDucky = "$_rive/ente-rewind-superhero-ducky.riv";
   static const topPercent = "$_rive/ente-rewind-top-percent.riv";
   static const likesDucky = "$_rive/ente-rewind-likes-ducky.riv";

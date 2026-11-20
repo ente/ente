@@ -128,7 +128,7 @@ EnteFile? _file(RewindMedia media, int fileId) =>
     media.extraPhotos(Int64List.fromList([fileId]), 1).firstOrNull;
 
 RewindChapter _mosaic(rust.RewindReport report) =>
-    RewindChapter([MosaicPage.pageKey], (media) async {
+    RewindChapter([mosaicSetupPage.key, MosaicPage.pageKey], (media) async {
       final mosaic = report.mosaic;
       if (mosaic == null) return const [];
       final files = media.extraPhotos(mosaic.fileIds, mosaic.fileIds.length);
@@ -149,11 +149,19 @@ RewindChapter _mosaic(rust.RewindReport report) =>
           await media.cluster(id, mosaic.clusterFaceIds),
         _ => null,
       };
+      final (subject, subjectName) = switch ((
+        me?.crop,
+        favourite?.crop,
+        familiar?.crop,
+      )) {
+        (final crop?, _, _) => (crop, null),
+        (_, final crop?, _) => (crop, favourite?.name),
+        (_, _, final crop?) => (crop, MosaicPage.familiarFace),
+        _ => (null, null),
+      };
       return [
-        MosaicPage(
-          files: files,
-          subject: me?.crop ?? favourite?.crop ?? familiar?.crop,
-        ),
+        mosaicSetupPage,
+        MosaicPage(files: files, subject: subject, subjectName: subjectName),
       ];
     });
 
