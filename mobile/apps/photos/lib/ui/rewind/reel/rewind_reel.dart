@@ -11,19 +11,19 @@ import "package:photos/ui/rewind/theme/rewind_motion.dart";
 import "package:photos/ui/rewind/widgets/rewind_wordmark.dart";
 
 class RewindReel {
-  RewindReel._(this.pages, this._holds, {required this.branded})
+  RewindReel._(this.pages, this._holds, {required this.clip})
     : starts = RewindPageStack.startsOf(pages);
 
   factory RewindReel.of(List<RewindPage> story) =>
-      RewindReel._holding(story, (page) => page.reelHold, branded: false);
+      RewindReel._holding(story, (page) => page.reelHold, clip: false);
 
   factory RewindReel.clipOf(List<RewindPage> pages) =>
-      RewindReel._holding(pages, (page) => page.clipHold, branded: true);
+      RewindReel._holding(pages, (page) => page.clipHold, clip: true);
 
   factory RewindReel._holding(
     List<RewindPage> story,
     Duration? Function(RewindPage page) holdOf, {
-    required bool branded,
+    required bool clip,
   }) {
     final pages = <RewindPage>[];
     final holds = <Duration>[];
@@ -33,7 +33,7 @@ class RewindReel {
       pages.add(page);
       holds.addAll(List.filled(page.stops, hold));
     }
-    return RewindReel._(pages, holds, branded: branded);
+    return RewindReel._(pages, holds, clip: clip);
   }
 
   static const frameRate = 24;
@@ -42,7 +42,7 @@ class RewindReel {
 
   final List<RewindPage> pages;
   final List<int> starts;
-  final bool branded;
+  final bool clip;
   final List<Duration> _holds;
 
   Duration get duration =>
@@ -120,7 +120,7 @@ class RewindReelView extends StatelessWidget {
                 final scroll = reel.scrollAt(time);
                 final wordmark =
                     reel.pageAt(scroll).chrome.wordmark ??
-                    (reel.branded ? RewindColors.white : null);
+                    (reel.clip ? RewindColors.white : null);
                 return Stack(
                   fit: StackFit.expand,
                   children: [
@@ -130,6 +130,7 @@ class RewindReelView extends StatelessWidget {
                       scroll: scroll,
                       navigator: _navigator,
                       reel: true,
+                      clip: reel.clip,
                     ),
                     if (wordmark != null)
                       Positioned.fromRect(
