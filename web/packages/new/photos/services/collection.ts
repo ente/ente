@@ -34,6 +34,7 @@ import {
 } from "ente-media/magic-metadata";
 import { ensureMasterKeyFromSession } from "ente-new/photos/services/account-keys";
 import { batch, splitByPredicate } from "ente-utils/array";
+import { PromiseQueue } from "ente-utils/promise";
 import { z } from "zod";
 import { batched, type UpdateMagicMetadataRequest } from "./file";
 import {
@@ -189,7 +190,36 @@ interface CollectionChange {
     updationTime: number;
 }
 
-export const pullCollections = async (): Promise<Collection[]> => {
+const collectionUpdates = new PromiseQueue<Collection[]>();
+const queueCollectionUpdate = (task: () => Promise<Collection[]>) =>
+    collectionUpdates.add(() => {
+        const locks =
+            typeof navigator === "undefined"
+                ? undefined
+                : (navigator as Navigator & { locks?: LockManager }).locks;
+        if (locks) {
+            return locks.request("ente-photos-collections", task);
+        }
+        return task();
+    });
+
+export const refreshCollection = async (collectionID: number) => {
+    const collections = await queueCollectionUpdate(async () => {
+        const latest = await getCollectionByID(collectionID);
+        const saved = await savedCollections();
+        const updated = saved.map((collection) =>
+            collection.id === collectionID ? latest : collection,
+        );
+        await saveCollections(updated);
+        return updated;
+    });
+    return collections.find((collection) => collection.id === collectionID);
+};
+
+export const pullCollections = (): Promise<Collection[]> =>
+    queueCollectionUpdate(pullCollectionsWithoutQueue);
+
+const pullCollectionsWithoutQueue = async (): Promise<Collection[]> => {
     const collections = await savedCollections();
     let sinceTime = (await savedCollectionsUpdationTime()) ?? 0;
 
