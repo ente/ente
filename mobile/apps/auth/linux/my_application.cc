@@ -20,35 +20,104 @@ struct _MyApplication
 
 G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
 
-static gboolean should_prefer_dark_theme()
+static void
+sync_color_scheme(GVariant *value)
 {
-  GSettingsSchemaSource *schema_source = g_settings_schema_source_get_default();
-  if (schema_source == nullptr)
+  if (!g_variant_is_of_type(value, G_VARIANT_TYPE_UINT32))
   {
-    return FALSE;
+    g_warning("Unexpected color-scheme type: %s",
+              g_variant_get_type_string(value));
+    return;
   }
 
-  GSettingsSchema *schema = g_settings_schema_source_lookup(
-      schema_source, "org.gnome.desktop.interface", TRUE);
-  if (schema == nullptr)
+  GtkSettings *settings = gtk_settings_get_default();
+  guint32 scheme = g_variant_get_uint32(value);
+
+  switch (scheme)
   {
-    return FALSE;
+  case 0: g_object_set(settings, "gtk-application-prefer-dark-theme", FALSE, nullptr); break;
+  case 1: g_object_set(settings, "gtk-application-prefer-dark-theme", TRUE, nullptr); break;
+  case 2: g_object_set(settings, "gtk-application-prefer-dark-theme", FALSE, nullptr); break;
+  default: g_print("Unknown color scheme: %u\n", scheme); break;
+  }
+}
+
+static void
+appearance_on_signal(GDBusProxy *proxy,
+                     const char *sender_name,
+                     const char *signal_name,
+                     GVariant *parameters,
+                     gpointer user_data)
+{
+  if (g_strcmp0(signal_name, "SettingChanged") != 0)
+    return;
+
+  const char *name_space;
+  const char *key;
+  GVariant *value;
+
+  g_variant_get(parameters, "(&s&sv)", &name_space, &key, &value);
+  if (g_str_equal(name_space, "org.freedesktop.appearance") &&
+      g_str_equal(key, "color-scheme"))
+  {
+    sync_color_scheme(value);
   }
 
-  gboolean has_color_scheme_key =
-      g_settings_schema_has_key(schema, "color-scheme");
-  g_settings_schema_unref(schema);
-  if (!has_color_scheme_key)
+  g_variant_unref(value);
+}
+
+static void watch_color_scheme()
+{
+  GError *error = NULL;
+  GDBusProxy *proxy = g_dbus_proxy_new_for_bus_sync(G_BUS_TYPE_SESSION,
+                                                    G_DBUS_PROXY_FLAGS_NONE,
+                                                    NULL,
+                                                    "org.freedesktop.portal.Desktop",
+                                                    "/org/freedesktop/portal/desktop",
+                                                    "org.freedesktop.portal.Settings",
+                                                    NULL,
+                                                    &error);
+
+  if (!proxy)
   {
-    return FALSE;
+    g_printerr("Could not create portal proxy: %s\n", error->message);
+    g_error_free(error);
+    sync_color_scheme(g_variant_new_uint32(0));
+    return;
   }
 
-  g_autoptr(GSettings) settings =
-      g_settings_new("org.gnome.desktop.interface");
-  g_autofree gchar *color_scheme =
-      g_settings_get_string(settings, "color-scheme");
+  GVariant *reply = g_dbus_proxy_call_sync(proxy,
+                                           "Read",
+                                           g_variant_new("(ss)",
+                                                         "org.freedesktop.appearance",
+                                                         "color-scheme"),
+                                           G_DBUS_CALL_FLAGS_NONE,
+                                           -1,
+                                           NULL,
+                                           &error);
 
-  return g_strcmp0(color_scheme, "prefer-dark") == 0;
+  if (!reply)
+  {
+    g_printerr("Could not read color scheme: %s\n", error->message);
+    g_error_free(error);
+    g_object_unref(proxy);
+    sync_color_scheme(g_variant_new_uint32(0));
+    return;
+  }
+
+  GVariant *boxed_value = NULL;
+  GVariant *value = NULL;
+
+  g_variant_get(reply, "(v)", &boxed_value);
+  value = g_variant_get_variant(boxed_value);
+
+  sync_color_scheme(value);
+
+  g_variant_unref(reply);
+  g_variant_unref(boxed_value);
+  g_variant_unref(value);
+
+  g_signal_connect(proxy, "g-signal", G_CALLBACK(appearance_on_signal), NULL);
 }
 
 static void my_application_activate(GApplication *application)
@@ -93,12 +162,7 @@ static void my_application_activate(GApplication *application)
 
   if (use_header_bar)
   {
-    GtkSettings *settings = gtk_settings_get_default();
-    if (settings != nullptr && should_prefer_dark_theme())
-    {
-      g_object_set(
-          settings, "gtk-application-prefer-dark-theme", TRUE, nullptr);
-    }
+    watch_color_scheme();
 
     GtkHeaderBar *header_bar = GTK_HEADER_BAR(gtk_header_bar_new());
     gtk_widget_show(GTK_WIDGET(header_bar));
