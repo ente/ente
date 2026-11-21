@@ -96,6 +96,29 @@ ente account totp enable
 
 The CLI prints a secret to add to your authenticator app, asks for a code from it, and prints `Authenticator protection is enabled.` Without prompts, run `ente account totp setup` to get the secret, then `ente account totp enable --input -` with `{"secret": "...", "totp": "..."}`. `ente account totp status` shows the current setting. This protects your account login and is separate from the codes stored in Auth.
 
+## Share your plan with a family
+
+On a paid plan, start a family and invite up to five other Ente accounts:
+
+```sh
+ente account family create
+ente account family member add bob@example.com
+```
+
+Each command prints the family. Ente emails the invite, and Bob joins by accepting it:
+
+```
+Storage  200 GB
+Used     12 GB
+Expires  2027-03-01T00:00:00.000000Z
+
+EMAIL              STATUS   USED     LIMIT  ID
+alice@example.com  admin    12 GB    none   9f6c1b52-3e1d-4c8a-a0f4-6d2b7e1c9a10
+bob@example.com    invited  0 bytes  none   4b2e8d71-5a9c-4f3e-8b6d-1c7a2e9f0d34
+```
+
+`ente account family view` shows the family again. Members share the family storage; to cap what one member can use, run `ente account family member set-storage bob@example.com 100GB`, and `--no-limit` removes the cap. Sizes use MB, GB or TB in powers of 1024. `ente account family member remove bob@example.com` removes a member or cancels a pending invite, and a member leaves with `ente account family leave`. Both ask for confirmation; `--yes` approves without a prompt. A member is named by email or by the ID that `view` prints. With `--json`, the family is printed as JSON, or `null` when the account is not in one.
+
 ## Get a token
 
 ```sh

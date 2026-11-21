@@ -4,6 +4,7 @@ pub mod client;
 pub mod deletion;
 pub mod details;
 pub mod error;
+pub mod family;
 pub mod lifecycle;
 pub mod login;
 pub mod models;

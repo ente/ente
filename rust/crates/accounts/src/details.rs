@@ -2,7 +2,11 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::Deserialize;
 
-use crate::{AccountsClient, Result, admin::Subscription};
+use crate::{
+    AccountsClient, Result,
+    admin::Subscription,
+    family::{Family, Member},
+};
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -13,29 +17,7 @@ pub struct AccountDetails {
     #[serde(default)]
     pub storage_bonus: i64,
     pub subscription: Subscription,
-    pub family_data: Option<FamilyData>,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct FamilyData {
-    pub members: Vec<FamilyMember>,
-    // The admin's plan, excluding bonuses; the server zeroes storage once it expires.
-    pub storage: i64,
-    #[serde(default)]
-    pub expiry_time: i64,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct FamilyMember {
-    pub email: String,
-    pub status: String,
-    #[serde(default)]
-    pub usage: i64,
-    #[serde(default)]
-    pub is_admin: bool,
-    pub storage_limit: Option<i64>,
+    pub family_data: Option<Family>,
 }
 
 impl AccountDetails {
@@ -60,13 +42,13 @@ impl AccountDetails {
             .map_or(self.subscription.expiry_time, |family| family.expiry_time)
     }
 
-    pub fn family(&self) -> Option<&FamilyData> {
+    pub fn family(&self) -> Option<&Family> {
         self.family_data
             .as_ref()
             .filter(|family| !family.members.is_empty())
     }
 
-    pub fn family_member(&self) -> Option<&FamilyMember> {
+    pub fn family_member(&self) -> Option<&Member> {
         self.family()?
             .members
             .iter()
@@ -78,18 +60,12 @@ impl AccountDetails {
     }
 
     pub fn free_storage(&self) -> i64 {
-        let free = self.total_storage() - self.family().map_or(self.usage, FamilyData::usage);
+        let free = self.total_storage() - self.family().map_or(self.usage, Family::usage);
         match self.family_member().and_then(|member| member.storage_limit) {
             Some(limit) => free.min(limit - self.usage),
             None => free,
         }
         .max(0)
-    }
-}
-
-impl FamilyData {
-    pub fn usage(&self) -> i64 {
-        self.members.iter().map(|member| member.usage).sum()
     }
 }
 
@@ -147,9 +123,9 @@ mod tests {
     fn family_storage_uses_the_admin_plan_and_member_limits() {
         let family = json!({"familyData": {"storage": 200 * GB, "expiryTime": 4942020944746699i64, "adminBonus": 0,
         "members": [
-            {"id": "a", "email": "admin@example.org", "status": "ACCEPTED", "usage": 50 * GB, "isAdmin": true},
-            {"id": "b", "email": " alice@example.org ", "status": "ACCEPTED", "usage": 3 * GB, "storageLimit": 5 * GB},
-            {"id": "c", "email": "new@example.org", "status": "INVITED"}
+            {"id": "00000000-0000-4000-8000-00000000000a", "email": "admin@example.org", "status": "SELF", "usage": 50 * GB, "isAdmin": true},
+            {"id": "00000000-0000-4000-8000-00000000000b", "email": " alice@example.org ", "status": "ACCEPTED", "usage": 3 * GB, "storageLimit": 5 * GB},
+            {"id": "00000000-0000-4000-8000-00000000000c", "email": "new@example.org", "status": "INVITED"}
         ]}});
         let mut details = details(family);
         details.subscription.expiry_time = 1;
@@ -167,7 +143,7 @@ mod tests {
     #[test]
     fn an_empty_family_and_a_missing_file_count_are_not_errors() {
         let details = details(
-            json!({"familyData": {"storage": 0, "members": []}, "fileCount": null,
+            json!({"familyData": {"storage": 0, "adminBonus": 0, "members": []}, "fileCount": null,
             "subscription": {"productID": "50gb_monthly_v4", "storage": 50 * GB, "expiryTime": 1,
                 "originalTransactionID": "t", "paymentProvider": "stripe",
                 "attributes": {"isCancelled": true}}}),
@@ -181,9 +157,9 @@ mod tests {
     fn free_storage_never_goes_negative() {
         let mut value = json!({"usage": 25 * GB});
         assert_eq!(details(value.clone()).free_storage(), 0);
-        value["familyData"] = json!({"storage": 200 * GB, "members": [
-            {"id": "a", "email": "admin@example.org", "status": "ACCEPTED", "usage": 50 * GB, "isAdmin": true},
-            {"id": "b", "email": "other@example.org", "status": "ACCEPTED", "usage": 3 * GB, "storageLimit": GB}
+        value["familyData"] = json!({"storage": 200 * GB, "adminBonus": 0, "members": [
+            {"id": "00000000-0000-4000-8000-00000000000a", "email": "admin@example.org", "status": "SELF", "usage": 50 * GB, "isAdmin": true},
+            {"id": "00000000-0000-4000-8000-00000000000b", "email": "other@example.org", "status": "ACCEPTED", "usage": 3 * GB, "storageLimit": GB}
         ]});
         let family = details(value);
         // Not listed among the members: no member cap applies.
