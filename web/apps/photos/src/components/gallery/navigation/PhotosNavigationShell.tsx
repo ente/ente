@@ -49,6 +49,7 @@ import {
 import type { GallerySectionPresentation } from "./GallerySectionLayout";
 import { NavigationSlide } from "./NavigationSlide";
 import { usePhotosNavigation } from "./PhotosNavigationContext";
+import { RailIcon } from "./RailIcon";
 
 interface PhotosNavigationShellProps {
     onUpload: () => void;
@@ -397,10 +398,10 @@ const NormalNavigationRail = ({
                             },
                         }}
                     >
-                        <HugeiconsIcon
+                        <RailIcon
                             icon={rail.icon}
-                            size={20}
-                            strokeWidth={1.8}
+                            artboard={rail.artboard}
+                            selected={selected}
                         />
                     </FocusVisibleButton>
                 </Tooltip>
@@ -423,11 +424,7 @@ const NormalNavigationRail = ({
                     borderRadius: "12px",
                 }}
             >
-                <HugeiconsIcon
-                    icon={Settings01Icon}
-                    size={20}
-                    strokeWidth={1.8}
-                />
+                <RailIcon icon={Settings01Icon} artboard="settings" />
             </FocusVisibleButton>
         </Tooltip>
     </>
@@ -456,7 +453,11 @@ const HomeButton: React.FC<{ selected: boolean }> = ({ selected }) => {
                     },
                 }}
             >
-                <HugeiconsIcon icon={Home01Icon} size={20} strokeWidth={1.8} />
+                <RailIcon
+                    icon={Home01Icon}
+                    artboard="home"
+                    selected={selected}
+                />
             </FocusVisibleButton>
         </Tooltip>
     );

@@ -16,6 +16,7 @@ import type {
     GalleryNavigationState,
 } from "../navigation/navigation-state";
 import type { PhotosNavigationActions } from "../navigation/PhotosNavigationContext";
+import type { RailIconArtboard } from "../navigation/RailIcon";
 import type { GalleryState } from "../reducer";
 import { resolveAlbumDestination } from "./albums/album-files";
 import { AlbumsSection } from "./albums/AlbumsSection";
@@ -49,6 +50,7 @@ export interface GallerySectionDefinition {
     rail?: {
         label: () => string;
         icon: ComponentProps<typeof HugeiconsIcon>["icon"];
+        artboard?: RailIconArtboard;
         available?: () => boolean;
         select?: (entry: SectionEntry) => void;
         selected?: (
@@ -150,6 +152,7 @@ export const gallerySections = {
         rail: {
             label: () => t("albums"),
             icon: DashboardSquare01Icon,
+            artboard: "albums",
             select: albumsSelection,
         },
     },
@@ -171,6 +174,7 @@ export const gallerySections = {
         rail: {
             label: () => t("people"),
             icon: User02Icon,
+            artboard: "people",
             available: () => isMLSupported,
             select: peopleSelection,
         },
@@ -180,7 +184,7 @@ export const gallerySections = {
         resolve: resolveLinksDestination,
         hasNavigation: true,
         enter: linksEntry,
-        rail: { label: () => t("links"), icon: Link04Icon },
+        rail: { label: () => t("links"), icon: Link04Icon, artboard: "links" },
     },
     places: {
         View: PlacesSection,
@@ -189,6 +193,7 @@ export const gallerySections = {
         rail: {
             label: () => t("map"),
             icon: Location01Icon,
+            artboard: "places",
             select: placesSelection,
             selected: placesSelected,
         },
