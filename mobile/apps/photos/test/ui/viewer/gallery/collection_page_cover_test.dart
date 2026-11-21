@@ -151,6 +151,10 @@ void main() {
   testWidgets("picker search preserves its query on Back and animates tabs", (
     tester,
   ) async {
+    final album = _collection()..setName("Cat photos");
+    final albums = CollectionsService.instance.collectionIDToCollections;
+    albums[album.id] = album;
+    addTearDown(() => albums.remove(album.id));
     await mountPicker(tester);
     final field = find.byType(TextField);
     final row = find.byType(AnimatedCrossFade);
@@ -189,7 +193,19 @@ void main() {
     await tester.pump();
     expect(input.controller.text, "cat");
     expect(input.focusNode.hasFocus, isFalse);
-    expect(tabs, findsNothing);
+    await tester.pump(const Duration(seconds: 1));
+    final result = find.text(album.displayName).hitTestable();
+    for (var i = 0; i < 100 && result.evaluate().isEmpty; i++) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 10)),
+      );
+      await tester.pump();
+    }
+    await tester.tap(result);
+    await tester.pump(const Duration(seconds: 3));
+    expect(find.widgetWithText(AppBar, album.displayName), findsOneWidget);
+    await tester.tap(find.byTooltip("Back"));
+    await tester.pump();
     tester.platformDispatcher.accessibilityFeaturesTestValue =
         const FakeAccessibilityFeatures(disableAnimations: true);
     addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);

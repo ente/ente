@@ -35,6 +35,7 @@ import "package:photos/models/search/search_constants.dart";
 import "package:photos/models/search/search_result.dart";
 import "package:photos/models/search/search_types.dart";
 import "package:photos/models/selected_files.dart";
+import "package:photos/module/download/file.dart";
 import "package:photos/module/metadata/local_file.dart";
 import "package:photos/module/share/picker_result_uri.dart";
 import "package:photos/service_locator.dart";
@@ -932,7 +933,9 @@ class _PickerState extends State<_Picker> with WidgetsBindingObserver {
         }
         final uris = <String>[];
         for (final file in selected) {
-          final uri = await assets[file.localID]!.getMediaUrl();
+          final uri =
+              await assets[file.localID]!.getMediaUrl() ??
+              (await getFile(file))?.uri.toString();
           if (!current()) return null;
           if (uri == null) throw StateError("Could not prepare device item");
           uris.add(uri);

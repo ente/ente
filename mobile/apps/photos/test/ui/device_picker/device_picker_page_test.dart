@@ -96,7 +96,8 @@ void main() {
                 ],
               },
               'fetchEntityProperties' => _assetData(id!),
-              'getMediaUrl' => 'content://media/external/images/media/$id',
+              'getMediaUrl' when id != '1' =>
+                'content://media/external/images/media/$id',
               'getThumb' || 'getOriginBytes' => bytes,
               'assetExists' => true,
               _ => null,
@@ -184,6 +185,9 @@ void main() {
       addTearDown(() => PathProviderPlatform.instance = paths);
       tester.view.systemGestureInsets = const FakeViewPadding(left: 24);
       addTearDown(tester.view.resetSystemGestureInsets);
+      final localFile = File('assets/memories.jpg').absolute;
+      final file = fileFromAsset('', media('1'));
+      FileLruCache.put('${file.tag}falsefalse', localFile);
       final calls = <MethodCall>[];
       tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
         const MethodChannel('media_extension'),
@@ -245,7 +249,7 @@ void main() {
         isMethodCall(
           'setResults',
           arguments: {
-            'uris': ['${prefix}1', '${prefix}2'],
+            'uris': [localFile.uri.toString(), '${prefix}2'],
           },
         ),
       ]);
