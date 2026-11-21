@@ -645,6 +645,19 @@ fn security_changes_need_confirmation_or_a_code_without_prompts() {
         "--no-input",
     ]));
     assert!(error.contains("supply --input"), "{error}");
+    let error = failure(&home.with_input(
+        &[
+            "account",
+            "change-email",
+            "--email",
+            "new@example.org",
+            "--input",
+            "-",
+            "--no-input",
+        ],
+        br#"{"otp": ""}"#,
+    ));
+    assert!(error.contains("supply a nonempty otp"), "{error}");
 }
 
 #[cfg(feature = "museum")]
@@ -744,11 +757,12 @@ fn security_settings_and_email_change_across_processes() -> ente_test_support::T
             .unwrap()
             .trim()
             .to_owned();
+        let padded_email = format!(" {} ", new_email.to_uppercase());
         let change = [
             "account",
             "change-email",
             "--email",
-            &new_email,
+            &padded_email,
             "--input",
             "-",
             "--no-input",

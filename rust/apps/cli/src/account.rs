@@ -447,6 +447,9 @@ pub async fn change_email(args: ChangeEmailArgs, options: &Options) -> Result<()
                 .context("input must contain an otp string")
         })
         .transpose()?;
+    if let Some(input) = &supplied {
+        ensure!(!input.otp.is_empty(), "supply a nonempty otp in --input");
+    }
     let state = State::load()?;
     let index = state.resolve(args.selector.account.as_deref())?;
     let account = &state.accounts[index];
@@ -477,6 +480,9 @@ pub async fn change_email(args: ChangeEmailArgs, options: &Options) -> Result<()
             Err(error) => return Err(error.into()),
         }
     }
+    let client = api::accounts_client(&account.origin, app)?;
+    client.set_auth_token(Some(b64::encode_url_safe(account.token(app)?)));
+    let email = client.email().await?;
     let storage_id = account.storage_id;
     let mut vault = Vault::open()?;
     let index = vault
