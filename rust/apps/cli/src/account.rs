@@ -377,20 +377,21 @@ pub async fn session(
     let account = &state.accounts[state.resolve(selected)?];
     let app = account.app(app)?;
     let session = api::session(account, app)?;
-    let mut active = sessions::list(&session).await?;
+    let mut active = sessions::list(&session).await.map_err(|error| match error {
+        ente_accounts::Error::SessionIdsUnsupported => anyhow::anyhow!(
+            "this Ente server does not return session IDs; listing sessions requires a current Museum release"
+        ),
+        error => error.into(),
+    })?;
     match command {
         SessionCommand::List => {
             active.sort_by_key(|session| std::cmp::Reverse(session.last_used_at));
             output::sessions(&active, options.json)
         }
         SessionCommand::Revoke { id, yes } => {
-            ensure!(
-                active.iter().all(|session| session.id.hashed().is_some()),
-                "this server does not expose session IDs; revoking a session requires a newer Museum release"
-            );
             let target = active
                 .iter()
-                .find(|session| session.id.hashed() == Some(id.as_str()))
+                .find(|session| session.id == id)
                 .with_context(|| {
                     format!(
                         "no active {} session has ID {id:?}; see account session list --app {}",
@@ -403,13 +404,13 @@ pub async fn session(
                 "this is the CLI's own session; use account logout --app {} instead",
                 app.name()
             );
-            let view = output::SessionView::new(target)?;
+            let target = output::SessionView::new(target)?;
             if !yes {
                 ensure!(
                     Confirm::new()
                         .with_prompt(format!(
                             "Log out {} from {} for {}?",
-                            view.description(),
+                            target.description(),
                             app.display_name(),
                             output::escape_controls(&account.email)
                         ))
@@ -418,11 +419,11 @@ pub async fn session(
                     "cancelled"
                 );
             }
-            sessions::revoke(&session, &target.id).await?;
+            sessions::revoke(&session, &id).await?;
             output::action(
                 options.json,
-                &json!({"app": app, "session": view}),
-                &format!("Logged out {}.", view.description()),
+                &json!({"app": app, "session": target}),
+                &format!("Logged out {}.", target.description()),
             )
         }
     }

@@ -1,15 +1,14 @@
-use ente_core::{Session, crypto::SecretString};
+use ente_core::Session;
 use serde::{Deserialize, Deserializer};
+use zeroize::Zeroize;
 
-use crate::Result;
+use crate::{Error, Result};
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ActiveSession {
-    #[serde(rename = "token")]
-    pub id: SessionId,
-    // Older Museum releases omit isCurrent.
-    #[serde(default)]
+    #[serde(rename = "token", deserialize_with = "hashed_id")]
+    pub id: String,
     pub is_current: bool,
     #[serde(rename = "creationTime")]
     pub created_at: i64,
@@ -22,38 +21,12 @@ pub struct ActiveSession {
     pub pretty_user_agent: String,
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum SessionId {
-    Hashed(String),
-    /// A live bearer token, which Museum releases without `th:` IDs return; never display it.
-    LegacyToken(SecretString),
-}
-
-impl SessionId {
-    pub fn hashed(&self) -> Option<&str> {
-        match self {
-            Self::Hashed(id) => Some(id),
-            Self::LegacyToken(_) => None,
-        }
+fn hashed_id<'de, D: Deserializer<'de>>(deserializer: D) -> std::result::Result<String, D::Error> {
+    let mut id = String::deserialize(deserializer)?;
+    if !id.starts_with("th:") {
+        id.zeroize();
     }
-
-    fn wire(&self) -> &str {
-        match self {
-            Self::Hashed(id) => id,
-            Self::LegacyToken(token) => token,
-        }
-    }
-}
-
-impl<'de> Deserialize<'de> for SessionId {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> std::result::Result<Self, D::Error> {
-        let value = String::deserialize(deserializer)?;
-        Ok(if value.starts_with("th:") {
-            Self::Hashed(value)
-        } else {
-            Self::LegacyToken(value.into())
-        })
-    }
+    Ok(id)
 }
 
 pub async fn list(session: &Session) -> Result<Vec<ActiveSession>> {
@@ -71,14 +44,17 @@ pub async fn list(session: &Session) -> Result<Vec<ActiveSession>> {
         .await?
         .json()
         .await?;
+    if response.sessions.iter().any(|s| !s.id.starts_with("th:")) {
+        return Err(Error::SessionIdsUnsupported);
+    }
     Ok(response.sessions)
 }
 
-pub async fn revoke(session: &Session, id: &SessionId) -> Result<()> {
+pub async fn revoke(session: &Session, id: &str) -> Result<()> {
     session
         .api
         .delete("/users/session")
-        .query(&[("token", id.wire())])
+        .query(&[("token", id)])
         .send()
         .await?
         .error_for_code()
@@ -92,31 +68,23 @@ mod tests {
         crypto::{Key, SecretKey},
         http::{ApiConfig, Auth},
     };
-    use mockito::{Matcher, Server};
+    use mockito::Server;
     use serde_json::json;
 
     use super::*;
 
     #[tokio::test]
-    async fn legacy_tokens_revoke_without_being_debug_printed() {
+    async fn raw_tokens_fail_the_list_without_being_kept() {
         let mut server = Server::new_async().await;
         let entry = |token: &str| {
-            json!({"token": token, "creationTime": 1, "lastUsedTime": 2, "ip": "203.0.113.7",
-                "ua": "ente-cli", "prettyUA": "Other, Other"})
+            json!({"token": token, "isCurrent": false, "creationTime": 1, "lastUsedTime": 2,
+                "ip": "203.0.113.7", "ua": "ente-cli", "prettyUA": "Other, Other"})
         };
         let listed = server
             .mock("GET", "/users/sessions")
             .with_body(
-                json!({"sessions": [entry("raw-bearer-token"), entry("th:hash")]}).to_string(),
+                json!({"sessions": [entry("th:hash"), entry("raw-bearer-token")]}).to_string(),
             )
-            .create_async()
-            .await;
-        let revoked = server
-            .mock("DELETE", "/users/session")
-            .match_query(Matcher::UrlEncoded(
-                "token".into(),
-                "raw-bearer-token".into(),
-            ))
             .create_async()
             .await;
         let session = Session::new(
@@ -131,16 +99,11 @@ mod tests {
         )
         .unwrap();
 
-        let sessions = list(&session).await.unwrap();
-        assert_eq!(
-            sessions[0].id,
-            SessionId::LegacyToken("raw-bearer-token".to_owned().into())
-        );
-        assert!(!sessions[0].is_current);
-        assert_eq!(sessions[1].id.hashed(), Some("th:hash"));
-        assert!(!format!("{sessions:?}").contains("raw-bearer-token"));
-        revoke(&session, &sessions[0].id).await.unwrap();
+        let error = list(&session).await.unwrap_err();
+        assert!(matches!(error, Error::SessionIdsUnsupported), "{error:?}");
+        for output in [error.to_string(), format!("{error:?}")] {
+            assert!(!output.contains("raw-bearer-token"), "{output}");
+        }
         listed.assert_async().await;
-        revoked.assert_async().await;
     }
 }

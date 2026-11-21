@@ -901,7 +901,7 @@ fn usage_marks_an_expired_plan() {
 }
 
 #[test]
-fn sessions_from_legacy_servers_hide_raw_tokens_and_cannot_be_revoked() {
+fn sessions_fail_when_the_server_returns_raw_tokens() {
     let mut server = mockito::Server::new();
     let home = TestHome::new();
     home.seed(&server.url());
@@ -913,10 +913,10 @@ fn sessions_from_legacy_servers_hide_raw_tokens_and_cannot_be_revoked() {
     let sessions = server
         .mock("GET", "/users/sessions")
         .with_body(
-            json!({"sessions": [entry("raw-current-token", true), entry("raw-other-token", false)]})
+            json!({"sessions": [entry("th:hash", true), entry("raw-other-token", false)]})
                 .to_string(),
         )
-        .expect(4)
+        .expect(3)
         .create();
     let revoke = server
         .mock("DELETE", "/users/session")
@@ -924,26 +924,29 @@ fn sessions_from_legacy_servers_hide_raw_tokens_and_cannot_be_revoked() {
         .expect(0)
         .create();
 
-    let listed = home.json(&["account", "session", "list"]);
-    assert_eq!(listed[0]["id"], Value::Null, "{listed}");
-    assert_eq!(listed[1]["id"], Value::Null, "{listed}");
-    assert_eq!(listed[0]["current"], true);
-    let plain =
-        String::from_utf8(success(home.run(&["account", "session", "list"])).stdout).unwrap();
-    assert!(
-        plain
-            .lines()
-            .all(|line| line.starts_with("CURRENT") || line.ends_with("unavailable")),
-        "{plain}"
-    );
-    for output in [listed.to_string(), plain] {
-        assert!(!output.contains("raw-"), "{output}");
-    }
-    for id in ["raw-other-token", "th:unknown"] {
-        let error =
-            failure(&home.run(&["account", "session", "revoke", id, "--yes", "--no-input"]));
-        assert!(error.contains("does not expose session IDs"), "{error}");
-        assert!(!error.contains("raw-current-token"), "{error}");
+    for args in [
+        &["account", "session", "list"][..],
+        &["account", "session", "list", "--json"],
+        &[
+            "account",
+            "session",
+            "revoke",
+            "th:hash",
+            "--yes",
+            "--no-input",
+        ],
+    ] {
+        let output = home.run(args);
+        let error = failure(&output);
+        assert!(
+            error.contains(
+                "does not return session IDs; listing sessions requires a current Museum release"
+            ),
+            "{error}"
+        );
+        for stream in [&output.stdout, &output.stderr] {
+            assert!(!String::from_utf8_lossy(stream).contains("raw-"), "{error}");
+        }
     }
     sessions.assert();
     revoke.assert();

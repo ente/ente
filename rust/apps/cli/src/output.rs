@@ -237,7 +237,7 @@ impl SubscriptionView {
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionView {
-    id: Option<String>,
+    id: String,
     current: bool,
     device: String,
     user_agent: String,
@@ -249,7 +249,7 @@ pub struct SessionView {
 impl SessionView {
     pub fn new(session: &ActiveSession) -> Result<Self> {
         Ok(Self {
-            id: session.id.hashed().map(str::to_owned),
+            id: session.id.clone(),
             current: session.is_current,
             device: session.pretty_user_agent.clone(),
             user_agent: session.user_agent.clone(),
@@ -327,10 +327,7 @@ pub fn sessions(sessions: &[ActiveSession], as_json: bool) -> Result<()> {
                 escape_controls(&session.ip),
                 session.last_used_at,
                 session.created_at,
-                session
-                    .id
-                    .as_deref()
-                    .map_or_else(|| "unavailable".to_owned(), escape_controls),
+                escape_controls(&session.id),
             ]
         })
         .collect::<Vec<_>>();
