@@ -558,6 +558,9 @@ class _BackupFolderSelectionPageState extends State<BackupFolderSelectionPage>
     setState(() {
       if (_selectedDevicePathIDs.contains(folderId)) {
         _selectedDevicePathIDs.remove(folderId);
+        if (_selectedDevicePathIDs.isEmpty) {
+          _hasExplicitlyUnselectedAll = true;
+        }
       } else {
         _hasExplicitlyUnselectedAll = false;
         _selectedDevicePathIDs.add(folderId);
