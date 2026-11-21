@@ -31,7 +31,21 @@ const (
 	slowUploadThreshold             = 2 * time.Second
 	slowSpeedThreshold              = 0.5 // MB/s
 	replicationDelayForStaleObjects = 30
+	replicationDownloadIdleTimeout  = time.Minute
 )
+
+type replicationProgressReader struct {
+	io.Reader
+	onProgress func()
+}
+
+func (r replicationProgressReader) Read(p []byte) (int, error) {
+	n, err := r.Reader.Read(p)
+	if n > 0 {
+		r.onProgress()
+	}
+	return n, err
+}
 
 type ReplicationController3 struct {
 	S3Config          *s3config.S3Config
@@ -328,6 +342,10 @@ func (c *ReplicationController3) downloadObject(copies *ente.ObjectCopies, file 
 }
 
 func (c *ReplicationController3) downloadFromSource(objectKey string, file *os.File, source *UploadDestination) (int64, error) {
+	return c.downloadFromSourceWithIdleTimeout(objectKey, file, source, http.DefaultClient, replicationDownloadIdleTimeout)
+}
+
+func (c *ReplicationController3) downloadFromSourceWithIdleTimeout(objectKey string, file *os.File, source *UploadDestination, client *http.Client, idleTimeout time.Duration) (int64, error) {
 	r, _ := source.Client.GetObjectRequest(&s3.GetObjectInput{
 		Bucket: source.Bucket,
 		Key:    &objectKey,
@@ -336,8 +354,6 @@ func (c *ReplicationController3) downloadFromSource(objectKey string, file *os.F
 	if err != nil {
 		return 0, stacktrace.Propagate(err, "Could not create presigned URL for downloading object")
 	}
-
-	client := &http.Client{}
 
 	request, err := http.NewRequest("GET", presignedURL, nil)
 	if err != nil {
@@ -354,7 +370,11 @@ func (c *ReplicationController3) downloadFromSource(objectKey string, file *os.F
 		request.URL.RawQuery = q.Encode()
 	}
 
-	response, err := client.Do(request)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	timer := time.AfterFunc(idleTimeout, cancel)
+	defer timer.Stop()
+	response, err := client.Do(request.WithContext(ctx))
 	if err != nil {
 		return 0, stacktrace.Propagate(err, "Download failed for object %s", objectKey)
 	}
@@ -368,7 +388,7 @@ func (c *ReplicationController3) downloadFromSource(objectKey string, file *os.F
 		return 0, stacktrace.Propagate(err, "")
 	}
 
-	n, err := io.Copy(file, response.Body)
+	n, err := io.Copy(file, replicationProgressReader{response.Body, func() { timer.Reset(idleTimeout) }})
 	if err != nil {
 		return 0, stacktrace.Propagate(err, "Failed to write HTTP response to file")
 	}
