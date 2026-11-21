@@ -127,21 +127,16 @@ static void on_color_scheme_init_read_finished(GObject *source,
   g_variant_unref(reply);
   g_variant_unref(boxed_value);
   g_variant_unref(value);
+
+  g_signal_connect(proxy, "g-signal", G_CALLBACK(appearance_on_signal), NULL);
 }
 
-static void watch_color_scheme()
+static void on_new_proxy_created(GObject *source, GAsyncResult *res, gpointer user_data)
 {
+  GDBusProxy *proxy = G_DBUS_PROXY(source);
   GError *error = NULL;
-  GDBusProxy *proxy = g_dbus_proxy_new_for_bus_sync(G_BUS_TYPE_SESSION,
-                                                    G_DBUS_PROXY_FLAGS_NONE,
-                                                    NULL,
-                                                    "org.freedesktop.portal.Desktop",
-                                                    "/org/freedesktop/portal/desktop",
-                                                    "org.freedesktop.portal.Settings",
-                                                    NULL,
-                                                    &error);
 
-  if (!proxy)
+  if (!g_dbus_proxy_new_for_bus_finish(res, &error))
   {
     g_printerr("Could not create portal proxy: %s\n", error->message);
     g_error_free(error);
@@ -159,8 +154,19 @@ static void watch_color_scheme()
                     NULL,
                     on_color_scheme_init_read_finished,
                     NULL);
+}
 
-  g_signal_connect(proxy, "g-signal", G_CALLBACK(appearance_on_signal), NULL);
+static void watch_color_scheme()
+{
+  g_dbus_proxy_new_for_bus(G_BUS_TYPE_SESSION,
+                           G_DBUS_PROXY_FLAGS_NONE,
+                           NULL,
+                           "org.freedesktop.portal.Desktop",
+                           "/org/freedesktop/portal/desktop",
+                           "org.freedesktop.portal.Settings",
+                           NULL,
+                           on_new_proxy_created,
+                           NULL);
 }
 
 static void my_application_activate(GApplication *application)
