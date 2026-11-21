@@ -4,13 +4,33 @@ import android.content.Intent
 import android.os.Bundle
 import io.ente.background.BackgroundManagerPlugin
 import io.flutter.embedding.android.FlutterFragmentActivity
+import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.MethodChannel
 import java.io.FileDescriptor
 import java.io.PrintWriter
 
 class MainActivity : FlutterFragmentActivity() {
+    private lateinit var finishTaskChannel: MethodChannel
+
     override fun onCreate(savedInstanceState: Bundle?) {
         BackgroundManagerPlugin.onForeground()
         super.onCreate(savedInstanceState)
+    }
+
+    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+        super.configureFlutterEngine(flutterEngine)
+        finishTaskChannel = MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "io.ente/finishTask",
+        )
+        finishTaskChannel.setMethodCallHandler { call, result ->
+            if (call.method == "finishAndRemoveTask") {
+                finishAndRemoveTask()
+                result.success(null)
+            } else {
+                result.notImplemented()
+            }
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
