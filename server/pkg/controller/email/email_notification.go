@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	stdtime "time"
 
 	"github.com/avct/uasurfer"
 	"github.com/ente/museum/ente"
@@ -56,7 +57,14 @@ const (
 	FamilyNudgeTemplate   = "family_nudge.html"
 	FamilyNudgeSubject    = "Share your Ente Subscription with your Family!"
 	FamilyNudgeTemplateID = "family_nudge"
+
+	LockerIntroMailLock   = "locker_intro_mail"
+	LockerIntroTemplate   = "locker_intro.html"
+	LockerIntroSubject    = "Let Ente take care of your documents"
+	LockerIntroTemplateID = "locker_intro"
 )
+
+var lockerIntroRolloutTime = stdtime.Date(2026, stdtime.November, 1, 0, 0, 0, 0, stdtime.UTC).UnixMicro()
 
 type EmailNotificationController struct {
 	UserRepo                           *repo.UserRepository
@@ -302,5 +310,38 @@ func (c *EmailNotificationController) NudgePaidSubscriberForFamily() {
 			continue
 		}
 		c.NotificationHistoryRepo.SetLastNotificationTimeToNow(u.ID, FamilyNudgeTemplateID)
+	}
+}
+
+func (c *EmailNotificationController) SendLockerIntroMails(now int64) {
+	log.Info("Running SendLockerIntroMails")
+	if !c.LockController.TryLock(LockerIntroMailLock, time.MicrosecondsAfterHours(24)) {
+		log.Error("Could not acquire lock to send Locker intro mails")
+		return
+	}
+	defer c.LockController.ReleaseLock(LockerIntroMailLock)
+
+	userIDs, err := c.NotificationHistoryRepo.GetLockerIntroCandidates(lockerIntroRolloutTime, now, LockerIntroTemplateID)
+	if err != nil {
+		log.WithError(err).Error("Could not fetch Locker intro candidates")
+		return
+	}
+	for _, userID := range userIDs {
+		logger := log.WithField("user_id", userID)
+		user, err := c.UserRepo.Get(userID)
+		if err != nil {
+			logger.WithError(err).Error("Could not fetch user for Locker intro")
+			continue
+		}
+		err = c.NotificationHistoryRepo.SetLastNotificationTimeToNow(userID, LockerIntroTemplateID)
+		if err != nil {
+			logger.WithError(err).Error("Could not record Locker intro attempt")
+			continue
+		}
+		err = email.SendTemplatedEmailV2([]string{user.Email}, "Ente", "team@ente.com",
+			LockerIntroSubject, "base_v2.html", LockerIntroTemplate, nil, nil)
+		if err != nil {
+			logger.WithError(err).Error("Could not send Locker intro mail")
+		}
 	}
 }
