@@ -132,10 +132,16 @@ class _BackupFolderSelectionPageState extends State<BackupFolderSelectionPage>
           _selectedDevicePathIDs.addAll(_allDevicePathIDs);
         }
       } else {
-        for (final file in _deviceCollections!) {
-          if (!previouslyKnownPathIDs.contains(file.id)) {
-            if (file.shouldBackup || _treatAsOnboarding) {
-              _selectedDevicePathIDs.add(file.id);
+        final hasExplicitlyUnselectedAll =
+            previouslyKnownPathIDs.isNotEmpty && _selectedDevicePathIDs.isEmpty;
+        final hasSelectedAll = previouslyKnownPathIDs.isNotEmpty &&
+            _selectedDevicePathIDs.length == previouslyKnownPathIDs.length;
+        if (!hasExplicitlyUnselectedAll) {
+          for (final file in _deviceCollections!) {
+            if (!previouslyKnownPathIDs.contains(file.id)) {
+              if (file.shouldBackup || (_treatAsOnboarding && hasSelectedAll)) {
+                _selectedDevicePathIDs.add(file.id);
+              }
             }
           }
         }
