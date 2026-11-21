@@ -48,6 +48,22 @@ export const wheelScrollDelta = (
     return event.deltaY * unit;
 };
 
+export const syncTimelineScrollOffset = (
+    currentScrollTop: number,
+    totalHeight: number,
+    containerHeight: number,
+    scrollTo: (offset: number) => void,
+    setScrollOffset: (offset: number) => void,
+): number => {
+    const maxOffset = Math.max(0, totalHeight - containerHeight);
+    const clampedOffset = Math.min(currentScrollTop, maxOffset);
+    if (currentScrollTop > maxOffset) {
+        scrollTo(clampedOffset);
+    }
+    setScrollOffset(clampedOffset);
+    return clampedOffset;
+};
+
 const firstOffsetOutside = (
     offsets: number[],
     inPrefix: (offset: number) => boolean,

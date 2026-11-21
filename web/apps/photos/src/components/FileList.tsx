@@ -1,6 +1,9 @@
 import Avatar from "@/components/Avatar";
 import { DateScrubber } from "@/components/date-scrubber/DateScrubber";
-import { createTimeline } from "@/components/date-scrubber/timeline";
+import {
+    createTimeline,
+    syncTimelineScrollOffset,
+} from "@/components/date-scrubber/timeline";
 import {
     FileContextMenu,
     type ContextMenuPosition,
@@ -422,13 +425,13 @@ export const FileList: React.FC<FileListProps> = ({
 
     useEffect(() => {
         if (showScrubber) {
-            const currentScrollTop = outerRef.current?.scrollTop ?? 0;
-            const maxOffset = Math.max(0, timeline.totalHeight - height);
-            const clampedOffset = Math.min(currentScrollTop, maxOffset);
-            if (currentScrollTop > maxOffset) {
-                listRef.current?.scrollTo(clampedOffset);
-            }
-            setScrollOffset(clampedOffset);
+            syncTimelineScrollOffset(
+                outerRef.current?.scrollTop ?? 0,
+                timeline.totalHeight,
+                height,
+                (offset) => listRef.current?.scrollTo(offset),
+                setScrollOffset,
+            );
         }
     }, [timeline, height, showScrubber]);
 

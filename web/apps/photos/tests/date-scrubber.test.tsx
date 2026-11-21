@@ -8,6 +8,7 @@ import {
     adjacentMonthOffset,
     createTimeline,
     indexAtOffset,
+    syncTimelineScrollOffset,
     timelineMarkers,
     wheelScrollDelta,
 } from "../src/components/date-scrubber/timeline";
@@ -244,18 +245,44 @@ test("moves to the preceding reachable month from the scroll limit", () => {
     );
 });
 
-test("preserves scroll offset when within timeline bounds and clamps when exceeding", () => {
-    const timeline = timelineOf([400, november], [300, october]);
-    const height = 200;
-    const maxOffset = Math.max(0, timeline.totalHeight - height);
+describe("syncTimelineScrollOffset", () => {
+    test("preserves scroll offset and does not scroll when within bounds", () => {
+        const scrollTo = vi.fn();
+        const setScrollOffset = vi.fn();
+        const timeline = timelineOf([400, november], [300, october]);
+        const height = 200; // maxOffset = 500
+        const currentScrollTop = 350;
 
-    // Within bounds: offset is preserved
-    const currentOffset = 350;
-    const clampedOffset = Math.min(currentOffset, maxOffset);
-    expect(clampedOffset).toBe(350);
+        const result = syncTimelineScrollOffset(
+            currentScrollTop,
+            timeline.totalHeight,
+            height,
+            scrollTo,
+            setScrollOffset,
+        );
 
-    // Exceeding bounds (e.g. items deleted or resized): clamped to maxOffset
-    const pastEndOffset = 650;
-    const clampedPastEnd = Math.min(pastEndOffset, maxOffset);
-    expect(clampedPastEnd).toBe(500);
+        expect(result).toBe(350);
+        expect(setScrollOffset).toHaveBeenCalledWith(350);
+        expect(scrollTo).not.toHaveBeenCalled();
+    });
+
+    test("clamps scroll offset and scrolls to boundary when exceeding bounds", () => {
+        const scrollTo = vi.fn();
+        const setScrollOffset = vi.fn();
+        const timeline = timelineOf([400, november], [300, october]);
+        const height = 200; // maxOffset = 500
+        const currentScrollTop = 650;
+
+        const result = syncTimelineScrollOffset(
+            currentScrollTop,
+            timeline.totalHeight,
+            height,
+            scrollTo,
+            setScrollOffset,
+        );
+
+        expect(result).toBe(500);
+        expect(setScrollOffset).toHaveBeenCalledWith(500);
+        expect(scrollTo).toHaveBeenCalledWith(500);
+    });
 });
