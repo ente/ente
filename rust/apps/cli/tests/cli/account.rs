@@ -899,3 +899,52 @@ fn usage_marks_an_expired_plan() {
     );
     details.assert();
 }
+
+#[test]
+fn sessions_from_legacy_servers_hide_raw_tokens_and_cannot_be_revoked() {
+    let mut server = mockito::Server::new();
+    let home = TestHome::new();
+    home.seed(&server.url());
+    let entry = |token: &str, current: bool| {
+        json!({"token": token, "isCurrent": current, "creationTime": 1_763_715_600_000_000i64,
+            "lastUsedTime": 1_763_715_600_000_000i64, "ip": "203.0.113.7",
+            "ua": "ente-cli", "prettyUA": "Other, Other"})
+    };
+    let sessions = server
+        .mock("GET", "/users/sessions")
+        .with_body(
+            json!({"sessions": [entry("raw-current-token", true), entry("raw-other-token", false)]})
+                .to_string(),
+        )
+        .expect(4)
+        .create();
+    let revoke = server
+        .mock("DELETE", "/users/session")
+        .match_query(Matcher::Any)
+        .expect(0)
+        .create();
+
+    let listed = home.json(&["account", "session", "list"]);
+    assert_eq!(listed[0]["id"], Value::Null, "{listed}");
+    assert_eq!(listed[1]["id"], Value::Null, "{listed}");
+    assert_eq!(listed[0]["current"], true);
+    let plain =
+        String::from_utf8(success(home.run(&["account", "session", "list"])).stdout).unwrap();
+    assert!(
+        plain
+            .lines()
+            .all(|line| line.starts_with("CURRENT") || line.ends_with("unavailable")),
+        "{plain}"
+    );
+    for output in [listed.to_string(), plain] {
+        assert!(!output.contains("raw-"), "{output}");
+    }
+    for id in ["raw-other-token", "th:unknown"] {
+        let error =
+            failure(&home.run(&["account", "session", "revoke", id, "--yes", "--no-input"]));
+        assert!(error.contains("does not expose session IDs"), "{error}");
+        assert!(!error.contains("raw-current-token"), "{error}");
+    }
+    sessions.assert();
+    revoke.assert();
+}

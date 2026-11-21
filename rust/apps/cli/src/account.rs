@@ -384,9 +384,13 @@ pub async fn session(
             output::sessions(&active, options.json)
         }
         SessionCommand::Revoke { id, yes } => {
+            ensure!(
+                active.iter().all(|session| session.id.hashed().is_some()),
+                "this server does not expose session IDs; revoking a session requires a newer Museum release"
+            );
             let target = active
                 .iter()
-                .find(|session| session.id == id)
+                .find(|session| session.id.hashed() == Some(id.as_str()))
                 .with_context(|| {
                     format!(
                         "no active {} session has ID {id:?}; see account session list --app {}",
@@ -399,13 +403,13 @@ pub async fn session(
                 "this is the CLI's own session; use account logout --app {} instead",
                 app.name()
             );
-            let target = output::SessionView::new(target)?;
+            let view = output::SessionView::new(target)?;
             if !yes {
                 ensure!(
                     Confirm::new()
                         .with_prompt(format!(
                             "Log out {} from {} for {}?",
-                            target.description(),
+                            view.description(),
                             app.display_name(),
                             output::escape_controls(&account.email)
                         ))
@@ -414,11 +418,11 @@ pub async fn session(
                     "cancelled"
                 );
             }
-            sessions::revoke(&session, &id).await?;
+            sessions::revoke(&session, &target.id).await?;
             output::action(
                 options.json,
-                &json!({"app": app, "session": target}),
-                &format!("Logged out {}.", target.description()),
+                &json!({"app": app, "session": view}),
+                &format!("Logged out {}.", view.description()),
             )
         }
     }

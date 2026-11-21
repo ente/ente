@@ -1,7 +1,10 @@
 #![cfg(test)]
 #![cfg(feature = "museum")]
 
-use ente_accounts::{AccountsClient, AccountsClientConfig, Error, sessions};
+use ente_accounts::{
+    AccountsClient, AccountsClientConfig, Error,
+    sessions::{self, SessionId},
+};
 use ente_core::{
     Session, b64,
     crypto::{Key, SecretKey},
@@ -28,10 +31,10 @@ fn sessions() -> TestResult {
         let listed = sessions::list(&first).await?;
         assert_eq!(listed.len(), 1);
         assert!(listed[0].is_current);
-        assert!(listed[0].id.starts_with("th:"), "{}", listed[0].id);
+        let first_id = listed[0].id.hashed().unwrap().to_owned();
+        assert!(first_id.starts_with("th:"), "{first_id}");
         assert!(listed[0].created_at > 0);
         assert!(listed[0].last_used_at >= listed[0].created_at);
-        let first_id = listed[0].id.clone();
 
         let client = AccountsClient::new(
             AccountsClientConfig::new("io.ente.photos")
@@ -47,37 +50,50 @@ fn sessions() -> TestResult {
 
         let listed = sessions::list(&first).await?;
         assert_eq!(listed.len(), 2);
-        let other = listed.iter().find(|s| s.id != first_id).unwrap();
-        assert!(listed.iter().find(|s| s.id == first_id).unwrap().is_current);
+        let other = listed.iter().find(|s| s.id != hashed(&first_id)).unwrap();
+        assert!(
+            listed
+                .iter()
+                .find(|s| s.id == hashed(&first_id))
+                .unwrap()
+                .is_current
+        );
         assert!(!other.is_current);
         assert_eq!(other.user_agent, SECOND_DEVICE);
         assert!(!other.pretty_user_agent.is_empty());
-        let second_id = other.id.clone();
+        let second_id = other.id.hashed().unwrap().to_owned();
         let seen_by_second = sessions::list(&second).await?;
         assert!(
             seen_by_second
                 .iter()
-                .all(|s| s.is_current == (s.id == second_id))
+                .all(|s| s.is_current == (s.id == hashed(&second_id)))
         );
 
-        assert_eq!(status(sessions::revoke(&first, &first_id).await), Some(400));
+        assert_eq!(
+            status(sessions::revoke(&first, &hashed(&first_id)).await),
+            Some(400)
+        );
         assert_eq!(sessions::list(&first).await?.len(), 2);
 
-        sessions::revoke(&first, &second_id).await?;
+        sessions::revoke(&first, &hashed(&second_id)).await?;
         assert_eq!(status(sessions::list(&second).await), Some(401));
         let listed = sessions::list(&first).await?;
         assert_eq!(listed.len(), 1);
-        assert_eq!(listed[0].id, first_id);
+        assert_eq!(listed[0].id, hashed(&first_id));
 
-        sessions::revoke(&first, &second_id).await?;
-        sessions::revoke(&first, &format!("th:{}", "A".repeat(43))).await?;
+        sessions::revoke(&first, &hashed(&second_id)).await?;
+        sessions::revoke(&first, &hashed(&format!("th:{}", "A".repeat(43)))).await?;
         assert_eq!(
-            status(sessions::revoke(&first, "th:not-a-hash").await),
+            status(sessions::revoke(&first, &hashed("th:not-a-hash")).await),
             Some(400)
         );
         assert_eq!(sessions::list(&first).await?.len(), 1);
         Ok(())
     })
+}
+
+fn hashed(id: &str) -> SessionId {
+    SessionId::Hashed(id.to_owned())
 }
 
 fn status<T>(result: ente_accounts::Result<T>) -> Option<u16> {
