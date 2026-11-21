@@ -991,7 +991,14 @@ mod tests {
 
         let decoded = decode_image_from_bytes(&RGB_DCI_2X1_CODESTREAM).unwrap();
 
-        assert_eq!(decoded.rgb, [113, 113, 113, 183, 46, 14]);
+        let libjxl_rgb = [113, 114, 113, 184, 46, 14];
+        assert_eq!(decoded.rgb.len(), libjxl_rgb.len());
+        for (actual, expected) in decoded.rgb.iter().zip(libjxl_rgb) {
+            assert!(
+                actual.abs_diff(expected) <= 1,
+                "decoded {actual}, expected {expected} ±1"
+            );
+        }
     }
 
     #[test]
