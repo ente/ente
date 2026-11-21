@@ -38,6 +38,9 @@ class FakeDeviceLibrary implements DeviceMediaLibrary {
       ? readOverride!(album, start, end)
       : items.skip(start).take(end - start).toList();
   @override
+  Future<List<AssetEntity>> readFirstPage(AssetPathEntity album, int size) =>
+      read(album, start: 0, end: size);
+  @override
   Future<Map<String, EnteFile>> files(List<String> localIDs) async {
     if (fileLookupError != null) throw fileLookupError!;
     fileLookupBatches.add(localIDs);
