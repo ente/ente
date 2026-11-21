@@ -62,7 +62,7 @@ pub async fn change_email(session: &Session, email: &str, ott: &str) -> Result<(
         ott: &'a str,
     }
 
-    session
+    let Err(error) = session
         .api
         .post("/users/change-email")
         .json(&Request { email, ott })
@@ -70,14 +70,27 @@ pub async fn change_email(session: &Session, email: &str, ott: &str) -> Result<(
         .await?
         .error_for_code()
         .await
-        .map_err(|error| match error.status_code() {
-            Some(401) => Error::IncorrectEmailVerificationCode,
-            Some(403) => Error::EmailAlreadyInUse,
-            Some(410) => Error::EmailVerificationCodeExpired,
-            Some(429) => Error::EmailVerificationRateLimited,
-            _ => error.into(),
-        })?;
-    Ok(())
+    else {
+        return Ok(());
+    };
+    Err(match error.status_code() {
+        Some(401) => match session
+            .api
+            .get("/users/session-validity/v2")
+            .send()
+            .await?
+            .error_for_code()
+            .await
+        {
+            Ok(_) => Error::IncorrectEmailVerificationCode,
+            Err(probe) if probe.status_code() == Some(401) => Error::SessionInvalid,
+            Err(_) => error.into(),
+        },
+        Some(403) => Error::EmailAlreadyInUse,
+        Some(410) => Error::EmailVerificationCodeExpired,
+        Some(429) => Error::EmailVerificationRateLimited,
+        _ => error.into(),
+    })
 }
 
 #[cfg(test)]
@@ -143,12 +156,28 @@ mod tests {
 
     #[tokio::test]
     async fn change_email_classifies_verification_failures() {
-        for (status, expected) in [
-            (401, Error::IncorrectEmailVerificationCode),
-            (403, Error::EmailAlreadyInUse),
-            (410, Error::EmailVerificationCodeExpired),
-            (429, Error::EmailVerificationRateLimited),
-        ] {
+        type Expected = fn(&Error) -> bool;
+        let cases: [(usize, Option<usize>, Expected); 6] = [
+            (401, Some(200), |error| {
+                matches!(error, Error::IncorrectEmailVerificationCode)
+            }),
+            (401, Some(401), |error| {
+                matches!(error, Error::SessionInvalid)
+            }),
+            (
+                401,
+                Some(500),
+                |error| matches!(error, Error::Http(error) if error.status_code() == Some(401)),
+            ),
+            (403, None, |error| matches!(error, Error::EmailAlreadyInUse)),
+            (410, None, |error| {
+                matches!(error, Error::EmailVerificationCodeExpired)
+            }),
+            (429, None, |error| {
+                matches!(error, Error::EmailVerificationRateLimited)
+            }),
+        ];
+        for (status, validity, expected) in cases {
             let mut server = Server::new_async().await;
             let change = server
                 .mock("POST", "/users/change-email")
@@ -160,14 +189,20 @@ mod tests {
                 .expect(1)
                 .create_async()
                 .await;
+            let session_validity = server
+                .mock("GET", "/users/session-validity/v2")
+                .match_header("x-auth-token", "token")
+                .with_status(validity.unwrap_or(200))
+                .with_body(r#"{"hasSetKeys": false}"#)
+                .expect(usize::from(validity.is_some()))
+                .create_async()
+                .await;
             let error = change_email(&session(server.url()), "b@example.org", "123456")
                 .await
                 .unwrap_err();
-            assert_eq!(
-                std::mem::discriminant(&error),
-                std::mem::discriminant(&expected)
-            );
+            assert!(expected(&error), "{status} {validity:?}: {error:?}");
             change.assert_async().await;
+            session_validity.assert_async().await;
         }
     }
 }

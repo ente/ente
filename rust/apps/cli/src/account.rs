@@ -480,9 +480,6 @@ pub async fn change_email(args: ChangeEmailArgs, options: &Options) -> Result<()
             Err(error) => return Err(error.into()),
         }
     }
-    let client = api::accounts_client(&account.origin, app)?;
-    client.set_auth_token(Some(b64::encode_url_safe(account.token(app)?)));
-    let email = client.email().await?;
     let storage_id = account.storage_id;
     let mut vault = Vault::open()?;
     let index = vault

@@ -396,6 +396,12 @@ async fn run_security_settings(museum: &Museum) -> TestResult {
     };
     assert_eq!(login.user_id, account.user_id);
     assert_eq!(login.secrets.master_key, account.master_key);
+
+    client.logout().await?;
+    assert!(matches!(
+        change_email(&session, &account.email, HARDCODED_OTT).await,
+        Err(Error::SessionInvalid)
+    ));
     Ok(())
 }
 
