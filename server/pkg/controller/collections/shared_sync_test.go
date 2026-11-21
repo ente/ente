@@ -6,7 +6,32 @@ import (
 	"testing"
 
 	"github.com/ente/museum/ente"
+	"github.com/ente/museum/internal/testutil"
+	"github.com/stretchr/testify/require"
 )
+
+func TestSharedCollectionSyncReturnsShareesForEachCollection(t *testing.T) {
+	db, collectionRepo, ownerID, shareeID := setupCollectionShareTest(t)
+	otherID := testutil.InsertUser(t, db, testutil.UserFixture{UserID: 3, Email: "other@example.com", CreationTime: 1})
+	first := createShareTestCollection(t, collectionRepo, ownerID)
+	second := createShareTestCollection(t, collectionRepo, ownerID)
+	addShareTestShare(t, collectionRepo, first, ownerID, shareeID, ente.VIEWER)
+	addShareTestShare(t, collectionRepo, second, ownerID, shareeID, ente.VIEWER)
+	addShareTestShare(t, collectionRepo, first, ownerID, otherID, ente.ADMIN)
+	addShareTestShare(t, collectionRepo, second, ownerID, otherID, ente.ADMIN)
+	require.NoError(t, collectionRepo.UnShare(second, otherID))
+
+	collections, err := collectionRepo.GetCollectionsSharedWithUser(shareeID, 0, ente.Photos, nil)
+	require.NoError(t, err)
+	require.Len(t, collections, 2)
+	shareesByCollection := make(map[int64][]ente.CollectionUser)
+	for _, collection := range collections {
+		shareesByCollection[collection.ID] = collection.Sharees
+	}
+	viewer := ente.CollectionUser{ID: shareeID, Email: "sharee@example.com", Role: ente.VIEWER}
+	require.ElementsMatch(t, []ente.CollectionUser{viewer, {ID: otherID, Email: "other@example.com", Role: ente.ADMIN}}, shareesByCollection[first])
+	require.ElementsMatch(t, []ente.CollectionUser{viewer}, shareesByCollection[second])
+}
 
 func TestSharedCollectionSyncUsesShareAndCollectionChanges(t *testing.T) {
 	db, collectionRepo, ownerID, shareeID := setupCollectionShareTest(t)
