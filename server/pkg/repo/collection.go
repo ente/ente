@@ -328,17 +328,7 @@ func (repo *CollectionRepository) GetCollectionsSharedWithUser(userID int64, upd
 			}
 			c.Owner.Email = email
 		}
-		// TODO: Pull this information in the previous query
-		if c.IsDeleted {
-			// Don't expose other sharees after deletion or unsharing.
-			c.Sharees = make([]ente.CollectionUser, 0)
-		} else {
-			sharees, err := repo.GetSharees(c.ID)
-			if err != nil {
-				return collections, stacktrace.Propagate(err, "")
-			}
-			c.Sharees = sharees
-		}
+		c.Sharees = make([]ente.CollectionUser, 0)
 		role := ente.ConvertStringToCollectionParticipantRole(roleType.String)
 		if role == ente.UNKNOWN {
 			role = ente.VIEWER
@@ -355,6 +345,10 @@ func (repo *CollectionRepository) GetCollectionsSharedWithUser(userID int64, upd
 		collectionIDs = append(collectionIDs, collection.ID)
 	}
 	if len(collectionIDs) > 0 {
+		shareesByCollection, err := repo.getShareesForCollections(collectionIDs)
+		if err != nil {
+			return collections, stacktrace.Propagate(err, "failed to get sharees")
+		}
 		urlMap, err := repo.CollectionLinkRepo.GetCollectionToActivePublicURLMap(context.Background(), collectionIDs, app)
 		if err != nil {
 			return nil, stacktrace.Propagate(err, "failed to get public URLs")
@@ -364,6 +358,7 @@ func (repo *CollectionRepository) GetCollectionsSharedWithUser(userID int64, upd
 				collections[idx].PublicURLs = []ente.PublicURL{}
 				continue
 			}
+			collections[idx].Sharees = shareesByCollection[collections[idx].ID]
 			role := shareeRoleByCollection[collections[idx].ID]
 			collections[idx].PublicURLs = ente.FilterPublicURLsForRole(urlMap[collections[idx].ID], role)
 		}
@@ -1155,6 +1150,41 @@ func (repo *CollectionRepository) GetPhotoActivityRecipients(ctx context.Context
 		return nil, nil
 	}
 	return recipients, stacktrace.Propagate(err, "")
+}
+
+func (repo *CollectionRepository) getShareesForCollections(collectionIDs []int64) (map[int64][]ente.CollectionUser, error) {
+	rows, err := repo.DB.Query(`
+		SELECT collection_shares.collection_id, users.user_id, users.encrypted_email, users.email_decryption_nonce, collection_shares.role_type
+		FROM users
+		INNER JOIN collection_shares ON collection_shares.to_user_id = users.user_id
+		WHERE collection_shares.collection_id = ANY($1) AND collection_shares.is_deleted = FALSE AND users.encrypted_email IS NOT NULL`,
+		pq.Array(collectionIDs))
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "")
+	}
+	defer rows.Close()
+
+	sharees := make(map[int64][]ente.CollectionUser, len(collectionIDs))
+	for _, id := range collectionIDs {
+		sharees[id] = make([]ente.CollectionUser, 0)
+	}
+	for rows.Next() {
+		var collectionID int64
+		var user ente.CollectionUser
+		var encryptedEmail, nonce []byte
+		if err := rows.Scan(&collectionID, &user.ID, &encryptedEmail, &nonce, &user.Role); err != nil {
+			return nil, stacktrace.Propagate(err, "")
+		}
+		user.Email, err = crypto.Decrypt(encryptedEmail, repo.SecretEncryptionKey, nonce)
+		if err != nil {
+			return nil, stacktrace.Propagate(err, "")
+		}
+		sharees[collectionID] = append(sharees[collectionID], user)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, stacktrace.Propagate(err, "")
+	}
+	return sharees, nil
 }
 
 func (repo *CollectionRepository) GetSharees(cID int64) ([]ente.CollectionUser, error) {
