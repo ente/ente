@@ -10,8 +10,10 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:logging/logging.dart';
 import 'package:photo_manager/photo_manager.dart';
+import 'package:photos/core/event_bus.dart';
 import 'package:photos/db/device_files_db.dart';
 import 'package:photos/db/files_db.dart';
+import 'package:photos/events/backup_folders_updated_event.dart';
 import 'package:photos/models/device_collection.dart';
 import 'package:photos/service_locator.dart';
 import 'package:photos/services/sync/remote_sync_service.dart';
@@ -48,6 +50,8 @@ class _BackupFolderSelectionPageState extends State<BackupFolderSelectionPage>
   Map<String, int>? _pathIDToItemCount;
   late final bool _treatAsOnboarding;
   bool _hasLimitedPermissions = false;
+  StreamSubscription<BackupFoldersUpdatedEvent>?
+      _backupFoldersUpdatedSubscription;
 
   static const _maxThumbnailWidth = 224.0;
   static const _gridHorizontalPadding = 16.0;
@@ -62,6 +66,10 @@ class _BackupFolderSelectionPageState extends State<BackupFolderSelectionPage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _backupFoldersUpdatedSubscription =
+        Bus.instance.on<BackupFoldersUpdatedEvent>().listen((_) {
+      _loadDeviceCollections();
+    });
     _treatAsOnboarding =
         widget.isOnboarding ||
         backupPreferenceService.hasSkippedOnboardingPermission;
@@ -70,6 +78,7 @@ class _BackupFolderSelectionPageState extends State<BackupFolderSelectionPage>
 
   @override
   void dispose() {
+    _backupFoldersUpdatedSubscription?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -93,6 +102,7 @@ class _BackupFolderSelectionPageState extends State<BackupFolderSelectionPage>
       return;
     }
     setState(() {
+      final isInitialLoad = _deviceCollections == null;
       _hasLimitedPermissions =
           permissionService.hasGrantedLimitedPermissions();
       _pathIDToItemCount = pathIDToItemCount;
@@ -101,15 +111,19 @@ class _BackupFolderSelectionPageState extends State<BackupFolderSelectionPage>
         return compareNames(first.name, second.name);
       });
       _allDevicePathIDs.clear();
-      _selectedDevicePathIDs.clear();
       for (final file in _deviceCollections!) {
         _allDevicePathIDs.add(file.id);
-        if (file.shouldBackup) {
-          _selectedDevicePathIDs.add(file.id);
-        }
       }
-      if (_treatAsOnboarding) {
-        _selectedDevicePathIDs.addAll(_allDevicePathIDs);
+      if (isInitialLoad) {
+        _selectedDevicePathIDs.clear();
+        for (final file in _deviceCollections!) {
+          if (file.shouldBackup) {
+            _selectedDevicePathIDs.add(file.id);
+          }
+        }
+        if (_treatAsOnboarding) {
+          _selectedDevicePathIDs.addAll(_allDevicePathIDs);
+        }
       }
       _selectedDevicePathIDs.removeWhere(
         (folder) => !_allDevicePathIDs.contains(folder),
@@ -225,8 +239,9 @@ class _BackupFolderSelectionPageState extends State<BackupFolderSelectionPage>
   Widget _buildBottomNavigationBar() {
     final l10n = context.strings;
     final colors = context.componentColors;
-    final hasFolders =
-        _deviceCollections != null && _deviceCollections!.isNotEmpty;
+    final hasFolders = !_hasLimitedPermissions &&
+        _deviceCollections != null &&
+        _deviceCollections!.isNotEmpty;
     final canSubmit =
         hasFolders && !(_treatAsOnboarding && _selectedDevicePathIDs.isEmpty);
 
@@ -269,8 +284,9 @@ class _BackupFolderSelectionPageState extends State<BackupFolderSelectionPage>
   Widget _buildScrollableBody() {
     final l10n = context.strings;
     final colors = context.componentColors;
-    final hasFolders =
-        _deviceCollections != null && _deviceCollections!.isNotEmpty;
+    final hasFolders = !_hasLimitedPermissions &&
+        _deviceCollections != null &&
+        _deviceCollections!.isNotEmpty;
 
     return AppBarComponent(
       title: l10n.backupToEnte,
@@ -308,6 +324,13 @@ class _BackupFolderSelectionPageState extends State<BackupFolderSelectionPage>
   }
 
   Widget _buildFoldersSliver() {
+    if (_hasLimitedPermissions) {
+      return SliverFillRemaining(
+        hasScrollBody: false,
+        child: _buildLimitedAccessEmptyState(),
+      );
+    }
+
     if (_deviceCollections == null) {
       return const SliverFillRemaining(
         hasScrollBody: false,
@@ -316,12 +339,6 @@ class _BackupFolderSelectionPageState extends State<BackupFolderSelectionPage>
     }
 
     if (_deviceCollections!.isEmpty) {
-      if (_hasLimitedPermissions) {
-        return SliverFillRemaining(
-          hasScrollBody: false,
-          child: _buildLimitedAccessEmptyState(),
-        );
-      }
       return SliverFillRemaining(
         hasScrollBody: false,
         child: EmptyStateLayout(
