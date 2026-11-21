@@ -20,6 +20,37 @@ struct _MyApplication
 
 G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
 
+static gboolean should_prefer_dark_theme()
+{
+  GSettingsSchemaSource *schema_source = g_settings_schema_source_get_default();
+  if (schema_source == nullptr)
+  {
+    return FALSE;
+  }
+
+  GSettingsSchema *schema = g_settings_schema_source_lookup(
+      schema_source, "org.gnome.desktop.interface", TRUE);
+  if (schema == nullptr)
+  {
+    return FALSE;
+  }
+
+  gboolean has_color_scheme_key =
+      g_settings_schema_has_key(schema, "color-scheme");
+  g_settings_schema_unref(schema);
+  if (!has_color_scheme_key)
+  {
+    return FALSE;
+  }
+
+  g_autoptr(GSettings) settings =
+      g_settings_new("org.gnome.desktop.interface");
+  g_autofree gchar *color_scheme =
+      g_settings_get_string(settings, "color-scheme");
+
+  return g_strcmp0(color_scheme, "prefer-dark") == 0;
+}
+
 static void
 sync_color_scheme(GVariant *value)
 {
@@ -66,6 +97,38 @@ appearance_on_signal(GDBusProxy *proxy,
   g_variant_unref(value);
 }
 
+static void on_color_scheme_init_read_finished(GObject *source,
+                                               GAsyncResult *res,
+                                               gpointer user_data)
+{
+  GDBusProxy *proxy = G_DBUS_PROXY(source);
+  GError *error = NULL;
+
+  // type: (v)
+  GVariant *reply = g_dbus_proxy_call_finish(proxy, res, &error);
+
+  if (!reply)
+  {
+    g_printerr("Could not read color scheme: %s\n", error->message);
+    g_error_free(error);
+    g_object_unref(proxy);
+    sync_color_scheme(g_variant_new_uint32(should_prefer_dark_theme()));
+    return;
+  }
+
+  GVariant *boxed_value = NULL; // type: v
+  GVariant *value = NULL; // type: u
+
+  g_variant_get(reply, "(v)", &boxed_value);
+  value = g_variant_get_variant(boxed_value);
+
+  sync_color_scheme(value);
+
+  g_variant_unref(reply);
+  g_variant_unref(boxed_value);
+  g_variant_unref(value);
+}
+
 static void watch_color_scheme()
 {
   GError *error = NULL;
@@ -82,40 +145,20 @@ static void watch_color_scheme()
   {
     g_printerr("Could not create portal proxy: %s\n", error->message);
     g_error_free(error);
-    sync_color_scheme(g_variant_new_uint32(0));
+    sync_color_scheme(g_variant_new_uint32(should_prefer_dark_theme()));
     return;
   }
 
-  GVariant *reply = g_dbus_proxy_call_sync(proxy,
-                                           "Read",
-                                           g_variant_new("(ss)",
-                                                         "org.freedesktop.appearance",
-                                                         "color-scheme"),
-                                           G_DBUS_CALL_FLAGS_NONE,
-                                           -1,
-                                           NULL,
-                                           &error);
-
-  if (!reply)
-  {
-    g_printerr("Could not read color scheme: %s\n", error->message);
-    g_error_free(error);
-    g_object_unref(proxy);
-    sync_color_scheme(g_variant_new_uint32(0));
-    return;
-  }
-
-  GVariant *boxed_value = NULL;
-  GVariant *value = NULL;
-
-  g_variant_get(reply, "(v)", &boxed_value);
-  value = g_variant_get_variant(boxed_value);
-
-  sync_color_scheme(value);
-
-  g_variant_unref(reply);
-  g_variant_unref(boxed_value);
-  g_variant_unref(value);
+  g_dbus_proxy_call(proxy,
+                    "Read",
+                    g_variant_new("(ss)",
+                                  "org.freedesktop.appearance",
+                                  "color-scheme"),
+                    G_DBUS_CALL_FLAGS_NONE,
+                    -1,
+                    NULL,
+                    on_color_scheme_init_read_finished,
+                    NULL);
 
   g_signal_connect(proxy, "g-signal", G_CALLBACK(appearance_on_signal), NULL);
 }
