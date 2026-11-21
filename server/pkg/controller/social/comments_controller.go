@@ -10,18 +10,16 @@ import (
 	socialrepo "github.com/ente/museum/pkg/repo/social"
 	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
 )
 
 type CommentPushNotifier interface {
-	NotifyFileComment(ctx context.Context, recipientID int64)
+	NotifyFileComment(ctx context.Context, recipients []int64)
 	NotifyCommentReply(ctx context.Context, recipientID int64)
 }
 
 type CommentsController struct {
 	Repo           *socialrepo.CommentsRepository
 	CollectionRepo *repo.CollectionRepository
-	FileRepo       *repo.FileRepository
 	AccessCtrl     access.Controller
 	PushCtrl       CommentPushNotifier
 }
@@ -135,23 +133,17 @@ func (c *CommentsController) Create(ctx *gin.Context, req CreateCommentRequest) 
 		return "", stacktrace.Propagate(err, "")
 	}
 	if comment.FileID != nil && c.PushCtrl != nil {
-		c.notifyFileComment(ctx, comment, parentComment)
+		if parentComment == nil {
+			notifyAlbumMembers(ctx.Request.Context(), c.CollectionRepo, comment.CollectionID, comment.UserID, c.PushCtrl.NotifyFileComment)
+		} else {
+			c.notifyCommentReply(ctx, comment, parentComment)
+		}
 	}
 	return comment.ID, nil
 }
 
-func (c *CommentsController) notifyFileComment(ctx *gin.Context, comment socialentity.Comment, parent *socialentity.Comment) {
-	var recipientID int64
-	if parent != nil {
-		recipientID = parent.UserID
-	} else {
-		var err error
-		recipientID, err = c.FileRepo.GetOwnerID(*comment.FileID)
-		if err != nil {
-			log.WithError(err).Warn("file comment push owner lookup failed; comment remains saved")
-			return
-		}
-	}
+func (c *CommentsController) notifyCommentReply(ctx *gin.Context, comment socialentity.Comment, parent *socialentity.Comment) {
+	recipientID := parent.UserID
 	if recipientID <= 0 || recipientID == comment.UserID {
 		return
 	}
@@ -161,11 +153,7 @@ func (c *CommentsController) notifyFileComment(ctx *gin.Context, comment sociale
 	}); err != nil {
 		return
 	}
-	if parent != nil {
-		go c.PushCtrl.NotifyCommentReply(ctx.Request.Context(), recipientID)
-	} else {
-		go c.PushCtrl.NotifyFileComment(ctx.Request.Context(), recipientID)
-	}
+	go c.PushCtrl.NotifyCommentReply(ctx.Request.Context(), recipientID)
 }
 
 func (c *CommentsController) Diff(ctx *gin.Context, req CommentDiffRequest) ([]socialentity.Comment, bool, error) {

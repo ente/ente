@@ -114,12 +114,12 @@ func (c *PushController) NotifyAlbumShare(ctx context.Context, recipients []int6
 	c.notifyEncryptedPush(ctx, recipients, []byte(`{"eventType":"album_shared"}`))
 }
 
-func (c *PushController) NotifyFileLike(ctx context.Context, recipientID int64) {
-	c.notifyEncryptedPush(ctx, []int64{recipientID}, []byte(`{"eventType":"file_liked"}`))
+func (c *PushController) NotifyFileLike(ctx context.Context, recipients []int64) {
+	c.notifyEncryptedPush(ctx, recipients, []byte(`{"eventType":"file_liked"}`))
 }
 
-func (c *PushController) NotifyFileComment(ctx context.Context, recipientID int64) {
-	c.notifyEncryptedPush(ctx, []int64{recipientID}, []byte(`{"eventType":"file_commented"}`))
+func (c *PushController) NotifyFileComment(ctx context.Context, recipients []int64) {
+	c.notifyEncryptedPush(ctx, recipients, []byte(`{"eventType":"file_commented"}`))
 }
 
 func (c *PushController) NotifyCommentReply(ctx context.Context, recipientID int64) {
