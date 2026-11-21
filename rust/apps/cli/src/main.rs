@@ -186,6 +186,12 @@ async fn account_command(command: AccountCommand, options: &Options) -> Result<(
             app,
             command,
         } => account::totp(command, selector.account.as_deref(), app, options).await,
+        AccountCommand::EmailMfa {
+            selector,
+            app,
+            command,
+        } => account::email_mfa(command, selector.account.as_deref(), app, options).await,
+        AccountCommand::ChangeEmail(args) => account::change_email(args, options).await,
         AccountCommand::RecoveryKey { name } => {
             let state = State::load()?;
             let account = &state.accounts[state.resolve(name.as_deref())?];

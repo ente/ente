@@ -571,6 +571,7 @@ pub struct CreateArgs {
 pub enum VerificationPurpose {
     Create,
     Login,
+    Change,
 }
 
 const API_HELP: &str = "The response body is written unchanged, including when --json is set.";
@@ -895,8 +896,9 @@ Examples:
     #[command(
         about = "Request an email verification code",
         after_long_help = "Requests one email and returns; success means the server accepted the request.
-Use the same email, app and server when completing creation or login.
-Defaults to creation; use --purpose login for an existing account."
+Use the same email, app and server when completing creation, login or an email change.
+Defaults to creation; use --purpose login for an existing account,
+or --purpose change with the new address for account change-email."
     )]
     RequestOtp {
         #[arg(long, help = "Email address to verify")]
@@ -1008,7 +1010,7 @@ Without --app, logs out of all this account's saved app logins on this device.
         local: bool,
     },
     #[command(
-        about = "Set up authenticator protection for your Ente account",
+        about = "Manage authenticator protection for your Ente account",
         after_long_help = "Protects account login, separate from codes stored in Ente Auth."
     )]
     Totp {
@@ -1024,6 +1026,35 @@ Without --app, logs out of all this account's saved app logins on this device.
         #[command(subcommand)]
         command: TotpCommand,
     },
+    #[command(
+        about = "Require an email code at login",
+        after_long_help = "Email verification asks for a code sent to your email each time you log in.
+Disabling it requires password login (SRP) to be set up for the account.
+Requires network access."
+    )]
+    EmailMfa {
+        #[command(flatten)]
+        selector: AccountSelector,
+        #[arg(
+            long,
+            global = true,
+            value_enum,
+            help = "Saved app login; defaults to the only app, otherwise Photos"
+        )]
+        app: Option<App>,
+        #[command(subcommand)]
+        command: EmailMfaCommand,
+    },
+    #[command(
+        about = "Change your Ente account's email",
+        after_long_help = "Prompts for the code sent to the new email.
+Unattended changes read JSON from --input containing an otp string.
+Request the code first with account request-otp --email NEW_EMAIL --purpose change --app APP --host URL,
+using the same app and server as the account.
+Updates the email saved on this device; the local account name is unchanged.
+Requires network access. With --json, returns the updated account."
+    )]
+    ChangeEmail(ChangeEmailArgs),
     #[command(
         about = "Print the saved 24-word recovery key",
         after_long_help = "Prints a secret from the local vault without network access.
@@ -1068,6 +1099,56 @@ Verifying an authenticator code requires your computer's date and time to be cor
 JSON field: totpEnabled (boolean)."
     )]
     Status,
+    #[command(
+        about = "Disable authenticator protection",
+        after_long_help = "Login no longer asks for an authenticator code. Requires network access.
+Asks for confirmation; --no-input requires --yes.
+To protect login again, run account totp enable with a new secret."
+    )]
+    Disable {
+        #[arg(long, help = "Disable without prompting")]
+        yes: bool,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum EmailMfaCommand {
+    #[command(
+        about = "Show whether email verification is enabled",
+        after_long_help = "Checks the current setting on the server.
+JSON fields: emailMfaEnabled, canDisableEmailMfa (booleans)."
+    )]
+    Status,
+    #[command(about = "Require an email code at every login")]
+    Enable,
+    #[command(
+        about = "Stop asking for an email code at login",
+        after_long_help = "Asks for confirmation; --no-input requires --yes."
+    )]
+    Disable {
+        #[arg(long, help = "Disable without prompting")]
+        yes: bool,
+    },
+}
+
+#[derive(Args)]
+pub struct ChangeEmailArgs {
+    #[command(flatten)]
+    pub selector: AccountSelector,
+    #[arg(
+        long,
+        value_enum,
+        help = "Saved app login; defaults to the only app, otherwise Photos"
+    )]
+    pub app: Option<App>,
+    #[arg(long, help = "New email address")]
+    pub email: Option<String>,
+    #[arg(
+        long,
+        value_name = "PATH|-",
+        help = "Read the otp string as JSON from a file or stdin"
+    )]
+    pub input: Option<PathBuf>,
 }
 
 #[derive(Subcommand)]
@@ -1279,6 +1360,8 @@ mod tests {
                 "ente auth ",
                 "ente admin ",
                 "ente account totp ",
+                "ente account email-mfa ",
+                "ente account change-email",
             ]
             .iter()
             .any(|group| path.starts_with(group));

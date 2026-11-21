@@ -630,6 +630,161 @@ fn creation_enrollment_and_login_across_processes() -> ente_test_support::TestRe
     })
 }
 
+#[test]
+fn security_changes_need_confirmation_or_a_code_without_prompts() {
+    let home = TestHome::new();
+    for command in ["totp", "email-mfa"] {
+        let error = failure(&home.run(&["account", command, "disable", "--no-input"]));
+        assert!(error.contains("supply --yes"), "{error}");
+    }
+    let error = failure(&home.run(&[
+        "account",
+        "change-email",
+        "--email",
+        "new@example.org",
+        "--no-input",
+    ]));
+    assert!(error.contains("supply --input"), "{error}");
+}
+
+#[cfg(feature = "museum")]
+#[test]
+fn security_settings_and_email_change_across_processes() -> ente_test_support::TestResult {
+    use super::museum::{PASSWORD, create_account, login};
+    use ente_test_support::{Museum, account_fixture::current_totp};
+    let inbox = super::mail::MailInbox::new();
+    let port = inbox.port.to_string();
+    let env = [
+        ("ENTE_SMTP_HOST", "127.0.0.1"),
+        ("ENTE_SMTP_PORT", &port),
+        ("ENTE_SMTP_USERNAME", ""),
+        ("ENTE_SMTP_PASSWORD", ""),
+        ("ENTE_SMTP_ENCRYPTION", ""),
+    ];
+    Museum::run_with_env(&env, |museum| {
+        let origin = museum.endpoint();
+        let email = format!("cli-security-{}@example.org", uuid::Uuid::new_v4());
+        tokio::runtime::Runtime::new()?.block_on(create_account(origin, &email));
+        let home = TestHome::new();
+        login(&home, "photos", &email, &["--host", origin, "--no-input"]);
+        let password_login = |email: &str| {
+            TestHome::new().with_input(
+                &[
+                    "account",
+                    "login",
+                    "--app",
+                    "photos",
+                    "--host",
+                    origin,
+                    "--input",
+                    "-",
+                    "--no-input",
+                ],
+                &serde_json::to_vec(&json!({"email": email, "password": PASSWORD})).unwrap(),
+            )
+        };
+
+        assert_eq!(
+            home.json(&["account", "email-mfa", "status"]),
+            json!({"emailMfaEnabled": false, "canDisableEmailMfa": true})
+        );
+        assert_eq!(
+            home.json(&["account", "email-mfa", "enable"]),
+            json!({"emailMfaEnabled": true})
+        );
+        assert_eq!(
+            home.json(&["account", "email-mfa", "status"])["emailMfaEnabled"],
+            true
+        );
+        assert!(failure(&password_login(&email)).contains("login requires otp"));
+        assert_eq!(
+            home.json(&["account", "email-mfa", "disable", "--yes", "--no-input"]),
+            json!({"emailMfaEnabled": false})
+        );
+        success(password_login(&email));
+
+        let secret = home.json(&["account", "totp", "setup"])["secret"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        success(home.with_input(
+            &["account", "totp", "enable", "--input", "-"],
+            &serde_json::to_vec(&json!({"secret": secret, "totp": current_totp(&secret)?}))?,
+        ));
+        assert!(failure(&password_login(&email)).contains("supply totp in --input"));
+        assert_eq!(
+            home.json(&["account", "totp", "disable", "--yes", "--no-input"]),
+            json!({"totpEnabled": false})
+        );
+        assert_eq!(
+            home.json(&["account", "totp", "status"]),
+            json!({"totpEnabled": false})
+        );
+        success(password_login(&email));
+
+        let new_email = format!("cli-changed-{}@example.org", uuid::Uuid::new_v4());
+        assert_eq!(
+            home.json(&[
+                "account",
+                "request-otp",
+                "--email",
+                &new_email,
+                "--host",
+                origin,
+                "--purpose",
+                "change",
+            ])["purpose"],
+            "change"
+        );
+        let message = inbox.receive("Subject: Verification code:");
+        assert!(message.contains(&format!("RCPT TO:<{new_email}>")));
+        let code = message
+            .lines()
+            .find_map(|line| line.strip_prefix("Subject: Verification code: "))
+            .unwrap()
+            .trim()
+            .to_owned();
+        let change = [
+            "account",
+            "change-email",
+            "--email",
+            &new_email,
+            "--input",
+            "-",
+            "--no-input",
+        ];
+        let wrong_code = format!("{:06}", (code.parse::<u32>()? + 1) % 1_000_000);
+        let error =
+            failure(&home.with_input(&change, &serde_json::to_vec(&json!({"otp": wrong_code}))?));
+        assert!(
+            error.contains("Incorrect email verification code"),
+            "{error}"
+        );
+        assert_eq!(home.json(&["account", "view"])["email"], email);
+        let output = success(home.with_input(
+            &[&change[..], &["--json"]].concat(),
+            &serde_json::to_vec(&json!({"otp": code}))?,
+        ));
+        let changed: Value = serde_json::from_slice(&output.stdout)?;
+        assert_eq!(changed["account"]["email"], new_email);
+        assert_eq!(changed["account"]["name"], email);
+        assert_eq!(home.json(&["account", "view"]), changed["account"]);
+        assert_eq!(
+            home.json(&["photos", "api", "/users/details/v2"])["email"],
+            new_email
+        );
+        let relogin = TestHome::new();
+        login(
+            &relogin,
+            "photos",
+            &new_email,
+            &["--host", origin, "--no-input"],
+        );
+        assert_eq!(relogin.json(&["account", "view"])["email"], new_email);
+        Ok(())
+    })
+}
+
 #[cfg(all(unix, feature = "museum"))]
 #[test]
 fn interactive_creation_password_retry_and_enrollment() -> ente_test_support::TestResult {
