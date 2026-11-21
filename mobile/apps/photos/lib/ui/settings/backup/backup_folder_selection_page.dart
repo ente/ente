@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:ente_components/ente_components.dart';
@@ -103,8 +104,11 @@ class _BackupFolderSelectionPageState extends State<BackupFolderSelectionPage>
     }
     setState(() {
       final isInitialLoad = _deviceCollections == null;
+      final hadFolders =
+          (_deviceCollections?.isNotEmpty ?? false) && !_hasLimitedPermissions;
       _hasLimitedPermissions =
           permissionService.hasGrantedLimitedPermissions();
+      final hasFoldersNow = !_hasLimitedPermissions && files.isNotEmpty;
       _pathIDToItemCount = pathIDToItemCount;
       _deviceCollections = files;
       _deviceCollections!.sort((first, second) {
@@ -114,7 +118,9 @@ class _BackupFolderSelectionPageState extends State<BackupFolderSelectionPage>
       for (final file in _deviceCollections!) {
         _allDevicePathIDs.add(file.id);
       }
-      if (isInitialLoad) {
+      final shouldRestoreSavedSelections =
+          isInitialLoad || (!hadFolders && hasFoldersNow);
+      if (shouldRestoreSavedSelections) {
         _selectedDevicePathIDs.clear();
         for (final file in _deviceCollections!) {
           if (file.shouldBackup) {
