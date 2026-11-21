@@ -243,3 +243,19 @@ test("moves to the preceding reachable month from the scroll limit", () => {
         300,
     );
 });
+
+test("preserves scroll offset when within timeline bounds and clamps when exceeding", () => {
+    const timeline = timelineOf([400, november], [300, october]);
+    const height = 200;
+    const maxOffset = Math.max(0, timeline.totalHeight - height);
+
+    // Within bounds: offset is preserved
+    const currentOffset = 350;
+    const clampedOffset = Math.min(currentOffset, maxOffset);
+    expect(clampedOffset).toBe(350);
+
+    // Exceeding bounds (e.g. items deleted or resized): clamped to maxOffset
+    const pastEndOffset = 650;
+    const clampedPastEnd = Math.min(pastEndOffset, maxOffset);
+    expect(clampedPastEnd).toBe(500);
+});

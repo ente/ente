@@ -1,9 +1,6 @@
 import Avatar from "@/components/Avatar";
 import { DateScrubber } from "@/components/date-scrubber/DateScrubber";
-import {
-    createTimeline,
-    indexAtOffset,
-} from "@/components/date-scrubber/timeline";
+import { createTimeline } from "@/components/date-scrubber/timeline";
 import {
     FileContextMenu,
     type ContextMenuPosition,
@@ -425,14 +422,15 @@ export const FileList: React.FC<FileListProps> = ({
 
     useEffect(() => {
         if (showScrubber) {
-            const offset = Math.min(
-                outerRef.current?.scrollTop ?? 0,
-                timeline.totalHeight - height,
-            );
-            seekTimeline(offset, indexAtOffset(timeline.offsets, offset));
-            setScrollOffset(offset);
+            const currentScrollTop = outerRef.current?.scrollTop ?? 0;
+            const maxOffset = Math.max(0, timeline.totalHeight - height);
+            const clampedOffset = Math.min(currentScrollTop, maxOffset);
+            if (currentScrollTop > maxOffset) {
+                listRef.current?.scrollTo(clampedOffset);
+            }
+            setScrollOffset(clampedOffset);
         }
-    }, [timeline, height, showScrubber, seekTimeline]);
+    }, [timeline, height, showScrubber]);
 
     useEffect(() => {
         const notSelectedFiles = annotatedFiles.filter(
