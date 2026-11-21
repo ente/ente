@@ -1080,6 +1080,9 @@
     "description": "Instructions for enabling device lock"
   },
   "deviceNotFound": "Perangkat tidak ditemukan",
+  "devicePickerLimitedAccess": "Menampilkan foto yang kamu ijinkan",
+  "devicePickerPermissionHint": "Untuk menambahkan foto dan video di album ini, ijinkan akses di pengaturan.",
+  "devicePickerSelectionChanged": "Beberapa item yang dipilih tidak ditemukan. Cek pilihanmu dan coba lagi.",
   "didYouKnow": "Tahukah kamu?",
   "digits": "Digit",
   "disableBackup": "Nonaktifkan pencadangan",
@@ -2144,6 +2147,7 @@
     }
   },
   "itemsLabel": "Item",
+  "itemsQueuedForDeletion": "Item diantrikan untuk dihapus",
   "itemsShowTheNumberOfDaysRemainingBeforePermanentDeletion": "Item menampilkan jumlah hari yang tersisa sebelum dihapus permanen",
   "itemsStored": "Item tersimpan",
   "itemsWillBeDeletedFromAllCollections": "{count, plural, one{Item ini akan dihapus dari semua koleksi. Anda dapat memulihkannya dari Sampah.} other{Item-item ini akan dihapus dari semua koleksi. Anda dapat memulihkannya dari Sampah.}}",
@@ -2169,6 +2173,10 @@
   "joinAlbumConfirmationDialogBody": "Jika bergabung ke album, alamat email Anda akan terlihat oleh para anggotanya.",
   "joinAlbumSubtext": "untuk melihat dan menambahkan foto Anda",
   "joinAlbumSubtextViewer": "untuk menambahkan ini ke album bersama",
+  "keep": "Pertahankan",
+  "@keep": {
+    "description": "Tooltip for the button that keeps the current photo while reviewing old photos."
+  },
   "keepOffline": "Simpan secara offline",
   "keepPhotos": "Simpan foto",
   "kiloMeterUnit": "km",
@@ -2550,6 +2558,7 @@
   },
   "maps": "Peta",
   "mapsPrivacyNotice": "Koordinat perkiraan akan dikirim ke pihak ketiga yang menjaga privasi seperti OpenStreetMap untuk menampilkan peta dan lokasi.",
+  "markAsReviewed": "Tandai sudah ditinjau",
   "markingAsImportant": "Menandai sebagai penting...",
   "me": "Saya",
   "mediaManagementHintMessage": "Aktifkan pengelolaan media untuk Ente di pengaturan agar permintaan konfirmasi berhenti muncul.",
@@ -2884,10 +2893,13 @@
       }
     }
   },
+  "nothingToReviewYet": "Belum ada yang bisa ditinjau",
+  "nothingToReviewYetDesc": "Fotomu akan tampil di sini, dikelompokkan per bulan.",
   "nothingToSeeHere": "Tidak ada apa-apa di sini",
   "nothingToCleanUp": "Tidak ada yang perlu dibersihkan",
   "nothingToTidyUpHere": "Tidak ada yang perlu dirapikan di sini",
   "notifications": "Notifikasi",
+  "notificationNewActivity": "Aktivitas baru",
   "notifyMe": "Beri tahu saya",
   "notPersonLabel": "Bukan {name}?",
   "@notPersonLabel": {
@@ -2920,6 +2932,7 @@
   "offlineNameFaceBannerTitle": "Berikan nama untuk wajah ini",
   "offlineSettingsBannerDesc": "Enkripsi zero-knowledge menjaga kenangan Anda tetap menjadi milik Anda.",
   "offlineSettingsBannerTitle": "Kami tidak akan pernah melihat foto Anda.",
+  "oldPhotos": "Foto lama",
   "onboardingDesc": "Simpan foto dan video Anda. Semua kenangan, di satu tempat.",
   "onboardingTitle": "Untuk semua hal yang tak ingin Anda lupakan",
   "onDevice": "Di perangkat",
@@ -4018,6 +4031,16 @@
   },
   "selectStartOfRange": "Pilih awal rentang",
   "selectTime": "Pilih waktu",
+  "selectYear": "Pilih {year}",
+  "@selectYear": {
+    "description": "Accessibility label of the control that selects every month of a year.",
+    "placeholders": {
+      "year": {
+        "example": "2026",
+        "type": "String"
+      }
+    }
+  },
   "selectYourFace": "Pilih wajah Anda",
   "selfiesWithThem": "Swafoto bersama {name}",
   "@selfiesWithThem": {
@@ -4398,6 +4421,17 @@
   "subscribe": "Berlangganan",
   "subscribeToChangeLinkSetting": "Anda memerlukan langganan berbayar untuk mengubah pengaturan tautan ini.",
   "subscribeToEnableSharing": "Anda memerlukan langganan berbayar yang aktif untuk bisa berbagi.",
+  "subscriptionCurrentPlan": "Paket Saat Ini",
+  "subscriptionFamilyDescription": "Bagikan paketmu dengan keluarga",
+  "subscriptionContinueWithPlan": "Lanjutkan dengan paket {storage}",
+  "@subscriptionContinueWithPlan": {
+    "description": "Continue button on the Photos plan picker with the selected storage allowance",
+    "placeholders": {
+      "storage": {
+        "type": "String"
+      }
+    }
+  },
   "subscription": "Langganan",
   "subscriptionRequiredForSharing": "Anda memerlukan langganan berbayar untuk membagikan tautan.",
   "subWillBeCancelledOn": "Langganan kamu akan dibatalkan pada {endDate}",

@@ -52,6 +52,7 @@
   "addAlbumWidgetPrompt": "તમારી હોમ સ્ક્રીનને કસ્ટમાઇઝ કરવા માટે તેમાં આલ્બમ વિજેટ ઉમેરો.",
   "addANameAndPhoto": "નામ અને ફોટો ઉમેરો",
   "addAnyway": "કોઈપણ રીતે ઉમેરો",
+  "addCode": "કોડ ઉમેરો",
   "addedAMemoryTo": "{albumName} માં એક મેમરી ઉમેરી",
   "@addedAMemoryTo": {
     "description": "Social notification action text shown after a person's name, for example 'John added a memory to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
@@ -67,7 +68,28 @@
       "emailOrName": {}
     }
   },
+  "addedNMemoriesTo": "{albumName} માં {count} યાદો ઉમેરી",
+  "@addedNMemoriesTo": {
+    "description": "Social notification action text shown after a person's name, for example 'John added 4 memories to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "addedSuccessfullyTo": "{albumName} માં સફળતાપૂર્વક ઉમેરવામાં આવ્યું",
+  "@addedSuccessfullyTo": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
+  "addedToQueue": "ક્યૂમાં ઉમેર્યું",
   "addEmail": "ઈમેલ ઉમેરો",
+  "addFamilyMember": "પરિવારના સભ્યને ઉમેરો",
+  "addFiles": "ફાઇલો ઉમેરો",
   "addLocationButton": "ઉમેરો",
   "addMember": "સભ્ય ઉમેરો",
   "addMore": "વધુ ઉમેરો",
@@ -79,6 +101,13 @@
   "addNewEmail": "નવું ઈમેલ ઉમેરો",
   "addOnPageSubtitle": "વધારાની સુવિધાઓની વિગતો",
   "addOns": "વધારાની સુવિધાઓ",
+  "addOnValidTill": "તમારું {storageAmount} એડ-ઓન {endDate} સુધી માન્ય છે",
+  "@addOnValidTill": {
+    "placeholders": {
+      "endDate": {},
+      "storageAmount": {}
+    }
+  },
   "addPage": "પૃષ્ઠ ઉમેરો",
   "@addPage": {
     "description": "Button to capture another page in the document scanner"

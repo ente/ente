@@ -1,8 +1,19 @@
 {
-  "bringMemoriesTogether": "Reúna as suas memórias",
-  "createMyAccount": "Criar a minha conta",
-  "localGalleryPermissionDesc": "Dê permissão para aceder e organizar as suas fotografias com reconhecimento facial. Todo o processamento é feito no seu dispositivo.",
-  "onboardingOrganizeDesc": "Organize as suas fotografias e vídeos. Todas as memórias num só lugar.",
+  "bringMemoriesTogether": "Junte as suas memórias",
+  "@bringMemoriesTogether": {
+    "description": "Title on the Local Gallery photo permission screen"
+  },
+  "createMyAccount": "Crie a sua conta",
+  "@createMyAccount": {
+    "description": "Create account button on the Photos onboarding screen"
+  },
+  "wallpaper": "Imagem de fundo",
+  "setWallpaper": "Definir imagem fundo",
+  "wallpaperHome": "Ecrã inicial",
+  "wallpaperLock": "Ecrã de bloqueio",
+  "wallpaperBoth": "Ecrã inicial e de bloqueio",
+  "wallpaperSet": "Imagem de fundo definida",
+  "wallpaperFailed": "Não foi possível definir a imagem de fundo",
   "about": "Sobre",
   "acceptTrustInvite": "Aceite o convite",
   "account": "Conta",
@@ -18,6 +29,7 @@
       }
     }
   },
+  "accountRecovery": "Recuperação de conta",
   "accountSetupIncompleteCreateAccount": "Configuração de conta incompleta. Crie conta para acabar a configuração.",
   "@accountSetupIncompleteCreateAccount": {
     "description": "Error shown when account exists but signup is incomplete"
@@ -28,6 +40,8 @@
     "description": "Title for active sessions page"
   },
   "add": "Adicionar",
+  "addANameAndPhoto": "Adicione um nome e uma foto",
+  "addAnyway": "Adicionar mesmo assim",
   "addCode": "Adicionar código",
   "addedBy": "Adicionado por {emailOrName}",
   "@addedBy": {

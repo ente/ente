@@ -1,8 +1,4 @@
 {
-  "bringMemoriesTogether": "Adună-ți amintirile",
-  "createMyAccount": "Creează contul meu",
-  "localGalleryPermissionDesc": "Acordă permisiunea de a accesa și organiza fotografiile cu recunoaștere facială. Toată procesarea are loc pe dispozitivul tău.",
-  "onboardingOrganizeDesc": "Organizează-ți fotografiile și videoclipurile. Toate amintirile într-un singur loc.",
   "about": "Despre",
   "acceptTrustInvite": "Acceptați invitația",
   "account": "Cont",
@@ -128,6 +124,7 @@
   },
   "areYouSureYouWantToRenew": "Sunteți sigur că doriți să reînnoiți?",
   "areYouSureYouWantToResetThisPerson": "Sunteți sigur că doriți să resetaţi această persoană?",
+  "askAQuestion": "Pune o întrebare",
   "askCancelReason": "Abonamentul dvs. a fost anulat. Doriți să ne comunicați motivul?",
   "authenticateGeneric": "Va rugam autentificati-va",
   "authenticating": "Autentificare...",
@@ -1169,6 +1166,7 @@
     }
   },
   "publicLinkEnabled": "Link public activat",
+  "publicLinkViewDescription": "Oricine cu acest link vă poate accesa albumul.",
   "qrCode": "Cod QR",
   "radius": "Rază",
   "raiseTicket": "Solicitați asistență",

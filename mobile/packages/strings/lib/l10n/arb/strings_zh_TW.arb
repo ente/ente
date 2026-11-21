@@ -1,8 +1,4 @@
 {
-  "bringMemoriesTogether": "匯聚你的美好回憶",
-  "createMyAccount": "建立我的帳號",
-  "localGalleryPermissionDesc": "授予存取照片的權限，並透過人臉辨識進行整理。所有處理均在你的裝置上完成。",
-  "onboardingOrganizeDesc": "整理你的照片和影片。所有回憶，盡在一處。",
   "about": "關於",
   "acceptTrustInvite": "接受邀請",
   "account": "帳號",
@@ -161,7 +157,6 @@
   "albumsOnDevicePermissionCta": "開啟權限",
   "albumsOnEnteEmptyCta": "選擇要備份的相簿",
   "albumsOnEnteEmptyTitle": "備份您的回憶",
-  "albumsReceivedEmptyTitle": "檢視收到的分享回憶與您分享",
   "albumsSharedEmptyTitle": "分享您的回憶",
   "albumsWidgetDesc": "選擇您想在主畫面上看到的相簿。",
   "albumTitle": "相簿標題",
@@ -1735,7 +1730,6 @@
   "nextTotpTitle": "下一個",
   "nightLights": "霓虹燈",
   "no": "否",
-  "noAlbumsOnThisDevice": "此裝置上沒有相簿",
   "noDefaultBackupFolder": "無法建立預設備份資料夾。",
   "noDeleteSuggestion": "沒有刪除建議",
   "noDeviceFound": "找不到裝置",
@@ -2875,7 +2869,6 @@
       }
     }
   },
-  "startSnappingYourPhotosWillShowUpHere": "開始拍照，您的照片會顯示在這裡",
   "startWithAddingPhotosOrFamiliarFaces": "先新增照片或熟悉的臉孔",
   "status": "狀態",
   "sticker": "表情符號",

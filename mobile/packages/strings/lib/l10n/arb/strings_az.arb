@@ -1,4 +1,13 @@
 {
+  "allCleanedUp": "Hər yer təmizləndi!",
+  "bringMemoriesTogether": "Xatirənizi bir araya gətirin",
+  "@bringMemoriesTogether": {
+    "description": "Title on the Local Gallery photo permission screen"
+  },
+  "createMyAccount": "Hesab yarat",
+  "@createMyAccount": {
+    "description": "Create account button on the Photos onboarding screen"
+  },
   "about": "Haqqında",
   "acceptTrustInvite": "Dəvəti qəbul et",
   "account": "Hesab",

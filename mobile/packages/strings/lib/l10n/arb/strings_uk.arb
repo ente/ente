@@ -1,8 +1,4 @@
 {
-  "bringMemoriesTogether": "Зберіть свої спогади разом",
-  "createMyAccount": "Створити мій акаунт",
-  "localGalleryPermissionDesc": "Надайте дозвіл на доступ до фотографій і їх упорядкування за допомогою розпізнавання облич. Уся обробка виконується на вашому пристрої.",
-  "onboardingOrganizeDesc": "Упорядкуйте свої фото й відео. Усі спогади в одному місці.",
   "wallpaper": "Шпалери",
   "setWallpaper": "Установити шпалери",
   "wallpaperHome": "Робочий стіл",
@@ -1673,7 +1669,6 @@
   },
   "nightLights": "Неонові ночі",
   "no": "Ні",
-  "noAlbumsOnThisDevice": "Немає альбомів на цьому пристрої",
   "noChangesWereMade": "Змін не внесено",
   "noCollections": "Немає колекцій",
   "noDefaultBackupFolder": "Не вдалося створити типову теку резервних копій.",
