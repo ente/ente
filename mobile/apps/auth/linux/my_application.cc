@@ -133,10 +133,10 @@ static void on_color_scheme_init_read_finished(GObject *source,
 
 static void on_new_proxy_created(GObject *source, GAsyncResult *res, gpointer user_data)
 {
-  GDBusProxy *proxy = G_DBUS_PROXY(source);
   GError *error = NULL;
+  GDBusProxy *proxy = g_dbus_proxy_new_for_bus_finish(res, &error);
 
-  if (!g_dbus_proxy_new_for_bus_finish(res, &error))
+  if (!proxy)
   {
     g_printerr("Could not create portal proxy: %s\n", error->message);
     g_error_free(error);
