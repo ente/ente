@@ -51,6 +51,7 @@ class _BackupFolderSelectionPageState extends State<BackupFolderSelectionPage>
   Map<String, int>? _pathIDToItemCount;
   late final bool _treatAsOnboarding;
   bool _hasLimitedPermissions = false;
+  bool _hasExplicitlyUnselectedAll = false;
   StreamSubscription<BackupFoldersUpdatedEvent>?
       _backupFoldersUpdatedSubscription;
 
@@ -122,6 +123,7 @@ class _BackupFolderSelectionPageState extends State<BackupFolderSelectionPage>
       final shouldRestoreSavedSelections =
           isInitialLoad || (!hadFolders && hasFoldersNow);
       if (shouldRestoreSavedSelections) {
+        _hasExplicitlyUnselectedAll = false;
         _selectedDevicePathIDs.clear();
         for (final file in _deviceCollections!) {
           if (file.shouldBackup) {
@@ -132,16 +134,15 @@ class _BackupFolderSelectionPageState extends State<BackupFolderSelectionPage>
           _selectedDevicePathIDs.addAll(_allDevicePathIDs);
         }
       } else {
-        final hasExplicitlyUnselectedAll =
-            previouslyKnownPathIDs.isNotEmpty && _selectedDevicePathIDs.isEmpty;
         final hasSelectedAll = previouslyKnownPathIDs.isNotEmpty &&
             _selectedDevicePathIDs.length == previouslyKnownPathIDs.length;
-        if (!hasExplicitlyUnselectedAll) {
-          for (final file in _deviceCollections!) {
-            if (!previouslyKnownPathIDs.contains(file.id)) {
-              if (file.shouldBackup || (_treatAsOnboarding && hasSelectedAll)) {
-                _selectedDevicePathIDs.add(file.id);
-              }
+        for (final file in _deviceCollections!) {
+          if (!previouslyKnownPathIDs.contains(file.id)) {
+            if (_hasExplicitlyUnselectedAll) {
+              continue;
+            }
+            if (file.shouldBackup || (_treatAsOnboarding && hasSelectedAll)) {
+              _selectedDevicePathIDs.add(file.id);
             }
           }
         }
@@ -544,8 +545,10 @@ class _BackupFolderSelectionPageState extends State<BackupFolderSelectionPage>
       final hasSelectedAll =
           _selectedDevicePathIDs.length == _allDevicePathIDs.length;
       if (hasSelectedAll) {
+        _hasExplicitlyUnselectedAll = true;
         _selectedDevicePathIDs.clear();
       } else {
+        _hasExplicitlyUnselectedAll = false;
         _selectedDevicePathIDs.addAll(_allDevicePathIDs);
       }
     });
@@ -556,6 +559,7 @@ class _BackupFolderSelectionPageState extends State<BackupFolderSelectionPage>
       if (_selectedDevicePathIDs.contains(folderId)) {
         _selectedDevicePathIDs.remove(folderId);
       } else {
+        _hasExplicitlyUnselectedAll = false;
         _selectedDevicePathIDs.add(folderId);
       }
     });
