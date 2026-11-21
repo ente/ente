@@ -114,6 +114,7 @@ class _BackupFolderSelectionPageState extends State<BackupFolderSelectionPage>
       _deviceCollections!.sort((first, second) {
         return compareNames(first.name, second.name);
       });
+      final previouslyKnownPathIDs = Set<String>.of(_allDevicePathIDs);
       _allDevicePathIDs.clear();
       for (final file in _deviceCollections!) {
         _allDevicePathIDs.add(file.id);
@@ -129,6 +130,14 @@ class _BackupFolderSelectionPageState extends State<BackupFolderSelectionPage>
         }
         if (_treatAsOnboarding) {
           _selectedDevicePathIDs.addAll(_allDevicePathIDs);
+        }
+      } else {
+        for (final file in _deviceCollections!) {
+          if (!previouslyKnownPathIDs.contains(file.id)) {
+            if (file.shouldBackup || _treatAsOnboarding) {
+              _selectedDevicePathIDs.add(file.id);
+            }
+          }
         }
       }
       _selectedDevicePathIDs.removeWhere(
