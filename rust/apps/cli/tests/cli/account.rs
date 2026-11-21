@@ -951,3 +951,22 @@ fn sessions_fail_when_the_server_returns_raw_tokens() {
     sessions.assert();
     revoke.assert();
 }
+
+#[test]
+fn session_revoke_never_echoes_an_id_that_is_not_a_session_id() {
+    let home = TestHome::new();
+    home.seed("http://127.0.0.1:9");
+    let output = home.run(&[
+        "account",
+        "session",
+        "revoke",
+        "raw-bearer-token",
+        "--yes",
+        "--no-input",
+    ]);
+    let error = failure(&output);
+    assert!(error.contains("session IDs start with th:"), "{error}");
+    for stream in [&output.stdout, &output.stderr] {
+        assert!(!String::from_utf8_lossy(stream).contains("raw-"), "{error}");
+    }
+}

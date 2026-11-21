@@ -367,9 +367,13 @@ pub async fn session(
         !options.offline,
         "sessions are not stored locally; this command requires network access"
     );
-    if let SessionCommand::Revoke { yes, .. } = command {
+    if let SessionCommand::Revoke { id, yes } = &command {
         ensure!(
-            yes || options.can_prompt(),
+            id.starts_with("th:"),
+            "session IDs start with th:; see account session list"
+        );
+        ensure!(
+            *yes || options.can_prompt(),
             "revoking a session requires confirmation; supply --yes when running without interactive prompts"
         );
     }
