@@ -323,6 +323,8 @@ Common causes:
 - **Encrypted export without its password.** If the export is password-protected, enter the same password you set when you created it.
 - **Edited or corrupted file.** Do not edit the export before importing.
 - **Screenshot used in the file importer.** A screenshot is not an export file. For a QR code screenshot, use **+** then **Import from gallery** (or scan the QR code). Do not use the file importer meant for export files.
+- **An HTML file.** Ente Auth can't import HTML files, including its own **Plain HTML** export, which is only for scanning codes into Google Authenticator. If the error mentions `<!DOCTYPE html>`, the file is a web page, often saved from a browser or cloud drive preview instead of the original export. To restore codes into Ente Auth, use an encrypted or plain text Ente Auth export. If you only have the Plain HTML file, open it and scan each QR code with Ente Auth.
+- **An empty file, a PDF or an image.** Errors such as "Unexpected end of input" or a decoding error usually mean the file is empty or isn't an export at all. Export again and save the original file directly to your device before importing.
 
 What to do:
 

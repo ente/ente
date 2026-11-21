@@ -19,6 +19,10 @@ This means that the same file appears to take up less "storage" on Ente compared
 
 Storage usage in the mobile app is rounded for display, so a small upload may not visibly change the total. To check pending uploads, see [Backup status](/photos/faq/backup-and-sync#check-backup-status).
 
+### Why does Ente show more storage used than my original files? {#storage-includes-thumbnails}
+
+Along with each original, Ente stores a small encrypted thumbnail so your library loads quickly. Each photo thumbnail is typically about 100 KB. A detailed photo or a video thumbnail can be a little larger, and thumbnails count toward your storage. With thousands of photos, this can add a few hundred MB to your usage. Your originals are stored as they are, without compression.
+
 ### How does Ente deduplicate photos? {#deduplication}
 
 Ente automatically detects and handles duplicate files during backup to save storage space:
