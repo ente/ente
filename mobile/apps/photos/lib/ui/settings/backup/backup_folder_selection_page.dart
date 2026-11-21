@@ -9,6 +9,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:logging/logging.dart';
+import 'package:photo_manager/photo_manager.dart';
 import 'package:photos/db/device_files_db.dart';
 import 'package:photos/db/files_db.dart';
 import 'package:photos/models/device_collection.dart';
@@ -16,6 +17,7 @@ import 'package:photos/service_locator.dart';
 import 'package:photos/services/sync/remote_sync_service.dart';
 import 'package:photos/ui/components/collection_share_badge.dart';
 import 'package:photos/ui/settings/backup/backup_settings_screen.dart';
+import 'package:photos/ui/tabs/albums/empty_states/empty_state_layout.dart';
 import 'package:photos/ui/viewer/file/thumbnail_widget.dart';
 import 'package:photos/utils/dialog_util.dart';
 
@@ -37,13 +39,15 @@ class BackupFolderSelectionPage extends StatefulWidget {
       _BackupFolderSelectionPageState();
 }
 
-class _BackupFolderSelectionPageState extends State<BackupFolderSelectionPage> {
+class _BackupFolderSelectionPageState extends State<BackupFolderSelectionPage>
+    with WidgetsBindingObserver {
   final Logger _logger = Logger((_BackupFolderSelectionPageState).toString());
   final Set<String> _allDevicePathIDs = <String>{};
   final Set<String> _selectedDevicePathIDs = <String>{};
   List<DeviceCollection>? _deviceCollections;
   Map<String, int>? _pathIDToItemCount;
   late final bool _treatAsOnboarding;
+  bool _hasLimitedPermissions = false;
 
   static const _maxThumbnailWidth = 224.0;
   static const _gridHorizontalPadding = 16.0;
@@ -56,37 +60,61 @@ class _BackupFolderSelectionPageState extends State<BackupFolderSelectionPage> {
 
   @override
   void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _treatAsOnboarding =
         widget.isOnboarding ||
         backupPreferenceService.hasSkippedOnboardingPermission;
-    FilesDB.instance.getDeviceCollections(includeCoverThumbnail: true).then((
-      files,
-    ) async {
-      _pathIDToItemCount = await FilesDB.instance
-          .getDevicePathIDToImportedFileCount();
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _deviceCollections = files;
-        _deviceCollections!.sort((first, second) {
-          return compareNames(first.name, second.name);
-        });
-        for (final file in _deviceCollections!) {
-          _allDevicePathIDs.add(file.id);
-          if (file.shouldBackup) {
-            _selectedDevicePathIDs.add(file.id);
-          }
-        }
-        if (_treatAsOnboarding) {
-          _selectedDevicePathIDs.addAll(_allDevicePathIDs);
-        }
-        _selectedDevicePathIDs.removeWhere(
-          (folder) => !_allDevicePathIDs.contains(folder),
-        );
+    _loadDeviceCollections();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadDeviceCollections();
+    }
+  }
+
+  Future<void> _loadDeviceCollections() async {
+    final permissionState = await permissionService.getPermissionState();
+    await permissionService.onUpdatePermission(permissionState);
+    final files = await FilesDB.instance.getDeviceCollections(
+      includeCoverThumbnail: true,
+    );
+    final pathIDToItemCount = await FilesDB.instance
+        .getDevicePathIDToImportedFileCount();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _hasLimitedPermissions =
+          permissionService.hasGrantedLimitedPermissions();
+      _pathIDToItemCount = pathIDToItemCount;
+      _deviceCollections = files;
+      _deviceCollections!.sort((first, second) {
+        return compareNames(first.name, second.name);
       });
+      _allDevicePathIDs.clear();
+      _selectedDevicePathIDs.clear();
+      for (final file in _deviceCollections!) {
+        _allDevicePathIDs.add(file.id);
+        if (file.shouldBackup) {
+          _selectedDevicePathIDs.add(file.id);
+        }
+      }
+      if (_treatAsOnboarding) {
+        _selectedDevicePathIDs.addAll(_allDevicePathIDs);
+      }
+      _selectedDevicePathIDs.removeWhere(
+        (folder) => !_allDevicePathIDs.contains(folder),
+      );
     });
-    super.initState();
   }
 
   @override
@@ -197,7 +225,10 @@ class _BackupFolderSelectionPageState extends State<BackupFolderSelectionPage> {
   Widget _buildBottomNavigationBar() {
     final l10n = context.strings;
     final colors = context.componentColors;
-    final canSubmit = !(_treatAsOnboarding && _selectedDevicePathIDs.isEmpty);
+    final hasFolders =
+        _deviceCollections != null && _deviceCollections!.isNotEmpty;
+    final canSubmit =
+        hasFolders && !(_treatAsOnboarding && _selectedDevicePathIDs.isEmpty);
 
     return Container(
       color: colors.backgroundBase,
@@ -238,13 +269,15 @@ class _BackupFolderSelectionPageState extends State<BackupFolderSelectionPage> {
   Widget _buildScrollableBody() {
     final l10n = context.strings;
     final colors = context.componentColors;
+    final hasFolders =
+        _deviceCollections != null && _deviceCollections!.isNotEmpty;
 
     return AppBarComponent(
       title: l10n.backupToEnte,
       subtitle: l10n.selectAlbumsToBackUpToEnte,
       showExpandedBackButton: !_treatAsOnboarding,
       slivers: [
-        if (_deviceCollections != null)
+        if (hasFolders)
           SliverToBoxAdapter(
             child: GestureDetector(
               behavior: HitTestBehavior.translucent,
@@ -282,6 +315,25 @@ class _BackupFolderSelectionPageState extends State<BackupFolderSelectionPage> {
       );
     }
 
+    if (_deviceCollections!.isEmpty) {
+      if (_hasLimitedPermissions) {
+        return SliverFillRemaining(
+          hasScrollBody: false,
+          child: _buildLimitedAccessEmptyState(),
+        );
+      }
+      return SliverFillRemaining(
+        hasScrollBody: false,
+        child: EmptyStateLayout(
+          assetPath: "assets/on_device_empty.png",
+          assetHeight: 142.3,
+          title: context.strings.noAlbumsOnThisDevice,
+          description: context.strings.startSnappingYourPhotosWillShowUpHere,
+          reservesBottomNavigationSpace: false,
+        ),
+      );
+    }
+
     final screenWidth = MediaQuery.sizeOf(context).width;
     final crossAxisCount = max(screenWidth ~/ _maxThumbnailWidth, 3);
     final totalCrossAxisSpacing = (crossAxisCount - 1) * _gridCrossSpacing;
@@ -305,6 +357,39 @@ class _BackupFolderSelectionPageState extends State<BackupFolderSelectionPage> {
           childAspectRatio:
               sideOfThumbnail / (sideOfThumbnail + gridItemTextHeight),
         ),
+      ),
+    );
+  }
+
+  Widget _buildLimitedAccessEmptyState() {
+    final l10n = context.strings;
+    return EmptyStateLayout(
+      assetPath: "assets/on_device.png",
+      assetHeight: 130.3,
+      title: l10n.limitedPhotoAccess,
+      description: l10n.limitedPhotoAccessBackupDescription,
+      reservesBottomNavigationSpace: false,
+      action: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ButtonComponent(
+            label: l10n.openSettings,
+            shouldSurfaceExecutionStates: false,
+            onTap: () async {
+              await PhotoManager.openSetting();
+            },
+          ),
+          const SizedBox(height: 12),
+          ButtonComponent(
+            label: l10n.selectMorePhotos,
+            variant: ButtonComponentVariant.neutral,
+            shouldSurfaceExecutionStates: false,
+            onTap: () async {
+              await PhotoManager.presentLimited();
+              await _loadDeviceCollections();
+            },
+          ),
+        ],
       ),
     );
   }

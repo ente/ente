@@ -2481,6 +2481,14 @@
   "librarySharingTitle": "Library sharing",
   "librarySharingUpdateRoles": "Update roles",
   "limit": "Limit",
+  "limitedPhotoAccess": "Limited photo access",
+  "@limitedPhotoAccess": {
+    "description": "Title shown when photo access is limited"
+  },
+  "limitedPhotoAccessBackupDescription": "Ente only has access to selected photos. To back up folders and albums, grant full access in settings or select more photos.",
+  "@limitedPhotoAccessBackupDescription": {
+    "description": "Description explaining why backup folders are not available under limited photo access"
+  },
   "linkCopiedToClipboard": "Link copied to clipboard",
   "linkDeletedSuccessfully": "Link deleted successfully",
   "linkDeviceLimit": "Device limit",
