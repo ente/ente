@@ -6,6 +6,7 @@ use dialoguer::console::{Alignment, measure_text_width, pad_str};
 use ente_accounts::{
     admin::{Subscription, User, UserDetails},
     details::AccountDetails,
+    sessions::ActiveSession,
 };
 use ente_location::{CityMatch, CountryGroup};
 use ente_photos::{
@@ -233,6 +234,41 @@ impl SubscriptionView {
     }
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionView {
+    id: String,
+    current: bool,
+    device: String,
+    user_agent: String,
+    ip: String,
+    created_at: String,
+    last_used_at: String,
+}
+
+impl SessionView {
+    pub fn new(session: &ActiveSession) -> Result<Self> {
+        Ok(Self {
+            id: session.id.clone(),
+            current: session.is_current,
+            device: session.pretty_user_agent.clone(),
+            user_agent: session.user_agent.clone(),
+            ip: session.ip.clone(),
+            created_at: timestamp(session.created_at)?,
+            last_used_at: timestamp(session.last_used_at)?,
+        })
+    }
+
+    pub fn description(&self) -> String {
+        format!(
+            "{} ({}), last used {}",
+            escape_controls(&self.device),
+            escape_controls(&self.ip),
+            self.last_used_at
+        )
+    }
+}
+
 pub fn json(value: &impl Serialize) -> Result<()> {
     let mut stdout = std::io::stdout().lock();
     serde_json::to_writer(&mut stdout, value)?;
@@ -269,6 +305,35 @@ pub fn accounts(accounts: &[AccountView<'_>]) -> Result<()> {
     write_table(
         &mut stdout,
         ["SELECTED", "NAME", "EMAIL", "HOST", "LOGGED IN", "ID"],
+        &rows,
+    )?;
+    Ok(())
+}
+
+pub fn sessions(sessions: &[ActiveSession], as_json: bool) -> Result<()> {
+    let views = sessions
+        .iter()
+        .map(SessionView::new)
+        .collect::<Result<Vec<_>>>()?;
+    if as_json {
+        return json(&views);
+    }
+    let rows = views
+        .into_iter()
+        .map(|session| {
+            [
+                if session.current { "*" } else { "" }.to_owned(),
+                escape_controls(&session.device),
+                escape_controls(&session.ip),
+                session.last_used_at,
+                session.created_at,
+                escape_controls(&session.id),
+            ]
+        })
+        .collect::<Vec<_>>();
+    write_table(
+        &mut std::io::stdout().lock(),
+        ["CURRENT", "DEVICE", "IP", "LAST USED", "CREATED", "ID"],
         &rows,
     )?;
     Ok(())

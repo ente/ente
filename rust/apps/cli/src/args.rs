@@ -1008,6 +1008,23 @@ Without --app, logs out of all this account's saved app logins on this device.
         local: bool,
     },
     #[command(
+        about = "List and revoke active logins",
+        after_long_help = "Sessions are the logins the server accepts for one app; --app selects the app and its saved login."
+    )]
+    Session {
+        #[command(flatten)]
+        selector: AccountSelector,
+        #[arg(
+            long,
+            global = true,
+            value_enum,
+            help = "Saved app login; defaults to the only app, otherwise Photos"
+        )]
+        app: Option<App>,
+        #[command(subcommand)]
+        command: SessionCommand,
+    },
+    #[command(
         about = "Set up authenticator protection for your Ente account",
         after_long_help = "Protects account login, separate from codes stored in Ente Auth."
     )]
@@ -1036,6 +1053,31 @@ With --json, returns {\"recoveryKey\":\"...\"}."
             help = "Account name; defaults to the selected or only saved account"
         )]
         name: Option<String>,
+    },
+}
+
+const SESSION_HELP: &str = "Sessions are the logins the server accepts for one app; --app selects the app and its saved login.
+Requires network access. The session of this CLI's saved login is marked current.
+Device, user agent and IP come from a recent request made with that session.
+List JSON returns an array: id, device, userAgent, ip (strings); current (boolean); createdAt, lastUsedAt (RFC3339).
+Revoke logs that session out on the server and asks for confirmation; --yes approves it and --no-input only disables prompts.
+The current session cannot be revoked; use account logout instead.
+Revoke JSON returns app and session, with the revoked session's list fields.
+
+Examples:
+  ente account session list --app photos
+  ente account session revoke th:UNhY4JhezH9gQYqvDMWrWH9CwlcKiECVqejMrND2VFw --yes --no-input --json";
+
+#[derive(Subcommand)]
+pub enum SessionCommand {
+    #[command(about = "List active sessions, most recently used first", after_long_help = SESSION_HELP)]
+    List,
+    #[command(about = "Log a session out on the server", after_long_help = SESSION_HELP)]
+    Revoke {
+        #[arg(value_name = "ID", help = "Session ID from account session list")]
+        id: String,
+        #[arg(long, help = "Approve revocation without a confirmation prompt")]
+        yes: bool,
     },
 }
 
@@ -1279,6 +1321,7 @@ mod tests {
                 "ente auth ",
                 "ente admin ",
                 "ente account totp ",
+                "ente account session ",
             ]
             .iter()
             .any(|group| path.starts_with(group));
