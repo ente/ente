@@ -11,7 +11,6 @@ pub struct Family {
     pub members: Vec<Member>,
     // The admin's plan, excluding bonuses; account details zero it once the plan expires.
     pub storage: i64,
-    #[serde(default)]
     pub expiry_time: i64,
     pub admin_bonus: i64,
 }
@@ -22,9 +21,7 @@ pub struct Member {
     pub id: Uuid,
     pub email: String,
     pub status: MemberStatus,
-    #[serde(default)]
     pub usage: i64,
-    #[serde(default)]
     pub is_admin: bool,
     pub storage_limit: Option<i64>,
 }

@@ -735,8 +735,8 @@ fn family_usage_reports_the_admin_plan_and_the_member_limit() {
     home.seed(&server.url());
     let family = json!({"storage": 200 * GB, "expiryTime": 4942020944746699i64, "adminBonus": 0, "members": [
         {"id": "00000000-0000-4000-8000-00000000000a", "email": "admin@example.org", "status": "SELF", "usage": 50 * GB, "isAdmin": true},
-        {"id": "00000000-0000-4000-8000-00000000000b", "email": "fixture@example.org", "status": "ACCEPTED", "usage": 3 * GB, "storageLimit": 5 * GB},
-        {"id": "00000000-0000-4000-8000-00000000000c", "email": "new@example.org", "status": "INVITED"}
+        {"id": "00000000-0000-4000-8000-00000000000b", "email": "fixture@example.org", "status": "ACCEPTED", "usage": 3 * GB, "isAdmin": false, "storageLimit": 5 * GB},
+        {"id": "00000000-0000-4000-8000-00000000000c", "email": "new@example.org", "status": "INVITED", "usage": 0, "isAdmin": false}
     ]});
     // A member's own subscription is a lapsed plan; the family plan is what counts.
     let mut body: Value = serde_json::from_str(&details_body(family)).unwrap();
@@ -788,7 +788,7 @@ fn family_usage_free_space_respects_both_quotas() {
         home.seed(&server.url());
         let family = json!({"storage": 200 * GB, "expiryTime": 4942020944746699i64, "adminBonus": 0, "members": [
             {"id": "00000000-0000-4000-8000-00000000000a", "email": "admin@example.org", "status": "SELF", "usage": (family_used - 3) * GB, "isAdmin": true},
-            {"id": "00000000-0000-4000-8000-00000000000b", "email": "fixture@example.org", "status": "ACCEPTED", "usage": 3 * GB,
+            {"id": "00000000-0000-4000-8000-00000000000b", "email": "fixture@example.org", "status": "ACCEPTED", "usage": 3 * GB, "isAdmin": false,
                 "storageLimit": member_limit.map(|limit| limit * GB)}
         ]});
         let details = server

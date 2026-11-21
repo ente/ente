@@ -14,7 +14,6 @@ pub struct AccountDetails {
     pub email: String,
     pub usage: i64,
     pub file_count: Option<i64>,
-    #[serde(default)]
     pub storage_bonus: i64,
     pub subscription: Subscription,
     pub family_data: Option<Family>,
@@ -124,8 +123,8 @@ mod tests {
         let family = json!({"familyData": {"storage": 200 * GB, "expiryTime": 4942020944746699i64, "adminBonus": 0,
         "members": [
             {"id": "00000000-0000-4000-8000-00000000000a", "email": "admin@example.org", "status": "SELF", "usage": 50 * GB, "isAdmin": true},
-            {"id": "00000000-0000-4000-8000-00000000000b", "email": " alice@example.org ", "status": "ACCEPTED", "usage": 3 * GB, "storageLimit": 5 * GB},
-            {"id": "00000000-0000-4000-8000-00000000000c", "email": "new@example.org", "status": "INVITED"}
+            {"id": "00000000-0000-4000-8000-00000000000b", "email": " alice@example.org ", "status": "ACCEPTED", "usage": 3 * GB, "isAdmin": false, "storageLimit": 5 * GB},
+            {"id": "00000000-0000-4000-8000-00000000000c", "email": "new@example.org", "status": "INVITED", "usage": 0, "isAdmin": false}
         ]}});
         let mut details = details(family);
         details.subscription.expiry_time = 1;
@@ -143,7 +142,7 @@ mod tests {
     #[test]
     fn an_empty_family_and_a_missing_file_count_are_not_errors() {
         let details = details(
-            json!({"familyData": {"storage": 0, "adminBonus": 0, "members": []}, "fileCount": null,
+            json!({"familyData": {"storage": 0, "expiryTime": 0, "adminBonus": 0, "members": []}, "fileCount": null,
             "subscription": {"productID": "50gb_monthly_v4", "storage": 50 * GB, "expiryTime": 1,
                 "originalTransactionID": "t", "paymentProvider": "stripe",
                 "attributes": {"isCancelled": true}}}),
@@ -157,9 +156,9 @@ mod tests {
     fn free_storage_never_goes_negative() {
         let mut value = json!({"usage": 25 * GB});
         assert_eq!(details(value.clone()).free_storage(), 0);
-        value["familyData"] = json!({"storage": 200 * GB, "adminBonus": 0, "members": [
+        value["familyData"] = json!({"storage": 200 * GB, "expiryTime": 1, "adminBonus": 0, "members": [
             {"id": "00000000-0000-4000-8000-00000000000a", "email": "admin@example.org", "status": "SELF", "usage": 50 * GB, "isAdmin": true},
-            {"id": "00000000-0000-4000-8000-00000000000b", "email": "other@example.org", "status": "ACCEPTED", "usage": 3 * GB, "storageLimit": GB}
+            {"id": "00000000-0000-4000-8000-00000000000b", "email": "other@example.org", "status": "ACCEPTED", "usage": 3 * GB, "isAdmin": false, "storageLimit": GB}
         ]});
         let family = details(value);
         // Not listed among the members: no member cap applies.
@@ -178,9 +177,11 @@ mod tests {
             ))
             .match_header("x-auth-token", "token")
             .with_body(
-                serde_json::to_string(&json!({"email": "alice@example.org", "usage": 1,
+                serde_json::to_string(
+                    &json!({"email": "alice@example.org", "usage": 1, "storageBonus": 0,
                 "subscription": {"productID": "free", "storage": GB, "expiryTime": 1,
-                    "originalTransactionID": "none", "paymentProvider": "", "attributes": {}}}))
+                    "originalTransactionID": "none", "paymentProvider": "", "attributes": {}}}),
+                )
                 .unwrap(),
             )
             .expect(1)
