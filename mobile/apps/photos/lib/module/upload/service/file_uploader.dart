@@ -358,10 +358,10 @@ class FileUploader {
           ]);
           return fileInCollection;
         } catch (error) {
-          if (backupOwner != null) {
-            _queue.markBackupForRetry(backupOwner, localID, error);
-          }
-          rethrow;
+          _logger.warning(
+            "forceUpload: queued upload for $localID failed ($error); retrying as direct forced upload",
+          );
+          // Fall through to retry as direct forced upload, which bypasses network restrictions
         }
       }
 
