@@ -151,7 +151,7 @@ export const AlbumContentHeader: React.FC<AlbumContentHeaderProps> = ({
                 <></>
             ),
             height:
-                72 +
+                (collectionSummary?.type == "archiveItems" ? 34 : 72) +
                 (showAlbums ? albumsSectionHeight : 0) +
                 (albumDescription ? descriptionHeight : 0),
         });
