@@ -12,6 +12,7 @@ import { t } from "i18next";
 import React, { useCallback, useId } from "react";
 import {
     v2CloseButtonSx,
+    v2CompactTitleSx,
     v2HeaderRowSx,
     v2PaperSx,
     v2TitleSx,
@@ -21,6 +22,7 @@ import { SingleInputForm, type SingleInputFormProps } from "./SingleInputForm";
 type SingleInputDialogProps = ModalVisibilityProps &
     Omit<SingleInputFormProps, "onCancel" | "onSubmit"> & {
         title: string;
+        titleSize?: "standard";
         onSubmit: (
             value: string,
             setFieldError: (message: string) => void,
@@ -34,6 +36,7 @@ export const SingleInputDialog: React.FC<SingleInputDialogProps> = ({
     onClose,
     onSubmit,
     title,
+    titleSize,
     description,
     inputProps,
     sx,
@@ -65,7 +68,14 @@ export const SingleInputDialog: React.FC<SingleInputDialogProps> = ({
         >
             <Stack sx={{ p: "20px", gap: "20px" }}>
                 <Stack direction="row" sx={v2HeaderRowSx}>
-                    <Typography id={titleID} sx={v2TitleSx}>
+                    <Typography
+                        id={titleID}
+                        sx={
+                            titleSize === "standard"
+                                ? v2TitleSx
+                                : v2CompactTitleSx
+                        }
+                    >
                         {title}
                     </Typography>
                     <IconButton
