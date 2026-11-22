@@ -219,6 +219,18 @@ class UploadLocksDB with SqlDbBase {
     return rows.length == 1;
   }
 
+  Future<bool> isKeyLocked(String id) async {
+    final db = await database;
+    final rows = await db.getAll(
+      '''
+      SELECT 1 FROM ${_uploadLocksTable.table}
+      WHERE ${_uploadLocksTable.columnID} = ?
+      ''',
+      [id],
+    );
+    return rows.isNotEmpty;
+  }
+
   Future<int> releaseLock(String id, String owner) async {
     final db = await database;
     final rows = await db.execute(

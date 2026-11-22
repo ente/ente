@@ -336,6 +336,35 @@ class FileUploader {
       if (backupOwner != null) {
         _queue.markBackupUploading(backupOwner, localID);
       }
+
+      // If this file is already in-flight in the upload queue, reuse the existing
+      // upload future instead of acquiring a duplicate lock and failing with LockAlreadyAcquiredError.
+      final existingItem = _queue.getItem(localID);
+      if (existingItem != null && existingItem.isStarted) {
+        _logger.info(
+          "forceUpload: file $localID is already in-flight in queue, awaiting completion",
+        );
+        try {
+          final uploadedFile = await existingItem.completer.future;
+          if (backupOwner != null) {
+            _queue.markBackupUploaded(backupOwner, localID);
+          }
+          if (existingItem.collectionID == collectionID) {
+            return uploadedFile;
+          }
+          final fileInCollection = uploadedFile.copyWith();
+          await CollectionsService.instance.addOrCopyToCollection(collectionID, [
+            fileInCollection,
+          ]);
+          return fileInCollection;
+        } catch (error) {
+          if (backupOwner != null) {
+            _queue.markBackupForRetry(backupOwner, localID, error);
+          }
+          rethrow;
+        }
+      }
+
       try {
         final result = await _tryToUpload(
           file,
@@ -354,6 +383,107 @@ class FileUploader {
           _queue.markBackupUploaded(backupOwner, localID);
         }
         return result;
+      } on LockAlreadyAcquiredError {
+        // Handle race where lock was acquired right after our check or by another process/isolate
+        final activeItem = _queue.getItem(localID);
+        if (activeItem != null) {
+          _logger.info(
+            "forceUpload: lock acquired for $localID; awaiting active queue upload",
+          );
+          try {
+            final uploadedFile = await activeItem.completer.future;
+            if (backupOwner != null) {
+              _queue.markBackupUploaded(backupOwner, localID);
+            }
+            if (activeItem.collectionID == collectionID) {
+              return uploadedFile;
+            }
+            final fileInCollection = uploadedFile.copyWith();
+            await CollectionsService.instance.addOrCopyToCollection(collectionID, [
+              fileInCollection,
+            ]);
+            return fileInCollection;
+          } catch (error) {
+            if (backupOwner != null) {
+              _queue.markBackupForRetry(backupOwner, localID, error);
+            }
+            rethrow;
+          }
+        }
+
+        // Lock is held outside foreground queue (e.g., background isolate)
+        _logger.info(
+          "forceUpload: lock acquired by another process for $localID; awaiting release",
+        );
+        const maxWait = Duration(minutes: 2);
+        const pollInterval = Duration(milliseconds: 500);
+        final stopwatch = Stopwatch()..start();
+        while (stopwatch.elapsed < maxWait) {
+          await Future.delayed(pollInterval);
+          final isLocked = await _uploadLocks.isKeyLocked(localID);
+          if (!isLocked) {
+            break;
+          }
+        }
+
+        if (file.generatedID != null) {
+          final fileOnDisk = await FilesDB.instance.getFile(file.generatedID!);
+          if (fileOnDisk != null && fileOnDisk.uploadedFileID != null) {
+            _logger.info(
+              "forceUpload: file $localID was uploaded while waiting for lock",
+            );
+            if (backupOwner != null) {
+              _queue.markBackupUploaded(backupOwner, localID);
+            }
+            if (fileOnDisk.collectionID == collectionID) {
+              return fileOnDisk;
+            }
+            final fileInCollection = fileOnDisk.copyWith();
+            await CollectionsService.instance.addOrCopyToCollection(collectionID, [
+              fileInCollection,
+            ]);
+            return fileInCollection;
+          }
+        }
+
+        // Lock was released and file not yet uploaded: retry once
+        final isStillLocked = await _uploadLocks.isKeyLocked(localID);
+        if (!isStillLocked) {
+          _logger.info("forceUpload: retrying upload after lock release for $localID");
+          try {
+            final result = await _tryToUpload(
+              file,
+              collectionID,
+              true,
+              onSendProgress: backupOwner == null
+                  ? null
+                  : (sent, total) => _queue.updateBackupProgress(
+                      backupOwner,
+                      localID,
+                      sent,
+                      total,
+                    ),
+            );
+            if (backupOwner != null) {
+              _queue.markBackupUploaded(backupOwner, localID);
+            }
+            return result;
+          } catch (error) {
+            if (backupOwner != null) {
+              _queue.markBackupForRetry(backupOwner, localID, error);
+            }
+            rethrow;
+          }
+        }
+
+        if (backupOwner != null) {
+          _queue.markBackupForRetry(
+            backupOwner,
+            localID,
+            LockAlreadyAcquiredError(),
+          );
+        }
+        rethrow;
       } catch (error) {
         if (backupOwner != null) {
           _queue.markBackupForRetry(backupOwner, localID, error);

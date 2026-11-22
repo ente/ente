@@ -29,6 +29,8 @@ class UploadQueue {
   bool get isUploading => _activeUploads > 0;
   int get sessionUploadCount => _sessionUploadCount;
 
+  UploadQueueItem? getItem(String localID) => _items[localID];
+
   UploadQueueRequest add(EnteFile file, int collectionID) {
     final localID = file.localID!;
     _sessionUploadCount++;
@@ -318,6 +320,10 @@ class UploadQueueItem {
   final int collectionID;
   final Completer<EnteFile> completer;
   _UploadStatus _status = _UploadStatus.notStarted;
+
+  bool get isStarted => _status != _UploadStatus.notStarted;
+  bool get isInProgress => _status == _UploadStatus.inProgress;
+  bool get isInBackground => _status == _UploadStatus.inBackground;
 }
 
 enum _UploadStatus { notStarted, inProgress, inBackground }

@@ -342,6 +342,23 @@ void main() {
     expect(queue.backupItems['local-1']!.status, BackupItemStatus.uploading);
     expect(queue.backupItems['local-1']!.error, isNull);
   });
+
+  test('getItem returns queued item and exposes isStarted state correctly', () {
+    final queue = UploadQueue((_) {});
+    final file = _file('local-1');
+
+    expect(queue.getItem('local-1'), isNull);
+
+    final item = queue.add(file, 10).item;
+    expect(queue.getItem('local-1'), same(item));
+    expect(item.isStarted, isFalse);
+    expect(item.isInProgress, isFalse);
+
+    final started = _start(queue);
+    expect(started, same(item));
+    expect(item.isStarted, isTrue);
+    expect(item.isInProgress, isTrue);
+  });
 }
 
 UploadQueueItem? _start(UploadQueue queue) {
