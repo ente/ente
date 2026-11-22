@@ -1056,8 +1056,7 @@ With --json, returns {\"recoveryKey\":\"...\"}."
     },
 }
 
-const SESSION_HELP: &str = "Sessions are the logins the server accepts for one app; --app selects the app and its saved login.
-Requires network access. The session of this CLI's saved login is marked current.
+const SESSION_HELP: &str = "Requires network access. The session of this CLI's saved login is marked current.
 Device, user agent and IP come from a recent request made with that session.
 List JSON returns an array: id, device, userAgent, ip (strings); current (boolean); createdAt, lastUsedAt (RFC3339).
 Revoke logs that session out on the server and asks for confirmation; --yes approves it and --no-input only disables prompts.
