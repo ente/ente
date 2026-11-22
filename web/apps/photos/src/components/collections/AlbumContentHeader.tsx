@@ -102,6 +102,20 @@ export const AlbumContentHeader: React.FC<AlbumContentHeaderProps> = ({
             collectionSummary?.type == "hiddenItems" ||
             collectionSummary?.type == "archiveItems";
 
+        const isArchive = collectionSummary?.type == "archiveItems";
+        const hideArchiveCount = isArchive && collectionSummary.fileCount == 0;
+        const collectionHeaderHeight = hideArchiveCount
+            ? 0
+            : isArchive
+              ? 34
+              : 72;
+
+        const albumsSectionHeight = albums.length
+            ? albumsHeaderHeight
+            : isArchive
+              ? 54
+              : 78;
+
         setFileListHeader({
             component: shouldRenderCollectionHeader ? (
                 <Box sx={{ width: "100%" }}>
@@ -113,25 +127,28 @@ export const AlbumContentHeader: React.FC<AlbumContentHeaderProps> = ({
                                     : "section_archive",
                             )}
                             albums={albums}
+                            height={albumsSectionHeight}
                         />
                     )}
-                    <CollectionHeader
-                        {...{
-                            activeCollection,
-                            isActiveCollectionDownloadInProgress,
-                            onRemotePull,
-                            onAddSaveGroup,
-                            onCollectionSlideshow,
-                            showBackToAlbums,
-                        }}
-                        collectionSummary={collectionSummary}
-                        onCollectionShare={openCollectionShare}
-                        onCollectionManageLink={openCollectionManageLink}
-                        onCollectionCast={showCollectionCast}
-                        onEditAlbumDetails={onEditAlbumDetails}
-                        hasActiveFileSelection={hasActiveFileSelection}
-                        onDescriptionHeightChange={setDescriptionHeight}
-                    />
+                    {!hideArchiveCount && (
+                        <CollectionHeader
+                            {...{
+                                activeCollection,
+                                isActiveCollectionDownloadInProgress,
+                                onRemotePull,
+                                onAddSaveGroup,
+                                onCollectionSlideshow,
+                                showBackToAlbums,
+                            }}
+                            collectionSummary={collectionSummary}
+                            onCollectionShare={openCollectionShare}
+                            onCollectionManageLink={openCollectionManageLink}
+                            onCollectionCast={showCollectionCast}
+                            onEditAlbumDetails={onEditAlbumDetails}
+                            hasActiveFileSelection={hasActiveFileSelection}
+                            onDescriptionHeightChange={setDescriptionHeight}
+                        />
+                    )}
                 </Box>
             ) : collectionSummary ? (
                 <GalleryItemsHeaderAdapter>
@@ -144,8 +161,8 @@ export const AlbumContentHeader: React.FC<AlbumContentHeaderProps> = ({
                 <></>
             ),
             height:
-                72 +
-                (showAlbums ? (albums.length ? albumsHeaderHeight : 78) : 0) +
+                collectionHeaderHeight +
+                (showAlbums ? albumsSectionHeight : 0) +
                 (albumDescription ? descriptionHeight : 0),
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps

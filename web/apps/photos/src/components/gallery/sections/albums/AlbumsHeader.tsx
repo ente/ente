@@ -11,21 +11,17 @@ import { AlbumTile } from "./AlbumTile";
 interface AlbumsHeaderProps {
     title: string;
     albums: CollectionSummary[];
+    height: number;
 }
 
 export const albumsHeaderHeight = 311;
 
-export const AlbumsHeader = ({ title, albums }: AlbumsHeaderProps) => {
+export const AlbumsHeader = ({ title, albums, height }: AlbumsHeaderProps) => {
     const { backToAlbums } = usePhotosNavigation();
     const [scrollOffset, setScrollOffset] = useState(0);
 
     return (
-        <Stack
-            sx={{
-                height: albums.length ? albumsHeaderHeight : 78,
-                gap: "24px",
-            }}
-        >
+        <Stack sx={{ height, gap: "24px" }}>
             <Stack
                 direction="row"
                 sx={{ alignItems: "center", minHeight: 54, gap: 1 }}

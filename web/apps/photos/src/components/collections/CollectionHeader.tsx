@@ -192,9 +192,11 @@ export const CollectionHeader: React.FC<CollectionHeaderProps> = (props) => {
                     )}
                     <GalleryItemsSummary
                         nameProps={
-                            isAlbum
-                                ? { sx: { overflowWrap: "anywhere" } }
-                                : undefined
+                            type == "archiveItems"
+                                ? { hidden: true }
+                                : isAlbum
+                                  ? { sx: { overflowWrap: "anywhere" } }
+                                  : undefined
                         }
                         name={name}
                         description={isAlbum ? undefined : description}
