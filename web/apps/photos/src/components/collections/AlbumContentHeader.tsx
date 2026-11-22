@@ -102,19 +102,17 @@ export const AlbumContentHeader: React.FC<AlbumContentHeaderProps> = ({
             collectionSummary?.type == "hiddenItems" ||
             collectionSummary?.type == "archiveItems";
 
-        const isArchive = collectionSummary?.type == "archiveItems";
-        const hideArchiveCount = isArchive && collectionSummary.fileCount == 0;
-        const collectionHeaderHeight = hideArchiveCount
+        const hideItemCount = showAlbums && collectionSummary.fileCount == 0;
+        // Hidden items retain the download button alongside their count.
+        const collectionHeaderHeight = hideItemCount
             ? 0
-            : isArchive
+            : collectionSummary?.type == "archiveItems"
               ? 34
-              : 72;
+              : collectionSummary?.type == "hiddenItems"
+                ? 52
+                : 72;
 
-        const albumsSectionHeight = albums.length
-            ? albumsHeaderHeight
-            : isArchive
-              ? 54
-              : 78;
+        const albumsSectionHeight = albums.length ? albumsHeaderHeight : 54;
 
         setFileListHeader({
             component: shouldRenderCollectionHeader ? (
@@ -130,7 +128,7 @@ export const AlbumContentHeader: React.FC<AlbumContentHeaderProps> = ({
                             height={albumsSectionHeight}
                         />
                     )}
-                    {!hideArchiveCount && (
+                    {!hideItemCount && (
                         <CollectionHeader
                             {...{
                                 activeCollection,
