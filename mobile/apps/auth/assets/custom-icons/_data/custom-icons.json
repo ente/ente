@@ -1909,10 +1909,6 @@
       "title": "NVIDIA"
     },
     {
-      "title": "OCENSA",
-      "slug": "ocensa"
-    },
-    {
       "title": "NY.gov",
       "slug": "ny_gov",
       "altNames": [
@@ -1922,6 +1918,10 @@
         "my.ny.gov",
         "login.ny.gov"
       ]
+    },
+    {
+      "title": "OCENSA",
+      "slug": "ocensa"
     },
     {
       "title": "Odido"
