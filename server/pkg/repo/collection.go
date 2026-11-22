@@ -1139,6 +1139,24 @@ func (repo *CollectionRepository) GetFile(collectionID int64, fileID int64) ([]e
 	return files, nil
 }
 
+func (repo *CollectionRepository) GetPhotoActivityRecipients(ctx context.Context, collectionID, actorID int64) ([]int64, error) {
+	var recipients pq.Int64Array
+	err := repo.DB.QueryRowContext(ctx, `
+		SELECT ARRAY(
+			SELECT c.owner_id WHERE c.owner_id <> $2
+			UNION
+			SELECT to_user_id FROM collection_shares
+			WHERE collection_id = c.collection_id AND NOT is_deleted AND to_user_id <> $2
+		)
+		FROM collections c
+		WHERE c.collection_id = $1 AND NOT c.is_deleted AND c.app = 'photos'
+	`, collectionID, actorID).Scan(&recipients)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	return recipients, stacktrace.Propagate(err, "")
+}
+
 func (repo *CollectionRepository) GetSharees(cID int64) ([]ente.CollectionUser, error) {
 	rows, err := repo.DB.Query(`
 		SELECT users.user_id, users.encrypted_email, users.email_decryption_nonce, collection_shares.role_type

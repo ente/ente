@@ -10,18 +10,16 @@ import (
 	socialrepo "github.com/ente/museum/pkg/repo/social"
 	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
 )
 
 type FileLikePushSender interface {
-	NotifyFileLike(ctx context.Context, recipientID int64)
+	NotifyFileLike(ctx context.Context, recipients []int64)
 }
 
 type ReactionsController struct {
 	Repo           *socialrepo.ReactionsRepository
 	CommentsRepo   *socialrepo.CommentsRepository
 	CollectionRepo *repo.CollectionRepository
-	FileRepo       *repo.FileRepository
 	AccessCtrl     access.Controller
 	PushCtrl       FileLikePushSender
 }
@@ -128,27 +126,9 @@ func (c *ReactionsController) Upsert(ctx *gin.Context, req UpsertReactionRequest
 		return "", stacktrace.Propagate(err, "")
 	}
 	if inserted && reaction.FileID != nil && c.PushCtrl != nil {
-		c.notifyFileLike(ctx, reaction)
+		notifyAlbumMembers(ctx.Request.Context(), c.CollectionRepo, reaction.CollectionID, reaction.UserID, c.PushCtrl.NotifyFileLike)
 	}
 	return id, nil
-}
-
-func (c *ReactionsController) notifyFileLike(ctx *gin.Context, reaction socialentity.Reaction) {
-	ownerID, err := c.FileRepo.GetOwnerID(*reaction.FileID)
-	if err != nil {
-		log.WithError(err).Warn("file like push owner lookup failed; reaction remains saved")
-		return
-	}
-	if ownerID == reaction.UserID {
-		return
-	}
-	if _, err := c.AccessCtrl.GetCollection(ctx, &access.GetCollectionParams{
-		CollectionID: reaction.CollectionID,
-		ActorUserID:  ownerID,
-	}); err != nil {
-		return
-	}
-	go c.PushCtrl.NotifyFileLike(ctx.Request.Context(), ownerID)
 }
 
 func (c *ReactionsController) Diff(ctx *gin.Context, req ReactionDiffRequest) ([]socialentity.Reaction, bool, error) {
