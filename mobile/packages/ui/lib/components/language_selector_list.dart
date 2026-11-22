@@ -48,16 +48,19 @@ class _LanguageSelectorListState extends State<LanguageSelectorList> {
     );
   }
 
-  MenuComponent _menuItemForPicker(Locale locale) {
+  Widget _menuItemForPicker(Locale locale) {
     final selected = currentLocale == locale;
-    return MenuComponent(
+    return Semantics(
       key: ValueKey(locale.toString()),
-      title: getLocaleDisplayName(locale) + (kDebugMode ? ' ($locale)' : ''),
-      trailing: selected
-          ? Icon(Icons.check, color: context.componentColors.primary)
-          : null,
-      showOnlyLoadingState: true,
-      onTap: () => _selectLocale(locale),
+      selected: selected,
+      child: MenuComponent(
+        title: getLocaleDisplayName(locale) + (kDebugMode ? ' ($locale)' : ''),
+        trailing: selected
+            ? Icon(Icons.check, color: context.componentColors.primary)
+            : null,
+        showOnlyLoadingState: true,
+        onTap: () => _selectLocale(locale),
+      ),
     );
   }
 

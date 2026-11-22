@@ -1,0 +1,1 @@
+- Fixed localized collection and search text, and improved screen reader labels and selection announcements.
