@@ -102,6 +102,12 @@ export const AlbumContentHeader: React.FC<AlbumContentHeaderProps> = ({
             collectionSummary?.type == "hiddenItems" ||
             collectionSummary?.type == "archiveItems";
 
+        const albumsSectionHeight = albums.length
+            ? albumsHeaderHeight
+            : collectionSummary?.type == "archiveItems"
+              ? 54
+              : 78;
+
         setFileListHeader({
             component: shouldRenderCollectionHeader ? (
                 <Box sx={{ width: "100%" }}>
@@ -113,6 +119,7 @@ export const AlbumContentHeader: React.FC<AlbumContentHeaderProps> = ({
                                     : "section_archive",
                             )}
                             albums={albums}
+                            height={albumsSectionHeight}
                         />
                     )}
                     <CollectionHeader
@@ -145,7 +152,7 @@ export const AlbumContentHeader: React.FC<AlbumContentHeaderProps> = ({
             ),
             height:
                 72 +
-                (showAlbums ? (albums.length ? albumsHeaderHeight : 78) : 0) +
+                (showAlbums ? albumsSectionHeight : 0) +
                 (albumDescription ? descriptionHeight : 0),
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
