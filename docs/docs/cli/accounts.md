@@ -96,7 +96,7 @@ ente account totp enable
 
 The CLI prints a secret to add to your authenticator app, asks for a code from it, and prints `Authenticator protection is enabled.` Without prompts, run `ente account totp setup` to get the secret, then `ente account totp enable --input -` with `{"secret": "...", "totp": "..."}`. `ente account totp status` shows the current setting. This protects your account login and is separate from the codes stored in Auth.
 
-`ente account totp disable` asks for confirmation, then prints `Authenticator protection is disabled.` Add `--yes` to skip the question; `--no-input` requires it.
+`ente account totp disable` turns it off after confirmation (`--yes` skips the prompt).
 
 ## Require an email code at login
 
@@ -104,9 +104,7 @@ The CLI prints a secret to add to your authenticator app, asks for a code from i
 ente account email-mfa enable
 ```
 
-Prints `Email verification is enabled.` Every later login then asks for a code sent to your email. `ente account email-mfa disable` asks for confirmation (`--yes` skips it), and `ente account email-mfa status` shows the current setting. With `--json`, status returns `{"emailMfaEnabled": true, "canDisableEmailMfa": true}`.
-
-Email verification cannot be disabled until the account has password login (SRP) set up. `canDisableEmailMfa` is `false` until then; log in once with your password in an Ente app to set it up.
+Every later login then asks for a code sent to your email. `ente account email-mfa status` shows the setting, and `ente account email-mfa disable` turns it off after confirmation (`--yes` skips the prompt). Disabling needs password login (SRP), which an Ente app sets up the first time you log in there with your password.
 
 ## Change your email
 
@@ -114,16 +112,7 @@ Email verification cannot be disabled until the account has password login (SRP)
 ente account change-email --email new@example.com
 ```
 
-The CLI emails a code to the new address, asks for it, and prints `Email changed to new@example.com.` The email saved on this computer is updated; the local account name stays the same. Log in with the new email from then on.
-
-Without prompts, request the code first, using the account's app and server, then supply it as `{"otp": "123456"}`:
-
-```sh
-ente account request-otp --email new@example.com --app photos --purpose change
-ente account change-email --email new@example.com --input - --no-input
-```
-
-With `--json`, the result is `{"account": {...}}` with the updated account.
+The CLI emails a code to the new address, asks for it, and updates the email saved on this computer; the local account name stays the same. Without prompts, run `ente account request-otp --email new@example.com --app photos --purpose change` first, then `ente account change-email --email new@example.com --input -` with `{"otp": "123456"}`.
 
 ## Get a token
 
