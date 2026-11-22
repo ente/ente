@@ -178,7 +178,10 @@ impl MlDb {
                 self.read_all(&sql, parameters.as_slice(), read_face_without_embedding)?;
             if !faces.is_empty() {
                 if let Some(avatar_file_id) = avatar_file_id
-                    && let Some(face) = faces.iter().find(|face| face.file_id == avatar_file_id)
+                    && let Some(face) = faces
+                        .iter()
+                        .find(|face| Some(face.face_id.as_str()) == avatar_face_id)
+                        .or_else(|| faces.iter().find(|face| face.file_id == avatar_file_id))
                 {
                     return Ok(Some(face.clone()));
                 }
@@ -852,6 +855,14 @@ pub(in crate::ml_db) mod tests {
         assert_eq!(by_score, without_embedding(face(2, 0, 0.85, 300.0, false)));
         assert_eq!(
             cover(2, Some("p1"), Some("1_1"), None),
+            Some("1_1".to_string())
+        );
+        assert_eq!(
+            cover(1, Some("p1"), Some("1_0"), None),
+            Some("1_0".to_string())
+        );
+        assert_eq!(
+            cover(2, Some("p1"), Some("1_9"), None),
             Some("1_1".to_string())
         );
         assert_eq!(
