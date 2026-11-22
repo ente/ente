@@ -217,6 +217,25 @@ func sendMailWithEncryption(host, port string, auth smtp.Auth, from string, to [
 
 		return sendWithClient(client, auth, from, to, msg)
 
+	case "none":
+		// Credentials must not be sent over an unencrypted connection.
+		if auth != nil {
+			return stacktrace.NewError("smtp.encryption none cannot be used with smtp.username and smtp.password")
+		}
+		conn, err := net.Dial("tcp", addr)
+		if err != nil {
+			return stacktrace.Propagate(err, "failed to establish connection")
+		}
+		defer conn.Close()
+
+		client, err := smtp.NewClient(conn, host)
+		if err != nil {
+			return stacktrace.Propagate(err, "failed to create SMTP client")
+		}
+		defer client.Close()
+
+		return sendWithClient(client, auth, from, to, msg)
+
 	default:
 		return smtp.SendMail(addr, auth, from, to, msg)
 	}
