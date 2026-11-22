@@ -1913,6 +1913,16 @@
       "slug": "ocensa"
     },
     {
+      "title": "NY.gov",
+      "slug": "ny_gov",
+      "altNames": [
+        "NY Gov",
+        "New York State",
+        "my.ny.gov",
+        "login.ny.gov"
+      ]
+    },
+    {
       "title": "Odido"
     },
     {
