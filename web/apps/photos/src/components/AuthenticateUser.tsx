@@ -1,5 +1,4 @@
 import { useAuthPageConfig } from "ente-accounts/components/auth/AuthPageProvider";
-import { verifyMasterPassword } from "ente-accounts/components/VerifyMasterPasswordForm";
 import { checkSessionValidity } from "ente-accounts/services/session";
 import {
     ensureLocalUser,
@@ -7,6 +6,7 @@ import {
     type KeyAttributes,
     type LocalUser,
 } from "ente-accounts/services/user";
+import { verifyMasterPassword } from "ente-accounts/services/verify-master-password";
 import type { MiniDialogAttributes } from "ente-base/components/MiniDialog";
 import { SingleInputDialog } from "ente-base/components/SingleInputDialog";
 import type { ModalVisibilityProps } from "ente-base/components/utils/modal";
