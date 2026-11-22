@@ -36,11 +36,6 @@ export const v2HeaderRowSx = {
     gap: "12px",
 };
 export const v2TitleSx = { fontSize: 24, lineHeight: "32px", fontWeight: 600 };
-export const v2CompactTitleSx = {
-    ...v2TitleSx,
-    fontSize: "20px",
-    lineHeight: "28px",
-};
 export const v2CloseButtonSx = (theme: Theme) => ({
     width: 38,
     height: 38,

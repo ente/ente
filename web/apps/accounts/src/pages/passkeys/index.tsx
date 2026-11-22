@@ -403,7 +403,6 @@ const ManagePasskeyDrawer: React.FC<ManagePasskeyDrawerProps> = ({
                 <SingleInputDialog
                     {...renameDialogVisibilityProps}
                     title={t("rename_passkey")}
-                    titleSize="standard"
                     label={t("name")}
                     placeholder={t("enter_passkey_name")}
                     initialValue={passkey.friendlyName}
