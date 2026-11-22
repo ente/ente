@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:ui' show SemanticsAction;
 
 import 'package:ente_components/ente_components.dart';
 import 'package:ente_sharing/models/user.dart';
@@ -24,61 +23,6 @@ void main() {
     clearLockerConfigurationTestHandlers();
     await root.delete(recursive: true);
   });
-
-  testWidgets('Add to collection exposes Indonesian dismissal controls', (
-    tester,
-  ) async {
-    final semantics = tester.ensureSemantics();
-
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: ComponentTheme.lightTheme(app: ComponentApp.locker),
-        locale: const Locale('id'),
-        localizationsDelegates: StringsLocalizations.localizationsDelegates,
-        supportedLocales: const [Locale('en'), Locale('id')],
-        home: Scaffold(
-          body: Builder(
-            builder: (context) => TextButton(
-              onPressed: () => showAddToCollectionSheet(
-                context,
-                collections: [_collection(1, 'A')],
-              ),
-              child: const Text('Open'),
-            ),
-          ),
-        ),
-      ),
-    );
-
-    final sheetTitle = find.text('Tambahkan ke koleksi');
-    final closeButton = find.semantics.byPredicate(
-      (node) =>
-          node.getSemanticsData().flagsCollection.isButton &&
-          (node.label == 'Tutup' || node.tooltip == 'Tutup'),
-    );
-    final barrier = find.semantics.byPredicate(
-      (node) =>
-          node.label == 'Tutup' &&
-          node.getSemanticsData().hasAction(SemanticsAction.dismiss),
-    );
-
-    await tester.tap(find.text('Open'));
-    await tester.pumpAndSettle();
-    expect(sheetTitle, findsOne);
-    expect(closeButton, findsOne, reason: 'The close button announces Tutup');
-    expect(barrier, findsOne, reason: 'The modal barrier announces Tutup');
-    tester.semantics.tap(closeButton);
-    await tester.pumpAndSettle();
-    expect(sheetTitle, findsNothing);
-
-    await tester.tap(find.text('Open'));
-    await tester.pumpAndSettle();
-    tester.semantics.dismiss(barrier);
-    await tester.pumpAndSettle();
-    expect(sheetTitle, findsNothing);
-    expect(find.text('Open'), findsOne);
-    semantics.dispose();
-  }, variant: const TargetPlatformVariant({TargetPlatform.android}));
 
   for (final allowMultiple in [false, true]) {
     testWidgets(

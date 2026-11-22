@@ -17,7 +17,7 @@ class _BottomSheetHeaderComponent extends StatelessWidget {
     this.onClose,
     this.closeResult,
     this.showCloseButton = true,
-    required this.closeTooltip,
+    this.closeTooltip = 'Close',
     this.textAlign,
     this.isCentered = false,
   });
@@ -101,7 +101,7 @@ class BottomSheetComponent extends StatelessWidget {
     this.onClose,
     this.closeResult,
     this.showCloseButton = true,
-    this.closeTooltip,
+    this.closeTooltip = 'Close',
     this.textAlign,
     this.crossAxisAlignment = CrossAxisAlignment.start,
     this.padding = const EdgeInsets.all(Spacing.xl),
@@ -128,7 +128,7 @@ class BottomSheetComponent extends StatelessWidget {
   final FutureOr<void> Function()? onClose;
   final Object? closeResult;
   final bool showCloseButton;
-  final String? closeTooltip;
+  final String closeTooltip;
   final TextAlign? textAlign;
   final CrossAxisAlignment crossAxisAlignment;
   final EdgeInsets padding;
@@ -169,9 +169,7 @@ class BottomSheetComponent extends StatelessWidget {
                 onClose: onClose,
                 closeResult: closeResult,
                 showCloseButton: showCloseButton,
-                closeTooltip:
-                    closeTooltip ??
-                    MaterialLocalizations.of(context).closeButtonLabel,
+                closeTooltip: closeTooltip,
                 textAlign: textAlign,
                 isCentered: usesCenteredLayout,
               )
@@ -349,9 +347,6 @@ Future<T?> _showMobileBottomSheet<T>({
     enableDrag: enableDrag,
     backgroundColor: Colors.transparent,
     barrierColor: barrierColor,
-    barrierLabel: isDismissible
-        ? MaterialLocalizations.of(context).modalBarrierDismissLabel
-        : null,
     useSafeArea: true,
     builder: (context) {
       return PopScope(canPop: isDismissible, child: builder(context));
