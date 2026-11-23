@@ -295,10 +295,10 @@ class BadgeRevealPage extends RewindPage {
                                 "WHAT MY PHOTOS\nSAY ABOUT ME",
                                 textAlign: TextAlign.center,
                                 style: RewindTextStyles.display(
-                                  31.685,
+                                  26,
                                   color: RewindColors.white,
                                   height: 1,
-                                  letterSpacing: 0.6337,
+                                  letterSpacing: 0.52,
                                 ),
                               ),
                             ),

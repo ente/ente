@@ -29,12 +29,12 @@ typedef _Sparkle = ({String asset, Rect rect, int delayMs});
 const List<_Sparkle> _sparkles = [
   (
     asset: RewindAssets.pinkSparkle,
-    rect: Rect.fromLTWH(331.75, 96.75, 42.5, 42.5),
+    rect: Rect.fromLTWH(339.75, 93.75, 42.5, 42.5),
     delayMs: 700,
   ),
   (
     asset: RewindAssets.creamSparkle,
-    rect: Rect.fromLTWH(6.75, 543.75, 32.5, 32.5),
+    rect: Rect.fromLTWH(0, 560.75, 32.5, 32.5),
     delayMs: 850,
   ),
 ];
@@ -194,7 +194,7 @@ class MosaicPage extends RewindPage {
                 if (count != null)
                   RewindRevealLayer(
                     left: 24,
-                    top: 636,
+                    top: 653,
                     width: 342,
                     height: 82,
                     position: position,
@@ -230,7 +230,7 @@ class _ExploreTag extends StatelessWidget {
     required this.onTap,
   });
 
-  static const _center = Offset(192.7, 566.6);
+  static const _center = Offset(192.7, 583.6);
   static const _turn = -3.28;
   static const _showMs = 5000;
   static const _fadeMs = 420;
@@ -643,10 +643,10 @@ class _Wall extends StatefulWidget {
   });
 
   static const frame = Rect.fromLTWH(
-    48,
-    143,
-    293,
-    293 * _Tiling.rows / _Tiling.columns,
+    41,
+    140,
+    308,
+    308 * _Tiling.rows / _Tiling.columns,
   );
   static const border = 29.0;
   static const _opening = 10.0;
