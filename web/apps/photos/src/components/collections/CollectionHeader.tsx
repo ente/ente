@@ -204,13 +204,17 @@ export const CollectionHeader: React.FC<CollectionHeaderProps> = (props) => {
                     )}
                     <GalleryItemsSummary
                         nameProps={
-                            type == "archiveItems"
-                                ? { hidden: true }
-                                : isAlbum
-                                  ? { sx: { overflowWrap: "anywhere" } }
-                                  : undefined
+                            isAlbum
+                                ? { sx: { overflowWrap: "anywhere" } }
+                                : undefined
                         }
-                        name={type == "hiddenItems" ? t("hidden_items") : name}
+                        name={
+                            type == "hiddenItems"
+                                ? t("hidden_items")
+                                : type == "archiveItems"
+                                  ? t("archived_items")
+                                  : name
+                        }
                         description={isAlbum ? undefined : description}
                         descriptionMaxWidth={480}
                         onDescriptionHeightChange={

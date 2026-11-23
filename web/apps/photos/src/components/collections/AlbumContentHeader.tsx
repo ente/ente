@@ -107,11 +107,13 @@ export const AlbumContentHeader: React.FC<AlbumContentHeaderProps> = ({
 
         const hideItemCount = showAlbums && collectionSummary.fileCount == 0;
         const isArchive = collectionSummary?.type == "archiveItems";
-        const collectionHeaderHeight = hideItemCount || isArchive ? 0 : 72;
+        const archiveWithoutAlbums = isArchive && albums.length == 0;
+        const collectionHeaderHeight =
+            hideItemCount || archiveWithoutAlbums ? 0 : 72;
 
         const albumsSectionHeight =
             (albums.length ? albumsHeaderHeight : 54) +
-            (isArchive && !hideItemCount ? 18 : 0);
+            (archiveWithoutAlbums ? 18 : 0);
 
         setFileListHeader({
             component: shouldRenderCollectionHeader ? (
@@ -126,13 +128,13 @@ export const AlbumContentHeader: React.FC<AlbumContentHeaderProps> = ({
                             albums={albums}
                             height={albumsSectionHeight}
                             fileCount={
-                                isArchive && !hideItemCount
+                                archiveWithoutAlbums
                                     ? collectionSummary.fileCount
                                     : undefined
                             }
                         />
                     )}
-                    {!hideItemCount && !isArchive && (
+                    {!hideItemCount && !archiveWithoutAlbums && (
                         <CollectionHeader
                             {...{
                                 activeCollection,
