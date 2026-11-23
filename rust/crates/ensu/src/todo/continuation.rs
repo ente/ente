@@ -20,10 +20,13 @@ impl ListContinuation {
     }
 }
 
-fn remaining_actions(text: &str) -> (bool, bool) {
+fn remaining_actions(text: &str, todos: &[Todo]) -> (bool, bool) {
     let mut actions = (false, false);
-    for clause in super::matching::command_clauses(text).iter().skip(1) {
-        let Some((verb, target)) = clause.split_first() else {
+    for clause in super::matching::command_clauses(text, todos).iter().skip(1) {
+        if clause.in_title {
+            continue;
+        }
+        let Some((verb, target)) = clause.words.split_first() else {
             continue;
         };
         if target.is_empty()
@@ -50,7 +53,7 @@ fn remaining_actions(text: &str) -> (bool, bool) {
 impl ToolContinuation for ListContinuation {
     fn follow_up(&self, request: &ChatRequest, outcome: &ToolOutcome) -> Option<ChatRequest> {
         let tools = request.tools.as_ref()?;
-        let actions = remaining_actions(&tools.quote_source);
+        let actions = remaining_actions(&tools.quote_source, &self.todos);
         if outcome.calls.is_empty()
             || outcome.calls.iter().any(|call| call.name != LIST_TOOL)
             || actions == (false, false)

@@ -304,6 +304,16 @@ fn is_positional(task: &str, user_text: &str, labels: &[String]) -> bool {
     vague || quoted && points_at_item(task, &["one", "ones", "task", "item", "thing"], false)
 }
 
+pub(super) fn task_reference(text: &str) -> bool {
+    is_positional(text, text, &[])
+        || !pointers(text).is_empty()
+        || plain_words(text)
+            .iter()
+            .find(|word| word.as_str() != "the")
+            .and_then(|word| word.parse::<usize>().ok())
+            .is_some_and(|number| bears_out(text, usize::MAX, number))
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum Pointer {
     Nth(usize),

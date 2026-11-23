@@ -136,66 +136,196 @@ pub(crate) fn has_search_words(query: &str) -> bool {
     words != ["to", "dos"] && words.iter().any(|word| !is_ignored(word))
 }
 
-pub(super) fn command_clauses(text: &str) -> Vec<Vec<String>> {
-    let mut outside = String::new();
+pub(super) struct CommandClause<'a> {
+    text: &'a str,
+    pub words: Vec<String>,
+    pub in_title: bool,
+}
+
+const UNSUPPORTED_COMMANDS: &[&str] = &[
+    "edit",
+    "delete",
+    "remove",
+    "reschedule",
+    "rename",
+    "move",
+    "change",
+];
+
+pub(super) fn command_clauses<'a>(text: &'a str, todos: &[Todo]) -> Vec<CommandClause<'a>> {
+    let mut clauses = Vec::new();
+    let mut push = |start, end, words: &mut Vec<String>| {
+        clauses.push((
+            start,
+            end,
+            std::mem::take(words)
+                .into_iter()
+                .skip_while(|word| {
+                    matches!(
+                        word.as_str(),
+                        "please" | "can" | "could" | "would" | "you" | "also"
+                    )
+                })
+                .collect::<Vec<_>>(),
+        ));
+    };
+    let mut start = 0;
+    let mut word_start = None;
+    let mut words = Vec::new();
+    let mut tokens = Vec::new();
     let mut quote = None;
-    let chars: Vec<_> = text.chars().collect();
-    for (index, &c) in chars.iter().enumerate() {
-        if quote == Some(c) {
-            quote = None;
-        } else if quote.is_some() {
+    for (index, c) in text
+        .char_indices()
+        .chain(std::iter::once((text.len(), ' ')))
+    {
+        if let Some(end) = quote {
+            if c == end {
+                quote = None;
+            }
             continue;
-        } else if matches!(c, '"' | '“' | '‘')
-            || c == '\'' && (index == 0 || !chars[index - 1].is_alphanumeric())
-        {
+        }
+        if c.is_alphanumeric() || c == '\'' && word_start.is_some() {
+            word_start.get_or_insert(index);
+            continue;
+        }
+        if let Some(at) = word_start.take() {
+            let word = text[at..index].to_lowercase();
+            tokens.extend(self::words(&word).into_iter().map(|word| (at, index, word)));
+            if matches!(word.as_str(), "and" | "then" | "but") {
+                if word != "and" {
+                    tokens.push((at, index, String::new()));
+                }
+                push(start, at, &mut words);
+                start = index;
+            } else {
+                words.push(word);
+            }
+        }
+        if matches!(c, '"' | '“' | '‘' | '\'') {
             quote = Some(match c {
                 '“' => '”',
                 '‘' => '’',
                 _ => c,
             });
-            outside.push_str(" quoted ");
+            words.push("quoted".to_owned());
+            tokens.push((index, index + c.len_utf8(), String::new()));
         } else if matches!(c, ';' | '\n') {
-            outside.push_str(" then ");
-        } else {
-            outside.push(c);
+            if c == ';' || tokens.last().is_none_or(|(_, _, word)| word != "and") {
+                tokens.push((index, index + c.len_utf8(), String::new()));
+            }
+            push(start, index, &mut words);
+            start = index + c.len_utf8();
         }
     }
-    let outside = outside.to_lowercase();
-    let words: Vec<_> = outside
-        .split(|c: char| !c.is_alphanumeric() && c != '\'')
-        .filter(|word| !word.is_empty())
-        .collect();
-    words
-        .split(|word| matches!(*word, "and" | "then" | "but"))
-        .map(|clause| {
-            clause
+    push(start, text.len(), &mut words);
+    let mut named = Vec::new();
+    for todo in todos {
+        let name = self::words(&todo.title);
+        if name.is_empty() {
+            continue;
+        }
+        for span in tokens.windows(name.len()) {
+            if name
                 .iter()
-                .copied()
-                .skip_while(|word| {
-                    matches!(*word, "please" | "can" | "could" | "would" | "you" | "also")
-                })
-                .map(str::to_owned)
-                .collect()
-        })
-        .collect()
+                .zip(span)
+                .all(|(word, (_, _, token))| word == token)
+            {
+                named.push(span[0].0..span[span.len() - 1].1);
+            }
+        }
+    }
+    let mut parsed = Vec::new();
+    for (start, end, words) in clauses {
+        let Some(command) = words.first() else {
+            continue;
+        };
+        let clause = &text[start..end];
+        let in_title = clause.to_ascii_lowercase().find(command).is_some_and(|at| {
+            named.iter().any(|range| {
+                range.start < start
+                    && range.end >= start + at + command.len()
+                    && (range.end >= end || content_words(&text[range.end..end]).is_empty())
+            })
+        });
+        parsed.push(CommandClause {
+            text: clause,
+            words,
+            in_title,
+        });
+    }
+    parsed
 }
 
 pub(crate) fn unsupported_task_change(text: &str, todos: &[Todo]) -> bool {
-    command_clauses(text).iter().any(|clause| {
-        clause.first().is_some_and(|command| {
-            matches!(
-                command.as_str(),
-                "edit" | "delete" | "remove" | "reschedule" | "rename" | "move" | "change"
-            )
-        })
-    }) && (words(text).iter().any(|word| {
-        matches!(
-            word.as_str(),
-            "task" | "tasks" | "todo" | "todos" | "list" | "item"
-        )
-    }) || todos
-        .iter()
-        .any(|todo| mentions_task(&todo.title, text, &|_| false)))
+    let clauses = command_clauses(text, todos);
+    clauses.iter().enumerate().any(|(index, clause)| {
+        let Some(command) = clause
+            .words
+            .first()
+            .filter(|command| UNSUPPORTED_COMMANDS.contains(&command.as_str()))
+        else {
+            return false;
+        };
+        let Some(at) = clause.text.to_ascii_lowercase().find(command.as_str()) else {
+            return true;
+        };
+        let target = &clause.text[at + command.len()..];
+        super::refine::task_reference(target)
+            || words(clause.text).iter().any(|word| {
+                matches!(
+                    word.as_str(),
+                    "task" | "tasks" | "todo" | "todos" | "list" | "item"
+                )
+            })
+            || todos
+                .iter()
+                .any(|todo| mentions_task_in_clauses(&todo.title, &clauses[index..]))
+    })
+}
+
+fn mentions_task_in_clauses(title: &str, clauses: &[CommandClause<'_>]) -> bool {
+    let content = content_words(title);
+    let title_words = words(title);
+    let mut text = String::new();
+    for (index, clause) in clauses.iter().enumerate() {
+        if clause.words.is_empty() {
+            continue;
+        }
+        if index > 0
+            && clause.words.first().is_some_and(|word| {
+                (UNSUPPORTED_COMMANDS.contains(&word.as_str())
+                    || matches!(
+                        word.as_str(),
+                        "add"
+                            | "save"
+                            | "remind"
+                            | "finish"
+                            | "complete"
+                            | "tick"
+                            | "check"
+                            | "mark"
+                            | "list"
+                            | "show"
+                    ))
+                    && !title_words.iter().any(|title| same_word(title, word))
+            })
+        {
+            break;
+        }
+        let words = content_words(clause.text);
+        if !content
+            .iter()
+            .any(|word| words.iter().any(|other| same_word(word, other)))
+        {
+            break;
+        }
+        text.push_str(clause.text);
+        text.push(' ');
+        if mentions_task(title, &text, &|_| false) {
+            return true;
+        }
+    }
+    false
 }
 
 pub(crate) fn find_tasks<'a>(todos: &[&'a Todo], query: &str) -> Vec<&'a Todo> {
