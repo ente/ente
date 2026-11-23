@@ -12,11 +12,17 @@ interface AlbumsHeaderProps {
     title: string;
     albums: CollectionSummary[];
     height: number;
+    fileCount?: number;
 }
 
 export const albumsHeaderHeight = 311;
 
-export const AlbumsHeader = ({ title, albums, height }: AlbumsHeaderProps) => {
+export const AlbumsHeader = ({
+    title,
+    albums,
+    height,
+    fileCount,
+}: AlbumsHeaderProps) => {
     const { backToAlbums } = usePhotosNavigation();
     const [scrollOffset, setScrollOffset] = useState(0);
 
@@ -35,17 +41,33 @@ export const AlbumsHeader = ({ title, albums, height }: AlbumsHeaderProps) => {
                         <ArrowBackIcon sx={{ fontSize: 20 }} />
                     </IconButton>
                 </Tooltip>
-                <Typography
-                    component="h2"
-                    sx={{
-                        fontFamily: '"Outfit Variable", Outfit, sans-serif',
-                        fontWeight: 600,
-                        fontSize: 24,
-                        lineHeight: "32px",
-                    }}
-                >
-                    {title}
-                </Typography>
+                <Box sx={{ minWidth: 0 }}>
+                    <Typography
+                        component="h2"
+                        sx={{
+                            fontFamily: '"Outfit Variable", Outfit, sans-serif',
+                            fontWeight: 600,
+                            fontSize: 24,
+                            lineHeight: "32px",
+                        }}
+                    >
+                        {title}
+                    </Typography>
+                    {fileCount !== undefined && (
+                        <Typography
+                            variant="small"
+                            sx={{
+                                color: "text.muted",
+                                fontSize: 14,
+                                fontWeight: 500,
+                                lineHeight: "20px",
+                                mt: "2px",
+                            }}
+                        >
+                            {t("photos_count", { count: fileCount })}
+                        </Typography>
+                    )}
+                </Box>
             </Stack>
             {albums.length > 0 && (
                 <Box
