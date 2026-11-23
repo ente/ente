@@ -1331,11 +1331,11 @@ class _Tube extends CustomPainter {
   static const _fogSteps = 8;
   static const _softBounds = Rect.fromLTRB(-120, -120, 510, 964);
   static const _sharpWithin = 230.0;
-  static const _softFrom = 470.0;
+  static const _softFrom = 390.0;
   static final _softBlur = Paint()
     ..imageFilter = ui.ImageFilter.blur(
-      sigmaX: 2.6,
-      sigmaY: 2.6,
+      sigmaX: 4,
+      sigmaY: 4,
       tileMode: TileMode.clamp,
     );
   static final _softMask = Paint()
