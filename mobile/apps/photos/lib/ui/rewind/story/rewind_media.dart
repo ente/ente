@@ -158,16 +158,12 @@ class RewindMedia {
 
   EnteFile? photo(int id) => _pick([id], 1).firstOrNull;
 
-  List<EnteFile> extraPhotos(
-    Int64List ids,
-    int slots, {
-    bool preloadRemote = false,
-  }) {
+  List<EnteFile> extraPhotos(Int64List ids, int slots, {bool preload = false}) {
     final files = [
       for (final id in ids.inner.map(_fileId).toSet()) ?_files[id],
     ].take(slots).toList();
-    if (preloadRemote) {
-      _handedOut.addAll(files.where((file) => file.isRemoteOnlyFile));
+    if (preload) {
+      _handedOut.addAll(files.where((file) => file.isUploaded));
     }
     return files;
   }
